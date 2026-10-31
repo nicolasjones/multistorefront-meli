@@ -63,50 +63,67 @@ extra_javascript:
 nav:
   - Inicio: index.md
   - Producto:
-      - Qué es MSF: producto/README.md
-      - Capacidades: producto/capacidades.md
-      - Ventas · comprobantes: producto/ventas-comprobantes.md
-      - Ventas · listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
-      - Ventas · cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
-      - Ventas · despacho y faltantes: producto/ventas-despacho-y-faltantes.md
-      - Ventas · devoluciones (RMA): producto/ventas-rma-devoluciones.md
-      - Precios y dólar: producto/precios-dolar.md
-      - Precios e IVA: producto/precios-e-iva.md
-      - Tiendas online: producto/tiendas-online.md
-      - Dominio, identidad y vidriera: producto/tienda-dominio-e-identidad.md
-      - Cuenta web del cliente: producto/cuenta-web-cliente.md
-      - Perfil propio y cambio de contraseña: producto/perfil-propio.md
-      - Acceso, recuperación y sesión: acceso-ingreso.md
-      - Aislamiento por organización: aislamiento-por-organizacion.md
-      - Usuarios y roles: producto/usuarios-y-roles.md
-      - Administración de la organización: administracion-organizacion.md
-      - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
-      - Empresas (datos y estado de la tienda): empresas.md
-      - Empresa activa: empresa-activa.md
-      - Consultas de las tiendas: producto/consultas.md
-      - Rentabilidad: producto/rentabilidad.md
-      - Migración inicial de datos: producto/migracion-inicial-de-datos.md
-      - Avisos por correo y listas configurables: producto/avisos-y-listas.md
-      - Clientes: clientes.md
-      - Proveedores: proveedores.md
-      - Ingreso de mercadería por proveedor: producto/ingreso-de-mercaderia.md
-      - Ventas impresión (factura, remito, presupuesto): producto/ventas-impresion.md
-      - Glosario de negocio: producto/glosario.md
-      - "Stock: movimientos, historial y mínimo: stock.md"
-      - "Stock: depósitos y reservas: producto/stock-depositos-y-reservas.md"
-      - "Stock: lotes e inventario: producto/stock-lotes-e-inventario.md"
-      - "Stock: carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md"
-      - Service técnico (listado, ítems e impresión): producto/service-listado-items-impresion.md
-      - "Service técnico: repuestos y stock": producto/service-repuestos-y-stock.md
+      - Bienvenida: producto/README.md
+      - Qué podés hacer con el sistema: producto/capacidades.md
+      - Primeros pasos:
+          - Ingresar y recuperar tu contraseña: producto/acceso-y-sesion.md
+          - Tu perfil: producto/perfil-propio.md
+          - Tu organización y tus empresas: producto/organizacion-y-empresas.md
+          - Usuarios y roles: producto/usuarios-y-roles.md
+          - Actividad: producto/actividad.md
+      - Catálogo y precios:
+          - Productos y categorías: producto/catalogo-productos.md
+          - Cotización del dólar: producto/precios-dolar.md
+          - Precios, escalas e IVA: producto/precios-e-iva.md
+          - Rentabilidad: producto/rentabilidad.md
+      - Stock y compras:
+          - "Stock: ver, mover y controlar": producto/stock-movimientos.md
+          - Depósitos, traslados y reservas: producto/stock-depositos-y-reservas.md
+          - Lotes e inventario: producto/stock-lotes-e-inventario.md
+          - Carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md
+          - Proveedores: producto/proveedores.md
+          - Ingreso de mercadería: producto/ingreso-de-mercaderia.md
+      - Ventas:
+          - Presupuestos y facturas: producto/ventas-comprobantes.md
+          - Listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
+          - Cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
+          - Despacho y faltantes: producto/ventas-despacho-y-faltantes.md
+          - Devoluciones y reclamos (RMA): producto/ventas-rma-devoluciones.md
+          - Imprimir factura, remito y presupuesto: producto/ventas-impresion.md
+          - Historial de ventas y cobros anteriores: producto/ventas-historial-consulta.md
+      - Clientes:
+          - Clientes: producto/clientes.md
+          - Cuenta web del cliente: producto/cuenta-web-cliente.md
+      - Service técnico:
+          - Reparaciones, ítems e impresión: producto/service-listado-items-impresion.md
+          - Repuestos y stock: producto/service-repuestos-y-stock.md
+      - Tiendas online:
+          - Tiendas online: producto/tiendas-online.md
+          - Dominio, identidad y textos: producto/tienda-dominio-e-identidad.md
+          - Consultas de las tiendas: producto/consultas.md
+      - Configuración y datos:
+          - Avisos por correo y listas configurables: producto/avisos-y-listas.md
+          - Migración inicial de datos: producto/migracion-inicial-de-datos.md
+      - Glosario: producto/glosario.md
   - Técnico:
       - Empezar: tecnico/README.md
+      - Guías de referencia (antes en Producto):
+          - Acceso, recuperación y sesión: acceso-ingreso.md
+          - Aislamiento por organización: aislamiento-por-organizacion.md
+          - Administración de la organización: administracion-organizacion.md
+          - Solicitar acceso desde la pantalla restringida: solicitar-acceso.md
+          - Empresas (datos y estado de la tienda): empresas.md
+          - Empresa activa: empresa-activa.md
+          - Clientes: clientes.md
+          - Proveedores: proveedores.md
+          - "Stock: movimientos, historial y mínimo": stock.md
       - Arquitectura: tecnico/arquitectura.md
       - Datos y DER: tecnico/datos.md
       - Acceso y organización (MSF-119): tecnico/acceso.md
-      - "Stock: movimientos, historial y mínimo: tecnico/stock-movimientos.md"
-      - "Stock: depósitos y reservas: tecnico/stock-depositos-y-reservas.md"
-      - "Stock: lotes e inventario: tecnico/stock-lotes-e-inventario.md"
-      - "Stock: carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md"
+      - "Stock: movimientos, historial y mínimo": tecnico/stock-movimientos.md
+      - "Stock: depósitos y reservas": tecnico/stock-depositos-y-reservas.md
+      - "Stock: lotes e inventario": tecnico/stock-lotes-e-inventario.md
+      - "Stock: carga inicial, exportación y avisos": tecnico/stock-carga-exportacion-y-avisos.md
       - Empresas (construcción interna): tecnico/empresas.md
       - Organizaciones nuevas (alta y aislamiento): tecnico/organizaciones-nuevas.md
       - Service técnico (listado, ítems e impresión): tecnico/service-listado-items-impresion.md

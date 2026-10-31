@@ -1,114 +1,99 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Precios y dólar (MSF-116)
+# Cargar la cotización del dólar
 
-**Épica:** MSF-116 · **Historias:** F-PRE-02 (carga diaria), F-PRE-03 (vista previa y recálculo),
-F-PRE-04 (historial) y F-PRE-05 (aviso). **Spec:** `specs/20261023-120000-dolar-y-recalculo/`
-(rama de la épica, pendiente de merge a `main`). Detalle técnico:
-[Dólar y recálculo](../tecnico/dolar-y-recalculo.md).
+## Para qué sirve
 
-Esta página cubre **la cotización del dólar** con la que se calculan los precios de los productos en
-dólares. Las reglas de precio por empresa, el IVA y las escalas vienen de **MSF-114** (`precios-e-iva`,
-también en rama): ver [Precios e IVA](precios-e-iva.md). Esta épica no las cambia: cambia **qué cotización
-usan**.
+Los productos cargados en dólares tienen su precio en pesos según la cotización del día. Una vez por día cargás cuánto vale el dólar, ves qué precios van a cambiar y confirmás. Así todas las tiendas pasan a los precios nuevos al mismo tiempo. Los productos cargados en pesos no se tocan.
 
-## Qué resuelve
+## Quién puede hacerlo
 
-- El administrador **carga a mano el dólar del día**, una vez por día, y ve antes de confirmar **qué
-  precios van a cambiar** en cada empresa.
-- Al confirmar, los precios en dólares de **todas las empresas se recalculan juntos**: ninguna puede
-  quedar con un valor distinto de otra.
-- Queda un **historial de cargas que no se puede editar ni borrar**, con quién cargó cada valor, la
-  variación y cuántos precios se recalcularon.
-- Si hoy no se cargó el dólar, el sistema **avisa** en la pantalla de Cotización y en la portada.
+Con los permisos que trae el sistema por defecto:
 
-## Para quién
-
-| Persona | Qué hace con esta entrega |
+| Tarea | Quién |
 |---|---|
-| **Administrador** | Carga el dólar del día, ve la vista previa, confirma el recálculo o lo descarta, y consulta el historial. |
-| **Administración** | Hoy la matriz de permisos le da **edición** en «Cotización del dólar» (el Jira dice «solo el administrador»); se ajusta desde Roles, sin tocar código. |
-| **Roles con lectura** | Ven la cotización vigente, el historial y el aviso, sin botones de carga. |
-| **Resto de los roles** | No ven la pantalla ni el aviso; la base rechaza la consulta igual. |
+| Cargar y confirmar la cotización | Administrador y Administración |
+| Ver la cotización vigente y el historial | Operador, Mostrador y Consulta |
+| Entrar a la pantalla | Depósito y Técnico no la ven |
 
-## Cómo se usa
+El Administrador puede ajustar esto en [Usuarios y roles](usuarios-y-roles.md).
 
-1. **Abrir la pantalla:** *Administración → Cotización del dólar* (`/cotizacion`). La tarjeta
-   **Vigente** muestra el valor, «Última carga: <fecha> por <quién>», «Productos con precio en USD» y el
-   indicador **Al día** / **Sin cargar hoy**.
-2. **Cargar:** el botón **Cargar cotización** (solo con edición) abre el diálogo **Cargar dólar del día**.
-   El campo «Dólar del día (pesos por dólar)» acepta `1490`, `1490,50` o `1.490,5`; muestra «Anterior» y
-   la **Variación**. Un valor vacío, cero, negativo o no numérico no deja avanzar. Una variación mayor al
-   **15 %** muestra «Variación inusual» (solo avisa, no bloquea).
-3. **Queda pendiente:** al continuar, la cotización no cambia ningún precio y **vence a las 24 horas**.
-   Volver a cargar reemplaza la pendiente.
-4. **Ver el impacto:** «Qué va a cambiar» muestra un mosaico por empresa («N precios · productos en USD
-   visibles») y una muestra de productos con «<Empresa> hoy» y «Nuevo». El pie aclara el redondeo al
-   **$ 10 más cercano**.
-5. **Confirmar:** **Aplicar y recalcular** aplica el valor a todas las empresas y avisa «Cotización
-   aplicada · N precios recalculados». Si la variación no llega al umbral, el botón dice **Registrar
-   cotización**, se avisa «Sin recálculo» y los precios no cambian.
-6. **Cancelar** descarta la cotización pendiente y no deja cambios (supuesto a confirmar, ver *Límites*).
-7. **Historial:** «Historial de cargas» lista *Fecha*, *Valor*, *Variación*, *Cargó* y *Precios*
-   («N precios» o «Sin cambios (< 1 %)»), de la más nueva a la más vieja y paginado.
+## Dónde lo encontrás
 
-## Reglas de negocio que respeta
+En el menú de la izquierda: **Administración → Cotización del dólar**.
 
-- **Una cotización para toda la organización**, no por empresa: la empresa activa de la barra superior no
-  cambia el valor ni la pantalla.
-- **Los precios no se guardan en pesos:** se calculan al leer con la cotización aplicada. «Recalcular»
-  es cambiar esa cotización en **una sola transacción**; por eso todas las empresas cambian juntas.
-- **Hasta confirmar un valor nuevo, rigen los precios del último conocido.**
-- **Umbral fijo de 1 %:** con una variación de 1 % o más se recalcula; con menos, la cotización **se
-  registra** en el historial pero los precios siguen igual. Justo 1 % recalcula. El umbral se mide contra
-  la **cotización vigente** (no contra la última aplicada): es una decisión abierta.
-- **El redondeo es $ 10**, el alcance es «una para todo el sistema» y el aviso está siempre activo: en el
-  lanzamiento son valores fijos.
-- **«Precios recalculados»** cuenta productos activos en dólares × empresas activas.
-- **«Hoy» es el día calendario de Buenos Aires**, todos los días (sin calendario de feriados). Un dólar
-  **pendiente sin confirmar no cuenta** como cargado.
-- **Un dólar vencido** (más de 24 h sin confirmar) se trata como inexistente al consultar; confirmarlo da
-  un error claro y no aplica nada.
+![Pantalla Cotización del dólar con el valor vigente, la cantidad de productos en USD y el historial de cargas](img/cotizacion/01-cotizacion.png)
 
-## Empresa activa
+*Administración → Cotización del dólar: valor vigente arriba e historial de cargas debajo.*
 
-**No aplica.** La cotización es de la organización, no de una empresa: cambiar de empresa en la barra
-superior no altera la pantalla, el historial ni el aviso. Hay un test que lo cubre.
+## Qué ves en la pantalla
 
-## Límites y fuera de alcance
+- **Vigente**: el valor del dólar con el que se calculan hoy los precios, quién lo cargó y cuándo («Cargada hoy 10:58 por…»).
+- **Al día** o **Sin cargar hoy**: te dice si ya cargaste la cotización de hoy. Cuando falta, aparece además un aviso «Todavía no se cargó el dólar de hoy» con el valor que se sigue usando y un botón **Cargar ahora**.
+- **Productos con precio en USD**: cuántos productos dependen del dólar.
+- **Historial de cargas**: cada valor que se cargó, con **Fecha**, **Valor**, **Variación** respecto de la carga anterior, quién lo **Cargó** y qué pasó con los **Precios** («198 precios» recalculados, o «Sin cambios (< 1 %)»). Las más nuevas van primero; usá **Anterior** y **Siguiente** para recorrerlo. El historial no se puede editar ni borrar.
 
-- **Configuración (F-PRE-06, Etapa 2):** elegir «una por empresa», cambiar el umbral, el redondeo o
-  apagar el aviso. En esta entrega esos valores son fijos.
-- **Mercado Libre (Etapa 2):** las publicaciones de ML no aparecen en la vista previa ni en el historial
-  todavía.
-- **Historial importado del panel anterior (MSF-275):** es otra pantalla y otra tabla; no se mezcla con
-  el historial nuevo de cargas.
-- **Sin carga automática ni worker:** el dólar lo carga una persona; el vencimiento de la pendiente se
-  resuelve al consultar.
-- **Decisiones abiertas** (spec, *Decisiones abiertas*): si el umbral debe medirse contra la cotización
-  aplicada; si «Cancelar» debe descartar la cotización; si el aviso corre fines de semana y feriados; y
-  si la carga es solo del Administrador (hoy la matriz también da edición a Administración).
-- El registro de actividad de los eventos `cotizacion.*` y `recalculo.*` usa el registro existente; la
-  épica que lo formaliza no está cargada en Jira.
+![Historial de cargas de la cotización con fecha, valor, variación, quién cargó y cantidad de precios recalculados](img/precios-dolar/05-historial.png)
 
-## Permisos
+*El historial de cargas: cada valor con su variación y los precios que se recalcularon.*
 
-La sección es **`cotizacion_dolar`** de la matriz de permisos:
+La cotización es una sola para todo el negocio: no cambia según la empresa que tengas elegida arriba.
 
-| Nivel | Puede |
+## Cargar la cotización del día
+
+1. Entrá a **Administración → Cotización del dólar**.
+2. Hacé clic en **Cargar cotización** (o en **Cargar ahora**, en el aviso).
+
+![Pantalla Cotización del dólar con el botón Cargar cotización resaltado con el número 1](img/precios-dolar/02-boton-cargar.png)
+
+*Paso 2: **Cargar cotización** está arriba a la derecha.*
+
+3. En **Dólar del día (pesos por dólar)** escribí el valor. Sirven los formatos «1490», «1490,50» o «1.490,5». Debajo ves el valor **Anterior** y la **Variación**.
+
+![Cuadro Cargar dólar del día con el valor 1210 escrito, el valor anterior y la variación](img/precios-dolar/03-formulario-valor.png)
+
+*Paso 3: el valor escrito y, debajo, la comparación con el anterior.*
+
+4. Si la variación supera el 15 %, aparece «Variación inusual». Es solo un aviso: revisá que el valor esté bien escrito y seguí.
+
+![Cuadro Cargar dólar del día con un valor 1700 y el aviso amarillo Variación inusual](img/precios-dolar/04-variacion-inusual.png)
+
+*Paso 4: si el valor se aleja más del 15 % del anterior, aparece el aviso amarillo.*
+
+5. Hacé clic en **Cargar dólar**. Todavía no cambió ningún precio.
+6. Se abre el paso siguiente con **Qué va a cambiar**: un cuadro por empresa con la cantidad de precios que se modifican y una muestra de productos con «<Empresa> hoy» y «Nuevo». Los precios se redondean al $ 10 más cercano.
+7. Si estás de acuerdo, hacé clic en **Aplicar y recalcular**. Vas a ver «Cotización aplicada · N precios recalculados». Si no, hacé clic en **Cancelar**: se descarta lo que cargaste y todo queda como estaba.
+
+### Cuando el cambio es muy chico
+
+Si el dólar varió menos de un 1 % respecto del valor vigente, el sistema no recalcula precios: avisa «Sin recálculo» y el botón dice **Registrar cotización**. El valor queda anotado en el historial, pero los precios siguen igual.
+
+## Cuándo se recalculan los precios en pesos
+
+- Solo cuando confirmás con **Aplicar y recalcular**. Hasta entonces rigen los precios del último dólar confirmado.
+- Se recalculan todas las tiendas juntas, para que ninguna quede con un valor distinto de otra.
+- Si no confirmás en un día, la cotización cargada vence y hay que volver a cargarla.
+- Los productos en pesos no cambian con el dólar.
+
+## Preguntas frecuentes
+
+**¿Me equivoqué al escribir el valor, qué hago?** Si todavía no confirmaste, hacé clic en **Cancelar** y cargalo de nuevo. Si ya aplicaste, cargá la cotización correcta: queda en el historial y se recalcula otra vez.
+
+**¿Por qué mis precios en pesos no cambiaron?** Puede ser que el dólar haya variado menos de un 1 %, o que todavía no hayas hecho clic en **Aplicar y recalcular**.
+
+**¿Qué pasa con las tiendas online?** Muestran el precio nuevo en cuanto confirmás.
+
+## Si algo no sale
+
+| Mensaje | Qué significa y qué hacer |
 |---|---|
-| `edicion` | Ver, cargar, previsualizar, confirmar y descartar. |
-| `lectura` | Ver la cotización, el historial y el aviso. |
-| `ninguno` | Nada: sin menú, la ruta no abre y la consulta directa falla. |
+| **Ingresá un valor válido, por ejemplo 1490 o 1490,50.** | El valor está vacío, es cero o tiene letras. Corregilo. |
+| **La cotización cargada venció; volvé a cargarla.** | Pasó demasiado tiempo desde que la cargaste sin confirmarla. Cargala de nuevo. |
+| **Tu rol no puede cargar la cotización del dólar.** | Pedile al Administrador que te dé el permiso, o pedile que la cargue. |
+| **No pudimos cargar / confirmar la cotización. Intentá de nuevo.** | Falló la conexión. Probá otra vez. |
+| **No pudimos calcular qué va a cambiar.** | Usá el botón **Reintentar** del paso de vista previa. |
 
-Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
-
-## Estado
-
-Implementado en la rama de la épica (MSF-246, MSF-267, MSF-286, MSF-305 y el cierre MSF-547; merge
-`872f09a`, PR #304), **pendiente de merge a `main`**. Tiene pgTAP, Vitest y un E2E escrito que se corre
-contra Supabase local. Cómo está construido: [Dólar y recálculo](../tecnico/dolar-y-recalculo.md).
+Ver también: [Precios e IVA](precios-e-iva.md) y [Productos y categorías](catalogo-productos.md).

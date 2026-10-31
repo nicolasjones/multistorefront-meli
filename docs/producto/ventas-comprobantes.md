@@ -1,129 +1,185 @@
 ---
 owner: producto
-sources:
-  - specs
-  - design/pantallas
+sources: []
 ---
 
-# Ventas · comprobantes (MSF-159)
+# Crear un presupuesto o una factura
 
-Esta página explica **qué resuelve** la épica MSF-159 (spec `ventas-comprobantes`) para quien opera el
-negocio. El detalle de datos, RPC y operación está en [Ventas · comprobantes (técnico)](../tecnico/ventas-comprobantes.md).
+## Para qué sirve
 
-## Qué resuelve
+Acá cargás una **factura** o un **presupuesto** para un cliente: elegís quién compra, en qué tienda, por qué canal, y sumás los productos con su precio. El sistema calcula el precio según el tipo de cliente y la cantidad, y te muestra cuánto hay en cada depósito.
 
-Cargar una **factura interna** o un **presupuesto interno** para un cliente existente o para
-**Consumidor final**, con el precio que corresponde según el **tipo de cliente** y la **escala por
-cantidad**, indicando **desde qué depósito sale la mercadería**. Al confirmar la factura, el stock baja del
-depósito elegido en cada línea.
+Los comprobantes son **internos**: no son facturas fiscales y no tienen validez impositiva. Las impresiones llevan la leyenda «Documento no válido como factura».
 
-El comprobante es **interno: no es fiscal** (no emite CAE ni tiene validez impositiva).
+## Quién puede hacerlo
 
-## Para quién
+| Rol | Qué puede hacer |
+|---|---|
+| **Administrador, Administración, Operador y Mostrador** | Crear y editar facturas y presupuestos, y confirmar facturas. |
+| **Administrador y Operador** | Además, cambiar a mano el precio de una línea (es un permiso aparte; el Administrador puede darlo o sacarlo por rol). |
+| **Depósito y Consulta** | Solo ven los comprobantes. Si abren uno, aparece el aviso «Tu rol puede ver este comprobante, no modificarlo.» |
 
-- **Operador / Mostrador:** carga facturas y presupuestos, elige cliente, depósito y cantidades, y
-  confirma la factura.
-- **Administración:** usa los presupuestos como cotización comercial y sigue el estado de cada uno.
-- **Administrador:** define el acceso a Ventas por empresa y la acción de editar precio.
+## Dónde lo encontrás
 
-Sin la sección **Ventas** la pantalla muestra «Acceso restringido». Con **lectura** se consulta, pero no se
-crea ni se edita; con **edición** en la empresa del comprobante se puede operar.
+Menú **Ventas → Comprobantes** y botón **Nuevo comprobante**. Para un presupuesto: menú **Ventas → Presupuestos** y botón **Nuevo presupuesto**.
 
-## Cómo se carga
+![Listado de Ventas, Comprobantes, con los botones Exportar y Nuevo comprobante arriba a la derecha](img/ventas-comprobantes/01-listado.png)
 
-1. **Nuevo comprobante** (o **Nuevo presupuesto**) abre la cabecera con la **Tienda** preseleccionada con
-   la empresa activa, el **Canal de venta**, el **Cliente** (buscador o Consumidor final), la **Fecha** y
-   el **Operador**.
-2. **Agregar producto** suma líneas con **Producto, Stock, Depósito de mercadería, Cantidad, Precio sin IVA
-   y Subtotal**. El pie muestra **Subtotal sin IVA, IVA y Total**.
-3. Cada línea puede elegir **depósito de salida** (Local, Principal u otro). El **disponible** es el stock
-   del depósito menos lo reservado; si la cantidad lo supera, se muestra un aviso de faltante que **no
-   impide guardar el borrador**.
-4. **Guardar cambios** conserva la cabecera y las líneas. La Tienda queda bloqueada una vez guardado: un
-   comprobante pertenece a una sola tienda.
+*Ventas → Comprobantes: desde acá se crea una factura con «Nuevo comprobante».*
 
-### Precios y escalas
+## Paso a paso: cargar un comprobante nuevo
 
-- El **precio de lista es sin IVA**; el IVA sale de la categoría del producto o de su override.
-- La **escala** (x1, x5, x10, x50) se elige por la **cantidad de la línea** y el **tipo de cliente**:
-  minorista siempre x1; mayorista x1 (1–4), x5 (5–9), x10 (10–49) y x50 (50 o más).
-- El precio lo calcula la base con `private.precio_para`; la pantalla no lo inventa.
-- **Editar el precio** requiere la acción `editar_precio` de Ventas. Sin ese permiso el precio es de solo
-  lectura.
+1. Hacé clic en **Nuevo comprobante** (o **Nuevo presupuesto**).
+2. En **Tipo de comprobante** elegí **Factura** o **Presupuesto**.
+3. En **Tienda** elegí la tienda. Viene marcada la tienda activa de la barra superior.
+4. En **Canal de venta** elegí **Mostrador**, **Tienda online** o **Teléfono/WhatsApp**.
+5. En **Cliente** buscá al cliente por nombre. Si no hay datos, elegí **Consumidor final**. Al elegirlo se completan **CUIT / DNI** y **Dirección de entrega** (solo lectura).
+6. Revisá la **Fecha**. En un presupuesto podés completar **Válido hasta**.
+7. El campo **Operador** muestra tu usuario y se registra al guardar.
+8. Hacé clic en **Guardar cambios**. El sistema le asigna un número y aparece el mensaje «Factura … creado» o «Presupuesto … creado».
 
-### Qué pasa al confirmar la factura
+![Listado de comprobantes con el botón Nuevo comprobante resaltado arriba a la derecha](img/ventas-comprobantes/02-boton-nuevo.png)
 
-- Solo una **factura en borrador con al menos una línea** se confirma. Un **presupuesto nunca** se
-  confirma ni mueve stock.
-- Cada línea de stock genera una **salida del depósito de esa línea**. Los productos **«A pedido»** dejan
-  una **reserva** y no descuentan hasta que el comprobante se marque **Entregado** (eso llega con el
-  despacho, MSF-135: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)).
-- La confirmación es **todo o nada**: si falta stock en algún depósito, no se descuenta nada y se informa
-  el producto y el depósito. Reintentar sobre una factura ya confirmada no duplica movimientos.
-- El botón **Confirmar factura** pide confirmación, muestra los faltantes visibles y deja el comprobante
-  en solo lectura.
+*Paso 1: el botón «Nuevo comprobante» está arriba a la derecha del listado.*
 
-### Presupuestos
+![Formulario de nuevo comprobante completo, con el tipo, la tienda, el canal y el cliente señalados con números](img/ventas-comprobantes/03-formulario-completo.png)
 
-La pantalla **Ventas › Presupuestos** lista número, tienda, fecha, cliente, operador, vencimiento, estado,
-total y acciones, con búsqueda por cliente o número y filtros por estado.
+*Pasos 2 a 5 y 8: elegí tipo, tienda, canal y cliente, y guardá con «Guardar cambios».*
 
-- **Aceptar** pasa de `pendiente` a `aceptado`; no reserva ni descuenta stock.
-- **Copiar** crea un presupuesto nuevo `pendiente` con número nuevo; el original no cambia.
-- **Modificar** abre el comprobante en edición solo mientras está `pendiente`.
-- **Vencido** se calcula solo: un presupuesto `pendiente` con «Válido hasta» anterior a hoy (fecha de
-  Argentina). No hay job ni se guarda como estado.
+![Formulario de nuevo presupuesto con el campo Válido hasta señalado](img/ventas-comprobantes/04-formulario-presupuesto.png)
 
-## Empresa activa
+*Paso 6: en un presupuesto aparece el campo «Válido hasta».*
 
-La Tienda del comprobante se **preselecciona con la empresa activa** de la barra superior. En un
-comprobante nuevo se puede cambiar antes de guardar; una vez emitido, la empresa no cambia. Si se cambia
-la empresa activa con un comprobante abierto, la pantalla se cierra con aviso: **nunca se muestran ni se
-guardan datos de una tienda bajo otra**. El listado de presupuestos se acota a la empresa activa y se
-reencuadra al cambiarla (página 1, búsqueda limpia, consultas recargadas).
+!!! note "La tienda no se puede cambiar después"
+    Una vez guardado, el comprobante queda en esa tienda para siempre. Si te equivocaste de tienda, tenés que crear otro comprobante.
 
-## Límites y decisiones abiertas
+Hasta que no guardes, no vas a poder sumar productos: la pantalla te avisa «Guardá los datos del comprobante para agregar productos y ver los totales.»
 
-- **Numeración:** correlativo por organización, empresa y tipo, con formato provisorio de 8 dígitos. La
-  numeración definitiva sigue pendiente de decisión del cliente; el número entero se guarda aparte para
-  poder cambiar el formato sin migrar datos.
-- **Escala por línea o por total:** se implementó **por cantidad de la línea**, pendiente de confirmar con
-  el cliente.
-- **Forma de pago y envío:** se guarda **solo la elección**; los catálogos son de MSF-139. Mientras no
-  existan en la base, la pantalla no los ofrece.
-- **Mercado Libre** no es un canal válido todavía (queda para la Etapa 2).
-- **Condición frente al IVA del cliente:** se muestra «—» porque la ficha del cliente todavía no la
-  registra.
-- **Cliente:** los clientes son de toda la organización; no se restringen a las tiendas habilitadas del
-  cliente.
+## Agregar productos
 
-## Fuera de alcance de esta épica
+1. Con el comprobante guardado, en la tarjeta **Líneas** hacé clic en **Agregar producto**.
+2. En **Buscar producto del catálogo** escribí el nombre o el código (SKU) y elegí el producto. Te muestra cuánto hay disponible en el depósito por defecto.
+3. Hacé clic en **Agregar**. El producto queda como una línea nueva.
+4. En cada línea podés cambiar:
+   - **Depósito de mercadería**: de qué depósito sale el producto.
+   - **Cantidad**: con los botones **−** y **+**, o escribiendo (número entero de 1 a 99.999).
+   - **Precio s/IVA**: solo si tu rol puede editar precios (ver más abajo).
+5. Para sacar una línea, usá el ícono del tacho de basura.
 
-Listado, estados, anulación y nota de crédito (MSF-177), despacho y entrega de reservas (MSF-135),
-impresión y envío por correo (MSF-213), cobros y conciliación, transportes, «Facturar» un presupuesto,
-exportar y observaciones. El prototipo muestra esas acciones; no se implementaron en MSF-159.
+![Tarjeta Líneas de un borrador con una línea, el botón Agregar producto señalado y los totales abajo](img/ventas-comprobantes/05-lineas-y-totales.png)
 
-El listado con filtros y exportación, los estados del comprobante y de cobro, el historial, la anulación y la
-nota de crédito llegaron después, en
-[Ventas · listado, estados y anulación (MSF-177)](ventas-listado-estados-y-anulacion.md); los cobros por
-comprobante, la conciliación de pagos y los contrarreembolsos, en
-[Ventas · cobros y conciliación (MSF-195)](ventas-cobros-y-conciliacion.md); el despacho con responsables, el
-envío con transporte y guía y los faltantes, en
-[Ventas · despacho y faltantes (MSF-135)](ventas-despacho-y-faltantes.md).
+*Un borrador con una línea. El botón «Agregar producto» está arriba a la derecha de la tarjeta «Líneas»; los totales se ven abajo.*
 
-## Estado
+![Ventana Agregar producto con el buscador completado y el botón Agregar señalado](img/ventas-comprobantes/06-agregar-producto.png)
 
-Implementado en la rama de la épica (historias MSF-273, MSF-295, MSF-317 y MSF-331), **pendiente de merge a
-`main`**. La fuente funcional es `specs/20261023-100000-ventas-comprobantes/spec.md`; las pruebas están en
-`supabase/tests/database/ventas_*.test.sql` y en `apps/web/src/pages/ventas/*.test.tsx`.
+*Pasos 2 y 3: buscá el producto por nombre o código y hacé clic en «Agregar». Abajo se lee cuánto hay disponible.*
 
-## Para seguir
+Abajo de las líneas se ven **Subtotal sin IVA**, **IVA** y **Total**.
 
-- **[Ventas · comprobantes (técnico)](../tecnico/ventas-comprobantes.md)** — tablas, numeración, RPC,
-  permisos y reversión.
-- **[Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md)** — los cobros de la factura, la
-  conciliación de pagos y los contrarreembolsos.
-- **[Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)** — el despacho con responsables, el envío con
-  transporte y guía y el registro de faltantes.
-- **[Clientes](../clientes.md)** — Consumidor final y tipo de cliente.
-- **[Stock](../stock.md)** — depósitos, movimientos y reservas.
+### Columnas de las líneas
+
+| Columna | Qué muestra |
+|---|---|
+| **Producto** | Nombre y código del producto. Los productos «A pedido» llevan la etiqueta «A pedido · no descuenta stock». |
+| **Stock** | **Disp.** es lo disponible en el depósito elegido (existencias menos lo reservado). **Res.** es lo reservado. |
+| **Depósito de mercadería** | Depósito de donde sale. |
+| **Cantidad** | Unidades de la línea. |
+| **Precio s/IVA** | Precio unitario sin IVA y, debajo, de dónde sale: «escala x1», «escala x5», etc., o «precio manual». |
+| **Subtotal** | Cantidad por precio, sin IVA. |
+
+### Cómo se calcula el precio
+
+- El precio sale del producto según el **tipo de cliente** y la **cantidad de esa línea**. El IVA se suma aparte según la categoría del producto.
+- Cliente **minorista**: siempre precio de la escala x1.
+- Cliente **mayorista**: x1 de 1 a 4 unidades, x5 de 5 a 9, x10 de 10 a 49 y x50 desde 50.
+- Si cambiás el cliente del comprobante y guardás, los precios de las líneas se recalculan con el tipo del nuevo cliente.
+
+### Cambiar el precio a mano
+
+Si tu rol puede editar precios, la columna **Precio s/IVA** es un campo editable. Escribí el precio (cero o más, hasta dos decimales) y apretá Enter. La línea queda marcada como «precio manual». Para volver al precio de la escala, borrá el valor y apretá Enter.
+
+Si tu rol no puede, ves el aviso «Tu rol no puede editar precios: el precio sale de la escala del producto.»
+
+![Tarjeta Líneas con el precio sin IVA como campo editable para un usuario con rol Operador](img/ventas-comprobantes/07-precio-manual-operador.png)
+
+*Con un rol que puede editar precios (acá, Operador), la columna «Precio s/IVA» es un campo editable. Con otros roles se ve solo el número y el aviso de arriba.*
+
+## Aviso de faltante de stock
+
+Si pedís más unidades que las disponibles en el depósito elegido, la línea muestra en rojo: «Hay N disponibles en … y la línea pide M. Para confirmar la factura elegí otro depósito o bajá la cantidad.»
+
+El aviso **no te impide guardar** el borrador, pero sí confirmar la factura.
+
+![Línea con aviso rojo de que hay 5 unidades disponibles y la línea pide 400](img/ventas-comprobantes/08-aviso-faltante.png)
+
+*El aviso rojo aparece debajo de la línea que pide más de lo disponible.*
+
+## Confirmar una factura
+
+Mientras la factura está en **Borrador** no mueve stock. Cuando está lista:
+
+1. Revisá que tenga al menos una línea.
+2. Hacé clic en **Confirmar factura**. Se abre una ventana que explica qué va a pasar.
+3. Hacé clic en **Confirmar**.
+
+![Ventana Confirmar factura con el botón Confirmar señalado](img/ventas-comprobantes/09-dialogo-confirmar.png)
+
+*Paso 3: la ventana explica qué va a pasar. «Confirmar» descuenta el stock; «Cancelar» cierra sin cambios.*
+
+### Qué pasa con el stock al confirmar
+
+- Cada producto **se descuenta del depósito elegido en su línea**.
+- Los productos **«A pedido»** no se descuentan: **se reservan** y se descuentan recién cuando la factura se entrega (ver [Despacho y faltantes](ventas-despacho-y-faltantes.md)).
+- Es todo o nada: si en algún depósito no alcanza el stock, no se descuenta nada y la ventana te dice qué producto y en qué depósito falta. Corregí las líneas y volvé a intentar.
+- Después de confirmarla, **ya no se puede modificar**. Si hubo un error, mirá cómo corregirlo en [Listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
+- Un **presupuesto nunca se confirma** ni mueve stock.
+
+Al confirmar, la factura pasa a **Pendiente** y entra al circuito de cobro y de despacho.
+
+## Presupuestos
+
+En **Ventas → Presupuestos** ves todos los presupuestos con **Comprobante**, **Tienda**, **Fecha**, **Cliente**, **Operador**, **Válido hasta**, **Estado** y **Total**. Podés buscar por cliente o número y filtrar por estado.
+
+| Estado | Qué significa |
+|---|---|
+| **Pendiente** | Todavía no lo aceptó el cliente. |
+| **Aceptado** | El cliente lo aceptó. No reserva ni descuenta stock. |
+| **Vencido** | Estaba pendiente y pasó la fecha de «Válido hasta». Se marca solo. |
+| **Convertido en factura** | Existe como filtro de la lista, pero por ahora ningún botón convierte un presupuesto en factura. |
+
+En cada fila tenés estos botones (según tu rol y el estado):
+
+- **Imprimir** y **Enviar por correo**: ver [Imprimir facturas, remitos y presupuestos](ventas-impresion.md).
+- **Aceptar**: pasa el presupuesto de Pendiente a Aceptado.
+- **Copiar**: crea un presupuesto nuevo, Pendiente y con número nuevo, listo para editar. El original no cambia. También está el botón **Copiar** dentro del presupuesto.
+- **Modificar**: abre el presupuesto para editarlo, solo mientras está Pendiente.
+
+![Lista de presupuestos con el botón Copiar de la primera fila señalado](img/ventas-comprobantes/10-presupuesto-copiar.png)
+
+*Cada fila trae sus botones: Imprimir, Enviar por correo, Aceptar, Copiar y Modificar. «Copiar» hace un presupuesto nuevo a partir de este.*
+
+Por ahora no hay un botón que convierta un presupuesto en factura. Para cobrar, cargá una factura nueva con los mismos productos (podés usar **Copiar** para tener los datos a mano).
+
+## Cambiar de tienda con un comprobante abierto
+
+Si con un comprobante abierto cambiás la tienda activa en la barra superior, el comprobante se cierra con el aviso «Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.» No se pierde nada de lo ya guardado.
+
+## Si algo no sale
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «Revisá los campos marcados antes de guardar.» | Falta un dato obligatorio (cliente, fecha, canal o tienda). Completá lo marcado en rojo. |
+| «Otra persona modificó este comprobante mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.» | Dos personas editaron a la vez. Hacé clic en **Recargar** y volvé a cargar tu cambio. |
+| «Este comprobante ya está cerrado: solo se puede consultar.» | La factura ya fue confirmada (o anulada). No admite cambios. |
+| «Ingresá una cantidad entera de 1 a 99999.» | La cantidad tiene que ser un número entero. |
+| «Ingresá un precio de cero o más, con hasta dos decimales.» | El precio manual no es válido. |
+| «No hay stock suficiente para confirmar. Corregí estas líneas y volvé a intentar» | Cambiá el depósito o bajá la cantidad de las líneas que se listan. |
+| «No pudimos confirmar la factura. No se descontó nada: probá de nuevo.» | Falló la confirmación y no se movió stock. Reintentá. |
+
+## Preguntas frecuentes
+
+**¿Puedo cargar una venta con un producto sin stock?** Podés guardar el borrador con el aviso de faltante, pero no confirmar la factura hasta elegir otro depósito o bajar la cantidad. Los productos «A pedido» no tienen este límite.
+
+**¿Dónde se elige la forma de pago?** No se elige al crear el comprobante: se registra al cobrar. Ver [Cobros y conciliación](ventas-cobros-y-conciliacion.md).
+
+**¿Puedo vender por Mercado Libre?** Por ahora no: el canal Mercado Libre todavía no está disponible.

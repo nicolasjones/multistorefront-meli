@@ -1,136 +1,147 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Ingreso de mercadería por proveedor (MSF-219)
+# Registrar un ingreso de mercadería
 
-**Épica:** MSF-219 · **Historias:** F-PRV-04 (MSF-383), F-PRV-05 (MSF-393) y F-PRV-06 (MSF-404).
-**Spec:** `specs/20261021-183246-ingreso-de-mercaderia-por-proveedor/`.
+## Para qué sirve
 
-El depósito registra la mercadería que llega de un proveedor y el stock sube en el acto. Queda un
-historial con fecha, producto, cantidad, empresa, proveedor y operador, y un ingreso mal cargado se
-**anula con motivo**, sin editar ni borrar el pasado.
+Cuando llega mercadería de un proveedor, la registrás acá y el stock sube en el momento. Queda un historial con la fecha, el producto, la cantidad, la tienda, el proveedor y quién lo cargó. Si te equivocás, el ingreso se **anula con un motivo**: no se edita ni se borra.
 
-## Qué resuelve
+## Quién puede hacerlo
 
-- Antes, la llegada de mercadería no tenía un registro propio: el movimiento de stock no guardaba
-  proveedor, comprobante ni costo, y la compra quedaba sin trazabilidad.
-- Ahora cada compra se registra una vez, con su proveedor, fecha, comprobante opcional y costo unitario
-  en USD, y por cada producto se crea una entrada de stock con el motivo «Compra a proveedor».
-- El historial responde qué llegó, de quién, para qué tienda y quién lo registró. Anular un ingreso
-  devuelve el stock y conserva la operación (y su motivo) en el historial.
-
-## Para quién
-
-| Persona | Qué puede hacer |
+| Rol | Qué puede hacer |
 |---|---|
-| **Administrador/a, Operador y Depósito** (con `stock` en edición) | Registrar ingresos y anularlos |
-| **Consulta, Mostrador y Administración** (con `stock` en lectura) | Ver el historial; no ven el formulario ni el botón «Anular» |
-| **Quien no tiene acceso a Stock** | No ve la pestaña ni recibe filas del historial |
-| **Con `rentabilidad` en edición (hoy, Administrador)** | Además, marcar «Actualizar el costo del producto con este ingreso» |
+| Administrador, Operador, Depósito | Registrar y anular ingresos |
+| Administrador | Además, actualizar el costo de los productos desde el ingreso (ver más abajo) |
+| Consulta, Mostrador, Administración | Ver el historial. No ven el formulario ni el botón **Anular** |
 
-La base vuelve a validar el permiso: ocultar el formulario es comodidad, no la autorización.
+## Dónde lo encontrás
 
-## Cómo se usa
+**Stock → Ingreso de mercadería**. La pantalla tiene dos solapas: **Ingresos** (el formulario **Nuevo ingreso** y el historial) y **Archivo anterior al sistema** (ingresos viejos, solo para consultar).
 
-La pantalla vive en **Stock → Ingreso de mercadería** (`/stock/ingresos`), como tercera pestaña junto a
-**Stock actual** y **Movimientos**.
+![Formulario Nuevo ingreso completado con proveedor, fecha, un producto, cantidad y costo en USD](img/ingreso-de-mercaderia/01-formulario.png)
 
-### Registrar un ingreso
+*Nuevo ingreso: tienda, proveedor, fecha, remito y las líneas de productos con su cantidad y costo.*
 
-1. Completá **Compra a nombre de** (la empresa de la compra), **Proveedor**, **Fecha** y, si querés,
-   **Remito o factura de compra** (hasta 100 caracteres).
-2. Agregá uno o más productos con **Cantidad** y **Costo unit. USD**; podés sumar o restar unidades y
-   quitar líneas. Un mismo producto no se puede repetir en el ingreso.
-3. Si tenés permiso, marcá **Actualizar el costo del producto con este ingreso**. El costo del producto
-   se actualiza; el precio de lista no cambia.
-4. **Registrar ingreso** confirma todo de una vez: si una línea falla, no se guarda ninguna. El aviso es
-   «Ingreso registrado · N unidades» y el ingreso aparece abajo, en el historial.
+## Registrar un ingreso
 
-«Limpiar» vacía el formulario sin tocar lo ya registrado. El botón queda deshabilitado mientras guarda y
-el envío lleva una clave de idempotencia: un doble clic o un reintento no crea dos ingresos ni mueve el
-stock dos veces.
+1. En **Compra a nombre de** elegí la empresa a nombre de la que se hizo la compra. Viene la que tenés elegida en la barra superior.
+2. Elegí el **Proveedor**.
+3. Revisá la **Fecha** (hoy por defecto; no puede ser futura).
+4. Si querés, escribí el **Remito o factura de compra** (opcional, hasta 100 caracteres).
+5. En **Producto 1** buscá y elegí el producto. Cargá la **Cantidad** (podés usar los botones + y − ) y el **Costo unit. USD**.
+6. Para agregar más productos, hacé clic en **Agregar producto**. Con el ícono del tacho quitás una línea. Debajo ves el total, por ejemplo «12 unidades en 1 producto». Un ingreso admite hasta 100 productos y un producto no se puede repetir.
+7. Si tu rol lo permite, marcá **Actualizar el costo del producto con este ingreso** (ver abajo).
+8. Hacé clic en **Registrar ingreso**. Aparece «Ingreso registrado» con las unidades, y el ingreso aparece en el historial de abajo.
 
-### Historial
+**Limpiar** vacía el formulario sin tocar lo que ya registraste.
 
-La tabla muestra una fila por producto con **Fecha**, **Producto** (nombre y SKU), **Cantidad**,
-**Destino**, **Tienda**, **Proveedor**, **Operador** y **Estado** («Registrado» o «Anulado» con su
-motivo). Se ordena del más reciente al más antiguo y pagina de 25 líneas en 25.
+![Formulario Nuevo ingreso con tres productos cargados, con su cantidad y su costo unitario en dólares](img/ingreso-de-mercaderia/03-formulario-varias-lineas.png)
 
-Los filtros se combinan: **Desde**, **Hasta**, **Proveedor**, **Tienda**, **Producto** y **Operador**.
-«Limpiar filtros» vuelve a la lista completa. Sin resultados se ve el estado vacío del panel.
+*Un ingreso con tres productos: cada línea lleva su cantidad y su costo. Abajo ves el total de unidades.*
 
-### Anular
+El registro es todo o nada: si una línea tiene un problema, no se guarda ninguna. Un doble clic no registra el ingreso dos veces.
 
-El botón **Anular** aparece una sola vez por ingreso, solo para quien edita Stock y solo si sigue
-«Registrado». Pide un **motivo de 3 a 500 caracteres**, avisa que la operación no se puede deshacer y,
-al confirmar, el stock baja en las cantidades de todas las líneas. El ingreso queda «Anulado» en el
-historial con su motivo; la fecha de anulación queda guardada en el registro.
+### Datos que tenés que tener en cuenta
 
-Si parte de esa mercadería ya se vendió y no alcanza el stock, **no se anula nada**: se muestra «No hay
-stock suficiente para anular» y el ingreso sigue como estaba.
+- **Cantidad**: número entero, de 1 en adelante.
+- **Costo unit. USD**: el costo de una unidad en dólares, de cero en adelante, con hasta dos decimales.
+- **Compra a nombre de** solo indica a nombre de quién se compró. El stock es uno solo y lo ven todas las tiendas: no se separa por empresa.
+- El producto no tiene que estar asignado al proveedor elegido. Si coincide, la pantalla lo indica: «Proveedor del producto: coincide».
+- La mercadería entra al **depósito por defecto**. Si la necesitás en otro depósito, después la trasladás ([ver cómo](stock-depositos-y-reservas.md)).
+- El proveedor tiene que estar activo (ver [Proveedores](proveedores.md)).
 
-## Reglas de negocio
+### Actualizar el costo del producto
 
-- **Un ingreso no se edita ni se borra**: se anula con motivo.
-- La **empresa** («Compra a nombre de») identifica a nombre de quién se compró y se muestra como
-  «Tienda»; **no separa el stock por empresa**.
-- El **proveedor** y los **productos** deben estar activos y ser de la organización. Un producto no
-  tiene que estar asignado a ese proveedor: si coincide, la pantalla lo indica, pero no lo exige.
-- **Fecha**: hoy o anterior; no se acepta una fecha futura.
-- **Cantidad**: entero entre 1 y 1.000.000. **Costo**: en USD, mayor o igual a 0, con hasta dos
-  decimales. Un ingreso admite hasta **100 productos**.
-- El **comprobante** es opcional y puede repetirse: no hay unicidad por número.
-- **Operador y fecha de carga** los pone el servidor; no se eligen desde el formulario.
-- Cada ingreso y cada anulación dejan un evento en **Actividad** (`ingreso.registrado` /
-  `ingreso.anulado`), sin importes ni costos.
+Si marcás **Actualizar el costo del producto con este ingreso**, el costo de cada producto del ingreso pasa a ser el que cargaste. El precio de venta **no cambia**. Esta casilla solo aparece para quien tiene permiso sobre la rentabilidad (hoy, el Administrador). Más sobre costos y márgenes en [Rentabilidad](rentabilidad.md).
 
-## Empresa activa
+![Formulario Nuevo ingreso con la casilla Actualizar el costo del producto con este ingreso marcada y el botón Registrar ingreso resaltado](img/ingreso-de-mercaderia/04-costo-y-registrar.png)
 
-La barra superior no crea un stock por tienda: el stock es **único por organización** y todas las
-empresas lo comparten.
+*Paso 7: la casilla de costo (1). Paso 8: **Registrar ingreso** (2) confirma; hasta ahí no se guarda nada.*
 
-- **Compra a nombre de** arranca con la empresa activa de la barra superior; se puede elegir otra
-  empresa a la que la persona tenga acceso.
-- Si la empresa activa cambia con el formulario ya abierto, la compra ya elegida no cambia sola.
-- El historial muestra todas las tiendas de la organización; la columna **Tienda** y el filtro del mismo
-  nombre permiten acotar. El historial **no** se filtra automáticamente por la empresa activa.
+### Si algo no sale
 
-## Diferencias con el prototipo
-
-- El prototipo separa **Local** y **Depósito** y ofrece un selector de depósito; esta entrega usa el
-  **stock único** de la organización. «Destino» se muestra fijo como **«Depósito principal»** y no hay
-  selector. Los depósitos llegan con MSF-292 (implementados en la rama de la épica, pendiente de merge a `main`),
-  pero **el formulario de ingreso sigue sin elegir depósito**: entra al depósito por defecto. Lo que cambia con
-  MSF-292 es que la anulación devuelve la mercadería al depósito donde entró.
-- El prototipo muestra el costo unitario y la casilla para actualizarlo; se implementaron (decisión D1 de
-  la spec). El documento original de la épica decía que el ingreso no registraba costo.
-- El historial completo con filtros y el diálogo de anulación **no estaban dibujados**; se construyeron
-  con los patrones del sistema de diseño.
-- El prototipo muestra «Compra a nombre de» y se conservó como metadata de la compra. No separa stock.
-- La pestaña **Archivo anterior al sistema**, «Depósitos de mercadería», «Faltantes» y «Actualizar por
-  Excel» no son de esta épica.
-
-## Fuera de alcance y roadmap
-
-| Tema | Estado |
+| Mensaje | Qué significa y qué hacer |
 |---|---|
-| Depósitos, stock por depósito, traslados y reservas | MSF-292 (Stock · depósitos y reservas), implementados en su rama |
-| Selector de depósito en el formulario de ingreso | Fuera de alcance: el ingreso entra al depósito por defecto |
-| Archivo consultable del historial de ingresos del sistema anterior | MSF-330 (F-MIG-03) |
-| Ingreso en lote de Stock (F-STK-10) | Decisión abierta en Stock; esta épica no lo implementa |
-| Lotes, vencimientos, órdenes de compra, pagos y cuentas corrientes | Fuera de alcance |
-| Costo en ARS, multimoneda y actualización masiva de precios | Fuera de alcance |
-| Editar o borrar un ingreso | No existe: se anula con motivo |
-| Migración inicial de datos | MSF-142 |
+| «Elegí la empresa de la compra.» / «Elegí el proveedor.» / «Elegí la fecha del ingreso.» | Falta completar ese campo |
+| «Agregá al menos un producto para registrar el ingreso.» | Cargá al menos una línea |
+| «Elegí un producto.» / «No repitas el mismo producto.» | Revisá las líneas |
+| «Costo en USD con hasta dos decimales.» | Corregí el costo |
+| «La fecha no puede ser futura.» | Elegí hoy o una fecha anterior |
+| «El comprobante admite hasta 100 caracteres.» | Acortá el remito o factura |
+| «Tu rol no puede actualizar el costo de los productos. Destildá la opción e intentá de nuevo.» | Desmarcá la casilla del costo y registrá igual |
+| «Elegí un proveedor activo de la organización.» | El proveedor está desactivado; elegí otro o reactivalo |
+| «Revisá los productos: alguno no existe, está inactivo o es de otra organización.» | Cambiá el producto que corresponda |
+| «Este ingreso ya fue registrado. Recargá el historial para verlo.» | No lo cargues de nuevo: ya está en el historial |
+| «No pudimos registrar el ingreso. Intentá de nuevo.» | No se guardó nada; reintentá |
 
-La vista de detalle dedicada no está en la pantalla: el historial muestra una fila por producto con su
-estado y motivo. La RPC de detalle existe para cuando se agregue esa vista.
+## Ver el historial de ingresos
 
-## Para profundizar
+Debajo del formulario está **Ingresos de mercadería**, de lo más reciente a lo más antiguo, con una fila por producto. Arriba a la derecha ves cuántas líneas hay.
 
-- [Ingreso de mercadería: modelo, RPC y flujos](../tecnico/ingreso-de-mercaderia.md)
-- [Stock: movimientos, historial, mínimo y sin negativos](../stock.md)
-- [Permisos por rol](../permisos-por-rol.md)
+![Historial de ingresos de mercadería con producto, cantidad, destino, tienda, proveedor, operador y estado](img/ingreso-de-mercaderia/02-historial.png)
+
+*Historial: cada línea muestra su estado y, si corresponde, el botón Anular.*
+
+| Columna | Qué significa |
+|---|---|
+| **Fecha** | Día del ingreso |
+| **Producto** | Nombre y SKU |
+| **Cantidad** | Unidades que entraron (por ejemplo +53) |
+| **Destino** | Depósito al que entró (el principal) |
+| **Tienda** | La empresa de «Compra a nombre de» |
+| **Proveedor** | A quién se le compró |
+| **Operador** | Quién lo registró |
+| **Estado** | **Registrado** o **Anulado** (con su motivo) |
+
+Para encontrar un ingreso usá los filtros **Desde**, **Hasta**, **Proveedor**, **Producto**, **Operador** y **Tienda**; se pueden combinar. **Limpiar filtros** vuelve a la lista completa. Si no hay resultados, ves «No hay ingresos con esos filtros.» La lista se muestra de a 25 líneas.
+
+![Historial de ingresos con los filtros Desde, Hasta, Proveedor y Tienda resaltados](img/ingreso-de-mercaderia/05-historial-filtros.png)
+
+*Filtros del historial: **Desde** (1), **Hasta** (2), **Proveedor** (3) y **Tienda** (4). Se combinan entre sí.*
+
+![Historial filtrado por un proveedor con dos ingresos en estado Anulado y su motivo debajo](img/ingreso-de-mercaderia/06-ingreso-anulado.png)
+
+*Un ingreso **Anulado** muestra su motivo debajo del estado y ya no tiene el botón **Anular**.*
+
+La solapa **Archivo anterior al sistema** muestra los ingresos del sistema anterior (Fecha, Producto, Cantidad, Proveedor, Operador). Es solo de consulta y no modifica el stock.
+
+![Solapa Archivo anterior al sistema con el aviso de solo consulta y la lista de ingresos viejos](img/ingreso-de-mercaderia/08-archivo-anterior.png)
+
+*Archivo anterior al sistema (1): ingresos viejos, solo para consultar.*
+
+Con el rol Consulta (o cualquier rol que solo pueda mirar) la pantalla muestra el aviso «Tu rol puede ver el historial, pero no registrar ingresos de mercadería.» y el historial, sin formulario ni botón **Anular**. En la columna **Proveedor** puede aparecer «Proveedor no disponible» si tu rol no tiene acceso a Proveedores.
+
+![Pantalla de Ingreso de mercadería vista con el rol Consulta: aviso de solo lectura y el historial](img/ingreso-de-mercaderia/09-rol-consulta.png)
+
+*Así se ve la pantalla con el rol Consulta.*
+
+## Anular un ingreso
+
+Sirve cuando cargaste algo mal o la mercadería nunca llegó.
+
+1. En el historial, buscá la línea y hacé clic en **Anular** (solo aparece en ingresos **Registrado**).
+2. Se abre **Anular ingreso**: te avisa que se van a dar de baja las unidades del ingreso y que no se puede deshacer.
+3. Escribí el **Motivo de la anulación** (entre 3 y 500 caracteres).
+4. Hacé clic en **Anular ingreso**. Aparece «Ingreso anulado».
+
+![Diálogo Anular ingreso con el aviso de que no se puede deshacer y el motivo escrito](img/ingreso-de-mercaderia/07-dialogo-anular.png)
+
+*Pasos 2 y 3: el diálogo avisa que no se puede deshacer y pide el motivo. **Cancelar** cierra sin anular.*
+
+El stock baja en todas las cantidades del ingreso, descontando del depósito donde habían entrado. El ingreso queda en el historial como **Anulado**, con su motivo.
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «No hay stock suficiente para anular: parte de la mercadería ya se movió.» | Parte de esas unidades ya se vendió o se movió. No se anula nada; corregí con un movimiento de stock |
+| «Ese ingreso ya está anulado.» | No hay nada más que hacer |
+
+## Preguntas frecuentes
+
+**¿Puedo editar un ingreso?** No. Se anula con motivo y se carga de nuevo correctamente.
+
+**¿Puedo cargar un ingreso con la fecha de otro día?** Sí, de hoy o anterior; no futura.
+
+**Mi rol no ve el formulario.** Solo quienes editan el stock pueden registrar ingresos.

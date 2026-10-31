@@ -1,148 +1,136 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Tienda online: dominio, identidad y vidriera (MSF-147)
+# Identidad, textos y dirección de la tienda
 
-Spec: `specs/20261022-084830-tienda-dominio-e-identidad/spec.md` (épica **MSF-147**, historias
-F-TDA-01 a F-TDA-04). Merge de la épica `f52758d` (PR #260), pendiente de merge a `main`.
-Detalle técnico: [Tienda online: dominio, identidad y catálogo visible](../tecnico/tienda-dominio-e-identidad.md).
+## Para qué sirve
 
-Esta página cubre la **puesta en marcha y la configuración** de la tienda de cada empresa: su dominio, su
-identidad visual, sus textos comerciales y qué categorías y productos se muestran y se destacan. El
-catálogo navegable y la ficha son de [MSF-167](tiendas-online.md); las consultas, de
-[MSF-122](consultas.md); la cuenta web, de [MSF-237](cuenta-web-cliente.md).
+Acá definís cómo se ve y qué dice la tienda online de cada empresa: el logo, los colores, las tipografías, los banners y los textos (título, subtítulo, botones, bienvenida y pie). También te contamos cómo se relaciona la tienda con su dirección web (el dominio) y qué cosas no se hacen desde el sistema.
 
-## Qué resuelve
+## Quién puede hacerlo
 
-Cada empresa tiene **una tienda en su propio dominio**. El visitante entra sin cuenta ni sesión y ve la
-identidad, los textos y la vidriera de esa empresa; nunca los datos de otra. El administrador define esa
-vidriera desde el panel, dentro de **Empresas**, y los cambios se aplican al guardar. El catálogo
-navegable y la ficha se completan en [MSF-167](tiendas-online.md).
+Solo el **Administrador** administra la tienda. Los demás roles no ven la pantalla de Empresas.
 
-Si el dominio no está configurado o la tienda está desactivada, el visitante ve la misma página
-**«Volvemos pronto»**: no se revela si el dominio existe.
+## Dónde lo encontrás
 
-## Para quién
+1. Menú **Canales → Empresas**.
+2. En la fila de la empresa, hacé clic en **Tienda**.
 
-| Persona | Qué hace con esta entrega |
+![Pantalla Empresas con las dos empresas y los enlaces Editar y Tienda en cada fila](img/tienda-dominio-e-identidad/01-lista-empresas.png)
+
+*Paso 2: el enlace **Tienda** de cada empresa.*
+
+3. Elegí la pestaña **Identidad visual** o **Contenido**.
+
+Arriba de las pestañas ves el nombre de la empresa, su dirección web (o «Sin dominio configurado») y si está **Publicada** o **Pausada**. El botón **Ver tienda** abre la tienda en otra pestaña para que veas cómo quedó.
+
+Cada empresa se configura por separado. Para pasar a otra tienda, usá **Cambiar a… ↔** o **Cambiar de empresa** en la parte superior.
+
+## Cambiar la identidad visual
+
+En la pestaña **Identidad visual** hay cuatro bloques y, a la derecha, una **Vista previa** que se actualiza con tus cambios sin guardar. La tienda no cambia hasta que hacés clic en **Guardar**.
+
+![Pestaña Identidad visual de San Javucho con los bloques Logo, Colores, a la derecha la Vista previa y el bloque Publicación con Descartar y Guardar](img/tienda-dominio-e-identidad/02-identidad-san-javucho.png)
+
+*La pestaña **Identidad visual** de San Javucho (colores violeta), con la **Vista previa** a la derecha.*
+
+![Pestaña Identidad visual de Mundo JC con colores naranja y amarillo y su vista previa](img/tienda-dominio-e-identidad/03-identidad-mundo-jc.png)
+
+*La de Mundo JC, con otros colores (naranja y amarillo): cada tienda se configura por separado.*
+
+### Logo
+
+1. En el bloque **Logo** hacé clic en **Subir** (o **Reemplazar**, si ya hay uno).
+2. Elegí un archivo **PNG o SVG** de hasta 1 MB. Conviene que tenga fondo transparente. Se usa en el encabezado, el pie y las redes.
+3. Con **Quitar** sacás el logo actual.
+
+### Colores
+
+En el bloque **Colores** definís cuatro colores: **Primario**, **Primario oscuro**, **Acento** y **Fondo**. Cada uno se escribe con el formato **#RRGGBB**, por ejemplo #A3111D.
+
+El sistema te muestra qué tan legible queda el texto blanco sobre el color primario. Si no alcanza la legibilidad recomendada, te lo advierte, pero igual podés guardar.
+
+### Tipografía
+
+En **Tipografía** elegís una letra para los **Títulos** y otra para el **Texto**, de una lista cerrada: Del sistema, Barlow, Barlow Condensed, Playfair Display, Lato, Sora e Instrument Sans. Debajo de cada selector ves una muestra.
+
+### Banner e imágenes principales
+
+- **Banner principal**: PNG, JPG o WebP, hasta 3 MB. Medidas sugeridas: 1440×440 píxeles.
+- **Banner móvil**: la versión para celulares. PNG, JPG o WebP, hasta 3 MB. Medidas sugeridas: 390×300 píxeles.
+
+### Guardar
+
+En el bloque **Publicación**:
+
+- Mientras hay cambios sin guardar ves «Hay cambios sin guardar.».
+- **Descartar** vuelve a lo último que guardaste.
+- **Guardar** aplica los cambios. Vas a ver «Cambios guardados: la tienda ya los muestra.»
+
+## Cambiar los textos de la tienda
+
+1. Entrá a la pestaña **Contenido**.
+2. En **Banner principal** completá **Título**, **Subtítulo** y **Texto del botón**. En **El botón lleva a** hoy solo existe la opción «Catálogo completo».
+3. En **Textos comerciales** completá:
+   - **Mensaje de bienvenida (barra superior)**: la franja de arriba de toda la tienda.
+   - **Texto del pie de página**.
+   - **Aviso en la ficha de producto**: un texto que se muestra en cada ficha.
+   - **Texto del botón de contacto**.
+4. A la derecha ves una **Vista previa** del banner. Se actualiza con lo que escribís.
+5. Hacé clic en **Guardar**. Vas a ver «Cambios guardados. La tienda ya muestra los textos nuevos.» Con **Descartar** volvés a lo anterior.
+
+![Pestaña Contenido con el título, subtítulo y texto del botón del banner, los textos comerciales y la vista previa del banner](img/tienda-dominio-e-identidad/04-contenido.png)
+
+*La pestaña **Contenido**: textos del banner y textos comerciales, con su vista previa.*
+
+Los largos máximos son: título y textos de botón, 120 caracteres; subtítulo, bienvenida, pie y aviso de ficha, 300 caracteres. Debajo de cada campo ves cuántos caracteres llevás. Los textos son texto simple (no se pueden poner enlaces ni formato). Si dejás un campo vacío, ese elemento directamente no se muestra en la tienda.
+
+## La dirección web (dominio)
+
+Cada tienda vive en su propia dirección web. **El alta de la dirección la hace el equipo técnico**: desde el sistema no se puede cargar ni cambiar. Si necesitás una dirección nueva o cambiar la actual, pedíselo al equipo de soporte.
+
+Mientras una tienda no tenga dirección, el botón **Ver tienda** queda apagado y el encabezado dice «Sin dominio configurado». Si una tienda está pausada o todavía sin dirección, quien entre ve la página «Volvemos pronto».
+
+## Cómo se ven las dos tiendas
+
+Cada tienda toma sus propios colores y textos. Así se ven las dos del ejemplo:
+
+![Inicio de la tienda de San Javucho con fondo lila, barra de bienvenida y banner](img/tienda-dominio-e-identidad/08-tienda-san-javucho-arriba.png)
+
+*Tienda de San Javucho: fondo lila y sus propios textos.*
+
+![Inicio de la tienda de Mundo JC con fondo crema, otra barra de bienvenida y otro banner](img/tienda-dominio-e-identidad/06-tienda-mundo-jc.png)
+
+*Tienda de Mundo JC: fondo crema y textos distintos.*
+
+## Qué se configura desde el sistema y qué no
+
+| Cosa | Dónde se hace |
 |---|---|
-| **Visitante de la tienda** | Entra al dominio de una empresa, sin cuenta, y ve su identidad, sus textos y la vidriera que la empresa dejó visible (el catálogo navegable se completa en MSF-167). |
-| **Administrador con edición en Empresas** | Configura la tienda de la empresa activa: identidad visual, textos comerciales y catálogo visible. No hay pantalla de tienda fuera de Empresas. |
-| **Equipo técnico** | Configura los dominios. La tienda se activa o pausa con el interruptor de Empresas (F-EMP-04), no con una pantalla de tienda. En el lanzamiento no hay pantalla de dominio ni verificación DNS. |
-| **Operador** | En la matriz del lanzamiento no ve Empresas, así que **no gestiona la tienda** (decisión D3, ver pendientes). |
+| Logo, colores, tipografías y banners | Acá, en **Identidad visual** |
+| Título, subtítulo, botón, bienvenida, pie y avisos | Acá, en **Contenido** |
+| Qué productos y categorías se ven, y cuáles se destacan | Pestaña **Catálogo visible** (ver [Tiendas online](tiendas-online.md)) |
+| Pausar o reactivar la tienda | **Canales → Empresas → Editar** (ver [Tiendas online](tiendas-online.md)) |
+| WhatsApp, correo y horarios de atención | **Canales → Empresas → Editar** |
+| Ajuste de precios y IVA de la tienda | **Canales → Empresas → Editar → Precios y moneda** (ver [Precios e IVA](precios-e-iva.md)) |
+| Alta o cambio de la dirección web | El equipo de soporte |
 
-## Qué puede hacer el administrador
+## Casos comunes
 
-### Identidad visual
+- **Cambié el color y la tienda sigue igual.** Revisá que hayas hecho clic en **Guardar**. Si ya guardaste, recargá la tienda en el navegador.
+- **Quiero sacar la barra de bienvenida.** Dejá vacío el **Mensaje de bienvenida** y guardá.
+- **Mi logo se ve mal sobre el encabezado.** Usá un PNG o SVG con fondo transparente.
 
-- Subir un **logo** (PNG o SVG) y **banners** principal y móvil, con «Reemplazar» y «Quitar». Las medidas
-  son una sugerencia visible: banner principal 1440×440 y móvil 390×300.
-- Elegir **cuatro colores** (Primario, Primario oscuro, Acento y Fondo) en formato `#RRGGBB`.
-- Ver el **contraste del texto blanco sobre el primario**. Si no alcanza AA (4,5:1) se muestra una
-  advertencia, pero **no bloquea** guardar.
-- Elegir las tipografías de **Títulos** y **Texto** de una lista cerrada del sistema de diseño.
-- Ver una **vista previa en vivo** de la home con los valores sin guardar. La tienda pública no cambia
-  hasta «Guardar».
+## Si algo no sale
 
-### Contenido y textos comerciales
-
-- Editar **Título**, **Subtítulo**, **Texto del botón** y **«El botón lleva a»** del banner principal.
-- Editar el **mensaje de bienvenida** de la barra superior, el **texto del pie**, el **aviso de la ficha**
-  y el **texto del botón de contacto**.
-- Todos los textos son **texto plano**: nunca se interpreta HTML. Un campo vacío **oculta su elemento**
-  en la tienda; no se muestran marcadores vacíos.
-- «El botón lleva a» es una lista cerrada; hoy solo tiene **Catálogo completo**.
-
-### Catálogo visible y destacados
-
-- Ocultar **categorías**: las ocultas no aparecen en el menú ni en los filtros de esa tienda.
-- Mostrar u ocultar **productos** y marcarlos como **destacados** con la estrella.
-- Buscar productos por nombre y ver el resumen **«N visibles, M destacados»**.
-- Ver el aviso por fila cuando un producto no se muestra («No se muestra: producto inactivo» o
-  categoría oculta). El motivo lo calcula el servidor.
-- Destacar un producto que no se muestra pide **confirmación** antes de marcarlo; confirmar no lo hace
-  visible.
-- **Precio y stock son de lectura**: se muestran, no se editan en esta pantalla.
-
-## Reglas de negocio que respeta
-
-- **Una tienda, una empresa, un dominio.** El dominio es único en la plataforma y se guarda normalizado
-  (minúsculas, sin puerto ni punto final).
-- **Aislamiento.** Cada dominio devuelve solo los datos de su empresa. El usuario autenticado solo ve y
-  edita las tiendas de su organización. `anon` no lee tablas: solo ejecuta funciones de lectura pública
-  acotadas.
-- **Sin borrador.** Guardar aplica de inmediato; «Descartar» solo vuelve al último valor guardado. No hay
-  «Publicar cambios», versiones ni restauración en esta épica.
-- **Visibilidad efectiva.** Un producto se muestra solo si está activo, su interruptor de tienda está
-  visible y su categoría —y la categoría padre— son visibles. Sin fila de configuración, el producto o la
-  categoría se toman como visibles y no destacados.
-- **Solo lo público.** La tienda pública nunca expone costos, existencias exactas, proveedor, códigos internos ni
-  el identificador de la organización.
-- **Texto seguro.** Los textos se muestran escapados; un SVG con scripts o eventos se rechaza al subirlo.
-- **Empresa activa.** La gestión opera sobre la empresa activa de la barra superior. Al cambiarla se
-  recargan todas las consultas, se descarta lo no guardado con aviso y no queda ningún dato ni diálogo de
-  la empresa anterior.
-
-## Límites y fuera de alcance
-
-Queda **fuera de esta épica** y no debe leerse como hecho:
-
-- **Pantalla de dominio, verificación DNS, borrador y versiones:** F-TDA-05/06/07, MSF-133 (Etapa 2). En
-  esta entrega el dominio lo configura el equipo técnico y no hay pantalla de publicación. La pantalla
-  `StorePublicacion` del prototipo no se implementa acá.
-- **Pestañas General, Precios y moneda, Mercado Libre:** la General es de Empresas (F-EMP-04); las otras
-  son de otras épicas. `StoreGeneral` se cita solo como contexto.
-- **Catálogo público navegable, ficha y búsqueda:** son de [MSF-167](tiendas-online.md). Acá se entrega la
-  base de dominio, identidad, textos y visibilidad.
-- **Información de contacto visible y formulario:** la página «Contacto» con los datos de la empresa
-  (WhatsApp con horarios y correo) y el formulario «Escribinos» son de **MSF-212**; la bandeja que los
-  recibe es de **MSF-122**. Ver [Tiendas online](tiendas-online.md).
-- **«Volvemos pronto» completo:** acá se entrega la versión mínima de F-TDA-01; la historia completa es
-  F-TDA-19.
-- **Gestión por el Operador:** en el lanzamiento la tienda la gestiona el Administrador, porque el
-  Operador no ve Empresas (D3).
-- **Precio y destacados distintos por tienda:** los destacados ya son por tienda; el precio se lee del
-  producto/empresa y no se edita por tienda (D2, pendiente de confirmar con el cliente).
-
-## Límites técnicos visibles
-
-Los valores por defecto son decisiones de la épica (D5), ajustables en una sola constante/migración:
-
-| Elemento | Límite |
+| Mensaje | Qué significa y qué hacer |
 |---|---|
-| Logo | PNG o SVG, hasta **1 MB** |
-| Banner principal / móvil | PNG, JPG o WebP, hasta **3 MB** |
-| Títulos y textos de botón | Hasta **120 caracteres** |
-| Subtítulo, bienvenida, pie y aviso de ficha | Hasta **300 caracteres** |
-
-El filtro de scripts del SVG corre en el navegador antes de subir. El bucket restringe tipo y tamaño y
-la base valida la carpeta de la ruta; el contenido del SVG no se vuelve a inspeccionar en el servidor
-(ver pendientes técnicos).
-
-## Estado y pendientes
-
-**Implementado en la épica** (merge `f52758d`, PR #260); al momento de esta página, pendiente de merge a
-`main`. Las cuatro historias están cerradas y verificadas con pgTAP, Vitest/axe y E2E.
-
-| Pendiente | Dueño |
-|---|---|
-| Confirmar si los dominios de las dos tiendas ya existen, quién controla su DNS y cargar los reales (D1). | Nicolás / cliente + equipo técnico |
-| Confirmar si un mismo producto puede tener precio y destacados distintos por tienda (D2). | Nicolás / cliente |
-| Decidir si el Operador debe elegir qué productos se muestran; hoy lo hace el Administrador (D3). | Producto |
-| Ampliar la lista cerrada «El botón lleva a» más allá de «Catálogo completo» (D4). | Producto / MSF-167 |
-| Revisar los límites de la tabla anterior cuando el cliente los defina (D5). | Producto |
-| Coordinar `categorias_tienda` con `categorias_empresa` de Catálogo (D6). | Catálogo (MSF-160) |
-| Cerrar el recorte de horas del roadmap (D7); no cambia el alcance funcional. | Planificación |
-
-## Diferencias con el prototipo
-
-- El prototipo dibuja **borrador y publicación** («Hay cambios sin publicar», «Guardar y publicar»,
-  «Publicar cambios», «Descartar cambios», versiones). La épica fija que **no hay borrador**: se usa un
-  único **«Guardar»** que aplica de inmediato, y «Descartar» restaura el formulario sin diálogo.
-- La **vista previa** refleja los valores del formulario sin guardar; no publica una versión aparte.
-- **`StorePublicacion`** (dominio, DNS y versiones) y **`StoreGeneral`** (datos generales de la empresa)
-  no forman parte de esta entrega.
-- El bloque de **información de contacto visible** del prototipo no se implementa acá.
+| **Revisá los colores marcados: usá el formato #RRGGBB.** | Algún color no tiene el formato correcto. Corregilo. |
+| **«…» no es un formato admitido.** | Usá PNG o SVG para el logo, y PNG, JPG o WebP para los banners. |
+| **«…» supera el máximo de 1 MB / 3 MB.** | Usá un archivo más liviano. |
+| **«…» contiene código y no se puede usar.** | Ese SVG tiene instrucciones incrustadas. Exportalo de nuevo como SVG simple. |
+| **No pudimos subir el logo / el banner… no se guardó nada y la imagen anterior se conserva.** | Revisá tu conexión y probá de nuevo. |
+| **… no puede superar los N caracteres.** | Acortá el texto. |
+| **No pudimos cargar la identidad visual.** | Usá **Reintentar**. |

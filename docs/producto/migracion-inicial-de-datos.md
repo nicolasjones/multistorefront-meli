@@ -1,182 +1,121 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
 # Migración inicial de datos
 
-**Épica:** MSF-142 · **Historias:** F-MIG-01 (clientes), F-MIG-02 (proveedores y vínculos con
-productos), F-MIG-03 (archivo de ingresos) y F-MIG-04 (ensayo, conciliación y plan de corte).
+## Para qué sirve
 
-Al terminar, los clientes y proveedores del panel actual quedan cargados como **datos vivos** y
-conciliados contra el origen, el historial de ingresos de mercadería queda como **archivo consultable
-de solo lectura**, y existe un **procedimiento ensayado** para repetir la carga el día del corte.
+Es la herramienta para traer al sistema los datos que tenías en el sistema anterior, a partir de planillas: **clientes**, **proveedores**, los **vínculos entre cada producto y su proveedor** y el **historial de ingresos de mercadería**. Se usa al arrancar, una sola vez por tipo de dato, aunque podés repetirla si necesitás corregir algo.
 
-## Qué resuelve
+## Quién puede hacerlo
 
-El negocio venía operando en un panel anterior. Esta entrega trae al sistema nuevo los **maestros**
-que hacen falta para empezar a operar sin volver a tipearlos, y deja el historial que no se va a
-modificar en un archivo de consulta:
+Solo el **Administrador**. Los demás roles no ven la opción; si entran igual ven «Sin permiso».
 
-- **Clientes** de la base completa, con su identificador del panel anterior para no duplicarlos.
-- **Proveedores** (unos 135) y el **vínculo de cada producto del catálogo con su proveedor**.
-- **Historial de ingresos de mercadería** del panel anterior, para consultarlo sin mezclarlo con el
-  stock vivo.
-- Un **informe de conciliación** por cada carga y un **plan de corte** probado con datos inventados.
+![Aviso Sin permiso: solo un administrador puede importar datos](img/migracion-inicial-de-datos/07-sin-permiso.png)
 
-No se cargan a tablas vivas comprobantes, ventas, presupuestos ni cotizaciones del dólar anteriores:
-eso lo arma la épica de Ventas y despacho como archivo histórico.
+*Lo que ve un rol sin permiso.*
 
-## Para quién
 
-| Quién | Qué hace |
-|---|---|
-| **Administrador de la organización** | Ejecuta las cuatro cargas con el asistente y lee cada informe de conciliación. Es el único rol que puede importar y consultar las cargas. |
-| **Persona de negocio que aprueba el corte** | Valida el informe final y decide continuar o volver atrás. *(Nombre a confirmar por Nicolás.)* |
-| **Depósito / quien consulta Stock** | Consulta la pestaña **Archivo anterior al sistema** con permiso de lectura o edición en Stock. No puede editarlo ni borrarlo. |
+## Dónde lo encontrás
 
-El resto de los roles no ve el asistente ni los informes: la base también lo impone, no solo la
-pantalla.
+Menú lateral **Administración → Migración de datos**. Abre la importación de clientes. Al terminar la de proveedores, el botón **Seguir con los vínculos proveedor ↔ producto** te lleva a la siguiente. Para los demás tipos de datos, pedile a quien te asiste en la puesta en marcha que te pase el acceso directo a cada importación. También hay atajos: el botón **Importar** de Proveedores y el botón de importar ingresos anteriores en Stock.
 
-## Qué incluye
+![Pantalla Migración de datos con los pasos y los botones Elegir archivo CSV y Descargar plantilla CSV](img/migracion-inicial-de-datos/01-importar-clientes.png)
 
-### Asistente de importación
+*La importación de clientes, en Administración → Migración de datos.*
 
-Una pantalla por entidad, en cuatro pasos:
 
-1. **Subir** un archivo **CSV UTF-8** (se muestra el nombre y «N filas · UTF-8»). También se puede
-   descargar la **plantilla CSV** con las columnas esperadas.
-2. **Mapear** las columnas del archivo a los campos del sistema. El **identificador del panel actual**
-   es obligatorio: es la clave que evita duplicados.
-3. **Vista previa** con totales (nuevas / a actualizar / con error) y el detalle de cada fila
-   inválida con su número y motivo. Las filas con error no se importan; las válidas sí.
-4. **Importar** en lotes y mostrar el resultado: nuevos, actualizados y con error.
+## Qué se puede importar
 
-Un archivo `.xlsx` no se lee directamente: se guarda como CSV UTF-8 antes de subirlo.
-
-### Las cuatro cargas
-
-| Carga | Ruta | Qué hace |
+| Datos | Qué trae | Qué hace falta en el archivo |
 |---|---|---|
-| **Clientes** | `/migracion/importar/clientes` | Crea o actualiza clientes por el identificador del panel anterior y los habilita en las tiendas como cualquier alta. El **Número** del cliente lo asigna el sistema, no se mapea. |
-| **Proveedores** | `/migracion/importar/proveedores` | Crea o actualiza proveedores por su identificador externo, con las mismas validaciones de CUIT del alta. |
-| **Vínculos proveedor ↔ producto** | `/migracion/importar/vinculos-proveedor-producto` | Fija el proveedor y el código de proveedor de cada producto del catálogo. No crea productos ni proveedores. |
-| **Ingresos anteriores** | `/migracion/importar/ingresos_archivo` | Carga el historial de ingresos en el archivo de solo consulta. **No modifica el stock.** |
+| **Clientes** | La base de clientes. Si ya los cargaste, se actualizan sin duplicarse. | Obligatorios: **Identificador del panel actual** y **Nombre o razón social**. También: DNI / CUIT, Tipo de cliente, Correo, Teléfono, Celular, Dirección, CP, Localidad, Provincia, Expreso preferido. |
+| **Proveedores** | Los proveedores, sin duplicar. | Obligatorios: **Identificador del panel actual**, **Razón social** y **CUIT**. También: Persona de contacto, Correo, Teléfono, Dirección, Observaciones. |
+| **Vínculos proveedor ↔ producto** | Qué proveedor tiene cada producto del catálogo. Cargá antes los proveedores y el catálogo. | Obligatorios: **SKU del producto** e **Identificador del proveedor en el panel actual**. Opcional: **Código del proveedor**. |
+| **Ingresos anteriores** | El historial de ingresos de mercadería del sistema anterior. Queda solo para consultar y **no modifica el stock**. | Obligatorios: **Identificador del panel actual**, **Fecha**, **Producto** y **Cantidad**. También: Proveedor, Operador. |
 
-Cada carga deja registro de la ejecución, del archivo, del actor y del resultado por fila. Volver a
-aplicar el mismo archivo **actualiza**, no duplica; un reintento tras un corte completa lo pendiente.
+Cada tipo de dato tiene su propia pantalla de importación, con los mismos pasos:
 
-### Informe de conciliación
+![Pantalla de importación de proveedores](img/migracion-inicial-de-datos/03-importar-proveedores.png)
 
-Después de aplicar, y de nuevo cuando se quiera, el informe muestra:
+*Importación de proveedores.*
 
-- filas del archivo contra filas cargadas (nuevas, actualizadas, con error y omitidas);
-- una **diferencia calculada por el sistema**, que debe ser 0;
-- la verificación contra la tabla destino (que lo aplicado esté realmente ahí);
-- el estado **conciliado** solo si la carga terminó aplicada y las dos diferencias son 0;
-- hasta 200 filas con error y su motivo.
+![Pantalla de importación de vínculos entre proveedores y productos](img/migracion-inicial-de-datos/04-importar-vinculos.png)
 
-Se consulta al final del asistente y en **Informes de conciliación** (`/migracion/informes` y
-`/migracion/informes/:carga`).
+*Importación de vínculos proveedor ↔ producto.*
 
-### Archivo anterior al sistema
+![Pantalla de importación del archivo de ingresos anteriores](img/migracion-inicial-de-datos/08-importar-ingresos-anteriores.png)
 
-Segunda pestaña de **Stock › Ingreso de mercadería**: una tabla de solo consulta con Fecha, Producto,
-Cantidad, Proveedor y Operador, paginada en el servidor. El producto, el proveedor y el operador son
-**texto** del panel anterior: los ~19 operadores históricos no son usuarios del sistema.
+*Importación de ingresos anteriores.*
 
-El archivo es de la **organización**, no de una empresa. No mueve stock, no crea movimientos y no se
-mezcla con los ingresos vivos. El stock inicial entra por la carga inicial de Stock (F-STK-07).
 
-### Ensayo y plan de corte
+El **Identificador del panel actual** es el código que cada registro tenía en el sistema anterior. Con él, el sistema reconoce qué ya cargó y no duplica nada si volvés a subir el mismo archivo.
 
-- El ensayo corre la carga completa **dos veces** con datos inventados, en el orden del corte, y
-  verifica que la segunda corrida no duplica nada y que las cuatro cargas quedan conciliadas.
-- El plan de corte define prerrequisitos, responsables, orden de carga, criterios de aceptación y
-  vuelta atrás.
-- Los **datos reales se manejan solo en producción**. En el repo, en los tests y en el PR solo hay
-  datos inventados.
+## Importar una planilla paso a paso
 
-## Empresa activa
+La pantalla te muestra los cuatro pasos arriba: **1. Subir archivo**, **2. Mapear columnas**, **3. Vista previa** y **4. Aplicar**.
 
-**No aplica filtrado por empresa.** Clientes, proveedores, vínculos e ingresos del panel anterior son
-datos de la **organización**; el panel anterior no tenía empresas. La pantalla lo declara y cambiar la
-empresa de la barra superior **no cambia el destino ni mezcla el lote en curso**. La pestaña del
-archivo tampoco recarga datos de otra empresa. Hay un test que cambia de empresa durante el asistente.
+1. **Preparar el archivo.** Tiene que ser un CSV en formato UTF-8. Si tu planilla está en Excel, guardala como «CSV UTF-8». La primera fila son los encabezados. Si querés partir de un modelo, hacé clic en **Descargar plantilla CSV**.
 
-## El día del corte
+![Botón Descargar plantilla CSV resaltado](img/migracion-inicial-de-datos/02-descargar-plantilla.png)
 
-### Antes
+*El botón para descargar la plantilla (1).*
 
-1. Catálogo de productos cargado (los vínculos necesitan los SKU).
-2. Stock inicial cargado por Stock (F-STK-07, hoy P1): el archivo de ingresos **no** reemplaza esa
-   carga.
-3. Exportación del panel actual a CSV UTF-8: clientes (confirmado), **proveedores, vínculos e
-   ingresos (a confirmar por Nicolás)**. Un Excel se guarda como CSV.
-4. Ensayo en verde: dos corridas, `conciliado = true` y sin duplicados.
-5. Copia de seguridad de producción tomada y verificada.
-6. Un usuario con rol **Administrador** en la organización destino.
+2. Hacé clic en **Elegir archivo CSV** y seleccioná tu planilla.
+3. **Mapear columnas.** Para cada columna de tu archivo, elegí a qué dato corresponde. Si usaste la plantilla o nombres parecidos, el sistema las asocia solo. Las columnas que dejes en «No importar» se ignoran. Los datos obligatorios llevan un asterisco (*) y no podés usar el mismo dato en dos columnas.
+4. Hacé clic en **Continuar a la vista previa**.
+5. **Vista previa.** El sistema revisa todas las filas sin guardar nada y te muestra cuántas son **nuevas**, cuántas **a actualizar** y cuántas **con error**.
+6. Si todo está bien, hacé clic en **Importar N clientes** (o proveedores, vínculos, ingresos). Con **Volver a mapear** corregís las columnas y con **Cancelar** salís sin importar nada.
+7. **Aplicar.** Una barra de progreso muestra el avance («Aplicando lote 1 de 3…»). No cierres la ventana hasta que termine.
+8. **Resultado.** Ves el resumen («Importación lista: 120 clientes nuevos, 4 actualizados, 0 con error») y el informe de conciliación.
 
-### Orden de carga
+El sistema procesa las filas de a tandas de hasta 500, por eso ves «Aplicando lote 1 de 3…».
 
-1. Clientes.
-2. Proveedores.
-3. Vínculos proveedor ↔ producto.
-4. Archivo de ingresos.
+## Qué hacer con las filas con error
 
-Después de cada paso: subir → mapear → revisar la vista previa → importar → **leer el informe de
-conciliación** → recién entonces pasar al siguiente. Si un paso falla a medias, se reintenta la misma
-carga: lo ya cargado no se duplica.
+En la **Vista previa** aparece un aviso con las filas que tienen error, el motivo y el número de fila de tu planilla. **Esas filas no se importan**; las demás sí. Tenés dos caminos:
 
-### Criterios de aceptación
+- Corregí la planilla y volvé a subirla. Como el sistema reconoce el identificador, las filas ya cargadas se actualizan y no se duplican.
+- O importá las filas válidas ahora y después subí un archivo solo con las filas corregidas.
 
-- Las cuatro cargas con estado **aplicada** y **conciliado**.
-- `diferencia = 0` y `destino.diferencia = 0` en cada informe.
-- Las filas con error están explicadas y revisadas por negocio; las que no se pueden cargar quedan en
-  una lista de corrección posterior.
-- Los conteos de clientes, proveedores y líneas del archivo coinciden con el origen menos los errores
-  aceptados.
-- El stock no cambió por efecto de la carga.
+Errores típicos: un identificador repetido dentro del archivo («El identificador está repetido en el archivo»), un SKU repetido («El SKU está repetido en el archivo»), un CUIT inválido o repetido, o un SKU o proveedor que todavía no existe (por eso conviene cargar antes proveedores y catálogo).
 
-### Vuelta atrás
+Si se corta la conexión mientras se aplica, aparece «No pudimos aplicar la importación». Hacé clic en **Reintentar**: lo que ya se cargó no se duplica.
 
-- **Antes de cargar:** nada que revertir.
-- **Una carga con datos malos:** el registro de filas dice qué se creó; se desactivan o corrigen por
-  el circuito normal de cada pantalla. El archivo de ingresos se corrige con un CSV corregido y se
-  reimporta (actualiza, no duplica).
-- **Corte entero:** restaurar la copia de seguridad previa.
-- Las migraciones son aditivas: su reversión no borra los datos ya cargados.
+## Informes de conciliación
 
-## Límites y fuera de alcance
+Sirven para comprobar que lo que cargaste coincide con tu planilla.
 
-- **Solo maestros:** clientes y proveedores. Productos, categorías y stock inicial se migran en
-  Catálogo y Stock.
-- **No se cargan** comprobantes, ventas, presupuestos ni cotizaciones del dólar anteriores.
-- **No se crean usuarios** para los operadores históricos: se guardan como texto en el archivo.
-- **No se crean cuentas web** de clientes ni se envían invitaciones durante la migración.
-- **No se lee `.xlsx`**: el contrato es CSV UTF-8 (decisión D2 de la spec).
-- **El archivo no modifica stock** ni se mezcla con los ingresos vivos.
-- **El Número del cliente no se migra**: lo asigna el sistema; la identidad es el identificador
-  externo (decisión D4).
-- **Un identificador de cliente repetido en otra organización** se rechaza con un mensaje genérico:
-  la unicidad del mapeo es global por sistema (detalle técnico).
-- **No hay pantalla dibujada** de «Migración · importación de datos» ni de la pestaña del archivo: se
-  construyeron con los componentes del sistema de diseño, como autoriza la regla de fuentes.
+- Al terminar, **Ver informe de conciliación** abre el informe de esa carga.
+- **Informes de conciliación** (botón en la pantalla de importación) lista todas las cargas con **Fecha**, **Datos**, **Archivo**, **Filas** y **Estado**: «Aplicada», «En curso» o «Incompleta». Hacé clic en **Ver informe** para ver el detalle.
 
-## Pendientes
+![Lista de informes de conciliación con una carga aplicada](img/migracion-inicial-de-datos/05-informes-de-conciliacion.png)
 
-| Pendiente | Dueño |
+*La lista de cargas realizadas.*
+
+![Informe de conciliación sin diferencias](img/migracion-inicial-de-datos/06-informe-de-una-carga.png)
+
+*El informe de una carga: todas las diferencias en cero.*
+
+
+El informe compara las **Filas del archivo de origen** con **Nuevos**, **Actualizados** y **Con error**, y verifica cuántas quedaron realmente cargadas. Si todo cierra, las diferencias son cero. Si alguna diferencia no es cero, se marca para que la revises. Abajo ves la tabla de **Filas con error** con su **Motivo**.
+
+Una carga «Incompleta» quedó a medias: volvé a subir el mismo archivo y se completa lo que faltaba.
+
+## Cosas a tener en cuenta
+
+- La importación es de toda la organización: los registros nuevos quedan disponibles para todas las tiendas, sin importar la empresa elegida arriba.
+- Los ingresos anteriores no suman ni restan stock: son solo historial. Podés consultar los ingresos nuevos en [Ingreso de mercadería](ingreso-de-mercaderia.md).
+- Después de importar, podés revisar los datos en [Clientes](clientes.md) y [Proveedores](proveedores.md).
+
+## Si algo no sale
+
+| Mensaje | Qué hacer |
 |---|---|
-| Confirmar que el panel actual exporta **proveedores, vínculos e ingresos** a CSV/Excel (FR-024/FR-035). | Nicolás |
-| Confirmar el nombre de la persona de negocio que aprueba el corte. | Nicolás |
-| Stock inicial por F-STK-07 (hoy P1); sin él, la carga real no está completa. | Producto / Stock |
-| Reflejar en el Roadmap las ~36 h de F-MIG-01 a F-MIG-04. | Roadmap |
-
-## Estado de la entrega
-
-Implementado en la rama de la épica (spec `20261023-120000-migracion-inicial-de-datos`): F-MIG-01
-MSF-299, F-MIG-02 MSF-313, F-MIG-03 MSF-330 y F-MIG-04 MSF-343. Pendiente de merge a `main` en este
-repositorio.
-
-Detalle técnico: [Migración inicial de datos: modelo, RPC y operación](../tecnico/migracion-inicial-de-datos.md).
+| «No pudimos leer el archivo. Elegilo de nuevo.» | Revisá que sea CSV UTF-8 y volvé a elegirlo. |
+| «Sin permiso» / «Solo un administrador puede importar datos.» | Pedile a un Administrador que lo haga. |
+| «No pudimos revisar las filas. Intentá de nuevo.» | Reintentá desde **Continuar a la vista previa**. |
+| «El lote supera el máximo de 500 filas.» | Dividí el archivo en partes más chicas. |
+| «La carga ya no existe en tu organización.» | Elegí otra carga en **Informes de conciliación**. |

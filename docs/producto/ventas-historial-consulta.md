@@ -1,235 +1,162 @@
 ---
 owner: producto
-sources:
-  - specs
-  - design/pantallas
+sources: []
 ---
 
-# Ventas · historial de consulta (MSF-275)
+# Historial de ventas y cobros anteriores
 
-Esta página explica **qué resuelve** la épica MSF-275 (spec `ventas-historial-de-consulta`) para quien opera el
-negocio. El detalle de datos, RPC, worker y operación está en
-[Ventas · historial de consulta (técnico)](../tecnico/ventas-historial-consulta.md).
+## Para qué sirve
 
-## Qué resuelve
+El menú **Historial** guarda, solo para consultar, las ventas, los cobros y las cotizaciones del dólar de **antes de empezar a usar MSF** (las del sistema anterior). Sirve para responder a un cliente por una compra vieja, revisar un cobro o ver a cuánto estaba el dólar en una fecha pasada, sin abrir el sistema anterior.
 
-Los **comprobantes, los cobros y las cotizaciones del dólar del panel actual** (el sistema anterior) se pueden
-**buscar y ver en solo lectura** dentro de la plataforma, **sin haberlos migrado** a las tablas vivas.
+Lo que ves ahí es **solo lectura**: no se puede editar, anular ni borrar. Tampoco afecta el stock actual ni los saldos de hoy. Cada comprobante conserva su **número original** y lleva el rótulo **«Histórico»**, para que nadie lo confunda con una venta hecha en MSF.
 
-- Se **importa una sola vez** la exportación (CSV o Excel) que entrega el panel actual.
-- Lo importado queda en tablas de archivo que **ninguna pantalla puede modificar**: no hay editar, ni anular,
-  ni borrar.
-- El historial **no cuenta** para stock, saldos, estados ni reportes: es un archivo de consulta, no un documento
-  vivo.
-- Los comprobantes históricos **conservan sus números originales** y se rotulan **«Histórico»**, para que
-  nadie los confunda con una venta de la plataforma.
+## Quién puede hacerlo
 
-## Para quién
+| Rol | Consultar el historial | Importar archivos |
+|---|---|---|
+| Administrador | Sí | Sí |
+| Operador | Sí | No |
+| Mostrador | Sí | No |
+| Depósito | Sí | No |
+| Administración | Sí | No |
+| Consulta | Sí | No |
+| Técnico | No | No |
 
-- **Mostrador /.Operation:** responde consultas de clientes sobre ventas anteriores (garantía, repetir un pedido,
-  saldo viejo) sin abrir el panel actual.
-- **Administración:** consulta saldos viejos y **a cuánto estaba el dólar** en una fecha pasada.
-- **Administrador:** sube la planilla del panel actual una sola vez y ve el resultado de la importación.
+La consulta está disponible para quien tiene acceso a **Ventas** en la empresa activa (lectura alcanza). Si no tenés ese acceso, el menú no te muestra **Historial**. **Importar** es solo del Administrador.
 
-Sin la sección **Ventas** la pantalla muestra «Acceso restringido» y la entrada de menú no aparece. Con
-**lectura** o **edición** en Ventas se consulta el historial. **Importar** es solo de quien administra la
-organización.
+## Dónde lo encontrás
 
-## Qué se ve
+- **Consultar:** menú **Ventas → Historial**.
+- **Importar:** la pantalla **Importar historial** no está en el menú. El Administrador entra desde la pantalla **Ejecuciones**, con el botón **Importar historial**.
 
-La pantalla **Historial** (menú **Ventas › Historial**, ruta `/historial`) tiene el encabezado «Historial», la
-etiqueta «Solo lectura», el subtítulo «Consulta de lo registrado antes de la plataforma. No se puede editar ni
-borrar.» y un aviso que aclara que los datos del sistema anterior no afectan el stock actual.
+## Consultar el historial
+
+La pantalla se llama **Historial** y muestra la etiqueta «Solo lectura». Arriba tiene un aviso que recuerda que son datos del sistema anterior, importados una sola vez, y que no afectan el stock actual. Debajo hay tres pestañas.
+
+![Pantalla Historial con la etiqueta Solo lectura, el aviso del sistema anterior, las tres pestañas y el buscador](img/ventas-historial-consulta/01-ventas.png)
+
+*La pantalla «Historial», pestaña «Ventas». Cuando todavía no se importó nada, avisa «Todavía no hay historial importado.»*
 
 ### Pestaña Ventas
 
-Comprobante (con el **número original** y la etiqueta **«Histórico»**), Tienda, Fecha, Cliente, Operador,
-**Estado final** y Total. Ordenada por fecha descendente y paginada en el servidor.
+| Columna | Qué muestra |
+|---|---|
+| Comprobante | El número original, con el rótulo «Histórico» |
+| Tienda | La tienda que emitió la venta |
+| Fecha | Fecha de la venta |
+| Cliente | Nombre del cliente |
+| Operador | Quién la hizo (o «—» si no figura) |
+| Estado final | Cobrado, Deuda, Incompleto u otro estado que traiga el archivo |
+| Total | Importe total |
 
 ### Pestaña Cobros
 
-Fecha, Comprobante (con «Histórico»), Tienda, Cliente, Cuenta de cobro, Aprobado por e Importe.
+| Columna | Qué muestra |
+|---|---|
+| Fecha | Fecha del cobro |
+| Comprobante | Número original, con «Histórico» |
+| Tienda | Tienda que lo emitió |
+| Cliente | Nombre del cliente |
+| Cuenta de cobro | Dónde entró el dinero |
+| Aprobado por | Quién lo aprobó |
+| Importe | Monto cobrado |
+
+![Pestaña Cobros del Historial](img/ventas-historial-consulta/02-cobros.png)
+
+*La pestaña «Cobros» del historial.*
 
 ### Pestaña Cotizaciones del dólar
 
-Fecha, **Dólar comprador**, **Dólar vendedor** y Cargó. Las cotizaciones son **globales de la organización**:
-no tienen tienda y no dependen de la empresa activa.
+| Columna | Qué muestra |
+|---|---|
+| Fecha | Día de la cotización |
+| Dólar comprador | Valor de compra |
+| Dólar vendedor | Valor de venta |
+| Cargó | Quién la cargó |
 
-### Filtros, búsqueda y estados
+![Pestaña Cotizaciones del dólar del Historial con el buscador por fecha](img/ventas-historial-consulta/03-cotizaciones.png)
 
-- **Buscar por cliente o número** (Ventas y Cobros): busca por nombre de cliente, número de cliente o número de
-  comprobante, sin distinguir mayúsculas ni tildes. **Buscar por fecha** (Cotizaciones): acepta `dd/mm/aaaa`,
-  `aaaa-mm-dd` o una parte (`03/2020`).
-- **Filtro Tienda**: solo ofrece las empresas asignadas a la persona; «Todas las tiendas» es la opción inicial.
-- Indicadores **«Desde: …»**, **«Hasta: …»** (rango de fechas de lo importado), **«N registros mostrados»** y
-  **«Página N»**.
-- Estados: carga, **error con «Reintentar»**, **«Sin resultados»** y el vacío **«Todavía no hay historial
-  importado.»** (o «…las cotizaciones del dólar del sistema anterior…» en esa pestaña).
-- En pantalla angosta las tablas pasan a tarjetas; se puede operar con teclado y con lector de pantalla.
+*La pestaña «Cotizaciones del dólar»: se busca por fecha.*
 
-## Cómo se importa
+Las cotizaciones valen para toda la organización: no tienen tienda. La cotización vigente de hoy no está acá; la ves en [Precios y dólar](precios-dolar.md).
 
-La pantalla **Importar historial** (`/historial/importar`, sin entrada de menú: se llega desde
-**Ejecuciones**) es una herramienta puntual de migración:
+### Buscar y filtrar
 
-1. Elegí el **tipo de importación**: *Comprobantes de venta*, *Cobros* o *Cotizaciones del dólar*.
-2. Elegí la planilla **`.csv` o `.xlsx`** (hasta 50 MB, una fila por registro).
-3. Pulsá **Importar**. La planilla se sube a un storage privado y la pantalla sigue la ejecución.
-4. El resultado dice **cuántas filas entraron y cuántas ya existían**; si algo falla, la pantalla lista las
-   **filas rechazadas** con **fila, columna y motivo** (y el detalle completo queda en **Ejecuciones**).
+- **Buscar por cliente o número** (Ventas y Cobros): escribí parte del nombre del cliente, su número de cliente o el número del comprobante. No distingue mayúsculas ni tildes. La lista se actualiza sola mientras escribís.
+- **Buscar por fecha** (Cotizaciones del dólar): escribí la fecha como `dd/mm/aaaa`, `aaaa-mm-dd` o solo una parte (por ejemplo `03/2020`).
+- **Tienda** (Ventas y Cobros): elegí «Todas las tiendas» o una tienda en particular. Solo aparecen las tiendas que tenés asignadas, y el filtro arranca en la empresa activa de la barra superior. Si cambiás de empresa activa, la pantalla vuelve a la primera página y limpia la búsqueda.
+- **Indicadores:** «N registros mostrados», y en Ventas y Cobros también «Desde: …» y «Hasta: …», que marcan el rango de fechas de lo importado.
+- **Paginación:** se ven 25 registros por página. Abajo aparece «Página N · 1–25 de total» y los botones para pasar de página.
 
-La importación es **todo o nada**: si hay una sola fila inválida, **no se importa ninguna** y hay que corregir la
-planilla. Volver a subir la misma planilla es seguro: no duplica.
+En pantallas angostas (celular), las tablas se muestran como tarjetas.
 
-## Empresa activa
+## Importar un archivo (solo Administrador)
 
-El filtro **Tienda** parte de la **empresa activa** de la barra superior; los chips lo pueden sobreescribir hasta
-que la activa cambie. Al cambiar de empresa (o de organización) la pantalla se **remonta**: vuelve a la primera
-página, limpia la búsqueda y recarga todo, sin mostrar filas de la empresa anterior. Las **cotizaciones del
-dólar** no dependen de la empresa activa (son globales): esa pestaña solo se remonta al cambiar de organización.
+La importación se hace una sola vez por cada tipo de dato, con los archivos que entrega el sistema anterior.
 
-## Límites y decisiones abiertas
+### Formato del archivo
 
-- **Una sola vez:** no hay sincronización ni actualización del historial. Es un archivo.
-- **No es una tabla viva:** no suma a stock, no altera saldos, no cambia estados y no entra en los reportes
-  actuales. Que los reportes de Etapa 2 incluyan el historial es una **decisión abierta**; por ahora **no** lo
-  incluyen.
-- **La cotización vigente no se toca:** la pestaña de cotizaciones historicales es un archivo aparte del dólar
-  que carga la plataforma.
-- **La numeración nueva no es de esta épica:** el histórico deja el último número registrado a la vista, pero
-  fijar de dónde arranca la numeración nueva queda pendiente.
-- **Volumen sin medir:** las 22 h de la épica son un orden de magnitud; el límite de la subida es 50 MB y una
-  importación admite hasta 200 000 filas. No hay mediciones reales de tiempos con planillas del panel actual.
-- **Nombres de tienda repetidos:** si dos empresas de la organización tienen el mismo nombre, la base toma la más
-  antigua: conviene no tener tiendas homónimas antes de importar.
+- Una planilla **.csv** o **.xlsx**, de hasta **50 MB**, con **una fila por registro** y los nombres de las columnas en la primera fila.
+- Los nombres de las columnas no distinguen mayúsculas, tildes ni espacios; las columnas que sobran se ignoran. Las marcadas con * son obligatorias.
 
-## Fuera de alcance de esta épica
+| Tipo de importación | Columnas |
+|---|---|
+| Comprobantes de venta | Tienda*, Comprobante* (número), Fecha*, Cliente*, Total*, Tipo, Número de cliente, Operador, Estado final |
+| Cobros | Tienda*, Fecha*, Comprobante*, Cliente*, Importe*, Número de cliente, Cuenta de cobro, Aprobado por |
+| Cotizaciones del dólar | Fecha*, Dólar comprador*, Dólar vendedor*, Cargó |
 
-- **Exportar** el historial: el prototipo trae el botón, la épica no lo pide (otra épica puede pedirlo).
-- **Editar, anular o borrar** lo importado, y **migrar** el historial a comprobantes, cobros o cotizaciones
-  vivas.
-- **Un importador genérico:** esta épica construye el suyo. Si MSF-206 generaliza uno, reutilizarlo es un
-  refactor posterior, no un bloqueo.
-- **La entrega de las exportaciones del panel actual** (CSV o Excel) es un bloqueante **de la importación**: la
-  provee la operación del panel; sin ella se puede probar la consulta con archivos de ejemplo.
+- **Fechas:** `dd/mm/aaaa` o `aaaa-mm-dd`, o una celda de fecha de Excel. Tiene que ser una fecha que exista.
+- **Importes:** con coma o punto decimal. Se admiten símbolos como `$`. En las cotizaciones no pueden ser negativos.
+- **Tienda:** debe coincidir con el nombre de una tienda de tu organización. Si no existe, la fila se rechaza (no se crean tiendas desde acá). Si dos tiendas se llaman igual, conviene renombrar una antes de importar.
 
-## Cómo probarlo
+Por ahora no hay una plantilla para descargar: armá el archivo con las columnas de la tabla.
 
-### Prerrequisitos
+### Paso a paso
 
-- **Entorno:** stack local con la rama de la épica (`pnpm dev:supabase` + `pnpm dev`, panel en
-  `http://localhost:5173`) o el ambiente **DEV** con la épica desplegada. Rutas: `http://localhost:5173/historial`
-  y `http://localhost:5173/historial/importar`.
-- **Personas y permisos** (en la organización de prueba):
-  - **Administrador** de la organización: es el único que puede **importar** el historial.
-  - **Mostrador** u **Operación** con **Ventas en lectura** en una empresa asignada: consulta el historial.
-  - **Depósito** (sin acceso a Ventas): sirve para ver «Acceso restringido».
-  - Un segundo usuario con **otra** empresa asignada: sirve para comprobar el aislamiento por tienda.
-- **Datos a sembrar:**
-  - Dos **empresas** (tiendas) de la misma organización.
-  - Tres **exportaciones** del panel actual, una por tipo: comprobantes de venta, cobros y cotizaciones del
-    dólar (`.csv` o `.xlsx`). Si el panel actual todavía no las entrega, sirve con **archivos de ejemplo** con las
-    columnas de la sección «Mapeo de columnas» de la página técnica.
-  - Para la **importación real** hacen falta la conexión `historial-ventas` de la organización y su servidor con
-    el worker desplegado (ver «Puesta en marcha» en la página técnica). Sin eso, la pantalla **rechaza** la
-    importación con «Esta organización no tiene habilitada la importación del historial».
-  - Para probar **solo la consulta** se pueden sembrar filas en `dominio.historial_comprobantes`,
-    `dominio.historial_cobros` y `dominio.historial_cotizaciones_dolar` por SQL.
+1. Entrá a **Ejecuciones** y hacé clic en **Importar historial**.
+2. En **Tipo de importación** elegí *Comprobantes de venta*, *Cobros* o *Cotizaciones del dólar*.
+3. Hacé clic en **Elegir planilla** y seleccioná el archivo. Vas a ver su nombre y su tamaño. Si te equivocaste, hacé clic en **Quitar**.
+4. Hacé clic en **Importar**. Aparece «Subiendo la planilla…» y después «Importación en curso». Podés esperar en la pantalla; se actualiza sola.
+5. Cuando termina, ves el resultado:
+   - **Importación completada:** cuántos registros nuevos entraron y cuántos ya existían (no se duplican).
+   - **La importación no se aplicó:** hay filas con problemas. Abajo aparece **Filas rechazadas** con la **Fila**, la **Columna** y el **Motivo** de cada una. Si son muchas, se muestran las primeras y se aclara cuántas hay en total.
+6. Para ver el detalle, hacé clic en **Ver en Ejecuciones**. Para cargar otro archivo, hacé clic en **Importar otra planilla**.
 
-### Pasos
+![Pantalla Importar historial con el tipo de importación, el botón Elegir planilla y el botón Importar](img/ventas-historial-consulta/04-importar.png)
 
-1. **Importar los comprobantes.** Con la sesión de **Administrador**, entrá a
-   `http://localhost:5173/historial/importar`, elegí el tipo **Comprobantes de venta**, elegí la planilla y pulsá
-   **Importar**. Se tiene que ver el estado de la importación y, cuando termina, el conteo de filas importadas (y
-   cuántas ya existían). El botón **Ver en Ejecuciones** lleva al detalle de la ejecución.
-2. **Reimportar la misma planilla** (sin cambiarla). Se tiene que ver que **no se duplica**: el resultado dice
-   que las filas ya existían.
-3. **Probar el rechazo (todo o nada).** Subí una planilla con una fila inválida (por ejemplo, una fecha
-   ilegible o un importe con letras). La importación tiene que quedar **fallida**, **no se importa ninguna fila**
-   y la pantalla lista las **filas rechazadas** con fila, columna y motivo.
-4. **Consultar las ventas.** Con la sesión de **Mostrador**, entrá a `http://localhost:5173/historial`: se abre
-   la pestaña **Ventas** con las columnas Comprobante, Tienda, Fecha, Cliente, Operador, Estado final y Total. Cada
-   comprobante tiene que mostrar su **número original** con la etiqueta **«Histórico»**, y no hay ningún botón de
-   editar, anular ni borrar.
-5. **Buscar.** Escribí parte del nombre del cliente (con o sin tilde) o el número de comprobante en **«Buscar por
-   cliente o número»**. La tabla se tiene que filtrar y la paginación vuelve a la primera página.
-6. **Filtrar por tienda.** Elegí una de las tiendas en los chips. Solo se listan filas de esa tienda; con el
-   usuario que tiene **otra** empresa asignada se ve lo mismo acotado a su tienda.
-7. **Ver los cobros.** Pasá a la pestaña **Cobros**: Fecha, Comprobante, Tienda, Cliente, Cuenta de cobro,
-   Aprobado por e Importe.
-8. **Ver las cotizaciones.** Pasá a la pestaña **Cotizaciones del dólar**: Fecha, Dólar comprador, Dólar vendedor
-   y Cargó. Buscá una fecha (por ejemplo `03/2020`) en **«Buscar por fecha»**: se filtra. Esta pestaña **no**
-   muestra el filtro de tienda.
-9. **Ver los indicadores.** Con filas cargadas se tienen que ver **«N registros mostrados»**, el rango **«Desde:
-   …»** / **«Hasta: …»** y la paginación **«Página N»**.
-10. **Ver el vacío.** Buscá algo que no exista: se muestra **«Sin resultados»**. Si la organización todavía no
-    importó nada, se muestra **«Todavía no hay historial importado.»**
-11. **Cambiar de empresa.** Con la pantalla abierta, cambiá la empresa activa en la barra superior: la consulta
-    se remonta (página 1, búsqueda limpia) y **no** quedan filas de la empresa anterior.
-12. **Ver el acceso restringido.** Entrá con la sesión de **Depósito** (sin Ventas): se muestra «Acceso
-    restringido» y la entrada de menú **Historial** no aparece.
-13. **Comprobar que no toca lo vivo.** Con el historial importado, revisá el stock, un comprobante de la
-    plataforma y un reporte: **no** cambian. Y probá a editar o borrar una fila del historial desde la base: la
-    base lo rechaza.
+*La pantalla «Importar historial» antes de elegir una planilla (solo Administrador).*
 
-### Resultado esperado
+### Si hay filas rechazadas
 
-- **Given** una planilla válida, **When** el Administrador la importa, **Then** las filas quedan en el historial
-  con su número original y el rótulo «Histórico», y la ejecución termina **exitosa** con el conteo de importadas
-  y de ya existentes.
-- **Given** una planilla con una fila inválida, **When** se importa, **Then** **no** se importa ninguna fila, la
-  ejecución queda **fallida** y se informa **qué fila, qué columna y por qué**.
-- **Given** la misma planilla importada dos veces, **When** se reimporta, **Then** no hay filas duplicadas.
-- **Given** un usuario con acceso a Ventas y una empresa asignada, **When** busca o filtra por tienda, **Then**
-  ve solo filas de sus empresas, en solo lectura, y nunca filas de otra organización.
-- **Given** un usuario sin acceso a Ventas, **When** entra a Historial, **Then** ve «Acceso restringido» y la
-  entrada de menú no aparece.
-- **Given** el historial importado, **When** se consulta stock, saldos, estados o reportes, **Then** no incluyen
-  el historial.
+La importación es **todo o nada**: si una sola fila está mal, **no se importa ninguna**. Corregí en la planilla las filas que indica la lista (por ejemplo, una fecha ilegible o un importe con letras) y volvé a importarla.
 
-### Cómo automatizarlo
+### Volver a importar
 
-**Hoy no hay ningún E2E de esta épica**: el cierre validó con pgTAP y Vitest, y el rótulo de cobertura por
-historia (`[EPICA:TASK]`) todavía no tiene ningún test de MSF-275. Queda pendiente de automatizar, con estos
-rótulos:
+Podés subir de nuevo el mismo archivo sin miedo: los registros que ya estaban no se duplican y el resultado te dice cuántos ya existían. Una vez completada la importación, los registros no se pueden modificar ni borrar desde el sistema.
 
-| Recorrido | Test E2E propuesto | Rótulo |
-|---|---|---|
-| Importación: subida, estado de la ejecución y filas rechazadas | `apps/web/e2e/ventas-historial-importar.e2e.ts` | `[MSF-275:T011]` |
-| Consulta de ventas y cobros: pestañas, columnas, «Histórico», búsqueda, filtro de tienda y cambio de empresa | `apps/web/e2e/ventas-historial.e2e.ts` | `[MSF-275:T017]` |
-| Tablas de ventas y cobros con rótulo «Histórico», paginación e indicadores | `apps/web/e2e/ventas-historial.e2e.ts` | `[MSF-275:T018]` |
-| Cotizaciones del dólar: columnas, búsqueda por fecha y ausencia de filtro de tienda | `apps/web/e2e/ventas-historial.e2e.ts` | `[MSF-275:T022]` |
+## Si algo no sale
 
-Las tareas son de `specs/20261020-100000-ventas-historial-de-consulta/tasks.md`: **T011** (pantalla de
-importación), **T017** (estructura de la pantalla), **T018** (tablas, rótulo «Histórico» y filtro de tienda) y
-**T022** (pestaña de cotizaciones). El rótulo lo usa `pnpm cobertura:e2e` para atar cada test a su historia.
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| Acceso restringido | Tu rol no tiene acceso a Ventas. Pedile a un Administrador que revise tus permisos. |
+| Solo un administrador con una organización activa puede importar el historial. | Importar es solo del Administrador. Si lo sos, revisá que tengas una organización activa elegida. |
+| «archivo» no es un archivo .csv o .xlsx. / está vacío. / pesa más de 50 MB. | Elegí otro archivo: debe ser .csv o .xlsx, con datos y de hasta 50 MB. |
+| Elegí una planilla .csv o .xlsx para importar. | Hacé clic en **Elegir planilla** antes de **Importar**. |
+| No pudimos subir la planilla. Revisá tu conexión e intentá de nuevo. | Falló la subida. Revisá tu internet y probá otra vez. |
+| Ya hay una importación de este tipo en curso. Esperá a que termine. | Hay otra importación del mismo tipo en marcha. Esperá y volvé a intentar. |
+| Esta organización no tiene habilitada la importación del historial. Contactá a soporte. | La importación todavía no está activada para tu organización. Escribile a soporte. |
+| Tu rol no puede importar el historial de esta organización. | Tu rol no tiene permiso para importar. |
+| La planilla no quedó registrada. Volvé a subirla. | Volvé a elegir el archivo y a importar. |
+| No pudimos iniciar la importación. Intentá de nuevo en unos minutos. | Error general al arrancar. Reintentá más tarde; si sigue, avisá a soporte. |
+| La importación no terminó a tiempo | Revisá **Ejecuciones**. Si no entraron registros nuevos, volvé a importar el mismo archivo. |
+| No pudimos consultar el estado de la importación. / No encontramos la ejecución de esta importación en la organización activa. | Mirá el resultado en **Ejecuciones**. Verificá también que estás en la organización correcta. |
+| No pudimos cargar el historial de ventas / cobros / las cotizaciones del dólar. | Hacé clic en **Reintentar**. |
+| Sin resultados | Ninguna fila coincide con lo que buscaste. Probá con otro texto, otra fecha u otra tienda. |
+| Todavía no hay historial importado. | Todavía no se importó ese tipo de datos. Lo hace el Administrador. |
 
-## Pendientes
+## Lo que por ahora no se puede
 
-| Qué falta | Por qué | Dueño |
-|---|---|---|
-| **E2E de la épica** (importación, consulta de ventas y cobros, cotizaciones) | La épica validó con pgTAP y Vitest; el rótulo `[EPICA:TASK]` de esta épica todavía no tiene ningún test. Rótulos previstos: `[MSF-275:T011]`, `[MSF-275:T017]`, `[MSF-275:T018]`, `[MSF-275:T022]` | responsable de plataforma (cierre de MSF-275) |
-| **Exports del panel actual** (CSV o Excel) con formato y volumen acordados | Es el bloqueante duro de la importación (F-VTA-37): sin los archivos reales la importación se prueba con ejemplos | Operación del panel actual |
-| **Medir el volumen real** (años y filas) | Las 22 h son un orden de magnitud; el límite de tamaño y el de filas se fijan con el volumen real | Producto / Operación |
-| **Fijar la numeración nueva** de comprobantes | La épica deja el último número histórico disponible; la numeración nueva arranca en un número posterior y esa decisión es de Ventas | Ventas (MSF-159) |
-| **Importador genérico** | Esta épica construyó el suyo; si MSF-206 generaliza uno, reutilizarlo es un refactor posterior | Plataforma (MSF-206) |
-| **Reportes de Etapa 2 con el historial** | Hoy los reportes usan solo datos vivos; incluir el archivo es una decisión abierta | Producto / Reportes |
-| **Qué pasa con el panel actual** al 31/12 | Decisión pendiente del cliente; no bloquea esta épica | Producto / cliente |
-
-## Estado
-
-Implementado en la rama de la épica con sus tres historias (F-VTA-37/MSF-293, F-VTA-38/MSF-309 y
-F-VTA-39/MSF-322) y el cierre, **pendiente de merge a `main`**. La fuente funcional es
-`specs/20261020-100000-ventas-historial-de-consulta/spec.md`; las pruebas están en
-`supabase/tests/database/historial_importacion.test.sql`, `historial_listar_ventas_cobros.test.sql` y
-`historial_listar_cotizaciones.test.sql`, y en `apps/web/src/pages/historial/*.test.tsx` y
-`workers/historial-importador/test/`.
-
-## Para seguir
-
-- **[Ventas · historial de consulta (técnico)](../tecnico/ventas-historial-consulta.md)** — tablas, RPC, worker,
-  flow de Kestra, permisos y reversión.
-- **[Precios y dólar](precios-dolar.md)** — la cotización **vigente** de la plataforma (no es el historial).
-- **[Migración inicial de datos](migracion-inicial-de-datos.md)** — la otra importación del panel anterior (Stock).
-- **[Permisos por rol](../permisos-por-rol.md)** — secciones, niveles y reglas por empresa.
-- **[Empresa activa](../empresa-activa.md)** — cómo se comporta el cambio de empresa en las pantallas.
+- Exportar el historial.
+- Editar, anular o borrar un registro histórico, ni convertirlo en una venta o un cobro de MSF.
+- Ver el historial dentro de los reportes de rentabilidad, stock o saldos: son solo de consulta.

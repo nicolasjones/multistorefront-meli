@@ -1,83 +1,92 @@
 ---
 owner: producto
-sources:
-  - specs
-  - apps/web/src/pages/cuenta
-  - apps/web/src/lib/passwordPolicy.ts
+sources: []
 ---
 
-# Perfil propio y cambio de contraseña (MSF-148 · F-PRF-01)
+# Tu perfil: nombre, foto, contraseña y correo
 
-**Épica:** MSF-148 · **Historia:** F-PRF-01 (MSF-290).
-**Spec:** `specs/20261016-130000-perfil-y-permisos-avanzados/spec.md`.
-**Origen:** el perfil y el cambio de contraseña ya venían del template (spec 008, `pages/cuenta/perfil` y
-`pages/cuenta/cambiar-contrasena`). Esta épica **verifica la aceptación y ajusta textos**, sin reconstruir
-la pantalla ni cambiar el esquema.
+## Para qué sirve
 
-## Qué resuelve
+Cada persona mantiene sus propios datos sin pedirle nada a un Administrador: cambiar el nombre, la foto, la contraseña o el correo de ingreso.
 
-- Cada persona autenticada mantiene al día **su nombre, su apellido y su foto** sin pedirle nada a un
-  administrador.
-- El **cambio de contraseña** exige la contraseña actual: una contraseña actual vacía o incorrecta no
-  modifica la credencial.
-- La contraseña nueva cumple una regla única y visible en pantalla: **12 caracteres como mínimo, con
-  mayúscula, minúscula, número y símbolo**.
-- El perfil no permite cambiar el **rol, la organización ni la pertenencia** de la persona. El cambio de
-  correo tiene su propio flujo seguro y los avisos de seguridad se consultan en la misma pantalla.
+## Quién puede hacerlo
 
-## Para quién
+Todos los roles, cada uno sobre su propia cuenta. Tu rol y tu organización se ven en el perfil pero no se cambian ahí: eso lo hace un Administrador desde [Usuarios y roles](usuarios-y-roles.md).
 
-| Persona | Qué puede hacer |
+## Dónde lo encontrás
+
+Arriba a la derecha, hacé clic en tu nombre. Se abre un menú con:
+
+- **Perfil**
+- **Cambiar contraseña**
+- **Cambiar correo electrónico**
+- **Avisos por correo**
+- **Cerrar sesión**
+
+![Menú desplegado al hacer clic en el nombre, con Perfil, Cambiar contraseña, Cambiar correo electrónico, Avisos por correo y Cerrar sesión](img/perfil-propio/01-menu.png)
+
+*Menú con tu nombre, arriba a la derecha.*
+
+## Cambiar tu nombre o tu foto
+
+1. Abrí el menú con tu nombre y elegí **Perfil**.
+2. Para el nombre, editá **Nombre** y **Apellido** (los dos son obligatorios) y hacé clic en **Guardar datos personales**. Vas a ver «Tus datos personales fueron guardados».
+3. Para la foto, hacé clic en **Cargar o reemplazar foto** y elegí una imagen JPG, PNG o WebP de hasta 2 MiB. Si no querés foto, usá **Quitar foto**: se muestra la inicial de tu nombre.
+
+![Pantalla Mi perfil con nombre, apellido, foto, datos de cuenta y botones de seguridad](img/perfil-propio/02-perfil.png)
+
+*Mi perfil: editás tu nombre y tu foto; los datos de cuenta son de solo lectura.*
+
+En la misma pantalla ves, solo para lectura, tu correo, la fecha de creación de tu cuenta, tu organización y tu rol, y una lista con tus últimas acciones de seguridad (inicios de sesión, cambios de contraseña o de correo).
+
+## Cambiar tu contraseña
+
+1. En el menú con tu nombre, elegí **Cambiar contraseña** (o hacé clic en ese botón dentro del perfil).
+2. Escribí tu contraseña actual, la nueva y repetí la nueva en la confirmación.
+3. Hacé clic en **Cambiar contraseña**.
+
+![Pantalla Cambiar contraseña con los campos de contraseña actual, nueva y confirmación](img/perfil-propio/03-cambiar-contrasena.png)
+
+*Cambiar contraseña: tres campos y un botón.*
+
+La contraseña nueva tiene que tener al menos 12 caracteres, con una mayúscula, una minúscula, un número y un símbolo. Al cambiarla se cierran tus sesiones abiertas en otros dispositivos y volvés a la pantalla de inicio.
+
+**Si algo no sale**
+
+| Mensaje | Qué hacer |
 |---|---|
-| **Cualquier usuario autenticado** | Editar su nombre, apellido y foto; cambiar su contraseña; consultar los datos de su cuenta y sus últimas 20 acciones de seguridad |
-| **Administrador/a** | No interviene: no hay que resetear datos personales ni contraseñas desde Usuarios para este caso |
-| **Persona sin sesión** | No accede: la pantalla redirige al ingreso y no expone datos personales |
+| «La contraseña actual no coincide» | Revisala. Si no la recordás, usá el enlace **Recuperar acceso**. Tu contraseña anterior sigue vigente. |
+| «Las contraseñas no coinciden» | Escribí igual la nueva y su confirmación. |
+| «No pudimos modificar la contraseña. La anterior sigue vigente» | Probá de nuevo en unos minutos. |
 
-## Cómo se usa
+## Cambiar tu correo
 
-### Perfil
+1. Elegí **Cambiar correo electrónico** en el menú con tu nombre.
+2. Escribí tu contraseña actual y el correo nuevo (tiene que ser distinto del actual).
+3. Hacé clic en **Solicitar cambio de correo**.
 
-Se llega desde **«Ver mi perfil»** en la pantalla general o desde **Cuenta → Perfil** en la barra superior
-(`/cuenta/perfil`).
+![Pantalla Cambiar correo electrónico con los campos de contraseña actual y correo nuevo](img/perfil-propio/04-cambiar-correo.png)
 
-- **Datos personales:** nombre y apellido son obligatorios (se recortan los espacios); la foto se carga o se
-  reemplaza y también se puede quitar. Se aceptan **JPG, PNG o WebP de hasta 2 MiB**; sin foto se muestra la
-  inicial del nombre o del correo.
-- **Datos de cuenta:** correo, fecha de creación, organización y rol se muestran **solo para lectura**.
-- **Seguridad:** accesos a «Cambiar contraseña» y «Cambiar correo electrónico», más las **últimas 20
-  acciones de seguridad** de la cuenta (inicios de sesión, contraseña y correo modificados).
-- Al guardar se confirma «Tus datos personales fueron guardados»; si falta nombre o apellido se avisa y no
-  se guarda nada.
+*Cambiar correo: pide tu contraseña actual y el correo nuevo.*
 
-### Cambio de contraseña
+Te llega un mensaje de confirmación al correo **nuevo**. Hasta que lo confirmes, sigue valiendo el correo actual.
 
-La pantalla vive en `/cuenta/cambiar-contrasena` y pide **contraseña actual, nueva y confirmación**.
+## Cerrar sesión
 
-1. La contraseña nueva se valida contra la regla antes de llamar a Supabase Auth.
-2. La contraseña actual se verifica contra Auth; si no coincide, se avisa y se ofrece **«Recuperar acceso»**.
-   La contraseña anterior sigue vigente.
-3. Con la actual correcta y la nueva válida, se actualiza la credencial y se **cierran las demás sesiones**
-   de la cuenta. La sesión actual vuelve al inicio.
+Menú con tu nombre → **Cerrar sesión**. Volvés a la pantalla de ingreso. Más detalles en [Ingresar y recuperar el acceso](acceso-y-sesion.md).
 
-## Reglas y límites
+## Avisos por correo
 
-- **La regla de contraseña está a confirmar con el cliente.** Se centraliza en
-  `apps/web/src/lib/passwordPolicy.ts`; ajustarla no requiere tocar cada pantalla. Dueño: Nicolás / Producto.
-- **La pantalla de perfil no está dibujada en el prototipo.** Se usa la pantalla del template con el sistema
-  de diseño; la estética no se inventó desde el prototipo. Validación visual pendiente: Producto.
-- **El perfil no administra permisos.** Cambiar el rol o la organización es una acción de Administrador en
-  Usuarios y permisos, no del titular.
-- **No hay cambios de base de datos ni de contrato** por esta historia: `perfiles_usuario`,
-  `eventos_seguridad_usuario` y el bucket `fotos-perfil` son del template/spec 008. La entrega son textos y
-  pruebas de aceptación.
-- **Fuera de alcance:** administrar sesiones activas, cerrar sesiones de otros o cambiar el correo desde el
-  perfil (el correo tiene su flujo aparte).
-- **Empresa activa: no aplica.** El perfil es de la persona y no filtra ni escribe datos por empresa; cambiar
-  la empresa de la barra superior no altera esta pantalla.
+En **Avisos por correo** elegís qué avisos querés recibir con un interruptor por cada uno (por ejemplo, **Consulta nueva**, cuando entra una consulta de una tienda).
 
-## Estado
+![Pantalla Avisos por correo con el interruptor Consulta nueva activado](img/perfil-propio/05-avisos.png)
 
-Verificado con Vitest: `apps/web/src/pages/cuenta/perfil.test.tsx`,
-`apps/web/src/pages/cuenta/cambiar-contrasena.test.tsx` y
-`apps/web/src/lib/passwordPolicy.test.ts`. El detalle de implementación está en
-[Perfil y permisos avanzados (técnico)](../tecnico/perfil-y-permisos.md).
+*Avisos por correo: activá o apagá cada aviso.*
+
+ Los avisos de seguridad de tu cuenta no se pueden apagar. Si todavía no tenés avisos para configurar, la pantalla lo indica.
+
+## Preguntas frecuentes
+
+**¿Puedo cambiar mi rol?** No. Pedíselo a un Administrador.
+
+**¿La empresa activa cambia mi perfil?** No, el perfil es tuyo y es el mismo en todas las tiendas.

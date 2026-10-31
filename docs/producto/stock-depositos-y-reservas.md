@@ -1,170 +1,168 @@
 ---
 owner: producto
-sources:
-  - specs
+sources: []
 ---
 
-# Stock · depósitos y reservas (MSF-292)
+# Depósitos, traslados y reservas de stock
 
-**Qué resuelve:** que el administrador defina los depósitos de la organización, que cada producto muestre cuánto
-hay en cada uno sobre un **stock total único**, que el equipo elija en qué depósito entra, sale o se traslada cada
-unidad y que los productos «A pedido» **reserven** al vender y **descuenten recién** cuando el cliente retira o
-recibe, sin pasar nunca el disponible.
+## Para qué sirve
 
-Reúne las tres historias de la épica MSF-292:
+Si guardás mercadería en más de un lugar (un local, un depósito, otra ciudad), podés definir cada lugar como un **depósito**, ver cuánto hay en cada uno y trasladar unidades de uno a otro. Además, los productos vendidos «a pedido» quedan **reservados** hasta que se entregan, así no se venden dos veces.
 
-| Historia | Qué agrega |
-|----------|------------|
-| F-STK-14 · Depósitos y existencias por depósito (MSF-316) | Alta de depósitos y stock desglosado por depósito sobre un total único |
-| F-STK-15 · Traslado entre depósitos (MSF-353) | Mover unidades de un depósito a otro sin cambiar el stock total |
-| F-STK-16 · Reserva y descuento de productos a pedido (MSF-337) | Reservar al vender y descontar al entregar, para productos «A pedido» |
+El stock total del negocio sigue siendo uno solo: los depósitos lo reparten, no lo duplican.
 
-**Estado:** implementado en la rama de la épica (`epic/MSF-292-stock-stock-depositos-y-reservas`); pendiente de merge
-a `main` a la fecha de esta página. Spec: `specs/20261022-180000-stock-depositos-y-reservas/`.
+## Quién puede hacerlo
 
-## Para quién
+| Rol | Qué puede hacer |
+|---|---|
+| Administrador | Crear y editar depósitos, elegir el depósito por defecto, activarlos o desactivarlos |
+| Operador, Depósito | Elegir el depósito al registrar movimientos y trasladar mercadería entre depósitos |
+| Consulta, Mostrador, Administración | Ver los depósitos y el stock de cada uno, sin botones de cambio |
 
-| Persona | Qué hace |
-|---------|----------|
-| **Administrador/a** | Define los depósitos: los crea, los edita, elige cuál es el de por defecto y los activa o desactiva |
-| **Depósito u Operador/a con edición en Stock** | Registra entradas, salidas y ajustes eligiendo el depósito; traslada mercadería entre depósitos |
-| **Consulta o cualquier rol sin edición en Stock** | Ve los depósitos, el stock por depósito, el reservado y el disponible, y el historial de movimientos |
+## Dónde lo encontrás
 
-## El disponible, la regla de la casa
+- Los depósitos: **Stock → Depósitos de mercadería**.
+- Los traslados: en **Stock → Stock actual**, botón **Trasladar** en la fila del producto.
 
-**Disponible = cantidad − reservado**, por depósito y en total. Ninguna salida, ajuste, traslado ni reserva puede
-dejar el disponible de un depósito por debajo de 0: el stock sigue siendo único por organización y compartido entre
-empresas y canales, pero **la barrera contra negativos ahora se calcula sobre el disponible de cada depósito**, no
-sobre la cantidad total.
+![Pantalla Depósitos de mercadería con cuatro depósitos, sus empresas, unidades y el depósito por defecto](img/stock-depositos/01-depositos.png)
 
-Ejemplo: un producto con 10 unidades y 3 reservadas tiene 7 disponibles. Una salida de 8 se rechaza aunque el total
-de la organización sea 10 y haya unidades en otro depósito.
+*Depósitos de mercadería: cuántos productos y unidades hay en cada uno, y cuál es el de por defecto.*
 
-## Depósitos (F-STK-14)
+## Qué muestra la tabla de depósitos
 
-En **Stock → Depósitos de mercadería** (`/stock/depositos`) se ve la tabla de depósitos de la organización (la
-edita el Administrador; con `lectura` se ve completa pero sin botones):
-
-| Columna | Qué muestra |
-|---------|-------------|
-| **Depósito** | Nombre del depósito (único por organización, sin distinguir mayúsculas) |
-| **Dirección** | Dirección opcional (hasta 200 caracteres) |
-| **Venden desde acá** | Las empresas desde las que se puede vender en ese depósito (una etiqueta por empresa) |
-| **Productos con stock** | Cuántos productos tienen unidades en ese depósito |
+| Columna | Qué significa |
+|---|---|
+| **Depósito** | Nombre del depósito |
+| **Dirección** | Dirección, si la cargaste |
+| **Venden desde acá** | Las empresas que pueden vender mercadería de ese depósito |
+| **Productos con stock** | Cuántos productos tienen unidades ahí |
 | **Unidades** | Total de unidades en el depósito |
-| **Por defecto** | Marca del depósito por defecto y acción **«Usar por defecto»** |
+| **Por defecto** | Marca el depósito por defecto o te deja elegirlo con **Usar por defecto** |
 | **Activo** | Interruptor para activar o desactivar el depósito |
 
-- **Alta y edición.** El botón **«Nuevo depósito de mercadería»** abre un formulario con **Nombre**, **Dirección**
-  (opcional) y **«Pueden vender desde acá»** (las empresas de la organización). Editar un depósito usa el mismo
-  formulario. La empresa activa de la barra superior viene marcada al crear el depósito.
-- **Un depósito por defecto.** Siempre hay **exactamente uno** por organización, y es el destino de los movimientos
-  que no eligen depósito. El depósito por defecto **no se puede desactivar**. Cuando se cambia, el aviso dice
-  «&lt;Nombre&gt; es ahora el depósito por defecto».
-- **Desactivar.** Un depósito con unidades no se puede desactivar: el sistema responde «Tiene stock: trasladá la
-  mercadería antes de desactivarlo». Al pie de la tabla está la nota «Un depósito con stock no se puede desactivar:
-  trasladá antes la mercadería a otro depósito. El depósito por defecto tampoco.» Un depósito inactivo no aparece en
-  los selectores y no admite entradas.
-- **Los depósitos no se borran**, se desactivan.
+Arriba a la derecha ves cuántos depósitos hay. Si en la barra superior elegís una empresa puntual, solo se listan los depósitos desde los que vende esa empresa; con **Todas mis empresas** ves todos.
 
-### Stock por depósito en Stock actual
+## Crear un depósito
 
-En **Stock → Stock actual** (`/stock`) la tabla suma las columnas **Stock**, **Reservado** y **Disponible**, y suma el
-control **«Depósito de mercadería»**: con **«Todos los depósitos»** (el valor por defecto) las cifras son los totales
-únicos de la organización; al elegir un depósito, las cifras pasan a ser las de ese depósito.
+1. Entrá a **Stock → Depósitos de mercadería**.
+2. Hacé clic en **Nuevo depósito de mercadería**.
 
-El control cambia las cifras, **no el estado**: el estado (Sin stock / Stock bajo / Disponible) y las alertas se
-calculan sobre el **disponible total**, porque el stock es único por organización y compartido entre empresas.
+    ![Pantalla Depósitos de mercadería con el botón Nuevo depósito de mercadería resaltado](img/stock-depositos-y-reservas/01-boton-nuevo-deposito.png)
 
-En **Movimientos** (`/stock/movimientos`) el detalle agrega la columna **Depósito** y el resumen por producto muestra
-**Queda**, **Reserv.** y **Disp.**.
+    *Paso 2: el botón está arriba a la derecha.*
 
-## Traslado entre depósitos (F-STK-15)
+3. Completá el **Nombre** (obligatorio, hasta 80 caracteres) y, si querés, la **Dirección** (hasta 200).
+4. En **Pueden vender desde acá** marcá las empresas que van a vender mercadería de este depósito. La empresa que tenés elegida en la barra superior viene marcada.
+5. Hacé clic en **Crear depósito**. Aparece «Depósito creado».
 
-En **Stock actual**, la acción **«Trasladar»** (solo con edición en Stock) abre el diálogo **«Trasladar stock entre
-depósitos»** con **Producto**, **Depósito de origen**, **Depósito de destino**, **Cantidad**, **Fecha** y **Nota
-(opcional)**. El selector de origen muestra el disponible: «Disponible en &lt;depósito&gt;: N · Stock N · Reservado N».
+![Diálogo Nuevo depósito de mercadería con nombre y dirección completos y las empresas que pueden vender desde acá](img/stock-depositos-y-reservas/02-nuevo-deposito.png)
 
-- Un traslado **no cambia el stock total**: deja una **salida en el origen** y una **entrada en el destino**, en la
-  misma operación, con el motivo «Traslado entre depósitos». En Movimientos se distinguen como «Traslado · Salida» y
-  «Traslado · Entrada» y cada uno muestra su depósito.
-- La operación se rechaza, sin dejar rastro, si el origen y el destino son el mismo, si la cantidad no es un entero
-  mayor que cero, si algún depósito está inactivo, si la fecha es futura o si la cantidad supera el **disponible del
-  origen**. En ese último caso el aviso es «No hay stock suficiente».
-- Al terminar, el aviso «Traslado registrado» muestra cuánto queda en cada depósito y su disponible.
-- Se necesitan **al menos dos depósitos activos** para trasladar.
+*Así se ve el formulario completo (ejemplo). Si solo querés mirarlo, cerralo con **Cancelar**.*
 
-## Reserva y descuento de productos a pedido (F-STK-16)
+## Editar un depósito
 
-Esta historia **no agrega pantallas**: define el contrato que usa el formulario de venta de otra épica.
+En la fila del depósito hacé clic en **Editar**, cambiá lo que necesites y hacé clic en **Guardar**. Aparece «Depósito guardado».
 
-- **Reservar:** al vender un producto «A pedido» se reserva la cantidad en el depósito elegido. El **stock total no
-  baja** (sigue en 10 si había 10) pero el **reservado sube** (3) y el **disponible baja** (7).
-- **Descontar:** cuando el cliente retira o recibe, la reserva se descuenta: la **cantidad baja** (7), el **reservado
-  vuelve a 0** y queda una salida en el historial del libro, en el depósito de la reserva, con el motivo «Entrega de
-  producto a pedido».
-- **Liberar:** si la venta no se concreta, la reserva se libera: el reservado vuelve a 0 y la cantidad no cambia.
-- Una reserva ya descontada o liberada **no se vuelve a descontar ni a liberar**: el sistema lo rechaza.
-- Solo se puede reservar stock de productos **«A pedido»**; de un producto normal la operación se rechaza.
-- Reservar más que el disponible se rechaza con «No hay stock suficiente», y dos reservas simultáneas sobre el mismo
-  disponible nunca lo pasan por debajo de cero.
+![Diálogo Editar depósito con los datos cargados del Depósito principal y las dos empresas marcadas](img/stock-depositos-y-reservas/03-editar-deposito.png)
 
-## Permisos
+*Editar un depósito: el mismo formulario, con los datos actuales. **Cancelar** cierra sin guardar.*
 
-| Acción | Quién puede |
-|--------|-------------|
-| Ver Depósitos y el stock por depósito | `lectura` o `edicion` en Stock |
-| Crear y editar depósitos, «Usar por defecto», activar/desactivar | **Solo Administrador** de la organización |
-| Registrar movimientos (con depósito), trasladar | `edicion` en Stock |
-| Reservar, liberar y descontar reservas | `edicion` en Stock |
+## El depósito por defecto
 
-La base es la autoridad: sin `edicion` las RPC de escritura rechazan la operación aunque se llamen directamente, y
-sin Administrador las RPC de depósitos responden «Solo el Administrador puede definir depósitos».
+Siempre hay un depósito por defecto: es el que el sistema usa cuando un movimiento no indica otro (por ejemplo, el ingreso de mercadería, la carga en lote y la toma de inventario). Para cambiarlo, hacé clic en **Usar por defecto** en la fila del depósito que querés. Aparece «&lt;Nombre&gt; es ahora el depósito por defecto». Solo se puede elegir un depósito activo.
 
-## Empresa activa
+![Tabla de depósitos con el botón Usar por defecto resaltado en un depósito y el interruptor Activo resaltado en otro](img/stock-depositos-y-reservas/04-por-defecto-y-activo.png)
 
-**Aplica en la pantalla de Depósitos.** La tabla se filtra por la empresa de la barra superior según «Venden desde
-acá»: con una empresa elegida se listan solo los depósitos desde los que esa empresa puede vender y, con **«Todas
-mis empresas»**, todos. Al cambiar de empresa la tabla se recarga, no queda ninguna fila de la empresa anterior y el
-formulario abierto se cierra con el aviso «Cambiaste de empresa: cerramos el formulario del depósito para no mezclar
-datos. Volvé a abrirlo si querés seguir».
+*Usar por defecto (1) aparece en los depósitos que no son el principal; el interruptor **Activo** (2) activa o desactiva el depósito.*
 
-**No aplica en Stock actual ni en Movimientos:** el stock es único por organización y compartido entre empresas, así
-que esas pantallas no se filtran por la empresa activa.
+## Desactivar un depósito
 
-## Límites y fuera de alcance
+Usá el interruptor de la columna **Activo**. Aparece «&lt;Nombre&gt; quedó inactivo». Un depósito inactivo no aparece al elegir depósito y no recibe entradas. Los depósitos no se borran, solo se desactivan, y se pueden volver a activar.
 
-- El **stock sigue siendo uno por producto** y compartido entre empresas y canales: los depósitos lo reparten, no lo
-  duplican. `dominio.existencias.cantidad` es la suma de los depósitos.
-- **No hay stock por empresa**: la relación con las empresas es «Venden desde acá», que solo alimenta el filtro de la
-  pantalla.
-- **La reserva manual a un cliente** (F-STK-12, P3) queda fuera de alcance: la reserva de esta épica es la de los
-  productos «A pedido».
-- **No hay pantalla de reservas**: el contrato existe para el formulario de venta, que es de otra épica.
-- Las pestañas **«Faltantes»** y **«Actualizar por Excel»** son de MSF-368: fuera de alcance.
-- El **ingreso de mercadería no elige depósito**: entra al depósito por defecto. Lo que cambia con esta épica es que
-  la anulación de un ingreso devuelve la mercadería al depósito donde entró (y no al por defecto de ese momento).
-- Un traslado **no emite aviso a los canales externos**: el stock total no cambia.
-- La **reserva no es un depósito**: no se puede reservar mercadería de un producto que no sea «A pedido».
+Hay dos casos en que no se puede desactivar:
 
-## Decisiones pendientes de confirmación
+| Mensaje | Qué hacer |
+|---|---|
+| «Tiene stock: trasladá la mercadería antes de desactivarlo» | Trasladá todas las unidades a otro depósito y probá de nuevo |
+| «El depósito por defecto no se puede desactivar» | Primero elegí otro depósito como por defecto |
 
-La épica cerró estas decisiones de la spec para poder implementarlas; quedan por confirmar con el dueño indicado:
+### Otros mensajes
 
-| Decisión | Qué se implementó | Quién confirma |
-|----------|-------------------|---------------|
-| D-2 · Épica 5 (F-STK-12 reserva manual a un cliente, F-STK-13 múltiples depósitos) | Solo F-STK-14/15/16; la reserva manual a un cliente queda fuera | Nicolás / producto |
-| D-4 · «Columnas por depósito» | Un **control de depósito** (Todos los depósitos + cada uno), no columnas fijas por depósito: con N depósitos no escalan | Nicolás / producto |
-| D-5 · Traslado y evento | Un traslado **no emite** `stock.actualizado` (el stock total no cambia) | Nicolás / producto |
-| D-6 · Evento y reservas | `stock.actualizado` suma depósito, reservado y disponible; reservar y liberar lo emiten con diferencia 0 | Nicolás / producto |
-| D-7 · Motivo del descuento | Motivo de sistema «Entrega de producto a pedido» (solo salidas) | Nicolás / producto |
-| D-8 · Idempotencia | La referencia la define quien llama (p. ej. la línea de venta) | Ventas |
+| Mensaje | Qué significa |
+|---|---|
+| «Ya existe un depósito con ese nombre» | Elegí otro nombre |
+| «Ingresá el nombre del depósito.» | El nombre es obligatorio |
+| «Solo el Administrador puede definir depósitos» | Pedile el cambio al Administrador |
+| «Cambiaste de empresa: cerramos el formulario del depósito para no mezclar datos. Volvé a abrirlo si querés seguir» | Cambiaste la empresa de la barra superior con el formulario abierto; abrilo de nuevo |
 
-## Para seguir
+## Trasladar stock entre depósitos
 
-- **[Guía técnica de depósitos y reservas](../tecnico/stock-depositos-y-reservas.md)** — tablas, RPC, vistas,
-  eventos, pruebas y reversión.
-- **[Stock: movimientos, historial y mínimo](../stock.md)** — el resto de la sección Stock.
-- **[Ingreso de mercadería por proveedor](ingreso-de-mercaderia.md)** — el ingreso sigue entrando al depósito por
-  defecto; lo que cambia con esta épica es que la anulación devuelve la mercadería al depósito donde entró.
-- Spec de la épica: `specs/20261022-180000-stock-depositos-y-reservas/`.
+Sirve para mover unidades de un depósito a otro sin cambiar el stock total. Necesitás **al menos dos depósitos activos**.
+
+1. En **Stock actual**, en la fila del producto, hacé clic en **Trasladar**.
+2. Se abre **Trasladar stock entre depósitos**. El **Producto** ya viene elegido.
+3. Elegí el **Depósito de origen**. Debajo ves lo que hay: «Disponible en…, Stock…, Reservado…».
+4. Elegí el **Depósito de destino**.
+5. Escribí la **Cantidad**.
+6. Revisá la **Fecha** (hoy por defecto; no puede ser futura) y, si querés, agregá una **Nota (opcional)**.
+7. Hacé clic en **Trasladar**. Aparece «Traslado registrado» con lo que queda en cada depósito.
+
+![Diálogo Trasladar stock entre depósitos con origen, destino, cantidad y nota completos](img/stock-traslados/01-dialogo.png)
+
+*Trasladar stock entre depósitos: se elige origen, destino y cantidad.*
+
+![Diálogo Trasladar con el aviso No hay stock suficiente porque se pidió más de lo disponible en el origen](img/stock-depositos-y-reservas/08-traslado-sin-stock.png)
+
+*Si pedís más de lo disponible en el origen, el sistema avisa «No hay stock suficiente» y el botón **Trasladar** queda deshabilitado. Las unidades reservadas no se pueden trasladar.*
+
+En **Movimientos** el traslado queda como dos renglones: «Traslado · Salida» en el origen y «Traslado · Entrada» en el destino.
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «No hay stock suficiente» | La cantidad supera lo disponible en el depósito de origen. Bajala. Las unidades reservadas no se pueden trasladar |
+| «Para trasladar necesitás al menos dos depósitos activos. Creá otro en la pestaña «Depósitos de mercadería».» | Solo tenés un depósito activo |
+| «La fecha no puede ser futura.» | Elegí hoy o una fecha anterior |
+
+## Disponible y reservado
+
+Para cada producto y cada depósito:
+
+**Disponible = Stock − Reservado**
+
+Ejemplo: un producto con 10 unidades y 3 reservadas tiene 7 disponibles. Una salida o traslado de 8 unidades se rechaza, aunque el total sea 10.
+
+Estas cifras las ves en **Stock actual** (columnas **Stock**, **Reservado** y **Disponible**) y en el resumen de **Movimientos**.
+
+En **Stock actual**, el selector **Depósito de mercadería** te deja ver las cifras de un depósito puntual:
+
+![Stock actual con el selector de depósito abierto, con las opciones Todos los depósitos, Depósito principal, Depósito Córdoba y Local Corrientes](img/stock-depositos-y-reservas/05-selector-deposito.png)
+
+*Elegí «Todos los depósitos» para ver el total del negocio o un depósito para ver solo lo que hay ahí.*
+
+![Stock actual con el depósito Local Corrientes elegido: las columnas Stock, Reservado y Disponible muestran las cifras de ese depósito](img/stock-depositos-y-reservas/06-stock-de-un-deposito.png)
+
+*Con un depósito elegido, **Stock**, **Reservado** y **Disponible** pasan a ser las cifras de ese depósito. El estado sigue calculándose sobre el total.*
+
+## Reservas de productos «a pedido»
+
+Un producto «a pedido» es uno que vendés antes de tenerlo en mano. Funciona así:
+
+1. **Reservar**: al vender el producto, las unidades quedan reservadas en el depósito elegido. El stock total no baja, pero **Reservado** sube y **Disponible** baja.
+2. **Descontar al entregar**: cuando el cliente retira o recibe el producto, la reserva se descuenta. El stock baja, el reservado vuelve a cero y en Movimientos queda una salida con el motivo «Entrega de producto a pedido».
+3. **Liberar**: si la venta no se concreta, la reserva se libera. El reservado vuelve a cero y el stock no cambia.
+
+No hay una pantalla aparte de reservas: se generan desde la venta y las ves en la columna **Reservado**.
+
+![Fila de la PlayStation 5 Pro en Stock actual: 4 unidades de stock, 3 reservadas y 1 disponible](img/stock-depositos-y-reservas/07-reserva-a-pedido.png)
+
+*Un producto «a pedido» con reservas (1): tiene 4 unidades, 3 están reservadas para ventas que todavía no se entregaron y solo 1 está disponible.*
+
+Para saber qué ventas «a pedido» están esperando mercadería, usá la pestaña **Faltantes** (ver [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md)). Una reserva ya descontada o liberada no se vuelve a usar, y no se puede reservar más que lo disponible («No hay stock suficiente»).
+
+## Preguntas frecuentes
+
+**¿Un depósito tiene su propio stock total?** Cada depósito muestra sus unidades, pero la suma de todos es el stock del negocio.
+
+**¿Al ingresar mercadería puedo elegir el depósito?** No: el [ingreso de mercadería](ingreso-de-mercaderia.md) entra al depósito por defecto. Si después necesitás la mercadería en otro lugar, trasladala. Si anulás el ingreso, la mercadería se descuenta del depósito donde había entrado.
+
+**¿Un traslado cambia el stock total o el estado del producto?** No.

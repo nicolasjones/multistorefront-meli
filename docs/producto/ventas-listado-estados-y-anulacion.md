@@ -1,237 +1,221 @@
 ---
 owner: producto
-sources:
-  - specs
-  - design/pantallas
+sources: []
 ---
 
-# Ventas · listado, estados y anulación (MSF-177)
+# Ver los comprobantes, cambiar su estado y anularlos
 
-**Épica:** MSF-177 · **Historias:** F-VTA-09 (listado con filtros y exportación), F-VTA-10 (estados del
-comprobante y de cobro) y F-VTA-11 (anulación y nota de crédito). **Spec:**
-`specs/20261024-130000-ventas-listado-estados-y-anulacion/` · **Rama:**
-`epic/MSF-177-ventas-y-despacho-ventas-listado-estados`, pendiente de merge a `main`.
-Detalle técnico: [Ventas · listado, estados y anulación (técnico)](../tecnico/ventas-listado-estados-y-anulacion.md).
+## Para qué sirve
 
-Esta página explica **qué resuelve** la épica: buscar y exportar todo lo vendido, saber en qué estado está
-cada comprobante y corregir una venta sin borrar datos. La factura y el presupuesto se cargan en
-[Ventas · comprobantes (MSF-159)](ventas-comprobantes.md).
+Acá ves todo lo que se vendió, buscás un comprobante, filtrás por estado, pago o envío, y exportás la lista. Desde el detalle de cada factura seguís su estado, la anulás si se emitió por error o emitís una nota de crédito si hay una devolución o un ajuste.
 
-## Qué resuelve
+## Quién puede hacerlo
 
-- **Un listado de todo lo vendido** con búsqueda por cliente o número, filtros por Operador, Estado, Pago,
-  Envío y Tienda, paginación en el servidor y **exportación a CSV** (de una vez o por encima de 10.000
-  filas).
-- **Un estado claro por comprobante**: en qué punto está el cobro y el armado, con el **historial** de quién
-  cambió qué y cuándo.
-- **Correcciones sin perder trazabilidad**: una factura emitida por error se **anula** (deja de valer, vuelve
-  el stock) y una devolución o un ajuste se corrige con una **nota de crédito** (un documento propio que
-  resta de lo facturado). Nada se borra: el número no se reutiliza y queda quién, cuándo y por qué.
-
-## Para quién
-
-| Persona | Qué hace con esta entrega |
+| Persona | Qué hace |
 |---|---|
-| **Mostrador** | Busca y filtra comprobantes, y mueve la factura de **Pendiente** a **Aceptado** o **En proceso**. |
-| **Depósito** | Ve el historial y mueve la factura de **Aceptado** a **Armando** y de **Armando** a **Incompleto** (y de vuelta). |
-| **Administración** | Lo mismo que Mostrador y Depósito, y además **anula** facturas y **emite notas de crédito**. |
-| **Administrador** | Igual que Administración. |
-| **Operador** | Exporta el listado a CSV (acción `exportar`). En la matriz inicial tiene edición en Ventas, así que también carga comprobantes (MSF-159). |
-| **Consulta** | Solo ve el listado y el detalle; la tarjeta de estados le aparece con todo deshabilitado. |
+| **Todos los roles con acceso a Ventas** | Ver el listado y el detalle de cada comprobante, con su historial. |
+| **Mostrador** | Pasa una factura de **Pendiente** a **Aceptado** o **En proceso**. |
+| **Depósito** | Pasa una factura de **Aceptado** a **Armando**, y de **Armando** a **Incompleto** (y de vuelta). |
+| **Administración y Administrador** | Hacen lo de Mostrador y Depósito, y además **anulan** facturas y **emiten notas de crédito**. |
+| **Administrador, Operador y Administración** | Exportan el listado. |
+| **Consulta** | Solo mira: los estados le aparecen deshabilitados. |
 
-Sin la sección **Ventas** la pantalla muestra «Acceso restringido».
+Estos permisos son los que vienen configurados al inicio. El Administrador puede ajustarlos desde la configuración de roles.
+
+## Dónde lo encontrás
+
+Menú **Ventas → Comprobantes**. Muestra facturas y notas de crédito. Los presupuestos tienen su propia pantalla en **Ventas → Presupuestos**.
+
+![Listado de Comprobantes con filtros Operador, Estado, Pago y Envío, y la tabla con facturas y una nota de crédito en rojo](img/ventas-comprobantes/01-listado.png)
+
+*Ventas → Comprobantes: la nota de crédito se ve con el total en negativo y la fila resaltada.*
 
 ## El listado de comprobantes
 
-La pantalla **Ventas › Comprobantes** (`/ventas/comprobantes`) reemplaza la redirección al alta que existía
-hasta MSF-159. Muestra las **facturas y las notas de crédito** de las tiendas a las que la persona tiene
-acceso; los **presupuestos** tienen su propia pestaña.
+### Qué muestra cada columna
 
-- **Columnas:** Comprobante (número y tipo, con enlace al detalle) · Tienda · Fecha · Cliente · Operador ·
-  Estado (con su color) · Pago · Envío · Total (a la derecha). Las notas de crédito aparecen con el total en
-  negativo.
-- **Contador** «N comprobantes» y paginación de 12 por página («1–12 de N»).
-- **Búsqueda** «Buscar por cliente o número»: no distingue mayúsculas ni tildes y tolera espacios sobrantes.
-- **Filtros** Operador · Estado · Pago · Envío, cada uno con «Todos», y **«Limpiar filtros»** (aparece solo
-  con filtros o búsqueda). El filtro **Tienda** usa las píldoras «Todas las tiendas» + las tiendas
-  accesibles.
-- **Estados de la pantalla:** carga inicial, error con «Reintentar», «Sin resultados» («Probá con otra
-  búsqueda o limpiá los filtros.») y vacío real («Todavía no hay comprobantes.»). En pantallas angostas la
-  tabla se muestra como tarjetas.
-- Sin la acción `exportar` el botón **Exportar** no se ofrece; sin **edición** en Ventas tampoco se ofrece
-  **Nuevo comprobante**.
+| Columna | Qué muestra |
+|---|---|
+| **Comprobante** | Número (con enlace al detalle) y si es **Factura** o **Nota de crédito**. |
+| **Tienda** | La tienda donde se emitió. |
+| **Fecha** | Fecha del comprobante. |
+| **Cliente** | A quién se le vendió. |
+| **Operador** | Quién lo cargó. |
+| **Estado** | Estado actual (ver más abajo). |
+| **Pago** | Forma de pago, o «—» si todavía no hay. |
+| **Envío** | Forma de envío, o «—». |
+| **Total** | Importe con IVA. En una nota de crédito va con signo negativo. |
 
-## Exportar a CSV
+![Listado de comprobantes con todas sus columnas, una nota de crédito en la primera fila y los filtros arriba](img/ventas-listado-estados-y-anulacion/01-listado-columnas.png)
 
-El botón **Exportar** elige la vía según cuántas filas coinciden con los filtros:
+*Todas las columnas del listado. La nota de crédito va con el total en negativo.*
 
-| Vía | Cuándo | Qué pasa |
-|---|---|---|
-| **Inmediata** | Hasta 10.000 filas | Se baja el CSV en el momento, con **todas** las filas del filtro (no solo la página). |
-| **Diferida** | Más de 10.000 filas | La pantalla avisa «Exportación solicitada: se está generando. Cuando termine, descargala desde acá.» y ofrece **Descargar** en el mismo aviso. |
+### Buscar y filtrar
 
-El CSV lleva las columnas Comprobante, Tipo, Tienda, Fecha, Cliente, Operador, Estado, Pago, Envío y Total,
-con separador `;` y codificación que Excel abre bien. Con filtros que devuelven **0 filas** no se descarga
-nada: se avisa «Sin resultados».
+- **Tienda**: por defecto se ven todas. Si elegís una tienda en la barra superior, se filtra por esa tienda. También podés elegirla con los botones de arriba de la lista.
+- **Buscar por cliente o número**: escribí parte del nombre o del número.
+- **Operador**, **Estado**, **Pago** y **Envío**: cada uno es un desplegable con la opción «Todos».
+- **Limpiar filtros**: aparece cuando hay algún filtro puesto y los saca todos.
+- Arriba de la tabla se ve cuántos comprobantes cumplen el filtro. La lista se muestra de a 12 por página.
 
-## Los estados del comprobante
+![Desplegable Estado abierto con las opciones Todos, Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando e Incompleto](img/ventas-listado-estados-y-anulacion/02-filtro-estado.png)
 
-La tarjeta **Estado** del detalle muestra un chip por estado del panel, con el estado actual marcado y el
-texto de ayuda correspondiente. Los chips que el rol no puede usar aparecen **deshabilitados con el motivo**
-(por ejemplo «Tu rol no puede pasar de Aceptado a Cobrado»).
+*El desplegable «Estado» ofrece Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando e Incompleto. Para ver borradores o anuladas, buscalas por número o cliente.*
 
-| Estado guardado | Cómo se muestra | Quién lo cambia |
-|---|---|---|
-| `borrador` | **Borrador** | — (todavía no se confirmó) |
-| `confirmada` | **Pendiente** | — (MSF-159) |
-| `aceptado` | **Aceptado** | Mostrador, Administración, Administrador |
-| `en_proceso` | **En proceso** | Mostrador, Administración, Administrador |
-| `armando` | **Armando** | Depósito, Administración, Administrador |
-| `incompleto` | **Incompleto** | Depósito, Administración, Administrador |
-| `cobrado` / `deuda` | **Cobrado** / **Deuda** | **Nadie a mano**: los actualiza el cobro (MSF-195) |
-| `anulada` | **Anulada** | — (el documento dejó de valer) |
+![Listado filtrado por la búsqueda Ezequiel con los botones de tienda y el buscador señalados](img/ventas-listado-estados-y-anulacion/03-tienda-y-busqueda.png)
 
-- El chip de estado va **junto al título** del comprobante.
-- El catálogo de etiquetas y colores es **uno solo** para toda la app (`apps/web/src/lib/estadosComprobante.ts`):
-  «Pendiente» es la forma de mostrar `confirmada`, y «Entregado» **no** existe todavía (es de MSF-135, que lo trae
-  como estado de despacho propio: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)).
-- Cambiar de estado **queda registrado**: «Estado: Pendiente → Aceptado en la factura N», con usuario, fecha y
-  tienda.
-- La tarjeta **Historial de estados y acciones** lista **Cuándo, Acción, Quién y Tienda** de todo lo que le
-  pasó al comprobante, con la nota «El comprobante pertenece a una sola tienda…».
-- Un **borrador**, una factura **anulada** o un comprobante de **otra tienda** no admiten cambios de estado.
-  Reintentar el mismo estado no duplica nada.
+*1: botones de tienda. 2: buscador por cliente o número. Arriba de la tabla se ve cuántos comprobantes coinciden.*
+
+![Listado con el filtro Estado: Deuda mostrando seis facturas con la etiqueta Deuda](img/ventas-listado-estados-y-anulacion/04-estado-deuda.png)
+
+*Ejemplo: con «Estado: Deuda» ves solo las facturas que tienen saldo por cobrar. «Limpiar filtros» los saca todos.*
+
+Si no hay resultados, aparece «Sin resultados. Probá con otra búsqueda o limpiá los filtros.»
+
+### Exportar la lista
+
+1. Poné los filtros que quieras.
+2. Hacé clic en **Exportar**. Se exporta exactamente lo que estás viendo, con todos los filtros.
+3. Aparece «Exportación lista: el archivo se descargó.» Es un archivo CSV que abrís con Excel, con las columnas Comprobante, Tipo, Tienda, Fecha, Cliente, Operador, Estado, Pago, Envío y Total.
+
+Si son muchos comprobantes, el archivo tarda en prepararse y aparece «Exportación solicitada: se está generando. Cuando termine, descargala desde acá.» con un botón **Descargar**. Si no hay nada que exportar, te avisa «Sin resultados: no hay filas para exportar con estos filtros.»
+
+El botón **Exportar** solo lo ven los roles con ese permiso.
+
+## Los estados de una factura
+
+El estado se ve junto al título de la factura, en el listado y en la tarjeta **Estado** del detalle.
+
+![Cabecera del detalle de una factura con el estado Pendiente y los botones Anular, Nota de crédito e Imprimir](img/ventas-listado-estados-y-anulacion/05-detalle-cabecera.png)
+
+*El detalle de una factura: el estado está arriba, junto a los botones «Anular», «Nota de crédito» e «Imprimir».*
+
+| Estado | Qué significa |
+|---|---|
+| **Borrador** | La factura todavía no se confirmó. No descuenta ni reserva stock y se puede editar. |
+| **Pendiente** | Factura confirmada. Es el estado con el que arranca. |
+| **Aceptado** | El cliente aceptó la factura o el pedido. |
+| **En proceso** | Hay gestión en curso: un pago o un envío. |
+| **Armando** | Se está armando el pedido en el depósito. |
+| **Incompleto** | Faltan productos; los faltantes quedan registrados en Ventas → Faltantes. |
+| **Cobrado** | Está pagada por completo. |
+| **Deuda** | Se entregó o facturó y falta cobrar. |
+| **Anulada** | El documento dejó de valer y no admite cambios. |
+
+Los presupuestos tienen sus propios estados (**Pendiente**, **Aceptado**, **Vencido**, **Convertido en factura**); están explicados en [Crear un presupuesto o una factura](ventas-comprobantes.md).
+
+### Quién puede pasar de un estado a otro
+
+En el detalle de la factura, la tarjeta **Estado** muestra un botón por cada estado. Elegí el nuevo estado haciendo clic. Los que tu rol no puede usar aparecen deshabilitados, y al pasar el mouse te dicen el motivo (por ejemplo «Tu rol no puede pasar de Aceptado a Cobrado»).
+
+![Tarjeta Estado con los botones Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando e Incompleto](img/ventas-listado-estados-y-anulacion/06-tarjeta-estado.png)
+
+*La tarjeta «Estado»: el estado actual tiene borde y los que no podés elegir se ven más claros.*
+
+| Estado nuevo | Quién lo puede elegir |
+|---|---|
+| **Aceptado** y **En proceso** | Mostrador, Administración y Administrador. |
+| **Armando** e **Incompleto** | Depósito, Administración y Administrador. |
+| **Cobrado** y **Deuda** | **Nadie a mano**: los pone el sistema según los cobros. Mirá [Cobros y conciliación](ventas-cobros-y-conciliacion.md). |
+
+Más reglas:
+
+- Una factura en **Borrador** no cambia de estado: «Confirmá la factura antes de cambiar su estado.»
+- Una factura **Anulada** tampoco: «La factura está anulada y no admite cambios de estado.»
+- Los presupuestos no tienen estos botones.
+- Cada cambio queda registrado en la tarjeta **Historial de estados y acciones**, con **Cuándo**, **Acción**, **Quién** y **Tienda**.
+
+!!! note "Incompleto se elige con los faltantes"
+    Para dejar una factura **Incompleta** por falta de mercadería, usá la tarjeta **Responsables** del detalle: el botón **Incompleto** te abre «Registrar faltantes» para que marques qué faltó. Ver [Despacho y faltantes](ventas-despacho-y-faltantes.md).
 
 ## Anular una factura
 
-**Anular** corrige una factura **emitida por error**: el documento deja de valer.
+**Anular** sirve para corregir una factura que se **emitió por error**: deja de valer, el stock vuelve al depósito de origen de cada línea y se liberan las reservas de los productos «A pedido». El número no se reutiliza y queda registrado quién la anuló, cuándo y por qué. **No se puede deshacer.**
 
-- Solo la **Administración** y el **Administrador** (acción `anular` de Ventas).
-- El diálogo pide un **motivo obligatorio** (hasta 300 caracteres) y avisa que no se puede deshacer:
-  «Anular corrige una factura emitida por error: deja de valer, el stock vuelve a cada depósito de origen y
-  se liberan las reservas «A pedido». El número no se reutiliza y queda registrado quién la anuló y por qué.»
-- Al anular: la factura pasa a **Anulada**, el **stock vuelve a cada depósito de origen**, las reservas «A
-  pedido» se liberan y queda el evento con el motivo, quién y cuándo. **Todo o nada**: si algo falla, nada
-  cambia.
-- **No se puede anular** una factura que ya tiene una **nota de crédito** ni una que ya está **Cobrada**: en
-  esos casos se corrige con una nota de crédito. Tampoco se anula un borrador (no movió nada) ni un
-  presupuesto.
-- La factura anulada queda **de solo lectura**, con su chip y el motivo visible.
+Solo lo pueden hacer **Administración** y **Administrador**.
+
+### Paso a paso
+
+1. Abrí la factura desde **Ventas → Comprobantes**.
+2. Hacé clic en **Anular** (arriba a la derecha). Si no ves el botón, esa factura no se puede anular o tu rol no tiene el permiso.
+3. En **Motivo de la anulación** escribí por qué (es obligatorio, hasta 300 caracteres).
+4. Hacé clic en **Anular factura**.
+
+![Detalle de una factura con el botón Anular resaltado](img/ventas-listado-estados-y-anulacion/07-boton-anular.png)
+
+*Paso 2: el botón «Anular» está arriba a la derecha.*
+
+![Ventana Anular factura con el motivo escrito y el botón Anular factura](img/ventas-listado-estados-y-anulacion/08-dialogo-anular.png)
+
+*Pasos 3 y 4: escribí el motivo y confirmá con «Anular factura». Con «Cancelar» no pasa nada.*
+
+La factura queda con el estado **Anulada**, de solo lectura, y arriba se lee «Factura anulada el … por …: «motivo». El número no se reutiliza.»
+
+![Detalle de una factura anulada con el estado Anulada y el aviso que indica quién la anuló y por qué](img/ventas-listado-estados-y-anulacion/09-factura-anulada.png)
+
+*Una factura anulada: queda de solo lectura y muestra quién la anuló, cuándo y por qué.*
+
+### Cuándo se puede y cuándo no
+
+| Situación | ¿Se puede anular? |
+|---|---|
+| Factura confirmada sin cobros ni notas de crédito | Sí. |
+| Factura **Cobrada** | No. Corregila con una nota de crédito. |
+| Factura que **ya tiene una nota de crédito** | No. |
+| **Borrador** | No hace falta: no movió stock. Simplemente no la confirmes. |
+| **Presupuesto** o **nota de crédito** | No. |
+
+Si algo falla, la anulación es todo o nada: no se devuelve stock a medias. El mensaje «No pudimos anular la factura. No se devolvió nada: probá de nuevo.» te dice que nada cambió y podés reintentar.
 
 ## Emitir una nota de crédito
 
-**Nota de crédito** corrige una **devolución o un ajuste** sobre una factura válida. Es un **documento de
-venta propio**: tiene número correlativo propio y queda asociado a la factura.
+La **nota de crédito** corrige una devolución o un ajuste sobre una factura **que sigue valiendo**. Es un documento propio, con número propio, asociado a la factura. En el listado aparece como **Nota de crédito**, con el total en negativo.
 
-El diálogo «Nota de crédito» ofrece tres motivos, con su descripción y un ejemplo:
+Solo la emiten **Administración** y **Administrador**.
 
-| Motivo | Qué hace | Efecto en stock |
-|---|---|---|
-| **Devolución de productos** | Se indican los productos y las cantidades a devolver | La mercadería **vuelve al depósito de origen** de cada línea |
-| **Devolución de importe** | Se devuelve dinero, sin mercadería | No toca el stock |
-| **Descuento o bonificación** | Ajuste de precio, sin mercadería | No toca el stock |
+### Paso a paso
 
-- Solo **Administración** y **Administrador** (acción `emitir_nota_credito`).
-- No se puede acreditar **más de lo facturado**: por línea en «Devolución de productos» y por importe en los
-  otros dos motivos. Se admiten notas **parciales**; la base dice cuántos quedan por acreditar.
-- La factura muestra una tarjeta por nota: **«Nota de crédito {número}»**, la etiqueta «Asociada a esta
-  factura», el tipo y su descripción, la tabla Producto · Cantidad · Precio · Importe y el aviso de que las
-  **cantidades y los importes van en negativo** porque restan de lo facturado.
-- El **ranking de clientes** y los totales del listado pasan a contar la nota con **signo negativo**: lo
-  facturado es el neto.
+1. Abrí la factura y hacé clic en **Nota de crédito**.
+2. Elegí el motivo:
 
-!!! note "Anular ≠ nota de crédito"
-    **Anular** es para un **error**: el documento deja de valer y se revierte lo que movió. **Nota de crédito**
-    es para una **devolución o un ajuste** sobre un documento válido. Ninguna de las dos borra datos.
-
-## Empresa activa
-
-El filtro **Tienda** del listado sigue a la **empresa activa** de la barra superior: por defecto se ven todas
-las tiendas accesibles y, al elegir una en la barra, el listado se acota a esa.
-
-- Al **cambiar de empresa** se invalidan y recargan **todas** las consultas de la pantalla, la paginación
-  vuelve a la página 1 y se descarta la selección que ya no existe.
-- En el **detalle** del comprobante, si la empresa activa pasa a ser otra tienda distinta de la del
-  comprobante, la pantalla **se cierra con aviso**: nunca se muestran ni se guardan datos de una tienda bajo
-  otra.
-- Los **diálogos abiertos** (Anular, Nota de crédito) se desmontan al cambiar de empresa: no guardan nada de
-  la empresa anterior.
-
-## Matriz pantalla↔criterios
-
-| Ítem visible | Dueño |
+| Motivo | Qué hace |
 |---|---|
-| Tabla Comprobante, Tienda, Fecha, Cliente, Operador, Estado, Pago, Envío, Total | FR-001, FR-005 |
-| Columna final sin título (botón «Imprimir» por fila) | **FUERA DE ALCANCE** — impresión: MSF-213 |
-| «Buscar por cliente o número» | FR-002, FR-005 |
-| Filtros Operador / Estado / Pago / Envío y «Limpiar filtros» | FR-003, FR-005 |
-| Estado: Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto | FR-003, FR-023 |
-| Estado: opción «Entregado» | **FUERA DE ALCANCE** — es el estado de despacho (MSF-135), no el documental |
-| Botón «Exportar» | FR-006, FR-010 |
-| Botón «Nuevo comprobante» | FR-005 (ruta de alta de MSF-159) |
-| Pestañas Comprobantes / Presupuestos | FR-005 (Presupuestos ya existe, MSF-159) |
-| Pestañas Pagos / Faltantes / Devoluciones (RMA) / Transportes | **FUERA DE ALCANCE** — MSF-195, MSF-178, MSF-139; «Faltantes» llegó como pantalla aparte con MSF-135 |
-| Filtro Tienda (píldoras) y su texto «Por defecto se ven todas…» | FR-004 |
-| Contador «N comprobantes», paginación «1–12 de N», «Sin resultados» | FR-005 |
-| Tarjetas KPI (Facturado hoy, Pendiente de cobro, En armado, Con deuda) | **FUERA DE ALCANCE** — dependen de cobros (MSF-195) y reportes (MSF-338) |
-| Letra A/B del tipo («Factura B») | **FUERA DE ALCANCE** — el comprobante es interno, no fiscal |
-| Tarjeta «Estado» (chips, ayuda) y chip junto al título | FR-023, FR-024 |
-| Tarjeta «Historial de estados y acciones» (Cuándo, Acción, Quién, Tienda) | FR-025, FR-027 |
-| Botón «Nota de crédito» y su diálogo (motivos, ejemplo, Cancelar / Emitir) | FR-043, FR-045 |
-| Tarjeta de la nota («Asociada a esta factura») y su tabla | FR-046 |
-| Acción «Anular» (no está en el prototipo) | FR-040, FR-042 |
-| Cuenta de cobro, «Ir a Pagos →», «Sin conciliar» | **FUERA DE ALCANCE** — MSF-195 |
-| Guía, Armó / Controló / Entregó, transporte, «Copiar», «Imprimir», flete, observaciones | **FUERA DE ALCANCE** — MSF-135 (Guía, Armó/Controló/Entregó y transporte **ya están** en la factura: [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md)), MSF-213 y lo que la épica no pidió |
-| **Empresa activa** | FR-004, FR-024, FR-045 |
+| **Devolución de productos** | La mercadería vuelve al depósito y se acredita el importe. Indicás cuántas unidades devuelve el cliente de cada producto. |
+| **Devolución de importe** | Se devuelve el dinero sin que vuelva mercadería. |
+| **Descuento o bonificación** | Ajuste de precio sin devolución de mercadería. |
 
-## Permisos
+![Ventana Nota de crédito con los tres motivos y la lista de productos a devolver con su cantidad](img/ventas-listado-estados-y-anulacion/10-dialogo-nota-credito.png)
 
-| Acción | Sección | Quién |
-|---|---|---|
-| Ver el listado y el detalle | `ventas` ≥ lectura | Quien tenga Ventas en lectura o edición en la tienda |
-| Cambiar el estado | matriz de transiciones del rol | Mostrador, Depósito, Administración, Administrador |
-| Exportar a CSV | acción `exportar` de Ventas | Administrador, Operador, Administración |
-| Anular una factura | acción `anular` de Ventas + `ventas` en edición | Administrador, Administración |
-| Emitir una nota de crédito | acción `emitir_nota_credito` de Ventas + `ventas` en edición | Administrador, Administración |
+*La ventana «Nota de crédito»: elegí el motivo y, en «Devolución de productos», la cantidad de cada producto.*
 
-Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
+3. En **Devolución de productos**, completá **Cantidad** en cada producto que vuelve. Te dice cuántas unidades quedan por devolver de cada línea.
+4. En los otros dos motivos, completá **Importe sin IVA** y **Concepto** (el IVA se calcula con la misma proporción de la factura).
+5. Hacé clic en **Emitir nota de crédito**.
 
-## Límites y decisiones abiertas
+Aparece «Nota de crédito emitida …» y la factura muestra una tarjeta con la nota, marcada «Asociada a esta factura», con cantidades e importes en negativo.
 
-- **La matriz de estados y roles es una propuesta a confirmar con el cliente.** Está sembrada **por datos**
-  (una fila por organización, tipo, estado desde/hasta y rol), así que corregirla es una migración de datos,
-  no un cambio de estructura.
-- **Editar la matriz desde una pantalla es Etapa 2** (Roadmap a diciembre): hoy se cambia por datos, con una
-  migración.
-- **Cobrado y Deuda** existen, se muestran y se filtran, pero **nadie los cambia a mano**: los dispara el
-  cobro (MSF-195), que ya está entregado en su rama de épica.
-- **«Entregado»** (visible en el prototipo) es el estado de **despacho** y llega con MSF-135: en el filtro de
-  Estado de esta pantalla no aparece, porque vive en su propio campo. Ver
-  [Ventas · despacho y faltantes](ventas-despacho-y-faltantes.md).
-- **El listado es solo de ventas internas**: **Mercado Libre** se suma en Etapa 2.
-- **Los presupuestos no se anulan** ni reciben nota de crédito.
-- **Descuento sobre cuenta corriente**: fuera de alcance (MSF-195).
-- El **tipo «Factura A/B»** del prototipo no aplica: el comprobante es interno, no fiscal.
+![Tarjeta de una nota de crédito en el detalle de la factura, con cantidad e importe en negativo](img/ventas-listado-estados-y-anulacion/11-nota-credito-asociada.png)
 
-## Fuera de alcance de esta épica
+*Así se ve la nota dentro de la factura: marcada «Asociada a esta factura», con cantidades e importes en negativo.*
 
-Cobro y conciliación (MSF-195), despacho, entrega y reservas «A pedido» ya entregadas (MSF-135), RMA y
-devoluciones (MSF-178), transportes y contrarreembolsos (MSF-139), impresión y envío por correo (MSF-213),
-reportes de ventas (MSF-338) y rentabilidad real (MSF-192).
+### Reglas
 
-## Estado
+- No podés acreditar **más de lo facturado**. Podés emitir notas parciales, una tras otra.
+- Solo en **Devolución de productos** vuelve stock al depósito de origen. En los otros dos motivos el stock no se toca.
+- Los totales y rankings cuentan la nota restando de lo facturado.
 
-Implementado en la rama de la épica con sus tres historias y el cierre (F-VTA-09, F-VTA-10, F-VTA-11),
-**pendiente de merge a `main`**. La fuente funcional es
-`specs/20261024-130000-ventas-listado-estados-y-anulacion/spec.md`; las pruebas están en
-`supabase/tests/database/comprobante_*.test.sql` y `ventas_listado_exportacion.test.sql`, en
-`apps/web/src/pages/ventas/comprobantes.test.tsx`, `comprobante.estados.test.tsx`,
-`comprobante.anulacion.test.tsx` y en `workers/exportar-comprobantes/test/`.
+!!! note "¿Anular o nota de crédito?"
+    **Anular** es para una factura emitida por error: se deshace todo. **Nota de crédito** es para una devolución o un ajuste: la factura sigue valiendo y la nota resta. Si el cliente devolvió mercadería, usá la nota. Para llevar el reclamo completo, mirá [Devoluciones y reclamos (RMA)](ventas-rma-devoluciones.md).
 
-## Para seguir
+## Si algo no sale
 
-- **[Ventas · listado, estados y anulación (técnico)](../tecnico/ventas-listado-estados-y-anulacion.md)** —
-  tablas, RPC, worker, flow y reversión.
-- **[Ventas · comprobantes (producto)](ventas-comprobantes.md)** — cómo se carga la factura y el presupuesto.
-- **[Permisos por rol](../permisos-por-rol.md)** — secciones, niveles y acciones.
-- **[Stock](../stock.md)** — depósitos, movimientos y reservas.
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «Escribí el motivo de la anulación.» | El motivo es obligatorio. |
+| «Otra persona modificó este comprobante mientras lo mirabas. Recargamos los datos: revisalo y volvé a intentar.» | Alguien tocó la factura a la vez. Revisá cómo quedó y repetí la acción. |
+| «Escribí el concepto de la nota de crédito.» | En una nota por importe o descuento, el concepto es obligatorio. |
+| «Ingresá un importe mayor a cero, con hasta dos decimales.» | Revisá el importe de la nota. |
+| «Indicá cuántas unidades se devuelven de al menos un producto.» | En una devolución de productos, completá al menos una cantidad. |
+| «No quedan productos por devolver en esta factura.» | Ya se devolvió todo lo facturado. |
+| «No pudimos cambiar el estado. No se guardó nada: probá de nuevo.» | El cambio de estado no se aplicó. Reintentá. |
+| «Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.» | Cambiaste la tienda activa con un comprobante abierto. Volvé a abrirlo desde el listado. |

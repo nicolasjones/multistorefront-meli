@@ -1,243 +1,203 @@
 ---
 owner: producto
-sources:
-  - specs
-  - design/pantallas
+sources: []
 ---
 
-# Ventas · cobros y conciliación (MSF-195)
+# Registrar cobros y controlar los pagos
 
-**Épica:** MSF-195 · **Historias:** F-VTA-12 (cobros por comprobante), F-VTA-13 (conciliación de pagos por
-cuenta de cobro) y F-VTA-14 (contrarreembolsos por transporte). **Spec:**
-`specs/20261024-150000-ventas-cobros-y-conciliacion/` · **Rama:**
-`epic/MSF-195-ventas-y-despacho-ventas-cobros-y-concil`, pendiente de merge a `main`.
-Detalle técnico: [Ventas · cobros y conciliación (técnico)](../tecnico/ventas-cobros-y-conciliacion.md).
+## Para qué sirve
 
-Esta página explica **qué resuelve** la épica: que cada comprobante tenga sus cobros registrados
-(parciales o totales), que Administración concilie las transferencias por cuenta de cobro contra el
-extracto del banco, y que los contrarreembolsos que cobran los transportes queden controlados hasta
-que los rindan. La factura y el presupuesto se cargan en
-[Ventas · comprobantes (MSF-159)](ventas-comprobantes.md) y el listado de comprobantes, con sus
-estados, está en [Ventas · listado, estados y anulación (MSF-177)](ventas-listado-estados-y-anulacion.md).
+Acá registrás lo que el cliente paga por una factura (de una vez o en partes), controlás cuánto te debe, concilias las transferencias contra el banco y seguís el dinero que cobran los transportes al entregar (contrarreembolsos).
 
-## Qué resuelve
+## Quién puede hacerlo
 
-- **El dinero que entra queda registrado**: cada comprobante tiene una **tarjeta Cobros** con los
-  cobros cargados, lo cobrado y lo que falta. Una factura se puede cobrar en partes.
-- **La factura sabe si está cobrada**: cuando el saldo llega a 0 la factura pasa a **Cobrado**; si
-  queda saldo y la forma de pago «genera deuda», pasa a **Deuda**. **Nadie lo cambia a mano.**
-- **El control del dinero que entra por banco**: la pantalla **Pagos** lista los pagos con cuenta de
-  cobro y permite **aprobar** (conciliar) cada uno contra el extracto del banco, o **deshacer** esa
-  aprobación.
-- **El cobro a la entrega no se pierde**: cuando un transporte cobra al entregar, el
-  **contrarreembolso** queda **Pendiente** hasta que Administración lo marca cobrado; recién ahí
-  cuenta como cobro de la factura.
-
-## Para quién
-
-| Persona | Qué hace con esta entrega |
+| Acción | Quién |
 |---|---|
-| **Mostrador** | Registra cobros (parciales o totales) en el detalle de la factura. |
-| **Administración** | Registra cobros, **concilia** los pagos de **Pagos** y **marca cobrados** los contrarreembolsos de Transportes. |
-| **Administrador** | Lo mismo que Administración. |
-| **Operador** | Tiene Ventas en edición, pero **no** registra cobros, **no** concilia pagos y **no** cobra contrarreembolsos: son acciones aparte. |
-| **Depósito** | Ventas en solo lectura: ve los cobros y el estado de las facturas, sin registrar ni conciliar. |
-| **Consulta** | Ventas en solo lectura. |
-| **Miembro** | Ventas en solo lectura. |
-| **Técnico** | Sin acceso a la sección Ventas. |
+| **Registrar un cobro** en una factura | Mostrador, Administración y Administrador. |
+| **Conciliar un pago** (pantalla Pagos) | Administración y Administrador. |
+| **Marcar cobrado un contrarreembolso** (pantalla Transportes) | Administración y Administrador. |
+| **Crear y editar cuentas de cobro** | Quienes tienen Ventas en edición. |
+| Ver cobros, pagos y deudas | Todos los roles con acceso a Ventas. |
 
-Sin la sección **Ventas** la pantalla muestra «Acceso restringido».
+El **Operador** puede cargar comprobantes pero, con la configuración inicial, no registra cobros, no concilia ni cobra contrarreembolsos: son permisos aparte que el Administrador puede dar o quitar.
 
-!!! note "Los roles son un supuesto a confirmar con el cliente"
-    La spec deja como *Decisión abierta* 1 quién registra y quién aprueba. Hoy está sembrado **por
-    datos** (una fila por organización, rol, sección y acción), así que corregirlo es una migración de
-    datos, no un cambio de estructura.
+## Dónde lo encontrás
 
-## Cobros por comprobante (F-VTA-12)
+- Los cobros de una factura: en el detalle, tarjeta **Cobros**.
+- **Ventas → Pagos**: control de transferencias y depósitos.
+- **Ventas → Cuentas de cobro**: las cuentas bancarias y billeteras donde cobrás.
+- **Ventas → Transportes**: contrarreembolsos y terminales de retiro.
+- **Ventas → Configuración de ventas**: las formas de pago.
 
-La tarjeta **Cobros** vive en el detalle del comprobante (`/ventas/comprobantes/:id`).
+## Registrar un cobro
 
-- **Totales Cobrado y Saldo** y la lista de cobros: fecha, forma de pago, cuenta de cobro, importe y
-  quién lo registró.
-- Botón **«Registrar cobro»**: solo aparece con la acción `registrar_cobro` en la empresa de la
-  factura y solo si el comprobante es una **factura en estado operativo**. Un presupuesto, un
-  borrador o una factura anulada no lo muestran.
-- El **diálogo «Registrar cobro»** pide **Forma de pago**, **Cuenta de cobro** (solo cuando la forma
-  la exige; la etiqueta es «Banco · Titular») e **Importe**, que arranca con el saldo pendiente como
-  valor sugerido.
-- **Los errores van al campo**: la base dice qué campo falló (importe, forma de pago o cuenta de
-  cobro) y la pantalla lo marca ahí, no como un error general.
-- Un **cobro no se borra ni se edita**: es un libro de dinero. Corregir un cobro mal cargado
-  (reverso de cobro) **no está en esta épica**.
-- El **saldo** es `total con IVA − suma de los cobros`. Dos cobros simultáneos que juntos exceden el
-  saldo: **solo se guarda el primero**.
+1. Abrí la factura desde **Ventas → Comprobantes**.
+2. En la tarjeta **Cobros** ves **Cobrado** (lo ya pagado) y **Saldo** (lo que falta), y la lista de cobros anteriores.
+3. Hacé clic en **Registrar cobro**.
+4. En **Forma de pago** elegí cómo paga el cliente.
+5. En **Cuenta de cobro** elegí la cuenta donde entra la plata. Es opcional, salvo que la forma de pago lo exija (por ejemplo, transferencia o depósito bancario): ahí aparece «La forma de pago elegida exige una cuenta de cobro.»
+6. En **Importe** escribí cuánto paga ahora. Abajo se lee «Saldo pendiente: …».
+7. Hacé clic en **Registrar cobro**. Aparece «Cobro registrado · importe».
 
-### El campo «Cuenta de cobro»
+![Tarjeta Cobros de una factura sin cobros, con Cobrado, Saldo y el botón Registrar cobro señalado](img/ventas-cobros-y-conciliacion/01-tarjeta-cobros.png)
 
-En la tarjeta de datos del comprobante:
+*Paso 3: la tarjeta «Cobros» muestra lo cobrado y el saldo, y desde acá se abre «Registrar cobro».*
 
-- el valor es la cuenta del **último cobro con cuenta**;
-- el chip dice **«Sin conciliar»** o **«Conciliado»** según si ese cobro fue aprobado;
-- el enlace **«Ir a Pagos →»** lleva a la pantalla de conciliación;
-- la ayuda es «Titular y CUIT se ven al elegir la cuenta. Se concilia en Pagos.»;
-- y cuando la forma de pago del último cobro es **Contrarreembolso**, aparece el texto «El
-  transporte cobra al entregar. Queda en Transportes y contrarreembolsos hasta que lo rindan.».
+![Ventana Registrar cobro completada con forma de pago Transferencia bancaria, cuenta de cobro e importe](img/ventas-cobros-y-conciliacion/02-dialogo-registrar-cobro.png)
 
-## Conciliación de pagos (F-VTA-13)
+*Pasos 4 a 7: elegí la forma de pago, la cuenta, escribí el importe y confirmá con «Registrar cobro».*
 
-La pantalla **Pagos** (`/ventas/pagos`) tiene el título «Pagos» y el subtítulo «Conciliación de
-cobros: cada pago por transferencia o depósito se aprueba contra la cuenta bancaria.».
+### Cobros parciales y totales
 
-- **Tres tarjetas**: **Por conciliar** («N pagos sin aprobar»), **Conciliado** («N pagos aprobados») y
-  **Saldo pendiente de clientes** («Comprobantes con pago parcial»).
-- **Filtro Tienda** (píldoras «Todas las tiendas» + las accesibles) y **filtro por cuenta de cobro**
-  (píldora «Todas» + las cuentas). El interruptor **«Solo con saldo»** deja solo los pagos de
-  comprobantes que todavía deben algo.
-- **Tabla**: Fecha · Tienda · Comprobante (enlace al detalle) · Cliente · Cuenta de cobro · Importe ·
-  Aprobado por · **Cobrado** (interruptor) · Saldo. El saldo va en tono de advertencia; si el cliente
-  no debe nada, va «—».
-- **El interruptor «Cobrado»** concilia o revierte la conciliación de esa fila. Con conciliar queda el
-  aviso «Pago conciliado · N» y con revertir «Conciliación revertida · N» (N es el número del
-  comprobante). Sin la acción `conciliar_pago` el interruptor va **deshabilitado**: el rol ve el
-  listado pero no puede aprobar.
-- **Vacío**: «Sin pagos para mostrar / Cambiá de cuenta o desactivá el filtro de saldo.»; **error**
-  con «Reintentar».
-- Al pie, la tarjeta **Cuentas de cobro**: «N cargadas · se muestran las más usadas. Las marcadas
-  como No usar no se ofrecen al cargar un comprobante, pero conservan su historial.», con los botones
-  **«Ver todas las cuentas de cobro»** y **«Nueva cuenta»** que abren `/ventas/cuentas-cobro`.
+- Podés cobrar una factura en **varias partes**: cada cobro resta del **Saldo**. El importe puede ser menor que el saldo, pero **nunca mayor**.
+- Cuando el saldo llega a cero, la factura pasa sola a **Cobrado** y el botón **Registrar cobro** se deshabilita: «No queda saldo pendiente: la factura está cobrada.»
+- Si queda saldo y la forma de pago está configurada como «Genera deuda» (por ejemplo, cuenta corriente), la factura pasa a **Deuda**.
+- **Cobrado** y **Deuda** los pone el sistema; no se eligen a mano.
 
-!!! note "Conciliar no es cobrar"
-    El **cobro** se registra cuando llega el dinero (F-VTA-12). La **conciliación** confirma, contra
-    el extracto del banco, que ese pago llegó a la cuenta. Conciliar o revertir **no** cambia el
-    estado de la factura ni su saldo.
+![Tarjeta Cobros de una factura con un cobro parcial, el importe cobrado y el saldo pendiente](img/ventas-cobros-y-conciliacion/03-cobros-deuda.png)
 
-## Contrarreembolsos por transporte (F-VTA-14)
+*Una factura con un cobro parcial: arriba se ve lo cobrado y lo que falta, y abajo cada cobro con su forma de pago.*
 
-La pantalla **Transportes y contrarreembolsos** (`/ventas/transportes`) tiene el subtítulo «Cobros a
-la entrega por empresa de transporte, mensajería propia en moto y terminales de retiro.» y dos
-sub-pestañas.
+Solo se pueden registrar cobros en una factura **confirmada**. Un borrador, un presupuesto, una nota de crédito o una factura anulada no admiten cobros.
 
-- **Contrarreembolsos** (la que abre por defecto), con la ayuda «El transporte cobra al entregar y
-  rinde después.»:
-  - **Tarjetas** «Contrarreembolsos pendientes» («N envíos sin rendir») y «Cobrados este mes»
-    («Rendidos por los transportes»).
-  - **Tabla**: Fecha · Tienda · Comprobante (enlace al detalle) · Cliente · Empresa de transporte ·
-    Guía · Importe · Estado (chip **Pendiente** / **Cobrado**) y el botón **«Marcar cobrado»**.
-  - «Marcar cobrado» queda **deshabilitado** si el contrarreembolso ya está cobrado y **oculto** si la
-    persona no tiene la acción `cobrar_contrarreembolso` en esa tienda. Al cobrar, aviso
-    «Contrarreembolso cobrado · <transporte>».
-- **Terminales de retiro**: la tabla y el diálogo de MSF-139 (catálogo de transportes y terminales de
-  retiro) sin cambios.
+### Cuenta de cobro en el detalle
 
-### Cómo se abre un contrarreembolso
+En los datos de la factura, el campo **Cuenta de cobro** muestra la cuenta del último cobro con cuenta y una etiqueta que dice si ya está **Conciliado** o **Sin conciliar**, con el enlace **Ir a Pagos →**.
 
-La **guía de despacho** (F-VTA-16 · MSF-135) es la que abre el contrarreembolso cuando el transporte
-cobra al entregar. Como esa historia todavía no existe, la épica deja el punto de entrada preparado
-y **simulable** desde la base (los datos de prueba de DEV lo hacen):
+## Formas de pago
 
-```sql
-select private.abrir_contrarreembolso('<comprobante_id>', '<transporte_id>', 'GUIA-DEV-0001');
-```
+Se administran en **Ventas → Configuración de ventas → Formas de pago**. Cada una indica:
 
-Solo abre el contrarreembolso si el transporte tiene **«Cobra contrarreembolso»**, y es idempotente
-por (comprobante, guía): la misma guía no abre dos contrarreembolsos.
-
-## Empresa activa
-
-Las tres pantallas respetan la **empresa activa** de la barra superior (Principio VIII).
-
-- Al **cambiar de empresa** se invalidan y recargan **todas** las consultas de la pantalla (listado,
-  tarjetas y filtros), la paginación vuelve a la primera página y se descarta el filtro de cuenta
-  que ya no existe. No queda ninguna fila ni total de la empresa anterior.
-- En el **detalle** del comprobante, además, el diálogo «Registrar cobro» abierto **se cierra con
-  aviso**: nunca queda un cobro de una tienda cargado bajo la otra.
-- El filtro **Tienda** de cada pantalla no cambia la empresa activa de la barra superior: acota lo que
-  se ve.
-
-## Matriz pantalla↔criterios
-
-| Ítem visible | Dueño |
+| Dato | Para qué sirve |
 |---|---|
-| Tarjeta **Cobros** (totales Cobrado y Saldo, lista de cobros) y botón «Registrar cobro» | FR-007 |
-| Diálogo «Registrar cobro» (Forma de pago, Cuenta de cobro, Importe) — **no está en el prototipo** | FR-007 |
-| Campo «Cuenta de cobro» con chip Sin conciliar/Conciliado y enlace «Ir a Pagos →» | FR-008 |
-| Texto «El transporte cobra al entregar. Queda en Transportes y contrarreembolsos…» | FR-008 |
-| Título «Pagos», subtítulo «Conciliación de cobros: …» y filtro Tienda | FR-025 |
-| Tarjetas Por conciliar, Conciliado y Saldo pendiente de clientes | FR-024, FR-025 |
-| Filtro de cuentas (píldoras) e interruptor «Solo con saldo» | FR-023, FR-025 |
-| Columnas Fecha, Tienda, Comprobante, Cliente, Cuenta de cobro, Importe, Aprobado por, Cobrado, Saldo | FR-023, FR-026 |
-| Interruptor «Cobrado» por fila y avisos «Pago conciliado · N» / «Conciliación revertida · N» | FR-021, FR-026 |
-| Vacío «Sin pagos para mostrar» y error con «Reintentar» | FR-026 |
-| Paginación «1–N de N» | FR-023, FR-025 |
-| Tarjeta «Cuentas de cobro» con «Ver todas las cuentas de cobro» y «Nueva cuenta» | FR-027 |
-| Botón «Exportar» de Pagos y de Transportes | **FUERA DE ALCANCE** — la épica no pide exportar pagos ni contrarreembolsos |
-| Pestañas «Faltantes» y «Devoluciones (RMA)» | **FUERA DE ALCANCE** — MSF-178 y otras épicas |
-| Sub-pestaña «Motos», tabla de mensajería propia y tarjeta «Motos sin rendir» | **FUERA DE ALCANCE** — es de despacho (MSF-135) |
-| Pestañas de navegación Comprobantes / Presupuestos | **FUERA DE ALCANCE** — son de MSF-159/MSF-177; se llega por el menú |
-| Campos Guía, Fecha de envío, Armó, Controló, Entregó y transporte del despacho | **FUERA DE ALCANCE** — despacho: MSF-135 |
-| Título «Transportes y contrarreembolsos», subtítulo, filtro Tienda y sub-pestañas | FR-046 |
-| Ayuda «El transporte cobra al entregar y rinde después.» | FR-046 |
-| Tarjetas «Contrarreembolsos pendientes» y «Cobrados este mes» | FR-045, FR-046 |
-| Tabla de contrarreembolsos con chip Pendiente/Cobrado y botón «Marcar cobrado» | FR-047 |
-| Sub-pestaña «Terminales de retiro», tabla y diálogo «Nueva empresa» | Ya entregado por MSF-139; esta épica solo lo conserva bajo la pestaña |
-| **Empresa activa** | FR-009, FR-028, FR-048 |
+| **Forma de pago** | El nombre que se ofrece al cobrar (por ejemplo, Efectivo, Tarjeta, Transferencia o depósito bancario, Contrarreembolso). |
+| **Pide cuenta de cobro** | Si al cobrar hay que elegir una cuenta (típico de transferencias). |
+| **Genera deuda** | Si lo que falta cobrar pasa a **Deuda**. |
+| **Activo** | Si se ofrece o no al cobrar. |
 
-## Permisos
+Con **Nueva forma de pago** creás una; con el lápiz la editás. Cada forma se habilita por tienda en «Empresas donde aplica».
 
-| Acción | Sección | Quién | Qué habilita |
-|---|---|---|---|
-| Registrar un cobro | `registrar_cobro` de Ventas + `ventas` en edición | Mostrador, Administración, Administrador | «Registrar cobro» en el detalle de la factura. |
-| Conciliar un pago | `conciliar_pago` de Ventas + `ventas` en edición | Administración, Administrador | Interruptor «Cobrado» de Pagos. |
-| Cobrar un contrarreembolso | `cobrar_contrarreembolso` de Ventas + `ventas` en edición | Administración, Administrador | «Marcar cobrado» en Transportes. |
-| Ver cobros, pagos y contrarreembolsos | `ventas` ≥ lectura | Quien tenga Ventas en lectura o edición en la tienda | Listados, tarjetas y detalle del comprobante. |
+Al crear una forma de pago completás **Nombre**, **Tipo de forma de pago**, **Exige cuenta de cobro**, **Genera deuda**, **Estado inicial del comprobante** (el estado con el que queda la factura al elegir esta forma de pago), **Orden**, **Activo** y **Empresas donde aplica**.
 
-El permiso se resuelve con el **rol de la persona en la empresa del dato**, no con la suma de sus
-roles: quien no puede cobrar en la tienda A no lo hereda por ser Administración en la B. Las tres
-acciones viven en la matriz de permisos por organización × rol × sección y se corrigen por datos
-(«Roles y permisos»).
+![Pantalla Configuración de ventas con la lista de formas de pago y sus columnas Pide cuenta de cobro, Genera deuda y Activo](img/ventas-cobros-y-conciliacion/07-formas-de-pago.png)
 
-Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
+*Ventas → Configuración de ventas → Formas de pago.*
 
-## Límites y decisiones abiertas
+![Ventana Nueva forma de pago con el nombre, las opciones de cuenta y deuda, el estado inicial y las empresas](img/ventas-cobros-y-conciliacion/08-forma-de-pago-alta.png)
 
-- **La conciliación es manual**: se compara contra el extracto del banco **fuera del sistema**. No hay
-  importación de extractos.
-- **Los cobros son inmutables**: no se borran ni se editan. El **reverso de cobro** (corregir un cobro
-  mal cargado) queda como ampliación no pedida.
-- **Solo se concilian los pagos con cuenta de cobro**: un cobro en efectivo se registra y suma a lo
-  cobrado, pero no aparece en Pagos (no hay nada que conciliar contra un banco).
-- **Cobrado no depende de la conciliación**: el estado lo pone el saldo, no la aprobación.
-- **La columna `guia` no existe en `comprobantes_venta`** (la épica lo daba por hecho): la guía vive
-  en la tabla de contrarreembolsos y la leerá la guía de despacho de MSF-135 cuando exista.
-- **Una cuenta de cobro marcada «No usar»** no recibe cobros nuevos, pero conserva su historial y
-  sigue apareciendo en la tarjeta de Pagos.
-- **Sin multimoneda**: los importes son en pesos; las cuentas de cobro de MSF-139 declaran moneda.
-- **Riesgo de fecha del Hito 4**: con 184 h de Ventas la ventana del 30 de noviembre al 11 de
-  diciembre no alcanza para las cuatro épicas; el documento del componente propone correr el cierre
-  al 18 de diciembre. Ante conflicto de horas manda el *Roadmap a diciembre*.
+*La ventana «Nueva forma de pago». El botón «Crear» la guarda; «Cancelar» la cierra.*
 
-## Fuera de alcance de esta épica
+## Deuda de clientes
 
-El botón **«Exportar»** de Pagos y de Transportes; la sub-pestaña **«Motos»** (mensajería propia);
-el **vencimiento por plazo de rendición** y la **comisión del transporte** (datos de MSF-139 sin
-uso); el **cobro sobre presupuestos**; la **importación de extractos bancarios**; las pestañas
-**Faltantes** y **Devoluciones (RMA)**; y los campos de despacho (Guía, Fecha de envío, Armó,
-Controló, Entregó).
+- En cada factura, el **Saldo** de la tarjeta **Cobros** es lo que ese cliente todavía debe.
+- En **Ventas → Pagos**, la tarjeta **Saldo pendiente de clientes** suma lo que falta cobrar de los comprobantes con pago parcial.
+- En **Ventas → Comprobantes** podés filtrar por **Estado: Deuda** para ver las facturas que se entregaron sin cobrar.
 
-## Estado
+## La pantalla Pagos (conciliación)
 
-Implementado en la rama de la épica con sus tres historias y el cierre (F-VTA-12 · MSF-389, F-VTA-13 ·
-MSF-401, F-VTA-14 · MSF-410), **pendiente de merge a `main`**. La fuente funcional es
-`specs/20261024-150000-ventas-cobros-y-conciliacion/spec.md`; las pruebas están en
-`supabase/tests/database/cobros_comprobante.test.sql`, `pagos_conciliacion.test.sql`,
-`contrarreembolsos.test.sql` y `datos_prueba_ventas_cobros.test.sql`, y en
-`apps/web/src/pages/ventas/comprobante.cobros.test.tsx`, `apps/web/src/pages/ventas/pagos/list.test.tsx`
-y `apps/web/src/pages/ventas/transportes/contrarreembolsos.test.tsx`.
+**Conciliar** es controlar que cada transferencia o depósito realmente entró en la cuenta bancaria. Las ventas en efectivo no aparecen acá: no hay nada que comparar con un extracto.
 
-## Para seguir
+![Pantalla Pagos con las tarjetas Por conciliar, Conciliado y Saldo pendiente de clientes, y la tabla de pagos con el interruptor Cobrado](img/ventas-pagos/01-pagos.png)
 
-- **[Ventas · cobros y conciliación (técnico)](../tecnico/ventas-cobros-y-conciliacion.md)** — tablas,
-  RPC, flujos, permisos y reversión.
-- **[Ventas · listado, estados y anulación (producto)](ventas-listado-estados-y-anulacion.md)** — el
-  listado y los estados del comprobante, incluido quién pone Cobrado y Deuda.
-- **[Permisos por rol](../permisos-por-rol.md)** — secciones, niveles y acciones.
+*Ventas → Pagos: tarjetas de resumen arriba, filtro por cuenta y tabla de pagos con el interruptor «Cobrado».*
+
+### Las tarjetas
+
+| Tarjeta | Qué muestra |
+|---|---|
+| **Por conciliar** | Importe de los pagos todavía sin aprobar y cuántos son. |
+| **Conciliado** | Importe de los pagos ya aprobados y cuántos son. |
+| **Saldo pendiente de clientes** | Lo que falta cobrar de los comprobantes con pago parcial. |
+
+### Filtros
+
+- **Tienda**: todas o una sola.
+- Una fila de botones con **Todas** y las cuentas de cobro más usadas, para ver los pagos de una cuenta.
+- **Solo con saldo**: muestra únicamente los pagos cuyo comprobante todavía tiene saldo.
+
+### Columnas
+
+**Fecha**, **Tienda**, **Comprobante** (con enlace), **Cliente**, **Cuenta de cobro**, **Importe**, **Aprobado por**, **Cobrado** (interruptor) y **Saldo**.
+
+### Conciliar un pago
+
+1. Mirá en el extracto del banco que el dinero haya entrado.
+2. En la fila del pago, activá el interruptor **Cobrado**.
+3. Aparece «Pago conciliado · número» y la fila pasa a mostrar quién lo aprobó.
+
+Para deshacerlo, apagá el interruptor: «Conciliación revertida · número». Si tu rol no puede conciliar, el interruptor aparece deshabilitado.
+
+![Pantalla Pagos con el interruptor Cobrado de la primera fila señalado](img/ventas-cobros-y-conciliacion/04-pagos-conciliar.png)
+
+*Paso 2: el interruptor «Cobrado» de la fila concilia el pago.*
+
+!!! note "Conciliar no cambia el estado de la factura"
+    La factura pasa a **Cobrado** cuando el saldo llega a cero, no cuando se concilia. La conciliación es un control aparte contra el banco.
+
+## La pantalla Cuentas de cobro
+
+Son las **cuentas bancarias y billeteras** donde cobrás las ventas por transferencia o depósito. No son depósitos de mercadería.
+
+![Pantalla Cuentas de cobro con la lista de cuentas, su titular, banco, CBU, CUIT, tiendas donde están disponibles y botones Editar y Marcar No usar](img/ventas-cuentas-cobro/01-cuentas.png)
+
+*Ventas → Cuentas de cobro: cada cuenta indica en qué tiendas se ofrece al cobrar.*
+
+### Qué muestra
+
+**Cuenta**, **Titular**, **Banco**, **CBU**, **CUIT**, **Disponible en** (las tiendas donde se ofrece), **Estado** (Activa o No usar) y las acciones. Podés filtrar por tienda y por **Todas**, **Activas** o **No usar**.
+
+### Crear o editar una cuenta
+
+1. Hacé clic en **Nueva cuenta de cobro** (o en **Editar** sobre una cuenta).
+2. Completá **Nombre de la cuenta**, **Titular**, **CUIT del titular** y **CBU / CVU** (obligatorios). Opcionales: **Banco**, **Alias** y **Notas internas**.
+3. Elegí el **Tipo de cuenta** (**Cuenta corriente**, **Caja de ahorro** o **Billetera virtual**) y la **Moneda** (**ARS** o **USD**).
+4. En **Disponible en** marcá las tiendas donde se puede cobrar con esta cuenta.
+5. **Orden** define en qué orden se listan. Con **Activa** decidís si se ofrece al cobrar.
+6. Hacé clic en **Guardar cuenta**.
+
+![Ventana de alta de una cuenta de cobro con todos sus campos vacíos](img/ventas-cobros-y-conciliacion/06-cuenta-alta.png)
+
+*La ventana «Cuenta de cobro» al crear una nueva. Los campos con asterisco son obligatorios.*
+
+### Dejar de usar una cuenta
+
+Con **Marcar No usar** la cuenta deja de ofrecerse al cargar un cobro, pero **conserva su historial de pagos**, que se sigue conciliando en Pagos. Para volver a usarla, hacé clic en **Reactivar**.
+
+## Contrarreembolsos
+
+Un **contrarreembolso** es cuando el **transporte cobra al cliente al entregar** el paquete y después te rinde esa plata. Hasta que te la rinden, el dinero está «en la calle».
+
+### Cómo se cobra
+
+1. En la factura, registrá el cobro con la forma de pago **Contrarreembolso**. La factura muestra «El transporte cobra al entregar. Queda en Transportes y contrarreembolsos hasta que lo rindan.»
+2. Cuando el transporte te rinde el dinero, entrá a **Ventas → Transportes**, pestaña **Contrarreembolsos**.
+3. Buscá la fila (Fecha, Tienda, Comprobante, Cliente, Empresa de transporte, Guía, Importe, Estado). Estará **Pendiente**.
+4. Hacé clic en **Marcar cobrado**. Aparece «Contrarreembolso cobrado · nombre del transporte» y el estado pasa a **Cobrado**.
+
+Solo Administración y Administrador pueden marcar cobrado. Si ya está cobrado, el botón queda deshabilitado.
+
+![Pestaña Contrarreembolsos con el botón Marcar cobrado de la fila pendiente señalado](img/ventas-cobros-y-conciliacion/05-contrarreembolsos.png)
+
+*Paso 4: «Marcar cobrado» solo está activo en el contrarreembolso Pendiente; en los ya Cobrados queda deshabilitado.*
+
+![Pantalla Transportes y contrarreembolsos con las tarjetas de pendientes y cobrados del mes y la tabla de contrarreembolsos](img/ventas-transportes/01-transportes.png)
+
+*Ventas → Transportes: las tarjetas muestran lo pendiente de rendir y lo cobrado en el mes.*
+
+Las tarjetas de arriba son **Contrarreembolsos pendientes** (cuántos envíos faltan rendir y por cuánto) y **Cobrados este mes** (lo ya rendido por los transportes). Cómo cargar y editar las empresas de transporte está en [Despacho, faltantes y transportes](ventas-despacho-y-faltantes.md).
+
+## Si algo no sale
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «Elegí la forma de pago.» | Falta elegir cómo paga el cliente. |
+| «La forma de pago exige una cuenta de cobro.» | Elegí una cuenta en **Cuenta de cobro**. |
+| «Ingresá el importe del cobro.» / «El importe tiene que ser mayor a cero.» | Completá un importe válido. |
+| «Ingresá el importe como número, con hasta dos decimales.» | Sin letras ni separadores de miles; por ejemplo 400 o 400,50. |
+| «El importe no puede superar el saldo pendiente (…).» | Cobrá como máximo lo que falta. |
+| «Esta factura no admite cobros: está en borrador o anulada.» | Confirmá la factura primero, o usá otra. |
+| «No tenés permiso para registrar cobros en esta tienda. Puede que tu rol haya cambiado: recargá la página.» | Tu rol no tiene el permiso en esa tienda. Consultá al Administrador. |
+| «El pago fue modificado por otra persona. Recargá la lista e intentá de nuevo.» | Alguien concilió o cambió el pago a la vez. Actualizá Pagos. |
+| «Tu rol no puede conciliar pagos en esta tienda.» | Solo Administración y Administrador concilian. |
+| «No pudimos marcar el contrarreembolso como cobrado. Intentá de nuevo.» | No se guardó. Reintentá. |
+| «Otra persona modificó esta cuenta mientras la editabas. Recargá para ver sus cambios; no se guardó nada tuyo.» | Dos personas editaron la misma cuenta. Recargá y repetí. |
