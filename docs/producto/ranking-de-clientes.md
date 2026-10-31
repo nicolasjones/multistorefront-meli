@@ -55,7 +55,8 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
 
 ## Límites y fuera de alcance
 
-- **Ranking avanzado de clientes:** MSF-171 (esta épica lo bloquea).
+- **Ranking avanzado de clientes** (comparar períodos, producto/categoría/provincia, inactivos): MSF-171, ver
+  [Ranking avanzado](ranking-avanzado-de-clientes.md); esta épica lo bloquea.
 - **El mismo ranking en «Ventas · Reportes»** (con filtro Tienda y desglose por tienda): no se construye
   aquí; la entrada oficial es Clientes. Ver [Ventas · reportes](ventas-reportes.md), que ya documenta
   la copia de ese tablero y su solapamiento con esta épica.

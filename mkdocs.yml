@@ -120,6 +120,7 @@ nav:
           - Consultas de las tiendas: producto/consultas.md
           - Rentabilidad: producto/rentabilidad.md
           - Ranking de clientes: producto/ranking-de-clientes.md
+          - Ranking avanzado de clientes: producto/ranking-avanzado-de-clientes.md
           - Correo masivo a clientes: producto/correo-masivo-a-clientes.md
       - Service técnico:
           - Alta, estados y permisos: producto/service-alta-estados-y-permisos.md
@@ -199,6 +200,7 @@ nav:
           - Consultas: tecnico/consultas.md
           - Rentabilidad: tecnico/rentabilidad.md
           - Ranking de clientes: tecnico/ranking-de-clientes.md
+          - Ranking avanzado de clientes: tecnico/ranking-avanzado-de-clientes.md
           - Correo masivo a clientes: tecnico/correo-masivo-a-clientes.md
           - Migración inicial de datos: tecnico/migracion-inicial-de-datos.md
           - Avisos y listas: tecnico/avisos-y-listas.md
