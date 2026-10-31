@@ -249,6 +249,31 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   `hooks/useRankingComparado.test.tsx` y `components/clientes/RankingClientes.test.tsx`. Spec:
   `specs/20261028-100000-ranking-avanzado-de-clientes/`.
 
+## Ranking por producto, categoría y provincia (F-CLI-15, MSF-391)
+
+- **Qué hace:** la solapa «Ranking por facturación» suma tres filtros opcionales y combinables entre sí y con Tipo,
+  Consumidor final, Ver con IVA y la tienda: **Producto** (búsqueda por nombre o SKU sobre el catálogo), **Categoría**
+  (con su ruta; una raíz incluye sus subcategorías) y **Provincia** (las presentes en los clientes de la organización).
+  Sin ninguno activo la pantalla sigue llamando a `ranking_clientes`, sin cambios. Las opciones se piden recién cuando
+  la persona entra a los filtros (carga diferida).
+- **Función:** `public.ranking_clientes_por_dimension(p_desde, p_hasta, p_producto_id, p_categoria_id, p_provincia,
+  p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)`, mismas columnas, orden, desempate,
+  paginación, seguridad y validaciones que `ranking_clientes` (más `p_provincia` ≤ 100 caracteres). Con producto o
+  categoría `facturado` suma las **líneas** (`dominio.comprobantes_venta_lineas`) que cumplen el filtro, con el signo de
+  las notas de crédito (sus líneas de devolución restan); `comprobantes` cuenta facturas distintas. Producto y categoría
+  se intersecan. Sin ellos el importe es el del comprobante. La provincia se compara sin mayúsculas ni tildes con
+  `private.clave_texto` (sin extensiones nuevas); un cliente sin provincia no coincide con ningún filtro. Un producto o
+  categoría ajeno o inexistente devuelve vacío. Sin tablas nuevas (Principio VII).
+- **Empresa activa:** al cambiarla se descartan Producto, Categoría y Provincia, se vuelve a la página 1 y se consulta la
+  nueva tienda.
+- **Límites declarados:** sin combinar con «Comparar con otro período» (al activarla los filtros no se ofrecen) y sin
+  «Exportar a Excel» mientras haya un filtro de dimensión activo (la exportación es del ranking completo).
+- **Reversión (aditiva):** `drop function public.ranking_clientes_por_dimension(date, date, uuid, uuid, text, text, boolean, boolean, integer, integer, uuid)`.
+  La migración usa la versión `20270121100000` (el contrato nombraba `20270114110000`, por debajo de la cola aplicada).
+- **Pruebas:** pgTAP `ranking_clientes_por_dimension.test.sql`; Vitest `hooks/useRankingPorDimension.test.tsx`,
+  `hooks/useOpcionesDimension.test.tsx`, `components/clientes/FiltrosDimension.test.tsx` y
+  `components/clientes/RankingClientes.test.tsx`. Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
 ## Exportar el ranking a Excel (F-CLI-09, MSF-255)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
   «Ranking por facturación» oculta «Exportar a Excel» sin el permiso. Los datos son los mismos que ya ve quien tiene
