@@ -135,11 +135,13 @@ select results_eq(
   'filtro por tipo mayorista'
 );
 
+reset role;
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A');
 insert into public.clientes_empresas (organizacion_id, cliente_id, empresa_id)
 select '11111111-1111-1111-1111-111111111111', c.id, 'e1000000-0000-0000-0000-000000000001'
   from clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.nombre = 'Hace100';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 select results_eq(
   $$select nombre from clientes_inactivos(90, null, false, 1, 25, 'e1000000-0000-0000-0000-000000000001')$$,
