@@ -34,6 +34,7 @@ Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `2027
   - La asignación automática no da datos de otras organizaciones: el token lleva la cláusula `rls` `organizacion_id = '<org>'` y `resolver_organizacion_reporte` exige `lectura` o `edicion` en `service_tecnico`. El superadmin puede desasignarlo como con cualquier otro reporte.
 - **Acceso**: `resolver_organizacion_reporte` (sin cambios) devuelve la organización solo con `lectura` o `edicion` en `service_tecnico` y el reporte asignado; si no, `emitir-acceso-reporte` responde 403 sin emitir token. Pruebas: `supabase/tests/database/service_reportes_acceso.test.sql` y `supabase/functions/emitir-acceso-reporte/handler.test.ts` (cláusula `rls` por `organizacion_id`).
 - **Riesgo heredado de Rentabilidad**: el token filtra por organización, no por las tiendas accesibles de la persona. Quien tiene `lectura` restringida a algunas tiendas vería cifras agregadas de todas. Pendiente de decisión de producto (¿solo dirección?).
+  - El trigger que propaga los roles por defecto a las organizaciones ya asignadas filtra por el reporte que recibe el rol; la prueba pgTAP `service_reportes_acceso` lo cubre.
 
 ## Pestaña «Reportes» (FR-064)
 
