@@ -107,6 +107,8 @@ begin
         on v.cliente_id = k.cid and v.organizacion_id = v_org
       left join dominio.comprobantes_venta_lineas l
         on l.comprobante_id = v.id and l.organizacion_id = v_org
+       -- Sin filtro de producto/categoría no se abren las líneas: el total del comprobante se suma una sola vez.
+       and (p_producto_id is not null or p_categoria_id is not null)
      where v.fecha between p_desde and p_hasta
        and private.comprobante_cuenta_como_facturado(v.tipo, v.estado)
        and (
