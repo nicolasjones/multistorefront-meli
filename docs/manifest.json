@@ -538,17 +538,29 @@
       "owner": "producto",
       "commit": null
     },
-    "docs/producto/ranking-de-clientes.md": {
-      "title": "Clientes · ranking de clientes (MSF-126)",
-      "pageHash": "de10c3fe19010f4bc4fbc1b1f253652226d11aded9302c15511d2a2e4f9de51b",
+    "docs/producto/ranking-avanzado-de-clientes.md": {
+      "title": "Clientes · ranking avanzado de clientes (MSF-171)",
+      "pageHash": "53dba2ce245dd36f9f14c16f1c22f15d6021fecba7dc67d382f2889847d76b0c",
       "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "514332bc",
+      "sourceAt": "a718c4dc",
       "sources": [
         "specs",
         "design/pantallas"
       ],
       "owner": "producto",
       "commit": null
+    },
+    "docs/producto/ranking-de-clientes.md": {
+      "title": "Clientes · ranking de clientes (MSF-126)",
+      "pageHash": "eb26b6a4488832686b30653367b18ba9f47e496ba2842519edbc0bb1553506d9",
+      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
+      "sourceAt": "a718c4dc",
+      "sources": [
+        "specs",
+        "design/pantallas"
+      ],
+      "owner": "producto",
+      "commit": "b325af7d"
     },
     "docs/producto/rentabilidad.md": {
       "title": "Rentabilidad: margen por producto y canal (MSF-120, MSF-127)",
@@ -1399,6 +1411,19 @@
         "supabase/migrations",
         "apps/web/src",
         "specs"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/ranking-avanzado-de-clientes.md": {
+      "title": "Ranking avanzado de clientes: RPC y pantallas (MSF-171)",
+      "pageHash": "d74a88da52f4837cb50bf8c6adeb0c61de9cd15c0559f7ec89ad7dbdef9219f3",
+      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
+      "sourceAt": "a718c4dc",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null
