@@ -46,7 +46,7 @@ import { ClienteShow } from './show'
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: 'norte@example.com',
   telefono: null, celular: null, direccion: null, codigo_postal: null, localidad: 'Rosario', provincia: null, expreso_preferido: null,
-  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, created_at: '2026-10-16T10:00:00Z',
+  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, acepta_correo_masivo: true, created_at: '2026-10-16T10:00:00Z',
 }
 
 const fila = (n: number, extra: Partial<ReparacionDeCliente> = {}): ReparacionDeCliente => ({

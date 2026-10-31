@@ -61,7 +61,7 @@ const ESTADO = (id: string, nombre: string, orden: number, extra: object = {}) =
 
 const ITEM: ItemReparacion = {
   id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de módulo', producto_id: null, sku: null,
-  cantidad: 1, precio_unitario: 45000, subtotal: 45000,
+  cantidad: 1, precio_unitario: 45000, subtotal: 45000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
 }
 
 const REPARACION: Reparacion = {
