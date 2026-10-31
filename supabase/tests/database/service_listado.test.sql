@@ -167,7 +167,7 @@ select is((select (f.valor ->> 'total_cliente')::numeric
   'sin ítems el Total llega en cero («A presupuestar» en pantalla)');
 select is(
   (select array_agg(k order by k) from jsonb_object_keys(public.listar_reparaciones(null, 'hoy')->'filas'->0) k),
-  array['cliente','codigo','empresa','empresa_id','entrega_prevista','equipo','estado','estado_tono','id','ingreso_en','modelo','numero','numero_serie','tecnico','tecnico_id','total_cliente'],
+  array['cliente','codigo','empresa','empresa_id','entrega_prevista','equipo','estado','estado_tono','id','ingreso_en','modelo','numero','numero_serie','pendientes_stock','tecnico','tecnico_id','total_cliente'],
   'la fila expone solo los campos del listado');
 select ok(public.listar_reparaciones(null, 'mes', null)::text not like '%costo%' and public.listar_reparaciones(null, 'mes')::text not like '%ganancia%',
   'ninguna respuesta incluye costos internos ni ganancia');
