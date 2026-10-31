@@ -100,6 +100,27 @@ pnpm docs:capturas 20-ventas                           # solo uno
 `ocultar` para esconder textos internos que no deben verse en un manual, y `leer` para resolver ids como el propio
 usuario. Config aparte (`playwright.capturas.config.ts`): no corre con `pnpm test:e2e` ni en el CI.
 
+## Cargarlo en dev o en stg (guardado para cuando se quiera)
+
+El dataset ya está armado y versionado: no hay que rehacerlo. Para sembrar un entorno compartido, en este orden:
+
+1. **Migraciones al día.** El entorno tiene que tener todas las migraciones de la rama que se despliega (dev = `dokploy`).
+   **stg todavía no las tiene** (sigue `main`, con muchas menos) hasta resolver la divergencia MSF-590: sembrar stg antes
+   de eso falla en los primeros módulos.
+2. **Acceso de base.** Hace falta un `psql` con rol `postgres` contra la base del entorno (para tiendas, fechas,
+   contrarreembolsos e impresiones). Ejemplos: `DEMO_PSQL="ssh <nodo> docker exec -i <contenedor-db> psql -U postgres"` o un
+   túnel al puerto de la base.
+3. **Variables.** `SUPABASE_URL` (la API del entorno), `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` y
+   `DEMO_HOSTS_PERMITIDOS=<host del entorno>`: sin esa lista el runner se niega a tocar un host que no sea local.
+4. **Correr.** `pnpm demo:dataset -- --reset` (~1,5 min). Es **idempotente**: el `--reset` borra solo la organización
+   «San Javucho y Mundo JC (demo)» y la recrea; no toca otras organizaciones.
+5. **Ver lo que dejó.** Usuarios `<rol>@demo.msf.test` con la clave `Demo-Msf-2026!` (ver «Usuarios para la demo»). Dólar
+   en 1570 (módulo 08; cambiá `DOLAR_ACTUAL` si el valor de referencia es otro). Las capturas del manual se rehacen contra
+   el mismo entorno con `pnpm docs:capturas` (ver más abajo).
+
+Para tener la demo **aparte de los datos reales** del entorno, usá una organización paralela (`DEMO_ORGANIZACION` y
+`DEMO_SUFIJO`): así los correos no chocan con los de otras organizaciones.
+
 ## Seguridad
 
 - El runner **aborta** si `SUPABASE_URL` no es local (`localhost`, `127.0.0.1`, `host.docker.internal`) y el host no
