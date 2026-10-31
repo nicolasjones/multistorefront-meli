@@ -111,7 +111,18 @@ update dominio.reparaciones
 -- Lectura como el rol de Superset
 -- ============================================================================
 
-set local role superset_analitica;
+-- El usuario de la prueba no es miembro de `superset_analitica` (SET ROLE falla en el CI): se lee como
+-- propietario y los privilegios del rol se comprueban aparte con has_table_privilege.
+reset role;
+
+select ok(
+  has_table_privilege('superset_analitica', 'analitica.service_reparaciones', 'SELECT')
+  and has_table_privilege('superset_analitica', 'analitica.service_reparacion_items', 'SELECT'),
+  'el rol de Superset lee las vistas de Service');
+select ok(
+  not has_table_privilege('superset_analitica', 'dominio.reparaciones', 'SELECT')
+  and not has_table_privilege('superset_analitica', 'analitica.service_reparaciones', 'INSERT'),
+  'el rol de Superset no lee la tabla de dominio ni escribe en la vista');
 
 select is(
   (select count(*)::int from analitica.service_reparaciones where organizacion_id = '11111111-1111-1111-1111-111111111111'),

@@ -156,7 +156,8 @@ begin
   select new.reporte_id, ro.organizacion_id, d.rol_id
   from public.reportes_organizaciones ro
   cross join public.reportes_roles_default d
-  where d.reporte_id = new.reporte_id
+  where ro.reporte_id = new.reporte_id
+    and d.reporte_id = new.reporte_id
   on conflict (reporte_id, organizacion_id, rol_id) do nothing;
 
   return new;
