@@ -34,6 +34,7 @@ Tres entradas según lo que necesites:
 | Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
 | Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
+| Dataset de demostración (San Javucho y Mundo JC) | [dataset-demo.md](dataset-demo.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
 | Superset | [operar-superset.md](operar-superset.md) |

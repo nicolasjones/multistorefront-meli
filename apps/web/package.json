@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "docs:capturas": "playwright test -c playwright.capturas.config.ts",
     "pantallas:capturar": "node scripts/capturar-pantallas.mjs"
   },
   "dependencies": {
