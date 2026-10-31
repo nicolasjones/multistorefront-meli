@@ -217,6 +217,9 @@ select is((public.quitar_adjunto_reparacion((select id from adj where clave = 'a
   'quitar devuelve la ruta para borrar el objeto');
 select is((select count(*)::int from dominio.reparacion_adjuntos where id = (select id from adj where clave = 'a1')), 0, 'la fila se borró');
 select throws_ok($$select public.quitar_adjunto_reparacion(gen_random_uuid())$$, 'P0002', null, 'quitar un adjunto inexistente es P0002');
+-- storage.objects bloquea el delete directo por SQL salvo opt-in explícito por transacción
+-- (storage.protect_delete), igual que private.eliminar_documento (ver 20261005000001).
+select set_config('storage.allow_delete_query', 'true', true);
 select lives_ok(format($$delete from storage.objects where bucket_id = 'reparacion-adjuntos' and name = %L$$, (select ruta from adj where clave = 'a1')),
   'el administrador borra el objeto');
 
