@@ -141,8 +141,8 @@ select is(
 
 select is(
   (select count(*) from ranking_clientes_comparado('2026-10-01', '2026-10-31', '2026-10-15', '2026-11-15')),
-  4::bigint,
-  'períodos superpuestos: se permite'
+  3::bigint,
+  'períodos superpuestos: se permite (Alfa, Beta y Epsilon; Gamma solo factura en septiembre)'
 );
 
 select is(
