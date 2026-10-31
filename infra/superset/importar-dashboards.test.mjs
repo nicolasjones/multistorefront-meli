@@ -45,12 +45,26 @@ function servidor(estado) {
       estado.form = opciones.body;
       return respuestaJson({});
     }
-    if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
-      const fila = JSON.parse(opciones.body);
-      const previa = estado.reportes.get(fila.superset_dashboard_uuid);
-      const guardada = { id: previa?.id ?? `reporte-${estado.reportes.size + 1}`, ...fila };
-      estado.reportes.set(fila.superset_dashboard_uuid, guardada);
-      return respuestaJson([guardada]);
+    if (url.includes('/rest/v1/reportes?')) {
+      const cuerpo = opciones.body ? JSON.parse(opciones.body) : null;
+      if (opciones.method === 'PATCH') {
+        const id = decodeURIComponent(url.match(/[?&]id=eq\.([^&]+)/)?.[1] ?? '');
+        const previa = [...estado.reportes.entries()].find(([, fila]) => fila.id === id);
+        if (!previa) return respuestaJson([], 404);
+        const [clave] = previa;
+        const guardada = { ...previa[1], ...cuerpo };
+        estado.reportes.delete(clave);
+        estado.reportes.set(guardada.superset_dashboard_uuid, guardada);
+        return respuestaJson([guardada]);
+      }
+      if (url.includes('on_conflict=superset_dashboard_uuid')) {
+        const previa = estado.reportes.get(cuerpo.superset_dashboard_uuid);
+        const guardada = { id: previa?.id ?? `reporte-${estado.reportes.size + 1}`, ...cuerpo };
+        estado.reportes.set(cuerpo.superset_dashboard_uuid, guardada);
+        return respuestaJson([guardada]);
+      }
+      const nombre = decodeURIComponent(url.match(/[?&]nombre=eq\.([^&]+)/)?.[1] ?? '');
+      return respuestaJson([...estado.reportes.values()].filter((fila) => fila.nombre === nombre));
     }
     if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
       const fila = JSON.parse(opciones.body);
@@ -138,6 +152,29 @@ test('registrarReportes es idempotente y no asigna administrador', async () => {
   assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
   assert.deepEqual(primera, segunda);
   assert.deepEqual([...estadoFalso.roles], [`${primera[0].id}|administracion`], 'administrador nunca se configura');
+});
+
+test('registrarReportes actualiza la fila del mismo tablero en vez de duplicarla', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = servidor(estadoFalso);
+  const config = { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: CREADO_POR };
+  // Fila que dejó la migración: mismo nombre, todavía con el slug en vez del UUID de embebido.
+  await registrarReportes({
+    reportes: [{ nombre: 'Service técnico', dashboard_uuid: 'service-tecnico', seccion: 'service_tecnico', rolesPorDefecto: ['administracion'] }],
+    fetch: fetchFalso,
+    config,
+  });
+  // El importador ya conoce el UUID de embebido que generó Superset.
+  const registros = await registrarReportes({
+    reportes: [{ nombre: 'Service técnico', dashboard_uuid: UUID_B, seccion: 'service_tecnico', rolesPorDefecto: ['administracion'] }],
+    fetch: fetchFalso,
+    config,
+  });
+  assert.equal(estadoFalso.reportes.size, 1, 'el catálogo no puede tener dos filas del mismo tablero');
+  const fila = [...estadoFalso.reportes.values()][0];
+  assert.equal(fila.superset_dashboard_uuid, UUID_B, 'queda el UUID real de embebido');
+  assert.equal(registros[0].id, fila.id, 'misma fila: no se pierde la asignación a las organizaciones');
+  assert.deepEqual([...estadoFalso.roles], [`${fila.id}|administracion`], 'los roles por defecto siguen en esa fila');
 });
 
 test('empaqueta e importa el directorio: pasa la contraseña aparte y registra los reportes', async () => {

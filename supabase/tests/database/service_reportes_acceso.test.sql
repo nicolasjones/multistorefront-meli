@@ -7,7 +7,7 @@
 -- `lectura`; depósito `ninguno`.
 begin;
 
-select plan(9);
+select plan(13);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización A'),
@@ -81,6 +81,55 @@ select ok(
 select ok(
   has_function_privilege('authenticated', 'public.resolver_organizacion_reporte(uuid)', 'EXECUTE'),
   'authenticated conserva la ejecución de resolver_organizacion_reporte (misma firma)');
+
+-- ============================================================================
+-- Asignación del reporte de Service (F-SVC-23, T044)
+--
+-- El reporte de Service se asigna a las organizaciones que tienen el módulo
+-- `service-tecnico` habilitado (las mismas donde el menú del módulo existe) y
+-- hereda los roles por defecto. Un reporte de otra sección no se asigna solo.
+-- ============================================================================
+
+insert into organizaciones (id, nombre) values
+  ('33333333-3333-3333-3333-333333333333', 'Organización C'),
+  ('44444444-4444-4444-4444-444444444444', 'Organización D');
+
+insert into features (id, nombre) values ('service-tecnico', 'Service técnico') on conflict (id) do nothing;
+
+-- C habilita el módulo; D no.
+insert into organizaciones_features (feature_id, organizacion_id, habilitado_por)
+values ('service-tecnico', '33333333-3333-3333-3333-333333333333', 'd1000000-0000-0000-0000-000000000001');
+
+-- Reporte de Service registrado DESPUÉS de que C habilitara el módulo.
+insert into reportes (id, superset_dashboard_uuid, nombre, creado_por, seccion) values
+  ('f1000000-0000-0000-0000-000000000003', 'dash-service-c', 'Service técnico C', 'd1000000-0000-0000-0000-000000000001', 'service_tecnico');
+-- Reporte de otra sección (no es de Service): no se asigna solo.
+insert into reportes (id, superset_dashboard_uuid, nombre, creado_por, seccion) values
+  ('f1000000-0000-0000-0000-000000000004', 'dash-otra-seccion', 'Otro reporte', 'd1000000-0000-0000-0000-000000000001', 'ventas');
+
+select is(
+  (select count(*)::int from public.reportes_organizaciones
+    where reporte_id = 'f1000000-0000-0000-0000-000000000003'
+      and organizacion_id = '33333333-3333-3333-3333-333333333333'),
+  1, 'la organización que habilitó el módulo recibe el reporte de Service');
+select is(
+  (select count(*)::int from public.reportes_organizaciones
+    where reporte_id = 'f1000000-0000-0000-0000-000000000003'
+      and organizacion_id = '44444444-4444-4444-4444-444444444444'),
+  0, 'una organización sin el módulo no recibe el reporte de Service');
+select is(
+  (select count(*)::int from public.reportes_organizaciones where reporte_id = 'f1000000-0000-0000-0000-000000000004'),
+  0, 'un reporte de otra sección no se asigna solo');
+
+-- Los roles por defecto llegan a la organización asignada (la herencia congelada corre una sola vez).
+insert into reportes_roles_default (reporte_id, rol_id) values
+  ('f1000000-0000-0000-0000-000000000003', 'consulta'),
+  ('f1000000-0000-0000-0000-000000000003', 'administracion');
+select is(
+  (select count(*)::int from public.reportes_organizaciones_roles
+    where reporte_id = 'f1000000-0000-0000-0000-000000000003'
+      and organizacion_id = '33333333-3333-3333-3333-333333333333'),
+  2, 'los roles por defecto del reporte llegan a la organización asignada');
 
 select * from finish();
 rollback;

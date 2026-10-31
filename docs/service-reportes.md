@@ -14,7 +14,7 @@ Dos piezas de la épica MSF-124: el botón **Exportar** del listado de reparacio
 
 ## Vistas de analítica (FR-062)
 
-Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `20261028130100_analitica_service_reparaciones.sql` y `20261028130200_analitica_service_reparacion_items.sql`.
+Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `20270122130100_analitica_service_reparaciones.sql` y `20270122130200_analitica_service_reparacion_items.sql`.
 
 | Vista | Una fila por | Columnas |
 |---|---|---|
@@ -29,13 +29,15 @@ Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `2026
 
 - YAML versionado en `infra/superset/dashboards/service/` (dashboard `service-tecnico`, cuatro gráficos y dos datasets). Se importa con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/service --entorno <staging|production>`; el workflow `deploy-infraestructura-vps.yml` lo importa junto con Rentabilidad. La conexión es la misma de Rentabilidad (mismo `uuid`, contraseña enmascarada).
 - **Indicadores** (provisorios, *Decisiones abiertas* 6 de la spec): reparaciones por estado, reparaciones por técnico, reparaciones ingresadas por mes y tienda, importe al cliente por mes y tienda (mano de obra y repuestos). Las reparaciones anuladas no cuentan. Filtros nativos de Superset: tienda y período de ingreso.
-- **Registro del reporte**: la fila de `public.reportes` (`seccion = 'service_tecnico'`) no sale de una migración sino de `infra/superset/dashboards/service/reportes.json`: el importador la registra de forma idempotente junto con el UUID de embebido que genera Superset, igual que Rentabilidad. La asignación a cada organización la hace el superadmin.
+- **Registro del reporte** (`seccion = 'service_tecnico'`): lo deja la migración `20270122130300_reportes_service.sql`, que agrega la fila en `public.reportes`, sus roles por defecto (`administracion` y `consulta`, los mismos del manifiesto) y los triggers que la asignan a las organizaciones que tienen el módulo `service-tecnico` habilitado. Es idempotente y su reversión está documentada en el encabezado de la migración.
+  - El UUID de embebido lo genera Superset al importar el tablero, así que la fila nace con el slug (`service-tecnico`) y el importador (`infra/superset/importar-dashboards.mjs`) la **actualiza por nombre** con el UUID real: el catálogo no puede tener dos filas del mismo tablero.
+  - La asignación automática no da datos de otras organizaciones: el token lleva la cláusula `rls` `organizacion_id = '<org>'` y `resolver_organizacion_reporte` exige `lectura` o `edicion` en `service_tecnico`. El superadmin puede desasignarlo como con cualquier otro reporte.
 - **Acceso**: `resolver_organizacion_reporte` (sin cambios) devuelve la organización solo con `lectura` o `edicion` en `service_tecnico` y el reporte asignado; si no, `emitir-acceso-reporte` responde 403 sin emitir token. Pruebas: `supabase/tests/database/service_reportes_acceso.test.sql` y `supabase/functions/emitir-acceso-reporte/handler.test.ts` (cláusula `rls` por `organizacion_id`).
 - **Riesgo heredado de Rentabilidad**: el token filtra por organización, no por las tiendas accesibles de la persona. Quien tiene `lectura` restringida a algunas tiendas vería cifras agregadas de todas. Pendiente de decisión de producto (¿solo dirección?).
 
 ## Pestaña «Reportes» (FR-064)
 
-`/service-tecnico/reportes` (carga diferida, `ServicioReportes`), última pestaña del módulo. Muestra `ReporteEmbebido`; sin `lectura` en `service_tecnico` o ante un 403 muestra «Acceso restringido» y **no pide token**; carga y error con «Reintentar». El tablero compara todas las tiendas, así que **no depende de la empresa activa** de la barra superior (Principio VIII: no aplica; cambiar de empresa no lo recarga).
+`/service-tecnico/reportes` (carga diferida, `ServicioReportes`), última pestaña del módulo y también destino del menú «Servicio técnico → Reportes» (sección `service_tecnico` en `lib/permisos.ts`). Muestra `ReporteEmbebido`; sin `lectura` en `service_tecnico` o ante un 403 muestra «Acceso restringido» y **no pide token**; carga y error con «Reintentar». El tablero compara todas las tiendas, así que **no depende de la empresa activa** de la barra superior (Principio VIII: no aplica; cambiar de empresa no lo recarga).
 
 ## Datos de prueba y revisión (FR-066)
 
@@ -47,12 +49,32 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/verificacion/service_datos_p
 
 Los conteos esperados están en el encabezado del script y las consultas del final los verifican como `superset_analitica`.
 
+### Revisión del tablero (T055)
+
+Procedimiento repeatable, con la base local y Superset local levantados:
+
+```bash
+pnpm dev:supabase            # base local
+pnpm dev:superset            # Superset local
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/verificacion/service_datos_prueba.sql
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/service --entorno staging
+```
+
+Qué mirar, en este orden:
+
+1. **Los conteos del script** (últimas cuatro consultas): 12 reparaciones, 6 por tienda (Tienda Norte / Tienda Sur), 3 Recibido + 2 En diagnóstico + 3 En reparación + 2 Listo para entregar + 2 Entregado, 5 de Ana Pérez + 4 de Luis Gómez + 3 sin técnico, 18 ítems (12 de mano de obra + 6 de repuesto). Correr el script dos veces debe dar los mismos números (es idempotente).
+2. **Los cuatro indicadores** del tablero importado, contra esos conteos: reparaciones por estado, por técnico, ingresadas por mes y tienda, e importe al cliente por mes y tienda. Las anuladas no cuentan.
+3. **El filtro nativo de tienda**: al elegir una sola tienda, los conteos del tablero coinciden con los de esa tienda.
+4. **Que no haya costos internos**: ningún gráfico muestra `costo_mano_obra`, `costo_repuestos` ni ganancia.
+
+Lo que se puede verificar sin Superset ni base (lo que corre en el CI): el contrato de los YAML versionados (`tableroService.contrato.test.ts`: cuatro indicadores, datasets sobre `analitica.service_*`, filtros nativos y ausencia de costos) y el empaquetado del tablero (`infra/superset/empaquetar-dashboards.test.mjs`).
+
 ## Pruebas
 
-- `pnpm test:db`: `service_analitica.test.sql` (columnas, sin costos, aislamiento, solo `superset_analitica`) y `service_reportes_acceso.test.sql`.
+- `pnpm test:db`: `service_analitica.test.sql` (columnas, sin costos, aislamiento, solo `superset_analitica`) y `service_reportes_acceso.test.sql` (sección, aislamiento entre organizaciones y asignación a las organizaciones que habilitaron el módulo).
 - `pnpm test:web -- exportarReparaciones reparaciones reportes tableroService`.
-- `pnpm infra:config` y `pnpm test:superset:importar-dashboards`.
+- `pnpm test:superset:importar-dashboards` (empaquetado del tablero de Service y registro del reporte sin duplicarlo).
 
 ## Reversión
 
-Sin datos que perder: revertir el merge de la historia (`git revert -m 1`), y `drop view analitica.service_reparacion_items; drop view analitica.service_reparaciones;` si ya se aplicaron las migraciones. En Superset, borrar el dashboard `service-tecnico` y el reporte desde la administración de reportes.
+Sin datos que perder: revertir el merge de la historia (`git revert -m 1`) y, si ya se aplicaron las migraciones, `drop view analitica.service_reparacion_items; drop view analitica.service_reparaciones;` más el camino de reversión de `20270122130300_reportes_service.sql` (borrar la fila del reporte y sus asignaciones y roles). En Superset, borrar el dashboard `service-tecnico`.
