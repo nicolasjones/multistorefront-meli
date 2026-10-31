@@ -43,4 +43,4 @@ En la rama de MSF-232, al reescribir esas funciones hay que **partir del cuerpo 
 
 ## Follow-ups
 
-- Aplicar los puntos 1–3 en la rama de MSF-232 (PR #519).
+- **MSF-642** (Tarea `seguimiento`, hija de MSF-232, prioridad alta): aplicar los puntos 1–3 en la rama de MSF-232 (PR #519). Dueño: épica MSF-232. Desvío: el defecto no existe en `dokploy`, no hay nada que corregir en esta rama; el arreglo se hace donde se introduce la regresión.
