@@ -70,6 +70,6 @@ Orden: `ultima_compra` asc, `lower(nombre)`, `numero`. Excluye clientes sin comp
 
 | Historia | Archivo | Reversión |
 |----------|---------|-----------|
-| F-CLI-14 | `supabase/migrations/20270114100000_ranking_clientes_comparado.sql` | `drop function public.ranking_clientes_comparado(date, date, date, date, text, boolean, boolean, integer, integer, uuid);` |
+| F-CLI-14 | `supabase/migrations/20270120100000_ranking_clientes_comparado.sql` | `drop function public.ranking_clientes_comparado(date, date, date, date, text, boolean, boolean, integer, integer, uuid);` |
 | F-CLI-15 | `supabase/migrations/20270114110000_ranking_clientes_por_dimension.sql` | `drop function public.ranking_clientes_por_dimension(date, date, uuid, uuid, text, text, boolean, boolean, integer, integer, uuid);` |
 | F-CLI-16 | `supabase/migrations/20270116120000_clientes_inactivos.sql` | `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid);` |
