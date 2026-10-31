@@ -174,19 +174,19 @@ export async function registrarReportes({ reportes, fetch, config }) {
       superset_dashboard_uuid: reporte.dashboard_uuid,
       nombre: reporte.nombre,
       seccion: reporte.seccion ?? null,
-      creado_por: config.creadoPor,
     };
     const existente = await buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre: reporte.nombre });
     const [fila] = existente
       ? await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?id=eq.${existente.id}`, {
         method: 'PATCH',
         headers: cabeceras,
+        // La fila ya existe: se conserva su autor original (auditoría), no se pisa `creado_por`.
         body: JSON.stringify(cuerpo),
       })
       : await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
         method: 'POST',
         headers: cabeceras,
-        body: JSON.stringify(cuerpo),
+        body: JSON.stringify({ ...cuerpo, creado_por: config.creadoPor }),
       });
     if (!fila?.id) throw new Error(`Supabase no devolvió el reporte ${reporte.nombre}.`);
 

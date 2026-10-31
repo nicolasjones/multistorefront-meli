@@ -177,6 +177,15 @@ test('registrarReportes actualiza la fila del mismo tablero en vez de duplicarla
   assert.deepEqual([...estadoFalso.roles], [`${fila.id}|administracion`], 'los roles por defecto siguen en esa fila');
 });
 
+test('registrarReportes conserva el autor original al actualizar una fila existente', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = servidor(estadoFalso);
+  const reporte = { nombre: 'Rentabilidad', dashboard_uuid: UUID_A, seccion: 'rentabilidad', rolesPorDefecto: [] };
+  await registrarReportes({ reportes: [reporte], fetch: fetchFalso, config: { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: CREADO_POR } });
+  await registrarReportes({ reportes: [reporte], fetch: fetchFalso, config: { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: 'otro-usuario' } });
+  assert.equal([...estadoFalso.reportes.values()][0].creado_por, CREADO_POR, 'reimportar no pisa creado_por');
+});
+
 test('empaqueta e importa el directorio: pasa la contraseña aparte y registra los reportes', async () => {
   const estadoFalso = estado();
   const directorio = await directorioDePrueba();
