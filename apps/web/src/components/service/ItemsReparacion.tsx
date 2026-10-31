@@ -23,6 +23,7 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { formatearARS } from '../../lib/serviceTecnico'
+import { MarcaStockItem } from './MarcaStockItem'
 import { mensajeDeErrorItem, quitarItem } from '../../lib/reparacionItems'
 import type { ItemReparacion, Reparacion } from '../../lib/reparaciones'
 
@@ -36,6 +37,12 @@ type Props = {
   // Acción de cobro junto al «Total al cliente» (F-SVC-13: «Generar comprobante»); la decide la pantalla.
   accionTotal?: ReactNode
 }
+
+// La épica manda sobre el prototipo: el descuento ocurre al agregar, no al marcar Entregado (FR-009).
+export const AYUDA_REPUESTOS = 'Productos del catálogo. Se descuentan del depósito de mercadería elegido al agregar el repuesto.'
+
+// Aviso de la confirmación de quitar un repuesto descontado (FR-025).
+export const AVISO_DEVOLUCION = 'Las unidades vuelven al depósito del que se descontaron.'
 
 const CELDA_NUMERO = { textAlign: 'right', whiteSpace: 'nowrap' } as const
 
@@ -57,16 +64,20 @@ type TablaProps = {
   subtotal: number
   puedeEditar: boolean
   conSku: boolean
+  // Columna «Depósito de mercadería» (solo repuestos, F-SVC-10, FR-008).
+  conDeposito?: boolean
   onQuitar: (item: ItemReparacion) => void
 }
 
-function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, subtotal, puedeEditar, conSku, onQuitar }: TablaProps) {
+function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, subtotal, puedeEditar, conSku, conDeposito = false, onQuitar }: TablaProps) {
+  const columnas = 4 + (conDeposito ? 1 : 0) + (puedeEditar ? 1 : 0)
   return (
     <TableContainer>
       <Table size="small" aria-label={titulo}>
         <TableHead>
           <TableRow>
             <TableCell>{columnaConcepto}</TableCell>
+            {conDeposito ? <TableCell>Depósito de mercadería</TableCell> : null}
             <TableCell sx={CELDA_NUMERO}>Cant.</TableCell>
             <TableCell sx={CELDA_NUMERO}>Precio</TableCell>
             <TableCell sx={CELDA_NUMERO}>Subtotal</TableCell>
@@ -76,7 +87,7 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
         <TableBody>
           {items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={puedeEditar ? 5 : 4}>
+              <TableCell colSpan={columnas}>
                 <Typography variant="body2" color="text.secondary">{vacio}</Typography>
               </TableCell>
             </TableRow>
@@ -91,6 +102,12 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
                     </Typography>
                   ) : null}
                 </TableCell>
+                {conDeposito ? (
+                  <TableCell>
+                    {item.deposito_nombre ?? '—'}
+                    <MarcaStockItem estado={item.stock_estado} />
+                  </TableCell>
+                ) : null}
                 <TableCell sx={CELDA_NUMERO}>{item.cantidad}</TableCell>
                 <TableCell sx={CELDA_NUMERO}>{formatearARS(item.precio_unitario)}</TableCell>
                 <TableCell sx={CELDA_NUMERO}>{formatearARS(item.subtotal)}</TableCell>
@@ -105,7 +122,7 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
             ))
           )}
           <TableRow>
-            <TableCell colSpan={3} sx={{ fontWeight: 600 }}>{etiquetaSubtotal}</TableCell>
+            <TableCell colSpan={conDeposito ? 4 : 3} sx={{ fontWeight: 600 }}>{etiquetaSubtotal}</TableCell>
             <TableCell sx={{ ...CELDA_NUMERO, fontWeight: 600 }}>{formatearARS(subtotal)}</TableCell>
             {puedeEditar ? <TableCell /> : null}
           </TableRow>
@@ -189,7 +206,10 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
 
           <Stack spacing={1}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} flexWrap="wrap">
-              <Typography component="h3" variant="subtitle1">Repuestos</Typography>
+              <Box>
+                <Typography component="h3" variant="subtitle1">Repuestos</Typography>
+                <Typography variant="caption" color="text.secondary">{AYUDA_REPUESTOS}</Typography>
+              </Box>
               {puedeEditar ? <Button variant="outlined" size="small" onClick={onAgregarRepuesto}>Agregar repuesto</Button> : null}
             </Stack>
             <TablaItems
@@ -201,6 +221,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
               subtotal={reparacion.total_repuestos}
               puedeEditar={puedeEditar}
               conSku
+              conDeposito
               onQuitar={setAQuitar}
             />
           </Stack>
@@ -222,6 +243,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
             <DialogContentText>
               {aQuitar ? `¿Quitar «${aQuitar.descripcion}» de la reparación? Los totales se recalculan.` : ''}
             </DialogContentText>
+            {aQuitar?.stock_estado === 'descontado' ? <Alert severity="info">{AVISO_DEVOLUCION}</Alert> : null}
             {errorQuitar ? <Alert severity="error">{errorQuitar}</Alert> : null}
           </Stack>
         </DialogContent>

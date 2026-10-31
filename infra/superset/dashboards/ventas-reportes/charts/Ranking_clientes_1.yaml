@@ -1,0 +1,30 @@
+slice_name: Ranking de clientes
+description: 'Ranking de clientes por facturación neta en el período (F-VTA-23, FR-007): posición, comprobantes, facturado neto, participación (con barra) y última compra del cliente.'
+certified_by: null
+certification_details: null
+viz_type: table
+# Orden: en modo aggregate el viz de tabla de Superset 6.1.0 ignora `order_by_cols` (es un control
+# solo-raw) y ordena por la PRIMERA métrica, en descendente. Por eso el orden se fija con
+# `timeseries_limit_metric` (métrica por la que se ordena) + `order_desc` (descendente): facturación
+# neta de mayor a menor (el ranking por facturación). `posicion` queda primera en `metrics` solo para
+# el orden de las columnas (#, Comprobantes, Facturado, Participación, Último comprador) y NO para
+# ordenar: como métrica es un ROW_NUMBER ascendente, si fuera la primera el tablero mostraría los
+# menos facturados al principio.
+#
+# Verificado contra la versión fijada en infra/superset/Dockerfile (Apache Superset 6.1.0),
+# `superset-frontend/plugins/plugin-chart-table/src/buildQuery.ts`: en aggregate el viz arma
+# `orderby = [[timeseries_limit_metric, !order_desc]]` y, si no hay métrica de orden,
+# `orderby = [[metrics[0], false]]` (la primera métrica, en descendente). De ahí las dos decisiones:
+# la métrica de orden es `facturado_total` y `order_desc: true` (descendente: más facturado primero).
+#
+# `conditional_formatting` dibuja la BARRA de participación: el viz de tabla de Superset 6.1.0
+# soporta el formato de celda `CELL_BAR` (`ObjectFormattingEnum.CELL_BAR`), que pinta una barra
+# proporcional al valor de la columna. La barra usa el valor de `Participación` (la misma columna que
+# la mide) y su color sale de `colorScheme`; `operator: None` hace que la barra tome el valor en
+# cuenta en todo el rango (de 0 al 100 % del alcance filtrado).
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate", "groupby": ["nombre", "numero", "tipo_texto"], "metrics": ["posicion", "comprobantes_total", "facturado_total", "participacion_total", "ultimo_comprador"], "percent_metrics": [], "timeseries_limit_metric": "facturado_total", "order_desc": true, "row_limit": 10000, "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "ignore_dashboards": [], "conditional_formatting": [{"column": "Participación", "columnFormatting": "Participación", "objectFormatting": "CELL_BAR", "operator": "None", "colorScheme": "#2B55E6"}]}
+query_context: null
+cache_timeout: null
+uuid: c6175156-1450-4e61-9ed3-8052ffcb3262
+version: 1.0.0
+dataset_uuid: 0ec4cca2-8144-4199-83f1-45bd5895bf97

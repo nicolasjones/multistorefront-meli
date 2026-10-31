@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
-  Alert, Box, Button, Checkbox, FormControlLabel, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Alert, Box, Button, Checkbox, FormControlLabel, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import {
   type CampoFicha,
@@ -242,6 +242,15 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
             fullWidth
           />
         ) : null}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={formulario.aceptaCorreoMasivo}
+              onChange={(evento) => setFormulario((actual) => ({ ...actual, aceptaCorreoMasivo: evento.target.checked }))}
+            />
+          }
+          label="Incluir en el correo masivo"
+        />
         {formulario.tipo !== inicial.tipo ? <Alert severity="info">{AVISO_CAMBIO_TIPO}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button component={RouterLink} to={rutaCancelar} disabled={guardando}>Cancelar</Button>

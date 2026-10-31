@@ -3,8 +3,9 @@
 // cli-importar-dashboards-superset.md. Esta versión suma:
 //   - `--directorio <carpeta>`: empaqueta los YAML versionados (con `empaquetar-dashboards.mjs`) y
 //     los importa; es lo que usan CI y el despliegue para no depender de un ZIP a mano.
-//   - registro idempotente en `public.reportes` (con `seccion`) a partir de `reportes.json`, cuando
-//     están `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `SUPERSET_REPORTE_CREADO_POR`.
+//   - registro idempotente en `public.reportes` (con `seccion` y `filtro_empresa`) a partir de
+//     `reportes.json`, cuando están `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y
+//     `SUPERSET_REPORTE_CREADO_POR`.
 //   - contraseñas de las conexiones por entorno (`passwords` del import), nunca en Git.
 //
 // La service-role key se usa SOLO acá, server-side, para escribir el catálogo de reportes; jamás en
@@ -45,6 +46,9 @@ export function validarReportes(manifiesto) {
     }
     if (reporte.seccion !== undefined && reporte.seccion !== null && String(reporte.seccion).trim() === '') {
       throw new Error(`El reporte ${reporte.nombre} tiene una sección vacía.`);
+    }
+    if (reporte.filtro_empresa !== undefined && typeof reporte.filtro_empresa !== 'boolean') {
+      throw new Error(`El reporte ${reporte.nombre} tiene "filtro_empresa" y debe ser booleano.`);
     }
   }
   return manifiesto.reportes;
@@ -166,6 +170,9 @@ export async function registrarReportes({ reportes, fetch, config }) {
         superset_dashboard_uuid: reporte.dashboard_uuid,
         nombre: reporte.nombre,
         seccion: reporte.seccion ?? null,
+        // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente =
+        // `false`, el comportamiento anterior (el token solo filtra la organización).
+        filtro_empresa: reporte.filtro_empresa === true,
         creado_por: config.creadoPor,
       }),
     });
