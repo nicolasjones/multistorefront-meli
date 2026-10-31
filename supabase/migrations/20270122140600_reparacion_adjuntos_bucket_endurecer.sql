@@ -8,8 +8,8 @@
 --     anulada. Quitar un adjunto registrado pasa por `quitar_adjunto_reparacion`, que borra la fila (y deja
 --     la actividad) antes de que el cliente borre el objeto; un `storage.remove()` directo ya no sirve.
 --
--- Migración aditiva (reemplaza políticas de la 20270122100200). Reversión (migración posterior):
--- volver a crear las dos políticas con la definición de 20270122100200 y
+-- Migración aditiva (reemplaza políticas de la 20270122140200). Reversión (migración posterior):
+-- volver a crear las dos políticas con la definición de 20270122140200 y
 -- `drop function private.contar_objetos_reparacion_adjuntos(text, text)`.
 
 -- El conteo vive en una función SECURITY DEFINER: una subconsulta directa a `storage.objects` dentro de
