@@ -165,7 +165,8 @@ describe('OrganizacionEdit', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
 
-    expect(await screen.findByText('No tenés acceso a esta sección')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeInTheDocument()
+    expect(screen.getByText('Tu rol (actual) no incluye Mi organización. Pedile acceso a un administrador.')).toBeInTheDocument()
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
   })

@@ -200,7 +200,7 @@ export function EmpresaEdit() {
     <>
       <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
         <Stack spacing={2}>
-          {soloLectura ? <Alert severity="info" role="note">Solo lectura: solo los administradores pueden editar los datos de la empresa.</Alert> : null}
+          {soloLectura ? <Alert severity="info" role="note">Solo lectura: únicamente los administradores pueden editar los datos de la empresa.</Alert> : null}
           {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
           {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
           <TextField

@@ -95,7 +95,8 @@ describe('EmpresaList', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
-    expect(screen.getByText('No tenés acceso a esta sección')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeInTheDocument()
+    expect(screen.getByText('Tu rol (actual) no incluye Empresas. Pedile acceso a un administrador.')).toBeInTheDocument()
     await waitFor(() => expect(mocks.resultado).not.toHaveBeenCalled())
   })
 

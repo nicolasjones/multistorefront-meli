@@ -288,7 +288,7 @@ describe('EmpresaEdit', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
     expect(await screen.findByLabelText(/nombre comercial/i)).toBeDisabled()
-    expect(screen.getByRole('note')).toHaveTextContent(/^Solo lectura:/)
+    expect(screen.getByRole('note')).toHaveTextContent('Solo lectura: únicamente los administradores pueden editar los datos de la empresa.')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /guardar cambios/i })).not.toBeInTheDocument()
   })
