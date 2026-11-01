@@ -20,6 +20,17 @@ vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelS
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+// Avisos al cliente (F-SVC-14): fuera del alcance de este archivo; su historial llega vacío y el cliente con correo.
+// El comprobante asociado (F-SVC-13) no es tema de este archivo: sin él la pantalla no suma un segundo «Reintentar».
+vi.mock('../../lib/reparacionComprobante', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionComprobante')>()),
+  obtenerComprobanteDeReparacion: vi.fn().mockResolvedValue(null),
+}))
+vi.mock('../../lib/reparacionAvisos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionAvisos')>()),
+  listarAvisosDeReparacion: vi.fn().mockResolvedValue([]),
+  clienteTieneCorreo: vi.fn().mockResolvedValue(true),
+}))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarModelos: mocks.listarModelos,
