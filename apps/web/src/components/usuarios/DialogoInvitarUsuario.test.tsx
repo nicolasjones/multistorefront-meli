@@ -19,15 +19,15 @@ describe('DialogoInvitarUsuario', () => {
     rpc.mockResolvedValue({ data: [], error: null })
   })
 
-  it('ofrece los seis roles con descripción y un enlace a la matriz de permisos de cada rol', () => {
+  it('ofrece los siete roles con descripción y un enlace a la matriz de permisos de cada rol', () => {
     abrir()
 
-    expect(screen.getAllByRole('radio')).toHaveLength(6)
-    for (const nombre of ['Administrador', 'Operador', 'Consulta', 'Mostrador', 'Depósito', 'Administración']) {
+    expect(screen.getAllByRole('radio')).toHaveLength(7)
+    for (const nombre of ['Administrador', 'Operador', 'Consulta', 'Mostrador', 'Depósito', 'Administración', 'Técnico']) {
       expect(screen.getByRole('radio', { name: new RegExp(nombre) })).toBeInTheDocument()
     }
     expect(screen.getByText('Solo lectura.')).toBeInTheDocument()
-    expect(screen.getAllByText('Ver permisos de este rol →')).toHaveLength(6)
+    expect(screen.getAllByText('Ver permisos de este rol →')).toHaveLength(7)
     expect(screen.getByRole('link', { name: /Mostrador/ })).toHaveAttribute('href', '/roles?rol=mostrador')
     expect(screen.queryByRole('radio', { name: /^Miembro/ })).not.toBeInTheDocument()
   })

@@ -264,7 +264,7 @@ privilegios de `anon`), que corren con `pnpm test` contra `pnpm dev:supabase`:
 - **RLS:** ambas tablas con RLS por organización/usuario, solo `select` para `authenticated`, sin privilegios para `anon` y sin escritura directa (el test pgTAP de aislamiento recorre `public` + `dominio`).
 - **RPC:** `cambiar_empresa_activa`, `empresas_para_selector`, `asignar_empresas_usuario`, `guardar_asignaciones_invitacion`, `listar_empresas_usuarios` y `aceptar_invitacion` (redefinida en `20261016160100` con `create or replace`, que conserva los `grant`/`revoke` de `20261013160001`: solo `authenticated`) llevan `revoke … from public, anon` y `grant … to authenticated` explícitos; todas son `security definer` con `search_path = ''`. Cada una valida organización y rol dentro del cuerpo (gestión de membresías para las de asignación; empresa accesible para el cambio), no solo en la UI.
 - **Concurrencia:** la asignación toma `pg_advisory_xact_lock` por usuario (el mismo que `cambiar_rol_miembro`) y reemplaza atómicamente; el cambio de empresa activa bloquea la fila con `for update`.
-- **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten solo los cinco roles básicos; una empresa ajena se rechaza por trigger y por RPC.
+- **Escalada:** el Administrador no lleva asignaciones (se rechazan) y los roles por empresa admiten los cinco roles básicos y Técnico (MSF-597); una empresa ajena se rechaza por trigger y por RPC.
 
 ## Rol Técnico (MSF-324 · F-SVC-05, épica MSF-182)
 
@@ -291,9 +291,10 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
   deshabilitados, «no editable»). `public.guardar_matriz_permisos` rechaza con `22023` cualquier cambio
   sobre `tecnico`; la edición de los otros roles no cambia. La matriz editable del Técnico llega en enero.
 - **Asignación**: «Técnico» se elige en **Usuarios → Editar → Rol** (`cambiar_rol_miembro`, que valida
-  contra `roles_organizacion`). Límites vigentes: la **invitación** (`registrar_invitacion`) y el rol por
-  empresa (`usuarios_empresas`, check de cinco roles) siguen aceptando solo los roles previos; un Técnico se
-  invita con otro rol y se cambia a Técnico al sumarse.
+  contra `roles_organizacion`). Desde MSF-597 / MSF-606 (migración `20270122100000`) «Técnico» también se
+  **invita** (`registrar_invitacion`) y es un **rol por empresa** (`usuarios_empresas`, check de seis roles,
+  `asignar_empresas_usuario`): un Técnico con tiendas asignadas opera Service técnico solo en ellas; no gana
+  acceso a otras secciones (ventas, consultas y reportes por empresa le dan «ninguno»).
 - **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
   `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
   `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.
