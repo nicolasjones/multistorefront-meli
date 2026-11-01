@@ -47,6 +47,18 @@ Políticas (migración `20261013120000`):
   ver `docs/catalogo.md` (sección «Regla de precio por empresa»). La ficha muestra las pestañas «General» y «Precios y moneda».
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.
 
+### Avisos de acceso (MSF-639)
+
+- `/empresas` (listado) y `/organizacion`: quien llega sin permiso de escritura ve la pantalla común de acceso
+  restringido (`pages/acceso-restringido/AccesoRestringido.tsx`): encabezado «No tenés acceso a esta sección» y el
+  motivo «Tu rol (…) no incluye Empresas / Mi organización. Pedile acceso a un administrador.» — el mismo patrón que
+  Rentabilidad, Listas y Motivos de movimiento. No se consulta ni se muestra ningún dato de la sección.
+- `/empresas/edit/:id`: quien no puede escribir ve la pantalla con el formulario deshabilitado y un aviso
+  **informativo** «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.» (tono info,
+  `role="note"`, como el bloque `al i` del prototipo y el criterio de `DetalleConsulta`), no un error rojo.
+- No cambia el permiso: `usePuedeEscribir()` (espejo de `private.puede_escribir()`) y las políticas de RLS siguen
+  siendo la autoridad; solo cambia la presentación del aviso. E2E: `apps/web/e2e/avisos-acceso.e2e.ts`.
+
 ## Carga inicial (San Javucho y Mundo JC) — dato, no esquema
 
 La carga inicial es **dato de la organización del primer cliente**, no parte de la migración. Se
