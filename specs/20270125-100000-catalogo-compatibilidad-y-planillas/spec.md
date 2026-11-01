@@ -80,13 +80,13 @@ Reversión: las tres migraciones son aditivas. F-CAT-09: `drop index` y `drop vi
 
 Como Administrador u Operador con acceso a Productos, filtro el listado por consola o modelo compatible.
 
-- **FR-001**: El campo «Compatible con» del alta/edición (`ProductoAlta`) sigue funcionando como está (texto separado por comas, `compatible_con text[]`, hasta `MAX_COMPATIBLES` valores). Esta historia **no lo cambia**; un test de regresión lo cubre.
-- **FR-002**: `public.v_productos_listado` expone `compatible_con text[]` (columna agregada al final, migración aditiva) y hay un índice GIN sobre `dominio.productos(compatible_con)`.
-- **FR-003**: El listado tiene un filtro «Compatible con» (selector múltiple de los valores existentes en la organización, con la pieza más cercana del template). Mostrar solo productos con **alguno** de los valores elegidos, sin distinguir mayúsculas; se combina con los demás filtros, la búsqueda y la categoría.
-- **FR-004**: Los valores de «Compatible con» de cada producto se muestran como etiquetas en el listado (Decisión 2). Sin valores, no se muestra nada.
-- **FR-005**: `public.listar_compatibles()` devuelve los valores distintos (ordenados, sin vacíos) de la organización; es de solo lectura.
-- **FR-006**: «Limpiar filtros» también limpia el filtro de compatible; sin resultados se usa el estado vacío existente.
-- **FR-007**: *Empresa activa* (Principio VIII): al cambiar de empresa se recargan los productos **y** los valores del selector, se descartan valores elegidos que ya no existen y se reencuadra la paginación.
+- **FR-001**: El campo «Compatible con» del alta/edición (`ProductoAlta`) sigue funcionando como está (texto separado por comas, `compatible_con text[]`, hasta `MAX_COMPATIBLES` valores). Esta historia **no lo cambia**; un test de regresión lo cubre. **Verificación:** Vitest `pnpm --filter @platform/web test -- FormularioProducto` (regresión del campo).
+- **FR-002**: `public.v_productos_listado` expone `compatible_con text[]` (columna agregada al final, migración aditiva) y hay un índice GIN sobre `dominio.productos(compatible_con)`. **Verificación:** pgTAP `catalogo_compatible_filtro.test.sql` (columna `compatible_con` en `v_productos_listado` e índice GIN) vía `pnpm test`.
+- **FR-003**: El listado tiene un filtro «Compatible con» (selector múltiple de los valores existentes en la organización, con la pieza más cercana del template). Mostrar solo productos con **alguno** de los valores elegidos, sin distinguir mayúsculas; se combina con los demás filtros, la búsqueda y la categoría. **Verificación:** Vitest `pnpm --filter @platform/web test -- filtro-compatible` (OR, mayúsculas, combinación con búsqueda/categoría).
+- **FR-004**: Los valores de «Compatible con» de cada producto se muestran como etiquetas en el listado (Decisión 2). Sin valores, no se muestra nada. **Verificación:** Vitest `pnpm --filter @platform/web test -- filtro-compatible` (etiquetas en la fila; sin valores no muestra nada).
+- **FR-005**: `public.listar_compatibles()` devuelve los valores distintos (ordenados, sin vacíos) de la organización; es de solo lectura. **Verificación:** pgTAP `catalogo_compatible_filtro.test.sql` (`listar_compatibles`: distintos, ordenados, sin vacíos, aislamiento, solo lectura).
+- **FR-006**: «Limpiar filtros» también limpia el filtro de compatible; sin resultados se usa el estado vacío existente. **Verificación:** Vitest `pnpm --filter @platform/web test -- filtro-compatible` (limpiar filtros y estado vacío).
+- **FR-007**: *Empresa activa* (Principio VIII): al cambiar de empresa se recargan los productos **y** los valores del selector, se descartan valores elegidos que ya no existen y se reencuadra la paginación. **Verificación:** Vitest `pnpm --filter @platform/web test -- filtro-compatible` (cambio de empresa).
 - **SC-001**: pgTAP `catalogo_compatible_filtro.test.sql`: aislamiento entre organizaciones de la vista y de `listar_compatibles`, `anon` sin acceso, columna nueva presente.
 - **SC-002**: Vitest del filtro (OR, mayúsculas, combinación con búsqueda/categoría, limpiar, cambio de empresa).
 
@@ -94,18 +94,18 @@ Como Administrador u Operador con acceso a Productos, filtro el listado por cons
 
 Como Administrador, cargo o actualizo productos en lote desde una planilla CSV con sus imágenes, veo una vista previa y la aplicación corre en segundo plano.
 
-- **FR-101**: Existe la pantalla «Productos · Carga masiva (CSV)» (ruta canónica `/productos/carga`, dentro de Catálogo; sin ítem propio en el menú: se llega desde «Importar CSV» del listado). Solo el Administrador la ve y la usa; los demás roles no ven el botón y la ruta responde sin permiso.
-- **FR-102**: «Descargar plantilla CSV» baja un CSV con las columnas `sku, nombre, categoria, costo, precio_x1, precio_x5, precio_x10, precio_x50, proveedor, codigo_barras, tiendas, imagenes`. El panel «Columnas de la plantilla» muestra Columna / Obligatoria / Ejemplo (obligatorias: `sku`, `nombre`, `categoria`).
-- **FR-103**: Paso «1 · Archivos»: se elige el CSV (nombre y resumen del archivo) y, opcionalmente, las imágenes (ZIP o archivos sueltos, «Elegir imágenes»). La columna `imagenes` lleva nombres de archivo separados por `|` (la primera es la principal); `tiendas` lleva códigos SJ o MJC separados por `|`; si queda vacía el producto se crea sin publicar en ninguna tienda. Las imágenes cumplen las reglas de `producto_imagenes` (JPG/PNG/WebP, hasta 2 MB, hasta 4 por producto).
-- **FR-104**: Paso «2 · Vista previa y validación»: tabla Fila / SKU / Nombre / Categoría / Precio x1 / Imágenes / Acción (Nuevo / Actualiza) / Validación, con contadores «N correctas · N con aviso · N con error». `Acción` sale de que el SKU exista o no en la organización. Texto fijo: «Las filas con error no se importan. Los avisos se importan igual.»
-- **FR-105**: Validación por fila (`validar_importacion_productos`): `sku`, `nombre` y `categoria` obligatorios; la categoría debe existir (ruta «A > B > C»); precios y costo numéricos no negativos; SKU repetido en la planilla; código de barras con formato válido y no usado por otro producto; tienda desconocida; imagen citada que no se subió o inválida (aviso). Los motivos son error (se omite) o aviso (se importa).
-- **FR-106**: Si quien importa **no** tiene acceso a Rentabilidad, la columna `costo` se ignora con un aviso por fila y **no** se escribe `producto_costos`; con acceso, se escribe igual que en el alta/edición (Decisión 7 para vacíos).
-- **FR-107**: «Importar N productos» (N = filas importables) llama a `solicitar_importacion_productos`, que persiste la importación y sus filas y **encola** la orden en la outbox; el panel no espera la aplicación. Cancelar descarta la vista previa sin persistir nada.
-- **FR-108**: El worker `workers/importar-productos` cumple `workers/CONTRATO.md`: registra su ejecución (`iniciar_ejecucion_worker`), comprueba `ejecucion_worker_en_curso`, aplica fila por fila las operaciones de alta/edición del catálogo (mismas reglas, SKU único, actividad registrada), adjunta las imágenes y deja el resultado por fila. Es **idempotente**: reintentar no duplica productos ni imágenes.
-- **FR-109**: Dos importaciones de la misma organización se serializan: la segunda queda «En cola» hasta que termine la primera (no se rechaza).
-- **FR-110**: Al terminar se muestra «Importación terminada. N productos procesados, M omitidos por error. Ya figuran en Catálogo · Productos.» y «Descargar reporte de errores» (CSV con fila, SKU y motivo de las omitidas). Si la ejecución falla de forma técnica, queda reintentable desde la pantalla de ejecuciones y se informa el estado.
-- **FR-111**: Estados de la importación visibles en la pantalla: `en_cola`, `aplicando`, `terminada`, `fallida`.
-- **FR-112**: Toda RPC es `security definer`, toma organización y actor de la sesión, exige `es_administrador_de`, y declara `revoke … from public, anon` + `grant … to authenticated`. Las tablas nuevas nacen sin privilegios para `anon`.
+- **FR-101**: Existe la pantalla «Productos · Carga masiva (CSV)» (ruta canónica `/productos/carga`, dentro de Catálogo; sin ítem propio en el menú: se llega desde «Importar CSV» del listado). Solo el Administrador la ve y la usa; los demás roles no ven el botón y la ruta responde sin permiso. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (botón y ruta solo Administrador) + pgTAP `catalogo_importacion.test.sql`.
+- **FR-102**: «Descargar plantilla CSV» baja un CSV con las columnas `sku, nombre, categoria, costo, precio_x1, precio_x5, precio_x10, precio_x50, proveedor, codigo_barras, tiendas, imagenes`. El panel «Columnas de la plantilla» muestra Columna / Obligatoria / Ejemplo (obligatorias: `sku`, `nombre`, `categoria`). **Verificación:** Vitest `pnpm --filter @platform/web test -- importacion-productos` (plantilla CSV y panel de columnas).
+- **FR-103**: Paso «1 · Archivos»: se elige el CSV (nombre y resumen del archivo) y, opcionalmente, las imágenes (ZIP o archivos sueltos, «Elegir imágenes»). La columna `imagenes` lleva nombres de archivo separados por `|` (la primera es la principal); `tiendas` lleva códigos SJ o MJC separados por `|`; si queda vacía el producto se crea sin publicar en ninguna tienda. Las imágenes cumplen las reglas de `producto_imagenes` (JPG/PNG/WebP, hasta 2 MB, hasta 4 por producto). **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (paso 1, `|`, reglas de imagen).
+- **FR-104**: Paso «2 · Vista previa y validación»: tabla Fila / SKU / Nombre / Categoría / Precio x1 / Imágenes / Acción (Nuevo / Actualiza) / Validación, con contadores «N correctas · N con aviso · N con error». `Acción` sale de que el SKU exista o no en la organización. Texto fijo: «Las filas con error no se importan. Los avisos se importan igual.» **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (tabla, Nuevo/Actualiza, contadores, texto fijo).
+- **FR-105**: Validación por fila (`validar_importacion_productos`): `sku`, `nombre` y `categoria` obligatorios; la categoría debe existir (ruta «A > B > C»); precios y costo numéricos no negativos; SKU repetido en la planilla; código de barras con formato válido y no usado por otro producto; tienda desconocida; imagen citada que no se subió o inválida (aviso). Los motivos son error (se omite) o aviso (se importa). **Verificación:** pgTAP `catalogo_importacion.test.sql` (`validar_importacion_productos`) + Vitest `importacion-productos`.
+- **FR-106**: Si quien importa **no** tiene acceso a Rentabilidad, la columna `costo` se ignora con un aviso por fila y **no** se escribe `producto_costos`; con acceso, se escribe igual que en el alta/edición (Decisión 7 para vacíos). **Verificación:** pgTAP `catalogo_importacion.test.sql` (costo sin Rentabilidad) + Vitest `carga-productos` (aviso por fila).
+- **FR-107**: «Importar N productos» (N = filas importables) llama a `solicitar_importacion_productos`, que persiste la importación y sus filas y **encola** la orden en la outbox; el panel no espera la aplicación. Cancelar descarta la vista previa sin persistir nada. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (Cancelar no persiste; Importar encola) + pgTAP `catalogo_importacion.test.sql`.
+- **FR-108**: El worker `workers/importar-productos` cumple `workers/CONTRATO.md`: registra su ejecución (`iniciar_ejecucion_worker`), comprueba `ejecucion_worker_en_curso`, aplica fila por fila las operaciones de alta/edición del catálogo (mismas reglas, SKU único, actividad registrada), adjunta las imágenes y deja el resultado por fila. Es **idempotente**: reintentar no duplica productos ni imágenes. **Verificación:** Vitest `pnpm --filter @workers/importar-productos test` (alta, actualización, imagen, reintento sin duplicar).
+- **FR-109**: Dos importaciones de la misma organización se serializan: la segunda queda «En cola» hasta que termine la primera (no se rechaza). **Verificación:** pgTAP `catalogo_importacion.test.sql` (segunda importación queda `en_cola`).
+- **FR-110**: Al terminar se muestra «Importación terminada. N productos procesados, M omitidos por error. Ya figuran en Catálogo · Productos.» y «Descargar reporte de errores» (CSV con fila, SKU y motivo de las omitidas). Si la ejecución falla de forma técnica, queda reintentable desde la pantalla de ejecuciones y se informa el estado. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (mensaje final y reporte de errores CSV).
+- **FR-111**: Estados de la importación visibles en la pantalla: `en_cola`, `aplicando`, `terminada`, `fallida`. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (los cuatro estados) + pgTAP `catalogo_importacion.test.sql`.
+- **FR-112**: Toda RPC es `security definer`, toma organización y actor de la sesión, exige `es_administrador_de`, y declara `revoke … from public, anon` + `grant … to authenticated`. Las tablas nuevas nacen sin privilegios para `anon`. **Verificación:** pgTAP `catalogo_importacion.test.sql` (solo Administrador, `anon` sin ejecución ni privilegios) vía `pnpm test`.
 - **FR-113**: *Empresa activa* (Principio VIII): la importación opera sobre la **organización** y las tiendas salen de la columna `tiendas`; la pantalla no depende de la empresa activa. **No aplica**, y un test confirma que cambiar de empresa con una vista previa abierta no altera filas ni resultado.
 - **SC-101**: pgTAP `catalogo_importacion.test.sql`: aislamiento, solo Administrador, `anon` sin acceso, idempotencia por clave, límite de filas.
 - **SC-102**: Vitest del parser/validador de CSV y de la pantalla (vista previa, contadores, avisos de costo sin Rentabilidad, descarga de plantilla y de errores).
@@ -115,15 +115,15 @@ Como Administrador, cargo o actualizo productos en lote desde una planilla CSV c
 
 Como Administrador, exporto el listado de productos a CSV desde el diálogo «Exportar productos».
 
-- **FR-201**: El listado muestra el botón «Exportar» solo al Administrador; abre el diálogo «Exportar productos» con los campos «Qué exportar», «Formato» y «Columnas».
-- **FR-202**: «Qué exportar»: «Lo filtrado (N)» (respeta la búsqueda, los filtros —incluido el de compatible si existe— la categoría y la empresa activa; nota «Respeta la búsqueda, los filtros y la categoría elegida.») o «Todos (N)» («Todo el catálogo, sin filtros.»).
-- **FR-203**: «Formato»: CSV seleccionado; «Excel (.xlsx)» visible y deshabilitado (Decisión 5).
-- **FR-204**: «Columnas»: casillas SKU, Nombre, Categoría, Precio, Costo, Stock, Visible en, Estado, Código de barras, Proveedor; por defecto las ocho primeras. «Costo» y «Proveedor» solo se ofrecen con acceso a Rentabilidad. «Stock» exporta la disponibilidad (la misma etiqueta del listado).
-- **FR-205**: Al confirmar, el CSV se genera y se descarga; aviso «Exportación CSV lista: N productos, M columnas». Sin productos para exportar el botón del diálogo se deshabilita.
-- **FR-206**: `public.exportar_productos(p_filtros, p_columnas, p_desde, p_limite)` devuelve las filas por páginas (el listado lee `v_productos_listado`); exige Administrador, toma la organización de la sesión y devuelve solo las columnas permitidas. Una columna no autorizada (costo sin Rentabilidad) se rechaza (`42501`).
-- **FR-207**: El CSV escapa comillas, comas y saltos de línea y neutraliza celdas que empiezan con `=`, `+`, `-` o `@` (inyección de fórmulas).
-- **FR-208**: Cada exportación queda en la actividad (`registrar_actividad`: quién, cuántos productos, qué columnas; sin valores de precio ni costo).
-- **FR-209**: *Empresa activa* (Principio VIII): «Lo filtrado» se reencuadra con la empresa activa; el diálogo abierto al cambiar de empresa se cierra con aviso.
+- **FR-201**: El listado muestra el botón «Exportar» solo al Administrador; abre el diálogo «Exportar productos» con los campos «Qué exportar», «Formato» y «Columnas». **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (botón solo Administrador, campos del diálogo).
+- **FR-202**: «Qué exportar»: «Lo filtrado (N)» (respeta la búsqueda, los filtros —incluido el de compatible si existe— la categoría y la empresa activa; nota «Respeta la búsqueda, los filtros y la categoría elegida.») o «Todos (N)» («Todo el catálogo, sin filtros.»). **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (filtrado vs todos y notas).
+- **FR-203**: «Formato»: CSV seleccionado; «Excel (.xlsx)» visible y deshabilitado (Decisión 5). **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (CSV activo, Excel deshabilitado).
+- **FR-204**: «Columnas»: casillas SKU, Nombre, Categoría, Precio, Costo, Stock, Visible en, Estado, Código de barras, Proveedor; por defecto las ocho primeras. «Costo» y «Proveedor» solo se ofrecen con acceso a Rentabilidad. «Stock» exporta la disponibilidad (la misma etiqueta del listado). **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (columnas por defecto; Costo/Proveedor según Rentabilidad).
+- **FR-205**: Al confirmar, el CSV se genera y se descarga; aviso «Exportación CSV lista: N productos, M columnas». Sin productos para exportar el botón del diálogo se deshabilita. **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (descarga, aviso, botón deshabilitado sin filas).
+- **FR-206**: `public.exportar_productos(p_filtros, p_columnas, p_desde, p_limite)` devuelve las filas por páginas (el listado lee `v_productos_listado`); exige Administrador, toma la organización de la sesión y devuelve solo las columnas permitidas. Una columna no autorizada (costo sin Rentabilidad) se rechaza (`42501`). **Verificación:** pgTAP `catalogo_exportar.test.sql` (Administrador, `42501` por costo sin Rentabilidad, paginación estable).
+- **FR-207**: El CSV escapa comillas, comas y saltos de línea y neutraliza celdas que empiezan con `=`, `+`, `-` o `@` (inyección de fórmulas). **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (escape y neutralización de `=`, `+`, `-`, `@`).
+- **FR-208**: Cada exportación queda en la actividad (`registrar_actividad`: quién, cuántos productos, qué columnas; sin valores de precio ni costo). **Verificación:** pgTAP `catalogo_exportar.test.sql` (actividad registrada sin precios ni costos).
+- **FR-209**: *Empresa activa* (Principio VIII): «Lo filtrado» se reencuadra con la empresa activa; el diálogo abierto al cambiar de empresa se cierra con aviso. **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (cambio de empresa cierra el diálogo con aviso).
 - **SC-201**: pgTAP `catalogo_exportar.test.sql`: aislamiento, solo Administrador, costo sin Rentabilidad rechazado, paginación estable, actividad registrada.
 - **SC-202**: Vitest del diálogo y del generador de CSV (escape, fórmulas, columnas, «filtrado» vs «todos», cambio de empresa).
 
@@ -245,8 +245,43 @@ Leyenda: **FA** = FUERA DE ALCANCE (no genera tarea; motivo indicado). Inventari
 
 ## Verificación por requisito
 
+Cada requisito tiene su verificación nombrada (comandos desde la raíz; los pgTAP requieren `pnpm dev:supabase`).
+
 | Requisito | Verificación |
 |---|---|
-| FR-001…FR-007 | SC-001, SC-002 |
-| FR-101…FR-113 | SC-101, SC-102, SC-103 |
-| FR-201…FR-209 | SC-201, SC-202 |
+| FR-001 | Vitest `pnpm --filter @platform/web test -- FormularioProducto` (regresión del campo) |
+| FR-002 | pgTAP `catalogo_compatible_filtro.test.sql` (columna `compatible_con` en `v_productos_listado` e índice GIN) vía `pnpm test` |
+| FR-003 | Vitest `pnpm --filter @platform/web test -- filtro-compatible` (OR, mayúsculas, combinación con búsqueda/categoría) |
+| FR-004 | Vitest `pnpm --filter @platform/web test -- filtro-compatible` (etiquetas en la fila; sin valores no muestra nada) |
+| FR-005 | pgTAP `catalogo_compatible_filtro.test.sql` (`listar_compatibles`: distintos, ordenados, sin vacíos, aislamiento, solo lectura) |
+| FR-006 | Vitest `pnpm --filter @platform/web test -- filtro-compatible` (limpiar filtros y estado vacío) |
+| FR-007 | Vitest `pnpm --filter @platform/web test -- filtro-compatible` (cambio de empresa) |
+| FR-101 | Vitest `pnpm --filter @platform/web test -- carga-productos` (botón y ruta solo Administrador) + pgTAP `catalogo_importacion.test.sql` |
+| FR-102 | Vitest `pnpm --filter @platform/web test -- importacion-productos` (plantilla CSV y panel de columnas) |
+| FR-103 | Vitest `pnpm --filter @platform/web test -- carga-productos` (paso 1, `|`, reglas de imagen) |
+| FR-104 | Vitest `pnpm --filter @platform/web test -- carga-productos` (tabla, Nuevo/Actualiza, contadores, texto fijo) |
+| FR-105 | pgTAP `catalogo_importacion.test.sql` (`validar_importacion_productos`) + Vitest `importacion-productos` |
+| FR-106 | pgTAP `catalogo_importacion.test.sql` (costo sin Rentabilidad) + Vitest `carga-productos` (aviso por fila) |
+| FR-107 | Vitest `pnpm --filter @platform/web test -- carga-productos` (Cancelar no persiste; Importar encola) + pgTAP `catalogo_importacion.test.sql` |
+| FR-108 | Vitest `pnpm --filter @workers/importar-productos test` (alta, actualización, imagen, reintento sin duplicar) |
+| FR-109 | pgTAP `catalogo_importacion.test.sql` (segunda importación queda `en_cola`) |
+| FR-110 | Vitest `pnpm --filter @platform/web test -- carga-productos` (mensaje final y reporte de errores CSV) |
+| FR-111 | Vitest `pnpm --filter @platform/web test -- carga-productos` (los cuatro estados) + pgTAP `catalogo_importacion.test.sql` |
+| FR-112 | pgTAP `catalogo_importacion.test.sql` (solo Administrador, `anon` sin ejecución ni privilegios) vía `pnpm test` |
+| FR-201 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (botón solo Administrador, campos del diálogo) |
+| FR-202 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (filtrado vs todos y notas) |
+| FR-203 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (CSV activo, Excel deshabilitado) |
+| FR-204 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (columnas por defecto; Costo/Proveedor según Rentabilidad) |
+| FR-205 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (descarga, aviso, botón deshabilitado sin filas) |
+| FR-206 | pgTAP `catalogo_exportar.test.sql` (Administrador, `42501` por costo sin Rentabilidad, paginación estable) |
+| FR-207 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (escape y neutralización de `=`, `+`, `-`, `@`) |
+| FR-208 | pgTAP `catalogo_exportar.test.sql` (actividad registrada sin precios ni costos) |
+| FR-209 | Vitest `pnpm --filter @platform/web test -- exportar-productos` (cambio de empresa cierra el diálogo con aviso) |
+| FR-113 | Vitest `pnpm --filter @platform/web test -- carga-productos` (cambiar de empresa con vista previa abierta no altera filas ni resultado) |
+| SC-001 | `pnpm test` → pgTAP `catalogo_compatible_filtro.test.sql` |
+| SC-002 | `pnpm --filter @platform/web test -- filtro-compatible` |
+| SC-101 | `pnpm test` → pgTAP `catalogo_importacion.test.sql` |
+| SC-102 | `pnpm --filter @platform/web test -- carga-productos importacion-productos` |
+| SC-103 | `pnpm --filter @workers/importar-productos test` |
+| SC-201 | `pnpm test` → pgTAP `catalogo_exportar.test.sql` |
+| SC-202 | `pnpm --filter @platform/web test -- exportar-productos` |
