@@ -7,10 +7,12 @@ BREAKING: `analitica.margen_producto_canal.margen` y `margen_pct` ahora descuent
 ## RPC (esquema `public`, F-REN-08)
 
 ```ts
-listar_costos_adicionales(p_empresa_id uuid | null): setof costo_adicional
-guardar_costo_adicional(p_id uuid | null, p_empresa_id uuid, p_nombre text, p_tipo 'porcentaje' | 'monto', p_valor numeric): costo_adicional
-dar_baja_costo_adicional(p_id uuid): void
+listar_costos_adicionales(p_empresa_id uuid | null): table(id, empresa_id, empresa_nombre, nombre, tipo, valor, creado_en) // solo activos
+guardar_costo_adicional(p_id uuid | null, p_empresa_id uuid, p_nombre text, p_tipo 'porcentaje' | 'monto', p_valor numeric): dominio.costos_adicionales_canal
+dar_baja_costo_adicional(p_id uuid): void // idempotente
 ```
+
+Errores: `42501` sin permiso o empresa no accesible, `23514` dato inválido (nombre vacío o > 80, tipo, valor negativo, porcentaje > 100, > 4 decimales), `23505` nombre repetido entre costos activos de la empresa, `P0002` el costo no existe (o ya fue dado de baja al editar). Un costo no cambia de empresa al editarse. La baja es `activo = false`.
 
 Exigen `edicion` en `rentabilidad` (la lista, `lectura`) y empresa accesible; `revoke … from public, anon`, `grant execute … to authenticated`. `public.confirmar_comprobante(p_id uuid)` conserva su firma (F-REN-09).
 
@@ -24,7 +26,8 @@ dominio.comprobantes_venta_lineas(+ costo_unitario: numeric | null, + cotizacion
 ## Vistas (esquema `analitica`, solo lectura para el rol de Superset)
 
 ```ts
-analitica.margen_producto_canal(... , costos_adicionales: numeric)
+analitica.margen_producto_canal(... , costos_adicionales: numeric) // por unidad: % × neto + montos
+analitica.costos_adicionales_de(p_empresa_id uuid, p_neto numeric): numeric // security definer, solo activos
 analitica.rentabilidad_ventas_real(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, unidades, vendido, costo, costos_adicionales, margen, margen_pct, estado)
 analitica.consultas_producto_mas_consultado(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, consultas)
 analitica.ventas_periodo_canal(organizacion_id, empresa_id, empresa_nombre, fecha, comprobantes, unidades, facturado)
