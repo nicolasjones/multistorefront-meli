@@ -5,7 +5,7 @@ import '@fontsource-variable/instrument-sans'
 import './index.css'
 import App from './App.tsx'
 import { instalarDestinoActividad } from './lib/destinoActividad'
-import { seguirActividadDelPanel } from './lib/vencimientoSesion'
+import { instalarVencimientoDeSesion } from './lib/arranque'
 import { authProvider } from './providers/authProvider'
 import { esHostDeTienda } from './lib/tienda'
 import { TiendaPublicaApp } from './pages/tienda-publica'
@@ -21,7 +21,7 @@ const esTiendaPublica = esHostDeTienda(host)
 
 // Vencimiento por inactividad: solo en el panel (MSF-673); la tienda no tiene `/login`.
 let cerrando = false
-seguirActividadDelPanel(esTiendaPublica, () => {
+instalarVencimientoDeSesion(host, () => {
   if (cerrando) return
   cerrando = true
   void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
