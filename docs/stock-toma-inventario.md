@@ -56,7 +56,8 @@ drop function public.confirmar_toma_inventario(jsonb, date);
 
 - pgTAP: `supabase/tests/database/stock_toma_inventario.test.sql` (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`, `apps/web/src/lib/tomaInventario.carga.test.ts`
-  (categoría de 1000 productos) y `apps/web/src/lib/depositos.stockLotes.test.ts` (lotes, largo de URL y olas).
+  (categoría de 1000 productos, reparto de categorías y unión de los lotes) y
+  `apps/web/src/lib/depositos.stockLotes.test.ts` (lotes, largo de URL y olas).
 - E2E: `apps/web/e2e/stock-toma-inventario-categorias.e2e.ts` (categoría con 250 productos; se omite sin
   `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` — ver `docs/e2e-app.md`).
 
@@ -75,3 +76,8 @@ cambios de base de datos. Lo aprovechan también Stock actual y su exportación.
 Con el tope de filas de la API (1000), una categoría más grande se truncaba en silencio y la toma contaba solo una
 parte: `cargarFilasToma` (`apps/web/src/lib/tomaInventario.ts`) pide el total con `count: 'exact'` (PostgREST cuenta
 antes del `limit`) y avisa «La categoría tiene más de 1000 productos: elegí una subcategoría.» sin pedir el stock.
+
+Los ids de **categoría** viajan en la misma URL (`in ('categoria_id', …)`), así que también se reparten:
+`cargarFilasToma` los parte con el mismo `LOTE_IDS_STOCK` (100) y une los productos de los lotes (sin repetir y
+ordenados por nombre, como en la consulta única). El total del aviso es la suma del `count` de cada lote. Con una
+sola categoría —el caso habitual— la consulta es exactamente la de antes: un lote, una petición.

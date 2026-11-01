@@ -190,11 +190,20 @@ export const LOTE_IDS_STOCK = 100
 // 10 lotes → 3 olas de 4). El navegador ya limita a 6 conexiones por host; el tope lo hace explícito.
 export const MAXIMA_CONCURRENCIA_STOCK = 4
 
+// Parte una lista de ids en lotes de `tamaño`. Los helpers son genéricos: los usa el stock de la
+// toma de inventario y también el filtro por categoría de esa misma pantalla (MSF-716), que
+// viaja por la URL igual que el de producto.
+export function enLotes<T>(ids: readonly T[], tamaño: number): T[][] {
+  const lotes: T[][] = []
+  for (let i = 0; i < ids.length; i += tamaño) lotes.push(ids.slice(i, i + tamaño))
+  return lotes
+}
+
 // Pide los lotes de a olas (como mucho MAXIMA_CONCURRENCIA_STOCK a la vez) y devuelve las
 // respuestas en el orden de los lotes. Si un lote falla, el error sale y no se sigue con las olas
 // siguientes: nunca se devuelve stock parcial.
-async function pedirEnOlas<T>(lotes: string[][], pedir: (lote: string[]) => Promise<T[]>): Promise<T[]> {
-  const respuestas: T[] = []
+export async function pedirEnOlas<T, R>(lotes: readonly T[][], pedir: (lote: T[]) => Promise<R[]>): Promise<R[]> {
+  const respuestas: R[] = []
   for (let i = 0; i < lotes.length; i += MAXIMA_CONCURRENCIA_STOCK) {
     const ola = lotes.slice(i, i + MAXIMA_CONCURRENCIA_STOCK)
     for (const respuesta of await Promise.all(ola.map(pedir))) respuestas.push(...respuesta)
@@ -209,8 +218,7 @@ async function pedirEnOlas<T>(lotes: string[][], pedir: (lote: string[]) => Prom
 export async function listarStockPorDepositoDe(productoIds: string[], depositoId: string): Promise<Record<string, StockPorDeposito>> {
   const ids = [...new Set(productoIds)]
   if (ids.length === 0) return {}
-  const lotes: string[][] = []
-  for (let i = 0; i < ids.length; i += LOTE_IDS_STOCK) lotes.push(ids.slice(i, i + LOTE_IDS_STOCK))
+  const lotes = enLotes(ids, LOTE_IDS_STOCK)
   const respuestas = await pedirEnOlas(lotes, async (lote) => {
     const { data, error } = await supabaseClient
       .from('stock_por_deposito')

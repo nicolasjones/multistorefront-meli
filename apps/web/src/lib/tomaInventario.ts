@@ -1,5 +1,7 @@
 import { supabaseClient } from './supabase'
-import { listarDepositosActivos, listarStockPorDepositoDe } from './depositos'
+import {
+  LOTE_IDS_STOCK, enLotes, listarDepositosActivos, listarStockPorDepositoDe, pedirEnOlas,
+} from './depositos'
 import { fechaDeHoy, mensajeDeErrorStock, parsearCantidad } from './stock'
 
 // Toma de inventario (F-STK-11, MSF-415). La regla vive en la RPC `confirmar_toma_inventario`
@@ -62,26 +64,47 @@ export function armarItemsToma(filas: readonly FilaToma[], contados: Readonly<Re
 
 type FilaProducto = { id: string; nombre: string; sku: string | null }
 
+// Une los productos de varios lotes sin repetir y en el mismo orden que muestra la tabla
+// (nombre y, a igual nombre, id).
+function unirProductos(productos: readonly FilaProducto[]): FilaProducto[] {
+  const porId = new Map<string, FilaProducto>()
+  for (const producto of productos) if (!porId.has(producto.id)) porId.set(producto.id, producto)
+  return [...porId.values()].sort(
+    (a, b) => a.nombre.localeCompare(b.nombre, 'es') || a.id.localeCompare(b.id),
+  )
+}
+
 // Productos activos de las categorías indicadas con su stock en el depósito por defecto. Lanza si la
 // categoría supera el máximo que admite una confirmación (la RPC rechaza más de 1000).
 export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<FilaToma[]> {
-  const { data, error, count } = await supabaseClient
-    .from('v_productos_listado')
-    .select('id, nombre, sku', { count: 'exact' })
-    .eq('activo', true)
-    .in('categoria_id', [...categoriaIds])
-    .order('nombre', { ascending: true })
-    .order('id', { ascending: true })
-    .limit(MAXIMO_PRODUCTOS_TOMA + 1)
-    .returns<FilaProducto[]>()
-  if (error) throw error
-  const productos = data ?? []
+  // Los ids de categoría también viajan en la URL (`in.(…)`): se reparten en lotes como los de
+  // producto, así que un árbol de categorías grande no vuelve a romper la carga (MSF-716).
+  const lotes = enLotes([...new Set(categoriaIds)], LOTE_IDS_STOCK)
+  const respuestas = await pedirEnOlas(lotes, async (lote) => {
+    const { data, error, count } = await supabaseClient
+      .from('v_productos_listado')
+      .select('id, nombre, sku', { count: 'exact' })
+      .eq('activo', true)
+      .in('categoria_id', lote)
+      .order('nombre', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(MAXIMO_PRODUCTOS_TOMA + 1)
+      .returns<FilaProducto[]>()
+    if (error) throw error
+    const productos = data ?? []
+    return [{ productos, total: count ?? productos.length }]
+  })
   // `count` es el total de la categoría (PostgREST cuenta antes del `limit`): sin él, el tope de filas
   // de la API truncaría en silencio y la toma dejaría productos sin contar (MSF-716).
-  const total = count ?? productos.length
+  const total = respuestas.reduce((suma, respuesta) => suma + respuesta.total, 0)
   if (total > MAXIMO_PRODUCTOS_TOMA) {
     throw new Error(`La categoría tiene más de ${MAXIMO_PRODUCTOS_TOMA} productos: elegí una subcategoría.`)
   }
+  // Con un solo lote el orden es el que devolvió la base; con varios, se reordena para que la tabla
+  // no quede agrupada por categoría.
+  const productos = respuestas.length === 1
+    ? respuestas[0].productos
+    : unirProductos(respuestas.flatMap((respuesta) => respuesta.productos))
   if (productos.length === 0) return []
   const depositos = await listarDepositosActivos()
   const porDefecto = depositos.find((deposito) => deposito.por_defecto)
