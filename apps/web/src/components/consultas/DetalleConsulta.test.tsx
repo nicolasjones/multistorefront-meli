@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   onRecargar: vi.fn(),
 }))
 
+vi.mock('../../hooks/useRespuestasRapidas', () => ({
+  useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: mocks.useResponsablesConsultas }))
 vi.mock('../../lib/consultas', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/consultas')>()),
