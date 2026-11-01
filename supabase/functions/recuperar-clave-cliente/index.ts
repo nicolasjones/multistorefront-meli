@@ -1,8 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { protocoloTienda } from '../_shared/protocolo.ts'
 import { manejar, type Deps } from './handler.ts'
 
-// Las tiendas viven en https; solo el desarrollo local (SUPABASE_URL en localhost / 127.0.0.1) usa http.
-const local = /^https?:\/\/(localhost|127\.0\.0\.1|host\.docker\.internal|kong)(:|\/|$)/.test(Deno.env.get('SUPABASE_URL') ?? '')
+// Las tiendas viven en https; solo el desarrollo local fija ALLOW_HTTP_REDIRECT=true (MSF-726: no se deduce de SUPABASE_URL).
+const protocolo = protocoloTienda(Deno.env.get('ALLOW_HTTP_REDIRECT'))
 
 // Adaptador explícito: cada método real se envuelve para cumplir `Deps`, de modo que un cambio del SDK que rompa
 // el contrato falle al compilar y no en runtime. La service-role vive solo en esta función.
@@ -27,5 +28,5 @@ Deno.serve((req) => {
     if (runtime) runtime.waitUntil(tarea)
     else console.warn('recuperar-clave-cliente: sin EdgeRuntime.waitUntil, la tarea no queda protegida tras responder')
   }
-  return manejar(req, { protocolo: local ? 'http' : 'https', admin, enviarClave, enSegundoPlano })
+  return manejar(req, { protocolo, admin, enviarClave, enSegundoPlano })
 })
