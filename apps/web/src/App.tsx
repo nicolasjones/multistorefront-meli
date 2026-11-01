@@ -1,4 +1,4 @@
-import { Authenticated, ErrorComponent, Refine } from '@refinedev/core'
+import { Authenticated, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -21,6 +21,7 @@ import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
+import { PaginaNoEncontrada } from './pages/no-encontrada/PaginaNoEncontrada'
 import { OrganizacionCreate } from './pages/organizaciones/create'
 import { OrganizacionList } from './pages/organizaciones/list'
 import { OrganizacionEdit } from './pages/organizacion/edit'
@@ -744,7 +745,7 @@ function App() {
                   </Authenticated>
                 }
               >
-                <Route path="*" element={<ErrorComponent />} />
+                <Route path="*" element={<PaginaNoEncontrada />} />
               </Route>
             </Routes>
             </PermisosPanelProvider>
