@@ -182,8 +182,8 @@ export async function listarStockPorDeposito(productoId: string): Promise<Record
   )
 }
 
-// Ids por petición: cada uno ocupa ~37 caracteres del `in.(…)` en la URL GET, y 100 ≈ 3,7 KB queda
-// muy por debajo del límite típico de 8 KB del proxy (MSF-716).
+// Ids por petición: cada id ocupa ~39 bytes en el `in.(…)` de la URL GET (36 del uuid + la coma
+// codificada), así que 100 ids ≈ 4,1 KB queda muy por debajo del límite típico de 8 KB del proxy (MSF-716).
 export const LOTE_IDS_STOCK = 100
 
 // Peticiones simultáneas: tope para no largar una ráfaga contra el proxy (con 1000 productos son
