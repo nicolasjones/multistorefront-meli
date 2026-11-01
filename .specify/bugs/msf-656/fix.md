@@ -78,9 +78,9 @@ eje de aislamiento —la empresa accesible (`private.empresas_accesibles()`)—,
 
 - La evaluación dejaba abierta la pregunta de si `comprobantes_venta` (cabecera) entraba en el alcance. Entra:
   es la misma causa y la misma política; el diagnóstico del tracker la nombra explícitamente («y
-  `comprobantes_venta`») y sin ella las líneas quedarían filtradas por un padre que por API seguiría，露出 la
+  `comprobantes_venta`») y sin ella las líneas quedarían filtradas por un padre que por API seguiría exponiendo la
   cabecera.
-- La evaluación propose heredar la empresa en las hijas con un `exists` sobre la cabecera; se mantiene, pero el
+- La evaluación proponía heredar la empresa en las hijas con un `exists` sobre la cabecera; se mantiene, pero el
   `exists` incluye además la condición de organización (`c.organizacion_id = ...`) para que la comprobación no
   dependa de una fila de otra organización.
 - Se conserva la lectura de los comprobantes **sin** `empresa_id` (`empresa_id is null or ...`): son los
