@@ -65,9 +65,9 @@ type FilaProducto = { id: string; nombre: string; sku: string | null }
 // Productos activos de las categorías indicadas con su stock en el depósito por defecto. Lanza si la
 // categoría supera el máximo que admite una confirmación (la RPC rechaza más de 1000).
 export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<FilaToma[]> {
-  const { data, error } = await supabaseClient
+  const { data, error, count } = await supabaseClient
     .from('v_productos_listado')
-    .select('id, nombre, sku')
+    .select('id, nombre, sku', { count: 'exact' })
     .eq('activo', true)
     .in('categoria_id', [...categoriaIds])
     .order('nombre', { ascending: true })
@@ -76,7 +76,10 @@ export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<
     .returns<FilaProducto[]>()
   if (error) throw error
   const productos = data ?? []
-  if (productos.length > MAXIMO_PRODUCTOS_TOMA) {
+  // `count` es el total de la categoría (PostgREST cuenta antes del `limit`): sin él, el tope de filas
+  // de la API truncaría en silencio y la toma dejaría productos sin contar (MSF-716).
+  const total = count ?? productos.length
+  if (total > MAXIMO_PRODUCTOS_TOMA) {
     throw new Error(`La categoría tiene más de ${MAXIMO_PRODUCTOS_TOMA} productos: elegí una subcategoría.`)
   }
   if (productos.length === 0) return []
