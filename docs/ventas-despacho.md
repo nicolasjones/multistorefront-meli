@@ -15,7 +15,7 @@ El despacho es un **campo propio de la factura**, separado del estado documental
 - `estado_despacho` es nulable y solo puede existir en `tipo = 'factura'` (check). `estado` sigue siendo el estado
   documental (`borrador`, `confirmada`, `anulada`, …); los dos comparten los nombres `armando` e `incompleto` pero
   viven en columnas distintas y los mueven historias distintas.
-- La RLS vigente de `dominio.comprobantes_venta` no cambia: se lee por organización y sección `ventas`. **No hay
+- La RLS de lectura de `dominio.comprobantes_venta` es por organización, sección `ventas` y empresa accesible (`private.empresas_accesibles()`, MSF-656); el despacho no la cambia. **No hay
   grants de escritura nuevos**: el estado y los responsables se escriben solo por RPC `security definer`. `anon` no
   tiene acceso. El **privilegio de lectura** sí es por columna desde `20270112140500_envio_aislamiento.sql` (F-VTA-16,
   ver «Transporte y guía»): las tres columnas del envío quedan sin lectura directa para `authenticated`.

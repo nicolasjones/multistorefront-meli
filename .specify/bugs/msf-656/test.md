@@ -23,7 +23,7 @@ CI, que es el gate.
 | New / updated tests | `supabase/tests/database/rls_empresas_rma_comprobantes.test.sql` | not-run | 17 aserciones escritas; se ejecutan en el CI (`pnpm test:db:ci`). |
 | Regression suite | Revisión estática de los 40 pgTAP que leen `dominio.comprobantes_venta`, `dominio.comprobantes_venta_lineas`, `dominio.rma` o `dominio.rma_items` (directo o por RPC `security invoker`) | pass | Ninguna aserción dependía de ver filas de una tienda no accesible; los casos de «otra tienda» ya esperaban cero filas. |
 | Migraciones aditivas | `pnpm db:validar:aditivas` | pass | `420 migraciones verificadas en supabase/migrations: ninguna destructiva sin camino de reversión documentado.` |
-| Documentación | `pnpm docs:check` | pass | `Documentación de cambios: OK` · `Migraciones OK: 420 archivo(s), 1 nuevo(s) contra origin/dokploy.` |
+| Documentación | `pnpm docs:check` | pass (base del PR) | `Documentación de cambios: OK` con `GITHUB_BASE_REF=main` · `Migraciones OK: 420 archivo(s), 1 nuevo(s) contra origin/dokploy.` |
 | Lint / type-check | `pnpm lint` | pass | exit 0 (solo warnings preexistentes de `react-hooks`; el diff no toca `apps/web`). |
 | Build | `pnpm build` | pass | `✓ built in 1.88s` (exit 0). |
 | Calidad determinista | `pnpm calidad` | pass | oxlint (SAST), knip (código muerto), jscpd (duplicación), dependency-cruiser (arquitectura) y syncpack (versiones) en ok; gitleaks no se pudo correr (sin binario ni Docker) y se re-ejecuta en el CI. |

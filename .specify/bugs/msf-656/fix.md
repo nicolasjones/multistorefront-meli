@@ -62,10 +62,10 @@ eje de aislamiento —la empresa accesible (`private.empresas_accesibles()`)—,
 
 - Comandos ejecutados:
   - `pnpm db:validar:aditivas` → `420 migraciones verificadas en supabase/migrations: ninguna destructiva sin camino de reversión documentado.`
-  - `pnpm docs:check` → `Documentación de cambios: OK (7 archivos comparados contra HEAD~1).` y `Migraciones OK: 420 archivo(s), 1 nuevo(s) contra origin/dokploy.`
+  - `pnpm docs:check` → OK con la base del PR (`GITHUB_BASE_REF=main`, como en el CI); con la base por omisión `HEAD~1` depende de que el último commit toque `docs/`. y `Migraciones OK: 420 archivo(s), 1 nuevo(s) contra origin/dokploy.`
   - `pnpm lint` → sin errores (no se tocan archivos de `apps/web`).
   - `pnpm build` → sin errores.
-  - `pnpm calidad` → sin hallazgos (ver `reports/calidad.md`).
+  - `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack en ok; **gitleaks no se pudo correr** (sin binario ni Docker) y la herramienta lo informa como «hallazgos» (exit 1); se re-ejecuta en el CI.
 - Revisión manual: se relevaron los 40 pgTAP que leen `dominio.comprobantes_venta`, `dominio.comprobantes_venta_lineas`,
   `dominio.rma` o `dominio.rma_items` (directo o por RPC `security invoker`) para confirmar que ninguna aserción
   dependa de ver filas de una tienda no accesible; las RPC de lectura (`listar_comprobantes`, `listar_rma`,
@@ -98,3 +98,9 @@ eje de aislamiento —la empresa accesible (`private.empresas_accesibles()`)—,
   y conviene un ticket propio con su pgTAP.
 - `dominio.historial_cotizaciones_dolar` y `dominio.transiciones_estado_comprobante` filtran por organización y
   sección, pero no guardan datos por tienda: no son un desvío de esta historia.
+- **Residual (Baja, no bloquea)**: las cuatro políticas exigen empresa *asignada* (`empresas_accesibles()`), no el
+  nivel de Ventas *en esa* empresa (`private.nivel_ventas_en_empresa`). Una persona con Ventas en la Tienda A y un
+  rol sin Ventas en la Tienda B aún lee B por `/rest/v1/`. No se cierra acá: `nivel_ventas_en_empresa` tiene
+  `execute` revocado para `authenticated` (`20261203100400_comprobantes_rpc.sql:50`), así que usarla en una política
+  exige un envoltorio nuevo (como `puede_leer_faltantes_empresa`) y un pgTAP que hoy no se puede correr sin Docker.
+  Queda como seguimiento propio; la fuga es más acotada que antes del arreglo.
