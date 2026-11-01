@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { leerConteoVentas, type RangoFechas } from '../lib/ventas-reportes'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseClient } from '../lib/supabase'
 import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 
@@ -20,10 +21,13 @@ export function useConteoVentasReporte({
   rango,
   empresaId,
   habilitado = true,
+  leerConteo = leerConteoVentas,
 }: {
   rango: RangoFechas
   empresaId: string | null
   habilitado?: boolean
+  // Fuente del conteo: por defecto las ventas del período; «Productos más consultados» pasa la suya.
+  leerConteo?: (cliente: SupabaseClient, filtros: { rango: RangoFechas; empresaId: string | null }) => Promise<number>
 }) {
   const { organizacionId } = useOrganizacionDeTrabajo()
   const { desde, hasta } = rango
@@ -37,15 +41,15 @@ export function useConteoVentasReporte({
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
-      const conteo = await leerConteoVentas(supabaseClient, { rango: { desde, hasta }, empresaId })
+      const conteo = await leerConteo(supabaseClient, { rango: { desde, hasta }, empresaId })
       if (peticion === ultimaPeticion.current) setResultado({ clave, conteo, hayError: false })
     } catch (error) {
-      console.error('No pudimos contar las ventas del período.', error)
+      console.error('No pudimos contar los registros del período.', error)
       if (peticion === ultimaPeticion.current) setResultado({ clave, conteo: null, hayError: true })
     } finally {
       if (peticion === ultimaPeticion.current) setCargando(false)
     }
-  }, [clave, desde, empresaId, hasta])
+  }, [clave, desde, empresaId, hasta, leerConteo])
 
   useEffect(() => {
     if (habilitado) void cargar()

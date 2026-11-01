@@ -148,8 +148,65 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(within(pestanas).getAllByRole('tab').map((pestana) => pestana.textContent)).toEqual([
       'Más vendidos',
       'Ranking de clientes',
+      'Productos más consultados',
     ])
     expect(screen.getByTestId('tablero')).toHaveTextContent('Tablero rep-mas-vendidos')
+  })
+
+  describe('pestaña «Productos más consultados» (F-REP-04, FR-011)', () => {
+    const CONSULTADOS = { id: 'rep-mas-consultados', nombre: 'Reportes · Productos más consultados' }
+
+    it('[MSF-236:T029] monta su propio tablero con el período y la empresa activa, y cuenta consultas (no ventas)', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      expect(await screen.findByTestId('tablero')).toHaveTextContent('Tablero rep-mas-consultados')
+      const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+      expect(rison).toContain('NATIVE_FILTER-rango')
+      expect(rison).toContain("'San Javucho'")
+      expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(
+        expect.objectContaining({ empresaId: 'e-sj', leerConteo: expect.any(Function) }),
+      )
+    })
+
+    it('[MSF-236:T029] un período sin consultas muestra el estado vacío propio', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS], conteo: 0 })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      expect(await screen.findByText('No hay consultas por WhatsApp en ese período')).toBeInTheDocument()
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+    })
+
+    it('[MSF-236:T029] un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      await screen.findByTestId('tablero')
+      await act(async () => { mocks.propsReporte.current?.alFallar?.('no_disponible') })
+      expect(await screen.findByText('No pudimos cargar el tablero de «Productos más consultados».')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Reintentar/ })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Reintentar/ }))
+      await screen.findByTestId('tablero')
+      await act(async () => { mocks.propsReporte.current?.alFallar?.('prohibido') })
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+    })
+
+    it('[MSF-236:T029] cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      await screen.findByTestId('tablero')
+      const filtro = screen.getByRole('group', { name: 'Filtrar por tienda' })
+      fireEvent.click(within(filtro).getByRole('button', { name: 'Mundo JC' }))
+      await waitFor(() =>
+        expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e-mjc' })),
+      )
+      await waitFor(() => {
+        const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+        expect(rison).toContain("'Mundo JC'")
+        expect(rison).not.toContain("'San Javucho'")
+      })
+    })
   })
 
   it('el filtro de empresa ofrece las tiendas accesibles y sigue a la empresa activa', async () => {

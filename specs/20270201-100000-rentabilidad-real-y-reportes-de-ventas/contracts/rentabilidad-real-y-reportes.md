@@ -26,8 +26,16 @@ dominio.comprobantes_venta_lineas(+ costo_unitario: numeric | null, + cotizacion
 ```ts
 analitica.margen_producto_canal(... , costos_adicionales: numeric)
 analitica.rentabilidad_ventas_real(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, unidades, vendido, costo, costos_adicionales, margen, margen_pct, estado)
-analitica.consultas_producto_mas_consultado(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, consultas)
+analitica.consultas_producto_mas_consultado(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, consultas, ultima_consulta)
 analitica.ventas_periodo_canal(organizacion_id, empresa_id, empresa_nombre, fecha, comprobantes, unidades, facturado)
 ```
 
 Reglas: «venta» = `analitica.comprobante_cuenta_como_facturado`, con `analitica.signo_comprobante`; `facturado` es con IVA (igual a `total_con_iva`); `rentabilidad_ventas_real` usa el costo y la cotización guardados en la línea y excluye líneas sin costo; ninguna vista de reportes expone costo ni margen. Cada vista expone `organizacion_id` (y `empresa_id`) para la cláusula `rls` del guest token.
+
+## RPC de conteo (esquema `public`, F-REP-04)
+
+```ts
+consultas_reportes_conteo(p_desde: date, p_hasta: date, p_empresa_id: uuid | null): integer
+```
+
+Estado vacío de la pestaña «Productos más consultados». `security definer`; exige lectura o edición en `reportes` (42501 si no) y acota a las empresas accesibles; `revoke … from public, anon`, `grant execute … to authenticated`. `fecha` de la vista es el día en `America/Argentina/Buenos_Aires`.
