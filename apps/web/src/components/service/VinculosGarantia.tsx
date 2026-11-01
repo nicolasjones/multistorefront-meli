@@ -9,6 +9,13 @@ const rutaReparacion = (id: string) => `/service-tecnico/reparaciones/${id}`
 
 const formatoFecha = new Intl.DateTimeFormat('es-AR', { dateStyle: 'short', timeZone: 'UTC' })
 
+// La fecha viene de la base como `AAAA-MM-DD`; si algún día no viniera, se muestra tal cual en vez de romper la
+// pantalla con una fecha inválida.
+function formatearIngreso(ingreso: string): string {
+  const fecha = new Date(`${ingreso}T00:00:00Z`)
+  return Number.isNaN(fecha.getTime()) ? ingreso : formatoFecha.format(fecha)
+}
+
 // Vínculos de garantía (FR-023): en el reingreso, «Reingreso por garantía de R-xxxx» con enlace a la original; en la
 // original, la lista de sus reingresos. Sin vínculos no ocupa lugar. Se monta con `key` por reparación.
 export function VinculosGarantia({ reparacionId }: Props) {
@@ -58,7 +65,7 @@ export function VinculosGarantia({ reparacionId }: Props) {
                 {vinculos.reingresos.map((reingreso) => (
                   <Typography component="li" variant="body2" key={reingreso.id}>
                     <Link component={RouterLink} to={rutaReparacion(reingreso.id)} underline="hover">{reingreso.codigo}</Link>
-                    {` · ${reingreso.estado} · Ingreso ${formatoFecha.format(new Date(`${reingreso.ingreso}T00:00:00Z`))}`}
+                    {` · ${reingreso.estado} · Ingreso ${formatearIngreso(reingreso.ingreso)}`}
                   </Typography>
                 ))}
               </Stack>

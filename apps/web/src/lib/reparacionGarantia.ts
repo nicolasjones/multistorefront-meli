@@ -67,5 +67,8 @@ export async function obtenerVinculosGarantia(reparacionId: string): Promise<Vin
   const { data, error } = await supabaseClient.rpc('obtener_vinculos_garantia', { p_reparacion: reparacionId })
   if (error) throw error
   const bruto = (data ?? {}) as Partial<VinculosGarantia>
-  return { origen: bruto.origen ?? null, reingresos: bruto.reingresos ?? [] }
+  // La base es la autoridad, pero la pantalla no se rompe si el formato no es el esperado.
+  const origen = bruto.origen?.id ? bruto.origen : null
+  const reingresos = Array.isArray(bruto.reingresos) ? bruto.reingresos : []
+  return { origen, reingresos }
 }
