@@ -189,6 +189,15 @@ describe('consultas y acciones', () => {
     consola.mockRestore()
   })
 
+  it('si falla la lectura de cuentas existentes no lanza: cuenta todas las tiendas como error (MSF-694)', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'boom', code: '42501' } })
+    const { aplicarCuentaWebEnTiendas } = await import('./cuentasCliente')
+    await expect(aplicarCuentaWebEnTiendas('c-1', ['e-1', 'e-2'], 'activa', true)).resolves.toEqual({ creadas: 0, errores: 2 })
+    expect(mocks.invoke).not.toHaveBeenCalled()
+    consola.mockRestore()
+  })
+
   it('habilitar o deshabilitar reutiliza guardar_empresas_de_cliente y conserva la cuenta (FR-010)', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     // Relee las tiendas vigentes (incluida una que otro operador sumó) en vez de usar la ficha en pantalla.

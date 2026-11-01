@@ -55,4 +55,29 @@ drop function public.confirmar_toma_inventario(jsonb, date);
 ## Pruebas
 
 - pgTAP: `supabase/tests/database/stock_toma_inventario.test.sql` (`pnpm test:db`).
-- Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`.
+- Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`, `apps/web/src/lib/tomaInventario.carga.test.ts`
+  (categoría de 1000 productos, reparto de categorías y unión de los lotes) y
+  `apps/web/src/lib/depositos.stockLotes.test.ts` (lotes, largo de URL y olas).
+- E2E: `apps/web/e2e/stock-toma-inventario-categorias.e2e.ts` (categoría con 250 productos; se omite sin
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` — ver `docs/e2e-app.md`).
+
+## Categorías grandes (MSF-716)
+
+La toma admite hasta 1000 productos, pero el stock del depósito se pedía con un único filtro `in (…)` en la URL
+del GET. Con ids de 36 caracteres (uuid), la URL medida con `URLSearchParams` da 4.089 bytes con 100 ids, 7.989 con
+200, 9.939 con 250 y 39.189 con 1000: a partir de ~200 ids la petición pasa del límite típico de 8 KB del proxy y
+la pantalla mostraba «No pudimos cargar los productos de esta categoría».
+
+`listarStockPorDepositoDe` (`apps/web/src/lib/depositos.ts`) parte los ids en lotes de `LOTE_IDS_STOCK` (100, ~4,1 KB
+por petición), los pide de a olas de `MAXIMA_CONCURRENCIA_STOCK` (4) y une el resultado. Si un lote falla, el error
+sale y no se devuelven las olas siguientes: nunca hay stock parcial (rotularía diferencias falsas en la toma). Sin
+cambios de base de datos. Lo aprovechan también Stock actual y su exportación.
+
+Con el tope de filas de la API (1000), una categoría más grande se truncaba en silencio y la toma contaba solo una
+parte: `cargarFilasToma` (`apps/web/src/lib/tomaInventario.ts`) pide el total con `count: 'exact'` (PostgREST cuenta
+antes del `limit`) y avisa «La categoría tiene más de 1000 productos: elegí una subcategoría.» sin pedir el stock.
+
+Los ids de **categoría** viajan en la misma URL (`in ('categoria_id', …)`), así que también se reparten:
+`cargarFilasToma` los parte con el mismo `LOTE_IDS_STOCK` (100) y une los productos de los lotes (sin repetir y
+ordenados por nombre, como en la consulta única). El total del aviso es la suma del `count` de cada lote. Con una
+sola categoría —el caso habitual— la consulta es exactamente la de antes: un lote, una petición.

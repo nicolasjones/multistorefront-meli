@@ -6,6 +6,7 @@ import {
   CLAVE_ULTIMA_ACTIVIDAD,
   registrarActividad,
   seguirActividad,
+  seguirActividadDelPanel,
   sesionVencidaPorInactividad,
 } from './vencimientoSesion'
 
@@ -45,6 +46,27 @@ describe('vencimientoSesion', () => {
     expect(alVencer).toHaveBeenCalledTimes(1)
     expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBe(String(vieja))
     expect(sesionVencidaPorInactividad()).toBe(true)
+  })
+
+  it('[MSF-673] en una tienda pública no registra marca ni avisa aunque hayan pasado >12 h', () => {
+    const vieja = Date.now() - 13 * 60 * 60 * 1000
+    registrarActividad(vieja)
+    const alVencer = vi.fn()
+    const detener = seguirActividadDelPanel(true, alVencer)
+    window.dispatchEvent(new Event('pointerdown'))
+    window.dispatchEvent(new Event('keydown'))
+    expect(detener).toBeUndefined()
+    expect(alVencer).not.toHaveBeenCalled()
+    expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBe(String(vieja))
+  })
+
+  it('[MSF-673] en el panel sigue venciendo la sesión tras >12 h', () => {
+    registrarActividad(Date.now() - 13 * 60 * 60 * 1000)
+    const alVencer = vi.fn()
+    const detener = seguirActividadDelPanel(false, alVencer)
+    window.dispatchEvent(new Event('pointerdown'))
+    detener?.()
+    expect(alVencer).toHaveBeenCalledTimes(1)
   })
 
   it('un clic con actividad reciente renueva la marca sin avisar', () => {
