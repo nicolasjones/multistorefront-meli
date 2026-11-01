@@ -55,12 +55,21 @@ drop function public.confirmar_toma_inventario(jsonb, date);
 ## Pruebas
 
 - pgTAP: `supabase/tests/database/stock_toma_inventario.test.sql` (`pnpm test:db`).
-- Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`.
+- Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`, `apps/web/src/lib/tomaInventario.carga.test.ts`
+  (categoría de 1000 productos) y `apps/web/src/lib/depositos.stockLotes.test.ts` (lotes, largo de URL y olas).
 
 ## Categorías grandes (MSF-716)
 
 La toma admite hasta 1000 productos, pero el stock del depósito se pedía con un único filtro `in (…)` en la URL
-(~37 caracteres por id: 250 ids ya superan los 8 KB del proxy y la pantalla mostraba «No pudimos cargar los
-productos de esta categoría»). `listarStockPorDepositoDe` (`apps/web/src/lib/depositos.ts`) ahora parte los ids en
-lotes de `LOTE_IDS_STOCK` (100), los pide en paralelo y une el resultado; si un lote falla propaga el error en vez de
-devolver stock parcial. Sin cambios de base de datos. Lo aprovechan también Stock actual y su exportación.
+del GET. Con ids de 36 caracteres (uuid), la URL medida con `URLSearchParams` da 4.089 bytes con 100 ids, 7.989 con
+200, 9.939 con 250 y 39.189 con 1000: a partir de ~200 ids la petición pasa del límite típico de 8 KB del proxy y
+la pantalla mostraba «No pudimos cargar los productos de esta categoría».
+
+`listarStockPorDepositoDe` (`apps/web/src/lib/depositos.ts`) parte los ids en lotes de `LOTE_IDS_STOCK` (100, ~4,1 KB
+por petición), los pide de a olas de `MAXIMA_CONCURRENCIA_STOCK` (4) y une el resultado. Si un lote falla, el error
+sale y no se devuelven las olas siguientes: nunca hay stock parcial (rotularía diferencias falsas en la toma). Sin
+cambios de base de datos. Lo aprovechan también Stock actual y su exportación.
+
+Con el tope de filas de la API (1000), una categoría más grande se truncaba en silencio y la toma contaba solo una
+parte: `cargarFilasToma` (`apps/web/src/lib/tomaInventario.ts`) pide el total con `count: 'exact'` (PostgREST cuenta
+antes del `limit`) y avisa «La categoría tiene más de 1000 productos: elegí una subcategoría.» sin pedir el stock.
