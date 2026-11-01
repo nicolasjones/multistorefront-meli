@@ -47,6 +47,7 @@ import { ConfiguracionVentas } from './pages/ventas/configuracion'
 import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
 import { DespachoList } from './pages/ventas/despacho'
 import { FaltantesList } from './pages/ventas/faltantes'
+import { VentaMostrador } from './pages/ventas/mostrador'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -184,6 +185,7 @@ function App() {
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
+              { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
@@ -674,6 +676,15 @@ function App() {
                       <RequiereAccesoSeccion seccion="ventas">
                         <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
                       </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (FR-005: ventas en edición). */}
+                <Route
+                  path="/ventas/mostrador"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas" nivelMinimo="edicion"><VentaMostrador /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

@@ -18,6 +18,7 @@ import CategoryIcon from '@mui/icons-material/Category'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import CreditCardIcon from '@mui/icons-material/CreditCard'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
@@ -98,6 +99,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
+      // F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (sección `ventas`).
+      { id: 'ventas-mostrador', etiqueta: 'Venta de mostrador', ruta: '/ventas/mostrador', icono: QrCodeScannerIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
       { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
