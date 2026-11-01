@@ -46,11 +46,11 @@ export function CambiarCorreoPage() {
     setError(null)
     setMensaje(null)
     if (!correoActual || !contrasenaActual) {
-      setError('Ingresa tu contrasena actual para solicitar el cambio de correo.')
+      setError('Ingresá tu contraseña actual para solicitar el cambio de correo.')
       return
     }
     if (!esCorreoValido(correoLimpio)) {
-      setError('Ingresa un correo electronico valido.')
+      setError('Ingresá un correo electrónico válido.')
       return
     }
     if (correoLimpio === correoActual.toLowerCase()) {
@@ -63,8 +63,8 @@ export function CambiarCorreoPage() {
     if (errorVerificacion) {
       setError(
         esContrasenaActualIncorrecta(errorVerificacion)
-          ? 'La contrasena actual no coincide.'
-          : 'No pudimos verificar la contrasena actual. Intenta nuevamente.',
+          ? 'La contraseña actual no coincide.'
+          : 'No pudimos verificar la contraseña actual. Intentá nuevamente.',
       )
       setSolicitandoCorreo(false)
       return
@@ -77,8 +77,8 @@ export function CambiarCorreoPage() {
     if (errorActualizacion) {
       setError(
         esCorreoNoDisponible(errorActualizacion)
-          ? 'No se puede usar ese correo electronico. Elige otro e intenta nuevamente.'
-          : 'No pudimos solicitar el cambio de correo. Intenta nuevamente.',
+          ? 'No se puede usar ese correo electrónico. Elegí otro e intentá nuevamente.'
+          : 'No pudimos solicitar el cambio de correo. Intentá nuevamente.',
       )
       setSolicitandoCorreo(false)
       return
@@ -86,12 +86,12 @@ export function CambiarCorreoPage() {
 
     setContrasenaActual('')
     setCorreoNuevo('')
-    setMensaje(`Enviamos una confirmacion a ${correoLimpio}. Tu correo actual seguira vigente hasta confirmarla.`)
+    setMensaje(`Enviamos una confirmación a ${correoLimpio}. Tu correo actual seguirá vigente hasta confirmarla.`)
     setSolicitandoCorreo(false)
   }
 
   if (sessionState === 'checking') {
-    return <CircularProgress aria-label="Verificando sesion" sx={{ m: 4 }} />
+    return <CircularProgress aria-label="Verificando sesión" sx={{ m: 4 }} />
   }
 
   if (sessionState === 'missing') {
@@ -101,12 +101,12 @@ export function CambiarCorreoPage() {
   return (
     <Box component="main" sx={{ maxWidth: 480, mx: 'auto', mt: 4, px: 2 }}>
       <Stack component="form" spacing={2} onSubmit={solicitarCambioCorreo} noValidate>
-        <Typography component="h1" variant="t1">Cambiar correo electronico</Typography>
-        <Typography color="text.secondary">Confirmaremos el cambio solo en la nueva direccion. Tu correo actual seguira vigente hasta entonces.</Typography>
+        <Typography component="h1" variant="t1">Cambiar correo electrónico</Typography>
+        <Typography color="text.secondary">Confirmaremos el cambio solo en la nueva dirección. Tu correo actual seguirá vigente hasta entonces.</Typography>
         {error && <Alert severity="error" role="alert">{error}</Alert>}
         {mensaje && <Alert severity="success" role="status">{mensaje}</Alert>}
         <TextField
-          label="Contrasena actual para cambiar el correo"
+          label="Contraseña actual para cambiar el correo"
           type="password"
           value={contrasenaActual}
           onChange={(event) => setContrasenaActual(event.target.value)}
@@ -115,7 +115,7 @@ export function CambiarCorreoPage() {
           fullWidth
         />
         <TextField
-          label="Correo electronico nuevo"
+          label="Correo electrónico nuevo"
           type="email"
           value={correoNuevo}
           onChange={(event) => setCorreoNuevo(event.target.value)}
