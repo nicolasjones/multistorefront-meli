@@ -49,7 +49,7 @@ describe('DefinirContrasenaPage', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Recuperar acceso' })).toBeInTheDocument()
-    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
+    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
     expect(auth.getSession).not.toHaveBeenCalled()
   })
 
@@ -69,7 +69,7 @@ describe('DefinirContrasenaPage', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Recuperar acceso' })).toBeInTheDocument()
-    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
+    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
   })
 
   it('shows the invitation form only after a valid invitation-link session', async () => {
