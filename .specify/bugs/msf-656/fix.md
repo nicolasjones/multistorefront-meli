@@ -62,7 +62,7 @@ eje de aislamiento —la empresa accesible (`private.empresas_accesibles()`)—,
 
 - Comandos ejecutados:
   - `pnpm db:validar:aditivas` → `420 migraciones verificadas en supabase/migrations: ninguna destructiva sin camino de reversión documentado.`
-  - `pnpm docs:check` → OK con la base del PR (`GITHUB_BASE_REF=main`, como en el CI); con la base por omisión `HEAD~1` depende de que el último commit toque `docs/`. y `Migraciones OK: 420 archivo(s), 1 nuevo(s) contra origin/dokploy.`
+  - `pnpm docs:check` → OK con la base del PR (`GITHUB_BASE_REF=main`, como en el CI); con la base por omisión `HEAD~1` depende de que el último commit toque `docs/`. `pnpm docs:check` también imprime `Migraciones OK: 420 archivo(s), 1 nuevo(s) contra origin/dokploy.`
   - `pnpm lint` → sin errores (no se tocan archivos de `apps/web`).
   - `pnpm build` → sin errores.
   - `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack en ok; **gitleaks no se pudo correr** (sin binario ni Docker) y la herramienta lo informa como «hallazgos» (exit 1); se re-ejecuta en el CI.
@@ -103,4 +103,4 @@ eje de aislamiento —la empresa accesible (`private.empresas_accesibles()`)—,
   rol sin Ventas en la Tienda B aún lee B por `/rest/v1/`. No se cierra acá: `nivel_ventas_en_empresa` tiene
   `execute` revocado para `authenticated` (`20261203100400_comprobantes_rpc.sql:50`), así que usarla en una política
   exige un envoltorio nuevo (como `puede_leer_faltantes_empresa`) y un pgTAP que hoy no se puede correr sin Docker.
-  Queda como seguimiento propio; la fuga es más acotada que antes del arreglo.
+  Seguimiento trazado: **MSF-737** (Tarea `seguimiento`, Backlog); la fuga es más acotada que antes del arreglo.
