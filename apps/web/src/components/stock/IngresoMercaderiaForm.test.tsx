@@ -52,6 +52,12 @@ describe('IngresoMercaderiaForm', () => {
     mocks.productos.mockResolvedValue({ data: [{ id: '33333333-3333-3333-3333-333333333333', nombre: 'Producto Uno', sku: 'SKU-1', proveedor_id: '22222222-2222-2222-2222-222222222222' }], error: null })
   })
 
+  it('[MSF-601] la nota del depósito no usa jerga interna', async () => {
+    abrir()
+    expect(await screen.findByText('El stock ingresado suma al depósito principal.')).toBeInTheDocument()
+    expect(screen.queryByText(/épica/i)).not.toBeInTheDocument()
+  })
+
   it('muestra el formulario y valida los campos obligatorios antes de enviar', async () => {
     abrir()
     expect(await screen.findByText('Nuevo ingreso')).toBeInTheDocument()

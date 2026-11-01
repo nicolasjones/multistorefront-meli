@@ -339,7 +339,7 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
         </Stack>
 
         <Typography variant="xs" color="text.secondary">
-          El stock suma al depósito único de la organización; los depósitos llegan con la épica de Stock de depósitos.
+          El stock ingresado suma al depósito principal.
         </Typography>
       </Stack>
 
