@@ -96,6 +96,7 @@ nav:
           - Tu organización y tus empresas: producto/organizacion-y-empresas.md
           - Usuarios y roles: producto/usuarios-y-roles.md
           - Actividad: producto/actividad.md
+          - Inicio, alertas y búsqueda: producto/inicio-y-alertas.md
       - Catálogo y precios:
           - Productos y categorías: producto/catalogo-productos.md
           - Cotización del dólar: producto/precios-dolar.md
@@ -168,6 +169,7 @@ nav:
           - Permisos por empresa: tecnico/permisos-por-empresa.md
           - Administración de usuarios: tecnico/administracion-organizacion.md
           - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
+          - Inicio y alertas: tecnico/inicio-y-alertas.md
       - Catálogo y precios:
           - Alta y edición: tecnico/catalogo-alta-y-edicion.md
           - Listado y categorías: tecnico/catalogo-listado-y-categorias.md

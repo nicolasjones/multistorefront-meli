@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "b4122174c8339ac09ae9ad05598a335966c6429650c22c776a7b7f95fc4c7ee3",
+      "pageHash": "e7f8898bc7cee8b9bd190dce57ad6b43aed6b2502790149a5356edfb91dd7050",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -499,6 +499,15 @@
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
       "pageHash": "48dc3e02a1431267d51b8432c9b735afc08d47bbb5d09fd973ababdfb5035519",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/inicio-y-alertas.md": {
+      "title": "Inicio, alertas y búsqueda de productos",
+      "pageHash": "081671e66a1834353766db32c18c12abd3a3105c6f30e40650da6a51d839b414",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1291,6 +1300,19 @@
       ],
       "owner": "tecnico",
       "commit": "503a453f"
+    },
+    "docs/tecnico/inicio-y-alertas.md": {
+      "title": "Inicio y alertas: pantalla, recálculo y búsqueda global",
+      "pageHash": "030c0f32ddb3a574d08e62f96a8306b72025290b69e45d7b02bcb192f68676df",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "fcd2b69a",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos: modelo, RPC y operación",

@@ -19,7 +19,7 @@ El menú de la izquierda agrupa las pantallas por tema. Hacé clic en el nombre 
 
 | Grupo del menú | Para qué sirve | Guías |
 |---|---|---|
-| **Inicio** | Pantalla de bienvenida. | — |
+| **Inicio** | Tarjetas de empresas, stock, consultas y dólar, alertas con enlace y búsqueda de productos. | [Inicio, alertas y búsqueda](inicio-y-alertas.md) |
 | **Catálogo** | Productos y categorías. | [Productos](catalogo-productos.md) · [Precios por escala](precios-e-iva.md) |
 | **Stock** | Existencias, movimientos, ingreso de mercadería y depósitos. | [Stock](stock-movimientos.md) · [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) |
 | **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho y transportes. | [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Devoluciones](ventas-rma-devoluciones.md) |
