@@ -37,6 +37,7 @@ Tres entradas según lo que necesites:
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
 | Superset | [operar-superset.md](operar-superset.md) |
+| Servidor MCP: credenciales, sesiones y revocación | [servidor-mcp.md](servidor-mcp.md) |
 | Workers | [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md) |
 | CI y runners | [adoptar-runners-locales.md](adoptar-runners-locales.md), [ci-self-hosted-storage.md](ci-self-hosted-storage.md), [adoptar-ci-base-aislada.md](adoptar-ci-base-aislada.md) |
 | Prototipos y sistema de diseño | [prototipos.md](prototipos.md), [sistema-de-diseno.md](sistema-de-diseno.md), [adoptar-kit-panel-operable.md](adoptar-kit-panel-operable.md) |

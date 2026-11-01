@@ -54,18 +54,39 @@ export async function autenticarConexion(admin: SupabaseClient, token: string | 
   return { organizacionId, credencialId, admin, token }
 }
 
+// Motivo por el que una sesión existente no puede seguir.
+//
+// - `token-ausente` / `token-distinto`: el Bearer no es el de la sesión. No
+//   dice NADA de la credencial: puede ser otro cliente que adivinó el id de
+//   sesión, no la sesión legítima. La sesión NO se cierra (solo se rechaza la
+//   solicitud) — cerrar acá le permitiría a cualquiera tumbar la sesión de
+//   otro sin tener su credencial (MSF-677).
+// - `credencial-revocada`: el Bearer es el de la sesión, pero la credencial ya
+//   no está activa (`revocada_en is null` falla). Ahí sí se cierra la sesión:
+//   la credencial murió y la sesión no puede seguir sirviendo.
+// - `error-base`: la RPC no pudo responder. Falla cerrado (se rechaza), sin
+//   cerrar la sesión: un fallo transitorio de la base no puede tumbar las
+//   sesiones de todos; la revocación se detecta sola en la próxima solicitud.
+export type MotivoRechazo = 'token-ausente' | 'token-distinto' | 'credencial-revocada' | 'error-base'
+
+export type ResultadoRevalidacion = { vigente: true } | { vigente: false; motivo: MotivoRechazo }
+
 // Revalida, en cada solicitud de una sesión ya abierta, que el Bearer sea el
 // mismo con el que se hizo el `initialize` y que su credencial siga activa
 // (`revocada_en is null`). No audita en conexiones_mcp: no es una conexión
-// nueva. Ante un error de la base se rechaza (falla cerrado).
+// nueva. Distingue POR QUÉ se rechaza, para que el servidor pueda cerrar la
+// sesión solo cuando la credencial está revocada.
 export async function revalidarConexion(
   admin: SupabaseClient,
   token: string | undefined,
   conexion: Pick<ConexionAutenticada, 'credencialId' | 'token'>,
-): Promise<boolean> {
-  if (!token || !tokensIguales(token, conexion.token)) return false
+): Promise<ResultadoRevalidacion> {
+  if (!token) return { vigente: false, motivo: 'token-ausente' }
+  if (!tokensIguales(token, conexion.token)) return { vigente: false, motivo: 'token-distinto' }
   const { data: credencialId, error } = await admin.rpc('resolver_credencial_id_mcp', { p_token: token })
-  return !error && credencialId === conexion.credencialId
+  if (error) return { vigente: false, motivo: 'error-base' }
+  if (credencialId !== conexion.credencialId) return { vigente: false, motivo: 'credencial-revocada' }
+  return { vigente: true }
 }
 
 function tokensIguales(a: string, b: string): boolean {

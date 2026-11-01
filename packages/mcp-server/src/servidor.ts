@@ -75,12 +75,29 @@ export function crearServidorHttp(adminInyectado?: SupabaseClient): Server {
     const sessionId = req.headers[SESSION_HEADER] as string | undefined
     const sesionExistente = sessionId ? sesiones.get(sessionId) : undefined
 
+    // Un `mcp-session-id` que no corresponde a ninguna sesión viva (nunca
+    // existió, o la sesión se cerró por revocación o por inactividad) se
+    // responde 404, como manda el protocolo Streamable HTTP. NO se abre una
+    // sesión nueva con el Bearer de esa solicitud: esa credencial pudo
+    // haber sido revocada justo después de aquella sesión.
+    if (sessionId && !sesionExistente && (req.method === 'POST' || req.method === 'DELETE')) {
+      res.writeHead(404, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Sesión inexistente.' }))
+      return
+    }
+
     // Toda solicitud de una sesión existente (POST o DELETE) revalida la
     // credencial: una revocación corta la siguiente llamada (MSF-677).
     if (sesionExistente && (req.method === 'POST' || req.method === 'DELETE')) {
-      const vigente = await revalidarConexion(admin, bearer(req.headers.authorization), sesionExistente.conexion)
-      if (!vigente) {
-        await cerrarSesion(sessionId as string, sesionExistente)
+      const revision = await revalidarConexion(admin, bearer(req.headers.authorization), sesionExistente.conexion)
+      if (!revision.vigente) {
+        // Solo una credencial REVOCADA cierra la sesión. Con un Bearer
+        // ausente o distinto no se sabe nada de la credencial (puede ser
+        // otro cliente que adivinó el id de sesión): se responde 403 y la
+        // sesión sigue viva para su dueño — quien no tiene la credencial
+        // no puede tumbar la sesión de otro.
+        if (revision.motivo === 'credencial-revocada') {
+          await cerrarSesion(sessionId as string, sesionExistente)
+        }
         res.writeHead(403, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'No autorizado: credencial inválida o revocada.' }))
         return
       }
