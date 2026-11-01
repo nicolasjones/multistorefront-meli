@@ -1,8 +1,12 @@
--- MSF-656: comprobantes, líneas, RMA e ítems solo se leen de las empresas accesibles (además de organización y
--- sección `ventas`). Persona de una sola tienda (A) no ve lo de B; el administrador ve ambas; org ajena no ve nada.
+-- MSF-656: las políticas SELECT de `dominio.comprobantes_venta`, `comprobantes_venta_lineas`, `rma` y `rma_items`
+-- filtraban solo por organización y sección `ventas`: una persona limitada a una tienda leía por /rest/v1/ los
+-- datos de las otras tiendas de su organización. Se agrega el segundo eje de aislamiento (empresa accesible).
+--
+-- Cubre: persona de una sola tienda (no ve RMA, ítems, líneas ni comprobantes de otra tienda; sí los propios y
+-- los heredados sin empresa), administrador (ve todas las tiendas de su organización) y otra organización (nada).
 begin;
 
-select plan(14);
+select plan(17);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -22,6 +26,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Tienda A'),
   ('a1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'Tienda B');
 
+-- La persona de prueba solo tiene acceso a la Tienda A.
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'operador');
 
@@ -31,21 +36,24 @@ insert into clientes (id, organizacion_id, numero, nombre, tipo) values
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista) values
   ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joystick', 'JOY-1', 'ARS', 1000);
 
-insert into dominio.depositos (id, organizacion_id, nombre) values
-  ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Depósito X')
-on conflict do nothing;
-
--- Un comprobante por tienda y uno heredado sin empresa.
+-- Un comprobante por tienda y uno heredado sin empresa (anterior a F-VTA-04): no pertenece a ninguna tienda.
 insert into dominio.comprobantes_venta (id, organizacion_id, cliente_id, empresa_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva) values
   ('e1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-00000000000a', 'factura', 'A-1', current_date - 1, 'confirmado', 100, 100),
   ('e1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-00000000000b', 'factura', 'B-1', current_date - 1, 'confirmado', 100, 100),
   ('e1000000-0000-0000-0000-00000000000c', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', null, 'factura', 'S-1', current_date - 1, 'confirmado', 100, 100);
 
+-- Una línea por comprobante. El depósito es el principal que siembra la organización (determinista).
 insert into dominio.comprobantes_venta_lineas (id, organizacion_id, comprobante_id, orden, producto_id, descripcion, cantidad, precio_unitario, escala, deposito_id, subtotal_sin_iva, iva)
-select ('1a000000-0000-0000-0000-00000000000' || x.k)::uuid, '11111111-1111-1111-1111-111111111111', x.c, 1,
+select x.id, '11111111-1111-1111-1111-111111111111', x.comprobante_id, 1,
        'b1000000-0000-0000-0000-000000000001', 'Joystick', 1, 100, 'x1',
-       (select id from dominio.depositos where organizacion_id = '11111111-1111-1111-1111-111111111111' limit 1), 100, 0
-from (values ('a', 'e1000000-0000-0000-0000-00000000000a'::uuid), ('b', 'e1000000-0000-0000-0000-00000000000b'::uuid)) x(k, c);
+       (select d.id from dominio.depositos d
+         where d.organizacion_id = '11111111-1111-1111-1111-111111111111' and d.por_defecto),
+       100, 0
+from (values
+  ('1a000000-0000-0000-0000-00000000000a'::uuid, 'e1000000-0000-0000-0000-00000000000a'::uuid),
+  ('1a000000-0000-0000-0000-00000000000b'::uuid, 'e1000000-0000-0000-0000-00000000000b'::uuid),
+  ('1a000000-0000-0000-0000-00000000000c'::uuid, 'e1000000-0000-0000-0000-00000000000c'::uuid)
+) x(id, comprobante_id);
 
 insert into dominio.rma (id, organizacion_id, empresa_id, comprobante_id, numero, forma_rma, motivo) values
   ('f9000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'e1000000-0000-0000-0000-00000000000a', 'RMA-0001', 'cambio_directo', 'Falla'),
@@ -62,26 +70,56 @@ begin
   set local role authenticated;
 end $$;
 
+-- ============================================================================
+-- El arreglo: las cuatro políticas SELECT filtran por empresas accesibles
+-- ============================================================================
+
+select is(
+  (select count(*)::int from pg_policies
+    where schemaname = 'dominio'
+      and tablename in ('comprobantes_venta', 'comprobantes_venta_lineas', 'rma', 'rma_items')
+      and policyname like '%\_select'
+      and qual like '%empresas\_accesibles%'),
+  4,
+  'las cuatro políticas SELECT filtran por private.empresas_accesibles()'
+);
+
+-- ============================================================================
 -- Persona de una sola tienda (A)
+-- ============================================================================
+
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
 select is((select count(*)::int from dominio.rma), 1, 'tienda A: solo ve el RMA de su tienda');
 select is((select count(*)::int from dominio.rma where empresa_id = 'a1000000-0000-0000-0000-00000000000b'), 0, 'tienda A: no ve el RMA de B');
 select is((select count(*)::int from dominio.rma_items), 1, 'tienda A: solo ve los ítems de RMA de su tienda');
-select is((select count(*)::int from dominio.comprobantes_venta_lineas), 1, 'tienda A: solo ve las líneas de su tienda');
-select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = 'e1000000-0000-0000-0000-00000000000b'), 0, 'tienda A: no ve líneas de B');
-select is((select count(*)::int from dominio.comprobantes_venta where empresa_id = 'a1000000-0000-0000-0000-00000000000b'), 0, 'tienda A: no ve comprobantes de B');
-select is((select count(*)::int from dominio.comprobantes_venta), 2, 'tienda A: ve el de A y el heredado sin empresa');
+select is(
+  (select count(*)::int from dominio.rma_items i join dominio.rma r on r.id = i.rma_id where r.empresa_id = 'a1000000-0000-0000-0000-00000000000b'),
+  0, 'tienda A: no ve los ítems del RMA de B');
+select is((select count(*)::int from dominio.comprobantes_venta_lineas), 2, 'tienda A: ve las líneas de su tienda y del comprobante heredado sin empresa');
+select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = 'e1000000-0000-0000-0000-00000000000b'), 0, 'tienda A: no ve las líneas de B');
+select is((select count(*)::int from dominio.comprobantes_venta), 2, 'tienda A: ve el comprobante de A y el heredado sin empresa');
+select is((select count(*)::int from dominio.comprobantes_venta where empresa_id = 'a1000000-0000-0000-0000-00000000000b'), 0, 'tienda A: no ve los comprobantes de B');
 
+-- ============================================================================
 -- Administrador: todas las tiendas de su organización
+-- ============================================================================
+
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+
 select is((select count(*)::int from dominio.rma), 2, 'administrador: ve los RMA de ambas tiendas');
 select is((select count(*)::int from dominio.rma_items), 2, 'administrador: ve los ítems de ambas tiendas');
-select is((select count(*)::int from dominio.comprobantes_venta_lineas), 2, 'administrador: ve las líneas de ambas tiendas');
+select is((select count(*)::int from dominio.comprobantes_venta_lineas), 3, 'administrador: ve las líneas de ambas tiendas y del comprobante heredado');
 select is((select count(*)::int from dominio.comprobantes_venta), 3, 'administrador: ve todos los comprobantes');
 
+-- ============================================================================
 -- Otra organización
+-- ============================================================================
+
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+
 select is((select count(*)::int from dominio.rma), 0, 'otra organización: no ve RMA');
+select is((select count(*)::int from dominio.rma_items), 0, 'otra organización: no ve ítems de RMA');
 select is((select count(*)::int from dominio.comprobantes_venta_lineas), 0, 'otra organización: no ve líneas');
 select is((select count(*)::int from dominio.comprobantes_venta), 0, 'otra organización: no ve comprobantes');
 
