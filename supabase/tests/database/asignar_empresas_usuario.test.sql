@@ -3,7 +3,7 @@
 -- verificaciones como authenticated vía request.jwt.claims.
 begin;
 
-select plan(36);
+select plan(40);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -210,6 +210,27 @@ select is(
   '[{"empresa_id": "e1000000-0000-0000-0000-000000000001", "rol_id": "deposito"}]'::jsonb,
   'la invitación guarda el jsonb normalizado (empresa_id, rol_id)'
 );
+
+-- MSF-606: el rol Técnico es válido por empresa y como rol de invitación.
+select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select lives_ok(
+  $$select public.asignar_empresas_usuario('a1000000-0000-0000-0000-000000000002',
+    '[{"empresa_id": "e1000000-0000-0000-0000-000000000001", "rol_id": "tecnico"}]'::jsonb)$$,
+  'se puede asignar Técnico como rol por empresa'
+);
+select is(
+  (select rol_id from public.listar_empresas_usuarios()
+    where user_id = 'a1000000-0000-0000-0000-000000000002' and empresa_nombre = 'San Javucho'),
+  'tecnico', 'la lista trae Técnico como rol por tienda'
+);
+select is((select (public.registrar_invitacion('tec@example.com', 'tecnico')).rol_id), 'tecnico', 'registrar_invitacion acepta tecnico');
+select throws_ok(
+  $$select public.asignar_empresas_usuario('a1000000-0000-0000-0000-000000000002',
+    '[{"empresa_id": "e1000000-0000-0000-0000-000000000001", "rol_id": "administrador"}]'::jsonb)$$,
+  '22023', 'Rol inválido para una empresa', 'administrador sigue sin ser rol por empresa'
+);
+reset role;
 
 -- Ejecutabilidad: anon no.
 select is(has_function_privilege('anon', 'public.asignar_empresas_usuario(uuid, jsonb)', 'EXECUTE'), false, 'anon no ejecuta asignar_empresas_usuario');
