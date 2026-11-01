@@ -29,5 +29,5 @@ Se abren desde el detalle de la reparación con «Imprimir orden» (siempre) e �
 ## Límites
 
 - **Documento no fiscal**; los importes son **sin IVA** (ARS).
-- El **texto de condiciones** es provisorio («pendiente de confirmar»): decisión abierta 3 de la spec.
+- El **texto de condiciones** no está definido (decisión abierta 3 de la spec): mientras no exista, la orden de ingreso no imprime esa línea (MSF-614). Se define en `CONDICIONES_SERVICIO` (`apps/web/src/lib/documentosReparacion.ts`).
 - **CUIT y domicilio fiscal** no existen hoy en `dominio.empresas`: no se imprimen ni se inventan.
