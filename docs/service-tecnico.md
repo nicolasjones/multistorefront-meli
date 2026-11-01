@@ -21,6 +21,22 @@ Spec: `specs/20261022-100000-service-listado-items-e-impresion/`. Guías: [Ítem
 - **Diferencias con el prototipo**: «Avisar al cliente» queda fuera de alcance; la impresión es una vista A4 propia de Service (sin PDF de servidor).
 - **Contradicciones prototipo↔requisitos**: el listado filtra por período sobre la *entrega prevista* e incluye en «mes» las reparaciones sin fecha, decisión de la spec que el prototipo no dibuja.
 
+## Índice y cierre de la épica MSF-124 (adjuntos, garantía, seguimiento y reportes)
+
+Spec: `specs/20261028-100000-service-seguimiento-y-reportes/`. Guías: [Fotos y adjuntos](service-adjuntos.md) (F-SVC-20), [Reingreso por garantía](service-garantia.md) (F-SVC-21), [Consulta de estado por el cliente con enlace](service-seguimiento.md) (F-SVC-22) y [Reportes y exportación](service-reportes.md) (F-SVC-23).
+
+- **Revisión de seguridad (T056, FR-090)** — hecha con los criterios de `authz-security` (autorización, aislamiento por organización, escalada) e `infra-security` (bucket, Edge Function, grants), leyendo las migraciones `20270122130100…160400` y sus pgTAP:
+  - **RLS de las tres tablas nuevas**: `dominio.reparacion_adjuntos` (policy `select` por organización, nivel de `service_tecnico` y tienda accesible; sin grants de escritura), `dominio.reparacion_enlaces_consulta` y `public.consultas_publicas_intentos` (RLS habilitada **sin políticas ni grants** para `anon`/`authenticated`: solo las tocan funciones `security definer`). `dominio` vs `public` según el Principio VII: los adjuntos y los enlaces son datos del taller; el contador de intentos es transversal a un endpoint público y no lleva `organizacion_id`. `rls_en_toda_tabla` recorre ambos esquemas.
+  - **Bucket privado**: `reparacion-adjuntos` se crea con `public = false`, tope de 5 MiB y MIME `jpeg/png/webp`; las policies de `storage.objects` (select/insert/delete) limitan por organización y el conteo por reparación usa una función `security definer` (`20270122140600`). Los archivos se leen con URL firmada de 5 minutos.
+  - **Edge Function pública sin sesión**: `consultar-estado-reparacion` tiene `verify_jwt = false` a propósito (la página pública no tiene sesión); la service-role vive solo en el servidor. Antes de tocar datos cuenta la consulta por IP hasheada y corta con 429 (30 consultas por ventana de 600 s); un token inexistente, mal formado o de otra reparación responde el mismo 404 uniforme.
+  - **Token del enlace**: 192 bits generados en la base, único por reparación, sin RPC para `anon`; `obtener_enlace_consulta` exige `edicion` y tienda accesible.
+  - **Lista blanca**: `private.estado_publico_reparacion` arma el JSON campo por campo (nunca `select *`) y el handler lo filtra de nuevo; no sale cliente, contacto, serie, falla, técnico, importes ni adjuntos.
+  - **Vistas sin costos**: `analitica.service_reparaciones` y `analitica.service_reparacion_items` exponen totales al cliente, nunca costos ni ganancia, solo `select` para `superset_analitica` (`revoke all … from public, anon, authenticated`).
+  - **`anon` sin ejecución**: toda RPC nueva lleva `revoke … from public, anon`; las que atiende la Edge Function (`registrar_consulta_publica`, `obtener_estado_publico_reparacion`) se conceden **solo a `service_role`**, y las de la app a `authenticated`. Todas las `security definer` fijan `search_path = ''`.
+  - **Tablero y reportes (FR-062, FR-064)**: el acceso restringido se resuelve en la pestaña («Acceso restringido» sin `lectura`, y 403 sin pedir token).
+  - **Límite conocido**: el contador es por IP hasheada (no por tienda ni por token) y purga de forma acotada (100 filas por llamada) las ventanas vencidas; la IP real depende de las cabeceras del proxy del despliegue (ver `service-seguimiento.md`).
+  - Evidencia: `service_adjuntos.test.sql`, `service_garantia.test.sql`, `service_enlace_consulta.test.sql`, `service_analitica.test.sql`, `service_reportes_acceso.test.sql`, `rls_en_toda_tabla.test.sql` y el test del handler de la Edge Function.
+
 ## Modelo de datos (F-SVC-02)
 
 Esquema (Constitución, Principio VII): `dominio.reparaciones` es la entidad central del negocio del taller y
