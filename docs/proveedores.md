@@ -95,7 +95,10 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   misma organización. Los proveedores existentes quedan sin tiendas marcadas; un alta nueva también (hay que elegir).
 - Diálogo Nuevo/Editar: casillas «Compra para» (una por tienda), con el mismo patrón de
   `SelectorEmpresas` que «Disponible en» de Cuentas de cobro. Se guardan después del proveedor; si fallan, el aviso
-  dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
+  dice que el proveedor sí se guardó y ofrece «Reintentar»: el reintento **vuelve a guardar el formulario
+  completo** sobre el mismo proveedor —no lo duplica— con lo que la persona editó después del fallo, y usando el
+  `updated_at` que devolvió el guardado anterior (si no, el reintento chocaría con el bloqueo optimista). Si no se
+  tocan las tiendas, no se llama a la RPC. (MSF-698)
 - Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
 - Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
 

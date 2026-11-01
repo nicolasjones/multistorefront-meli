@@ -68,10 +68,13 @@ export function useBandejaConsultas(filtros: FiltrosConsultas, { habilitado = tr
 
 // Una consulta por id para el detalle (enlace `?consulta=<id>`). Siempre se lee fresca al abrir:
 // su `updated_at` es el sello del bloqueo optimista. `noEncontrada` cubre inexistente y sin
-// acceso por igual.
+// acceso por igual. Se relee además cuando cambia una consulta (guardar o registrar una
+// respuesta): si el sello del detalle quedara viejo, la acción siguiente chocaría con el control
+// de concurrencia y obligaría a recargar, con lo que se pierden los cambios sin guardar (MSF-698).
 export function useConsulta(id: string | null) {
   const { organizacionActiva } = useOrganizacionActiva()
   const clave = `${organizacionActiva?.id ?? ''}|${id ?? ''}`
+  const revision = useRevisionConsultas()
   const [lectura, setLectura] = useState<Lectura<Consulta | null> | null>(null)
   const ultimaPeticion = useRef(0)
 
@@ -86,7 +89,8 @@ export function useConsulta(id: string | null) {
       resultado = { ambito: clave, error: true }
     }
     if (peticion === ultimaPeticion.current) setLectura(resultado)
-  }, [id, clave])
+    // `revision` solo dispara la relectura tras cambiar una consulta.
+  }, [id, clave, revision])
 
   useEffect(() => {
     void cargar()

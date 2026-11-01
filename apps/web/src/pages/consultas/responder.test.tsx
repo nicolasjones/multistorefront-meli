@@ -56,6 +56,11 @@ const abrir = (fila: Consulta = consulta(), puedeEditar = true) => {
 
 const responder = (nombre: RegExp | string) => fireEvent.click(screen.getByRole('button', { name: nombre }))
 
+const elegir = (etiqueta: string, opcion: string) => {
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: etiqueta }))
+  fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: opcion }))
+}
+
 describe('texto inicial (FR-009)', () => {
   it('saluda con el nombre y nombra la tienda, con y sin producto', () => {
     expect(armarTextoInicial(consulta()).cuerpo).toBe('Hola Ana Pérez, te escribimos de San Javucho por tu consulta. ')
@@ -93,11 +98,11 @@ describe('enlace por canal (FR-007, FR-008)', () => {
 
 describe('cambios al responder (FR-010)', () => {
   it('nueva pasa a en curso y toma al usuario como responsable', () => {
-    expect(cambiosAlResponder({ estado: 'nueva', responsable_id: null }, YO)).toEqual({ estado: 'en_curso', responsableId: YO })
+    expect(cambiosAlResponder({ estado: 'nueva', responsableId: null }, YO)).toEqual({ estado: 'en_curso', responsableId: YO })
   })
   it('no pisa al responsable ni reabre una resuelta', () => {
-    expect(cambiosAlResponder({ estado: 'resuelta', responsable_id: 'u-otro' }, YO)).toEqual({ estado: 'resuelta', responsableId: 'u-otro' })
-    expect(cambiosAlResponder({ estado: 'en_curso', responsable_id: null }, YO)).toEqual({ estado: 'en_curso', responsableId: YO })
+    expect(cambiosAlResponder({ estado: 'resuelta', responsableId: 'u-otro' }, YO)).toEqual({ estado: 'resuelta', responsableId: 'u-otro' })
+    expect(cambiosAlResponder({ estado: 'en_curso', responsableId: null }, YO)).toEqual({ estado: 'en_curso', responsableId: YO })
   })
 })
 
@@ -107,7 +112,11 @@ describe('Responder por… en el detalle (FR-007…FR-013, SC-003)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.stubGlobal('open', abrirVentana)
-    mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
+    mocks.useResponsablesConsultas.mockReturnValue({
+      responsables: [{ user_id: 'u-2', nombre: 'Beto' }],
+      isLoading: false,
+      isError: false,
+    })
     mocks.getUser.mockResolvedValue({ data: { user: { id: YO } }, error: null })
     mocks.actualizarConsulta.mockResolvedValue('2026-10-23T12:00:00.000Z')
   })
@@ -205,5 +214,46 @@ describe('Responder por… en el detalle (FR-007…FR-013, SC-003)', () => {
     await waitFor(() => expect(mocks.onGuardado).toHaveBeenCalled())
     expect(abrirVentana).toHaveBeenCalledTimes(1)
     expect(mocks.actualizarConsulta).toHaveBeenCalledTimes(1)
+  })
+
+  // MSF-698: «Responder por…» no puede escribir la foto leída al abrir: registraba la nota, el
+  // estado y el responsable antiguos y lo recién editado se perdía sin aviso.
+  it('«Responder por…» registra la nota del formulario, no la de la foto', async () => {
+    abrir(consulta({ nota_interna: 'Nota vieja' }))
+    fireEvent.change(screen.getByLabelText('Nota interna'), { target: { value: 'Nota nueva' } })
+    responder('Responder por correo')
+    await waitFor(() => expect(mocks.actualizarConsulta).toHaveBeenCalledWith(
+      expect.objectContaining({ nota: 'Nota nueva' }),
+    ))
+    expect(mocks.actualizarConsulta).not.toHaveBeenCalledWith(expect.objectContaining({ nota: 'Nota vieja' }))
+  })
+
+  it('«Responder por…» registra el estado y el responsable elegidos en el formulario', async () => {
+    abrir(consulta({ nota_interna: 'Nota vieja', responsable_id: 'u-9', responsable_nombre: 'Persona anterior' }))
+    elegir('Estado', 'Resuelta')
+    elegir('Responsable', 'Beto')
+    fireEvent.change(screen.getByLabelText('Nota interna'), { target: { value: 'Nota nueva' } })
+    responder('Responder por correo')
+    await waitFor(() => expect(mocks.actualizarConsulta).toHaveBeenCalledWith({
+      id: 'c1000000-0000-0000-0000-000000000001',
+      estado: 'resuelta',
+      responsableId: 'u-2',
+      nota: 'Nota nueva',
+      actualizadoEn: '2026-10-23T11:48:00.000Z',
+    }))
+    // El aviso dice cómo quedó con lo que se registró, no con la foto.
+    await waitFor(() => expect(mocks.onGuardado).toHaveBeenCalledWith('Consulta Resuelta a nombre de Beto · Ana Pérez'))
+  })
+
+  it('el reintento tras un fallo vuelve a mandar lo que está en el formulario', async () => {
+    mocks.actualizarConsulta.mockRejectedValueOnce(new ErrorConsulta('boom', null))
+    abrir(consulta({ nota_interna: 'Nota vieja' }))
+    fireEvent.change(screen.getByLabelText('Nota interna'), { target: { value: 'Nota nueva' } })
+    responder('Responder por correo')
+    const alerta = await screen.findByRole('alert')
+    fireEvent.click(within(alerta).getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(mocks.actualizarConsulta).toHaveBeenCalledTimes(2))
+    expect(mocks.actualizarConsulta.mock.calls[1][0]).toMatchObject({ nota: 'Nota nueva' })
+    expect(mocks.onGuardado).toHaveBeenCalledTimes(1)
   })
 })
