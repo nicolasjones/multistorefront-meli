@@ -21,6 +21,7 @@ import {
   AYUDA_CANAL_ML,
   CANALES_VENTA,
   ETIQUETA_TIPO,
+  tituloComprobante,
   MENSAJE_CERRADO,
   aFormulario,
   crearComprobante,
@@ -567,7 +568,7 @@ export function ComprobanteVenta() {
   }
 
   const titulo = comprobante
-    ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.numero}`
+    ? tituloComprobante(comprobante.tipo, comprobante.numero)
     : formulario.tipo === 'presupuesto'
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
