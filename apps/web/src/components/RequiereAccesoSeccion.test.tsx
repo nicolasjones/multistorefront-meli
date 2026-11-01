@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequiereAccesoSeccion } from './RequiereAccesoSeccion'
@@ -83,6 +83,19 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(hijo).not.toHaveBeenCalled()
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('con error al cargar permisos muestra «No pudimos verificar» con Reintentar, sin acceso restringido', () => {
+    const recargar = vi.fn()
+    mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false, error: true, recargar })
+    const hijo = renderizar()
+
+    expect(screen.getByText('No pudimos verificar tus permisos.')).toBeInTheDocument()
+    expect(screen.queryByText('Sección no disponible para tu rol')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Solicitar acceso' })).not.toBeInTheDocument()
+    expect(hijo).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(recargar).toHaveBeenCalledTimes(1)
   })
 
   it('el superadmin no ve la pantalla restringida', async () => {
