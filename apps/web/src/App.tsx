@@ -121,6 +121,7 @@ const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const SeguimientoPage = lazy(() => import('./pages/seguimiento').then((modulo) => ({ default: modulo.SeguimientoPage })))
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
 const services = [
@@ -302,6 +303,8 @@ function App() {
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+              {/* Consulta pública del cliente (F-SVC-22): fuera del panel, sin sesión, menú ni barra superior. */}
+              <Route path="/seguimiento/:token" element={<Suspense fallback={null}><SeguimientoPage /></Suspense>} />
               <Route
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>
