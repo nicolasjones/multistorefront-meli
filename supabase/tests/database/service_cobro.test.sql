@@ -65,8 +65,20 @@ end $$;
 
 create temp table datos as
   select
+    (select id from dominio.depositos where organizacion_id = '11111111-1111-1111-1111-111111111111' and por_defecto) as principal,
     (select id from dominio.modelos_equipo where organizacion_id = '11111111-1111-1111-1111-111111111111' and equipo = 'Nintendo Switch' and modelo = 'Estándar') as modelo_uno;
 grant select on datos to public;
+
+-- Agregar un repuesto del catálogo descuenta stock (MSF-390): la pantalla necesita unidades en el principal.
+insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id)
+select principal, 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111' from datos
+on conflict do nothing;
+insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado) values
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 0)
+on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
+insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado) values
+  ('b1000000-0000-0000-0000-000000000001', (select principal from datos), '11111111-1111-1111-1111-111111111111', 10, 0)
+on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
 
 create temp table reps (clave text primary key, id uuid);
 grant select, insert on reps to public;
@@ -128,6 +140,9 @@ select public.agregar_item_reparacion((select id from reps where clave = 'otra_t
 select public.anular_reparacion((select id from reps where clave = 'anulada'), 'Se canceló');
 
 reset role;
+-- Los movimientos de la carga de ítems quedan fuera de la cuenta: el cobro no agrega ninguno.
+create temp table mov_base as select count(*)::int as n from dominio.movimientos_stock;
+grant select on mov_base to public;
 update public.clientes set archivado_en = now() where id = 'c5000000-0000-0000-0000-000000000002';
 
 -- ============================================================================
@@ -224,7 +239,7 @@ select is(
   (select count(*)::int from public.registro_actividad where tipo = 'reparacion.comprobante_generado'), 1,
   'se registra una sola actividad reparacion.comprobante_generado (la repetición no duplica)');
 select is(
-  (select count(*)::int from dominio.movimientos_stock), 0, 'generar el comprobante no mueve stock');
+  (select count(*)::int from dominio.movimientos_stock) - (select n from mov_base), 0, 'generar el comprobante no mueve stock');
 
 -- ============================================================================
 -- Lectura: comprobante asociado y origen en Ventas
