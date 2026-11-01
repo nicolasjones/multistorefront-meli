@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { instalarVencimientoDeSesion } from './arranque'
+import { cerrarSesionUnaVez, instalarVencimientoDeSesion } from './arranque'
 import { CLAVE_ULTIMA_ACTIVIDAD } from './vencimientoSesion'
 
 // El arranque decide por el host si instala el control de vencimiento por inactividad (MSF-673):
@@ -48,5 +48,29 @@ describe('instalarVencimientoDeSesion', () => {
 
     expect(alVencer).not.toHaveBeenCalled()
     expect(Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))).toBeGreaterThan(Date.now() - 60 * 60 * 1000)
+  })
+
+  it('[MSF-673] el cierre de sesión se dispara una sola vez aunque lleguen varios avisos', () => {
+    const cerrar = vi.fn()
+    const alVencer = cerrarSesionUnaVez(cerrar)
+
+    alVencer()
+    alVencer()
+    alVencer()
+
+    expect(cerrar).toHaveBeenCalledTimes(1)
+  })
+
+  it('[MSF-673] en el panel, varios clics tras el vencimiento no encadenan cierres de sesión', () => {
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(Date.now() - 13 * 60 * 60 * 1000))
+    const cerrar = vi.fn()
+
+    const detener = instalarVencimientoDeSesion('panel.ejemplo.com', cerrarSesionUnaVez(cerrar), PANEL)
+    window.dispatchEvent(new Event('pointerdown'))
+    window.dispatchEvent(new Event('pointerdown'))
+    window.dispatchEvent(new Event('keydown'))
+    detener?.()
+
+    expect(cerrar).toHaveBeenCalledTimes(1)
   })
 })

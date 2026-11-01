@@ -5,7 +5,7 @@ import '@fontsource-variable/instrument-sans'
 import './index.css'
 import App from './App.tsx'
 import { instalarDestinoActividad } from './lib/destinoActividad'
-import { instalarVencimientoDeSesion } from './lib/arranque'
+import { instalarVencimientoDeSesion, cerrarSesionUnaVez } from './lib/arranque'
 import { authProvider } from './providers/authProvider'
 import { esHostDeTienda, hostsDelPanel } from './lib/tienda'
 import { TiendaPublicaApp } from './pages/tienda-publica'
@@ -21,14 +21,13 @@ const panel = hostsDelPanel()
 const esTiendaPublica = esHostDeTienda(host, panel)
 
 // Vencimiento por inactividad: solo en el panel (MSF-673); la tienda no tiene `/login`.
-let cerrando = false
+// `cerrarSesionUnaVez` evita que los clics siguientes al vencimiento encadenen varios `signOut`
+// y varias navegaciones a `/login` (la pestaña puede quedar abierta horas).
 instalarVencimientoDeSesion(
   host,
-  () => {
-    if (cerrando) return
-    cerrando = true
+  cerrarSesionUnaVez(() => {
     void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
-  },
+  }),
   panel,
 )
 

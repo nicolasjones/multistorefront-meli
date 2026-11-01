@@ -18,11 +18,11 @@ sesión; en el panel el comportamiento queda idéntico.
 
 | File | Change | Notes |
 |------|--------|-------|
-| `apps/web/src/lib/arranque.ts` | added | `instalarVencimientoDeSesion(host, alVencer)`: resuelve el host con `esHostDeTienda` y delega la política. Módulo propio para no crear un ciclo de imports (`vencimientoSesion` → `tienda` → `supabase` → `vencimientoSesion` dejaría `CLAVE_MANTENER_SESION` en TDZ al cargar). |
-| `apps/web/src/main.tsx` | modified | Calcula el host antes de instalar el control y llama a `instalarVencimientoDeSesion(host, …, panel)`: `hostsDelPanel()` se resuelve una sola vez y el mismo conjunto de hosts decide si el host es de tienda y si se instala el control. La guarda `cerrando` (evita varios `signOut` concurrentes) queda igual. |
+| `apps/web/src/lib/arranque.ts` | added | `instalarVencimientoDeSesion(host, alVencer)`: resuelve el host con `esHostDeTienda` y delega la política. Módulo propio para no crear un ciclo de imports (`vencimientoSesion` → `tienda` → `supabase` → `vencimientoSesion` dejaría `CLAVE_MANTENER_SESION` en TDZ al cargar). Además `cerrarSesionUnaVez(cerrar)`: la guarda que evita varios `signOut` y varias navegaciones a `/login` (venía suelta en `main.tsx`, sin test) queda acá, fijada por test. |
+| `apps/web/src/main.tsx` | modified | Calcula el host antes de instalar el control y llama a `instalarVencimientoDeSesion(host, …, panel)`: `hostsDelPanel()` se resuelve una sola vez y el mismo conjunto de hosts decide si el host es de tienda y si se instala el control. El cierre usa `cerrarSesionUnaVez` (mismo comportamiento que la guarda `cerrando` que estaba acá). |
 | `apps/web/src/lib/vencimientoSesion.ts` | modified | Nueva `seguirActividadDelPanel(esTiendaPublica, alVencer)`: en tienda no instala el control (ni escribe la marca); en el panel, `seguirActividad` como antes. |
 | `apps/web/src/lib/vencimientoSesion.test.ts` | modified | Tests `[MSF-673]` de la política: en tienda no avisa ni renueva la marca; en el panel sigue venciendo. |
-| `apps/web/src/lib/arranque.test.ts` | added | Tests `[MSF-673]` del **cableado** (lo que pedía la evaluación): host de tienda → no hay control, no se avisa y la marca no se toca; host del panel → avisa una sola vez tras 13 h; con actividad reciente renueva sin avisar. |
+| `apps/web/src/lib/arranque.test.ts` | added | Tests `[MSF-673]` del **cableado** (lo que pedía la evaluación): host de tienda → no hay control, no se avisa y la marca no se toca; host del panel → avisa una sola vez tras 13 h; con actividad reciente renueva sin avisar. Además los del cierre único (`cerrarSesionUnaVez`): tres avisos → un solo `signOut`, y varios clics tras el vencimiento en el panel no encadenan cierres. |
 | `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` | added | E2E `[MSF-673:MSF-673]` con el fixture de evidencia (video 1920×1080): adelanta la marca 13 h, hace el primer clic y comprueba que no hay navegación a `/login`, ni 404 de la tienda, ni pedido de logout a Auth. |
 | `docs/tiendas-online.md` | modified | Documenta que el vencimiento por inactividad es solo del panel y qué pruebas lo cubren. |
 | `docs/acceso-ingreso.md` | modified | Aclara que las 12 h (cliente) y los 30 días (servidor) rigen solo en el panel y qué pasa con la cuenta web del cliente en la tienda. |
@@ -35,6 +35,17 @@ sesión; en el panel el comportamiento queda idéntico.
 export function instalarVencimientoDeSesion(host: string, alVencer?: () => void, panel = hostsDelPanel()) {
   return seguirActividadDelPanel(esHostDeTienda(host, panel), alVencer)
 }
+
+// La marca vencida no se renueva: cada clic o tecla vuelve a avisar. La guarda evita que se
+// encadenen varios `signOut` y varias navegaciones a `/login`.
+export function cerrarSesionUnaVez(cerrar: () => void) {
+  let cerrado = false
+  return () => {
+    if (cerrado) return
+    cerrado = true
+    cerrar()
+  }
+}
 ```
 
 ```ts
@@ -43,14 +54,11 @@ const host = window.location.host
 const panel = hostsDelPanel()
 const esTiendaPublica = esHostDeTienda(host, panel)
 
-let cerrando = false
 instalarVencimientoDeSesion(
   host,
-  () => {
-    if (cerrando) return
-    cerrando = true
+  cerrarSesionUnaVez(() => {
     void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
-  },
+  }),
   panel,
 )
 ```
@@ -60,16 +68,19 @@ instalarVencimientoDeSesion(
 - `apps/web/src/lib/arranque.test.ts::[MSF-673] en un host de tienda no registra actividad ni avisa del vencimiento`
 - `apps/web/src/lib/arranque.test.ts::[MSF-673] en un host del panel avisa del vencimiento tras más de 12 h`
 - `apps/web/src/lib/arranque.test.ts::[MSF-673] en un host del panel con actividad reciente renueva la marca sin avisar`
+- `apps/web/src/lib/arranque.test.ts::[MSF-673] el cierre de sesión se dispara una sola vez aunque lleguen varios avisos`
+- `apps/web/src/lib/arranque.test.ts::[MSF-673] en el panel, varios clics tras el vencimiento no encadenan cierres de sesión`
 - `apps/web/src/lib/vencimientoSesion.test.ts::[MSF-673] en una tienda pública no registra marca ni avisa aunque hayan pasado >12 h`
 - `apps/web/src/lib/vencimientoSesion.test.ts::[MSF-673] en el panel sigue venciendo la sesión tras >12 h`
 - `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts::[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer clic no manda a /login ni cierra la sesión`
 
 ## Local Verification
 
-- `pnpm --filter @platform/web exec vitest run src/lib/arranque.test.ts src/lib/vencimientoSesion.test.ts src/lib/tienda.test.ts` → **30 tests OK** (3 archivos).
+- `pnpm --filter @platform/web exec vitest run src/lib/arranque.test.ts src/lib/vencimientoSesion.test.ts src/lib/tienda.test.ts` → **32 tests OK** (3 archivos).
 - `VITE_PANEL_HOSTS=localhost,127.0.0.1 pnpm --filter @platform/web build` (`tsc -b && vite build`) → **OK**, sin errores de tipos.
 - `pnpm lint` (oxlint) → **0 errores** (los avisos de `set-state-in-effect` son preexistentes en archivos que este cambio no toca; oxlint sobre los archivos de este cambio no reporta nada).
-- E2E: `WEB_PORT=4399 pnpm --filter @platform/web exec playwright test e2e/tienda-sesion-vencimiento.e2e.ts` → **1 passed** contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1`.
+- `pnpm docs:check` → **OK** (documentación de cambios + migraciones sin novedades).
+- E2E: `WEB_PORT=4397 pnpm --filter @platform/web exec playwright test e2e/tienda-sesion-vencimiento.e2e.ts` → **1 passed** contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1`.
 - E2E como prueba de regresión: reintroduciendo el defecto (`main.tsx` vuelve a llamar `seguirActividad` en todos los hosts) el mismo test **falla** (`redirigio` = `true`: el clic navega a `/login`); con el arreglo pasa.
 - E2E sin `VITE_PANEL_HOSTS` en el build → **1 skipped** (el host no se sirve como tienda y el caso no aplica): el test no da falso rojo en un build sin la variable.
 

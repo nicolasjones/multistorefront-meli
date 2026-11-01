@@ -14,3 +14,15 @@ export function instalarVencimientoDeSesion(
 ) {
   return seguirActividadDelPanel(esHostDeTienda(host, panel), alVencer)
 }
+
+// El aviso de vencimiento llega en cada clic o tecla mientras la pestaña queda abierta (la marca
+// vencida no se renueva): sin esta guarda se encadenaban varios `signOut` y varias navegaciones a
+// `/login`. Vive acá —y no en el arranque de la app— para que quede fijada por test.
+export function cerrarSesionUnaVez(cerrar: () => void) {
+  let cerrado = false
+  return () => {
+    if (cerrado) return
+    cerrado = true
+    cerrar()
+  }
+}
