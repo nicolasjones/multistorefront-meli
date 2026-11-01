@@ -109,3 +109,15 @@ las tasks.md de origen.
   migraciones creen el schema `dominio` (`schema "dominio" does not exist` → `/rest-admin/v1/ready`).
 - Para activarlo: iniciar sin postgrest → `db:reset:ci` (crea `dominio`) → levantar postgrest después
   (o pre-crear el schema antes del start). Mientras tanto corre local/nightly; no se activa para no dar falsos verdes.
+
+## Siembra de los E2E con `service_role` sobre `dominio` (MSF-586, pendiente)
+
+Verificado el 2026-11-01 contra un stack con todas las migraciones de `dokploy`:
+`has_schema_privilege('service_role','dominio','USAGE')` es `false`, así que los specs
+`apps/web/e2e/*.e2e.ts` que siembran con la service-role key vía `rest(..., 'dominio')` (34 archivos)
+reciben `42501 permission denied for schema dominio`. Es el diseño de seguridad vigente (`dominio` solo
+da `usage` a `authenticated`), no un olvido: **no se otorga `usage` a `service_role` para que pasen los
+tests**. La corrección es migrar la siembra a una vía autorizada (sesión autenticada con RPC, como
+`scripts/demo-dataset/`, o conexión directa como rol `postgres` desde Node solo contra un stack local).
+Reescribir 34 specs no entra en la tanda de tests y tooling de MSF-585: queda como seguimiento y los
+E2E con sesión siguen sin correr en un stack actual hasta entonces.
