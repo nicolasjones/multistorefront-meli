@@ -19,6 +19,12 @@ vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelS
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+// Avisos al cliente (F-SVC-14): fuera del alcance de este archivo; su historial llega vacío y el cliente con correo.
+vi.mock('../../lib/reparacionAvisos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionAvisos')>()),
+  listarAvisosDeReparacion: vi.fn().mockResolvedValue([]),
+  clienteTieneCorreo: vi.fn().mockResolvedValue(true),
+}))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarModelos: mocks.listarModelos,
@@ -342,7 +348,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
       costo_repuestos: null,
       items: [{
         id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null,
-        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
       }],
       total_mano_obra: 1000,
       total_cliente: 1000,
@@ -364,7 +370,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
       entregado_por: 'Ana',
       items: [{
         id: 'i-1', tipo: 'repuesto', descripcion: 'Pantalla Switch', producto_id: null, sku: null,
-        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
       }],
       total_repuestos: 1000,
       total_cliente: 1000,

@@ -82,3 +82,24 @@ export function validarRango({ desde, hasta }: RangoFechas): ErroresRango {
 }
 
 export const rangoEsValido = (rango: RangoFechas) => Object.keys(validarRango(rango)).length === 0
+
+const MS_POR_DIA = 86_400_000
+
+// Período anterior de igual duración (F-CLI-14, US1-2): termina el día previo a
+// `desde` y dura los mismos días que el rango. Devuelve null si el rango no es
+// válido, para no precargar fechas inventadas.
+export function periodoAnteriorIgualDuracion({ desde, hasta }: RangoFechas): RangoFechas | null {
+  const inicio = leerFecha(desde)
+  const fin = leerFecha(hasta)
+  if (!inicio || !fin || inicio > fin) return null
+  const dias = Math.round((fin.getTime() - inicio.getTime()) / MS_POR_DIA) + 1
+  const finAnterior = new Date(inicio.getTime() - MS_POR_DIA)
+  const inicioAnterior = new Date(finAnterior.getTime() - (dias - 1) * MS_POR_DIA)
+  return { desde: aIso(inicioAnterior), hasta: aIso(finAnterior) }
+}
+
+// Valida el período aplicado y el de comparación, cada uno con sus errores por
+// campo (el servidor repite la validación de ambos).
+export function validarRangos(aplicado: RangoFechas, comparacion: RangoFechas): { aplicado: ErroresRango; comparacion: ErroresRango } {
+  return { aplicado: validarRango(aplicado), comparacion: validarRango(comparacion) }
+}

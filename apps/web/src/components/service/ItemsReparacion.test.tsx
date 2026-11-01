@@ -1,10 +1,12 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   agregarItem: vi.fn(),
   quitarItem: vi.fn(),
   buscarProductos: vi.fn(),
+  listarDepositosParaRepuesto: vi.fn(),
+  disponibleEnDeposito: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
@@ -13,22 +15,25 @@ vi.mock('../../lib/reparacionItems', async (importOriginal) => ({
   agregarItem: mocks.agregarItem,
   quitarItem: mocks.quitarItem,
   buscarProductos: mocks.buscarProductos,
+  listarDepositosParaRepuesto: mocks.listarDepositosParaRepuesto,
+  disponibleEnDeposito: mocks.disponibleEnDeposito,
 }))
 
-import { MENSAJE_PRECIO, MENSAJE_SOLO_LECTURA } from '../../lib/reparacionItems'
+import { notificarEmpresaActivaCambiada } from '../../lib/empresaActivaRevision'
+import { MENSAJE_PRECIO, MENSAJE_SIN_STOCK, MENSAJE_SOLO_LECTURA } from '../../lib/reparacionItems'
 import type { ItemReparacion, Reparacion } from '../../lib/reparaciones'
 import { AgregarManoObraDialog } from './AgregarManoObraDialog'
-import { AgregarRepuestoDialog } from './AgregarRepuestoDialog'
-import { ItemsReparacion } from './ItemsReparacion'
+import { AVISO_CAMBIO_DE_EMPRESA, AgregarRepuestoDialog } from './AgregarRepuestoDialog'
+import { AVISO_DEVOLUCION, AYUDA_REPUESTOS, ItemsReparacion } from './ItemsReparacion'
 
 const MANO_OBRA: ItemReparacion = {
   id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null,
-  cantidad: 2, precio_unitario: 1500.5, subtotal: 3001,
+  cantidad: 2, precio_unitario: 1500.5, subtotal: 3001, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
 }
 
 const REPUESTO: ItemReparacion = {
   id: 'i-2', tipo: 'repuesto', descripcion: 'Pantalla Switch', producto_id: 'p-1', sku: 'PAN-1',
-  cantidad: 1, precio_unitario: 200, subtotal: 200,
+  cantidad: 1, precio_unitario: 200, subtotal: 200, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
 }
 
 const reparacion = (extra: Partial<Reparacion> = {}): Reparacion => ({
@@ -91,8 +96,22 @@ const montarManoObra = () => {
 
 const montarRepuesto = () => {
   const onAgregada = vi.fn()
-  render(<AgregarRepuestoDialog abierto reparacion={reparacion()} onCerrar={vi.fn()} onAgregada={onAgregada} />)
-  return { onAgregada }
+  const onCerrar = vi.fn()
+  const onAviso = vi.fn()
+  render(<AgregarRepuestoDialog abierto reparacion={reparacion()} onCerrar={onCerrar} onAgregada={onAgregada} onAviso={onAviso} />)
+  return { onAgregada, onCerrar, onAviso }
+}
+
+const DEPOSITOS = [
+  { deposito_id: 'd-1', nombre: 'Depósito principal', por_defecto: true, cantidad: 5, reservado: 0, disponible: 5 },
+  { deposito_id: 'd-2', nombre: 'Local', por_defecto: false, cantidad: 1, reservado: 0, disponible: 1 },
+]
+
+// Busca y elige el producto del catálogo para que aparezca el selector de depósito.
+const elegirProducto = async (producto: Record<string, unknown> = { id: 'p-1', nombre: 'Pantalla Switch', sku: 'PAN-1' }) => {
+  mocks.buscarProductos.mockResolvedValue([producto])
+  fireEvent.change(screen.getByRole('combobox', { name: /Buscar producto/ }), { target: { value: 'Pantalla' } })
+  fireEvent.click(await screen.findByRole('option', { name: 'Pantalla Switch (PAN-1)' }))
 }
 
 const llenarManoObra = (concepto = 'Cambio de pantalla', precio = '1500,50', cantidad = '2') => {
@@ -107,6 +126,7 @@ describe('ItemsReparacion (FR-027)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.quitarItem.mockResolvedValue(reparacion({ items: [REPUESTO], total_mano_obra: 0, total_cliente: 200 }))
     mocks.buscarProductos.mockResolvedValue([])
+    mocks.disponibleEnDeposito.mockResolvedValue(null)
   })
 
   it('muestra las tablas, los subtotales y el Total al cliente', () => {
@@ -199,6 +219,7 @@ describe('AgregarManoObraDialog (FR-028)', () => {
       'r-1',
       'mano_obra',
       expect.objectContaining({ descripcion: 'Cambio de pantalla', cantidad: '2', precio: '1500,50' }),
+      false,
     ))
     await waitFor(() => expect(onAgregada).toHaveBeenCalledWith(expect.objectContaining({ id: 'r-1' })))
   })
@@ -225,6 +246,7 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.agregarItem.mockResolvedValue(reparacion())
     mocks.buscarProductos.mockResolvedValue([])
+    mocks.listarDepositosParaRepuesto.mockResolvedValue(DEPOSITOS)
   })
 
   it('permite cargar un repuesto libre y buscar por Nombre o SKU', async () => {
@@ -240,6 +262,7 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
       'r-1',
       'repuesto',
       expect.objectContaining({ descripcion: 'Cinta flex', cantidad: '1', precio: '1200', producto: null }),
+      false,
     ))
     await waitFor(() => expect(onAgregada).toHaveBeenCalled())
   })
@@ -264,6 +287,187 @@ describe('AgregarRepuestoDialog (FR-025, FR-028)', () => {
         descripcion: 'Pantalla Switch',
         producto: { id: 'p-1', nombre: 'Pantalla Switch', sku: 'PAN-1' },
       }),
+      false,
     ))
+  })
+
+  it('un repuesto libre no muestra el selector de depósito (FR-005)', () => {
+    montarRepuesto()
+
+    expect(screen.queryByText('Depósito de mercadería de donde se descuenta')).not.toBeInTheDocument()
+    expect(mocks.listarDepositosParaRepuesto).not.toHaveBeenCalled()
+  })
+
+  it('al elegir un producto muestra los depósitos con el disponible y preselecciona el por defecto (FR-006)', async () => {
+    montarRepuesto()
+    await elegirProducto()
+
+    expect(await screen.findByText('Depósito de mercadería de donde se descuenta')).toBeInTheDocument()
+    expect(mocks.listarDepositosParaRepuesto).toHaveBeenCalledWith('p-1')
+    const principal = await screen.findByRole('button', { name: 'Depósito principal' })
+    expect(principal).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Disponible en Depósito principal: 5 u.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Local' }))
+    expect(screen.getByText('Disponible en Local: 1 u.')).toBeInTheDocument()
+  })
+
+  it('avisa la falta de stock del depósito elegido cuando la cantidad no alcanza (FR-006)', async () => {
+    montarRepuesto()
+    await elegirProducto()
+    fireEvent.click(await screen.findByRole('button', { name: 'Local' }))
+    fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '3' } })
+
+    expect(screen.getByText('Disponible en Local: 1 u. (falta stock: pedí el repuesto al proveedor)')).toBeInTheDocument()
+  })
+
+  it('envía el depósito elegido (FR-002)', async () => {
+    const { onAgregada } = montarRepuesto()
+    await elegirProducto()
+    fireEvent.click(await screen.findByRole('button', { name: 'Local' }))
+    fireEvent.change(screen.getByLabelText(/Precio/), { target: { value: '2500' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    await waitFor(() => expect(mocks.agregarItem).toHaveBeenCalledWith(
+      'r-1',
+      'repuesto',
+      expect.objectContaining({ deposito_id: 'd-2', producto: expect.objectContaining({ id: 'p-1' }) }),
+      false,
+    ))
+    await waitFor(() => expect(onAgregada).toHaveBeenCalled())
+  })
+
+  it('un producto «a pedido» no ofrece depósito porque no descuenta stock (FR-005)', async () => {
+    montarRepuesto()
+    await elegirProducto({ id: 'p-1', nombre: 'Pantalla Switch', sku: 'PAN-1', disponibilidad_manual: 'a_pedido' })
+
+    expect(await screen.findByText('Producto a pedido: no descuenta stock.')).toBeInTheDocument()
+    expect(screen.queryByText('Depósito de mercadería de donde se descuenta')).not.toBeInTheDocument()
+    expect(mocks.listarDepositosParaRepuesto).not.toHaveBeenCalled()
+  })
+
+  it('muestra «No hay stock suficiente» cuando la base rechaza el descuento (FR-003)', async () => {
+    mocks.agregarItem.mockRejectedValueOnce({ code: '23514', message: 'No hay stock suficiente' })
+    const { onAgregada } = montarRepuesto()
+    await elegirProducto()
+    await screen.findByRole('button', { name: 'Depósito principal' })
+    fireEvent.change(screen.getByLabelText(/Precio/), { target: { value: '2500' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    expect(await screen.findByText(MENSAJE_SIN_STOCK)).toBeInTheDocument()
+    expect(onAgregada).not.toHaveBeenCalled()
+  })
+
+  it('ofrece «Dejar pendiente» con el disponible y reenvía la carga sin descontar (FR-030)', async () => {
+    mocks.agregarItem.mockRejectedValueOnce({ code: '23514', message: 'No hay stock suficiente' })
+    mocks.disponibleEnDeposito.mockResolvedValue(1)
+    const pendiente = reparacion({ items: [{ ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'pendiente' }] })
+    mocks.agregarItem.mockResolvedValueOnce(pendiente)
+    const { onAgregada } = montarRepuesto()
+    await elegirProducto()
+    await screen.findByRole('button', { name: 'Depósito principal' })
+    fireEvent.change(screen.getByLabelText(/Precio/), { target: { value: '2500' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar' }))
+
+    const aviso = await screen.findByRole('alert')
+    expect(within(aviso).getByText(/Disponible: 1 u\./)).toBeInTheDocument()
+    expect(mocks.agregarItem).toHaveBeenLastCalledWith('r-1', 'repuesto', expect.anything(), false)
+    fireEvent.click(within(aviso).getByRole('button', { name: 'Dejar pendiente' }))
+
+    await waitFor(() => expect(onAgregada).toHaveBeenCalledWith(pendiente))
+    expect(mocks.agregarItem).toHaveBeenLastCalledWith('r-1', 'repuesto', expect.anything(), true)
+  })
+
+  it('sin stock no ofrece «Dejar pendiente» en mano de obra ni antes del rechazo', async () => {
+    montarRepuesto()
+    await elegirProducto()
+    expect(screen.queryByRole('button', { name: 'Dejar pendiente' })).not.toBeInTheDocument()
+  })
+
+  it('el repuesto pendiente muestra «Pendiente de stock» en su fila (FR-031)', () => {
+    const pendiente = { ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'pendiente' as const }
+    render(
+      <ItemsReparacion reparacion={reparacion({ items: [pendiente, MANO_OBRA] })} puedeEditar onAgregarManoObra={vi.fn()} onAgregarRepuesto={vi.fn()} onActualizada={vi.fn()} />,
+    )
+    expect(screen.getAllByText('Pendiente de stock')).toHaveLength(1)
+  })
+
+  it('si cambia la empresa activa se cierra con aviso y al reabrirlo consulta la disponibilidad otra vez (FR-012)', async () => {
+    const onCerrar = vi.fn()
+    const onAviso = vi.fn()
+    const props = { reparacion: reparacion(), onCerrar, onAviso, onAgregada: vi.fn() }
+    const { rerender } = render(<AgregarRepuestoDialog abierto {...props} />)
+    await elegirProducto()
+    await screen.findByRole('button', { name: 'Depósito principal' })
+    expect(mocks.listarDepositosParaRepuesto).toHaveBeenCalledTimes(1)
+
+    act(() => notificarEmpresaActivaCambiada())
+
+    await waitFor(() => expect(onCerrar).toHaveBeenCalledTimes(1))
+    expect(onAviso).toHaveBeenCalledWith(AVISO_CAMBIO_DE_EMPRESA)
+
+    rerender(<AgregarRepuestoDialog abierto={false} {...props} />)
+    rerender(<AgregarRepuestoDialog abierto {...props} />)
+    await elegirProducto()
+    await waitFor(() => expect(mocks.listarDepositosParaRepuesto).toHaveBeenCalledTimes(2))
+  })
+})
+
+describe('Tabla de repuestos con depósito (FR-008, FR-009)', () => {
+  it('muestra la columna DEPÓSITO DE MERCADERÍA con el nombre o «—» si no mueve stock', () => {
+    const descontado: ItemReparacion = { ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'descontado' }
+    const libre: ItemReparacion = { ...REPUESTO, id: 'i-3', descripcion: 'Cinta flex', producto_id: null, sku: null }
+    montarSeccion({ items: [MANO_OBRA, descontado, libre] })
+
+    const repuestos = screen.getByRole('table', { name: 'Repuestos' })
+    expect(within(repuestos).getByText('Depósito de mercadería')).toBeInTheDocument()
+    expect(within(repuestos).getByText('Depósito principal')).toBeInTheDocument()
+    expect(within(repuestos).getByText('—')).toBeInTheDocument()
+    expect(within(screen.getByRole('table', { name: 'Mano de obra' })).queryByText('Depósito de mercadería')).not.toBeInTheDocument()
+  })
+
+  it('la ayuda de «Repuestos» dice que el descuento ocurre al agregar', () => {
+    montarSeccion()
+
+    expect(screen.getByText(AYUDA_REPUESTOS)).toBeInTheDocument()
+    expect(AYUDA_REPUESTOS).toMatch(/al agregar el repuesto/)
+  })
+})
+
+describe('Devolución de repuestos al quitar (F-SVC-11, FR-025)', () => {
+  const descontado: ItemReparacion = { ...REPUESTO, deposito_id: 'd-1', deposito_nombre: 'Depósito principal', stock_estado: 'descontado' }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.quitarItem.mockResolvedValue(reparacion({ items: [], total_repuestos: 0 }))
+  })
+
+  it('la confirmación de quitar un repuesto descontado avisa que las unidades vuelven al depósito y recarga', async () => {
+    const { onActualizada } = montarSeccion({ items: [descontado] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Pantalla Switch' }))
+    const dialogo = screen.getByRole('dialog')
+    expect(within(dialogo).getByText(AVISO_DEVOLUCION)).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Quitar' }))
+
+    await waitFor(() => expect(mocks.quitarItem).toHaveBeenCalledWith(descontado))
+    await waitFor(() => expect(onActualizada).toHaveBeenCalledWith(expect.objectContaining({ total_repuestos: 0 }), 'Se quitó «Pantalla Switch»'))
+  })
+
+  it('quitar mano de obra o un repuesto que no mueve stock no habla de devolución', () => {
+    montarSeccion({ items: [MANO_OBRA, REPUESTO] })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Pantalla Switch' }))
+    expect(within(screen.getByRole('dialog')).queryByText(AVISO_DEVOLUCION)).not.toBeInTheDocument()
+  })
+
+  it('en una reparación anulada marca los repuestos «Devuelto» y «Consumido»', () => {
+    const devuelto: ItemReparacion = { ...descontado, id: 'i-4', stock_estado: 'devuelto' }
+    const consumido: ItemReparacion = { ...descontado, id: 'i-5', descripcion: 'Bisagra', sku: 'BIS-1', stock_estado: 'consumido' }
+    montarSeccion({ items: [devuelto, consumido], anulada_en: '2026-10-21T10:00:00Z' }, false)
+
+    const repuestos = screen.getByRole('table', { name: 'Repuestos' })
+    expect(within(repuestos).getByText('Devuelto')).toBeInTheDocument()
+    expect(within(repuestos).getByText('Consumido')).toBeInTheDocument()
   })
 })

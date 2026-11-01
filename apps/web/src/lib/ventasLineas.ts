@@ -10,17 +10,22 @@ export type EscalaLinea = 'x1' | 'x5' | 'x10' | 'x50'
 export type LineaComprobante = {
   id: string
   orden: number
-  producto_id: string
+  // Nulos solo en las líneas `sin_stock` (de una reparación de Service): no mueven stock ni tienen producto.
+  producto_id: string | null
   descripcion: string
   codigo: string | null
   cantidad: number
   precio_unitario: number
-  escala: EscalaLinea
+  escala: EscalaLinea | null
   precio_manual: boolean
+  // F-VTA-32: % de descuento del cliente aplicado al neto de escala (0 = ninguno o precio manual).
+  descuento_pct?: number
   alicuota_porcentaje: number
-  deposito_id: string
-  deposito: string
+  deposito_id: string | null
+  deposito: string | null
   a_pedido: boolean
+  // F-SVC-13: la línea no mueve stock (confirmar, anular y notas de crédito la saltean). Ausente = false.
+  sin_stock?: boolean
   stock: number
   reservado: number
   subtotal_sin_iva: number
@@ -46,18 +51,22 @@ export const MENSAJE_CANTIDAD_LINEA = `Ingresá una cantidad entera de 1 a ${CAN
 export const MENSAJE_PRECIO_LINEA = 'Ingresá un precio de cero o más, con hasta dos decimales.'
 export const MENSAJE_SIN_PERMISO_PRECIO = 'Tu rol no puede editar precios: el precio sale de la escala del producto.'
 
-export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual'>) =>
-  linea.precio_manual ? 'precio manual' : `escala ${linea.escala}`
+export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct'>) =>
+  linea.precio_manual
+    ? 'precio manual'
+    : linea.descuento_pct
+      ? `escala ${linea.escala} · ${linea.descuento_pct} % de descuento`
+      : `escala ${linea.escala}`
 
 // Disponible = stock del depósito menos lo reservado (FR-017); nunca negativo.
 export const disponibleDeLinea = (linea: Pick<LineaComprobante, 'stock' | 'reservado'>) => Math.max(0, linea.stock - linea.reservado)
 
 // Faltante (FR-018): una cantidad mayor al disponible. Los productos «A pedido» no descuentan stock: no hay faltante.
-export const hayFaltante = (linea: Pick<LineaComprobante, 'a_pedido' | 'cantidad' | 'stock' | 'reservado'>) =>
-  !linea.a_pedido && linea.cantidad > disponibleDeLinea(linea)
+export const hayFaltante = (linea: Pick<LineaComprobante, 'a_pedido' | 'sin_stock' | 'cantidad' | 'stock' | 'reservado'>) =>
+  !linea.a_pedido && !linea.sin_stock && linea.cantidad > disponibleDeLinea(linea)
 
 export function mensajeFaltante(linea: Pick<LineaComprobante, 'cantidad' | 'stock' | 'reservado' | 'deposito'>): string {
-  return `Hay ${disponibleDeLinea(linea)} disponibles en ${linea.deposito} y la línea pide ${linea.cantidad}. Para confirmar la factura elegí otro depósito o bajá la cantidad.`
+  return `Hay ${disponibleDeLinea(linea)} disponibles en ${linea.deposito ?? 'el depósito'} y la línea pide ${linea.cantidad}. Para confirmar la factura elegí otro depósito o bajá la cantidad.`
 }
 
 export function parsearCantidadLinea(texto: string): number | null {
@@ -78,14 +87,19 @@ export function parsearPrecioLinea(texto: string): number | null | undefined {
 
 // --- Edición de la lista (puras: devuelven una lista nueva para enviar) ---
 
+// Las líneas `sin_stock` (de Service) no se editan en Ventas y no se envían: la base las conserva al guardar.
 export function aEntradas(lineas: readonly LineaComprobante[]): EntradaLinea[] {
-  return lineas.map((linea) => ({
-    producto_id: linea.producto_id,
+  return lineas.filter((linea) => !linea.sin_stock).map((linea) => ({
+    producto_id: linea.producto_id as string,
     cantidad: linea.cantidad,
     deposito_id: linea.deposito_id,
     precio_manual: linea.precio_manual ? linea.precio_unitario : null,
   }))
 }
+
+// Posición de una línea de la lista completa dentro de las entradas que se envían (sin las `sin_stock`).
+export const indiceEnEntradas = (lineas: readonly LineaComprobante[], indice: number): number =>
+  lineas.slice(0, indice).filter((linea) => !linea.sin_stock).length
 
 // Agregar el mismo producto desde el mismo depósito suma una unidad a la línea existente en vez de duplicarla.
 export function conProductoAgregado(entradas: readonly EntradaLinea[], productoId: string, depositoId: string | null): EntradaLinea[] {
@@ -120,6 +134,7 @@ export function aLineas(dato: unknown): LineaComprobante[] {
       alicuota_porcentaje: numero(linea.alicuota_porcentaje),
       stock: numero(linea.stock),
       reservado: numero(linea.reservado),
+      sin_stock: Boolean(linea.sin_stock),
       subtotal_sin_iva: numero(linea.subtotal_sin_iva),
       iva: numero(linea.iva),
     }
