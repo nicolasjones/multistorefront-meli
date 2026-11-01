@@ -2,7 +2,7 @@
 // lista blanca, IP hasheada y nunca en claro. Corre con `node --test` (`pnpm test:edge:consultar-estado-reparacion`).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { LIMITE_CONSULTAS, VENTANA_SEG, ipDelPedido, manejar, type Deps, type Limite } from './handler.ts'
+import { LIMITE_CONSULTAS, SALTOS_PROXY_CONFIABLES, VENTANA_SEG, ipDelPedido, manejar, type Deps, type Limite } from './handler.ts'
 
 const TOKEN = 'A'.repeat(32)
 const ESTADO = {
@@ -12,12 +12,13 @@ const ESTADO = {
   linea_de_tiempo: [{ estado: 'Recibido', fecha: '2027-01-20T10:00:00Z' }],
 }
 
-type Opciones = { limite?: Limite; estado?: unknown; falloLimite?: boolean; falloConsulta?: boolean; sal?: string | undefined }
+type Opciones = { limite?: Limite; estado?: unknown; falloLimite?: boolean; falloConsulta?: boolean; sal?: string | undefined; saltosProxy?: number }
 
 function montar(o: Opciones = {}) {
   const estado = { registros: [] as [string, number, number][], consultas: [] as string[] }
   const deps: Deps = {
     sal: 'sal' in o ? o.sal : 'sal-de-prueba',
+    saltosProxy: o.saltosProxy,
     datos: {
       registrarConsulta: async (ip, ventana, limite) => {
         estado.registros.push([ip, ventana, limite])
@@ -113,11 +114,48 @@ describe('consultar-estado-reparacion', () => {
     } finally { console.error = original }
   })
 
-  it('toma la IP de x-real-ip, o del último salto de x-forwarded-for, o un valor fijo', () => {
+  it('toma la IP de x-real-ip, o del valor del cliente en x-forwarded-for, o un valor fijo', () => {
     const req = (headers: Record<string, string>) => new Request('http://x', { headers })
     assert.equal(ipDelPedido(req({ 'x-real-ip': '1.1.1.1', 'x-forwarded-for': '9.9.9.9, 2.2.2.2' })), '1.1.1.1')
-    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '9.9.9.9, 2.2.2.2' })), '2.2.2.2')
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '9.9.9.9, 2.2.2.2' })), '9.9.9.9', 'STG/PROD: el cliente es el penúltimo (Traefik → Kong)')
     assert.equal(ipDelPedido(req({})), 'sin-ip')
+  })
+
+  it('resuelve el cliente según los proxies de confianza de la topología (Traefik → Kong)', () => {
+    const req = (headers: Record<string, string>) => new Request('http://x', { headers })
+    // Cliente + el proxy que Kong ve detrás (Traefik): el cliente es el penúltimo valor.
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7, 10.0.0.9' })), '203.0.113.7')
+    // Con un valor inventado a la izquierda (lo puede mandar el cliente): se ignora.
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '198.51.100.1, 203.0.113.7, 10.0.0.9' })), '203.0.113.7')
+    // Cadena más corta que lo esperado: se toma el primero (el del cliente).
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7' })), '203.0.113.7')
+    // Saltos = 0: el último valor (semántica de `private.saltos_proxy_confiables()`).
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7, 10.0.0.9' }), 0), '10.0.0.9')
+    assert.equal(SALTOS_PROXY_CONFIABLES, 1)
+  })
+
+  it('dos clientes detrás del mismo proxy no comparten el contador', async () => {
+    const { deps, estado } = montar()
+    await pedir(deps, { headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.9' } })
+    await pedir(deps, { headers: { 'x-forwarded-for': '203.0.113.8, 10.0.0.9' } })
+    assert.equal(estado.registros.length, 2)
+    assert.notEqual(estado.registros[0][0], estado.registros[1][0], 'cada cliente tiene su propio contador')
+  })
+
+  it('avisa (sin IP) cuando la cadena de proxy no tiene la forma esperada', async () => {
+    const logs: unknown[][] = []
+    const original = console.warn
+    console.warn = (...args: unknown[]) => { logs.push(args) }
+    try {
+      const { deps } = montar()
+      await pedir(deps, { headers: { 'x-forwarded-for': '198.51.100.1, 203.0.113.7, 10.0.0.9' } })
+      assert.equal(logs.length, 1)
+      assert.match(String(logs[0][0]), /SEGUIMIENTO_SALTOS_PROXY/)
+      assert.ok(!JSON.stringify(logs).includes('203.0.113.7'), 'el aviso no lleva la IP')
+      logs.length = 0
+      await pedir(montar().deps, { headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.9' } })
+      assert.equal(logs.length, 0, 'con la forma esperada no hay aviso')
+    } finally { console.warn = original }
   })
 
   it('sin sal de servidor no atiende; si falla el contador o la consulta responde 500 sin datos', async () => {

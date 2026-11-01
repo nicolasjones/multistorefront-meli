@@ -44,15 +44,39 @@ entrega prevista y línea de tiempo de estados (nombre y fecha). Estados: carga,
 - **Límite de tasa**: 30 consultas por ventana fija de 10 minutos por IP, contando **toda** consulta (válida o no),
   con `upsert` atómico; al excederse responde 429 **sin consultar reparaciones**. Las ventanas vencidas se purgan de
   a 100 filas por llamada.
-- **IP**: se hashea con HMAC-SHA256 y la sal de servidor `SEGUIMIENTO_IP_SALT`; la IP no se guarda ni se loguea. Sale
-  de `x-real-ip` o, si no está, del **último** salto de `x-forwarded-for` (los anteriores los puede inventar el
-  cliente); sin ninguna se usa un valor fijo (contador compartido, más estricto). **Verificar en el despliegue** qué
-  cabecera fija el proxy del VPS (Kong/Edge Runtime) antes de confiar en el límite por IP.
+- **IP**: se hashea con HMAC-SHA256 y la sal de servidor `SEGUIMIENTO_IP_SALT`; la IP no se guarda ni se loguea.
+  La IP del cliente sale de `x-real-ip` si la fija el proxy más cercano; si no, del valor de `x-forwarded-for` que
+  está `SEGUIMIENTO_SALTOS_PROXY` proxies antes del último (por defecto **1**).
+  - **Topología STG/PROD** (`docs/deployment.md`, `docs/operar-sistema.md`): navegador → **Traefik** (Dokploy,
+    VPS2) → **Kong** (gateway del stack self-hosted) → Edge Runtime. Traefik agrega la IP del cliente y Kong
+    agrega la de Traefik: hay **un** proxy de confianza, así que el cliente es el valor **penúltimo** y cada
+    cliente tiene su propio contador (nadie comparte cupo). Es el mismo criterio de
+    `private.saltos_proxy_confiables()` (F-TDA-15, `supabase/migrations/20261203110300_tienda_busqueda_visitante_saltos.sql`).
+  - **Cómo confirmarlo en STG/PROD**: la función avisa por log (sin IP) cuando la cadena de `x-forwarded-for`
+    trae **más** valores de los esperados: ahí la IP resuelta podría ser la de un proxy y todos los clientes
+    detrás de él compartirían el mismo contador (30 consultas/10 min). Si aparece el aviso, ajustá
+    `SEGUIMIENTO_SALTOS_PROXY` al número real de proxies de confianza (secreto de la función, sin redeploy).
+  - **Si no llega ninguna cabecera**: se usa un valor fijo → **contador compartido** (falla cerrada, como la
+    tienda online): 30 consultas/10 min entre todos.
+
+## Acceso sin sesión
+
+- `supabase/config.toml` declara `[functions.consultar-estado-reparacion] verify_jwt = false`: la página
+  pública `/seguimiento/:token` consulta **sin sesión** y la clave pública (anon/publishable) **no es un JWT**;
+  si el gateway exigiera un JWT, la consulta sin sesión terminaría en **401**. Con `verify_jwt = false` el
+  gateway solo pide la clave pública (`apikey`) y la función no crea ni usa sesión.
+- Al desplegar, el `supabase/config.toml` del **workdir del CLI de cada entorno** (`/root/supabase-stg`,
+  `/root/supabase-prd`) tiene que llevar la misma sección: es de ahí que `supabase functions deploy` lee el
+  `verify_jwt` de la función.
+- La **service-role** vive solo en el servidor (`index.ts`): la función llama únicamente a
+  `obtener_estado_publico_reparacion` y `registrar_consulta_publica`, ejecutables **solo por `service_role`**.
 
 ## Variables
 
 `SEGUIMIENTO_IP_SALT` — solo en `supabase/functions/.env.example` (sin valor). Se configura como secreto de la
 función (`supabase secrets set`), nunca en el navegador ni en Git. Sin ella la función responde 500.
+`SEGUIMIENTO_SALTOS_PROXY` — mismo archivo (sin valor): proxies de confianza que agregan su IP al final de
+`x-forwarded-for` (por defecto **1**; ver «IP» arriba). Vacío = 1.
 La página pública llama a la función con la clave pública (anon) para pasar el gateway; no usa ni crea sesión.
 
 ## Riesgos conocidos
@@ -61,7 +85,9 @@ La página pública llama a la función con la clave pública (anon) para pasar 
   192 bits de entropía, lista blanca mínima sin datos personales, límite por IP, `no-store` y `noindex`.
   Confirmar si hace falta «Regenerar enlace».
 - Quien tenga el enlace ve el estado de **esa** reparación (código, tienda, equipo, fechas).
-- El límite por IP depende de la cabecera del proxy (ver arriba).
+- El límite por IP depende de la cadena de `x-forwarded-for` del proxy (ver «IP»): con la topología de STG/PROD
+  cada cliente tiene su contador; si el entorno tuviera más proxies de confianza, el log de la función avisa y
+  hay que ajustar `SEGUIMIENTO_SALTOS_PROXY`. Si no llega ninguna cabecera, el contador es compartido.
 
 ## Pruebas
 
