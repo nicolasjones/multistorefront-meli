@@ -6,7 +6,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import RemoveIcon from '@mui/icons-material/Remove'
-import { supabaseClient } from '../../lib/supabase'
+import { avisoCatalogoTruncado, useBuscadorCatalogo } from '../../hooks/useBuscadorCatalogo'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useRegistrarIngreso } from '../../hooks/useRegistrarIngreso'
@@ -18,9 +18,61 @@ import {
 type ProveedorOpcion = { id: string; razon_social: string }
 type ProductoOpcion = { id: string; nombre: string; sku: string | null; proveedor_id: string | null }
 
-const MAXIMO_OPCIONES = 500
-
 const etiquetaProducto = (producto: ProductoOpcion) => (producto.sku ? `${producto.nombre} · ${producto.sku}` : producto.nombre)
+
+const MENSAJE_ERROR_BUSQUEDA = 'No pudimos buscar productos. Probá de nuevo.'
+const MENSAJE_ERROR_BUSQUEDA_PROVEEDOR = 'No pudimos buscar proveedores. Probá de nuevo.'
+
+type SelectorProductoProps = {
+  indice: number
+  producto: ProductoOpcion | null
+  proveedorId: string
+  error: string | undefined
+  onElegir: (producto: ProductoOpcion | null) => void
+}
+
+// Producto de una línea: busca en el servidor mientras se escribe (no hay tope de 500
+// elegibles) y avisa cuando el catálogo se cortó.
+function SelectorProducto({ indice, producto, proveedorId, error, onElegir }: SelectorProductoProps) {
+  const [abierto, setAbierto] = useState(false)
+  const productos = useBuscadorCatalogo<ProductoOpcion>({
+    tabla: 'productos', columnas: 'id, nombre, sku, proveedor_id', columnasBusqueda: 'nombre,sku',
+    orden: 'nombre', soloActivos: true, habilitado: abierto,
+  })
+  const ayudas = [
+    producto && producto.proveedor_id === proveedorId ? 'Proveedor del producto: coincide' : null,
+    productos.truncado ? avisoCatalogoTruncado('productos') : null,
+  ].filter(Boolean)
+  return (
+    <Autocomplete
+      size="small"
+      sx={{ flex: 2, minWidth: { xs: '100%', md: 260 } }}
+      options={producto && !productos.opciones.some((opcion) => opcion.id === producto.id) ? [producto, ...productos.opciones] : productos.opciones}
+      value={producto}
+      loading={productos.cargando}
+      loadingText="Buscando productos…"
+      filterOptions={(opciones) => opciones}
+      onOpen={() => setAbierto(true)}
+      onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto) }}
+      getOptionLabel={etiquetaProducto}
+      isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
+      onChange={(_, nueva) => {
+        onElegir(nueva)
+        // Al elegir se vuelve a la lista completa: el texto buscado ya no aplica.
+        productos.buscar('')
+      }}
+      noOptionsText={productos.error ? MENSAJE_ERROR_BUSQUEDA : 'No hay productos activos que coincidan'}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={`Producto ${indice + 1}`}
+          error={Boolean(error) || productos.error}
+          helperText={error ?? (productos.error ? MENSAJE_ERROR_BUSQUEDA : ayudas.length > 0 ? ayudas.join(' · ') : undefined)}
+        />
+      )}
+    />
+  )
+}
 
 type Props = {
   onRegistrado: () => void
@@ -38,52 +90,19 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
   const { registrar, enviando } = useRegistrarIngreso()
 
   const [formulario, setFormulario] = useState<FormularioIngreso>(() => formularioIngresoVacio())
-  const [proveedores, setProveedores] = useState<ProveedorOpcion[]>([])
-  const [productos, setProductos] = useState<ProductoOpcion[]>([])
-  const [cargandoCatalogos, setCargandoCatalogos] = useState(true)
-  const [errorCatalogos, setErrorCatalogos] = useState(false)
+  // Lo elegido se guarda aparte: la lista visible cambia con cada búsqueda en el servidor.
+  const [proveedorElegido, setProveedorElegido] = useState<ProveedorOpcion | null>(null)
+  const [productosElegidos, setProductosElegidos] = useState<Record<string, ProductoOpcion>>({})
+  const [proveedorAbierto, setProveedorAbierto] = useState(false)
+  const proveedores = useBuscadorCatalogo<ProveedorOpcion>({
+    tabla: 'proveedores', columnas: 'id, razon_social', columnasBusqueda: 'razon_social',
+    orden: 'razon_social', soloActivos: true, habilitado: proveedorAbierto,
+  })
   const [intento, setIntento] = useState(false)
   const [actualizarCosto, setActualizarCosto] = useState(false)
   const [claveIdempotencia, setClaveIdempotencia] = useState(generarClaveIdempotencia)
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
-
-  useEffect(() => {
-    let vigente = true
-    setCargandoCatalogos(true)
-    setErrorCatalogos(false)
-    void (async () => {
-      const [respuestaProveedores, respuestaProductos] = await Promise.all([
-        supabaseClient
-          .schema('dominio')
-          .from('proveedores')
-          .select('id, razon_social')
-          .eq('activo', true)
-          .order('razon_social', { ascending: true })
-          .limit(MAXIMO_OPCIONES)
-          .returns<ProveedorOpcion[]>(),
-        supabaseClient
-          .schema('dominio')
-          .from('productos')
-          .select('id, nombre, sku, proveedor_id')
-          .eq('activo', true)
-          .order('nombre', { ascending: true })
-          .limit(MAXIMO_OPCIONES)
-          .returns<ProductoOpcion[]>(),
-      ])
-      if (!vigente) return
-      if (respuestaProveedores.error || respuestaProductos.error) {
-        console.error('No pudimos preparar el ingreso de mercadería.', respuestaProveedores.error ?? respuestaProductos.error)
-        setErrorCatalogos(true)
-        setCargandoCatalogos(false)
-        return
-      }
-      setProveedores(respuestaProveedores.data ?? [])
-      setProductos(respuestaProductos.data ?? [])
-      setCargandoCatalogos(false)
-    })()
-    return () => { vigente = false }
-  }, [])
 
   // La empresa activa de la barra superior es el valor inicial de «Compra a nombre de».
   useEffect(() => {
@@ -93,7 +112,7 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
 
   const errores: ErroresIngreso = intento ? validarIngreso(formulario) : {}
   const empresa = empresas.find((opcion) => opcion.id === formulario.empresa_id) ?? null
-  const proveedor = proveedores.find((opcion) => opcion.id === formulario.proveedor_id) ?? null
+  const proveedor = formulario.proveedor_id !== '' && proveedorElegido?.id === formulario.proveedor_id ? proveedorElegido : null
 
   const unidades = useMemo(
     () => formulario.lineas.reduce((total, linea) => total + (Number(linea.cantidad) || 0), 0),
@@ -159,7 +178,7 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
 
   if (!puedeEditar) return null
 
-  const catalogosListos = !cargandoEmpresas && !cargandoCatalogos && !errorEmpresas && !errorCatalogos
+  const catalogosListos = !cargandoEmpresas && !errorEmpresas
 
   return (
     <Box component="form" onSubmit={(evento) => void registrarIngreso(evento)} noValidate>
@@ -169,8 +188,8 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
           <Typography variant="xs">El stock es compartido: lo ven todas las tiendas.</Typography>
         </Stack>
 
-        {errorEmpresas || errorCatalogos ? (
-          <Alert severity="error">No pudimos cargar empresas, proveedores o productos. Recargá la página para reintentar.</Alert>
+        {errorEmpresas ? (
+          <Alert severity="error">No pudimos cargar las empresas. Recargá la página para reintentar.</Alert>
         ) : null}
         {errorEnvio ? <Alert severity="error">{errorEnvio}</Alert> : null}
 
@@ -197,19 +216,28 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
           <Autocomplete
             size="small"
             sx={{ minWidth: { xs: '100%', md: 240 }, flex: 1 }}
-            options={proveedores}
+            options={proveedor && !proveedores.opciones.some((opcion) => opcion.id === proveedor.id) ? [proveedor, ...proveedores.opciones] : proveedores.opciones}
             value={proveedor}
-            loading={cargandoCatalogos}
+            loading={proveedores.cargando}
+            loadingText="Buscando proveedores…"
+            filterOptions={(opciones) => opciones}
+            onOpen={() => setProveedorAbierto(true)}
+            onInputChange={(_, texto, motivo) => { if (motivo === 'input') proveedores.buscar(texto) }}
             getOptionLabel={(opcion) => opcion.razon_social}
             isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
-            onChange={(_, nueva) => cambiar('proveedor_id', nueva?.id ?? '')}
-            noOptionsText="No hay proveedores activos"
+            onChange={(_, nueva) => {
+              setProveedorElegido(nueva)
+              cambiar('proveedor_id', nueva?.id ?? '')
+              // Al elegir se vuelve a la lista completa: el texto buscado ya no aplica.
+              proveedores.buscar('')
+            }}
+            noOptionsText={proveedores.error ? MENSAJE_ERROR_BUSQUEDA_PROVEEDOR : 'No hay proveedores activos que coincidan'}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label="Proveedor"
-                error={Boolean(errores.proveedor_id)}
-                helperText={errores.proveedor_id}
+                error={Boolean(errores.proveedor_id) || proveedores.error}
+                helperText={errores.proveedor_id ?? (proveedores.error ? MENSAJE_ERROR_BUSQUEDA_PROVEEDOR : proveedores.truncado ? avisoCatalogoTruncado('proveedores') : undefined)}
               />
             )}
           />
@@ -244,27 +272,19 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
           </Stack>
           <Stack spacing={1}>
             {formulario.lineas.map((linea, indice) => {
-              const producto = productos.find((opcion) => opcion.id === linea.producto_id) ?? null
+              const producto = productosElegidos[linea.producto_id] ?? null
               const erroresLinea = errores.porLinea?.[indice] ?? {}
               return (
                 <Stack key={indice} direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'flex-start' }}>
-                  <Autocomplete
-                    size="small"
-                    sx={{ flex: 2, minWidth: { xs: '100%', md: 260 } }}
-                    options={productos}
-                    value={producto}
-                    getOptionLabel={etiquetaProducto}
-                    isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
-                    onChange={(_, nueva) => cambiarLinea(indice, 'producto_id', nueva?.id ?? '')}
-                    noOptionsText="No hay productos activos"
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label={`Producto ${indice + 1}`}
-                        error={Boolean(erroresLinea.producto_id)}
-                        helperText={erroresLinea.producto_id ?? (producto?.proveedor_id === formulario.proveedor_id && producto ? 'Proveedor del producto: coincide' : undefined)}
-                      />
-                    )}
+                  <SelectorProducto
+                    indice={indice}
+                    producto={producto}
+                    proveedorId={formulario.proveedor_id}
+                    error={erroresLinea.producto_id}
+                    onElegir={(nuevo) => {
+                      if (nuevo) setProductosElegidos((previo) => ({ ...previo, [nuevo.id]: nuevo }))
+                      cambiarLinea(indice, 'producto_id', nuevo?.id ?? '')
+                    }}
                   />
                   <Stack direction="row" alignItems="center" spacing={0.5} sx={{ width: { xs: '100%', md: 150 } }}>
                     <IconButton

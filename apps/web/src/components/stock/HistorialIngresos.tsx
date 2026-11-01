@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Alert, Autocomplete, Box, Button, Chip, Snackbar, Stack, TablePagination, TextField, Typography,
 } from '@mui/material'
+import { avisoCatalogoTruncado, useBuscadorCatalogo } from '../../hooks/useBuscadorCatalogo'
 import { supabaseClient } from '../../lib/supabase'
 import { TAMANO_PAGINA_INGRESOS, useIngresos, type IngresoFila } from '../../hooks/useIngresos'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -38,9 +39,17 @@ export function HistorialIngresos({ revision }: Props) {
   const [productoId, setProductoId] = useState('')
   const [operadorId, setOperadorId] = useState('')
 
-  const [proveedores, setProveedores] = useState<ProveedorOpcion[]>([])
+  const [proveedorElegido, setProveedorElegido] = useState<ProveedorOpcion | null>(null)
+  const [productoElegido, setProductoElegido] = useState<ProductoOpcion | null>(null)
+  const [proveedorAbierto, setProveedorAbierto] = useState(false)
+  const [productoAbierto, setProductoAbierto] = useState(false)
+  const proveedores = useBuscadorCatalogo<ProveedorOpcion>({
+    tabla: 'proveedores', columnas: 'id, razon_social', columnasBusqueda: 'razon_social', orden: 'razon_social', habilitado: proveedorAbierto,
+  })
+  const productos = useBuscadorCatalogo<ProductoOpcion>({
+    tabla: 'productos', columnas: 'id, nombre, sku', columnasBusqueda: 'nombre,sku', orden: 'nombre', habilitado: productoAbierto,
+  })
   const [empresas, setEmpresas] = useState<EmpresaOpcion[]>([])
-  const [productos, setProductos] = useState<ProductoOpcion[]>([])
   const [operadores, setOperadores] = useState<OperadorOpcion[]>([])
   const [errorFiltros, setErrorFiltros] = useState(false)
   const [ingresoAAnular, setIngresoAAnular] = useState<IngresoAAnular | null>(null)
@@ -62,26 +71,20 @@ export function HistorialIngresos({ revision }: Props) {
   useEffect(() => {
     let vigente = true
     void (async () => {
-      const [respuestaProveedores, respuestaEmpresas, respuestaProductos, respuestaOperadores] = await Promise.all([
-        supabaseClient.schema('dominio').from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }).limit(MAXIMO_OPCIONES).returns<ProveedorOpcion[]>(),
+      const [respuestaEmpresas, respuestaOperadores] = await Promise.all([
         supabaseClient.schema('dominio').from('empresas').select('id, nombre').order('nombre', { ascending: true }).limit(MAXIMO_OPCIONES).returns<EmpresaOpcion[]>(),
-        supabaseClient.schema('dominio').from('productos').select('id, nombre, sku').order('nombre', { ascending: true }).limit(MAXIMO_OPCIONES).returns<ProductoOpcion[]>(),
         supabaseClient.rpc('operadores_ingresos_mercaderia'),
       ])
       if (!vigente) return
-      if (respuestaProveedores.error || respuestaEmpresas.error || respuestaProductos.error || respuestaOperadores.error) {
+      if (respuestaEmpresas.error || respuestaOperadores.error) {
         console.error('No pudimos cargar los filtros del historial de ingresos.', {
-          proveedores: respuestaProveedores.error,
           empresas: respuestaEmpresas.error,
-          productos: respuestaProductos.error,
           operadores: respuestaOperadores.error,
         })
         setErrorFiltros(true)
         return
       }
-      setProveedores(respuestaProveedores.data ?? [])
       setEmpresas(respuestaEmpresas.data ?? [])
-      setProductos(respuestaProductos.data ?? [])
       setOperadores((respuestaOperadores.data ?? []) as unknown as OperadorOpcion[])
     })()
     return () => { vigente = false }
@@ -160,8 +163,9 @@ export function HistorialIngresos({ revision }: Props) {
       }
     : undefined
 
-  const proveedorActual = proveedores.find((opcion) => opcion.id === proveedorId) ?? null
-  const productoActual = productos.find((opcion) => opcion.id === productoId) ?? null
+  const proveedorActual = proveedorId !== '' ? proveedorElegido : null
+  const productoActual = productoId !== '' ? productoElegido : null
+  const conActual = <T extends { id: string }>(opciones: T[], actual: T | null) => (actual && !opciones.some((opcion) => opcion.id === actual.id) ? [actual, ...opciones] : opciones)
   const operadorActual = operadores.find((opcion) => opcion.actor_id === operadorId) ?? null
 
   return (
@@ -183,12 +187,14 @@ export function HistorialIngresos({ revision }: Props) {
           slotProps={{ inputLabel: { shrink: true } }} sx={{ width: 160 }}
         />
         <Autocomplete
-          size="small" sx={{ width: 200 }} options={proveedores} value={proveedorActual}
+          size="small" sx={{ width: 200 }} options={conActual(proveedores.opciones, proveedorActual)} value={proveedorActual}
+          loading={proveedores.cargando} loadingText="Buscando proveedores…" filterOptions={(opciones) => opciones} onOpen={() => setProveedorAbierto(true)}
+          onInputChange={(_, texto, motivo) => { if (motivo === 'input') proveedores.buscar(texto) }}
           getOptionLabel={(opcion) => opcion.razon_social}
           isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
-          onChange={(_, nueva) => cambiarFiltro(() => setProveedorId(nueva?.id ?? ''))}
-          noOptionsText="Sin proveedores"
-          renderInput={(params) => <TextField {...params} label="Proveedor" />}
+          onChange={(_, nueva) => cambiarFiltro(() => { setProveedorElegido(nueva); setProveedorId(nueva?.id ?? ''); proveedores.buscar('') })}
+          noOptionsText={proveedores.error ? 'No pudimos buscar proveedores. Probá de nuevo.' : 'Sin proveedores'}
+          renderInput={(params) => <TextField {...params} label="Proveedor" error={proveedores.error} helperText={proveedores.error ? 'No pudimos buscar proveedores. Probá de nuevo.' : proveedores.truncado ? avisoCatalogoTruncado('proveedores') : undefined} />}
         />
         <FiltroEmpresa
           empresas={empresas}
@@ -196,12 +202,14 @@ export function HistorialIngresos({ revision }: Props) {
           onCambiar={(nuevo) => cambiarFiltro(() => setEmpresaId(nuevo ?? ''))}
         />
         <Autocomplete
-          size="small" sx={{ width: 240 }} options={productos} value={productoActual}
+          size="small" sx={{ width: 240 }} options={conActual(productos.opciones, productoActual)} value={productoActual}
+          loading={productos.cargando} loadingText="Buscando productos…" filterOptions={(opciones) => opciones} onOpen={() => setProductoAbierto(true)}
+          onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto) }}
           getOptionLabel={etiquetaProducto}
           isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
-          onChange={(_, nueva) => cambiarFiltro(() => setProductoId(nueva?.id ?? ''))}
-          noOptionsText="Sin productos"
-          renderInput={(params) => <TextField {...params} label="Producto" />}
+          onChange={(_, nueva) => cambiarFiltro(() => { setProductoElegido(nueva); setProductoId(nueva?.id ?? ''); productos.buscar('') })}
+          noOptionsText={productos.error ? 'No pudimos buscar productos. Probá de nuevo.' : 'Sin productos'}
+          renderInput={(params) => <TextField {...params} label="Producto" error={productos.error} helperText={productos.error ? 'No pudimos buscar productos. Probá de nuevo.' : productos.truncado ? avisoCatalogoTruncado('productos') : undefined} />}
         />
         <Autocomplete
           size="small" sx={{ width: 200 }} options={operadores} value={operadorActual}
