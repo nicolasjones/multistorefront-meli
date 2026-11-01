@@ -857,7 +857,12 @@ export function ComprobanteVenta() {
               dialogoAbierto={dialogoCobro}
               onAbrirDialogo={() => setDialogoCobro(true)}
               onCerrarDialogo={() => setDialogoCobro(false)}
-              onRecargar={() => void recargarCobros()}
+              // El cobro cambia el estado y el `updated_at` del comprobante en la base (MSF-715): se relee
+              // también el comprobante, o las acciones siguientes chocarían con «Otra persona modificó…».
+              onRecargar={() => {
+                void cargar()
+                void recargarCobros()
+              }}
               onRegistrado={setExito}
             />
           ) : null}

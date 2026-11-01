@@ -581,6 +581,24 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
     await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBeGreaterThan(1))
   })
 
+  it('tras registrar el cobro relee el comprobante: estado y `updated_at` vigentes (MSF-715)', async () => {
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+    const dialogo = await screen.findByRole('dialog')
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1))
+    // La base deja la factura cobrada y avanza `updated_at`: la próxima lectura lo trae.
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, estado: 'cobrado', updated_at: '2027-01-02T00:00:00Z' })
+
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Transferencia' }))
+    fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Banco Uno · Comercial Ejemplo SRL' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '1000' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
+  })
+
   it('un error de la base se muestra en el campo que nombra', async () => {
     mocks.rpc.mockImplementation(async (nombre: string) => {
       if (nombre === 'registrar_cobro') {
