@@ -87,8 +87,8 @@ Como Administrador u Operador con acceso a Productos, filtro el listado por cons
 - **FR-005**: `public.listar_compatibles()` devuelve los valores distintos (ordenados, sin vacíos) de la organización; es de solo lectura. **Verificación:** pgTAP `catalogo_compatible_filtro.test.sql` (`listar_compatibles`: distintos, ordenados, sin vacíos, aislamiento, solo lectura).
 - **FR-006**: «Limpiar filtros» también limpia el filtro de compatible; sin resultados se usa el estado vacío existente. **Verificación:** Vitest `pnpm --filter @platform/web test -- filtro-compatible` (limpiar filtros y estado vacío).
 - **FR-007**: *Empresa activa* (Principio VIII): al cambiar de empresa se recargan los productos **y** los valores del selector, se descartan valores elegidos que ya no existen y se reencuadra la paginación. **Verificación:** Vitest `pnpm --filter @platform/web test -- filtro-compatible` (cambio de empresa).
-- **SC-001**: pgTAP `catalogo_compatible_filtro.test.sql`: aislamiento entre organizaciones de la vista y de `listar_compatibles`, `anon` sin acceso, columna nueva presente.
-- **SC-002**: Vitest del filtro (OR, mayúsculas, combinación con búsqueda/categoría, limpiar, cambio de empresa).
+- **SC-001**: pgTAP `catalogo_compatible_filtro.test.sql`: aislamiento entre organizaciones de la vista y de `listar_compatibles`, `anon` sin acceso, columna nueva presente. **Verificación:** `pnpm test` (pgTAP `catalogo_compatible_filtro.test.sql`).
+- **SC-002**: Vitest del filtro (OR, mayúsculas, combinación con búsqueda/categoría, limpiar, cambio de empresa). **Verificación:** `pnpm --filter @platform/web test -- filtro-compatible`.
 
 ### US2 — F-CAT-10 · Importar productos desde CSV (P1, M)
 
@@ -106,10 +106,10 @@ Como Administrador, cargo o actualizo productos en lote desde una planilla CSV c
 - **FR-110**: Al terminar se muestra «Importación terminada. N productos procesados, M omitidos por error. Ya figuran en Catálogo · Productos.» y «Descargar reporte de errores» (CSV con fila, SKU y motivo de las omitidas). Si la ejecución falla de forma técnica, queda reintentable desde la pantalla de ejecuciones y se informa el estado. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (mensaje final y reporte de errores CSV).
 - **FR-111**: Estados de la importación visibles en la pantalla: `en_cola`, `aplicando`, `terminada`, `fallida`. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (los cuatro estados) + pgTAP `catalogo_importacion.test.sql`.
 - **FR-112**: Toda RPC es `security definer`, toma organización y actor de la sesión, exige `es_administrador_de`, y declara `revoke … from public, anon` + `grant … to authenticated`. Las tablas nuevas nacen sin privilegios para `anon`. **Verificación:** pgTAP `catalogo_importacion.test.sql` (solo Administrador, `anon` sin ejecución ni privilegios) vía `pnpm test`.
-- **FR-113**: *Empresa activa* (Principio VIII): la importación opera sobre la **organización** y las tiendas salen de la columna `tiendas`; la pantalla no depende de la empresa activa. **No aplica**, y un test confirma que cambiar de empresa con una vista previa abierta no altera filas ni resultado.
-- **SC-101**: pgTAP `catalogo_importacion.test.sql`: aislamiento, solo Administrador, `anon` sin acceso, idempotencia por clave, límite de filas.
-- **SC-102**: Vitest del parser/validador de CSV y de la pantalla (vista previa, contadores, avisos de costo sin Rentabilidad, descarga de plantilla y de errores).
-- **SC-103**: Vitest del worker: alta, actualización, celda vacía, imagen, reintento sin duplicar, `EJECUCION_NO_EN_CURSO` con código 78.
+- **FR-113**: *Empresa activa* (Principio VIII): la importación opera sobre la **organización** y las tiendas salen de la columna `tiendas`; la pantalla no depende de la empresa activa. **No aplica**, y un test confirma que cambiar de empresa con una vista previa abierta no altera filas ni resultado. **Verificación:** Vitest `pnpm --filter @platform/web test -- carga-productos` (cambio de empresa con vista previa abierta).
+- **SC-101**: pgTAP `catalogo_importacion.test.sql`: aislamiento, solo Administrador, `anon` sin acceso, idempotencia por clave, límite de filas. **Verificación:** `pnpm test` (pgTAP `catalogo_importacion.test.sql`).
+- **SC-102**: Vitest del parser/validador de CSV y de la pantalla (vista previa, contadores, avisos de costo sin Rentabilidad, descarga de plantilla y de errores). **Verificación:** `pnpm --filter @platform/web test -- carga-productos importacion-productos`.
+- **SC-103**: Vitest del worker: alta, actualización, celda vacía, imagen, reintento sin duplicar, `EJECUCION_NO_EN_CURSO` con código 78. **Verificación:** `pnpm --filter @workers/importar-productos test`.
 
 ### US3 — F-CAT-11 · Exportar listados (P1, S)
 
@@ -124,8 +124,8 @@ Como Administrador, exporto el listado de productos a CSV desde el diálogo «Ex
 - **FR-207**: El CSV escapa comillas, comas y saltos de línea y neutraliza celdas que empiezan con `=`, `+`, `-` o `@` (inyección de fórmulas). **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (escape y neutralización de `=`, `+`, `-`, `@`).
 - **FR-208**: Cada exportación queda en la actividad (`registrar_actividad`: quién, cuántos productos, qué columnas; sin valores de precio ni costo). **Verificación:** pgTAP `catalogo_exportar.test.sql` (actividad registrada sin precios ni costos).
 - **FR-209**: *Empresa activa* (Principio VIII): «Lo filtrado» se reencuadra con la empresa activa; el diálogo abierto al cambiar de empresa se cierra con aviso. **Verificación:** Vitest `pnpm --filter @platform/web test -- exportar-productos` (cambio de empresa cierra el diálogo con aviso).
-- **SC-201**: pgTAP `catalogo_exportar.test.sql`: aislamiento, solo Administrador, costo sin Rentabilidad rechazado, paginación estable, actividad registrada.
-- **SC-202**: Vitest del diálogo y del generador de CSV (escape, fórmulas, columnas, «filtrado» vs «todos», cambio de empresa).
+- **SC-201**: pgTAP `catalogo_exportar.test.sql`: aislamiento, solo Administrador, costo sin Rentabilidad rechazado, paginación estable, actividad registrada. **Verificación:** `pnpm test` (pgTAP `catalogo_exportar.test.sql`).
+- **SC-202**: Vitest del diálogo y del generador de CSV (escape, fórmulas, columnas, «filtrado» vs «todos», cambio de empresa). **Verificación:** `pnpm --filter @platform/web test -- exportar-productos`.
 
 ## Flujos
 
