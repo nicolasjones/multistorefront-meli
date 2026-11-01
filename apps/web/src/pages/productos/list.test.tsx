@@ -326,8 +326,23 @@ describe('ProductoList', () => {
     expect(screen.getByRole('link', { name: 'Editar Joystick' })).toHaveAttribute('href', '/productos/p-1/edit')
     expect(screen.getByRole('button', { name: 'Activar Cable' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    // MSF-627: desactivar pide confirmación; cancelar no llama a la base.
+    const dialogo = await screen.findByRole('dialog', { name: '¿Desactivar el producto?' })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(2))
+  })
+
+  it('activar un producto inactivo no pide confirmación (MSF-627)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Activar Cable' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-2', p_activo: true }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('con solo lectura no ofrece editar, activar/desactivar ni «Nuevo producto»', async () => {
@@ -344,6 +359,7 @@ describe('ProductoList', () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'new row violates row-level security policy' } })
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Desactivar Joystick' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     expect(await screen.findByText(/No tenés permiso para esta acción/)).toBeInTheDocument()
     expect(screen.queryByText(/row-level security/)).not.toBeInTheDocument()
     expect(mocks.consulta).toHaveBeenCalledTimes(1)
