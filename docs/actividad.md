@@ -153,6 +153,20 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
   reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
   `service_items`. Ver `docs/service-items.md`.
+- `reparacion.adjunto_agregado` y `reparacion.adjunto_quitado` (F-SVC-20, Service técnico): los registran las RPC
+  `registrar_adjunto_reparacion` y `quitar_adjunto_reparacion` en la misma transacción que la fila de
+  `dominio.reparacion_adjuntos`. El detalle nombra el archivo y el código visible de la reparación («Agregó la foto
+  «frente.png» a la reparación R-000N»), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
+  `service_adjuntos`. Ver `docs/service-adjuntos.md`.
+- `reparacion.reingreso_garantia` (F-SVC-21, Service técnico): lo registra la RPC `reingresar_por_garantia` en
+  la misma transacción que la fila de la reparación nueva y su evento `alta` del historial. El detalle nombra los
+  dos códigos visibles («Reingresó por garantía R-0001 como R-0002»), nunca ids; el evento lleva la tienda de
+  la reparación original. Lo cubre el pgTAP `service_garantia`. Ver `docs/service-garantia.md`.
+- `reparacion.enlace_generado` (F-SVC-22, Service técnico): lo registra la RPC `obtener_enlace_consulta` solo cuando
+  **crea** el enlace de seguimiento de una reparación (los pedidos siguientes devuelven el mismo token y no registran
+  nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código
+  visible («Generó el enlace de seguimiento de R-0001»), nunca el token ni ids; el evento lleva la tienda de la
+  reparación. Lo cubre el pgTAP `service_enlace_consulta`. Ver `docs/service-seguimiento.md`.
 - `reparacion.comprobante_generado` (F-SVC-13, Service técnico): lo registra `private.registrar_actividad` en la
   misma transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
   idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código

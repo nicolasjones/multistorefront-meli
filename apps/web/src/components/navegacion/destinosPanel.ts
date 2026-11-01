@@ -124,7 +124,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
   },
   {
     // Servicio técnico: las tres pantallas del prototipo (también accesibles como
-    // pestañas dentro de cada página). Todas dependen de la funcionalidad
+    // pestañas dentro de cada página) más la de Reportes (F-SVC-23, FR-064), que
+    // embebe el tablero de Superset. Todas dependen de la funcionalidad
     // `service-tecnico` y de la sección `service_tecnico`.
     id: 'service',
     etiqueta: 'Servicio técnico',
@@ -152,6 +153,15 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
         etiqueta: 'Estados de reparación',
         ruta: '/service-tecnico/estados',
         icono: TuneIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-reportes',
+        etiqueta: 'Reportes',
+        ruta: '/service-tecnico/reportes',
+        icono: InsightsIcon,
         audiencia: 'organizacion',
         seccionPermiso: 'service_tecnico',
         feature: 'service-tecnico',

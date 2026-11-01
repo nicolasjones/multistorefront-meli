@@ -150,6 +150,17 @@ export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermi
   return resueltos;
 }
 
+// Busca en el catálogo una fila con el mismo nombre. Una migración puede haber dejado la fila del
+// reporte con el slug del tablero en vez del UUID de embebido (Superset genera ese UUID al importar,
+// así que la migración no puede conocerlo): en ese caso hay que actualizar esa fila en vez de
+// insertar otra, porque el catálogo no puede tener dos filas del mismo tablero (la app lo busca por
+// nombre y quedaría mostrando la que no tiene el UUID de embebido).
+export async function buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre }) {
+  const url = `${baseUrl}/rest/v1/reportes?nombre=eq.${encodeURIComponent(nombre)}&select=id,superset_dashboard_uuid`;
+  const filas = await pedirJson(fetch, url, { headers: cabeceras });
+  return Array.isArray(filas) ? filas[0] ?? null : null;
+}
+
 // Registro idempotente: upsert por `superset_dashboard_uuid` (no duplica al reimportar) y upsert de
 // los roles por defecto por (reporte_id, rol_id). `administrador` nunca va: tiene acceso
 // incondicional y la tabla lo prohíbe con un CHECK.
@@ -163,19 +174,26 @@ export async function registrarReportes({ reportes, fetch, config }) {
   };
   const registrados = [];
   for (const reporte of reportes) {
-    const [fila] = await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
-      method: 'POST',
-      headers: cabeceras,
-      body: JSON.stringify({
-        superset_dashboard_uuid: reporte.dashboard_uuid,
-        nombre: reporte.nombre,
-        seccion: reporte.seccion ?? null,
-        // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente =
-        // `false`, el comportamiento anterior (el token solo filtra la organización).
-        filtro_empresa: reporte.filtro_empresa === true,
-        creado_por: config.creadoPor,
-      }),
-    });
+    const cuerpo = {
+      superset_dashboard_uuid: reporte.dashboard_uuid,
+      nombre: reporte.nombre,
+      seccion: reporte.seccion ?? null,
+      // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente = `false`.
+      filtro_empresa: reporte.filtro_empresa === true,
+    };
+    const existente = await buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre: reporte.nombre });
+    const [fila] = existente
+      ? await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?id=eq.${existente.id}`, {
+        method: 'PATCH',
+        headers: cabeceras,
+        // La fila ya existe: se conserva su autor original (auditoría), no se pisa `creado_por`.
+        body: JSON.stringify(cuerpo),
+      })
+      : await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
+        method: 'POST',
+        headers: cabeceras,
+        body: JSON.stringify({ ...cuerpo, creado_por: config.creadoPor }),
+      });
     if (!fila?.id) throw new Error(`Supabase no devolvió el reporte ${reporte.nombre}.`);
 
     const roles = (reporte.rolesPorDefecto ?? []).filter((rol) => rol && rol !== 'administrador');

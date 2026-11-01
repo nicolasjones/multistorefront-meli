@@ -193,6 +193,29 @@ describe('destino «Faltantes» (F-VTA-18, FR-045)', () => {
   })
 })
 
+describe('destino «Reportes» de Service técnico (F-SVC-23, FR-064)', () => {
+  it('está en el grupo Servicio técnico, apunta a /service-tecnico/reportes y usa la sección service_tecnico', () => {
+    const reportes = destino('service-tecnico-reportes')
+    expect(reportes.ruta).toBe('/service-tecnico/reportes')
+    expect(reportes.etiqueta).toBe('Reportes')
+    expect(reportes.seccionPermiso).toBe('service_tecnico')
+    expect(reportes.feature).toBe('service-tecnico')
+    expect(SECCION_POR_RECURSO['service-tecnico-reportes']).toBe('service_tecnico')
+    const service = SECCIONES_PANEL.find((seccion) => seccion.id === 'service')
+    expect(service?.destinos.map((d) => d.id)).toContain('service-tecnico-reportes')
+  })
+
+  it('lo ven quienes tienen Servicio técnico en lectura o edición, nunca sin acceso', () => {
+    const reportes = destino('service-tecnico-reportes')
+    const conService = new Set(['service-tecnico'])
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'lectura']), conService)).toBe(true)
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'edicion']), conService)).toBe(true)
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'ninguno']), conService)).toBe(false)
+    expect(destinoVisible(reportes, panelFixtures.miembro, [], conService)).toBe(false)
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'lectura']), new Set())).toBe(false)
+  })
+})
+
 describe('navegación por secciones (decisión 2026-10-21)', () => {
   const seccionDe = (id: string) => SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === id))?.id
 

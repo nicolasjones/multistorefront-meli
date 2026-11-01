@@ -434,6 +434,16 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# consultar-estado-reparacion (F-SVC-22, MSF-157, docs/service-seguimiento.md): la página pública
+# `/seguimiento/:token` consulta el estado SIN sesión; la función valida el token y usa la service-role
+# solo en el servidor. `verify_jwt = false` deja escrito que el gateway NO debe exigir un JWT: la página
+# manda la clave pública (anon/publishable), que no es un JWT, y con `verify_jwt = true` esa consulta sin
+# sesión terminaría en 401. El gateway solo pide la clave pública (`apikey`); la función no crea sesión.
+# El `supabase/config.toml` del workdir del CLI de cada entorno (`/root/supabase-stg`, `/root/supabase-prd`)
+# debe tener esta misma sección al desplegar la función.
+[functions.consultar-estado-reparacion]
+verify_jwt = false
+
 [analytics]
 enabled = false
 # Excepción FR-006 (spec 015) — variable equivalente: SUPABASE_ANALYTICS_PORT
