@@ -8,7 +8,7 @@ import { solicitarAcceso } from '../../lib/solicitarAcceso'
 
 type AccesoRestringidoProps = {
   // Nombre visible del rol y de la sección (no identificadores técnicos).
-  rol: string
+  rol?: string
   seccion: string
   // Clave de la sección en el catálogo de permisos. Sin ella no se ofrece «Solicitar acceso».
   seccionClave?: string
@@ -44,6 +44,8 @@ export function AccesoRestringido({ rol, seccion, seccionClave }: AccesoRestring
   }
 
   const enviada = estado.fase === 'enviada'
+  // «actual» es el valor de relleno de quien no conoce el nombre del rol: no se muestra como si fuera uno.
+  const rolConocido = Boolean(rol) && rol !== 'actual'
   return (
     <>
       <EncabezadoPagina titulo="No tenés acceso a esta sección" />
@@ -51,7 +53,7 @@ export function AccesoRestringido({ rol, seccion, seccionClave }: AccesoRestring
         <Stack spacing={2}>
           <EstadoVacio
             titulo="Sección no disponible para tu rol"
-            descripcion={`Tu rol (${rol}) no incluye ${seccion}. Pedile acceso a un administrador.`}
+            descripcion={`${rolConocido ? `Tu rol (${rol})` : 'Tu rol'} no incluye ${seccion}. Pedile acceso a un administrador.`}
             accion={(
               <Stack direction="row" flexWrap="wrap" gap={1}>
                 {seccionClave ? (
