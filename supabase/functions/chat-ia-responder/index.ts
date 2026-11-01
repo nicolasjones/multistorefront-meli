@@ -235,13 +235,14 @@ Deno.serve(async (req) => {
   // private.ejecutar_accion_chat_ia, llamada solo tras la confirmación
   // explícita del usuario en la UI.
   async function proponerEjecucion(rpc: string, parametros: Record<string, unknown>, descripcion: string) {
-    const { data: accion } = await asUser.from('acciones_chat_ia').select('feature_id').eq('rpc', rpc).maybeSingle()
-    if (!accion) return { propuesta: false, motivo: 'ACCION_NO_DISPONIBLE' }
-
-    const { data: puedeEjecutar } = await asUser.rpc('puede_chat_ejecutar_funcionalidad', { p_feature_id: accion.feature_id })
-    if (!puedeEjecutar) return { propuesta: false, motivo: 'ACCION_NO_DISPONIBLE' }
-
     // La propuesta se crea por RPC: el cliente ya no puede escribir accion_* (MSF-724).
+    // Esa RPC es la única fuente de verdad de la allowlist: valida conversación
+    // propia, que (feature, rpc) esté registrada y ejecutable por la
+    // organización, que la acción sea ejecutable por el usuario y que los
+    // parámetros sean los que la acción declara — y elige la feature de forma
+    // determinista. Aquí no se pre-valida nada: con la misma rpc registrada en
+    // dos features, este `.maybeSingle()` fallaba y la propuesta válida se
+    // perdía (MSF-724).
     const { data: creada, error } = await asUser.rpc('proponer_accion_chat_ia', {
       p_conversacion_id: conversacionId,
       p_rpc: rpc,
