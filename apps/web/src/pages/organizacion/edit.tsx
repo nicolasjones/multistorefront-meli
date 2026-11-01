@@ -6,6 +6,7 @@ import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
+import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -130,9 +131,7 @@ export function OrganizacionEdit() {
   )
 
   if (verificandoPermiso || puedeEscribir === null) return envolver(<EstadoCargaPagina />)
-  if (!puedeEscribir) {
-    return envolver(<EstadoError titulo="Acceso restringido" descripcion="Solo los administradores pueden editar los datos de la organización." />)
-  }
+  if (!puedeEscribir) return <AccesoRestringido rol="actual" seccion="Mi organización" />
   if (carga.tipo === 'cargando') return envolver(<EstadoCargaPagina />)
   if (carga.tipo === 'error' || !guardada) {
     return envolver(<EstadoError descripcion="No pudimos cargar los datos de la organización." reintentar={() => void cargar()} />)

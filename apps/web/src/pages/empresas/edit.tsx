@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
-import { Box, Button, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useEmpresa, type DatosGeneralesEmpresa } from '../../hooks/useEmpresa'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
@@ -200,7 +200,7 @@ export function EmpresaEdit() {
     <>
       <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
         <Stack spacing={2}>
-          {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
+          {soloLectura ? <Alert severity="info" role="note">Solo lectura: solo los administradores pueden editar los datos de la empresa.</Alert> : null}
           {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
           {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
           <TextField
