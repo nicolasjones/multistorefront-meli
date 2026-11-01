@@ -182,19 +182,55 @@ export async function listarStockPorDeposito(productoId: string): Promise<Record
   )
 }
 
+// Ids por petición: cada id ocupa ~39 bytes en el `in.(…)` de la URL GET (36 del uuid + la coma
+// codificada), así que 100 ids ≈ 4,1 KB queda muy por debajo del límite típico de 8 KB del proxy (MSF-716).
+export const LOTE_IDS_STOCK = 100
+
+// Peticiones simultáneas: tope para no largar una ráfaga contra el proxy (con 1000 productos son
+// 10 lotes → 3 olas de 4). El navegador ya limita a 6 conexiones por host; el tope lo hace explícito.
+export const MAXIMA_CONCURRENCIA_STOCK = 4
+
+// Parte una lista de ids en lotes de `tamaño`. Los helpers son genéricos: los usa el stock de la
+// toma de inventario y también el filtro por categoría de esa misma pantalla (MSF-716), que
+// viaja por la URL igual que el de producto.
+export function enLotes<T>(ids: readonly T[], tamaño: number): T[][] {
+  const lotes: T[][] = []
+  for (let i = 0; i < ids.length; i += tamaño) lotes.push(ids.slice(i, i + tamaño))
+  return lotes
+}
+
+// Pide los lotes de a olas (como mucho MAXIMA_CONCURRENCIA_STOCK a la vez) y devuelve las
+// respuestas en el orden de los lotes. Si un lote falla, el error sale y no se sigue con las olas
+// siguientes: nunca se devuelve stock parcial.
+export async function pedirEnOlas<T, R>(lotes: readonly T[][], pedir: (lote: T[]) => Promise<R[]>): Promise<R[]> {
+  const respuestas: R[] = []
+  for (let i = 0; i < lotes.length; i += MAXIMA_CONCURRENCIA_STOCK) {
+    const ola = lotes.slice(i, i + MAXIMA_CONCURRENCIA_STOCK)
+    for (const respuesta of await Promise.all(ola.map(pedir))) respuestas.push(...respuesta)
+  }
+  return respuestas
+}
+
 // Cifras de varios productos en un depósito, para el control de depósito del
-// listado Stock actual (FR-011, D-4).
+// listado Stock actual (FR-011, D-4) y la toma de inventario (hasta 1000 productos).
+// Parte los ids en lotes para que la URL no exceda el límite; si un lote falla, propaga el
+// error (nunca devuelve stock parcial, que rotularía diferencias falsas en la toma).
 export async function listarStockPorDepositoDe(productoIds: string[], depositoId: string): Promise<Record<string, StockPorDeposito>> {
-  if (productoIds.length === 0) return {}
-  const { data, error } = await supabaseClient
-    .from('stock_por_deposito')
-    .select('producto_id, deposito_id, cantidad, reservado, disponible')
-    .in('producto_id', productoIds)
-    .eq('deposito_id', depositoId)
-    .returns<FilaStockPorDeposito[]>()
-  if (error) throw error
+  const ids = [...new Set(productoIds)]
+  if (ids.length === 0) return {}
+  const lotes = enLotes(ids, LOTE_IDS_STOCK)
+  const respuestas = await pedirEnOlas(lotes, async (lote) => {
+    const { data, error } = await supabaseClient
+      .from('stock_por_deposito')
+      .select('producto_id, deposito_id, cantidad, reservado, disponible')
+      .in('producto_id', lote)
+      .eq('deposito_id', depositoId)
+      .returns<FilaStockPorDeposito[]>()
+    if (error) throw error
+    return data ?? []
+  })
   return Object.fromEntries(
-    (data ?? []).map((fila) => [fila.producto_id, {
+    respuestas.map((fila) => [fila.producto_id, {
       deposito_id: fila.deposito_id,
       cantidad: Number(fila.cantidad),
       reservado: Number(fila.reservado),
