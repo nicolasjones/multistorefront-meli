@@ -11,7 +11,7 @@ const fila = (n: number, extra: Partial<ReparacionListada> = {}): ReparacionList
   id: `r-${n}`, numero: n, codigo: `R-${String(n).padStart(4, '0')}`, ingreso_en: '2026-10-05',
   empresa_id: 'e-1', empresa: 'San Javucho', cliente: `Cliente ${n}`, equipo: 'Nintendo Switch', modelo: 'Estándar',
   numero_serie: `SN-${n}`, estado: 'En reparación', estado_tono: 'info', tecnico_id: 't-1', tecnico: 'Ana Pérez',
-  entrega_prevista: '2026-10-25', total_cliente: 15000, ...extra,
+  entrega_prevista: '2026-10-25', total_cliente: 15000, pendientes_stock: 0, ...extra,
 })
 
 const FILTROS = { empresaId: 'e-1', periodo: 'semana' as const, serie: ' abc ', tecnicoId: 't-2' }
