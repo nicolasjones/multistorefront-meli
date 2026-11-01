@@ -25,6 +25,13 @@ export function limpiarRastroDeSesion() {
   localStorage.removeItem(CLAVE_MANTENER_SESION)
 }
 
+// El vencimiento por inactividad es del panel: la tienda pública no tiene `/login`
+// (su ingreso es `/ingresar`), así que ahí no se registra marca ni se cierra sesión.
+export function seguirActividadDelPanel(esTiendaPublica: boolean, alVencer?: () => void) {
+  if (esTiendaPublica) return undefined
+  return seguirActividad(alVencer)
+}
+
 // Registra actividad de la persona (limitada a una escritura por minuto).
 // Si la sesión ya venció por inactividad, no renueva la marca: avisa con
 // `alVencer` para que se cierre la sesión (pestaña que quedó abierta > 12 h).
