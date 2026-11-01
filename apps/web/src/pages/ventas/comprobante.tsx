@@ -104,6 +104,10 @@ import {
 const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
+// MSF-598: el despacho, el envío y los faltantes viven en cualquier estado vivo de la factura (no solo «confirmada»).
+// Debe coincidir con la lista de estados vivos de `cambiar_estado_despacho`, `registrar_faltantes_despacho` y
+// `guardar_envio_comprobante` (migración 20270121121500).
+const ESTADOS_DESPACHABLES: readonly string[] = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
 
 // Ventas · Comprobante (F-VTA-05, FR-006): alta en `/ventas/comprobantes/nuevo` y edición en `/ventas/comprobantes/:id`.
 // La autoridad de permisos y de edición es la base (RPC); acá `puede_editar` y `editable` solo deciden qué se ofrece.
@@ -885,10 +889,10 @@ export function ComprobanteVenta() {
             />
           ) : null}
           {/* Envío y transporte (F-VTA-16, FR-023): el bloque con el selector de transporte, la guía y la fecha de
-              envío solo existe en una factura confirmada (el envío se registra sobre la factura confirmada). Al
+              envío existe en una factura viva (MSF-598). Al
               cambiar la empresa activa la pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo
               elegido: nunca se guarda un envío de una tienda bajo otra. */}
-          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+          {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
             <EnvioTransporte
               comprobanteId={comprobante.id}
               empresaId={comprobante.empresa_id}
@@ -898,10 +902,10 @@ export function ComprobanteVenta() {
               onCambio={() => void cargar()}
             />
           ) : null}
-          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta solo existe en una factura confirmada,
+          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta existe en una factura viva (MSF-598),
               porque el despacho arranca al confirmar. Al cambiar la empresa activa la pantalla se cierra con aviso
               (Principio VIII) y la tarjeta suelta lo elegido: nunca se guarda un responsable de otra tienda. */}
-          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+          {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
             <ResponsablesDespacho
               comprobanteId={comprobante.id}
               empresaId={comprobante.empresa_id}
@@ -972,7 +976,7 @@ export function ComprobanteVenta() {
       {/* Faltantes (F-VTA-18, FR-047): elegir el estado «Incompleto» en el despacho abre este diálogo. Con el
           diálogo abierto, un cambio de empresa activa lo cierra con aviso (Principio VIII): jamás se registran
           faltantes de una tienda bajo otra. */}
-      {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+      {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
         <RegistrarFaltantesDialog
           open={registrandoFaltantes}
           comprobante={comprobante}
