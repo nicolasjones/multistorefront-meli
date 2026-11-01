@@ -2,8 +2,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { protocoloTienda } from '../_shared/protocolo.ts'
 import { manejar, type Deps } from './handler.ts'
 
-// Las tiendas viven en https; solo el desarrollo local fija ALLOW_HTTP_REDIRECT=true (MSF-726: no se deduce de SUPABASE_URL).
-const protocolo = protocoloTienda(Deno.env.get('ALLOW_HTTP_REDIRECT'))
+// Las tiendas viven en https; solo el desarrollo local fija ALLOW_HTTP_REDIRECT=true. El host de SUPABASE_URL NO
+// decide el esquema (MSF-726): `kong` es el gateway interno de Docker también en STG y PRD, así que derivarlo de
+// ahí mandaba los enlaces en claro a producción.
+const protocolo = protocoloTienda({
+  ALLOW_HTTP_REDIRECT: Deno.env.get('ALLOW_HTTP_REDIRECT'),
+  SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
+})
 
 // Adaptador explícito: cada método real se envuelve para cumplir `Deps`, de modo que un cambio del SDK que rompa
 // el contrato falle al compilar y no en runtime. La service-role vive solo en esta función.

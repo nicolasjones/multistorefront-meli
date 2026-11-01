@@ -8,13 +8,15 @@ type Opciones = {
   cuenta?: { correo: string; dominio: string } | null
   rpcError?: boolean
   enviarError?: boolean
+  // Esquema del enlace: `http` solo en desarrollo local (ALLOW_HTTP_REDIRECT=true).
+  protocolo?: 'https' | 'http'
 }
 
 function montar(opciones: Opciones = {}) {
   const pendientes: Promise<void>[] = []
   const llamadas = { rpc: [] as [string, Record<string, unknown>][], claves: [] as { email: string; redirectTo: string }[] }
   const deps: Deps = {
-    protocolo: 'https',
+    protocolo: opciones.protocolo ?? 'https',
     admin: {
       rpc: async (nombre, args) => {
         llamadas.rpc.push([nombre, args])
@@ -50,6 +52,13 @@ describe('recuperar-clave-cliente', () => {
     await manejar(pedido({ host: 'MundoJC.Ejemplo.com:8443', correo: 'cli@example.com' }), deps)
     await terminar()
     assert.equal(llamadas.claves[0]?.redirectTo, 'https://mundojc.ejemplo.com/definir-contrasena')
+  })
+
+  it('el enlace sale en http solo si el entorno lo permite (desarrollo local); por defecto https (MSF-726)', async () => {
+    const local = montar({ cuenta: { correo: 'cli@example.com', dominio: 'mundojc.localhost' }, protocolo: 'http' })
+    await manejar(pedido({ host: 'mundojc.localhost', correo: 'cli@example.com' }), local.deps)
+    await local.terminar()
+    assert.equal(local.llamadas.claves[0]?.redirectTo, 'http://mundojc.localhost/definir-contrasena')
   })
 
   it('sin cuenta activa (suspendida, sin cuenta, no habilitada, host ajeno) no envía y responde idéntico', async () => {
