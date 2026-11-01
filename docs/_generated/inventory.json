@@ -470,6 +470,10 @@
     {
       "slug": "20261018-000000-vigilancia-prototipo",
       "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261029-100000-mejoras-de-clientes-y-proveedores",
+      "titulo": "Feature Specification: Clientes y proveedores · Mejoras de clientes y proveedores"
     }
   ],
   "paginas": 165
