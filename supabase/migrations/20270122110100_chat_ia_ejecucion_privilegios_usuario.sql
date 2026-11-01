@@ -2,7 +2,7 @@
 -- corre con los privilegios de QUIEN CONFIRMA, no con los del dueño.
 --
 -- Qué había quedado:
---   20270121120000 acotó QUÉ se puede ejecutar (allowlist (feature, rpc) en
+--   20270122110000 acotó QUÉ se puede ejecutar (allowlist (feature, rpc) en
 --   acciones_chat_ia + EXECUTE de authenticated) y cerró la escritura
 --   directa de propuestas por el cliente. Pero el wrapper seguía siendo
 --   `security definer`: el `execute format('select ... from public.%I(...)')`
@@ -38,7 +38,7 @@
 --     feature_id), no por el plan de ejecución de la consulta.
 --
 -- Reversión: volver a `public.ejecutar_accion_chat_ia` como security definer
--- (la versión de 20270121120000) y recrear `private.ejecutar_accion_chat_ia`
+-- (la versión de 20270122110000) y recrear `private.ejecutar_accion_chat_ia`
 -- tal como estaba; retirar las funciones private nuevas y sus permisos.
 -- Revertir reabre la escalada de privilegios (no hacerlo).
 

@@ -68,6 +68,6 @@ tenga `EXECUTE` sobre todas las sobrecargas de esa función en `public` (una fun
 no se alcanza vía el chat). El cliente ya no escribe propuestas: `authenticated` solo inserta
 `conversacion_id, origen, contenido, estado` en `mensajes_chat_ia` y no actualiza; las
 propuestas las crea `public.proponer_accion_chat_ia`, que valida conversación propia, allowlist
-y capacidad de ejecución. Migración `20270121120000_chat_ia_ejecucion_allowlist.sql`; prueba
+y capacidad de ejecución. Migración `20270122110000_chat_ia_ejecucion_allowlist.sql`; prueba
 `supabase/tests/database/chat_ia_ejecucion_allowlist.test.sql`. Si hubo explotación previa:
 auditar `mensajes_chat_ia` con `accion_rpc` fuera de `acciones_chat_ia` y evaluar rotar la clave del proveedor.
