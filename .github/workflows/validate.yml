@@ -105,6 +105,10 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
+      # (es Node puro, sin base) para que la regresión no vuelva a colarse.
+      - name: test:db:guard-migraciones
+        run: pnpm test:db:guard-migraciones
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos

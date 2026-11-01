@@ -20,6 +20,7 @@
 // Sale con código 1 si hay un problema.
 
 import { spawnSync } from 'node:child_process';
+import { revisarDdl } from './guard-migraciones-ddl.mjs';
 
 const args = process.argv.slice(2);
 const valorDe = (flag, def) => {
@@ -104,27 +105,14 @@ const nuevos = existeBase2
 
 const revisar = (archivo) => {
   const sql = git(['show', `:${archivo}`]).stdout || '';
-  const lineas = sql.split('\n');
-  lineas.forEach((linea, i) => {
-    const l = linea.trim();
-    if (/^--/.test(l)) return;
-    const n = i + 1;
-    if (/^alter\s+table\s+[^;]*\badd\s+column\b/i.test(l) && !/add\s+column\s+if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} ADD COLUMN sin IF NOT EXISTS (una aplicación parcial traba el reintento)`);
-    }
-    if (/^drop\s+function\b/i.test(l) && !/if\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} DROP FUNCTION sin IF EXISTS`);
-    }
-    if (/^drop\s+(table|view|index|trigger)\b/i.test(l) && !/if\s+exists/i.test(l)) {
-      avisos.push(`${archivo}:${n} DROP sin IF EXISTS (revisá si puede reintentarse)`);
-    }
-    if (/^create\s+(unique\s+)?index\b/i.test(l) && !/if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} CREATE INDEX sin IF NOT EXISTS`);
-    }
-    if (/^create\s+table\b/i.test(l) && !/if\s+not\s+exists/i.test(l)) {
-      avisos.push(`${archivo}:${n} CREATE TABLE sin IF NOT EXISTS`);
-    }
-  });
+  // Todas las reglas de idempotencia se evalúan por SENTENCIA completa (hasta `;`), no línea por
+  // línea: `alter table t` + `add column x` en líneas distintas (MSF-682), o `create index` +
+  // `if not exists` en la línea siguiente, son el mismo problema.
+  for (const h of revisarDdl(sql)) {
+    const texto = `${archivo}:${h.linea} ${h.mensaje}`;
+    if (h.severidad === 'problema') problemas.push(texto);
+    else avisos.push(texto);
+  }
 };
 for (const f of nuevos) revisar(f);
 
