@@ -88,6 +88,7 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - El botón abre un diálogo con el título «Consultar por WhatsApp», la línea «<empresa> · <número>», la etiqueta
   «Mensaje que se va a enviar» con el mensaje ya armado (solo lectura) y los botones «Cancelar» y «Abrir WhatsApp».
   Se cierra con «Cancelar», Esc o clic fuera, sin efectos.
+- El número se lleva a formato internacional antes de armar el enlace (`normalizarNumero`, MSF-696): `+`/`00` se respetan; un número local argentino pierde el `0` troncal y el `15` y lleva `549` (`011 15 5555-0001` → `5491155550001`); sin código de área o ambiguo no hay número (ni botón).
 - «Abrir WhatsApp» abre `https://wa.me/<dígitos>?text=<mensaje codificado>` en una pestaña nueva con `noopener`,
   cierra el diálogo y avisa «Se abrió WhatsApp con el mensaje listo.». El registro del interés va **después** de
   abrir WhatsApp y no espera a la respuesta: ni el límite ni una falla se le muestran al visitante.

@@ -9,11 +9,12 @@ import {
   type EstadoConsulta,
 } from './consultas'
 import { armarTextoInicial } from './textoInicialConsulta'
+import { urlWhatsapp } from './whatsapp'
 
 export type EnlaceRespuesta = { via: 'correo' | 'WhatsApp'; href: string }
 
 // El contacto lo escribió el visitante: el correo va codificado entero en el `mailto:` (así un `?bcc=…`
-// queda como texto del destinatario), el teléfono se reduce a dígitos para `wa.me` y todo valor del
+// queda como texto del destinatario), el teléfono se lleva a formato internacional para `wa.me` (`normalizarNumero`) y todo valor del
 // texto inicial va codificado. Un contacto que no es ni correo ni teléfono no ofrece enlace.
 export function enlaceRespuesta(
   consulta: Pick<Consulta, 'contacto' | 'nombre' | 'empresa_nombre' | 'producto_nombre'>,
@@ -25,11 +26,8 @@ export function enlaceRespuesta(
     const cuerpo = encodeURIComponent(texto.cuerpo)
     return { via: 'correo', href: `mailto:${encodeURIComponent(contacto)}?subject=${asunto}&body=${cuerpo}` }
   }
-  const digitos = contacto.replace(/\D/g, '')
-  if (digitos.length >= 7 && digitos.length <= 15) {
-    return { via: 'WhatsApp', href: `https://wa.me/${digitos}?text=${encodeURIComponent(texto.cuerpo)}` }
-  }
-  return null
+  const href = urlWhatsapp(contacto, texto.cuerpo)
+  return href ? { via: 'WhatsApp', href } : null
 }
 
 // Lo que cambia al responder (FR-010): `nueva` pasa a `en_curso` (`en_curso` y `resuelta` conservan el

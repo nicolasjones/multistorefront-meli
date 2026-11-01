@@ -86,6 +86,11 @@ describe('enlace por canal (FR-007, FR-008)', () => {
     expect(enlace?.href.startsWith('https://wa.me/5491155551234?text=Hola%20Ana%20P%C3%A9rez')).toBe(true)
   })
 
+  it('un teléfono local lleva el código de país y el 15 se quita (MSF-696)', () => {
+    expect(enlaceRespuesta(consulta({ contacto: '011 15 5555-1234' }))?.href.startsWith('https://wa.me/5491155551234?text=')).toBe(true)
+    expect(enlaceRespuesta(consulta({ contacto: '5555-1234' }))).toBeNull()
+  })
+
   it('un contacto que no es ni correo ni teléfono no ofrece enlace', () => {
     expect(enlaceRespuesta(consulta({ contacto: '123' }))).toBeNull()
   })

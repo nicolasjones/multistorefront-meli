@@ -74,7 +74,7 @@ Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada 
 
 El botón `Responder por <correo|WhatsApp>` del detalle **no envía nada**: abre el cliente externo y registra en la base que la consulta quedó atendida.
 
-- **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono (7 a 15 dígitos) → `https://wa.me/<solo dígitos>?text=…`. Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
+- **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono → `https://wa.me/<dígitos internacionales>?text=…` (misma `normalizarNumero` que la ficha, MSF-696: un teléfono local argentino lleva `549`; sin código de área o ambiguo no ofrece enlace). Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
 - **Texto inicial**: `armarTextoInicial` (`apps/web/src/lib/textoInicialConsulta.ts`) con una plantilla fija (nombre, tienda y producto si lo hay). Es el único punto que reemplazará F-CON-06 (MSF-144).
 - **Registro**: llama a `public.actualizar_consulta` (MSF-122, sin migración nueva): `nueva` pasa a `en_curso` (`en_curso` y `resuelta` conservan el estado; no se reabre), el responsable es quien responde **solo si no había**, y se mandan la nota y el `updated_at` vigentes. La actividad la registra la propia RPC.
 - **Permisos**: con `consultas` = edición responde y registra; con lectura el botón queda deshabilitado («Necesitás permiso de edición»). La base lo impone (`actualizar_consulta` exige edición).
