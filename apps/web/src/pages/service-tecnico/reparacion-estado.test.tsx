@@ -201,7 +201,7 @@ describe('Service técnico · Estado, historial, entrega y anulación (FR-030 a 
 
     fireEvent.change(within(dialogo).getByLabelText(/Motivo de la anulación/), { target: { value: 'Cliente desistió' } })
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Anular reparación' }))
-    await waitFor(() => expect(mocks.anularReparacion).toHaveBeenCalledWith('r-1', 'Cliente desistió'))
+    await waitFor(() => expect(mocks.anularReparacion).toHaveBeenCalledWith('r-1', 'Cliente desistió', []))
     expect(await screen.findByText('Motivo: Cliente desistió')).toBeInTheDocument()
     expect(screen.getByText('Esta reparación está anulada: solo se puede consultar.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Anular' })).not.toBeInTheDocument()

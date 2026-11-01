@@ -31,6 +31,8 @@ import CommentIcon from '@mui/icons-material/Comment'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
+import MailOutlineIcon from '@mui/icons-material/MailOutline'
+import BarChartIcon from '@mui/icons-material/BarChart'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -109,6 +111,9 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
       { id: 'cuentas-cobro', etiqueta: 'Cuentas de cobro', ruta: '/ventas/cuentas-cobro', icono: AccountBalanceIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-22 (MSF-347): «Reportes de ventas» (tableros de Superset embebidos). Va con su propia
+      // sección de la matriz (`reportes`), no con `ventas`: es el permiso que exige el token.
+      { id: 'ventas-reportes', etiqueta: 'Reportes de ventas', ruta: '/ventas/reportes', icono: BarChartIcon, audiencia: 'organizacion', seccionPermiso: 'reportes' },
       // F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura con `ventas`).
       { id: 'ventas-despacho', etiqueta: 'Despacho', ruta: '/ventas/despacho', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-18 (MSF-201): faltantes abiertos de las ventas (solo lectura con `ventas`).
@@ -159,6 +164,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Contactos',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
+      // F-CLI-11 (MSF-155): correo masivo a clientes; armar el grupo exige edición en Clientes (la pantalla lo valida).
+      { id: 'correo-masivo', etiqueta: 'Correo masivo', ruta: '/clientes/correo-masivo', icono: MailOutlineIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'proveedores', etiqueta: 'Proveedores', ruta: '/proveedores', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'proveedores' },
     ],
   },
