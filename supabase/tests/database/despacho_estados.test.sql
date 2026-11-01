@@ -598,15 +598,26 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select pg_temp.armar('f7');
 select pg_temp.armar('f8');
 select pg_temp.armar('f9');
+select pg_temp.armar('fa');
+select pg_temp.armar('fb');
+select pg_temp.armar('fc');
+select pg_temp.armar('fd');
 select public.confirmar_comprobante(pg_temp.id_de('f7'));
 select public.confirmar_comprobante(pg_temp.id_de('f8'));
 select public.confirmar_comprobante(pg_temp.id_de('f9'));
+select public.confirmar_comprobante(pg_temp.id_de('fa'));
+select public.confirmar_comprobante(pg_temp.id_de('fb'));
 
 -- Cobrada, en deuda o anulada: el estado documental/de cobro se fija directo (es independiente del despacho).
 reset role;
 update dominio.comprobantes_venta set estado = 'cobrado' where id = pg_temp.id_de('f7');
 update dominio.comprobantes_venta set estado = 'deuda' where id = pg_temp.id_de('f8');
 update dominio.comprobantes_venta set estado = 'anulada' where id = pg_temp.id_de('f9');
+update dominio.comprobantes_venta set estado = 'aceptado' where id = pg_temp.id_de('fa');
+update dominio.comprobantes_venta set estado = 'en_proceso' where id = pg_temp.id_de('fb');
+-- fc y fd siguen sin confirmar (borrador); fd pasa a pendiente.
+update dominio.comprobantes_venta set estado = 'pendiente', estado_despacho = 'sin_armar' where id = pg_temp.id_de('fd');
+update dominio.comprobantes_venta set estado_despacho = 'sin_armar' where id = pg_temp.id_de('fc');
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
@@ -628,6 +639,32 @@ select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
   '55000', null, 'una factura Anulada no se despacha');
+
+select is(
+  (select estado_despacho from public.cambiar_estado_despacho(
+    pg_temp.id_de('fa'), 'armando', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('fa'))),
+  'armando', 'una factura Aceptada se despacha (MSF-598)');
+
+select is(
+  (select estado_despacho from public.cambiar_estado_despacho(
+    pg_temp.id_de('fb'), 'armando', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('fb'))),
+  'armando', 'una factura En proceso se despacha (MSF-598)');
+
+select throws_ok(
+  format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
+    pg_temp.id_de('fc'), pg_temp.actualizado('fc')),
+  '55000', null, 'un borrador no se despacha (MSF-598)');
+
+select throws_ok(
+  format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
+    pg_temp.id_de('fd'), pg_temp.actualizado('fd')),
+  '55000', null, 'una factura Pendiente no se despacha (MSF-598)');
+
+-- Faltantes sobre una factura Cobrada en Armando: ya no choca con «solo confirmadas».
+select lives_ok(
+  format($$select public.registrar_faltantes_despacho(%L, '[{"linea_orden": 1, "cantidad": 1}]'::jsonb, %L::timestamptz)$$,
+    pg_temp.id_de('f7'), pg_temp.actualizado('f7')),
+  'una factura Cobrada registra faltantes (MSF-598)');
 
 -- ============================================================================
 -- `anon` sin acceso

@@ -107,7 +107,7 @@ factura (`dominio`), no en una tabla nueva:
 
 | Regla | Qué pasa |
 |-------|----------|
-| Factura confirmada no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
+| Factura viva (no borrador, pendiente ni anulada) no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
 | Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
 | Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (no en la empresa activa) (`42501`) |
 | Bloqueo optimista | `p_actualizado_en` desactualizado → `40001` |
@@ -170,7 +170,7 @@ cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelt
 | `private.asignar_estado_despacho_inicial()` | Disparador del estado inicial al confirmar. Sin `grant` a `authenticated`. |
 | `private.exigir_envio_al_entregar()` | Disparador de FR-022: rechaza pasar a `entregado` si la forma de envío exige transporte y guía y falta alguno de los dos. Sin `grant` a `authenticated`. |
 | `private.rol_usuario_en_empresa` / `private.responsable_despacho_habilitado` | Ayudas internas de elegibilidad. La segunda exige, además del rol del paso, Ventas al menos en `lectura` en la empresa. Sin `grant` a `authenticated`. |
-| `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
+| `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envio, p_actualizado_en)` | Guarda transporte, guía y fecha de envío de una factura viva (confirmada, aceptada, en proceso, armando, incompleta, cobrada o deuda; MSF-598) no entregada (FR-021). Exige `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; bloqueo optimista; registra la actividad `despacho.envio_guardado`. Devuelve el comprobante actualizado. |
 | `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20270112140500_envio_aislamiento.sql`). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
@@ -180,7 +180,7 @@ traducen a un texto claro).
 
 ## Pantalla (FR-010, FR-012, FR-023)
 
-En `/ventas/comprobantes/:id`, **solo en una factura confirmada** (el despacho arranca al confirmar), aparece la
+En `/ventas/comprobantes/:id`, **en una factura viva** (confirmada, aceptada, en proceso, armando, incompleta, cobrada o en deuda; MSF-598: el despacho es independiente del cobro), aparece la
 tarjeta **Responsables**:
 
 - Chip del estado con su texto de ayuda, **Operador en solo lectura**, y **Armó / Controló / Entregó** con
@@ -206,7 +206,7 @@ cerrar el comprobante.
 
 ### Bloque «Envío y transporte» (FR-023)
 
-En la misma factura confirmada, antes de la tarjeta **Responsables**, aparece el bloque **Envío y transporte**
+En la misma factura, antes de la tarjeta **Responsables**, aparece el bloque **Envío y transporte**
 (`apps/web/src/components/ventas/EnvioTransporte.tsx`):
 
 - El **selector de transporte** lleva el rótulo de la forma de envío: «Transporte / expreso» (expreso y terminal),
