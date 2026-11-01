@@ -3,7 +3,7 @@
 -- solo calcula y registra: no hace HTTP (docs/adoptar-ciclo-ejecuciones.md §3.1).
 --
 -- Esquema (Principio VII): sin tablas nuevas; escribe dominio.alertas_inicio y
--- dominio.alertas_inicio_calculos (20270121120000).
+-- dominio.alertas_inicio_calculos (20270202100000).
 --
 -- Diseño:
 --   * Reemplaza TODAS las filas de la organización en una transacción, bajo `pg_advisory_xact_lock`: dos

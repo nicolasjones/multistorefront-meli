@@ -63,7 +63,7 @@ cuando lo habiliten las épicas de Mercado Libre.
 | `public.alertas_inicio_visibles` | `public` | vista `security_invoker` que lee la app | `drop view` |
 | `public.alertas_inicio_calculo` | `public` | fecha del último cálculo (base del aviso de demora) | `drop view` |
 
-Migraciones `20270121120000`, `20270121120100`, `20270121120200`. El enlace sale de una lista cerrada
+Migraciones `20270202100000`, `20270202100100`, `20270202100200`. El enlace sale de una lista cerrada
 (`check` en la tabla y mapa fijo por tipo en el cliente), nunca de texto libre (FR-025).
 
 ### Recálculo (FR-022)
