@@ -18,7 +18,7 @@ eje de aislamiento —la empresa accesible (`private.empresas_accesibles()`)—,
 
 | File | Change | Notes |
 |------|--------|-------|
-| `supabase/migrations/20270122100000_rls_empresas_rma_comprobantes.sql` | added | Reemplaza las cuatro políticas `SELECT` (drop + create). Sin cambios de tabla ni de esquema. |
+| `supabase/migrations/20270122120000_rls_empresas_rma_comprobantes.sql` | added | Reemplaza las cuatro políticas `SELECT` (drop + create). Sin cambios de tabla ni de esquema. |
 | `supabase/tests/database/rls_empresas_rma_comprobantes.test.sql` | added test | pgTAP: persona de una sola tienda, administrador y otra organización (17 aserciones). |
 | `docs/ventas-comprobantes.md` | modified | El RLS vigente del comprobante y de sus líneas incluye la empresa accesible. |
 | `docs/ventas-rma-devoluciones.md` | modified | El RLS vigente de `rma`/`rma_items` incluye la empresa accesible (las líneas la heredan del RMA). |
