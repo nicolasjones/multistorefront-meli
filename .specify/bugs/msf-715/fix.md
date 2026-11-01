@@ -5,12 +5,15 @@
 
 ## Cambio aplicado
 
-`apps/web/src/pages/ventas/comprobante.tsx`: el `onRecargar` de `CobrosComprobante` ahora llama a `cargar()` además de `recargarCobros()`. Así el comprobante (estado y `updated_at`) se relee tras el cobro; las transiciones permitidas, el detalle de acciones, `HistorialComprobante` y `ResponsablesDespacho` (cuya `claveRecarga` depende de `updated_at`) se refrescan solos. No cambia la RPC ni hay migración.
+- `comprobante.tsx`: nueva prop `onCobroRegistrado` → `releerTrasCobro()` relee el comprobante (estado y `updated_at`; transiciones, historial y despacho se refrescan por su `updated_at`). `onRecargar` (el «Reintentar» de Cobros) vuelve a recargar solo cobros y saldo.
+- La relectura post-cobro no toca el formulario; si falla, avisa sin tirar la pantalla al error general y deja sin acciones de estado. Mientras relee, Estado, Anular, Nota de crédito, Guardar y Confirmar quedan bloqueados.
+- «Envío y transporte» y «Responsables del despacho» siguen visibles en solo lectura con la factura `cobrado`/`deuda` (`soloLectura`).
+- `docs/cobros-por-comprobante.md` documenta el comportamiento. No cambia la RPC ni hay migración.
 
 ## Tests
 
-`comprobante.cobros.test.tsx`: caso nuevo «tras registrar el cobro relee el comprobante… (MSF-715)». Verificado: falla sin el cambio y pasa con él.
+`comprobante.cobros.test.tsx` (bloque MSF-715): estado «Cobrado» y acción siguiente con `updated_at` nuevo, «Deuda», cobro fallido no relee, «Reintentar» no pisa ediciones, relectura fallida, bloqueo durante la relectura. `comprobante.envio.test.tsx` y `comprobante.despacho.test.tsx`: solo lectura con la factura cobrada.
 
 ## Riesgos
 
-`cargar()` hace `setFormulario(aFormulario(existente))`; en una factura confirmada el formulario es de solo lectura, así que no pisa ediciones.
+Ninguna relectura post-cobro pisa el formulario. Quedan visibles, sin edición, envío y responsables de una factura cobrada.
