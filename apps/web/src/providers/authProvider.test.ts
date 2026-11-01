@@ -5,6 +5,7 @@ const signInWithPassword = vi.hoisted(() => vi.fn())
 const signOut = vi.hoisted(() => vi.fn())
 const getSession = vi.hoisted(() => vi.fn())
 const maybeSingle = vi.hoisted(() => vi.fn())
+const maybeSingleSuperadmin = vi.hoisted(() => vi.fn())
 const setMantenerSesion = vi.hoisted(() => vi.fn())
 const getMantenerSesion = vi.hoisted(() => vi.fn(() => false))
 
@@ -15,7 +16,9 @@ vi.mock('../lib/supabase', () => ({
   supabaseClient: {
     rpc,
     auth: { signInWithPassword, signOut, getSession },
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }),
+    from: (tabla: string) => ({
+      select: () => ({ eq: () => ({ maybeSingle: tabla === 'superadmins' ? maybeSingleSuperadmin : maybeSingle }) }),
+    }),
   },
 }))
 
@@ -45,6 +48,7 @@ describe('authProvider.login (F-ACC-01)', () => {
     signOut.mockResolvedValue({ error: null })
     signInWithPassword.mockResolvedValue({ data: { session: sesion }, error: null })
     maybeSingle.mockResolvedValue({ data: { estado: 'activo' } })
+    maybeSingleSuperadmin.mockResolvedValue({ data: null, error: null })
   })
 
   it('ingresa con credenciales válidas, normaliza el correo y limpia los intentos', async () => {
@@ -58,11 +62,33 @@ describe('authProvider.login (F-ACC-01)', () => {
 
   it('un superadmin sin fila en usuarios_organizacion ingresa (sin membresía no es rechazo)', async () => {
     maybeSingle.mockResolvedValue({ data: null, error: null })
+    maybeSingleSuperadmin.mockResolvedValue({ data: { user_id: 'u1' }, error: null })
 
     const resultado = await authProvider.login({ email: 'super@example.com', password: 'x' })
 
     expect(resultado).toEqual({ success: true, redirectTo: '/' })
     expect(signOut).not.toHaveBeenCalled()
+  })
+
+  it('un removido o una cuenta de cliente (sin membresía y sin ser superadmin) no ingresa y se revoca su sesión', async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: null })
+
+    const resultado = await authProvider.login({ email: 'cliente@example.com', password: 'x' })
+
+    expect(resultado.success).toBe(false)
+    expect(resultado.error?.message).toBe(mensajeIngresoGenerico)
+    expect(signOut).toHaveBeenCalledWith(undefined)
+    expect(rpc).not.toHaveBeenCalledWith('limpiar_intentos_acceso')
+  })
+
+  it('falla cerrado si no se puede consultar si es superadmin', async () => {
+    maybeSingle.mockResolvedValue({ data: null, error: null })
+    maybeSingleSuperadmin.mockResolvedValue({ data: null, error: { message: 'red' } })
+
+    const resultado = await authProvider.login({ email: 'x@example.com', password: 'x' })
+
+    expect(resultado.success).toBe(false)
+    expect(signOut).toHaveBeenCalledWith({ scope: 'local' })
   })
 
   it('muestra el mismo mensaje genérico para cualquier fallo de credenciales y registra el intento', async () => {
@@ -316,6 +342,31 @@ describe('authProvider: cierre y vencimiento de sesión', () => {
     localStorage.clear()
     getSession.mockResolvedValue({ data: { session: { user: { id: 'u1' } } }, error: null })
     signOut.mockResolvedValue({ error: null })
+    maybeSingle.mockResolvedValue({ data: { estado: 'activo' }, error: null })
+    maybeSingleSuperadmin.mockResolvedValue({ data: null, error: null })
+  })
+
+  it('check expulsa a un removido o a una cuenta de cliente sin membresía ni superadmin', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'removido' } } }, error: null })
+    maybeSingle.mockResolvedValue({ data: null, error: null })
+    const resultado = await authProvider.check({})
+    expect(signOut).toHaveBeenCalled()
+    expect(resultado).toMatchObject({ authenticated: false, redirectTo: '/login', logout: true })
+  })
+
+  it('check deja pasar a un superadmin sin membresía', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'super' } } }, error: null })
+    maybeSingle.mockResolvedValue({ data: null, error: null })
+    maybeSingleSuperadmin.mockResolvedValue({ data: { user_id: 'super' }, error: null })
+    expect(await authProvider.check({})).toEqual({ authenticated: true })
+    expect(signOut).not.toHaveBeenCalled()
+  })
+
+  it('check no expulsa si la consulta de membresía falla (caída de red)', async () => {
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'caida' } } }, error: null })
+    maybeSingle.mockResolvedValue({ data: null, error: { message: 'red' } })
+    expect(await authProvider.check({})).toEqual({ authenticated: true })
+    expect(signOut).not.toHaveBeenCalled()
   })
 
   it('logout cierra la sesión y redirige al ingreso', async () => {
