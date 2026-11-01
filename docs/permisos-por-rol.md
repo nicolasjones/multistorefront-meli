@@ -221,6 +221,10 @@ es defensa de UX (RLS es la autoridad) y falla cerrada: solo `lectura`/`edicion`
 nivel nulo tras cargar se trata como denegado. El rol mostrado sale de `usuarios_organizacion`
 filtrado por `user_id` y por la organización activa (`useOrganizacionDeTrabajo`, por si la persona
 pertenece a varias); si falla, se muestra «actual» y nunca una pantalla en blanco.
+Si falla la carga de permisos (`permisos_actuales`: red, 5xx, schema cache) el proveedor expone
+`error` (con `permisos: null`, nunca `[]`): el guard y el menú muestran «No pudimos verificar tus
+permisos» con **Reintentar** (`recargar()`) en vez de «Acceso restringido» / «Solicitar acceso». La
+sección sigue sin montarse (falla cerrada); «sin acceso» solo aparece con un nivel `ninguno` real (MSF-697).
 
 ## Reversión
 

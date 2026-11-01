@@ -4,7 +4,7 @@ import { useOrganizacionDeTrabajo } from '../hooks/useOrganizacionDeTrabajo'
 import { useNivelSeccion } from '../hooks/useNivelSeccion'
 import { ETIQUETA_ROL } from '../lib/permisos'
 import { supabaseClient } from '../lib/supabase'
-import { EstadoCargaPagina } from './estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError } from './estados/EstadosPagina'
 import { DESTINOS_PANEL } from './navegacion/destinosPanel'
 import { AccesoRestringido } from '../pages/acceso-restringido/AccesoRestringido'
 
@@ -19,12 +19,12 @@ function etiquetaSeccion(seccion: string): string {
 // administrador) y mientras carga se muestra el estado de carga compartido (deny-by-default).
 export function RequiereAccesoSeccion({ seccion, children }: { seccion: string; children: ReactNode }) {
   const { isSuperadmin, isLoading: cargandoSuperadmin } = useIsSuperadmin()
-  const { nivel, isLoading: cargandoNivel } = useNivelSeccion(seccion)
+  const { nivel, isLoading: cargandoNivel, error: errorPermisos, recargar } = useNivelSeccion(seccion)
   const { organizacionId, isLoading: cargandoOrganizacion } = useOrganizacionDeTrabajo()
   const cargando = cargandoSuperadmin || cargandoNivel || cargandoOrganizacion
   // Falla cerrada: solo lectura/edicion abren la sección; un nivel nulo tras
   // cargar (error al resolver permisos) también se trata como denegado.
-  const denegado = !cargando && nivel !== 'lectura' && nivel !== 'edicion' && isSuperadmin === false
+  const denegado = !cargando && !errorPermisos && nivel !== 'lectura' && nivel !== 'edicion' && isSuperadmin === false
   const [rol, setRol] = useState<string | null>(null)
 
   useEffect(() => {
@@ -55,6 +55,10 @@ export function RequiereAccesoSeccion({ seccion, children }: { seccion: string; 
     return () => { cancelada = true }
   }, [denegado, organizacionId])
 
+  if (!cargando && errorPermisos && isSuperadmin === false) {
+    // No se pudo verificar: la sección sigue sin montarse (falla cerrada), pero no se culpa al rol.
+    return <EstadoError titulo="No pudimos verificar tus permisos." descripcion="Reintentá en unos segundos." reintentar={recargar} />
+  }
   if (cargando || (denegado && rol === null)) {
     return <EstadoCargaPagina />
   }
