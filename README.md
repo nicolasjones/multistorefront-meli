@@ -37,9 +37,8 @@ independiente en Docker Desktop. Para detener uno, ejecuta
 `pnpm dev:refine:host`.
 
 `pnpm dev:supabase` corre `supabase start` y después `supabase migration up --local`.
-`supabase start` solo aplica las migraciones al crear la base; si el volumen ya existe
-(o el arranque se hizo con `--ignore-health-check`), el stack puede quedar sin las
-migraciones nuevas (PostgREST 503, `schema "dominio" does not exist`). El segundo paso
+`supabase start` puede dejar migraciones sin aplicar (causa no confirmada; se observó con un
+volumen existente y con `--ignore-health-check`), y el stack queda sin ellas (PostgREST 503, `schema "dominio" does not exist`). El segundo paso
 las aplica y es idempotente. Si arrancás con `supabase start` a mano, corré
 `supabase migration up --local` después (o `supabase db reset` para rehacer base y seed).
 
