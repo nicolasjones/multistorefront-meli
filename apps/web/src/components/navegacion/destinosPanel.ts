@@ -28,6 +28,7 @@ import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
 import CommentIcon from '@mui/icons-material/Comment'
+import ContactsIcon from '@mui/icons-material/Contacts'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
@@ -169,6 +170,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       // F-CON-01: bandeja de consultas de las tiendas, primer destino de Canales, con el contador de nuevas.
       { id: 'consultas', etiqueta: 'Consultas', ruta: '/consultas', icono: CommentIcon, audiencia: 'organizacion', seccionPermiso: 'consultas', insignia: 'consultas_nuevas' },
+      // F-CON-05: libreta de contactos por empresa, debajo de Consultas (misma sección de permisos).
+      { id: 'contactos', etiqueta: 'Contactos', ruta: '/contactos', icono: ContactsIcon, audiencia: 'organizacion', seccionPermiso: 'consultas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
     ],
   },
