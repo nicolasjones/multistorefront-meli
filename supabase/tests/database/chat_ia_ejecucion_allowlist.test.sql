@@ -211,9 +211,10 @@ select is(
 select throws_ok(
   $$insert into public.capacidades_chat_ia (feature_id, ejecucion) values ('msf-724-extra', true)$$,
   '42501', null, 'authenticated no puede habilitar la ejecucion de una funcionalidad por su cuenta');
-select throws_ok(
-  $$update public.capacidades_chat_ia set ejecucion = true where feature_id = 'msf-724-demo'$$,
-  '42501', null, 'authenticated no puede habilitar la ejecucion de una funcionalidad ya registrada');
+-- RLS oculta la fila: el UPDATE no falla, afecta 0 filas
+select is_empty(
+  $$update public.capacidades_chat_ia set ejecucion = true where feature_id = 'msf-724-demo' returning 1$$,
+  'authenticated no puede habilitar la ejecucion de una funcionalidad ya registrada');
 
 -- ============================================================================
 -- Aislamiento entre usuarios
