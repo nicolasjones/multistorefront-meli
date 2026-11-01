@@ -9,6 +9,7 @@ import {
   type EstadoConsulta,
 } from './consultas'
 import { armarTextoInicial } from './textoInicialConsulta'
+import type { RespuestaRapida } from './respuestasRapidas'
 
 export type EnlaceRespuesta = { via: 'correo' | 'WhatsApp'; href: string }
 
@@ -17,9 +18,10 @@ export type EnlaceRespuesta = { via: 'correo' | 'WhatsApp'; href: string }
 // texto inicial va codificado. Un contacto que no es ni correo ni teléfono no ofrece enlace.
 export function enlaceRespuesta(
   consulta: Pick<Consulta, 'contacto' | 'nombre' | 'empresa_nombre' | 'producto_nombre'>,
+  respuesta?: Pick<RespuestaRapida, 'texto'> | null,
 ): EnlaceRespuesta | null {
   const contacto = consulta.contacto.trim()
-  const texto = armarTextoInicial(consulta)
+  const texto = armarTextoInicial(consulta, respuesta)
   if (contacto.includes('@')) {
     const asunto = encodeURIComponent(texto.asunto)
     const cuerpo = encodeURIComponent(texto.cuerpo)
