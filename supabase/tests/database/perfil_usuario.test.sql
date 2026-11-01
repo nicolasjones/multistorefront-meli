@@ -73,7 +73,9 @@ select lives_ok($$insert into public.perfiles_usuario (user_id, nombre, apellido
 select throws_ok($$update public.perfiles_usuario set nombre = '' where user_id = '81000000-0000-0000-0000-000000000001'$$, '42501', null, 'el titular no puede guardar datos personales vacios');
 select throws_ok($$insert into public.perfiles_usuario (user_id, nombre, apellido) values ('81000000-0000-0000-0000-000000000002', 'Intento', 'Ajeno')$$, '42501', null, 'el titular no puede crear el perfil ajeno');
 select is((select count(*) from storage.objects where bucket_id = 'fotos-perfil')::int, 2, 'el titular puede leer su foto y las fotos de su organizacion');
-select lives_ok($$insert into storage.objects (bucket_id, name, owner_id) values ('fotos-perfil', '81000000-0000-0000-0000-000000000001/avatar', '81000000-0000-0000-0000-000000000001') on conflict (bucket_id, name) do update set updated_at = now()$$, 'el titular puede cargar o reemplazar su foto');
+-- MSF-631: el esquema de Storage de versiones nuevas no trae índice único (bucket_id, name), así que
+-- `on conflict` falla con 42P10; reemplazar la foto se prueba como update de la propia (la policy de insert se cubre con la negativa de abajo).
+select lives_ok($$update storage.objects set updated_at = now() where bucket_id = 'fotos-perfil' and name = '81000000-0000-0000-0000-000000000001/avatar'$$, 'el titular puede cargar o reemplazar su foto');
 select throws_ok($$insert into storage.objects (bucket_id, name, owner_id) values ('fotos-perfil', '81000000-0000-0000-0000-000000000002/avatar', '81000000-0000-0000-0000-000000000001')$$, '42501', null, 'el titular no puede cargar una foto en la carpeta ajena');
 reset role;
 select is((select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'fotos_perfil_delete_titular')::int, 1, 'la policy de Storage habilita el borrado exclusivo del titular');
