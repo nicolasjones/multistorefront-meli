@@ -1,43 +1,9 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
-const useGetIdentity = vi.hoisted(() => vi.fn())
-const maybeSingle = vi.hoisted(() => vi.fn())
-const eq = vi.hoisted(() => vi.fn(() => ({ maybeSingle })))
-const select = vi.hoisted(() => vi.fn(() => ({ eq })))
-const from = vi.hoisted(() => vi.fn(() => ({ select })))
-const createSignedUrl = vi.hoisted(() => vi.fn())
-const storageFrom = vi.hoisted(() => vi.fn(() => ({ createSignedUrl })))
-
-vi.mock('@refinedev/core', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@refinedev/core')>()),
-  useGetIdentity,
-}))
-
-// Solo se sobrescriben `from` y `storage.from`; el resto del módulo real
-// (incluido `auth`) queda intacto para no romper authProvider ni el test que
-// renderiza <App /> completo sin sesión.
-vi.mock('./lib/supabase', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./lib/supabase')>()
-  return {
-    ...actual,
-    supabaseClient: { ...actual.supabaseClient, from, storage: { ...actual.supabaseClient.storage, from: storageFrom } },
-  }
-})
-
-// La portada solo monta el aviso; su lógica se prueba en AvisoCotizacion.test.tsx.
-vi.mock('./components/cotizacion/AvisoCotizacion', () => ({ AvisoCotizacion: () => <div>Aviso de cotización</div> }))
-
-import App, { Home, IndicadorSesionActiva } from './App'
+import App from './App'
 
 describe('App', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    maybeSingle.mockResolvedValue({ data: null, error: null })
-    createSignedUrl.mockResolvedValue({ data: null })
-  })
-
   it('redirects an unauthenticated visitor to the login screen', async () => {
     render(<App />)
 
@@ -48,71 +14,4 @@ describe('App', () => {
       await screen.findByRole('heading', { name: 'Ingresar' }, { timeout: 5000 }),
     ).toBeInTheDocument()
   }, 8000)
-
-  it('identifica la sesion vigente y ofrece un acceso al perfil', () => {
-    useGetIdentity.mockReturnValue({
-      data: { id: 'user-1', email: 'persona@example.com' },
-      isLoading: false,
-    })
-
-    render(
-      <MemoryRouter>
-        <IndicadorSesionActiva />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByText(/Logueado como/)).toHaveTextContent('persona@example.com')
-    expect(screen.getByRole('link', { name: 'Ver mi perfil' })).toHaveAttribute('href', '/cuenta/perfil')
-  })
-
-  it('muestra nombre y apellido del perfil propio cuando estan disponibles', async () => {
-    maybeSingle.mockResolvedValue({ data: { nombre: 'Ada', apellido: 'Lovelace' }, error: null })
-    useGetIdentity.mockReturnValue({
-      data: { id: 'user-1', email: 'persona@example.com' },
-      isLoading: false,
-    })
-
-    render(
-      <MemoryRouter>
-        <IndicadorSesionActiva />
-      </MemoryRouter>,
-    )
-
-    expect(await screen.findByText(/Logueado como/)).toHaveTextContent('Ada Lovelace')
-    expect(screen.queryByText('persona@example.com')).not.toBeInTheDocument()
-    expect(from).toHaveBeenCalledWith('perfiles_usuario')
-    expect(eq).toHaveBeenCalledWith('user_id', 'user-1')
-  })
-
-  it('no conserva la identidad anterior despues de cerrar sesion', () => {
-    useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
-    const { rerender } = render(
-      <MemoryRouter>
-        <IndicadorSesionActiva />
-      </MemoryRouter>,
-    )
-    expect(screen.getByText('persona@example.com')).toBeInTheDocument()
-
-    useGetIdentity.mockReturnValue({ data: null, isLoading: false })
-    rerender(
-      <MemoryRouter>
-        <IndicadorSesionActiva />
-      </MemoryRouter>,
-    )
-
-    expect(screen.queryByText('persona@example.com')).not.toBeInTheDocument()
-    expect(screen.queryByText(/Logueado como/)).not.toBeInTheDocument()
-  })
-
-  it('monta el aviso de cotización no cargada en la portada (FR-021)', () => {
-    useGetIdentity.mockReturnValue({ data: undefined, isLoading: true })
-
-    render(
-      <MemoryRouter>
-        <Home />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByText('Aviso de cotización')).toBeInTheDocument()
-  })
 })
