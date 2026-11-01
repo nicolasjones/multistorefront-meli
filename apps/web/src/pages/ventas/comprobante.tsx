@@ -105,6 +105,8 @@ const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
 // MSF-598: el despacho, el envío y los faltantes viven en cualquier estado vivo de la factura (no solo «confirmada»).
+// Debe coincidir con la lista de estados vivos de `cambiar_estado_despacho`, `registrar_faltantes_despacho` y
+// `guardar_envio_comprobante` (migración 20270121121500).
 const ESTADOS_DESPACHABLES: readonly string[] = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
 
 // Ventas · Comprobante (F-VTA-05, FR-006): alta en `/ventas/comprobantes/nuevo` y edición en `/ventas/comprobantes/:id`.

@@ -32,7 +32,7 @@
 -- stock es de Stock · toma de inventario).
 --
 -- Errores: 42501 permiso · 22023 dato inválido · P0002 no existe · 55000 la factura no está en Armando ni en
--- Incompleto · 40001 conflicto de `p_actualizado_en`.
+-- Incompleto (o está anulada / sin confirmar) · 40001 conflicto de `p_actualizado_en`.
 --
 -- Migración aditiva. Reversión (migración posterior; los faltantes registrados NO se deshacen solos: la factura
 -- queda en `incompleto` y hay que corregirla desde el despacho):
@@ -87,6 +87,8 @@ begin
   if v_c.tipo <> 'factura' then
     raise exception 'Solo las facturas registran faltantes' using errcode = '22023';
   end if;
+  -- Lista de estados vivos: mantenerla igual a `ESTADOS_DESPACHABLES` (apps/web/src/pages/ventas/comprobante.tsx)
+  -- y a `cambiar_estado_despacho`.
   if v_c.estado not in ('confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda') then
     raise exception 'Solo las facturas vigentes (no anuladas ni sin confirmar) registran faltantes' using errcode = '55000';
   end if;
@@ -232,7 +234,7 @@ create trigger comprobantes_venta_resolver_faltantes
   execute function private.resolver_faltantes_al_reanudar();
 
 -- F-VTA-16 (MSF-166, épica MSF-135, spec 20261024-130000-ventas-despacho-y-faltantes, FR-021):
--- `public.guardar_envio_comprobante`: transporte, guía y fecha de envío de una factura confirmada no entregada.
+-- `public.guardar_envio_comprobante`: transporte, guía y fecha de envío de una factura viva (no anulada ni sin confirmar) y no entregada.
 --
 -- Esquema (Principio VII): sin tablas nuevas. Escribe `dominio.comprobantes_venta` (`transporte_id`, `guia`,
 -- `fecha_envio`, `updated_at`) y, por `private.registrar_actividad`, `public.registro_actividad` (plataforma).
@@ -240,7 +242,7 @@ create trigger comprobantes_venta_resolver_faltantes
 -- el navegador: la tabla no tiene política ni grant de escritura, solo esta RPC `security definer`.
 --
 -- Reglas (FR-021):
---   · Solo una **factura confirmada y no entregada**: un presupuesto, un borrador o una factura ya entregada no
+--   · Solo una **factura viva (confirmada, aceptada, en proceso, armando, incompleta, cobrada o en deuda) y no entregada**: un presupuesto, un borrador o una factura ya entregada no
 --     registran envío (22023 / 55000).
 --   · El transporte tiene que estar **activo** y **asignado a la empresa del comprobante** (`dominio
 --     .transportes_empresas`): un transporte de otra organización, desactivado o de otra tienda se rechaza (22023).
@@ -260,7 +262,7 @@ create trigger comprobantes_venta_resolver_faltantes
 -- «no se puede entregar sin guía» se resuelve al entregar (T015).
 --
 -- Errores: 42501 sin sesión/organización o sin permiso · 22023 dato inválido (transporte, guía) · P0002 no existe ·
--- 55000 la factura no está confirmada o ya fue entregada · 40001 conflicto de `p_actualizado_en`.
+-- 55000 la factura está anulada, sin confirmar o ya fue entregada · 40001 conflicto de `p_actualizado_en`.
 --
 -- Migración aditiva. Reversión (en una migración posterior; los envíos ya cargados NO se deshacen solos:
 -- exportarlos antes):
@@ -305,6 +307,8 @@ begin
   if v_c.tipo <> 'factura' then
     raise exception 'Un presupuesto no registra envío: solo las facturas se despachan' using errcode = '22023';
   end if;
+  -- Lista de estados vivos: mantenerla igual a `ESTADOS_DESPACHABLES` (apps/web/src/pages/ventas/comprobante.tsx)
+  -- y a `cambiar_estado_despacho`.
   if v_c.estado not in ('confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda') then
     raise exception 'Solo las facturas vigentes (no anuladas ni sin confirmar) registran el envío' using errcode = '55000';
   end if;
@@ -401,7 +405,7 @@ end;
 $$;
 
 comment on function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz) is
-  'Guarda el transporte, la guía y la fecha de envío de una factura confirmada no entregada (F-VTA-16, FR-021). Exige la acción `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; usa bloqueo optimista por `p_actualizado_en`; sin fecha, toma el día de Argentina.';
+  'Guarda el transporte, la guía y la fecha de envío de una factura viva (no anulada ni sin confirmar) y no entregada (F-VTA-16, FR-021). Exige la acción `despachar` o Ventas en `edicion` en la empresa del comprobante; el transporte tiene que estar activo y usarse en esa tienda; usa bloqueo optimista por `p_actualizado_en`; sin fecha, toma el día de Argentina.';
 
 revoke execute on function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz) from public, anon;
 grant execute on function public.guardar_envio_comprobante(uuid, uuid, text, date, timestamptz) to authenticated;

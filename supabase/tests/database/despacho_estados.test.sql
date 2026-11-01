@@ -666,6 +666,29 @@ select lives_ok(
     pg_temp.id_de('f7'), pg_temp.actualizado('f7')),
   'una factura Cobrada registra faltantes (MSF-598)');
 
+-- Faltantes y envío sobre cada estado vivo (f8 Deuda, fa Aceptado y fb En proceso ya están en Armando).
+select lives_ok(
+  format($$select public.registrar_faltantes_despacho(%L, '[{"linea_orden": 1, "cantidad": 1}]'::jsonb, %L::timestamptz)$$,
+    pg_temp.id_de(c), pg_temp.actualizado(c)),
+  'faltantes sobre ' || e || ' (MSF-598)')
+from (values ('f8', 'Deuda'), ('fa', 'Aceptado'), ('fb', 'En proceso')) as t(c, e);
+
+select throws_ok(
+  format($$select public.registrar_faltantes_despacho(%L, '[{"linea_orden": 1, "cantidad": 1}]'::jsonb, %L::timestamptz)$$,
+    pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
+  '55000', null, 'una factura Anulada no registra faltantes (MSF-598)');
+
+select lives_ok(
+  format($$select public.guardar_envio_comprobante(%L, null, %L, null, %L::timestamptz)$$,
+    pg_temp.id_de(c), 'GUIA-' || c, pg_temp.actualizado(c)),
+  'envío sobre ' || e || ' (MSF-598)')
+from (values ('f7', 'Cobrado'), ('f8', 'Deuda'), ('fa', 'Aceptado'), ('fb', 'En proceso')) as t(c, e);
+
+select throws_ok(
+  format($$select public.guardar_envio_comprobante(%L, null, 'X', null, %L::timestamptz)$$,
+    pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
+  '55000', null, 'una factura Anulada no registra envío (MSF-598)');
+
 -- ============================================================================
 -- `anon` sin acceso
 -- ============================================================================
