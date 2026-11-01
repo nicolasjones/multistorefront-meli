@@ -52,6 +52,7 @@ insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, 
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'formulario', 'Ana P.', 'ana@example.com', 'Otra consulta'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'formulario', 'Beto', 'beto@example.com', 'Consulta de la otra empresa'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c', 'formulario', 'Dora', 'dora@example.com', 'Ajena');
+update dominio.consultas set nota_interna = 'llamó Ana, tel 11-5555-0000' where id = 'c1000000-0000-0000-0000-000000000001';
 
 insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 1, 'Cliente Uno', 'cu@example.com', 'minorista');
@@ -301,8 +302,8 @@ select ok((select anonimizado_en is not null from dominio.contactos where id = (
   'el contacto quedó marcado como anonimizado');
 select is(
   (select count(*)::int from dominio.consultas where contacto_id = (select id from t_ana)
-     and nombre = 'Anonimizado' and contacto = 'Anonimizado' and mensaje not like '%stock%' and mensaje <> 'Otra consulta'),
-  2, 'las consultas vinculadas perdieron nombre, contacto y mensaje pero siguen existiendo'
+     and nombre = 'Anonimizado' and contacto = 'Anonimizado' and mensaje not like '%stock%' and mensaje <> 'Otra consulta' and nota_interna is null),
+  2, 'las consultas vinculadas perdieron nombre, contacto, mensaje y nota interna pero siguen existiendo'
 );
 select is(
   (select count(*)::int from dominio.comprobantes_venta

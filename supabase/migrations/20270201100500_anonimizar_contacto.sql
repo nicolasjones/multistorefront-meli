@@ -3,7 +3,7 @@
 -- Esquema (Principio VII): sin tablas nuevas; la función vive en `public` (ejecución) y escribe en
 -- `dominio.contactos` y `dominio.consultas` por ser SECURITY DEFINER.
 --
--- Qué hace: reemplaza por texto neutro nombre, correo y teléfono del contacto y nombre, contacto y mensaje
+-- Qué hace: reemplaza por texto neutro nombre, correo y teléfono del contacto y nombre, contacto, mensaje y nota interna
 -- de sus consultas vinculadas; marca `anonimizado_en` (libera las claves de duplicado, ver el trigger de
 -- 20270201100000); NO borra filas ni toca `dominio.comprobantes_venta` (sus importes, estados y fechas
 -- siguen intactos; `contacto_id` apunta al contacto anonimizado). El consentimiento (fecha, texto y quién
@@ -50,6 +50,7 @@ begin
   update dominio.consultas
      set nombre = 'Anonimizado',
          contacto = 'Anonimizado',
+         nota_interna = null,
          mensaje = case when origen = 'whatsapp' and mensaje is null then null
                         else 'Mensaje eliminado por anonimización' end
    where contacto_id = p_id and organizacion_id = v_org;
