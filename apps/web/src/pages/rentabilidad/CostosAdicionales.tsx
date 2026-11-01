@@ -60,7 +60,13 @@ export function RentabilidadCostosAdicionales() {
     setDialogo({ costo, base: empresaActivaId })
   }
 
-  const alGuardar = ({ alta, nombre, cantidad }: { alta: boolean; nombre: string; cantidad: number }) => {
+  const alGuardar = ({ alta, nombre, cantidad, parcial }: { alta: boolean; nombre: string; cantidad: number; parcial?: boolean }) => {
+    // Con falla parcial el diálogo sigue abierto para mostrar el error de las empresas que faltan.
+    if (parcial) {
+      setAviso(`Costo «${nombre}» creado solo en ${cantidad} ${cantidad === 1 ? 'empresa' : 'empresas'}; revisá el error para las que faltan.`)
+      void recargar()
+      return
+    }
     setDialogo(null)
     setAviso(alta
       ? cantidad > 1 ? `Costo «${nombre}» creado en ${cantidad} empresas.` : `Costo «${nombre}» creado.`

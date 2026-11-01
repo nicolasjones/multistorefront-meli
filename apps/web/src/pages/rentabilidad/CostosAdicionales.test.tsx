@@ -125,6 +125,21 @@ describe('RentabilidadCostosAdicionales', () => {
     expect(await screen.findByText('Costo «Envío» creado en 2 empresas.')).toBeInTheDocument()
   })
 
+  it('con falla parcial en varias empresas deja el diálogo abierto con el error de la que falló', async () => {
+    mocks.guardar.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: '23505' })
+    montar()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nuevo costo adicional' })[0])
+    const dialogo = await screen.findByRole('dialog', { name: 'Nuevo costo adicional' })
+    fireEvent.click(within(dialogo).getByRole('checkbox', { name: 'San Javucho' }))
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: /Nombre/ }), { target: { value: 'Envío' } })
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: /Porcentaje sobre el neto/ }), { target: { value: '5' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    expect(await within(dialogo).findByText(/San Javucho: /)).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Nuevo costo adicional' })).toBeInTheDocument()
+    expect(await screen.findByText(/creado solo en 1 empresa/)).toBeInTheDocument()
+    expect(mocks.recargar).toHaveBeenCalled()
+  })
+
   it('valida con mensajes de negocio y no llama a la base', async () => {
     montar()
     fireEvent.click(screen.getAllByRole('button', { name: 'Nuevo costo adicional' })[0])

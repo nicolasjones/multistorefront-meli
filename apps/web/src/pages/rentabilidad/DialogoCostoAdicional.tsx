@@ -28,7 +28,7 @@ type Props = {
   empresaInicialId: string | null
   onCerrar: () => void
   // Se llama tras guardar (total o parcialmente) para que el dueño recargue la lista.
-  onGuardado: (resultado: { alta: boolean; nombre: string; cantidad: number }) => void
+  onGuardado: (resultado: { alta: boolean; nombre: string; cantidad: number; parcial?: boolean }) => void
 }
 
 // Diálogo «Nuevo / Editar costo adicional» (F-REN-08, FR-004). No está en el prototipo: usa el patrón
@@ -82,7 +82,7 @@ export function DialogoCostoAdicional({ costo, empresas, empresaInicialId, onCer
     }
     setError(fallidas.map((f) => f.mensaje).join(' '))
     setEmpresaIds(fallidas.map((f) => f.id))
-    if (guardadas > 0) onGuardado({ alta: !enEdicion, nombre: nombre.trim(), cantidad: guardadas })
+    if (guardadas > 0) onGuardado({ alta: !enEdicion, nombre: nombre.trim(), cantidad: guardadas, parcial: true })
   }
 
   const sufijo = tipo === 'porcentaje' ? '%' : '$'
