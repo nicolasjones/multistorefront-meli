@@ -9,7 +9,7 @@
 
 | File | Change | Notes |
 |------|--------|-------|
-| `supabase/migrations/20270121121100_rol_tecnico_por_empresa.sql` | added | Amplía el CHECK y `private.validar_asignaciones` con `tecnico`. Aditiva; reversión documentada en el encabezado. Esquema `public`, sin tablas nuevas. |
+| `supabase/migrations/20270121121400_rol_tecnico_por_empresa.sql` | added | Amplía el CHECK y `private.validar_asignaciones` con `tecnico`. Aditiva; reversión documentada en el encabezado. Esquema `public`, sin tablas nuevas. |
 | `apps/web/src/lib/asignacionesEmpresas.ts` | modified | `ROLES_POR_EMPRESA` incluye `tecnico` para que Usuarios pueda asignarlo. |
 | `docs/permisos-por-rol.md` | modified | Documenta la asignación del Técnico a tiendas. |
 | `supabase/tests/database/rol_tecnico_por_empresa.test.sql` | added | pgTAP del flujo completo. |

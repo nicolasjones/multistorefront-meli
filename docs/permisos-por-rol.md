@@ -287,7 +287,7 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
 `usuarios_empresas` (`private.empresas_accesibles()`), así que `tecnico` es el sexto rol válido por empresa:
 el CHECK `usuarios_empresas_rol_por_empresa` y `private.validar_asignaciones` (usada por
 `asignar_empresas_usuario`, `guardar_asignaciones_invitacion` y `aceptar_invitacion`) lo admiten, y el selector
-de Usuarios lo ofrece. Migración aditiva `20270121121100_rol_tecnico_por_empresa.sql`; test
+de Usuarios lo ofrece. Migración aditiva `20270121121400_rol_tecnico_por_empresa.sql`; test
 `supabase/tests/database/rol_tecnico_por_empresa.test.sql`. Los permisos de `mostrador` no cambian.
 
 - **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
