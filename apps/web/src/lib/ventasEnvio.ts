@@ -206,6 +206,10 @@ export const MENSAJE_EXITO_ENVIO = 'Envío guardado.'
 export const MENSAJE_SIN_PERMISO_ENVIO = 'Podés ver el envío, pero tu rol no puede cargarlo.'
 // La factura entregada ya no admite cambios de envío: la base los rechaza siempre (FR-021).
 export const MENSAJE_FACTURA_ENTREGADA = 'Esta factura ya fue entregada: no se puede cambiar el envío.'
+// La factura cobrada (o con deuda) tampoco admite cambios de envío: la base solo lo acepta en una
+// factura confirmada. El envío se sigue leyendo (MSF-715).
+export const MENSAJE_ENVIO_SOLO_LECTURA =
+  'La factura ya no admite cambios de envío: se ve lo que salió, pero no se puede cambiar.'
 export const MENSAJE_SIN_FORMA_ENVIO =
   'Esta factura todavía no tiene forma de envío: sin ella no se puede cargar el transporte ni la guía.'
 export const ETIQUETA_GUARDAR_ENVIO = 'Guardar envío'

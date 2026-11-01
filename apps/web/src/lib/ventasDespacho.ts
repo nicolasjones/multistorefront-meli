@@ -145,6 +145,10 @@ export const MENSAJE_ERROR_CARGA_DESPACHO = 'No pudimos cargar el despacho de es
 export const MENSAJE_CONFLICTO_DESPACHO =
   'Otra persona modificó este comprobante mientras lo mirabas. Recargamos los datos: volvé a elegir el responsable.'
 export const MENSAJE_SIN_DESPACHO = 'Podés ver el estado y los responsables, pero tu rol no puede avanzar el despacho.'
+// La factura cobrada (o con deuda) ya no admite cambios de despacho: la base solo despacha una factura
+// confirmada. Los responsables se siguen leyendo (MSF-715).
+export const MENSAJE_DESPACHO_SOLO_LECTURA =
+  'La factura ya no admite cambios de despacho: se ven los responsables, pero no se puede avanzar.'
 export const MENSAJE_SIN_ESTADO_DESPACHO = 'Esta factura todavía no entró al despacho.'
 export const MENSAJE_EXITO_DESPACHO = 'Despacho actualizado.'
 export const PLACEHOLDER_RESPONSABLE = 'Seleccionar'

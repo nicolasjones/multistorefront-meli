@@ -44,6 +44,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: () => <div /> }))
 
 import type { Comprobante } from '../../lib/ventas'
+import { MENSAJE_DESPACHO_SOLO_LECTURA } from '../../lib/ventasDespacho'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -145,6 +146,23 @@ describe('Detalle · tarjeta «Responsables» (F-VTA-15)', () => {
     render(arbol())
     await screen.findByRole('heading', { name: /Presupuesto 00000001/ })
     expect(screen.queryByRole('region', { name: 'Responsables' })).not.toBeInTheDocument()
+  })
+
+  // MSF-715: tras el cobro la factura pasa a «cobrado»/«deuda». Los responsables ya registrados se
+  // siguen leyendo (no desaparecen del detalle) pero la base ya no admite avanzar el despacho.
+  it('con la factura cobrada la tarjeta sigue visible, en solo lectura', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({
+      ...FACTURA,
+      estado: 'cobrado',
+      updated_at: '2026-10-25T10:00:00Z',
+    })
+    render(arbol())
+
+    expect(await screen.findByRole('region', { name: 'Responsables' })).toBeInTheDocument()
+    expect(await screen.findByText('Sin armar')).toBeInTheDocument()
+    // No se ofrece avanzar el despacho: la base solo despacha una factura confirmada.
+    expect(screen.queryByRole('button', { name: 'Empezar a armar' })).not.toBeInTheDocument()
+    expect(await screen.findByText(MENSAJE_DESPACHO_SOLO_LECTURA)).toBeInTheDocument()
   })
 })
 
