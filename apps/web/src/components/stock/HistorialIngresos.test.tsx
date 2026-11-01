@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  or: vi.fn(),
   useIngresos: vi.fn(),
   rpc: vi.fn(),
   proveedores: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('../../lib/supabase', () => ({
         const cadena = {
           select: () => cadena,
           order: () => cadena,
+          or: (...argumentos: unknown[]) => { mocks.or(...argumentos); return cadena },
           limit: () => cadena,
           returns: tabla === 'proveedores' ? mocks.proveedores : tabla === 'empresas' ? mocks.empresas : mocks.productos,
         }
@@ -119,5 +121,21 @@ describe('HistorialIngresos', () => {
     expect(await screen.findByText('Todavía no hay ingresos de mercadería.')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-10-01' } })
     expect(await screen.findByText('No hay ingresos con esos filtros.')).toBeInTheDocument()
+  })
+
+  it('busca el proveedor del filtro en el servidor', async () => {
+    abrir()
+    const campo = await screen.findByLabelText('Proveedor')
+    fireEvent.mouseDown(campo)
+    await screen.findByRole('option', { name: 'Proveedor Uno' })
+    fireEvent.change(campo, { target: { value: 'import' } })
+    await waitFor(() => expect(mocks.or).toHaveBeenCalledWith('razon_social.ilike.%import%'))
+  })
+
+  it('avisa cuando el catálogo de productos del filtro se cortó', async () => {
+    mocks.productos.mockResolvedValue({ data: Array.from({ length: 501 }, (_, i) => ({ id: `p-${i}`, nombre: `Producto ${i}`, sku: null })), error: null })
+    abrir()
+    fireEvent.mouseDown(await screen.findByLabelText('Producto'))
+    expect(await screen.findByText(/Hay más de 500 productos/)).toBeInTheDocument()
   })
 })
