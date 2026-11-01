@@ -34,6 +34,19 @@ describe('etiqueta del tipo', () => {
     expect(etiquetaTipoActividad('usuario.rol_cambiado')).toBe('Cambio de rol')
   })
 
+  it('los tipos de ventas, devoluciones y stock tienen etiqueta propia con tildes (MSF-618)', () => {
+    expect(etiquetaTipoActividad('categoria.creada')).toBe('Categoría creada')
+    expect(etiquetaTipoActividad('cuenta_cobro.creada')).toBe('Cuenta de cobro creada')
+    expect(etiquetaTipoActividad('comprobante.nota_credito_emitida')).toBe('Nota de crédito emitida')
+    expect(etiquetaTipoActividad('rma.stock_reingresado')).toBe('Stock reingresado por devolución')
+    expect(etiquetaTipoActividad('stock.salida')).toBe('Salida de stock')
+    expect(etiquetaTipoActividad('reparacion.editada')).toBe('Reparación editada')
+  })
+
+  it('un tipo sin etiqueta no muestra guiones bajos de la entidad', () => {
+    expect(etiquetaTipoActividad('entidad_nueva.creada')).toBe('Entidad nueva creada')
+  })
+
   it('un tipo nuevo de otro componente se muestra legible', () => {
     expect(etiquetaTipoActividad('producto.creado')).toBe('Producto creado')
     expect(etiquetaTipoActividad('stock.ajuste_manual')).toBe('Stock ajuste manual')
