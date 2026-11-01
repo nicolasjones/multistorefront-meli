@@ -72,6 +72,11 @@ describe('analizarCsv', () => {
     expect(csv.filas[0].celdas).toEqual(['1', 'Cliente', ''])
   })
 
+  it('marca la fila cuando una celda vacía precede al dato sobrante y cuenta el ancho real (MSF-699)', () => {
+    const csv = analizarCsv('id_externo,nombre,documento\n1,Cliente,,20300123456\n')
+    expect(csv.filas[0].error).toBe('La fila 2 tiene 4 columnas y se esperaban 3')
+  })
+
   it('no marca la fila cuando tiene menos columnas que el encabezado', () => {
     const csv = analizarCsv('id_externo,nombre,documento\n1,Cliente\n')
     expect(csv.filas[0].error).toBeUndefined()

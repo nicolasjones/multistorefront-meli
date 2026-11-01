@@ -160,9 +160,9 @@ export function analizarCsv(textoOriginal: string): CsvLeido {
       // Excel). Antes se recortaba en silencio y el valor perdido se cargaba
       // desalineado; ahora la fila se marca con error y no se importa.
       // Las celdas sobrantes VACÍAS (coma final) se toleran: no corren datos.
-      const conValor = celdas.filter((celda) => celda !== '').length
-      const error = conValor > ancho
-        ? `La fila ${fila.numero} tiene ${conValor} columnas y se esperaban ${ancho}`
+      const hayExcedente = celdas.slice(ancho).some((celda) => celda !== '')
+      const error = hayExcedente
+        ? `La fila ${fila.numero} tiene ${celdas.length} columnas y se esperaban ${ancho}`
         : undefined
       return {
         numero: fila.numero,

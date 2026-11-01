@@ -83,14 +83,6 @@ const documento = { id: 'doc-1', nombre: 'contrato.txt', creado_en: '2026-01-01T
 
 const archivo = (nombre: string, contenido = 'texto', tipo = 'text/plain') => new File([contenido], nombre, { type: tipo })
 
-function elegirArchivo(archivoElegido: File) {
-  const { container } = render(<IaDocumentos />)
-  const input = container.querySelector('input[type="file"]')
-  if (!input) throw new Error('No se encontró el selector de archivos.')
-  fireEvent.change(input, { target: { files: [archivoElegido] } })
-  return { container }
-}
-
 async function montar() {
   const { container } = render(<IaDocumentos />)
   await screen.findByRole('button', { name: 'Subir documento' })
