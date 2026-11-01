@@ -92,6 +92,11 @@ dominio existe (anti-enumeración). Nunca devuelve `organizacion_id` ni datos de
 renderiza la tienda pública sin sesión. Un error de red no se disfraza de «Volvemos pronto»: se
 ofrece reintentar.
 
+- **Sin vencimiento por inactividad (MSF-673)**: el cierre de sesión a las 12 h sin actividad
+  (`lib/vencimientoSesion.ts`) es solo del panel. En un host de tienda el arranque
+  (`lib/arranque.ts`, desde `main.tsx`) no registra la marca `sesion:ultima-actividad` ni redirige
+  a `/login` (que la tienda no tiene; su ingreso es `/ingresar`). Pruebas: `lib/arranque.test.ts` y
+  `lib/vencimientoSesion.test.ts` (Vitest) + E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts`.
 - **Desarrollo**: sin la variable, el panel vive en `localhost,127.0.0.1`; un subdominio de
   `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba.
 - **Producción**: `VITE_PANEL_HOSTS` se pasa como build arg (`apps/web/Dockerfile`) con el dominio
