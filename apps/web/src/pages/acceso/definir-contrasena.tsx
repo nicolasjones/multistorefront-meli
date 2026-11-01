@@ -102,7 +102,7 @@ export function DefinirContrasenaPage() {
     if (updateError) {
       setError(source === 'invitacion'
         ? 'Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña. Intentá nuevamente.'
-        : 'No pudimos actualizar la contraseña. La anterior sigue vigente; intenta nuevamente.')
+        : 'No pudimos actualizar la contraseña. La anterior sigue vigente; intentá nuevamente.')
       setLoading(false)
       return
     }

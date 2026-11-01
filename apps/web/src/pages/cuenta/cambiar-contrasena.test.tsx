@@ -70,6 +70,8 @@ describe('CambiarContrasenaPage', () => {
     await fillValidForm()
 
     expect(await screen.findByText(/contraseña actual no coincide/i)).toBeInTheDocument()
+    expect(screen.getByText(/si no la recordás/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Recuperar acceso' })).toBeInTheDocument()
     expect(auth.updateUser).not.toHaveBeenCalled()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })

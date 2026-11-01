@@ -7,7 +7,7 @@ import { closeOtherSessions, supabaseClient, verifyCurrentPassword } from '../..
 type SessionState = 'checking' | 'ready' | 'missing'
 
 function isIncorrectCurrentPassword(error: { code?: string; message?: string }) {
-  return error.code === 'invalid_credentials' || /current password|contrasena actual|incorrect/i.test(error.message ?? '')
+  return error.code === 'invalid_credentials' || /current password|contrase(ñ|n)a actual|incorrect/i.test(error.message ?? '')
 }
 
 export function CambiarContrasenaPage() {
@@ -47,7 +47,7 @@ export function CambiarContrasenaPage() {
     if (verificationError) {
       setError(
         isIncorrectCurrentPassword(verificationError)
-          ? 'La contraseña actual no coincide. Podés recuperar el acceso si no la recuerdas.'
+          ? 'La contraseña actual no coincide. Podés recuperar el acceso si no la recordás.'
           : 'No pudimos verificar la contraseña actual. Intentá nuevamente.',
       )
       setLoading(false)
@@ -62,7 +62,7 @@ export function CambiarContrasenaPage() {
     if (updateError) {
       setError(
         isIncorrectCurrentPassword(updateError)
-          ? 'La contraseña actual no coincide. Podés recuperar el acceso si no la recuerdas.'
+          ? 'La contraseña actual no coincide. Podés recuperar el acceso si no la recordás.'
           : 'No pudimos modificar la contraseña. La anterior sigue vigente; intentá nuevamente.',
       )
       setLoading(false)
