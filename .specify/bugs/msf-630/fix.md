@@ -9,7 +9,7 @@
 - Agregado `docs/documentador-manual-de-usuario.md` con el contrato y el pendiente.
 
 ## Qué NO se hizo (y por qué)
-- No se crearon `docs:capturas`, `demo:dataset`, `apps/web/e2e/capturas/` ni `docs/dataset-demo.md`: son funcionalidad nueva que exige spec (regla del proyecto: no inventar requisitos). Queda como seguimiento con dueño; el prompt ya cubre la ausencia con un `TODO`.
+- No se crearon `docs:capturas`, `demo:dataset`, `apps/web/e2e/capturas/` ni `docs/dataset-demo.md`: son funcionalidad nueva que exige spec (regla del proyecto: no inventar requisitos). Queda como seguimiento MSF-646 (Tarea `seguimiento` en el tracker, con dueño); el prompt ya cubre la ausencia con un `TODO`.
 - No se tocó el repo del orquestador (tiene cambios de datos sin commitear).
 
 ## Reversión

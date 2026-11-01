@@ -4,7 +4,7 @@ El agente Documentador (repo del orquestador, `prompts/documentador.md` y
 `apps/worker/src/runners/documentador.js`) escribe `docs/producto/` y
 `docs/tecnico/` al cerrar cada épica. Desde MSF-630 el prompt tiene un
 **modo manual de usuario** que se activa solo si existe el marcador
-`docs/producto/.manual-de-usuario` en este repo (ya en `main` por PR #550).
+`docs/producto/.manual-de-usuario` en este repo (ya en `main` por PR #550; esta rama aún no lo trae, llega al fusionar con `main`).
 
 ## Contrato entre el orquestador y este repo
 
@@ -23,5 +23,5 @@ El agente Documentador (repo del orquestador, `prompts/documentador.md` y
 - Prompt y runner: PR #571 del orquestador (commit `59a7a9c9`), verificado con
   `tests/documentador-manual.test.js` (4/4).
 - Pendiente en este repo (requiere spec propia, no se inventa acá): scripts de
-  capturas, dataset demo y specs `apps/web/e2e/capturas/`. Ver seguimiento
-  trazado en el tracker.
+  capturas (`docs:capturas`), dataset demo (`demo:dataset`, `docs/dataset-demo.md`)
+  y specs `apps/web/e2e/capturas/`. Seguimiento trazado: MSF-646.
