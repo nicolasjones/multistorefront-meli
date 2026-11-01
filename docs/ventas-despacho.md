@@ -271,7 +271,7 @@ haciendo en la tarjeta «Responsables» del comprobante, y cada fila abre el com
 (`20270112150000_despacho_listar.sql`). Sin tablas nuevas (esquema `dominio` existente; solo se agrega el índice
 parcial `comprobantes_venta_despacho_listado_idx`).
 
-- Entran las **facturas** con `estado_despacho` (confirmadas) y `estado <> 'anulada'`: los borradores, presupuestos,
+- Entran las **facturas** con `estado_despacho` (vivas: confirmada, aceptada, en proceso, armando, incompleto, cobrada o deuda; MSF-598) y `estado <> 'anulada'`: los borradores, presupuestos,
   notas de crédito y anuladas quedan fuera.
 - Solo de las empresas donde la persona tiene Ventas en `lectura` o `edicion` **en esa empresa**
   (`private.nivel_ventas_en_empresa`); una tienda ajena o sin Ventas (`ninguno`) devuelve cero filas, no un error. La

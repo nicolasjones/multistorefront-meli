@@ -591,6 +591,45 @@ select is(
   false, 'authenticated no traduce los estados del despacho por su cuenta');
 
 -- ============================================================================
+-- MSF-598 · El despacho avanza en cualquier estado vivo de la factura (no solo «confirmada»)
+-- ============================================================================
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+select pg_temp.armar('f7');
+select pg_temp.armar('f8');
+select pg_temp.armar('f9');
+select public.confirmar_comprobante(pg_temp.id_de('f7'));
+select public.confirmar_comprobante(pg_temp.id_de('f8'));
+select public.confirmar_comprobante(pg_temp.id_de('f9'));
+
+-- Cobrada, en deuda o anulada: el estado documental/de cobro se fija directo (es independiente del despacho).
+reset role;
+update dominio.comprobantes_venta set estado = 'cobrado' where id = pg_temp.id_de('f7');
+update dominio.comprobantes_venta set estado = 'deuda' where id = pg_temp.id_de('f8');
+update dominio.comprobantes_venta set estado = 'anulada' where id = pg_temp.id_de('f9');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+select is(
+  (select estado_despacho from public.cambiar_estado_despacho(
+    pg_temp.id_de('f7'), 'armando', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('f7'))),
+  'armando', 'una factura Cobrada pasa de Sin armar a Armando (MSF-598)');
+
+select is(
+  (select estado from dominio.comprobantes_venta where id = pg_temp.id_de('f7')),
+  'cobrado', 'despachar no altera el estado de cobro');
+
+select is(
+  (select estado_despacho from public.cambiar_estado_despacho(
+    pg_temp.id_de('f8'), 'armando', 'f1000000-0000-0000-0000-000000000002', pg_temp.actualizado('f8'))),
+  'armando', 'una factura en Deuda también se despacha (MSF-598)');
+
+select throws_ok(
+  format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
+    pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
+  '55000', null, 'una factura Anulada no se despacha');
+
+-- ============================================================================
 -- `anon` sin acceso
 -- ============================================================================
 
