@@ -27,6 +27,36 @@ function esErrorTecnico(error: { status?: number }) {
   return !error.status || error.status === 429 || error.status >= 500
 }
 
+type VeredictoAcceso = 'permitido' | 'denegado' | 'indeterminado'
+
+// Quién puede estar dentro del panel: un miembro activo, o un superadmin (que no
+// tiene fila en usuarios_organizacion). Un removido o una cuenta de cliente sin
+// membresía ni superadmin queda «denegado». Si una consulta falla no se puede
+// decidir: «indeterminado» (el login falla cerrado; check no expulsa por una caída).
+async function consultarAcceso(userId: string): Promise<VeredictoAcceso> {
+  const { data: membresia, error: errorMembresia } = await supabaseClient
+    .from('usuarios_organizacion')
+    .select('estado')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (errorMembresia) return 'indeterminado'
+  if (membresia) return membresia.estado === 'suspendido' ? 'denegado' : 'permitido'
+
+  const { data: superadmin, error: errorSuperadmin } = await supabaseClient
+    .from('superadmins')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (errorSuperadmin) return 'indeterminado'
+  return superadmin ? 'permitido' : 'denegado'
+}
+
+// check() corre en cada navegación: el veredicto «permitido» se reutiliza un
+// minuto para no consultar la base en cada ruta. Un removido pierde sus sesiones
+// en la base (trigger) y, como tarde, al vencer esta marca.
+const VIGENCIA_ACCESO_MS = 60_000
+let accesoVerificado: { userId: string; hasta: number } | null = null
+
 export const authProvider: AuthProvider = {
   login: async ({ email, password, remember }) => {
     const correo = String(email ?? '').trim().toLowerCase()
@@ -91,26 +121,22 @@ export const authProvider: AuthProvider = {
       return errorIngreso(bloqueadoAhora ? mensajeIngresoBloqueado : mensajeIngresoGenerico)
     }
 
-    // Un suspendido (FR-004) no conserva sesión utilizable y recibe el mismo
-    // mensaje no revelador. Un superadmin sin membresía no tiene fila: pasa.
-    // Si la consulta falla no se puede descartar la suspensión: se cierra la
-    // sesión y se rechaza (falla cerrado).
-    const { data: membresia, error: errorMembresia } = await supabaseClient
-      .from('usuarios_organizacion')
-      .select('estado')
-      .eq('user_id', data.session.user.id)
-      .maybeSingle()
-    if (errorMembresia || membresia?.estado === 'suspendido') {
+    // Un suspendido (FR-004), un removido y una cuenta sin membresía que no es
+    // superadmin (p. ej. un cliente de la tienda) no conservan sesión en el panel
+    // y reciben el mismo mensaje no revelador. Si la consulta falla no se puede
+    // descartar nada: se cierra la sesión y se rechaza (falla cerrado).
+    const veredicto = await consultarAcceso(data.session.user.id)
+    if (veredicto !== 'permitido') {
       // supabase-js emite SIGNED_OUT de forma asíncrona: el listener de
       // lib/supabase se silencia hasta que el evento haya pasado y recién
       // entonces se restaura la marca previa, para no pisar una sesión
       // «mantenida» de otra pestaña.
       setIngresoEnCurso(true)
       try {
-        // Ante un fallo transitorio de la consulta (no una suspensión) solo se
+        // Ante un fallo transitorio de la consulta (no una denegación) solo se
         // descarta esta sesión: el usuario activo no pierde las de otros dispositivos.
         const { error: errorSalida } = await supabaseClient.auth.signOut(
-          errorMembresia ? { scope: 'local' } : undefined,
+          veredicto === 'indeterminado' ? { scope: 'local' } : undefined,
         )
         // Con la red caída la revocación global falla: al menos se descarta
         // la sesión local para que no quede en el storage.
@@ -124,6 +150,7 @@ export const authProvider: AuthProvider = {
       }
       return errorIngreso(mensajeIngresoGenerico)
     }
+    accesoVerificado = { userId: data.session.user.id, hasta: Date.now() + VIGENCIA_ACCESO_MS }
 
     // El ingreso ya fue exitoso: si no se puede limpiar el contador falla
     // abierto (queda el conteo, que vence solo) y no se bloquea al usuario.
@@ -138,6 +165,7 @@ export const authProvider: AuthProvider = {
     // antes de borrar la marca: sin sesión local, el siguiente check no la da por válida.
     if (cierre.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
     limpiarRastroDeSesion()
+    accesoVerificado = null
 
     if (cierre.error) {
       return {
@@ -170,6 +198,22 @@ export const authProvider: AuthProvider = {
       if (cierre?.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
       limpiarRastroDeSesion()
       return { authenticated: false, redirectTo: '/login', logout: true }
+    }
+
+    // Una sesión viva no implica acceso: quien fue removido de la organización, o
+    // una cuenta de cliente sin membresía, no debe seguir dentro del panel.
+    const userId = data.session.user.id
+    if (accesoVerificado?.userId !== userId || accesoVerificado.hasta < Date.now()) {
+      accesoVerificado = null
+      const veredicto = await consultarAcceso(userId)
+      if (veredicto === 'denegado') {
+        const cierre = await supabaseClient.auth.signOut().catch((falla: unknown) => ({ error: falla }))
+        if (cierre?.error) await supabaseClient.auth.signOut({ scope: 'local' }).catch(() => undefined)
+        limpiarRastroDeSesion()
+        return { authenticated: false, redirectTo: '/login', logout: true }
+      }
+      // «Indeterminado» (caída de red) no expulsa ni se guarda: se reintenta en la próxima ruta.
+      if (veredicto === 'permitido') accesoVerificado = { userId, hasta: Date.now() + VIGENCIA_ACCESO_MS }
     }
 
     registrarActividad()
