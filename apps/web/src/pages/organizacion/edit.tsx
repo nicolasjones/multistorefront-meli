@@ -131,7 +131,7 @@ export function OrganizacionEdit() {
 
   if (verificandoPermiso || puedeEscribir === null) return envolver(<EstadoCargaPagina />)
   if (!puedeEscribir) {
-    return envolver(<EstadoError titulo="Acceso restringido" descripcion="Solo los administradores pueden editar los datos de la organización." />)
+    return envolver(<EstadoError titulo="No tenés acceso a esta sección" descripcion="Solo los administradores pueden editar los datos de la organización." />)
   }
   if (carga.tipo === 'cargando') return envolver(<EstadoCargaPagina />)
   if (carga.tipo === 'error' || !guardada) {
