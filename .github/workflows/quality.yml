@@ -16,7 +16,9 @@ concurrency:
 
 jobs:
   quality:
-    runs-on: [self-hosted, platform-local]
+    # Job liviano y determinista (sin Supabase ni docker propio): corre en el runner de GitHub para no
+    # competir por la cola de los runners self-hosted. Ver docs/control-ci.md.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,7 +36,10 @@ jobs:
       - name: gitleaks (binario nativo)
         run: |
           if ! command -v gitleaks >/dev/null 2>&1; then
-            curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz -C /usr/local/bin gitleaks
+            mkdir -p "$RUNNER_TEMP/bin"
+            curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz | tar -xz -C "$RUNNER_TEMP/bin" gitleaks
+            export PATH="$RUNNER_TEMP/bin:$PATH"
+            echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           fi
           gitleaks version
       - name: calidad (determinista)
