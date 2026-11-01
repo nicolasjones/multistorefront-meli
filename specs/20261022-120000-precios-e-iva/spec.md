@@ -283,3 +283,6 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `ProductoAlta.dc.h
 | F-PRE-12 | US3 IVA por categoría y precio final | FR-015…022, SC-005, SC-006 | T020–T031 |
 | F-PRE-15 | US4 Escalas por cantidad y tipo de cliente | FR-024…027, SC-007, SC-008 | T032–T040 |
 | Tarea de cierre (label `cierre`) | Docs, seguridad, E2E y roadmap | FR-028, FR-029, SC-009, SC-010 | T041–T044 |
+
+## Corrección posterior: dólar con el que se calculan los pesos (MSF-622)
+La ficha del producto y la tabla «Así quedan los precios» calculaban los pesos con la cotización **inicial** (`cotizacion_inicial`). Desde esta corrección usan la cotización **vigente** (`estado_cotizacion`, MSF-116) y caen a la inicial si la organización todavía no confirmó ninguna o si el rol no puede leer el estado (`leerCotizacionVigente` en `apps/web/src/lib/precios.ts`, usada por `useCotizacionInicial`; el nombre del hook quedó de la primera versión). No cambia ningún contrato de base de datos.
