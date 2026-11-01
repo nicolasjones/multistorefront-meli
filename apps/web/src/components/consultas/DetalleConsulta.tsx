@@ -87,14 +87,25 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
   }
 
   // Registra la respuesta (FR-010). Se llama tras abrir la app externa y también al reintentar, sin reabrirla.
+  // Registra lo que la persona tiene en el formulario (estado, responsable y nota), no la foto leída al
+  // abrir: si no, lo recién editado se pierde sin aviso (MSF-698).
   const registrar = async () => {
     if (!puedeEditar || enVuelo.current) return
     enVuelo.current = true
     setGuardando(true)
     setErrorServidor(null)
     try {
-      const usuarioId = await registrarRespuesta(consulta)
-      onGuardado(avisoRespuestaRegistrada(consulta, usuarioId))
+      const { usuarioId, cambios } = await registrarRespuesta(consulta, {
+        estado,
+        responsableId: responsableId === '' ? null : responsableId,
+        nota,
+      })
+      onGuardado(avisoRespuestaRegistrada(cambios, {
+        nombreConsulta: consulta.nombre,
+        nombreResponsable:
+          opcionesResponsable.find((persona) => persona.user_id === cambios.responsableId)?.nombre
+          ?? consulta.responsable_nombre,
+      }, usuarioId))
     } catch (error) {
       setErrorServidor({
         texto: mensajeDeError(error, 'Abrimos la aplicación, pero no pudimos registrar la respuesta. Intentá de nuevo.'),

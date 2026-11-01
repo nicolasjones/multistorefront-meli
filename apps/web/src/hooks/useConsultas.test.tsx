@@ -24,6 +24,7 @@ vi.mock('./useOrganizacionActiva', () => ({
 }))
 
 import type { Consulta } from '../lib/consultas'
+import { notificarCambioConsultas } from '../lib/consultas'
 import { useBandejaConsultas, useConsulta, useConsultasNuevas, useResponsablesConsultas } from './useConsultas'
 
 const fila = (id: string, extra: Partial<Consulta> = {}): Consulta => ({
@@ -188,6 +189,22 @@ describe('useConsulta (enlace ?consulta=<id>)', () => {
     rerender({ id: 'c-2' })
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.noEncontrada).toBe(false)
+  })
+
+  // MSF-698: el `updated_at` del detalle es el sello del bloqueo optimista. Si queda viejo, la
+  // acción siguiente choca con el control de concurrencia y obliga a recargar (con lo que se
+  // pierden los cambios sin guardar).
+  it('se relee cuando cambia una consulta', async () => {
+    mocks.leerConsulta.mockResolvedValue(fila('c-1', { updated_at: '2026-10-24T10:00:00.000Z' }))
+    const { result } = renderHook(() => useConsulta('c-1'))
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(mocks.leerConsulta).toHaveBeenCalledTimes(1)
+    expect(result.current.consulta?.updated_at).toBe('2026-10-24T10:00:00.000Z')
+
+    await act(async () => {
+      notificarCambioConsultas()
+    })
+    await waitFor(() => expect(mocks.leerConsulta).toHaveBeenCalledTimes(2))
   })
 })
 
