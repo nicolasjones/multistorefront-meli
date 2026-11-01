@@ -138,7 +138,10 @@ insert into t_propuestas (id, rpc)
 select id, accion_rpc
 from public.mensajes_chat_ia
 where conversacion_id = 'e7240000-0000-0000-0000-0000000000c1'
-  and accion_rpc = 't_msf724_accion';
+  and accion_rpc = 't_msf724_accion'
+  -- d4 (fabricada, ya fallida) usa la misma rpc: sin este filtro la
+  -- subconsulta escalar de abajo devolvería dos filas y abortaría el script.
+  and estado = 'propuesta';
 
 insert into t_resultados (clave, resultado)
 select 'accion', public.ejecutar_accion_chat_ia((select id from t_propuestas where rpc = 't_msf724_accion'));
