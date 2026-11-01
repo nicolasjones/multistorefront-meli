@@ -72,6 +72,9 @@ const ReingresoGarantiaDialog = lazy(() =>
 const VinculosGarantia = lazy(() =>
   import('../../components/service/VinculosGarantia').then((modulo) => ({ default: modulo.VinculosGarantia })),
 )
+const EnlaceSeguimientoDialog = lazy(() =>
+  import('../../components/service/EnlaceSeguimientoDialog').then((modulo) => ({ default: modulo.EnlaceSeguimientoDialog })),
+)
 const AgregarManoObraDialog = lazy(() =>
   import('../../components/service/AgregarManoObraDialog').then((modulo) => ({ default: modulo.AgregarManoObraDialog })),
 )
@@ -119,6 +122,7 @@ export function ServicioReparacion() {
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
   const [garantiaAbierta, setGarantiaAbierta] = useState(false)
+  const [enlaceAbierto, setEnlaceAbierto] = useState(false)
   const [itemAbierto, setItemAbierto] = useState<'mano_obra' | 'repuesto' | null>(null)
   const ultimaPeticion = useRef(0)
   // Estado vigente para `aplicarOperacion`: la RPC está en vuelo y la clausura del render ya quedó vieja.
@@ -348,6 +352,11 @@ export function ServicioReparacion() {
             {reparacion && reparacion.entrega_real !== null && reparacion.anulada_en === null ? (
               <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/remito`} variant="outlined">
                 Imprimir remito
+              </Button>
+            ) : null}
+            {nivel === 'edicion' && reparacion ? (
+              <Button variant="outlined" onClick={() => setEnlaceAbierto(true)} disabled={guardando}>
+                Enlace de seguimiento
               </Button>
             ) : null}
             {nivel === 'edicion' && reparacion && admiteReingresoGarantia(reparacion) ? (
@@ -714,6 +723,16 @@ export function ServicioReparacion() {
                   }}
                 />
               )}
+            </Suspense>
+          ) : null}
+          {enlaceAbierto && reparacion ? (
+            <Suspense fallback={null}>
+              <EnlaceSeguimientoDialog
+                abierto
+                reparacionId={reparacion.id}
+                codigo={reparacion.codigo}
+                onCerrar={() => setEnlaceAbierto(false)}
+              />
             </Suspense>
           ) : null}
           {garantiaAbierta ? (

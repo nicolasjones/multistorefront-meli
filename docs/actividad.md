@@ -162,6 +162,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   la misma transacción que la fila de la reparación nueva y su evento `alta` del historial. El detalle nombra los
   dos códigos visibles («Reingresó por garantía R-0001 como R-0002»), nunca ids; el evento lleva la tienda de
   la reparación original. Lo cubre el pgTAP `service_garantia`. Ver `docs/service-garantia.md`.
+- `reparacion.enlace_generado` (F-SVC-22, Service técnico): lo registra la RPC `obtener_enlace_consulta` solo cuando
+  **crea** el enlace de seguimiento de una reparación (los pedidos siguientes devuelven el mismo token y no registran
+  nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código
+  visible («Generó el enlace de seguimiento de R-0001»), nunca el token ni ids; el evento lleva la tienda de la
+  reparación. Lo cubre el pgTAP `service_enlace_consulta`. Ver `docs/service-seguimiento.md`.
 - `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
   la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
   tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada
