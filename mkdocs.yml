@@ -122,6 +122,7 @@ nav:
       - Service técnico:
           - Reparaciones, ítems e impresión: producto/service-listado-items-impresion.md
           - Repuestos y stock: producto/service-repuestos-y-stock.md
+          - Fotos, garantía, seguimiento y reportes: producto/service-seguimiento-y-reportes.md
       - Tiendas online:
           - Tiendas online: producto/tiendas-online.md
           - Dominio, identidad y textos: producto/tienda-dominio-e-identidad.md
@@ -199,6 +200,7 @@ nav:
           - Listado, ítems e impresión: tecnico/service-listado-items-impresion.md
           - Repuestos y stock: tecnico/service-repuestos-y-stock.md
           - Cobro, avisos y ficha del cliente: tecnico/service-cobro-y-avisos.md
+          - Seguimiento y reportes: tecnico/service-seguimiento-y-reportes.md
       - Tienda pública:
           - Catálogo y ficha: tecnico/tienda-catalogo-y-ficha.md
           - Inicio, búsqueda y móvil: tecnico/tienda-inicio-busqueda-movil.md

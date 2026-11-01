@@ -648,6 +648,19 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/service-seguimiento-y-reportes.md": {
+      "title": "Service técnico: fotos, garantía, seguimiento del cliente y reportes",
+      "pageHash": "d914f76168fad882ccfdfc4713bf2712b9327fdf7a5ea4d27a4a327b3b3c899a",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "fcd2b69a",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/sistema-de-diseno.md": {
       "title": "Sistema de diseño (MSF-117)",
       "pageHash": "2c4a9e729e2f848c73d3b83109dca76e48ce7b348d48dd9d60d6215155fdf82d",
@@ -1586,6 +1599,21 @@
         "supabase/migrations",
         "apps/web/src",
         "design/pantallas"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/service-seguimiento-y-reportes.md": {
+      "title": "Service técnico: seguimiento y reportes (técnico, MSF-124)",
+      "pageHash": "dd4e1124cc5ff93de461b5edcb6ab63d38de3be499e5abd1146dbfdd35ffdbdb",
+      "sourceHash": "a380dba2fa54193c3307b6fefd20a591ee254ce5d3fd7bbda660adf1ac8e6c8f",
+      "sourceAt": "fcd2b69a",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/functions",
+        "infra/superset",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null
