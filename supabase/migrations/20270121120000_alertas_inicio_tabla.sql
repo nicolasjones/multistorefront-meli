@@ -14,10 +14,10 @@
 --     llevan `empresa_id` nulo. `alertas_inicio_calculos`: la organización de la sesión, y solo las
 --     columnas organizacion_id y calculada_en (grant por columna; la cantidad total mezcla secciones).
 --   * SIN insert, update ni delete desde la app: escribe únicamente `public.recalcular_alertas_inicio`
---     (service_role, migración 20270121120100). `anon` sin privilegios.
+--     (service_role, migración 20270121121100). `anon` sin privilegios.
 --   * Los enlaces salen de una lista cerrada de rutas (check), nunca de texto libre (FR-025).
 --
--- Migración aditiva. Reversión (migración posterior; antes revertir 20270121120100 y 20270121120200):
+-- Migración aditiva. Reversión (migración posterior; antes revertir 20270121121100 y 20270121121200):
 --   drop table dominio.alertas_inicio_calculos;
 --   drop table dominio.alertas_inicio;
 
