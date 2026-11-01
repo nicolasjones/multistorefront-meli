@@ -465,3 +465,14 @@ input {
     break-inside: avoid;
   }
 }
+
+/* Ampliar capturas del manual (docs/javascripts/zoom-imagenes.js) */
+.md-content__inner img { cursor: zoom-in; }
+.msf-zoom {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .6rem; padding: 1rem; background: rgba(0, 0, 0, .85); cursor: zoom-out;
+}
+.msf-zoom img { max-width: 96vw; max-height: 88vh; object-fit: contain; background: #fff; border-radius: 4px; cursor: zoom-out; }
+.msf-zoom p { margin: 0; color: #fff; font-size: .7rem; }
+body.msf-zoom-abierto { overflow: hidden; }
