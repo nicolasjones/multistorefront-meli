@@ -47,6 +47,13 @@ tests OK, 1 timeout). 15 s sigue acotando un cuelgue real, pero evita el falso r
 obligaba a re-ejecutar el shard completo. Si un test necesita más, se le pasa el timeout
 explícito en el propio test.
 
+El `testTimeout` de vitest no gobierna las esperas de Testing Library: `findBy*` y `waitFor`
+tienen su propio límite (1000 ms por defecto) y expiran antes que el test. Cuando el elemento
+aparece recién después de una consulta —el detalle de la reparación, por ejemplo, primero pide
+la reparación y después el comprobante asociado— hay que pasarle el margen en la espera:
+`await screen.findByRole('button', { name: 'Generar comprobante' }, { timeout: 5000 })`. Con el
+límite por defecto, el shard daba rojo intermitente en el runner self-hosted (MSF-232).
+
 ## Roadmap del programa
 F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 errores/backups/secretos ·
 F4 release/preview/flags · F5 mutation/a11y/perf.
