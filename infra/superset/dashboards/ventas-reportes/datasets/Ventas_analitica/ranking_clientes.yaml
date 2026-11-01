@@ -1,0 +1,275 @@
+# Dataset sobre la vista `analitica.ventas_ranking_clientes` (contrato:
+# specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md).
+#
+# Grano de la vista: una fila por empresa × cliente × fecha. El TABLERO agrupa por cliente y suma
+# (por eso las métricas de abajo son agregados y no columnas de la vista): los filtros nativos
+# (rango de fechas, empresa y «Consumidor final») se aplican sobre el grano fino —la fila de la
+# vista— y recién después se agrega por cliente.
+#
+# El grupo del tablero es `nombre` + `numero` + `tipo_texto`: `public.clientes` NO exige nombre
+# único por organización (el índice `clientes_org_nombre_idx` no es único), así que agrupar solo por
+# nombre fusionaría dos clientes homónimos en una fila y su facturación sería la suma de dos
+# clientes. El `numero` es el correlativo por organización y sí es único
+# (`clientes_org_numero_uq`), de modo que nombre + número identifican un cliente igual que su id;
+# es el mismo desempate que usa `public.ranking_clientes` (facturado desc, nombre, número).
+#
+# `organizacion_id` y `empresa_id` son las columnas sobre las que el guest token fuerza la cláusula
+# `rls` (FR-004); `empresa_nombre`, `consumidor_final_texto` y `fecha` son las de los filtros nativos.
+#
+# `posicion` y `participacion` de la vista NO se usan en el tablero: son del cliente en todo el
+# alcance visible, así que con un filtro de período o de tienda quedarían desfasadas. El tablero las
+# recalcula como métricas, sobre el resultado YA filtrado (misma fórmula).
+table_name: ventas_ranking_clientes
+main_dttm_col: fecha
+description: 'Ranking de clientes por facturación neta (F-VTA-23): comprobantes, facturado neto, participación y última compra de cada cliente en el período.'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 0ec4cca2-8144-4199-83f1-45bd5895bf97
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: posicion
+  verbose_name: '#'
+  metric_type: null
+  expression: ROW_NUMBER() OVER (ORDER BY SUM(facturado) DESC, lower(nombre), numero)
+  description: 'Posición en el ranking por facturación neta; el desempate por nombre y número deja el número estable entre corridas (el mismo criterio que `public.ranking_clientes`).'
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: comprobantes_total
+  verbose_name: Comprobantes
+  metric_type: null
+  expression: SUM(comprobantes)
+  description: 'Comprobantes que cuentan en el período: solo facturas (la nota de crédito resta del importe pero no suma un comprobante).'
+  d3format: ',d'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: facturado_total
+  verbose_name: Facturado
+  metric_type: null
+  expression: SUM(facturado)
+  description: 'Facturado neto en el período, con IVA (la misma base que muestra el listado y la exportación de comprobantes): la nota de crédito resta.'
+  d3format: ',.2f'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: participacion_total
+  verbose_name: Participación
+  metric_type: null
+  expression: CASE WHEN SUM(SUM(facturado)) OVER () = 0 THEN 0 ELSE SUM(facturado) / SUM(SUM(facturado)) OVER () END
+  description: 'Participación del cliente sobre el total del alcance ya filtrado, como fracción (0–1): la columna la muestra como porcentaje y la barra de la celda es proporcional a este valor.'
+  d3format: '.1%'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: ultimo_comprador
+  verbose_name: Último comprador
+  metric_type: null
+  expression: MAX(ultimo_comprador)
+  description: 'Fecha del comprobante más reciente que cuenta del cliente en el alcance filtrado (con varias tiendas, la última compra).'
+  d3format: '%d/%m/%Y'
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Empresa de la venta; el token de Superset filtra por esta columna (FR-004).'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Empresa
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Nombre de la tienda; es la columna del filtro nativo de empresa.'
+  python_date_format: null
+  extra: {}
+- column_name: cliente_id
+  verbose_name: Cliente (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Cliente de la fila; con el número y el nombre identifica al cliente (el tablero agrupa por nombre + número, no por este id).'
+  python_date_format: null
+  extra: {}
+- column_name: numero
+  verbose_name: Nº
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Correlativo del cliente por organización (único por organización, `clientes_org_numero_uq`). Va con el nombre en el grupo del tablero para no fusionar clientes homónimos: es el mismo desempate que `public.ranking_clientes`.'
+  python_date_format: null
+  extra: {}
+- column_name: nombre
+  verbose_name: Cliente
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre del cliente; con el número identifica al cliente (el tablero agrupa por nombre + número).'
+  python_date_format: null
+  extra: {}
+- column_name: tipo
+  verbose_name: Tipo
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Tipo del cliente en la base: minorista o mayorista. La columna que muestra la tabla es `tipo_texto`.'
+  python_date_format: null
+  extra: {}
+- column_name: tipo_texto
+  verbose_name: Tipo
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE tipo WHEN 'minorista' THEN 'Minorista' WHEN 'mayorista' THEN 'Mayorista' ELSE tipo END"
+  description: 'Tipo del cliente con las etiquetas de la app (Minorista / Mayorista).'
+  python_date_format: null
+  extra: {}
+- column_name: consumidor_final
+  verbose_name: Consumidor final
+  is_dttm: false
+  is_active: true
+  type: BOOLEAN
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Marca del «Consumidor final» (`public.clientes.es_consumidor_final`).'
+  python_date_format: null
+  extra: {}
+- column_name: consumidor_final_texto
+  verbose_name: Consumidor final
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "CASE WHEN consumidor_final THEN 'Sí' ELSE 'No' END"
+  description: '«Sí» o «No»: es la columna del filtro nativo «Consumidor final» (el valor inicial del tablero es «No», o sea excluido).'
+  python_date_format: null
+  extra: {}
+- column_name: fecha
+  verbose_name: Fecha
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Fecha del comprobante; es la columna del filtro nativo de rango de fechas.'
+  python_date_format: '%Y-%m-%d'
+  extra: {}
+- column_name: comprobantes
+  verbose_name: Comprobantes (por fila)
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Comprobantes de la fila (empresa × cliente × fecha); el tablero los suma.'
+  python_date_format: null
+  extra: {}
+- column_name: facturado
+  verbose_name: Facturado (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Facturado de la fila, con IVA; el tablero lo suma.'
+  python_date_format: null
+  extra: {}
+- column_name: participacion
+  verbose_name: Participación (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Participación del cliente sobre el total de TODO el alcance visible de la vista; el tablero no la usa (recalcula la participación sobre el resultado filtrado en la métrica `participacion_total`).'
+  python_date_format: null
+  extra: {}
+- column_name: ultimo_comprador
+  verbose_name: Último comprador
+  is_dttm: false
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Fecha del comprobante más reciente que cuenta del cliente en esa tienda; el tablero toma el máximo (la última compra del cliente en el alcance filtrado).'
+  python_date_format: '%Y-%m-%d'
+  extra: {}
+version: 1.0.0
+database_uuid: 638bb2f5-2df0-48f8-bef2-533f8ec3c569

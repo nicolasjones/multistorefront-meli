@@ -116,6 +116,11 @@ services:
       # Base de la API de Supabase desde la que `comprobantes-correo.yml` baja el PDF del presupuesto
       # ({{ envs.comprobantes_storage_url }}); la clave va como secreto (SECRET_COMPROBANTES_STORAGE_KEY).
       ENV_COMPROBANTES_STORAGE_URL: ${COMPROBANTES_STORAGE_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}}
+      # Correo masivo a clientes (MSF-370, flow correo-masivo): lote, cupo diario por organización y origen público
+      # del panel donde vive el enlace de baja (`/baja-correo/:token`).
+      ENV_CORREO_MASIVO_LOTE: ${CORREO_MASIVO_LOTE:-50}
+      ENV_CORREO_MASIVO_LIMITE_DIARIO: ${CORREO_MASIVO_LIMITE_DIARIO:-500}
+      ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:-http://localhost:5173}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas

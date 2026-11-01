@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get update && apt-get install -y --no-install-recommends \
       docker-ce-cli docker-compose-plugin docker-buildx-plugin nodejs \
       postgresql-client libtap-parser-sourcehandler-pgtap-perl \
-      openssh-client \
+      openssh-client procps \
     && npm install -g pnpm@11.19.0 \
     && rm -rf /var/lib/apt/lists/*
 # docker-buildx-plugin: worker-images.yml exige provenance y SBOM (docker

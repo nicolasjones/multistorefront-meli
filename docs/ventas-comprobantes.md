@@ -108,6 +108,16 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
 
+**Origen y líneas sin stock (F-SVC-13, `20270121120100_comprobantes_origen.sql` y
+`20270121120200_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
+`origen_id` (solo los escribe la RPC `generar_comprobante_reparacion`; índice único parcial: un comprobante
+vigente por origen) y `dominio.comprobantes_venta_lineas` suma `sin_stock`: la línea **no mueve stock** (ni
+descuento, ni reserva, ni devolución al anular o emitir una nota de crédito) y por eso admite `producto_id`,
+`deposito_id` y `escala` nulos. Editar las líneas de catálogo conserva las `sin_stock` y las suma a los totales;
+en pantalla se ven en solo lectura, con la marca «No descuenta stock». `obtener_comprobante` expone el origen
+(`origen_tipo`, `origen_id`, `origen_numero`) y la marca por línea, de forma aditiva. Detalle en
+[service-cobro.md](service-cobro.md).
+
 RLS vigente en el comprobante y en las líneas: `select` por organización y sección `ventas`
 (`lectura`/`edicion`). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC
 `security definer`. `anon` sin acceso.
@@ -280,3 +290,14 @@ Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numerac
 se borran en el mismo PR que las crea.
 
 - Guardia de versiones: `scripts/migraciones-ventas-comprobantes.test.mjs` (en `pnpm test:tooling`) verifica versiones únicas de 14 dígitos, posteriores a `origin/dokploy`, y que esta doc cite solo migraciones existentes.
+
+## Precios especiales por cliente (F-VTA-32, MSF-340 · épica MSF-193)
+
+`guardar_lineas_comprobante` (misma firma y retorno, sin `BREAKING`) calcula el precio de cada línea como
+`round(neto de escala * (1 - descuento / 100), 2)`, **antes del IVA**. El descuento sale de `public.clientes.descuento`
+del cliente del comprobante, leído en el servidor: el payload no puede imponerlo (una clave `descuento` se ignora).
+Un `precio_manual` no se descuenta. La línea guarda `dominio.comprobantes_venta_lineas.descuento_pct` (columna
+aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para que lo ya vendido no cambie si luego
+cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de líneas rotula
+«escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
+«Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).

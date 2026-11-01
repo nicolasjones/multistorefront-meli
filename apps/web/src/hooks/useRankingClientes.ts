@@ -25,6 +25,8 @@ export type ParametrosRanking = {
   empresaId: string | null
   pagina: number
   tamano: number
+  /** No consulta (la pantalla muestra otra vista, p. ej. la comparación de F-CLI-14). */
+  pausado?: boolean
 }
 
 type FilaServidor = {
@@ -69,9 +71,10 @@ export function useRankingClientes(parametros: ParametrosRanking) {
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
   const ultimaPeticion = useRef(0)
-  const { desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano } = parametros
+  const { desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano, pausado = false } = parametros
 
   const cargar = useCallback(async () => {
+    if (pausado) return
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     let resultado: { data: FilaServidor[] | null; error: unknown }
@@ -97,7 +100,7 @@ export function useRankingClientes(parametros: ParametrosRanking) {
     setCargando(false)
     setRespondidaPara(organizacionId)
     // organizacionId solo dispara la recarga; la organización la resuelve el servidor.
-  }, [desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano, organizacionId])
+  }, [desde, hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano, pausado, organizacionId])
 
   useEffect(() => {
     void cargar()
