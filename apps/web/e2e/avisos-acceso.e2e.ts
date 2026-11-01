@@ -96,6 +96,10 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     { user_id: ids.administrador, organizacion_id: org.id, rol_id: 'administrador' },
     { user_id: ids.operador, organizacion_id: org.id, rol_id: 'operador' },
   ])
+  // Asignación por empresa: sin ella el selector de la barra superior quedaría vacío.
+  await rest('usuarios_empresas', [
+    { user_id: ids.operador, empresa_id: empresa.id, organizacion_id: org.id, rol_id: 'operador' },
+  ])
   await rest('usuario_empresa_activa', [
     { user_id: ids.administrador, empresa_id: empresa.id },
     { user_id: ids.operador, empresa_id: empresa.id },
@@ -113,6 +117,7 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
 async function limpiar(datos: Sembrado) {
   await borrar(`registro_actividad?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
+  await borrar(`usuarios_empresas?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
   await borrar(`empresas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`organizaciones?id=eq.${datos.orgId}`)
