@@ -77,6 +77,21 @@ export async function leerCotizacionInicial(cliente: SupabaseClient): Promise<Co
   return data ? { valor: Number(data.valor), fecha: data.updated_at } : null
 }
 
+// Cotización VIGENTE del dólar (la última confirmada; MSF-116). Si la organización todavía no confirmó
+// ninguna, o el estado no se puede leer con este rol, vale la inicial. Los precios en pesos se calculan con esta.
+export async function leerCotizacionVigente(cliente: SupabaseClient): Promise<Cotizacion | null> {
+  try {
+    // Se lee la RPC acá y no con `leerEstadoCotizacion` para no crear un ciclo de importaciones con `cotizacion.ts`.
+    const { data, error } = await cliente.rpc('estado_cotizacion')
+    if (error) throw error
+    const vigente = (data as { vigente?: { valor: number | string; cargada_en: string } | null } | null)?.vigente
+    if (vigente) return { valor: Number(vigente.valor), fecha: vigente.cargada_en }
+  } catch (error) {
+    console.error('No pudimos leer la cotización vigente; se usa la inicial.', error)
+  }
+  return leerCotizacionInicial(cliente)
+}
+
 // Sin consumidor en la UI hasta MSF-116 (carga de cotización, botón «Cotización →»); lo pide T006.
 export async function fijarCotizacionInicial(cliente: SupabaseClient, valor: number): Promise<void> {
   const { error } = await cliente.rpc('fijar_cotizacion_inicial', { p_valor: valor })

@@ -1,0 +1,123 @@
+# MSF-424 (F-SVC-14, FR-022, FR-024): consume la outbox de ejecuciones para avisar por correo al cliente del
+# estado de su reparación.
+#
+# La RPC `avisar_cliente_reparacion` ya creó el aviso `pendiente` y dejó la orden durable. Este flow reclama solo
+# las capacidades `enviar-aviso-reparacion-*` y, por cada aviso, resuelve los datos con
+# `private.datos_aviso_reparacion`; si el aviso sigue pendiente envía el correo por el SMTP de Kestra
+# (`KESTRA_SMTP_*`, el mismo de enviar-avisos y comprobantes-correo) y lo cierra con
+# `private.cerrar_aviso_reparacion` como `enviado`. Un fallo del correo se reintenta 3 veces y, si persiste, cierra
+# el aviso como `fallido` con un motivo fijo (nunca el mensaje del SMTP, que puede traer hosts o credenciales).
+# La entrega es «al menos una vez»: si Kestra se corta entre enviar y cerrar, el reclamo vence y el correo puede
+# salir dos veces.
+#
+# Asunto y cuerpo fijos y provisorios (spec, Decisiones abiertas 3). El correo NO lleva importes ni costos.
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo EXECUTE sobre las funciones de la
+# outbox y de este flow. No usa secretos nuevos.
+id: reparaciones-aviso-correo
+namespace: producto.service
+labels:
+  capa: producto
+  dominio: service
+  componente: reparaciones-aviso-correo
+description: "Avisa por correo al cliente del estado de su reparación."
+tasks:
+  - id: reclamar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select r.*, r.detalle->>'aviso_id' as aviso_id from private.reclamar_despachos_capacidad('enviar-aviso-reparacion-', 5, 900) r;
+  - id: despachar
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar.rows }}"
+    concurrencyLimit: 2
+    allowFailure: true
+    tasks:
+      - id: procesar
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: datos
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            fetchType: FETCH_ONE
+            sql: |
+              select x.d::text as datos,
+                     case when x.d->>'estado_envio' = 'pendiente' then 'enviar' else 'nada' end as accion
+              from (select private.datos_aviso_reparacion(CAST(:aviso_id AS uuid)) as d) x;
+            parameters:
+              aviso_id: "{{ fromJson(parent.taskrun.value).aviso_id }}"
+          - id: enviar_correo
+            runIf: "{{ outputs.datos[parent.taskrun.value].row.accion == 'enviar' }}"
+            type: io.kestra.plugin.notifications.mail.MailSend
+            host: "{{ envs.kestra_smtp_host }}"
+            port: "{{ envs.kestra_smtp_port }}"
+            username: "{{ envs.kestra_smtp_username }}"
+            password: "{{ envs.kestra_smtp_password }}"
+            transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+            from: "{{ envs.kestra_smtp_from }}"
+            to: "{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).destinatario }}"
+            subject: "Tu reparación {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).numero }}: {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).estado }} · {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).empresa }}"
+            # Los valores vienen de datos de negocio: se escapan para el cuerpo HTML.
+            htmlTextContent: |
+              <p>Hola {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).cliente | escape }},</p>
+              <p>Tu reparación <strong>{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).numero | escape }}</strong> en {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).empresa | escape }} cambió de estado.</p>
+              <p>Equipo: {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).equipo | escape }}<br>
+              Estado: <strong>{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).estado | escape }}</strong></p>
+              <p>{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).descripcion | escape }}</p>
+            retry:
+              type: constant
+              maxAttempts: 3
+              interval: PT30S
+          - id: cerrar_enviado
+            runIf: "{{ outputs.datos[parent.taskrun.value].row.accion == 'enviar' }}"
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.cerrar_aviso_reparacion(CAST(:aviso_id AS uuid), NULL);
+            parameters:
+              aviso_id: "{{ fromJson(parent.taskrun.value).aviso_id }}"
+          - id: resolver_outbox
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), 'confirmar', NULL, 30, 20);
+            parameters:
+              despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
+              intento: "{{ fromJson(parent.taskrun.value).intento }}"
+        errors:
+          # El correo falló tras sus reintentos: el aviso se cierra como fallido con un motivo fijo (no el mensaje
+          # del SMTP) y la orden se confirma para no reenviar en bucle.
+          - id: cerrar_aviso_fallido
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.cerrar_aviso_reparacion(CAST(:aviso_id AS uuid), 'No se pudo enviar el correo');
+            parameters:
+              aviso_id: "{{ fromJson(parent.taskrun.value).aviso_id }}"
+          - id: confirmar_despacho
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), 'agotar', 'AVISO_FALLIDO', 30, 20);
+            parameters:
+              despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
+              intento: "{{ fromJson(parent.taskrun.value).intento }}"
+triggers:
+  - id: schedule_correo
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"
+finally:
+  - id: publicar_logs
+    type: io.kestra.plugin.core.log.Fetch
+    tasksId:
+      - despachar
+    allowFailure: true
+    allowWarning: true
