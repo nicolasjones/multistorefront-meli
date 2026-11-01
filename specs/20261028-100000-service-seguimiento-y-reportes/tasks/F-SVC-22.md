@@ -1,0 +1,21 @@
+# Marcas de F-SVC-22 (revisado y aprobado, FEAT-117)
+
+Las tareas de **esta** historia quedaron hechas y **aprobadas por el Revisor**. Vive en un archivo **por-historia** para no chocar el `tasks.md` compartido entre historias.
+
+- [x] T025
+- [x] T026
+- [x] T027
+- [x] T028
+- [x] T029
+- [x] T030
+- [x] T031
+- [x] T032
+- [x] T033
+- [x] T034
+- [x] T035
+- [x] T036
+- [x] T037
+- [x] T038
+- [x] T039
+- [x] T040
+- [x] T041
