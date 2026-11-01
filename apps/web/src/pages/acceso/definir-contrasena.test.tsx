@@ -49,7 +49,7 @@ describe('DefinirContrasenaPage', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Recuperar acceso' })).toBeInTheDocument()
-    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
+    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
     expect(auth.getSession).not.toHaveBeenCalled()
   })
 
@@ -69,7 +69,7 @@ describe('DefinirContrasenaPage', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Recuperar acceso' })).toBeInTheDocument()
-    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
+    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
   })
 
   it('shows the invitation form only after a valid invitation-link session', async () => {
@@ -256,7 +256,7 @@ describe('DefinirContrasenaPage', () => {
     fireEvent.change(field, { target: { value: 'contrasenasegura1!' } })
 
     expect(screen.getAllByText(/^Falta:/)).toHaveLength(1)
-    expect(screen.getByText('Falta: Una mayuscula')).toBeInTheDocument()
+    expect(screen.getByText('Falta: Una mayúscula')).toBeInTheDocument()
     expect(screen.getAllByText(/^Cumple:/)).toHaveLength(4)
     expect(field).toHaveAttribute('aria-describedby', 'reglas-contrasena')
     expect(screen.getByRole('status')).toHaveTextContent('Faltan 1 de 5 reglas.')

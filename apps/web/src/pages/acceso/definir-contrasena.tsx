@@ -91,17 +91,17 @@ export function DefinirContrasenaPage() {
       && (acceptError?.code === 'P0001' || acceptError?.code === 'P0002' || acceptError?.code === '23505')
     if (acceptError && !sinInvitacionEnRecuperacion) {
       setError(acceptError.code === 'P0001'
-        ? 'La invitación venció. Pídele a un Administrador que te envíe una nueva.'
+        ? 'La invitación venció. Pedile a un Administrador que te envíe una nueva.'
         : acceptError.code === 'P0002'
-          ? 'La invitación fue cancelada o ya no existe. Pídele a un Administrador que te invite de nuevo.'
-          : 'No pudimos aceptar la invitación. Intenta nuevamente.')
+          ? 'La invitación fue cancelada o ya no existe. Pedile a un Administrador que te invite de nuevo.'
+          : 'No pudimos aceptar la invitación. Intentá nuevamente.')
       setLoading(false)
       return
     }
     const { error: updateError } = await supabaseClient.auth.updateUser({ password })
     if (updateError) {
       setError(source === 'invitacion'
-        ? 'Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña. Intenta nuevamente.'
+        ? 'Tu invitación ya quedó aceptada, pero no pudimos guardar la contraseña. Intentá nuevamente.'
         : 'No pudimos actualizar la contraseña. La anterior sigue vigente; intenta nuevamente.')
       setLoading(false)
       return
@@ -109,7 +109,7 @@ export function DefinirContrasenaPage() {
 
     const { error: signOutError } = await closeOtherSessions()
     if (signOutError) {
-      setError('La contraseña se actualizó, pero no pudimos cerrar otras sesiones. Intenta recuperarla nuevamente.')
+      setError('La contraseña se actualizó, pero no pudimos cerrar otras sesiones. Intentá recuperarla nuevamente.')
       setLoading(false)
       return
     }
@@ -136,7 +136,7 @@ export function DefinirContrasenaPage() {
           <Typography variant="bl">Fuiste invitado como <strong>{nombreDeRol(invitacion.rol_id)}</strong>.</Typography>
         )}
         {source === 'invitacion' && invitacion?.vencida && (
-          <Alert severity="warning">La invitación venció. Pídele a un Administrador que te envíe una nueva.</Alert>
+          <Alert severity="warning">La invitación venció. Pedile a un Administrador que te envíe una nueva.</Alert>
         )}
         <Typography variant="bl" color="text.secondary">{passwordPolicyDescription}</Typography>
         {error && <Alert severity="error">{error}</Alert>}

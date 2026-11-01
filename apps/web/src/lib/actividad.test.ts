@@ -37,5 +37,13 @@ describe('etiqueta del tipo', () => {
   it('un tipo nuevo de otro componente se muestra legible', () => {
     expect(etiquetaTipoActividad('producto.creado')).toBe('Producto creado')
     expect(etiquetaTipoActividad('stock.ajuste_manual')).toBe('Stock ajuste manual')
+    expect(etiquetaTipoActividad('reparacion.creada')).toBe('Reparación creada')
+    expect(etiquetaTipoActividad('rma.estado_cambiado')).toBe('RMA estado cambiado')
+  })
+
+  it('lleva tildes en los tipos de comprobante, RMA y reparación', () => {
+    expect(etiquetaTipoActividad('comprobante.nota_credito_emitida')).toBe('Comprobante nota crédito emitida')
+    expect(etiquetaTipoActividad('rma.nota_credito_vinculada')).toBe('RMA nota crédito vinculada')
+    expect(etiquetaTipoActividad('reparacion.editada')).toBe('Reparación editada')
   })
 })

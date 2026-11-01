@@ -30,10 +30,10 @@ function renderPage() {
 }
 
 async function fillValidForm(currentPassword = 'ContrasenaActual1!') {
-  fireEvent.change(await screen.findByLabelText(/^Contrasena actual/), { target: { value: currentPassword } })
-  fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'ContrasenaNueva1!' } })
-  fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'ContrasenaNueva1!' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Cambiar contrasena' }))
+  fireEvent.change(await screen.findByLabelText(/^Contraseña actual/), { target: { value: currentPassword } })
+  fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'ContrasenaNueva1!' } })
+  fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'ContrasenaNueva1!' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }))
 }
 
 describe('CambiarContrasenaPage', () => {
@@ -54,11 +54,11 @@ describe('CambiarContrasenaPage', () => {
 
   it('validates the new password and confirmation before sending it to Auth', async () => {
     renderPage()
-    await screen.findByLabelText(/^Contrasena actual/)
-    fireEvent.change(screen.getByLabelText(/^Contrasena actual/), { target: { value: 'ContrasenaActual1!' } })
-    fireEvent.change(screen.getByLabelText(/^Nueva contrasena/), { target: { value: 'corta1!' } })
-    fireEvent.change(screen.getByLabelText(/^Confirmar contrasena/), { target: { value: 'corta1!' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contrasena' }))
+    await screen.findByLabelText(/^Contraseña actual/)
+    fireEvent.change(screen.getByLabelText(/^Contraseña actual/), { target: { value: 'ContrasenaActual1!' } })
+    fireEvent.change(screen.getByLabelText(/^Nueva contraseña/), { target: { value: 'corta1!' } })
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), { target: { value: 'corta1!' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/al menos 12 caracteres/i)
     expect(auth.updateUser).not.toHaveBeenCalled()
@@ -69,7 +69,7 @@ describe('CambiarContrasenaPage', () => {
     renderPage()
     await fillValidForm()
 
-    expect(await screen.findByText(/contrasena actual no coincide/i)).toBeInTheDocument()
+    expect(await screen.findByText(/contraseña actual no coincide/i)).toBeInTheDocument()
     expect(auth.updateUser).not.toHaveBeenCalled()
     expect(closeOtherSessions).not.toHaveBeenCalled()
   })
@@ -79,7 +79,7 @@ describe('CambiarContrasenaPage', () => {
     renderPage()
     await fillValidForm()
 
-    expect(await screen.findByText(/No pudimos verificar la contrasena actual/i)).toBeInTheDocument()
+    expect(await screen.findByText(/No pudimos verificar la contraseña actual/i)).toBeInTheDocument()
     expect(screen.queryByText(/no coincide/i)).not.toBeInTheDocument()
     expect(auth.updateUser).not.toHaveBeenCalled()
     expect(closeOtherSessions).not.toHaveBeenCalled()

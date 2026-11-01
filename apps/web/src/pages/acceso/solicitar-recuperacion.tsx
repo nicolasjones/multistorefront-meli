@@ -7,7 +7,7 @@ import { tokens } from '../../tema/tokens'
 
 const neutralNotice = 'Si existe una cuenta para ese correo, enviamos un enlace para continuar.'
 
-const expiredLinkNotice = 'El enlace vencio o ya se uso. Solicita uno nuevo para continuar.'
+const expiredLinkNotice = 'El enlace venció o ya se usó. Solicitá uno nuevo para continuar.'
 
 export function SolicitarRecuperacionPage() {
   const [searchParams] = useSearchParams()
@@ -28,7 +28,7 @@ export function SolicitarRecuperacionPage() {
     })
 
     if (requestError) {
-      setError('No pudimos enviar el enlace ahora. Intenta nuevamente mas tarde.')
+      setError('No pudimos enviar el enlace ahora. Intentá nuevamente más tarde.')
     } else {
       setNotice(neutralNotice)
     }
@@ -47,7 +47,7 @@ export function SolicitarRecuperacionPage() {
         {notice && <Alert severity="success">{notice}</Alert>}
         <TextField label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required fullWidth />
         <Button type="submit" variant="contained" size="large" disabled={loading}>
-          {loading ? 'Enviando...' : 'Enviar enlace de recuperacion'}
+          {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
         </Button>
         <Link component={RouterLink} to="/login" sx={{ fontSize: tokens.tipografia.escala.b.tamano, fontWeight: tokens.tipografia.pesoEnfasis }}>
           Volver al ingreso
