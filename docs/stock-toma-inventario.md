@@ -57,6 +57,8 @@ drop function public.confirmar_toma_inventario(jsonb, date);
 - pgTAP: `supabase/tests/database/stock_toma_inventario.test.sql` (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`, `apps/web/src/lib/tomaInventario.carga.test.ts`
   (categoría de 1000 productos) y `apps/web/src/lib/depositos.stockLotes.test.ts` (lotes, largo de URL y olas).
+- E2E: `apps/web/e2e/stock-toma-inventario-categorias.e2e.ts` (categoría con 250 productos; se omite sin
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` — ver `docs/e2e-app.md`).
 
 ## Categorías grandes (MSF-716)
 
