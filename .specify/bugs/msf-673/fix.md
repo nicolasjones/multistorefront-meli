@@ -91,7 +91,7 @@ instalarVencimientoDeSesion(
 
 ## Follow-ups
 
-- **Tarea `seguimiento` de MSF-673 en It's a Plan** (a crear; dueño: épica MSF-237 / F-CLI-06,
+- **Tarea `seguimiento` MSF-740 en It's a Plan** (, creada; dueño: épica MSF-237 / F-CLI-06,
   cuenta web del cliente): decidir si la tienda quiere su propia regla de inactividad. Si la quiere,
   necesita su propio camino (redirección a `/ingresar`, no a `/login`) y su propio criterio
   (12 h, «mantener sesión», cierre de sesión propio de la tienda). Hasta ese momento, en la tienda
