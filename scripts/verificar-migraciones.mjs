@@ -7,15 +7,20 @@
 //      registro y el archivo discrepen y que la migración NUNCA se aplique — pasó con
 //      `20261019120000`, que quedó grabada con otro contenido y bloqueó toda la cola).
 //   3. VERSIÓN NUEVA: una migración agregada debe usar una versión MAYOR que la máxima
-//      de la base (no reusar un número viejo).
+//      de la base (no reusar un número viejo). Es ERROR cuando la base es la rama contra
+//      la que se mergea de verdad (una épica en un PR a la épica) o el destino final
+//      (`dokploy`/`main`) en un PR o con `--estricto`. Fuera de eso, comparar una rama de
+//      épica con `dokploy` (que avanza con cada épica que mergea) es sólo un AVISO de
+//      orden: se resuelve al integrar la épica, y no obliga a renombrar en bucle.
 //   4. IDEMPOTENCIA: el DDL debe tolerar una aplicación parcial (el aplicador se detiene
 //      en el primer error y reintenta): `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`,
 //      `CREATE INDEX IF NOT EXISTS`.
 //
-// Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia]
+// Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
 // Sale con código 1 si hay un problema.
 
 import { spawnSync } from 'node:child_process';
+import { revisarDdl } from './guard-migraciones-ddl.mjs';
 
 const args = process.argv.slice(2);
 const valorDe = (flag, def) => {
@@ -24,6 +29,9 @@ const valorDe = (flag, def) => {
 };
 const base = valorDe('--base', process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy');
 const soloIdempotencia = args.includes('--solo-idempotencia');
+const esIntegracion = /^origin\/(dokploy|main)$/.test(base);
+// Orden contra la base como ERROR: base de épica, destino final en un PR, o `--estricto`.
+const ordenEstricto = args.includes('--estricto') || !esIntegracion || Boolean(process.env.GITHUB_BASE_REF);
 const git = (a) => spawnSync('git', a, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 
 const problemas = [];
@@ -59,7 +67,11 @@ if (!soloIdempotencia) {
       const previo = basePorVersion.get(v);
       if (!previo) {
         if (v <= maxBase) {
-          problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+          if (ordenEstricto) {
+            problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+          } else {
+            avisos.push(`versión ${v} está por debajo de ${maxBase} (máxima de ${base}) pero no colisiona: se acomoda al integrar la épica (con \`--estricto\` o en el PR a ${base} es error). El aplicador no ejecuta versiones bajo la cola ya aplicada (${fs_[0]})`);
+          }
         }
         continue;
       }
@@ -93,27 +105,14 @@ const nuevos = existeBase2
 
 const revisar = (archivo) => {
   const sql = git(['show', `:${archivo}`]).stdout || '';
-  const lineas = sql.split('\n');
-  lineas.forEach((linea, i) => {
-    const l = linea.trim();
-    if (/^--/.test(l)) return;
-    const n = i + 1;
-    if (/^alter\s+table\s+[^;]*\badd\s+column\b/i.test(l) && !/add\s+column\s+if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} ADD COLUMN sin IF NOT EXISTS (una aplicación parcial traba el reintento)`);
-    }
-    if (/^drop\s+function\b/i.test(l) && !/if\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} DROP FUNCTION sin IF EXISTS`);
-    }
-    if (/^drop\s+(table|view|index|trigger)\b/i.test(l) && !/if\s+exists/i.test(l)) {
-      avisos.push(`${archivo}:${n} DROP sin IF EXISTS (revisá si puede reintentarse)`);
-    }
-    if (/^create\s+(unique\s+)?index\b/i.test(l) && !/if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} CREATE INDEX sin IF NOT EXISTS`);
-    }
-    if (/^create\s+table\b/i.test(l) && !/if\s+not\s+exists/i.test(l)) {
-      avisos.push(`${archivo}:${n} CREATE TABLE sin IF NOT EXISTS`);
-    }
-  });
+  // Todas las reglas de idempotencia se evalúan por SENTENCIA completa (hasta `;`), no línea por
+  // línea: `alter table t` + `add column x` en líneas distintas (MSF-682), o `create index` +
+  // `if not exists` en la línea siguiente, son el mismo problema.
+  for (const h of revisarDdl(sql)) {
+    const texto = `${archivo}:${h.linea} ${h.mensaje}`;
+    if (h.severidad === 'problema') problemas.push(texto);
+    else avisos.push(texto);
+  }
 };
 for (const f of nuevos) revisar(f);
 
