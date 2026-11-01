@@ -27,6 +27,8 @@ que no hay en este contenedor; la ejecuta el job `database` del CI, que este dif
 | Calidad determinista | `pnpm calidad` | pass | oxlint, knip, jscpd, dependency-cruiser y syncpack OK; gitleaks no corre local (placeholder npm, sin binario nativo) — el CI lo corre con el binario v8.30.1 y ya pasó |
 | Suite pgTAP | `pnpm test:db:ci` | not-run | requiere el stack de Supabase del CI (Docker + `pg_prove`); no hay Docker en este contenedor. Queda para el job `database` del CI |
 | Reproducción del `42P10` | análisis del esquema upstream de `supabase/storage` | pass | `0072-drop-bucketid-objname-index.sql` dropea `storage.bucketid_objname`; el `on conflict (bucket_id, name)` del ticket no puede resolver contra un stack actual |
+| Índice que sí sigue existiendo | `0065-objects-key-version-index.sql` (upstream) | pass | único índice vigente sobre `(bucket_id, name COLLATE "C", version)`; `on conflict do nothing` choca contra él y no duplica la foto |
+| Revisión 2026-11-01T22:40Z (post QA) | `node --test scripts/migraciones-ventas-comprobantes.test.mjs`, `pnpm test:tooling`, `pnpm lint`, `pnpm build`, `pnpm docs:check`, `pnpm calidad` | pass | mismos resultados que la tabla anterior; `calidad` con el único hallazgo de gitleaks local (sin binario nativo) |
 
 ## Output Excerpts
 
@@ -49,8 +51,8 @@ $ pnpm lint        → exit 0
 $ pnpm build       → exit 0 (✓ built in 2.82s)
 ```
 
-Balance del plan pgTAP tras el cambio: `select plan(27)` y 27 aserciones contadas
-(`is` 19 + `ok` 1 + `lives_ok` 4 + `throws_ok` 3).
+Balance del plan pgTAP tras el cambio: `select plan(28)` y 28 aserciones contadas
+(`is` 20 + `ok` 1 + `lives_ok` 4 + `throws_ok` 3).
 
 ## Residual Risks
 
@@ -64,6 +66,14 @@ Balance del plan pgTAP tras el cambio: `select plan(27)` y 27 aserciones contada
   ajena) pasó en esa auditoría: el `insert` del titular no está bloqueado por RLS.
 - `storage.protect_delete` (Storage `0055`) impide `delete` directos sobre `storage.objects`, por
   eso el "reemplazo" se probó con `update` y no con `delete` + `insert`.
+- La aserción "la foto del titular queda en una sola fila" depende de que el `insert ... on
+  conflict do nothing` choque contra un índice único: en la era con `bucketid_objname` choca por
+  `(bucket_id, name)` y en la era posterior por `(bucket_id, name, version)` (`0065`). Toda versión
+  publicada de Storage tiene al menos uno de los dos, así que el `insert` nunca deja una fila
+  duplicada; sólo fallaría contra un esquema sin ningún índice único, que no existe.
+- La suite pgTAP sigue sin poder correrse en este entorno: el cliente de Docker está instalado
+  pero el socket del demonio no es accesible para este usuario (`permission denied …
+  /var/run/docker.sock`) y no hay `supabase` CLI instalado. Queda para el job `database` del CI.
 
 ## Recommendation
 

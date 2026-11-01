@@ -18,7 +18,7 @@ en un stack actual.
 | File | Change | Notes |
 |------|--------|-------|
 | `scripts/migraciones-ventas-comprobantes.test.mjs` | modified | `assert.equal(deLaEpica.length, 12)` → `assert.ok(deLaEpica.length >= 12, …)` (commit `d4578a31`) |
-| `supabase/tests/database/perfil_usuario.test.sql` | modified | test 11: `on conflict (bucket_id, name) do update` → `on conflict do nothing` + `update` de la fila propia; `plan(26)` → `plan(27)` |
+| `supabase/tests/database/perfil_usuario.test.sql` | modified | test 11: `on conflict (bucket_id, name) do update` → `on conflict do nothing` + `update` de la fila propia + conteo que fija que la foto no se duplica; `plan(26)` → `plan(28)` |
 | `.specify/bugs/msf-631/assessment.md` | added | evaluación del bug con la evidencia upstream |
 | `.specify/bugs/msf-631/fix.md` | modified | este informe |
 | `.specify/bugs/msf-631/test.md` | modified | informe de verificación |
@@ -39,15 +39,34 @@ update storage.objects set updated_at = now()
   where bucket_id = 'fotos-perfil' and name = '<uid>/avatar'
 ```
 
+## Evidencia upstream del índice caído
+
+La revisión pidió comprobar el índice único que storage.objects ya no tiene. Está verificado
+contra el proveedor (`supabase/storage`, migraciones de tenant):
+
+- `migrations/tenant/0072-drop-bucketid-objname-index.sql` → `DROP INDEX CONCURRENTLY IF EXISTS
+  storage.bucketid_objname;` (el índice único sobre `(bucket_id, name)` que el test usaba).
+- `migrations/tenant/0065-objects-key-version-index.sql` → crea el único índice que sí sigue
+  existiendo, `objects_bucket_id_name_version_key` sobre `(bucket_id, name COLLATE "C", version)`
+  (`NULLS NOT DISTINCT` en PG 15+), con `version` por defecto `null` (`0016-add-version.sql`).
+- `migrations/tenant/0055-prevent-direct-deletes.sql` → `storage.protect_delete` bloquea el
+  `delete` directo sobre `storage.objects`; el `update` directo sí está permitido (sólo hay un
+  trigger que recalcula `level`).
+
+Consecuencia: `on conflict (bucket_id, name)` no tiene índice que lo resuelva (`42P10`), pero
+`on conflict do nothing` (sin destino) choca contra cualquiera de los dos índices vigentes y no
+inserta una fila duplicada. Por eso el test nuevo vale en las dos eras de Storage.
+
 ## Tests Added or Updated
 
 - `scripts/migraciones-ventas-comprobantes.test.mjs` — el conteo exacto se reemplaza por un piso;
   el mensaje de falla dice cuántos hay. Las otras tres aserciones (14 dígitos, unicidad de
   versiones, doc que cita migraciones existentes) no cambian.
-- `supabase/tests/database/perfil_usuario.test.sql` — el test 11 se separa en dos aserciones:
-  "el titular puede cargar su foto" (insert que la RLS no bloquea) y "el titular puede reemplazar
-  su foto" (`update` de la fila propia, que cubre `fotos_perfil_update_titular`). El `plan()` pasa
-  de 26 a 27.
+- `supabase/tests/database/perfil_usuario.test.sql` — el test 11 se separa en tres aserciones:
+  "el titular puede cargar su foto" (insert que la RLS no bloquea), "la foto del titular queda en
+  una sola fila: la carga no la duplica" (el invariante que daba el índice único, comprobado en
+  las dos eras de Storage) y "el titular puede reemplazar su foto" (`update` de la fila propia,
+  que cubre `fotos_perfil_update_titular`). El `plan()` pasa de 26 a 28.
 
 ## Local Verification
 
@@ -61,6 +80,13 @@ update storage.objects set updated_at = now()
 - Suite pgTAP (`pnpm test:db:ci`): **not-run** localmente — requiere el stack de Supabase del CI
   (Docker y `pg_prove`), no disponibles en este contenedor. Queda para el job `database` del CI,
   que este diff sí dispara (toca `supabase/`).
+
+Revisión del 2026-11-01T22:40Z (tras el informe de QA sin hallazgos accionables): se repitieron los
+checks deterministas sobre el mismo árbol (`test:tooling` 30/30, `lint` exit 0, `build` OK,
+`docs:check` OK, `calidad` con el único hallazgo de gitleaks local por falta de binario) y se
+verificó el índice upstream (sección anterior). La suite pgTAP sigue sin poder correrse local:
+el cliente de Docker está instalado pero el socket del demonio no es accesible para este usuario
+(`permission denied … /var/run/docker.sock`), y el `supabase` CLI tampoco está instalado.
 
 ## Deviations from Assessment
 

@@ -2,7 +2,7 @@
 -- aserciones de RLS, Storage y eventos cuando exista la migración de perfil.
 begin;
 
-select plan(27);
+select plan(28);
 
 create temp table perfil_usuario_fixture (
   user_id uuid primary key,
@@ -77,8 +77,11 @@ select is((select count(*) from storage.objects where bucket_id = 'fotos-perfil'
 -- `bucketid_objname` (migración 0072 de supabase/storage) para admitir varias versiones
 -- por nombre, así que `on conflict (bucket_id, name)` falla con 42P10 en un stack actual.
 -- La carga va con `on conflict do nothing` (sin destino: no exige ningún índice) y el
--- reemplazo se prueba con un UPDATE, válido en las dos eras de Storage.
+-- reemplazo se prueba con un UPDATE, válido en las dos eras de Storage. El conteo fija
+-- que la foto del titular queda en una sola fila: en la era con índice único el INSERT
+-- choca y no inserta; en la era sin él choca por (bucket_id, name, version) y tampoco.
 select lives_ok($$insert into storage.objects (bucket_id, name, owner_id) values ('fotos-perfil', '81000000-0000-0000-0000-000000000001/avatar', '81000000-0000-0000-0000-000000000001') on conflict do nothing$$, 'el titular puede cargar su foto');
+select is((select count(*) from storage.objects where bucket_id = 'fotos-perfil' and name = '81000000-0000-0000-0000-000000000001/avatar')::int, 1, 'la foto del titular queda en una sola fila: la carga no la duplica');
 select lives_ok($$update storage.objects set updated_at = now() where bucket_id = 'fotos-perfil' and name = '81000000-0000-0000-0000-000000000001/avatar'$$, 'el titular puede reemplazar su foto');
 select throws_ok($$insert into storage.objects (bucket_id, name, owner_id) values ('fotos-perfil', '81000000-0000-0000-0000-000000000002/avatar', '81000000-0000-0000-0000-000000000001')$$, '42501', null, 'el titular no puede cargar una foto en la carpeta ajena');
 reset role;
