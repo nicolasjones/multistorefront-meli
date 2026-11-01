@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { acumularConteoCategorias } from './tiendaConteoCategorias'
 
 // F-TDA-11 (MSF-386): categorías visibles de la tienda pública. La visibilidad (la categoría y su
 // padre), el orden de Catálogo y el conteo de productos efectivamente visibles los calcula la base
@@ -25,10 +26,10 @@ export async function leerCategoriasPublicas(host: string): Promise<CategoriaPub
   if (!data) {
     return []
   }
-  return (data as FilaCategorias).categorias.map((c) => ({
+  return acumularConteoCategorias((data as FilaCategorias).categorias.map((c) => ({
     id: c.id,
     nombre: c.nombre,
     padreId: c.padre_id,
     productos: c.productos,
-  }))
+  })))
 }

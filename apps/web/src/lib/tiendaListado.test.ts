@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILTROS_INICIALES, conCambio, formatearPrecioArs, parsearFiltros, serializarFiltros } from './tiendaListado'
+import { FILTROS_INICIALES, conCambio, formatearPrecioArs, mapearPagina, parsearFiltros, serializarFiltros } from './tiendaListado'
 
 const ID = 'ca000000-0000-4000-8000-000000000001'
 
@@ -45,6 +45,19 @@ describe('parsearFiltros / serializarFiltros', () => {
     const filtros = { ...FILTROS_INICIALES, pagina: 4 }
     expect(conCambio(filtros, { soloConStock: true }).pagina).toBe(1)
     expect(conCambio(filtros, { orden: 'precio_asc' }).pagina).toBe(1)
+  })
+})
+
+describe('mapearPagina (MSF-623)', () => {
+  it('el conteo de una categoría raíz incluye el de sus subcategorías', () => {
+    const pagina = mapearPagina({
+      total: 0, pagina: 1, tamano: 24, productos: [],
+      categorias: [
+        { id: 'r', nombre: 'Consolas', padre_id: null, productos: 0 },
+        { id: 'h', nombre: 'Portátiles', padre_id: 'r', productos: 5 },
+      ],
+    })
+    expect(pagina.categorias.map((c) => c.productos)).toEqual([5, 5])
   })
 })
 

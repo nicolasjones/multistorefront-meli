@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { acumularConteoCategorias } from './tiendaConteoCategorias'
 
 // F-TDA-04 (MSF-312): catálogo visible y destacados de la tienda. La visibilidad efectiva, el
 // motivo de «no se muestra» y el resumen los calcula la base (migración
@@ -60,9 +61,9 @@ export async function listarCatalogoTienda(empresaId: string): Promise<CatalogoT
   }
   const fila = data as FilaCatalogo
   return {
-    categorias: fila.categorias.map((c) => ({
+    categorias: acumularConteoCategorias(fila.categorias.map((c) => ({
       id: c.id, nombre: c.nombre, padreId: c.padre_id, visible: c.visible, productos: c.productos,
-    })),
+    }))),
     productos: fila.productos.map((p) => ({
       id: p.id,
       nombre: p.nombre,

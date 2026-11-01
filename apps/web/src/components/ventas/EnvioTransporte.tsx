@@ -355,7 +355,7 @@ export function EnvioTransporte({
                       setTransporteId(evento.target.value)
                       setErrorAccion(null)
                     }}
-                    slotProps={{ select: { displayEmpty: true }, htmlInput: { 'aria-label': rotulo ?? 'Transporte' } }}
+                    slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true }, htmlInput: { 'aria-label': rotulo ?? 'Transporte' } }}
                   >
                     <MenuItem value="">Sin transporte</MenuItem>
                     {opciones.map((opcion) => (

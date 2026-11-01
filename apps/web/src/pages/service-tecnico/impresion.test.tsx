@@ -63,14 +63,14 @@ beforeEach(() => {
 })
 
 describe('Orden de ingreso (FR-040)', () => {
-  it('muestra los datos, las condiciones y los rótulos, sin importes ni costos', async () => {
+  it('muestra los datos y los rótulos, sin importes ni costos ni texto provisional (MSF-614)', async () => {
     mocks.obtenerReparacion.mockResolvedValue(BASE)
     const { container } = abrir('orden')
     expect(await screen.findByRole('heading', { name: 'Orden de ingreso' })).toBeTruthy()
     for (const texto of ['R-0001', '20/10/2026', 'Ana Pérez', '11 5555-5555', 'Nintendo Switch Lite', 'SN-1', 'Cargador', 'No enciende', 'Marta Técnica', '25/10/2026', 'San Javucho', 'Calle 1', 'tienda@example.com']) {
       expect(screen.getByText(texto)).toBeTruthy()
     }
-    expect(screen.getByText(/pendiente de confirmar/)).toBeTruthy()
+    expect(container.textContent).not.toMatch(/pendiente de confirmar|Condiciones del servicio/)
     expect(screen.getByText('Documento no fiscal')).toBeTruthy()
     // WhatsApp no cargado: se omite, no se inventa.
     expect(screen.queryByText(/WhatsApp/)).toBeNull()

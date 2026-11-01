@@ -19,6 +19,13 @@ export const AYUDA_CANAL_ML = 'Mercado Libre queda para la Etapa 2.'
 
 export const ETIQUETA_TIPO: Readonly<Record<TipoComprobante, string>> = { factura: 'Factura', presupuesto: 'Presupuesto' }
 
+// Título de un comprobante abierto. `obtener_comprobante` también devuelve notas de crédito (se abren desde el
+// listado) y su tipo no está en `ETIQUETA_TIPO`: sin esto el título decía «undefined 00000001» (MSF-628).
+export function tituloComprobante(tipo: string, numero: string): string {
+  const etiqueta = tipo === 'nota_credito' ? 'Nota de crédito' : (ETIQUETA_TIPO as Readonly<Record<string, string>>)[tipo] ?? 'Comprobante'
+  return `${etiqueta} ${numero}`
+}
+
 export type ClienteComprobante = {
   id: string
   nombre: string

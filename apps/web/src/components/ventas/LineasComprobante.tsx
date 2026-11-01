@@ -41,8 +41,9 @@ type Props = {
 }
 
 // Columnas del prototipo: Producto · Stock · Depósito de mercadería · Cantidad · Precio s/IVA · Subtotal.
-const COLUMNAS = 'minmax(0, 1fr) 84px 130px 130px 110px 100px'
-const ANCHO_MINIMO = 760
+// Precio y Subtotal son anchos para que importes grandes (cientos de unidades de un producto caro) no se pisen (MSF-629).
+export const COLUMNAS = 'minmax(0, 1fr) 84px 130px 130px 150px 170px'
+const ANCHO_MINIMO = 880
 
 const cabecera = { textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 } as const
 

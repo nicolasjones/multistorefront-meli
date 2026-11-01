@@ -186,7 +186,7 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
           setErrorAccion(null)
         }}
         // Sin responsable elegido se ve «Seleccionar» (el prototipo), no un campo vacío.
-        slotProps={{ select: { displayEmpty: true }, htmlInput: { 'aria-label': ETIQUETA_RESPONSABLE[clave] } }}
+        slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true }, htmlInput: { 'aria-label': ETIQUETA_RESPONSABLE[clave] } }}
       >
         <MenuItem value="">{PLACEHOLDER_RESPONSABLE}</MenuItem>
         {opciones.map((opcion) => (
