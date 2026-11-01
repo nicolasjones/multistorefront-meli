@@ -210,7 +210,9 @@ select is(public.registrar_consulta_publica('hash-1', 600, 3)->>'permitido', 'fa
 select ok((public.registrar_consulta_publica('hash-1', 600, 3)->>'reintentar_en')::int between 1 and 600,
   'reintentar_en entre 1 y la ventana');
 select is(public.registrar_consulta_publica('hash-2', 600, 3)->>'permitido', 'true', 'otra IP tiene su propio contador');
+reset role;
 select is((select cuenta from public.consultas_publicas_intentos where ip_hash = 'hash-1'), 5, 'el contador cuenta toda consulta, también las bloqueadas');
+set local role service_role;
 select throws_ok($$select public.registrar_consulta_publica('', 600, 3)$$, '22023', null, 'hash vacío rechazado');
 select throws_ok($$select public.registrar_consulta_publica('h', 0, 3)$$, '22023', null, 'ventana inválida rechazada');
 select throws_ok($$select public.registrar_consulta_publica('h', 600, 0)$$, '22023', null, 'límite inválido rechazado');
