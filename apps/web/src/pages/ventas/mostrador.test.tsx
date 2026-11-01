@@ -36,7 +36,7 @@ import { VentaMostrador } from './mostrador'
 
 const CODIGO = '7790001000011'
 const venta = (empresaId = 'e-1') => ({
-  id: 'c-1', numero: '00000001', empresa_id: empresaId, empresa: 'Tienda Uno', total_con_iva: 1210, updated_at: 't',
+  id: 'c-1', numero: '00000001', empresa_id: empresaId, empresa: 'Tienda Uno', total_con_iva: 1210, total_sin_iva: 1000, iva: 210, updated_at: 't',
   lineas: [{ id: 'l-1', descripcion: 'Joystick', codigo: 'JOY', cantidad: 2, precio_unitario: 500, escala: 'x1', precio_manual: false, subtotal_sin_iva: 1000, iva: 210 }],
 })
 const empresasDe = (activa: string | null) => ({
@@ -45,7 +45,7 @@ const empresasDe = (activa: string | null) => ({
 })
 
 async function escanear(codigo: string) {
-  const campo = screen.getByLabelText('Código de barras')
+  const campo = screen.getByLabelText('Escaneá o ingresá el código de barras')
   fireEvent.change(campo, { target: { value: codigo } })
   fireEvent.submit(campo.closest('form') as HTMLFormElement)
 }
@@ -82,6 +82,58 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     expect(await screen.findByText('Joystick')).toBeTruthy()
     expect(mocks.agregar).toHaveBeenCalledWith(null, 'e-1', 'cf-1', 'p-1')
     expect(screen.getByText(/Total:/).textContent).toMatch(/1\.210/)
+  })
+
+  it('los totales muestran el subtotal sin IVA y el IVA aparte', async () => {
+    mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    mocks.agregar.mockResolvedValue(venta())
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    const totales = await screen.findByRole('group', { name: 'Totales de la venta' })
+    expect(totales.textContent).toContain('Subtotal sin IVA: $ 1.000')
+    expect(totales.textContent).toContain('IVA: $ 210')
+    expect(totales.textContent).toContain('Total: $ 1.210')
+  })
+
+  it('un código que llega mientras se resuelve el anterior no se pierde', async () => {
+    mocks.agregar.mockResolvedValue(venta())
+    const control: { liberar?: () => void } = {}
+    mocks.buscar
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        control.liberar = () => resolve({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+      }))
+      .mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    // El lector manda el siguiente código mientras el primero todavía está en vuelo.
+    await escanear(CODIGO)
+    control.liberar?.()
+    await waitFor(() => expect(mocks.agregar).toHaveBeenCalledTimes(2))
+  })
+
+  it('si la tienda cambia mientras se resuelve el escaneo, avisa que se descartó la venta', async () => {
+    mocks.agregar.mockResolvedValue(venta('e-1'))
+    const control: { liberar?: () => void } = {}
+    mocks.buscar.mockImplementationOnce(() => new Promise((resolve) => {
+      control.liberar = () => resolve({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    }))
+    const { rerender } = render(<VentaMostrador />)
+    await escanear(CODIGO)
+    mocks.empresas.mockReturnValue(empresasDe('e-2'))
+    rerender(<VentaMostrador />)
+    control.liberar?.()
+    await waitFor(() => expect(mocks.agregar).toHaveBeenCalled())
+    expect(await screen.findByText(/se descartó la venta en curso/)).toBeTruthy()
+  })
+
+  it('si no se pueden cargar las formas de pago, avisa del error y no dice que la tienda no tiene', async () => {
+    mocks.formas.mockRejectedValue(new Error('red'))
+    mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    mocks.agregar.mockResolvedValue(venta())
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    expect(await screen.findByText(/No pudimos cargar las formas de pago/)).toBeTruthy()
+    expect(screen.queryByText('Esta tienda no tiene formas de pago activas.')).toBeNull()
   })
 
   it('«Cobrar» confirma la factura y registra el cobro por el total', async () => {

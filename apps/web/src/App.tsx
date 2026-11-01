@@ -679,12 +679,12 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
-                {/* F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras. */}
+                {/* F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (FR-005: ventas en edición). */}
                 <Route
                   path="/ventas/mostrador"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereAccesoSeccion seccion="ventas"><VentaMostrador /></RequiereAccesoSeccion>
+                      <RequiereAccesoSeccion seccion="ventas" nivelMinimo="edicion"><VentaMostrador /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

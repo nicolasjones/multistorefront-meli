@@ -43,7 +43,8 @@ export function LectorCodigoBarras({ onEscanear, deshabilitado = false, error = 
         autoFocus
         autoComplete="off"
         fullWidth
-        slotProps={{ htmlInput: { inputMode: 'numeric', 'aria-label': 'Código de barras' } }}
+        // Sin `aria-label`: el nombre accesible es la etiqueta visible (WCAG 2.5.3 «Label in Name»).
+        slotProps={{ htmlInput: { inputMode: 'numeric' } }}
       />
       <Button type="submit" variant="contained" disabled={deshabilitado || codigo.trim() === ''} sx={{ alignSelf: { sm: 'flex-start' }, minHeight: 56 }}>
         Agregar

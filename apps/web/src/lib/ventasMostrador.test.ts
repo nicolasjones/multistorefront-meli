@@ -18,8 +18,12 @@ import {
   MENSAJE_CODIGO_INVALIDO, agregarProductoAVenta, buscarProductoPorCodigoBarras, esEan13, mensajeDeEscaneo,
 } from './ventasMostrador'
 
+const DEPOSITO = '9f1c0a52-0000-4000-8000-000000000001'
+
+// La base guarda el depósito de salida de cada línea (`dominio.comprobantes_venta_lineas.deposito_id` es NOT
+// NULL: si la línea llega sin depósito, la base pone el principal de la tienda). El fixture lo refleja.
 const venta = (lineas: Array<{ producto_id: string; cantidad: number }> = []) =>
-  ({ id: 'c-1', updated_at: 't-1', lineas: lineas.map((l) => ({ ...l, deposito_id: null, precio_manual: false, precio_unitario: 1, sin_stock: false })) }) as unknown as Comprobante
+  ({ id: 'c-1', updated_at: 't-1', lineas: lineas.map((l) => ({ ...l, deposito_id: DEPOSITO, precio_manual: false, precio_unitario: 1, sin_stock: false })) }) as unknown as Comprobante
 
 describe('ventasMostrador (F-VTA-31)', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -51,7 +55,17 @@ describe('ventasMostrador (F-VTA-31)', () => {
     mocks.obtener.mockResolvedValue(venta())
     await agregarProductoAVenta(venta([{ producto_id: 'p-1', cantidad: 1 }]), 'e-1', 'cf-1', 'p-1')
     expect(mocks.crear).not.toHaveBeenCalled()
-    expect(mocks.guardar).toHaveBeenCalledWith('c-1', [expect.objectContaining({ producto_id: 'p-1', cantidad: 2 })], 't-1')
+    // Una sola línea con cantidad 2: la línea guardada trae el depósito real y el escaneo lo reutiliza.
+    expect(mocks.guardar).toHaveBeenCalledWith('c-1', [{ producto_id: 'p-1', cantidad: 2, deposito_id: DEPOSITO, precio_manual: null }], 't-1')
+  })
+
+  it('un producto nuevo en una venta que ya tiene líneas usa el depósito de la venta', async () => {
+    mocks.obtener.mockResolvedValue(venta())
+    await agregarProductoAVenta(venta([{ producto_id: 'p-1', cantidad: 1 }]), 'e-1', 'cf-1', 'p-2')
+    expect(mocks.guardar).toHaveBeenCalledWith('c-1', [
+      { producto_id: 'p-1', cantidad: 1, deposito_id: DEPOSITO, precio_manual: null },
+      { producto_id: 'p-2', cantidad: 1, deposito_id: DEPOSITO, precio_manual: null },
+    ], 't-1')
   })
 
   it('traduce los errores del escaneo', () => {

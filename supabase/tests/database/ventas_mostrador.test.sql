@@ -1,6 +1,8 @@
 -- F-VTA-31 (MSF-329, épica MSF-193): buscar_producto_por_codigo_barras (FR-001, SC-001).
 -- Cubre: resolución solo en la organización, producto inactivo, código inexistente (sin filas),
 -- formato no EAN-13, rol sin `ventas` en edición y `anon` sin ejecución.
+-- `rls_en_toda_tabla` (global) recorre `public` + `dominio`: la RPC no crea ni altera tablas, así que ese
+-- test sigue verde; acá se verifica además que la RPC no filtra datos de otra organización.
 begin;
 
 select plan(9);

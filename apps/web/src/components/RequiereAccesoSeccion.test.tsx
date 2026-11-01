@@ -22,11 +22,11 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-function renderizar(hijo = vi.fn(() => <p>Contenido de la sección</p>), seccion = 'clientes') {
+function renderizar(hijo = vi.fn(() => <p>Contenido de la sección</p>), seccion = 'clientes', nivelMinimo?: 'lectura' | 'edicion') {
   const Hijo = hijo
   render(
     <MemoryRouter>
-      <RequiereAccesoSeccion seccion={seccion}>
+      <RequiereAccesoSeccion seccion={seccion} nivelMinimo={nivelMinimo}>
         <Hijo />
       </RequiereAccesoSeccion>
     </MemoryRouter>,
@@ -65,6 +65,22 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
 
     expect(screen.getByText('Contenido de la sección')).toBeInTheDocument()
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
+  })
+
+  // F-VTA-31 (FR-005): una pantalla que escribe (la venta de mostrador) exige edición en la sección.
+  it('con nivel mínimo «edicion» no abre la sección a quien solo tiene lectura', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    const hijo = renderizar(undefined, 'ventas', 'edicion')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
+    expect(hijo).not.toHaveBeenCalled()
+  })
+
+  it('con nivel mínimo «edicion» abre la sección a quien tiene edición', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    renderizar(undefined, 'ventas', 'edicion')
+
+    expect(screen.getByText('Contenido de la sección')).toBeInTheDocument()
   })
 
   it('protege /productos: sin acceso a la sección productos no monta el alta', async () => {

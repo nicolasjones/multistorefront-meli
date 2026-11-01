@@ -75,20 +75,23 @@ test.describe('Ventas · venta de mostrador con lector (MSF-329, SC-001)', () =>
       )
       usuarioId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: usuarioId, organizacion_id: org.id, rol_id: 'administrador' })
+      // Empresa activa: sin ella el usuario entra en «Todas mis empresas» y la pantalla pide elegir una tienda.
+      await rest('usuario_empresa_activa', { user_id: usuarioId, empresa_id: empresa.id })
 
-      // Producto de lista $1.000 con código de barras, el depósito principal de la tienda y Consumidor final.
+      // Producto de lista $1.000 con código de barras y el depósito principal de la tienda.
       const nombreProducto = `Joystick ${sufijo}`
       await rest('productos', { organizacion_id: org.id, nombre: nombreProducto, sku: `JOY-${sufijo}`, moneda: 'ARS', precio_lista: 1000, codigo_barras: codigo }, 'dominio')
       const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`)
       await rest('depositos_empresas', { deposito_id: deposito.id, empresa_id: empresa.id, organizacion_id: org.id }, 'dominio')
-      await rest('clientes', { organizacion_id: org.id, numero: 1, nombre: 'Consumidor final', tipo: 'minorista', es_consumidor_final: true })
+      // El cliente «Consumidor final» lo crea el disparador `organizaciones_crear_consumidor_final` al insertar la
+      // organización: sembrarlo rompe el índice único `clientes_consumidor_final_uq` (409).
 
       await ingresar(page, correo)
       await page.goto('/ventas/mostrador')
       await expect(page.getByRole('heading', { name: 'Venta de mostrador' })).toBeVisible()
 
       // Código inexistente: aviso y la venta sigue vacía.
-      const campo = page.getByLabel('Código de barras')
+      const campo = page.getByLabel('Escaneá o ingresá el código de barras')
       await campo.fill('7790000000000')
       await campo.press('Enter')
       await expect(page.getByText('Producto no encontrado')).toBeVisible()
@@ -98,7 +101,8 @@ test.describe('Ventas · venta de mostrador con lector (MSF-329, SC-001)', () =>
       await campo.press('Enter')
       const tabla = page.getByRole('table', { name: 'Productos de la venta' })
       await expect(tabla.getByText(nombreProducto)).toBeVisible()
-      await expect(page.getByText(/Total: \$\s?1\.000/)).toBeVisible()
+      const totales = page.getByRole('group', { name: 'Totales de la venta' })
+      await expect(totales).toContainText('Total: $ 1.000')
 
       // Escanearlo de nuevo incrementa la cantidad en vez de duplicar la línea.
       await campo.fill(codigo)

@@ -1,7 +1,7 @@
 import { supabaseClient } from './supabase'
 import { hoyEnArgentina } from './reparaciones'
 import { crearComprobante, obtenerComprobante, mensajeDeErrorComprobante, type Comprobante } from './ventas'
-import { aEntradas, conProductoAgregado, guardarLineasComprobante } from './ventasLineas'
+import { aEntradas, conProductoAgregado, guardarLineasComprobante, type EntradaLinea } from './ventasLineas'
 import { mensajeDeConfirmacion } from './ventasConfirmacion'
 import { mensajeDeErrorCobro } from './ventas/cobros'
 
@@ -14,6 +14,10 @@ export const MENSAJE_CODIGO_INVALIDO = 'El código de barras debe tener 13 dígi
 export const MENSAJE_ERROR_ESCANEO = 'No pudimos agregar el producto. Probá de nuevo.'
 export const MENSAJE_ERROR_COBRAR = 'La venta se confirmó pero no pudimos registrar el cobro. Probá de nuevo: no se duplica la venta.'
 export const MENSAJE_SIN_CONSUMIDOR_FINAL = 'No hay un cliente «Consumidor final» en tu organización. Pedile a un administrador que lo cree.'
+
+// Aviso de descarte de la venta en curso al cambiar de tienda (Principio VIII).
+export const mensajeDescarteVenta = (empresa: string): string =>
+  `Cambiaste de tienda: se descartó la venta en curso (${empresa}). Empezá una nueva escaneando un producto.`
 
 export type ProductoEscaneado = { producto_id: string; nombre: string; sku: string | null; codigo_barras: string }
 
@@ -41,6 +45,16 @@ export async function obtenerConsumidorFinal(): Promise<string | null> {
   return ((data ?? [])[0] as { id: string } | undefined)?.id ?? null
 }
 
+// Depósito de salida de la línea que se está agregando. La base lo resuelve y lo guarda (si la línea llega sin
+// depósito, usa el principal de la tienda), así que el `deposito_id` que vuelve del comprobante SIEMPRE es el
+// real. Por eso la línea nueva usa el depósito que ya usa la venta: si se mandara `null`, el segundo escaneo del
+// MISMO producto no encontraría la línea guardada y la duplicaría en vez de incrementarla (FR-002, caso borde de
+// la spec: «escanear el mismo código varias veces incrementa la cantidad, no crea duplicados»).
+export function depositoParaAgregar(entradas: readonly EntradaLinea[], productoId: string): string | null {
+  const delProducto = entradas.find((entrada) => entrada.producto_id === productoId)
+  return delProducto?.deposito_id ?? entradas[0]?.deposito_id ?? null
+}
+
 // Agrega un producto a la venta en curso (cantidad 1; si ya estaba, incrementa). Si todavía no hay comprobante
 // lo crea: factura `borrador`, canal Mostrador, Consumidor final y la empresa indicada (FR-002, FR-003). Los
 // precios y totales los calcula la base: se relee el comprobante.
@@ -62,8 +76,9 @@ export async function agregarProductoAVenta(
     })
     actual = await obtenerComprobante(creado.id)
   }
-  const entradas = conProductoAgregado(aEntradas(actual.lineas), productoId, null)
-  await guardarLineasComprobante(actual.id, entradas, actual.updated_at)
+  const entradas = aEntradas(actual.lineas)
+  const conProducto = conProductoAgregado(entradas, productoId, depositoParaAgregar(entradas, productoId))
+  await guardarLineasComprobante(actual.id, conProducto, actual.updated_at)
   return obtenerComprobante(actual.id)
 }
 
