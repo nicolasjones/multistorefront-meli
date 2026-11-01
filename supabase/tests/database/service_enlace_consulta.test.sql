@@ -207,9 +207,11 @@ select is(public.registrar_consulta_publica('hash-1', 600, 3)->>'permitido', 'tr
 select is(public.registrar_consulta_publica('hash-1', 600, 3)->>'restantes', '1', 'quedan 1 tras la 2.ª');
 select is(public.registrar_consulta_publica('hash-1', 600, 3)->>'permitido', 'true', '3.ª consulta permitida (= límite)');
 select is(public.registrar_consulta_publica('hash-1', 600, 3)->>'permitido', 'false', '4.ª consulta bloqueada');
--- `between` expande a dos comparaciones y evaluaría dos veces la función volátil: se llama una sola vez en un subselect.
-select ok((select (public.registrar_consulta_publica('hash-1', 600, 3)->>'reintentar_en')::int) between 1 and 600,
-  'reintentar_en entre 1 y la ventana');
+-- La función es volátil: un CTE materializado garantiza una única evaluación (una sola cuenta) por la 5.ª llamada.
+with r as materialized (
+  select (public.registrar_consulta_publica('hash-1', 600, 3)->>'reintentar_en')::int as seg
+)
+select ok(r.seg >= 1 and r.seg <= 600, 'reintentar_en entre 1 y la ventana') from r;
 select is(public.registrar_consulta_publica('hash-2', 600, 3)->>'permitido', 'true', 'otra IP tiene su propio contador');
 reset role;
 select is((select cuenta from public.consultas_publicas_intentos where ip_hash = 'hash-1'), 5, 'el contador cuenta toda consulta, también las bloqueadas');
