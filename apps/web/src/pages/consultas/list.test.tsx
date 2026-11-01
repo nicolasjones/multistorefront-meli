@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   useConsultasNuevas: vi.fn(),
   useResponsablesConsultas: vi.fn(),
   useNivelSeccion: vi.fn(),
+  useRespuestasRapidas: vi.fn(),
   useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
   refetchDetalle: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('../../hooks/useConsultas', () => ({
   useConsultasNuevas: mocks.useConsultasNuevas,
   useResponsablesConsultas: mocks.useResponsablesConsultas,
 }))
+vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks.useRespuestasRapidas }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -89,6 +91,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useConsultasNuevas.mockReturnValue({ total: 3 })
     mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
+    mocks.useRespuestasRapidas.mockReturnValue({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()]))
     mocks.useConsulta.mockImplementation((id: string | null) => detalle(id === ID_CONSULTA ? consulta() : null))
     estadoFiltro.empresaActivaId = null
@@ -256,5 +259,18 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     )
     expect(screen.queryByText('Consulta de Ana Pérez')).not.toBeInTheDocument()
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+  })
+
+  it('Respuestas rápidas: el botón abre el diálogo de la empresa activa y al cambiar de empresa se cierra con aviso (FR-018)', () => {
+    estadoFiltro.empresaActivaId = 'e-1'
+    const { rerender } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Respuestas rápidas' }))
+    expect(screen.getByText('Respuestas rápidas · San Javucho')).toBeInTheDocument()
+    expect(mocks.useRespuestasRapidas).toHaveBeenLastCalledWith('e-1')
+
+    estadoFiltro.empresaActivaId = 'e-2'
+    rerender(<MemoryRouter initialEntries={['/consultas']}><ConsultaList /></MemoryRouter>)
+    expect(screen.queryByText('Respuestas rápidas · San Javucho')).not.toBeInTheDocument()
+    expect(screen.getByText(/Cambió la empresa activa: se cerró «Respuestas rápidas»/)).toBeInTheDocument()
   })
 })
