@@ -2,6 +2,16 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// El detalle de la reparación carga en dos rondas: primero la reparación y después el comprobante asociado.
+// «Generar comprobante» solo se ofrece cuando esa segunda consulta terminó, así que con el timeout por
+// defecto de Testing Library (1 s) el runner self-hosted (CI + agentes comparten CPU) daba rojo
+// intermitente en este archivo. Se sube el default del archivo y el margen de las esperas de la pantalla;
+// los asserts siguen siendo estrictos.
+vi.setConfig({ testTimeout: 30000 })
+
+// Margen de espera para lo que aparece después de la consulta del comprobante.
+const ESPERA = { timeout: 5000 }
+
 const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   usePuedeAccion: vi.fn(),
@@ -114,8 +124,8 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
 
   it('ofrece «Generar comprobante» junto al total con Service y Ventas en edición, ítems y sin comprobante', async () => {
     abrirDetalle()
-    await screen.findByText('Total al cliente')
-    const boton = await screen.findByRole('button', { name: 'Generar comprobante' })
+    await screen.findByText('Total al cliente', undefined, ESPERA)
+    const boton = await screen.findByRole('button', { name: 'Generar comprobante' }, ESPERA)
     expect(boton).toBeEnabled()
     // Vive en la sección «Mano de obra y repuestos», junto al «Total al cliente» (FR-009).
     expect(screen.getByText('Total al cliente')).toBeInTheDocument()
@@ -126,44 +136,44 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
     mocks.generarComprobanteDeReparacion.mockResolvedValue({ comprobante_id: 'k-1', creado: true })
     mocks.obtenerComprobanteDeReparacion.mockResolvedValueOnce(null).mockResolvedValue(COMPROBANTE)
     abrirDetalle()
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar comprobante' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar comprobante' }, ESPERA))
 
-    await waitFor(() => expect(mocks.generarComprobanteDeReparacion).toHaveBeenCalledWith('r-1'))
-    const tarjeta = await screen.findByRole('region', { name: 'Comprobante asociado' })
+    await waitFor(() => expect(mocks.generarComprobanteDeReparacion).toHaveBeenCalledWith('r-1'), ESPERA)
+    const tarjeta = await screen.findByRole('region', { name: 'Comprobante asociado' }, ESPERA)
     expect(within(tarjeta).getByText('00000007')).toBeInTheDocument()
     expect(within(tarjeta).getByText('Factura')).toBeInTheDocument()
     expect(within(tarjeta).getByText('Borrador')).toBeInTheDocument()
     expect(within(tarjeta).getByText('San Javucho')).toBeInTheDocument()
     expect(within(tarjeta).getByText(/54\.450/)).toBeInTheDocument()
     expect(within(tarjeta).getByRole('link', { name: 'Abrir en Ventas' })).toHaveAttribute('href', '/ventas/comprobantes/k-1')
-    expect(await screen.findByText('Comprobante generado')).toBeInTheDocument()
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument())
+    expect(await screen.findByText('Comprobante generado', undefined, ESPERA)).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument(), ESPERA)
   })
 
   it('no ofrece «Generar comprobante» sin permiso de Ventas, sin ítems, con la reparación anulada o con comprobante vigente', async () => {
     niveles('edicion', 'lectura')
     const { unmount } = abrirDetalle()
-    await screen.findByText('Total al cliente')
+    await screen.findByText('Total al cliente', undefined, ESPERA)
     expect(screen.queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument()
     unmount()
 
     niveles('edicion', 'edicion')
     mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, items: [] })
     const sinItems = abrirDetalle()
-    await screen.findByText('Total al cliente')
+    await screen.findByText('Total al cliente', undefined, ESPERA)
     expect(screen.queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument()
     sinItems.unmount()
 
     mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-21T10:00:00Z' })
     const anulada = abrirDetalle()
-    await screen.findByText('Total al cliente')
+    await screen.findByText('Total al cliente', undefined, ESPERA)
     expect(screen.queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument()
     anulada.unmount()
 
     mocks.obtenerReparacion.mockResolvedValue(REPARACION)
     mocks.obtenerComprobanteDeReparacion.mockResolvedValue(COMPROBANTE)
     abrirDetalle()
-    expect(await screen.findByRole('region', { name: 'Comprobante asociado' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Comprobante asociado' }, ESPERA)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument()
   })
 
@@ -171,7 +181,7 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
     niveles('edicion', 'ninguno')
     mocks.obtenerComprobanteDeReparacion.mockResolvedValue(COMPROBANTE)
     abrirDetalle()
-    const tarjeta = await screen.findByRole('region', { name: 'Comprobante asociado' })
+    const tarjeta = await screen.findByRole('region', { name: 'Comprobante asociado' }, ESPERA)
     expect(within(tarjeta).getByText('00000007')).toBeInTheDocument()
     expect(within(tarjeta).queryByRole('link', { name: 'Abrir en Ventas' })).not.toBeInTheDocument()
     expect(within(tarjeta).queryByRole('button', { name: 'Generar comprobante' })).not.toBeInTheDocument()
@@ -180,32 +190,32 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
   it('un error al generar se muestra, no se traga y el botón queda disponible para reintentar', async () => {
     mocks.generarComprobanteDeReparacion.mockRejectedValue({ code: '22023', message: 'La reparación no tiene ítems: cargá mano de obra o repuestos para generar el comprobante' })
     abrirDetalle()
-    fireEvent.click(await screen.findByRole('button', { name: 'Generar comprobante' }))
-    expect(await screen.findByText('La reparación no tiene ítems: cargá mano de obra o repuestos para generar el comprobante')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Generar comprobante' }, ESPERA))
+    expect(await screen.findByText('La reparación no tiene ítems: cargá mano de obra o repuestos para generar el comprobante', undefined, ESPERA)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Generar comprobante' })).toBeEnabled()
   })
 
   it('si falla la carga del comprobante lo dice y «Reintentar» vuelve a pedirlo', async () => {
     mocks.obtenerComprobanteDeReparacion.mockRejectedValueOnce(new Error('boom'))
     abrirDetalle()
-    expect(await screen.findByText('No pudimos cargar el comprobante asociado.')).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos cargar el comprobante asociado.', undefined, ESPERA)).toBeInTheDocument()
     mocks.obtenerComprobanteDeReparacion.mockResolvedValue(COMPROBANTE)
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    expect(await screen.findByRole('region', { name: 'Comprobante asociado' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Comprobante asociado' }, ESPERA)).toBeInTheDocument()
     expect(mocks.obtenerComprobanteDeReparacion).toHaveBeenCalledTimes(2)
   })
 
   it('una reparación que la base no encuentra se informa sin mostrar datos de otra', async () => {
     mocks.obtenerComprobanteDeReparacion.mockRejectedValueOnce({ code: 'P0002' })
     abrirDetalle()
-    expect(await screen.findByText('Esa reparación no existe o no pertenece a tu organización.')).toBeInTheDocument()
+    expect(await screen.findByText('Esa reparación no existe o no pertenece a tu organización.', undefined, ESPERA)).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Comprobante asociado' })).not.toBeInTheDocument()
   })
 
   it('al cambiar la empresa activa descarta el comprobante de la anterior y vuelve a pedirlo', async () => {
     mocks.obtenerComprobanteDeReparacion.mockResolvedValue(COMPROBANTE)
     const { rerender } = abrirDetalle()
-    await screen.findByRole('region', { name: 'Comprobante asociado' })
+    await screen.findByRole('region', { name: 'Comprobante asociado' }, ESPERA)
 
     mocks.obtenerComprobanteDeReparacion.mockResolvedValue(null)
     mocks.useEmpresasAccesibles.mockReturnValue({
@@ -218,7 +228,7 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
         </Routes>
       </MemoryRouter>,
     )
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Comprobante asociado' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Comprobante asociado' })).not.toBeInTheDocument(), ESPERA)
     expect(mocks.obtenerComprobanteDeReparacion).toHaveBeenCalledTimes(2)
   })
 })
