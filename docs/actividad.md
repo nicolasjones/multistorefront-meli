@@ -205,3 +205,13 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `reparacion.item_quitado` (ver
 `docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
 Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.
+
+## Tanda de textos y detalles de UI (MSF-585)
+
+Correcciones de redacción y forma, sin cambios de reglas de negocio ni de base de datos: MSF-601 (ingreso de
+mercadería sin jerga de épica), MSF-603 (tildes, eñes y voseo en cuenta y recuperación de acceso), MSF-604 (textos de
+Consultas y Actividad), MSF-618 (etiqueta propia con tildes para cada tipo de evento de Actividad;
+`ETIQUETA_TIPO_ACTIVIDAD` en `apps/web/src/lib/actividad.ts`), MSF-619 (rol en Mi perfil y conteo en Roles),
+MSF-626 (sin códigos de ticket ni de etapa), MSF-636 (pantalla 404 propia), MSF-637 (sin «actual» como rol) y MSF-639
+(avisos de acceso con el patrón común). Quedan fuera por requerir decisión, prototipo o migración: formato de moneda en
+el detalle de Actividad (el texto se arma en SQL), MSF-610, MSF-617 y MSF-640.
