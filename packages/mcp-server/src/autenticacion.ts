@@ -6,6 +6,7 @@
 // "usuario logueado" en este canal). Nunca usa service_role para leer datos
 // de negocio sin pasar por una función que centralice el filtro de
 // organización — ver private.mcp_leer_fila, usada desde herramientas.ts.
+import { timingSafeEqual } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 export type ConexionAutenticada = {
@@ -51,4 +52,24 @@ export async function autenticarConexion(admin: SupabaseClient, token: string | 
   }
 
   return { organizacionId, credencialId, admin, token }
+}
+
+// Revalida, en cada solicitud de una sesión ya abierta, que el Bearer sea el
+// mismo con el que se hizo el `initialize` y que su credencial siga activa
+// (`revocada_en is null`). No audita en conexiones_mcp: no es una conexión
+// nueva. Ante un error de la base se rechaza (falla cerrado).
+export async function revalidarConexion(
+  admin: SupabaseClient,
+  token: string | undefined,
+  conexion: Pick<ConexionAutenticada, 'credencialId' | 'token'>,
+): Promise<boolean> {
+  if (!token || !tokensIguales(token, conexion.token)) return false
+  const { data: credencialId, error } = await admin.rpc('resolver_credencial_id_mcp', { p_token: token })
+  return !error && credencialId === conexion.credencialId
+}
+
+function tokensIguales(a: string, b: string): boolean {
+  const ba = Buffer.from(a)
+  const bb = Buffer.from(b)
+  return ba.length === bb.length && timingSafeEqual(ba, bb)
 }

@@ -28,19 +28,45 @@ import { randomUUID } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { crearClienteAdmin, autenticarConexion } from './autenticacion.js'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { crearClienteAdmin, autenticarConexion, revalidarConexion, type ConexionAutenticada } from './autenticacion.js'
 import { registrarHerramientas } from './herramientas.js'
 
 const PUERTO = Number(process.env.MCP_SERVER_PORT ?? 8787)
 const SESSION_HEADER = 'mcp-session-id'
 
-type Sesion = { transport: StreamableHTTPServerTransport; server: McpServer }
+type Sesion = {
+  transport: StreamableHTTPServerTransport
+  server: McpServer
+  conexion: ConexionAutenticada
+  ultimoUso: number
+}
 
-export function crearServidorHttp(): Server {
-  const admin = crearClienteAdmin()
+// Una sesión sin solicitudes durante este tiempo se cierra y se borra del mapa.
+const SESION_INACTIVA_MS = Number(process.env.MCP_SESSION_IDLE_MS ?? 30 * 60 * 1000)
+
+function bearer(authorization: string | undefined): string | undefined {
+  return (authorization ?? '').replace(/^Bearer\s+/i, '') || undefined
+}
+
+export function crearServidorHttp(adminInyectado?: SupabaseClient): Server {
+  const admin = adminInyectado ?? crearClienteAdmin()
   const sesiones = new Map<string, Sesion>()
 
-  return createServer(async (req, res) => {
+  async function cerrarSesion(id: string, sesion: Sesion): Promise<void> {
+    sesiones.delete(id)
+    await sesion.transport.close().catch(() => undefined)
+  }
+
+  const barrido = setInterval(() => {
+    const limite = Date.now() - SESION_INACTIVA_MS
+    for (const [id, sesion] of sesiones) {
+      if (sesion.ultimoUso < limite) void cerrarSesion(id, sesion)
+    }
+  }, Math.max(1000, Math.min(SESION_INACTIVA_MS, 60_000)))
+  barrido.unref()
+
+  const http = createServer(async (req, res) => {
     if (req.url !== '/mcp') {
       res.writeHead(404).end()
       return
@@ -48,6 +74,18 @@ export function crearServidorHttp(): Server {
 
     const sessionId = req.headers[SESSION_HEADER] as string | undefined
     const sesionExistente = sessionId ? sesiones.get(sessionId) : undefined
+
+    // Toda solicitud de una sesión existente (POST o DELETE) revalida la
+    // credencial: una revocación corta la siguiente llamada (MSF-677).
+    if (sesionExistente && (req.method === 'POST' || req.method === 'DELETE')) {
+      const vigente = await revalidarConexion(admin, bearer(req.headers.authorization), sesionExistente.conexion)
+      if (!vigente) {
+        await cerrarSesion(sessionId as string, sesionExistente)
+        res.writeHead(403, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'No autorizado: credencial inválida o revocada.' }))
+        return
+      }
+      sesionExistente.ultimoUso = Date.now()
+    }
 
     if (req.method === 'DELETE') {
       // Terminación explícita de sesión (convención del transporte
@@ -73,7 +111,7 @@ export function crearServidorHttp(): Server {
 
     // Sin sesión existente: esta solicitud debe ser el `initialize` de una
     // conexión nueva — autenticar con la credencial de ESTA solicitud.
-    const token = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined
+    const token = bearer(req.headers.authorization)
     const conexion = await autenticarConexion(admin, token)
     if (!conexion) {
       res.writeHead(403, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'No autorizado: credencial inválida o revocada.' }))
@@ -85,12 +123,14 @@ export function crearServidorHttp(): Server {
 
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (id) => { sesiones.set(id, { transport, server }) },
+      onsessioninitialized: (id) => { sesiones.set(id, { transport, server, conexion, ultimoUso: Date.now() }) },
       onsessionclosed: (id) => { sesiones.delete(id) },
     })
     await server.connect(transport)
     await transport.handleRequest(req, res)
   })
+  http.on('close', () => clearInterval(barrido))
+  return http
 }
 
 if (process.env.NODE_ENV !== 'test') {

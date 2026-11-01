@@ -11,9 +11,13 @@ puente Hono del SDK), rutas `POST /mcp` y `DELETE /mcp` (protocolo
 Streamable HTTP, modo **con sesión**: `sessionIdGenerator` genera un
 `mcp-session-id` que el cliente reusa en solicitudes siguientes — no un
 server nuevo por solicitud, research.md R4/R8). La credencial en
-`Authorization: Bearer <token>` solo se valida en la solicitud que abre la
-sesión (el `initialize`); las solicitudes siguientes de esa misma sesión
-reusan las herramientas ya registradas para esa conexión.
+`Authorization: Bearer <token>` se valida al abrir la sesión (el `initialize`)
+y **se revalida en cada solicitud posterior** (POST y DELETE) de esa sesión:
+el Bearer debe ser el mismo del `initialize` y su credencial seguir activa
+(`resolver_credencial_id_mcp`, una RPC por solicitud, sin TTL: la revocación
+surte efecto en la siguiente llamada). Si falla, responde `403`, cierra la
+sesión y la borra. Las sesiones sin solicitudes durante
+`MCP_SESSION_IDLE_MS` (default 30 min) se cierran y se borran.
 
 Variables de entorno requeridas: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 El servidor en sí **no invoca ningún proveedor de IA** — solo expone datos y
