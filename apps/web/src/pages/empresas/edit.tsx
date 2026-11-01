@@ -6,7 +6,7 @@ import { useEmpresa, type DatosGeneralesEmpresa } from '../../hooks/useEmpresa'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
 import { calcularCambios, emitirEventoActividad, type EventoActividad } from '../../lib/eventosActividad'
-import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -200,7 +200,7 @@ export function EmpresaEdit() {
     <>
       <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
         <Stack spacing={2}>
-          {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
+          {soloLectura ? <EstadoVacio titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
           {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
           {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
           <TextField

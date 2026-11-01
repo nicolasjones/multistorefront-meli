@@ -160,7 +160,7 @@ export function ConsultaList() {
         contexto={<ContextoOrganizacionActiva />}
       />
       <Alert severity="info" sx={{ mb: 2 }}>
-        Cada consulta nueva envía un aviso por correo a la dirección de avisos de la empresa. La respuesta se da por correo o WhatsApp, fuera del sistema; acá se registra si ya fue atendida.
+        Cada consulta nueva envía un aviso por correo a los usuarios con acceso a esta sección, según su preferencia en «Avisos por correo». La respuesta se da por correo o WhatsApp, fuera del sistema; acá se registra si ya fue atendida.
       </Alert>
       {sinAcceso ? (
         <Alert severity="warning" sx={{ mb: 2 }} action={<Button color="inherit" onClick={cerrarDetalle}>Entendido</Button>}>

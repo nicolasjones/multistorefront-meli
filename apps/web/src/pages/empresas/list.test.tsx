@@ -95,7 +95,7 @@ describe('EmpresaList', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
-    expect(screen.getByText('Acceso restringido')).toBeInTheDocument()
+    expect(screen.getByText('No tenés acceso a esta sección')).toBeInTheDocument()
     await waitFor(() => expect(mocks.resultado).not.toHaveBeenCalled())
   })
 

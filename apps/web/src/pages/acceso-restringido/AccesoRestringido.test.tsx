@@ -16,6 +16,12 @@ function renderizar(seccionClave = 'rentabilidad') {
 }
 
 describe('AccesoRestringido (F-ROL-03)', () => {
+  it('sin nombre de rol conocido no muestra el literal «actual» (MSF-637)', () => {
+    render(<MemoryRouter><AccesoRestringido rol="actual" seccion="Motivos de movimiento" /></MemoryRouter>)
+
+    expect(screen.getByText('Tu rol no incluye Motivos de movimiento. Pedile acceso a un administrador.')).toBeInTheDocument()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.solicitarAcceso.mockResolvedValue({ ok: true, sinAdministradores: false })

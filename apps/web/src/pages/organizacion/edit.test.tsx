@@ -165,7 +165,7 @@ describe('OrganizacionEdit', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
 
-    expect(await screen.findByText('Acceso restringido')).toBeInTheDocument()
+    expect(await screen.findByText('No tenés acceso a esta sección')).toBeInTheDocument()
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
   })

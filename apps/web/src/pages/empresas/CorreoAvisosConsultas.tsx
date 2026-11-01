@@ -59,7 +59,7 @@ export function CorreoAvisosConsultas({ empresaId, correoContacto, soloLectura }
         Avisos de consultas
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Desde MSF-562, los avisos de consulta nueva se envían a cada persona según sus preferencias en
+        Los avisos de consulta nueva se envían a cada persona según sus preferencias en
         «Avisos por correo». Esta dirección ya no se usa para las consultas nuevas: solo completa el envío
         de los avisos que ya estaban encolados por el camino anterior.
       </Typography>

@@ -299,9 +299,9 @@ export function RolesPermisos() {
               {ROLES_MATRIZ.map((rol) => (
                 <Paper key={rol} variant="outlined" sx={{ p: 1.5, minWidth: 180, flex: '1 1 180px' }}>
                   <Typography variant="t3" component="h2">{ETIQUETAS_ROL[rol]}</Typography>
-                  <Typography variant="xs">{descripciones[rol] ?? ''}</Typography>
+                  <Typography variant="xs" sx={{ display: 'block' }}>{descripciones[rol] ?? ''}</Typography>
                   {puedeEscribir && (
-                    <Typography variant="xs">{cantidades[rol] ?? 0} {(cantidades[rol] ?? 0) === 1 ? 'usuario' : 'usuarios'}</Typography>
+                    <Typography variant="xs" sx={{ display: 'block', mt: 0.5 }}>{cantidades[rol] ?? 0} {(cantidades[rol] ?? 0) === 1 ? 'usuario' : 'usuarios'}</Typography>
                   )}
                 </Paper>
               ))}

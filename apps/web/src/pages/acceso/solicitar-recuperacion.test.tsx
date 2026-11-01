@@ -24,8 +24,8 @@ describe('SolicitarRecuperacionPage', () => {
 
   async function requestFor(email: string) {
     render(<MemoryRouter><SolicitarRecuperacionPage /></MemoryRouter>)
-    fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: email } })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperacion' }))
+    fireEvent.change(screen.getByLabelText(/^Correo electrónico/), { target: { value: email } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperación' }))
     await screen.findByText(neutralNotice)
   }
 
@@ -46,10 +46,10 @@ describe('SolicitarRecuperacionPage', () => {
   it('does not reveal account existence when the request is limited or fails', async () => {
     resetPasswordForEmail.mockResolvedValue({ error: new Error('rate limit') })
     render(<MemoryRouter><SolicitarRecuperacionPage /></MemoryRouter>)
-    fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: 'persona@example.com' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperacion' }))
+    fireEvent.change(screen.getByLabelText(/^Correo electrónico/), { target: { value: 'persona@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperación' }))
 
-    expect(await screen.findByText('No pudimos enviar el enlace ahora. Intenta nuevamente mas tarde.')).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos enviar el enlace ahora. Intentá nuevamente más tarde.')).toBeInTheDocument()
     expect(screen.queryByText(neutralNotice)).not.toBeInTheDocument()
     expect(screen.queryByText(/no existe|cuenta registrada/i)).not.toBeInTheDocument()
   })
@@ -57,6 +57,6 @@ describe('SolicitarRecuperacionPage', () => {
   it('warns about an expired or used link when arriving from one', () => {
     render(<MemoryRouter initialEntries={['/acceso/solicitar-recuperacion?enlace=vencido']}><SolicitarRecuperacionPage /></MemoryRouter>)
 
-    expect(screen.getByText(/vencio o ya se uso/)).toBeInTheDocument()
+    expect(screen.getByText(/venció o ya se usó/)).toBeInTheDocument()
   })
 })

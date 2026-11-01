@@ -43,24 +43,24 @@ describe('CambiarCorreoPage', () => {
     expect(await screen.findByText('Acceso requerido')).toBeInTheDocument()
   })
 
-  it('requiere la contrasena actual antes de solicitar el cambio de correo', async () => {
+  it('requiere la contraseña actual antes de solicitar el cambio de correo', async () => {
     verifyCurrentPassword.mockResolvedValue({ error: { code: 'invalid_credentials' } })
     renderPage()
-    fireEvent.change(await screen.findByLabelText(/^Contrasena actual para cambiar el correo/), { target: { value: 'incorrecta' } })
-    fireEvent.change(screen.getByLabelText(/^Correo electronico nuevo/), { target: { value: 'nuevo@example.com' } })
+    fireEvent.change(await screen.findByLabelText(/^Contraseña actual para cambiar el correo/), { target: { value: 'incorrecta' } })
+    fireEvent.change(screen.getByLabelText(/^Correo electrónico nuevo/), { target: { value: 'nuevo@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar cambio de correo' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('La contrasena actual no coincide.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('La contraseña actual no coincide.')
     expect(auth.updateUser).not.toHaveBeenCalled()
   })
 
   it('inicia la confirmacion en el correo nuevo despues de verificar la contrasena', async () => {
     renderPage()
-    fireEvent.change(await screen.findByLabelText(/^Contrasena actual para cambiar el correo/), { target: { value: 'ContrasenaActual1!' } })
-    fireEvent.change(screen.getByLabelText(/^Correo electronico nuevo/), { target: { value: 'nuevo@example.com' } })
+    fireEvent.change(await screen.findByLabelText(/^Contraseña actual para cambiar el correo/), { target: { value: 'ContrasenaActual1!' } })
+    fireEvent.change(screen.getByLabelText(/^Correo electrónico nuevo/), { target: { value: 'nuevo@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar cambio de correo' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Enviamos una confirmacion a nuevo@example.com.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Enviamos una confirmación a nuevo@example.com.')
     expect(verifyCurrentPassword).toHaveBeenCalledWith('persona@example.com', 'ContrasenaActual1!')
     expect(profileRedirectUrl).toHaveBeenCalledWith(window.location.origin)
     expect(auth.updateUser).toHaveBeenCalledWith(
@@ -72,19 +72,19 @@ describe('CambiarCorreoPage', () => {
   it('informa un correo ya asociado sin revelar datos de otra cuenta', async () => {
     auth.updateUser.mockResolvedValue({ error: { code: 'email_exists', message: 'User already registered' } })
     renderPage()
-    fireEvent.change(await screen.findByLabelText(/^Contrasena actual para cambiar el correo/), { target: { value: 'ContrasenaActual1!' } })
-    fireEvent.change(screen.getByLabelText(/^Correo electronico nuevo/), { target: { value: 'ocupado@example.com' } })
+    fireEvent.change(await screen.findByLabelText(/^Contraseña actual para cambiar el correo/), { target: { value: 'ContrasenaActual1!' } })
+    fireEvent.change(screen.getByLabelText(/^Correo electrónico nuevo/), { target: { value: 'ocupado@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar cambio de correo' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se puede usar ese correo electronico.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se puede usar ese correo electrónico.')
     expect(screen.queryByText(/registered/i)).not.toBeInTheDocument()
   })
 
   it('informa una falla temporal de Auth sin iniciar una confirmacion', async () => {
     auth.updateUser.mockResolvedValue({ error: { code: 'over_request_rate_limit', message: 'temporary failure' } })
     renderPage()
-    fireEvent.change(await screen.findByLabelText(/^Contrasena actual para cambiar el correo/), { target: { value: 'ContrasenaActual1!' } })
-    fireEvent.change(screen.getByLabelText(/^Correo electronico nuevo/), { target: { value: 'nuevo@example.com' } })
+    fireEvent.change(await screen.findByLabelText(/^Contraseña actual para cambiar el correo/), { target: { value: 'ContrasenaActual1!' } })
+    fireEvent.change(screen.getByLabelText(/^Correo electrónico nuevo/), { target: { value: 'nuevo@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar cambio de correo' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos solicitar el cambio de correo.')

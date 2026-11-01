@@ -107,7 +107,7 @@ export function EmpresaList() {
       <Box>
         {encabezado}
         <ContenedorSeccion>
-          <EstadoError titulo="Acceso restringido" descripcion="Solo los administradores pueden ver las empresas de la organización." />
+          <EstadoError titulo="No tenés acceso a esta sección" descripcion="Solo los administradores pueden ver las empresas de la organización." />
         </ContenedorSeccion>
       </Box>
     )

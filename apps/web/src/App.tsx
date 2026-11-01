@@ -1,4 +1,5 @@
-import { Authenticated, ErrorComponent, Refine, useGetIdentity } from '@refinedev/core'
+import { Authenticated, Refine, useGetIdentity } from '@refinedev/core'
+import { NoEncontrada } from './pages/no-encontrada/NoEncontrada'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -831,7 +832,7 @@ function App() {
                   </Authenticated>
                 }
               >
-                <Route path="*" element={<ErrorComponent />} />
+                <Route path="*" element={<NoEncontrada />} />
               </Route>
             </Routes>
             </PermisosPanelProvider>

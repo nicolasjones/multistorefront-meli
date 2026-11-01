@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { Alert, Avatar, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, TextField, Typography } from '@mui/material'
 import { Link as RouterLink, Navigate } from 'react-router'
 import { supabaseClient } from '../../lib/supabase'
+import { ETIQUETA_ROL } from '../../lib/permisos'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 
 type Perfil = { nombre: string | null; apellido: string | null; foto_path: string | null }
@@ -176,7 +177,7 @@ export function PerfilPage() {
     { etiqueta: 'Correo', valor: correoActual ?? 'No disponible' },
     { etiqueta: 'Fecha de creación', valor: cuenta.creadoEn ? new Date(cuenta.creadoEn).toLocaleDateString() : 'No disponible' },
     { etiqueta: 'Organización', valor: cuenta.organizacion ?? 'Sin organización activa' },
-    { etiqueta: 'Rol', valor: cuenta.rol ?? 'Sin rol asignado' },
+    { etiqueta: 'Rol', valor: cuenta.rol ? (ETIQUETA_ROL[cuenta.rol] ?? cuenta.rol) : 'Sin rol asignado' },
   ]
 
   return (

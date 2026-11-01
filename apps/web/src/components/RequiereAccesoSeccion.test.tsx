@@ -93,7 +93,7 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     await waitFor(() => expect(screen.getByText('Contenido de la sección')).toBeInTheDocument())
   })
 
-  const TEXTO_GENERICO = 'Tu rol (actual) no incluye Clientes. Pedile acceso a un administrador.'
+  const TEXTO_GENERICO = 'Tu rol no incluye Clientes. Pedile acceso a un administrador.'
 
   it.each([
     ['la consulta devuelve error', () => mocks.maybeSingle.mockResolvedValue({ data: null, error: { message: 'x' } })],
@@ -111,7 +111,7 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false })
     const hijo = renderizar()
 
-    expect(await screen.findByText(TEXTO_GENERICO.replace('actual', 'Operador'))).toBeInTheDocument()
+    expect(await screen.findByText(TEXTO_GENERICO.replace('Tu rol', 'Tu rol (Operador)'))).toBeInTheDocument()
     expect(hijo).not.toHaveBeenCalled()
   })
 
