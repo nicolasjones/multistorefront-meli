@@ -1,4 +1,4 @@
-// Los seis roles de negocio invitables (F-USR-01, FR-009). Los ids son filas de
+// Los siete roles de negocio invitables (F-USR-01, FR-009). Los ids son filas de
 // `roles_organizacion`; las descripciones replican las de la migración
 // 20261013130000 (ver docs/permisos-por-rol.md). `miembro` es el rol heredado
 // del template: se muestra pero ya no se ofrece para invitar.
@@ -11,12 +11,12 @@ export const ROLES_INVITABLES: RolUsuario[] = [
   { id: 'mostrador', nombre: 'Mostrador', descripcion: 'Vende en el local: comprobantes y clientes.' },
   { id: 'deposito', nombre: 'Depósito', descripcion: 'Arma y entrega pedidos, mueve stock.' },
   { id: 'administracion', nombre: 'Administración', descripcion: 'Cobros, proveedores y reportes.' },
+  { id: 'tecnico', nombre: 'Técnico', descripcion: 'Opera Service técnico en sus tiendas: reparaciones, modelos y estados.' },
 ]
 
 const NOMBRES: Record<string, string> = {
   ...Object.fromEntries(ROLES_INVITABLES.map((rol) => [rol.id, rol.nombre])),
   miembro: 'Miembro',
-  tecnico: 'Técnico',
 }
 
 export const nombreDeRol = (rolId: string) => NOMBRES[rolId] ?? rolId

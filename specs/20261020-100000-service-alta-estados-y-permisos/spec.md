@@ -370,6 +370,16 @@ Prototipos: `ServicioModelos.dc.html`, `ServicioEstados.dc.html`, `ServicioRepar
 | Botón «Guardar cambios» y edición de la grilla | **FUERA DE ALCANCE** — la matriz editable pasa a enero |
 | Tabs Usuarios / Roles y permisos, «Usuarios con este rol: N · Ver →» | sin cambio (existentes); el rol Técnico se asigna desde Usuarios (FR-042) |
 
+## Nota MSF-597 / MSF-606 · Técnico como rol por empresa
+
+Bug: el Técnico no podía recibir ninguna empresa (CHECK `usuarios_empresas_rol_por_empresa`,
+`private.validar_asignaciones`/`asignar_empresas_usuario` y `registrar_invitacion` lo rechazaban) y por eso
+`private.empresas_accesibles()` no le devolvía tiendas ni podía operar Service técnico. Decisión: `tecnico` es un
+rol por empresa más y se puede invitar. Migración aditiva `20270122100000_rol_tecnico_por_empresa.sql`; la matriz
+de permisos no cambia (Técnico: `service_tecnico` edición; inicio, productos, stock y clientes lectura; resto
+ninguno). UI: «Técnico» en el diálogo Invitar y en el selector de rol por empresa. Tests:
+`supabase/tests/database/rol_tecnico_por_empresa.test.sql` y tests de `rolesUsuarios` / `asignacionesEmpresas`.
+
 ## Matriz de trazabilidad Jira ↔ US ↔ FR ↔ tareas
 
 | Jira | Historia | US | FR / SC | Tareas |
