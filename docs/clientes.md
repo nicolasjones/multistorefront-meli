@@ -406,6 +406,10 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
 
+## Reparaciones del cliente (F-SVC-15, MSF-429)
+
+La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
+
 ## Clientes inactivos (F-CLI-16, MSF-400 · épica MSF-171)
 
 Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270116120000_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
