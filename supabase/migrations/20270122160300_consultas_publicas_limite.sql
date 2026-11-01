@@ -23,7 +23,7 @@ create table public.consultas_publicas_intentos (
 comment on table public.consultas_publicas_intentos is
   'Contador de límite de tasa de la consulta pública de reparaciones (F-SVC-22). Hash de IP con sal; sin políticas ni grants: solo registrar_consulta_publica.';
 
-create index consultas_publicas_intentos_ventana_idx on public.consultas_publicas_intentos (ventana);
+create index if not exists consultas_publicas_intentos_ventana_idx on public.consultas_publicas_intentos (ventana);
 
 alter table public.consultas_publicas_intentos enable row level security;
 
