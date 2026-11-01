@@ -180,8 +180,11 @@ export function ComprobanteVenta() {
       setComprobante(existente)
       if (!opciones?.trasCobro) setFormulario(aFormulario(existente))
       setCargado(true)
+      // Solo la lectura vigente baja el bloqueo: una más nueva ya lo gobierna (MSF-715).
+      setRecargandoTrasCobro(false)
     } catch (error) {
       if (peticion !== ultimaPeticion.current) return
+      setRecargandoTrasCobro(false)
       if (opciones?.trasCobro) {
         console.error('No pudimos releer el comprobante después del cobro.', error)
         // Deny-by-default: sin el `updated_at` vigente no se ofrece cambiar el estado.
@@ -207,11 +210,7 @@ export function ComprobanteVenta() {
   // comprobante»). Mientras relee, las acciones que mandan el `updated_at` quedan bloqueadas.
   const releerTrasCobro = useCallback(async () => {
     setRecargandoTrasCobro(true)
-    try {
-      await cargar({ trasCobro: true })
-    } finally {
-      setRecargandoTrasCobro(false)
-    }
+    await cargar({ trasCobro: true })
   }, [cargar])
 
   // Acciones y notas del detalle (F-VTA-11, FR-042/FR-045/FR-046): anulación, notas asociadas y qué líneas quedan
