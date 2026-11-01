@@ -16,6 +16,7 @@ import {
   type EstadoConsulta,
 } from '../../lib/consultas'
 import { avisoRespuestaRegistrada, enlaceRespuesta, registrarRespuesta } from '../../lib/responderConsulta'
+import { ContactoConsulta } from '../../pages/consultas/ContactoConsulta'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { EstadoError } from '../estados/EstadosPagina'
 
@@ -144,6 +145,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
             <Typography variant="xs">Contacto</Typography>
             <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{consulta.contacto}</Typography>
           </Box>
+          <ContactoConsulta consulta={consulta} puedeEditar={puedeEditar} onVinculada={onRecargar} />
           <Box>
             <Typography variant="xs">Producto de interés</Typography>
             <Typography sx={{ fontWeight: 600 }}>{nombreProducto(consulta)}</Typography>

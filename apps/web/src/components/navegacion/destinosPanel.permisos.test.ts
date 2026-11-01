@@ -142,6 +142,19 @@ describe('destino «Consultas» (F-CON-01, FR-005)', () => {
   })
 })
 
+describe('destino «Contactos» (F-CON-05, FR-005)', () => {
+  it('está en Canales debajo de Consultas, comparte su sección de permisos y no aparece con «ninguno»', () => {
+    const contactos = destino('contactos')
+    expect(contactos.ruta).toBe('/contactos')
+    expect(contactos.seccionPermiso).toBe('consultas')
+    expect(SECCION_POR_RECURSO.contactos).toBe('consultas')
+    const ids = SECCIONES_PANEL.find((seccion) => seccion.id === 'canales')?.destinos.map((d) => d.id) ?? []
+    expect(ids.indexOf('contactos')).toBe(ids.indexOf('consultas') + 1)
+    expect(destinoVisible(contactos, panelFixtures.miembro, permisos(['consultas', 'lectura']))).toBe(true)
+    expect(destinoVisible(contactos, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
+  })
+})
+
 describe('destino «Despacho» (F-VTA-17, FR-032)', () => {
   it('está en el grupo Ventas, apunta a /ventas/despacho y usa el icono de camión', () => {
     const despacho = destino('ventas-despacho')
