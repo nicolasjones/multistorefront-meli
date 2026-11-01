@@ -5,7 +5,7 @@
 - Rutas del panel: **52**
 - Tablas en migraciones: **75**
 - Variables de entorno: **62**
-- Specs: **69**
+- Specs: **70**
 - Páginas de documentación: **165**
 
 ## Rutas del panel
@@ -277,3 +277,4 @@
 - `20261017-150000-paridad-visual-prototipo` — Feature Specification: Plataforma · Paridad visual con el prototipo
 - `20261017-193000-paridad-pantallas` — Feature Specification: Plataforma · Paridad de pantallas con el prototipo
 - `20261018-000000-vigilancia-prototipo` — Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)
+- `20261029-100000-mejoras-de-clientes-y-proveedores` — Feature Specification: Clientes y proveedores · Mejoras de clientes y proveedores
