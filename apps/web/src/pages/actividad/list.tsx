@@ -84,7 +84,7 @@ export function ActividadList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Actividad" descripcion="Historial básico: cambios de productos, movimientos de stock, importaciones y configuración de tiendas." contexto={<ContextoOrganizacionActiva />} />
+      <EncabezadoPagina titulo="Actividad" descripcion="Historial de cambios de productos, stock, importaciones, ventas, cobros, service, usuarios y configuración de tiendas." contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack
           component="form"
