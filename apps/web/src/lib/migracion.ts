@@ -141,6 +141,36 @@ export function construirFilas(csv: CsvLeido, mapeo: Readonly<Record<number, str
   })
 }
 
+/**
+ * Marca como error las filas que el navegador ya sabe inconsistentes (MSF-699):
+ * tienen más valores que columnas, así que sus datos están corridos y no se
+ * pueden importar. La base no ve las celdas sobrantes —no viajan en la fila—,
+ * por eso el motivo lo arma el navegador y se muestra en la vista previa.
+ */
+export function marcarFilasInconsistentes(
+  resultados: readonly ResultadoFila[],
+  errores: readonly ErrorFila[],
+): ResultadoFila[] {
+  if (errores.length === 0) return [...resultados]
+  const porFila = new Map(errores.map((error) => [error.fila, error.motivo]))
+  return resultados.map((resultado) => {
+    const motivo = porFila.get(resultado.fila)
+    if (!motivo) return resultado
+    return { fila: resultado.fila, estado: 'error', motivo }
+  })
+}
+
+/**
+ * Filas que llegan a la base: las consistentes. Las inconsistentes se
+ * rechazan en el navegador (no se importan corridas) y por eso no entran en
+ * el lote: el informe de conciliación cuenta las filas que se procesaron.
+ */
+export function filasAplicables(filas: readonly FilaMigracion[], errores: readonly ErrorFila[]): FilaMigracion[] {
+  if (errores.length === 0) return [...filas]
+  const conError = new Set(errores.map((error) => error.fila))
+  return filas.filter((fila) => !conError.has(fila.fila))
+}
+
 export function contarEstados(resultados: readonly ResultadoFila[]): Record<EstadoFila, number> {
   return resultados.reduce(
     (totales, resultado) => {

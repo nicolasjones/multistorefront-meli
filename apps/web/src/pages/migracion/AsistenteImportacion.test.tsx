@@ -35,6 +35,15 @@ const CSV_CON_ERROR = [
   '',
 ].join('\n')
 
+// Fila 3 con una coma sin escapar: trae 4 valores para 3 columnas (MSF-699).
+const CSV_CON_COLUMNAS_DE_MAS = [
+  'Identificador del panel actual,Nombre o razón social,Tipo de cliente',
+  'SINT-001,Cliente Sintético Uno,Mayorista',
+  'SINT-002,Cliente, Sintético Dos,Mayorista',
+  'SINT-003,Cliente Sintético Tres,Minorista',
+  '',
+].join('\n')
+
 const archivo = (contenido = CSV, nombre = 'clientes.csv') => new File([contenido], nombre, { type: 'text/csv' })
 
 const empresa = (nombre: string, id = 'e-1') => ({
@@ -286,5 +295,41 @@ describe('AsistenteImportacion', () => {
 
     expect(screen.getByText('Sin permiso')).toBeInTheDocument()
     expect(screen.queryByLabelText('Archivo CSV de clientes')).not.toBeInTheDocument()
+  })
+
+  it('marca las filas con más columnas que el encabezado y no las importa (MSF-699)', async () => {
+    abrir()
+    fireEvent.change(screen.getByLabelText('Archivo CSV de clientes'), {
+      target: { files: [archivo(CSV_CON_COLUMNAS_DE_MAS)] },
+    })
+    await screen.findByText(/3 filas · UTF-8/)
+
+    // El resumen del mapeo avisa antes de aplicar nada.
+    expect(screen.getByText('1 fila tiene más columnas que el archivo: no se importan.')).toBeInTheDocument()
+    expect(screen.getByText('La fila 3 tiene 4 columnas y se esperaban 3.')).toBeInTheDocument()
+
+    botonContinuar()
+
+    // La vista previa la muestra como fila con error, no como fila válida.
+    expect(await screen.findByText('1 fila con error. No se importan.')).toBeInTheDocument()
+    expect(screen.getByText('La fila 3 tiene 4 columnas y se esperaban 3 (filas 3).')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Importar 2 clientes' })).toBeInTheDocument()
+
+    await importar(/Importar 2 clientes/)
+    expect(await screen.findByText('Importación lista: 2 clientes nuevos, 0 actualizados, 0 con error')).toBeInTheDocument()
+
+    // La fila inconsistente no llega a la base: el informe cuenta las filas procesadas.
+    expect(mocks.rpc).toHaveBeenCalledWith('iniciar_carga_migracion', {
+      p_entidad: 'clientes',
+      p_archivo: 'clientes.csv',
+      p_filas_total: 2,
+    })
+    const aplicadas = mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'aplicar_lote_clientes')
+    expect(aplicadas[0][1]).toMatchObject({
+      p_filas: [
+        expect.objectContaining({ fila: 2 }),
+        expect.objectContaining({ fila: 4 }),
+      ],
+    })
   })
 })

@@ -19,6 +19,14 @@ El informe de conciliación, el ensayo y el plan de corte están en [migracion-i
   vínculos; una fila ya aplicada en la misma carga se omite, no se re-procesa.
 - **Documento duplicado** (DNI/CUIT ya existente en la organización) **sí es error de fila**:
   no se importa y se informa con número de fila y motivo.
+- **Celdas de más (MSF-699):** una fila con **más valores que columnas** tiene los datos
+  corridos (típico: una coma sin escapar en un export de Excel). El navegador **no descarta
+  las celdas sobrantes**: marca la fila con error («La fila 12 tiene 4 columnas y se esperaban
+  3»), la muestra en el **resumen del mapeo** («N con columnas de más») y en la vista previa
+  («filas con error»), y **no la importa**. Las celdas sobrantes **vacías** (una coma final) se
+  toleran: no corren datos. Como esas filas se rechazan en el navegador (no viajan a la base),
+  el **informe de conciliación cuenta las filas que se procesaron**, no las del archivo: las
+  excluidas aparecen como error en el resultado del asistente, con su motivo.
 
 ## Registro y cierre
 
