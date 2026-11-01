@@ -2,8 +2,9 @@
 -- Esquema: sin tablas nuevas (escribe en `dominio.reparaciones` y `dominio.reparacion_historial`; Principio VII).
 --
 -- SECURITY DEFINER con control explícito: organización de la sesión, `edicion` en `service_tecnico`, origen de
--- una tienda accesible (si no, `P0002`) y bloqueado con `for update`. El origen debe estar entregada
--- (`entrega_real`) y no anulada (`55000`). Falla obligatoria (`22023`, `hint = falla`), técnico elegible y
+-- una tienda accesible (`42501` si la tienda no es accesible, `P0002` si la reparación no existe) y bloqueado
+-- con `for update`. El origen debe estar entregada (`entrega_real`) y no anulada (`55000`). Falla obligatoria
+-- (`22023`, `hint = falla`), técnico elegible y
 -- entrega prevista no anterior a hoy si vienen. Copia tienda, cliente, contacto, modelo, N.º de serie y
 -- accesorios; NO copia ítems, costos ni adjuntos. Número siguiente bajo el bloqueo de numeración vigente
 -- (`private.siguiente_numero_reparacion`), primer estado activo por `orden`, ingreso de hoy (Argentina).
@@ -43,9 +44,11 @@ begin
     from dominio.reparaciones r
    where r.id = p_reparacion_origen and r.organizacion_id = v_org
    for update;
-  if not found
-     or not exists (select 1 from private.empresas_accesibles() a(id) where a.id = v_origen.empresa_id) then
+  if not found then
     raise exception 'La reparación no existe' using errcode = 'P0002';
+  end if;
+  if not exists (select 1 from private.empresas_accesibles() a(id) where a.id = v_origen.empresa_id) then
+    raise exception 'No tenés acceso a la tienda de esta reparación' using errcode = '42501';
   end if;
   if v_origen.anulada_en is not null then
     raise exception 'La reparación está anulada: no se puede reingresar por garantía' using errcode = '55000';
@@ -94,7 +97,7 @@ begin
 
   perform private.registrar_actividad(
     'reparacion.reingreso_garantia',
-    format('Reingresó por garantía la reparación %s como %s', v_codigo_origen, private.codigo_reparacion(v_numero)),
+    format('Reingresó por garantía %s como %s', v_codigo_origen, private.codigo_reparacion(v_numero)),
     v_origen.empresa_id
   );
 

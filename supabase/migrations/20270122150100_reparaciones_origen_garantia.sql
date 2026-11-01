@@ -13,14 +13,14 @@
 --   alter table dominio.reparaciones drop constraint reparaciones_origen_fk;
 --   alter table dominio.reparaciones drop column reparacion_origen_id;
 
-alter table dominio.reparaciones add column reparacion_origen_id uuid;
+alter table dominio.reparaciones add column if not exists reparacion_origen_id uuid;
 
 alter table dominio.reparaciones
   add constraint reparaciones_origen_fk foreign key (reparacion_origen_id, organizacion_id)
     references dominio.reparaciones (id, organizacion_id),
   add constraint reparaciones_origen_distinta_check check (reparacion_origen_id <> id);
 
-create index reparaciones_origen_idx on dominio.reparaciones (reparacion_origen_id)
+create index if not exists reparaciones_origen_idx on dominio.reparaciones (reparacion_origen_id)
   where reparacion_origen_id is not null;
 
 comment on column dominio.reparaciones.reparacion_origen_id is

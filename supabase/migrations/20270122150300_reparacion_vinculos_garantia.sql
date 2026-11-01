@@ -2,7 +2,8 @@
 -- Esquema: sin tablas nuevas (solo lectura de `dominio.reparaciones`; Principio VII).
 --
 -- Acepta `lectura` o `edicion` en `service_tecnico`; la reparación debe ser de la organización de la sesión y de
--- una tienda accesible (si no, `P0002`). Devuelve `{ origen: {id, codigo} | null, reingresos: [{id, codigo,
+-- una tienda accesible. Una reparación de una tienda inaccesible se trata como inexistente (`P0002`, no revela
+-- que existe), igual que `obtener_reparacion`. Devuelve `{ origen: {id, codigo} | null, reingresos: [{id, codigo,
 -- estado, ingreso}] }`. Es una RPC aparte para no reemplazar `obtener_reparacion`.
 --
 -- Migración aditiva. Reversión (migración posterior):

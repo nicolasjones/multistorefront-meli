@@ -41,11 +41,6 @@ insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) v
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 10, 'Cliente de la Dos', 'minorista', null);
 
-insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, activo) values
-  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Pantalla Switch', 'PAN-1', 100, true),
-  ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Producto inactivo', 'INA-1', 100, false),
-  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto de la Dos', 'DOS-1', 100, true);
-
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
   reset role;
@@ -171,11 +166,13 @@ select is(
   'conserva técnico y entrega prevista');
 select is((select (public.obtener_reparacion(id)->>'total_cliente')::numeric from rg where clave = 're1'), 0::numeric,
   'nace sin ítems ni importes');
-select is((select costo_mano_obra + costo_repuestos from dominio.reparaciones where id = (select id from rg where clave = 're1')), 0::numeric,
-  'no copia los costos');
+select is((select (public.obtener_reparacion(id)->>'costo_mano_obra')::numeric from rg where clave = 're1'), 0::numeric,
+  'no copia el costo de mano de obra');
+select is((select (public.obtener_reparacion(id)->>'costo_repuestos')::numeric from rg where clave = 're1'), 0::numeric,
+  'no copia el costo de repuestos');
 select is(
   (select row(tipo, nota, estado_anterior_id)::text from dominio.reparacion_historial where reparacion_id = (select id from rg where clave = 're1')),
-  row('alta', 'Reingreso por garantía de ' || private.codigo_reparacion((select numero from dominio.reparaciones where id = (select id from rg where clave = 'entregada'))), null::uuid)::text,
+  row('alta', 'Reingreso por garantía de ' || (public.obtener_reparacion((select id from rg where clave = 'entregada'))->>'codigo'), null::uuid)::text,
   'el historial tiene el alta con la nota de garantía');
 select is((select count(*)::int from public.registro_actividad
             where tipo = 'reparacion.reingreso_garantia' and organizacion_id = '11111111-1111-1111-1111-111111111111'
@@ -214,14 +211,14 @@ select throws_ok(format($$update dominio.reparaciones set reparacion_origen_id =
 
 select is(public.obtener_vinculos_garantia((select id from rg where clave = 're1'))->'origen',
   jsonb_build_object('id', (select id from rg where clave = 'entregada'),
-                     'codigo', private.codigo_reparacion((select numero from dominio.reparaciones where id = (select id from rg where clave = 'entregada')))),
+                     'codigo', (public.obtener_reparacion((select id from rg where clave = 'entregada'))->>'codigo')),
   'la nueva muestra su origen');
 select is(jsonb_array_length(public.obtener_vinculos_garantia((select id from rg where clave = 'entregada'))->'reingresos'), 2,
   'la original lista sus reingresos');
 select is(public.obtener_vinculos_garantia((select id from rg where clave = 'entregada'))->'origen', 'null'::jsonb,
   'la original no tiene origen');
 select is(public.obtener_vinculos_garantia((select id from rg where clave = 'entregada'))->'reingresos'->0->>'estado',
-  (select nombre from dominio.estados_reparacion where organizacion_id = '11111111-1111-1111-1111-111111111111' and activo order by orden, id limit 1),
+  (public.obtener_reparacion((select id from rg where clave = 're1'))->>'estado'),
   'cada reingreso informa su estado');
 select is(public.obtener_vinculos_garantia((select id from rg where clave = 'abierta')),
   '{"origen": null, "reingresos": []}'::jsonb, 'sin vínculos devuelve origen nulo y lista vacía');
@@ -236,7 +233,7 @@ select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select lives_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'entregada')),
   'el operador reingresa en su tienda');
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'tienda_b')),
-  'P0002', null, 'el operador no reingresa desde una tienda sin acceso');
+  '42501', null, 'el operador no reingresa desde una tienda sin acceso');
 select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select id from rg where clave = 'tienda_b')),
   'P0002', null, 'el operador no ve vínculos de una tienda sin acceso');
 
@@ -269,10 +266,13 @@ select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select
   '42501', null, 'anon no ejecuta obtener_vinculos_garantia');
 reset role;
 
--- RLS en todas las tablas expuestas.
+-- RLS en todas las tablas expuestas (mismo recorrido que `rls_en_toda_tabla.test.sql`).
 select is(
   (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname in ('public', 'dominio') and c.relkind = 'r' and not c.relrowsecurity)::int,
+    where n.nspname in ('public', 'dominio') and c.relkind in ('r', 'p') and not c.relispartition
+      and not exists (select 1 from pg_depend d where d.classid = 'pg_class'::regclass
+        and d.objid = c.oid and d.deptype = 'e')
+      and not c.relrowsecurity)::int,
   0, 'toda tabla de public y dominio tiene RLS');
 
 select * from finish();

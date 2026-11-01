@@ -57,7 +57,6 @@ import { AnularDialog } from '../../components/service/AnularDialog'
 import { EntregaDialog } from '../../components/service/EntregaDialog'
 import { HistorialEstados } from '../../components/service/HistorialEstados'
 import { ItemsReparacion } from '../../components/service/ItemsReparacion'
-import { VinculosGarantia } from '../../components/service/VinculosGarantia'
 import { admiteReingresoGarantia } from '../../lib/reparacionGarantia'
 
 // Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
@@ -68,6 +67,10 @@ const AdjuntosReparacion = lazy(() =>
 // Reingreso por garantía (F-SVC-21): el diálogo se baja recién al abrirlo.
 const ReingresoGarantiaDialog = lazy(() =>
   import('../../components/service/ReingresoGarantiaDialog').then((modulo) => ({ default: modulo.ReingresoGarantiaDialog })),
+)
+// Vínculos de garantía (F-SVC-21): también diferidos; solo se pintan si la reparación tiene vínculos.
+const VinculosGarantia = lazy(() =>
+  import('../../components/service/VinculosGarantia').then((modulo) => ({ default: modulo.VinculosGarantia })),
 )
 const AgregarManoObraDialog = lazy(() =>
   import('../../components/service/AgregarManoObraDialog').then((modulo) => ({ default: modulo.AgregarManoObraDialog })),
@@ -636,7 +639,12 @@ export function ServicioReparacion() {
               </Stack>
             </CardContent>
           </Card>
-          {reparacion ? <VinculosGarantia key={reparacion.id} reparacionId={reparacion.id} /> : null}
+          {reparacion ? (
+            <Suspense fallback={null}>
+              {/* Con `key` por reparación: al cambiar de reparación se recarga y no queda nada de la anterior. */}
+              <VinculosGarantia key={reparacion.id} reparacionId={reparacion.id} />
+            </Suspense>
+          ) : null}
           {reparacion ? (
             <ItemsReparacion
               reparacion={reparacion}
