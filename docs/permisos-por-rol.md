@@ -283,6 +283,13 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
 `service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
 `lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
 
+**Asignación a tiendas (MSF-597 · BUG-315).** El Técnico accede a Service solo en las tiendas con fila en
+`usuarios_empresas` (`private.empresas_accesibles()`), así que `tecnico` es el sexto rol válido por empresa:
+el CHECK `usuarios_empresas_rol_por_empresa` y `private.validar_asignaciones` (usada por
+`asignar_empresas_usuario`, `guardar_asignaciones_invitacion` y `aceptar_invitacion`) lo admiten, y el selector
+de Usuarios lo ofrece. Migración aditiva `20270121121400_rol_tecnico_por_empresa.sql`; test
+`supabase/tests/database/rol_tecnico_por_empresa.test.sql`. Los permisos de `mostrador` no cambian.
+
 - **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
   (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
   `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
