@@ -69,6 +69,9 @@ transacción de pgTAP: el test verifica la serie completa de la tienda y que el 
   `pages/service-tecnico/reparacion-garantia.test.tsx` (SC-005): falla obligatoria, resumen en solo lectura,
   errores de la base en el campo, navegación a la nueva, cierre al cambiar de empresa, vínculos en ambas
   reparaciones y botón oculto con `lectura`, sin entrega o con la reparación anulada.
+- E2E `apps/web/e2e/service-garantia.e2e.ts` (`[MSF-146:T022]`): desde el detalle de una reparación entregada,
+  el botón abre el diálogo, la falla es obligatoria, al guardar lleva al detalle de la nueva y ambos detalles
+  muestran el vínculo. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (ver `docs/e2e-app.md`).
 
 ## Reversión
 
