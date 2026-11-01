@@ -12,7 +12,6 @@ import { mensajeDeErrorCobro } from './ventas/cobros'
 export const MENSAJE_PRODUCTO_NO_ENCONTRADO = 'Producto no encontrado'
 export const MENSAJE_CODIGO_INVALIDO = 'El código de barras debe tener 13 dígitos (EAN-13).'
 export const MENSAJE_ERROR_ESCANEO = 'No pudimos agregar el producto. Probá de nuevo.'
-export const MENSAJE_ERROR_CONFIRMAR_VENTA = 'No pudimos confirmar la venta. No se descontó nada: probá de nuevo.'
 export const MENSAJE_ERROR_COBRAR = 'La venta se confirmó pero no pudimos registrar el cobro. Probá de nuevo: no se duplica la venta.'
 export const MENSAJE_SIN_CONSUMIDOR_FINAL = 'No hay un cliente «Consumidor final» en tu organización. Pedile a un administrador que lo cree.'
 
