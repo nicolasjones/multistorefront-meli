@@ -196,3 +196,25 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
 6. Pendientes de F-REN-03 trazados en **MSF-556**: selector «Mayor/Menor margen primero» y buscador de texto
    libre (hoy orden fijo por menor margen y lista con búsqueda).
+
+## Costos adicionales del canal (F-REN-08, MSF-209)
+
+Pestaña **Costos adicionales** (`/rentabilidad/costos`). El Administrador define, por empresa (tienda), los costos reales
+de vender que el margen debe descontar. El catálogo es **libre**: cada costo tiene un nombre (único entre los activos de la
+empresa), un tipo —**porcentaje sobre el neto sin IVA** (0–100) o **monto en pesos por unidad**— y un valor ≥ 0.
+
+- **Dónde vive** (Principio VII): `dominio.costos_adicionales_canal` (regla de negocio de cada tienda) con RLS por
+  organización, empresa accesible y sección `rentabilidad`. No hay políticas de escritura: se escribe solo con las RPC
+  `public.guardar_costo_adicional` y `public.dar_baja_costo_adicional` (`security definer`, exigen `edicion`;
+  `anon` sin ejecución). `public.listar_costos_adicionales` pide `lectura`. La baja es `activo = false`.
+- **Cómo descuenta**: `analitica.margen_producto_canal` suma la columna `costos_adicionales` (por unidad) y
+  `margen = neto − costo − costos_adicionales`. Sin costos activos los valores son idénticos a los de MSF-120; con ellos
+  se recalculan `margen_pct`, `estado` y todo lo que lee la vista (Resumen, Por producto, Comparativo, Historia). Es un cambio
+  `BREAKING` de semántica de `margen` (ver `specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/`).
+- **Permisos**: botones de alta, edición y baja solo con `edicion` (Administrador); Administración (`lectura`) los ve sin
+  botones; sin `lectura` la ruta muestra acceso restringido.
+- **Empresa activa** (Principio VIII): la lista sigue a la empresa de la barra superior (o «Todas las tiendas»); al cambiarla
+  se recarga y un diálogo abierto se cierra con aviso sin guardar. El alta con varias empresas marcadas en «Aplica a» crea
+  un costo por empresa; la edición no cambia de empresa.
+- **Reversión**: la tabla y las RPC son aditivas (`drop function` y `drop table` en una migración posterior, exportando
+  antes los datos); la vista se restituye con su definición de `20261130100200` y se borra `analitica.costos_adicionales_de`.

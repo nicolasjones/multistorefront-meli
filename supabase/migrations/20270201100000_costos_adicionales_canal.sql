@@ -30,10 +30,10 @@ comment on column dominio.costos_adicionales_canal.tipo is
   'porcentaje: % (0–100) sobre el neto sin IVA · monto: pesos por unidad.';
 
 -- Nombre único por empresa entre los costos activos (sin distinguir mayúsculas ni espacios de borde).
-create unique index costos_adicionales_canal_nombre_activo
+create unique index if not exists costos_adicionales_canal_nombre_activo
   on dominio.costos_adicionales_canal (empresa_id, lower(btrim(nombre)))
   where activo;
-create index costos_adicionales_canal_org_empresa
+create index if not exists costos_adicionales_canal_org_empresa
   on dominio.costos_adicionales_canal (organizacion_id, empresa_id);
 
 alter table dominio.costos_adicionales_canal enable row level security;

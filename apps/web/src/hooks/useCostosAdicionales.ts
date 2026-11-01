@@ -3,41 +3,34 @@ import { type CostoAdicional, listarCostosAdicionales } from '../lib/costosAdici
 import { supabaseClient } from '../lib/supabase'
 import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 
+type Resultado = { clave: string; costos: CostoAdicional[]; hayError: boolean }
+
 // Costos adicionales de la empresa elegida (o de todas las accesibles si `empresaId` es null), F-REN-08.
-// Se recarga al cambiar la empresa o la organización de trabajo y nunca muestra la lista anterior
-// mientras llega la nueva (Principio VIII). «Última petición gana»; un error no se traga: queda en
-// `hayError` con la lista vacía.
-export function useCostosAdicionales(empresaId: string | null, habilitado = true) {
+// Cada respuesta lleva la clave (organización + empresa) con la que se pidió: si la clave actual es otra,
+// el hook devuelve «cargando» y lista vacía, así que jamás queda a la vista la lista de la empresa o la
+// organización anterior, ni siquiera en el render previo a que corra la recarga (Principio VIII).
+// «Última petición gana»; un error no se traga: queda en `hayError` con la lista vacía.
+export function useCostosAdicionales(empresaId: string | null) {
   const { organizacionId } = useOrganizacionDeTrabajo()
-  const [costos, setCostos] = useState<CostoAdicional[]>([])
-  const [cargando, setCargando] = useState(true)
-  const [hayError, setHayError] = useState(false)
+  const clave = `${organizacionId ?? ''}|${empresaId ?? ''}`
+  const [resultado, setResultado] = useState<Resultado | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
-    setCargando(true)
     try {
-      const lista = await listarCostosAdicionales(supabaseClient, empresaId)
-      if (peticion !== ultimaPeticion.current) return
-      setCostos(lista)
-      setHayError(false)
+      const costos = await listarCostosAdicionales(supabaseClient, empresaId)
+      if (peticion === ultimaPeticion.current) setResultado({ clave, costos, hayError: false })
     } catch (error) {
       console.error('No pudimos cargar los costos adicionales.', error)
-      if (peticion !== ultimaPeticion.current) return
-      setCostos([])
-      setHayError(true)
+      if (peticion === ultimaPeticion.current) setResultado({ clave, costos: [], hayError: true })
     }
-    setCargando(false)
-    // organizacionId solo dispara la recarga; la organización la resuelve la base.
-  }, [empresaId, organizacionId])
+  }, [clave, empresaId])
 
   useEffect(() => {
-    if (!habilitado) return
-    // Vacía antes de cargar: jamás queda a la vista la lista de la empresa anterior.
-    setCostos([])
     void cargar()
-  }, [cargar, habilitado])
+  }, [cargar])
 
-  return { costos, cargando, hayError, recargar: cargar }
+  const vigente = resultado?.clave === clave ? resultado : null
+  return { costos: vigente?.costos ?? [], cargando: vigente === null, hayError: vigente?.hayError ?? false, recargar: cargar }
 }
