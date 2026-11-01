@@ -241,15 +241,14 @@ Deno.serve(async (req) => {
     const { data: puedeEjecutar } = await asUser.rpc('puede_chat_ejecutar_funcionalidad', { p_feature_id: accion.feature_id })
     if (!puedeEjecutar) return { propuesta: false, motivo: 'ACCION_NO_DISPONIBLE' }
 
-    await asUser.from('mensajes_chat_ia').insert({
-      conversacion_id: conversacionId,
-      origen: 'chat',
-      contenido: descripcion,
-      estado: 'propuesta',
-      accion_feature_id: accion.feature_id,
-      accion_rpc: rpc,
-      accion_parametros: parametros,
+    // La propuesta se crea por RPC: el cliente ya no puede escribir accion_* (MSF-724).
+    const { data: creada, error } = await asUser.rpc('proponer_accion_chat_ia', {
+      p_conversacion_id: conversacionId,
+      p_rpc: rpc,
+      p_parametros: parametros,
+      p_descripcion: descripcion,
     })
+    if (error || !creada?.propuesta) return { propuesta: false, motivo: 'ACCION_NO_DISPONIBLE' }
     return { propuesta: true }
   }
 
