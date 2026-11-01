@@ -1,7 +1,11 @@
 # Inicio y alertas
 
-Spec: `specs/20261030-100000-inicio-y-alertas/` (épica MSF-156). Este documento se amplía con la
-historia F-INI-03 (búsqueda global).
+Spec: `specs/20261030-100000-inicio-y-alertas/` (épica MSF-156). Cubre las tres historias de la épica:
+la pantalla de inicio (F-INI-01), las alertas accionables (F-INI-02) y la búsqueda global (F-INI-03).
+
+**Alcance (decisión D-3 de la spec):** Inicio es una **pantalla de Refine con consultas en vivo**, no un
+tablero de Superset. Es lo que dice el documento del componente de la épica; la fila del roadmap quedó
+alineada con esta decisión (`docs/roadmap-template.md`).
 
 ## Pantalla de inicio (F-INI-01, MSF-344)
 
@@ -86,7 +90,33 @@ Variables (solo ejemplos, valores reales en archivos ignorados por Git):
 - **Empresa activa** (Principio VIII): la tarjeta pide las alertas de la empresa activa más las de la
   organización entera; en «Todas mis empresas», todas las accesibles. Al cambiar de empresa se recarga.
 
-### Pruebas
+## Búsqueda global (F-INI-03, MSF-374)
 
-pgTAP `supabase/tests/database/alertas_inicio.test.sql`; Vitest `alertas-lista`, `alertas-demora`,
-`feature-ml`; `pnpm test:edge:recalcular-alertas-inicio`; `pnpm test:kestra:alertas-inicio`.
+Campo en la barra superior (`EncabezadoPanel` → `BusquedaGlobal`), visible en todas las pantallas del panel.
+
+- **Qué busca**: solo productos, por nombre o SKU (decisión D-4 de la spec); clientes y comprobantes
+  quedan fuera.
+- **RPC**: `public.buscar_productos_global(p_q text, p_limite int default 8)` — `security invoker`: rige la
+  RLS de `dominio.productos` (organización + `productos` ≥ `lectura`), así que un rol sin lectura recibe
+  0 filas. Mínimo 2 caracteres (error `22023`) y tope 20; tolera mayúsculas y tildes, y el nombre además
+  tolera errores leves de tipeo (`pg_trgm`).
+- **Interfaz**: espera 300 ms tras escribir; elegir un resultado abre `/productos/:id/edit`; sin
+  coincidencias, «No encontramos productos»; si falla, el estado de error compartido con «Reintentar» sin
+  vaciar el campo. Teclado: flechas, Enter y Escape; una región `role="status"` anuncia la cantidad de
+  resultados.
+- **Empresa activa**: no aplica (los productos son del catálogo de la organización, no de una empresa).
+- **Reversión**: `drop function public.buscar_productos_global(text, integer);` (migración posterior).
+- Detalle: [`docs/busqueda-global.md`](./busqueda-global.md).
+
+## Pruebas
+
+pgTAP `supabase/tests/database/alertas_inicio.test.sql` y `supabase/tests/database/busqueda_global.test.sql`;
+Vitest de Inicio (`inicio`, `accesos-directos`, `tarjeta-empresas`, `tarjeta-stock`, `tarjeta-consultas`,
+`tarjeta-dolar`, `permisos-inicio`, `estados-inicio`, `feature-ml`, `empresa-activa-inicio`,
+`navegacion-inicio`, `alertas-lista`, `alertas-demora`) y de la búsqueda (`busqueda-global`);
+`pnpm test:edge:recalcular-alertas-inicio`; `pnpm test:kestra:alertas-inicio`.
+
+E2E de cierre (MSF-578 · T024): `apps/web/e2e/inicio.e2e.ts` — Administrador, Consulta y Mostrador con sus
+tarjetas, alertas y accesos según su permiso, y el cambio de empresa activa que recarga Inicio sin dejar
+datos de la empresa anterior (SC-001, SC-002, SC-003). Requiere el stack local (`pnpm dev:supabase`) y la
+web servida; se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (ver [`docs/e2e-app.md`](./e2e-app.md)).
