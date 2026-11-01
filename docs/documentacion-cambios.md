@@ -3,7 +3,9 @@
 La documentación es parte del contrato de cada cambio. Cualquier modificación
 en `apps/`, `workers/`, `supabase/`, `infra/`, `scripts/`, `packages/` o
 `.github/` debe actualizar en el mismo cambio una spec, una guía en `docs/`,
-`AGENTS.md`, `CLAUDE.md` o la constitución.
+`AGENTS.md`, `CLAUDE.md` o la constitución. En una corrección de bug cuenta también
+el registro del flujo oficial en `.specify/bugs/<slug>/` (`assessment.md`,
+`fix.md`, `test.md`).
 
 El control `pnpm docs:check` compara la rama con su base Git y falla si detecta
 código o infraestructura sin una actualización documental. En un pull request

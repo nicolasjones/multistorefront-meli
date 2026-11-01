@@ -21,11 +21,11 @@ if (diff.status !== 0) {
 const changed = diff.stdout.split(/\r?\n/).map((path) => path.trim()).filter(Boolean);
 const relevant = changed.filter((path) => /^(apps|workers|supabase|infra|scripts|packages|\.github)\//.test(path));
 const documented = changed.some((path) =>
-  /^(specs|docs)\//.test(path) || /^(AGENTS|CLAUDE)\.md$/.test(path) || path === '.specify/memory/constitution.md',
+  /^(specs|docs|\.specify)\//.test(path) || /^(AGENTS|CLAUDE)\.md$/.test(path) || path === '.specify/memory/constitution.md',
 );
 
 if (relevant.length > 0 && !documented) {
-  console.error('Fallo de documentación: el cambio toca plataforma/tooling pero no actualiza specs/, docs/, AGENTS.md, CLAUDE.md ni la constitución.');
+  console.error('Fallo de documentación: el cambio toca plataforma/tooling pero no actualiza specs/, docs/, .specify/, AGENTS.md, CLAUDE.md ni la constitución.');
   console.error(relevant.map((path) => ` - ${path}`).join('\n'));
   process.exit(1);
 }
