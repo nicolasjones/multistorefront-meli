@@ -16,17 +16,19 @@ Auth. El panel sigue venciendo la sesión por inactividad como antes (12 h → c
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Reproduction (post-fix) | `WEB_PORT=4399 pnpm --filter @platform/web exec playwright test e2e/tienda-sesion-vencimiento.e2e.ts` (build con `VITE_PANEL_HOSTS=localhost,127.0.0.1`, servido con `vite preview`) | pass | El clic tras 13 h no redirige; sin el arreglo el mismo test falla. |
+| Reproduction (post-fix) | `WEB_PORT=4397 pnpm --filter @platform/web exec playwright test e2e/tienda-sesion-vencimiento.e2e.ts` (build con `VITE_PANEL_HOSTS=localhost,127.0.0.1`, servido con `vite preview`) | pass | El clic tras 13 h no redirige; sin el arreglo el mismo test falla. |
 | Reproduction (con el defecto) | Se reintrodujo `seguirActividad` en `main.tsx` y se volvió a correr el E2E | fail (esperado) | `redirigio` = `true`: el clic navega a `/login` — confirma que el test detecta el defecto. |
-| New / updated tests | `pnpm --filter @platform/web exec vitest run src/lib/arranque.test.ts src/lib/vencimientoSesion.test.ts src/lib/tienda.test.ts` | pass | 30 tests OK (3 archivos). |
+| New / updated tests | `pnpm --filter @platform/web exec vitest run src/lib/arranque.test.ts src/lib/vencimientoSesion.test.ts src/lib/tienda.test.ts` | pass | 32 tests OK (3 archivos). |
 | Regression suite | `pnpm --filter @platform/web build` (`tsc -b && vite build`) | pass | Sin errores de tipos ni de bundling. |
 | Lint / type-check | `pnpm lint` (oxlint) | pass | 0 errores; los avisos de `set-state-in-effect` son preexistentes en archivos ajenos al cambio. |
+| Documentación | `pnpm docs:check` | pass | Documentación de cambios OK; migraciones sin novedades contra `origin/dokploy`. |
+| Cierre único (concurrencia) | `pnpm --filter @platform/web exec vitest run src/lib/arranque.test.ts` | pass | Varios clics tras el vencimiento → un solo `signOut` y una sola navegación a `/login`. |
 
 ## Output Excerpts
 
 ```
  Test Files  3 passed (3)
-      Tests  30 passed (30)
+      Tests  32 passed (32)
 ```
 
 ```
@@ -57,8 +59,8 @@ Con el defecto reintroducido (control instalado en todos los hosts):
   se pasa como build arg (`apps/web/Dockerfile`) y la tienda no se enruta sin ella (falla seguro).
 - **Sesión de la cuenta web en la tienda**: con este arreglo la sesión del cliente de la tienda ya
   no la cierra la regla de inactividad del panel; queda vigente hasta su salida o el tope de 30 días
-  del servidor. Está documentado (`docs/acceso-ingreso.md`) y con seguimiento propio propuesto
-  (Tarea `seguimiento` de MSF-673, dueño: épica MSF-237 / F-CLI-06).
+  del servidor. Está documentado (`docs/acceso-ingreso.md`) y con seguimiento propio
+  (Tarea `seguimiento` MSF-740 en It's a Plan, dueño: épica MSF-237 / F-CLI-06).
 - El cierre de sesión del panel no se cambió: sigue yendo a `/login` (ruta que en el panel existe).
 
 ## Recommendation
