@@ -54,6 +54,7 @@
     "db:migrar:cloud": "node scripts/migrar-supabase-cloud.mjs",
     "test:db:migrar-cloud": "node --test scripts/migrar-supabase-cloud.test.mjs",
     "db:validar:aditivas": "node scripts/validar-migraciones-aditivas.mjs",
+    "test:db:guard-migraciones": "node --test scripts/detectar-add-column.test.mjs",
     "test:db:validar-aditivas": "node --test scripts/validar-migraciones-aditivas.test.mjs",
     "ci:verificar-staging-exitoso": "node scripts/verificar-staging-exitoso.mjs",
     "test:ci:verificar-staging-exitoso": "node --test scripts/verificar-staging-exitoso.test.mjs",

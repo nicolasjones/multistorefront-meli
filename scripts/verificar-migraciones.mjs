@@ -16,6 +16,7 @@
 // Sale con código 1 si hay un problema.
 
 import { spawnSync } from 'node:child_process';
+import { detectarAddColumnSinGuard } from './detectar-add-column.mjs';
 
 const args = process.argv.slice(2);
 const valorDe = (flag, def) => {
@@ -93,14 +94,15 @@ const nuevos = existeBase2
 
 const revisar = (archivo) => {
   const sql = git(['show', `:${archivo}`]).stdout || '';
+  // ADD COLUMN se analiza por sentencia completa (puede ir en una línea aparte de ALTER TABLE).
+  for (const { linea } of detectarAddColumnSinGuard(sql)) {
+    problemas.push(`${archivo}:${linea} ADD COLUMN sin IF NOT EXISTS (una aplicación parcial traba el reintento)`);
+  }
   const lineas = sql.split('\n');
   lineas.forEach((linea, i) => {
     const l = linea.trim();
     if (/^--/.test(l)) return;
     const n = i + 1;
-    if (/^alter\s+table\s+[^;]*\badd\s+column\b/i.test(l) && !/add\s+column\s+if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} ADD COLUMN sin IF NOT EXISTS (una aplicación parcial traba el reintento)`);
-    }
     if (/^drop\s+function\b/i.test(l) && !/if\s+exists/i.test(l)) {
       problemas.push(`${archivo}:${n} DROP FUNCTION sin IF EXISTS`);
     }
