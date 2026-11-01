@@ -56,3 +56,11 @@ drop function public.confirmar_toma_inventario(jsonb, date);
 
 - pgTAP: `supabase/tests/database/stock_toma_inventario.test.sql` (`pnpm test:db`).
 - Vitest: `apps/web/src/pages/stock/toma-inventario.test.tsx`.
+
+## Categorías grandes (MSF-716)
+
+La toma admite hasta 1000 productos, pero el stock del depósito se pedía con un único filtro `in (…)` en la URL
+(~37 caracteres por id: 250 ids ya superan los 8 KB del proxy y la pantalla mostraba «No pudimos cargar los
+productos de esta categoría»). `listarStockPorDepositoDe` (`apps/web/src/lib/depositos.ts`) ahora parte los ids en
+lotes de `LOTE_IDS_STOCK` (100), los pide en paralelo y une el resultado; si un lote falla propaga el error en vez de
+devolver stock parcial. Sin cambios de base de datos. Lo aprovechan también Stock actual y su exportación.
