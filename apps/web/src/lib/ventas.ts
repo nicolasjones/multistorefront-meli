@@ -15,7 +15,7 @@ export const CANALES_VENTA: ReadonlyArray<{ valor: CanalVenta; etiqueta: string 
   { valor: 'tienda_online', etiqueta: 'Tienda online' },
   { valor: 'telefono_whatsapp', etiqueta: 'Teléfono/WhatsApp' },
 ]
-export const AYUDA_CANAL_ML = 'Mercado Libre queda para la Etapa 2.'
+export const AYUDA_CANAL_ML = 'Mercado Libre todavía no está disponible como canal.'
 
 export const ETIQUETA_TIPO: Readonly<Record<TipoComprobante, string>> = { factura: 'Factura', presupuesto: 'Presupuesto' }
 

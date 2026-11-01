@@ -156,7 +156,7 @@ describe('Comprobante de venta · alta (F-VTA-05)', () => {
     expect(screen.getByRole('button', { name: 'Tienda online' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Teléfono/WhatsApp' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Mercado Libre/ })).not.toBeInTheDocument()
-    expect(screen.getByText('Mercado Libre queda para la Etapa 2.')).toBeInTheDocument()
+    expect(screen.getByText('Mercado Libre todavía no está disponible como canal.')).toBeInTheDocument()
   })
 
   it('muestra los datos de lectura del cliente elegido, incluido Consumidor final', async () => {
