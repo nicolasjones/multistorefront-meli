@@ -19,7 +19,7 @@ sesión; en el panel el comportamiento queda idéntico.
 | File | Change | Notes |
 |------|--------|-------|
 | `apps/web/src/lib/arranque.ts` | added | `instalarVencimientoDeSesion(host, alVencer)`: resuelve el host con `esHostDeTienda` y delega la política. Módulo propio para no crear un ciclo de imports (`vencimientoSesion` → `tienda` → `supabase` → `vencimientoSesion` dejaría `CLAVE_MANTENER_SESION` en TDZ al cargar). |
-| `apps/web/src/main.tsx` | modified | Calcula el host antes de instalar el control y llama a `instalarVencimientoDeSesion(host, …)`. La guarda `cerrando` (evita varios `signOut` concurrentes) queda igual. |
+| `apps/web/src/main.tsx` | modified | Calcula el host antes de instalar el control y llama a `instalarVencimientoDeSesion(host, …, panel)`: `hostsDelPanel()` se resuelve una sola vez y el mismo conjunto de hosts decide si el host es de tienda y si se instala el control. La guarda `cerrando` (evita varios `signOut` concurrentes) queda igual. |
 | `apps/web/src/lib/vencimientoSesion.ts` | modified | Nueva `seguirActividadDelPanel(esTiendaPublica, alVencer)`: en tienda no instala el control (ni escribe la marca); en el panel, `seguirActividad` como antes. |
 | `apps/web/src/lib/vencimientoSesion.test.ts` | modified | Tests `[MSF-673]` de la política: en tienda no avisa ni renueva la marca; en el panel sigue venciendo. |
 | `apps/web/src/lib/arranque.test.ts` | added | Tests `[MSF-673]` del **cableado** (lo que pedía la evaluación): host de tienda → no hay control, no se avisa y la marca no se toca; host del panel → avisa una sola vez tras 13 h; con actividad reciente renueva sin avisar. |
@@ -39,12 +39,20 @@ export function instalarVencimientoDeSesion(host: string, alVencer?: () => void,
 
 ```ts
 // apps/web/src/main.tsx
+const host = window.location.host
+const panel = hostsDelPanel()
+const esTiendaPublica = esHostDeTienda(host, panel)
+
 let cerrando = false
-instalarVencimientoDeSesion(host, () => {
-  if (cerrando) return
-  cerrando = true
-  void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
-})
+instalarVencimientoDeSesion(
+  host,
+  () => {
+    if (cerrando) return
+    cerrando = true
+    void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
+  },
+  panel,
+)
 ```
 
 ## Tests Added or Updated
