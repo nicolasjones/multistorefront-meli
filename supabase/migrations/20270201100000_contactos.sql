@@ -49,14 +49,14 @@ comment on column dominio.contactos.consentimiento_texto is
 comment on column dominio.contactos.updated_at is
   'Bloqueo optimista de public.actualizar_contacto / anonimizar_contacto: avanza solo ante un cambio real.';
 
-create unique index contactos_empresa_correo_uq
+create unique index if not exists contactos_empresa_correo_uq
   on dominio.contactos (empresa_id, correo_normalizado)
   where anonimizado_en is null and correo_normalizado is not null;
-create unique index contactos_empresa_telefono_uq
+create unique index if not exists contactos_empresa_telefono_uq
   on dominio.contactos (empresa_id, telefono_normalizado)
   where anonimizado_en is null and telefono_normalizado is not null;
-create index contactos_organizacion_id_idx on dominio.contactos (organizacion_id);
-create index contactos_empresa_nombre_idx on dominio.contactos (empresa_id, lower(nombre));
+create index if not exists contactos_organizacion_id_idx on dominio.contactos (organizacion_id);
+create index if not exists contactos_empresa_nombre_idx on dominio.contactos (empresa_id, lower(nombre));
 
 -- Normaliza al escribir (la base es la autoridad) y hace avanzar `updated_at` solo ante un cambio real.
 create or replace function private.normalizar_contacto()

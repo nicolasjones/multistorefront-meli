@@ -5,7 +5,8 @@
 --
 -- Seguridad: sección `consultas` = edición (la épica define los permisos de la libreta por esa sección),
 -- empresa accesible, contacto y consulta/comprobante de la MISMA empresa y de la organización de la sesión,
--- contacto activo (un anonimizado no se usa para vincular). Desvincular (`null`) siempre se permite.
+-- contacto activo (un anonimizado no se usa para vincular). Solo el comprobante se desvincula (`null`);
+-- la consulta exige un contacto (22023 si es `null`).
 -- Inexistente, ajeno o sin acceso: misma respuesta `42501`. La actividad no copia datos personales.
 --
 -- Migración aditiva. Reversión (migración posterior):

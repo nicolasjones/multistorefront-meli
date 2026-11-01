@@ -130,7 +130,8 @@ begin
   exception when unique_violation then
     -- Carrera con otra alta: se informa el contacto que ganó.
     perform private.validar_contacto(p_empresa_id, null, p_nombre, p_correo, p_telefono);
-    raise;
+    -- Sin el existente identificable: se evita re-lanzar el error nativo, cuyo DETAIL trae el correo/teléfono.
+    raise exception 'Ya existe un contacto con ese correo o teléfono en esta empresa' using errcode = '23505';
   end;
 
   if p_consulta_id is not null then

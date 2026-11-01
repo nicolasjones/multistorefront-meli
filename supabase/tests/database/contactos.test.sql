@@ -5,7 +5,18 @@
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, como «authenticated» o «anon».
 begin;
 
-select plan(52);
+select plan(54);
+
+-- Devuelve el DETAIL del 23505 de crear_contacto (pgTAP no lo expone).
+create function pg_temp.detalle_duplicado(p_correo text) returns text language plpgsql as $f$
+declare v_detalle text;
+begin
+  perform public.crear_contacto('a1000000-0000-0000-0000-00000000000a', 'Otra Ana', p_correo, null, true, 'Texto');
+  return null;
+exception when unique_violation then
+  get stacked diagnostics v_detalle = pg_exception_detail;
+  return v_detalle;
+end $f$;
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -122,6 +133,11 @@ select throws_ok(
   $$select public.crear_contacto('a1000000-0000-0000-0000-00000000000a', 'Otra Ana', 'ANA@example.com ', null, true, 'Texto')$$,
   '23505', null, 'mismo correo (sin mayúsculas ni espacios) en la empresa: duplicado'
 );
+select is(
+  pg_temp.detalle_duplicado('ana@example.com'),
+  (select id::text from dominio.contactos where correo_normalizado = 'ana@example.com'),
+  'el duplicado informa en DETAIL el id del contacto existente (para ofrecer vincularlo)'
+);
 select throws_ok(
   $$select public.crear_contacto('a1000000-0000-0000-0000-00000000000a', 'Otra Ana', null, '(54) 911-5555 1234', true, 'Texto')$$,
   '23505', null, 'mismo teléfono por sus dígitos: duplicado'
@@ -196,6 +212,12 @@ select throws_ok(
 );
 select is((select count(*)::int from public.historial_contacto('e1000000-0000-0000-0000-00000000000b')), 0,
   'el historial de un contacto sin acceso viene vacío');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+select is((select array_agg(nombre order by nombre) from public.buscar_contactos(null, null)), array['Ana Pérez', 'Beto'],
+  'Todas mis empresas: el administrador ve los contactos de sus dos empresas y no los de otra organización');
+select is((select array_agg(nombre) from public.buscar_contactos('a1000000-0000-0000-0000-00000000000b', null)), array['Beto'],
+  'con una empresa concreta solo trae los de esa empresa');
 
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select is((select array_agg(nombre) from dominio.contactos), array['Dora'], 'la organización Dos ve solo la suya');
