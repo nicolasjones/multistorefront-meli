@@ -47,8 +47,8 @@ const ENTREGADA: Reparacion = {
   entrega_real: '2026-10-24',
   entregado_por: 'Luis',
   items: [
-    { id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null, cantidad: 1, precio_unitario: 20000, subtotal: 20000 },
-    { id: 'i-2', tipo: 'repuesto', descripcion: 'Flex', producto_id: null, sku: null, cantidad: 2, precio_unitario: 1500, subtotal: 3000 },
+    { id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null, cantidad: 1, precio_unitario: 20000, subtotal: 20000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento' },
+    { id: 'i-2', tipo: 'repuesto', descripcion: 'Flex', producto_id: null, sku: null, cantidad: 2, precio_unitario: 1500, subtotal: 3000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento' },
   ],
   total_mano_obra: 20000, total_repuestos: 3000, total_cliente: 23000,
 }

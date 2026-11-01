@@ -203,7 +203,7 @@ select lives_ok(
 );
 reset role;
 
-select ok(pg_temp.total_coincide() and (select reservado from dominio.existencias) = 3, 'el reservado total sigue en 3 y coincide con la suma');
+select ok(pg_temp.total_coincide() and (select reservado from dominio.existencias where producto_id = 'a1000000-0000-0000-0000-000000000001') = 3, 'el reservado total sigue en 3 y coincide con la suma');
 
 -- Devolución del Revisor: el motivo de sistema no se usa en un movimiento manual (sin traslado_id).
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');

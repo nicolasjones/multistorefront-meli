@@ -38,6 +38,9 @@ import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
+import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
+import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
+import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -57,6 +60,7 @@ import { UsuarioCreate } from './pages/usuarios/create'
 import { UsuarioList } from './pages/usuarios/list'
 import { RolesPermisos } from './pages/roles/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
+import { BajaCorreoPage } from './pages/baja-correo'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
 import { CambiarCorreoPage } from './pages/cuenta/cambiar-correo'
@@ -117,9 +121,14 @@ const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').the
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
 const ServicioReportes = lazy(() => import('./pages/service-tecnico/reportes').then((modulo) => ({ default: modulo.ServicioReportes })))
 // Ventas: también fuera del recorrido principal (Principio VI).
+const DevolucionesList = lazy(() => import('./pages/ventas/devoluciones').then((modulo) => ({ default: modulo.DevolucionesList })))
 const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
+// F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
+const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
+// F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
+const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const SeguimientoPage = lazy(() => import('./pages/seguimiento').then((modulo) => ({ default: modulo.SeguimientoPage })))
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
@@ -258,6 +267,10 @@ function App() {
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
               { name: 'service-tecnico-reportes', list: '/service-tecnico/reportes', meta: { label: 'Reportes' } },
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
+              // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
+              { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
+              { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
@@ -305,6 +318,7 @@ function App() {
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
               {/* Consulta pública del cliente (F-SVC-22): fuera del panel, sin sesión, menú ni barra superior. */}
               <Route path="/seguimiento/:token" element={<Suspense fallback={null}><SeguimientoPage /></Suspense>} />
+              <Route path="/baja-correo/:token" element={<BajaCorreoPage />} />
               <Route
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>
@@ -362,6 +376,30 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoNueva /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoHistorial /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoDetalle /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -519,6 +557,15 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><PresupuestosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem. */}
+                <Route
+                  path="/ventas/devoluciones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><DevolucionesList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -697,6 +744,16 @@ function App() {
                   }
                 />
                 <Route
+                  path="/ventas/reportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="reportes">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReportesVentas /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/ventas/configuracion"
                   element={
                     <RequiereOrganizacionActiva>
@@ -709,6 +766,16 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/pagos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

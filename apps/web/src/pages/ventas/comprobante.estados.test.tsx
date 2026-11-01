@@ -33,6 +33,14 @@ vi.mock('../../lib/estadosComprobante', async (importOriginal) => ({
   transicionesPermitidas: mocks.transicionesPermitidas,
   historialComprobante: mocks.historialComprobante,
 }))
+// Los cobros son otra tarjeta con su propio «Reintentar»: se resuelven bien para que, cuando falla el
+// historial, el único botón «Reintentar» de la pantalla sea el del historial.
+vi.mock('../../lib/ventas/cobros', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventas/cobros')>()),
+  cobrosDeComprobante: vi.fn(async () => []),
+  saldoComprobante: vi.fn(async () => null),
+  puedeRegistrarCobro: vi.fn(async () => false),
+}))
 vi.mock('../../lib/ventasDespacho', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasDespacho')>()),
   obtenerDespachoComprobante: vi.fn(async () => ({

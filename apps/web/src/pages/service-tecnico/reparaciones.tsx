@@ -14,6 +14,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltrosReparaciones } from '../../components/service/FiltrosReparaciones'
+import { ETIQUETA_PENDIENTE_STOCK, MarcaStockItem } from '../../components/service/MarcaStockItem'
 import { PestanasService } from '../../components/service/PestanasService'
 import { nombreArchivoCsv } from '../../lib/exportarCsv'
 import {
@@ -69,7 +70,12 @@ const columnas: ColumnaAdaptable<ReparacionListada>[] = [
   { clave: 'serie', encabezado: 'N.º de serie', render: (reparacion) => reparacion.numero_serie ?? '—' },
   {
     clave: 'estado', encabezado: 'Estado',
-    render: (reparacion) => <EtiquetaEstado texto={reparacion.estado} variante={reparacion.estado_tono as TonoEtiqueta} />,
+    render: (reparacion) => (
+      <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
+        <EtiquetaEstado texto={reparacion.estado} variante={reparacion.estado_tono as TonoEtiqueta} />
+        {reparacion.pendientes_stock > 0 ? <MarcaStockItem etiqueta={ETIQUETA_PENDIENTE_STOCK} /> : null}
+      </Stack>
+    ),
   },
   { clave: 'tecnico', encabezado: 'Técnico', render: (reparacion) => reparacion.tecnico ?? '—' },
   {

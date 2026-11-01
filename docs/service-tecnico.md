@@ -37,6 +37,15 @@ Spec: `specs/20261028-100000-service-seguimiento-y-reportes/`. Guías: [Fotos y 
   - **Límite conocido**: el contador es por IP hasheada (no por tienda ni por token) y purga de forma acotada (100 filas por llamada) las ventanas vencidas; la IP real depende de las cabeceras del proxy del despliegue (ver `service-seguimiento.md`).
   - Evidencia: `service_adjuntos.test.sql`, `service_garantia.test.sql`, `service_enlace_consulta.test.sql`, `service_analitica.test.sql`, `service_reportes_acceso.test.sql`, `rls_en_toda_tabla.test.sql` y el test del handler de la Edge Function.
 
+## Índice y cierre de la épica MSF-232 (cobro, avisos y ficha del cliente)
+
+Spec: `specs/20261028-100000-service-cobro-y-avisos/`. Guías: [Cobro con comprobante de Ventas](service-cobro.md) (F-SVC-13), [Avisos al cliente por correo](service-avisos.md) (F-SVC-14) y [Reparaciones en la ficha del cliente](service-cliente-reparaciones.md) (F-SVC-15).
+
+- **Revisión de seguridad (T033)**: `dominio.reparacion_avisos` (esquema `dominio`: entidad de negocio del taller) tiene RLS por organización, nivel `service_tecnico` y tienda accesible, sin escritura directa ni acceso de `anon`. Las columnas nuevas de `comprobantes_venta` (`origen_tipo`, `origen_id`) y `comprobantes_venta_lineas` (`sin_stock`) siguen en `dominio`. Las RPC nuevas son `security definer` con `search_path = ''`, `revoke … from public, anon` y `grant execute … to authenticated`; las funciones del flow están en `private` y solo las ejecuta `kestra_orquestacion`. El índice único parcial de `(organizacion_id, origen_tipo, origen_id)` más `for update` hacen idempotente y seguro ante concurrencia a `generar_comprobante_reparacion`. El correo escapa los valores y no lleva importes. Evidencia: `service_cobro.test.sql`, `service_cobro_stock.test.sql`, `service_avisos.test.sql`, `service_cliente_reparaciones.test.sql`, `reparaciones-aviso-correo.test.mjs` y `rls_en_toda_tabla.test.sql`.
+- **Recorrido completo (SC-009)**: E2E `apps/web/e2e/service-cobro-avisos.e2e.ts` (reparación de dos ítems, comprobante, cobro, aviso y pestaña del cliente). Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; con `E2E_CORREO_KESTRA=1` (Kestra y Mailpit levantados) también espera el correo recibido. El estado «Cobrado» se marca desde Node porque el disparo desde cobros aún no tiene pantalla (F-VTA-10, FR-026).
+- **Diferencias con el prototipo**: `ServicioReparacion.dc.html` trae el botón «Avisar al cliente» y el mensaje «Aviso enviado al cliente» (se respetan); `ClienteFicha.dc.html` no dibuja la pestaña «Reparaciones». Sin artboard, y por pedido de la spec: el botón «Generar comprobante» y la tarjeta «Comprobante asociado», la casilla «Avisar al cliente» al cambiar el estado, el historial de avisos con «Reenviar», el aviso «El cliente no tiene correo», la pestaña «Reparaciones» con su estado vacío y el correo mismo.
+- **Contradicciones prototipo↔requisitos**: la ficha del cliente era una sola página sin pestañas y la épica pide la nueva; se agregan «Datos» (todo el contenido actual) y «Reparaciones» (*Decisiones abiertas* 5, nombre «Datos» propuesto). La alícuota del comprobante de Service es provisoria (*Decisiones abiertas* 1).
+
 ## Modelo de datos (F-SVC-02)
 
 Esquema (Constitución, Principio VII): `dominio.reparaciones` es la entidad central del negocio del taller y
@@ -265,3 +274,10 @@ no agrega secretos ni claves (solo migraciones, UI y docs).
   la edición cuando el técnico asignado fue dado de baja. Rechaza un `ingreso_en` futuro (`22023`, hint `ingreso_en`).
 - Migración `20261020140000_reparaciones_lectura_por_tienda.sql` (aditiva; reversión documentada en su cabecera).
 - La pantalla muestra «Revisá los campos marcados» y mueve el foco al primer campo con error.
+
+## Repuestos y stock (épica MSF-217)
+
+Los repuestos de una reparación mueven stock real del depósito elegido. Guías: `docs/service-repuestos-stock.md`
+(descuento por depósito, F-SVC-10), `docs/service-repuestos-devolucion.md` (devolución al quitar o anular,
+F-SVC-11) y `docs/service-repuestos-pendiente.md` (repuesto pendiente de stock, F-SVC-12). Recorrido E2E:
+`apps/web/e2e/service-repuestos-stock.e2e.ts` (se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`).

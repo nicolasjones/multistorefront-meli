@@ -50,6 +50,18 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { LineasComprobante } from '../../components/ventas/LineasComprobante'
 import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFacturaDialog'
+import { CobrosComprobante } from '../../components/ventas/CobrosComprobante'
+import {
+  cobrosDeComprobante,
+  codigoDeErrorCobro,
+  comprobanteAdmiteCobros,
+  esContrarreembolso,
+  puedeRegistrarCobro,
+  saldoComprobante,
+  textoCuentaCobro,
+  type Cobro,
+  type SaldoComprobante,
+} from '../../lib/ventas/cobros'
 import { DialogoAnular } from '../../components/ventas/DialogoAnular'
 import { DialogoNotaCredito } from '../../components/ventas/DialogoNotaCredito'
 import { HistorialComprobante } from '../../components/ventas/HistorialComprobante'
@@ -83,12 +95,14 @@ import {
   aEntradas,
   conCambio,
   conProductoAgregado,
+  indiceEnEntradas,
   guardarLineasComprobante,
   sinLinea,
   type EntradaLinea,
 } from '../../lib/ventasLineas'
 
 const RUTA_COMPROBANTES = '/ventas/comprobantes'
+const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
 
 // Ventas · Comprobante (F-VTA-05, FR-006): alta en `/ventas/comprobantes/nuevo` y edición en `/ventas/comprobantes/:id`.
@@ -106,6 +120,7 @@ export function ComprobanteVenta() {
   const [parametros] = useSearchParams()
   const tipoInicial: TipoComprobante = parametros.get('tipo') === 'presupuesto' ? 'presupuesto' : 'factura'
   const { nivel } = useNivelSeccion('ventas')
+  const { nivel: nivelService } = useNivelSeccion('service_tecnico')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
 
   const [comprobante, setComprobante] = useState<Comprobante | null>(null)
@@ -123,7 +138,17 @@ export function ComprobanteVenta() {
   const [errorLineas, setErrorLineas] = useState<string | null>(null)
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
+  const [aviso, setAviso] = useState<string | null>(null)
   const [clienteConsultado, setClienteConsultado] = useState<ClienteComprobante | null>(null)
+  // Cobros (F-VTA-12, FR-007…FR-009): lista, saldo y permiso de la acción `registrar_cobro`.
+  const [cobros, setCobros] = useState<Cobro[]>([])
+  const [saldo, setSaldo] = useState<SaldoComprobante | null>(null)
+  // Arranca en carga: la tarjeta solo se dibuja con un comprobante guardado, así que nunca se
+  // muestra «sin cobros» antes de haber consultado.
+  const [cargandoCobros, setCargandoCobros] = useState(true)
+  const [errorCobros, setErrorCobros] = useState<string | null>(null)
+  const [puedeCobrar, setPuedeCobrar] = useState(false)
+  const [dialogoCobro, setDialogoCobro] = useState(false)
   const [permitidos, setPermitidos] = useState<string[]>([])
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
@@ -132,7 +157,6 @@ export function ComprobanteVenta() {
   const [notaAbierta, setNotaAbierta] = useState(false)
   // Faltantes (F-VTA-18, FR-047): el diálogo «Registrar faltantes» y el aviso de cierre por cambio de empresa.
   const [registrandoFaltantes, setRegistrandoFaltantes] = useState(false)
-  const [aviso, setAviso] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
   const ultimaPeticionEstados = useRef(0)
   const ultimaPeticionDetalle = useRef(0)
@@ -210,13 +234,52 @@ export function ComprobanteVenta() {
         if (vigente) setDepositos(lista)
       })
       .catch((error) => {
-        console.error('No pudimos cargar los depósitos de la tienda.', error)
+        console.error('No pudimos cargar los depósitos de la tienda.', codigoDeErrorCobro(error))
         if (vigente) setDepositos([])
       })
     return () => {
       vigente = false
     }
   }, [empresaDelComprobante])
+
+  // Cobros de la factura (F-VTA-12, FR-007 y FR-010): la lista, el saldo y el permiso de la acción
+  // `registrar_cobro` en la empresa del comprobante. La base es la autoridad: esto solo muestra.
+  const idDelComprobante = comprobante?.id ?? null
+  const ultimaPeticionCobros = useRef(0)
+  const recargarCobros = useCallback(async () => {
+    if (!idDelComprobante || !empresaDelComprobante) return
+    // Solo la última consulta pinta la tarjeta: al cambiar de empresa o reintentar, una respuesta
+    // vieja que llegue tarde no puede pisar la nueva (FR-009).
+    const peticion = ultimaPeticionCobros.current + 1
+    ultimaPeticionCobros.current = peticion
+    setCargandoCobros(true)
+    setErrorCobros(null)
+    try {
+      const [lista, saldos, permiso] = await Promise.all([
+        cobrosDeComprobante(idDelComprobante),
+        saldoComprobante(idDelComprobante),
+        puedeRegistrarCobro(empresaDelComprobante),
+      ])
+      if (peticion !== ultimaPeticionCobros.current) return
+      setCobros(lista)
+      setSaldo(saldos)
+      setPuedeCobrar(permiso)
+    } catch (error) {
+      if (peticion !== ultimaPeticionCobros.current) return
+      console.error('No pudimos cargar los cobros de la factura.', codigoDeErrorCobro(error))
+      setCobros([])
+      setSaldo(null)
+      // Deny-by-default: sin permiso no se ofrece registrar un cobro (la base igual lo rechaza).
+      setPuedeCobrar(false)
+      setErrorCobros('No pudimos cargar los cobros de la factura. Reintentá.')
+    } finally {
+      if (peticion === ultimaPeticionCobros.current) setCargandoCobros(false)
+    }
+  }, [idDelComprobante, empresaDelComprobante])
+
+  useEffect(() => {
+    void recargarCobros()
+  }, [recargarCobros])
 
   // Empresa activa (Principio VIII, FR-007). Un comprobante nuevo sigue a la tienda activa de la barra superior;
   // uno guardado pertenece a una sola tienda, así que si la barra pasa a otra se cierra con aviso: jamás se
@@ -259,6 +322,23 @@ export function ComprobanteVenta() {
     }
   }, [cargandoEmpresas, empresaActivaId, esNuevo, comprobante, navigate])
 
+  // Empresa activa (Principio VIII, FR-009): al cambiar la tienda se recargan los cobros y el
+  // saldo de la factura, y el diálogo «Registrar cobro» abierto se cierra con aviso. Nunca queda
+  // un cobro de una tienda cargado bajo la otra.
+  const empresaDeLosCobros = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (cargandoEmpresas) return
+    if (empresaDeLosCobros.current === undefined) {
+      empresaDeLosCobros.current = empresaActivaId
+      return
+    }
+    if (empresaActivaId === empresaDeLosCobros.current) return
+    empresaDeLosCobros.current = empresaActivaId
+    setDialogoCobro(false)
+    setAviso('Cambiaste de tienda: cerramos el diálogo de cobro y recargamos los cobros de la factura.')
+    void recargarCobros()
+  }, [cargandoEmpresas, empresaActivaId, recargarCobros])
+
   // Datos de lectura del cliente (CUIT / DNI, dirección de entrega): los del comprobante guardado o, si la
   // persona eligió otro cliente, los que se consultan acá.
   const clienteId = formulario.cliente?.id ?? null
@@ -270,7 +350,7 @@ export function ComprobanteVenta() {
         if (vigente) setClienteConsultado(datos)
       })
       .catch((error) => {
-        console.error('No pudimos leer los datos del cliente.', error)
+        console.error('No pudimos leer los datos del cliente.', codigoDeErrorCobro(error))
         if (vigente) setClienteConsultado(null)
       })
     return () => {
@@ -329,6 +409,12 @@ export function ComprobanteVenta() {
         console.error('No pudimos leer las transiciones de estado permitidas.', error)
       })
   }, [comprobanteId, esFactura, estadoActual, actualizadoEn, empresaActivaId])
+
+  // El error de un cambio de estado no sobrevive al cambio de comprobante ni de tienda (Principio VIII): si no, el
+  // error de una factura queda visible en otra y hace pensar que falló lo que se está viendo ahora.
+  useEffect(() => {
+    setErrorEstado(null)
+  }, [comprobanteId, empresaActivaId])
 
   const elegirEstado = async (destino: EstadoComprobante) => {
     if (!comprobante || cambiandoEstado) return
@@ -403,12 +489,12 @@ export function ComprobanteVenta() {
 
   const cambiarLinea = (indice: number, cambio: Partial<EntradaLinea>) => {
     if (!comprobante) return
-    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indice, cambio))
+    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indiceEnEntradas(comprobante.lineas, indice), cambio))
   }
 
   const quitarLinea = (indice: number) => {
     if (!comprobante) return
-    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indice))
+    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indiceEnEntradas(comprobante.lineas, indice)))
   }
 
   const agregarProducto = (producto: ProductoRepuesto) => {
@@ -486,6 +572,33 @@ export function ComprobanteVenta() {
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
   const estado = comprobante ? definicionEstado(comprobante.estado) : null
+  // Origen (F-SVC-13, FR-007): «Reparación R-000N» con enlace al detalle de Service solo con acceso a esa sección.
+  const origenNumero = comprobante?.origen_tipo === 'reparacion' ? comprobante.origen_numero : null
+  const enlaceOrigen = nivelService === 'lectura' || nivelService === 'edicion'
+  const origenReparacion =
+    comprobante?.origen_tipo === 'reparacion' && comprobante.origen_id && origenNumero ? (
+      <>
+        Origen:{' '}
+        {enlaceOrigen ? (
+          <RouterLink to={`/service-tecnico/reparaciones/${comprobante.origen_id}`}>Reparación {origenNumero}</RouterLink>
+        ) : (
+          <span>Reparación {origenNumero}</span>
+        )}
+      </>
+    ) : undefined
+
+  // El campo «Cuenta de cobro» (FR-008) muestra la del ÚLTIMO cobro con cuenta: la que está
+  // vigente. El chip dice si ese cobro ya fue conciliado contra el extracto.
+  const cobrosConCuenta = cobros.filter((cobro) => textoCuentaCobro(cobro) !== null)
+  const ultimoCobroConCuenta = cobrosConCuenta.at(-1) ?? null
+  const ultimoCobro = cobros.at(-1) ?? null
+  const textoDeLaCuenta = ultimoCobroConCuenta ? textoCuentaCobro(ultimoCobroConCuenta) : null
+  const cobroEsContrarreembolso = ultimoCobro !== null && esContrarreembolso(ultimoCobro)
+
+  // «Registrar cobro» (FR-007): hace falta la acción `registrar_cobro` en la tienda Y que la
+  // factura admita cobros. Un borrador, un presupuesto o una nota de crédito no los admiten: la
+  // base los rechaza y la pantalla no ofrece una acción que va a fallar (escenario 5 de US1).
+  const admiteCobros = comprobante !== null && comprobanteAdmiteCobros(comprobante)
 
   const volver = (
     <Button component={RouterLink} to={RUTA_COMPROBANTES} variant="outlined" size="small" sx={{ mb: 1.5 }}>
@@ -510,6 +623,7 @@ export function ComprobanteVenta() {
         <EncabezadoPagina
           titulo={titulo}
           descripcion={comprobante ? `${comprobante.empresa} · ${comprobante.cliente.nombre}` : undefined}
+          detalle={origenReparacion}
           accion={
             <>
               {estado ? <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} /> : null}
@@ -630,6 +744,33 @@ export function ComprobanteVenta() {
                   </Typography>
                 </Box>
 
+                {/* Cuenta de cobro (F-VTA-12, FR-008): la del último cobro con cuenta, si está
+                    conciliado y dónde se revisa. */}
+                <Box role="group" aria-labelledby="etiqueta-cuenta-cobro">
+                  <Typography id="etiqueta-cuenta-cobro" variant="body2" sx={{ mb: 0.5 }}>Cuenta de cobro</Typography>
+                  <Typography variant="body2">{textoDeLaCuenta ?? SIN_DATO}</Typography>
+                  {ultimoCobroConCuenta ? (
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5, flexWrap: 'wrap' }}>
+                      <EtiquetaEstado
+                        texto={ultimoCobroConCuenta.conciliado ? 'Conciliado' : 'Sin conciliar'}
+                        variante={ultimoCobroConCuenta.conciliado ? 'exito' : 'aviso'}
+                      />
+                      <Button component={RouterLink} to={RUTA_PAGOS} size="small" sx={{ px: 0 }}>
+                        Ir a Pagos →
+                      </Button>
+                    </Stack>
+                  ) : null}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    Titular y CUIT se ven al elegir la cuenta. Se concilia en Pagos.
+                  </Typography>
+                </Box>
+
+                {cobroEsContrarreembolso ? (
+                  <Alert severity="info">
+                    El transporte cobra al entregar. Queda en Transportes y contrarreembolsos hasta que lo rindan.
+                  </Alert>
+                ) : null}
+
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-start' }}>
                   <ClienteSelector
                     valor={formulario.cliente}
@@ -726,6 +867,23 @@ export function ComprobanteVenta() {
               </CardContent>
             </Card>
           )}
+          {/* Cobros de la factura (F-VTA-12, FR-007): lista, totales y «Registrar cobro». */}
+          {comprobante ? (
+            <CobrosComprobante
+              comprobanteId={comprobante.id}
+              empresaId={comprobante.empresa_id}
+              cobros={cobros}
+              saldo={saldo}
+              cargando={cargandoCobros}
+              error={errorCobros}
+              puedeRegistrarCobro={puedeCobrar && admiteCobros}
+              dialogoAbierto={dialogoCobro}
+              onAbrirDialogo={() => setDialogoCobro(true)}
+              onCerrarDialogo={() => setDialogoCobro(false)}
+              onRecargar={() => void recargarCobros()}
+              onRegistrado={setExito}
+            />
+          ) : null}
           {/* Envío y transporte (F-VTA-16, FR-023): el bloque con el selector de transporte, la guía y la fecha de
               envío solo existe en una factura confirmada (el envío se registra sobre la factura confirmada). Al
               cambiar la empresa activa la pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo
@@ -855,6 +1013,7 @@ export function ComprobanteVenta() {
         </>
       ) : null}
 
+      {/* Los avisos de cambio de tienda van en línea (arriba); el Snackbar es solo para el éxito. */}
       <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>
         <Alert severity="success" onClose={() => setExito(null)}>{exito}</Alert>
       </Snackbar>

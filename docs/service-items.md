@@ -21,8 +21,10 @@ En `/service-tecnico/reparaciones/:id`, debajo de «Cliente y equipo», aparece 
   «Agregar repuesto» y la acción de quitar por fila (con confirmación). Las entregadas, las
   anuladas y las de nivel `lectura` se ven completas pero sin acciones.
 
-Los importes están en ARS **sin IVA**. La sección no muestra la columna DEPÓSITO: los ítems P0 **no
-mueven stock** ni existencias (el descuento de repuestos del depósito es de MSF-217).
+Los importes están en ARS **sin IVA**. La tabla de repuestos muestra la columna **DEPÓSITO DE
+MERCADERÍA**: los repuestos del catálogo **descuentan stock** del depósito elegido al agregarlos
+(MSF-217, F-SVC-10; ver `docs/service-repuestos-stock.md`). La mano de obra y los repuestos libres no
+mueven stock.
 
 ## Modelo de datos
 
@@ -84,7 +86,8 @@ de MSF-182; las claves anteriores del contrato no cambian.
   ítems de las tiendas accesibles.
 - Una reparación **anulada**, **entregada** (`entrega_real`) o con un estado que **cierra** rechaza
   altas y bajas con `55000` (FR-024).
-- No se mueve stock ni se tocan existencias.
+- Un repuesto del catálogo que no es «a pedido» descuenta del depósito elegido (MSF-217, F-SVC-10); la mano de obra y
+  el repuesto libre no mueven stock.
 
 ## Concurrencia e idempotencia
 
@@ -123,7 +126,8 @@ descripción del ítem; nunca ids. Sin sesión (migraciones, sembrados) no se re
 - pgTAP `supabase/tests/database/service_items.test.sql` (SC-004): totales tras agregar/quitar,
   bloqueo `for update`, cantidad/precio inválidos, entregada y anulada rechazadas, producto
   ajeno/inactivo, ganancia enmascarada sin `ver_costos`, aislamiento entre organizaciones, `anon` sin
-  ejecución, actividad y ausencia de movimientos de stock; además `rls_en_toda_tabla` sigue verde.
+  ejecución y actividad (los repuestos de esta suite son «a pedido»: el descuento se prueba en
+  `service_repuestos_stock.test.sql`); además `rls_en_toda_tabla` sigue verde.
 - Vitest `components/service/ItemsReparacion.test.tsx` y `pages/service-tecnico/reparacion.test.tsx`
   (SC-005): tablas, subtotales, Total al cliente, errores de cantidad y precio, quitar con
   confirmación, solo lectura, ganancia oculta sin `ver_costos` y botones ocultos con `lectura`.
