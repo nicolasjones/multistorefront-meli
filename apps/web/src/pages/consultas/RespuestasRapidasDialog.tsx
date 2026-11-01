@@ -106,7 +106,7 @@ export function RespuestasRapidasDialog({ empresaId, empresaNombre, puedeEditar,
               ) : null}
               <Stack component="ul" spacing={1.5} sx={{ listStyle: 'none', p: 0, m: 0 }} aria-label="Respuestas rápidas">
                 {respuestas.map((respuesta) => (
-                  <Box component="li" key={respuesta.id} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
+                  <Box component="li" key={respuesta.id} sx={{ border: 1, borderColor: 'divider', borderRadius: (tema) => tema.shape.borderRadius, p: 1.5 }}>
                     <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{respuesta.titulo}</Typography>
                     {/* Texto plano (React lo escapa) con sus saltos de línea. */}
                     <Typography variant="s" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{respuesta.texto}</Typography>
