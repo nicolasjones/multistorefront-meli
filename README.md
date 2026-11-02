@@ -41,6 +41,7 @@ independiente en Docker Desktop. Para detener uno, ejecuta
 volumen existente y con `--ignore-health-check`), y el stack queda sin ellas (PostgREST 503, `schema "dominio" does not exist`). El segundo paso
 las aplica y es idempotente. Si arrancás con `supabase start` a mano, corré
 `supabase migration up --local` después (o `supabase db reset` para rehacer base y seed).
+El script usa sintaxis POSIX (`$?`, `;`): en Windows corré `pnpm` desde WSL o Git Bash, no desde `cmd.exe`.
 
 | Servicio | URL |
 |---|---|
