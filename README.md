@@ -36,7 +36,7 @@ independiente en Docker Desktop. Para detener uno, ejecuta
 `pnpm dev:down:<producto>`. Refine también puede ejecutarse sin Docker con
 `pnpm dev:refine:host`.
 
-`pnpm dev:supabase` corre `supabase start` y después `supabase migration up --local`.
+`pnpm dev:supabase` corre `supabase start` y después `supabase migration up --local`, aunque `start` termine con error por un servicio no saludable (conserva el código de salida de `start`).
 `supabase start` puede dejar migraciones sin aplicar (causa no confirmada; se observó con un
 volumen existente y con `--ignore-health-check`), y el stack queda sin ellas (PostgREST 503, `schema "dominio" does not exist`). El segundo paso
 las aplica y es idempotente. Si arrancás con `supabase start` a mano, corré
