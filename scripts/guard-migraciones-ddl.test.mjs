@@ -39,11 +39,35 @@ describe('detectarAddColumnSinGuard', () => {
 
   it('no marca el cuerpo dollar-quoted de SQL dinámico (MSF-682)', () => {
     assert.deepEqual(lineas('execute $q$\n  alter table t add column x int\n$q$;'), []);
-    assert.deepEqual(lineas('do $$\nbegin\n  alter table t add column x int;\nend\n$$;'), []);
+    assert.deepEqual(lineas("select format($q$alter table t add column x int$q$);"), []);
   });
 
   it('no mezcla sentencias: add column de otra sentencia no cuenta', () => {
     assert.deepEqual(lineas('alter table t alter column a set not null;\ncomment on column t.a is \'x\';'), []);
+  });
+});
+
+describe('cuerpos ejecutables y CONCURRENTLY', () => {
+  it('detecta DDL dentro de un DO $$ ... $$', () => {
+    const sql = 'do $$ begin\n  alter table public.t add column x int;\nend $$;';
+    assert.deepEqual(lineas(sql), [2]);
+    assert.equal(revisarDdl('do $$ begin create index i on t(a); end $$;').length, 1);
+  });
+  it('detecta DDL dentro de un cuerpo de función (AS $$)', () => {
+    assert.equal(revisarDdl('create function f() returns void as $$ begin drop function g(); end $$ language plpgsql;').length, 1);
+  });
+  it('sigue enmascarando el SQL dinámico dentro de un DO', () => {
+    const sql = "do $$ begin execute $q$ alter table t add column x int $q$; execute 'drop function f()'; end $$;";
+    assert.deepEqual(revisarDdl(sql), []);
+  });
+  it('acepta CREATE [UNIQUE] INDEX CONCURRENTLY IF NOT EXISTS', () => {
+    assert.deepEqual(revisarDdl('create index concurrently if not exists i on t(a);'), []);
+    assert.deepEqual(revisarDdl('create unique index concurrently\n if not exists i on t(a);'), []);
+    assert.equal(revisarDdl('create index concurrently i on t(a);').length, 1);
+  });
+  it('acepta DROP INDEX CONCURRENTLY IF EXISTS y marca el que no tiene guard', () => {
+    assert.deepEqual(revisarDdl('drop index concurrently if exists i;'), []);
+    assert.equal(revisarDdl('drop index concurrently i;').length, 1);
   });
 });
 

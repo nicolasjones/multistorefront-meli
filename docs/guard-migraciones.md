@@ -23,8 +23,11 @@ La línea informada es la de la palabra clave dentro de la sentencia (para `ADD 
 
 Antes de leer el SQL se **enmascaran** los comentarios (`--`, `/* */`), los literales (`'...'`,
 `E'...'`), los identificadores entre comillas dobles (`"..."`) y los cuerpos dollar-quoted
-(`$$...$$`, `$tag$...$tag$`): ese texto no se ejecuta como SQL (es el cuerpo de una plantilla de
-SQL dinámico) y por eso no marca la migración. El enmascarado conserva la longitud y los saltos
+que son plantillas de SQL dinámico (`execute $q$...$q$`, `format($q$...$q$)`): ese texto no se
+ejecuta al aplicar la migración y no la marca. El cuerpo de un `DO $$...$$` o de una función
+(`... AS $$...$$`) **sí** se ejecuta como PL/pgSQL y **no** se enmascara: su DDL se evalúa igual
+que el de nivel superior. `CONCURRENTLY` se acepta junto al guard (`CREATE [UNIQUE] INDEX
+CONCURRENTLY IF NOT EXISTS`, `DROP INDEX CONCURRENTLY IF EXISTS`). El enmascarado conserva la longitud y los saltos
 de línea del original, así la línea informada es la real.
 
 La lógica vive en `scripts/guard-migraciones-ddl.mjs` y se prueba con
