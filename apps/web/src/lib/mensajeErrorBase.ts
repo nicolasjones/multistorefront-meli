@@ -17,7 +17,8 @@ export function mensajeDeErrorBase(
   porDefecto: string,
   porCodigo: Readonly<Record<string, string>> = {},
 ): string {
-  console.error(porDefecto, error)
   const codigo = String((error as ErrorConCodigo)?.code ?? '')
+  // Solo el código: `details`/`hint` de PostgREST pueden traer datos de la fila (PII).
+  console.error(porDefecto, codigo || 'sin código')
   return porCodigo[codigo] ?? MENSAJES_POR_CODIGO[codigo] ?? porDefecto
 }
