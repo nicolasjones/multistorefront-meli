@@ -75,13 +75,26 @@ Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada 
 El botón `Responder por <correo|WhatsApp>` del detalle **no envía nada**: abre el cliente externo y registra en la base que la consulta quedó atendida.
 
 - **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono (7 a 15 dígitos) → `https://wa.me/<solo dígitos>?text=…`. Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
-- **Texto inicial**: `armarTextoInicial` (`apps/web/src/lib/textoInicialConsulta.ts`) con una plantilla fija (nombre, tienda y producto si lo hay). Es el único punto que reemplazará F-CON-06 (MSF-144).
+- **Texto inicial**: `armarTextoInicial` (`apps/web/src/lib/textoInicialConsulta.ts`) con una plantilla fija (nombre, tienda y producto si lo hay). Es el único punto que reemplaza F-CON-06: con una respuesta rápida elegida, el cuerpo es su texto con las variables resueltas (ver «Respuestas rápidas»).
 - **Registro**: llama a `public.actualizar_consulta` (MSF-122, sin migración nueva): `nueva` pasa a `en_curso` (`en_curso` y `resuelta` conservan el estado; no se reabre), el responsable es quien responde **solo si no había**, y se mandan la nota y el `updated_at` vigentes. La actividad la registra la propia RPC.
 - **Permisos**: con `consultas` = edición responde y registra; con lectura el botón queda deshabilitado («Necesitás permiso de edición»). La base lo impone (`actualizar_consulta` exige edición).
 - **Fallos**: si el registro falla (`40001`, `42501`, red) la app externa ya se abrió; el detalle muestra el error con `Reintentar` (solo registra, no reabre la app) o `Recargar` ante un conflicto. Un reintento tras éxito es idempotente.
 - **Aviso de éxito**: dice cómo quedó la consulta («Consulta En curso a tu nombre»), nunca que el mensaje salió.
 - **Pruebas**: Vitest `apps/web/src/pages/consultas/responder.test.tsx`, pgTAP `supabase/tests/database/consultas_responder.test.sql`, E2E `apps/web/e2e/consultas-responder.e2e.ts`.
 - **Reversión**: sin migración ni datos nuevos; basta revertir el merge de la historia.
+
+## Respuestas rápidas (F-CON-06, MSF-274)
+
+Textos frecuentes **por empresa** que arman el texto inicial de `Responder por…`. Siguen sin enviar nada.
+
+- **Modelo** (migraciones `20270201200000` y `20270201200100`): `dominio.respuestas_rapidas` (esquema `dominio`: contenido de negocio sin datos personales; `titulo` ≤ 80, `texto` ≤ 1000, FK compuesta a `dominio.empresas`, `unique (id, organizacion_id)`). La vista `public.respuestas_rapidas_lista` es `security_invoker`; `guardar_respuesta_rapida(p_id, p_empresa_id, p_titulo, p_texto)` y `eliminar_respuesta_rapida(p_id)` son `security definer`, exigen `consultas` = edición y empresa accesible, y devuelven `42501` igual para lo inexistente, ajeno o sin acceso, y `22023` ante título o texto inválidos. Al editar no se mueve la empresa.
+- **Permisos y RLS**: select con `consultas` ≥ `lectura` + organización + empresa accesible; sin políticas de escritura; `revoke all … from public, anon, authenticated` + `grant select`; RPC con `revoke … from public, anon` + `grant … to authenticated`; `anon` sin privilegios.
+- **Actividad**: `respuesta_rapida.creada|editada|eliminada` con el título y la empresa, nunca el texto.
+- **Variables** (`resolverVariables`, `apps/web/src/lib/respuestasRapidas.ts`): `{nombre}`, `{tienda}`, `{producto}`. Una sola pasada (el valor no se vuelve a expandir); sin valor queda vacía, sin llaves, sin espacios dobles ni espacio antes de la puntuación; una variable desconocida queda tal cual.
+- **UI**: botón `Respuestas rápidas` en el encabezado de Consultas (`RespuestasRapidasDialog`): lista de la empresa activa, crear, editar y eliminar (con confirmación), ayuda de variables y estados compartidos. Con `lectura` se ve sin cambiar; con «todas las empresas» pide elegir una tienda. En el detalle, `Respuesta rápida` ofrece solo las de la empresa de la consulta; sin elección queda la plantilla de F-CON-04.
+- **Empresa activa (Principio VIII)**: al cambiar la empresa se cierra el diálogo con aviso y el hook descarta lo cargado (ámbito organización + empresa); el selector del detalle lee por la empresa de la consulta.
+- **Pruebas**: pgTAP `supabase/tests/database/respuestas_rapidas.test.sql`; Vitest `lib/respuestasRapidas.test.ts`, `pages/consultas/RespuestasRapidasDialog.test.tsx`, `responder.test.tsx` y `list.test.tsx`; E2E `apps/web/e2e/consultas-respuestas-rapidas.e2e.ts`.
+- **Reversión** (migración posterior, exportando antes los textos): `drop view public.respuestas_rapidas_lista`, `drop function public.guardar_respuesta_rapida(uuid, uuid, text, text)` y `public.eliminar_respuesta_rapida(uuid)`, y `drop table dominio.respuestas_rapidas`. Para deshacer la historia en Git: `git revert -m 1 <merge del PR>`.
 
 ## Aviso por correo
 
