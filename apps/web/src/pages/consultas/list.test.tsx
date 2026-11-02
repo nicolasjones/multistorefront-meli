@@ -25,6 +25,8 @@ vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
+// El contacto de la libreta (F-CON-05) tiene su propio test: acá no se monta.
+vi.mock('./ContactoConsulta', () => ({ ContactoConsulta: () => null }))
 
 import type { Consulta } from '../../lib/consultas'
 import { ConsultaList } from './list'

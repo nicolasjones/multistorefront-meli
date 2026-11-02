@@ -101,6 +101,8 @@ const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
 const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const ContactoList = lazy(() => import('./pages/contactos/list').then((modulo) => ({ default: modulo.ContactoList })))
+const ContactoFicha = lazy(() => import('./pages/contactos/ficha').then((modulo) => ({ default: modulo.ContactoFicha })))
 const ConsultaList = lazy(() => import('./pages/consultas/list').then((modulo) => ({ default: modulo.ConsultaList })))
 const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
 const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
@@ -254,6 +256,7 @@ function App() {
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
               { name: 'historial', list: '/historial', meta: { label: 'Historial' } },
               { name: 'consultas', list: '/consultas', meta: { label: 'Consultas' } },
+              { name: 'contactos', list: '/contactos', meta: { label: 'Contactos' } },
               { name: 'service-tecnico-reparaciones', list: '/service-tecnico/reparaciones', create: '/service-tecnico/reparaciones/nueva', show: '/service-tecnico/reparaciones/:id', meta: { label: 'Reparaciones' } },
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
@@ -332,6 +335,26 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="consultas">
                         <Suspense fallback={<EstadoCargaPagina />}><ConsultaList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/contactos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="consultas">
+                        <Suspense fallback={<EstadoCargaPagina />}><ContactoList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/contactos/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="consultas">
+                        <Suspense fallback={<EstadoCargaPagina />}><ContactoFicha /></Suspense>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }

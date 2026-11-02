@@ -1,6 +1,6 @@
 # Contrato: contactos y respuestas rápidas
 
-Épica MSF-144 · spec `contactos-y-respuestas-rapidas`. Todo es **nuevo y aditivo**. Ninguna RPC es para `anon`. Todas: `security definer`, `set search_path = ''`, `revoke … from public, anon`, `grant execute … to authenticated`. Errores comunes: `42501` sin permiso, `40001` conflicto de `updated_at`, `22023` datos inválidos, `23505` duplicado (con el id del contacto existente en `DETAIL`).
+Épica MSF-144 · spec `contactos-y-respuestas-rapidas`. Todo es **nuevo y aditivo**. Ninguna RPC es para `anon`. Todas `security definer` (salvo `buscar_contactos`, `security invoker`: la RLS de `dominio.contactos` decide las filas), `set search_path = ''`, `revoke … from public, anon`, `grant execute … to authenticated`. Errores comunes: `42501` sin permiso, `40001` conflicto de `updated_at`, `22023` datos inválidos, `23505` duplicado (con el id del contacto existente en `DETAIL`).
 
 ## Contactos (F-CON-05)
 

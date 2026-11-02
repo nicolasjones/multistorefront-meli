@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: mocks.useResponsablesConsultas }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks.useRespuestasRapidas }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { auth: { getUser: mocks.getUser } } }))
+// El contacto de la libreta (F-CON-05) tiene su propio test: acá no se monta.
+vi.mock('./ContactoConsulta', () => ({ ContactoConsulta: () => null }))
 vi.mock('../../lib/consultas', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/consultas')>()),
   actualizarConsulta: mocks.actualizarConsulta,
