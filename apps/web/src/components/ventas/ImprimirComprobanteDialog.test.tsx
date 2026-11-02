@@ -168,6 +168,35 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     expect(onRegistrado).toHaveBeenCalledTimes(1)
   })
 
+  it('si la pestaña se cierra mientras se registra ofrece el enlace sin registrar de nuevo (MSF-722)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    mocks.registrarImpresion.mockImplementation(async () => {
+      pestana.closed = true
+      return { id: 'i-1', documento_id: 'd-1', reimpresion: false }
+    })
+    const { onImpreso, onRegistrado } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+
+    const enlace = await screen.findByRole('link', { name: 'Abrir documento' })
+    expect(pestana.location.href).toBe('')
+    expect(onRegistrado).toHaveBeenCalledTimes(1)
+    fireEvent.click(enlace)
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('factura'))
+    expect(mocks.registrarImpresion).toHaveBeenCalledTimes(1)
+  })
+
+  it('si el registro falla al abrir el enlace avisa que la marca «impreso» no quedó (MSF-722)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    mocks.abrir.mockImplementation(() => null)
+    mocks.registrarImpresion.mockRejectedValueOnce({ code: '42501', message: 'sin permiso' })
+    const { onImpreso } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+
+    fireEvent.click(await screen.findByRole('link', { name: 'Abrir documento' }))
+    expect(await screen.findByText(/no pudimos registrar la impresión/)).toBeInTheDocument()
+    expect(onImpreso).not.toHaveBeenCalled()
+  })
+
   it('«Cancelar» cierra sin pedir nada', () => {
     const { onCerrar } = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))

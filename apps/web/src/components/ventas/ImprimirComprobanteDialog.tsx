@@ -53,7 +53,7 @@ export function ImprimirComprobanteDialog({ open, comprobante, tipoInicial, onCe
   )
 }
 
-type Estado = { fase: 'elegir' } | { fase: 'preparando' } | { fase: 'error'; mensaje: string } | { fase: 'bloqueado'; url: string; documentoId: string }
+type Estado = { fase: 'elegir' } | { fase: 'preparando' } | { fase: 'error'; mensaje: string } | { fase: 'bloqueado'; url: string; documentoId: string; registrado: boolean; aviso?: string }
 
 function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado }: Omit<Props, 'open'>) {
   const elegibles = documentosElegibles(comprobante)
@@ -91,7 +91,7 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
       }
       if (!ventana || ventana.closed) {
         // Sin pestaña (bloqueada o cerrada): no se marca como impreso; se marca cuando la persona abre el enlace.
-        setEstado({ fase: 'bloqueado', url, documentoId: documento.id })
+        setEstado({ fase: 'bloqueado', url, documentoId: documento.id, registrado: false })
         return
       }
       // FR-034: se marca como impreso solo con el documento ya disponible y la pestaña lista para mostrarlo.
@@ -106,7 +106,13 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
         return
       }
       onRegistrado?.()
-      if (actual.signal.aborted || ventana.closed) return
+      if (actual.signal.aborted) return
+      if (ventana.closed) {
+        // La pestaña se cerró mientras se registraba: la marca ya está, pero el PDF no se vio. Se ofrece el enlace
+        // (sin volver a registrar) en vez de quedar en silencio.
+        setEstado({ fase: 'bloqueado', url, documentoId: documento.id, registrado: true })
+        return
+      }
       ventana.location.href = url
       // Se puede imprimir otra vez sin límite (FR-035): el diálogo vuelve a quedar listo.
       setEstado({ fase: 'elegir' })
@@ -119,13 +125,17 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
   }
 
   // Pestaña bloqueada: la impresión se registra cuando la persona abre el enlace, no antes.
-  const abrirEnlace = async (documentoId: string) => {
+  const abrirEnlace = async (documentoId: string, yaRegistrado: boolean) => {
     if (!tipo) return
-    try {
-      await registrarImpresion(documentoId)
-    } catch (falla) {
-      console.error(MENSAJE_ERROR_REGISTRO, falla)
-      return
+    if (!yaRegistrado) {
+      try {
+        await registrarImpresion(documentoId)
+      } catch (falla) {
+        console.error(MENSAJE_ERROR_REGISTRO, falla)
+        // El enlace igual abre el PDF: se avisa que la marca «impreso» no quedó.
+        setEstado((previo) => ({ ...previo, aviso: MENSAJE_ERROR_REGISTRO }) as Estado)
+        return
+      }
     }
     onRegistrado?.()
     onImpreso(tipo)
@@ -187,9 +197,10 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
           {estado.fase === 'bloqueado' ? (
             <Alert severity="warning">
               Tu navegador bloqueó la ventana del documento.{' '}
-              <Link href={estado.url} target="_blank" rel="noopener noreferrer" onClick={() => void abrirEnlace(estado.documentoId)}>
+              <Link href={estado.url} target="_blank" rel="noopener noreferrer" onClick={() => void abrirEnlace(estado.documentoId, estado.registrado)}>
                 Abrir documento
               </Link>
+              {estado.aviso ? <Typography variant="body2" color="error">{estado.aviso}</Typography> : null}
             </Alert>
           ) : null}
         </Stack>

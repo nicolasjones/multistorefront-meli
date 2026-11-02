@@ -11,3 +11,7 @@
   muestra «Hay más resultados: afiná la búsqueda para verlos.».
 - `ImprimirComprobanteDialog.tsx`: la pestaña se abre en blanco en el clic y recibe la URL al estar listo el PDF;
   se cierra si falla; si el navegador la bloquea (o se cerró) no se registra nada hasta que la persona abre el enlace.
+
+## Devolución del Revisor (PR #644)
+- `useOpcionesDimension.ts`: el selector de producto del ranking de Clientes compara con `nombre_norm` y normaliza lo tipeado con `normalizarBusqueda`.
+- `ImprimirComprobanteDialog.tsx`: si la pestaña se cierra mientras se registra, se ofrece el enlace «Abrir documento» sin registrar de nuevo; si el registro falla al abrir el enlace, se muestra `MENSAJE_ERROR_REGISTRO` en el diálogo.
