@@ -19,6 +19,9 @@ export const NOMBRE_REPORTE_RANKING_CLIENTES = 'Ventas · Ranking de clientes'
 // Tablero «Productos más consultados» (F-REP-04): paquete propio `infra/superset/dashboards/consultas-reportes/`.
 export const NOMBRE_REPORTE_MAS_CONSULTADOS = 'Reportes · Productos más consultados'
 
+// Tablero «Ventas por período y canal» (F-REP-05): paquete propio `infra/superset/dashboards/ventas-periodo-canal/`.
+export const NOMBRE_REPORTE_VENTAS_PERIODO_CANAL = 'Reportes · Ventas por período y canal'
+
 // Estado vacío del período sin consultas por WhatsApp (F-REP-04).
 export const MENSAJE_SIN_CONSULTAS = 'No hay consultas por WhatsApp en ese período'
 
