@@ -97,3 +97,11 @@ CORS_OPTIONS = {
         f"http://127.0.0.1:{_web_port}",
     ],
 }
+
+# Exportación CSV de todo reporte embebido (spec 20270201, FR-008): UTF-8,
+# separador ";" y coma decimal, para que el archivo abra bien en Excel en
+# español. Superset pasa este dict tal cual a pandas.DataFrame.to_csv. Es
+# global: aplica a todos los tableros (Ventas, Rentabilidad, Inventario).
+# Si Excel mostrara mal las tildes, cambiar a "utf-8-sig" (UTF-8 con BOM).
+# Para revertir, quitar esta clave (vuelve al formato por defecto de Superset).
+CSV_EXPORT = {"encoding": "utf-8", "sep": ";", "decimal": ","}
