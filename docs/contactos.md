@@ -1,9 +1,9 @@
-# Contactos: libreta por empresa (MSF-144 · F-CON-05)
+# Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)
 
 La libreta guarda a quienes consultan o compran, sin duplicados, con el consentimiento registrado, su historial de
 consultas y compras, y permite anonimizarlos a pedido. Spec:
 [`specs/20261029-120000-contactos-y-respuestas-rapidas`](../specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md)
-(contrato en `contracts/contactos.md`). Las respuestas rápidas (F-CON-06) tienen su propia historia.
+(contrato en `contracts/contactos.md`). Las respuestas rápidas (F-CON-06) se describen al final.
 
 ## Modelo (Principio VII)
 
@@ -41,3 +41,36 @@ la consulta y `Nuevo contacto` (con una tienda elegida) en la libreta. Sin proto
 Migraciones `20270201100000…100500`, todas aditivas. Se revierten con `drop function` / `drop table dominio.contactos` /
 quitar las columnas `contacto_id` y restaurar la vista (ver el encabezado de cada una). Exportar antes los datos personales.
 Los datos **ya anonimizados** solo se recuperan desde un backup.
+
+## Respuestas rápidas (F-CON-06)
+
+Textos frecuentes por empresa que arman el texto inicial de `Responder` en una consulta. Nunca envían nada solos.
+
+| Objeto | Esquema | Para qué |
+|---|---|---|
+| `dominio.respuestas_rapidas` | `dominio` | Título (≤80) y texto (≤1000) por **empresa**. Contenido de negocio sin datos personales. |
+| `public.respuestas_rapidas_lista` | `public` | Vista `security_invoker` de lectura (aplica la RLS de la tabla). |
+| `public.guardar_respuesta_rapida`, `eliminar_respuesta_rapida` | `public` | Única vía de escritura (`security definer`). Ninguna para `anon`. |
+
+- **Permisos**: sección `consultas`; `lectura` ve y usa, `edicion` crea, edita y elimina; `ninguno` no ve. Una respuesta ajena o de una
+  empresa sin acceso responde igual que una inexistente (`42501`).
+- **Variables**: `{nombre}`, `{tienda}`, `{producto}` se resuelven en `resolverVariables` (`apps/web/src/lib/respuestasRapidas.ts`);
+  un valor vacío no deja llaves ni espacios dobles y una variable desconocida queda tal cual.
+- **Responder**: el selector ofrece solo las respuestas de la empresa de la consulta; sin selección rige la plantilla actual.
+- **Actividad**: registra el título y la empresa, nunca el texto.
+- **Reversión**: migraciones `20270201200000` y `20270201200100`, aditivas (`drop view`, `drop function`, `drop table dominio.respuestas_rapidas`;
+  ver su encabezado). Exportar antes los textos.
+
+## Contrato para MSF-154
+
+MSF-154 consume contactos solo por las RPC `buscar_contactos` e `historial_contacto` y por `contacto_id` en `consultas_bandeja`; no
+lee `dominio.contactos` directo ni escribe. Respeta el consentimiento guardado y excluye los anonimizados (`anonimizado_en` no nulo).
+Contacto y cliente (`public.clientes`) son **entidades separadas**, sin FK entre ellas (Decisión abierta 2 de la spec): si deben unificarse,
+se decide antes de que MSF-154 los consuma.
+
+## Revisión de seguridad (cierre, FR-020)
+
+Verificada sobre las migraciones `20270201100000…100500` y `20270201200000…200100`: RLS en `dominio.contactos` y
+`dominio.respuestas_rapidas`; `revoke all … from public, anon, authenticated` + `grant select` solo a `authenticated` en tablas y vistas;
+toda RPC con `revoke … from public, anon` y `grant … to authenticated`; funciones internas (`private.*`) sin grants; esquema `dominio`
+para las dos tablas (Principio VII); `registro_actividad` sin nombre, correo, teléfono ni texto de respuesta.
