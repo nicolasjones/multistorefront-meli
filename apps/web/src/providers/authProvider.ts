@@ -1,6 +1,7 @@
 import type { AuthProvider } from '@refinedev/core'
 import { getMantenerSesion, setIngresoEnCurso, setMantenerSesion, supabaseClient } from '../lib/supabase'
 import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad } from '../lib/vencimientoSesion'
+import { destinoInternoSeguro } from '../lib/destinoIngreso'
 
 // No hay registro propio (spec 003, US2/US4): toda cuenta llega invitada
 // por email desde la Edge Function crear-organizacion, o cargada a mano
@@ -28,7 +29,7 @@ function esErrorTecnico(error: { status?: number }) {
 }
 
 export const authProvider: AuthProvider = {
-  login: async ({ email, password, remember }) => {
+  login: async ({ email, password, remember, to }) => {
     const correo = String(email ?? '').trim().toLowerCase()
 
     // Bloqueo por correo (F-ACC-01, FR-003): se consulta antes de contactar a
@@ -129,7 +130,7 @@ export const authProvider: AuthProvider = {
     // abierto (queda el conteo, que vence solo) y no se bloquea al usuario.
     await supabaseClient.rpc('limpiar_intentos_acceso')
     registrarActividad()
-    return { success: true, redirectTo: '/' }
+    return { success: true, redirectTo: destinoInternoSeguro(to) ?? '/' }
   },
 
   logout: async () => {
