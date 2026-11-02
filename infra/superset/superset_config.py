@@ -98,11 +98,37 @@ CORS_OPTIONS = {
     ],
 }
 
-# Exportación CSV de todo reporte embebido (spec 20270201, FR-008): UTF-8 con
-# BOM (Excel sin BOM abre el CSV como ANSI y rompe tildes y ñ), separador ";" y coma decimal, para que el archivo abra bien en Excel en
-# español. Superset pasa este dict tal cual a pandas.DataFrame.to_csv. Es
-# global: aplica a todos los tableros (Ventas, Rentabilidad, Inventario).
+# Exportación CSV de todo reporte embebido (spec 20270201, FR-008): separador ";"
+# y coma decimal, para que el archivo abra bien en Excel en español. Superset
+# pasa este dict tal cual a pandas.DataFrame.to_csv. Es global: aplica a todos
+# los tableros (Ventas, Rentabilidad, Inventario).
+# OJO: Superset llama a to_csv sin ruta de salida, así que pandas devuelve un str
+# e IGNORA "encoding" (utf-8-sig no agregaría BOM). El BOM lo antepone
+# _anteponer_bom_csv más abajo.
 # Las fórmulas (=, +, -, @) las neutraliza Superset al exportar
 # (superset.utils.csv.escape_value), ver docs/operar-superset.md.
-# Para revertir, quitar esta clave (vuelve al formato por defecto de Superset).
-CSV_EXPORT = {"encoding": "utf-8-sig", "sep": ";", "decimal": ","}
+# Para revertir, quitar esta clave y FLASK_APP_MUTATOR.
+CSV_EXPORT = {"sep": ";", "decimal": ","}
+
+_BOM_UTF8 = b"\xef\xbb\xbf"
+
+
+def _anteponer_bom_csv(respuesta):
+    """after_request: antepone el BOM UTF-8 a toda respuesta text/csv en memoria.
+
+    Sin BOM Excel abre el CSV con doble clic como ANSI y rompe tildes y ñ.
+    Idempotente: no lo duplica si ya viene.
+    """
+    if (
+        respuesta.mimetype == "text/csv"
+        and not respuesta.direct_passthrough
+        and respuesta.status_code == 200
+    ):
+        datos = respuesta.get_data()
+        if not datos.startswith(_BOM_UTF8):
+            respuesta.set_data(_BOM_UTF8 + datos)
+    return respuesta
+
+
+def FLASK_APP_MUTATOR(app):
+    app.after_request(_anteponer_bom_csv)

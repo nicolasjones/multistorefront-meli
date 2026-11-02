@@ -46,9 +46,44 @@ class ConfiguracionCsv(unittest.TestCase):
         csv = cargar_config().CSV_EXPORT
         self.assertEqual(csv["sep"], ";")
         self.assertEqual(csv["decimal"], ",")
-        # Con BOM: sin él Excel abre con doble clic como ANSI (CotizaciÃ³n).
-        self.assertEqual(csv["encoding"], "utf-8-sig")
-        self.assertEqual("Cotización;María".encode(csv["encoding"])[:3], b"\xef\xbb\xbf")
+
+    def test_bom_se_antepone_a_la_respuesta_csv_real(self):
+        # pandas ignora "encoding" cuando to_csv no tiene ruta (caso de Superset),
+        # así que el BOM sale de un after_request: se ejercita con una Response real.
+        try:
+            from flask import Flask
+        except ImportError:
+            self.skipTest("flask no instalado")
+        modulo = cargar_config()
+        self.assertNotIn("encoding", modulo.CSV_EXPORT)
+        app = Flask(__name__)
+        modulo.FLASK_APP_MUTATOR(app)
+
+        @app.route("/csv")
+        def _csv():
+            return app.response_class("Cotización;María\n", mimetype="text/csv")
+
+        @app.route("/json")
+        def _json():
+            return app.response_class("{}", mimetype="application/json")
+
+        c = app.test_client()
+        self.assertEqual(c.get("/csv").data[:3], b"\xef\xbb\xbf")
+        self.assertEqual(c.get("/csv").data[3:].decode("utf-8"), "Cotización;María\n")
+        self.assertEqual(c.get("/json").data, b"{}")
+
+    def test_bom_idempotente_y_solo_csv(self):
+        modulo = cargar_config()
+
+        class R:
+            mimetype, direct_passthrough, status_code = "text/csv", False, 200
+            def __init__(s, d): s.d = d
+            def get_data(s): return s.d
+            def set_data(s, d): s.d = d
+
+        r = modulo._anteponer_bom_csv(R(b"a;b"))
+        self.assertEqual(r.d, b"\xef\xbb\xbfa;b")
+        self.assertEqual(modulo._anteponer_bom_csv(r).d, b"\xef\xbb\xbfa;b")
 
     def test_ningun_consumidor_del_repo_parsea_csv_de_superset(self):
         # CSV_EXPORT es global (cambia Ventas y Rentabilidad): si algún código
