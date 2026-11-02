@@ -4,7 +4,7 @@
 -- con los privilegios del usuario (RLS incluida), no con los del dueño.
 begin;
 
-select plan(23);
+select plan(37);
 
 -- ============================================================================
 -- Fixture
@@ -15,7 +15,13 @@ insert into organizaciones (id, nombre) values
 
 insert into auth.users (id, email) values
   ('e7240000-0000-0000-0000-000000000001', 'msf724-a@example.com'),
-  ('e7240000-0000-0000-0000-000000000002', 'msf724-b@example.com');
+  ('e7240000-0000-0000-0000-000000000002', 'msf724-b@example.com'),
+  ('e7240000-0000-0000-0000-000000000009', 'msf724-super@example.com');
+
+-- Superadmin de plataforma: es quien ajusta las capacidades del chat (por
+-- RPC) y quien carga la allowlist de acciones.
+insert into public.superadmins (user_id) values
+  ('e7240000-0000-0000-0000-000000000009');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('e7240000-0000-0000-0000-000000000001', 'e7240000-0000-0000-0000-0000000000a1', 'administrador'),
@@ -125,6 +131,25 @@ select lives_ok(
   $$insert into public.mensajes_chat_ia (conversacion_id, origen, contenido) values ('e7240000-0000-0000-0000-0000000000c1', 'usuario', 'hola')$$,
   'authenticated sigue pudiendo insertar mensajes comunes');
 
+-- Un mensaje con estado 'propuesta' escrito a mano por el cliente no tiene
+-- acción: sin (feature, rpc) no hay nada que ejecutar.
+select lives_ok(
+  $$insert into public.mensajes_chat_ia (conversacion_id, origen, contenido, estado) values ('e7240000-0000-0000-0000-0000000000c1', 'usuario', 'propuesta a mano', 'propuesta')$$,
+  'el cliente puede escribir un mensaje con estado propuesta, pero sin accion');
+
+insert into t_propuestas (id, rpc)
+select id, 'propuesta-a-mano'
+from public.mensajes_chat_ia
+where conversacion_id = 'e7240000-0000-0000-0000-0000000000c1'
+  and contenido = 'propuesta a mano'
+  and estado = 'propuesta';
+
+select is(
+  public.ejecutar_accion_chat_ia((select id from t_propuestas where rpc = 'propuesta-a-mano'))->>'motivo',
+  'acción no registrada',
+  'una propuesta escrita a mano por el cliente no ejecuta nada'
+);
+
 -- ============================================================================
 -- Camino feliz: proponer una acción registrada y ejecutarla
 -- ============================================================================
@@ -206,15 +231,30 @@ select is(
 );
 
 -- ============================================================================
--- Un usuario no puede habilitar la ejecucion de una funcionalidad por su cuenta
+-- La plataforma del chat no se escribe desde el cliente: ni las capacidades
+-- por funcionalidad ni la allowlist de acciones. El permiso está DENEGADO
+-- (42501), no filtrado en silencio por la RLS (MSF-724).
 -- ============================================================================
 select throws_ok(
   $$insert into public.capacidades_chat_ia (feature_id, ejecucion) values ('msf-724-extra', true)$$,
   '42501', null, 'authenticated no puede habilitar la ejecucion de una funcionalidad por su cuenta');
--- RLS oculta la fila: el UPDATE no falla, afecta 0 filas
-select is_empty(
-  $$update public.capacidades_chat_ia set ejecucion = true where feature_id = 'msf-724-demo' returning 1$$,
-  'authenticated no puede habilitar la ejecucion de una funcionalidad ya registrada');
+select throws_ok(
+  $$update public.capacidades_chat_ia set ejecucion = true where feature_id = 'msf-724-demo'$$,
+  '42501', null, 'authenticated no puede habilitar la ejecucion de una funcionalidad ya registrada');
+select throws_ok(
+  $$insert into public.acciones_chat_ia (feature_id, rpc) values ('msf-724-demo', 't_msf724_accion_falsa')$$,
+  '42501', null, 'authenticated no puede ampliar la allowlist de acciones');
+select throws_ok(
+  $$delete from public.acciones_chat_ia where feature_id = 'msf-724-demo' and rpc = 't_msf724_accion'$$,
+  '42501', null, 'authenticated no puede borrar una accion registrada');
+select is(has_table_privilege('authenticated', 'public.capacidades_chat_ia', 'insert'), false, 'authenticated no inserta capacidades del chat');
+select is(has_table_privilege('authenticated', 'public.capacidades_chat_ia', 'update'), false, 'authenticated no actualiza capacidades del chat');
+select is(has_table_privilege('authenticated', 'public.capacidades_chat_ia', 'delete'), false, 'authenticated no borra capacidades del chat');
+select is(has_table_privilege('authenticated', 'public.acciones_chat_ia', 'insert'), false, 'authenticated no inserta en la allowlist');
+select is(has_table_privilege('authenticated', 'public.acciones_chat_ia', 'update'), false, 'authenticated no actualiza la allowlist');
+select is(has_table_privilege('authenticated', 'public.acciones_chat_ia', 'delete'), false, 'authenticated no borra la allowlist');
+select is(has_table_privilege('anon', 'public.capacidades_chat_ia', 'select'), false, 'anon no lee las capacidades del chat');
+select is(has_table_privilege('anon', 'public.acciones_chat_ia', 'select'), false, 'anon no lee la allowlist');
 
 -- ============================================================================
 -- Aislamiento entre usuarios
@@ -223,6 +263,19 @@ select set_config('request.jwt.claims', json_build_object('sub', 'e7240000-0000-
 select throws_ok(
   $$select public.proponer_accion_chat_ia('e7240000-0000-0000-0000-0000000000c1', 'resolver_politica_ia', '{}'::jsonb, 'x')$$,
   '42501', null, 'no se puede proponer en una conversacion ajena');
+
+-- ============================================================================
+-- La gobernanza sigue funcionando: el superadmin ajusta la capacidad por RPC
+-- (es el camino que usa la pantalla de capacidades del chat)
+-- ============================================================================
+select set_config('request.jwt.claims', json_build_object('sub', 'e7240000-0000-0000-0000-000000000009', 'role', 'authenticated')::text, true);
+select lives_ok(
+  $$select public.actualizar_capacidad_chat_ejecucion('msf-724-extra', true)$$,
+  'el superadmin habilita la ejecucion de una funcionalidad por RPC');
+select is(
+  (select ejecucion from public.capacidades_chat_ia where feature_id = 'msf-724-extra'),
+  true,
+  'la capacidad de ejecucion queda habilitada por el superadmin');
 
 reset role;
 select ok(not has_function_privilege('anon', 'public.proponer_accion_chat_ia(uuid,text,jsonb,text)', 'execute'), 'anon no ejecuta proponer_accion_chat_ia');
