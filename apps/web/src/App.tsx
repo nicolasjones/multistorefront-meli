@@ -125,6 +125,8 @@ const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
 const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
+// F-REP-01 (MSF-297): reportes de inventario (menú «Reportes»).
+const ReporteProductosStock = lazy(() => import('./pages/reportes/ProductosYStock').then((modulo) => ({ default: modulo.ProductosYStock })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Inicio (F-INI-01): reemplaza la portada de servicios del template.
@@ -179,6 +181,7 @@ function App() {
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              { name: 'reportes-inventario', list: '/reportes/inventario', meta: { label: 'Productos y stock' } },
               // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
@@ -647,6 +650,16 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="reportes">
                         <Suspense fallback={<EstadoCargaPagina />}><ReportesVentas /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/inventario"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteProductosStock /></Suspense>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
