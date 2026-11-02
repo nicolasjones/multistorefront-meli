@@ -61,6 +61,12 @@ vi.mock('../../components/ventas/ResponsablesDespacho', async (importOriginal) =
   ...(await importOriginal<typeof import('../../components/ventas/ResponsablesDespacho')>()),
   ResponsablesDespacho: () => null,
 }))
+// El historial del comprobante también anuncia «Cargando contenido» mientras carga: se sustituye por
+// la misma razón. Sus pruebas viven en su propio archivo.
+vi.mock('../../components/ventas/HistorialComprobante', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../components/ventas/HistorialComprobante')>()),
+  HistorialComprobante: () => null,
+}))
 
 import {
   aParametrosRegistrar,

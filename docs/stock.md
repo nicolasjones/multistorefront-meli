@@ -179,3 +179,9 @@ entregado (MSF-136/MSF-231/MSF-292) y las ventas de MSF-159; una guía por histo
 | [`stock-mas-vendidos.md`](./stock-mas-vendidos.md) | F-STK-18 (MSF-414) | Reporte de unidades vendidas por producto en un período (`/stock/mas-vendidos`), con filtro por tienda que sigue a la empresa activa |
 
 Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
+
+## Salidas desde Service técnico (épica MSF-217)
+
+Los repuestos de una reparación registran movimientos con `origen = 'service'` y `reparacion_id` sobre el depósito
+elegido, con la misma barrera de disponible por depósito. Ver `docs/service-repuestos-stock.md`,
+`docs/service-repuestos-devolucion.md` y `docs/service-repuestos-pendiente.md`.

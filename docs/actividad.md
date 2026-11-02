@@ -153,6 +153,18 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   ante cada alta/baja real. El detalle nombra el tipo, la descripción y la cantidad del ítem y el código visible de la
   reparación (`R-000N`), nunca ids; el evento lleva la tienda de la reparación. Lo cubre el pgTAP
   `service_items`. Ver `docs/service-items.md`.
+- `reparacion.comprobante_generado` (F-SVC-13, Service técnico): lo registra `private.registrar_actividad` en la
+  misma transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
+  idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código
+  visible y nunca ids; lleva la tienda de la reparación. Lo cubre el pgTAP `service_cobro`. Ver
+  `docs/service-cobro.md`.
+- `reparacion.aviso_solicitado`, `reparacion.aviso_enviado` y `reparacion.aviso_fallido` (F-SVC-14, Service técnico):
+  `private.registrar_actividad` registra `aviso_solicitado` en la misma transacción que la RPC
+  `avisar_cliente_reparacion` (solo cuando se crea el aviso; una repetición idempotente no vuelve a registrar), y
+  `private.cerrar_aviso_reparacion` registra `aviso_enviado` o `aviso_fallido` una sola vez por aviso (el cierre es
+  idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
+  (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
+  `docs/service-avisos.md`.
 - `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
   la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
   tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada
@@ -187,3 +199,9 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 `20261013140000_editar_matriz_permisos.sql`, y luego `opciones_actividad`, `listar_actividad`,
 `registrar_actividad` (public y private), `insertar_actividad`, `etiqueta_rol` y la tabla
 (exportar el historial antes: la tabla se pierde).
+
+## Repuestos de Service (épica MSF-217)
+
+Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `reparacion.item_quitado` (ver
+`docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
+Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.

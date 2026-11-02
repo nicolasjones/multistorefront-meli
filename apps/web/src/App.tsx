@@ -1,4 +1,4 @@
-import { Authenticated, ErrorComponent, Refine, useGetIdentity } from '@refinedev/core'
+import { Authenticated, ErrorComponent, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -6,9 +6,9 @@ import routerProvider, {
   DocumentTitleHandler,
   UnsavedChangesNotifier,
 } from '@refinedev/react-router'
-import { Avatar, CssBaseline, ThemeProvider } from '@mui/material'
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
+import { CssBaseline, ThemeProvider } from '@mui/material'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { authProvider } from './providers/authProvider'
 import { accessControlProvider } from './providers/accessControlProvider'
 import { i18nProvider } from './providers/i18nProvider'
@@ -18,7 +18,6 @@ import { RequiereAccesoSeccion } from './components/RequiereAccesoSeccion'
 import { RequiereServiceTecnico } from './components/service/RequiereServiceTecnico'
 import { ContextoPanelProvider } from './context/ContextoPanel'
 import { PermisosPanelProvider } from './context/PermisosPanel'
-import { AvisoCotizacion } from './components/cotizacion/AvisoCotizacion'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
@@ -38,6 +37,9 @@ import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
+import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
+import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
+import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -57,6 +59,7 @@ import { UsuarioCreate } from './pages/usuarios/create'
 import { UsuarioList } from './pages/usuarios/list'
 import { RolesPermisos } from './pages/roles/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
+import { BajaCorreoPage } from './pages/baja-correo'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
 import { CambiarCorreoPage } from './pages/cuenta/cambiar-correo'
@@ -122,98 +125,14 @@ const DevolucionesList = lazy(() => import('./pages/ventas/devoluciones').then((
 const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
 const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
+// F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
+const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
+// Inicio (F-INI-01): reemplaza la portada de servicios del template.
+const InicioPage = lazy(() => import('./pages/inicio').then((modulo) => ({ default: modulo.InicioPage })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
-
-const services = [
-  ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
-  ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
-  ['Kestra', 'Automatizaciones', 'local :8085 · VPS'],
-  ['Superset', 'Reportes y métricas', 'local :8089 · VPS'],
-]
-
-// Home de quien ya inició sesión, hasta que exista una pantalla de negocio
-// propia (organizaciones/clientes se agregan como recursos en las
-// siguientes historias de la spec 003).
-type Identity = { id: string; email?: string }
-
-type PerfilIdentidad = { nombre: string | null; apellido: string | null }
-
-export function IndicadorSesionActiva() {
-  const { data: identity, isLoading } = useGetIdentity<Identity>()
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
-  const [nombreCompleto, setNombreCompleto] = useState<string | null>(null)
-
-  useEffect(() => {
-    let activa = true
-    if (!identity?.id) {
-      setFotoUrl(null)
-      setNombreCompleto(null)
-      return () => { activa = false }
-    }
-    // La identidad solo solicita su propia fila; RLS impide leer perfiles ajenos.
-    const cargarNombreCompleto = async () => {
-      try {
-        const { data } = await supabaseClient
-          .from('perfiles_usuario')
-          .select('nombre, apellido')
-          .eq('user_id', identity.id)
-          .maybeSingle<PerfilIdentidad>()
-        if (activa) setNombreCompleto(data?.nombre && data?.apellido ? `${data.nombre} ${data.apellido}` : null)
-      } catch {
-        if (activa) setNombreCompleto(null)
-      }
-    }
-    void cargarNombreCompleto()
-    // La identidad solo solicita su propia ruta estable; Storage aplica RLS.
-    void supabaseClient.storage.from('fotos-perfil').createSignedUrl(`${identity.id}/avatar`, 60)
-      .then(({ data }) => { if (activa) setFotoUrl(data?.signedUrl ?? null) })
-      .catch(() => { if (activa) setFotoUrl(null) })
-    return () => { activa = false }
-  }, [identity?.id])
-
-  // Al cerrar la sesion Refine invalida la identidad y este componente deja de
-  // renderizarla; asi no queda el correo anterior visible durante la salida.
-  if (isLoading || !identity?.email) {
-    return null
-  }
-
-  return (
-    <p>
-      <Avatar src={fotoUrl ?? undefined} alt="Tu foto de perfil" sx={{ width: 28, height: 28, display: 'inline-flex', verticalAlign: 'middle', mr: 1 }}>?</Avatar>
-      Logueado como <strong>{nombreCompleto ?? identity.email}</strong>. <Link to="/cuenta/perfil">Ver mi perfil</Link>
-    </p>
-  )
-}
-
-export function Home() {
-  return (
-    <main className="shell">
-      <AvisoCotizacion />
-      <header className="hero">
-        <p className="eyebrow">Automation Platform Template</p>
-        <h1>Automatizaciones multi-tenant, coordinadas en un solo producto.</h1>
-        <p className="lead">
-          Base técnica preparada para desarrollar con Claude Code o Codex usando
-          el mismo flujo de especificaciones.
-        </p>
-        <IndicadorSesionActiva />
-      </header>
-
-      <section className="grid" aria-label="Servicios del producto">
-        {services.map(([name, purpose, destination]) => (
-          <article className="card" key={name}>
-            <h2>{name}</h2>
-            <p>{purpose}</p>
-            <small>{destination}</small>
-          </article>
-        ))}
-      </section>
-    </main>
-  )
-}
 
 function App() {
   return (
@@ -261,6 +180,9 @@ function App() {
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
+              // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
+              { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
@@ -307,6 +229,7 @@ function App() {
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+              <Route path="/baja-correo/:token" element={<BajaCorreoPage />} />
               <Route
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>
@@ -317,7 +240,7 @@ function App() {
                   </Authenticated>
                 }
               >
-                <Route index element={<Home />} />
+                <Route index element={<Suspense fallback={<EstadoCargaPagina />}><InicioPage /></Suspense>} />
                 <Route path="/organizaciones" element={<OrganizacionList />} />
                 <Route path="/organizaciones/create" element={<OrganizacionCreate />} />
                 <Route path="/servidores" element={<ServidorList />} />
@@ -384,6 +307,30 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoNueva /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoHistorial /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoDetalle /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -714,6 +661,16 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas"><TransporteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/reportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="reportes">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReportesVentas /></Suspense>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

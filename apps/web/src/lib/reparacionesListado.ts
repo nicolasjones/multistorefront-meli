@@ -35,6 +35,8 @@ export type ReparacionListada = {
   tecnico: string | null
   entrega_prevista: string | null
   total_cliente: number
+  // Repuestos pendientes de stock (F-SVC-12, FR-032); 0 si la reparación está anulada o entregada.
+  pendientes_stock: number
 }
 
 export type FiltrosReparaciones = {
@@ -64,7 +66,7 @@ export const subtituloPeriodo = (hoy: string = hoyEnArgentina()) =>
   `Según la fecha de entrega prevista (hoy: ${formatearDiaCompleto(hoy)})`
 
 export function aReparacionListada(fila: ReparacionListada): ReparacionListada {
-  return { ...fila, total_cliente: Number(fila.total_cliente ?? 0) }
+  return { ...fila, total_cliente: Number(fila.total_cliente ?? 0), pendientes_stock: Number(fila.pendientes_stock ?? 0) }
 }
 
 export async function listarReparaciones(filtros: FiltrosReparaciones): Promise<{ total: number; filas: ReparacionListada[] }> {

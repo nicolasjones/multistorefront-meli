@@ -44,7 +44,7 @@ import { ClienteShow } from './show'
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: 'norte@example.com',
   telefono: null, celular: null, direccion: null, codigo_postal: null, localidad: 'Rosario', provincia: null, expreso_preferido: null,
-  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, created_at: '2026-10-16T10:00:00Z',
+  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, acepta_correo_masivo: false, descuento: null, created_at: '2026-10-16T10:00:00Z',
 }
 
 const abrir = () =>
@@ -83,6 +83,13 @@ describe('ClienteShow', () => {
     expect(screen.queryByText('c-1')).not.toBeInTheDocument()
   })
 
+  it('muestra el descuento del cliente en la ficha (F-VTA-32)', () => {
+    conCliente({ descuento: 5 })
+    abrir()
+    expect(screen.getByText('Descuento')).toBeInTheDocument()
+    expect(screen.getByText('5 %')).toBeInTheDocument()
+  })
+
   it('con edición ofrece Editar y Archivar, y nunca Eliminar', () => {
     abrir()
     expect(screen.getByRole('link', { name: 'Editar' })).toHaveAttribute('href', '/clientes/edit/c-1')
@@ -99,6 +106,27 @@ describe('ClienteShow', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
     abrir()
     expect(screen.queryByTestId('compras')).not.toBeInTheDocument()
+  })
+
+  it('el bloque «Comunicaciones» muestra el interruptor «Incluir en el correo masivo» y lo guarda al cambiarlo', async () => {
+    abrir()
+    expect(screen.getByRole('heading', { name: 'Comunicaciones' })).toBeInTheDocument()
+    const interruptor = screen.getByRole('checkbox', { name: 'Incluir en el correo masivo' })
+    expect(interruptor).not.toBeChecked()
+    fireEvent.click(interruptor)
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ resource: 'clientes', id: 'c-1', values: { acepta_correo_masivo: true } }),
+    ))
+    expect(await screen.findByText('El cliente se incluye en el correo masivo')).toBeInTheDocument()
+  })
+
+  it('con lectura el interruptor de «Comunicaciones» se ve pero no se puede cambiar', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    conCliente({ acepta_correo_masivo: true })
+    abrir()
+    const interruptor = screen.getByRole('checkbox', { name: 'Incluir en el correo masivo' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toBeDisabled()
   })
 
   it.each(['lectura', 'ninguno'] as const)('con nivel %s no ofrece Editar ni Archivar', (nivel) => {

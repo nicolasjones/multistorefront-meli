@@ -20,6 +20,17 @@ vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelS
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+// Avisos al cliente (F-SVC-14): fuera del alcance de este archivo; su historial llega vacío y el cliente con correo.
+// El comprobante asociado (F-SVC-13) no es tema de este archivo: sin él la pantalla no suma un segundo «Reintentar».
+vi.mock('../../lib/reparacionComprobante', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionComprobante')>()),
+  obtenerComprobanteDeReparacion: vi.fn().mockResolvedValue(null),
+}))
+vi.mock('../../lib/reparacionAvisos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionAvisos')>()),
+  listarAvisosDeReparacion: vi.fn().mockResolvedValue([]),
+  clienteTieneCorreo: vi.fn().mockResolvedValue(true),
+}))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarModelos: mocks.listarModelos,
@@ -201,7 +212,7 @@ describe('Service técnico · Estado, historial, entrega y anulación (FR-030 a 
 
     fireEvent.change(within(dialogo).getByLabelText(/Motivo de la anulación/), { target: { value: 'Cliente desistió' } })
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Anular reparación' }))
-    await waitFor(() => expect(mocks.anularReparacion).toHaveBeenCalledWith('r-1', 'Cliente desistió'))
+    await waitFor(() => expect(mocks.anularReparacion).toHaveBeenCalledWith('r-1', 'Cliente desistió', []))
     expect(await screen.findByText('Motivo: Cliente desistió')).toBeInTheDocument()
     expect(screen.getByText('Esta reparación está anulada: solo se puede consultar.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Anular' })).not.toBeInTheDocument()
