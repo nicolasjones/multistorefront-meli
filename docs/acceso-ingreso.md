@@ -43,6 +43,6 @@ El cliente con cuenta web (F-CLI-05) ingresa y recupera su contraseña **en el d
 
 ## Removidos y cuentas sin membresía (MSF-692)
 
-- Al remover a un miembro, el trigger `cortar_sesiones_miembro_removido` (migración `20270121120000`) borra sus `auth.sessions`, igual que suspender.
+- Al remover a un miembro, el trigger `cortar_sesiones_miembro_removido` (migración `20270201200141`) borra sus `auth.sessions`, igual que suspender.
 - `authProvider.login` y `check` exigen membresía no suspendida o ser superadmin; si no, cierran la sesión y rechazan (mensaje genérico). `login` falla cerrado ante un error de consulta; `check` no expulsa por una caída y reutiliza un veredicto «permitido» 60 s.
 - Una cuenta de cliente de la tienda sin membresía tampoco entra al panel. La contención de datos sigue siendo RLS.
