@@ -282,8 +282,9 @@ select public.emitir_nota_credito(pg_temp.id_de('U'), 'devolucion_productos',
 reset role;
 select is(pg_temp.vista('b1000000-0000-0000-0000-000000000003', 'vendido'), 0::numeric, 'devuelta entera: vendido 0');
 select is(
-  (select margen_pct from analitica.rentabilidad_ventas_real where producto_id = 'b1000000-0000-0000-0000-000000000003'),
-  null::numeric, 'una fila sin neto positivo trae margen % nulo (no divide por cero)');
+  (select bool_and(margen_pct is null) from analitica.rentabilidad_ventas_real
+    where producto_id = 'b1000000-0000-0000-0000-000000000003' and vendido <= 0),
+  true, 'una fila sin neto positivo trae margen % nulo (no divide por cero)');
 
 -- Producto dado de baja y empresa pausada: las ventas ya hechas cuentan.
 update dominio.productos set activo = false where id = 'b1000000-0000-0000-0000-000000000001';

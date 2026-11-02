@@ -49,7 +49,7 @@ create temp table datos as
 grant select on datos to public;
 
 insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id)
-select dep_a, 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111' from datos
+select dep_a, 'a1000000-0000-0000-0000-000000000001'::uuid, '11111111-1111-1111-1111-111111111111' from datos
 union all
 select dep_b, 'a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222' from datos
 on conflict do nothing;
