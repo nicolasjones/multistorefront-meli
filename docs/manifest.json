@@ -1216,16 +1216,16 @@
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
-      "pageHash": "0bfe19d1ff2b45bb4efd58f552ad80945293bf0a6eb527ab201deb491e001a17",
+      "pageHash": "574bd6ba54bce100167e95eebe30b0ed3ddbc6203792a50cd7b45c46f7eab4c9",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "fcd2b69a",
+      "sourceAt": "801de684",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "801de684"
     },
     "docs/tecnico/correo-masivo-a-clientes.md": {
       "title": "Correo masivo a clientes: datos, RPC, flow y baja (MSF-155)",
