@@ -5,6 +5,7 @@ import {
   FormHelperText, FormLabel, Stack, TextField, Typography,
 } from '@mui/material'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
+import { useNombreRolActual } from '../../hooks/useNombreRolActual'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
 import { LARGO_MAXIMO_MOTIVO, TIPOS_MOVIMIENTO, mensajeDeErrorStock, type MotivoMovimiento, type TipoMovimiento } from '../../lib/stock'
@@ -220,10 +221,11 @@ export function PanelMotivos() {
 // Motivos de movimiento (F-STK-02, FR-019). Solo el Administrador.
 export function MotivosMovimiento() {
   const { puedeEscribir, isLoading } = usePuedeEscribir()
+  const rol = useNombreRolActual(puedeEscribir === false)
   if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
   if (!puedeEscribir) {
     // Solo el Administrador gestiona motivos: no hay flujo de «pedir acceso» a esta pantalla.
-    return <AccesoRestringido rol="actual" seccion="Motivos de movimiento" />
+    return <AccesoRestringido rol={rol} seccion="Motivos de movimiento" />
   }
   return (
     <Box>

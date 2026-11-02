@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from '@mui/material'
+import { useNombreRolActual } from '../../hooks/useNombreRolActual'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { EstadoCargaPagina } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -12,8 +13,9 @@ import { PanelEstadosConsulta } from './PanelEstadosConsulta'
 // «Empresa activa: no aplica»). Los motivos son la misma tabla que /stock/motivos.
 export function ListasConfigurables() {
   const { puedeEscribir, isLoading } = usePuedeEscribir()
+  const rol = useNombreRolActual(puedeEscribir === false)
   if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
-  if (!puedeEscribir) return <AccesoRestringido rol="actual" seccion="Listas configurables" />
+  if (!puedeEscribir) return <AccesoRestringido rol={rol} seccion="Listas configurables" />
 
   return (
     <Box>
