@@ -6,7 +6,7 @@ import { profileRedirectUrl, supabaseClient, verifyCurrentPassword } from '../..
 type SessionState = 'checking' | 'ready' | 'missing'
 
 function esContrasenaActualIncorrecta(error: { code?: string; message?: string }) {
-  return error.code === 'invalid_credentials' || /current password|contrasena actual|incorrect/i.test(error.message ?? '')
+  return error.code === 'invalid_credentials' || /current password|contrase(ñ|n)a actual|incorrect/i.test(error.message ?? '')
 }
 
 function esCorreoNoDisponible(error: { code?: string; message?: string }) {

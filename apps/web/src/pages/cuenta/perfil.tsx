@@ -60,7 +60,7 @@ export function PerfilPage() {
       ])
       if (!activa) return
       if (membresia) setCuenta((actual) => ({ ...actual, rol: membresia.rol_id, organizacion: membresia.organizaciones?.nombre ?? null }))
-      if (errorPerfil) setError('No pudimos cargar tus datos personales. Intenta nuevamente.')
+      if (errorPerfil) setError('No pudimos cargar tus datos personales. Intentá nuevamente.')
       else if (perfil) {
         setNombre(perfil.nombre ?? '')
         setApellido(perfil.apellido ?? '')
@@ -70,7 +70,7 @@ export function PerfilPage() {
           if (activa) setFotoUrl(data?.signedUrl ?? null)
         }
       }
-      if (errorEventos) setError('No pudimos cargar tus avisos de seguridad. Intenta nuevamente.')
+      if (errorEventos) setError('No pudimos cargar tus avisos de seguridad. Intentá nuevamente.')
       else setEventosSeguridad(eventos ?? [])
       setEstadoSesion('lista')
     })
@@ -96,7 +96,7 @@ export function PerfilPage() {
     const respaldo = tieneFoto ? (await supabaseClient.storage.from('fotos-perfil').download(path)).data : null
     const { error: errorCarga } = await supabaseClient.storage.from('fotos-perfil').upload(path, archivo, { upsert: true, contentType: archivo.type })
     if (errorCarga) {
-      setError('No pudimos cargar tu foto. Intenta nuevamente.')
+      setError('No pudimos cargar tu foto. Intentá nuevamente.')
     } else {
       const { error: errorPerfil } = await supabaseClient.from('perfiles_usuario').upsert({ user_id: userId, foto_path: path }, { onConflict: 'user_id' })
       if (errorPerfil) {
@@ -123,12 +123,12 @@ export function PerfilPage() {
     // upsert de perfil falla después de la eliminación.
     const { data: respaldo, error: errorRespaldo } = await supabaseClient.storage.from('fotos-perfil').download(path)
     if (errorRespaldo) {
-      setError('No pudimos eliminar tu foto. Intenta nuevamente.')
+      setError('No pudimos eliminar tu foto. Intentá nuevamente.')
       setSubiendoFoto(false)
       return
     }
     const { error: errorEliminacion } = await supabaseClient.storage.from('fotos-perfil').remove([path])
-    if (errorEliminacion) setError('No pudimos eliminar tu foto. Intenta nuevamente.')
+    if (errorEliminacion) setError('No pudimos eliminar tu foto. Intentá nuevamente.')
     else {
       const { error: errorPerfil } = await supabaseClient.from('perfiles_usuario').upsert({ user_id: userId, foto_path: null }, { onConflict: 'user_id' })
       if (errorPerfil) {
@@ -159,7 +159,7 @@ export function PerfilPage() {
     const { error: errorGuardado } = await supabaseClient
       .from('perfiles_usuario')
       .upsert({ user_id: userId, nombre: nombreLimpio, apellido: apellidoLimpio }, { onConflict: 'user_id' })
-    if (errorGuardado) setError('No pudimos guardar tus datos personales. Intenta nuevamente.')
+    if (errorGuardado) setError('No pudimos guardar tus datos personales. Intentá nuevamente.')
     else {
       setNombre(nombreLimpio)
       setApellido(apellidoLimpio)
