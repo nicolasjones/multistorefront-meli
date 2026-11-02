@@ -8,14 +8,15 @@ el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirm
 ## Qué hace
 
 La pantalla `/rentabilidad` (menú «Análisis») muestra, para cada producto y cada tienda, cuánto se gana
-sobre el precio sin IVA. Tiene cuatro pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
+sobre el precio sin IVA. Tiene estas pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
 productos en riesgo, «Cómo se calcula»), **Por producto** (tabla con filtros) y **Comparativo** (ruta
 `/rentabilidad/comparativo`, F-REN-06: el margen del mismo producto lado a lado en cada empresa, con la
 diferencia en pp y mejor/peor; solo productos con margen en 2 o más empresas, sin depender de la empresa
 activa de la barra superior; sin `lectura` en `rentabilidad` o ante un 403 del token muestra el acceso restringido)
 e **Historia** (ruta `/rentabilidad/historia`, F-REN-07: se elige un producto y se ve cómo evolucionó su margen en
 cada empresa, con la cotización del dólar más cercana a cada fecha y el costo vigente ese día; mismos estados y
-acceso que Comparativo). La pestaña «Por publicación
+acceso que Comparativo), **Ventas reales** (ruta `/rentabilidad/ventas-reales`, F-REN-09: margen de lo efectivamente
+vendido en un período, ver «Ventas reales» más abajo) y **Costos adicionales**. La pestaña «Por publicación
 de ML» no existe todavía: se oculta hasta que la organización tenga Mercado Libre activo.
 
 Las tarjetas y la tabla son tableros de Superset embebidos; las pestañas, el aviso, el diálogo del umbral,
@@ -103,6 +104,8 @@ y `drop table dominio.producto_costos_historial;` (exportar antes), más borrar 
 | RPC | `public` | superficie de ejecución, no almacena datos |
 | `reportes.seccion` | `public` | plataforma (catálogo de reportes) |
 | `producto_costos_historial` | `dominio` | dato de negocio del producto (historia del costo); RLS por organización y `rentabilidad` |
+| `comprobantes_venta_lineas.costo_unitario` / `.cotizacion` | `dominio` | dato de la venta (qué costaba y con qué dólar); misma tabla y RLS de `ventas`, columnas ocultas a quien no tiene `rentabilidad` |
+| `analitica.rentabilidad_ventas_real` | `analitica` | vista de lectura para Superset, sin tablas |
 
 ## Permisos
 
@@ -218,3 +221,37 @@ empresa), un tipo —**porcentaje sobre el neto sin IVA** (0–100) o **monto en
   un costo por empresa; la edición no cambia de empresa.
 - **Reversión**: la tabla y las RPC son aditivas (`drop function` y `drop table` en una migración posterior, exportando
   antes los datos); la vista se restituye con su definición de `20261130100200` y se borra `analitica.costos_adicionales_de`.
+
+## Ventas reales (F-REN-09, MSF-223)
+
+Pestaña **Ventas reales** (`/rentabilidad/ventas-reales`). Mide cuánto se ganó con lo **efectivamente vendido** en un
+período, con el precio, el costo y la cotización de cada venta, no con la lista. Es un tablero de Superset embebido
+(`Rentabilidad · Ventas reales`, slug `rentabilidad-ventas-reales`, sección `rentabilidad`, rol por defecto
+`administracion`): rango «Desde / Hasta», totales (vendido, costo, costos adicionales, margen, margen % y estado según el
+umbral), desglose por empresa y por producto, vacío «Sin ventas en este período». Compara **todas** las empresas: no sigue
+a la empresa activa de la barra superior (Principio VIII, no aplica; ver la matriz de la spec). No hay Mercado Libre.
+
+- **Captura** (Principio VII, todo en `dominio`): `dominio.comprobantes_venta_lineas` suma `costo_unitario` (pesos por
+  unidad) y `cotizacion` (dólar vigente), nulables. `public.confirmar_comprobante(uuid)` (misma firma y grants) los guarda
+  en cada línea al confirmar, una sola vez: un cambio posterior de costo o de cotización no altera lo ya guardado. Un
+  trigger copia el costo de la línea original a las líneas de una nota de crédito de «Devolución de productos» (la RPC
+  `emitir_nota_credito` no cambia); las notas por importe no tienen líneas y no mueven el margen real.
+- **Sin histórico**: las ventas confirmadas antes de esta migración **no** tienen costo guardado y quedan fuera (no se
+  inventa costo); el tablero lo aclara en su nota. Una línea cuyo producto no tenía costo (o USD sin cotización) tampoco entra.
+- **Secreto del costo**: el costo guardado es de la sección `rentabilidad`. Se revocó el `select` de tabla de `authenticated`
+  sobre las líneas y se concedió columna por columna **sin** `costo_unitario` ni `cotizacion`; la vista no se concede a
+  `anon` ni `authenticated` (solo al rol `superset_analitica`, con el `rls` del guest token por `organizacion_id`).
+- **Vista** `analitica.rentabilidad_ventas_real` (empresa × producto × fecha): usa `analitica.comprobante_cuenta_como_facturado`
+  y `analitica.signo_comprobante` (sin reimplementarlos: factura y nota de crédito; no borrador, anulada ni presupuesto).
+  `vendido` = Σ signo × neto sin IVA; `costo` = Σ signo × cantidad × costo guardado; `costos_adicionales` = los **vigentes al
+  consultar** (% sobre el neto vendido + monto por unidad vendida, `analitica.costos_adicionales_de`); `margen` = vendido −
+  costo − costos adicionales; `margen_pct` = margen / vendido (nulo si el neto no es positivo). Los productos dados de baja y
+  las empresas pausadas con ventas hechas **sí** cuentan.
+- **Reversión** (todo aditivo; en una migración posterior, nunca en el PR que lo crea): `drop view
+  analitica.rentabilidad_ventas_real`; restituir `confirmar_comprobante` con su definición de `20261204140000`;
+  `drop trigger comprobantes_venta_lineas_costo_nota` y `drop function private.copiar_costo_linea_nota()`; devolver el
+  `select` de tabla a `authenticated` y `drop column costo_unitario, cotizacion` (exportar antes si interesa). La pestaña se
+  quita sacando la ruta y la entrada de `PESTANAS_RENTABILIDAD`.
+- **Pruebas**: pgTAP `rentabilidad_ventas_real.test.sql` (captura, idempotencia, vista, notas, exclusiones, privilegios) y
+  `rentabilidad_ventas_real_aislamiento.test.sql` (dos organizaciones, roles sin `rentabilidad`); Vitest `VentasReales.test.tsx`
+  y `tableroVentasReales.contrato.test.ts`; `infra/superset/importar-dashboards.test.mjs` (YAML y reporte).

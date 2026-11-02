@@ -252,3 +252,13 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`,
 - **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
 - **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
 - Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
+
+## Tablero «Rentabilidad · Ventas reales» (F-REN-09, MSF-223)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-ventas-reales`, registrado en `reportes.json` con `seccion = 'rentabilidad'` y rol por defecto `administracion`; idempotente). Lee la vista `analitica.rentabilidad_ventas_real` (rol `superset_analitica` solo `select`), sin Mercado Libre.
+
+- **Dataset** `rentabilidad_ventas_real`: una fila por empresa × producto × fecha; expone `organizacion_id` (columna del `rls` del guest token) y métricas agregadas (`vendido_total`, `costo_total`, `costos_adicionales_total`, `margen_total`, `margen_pct_total`, `estado_total` con el umbral de la organización) más sus versiones de texto en pesos.
+- **Filtro nativo** `Rango de fechas` (Desde / Hasta) sobre la fecha de la venta; no hay filtro de empresa (compara todas).
+- **Gráficos**: totales del período (con la nota de ventas sin costo guardado), tabla por empresa y tabla por producto.
+- **Vacío**: «Sin ventas en este período».
+- Verificación: `supabase/tests/database/rentabilidad_ventas_real*.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroVentasReales.contrato.test.ts`.
