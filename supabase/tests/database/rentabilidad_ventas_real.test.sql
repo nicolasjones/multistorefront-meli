@@ -281,23 +281,39 @@ select public.emitir_nota_credito(pg_temp.id_de('U'), 'devolucion_productos',
   jsonb_build_array(jsonb_build_object('linea_id', pg_temp.linea('U', 'b1000000-0000-0000-0000-000000000003', (select principal from datos)), 'cantidad', 1)), null);
 reset role;
 select is(pg_temp.vista('b1000000-0000-0000-0000-000000000003', 'vendido'), 0::numeric, 'devuelta entera: vendido 0');
-select ok(
-  exists (select 1 from analitica.rentabilidad_ventas_real
-           where producto_id = 'b1000000-0000-0000-0000-000000000003' and vendido <= 0 and margen_pct is null)
-  or not exists (select 1 from analitica.rentabilidad_ventas_real
-                  where producto_id = 'b1000000-0000-0000-0000-000000000003' and vendido <= 0 and margen_pct is not null),
-  'una fila sin neto positivo nunca trae margen % (no divide por cero)');
+select is(
+  (select margen_pct from analitica.rentabilidad_ventas_real where producto_id = 'b1000000-0000-0000-0000-000000000003'),
+  null::numeric, 'una fila sin neto positivo trae margen % nulo (no divide por cero)');
 
 -- Producto dado de baja y empresa pausada: las ventas ya hechas cuentan.
 update dominio.productos set activo = false where id = 'b1000000-0000-0000-0000-000000000001';
 update dominio.empresas set activa = false where id = 'a1000000-0000-0000-0000-000000000001';
 select ok(pg_temp.filas_vista('b1000000-0000-0000-0000-000000000001') >= 1, 'las ventas de un producto dado de baja siguen en el margen real');
 
--- Estado según el umbral de la organización.
+-- Estado según el umbral de la organización. Los costos adicionales ya están dados de baja, así que el margen %
+-- sale solo del costo guardado: se fija en 5 % del neto (costo = 95 % del neto unitario) y se mueve el umbral.
+create function pg_temp.estado_joystick() returns text language sql as $$
+  select estado from analitica.rentabilidad_ventas_real
+   where producto_id = 'b1000000-0000-0000-0000-000000000001' and fecha = current_date - 1 $$;
+update dominio.comprobantes_venta_lineas set costo_unitario = round(subtotal_sin_iva / cantidad * 0.95, 4)
+ where producto_id = 'b1000000-0000-0000-0000-000000000001' and costo_unitario is not null;
 select is(
-  (select estado from analitica.rentabilidad_ventas_real
+  (select round(margen_pct, 4) from analitica.rentabilidad_ventas_real
     where producto_id = 'b1000000-0000-0000-0000-000000000001' and fecha = current_date - 1),
-  'ok', 'con margen sobre el umbral el estado es ok');
+  0.0500::numeric, 'con el costo en 95 % del neto el margen % es 5 %');
+select is(pg_temp.estado_joystick(), 'bajo', 'sin fila de configuración rige el umbral 10 %: 5 % es bajo');
+insert into dominio.rentabilidad_config (organizacion_id, umbral_margen_bajo)
+  values ('11111111-1111-1111-1111-111111111111', 0.04);
+select is(pg_temp.estado_joystick(), 'ok', 'con el umbral de la organización en 4 %, 5 % es ok');
+select is(
+  (select umbral_margen_bajo from analitica.rentabilidad_ventas_real
+    where producto_id = 'b1000000-0000-0000-0000-000000000001' and fecha = current_date - 1),
+  0.0400::numeric, 'la fila expone el umbral de la organización');
+update dominio.rentabilidad_config set umbral_margen_bajo = 0.06;
+select is(pg_temp.estado_joystick(), 'bajo', 'un margen por debajo del umbral de la organización (6 %) es bajo');
+update dominio.comprobantes_venta_lineas set costo_unitario = round(subtotal_sin_iva / cantidad * 1.20, 4)
+ where producto_id = 'b1000000-0000-0000-0000-000000000001' and costo_unitario is not null;
+select is(pg_temp.estado_joystick(), 'negativo', 'con el costo sobre el neto el margen es negativo');
 
 -- Sin acceso desde la sesión de la app.
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');

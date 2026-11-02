@@ -25,7 +25,7 @@
 -- organización (`umbral_margen_bajo`, 10 % por defecto) y el tablero lo recalcula sobre el total del período.
 --
 -- Rendimiento: `organizacion_id` y `empresa_id` son columnas del GROUP BY y del escaneo de
--- `dominio.comprobantes_venta`, así que el filtro del token se empuja al escaneo (EXPLAIN en la tarea T013).
+-- `dominio.comprobantes_venta`, así que el filtro del token se empuja al escaneo (Postgres empuja un filtro sobre columnas del GROUP BY; el EXPLAIN queda por correr contra una base con datos).
 --
 -- Migración aditiva. Reversión (migración posterior; la vista no guarda datos):
 --   drop view analitica.rentabilidad_ventas_real;
