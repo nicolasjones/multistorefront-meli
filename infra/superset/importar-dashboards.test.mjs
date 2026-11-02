@@ -640,8 +640,8 @@ test('los YAML versionados de Inventario son coherentes: filtros nativos, valor 
   const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
 
   const archivosDataset = await readdir(path.join(raiz, 'datasets', 'Inventario_analitica'));
-  assert.deepEqual(archivosDataset, ['inventario_productos_stock.yaml']);
-  const dataset = await leer('datasets', 'Inventario_analitica', archivosDataset[0]);
+  assert.deepEqual(archivosDataset.sort(), ['inventario_productos_stock.yaml', 'inventario_reposicion.yaml']);
+  const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_productos_stock.yaml');
   assert.match(dataset, /^schema: analitica$/m, 'lee solo del esquema analitica');
   assert.match(dataset, /^table_name: inventario_productos_stock$/m);
   assert.match(dataset, /^- column_name: organizacion_id$/m, 'expone organizacion_id para el rls del guest token');
@@ -664,11 +664,39 @@ test('los YAML versionados de Inventario son coherentes: filtros nativos, valor 
   }
 
   const { reportes } = JSON.parse(await leer('reportes.json'));
-  assert.equal(reportes.length, 1);
-  assert.equal(reportes[0].seccion, 'stock');
-  assert.equal(reportes[0].filtro_empresa, false);
-  assert.equal(reportes[0].dashboard_slug, 'inventario-productos-stock');
-  assert.ok(!reportes[0].rolesPorDefecto.includes('administrador'));
+  assert.deepEqual(reportes.map((r) => r.dashboard_slug), ['inventario-productos-stock', 'inventario-reposicion']);
+  for (const reporte of reportes) {
+    assert.equal(reporte.seccion, 'stock');
+    assert.equal(reporte.filtro_empresa, false);
+    assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
+  }
+});
+
+// F-REP-02 (FR-005): dataset de reposición, tablero «Inventario · Reposición» ordenado por severidad
+// y con filtros nativos de producto/SKU, categoría, estado y proveedor.
+test('los YAML versionados de Reposición son coherentes: orden por severidad y filtros nativos', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/inventario');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_reposicion.yaml');
+  assert.match(dataset, /^schema: analitica$/m);
+  assert.match(dataset, /^table_name: inventario_reposicion$/m);
+  assert.match(dataset, /^- column_name: organizacion_id$/m, 'expone organizacion_id para el rls del guest token');
+  assert.match(dataset, /^- column_name: faltante_sugerido$/m);
+
+  const tabla = await leer('charts', 'Reposicion_1.yaml');
+  assert.equal(campo(tabla, 'dataset_uuid'), campo(dataset, 'uuid'));
+  assert.match(tabla, /"query_mode": "raw"/);
+  assert.match(tabla, /"order_by_cols": \["\[\\"estado\\", true\]"/, 'primero por severidad: sin_stock antes que stock_bajo');
+
+  const tablero = await leer('dashboards', 'Reposicion_1.yaml');
+  assert.equal(campo(tablero, 'slug'), 'inventario-reposicion');
+  assert.ok(tablero.includes(campo(tabla, 'uuid')), 'el tablero incluye la tabla');
+  for (const columna of ['producto_nombre', 'sku', 'categoria', 'estado_texto', 'proveedor']) {
+    assert.ok(tablero.includes(`"column": {"name": "${columna}"}`), `filtro nativo sobre ${columna}`);
+  }
 });
 
 test('el directorio versionado de inventario se importa y registra el reporte con seccion stock', async () => {
@@ -682,7 +710,9 @@ test('el directorio versionado de inventario se importa y registra el reporte co
       return respuestaJson({});
     }
     if (/\/api\/v1\/dashboard\/([^/]+)\/embedded$/.test(url)) {
-      return opciones.method === 'POST' ? respuestaJson({ result: { uuid: UUID_A } }) : respuestaJson({}, 404);
+      // Un uuid de embedding distinto por tablero: el reporte se identifica por él.
+      const uuidEmbebido = `${UUID_A.slice(0, -12)}${String(url.length).padStart(12, '0')}`;
+      return opciones.method === 'POST' ? respuestaJson({ result: { uuid: uuidEmbebido } }) : respuestaJson({}, 404);
     }
     if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
       const fila = JSON.parse(opciones.body);
@@ -712,11 +742,13 @@ test('el directorio versionado de inventario se importa y registra el reporte co
 
   const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
   assert.equal(estadoFalso.imports, 1);
-  assert.equal(primera.registrados.length, 1);
-  const [fila] = [...estadoFalso.reportes.values()];
-  assert.equal(fila.nombre, 'Inventario · Productos y stock');
-  assert.equal(fila.seccion, 'stock', 'el reporte sigue la sección de sus datos');
-  assert.equal(fila.filtro_empresa, false);
+  assert.equal(primera.registrados.length, 2);
+  const filas = [...estadoFalso.reportes.values()];
+  assert.deepEqual(filas.map((f) => f.nombre).sort(), ['Inventario · Productos y stock', 'Inventario · Reposición']);
+  for (const fila of filas) {
+    assert.equal(fila.seccion, 'stock', 'el reporte sigue la sección de sus datos');
+    assert.equal(fila.filtro_empresa, false);
+  }
   assert.deepEqual(
     JSON.parse(estadoFalso.form.get('passwords')),
     { 'databases/Inventario_analitica.yaml': 'clave-db' },
@@ -725,5 +757,5 @@ test('el directorio versionado de inventario se importa y registra el reporte co
   assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
 
   await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
-  assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
+  assert.equal(estadoFalso.reportes.size, 2, 'reimportar no duplica los reportes');
 });
