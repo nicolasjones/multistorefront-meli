@@ -48,6 +48,23 @@ class ConfiguracionCsv(unittest.TestCase):
         self.assertEqual(csv["decimal"], ",")
         self.assertIn(csv["encoding"], ("utf-8", "utf-8-sig"))
 
+    def test_ningun_consumidor_del_repo_parsea_csv_de_superset(self):
+        # CSV_EXPORT es global (cambia Ventas y Rentabilidad): si algún código
+        # versionado leyera CSV bajados de Superset esperando "," y ".", se
+        # rompería. Hoy ninguno lo hace; esta prueba avisa si aparece uno.
+        raiz = AQUI.parent.parent
+        for base in ("workers", "infra/kestra", "apps/web/src"):
+            for f in (raiz / base).rglob("*"):
+                if not f.is_file() or f.suffix not in (".ts", ".tsx", ".py", ".yml", ".yaml", ".mjs"):
+                    continue
+                if "node_modules" in f.parts or ".test." in f.name:
+                    continue
+                t = f.read_text(errors="ignore").lower()
+                self.assertFalse(
+                    "superset" in t and "csv" in t and "download" in t,
+                    f"{f} parece consumir CSV de Superset; revisar CSV_EXPORT",
+                )
+
     def test_guest_conserva_permiso_de_descarga(self):
         # configurar_embebido.py corre dentro de `superset shell`, no se importa:
         # se lee su lista PERMISOS_GUEST del árbol sintáctico.

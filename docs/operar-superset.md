@@ -267,6 +267,17 @@ Aplica también a los reportes de Ventas y Rentabilidad. Si Excel mostrara mal l
 tildes, cambiar a `"utf-8-sig"` (UTF-8 con BOM). Reversión: quitar la clave
 `CSV_EXPORT` (vuelve al formato por defecto de Superset).
 
+Riesgo conocido — inyección de fórmulas: Superset no neutraliza valores de texto
+que empiezan con `=`, `+`, `-` o `@` (p. ej. el nombre de un cliente o producto).
+Excel los ejecuta como fórmula al abrir el CSV. Los datos vienen de la base de la
+propia organización, pero quien los cargue puede plantar una fórmula. Mitigación
+operativa: abrir los CSV exportados con importación de texto (no doble clic) ante
+datos de origen no confiable; la neutralización automática queda como mejora.
+
+Regresión de formato: al ser global, Ventas y Rentabilidad también salen con `;` y
+`,`. Ningún código del repo (workers, Kestra, web) consume esos CSV; la prueba
+`test_ningun_consumidor_del_repo_parsea_csv_de_superset` falla si aparece uno.
+
 Pruebas: `pnpm test:superset:config` (formato y permiso `can_csv`) y el Vitest de
 `ReporteEmbebido` (sin acceso no se monta el tablero).
 
