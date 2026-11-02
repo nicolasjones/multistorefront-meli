@@ -129,6 +129,18 @@ describe('useBuscadorCatalogo', () => {
     expect(result.current.opciones).toEqual([])
   })
 
+  it('limpia el aviso de truncado cuando la consulta siguiente falla', async () => {
+    mocks.productos.mockResolvedValueOnce({ data: Array.from({ length: MAXIMO_OPCIONES_CATALOGO + 1 }, (_, i) => producto(i)), error: null })
+    mocks.productos.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    const { result } = renderHook(() => useBuscadorCatalogo<{ id: string }>({
+      tabla: 'productos', columnas: 'id, nombre', columnasBusqueda: 'nombre', orden: 'nombre', habilitado: true,
+    }))
+    await waitFor(() => expect(result.current.truncado).toBe(true))
+    act(() => result.current.buscar('zzz'))
+    await waitFor(() => expect(result.current.error).toBe(true))
+    expect(result.current.truncado).toBe(false)
+  })
+
   it('filtra por los proveedores activos con su razón social', async () => {
     const { result } = renderHook(() => useBuscadorCatalogo<{ id: string }>({
       tabla: 'proveedores', columnas: 'id, razon_social', columnasBusqueda: 'razon_social', orden: 'razon_social', soloActivos: true, habilitado: true,

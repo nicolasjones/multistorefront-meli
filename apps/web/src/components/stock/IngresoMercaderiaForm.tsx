@@ -53,7 +53,8 @@ function SelectorProducto({ indice, producto, proveedorId, error, onElegir }: Se
       loadingText="Buscando productos…"
       filterOptions={(opciones) => opciones}
       onOpen={() => setAbierto(true)}
-      onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto) }}
+      onClose={() => productos.buscar('')}
+      onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto); else if (motivo === 'clear') productos.buscar('') }}
       getOptionLabel={etiquetaProducto}
       isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
       onChange={(_, nueva) => {
@@ -222,7 +223,8 @@ export function IngresoMercaderiaForm({ onRegistrado }: Props) {
             loadingText="Buscando proveedores…"
             filterOptions={(opciones) => opciones}
             onOpen={() => setProveedorAbierto(true)}
-            onInputChange={(_, texto, motivo) => { if (motivo === 'input') proveedores.buscar(texto) }}
+            onClose={() => proveedores.buscar('')}
+            onInputChange={(_, texto, motivo) => { if (motivo === 'input') proveedores.buscar(texto); else if (motivo === 'clear') proveedores.buscar('') }}
             getOptionLabel={(opcion) => opcion.razon_social}
             isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
             onChange={(_, nueva) => {

@@ -189,7 +189,8 @@ export function HistorialIngresos({ revision }: Props) {
         <Autocomplete
           size="small" sx={{ width: 200 }} options={conActual(proveedores.opciones, proveedorActual)} value={proveedorActual}
           loading={proveedores.cargando} loadingText="Buscando proveedores…" filterOptions={(opciones) => opciones} onOpen={() => setProveedorAbierto(true)}
-          onInputChange={(_, texto, motivo) => { if (motivo === 'input') proveedores.buscar(texto) }}
+          onClose={() => proveedores.buscar('')}
+          onInputChange={(_, texto, motivo) => { if (motivo === 'input') proveedores.buscar(texto); else if (motivo === 'clear') proveedores.buscar('') }}
           getOptionLabel={(opcion) => opcion.razon_social}
           isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
           onChange={(_, nueva) => cambiarFiltro(() => { setProveedorElegido(nueva); setProveedorId(nueva?.id ?? ''); proveedores.buscar('') })}
@@ -204,7 +205,8 @@ export function HistorialIngresos({ revision }: Props) {
         <Autocomplete
           size="small" sx={{ width: 240 }} options={conActual(productos.opciones, productoActual)} value={productoActual}
           loading={productos.cargando} loadingText="Buscando productos…" filterOptions={(opciones) => opciones} onOpen={() => setProductoAbierto(true)}
-          onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto) }}
+          onClose={() => productos.buscar('')}
+          onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto); else if (motivo === 'clear') productos.buscar('') }}
           getOptionLabel={etiquetaProducto}
           isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
           onChange={(_, nueva) => cambiarFiltro(() => { setProductoElegido(nueva); setProductoId(nueva?.id ?? ''); productos.buscar('') })}

@@ -71,6 +71,7 @@ export function useBuscadorCatalogo<T>({ tabla, columnas, columnasBusqueda, orde
         if (respuesta.error) {
           console.error(`No pudimos buscar en ${tabla}.`, respuesta.error)
           setError(true)
+          setTruncado(false)
         } else {
           const filas = respuesta.data ?? []
           setError(false)
