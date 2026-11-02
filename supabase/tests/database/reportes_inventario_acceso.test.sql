@@ -4,7 +4,7 @@
 -- `authenticated` no leen la vista de analitica; el rol de Superset solo la lee.
 begin;
 
-select plan(10);
+select plan(9);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
