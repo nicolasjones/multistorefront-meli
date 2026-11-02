@@ -11,7 +11,7 @@ sources:
 | Esquema | Qué guarda |
 |---|---|
 | `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
-| `dominio` | Negocio: empresas, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, historial |
+| `dominio` | Negocio: empresas, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, contactos, respuestas rápidas, historial |
 | `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
 Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa resuelven el nivel con `private.nivel_seccion()` y la empresa activa.
@@ -1511,6 +1511,76 @@ erDiagram
 - **[ERD interactivo (Archify)](../diagrams/msf-130-erd.html)** — columnas, PK/FK y cardinalidad.
 - Detalle de RPC, RLS, frontend, seguridad y reversión:
   [Consultas: modelo, RPC y aviso](consultas.md#interes-por-whatsapp-f-con-02-msf-130).
+
+## Contactos y respuestas rápidas (MSF-144)
+
+Dos tablas nuevas en `dominio`, dos columnas aditivas en tablas existentes y superficies en `public`.
+Migraciones `20270201100000`–`20270201100500` (contactos) y `20270201200000`–`20270201200100`
+(respuestas rápidas), construidas en la rama de la épica (merge `e57118a0`); a la fecha de esta página
+`main` todavía no las tiene promovidas. Todas son aditivas y su reversión está en el encabezado de cada
+una y consolidada en [Contactos y respuestas rápidas](contactos.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.contactos` | **nueva** | Persona de una **empresa**: `nombre` (≤ 120), `correo` (≤ 200), `telefono` (≤ 40), `correo_normalizado`, `telefono_normalizado`, `consentimiento_en`, `consentimiento_texto` (≤ 2000), `consentimiento_por`, `anonimizado_en`, `created_at`, `updated_at`. `unique (id, organizacion_id)` y FK compuesta `(empresa_id, organizacion_id)` a `dominio.empresas`. Índices únicos parciales por empresa sobre correo y teléfono normalizados, solo con `anonimizado_en is null`: anonimizar libera las claves. RLS de solo lectura; sin escritura directa. |
+| `dominio.consultas` | existente | Gana `contacto_id uuid` nullable con FK compuesta `(contacto_id, organizacion_id)` a `contactos` e índice parcial. No cambia su RLS. |
+| `dominio.comprobantes_venta` | existente | Gana `contacto_id uuid` nullable con la misma FK compuesta e índice parcial. No cambia su RLS, importes ni estados. |
+| `public.consultas_bandeja` | **vista alterada** | Suma `contacto_id` **al final**; cambio aditivo. |
+| `dominio.respuestas_rapidas` | **nueva** | Textos por **empresa**: `titulo` (≤ 80), `texto` (≤ 1000), `created_at`, `updated_at`; FK compuesta a `dominio.empresas` y `unique (id, organizacion_id)`. Sin datos personales. RLS de solo lectura; sin escritura directa. |
+| `public.respuestas_rapidas_lista` | **vista nueva** | `security_invoker`; aplica la RLS de la tabla. |
+| `public.registro_actividad` | existente | Recibe `contacto.creado|actualizado|anonimizado`, `contacto.consulta_vinculada`, `contacto.comprobante_vinculado|desvinculado` y `respuesta_rapida.creada|editada|eliminada`; sin datos personales ni el texto de la respuesta. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ CONTACTOS : "es dueña"
+  EMPRESAS ||--o{ CONTACTOS : "agrupa"
+  EMPRESAS ||--o{ CONSULTAS : "recibe"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "emite"
+  CONTACTOS |o--o{ CONSULTAS : "historial"
+  CONTACTOS |o--o{ COMPROBANTES_VENTA : "compras"
+  EMPRESAS ||--o{ RESPUESTAS_RAPIDAS : "textos"
+
+  CONTACTOS { uuid id PK
+              uuid organizacion_id FK
+              uuid empresa_id FK "FK compuesta con organizacion_id"
+              text nombre "nueva: ≤ 120"
+              text correo "nueva: ≤ 200, nullable"
+              text telefono "nueva: ≤ 40, nullable"
+              text correo_normalizado "nueva: minúsculas"
+              text telefono_normalizado "nueva: solo dígitos"
+              timestamptz consentimiento_en "nueva"
+              text consentimiento_texto "nueva: copia del texto aceptado"
+              uuid consentimiento_por "nueva: auth.users"
+              timestamptz anonimizado_en "nueva: null mientras está activo"
+              timestamptz created_at
+              timestamptz updated_at }
+  CONSULTAS { uuid id PK
+              uuid contacto_id FK "nueva: nullable"
+              text nombre
+              text contacto
+              text mensaje
+              text nota_interna }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid contacto_id FK "nueva: nullable"
+                       text numero
+                       numeric total_con_iva }
+  RESPUESTAS_RAPIDAS { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       text titulo "nueva: ≤ 80"
+                       text texto "nueva: ≤ 1000"
+                       timestamptz created_at
+                       timestamptz updated_at }
+```
+
+- La app **no escribe** en `dominio.contactos` ni en `dominio.respuestas_rapidas`: solo por RPC
+  `security definer`.
+- El contacto es por **empresa**; el mismo correo puede existir como contacto en dos tiendas.
+- Contacto y cliente (`public.clientes`) son **entidades separadas**, sin FK entre ellas.
+- Detalle de RPC, RLS, anonimización, pantallas y pruebas:
+  [Contactos y respuestas rápidas](contactos.md).
+- TODO (dueño: Documentador): ERD Archify interactivo de MSF-144. Por ahora el DER vive en Mermaid en
+  esta página y en la página técnica de la épica.
 
 ## Rentabilidad (MSF-120)
 
