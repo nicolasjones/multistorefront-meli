@@ -46,7 +46,9 @@ class ConfiguracionCsv(unittest.TestCase):
         csv = cargar_config().CSV_EXPORT
         self.assertEqual(csv["sep"], ";")
         self.assertEqual(csv["decimal"], ",")
-        self.assertIn(csv["encoding"], ("utf-8", "utf-8-sig"))
+        # Con BOM: sin él Excel abre con doble clic como ANSI (CotizaciÃ³n).
+        self.assertEqual(csv["encoding"], "utf-8-sig")
+        self.assertEqual("Cotización;María".encode(csv["encoding"])[:3], b"\xef\xbb\xbf")
 
     def test_ningun_consumidor_del_repo_parsea_csv_de_superset(self):
         # CSV_EXPORT es global (cambia Ventas y Rentabilidad): si algún código
@@ -61,7 +63,7 @@ class ConfiguracionCsv(unittest.TestCase):
                     continue
                 t = f.read_text(errors="ignore").lower()
                 self.assertFalse(
-                    "superset" in t and "csv" in t and "download" in t,
+                    "chart/data" in t and "csv" in t,
                     f"{f} parece consumir CSV de Superset; revisar CSV_EXPORT",
                 )
 

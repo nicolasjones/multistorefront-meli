@@ -261,18 +261,19 @@ La descarga es la nativa de Superset: el rol guest tiene `can_csv`
 fuera del tablero embebido. Sin token (403 de `emitir-acceso-reporte` por no
 tener la sección del reporte) no hay tablero ni descarga.
 
-`CSV_EXPORT` en `superset_config.py` es global y fija `encoding="utf-8"`,
+`CSV_EXPORT` en `superset_config.py` es global y fija `encoding="utf-8-sig"`
+(UTF-8 con BOM: sin BOM Excel abre con doble clic como ANSI y rompe tildes y ñ),
 `sep=";"` y `decimal=","`, para que el archivo abra bien en Excel en español.
-Aplica también a los reportes de Ventas y Rentabilidad. Si Excel mostrara mal las
-tildes, cambiar a `"utf-8-sig"` (UTF-8 con BOM). Reversión: quitar la clave
+Aplica también a los reportes de Ventas y Rentabilidad. Reversión: quitar la clave
 `CSV_EXPORT` (vuelve al formato por defecto de Superset).
 
-Riesgo conocido — inyección de fórmulas: Superset no neutraliza valores de texto
-que empiezan con `=`, `+`, `-` o `@` (p. ej. el nombre de un cliente o producto).
-Excel los ejecuta como fórmula al abrir el CSV. Los datos vienen de la base de la
-propia organización, pero quien los cargue puede plantar una fórmula. Mitigación
-operativa: abrir los CSV exportados con importación de texto (no doble clic) ante
-datos de origen no confiable; la neutralización automática queda como mejora.
+Inyección de fórmulas (CWE-1236): el exportador de Superset (`df_to_escaped_csv`,
+`superset.utils.csv.escape_value`) antepone `'` a los textos que empiezan con `=`,
+`+`, `-` o `@`, así que un nombre de cliente o producto no se ejecuta en Excel. No
+se agrega código propio. Esta versión previa de la doc decía lo contrario; la
+comprobación sobre la imagen `apache/superset:6.1.0` queda en el procedimiento
+manual (paso de la fórmula): cargar un cliente `=1+1` y verificar que el CSV lo
+trae como `'=1+1`.
 
 Regresión de formato: al ser global, Ventas y Rentabilidad también salen con `;` y
 `,`. Ningún código del repo (workers, Kestra, web) consume esos CSV; la prueba
@@ -287,3 +288,6 @@ Procedimiento manual de verificación (tras `pnpm dev:superset`):
 2. Menú «...» de la tabla → «Download» → CSV.
 3. Abrir en Excel: debe verse separado en columnas, con tildes correctas y
    decimales con coma, y solo con las filas filtradas.
+4. Con un cliente cuyo nombre sea `=1+1`, el CSV debe traerlo como `'=1+1` (texto,
+   no fórmula). Si no, Superset no escapa en esta versión y hay que neutralizar
+   en la vista/dataset.
