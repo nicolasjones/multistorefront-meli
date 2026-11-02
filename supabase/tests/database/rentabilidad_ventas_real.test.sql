@@ -323,7 +323,9 @@ select throws_ok($$select costo_unitario from dominio.comprobantes_venta_lineas$
 reset role;
 
 -- Con una cotización aplicada distinta de la inicial, costo y cotización guardados son coherentes (misma fuente que a_pesos).
+-- La empresa se pausó arriba y crear_comprobante solo ve empresas activas: se reactiva para este bloque (todo se revierte con el rollback).
 reset role;
+update dominio.empresas set activa = true where id = 'a1000000-0000-0000-0000-000000000001';
 insert into dominio.cotizacion_aplicada (organizacion_id, valor) values ('11111111-1111-1111-1111-111111111111', 1500);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.armar('UA', 'factura', jsonb_build_array(
