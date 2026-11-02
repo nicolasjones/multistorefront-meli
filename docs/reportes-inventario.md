@@ -51,3 +51,31 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
 - Reversión: `drop view analitica.inventario_productos_stock;` (migración
   `20270201090000`), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
   guardan datos.
+
+## Reposición (F-REP-02, MSF-311)
+
+Pantalla `/reportes/reposicion` (menú **Reportes → Reposición**). Embebe el tablero «Inventario · Reposición»
+(slug `inventario-reposicion`, mismo directorio y misma sección `stock` que Productos y stock): los productos
+activos **sin stock o con stock bajo**, con proveedor, código de proveedor y faltante sugerido, ordenados por
+severidad (Sin stock antes que Bajo; dentro de cada grupo, mayor faltante primero), con filtros nativos de
+producto, SKU, categoría, estado y proveedor. Sirve para armar el pedido a proveedores; crear órdenes de compra
+queda fuera de alcance.
+
+### Vista `analitica.inventario_reposicion`
+
+| Columna | Origen / cálculo |
+|---|---|
+| `organizacion_id` | Columna sobre la que el guest token fuerza la cláusula `rls`. |
+| `producto_id`, `producto_nombre`, `sku`, `categoria` | Igual que Productos y stock (solo productos **activos**). |
+| `proveedor`, `codigo_proveedor` | Razón social de `dominio.proveedores` y código del producto; vacíos si no tiene proveedor. |
+| `cantidad`, `minimo` | `dominio.existencias`. |
+| `estado` | `sin_stock` (cantidad = 0) o `stock_bajo` (0 < cantidad ≤ mínimo), la regla de `public.stock_estados`. Un producto Normal no aparece; con mínimo 0 cualquier cantidad > 0 es Normal. |
+| `faltante_sugerido` | `greatest(minimo − cantidad, 0)`: mínimo 10 / cantidad 4 → 6; sin stock con mínimo 10 → 10. |
+
+El faltante es una regla **provisional** (Decisión abierta 4 de la spec): vive solo en esa expresión de la
+migración `20270201090100`, así que pasar a un objetivo de cobertura toca una línea. La vista no expone
+costos ni valores. Esquema (Principio VII): solo una **vista** en `analitica`, sin tablas nuevas; `select`
+solo para `superset_analitica`. Empresa activa (Principio VIII): no aplica, el inventario es por organización.
+Reversión: `drop view analitica.inventario_reposicion;`, desregistrar el reporte por `dashboard_slug` y quitar
+los YAML de reposición. Verificación: pgTAP `reportes_inventario_reposicion.test.sql`, Vitest
+`pages/reportes/Reposicion.test.tsx` y `infra/superset/importar-dashboards.test.mjs`.

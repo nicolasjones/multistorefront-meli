@@ -11,6 +11,17 @@
         "operador",
         "consulta"
       ]
+    },
+    {
+      "nombre": "Inventario · Reposición",
+      "dashboard_slug": "inventario-reposicion",
+      "seccion": "stock",
+      "filtro_empresa": false,
+      "rolesPorDefecto": [
+        "administracion",
+        "operador",
+        "consulta"
+      ]
     }
   ]
 }

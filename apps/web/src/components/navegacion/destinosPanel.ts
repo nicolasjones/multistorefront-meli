@@ -195,6 +195,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Reportes',
     destinos: [
       { id: 'reportes-inventario', etiqueta: 'Productos y stock', ruta: '/reportes/inventario', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'reportes-reposicion', etiqueta: 'Reposición', ruta: '/reportes/reposicion', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):
