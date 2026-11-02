@@ -126,6 +126,7 @@ nav:
           - Tiendas online: producto/tiendas-online.md
           - Dominio, identidad y textos: producto/tienda-dominio-e-identidad.md
           - Consultas de las tiendas: producto/consultas.md
+          - Contactos: producto/contactos.md
       - Configuración y datos:
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
           - Migración inicial de datos: producto/migracion-inicial-de-datos.md
@@ -207,6 +208,7 @@ nav:
           - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
       - Consultas y datos:
           - Consultas: tecnico/consultas.md
+          - Contactos y respuestas rápidas: tecnico/contactos.md
           - Rentabilidad: tecnico/rentabilidad.md
           - Ranking de clientes: tecnico/ranking-de-clientes.md
           - Ranking avanzado de clientes: tecnico/ranking-avanzado-de-clientes.md

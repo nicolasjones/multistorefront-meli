@@ -86,6 +86,9 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación. No es un usuario del sistema. |
 | **Consulta** | Mensaje que un visitante envía desde una tienda (formulario de contacto o WhatsApp). |
 | **Bandeja de consultas** | Pantalla donde el equipo ve las consultas y les cambia el estado: **Nueva**, **En curso** o **Resuelta**. |
+| **Contacto (libreta)** | Persona que consultó o compró en una tienda, con su consentimiento y su historial. Es distinto de un cliente de facturación. Ver [Contactos](contactos.md). |
+| **Anonimizar** | Reemplazar los datos personales de un contacto y de sus consultas por un texto neutro, sin borrar las consultas ni las ventas. No se puede deshacer. |
+| **Respuesta rápida** | Texto frecuente guardado por tienda para armar el mensaje inicial al responder una consulta. No envía nada. Ver [Respuestas rápidas](contactos.md#respuestas-rapidas). |
 | **Aviso por correo** | Mail que te llega cuando pasa algo en una sección a la que tenés acceso. Elegís cuáles recibir en tu menú, en «Avisos por correo». |
 | **Lista configurable** | Lista del negocio que el Administrador puede adaptar, como los motivos de stock. |
 

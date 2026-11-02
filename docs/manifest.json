@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "b4122174c8339ac09ae9ad05598a335966c6429650c22c776a7b7f95fc4c7ee3",
+      "pageHash": "57fe62317c5f4d8b085ff60dd82f54763357cb14039ec8c926d931a7eddaeada",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -398,12 +398,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "6d66f41885bf2df732590848c0d28226412c4df92f176af1bd211ad5acec8d75",
+      "pageHash": "b66a5a248082f80ef56adbab6253631a6a025923ce54861ffbe5cedb2746d539",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -458,7 +458,16 @@
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
-      "pageHash": "159ff631111cd77de0a1a446c9e5924db23cf9ce2208ef0855db35d7a1364f5d",
+      "pageHash": "8bdb7bcf13fb7b24aee7c996fc8298b0aa65e23d805bfa10e20c79332ea16a71",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "a8db4308"
+    },
+    "docs/producto/contactos.md": {
+      "title": "Contactos: la libreta de personas",
+      "pageHash": "6ad3bb904e2853ba1d7d48e3b4c9d9662e9ef46b0d1cc8c3a6a9b39c6b06d931",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -489,12 +498,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "493c7c922b73e340df9ca2d8306f96e63ac58e2d3e86cd03e5ec83eaed0e3802",
+      "pageHash": "9992f2aae406d5a2b16b54b602897b0691ccc92677b6305043a0fa1c0cd0983f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
@@ -879,12 +888,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "8705a84761a4440431d530fdbcd786338aa871c93109e1f29eae9e0c472a44e2",
+      "pageHash": "d34e664f26f153703c3ffc073cc00f670b510cdab4ca0780c40b091b411c7bcc",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4314aa20"
+      "commit": "56b6373c"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1195,15 +1204,28 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "a579bd06ea070f13b04d373e1057a610e8f778ead6f307d3d7c604ea9bdde5c1",
+      "pageHash": "2fafaa8f174ac1ad8a063cc7a30b2176f4ac1d3ee011db5380df2e616a6b18f7",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "e06fab36",
+      "sourceAt": "fcd2b69a",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "06877b51"
+      "commit": "802f3367"
+    },
+    "docs/tecnico/contactos.md": {
+      "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
+      "pageHash": "574bd6ba54bce100167e95eebe30b0ed3ddbc6203792a50cd7b45c46f7eab4c9",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "801de684",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "801de684"
     },
     "docs/tecnico/correo-masivo-a-clientes.md": {
       "title": "Correo masivo a clientes: datos, RPC, flow y baja (MSF-155)",
@@ -1236,14 +1258,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "1f23ce2556f185f78fd9faf52f8c3295111a29d371b946e3f862e5e0cd122ebd",
+      "pageHash": "acb64bb3d82b0e047e466dc4026c112af3c4509005dedf7f85bee67f3fee4ebc",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "6db05d28",
+      "sourceAt": "fcd2b69a",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "56b6373c"
+      "commit": "4bbc86c0"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",

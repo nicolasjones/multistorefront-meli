@@ -44,6 +44,9 @@ Cada empresa tiene su tienda web: identidad visual, contenido y qué productos s
 ## Consultas
 Una bandeja con los mensajes que los visitantes envían desde las tiendas, y avisos por correo cuando entra uno nuevo. Guías: [Consultas](consultas.md) · [Avisos y listas](avisos-y-listas.md).
 
+## Contactos
+Una libreta con las personas que consultan o compran, por tienda y sin duplicados, con su consentimiento, su historial de consultas y compras y la opción de anonimizar sus datos. También incluye textos frecuentes para responder más rápido. Guía: [Contactos](contactos.md).
+
 ## Rentabilidad
 Ver cuánto margen deja cada producto en cada tienda y detectar los de margen bajo o negativo. Guía: [Rentabilidad](rentabilidad.md).
 

@@ -22,7 +22,7 @@ Las respuestas **se dan por fuera del sistema**, por correo o por WhatsApp. En C
 
 | Rol | Qué puede hacer |
 |---|---|
-| Quien tiene permiso de edición en Consultas | Ver todo, asignar responsable, cambiar el estado, anotar y responder. |
+| Quien tiene permiso de edición en Consultas | Ver todo, asignar responsable, cambiar el estado, anotar, responder y administrar las respuestas rápidas. |
 | Quien tiene solo lectura | Ve la bandeja y el detalle, sin cambiar nada («Solo lectura: tu rol puede ver las consultas pero no cambiarlas.»). |
 
 El Administrador define el permiso de cada rol en **Administración → Roles y permisos**. Si tu rol no incluye Consultas, no vas a ver la opción en el menú.
@@ -94,6 +94,16 @@ Si el contacto es un correo o un teléfono, aparece el botón **Responder por co
 
 Al responder, una consulta Nueva pasa a **En curso** y, si no tenía responsable, queda a tu nombre. Una consulta En curso o Resuelta conserva su estado.
 
+### Usar una respuesta rápida
+
+Si el equipo guardó textos frecuentes para esa tienda, en el detalle aparece **Respuesta rápida**. Elegí uno y después tocá **Responder por correo** o **Responder por WhatsApp**: el mensaje inicial se abre con ese texto y las variables ya completadas. Si no elegís ninguno, se usa el texto de siempre.
+
+Las respuestas rápidas no envían nada: solo arman el mensaje que abrís en tu correo o WhatsApp. El sistema no sabe si el mensaje salió. Para crearlas o cambiarlas, mirá [Respuestas rápidas](contactos.md#respuestas-rapidas).
+
+### Sumar la consulta a la libreta de contactos
+
+En el detalle de la consulta podés guardar a la persona en la libreta de **Contactos**. Si todavía no está, aparece **Crear contacto**; si ya está vinculada, aparece **Contacto en la libreta** con un enlace a su ficha. El formulario trae el nombre y el contacto de la consulta, y al guardar la consulta queda vinculada. Ver [Contactos](contactos.md#crear-un-contacto).
+
 ## Avisos de consultas nuevas
 
 Cada consulta nueva genera un aviso por correo para las personas que tienen acceso a Consultas y mantienen activado el aviso «Consulta nueva». Si llegan varias seguidas, se juntan en un solo correo. Cada persona activa o desactiva este aviso desde su cuenta; mirá [Avisos y listas configurables](avisos-y-listas.md).
@@ -123,3 +133,4 @@ El Administrador también tiene una lista de estados de consulta en **Administra
 | «No se registró la respuesta.» | Se abrió tu aplicación, pero el cambio de estado no quedó guardado. Hacé clic en **Reintentar**. |
 | «No encontramos esa consulta o no tenés acceso a ella.» | El enlace es viejo o es de otra tienda a la que no tenés acceso. |
 | «No pudimos cargar las consultas.» | Hacé clic en **Reintentar**. |
+| «Ya existe un contacto con ese correo o teléfono en esta empresa.» | La persona ya está en la libreta de esa tienda. Abrí el contacto existente o vinculá la consulta a él. Ver [Contactos](contactos.md). |
