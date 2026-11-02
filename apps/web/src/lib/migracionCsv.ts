@@ -12,6 +12,13 @@ export type FilaCsv = {
   // Número de fila del archivo contando el encabezado como 1 (FR-004).
   numero: number
   celdas: string[]
+  /**
+   * Motivo por el que la fila no se puede importar (MSF-699). Hoy solo hay un
+   * caso: la fila tiene más valores que columnas y sus datos quedan corridos.
+   * Las celdas sobrantes NO se descartan: quedan en `celdas` y la fila se
+   * marca con error, así el asistente la muestra y no la importa.
+   */
+  error?: string
 }
 
 export type CsvLeido = {
@@ -146,16 +153,47 @@ export function analizarCsv(textoOriginal: string): CsvLeido {
     .map((celdas, indice) => ({ numero: indice + 2, celdas }))
     // Las líneas en blanco no son datos: no se importan ni ocupan un número.
     .filter((fila) => !esFilaVacia(fila.celdas))
-    .map((fila) => ({
-      numero: fila.numero,
-      celdas: Array.from({ length: ancho }, (_, indice) => (fila.celdas[indice] ?? '').trim()),
-    }))
+    .map((fila) => {
+      const celdas = fila.celdas.map((celda) => celda.trim())
+      // Celdas sobrantes (MSF-699): una fila con más valores que columnas tiene
+      // los datos corridos (típico: una coma sin escapar en un export de
+      // Excel). Antes se recortaba en silencio y el valor perdido se cargaba
+      // desalineado; ahora la fila se marca con error y no se importa.
+      // Las celdas sobrantes VACÍAS (coma final) se toleran: no corren datos.
+      const hayExcedente = celdas.slice(ancho).some((celda) => celda !== '')
+      const error = hayExcedente
+        ? `La fila ${fila.numero} tiene ${celdas.length} columnas y se esperaban ${ancho}`
+        : undefined
+      return {
+        numero: fila.numero,
+        // Las filas con menos celdas se rellenan con vacíos (no es un dato
+        // que se pierda: la base valida los campos obligatorios).
+        celdas: celdas.length < ancho ? [...celdas, ...new Array(ancho - celdas.length).fill('')] : celdas,
+        ...(error ? { error } : {}),
+      }
+    })
 
   if (filas.length === 0) {
     throw new ErrorCsv('El archivo no tiene filas para importar.')
   }
 
   return { encabezados, filas, separador }
+}
+
+/** Error de estructura del archivo por fila (celdas de más). */
+export type ErrorFilaCsv = { fila: number; motivo: string }
+
+/**
+ * Filas del archivo que no se pueden importar porque tienen más valores que
+ * columnas (MSF-699). La base no ve las celdas sobrantes —no viajan en la
+ * fila—, así que el motivo lo arma el navegador.
+ */
+export function erroresDeColumnas(csv: CsvLeido): ErrorFilaCsv[] {
+  const errores: ErrorFilaCsv[] = []
+  for (const fila of csv.filas) {
+    if (fila.error) errores.push({ fila: fila.numero, motivo: fila.error })
+  }
+  return errores
 }
 
 /** Tope de lectura en memoria: evita congelar la pestaña con un archivo enorme. */

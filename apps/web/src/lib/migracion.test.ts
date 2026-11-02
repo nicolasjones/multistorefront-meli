@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   contarEstados,
   erroresPorMotivo,
+  filasAplicables,
   leerInforme,
   leerResultadosPrevisualizacion,
+  marcarFilasInconsistentes,
   marcarIdentificadoresRepetidos,
   mensajeDeErrorMigracion,
   type FilaMigracion,
@@ -34,6 +36,43 @@ describe('marcarIdentificadoresRepetidos', () => {
       [resultado(2, 'error'), resultado(3)],
     )
     expect(resultados[1]).toEqual({ fila: 3, estado: 'nueva', motivo: null })
+  })
+})
+
+describe('filas con más columnas que el encabezado (MSF-699)', () => {
+  const resultados: ResultadoFila[] = [
+    { fila: 2, estado: 'nueva', motivo: null },
+    { fila: 3, estado: 'nueva', motivo: null },
+    { fila: 4, estado: 'nueva', motivo: null },
+  ]
+  const errores = [{ fila: 3, motivo: 'La fila 3 tiene 4 columnas y se esperaban 3' }]
+
+  it('marca como error la fila que la base daría por válida', () => {
+    expect(marcarFilasInconsistentes(resultados, errores)).toEqual([
+      { fila: 2, estado: 'nueva', motivo: null },
+      { fila: 3, estado: 'error', motivo: 'La fila 3 tiene 4 columnas y se esperaban 3' },
+      { fila: 4, estado: 'nueva', motivo: null },
+    ])
+  })
+
+  it('una fila corrida no hace repetida a la válida con el mismo identificador', () => {
+    const filas: FilaMigracion[] = [
+      { fila: 2, id_externo: 'SINT-001' },
+      { fila: 3, id_externo: 'SINT-001' },
+    ]
+    const dosFilas = resultados.slice(0, 2)
+    const final = marcarIdentificadoresRepetidos(filas, marcarFilasInconsistentes(dosFilas, [{ fila: 2, motivo: 'La fila 2 tiene 4 columnas y se esperaban 3' }]))
+    expect(final[0].estado).toBe('error')
+    expect(final[1]).toEqual({ fila: 3, estado: 'nueva', motivo: null })
+  })
+
+  it('deja los resultados como están cuando no hay filas inconsistentes', () => {
+    expect(marcarFilasInconsistentes(resultados, [])).toEqual(resultados)
+  })
+
+  it('deja fuera del lote las filas inconsistentes', () => {
+    const filas: FilaMigracion[] = [{ fila: 2 }, { fila: 3 }, { fila: 4 }]
+    expect(filasAplicables(filas, errores)).toEqual([{ fila: 2 }, { fila: 4 }])
   })
 })
 

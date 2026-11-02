@@ -33,8 +33,10 @@ import {
   contenidoPlantilla,
   contarEstados,
   erroresPorMotivo,
+  filasAplicables,
   iniciarCargaMigracion,
   mapeoAutomatico,
+  marcarFilasInconsistentes,
   marcarIdentificadoresRepetidos,
   mensajeDeErrorMigracion,
   previsualizarFilas,
@@ -43,7 +45,7 @@ import {
   type InformeCarga,
   type ResultadoFila,
 } from '../../lib/migracion'
-import { ErrorCsv, descargarCsv, leerCsvUtf8, type CsvLeido } from '../../lib/migracionCsv'
+import { ErrorCsv, descargarCsv, erroresDeColumnas, leerCsvUtf8, type CsvLeido } from '../../lib/migracionCsv'
 import { supabaseClient } from '../../lib/supabase'
 import { InformeConciliacion } from './InformeConciliacion'
 
@@ -93,8 +95,11 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
     () => (previsualizacion ? erroresPorMotivo(previsualizacion) : []),
     [previsualizacion],
   )
+  // Filas con más columnas que el encabezado (MSF-699): no se importan.
+  const erroresColumnas = useMemo(() => (csv ? erroresDeColumnas(csv) : []), [csv])
+  const filasAAplicar = useMemo(() => filasAplicables(filas, erroresColumnas), [filas, erroresColumnas])
   const totalValidas = resumen ? resumen.nueva + resumen.actualizada : 0
-  const totalLotes = Math.max(1, Math.ceil(filas.length / TAMANO_LOTE_MIGRACION))
+  const totalLotes = Math.max(1, Math.ceil(filasAAplicar.length / TAMANO_LOTE_MIGRACION))
   const porcentaje = avanceLotes.total > 0 ? Math.round((avanceLotes.hechos / avanceLotes.total) * 100) : 0
   const empresaActiva = empresas.find((empresa) => empresa.esActiva)?.nombre ?? 'Todas mis empresas'
 
@@ -172,7 +177,13 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
     setError(null)
     try {
       const resultados = await previsualizarFilas(supabaseClient, definicion, filasConstruidas)
-      setPrevisualizacion(marcarIdentificadoresRepetidos(filasConstruidas, resultados, definicion.campoClave, definicion.claveSinMayusculas))
+      // Primero las inconsistentes: así no cuentan como "vistas" al detectar repetidos.
+      setPrevisualizacion(marcarIdentificadoresRepetidos(
+        filasConstruidas,
+        marcarFilasInconsistentes(resultados, erroresColumnas),
+        definicion.campoClave,
+        definicion.claveSinMayusculas,
+      ))
       setPaso('vista')
     } catch (excepcion) {
       setError(mensajeDeErrorMigracion(excepcion, 'No pudimos revisar las filas. Intentá de nuevo.'))
@@ -182,7 +193,7 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
   }
 
   async function importar() {
-    if (filas.length === 0) return
+    if (filasAAplicar.length === 0) return
     setPaso('aplicando')
     setErrorAplicacion(null)
     setReintentable(false)
@@ -190,10 +201,12 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
     let carga = cargaId
     try {
       if (!carga) {
-        carga = await iniciarCargaMigracion(supabaseClient, definicion.id, nombreArchivo, filas.length)
+        // Solo entran a la carga las filas consistentes: las que tienen más
+        // columnas que el encabezado se rechazan en el navegador (MSF-699).
+        carga = await iniciarCargaMigracion(supabaseClient, definicion.id, nombreArchivo, filasAAplicar.length)
         setCargaId(carga)
       }
-      await aplicarLotes(supabaseClient, definicion, carga, filas, (hechos, total) => {
+      await aplicarLotes(supabaseClient, definicion, carga, filasAAplicar, (hechos, total) => {
         setAvanceLotes({ hechos, total })
       })
       const cierre = await cerrarCargaMigracion(supabaseClient, carga)
@@ -310,11 +323,23 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} justifyContent="space-between">
                 <Typography component="h2" variant="t3">Mapear columnas</Typography>
-                <Chip size="small" label={`${nombreArchivo} · ${csv.filas.length} ${csv.filas.length === 1 ? 'fila' : 'filas'} · UTF-8`} />
+                <Chip size="small" label={`${nombreArchivo} · ${csv.filas.length} ${csv.filas.length === 1 ? 'fila' : 'filas'} · UTF-8${erroresColumnas.length > 0 ? ` · ${erroresColumnas.length} con columnas de más` : ''}`} />
               </Stack>
               <Typography variant="body2" color="text.secondary">
                 Asociá cada columna del archivo con un campo. Las columnas sin campo no se importan.
               </Typography>
+              {erroresColumnas.length > 0 ? (
+                <Alert severity="warning" role="alert">
+                  <Typography component="p" fontWeight={600}>
+                    {erroresColumnas.length} {erroresColumnas.length === 1 ? 'fila tiene' : 'filas tienen'} más columnas que el archivo: no se importan.
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                    {erroresColumnas.map((error) => (
+                      <li key={error.fila}>{error.motivo}.</li>
+                    ))}
+                  </Box>
+                </Alert>
+              ) : null}
               <Stack spacing={2}>
                 {csv.encabezados.map((encabezado, indice) => (
                   <TextField
@@ -436,6 +461,19 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
                   Se leyeron {informe.filas_total} {informe.filas_total === 1 ? 'fila' : 'filas'} de {informe.archivo}.
                 </Box>
               </Alert>
+              {erroresColumnas.length > 0 ? (
+                <Alert severity="warning" role="alert">
+                  <Typography component="p" fontWeight={600}>
+                    {erroresColumnas.length} {erroresColumnas.length === 1 ? 'fila del archivo no se importó' : 'filas del archivo no se importaron'}: tienen más columnas que el encabezado.
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                    {erroresColumnas.map((error) => (
+                      <li key={error.fila}>{error.motivo}.</li>
+                    ))}
+                  </Box>
+                  <Box component="span">Corregí el archivo y volvé a importarlo para cargarlas.</Box>
+                </Alert>
+              ) : null}
               <InformeConciliacion carga={informe.carga} conErrores={false} />
               {informe.errores.length > 0 ? (
                 <Box sx={{ overflowX: 'auto' }}>
