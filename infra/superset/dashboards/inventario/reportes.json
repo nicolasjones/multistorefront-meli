@@ -1,0 +1,16 @@
+{
+  "comentario": "Un reporte por tablero embebido. `dashboard_slug` es el slug del dashboard importado: el importador habilita su embebido y registra el UUID de embedding que Superset genera. Inventario sigue la sección `stock` (no la de `reportes`) y no filtra por empresa: el inventario es por organización. `administrador` no se lista: tiene acceso incondicional.",
+  "reportes": [
+    {
+      "nombre": "Inventario · Productos y stock",
+      "dashboard_slug": "inventario-productos-stock",
+      "seccion": "stock",
+      "filtro_empresa": false,
+      "rolesPorDefecto": [
+        "administracion",
+        "operador",
+        "consulta"
+      ]
+    }
+  ]
+}
