@@ -5,8 +5,6 @@
 // Los reportes de inventario siguen la sección de sus datos (Stock), no la de `reportes` (FR-004).
 export const SECCION_INVENTARIO = 'stock'
 
-export const RUTA_REPORTE_INVENTARIO = '/reportes/inventario'
-
 // Nombre con el que el importador registra el tablero (infra/superset/dashboards/inventario/reportes.json).
 export const NOMBRE_REPORTE_PRODUCTOS_STOCK = 'Inventario · Productos y stock'
 
