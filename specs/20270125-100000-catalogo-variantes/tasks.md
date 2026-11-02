@@ -24,7 +24,7 @@
 - [ ] T006 [F-CAT-18][US2] Componente `BloqueRelacionados`: título, subtítulo, contador («0 productos» / «1 producto» / «N productos»), lista «En este producto (el orden es el que ve el cliente)» con numeración, ↑ ↓ ✕ (extremos atenuados), avisos «Agregado a relacionados: …» / «Quitado de relacionados» y estado vacío; solo lectura sin `edicion` en `productos` (FR-014, FR-016)
 - [ ] T007 [F-CAT-18][US2] En `BloqueRelacionados`: buscador «Buscar por nombre, SKU o categoría», resultados con «Agregar» (nombre y «SKU · categoría · precio»), limpieza de la búsqueda al agregar, «Sin resultados. Probá con otro nombre, SKU o categoría.» y carga/error del kit (FR-015)
 - [ ] T008 [F-CAT-18][US2] Integrar el bloque en `FormularioProducto`, `create.tsx` (guarda tras `crear_producto`, con aviso y reintento si falla) y `edit.tsx` (guarda con «Guardar cambios») (apoya FR-017)
-- [ ] T009 [P] [F-CAT-18][US2] Vitest del bloque: vacío, buscar/agregar/quitar/reordenar, extremos atenuados, sin resultados, solo lectura, el cambio de empresa en la barra no altera el bloque (declaración «no aplica» de la matriz), accesible por teclado (apoya FR-014–FR-016)
+- [ ] T009 [P] [F-CAT-18][US2] Vitest `BloqueRelacionados.test.tsx` y `productos-relacionados.test.ts`: vacío, buscar/agregar/quitar/reordenar, extremos atenuados, sin resultados, solo lectura, el cambio de empresa en la barra no altera el bloque (declaración «no aplica» de la matriz), accesible por teclado (apoya FR-014–FR-016)
 
 **Checkpoint**: se pueden curar y reordenar relacionados y se leen por la vista; `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 
@@ -46,8 +46,8 @@ Bloques de trabajo: A datos y unicidad (T010–T012) · B stock y suma (T013–T
 - [ ] T021 [F-CAT-15][US1] Componente `BloqueVariantes` con los componentes del kit: título «Variantes», subtítulo, tabla de cinco columnas (tarjetas en `xs`), botón «Agregar variante» con su aviso, celdas editables en línea (nombre, código, código de barras), interruptor «Activa» y texto de ayuda sin variantes; solo lectura sin `edicion` en `productos` (FR-003, FR-004)
 - [ ] T022 [F-CAT-15][US1] En `BloqueVariantes`: columna «Stock» (stock inicial al agregar; stock contado editable en edición solo con `edicion` en `stock`; «—» sin acceso a Stock) y producto con variantes muestra el stock como suma de las activas (FR-005)
 - [ ] T023 [F-CAT-15][US1] Integrar en `FormularioProducto`, `create.tsx` (tras `crear_producto`, con aviso y reintento) y `edit.tsx` (con el bloqueo optimista del producto); errores de unicidad en el campo conservando lo escrito (apoya FR-003)
-- [ ] T024 [P] [F-CAT-15][US1] Vitest de `BloqueVariantes`: textos del prototipo, agregar/activar, errores por campo, permisos lectura/edición/sin Stock, estados de carga/vacío/error (apoya FR-003, FR-005)
-- [ ] T025 [P] [F-CAT-15][US1] Vitest de regresión: producto sin variantes idéntico a antes en formulario, listado y disponibilidad; el cambio de empresa en la barra no altera el bloque (SC-005)
+- [ ] T024 [P] [F-CAT-15][US1] Vitest `BloqueVariantes.test.tsx` y `productos-variantes.test.ts`: textos del prototipo, agregar/activar, errores por campo, permisos lectura/edición/sin Stock, estados de carga/vacío/error (apoya FR-003, FR-005)
+- [ ] T025 [P] [F-CAT-15][US1] Vitest `FormularioProducto.regresion.test.tsx` de regresión: producto sin variantes idéntico a antes en formulario, listado y disponibilidad; el cambio de empresa en la barra no altera el bloque (SC-005)
 - [ ] T026 [F-CAT-15][US1] Verificación del bloque D: documentar en `docs/catalogo.md` que la variante hereda el precio del producto y que `precio_para` no cambia, y dejar el enlace para que Precios resuelva por `producto_id` (apoya FR-009)
 
 **Checkpoint**: un producto con variantes suma su stock, rechaza códigos repetidos y se edita desde la ficha; `pnpm lint`, `pnpm build`, `pnpm test` verdes.
@@ -57,7 +57,7 @@ Bloques de trabajo: A datos y unicidad (T010–T012) · B stock y suma (T013–T
 - [ ] T027 [CIERRE] Documentación: `docs/catalogo.md` (variantes, relacionados, avisos de límites con ventas/ML/tienda), `docs/stock.md` (firma nueva y suma), `docs/actividad.md` (eventos nuevos), `AGENTS.md`/`CLAUDE.md` si aplica; `pnpm docs:check` verde (FR-019)
 - [ ] T028 [CIERRE] Revisión de seguridad: RLS y permisos de las tres tablas, vistas `security_invoker`, `anon`, cambio de firma de `registrar_movimiento_stock` y sus llamadores, búsqueda de productos (fuga entre organizaciones) (FR-020)
 - [ ] T029 [CIERRE] E2E del recorrido «variantes + relacionados + suma de stock» y validación final `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm matriz:check` (SC-006)
-- [ ] T030 [CIERRE] Actualizar la fila/sección de la épica en `docs/roadmap-template.md` (estado, link a la spec) como paso manual al mergear
+- [ ] T030 [CIERRE] Actualizar la fila/sección de la épica en `docs/roadmap-template.md` (estado, link a la spec) como paso manual al mergear (apoya FR-019; verificación: `pnpm docs:check`)
 
 ## Plan de ejecución (historias)
 

@@ -193,39 +193,72 @@ Como Administrador u Operador con edición en Productos, quiero relacionar cada 
 ### Functional Requirements
 
 **F-CAT-15 · Variantes (color, talle, modelo)**
-- **FR-001**: Un producto MUST poder tener variantes, cada una con nombre, código propio, código de barras propio opcional, estado Activa/Inactiva y orden, sin duplicar la ficha (`dominio.producto_variantes`, sin DELETE).
-- **FR-002**: El código de la variante MUST ser único por organización (entre variantes y contra los SKU de productos) y el código de barras MUST ser EAN-13 (13 dígitos) único por organización (entre variantes y contra el de productos); la base lo hace cumplir y los mensajes dicen qué código chocó.
-- **FR-003**: Alta y edición de producto MUST mostrar el bloque «Variantes» con el título, el subtítulo («Para un mismo producto con distintos colores o modelos. Cada variante tiene su código, su código de barras y su stock; el precio es el del producto.»), la tabla de cinco columnas, el botón «Agregar variante» (fila por defecto y aviso del flujo), el interruptor «Activa» por fila y el texto de ayuda de producto sin variantes. Las filas se guardan con el producto.
-- **FR-004**: Un producto sin variantes MUST comportarse exactamente como hoy (stock, disponibilidad, listado, tienda).
-- **FR-005**: Cada variante MUST llevar su stock propio por depósito (`dominio.existencias_variante`); el stock inicial de una variante nueva se carga al agregarla y, en la edición, la celda «Stock» permite informar el stock contado solo con `edicion` en `stock` (registra un `ajuste`); sin acceso a Stock la columna muestra «—».
-- **FR-006**: El stock y la disponibilidad de un producto con variantes MUST ser la suma de sus variantes activas, cambiando solo el cuerpo de `private.disponibilidad_producto`, `private.productos_con_stock` y `private.disponible_publico` (consumidores, vista y filtros no cambian).
-- **FR-007**: `registrar_movimiento_stock` MUST aceptar la variante: en un producto con variantes la variante es obligatoria y se registra en el libro (`movimientos_stock.variante_id`); sin variantes, el comportamiento es el actual. Cambio de firma declarado en `contracts/variantes.md` (`BREAKING`).
-- **FR-008**: La base MUST rechazar agregar la primera variante a un producto con stock mayor que 0 (Decisión 4), con un mensaje que indica cómo seguir.
-- **FR-009**: La variante MUST NOT tener precio propio: su precio es el del producto, calculado por Precios (IVA, dólar, escalas) sin cambiar esas funciones; `v_producto_variantes` expone `producto_id` para que el cálculo se resuelva por variante.
-- **FR-010**: Desactivar una variante MUST sacarla de la suma de stock disponible y conservar su código, su stock y su historial; un producto con todas las variantes inactivas queda «Sin stock».
-- **FR-011**: Variantes y existencias MUST estar aisladas por organización con RLS, permisos por `private.nivel_seccion` (nunca `private.puede_escribir()`), `anon` sin acceso, FK compuestas y RPC con `grant … to authenticated` / `revoke … from public, anon`.
-- **FR-012**: Guardar variantes MUST ser idempotente, atómico por llamada y auditable: registra el evento `producto.variantes_editadas` (sin costo) en la actividad solo si hubo cambio real, y respeta el bloqueo optimista del producto.
+- **FR-001**: Un producto MUST poder tener variantes, cada una con nombre, código propio, código de barras propio opcional, estado Activa/Inactiva y orden, sin duplicar la ficha (`dominio.producto_variantes`, sin DELETE). **Verificación:** pgTAP `catalogo_variantes_datos.test.sql` (alta, orden, sin DELETE) + Vitest `BloqueVariantes.test.tsx`.
+- **FR-002**: El código de la variante MUST ser único por organización (entre variantes y contra los SKU de productos) y el código de barras MUST ser EAN-13 (13 dígitos) único por organización (entre variantes y contra el de productos); la base lo hace cumplir y los mensajes dicen qué código chocó. **Verificación:** pgTAP `catalogo_variantes_datos.test.sql` (unicidad cruzada, EAN-13) + Vitest `productos-variantes.test.ts` (mapeo `23505`/`22023`).
+- **FR-003**: Alta y edición de producto MUST mostrar el bloque «Variantes» con el título, el subtítulo («Para un mismo producto con distintos colores o modelos. Cada variante tiene su código, su código de barras y su stock; el precio es el del producto.»), la tabla de cinco columnas, el botón «Agregar variante» (fila por defecto y aviso del flujo), el interruptor «Activa» por fila y el texto de ayuda de producto sin variantes. Las filas se guardan con el producto. **Verificación:** Vitest `BloqueVariantes.test.tsx` (textos, columnas, «Agregar variante», solo lectura) + captura `pnpm --filter @platform/web pantallas:capturar`.
+- **FR-004**: Un producto sin variantes MUST comportarse exactamente como hoy (stock, disponibilidad, listado, tienda). **Verificación:** Vitest `FormularioProducto.regresion.test.tsx` (producto sin variantes idéntico) + pgTAP `catalogo_variantes_stock.test.sql`.
+- **FR-005**: Cada variante MUST llevar su stock propio por depósito (`dominio.existencias_variante`); el stock inicial de una variante nueva se carga al agregarla y, en la edición, la celda «Stock» permite informar el stock contado solo con `edicion` en `stock` (registra un `ajuste`); sin acceso a Stock la columna muestra «—». **Verificación:** pgTAP `catalogo_variantes_stock.test.sql` (stock por depósito, ajuste) + Vitest `BloqueVariantes.test.tsx` (stock inicial, «—» sin Stock).
+- **FR-006**: El stock y la disponibilidad de un producto con variantes MUST ser la suma de sus variantes activas, cambiando solo el cuerpo de `private.disponibilidad_producto`, `private.productos_con_stock` y `private.disponible_publico` (consumidores, vista y filtros no cambian). **Verificación:** pgTAP `catalogo_variantes_stock.test.sql` (suma de activas en `disponibilidad_producto`, `productos_con_stock`, `disponible_publico`).
+- **FR-007**: `registrar_movimiento_stock` MUST aceptar la variante: en un producto con variantes la variante es obligatoria y se registra en el libro (`movimientos_stock.variante_id`); sin variantes, el comportamiento es el actual. Cambio de firma declarado en `contracts/variantes.md` (`BREAKING`). **Verificación:** pgTAP `catalogo_variantes_stock.test.sql` (movimiento con variante en el libro; llamadores sin variante).
+- **FR-008**: La base MUST rechazar agregar la primera variante a un producto con stock mayor que 0 (Decisión 4), con un mensaje que indica cómo seguir. **Verificación:** pgTAP `catalogo_variantes_rpc.test.sql` (primera variante con stock > 0 rechazada).
+- **FR-009**: La variante MUST NOT tener precio propio: su precio es el del producto, calculado por Precios (IVA, dólar, escalas) sin cambiar esas funciones; `v_producto_variantes` expone `producto_id` para que el cálculo se resuelva por variante. **Verificación:** pgTAP `catalogo_variantes_rpc.test.sql` (`precio_para` por `producto_id` sin cambios; vista sin precio).
+- **FR-010**: Desactivar una variante MUST sacarla de la suma de stock disponible y conservar su código, su stock y su historial; un producto con todas las variantes inactivas queda «Sin stock». **Verificación:** pgTAP `catalogo_variantes_stock.test.sql` (desactivar resta; todas inactivas → Sin stock).
+- **FR-011**: Variantes y existencias MUST estar aisladas por organización con RLS, permisos por `private.nivel_seccion` (nunca `private.puede_escribir()`), `anon` sin acceso, FK compuestas y RPC con `grant … to authenticated` / `revoke … from public, anon`. **Verificación:** pgTAP `catalogo_variantes_datos.test.sql` y `catalogo_relacionados.test.sql` (RLS, `anon`, `rls_en_toda_tabla`) + revisión T028.
+- **FR-012**: Guardar variantes MUST ser idempotente, atómico por llamada y auditable: registra el evento `producto.variantes_editadas` (sin costo) en la actividad solo si hubo cambio real, y respeta el bloqueo optimista del producto. **Verificación:** pgTAP `catalogo_variantes_rpc.test.sql` (idempotencia, `40001`, evento solo con cambio real).
 
 **F-CAT-18 · Productos relacionados**
-- **FR-013**: Un producto MUST poder tener una lista ordenada de productos relacionados de su misma organización (`dominio.producto_relacionados`, unidireccional); la base rechaza relacionar un producto consigo mismo, duplicar un vínculo o cruzar organizaciones.
-- **FR-014**: Alta y edición MUST mostrar el bloque «Productos relacionados» con título, subtítulo («Se muestran como «Productos relacionados» en la ficha pública de las tiendas y se sugieren al agregar una línea en un comprobante.»), contador («0 productos», «1 producto», «N productos»), buscador, lista «En este producto (el orden es el que ve el cliente)» y el estado vacío del flujo.
-- **FR-015**: El buscador MUST filtrar por nombre, SKU o categoría, mostrar hasta 4 resultados (nombre y «SKU · categoría · precio») con botón «Agregar», excluir el propio producto y los ya agregados, y mostrar «Sin resultados. Probá con otro nombre, SKU o categoría.» cuando no hay coincidencias.
-- **FR-016**: Cada relacionado MUST permitir ↑, ↓ y ✕ (↑ del primero y ↓ del último atenuados), con los avisos «Agregado a relacionados: <nombre>» y «Quitado de relacionados», y numeración visible.
-- **FR-017**: Los relacionados MUST guardarse con el producto en el orden mostrado (`guardar_relacionados`, reemplazo completo e idempotente, evento `producto.relacionados_editados`), con `edicion` en `productos`; con solo lectura el bloque es de lectura.
-- **FR-018**: MUST existir el contrato de lectura `v_producto_relacionados` (ordenado, con nombre, SKU, categoría, precio y estado del relacionado) para que la tienda y Ventas lo consuman en sus propias specs.
+- **FR-013**: Un producto MUST poder tener una lista ordenada de productos relacionados de su misma organización (`dominio.producto_relacionados`, unidireccional); la base rechaza relacionar un producto consigo mismo, duplicar un vínculo o cruzar organizaciones. **Verificación:** pgTAP `catalogo_relacionados.test.sql` (autorrelación, duplicado, cruce de organización, cascada).
+- **FR-014**: Alta y edición MUST mostrar el bloque «Productos relacionados» con título, subtítulo («Se muestran como «Productos relacionados» en la ficha pública de las tiendas y se sugieren al agregar una línea en un comprobante.»), contador («0 productos», «1 producto», «N productos»), buscador, lista «En este producto (el orden es el que ve el cliente)» y el estado vacío del flujo. **Verificación:** Vitest `BloqueRelacionados.test.tsx` (textos, contador, vacío, solo lectura).
+- **FR-015**: El buscador MUST filtrar por nombre, SKU o categoría, mostrar hasta 4 resultados (nombre y «SKU · categoría · precio») con botón «Agregar», excluir el propio producto y los ya agregados, y mostrar «Sin resultados. Probá con otro nombre, SKU o categoría.» cuando no hay coincidencias. **Verificación:** Vitest `BloqueRelacionados.test.tsx` + `productos-relacionados.test.ts` (tope 4, exclusiones, sin resultados).
+- **FR-016**: Cada relacionado MUST permitir ↑, ↓ y ✕ (↑ del primero y ↓ del último atenuados), con los avisos «Agregado a relacionados: <nombre>» y «Quitado de relacionados», y numeración visible. **Verificación:** Vitest `BloqueRelacionados.test.tsx` (↑ ↓ ✕, extremos atenuados, avisos, teclado).
+- **FR-017**: Los relacionados MUST guardarse con el producto en el orden mostrado (`guardar_relacionados`, reemplazo completo e idempotente, evento `producto.relacionados_editados`), con `edicion` en `productos`; con solo lectura el bloque es de lectura. **Verificación:** pgTAP `catalogo_relacionados.test.sql` (reemplazo idempotente, evento) + Vitest `BloqueRelacionados.test.tsx` (payload en orden).
+- **FR-018**: MUST existir el contrato de lectura `v_producto_relacionados` (ordenado, con nombre, SKU, categoría, precio y estado del relacionado) para que la tienda y Ventas lo consuman en sus propias specs. **Verificación:** pgTAP `catalogo_relacionados.test.sql` (lectura ordenada por `v_producto_relacionados`).
 
 **Cierre**
-- **FR-019**: Todo cambio de plataforma/Supabase MUST traer su documentación (`docs/catalogo.md`, `docs/stock.md`, contratos y `AGENTS.md`/`CLAUDE.md` si aplica) y `pnpm docs:check` verde.
-- **FR-020**: La entrega MUST cerrar con revisión de seguridad (RLS, permisos, `anon`, cambio de firma de la RPC de stock) y validación final (`pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`).
+- **FR-019**: Todo cambio de plataforma/Supabase MUST traer su documentación (`docs/catalogo.md`, `docs/stock.md`, contratos y `AGENTS.md`/`CLAUDE.md` si aplica) y `pnpm docs:check` verde. **Verificación:** `pnpm docs:check` (T027).
+- **FR-020**: La entrega MUST cerrar con revisión de seguridad (RLS, permisos, `anon`, cambio de firma de la RPC de stock) y validación final (`pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`). **Verificación:** revisión de seguridad T028 + `pnpm lint && pnpm build && pnpm infra:config && pnpm test` (T029).
 
 ### Success Criteria
 
-- **SC-001** *(F-CAT-15)*: un producto con 3 variantes (código y stock propios) muestra como stock la suma de las activas, sin ficha duplicada, y su disponibilidad coincide en listado y tienda.
-- **SC-002** *(F-CAT-15)*: ningún código ni código de barras de variante puede repetirse en la organización; los intentos fallan con mensaje claro (pgTAP + Vitest).
-- **SC-003** *(F-CAT-18)*: un orden de relacionados guardado se lee igual en la siguiente apertura y por `v_producto_relacionados`.
-- **SC-004** *(F-CAT-15)*: dos organizaciones no se ven variantes, existencias ni relacionados entre sí; `anon` no accede; `rls_en_toda_tabla` verde.
-- **SC-005** *(F-CAT-15)*: un producto sin variantes mantiene stock, disponibilidad y listado idénticos a antes (regresión verde).
-- **SC-006** *(cierre)*: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check` y `pnpm matriz:check` verdes.
+- **SC-001** *(F-CAT-15)*: un producto con 3 variantes (código y stock propios) muestra como stock la suma de las activas, sin ficha duplicada, y su disponibilidad coincide en listado y tienda. **Verificación:** pgTAP `catalogo_variantes_stock.test.sql` + E2E T029.
+- **SC-002** *(F-CAT-15)*: ningún código ni código de barras de variante puede repetirse en la organización; los intentos fallan con mensaje claro (pgTAP + Vitest). **Verificación:** pgTAP `catalogo_variantes_datos.test.sql` + Vitest `productos-variantes.test.ts`.
+- **SC-003** *(F-CAT-18)*: un orden de relacionados guardado se lee igual en la siguiente apertura y por `v_producto_relacionados`. **Verificación:** pgTAP `catalogo_relacionados.test.sql` + Vitest `BloqueRelacionados.test.tsx`.
+- **SC-004** *(F-CAT-15)*: dos organizaciones no se ven variantes, existencias ni relacionados entre sí; `anon` no accede; `rls_en_toda_tabla` verde. **Verificación:** pgTAP `catalogo_variantes_datos.test.sql`, `catalogo_relacionados.test.sql` (`rls_en_toda_tabla`).
+- **SC-005** *(F-CAT-15)*: un producto sin variantes mantiene stock, disponibilidad y listado idénticos a antes (regresión verde). **Verificación:** Vitest `FormularioProducto.regresion.test.tsx` + pgTAP `catalogo_variantes_stock.test.sql`.
+- **SC-006** *(cierre)*: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check` y `pnpm matriz:check` verdes. **Verificación:** `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm matriz:check`.
+
+## Verificación por requisito
+
+Cada FR/SC tiene su verificación nombrada (también al final de su línea); la tarea que la implementa está en `tasks.md`.
+
+| Requisito | Verificación |
+|---|---|
+| FR-001 | pgTAP `catalogo_variantes_datos.test.sql` (alta, orden, sin DELETE) + Vitest `BloqueVariantes.test.tsx` |
+| FR-002 | pgTAP `catalogo_variantes_datos.test.sql` (unicidad cruzada, EAN-13) + Vitest `productos-variantes.test.ts` (mapeo `23505`/`22023`) |
+| FR-003 | Vitest `BloqueVariantes.test.tsx` (textos, columnas, «Agregar variante», solo lectura) + captura `pnpm --filter @platform/web pantallas:capturar` |
+| FR-004 | Vitest `FormularioProducto.regresion.test.tsx` (producto sin variantes idéntico) + pgTAP `catalogo_variantes_stock.test.sql` |
+| FR-005 | pgTAP `catalogo_variantes_stock.test.sql` (stock por depósito, ajuste) + Vitest `BloqueVariantes.test.tsx` (stock inicial, «—» sin Stock) |
+| FR-006 | pgTAP `catalogo_variantes_stock.test.sql` (suma de activas en `disponibilidad_producto`, `productos_con_stock`, `disponible_publico`) |
+| FR-007 | pgTAP `catalogo_variantes_stock.test.sql` (movimiento con variante en el libro; llamadores sin variante) |
+| FR-008 | pgTAP `catalogo_variantes_rpc.test.sql` (primera variante con stock > 0 rechazada) |
+| FR-009 | pgTAP `catalogo_variantes_rpc.test.sql` (`precio_para` por `producto_id` sin cambios; vista sin precio) |
+| FR-010 | pgTAP `catalogo_variantes_stock.test.sql` (desactivar resta; todas inactivas → Sin stock) |
+| FR-011 | pgTAP `catalogo_variantes_datos.test.sql` y `catalogo_relacionados.test.sql` (RLS, `anon`, `rls_en_toda_tabla`) + revisión T028 |
+| FR-012 | pgTAP `catalogo_variantes_rpc.test.sql` (idempotencia, `40001`, evento solo con cambio real) |
+| FR-013 | pgTAP `catalogo_relacionados.test.sql` (autorrelación, duplicado, cruce de organización, cascada) |
+| FR-014 | Vitest `BloqueRelacionados.test.tsx` (textos, contador, vacío, solo lectura) |
+| FR-015 | Vitest `BloqueRelacionados.test.tsx` + `productos-relacionados.test.ts` (tope 4, exclusiones, sin resultados) |
+| FR-016 | Vitest `BloqueRelacionados.test.tsx` (↑ ↓ ✕, extremos atenuados, avisos, teclado) |
+| FR-017 | pgTAP `catalogo_relacionados.test.sql` (reemplazo idempotente, evento) + Vitest `BloqueRelacionados.test.tsx` (payload en orden) |
+| FR-018 | pgTAP `catalogo_relacionados.test.sql` (lectura ordenada por `v_producto_relacionados`) |
+| FR-019 | `pnpm docs:check` (T027) |
+| FR-020 | revisión de seguridad T028 + `pnpm lint && pnpm build && pnpm infra:config && pnpm test` (T029) |
+| SC-001 | pgTAP `catalogo_variantes_stock.test.sql` + E2E T029 |
+| SC-002 | pgTAP `catalogo_variantes_datos.test.sql` + Vitest `productos-variantes.test.ts` |
+| SC-003 | pgTAP `catalogo_relacionados.test.sql` + Vitest `BloqueRelacionados.test.tsx` |
+| SC-004 | pgTAP `catalogo_variantes_datos.test.sql`, `catalogo_relacionados.test.sql` (`rls_en_toda_tabla`) |
+| SC-005 | Vitest `FormularioProducto.regresion.test.tsx` + pgTAP `catalogo_variantes_stock.test.sql` |
+| SC-006 | `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm matriz:check` |
 
 ## Matriz pantalla↔criterios
 
