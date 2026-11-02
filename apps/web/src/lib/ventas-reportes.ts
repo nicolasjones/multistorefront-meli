@@ -16,6 +16,12 @@ export const NOMBRE_REPORTE_MAS_VENDIDOS = 'Ventas · Más vendidos'
 // Tablero del ranking de clientes (F-VTA-23): el mismo manifiesto, con su propio nombre.
 export const NOMBRE_REPORTE_RANKING_CLIENTES = 'Ventas · Ranking de clientes'
 
+// Tablero «Productos más consultados» (F-REP-04): paquete propio `infra/superset/dashboards/consultas-reportes/`.
+export const NOMBRE_REPORTE_MAS_CONSULTADOS = 'Reportes · Productos más consultados'
+
+// Estado vacío del período sin consultas por WhatsApp (F-REP-04).
+export const MENSAJE_SIN_CONSULTAS = 'No hay consultas por WhatsApp en ese período'
+
 // Estado vacío del período sin ventas (SC-003).
 export const MENSAJE_SIN_VENTAS = 'No hay ventas en ese período'
 
@@ -170,6 +176,22 @@ export async function leerConteoVentas(
   { rango, empresaId }: { rango: RangoFechas; empresaId: string | null },
 ): Promise<number> {
   const { data, error } = await cliente.rpc('ventas_reportes_conteo', {
+    p_desde: rango.desde,
+    p_hasta: rango.hasta,
+    p_empresa_id: empresaId,
+  })
+  if (error) throw error
+  return Number(data ?? 0)
+}
+
+// Conteo de toques en «Consultar por WhatsApp» del período (F-REP-04): estado vacío de la pestaña
+// «Productos más consultados». Misma forma y mismo alcance que `leerConteoVentas`, pero sobre
+// `dominio.intereses_whatsapp`; la RPC se rige por la sección `reportes`, no por `consultas`.
+export async function leerConteoConsultas(
+  cliente: SupabaseClient,
+  { rango, empresaId }: { rango: RangoFechas; empresaId: string | null },
+): Promise<number> {
+  const { data, error } = await cliente.rpc('consultas_reportes_conteo', {
     p_desde: rango.desde,
     p_hasta: rango.hasta,
     p_empresa_id: empresaId,

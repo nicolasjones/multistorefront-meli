@@ -16,15 +16,18 @@ import {
 } from '../../lib/ventas-reportes'
 import { ExportarRankingVentas } from './ExportarRankingVentas'
 import { FiltrosPeriodo } from './FiltrosPeriodo'
+import { MasConsultados } from './MasConsultados'
 import { MasVendidos } from './MasVendidos'
 import { RankingClientes } from './RankingClientes'
 
-type PestanaReporte = 'mas-vendidos' | 'ranking-clientes'
+type PestanaReporte = 'mas-vendidos' | 'ranking-clientes' | 'mas-consultados'
 
-// Pestañas de la pantalla (FR-005): «Más vendidos» (F-VTA-22) y «Ranking de clientes» (F-VTA-23).
+// Pestañas de la pantalla (FR-005): «Más vendidos» (F-VTA-22), «Ranking de clientes» (F-VTA-23) y
+// «Productos más consultados» (F-REP-04).
 const PESTANAS: ReadonlyArray<{ valor: PestanaReporte; etiqueta: string }> = [
   { valor: 'mas-vendidos', etiqueta: 'Más vendidos' },
   { valor: 'ranking-clientes', etiqueta: 'Ranking de clientes' },
+  { valor: 'mas-consultados', etiqueta: 'Productos más consultados' },
 ]
 
 // «Reportes de ventas» (F-VTA-22, FR-005; VentasReportes.dc.html): el marco de la pantalla —título,
@@ -92,6 +95,13 @@ export function ReportesVentas() {
       <FiltrosPeriodo rango={rango} onCambiar={setRango} />
       {pestana === 'mas-vendidos' ? (
         <MasVendidos
+          rango={rango}
+          empresaId={empresaId}
+          empresaNombre={empresaNombre}
+          cargandoEmpresa={cargandoTiendas}
+        />
+      ) : pestana === 'mas-consultados' ? (
+        <MasConsultados
           rango={rango}
           empresaId={empresaId}
           empresaNombre={empresaNombre}

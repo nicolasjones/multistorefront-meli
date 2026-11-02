@@ -47,6 +47,28 @@ con su RLS por organización.
 - **Pantalla**: el filtro «Tienda» (`FiltroEmpresa`) sigue a la empresa activa de la barra superior
   (Principio VIII); al cambiarla se recarga el tablero y se descarta la selección vieja.
 
+## Pestaña «Productos más consultados» (F-REP-04, MSF-236)
+
+Tercera pestaña de la pantalla: qué productos tocaron más «Consultar por WhatsApp» (F-CON-02) en un período,
+aunque todavía no los compren. Solo cantidades: **nunca costo ni margen** (decisión 3 de la épica MSF-192).
+
+- **Datos**: vista `analitica.consultas_producto_mas_consultado` (empresa × producto × fecha, desde
+  `dominio.intereses_whatsapp`; columnas `consultas` y `ultima_consulta`). `fecha` es el día en la zona
+  `America/Argentina/Buenos_Aires`. Sin acceso para `anon` ni `authenticated`; la lee `superset_analitica`.
+- **Tablero**: «Reportes · Productos más consultados», paquete propio
+  `infra/superset/dashboards/consultas-reportes/` (`seccion = 'reportes'`, `filtro_empresa = true`, rol por
+  defecto `administracion`). Filtros nativos: rango de fechas y empresa. Se importa con
+  `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging|production`
+  (el workflow de despliegue lo hace después de `ventas-reportes`).
+- **Estado vacío**: `public.consultas_reportes_conteo(desde, hasta, empresa)` (`security definer`, exige
+  lectura o edición en `reportes`, acota a las empresas accesibles; `anon` sin ejecución) cuenta los toques del
+  período: «No hay consultas por WhatsApp en ese período». Se rige por `reportes` aunque la tabla exija `consultas`.
+- **Pantalla**: reutiliza `TableroReporte` y `FiltrosPeriodo`; sigue a la empresa activa (Principio VIII).
+- **Reversión** (migración `20270201120000`, aditiva): `drop function public.consultas_reportes_conteo(date, date, uuid);`
+  y `drop view analitica.consultas_producto_mas_consultado;`.
+- **Pruebas**: `consultas_mas_consultados.test.sql`, `consultas_mas_consultados_aislamiento.test.sql`, Vitest de la pestaña
+  (`index.test.tsx`, `MasConsultados.test.tsx`) y `pnpm test:superset:importar-dashboards`.
+
 ## Importación de tableros
 
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`

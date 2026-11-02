@@ -252,3 +252,13 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`,
 - **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
 - **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
 - Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
+
+## Tablero «Productos más consultados» (F-REP-04, MSF-236)
+
+Paquete propio `infra/superset/dashboards/consultas-reportes/` (no comparte `reportes.json` con
+`ventas-reportes/`): dataset sobre `analitica.consultas_producto_mas_consultado`, un gráfico de tabla (posición,
+consultas, última consulta; orden por consultas descendente) y filtros nativos de rango y empresa. Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging|production`
+(idempotente) y se registra en `public.reportes` con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto
+`administracion`. Reutiliza la conexión «Ventas analitica» (mismo rol `superset_analitica`, contraseña por
+`SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional: [`ventas-reportes.md`](./ventas-reportes.md).
