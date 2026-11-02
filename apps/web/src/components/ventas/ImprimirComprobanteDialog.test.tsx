@@ -44,11 +44,18 @@ const abrir = (c: Comprobante = comprobante(), tipoInicial?: 'factura' | 'remito
   return { onCerrar, onImpreso, onRegistrado }
 }
 
+// Pestaña que se abre en blanco en el clic (MSF-722) y recibe la URL cuando el PDF está listo.
+function ventanaFalsa() {
+  return { opener: {} as unknown, closed: false, close: vi.fn(), location: { href: '' } }
+}
+let pestana = ventanaFalsa()
+
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
   vi.spyOn(window, 'open').mockImplementation(mocks.abrir)
-  mocks.abrir.mockReturnValue({ opener: null })
+  pestana = ventanaFalsa()
+  mocks.abrir.mockImplementation(() => pestana)
   mocks.urlFirmadaDocumento.mockResolvedValue('https://storage/doc.pdf?token=1')
   mocks.registrarImpresion.mockResolvedValue({ id: 'i-1', documento_id: 'd-1', reimpresion: false })
 })
@@ -111,7 +118,8 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     resolver(generado)
     await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('remito'))
     expect(mocks.urlFirmadaDocumento).toHaveBeenCalledWith('o/e/k/d-1.pdf')
-    expect(mocks.abrir).toHaveBeenCalledWith('https://storage/doc.pdf?token=1', '_blank')
+    expect(mocks.abrir).toHaveBeenCalledWith('', '_blank')
+    expect(pestana.location.href).toBe('https://storage/doc.pdf?token=1')
   })
 
   it('un documento ya generado se abre sin consultar el avance (reutilización)', async () => {
@@ -143,19 +151,21 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     expect(await screen.findByText('La factura tiene que estar confirmada para imprimirla')).toBeInTheDocument()
   })
 
-  it('si el navegador bloquea la ventana ofrece el enlace y no confirma todavía', async () => {
+  it('si el navegador bloquea la ventana ofrece el enlace y registra la impresión solo al abrirlo (MSF-722)', async () => {
     mocks.solicitarDocumento.mockResolvedValue(generado)
-    mocks.abrir.mockReturnValue(null)
+    mocks.abrir.mockImplementation(() => null)
     const { onImpreso, onRegistrado } = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
 
     const enlace = await screen.findByRole('link', { name: 'Abrir documento' })
     expect(enlace).toHaveAttribute('href', 'https://storage/doc.pdf?token=1')
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
     expect(onImpreso).not.toHaveBeenCalled()
-    // La impresión ya quedó registrada: la tarjeta refresca la marca aunque el popup esté bloqueado.
-    expect(onRegistrado).toHaveBeenCalledTimes(1)
+    expect(onRegistrado).not.toHaveBeenCalled()
     fireEvent.click(enlace)
-    expect(onImpreso).toHaveBeenCalledWith('factura')
+    await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('factura'))
+    expect(mocks.registrarImpresion).toHaveBeenCalledWith('d-1')
+    expect(onRegistrado).toHaveBeenCalledTimes(1)
   })
 
   it('«Cancelar» cierra sin pedir nada', () => {
@@ -192,7 +202,31 @@ describe('ImprimirComprobanteDialog · marca de impreso (F-VTA-21)', () => {
     await waitFor(() => expect(onImpreso).toHaveBeenCalledWith('factura'))
     expect(mocks.registrarImpresion).toHaveBeenCalledTimes(1)
     expect(mocks.registrarImpresion).toHaveBeenCalledWith('d-1')
-    expect(mocks.registrarImpresion.mock.invocationCallOrder[0]).toBeLessThan(mocks.abrir.mock.invocationCallOrder[0])
+    // La pestaña se abre en el clic, antes de pedir el PDF, y se registra antes de asignarle la URL.
+    expect(mocks.abrir.mock.invocationCallOrder[0]).toBeLessThan(mocks.solicitarDocumento.mock.invocationCallOrder[0])
+    expect(pestana.location.href).toBe('https://storage/doc.pdf?token=1')
+  })
+
+  it('si la generación falla cierra la pestaña en blanco y no registra nada (MSF-722)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(documento())
+    mocks.esperarDocumento.mockRejectedValue(Object.assign(new Error('No se pudo generar el documento'), { name: 'ErrorDocumento' }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(pestana.close).toHaveBeenCalled()
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
+  })
+
+  it('si la persona cerró la pestaña antes de que el PDF esté listo no se marca como impreso (MSF-722)', async () => {
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    mocks.urlFirmadaDocumento.mockImplementation(async () => {
+      pestana.closed = true
+      return 'https://storage/doc.pdf?token=1'
+    })
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
+    await screen.findByRole('link', { name: 'Abrir documento' })
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
   })
 
   it('no registra nada si la generación falló (FR-034)', async () => {
@@ -219,7 +253,8 @@ describe('ImprimirComprobanteDialog · marca de impreso (F-VTA-21)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/no pudimos registrar la impresión/)
-    expect(mocks.abrir).not.toHaveBeenCalled()
+    expect(pestana.location.href).toBe('')
+    expect(pestana.close).toHaveBeenCalled()
     expect(onImpreso).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))

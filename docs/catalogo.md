@@ -355,3 +355,9 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Búsqueda**: `%`, `_` y `\` escapados y `, ( ) " *` descartados antes de armar el filtro de PostgREST, con tope de 80 caracteres.
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
+
+## Búsqueda sin tildes y SKU de 13 dígitos (MSF-722)
+
+La búsqueda por nombre de Productos, Stock y «Agregar producto» ignora mayúsculas y tildes (columna calculada
+`nombre_norm`, migración `20270122100000`, sobre `private.normalizar_busqueda`). Un texto de 13 dígitos se busca por
+código de barras **o** por SKU. El buscador de «Agregar producto» avisa «Hay más resultados» al superar los 20.
