@@ -55,6 +55,17 @@ describe('filas con más columnas que el encabezado (MSF-699)', () => {
     ])
   })
 
+  it('una fila corrida no hace repetida a la válida con el mismo identificador', () => {
+    const filas: FilaMigracion[] = [
+      { fila: 2, id_externo: 'SINT-001' },
+      { fila: 3, id_externo: 'SINT-001' },
+    ]
+    const dosFilas = resultados.slice(0, 2)
+    const final = marcarIdentificadoresRepetidos(filas, marcarFilasInconsistentes(dosFilas, [{ fila: 2, motivo: 'La fila 2 tiene 4 columnas y se esperaban 3' }]))
+    expect(final[0].estado).toBe('error')
+    expect(final[1]).toEqual({ fila: 3, estado: 'nueva', motivo: null })
+  })
+
   it('deja los resultados como están cuando no hay filas inconsistentes', () => {
     expect(marcarFilasInconsistentes(resultados, [])).toEqual(resultados)
   })
@@ -65,7 +76,8 @@ describe('filas con más columnas que el encabezado (MSF-699)', () => {
   })
 })
 
-describe('resumen de la vista previa', () => {  const resultados: ResultadoFila[] = [
+describe('resumen de la vista previa', () => {
+  const resultados: ResultadoFila[] = [
     { fila: 2, estado: 'nueva', motivo: null },
     { fila: 3, estado: 'error', motivo: 'Falta el nombre o la razón social' },
     { fila: 4, estado: 'error', motivo: 'Falta el nombre o la razón social' },

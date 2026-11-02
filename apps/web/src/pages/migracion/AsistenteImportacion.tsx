@@ -177,9 +177,12 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
     setError(null)
     try {
       const resultados = await previsualizarFilas(supabaseClient, definicion, filasConstruidas)
-      setPrevisualizacion(marcarFilasInconsistentes(
-        marcarIdentificadoresRepetidos(filasConstruidas, resultados, definicion.campoClave, definicion.claveSinMayusculas),
-        erroresColumnas,
+      // Primero las inconsistentes: así no cuentan como "vistas" al detectar repetidos.
+      setPrevisualizacion(marcarIdentificadoresRepetidos(
+        filasConstruidas,
+        marcarFilasInconsistentes(resultados, erroresColumnas),
+        definicion.campoClave,
+        definicion.claveSinMayusculas,
       ))
       setPaso('vista')
     } catch (excepcion) {
@@ -244,6 +247,7 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
     ? `Importación lista: ${informe.nuevos} ${informe.nuevos === 1 ? `${definicion.sustantivo} nuevo` : `${definicion.sustantivoPlural} nuevos`}, ` +
       `${informe.actualizados} ${informe.actualizados === 1 ? 'actualizado' : 'actualizados'}, ${informe.con_error} con error`
     : ''
+
   return (
     <Box>
       <EncabezadoPagina
