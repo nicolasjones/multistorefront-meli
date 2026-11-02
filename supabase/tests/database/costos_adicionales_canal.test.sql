@@ -29,6 +29,11 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
   ('e2000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
+-- Administración solo ve las empresas con fila explícita (private.empresas_accesibles).
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administracion'),
+  ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'administracion');
+
 -- Neto $ 10.000 y costo $ 6.000 en las dos empresas de la organización 1.
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, activo) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joystick', 'JOY-1', 'ARS', 10000, true);
