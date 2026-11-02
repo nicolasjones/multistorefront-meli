@@ -59,7 +59,7 @@ describe('RentabilidadPorProducto', () => {
     montar()
     expect(screen.getByRole('heading', { level: 1, name: 'Rentabilidad' })).toBeInTheDocument()
     const pestanas = screen.getByRole('tablist', { name: 'Secciones de Rentabilidad' })
-    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Resumen', 'Por producto', 'Comparativo', 'Historia'])
+    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Resumen', 'Por producto', 'Comparativo', 'Historia', 'Costos adicionales'])
     expect(
       screen.getByText('Margen = Precio − Costo − Comisión. Las tiendas propias no tienen comisión en esta versión.'),
     ).toBeInTheDocument()

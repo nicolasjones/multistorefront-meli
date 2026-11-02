@@ -10,6 +10,7 @@ export const RUTA_RENTABILIDAD = '/rentabilidad'
 export const RUTA_POR_PRODUCTO = '/rentabilidad/productos'
 export const RUTA_COMPARATIVO = '/rentabilidad/comparativo'
 export const RUTA_HISTORIA = '/rentabilidad/historia'
+export const RUTA_COSTOS_ADICIONALES = '/rentabilidad/costos'
 // F-REN-03 lee este filtro al abrir «Por producto» desde el aviso del resumen (FR-015, FR-019).
 export const RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO = `${RUTA_POR_PRODUCTO}?estado=bajo_o_negativo`
 
@@ -19,6 +20,7 @@ export const PESTANAS_RENTABILIDAD = [
   { etiqueta: 'Por producto', to: RUTA_POR_PRODUCTO },
   { etiqueta: 'Comparativo', to: RUTA_COMPARATIVO },
   { etiqueta: 'Historia', to: RUTA_HISTORIA },
+  { etiqueta: 'Costos adicionales', to: RUTA_COSTOS_ADICIONALES },
 ]
 
 // Nombre con el que el importador registra el tablero «Resumen» (infra/superset/dashboards/rentabilidad/reportes.json).
