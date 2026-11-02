@@ -69,6 +69,28 @@ aunque todavía no los compren. Solo cantidades: **nunca costo ni margen** (deci
 - **Pruebas**: `consultas_mas_consultados.test.sql`, `consultas_mas_consultados_aislamiento.test.sql`, Vitest de la pestaña
   (`index.test.tsx`, `MasConsultados.test.tsx`) y `pnpm test:superset:importar-dashboards`.
 
+## Pestaña «Ventas por período y canal» (F-REP-05, MSF-248)
+
+Cuarta pestaña de la pantalla: cuánto se vendió por período (día, semana o mes) y por canal (empresa/tienda).
+Muestra comprobantes, unidades y facturado con IVA: **nunca costo ni margen** (decisión 3 de la épica MSF-192).
+
+- **Datos**: vista `analitica.ventas_periodo_canal` (empresa × fecha; columnas `comprobantes`, `unidades`,
+  `facturado`). Usa el mismo predicado y signo que «Más vendidos» (`analitica.comprobante_cuenta_como_facturado`,
+  `analitica.signo_comprobante`): la nota de crédito resta importe y unidades y no suma un comprobante;
+  presupuestos, borradores y anuladas no cuentan. `facturado` es `total_con_iva`, el número del listado y de la
+  exportación de comprobantes. Sin acceso para `anon` ni `authenticated`; la lee `superset_analitica`.
+- **Canal**: la tienda de la empresa. Mercado Libre (MSF-123) no existe todavía: no hay columna ni serie para ese
+  canal; cuando llegue, sus ventas se suman sin cambiar el reporte.
+- **Tablero**: «Reportes · Ventas por período y canal», paquete propio `infra/superset/dashboards/ventas-periodo-canal/`
+  (`seccion = 'reportes'`, `filtro_empresa = true`, rol por defecto `administracion`). Barras apiladas por canal y
+  tabla por canal; filtros nativos de rango de fechas, empresa y «Agrupar por» (día, semana o mes). Se importa con
+  `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging|production`.
+- **Estado vacío**: reutiliza `public.ventas_reportes_conteo` (sin RPC nueva): «No hay ventas en ese período».
+- **Pantalla**: reutiliza `TableroReporte` y `FiltrosPeriodo`; sigue a la empresa activa (Principio VIII).
+- **Reversión** (migración `20270201130000`, aditiva): `drop view analitica.ventas_periodo_canal;`.
+- **Pruebas**: `ventas_periodo_canal.test.sql`, `ventas_periodo_canal_aislamiento.test.sql`, Vitest de la pestaña
+  (`index.test.tsx`, `VentasPeriodoCanal.test.tsx`) y `pnpm test:superset:importar-dashboards`.
+
 ## Importación de tableros
 
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`

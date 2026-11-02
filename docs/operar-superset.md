@@ -262,3 +262,14 @@ consultas, última consulta; orden por consultas descendente) y filtros nativos 
 (idempotente) y se registra en `public.reportes` con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto
 `administracion`. Reutiliza la conexión «Ventas analitica» (mismo rol `superset_analitica`, contraseña por
 `SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional: [`ventas-reportes.md`](./ventas-reportes.md).
+
+## Tablero «Ventas por período y canal» (F-REP-05, MSF-248)
+
+Paquete propio `infra/superset/dashboards/ventas-periodo-canal/`: dataset sobre `analitica.ventas_periodo_canal`, un
+gráfico de barras apiladas por canal (facturado con IVA), una tabla por canal (facturado, comprobantes, unidades) y
+filtros nativos de rango, empresa y «Agrupar por» (día, semana o mes; `filter_timegrain`). Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging|production`
+(idempotente; el workflow de despliegue lo hace después de `consultas-reportes`) y se registra en `public.reportes`
+con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto `administracion`. Reutiliza la conexión «Ventas
+analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional:
+[`ventas-reportes.md`](./ventas-reportes.md).
