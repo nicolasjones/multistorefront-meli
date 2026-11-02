@@ -76,7 +76,9 @@ begin
   -- una `confirmada` ya salió arriba (idempotencia) y nada posterior reescribe estas columnas.
   update dominio.comprobantes_venta_lineas l
      set costo_unitario = private.a_pesos(k.costo, p.moneda, v_org),
-         cotizacion = (select ci.valor from dominio.cotizacion_inicial ci where ci.organizacion_id = v_org)
+         cotizacion = coalesce(
+           (select ca.valor from dominio.cotizacion_aplicada ca where ca.organizacion_id = v_org),
+           (select ci.valor from dominio.cotizacion_inicial ci where ci.organizacion_id = v_org))
     from dominio.productos p
     left join dominio.producto_costos k on k.producto_id = p.id and k.organizacion_id = p.organizacion_id
    where l.comprobante_id = v_c.id and l.organizacion_id = v_org

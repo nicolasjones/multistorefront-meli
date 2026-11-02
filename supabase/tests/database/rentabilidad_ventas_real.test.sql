@@ -321,5 +321,17 @@ select throws_ok($$select * from analitica.rentabilidad_ventas_real$$, '42501', 
 select throws_ok($$select costo_unitario from dominio.comprobantes_venta_lineas$$, '42501', null, 'ni el costo guardado de las líneas');
 reset role;
 
+-- Con una cotización aplicada distinta de la inicial, costo y cotización guardados son coherentes (misma fuente que a_pesos).
+reset role;
+insert into dominio.cotizacion_aplicada (organizacion_id, valor) values ('11111111-1111-1111-1111-111111111111', 1500);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.armar('UA', 'factura', jsonb_build_array(
+  jsonb_build_object('producto_id', 'b1000000-0000-0000-0000-000000000003', 'cantidad', 1, 'deposito_id', (select principal from datos))));
+select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('UA')), 'se confirma con cotización aplicada');
+select is(pg_temp.col_linea('UA', 'cotizacion'), 1500.0000, 'guarda la cotización aplicada, no la inicial (2.000)');
+select is(pg_temp.col_linea('UA', 'costo_unitario'), 15000.00, 'el costo en pesos usa la misma cotización (USD 10 × 1.500)');
+select is(pg_temp.col_linea('UA', 'costo_unitario'), round(10 * pg_temp.col_linea('UA', 'cotizacion'), 2),
+  'costo_unitario = costo USD × cotización guardada');
+
 select * from finish();
 rollback;
