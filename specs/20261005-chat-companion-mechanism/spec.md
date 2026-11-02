@@ -59,3 +59,26 @@ A nivel plataforma, un superadmin ve una tabla con una fila por funcionalidad co
 - **SC-001**: Una lectura real contra una vista registrada responde con datos reales, verificable con un proveedor de IA real (no solo un mock).
 - **SC-002**: Una propuesta de ejecución queda registrada con estado `propuesta` y nunca ejecuta la acción subyacente sin confirmación explícita.
 - **SC-003**: Dos organizaciones distintas con la misma funcionalidad habilitada nunca ven datos de la otra.
+
+## Nota de seguridad: ejecución acotada a la allowlist (MSF-724)
+
+`private.ejecutar_accion_chat_ia` (security definer) ya no confía en la fila del mensaje:
+exige que `(accion_feature_id, accion_rpc)` exista en `acciones_chat_ia` y que `authenticated`
+tenga `EXECUTE` sobre todas las sobrecargas de esa función en `public` (una función revocada
+no se alcanza vía el chat). El cliente ya no escribe propuestas: `authenticated` solo inserta
+`conversacion_id, origen, contenido, estado` en `mensajes_chat_ia` y no actualiza; las
+propuestas las crea `public.proponer_accion_chat_ia`, que valida conversación propia, allowlist
+y capacidad de ejecución. `public.ejecutar_accion_chat_ia` es `security invoker`: la RPC de negocio corre con los grants y la RLS de quien confirma, y los parámetros deben ser los que la acción declara.
+
+La plataforma del chat tampoco se escribe desde el cliente: `capacidades_chat_ia` (qué
+funcionalidad puede leerse/ejecutarse) y `acciones_chat_ia` (la allowlist) quedan con `select`
+para `authenticated` y sin `insert, update, delete` — la escritura de capacidades va por las RPC
+de superadmin `public.actualizar_capacidad_chat_lectura/ejecucion` y la allowlist se carga por
+SQL de un superadmin. Antes el único freno era la RLS (el UPDATE de un usuario sobre
+`capacidades_chat_ia` affectaba 0 filas en silencio, sin error).
+
+Migraciones `20270122110000_chat_ia_ejecucion_allowlist.sql`,
+`20270122110100_chat_ia_ejecucion_privilegios_usuario.sql` y
+`20270122110200_chat_ia_plataforma_solo_superadmin.sql`; prueba
+`supabase/tests/database/chat_ia_ejecucion_allowlist.test.sql`. Si hubo explotación previa:
+auditar `mensajes_chat_ia` con `accion_rpc` fuera de `acciones_chat_ia` y evaluar rotar la clave del proveedor.
