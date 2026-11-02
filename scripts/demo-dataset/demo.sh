@@ -21,6 +21,8 @@ sql() { $DEMO_PSQL -tA -v org="$ORG" -v sufijo="$SUF" < "$SQL/$1"; }
 if [[ " $* " == *" --reset "* ]]; then echo "› reset (SQL)"; sql 00-borrar-organizacion.sql; fi
 echo "› módulos 01–02 (organización, usuarios, catálogo, precios)"; $RUN --hasta=02
 echo "› aprovisionamiento SQL: tiendas"; sql 01-tiendas.sql
+echo "› aprovisionamiento SQL: funcionalidad service-técnico"; sql 02-funcionalidad.sql
+echo "› aprovisionamiento SQL: motivos de movimiento"; sql 03-motivos.sql
 echo "› módulos 03 en adelante"; $RUN --desde=03
 # Pasos SQL finales (90-98: lo que cada módulo no puede hacer por API, 99: fechas), en orden de nombre.
 if [[ " $* " != *" --sin-sql-final "* ]]; then

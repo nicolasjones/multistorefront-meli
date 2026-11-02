@@ -37,7 +37,10 @@ async function pedir(cfg, ruta, { metodo = 'GET', cuerpo, token, clave, perfil, 
 export function crearAdmin(cfg) {
   const base = { clave: cfg.servicio }
   return {
-    insertar: (tabla, cuerpo) => pedir(cfg, `/rest/v1/${tabla}`, { ...base, metodo: 'POST', cuerpo, preferir: 'return=representation' }),
+    // `devolver: false` no pide el `RETURNING` (la fila insertada): hace falta cuando el rol puede insertar pero no
+    // leer la tabla. En el entorno dev la service-role tiene INSERT en `public.usuarios_organizacion` pero no SELECT
+    // (los miembros se leen por la RPC `listar_usuarios_organizacion`), y con `return=representation` el insert falla.
+    insertar: (tabla, cuerpo, opciones = {}) => pedir(cfg, `/rest/v1/${tabla}`, { ...base, metodo: 'POST', cuerpo, preferir: opciones.devolver === false ? 'return=minimal' : 'return=representation' }),
     leer: (ruta) => pedir(cfg, `/rest/v1/${ruta}`, base),
     borrar: (ruta) => pedir(cfg, `/rest/v1/${ruta}`, { ...base, metodo: 'DELETE' }),
     crearUsuario: (correo, password, metadatos = {}) => pedir(cfg, '/auth/v1/admin/users', { ...base, metodo: 'POST', cuerpo: { email: correo, password, email_confirm: true, user_metadata: metadatos } }),

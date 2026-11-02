@@ -20,6 +20,20 @@ const redondear = (n) => Math.round(n * 100) / 100
 async function rpc(s, nombreRpc, args, donde) {
   try { return await s.rpc(nombreRpc, args) } catch (e) { e.message = `[${donde}] ${e.message}`; throw e }
 }
+
+// `agregar_item_reparacion` acepta `p_dejar_pendiente` desde la migración 20270201200112 (F-SVC-12, MSF-412): si no
+// hay stock, el ítem se carga igual y queda «pendiente» (en vez de rechazar la reparación entera). En bases con esa
+// migración anterior el parámetro no existe y la API responde «function … does not exist»: ahí se llama sin él.
+let admitePendiente = null
+async function agregarItem(s, args, donde) {
+  if (admitePendiente !== false) {
+    try { return await rpc(s, 'agregar_item_reparacion', { ...args, p_dejar_pendiente: true }, donde) } catch (e) {
+      if (!/does not exist|no existe la función/i.test(e.message)) throw e
+      admitePendiente = false
+    }
+  }
+  return rpc(s, 'agregar_item_reparacion', args, donde)
+}
 // Verifica un caso borde: la operación DEBE ser rechazada por la base.
 async function debeFallar(log, titulo, promesa, fragmento) {
   try { await promesa } catch (e) {
@@ -124,7 +138,7 @@ export async function sembrar(ctx) {
     for (const e of r.ruta) await rpc(tec, 'cambiar_estado_reparacion', { p_id: alta.id, p_estado_id: estados[e].id }, `${donde} → ${e}`)
 
     // Ítems (mano de obra y repuestos); no se pueden cargar una vez cerrada o anulada.
-    const cargar = (args) => rpc(tec, 'agregar_item_reparacion', { p_producto_id: null, ...args, p_reparacion_id: alta.id }, `${donde} ítem`).then(() => { items += 1 })
+    const cargar = (args) => agregarItem(tec, { p_producto_id: null, ...args, p_reparacion_id: alta.id }, `${donde} ítem`).then(() => { items += 1 })
     if (cobraMO && r.mo !== 0) {
       await cargar({ p_tipo: 'mano_obra', p_descripcion: r.fin === 'sin_reparacion' ? 'Diagnóstico del equipo' : r.mo != null ? 'Mano de obra especializada (soldadura / microelectrónica)' : 'Mano de obra: reparación estándar', p_cantidad: 1, p_precio: precioMO })
     }

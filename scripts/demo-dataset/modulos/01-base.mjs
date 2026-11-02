@@ -17,7 +17,7 @@ export async function sembrar(ctx) {
     const previo = await admin.buscarUsuario(correo)
     if (previo) await admin.borrarUsuario(previo.id)
     const creado = await admin.crearUsuario(correo, PASSWORD, { nombre: u.nombre })
-    await admin.insertar('usuarios_organizacion', [{ user_id: creado.id, organizacion_id: org.id, rol_id: u.rol }])
+    await admin.insertar('usuarios_organizacion', [{ user_id: creado.id, organizacion_id: org.id, rol_id: u.rol }], { devolver: false })
     ctx.usuarios[u.clave] = { id: creado.id, correo, rol: u.rol, nombre: u.nombre }
   }
   log(`${USUARIOS.length} usuarios (uno por rol), clave ${PASSWORD}`)
@@ -31,14 +31,11 @@ export async function sembrar(ctx) {
   log('perfiles de usuario (nombre y apellido)')
 
   // Service técnico es una funcionalidad que se habilita por organización: sin esta fila la pantalla responde «No tenés
-  // acceso a esta sección» incluso al Administrador. `features` es global y `organizaciones_features` es de `public`,
-  // así que alcanza con la service-role (sin pasar por la RPC, que exige un superadmin de plataforma).
-  const feature = 'service-tecnico'
-  if (!(await admin.leer(`features?id=eq.${feature}&select=id`)).length) {
-    await admin.insertar('features', { id: feature, nombre: 'Service técnico', descripcion: 'Reparaciones, ítems, modelos y estados de service', creado_por: ctx.usuarios.admin.id })
-  }
-  await admin.insertar('organizaciones_features', { feature_id: feature, organizacion_id: org.id, habilitado_por: ctx.usuarios.admin.id })
-  log(`funcionalidad habilitada: ${feature}`)
+  // acceso a esta sección» incluso al Administrador. Se habilita en el paso SQL `sql/02-funcionalidad.sql` y no por
+  // API: `public.habilitar_feature` exige ser superadmin de plataforma y, en los entornos compartidos, la
+  // service-role no tiene INSERT ni SELECT en `public.features` / `public.organizaciones_features`
+  // (la funcionalidad se registra y se habilita solo por SQL o por un superadmin).
+  log('funcionalidad «service-tecnico»: se habilita por SQL (sql/02-funcionalidad.sql)')
 
   const adm = await ctx.sesion('admin')
   ctx.empresas = {}

@@ -121,6 +121,43 @@ El dataset ya está armado y versionado: no hay que rehacerlo. Para sembrar un e
 Para tener la demo **aparte de los datos reales** del entorno, usá una organización paralela (`DEMO_ORGANIZACION` y
 `DEMO_SUFIJO`): así los correos no chocan con los de otras organizaciones.
 
+### Qué hace falta en un entorno compartido (permisos y desvíos)
+
+El dataset está pensado para correr contra cualquier entorno, pero en los compartidos hay dos cosas que en el stack
+local no aparecen:
+
+1. **La service-role tiene menos permisos que en el stack local.** Ahí el CLI deja a `service_role` con todos los
+   permisos sobre `public`; en dev (y stg/prd) los permisos son los de las migraciones: puede insertar en
+   `public.organizaciones` y `public.usuarios_organizacion` pero **no leer** `usuarios_organizacion`, ni insertar ni
+   leer `public.features` / `public.organizaciones_features`. Por eso:
+   - el alta de membresías se hace sin pedir el `RETURNING` (`insertar(..., { devolver: false })`);
+   - la funcionalidad «service técnico» se habilita por SQL (`sql/02-funcionalidad.sql`): la RPC
+     `public.habilitar_feature` exige ser superadmin de plataforma;
+   - los motivos de movimiento se completan por SQL (`sql/03-motivos.sql`): los crea el trigger de alta de
+     organización, pero esa función puede haber quedado con la versión anterior (sin «Carga inicial de stock», que
+     exige la RPC `aplicar_carga_inicial_stock`).
+2. **El esquema `publico` tiene que estar expuesto en la API.** Las funciones públicas de la tienda online viven en
+   `publico` (MSF-241): si el contenedor de PostgREST del entorno no lo tiene en `PGRST_DB_SCHEMAS`, la API responde
+   «Invalid schema: publico» (406) y no se pueden sembrar las consultas que llegan por el formulario ni por WhatsApp.
+   En el `config.toml` del stack ya figura (`schemas = ["public", "graphql_public", "dominio", "publico"]`), pero un
+   contenedor que quedó corriendo con la lista anterior hay que recrearlo.
+
+Además, si el entorno quedó con **funciones duplicadas de migraciones viejas** (mismo nombre, firmas distintas),
+PostgREST no puede resolver la llamada («function … is not unique»). Es el desvío de versionado de migraciones
+(MSF-590): las firmas viejas se borran con los `drop function` que ya traen las migraciones de la rama.
+
+### En dev (VPS2) ya está sembrado
+
+En dev el dataset quedó cargado (2026-11-02) y hay dos scripts en el servidor que lo dejan a mano:
+
+| Script | Qué hace |
+|---|---|
+| `/root/cargar-demo-dev.sh` | borra la organización demo de dev y la vuelve a crear completa (~4 min). `--sin-reset` no borra antes; `--org` y `--sufijo` cargan una organización paralela |
+| `/root/borrar-demo-dev.sh` | borra la organización demo de dev cuando se quiera. `--simular` muestra qué se borra sin borrar; `--si` no pregunta; `--forzar` saltea la validación de que el nombre parezca demo |
+
+Los dos leen la configuración de `/root/demo-dev.env` (API, base, claves) y usan el dataset de este repo.
+
+
 ## Seguridad
 
 - El runner **aborta** si `SUPABASE_URL` no es local (`localhost`, `127.0.0.1`, `host.docker.internal`) y el host no
@@ -140,6 +177,8 @@ scripts/demo-dataset/
   modulos/NN-*.mjs        módulos de siembra por RPC
   sql/00-borrar-organizacion.sql   reset completo (FK RESTRICT, triggers de inmutabilidad, huérfanos)
   sql/01-tiendas.sql      alta de las tiendas (dominio.tiendas la carga el equipo técnico por SQL)
+  sql/02-funcionalidad.sql  habilita «service técnico» para la organización demo (la RPC exige superadmin)
+  sql/03-motivos.sql      completa los motivos de movimiento de la organización demo
   sql/9N-*.sql            pasos finales (consultas con fechas, contrarreembolsos e impresiones, fechas)
 ```
 
@@ -154,7 +193,8 @@ mismo dataset sin envejecer.
 - **Logo y banners de las tiendas** y las **imágenes de los productos**.
 - **Rol técnico:** no se le puede asignar ninguna tienda, así que no opera en Service; el trabajo del taller lo
   registra el operador y el técnico figura como responsable de la reparación.
-- **Reparaciones que descuentan stock:** la base de esta rama no tiene aún esa funcionalidad (MSF-217).
+- **Reparaciones que descuentan stock:** desde la migración 20270201200112 (F-SVC-12) el ítem de repuesto se descuenta
+  del depósito o, si no hay stock, se carga igual y queda «pendiente». El dataset usa esa vía (`p_dejar_pendiente`).
 
 ## Cómo agregar un módulo
 
