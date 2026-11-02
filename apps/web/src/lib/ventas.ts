@@ -43,6 +43,10 @@ export type Comprobante = {
   operador: string
   forma_pago_id: string | null
   envio_id: string | null
+  // F-SVC-13: de qué documento nació el comprobante (hoy solo una reparación de Service). Solo lectura.
+  origen_tipo?: 'reparacion' | null
+  origen_id?: string | null
+  origen_numero?: string | null
   lineas: LineaComprobante[]
   total_sin_iva: number
   iva: number

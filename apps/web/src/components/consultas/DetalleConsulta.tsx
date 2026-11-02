@@ -1,6 +1,7 @@
 import { type FormEvent, useRef, useState } from 'react'
 import { Box, Button, Chip, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
 import { useResponsablesConsultas } from '../../hooks/useConsultas'
+import { useRespuestasRapidas } from '../../hooks/useRespuestasRapidas'
 import {
   ESTADOS_CONSULTA,
   COLOR_ESTADO_CONSULTA,
@@ -55,7 +56,11 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
     puedeEditar ? consulta.empresa_id : null,
   )
 
-  const respuesta = enlaceRespuesta(consulta)
+  // Respuesta rápida opcional (F-CON-06): solo las de la empresa de ESTA consulta; solo quien puede responder.
+  const [respuestaRapidaId, setRespuestaRapidaId] = useState('')
+  const { respuestas: respuestasRapidas } = useRespuestasRapidas(puedeEditar ? consulta.empresa_id : null)
+  const respuestaRapida = respuestasRapidas.find((r) => r.id === respuestaRapidaId) ?? null
+  const respuesta = enlaceRespuesta(consulta, respuestaRapida)
   // La persona asignada puede haber dejado de ser elegible: se la sigue mostrando para no perderla de vista.
   const opcionesResponsable = responsables.some((r) => r.user_id === consulta.responsable_id) || !consulta.responsable_id
     ? responsables
@@ -195,6 +200,22 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
           ) : (
             <TextField label="Responsable" size="small" value={consulta.responsable_nombre ?? 'Sin responsable'} disabled />
           )}
+          {puedeEditar && respuestasRapidas.length > 0 ? (
+            <TextField
+              select
+              label="Respuesta rápida"
+              size="small"
+              value={respuestaRapida ? respuestaRapida.id : ''}
+              onChange={(evento) => setRespuestaRapidaId(evento.target.value)}
+              disabled={guardando}
+              helperText="Opcional: arma el texto inicial de «Responder». No envía nada."
+            >
+              <MenuItem value="">Texto de siempre</MenuItem>
+              {respuestasRapidas.map((r) => (
+                <MenuItem key={r.id} value={r.id}>{r.titulo}</MenuItem>
+              ))}
+            </TextField>
+          ) : null}
           <TextField
             label="Nota interna"
             size="small"

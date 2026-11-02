@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
@@ -11,6 +11,7 @@ import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarCli
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
+import { DialogoCorreoSeleccionados } from '../../components/clientes/DialogoCorreoSeleccionados'
 import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -23,8 +24,12 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
 const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
 
-type Solapa = 'listado' | 'ranking'
+// Igual que el ranking: la lista de inactivos (F-CLI-16) se descarga solo al abrir su solapa.
+const ClientesInactivos = lazy(() => import('../../components/clientes/ClientesInactivos').then((modulo) => ({ default: modulo.ClientesInactivos })))
 
+type Solapa = 'listado' | 'ranking' | 'inactivos'
+
+const AVISO_SIN_SELECCION = 'Elegí al menos un cliente con las casillas'
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_PAGINA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
@@ -99,9 +104,14 @@ export function ClienteList() {
   // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
   // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
   // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
-  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
+  const [avisoSeleccion, setAvisoSeleccion] = useState(false)
+  const [dialogoCorreo, setDialogoCorreo] = useState(false)
+  const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
+  const dialogoCorreoAbierto = useRef(false)
+  dialogoCorreoAbierto.current = dialogoCorreo
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -121,9 +131,14 @@ export function ClienteList() {
 
   // Cambió la empresa (barra superior o chip): se reencuadra la paginación y se
   // descarta la selección de la empresa anterior (Principio VIII, FR-017).
+  // Un diálogo de correo abierto se cierra con aviso: no guarda los marcados de la empresa anterior bajo la nueva.
   useEffect(() => {
     setPagina(1)
     setSeleccion(new Set())
+    if (dialogoCorreoAbierto.current) {
+      setDialogoCorreo(false)
+      setAvisoCorreo('Cambiaste de empresa: se cerró el envío de correo y se descartó la selección.')
+    }
   }, [empresaId])
 
   // Si la página quedó fuera de rango (p. ej. se archivó el último de la
@@ -137,6 +152,22 @@ export function ClienteList() {
   const cambiarTienda = (id: string | null) => {
     elegirEmpresa(id)
     setPagina(1)
+  }
+
+  // «Enviar correo a seleccionados (N)» (FR-005): abre el diálogo con los marcados. Quienes no son elegibles (sin
+  // correo o sin aceptación) se excluyen igual que al armar el grupo (FR-004); sin selección avisa.
+  const enviarCorreo = () => {
+    if (seleccion.size === 0) {
+      setAvisoSeleccion(true)
+      return
+    }
+    setDialogoCorreo(true)
+  }
+
+  const correoEnviado = (marcados: number) => {
+    setDialogoCorreo(false)
+    setSeleccion(new Set())
+    setAvisoCorreo(`Campaña creada: el correo se envía en lotes a los ${marcados} clientes marcados que lo aceptan.`)
   }
 
   const alternar = (id: string) => {
@@ -173,12 +204,19 @@ export function ClienteList() {
           <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
             <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
             <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
+            <Tab value="inactivos" label="Clientes inactivos" id="solapa-clientes-inactivos" aria-controls="panel-clientes" />
           </Tabs>
         ) : null}
         {puedeVerRanking && solapa === 'ranking' ? (
           <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
             <Suspense fallback={<EstadoCargaPagina />}>
               <RankingClientes empresaId={empresaId} />
+            </Suspense>
+          </Box>
+        ) : puedeVerRanking && solapa === 'inactivos' ? (
+          <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-inactivos">
+            <Suspense fallback={<EstadoCargaPagina />}>
+              <ClientesInactivos empresaId={empresaId} />
             </Suspense>
           </Box>
         ) : (
@@ -234,6 +272,11 @@ export function ClienteList() {
               <ToggleButton value="activos">Activos</ToggleButton>
               <ToggleButton value="archivados">Archivados</ToggleButton>
             </ToggleButtonGroup>
+            {puedeEditar ? (
+              <Button variant="outlined" size="small" onClick={enviarCorreo}>
+                {seleccion.size > 0 ? `Enviar correo a seleccionados (${seleccion.size})` : 'Enviar correo a seleccionados'}
+              </Button>
+            ) : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
@@ -291,6 +334,19 @@ export function ClienteList() {
         </Stack>
         )}
       </ContenedorSeccion>
+      <DialogoCorreoSeleccionados
+        open={dialogoCorreo}
+        clientes={[...seleccion]}
+        empresaId={empresaActivaId}
+        onCerrar={() => setDialogoCorreo(false)}
+        onEnviado={correoEnviado}
+      />
+      <Snackbar open={avisoCorreo !== null} autoHideDuration={6000} onClose={() => setAvisoCorreo(null)}>
+        <Alert severity="info" onClose={() => setAvisoCorreo(null)}>{avisoCorreo}</Alert>
+      </Snackbar>
+      <Snackbar open={avisoSeleccion} autoHideDuration={4000} onClose={() => setAvisoSeleccion(false)}>
+        <Alert severity="info" onClose={() => setAvisoSeleccion(false)}>{AVISO_SIN_SELECCION}</Alert>
+      </Snackbar>
     </Box>
   )
 }

@@ -4,6 +4,7 @@ import { Box } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useEmpresasDeCliente, useGuardarEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { type Cliente, aFormulario } from '../../lib/clientes'
@@ -27,6 +28,7 @@ export function ClienteEdit() {
   const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresas()
   const { empresas: tiendas, isLoading: cargandoTiendas, isError: errorTiendas, refetch: reintentarTiendas } = useEmpresasDeCliente(id)
   const { guardar } = useGuardarEmpresasDeCliente()
+  const { esAdministrador } = useEsAdministrador()
   const { cuentas, isLoading: cargandoCuentas, isError: errorCuentas, refetch: reintentarCuentas } = useCuentasWebDeCliente(id)
   // Principio VIII: al cambiar la empresa activa el formulario se reencuadra
   // (se remonta con los datos recargados) y no guarda la tienda de la anterior.
@@ -64,6 +66,7 @@ export function ClienteEdit() {
             empresas={empresas}
             cargandoEmpresas={cargandoEmpresas}
             errorEmpresas={errorEmpresas}
+            puedeEditarDescuento={esAdministrador}
             etiquetaGuardar="Guardar cambios"
             rutaCancelar={`/clientes/show/${cliente.id}`}
             onGuardar={async (valores, opciones) => {
