@@ -316,7 +316,8 @@ jobs:
   validacion:
     needs: [changes, application, web, infrastructure, database]
     if: always()
-    runs-on: [self-hosted, platform-local]
+    # Solo junta resultados de otros jobs: no necesita el runner local.
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Verificar que nada haya fallado

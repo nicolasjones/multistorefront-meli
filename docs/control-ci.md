@@ -156,3 +156,7 @@ la limpieza de fin de job y el janitor resuelven el caso normal sin cortar nada.
 corrección hay que asegurarse de que el workflow llegue a la rama por defecto
 (o cambiar la rama por defecto del repositorio). Mientras tanto, la limpieza de
 fin de cada job en `validate.yml` ya evita que la fuga se acumule.
+
+## Jobs en runners de GitHub (2026-11-01)
+
+La cola de los runners self-hosted (3 réplicas en VPS2, 12 núcleos con carga ~13 por los agentes) frenaba los merges. Se movieron a `ubuntu-latest` solo los jobs livianos: `quality` (`quality.yml`) y `validacion` (`validate.yml`, el check requerido que solo junta resultados). El resto sigue en `[self-hosted, platform-local]` porque usa el stack de Supabase, docker o los carriles de `scripts/supabase-ci.mjs`. El costo son los minutos de GitHub de esos dos jobs; si se vuelve relevante, revertir es cambiar `runs-on` de vuelta.
