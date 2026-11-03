@@ -50,6 +50,7 @@ export async function sembrar(ctx) {
   const productos = real ? real.productos : PRODUCTOS
   ctx.catalogoReal = Boolean(real)
   if (real) {
+    log(`datos REALES del cliente: ${real.resumen.total} productos, precios en pesos, stock, ${real.resumen.raices} categorías raíz y fotos (el resto del demo es simulado)`)
     log(`catálogo real del cliente: ${real.resumen.total} productos (${real.resumen.raices} categorías raíz, separador «${real.resumen.separador}»)`)
     if (real.resumen.duplicados.length) log(`códigos repetidos (se queda el primero): ${real.resumen.duplicados.join(', ')}`)
     if (real.resumen.sinPrecio.length) log(`sin precio (quedan en 0): ${real.resumen.sinPrecio.join(', ')}`)

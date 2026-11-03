@@ -83,7 +83,8 @@ export async function sembrar(ctx) {
   for (const n of ['Compra a proveedor', 'Rotura o pérdida', 'Conteo de inventario', 'Devolución']) if (!motivos[n]) throw new Error(`Falta el motivo «${n}»`)
 
   // — Depósitos —
-  const principal = previos.find((d) => d.por_defecto)
+  // El depósito por defecto lo crea la app al firmar la organización; si no está (una base sembrada a mano), se crea.
+  const principal = previos.find((d) => d.por_defecto) ?? previos[0]
   const ids = (claves) => claves.map((c) => ctx.empresas[c].id)
   await adm.rpc('actualizar_deposito', { p_deposito: principal.id, p_nombre: principal.nombre, p_direccion: PRINCIPAL.direccion, p_empresas: ids(PRINCIPAL.ventas) })
   const D = { principal: principal.id }

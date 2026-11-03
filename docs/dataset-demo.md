@@ -33,6 +33,27 @@ Incluye **casos borde a propósito**: stock en cero, ventas con stock insuficien
 facturas en borrador abandonadas, presupuestos vencidos, ingresos anulados, reparaciones vencidas sin repuesto,
 la tienda de Mundo JC con textos incompletos.
 
+## Qué es real del cliente y qué es simulado
+
+Con `DEMO_CSV_CLIENTE` (catálogo real) el demo se arma con **dos fuentes** de datos, y conviene saber cuál es cuál:
+
+| Dato | Origen | Cómo se reconoce |
+|---|---|---|
+| Productos, nombres, descripciones y códigos | **Real del cliente** (el CSV de precios de su panel) | el SKU es el código del cliente (`6187a`, `12789a`…) y el precio está en pesos (moneda `ARS`) |
+| Precios, escalas y costo | **Real del cliente** | el precio de lista es exactamente el número del CSV (la tienda no muestra dólares) |
+| Stock por depósito | **Real del cliente** | las unidades iniciales son las del CSV; los movimientos posteriores son simulados |
+| Categorías (3 niveles), destacados y fotos | **Real del cliente** | los nombres de las 173 categorías son los del cliente, sin renombrar ni aplanar |
+| Proveedores (CUIT, contacto), alícuotas de IVA, descuentos por escala | Simulado | se inventan a partir del id de proveedor del CSV (el CUIT tiene dígito verificador válido) |
+| Clientes, ventas, comprobantes, remitos, RMA, service técnico, consultas, depósitos y movimientos de stock | Simulado | nombres y correos inventados (`@demo.msf.test`), fechas repartidas en 90 días |
+| Usuarios, roles y permisos | Simulado | `<rol>@demo.msf.test` con la clave `Demo-Msf-2026!` |
+
+Los datos simulados son los que se pueden reemplazar por los reales cuando el cliente los comparta: los del catálogo ya
+son los suyos. En el log de la carga queda dicho qué se sembró con datos reales:
+
+```
+· datos REALES del cliente: 2.286 productos, precios en pesos, stock, 173 categorías y fotos (el resto es simulado)
+```
+
 ## Usuarios para la demo
 
 Clave de todos: `Demo-Msf-2026!`. Correos `<usuario>@demo.msf.test`.
