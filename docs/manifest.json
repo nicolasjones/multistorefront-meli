@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "57fe62317c5f4d8b085ff60dd82f54763357cb14039ec8c926d931a7eddaeada",
+      "pageHash": "eb37f95d92c4706336a4f4473ea29399ad057282e789bf4c96445233d63783a3",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "801de684"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -398,12 +398,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "b66a5a248082f80ef56adbab6253631a6a025923ce54861ffbe5cedb2746d539",
+      "pageHash": "32b366e2da2eea653d592dbe5a7e8f53191f4ad0e00439a5de203bb9414d45bd",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "801de684"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -607,6 +607,15 @@
     "docs/producto/rentabilidad.md": {
       "title": "Ver la rentabilidad: costos y márgenes",
       "pageHash": "6ceb3f67f610b243752bcb7f0411fe2dc16605584c5a1223fcc0ced0868e2659",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/reportes-de-inventario.md": {
+      "title": "Reportes de inventario: cuánto vale tu stock y qué reponer",
+      "pageHash": "2d08272c436c770bde7219f97be8a2a0bdc930df2f2b6b70263cd978926aa4fb",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1145,14 +1154,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "5fc34fba008501067198689e874b4373892657c0de1f981b7ad417b48436f68b",
+      "pageHash": "be30970b5793fb60fd0fc359c9669b85fc7fa7a76a74879ecda7a27d3ced2861",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "911af6c3",
+      "sourceAt": "01821f1c",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "cdf9b4d2"
+      "commit": "4314aa20"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1258,14 +1267,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "acb64bb3d82b0e047e466dc4026c112af3c4509005dedf7f85bee67f3fee4ebc",
+      "pageHash": "ce594b29672202bbc483789e1ff7aa9178f6ea5e8af03d6fc1ada69e81690bf1",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "fcd2b69a",
+      "sourceAt": "01821f1c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4bbc86c0"
+      "commit": "801de684"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1475,6 +1484,25 @@
       ],
       "owner": "tecnico",
       "commit": "bfa1e1a0"
+    },
+    "docs/tecnico/reportes-inventario.md": {
+      "title": "Reportes de inventario y exportación (técnico, MSF-140)",
+      "pageHash": "d85c2dc81913e7bfee78317b138e78ccfb066057c1eed7ece5a0e38ce2addb7e",
+      "sourceHash": "e771b0bb3bd74613da307bc466871be12a441aaf0c1998ac98283c43ba708976",
+      "sourceAt": "01821f1c",
+      "sources": [
+        "specs/20270201-100000-reportes-de-inventario-y-exportacion",
+        "supabase/migrations/20270202201200_analitica_inventario_productos_stock.sql",
+        "supabase/migrations/20270202201201_analitica_inventario_reposicion.sql",
+        "infra/superset/dashboards/inventario",
+        "infra/superset/superset_config.py",
+        "apps/web/src/pages/reportes",
+        "apps/web/src/lib/reportes-inventario.ts",
+        "apps/web/src/components/navegacion/destinosPanel.ts",
+        "apps/web/e2e/reportes-inventario.e2e.ts"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
