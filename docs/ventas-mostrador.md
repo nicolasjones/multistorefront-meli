@@ -43,7 +43,7 @@ y `dominio.cobros_comprobante` (`20270114100000_cobros_comprobante.sql`). No se 
 
 ## Datos y reversión
 
-Migración `20270121130000_mostrador_buscar_producto.sql`: aditiva, sin tablas nuevas (esquema `public`
+Migración `20270202200400_mostrador_buscar_producto.sql`: aditiva, sin tablas nuevas (esquema `public`
 para la RPC de plataforma; lee `dominio.productos`). Reversión: `drop function public.buscar_producto_por_codigo_barras(text);`
 
 ## Pruebas
