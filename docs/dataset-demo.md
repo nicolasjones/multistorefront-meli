@@ -72,6 +72,30 @@ Variables opcionales: `DEMO_RUN` (cómo correr el runner Node; por defecto `node
 `DEMO_ORGANIZACION` y `DEMO_SUFIJO` (organización paralela, p. ej. para desarrollar un módulo sin pisar la
 principal: el sufijo se agrega a los correos, que son únicos en toda la instancia).
 
+### Catálogo real del cliente (opcional)
+
+Por defecto el dataset siembra un catálogo **ficticio** (99 productos) para que la demo no dependa de datos de
+terceros. Con `DEMO_CSV_CLIENTE` se siembra el **catálogo real** que exporta el panel del cliente
+(«PRECIOS SANJAVUCHO - productos web»): sus productos, precios en pesos, stock, destacados y árbol de
+categorías tal cual (173 categorías de tres niveles: raíz, subcategoría y sub subcategoría).
+
+```bash
+export DEMO_CSV_CLIENTE="/ruta/al/CSV de precios.csv"   # el archivo del cliente (no se commitea)
+export DEMO_IMAGENES_JSON=/tmp/demo-imagenes.json        # fotos ya subidas al bucket (opcional)
+pnpm demo:dataset -- --reset
+```
+
+- El archivo del panel **no es un CSV válido**: cada fila termina en `;;;;;;`, la columna «Descripción» trae
+  saltos de línea y comillas sin cerrar y algunos nombres traen comas. El lector (`lib/csvCliente.mjs`) ancla
+  cada registro por el código y arma la cabeza (código, nombre, precios, stock, ids) y la cola (imágenes,
+  video, destacado, código de barras, categorías) por su forma, sin renombrar ni aplanar las categorías.
+- Los productos se crean con `moneda = 'ARS'`: la tienda muestra exactamente el número del Excel, sin depender
+  de la cotización del dólar. Los proveedores (CUIT) y los impuestos por categoría son inventados, como en el
+  catálogo ficticio.
+- Las fotos del cliente están en `sanjavucho.com.ar/uploads/…` (el CSV trae la ruta vieja `/panel/uploads/…`).
+  El bucket de la tienda firma URLs contra `productos-imagenes`, así que hay que bajarlas y subirlas
+  (`scripts/demo-dataset/bajar-imagenes.mjs`) y pasar el mapeo con `DEMO_IMAGENES_JSON`.
+
 ### Un módulo suelto
 
 ```bash

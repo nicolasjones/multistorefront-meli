@@ -63,7 +63,7 @@ export async function sembrar(ctx) {
   }
   // Existencias por producto y depósito, leídas de nuevo cuando hace falta (los movimientos las cambian).
   const leerStock = async () => {
-    const filas = await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=5000', 'dominio')
+    const filas = await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=20000', 'dominio')
     const m = {}
     for (const f of filas) (m[sku(f.producto_id)] ??= {})[f.deposito_id] = { cant: f.cantidad, res: f.reservado }
     return m
@@ -337,7 +337,7 @@ export async function sembrar(ctx) {
 
   // — Lo que necesitan los módulos siguientes —
   ctx.depositos = (await adm.leer('depositos?select=id,nombre,por_defecto,activo&order=creado_en', 'dominio'))
-  const estados = await adm.leer('stock_estados?select=estado&limit=1000')
+  const estados = await adm.leer('stock_estados?select=estado&limit=5000')
   const cuenta = estados.reduce((a, x) => ({ ...a, [x.estado]: (a[x.estado] ?? 0) + 1 }), {})
   log(`estado del stock: ${JSON.stringify(cuenta)}`)
 }

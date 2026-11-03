@@ -61,7 +61,7 @@ export async function sembrar(ctx) {
   }
   const depPorNombre = (n) => ctx.depositos.find((d) => d.nombre === n)?.id
   const disp = new Map() // `${sku}|${deposito}` → unidades que todavía se pueden vender en la siembra
-  for (const f of await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=5000', 'dominio')) {
+  for (const f of await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=20000', 'dominio')) {
     const sku = skuDe.get(f.producto_id)
     if (!sku || excluidos.has(sku)) continue
     const frac = FRACCION_VENDIBLE[raizDe(ctx.productos[sku])] ?? FRACCION_VENDIBLE.default
@@ -543,7 +543,7 @@ export async function sembrar(ctx) {
     if (f.estado === 'deuda') { if (pagado >= cents(f.total_con_iva) || pagado === 0) { malCobro++; log(`ATENCIÓN · ${f.numero} en deuda con cobrado ${plata(pagado)}`) } deudaTot += cents(f.total_con_iva) - pagado }
   }
   log(`totales vs líneas: ${malTotal ? `${malTotal} con diferencia` : 'OK'}; cobrado + deuda vs total: ${malCobro ? `${malCobro} con diferencia` : 'OK'} (cobrado ${plata(cobradoTot).toLocaleString('es-AR')}, deuda abierta ${plata(deudaTot).toLocaleString('es-AR')})`)
-  const exis = await adm.leer('existencias_deposito?select=cantidad,reservado&limit=5000', 'dominio')
+  const exis = await adm.leer('existencias_deposito?select=cantidad,reservado&limit=20000', 'dominio')
   const malStock = exis.filter((x) => x.cantidad < 0 || x.reservado < 0 || x.reservado > x.cantidad).length
   log(`stock: ${malStock ? `ATENCIÓN · ${malStock} filas con negativos o reservado > cantidad` : 'OK (sin negativos ni reservado > cantidad)'}`)
   if (falla.length) log(`ATENCIÓN · ${falla.length} comprobantes no se pudieron crear (ver arriba)`)

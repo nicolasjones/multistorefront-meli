@@ -47,10 +47,15 @@ export function catalogoReal(ruta) {
   for (const [nombreCat, subs] of [...raices.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const hijas = []
     for (const [nombreSub, subSubs] of [...subs.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-      hijas.push({ nombre: nombreSub, hijas: [...subSubs].sort().map((n) => ({ nombre: n, hijas: [] })) })
+      hijas.push({
+        nombre: nombreSub,
+        ruta: `${nombreCat} > ${nombreSub}`,
+        hijas: [...subSubs].sort().map((n) => ({ nombre: n, ruta: `${nombreCat} > ${nombreSub} > ${n}`, hijas: [] })),
+      })
     }
     categorias.push({
       nombre: nombreCat,
+      ruta: nombreCat,
       empresas: ['sanjavucho', 'mundojc'],
       iva: /OUTLET/i.test(nombreCat) ? IVA_OUTLET : IVA_DEFAULT,
       escalas: ESCALAS_DEFAULT,
@@ -82,8 +87,12 @@ export function catalogoReal(ruta) {
     const categoria = [normalizar(p.categoria), normalizar(p.subcategoria), normalizar(p.subSubcategoria)]
       .filter((c) => c && c !== '0')
     if (!categoria.length) continue
+    // La ruta completa es la clave: hay nombres de categoría repetidos en ramas distintas (PS3, GAMER, XBOX…).
+    const ruta = categoria.join(' > ')
     const prov = claveProveedor.get(p.idProveedor) ?? proveedores[0]?.clave
     if (!prov) continue
+    // Sin precio no hay producto: la base exige un precio de lista mayor a cero.
+    if (!p.precio || p.precio <= 0) continue
     lista.push({
       sku: p.codigo,
       nombre: p.nombre,
@@ -91,12 +100,14 @@ export function catalogoReal(ruta) {
       compat: [],
       lista: p.precio ?? 0, // pesos: el producto se crea con moneda ARS
       costo: p.costo ?? 0,
-      categoria: categoria[categoria.length - 1], // hoja del árbol
+      categoria: ruta, // hoja del árbol (ruta completa: los nombres se repiten entre ramas)
       rutaCategoria: categoria,
       prov,
       imagenes: p.imagenes,
       destacado: p.destacado,
-      codigoBarras: p.codigoBarras || null,
+      // El código de barras tiene que ser EAN-13: si el CSV trae otro formato se deja vacío y el módulo
+      // genera uno (los productos sin código de barras del cliente no se inventan).
+      codigoBarras: /^\d{13}$/.test(p.codigoBarras ?? '') ? p.codigoBarras : null,
       stockLocal: p.stockLocal ?? 0,
       stockDeposito: p.stockDeposito ?? 0,
       precioX5: p.precioX5 ?? 0,
