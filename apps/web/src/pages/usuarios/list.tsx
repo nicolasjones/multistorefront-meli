@@ -188,7 +188,7 @@ export function UsuarioList() {
       await asignarEmpresasUsuario(usuario.user_id, esAdministrador ? [] : seleccionAArreglo(seleccion))
     } catch (error) {
       setProcesando(null)
-      const detalle = error instanceof Error ? error.message : 'No pudimos guardar las empresas.'
+      const detalle = mensajeDeErrorBase(error, 'No pudimos guardar las empresas. Reintentá en unos minutos.')
       setErrorAccion(rolElegido !== usuario.rol_id ? `El rol ya se guardó, pero las empresas no: ${detalle}` : detalle)
       await cargarUsuarios()
       return false

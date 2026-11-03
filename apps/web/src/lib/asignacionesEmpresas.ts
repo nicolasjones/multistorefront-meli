@@ -44,5 +44,6 @@ export async function listarAsignaciones(): Promise<AsignacionDeUsuario[]> {
 // La base valida Administrador, organización, roles y atomicidad, y registra el evento (FR-015, FR-018).
 export async function asignarEmpresasUsuario(userId: string, asignaciones: AsignacionEmpresa[]): Promise<void> {
   const { error } = await supabaseClient.rpc('asignar_empresas_usuario', { p_target_user_id: userId, p_asignaciones: asignaciones })
-  if (error) throw new Error(error.message)
+  // Se relanza el error de base tal cual: la pantalla lo traduce por `code` y no muestra su texto.
+  if (error) throw error
 }

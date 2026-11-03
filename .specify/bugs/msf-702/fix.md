@@ -10,3 +10,8 @@
 ## No tocado (con motivo)
 - `pages/historial/importar.tsx`: `lib/historial.ts` ya sanea el mensaje (`mensajeDeErrorSolicitud`).
 - `lib/vencimientoSesion.ts`: cubierto por MSF-686.
+
+## Devolución del Revisor (PR #643)
+
+- `asignarEmpresasUsuario` ya no envuelve `error.message` en un `Error`: relanza el error de base y `pages/usuarios/list.tsx` lo mapea por `code` con `mensajeDeErrorBase` (antes se veía el texto crudo al fallar la asignación de empresas).
+- `pages/historial/importar.tsx` no cambia: `lib/historial.ts` ya lanza textos fijos en castellano (`mensajeDeErrorSolicitud` mapea por código).

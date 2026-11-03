@@ -388,11 +388,11 @@ describe('UsuarioList', () => {
       expect(screen.getByRole('button', { name: 'Editar' })).toBeDisabled()
     })
 
-    it('muestra el error de la base si rechaza la asignación', async () => {
+    it('muestra un mensaje por código y no el texto crudo si rechaza la asignación', async () => {
       preparar(asignadas)
       const base = rpc.getMockImplementation()!
       rpc.mockImplementation(async (nombre: string, args?: unknown) =>
-        nombre === 'asignar_empresas_usuario' ? { data: null, error: { message: 'No puede gestionar usuarios de esta organización' } } : base(nombre, args))
+        nombre === 'asignar_empresas_usuario' ? { data: null, error: { code: '42501', message: 'new row violates row-level security policy "asignaciones_empresa_insert"' } } : base(nombre, args))
       render(<UsuarioList />)
 
       fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
@@ -400,7 +400,8 @@ describe('UsuarioList', () => {
       fireEvent.click(await within(dialogo).findByRole('checkbox', { name: 'Mundo JC' }))
       fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
 
-      expect(await within(dialogo).findByText('No puede gestionar usuarios de esta organización')).toBeInTheDocument()
+      expect(await within(dialogo).findByText(/No tenés permiso para esta acción/)).toBeInTheDocument()
+      expect(within(dialogo).queryByText(/row-level security/)).not.toBeInTheDocument()
     })
   })
 })
