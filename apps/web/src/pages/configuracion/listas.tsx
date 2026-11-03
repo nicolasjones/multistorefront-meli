@@ -14,8 +14,12 @@ import { PanelEstadosConsulta } from './PanelEstadosConsulta'
 export function ListasConfigurables() {
   const { puedeEscribir, isLoading } = usePuedeEscribir()
   const rol = useNombreRolActual(puedeEscribir === false)
-  if (isLoading || puedeEscribir === null || (!puedeEscribir && rol === null)) return <EstadoCargaPagina />
-  if (!puedeEscribir) return <AccesoRestringido rol={rol} seccion="Listas configurables" />
+  if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
+  if (!puedeEscribir) {
+    // Mientras se resuelve el rol no se muestra el literal «actual» (MSF-637).
+    if (rol === null) return <EstadoCargaPagina />
+    return <AccesoRestringido rol={rol} seccion="Listas configurables" />
+  }
 
   return (
     <Box>

@@ -222,8 +222,10 @@ export function PanelMotivos() {
 export function MotivosMovimiento() {
   const { puedeEscribir, isLoading } = usePuedeEscribir()
   const rol = useNombreRolActual(puedeEscribir === false)
-  if (isLoading || puedeEscribir === null || (!puedeEscribir && rol === null)) return <EstadoCargaPagina />
+  if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
   if (!puedeEscribir) {
+    // Mientras se resuelve el rol no se muestra el literal «actual» (MSF-637).
+    if (rol === null) return <EstadoCargaPagina />
     // Solo el Administrador gestiona motivos: no hay flujo de «pedir acceso» a esta pantalla.
     return <AccesoRestringido rol={rol} seccion="Motivos de movimiento" />
   }
