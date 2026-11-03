@@ -14,7 +14,7 @@ import { PanelEstadosConsulta } from './PanelEstadosConsulta'
 export function ListasConfigurables() {
   const { puedeEscribir, isLoading } = usePuedeEscribir()
   const rol = useNombreRolActual(puedeEscribir === false)
-  if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
+  if (isLoading || puedeEscribir === null || (!puedeEscribir && rol === null)) return <EstadoCargaPagina />
   if (!puedeEscribir) return <AccesoRestringido rol={rol} seccion="Listas configurables" />
 
   return (

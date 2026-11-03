@@ -35,12 +35,13 @@ describe('useNombreRolActual (MSF-637)', () => {
   ])('si %s cae al genérico', async (_caso, preparar) => {
     preparar()
     const { result } = renderHook(() => useNombreRolActual(true))
-    await waitFor(() => expect(mocks.maybeSingle).toHaveBeenCalled())
-    expect(result.current).toBe('actual')
+    expect(result.current).toBeNull()
+    await waitFor(() => expect(result.current).toBe('actual'))
   })
 
   it('no consulta mientras no está activo', () => {
-    renderHook(() => useNombreRolActual(false))
+    const { result } = renderHook(() => useNombreRolActual(false))
+    expect(result.current).toBeNull()
     expect(mocks.getUser).not.toHaveBeenCalled()
   })
 })
