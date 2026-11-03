@@ -127,6 +127,10 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
   })
 
   it('si no se pueden cargar las formas de pago, avisa del error y no dice que la tienda no tiene', async () => {
+    // El error esperado se silencia en la consola (convención del repo): el log pendiente hace
+    // que vitest cierre el worker con `EnvironmentTeardownError` y el shard termine en rojo
+    // aunque todos los tests pasen.
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.formas.mockRejectedValue(new Error('red'))
     mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
     mocks.agregar.mockResolvedValue(venta())
