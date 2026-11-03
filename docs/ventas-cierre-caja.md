@@ -12,9 +12,9 @@ partir de ahí no se puede registrar ni modificar ningún cobro de ese día hast
 
 | Pieza | Dónde | Esquema |
 |---|---|---|
-| Tablas `cierres_caja` y `cierres_caja_detalle` (RLS por organización + empresa accesible + sección `ventas`; sin escritura directa; `anon` sin privilegios) | `20270115100000_cierres_caja.sql` | `dominio` (regla de negocio del producto) |
-| RPC `cerrar_caja`, `reabrir_caja` (Administrador), `listar_cierres_caja` (lectura `ventas`), `private.caja_cerrada`, `private.candado_caja` | `20270115100100_cierres_caja_rpc.sql` | `public` (RPC de la app) / `private` (helpers) |
-| Disparador `cobros_comprobante_caja_cerrada` (errcode `55000`) | `20270115100200_bloqueo_cobros_cerrados.sql` | sobre `dominio.cobros_comprobante` (MSF-195, sin alterar columnas ni políticas) |
+| Tablas `cierres_caja` y `cierres_caja_detalle` (RLS por organización + empresa accesible + sección `ventas`; sin escritura directa; `anon` sin privilegios) | `20270202201100_cierres_caja.sql` | `dominio` (regla de negocio del producto) |
+| RPC `cerrar_caja`, `reabrir_caja` (Administrador), `listar_cierres_caja` (lectura `ventas`), `private.caja_cerrada`, `private.candado_caja` | `20270202201101_cierres_caja_rpc.sql` | `public` (RPC de la app) / `private` (helpers) |
+| Disparador `cobros_comprobante_caja_cerrada` (errcode `55000`) | `20270202201102_bloqueo_cobros_cerrados.sql` | sobre `dominio.cobros_comprobante` (MSF-195, sin alterar columnas ni políticas) |
 | Pantalla `/ventas/cierre-caja` (menú Ventas → «Cierre de caja») | `apps/web/src/pages/ventas/cierre-caja.tsx`, `lib/cierreCaja.ts`, `components/ventas/CerrarCajaDialog.tsx` | — |
 
 ## Reglas
