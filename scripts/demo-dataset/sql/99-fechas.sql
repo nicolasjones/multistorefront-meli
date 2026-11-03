@@ -367,9 +367,11 @@ update _rh h set ts = case h.tipo
     else r.fin end
   from _rep r where r.id = h.rid;
 create temp table _ri on commit drop as
-select i.id, i.reparacion_id as rid, (row_number() over (partition by i.reparacion_id order by i.creado_en, i.id))::int as k,
+select i.id, i.reparacion_id as rid, r.numero, i.producto_id, i.deposito_id, i.cantidad,
+       (row_number() over (partition by i.reparacion_id order by i.creado_en, i.id))::int as k,
        (count(*) over (partition by i.reparacion_id))::int as n
-  from dominio.reparacion_items i where i.organizacion_id = :'org_id'::uuid;
+  from dominio.reparacion_items i join dominio.reparaciones r on r.id = i.reparacion_id
+ where i.organizacion_id = :'org_id'::uuid;
 alter table _ri add column ts timestamptz;
 update _ri i set ts = pg_temp.entre(r.creado, r.fin, 0.25 + 0.5 * i.k::float8 / (i.n + 1)) from _rep r where r.id = i.rid;
 
@@ -425,6 +427,16 @@ select cis.movimiento_id, pg_temp.tramo(f.d_carga, 0.05, 0.9, (row_number() over
 insert into _mvl select l.movimiento_id, l.ts, false from _ingl l where l.movimiento_id is not null on conflict do nothing;
 insert into _mvl select l.movimiento_anulacion_id, i.anulado + make_interval(secs => l.rn), true
   from _ingl l join _ing i on i.id = l.ingreso_id where l.movimiento_anulacion_id is not null and i.anulado is not null on conflict do nothing;
+-- repuestos de reparación (MSF-217 / F-SVC-12): el movimiento que descuenta el repuesto lo crea la RPC
+-- `agregar_item_reparacion` con la fecha del día de la siembra; lleva la marca del ítem de la reparación.
+insert into _mvl
+select m.id, i.ts, true
+  from dominio.movimientos_stock m
+  join dominio.motivos_movimiento mo on mo.id = m.motivo_id and mo.nombre = 'Repuesto de reparación'
+  join _ri i on m.nota = 'Reparación R-' || lpad(i.numero::text, 4, '0') and i.producto_id = m.producto_id
+              and i.deposito_id = m.deposito_id and i.cantidad = m.cantidad
+ where m.organizacion_id = :'org_id'::uuid
+on conflict do nothing;
 insert into _mvl select m.id, l.creado + make_interval(secs => (row_number() over (partition by m.lote_id order by m.id))::int), false
   from dominio.movimientos_stock m join _lot l on l.id = m.lote_id where m.organizacion_id = :'org_id'::uuid on conflict do nothing;
 -- ventas: la línea de la factura confirmada que las originó (mismo número, producto, depósito y cantidad)
