@@ -253,6 +253,13 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`,
 - **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
 - Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
 
+## Inventario · Productos y stock (MSF-297)
+
+Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <entorno>`, igual que
+Rentabilidad y Ventas. El directorio trae dos tableros: «Productos y stock» (MSF-297) y «Reposición» (MSF-311, slug
+`inventario-reposicion`, vista `analitica.inventario_reposicion`). Guía: [`reportes-inventario.md`](./reportes-inventario.md).
+
 ## Exportar reportes a CSV
 
 Spec `20270201-100000-reportes-de-inventario-y-exportacion` (FR-007, FR-008, FR-009).
