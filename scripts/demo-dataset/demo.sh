@@ -15,8 +15,12 @@ cd "$(dirname "$0")/../.."
 RUN="${DEMO_RUN:-node scripts/demo-dataset/index.mjs}"
 ORG="${DEMO_ORGANIZACION:-San Javucho y Mundo JC (demo)}"
 SUF="${DEMO_SUFIJO:-}"
+# Base del dominio de las tiendas online del dataset: `localhost` (por defecto) no sale a internet; en un entorno
+# compartido se usa un host público (por ejemplo `212-90-120-53.sslip.io`).
+BASE_DOMINIO="${DEMO_DOMINIO_BASE:-localhost}"
+export DEMO_DOMINIO_BASE="$BASE_DOMINIO"
 SQL="scripts/demo-dataset/sql"
-sql() { $DEMO_PSQL -tA -v org="$ORG" -v sufijo="$SUF" < "$SQL/$1"; }
+sql() { $DEMO_PSQL -tA -v org="$ORG" -v sufijo="$SUF" -v dominio_base="$BASE_DOMINIO" < "$SQL/$1"; }
 
 if [[ " $* " == *" --reset "* ]]; then echo "› reset (SQL)"; sql 00-borrar-organizacion.sql; fi
 echo "› módulos 01–02 (organización, usuarios, catálogo, precios)"; $RUN --hasta=02

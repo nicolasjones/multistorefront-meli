@@ -25,7 +25,10 @@ export async function sembrar(ctx) {
   const adm = await ctx.sesion('admin')
   const sufijo = process.env.DEMO_SUFIJO ?? ''
   // Los dominios son únicos en toda la plataforma: con DEMO_SUFIJO cada organización paralela tiene los suyos.
-  const dominios = Object.fromEntries(Object.entries(TIENDAS).map(([c, t]) => [c, `${t.dominio}${sufijo}.localhost`]))
+  // La base del dominio sale de DEMO_DOMINIO_BASE: `localhost` (por defecto) resuelve a 127.0.0.1 y no sale a
+  // internet; en un entorno compartido se usa un host público (por ejemplo `212-90-120-53.sslip.io`).
+  const baseDominio = process.env.DEMO_DOMINIO_BASE ?? 'localhost'
+  const dominios = Object.fromEntries(Object.entries(TIENDAS).map(([c, t]) => [c, `${t.dominio}${sufijo}.${baseDominio}`]))
 
   // Un uuid reproducible (la clave de idempotencia del formulario) a partir del PRNG con semilla.
   const uuid = () => {
