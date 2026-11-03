@@ -81,3 +81,9 @@ cargados y el catálogo de productos cargado por Catálogo).
   CSV/Excel; hasta entonces las plantillas son el contrato del archivo.
 - Empresa activa: no aplica filtrado por empresa (los proveedores son de la organización); la
   pantalla lo declara y el cambio de empresa no altera la carga (test de F-MIG-01).
+
+## Errores de base en la UI (MSF-702)
+
+`lib/mensajeErrorBase.ts` (`mensajeDeErrorBase`) traduce el error de base a un mensaje en castellano por `code`
+y nunca muestra el `message` crudo. En consola registra solo el `code` (no el objeto): `details`/`hint` de
+PostgREST pueden traer datos de la fila (PII).
