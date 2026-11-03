@@ -25,7 +25,7 @@
 --   drop table dominio.cierres_caja_detalle;
 --   drop table dominio.cierres_caja;
 
-create table dominio.cierres_caja (
+create table if not exists dominio.cierres_caja (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
@@ -47,7 +47,7 @@ comment on table dominio.cierres_caja is
 create unique index if not exists cierres_caja_org_empresa_fecha_uidx
   on dominio.cierres_caja (organizacion_id, empresa_id, fecha);
 
-create table dominio.cierres_caja_detalle (
+create table if not exists dominio.cierres_caja_detalle (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   cierre_id uuid not null,

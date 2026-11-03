@@ -3,6 +3,11 @@ name: multistorefront-meli-runner-dev
 services:
   runner:
     build: .
+    # tini como PID 1: cosecha los zombies que dejan los procesos nietos
+    # (Chromium/vite/playwright) cuando un step termina o se cancela. Sin
+    # esto, el node del entrypoint queda como PID 1 y los zombies se acumulan
+    # hasta agotar los PIDs del host. Ver docs/control-ci.md.
+    init: true
     deploy:
       # Bajalo (1 o 2) con varios agentes activos, poca memoria o poca red;
       # 0 no levanta runners de este repo. Ver docs/deployment.md.

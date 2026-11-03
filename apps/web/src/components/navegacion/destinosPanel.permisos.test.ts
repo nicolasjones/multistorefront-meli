@@ -95,6 +95,17 @@ describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   })
 })
 
+describe('destino «Correo masivo» (F-CLI-11)', () => {
+  it('cuelga de Contactos, apunta a /clientes/correo-masivo y sigue la sección clientes de la matriz', () => {
+    const correo = destino('correo-masivo')
+    expect(correo.ruta).toBe('/clientes/correo-masivo')
+    expect(correo.seccionPermiso).toBe('clientes')
+    expect(SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === 'correo-masivo'))?.id).toBe('contactos')
+    expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'edicion']))).toBe(true)
+    expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'ninguno']))).toBe(false)
+  })
+})
+
 describe('destino «Productos» (F-CAT-02)', () => {
   it('apunta a /productos, pertenece a la sección productos y respeta la matriz', () => {
     const productos = destino('productos')
@@ -139,6 +150,19 @@ describe('destino «Consultas» (F-CON-01, FR-005)', () => {
     expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'edicion']))).toBe(true)
     expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
     expect(destinoVisible(consultas, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('destino «Contactos» (F-CON-05, FR-005)', () => {
+  it('está en Canales debajo de Consultas, comparte su sección de permisos y no aparece con «ninguno»', () => {
+    const contactos = destino('contactos')
+    expect(contactos.ruta).toBe('/contactos')
+    expect(contactos.seccionPermiso).toBe('consultas')
+    expect(SECCION_POR_RECURSO.contactos).toBe('consultas')
+    const ids = SECCIONES_PANEL.find((seccion) => seccion.id === 'canales')?.destinos.map((d) => d.id) ?? []
+    expect(ids.indexOf('contactos')).toBe(ids.indexOf('consultas') + 1)
+    expect(destinoVisible(contactos, panelFixtures.miembro, permisos(['consultas', 'lectura']))).toBe(true)
+    expect(destinoVisible(contactos, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
   })
 })
 

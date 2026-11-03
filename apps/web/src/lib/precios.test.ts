@@ -8,6 +8,7 @@ import {
   formatearMargen,
   formatearPesosPrecio,
   leerCotizacionInicial,
+  leerCotizacionVigente,
   leerReglaPrecioEmpresa,
   mensajeErrorCotizacion,
   mensajeErrorRegla,
@@ -174,5 +175,25 @@ describe('regla de precio por empresa (F-PRE-07)', () => {
       mostrarConIva: true,
       actualizadoEn: 'ts',
     })
+  })
+})
+
+describe('leerCotizacionVigente (MSF-622)', () => {
+  const inicial = { schema: () => ({ from: () => ({ select: () => ({ maybeSingle: async () => ({ data: { valor: '1180', updated_at: '2026-07-24T12:00:00Z' }, error: null }) }) }) }) }
+
+  it('usa la vigente cuando la organización ya confirmó una', async () => {
+    const cliente = { ...inicial, rpc: async () => ({ data: { vigente: { valor: '1570', cargada_en: '2026-10-31T12:00:00Z' } }, error: null }) }
+    expect(await leerCotizacionVigente(cliente as never)).toEqual({ valor: 1570, fecha: '2026-10-31T12:00:00Z' })
+  })
+
+  it('cae a la inicial si no hay vigente', async () => {
+    const cliente = { ...inicial, rpc: async () => ({ data: { vigente: null }, error: null }) }
+    expect(await leerCotizacionVigente(cliente as never)).toEqual({ valor: 1180, fecha: '2026-07-24T12:00:00Z' })
+  })
+
+  it('cae a la inicial si el rol no puede leer el estado', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const cliente = { ...inicial, rpc: async () => ({ data: null, error: { code: '42501' } }) }
+    expect(await leerCotizacionVigente(cliente as never)).toEqual({ valor: 1180, fecha: '2026-07-24T12:00:00Z' })
   })
 })

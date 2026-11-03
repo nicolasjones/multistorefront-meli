@@ -130,6 +130,98 @@ asigna login y contraseña por entorno). El aislamiento entre organizaciones lo 
 (`organizacion_id`) del guest token, no la base: ver la revisión de seguridad y la reversión en
 [`rentabilidad.md`](./rentabilidad.md).
 
+## Tableros de Ventas · Reportes (F-VTA-22, MSF-347)
+
+«Más vendidos» es el primer tablero de **Ventas · Reportes**: la tabla de productos más
+vendidos en un período (unidades, facturado neto y estado del stock vigente). Vive en
+`infra/superset/dashboards/ventas-reportes/` y se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`,
+que además registra el reporte en `public.reportes` con `seccion = 'reportes'` y
+`filtro_empresa = true` (el registro es idempotente: reimportar no duplica la fila). La conexión
+(`Ventas analitica`) usa el mismo rol de solo lectura `superset_analitica` que la de Rentabilidad:
+no puede leer nada fuera de `analitica`. El aislamiento entre organizaciones **y** empresas lo
+fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`), no la base.
+
+`filtro_empresa` (columna de `public.reportes`, migración `20270116110200`) es **opt-in por
+tablero**: la cláusula `rls` del guest token se aplica a todos los datasets del tablero, así que
+solo puede llevar `empresa_id` si todas las vistas del tablero exponen esa columna. Ventas ·
+Reportes lo declara en `true`; los tableros de Rentabilidad quedan en `false` (consolidados por
+organización) y su cláusula sigue siendo solo `organizacion_id`. El importador toma el valor de
+`reportes.json`; si falta, escribe `false`.
+
+- **Dataset**: `analitica.ventas_producto_mas_vendido` (vista del contrato
+  `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano
+  es empresa × producto × depósito × fecha: los **filtros nativos** (rango de fechas, empresa,
+  categoría y ubicación de stock) se aplican sobre ese grano y el **gráfico** agrupa por producto y
+  suma (métricas `unidades_total`, `facturado_total`, `posicion` y `stock_hoy_texto` del dataset).
+- **Agrupación**: el gráfico agrupa por `producto_nombre` + `sku`. El nombre del producto **no** es
+  único por organización (`productos_org_nombre_idx` no es único), así que agrupar solo por nombre
+  fusionaba dos productos homónimos y su «Stock hoy» podía no ser el de ninguno; el SKU sí es único
+  por organización (`productos_org_sku_uidx`), de modo que nombre + SKU identifican un producto igual
+  que su id. Por eso el SKU es una columna de la tabla (el prototipo lo dibuja bajo el nombre).
+- **Filtros nativos** (ids, para preseleccionarlos desde Refine por `dashboardUiConfig.urlParams`):
+  `NATIVE_FILTER-rango` (rango de fechas, columna `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`),
+  `NATIVE_FILTER-categoria` (`categoria`) y `NATIVE_FILTER-deposito` (`deposito_nombre`).
+- **Orden**: por unidades descendentes. En Superset 6.1.0 el viz de tabla **ignora `order_by_cols` en
+  modo aggregate** (es un control solo-raw) y ordena por la métrica de `timeseries_limit_metric`, en
+  descendente si `order_desc` está activo: el chart versiona `timeseries_limit_metric: unidades_total`
+  + `order_desc: true`. `posicion` va primera en `metrics` solo por el **orden de las columnas**
+  (`#`, Unidades, Facturado, Stock hoy), nunca para ordenar: es un `ROW_NUMBER` ascendente y, si
+  fuera la primera métrica, el tablero mostraría los menos vendidos primero. La posición usa el mismo
+  criterio (unidades descendentes, desempate por nombre y SKU), así el número es estable entre
+  corridas.
+- **Config que no se versiona**: `columns`, `include_time`, `server_page_length` y `order_by_cols` no
+  hacen nada en 6.1.0 con este gráfico (son controles de modo raw o de paginación de servidor) y se
+  quitaron para no confundir el mantenimiento.
+- **Límites conocidos**: el viz de tabla de Superset muestra primero las columnas de agrupación, así
+  que **«Producto» y «SKU» preceden a «#»** (el prototipo los trae al revés); «Stock hoy» es el **estado**
+  del stock como texto («Sin stock» / «Stock bajo» / «Disponible»), no el chip con color del prototipo,
+  porque el viz de tabla no dibuja chips. La pantalla de Refine (`/ventas/reportes`) preselecciona los
+  filtros nativos de período y de empresa por `dashboardUiConfig.urlParams.native_filters` (rison):
+  **verificar en un Superset real** tras importar que el rango de fechas y la tienda llegan
+  preseleccionados; si la versión no los respeta, el tablero abre sin filtro (y el usuario los puede
+  cambiar desde la barra de filtros del tablero). Verificar también que la posición arranca en 1 y que
+  la fila más vendida es la primera.
+
+## Tablero «Ranking de clientes» (F-VTA-23, MSF-358)
+
+Es el segundo tablero de **Ventas · Reportes**: el ranking de clientes por facturación neta
+(comprobantes, facturado, participación con barra y última compra). Vive en el mismo directorio
+`infra/superset/dashboards/ventas-reportes/` y se importa **con el mismo paquete** que «Más
+vendidos» (`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`):
+se registran los dos reportes en `public.reportes` con `seccion = 'reportes'` y `filtro_empresa = true`
+(el registro es idempotente: reimportar no duplica la fila).
+
+- **Dataset**: `analitica.ventas_ranking_clientes` (vista del contrato
+  `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano es
+  empresa × cliente × fecha: los **filtros nativos** (rango de fechas, empresa y «Consumidor final») se
+  aplican sobre ese grano y el **gráfico** agrupa por cliente y suma.
+- **Agrupación**: el gráfico agrupa por `nombre` + `numero` + `tipo_texto`. El nombre del cliente **no**
+  es único por organización (`clientes_org_nombre_idx` no es único), así que agrupar solo por nombre
+  fusionaría dos clientes homónimos y su facturación sería la suma de dos; el `numero` (correlativo por
+  organización) sí es único (`clientes_org_numero_uq`), de modo que nombre + número identifican a un
+  cliente igual que su `id` — el mismo desempate que usa `public.ranking_clientes`.
+- **Filtros nativos**: `NATIVE_FILTER-rango` (rango de fechas, columna `fecha`), `NATIVE_FILTER-empresa`
+  (`empresa_nombre`) y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`, columna calculada
+  «Sí» / «No»). El valor inicial del tablero **excluye** al «Consumidor final»; la pantalla de Refine
+  (`/ventas/reportes`, pestaña «Ranking de clientes») lo mueve con su interruptor.
+- **Barra de participación**: la columna `Participación` se dibuja con el formato de celda `CELL_BAR`
+  (`conditional_formatting` del chart), que pinta una barra proporcional al valor de la celda.
+- **Verificar en un Superset real** tras importar (no hay Superset en el entorno de desarrollo):
+  que la barra de participación se pinte, que el filtro de «Consumidor final» llegue preseleccionado
+  con «No» y que la posición arranque en 1 con el cliente de mayor facturación primero. Si la versión
+  no respeta los `native_filters` de la URL, el tablero abre sin filtro (y el usuario los puede cambiar
+  desde la barra de filtros del tablero).
+- **Volumen esperado**: la vista deja una fila por empresa × cliente × día, así que el costo del
+  tablero es del orden de la cantidad de clientes × tiendas y no de la cantidad de comprobantes. No se
+  midió con 10.000 clientes por organización (el `row_limit` del gráfico es 10.000, como el de «Más
+  vendidos»).
+
+> Guía funcional, permisos, exportación y revisión de seguridad de **Ventas · Reportes**:
+> [`ventas-reportes.md`](./ventas-reportes.md). La superficie se cubre con
+> `supabase/tests/database/ventas_reportes_superficie.test.sql` y el recorrido con
+> `apps/web/e2e/ventas-reportes.e2e.ts`.
+
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
 Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa con el mismo paquete (slug `rentabilidad-por-producto`, registrado en `reportes.json` con `seccion = 'rentabilidad'`). Reusa el dataset `margen_producto_canal` (vista `analitica.margen_producto_canal`, una fila por producto y tienda), al que se le sumaron **columnas calculadas aditivas** (texto es-AR, colores, `estado_etiqueta`, `producto_busqueda`); la cláusula `rls` del guest token sigue siendo `organizacion_id`.

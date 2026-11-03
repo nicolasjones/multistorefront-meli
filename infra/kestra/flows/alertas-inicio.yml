@@ -1,0 +1,37 @@
+# MSF-361 · F-INI-02 (FR-022, spec 20261030-100000-inicio-y-alertas).
+# Recalcula cada 15 minutos las alertas de Inicio: llama a la Edge Function `recalcular-alertas-inicio` con
+# `{"barrer": true}` y la función recalcula, por organización, `dominio.alertas_inicio`. Es el "disparo" porque
+# el repo prohíbe disparar HTTP desde SQL (docs/adoptar-ciclo-ejecuciones.md §3.1): la base solo calcula y
+# registra (dominio.alertas_inicio_calculos). Reintentar es seguro: el recálculo es idempotente (reemplaza el
+# conjunto de la organización bajo un advisory lock).
+# Frecuencia: cada 15 minutos (D-2 de la spec); la pantalla avisa la demora pasada 1 hora. Para cambiarla,
+# editar el cron del trigger.
+# Secretos: el token compartido vive en SECRET_ALERTAS_INICIO_TOKEN, en base64 (solo infra/kestra/.env); la
+# clave pública (anon) solo cruza el gateway de Supabase y no autoriza nada por sí sola.
+id: alertas-inicio
+namespace: platform.inicio
+labels:
+  capa: producto
+  dominio: inicio
+  componente: alertas-inicio
+description: "Recalcula las alertas accionables de la pantalla de Inicio cada 15 minutos."
+tasks:
+  - id: recalcular_alertas
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ envs.alertas_inicio_url }}"
+    method: POST
+    contentType: application/json
+    headers:
+      apikey: "{{ envs.alertas_inicio_apikey }}"
+      Authorization: "Bearer {{ envs.alertas_inicio_apikey }}"
+      x-aviso-token: "{{ secret('ALERTAS_INICIO_TOKEN') }}"
+    body: '{"barrer": true}'
+    timeout: PT5M
+    retry:
+      type: constant
+      interval: PT1M
+      maxAttempts: 2
+triggers:
+  - id: cada_15_minutos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/15 * * * *"

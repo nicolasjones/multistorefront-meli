@@ -10,21 +10,47 @@ export const LARGO_MAXIMO_DESCRIPCION_ITEM = 200
 export const CANTIDAD_MAXIMA_ITEM = 9999
 export const PRECIO_MAXIMO_ITEM = 99_999_999.99
 
-export type CampoItem = 'descripcion' | 'cantidad' | 'precio' | 'producto_id'
+export type CampoItem = 'descripcion' | 'cantidad' | 'precio' | 'producto_id' | 'deposito_id'
 export type ErroresItem = Partial<Record<CampoItem, string>>
-export const CAMPOS_ITEM: ReadonlyArray<CampoItem> = ['descripcion', 'cantidad', 'precio', 'producto_id']
+export const CAMPOS_ITEM: ReadonlyArray<CampoItem> = ['descripcion', 'cantidad', 'precio', 'producto_id', 'deposito_id']
 
-export type ProductoRepuesto = { id: string; nombre: string; sku: string | null }
+// `disponibilidad_manual = 'a_pedido'`: el producto se pide al proveedor y no descuenta stock (F-SVC-10, FR-005).
+export type ProductoRepuesto = { id: string; nombre: string; sku: string | null; disponibilidad_manual?: string | null }
+
+// Un depósito activo con lo que hay del producto (`depositos_para_repuesto`, F-SVC-10, FR-006).
+export type DepositoRepuesto = {
+  deposito_id: string
+  nombre: string
+  por_defecto: boolean
+  cantidad: number
+  reservado: number
+  disponible: number
+}
+
+export const MENSAJE_SIN_STOCK = 'No hay stock suficiente'
+
+// ¿Este repuesto mueve stock? Solo un producto del catálogo que no es «a pedido».
+export function descuentaStock(producto: ProductoRepuesto | null): boolean {
+  return producto !== null && producto.disponibilidad_manual !== 'a_pedido'
+}
+
+// Nota bajo el selector de depósito, con el aviso de falta de stock del prototipo.
+export function notaDisponible(deposito: DepositoRepuesto, cantidad: number | null): string {
+  const base = `Disponible en ${deposito.nombre}: ${deposito.disponible} u.`
+  return cantidad !== null && deposito.disponible < cantidad ? `${base} (falta stock: pedí el repuesto al proveedor)` : base
+}
 
 export type FormularioItem = {
   descripcion: string
   cantidad: string
   precio: string
   producto: ProductoRepuesto | null
+  // Depósito del que se descuenta; nulo = el depósito por defecto (lo resuelve la base).
+  deposito_id: string | null
 }
 
 export function formularioItemVacio(): FormularioItem {
-  return { descripcion: '', cantidad: '1', precio: '', producto: null }
+  return { descripcion: '', cantidad: '1', precio: '', producto: null, deposito_id: null }
 }
 
 export const MENSAJE_CANTIDAD = `Ingresá una cantidad entera de 1 a ${CANTIDAD_MAXIMA_ITEM}.`
@@ -83,6 +109,7 @@ export function mensajeDeErrorItem(error: unknown, porDefecto: string): string {
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'No tenés permiso para modificar los ítems. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '55000') return MENSAJE_SOLO_LECTURA
+  if (e?.code === '23514') return MENSAJE_SIN_STOCK
   if (e?.code === 'P0002') return 'La reparación o el ítem ya no existe. Recargá la página.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
   if (e?.code === '22023' && e.message) return e.message
@@ -97,6 +124,8 @@ export async function agregarItem(
   reparacionId: string,
   tipo: TipoItemReparacion,
   formulario: FormularioItem,
+  // «Dejar pendiente» (F-SVC-12, FR-030): sin stock suficiente el ítem se carga sin descontar.
+  dejarPendiente = false,
 ): Promise<Reparacion> {
   const { data, error } = await supabaseClient.rpc('agregar_item_reparacion', {
     p_reparacion_id: reparacionId,
@@ -105,9 +134,38 @@ export async function agregarItem(
     p_producto_id: tipo === 'repuesto' ? (formulario.producto?.id ?? null) : null,
     p_cantidad: parsearCantidad(formulario.cantidad),
     p_precio: parsearPrecio(formulario.precio),
+    p_deposito_id: tipo === 'repuesto' && descuentaStock(formulario.producto) ? formulario.deposito_id : null,
+    p_dejar_pendiente: dejarPendiente,
   })
   lanzarSiHayError(error)
   return aReparacion(data)
+}
+
+// Éxito de «Agregar repuesto»: el último ítem cargado dice de qué depósito salió (si movió stock).
+export function mensajeRepuestoAgregado(reparacion: Reparacion): string {
+  const ultimo = reparacion.items.at(-1)
+  if (ultimo?.tipo === 'repuesto' && ultimo.stock_estado === 'pendiente') return 'Repuesto agregado · queda pendiente de stock'
+  return ultimo?.tipo === 'repuesto' && ultimo.deposito_nombre
+    ? `Repuesto agregado · se descuenta de ${ultimo.deposito_nombre}`
+    : 'Repuesto agregado'
+}
+
+// Disponible del depósito elegido para el aviso «No hay stock suficiente»; nulo si no se puede saber.
+export async function disponibleEnDeposito(productoId: string, depositoId: string | null): Promise<number | null> {
+  const depositos = await listarDepositosParaRepuesto(productoId)
+  const elegido = depositos.find((d) => (depositoId ? d.deposito_id === depositoId : d.por_defecto))
+  return elegido ? elegido.disponible : null
+}
+
+export async function listarDepositosParaRepuesto(productoId: string): Promise<DepositoRepuesto[]> {
+  const { data, error } = await supabaseClient.rpc('depositos_para_repuesto', { p_producto_id: productoId })
+  lanzarSiHayError(error)
+  return ((data ?? []) as DepositoRepuesto[]).map((d) => ({
+    ...d,
+    cantidad: Number(d.cantidad),
+    reservado: Number(d.reservado),
+    disponible: Number(d.disponible),
+  }))
 }
 
 export async function quitarItem(item: ItemReparacion): Promise<Reparacion> {
@@ -126,7 +184,7 @@ export async function buscarProductos(texto: string): Promise<ProductoRepuesto[]
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('productos')
-    .select('id, nombre, sku')
+    .select('id, nombre, sku, disponibilidad_manual')
     .eq('activo', true)
     .or(patron)
     .order('nombre', { ascending: true })

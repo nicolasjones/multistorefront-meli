@@ -50,7 +50,8 @@ export function AltaRapidaClienteDialog({ abierto, onCerrar, onCreado }: Props) 
   const crear = async (evento: FormEvent) => {
     evento.preventDefault()
     if (guardando) return
-    const formulario = { ...FORMULARIO_CLIENTE_VACIO, ...campos, empresas: empresas.map((empresa) => empresa.id) }
+    // El alta rápida del taller no pide el consentimiento: el cliente no entra al correo masivo (F-CLI-11).
+    const formulario = { ...FORMULARIO_CLIENTE_VACIO, ...campos, empresas: empresas.map((empresa) => empresa.id), aceptaCorreoMasivo: false }
     const encontrados = validarCliente(formulario)
     setErrores(encontrados)
     setErrorGeneral(null)
