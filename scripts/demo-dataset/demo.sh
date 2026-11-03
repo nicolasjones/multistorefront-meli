@@ -20,13 +20,16 @@ SUF="${DEMO_SUFIJO:-}"
 BASE_DOMINIO="${DEMO_DOMINIO_BASE:-localhost}"
 export DEMO_DOMINIO_BASE="$BASE_DOMINIO"
 SQL="scripts/demo-dataset/sql"
-sql() { $DEMO_PSQL -tA -v org="$ORG" -v sufijo="$SUF" -v dominio_base="$BASE_DOMINIO" < "$SQL/$1"; }
+# Archivo con las imágenes de los productos (lo deja el módulo 02 cuando el catálogo es el real del cliente).
+IMAGENES="${DEMO_IMAGENES_CSV:-/tmp/demo-imagenes.csv}"
+sql() { $DEMO_PSQL -tA -v org="$ORG" -v sufijo="$SUF" -v dominio_base="$BASE_DOMINIO" -v imagenes="$IMAGENES" < "$SQL/$1"; }
 
 if [[ " $* " == *" --reset "* ]]; then echo "› reset (SQL)"; sql 00-borrar-organizacion.sql; fi
 echo "› módulos 01–02 (organización, usuarios, catálogo, precios)"; $RUN --hasta=02
 echo "› aprovisionamiento SQL: tiendas"; sql 01-tiendas.sql
 echo "› aprovisionamiento SQL: funcionalidad service-técnico"; sql 02-funcionalidad.sql
 echo "› aprovisionamiento SQL: motivos de movimiento"; sql 03-motivos.sql
+if [[ -s $IMAGENES ]]; then echo "› aprovisionamiento SQL: imágenes de los productos"; sql 04-imagenes.sql; fi
 echo "› módulos 03 en adelante"; $RUN --desde=03
 # Pasos SQL finales (90-98: lo que cada módulo no puede hacer por API, 99: fechas), en orden de nombre.
 if [[ " $* " != *" --sin-sql-final "* ]]; then

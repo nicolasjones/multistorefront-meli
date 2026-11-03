@@ -91,6 +91,20 @@ export async function sembrar(ctx) {
   const todos = Object.values(ctx.clientes).filter((c) => !c.archivado)
   const reparaciones = {}
   const conteo = {}
+  // El repuesto que se carga en cada reparación: con el catálogo real se elige del catálogo (de repuestos y con stock).
+  const repuestosCatalogo = ctx.catalogoReal
+    ? Object.values(ctx.productos).filter((p) => /REPUESTO/i.test(String(p.categoria).toUpperCase()))
+    : []
+  const conStockCatalogo = ctx.catalogoReal
+    ? Object.values(ctx.productos).filter((p) => (p.stockLocal ?? 0) + (p.stockDeposito ?? 0) > 0)
+    : []
+  let iRepuesto = 0
+  const repuestoDelCatalogo = () => {
+    const pool = repuestosCatalogo.length ? repuestosCatalogo : conStockCatalogo
+    if (!pool.length) return null
+    return pool[(iRepuesto++) % pool.length]
+  }
+
   let vencidas = 0, items = 0
   const orden = [...REPARACIONES].sort((a, b) => b.dias - a.dias)
 
@@ -146,7 +160,9 @@ export async function sembrar(ctx) {
     for (const it of r.items) {
       if (it[0] === 'libre') await cargar({ p_tipo: 'repuesto', p_descripcion: it[1], p_cantidad: it[2], p_precio: it[3] })
       else {
-        const p = ctx.productos[it[0]]
+        // Con el catálogo real del cliente no existen los SKUs de repuestos del catálogo ficticio: se elige uno del
+        // catálogo real (de repuestos y con stock).
+        const p = ctx.productos[it[0]] ?? repuestoDelCatalogo()
         // Repuesto de garantía: se cobra en 0 (lo absorbe la tienda), igual descuenta/registra como cualquier otro.
         await cargar({ p_tipo: 'repuesto', p_descripcion: '', p_producto_id: p.id, p_cantidad: it[1], p_precio: r.mo === 0 ? 0 : (it[2] ?? p.lista) })
       }

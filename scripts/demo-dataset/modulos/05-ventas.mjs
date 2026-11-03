@@ -43,6 +43,12 @@ export async function sembrar(ctx) {
 
   // ───────────── Catálogo de venta: productos por empresa, depósitos por empresa y presupuesto de stock ─────────────
   const raizDe = (p) => ctx.categorias[p.categoria].def.nombre
+  // Con el catálogo real del cliente las raíces son otras: los pesos por rubro se reparten entre las que haya.
+  const pesosPorRubro = (base) => (ctx.catalogoReal
+    ? Object.fromEntries([...new Set(catalogo.map((p) => raizDe(p)))].map((r) => [r, 1]))
+    : base)
+  // Umbral de «producto caro» en dólares: los productos del cliente están en pesos.
+  const enDolares = (p) => (p.moneda === 'ARS' ? (p.lista ?? 0) / 1180 : (p.lista ?? 0))
   const vendeEn = (p) => ctx.categorias[p.categoria].def.empresas
   const excluidos = new Set([...SIN_CARGA, ...A_CERO, ...BAJO_MINIMO, PEDIDO.sku])
   const catalogo = Object.values(ctx.productos).filter((p) => !excluidos.has(p.sku))
@@ -88,7 +94,7 @@ export async function sembrar(ctx) {
 
   // ───────────── Carrito: productos con stock disponible en un depósito de la empresa ─────────────
   function armarLineas(emp, tipo, nMax) {
-    const pesos = tipo === 'mayorista' ? PESO_RUBRO_MAYORISTA : PESO_RUBRO_MINORISTA
+    const pesos = pesosPorRubro(tipo === 'mayorista' ? PESO_RUBRO_MAYORISTA : PESO_RUBRO_MINORISTA)
     const pool = catalogo.filter((p) => vendeEn(p).includes(emp) && pesos[raizDe(p)])
     const lineas = []
     const n = azar.entero(1, nMax)
@@ -101,7 +107,7 @@ export async function sembrar(ctx) {
       if (tipo === 'mayorista') {
         const [mn, mx] = azar.ponderado([[[5, 9], 3], [[10, 49], 5], [[50, 60], 2]])
         cantidad = azar.entero(mn, mx)
-      } else cantidad = raizDe(p) === 'Consolas de juegos' || p.lista > 15 ? 1 : azar.ponderado([[1, 6], [2, 3], [3, 1]])
+      } else cantidad = raizDe(p) === 'Consolas de juegos' || enDolares(p) > 15 ? 1 : azar.ponderado([[1, 6], [2, 3], [3, 1]])
       // Mejor depósito: el que más presupuesto tenga (el principal desempata a favor).
       const deps = depsEmpresa[emp].map((d) => [d, presupuesto(p.sku, d)]).sort((a, b) => b[1] - a[1])
       const [d, hay] = deps[0]

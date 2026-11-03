@@ -90,21 +90,36 @@ export async function sembrar(ctx) {
   // — 4. Catálogo publicado: qué categorías y productos se ven en cada tienda —
   // La visibilidad por defecto es «visible, no destacado»; se mandan solo los cambios. El árbol de categorías es de la
   // organización y lo comparten las dos tiendas, así que Belleza se oculta en San Javucho y Herramientas/Repuestos en Mundo JC.
+  // Con el catálogo real del cliente: se publica todo (son sus productos), se ocultan los que están sin stock
+  // (caso borde) y se destacan los que su panel marca como destacados.
+  const destacadosReales = ctx.catalogoReal
+    ? Object.values(ctx.productos).filter((p) => p.destacado).map((p) => p.sku)
+    : null
+  const ocultosReales = ctx.catalogoReal
+    ? Object.values(ctx.productos).filter((p) => !p.destacado && (p.stockLocal ?? 0) === 0 && (p.stockDeposito ?? 0) === 0).map((p) => p.sku)
+    : null
   for (const [clave, t] of Object.entries(TIENDAS)) {
     const emp = ctx.empresas[clave]
     const enTienda = (sku) => ctx.productos[sku] && ctx.categorias[ctx.productos[sku].categoria]?.def.empresas.includes(clave)
     const categorias = []
-    for (const raiz of t.categoriasOcultas) {
+    for (const raiz of ctx.catalogoReal ? [] : t.categoriasOcultas) {
       const def = ctx.categorias[raiz]
       categorias.push({ id: def.id, visible: false })
       for (const h of def.def.nombre === raiz ? def.def.hijas : []) categorias.push({ id: ctx.categorias[h].id, visible: false })
     }
     const productos = [
-      ...t.productosOcultos.filter(enTienda).map((sku) => ({ id: ctx.productos[sku].id, visible: false, destacado: false })),
-      ...t.destacados.filter(enTienda).map((sku) => ({ id: ctx.productos[sku].id, visible: true, destacado: true })),
+      ...(ocultosReales ?? t.productosOcultos).filter(enTienda).map((sku) => ({ id: ctx.productos[sku].id, visible: false, destacado: false })),
+      ...(destacadosReales ?? t.destacados).filter(enTienda).map((sku) => ({ id: ctx.productos[sku].id, visible: true, destacado: true })),
     ]
-    const r = await adm.rpc('guardar_catalogo_tienda', { p_empresa: emp.id, p_categorias: categorias, p_productos: productos })
-    log(`${emp.nombre}: ${categorias.length} categorías ocultas, ${t.productosOcultos.length} productos ocultos → ${r.visibles} visibles, ${r.destacados} destacados`)
+    // El catálogo real tiene miles de productos: el guardado va en tandas.
+    const tanda = ctx.catalogoReal ? 500 : productos.length
+    let r = { visibles: 0, destacados: 0 }
+    for (let i = 0; i < Math.max(1, productos.length); i += tanda) {
+      const trozo = productos.slice(i, i + tanda)
+      r = await adm.rpc('guardar_catalogo_tienda', { p_empresa: emp.id, p_categorias: i === 0 ? categorias : [], p_productos: trozo })
+    }
+    const ocultos = (ocultosReales ?? t.productosOcultos).filter(enTienda).length
+    log(`${emp.nombre}: ${categorias.length} categorías ocultas, ${ocultos} productos ocultos → ${r.visibles} visibles, ${r.destacados} destacados`)
   }
 
   // — 5. Estados de consulta (lista configurable) y correo de avisos —

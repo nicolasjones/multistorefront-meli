@@ -24,6 +24,25 @@ export async function sembrar(ctx) {
   const skus = Object.keys(ctx.productos)
   const sku = (id) => skus.find((k) => ctx.productos[k].id === id)
 
+  // Con el catálogo real del cliente no hay SKUs ni nombres de proveedor fijos: los casos borde (sin stock, a cero,
+  // bajo mínimo, con exceso) salen del stock real del CSV, y los SKUs que el módulo usaba como ejemplo se eligen
+  // del catálogo.
+  const stockCsv = ctx.catalogoReal
+    ? Object.fromEntries(skus.map((k) => [k, { local: ctx.productos[k].stockLocal ?? 0, deposito: ctx.productos[k].stockDeposito ?? 0 }]))
+    : null
+  const unidadesCsv = (k) => (stockCsv ? stockCsv[k].local + stockCsv[k].deposito : 0)
+  const SIN_CARGA_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) === 0) : SIN_CARGA
+  const A_CERO_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) === 0) : A_CERO
+  const BAJO_MINIMO_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) > 0 && unidadesCsv(k) <= 2) : BAJO_MINIMO
+  const CON_EXCESO_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) > 500) : CON_EXCESO
+  const conStockCsv = () => skus.filter((k) => unidadesCsv(k) > 0)
+  // El producto «a pedido» (el que se reserva) y los ejemplos sueltos: los más caros con stock y uno cualquiera.
+  const PEDIDO_SKU = ctx.catalogoReal
+    ? (conStockCsv().sort((a, b) => (ctx.productos[b].lista ?? 0) - (ctx.productos[a].lista ?? 0))[0] ?? skus[0])
+    : PEDIDO.sku
+  const SKU_EJEMPLO = ctx.catalogoReal ? (conStockCsv()[0] ?? skus[0]) : 'JOY-DS4-NG'
+  const PROV_NORTE = ctx.catalogoReal ? Object.keys(ctx.proveedores)[0] : 'norte'
+
   // El mismo módulo dos veces sobre la misma base chocaría con los nombres únicos: mejor un mensaje claro.
   const previos = await adm.leer('depositos?select=id,nombre,por_defecto,activo&order=creado_en', 'dominio')
   if (previos.length > 1) throw new Error('El módulo 03 ya corrió sobre esta organización. Corré con --reset para recrearla.')
@@ -70,11 +89,18 @@ export async function sembrar(ctx) {
 
   // — Stock inicial: una carga inicial por producto, en el depósito donde «vive» —
   // Lo que venden las dos tiendas está sobre todo en el principal; lo exclusivo de Mundo JC, en Córdoba.
+  // Con el catálogo real el stock inicial es el del cliente: «Stock local» va al depósito principal y «Stock depósito»
+  // al local (un producto admite una sola carga inicial, así que el que tenga los dos queda en el principal).
   const base = {}
   const dondeVive = {}
   for (const k of skus) {
-    if (SIN_CARGA.includes(k)) continue
+    if (SIN_CARGA_.includes(k)) continue
     const p = ctx.productos[k]
+    if (ctx.catalogoReal) {
+      base[k] = stockCsv[k].local > 0 ? stockCsv[k].local : stockCsv[k].deposito
+      dondeVive[k] = stockCsv[k].local > 0 ? 'principal' : 'local'
+      continue
+    }
     const emp = ctx.categorias[p.categoria].def.empresas
     const d = emp.length === 1 && emp[0] === 'mundojc' ? 'cordoba'
       : emp.length === 1 ? azar.ponderado([['principal', 7], ['local', 3]])
@@ -85,18 +111,32 @@ export async function sembrar(ctx) {
   }
   for (const d of ['principal', 'local', 'cordoba']) {
     const filas = Object.keys(base).filter((k) => dondeVive[k] === d).map((k) => ({ sku: k, cantidad: base[k], motivo: 'Stock inicial al implantar el sistema' }))
-    const previa = await dep.rpc('validar_carga_stock', { p_deposito: D[d], p_filas: filas })
-    const malas = previa.filter((f) => !['ajuste', 'nuevo', 'ok'].includes(f.estado))
-    if (malas.length) log(`ATENCIÓN · vista previa de carga (${d}): ${malas.length} filas no válidas, p. ej. ${malas[0].sku}: ${malas[0].mensaje}`)
-    const r = await dep.rpc('aplicar_carga_inicial_stock', { p_deposito: D[d], p_filas: filas, p_clave: uuid() })
-    log(`carga inicial en ${d}: ${filas.length} productos (${JSON.stringify(r).slice(0, 90)})`)
+    if (!filas.length) continue
+    // Con el catálogo real son miles de filas: la carga inicial va en tandas (la RPC no toma todo de una vez).
+    const tanda = ctx.catalogoReal ? 400 : filas.length
+    let aplicadas = 0
+    for (let i = 0; i < filas.length; i += tanda) {
+      const trozo = filas.slice(i, i + tanda)
+      const previa = await dep.rpc('validar_carga_stock', { p_deposito: D[d], p_filas: trozo })
+      const malas = previa.filter((f) => !['ajuste', 'nuevo', 'ok'].includes(f.estado))
+      if (malas.length) log(`ATENCIÓN · vista previa de carga (${d}): ${malas.length} filas no válidas, p. ej. ${malas[0].sku}: ${malas[0].mensaje}`)
+      const r = await dep.rpc('aplicar_carga_inicial_stock', { p_deposito: D[d], p_filas: trozo, p_clave: uuid() })
+      aplicadas += trozo.length
+      if (i === 0) log(`carga inicial en ${d}: ${JSON.stringify(r).slice(0, 90)}`)
+    }
+    log(`carga inicial en ${d}: ${aplicadas} productos`)
   }
 
   // — Un remito completo por «Carga en lote» (proveedor como texto libre, sin pasar por Compras) —
-  const lotes = [
-    { dias: 52, prov: 'Distribuidora Gamer Norte S.R.L.', skus: ['JOY-DS4-NG', 'JOY-DS4-ROJO', 'JOY-XBOX-BL', 'JOY-PROCON-NSW', 'CAB-HDMI21-2M'] },
-    { dias: 21, prov: 'TecnoParts Argentina S.R.L.', skus: ['REP-DS4-BOT', 'REP-DS4-BAT', 'REP-JOYCON-BAT', 'REP-PS4-VENT'] },
-  ]
+  const lotes = ctx.catalogoReal
+    ? [
+      { dias: 52, prov: PROV_NORTE, skus: azar.mezclar(conStockCsv()).slice(0, 5) },
+      { dias: 21, prov: Object.keys(ctx.proveedores)[1] ?? PROV_NORTE, skus: azar.mezclar(conStockCsv()).slice(5, 10) },
+    ]
+    : [
+      { dias: 52, prov: 'Distribuidora Gamer Norte S.R.L.', skus: ['JOY-DS4-NG', 'JOY-DS4-ROJO', 'JOY-XBOX-BL', 'JOY-PROCON-NSW', 'CAB-HDMI21-2M'] },
+      { dias: 21, prov: 'TecnoParts Argentina S.R.L.', skus: ['REP-DS4-BOT', 'REP-DS4-BAT', 'REP-JOYCON-BAT', 'REP-PS4-VENT'] },
+    ]
   for (const l of lotes) {
     const lineas = l.skus.map((k) => ({ producto: ctx.productos[k].id, cantidad: azar.entero(8, 30) }))
     const r = await dep.rpc('registrar_lote_stock', { p_lineas: lineas, p_motivo: motivos['Compra a proveedor'], p_proveedor: l.prov, p_fecha: diaHabilHaceDias(l.dias), p_clave: uuid() })
@@ -104,20 +144,25 @@ export async function sembrar(ctx) {
   }
 
   // — Ingresos de mercadería: 25 en 88 días, de todos los proveedores, con comprobante y varias líneas —
-  const provDef = Object.fromEntries(PROVEEDORES.map((p) => [p.clave, p]))
-  const excluidos = new Set([...SIN_CARGA, ...A_CERO, ...BAJO_MINIMO, ...CON_EXCESO])
+  const provDef = ctx.catalogoReal
+    ? Object.fromEntries(Object.entries(ctx.proveedores).map(([clave, p]) => [clave, { ...p, empresas: p.empresas ?? ['sanjavucho', 'mundojc'] }]))
+    : Object.fromEntries(PROVEEDORES.map((p) => [p.clave, p]))
+  const excluidos = new Set([...SIN_CARGA_, ...A_CERO_, ...BAJO_MINIMO_, ...CON_EXCESO_])
   const nIngresos = 25
   ctx.ingresos = []
   const numeroPorPunto = {}
   const fijoPedido = 9 // este ingreso trae las unidades del PS5 Pro (a pedido): las reservas las necesitan
   for (let i = 0; i < nIngresos; i++) {
-    const provClave = i === fijoPedido ? 'norte' : azar.ponderado(PESO_PROVEEDORES)
+    const pesosProveedores = ctx.catalogoReal
+    ? Object.keys(ctx.proveedores).map((k) => [k, 1])
+    : PESO_PROVEEDORES
+  const provClave = i === fijoPedido ? PROV_NORTE : azar.ponderado(pesosProveedores)
     const pool = skus.filter((k) => ctx.productos[k].prov === provClave && !excluidos.has(k))
     const elegidos = azar.mezclar(pool).slice(0, azar.entero(2, Math.min(6, pool.length)))
-    if (i === fijoPedido) elegidos.unshift(PEDIDO.sku)
+    if (i === fijoPedido) elegidos.unshift(PEDIDO_SKU)
     const lineas = elegidos.map((k) => {
       const p = ctx.productos[k]
-      const [mn, mx] = k === PEDIDO.sku ? [PEDIDO.unidades, PEDIDO.unidades] : rango(RANGOS_COMPRA, ctx, p)
+      const [mn, mx] = k === PEDIDO_SKU ? [PEDIDO.unidades, PEDIDO.unidades] : rango(RANGOS_COMPRA, ctx, p)
       return { sku: k, producto_id: p.id, cantidad: azar.entero(mn, mx), costo_unitario_usd: Math.round(p.costo * (0.96 + azar.siguiente() * 0.08) * 100) / 100 }
     })
     const punto = azar.entero(1, 6)
@@ -140,8 +185,8 @@ export async function sembrar(ctx) {
   }
   log(`${nIngresos} ingresos de mercadería (${ctx.ingresos.filter((x) => x.costo_actualizado).length} con costo actualizado)`)
   await rechazo('ingreso con fecha futura', /futura/i, () => dep.rpc('registrar_ingreso_mercaderia', {
-    p_empresa: ctx.empresas.sanjavucho.id, p_proveedor: ctx.proveedores.norte.id, p_fecha: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10),
-    p_comprobante: null, p_lineas: [{ producto_id: ctx.productos['JOY-DS4-NG'].id, cantidad: 1, costo_unitario_usd: 28 }], p_actualizar_costo: false, p_clave_idempotencia: uuid(),
+    p_empresa: ctx.empresas.sanjavucho.id, p_proveedor: ctx.proveedores[PROV_NORTE].id, p_fecha: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10),
+    p_comprobante: null, p_lineas: [{ producto_id: ctx.productos[SKU_EJEMPLO].id, cantidad: 1, costo_unitario_usd: 28 }], p_actualizar_costo: false, p_clave_idempotencia: uuid(),
   }))
 
   // — Anulados: 3 ingresos viejos (revierte el stock con una salida por línea) —
@@ -176,7 +221,7 @@ export async function sembrar(ctx) {
 
   // — Movimientos sueltos: roturas, conteos, devoluciones y compras directas a otros depósitos —
   let stock = await leerStock()
-  const candidatos = () => skus.filter((k) => !SIN_CARGA.includes(k) && !A_CERO.includes(k) && !BAJO_MINIMO.includes(k) && total(stock, k) >= 12)
+  const candidatos = () => skus.filter((k) => !SIN_CARGA_.includes(k) && !A_CERO_.includes(k) && !BAJO_MINIMO_.includes(k) && total(stock, k) >= 12)
   const mayorDeposito = (k) => Object.entries(stock[k]).sort((a, b) => b[1].cant - a[1].cant)[0]
   const mov = async (k, tipo, cantidad, motivo, nota, dias, deposito) => dep.rpc('registrar_movimiento_stock', {
     p_producto: ctx.productos[k].id, p_tipo: tipo, p_cantidad: cantidad, p_motivo: motivos[motivo], p_nota: nota, p_fecha: diaHabilHaceDias(dias), p_deposito: deposito,
@@ -199,7 +244,7 @@ export async function sembrar(ctx) {
     const [d] = mayorDeposito(k)
     await mov(k, 'salida', azar.entero(2, 4), 'Devolución', azar.elegir(NOTAS_DEVOLUCION_PROVEEDOR), azar.entero(5, 50), d); nMov++
   }
-  for (const k of azar.mezclar(candidatos().filter((x) => x !== PEDIDO.sku)).slice(0, 4)) { // compras directas al local y a Córdoba
+  for (const k of azar.mezclar(candidatos().filter((x) => x !== PEDIDO_SKU)).slice(0, 4)) { // compras directas al local y a Córdoba
     await mov(k, 'entrada', azar.entero(6, 20), 'Compra a proveedor', 'Compra directa para el local, sin pasar por el depósito', azar.entero(2, 30), azar.elegir([D.local, D.cordoba])); nMov++
   }
   log(`${nMov} movimientos sueltos (roturas, conteos, devoluciones, compras directas)`)
@@ -210,27 +255,30 @@ export async function sembrar(ctx) {
 
   // — Toma de inventario: se cuenta toda la categoría Joysticks en el depósito por defecto —
   stock = await leerStock()
-  const items = skus.filter((k) => ctx.productos[k].categoria === 'Joysticks').map((k, i) => {
+  const categoriaInventario = ctx.catalogoReal
+    ? (ctx.categorias[Object.keys(ctx.categorias)[1]]?.nombre ? Object.keys(ctx.categorias).find((n) => ctx.categorias[n].def.hijas?.length) : Object.keys(ctx.categorias)[0])
+    : 'Joysticks'
+  const items = skus.filter((k) => ctx.productos[k].categoria === categoriaInventario).slice(0, 60).map((k, i) => {
     const actual = stock[k]?.[D.principal]?.cant ?? 0
     return { producto: ctx.productos[k].id, contado: i % 3 === 0 || actual === 0 ? actual : Math.max(0, actual + azar.elegir([-3, -2, -1, 1, 2])) }
   })
   const toma = await dep.rpc('confirmar_toma_inventario', { p_items: items, p_fecha: diaHabilHaceDias(4) })
   const repetida = await dep.rpc('confirmar_toma_inventario', { p_items: items, p_fecha: diaHabilHaceDias(4) })
-  log(`toma de inventario de Joysticks: ${items.length} contados, ${toma.length} ajustes (repetirla crea ${repetida.length})`)
+  log(`toma de inventario de ${categoriaInventario}: ${items.length} contados, ${toma.length} ajustes (repetirla crea ${repetida.length})`)
 
   // — Traslados entre depósitos: ~12, incluidos reposiciones de vuelta y uno local → Córdoba —
   stock = await leerStock()
   const trasl = async (k, o, d, n, nota, dias) => dep.rpc('trasladar_stock', { p_producto: ctx.productos[k].id, p_origen: o, p_destino: d, p_cantidad: n, p_nota: nota, p_fecha: diaHabilHaceDias(dias) })
   const vendeEn = (k) => ctx.categorias[ctx.productos[k].categoria].def.empresas
   let nTras = 0
-  const enPrincipal = azar.mezclar(candidatos().filter((k) => (stock[k]?.[D.principal]?.cant ?? 0) >= 12 && k !== PEDIDO.sku))
+  const enPrincipal = azar.mezclar(candidatos().filter((k) => (stock[k]?.[D.principal]?.cant ?? 0) >= 12 && k !== PEDIDO_SKU))
   for (const k of enPrincipal.slice(0, 9)) {
     const destino = vendeEn(k).includes('sanjavucho') && (!vendeEn(k).includes('mundojc') || azar.probabilidad(0.6)) ? D.local : D.cordoba
     const n = azar.entero(2, Math.min(6, Math.floor(stock[k][D.principal].cant / 2)))
     await trasl(k, D.principal, destino, n, destino === D.local ? 'Reposición del local de Corrientes' : 'Reposición para Mundo JC Córdoba', azar.entero(2, 40)); nTras++
   }
-  await trasl(PEDIDO.sku, D.principal, D.local, 2, 'Unidades del PS5 Pro para entregas en el local', 12); nTras++
-  const enOtros = Object.keys(stock).filter((k) => [D.local, D.cordoba].some((d) => (stock[k][d]?.cant ?? 0) >= 8) && !SIN_CARGA.includes(k) && !A_CERO.includes(k))
+  await trasl(PEDIDO_SKU, D.principal, D.local, 2, 'Unidades a pedido para entregas en el local', 12); nTras++
+  const enOtros = Object.keys(stock).filter((k) => [D.local, D.cordoba].some((d) => (stock[k][d]?.cant ?? 0) >= 8) && !SIN_CARGA_.includes(k) && !A_CERO_.includes(k))
   for (const k of azar.mezclar(enOtros).slice(0, 2)) { // devolución de mercadería al depósito central
     const d = [D.local, D.cordoba].find((x) => (stock[k][x]?.cant ?? 0) >= 8)
     await trasl(k, d, D.principal, azar.entero(2, 4), 'Vuelve al depósito central: exceso en el local', azar.entero(1, 15)); nTras++
@@ -240,7 +288,7 @@ export async function sembrar(ctx) {
   await rechazo('traslado con origen = destino', /distintos/i, () => trasl(k0, D.principal, D.principal, 1, 'Prueba', 1))
 
   // — Reservas del producto «A pedido» (solo aplican a él): activas, descontadas (entregadas) y liberadas —
-  const ped = ctx.productos[PEDIDO.sku].id
+  const ped = ctx.productos[PEDIDO_SKU].id
   const reservar = (d, n, ref) => ope.rpc('reservar_stock', { p_producto: ped, p_deposito: d, p_cantidad: n, p_referencia: ref })
   ctx.reservas = []
   const plan = [
