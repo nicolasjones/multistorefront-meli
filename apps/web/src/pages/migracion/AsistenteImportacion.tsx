@@ -108,6 +108,13 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
   }
 
   function reiniciar() {
+    // Cancelar tras un fallo deja la carga a medias: se cierra para que el informe
+    // la muestre «fallida» y no «en curso» para siempre. Con la carga ya cerrada no hay nada que hacer.
+    if (cargaId && paso === 'aplicando') {
+      cerrarCargaMigracion(supabaseClient, cargaId).catch((excepcion) => {
+        mensajeDeErrorMigracion(excepcion, 'No pudimos cerrar la carga cancelada.')
+      })
+    }
     setPaso('subir')
     setCsv(null)
     setNombreArchivo('')

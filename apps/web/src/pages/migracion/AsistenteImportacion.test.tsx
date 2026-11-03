@@ -246,6 +246,32 @@ describe('AsistenteImportacion', () => {
     expect(aplicaciones[1][1]).toMatchObject({ p_carga: 'carga-1' })
   })
 
+  it('[MSF-702] cancelar tras un fallo cierra la carga para que no quede «en curso»', async () => {
+    configurarRpc({ aplicarFalla: true })
+    abrir()
+    await subir()
+    botonContinuar()
+    await importar(/Importar 2 clientes/)
+    expect(await screen.findByText('No pudimos aplicar la importación.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cancelar' }).at(-1)!)
+
+    await screen.findByLabelText('Archivo CSV de clientes')
+    expect(mocks.rpc).toHaveBeenCalledWith('cerrar_carga_migracion', { p_carga: 'carga-1' })
+  })
+
+  it('[MSF-702] cancelar antes de importar no toca ninguna carga', async () => {
+    abrir()
+    await subir()
+    botonContinuar()
+    await screen.findByRole('button', { name: 'Importar 2 clientes' })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Cancelar' })[0])
+
+    await screen.findByLabelText('Archivo CSV de clientes')
+    expect(mocks.rpc.mock.calls.map(([nombre]) => nombre)).not.toContain('cerrar_carga_migracion')
+  })
+
   it('muestra un error claro si el archivo no es CSV y no avanza', async () => {
     abrir()
     fireEvent.change(screen.getByLabelText('Archivo CSV de clientes'), {
