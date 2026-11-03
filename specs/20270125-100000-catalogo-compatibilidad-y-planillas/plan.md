@@ -43,7 +43,7 @@ Migración aditiva: `create or replace view` con `compatible_con` al final, índ
 
 - **Solapamiento con MSF-206**: ver Decisión 6; no bloquea.
 - **Alcance de diciembre**: ver Decisión 1 (OK pendiente).
-- **«Etiquetas» sin definición**: Decisión 2 (OK pendiente).
+- **«Etiquetas» sin definición**: Decisión 2 (OK de Nicolás).
 - **Reglas de escalas de precio y proveedor**: la importación escribe lo que F-CAT-16 ya modela; si falta una operación reutilizable, la tarea correspondiente la agrega aditivamente.
 
 ## Documentación (obligatoria)

@@ -64,7 +64,7 @@ Reversión: las tres migraciones son aditivas. F-CAT-09: `drop index` y `drop vi
 ## Decisiones tomadas al traducir (resuelven «A revisar» sin agregar alcance)
 
 1. **Alcance real vs. roadmap.** La spec cubre las tres historias, pero se entregan en orden de prioridad: F-CAT-10 y F-CAT-11 primero (son lo que el roadmap a diciembre incluye como «importación por planilla»), F-CAT-09 después. Cada historia es independiente y mergeable sola. **(OK pendiente)** si Nicolás quiere sacar F-CAT-09 de esta entrega.
-2. **«Etiquetas» (título de F-CAT-09).** La épica no define ninguna entidad «etiqueta» ni su comportamiento. Se interpreta como la **forma de mostrar y filtrar los valores de «Compatible con»** (cada valor es una etiqueta). No se crea tabla ni campo nuevo. **(OK pendiente)**.
+2. **«Etiquetas» (título de F-CAT-09).** La épica no define ninguna entidad «etiqueta» ni su comportamiento. Se interpreta como la **forma de mostrar y filtrar los valores de «Compatible con»** (cada valor es una etiqueta). No se crea tabla ni campo nuevo. **(OK de Nicolás)**.
 3. **Filtro por compatible.** Selector con los valores de «Compatible con» ya cargados en la organización; elegir uno o más muestra los productos que tengan **alguno** de ellos. Coincidencia exacta sin distinguir mayúsculas.
 4. **Rol Consulta y exportar.** Pregunta abierta de la épica. Se aplica el supuesto dado («exclusivas del Administrador»): **Consulta no exporta**. **(OK pendiente)**.
 5. **Formato de exportación.** El requisito dice «exportación CSV»; el prototipo ofrece además «Excel (.xlsx)». Manda el requisito (regla 6): solo CSV; la opción Excel se muestra **deshabilitada** y la diferencia se anota en el PR.
