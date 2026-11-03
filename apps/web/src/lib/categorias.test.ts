@@ -8,8 +8,11 @@ import {
   guardarCategoria,
   leerCategorias,
   mensajeErrorCategoria,
+  esAntepasada,
   moverEnNivel,
+  nivelCategoria,
   nombreRepetidoEnNivel,
+  opcionesCategoriaProducto,
   opcionesPadre,
   reordenarCategorias,
   rutaCategoria,
@@ -28,6 +31,14 @@ const CATEGORIAS: Categoria[] = [
   cat('ina', 'Inalámbricos', 'joy', 1),
   cat('fun', 'Fundas', null, 1),
   cat('cbl', 'Cables', null, 2),
+]
+
+// Con tercer nivel: Joysticks > Cableados > PS3.
+const CATEGORIAS_3_NIVELES: Categoria[] = [
+  cat('joy', 'Joysticks', null, 0, ['e1', 'e2']),
+  cat('cab', 'Cableados', 'joy', 0, ['e2']),
+  cat('ps3', 'PS3', 'cab', 0),
+  cat('fun', 'Fundas', null, 1),
 ]
 
 const ordenDe = (resultado: ReturnType<typeof moverEnNivel>) => {
@@ -52,6 +63,12 @@ describe('armarArbol', () => {
     expect(arbol[0].productos).toBe(6)
     expect(arbol[1].productos).toBe(4)
     expect(arbol[2].productos).toBe(0)
+  })
+  it('arma el tercer nivel y suma los productos de toda la rama', () => {
+    const arbol = armarArbol(CATEGORIAS_3_NIVELES, new Map([['joy', 1], ['cab', 3], ['ps3', 2]]))
+    expect(arbol[0].hijos[0].hijos.map((n) => n.nombre)).toEqual(['PS3'])
+    expect(arbol[0].hijos[0].productos).toBe(5)
+    expect(arbol[0].productos).toBe(6)
   })
   it('una subcategoría cuyo padre no llegó se muestra como raíz', () => {
     const arbol = armarArbol([cat('x', 'Huérfana', 'no-existe', 0)])
@@ -79,6 +96,10 @@ describe('filtrarArbolPorTienda', () => {
     expect(filtrarArbolPorTienda(con, null)[0].productos).toBe(8)
     expect(filtrarArbolPorTienda(con, 'e1')[0].productos).toBe(3)
   })
+  it('filtra también el tercer nivel', () => {
+    const arbol = armarArbol(CATEGORIAS_3_NIVELES)
+    expect(filtrarArbolPorTienda(arbol, 'e2')[0].hijos[0].hijos).toEqual([])
+  })
   it('una raíz oculta con una hija visible no esconde a la hija', () => {
     const con = armarArbol([cat('p', 'Padre', null, 0), cat('h', 'Hija', 'p', 0, ['e1'])])
     expect(filtrarArbolPorTienda(con, 'e1').map((n) => [n.id, n.hijos.map((h) => h.id)])).toEqual([['p', ['h']]])
@@ -90,12 +111,17 @@ describe('rutaCategoria y opcionesPadre', () => {
     expect(rutaCategoria(CATEGORIAS[1], CATEGORIAS)).toBe('Joysticks > Cableados')
     expect(rutaCategoria(CATEGORIAS[0], CATEGORIAS)).toBe('Joysticks')
   })
-  it('ofrece solo raíces como padre y nunca la propia', () => {
-    expect(opcionesPadre(CATEGORIAS, null).map((c) => c.id)).toEqual(['joy', 'fun', 'cbl'])
-    expect(opcionesPadre(CATEGORIAS, 'fun').map((c) => c.id)).toEqual(['joy', 'cbl'])
+  it('ofrece raíces y subcategorías como padre (3 niveles) y nunca la propia', () => {
+    expect(opcionesPadre(CATEGORIAS, null).map((c) => c.id)).toEqual(['cab', 'joy', 'fun', 'ina', 'cbl'])
+    expect(opcionesPadre(CATEGORIAS, 'fun').map((c) => c.id)).toEqual(['cab', 'joy', 'ina', 'cbl'])
   })
-  it('una categoría con subcategorías no puede tener padre (2 niveles)', () => {
-    expect(opcionesPadre(CATEGORIAS, 'joy')).toEqual([])
+  it('una categoría con subcategorías solo puede colgar de una raíz', () => {
+    expect(opcionesPadre(CATEGORIAS, 'joy').map((c) => c.id)).toEqual(['fun', 'cbl'])
+  })
+  it('no ofrece el tercer nivel como padre ni los descendientes de la que se edita', () => {
+    expect(opcionesPadre(CATEGORIAS_3_NIVELES, null).map((c) => c.id)).toEqual(['cab', 'joy', 'fun'])
+    expect(opcionesPadre(CATEGORIAS_3_NIVELES, 'cab').map((c) => c.id)).toEqual(['joy', 'fun'])
+    expect(opcionesPadre(CATEGORIAS_3_NIVELES, 'ps3').map((c) => c.id)).toEqual(['cab', 'joy', 'fun'])
   })
 })
 
@@ -141,10 +167,19 @@ describe('soltarSobre (arrastrar y soltar)', () => {
     const orden = ordenDe(soltarSobre(CATEGORIAS, 'fun', 'ina'))
     expect(orden.find((o) => o.id === 'fun')?.padre_id).toBe('joy')
   })
-  it('rechaza mover bajo otra una raíz que ya tiene subcategorías (2 niveles)', () => {
+  it('rechaza mover bajo otra una raíz que ya tiene subcategorías (3 niveles)', () => {
     const resultado = soltarSobre(CATEGORIAS, 'joy', 'ina')
     expect(resultado.ok).toBe(false)
-    expect(resultado).toMatchObject({ motivo: expect.stringContaining('2 niveles') })
+    expect(resultado).toMatchObject({ motivo: expect.stringContaining('3 niveles') })
+  })
+  it('soltar sobre una subcategoría deja la hoja al lado de ella (mismo nivel)', () => {
+    const orden = ordenDe(soltarSobre(CATEGORIAS_3_NIVELES, 'fun', 'cab'))
+    expect(orden.find((o) => o.id === 'fun')).toEqual({ id: 'fun', padre_id: 'joy', posicion: 0 })
+  })
+  it('rechaza un ciclo (colgar una categoría de su propia descendiente)', () => {
+    const resultado = soltarSobre(CATEGORIAS_3_NIVELES, 'joy', 'ps3')
+    expect(resultado.ok).toBe(false)
+    expect(resultado).toMatchObject({ motivo: expect.stringContaining('3 niveles') })
   })
   it('rechaza el movimiento que repetiría un nombre en el nivel de destino', () => {
     const con = [...CATEGORIAS, cat('c2', 'cableados', 'fun', 0)]
@@ -152,6 +187,27 @@ describe('soltarSobre (arrastrar y soltar)', () => {
   })
   it('soltar sobre sí misma no hace nada', () => {
     expect(soltarSobre(CATEGORIAS, 'joy', 'joy')).toEqual({ ok: false, motivo: null })
+  })
+})
+
+describe('nivelCategoria y esAntepasada (3 niveles)', () => {
+  it('calcula la profundidad de cada categoría', () => {
+    expect(nivelCategoria(CATEGORIAS_3_NIVELES, 'joy')).toBe(1)
+    expect(nivelCategoria(CATEGORIAS_3_NIVELES, 'cab')).toBe(2)
+    expect(nivelCategoria(CATEGORIAS_3_NIVELES, 'ps3')).toBe(3)
+  })
+  it('reconoce antepasadas (para no dejar ciclos)', () => {
+    expect(esAntepasada(CATEGORIAS_3_NIVELES, 'joy', 'ps3')).toBe(true)
+    expect(esAntepasada(CATEGORIAS_3_NIVELES, 'cab', 'ps3')).toBe(true)
+    expect(esAntepasada(CATEGORIAS_3_NIVELES, 'ps3', 'joy')).toBe(false)
+  })
+})
+
+describe('opcionesCategoriaProducto', () => {
+  it('ofrece los tres niveles con su ruta completa', () => {
+    const opciones = opcionesCategoriaProducto(CATEGORIAS_3_NIVELES)
+    expect(opciones.find((o) => o.id === 'ps3')).toEqual({ id: 'ps3', ruta: 'Joysticks > Cableados > PS3', nivel: 2 })
+    expect(opciones.find((o) => o.id === 'cab')?.ruta).toBe('Joysticks > Cableados')
   })
 })
 
@@ -166,7 +222,7 @@ describe('acceso a datos', () => {
       .mockResolvedValueOnce({ data: 2, error: null })
       .mockResolvedValueOnce({ data: { productos: 3, subcategorias: 1 }, error: null })
       .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce({ data: null, error: { code: '23514', message: 'Las categorías admiten hasta 2 niveles' } })
+      .mockResolvedValueOnce({ data: null, error: { code: '23514', message: 'Las categorías admiten hasta 3 niveles' } })
     await reordenarCategorias({ rpc } as never, [{ id: 'a', padre_id: null, posicion: 0 }])
     expect(rpc).toHaveBeenLastCalledWith('reordenar_categorias', { p_orden: [{ id: 'a', padre_id: null, posicion: 0 }] })
     expect(await eliminarCategoria({ rpc } as never, 'joy')).toEqual({ productos: 3, subcategorias: 1 })

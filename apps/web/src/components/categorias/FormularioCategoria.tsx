@@ -12,6 +12,7 @@ import {
   mensajeErrorCategoria,
   nombreRepetidoEnNivel,
   opcionesPadre,
+  rutaCategoria,
   validarNombreCategoria,
 } from '../../lib/categorias'
 
@@ -37,7 +38,7 @@ type Props = {
 const SIN_PADRE = ''
 
 // Diálogo Nueva / Editar categoría (F-CAT-08, FR-020): Nombre (obligatorio), Categoría padre (opcional,
-// solo raíces: 2 niveles), «Visible en» con una casilla por empresa (todas marcadas al crear) y la ruta
+// raíces o subcategorías: 3 niveles), «Visible en» con una casilla por empresa (todas marcadas al crear) y la ruta
 // resultante. «IVA de la categoría» (F-PRE-12) se guarda aparte con `guardar_alicuota_categoria`. Ante un error del
 // servidor (p. ej. nombre repetido) el diálogo queda abierto con lo escrito.
 export function FormularioCategoria({ categoria, padreInicial = null, categorias, empresas, alicuotas = [], onCancelar, onGuardar }: Props) {
@@ -125,13 +126,13 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
               }}
               helperText={
                 editando && categorias.some((c) => c.padre_id === categoria?.id)
-                  ? 'Tiene subcategorías: solo puede ser una categoría raíz (máximo 2 niveles).'
-                  : 'Solo se ofrecen categorías raíz (máximo 2 niveles).'
+                  ? 'Tiene subcategorías: solo puede colgar de una categoría raíz (máximo 3 niveles).'
+                  : 'Se ofrecen raíces y subcategorías: la categoría queda en el segundo o el tercer nivel.'
               }
               fullWidth
             >
               <MenuItem value={SIN_PADRE}>Ninguna (categoría raíz)</MenuItem>
-              {padres.map((candidata) => <MenuItem key={candidata.id} value={candidata.id}>{candidata.nombre}</MenuItem>)}
+              {padres.map((candidata) => <MenuItem key={candidata.id} value={candidata.id}>{rutaCategoria(candidata, categorias)}</MenuItem>)}
             </TextField>
             {alicuotas.length > 0 ? (
               <TextField

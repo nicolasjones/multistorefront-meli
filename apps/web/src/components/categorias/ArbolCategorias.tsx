@@ -36,6 +36,16 @@ const LINEA = `1px solid ${tokens.color.borde}`
 
 const textoSubcategorias = (cantidad: number) => `${cantidad} ${cantidad === 1 ? 'subcategoría' : 'subcategorías'}`
 
+// Sangría por nivel (F-CAT-08): raíz, subcategoría y sub subcategoría (3 niveles).
+const SANGRIA: Record<number, { xs: number; md: number } | 0> = {
+  0: 0,
+  1: { xs: 3, md: 5 },
+  2: { xs: 6, md: 10 },
+}
+const sangriaDe = (nivel: number) => SANGRIA[nivel] ?? { xs: 9, md: 15 }
+// El árbol tiene 3 niveles: una categoría de tercer nivel no puede tener subcategorías.
+const MAXIMO_NIVELES = 2
+
 // Árbol de categorías (F-CAT-08, FR-018/FR-019): una lista con la categoría (con «N subcategorías»),
 // los productos (con las subcategorías incluidas), el IVA, «Visible en» y las acciones. Arrastrar y soltar usa
 // HTML5 nativo, sin librería; la alternativa por teclado es Subir/Bajar y «Categoría padre» del
@@ -44,7 +54,7 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
   const [arrastrando, setArrastrando] = useState<string | null>(null)
   const [sobre, setSobre] = useState<string | null>(null)
 
-  const fila = (nodo: NodoCategoria, nivel: 0 | 1, hermanos: readonly NodoCategoria[]) => {
+  const fila = (nodo: NodoCategoria, nivel: number, hermanos: readonly NodoCategoria[]) => {
     const indice = hermanos.findIndex((hermano) => hermano.id === nodo.id)
     const abierto = expandidos.has(nodo.id)
     const arrastrable = puedeEditar && !deshabilitado
@@ -86,7 +96,7 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
           borderBottom: LINEA,
         }}
       >
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 0.5, md: 2 }} alignItems={{ md: 'center' }} sx={{ py: 1, pl: nivel === 1 ? { xs: 3, md: 5 } : 0 }}>
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 0.5, md: 2 }} alignItems={{ md: 'center' }} sx={{ py: 1, pl: sangriaDe(nivel) }}>
           <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flex: 2, minWidth: 0 }}>
             {puedeEditar ? <DragIndicatorIcon fontSize="small" aria-hidden="true" sx={{ color: 'text.disabled', cursor: deshabilitado ? 'default' : 'grab' }} /> : null}
             {nodo.hijos.length > 0 ? (
@@ -103,7 +113,7 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
             )}
             <Stack spacing={0} sx={{ minWidth: 0 }}>
               <Typography variant="b" sx={{ fontWeight: nivel === 0 ? tokens.tipografia.pesoEnfasis : undefined, overflowWrap: 'anywhere' }}>{nodo.nombre}</Typography>
-              {nivel === 0 ? <Typography variant="xs">{textoSubcategorias(nodo.hijos.length)}</Typography> : null}
+              {nivel < MAXIMO_NIVELES ? <Typography variant="xs">{textoSubcategorias(nodo.hijos.length)}</Typography> : null}
             </Stack>
           </Stack>
           <Typography variant="s" sx={{ flex: 1, textAlign: { md: 'right' } }}>
@@ -139,7 +149,7 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
           </Stack>
           {puedeEditar ? (
             <Stack direction="row" spacing={0} alignItems="center" sx={{ flexShrink: 0 }}>
-              {nivel === 0 ? (
+              {nivel < MAXIMO_NIVELES ? (
                 <Tooltip title="Agregar subcategoría">
                   <span>
                     <IconButton size="small" disabled={deshabilitado} aria-label={`Agregar subcategoría a ${nodo.nombre}`} onClick={() => onAgregarSubcategoria(nodo)}>
@@ -183,6 +193,22 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
     )
   }
 
+  // Rama recursiva: la fila del nodo y, si está expandido, sus hijas (hasta 3 niveles).
+  const rama = (nodo: NodoCategoria, nivel: number, hermanos: readonly NodoCategoria[]) => (
+    <>
+      {fila(nodo, nivel, hermanos)}
+      {expandidos.has(nodo.id) ? (
+        <Box component="ul" sx={{ m: 0, p: 0 }}>
+          {nodo.hijos.map((hija) => (
+            <Box component="li" key={hija.id} sx={{ listStyle: 'none' }}>
+              {rama(hija, nivel + 1, nodo.hijos)}
+            </Box>
+          ))}
+        </Box>
+      ) : null}
+    </>
+  )
+
   return (
     <Box>
       <Stack direction="row" spacing={2} aria-hidden="true" sx={{ display: { xs: 'none', md: 'flex' }, py: 1, borderBottom: LINEA }}>
@@ -196,8 +222,7 @@ export function ArbolCategorias({ arbol, empresas, alicuotas, expandidos, onAlte
         {arbol.map((raiz) => (
           <Box component="li" key={raiz.id} sx={{ listStyle: 'none' }}>
             <Box component="ul" sx={{ m: 0, p: 0 }}>
-              {fila(raiz, 0, arbol)}
-              {expandidos.has(raiz.id) ? raiz.hijos.map((hija) => fila(hija, 1, raiz.hijos)) : null}
+              {rama(raiz, 0, arbol)}
             </Box>
           </Box>
         ))}

@@ -25,6 +25,28 @@ const ARBOL: NodoCategoria[] = [
   nodo({ id: 'fun', nombre: 'Fundas', posicion: 1, empresa_ids: ['e1'], productos: 2 }),
 ]
 
+// Con tercer nivel: Joysticks > Cableados > PS3.
+const ARBOL_3_NIVELES: NodoCategoria[] = [
+  nodo({
+    id: 'joy',
+    nombre: 'Joysticks',
+    empresa_ids: ['e1', 'e2'],
+    productos_directos: 1,
+    productos: 8,
+    hijos: [
+      nodo({
+        id: 'cab',
+        nombre: 'Cableados',
+        padre_id: 'joy',
+        empresa_ids: ['e2'],
+        productos_directos: 5,
+        productos: 7,
+        hijos: [nodo({ id: 'ps3', nombre: 'PS3', padre_id: 'cab', productos_directos: 2, productos: 2 })],
+      }),
+    ],
+  }),
+]
+
 const EMPRESAS = [
   { id: 'e1', nombre: 'San Javucho' },
   { id: 'e2', nombre: 'Mundo JC' },
@@ -93,18 +115,27 @@ describe('ArbolCategorias (F-CAT-08, FR-018/FR-019)', () => {
     expect(onSoltar).toHaveBeenCalledWith('fun', 'cab')
   })
 
-  it('ofrece agregar subcategoría solo en las raíces, y editar y eliminar en toda fila', () => {
+  it('ofrece agregar subcategoría en las raíces y en las subcategorías, y editar y eliminar en toda fila', () => {
     const onAgregar = vi.fn()
     const onEditar = vi.fn()
     const onEliminar = vi.fn()
     render(<ArbolCategorias {...props()} onAgregarSubcategoria={onAgregar} onEditar={onEditar} onEliminar={onEliminar} />)
-    expect(screen.queryByRole('button', { name: 'Agregar subcategoría a Cableados' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Agregar subcategoría a Joysticks' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar subcategoría a Cableados' }))
     fireEvent.click(screen.getByRole('button', { name: 'Editar Cableados' }))
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar Fundas' }))
     expect(onAgregar).toHaveBeenCalledWith(expect.objectContaining({ id: 'joy' }))
+    expect(onAgregar).toHaveBeenCalledWith(expect.objectContaining({ id: 'cab' }))
     expect(onEditar).toHaveBeenCalledWith(expect.objectContaining({ id: 'cab' }))
     expect(onEliminar).toHaveBeenCalledWith(expect.objectContaining({ id: 'fun' }))
+  })
+
+  it('muestra el tercer nivel y no ofrece agregar subcategorías en él', () => {
+    const onAgregar = vi.fn()
+    render(<ArbolCategorias {...props()} arbol={ARBOL_3_NIVELES} expandidos={new Set(['joy', 'cab'])} onAgregarSubcategoria={onAgregar} />)
+    expect(screen.getByText('PS3')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Agregar subcategoría a PS3' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Agregar subcategoría a Cableados' })).toBeInTheDocument()
   })
 
   it('en solo lectura muestra el árbol sin acciones ni arrastre', () => {

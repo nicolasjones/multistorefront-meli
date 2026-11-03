@@ -66,6 +66,15 @@
 - [x] T032 [P] [CIERRE] Actualizar la fila de MSF-160 en `docs/roadmap-template.md` (estado, link a la spec) como paso manual (FR-025) — ver commit bcb3441
 - [x] T033 [CIERRE] Verificación final: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check`; `graphify . --code-only --update` (SC-006) — ver commit 8f473ff. Evidencia (2026-10-22): `docs:check`, `prototipo:check` (120 pantallas), `matriz:check` y `infra:config` OK; `lint` sin errores (solo warnings previos); `build`, `test` y graphify quedan al CI.
 
+## Revisión posterior: 3 niveles de categoría (2026-11-03)
+
+Decisión 1 revisada (ver commit `feat/catalogo-real-cliente`): las categorías admiten **3 niveles** porque el
+catálogo real del cliente tiene árbol de tres niveles y hay que cargarlo tal cual.
+
+- [x] T034 [F-CAT-08] Migración `20270201200141_categorias_tres_niveles.sql`: disparador de 3 niveles (sin ciclos), visibilidad que mira todas las antecesoras, RPC de categorías y vista de productos con la ruta completa y la cadena de antecesoras (FR-016)
+- [x] T035 [F-CAT-08] Front: árbol recursivo de 3 niveles, opciones de «Categoría padre» (raíces y subcategorías), reglas de movimiento y selector del producto con la ruta completa (FR-016, FR-020, FR-022)
+- [x] T036 [F-CAT-08] pgTAP `catalogo_categorias.test.sql` y Vitest actualizados a 3 niveles (SC-004)
+
 ## Plan de ejecución (historias)
 
 | Historia | Depende de | Grupo |

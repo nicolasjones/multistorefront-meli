@@ -31,16 +31,16 @@
 
 Kit de panel (`ContenidoAdaptable` tabla/tarjetas, `EstadoVacio`, `EstadoError`, `EstadoCargaPagina`, `EncabezadoPagina`, `BarraHerramientas`, `EtiquetaEstado`, `MiniaturaProducto`), el patrón `pages/clientes/list.tsx`, `useNivelSeccion`, `useFiltroPorEmpresaActiva`, `private.organizacion_id()`, `private.nivel_seccion()`, `private.registrar_actividad()`, las secciones de permiso `productos` y `categorias` (ya sembradas), `dominio.empresas`, la grilla mínima `pages/productos/list.tsx` (F-CAT-06) que **esta épica reemplaza**, y `pg_trgm` (migración `20261016160000`).
 
-**Lo que hay que construir:** búsqueda, filtros, orden y paginación **en servidor** para productos; vista `v_productos_listado`; `producto_empresa`; árbol de categorías 2 niveles con arrastrar y soltar; `categorias_empresa`; columna `categoria_id` en `productos`.
+**Lo que hay que construir:** búsqueda, filtros, orden y paginación **en servidor** para productos; vista `v_productos_listado`; `producto_empresa`; árbol de categorías 3 niveles con arrastrar y soltar; `categorias_empresa`; columna `categoria_id` en `productos`.
 
 ## Decisiones (resuelven «A revisar» sin agregar alcance)
 
-1. **Niveles de categoría = 2** (categoría y subcategoría). Lo dice la épica (Supuestos) y manda sobre el «hasta 3 niveles (o más)» del prototipo y el «multinivel» del roadmap. Se aplica en la base, no solo en la pantalla. Diferencia con el prototipo: va al PR.
+1. **Niveles de categoría = 3** (categoría, subcategoría y sub subcategoría). La épica (Supuestos) decía 2, pero el catálogo real del cliente (San Javucho) tiene árbol de tres niveles («ACCESORIOS VIDEOJUEGOS > SONY > PS3») y hay que poder cargarlo tal cual, sin achatarlo ni renombrar sus categorías (Decisión revisada por Nicolás, 2026-11-03; migración `20270201200141_categorias_tres_niveles.sql`). Se aplica en la base, no solo en la pantalla: el padre puede ser raíz o subcategoría y una categoría de tercer nivel no puede tener subcategorías.
 2. **IVA de la categoría** (columna y campo del prototipo): **fuera** — lo agrega F-PRE-12 (MSF-114) sobre `categorias`. Visible en tienda por categoría **sí** entra (el objetivo es «las categorías que verán los clientes en el menú de cada tienda»).
 3. **Acciones del listado que no son de esta épica**: Exportar (MSF-202), Importar CSV (sin historia en esta épica), selección múltiple con Mover de categoría / Marcar destacado / Enviar al newsletter / Borrar (Mover masivo → MSF-218; destacado, newsletter y borrado masivo no tienen historia en esta épica; el producto se desactiva, no se borra — MSF-456). Todo declarado FUERA DE ALCANCE en la matriz; no genera tareas.
 4. **Etiqueta de stock** (Disponible / Stock bajo / Sin stock) y los estados Stock / Sin stock / A pedido / Stock entrante en breve (F-CAT-17, épica 6): **fuera**. La columna Stock queda visible con «—».
 5. **Costo**: la épica enumera «—» para precio final, stock, margen y Mercado Libre; el costo lo entrega MSF-179 («costo y disponibilidad»). La columna Costo queda visible con «—» y **la vista no expone costo** (hoy `producto_costos` se restringe por sección Rentabilidad; no se filtra por el listado). *Necesita OK de Nicolás (ver guía).*
-6. **Asignación de categoría al producto**: sin ella los conteos y el filtro por categoría no tienen sentido (`docs/catalogo.md` ya anota que «categoría la agrega MSF-160»). Se incluye un selector de categoría **opcional** (2 niveles) en el alta y la edición del producto, dentro de F-CAT-08. *Necesita OK de Nicolás.*
+6. **Asignación de categoría al producto**: sin ella los conteos y el filtro por categoría no tienen sentido (`docs/catalogo.md` ya anota que «categoría la agrega MSF-160»). Se incluye un selector de categoría **opcional** (3 niveles) en el alta y la edición del producto, dentro de F-CAT-08. *Necesita OK de Nicolás.*
 7. **Drag & drop sin dependencia nueva**: HTML5 nativo + alternativa por teclado (Subir / Bajar y «Categoría padre» del formulario), sin sumar librería (supply chain, Principio V).
 8. **Eliminar categoría**: se sigue el texto del prototipo (los productos quedan sin categoría; las subcategorías suben un nivel, es decir pasan a categoría raíz). Es la única fuente de ese comportamiento.
 
@@ -157,12 +157,12 @@ Como persona con edición en Categorías, quiero organizar las categorías y sub
 
 **Acceptance Scenarios**:
 1. **Given** Catálogo → Categorías, **Then** se ve el árbol (Categoría con «N subcategorías», Productos con el total incluyendo subcategorías, Visible en, Acciones), «Expandir todo» / «Contraer todo», el filtro de tienda (Todas las tiendas / cada empresa) y «Nueva categoría».
-2. **Given** «Nueva categoría» o «Editar», **Then** el diálogo pide Nombre (obligatorio), Categoría padre (opcional, solo categorías raíz; «Ninguna (categoría raíz)») y Visible en (una casilla por empresa, todas marcadas al crear), con Cancelar/Guardar y la ruta resultante («Joysticks > Nueva categoría»).
-3. **Given** el máximo de 2 niveles, **Then** no se puede crear una subcategoría bajo una subcategoría ni mover bajo otra una categoría que ya tiene subcategorías; la base lo rechaza aunque la pantalla falle.
+2. **Given** «Nueva categoría» o «Editar», **Then** el diálogo pide Nombre (obligatorio), Categoría padre (opcional, raíces o subcategorías; «Ninguna (categoría raíz)») y Visible en (una casilla por empresa, todas marcadas al crear), con Cancelar/Guardar y la ruta resultante («Joysticks > Nueva categoría»).
+3. **Given** el máximo de 3 niveles, **Then** se puede crear una subcategoría bajo una subcategoría (queda en el tercer nivel) pero no una sub subcategoría bajo una sub subcategoría ni mover bajo otra una categoría que ya tiene subcategorías; la base lo rechaza aunque la pantalla falle.
 4. **Given** un nombre ya usado en el mismo nivel (sin distinguir mayúsculas ni espacios extremos), **Then** se rechaza con «Ya existe una categoría con ese nombre en ese nivel» sin perder lo escrito.
 5. **Given** el árbol, **When** se arrastra una fila, **Then** se reordena dentro de su nivel o se mueve a otra categoría raíz; el mismo resultado se logra con teclado (Subir/Bajar y Categoría padre) y el orden persiste.
 6. **Given** «Eliminar», **Then** el diálogo «Eliminar categoría» informa ««X» tiene N productos y M subcategorías. Los productos quedan sin categoría y las subcategorías suben un nivel.» y al confirmar se aplica de forma atómica.
-7. **Given** el alta/edición de producto, **Then** hay un selector de categoría opcional (2 niveles); el listado suma la columna Categoría y el filtro por categoría (una categoría raíz incluye sus subcategorías).
+7. **Given** el alta/edición de producto, **Then** hay un selector de categoría opcional (3 niveles); el listado suma la columna Categoría y el filtro por categoría (una categoría raíz incluye sus subcategorías y sub subcategorías).
 8. **Given** cada alta/edición/eliminación/reordenado, **Then** se registra el evento en Actividad (FR-023).
 9. **Given** solo lectura en Categorías, **Then** el árbol se ve sin acciones; sin acceso a la sección, el guard bloquea la ruta.
 
@@ -197,7 +197,7 @@ Como persona con edición en Categorías, quiero organizar las categorías y sub
 
 **F-CAT-08 — Categorías**
 - **FR-015**: Tabla `dominio.categorias` (`id`, `organizacion_id`, `nombre`, `padre_id`, `posicion`, `creado_en`, `updated_at`) con nombre recortado y no vacío, único por `(organizacion_id, padre_id, lower(btrim(nombre)))`, FK compuesta del padre y RLS por la sección `categorias`.
-- **FR-016**: Máximo **2 niveles** garantizado por la base (disparador): el padre debe ser raíz y una categoría con hijos no puede tener padre; sin ciclos.
+- **FR-016**: Máximo **3 niveles** garantizado por la base (disparador): el padre puede ser raíz o subcategoría, una categoría de tercer nivel no puede tener subcategorías y una categoría con hijos no puede quedar en el tercer nivel; sin ciclos.
 - **FR-017**: Tabla `dominio.categorias_empresa` (PK `(categoria_id, empresa_id)`, `organizacion_id`) para la visibilidad por tienda; una categoría sin filas no se ve en ninguna tienda; al crear se marcan todas las empresas.
 - **FR-018**: Pantalla Catálogo → Categorías (`/categorias`, sección `categorias`, ícono y audiencia declarados en el plan) con el árbol, «Expandir todo»/«Contraer todo», filtro de tienda, «Nueva categoría», conteo de subcategorías y de productos (con descendientes), estados vacío/carga/error.
 - **FR-019**: Reordenar y mover por arrastrar y soltar (HTML5 nativo, sin dependencia nueva) y por teclado (Subir/Bajar, Categoría padre); RPC `public.reordenar_categorias` atómica con candado por organización que persiste `padre_id` y `posicion`.
@@ -215,7 +215,7 @@ Como persona con edición en Categorías, quiero organizar las categorías y sub
 - **SC-001** *(F-CAT-01)*: Con 10 000 productos, búsqueda/filtro/orden devuelve la página en < 2 s (p95 medido en el entorno de pruebas) usando índice; el listado nunca trae todas las filas.
 - **SC-002** *(F-CAT-01)*: pgTAP `catalogo_listado.test.sql`: aislamiento entre dos organizaciones, `anon` sin acceso, la vista no expone costo, comodines escapados.
 - **SC-003** *(F-CAT-07)*: pgTAP `catalogo_producto_empresa.test.sql`: aislamiento, FK entre organizaciones, permisos por rol, atomicidad e idempotencia de la RPC, evento sin precios.
-- **SC-004** *(F-CAT-08)*: pgTAP `catalogo_categorias.test.sql`: 2 niveles, nombre único por nivel, RLS por sección, reordenado concurrente, `rls_en_toda_tabla` verde.
+- **SC-004** *(F-CAT-08)*: pgTAP `catalogo_categorias.test.sql`: 3 niveles, nombre único por nivel, RLS por sección, reordenado concurrente, `rls_en_toda_tabla` verde.
 - **SC-005** *(F-CAT-08)*: eliminar categoría deja productos sin categoría y sube subcategorías, probado en pgTAP y Vitest.
 - **SC-006** *(Cierre)*: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check` y `pnpm matriz:check` en verde; revisión de seguridad hecha.
 
@@ -274,7 +274,7 @@ flowchart TD
   A[Nueva categoría] -->|FR-020| B{Nombre válido y único en el nivel}
   B -->|no| X[Mensaje y se conserva lo escrito]
   B -->|sí| C{Padre es raíz}
-  C -->|no| Y[Rechazo de la base, 2 niveles - FR-016]
+  C -->|no| Y[Rechazo de la base, 3 niveles - FR-016]
   C -->|sí| D[Categoría creada, visible en las empresas elegidas - FR-017]
   D -->|FR-023| L[categoria.creada]
   D --> E[Editar - FR-020]
@@ -336,7 +336,7 @@ Leyenda: **FA** = FUERA DE ALCANCE (no genera tarea; motivo indicado).
 | Botón «Nueva categoría» | FR-018, FR-020 |
 | Chips «San Javucho» / «Mundo JC» (filtro de tienda) | FR-018 |
 | Diálogo Nueva/Editar: «Nombre», «(buscar: Ej.: Fundas rígidas)» | FR-020 |
-| Diálogo: «Categoría padre (opcional)» | FR-016, FR-020 (solo raíces: 2 niveles; el prototipo admite 3, Decisión 1) |
+| Diálogo: «Categoría padre (opcional)» | FR-016, FR-020 (raíces o subcategorías: 3 niveles; Decisión 1 revisada) |
 | Diálogo: «IVA de la categoría» | FA — F-PRE-12 (MSF-114) |
 | Diálogo: «Visible en» (San Javucho / Mundo JC) | FR-017, FR-020 |
 | Botones «Cancelar» / «Guardar» | FR-020 |
@@ -348,7 +348,7 @@ Leyenda: **FA** = FUERA DE ALCANCE (no genera tarea; motivo indicado).
 | Ítem del inventario | Dueño |
 |---|---|
 | Sección «Empresas que lo venden» (filas San Javucho / Mundo JC con interruptor) | FR-011 |
-| Campo «Categoría (hasta 3.er nivel)» | FR-022 (2 niveles, Decisión 1) |
+| Campo «Categoría (hasta 3.er nivel)» | FR-022 (3 niveles, Decisión 1 revisada) |
 | Nombre, SKU, Descripción, Compatible con, Moneda, Precio de lista, Costo, imágenes, «Guardar producto», «Cancelar», «Descartar y salir», «Seguir editando» | Ya entregado en MSF-456 (sin cambios) |
 | Proveedor, «Código del proveedor» | Ya entregado en MSF-205 |
 | Código de barras (EAN-13) | Ya entregado (MSF-529) |

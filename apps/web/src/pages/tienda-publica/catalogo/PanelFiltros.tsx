@@ -1,5 +1,6 @@
 import { Box, Button, InputAdornment, List, ListItem, ListItemButton, ListItemText, TextField, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { profundidadCategorias } from '../../../lib/tiendaCategorias'
 import type { CategoriaListado, FiltrosCatalogo } from '../../../lib/tiendaListado'
 
 type Props = {
@@ -19,6 +20,8 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
   // El campo es texto libre mientras se escribe (`edicion`); al salir (o con Enter) se aplica y vuelve a
   // mostrar el filtro vigente de la URL. Vacío, no numérico o ≤ 0 equivale a «Sin límite».
   const [edicion, setEdicion] = useState<string | null>(null)
+  // La sangría del filtro sigue la profundidad de la categoría (hasta 3 niveles).
+  const profundidad = useMemo(() => profundidadCategorias(categorias), [categorias])
   const texto = edicion ?? (filtros.precioMax === null ? '' : String(filtros.precioMax))
 
   const aplicarPrecio = () => {
@@ -46,7 +49,7 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
                 selected={filtros.categoria === c.id}
                 aria-current={filtros.categoria === c.id ? 'true' : undefined}
                 onClick={() => alElegirCategoria(c.id)}
-                sx={{ pl: c.padreId ? 3 : 2 }}
+                sx={{ pl: 2 + ((profundidad.get(c.id) ?? 1) - 1) * 2 }}
               >
                 <ListItemText primary={c.nombre} />
                 <Typography variant="body2" color="text.secondary" aria-label={`${c.productos} productos`}>{c.productos}</Typography>

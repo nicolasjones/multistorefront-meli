@@ -1,5 +1,5 @@
 -- F-CAT-08 (MSF-298, épica MSF-160): categorías y su visibilidad por tienda. Cubre SC-004 / SC-005 y
--- FR-015…FR-024: máximo 2 niveles garantizado por la base, nombre único por nivel (sin distinguir
+-- FR-015…FR-024: máximo 3 niveles garantizado por la base, nombre único por nivel (sin distinguir
 -- mayúsculas ni espacios extremos), RLS por organización y por la sección `categorias` (Administrador y
 -- Operador editan, Consulta lee, Mostrador no accede, anon nada), reordenado atómico con candado asesor
 -- por organización, eliminación (productos sin categoría y subcategorías a raíz, rechazo por choque de
@@ -87,7 +87,7 @@ select is(has_table_privilege('anon', 'public.v_categorias_productos', 'SELECT')
 select is(has_table_privilege('authenticated', 'public.v_categorias_productos', 'SELECT'), true, 'authenticated lee v_categorias_productos');
 
 -- ============================================================================
--- Alta y máximo de 2 niveles (FR-015, FR-016)
+-- Alta y máximo de 3 niveles (FR-015, FR-016)
 -- ============================================================================
 
 select pg_temp.como('c1000000-0000-0000-0000-000000000001');
@@ -116,10 +116,25 @@ select is(
   (select id from dominio.categorias where nombre = 'Joysticks' and padre_id is null),
   'la subcategoría cuelga de la raíz'
 );
-select throws_ok(
+select lives_ok(
   $$select public.guardar_categoria(null, 'Tercer nivel',
       (select id from dominio.categorias where nombre = 'Cableados' and padre_id is not null), '{}'::uuid[])$$,
-  '23514', null, 'la base rechaza un tercer nivel (máximo 2)'
+  'administrador: crea la sub subcategoría (tercer nivel)'
+);
+select is(
+  (select padre_id from dominio.categorias where nombre = 'Tercer nivel' and padre_id is not null),
+  (select id from dominio.categorias where nombre = 'Cableados' and padre_id is not null),
+  'la sub subcategoría cuelga de la subcategoría'
+);
+select throws_ok(
+  $$select public.guardar_categoria(null, 'Cuarto nivel',
+      (select id from dominio.categorias where nombre = 'Tercer nivel' and padre_id is not null), '{}'::uuid[])$$,
+  '23514', null, 'la base rechaza un cuarto nivel (máximo 3)'
+);
+select throws_ok(
+  $$select public.guardar_categoria(null, 'Hijo del tercero',
+      (select id from dominio.categorias where nombre = 'Tercer nivel' and padre_id is not null), '{}'::uuid[])$$,
+  '23514', null, 'una categoría de tercer nivel no puede tener subcategorías'
 );
 select throws_ok(
   $$select public.guardar_categoria(null, '  joysticks  ', null, '{}'::uuid[])$$,
@@ -192,7 +207,7 @@ select throws_ok(
 reset role;
 select is(
   (select count(*)::int from registro_actividad where tipo = 'categoria.creada'),
-  4, 'cada alta real deja categoria.creada (no la empresa ajena rechazada)'
+  5, 'cada alta real deja categoria.creada (no la empresa ajena rechazada)'
 );
 select is(
   (select count(*)::int from registro_actividad
@@ -242,7 +257,7 @@ select is(
 );
 
 -- ============================================================================
--- Reordenado (FR-019): atómico, con candado por organización y 2 niveles
+-- Reordenado (FR-019): atómico, con candado por organización y 3 niveles
 -- ============================================================================
 
 select pg_temp.como('c1000000-0000-0000-0000-000000000001');
@@ -311,7 +326,7 @@ select throws_ok(
 
 select pg_temp.como('c1000000-0000-0000-0000-000000000003');
 select is(
-  (select count(*)::int from dominio.categorias), 4, 'consulta: lee las categorías de su organización'
+  (select count(*)::int from dominio.categorias), 5, 'consulta: lee las categorías de su organización'
 );
 select throws_ok(
   $$select public.guardar_categoria(null, 'Prohibida', null, '{}'::uuid[])$$,

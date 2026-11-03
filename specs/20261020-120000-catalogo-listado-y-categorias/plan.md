@@ -4,7 +4,7 @@
 
 ## Resumen
 
-Reemplazar la grilla mínima `/productos` por un listado con búsqueda, filtros, orden y paginación en servidor sobre `public.v_productos_listado`; agregar la relación `producto_empresa` y su sección en el formulario; y crear el árbol de categorías (2 niveles, arrastrar y soltar, visibilidad por tienda). Tres historias, cada una con su migración aditiva; las tres tocan `v_productos_listado` y `FormularioProducto`, por eso se ejecutan **en serie** (01 → 07 → 08).
+Reemplazar la grilla mínima `/productos` por un listado con búsqueda, filtros, orden y paginación en servidor sobre `public.v_productos_listado`; agregar la relación `producto_empresa` y su sección en el formulario; y crear el árbol de categorías (3 niveles, arrastrar y soltar, visibilidad por tienda). Tres historias, cada una con su migración aditiva; las tres tocan `v_productos_listado` y `FormularioProducto`, por eso se ejecutan **en serie** (01 → 07 → 08).
 
 ## Technical Context
 
@@ -64,8 +64,8 @@ docs/catalogo.md, docs/actividad.md, docs/roadmap-template.md
 - **Vista, no tabla**: `v_productos_listado` combina `productos`, imagen principal (`min(posicion)` de `producto_imagenes`) y, luego, empresas y categoría. Sin costo (Decisión 5); MSF-179 la amplía.
 - **Paginación**: `range` + `count: 'exact'`; filtros en `where`; orden con `order(col).order('id')`.
 - **Empresas en la vista**: arreglo de `empresa_id` (`array_agg`) para chips y filtro `ov`.
-- **Árbol de categorías**: una sola consulta plana y armado en cliente (2 niveles); conteo de productos por categoría con una RPC/vista de conteos agrupados dentro de la migración de F-CAT-08.
-- **Reordenar**: `reordenar_categorias(p_orden jsonb)` recibe `[{id, padre_id, posicion}]`, toma `pg_advisory_xact_lock` por organización, valida 2 niveles y renumera en una transacción.
+- **Árbol de categorías**: una sola consulta plana y armado en cliente (3 niveles); conteo de productos por categoría con una RPC/vista de conteos agrupados dentro de la migración de F-CAT-08.
+- **Reordenar**: `reordenar_categorias(p_orden jsonb)` recibe `[{id, padre_id, posicion}]`, toma `pg_advisory_xact_lock` por organización, valida 3 niveles y renumera en una transacción.
 - **Eliminar**: `eliminar_categoria(p_id)`: sube hijos a raíz (rechaza choque de nombres), deja `categoria_id = null` en productos, elimina la categoría y emite el evento.
 
 ## Riesgos

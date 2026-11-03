@@ -1,14 +1,14 @@
-// Categorías del catálogo (F-CAT-08, MSF-298). Árbol de 2 niveles (categoría raíz y subcategoría) en
-// `dominio.categorias`; la visibilidad por tienda en `dominio.categorias_empresa`. Las escrituras van por las
-// RPC `guardar_categoria`, `reordenar_categorias` y `eliminar_categoria` (atómicas; la base valida los 2
-// niveles y el nombre único por nivel aunque la pantalla falle). Acá: lectura, armado del árbol y las reglas
-// de movimiento que la pantalla usa para avisar antes de pedirle algo imposible a la base.
+// Categorías del catálogo (F-CAT-08, MSF-298). Árbol de 3 niveles (categoría raíz, subcategoría y sub
+// subcategoría) en `dominio.categorias`; la visibilidad por tienda en `dominio.categorias_empresa`. Las
+// escrituras van por las RPC `guardar_categoria`, `reordenar_categorias` y `eliminar_categoria` (atómicas; la
+// base valida los 3 niveles y el nombre único por nivel aunque la pantalla falle). Acá: lectura, armado del
+// árbol y las reglas de movimiento que la pantalla usa para avisar antes de pedirle algo imposible a la base.
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const LARGO_MAXIMO_NOMBRE_CATEGORIA = 100
 export const MENSAJE_NOMBRE_REPETIDO = 'Ya existe una categoría con ese nombre en ese nivel'
-export const MENSAJE_DOS_NIVELES = 'Las categorías admiten hasta 2 niveles: una categoría con subcategorías no puede pasar a ser subcategoría.'
-export const MENSAJE_PADRE_NO_RAIZ = 'Las categorías admiten hasta 2 niveles: elegí una categoría raíz como padre.'
+export const MENSAJE_TRES_NIVELES = 'Las categorías admiten hasta 3 niveles: una categoría de tercer nivel no puede tener subcategorías.'
+export const MENSAJE_PADRE_NO_VALIDO = 'Las categorías admiten hasta 3 niveles: elegí una categoría de primer o segundo nivel como padre.'
 
 export type Categoria = {
   id: string
@@ -45,7 +45,38 @@ export function validarNombreCategoria(nombre: string): string | null {
   return null
 }
 
-// Arma el árbol de 2 niveles con los conteos de productos. Una subcategoría cuyo padre no llegó
+// Profundidad de una categoría en el árbol: 1 = raíz, 2 = subcategoría, 3 = sub subcategoría.
+// El recorrido corta a los 10 niveles para que un árbol corrupto no lo cuelgue.
+export function nivelCategoria(categorias: readonly Pick<Categoria, 'id' | 'padre_id'>[], id: string): number {
+  const porId = new Map(categorias.map((categoria) => [categoria.id, categoria]))
+  let nivel = 1
+  let actual = porId.get(id)
+  const vistos = new Set<string>()
+  while (actual?.padre_id && !vistos.has(actual.padre_id)) {
+    vistos.add(actual.padre_id)
+    const padre = porId.get(actual.padre_id)
+    if (!padre) break
+    nivel += 1
+    actual = padre
+    if (nivel > 10) break
+  }
+  return nivel
+}
+
+// ¿La categoría es antepasada de otra? (sería un ciclo si se la deja como padre de sí misma).
+export function esAntepasada(categorias: readonly Pick<Categoria, 'id' | 'padre_id'>[], posibleAntepasada: string, id: string): boolean {
+  const porId = new Map(categorias.map((categoria) => [categoria.id, categoria]))
+  let actual = porId.get(id)
+  const vistos = new Set<string>()
+  while (actual?.padre_id && !vistos.has(actual.padre_id)) {
+    vistos.add(actual.padre_id)
+    if (actual.padre_id === posibleAntepasada) return true
+    actual = porId.get(actual.padre_id)
+  }
+  return false
+}
+
+// Arma el árbol (hasta 3 niveles) con los conteos de productos. Una categoría cuyo padre no llegó
 // (p. ej. no visible) se muestra como raíz en vez de desaparecer.
 export function armarArbol(categorias: readonly Categoria[], conteos: ReadonlyMap<string, number> = new Map()): NodoCategoria[] {
   const ids = new Set(categorias.map((categoria) => categoria.id))
@@ -55,13 +86,19 @@ export function armarArbol(categorias: readonly Categoria[], conteos: ReadonlyMa
   }
   const raices = categorias.filter((c) => c.padre_id === null || !ids.has(c.padre_id)).sort(comparar).map(nodo)
   const porId = new Map(raices.map((raiz) => [raiz.id, raiz]))
-  for (const hija of categorias.filter((c) => c.padre_id !== null && ids.has(c.padre_id)).sort(comparar)) {
-    const padre = porId.get(hija.padre_id as string)
+  // El árbol se arma en una pasada; el conteo de productos se acumula de abajo hacia arriba (3 niveles).
+  for (const categoria of categorias.filter((c) => c.padre_id !== null && ids.has(c.padre_id)).sort(comparar)) {
+    const padre = porId.get(categoria.padre_id as string)
     if (!padre) continue
-    const hijo = nodo(hija)
+    const hijo = nodo(categoria)
     padre.hijos.push(hijo)
-    padre.productos += hijo.productos
+    porId.set(hijo.id, hijo)
   }
+  const acumular = (nodo: NodoCategoria): number => {
+    nodo.productos = nodo.productos_directos + nodo.hijos.reduce((suma, hijo) => suma + acumular(hijo), 0)
+    return nodo.productos
+  }
+  raices.forEach(acumular)
   return raices
 }
 
@@ -70,13 +107,12 @@ export function armarArbol(categorias: readonly Categoria[], conteos: ReadonlyMa
 export function filtrarArbolPorTienda(arbol: readonly NodoCategoria[], empresaId: string | null): NodoCategoria[] {
   if (empresaId === null) return [...arbol]
   const visible = (nodo: Categoria) => nodo.empresa_ids.includes(empresaId)
-  return arbol
-    .map((raiz) => {
-      const hijos = raiz.hijos.filter(visible)
-      // El conteo de la raíz suma solo las subcategorías que quedan a la vista.
-      return { ...raiz, hijos, productos: raiz.productos_directos + hijos.reduce((suma, hijo) => suma + hijo.productos, 0) }
-    })
-    .filter((raiz) => visible(raiz) || raiz.hijos.length > 0)
+  const filtrar = (nodo: NodoCategoria): NodoCategoria => {
+    const hijos = nodo.hijos.map(filtrar).filter((hijo) => visible(hijo) || hijo.hijos.length > 0)
+    // El conteo del nodo suma solo las subcategorías que quedan a la vista.
+    return { ...nodo, hijos, productos: nodo.productos_directos + hijos.reduce((suma, hijo) => suma + hijo.productos, 0) }
+  }
+  return arbol.map(filtrar).filter((raiz) => visible(raiz) || raiz.hijos.length > 0)
 }
 
 // Ruta «Padre > Hija» (o solo el nombre de una raíz).
@@ -85,11 +121,27 @@ export function rutaCategoria(categoria: Pick<Categoria, 'nombre' | 'padre_id'>,
   return padre ? `${padre.nombre} > ${categoria.nombre}` : categoria.nombre
 }
 
-// Opciones de «Categoría padre»: solo raíces (2 niveles), sin la propia; una categoría con
-// subcategorías no puede tener padre, así que no ofrece ninguna.
+// Opciones de «Categoría padre»: raíces (dejan la categoría en el segundo nivel) y subcategorías (la dejan en
+// el tercero). Si la categoría que se edita ya tiene subcategorías, solo puede colgar de una raíz (una categoría
+// de tercer nivel no puede tener subcategorías) y no se ofrecen ni ella misma ni sus descendientes.
 export function opcionesPadre(categorias: readonly Categoria[], editandoId: string | null): Categoria[] {
-  if (editandoId && categorias.some((c) => c.padre_id === editandoId)) return []
-  return categorias.filter((c) => c.padre_id === null && c.id !== editandoId).sort(comparar)
+  const tieneHijos = editandoId !== null && categorias.some((c) => c.padre_id === editandoId)
+  // Descendientes de la categoría que se edita: no pueden pasar a ser su propio padre.
+  const descendientes = new Set<string>()
+  if (editandoId !== null) {
+    const pendientes = [editandoId]
+    while (pendientes.length > 0) {
+      const actual = pendientes.pop() as string
+      for (const hijo of categorias.filter((c) => c.padre_id === actual)) {
+        if (descendientes.has(hijo.id)) continue
+        descendientes.add(hijo.id)
+        pendientes.push(hijo.id)
+      }
+    }
+  }
+  return categorias
+    .filter((c) => c.id !== editandoId && !descendientes.has(c.id) && (tieneHijos ? c.padre_id === null : nivelCategoria(categorias, c.id) <= 2))
+    .sort(comparar)
 }
 
 // ¿Ya hay una categoría con ese nombre en ese nivel (sin distinguir mayúsculas ni espacios extremos)?
@@ -134,9 +186,14 @@ function mover(categorias: readonly Categoria[], id: string, nuevoPadre: string 
   const listas = listasDe(categorias)
   if (nuevoPadre !== null) {
     const padre = categorias.find((c) => c.id === nuevoPadre)
-    if (!padre || nuevoPadre === id) return { ok: false, motivo: MENSAJE_PADRE_NO_RAIZ }
-    if (padre.padre_id !== null) return { ok: false, motivo: MENSAJE_PADRE_NO_RAIZ }
-    if ((listas.get(id) ?? []).length > 0) return { ok: false, motivo: MENSAJE_DOS_NIVELES }
+    if (!padre || nuevoPadre === id) return { ok: false, motivo: MENSAJE_PADRE_NO_VALIDO }
+    // El padre puede ser raíz o subcategoría: la categoría movida queda en el segundo o el tercer nivel.
+    const nivelPadre = nivelCategoria(categorias, nuevoPadre)
+    if (nivelPadre > 2) return { ok: false, motivo: MENSAJE_PADRE_NO_VALIDO }
+    // Una categoría con subcategorías solo puede quedar en el primer o segundo nivel.
+    if ((listas.get(id) ?? []).length > 0 && nivelPadre > 1) return { ok: false, motivo: MENSAJE_TRES_NIVELES }
+    // No se puede colgar de una descendiente propia (sería un ciclo).
+    if (esAntepasada(categorias, id, nuevoPadre)) return { ok: false, motivo: MENSAJE_PADRE_NO_VALIDO }
   }
   const origen = categoria.padre_id !== null && listas.has(categoria.padre_id) ? categoria.padre_id : null
   if (origen !== nuevoPadre && categorias.some((c) => c.id !== id && c.padre_id === nuevoPadre && normalizarNombre(c.nombre) === normalizarNombre(categoria.nombre))) {
@@ -215,12 +272,14 @@ export async function leerCategoriasSelector(cliente: Pick<SupabaseClient, 'sche
   return (data ?? []).map((categoria) => ({ ...categoria, empresa_ids: [] }))
 }
 
-// Opciones del selector de categoría del producto: cada raíz seguida de sus subcategorías, con su ruta.
-export function opcionesCategoriaProducto(categorias: readonly Categoria[]): Array<{ id: string; ruta: string; nivel: 0 | 1 }> {
-  return armarArbol(categorias).flatMap((raiz) => [
-    { id: raiz.id, ruta: raiz.nombre, nivel: 0 as const },
-    ...raiz.hijos.map((hija) => ({ id: hija.id, ruta: `${raiz.nombre} > ${hija.nombre}`, nivel: 1 as const })),
-  ])
+// Opciones del selector de categoría del producto: cada raíz seguida de sus subcategorías y sub
+// subcategorías (3 niveles), con la ruta completa «Padre > Hija > SubHija».
+export function opcionesCategoriaProducto(categorias: readonly Categoria[]): Array<{ id: string; ruta: string; nivel: 0 | 1 | 2 }> {
+  const recorrer = (nodo: NodoCategoria, prefijo: string, nivel: 0 | 1 | 2): Array<{ id: string; ruta: string; nivel: 0 | 1 | 2 }> => [
+    { id: nodo.id, ruta: prefijo, nivel },
+    ...nodo.hijos.flatMap((hijo) => recorrer(hijo, `${prefijo} > ${hijo.nombre}`, (Math.min(nivel + 1, 2)) as 0 | 1 | 2)),
+  ]
+  return armarArbol(categorias).flatMap((raiz) => recorrer(raiz, raiz.nombre, 0))
 }
 
 export async function guardarCategoria(

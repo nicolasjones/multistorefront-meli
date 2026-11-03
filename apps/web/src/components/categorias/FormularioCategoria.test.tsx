@@ -24,7 +24,7 @@ const abrir = (extra: Partial<Parameters<typeof FormularioCategoria>[0]> = {}) =
 }
 
 describe('FormularioCategoria (F-CAT-08, FR-020)', () => {
-  it('pide Nombre, Categoría padre solo raíces y Visible en con todas las tiendas marcadas al crear', () => {
+  it('pide Nombre, Categoría padre (raíces o subcategorías) y Visible en con todas las tiendas marcadas al crear', () => {
     abrir()
     expect(screen.getByRole('dialog', { name: 'Nueva categoría' })).toBeInTheDocument()
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('')
@@ -85,12 +85,23 @@ describe('FormularioCategoria (F-CAT-08, FR-020)', () => {
     expect(screen.getByRole('dialog', { name: 'Nueva categoría' })).toBeInTheDocument()
   })
 
-  it('una categoría con subcategorías no ofrece padre y lo explica (2 niveles)', () => {
+  it('una categoría con subcategorías solo puede colgar de una raíz y lo explica (3 niveles)', () => {
     render(<FormularioCategoria categoria={CATEGORIAS[0]} categorias={CATEGORIAS} empresas={EMPRESAS} onCancelar={vi.fn()} onGuardar={vi.fn()} />)
     fireEvent.mouseDown(screen.getByLabelText('Categoría padre (opcional)'))
-    expect(screen.getAllByRole('option')).toHaveLength(1)
+    // «Ninguna (categoría raíz)» + la otra raíz («Fundas»): la que se edita no se ofrece.
+    expect(screen.getAllByRole('option')).toHaveLength(2)
     expect(screen.getByRole('option', { name: 'Ninguna (categoría raíz)' })).toBeInTheDocument()
-    expect(screen.getByText('Tiene subcategorías: solo puede ser una categoría raíz (máximo 2 niveles).')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Fundas' })).toBeInTheDocument()
+    expect(screen.getByText('Tiene subcategorías: solo puede colgar de una categoría raíz (máximo 3 niveles).')).toBeInTheDocument()
+  })
+
+  it('ofrece raíces y subcategorías como padre para una categoría nueva (tercer nivel)', () => {
+    abrir()
+    fireEvent.mouseDown(screen.getByLabelText('Categoría padre (opcional)'))
+    expect(screen.getByRole('option', { name: 'Joysticks' })).toBeInTheDocument()
+    // Las subcategorías se ofrecen con su ruta, para no confundir nombres repetidos.
+    expect(screen.getByRole('option', { name: 'Joysticks > Cableados' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Fundas' })).toBeInTheDocument()
   })
 
   it('sin ninguna tienda marcada avisa que no se verá en ninguna', () => {
