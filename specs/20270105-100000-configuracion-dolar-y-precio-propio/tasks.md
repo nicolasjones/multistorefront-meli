@@ -14,15 +14,15 @@
 - [ ] T004 [F-PRE-06][US1] Migración `supabase/migrations/20270122100150_cotizacion_cambio_alcance.sql`: `previsualizar_cambio_alcance` (solo lee) y `cambiar_alcance_cotizacion` (una transacción, exige confirmación, actividad) (FR-004, FR-005)
 - [ ] T005 [F-PRE-06][US1] Migración `supabase/migrations/20270122100200_cotizacion_usa_configuracion.sql`: `previsualizar`/`confirmar`/`descartar_cotizacion` y `cotizacion_del_dia` leen umbral, confirmación y aviso de la configuración y reciben `p_empresa` (FR-006)
 - [ ] T006 [F-PRE-06][US1] Misma migración (parte 2): el redondeo configurado rige el «Nuevo» de la vista previa del recálculo; el redondeo por empresa de F-PRE-07 no se toca (FR-007)
-- [ ] T007 [F-PRE-06][US1] pgTAP `supabase/tests/database/cotizacion_configuracion.test.sql`: dos organizaciones, defaults, permisos por rol, rangos, idempotencia, evento, `anon` (SC-001)
-- [ ] T008 [F-PRE-06][US1] pgTAP `supabase/tests/database/cotizacion_alcance.test.sql`: cambio sistema↔empresa atómico, vista previa sin escribir, carga por empresa aislada, umbral/confirmación/aviso configurados, comportamiento por defecto igual a MSF-116 (SC-002)
+- [ ] T007 [F-PRE-06][US1] pgTAP `supabase/tests/database/cotizacion_configuracion.test.sql` (verifica FR-001, FR-002, FR-006): dos organizaciones, defaults, permisos por rol, rangos, idempotencia, evento, `anon` (SC-001)
+- [ ] T008 [F-PRE-06][US1] pgTAP `supabase/tests/database/cotizacion_alcance.test.sql` (verifica FR-003, FR-004, FR-005, FR-006, FR-007): cambio sistema↔empresa atómico, vista previa sin escribir, carga por empresa aislada, umbral/confirmación/aviso configurados, comportamiento por defecto igual a MSF-116 (SC-002)
 - [ ] T009 [P] [F-PRE-06][US1] `apps/web/src/lib/cotizacion.ts` y `apps/web/src/hooks/useConfiguracionCotizacion.ts`: lectura/guardado de la configuración, validación de umbral y mensajes de error, hook de alcance (soporte de FR-008)
 - [ ] T010 [P] [F-PRE-06][US1] `apps/web/src/components/cotizacion/TarjetaConfiguracion.tsx`: `Alcance` (segmentado), `Redondeo del precio en pesos`, `Umbral para recalcular`, interruptor «Aviso en Inicio», textos del prototipo, «Guardar configuración» y «Configuración guardada»; montaje en `pages/cotizacion/index.tsx` (FR-008)
 - [ ] T011 [F-PRE-06][US1] `DialogoAlcance` con vista previa por empresa (reutiliza el bloque «Qué va a cambiar»), carga acotada a la empresa activa con `FiltroEmpresa` en «Todas mis empresas», texto «San Javucho y Mundo JC cargan su propio valor…», y textos del diálogo de carga con los valores configurados (FR-009)
 - [ ] T012 [F-PRE-06][US1] `Cotización que usa` y hint de dólar vigente en la pestaña «Precios y moneda» (`pages/empresas/precios.tsx`) según el alcance (FR-010)
 - [ ] T013 [F-PRE-06][US1] Permisos de solo lectura, estados de carga/error, carga diferida de los diálogos, teclado/lector y 320/768/1440 px de la tarjeta (FR-011)
-- [ ] T014 [F-PRE-06][US1] Vitest de la tarjeta y la vista previa de alcance: defaults, validación, guardar, solo lectura, textos configurados, cancelar (SC-003)
-- [ ] T015 [F-PRE-06][US1] Vitest de cambio de empresa activa con alcance «por empresa» y de pantalla sin cambios con alcance «sistema» (SC-004)
+- [ ] T014 [F-PRE-06][US1] Vitest `TarjetaConfiguracion.test.tsx` y `DialogoAlcance.test.tsx` (verifica FR-005, FR-007, FR-008, FR-011) de la tarjeta y la vista previa de alcance: defaults, validación, guardar, solo lectura, textos configurados, cancelar (SC-003)
+- [ ] T015 [F-PRE-06][US1] Vitest en `pages/cotizacion/index.test.tsx` (verifica FR-009) de cambio de empresa activa con alcance «por empresa» y de pantalla sin cambios con alcance «sistema» (SC-004)
 
 **Checkpoint F-PRE-06**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
 
@@ -36,13 +36,13 @@
 - [ ] T019 [F-PRE-08][US2] Misma migración (parte 4): `quitar_precio_propio` idempotente con actividad (FR-017)
 - [ ] T020 [F-PRE-08][US2] Migración `supabase/migrations/20270122110100_precios_propios_calculo.sql` (parte 1): `precio_neto_empresa`, `precios_empresa_neto` (columna `precio_propio`) y `precio_visible_desde_central` devuelven el precio propio; sin precio propio, resultado idéntico (FR-014)
 - [ ] T021 [F-PRE-08][US2] Misma migración (parte 2): precio propio en USD convertido con `private.cotizacion_para(org, empresa)` y sin cotización devuelve `null` (FR-015)
-- [ ] T022 [F-PRE-08][US2] pgTAP `supabase/tests/database/precios_propios_empresa.test.sql`: dos organizaciones, permisos, fijar/actualizar/quitar, ajenos rechazados, neto con/sin precio propio, IVA encima, USD según alcance, `anon` (SC-005)
+- [ ] T022 [F-PRE-08][US2] pgTAP `supabase/tests/database/precios_propios_empresa.test.sql` (verifica FR-012…FR-017, FR-020): dos organizaciones, permisos, fijar/actualizar/quitar, ajenos rechazados, neto con/sin precio propio, IVA encima, USD según alcance, `anon` (SC-005)
 - [ ] T023 [F-PRE-08][US2] pgTAP: ningún camino de lectura (`precios_empresa_neto`, `precio_visible_desde_central`, `previsualizar_cotizacion`) ignora el precio propio (SC-006)
 - [ ] T024 [P] [F-PRE-08][US2] `apps/web/src/lib/preciosPropios.ts` y `apps/web/src/hooks/usePreciosPropios.ts`: lectura, fijar, quitar, validación y mensajes (soporte de FR-018)
 - [ ] T025 [F-PRE-08][US2] `apps/web/src/components/precios/PrecioPropioEmpresas.tsx` y montaje en `pages/productos/edit.tsx`/`create.tsx`: una fila por empresa del producto (`Moneda`, `Precio propio`, «Quitar»), neto de ejemplo, solo lectura para Consulta (FR-018)
 - [ ] T026 [F-PRE-08][US2] Marca «Precio propio» en la ficha; nota fuera de alcance del listado documentada en el código y en `docs/` (FR-019)
 - [ ] T027 [F-PRE-08][US2] Confirmar que el flujo no genera cola ni columna de Mercado Libre y dejarlo asentado en el comentario de la migración (FR-020)
-- [ ] T028 [F-PRE-08][US2] Vitest del bloque en la ficha: alta/edición/quitar, validación, solo lectura, marca (SC-007)
+- [ ] T028 [F-PRE-08][US2] Vitest `PrecioPropioEmpresas.test.tsx` (verifica FR-016, FR-018, FR-019) del bloque en la ficha: alta/edición/quitar, validación, solo lectura, marca (SC-007)
 - [ ] T029 [F-PRE-08][US2] Vitest de la ficha al cambiar de producto o de empresas del producto (SC-008)
 
 **Checkpoint F-PRE-08**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
@@ -52,13 +52,13 @@
 **Goal**: el simulador marca los productos con precio propio y prueba cualquier cambio de la regla antes de guardar. Requiere F-PRE-08 mergeada (RF-PRE-09-2).
 
 - [ ] T030 [F-PRE-09][US3] Migración `supabase/migrations/20270122120000_simulador_precio_propio.sql`: `previsualizar_precios_empresa` suma `precio_propio`; solo lee; reversión en el encabezado (FR-021)
-- [ ] T031 [F-PRE-09][US3] pgTAP `supabase/tests/database/simulador_precio_propio.test.sql`: marca, no escribe, dos organizaciones, `anon` (SC-009)
+- [ ] T031 [F-PRE-09][US3] pgTAP `supabase/tests/database/simulador_precio_propio.test.sql` (verifica FR-021, FR-023): marca, no escribe, dos organizaciones, `anon` (SC-009)
 - [ ] T032 [P] [F-PRE-09][US3] `apps/web/src/components/precios/TablaAsiQuedan.tsx`: marca por fila («Precio propio» / «Ajustado» / «Central»), valor de precio propio fijo al mover el ajuste (FR-024)
 - [ ] T033 [P] [F-PRE-09][US3] `apps/web/src/pages/empresas/precios.tsx`: la simulación se recalcula con `Base`, `Ajuste` y `Precios que ve el cliente` sin guardar, subtítulo «Se actualiza con el ajuste», y salir sin guardar descarta (FR-022, FR-023)
 - [ ] T034 [F-PRE-09][US3] Nota «Los productos con precio propio ignoran el ajuste…» y paso 3 de «Cómo se calcula» (FR-025)
 - [ ] T035 [F-PRE-09][US3] Reinicio de regla, formulario, simulación y avisos al abrir otra empresa, con la marca (FR-026)
-- [ ] T036 [F-PRE-09][US3] Vitest de la tabla y «Cómo se calcula»: marca, tonos, estados, 320/768/1440 px (SC-010)
-- [ ] T037 [F-PRE-09][US3] Vitest de cambio de empresa con una empresa con precio propio y otra sin (SC-011)
+- [ ] T036 [F-PRE-09][US3] Vitest `TablaAsiQuedan.test.tsx` (verifica FR-022, FR-024, FR-025) de la tabla y «Cómo se calcula»: marca, tonos, estados, 320/768/1440 px (SC-010)
+- [ ] T037 [F-PRE-09][US3] Vitest en `pages/empresas/precios.test.tsx` (verifica FR-023, FR-026) de cambio de empresa con una empresa con precio propio y otra sin (SC-011)
 
 **Checkpoint F-PRE-09**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
 
@@ -68,8 +68,8 @@
 
 - [ ] T038 [P] [CIERRE] `docs/configuracion-dolar-y-precio-propio.md`, actualizar `docs/precios.md` y `docs/dolar-y-recalculo.md` (los valores ya no son fijos) y fila de `docs/roadmap-template.md`; `pnpm docs:check` (FR-027)
 - [ ] T039 [P] [CIERRE] Revisión de seguridad: RLS en las tablas nuevas/alteradas, grants de RPC, `anon`, FK compuestas, esquema de cada tabla contra el Principio VII (FR-028)
-- [ ] T040 [CIERRE] E2E: cambiar el alcance con vista previa y confirmar; fijar un precio propio, verlo marcado en el simulador y comprobar que no se mueve con el ajuste (SC-012)
-- [ ] T041 [CIERRE] `rls_en_toda_tabla` verde con las tablas nuevas y suite completa `pnpm test` verde (SC-013)
+- [ ] T040 [CIERRE] E2E `apps/web/e2e/configuracion-dolar-precio-propio.e2e.ts` (verifica FR-004, FR-022, FR-024): cambiar el alcance con vista previa y confirmar; fijar un precio propio, verlo marcado en el simulador y comprobar que no se mueve con el ajuste (SC-012)
+- [ ] T041 [CIERRE] (verifica FR-028) `rls_en_toda_tabla` verde con las tablas nuevas y suite completa `pnpm test` verde (SC-013)
 
 ## Matriz de trazabilidad tracker ↔ US ↔ tasks
 
