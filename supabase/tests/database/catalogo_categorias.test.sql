@@ -152,9 +152,9 @@ select throws_ok(
   $$select public.guardar_categoria(
       (select id from dominio.categorias where nombre = 'Joysticks' and padre_id is null),
       'Joysticks',
-      (select id from dominio.categorias where nombre = 'Cableados' and padre_id is null),
+      (select id from dominio.categorias where nombre = 'Cableados' and padre_id is not null),
       '{}'::uuid[])$$,
-  '23514', null, 'una categoría con subcategorías no puede pasar a ser subcategoría'
+  '23514', null, 'una categoría con subcategorías no puede quedar en el tercer nivel'
 );
 select throws_ok(
   $$select public.guardar_categoria(
@@ -310,8 +310,8 @@ select lives_ok(
 select throws_ok(
   $$select public.reordenar_categorias(jsonb_build_array(
       jsonb_build_object('id', (select id from dominio.categorias where nombre = 'Joysticks' and padre_id is null),
-        'padre_id', (select id from dominio.categorias where nombre = 'Cableados' and padre_id is null), 'posicion', 0)))$$,
-  '23514', null, 'mover bajo otra una categoría con subcategorías se rechaza'
+        'padre_id', (select id from dominio.categorias where nombre = 'Teclados' and padre_id is not null), 'posicion', 0)))$$,
+  '23514', null, 'mover bajo una subcategoría una categoría con subcategorías se rechaza (quedaría en el tercer nivel)'
 );
 select throws_ok(
   $$select public.reordenar_categorias(jsonb_build_array(
@@ -545,6 +545,23 @@ select is(
 select throws_ok(
   $$select public.eliminar_categoria('a9000000-0000-0000-0000-000000000009')$$,
   'P0002', null, 'eliminar una categoría inexistente devuelve P0002'
+);
+
+-- Con 3 niveles, una categoría con subcategorías puede colgar de una raíz (queda en el segundo nivel) pero no de
+-- una subcategoría (quedaría en el tercero, y el tercero no puede tener subcategorías).
+select lives_ok(
+  $$select public.guardar_categoria(
+      (select id from dominio.categorias where nombre = 'Cableados' and padre_id is null),
+      'Cableados',
+      (select id from dominio.categorias where nombre = 'Fundas' and padre_id is null),
+      '{}'::uuid[])$$,
+  'una categoría con subcategorías puede pasar a ser subcategoría de una raíz'
+);
+select lives_ok(
+  $$select public.reordenar_categorias(jsonb_build_array(
+      jsonb_build_object('id', (select id from dominio.categorias where nombre = 'Cableados' and padre_id is not null),
+        'padre_id', (select id from dominio.categorias where nombre = 'Fundas' and padre_id is null), 'posicion', 0)))$$,
+  'reordenar: una categoría con subcategorías puede pasar a ser subcategoría de una raíz'
 );
 
 select * from finish();

@@ -595,7 +595,7 @@ with recursive cat as (
          array[p.id] || c.ids,
          c.nivel + 1
     from dominio.categorias p
-    join cat c on c.padre_id = p.id and c.organizacion_id = p.organizacion_id
+    join cat c on p.padre_id = c.id and p.organizacion_id = c.organizacion_id
    where c.nivel < 3
 )
 select
