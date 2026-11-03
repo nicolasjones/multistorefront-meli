@@ -146,6 +146,26 @@ Además, si el entorno quedó con **funciones duplicadas de migraciones viejas**
 PostgREST no puede resolver la llamada («function … is not unique»). Es el desvío de versionado de migraciones
 (MSF-590): las firmas viejas se borran con los `drop function` que ya traen las migraciones de la rama.
 
+### Las tiendas online del demo y su dominio
+
+Las dos tiendas del dataset (San Javucho y Mundo JC) se sirven como sitios públicos, resueltos por **dominio**:
+el front decide «panel o tienda» comparando el host de la petición con `VITE_PANEL_HOSTS` (build arg del Dockerfile).
+Sin esa variable el build **falla seguro**: todo host sirve el panel y no hay ninguna tienda.
+
+Para mostrarlas desde internet hace falta, entonces:
+
+1. **`VITE_PANEL_HOSTS` con el host del panel** del entorno (en dev: `dev.212-90-120-53.sslip.io`). Se compila
+   con la imagen, así que hay que redesplegar la app.
+2. **Que Traefik envíe esos hosts a la app**: los dominios de tienda no son los del panel, así que necesitan su
+   propio router (en dev, `/etc/dokploy/traefik/dynamic/demo-tiendas.yml`, un archivo del provider `file` que
+   Dokploy no regenera y sobrevive a los deploys).
+3. **El dominio de la tienda en la base** tiene que ser ese host: `dominio.tiendas.dominio`. El dataset lo toma de
+   `DEMO_DOMINIO_BASE` (por defecto `localhost`, que resuelve a 127.0.0.1 y no sale a internet; en dev,
+   `212-90-120-53.sslip.io`, que sslip.io resuelve a la IP del VPS).
+
+Con eso, en dev: `https://demo-sanjavucho.212-90-120-53.sslip.io` y `https://demo-mundojc.212-90-120-53.sslip.io`
+son las tiendas del demo, alcanzables desde cualquier equipo.
+
 ### En dev (VPS2) ya está sembrado
 
 En dev el dataset quedó cargado (2026-11-02) y hay dos scripts en el servidor que lo dejan a mano:
