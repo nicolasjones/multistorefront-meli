@@ -3118,6 +3118,106 @@ erDiagram
 - Escritura únicamente vía `private.registrar_actividad` (misma transacción que la operación de origen) y la RPC acotada `public.registrar_actividad`; lectura vía `public.listar_actividad` y `public.opciones_actividad`.
 - Reversión: ver sección «Reversión» de [Actividad e historial](../actividad.md).
 
+## Reportes de inventario y exportación (MSF-140)
+
+Épica **MSF-140** (spec `20270201-100000-reportes-de-inventario-y-exportacion`), rama
+`epic/MSF-140-inicio-rentabilidad-y-reportes-reportes-` (pendiente de merge a `main`). **No crea tablas**:
+agrega dos **vistas** en el esquema `analitica` (solo vistas y funciones de apoyo) y dos filas en
+`public.reportes` por `reportes.json`; el esquema de `public.reportes` no cambia. Migraciones
+`20270202201200` y `20270202201201` (aditivas; reversión en el encabezado de cada una y consolidada en
+[Reportes de inventario (técnico)](reportes-inventario.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `analitica.inventario_productos_stock` | **nueva (vista)** | Una fila por producto activo con cantidad, mínimo, estado, costo en su moneda, costo en pesos (cotización vigente) y valor en pesos. |
+| `analitica.inventario_reposicion` | **nueva (vista)** | Una fila por producto activo sin stock o con stock bajo, con proveedor, código de proveedor y faltante sugerido. |
+| `public.reportes` | existente | Dos filas nuevas (sin cambio de esquema): `seccion = 'stock'` y `filtro_empresa = false`. |
+| `dominio.productos` | existente | Solo se lee (`nombre`, `sku`, `categoria_id`, `moneda`, `proveedor_id`, `codigo_proveedor`, `activo`). |
+| `dominio.existencias` | existente | Solo se lee (`cantidad`, `minimo`). |
+| `dominio.categorias` | existente | Solo se lee (`nombre`). |
+| `dominio.proveedores` | existente | Solo se lee (`razon_social`). |
+| `dominio.producto_costos` | existente | Solo se lee (`costo`) para el reporte de stock. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  ORGANIZACIONES ||--o{ REPORTES : "catálogo"
+  CATEGORIAS ||--o{ PRODUCTOS : "clasifica"
+  PROVEEDORES ||--o{ PRODUCTOS : "provee"
+  PRODUCTOS ||--|| EXISTENCIAS : "stock"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o{ INVENTARIO_PRODUCTOS_STOCK : "aparece en"
+  PRODUCTOS ||--o{ INVENTARIO_REPOSICION : "aparece en"
+  EXISTENCIAS ||--o{ INVENTARIO_PRODUCTOS_STOCK : "alimenta"
+  EXISTENCIAS ||--o{ INVENTARIO_REPOSICION : "alimenta"
+
+  REPORTES { uuid id PK
+    uuid superset_dashboard_uuid UK
+    text nombre
+    text seccion
+    boolean filtro_empresa }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    uuid categoria_id FK
+    uuid proveedor_id FK
+    text codigo_proveedor
+    text moneda
+    boolean activo }
+  EXISTENCIAS { uuid organizacion_id
+    uuid producto_id FK
+    integer cantidad
+    integer minimo }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  PROVEEDORES { uuid id PK
+    uuid organizacion_id FK
+    text razon_social }
+  PRODUCTO_COSTOS { uuid organizacion_id
+    uuid producto_id FK
+    numeric costo }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  INVENTARIO_PRODUCTOS_STOCK { uuid organizacion_id "nueva: columna del rls"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    text categoria "nueva"
+    integer cantidad "nueva"
+    integer minimo "nueva"
+    text estado "nueva: sin_stock|stock_bajo|disponible"
+    text moneda_costo "nueva"
+    numeric costo "nueva"
+    numeric costo_ars "nueva: cotización vigente"
+    numeric valor_ars "nueva: cantidad × costo_ars" }
+  INVENTARIO_REPOSICION { uuid organizacion_id "nueva: columna del rls"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    text categoria "nueva"
+    text proveedor "nueva"
+    text codigo_proveedor "nueva"
+    integer cantidad "nueva"
+    integer minimo "nueva"
+    text estado "nueva: sin_stock|stock_bajo"
+    integer faltante_sugerido "nueva: máximo(mínimo − cantidad, 0)" }
+```
+
+- **No se crean tablas ni entidades nuevas**: las dos vistas viven en `analitica` (superficie de lectura de
+  Superset, cerrada para `anon` y `authenticated`, leída solo por el rol `superset_analitica`) y no guardan
+  datos. El dato de dominio sigue en `dominio.productos`, `dominio.existencias`, `dominio.categorias`,
+  `dominio.proveedores` y `dominio.producto_costos`.
+- **El cálculo no se reimplementa**: `analitica.a_pesos` convierte el costo a pesos con la cotización
+  vigente (la misma función que usa Rentabilidad). El estado usa la misma regla que `public.stock_estados`.
+- **El aislamiento** lo fuerza la cláusula `rls` del guest token (`organizacion_id`): por eso las dos
+  vistas exponen esa columna. No hay `empresa_id`: el inventario es por organización (Principio VIII no
+  aplica).
+- **La épica no agrega un ERD propio**: al no haber tablas nuevas, el grafo es el de stock y catálogo
+  (arriba). Detalle de pantallas, tableros, exportación y pruebas:
+  [Reportes de inventario (técnico)](reportes-inventario.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.

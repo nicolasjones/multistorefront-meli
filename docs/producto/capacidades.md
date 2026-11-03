@@ -17,6 +17,9 @@ Un solo catálogo de productos para todas las tiendas, con categorías, fotos y 
 ## Stock
 Ver las existencias por producto y depósito, registrar movimientos, trasladar mercadería entre depósitos, reservar, hacer tomas de inventario, cargar y exportar stock y recibir avisos. Guías: [Movimientos](stock-movimientos.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) · [Lotes e inventario](stock-lotes-e-inventario.md) · [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 
+## Reportes de inventario
+Ver cuánto vale el inventario y qué productos están sin stock o con stock bajo, con el faltante sugerido y el proveedor, y descargar cualquiera de las dos tablas a una planilla. Guía: [Reportes de inventario](reportes-de-inventario.md).
+
 ## Compras
 Registrar la mercadería que llega de un proveedor (con su costo) y mantener la lista de proveedores. Guías: [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Proveedores](proveedores.md).
 
