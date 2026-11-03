@@ -2,7 +2,7 @@ import { expect, test } from './fixture'
 
 // [MSF-673] Tienda pública: el primer clic de un visitante que vuelve tras más de 12 h lo mandaba
 // a `/login` (ruta que la tienda no tiene → 404) y le cerraba la sesión. El control de vencimiento
-// por inactividad es del panel: en un host de tienda no debe instalarse.
+// por inactividad lleva a `/login` solo en el panel; en un host de tienda (MSF-700) cierra la sesión local y vuelve a `/`.
 //
 // El caso es de arranque (no necesita la base): la marca `sesion:ultima-actividad` se adelanta 13 h
 // con un init script (corre antes que la app) y después se hace el primer clic del visitante.
@@ -16,7 +16,7 @@ const HORAS_POR_MS = 60 * 60 * 1000
 
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
-test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer clic no manda a /login ni cierra la sesión', async ({ page }) => {
+test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer clic no manda a /login ni revoca la sesión global', async ({ page }) => {
   const marca = String(Date.now() - 13 * HORAS_POR_MS)
   await page.addInitScript(
     ([clave, valor]) => window.localStorage.setItem(clave, valor),

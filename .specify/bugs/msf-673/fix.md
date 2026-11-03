@@ -109,3 +109,7 @@ instalarVencimientoDeSesion(
   la sesión solo termina por salida explícita o por el tope de 30 días del servidor.
 - El cierre de sesión del panel sigue yendo a `/login`: en el panel esa ruta existe
   (`apps/web/src/App.tsx`), así que no se toca.
+
+## Actualización al integrar `dokploy` (MSF-700)
+
+La base ya trae MSF-700: en la tienda el vencimiento cierra solo la sesión local (`salirCliente`) y vuelve a `/`; en el panel sigue `logout` + `/login`. Cumple lo aprobado para MSF-673 (no `/login` ni cierre global en la tienda), así que se descartó `lib/arranque.ts`, `seguirActividadDelPanel` y sus tests para no duplicar la lógica. Queda el E2E `tienda-sesion-vencimiento` como regresión.
