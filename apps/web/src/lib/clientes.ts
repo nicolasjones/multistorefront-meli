@@ -3,6 +3,7 @@
 // acá se espejan solo para validar en el formulario antes de viajar.
 
 import type { EstadoCuentaWebFormulario } from './cuentasCliente'
+import { supabaseClient } from './supabase'
 
 export type Cliente = {
   id: string
@@ -142,3 +143,60 @@ export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   return porDefecto
 }
+
+// Fusión de clientes duplicados (F-CLI-18). Las RPC son solo del Administrador (la base lo impone) y operan
+// en la organización de la sesión.
+export type VistaPreviaCliente = {
+  cliente_id: string
+  numero: number
+  nombre: string
+  documentos: number
+  cuentas_web_activas: number
+  cuentas_web_total: number
+}
+
+export type ResumenFusion = {
+  documentos_reasignados: number
+  cuentas_reasignadas: number
+  campanas_reasignadas: number
+}
+
+export async function vistaPreviaFusion(conservarId: string, descartarId: string): Promise<VistaPreviaCliente[]> {
+  const { data, error } = await supabaseClient.rpc('vista_previa_fusion_clientes', {
+    p_conservar_id: conservarId,
+    p_descartar_id: descartarId,
+  })
+  if (error) throw error
+  return ((data ?? []) as VistaPreviaCliente[]).map((fila) => ({
+    ...fila,
+    documentos: Number(fila.documentos),
+    cuentas_web_activas: Number(fila.cuentas_web_activas),
+    cuentas_web_total: Number(fila.cuentas_web_total),
+  }))
+}
+
+export async function fusionarClientes(conservarId: string, descartarId: string, cuentaWebDe: string | null): Promise<ResumenFusion> {
+  const { data, error } = await supabaseClient.rpc('fusionar_clientes', {
+    p_conservar_id: conservarId,
+    p_descartar_id: descartarId,
+    p_cuenta_web_de: cuentaWebDe,
+  })
+  if (error) throw error
+  return data as ResumenFusion
+}
+
+// Las validaciones de la RPC (permiso, mismo cliente, archivado, cuenta web sin resolver…) ya vienen en
+// castellano y sin identificadores: se muestran tal cual. Cualquier otro error va genérico.
+const CODIGOS_DE_VALIDACION = ['42501', '22023', 'P0002']
+export function mensajeDeFusion(error: unknown): string {
+  if (typeof error === 'object' && error !== null) {
+    const { code, message } = error as { code?: unknown; message?: unknown }
+    if (typeof code === 'string' && CODIGOS_DE_VALIDACION.includes(code) && typeof message === 'string' && message.trim() !== '') {
+      return message
+    }
+  }
+  return mensajeDeError(error, 'No pudimos fusionar los clientes. No se cambió nada; probá de nuevo.')
+}
+
+export const hayCuentaWebParaResolver = (previa: VistaPreviaCliente[]): boolean =>
+  previa.length === 2 && previa.every((cliente) => cliente.cuentas_web_activas > 0)

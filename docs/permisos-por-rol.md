@@ -309,3 +309,7 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracio
   `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
 - **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
 - **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.
+
+## Fusionar clientes (F-CLI-18, MSF-447)
+
+`public.fusionar_clientes` y `public.vista_previa_fusion_clientes` exigen **Administrador** de la organización (`private.es_administrador_de`), independientemente del nivel de la sección `clientes`; `anon` no las ejecuta. La ficha oculta «Fusionar con otro cliente…» a los demás roles.
