@@ -167,8 +167,12 @@ export async function sembrar(ctx) {
     ? Object.keys(ctx.proveedores).map((k) => [k, 1])
     : PESO_PROVEEDORES
   const provClave = i === fijoPedido ? PROV_NORTE : azar.ponderado(pesosProveedores)
-    const pool = skus.filter((k) => ctx.productos[k].prov === provClave && !excluidos.has(k))
-    const elegidos = azar.mezclar(pool).slice(0, azar.entero(2, Math.min(6, pool.length)))
+    // Con el catálogo real, un proveedor puede no tener ningún producto con stock: si su
+    // grupo queda vacío, el ingreso usa otro proveedor (el que tenga productos con stock).
+    const delProveedor = skus.filter((k) => ctx.productos[k].prov === provClave && !excluidos.has(k))
+    const pool = delProveedor.length ? delProveedor : skus.filter((k) => !excluidos.has(k))
+    const proveedorUsado = delProveedor.length ? provClave : (ctx.productos[pool[0]]?.prov ?? provClave)
+    const elegidos = azar.mezclar(pool).slice(0, Math.max(1, Math.min(6, pool.length)))
     if (i === fijoPedido) elegidos.unshift(PEDIDO_SKU)
     const lineas = elegidos.map((k) => {
       const p = ctx.productos[k]
@@ -181,13 +185,13 @@ export async function sembrar(ctx) {
     const actualizarCosto = i % 4 === 2 // 6 de 25 actualizan el costo (exige permiso de Rentabilidad: Administrador)
     const fecha = diaHabilHaceDias(Math.max(1, Math.round(88 - i * 3.5 + azar.entero(-1, 1))))
     const args = {
-      p_empresa: ctx.empresas[azar.elegir(provDef[provClave].empresas)].id, p_proveedor: ctx.proveedores[provClave].id, p_fecha: fecha,
+      p_empresa: ctx.empresas[azar.elegir(provDef[proveedorUsado].empresas)].id, p_proveedor: ctx.proveedores[proveedorUsado].id, p_fecha: fecha,
       p_comprobante: sinComprobante ? null : comprobante(punto, numeroPorPunto[punto]),
       p_lineas: lineas.map(({ producto_id, cantidad, costo_unitario_usd }) => ({ producto_id, cantidad, costo_unitario_usd })),
       p_actualizar_costo: actualizarCosto, p_clave_idempotencia: uuid(),
     }
     const fila = await (actualizarCosto ? adm : dep).rpc('registrar_ingreso_mercaderia', args)
-    ctx.ingresos.push({ id: fila.id, fecha, proveedor: provClave, comprobante: args.p_comprobante, costo_actualizado: actualizarCosto, estado: 'registrado', fijo: i === fijoPedido, lineas: lineas.map(({ sku: s, cantidad, costo_unitario_usd }) => ({ sku: s, cantidad, costo: costo_unitario_usd })) })
+    ctx.ingresos.push({ id: fila.id, fecha, proveedor: proveedorUsado, comprobante: args.p_comprobante, costo_actualizado: actualizarCosto, estado: 'registrado', fijo: i === fijoPedido, lineas: lineas.map(({ sku: s, cantidad, costo_unitario_usd }) => ({ sku: s, cantidad, costo: costo_unitario_usd })) })
     if (i === 5) { // reintento con la misma clave: no debe duplicar ni mover stock otra vez
       const otra = await dep.rpc('registrar_ingreso_mercaderia', args)
       log(otra.id === fila.id ? 'idempotencia OK · mismo ingreso con la misma clave' : 'ATENCIÓN · la misma clave de idempotencia creó otro ingreso')
