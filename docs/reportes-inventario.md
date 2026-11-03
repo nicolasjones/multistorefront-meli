@@ -49,7 +49,7 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
 - El tablero se importa con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <staging|production>`
   (lo hace el workflow de despliegue del VPS, idempotente).
 - Reversión: `drop view analitica.inventario_productos_stock;` (migración
-  `20270201090000`), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
+  `20270202201200`), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
   guardan datos.
 
 ## Reposición (F-REP-02, MSF-311)
@@ -73,7 +73,7 @@ queda fuera de alcance.
 | `faltante_sugerido` | `greatest(minimo − cantidad, 0)`: mínimo 10 / cantidad 4 → 6; sin stock con mínimo 10 → 10. |
 
 El faltante es una regla **provisional** (Decisión abierta 4 de la spec): vive solo en esa expresión de la
-migración `20270201090100`, así que pasar a un objetivo de cobertura toca una línea. La vista no expone
+migración `20270202201201`, así que pasar a un objetivo de cobertura toca una línea. La vista no expone
 costos ni valores. Esquema (Principio VII): solo una **vista** en `analitica`, sin tablas nuevas; `select`
 solo para `superset_analitica`. Empresa activa (Principio VIII): no aplica, el inventario es por organización.
 Reversión: `drop view analitica.inventario_reposicion;`, desregistrar el reporte por `dashboard_slug` y quitar

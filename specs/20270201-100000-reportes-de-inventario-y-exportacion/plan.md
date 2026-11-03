@@ -30,8 +30,8 @@ Dos tableros de Superset embebidos («Productos y stock», «Reposición») sobr
 
 ## Reversión (migraciones aditivas)
 
-- `20270201090000`: `drop view analitica.inventario_productos_stock;`
-- `20270201090100`: `drop view analitica.inventario_reposicion;`
+- `20270202201200`: `drop view analitica.inventario_productos_stock;`
+- `20270202201201`: `drop view analitica.inventario_reposicion;`
 - Alta en `public.reportes`: desregistrar por `dashboard_slug` (los tableros no guardan datos).
 - `CSV_EXPORT`: quitar la clave de `superset_config.py` (vuelve al formato por defecto de Superset).
 
