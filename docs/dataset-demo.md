@@ -154,8 +154,16 @@ En dev el dataset quedó cargado (2026-11-02) y hay dos scripts en el servidor q
 |---|---|
 | `/root/cargar-demo-dev.sh` | borra la organización demo de dev y la vuelve a crear completa (~4 min). `--sin-reset` no borra antes; `--org` y `--sufijo` cargan una organización paralela |
 | `/root/borrar-demo-dev.sh` | borra la organización demo de dev cuando se quiera. `--simular` muestra qué se borra sin borrar; `--si` no pregunta; `--forzar` saltea la validación de que el nombre parezca demo |
+| `/root/mi-org-dev.sh` | mueve tu propia cuenta de dev entre la organización demo y la que tenías (`demo`, `sanjavucho`, `estado`) |
 
-Los dos leen la configuración de `/root/demo-dev.env` (API, base, claves) y usan el dataset de este repo.
+Los dos primeros leen la configuración de `/root/demo-dev.env` (API, base, claves) y usan el dataset de este repo.
+
+**Ojo con la organización de trabajo:** la app trabaja sobre la organización de tu membresía
+(`private.organizacion_id()` prioriza la membresía propia del superadmin), así que con una cuenta que ya es
+miembro de otra organización no se ve el dataset: hay que entrar con un usuario del demo
+(`admin@demo.msf.test` / `Demo-Msf-2026!`) o mover la membresión con `/root/mi-org-dev.sh`. Un usuario tiene una sola
+membresía (la clave primaria de `public.usuarios_organizacion` es el `user_id`), así que no puede estar en dos
+organizaciones a la vez.
 
 
 ## Seguridad
