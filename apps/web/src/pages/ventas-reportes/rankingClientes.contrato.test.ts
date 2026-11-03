@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -15,7 +15,18 @@ const leer = (...partes: string[]) => readFileSync(path.join(raiz, ...partes), '
 
 const grafico = leer('infra/superset/dashboards/ventas-reportes/charts/Ranking_clientes_1.yaml')
 const dataset = leer('infra/superset/dashboards/ventas-reportes/datasets/Ventas_analitica/ranking_clientes.yaml')
-const rpc = leer('supabase/migrations/20270116110500_lectura_ranking_excel.sql')
+// La migracion se localiza por PATRON, no por nombre exacto: las versiones de migracion se
+// renombran (commit "unificar versiones de migracion") y un nombre fijo deja el contrato roto en
+// TODAS las ramas (el test vive en la base -> ningun PR puede mergear). Se toma la version mas
+// reciente del mismo sufijo.
+const migracionLecturaRanking = readdirSync(path.join(raiz, 'supabase/migrations'))
+  .filter((f) => f.endsWith('_lectura_ranking_excel.sql'))
+  .sort()
+  .at(-1)
+if (!migracionLecturaRanking) {
+  throw new Error('no hay migracion *_lectura_ranking_excel.sql en supabase/migrations')
+}
+const rpc = leer('supabase/migrations', migracionLecturaRanking)
 
 // Los fragmentos del SQL se comparan sin saltos de línea: el archivo se puede formatear sin que el
 // contrato se rompa.
