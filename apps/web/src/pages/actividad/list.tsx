@@ -5,6 +5,7 @@ import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva
 import {
   ETIQUETA_PERIODO,
   etiquetaTipoActividad,
+  formatearDetalleActividad,
   FILTROS_ACTIVIDAD_INICIALES,
   formatearCuando,
   TAMANO_PAGINA_ACTIVIDAD,
@@ -26,7 +27,7 @@ const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
   { clave: 'cuando', encabezado: 'Cuándo', render: (evento) => formatearCuando(evento.creadoEn) },
   { clave: 'tipo', encabezado: 'Tipo', render: (evento) => etiquetaTipoActividad(evento.tipo) },
   { clave: 'tienda', encabezado: 'Tienda', render: (evento) => evento.empresaNombre ?? (evento.empresaId ? 'Empresa no disponible' : 'Compartido') },
-  { clave: 'detalle', encabezado: 'Detalle', render: (evento) => evento.detalle },
+  { clave: 'detalle', encabezado: 'Detalle', render: (evento) => formatearDetalleActividad(evento.detalle) },
   { clave: 'quien', encabezado: 'Quién', render: (evento) => evento.actorNombre ?? 'Sistema' },
 ]
 

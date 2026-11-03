@@ -205,3 +205,12 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `reparacion.item_quitado` (ver
 `docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
 Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.
+
+## Etiquetas e importes legibles (MSF-618)
+
+- `ETIQUETA_TIPO_ACTIVIDAD` (`apps/web/src/lib/actividad.ts`) trae etiqueta con tildes para todos los tipos
+  que emiten las migraciones (categoría, cuenta de cobro, comprobante, modelo, producto, proveedor, RMA, stock, ingreso).
+  Un tipo nuevo sin etiqueta cae en el formato genérico: agregalo al mapa.
+- `formatearDetalleActividad` da formato argentino a los importes del detalle al mostrarlos («Cobro de $ 859.100,00»,
+  `ARS 90.919,40`, `$ 1.250,50`), también en filas ya guardadas. No cambia la base. Fuera de alcance: la descripción
+  de la pantalla (MSF-604) y las filas de «Cambio de empresa activa».

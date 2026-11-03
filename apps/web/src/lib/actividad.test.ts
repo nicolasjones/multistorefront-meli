@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diaEnBuenosAires, etiquetaTipoActividad, formatearCuando, rangoDelPeriodo } from './actividad'
+import { diaEnBuenosAires, etiquetaTipoActividad, formatearCuando, formatearDetalleActividad, rangoDelPeriodo } from './actividad'
 
 describe('hora de Buenos Aires (F-AUD-01, FR-004)', () => {
   it('el día se calcula en Buenos Aires, no en UTC', () => {
@@ -36,6 +36,27 @@ describe('etiqueta del tipo', () => {
 
   it('un tipo nuevo de otro componente se muestra legible', () => {
     expect(etiquetaTipoActividad('producto.creado')).toBe('Producto creado')
-    expect(etiquetaTipoActividad('stock.ajuste_manual')).toBe('Stock ajuste manual')
+    expect(etiquetaTipoActividad('tema_nuevo.accion_rara')).toBe('Tema_nuevo accion rara')
+  })
+})
+
+describe('etiquetas y detalle legibles (MSF-618)', () => {
+  it('los tipos con formato interno salen con tildes', () => {
+    expect(etiquetaTipoActividad('categoria.creada')).toBe('Categoría creada')
+    expect(etiquetaTipoActividad('cuenta_cobro.creada')).toBe('Cuenta de cobro creada')
+    expect(etiquetaTipoActividad('comprobante.nota_credito_emitida')).toBe('Nota de crédito emitida')
+    expect(etiquetaTipoActividad('rma.stock_reingresado')).toBe('Stock reingresado')
+    expect(etiquetaTipoActividad('stock.salida')).toBe('Salida de stock')
+  })
+
+  it('los importes del detalle llevan formato de moneda', () => {
+    expect(formatearDetalleActividad('Cobro de 859100 por Tarjeta de débito en la factura A-1')).toBe(
+      'Cobro de $ 859.100,00 por Tarjeta de débito en la factura A-1',
+    )
+    expect(formatearDetalleActividad('Cambió el precio de lista de X: ARS 90919.40 → USD 12,5')).toBe(
+      'Cambió el precio de lista de X: ARS 90.919,40 → USD 12,50',
+    )
+    expect(formatearDetalleActividad('Confirmó la cotización del dólar: $ 1250.5')).toBe('Confirmó la cotización del dólar: $ 1.250,50')
+    expect(formatearDetalleActividad('Descontó una reserva de 3 unidades')).toBe('Descontó una reserva de 3 unidades')
   })
 })
