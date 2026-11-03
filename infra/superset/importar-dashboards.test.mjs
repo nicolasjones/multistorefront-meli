@@ -752,3 +752,29 @@ test('el tablero Historia versiona dataset, filtro de producto y reporte de la s
   assert.equal(registrados[0].seccion, 'rentabilidad');
   assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
 });
+
+test('el tablero Ventas reales versiona dataset, rango de fechas y reporte de la sección rentabilidad (F-REN-09)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/rentabilidad');
+  const leer = (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+
+  const dataset = await leer('datasets', 'Rentabilidad_analitica', 'rentabilidad_ventas_real.yaml');
+  assert.match(dataset, /^table_name: rentabilidad_ventas_real$/m, 'el dataset es la vista de ventas reales');
+  for (const columna of ['organizacion_id', 'empresa_nombre', 'producto_nombre', 'fecha', 'vendido', 'costo', 'margen', 'margen_pct']) {
+    assert.match(dataset, new RegExp(`^- column_name: ${columna}$`, 'm'), `el dataset expone ${columna}`);
+  }
+
+  const tablero = await leer('dashboards', 'Rentabilidad_Ventas_reales_6.yaml');
+  assert.match(tablero, /^slug: rentabilidad-ventas-reales$/m);
+  assert.match(tablero, /"name": "Rango de fechas"/, 'rango Desde / Hasta');
+
+  const totales = await leer('charts', 'Ventas_reales_totales_7.yaml');
+  assert.match(totales, /Sin ventas en este período/, 'estado vacío del patrón compartido');
+  assert.doesNotMatch(`${dataset}${tablero}${totales}`, /mercado/i, 'sin Mercado Libre');
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  const registrados = reportes.filter((r) => r.dashboard_slug === 'rentabilidad-ventas-reales');
+  assert.equal(registrados.length, 1, 'registro único (idempotente)');
+  assert.equal(registrados[0].seccion, 'rentabilidad');
+  assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
+});

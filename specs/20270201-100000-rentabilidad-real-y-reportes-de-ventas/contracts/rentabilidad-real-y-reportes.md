@@ -20,15 +20,17 @@ Exigen `edicion` en `rentabilidad` (la lista, `lectura`) y empresa accesible; `r
 
 ```ts
 dominio.costos_adicionales_canal(id: uuid, organizacion_id: uuid, empresa_id: uuid, nombre: text, tipo: 'porcentaje' | 'monto', valor: numeric, activo: boolean, creado_en: timestamptz)
-dominio.comprobantes_venta_lineas(+ costo_unitario: numeric | null, + cotizacion: numeric | null)
+dominio.comprobantes_venta_lineas(+ costo_unitario: numeric(14,2) | null, + cotizacion: numeric(14,4) | null)
 ```
+
+`costo_unitario` = costo del producto en pesos por unidad y `cotizacion` = dólar vigente de la organización, ambos al confirmar la factura (`confirmar_comprobante`, misma firma; una sola vez, idempotente). Las líneas de una nota de crédito de devolución los copian de la línea original (trigger `comprobantes_venta_lineas_costo_nota`). Ventas anteriores: `null`, quedan fuera de `rentabilidad_ventas_real`. Son secretos de `rentabilidad`: `authenticated` no tiene `select` sobre estas dos columnas (sí sobre el resto de la línea).
 
 ## Vistas (esquema `analitica`, solo lectura para el rol de Superset)
 
 ```ts
 analitica.margen_producto_canal(... , costos_adicionales: numeric) // por unidad: % × neto + montos
 analitica.costos_adicionales_de(p_empresa_id uuid, p_neto numeric): numeric // security definer, solo activos
-analitica.rentabilidad_ventas_real(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, unidades, vendido, costo, costos_adicionales, margen, margen_pct, estado)
+analitica.rentabilidad_ventas_real(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, unidades, vendido, costo, costos_adicionales, margen, margen_pct, estado, umbral_margen_bajo) // margen_pct null si vendido ≤ 0; estado: ok | bajo | negativo
 analitica.consultas_producto_mas_consultado(organizacion_id, empresa_id, empresa_nombre, producto_id, producto_nombre, sku, fecha, consultas, ultima_consulta)
 analitica.ventas_periodo_canal(organizacion_id, empresa_id, empresa_nombre, fecha, comprobantes, unidades, facturado)
 ```
