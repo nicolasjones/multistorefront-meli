@@ -77,8 +77,8 @@ de superadmin `public.actualizar_capacidad_chat_lectura/ejecucion` y la allowlis
 SQL de un superadmin. Antes el único freno era la RLS (el UPDATE de un usuario sobre
 `capacidades_chat_ia` affectaba 0 filas en silencio, sin error).
 
-Migraciones `20270122110000_chat_ia_ejecucion_allowlist.sql`,
-`20270122110100_chat_ia_ejecucion_privilegios_usuario.sql` y
-`20270122110200_chat_ia_plataforma_solo_superadmin.sql`; prueba
+Migraciones `20270202200100_chat_ia_ejecucion_allowlist.sql`,
+`20270202200200_chat_ia_ejecucion_privilegios_usuario.sql` y
+`20270202200300_chat_ia_plataforma_solo_superadmin.sql`; prueba
 `supabase/tests/database/chat_ia_ejecucion_allowlist.test.sql`. Si hubo explotación previa:
 auditar `mensajes_chat_ia` con `accion_rpc` fuera de `acciones_chat_ia` y evaluar rotar la clave del proveedor.

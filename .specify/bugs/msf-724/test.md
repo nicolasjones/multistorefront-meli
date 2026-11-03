@@ -4,5 +4,5 @@
 - NO ejecutado localmente: sin Docker/Supabase en este entorno. Queda al CI (`pnpm test:db`).
 - Local: `pnpm docs:check` y `verificar-migraciones` OK.
 - CI `database` (run 41288961781): "Bad plan, 23 planeadas / 9 ejecutadas". Causa: fixture del test, no la migración — la propuesta fabricada `d4` comparte rpc con la propuesta real, `t_propuestas` guardaba dos filas y la subconsulta escalar fallaba. Arreglo: `t_propuestas` solo toma `estado = 'propuesta'`.
-- CI `database` (run 41303870696, SHA 26a6debc): falla el test 21 — el UPDATE de `capacidades_chat_ia` por `authenticated` no daba error (la RLS filtraba la fila). Es un gap real de permisos, no del fixture: corregido en `20270122110200_chat_ia_plataforma_solo_superadmin.sql` (el permiso de escritura se retira al cliente) y el test vuelve a exigir 42501.
+- CI `database` (run 41303870696, SHA 26a6debc): falla el test 21 — el UPDATE de `capacidades_chat_ia` por `authenticated` no daba error (la RLS filtraba la fila). Es un gap real de permisos, no del fixture: corregido en `20270202200300_chat_ia_plataforma_solo_superadmin.sql` (el permiso de escritura se retira al cliente) y el test vuelve a exigir 42501.
 - Corridas posteriores (41307962844 y 41364460864): los jobs quedaron `cancelled` por saturación de los runners self-hosted, sin llegar a ejecutar la suite.
