@@ -166,6 +166,13 @@ Para mostrarlas desde internet hace falta, entonces:
 Con eso, en dev: `https://demo-sanjavucho.212-90-120-53.sslip.io` y `https://demo-mundojc.212-90-120-53.sslip.io`
 son las tiendas del demo, alcanzables desde cualquier equipo.
 
+**En dev, la imagen con `VITE_PANEL_HOSTS` se construye aparte** (`/root/build-tiendas-dev.sh` en VPS2): Dokploy
+pasa el env de la app al contenedor pero **no al `docker build`**, así que el `ARG VITE_PANEL_HOSTS` del Dockerfile
+llega vacío y el bundle sale con la lista de hosts del panel vacía (todo host sirve el panel). La imagen propia
+`msf-app-tiendas:dev` es la que atiende los hosts de tienda (Traefik: `/etc/dokploy/traefik/dynamic/demo-tiendas.yml`);
+el panel sigue en la app de Dokploy (`dev.212-90-120-53.sslip.io`). Cuando Dokploy pase ese ARG al build, se puede
+volver a apuntar Traefik a `http://app-input-open-source-system-i3pt15:80`.
+
 ### En dev (VPS2) ya está sembrado
 
 En dev el dataset quedó cargado (2026-11-02) y hay dos scripts en el servidor que lo dejan a mano:
