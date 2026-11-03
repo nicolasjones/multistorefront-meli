@@ -67,6 +67,45 @@ alto, más réplicas reparten el mismo CPU.
   caso normal sin bloquear la entrega bajo una avalancha sostenida.
 - **TTL:** un carril de un job muerto se recicla a los `CI_LANE_TTL_MIN` (50 min).
 
+### El carril se libera en un job que compite por runner (2026-11-03)
+
+El carril lo suelta el job `liberar`, que **necesita un runner** como cualquier
+otro: si la cola del CI está larga, `liberar` espera detrás de los jobs pesados
+y el carril queda tomado mientras su PR **ya terminó** (sus jobs pesados están
+en verde). Con 5 carriles y 5 runners, los 5 runners acaban ocupados por jobs
+que esperan un carril que no se libera → el CI se clava.
+
+Peor: el job `changes` **espera el carril dentro del runner** (hasta
+`CI_LANE_WAIT_MIN`), así que un PR sin carril **ocupa un runner 15 min sin
+hacer nada**. Con el host saturado (load > 12 × `CI_LOAD_MAX`), el
+cortacircuitos de carga además hace que ese PR espere por el host y luego
+continue sin admisión (fail-open) tras los 15 min: 15 min de runner Gastados
+para nada.
+
+**Cómo se ve:** `pnpm ci:estado` con `enUso` = nº de runners y la cola de runs
+creciendo; los jobs `changes` de los runs en cola llevan `Cambios en el
+archivo` sin pasos de código.
+
+**Qué hacer (runbook):**
+
+- Reciclar a mano los carriles **vencidos** (los que ya pasaron el TTL de 50
+  min): es exactamente lo que hace `intentarCarriles()` cuando encuentra un
+  lock viejo, pero sin esperar a que un PR nuevo lo toque:
+
+  ```bash
+  docker exec multistorefront-meli-runner-dev-runner-1 sh -c '
+    now=$(date +%s); ttl=$((50*60))
+    for d in /pnpm/.ci-lanes/ci-*; do
+      [ -d "$d" ] || continue
+      edad=$(( now - $(stat -c %Y "$d") ))
+      [ $edad -gt $ttl ] && { echo "reciclando $(basename $d) (${edad}s)"; rm -rf "$d"; }
+    done'
+  ```
+
+- Si la cola es larga pero **no** hay carriles vencidos, el problema es el
+  volumen: bajar `RUNNER_REPLICAS` (menos jobs pesados simultáneos) o bajar
+  `CI_LANE_WAIT_MIN` para que un PR sin carril no retenga un runner 15 min.
+
 ## Runbook
 
 - **El CI “no arranca” o tarda muchísimo:** `pnpm ci:estado` muestra carriles en
