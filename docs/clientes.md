@@ -195,7 +195,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   queda como fidelidad de MSF-180.
 - **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
   NO se implementa acá.
-- **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
+- **MSF-445 (mejoras)**: la etiqueta impresa F-CLI-17 (MSF-446) está entregada, ver «Etiqueta impresa del cliente». El resto de la épica (fusión, proveedores) NO se implementa acá.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
@@ -361,3 +361,13 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 | D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
+
+## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
+
+Solo frontend, **sin migración ni escritura** (el grant `select` de `public.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
+
+- **Ficha** (`pages/clientes/show.tsx`): «Etiqueta» (encabezado) e «Imprimir etiqueta de envío» (bloque). Sin dirección no se abre la hoja: aviso «falta dirección» (CA-CLI-17-1).
+- **Listado** (`pages/clientes/list.tsx`): «Imprimir etiquetas (n)» con las filas marcadas (quien edita). Al cambiar la empresa activa se descarta la selección y se reencuadra la página (Principio VIII).
+- **Hoja** (`components/clientes/HojaEtiquetas.tsx`, ruta lazy `/clientes/etiquetas?ids=…` bajo `RequiereAccesoSeccion` «clientes»): una etiqueta por cliente apto en A4 (`@page`, `@media print` oculta menú y barra); guardable como PDF desde el diálogo del navegador. Los clientes sin dirección se omiten y el aviso los nombra. Tras imprimir, «Volver» regresa a la ficha con «Etiqueta enviada a imprimir».
+- **Reglas puras** (`lib/etiquetasCliente.ts`): solo la dirección bloquea; CP, localidad, provincia, teléfono y transporte vacíos se omiten. El parámetro `ids` se valida como UUID, sin repetidos y hasta 200.
+- Pruebas: `etiquetasCliente.test.ts`, `HojaEtiquetas.test.tsx`, `show.etiqueta.test.tsx`, `list.etiquetas.test.tsx` y `apps/web/e2e/clientes-etiqueta.e2e.ts`.
