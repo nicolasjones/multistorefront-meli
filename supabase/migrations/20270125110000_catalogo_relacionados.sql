@@ -29,9 +29,9 @@ create table dominio.producto_relacionados (
 comment on table dominio.producto_relacionados is
   'F-CAT-18: productos relacionados de un producto, en el orden que ve el cliente (orden 1..N). Escritura por public.guardar_relacionados; lectura por RLS de organización y sección productos.';
 
-create index producto_relacionados_orden_idx on dominio.producto_relacionados (organizacion_id, producto_id, orden);
+create index if not exists producto_relacionados_orden_idx on dominio.producto_relacionados (organizacion_id, producto_id, orden);
 -- Borrado en cascada del producto relacionado (segundo extremo de la FK).
-create index producto_relacionados_relacionado_idx on dominio.producto_relacionados (relacionado_id, organizacion_id);
+create index if not exists producto_relacionados_relacionado_idx on dominio.producto_relacionados (relacionado_id, organizacion_id);
 
 alter table dominio.producto_relacionados enable row level security;
 
