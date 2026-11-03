@@ -50,9 +50,26 @@ export async function sembrar(ctx) {
   // Umbral de «producto caro» en dólares: los productos del cliente están en pesos.
   const enDolares = (p) => (p.moneda === 'ARS' ? (p.lista ?? 0) / 1180 : (p.lista ?? 0))
   const vendeEn = (p) => ctx.categorias[p.categoria].def.empresas
-  const excluidos = new Set([...SIN_CARGA, ...A_CERO, ...BAJO_MINIMO, PEDIDO.sku])
-  const catalogo = Object.values(ctx.productos).filter((p) => !excluidos.has(p.sku))
+  // Con el catálogo real, el producto «a pedido» es el más caro con stock (no hay SKUs inventados).
+  const skuMayorista = ctx.catalogoReal
+    ? (Object.values(ctx.productos).filter((p) => (p.stockLocal ?? 0) + (p.stockDeposito ?? 0) > 0).sort((a2, b2) => (b2.lista ?? 0) - (a2.lista ?? 0))[0]?.sku ?? null)
+    : 'CON-NSW-OLED'
+  const pedidoReal = ctx.catalogoReal
+    ? (Object.values(ctx.productos).filter((p) => (p.stockLocal ?? 0) + (p.stockDeposito ?? 0) > 0).sort((a2, b2) => (b2.lista ?? 0) - (a2.lista ?? 0))[0]?.sku ?? PEDIDO.sku)
+    : PEDIDO.sku
   const skuDe = new Map(Object.values(ctx.productos).map((p) => [p.id, p.sku]))
+  // Las existencias: con el catálogo real, un producto sin unidades no se puede vender (las listas de ejemplo del
+  // catálogo ficticio no aplican).
+  const existencias = await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=20000', 'dominio')
+  const unidadesPorSku = new Map()
+  for (const f of existencias) {
+    const sku = skuDe.get(f.producto_id)
+    if (!sku) continue
+    unidadesPorSku.set(sku, (unidadesPorSku.get(sku) ?? 0) + Math.max(0, f.cantidad - f.reservado))
+  }
+  const sinStock = new Set(Object.keys(ctx.productos).filter((sku) => (unidadesPorSku.get(sku) ?? 0) <= 0))
+  const excluidos = new Set([...SIN_CARGA, ...A_CERO, ...BAJO_MINIMO, pedidoReal, ...sinStock])
+  const catalogo = Object.values(ctx.productos).filter((p) => !excluidos.has(p.sku))
   const depsEmpresa = { sanjavucho: [], mundojc: [] }
   for (const r of await adm.leer('depositos_empresas?select=deposito_id,empresa_id&limit=100', 'dominio')) {
     const clave = Object.keys(ctx.empresas).find((k) => ctx.empresas[k].id === r.empresa_id)
@@ -61,7 +78,7 @@ export async function sembrar(ctx) {
   }
   const depPorNombre = (n) => ctx.depositos.find((d) => d.nombre === n)?.id
   const disp = new Map() // `${sku}|${deposito}` → unidades que todavía se pueden vender en la siembra
-  for (const f of await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=20000', 'dominio')) {
+  for (const f of existencias) {
     const sku = skuDe.get(f.producto_id)
     if (!sku || excluidos.has(sku)) continue
     const frac = FRACCION_VENDIBLE[raizDe(ctx.productos[sku])] ?? FRACCION_VENDIBLE.default
@@ -265,9 +282,9 @@ export async function sembrar(ctx) {
     const fecha = fechaHaceDias(s.dia)
     const vend = s.cat === 'pedido' ? S.operador : vendedor(emp, canal)
     let lineas
-    if (s.cat === 'pedido') lineas = [{ sku: PEDIDO.sku, cantidad: 1, dep: depPorNombre(s.i === 0 ? 'Depósito principal' : 'Local Corrientes') }]
+    if (s.cat === 'pedido') lineas = [{ sku: pedidoReal, cantidad: 1, dep: depPorNombre(s.i === 0 ? 'Depósito principal' : 'Local Corrientes') }]
     else if (s.cat === 'borrador' && s.i < 2) lineas = []
-    else if (s.cat === 'borrador' && s.i === 5) lineas = [{ sku: 'CON-NSW-OLED', cantidad: 400, dep: depsEmpresa[emp][0] }]
+    else if (s.cat === 'borrador' && s.i === 5) lineas = [{ sku: skuMayorista ?? pedidoReal, cantidad: 400, dep: depsEmpresa[emp][0] }]
     else lineas = armarLineas(emp, tipo, tipo === 'mayorista' ? 3 : (['entregada_cobrada'].includes(s.cat) ? 3 : 2))
     if (!lineas.length && s.cat !== 'borrador') throw new Error(`sin stock para armar el carrito (${s.cat})`)
     // Los demás datos del cobro dependen del total, que sale del servidor.

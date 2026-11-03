@@ -71,12 +71,20 @@ async function cargarCatalogo(ctx) {
   const adm = await ctx.sesion('admin')
   const filas = await adm.leer('productos?select=id,sku', 'dominio')
   const idPorSku = new Map(filas.map((p) => [p.sku, p.id]))
+  // El stock: los módulos lo necesitan por producto (los que están sin stock no se venden ni se publican).
+  const existencias = await adm.leer('existencias_deposito?select=producto_id,cantidad,reservado&limit=20000', 'dominio')
+  const unidades = new Map()
+  for (const e of existencias) {
+    const sku = idPorSku.get(e.producto_id)
+    if (!sku) continue
+    unidades.set(sku, (unidades.get(sku) ?? 0) + Math.max(0, e.cantidad - e.reservado))
+  }
   ctx.catalogoReal = true
   ctx.productos = {}
   for (const p of real.productos) {
     const id = idPorSku.get(p.sku)
     if (!id) continue
-    ctx.productos[p.sku] = { ...p, id }
+    ctx.productos[p.sku] = { ...p, id, stockLocal: unidades.get(p.sku) ?? 0, stockDeposito: 0 }
   }
   const provs = await adm.leer('proveedores?select=id,razon_social', 'dominio')
   const idPorRazon = new Map(provs.map((p) => [p.razon_social, p.id]))

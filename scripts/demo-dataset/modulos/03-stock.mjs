@@ -269,8 +269,16 @@ export async function sembrar(ctx) {
 
   // — Toma de inventario: se cuenta toda la categoría Joysticks en el depósito por defecto —
   stock = await leerStock()
+  // La categoría de la toma: con el catálogo real, la hoja (ruta completa) con más productos.
   const categoriaInventario = ctx.catalogoReal
-    ? (ctx.categorias[Object.keys(ctx.categorias)[1]]?.nombre ? Object.keys(ctx.categorias).find((n) => ctx.categorias[n].def.hijas?.length) : Object.keys(ctx.categorias)[0])
+    ? (() => {
+      const cuenta = new Map()
+      for (const k of skus) {
+        const c = ctx.productos[k].categoria
+        if (c) cuenta.set(c, (cuenta.get(c) ?? 0) + 1)
+      }
+      return [...cuenta.entries()].sort((a2, b2) => b2[1] - a2[1])[0]?.[0] ?? 'Joysticks'
+    })()
     : 'Joysticks'
   const items = skus.filter((k) => ctx.productos[k].categoria === categoriaInventario).slice(0, 60).map((k, i) => {
     const actual = stock[k]?.[D.principal]?.cant ?? 0
@@ -324,7 +332,8 @@ export async function sembrar(ctx) {
   const igual = await reservar(primera.deposito_id, primera.cantidad, plan[0][2])
   log(igual.id === primera.id ? 'idempotencia OK · misma referencia devuelve la misma reserva' : 'ATENCIÓN · la misma referencia creó otra reserva')
   await rechazo('misma referencia con otros datos', /otros datos/i, () => reservar(D.principal, 3, plan[0][2]))
-  await rechazo('reservar un producto que no es A pedido', /A pedido/i, () => ope.rpc('reservar_stock', { p_producto: ctx.productos['JOY-DS4-NG'].id, p_deposito: D.principal, p_cantidad: 1, p_referencia: 'PRUEBA-NO-PEDIDO' }))
+  const noPedido = skus.find((k) => k !== PEDIDO_SKU) ?? PEDIDO_SKU
+  await rechazo('reservar un producto que no es A pedido', /A pedido/i, () => ope.rpc('reservar_stock', { p_producto: ctx.productos[noPedido].id, p_deposito: D.principal, p_cantidad: 1, p_referencia: 'PRUEBA-NO-PEDIDO' }))
   await rechazo('reservar más que el disponible', /No hay stock suficiente/i, () => reservar(D.principal, 999, 'PRUEBA-EXCESO'))
   await rechazo('liberar una reserva ya liberada', /ya fue liberada/i, () => ope.rpc('liberar_reserva', { p_reserva: ctx.reservas[2].id }))
 
