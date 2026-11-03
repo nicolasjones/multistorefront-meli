@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link as RouterLink, useLocation, useParams } from 'react-router'
+import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
@@ -10,6 +10,7 @@ import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
+import { faltantes, rutaEtiquetas } from '../../lib/etiquetasCliente'
 import {
   cambiarEstadoCuentaWeb, habilitarTiendaDeCliente, invitarCuentaWeb, tiendaCuentaWeb, type TiendaCuentaWeb,
 } from '../../lib/cuentasCliente'
@@ -40,6 +41,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
 export function ClienteShow() {
   const { id } = useParams()
   const location = useLocation()
+  const navegar = useNavigate()
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('clientes')
   const { query } = useOne<Cliente>({ resource: 'clientes', id })
   const { mutateAsync } = useUpdate()
@@ -123,9 +125,23 @@ export function ClienteShow() {
     )
   }
 
+  // Etiqueta de envío (F-CLI-17, FR-003): sin dirección no hay hoja, solo el aviso con el dato que falta.
+  const imprimirEtiqueta = () => {
+    if (!cliente) return
+    const falta = faltantes(cliente)
+    if (falta.length > 0) {
+      setConfirmacion(null)
+      setErrorAccion(`No se puede imprimir la etiqueta: falta ${falta.join(', ')}. Cargala en «Editar» y probá de nuevo.`)
+      return
+    }
+    setErrorAccion(null)
+    navegar(rutaEtiquetas([cliente.id]), { state: { volverA: location.pathname } })
+  }
+
   const accion = (
     <Stack direction="row" spacing={1}>
       <Button component={RouterLink} to="/clientes">Volver al listado</Button>
+      {cliente ? <Button variant="outlined" onClick={imprimirEtiqueta}>Etiqueta</Button> : null}
       {puedeEditar && cliente ? (
         <>
           <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} variant="contained">Editar</Button>
@@ -173,6 +189,9 @@ export function ClienteShow() {
                   <Typography component="dd" sx={{ m: 0 }}>{(cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
+            </Box>
+            <Box>
+              <Button variant="outlined" onClick={imprimirEtiqueta}>Imprimir etiqueta de envío</Button>
             </Box>
             {nivel === 'lectura' || nivel === 'edicion' ? (
               <>
