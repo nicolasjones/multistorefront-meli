@@ -22,11 +22,11 @@ El menú de la izquierda agrupa las pantallas por tema. Hacé clic en el nombre 
 | **Inicio** | Pantalla de bienvenida. | — |
 | **Catálogo** | Productos y categorías. | [Productos](catalogo-productos.md) · [Precios por escala](precios-e-iva.md) |
 | **Stock** | Existencias, movimientos, ingreso de mercadería y depósitos. | [Stock](stock-movimientos.md) · [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) |
-| **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho y transportes. | [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Devoluciones](ventas-rma-devoluciones.md) |
+| **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho, transportes y reportes. | [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Devoluciones](ventas-rma-devoluciones.md) · [Reportes de ventas](ventas-reportes.md) |
 | **Servicio técnico** | Reparaciones de equipos. | [Service técnico](service-listado-items-impresion.md) |
 | **Contactos** | Clientes y proveedores. | [Clientes](clientes.md) · [Proveedores](proveedores.md) |
 | **Canales** | Consultas que llegan desde las tiendas, la libreta de contactos y las empresas (tiendas). | [Consultas](consultas.md) · [Contactos (libreta)](contactos.md) · [Tiendas online](tiendas-online.md) |
-| **Análisis** | Rentabilidad de los productos. | [Rentabilidad](rentabilidad.md) |
+| **Análisis** | Rentabilidad real de los productos, costos adicionales y márgenes. | [Rentabilidad](rentabilidad.md) |
 | **Administración** | Organización, cotización del dólar, actividad, usuarios y permisos. | [Precios y dólar](precios-dolar.md) · [Actividad](actividad.md) · [Usuarios y roles](usuarios-y-roles.md) |
 
 Arriba, junto al menú, está el selector de **empresa activa** (1: con qué tienda estás trabajando) y, a la derecha, el menú con tu nombre (2: perfil, contraseña, cerrar sesión). Ver [Tu organización y tus empresas](organizacion-y-empresas.md) y [Tu perfil](perfil-propio.md).
