@@ -8,4 +8,3 @@
 | jscpd (duplicación) | ok |
 | dependency-cruiser (arquitectura) | ok |
 | syncpack (versiones) | ok |
-| commitlint (mensajes) | ok |
