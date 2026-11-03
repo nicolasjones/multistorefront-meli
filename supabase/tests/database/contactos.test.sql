@@ -5,7 +5,7 @@
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, como «authenticated» o «anon».
 begin;
 
-select plan(54);
+select plan(55);
 
 -- Devuelve el DETAIL del 23505 de crear_contacto (pgTAP no lo expone).
 create function pg_temp.detalle_duplicado(p_correo text) returns text language plpgsql as $f$
@@ -305,6 +305,10 @@ select is(
   (select count(*)::int from dominio.consultas where contacto_id = (select id from t_ana)
      and nombre = 'Anonimizado' and contacto = 'Anonimizado' and mensaje not like '%stock%' and mensaje <> 'Otra consulta' and nota_interna is null),
   2, 'las consultas vinculadas perdieron nombre, contacto, mensaje y nota interna pero siguen existiendo'
+);
+select ok(
+  has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'contacto_id', 'SELECT'),
+  'authenticated puede leer comprobantes_venta.contacto_id (MSF-768)'
 );
 select is(
   (select count(*)::int from dominio.comprobantes_venta
