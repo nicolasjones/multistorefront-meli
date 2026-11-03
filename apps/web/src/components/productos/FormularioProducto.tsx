@@ -45,6 +45,8 @@ import { empresasCambiaron } from '../../lib/productoEmpresas'
 import { EmpresasProducto } from './EmpresasProducto'
 import { SelectorCategoria } from './SelectorCategoria'
 import { ImagenesProducto } from './ImagenesProducto'
+import { BloqueRelacionados } from './BloqueRelacionados'
+import { type Relacionado, relacionadosCambiaron } from '../../lib/productos-relacionados'
 
 type Props = {
   inicial: DatosFormulario
@@ -60,13 +62,18 @@ type Props = {
   escalasIniciales?: PreciosEscala
   // Disponibilidad vigente del producto (edición, F-CAT-17); la deriva la base. En el alta no hay.
   disponibilidadActual?: Disponibilidad | null
+  // Productos relacionados del producto (edición, F-CAT-18); en el alta no hay. `productoId` lo excluye del buscador.
+  productoId?: string | null
+  relacionadosIniciales?: readonly Relacionado[]
+  // La lectura de los relacionados falló (edición): el bloque ofrece reintentar y no se guardan.
+  errorRelacionados?: boolean
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[]) => Promise<void>
   rutaCancelar: string
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
@@ -92,7 +99,7 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, productoId = null, relacionadosIniciales = [], errorRelacionados = false, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
@@ -119,10 +126,11 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
   const { alicuotas, porId: alicuotaPorId, isLoading: cargandoAlicuotas, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
   const alicuotaCategoria = alicuotaPorId.get(categorias.find((categoria) => categoria.id === categoriaId)?.alicuota_iva_id ?? '') ?? null
   const [escalas, setEscalas] = useState<PreciosEscala>(escalasIniciales)
+  const [relacionados, setRelacionados] = useState<Relacionado[]>(() => [...relacionadosIniciales])
   const [erroresEscalas, setErroresEscalas] = useState<ErroresEscala>({})
   const refsEscalas = useRef<Partial<Record<(typeof ESCALAS_CON_PRECIO)[number], HTMLInputElement | null>>>({})
   const netoEnPesos = formulario.moneda === 'ARS' ? parsearImporte(formulario.precio_lista) : null
-  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial || alicuotaId !== alicuotaInicial || hayCambiosEscalas(escalas, escalasIniciales)
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial || alicuotaId !== alicuotaInicial || hayCambiosEscalas(escalas, escalasIniciales) || relacionadosCambiaron(relacionados.map((r) => r.id), relacionadosIniciales.map((r) => r.id))
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -172,7 +180,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId, alicuotaId === SIN_ALICUOTA_PRODUCTO ? null : alicuotaId, escalas)
+      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId, alicuotaId === SIN_ALICUOTA_PRODUCTO ? null : alicuotaId, escalas, relacionados.map((r) => r.id))
     } catch (error) {
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
       if (esSkuRepetido(error)) {
@@ -387,6 +395,15 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           cargando={cargandoEmpresas}
           hayError={errorEmpresas}
           onReintentar={() => void recargarEmpresas()}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <BloqueRelacionados
+          productoId={productoId}
+          seleccion={relacionados}
+          onCambiar={setRelacionados}
+          hayError={errorRelacionados}
+          onReintentar={onRecargar}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />
