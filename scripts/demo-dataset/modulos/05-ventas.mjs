@@ -16,6 +16,7 @@
 import { CASOS_FACTURA, CASOS_PRESUPUESTO, CONCEPTOS_NC, FRACCION_VENDIBLE, MOTIVOS_ANULACION_VENTA, MOTIVOS_RMA, NOTAS_CREDITO, OBSERVACIONES_RMA, PESO_RUBRO_MAYORISTA, PESO_RUBRO_MINORISTA, PREFIJO_GUIA, PRESUPUESTOS_COPIADOS, RMA_PLAN, CANALES_ENVIO, CANALES_RETIRO } from '../datos/ventas.mjs'
 import { A_CERO, BAJO_MINIMO, PEDIDO, SIN_CARGA } from '../datos/stock.mjs'
 import { fechaHaceDias, haceDias, iso } from '../lib/fechas.mjs'
+import { leerTodo } from '../lib/cliente.mjs'
 
 export const nombre = 'Ventas, cobros, despacho y RMA'
 
@@ -60,7 +61,7 @@ export async function sembrar(ctx) {
   const skuDe = new Map(Object.values(ctx.productos).map((p) => [p.id, p.sku]))
   // Las existencias: con el catálogo real, un producto sin unidades no se puede vender (las listas de ejemplo del
   // catálogo ficticio no aplican).
-  const existencias = await adm.leer('existencias_deposito?select=producto_id,deposito_id,cantidad,reservado&limit=20000', 'dominio')
+  const existencias = await leerTodo(adm, 'existencias_deposito?select=producto_id,deposito_id,cantidad,reservado')
   const unidadesPorSku = new Map()
   for (const f of existencias) {
     const sku = skuDe.get(f.producto_id)
@@ -534,7 +535,7 @@ export async function sembrar(ctx) {
   await rechazo('Mostrador no puede vender en Mundo JC', /no puede crear comprobantes/i, () => S.mostrador.rpc('crear_comprobante', { p_tipo: 'factura', p_empresa_id: ctx.empresas.mundojc.id, p_cliente_id: todos[0].id, p_canal: 'mostrador' }))
 
   // ───────────── Verificación final (solo lectura) ─────────────
-  const facs = await adm.leer('comprobantes_venta?select=id,numero,tipo,nc_tipo,estado,estado_despacho,total_sin_iva,total_con_iva,empresa_id&limit=5000', 'dominio')
+  const facs = await leerTodo(adm, 'comprobantes_venta?select=id,numero,tipo,nc_tipo,estado,estado_despacho,total_sin_iva,total_con_iva,empresa_id')
   const por = (lista, k) => lista.reduce((a, x) => ({ ...a, [x[k] ?? '—']: (a[x[k] ?? '—'] ?? 0) + 1 }), {})
   const e = (x) => Object.entries(x).map(([k, v]) => `${k} ${v}`).join(', ')
   log(`comprobantes en la base: ${facs.length} (${e(por(facs, 'tipo'))})`)
@@ -546,7 +547,7 @@ export async function sembrar(ctx) {
   const cobros = await adm.leer('cobros_comprobante?select=comprobante_id,importe&limit=10000', 'dominio')
   const cobrado = new Map()
   for (const c of cobros) cobrado.set(c.comprobante_id, (cobrado.get(c.comprobante_id) ?? 0) + cents(c.importe))
-  const lins = await adm.leer('comprobantes_venta_lineas?select=comprobante_id,subtotal_sin_iva,iva&limit=20000', 'dominio')
+  const lins = await leerTodo(adm, 'comprobantes_venta_lineas?select=comprobante_id,subtotal_sin_iva,iva')
   const sumaLin = new Map()
   for (const l of lins) { const a = sumaLin.get(l.comprobante_id) ?? [0, 0]; sumaLin.set(l.comprobante_id, [a[0] + cents(l.subtotal_sin_iva), a[1] + cents(l.iva)]) }
   let malTotal = 0, malCobro = 0, deudaTot = 0, cobradoTot = 0
@@ -560,7 +561,7 @@ export async function sembrar(ctx) {
     if (f.estado === 'deuda') { if (pagado >= cents(f.total_con_iva) || pagado === 0) { malCobro++; log(`ATENCIÓN · ${f.numero} en deuda con cobrado ${plata(pagado)}`) } deudaTot += cents(f.total_con_iva) - pagado }
   }
   log(`totales vs líneas: ${malTotal ? `${malTotal} con diferencia` : 'OK'}; cobrado + deuda vs total: ${malCobro ? `${malCobro} con diferencia` : 'OK'} (cobrado ${plata(cobradoTot).toLocaleString('es-AR')}, deuda abierta ${plata(deudaTot).toLocaleString('es-AR')})`)
-  const exis = await adm.leer('existencias_deposito?select=cantidad,reservado&limit=20000', 'dominio')
+  const exis = await leerTodo(adm, 'existencias_deposito?select=cantidad,reservado')
   const malStock = exis.filter((x) => x.cantidad < 0 || x.reservado < 0 || x.reservado > x.cantidad).length
   log(`stock: ${malStock ? `ATENCIÓN · ${malStock} filas con negativos o reservado > cantidad` : 'OK (sin negativos ni reservado > cantidad)'}`)
   if (falla.length) log(`ATENCIÓN · ${falla.length} comprobantes no se pudieron crear (ver arriba)`)

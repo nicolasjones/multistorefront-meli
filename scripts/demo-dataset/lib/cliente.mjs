@@ -34,6 +34,17 @@ async function pedir(cfg, ruta, { metodo = 'GET', cuerpo, token, clave, perfil, 
   return datos
 }
 
+// Lee una tabla por páginas: PostgREST corta en `max-rows` (1.000 por defecto) y con el catálogo real hay más filas.
+export async function leerTodo(sesion, ruta, perfil = 'dominio', pagina = 1000) {
+  const filas = []
+  for (let offset = 0; ; offset += pagina) {
+    const parte = await sesion.leer(`${ruta}${ruta.includes('?') ? '&' : '?'}limit=${pagina}&offset=${offset}`, perfil)
+    filas.push(...parte)
+    if (parte.length < pagina) break
+  }
+  return filas
+}
+
 export function crearAdmin(cfg) {
   const base = { clave: cfg.servicio }
   return {

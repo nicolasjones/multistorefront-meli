@@ -118,6 +118,10 @@ export function catalogoReal(ruta) {
     })
   }
 
+  // Un producto «A pedido» (el más caro sin stock): es el único al que se le pueden hacer reservas.
+  const aPedido = lista.filter((p) => (p.stockLocal ?? 0) + (p.stockDeposito ?? 0) === 0).sort((a, b) => (b.lista ?? 0) - (a.lista ?? 0))[0]
+  if (aPedido) aPedido.ped = 'a_pedido'
+
   return {
     proveedores,
     categorias,

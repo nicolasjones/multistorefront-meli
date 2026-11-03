@@ -10,7 +10,7 @@
 // Variables: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, DEMO_HOSTS_PERMITIDOS (hosts no locales).
 // Ver docs/dataset-demo.md.
 import { readdirSync } from 'node:fs'
-import { configurar, crearAdmin, iniciarSesion } from './lib/cliente.mjs'
+import { configurar, crearAdmin, iniciarSesion, leerTodo } from './lib/cliente.mjs'
 import { crearAzar } from './lib/azar.mjs'
 import { ORGANIZACION, PASSWORD, USUARIOS, correoDe } from './datos/base.mjs'
 import { cargarBase } from './lib/contexto.mjs'
@@ -69,22 +69,17 @@ async function cargarCatalogo(ctx) {
   const { catalogoReal } = await import('./datos/catalogo-real.mjs')
   const real = catalogoReal(csv)
   const adm = await ctx.sesion('admin')
-  const filas = await adm.leer('productos?select=id,sku', 'dominio')
+  // Con el catálogo real hay más de 1.000 productos: PostgREST corta en `max-rows`, así que se lee por páginas.
+  const filas = await leerTodo(adm, 'productos?select=id,sku')
   const idPorSku = new Map(filas.map((p) => [p.sku, p.id]))
-  // El stock: los módulos lo necesitan por producto (los que están sin stock no se venden ni se publican).
-  const existencias = await adm.leer('existencias_deposito?select=producto_id,cantidad,reservado&limit=20000', 'dominio')
-  const unidades = new Map()
-  for (const e of existencias) {
-    const sku = idPorSku.get(e.producto_id)
-    if (!sku) continue
-    unidades.set(sku, (unidades.get(sku) ?? 0) + Math.max(0, e.cantidad - e.reservado))
-  }
+  // El stock: el del CSV del cliente (la fuente de verdad de la carga inicial). Los módulos lo necesitan por
+  // producto (los que están sin stock no se venden ni se publican).
   ctx.catalogoReal = true
   ctx.productos = {}
   for (const p of real.productos) {
     const id = idPorSku.get(p.sku)
     if (!id) continue
-    ctx.productos[p.sku] = { ...p, id, stockLocal: unidades.get(p.sku) ?? 0, stockDeposito: 0 }
+    ctx.productos[p.sku] = { ...p, id }
   }
   const provs = await adm.leer('proveedores?select=id,razon_social', 'dominio')
   const idPorRazon = new Map(provs.map((p) => [p.razon_social, p.id]))

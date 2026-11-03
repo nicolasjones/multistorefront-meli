@@ -22,23 +22,22 @@ export async function sembrar(ctx) {
   const adm = await ctx.sesion('admin')
   const dep = await ctx.sesion('deposito')
   const ope = await ctx.sesion('operador')
-  const skus = Object.keys(ctx.productos)
+  const skus = Object.keys(ctx.productos).filter((k) => ctx.productos[k]?.id)
   const sku = (id) => skus.find((k) => ctx.productos[k].id === id)
 
   // Con el catálogo real del cliente no hay SKUs ni nombres de proveedor fijos: los casos borde (sin stock, a cero,
   // bajo mínimo, con exceso) salen del stock real del CSV, y los SKUs que el módulo usaba como ejemplo se eligen
   // del catálogo.
-  // El stock real viene del CSV del cliente: este módulo puede correr en un proceso aparte (--desde=03), así que
-  // se relee del archivo cuando hace falta.
+  // El stock real viene del CSV del cliente (la fuente de verdad de la carga inicial): este módulo puede correr en
+  // un proceso aparte (--desde=03), así que se relee del archivo y no de la base (que todavía está vacía).
   const csv = process.env.DEMO_CSV_CLIENTE
   const stockCsv = ctx.catalogoReal
-    ? Object.fromEntries(skus.map((k) => [k, { local: ctx.productos[k].stockLocal ?? 0, deposito: ctx.productos[k].stockDeposito ?? 0 }]))
-    : null
-  const stockDelCsv = ctx.catalogoReal && csv && !skus.some((k) => ctx.productos[k].stockLocal !== undefined)
-    ? Object.fromEntries(leerPreciosCliente(csv).productos.map((p) => [p.codigo, { local: p.stockLocal ?? 0, deposito: p.stockDeposito ?? 0 }]))
+    ? (csv
+      ? Object.fromEntries(leerPreciosCliente(csv).productos.map((p) => [p.codigo, { local: p.stockLocal ?? 0, deposito: p.stockDeposito ?? 0 }]))
+      : Object.fromEntries(skus.map((k) => [k, { local: ctx.productos[k].stockLocal ?? 0, deposito: ctx.productos[k].stockDeposito ?? 0 }])))
     : null
   const unidadesCsv = (k) => {
-    const s = stockCsv?.[k] ?? stockDelCsv?.[k]
+    const s = stockCsv?.[k]
     return s ? s.local + s.deposito : 0
   }
   const SIN_CARGA_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) === 0) : SIN_CARGA
@@ -47,10 +46,15 @@ export async function sembrar(ctx) {
   const CON_EXCESO_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) > 500) : CON_EXCESO
   const conStockCsv = () => skus.filter((k) => unidadesCsv(k) > 0)
   // El producto «a pedido» (el que se reserva) y los ejemplos sueltos: los más caros con stock y uno cualquiera.
+  // El producto «A pedido» es el que quedó marcado así en el catálogo (fuente de verdad: la base).
+  const aPedidoBase = ctx.catalogoReal ? await adm.leer('productos?select=sku&disponibilidad_manual=eq.a_pedido&limit=10', 'dominio') : []
   const PEDIDO_SKU = ctx.catalogoReal
-    ? (conStockCsv().sort((a, b) => (ctx.productos[b].lista ?? 0) - (ctx.productos[a].lista ?? 0))[0] ?? skus[0])
+    ? (aPedidoBase[0]?.sku
+      ?? Object.values(ctx.productos).find((p) => p.ped === 'a_pedido')?.sku
+      ?? conStockCsv().sort((a, b) => (ctx.productos[b].lista ?? 0) - (ctx.productos[a].lista ?? 0))[0] ?? skus[0])
     : PEDIDO.sku
   const SKU_EJEMPLO = ctx.catalogoReal ? (conStockCsv()[0] ?? skus[0]) : 'JOY-DS4-NG'
+  if (ctx.catalogoReal) log(`producto «a pedido»: ${PEDIDO_SKU} (el más caro sin stock)`)
   const PROV_NORTE = ctx.catalogoReal ? Object.keys(ctx.proveedores)[0] : 'norte'
 
   // El mismo módulo dos veces sobre la misma base chocaría con los nombres únicos: mejor un mensaje claro.
@@ -174,7 +178,7 @@ export async function sembrar(ctx) {
     const pool = delProveedor.length ? delProveedor : skus.filter((k) => !excluidos.has(k))
     const proveedorUsado = delProveedor.length ? provClave : (ctx.productos[pool[0]]?.prov ?? provClave)
     const elegidos = azar.mezclar(pool).slice(0, Math.max(1, Math.min(6, pool.length)))
-    if (i === fijoPedido) elegidos.unshift(PEDIDO_SKU)
+    if (i === fijoPedido && ctx.productos[PEDIDO_SKU]) elegidos.unshift(PEDIDO_SKU)
     const lineas = elegidos.map((k) => {
       const p = ctx.productos[k]
       const [mn, mx] = k === PEDIDO_SKU ? [PEDIDO.unidades, PEDIDO.unidades] : rango(RANGOS_COMPRA, ctx, p)
@@ -300,7 +304,9 @@ export async function sembrar(ctx) {
     const n = azar.entero(2, Math.min(6, Math.floor(stock[k][D.principal].cant / 2)))
     await trasl(k, D.principal, destino, n, destino === D.local ? 'Reposición del local de Corrientes' : 'Reposición para Mundo JC Córdoba', azar.entero(2, 40)); nTras++
   }
-  await trasl(PEDIDO_SKU, D.principal, D.local, 2, 'Unidades a pedido para entregas en el local', 12); nTras++
+  if (ctx.productos[PEDIDO_SKU]) {
+    await trasl(PEDIDO_SKU, D.principal, D.local, 2, 'Unidades a pedido para entregas en el local', 12); nTras++
+  }
   const enOtros = Object.keys(stock).filter((k) => [D.local, D.cordoba].some((d) => (stock[k][d]?.cant ?? 0) >= 8) && !SIN_CARGA_.includes(k) && !A_CERO_.includes(k))
   for (const k of azar.mezclar(enOtros).slice(0, 2)) { // devolución de mercadería al depósito central
     const d = [D.local, D.cordoba].find((x) => (stock[k][x]?.cant ?? 0) >= 8)
