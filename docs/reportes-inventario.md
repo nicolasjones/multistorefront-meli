@@ -79,3 +79,43 @@ solo para `superset_analitica`. Empresa activa (Principio VIII): no aplica, el i
 Reversión: `drop view analitica.inventario_reposicion;`, desregistrar el reporte por `dashboard_slug` y quitar
 los YAML de reposición. Verificación: pgTAP `reportes_inventario_reposicion.test.sql`, Vitest
 `pages/reportes/Reposicion.test.tsx` y `infra/superset/importar-dashboards.test.mjs`.
+
+## Exportar a CSV (F-REP-06, MSF-140)
+
+La descarga es la nativa de Superset (menú «...» de la tabla → «Download» → CSV) y trae solo las filas
+filtradas. El archivo sale en UTF-8 con BOM, separador `;` y coma decimal, para abrirlo en Excel en español
+(`CSV_EXPORT` y `_anteponer_bom_csv` en `infra/superset/superset_config.py`, probados por
+`pnpm test:superset:config`). Sin la sección `stock` no hay token (403 de `emitir-acceso-reporte`), por lo que
+no hay tablero ni descarga; no existe otro camino de descarga. Configuración y procedimiento manual:
+[`operar-superset.md`](./operar-superset.md#exportar-reportes-a-csv).
+
+## Revisión de seguridad de la superficie nueva (T013, FR-010)
+
+Verificada con `supabase/tests/database/reportes_inventario_superficie.test.sql` y
+`reportes_inventario_acceso.test.sql` (pgTAP, `pnpm test:db`):
+
+| Control | Resultado |
+|---|---|
+| `anon` | Sin `USAGE` sobre `analitica` ni `SELECT` en las dos vistas |
+| `authenticated` | Sin `USAGE` ni `SELECT` en `analitica`; no hay RPC ni Edge Function nuevas |
+| Rol `superset_analitica` | Solo `SELECT` en las vistas; no es superusuario ni salta RLS; no lee `producto_costos` directamente |
+| Aislamiento | Cada fila lleva `organizacion_id`; el guest token fuerza la cláusula `rls` |
+| Costos en `analitica` vs. RLS de `producto_costos` | La vista corre con los privilegios del dueño: quien tiene la sección `stock` ve costo y valor en Productos y stock aunque no tenga `rentabilidad`. Es la Decisión abierta 3 (provisional); Reposición no expone costos |
+| Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` verde |
+
+## Pruebas E2E (T014)
+
+`apps/web/e2e/reportes-inventario.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`): con la
+sección `stock` ambas pantallas muestran su título y sin ella «No tenés acceso a esta sección». La descarga
+real del CSV exige un Superset con los tableros importados: el test correspondiente solo corre con
+`E2E_SUPERSET=1` y, si no, el formato lo cubre `pnpm test:superset:config` más el procedimiento manual.
+
+## Reversión
+
+Todo es aditivo y sin datos propios: ver la reversión de cada vista arriba y, para la exportación, quitar
+`CSV_EXPORT` y `FLASK_APP_MUTATOR`. Para deshacer la spec completa: `git revert -m 1 <merge>`.
+
+## Preguntas abiertas
+
+Decisión 3 (¿los roles con `stock` ven costos y valor?) y Decisión 4 (faltante sugerido = mínimo − cantidad)
+siguen provisionales hasta que Nicolás las confirme.
