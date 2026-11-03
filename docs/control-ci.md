@@ -67,6 +67,45 @@ alto, más réplicas reparten el mismo CPU.
   caso normal sin bloquear la entrega bajo una avalancha sostenida.
 - **TTL:** un carril de un job muerto se recicla a los `CI_LANE_TTL_MIN` (50 min).
 
+### El carril se libera en un job que compite por runner (2026-11-03)
+
+El carril lo suelta el job `liberar`, que **necesita un runner** como cualquier
+otro: si la cola del CI está larga, `liberar` espera detrás de los jobs pesados
+y el carril queda tomado mientras su PR **ya terminó** (sus jobs pesados están
+en verde). Con 5 carriles y 5 runners, los 5 runners acaban ocupados por jobs
+que esperan un carril que no se libera → el CI se clava.
+
+Peor: el job `changes` **espera el carril dentro del runner** (hasta
+`CI_LANE_WAIT_MIN`), así que un PR sin carril **ocupa un runner 15 min sin
+hacer nada**. Con el host saturado (load > 12 × `CI_LOAD_MAX`), el
+cortacircuitos de carga además hace que ese PR espere por el host y luego
+continue sin admisión (fail-open) tras los 15 min: 15 min de runner Gastados
+para nada.
+
+**Cómo se ve:** `pnpm ci:estado` con `enUso` = nº de runners y la cola de runs
+creciendo; los jobs `changes` de los runs en cola llevan `Cambios en el
+archivo` sin pasos de código.
+
+**Qué hacer (runbook):**
+
+- Reciclar a mano los carriles **vencidos** (los que ya pasaron el TTL de 50
+  min): es exactamente lo que hace `intentarCarriles()` cuando encuentra un
+  lock viejo, pero sin esperar a que un PR nuevo lo toque:
+
+  ```bash
+  docker exec multistorefront-meli-runner-dev-runner-1 sh -c '
+    now=$(date +%s); ttl=$((50*60))
+    for d in /pnpm/.ci-lanes/ci-*; do
+      [ -d "$d" ] || continue
+      edad=$(( now - $(stat -c %Y "$d") ))
+      [ $edad -gt $ttl ] && { echo "reciclando $(basename $d) (${edad}s)"; rm -rf "$d"; }
+    done'
+  ```
+
+- Si la cola es larga pero **no** hay carriles vencidos, el problema es el
+  volumen: bajar `RUNNER_REPLICAS` (menos jobs pesados simultáneos) o bajar
+  `CI_LANE_WAIT_MIN` para que un PR sin carril no retenga un runner 15 min.
+
 ## Runbook
 
 - **El CI “no arranca” o tarda muchísimo:** `pnpm ci:estado` muestra carriles en
@@ -156,3 +195,62 @@ la limpieza de fin de job y el janitor resuelven el caso normal sin cortar nada.
 corrección hay que asegurarse de que el workflow llegue a la rama por defecto
 (o cambiar la rama por defecto del repositorio). Mientras tanto, la limpieza de
 fin de cada job en `validate.yml` ya evita que la fuga se acumule.
+
+## El runner no se autoactualiza dentro del contenedor (2026-11-03)
+
+El runner de GitHub se autoactualiza en el sitio: renombra `bin` a
+`bin.<version>` y recién **después** deja el `bin` nuevo. Dentro de un contenedor
+eso es una ventana peligrosa: si el contenedor se reinicia en medio del swap (host
+saturado, OOM, `docker compose up`), `bin` queda ausente y el runner no arranca.
+
+Síntoma exacto (pasó el 2026-11-03, con el host a load 19 sobre 12 vCPU):
+
+- El contenedor `runner-5` queda en `Restarting (1)` para siempre, con el log
+  repeating `./config.sh: line 80: ./bin/Runner.Listener: No such file or
+  directory`: `config.sh` no encuentra el listener, no se puede deregistrar y
+  nunca llega a registrarse.
+- En GitHub el runner queda **`offline` + `busy`**: el job que tenía tomado
+  (`application`) queda **huérfano para siempre**. El PR espera un CI que nunca
+  termina y `mergeable` no lo resuelve.
+- El pool pierde una réplica y la cola del CI se agranda: 9 runs en cola, el de
+  MSF-223 esperando **2 h 40 min**, y las épicas MSF-192 y MSF-193 trabadas con
+  sus historias en `Merging`.
+
+Tres medidas, de la más fuerte a la más débil:
+
+1. **`RUNNER_DISABLE_AUTO_UPDATE=1`** en `infra/runner/compose.yaml`: el runner
+   no se autoactualiza en caliente. La versión la fija la imagen
+   (`RUNNER_VERSION` del `Dockerfile`), así que se actualiza **reconstruyendo la
+   imagen**, no con un swap a mitad de un job.
+2. **Autorreparación** (`infra/runner/restaurar-bin.mjs`, usado por
+   `entrypoint.mjs`): si `bin` falta pero quedó un respaldo `bin.<version>`,
+   se restaura antes de registrar. Cubre los contenedores que ya quedaron
+   rotos antes de aplicar (1).
+3. **Prueba** (`infra/runner/restaurar-bin.test.mjs`, `pnpm
+   test:runner:selfheal`): la heurística del respaldo es determinista y está
+   cubierta.
+
+Si vuelve a pasar, el arreglo manual es restaurar el `bin` del contenedor roto
+(sin cortar los jobs en curso de los otros runners):
+
+```bash
+C=multistorefront-meli-runner-dev-runner-5
+docker stop $C
+docker cp $C:/home/runner/bin.2.337.0 /tmp/rbin
+docker cp /tmp/rbin $C:/home/runner/bin
+docker start $C
+```
+
+Y hay que borrar el runner **fantasma** que quedó registrado en GitHub sin
+contenedor (`offline` + `busy=false`): `gh api -X DELETE
+repos/nicolasjones/multistorefront-meli/actions/runners/<id>`.
+
+Para ver el estado real del pool:
+
+```bash
+gh api repos/nicolasjones/multistorefront-meli/actions/runners \
+  --jq '.runners[] | "\(.name)\t\(.status)\tbusy=\(.busy)"'
+```
+
+Un runner `offline` **con** `busy=true` es un job huérfano: ese PR está
+esperando un CI que no va a llegar.
