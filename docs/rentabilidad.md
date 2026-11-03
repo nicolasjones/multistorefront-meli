@@ -255,3 +255,18 @@ a la empresa activa de la barra superior (Principio VIII, no aplica; ver la matr
 - **Pruebas**: pgTAP `rentabilidad_ventas_real.test.sql` (captura, idempotencia, vista, notas, exclusiones, privilegios) y
   `rentabilidad_ventas_real_aislamiento.test.sql` (dos organizaciones, roles sin `rentabilidad`); Vitest `VentasReales.test.tsx`
   y `tableroVentasReales.contrato.test.ts`; `infra/superset/importar-dashboards.test.mjs` (YAML y reporte).
+
+## Revisión de seguridad de la superficie nueva (cierre de MSF-192, FR-015)
+
+Revisada contra las migraciones `20270202201000`–`20270202201007` y sus pruebas pgTAP:
+
+- **Esquemas (Principio VII)**: `dominio.costos_adicionales_canal` (dominio del producto) con RLS por organización y sección
+  `rentabilidad`; sin políticas de escritura (solo las RPC `security definer` con `search_path = ''`). Las vistas y funciones de
+  lectura viven en `analitica`, cerrado a `anon` y `authenticated`: solo las lee `superset_analitica`.
+- **`anon`**: sin privilegios en la tabla; las RPC (`listar/guardar/dar_baja_costo_adicional`, `consultas_reportes_conteo`)
+  llevan `revoke ... from public, anon` y `grant ... to authenticated` explícitos.
+- **Costo y margen**: solo con `rentabilidad`. `costo_unitario` y `cotizacion` quedan fuera del `select` por columna de
+  `authenticated`; las RPC exigen `lectura`/`edicion` de `rentabilidad`; el token de Superset es por sección y el `rls` del
+  guest token filtra por `organizacion_id` (y empresas accesibles).
+- **Aislamiento**: pruebas `*_aislamiento.test.sql` con dos organizaciones y roles sin la sección; `rls_en_toda_tabla` recorre `public` + `dominio`.
+- **Sin hallazgos abiertos.** Límite conocido: el 403 del guest token es de Superset y se prueba en su importador, no en pgTAP.
