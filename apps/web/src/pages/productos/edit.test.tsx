@@ -536,6 +536,25 @@ describe('ProductoEdit', () => {
     await waitFor(() => expect(screen.queryByText(/no pudimos guardar los productos relacionados/)).not.toBeInTheDocument())
   })
 
+  it('si la lectura de los relacionados falla, tras el reintento muestra la lista y no la borra al guardar', async () => {
+    let fallar = true
+    mocks.relacionados.mockImplementation(async () =>
+      fallar
+        ? { data: null, error: { code: 'XX000' } }
+        : { data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }], error: null },
+    )
+    abrir()
+    expect(await screen.findByText('No pudimos cargar los productos relacionados.')).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    expect(await screen.findByText('1 producto')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    // La lista que ya estaba guardada no se manda vacía: los relacionados siguen en pie.
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_relacionados', expect.anything())
+  })
+
   it('con solo lectura los relacionados se ven sin controles', async () => {
     mocks.relacionados.mockResolvedValue({
       data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }],
