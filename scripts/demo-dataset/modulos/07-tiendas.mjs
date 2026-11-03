@@ -143,9 +143,13 @@ export async function sembrar(ctx) {
   for (const clave of Object.keys(TIENDAS)) {
     const host = conTienda[clave]
     const pub = CONSULTAS_PUBLICAS[clave]
+    // Las consultas por WhatsApp apuntan a un producto del catálogo: con el catálogo real, a uno con stock.
+    const skusWhatsapp = ctx.catalogoReal
+      ? Object.values(ctx.productos).filter((p) => (p.stockLocal ?? 0) + (p.stockDeposito ?? 0) > 0).slice(0, 2).map((p) => p.sku)
+      : pub.whatsapp
     const pedidos = [
       ...pub.formulario.map(([n, c, m]) => ['enviar_consulta_contacto', { host, nombre: n, contacto: c, mensaje: m, clave_envio: uuid() }]),
-      ...pub.whatsapp.map((sku) => ['registrar_consulta_whatsapp', { host, producto: ctx.productos[sku].id, clave_envio: uuid() }]),
+      ...skusWhatsapp.map((sku) => ['registrar_consulta_whatsapp', { host, producto: ctx.productos[sku].id, clave_envio: uuid() }]),
     ]
     for (const [funcion, args] of pedidos) {
       const r = await rpcPublica(cfg, funcion, args, ipNueva())
