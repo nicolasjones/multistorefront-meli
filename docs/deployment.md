@@ -13,6 +13,14 @@ pnpm dev:superset
 pnpm dev:nango
 ```
 
+`pnpm dev:supabase` corre `supabase start` y a continuación `supabase migration up --local`
+(MSF-588): en un stack levantado con `--ignore-health-check` o sobre un volumen ya existente,
+`supabase start` no siempre aplica las migraciones locales (queda sin
+`supabase_migrations.schema_migrations` y PostgREST responde 503 con `schema "dominio" does not
+exist`). `migration up` es idempotente: solo aplica lo pendiente. La causa exacta en el CLI no se
+confirmó (no se probó sin el flag); si `supabase start` falla por sus chequeos de salud, la segunda
+orden no corre y hay que ejecutarla a mano: `supabase migration up --local`.
+
 ## Entornos (Dokploy en VPS2, detrás de Traefik)
 
 - **dev**: `https://dev.212-90-120-53.sslip.io` — se despliega al pushear a la rama `dokploy`.

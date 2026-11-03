@@ -7,7 +7,7 @@
     "dev": "pnpm dev:refine",
     "dev:refine": "docker compose -f infra/refine/compose.yaml up -d --build",
     "dev:refine:host": "pnpm --filter @platform/web dev",
-    "dev:supabase": "supabase start",
+    "dev:supabase": "supabase start && supabase migration up --local",
     "dev:kestra": "docker compose -f infra/kestra/compose.yaml up -d",
     "dev:superset": "docker compose -f infra/superset/compose.yaml up -d --build",
     "dev:playwright": "docker compose -f infra/playwright/compose.yaml up -d",
