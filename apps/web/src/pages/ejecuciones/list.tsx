@@ -5,6 +5,7 @@ import { Alert, Button, Table, TableBody, TableCell, TableContainer, TableHead, 
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
+import { mensajeDeErrorBase } from '../../lib/mensajeErrorBase'
 
 type Ejecucion = {
   id: string
@@ -37,7 +38,7 @@ export function EjecucionList() {
     let cancelled = false
     supabaseClient.from('ejecuciones_worker').select('id, origen, estado, iniciada_en, finalizada_en, motivo_sanitizado, capacidades_ejecucion(clave)').eq('organizacion_id', organizacionId).order('iniciada_en', { ascending: false }).limit(100).then(({ data, error: queryError }) => {
       if (cancelled) return
-      if (queryError) setError(queryError.message)
+      if (queryError) setError(mensajeDeErrorBase(queryError, 'No pudimos cargar las ejecuciones. Reintentá en unos minutos.'))
       else setEjecuciones((data ?? []) as Ejecucion[])
     })
     return () => { cancelled = true }

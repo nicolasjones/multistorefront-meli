@@ -33,6 +33,7 @@ import { SelectorAsignacionesEmpresa } from '../../components/usuarios/SelectorA
 import { DialogoInvitarUsuario } from '../../components/usuarios/DialogoInvitarUsuario'
 import { InvitacionesPendientes } from '../../components/usuarios/InvitacionesPendientes'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
+import { mensajeDeErrorBase } from '../../lib/mensajeErrorBase'
 
 type Usuario = {
   user_id: string
@@ -87,7 +88,7 @@ export function UsuarioList() {
     const { data, error: rpcError } = await supabaseClient.rpc('listar_usuarios_organizacion')
 
     if (rpcError) {
-      setErrorCarga(rpcError.message)
+      setErrorCarga(mensajeDeErrorBase(rpcError, 'No pudimos cargar los usuarios. Reintentá en unos minutos.'))
       setCargando(false)
       return
     }
@@ -129,7 +130,9 @@ export function UsuarioList() {
     setProcesando(null)
 
     if (rpcError) {
-      setErrorAccion(rpcError.message)
+      setErrorAccion(mensajeDeErrorBase(rpcError, 'No pudimos completar la acción. Reintentá en unos minutos.', {
+        '23514': 'La organización debe conservar al menos un administrador.',
+      }))
       return false
     }
 
