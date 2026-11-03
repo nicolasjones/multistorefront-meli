@@ -64,7 +64,7 @@ aunque todavía no los compren. Solo cantidades: **nunca costo ni margen** (deci
   lectura o edición en `reportes`, acota a las empresas accesibles; `anon` sin ejecución) cuenta los toques del
   período: «No hay consultas por WhatsApp en ese período». Se rige por `reportes` aunque la tabla exija `consultas`.
 - **Pantalla**: reutiliza `TableroReporte` y `FiltrosPeriodo`; sigue a la empresa activa (Principio VIII).
-- **Reversión** (migración `20270201120000`, aditiva): `drop function public.consultas_reportes_conteo(date, date, uuid);`
+- **Reversión** (migración `20270202201003`, aditiva): `drop function public.consultas_reportes_conteo(date, date, uuid);`
   y `drop view analitica.consultas_producto_mas_consultado;`.
 - **Pruebas**: `consultas_mas_consultados.test.sql`, `consultas_mas_consultados_aislamiento.test.sql`, Vitest de la pestaña
   (`index.test.tsx`, `MasConsultados.test.tsx`) y `pnpm test:superset:importar-dashboards`.
@@ -87,7 +87,7 @@ Muestra comprobantes, unidades y facturado con IVA: **nunca costo ni margen** (d
   `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging|production`.
 - **Estado vacío**: reutiliza `public.ventas_reportes_conteo` (sin RPC nueva): «No hay ventas en ese período».
 - **Pantalla**: reutiliza `TableroReporte` y `FiltrosPeriodo`; sigue a la empresa activa (Principio VIII).
-- **Reversión** (migración `20270201130000`, aditiva): `drop view analitica.ventas_periodo_canal;`.
+- **Reversión** (migración `20270202201004`, aditiva): `drop view analitica.ventas_periodo_canal;`.
 - **Pruebas**: `ventas_periodo_canal.test.sql`, `ventas_periodo_canal_aislamiento.test.sql`, Vitest de la pestaña
   (`index.test.tsx`, `VentasPeriodoCanal.test.tsx`) y `pnpm test:superset:importar-dashboards`.
 
