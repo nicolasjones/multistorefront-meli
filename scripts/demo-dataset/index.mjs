@@ -57,6 +57,44 @@ async function cargarContexto() {
   ctx.orgId = org.id
   for (const u of USUARIOS) ctx.usuarios[u.clave] = { correo: correoDe(u.clave), rol: u.rol }
   await cargarBase(ctx)
+  await cargarCatalogo(ctx)
+}
+
+// El contexto del catálogo para los módulos que corren en un proceso aparte (--desde=03): los productos con sus
+// ids de la base y el árbol de categorías. Con el catálogo real del cliente, los datos vienen del CSV (los mismos
+// que se sembraron) y de la base (los ids).
+async function cargarCatalogo(ctx) {
+  const csv = process.env.DEMO_CSV_CLIENTE
+  if (!csv) return
+  const { catalogoReal } = await import('./datos/catalogo-real.mjs')
+  const real = catalogoReal(csv)
+  const adm = await ctx.sesion('admin')
+  const filas = await adm.leer('productos?select=id,sku', 'dominio')
+  const idPorSku = new Map(filas.map((p) => [p.sku, p.id]))
+  ctx.catalogoReal = true
+  ctx.productos = {}
+  for (const p of real.productos) {
+    const id = idPorSku.get(p.sku)
+    if (!id) continue
+    ctx.productos[p.sku] = { ...p, id }
+  }
+  const provs = await adm.leer('proveedores?select=id,razon_social', 'dominio')
+  const idPorRazon = new Map(provs.map((p) => [p.razon_social, p.id]))
+  ctx.proveedores = {}
+  for (const p of real.proveedores) {
+    ctx.proveedores[p.clave] = { id: idPorRazon.get(p.razon_social), razon_social: p.razon_social, empresas: p.empresas }
+  }
+  ctx.categorias = {}
+  for (const c of real.categorias) {
+    ctx.categorias[c.ruta] = { id: null, def: c }
+    const hijas = (lista) => {
+      for (const h of lista) {
+        ctx.categorias[h.ruta ?? h.nombre] = { id: null, def: c }
+        if (h.hijas?.length) hijas(h.hijas)
+      }
+    }
+    hijas(c.hijas ?? [])
+  }
 }
 
 if (bandera('reset')) await reset()

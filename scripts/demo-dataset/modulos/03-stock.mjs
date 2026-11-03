@@ -4,6 +4,7 @@
 // Todo se escribe como usuario real por las RPC (el esquema `dominio` no da permisos a la service-role key).
 // Quién hace qué: Administrador crea depósitos, actualiza costos (exige `rentabilidad` en edición) y migra el archivo;
 // Depósito registra ingresos, movimientos, traslados y tomas; Operador reserva (tiene Stock en edición).
+import { leerPreciosCliente } from '../lib/csvCliente.mjs'
 import { PROVEEDORES } from '../datos/catalogo.mjs'
 import { diaHabilHaceDias } from '../lib/fechas.mjs'
 import {
@@ -27,10 +28,19 @@ export async function sembrar(ctx) {
   // Con el catálogo real del cliente no hay SKUs ni nombres de proveedor fijos: los casos borde (sin stock, a cero,
   // bajo mínimo, con exceso) salen del stock real del CSV, y los SKUs que el módulo usaba como ejemplo se eligen
   // del catálogo.
+  // El stock real viene del CSV del cliente: este módulo puede correr en un proceso aparte (--desde=03), así que
+  // se relee del archivo cuando hace falta.
+  const csv = process.env.DEMO_CSV_CLIENTE
   const stockCsv = ctx.catalogoReal
     ? Object.fromEntries(skus.map((k) => [k, { local: ctx.productos[k].stockLocal ?? 0, deposito: ctx.productos[k].stockDeposito ?? 0 }]))
     : null
-  const unidadesCsv = (k) => (stockCsv ? stockCsv[k].local + stockCsv[k].deposito : 0)
+  const stockDelCsv = ctx.catalogoReal && csv && !skus.some((k) => ctx.productos[k].stockLocal !== undefined)
+    ? Object.fromEntries(leerPreciosCliente(csv).productos.map((p) => [p.codigo, { local: p.stockLocal ?? 0, deposito: p.stockDeposito ?? 0 }]))
+    : null
+  const unidadesCsv = (k) => {
+    const s = stockCsv?.[k] ?? stockDelCsv?.[k]
+    return s ? s.local + s.deposito : 0
+  }
   const SIN_CARGA_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) === 0) : SIN_CARGA
   const A_CERO_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) === 0) : A_CERO
   const BAJO_MINIMO_ = ctx.catalogoReal ? skus.filter((k) => unidadesCsv(k) > 0 && unidadesCsv(k) <= 2) : BAJO_MINIMO

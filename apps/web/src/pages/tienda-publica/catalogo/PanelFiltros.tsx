@@ -1,7 +1,6 @@
 import { Box, Button, InputAdornment, List, ListItem, ListItemButton, ListItemText, TextField, Typography } from '@mui/material'
 import { useMemo, useState } from 'react'
-import { profundidadCategorias } from '../../../lib/tiendaCategorias'
-import type { CategoriaListado, FiltrosCatalogo } from '../../../lib/tiendaListado'
+import { profundidadCategorias, type CategoriaListado, type FiltrosCatalogo } from '../../../lib/tiendaListado'
 
 type Props = {
   categorias: CategoriaListado[]

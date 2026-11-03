@@ -6,8 +6,36 @@ import { CATEGORIAS, PRODUCTOS, PROVEEDORES } from '../datos/catalogo.mjs'
 import { catalogoReal } from '../datos/catalogo-real.mjs'
 import { ean13 } from '../lib/ean.mjs'
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 
 export const nombre = 'Proveedores, catálogo y precios'
+
+// Sube las fotos al bucket de la tienda (la base firma las URLs contra ese bucket). La ruta es la que exige la
+// tabla `dominio.producto_imagenes`: <organización>/<producto>/<posición>-<hash>.<ext>.
+async function subirImagenes(ctx, bucket, imagenes) {
+  const { url, servicio } = ctx.cfg
+  let subidas = 0
+  const cola = [...imagenes]
+  const workers = Array.from({ length: 8 }, async () => {
+    while (cola.length) {
+      const i = cola.shift()
+      if (!existsSync(i.archivo)) continue
+      try {
+        const datos = await readFile(i.archivo)
+        const r = await fetch(`${url}/storage/v1/object/${bucket}/${i.ruta}`, {
+          method: 'POST',
+          headers: { apikey: servicio, authorization: `Bearer ${servicio}`, 'content-type': 'image/jpeg', 'x-upsert': 'true' },
+          body: datos,
+        })
+        if (r.ok) subidas++
+      } catch {
+        // Si una foto no se puede subir, el producto queda sin ella (no frena la carga).
+      }
+    }
+  })
+  await Promise.all(workers)
+  return subidas
+}
 
 export async function sembrar(ctx) {
   const { log } = ctx
@@ -97,45 +125,40 @@ export async function sembrar(ctx) {
   log(`${productos.length} productos con proveedor, categoría, empresas, código de barras y escalas`)
 
   // — Imágenes: la tabla `dominio.producto_imagenes` no tiene RPC de escritura, así que el paso SQL las carga. —
-  // Si el paso de descarga de fotos del cliente ya dejó el mapeo (JSON con las rutas ya subidas al bucket), se usa ese:
-  // la tienda firma las URLs del bucket, no las del panel del cliente.
-  const destino = process.env.DEMO_IMAGENES_CSV ?? '/tmp/demo-imagenes.csv'
-  const mapeo = process.env.DEMO_IMAGENES_JSON ?? destino.replace(/\.csv$/, '.json')
+  // Las fotos del cliente ya están bajadas (`bajar-imagenes.mjs` deja el mapeo y los archivos): se suben al bucket
+  // con la ruta que exige la base (<organización>/<producto>/archivo) y se arma el archivo con los INSERT, que el
+  // shell pipea al psql (el cliente puede estar en otro contenedor y no ver el sistema de archivos del host).
+  const mapeo = process.env.DEMO_IMAGENES_JSON ?? '/tmp/demo-imagenes.json'
+  const carpeta = process.env.DEMO_IMAGENES_CARPETA ?? '/tmp/imgs'
+  const bucket = process.env.DEMO_IMAGENES_BUCKET ?? 'productos-imagenes'
+  const archivoSql = process.env.DEMO_IMAGENES_SQL ?? '/tmp/demo-imagenes.sql'
   if (existsSync(mapeo)) {
     try {
-      const desdeBucket = JSON.parse(readFileSync(mapeo, 'utf8'))
-      let n = 0
-      for (const [sku, lista] of Object.entries(desdeBucket)) {
+      const desdeArchivos = JSON.parse(readFileSync(mapeo, 'utf8'))
+      const imagenes = []
+      for (const [sku, lista] of Object.entries(desdeArchivos)) {
         const p = ctx.productos[sku]
         if (!p) continue
-        p.imagenes = lista.sort((a, b) => a.posicion - b.posicion).map((x) => x.ruta)
-        n += p.imagenes.length
+        for (const item of lista.sort((a, b) => a.posicion - b.posicion)) {
+          const ruta = `${ctx.orgId}/${p.id}/${item.posicion}-${item.hash}.${item.ext}`
+          imagenes.push({ sku, posicion: item.posicion, ruta, archivo: `${carpeta}/${item.archivo}` })
+        }
       }
-      log(`${n} imágenes tomadas del bucket (${mapeo})`)
+      const subidas = await subirImagenes(ctx, bucket, imagenes)
+      log(`${subidas} de ${imagenes.length} fotos subidas al bucket «${bucket}»`)
+      const sentencia = (i) => `insert into dominio.producto_imagenes (producto_id, organizacion_id, posicion, ruta)\n` +
+        `select p.id, p.organizacion_id, ${i.posicion}, '${i.ruta.replace(/'/g, "''")}'\n` +
+        `  from dominio.productos p\n where p.organizacion_id = '${ctx.orgId}' and p.sku = '${i.sku.replace(/'/g, "''")}'\n` +
+        `on conflict do nothing;`
+      writeFileSync(archivoSql, [
+        '-- Imágenes de los productos (lo genera el módulo 02; lo pipea el shell al psql).',
+        ...imagenes.map(sentencia),
+      ].join('\n') + '\n')
+      ctx.archivoImagenes = archivoSql
+      log(`${imagenes.length} imágenes para el paso SQL (${archivoSql})`)
     } catch (e) {
-      log(`ATENCIÓN · no se pudo leer ${mapeo}: ${e.message}`)
+      log(`ATENCIÓN · no se pudieron subir las imágenes: ${e.message}`)
     }
-  }
-
-  // El archivo con los INSERT: el shell lo pipea al psql (el cliente puede estar en otro contenedor y no ver el
-  // sistema de archivos del host, así que no puede leer un CSV con \copy).
-  const archivoSql = process.env.DEMO_IMAGENES_SQL ?? '/tmp/demo-imagenes.sql'
-  const imagenes = []
-  for (const p of Object.values(ctx.productos)) {
-    for (const [i, ruta] of (p.imagenes ?? []).entries()) imagenes.push({ sku: p.sku, posicion: i + 1, ruta })
-  }
-  if (imagenes.length) {
-    const org = ctx.orgId
-    const sentencia = (i) => `insert into dominio.producto_imagenes (producto_id, organizacion_id, posicion, ruta)\n` +
-      `select p.id, p.organizacion_id, ${i.posicion}, '${i.ruta.replace(/'/g, "''")}'\n` +
-      `  from dominio.productos p\n where p.organizacion_id = '${org}' and p.sku = '${i.sku.replace(/'/g, "''")}'\n` +
-      `on conflict do nothing;`
-    writeFileSync(archivoSql, [
-      '-- Imágenes de los productos (lo genera el módulo 02; lo pipea el shell al psql).',
-      ...imagenes.map(sentencia),
-    ].join('\n') + '\n')
-    ctx.archivoImagenes = archivoSql
-    log(`${imagenes.length} imágenes para el paso SQL (${archivoSql})`)
   }
 
   // — Reglas de precio por empresa: San Javucho (minorista) = precio central con IVA; Mundo JC = +8 % sin IVA —
