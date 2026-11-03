@@ -1,7 +1,7 @@
 # Fix MSF-722
 
 ## Cambios
-- `supabase/migrations/20270201200300_busqueda_sin_tildes_columna_calculada.sql` (aditiva, sin tablas nuevas;
+- `supabase/migrations/20270203120000_busqueda_sin_tildes_columna_calculada.sql` (aditiva, sin tablas nuevas;
   esquemas `public` y `dominio` según la relación): columna calculada `nombre_norm` (`private.normalizar_busqueda`)
   en `v_productos_listado`, `stock_estados` y `dominio.productos`. Reversión: `drop function ... nombre_norm(...)`.
 - `lib/busquedaTexto.ts`: normaliza lo tipeado (NFD, minúsculas). `filtroBusquedaProductos` y `filtroBusquedaStock`
