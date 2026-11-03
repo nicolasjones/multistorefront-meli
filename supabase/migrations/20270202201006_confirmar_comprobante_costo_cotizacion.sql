@@ -36,6 +36,7 @@ declare
   v_saldo integer;
   v_disponible integer;
   v_lineas integer := 0;
+  v_lineas_stock integer := 0;
   v_procesadas integer := 0;
 begin
   if v_org is null or v_actor is null then
@@ -65,7 +66,7 @@ begin
     raise exception 'La factura ya está cerrada y no se puede confirmar' using errcode = '55000';
   end if;
 
-  select count(*)::int into v_lineas
+  select count(*)::int, (count(*) filter (where not l.sin_stock))::int into v_lineas, v_lineas_stock
     from dominio.comprobantes_venta_lineas l
    where l.comprobante_id = v_c.id and l.organizacion_id = v_org;
   if v_lineas = 0 then
@@ -111,7 +112,7 @@ begin
       from dominio.comprobantes_venta_lineas l
       join dominio.productos p on p.id = l.producto_id and p.organizacion_id = l.organizacion_id
       join dominio.depositos d on d.id = l.deposito_id and d.organizacion_id = l.organizacion_id
-     where l.comprobante_id = v_c.id and l.organizacion_id = v_org
+     where l.comprobante_id = v_c.id and l.organizacion_id = v_org and not l.sin_stock
      order by l.producto_id, l.deposito_id, l.orden
   loop
     if not v_linea.deposito_activo then
@@ -156,8 +157,8 @@ begin
   end loop;
 
   -- Defensa: si un join dejó fuera una línea (FK suelta), no se confirma sin mover su stock.
-  if v_procesadas <> v_lineas then
-    raise exception 'La factura tiene % líneas pero solo se pudieron procesar %: revisá producto y depósito de cada una', v_lineas, v_procesadas
+  if v_procesadas <> v_lineas_stock then
+    raise exception 'La factura tiene % líneas con stock pero solo se pudieron procesar %: revisá producto y depósito de cada una', v_lineas_stock, v_procesadas
       using errcode = '22023';
   end if;
 
@@ -182,7 +183,7 @@ revoke execute on function public.confirmar_comprobante(uuid) from public, anon;
 grant execute on function public.confirmar_comprobante(uuid) to authenticated;
 
 comment on function public.confirmar_comprobante(uuid) is
-  'Confirma una factura en borrador (F-VTA-07) y guarda costo y cotización por línea (F-REN-09): salida de stock por línea y depósito, reserva de líneas «A pedido», todo o nada e idempotente. Exige ventas en edición en la empresa del comprobante. Contrato en docs/ventas-comprobantes.md.';
+  'Confirma una factura en borrador (F-VTA-07): guarda costo y cotización por línea (F-REN-09) y saltea las líneas sin stock (F-SVC-13: ni salida ni reserva). Salida de stock por línea y depósito, reserva de líneas «A pedido», todo o nada e idempotente. Exige ventas en edición en la empresa del comprobante. Contrato en docs/ventas-comprobantes.md.';
 
 -- Copia del costo a las líneas de una nota de crédito de devolución (la RPC de emisión no cambia).
 create or replace function private.copiar_costo_linea_nota()
