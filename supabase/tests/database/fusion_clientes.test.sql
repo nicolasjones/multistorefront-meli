@@ -147,7 +147,7 @@ select ok(
 -- ---------------------------------------------------------------------------
 select is(
   (select fusionar_clientes('c1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000002')),
-  jsonb_build_object('documentos_reasignados', 5, 'cuentas_reasignadas', 0, 'campanas_reasignadas', 0),
+  jsonb_build_object('documentos_reasignados', 5, 'cuentas_reasignadas', 0, 'campanas_reasignadas', 0, 'cuentas_dadas_de_baja', 0),
   'la fusión informa los documentos reasignados');
 select is(
   (select count(*)::int from dominio.comprobantes_venta where cliente_id = 'c1000000-0000-0000-0000-000000000001'),

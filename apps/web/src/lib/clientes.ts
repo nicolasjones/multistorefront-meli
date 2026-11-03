@@ -159,6 +159,7 @@ export type ResumenFusion = {
   documentos_reasignados: number
   cuentas_reasignadas: number
   campanas_reasignadas: number
+  cuentas_dadas_de_baja: number
 }
 
 export async function vistaPreviaFusion(conservarId: string, descartarId: string): Promise<VistaPreviaCliente[]> {
