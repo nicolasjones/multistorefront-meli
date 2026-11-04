@@ -118,6 +118,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
   el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `proveedor.contacto_agregado|contacto_principal_cambiado` (F-PRV-08): las RPC `agregar_contacto_proveedor` y
+  `marcar_contacto_principal` los registran en la misma transacción por `private.registrar_actividad_contacto_proveedor`;
+  detalle con la razón social y el nombre del contacto, **sin correo ni teléfono**. Lo cubre el pgTAP
+  `proveedores_contactos`.
 - `cuenta_cobro.creada|editada|desactivada|reactivada` (F-VTA-03): los triggers
   `registrar_actividad_cuenta_cobro_alta` y `registrar_actividad_cuenta_cobro` los registran en la misma transacción,
   solo con sesión y ante cambios reales (`updated_at` avanzó; repetir «No usar» no duplica; un cambio solo de
