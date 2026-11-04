@@ -1,0 +1,150 @@
+# Dataset sobre la vista `analitica.ventas_periodo_canal` (F-REP-05, FR-012/FR-013; contrato:
+# specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/rentabilidad-real-y-reportes.md).
+#
+# Grano de la vista: una fila por empresa (canal) × fecha. El TABLERO agrupa por período (día, semana o
+# mes, según el filtro nativo de «Agrupar por») y por canal (empresa/tienda) y suma; los filtros nativos
+# (rango de fechas y empresa) se aplican sobre la fila de la vista y recién después se agrega.
+#
+# `organizacion_id` y `empresa_id` son las columnas sobre las que el guest token fuerza la cláusula
+# `rls`. La vista NO tiene costo ni margen: el reporte muestra solo comprobantes, unidades y facturado
+# con IVA. No hay canal de Mercado Libre (MSF-123 todavía no existe).
+table_name: ventas_periodo_canal
+main_dttm_col: fecha
+description: 'Ventas por período y canal (F-REP-05): comprobantes, unidades y facturado con IVA por empresa (canal) y fecha.'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 29408bf9-e4f1-4b31-a917-954c356dc1f2
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: comprobantes_total
+  verbose_name: Comprobantes
+  metric_type: null
+  expression: SUM(comprobantes)
+  description: 'Facturas que cuentan como venta en el período (la nota de crédito no suma un comprobante).'
+  d3format: ',d'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: unidades_total
+  verbose_name: Unidades
+  metric_type: null
+  expression: SUM(unidades)
+  description: 'Unidades vendidas netas (la nota de crédito resta).'
+  d3format: ',d'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: facturado_total
+  verbose_name: Facturado
+  metric_type: null
+  expression: SUM(facturado)
+  description: 'Facturado neto con IVA, igual al total_con_iva de los comprobantes (la nota de crédito resta).'
+  d3format: ',.2f'
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Empresa (canal) de la venta; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Canal (tienda)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre de la tienda; es el canal y la columna del filtro nativo de empresa.'
+  python_date_format: null
+  extra: {}
+- column_name: comprobantes
+  verbose_name: Comprobantes (por fila)
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Comprobantes de la fila (empresa × fecha); el tablero los suma.'
+  python_date_format: null
+  extra: {}
+- column_name: unidades
+  verbose_name: Unidades (por fila)
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Unidades netas de la fila (empresa × fecha); el tablero las suma.'
+  python_date_format: null
+  extra: {}
+- column_name: facturado
+  verbose_name: Facturado (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Facturado neto con IVA de la fila (empresa × fecha); el tablero lo suma.'
+  python_date_format: null
+  extra: {}
+- column_name: fecha
+  verbose_name: Fecha
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Día del comprobante; es la columna del filtro nativo de rango de fechas y la del grano temporal (día, semana, mes).'
+  python_date_format: '%Y-%m-%d'
+  extra: {}
+version: 1.0.0
+database_uuid: 638bb2f5-2df0-48f8-bef2-533f8ec3c569

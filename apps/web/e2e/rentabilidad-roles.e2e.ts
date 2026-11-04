@@ -6,6 +6,8 @@ import { expect, test, type Page } from '@playwright/test'
 const TABLEROS_NUEVOS = [
   { pestana: 'Comparativo', ruta: '/rentabilidad/comparativo' },
   { pestana: 'Historia', ruta: '/rentabilidad/historia' },
+  // [MSF-223:T018] F-REN-09: la pestaña de ventas reales sigue la misma regla de roles.
+  { pestana: 'Ventas reales', ruta: '/rentabilidad/ventas-reales' },
 ] as const
 
 // Cierre de MSF-120 (T032, SC-008): Rentabilidad con los tres roles. El Administrador edita el umbral de

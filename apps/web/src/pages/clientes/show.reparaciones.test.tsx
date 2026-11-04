@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   useOne: vi.fn(),
@@ -69,7 +69,13 @@ const abrirPestana = async () => {
   fireEvent.click(await screen.findByRole('tab', { name: 'Reparaciones' }))
 }
 
+// La pestaña se carga con lazy(): con el shard cargado el import dinámico supera el 1 s por defecto de findBy*
+// (MSF-754: «2 reparaciones» no aparecía a tiempo). El tope de cada test sigue siendo testTimeout.
+const ESPERA_ASYNC_PREVIA = 1000
+
 describe('Ficha del cliente · pestaña Reparaciones', () => {
+  beforeAll(() => { configure({ asyncUtilTimeout: 10000 }) })
+  afterAll(() => { configure({ asyncUtilTimeout: ESPERA_ASYNC_PREVIA }) })
   beforeEach(() => {
     vi.clearAllMocks()
     celular(false)
