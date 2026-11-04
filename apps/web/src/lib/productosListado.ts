@@ -130,7 +130,8 @@ export async function consultarCostos(
   return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
 }
 
-export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }
+// `margen` = (precio − costo) / precio, calculado por la base; null sin costo o sin acceso a Rentabilidad.
+export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null; margen: number | null }
 
 // Precio de lista de los productos de la página, desde la vista `productos_precio_costo` (F-PRE-01).
 // `precio_central_ars` ya viene convertido por la base con la cotización vigente (`private.a_pesos`),
@@ -142,9 +143,9 @@ export async function consultarPrecios(
   if (productoIds.length === 0) return new Map()
   const { data, error } = await cliente
     .from('productos_precio_costo')
-    .select('producto_id, moneda, precio_lista, precio_central_ars')
+    .select('producto_id, moneda, precio_lista, precio_central_ars, margen')
     .in('producto_id', [...productoIds])
-    .returns<Array<{ producto_id: string; moneda: 'USD' | 'ARS'; precio_lista: number | string | null; precio_central_ars: number | string | null }>>()
+    .returns<Array<{ producto_id: string; moneda: 'USD' | 'ARS'; precio_lista: number | string | null; precio_central_ars: number | string | null; margen: number | string | null }>>()
   if (error) throw error
   const precios = new Map<string, PrecioListado>()
   for (const fila of data ?? []) {
@@ -153,6 +154,7 @@ export async function consultarPrecios(
       moneda: fila.moneda,
       precioLista: Number(fila.precio_lista),
       precioArs: fila.precio_central_ars === null ? null : Number(fila.precio_central_ars),
+      margen: fila.margen === null || fila.margen === '' ? null : Number(fila.margen),
     })
   }
   return precios

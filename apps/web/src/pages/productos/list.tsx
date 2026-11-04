@@ -30,6 +30,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { infoDisponibilidad } from '../../lib/productos'
+import { formatearMargen } from '../../lib/precios'
 import { tokens } from '../../tema/tokens'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -37,13 +38,18 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Margen queda visible con «—» hasta que llegue Rentabilidad (FR-002, Decisión 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
+// Costo (F-CAT-16) y Margen solo traen dato con acceso a Rentabilidad; sin él (o sin costo cargado) Margen queda en «—».
 const SIN_DATO = '—'
-const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
-  clave,
-  encabezado,
+// «Margen»: (precio − costo) / precio, el mismo de «Margen estimado» del formulario (lo calcula la base en
+// `productos_precio_costo`, con la cotización vigente si el producto está en USD). «—» sin costo o sin acceso a Rentabilidad.
+const columnaMargen = (precios: ReadonlyMap<string, PrecioListado>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'margen',
+  encabezado: 'Margen',
   align: 'right',
-  render: () => <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>,
+  render: (producto) => {
+    const margen = precios.get(producto.id)?.margen ?? null
+    return <Typography variant="b" color={margen === null ? 'text.secondary' : undefined}>{formatearMargen(margen)}</Typography>
+  },
 })
 
 // «Precio»: siempre en pesos; si el producto está en USD, pesos a la última cotización y el USD entre paréntesis.
@@ -114,8 +120,6 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
       </Stack>
     ),
   },
-  columnaPendiente('precio', 'Precio'),
-  columnaPendiente('margen', 'Margen'),
   {
     // F-CAT-17 (FR-009): etiqueta de disponibilidad, derivada en la base. La cantidad numérica queda fuera de esta historia.
     clave: 'stock',
@@ -164,8 +168,8 @@ export function ProductoList() {
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
   const [precios, setPrecios] = useState<ReadonlyMap<string, PrecioListado>>(new Map())
   const columnas = useMemo(() => {
-    const [producto, , ...resto] = columnasBase
-    return [producto, columnaPrecio(precios), ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
+    const [producto, ...resto] = columnasBase
+    return [producto, columnaPrecio(precios), ...(veCosto ? [columnaCosto(costos)] : []), columnaMargen(precios), ...resto, columnaVisibleEn(empresas), columnaEstado]
   }, [empresas, veCosto, costos, precios])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)

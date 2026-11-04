@@ -70,8 +70,8 @@ describe('ProductoList', () => {
     mocks.costos.mockResolvedValue({ data: [{ producto_id: 'p-1', costo: '12.5' }], error: null })
     mocks.precios.mockResolvedValue({
       data: [
-        { producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: '157000' },
-        { producto_id: 'p-2', moneda: 'ARS', precio_lista: '2500.5', precio_central_ars: '2500.5' },
+        { producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: '157000', margen: '0.4' },
+        { producto_id: 'p-2', moneda: 'ARS', precio_lista: '2500.5', precio_central_ars: '2500.5', margen: null },
       ],
       error: null,
     })
@@ -113,8 +113,18 @@ describe('ProductoList', () => {
     expect(within(filaCable).getByText('$ 2.500,50')).toBeInTheDocument()
   })
 
+  it('Margen muestra (precio − costo) / precio que calcula la base; «—» si el producto no tiene costo o no hay acceso a Rentabilidad', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('40 %')).toBeInTheDocument()
+    expect(within(filaCable).queryByText(/ %$/)).not.toBeInTheDocument()
+  })
+
   it('producto en USD sin cotización muestra el USD y lo aclara; si falla la consulta de precios avisa', async () => {
-    mocks.precios.mockResolvedValueOnce({ data: [{ producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: null }], error: null })
+    mocks.precios.mockResolvedValueOnce({ data: [{ producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: null, margen: null }], error: null })
     abrir()
     expect(await screen.findByText('USD 100,00 (sin cotización)')).toBeInTheDocument()
   })

@@ -245,6 +245,8 @@ Primera pantalla migrada a la regla de listados de la constitución (Principio V
 
 La columna **Precio** muestra siempre pesos. El listado pide los precios de la página (por los ids de los productos visibles) a la vista `public.productos_precio_costo` (F-PRE-01) y usa `precio_central_ars`, que la base ya convierte con la cotización vigente (`private.a_pesos`); la pantalla no calcula ni redondea nada. Formatos (`formatearPrecioListado`, `lib/productosListado.ts`): producto en ARS → `$ 2.500,50`; producto en USD → `$ 157.000,00 (USD 100,00)` (pesos = USD × última cotización, el USD entre paréntesis); USD sin cotización cargada → `USD 100,00 (sin cotización)`; sin precio → «—». Es el precio de lista, sin IVA, el mismo del formulario. Si la consulta de precios falla, el listado se muestra igual con «—» en Precio y un aviso («No pudimos cargar los precios…»). Sin migración ni cambios de permisos: la vista es `security_invoker` y rige su RLS.
 
+**Margen** (mismo pedido de tanda de precios): la columna sale de la columna `margen` de la misma vista, `(precio − costo) / precio` en pesos —igual que «Margen estimado (escala x1)» del formulario—. Como el costo vive en `producto_costos` (sección `rentabilidad`), la base devuelve `margen` en `null` a quien no tiene esa sección o al producto sin costo cargado, y el listado muestra «—». Antes la columna era un marcador fijo que nunca se conectó a datos.
+
 ## Empresas que venden el producto (F-CAT-07, MSF-276, migraciones `20261020130000`, `20261020130101` y `20261020130201`)
 
 El catálogo es único y compartido; cada producto se publica solo en las empresas (tiendas) que se elijan. **Sin cantidad fija de empresas**: ningún código asume dos.
