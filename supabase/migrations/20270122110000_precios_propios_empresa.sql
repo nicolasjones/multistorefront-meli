@@ -45,9 +45,9 @@ create table dominio.precios_propios_empresa (
 comment on table dominio.precios_propios_empresa is
   'F-PRE-08: precio neto (sin IVA) fijado por producto y empresa, en ARS o USD. Reemplaza a «central + ajuste» de la regla de la empresa. Se escribe solo por fijar_precio_propio / quitar_precio_propio; no se envía a Mercado Libre (Etapa 2).';
 
-create index precios_propios_empresa_organizacion_idx
+create index if not exists precios_propios_empresa_organizacion_idx
   on dominio.precios_propios_empresa (organizacion_id);
-create index precios_propios_empresa_empresa_idx
+create index if not exists precios_propios_empresa_empresa_idx
   on dominio.precios_propios_empresa (empresa_id, organizacion_id);
 
 alter table dominio.precios_propios_empresa enable row level security;

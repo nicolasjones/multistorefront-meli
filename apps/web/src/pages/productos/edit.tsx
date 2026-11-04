@@ -24,6 +24,7 @@ import {
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { EscalasPrecio } from '../../components/productos/EscalasPrecio'
+import { PrecioPropioEmpresas } from '../../components/precios/PrecioPropioEmpresas'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -443,6 +444,7 @@ export function ProductoEdit() {
             onRecargar={() => void cargar()}
           />
           <EscalasPrecio productoId={producto.id} />
+          <PrecioPropioEmpresas key={producto.id} productoId={producto.id} empresaIds={carga?.empresaIds ?? []} soloLectura={nivel !== 'edicion'} />
           </Stack>
         )}
       </ContenedorSeccion>
