@@ -442,7 +442,7 @@ describe('Contrarreembolsos: tarjetas y tabla (FR-045 y FR-047)', () => {
   })
 })
 
-describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
+describe('Contrarreembolsos: empresa activa y carga infinita (FR-048)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -462,12 +462,28 @@ describe('Contrarreembolsos: empresa activa y paginación (FR-048)', () => {
     mocks.rpc.mockImplementation(rpcPorDefecto([fila()], 25))
   })
 
-  it('al cambiar la empresa activa recarga todo y vuelve a la primera página', async () => {
+  it('«Cargar más» pide la tanda siguiente y la suma a los contrarreembolsos ya mostrados', async () => {
+    const porDefecto = rpcPorDefecto()
+    mocks.rpc.mockImplementation(async (nombre: string, argumentos: { p_pagina?: number }) => {
+      if (nombre !== 'listar_contrarreembolsos') return porDefecto(nombre)
+      const f = argumentos.p_pagina === 2 ? fila({ id: 'cr-2', guia: 'G-0002' }) : fila()
+      return { data: [{ ...f, importe: String(f.importe), filas: 2 }], error: null }
+    })
+    renderPantalla()
+    expect(await screen.findByText('G-0001')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('G-0002')).toBeInTheDocument()
+    expect(screen.getByText('G-0001')).toBeInTheDocument()
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('al cambiar la empresa activa recarga todo y vuelve a la primera tanda', async () => {
     const { rerender } = renderPantalla()
     await screen.findByRole('table', { name: 'Contrarreembolsos' })
 
-    // La pantalla pagina en el servidor: la página 2 se pide con pagina = 2.
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    // La pantalla carga por tandas del servidor: la tanda 2 se pide con pagina = 2.
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() =>
       expect(mocks.rpc).toHaveBeenCalledWith('listar_contrarreembolsos', expect.objectContaining({ p_pagina: 2 })),
     )
