@@ -177,6 +177,13 @@ castellano.
 - **Errores por campo**: cada error de validación lleva `hint` con el nombre del campo (`importe`,
   `forma_pago_id`, `cuenta_cobro_id`), también el tope (`P0001` con `hint = 'importe'`). Es lo que
   permite que la pantalla marque **el campo** en vez de mostrar un error general.
+- **Caja cerrada** (épica **MSF-193**, F-VTA-33 / MSF-349): el disparador
+  `cobros_comprobante_caja_cerrada` (`before insert or update` sobre `dominio.cobros_comprobante`)
+  rechaza con `55000` («La caja de ese día está cerrada; reabrila para registrar o modificar cobros»)
+  toda escritura de un cobro de un día cerrado. Bloquea **toda** escritura, venga de la RPC que venga:
+  `registrar_cobro`, la conciliación de pagos y los contrarreembolsos. Migración
+  `20270202201102_bloqueo_cobros_cerrados.sql`. Detalle:
+  [Cierre de caja (técnico)](ventas-cierre-caja.md#el-bloqueo-de-los-cobros-fr-022).
 
 ### Conciliación (F-VTA-13)
 

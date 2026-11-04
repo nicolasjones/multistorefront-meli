@@ -57,6 +57,11 @@ MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en
 - `guardar_lineas_comprobante` **reemplaza todas las líneas** en una transacción y recalcula los totales del
   comprobante. Se envía con el `updated_at` vigente; mientras guarda, los controles quedan bloqueados. Un
   rechazo no deja líneas a medias.
+- **Descuento por cliente** (F-VTA-32 / MSF-340, épica **MSF-193**): si el cliente tiene **descuento**, la
+  base se lo resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes`
+  **en el servidor** (el `payload` no puede imponerlo) y un **precio manual no se toca**. La línea guarda
+  `descuento_pct` (0 si el precio es manual) y el rótulo pasa a «escala x1 · 5 % de descuento». Detalle:
+  [Precios especiales por cliente (técnico)](ventas-precios-especiales.md).
 
 ### Presupuestos (F-VTA-08)
 
@@ -118,6 +123,11 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `escala` (`x1`/`x5`/`x10`/`x50`), `precio_manual`, `alicuota_id`/`alicuota_porcentaje`, `deposito_id`,
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
+
+**Columna agregada por MSF-193** (F-VTA-32 / MSF-340, migración `20270201200103_lineas_descuento.sql`):
+`descuento_pct numeric(5,2) not null default 0` con `check (descuento_pct >= 0 and descuento_pct <= 100)`
+— el descuento del cliente que se aplicó a esa línea (0 si el precio es manual). Es una **foto**: cambiar
+después el descuento de la ficha del cliente **no altere lo ya vendido**.
 
 RLS vigente en el comprobante y en las líneas: `select` por organización y sección `ventas`
 (`lectura`/`edicion`). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC

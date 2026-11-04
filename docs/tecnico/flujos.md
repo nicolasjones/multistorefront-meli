@@ -544,6 +544,78 @@ comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
 
 Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
 
+## Ventas mejoras (MSF-193)
+
+Venta de mostrador (F-VTA-31 / MSF-329), precio especial por cliente (F-VTA-32 / MSF-340) y cierre de
+caja diario (F-VTA-33 / MSF-349). Las tres historias **reutilizan** el comprobante, las líneas y el
+libro de cobros ya construidos: ninguna recrea el comprobante ni el cobro.
+
+Venta de mostrador (F-VTA-31): el borrador **nace en el primer escaneo**, no al abrir la pantalla. Los
+códigos que llegan mientras otro se resuelve **se encolan** y se procesan en orden.
+
+```mermaid
+flowchart TD
+  A[Abrir Venta de mostrador<br/>empresa activa concreta] --> B{Escanear EAN-13}
+  B --> C[buscar_producto_por_codigo_barras]
+  C --> D{¿Existe y está activo?}
+  D -- no --> X[«Producto no encontrado»]
+  X --> B
+  D -- sí --> E{¿Es el primer escaneo?}
+  E -- sí --> F[crear_comprobante: factura borrador,<br/>canal Mostrador, Consumidor final]
+  E -- no --> G[Venta en curso]
+  F --> G
+  G --> H[guardar_lineas_comprobante: cantidad 1<br/>o incrementa la línea]
+  H --> I{¿Seguir escaneando?}
+  I -- sí --> B
+  I -- no --> J[Cobrar: confirmar_comprobante<br/>+ registrar_cobro por el total]
+  J --> K[Venta confirmada y cobrada]
+```
+
+Precio especial (F-VTA-32): el descuento lo pone el **Administrador** en la ficha del cliente y lo
+aplica la **base** sobre el neto de escala, antes del IVA. El cliente nunca manda el descuento.
+
+```mermaid
+sequenceDiagram
+  participant AD as Administrador
+  participant DB as Base
+  participant V as Vendedor
+  AD->>DB: UPDATE clientes SET descuento = 5
+  DB-->>DB: comprueba que el actor es Administrador (42501 si no)
+  DB-->>DB: evento cliente.descuento_editado
+  V->>DB: guardar_lineas_comprobante(lineas)
+  DB->>DB: lee clientes.descuento (nunca el payload)
+  DB-->>DB: precio = round(neto de escala × (1 − 5/100), 2)
+  DB-->>V: línea con descuento_pct = 5
+```
+
+Cierre de caja (F-VTA-33): es una **máquina de estados** sobre (empresa, fecha). «Abierta» es la
+ausencia de fila: solo existe cuando alguien cerró.
+
+```mermaid
+stateDiagram-v2
+  [*] --> abierta: día sin cierre (cobros registrables)
+  abierta --> cerrada: cerrar_caja (resume por forma de pago y cuenta)
+  cerrada --> reabierta: reabrir_caja (habilita los cobros del día)
+  reabierta --> cerrada: cerrar_caja de nuevo (rehace el resumen)
+  note right of cerrada
+    Toda escritura sobre los cobros de ese día se rechaza
+    con 55000: el disparador cobros_comprobante_caja_cerrada.
+  end note
+```
+
+Cerrar y registrar un cobro del mismo día toman el **mismo candado transaccional**
+(`private.candado_caja`), así que ningún cobro se cuela entre el resumen y el cierre. El «día» se
+calcula en la **zona horaria de la organización** (`private.dia_caja` / `private.hoy_caja`), no en la de
+la sesión de la base.
+
+Empresa activa (Principio VIII): el mostrador es de **una sola tienda** (con «Todas mis empresas» pide
+elegir una) y al cambiarla **descarta la venta en curso con aviso**; el cierre de caja recarga la
+lista, vuelve a la página 1 y **descarta el diálogo abierto**.
+
+Detalle: [Venta de mostrador (técnico)](ventas-mostrador.md),
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md) y
+[Cierre de caja (técnico)](ventas-cierre-caja.md).
+
 ## Ventas reportes básicos (MSF-338)
 
 Cálculo de los dos reportes (F-VTA-22 «Más vendidos» y F-VTA-23 «Ranking de clientes»). El criterio de qué
