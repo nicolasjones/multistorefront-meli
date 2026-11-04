@@ -10,6 +10,9 @@ import {
   CONSULTA_INICIAL,
   TAMANO_PAGINA_PRODUCTOS,
   consultarCostos,
+  consultarPrecios,
+  formatearPrecioListado,
+  type PrecioListado,
   consultarProductos,
   formatearCosto,
   hayFiltrosActivos,
@@ -34,14 +37,24 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Precio y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114) y Rentabilidad
-// (FR-002, Decisiones 4 y 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
+// Margen queda visible con «—» hasta que llegue Rentabilidad (FR-002, Decisión 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
 const SIN_DATO = '—'
 const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
   clave,
   encabezado,
   align: 'right',
   render: () => <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>,
+})
+
+// «Precio»: siempre en pesos; si el producto está en USD, pesos a la última cotización y el USD entre paréntesis.
+const columnaPrecio = (precios: ReadonlyMap<string, PrecioListado>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'precio',
+  encabezado: 'Precio',
+  align: 'right',
+  render: (producto) => {
+    const precio = precios.get(producto.id)
+    return <Typography variant="b" color={precio === undefined ? 'text.secondary' : undefined}>{formatearPrecioListado(precio)}</Typography>
+  },
 })
 
 type EmpresaListado = { id: string; nombre: string }
@@ -149,16 +162,18 @@ export function ProductoList() {
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
+  const [precios, setPrecios] = useState<ReadonlyMap<string, PrecioListado>>(new Map())
   const columnas = useMemo(() => {
-    const [producto, precio, ...resto] = columnasBase
-    return [producto, precio, ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
-  }, [empresas, veCosto, costos])
+    const [producto, , ...resto] = columnasBase
+    return [producto, columnaPrecio(precios), ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
+  }, [empresas, veCosto, costos, precios])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [falloCostos, setFalloCostos] = useState(false)
+  const [falloPrecios, setFalloPrecios] = useState(false)
   const ultimaPeticion = useRef(0)
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
@@ -177,6 +192,7 @@ export function ProductoList() {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     setFalloCostos(false)
+    setFalloPrecios(false)
     try {
       const resultado = await consultarProductos(supabaseClient, consulta)
       if (peticion !== ultimaPeticion.current) return
@@ -206,6 +222,16 @@ export function ProductoList() {
         }
         if (peticion !== ultimaPeticion.current) return
       }
+      // Precio (F-PRE-01): segunda consulta por los ids de la página. Si falla, «—» en Precio y un aviso.
+      let preciosPagina = new Map<string, PrecioListado>()
+      try {
+        preciosPagina = await consultarPrecios(supabaseClient, resultado.filas.map((fila) => fila.id))
+      } catch (errorPrecio) {
+        console.error('No pudimos cargar los precios de los productos.', errorPrecio)
+        setFalloPrecios(true)
+      }
+      if (peticion !== ultimaPeticion.current) return
+      setPrecios(preciosPagina)
       setCostos(costosPagina)
       setFilas(resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null })))
       setTotal(resultado.total)
@@ -250,6 +276,9 @@ export function ProductoList() {
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
           {veCosto && falloCostos && !hayError ? (
             <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
+          ) : null}
+          {falloPrecios && !hayError ? (
+            <Alert severity="warning">No pudimos cargar los precios: la columna Precio puede no estar completa.</Alert>
           ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar los productos." reintentar={() => void cargar()} />

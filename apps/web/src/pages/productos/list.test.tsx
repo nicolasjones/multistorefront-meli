@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   useFiltro: vi.fn(),
   elegirEmpresa: vi.fn(),
   costos: vi.fn(),
+  precios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
@@ -29,7 +30,11 @@ vi.mock('../../lib/supabase', () => {
           return { select: () => ({ in: (_columna: string, ids: string[]) => { mocks.llamadas.push(['in', ids]); return { returns: mocks.costos } } }) }
         },
       }),
-      from: (vista: string) => { mocks.llamadas.push(['from', vista]); return cadena },
+      from: (vista: string) => {
+        mocks.llamadas.push(['from', vista])
+        if (vista === 'productos_precio_costo') return { select: () => ({ in: () => ({ returns: mocks.precios }) }) }
+        return cadena
+      },
       storage: { from: () => ({ createSignedUrls: mocks.firmar }) },
     },
   }
@@ -63,6 +68,13 @@ describe('ProductoList', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'ninguno')
     mocks.costos.mockResolvedValue({ data: [{ producto_id: 'p-1', costo: '12.5' }], error: null })
+    mocks.precios.mockResolvedValue({
+      data: [
+        { producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: '157000' },
+        { producto_id: 'p-2', moneda: 'ARS', precio_lista: '2500.5', precio_central_ars: '2500.5' },
+      ],
+      error: null,
+    })
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     mocks.useFiltro.mockReturnValue({
@@ -87,8 +99,32 @@ describe('ProductoList', () => {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Precio, Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
-    expect(within(filaCable).getAllByText('—')).toHaveLength(4)
+    // Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(3)
+  })
+
+  it('Precio siempre en pesos: ARS tal cual y USD convertido con la última cotización y el USD entre paréntesis', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('$ 157.000,00 (USD 100,00)')).toBeInTheDocument()
+    expect(within(filaCable).getByText('$ 2.500,50')).toBeInTheDocument()
+  })
+
+  it('producto en USD sin cotización muestra el USD y lo aclara; si falla la consulta de precios avisa', async () => {
+    mocks.precios.mockResolvedValueOnce({ data: [{ producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: null }], error: null })
+    abrir()
+    expect(await screen.findByText('USD 100,00 (sin cotización)')).toBeInTheDocument()
+  })
+
+  it('si falla la consulta de precios el listado se muestra igual con «—» y un aviso', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.precios.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    abrir()
+    expect(await screen.findByText(/No pudimos cargar los precios/)).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
   })
 
   it('sin acceso a Rentabilidad no muestra la columna Costo ni consulta producto_costos (F-CAT-16, FR-002)', async () => {
@@ -113,7 +149,7 @@ describe('ProductoList', () => {
     expect(within(filaJoystick).getByText('12,50')).toBeInTheDocument()
     // Cable no tiene costo cargado: «—», no 0.
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    expect(within(filaCable).getAllByText('—')).toHaveLength(5)
+    expect(within(filaCable).getAllByText('—')).toHaveLength(4)
   })
 
   it('si falla la consulta de costos el listado se muestra igual con «—» (F-CAT-16)', async () => {

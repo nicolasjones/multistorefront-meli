@@ -128,6 +128,47 @@ export async function consultarCostos(
   return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
 }
 
+export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }
+
+// Precio de lista de los productos de la página, desde la vista `productos_precio_costo` (F-PRE-01).
+// `precio_central_ars` ya viene convertido por la base con la cotización vigente (`private.a_pesos`),
+// así que acá no se recalcula nada: ARS tal cual; USD → pesos con la última cotización (null si no hay).
+export async function consultarPrecios(
+  cliente: Pick<SupabaseClient, 'from'>,
+  productoIds: readonly string[],
+): Promise<Map<string, PrecioListado>> {
+  if (productoIds.length === 0) return new Map()
+  const { data, error } = await cliente
+    .from('productos_precio_costo')
+    .select('producto_id, moneda, precio_lista, precio_central_ars')
+    .in('producto_id', [...productoIds])
+    .returns<Array<{ producto_id: string; moneda: 'USD' | 'ARS'; precio_lista: number | string | null; precio_central_ars: number | string | null }>>()
+  if (error) throw error
+  const precios = new Map<string, PrecioListado>()
+  for (const fila of data ?? []) {
+    if (fila.precio_lista === null || fila.precio_lista === '') continue
+    precios.set(fila.producto_id, {
+      moneda: fila.moneda,
+      precioLista: Number(fila.precio_lista),
+      precioArs: fila.precio_central_ars === null ? null : Number(fila.precio_central_ars),
+    })
+  }
+  return precios
+}
+
+const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const pesos = (valor: number) => `$ ${FORMATO_PRECIO.format(valor)}`
+
+// Precio para el listado, siempre en pesos: «$ 1.000,00» si el producto está en ARS;
+// «$ 1.570.000,00 (USD 1.000,00)» si está en USD (pesos = USD × última cotización);
+// «USD 1.000,00 (sin cotización)» si falta la cotización; «—» si no tiene precio.
+export function formatearPrecioListado(precio: PrecioListado | undefined): string {
+  if (!precio || !Number.isFinite(precio.precioLista)) return '—'
+  if (precio.moneda === 'ARS') return pesos(precio.precioLista)
+  const usd = `USD ${FORMATO_PRECIO.format(precio.precioLista)}`
+  return precio.precioArs === null || !Number.isFinite(precio.precioArs) ? `${usd} (sin cotización)` : `${pesos(precio.precioArs)} (${usd})`
+}
+
 const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Costo para mostrar en el listado; «—» si el producto no tiene costo cargado.
