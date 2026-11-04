@@ -18,6 +18,7 @@ import {
   type Consulta,
   type EstadoConsulta,
 } from '../../lib/consultas'
+import { RespuestasRapidasDialog } from './RespuestasRapidasDialog'
 import { DetalleConsulta } from '../../components/consultas/DetalleConsulta'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -59,6 +60,8 @@ export function ConsultaList() {
   const [hasta, setHasta] = useState('')
   const [pagina, setPagina] = useState(1)
   const [exito, setExito] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const [respuestasAbierto, setRespuestasAbierto] = useState(false)
 
   const cerrarDetalle = () => {
     setParams((actual) => {
@@ -98,6 +101,11 @@ export function ConsultaList() {
     if (ultimaEmpresa.current !== empresaId) {
       ultimaEmpresa.current = empresaId
       setPagina(1)
+      // Principio VIII: un diálogo abierto no guarda datos de la empresa anterior bajo la nueva.
+      if (respuestasAbierto) {
+        setRespuestasAbierto(false)
+        setAviso('Cambió la empresa activa: se cerró «Respuestas rápidas». Volvé a abrirlo para la nueva empresa.')
+      }
       setParams((actual) => {
         if (!actual.has('consulta')) return actual
         const copia = new URLSearchParams(actual)
@@ -105,7 +113,7 @@ export function ConsultaList() {
         return copia
       }, { replace: true })
     }
-  }, [listo, empresaId, setParams])
+  }, [listo, empresaId, setParams, respuestasAbierto])
 
   const { consultas, total, isLoading, isFetching, isError, refetch } = useBandejaConsultas(
     { empresaId, estado, texto: textoAplicado, desde, hasta, pagina, tamano: TAMANO_PAGINA_CONSULTAS },
@@ -158,6 +166,7 @@ export function ConsultaList() {
         titulo="Consultas"
         descripcion="Mensajes del formulario de contacto de las tiendas e interés por WhatsApp desde las fichas de producto."
         contexto={<ContextoOrganizacionActiva />}
+        accion={<Button variant="outlined" onClick={() => setRespuestasAbierto(true)}>Respuestas rápidas</Button>}
       />
       <Alert severity="info" sx={{ mb: 2 }}>
         Cada consulta nueva envía un aviso por correo a la dirección de avisos de la empresa. La respuesta se da por correo o WhatsApp, fuera del sistema; acá se registra si ya fue atendida.
@@ -302,6 +311,19 @@ export function ConsultaList() {
         />
       ) : null}
 
+      {respuestasAbierto ? (
+        <RespuestasRapidasDialog
+          key={empresaId ?? 'todas'}
+          empresaId={empresaId}
+          empresaNombre={empresas.find((e) => e.id === empresaId)?.nombre ?? null}
+          puedeEditar={puedeEditar}
+          onCerrar={() => setRespuestasAbierto(false)}
+        />
+      ) : null}
+
+      <Snackbar open={aviso !== null} autoHideDuration={6000} onClose={() => setAviso(null)}>
+        <Alert severity="info" onClose={() => setAviso(null)}>{aviso}</Alert>
+      </Snackbar>
       <Snackbar open={exito !== null} autoHideDuration={4000} onClose={() => setExito(null)}>
         <Alert severity="success" onClose={() => setExito(null)}>{exito}</Alert>
       </Snackbar>

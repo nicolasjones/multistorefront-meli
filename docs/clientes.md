@@ -378,6 +378,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - La política SELECT de `public.cuentas_cliente` filtra además por `private.empresas_accesibles()` (migración `20261211100300`); reversión: recrearla sin ese filtro.
 - «Habilitar/Deshabilitar en <tienda>» relee `clientes_empresas` antes de llamar a `guardar_empresas_de_cliente`, para no pisar cambios de otro operador.
 - Editar un cliente con estados mixtos (una tienda activa, otra suspendida): si el operador no cambia el campo «Cuenta web», no se reactiva ni suspende ninguna cuenta existente (solo se crean las de tiendas nuevas); únicamente cambiar el campo transiciona (`aplicarCuentaWebEnTiendas(..., estadoPrevio)`).
+- Si falla la lectura de las cuentas web existentes al guardar (MSF-694), `aplicarCuentaWebEnTiendas` no lanza: devuelve `errores = N tiendas`. El alta ya creó el cliente, así que sigue a la ficha con «Cliente creado · no se pudo crear la cuenta web en N tiendas» y no vuelve al formulario (reintentar duplicaría el cliente).
 - `exportar_clientes` con «Con cuenta web» filtra por `private.empresas_accesibles()`, como `buscar_clientes` por RLS. La columna «Cuenta web» del listado (`cuentas_web`) solo incluye tiendas donde el cliente sigue habilitado, igual que la ficha (FR-002).
 - `invitar-cliente` crea el usuario de Auth con `createUser` y envía el enlace recién después de `vincular_cuenta_cliente` (ya no `inviteUserByEmail`): si vincular falla no queda un correo de invitación muerto.
 

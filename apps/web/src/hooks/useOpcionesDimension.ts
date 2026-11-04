@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabaseClient } from '../lib/supabase'
+import { normalizarBusqueda } from '../lib/busquedaTexto'
 import { opcionesCategoriaProducto } from '../lib/categorias'
 import { useCategorias } from './useCategorias'
 import { useOrganizacionActiva } from './useOrganizacionActiva'
@@ -11,8 +12,9 @@ export type OpcionProducto = { id: string; nombre: string; sku: string | null }
 export type OpcionCategoria = { id: string; ruta: string; nivel: 0 | 1 }
 
 // Texto que se arma en la clave de un filtro `or` de PostgREST: se quitan los caracteres con
-// significado propio (coma, paréntesis, comodines y barra) para que el término no altere el filtro.
-const limpiarBusqueda = (texto: string) => texto.replace(/[,()%*\\]/g, ' ').replace(/\s+/g, ' ').trim()
+// significado propio (coma, paréntesis, comodines y barra) para que el término no altere el filtro; sin tildes
+// ni mayúsculas (MSF-722), porque el nombre se compara con la columna calculada `nombre_norm`.
+const limpiarBusqueda = (texto: string) => normalizarBusqueda(texto.replace(/[,()%*\\]/g, ' ')).trim()
 
 // Clave de comparación de provincias: sin mayúsculas ni tildes (igual que el servidor).
 const claveProvincia = (texto: string) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -47,7 +49,7 @@ export function useOpcionesDimension({ busquedaProducto, habilitado = true }: { 
     const peticion = ++ultimaBusqueda.current
     setCargandoProductos(true)
     let consulta = supabaseClient.schema('dominio').from('productos').select('id, nombre, sku')
-    if (termino) consulta = consulta.or(`nombre.ilike.%${termino}%,sku.ilike.%${termino}%`)
+    if (termino) consulta = consulta.or(`nombre_norm.ilike.%${termino}%,sku.ilike.%${termino}%`)
     let resultado: { data: OpcionProducto[] | null; error: unknown }
     try {
       resultado = await consulta.order('nombre', { ascending: true }).order('id', { ascending: true }).limit(MAX_PRODUCTOS)

@@ -5,12 +5,36 @@ import { armarMensaje, normalizarNumero, urlWhatsapp } from './whatsapp'
 describe('normalizarNumero', () => {
   it.each([
     ['+54 9 11 5555-0001', '5491155550001'],
-    ['(011) 5555-0001', '01155550001'],
     ['5491155550001', '5491155550001'],
     ['  549 115 555 0001  ', '5491155550001'],
-  ])('deja solo los dígitos de %s', (entrada, esperado) => {
+  ])('%s ya internacional queda en dígitos', (entrada, esperado) => {
     expect(normalizarNumero(entrada)).toBe(esperado)
   })
+
+  // MSF-696: wa.me exige el código de país; un número local debe llevarse a 549 + área + número.
+  it.each([
+    ['11 5555-0001', '5491155550001'],
+    ['011 5555-0001', '5491155550001'],
+    ['(011) 15-5555-0001', '5491155550001'],
+    ['011 15 5555-0001', '5491155550001'],
+    ['0351 15 555-0001', '5493515550001'],
+    ['351 555-0001', '5493515550001'],
+    ['+54 11 5555-0001', '5491155550001'],
+    ['54 11 5555-0001', '5491155550001'],
+    ['0054 9 11 5555-0001', '5491155550001'],
+    ['+34 600 123 456', '34600123456'],
+    ['0034 600 123 456', '34600123456'],
+  ])('lleva %s a formato internacional', (entrada, esperado) => {
+    expect(normalizarNumero(entrada)).toBe(esperado)
+    expect(normalizarNumero(esperado)).toBe(esperado === '34600123456' ? null : esperado)
+  })
+
+  it.each([['5555-0001'], ['15 5555-0001'], ['600 123 456 78'], ['+54 1 5555'], ['+1234567890123456']])(
+    '%s es ambiguo o local sin área: sin número',
+    (entrada) => {
+      expect(normalizarNumero(entrada)).toBeNull()
+    },
+  )
 
   it.each([['1234567'], [''], ['   '], ['sin-numero'], [null], [undefined]])(
     '%s no es un número válido',
@@ -60,6 +84,10 @@ describe('urlWhatsapp', () => {
   it('el mensaje con espacios y signos no rompe la URL', () => {
     const url = urlWhatsapp('5491155550001', armarMensaje('Mundo JC', 'Joystick Pro', 18455))
     expect(url).toBe('https://wa.me/5491155550001?text=Hola%20Mundo%20JC%2C%20quiero%20consultar%20por%20Joystick%20Pro%20(%24%2018.455).%20%C2%BFEst%C3%A1%20disponible%3F')
+  })
+
+  it('un número local lleva el código de país (MSF-696)', () => {
+    expect(urlWhatsapp('11 5555-0001', 'hola')).toBe('https://wa.me/5491155550001?text=hola')
   })
 
   it('sin número válido no hay URL', () => {

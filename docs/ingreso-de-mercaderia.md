@@ -143,6 +143,29 @@ historial con Fecha, Producto, Cantidad, Proveedor y Operador, paginada en servi
   private.validar_fila_archivo_ingreso(jsonb), private.fecha_archivo_ingreso(text);` y
   `drop table dominio.archivo_ingresos_mercaderia;`.
 
+## Selectores de proveedor y producto (MSF-693)
+
+Los selectores de «Nuevo ingreso» y los filtros Proveedor/Producto del historial buscan en el
+servidor (`hooks/useBuscadorCatalogo`):
+
+- **Búsqueda en servidor:** al desplegar la lista traen los primeros 500 por nombre; al escribir,
+  consultan con `ilike` (razón social del proveedor; nombre o SKU del producto) con 250 ms de
+  espera. El texto se sanea antes de armar el filtro (`hooks/useBuscadorCatalogo.ts`): se acota el
+  largo, se quitan los caracteres que separan o agrupan condiciones de PostgREST (`,` `(` `)`
+  `"` `\`) y el comodín `*`, y se escapan los comodines de LIKE (`%` `_`), igual que en el listado
+  de productos. La última búsqueda gana: una respuesta vieja no pisa a la vigente.
+- **Aviso de truncado:** se pide una fila de más para detectar el corte. Si hay más de 500
+  coincidencias se muestra «Hay más de 500 productos: escribí para buscar el que necesitás.» y el
+  aviso sigue visible después de elegir (no lo tapa el texto del producto elegido).
+- **Lo elegido se conserva:** el proveedor o producto elegido se guarda aparte de la lista
+  visible, así sigue en el campo aunque cambie la búsqueda o el registro no esté en la página
+  actual. Al elegir se vuelve a la lista completa.
+- **Errores:** si la consulta falla, el campo lo dice («No pudimos buscar productos. Probá de
+  nuevo.») y el formulario sigue operativo.
+
+Sin migración: aplican la RLS existente de `dominio.proveedores` y `dominio.productos` (la
+organización la resuelve la RLS; la búsqueda no cambia los permisos).
+
 ## Reversión
 
 Migraciones posteriores, exportando antes los datos:
