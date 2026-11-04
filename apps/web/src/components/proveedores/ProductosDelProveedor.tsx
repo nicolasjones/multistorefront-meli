@@ -3,6 +3,7 @@ import { Box, Button, LinearProgress, TablePagination, Typography } from '@mui/m
 import { Link as RouterLink } from 'react-router'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type ProductoDeProveedor, useProductosDeProveedor } from '../../hooks/useProductosDeProveedor'
+import { DialogoEvolucionCosto } from './DialogoEvolucionCosto'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
@@ -18,7 +19,7 @@ const columnaCosto: ColumnaAdaptable<ProductoDeProveedor> = {
   render: (p) => (p.costo === null ? '—' : `${p.moneda} ${formatoCosto.format(p.costo)}`),
 }
 
-const columnas: ColumnaAdaptable<ProductoDeProveedor>[] = [
+const columnas = (alVerEvolucion: ((p: ProductoDeProveedor) => void) | null): ColumnaAdaptable<ProductoDeProveedor>[] => [
   {
     clave: 'nombre',
     encabezado: 'Producto',
@@ -34,21 +35,32 @@ const columnas: ColumnaAdaptable<ProductoDeProveedor>[] = [
     clave: 'acciones',
     encabezado: 'Acciones',
     render: (p) => (
-      <Button component={RouterLink} to={`/productos/${p.id}/edit`} size="small" aria-label={`Ver producto ${p.nombre}`}>
-        Ver producto
-      </Button>
+      <>
+        <Button component={RouterLink} to={`/productos/${p.id}/edit`} size="small" aria-label={`Ver producto ${p.nombre}`}>
+          Ver producto
+        </Button>
+        {alVerEvolucion ? (
+          <Button size="small" onClick={() => alVerEvolucion(p)} aria-label={`Evolución del costo de ${p.nombre}`}>
+            Evolución del costo
+          </Button>
+        ) : null}
+      </>
     ),
   },
 ]
 
-// Sección «Productos» de la ficha del proveedor (F-PRV-03, FR-018; Costo: MSF-528, solo con Rentabilidad). Se consulta aparte
+// Sección «Productos» de la ficha del proveedor (F-PRV-03, FR-018; Costo: MSF-528, solo con Rentabilidad; Evolución del costo: F-PRV-07). Se consulta aparte
 // del resto de la ficha: un error o una carga lenta acá no la afectan. Ver producto
 // abre su pantalla de edición (el catálogo no tiene ficha de solo lectura).
 export function ProductosDelProveedor({ proveedorId }: { proveedorId: string }) {
   const [pagina, setPagina] = useState(1)
   const { nivel: nivelRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion'
-  const columnasVisibles = veCosto ? [...columnas.slice(0, 2), columnaCosto, ...columnas.slice(2)] : columnas
+  const { nivel: nivelProveedores } = useNivelSeccion('proveedores')
+  const veEvolucion = veCosto && (nivelProveedores === 'lectura' || nivelProveedores === 'edicion')
+  const [productoEvolucion, setProductoEvolucion] = useState<ProductoDeProveedor | null>(null)
+  const todas = columnas(veEvolucion ? setProductoEvolucion : null)
+  const columnasVisibles = veCosto ? [...todas.slice(0, 2), columnaCosto, ...todas.slice(2)] : todas
   const { productos, total, cargando, hayError, recargar } = useProductosDeProveedor(proveedorId, pagina, TAMANO_PAGINA)
 
   // Si la página pedida quedó más allá del final, vuelve a la primera.
@@ -82,6 +94,9 @@ export function ProductosDelProveedor({ proveedorId }: { proveedorId: string }) 
           />
         </>
       )}
+      {productoEvolucion ? (
+        <DialogoEvolucionCosto open producto={productoEvolucion} onCerrar={() => setProductoEvolucion(null)} />
+      ) : null}
     </Box>
   )
 }
