@@ -106,7 +106,7 @@ const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
 // MSF-598: el despacho, el envío y los faltantes viven en cualquier estado vivo de la factura (no solo «confirmada»).
 // Debe coincidir con la lista de estados vivos de `cambiar_estado_despacho`, `registrar_faltantes_despacho` y
-// `guardar_envio_comprobante` (migración 20270202120100).
+// `guardar_envio_comprobante` (migración 20270202202101).
 const ESTADOS_DESPACHABLES: readonly string[] = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
 // La relectura posterior al cobro falló: el cobro YA está en la base, así que la pantalla no cae
 // en el error general (parecería que el cobro falló). Se avisa y se recurre a recargar la página.
