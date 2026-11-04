@@ -152,6 +152,8 @@ El equipo de soporte ve agrupados los errores de la aplicación y de los workers
 
 ### Verificación por requisito
 
+Cada FR/SC tiene aquí su verificación nombrada (archivo de test o comando) y, en `tasks.md`, una única tarea dueña que la ejecuta («Verifica:»).
+
 | Req. | Verificación | Comando |
 |---|---|---|
 | FR-001, FR-002, FR-003 | pgTAP `procesos_masivos.test.sql` (tablas, estados, terminal irreversible, empresa opcional) + `rls_en_toda_tabla` | `pnpm test` |
@@ -165,9 +167,9 @@ El equipo de soporte ve agrupados los errores de la aplicación y de los workers
 | FR-013 | Vitest `detalle-importacion.test.tsx` (resumen, errores paginados, Cerrar) | ídem |
 | FR-014 | Vitest `cancelar-proceso.test.tsx` (confirmación, solo abiertos) | ídem |
 | FR-015 | Vitest `empresa-activa-importaciones.test.tsx` + E2E `importaciones.e2e.ts` | `pnpm test` / `pnpm test:e2e` |
-| FR-016 | E2E con axe a 320/768/1440 px y teclado | `pnpm test:e2e` |
-| FR-017 | `pnpm docs:check` (contrato y guía en el mismo cambio) | `pnpm docs:check` |
-| FR-020 | `pnpm infra:config` | `pnpm infra:config` |
+| FR-016 | E2E `importaciones-a11y.e2e.ts` (axe sin violaciones a 320/768/1440 px, recorrido por teclado, sin identificadores técnicos visibles) | `pnpm test:e2e` |
+| FR-017 | `pnpm docs:check` (contrato y guía en el mismo cambio) + `grep -c "iniciar_proceso_masivo\|cerrar_proceso_masivo\|proceso_masivo_cancelado" workers/CONTRATO.md docs/importaciones.md` ≥ 1 por archivo | `pnpm docs:check` |
+| FR-020 | `pnpm infra:config` (valida `infra/glitchtip/compose.yaml`) + `docker compose -f infra/glitchtip/compose.yaml config -q` + `grep -n "dev:glitchtip\|dev:down:glitchtip" package.json` | `pnpm infra:config` |
 | FR-021 | Vitest `errores-web.test.ts` (filtra correos/tokens/cuerpos; adjunta ambiente y versión) | `pnpm --filter @platform/web test errores` |
 | FR-022 | test del helper de workers `errores-worker.test.mjs` (adjunta `EJECUCION_ID`) | `pnpm test` |
 | FR-023 | Vitest `errores-web.test.ts` + test del worker (sin DSN = no-op) | `pnpm test` |
@@ -176,12 +178,12 @@ El equipo de soporte ve agrupados los errores de la aplicación y de los workers
 | FR-026, FR-028 | pgTAP `monitoreo.test.sql` (4 fallos no alertan, 5 sí, una sola abierta, resolución, reapertura) | `pnpm test` |
 | FR-027 | pgTAP `monitoreo.test.sql` (orden sin avanzar 14 min no alerta, 15 sí) | `pnpm test` |
 | FR-029, FR-030 | `validar-monitoreo-alertas.test.mjs` (usa el subflow `alertas`, inputs con 5/10/15 por defecto, sin secretos en el cuerpo) | `pnpm test` |
-| FR-032 | `pnpm docs:check` | `pnpm docs:check` |
+| FR-032 | `pnpm docs:check` + `grep -n "umbral\|DSN\|KESTRA_ALERTAS_WEBHOOK_URL" docs/monitoreo.md` (secciones de umbrales y variables presentes) | `pnpm docs:check` |
 | FR-033 | `validar-monitoreo-errores.test.mjs` (flow válido, umbral 5/10 min, token solo como secreto de Kestra) | `pnpm test` |
 | SC-001, SC-002, SC-007 | E2E `importaciones.e2e.ts` | `pnpm test:e2e` |
 | SC-003 | pgTAP `procesos_masivos.test.sql` | `pnpm test` |
 | SC-004, SC-005 | pgTAP `monitoreo.test.sql` | `pnpm test` |
-| SC-006 | verificación manual documentada en `docs/monitoreo.md` contra GlitchTip local + tests de FR-021/FR-022 | `pnpm test` |
+| SC-006 | Vitest `errores-web.test.ts` y `errores-worker.test.mjs` (automático) + paso manual «error inducido» de `docs/monitoreo.md` contra `pnpm dev:glitchtip` (evidencia en el PR) | `pnpm test` |
 | SC-008 | los siete comandos de validación | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm docs:check && pnpm prototipo:check && pnpm matriz:check` |
 
 ## Decisiones abiertas (a confirmar con Nicolás)
