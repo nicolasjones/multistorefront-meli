@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   ATAJOS_RANGO,
+  leerConteoConsultas,
   rangoEsValido,
   rangoPorAtajo,
   urlParamsRanking,
@@ -80,5 +81,28 @@ describe('parámetros del embebido del ranking de clientes (F-VTA-23, FR-008)', 
     expect(rison).toContain('NATIVE_FILTER-rango')
     expect(rison).toContain('NATIVE_FILTER-empresa')
     expect(rison).toContain("col:empresa_nombre,op:IN,val:!('San Javucho')")
+  })
+})
+
+describe('leerConteoConsultas (F-REP-04)', () => {
+  it('llama a la RPC de consultas con el rango y la empresa, y devuelve el número', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: 7, error: null })
+    const total = await leerConteoConsultas({ rpc } as never, {
+      rango: { desde: '2026-10-01', hasta: '2026-10-31' },
+      empresaId: 'e-1',
+    })
+    expect(total).toBe(7)
+    expect(rpc).toHaveBeenCalledWith('consultas_reportes_conteo', {
+      p_desde: '2026-10-01',
+      p_hasta: '2026-10-31',
+      p_empresa_id: 'e-1',
+    })
+  })
+
+  it('no traga el error de la base', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: null, error: new Error('42501') })
+    await expect(
+      leerConteoConsultas({ rpc } as never, { rango: { desde: '2026-10-01', hasta: '2026-10-31' }, empresaId: null }),
+    ).rejects.toThrow('42501')
   })
 })

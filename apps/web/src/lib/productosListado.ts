@@ -3,6 +3,7 @@
 // consulta: búsqueda, filtro de estado, orden estable y paginación, todo resuelto en el servidor.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
+import { normalizarBusqueda } from './busquedaTexto'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -56,17 +57,17 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
 const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
-// mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
+// mayúsculas ni tildes: el nombre se compara con la columna calculada `nombre_norm`). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
 // (`,` `(` `)` `"` `\`) y el comodín `*` de PostgREST, y se escapan los comodines de LIKE (`%` `_`), para que lo tipeado
 // se busque como texto y no altere la consulta.
 export function filtroBusquedaProductos(texto: string): string | null {
-  const limpio = texto
+  const limpio = normalizarBusqueda(texto)
     .slice(0, LARGO_MAXIMO_BUSQUEDA)
     .replace(/[,()"\\*]/g, ' ')
     .replace(/[%_]/g, (c) => `\\${c}`)
     .trim()
   if (limpio === '') return null
-  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+  return `nombre_norm.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
 // F-CAT-14 (FR-012): un texto de exactamente 13 dígitos es un código de barras (lo que teclea el lector);
@@ -91,7 +92,8 @@ export async function consultarProductos(
   // Coincidencia exacta por el índice único (organizacion_id, codigo_barras); si no, nombre/SKU parcial.
   const codigoBarras = codigoBarrasBuscado(consulta.texto)
   const busqueda = codigoBarras ? null : filtroBusquedaProductos(consulta.texto)
-  if (codigoBarras) peticion = peticion.eq('codigo_barras', codigoBarras)
+  // Un SKU con forma de EAN (13 dígitos) también se encuentra: coincidencia exacta por código de barras o por SKU.
+  if (codigoBarras) peticion = peticion.or(`codigo_barras.eq.${codigoBarras},sku.ilike.${codigoBarras}`)
   else if (busqueda) peticion = peticion.or(busqueda)
   // Se resuelve en el servidor: `empresa_ids @> {empresa}` sobre la vista.
   if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
@@ -126,6 +128,47 @@ export async function consultarCostos(
     .returns<Array<{ producto_id: string; costo: number | string }>>()
   if (error) throw error
   return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+}
+
+export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }
+
+// Precio de lista de los productos de la página, desde la vista `productos_precio_costo` (F-PRE-01).
+// `precio_central_ars` ya viene convertido por la base con la cotización vigente (`private.a_pesos`),
+// así que acá no se recalcula nada: ARS tal cual; USD → pesos con la última cotización (null si no hay).
+export async function consultarPrecios(
+  cliente: Pick<SupabaseClient, 'from'>,
+  productoIds: readonly string[],
+): Promise<Map<string, PrecioListado>> {
+  if (productoIds.length === 0) return new Map()
+  const { data, error } = await cliente
+    .from('productos_precio_costo')
+    .select('producto_id, moneda, precio_lista, precio_central_ars')
+    .in('producto_id', [...productoIds])
+    .returns<Array<{ producto_id: string; moneda: 'USD' | 'ARS'; precio_lista: number | string | null; precio_central_ars: number | string | null }>>()
+  if (error) throw error
+  const precios = new Map<string, PrecioListado>()
+  for (const fila of data ?? []) {
+    if (fila.precio_lista === null || fila.precio_lista === '') continue
+    precios.set(fila.producto_id, {
+      moneda: fila.moneda,
+      precioLista: Number(fila.precio_lista),
+      precioArs: fila.precio_central_ars === null ? null : Number(fila.precio_central_ars),
+    })
+  }
+  return precios
+}
+
+const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const pesos = (valor: number) => `$ ${FORMATO_PRECIO.format(valor)}`
+
+// Precio para el listado, siempre en pesos: «$ 1.000,00» si el producto está en ARS;
+// «$ 1.570.000,00 (USD 1.000,00)» si está en USD (pesos = USD × última cotización);
+// «USD 1.000,00 (sin cotización)» si falta la cotización; «—» si no tiene precio.
+export function formatearPrecioListado(precio: PrecioListado | undefined): string {
+  if (!precio || !Number.isFinite(precio.precioLista)) return '—'
+  if (precio.moneda === 'ARS') return pesos(precio.precioLista)
+  const usd = `USD ${FORMATO_PRECIO.format(precio.precioLista)}`
+  return precio.precioArs === null || !Number.isFinite(precio.precioArs) ? `${usd} (sin cotización)` : `${pesos(precio.precioArs)} (${usd})`
 }
 
 const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

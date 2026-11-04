@@ -7,12 +7,16 @@
 //      registro y el archivo discrepen y que la migración NUNCA se aplique — pasó con
 //      `20261019120000`, que quedó grabada con otro contenido y bloqueó toda la cola).
 //   3. VERSIÓN NUEVA: una migración agregada debe usar una versión MAYOR que la máxima
-//      de la base (no reusar un número viejo).
+//      de la base (no reusar un número viejo). Es ERROR cuando la base es la rama contra
+//      la que se mergea de verdad (una épica en un PR a la épica) o el destino final
+//      (`dokploy`/`main`) en un PR o con `--estricto`. Fuera de eso, comparar una rama de
+//      épica con `dokploy` (que avanza con cada épica que mergea) es sólo un AVISO de
+//      orden: se resuelve al integrar la épica, y no obliga a renombrar en bucle.
 //   4. IDEMPOTENCIA: el DDL debe tolerar una aplicación parcial (el aplicador se detiene
 //      en el primer error y reintenta): `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`,
 //      `CREATE INDEX IF NOT EXISTS`.
 //
-// Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia]
+// Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
 // Sale con código 1 si hay un problema.
 
 import { spawnSync } from 'node:child_process';
@@ -24,6 +28,9 @@ const valorDe = (flag, def) => {
 };
 const base = valorDe('--base', process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy');
 const soloIdempotencia = args.includes('--solo-idempotencia');
+const esIntegracion = /^origin\/(dokploy|main)$/.test(base);
+// Orden contra la base como ERROR: base de épica, destino final en un PR, o `--estricto`.
+const ordenEstricto = args.includes('--estricto') || !esIntegracion || Boolean(process.env.GITHUB_BASE_REF);
 const git = (a) => spawnSync('git', a, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 
 const problemas = [];
@@ -59,7 +66,11 @@ if (!soloIdempotencia) {
       const previo = basePorVersion.get(v);
       if (!previo) {
         if (v <= maxBase) {
-          problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+          if (ordenEstricto) {
+            problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+          } else {
+            avisos.push(`versión ${v} está por debajo de ${maxBase} (máxima de ${base}) pero no colisiona: se acomoda al integrar la épica (con \`--estricto\` o en el PR a ${base} es error). El aplicador no ejecuta versiones bajo la cola ya aplicada (${fs_[0]})`);
+          }
         }
         continue;
       }

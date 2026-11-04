@@ -62,10 +62,10 @@ describe('ListasConfigurables', () => {
     expect(within(seccionEstados()).getByText('Inactivo')).toBeInTheDocument()
   })
 
-  it('un rol que no es Administrador ve el acceso restringido y no carga ninguna lista', () => {
+  it('un rol que no es Administrador ve el acceso restringido y no carga ninguna lista', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
-    expect(screen.getByText('Sin acceso a Listas configurables')).toBeInTheDocument()
+    expect(await screen.findByText('Sin acceso a Listas configurables')).toBeInTheDocument()
     expect(mocks.listarEstados).not.toHaveBeenCalled()
     expect(mocks.listarMotivos).not.toHaveBeenCalled()
   })

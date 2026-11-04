@@ -179,7 +179,7 @@ describe('StockList', () => {
     abrir()
     await screen.findByText('Joystick')
     fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'JOY_1,(x)' } })
-    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%JOY\\_1  x%,sku.ilike.%JOY\\_1  x%']))
+    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%joy\\_1  x%,sku.ilike.%joy\\_1  x%']))
   })
 
   it('una búsqueda sin resultados avisa y no confunde con el catálogo vacío', async () => {
@@ -224,7 +224,7 @@ describe('StockList', () => {
     await screen.findByText('Joystick')
     fireEvent.click(screen.getByRole('button', { name: 'Stock bajo' }))
     fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
-    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%mou%,sku.ilike.%mou%']))
+    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%mou%,sku.ilike.%mou%']))
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(3))
     const campo = screen.getByLabelText('Buscar por nombre o SKU')
     campo.focus()
@@ -237,7 +237,7 @@ describe('StockList', () => {
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(1))
     expect(mocks.contar).toHaveBeenCalledTimes(2)
     expect(llamadasDe('eq')).toContainEqual(['estado', 'stock_bajo'])
-    expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%mou%,sku.ilike.%mou%'])
+    expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%mou%,sku.ilike.%mou%'])
     expect(screen.getByText('Joystick')).toBeInTheDocument()
     expect(screen.getByLabelText('Buscar por nombre o SKU')).toBe(campo)
     expect(campo).toHaveFocus()
@@ -323,7 +323,7 @@ describe('StockList', () => {
       await screen.findByRole('table', { name: 'Stock actual' })
       fireEvent.click(screen.getByRole('button', { name: 'Ver solo alertas' }))
       fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'JOY' } })
-      await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%JOY%,sku.ilike.%JOY%']))
+      await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
       await screen.findByRole('table', { name: 'Stock actual' })
       mocks.llamadas.length = 0
       const lote = Array.from({ length: 200 }, (_, i) => ({ ...FILAS[0], producto_id: `p-${i}` }))
@@ -333,7 +333,7 @@ describe('StockList', () => {
       await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
       expect(llamadasDe('range')).toEqual([[0, 199], [200, 399]])
       expect(llamadasDe('in')).toEqual([[ 'estado', ['sin_stock', 'stock_bajo']], ['estado', ['sin_stock', 'stock_bajo']]])
-      expect(llamadasDe('or')).toEqual([['nombre.ilike.%JOY%,sku.ilike.%JOY%'], ['nombre.ilike.%JOY%,sku.ilike.%JOY%']])
+      expect(llamadasDe('or')).toEqual([['nombre_norm.ilike.%joy%,sku.ilike.%joy%'], ['nombre_norm.ilike.%joy%,sku.ilike.%joy%']])
       expect(csvDescargado().lineas).toHaveLength(1 + 201)
     })
 

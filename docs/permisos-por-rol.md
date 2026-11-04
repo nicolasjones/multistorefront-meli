@@ -316,3 +316,10 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracio
   `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
 - **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
 - **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.
+
+## Rol mostrado en «Acceso restringido» (MSF-637)
+
+Las pantallas solo-Administrador (`/stock/motivos`, Listas configurables) muestran el nombre real del rol
+(`useNombreRolActual`, misma consulta que `RequiereAccesoSeccion`, vía `lib/rolActual.ts`). Si no se puede
+resolver, el texto genérico es «actual». Pendiente de decisión de negocio: la matriz otorga `edicion`/`lectura`
+a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las limita al Administrador.
