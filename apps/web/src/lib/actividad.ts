@@ -62,13 +62,23 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'cliente.editado': 'Cliente editado',
   'cliente.archivado': 'Cliente archivado',
   'cliente.restaurado': 'Cliente restaurado',
+  'comprobante.nota_credito_emitida': 'Comprobante nota crédito emitida',
+  'rma.nota_credito_vinculada': 'RMA nota crédito vinculada',
+  'reparacion.editada': 'Reparación editada',
 }
+
+// Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.
+const PALABRA_ACTIVIDAD: Readonly<Record<string, string>> = { reparacion: 'reparación', credito: 'crédito', rma: 'RMA' }
 
 export function etiquetaTipoActividad(tipo: string): string {
   const conocida = ETIQUETA_TIPO_ACTIVIDAD[tipo]
   if (conocida) return conocida
   const [entidad, accion] = tipo.split('.')
-  const texto = `${entidad ?? ''} ${(accion ?? '').replace(/_/g, ' ')}`.trim()
+  const texto = `${entidad ?? ''} ${(accion ?? '').replace(/_/g, ' ')}`
+    .trim()
+    .split(' ')
+    .map((palabra) => PALABRA_ACTIVIDAD[palabra] ?? palabra)
+    .join(' ')
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
