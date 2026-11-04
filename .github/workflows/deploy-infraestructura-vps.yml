@@ -123,6 +123,8 @@ jobs:
           fi
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno staging
       - name: Limpiar credenciales transitorias
         if: always()
@@ -192,6 +194,8 @@ jobs:
           fi
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno production
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno production
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno production
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno production
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno production
       - name: Limpiar credenciales transitorias
         if: always()

@@ -253,6 +253,36 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`,
 - **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
 - Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
 
+## Tablero «Rentabilidad · Ventas reales» (F-REN-09, MSF-223)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-ventas-reales`, registrado en `reportes.json` con `seccion = 'rentabilidad'` y rol por defecto `administracion`; idempotente). Lee la vista `analitica.rentabilidad_ventas_real` (rol `superset_analitica` solo `select`), sin Mercado Libre.
+
+- **Dataset** `rentabilidad_ventas_real`: una fila por empresa × producto × fecha; expone `organizacion_id` (columna del `rls` del guest token) y métricas agregadas (`vendido_total`, `costo_total`, `costos_adicionales_total`, `margen_total`, `margen_pct_total`, `estado_total` con el umbral de la organización) más sus versiones de texto en pesos.
+- **Filtro nativo** `Rango de fechas` (Desde / Hasta) sobre la fecha de la venta; no hay filtro de empresa (compara todas).
+- **Gráficos**: totales del período (con la nota de ventas sin costo guardado), tabla por empresa y tabla por producto.
+- **Vacío**: «Sin ventas en este período».
+- Verificación: `supabase/tests/database/rentabilidad_ventas_real*.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroVentasReales.contrato.test.ts`.
+
+## Tablero «Productos más consultados» (F-REP-04, MSF-236)
+
+Paquete propio `infra/superset/dashboards/consultas-reportes/` (no comparte `reportes.json` con
+`ventas-reportes/`): dataset sobre `analitica.consultas_producto_mas_consultado`, un gráfico de tabla (posición,
+consultas, última consulta; orden por consultas descendente) y filtros nativos de rango y empresa. Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging|production`
+(idempotente) y se registra en `public.reportes` con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto
+`administracion`. Reutiliza la conexión «Ventas analitica» (mismo rol `superset_analitica`, contraseña por
+`SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional: [`ventas-reportes.md`](./ventas-reportes.md).
+
+## Tablero «Ventas por período y canal» (F-REP-05, MSF-248)
+
+Paquete propio `infra/superset/dashboards/ventas-periodo-canal/`: dataset sobre `analitica.ventas_periodo_canal`, un
+gráfico de barras apiladas por canal (facturado con IVA), una tabla por canal (facturado, comprobantes, unidades) y
+filtros nativos de rango, empresa y «Agrupar por» (día, semana o mes; `filter_timegrain`). Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging|production`
+(idempotente; el workflow de despliegue lo hace después de `consultas-reportes`) y se registra en `public.reportes`
+con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto `administracion`. Reutiliza la conexión «Ventas
+analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional:
+[`ventas-reportes.md`](./ventas-reportes.md).
 ## Inventario · Productos y stock (MSF-297)
 
 Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
