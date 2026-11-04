@@ -186,9 +186,8 @@ describe('Detalle · bloque «Envío y transporte» (F-VTA-16)', () => {
     expect(mocks.obtenerFormaEnvioDeComprobante).not.toHaveBeenCalled()
   })
 
-  // MSF-715: tras el cobro la factura pasa a «cobrado»/«deuda». El envío ya cargado se sigue
-  // leyendo (no desaparece del detalle) pero la base ya no lo admite: solo se muestra.
-  it('con la factura cobrada el bloque sigue visible, en solo lectura', async () => {
+  // MSF-598: la factura cobrada o con deuda sigue viva para el despacho: el envío se edita igual que en «confirmada».
+  it('con la factura cobrada el bloque sigue visible y editable', async () => {
     mocks.obtenerComprobante.mockResolvedValue({
       ...FACTURA,
       estado: 'cobrado',
@@ -198,10 +197,8 @@ describe('Detalle · bloque «Envío y transporte» (F-VTA-16)', () => {
 
     expect(await screen.findByRole('region', { name: 'Envío y transporte' })).toBeInTheDocument()
     const transporte = await screen.findByRole('combobox', { name: /Transporte \/ expreso/ })
-    expect(transporte).toHaveAttribute('aria-disabled', 'true')
-    // No se ofrece guardar un envío que la base va a rechazar.
-    expect(screen.queryByRole('button', { name: 'Guardar envío' })).not.toBeInTheDocument()
-    expect(await screen.findByText(MENSAJE_ENVIO_SOLO_LECTURA)).toBeInTheDocument()
+    expect(transporte).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByText(MENSAJE_ENVIO_SOLO_LECTURA)).not.toBeInTheDocument()
   })
 })
 
