@@ -120,13 +120,14 @@ describe('llamadas a la base', () => {
       vigente: { valor: 1465, cargadaEn: '2026-09-25T12:00:00Z', cargadaPor: null },
       productosUsd: 38,
       pendiente: { valor: 1490, expiraEn: '2026-09-26T12:00:00Z' },
+      alcance: 'sistema', umbralPct: 1, confirmacionPct: 15, redondeoPesos: 10,
     })
     expect(rpc).toHaveBeenCalledWith('estado_cotizacion')
   })
 
   it('estado_cotizacion sin vigente ni pendiente', async () => {
     const { cliente } = clienteCon({ data: { vigente: null, productos_usd: 0, pendiente: null }, error: null })
-    await expect(leerEstadoCotizacion(cliente)).resolves.toEqual({ vigente: null, productosUsd: 0, pendiente: null })
+    await expect(leerEstadoCotizacion(cliente)).resolves.toEqual({ vigente: null, productosUsd: 0, pendiente: null, alcance: 'sistema', umbralPct: 1, confirmacionPct: 15, redondeoPesos: 10 })
   })
 
   it('un error de la base no se traga', async () => {
@@ -154,14 +155,14 @@ describe('llamadas a la base', () => {
 
 describe('cotización del día (F-PRE-05)', () => {
   it('subtituloCargadaHoy: hora de Buenos Aires y quién', () => {
-    const dia = { cargadaHoy: true, cargadaEn: '2026-10-23T13:32:00Z', cargadaPor: 'Administrador', valor: 1490 }
+    const dia = { cargadaHoy: true, cargadaEn: '2026-10-23T13:32:00Z', cargadaPor: 'Administrador', valor: 1490, avisoActivo: true }
     expect(subtituloCargadaHoy(dia)).toBe('Cargada hoy 10:32 por Administrador')
     expect(subtituloCargadaHoy({ ...dia, cargadaPor: null })).toBe('Cargada hoy 10:32')
     expect(subtituloCargadaHoy({ ...dia, cargadaEn: null })).toBe('Cargada hoy por Administrador')
   })
 
   it('subtituloCargadaHoy: medianoche en Buenos Aires es 00:00', () => {
-    const dia = { cargadaHoy: true, cargadaEn: '2026-10-23T03:00:00Z', cargadaPor: null, valor: 1490 }
+    const dia = { cargadaHoy: true, cargadaEn: '2026-10-23T03:00:00Z', cargadaPor: null, valor: 1490, avisoActivo: true }
     expect(subtituloCargadaHoy(dia)).toBe('Cargada hoy 00:00')
   })
 
@@ -169,7 +170,7 @@ describe('cotización del día (F-PRE-05)', () => {
     const rpc = vi.fn().mockResolvedValue({ data: { cargada_hoy: false, cargada_en: null, cargada_por: null, valor: null }, error: null })
     const dia = await leerCotizacionDelDia({ rpc } as never)
     expect(rpc).toHaveBeenCalledWith('cotizacion_del_dia')
-    expect(dia).toEqual({ cargadaHoy: false, cargadaEn: null, cargadaPor: null, valor: null })
+    expect(dia).toEqual({ cargadaHoy: false, cargadaEn: null, cargadaPor: null, valor: null, avisoActivo: true })
   })
 
   it('leerCotizacionDelDia propaga el error de la base', async () => {
@@ -192,6 +193,8 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     await expect(previsualizarCotizacionRpc(cliente)).resolves.toEqual({
       variacionPct: 5,
       recalcula: true,
+      umbralPct: 1,
+      redondeoPesos: 10,
       empresas: [{ empresaId: 'e1', nombre: 'Mundo JC', precios: 2 }],
       muestra: [{ producto: 'Case', sku: 'CAS-1', usd: 10, porEmpresa: [{ empresaId: 'e1', hoy: 10000, nuevo: null }] }],
     })
