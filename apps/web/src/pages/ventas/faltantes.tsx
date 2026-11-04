@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Box, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
+import { Box, LinearProgress, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useListarFaltantes } from '../../hooks/useListarFaltantes'
 import { formatearCuando } from '../../lib/actividad'
 import {
@@ -14,6 +15,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -88,7 +90,7 @@ const columnas: ColumnaAdaptable<FaltanteVenta>[] = [
 // Pantalla «Ventas · Faltantes» (F-VTA-18, FR-044 y FR-046). Solo lectura: los faltantes abiertos los
 // registra el despacho (F-VTA-18, FR-047) desde el comprobante. La autoridad es la base
 // (`listar_faltantes`: las empresas donde la persona tiene Ventas al menos en lectura); la pantalla
-// solo acota por tienda y pagina. La tienda sigue a la empresa activa de la barra superior.
+// solo acota por tienda y carga por tandas (carga infinita). La tienda sigue a la empresa activa de la barra superior.
 export function FaltantesList() {
   const {
     empresas,
@@ -104,6 +106,10 @@ export function FaltantesList() {
     pagina,
     tamano: TAMANO_PAGINA,
   })
+
+  // Carga infinita (Principio VI): se suman las tandas que entrega el hook; cambiar de tienda reinicia.
+  const listado = useListadoAcumulado({ items: faltantes, pagina, setPagina, total, cargando: isFetching, reinicio: empresaId })
+  const falloTanda = isError && pagina > 1
 
   // Cambió el ámbito (organización + tienda): la pantalla se reencuadra (Principio VIII, FR-046). Se
   // ajusta en el MISMO render —no en un efecto— para que la paginación vuelva a la primera página sin
@@ -145,14 +151,14 @@ export function FaltantesList() {
             contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'faltante' : 'faltantes'}`}
           />
 
-          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando los faltantes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
+          {isFetching && !isLoading && pagina === 1 ? <LinearProgress aria-label="Actualizando los faltantes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los faltantes." reintentar={() => void refetch()} />
-            ) : faltantes.length === 0 ? (
+            ) : listado.filas.length === 0 ? (
               <EstadoVacio
                 titulo="Sin resultados"
                 descripcion="No hay faltantes abiertos en las tiendas que podés ver."
@@ -160,21 +166,12 @@ export function FaltantesList() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={faltantes}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(faltante) => faltante.id}
                   etiquetaTabla="Faltantes"
                 />
-                <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA}
-                  rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Faltantes por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                />
+                <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas} />
               </>
             )}
           </Box>

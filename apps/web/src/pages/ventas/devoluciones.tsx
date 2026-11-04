@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, LinearProgress, Link, Snackbar, Stack, Tab, TablePagination, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, LinearProgress, Link, Snackbar, Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import { useRma } from '../../hooks/useRma'
@@ -9,12 +10,13 @@ import { definicionEstadoRma, siguienteEstadoRma } from '../../lib/estadoRma'
 import { definicionForma, FORMAS_RMA, type FormaRma } from '../../lib/formasRma'
 import {
   cambiarEstadoRma, MENSAJE_ESTADO_RMA_CAMBIADO, MENSAJE_NOTA_RMA_VINCULADA, MENSAJE_RMA_REGISTRADA,
-  MENSAJE_STOCK_RMA_REINGRESADO, mensajeDeCambioEstadoRma, TAMANO_PAGINA_RMA, type RmaListado,
+  MENSAJE_STOCK_RMA_REINGRESADO, mensajeDeCambioEstadoRma, type RmaListado,
 } from '../../lib/rma'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -142,7 +144,7 @@ const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar, onResolver }: Acci
 ]
 
 // Pantalla Devoluciones (RMA) (F-VTA-28, MSF-288, FR-004…FR-008): VentasDevoluciones.dc.html. Lista las devoluciones y
-// reclamos por ítem de las tiendas accesibles, paginado en el servidor, con el filtro Tienda (`FiltroEmpresa`, que sigue a
+// reclamos por ítem de las tiendas accesibles, en tandas desde el servidor (carga infinita), con el filtro Tienda (`FiltroEmpresa`, que sigue a
 // la empresa activa) y el diálogo «Nueva devolución». F-VTA-29 agrega el filtro por forma de RMA (chips «Todas» + las
 // cinco formas, en servidor), el contador y el avance de estado Abierta → En gestión → Cerrada para quien edita; el
 // F-VTA-30 agrega la resolución: emitir la nota de crédito (forma «Devolución de importe») o reingresar el stock (las demás) y mostrar el vínculo. Las pestañas Pagos, Faltantes y Transportes son de otras épicas.
@@ -197,6 +199,11 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
   const puedeCrear = nivel === 'edicion'
   const [formaRma, setFormaRma] = useState('')
   const { pagina, setPagina, datos, cargando, primeraCarga, hayError, recargar } = useRma(empresaId, formaRma)
+  // Carga infinita (Principio VI): se suman las tandas que entrega `useRma`; cambiar tienda o forma reinicia.
+  const listado = useListadoAcumulado({ items: datos.devoluciones, pagina, setPagina, total: datos.total, cargando, reinicio: { empresaId, formaRma } })
+  const falloTanda = hayError && pagina > 1
+  // Las acciones que cambian filas recargan desde la primera tanda.
+  const recargarDesdeInicio = () => (pagina === 1 ? void recargar() : setPagina(1))
   const [registrada, setRegistrada] = useState<FormaRma | null>(null)
   const [pendienteId, setPendienteId] = useState<string | null>(null)
   const [avisoEstado, setAvisoEstado] = useState<{ severidad: 'success' | 'error'; texto: string } | null>(null)
@@ -214,7 +221,7 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
       setPendienteId(null)
     }
     // Éxito o error, el listado se vuelve a leer: nunca queda un estado o un sello viejo en pantalla.
-    void recargar()
+    recargarDesdeInicio()
   }
   const [resolviendo, setResolviendo] = useState<{ rma: RmaListado; modo: ModoResolucion } | null>(null)
   const columnas = armarColumnas({
@@ -273,12 +280,12 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
             {primeraCarga || hayError ? '' : `${datos.total} ${datos.total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
-          {cargando && !primeraCarga ? <LinearProgress aria-label="Actualizando devoluciones" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
+          {cargando && !primeraCarga && pagina === 1 ? <LinearProgress aria-label="Actualizando devoluciones" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={cargando}>
             {primeraCarga ? (
               <EstadoCargaPagina />
-            ) : hayError ? (
+            ) : hayError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar las devoluciones." reintentar={() => void recargar()} />
             ) : datos.devoluciones.length === 0 && pagina === 1 ? (
               <EstadoVacio
@@ -289,21 +296,12 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={datos.devoluciones}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(r) => r.id}
                   etiquetaTabla="Devoluciones"
                 />
-                <TablePagination
-                  component="div"
-                  count={datos.total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA_RMA}
-                  rowsPerPageOptions={[TAMANO_PAGINA_RMA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Devoluciones por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                />
+                <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void recargar() : listado.cargarMas} />
               </>
             )}
           </Box>
@@ -318,8 +316,7 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
           onRegistrada={(forma) => {
             onDialogo(false)
             setRegistrada(forma)
-            setPagina(1)
-            void recargar()
+            recargarDesdeInicio()
           }}
         />
       ) : null}
@@ -332,7 +329,7 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
           onResuelta={(r, modo) => {
             setResolviendo(null)
             setAvisoEstado({ severidad: 'success', texto: modo === 'nota' ? MENSAJE_NOTA_RMA_VINCULADA(r.numero) : MENSAJE_STOCK_RMA_REINGRESADO(r.numero) })
-            void recargar()
+            recargarDesdeInicio()
           }}
         />
       ) : null}
