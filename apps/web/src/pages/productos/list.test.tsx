@@ -260,17 +260,50 @@ describe('ProductoList', () => {
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
   })
 
-  it('buscar estando en la página 2 vuelve a pedir range(0, 24)', async () => {
-    mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
+  const FILAS_2 = [
+    { id: 'p-3', nombre: 'Teclado', sku: 'TEC-1', activo: true, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null, disponibilidad: 'stock' },
+  ]
+
+  it('«Cargar más» pide la tanda siguiente y la suma a lo ya mostrado (carga infinita)', async () => {
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 3 }).mockResolvedValueOnce({ data: FILAS_2, error: null, count: 3 })
     abrir()
     await screen.findByText('Joystick')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
+    expect(await screen.findByText('Teclado')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('buscar después de cargar más reinicia la lista desde el principio: range(0, 24)', async () => {
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 60 }).mockResolvedValueOnce({ data: FILAS_2, error: null, count: 60 })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
     mocks.llamadas.length = 0
-    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'joy' } })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
+    mocks.consulta.mockResolvedValue({ data: FILAS_2, error: null, count: 1 })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'tec' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%tec%,sku.ilike.%tec%']))
     expect(mocks.llamadas).toContainEqual(['range', 0, 24])
     expect(mocks.llamadas).not.toContainEqual(['range', 25, 49])
+    await waitFor(() => expect(screen.queryByText('Joystick')).not.toBeInTheDocument())
+  })
+
+  it('si falla una tanda siguiente mantiene lo ya cargado y ofrece reintentar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 60 }).mockResolvedValueOnce({ data: null, error: { message: 'boom' }, count: null })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('No pudimos cargar más resultados.')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS_2, error: null, count: 60 })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Teclado')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
   })
 
   it('el filtro Inactivos consulta activo = false y «Limpiar filtros» lo quita', async () => {
@@ -349,11 +382,12 @@ describe('ProductoList', () => {
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
   })
 
-  it('muestra el pie «desde–hasta de N»', async () => {
+  it('muestra el contador total de productos y no tiene paginación numerada', async () => {
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
     abrir()
     await screen.findByText('Joystick')
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
+    expect(screen.getByText('60 productos')).toBeInTheDocument()
+    expect(screen.queryByText(/Productos por página/)).not.toBeInTheDocument()
   })
 
   it('con edición ofrece editar y activar/desactivar, y desactivar llama a la RPC y recarga', async () => {
