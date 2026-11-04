@@ -35,6 +35,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
+import AssessmentIcon from '@mui/icons-material/Assessment'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -191,6 +192,16 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Análisis',
     destinos: [
       { id: 'rentabilidad', etiqueta: 'Rentabilidad', ruta: '/rentabilidad', icono: InsightsIcon, audiencia: 'organizacion', seccionPermiso: 'rentabilidad' },
+    ],
+  },
+  {
+    // F-REP-01 (MSF-297): menú «Reportes». Cada reporte sigue la sección de sus datos (los de
+    // inventario, `stock`), no la de `reportes`; los reportes de Ventas y Rentabilidad no se mueven.
+    id: 'reportes',
+    etiqueta: 'Reportes',
+    destinos: [
+      { id: 'reportes-inventario', etiqueta: 'Productos y stock', ruta: '/reportes/inventario', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'reportes-reposicion', etiqueta: 'Reposición', ruta: '/reportes/reposicion', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):
