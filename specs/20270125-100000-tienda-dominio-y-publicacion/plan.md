@@ -36,7 +36,7 @@ Regla «anon solo ejecuta las RPC de acceso»: se respeta. La única función nu
 
 | Historia | Migración | Contenido | Reversión |
 |---|---|---|---|
-| F-TDA-05 | `20270125100000_tienda_dominio_verificacion.sql` | Columnas en `dominio.tiendas`, `tienda_registros_dns`, `public.tienda_dns_plataforma`, `configurar_dominio_tienda`, `obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`, `private.promover_dominio_pendiente`, `publico.redireccion_por_dominio` | `drop` de funciones y tablas nuevas; `alter table dominio.tiendas drop column …` |
+| F-TDA-05 | `20270203130000_tienda_dominio_verificacion.sql` | Columnas en `dominio.tiendas`, `tienda_registros_dns`, `public.tienda_dns_plataforma`, `configurar_dominio_tienda`, `obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`, `private.promover_dominio_pendiente`, `publico.redireccion_por_dominio` | `drop` de funciones y tablas nuevas; `alter table dominio.tiendas drop column …` |
 | F-TDA-06 | `20270125100100_tienda_borrador_publicacion.sql` | `tienda_borrador`, `tienda_versiones` (+ versión 1 de las tiendas existentes), validadores `private.validar_*`, RPC de borrador, `publicar_tienda`, `vista_previa_tienda`, revoke de las tres `guardar_*` | reponer `grant execute` de las `guardar_*`; `drop` de funciones y tablas |
 | F-TDA-07 | `20270125100200_tienda_versiones.sql` | `listar_versiones_tienda`, `restaurar_version_tienda` (solo funciones) | `drop function` |
 

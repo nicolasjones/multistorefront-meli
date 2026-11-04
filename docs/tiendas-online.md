@@ -100,7 +100,7 @@ worker en `workers/` con el mismo contrato.
 `obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`,
 `private.promover_dominio_pendiente` y `publico.redireccion_por_dominio`; `drop table
 dominio.tienda_registros_dns, public.tienda_dns_plataforma`; `alter table dominio.tiendas drop column …` de las
-columnas nuevas (detalle en el encabezado de `20270125100000_tienda_dominio_verificacion.sql`); retirar la función
+columnas nuevas (detalle en el encabezado de `20270203130000_tienda_dominio_verificacion.sql`); retirar la función
 `verificar-dominio-tienda`.
 
 ### Alta técnica por SQL (primera carga)
