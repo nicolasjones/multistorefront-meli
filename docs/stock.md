@@ -185,3 +185,22 @@ Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inven
 Los repuestos de una reparación registran movimientos con `origen = 'service'` y `reparacion_id` sobre el depósito
 elegido, con la misma barrera de disponible por depósito. Ver `docs/service-repuestos-stock.md`,
 `docs/service-repuestos-devolucion.md` y `docs/service-repuestos-pendiente.md`.
+
+## Listados con carga infinita e imagen del producto
+
+Los listados de Stock siguen la regla de [`listados.md`](./listados.md): sin paginación numerada, cada tanda de 25 se suma
+a lo ya mostrado (`useListadoAcumulado` + `CargaInfinita`, «Cargar más» como alternativa con teclado) y el producto lleva
+su imagen principal como miniatura con zoom (`MiniaturaProducto`). La capa de datos de cada pantalla no cambió: sigue
+pidiendo «la página N». Contador, filtros, orden y exportaciones (que usan los filtros, no la tanda visible) se conservan.
+
+| Pantalla | Reinicia a la tanda 1 cuando cambia | Miniatura |
+|---|---|---|
+| Stock actual (`/stock`) | búsqueda, estado, depósito; un aviso en vivo o un movimiento nuevo recargan desde la tanda 1 (las cifras por depósito se acumulan por tanda) | sí |
+| Movimientos (`/stock/movimientos`) | filtro de producto | sí |
+| Faltantes (`/stock/faltantes`) | empresa/organización; tras avisar se recarga desde la tanda 1; «seleccionar todos» abarca las filas cargadas | sí (la vista `faltantes_listado` ya exponía `producto_id`) |
+| Más vendidos (`/stock/mas-vendidos`) | tienda, organización y período | sí |
+| Historial de ingresos | fechas, proveedor, empresa, producto, operador; un ingreso nuevo o una anulación recargan desde la tanda 1 | sí |
+| Archivo anterior al sistema | sin filtros | no aplica: el archivo guarda el producto como texto, sin `producto_id` |
+| Toma de inventario | no pagina (carga la categoría completa, con tope) | sí |
+
+`HistorialLotes` («Ver más» por cursor) y el detalle de movimientos de un lote (solo nombre y SKU) quedan como estaban.

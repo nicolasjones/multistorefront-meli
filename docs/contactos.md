@@ -74,3 +74,7 @@ Verificada sobre las migraciones `20270201100000…100500` y `20270201200000…2
 `dominio.respuestas_rapidas`; `revoke all … from public, anon, authenticated` + `grant select` solo a `authenticated` en tablas y vistas;
 toda RPC con `revoke … from public, anon` y `grant … to authenticated`; funciones internas (`private.*`) sin grants; esquema `dominio`
 para las dos tablas (Principio VII); `registro_actividad` sin nombre, correo, teléfono ni texto de respuesta.
+
+## Listado con carga infinita
+
+La libreta de contactos carga por tandas (`useListadoAcumulado` + `CargaInfinita`) en vez de páginas numeradas; buscar o cambiar de tienda vuelve a la primera tanda y el contador total se conserva.
