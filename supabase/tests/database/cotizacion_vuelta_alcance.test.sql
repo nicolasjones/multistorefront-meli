@@ -35,8 +35,10 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- Org 1 vuelve a «empresa» con el dólar general en 1500: la empresa arranca en 1500, no en su 1000 viejo.
 select lives_ok($$select public.cambiar_alcance_cotizacion('empresa', true)$$, 'volver a alcance empresa');
+reset role;
 select is(private.cotizacion_vigente_para('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001'),
   1500::numeric, 'la vigente de la empresa es el valor inicial, no su historial viejo');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((public.estado_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'vigente' ->> 'valor')::numeric,
   1500::numeric, 'el estado muestra 1500 como vigente');
 

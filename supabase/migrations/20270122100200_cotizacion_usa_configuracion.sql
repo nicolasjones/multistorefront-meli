@@ -80,7 +80,8 @@ drop function if exists public.cargar_cotizacion(numeric);
 create or replace function public.cargar_cotizacion(p_valor numeric, p_empresa uuid default null)
 returns jsonb
 language plpgsql
-security invoker
+-- Definer: llama a private.cotizacion_vigente_para (sin grant a authenticated); organización, usuario y rol salen de la sesión.
+security definer
 set search_path = ''
 as $$
 declare
