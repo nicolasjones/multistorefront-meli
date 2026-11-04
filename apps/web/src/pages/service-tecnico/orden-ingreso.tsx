@@ -29,7 +29,7 @@ export function ServicioOrdenIngreso() {
           </Box>
         ))}
       </Box>
-      <Typography component="p" variant="body2" sx={{ mt: 3 }}>{orden.condiciones}</Typography>
+      {orden.condiciones ? <Typography component="p" variant="body2" sx={{ mt: 3 }}>{orden.condiciones}</Typography> : null}
     </DocumentoA4>
   )
 }

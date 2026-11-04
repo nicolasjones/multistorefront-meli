@@ -95,6 +95,8 @@ describe('Estado y responsables (FR-010)', () => {
     expect(screen.getByLabelText('Operador')).toHaveAttribute('readonly')
     for (const campo of ['Armó', 'Controló', 'Entregó']) {
       expect(selector(campo as 'Armó')).toHaveTextContent(PLACEHOLDER_RESPONSABLE)
+      // MSF-629: la etiqueta va arriba del campo, no superpuesta al «Seleccionar».
+      expect(screen.getByText(campo, { selector: 'label' })).toHaveAttribute('data-shrink', 'true')
     }
   })
 

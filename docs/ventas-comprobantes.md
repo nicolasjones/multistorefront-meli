@@ -301,3 +301,21 @@ aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para q
 cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de líneas rotula
 «escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
 «Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
+
+## Correcciones de UI funcional (épica MSF-585)
+
+Tanda de correcciones solo de frontend, un commit por defecto para poder revertirlos por separado:
+
+- **MSF-614** — la orden de ingreso de una reparación no imprime texto provisional: sin condiciones definidas
+  (`CONDICIONES_SERVICIO`) la línea se omite.
+- **MSF-627** — Productos: «Desactivar» pide confirmación; «Activar» sigue siendo directo.
+- **MSF-628** — abrir una nota de crédito directo titula «Nota de crédito NNNNNNNN» (antes «undefined»). Su estado se
+  muestra como lo guarda la base (`confirmada`, rotulado «Pendiente»), igual que en el listado.
+- **MSF-629** — las etiquetas de los selectores vacíos (Armó, Controló, Entregó, Transporte) quedan arriba del campo y
+  las columnas Precio s/IVA y Subtotal de las líneas son más anchas para importes grandes.
+- **MSF-623** — el conteo de productos de una categoría raíz de la tienda (pública y «Catálogo visible») suma el de sus
+  subcategorías (`acumularConteoCategorias`); la base sigue contando solo los directos.
+
+Quedaron sin corregir, por necesitar una decisión o un cambio de base: **MSF-609** (las RPC de documentos, envío,
+responsables y faltantes exigen el estado `confirmada`) y **MSF-615** (la base permite anular y editar datos de una
+reparación entregada: es una decisión de negocio).

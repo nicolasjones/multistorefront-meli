@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { acumularConteoCategorias } from './tiendaConteoCategorias'
 
 // F-TDA-12 (MSF-355): página del catálogo público. El filtrado, el orden, el precio final y la
 // paginación los resuelve la base (migración 20261023150200_tienda_catalogo_publico.sql); acá solo se
@@ -143,7 +144,7 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
     total: fila.total,
     pagina: fila.pagina,
     tamano: fila.tamano,
-    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos })),
+    categorias: acumularConteoCategorias(fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos }))),
     productos: fila.productos.map((p) => ({
       id: p.id,
       nombre: p.nombre,
