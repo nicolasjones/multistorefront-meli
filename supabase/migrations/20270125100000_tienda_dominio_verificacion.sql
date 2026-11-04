@@ -39,15 +39,15 @@
 -- ============================================================================
 
 alter table dominio.tiendas
-  add column dominio_redireccion text,
-  add column dominio_pendiente text,
-  add column token_verificacion text not null default replace(gen_random_uuid()::text, '-', ''),
-  add column dominio_verificado_at timestamptz,
-  add column ultima_verificacion_at timestamptz,
-  add column certificado_estado text not null default 'pendiente',
-  add column certificado_verificado_at timestamptz,
-  add column verificacion_solicitada_at timestamptz,
-  add column verificacion_solicitada_por uuid;
+  add column if not exists dominio_redireccion text,
+  add column if not exists dominio_pendiente text,
+  add column if not exists token_verificacion text not null default replace(gen_random_uuid()::text, '-', ''),
+  add column if not exists dominio_verificado_at timestamptz,
+  add column if not exists ultima_verificacion_at timestamptz,
+  add column if not exists certificado_estado text not null default 'pendiente',
+  add column if not exists certificado_verificado_at timestamptz,
+  add column if not exists verificacion_solicitada_at timestamptz,
+  add column if not exists verificacion_solicitada_por uuid;
 
 alter table dominio.tiendas
   add constraint tiendas_dominio_redireccion_formato check (
@@ -82,7 +82,7 @@ comment on column dominio.tiendas.token_verificacion is
 -- dominio.tienda_registros_dns (FR-004, FR-005)
 -- ============================================================================
 
-create table dominio.tienda_registros_dns (
+create table if not exists dominio.tienda_registros_dns (
   empresa_id uuid not null,
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   tipo text not null,
@@ -102,7 +102,7 @@ create table dominio.tienda_registros_dns (
 comment on table dominio.tienda_registros_dns is
   'MSF-198 (F-TDA-05): resultado de la última comprobación de cada registro DNS de una tienda. Se escribe solo por public.registrar_verificacion_dns (service_role).';
 
-create index tienda_registros_dns_organizacion_id_idx on dominio.tienda_registros_dns (organizacion_id);
+create index if not exists tienda_registros_dns_organizacion_id_idx on dominio.tienda_registros_dns (organizacion_id);
 
 alter table dominio.tienda_registros_dns enable row level security;
 
@@ -120,7 +120,7 @@ grant select on dominio.tienda_registros_dns to authenticated;
 -- public.tienda_dns_plataforma (FR-008): configuración de plataforma, fila única
 -- ============================================================================
 
-create table public.tienda_dns_plataforma (
+create table if not exists public.tienda_dns_plataforma (
   id boolean primary key default true,
   ip_publica text not null,
   cname_destino text not null,
