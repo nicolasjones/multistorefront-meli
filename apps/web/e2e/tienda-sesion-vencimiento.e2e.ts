@@ -16,7 +16,7 @@ const HORAS_POR_MS = 60 * 60 * 1000
 
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
-test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer clic no manda a /login ni revoca la sesión global', async ({ page }) => {
+test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer clic no manda a /login, no revoca globalmente y vuelve a /', async ({ page }) => {
   const marca = String(Date.now() - 13 * HORAS_POR_MS)
   await page.addInitScript(
     ([clave, valor]) => window.localStorage.setItem(clave, valor),
@@ -49,7 +49,8 @@ test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer 
   ])
 
   expect(redirigio).toBe(false)
-  expect(new URL(page.url()).pathname).not.toBe('/login')
+  // Cierre local (MSF-700): el destino es la portada de la tienda, no `/login`.
+  expect(new URL(page.url()).pathname).toBe('/')
   // La tienda no tiene 404 para `/login`: con el defecto el visitante veía «No encontramos esta página».
   await expect(page.getByTestId('pagina-no-encontrada')).toHaveCount(0)
   expect(revocacionesGlobales).toEqual([])
