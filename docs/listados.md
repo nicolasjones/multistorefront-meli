@@ -43,3 +43,5 @@ de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
 depende de la página visible). Se justifica en la spec y su plan y se anota acá.
+
+Stock: sin excepciones. Pendiente fuera de alcance de ese grupo: `HistorialLotes` usa un botón «Ver más» por cursor propio (no `TablePagination`) y no se migró.
