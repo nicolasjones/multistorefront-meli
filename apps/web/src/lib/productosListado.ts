@@ -3,6 +3,7 @@
 // consulta: búsqueda, filtro de estado, orden estable y paginación, todo resuelto en el servidor.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
+import { normalizarBusqueda } from './busquedaTexto'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -56,17 +57,17 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
 const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
-// mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
+// mayúsculas ni tildes: el nombre se compara con la columna calculada `nombre_norm`). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
 // (`,` `(` `)` `"` `\`) y el comodín `*` de PostgREST, y se escapan los comodines de LIKE (`%` `_`), para que lo tipeado
 // se busque como texto y no altere la consulta.
 export function filtroBusquedaProductos(texto: string): string | null {
-  const limpio = texto
+  const limpio = normalizarBusqueda(texto)
     .slice(0, LARGO_MAXIMO_BUSQUEDA)
     .replace(/[,()"\\*]/g, ' ')
     .replace(/[%_]/g, (c) => `\\${c}`)
     .trim()
   if (limpio === '') return null
-  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+  return `nombre_norm.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
 // F-CAT-14 (FR-012): un texto de exactamente 13 dígitos es un código de barras (lo que teclea el lector);
@@ -91,7 +92,8 @@ export async function consultarProductos(
   // Coincidencia exacta por el índice único (organizacion_id, codigo_barras); si no, nombre/SKU parcial.
   const codigoBarras = codigoBarrasBuscado(consulta.texto)
   const busqueda = codigoBarras ? null : filtroBusquedaProductos(consulta.texto)
-  if (codigoBarras) peticion = peticion.eq('codigo_barras', codigoBarras)
+  // Un SKU con forma de EAN (13 dígitos) también se encuentra: coincidencia exacta por código de barras o por SKU.
+  if (codigoBarras) peticion = peticion.or(`codigo_barras.eq.${codigoBarras},sku.ilike.${codigoBarras}`)
   else if (busqueda) peticion = peticion.or(busqueda)
   // Se resuelve en el servidor: `empresa_ids @> {empresa}` sobre la vista.
   if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
