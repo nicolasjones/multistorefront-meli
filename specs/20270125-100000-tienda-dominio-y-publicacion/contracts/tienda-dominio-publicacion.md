@@ -16,11 +16,11 @@ public.obtener_dominio_tienda(empresa: uuid): {
   registros: Array<{ tipo: 'A' | 'CNAME' | 'TXT'; nombre: string; valor: string; estado: 'correcto' | 'incorrecto' | 'pendiente'; encontrado: string | null }>
 }
 public.preparar_verificacion_tienda(empresa: uuid): { dominio: string; redireccion: string | null; token: string; ip_publica: string; cname_destino: string; prefijo_txt: string }
-public.registrar_verificacion_dns(empresa: uuid, resultados: jsonb, certificado: text): void   // solo service_role
+public.registrar_verificacion_dns(empresa: uuid, p_dominio: text, p_redireccion: text | null, resultados: jsonb, certificado: text): void   // solo service_role
 publico.redireccion_por_dominio(host: text): { dominio_principal: string } | null              // anon, authenticated
 ```
 
-Errores de `configurar_dominio_tienda`: `dominio_invalido`, `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso` (por campo; MSF-198 sumó `redireccion_en_uso` para distinguir la unicidad en el campo de redirección). `preparar_verificacion_tienda`: `sin_permiso`, `sin_dominio`, `demasiado_pronto` (10 s). `registrar_verificacion_dns` rechaza con `verificacion_obsoleta` un resultado sin verificación pedida o cuyo dominio cambió desde entonces (MSF-198; usa las columnas internas `verificacion_solicitada_at|por` de `dominio.tiendas`). `publico.redireccion_por_dominio`: lista blanca (solo el dominio principal); desconocido y empresa desactivada devuelven `null`.
+Errores de `configurar_dominio_tienda`: `dominio_invalido`, `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso` (por campo; MSF-198 sumó `redireccion_en_uso` para distinguir la unicidad en el campo de redirección). `preparar_verificacion_tienda`: `sin_permiso`, `sin_dominio`, `demasiado_pronto` (10 s). `registrar_verificacion_dns` rechaza con `verificacion_obsoleta` un resultado sin verificación pedida o cuyo dominio o redirección guardados cambiaron desde entonces (MSF-198; usa las columnas internas `verificacion_solicitada_at|por` de `dominio.tiendas`). `publico.redireccion_por_dominio`: lista blanca (solo el dominio principal); desconocido y empresa desactivada devuelven `null`.
 
 ### Edge Function `verificar-dominio-tienda` (ver `openapi/verificar-dominio-tienda.json`)
 
