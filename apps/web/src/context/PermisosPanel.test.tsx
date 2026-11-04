@@ -58,13 +58,23 @@ describe('PermisosPanelProvider y hooks de permisos', () => {
     expect(await screen.findByText('nivel=edicion eliminar=true')).toBeInTheDocument()
   })
 
-  it('si la consulta falla deniega (ninguno) y deja traza', async () => {
+  it('si la consulta falla expone error (no deniega), deja traza y recargar() se recupera', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mocks.obtenerPermisosActuales.mockRejectedValue(new Error('boom'))
-    render(<PermisosPanelProvider><Consumidor /></PermisosPanelProvider>)
-    expect(await screen.findByText('nivel=ninguno eliminar=false')).toBeInTheDocument()
+    mocks.obtenerPermisosActuales.mockRejectedValueOnce(new Error('boom'))
+    function ConsumidorError() {
+      const valor = usePermisosPanel()
+      const { nivel, error } = useNivelSeccion('ventas')
+      return <p>{valor?.isLoading ? 'cargando' : `error=${String(error)} permisos=${String(valor?.permisos)} nivel=${nivel}`}</p>
+    }
+    render(<PermisosPanelProvider><ConsumidorError /><Recargador /></PermisosPanelProvider>)
+    expect(await screen.findByText('error=true permisos=null nivel=null')).toBeInTheDocument()
     expect(log).toHaveBeenCalled()
     log.mockRestore()
+
+    mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('ventas', { nivel: 'edicion' })])
+    fireEvent.click(screen.getByRole('button', { name: 'recargar' }))
+    expect(await screen.findByText('error=false permisos=[object Object] nivel=edicion')).toBeInTheDocument()
+    expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(2)
   })
 
   it('vuelve a pedir los permisos al cambiar de organización (clave usuario:organización)', async () => {
