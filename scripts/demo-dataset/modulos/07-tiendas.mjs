@@ -162,7 +162,11 @@ export async function sembrar(ctx) {
   // — 7. Interés de WhatsApp por la RPC pública —
   let toques = 0
   for (const [clave, skus] of Object.entries(INTERES_PUBLICO)) {
-    for (const sku of skus) {
+    // Con el catálogo real, los toques son sobre productos del catálogo (con stock).
+    const skusInteres = ctx.catalogoReal
+      ? Object.values(ctx.productos).filter((p) => (p.stockLocal ?? 0) + (p.stockDeposito ?? 0) > 0).slice(0, 3).map((p) => p.sku)
+      : skus
+    for (const sku of skusInteres) {
       await rpcPublica(cfg, 'registrar_interes_whatsapp', { host: conTienda[clave], producto_id: ctx.productos[sku].id }, ipNueva())
       toques += 1
     }

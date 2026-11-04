@@ -956,9 +956,11 @@ begin
   if v_n > 0 then v_msg := v_msg || format(E'\n  evento de comprobante anterior a su comprobante = %s', v_n); v_tot := v_tot + v_n; end if;
   select count(*) into v_n from public.registro_actividad a join public.organizaciones o on o.id = a.organizacion_id where a.organizacion_id = v_org and a.creado_en < o.created_at;
   if v_n > 0 then v_msg := v_msg || format(E'\n  actividad anterior a la organización = %s', v_n); v_tot := v_tot + v_n; end if;
+  -- Por SKU y no por nombre: con el catálogo real hay productos con nombres casi iguales y el detalle los
+  -- distingue por su código.
   select count(*) into v_n from public.registro_actividad a where a.organizacion_id = v_org
      and a.tipo in ('producto.creado', 'producto.categoria_asignada', 'producto.empresas_actualizadas', 'producto.precio_actualizado')
-     and exists (select 1 from dominio.productos p where p.organizacion_id = v_org and a.detalle like '%' || p.nombre || '%' and a.creado_en < p.creado_en);
+     and exists (select 1 from dominio.productos p where p.organizacion_id = v_org and a.detalle like '%(SKU ' || p.sku || ')%' and a.creado_en < p.creado_en);
   if v_n > 0 then v_msg := v_msg || format(E'\n  evento de producto anterior al producto = %s', v_n); v_tot := v_tot + v_n; end if;
 
   raise notice 'verificación: % violaciones%', v_tot, v_msg;
