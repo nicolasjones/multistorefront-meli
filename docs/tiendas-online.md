@@ -85,8 +85,11 @@ update public.tienda_dns_plataforma
 valida edición en Empresas, pertenencia de la empresa a su organización y el límite de 10 s, y devuelve los
 hostnames **guardados** (nunca los del request); consulta DNS solo de esos hostnames y escribe con
 `public.registrar_verificacion_dns`, ejecutable **solo por `service_role`** (la key vive solo en la función). La
-conexión TLS solo se intenta con el dominio verificado y el A apuntando a la plataforma (sin SSRF). Un fallo de
-red/DNS responde 502 sin tocar ningún estado guardado. Requiere `Deno.resolveDns` y `Deno.connectTls` en el
+conexión TLS solo se intenta con el dominio verificado y va a la IP de la plataforma guardada en la base
+(no a una IP resuelta del DNS del usuario), validando el certificado contra el dominio. `registrar_verificacion_dns`
+recibe el dominio y la redirección comprobados y rechaza (`verificacion_obsoleta`) el resultado si ya no coinciden
+con los guardados. Un fallo de
+red/DNS responde 502 sin tocar ningún estado guardado. Requiere `Deno.resolveDns`, `Deno.connect` y `Deno.startTls` en el
 runtime de Edge Functions self-hosted: validarlo al desplegar; si no estuvieran, mover la verificación a un
 worker en `workers/` con el mismo contrato.
 

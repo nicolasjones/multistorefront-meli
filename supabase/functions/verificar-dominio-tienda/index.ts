@@ -5,11 +5,13 @@ import { clasificarFalloTls, manejar, type Certificado, type Deps } from './hand
 // (servidor) y solo ejecuta `registrar_verificacion_dns`.
 const TIEMPO_TLS_MS = 5000
 
-async function comprobarTls(host: string): Promise<Certificado> {
+// Conecta a la IP de la plataforma (guardada en la base) y valida el certificado contra el dominio:
+// no se vuelve a resolver el nombre, así un DNS que cambie entre consultas no desvía la conexión.
+async function comprobarTls(host: string, ipPlataforma: string): Promise<Certificado> {
   const temporizador = AbortSignal.timeout(TIEMPO_TLS_MS)
   try {
     const conexion = await Promise.race([
-      Deno.connectTls({ hostname: host, port: 443 }),
+      Deno.connect({ hostname: ipPlataforma, port: 443 }).then((tcp) => Deno.startTls(tcp, { hostname: host })),
       new Promise<never>((_, rechazar) => temporizador.addEventListener('abort', () => rechazar(new Error('timeout')))),
     ])
     conexion.close()
@@ -46,9 +48,11 @@ Deno.serve((req) => {
       } }
     },
     admin: {
-      registrar: async (empresaId, resultados, certificado) => {
+      registrar: async (empresaId, dominio, redireccion, resultados, certificado) => {
         const { error } = await admin.rpc('registrar_verificacion_dns', {
           p_empresa_id: empresaId,
+          p_dominio: dominio,
+          p_redireccion: redireccion,
           p_resultados: resultados,
           p_certificado: certificado,
         })

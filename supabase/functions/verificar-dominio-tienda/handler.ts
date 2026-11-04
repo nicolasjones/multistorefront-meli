@@ -2,7 +2,9 @@
 // para probarla sin Deno, DNS ni red (handler.test.ts). `index.ts` solo cablea los clientes reales.
 //
 // Seguridad: los hostnames salen SIEMPRE de la base (`preparar_verificacion_tienda`), nunca del request;
-// la comprobación TLS solo corre con el dominio verificado y el A apuntando a la plataforma (sin SSRF).
+// la comprobación TLS solo corre con el dominio verificado y se conecta a la IP de la plataforma guardada
+// en la base (nunca a una IP resuelta del DNS del usuario, que podría cambiar entre consultas), validando el
+// certificado contra el nombre del dominio.
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -30,7 +32,7 @@ export type Deps = {
   // deno-lint-ignore no-explicit-any
   caller(jwt: string): { rpc(nombre: string, args: Record<string, unknown>): Resultado<any> }
   // Cliente con service-role: solo para `registrar_verificacion_dns` (exclusivo de service_role).
-  admin: { registrar(empresaId: string, resultados: ResultadoRegistro[], certificado: Certificado): Promise<{ error: DbError | null }> }
+  admin: { registrar(empresaId: string, dominio: string, redireccion: string | null, resultados: ResultadoRegistro[], certificado: Certificado): Promise<{ error: DbError | null }> }
   // Consultas DNS de un hostname concreto. Sin registros (NXDOMAIN / sin datos) devuelven []; un fallo
   // de red o un servidor DNS caído lanza, y la función responde 502 sin tocar ningún estado guardado.
   dns: {
@@ -38,8 +40,8 @@ export type Deps = {
     resolverCname(host: string): Promise<string[]>
     resolverTxt(host: string): Promise<string[]>
   }
-  // Conexión TLS al dominio con validación de certificado: 'activo' | 'pendiente' (aún sin emitir) | 'error'.
-  tls: { comprobar(host: string): Promise<Certificado> }
+  // Conexión TLS a la IP de la plataforma validando el certificado del dominio: 'activo' | 'pendiente' (aún sin emitir) | 'error'.
+  tls: { comprobar(host: string, ipPlataforma: string): Promise<Certificado> }
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -117,14 +119,14 @@ export async function manejar(req: Request, { verificarJwt, caller, admin, dns, 
   let certificado: Certificado = 'pendiente'
   if (dominioVerificado && correcto('A')) {
     try {
-      certificado = await tls.comprobar(dominio)
+      certificado = await tls.comprobar(dominio, prep.ip_publica)
     } catch (e) {
       console.error('verificar-dominio-tienda: comprobación TLS fallida', e instanceof Error ? e.message : e)
       certificado = 'pendiente'
     }
   }
 
-  const { error: errorRegistro } = await admin.registrar(empresaId, resultados, certificado)
+  const { error: errorRegistro } = await admin.registrar(empresaId, dominio, redireccion, resultados, certificado)
   if (errorRegistro) {
     console.error('verificar-dominio-tienda: no se pudo registrar el resultado', errorRegistro.message)
     return response({ error: 'solicitud_invalida' }, 400)

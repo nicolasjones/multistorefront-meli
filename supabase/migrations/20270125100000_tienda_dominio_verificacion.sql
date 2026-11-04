@@ -22,7 +22,7 @@
 --
 -- Migración aditiva. Reversión (migración posterior, solo mientras no haya datos productivos):
 --   drop function publico.redireccion_por_dominio(text);
---   drop function public.registrar_verificacion_dns(uuid, jsonb, text);
+--   drop function public.registrar_verificacion_dns(uuid, text, text, jsonb, text);
 --   drop function public.preparar_verificacion_tienda(uuid);
 --   drop function public.obtener_dominio_tienda(uuid);
 --   drop function public.configurar_dominio_tienda(uuid, text, text);
@@ -484,6 +484,8 @@ grant execute on function public.preparar_verificacion_tienda(uuid) to authentic
 
 create or replace function public.registrar_verificacion_dns(
   p_empresa_id uuid,
+  p_dominio text,
+  p_redireccion text,
   p_resultados jsonb,
   p_certificado text
 )
@@ -514,8 +516,11 @@ begin
   if not found then
     raise exception 'sin_dominio' using errcode = '22023';
   end if;
-  -- Una verificación solo vale si se pidió y el dominio no cambió desde entonces.
-  if v_t.verificacion_solicitada_at is null then
+  -- Una verificación solo vale si se pidió Y los hostnames comprobados son los guardados hoy: un
+  -- resultado de un dominio anterior (que tardó en responder) no puede verificar uno nuevo.
+  if v_t.verificacion_solicitada_at is null
+     or p_dominio is distinct from coalesce(v_t.dominio_pendiente, v_t.dominio)
+     or p_redireccion is distinct from v_t.dominio_redireccion then
     raise exception 'verificacion_obsoleta' using errcode = '55000';
   end if;
 
@@ -570,11 +575,11 @@ begin
 end;
 $$;
 
-comment on function public.registrar_verificacion_dns(uuid, jsonb, text) is
+comment on function public.registrar_verificacion_dns(uuid, text, text, jsonb, text) is
   'F-TDA-05: guarda el resultado de la verificación DNS/certificado, calcula si el dominio quedó verificado y promueve el pendiente. SOLO service_role (la ejecuta la Edge Function verificar-dominio-tienda).';
 
-revoke execute on function public.registrar_verificacion_dns(uuid, jsonb, text) from public, anon, authenticated;
-grant execute on function public.registrar_verificacion_dns(uuid, jsonb, text) to service_role;
+revoke execute on function public.registrar_verificacion_dns(uuid, text, text, jsonb, text) from public, anon, authenticated;
+grant execute on function public.registrar_verificacion_dns(uuid, text, text, jsonb, text) to service_role;
 
 -- ============================================================================
 -- publico.redireccion_por_dominio (FR-013)

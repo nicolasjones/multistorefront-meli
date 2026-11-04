@@ -33,7 +33,7 @@ function montar(opciones: Opciones = {}) {
     rpc: [] as [string, Record<string, unknown>][],
     consultas: [] as string[],
     tls: [] as string[],
-    registrados: [] as { empresaId: string; resultados: ResultadoRegistro[]; certificado: Certificado }[],
+    registrados: [] as { empresaId: string; dominio: string; redireccion: string | null; resultados: ResultadoRegistro[]; certificado: Certificado }[],
   }
   const consultar = (clave: string, valores: string[] | undefined) => async (host: string) => {
     estado.consultas.push(`${clave} ${host}`)
@@ -49,8 +49,8 @@ function montar(opciones: Opciones = {}) {
       },
     }),
     admin: {
-      registrar: async (empresaId, resultados, certificado) => {
-        estado.registrados.push({ empresaId, resultados, certificado })
+      registrar: async (empresaId, dominio, redireccion, resultados, certificado) => {
+        estado.registrados.push({ empresaId, dominio, redireccion, resultados, certificado })
         return { error: opciones.falloRegistro ? { message: 'boom' } : null }
       },
     },
@@ -60,8 +60,8 @@ function montar(opciones: Opciones = {}) {
       resolverCname: consultar('CNAME', opciones.cname),
     },
     tls: {
-      comprobar: async (host) => {
-        estado.tls.push(host)
+      comprobar: async (host, ip) => {
+        estado.tls.push(`${host}@${ip}`)
         if (opciones.tlsLanza) throw new Error('socket')
         return opciones.tls ?? 'activo'
       },
@@ -92,7 +92,8 @@ describe('verificar-dominio-tienda', () => {
       { tipo: 'TXT', nombre: '_verif', estado: 'correcto' },
       { tipo: 'CNAME', nombre: 'www', estado: 'correcto' },
     ])
-    assert.deepEqual(estado.tls, ['mundojc.com.ar'])
+    assert.deepEqual(estado.tls, ['mundojc.com.ar@203.0.113.24'])
+    assert.equal(estado.registrados[0].dominio, 'mundojc.com.ar')
     assert.equal(estado.registrados.length, 1)
     assert.equal(estado.registrados[0].empresaId, EMPRESA)
     assert.equal(estado.registrados[0].certificado, 'activo')

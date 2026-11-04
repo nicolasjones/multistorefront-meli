@@ -5,7 +5,7 @@
 -- verificar el nuevo). Verifica FR-002, FR-003, FR-004, FR-008, FR-013 y FR-014.
 begin;
 
-select plan(73);
+select plan(75);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -46,9 +46,9 @@ select is(has_function_privilege('anon', 'publico.redireccion_por_dominio(text)'
 select is(has_function_privilege('anon', 'public.configurar_dominio_tienda(uuid, text, text)', 'execute'), false, 'anon no ejecuta configurar_dominio_tienda');
 select is(has_function_privilege('anon', 'public.obtener_dominio_tienda(uuid)', 'execute'), false, 'anon no ejecuta obtener_dominio_tienda');
 select is(has_function_privilege('anon', 'public.preparar_verificacion_tienda(uuid)', 'execute'), false, 'anon no ejecuta preparar_verificacion_tienda');
-select is(has_function_privilege('anon', 'public.registrar_verificacion_dns(uuid, jsonb, text)', 'execute'), false, 'anon no ejecuta registrar_verificacion_dns');
-select is(has_function_privilege('authenticated', 'public.registrar_verificacion_dns(uuid, jsonb, text)', 'execute'), false, 'authenticated no ejecuta registrar_verificacion_dns');
-select is(has_function_privilege('service_role', 'public.registrar_verificacion_dns(uuid, jsonb, text)', 'execute'), true, 'service_role ejecuta registrar_verificacion_dns');
+select is(has_function_privilege('anon', 'public.registrar_verificacion_dns(uuid, text, text, jsonb, text)', 'execute'), false, 'anon no ejecuta registrar_verificacion_dns');
+select is(has_function_privilege('authenticated', 'public.registrar_verificacion_dns(uuid, text, text, jsonb, text)', 'execute'), false, 'authenticated no ejecuta registrar_verificacion_dns');
+select is(has_function_privilege('service_role', 'public.registrar_verificacion_dns(uuid, text, text, jsonb, text)', 'execute'), true, 'service_role ejecuta registrar_verificacion_dns');
 select is(has_function_privilege('authenticated', 'public.configurar_dominio_tienda(uuid, text, text)', 'execute'), true, 'authenticated ejecuta configurar_dominio_tienda');
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'publico' and c.relkind in ('r', 'p')),
@@ -180,7 +180,7 @@ select throws_ok(
   '55000', 'demasiado_pronto', 'una segunda verificación dentro de 10 s se rechaza'
 );
 select throws_ok(
-  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', '[]'::jsonb, 'pendiente')$$,
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', 'nuevo-uno-a.ejemplo.com', 'www.nuevo-uno-a.ejemplo.com', '[]'::jsonb, 'pendiente')$$,
   '42501', null, 'authenticated no puede registrar resultados de verificación'
 );
 
@@ -211,15 +211,23 @@ reset role;
 set local role service_role;
 
 select throws_ok(
-  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000002', '[]'::jsonb, 'pendiente')$$,
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000002', 'uno-b.ejemplo.com', null, '[]'::jsonb, 'pendiente')$$,
   '55000', 'verificacion_obsoleta', 'un resultado sin verificación pedida se rechaza'
 );
 select throws_ok(
-  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', '[{"tipo":"MX","nombre":"@","estado":"correcto"}]'::jsonb, 'pendiente')$$,
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', 'uno-a.ejemplo.com', 'www.nuevo-uno-a.ejemplo.com', '[]'::jsonb, 'pendiente')$$,
+  '55000', 'verificacion_obsoleta', 'un resultado de otro dominio (obsoleto) se rechaza'
+);
+select throws_ok(
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', 'nuevo-uno-a.ejemplo.com', null, '[]'::jsonb, 'pendiente')$$,
+  '55000', 'verificacion_obsoleta', 'un resultado con otra redirección (obsoleto) se rechaza'
+);
+select throws_ok(
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', 'nuevo-uno-a.ejemplo.com', 'www.nuevo-uno-a.ejemplo.com', '[{"tipo":"MX","nombre":"@","estado":"correcto"}]'::jsonb, 'pendiente')$$,
   '22023', null, 'un tipo de registro inválido se rechaza'
 );
 select lives_ok(
-  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', '[
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', 'nuevo-uno-a.ejemplo.com', 'www.nuevo-uno-a.ejemplo.com', '[
     {"tipo":"A","nombre":"@","estado":"correcto"},
     {"tipo":"TXT","nombre":"_verif","estado":"correcto"},
     {"tipo":"CNAME","nombre":"www","estado":"correcto"}]'::jsonb, 'pendiente')$$,
@@ -240,7 +248,7 @@ select ok(
 
 set local role service_role;
 select lives_ok(
-  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', '[
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000001', 'nuevo-uno-a.ejemplo.com', 'www.nuevo-uno-a.ejemplo.com', '[
     {"tipo":"A","nombre":"@","estado":"correcto"},
     {"tipo":"TXT","nombre":"_verif","estado":"correcto"},
     {"tipo":"CNAME","nombre":"www","estado":"correcto"}]'::jsonb, 'activo')$$,
@@ -263,7 +271,7 @@ select lives_ok($$select public.preparar_verificacion_tienda('e1000000-0000-0000
 reset role;
 set local role service_role;
 select lives_ok(
-  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000002', '[
+  $$select public.registrar_verificacion_dns('e1000000-0000-0000-0000-000000000002', 'uno-b.ejemplo.com', null, '[
     {"tipo":"A","nombre":"@","estado":"incorrecto","valor_encontrado":"198.51.100.7"},
     {"tipo":"TXT","nombre":"_verif","estado":"correcto"}]'::jsonb, 'activo')$$,
   'service_role registra un A incorrecto'
