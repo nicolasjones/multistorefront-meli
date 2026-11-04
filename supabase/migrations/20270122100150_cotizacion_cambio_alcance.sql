@@ -117,7 +117,7 @@ begin
     from (
       select row_number() over (order by lower(p.nombre), p.id) as orden,
              jsonb_build_object(
-               'producto', p.nombre, 'sku', p.sku,
+               'producto', p.nombre, 'sku', p.sku, 'usd', p.precio_lista,
                'por_empresa', (
                  select coalesce(jsonb_agg(jsonb_build_object(
                           'empresa_id', e.id,
@@ -138,7 +138,10 @@ begin
        limit 6
     ) m;
 
-  return jsonb_build_object('alcance_actual', v_config.alcance, 'empresas', v_empresas, 'muestra', v_muestra);
+  return jsonb_build_object(
+    'alcance_actual', v_config.alcance, 'empresas', v_empresas, 'muestra', v_muestra,
+    'redondeo_pesos', v_config.redondeo_pesos
+  );
 end;
 $$;
 

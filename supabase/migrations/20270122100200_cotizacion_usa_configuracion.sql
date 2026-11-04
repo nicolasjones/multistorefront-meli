@@ -47,6 +47,10 @@ as $$
 declare
   v_alcance text;
 begin
+  -- Definer con grant a authenticated: solo opera sobre la organización de la sesión (sin oráculo entre organizaciones).
+  if p_organizacion is distinct from (select private.organizacion_id()) then
+    raise exception 'Organización no válida' using errcode = '42501';
+  end if;
   select k.alcance into v_alcance from private.cotizacion_config(p_organizacion) k;
   if v_alcance <> 'empresa' then
     return null;
@@ -99,17 +103,7 @@ begin
   end if;
   v_empresa := private.empresa_de_cotizacion(v_organizacion, p_empresa);
 
-  select coalesce(
-    (select c.valor from dominio.cotizaciones c
-      where c.organizacion_id = v_organizacion and c.empresa_id is not distinct from v_empresa
-      order by c.cargada_en desc, c.id desc limit 1),
-    (select a.valor from dominio.cotizacion_aplicada a
-      where v_empresa is not null and a.organizacion_id = v_organizacion and a.empresa_id = v_empresa),
-    (select c.valor from dominio.cotizaciones c
-      where c.organizacion_id = v_organizacion and c.empresa_id is null
-      order by c.cargada_en desc, c.id desc limit 1),
-    (select i.valor from dominio.cotizacion_inicial i where i.organizacion_id = v_organizacion)
-  ) into v_anterior;
+  v_anterior := private.cotizacion_vigente_para(v_organizacion, v_empresa);
 
   insert into dominio.cotizacion_pendiente as p (organizacion_id, empresa_id, valor, cargada_por)
   values (v_organizacion, v_empresa, p_valor, v_usuario)
@@ -141,7 +135,7 @@ as $$
 declare
   v_organizacion uuid := (select private.organizacion_id());
   v_empresa uuid;
-  v_alcance text;
+  v_config record;
   v_vigente jsonb;
   v_productos integer;
   v_pendiente jsonb;
@@ -150,10 +144,10 @@ begin
      or (select private.nivel_seccion('cotizacion_dolar')) not in ('lectura', 'edicion') then
     raise exception 'Tu rol no puede ver la cotización del dólar' using errcode = '42501';
   end if;
-  select k.alcance into v_alcance from private.cotizacion_config(v_organizacion) k;
+  select * into v_config from private.cotizacion_config(v_organizacion);
   -- La pantalla pide el estado de la organización aun con alcance «empresa» y «Todas mis empresas»: ahí no
   -- hay empresa que mostrar y se devuelve la cotización general.
-  v_empresa := case when v_alcance = 'empresa' and p_empresa is not null
+  v_empresa := case when v_config.alcance = 'empresa' and p_empresa is not null
                     then private.empresa_de_cotizacion(v_organizacion, p_empresa) end;
 
   select jsonb_build_object('valor', c.valor, 'cargada_en', c.cargada_en, 'cargada_por', c.cargada_por_nombre)
@@ -163,11 +157,14 @@ begin
     order by c.cargada_en desc, c.id desc
     limit 1;
 
-  if v_vigente is null and v_empresa is not null then
-    select jsonb_build_object('valor', a.valor, 'cargada_en', a.aplicada_en, 'cargada_por', null)
-      into v_vigente
-      from dominio.cotizacion_aplicada a
-      where a.organizacion_id = v_organizacion and a.empresa_id = v_empresa;
+  -- Rige lo más reciente: el valor aplicado al volver a alcance «empresa» pisa el historial viejo de la empresa.
+  if v_empresa is not null then
+    v_vigente := coalesce((
+      select jsonb_build_object('valor', a.valor, 'cargada_en', a.aplicada_en, 'cargada_por', null)
+        from dominio.cotizacion_aplicada a
+       where a.organizacion_id = v_organizacion and a.empresa_id = v_empresa
+         and (v_vigente is null or a.aplicada_en > (v_vigente->>'cargada_en')::timestamptz)
+    ), v_vigente);
   end if;
 
   if v_vigente is null and v_empresa is not null then
@@ -196,7 +193,9 @@ begin
     where p.organizacion_id = v_organizacion and p.empresa_id is not distinct from v_empresa and p.expira_en > now();
 
   return jsonb_build_object(
-    'vigente', v_vigente, 'productos_usd', v_productos, 'pendiente', v_pendiente, 'alcance', v_alcance
+    'vigente', v_vigente, 'productos_usd', v_productos, 'pendiente', v_pendiente, 'alcance', v_config.alcance,
+    'umbral_pct', v_config.umbral_pct, 'confirmacion_pct', v_config.confirmacion_pct,
+    'redondeo_pesos', v_config.redondeo_pesos
   );
 end;
 $$;
@@ -545,7 +544,7 @@ begin
 
   -- Una fila de más: sirve para saber si hay otra página y como «anterior» de la última fila devuelta.
   with pagina as (
-    select c.id, c.cargada_en, c.valor, c.cargada_por_nombre, c.recalculo_aplicado, c.precios_recalculados,
+    select c.id, c.cargada_en, c.valor, c.cargada_por_nombre, c.recalculo_aplicado, c.precios_recalculados, c.umbral_pct,
            lead(c.valor) over (order by c.cargada_en desc, c.id desc) as valor_previo,
            row_number() over (order by c.cargada_en desc, c.id desc) as posicion
       from dominio.cotizaciones c
@@ -564,7 +563,8 @@ begin
         'variacion_pct', case when p.valor_previo > 0 then round((p.valor / p.valor_previo - 1) * 100, 4) end,
         'cargada_por_nombre', p.cargada_por_nombre,
         'recalculo_aplicado', p.recalculo_aplicado,
-        'precios_recalculados', p.precios_recalculados
+        'precios_recalculados', p.precios_recalculados,
+        'umbral_pct', p.umbral_pct
       ) order by p.posicion
     ) filter (where p.posicion <= v_limite), '[]'::jsonb),
     coalesce(bool_or(p.posicion > v_limite), false),

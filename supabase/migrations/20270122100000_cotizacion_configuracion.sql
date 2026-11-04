@@ -68,7 +68,10 @@ as $$
   select coalesce(c.alcance, 'sistema'), coalesce(c.redondeo_pesos, 10), coalesce(c.umbral_pct, 1),
          coalesce(c.confirmacion_pct, 15), coalesce(c.aviso_activo, true)
     from (select 1) x
-    left join dominio.cotizacion_configuracion c on c.organizacion_id = p_organizacion;
+    left join dominio.cotizacion_configuracion c on c.organizacion_id = p_organizacion
+      -- Definer con grant a authenticated: una sesión solo lee la configuración de SU organización; para otra
+      -- devuelve los valores del lanzamiento (nada de la ajena). Sin sesión de organización (procesos del servidor) lee la pedida.
+      and ((select private.organizacion_id()) is null or (select private.organizacion_id()) = p_organizacion);
 $$;
 
 comment on function private.cotizacion_config(uuid) is

@@ -164,11 +164,16 @@ as $$
   select case
     when p_empresa is not null and (select k.alcance from private.cotizacion_config(p_organizacion) k) = 'empresa' then
       coalesce(
-        (select c.valor from dominio.cotizaciones c
-          where c.organizacion_id = p_organizacion and c.empresa_id = p_empresa
-          order by c.cargada_en desc, c.id desc limit 1),
-        (select a.valor from dominio.cotizacion_aplicada a
-          where a.organizacion_id = p_organizacion and a.empresa_id = p_empresa),
+        -- Lo más reciente entre su última carga y su valor aplicado: al volver a alcance «empresa» el valor
+        -- inicial (cotizacion_aplicada) es posterior al historial viejo de la empresa y es el que rige.
+        (select x.valor from (
+           (select c.valor, c.cargada_en as desde from dominio.cotizaciones c
+             where c.organizacion_id = p_organizacion and c.empresa_id = p_empresa
+             order by c.cargada_en desc, c.id desc limit 1)
+           union all
+           (select a.valor, a.aplicada_en from dominio.cotizacion_aplicada a
+             where a.organizacion_id = p_organizacion and a.empresa_id = p_empresa)
+         ) x order by x.desde desc limit 1),
         private.cotizacion_vigente(p_organizacion)
       )
     else private.cotizacion_vigente(p_organizacion)

@@ -83,3 +83,12 @@ Migración posterior (exportar antes `cotizacion_aplicada`): quitar las RPC `des
 `precios_usd_por_empresa` y `cotizacion_vigente`; restaurar `private.a_pesos` para que lea solo
 `dominio.cotizacion_inicial` (cuerpo de `20261022121001`); y eliminar la tabla `dominio.cotizacion_aplicada`. Los
 precios vuelven a calcularse con la cotización inicial.
+
+## Configuración y alcance (F-PRE-06, MSF-419)
+
+- **Vigente al volver a «empresa».** `private.cotizacion_vigente_para` y el «anterior» de `cargar_cotizacion` / `estado_cotizacion`
+  toman lo más reciente entre la última carga de la empresa y su valor aplicado (`cotizacion_aplicada`). Al pasar de «sistema» a
+  «empresa» cada empresa arranca con el dólar general; su historial viejo ya no pisa ese valor ni falsea el umbral o la confirmación del 15 %.
+- **Aislamiento entre organizaciones.** `private.cotizacion_config(uuid)` y `private.empresa_de_cotizacion(uuid, uuid)` son `security definer`
+  con grant a `authenticated`, pero solo operan sobre la organización de la sesión: la primera devuelve los valores del lanzamiento para una
+  ajena y la segunda falla con `42501`. Prueba: `supabase/tests/database/cotizacion_vuelta_alcance.test.sql`.
