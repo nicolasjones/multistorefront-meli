@@ -158,3 +158,7 @@ Migraciones aditivas. Para volver atrás, en una migración **posterior** (no en
 datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
 `private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, y la tabla
 `dominio.proveedores`. El encabezado de cada migración lista los pasos exactos.
+
+## Listados con carga infinita
+
+El listado de proveedores y la sección «Productos» de la ficha cargan por tandas (25 y 10) al llegar al final del scroll, con «Cargar más» como alternativa por teclado; no hay paginación numerada. Siguen pidiendo «la página N» a `listar_proveedores` y `productos_de_proveedor`; el contador total, la búsqueda y los filtros se conservan y cambiarlos (o guardar un proveedor nuevo) vuelve a la primera tanda. En «Productos» cada fila muestra la imagen principal como miniatura con zoom al pasar el mouse. Ver [`listados.md`](./listados.md).
