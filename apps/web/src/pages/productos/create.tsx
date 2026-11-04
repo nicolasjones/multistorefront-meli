@@ -8,6 +8,7 @@ import { definirEmpresasProducto } from '../../lib/productoEmpresas'
 import { asignarCategoriaProducto } from '../../lib/categorias'
 import { asignarAlicuotaProducto, mensajeErrorIva } from '../../lib/iva'
 import { type PreciosEscala, guardarPreciosEscala, hayPreciosEscala, mensajeErrorEscalas } from '../../lib/escalas'
+import { guardarRelacionados, mensajeErrorRelacionados } from '../../lib/productos-relacionados'
 import { supabaseClient } from '../../lib/supabase'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -20,7 +21,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // formulario a quien no puede editar Productos y el costo a quien no edita
 // Rentabilidad. La ficha del producto llega con F-CAT-04; hasta entonces el éxito
 // se confirma en esta misma pantalla.
-type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null }
+type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null; relacionadosPendientes: string[] | null }
 
 export function ProductoCreate() {
   const { nivel, isLoading } = useNivelSeccion('productos')
@@ -32,6 +33,7 @@ export function ProductoCreate() {
   const [errorCategoria, setErrorCategoria] = useState<string | null>(null)
   const [errorAlicuota, setErrorAlicuota] = useState<string | null>(null)
   const [errorEscalas, setErrorEscalas] = useState<string | null>(null)
+  const [errorRelacionados, setErrorRelacionados] = useState<string | null>(null)
 
   // `releer` en el reintento: las que ya subieron ocupan posiciones que hay que respetar.
   const subirImagenes = async (producto: { id: string; organizacion_id: string }, nuevas: File[], releer = false) => {
@@ -98,7 +100,19 @@ export function ProductoCreate() {
     }
   }
 
-  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala) => {
+  // Igual: los relacionados se guardan después de crear (reemplazo idempotente); si fallan se ofrece reintentar.
+  const guardarListaRelacionados = async (productoId: string, ids: string[]) => {
+    if (ids.length === 0) return null
+    try {
+      await guardarRelacionados(supabaseClient, productoId, ids)
+      return null
+    } catch (error) {
+      console.error('No pudimos guardar los productos relacionados.', error)
+      return ids
+    }
+  }
+
+  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[]) => {
     const parametros = aParametrosCrear(formulario, { conCosto: nivelRentabilidad === 'edicion' })
     const { data, error } = await supabaseClient.rpc('crear_producto', parametros)
     if (error) {
@@ -111,11 +125,13 @@ export function ProductoCreate() {
     const categoriaPendiente = await guardarCategoria(fila.id, categoriaId)
     const alicuotaPendiente = await guardarAlicuota(fila.id, alicuotaId)
     const escalasPendientes = await guardarEscalas(fila.id, escalas)
+    const relacionadosPendientes = await guardarListaRelacionados(fila.id, relacionadosIds)
     setErrorEmpresas(null)
     setErrorCategoria(null)
     setErrorAlicuota(null)
     setErrorEscalas(null)
-    setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes })
+    setErrorRelacionados(null)
+    setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes, relacionadosPendientes })
   }
 
   const reintentarEmpresas = async () => {
@@ -173,6 +189,20 @@ export function ProductoCreate() {
     } catch (error) {
       console.error('No pudimos reintentar guardar los precios por escala del producto.', error)
       setErrorEscalas(mensajeErrorEscalas(error))
+    } finally {
+      setReintentando(false)
+    }
+  }
+
+  const reintentarRelacionados = async () => {
+    if (!creado?.relacionadosPendientes) return
+    setReintentando(true)
+    setErrorRelacionados(null)
+    try {
+      await guardarRelacionados(supabaseClient, creado.id, creado.relacionadosPendientes)
+      setCreado({ ...creado, relacionadosPendientes: null })
+    } catch (error) {
+      setErrorRelacionados(mensajeErrorRelacionados(error))
     } finally {
       setReintentando(false)
     }
@@ -264,6 +294,19 @@ export function ProductoCreate() {
               >
                 <strong>El producto se creó, pero no pudimos guardar los precios por escala: usa el precio de lista.</strong>
                 {errorEscalas ? <Box component="span" sx={{ display: 'block' }}>{errorEscalas}</Box> : null}
+              </Alert>
+            ) : null}
+            {creado.relacionadosPendientes ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void reintentarRelacionados()} disabled={reintentando}>
+                    {reintentando ? 'Reintentando…' : 'Reintentar relacionados'}
+                  </Button>
+                }
+              >
+                <strong>El producto se creó, pero no pudimos guardar los productos relacionados.</strong>
+                {errorRelacionados ? <Box component="span" sx={{ display: 'block' }}>{errorRelacionados}</Box> : null}
               </Alert>
             ) : null}
             {creado.errores.length > 0 ? (
