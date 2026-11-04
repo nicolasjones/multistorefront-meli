@@ -47,3 +47,8 @@ depende de la página visible). Se justifica en la spec y su plan y se anota ac�
 Stock: sin excepciones. Pendiente fuera de alcance de ese grupo: `HistorialLotes` usa un botón «Ver más» por cursor propio (no `TablePagination`) y no se migró.
 
 Sin excepciones en Clientes y Contactos: todos sus listados (clientes, inactivos, ranking, compras y reparaciones de la ficha, correo masivo y contactos) usan carga infinita.
+
+Sin excepciones registradas por el grupo «proveedores, consultas, historial y service técnico»: las cinco pantallas
+migraron. No se agregó imagen a `pages/empresas/tienda/pestanas/catalogo.tsx` (catálogo visible de la tienda): no tiene
+paginación y renderiza el catálogo completo, así que pedir las imágenes de todas las filas de una vez haría un `in()` enorme;
+queda pendiente hasta migrarlo a carga infinita.
