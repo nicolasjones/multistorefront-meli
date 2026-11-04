@@ -114,7 +114,7 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
             options={opciones}
             filterOptions={(todas) => todas}
             getOptionLabel={etiquetaProducto}
-            renderOption={renderOpcionProducto<ProductoRepuesto>(imagenes)}
+            renderOption={renderOpcionProducto<ProductoRepuesto>(imagenes, etiquetaProducto)}
             isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
             value={elegido}
             inputValue={entrada}

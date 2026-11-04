@@ -80,7 +80,7 @@ function BuscadorProducto({ formulario, cambiar, errores, deshabilitado }: Campo
       options={opciones}
       filterOptions={(todas) => todas}
       getOptionLabel={(opcion) => (typeof opcion === 'string' ? opcion : etiquetaProducto(opcion))}
-      renderOption={(props, opcion) => renderOpcionProducto<ProductoRepuesto>(imagenes)(props, opcion as ProductoRepuesto)}
+      renderOption={(props, opcion) => renderOpcionProducto<ProductoRepuesto>(imagenes, etiquetaProducto)(props, opcion as ProductoRepuesto)}
       isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
       value={formulario.producto}
       inputValue={texto}

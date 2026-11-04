@@ -14,7 +14,7 @@ type OpcionProductoProps = {
 export function OpcionProducto({ nombre, sku, imagen }: OpcionProductoProps) {
   return (
     <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-      <MiniaturaProducto alt={nombre} src={imagen} />
+      <MiniaturaProducto alt="" src={imagen} />
       <Box component="span" sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span>{nombre}</span>
         {sku ? <Box component="span" sx={{ typography: 'caption', color: 'text.secondary' }}>{sku}</Box> : null}
@@ -23,12 +23,18 @@ export function OpcionProducto({ nombre, sku, imagen }: OpcionProductoProps) {
   )
 }
 
+const etiquetaPorDefecto = (producto: ProductoConImagen) => (producto.sku ? `${producto.nombre} · ${producto.sku}` : producto.nombre)
+
 // `renderOption` para un `Autocomplete` de productos: `renderOption={renderOpcionProducto(imagenes)}`.
-export function renderOpcionProducto<T extends ProductoConImagen>(imagenes: ReadonlyMap<string, string>) {
+// `etiqueta` es la misma que usa el `getOptionLabel` del combo: la opción conserva ese nombre accesible.
+export function renderOpcionProducto<T extends ProductoConImagen>(
+  imagenes: ReadonlyMap<string, string>,
+  etiqueta: (producto: T) => string = etiquetaPorDefecto,
+) {
   return (props: HTMLAttributes<HTMLLIElement> & { key?: string }, opcion: T): ReactNode => {
     const { key, ...resto } = props
     return (
-      <li key={key} {...resto}>
+      <li key={key} {...resto} aria-label={etiqueta(opcion)}>
         <OpcionProducto nombre={opcion.nombre} sku={opcion.sku} imagen={imagenes.get(opcion.id)} />
       </li>
     )
