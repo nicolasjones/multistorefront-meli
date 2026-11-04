@@ -2,8 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useIsSuperadmin } from '../hooks/useIsSuperadmin'
 import { useOrganizacionDeTrabajo } from '../hooks/useOrganizacionDeTrabajo'
 import { useNivelSeccion } from '../hooks/useNivelSeccion'
-import { ETIQUETA_ROL } from '../lib/permisos'
-import { supabaseClient } from '../lib/supabase'
+import { etiquetaDeRol, resolverRolId } from '../lib/rolActual'
 import { EstadoCargaPagina } from './estados/EstadosPagina'
 import { DESTINOS_PANEL } from './navegacion/destinosPanel'
 import { AccesoRestringido } from '../pages/acceso-restringido/AccesoRestringido'
@@ -46,22 +45,7 @@ export function RequiereAccesoSeccion({
     let cancelada = false
     // Si la consulta falla, se muestra la pantalla con un rol genérico: el
     // rol solo ilustra el mensaje y nunca debe dejar la pantalla en blanco.
-    const resolver = async () => {
-      const { data: sesion } = await supabaseClient.auth.getUser()
-      const userId = sesion.user?.id
-      // Sin organización activa no hay un rol que ilustrar: rol genérico.
-      if (!userId || !organizacionId) {
-        return ''
-      }
-      const { data, error } = await supabaseClient
-        .from('usuarios_organizacion')
-        .select('rol_id')
-        .eq('user_id', userId)
-        .eq('organizacion_id', organizacionId)
-        .maybeSingle()
-      return error ? '' : (data?.rol_id ?? '')
-    }
-    resolver()
+    resolverRolId(organizacionId)
       .catch(() => '')
       .then((valor) => { if (!cancelada) setRol(valor) })
     return () => { cancelada = true }
@@ -75,5 +59,5 @@ export function RequiereAccesoSeccion({
   }
   // Con edición exigida, el mensaje dice que falta ese nivel y no que la sección no existe para el rol.
   const etiqueta = nivelMinimo === 'edicion' ? `${etiquetaSeccion(seccion)} (edición)` : etiquetaSeccion(seccion)
-  return <AccesoRestringido rol={ETIQUETA_ROL[rol ?? ''] ?? 'actual'} seccion={etiqueta} seccionClave={seccion} />
+  return <AccesoRestringido rol={etiquetaDeRol(rol ?? '')} seccion={etiqueta} seccionClave={seccion} />
 }
