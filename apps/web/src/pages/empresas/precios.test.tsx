@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   nivel: vi.fn(),
   setWarnWhen: vi.fn(),
+  estadoCotizacion: vi.fn(),
+}))
+vi.mock('../../hooks/useCotizacion', () => ({
+  useEstadoCotizacion: (empresaId: string | null, habilitado: boolean) => mocks.estadoCotizacion(empresaId, habilitado),
 }))
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.setWarnWhen }) }))
@@ -82,6 +86,7 @@ describe('EmpresaPrecios', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.nivel.mockReturnValue('edicion')
+    mocks.estadoCotizacion.mockReturnValue({ estado: { alcance: 'sistema', vigente: { valor: 1465, cargadaEn: '2026-09-25T15:00:00Z', cargadaPor: null } }, cargando: false, hayError: false, recargar: vi.fn() })
     mocks.empresa.mockImplementation((id: string) => Promise.resolve({ data: empresas[id] ?? null, error: null }))
     mocks.regla.mockResolvedValue(sinRegla)
     mocks.rpc.mockImplementation((nombre: string, args: { p_empresa: string; p_base: string; p_ajuste_pct: number }) =>
@@ -105,6 +110,26 @@ describe('EmpresaPrecios', () => {
     expect(screen.getByRole('tab', { name: 'Precios y moneda' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('link', { name: 'Cambiar a San Javucho ↔' })).toHaveAttribute('href', '/empresas/edit/e-1/precios')
     expect(screen.queryByRole('link', { name: /Cambiar a Mundo JC/ })).not.toBeInTheDocument()
+  })
+
+  it('con alcance «una por empresa» muestra «La de <Empresa>», su dólar vigente y enlaza a Cotización (FR-010)', async () => {
+    mocks.estadoCotizacion.mockReturnValue({
+      estado: { alcance: 'empresa', vigente: { valor: 1500, cargadaEn: '2026-09-26T15:00:00Z', cargadaPor: 'Javier' } },
+      cargando: false, hayError: false, recargar: vi.fn(),
+    })
+    abrir()
+    expect(await screen.findByLabelText('Cotización que usa')).toHaveValue('La de Mundo JC')
+    expect(screen.getByText(/Dólar vigente \$ 1\.500/)).toBeInTheDocument()
+    expect(mocks.estadoCotizacion).toHaveBeenCalledWith('e-2', true)
+    expect(screen.getByRole('link', { name: 'Cotización →' })).toHaveAttribute('href', '/cotizacion')
+  })
+
+  it('sin acceso a la cotización no la pide y «Cotización →» queda deshabilitado (FR-010)', async () => {
+    mocks.nivel.mockReturnValue('ninguno')
+    abrir()
+    expect(await screen.findByLabelText('Cotización que usa')).toHaveValue('La general del sistema')
+    expect(mocks.estadoCotizacion).toHaveBeenCalledWith('e-2', false)
+    expect(screen.getByRole('button', { name: 'Cotización →' })).toBeDisabled()
   })
 
   it('«Así quedan los precios» lee el servidor y marca «sin precio» si falta la cotización', async () => {
