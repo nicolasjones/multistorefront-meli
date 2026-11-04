@@ -5,10 +5,24 @@
 import { CATEGORIAS, PRODUCTOS, PROVEEDORES } from '../datos/catalogo.mjs'
 import { catalogoReal } from '../datos/catalogo-real.mjs'
 import { ean13 } from '../lib/ean.mjs'
+import { hashDeImagen, leerPreciosCliente } from '../lib/csvCliente.mjs'
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 
 export const nombre = 'Proveedores, catálogo y precios'
+
+// El mapeo sku -> [{posicion, archivo, hash, ext}] a partir del CSV de precios (mismo hash que `bajar-imagenes.mjs`).
+function mapeoDesdeCsv(csv) {
+  if (!csv) return {}
+  const mapeo = {}
+  for (const p of leerPreciosCliente(csv).productos) {
+    for (const [i, url] of p.imagenes.entries()) {
+      const ext = (decodeURIComponent(url.split('/').pop() ?? '').match(/\.(jpe?g|png|gif|webp)$/i)?.[1] ?? 'jpg').toLowerCase()
+      ;(mapeo[p.codigo] ??= []).push({ posicion: i + 1, archivo: `${p.codigo}-${i + 1}.${ext}`, hash: hashDeImagen(url), ext })
+    }
+  }
+  return mapeo
+}
 
 // Sube las fotos al bucket de la tienda (la base firma las URLs contra ese bucket). La ruta es la que exige la
 // tabla `dominio.producto_imagenes`: <organización>/<producto>/<posición>-<hash>.<ext>.
@@ -133,9 +147,11 @@ export async function sembrar(ctx) {
   const carpeta = process.env.DEMO_IMAGENES_CARPETA ?? '/tmp/imgs'
   const bucket = process.env.DEMO_IMAGENES_BUCKET ?? 'productos-imagenes'
   const archivoSql = process.env.DEMO_IMAGENES_SQL ?? '/tmp/demo-imagenes.sql'
-  if (existsSync(mapeo)) {
+  {
     try {
-      const desdeArchivos = JSON.parse(readFileSync(mapeo, 'utf8'))
+      // El mapeo lo deja `bajar-imagenes.mjs`; si no está (o se limpió /tmp), se arma con el CSV (el hash es el
+      // mismo) y así el módulo no depende de un archivo externo.
+      const desdeArchivos = existsSync(mapeo) ? JSON.parse(readFileSync(mapeo, 'utf8')) : mapeoDesdeCsv(csv)
       const imagenes = []
       for (const [sku, lista] of Object.entries(desdeArchivos)) {
         const p = ctx.productos[sku]

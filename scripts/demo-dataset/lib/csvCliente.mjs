@@ -17,6 +17,7 @@
 // imagen 3, video, destacado, código de barras, categoría, subcategoría, sub subcategoría.
 
 import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 
 const RE_CODIGO = /^\s*\d{1,6}[A-Za-z]?\s*$/
 const RE_INICIO = /^\s*"?\s*\d{1,6}[A-Za-z]?\s*[,;]/
@@ -71,6 +72,12 @@ function leerCola(campos) {
     cat, sub, subSub, barcode, destacado, video,
     imagenes: [img1, img2, img3].filter((u) => RE_URL.test(u)),
   }
+}
+
+// El nombre del archivo en el bucket: un hash de la URL (el mismo que usa `bajar-imagenes.mjs`), para que la
+// foto se llame igual aunque el producto se cree en otro momento.
+export function hashDeImagen(url) {
+  return createHash('sha1').update(url).digest('hex').slice(0, 12)
 }
 
 export function leerPreciosCliente(ruta) {
