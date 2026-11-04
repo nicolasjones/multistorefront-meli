@@ -5,7 +5,7 @@
 -- sin correo ni teléfono.
 begin;
 
-select plan(26);
+select plan(25);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
