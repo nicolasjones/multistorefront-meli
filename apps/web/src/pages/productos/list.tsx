@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
@@ -8,7 +8,6 @@ import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
-  TAMANO_PAGINA_PRODUCTOS,
   consultarCostos,
   consultarPrecios,
   formatearPrecioListado,
@@ -25,6 +24,7 @@ import { FiltrosListado } from '../../components/productos/FiltrosListado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -174,7 +174,11 @@ export function ProductoList() {
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [falloCostos, setFalloCostos] = useState(false)
   const [falloPrecios, setFalloPrecios] = useState(false)
+  // Carga infinita: la página 1 reemplaza la lista y las siguientes se suman; `cargandoMas`/`errorMas` son solo de la tanda.
+  const [cargandoMas, setCargandoMas] = useState(false)
+  const [errorMas, setErrorMas] = useState(false)
   const ultimaPeticion = useRef(0)
+  const mostradas = useRef(0)
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
   useEffect(() => {
@@ -193,12 +197,16 @@ export function ProductoList() {
     setHayError(false)
     setFalloCostos(false)
     setFalloPrecios(false)
+    setErrorMas(false)
+    const esTandaSiguiente = consulta.pagina > 1
+    setCargandoMas(esTandaSiguiente)
     try {
       const resultado = await consultarProductos(supabaseClient, consulta)
       if (peticion !== ultimaPeticion.current) return
-      // Si la página quedó fuera de rango, se vuelve a la primera.
-      if (resultado.filas.length === 0 && consulta.pagina > 1) {
-        setConsulta((actual) => ({ ...actual, pagina: 1 }))
+      // Una tanda siguiente vacía (se borraron productos mientras tanto): no hay más, sin tocar lo ya mostrado.
+      if (resultado.filas.length === 0 && esTandaSiguiente) {
+        setTotal((anterior) => Math.min(anterior, mostradas.current))
+        setCargandoMas(false)
         return
       }
       // Las imágenes viven en un bucket privado: se firman las del conjunto visible. Si falla la
@@ -231,13 +239,20 @@ export function ProductoList() {
         setFalloPrecios(true)
       }
       if (peticion !== ultimaPeticion.current) return
-      setPrecios(preciosPagina)
-      setCostos(costosPagina)
-      setFilas(resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null })))
+      const nuevas = resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null }))
+      setPrecios((anterior) => (esTandaSiguiente ? new Map([...anterior, ...preciosPagina]) : preciosPagina))
+      setCostos((anterior) => (esTandaSiguiente ? new Map([...anterior, ...costosPagina]) : costosPagina))
+      setFilas((anterior) => (esTandaSiguiente && anterior ? [...anterior, ...nuevas] : nuevas))
       setTotal(resultado.total)
+      setCargandoMas(false)
     } catch (error) {
       console.error('No pudimos cargar los productos.', error)
-      if (peticion === ultimaPeticion.current) setHayError(true)
+      if (peticion === ultimaPeticion.current) {
+        setCargandoMas(false)
+        // Una tanda siguiente que falla no tira abajo lo ya cargado: error y «Reintentar» al pie.
+        if (esTandaSiguiente) setErrorMas(true)
+        else setHayError(true)
+      }
     }
   }, [consulta, veCosto])
 
@@ -245,6 +260,22 @@ export function ProductoList() {
     if (cargandoRentabilidad) return
     void cargar()
   }, [cargar, cargandoRentabilidad])
+
+  mostradas.current = filas?.length ?? 0
+  const hayMas = filas !== null && filas.length < total
+  const cargarMas = () => {
+    if (cargandoMas) return
+    if (errorMas) {
+      void cargar()
+      return
+    }
+    setConsulta((actual) => ({ ...actual, pagina: actual.pagina + 1 }))
+  }
+  // Cambiar el estado de un producto recarga la lista desde el principio (no se mezcla con las tandas ya sumadas).
+  const recargarDesdeElPrincipio = () => {
+    if (consulta.pagina === 1) void cargar()
+    else setConsulta((actual) => ({ ...actual, pagina: 1 }))
+  }
 
   const hayFiltros = hayFiltrosActivos(consulta) || textoEscrito.trim() !== ''
   const limpiar = () => {
@@ -333,7 +364,7 @@ export function ProductoList() {
                               id={producto.id}
                               nombre={producto.nombre}
                               activo={producto.activo}
-                              onCambiado={() => void cargar()}
+                              onCambiado={recargarDesdeElPrincipio}
                               onError={setErrorEstado}
                             />
                           </Stack>
@@ -342,16 +373,7 @@ export function ProductoList() {
                   }
                 />
               )}
-              <TablePagination
-                component="div"
-                count={total}
-                page={consulta.pagina - 1}
-                rowsPerPage={TAMANO_PAGINA_PRODUCTOS}
-                rowsPerPageOptions={[TAMANO_PAGINA_PRODUCTOS]}
-                onPageChange={(_, nueva) => setConsulta((actual) => ({ ...actual, pagina: nueva + 1 }))}
-                labelRowsPerPage="Productos por página"
-                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-              />
+              <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} mostrarFin={filas.length > 0} />
             </>
           )}
         </Stack>
