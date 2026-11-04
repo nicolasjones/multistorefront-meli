@@ -1,76 +1,98 @@
-// Test de integración del guard de migraciones (`scripts/verificar-migraciones.mjs`): arma una
-// migración sintética en un repo git temporal y comprueba el CÓDIGO DE SALIDA del script.
-// Es lo que MSF-682 rompe: el guard decía "Migraciones OK" (exit 0) con `ADD COLUMN` escrito en
-// una línea aparte, y esa clase de falla (una aplicación parcial traba el reintento) es la que
-// el guard tiene que impedir.
-
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import os from 'node:os';
 import path from 'node:path';
-import { describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import test from 'node:test';
 
-const aqui = path.dirname(fileURLToPath(import.meta.url));
-const GUARD = path.join(aqui, 'verificar-migraciones.mjs');
+const script = path.resolve('scripts/verificar-migraciones.mjs');
+const SQL = 'select 1;\n';
 
-// El guard lee el índice de git (`git ls-files`) y el contenido con `git show :archivo`, y
-// compara contra una base: con una base inexistente TODOS los archivos se revisan.
-const correrGuard = (sql, archivo = '20260101000000_sintetica.sql') => {
-  const dir = mkdtempSync(path.join(tmpdir(), 'guard-migraciones-'));
+// Repo git temporal: `origin/dokploy` con las versiones `enBase` y el árbol con `nuevas` agregadas.
+function conRepo(enBase, nuevas, callback) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'verif-migr-'));
+  const git = (...a) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
   try {
-    mkdirSync(path.join(dir, 'supabase', 'migrations'), { recursive: true });
-    writeFileSync(path.join(dir, 'supabase', 'migrations', archivo), sql);
-    execFileSync('git', ['init', '-q'], { cwd: dir });
-    execFileSync('git', ['add', '.'], { cwd: dir });
-    const r = spawnSync('node', [GUARD, '--base', 'base-inexistente'], { cwd: dir, encoding: 'utf8' });
-    return { codigo: r.status, salida: `${r.stdout || ''}${r.stderr || ''}` };
+    git('init', '-q');
+    git('config', 'user.email', 't@t');
+    git('config', 'user.name', 't');
+    mkdirSync(path.join(dir, 'supabase/migrations'), { recursive: true });
+    for (const v of enBase) writeFileSync(path.join(dir, `supabase/migrations/${v}_base.sql`), SQL);
+    git('add', '.');
+    git('commit', '-qm', 'base');
+    git('update-ref', 'refs/remotes/origin/dokploy', 'HEAD');
+    for (const v of nuevas) writeFileSync(path.join(dir, `supabase/migrations/${v}_nueva.sql`), SQL);
+    git('add', '.');
+    callback(dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+const correr = (cwd, args = [], env = {}) => {
+  const e = { ...process.env, ...env };
+  delete e.GITHUB_BASE_REF;
+  if (env.GITHUB_BASE_REF) e.GITHUB_BASE_REF = env.GITHUB_BASE_REF;
+  return spawnSync(process.execPath, [script, ...args], { cwd, encoding: 'utf8', env: e });
 };
 
-describe('verificar-migraciones (integración)', () => {
-  it('falla con ADD COLUMN sin guard en una línea aparte (MSF-682)', () => {
-    const r = correrGuard('alter table public.t\n  add column x int;\n');
-    assert.equal(r.codigo, 1);
-    assert.match(r.salida, /ADD COLUMN sin IF NOT EXISTS/);
-    assert.match(r.salida, /:2 /);
+test('versión nueva bajo la máxima de dokploy: aviso, no error, fuera de un PR', () => {
+  conRepo(['20270121110303'], ['20270115100200'], (dir) => {
+    const r = correr(dir);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /se acomoda al integrar la épica/);
   });
+});
 
-  it('falla con ADD COLUMN sin guard en una sola línea', () => {
-    const r = correrGuard('alter table public.t add column x int;\n');
-    assert.equal(r.codigo, 1);
-    assert.match(r.salida, /ADD COLUMN sin IF NOT EXISTS/);
+test('con --estricto la misma versión es error REUSADA', () => {
+  conRepo(['20270121110303'], ['20270115100200'], (dir) => {
+    const r = correr(dir, ['--estricto']);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /REUSADA/);
   });
+});
 
-  it('falla cuando la sentencia no arranca al inicio de línea', () => {
-    const r = correrGuard('select 1; alter table public.t add column x int;\n');
-    assert.equal(r.codigo, 1);
-    assert.match(r.salida, /ADD COLUMN sin IF NOT EXISTS/);
+test('en un PR hacia dokploy (GITHUB_BASE_REF) es error', () => {
+  conRepo(['20270121110303'], ['20270115100200'], (dir) => {
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /REUSADA/);
   });
+});
 
-  it('pasa con ADD COLUMN if not exists (una línea o multilínea)', () => {
-    assert.equal(correrGuard('alter table public.t add column if not exists x int;\n').codigo, 0);
-    assert.equal(correrGuard('alter table public.t\n  add column if not exists x int;\n').codigo, 0);
+test('versión mayor que la máxima de la base pasa limpia', () => {
+  conRepo(['20270115100200'], ['20270121110303'], (dir) => {
+    const r = correr(dir, ['--estricto']);
+    assert.equal(r.status, 0, r.stderr);
   });
+});
 
-  it('pasa con SQL dinámico en un cuerpo dollar-quoted', () => {
-    const r = correrGuard('execute $q$\n  alter table public.t add column x int\n$q$;\n');
-    assert.equal(r.codigo, 0);
-    assert.doesNotMatch(r.salida, /ADD COLUMN sin IF NOT EXISTS/);
+test('versión duplicada en el árbol sigue siendo error', () => {
+  conRepo(['20270101000000'], [], (dir) => {
+    writeFileSync(path.join(dir, 'supabase/migrations/20270201000000_a.sql'), SQL);
+    writeFileSync(path.join(dir, 'supabase/migrations/20270201000000_b.sql'), SQL);
+    spawnSync('git', ['add', '.'], { cwd: dir });
+    const r = correr(dir);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /versión duplicada/);
   });
+});
 
-  it('no marca CREATE INDEX con if not exists en la línea siguiente', () => {
-    const r = correrGuard('create index\n  if not exists\n  idx_t_a on public.t (a);\n');
-    assert.equal(r.codigo, 0);
-    assert.doesNotMatch(r.salida, /CREATE INDEX sin IF NOT EXISTS/);
+test('versión existente en la base con otro contenido sigue siendo error', () => {
+  conRepo(['20270101000000'], [], (dir) => {
+    writeFileSync(path.join(dir, 'supabase/migrations/20270101000000_base.sql'), 'select 2;\n');
+    spawnSync('git', ['add', '.'], { cwd: dir });
+    const r = correr(dir);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /MODIFICADA/);
   });
+});
 
-  it('falla con CREATE INDEX sin guard', () => {
-    const r = correrGuard('create index idx_t_a on public.t (a);\n');
-    assert.equal(r.codigo, 1);
-    assert.match(r.salida, /CREATE INDEX sin IF NOT EXISTS/);
+test('base de una rama de épica (no integración): el orden es error', () => {
+  conRepo(['20270121110303'], ['20270115100200'], (dir) => {
+    spawnSync('git', ['update-ref', 'refs/remotes/origin/epic', 'refs/remotes/origin/dokploy'], { cwd: dir });
+    const r = correr(dir, ['--base', 'origin/epic']);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /REUSADA/);
   });
 });
