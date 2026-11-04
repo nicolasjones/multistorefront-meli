@@ -282,6 +282,33 @@ Además:
 - **No hay borrado**: no existe política ni grant `DELETE` para nadie; la baja lógica es `archivado_en`.
 - **`anon`** no ejecuta ninguna de las tres RPC ni tiene privilegios sobre la tabla.
 
+### Mejoras de clientes y proveedores (MSF-445)
+
+Fuente: `supabase/migrations/20270204100000`–`20270204120200` (rama `epic/MSF-445-…`, PR #695; aún sin
+merge a `main`; renumeradas al integrar `dokploy`, antes `20270115…`). Contrato completo, modelo,
+reversión y guía de prueba: [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.fusionar_clientes(p_conservar_id uuid, p_descartar_id uuid, p_cuenta_web_de uuid default null) returns jsonb` | Reasigna al conservado los documentos de venta y la cuenta web, habilita en él las tiendas de esa cuenta, archiva al descartado (`archivado_en`) y registra `cliente.fusionado`; devuelve `{documentos_reasignados, cuentas_reasignadas, campanas_reasignadas, cuentas_dadas_de_baja}` | `security definer`, `search_path = ''`; exige **Administrador** (`private.es_administrador_de`); bloquea ambas filas `order by id for update`; `42501` sin permiso, `22023` cliente inválido/archivado/cuenta web sin resolver, `P0002` inexistente o de otra organización; todo o nada |
+| `public.vista_previa_fusion_clientes(p_conservar_id uuid, p_descartar_id uuid) returns table (cliente_id, numero, nombre, documentos, cuentas_web_activas, cuentas_web_total)` | Vista previa de solo lectura: por cliente, N.º, nombre, documentos de venta y cuentas web (activas/total) | `security definer`, `stable`; mismas validaciones que la fusión |
+| `public.historial_costos_producto(p_producto_id uuid, p_proveedor_id uuid default null) returns table (proveedor_id, proveedor_razon_social, ingreso_id, fecha, comprobante, costo_unitario_usd)` | Evolución del costo de un producto: una fila por línea de ingreso **registrado** (no anulado) **con costo**, con fecha, proveedor, comprobante y costo; sin costo no figura (no es cero) | `security definer`, `search_path = ''`, `stable`; exige `rentabilidad` **y** `proveedores` en `lectura`/`edicion`; organización de la sesión y `private.empresas_accesibles()`; `42501` «Tu rol no puede ver el historial de costos» |
+| `public.listar_contactos_proveedor(p_proveedor_id uuid) returns table (id, nombre, rol, correo, telefono, principal)` | Contactos del proveedor, principal primero | `security definer`, `stable`; exige `proveedores` en `lectura`/`edicion`; `42501` «Tu rol no puede ver los contactos del proveedor» |
+| `public.agregar_contacto_proveedor(p_proveedor_id uuid, p_nombre text, p_rol text default null, p_correo text default null, p_telefono text default null, p_principal boolean default false) returns uuid` | Alta de un contacto; opcionalmente como principal (copia sus datos a la ficha) | `security definer`; exige `proveedores` en `edicion`; bloquea la fila del proveedor; `22023` nombre vacío o correo inválido, `P0002` proveedor inexistente, `42501` sin edición |
+| `public.marcar_contacto_principal(p_contacto_id uuid) returns void` | Deja al contacto como único principal y copia nombre, correo y teléfono a la ficha del proveedor | `security definer`; exige `proveedores` en `edicion`; bloquea la fila del proveedor; `P0002` contacto inexistente, `42501` sin edición |
+
+Además:
+
+- `public.registrar_ingreso_mercaderia(...)` **mantiene la firma**; cambio de comportamiento: el
+  `costo_unitario_usd` de cada línea pasa a ser opcional (`null` = sin costo, no cero) y una línea sin
+  costo no actualiza `dominio.producto_costos` aunque venga `p_actualizar_costo = true`.
+- **F-CLI-17 (etiqueta impresa) no agrega RPC**: la hoja lee `public.clientes` por PostgREST con las
+  columnas `id, nombre, direccion, codigo_postal, localidad, provincia, telefono, expreso_preferido` y
+  **no escribe nada**.
+- `dominio.proveedores_contactos` solo tiene `grant select` para `authenticated`: sin `INSERT`, `UPDATE`
+  ni `DELETE` directos y `anon` sin acceso.
+- Todas las RPC nuevas llevan `revoke execute … from public, anon` y `grant execute … to authenticated`.
+
 ### Consultas (MSF-122)
 
 Fuente: `supabase/migrations/20261205100100`–`20261205200200` (rama `epic/MSF-122-…`, aún sin merge a

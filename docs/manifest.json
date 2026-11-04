@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3edfee47e60588c3f81e50fa2a905e3442638f59469760fd3d2867afeefda005",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a24d10db",
+      "pageHash": "4326819f7058a29b7a46afa897732591719502f69e6bb2263749a9317d509e83",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "01821f1c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "d1de6312"
+      "commit": "56b6373c"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -220,15 +220,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "9605b27cd039602939fe45f440d0f8e5ea4ee4b03de1ecb9e716a3e3cb974acd",
-      "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "6db05d28",
+      "pageHash": "5226923a655b63805feb6f16e8aaf8efc67a176ddf9a7732f6213e8ff5265cdc",
+      "sourceHash": "43afca1cb08a48bf18e1afc4001b366099348cb0aeb9c8bdec8bffc608141c4a",
+      "sourceAt": "01821f1c",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "b325af7d"
+      "commit": "4bbc86c0"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "78bcf6db1239e8ae01b3b3eeabbfdf47c287c263ecce91a5a8a3ab45da5c099e",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a24d10db",
+      "pageHash": "a0ea66639ffdc7b05f3b3e657c35eab3c5283e7d6961a7eaa16bb5a6e179e7d5",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "01821f1c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cdf9b4d2"
+      "commit": "56b6373c"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -398,12 +398,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "b66a5a248082f80ef56adbab6253631a6a025923ce54861ffbe5cedb2746d539",
+      "pageHash": "e1877de30d48857dbe54cef73e95efb3dae127941e944c1c938d9a2b65e7e9ce",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "801de684"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -449,12 +449,12 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "76497a9608386e8f505e4a0f377e8d856f1843777632e548fec80ae991d5da06",
+      "pageHash": "affa13bbd76b2dec231be57a5520dcecc0a542323637a929e01e12243fdc292e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
@@ -498,21 +498,21 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "9992f2aae406d5a2b16b54b602897b0691ccc92677b6305043a0fa1c0cd0983f",
+      "pageHash": "78fa7a89ba5fd7d5900d488ab015d5b08ddae9c2ba4dff0a80394782111c22de",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "801de684"
+    },
+    "docs/producto/ingreso-de-mercaderia.md": {
+      "title": "Registrar un ingreso de mercadería",
+      "pageHash": "bee0adcb90184deaeb810968437f0c42f15c743488df9d4f4d97e0b6bc7778bb",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "a8db4308"
-    },
-    "docs/producto/ingreso-de-mercaderia.md": {
-      "title": "Registrar un ingreso de mercadería",
-      "pageHash": "48dc3e02a1431267d51b8432c9b735afc08d47bbb5d09fd973ababdfb5035519",
-      "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
-      "owner": "producto",
-      "commit": null
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
@@ -573,12 +573,12 @@
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "aeddfd98647a29f7470d6c4edce2c2b11deeb8bbd9f8155f9bca4d29df495438",
+      "pageHash": "742aac111f0102eeba5316275bec069cc78f5bfc1d8288bddbf7665dba0876c2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/ranking-avanzado-de-clientes.md": {
       "title": "Clientes · ranking avanzado de clientes (MSF-171)",
@@ -854,15 +854,15 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores (MSF-205)",
-      "pageHash": "f307f40b663684317f253aef9fe6f166d9c7f93a714296075525b9033b9f7891",
-      "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "f0e28977",
+      "pageHash": "541afa39e99f7f325f678410c229dcdb7a99b1007d48c6cffe844d11e95d7f43",
+      "sourceHash": "43afca1cb08a48bf18e1afc4001b366099348cb0aeb9c8bdec8bffc608141c4a",
+      "sourceAt": "01821f1c",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "ba821a1f"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -888,12 +888,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "d34e664f26f153703c3ffc073cc00f670b510cdab4ca0780c40b091b411c7bcc",
+      "pageHash": "9d8e835b7433333d69741eab2fe18c872f6b91d6f9a4189fff4899c4795836bd",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "56b6373c"
+      "commit": "801de684"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1110,14 +1110,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "bea7846da156eca2ded71fb1028a8aeaee346199070cce6f1d51c165ed9dd3cc",
+      "pageHash": "4686ab7db312401cd2e4296075f414a8b11333d21b0bc56695468d4c1e9129da",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "a24d10db",
+      "sourceAt": "01821f1c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4314aa20"
+      "commit": "56b6373c"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1191,16 +1191,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "05fbb104d486de8f41dd3f0fa01cd0f5b70165aea770eb26f1ddb06bb99a62ec",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "86851def",
+      "pageHash": "9917d555624574b1f2453a0a712b1a9161d9457826973a69ea94c4b7bbd7135d",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "01821f1c",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "3d951332"
+      "commit": "26d136d5"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -1258,14 +1258,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "acb64bb3d82b0e047e466dc4026c112af3c4509005dedf7f85bee67f3fee4ebc",
+      "pageHash": "56ec8d2eac9c7ad93a8fc4eb6c548e5321b997a9a28cc3ec798704adbf303f9f",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "fcd2b69a",
+      "sourceAt": "01821f1c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4bbc86c0"
+      "commit": "801de684"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1294,25 +1294,38 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "1257ab8909719d6e316d782826bb7f90a331b583052d9a665d07d5acff1a1bf8",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5453c757",
+      "pageHash": "685e1026bc354ba277e501c303f081a785ee11eb77a1622d719306b6c0ae3351",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "01821f1c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "cdf9b4d2"
+      "commit": "d1de6312"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
-      "pageHash": "a4ef16cc56c17f901aab19dd2c78cdd409b108e1021e1561e7190825a4bf97bf",
+      "pageHash": "d1e2751cb94a9f3450fdc3e0b768e0fd9f5c4a2012d09048ed424d3bbfd2f851",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d59ea04f",
+      "sourceAt": "01821f1c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "503a453f"
+      "commit": "07b71b15"
+    },
+    "docs/tecnico/mejoras-de-clientes-y-proveedores.md": {
+      "title": "Mejoras de clientes y proveedores: modelo, RPC y pantallas (MSF-445)",
+      "pageHash": "14c4d03b9d1aab95dd6318b94f1d4b936e3040d2018b621d027ee0208b5f4e78",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "01821f1c",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos: modelo, RPC y operación",
@@ -1425,16 +1438,16 @@
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
-      "pageHash": "d624e4cf8ebe55c0d14d88f5aa17f2c2ac802fb6f308493b4e47b4dc758bdda8",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "f0e28977",
+      "pageHash": "014d54063779c3d9f2d644e6c1c1969827b59a8bd8803b5f3fdfa3217426bdea",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "01821f1c",
       "sources": [
         "supabase/migrations",
         "apps/web/src",
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "ba821a1f"
     },
     "docs/tecnico/ranking-avanzado-de-clientes.md": {
       "title": "Ranking avanzado de clientes: RPC y pantallas (MSF-171)",
