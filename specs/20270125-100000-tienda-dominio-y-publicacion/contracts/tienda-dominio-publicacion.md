@@ -20,14 +20,14 @@ public.registrar_verificacion_dns(empresa: uuid, resultados: jsonb, certificado:
 publico.redireccion_por_dominio(host: text): { dominio_principal: string } | null              // anon, authenticated
 ```
 
-Errores de `configurar_dominio_tienda`: `dominio_invalido`, `dominio_en_uso`, `redireccion_invalida` (por campo). `preparar_verificacion_tienda`: `sin_permiso`, `sin_dominio`, `demasiado_pronto` (10 s). `publico.redireccion_por_dominio`: lista blanca (solo el dominio principal); desconocido y empresa desactivada devuelven `null`.
+Errores de `configurar_dominio_tienda`: `dominio_invalido`, `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso` (por campo; MSF-198 sumó `redireccion_en_uso` para distinguir la unicidad en el campo de redirección). `preparar_verificacion_tienda`: `sin_permiso`, `sin_dominio`, `demasiado_pronto` (10 s). `registrar_verificacion_dns` rechaza con `verificacion_obsoleta` un resultado sin verificación pedida o cuyo dominio cambió desde entonces (MSF-198; usa las columnas internas `verificacion_solicitada_at|por` de `dominio.tiendas`). `publico.redireccion_por_dominio`: lista blanca (solo el dominio principal); desconocido y empresa desactivada devuelven `null`.
 
 ### Edge Function `verificar-dominio-tienda` (ver `openapi/verificar-dominio-tienda.json`)
 
 ```ts
 POST /verificar-dominio-tienda  { empresa_id: string }  // Authorization: JWT del usuario
 200 { dominio_verificado: boolean; certificado: 'pendiente' | 'activo' | 'error'; registros: Array<{ tipo; nombre; estado }> }
-400 { error: 'solicitud_invalida' } · 401 · 403 { error: 'sin_permiso' } · 429 { error: 'demasiado_pronto' } · 502 { error: 'dns_no_disponible' }
+400 { error: 'solicitud_invalida' | 'sin_dominio' } · 401 { error: 'no_autenticado' } · 403 { error: 'sin_permiso' } · 429 { error: 'demasiado_pronto' } · 502 { error: 'dns_no_disponible' }
 ```
 
 ## F-TDA-06 · Borrador y publicación
