@@ -65,6 +65,22 @@ begin
     raise exception 'Las variantes deben enviarse como una lista' using errcode = '22023';
   end if;
 
+  -- 0. Reintento idempotente (alta que se repite): una fila sin id cuyo código ya es de una variante de ESTE
+  --    producto es esa variante, no una nueva.
+  select coalesce(jsonb_agg(
+           case when nullif(x.value ->> 'id', '') is null
+                     and exists (select 1 from dominio.producto_variantes v
+                                  where v.producto_id = p_producto and v.organizacion_id = v_org
+                                    and lower(btrim(v.codigo)) = lower(btrim(coalesce(x.value ->> 'codigo', ''))))
+                then x.value || jsonb_build_object('id', (select v.id from dominio.producto_variantes v
+                                  where v.producto_id = p_producto and v.organizacion_id = v_org
+                                    and lower(btrim(v.codigo)) = lower(btrim(x.value ->> 'codigo'))))
+                else x.value end
+           order by x.ordinality), '[]'::jsonb)
+    into v_items
+    from jsonb_array_elements(v_items) with ordinality as x
+   where jsonb_typeof(x.value) = 'object';
+
   -- 1. Validación de cada fila y de repetidos dentro del mismo envío.
   for v_item, v_n in select x.value, x.ordinality::integer from jsonb_array_elements(v_items) with ordinality as x loop
     if jsonb_typeof(v_item) <> 'object' then
@@ -247,7 +263,7 @@ end;
 $$;
 
 comment on function public.guardar_variantes_producto(uuid, timestamptz, jsonb) is
-  'F-CAT-15: reemplaza las variantes de un producto (idempotente, atómico). Exige edición en productos (42501); P0002 producto inexistente; 40001 si el producto cambió; 23505 código o código de barras repetido (con el valor); 22023 formato EAN-13, nombre vacío, variantes faltantes o primera variante sobre producto con stock. Una fila con stock distinto del actual exige edición en Stock y registra un ajuste «Conteo de inventario». Evento producto.variantes_editadas solo con cambio real.';
+  'F-CAT-15: reemplaza las variantes de un producto (idempotente, atómico; una fila sin id cuyo código ya es de una variante del producto la actualiza, para que un reintento no duplique). Exige edición en productos (42501); P0002 producto inexistente; 40001 si el producto cambió; 23505 código o código de barras repetido (con el valor); 22023 formato EAN-13, nombre vacío, variantes faltantes o primera variante sobre producto con stock. Una fila con stock distinto del actual exige edición en Stock y registra un ajuste «Conteo de inventario». Evento producto.variantes_editadas solo con cambio real.';
 
 revoke execute on function public.guardar_variantes_producto(uuid, timestamptz, jsonb) from public, anon;
 grant execute on function public.guardar_variantes_producto(uuid, timestamptz, jsonb) to authenticated;
