@@ -43,29 +43,29 @@
 -- ---------------------------------------------------------------------------
 
 alter table dominio.cotizacion_pendiente alter column organizacion_id set not null;
-alter table dominio.cotizacion_pendiente drop constraint cotizacion_pendiente_pkey;
-alter table dominio.cotizacion_pendiente add column empresa_id uuid;
+alter table dominio.cotizacion_pendiente drop constraint if exists cotizacion_pendiente_pkey;
+alter table dominio.cotizacion_pendiente add column if not exists empresa_id uuid;
 alter table dominio.cotizacion_pendiente
   add constraint cotizacion_pendiente_empresa_fk
   foreign key (empresa_id, organizacion_id) references dominio.empresas (id, organizacion_id) on delete cascade;
-create unique index cotizacion_pendiente_org_empresa_uq
+create unique index if not exists cotizacion_pendiente_org_empresa_uq
   on dominio.cotizacion_pendiente (organizacion_id, (coalesce(empresa_id, '00000000-0000-0000-0000-000000000000'::uuid)));
 
 alter table dominio.cotizacion_aplicada alter column organizacion_id set not null;
-alter table dominio.cotizacion_aplicada drop constraint cotizacion_aplicada_pkey;
-alter table dominio.cotizacion_aplicada add column empresa_id uuid;
+alter table dominio.cotizacion_aplicada drop constraint if exists cotizacion_aplicada_pkey;
+alter table dominio.cotizacion_aplicada add column if not exists empresa_id uuid;
 alter table dominio.cotizacion_aplicada
   add constraint cotizacion_aplicada_empresa_fk
   foreign key (empresa_id, organizacion_id) references dominio.empresas (id, organizacion_id) on delete cascade;
-create unique index cotizacion_aplicada_org_empresa_uq
+create unique index if not exists cotizacion_aplicada_org_empresa_uq
   on dominio.cotizacion_aplicada (organizacion_id, (coalesce(empresa_id, '00000000-0000-0000-0000-000000000000'::uuid)));
 
-alter table dominio.cotizaciones add column empresa_id uuid;
-alter table dominio.cotizaciones add column umbral_pct numeric(7, 3);
+alter table dominio.cotizaciones add column if not exists empresa_id uuid;
+alter table dominio.cotizaciones add column if not exists umbral_pct numeric(7, 3);
 alter table dominio.cotizaciones
   add constraint cotizaciones_empresa_fk
   foreign key (empresa_id, organizacion_id) references dominio.empresas (id, organizacion_id);
-create index cotizaciones_org_empresa_cargada_idx
+create index if not exists cotizaciones_org_empresa_cargada_idx
   on dominio.cotizaciones (organizacion_id, empresa_id, cargada_en desc, id);
 
 comment on column dominio.cotizacion_pendiente.empresa_id is 'F-PRE-06: empresa dueña de la carga con alcance «empresa»; nulo con alcance «sistema».';
