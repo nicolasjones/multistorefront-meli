@@ -75,7 +75,7 @@ grant execute on function private.empresa_de_cotizacion(uuid, uuid) to authentic
 -- Carga y estado (F-PRE-02)
 -- ---------------------------------------------------------------------------
 
-drop function public.cargar_cotizacion(numeric);
+drop function if exists public.cargar_cotizacion(numeric);
 
 create or replace function public.cargar_cotizacion(p_valor numeric, p_empresa uuid default null)
 returns jsonb
@@ -123,7 +123,7 @@ $$;
 comment on function public.cargar_cotizacion(numeric, uuid) is
   'F-PRE-02/F-PRE-06: carga el dólar como cotización PENDIENTE (de la organización o, con alcance «empresa», de p_empresa; reemplaza la anterior pendiente; vence a las 24 h). No cambia precios. 42501 sin edición en cotizacion_dolar, 23514 valor inválido, 22003 fuera de rango, 22023 falta empresa, P0002 empresa ajena.';
 
-drop function public.estado_cotizacion();
+drop function if exists public.estado_cotizacion();
 
 create or replace function public.estado_cotizacion(p_empresa uuid default null)
 returns jsonb
@@ -207,7 +207,7 @@ comment on function public.estado_cotizacion(uuid) is
 -- Vista previa, confirmación y descarte (F-PRE-03)
 -- ---------------------------------------------------------------------------
 
-drop function public.previsualizar_cotizacion();
+drop function if exists public.previsualizar_cotizacion();
 
 create or replace function public.previsualizar_cotizacion(p_empresa uuid default null)
 returns jsonb
@@ -290,7 +290,7 @@ $$;
 comment on function public.previsualizar_cotizacion(uuid) is
   'F-PRE-03/F-PRE-06: vista previa de la cotización pendiente (de la organización o de p_empresa): precios por empresa y muestra hoy/nuevo con el redondeo configurado; el umbral es el configurado. No escribe. 42501 sin edición en cotizacion_dolar, P0002 sin_cotizacion_pendiente o empresa ajena, 22023 falta empresa.';
 
-drop function public.confirmar_cotizacion();
+drop function if exists public.confirmar_cotizacion();
 
 create or replace function public.confirmar_cotizacion(p_empresa uuid default null)
 returns jsonb
@@ -395,7 +395,7 @@ $$;
 comment on function public.confirmar_cotizacion(uuid) is
   'F-PRE-03/F-PRE-06: confirma la cotización pendiente (de la organización o de p_empresa) en una transacción: historial (con el umbral usado), cotización aplicada (si la variación alcanza el umbral configurado), eventos. 42501 sin edición; P0002 sin_cotizacion_pendiente o empresa ajena; 22023 falta empresa.';
 
-drop function public.descartar_cotizacion();
+drop function if exists public.descartar_cotizacion();
 
 create or replace function public.descartar_cotizacion(p_empresa uuid default null)
 returns void
@@ -438,7 +438,7 @@ comment on function public.descartar_cotizacion(uuid) is
 -- Aviso «¿se cargó hoy?» (F-PRE-05) e historial (F-PRE-04)
 -- ---------------------------------------------------------------------------
 
-drop function public.cotizacion_del_dia();
+drop function if exists public.cotizacion_del_dia();
 
 create or replace function public.cotizacion_del_dia(p_empresa uuid default null)
 returns jsonb
@@ -507,7 +507,7 @@ $$;
 comment on function public.cotizacion_del_dia(uuid) is
   'F-PRE-05/F-PRE-06: ¿hay una cotización CONFIRMADA hoy (America/Argentina/Buenos_Aires) para la organización o p_empresa? La pendiente no cuenta. Devuelve también aviso_activo y alcance. 42501 sin acceso a cotizacion_dolar.';
 
-drop function public.listar_cotizaciones(integer, text);
+drop function if exists public.listar_cotizaciones(integer, text);
 
 -- p_cursor: texto opaco que devuelve `siguiente_cursor` de la página anterior ("<cargada_en>|<id>").
 create or replace function public.listar_cotizaciones(p_limite integer default 10, p_cursor text default null, p_empresa uuid default null)
