@@ -1,4 +1,4 @@
-# Calidad determinista — 2026-11-04
+# Calidad determinista — 2026-11-01
 
 | check | estado |
 |---|---|
@@ -8,3 +8,4 @@
 | jscpd (duplicación) | ok |
 | dependency-cruiser (arquitectura) | ok |
 | syncpack (versiones) | ok |
+| commitlint (mensajes) | ok |
