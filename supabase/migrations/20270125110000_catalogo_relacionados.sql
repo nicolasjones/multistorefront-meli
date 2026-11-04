@@ -2,7 +2,9 @@
 -- Esquemas (Principio VII), verificados objeto por objeto:
 --   dominio.producto_relacionados  dominio (tabla nueva)  vínculo ordenado entre dos productos: entidad de negocio
 --                                                         del catálogo, junto a dominio.productos.
---   public.guardar_relacionados    public (función)       contrato de aplicación (security invoker: rige la RLS).
+--   public.guardar_relacionados    public (función)       contrato de aplicación (security definer: el evento de
+--                                                         actividad solo lo puede registrar una función definer;
+--                                                         valida organización y rol edición antes de escribir).
 --   public.v_producto_relacionados public (VISTA)         contrato de lectura; no es una tabla.
 -- Aísla por organización con RLS y FKs compuestas a ambos extremos (un vínculo no cruza organizaciones).
 -- Unidireccional: relacionar A con B no relaciona B con A. El vínculo se quita de verdad (sin historia propia).
@@ -80,7 +82,7 @@ grant update (orden) on dominio.producto_relacionados to authenticated;
 create or replace function public.guardar_relacionados(p_producto uuid, p_relacionados uuid[])
 returns jsonb
 language plpgsql
-security invoker
+security definer
 set search_path = ''
 as $$
 declare
@@ -132,8 +134,8 @@ begin
 
     -- Evento solo con cambio real y con sesión; sin precios ni costo.
     if v_actor is not null then
-      perform private.insertar_actividad(
-        v_org, v_actor, 'producto.relacionados_editados',
+      perform private.registrar_actividad(
+        'producto.relacionados_editados',
         format('Cambió los productos relacionados de %s%s: %s',
           v_producto.nombre,
           case when v_producto.sku is null then '' else format(' (SKU %s)', v_producto.sku) end,
