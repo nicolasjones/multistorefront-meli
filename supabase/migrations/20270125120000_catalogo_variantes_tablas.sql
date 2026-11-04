@@ -142,27 +142,7 @@ create policy producto_variantes_select on dominio.producto_variantes
     and (select private.nivel_seccion('productos')) in ('lectura', 'edicion')
   );
 
-create policy producto_variantes_insert on dominio.producto_variantes
-  for insert to authenticated
-  with check (
-    organizacion_id = (select private.organizacion_id())
-    and (select private.nivel_seccion('productos')) = 'edicion'
-  );
-
-create policy producto_variantes_update on dominio.producto_variantes
-  for update to authenticated
-  using (
-    organizacion_id = (select private.organizacion_id())
-    and (select private.nivel_seccion('productos')) = 'edicion'
-  )
-  with check (
-    organizacion_id = (select private.organizacion_id())
-    and (select private.nivel_seccion('productos')) = 'edicion'
-  );
-
--- Sin DELETE para nadie; sin privilegios para anon.
+-- Solo lectura para authenticated; sin privilegios para anon.
 revoke all on dominio.producto_variantes from public, anon, authenticated;
 grant select on dominio.producto_variantes to authenticated;
-grant insert (id, organizacion_id, producto_id, nombre, codigo, codigo_barras, activa, orden)
-  on dominio.producto_variantes to authenticated;
-grant update (nombre, codigo, codigo_barras, activa, orden) on dominio.producto_variantes to authenticated;
+-- Sin INSERT/UPDATE/DELETE directos: se escribe solo por public.guardar_variantes_producto (security definer).

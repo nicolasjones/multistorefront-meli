@@ -32,6 +32,33 @@ type Props = {
 const TITULO = 'Variantes'
 const SUBTITULO = 'Para un mismo producto con distintos colores o modelos. Cada variante tiene su código, su código de barras y su stock; el precio es el del producto.'
 
+const AVISO_STOCK_INVALIDO = 'Ingresá un número entero, 0 o más.'
+
+// Mientras se escribe, el texto es propio: un valor vacío o inválido NO se convierte en 0 (generaría un ajuste a 0 al guardar).
+// Solo los enteros ≥ 0 llegan a la fila; al salir del campo con un texto inválido vuelve al último valor válido.
+function CampoStock({ valor, etiqueta, deshabilitado, error, onCambiar }: { valor: number; etiqueta: string; deshabilitado: boolean; error: string | null; onCambiar: (stock: number) => void }) {
+  const [borrador, setBorrador] = useState<string | null>(null)
+  const invalido = borrador !== null && !/^\d+$/.test(borrador)
+  return (
+    <TextField
+      size="small"
+      type="number"
+      value={borrador ?? valor}
+      onChange={(evento) => {
+        const texto = evento.target.value
+        setBorrador(texto)
+        if (/^\d+$/.test(texto)) onCambiar(Number(texto))
+      }}
+      onBlur={() => setBorrador(null)}
+      disabled={deshabilitado}
+      error={error !== null || invalido}
+      helperText={invalido ? AVISO_STOCK_INVALIDO : error}
+      slotProps={{ htmlInput: { 'aria-label': etiqueta, min: 0, step: 1 } }}
+      sx={{ width: 96 }}
+    />
+  )
+}
+
 // Bloque «Variantes» del alta y la edición (F-CAT-15, FR-003…FR-005): tabla Variante / Código / Código de barras /
 // Stock / Activa con celdas editables, «Agregar variante» y el interruptor Activa. Las variantes no se borran: se
 // desactivan. La empresa activa no cambia el bloque (producto, variantes y stock son de la organización).
@@ -80,19 +107,12 @@ export function BloqueVariantes({ filas, onCambiar, skuProducto, verStock, edita
         if (!editarStock || soloLectura) return fila.stock
         const error = errores[fila.clave]?.campo === 'stock' ? errores[fila.clave].mensaje : null
         return (
-          <TextField
-            size="small"
-            type="number"
-            value={fila.stock}
-            onChange={(evento) => {
-              const numero = Number(evento.target.value)
-              cambiar(fila.clave, { stock: evento.target.value === '' || !Number.isInteger(numero) || numero < 0 ? 0 : numero })
-            }}
-            disabled={deshabilitado}
-            error={error !== null}
-            helperText={error}
-            slotProps={{ htmlInput: { 'aria-label': `Stock de la variante ${filas.indexOf(fila) + 1}`, min: 0, step: 1 } }}
-            sx={{ width: 96 }}
+          <CampoStock
+            valor={fila.stock}
+            etiqueta={`Stock de la variante ${filas.indexOf(fila) + 1}`}
+            deshabilitado={deshabilitado}
+            error={error}
+            onCambiar={(stock) => cambiar(fila.clave, { stock })}
           />
         )
       },

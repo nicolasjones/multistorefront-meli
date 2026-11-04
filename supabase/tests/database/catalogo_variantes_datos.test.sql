@@ -45,6 +45,8 @@ select is((select n.nspname::text from pg_class c join pg_namespace n on n.oid =
 select is(has_table_privilege('anon', 'dominio.producto_variantes', 'SELECT'), false, 'anon no lee producto_variantes');
 select is(has_table_privilege('anon', 'dominio.producto_variantes', 'INSERT'), false, 'anon no inserta variantes');
 select is(has_table_privilege('authenticated', 'dominio.producto_variantes', 'DELETE'), false, 'nadie borra variantes (sin DELETE)');
+select is(has_table_privilege('authenticated', 'dominio.producto_variantes', 'INSERT'), false, 'authenticated no inserta variantes directo');
+select is(has_table_privilege('authenticated', 'dominio.producto_variantes', 'UPDATE'), false, 'authenticated no actualiza variantes directo');
 select is((select count(*)::int from pg_policies where schemaname = 'dominio' and tablename = 'producto_variantes' and cmd = 'DELETE'),
   0, 'no hay política DELETE');
 select is((select orden from dominio.producto_variantes where codigo = 'REM-1-N'), 1, 'la variante guarda su orden');
@@ -102,23 +104,20 @@ select lives_ok(
 -- Aislamiento y permisos por rol
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.producto_variantes), 1, 'el administrador ve solo las variantes de su organización');
-select lives_ok(
-  $$update dominio.producto_variantes set activa = false where codigo = 'REM-1-N'$$,
-  'el administrador desactiva una variante');
+select throws_ok($$update dominio.producto_variantes set activa = false where codigo = 'REM-1-N'$$, '42501', null, 'el administrador no actualiza variantes directo (solo por la RPC)');
 select throws_ok($$delete from dominio.producto_variantes where codigo = 'REM-1-N'$$, '42501', null, 'el administrador no puede borrar una variante');
-select lives_ok(
+select throws_ok(
   $$insert into dominio.producto_variantes (organizacion_id, producto_id, nombre, codigo, orden)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'Blanco', 'REM-1-B', 2)$$,
-  'el administrador agrega una variante');
+  '42501', null, 'el administrador no inserta variantes directo (solo por la RPC)');
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000003');
-select is((select count(*)::int from dominio.producto_variantes), 2, 'consulta ve las variantes (lectura)');
+select is((select count(*)::int from dominio.producto_variantes), 1, 'consulta ve las variantes (lectura)');
 select throws_ok(
   $$insert into dominio.producto_variantes (organizacion_id, producto_id, nombre, codigo, orden)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'Rojo', 'REM-1-R', 3)$$,
   '42501', null, 'consulta no agrega variantes');
-select lives_ok($$update dominio.producto_variantes set activa = true where codigo = 'REM-1-N'$$, 'consulta: el update no falla pero no alcanza filas');
-select is((select activa from dominio.producto_variantes where codigo = 'REM-1-N'), false, 'consulta no modifica variantes');
+select throws_ok($$update dominio.producto_variantes set activa = true where codigo = 'REM-1-N'$$, '42501', null, 'consulta no modifica variantes');
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.producto_variantes), 1, 'otra organización solo ve las suyas');

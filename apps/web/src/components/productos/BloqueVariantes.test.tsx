@@ -75,6 +75,17 @@ describe('BloqueVariantes', () => {
     expect(screen.getByRole('spinbutton', { name: 'Stock de la variante 1' })).toHaveValue(6)
   })
 
+  it('un stock vacío o inválido no se convierte en 0: avisa y al salir vuelve al valor guardado', () => {
+    render(<Envoltorio inicial={[NEGRO]} editarStock />)
+    const stock = screen.getByRole('spinbutton', { name: 'Stock de la variante 1' })
+    fireEvent.change(stock, { target: { value: '' } })
+    expect(screen.getByText('Ingresá un número entero, 0 o más.')).toBeInTheDocument()
+    expect(screen.getByText(/Stock del producto/)).not.toHaveTextContent(/: 0\b/)
+    fireEvent.blur(stock)
+    expect(screen.getByRole('spinbutton', { name: 'Stock de la variante 1' })).toHaveValue(4)
+    expect(screen.queryByText('Ingresá un número entero, 0 o más.')).not.toBeInTheDocument()
+  })
+
   it('muestra los errores por campo sin perder lo escrito (FR-002, FR-003)', () => {
     render(<Envoltorio inicial={[NEGRO]} errores={{ c1: { campo: 'codigo', mensaje: 'El código "5134a-N" ya lo usa otra variante' } }} />)
     expect(screen.getByLabelText('Código de la variante 1')).toHaveValue('5134a-N')
