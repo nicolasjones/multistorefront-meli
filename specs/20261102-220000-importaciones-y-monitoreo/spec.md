@@ -168,17 +168,17 @@ Cada FR/SC tiene aquí su verificación nombrada (archivo de test o comando) y, 
 | FR-014 | Vitest `cancelar-proceso.test.tsx` (confirmación, solo abiertos) | ídem |
 | FR-015 | Vitest `empresa-activa-importaciones.test.tsx` + E2E `importaciones.e2e.ts` | `pnpm test` / `pnpm test:e2e` |
 | FR-016 | E2E `importaciones-a11y.e2e.ts` (axe sin violaciones a 320/768/1440 px, recorrido por teclado, sin identificadores técnicos visibles) | `pnpm test:e2e` |
-| FR-017 | `pnpm docs:check` (contrato y guía en el mismo cambio) + `grep -c "iniciar_proceso_masivo\|cerrar_proceso_masivo\|proceso_masivo_cancelado" workers/CONTRATO.md docs/importaciones.md` ≥ 1 por archivo | `pnpm docs:check` |
-| FR-020 | `pnpm infra:config` (valida `infra/glitchtip/compose.yaml`) + `docker compose -f infra/glitchtip/compose.yaml config -q` + `grep -n "dev:glitchtip\|dev:down:glitchtip" package.json` | `pnpm infra:config` |
+| FR-017 | test `documentacion-importaciones.test.mjs` (`workers/CONTRATO.md` y `docs/importaciones.md` nombran las funciones del protocolo) + `pnpm docs:check` | `pnpm test` |
+| FR-020 | test `validar-glitchtip-compose.test.mjs` (Compose válido, proyecto propio, comandos `dev:glitchtip`/`dev:down:glitchtip`) + `pnpm infra:config` | `pnpm test && pnpm infra:config` |
 | FR-021 | Vitest `errores-web.test.ts` (filtra correos/tokens/cuerpos; adjunta ambiente y versión) | `pnpm --filter @platform/web test errores` |
-| FR-022 | test del helper de workers `errores-worker.test.mjs` (adjunta `EJECUCION_ID`) | `pnpm test` |
+| FR-022 | test del helper de workers `errores-worker.test.mjs` (adjunta `EJECUCION_ID`; dueña T017) | `pnpm test` |
 | FR-023 | Vitest `errores-web.test.ts` + test del worker (sin DSN = no-op) | `pnpm test` |
 | FR-024, FR-031 | pgTAP `monitoreo.test.sql` (RLS, solo superadmin, `anon` sin acceso, grants a `kestra_orquestacion`) + `rls_en_toda_tabla` | `pnpm test` |
 | FR-025 | `validar-monitoreo-tiendas.test.mjs` (flow válido, sondea solo tiendas con dominio) + `pnpm infra:config` | `pnpm test && pnpm infra:config` |
 | FR-026, FR-028 | pgTAP `monitoreo.test.sql` (4 fallos no alertan, 5 sí, una sola abierta, resolución, reapertura) | `pnpm test` |
 | FR-027 | pgTAP `monitoreo.test.sql` (orden sin avanzar 14 min no alerta, 15 sí) | `pnpm test` |
 | FR-029, FR-030 | `validar-monitoreo-alertas.test.mjs` (usa el subflow `alertas`, inputs con 5/10/15 por defecto, sin secretos en el cuerpo) | `pnpm test` |
-| FR-032 | `pnpm docs:check` + `grep -n "umbral\|DSN\|KESTRA_ALERTAS_WEBHOOK_URL" docs/monitoreo.md` (secciones de umbrales y variables presentes) | `pnpm docs:check` |
+| FR-032 | test `documentacion-monitoreo.test.mjs` (secciones de umbrales, DSN y `KESTRA_ALERTAS_WEBHOOK_URL`) + `pnpm docs:check` | `pnpm test` |
 | FR-033 | `validar-monitoreo-errores.test.mjs` (flow válido, umbral 5/10 min, token solo como secreto de Kestra) | `pnpm test` |
 | SC-001, SC-002, SC-007 | E2E `importaciones.e2e.ts` | `pnpm test:e2e` |
 | SC-003 | pgTAP `procesos_masivos.test.sql` | `pnpm test` |
