@@ -59,10 +59,10 @@ select ok((select relrowsecurity from pg_class where oid = 'dominio.cotizacion_a
 select is(has_table_privilege('anon', 'dominio.cotizacion_aplicada', 'SELECT'), false, 'anon no lee cotizacion_aplicada');
 select is(has_table_privilege('authenticated', 'dominio.cotizacion_aplicada', 'INSERT'), false, 'authenticated no inserta en cotizacion_aplicada');
 select is(has_table_privilege('authenticated', 'dominio.cotizacion_aplicada', 'UPDATE'), false, 'authenticated no actualiza cotizacion_aplicada');
-select is(has_function_privilege('anon', 'public.previsualizar_cotizacion()', 'EXECUTE'), false, 'anon no ejecuta previsualizar_cotizacion');
-select is(has_function_privilege('anon', 'public.confirmar_cotizacion()', 'EXECUTE'), false, 'anon no ejecuta confirmar_cotizacion');
-select is(has_function_privilege('anon', 'public.descartar_cotizacion()', 'EXECUTE'), false, 'anon no ejecuta descartar_cotizacion');
-select is(has_function_privilege('authenticated', 'public.confirmar_cotizacion()', 'EXECUTE'), true, 'authenticated ejecuta confirmar_cotizacion');
+select is(has_function_privilege('anon', 'public.previsualizar_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta previsualizar_cotizacion');
+select is(has_function_privilege('anon', 'public.confirmar_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta confirmar_cotizacion');
+select is(has_function_privilege('anon', 'public.descartar_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta descartar_cotizacion');
+select is(has_function_privilege('authenticated', 'public.confirmar_cotizacion(uuid)', 'EXECUTE'), true, 'authenticated ejecuta confirmar_cotizacion');
 
 -- ============================================================================
 -- Administrador (org 1): sin cotización aplicada rige la inicial
