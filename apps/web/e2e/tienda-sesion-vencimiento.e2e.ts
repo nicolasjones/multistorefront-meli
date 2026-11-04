@@ -23,10 +23,12 @@ test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer 
     [CLAVE_ULTIMA_ACTIVIDAD, marca],
   )
 
-  // El cierre de sesión del panel pide un logout a Auth: se vigila para comprobar que no ocurre.
-  const cierresDeSesion: string[] = []
+  // `authProvider.logout` (panel) revoca la sesión en todos los dispositivos; la tienda (MSF-700)
+  // cierra solo la local (`scope=local`). Se vigila cualquier logout que no sea local.
+  const revocacionesGlobales: string[] = []
   page.on('request', (peticion) => {
-    if (peticion.url().includes('/auth/v1/logout')) cierresDeSesion.push(peticion.url())
+    const url = peticion.url()
+    if (url.includes('/auth/v1/logout') && !url.includes('scope=local')) revocacionesGlobales.push(url)
   })
 
   await page.goto(`http://${HOST_TIENDA}:${puerto}/`)
@@ -50,5 +52,5 @@ test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer 
   expect(new URL(page.url()).pathname).not.toBe('/login')
   // La tienda no tiene 404 para `/login`: con el defecto el visitante veía «No encontramos esta página».
   await expect(page.getByTestId('pagina-no-encontrada')).toHaveCount(0)
-  expect(cierresDeSesion).toEqual([])
+  expect(revocacionesGlobales).toEqual([])
 })
