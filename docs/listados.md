@@ -39,6 +39,13 @@ firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto 
 al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
 de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
+### Combos y popups de producto
+
+Los `Autocomplete` que ofrecen productos (búsqueda global, Agregar producto, Agregar repuesto, ingreso y carga en lote,
+Nuevo movimiento y los filtros de producto) muestran la miniatura con `renderOpcionProducto(imagenes)` de
+`components/base/OpcionProducto.tsx`, con las URL de `useImagenesProductos`. Si el catálogo ofrecido es largo (hasta 500
+opciones), las imágenes se piden solo mientras el desplegable está abierto.
+
 ## Excepciones
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que

@@ -9,6 +9,8 @@ import {
   type DepositoRepuesto,
   type ProductoRepuesto,
 } from '../../lib/reparacionItems'
+import { renderOpcionProducto } from '../base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { revisionEmpresaActiva, suscribirEmpresaActiva } from '../../lib/empresaActivaRevision'
 import type { Reparacion } from '../../lib/reparaciones'
 import { AgregarItemDialog, type CampoConceptoProps } from './AgregarItemDialog'
@@ -37,6 +39,7 @@ function BuscadorProducto({ formulario, cambiar, errores, deshabilitado }: Campo
   const [texto, setTexto] = useState('')
   const [opciones, setOpciones] = useState<ProductoRepuesto[]>([])
   const [errorBusqueda, setErrorBusqueda] = useState(false)
+  const imagenes = useImagenesProductos(opciones.map((opcion) => opcion.id))
 
   useEffect(() => {
     const consulta = texto.trim()
@@ -77,6 +80,7 @@ function BuscadorProducto({ formulario, cambiar, errores, deshabilitado }: Campo
       options={opciones}
       filterOptions={(todas) => todas}
       getOptionLabel={(opcion) => (typeof opcion === 'string' ? opcion : etiquetaProducto(opcion))}
+      renderOption={(props, opcion) => renderOpcionProducto<ProductoRepuesto>(imagenes)(props, opcion as ProductoRepuesto)}
       isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
       value={formulario.producto}
       inputValue={texto}
