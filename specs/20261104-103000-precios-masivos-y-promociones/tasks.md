@@ -1,0 +1,73 @@
+# Tasks: Precios y dólar · Precios masivos y promociones
+
+**Spec**: [spec.md](./spec.md) · **Plan**: [plan.md](./plan.md) · **Épica**: MSF-363
+Formato: `- [ ] T### [P] [STORY][US#] descripción`. **[P]** = paralelizable (archivos distintos y sin dependencia con otra tarea del mismo grupo). Las dependencias y el orden son **solo dentro de la misma historia**. Cada FR/SC tiene **una sola** tarea dueña. Cada historia trae su propia migración aditiva con su timestamp (no se encadenan entre sí).
+Validación por fase: `pnpm lint`, `pnpm build`, `pnpm test` (con `pnpm dev:supabase`), `pnpm docs:check`.
+
+## Fase 1 · F-PRE-10 · Actualización masiva de costos y precios (MSF-436) — US1
+
+- [ ] T001 [P] [F-PRE-10][US1] Migración `supabase/migrations/<ts>_actualizaciones_precio.sql`: tabla `dominio.actualizaciones_precio` (autor, fecha, modo, parámetros jsonb, cantidad, `clave` única por organización) con RLS por organización, select `productos`≥`lectura`, sin escritura directa, `anon` sin privilegios; evento `precios.actualizacion_masiva` sin importes de costo; reversión documentada. **FR-007**.
+- [ ] T002 [P] [F-PRE-10][US1] Migración `<ts>_precios_masivos_previsualizar.sql`: `public.previsualizar_actualizacion_precios(...)` solo lectura (modo porcentaje con alcance todos/categoría, modo planilla por SKU), redondeo a 2 decimales, validaciones por fila, omite costo sin `rentabilidad`; `revoke … from public, anon` + `grant execute … to authenticated`. **FR-002, FR-004, FR-006**.
+- [ ] T003 [F-PRE-10][US1] Migración `<ts>_precios_masivos_aplicar.sql`: `public.aplicar_actualizacion_precios(...)` atómica (todo o nada), idempotente por clave, conflicto por `updated_at`, exige `productos`=`edicion` y `rentabilidad`=`edicion` para costo, escribe solo `precio_lista` y `costo`, registra el lote (T001). Depende de T001 y T002. **FR-005, FR-008, FR-009**.
+- [ ] T004 [F-PRE-10][US1] pgTAP `supabase/tests/database/precios_masivos.test.sql`: atomicidad con falla provocada, idempotencia, conflicto, aislamiento entre dos organizaciones, permisos por rol, evento sin costos, redondeo, `anon` sin ejecución. Depende de T003. **SC-001**.
+- [ ] T005 [P] [F-PRE-10][US1] `apps/web/src/lib/preciosMasivos.ts`: plantilla CSV descargable y parseo/validación de la planilla sobre `migracionCsv` (SKU, `costo`, `precio_lista`; errores por fila numerados). **FR-003**.
+- [ ] T006 [F-PRE-10][US1] Capa de datos en `apps/web/src/lib/preciosMasivos.ts`/hooks: tipos y llamadas a las RPC de vista previa y aplicar, clave de idempotencia por intento, manejo de conflicto. Depende de T003. (Soporte de FR-005 desde el cliente; sin FR propio).
+- [ ] T007 [F-PRE-10][US1] Pantalla `apps/web/src/pages/productos/precios-masivos.tsx` (ruta `/productos/precios-masivos`) y botón «Actualizar precios» en `pages/productos/list.tsx`: modos porcentaje/planilla, alcance, vista previa antes → después, errores por fila, confirmación, estados compartidos, teclado y 320/768/1440 px, «Acceso restringido» sin permiso, costo oculto sin `rentabilidad`. Depende de T005 y T006. **FR-001, FR-010**.
+- [ ] T008 [F-PRE-10][US1] Vitest de la pantalla y la planilla (modos, validación, vista previa, costo oculto, estados de carga/error, teclado). Depende de T007. **SC-002**.
+- [ ] T009 [F-PRE-10][US1] E2E de la vista previa y la confirmación (ver `docs/e2e-app.md`). Depende de T007. **SC-003**.
+- [ ] T010 [F-PRE-10][US1] Documento `docs/precios-masivos.md` (modelo, RPC, permisos, decisiones 2–5, reversión) enlazado desde la spec. Depende de T003 y T007. (Documentación obligatoria del cambio; sin FR propio).
+
+**Checkpoint F-PRE-10**: migraciones aplicadas con `supabase db reset`, pgTAP y Vitest verdes, E2E de vista previa verde.
+
+Dentro de F-PRE-10: T001 [P] y T002 [P] y T005 [P] arrancan juntas; T003 ← T001+T002; T004 ← T003; T006 ← T003; T007 ← T005+T006; T008 y T009 ← T007; T010 ← T003+T007.
+
+## Fase 2 · F-PRE-11 · Precios promocionales por empresa (MSF-439) — US2
+
+- [ ] T011 [F-PRE-11][US2] Migración `<ts>_promociones_precio.sql`: tabla `dominio.promociones_precio` con FK compuestas, `precio_promocional > 0`, `hasta > desde`, `anulada_at`, índice `(empresa_id, producto_id, desde, hasta)`, RLS por organización, restricción/disparador contra solapes de promociones no anuladas, sin delete, `anon` sin privilegios; reversión documentada. **FR-011, FR-012**.
+- [ ] T012 [P] [F-PRE-11][US2] Migración `<ts>_promociones_precio_rpc.sql`: `public.guardar_promocion_precio` y `public.anular_promocion_precio` (permisos, validación de empresa/producto, bloqueo optimista, idempotencia, eventos `promocion_precio.*`, no editar vencidas). Depende de T011. **FR-013**.
+- [ ] T013 [P] [F-PRE-11][US2] Migración `<ts>_promociones_precio_vigente.sql`: `private.promocion_vigente`, `private.precio_vigente_empresa(producto, empresa, ahora)` (neto con promoción → alícuota → interruptor, devuelve también el anterior) y vista `public.promociones_precio_estado` (`security_invoker`, estado derivado). Depende de T011. **FR-014, FR-015**.
+- [ ] T014 [F-PRE-11][US2] Migración `<ts>_tienda_precio_anterior.sql`: `publico.catalogo_pagina_por_dominio` y la ficha pública suman `precio_anterior` y `precio` con promoción (aditivo, misma lista blanca; sin promoción idéntico a hoy); inventariar los usos de `private.precio_final_publico` y dejar constancia de los que no se tocan (Decisión 7). Depende de T013. **FR-017**.
+- [ ] T015 [F-PRE-11][US2] pgTAP `supabase/tests/database/promociones_precio.test.sql`: aislamiento entre organizaciones y empresas, permisos, no solapamiento, vencimiento en los bordes de `desde`/`hasta`, anulación, IVA con y sin interruptor, `precio_anterior`, `anon` sin ejecución ni escritura. Depende de T012, T013 y T014. **SC-004**.
+- [ ] T016 [P] [F-PRE-11][US2] Capa de datos `apps/web/src/lib/promociones.ts`/hooks: tipos, lectura de `promociones_precio_estado`, guardar y anular, invalidación completa al cambiar de empresa. Depende de T012 y T013. (Soporte de FR-016; sin FR propio).
+- [ ] T017 [F-PRE-11][US2] Pantalla `apps/web/src/pages/productos/promociones.tsx` (ruta `/productos/promociones`, ícono y entrada de navegación dentro de Productos): lista con estados derivados, diálogo Nueva/Editar, Anular, empresa activa (concreta / «Todas mis empresas» con alta deshabilitada), estados compartidos, teclado y 320/768/1440 px. Depende de T016. **FR-016**.
+- [ ] T018 [P] [F-PRE-11][US2] Tienda pública (`apps/web/src/pages/tienda-publica`): precio vigente y precio anterior tachado solo si `precio_anterior` > `precio`, accesible (texto para lector, no solo tachado visual). Depende de T014. **FR-018**.
+- [ ] T019 [F-PRE-11][US2] Vitest: pantalla de promociones (lista, diálogo, validaciones, cambio de empresa sin arrastre, «Todas mis empresas») y componente de precio tachado. Depende de T017 y T018. **SC-005**.
+- [ ] T020 [F-PRE-11][US2] E2E de la tienda con precio tachado durante la promoción y precio normal fuera de ella. Depende de T017 y T018. **SC-006**.
+- [ ] T021 [F-PRE-11][US2] Documento `docs/promociones-precio.md` (modelo, vencimiento por consulta, RPC, contrato público, decisiones 1, 6 y 7, reversión) enlazado desde la spec. Depende de T014 y T017. (Documentación obligatoria del cambio; sin FR propio).
+
+**Checkpoint F-PRE-11**: migraciones aplicadas con `supabase db reset`, pgTAP y Vitest verdes, E2E de la tienda verde.
+
+Dentro de F-PRE-11: T011 → (T012 [P], T013 [P]) → T014 ← T013; T015 ← T012+T013+T014; T016 [P] ← T012+T013; T018 [P] ← T014; T017 ← T016; T019 y T020 ← T017+T018; T021 ← T014+T017.
+
+## Fase 3 · Cierre
+
+- [ ] T022 [P] [CIERRE] Integrar la documentación: sección «Masivos y promociones» en `docs/precios.md` enlazando `docs/precios-masivos.md` y `docs/promociones-precio.md`; `pnpm docs:check` verde. **FR-019**.
+- [ ] T023 [P] [CIERRE] Revisión de seguridad: RLS en `actualizaciones_precio` y `promociones_precio`, `anon` sin ejecución sobre las RPC nuevas, pgTAP de aislamiento sobre `public` + `dominio`, actividad sin importes de costo. **FR-020**.
+- [ ] T024 [CIERRE] Actualizar la fila de la épica en `docs/roadmap-template.md` (estado, link a la spec) al mergear el PR y correr la validación completa (`lint`, `build`, `test`, `docs:check`, `prototipo:check`, `matriz:check`). Depende de T022 y T023. **FR-021, SC-007**.
+
+## Matriz de trazabilidad Jira ↔ US ↔ tareas
+
+| Jira | Historia | FR / SC (dueño único) | Tareas |
+|---|---|---|---|
+| MSF-436 · F-PRE-10 | US1 | FR-001, 010 → T007 · FR-002, 004, 006 → T002 · FR-003 → T005 · FR-005, 008, 009 → T003 · FR-007 → T001 · SC-001 → T004 · SC-002 → T008 · SC-003 → T009 | T001–T010 |
+| MSF-439 · F-PRE-11 | US2 | FR-011, 012 → T011 · FR-013 → T012 · FR-014, 015 → T013 · FR-017 → T014 · FR-016 → T017 · FR-018 → T018 · SC-004 → T015 · SC-005 → T019 · SC-006 → T020 | T011–T021 |
+| Tarea de cierre (label `cierre`) | — | FR-019 → T022 · FR-020 → T023 · FR-021, SC-007 → T024 | T022–T024 |
+
+## Plan de ejecución (historias)
+
+El **orden de toma** lo declara esta tabla: el orquestador la **consume**. F-PRE-10 y F-PRE-11 son **independientes**: no comparten tabla nueva, migración, pantalla ni archivo (F-PRE-10 toca `pages/productos/list.tsx` y `precios-masivos.tsx`, y escribe en `productos`/`producto_costos`; F-PRE-11 crea `promociones_precio`, `promociones.tsx`, el módulo de la tienda y la navegación); solo comparten el contrato de MSF-114, que ya está entregado. Por eso van en el **mismo grupo** (paralelo).
+
+| Historia | Depende de | Grupo |
+|----------|------------|-------|
+| F-PRE-10 | — | 1 |
+| F-PRE-11 | — | 1 |
+| [Cierre] | F-PRE-10, F-PRE-11 | 2 |
+
+```mermaid
+flowchart LR
+  PRE10["F-PRE-10 · Actualización masiva de costos y precios"]
+  PRE11["F-PRE-11 · Precios promocionales por empresa"]
+  Cierre["Cierre · docs, seguridad, roadmap"]
+  PRE10 --> Cierre
+  PRE11 --> Cierre
+```
