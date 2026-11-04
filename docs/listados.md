@@ -43,3 +43,5 @@ de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
 depende de la página visible). Se justifica en la spec y su plan y se anota acá.
+
+Sin excepciones en Clientes y Contactos: todos sus listados (clientes, inactivos, ranking, compras y reparaciones de la ficha, correo masivo y contactos) usan carga infinita.
