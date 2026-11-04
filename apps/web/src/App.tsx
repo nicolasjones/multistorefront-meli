@@ -47,6 +47,7 @@ import { ConfiguracionVentas } from './pages/ventas/configuracion'
 import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
 import { DespachoList } from './pages/ventas/despacho'
 import { FaltantesList } from './pages/ventas/faltantes'
+import { VentaMostrador } from './pages/ventas/mostrador'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -82,6 +83,8 @@ import './App.css'
 const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
 const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
 const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
+const RentabilidadCostosAdicionales = lazy(() => import('./pages/rentabilidad/CostosAdicionales').then((modulo) => ({ default: modulo.RentabilidadCostosAdicionales })))
+const RentabilidadVentasReales = lazy(() => import('./pages/rentabilidad/VentasReales').then((modulo) => ({ default: modulo.RentabilidadVentasReales })))
 const RentabilidadHistoria = lazy(() => import('./pages/rentabilidad/Historia').then((modulo) => ({ default: modulo.RentabilidadHistoria })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
@@ -127,6 +130,9 @@ const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
 const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
+// F-REP-01 (MSF-297): reportes de inventario (menú «Reportes»).
+const ReporteProductosStock = lazy(() => import('./pages/reportes/ProductosYStock').then((modulo) => ({ default: modulo.ProductosYStock })))
+const ReporteReposicion = lazy(() => import('./pages/reportes/Reposicion').then((modulo) => ({ default: modulo.Reposicion })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Inicio (F-INI-01): reemplaza la portada de servicios del template.
@@ -182,11 +188,14 @@ function App() {
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              { name: 'reportes-inventario', list: '/reportes/inventario', meta: { label: 'Productos y stock' } },
+              { name: 'reportes-reposicion', list: '/reportes/reposicion', meta: { label: 'Reposición' } },
               // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
+              { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
@@ -360,6 +369,8 @@ function App() {
                 <Route path="/rentabilidad/productos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadPorProducto /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/comparativo" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadComparativo /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/historia" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadHistoria /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/ventas-reales" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadVentasReales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/costos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosAdicionales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
@@ -675,6 +686,26 @@ function App() {
                   }
                 />
                 <Route
+                  path="/reportes/inventario"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteProductosStock /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/reposicion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteReposicion /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/ventas/configuracion"
                   element={
                     <RequiereOrganizacionActiva>
@@ -697,6 +728,15 @@ function App() {
                       <RequiereAccesoSeccion seccion="ventas">
                         <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
                       </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (FR-005: ventas en edición). */}
+                <Route
+                  path="/ventas/mostrador"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas" nivelMinimo="edicion"><VentaMostrador /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
