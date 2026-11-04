@@ -43,3 +43,8 @@ de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
 depende de la página visible). Se justifica en la spec y su plan y se anota acá.
+
+Sin excepciones registradas por el grupo «proveedores, consultas, historial y service técnico»: las cinco pantallas
+migraron. No se agregó imagen a `pages/empresas/tienda/pestanas/catalogo.tsx` (catálogo visible de la tienda): no tiene
+paginación y renderiza el catálogo completo, así que pedir las imágenes de todas las filas de una vez haría un `in()` enorme;
+queda pendiente hasta migrarlo a carga infinita.

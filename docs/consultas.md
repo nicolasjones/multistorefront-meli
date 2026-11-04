@@ -207,3 +207,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, y aborta si `SUPABASE_URL` no es un host local (crea usuarios con
   contraseña conocida). La limpieza borra la organización y el `on delete cascade` arrastra empresas, tiendas,
   consultas, avisos y configuración.
+
+## Bandeja con carga infinita e imagen del producto
+
+La bandeja de consultas carga por tandas de 25 desde `consultas_bandeja` al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. Buscar, cambiar estado, fechas, tienda o guardar una consulta reinicia desde la primera tanda; el contador total se mantiene. La columna «Producto» muestra la imagen principal como miniatura con zoom cuando la consulta tiene `producto_id`, y lo mismo el diálogo «Interés por WhatsApp». Ver [`listados.md`](./listados.md).
