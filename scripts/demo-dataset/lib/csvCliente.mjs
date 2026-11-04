@@ -27,7 +27,8 @@ const RE_NUMERO = /^\s*-?\d+(?:[.,]\d+)?\s*$/
 const esVacio = (v) => (v ?? '').trim() === ''
 const esNumero = (v) => RE_NUMERO.test(v ?? '')
 const esNumeroOCorto = (v) => esVacio(v) || esNumero(v)
-const limpiar = (v) => (v ?? '').replace(/^[\s"]+/, '').replace(/[\s"]+$/, '')
+// El export del panel viene con las comillas dobladas («""nombre""») y a veces sin cerrar: se limpian.
+const limpiar = (v) => (v ?? '').replace(/^[\s"]+/, '').replace(/[\s"]+$/, '').replace(/""/g, '"')
 
 export function numero(bruto) {
   if (bruto === undefined || bruto === null) return null
@@ -112,14 +113,14 @@ export function leerPreciosCliente(ruta) {
     // proveedor). El precio y el costo pueden venir vacíos; el resto tiene que ser número.
     let i = 1
     while (i + 10 < campos.length && !(esNumeroOCorto(campos[i]) && esNumeroOCorto(campos[i + 1]) && esNumero(campos[i + 2]) && esNumero(campos[i + 3]) && esNumero(campos[i + 4]) && esNumero(campos[i + 5]) && esNumero(campos[i + 6]) && esNumero(campos[i + 7]) && esNumero(campos[i + 8]) && esNumero(campos[i + 9]) && esNumero(campos[i + 10]))) i++
-    const nombre = campos.slice(1, Math.max(1, i)).join(sep).trim()
+    const nombre = limpiar(campos.slice(1, Math.max(1, i)).join(sep))
     const num = (k) => numero(campos[i + k])
 
     // La descripción: entre la cabeza y la cola.
     const medio = campos.slice(i + 11, Math.max(i + 11, campos.length - 9))
     let ini = 0
     while (ini < medio.length && (esVacio(medio[ini]) || esNumero(medio[ini]))) ini++
-    const descripcion = medio.slice(ini).join(sep).replace(/\s*\n\s*/g, ' ').trim()
+    const descripcion = medio.slice(ini).join(sep).replace(/\s*\n\s*/g, ' ').replace(/""/g, '"').trim()
 
     const p = {
       codigo,
