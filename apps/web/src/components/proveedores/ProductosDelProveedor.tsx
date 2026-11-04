@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
-import { Box, Button, LinearProgress, TablePagination, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Box, Button, LinearProgress, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type ProductoDeProveedor, useProductosDeProveedor } from '../../hooks/useProductosDeProveedor'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
 
@@ -18,15 +22,19 @@ const columnaCosto: ColumnaAdaptable<ProductoDeProveedor> = {
   render: (p) => (p.costo === null ? '—' : `${p.moneda} ${formatoCosto.format(p.costo)}`),
 }
 
-const columnas: ColumnaAdaptable<ProductoDeProveedor>[] = [
+// La imagen principal llega aparte (`useImagenesProductos`) y se pasa por id.
+const armarColumnas = (imagenes: ReadonlyMap<string, string>): ColumnaAdaptable<ProductoDeProveedor>[] => [
   {
     clave: 'nombre',
     encabezado: 'Producto',
     render: (p) => (
-      <>
-        {p.nombre}
-        {p.activo ? null : <> <EtiquetaEstado texto="Inactivo" variante="aviso" /></>}
-      </>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <MiniaturaProducto alt="" src={imagenes.get(p.id)} />
+        <span>
+          {p.nombre}
+          {p.activo ? null : <> <EtiquetaEstado texto="Inactivo" variante="aviso" /></>}
+        </span>
+      </Stack>
     ),
   },
   { clave: 'codigo', encabezado: 'Código del proveedor', render: (p) => p.codigo_proveedor ?? '—' },
@@ -48,37 +56,38 @@ export function ProductosDelProveedor({ proveedorId }: { proveedorId: string }) 
   const [pagina, setPagina] = useState(1)
   const { nivel: nivelRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion'
-  const columnasVisibles = veCosto ? [...columnas.slice(0, 2), columnaCosto, ...columnas.slice(2)] : columnas
   const { productos, total, cargando, hayError, recargar } = useProductosDeProveedor(proveedorId, pagina, TAMANO_PAGINA)
-
-  // Si la página pedida quedó más allá del final, vuelve a la primera.
-  useEffect(() => {
-    if (!cargando && !hayError && pagina > 1 && productos.length === 0 && total === 0) setPagina(1)
-  }, [cargando, hayError, pagina, productos.length, total])
+  // Carga infinita: se suman las tandas de 10 que ya entrega `productos_de_proveedor`.
+  const listado = useListadoAcumulado({ items: productos, pagina, setPagina, total, cargando, reinicio: proveedorId })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = hayError && pagina > 1
+  const imagenes = useImagenesProductos(listado.filas.map((p) => p.id))
+  const columnas = armarColumnas(imagenes)
+  const columnasVisibles = veCosto ? [...columnas.slice(0, 2), columnaCosto, ...columnas.slice(2)] : columnas
 
   return (
     <Box component="section" aria-labelledby="titulo-productos-proveedor" aria-busy={cargando}>
       <Typography id="titulo-productos-proveedor" component="h2" variant="h6" sx={{ mb: 1 }}>Productos</Typography>
-      {cargando && productos.length === 0 ? (
+      {cargando && listado.filas.length === 0 ? (
         <EstadoCargaPagina />
-      ) : hayError ? (
+      ) : hayError && !falloTanda ? (
         <EstadoError descripcion="No pudimos cargar los productos del proveedor." reintentar={() => void recargar()} />
-      ) : productos.length === 0 ? (
+      ) : listado.filas.length === 0 ? (
         <EstadoVacio titulo="Este proveedor todavía no tiene productos." />
       ) : (
         <>
-          {cargando ? <LinearProgress aria-label="Actualizando productos" /> : null}
+          {cargando && pagina === 1 ? <LinearProgress aria-label="Actualizando productos" /> : null}
           <ContenidoAdaptable
-            items={productos}
+            items={listado.filas}
             columnas={columnasVisibles}
             obtenerClave={(p) => p.id}
             etiquetaTabla="Productos del proveedor"
           />
-          <TablePagination
-            component="div" count={total} page={pagina - 1} rowsPerPage={TAMANO_PAGINA} rowsPerPageOptions={[TAMANO_PAGINA]}
-            onPageChange={(_, nueva) => setPagina(nueva + 1)}
-            labelRowsPerPage="Productos por página"
-            labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+          <CargaInfinita
+            hayMas={listado.hayMas}
+            cargando={listado.cargandoMas}
+            hayError={falloTanda}
+            onCargarMas={falloTanda ? () => void recargar() : listado.cargarMas}
           />
         </>
       )}

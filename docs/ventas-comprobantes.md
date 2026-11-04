@@ -305,3 +305,7 @@ cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de lín
 ## Costo y cotización por línea (F-REN-09)
 
 `confirmar_comprobante` guarda en cada línea `costo_unitario` (costo en pesos por unidad) y `cotizacion` (dólar vigente) al confirmar, una sola vez: reconfirmar o cambiar el costo después no los mueve. Las notas de crédito copian el costo de la línea original. Detalle y vista `analitica.rentabilidad_ventas_real` en `docs/rentabilidad.md`.
+
+## Carga infinita e imagen en las líneas
+
+La lista de Presupuestos pasa a carga infinita (ver `ventas-listado-comprobantes.md`). En el detalle del comprobante, la tabla de **Líneas** muestra la imagen principal del producto (`producto_id`) como miniatura 40×40 con zoom al pasar el mouse (`MiniaturaProducto` + `useImagenesProductos`) junto al nombre; las líneas `sin_stock` (de Service) no tienen producto y no llevan miniatura.
