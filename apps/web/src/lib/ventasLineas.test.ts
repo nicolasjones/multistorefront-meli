@@ -75,6 +75,12 @@ describe('ventasLineas · disponible y faltante (FR-017, FR-018)', () => {
     expect(rotuloEscalaLinea(linea())).toBe('escala x10')
     expect(rotuloEscalaLinea(linea({ precio_manual: true }))).toBe('precio manual')
   })
+
+  it('muestra el descuento del cliente aplicado a la escala (F-VTA-32)', () => {
+    expect(rotuloEscalaLinea(linea({ descuento_pct: 5 }))).toBe('escala x10 · 5 % de descuento')
+    expect(rotuloEscalaLinea(linea({ descuento_pct: 0 }))).toBe('escala x10')
+    expect(rotuloEscalaLinea(linea({ descuento_pct: 5, precio_manual: true }))).toBe('precio manual')
+  })
 })
 
 describe('ventasLineas · entradas y edición', () => {

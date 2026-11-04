@@ -193,10 +193,10 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   formulario y la ficha, con la tabla `public.clientes_empresas` y la RPC
   `public.guardar_empresas_de_cliente` (ver «Relación con empresas / tiendas»). Sin épica asignada;
   queda como fidelidad de MSF-180.
-- **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
-  NO se implementa acá.
+- **MSF-155 (correo masivo)**: destinatarios, redacción y envío con baja, historial (F-CLI-11/12/13).
+  Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
 - **MSF-445 (mejoras)**: entregada completa: etiqueta impresa F-CLI-17 (MSF-446) y fusión F-CLI-18 (MSF-447), ver sus secciones; costos y contactos de proveedor están en `docs/proveedores.md` y `docs/ingreso-de-mercaderia.md`. Contratos: `specs/20261029-100000-mejoras-de-clientes-y-proveedores/contracts/`.
-- **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
+- **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
@@ -230,6 +230,49 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   la tabla `dominio.comprobantes_venta` y el índice `public.clientes_id_organizacion_uq`.
 - **Pruebas:** pgTAP `ranking_clientes.test.sql` y `comprobantes_venta_contrato.test.sql`; Vitest
   `lib/periodosRanking.test.ts`, `components/clientes/RankingClientes.test.tsx` y `pages/clientes/list.ranking.test.tsx`.
+
+## Comparar el ranking entre dos períodos (F-CLI-14, MSF-384)
+
+- **Qué hace:** en la solapa «Ranking por facturación», el interruptor **Comparar con otro período** agrega los campos
+  Desde/Hasta de comparación (precargados con el período anterior de igual duración) y la tabla pasa a mostrar, por
+  cliente, lo facturado en cada período y la variación en pesos y en porcentaje («—» si la base de comparación es 0).
+  Apagado, el ranking es exactamente el de MSF-126. Sin Excel para esta vista (fuera de alcance).
+- **Función:** `public.ranking_clientes_comparado(p_desde, p_hasta, p_desde_comparacion, p_hasta_comparacion, p_tipo,
+  p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)`: `security definer`, sección `clientes` en
+  `lectura`/`edicion` (si no, `42501`), `anon` sin ejecución. Reutiliza el predicado, el signo de notas de crédito y el
+  filtro de tienda del ranking básico, que **no cambia**. Orden: facturado desc, facturado de la comparación desc,
+  nombre, número. Un cliente con facturación en un solo período aparece con 0 en el otro.
+- **Esquema (Principio VII):** sin tablas ni columnas nuevas; la función vive en `public` y lee `dominio`/`public`.
+- **Empresa activa:** al cambiarla, la comparación se remonta (consulta la nueva tienda, página 1, sin filas de la anterior).
+- **Reversión (aditiva):** `drop function public.ranking_clientes_comparado(date, date, date, date, text, boolean, boolean, integer, integer, uuid)`.
+- **Pruebas:** pgTAP `ranking_clientes_comparado.test.sql`; Vitest `lib/periodosRanking.test.ts`,
+  `hooks/useRankingComparado.test.tsx` y `components/clientes/RankingClientes.test.tsx`. Spec:
+  `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
+## Ranking por producto, categoría y provincia (F-CLI-15, MSF-391)
+
+- **Qué hace:** la solapa «Ranking por facturación» suma tres filtros opcionales y combinables entre sí y con Tipo,
+  Consumidor final, Ver con IVA y la tienda: **Producto** (búsqueda por nombre o SKU sobre el catálogo), **Categoría**
+  (con su ruta; una raíz incluye sus subcategorías) y **Provincia** (las presentes en los clientes de la organización).
+  Sin ninguno activo la pantalla sigue llamando a `ranking_clientes`, sin cambios. Las opciones se piden recién cuando
+  la persona entra a los filtros (carga diferida).
+- **Función:** `public.ranking_clientes_por_dimension(p_desde, p_hasta, p_producto_id, p_categoria_id, p_provincia,
+  p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)`, mismas columnas, orden, desempate,
+  paginación, seguridad y validaciones que `ranking_clientes` (más `p_provincia` ≤ 100 caracteres). Con producto o
+  categoría `facturado` suma las **líneas** (`dominio.comprobantes_venta_lineas`) que cumplen el filtro, con el signo de
+  las notas de crédito (sus líneas de devolución restan); `comprobantes` cuenta facturas distintas. Producto y categoría
+  se intersecan. Sin ellos el importe es el del comprobante. La provincia se compara sin mayúsculas ni tildes con
+  `private.clave_texto` (sin extensiones nuevas); un cliente sin provincia no coincide con ningún filtro. Un producto o
+  categoría ajeno o inexistente devuelve vacío. Sin tablas nuevas (Principio VII).
+- **Empresa activa:** al cambiarla se descartan Producto, Categoría y Provincia, se vuelve a la página 1 y se consulta la
+  nueva tienda.
+- **Límites declarados:** sin combinar con «Comparar con otro período» (al activarla los filtros no se ofrecen) y sin
+  «Exportar a Excel» mientras haya un filtro de dimensión activo (la exportación es del ranking completo).
+- **Reversión (aditiva):** `drop function public.ranking_clientes_por_dimension(date, date, uuid, uuid, text, text, boolean, boolean, integer, integer, uuid)`.
+  La migración usa la versión `20270121100000` (el contrato nombraba `20270114110000`, por debajo de la cola aplicada).
+- **Pruebas:** pgTAP `ranking_clientes_por_dimension.test.sql`; Vitest `hooks/useRankingPorDimension.test.tsx`,
+  `hooks/useOpcionesDimension.test.tsx`, `components/clientes/FiltrosDimension.test.tsx` y
+  `components/clientes/RankingClientes.test.tsx`. Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
 
 ## Exportar el ranking a Excel (F-CLI-09, MSF-255)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
@@ -335,6 +378,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - La política SELECT de `public.cuentas_cliente` filtra además por `private.empresas_accesibles()` (migración `20261211100300`); reversión: recrearla sin ese filtro.
 - «Habilitar/Deshabilitar en <tienda>» relee `clientes_empresas` antes de llamar a `guardar_empresas_de_cliente`, para no pisar cambios de otro operador.
 - Editar un cliente con estados mixtos (una tienda activa, otra suspendida): si el operador no cambia el campo «Cuenta web», no se reactiva ni suspende ninguna cuenta existente (solo se crean las de tiendas nuevas); únicamente cambiar el campo transiciona (`aplicarCuentaWebEnTiendas(..., estadoPrevio)`).
+- Si falla la lectura de las cuentas web existentes al guardar (MSF-694), `aplicarCuentaWebEnTiendas` no lanza: devuelve `errores = N tiendas`. El alta ya creó el cliente, así que sigue a la ficha con «Cliente creado · no se pudo crear la cuenta web en N tiendas» y no vuelve al formulario (reintentar duplicaría el cliente).
 - `exportar_clientes` con «Con cuenta web» filtra por `private.empresas_accesibles()`, como `buscar_clientes` por RLS. La columna «Cuenta web» del listado (`cuentas_web`) solo incluye tiendas donde el cliente sigue habilitado, igual que la ficha (FR-002).
 - `invitar-cliente` crea el usuario de Auth con `createUser` y envía el enlace recién después de `vincular_cuenta_cliente` (ya no `inviteUserByEmail`): si vincular falla no queda un correo de invitación muerto.
 
@@ -374,7 +418,7 @@ Solo frontend, **sin migración ni escritura** (el grant `select` de `public.cli
 
 ## Fusionar clientes duplicados (F-CLI-18, MSF-447 · épica MSF-445)
 
-Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y la ficha oculta la acción al resto. Sin tablas nuevas (Principio VII: las RPC viven en `public`; `dominio.comprobantes_venta` solo cambia el `cliente_id` de sus filas). Migraciones aditivas `20270115100000`…`20270115100300`.
+Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y la ficha oculta la acción al resto. Sin tablas nuevas (Principio VII: las RPC viven en `public`; `dominio.comprobantes_venta` solo cambia el `cliente_id` de sus filas). Migraciones aditivas `20270204100000`…`20270204100300`.
 
 - **`public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`** (`security definer`, `search_path = ''`, `revoke … from public, anon`, `grant … to authenticated`): bloquea ambas filas ordenadas por id y, en **una sola transacción**, reasigna los documentos de venta y la cuenta web al conservado, archiva al descartado (`archivado_en`; no se borra ni se tocan sus datos) y registra `cliente.fusionado` (Nº y nombre de ambos, sin DNI/CUIT). Devuelve `{ documentos_reasignados, cuentas_reasignadas, campanas_reasignadas, cuentas_dadas_de_baja }`.
 - **Rechazos** (mensaje claro y sin cambios): no Administrador (42501), mismo cliente, falta un cliente, cuenta web de un tercero (22023), inexistente u otra organización (P0002), alguno archivado — también cubre repetir la fusión (22023).
@@ -385,3 +429,43 @@ Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y
 - **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
 - **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
 - Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.
+
+## Reparaciones del cliente (F-SVC-15, MSF-429)
+
+La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
+
+## Clientes inactivos (F-CLI-16, MSF-400 · épica MSF-171)
+
+Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270116120000_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
+
+- **Inactivo**: tiene al menos una factura que cuenta (`private.comprobante_cuenta_como_facturado`) y su última factura es anterior a *hoy − N días* (hoy en `America/Argentina/Buenos_Aires`, N de 1 a 3650, por defecto 90). La nota de crédito no cuenta como compra. Sin compras y archivados no aparecen (la spec manda sobre el CA-CLI-16-2 del issue, que pedía listar «Sin compras»: un cliente que nunca compró no «dejó» de comprar).
+- **Columnas**: Cliente (enlace a la ficha), Tipo, Última compra, Días sin comprar, Comprobantes (solo facturas), Facturado histórico (neto sin IVA). Orden: última compra ascendente, nombre, número. Paginado en el servidor (25).
+- **Empresa activa**: la tienda de la barra superior se pasa como `p_empresa_id`; al cambiarla vuelve a la página 1 y recarga.
+- **Fuera de alcance**: Excel de la lista y enviarla a una campaña (MSF-155).
+- **Pruebas**: pgTAP `supabase/tests/database/clientes_inactivos.test.sql`; Vitest `useClientesInactivos.test.ts`, `ClientesInactivos.test.tsx`, `list.ranking.test.tsx`.
+
+## Cierre de la épica MSF-171 · Ranking avanzado de clientes (MSF-581)
+
+Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
+| Capacidad | Historia | RPC (`public`, `security definer`, sección `clientes` en `lectura`/`edicion`, `anon` sin ejecución) | Migración |
+|-----------|----------|------|-----------|
+| Comparar dos períodos | F-CLI-14 (MSF-384) | `ranking_clientes_comparado` | `20270120100000_ranking_clientes_comparado.sql` |
+| Producto, categoría y provincia | F-CLI-15 (MSF-391) | `ranking_clientes_por_dimension` | `20270121100000_ranking_clientes_por_dimension.sql` |
+| Clientes inactivos | F-CLI-16 (MSF-400) | `clientes_inactivos` | `20270116120000_clientes_inactivos.sql` |
+
+- **Límites declarados:** sin Excel para la comparación, las dimensiones ni los inactivos; la comparación y los filtros de
+  dimensión no se combinan; la lista de inactivos no se envía a una campaña (eso es MSF-155). `public.ranking_clientes` no cambió.
+- **Esquema (Principio VII):** ninguna de las tres crea tablas; son funciones en `public` que leen `dominio`/`public`.
+- **Reversión de la épica:** `drop function` de las tres firmas indicadas en sus secciones (aditivas, sin datos propios).
+- **Reglas del proyecto:** no cambia ninguna regla, por eso `AGENTS.md` y `CLAUDE.md` quedan igual.
+
+## Descuento por cliente (F-VTA-32, MSF-340 · épica MSF-193)
+
+`public.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
+**Administrador** (o superadmin) desde «Editar cliente» → «Descuento (%)»: el `grant update (descuento)` lo
+permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
+oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
+`cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
+`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
+(aditiva; reversión en su encabezado).

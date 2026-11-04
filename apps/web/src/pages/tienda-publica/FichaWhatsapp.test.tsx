@@ -1,7 +1,12 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
+
+// La primera ficha del archivo paga la carga en frío de la ruta (import dinámico + jsdom). Con el límite
+// por defecto de Testing Library (1 s) la espera queda al borde y el test se vuelve intermitente
+// según la carga del runner: este archivo espera con margen, igual que `comprobante.cobros.test.tsx`.
+configure({ asyncUtilTimeout: 5000 })
 
 const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn() }))
 

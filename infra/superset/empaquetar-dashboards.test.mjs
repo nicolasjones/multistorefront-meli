@@ -71,6 +71,78 @@ test('conexionesDelDirectorio lista las bases para el mapa de contraseñas', asy
   assert.deepEqual(archivos, ['databases/Rentabilidad_analitica.yaml']);
 });
 
+test('empaqueta el directorio real de ventas-reportes: sustituye el host y no deja credenciales', async () => {
+  const paquete = await empaquetarDashboards({
+    directorio: 'infra/superset/dashboards/ventas-reportes',
+    variables: { SUPERSET_ANALITICA_DB_HOST: 'base-de-la-app' },
+  });
+  const archivos = leerZip(paquete);
+  const raiz = 'dashboard_export_ventas-reportes';
+  assert.ok(
+    [...archivos.keys()].every((nombre) => nombre.startsWith(`${raiz}/`)),
+    'todo el contenido va bajo una carpeta raíz',
+  );
+  assert.ok(archivos.has(`${raiz}/metadata.yaml`));
+  assert.ok(archivos.has(`${raiz}/databases/Ventas_analitica.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/mas_vendidos.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/ranking_clientes.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Mas_vendidos_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Ranking_clientes_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Mas_vendidos_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Ranking_clientes_1.yaml`));
+  assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
+  assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /base-de-la-app/);
+  assert.doesNotMatch(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /\$\{/);
+  assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /XXXXXXXXXX/);
+});
+
+test('empaqueta el directorio real de consultas-reportes sin costo ni margen y sin credenciales (F-REP-04)', async () => {
+  const paquete = await empaquetarDashboards({
+    directorio: 'infra/superset/dashboards/consultas-reportes',
+    variables: { SUPERSET_ANALITICA_DB_HOST: 'base-de-la-app' },
+  });
+  const archivos = leerZip(paquete);
+  const raiz = 'dashboard_export_consultas-reportes';
+  assert.ok([...archivos.keys()].every((nombre) => nombre.startsWith(`${raiz}/`)));
+  assert.ok(archivos.has(`${raiz}/metadata.yaml`));
+  assert.ok(archivos.has(`${raiz}/databases/Ventas_analitica.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/mas_consultados.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Mas_consultados_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Mas_consultados_1.yaml`));
+  assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
+  assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /XXXXXXXXXX/);
+  assert.doesNotMatch(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /\$\{/);
+  const dataset = archivos.get(`${raiz}/datasets/Ventas_analitica/mas_consultados.yaml`);
+  assert.match(dataset, /table_name: consultas_producto_mas_consultado/);
+  const nombres = dataset.split('\n').filter((linea) => /^\s*-?\s*(column_name|metric_name):/.test(linea)).join('\n');
+  assert.doesNotMatch(nombres, /costo|margen/i, 'el reporte muestra solo cantidades: ni costo ni margen');
+});
+
+test('empaqueta el directorio real de ventas-periodo-canal sin costo ni margen y sin credenciales (F-REP-05)', async () => {
+  const paquete = await empaquetarDashboards({
+    directorio: 'infra/superset/dashboards/ventas-periodo-canal',
+    variables: { SUPERSET_ANALITICA_DB_HOST: 'base-de-la-app' },
+  });
+  const archivos = leerZip(paquete);
+  const raiz = 'dashboard_export_ventas-periodo-canal';
+  assert.ok([...archivos.keys()].every((nombre) => nombre.startsWith(`${raiz}/`)));
+  assert.ok(archivos.has(`${raiz}/metadata.yaml`));
+  assert.ok(archivos.has(`${raiz}/databases/Ventas_analitica.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Ventas_analitica/ventas_periodo_canal.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Ventas_periodo_canal_1.yaml`));
+  assert.ok(archivos.has(`${raiz}/charts/Ventas_canal_2.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Ventas_periodo_canal_1.yaml`));
+  assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
+  assert.match(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /XXXXXXXXXX/);
+  assert.doesNotMatch(archivos.get(`${raiz}/databases/Ventas_analitica.yaml`), /\$\{/);
+  const dataset = archivos.get(`${raiz}/datasets/Ventas_analitica/ventas_periodo_canal.yaml`);
+  assert.match(dataset, /table_name: ventas_periodo_canal/);
+  const nombres = dataset.split('\n').filter((linea) => /^\s*-?\s*(column_name|metric_name):/.test(linea)).join('\n');
+  assert.doesNotMatch(nombres, /costo|margen|mercado/i, 'el reporte muestra solo comprobantes, unidades y facturado: ni costo ni margen ni Mercado Libre');
+  const tablero = archivos.get(`${raiz}/dashboards/Ventas_periodo_canal_1.yaml`);
+  assert.match(tablero, /filter_timegrain/, 'el tablero agrupa por día, semana o mes');
+});
+
 test('rechaza una credencial real en un YAML versionado', async () => {
   const directorio = await mkdtemp(path.join(tmpdir(), 'dashboards-'));
   await mkdir(path.join(directorio, 'databases'));

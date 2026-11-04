@@ -78,6 +78,9 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
   (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
   acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo exporta. Detalle en `docs/clientes.md`.
+  Correo masivo (MSF-155, F-CLI-11/12/13): sin sección ni acción nuevas; se rigen por la sección Clientes: destinatarios, crear
+  campaña y envío de prueba exigen `edicion`; el historial y su detalle, `lectura` o `edicion` (chequeo dentro de cada función). Depósito (`ninguno`) no los ve. Detalle en
+  `docs/correo-masivo.md`.
 - **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** `dominio.proveedores` usa `nivel_seccion('proveedores')` (Administrador y
   Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se desactiva). El selector del
   producto lee `public.proveedores_basico` (solo id, razón social y estado), que filtra por organización **y nivel**:
@@ -221,6 +224,10 @@ es defensa de UX (RLS es la autoridad) y falla cerrada: solo `lectura`/`edicion`
 nivel nulo tras cargar se trata como denegado. El rol mostrado sale de `usuarios_organizacion`
 filtrado por `user_id` y por la organización activa (`useOrganizacionDeTrabajo`, por si la persona
 pertenece a varias); si falla, se muestra «actual» y nunca una pantalla en blanco.
+Si falla la carga de permisos (`permisos_actuales`: red, 5xx, schema cache) el proveedor expone
+`error` (con `permisos: null`, nunca `[]`): el guard y el menú muestran «No pudimos verificar tus
+permisos» con **Reintentar** (`recargar()`) en vez de «Acceso restringido» / «Solicitar acceso». La
+sección sigue sin montarse (falla cerrada); «sin acceso» solo aparece con un nivel `ninguno` real (MSF-697).
 
 ## Reversión
 
@@ -316,3 +323,10 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracio
 ## Fusionar clientes (F-CLI-18, MSF-447)
 
 `public.fusionar_clientes` y `public.vista_previa_fusion_clientes` exigen **Administrador** de la organización (`private.es_administrador_de`), independientemente del nivel de la sección `clientes`; `anon` no las ejecuta. La ficha oculta «Fusionar con otro cliente…» a los demás roles.
+
+## Rol mostrado en «Acceso restringido» (MSF-637)
+
+Las pantallas solo-Administrador (`/stock/motivos`, Listas configurables) muestran el nombre real del rol
+(`useNombreRolActual`, misma consulta que `RequiereAccesoSeccion`, vía `lib/rolActual.ts`). Si no se puede
+resolver, el texto genérico es «actual». Pendiente de decisión de negocio: la matriz otorga `edicion`/`lectura`
+a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las limita al Administrador.

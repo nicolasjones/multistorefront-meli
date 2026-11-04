@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), useEmpresas: vi.fn(), useEmpresasDeProveedor: vi.fn(), guardarEmpresas: vi.fn() }))
@@ -227,8 +227,52 @@ describe('ProveedorFormDialog', () => {
       expect(onGuardado).not.toHaveBeenCalled()
       fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
       await waitFor(() => expect(onGuardado).toHaveBeenCalledWith(PROVEEDOR))
-      expect(mocks.rpc).toHaveBeenCalledTimes(1)
+      // El reintento no crea otro proveedor: actualiza el mismo.
+      expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'crear_proveedor')).toHaveLength(1)
       expect(mocks.guardarEmpresas).toHaveBeenCalledTimes(2)
+    })
+
+    // MSF-698: el reintento no puede descartar lo que la persona editó después del fallo.
+    it('el aviso de «Compra para» fallida tiene su propio «Reintentar» y un título coherente', async () => {
+      mocks.guardarEmpresas.mockRejectedValueOnce({ code: '42501', message: 'x' })
+      const { onGuardado } = abrir()
+      completarAlta()
+      fireEvent.click(tienda('San Javucho'))
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      const alerta = await screen.findByRole('alert')
+      expect(within(alerta).getByText('No se guardó «Compra para».')).toBeInTheDocument()
+      expect(within(alerta).queryByText('No se guardó el proveedor.')).not.toBeInTheDocument()
+      fireEvent.click(within(alerta).getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalledWith(PROVEEDOR))
+      expect(mocks.guardarEmpresas).toHaveBeenCalledTimes(2)
+    })
+
+    it('el reintento vuelve a guardar los campos editados después del fallo', async () => {
+      mocks.guardarEmpresas.mockRejectedValueOnce({ code: '42501', message: 'x' })
+      const { onGuardado } = abrir({ proveedor: PROVEEDOR })
+      fireEvent.click(tienda('San Javucho'))
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      expect(await screen.findByText(/El proveedor se guardó, pero no pudimos guardar «Compra para»/)).toBeInTheDocument()
+      // La persona corrige la razón social y reintenta.
+      fireEvent.change(campo(/Razón social/), { target: { value: 'Proveedor Corregido SA' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalled())
+      expect(mocks.rpc).toHaveBeenCalledTimes(2)
+      expect(mocks.rpc.mock.calls[1][0]).toBe('actualizar_proveedor')
+      expect(mocks.rpc.mock.calls[1][1]).toMatchObject({ p_razon_social: 'Proveedor Corregido SA' })
+    })
+
+    it('el reintento manda el updated_at que devolvió el guardado anterior', async () => {
+      const actualizado = { ...PROVEEDOR, updated_at: '2026-01-02T10:00:00.000000+00:00' }
+      mocks.rpc.mockResolvedValueOnce({ data: actualizado, error: null })
+      mocks.guardarEmpresas.mockRejectedValueOnce({ code: '42501', message: 'x' })
+      const { onGuardado } = abrir({ proveedor: PROVEEDOR })
+      fireEvent.click(tienda('San Javucho'))
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      expect(await screen.findByText(/El proveedor se guardó/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar proveedor' }))
+      await waitFor(() => expect(onGuardado).toHaveBeenCalled())
+      expect(mocks.rpc.mock.calls[1][1]).toMatchObject({ p_actualizado_en: '2026-01-02T10:00:00.000000+00:00' })
     })
 
     it('si no cargan las tiendas lo dice y no deja marcar', () => {
