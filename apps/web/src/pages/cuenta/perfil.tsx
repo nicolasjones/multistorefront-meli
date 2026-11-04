@@ -168,7 +168,7 @@ export function PerfilPage() {
     setGuardando(false)
   }
 
-  if (estadoSesion === 'verificando') return <CircularProgress aria-label="Verificando sesion" sx={{ m: 4 }} />
+  if (estadoSesion === 'verificando') return <CircularProgress aria-label="Verificando sesión" sx={{ m: 4 }} />
   if (estadoSesion === 'ausente') return <Navigate to="/login" replace />
 
   const inicial = (nombre || correoActual || '?').charAt(0).toUpperCase()

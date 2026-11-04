@@ -126,7 +126,7 @@ export function DefinirContrasenaPage() {
   }
 
   const missingRules = passwordRules.filter((rule) => !rule.test(password))
-  const heading = source === 'invitacion' ? 'Crea tu contraseña' : 'Define una contraseña nueva'
+  const heading = source === 'invitacion' ? 'Creá tu contraseña' : 'Definí una contraseña nueva'
 
   return (
     <MarcoAcceso>
@@ -150,7 +150,7 @@ export function DefinirContrasenaPage() {
           fullWidth
           slotProps={{ htmlInput: { 'aria-describedby': 'reglas-contrasena' } }}
         />
-        <List id="reglas-contrasena" dense disablePadding aria-label="Reglas de la contrasena">
+        <List id="reglas-contrasena" dense disablePadding aria-label="Reglas de la contraseña">
           {passwordRules.map((rule) => {
             const met = rule.test(password)
             return (
@@ -165,7 +165,7 @@ export function DefinirContrasenaPage() {
         </List>
         <Typography role="status" aria-live="polite" sx={visuallyHidden}>
           {missingRules.length === 0
-            ? 'La contrasena cumple todas las reglas.'
+            ? 'La contraseña cumple todas las reglas.'
             : `Faltan ${missingRules.length} de ${passwordRules.length} reglas.`}
         </Typography>
         <TextField
