@@ -1,5 +1,5 @@
 -- MSF-598 (continuación): registrar_faltantes y guardar_envio_comprobante aceptan los mismos estados vivos que
--- cambiar_estado_despacho (20270121121100). Sin tablas nuevas; migración aditiva. Reversión: reaplicar
+-- cambiar_estado_despacho (20270202120000). Sin tablas nuevas; migración aditiva. Reversión: reaplicar
 -- 20270112130200_faltantes_registrar.sql y 20270112140200_envio_guardar.sql.
 
 -- F-VTA-18 (MSF-201, épica MSF-135, spec 20261024-130000-ventas-despacho-y-faltantes, FR-041 y FR-042):
