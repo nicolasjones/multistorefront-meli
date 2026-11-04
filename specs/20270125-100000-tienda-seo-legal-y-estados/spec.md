@@ -261,19 +261,44 @@ El visitante ve en el pie la información legal de la empresa dueña de la tiend
 
 ## Verificación por requisito
 
-| Requisito | Verifica |
-|---|---|
-| FR-001, FR-002, FR-003, FR-004, FR-005 | SC-001 · SC-002 |
-| FR-010 | SC-004 |
-| FR-011, FR-012 | SC-005 |
-| FR-020, FR-023, FR-025 | SC-006 · SC-008 |
-| FR-021, FR-022, FR-024 | SC-007 · SC-008 |
-| FR-030, FR-031 | SC-009 |
-| FR-032, FR-033, FR-034 | SC-010 |
-| FR-060, FR-061 | pgTAP de cada historia · E2E de dos tiendas |
-| SC-003 | E2E con el interruptor de Empresas (F-EMP-04, existente) |
-| SC-011, SC-013 | Revisión de `docs/tiendas-online.md` y `docs/roadmap-template.md` (tareas de cierre) |
-| SC-012 | `pnpm lint`, `build`, `infra:config`, `test`, `prototipo:check`, `matriz:check`, `docs:check` |
+Cada FR / SC tiene su verificación nombrada (test o comando) y su tarea dueña; la evidencia queda en la tarea y en el PR.
+
+| Requisito | Tarea dueña | Verificación (test) | Comando |
+|---|---|---|---|
+| FR-001 | T001, T002 | pgTAP `supabase/tests/database/tienda_estado_pausada.test.sql` | `pnpm test` |
+| FR-002 | T004, T007 | Vitest + axe `apps/web/src/pages/tienda-publica/VolvemosPronto.test.tsx`; E2E `apps/web/e2e/tienda-estados.e2e.ts` | `pnpm test` |
+| FR-003 | T005, T007 | Vitest + axe `PaginaNoEncontrada.test.tsx`; E2E `tienda-estados.e2e.ts` | `pnpm test` |
+| FR-004 | T006, T007 | Vitest + axe `ErrorConReintento.test.tsx` / `PantallaError.test.tsx` / `index.test.tsx`; E2E `tienda-estados.e2e.ts` (conexión caída) | `pnpm test` |
+| FR-005 | T007 | Vitest + axe de las tres pantallas; E2E `tienda-estados.e2e.ts` (320 / 768 / 1440 px) | `pnpm test` |
+| FR-010 | T020, T021 | pgTAP `supabase/tests/database/tienda_relacionados.test.sql` | `pnpm test` |
+| FR-011 | T024, T025 | Vitest + axe `ficha/Relacionados.test.tsx` | `pnpm --filter @platform/web test` |
+| FR-012 | T023, T025 | Vitest `Relacionados.test.tsx` (falla → omitida); E2E `apps/web/e2e/tienda-relacionados.e2e.ts` | `pnpm test` |
+| FR-020 | T060, T061 | pgTAP `supabase/tests/database/tienda_seo.test.sql` (`seo_tienda_por_dominio`) | `pnpm test` |
+| FR-021 | T065, T068 | Vitest `seo/CabeceraSeo.test.tsx`; E2E `apps/web/e2e/tienda-seo.e2e.ts` | `pnpm test` |
+| FR-022 | T066, T069 | Vitest `seo/datosEstructurados.test.ts`; validación JSON-LD con herramienta de SEO (SC-007) | `pnpm --filter @platform/web test` |
+| FR-023 | T062, T068 | pgTAP `tienda_seo.test.sql` (`sitemap_por_dominio`); E2E `tienda-seo.e2e.ts` (`/robots.txt`, `/sitemap.xml`) | `pnpm test` |
+| FR-024 | T067, T068 | Vitest `seo/CabeceraSeo.test.tsx` y `VolvemosPronto.test.tsx` (`noindex`) | `pnpm --filter @platform/web test` |
+| FR-025 | T062, T061 | pgTAP `tienda_seo.test.sql` (desactivada = desconocida); E2E `tienda-seo.e2e.ts` | `pnpm test` |
+| FR-030 | T040, T042 | pgTAP `supabase/tests/database/tienda_legal.test.sql` (RLS, check de URL, sin `grant` a `anon`) + pgTAP global de aislamiento | `pnpm test` |
+| FR-031 | T041, T042 | pgTAP `tienda_legal.test.sql` (lista blanca, orden, aislamiento, `null` idéntico) | `pnpm test` |
+| FR-032 | T044, T047 | Vitest + axe `layout/PieLegal.test.tsx`; E2E `apps/web/e2e/tienda-legal.e2e.ts` | `pnpm test` |
+| FR-033 | T046, T047 | Vitest + axe `layout/AvisoCookies.test.tsx`; E2E `tienda-legal.e2e.ts` | `pnpm test` |
+| FR-034 | T045, T047 | Vitest `lib/consentimientoCookies.test.ts` (persistencia, evento, `localStorage` bloqueado) | `pnpm --filter @platform/web test` |
+| FR-060 | T092 | pgTAP de cada historia (aislamiento entre dos tiendas) + E2E con las dos tiendas del seed | `pnpm test` |
+| FR-061 | T092 | pgTAP existente de `anon` + el de cada historia | `pnpm test` |
+| SC-001 | T007 | Vitest + axe de las tres pantallas de estado | `pnpm test` |
+| SC-002 | T008 | E2E `apps/web/e2e/tienda-estados.e2e.ts` | `pnpm test` |
+| SC-003 | T008 | E2E del interruptor «Store activa» (`tienda-estados.e2e.ts`, usa F-EMP-04 existente) | `pnpm test` |
+| SC-004 | T021 | pgTAP `tienda_relacionados.test.sql` | `pnpm test` |
+| SC-005 | T025 | Vitest + axe `Relacionados.test.tsx`; E2E `tienda-relacionados.e2e.ts` | `pnpm test` |
+| SC-006 | T061 | pgTAP `tienda_seo.test.sql` | `pnpm test` |
+| SC-007 | T069 | Lighthouse SEO sobre home, catálogo, categoría, ficha y contacto de las dos tiendas + validación del JSON-LD de la ficha; resultado en el PR | `npx lighthouse <url> --only-categories=seo` (o herramienta equivalente) |
+| SC-008 | T068 | Vitest `CabeceraSeo` / `datosEstructurados` y E2E `tienda-seo.e2e.ts` | `pnpm test` |
+| SC-009 | T042 | pgTAP `tienda_legal.test.sql` | `pnpm test` |
+| SC-010 | T047 | Vitest + axe y E2E `tienda-legal.e2e.ts` | `pnpm test` |
+| SC-011 | T090 | Revisión de la sección «Estados, relacionados, SEO y legal» de `docs/tiendas-online.md` | `pnpm docs:check` |
+| SC-012 | T092 | Gates transversales | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check` |
+| SC-013 | T091 | Revisión de la fila MSF-149 de `docs/roadmap-template.md` | `git diff main -- docs/roadmap-template.md` y `pnpm docs:check` |
 
 ## Matriz pantalla↔criterios
 
