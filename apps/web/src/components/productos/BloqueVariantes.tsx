@@ -106,7 +106,7 @@ export function BloqueVariantes({ filas, onCambiar, skuProducto, verStock, edita
           checked={fila.activa}
           disabled={bloqueado}
           onChange={(_evento, activa) => cambiar(fila.clave, { activa })}
-          slotProps={{ input: { 'aria-label': `Activa: ${fila.nombre.trim() === '' ? `variante ${filas.indexOf(fila) + 1}` : fila.nombre}` } }}
+          slotProps={{ input: { role: 'switch', 'aria-label': `Activa: ${fila.nombre.trim() === '' ? `variante ${filas.indexOf(fila) + 1}` : fila.nombre}` } }}
         />
       ),
     },

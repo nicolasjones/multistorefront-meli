@@ -121,14 +121,18 @@ export function campoDelError(error: unknown): CampoVariante | null {
   return CAMPOS.find((campo) => campo === detalle) ?? null
 }
 
-// Fila a la que corresponde un error con valor repetido: el mensaje nombra el valor entre comillas.
+// Fila a la que corresponde un error: el mensaje nombra entre comillas el código, el código de barras o (en stock)
+// el nombre de la variante. Sin coincidencia queda como error general del bloque, no se adivina la fila.
 export function erroresPorFila(error: unknown, filas: readonly FilaVariante[]): Record<string, ErrorVariante> {
   const e = error as ErrorRpc
   const campo = campoDelError(error)
   if (!campo || !e?.message) return {}
   const valor = /"([^"]+)"/.exec(e.message)?.[1]?.toLowerCase()
   const fila = valor
-    ? filas.find((f) => (campo === 'codigo' ? f.codigo.trim().toLowerCase() : f.codigoBarras.trim()) === valor)
+    ? filas.find((f) =>
+        campo === 'codigo' ? f.codigo.trim().toLowerCase() === valor
+          : campo === 'codigo_barras' ? f.codigoBarras.trim() === valor
+            : f.nombre.trim().toLowerCase() === valor)
     : undefined
   return fila ? { [fila.clave]: { campo, mensaje: e.message } } : {}
 }
