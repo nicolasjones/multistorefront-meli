@@ -179,8 +179,14 @@ const LIMITE_PRODUCTOS = 20
 // Productos activos de la organización por Nombre o SKU (FR-025). La RLS del catálogo exige acceso a Productos:
 // sin él la búsqueda vuelve vacía y el repuesto se carga como libre.
 export async function buscarProductos(texto: string): Promise<ProductoRepuesto[]> {
+  return (await buscarProductosConAviso(texto)).productos
+}
+
+// Igual que `buscarProductos`, pero pide uno más que el tope para avisar si hay más resultados que los mostrados
+// (MSF-722): el buscador de «Agregar producto» ya no corta a 20 en silencio.
+export async function buscarProductosConAviso(texto: string): Promise<{ productos: ProductoRepuesto[]; hayMas: boolean }> {
   const patron = filtroBusquedaStock(texto)
-  if (!patron) return []
+  if (!patron) return { productos: [], hayMas: false }
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('productos')
@@ -188,8 +194,9 @@ export async function buscarProductos(texto: string): Promise<ProductoRepuesto[]
     .eq('activo', true)
     .or(patron)
     .order('nombre', { ascending: true })
-    .limit(LIMITE_PRODUCTOS)
+    .limit(LIMITE_PRODUCTOS + 1)
     .returns<ProductoRepuesto[]>()
   lanzarSiHayError(error)
-  return data ?? []
+  const filas = data ?? []
+  return { productos: filas.slice(0, LIMITE_PRODUCTOS), hayMas: filas.length > LIMITE_PRODUCTOS }
 }

@@ -187,7 +187,7 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: '100%' } })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%100\\%%,sku.ilike.%100\\%%']))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%100\\%%,sku.ilike.%100\\%%']))
   })
 
   it('13 dígitos + Enter consulta el código de barras exacto al instante y el campo conserva el foco (F-CAT-14)', async () => {
@@ -198,8 +198,8 @@ describe('ProductoList', () => {
     mocks.llamadas.length = 0
     fireEvent.change(campo, { target: { value: '7790001000015' } })
     fireEvent.keyDown(campo, { key: 'Enter' })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015']))
-    expect(mocks.llamadas.some(([m]) => m === 'or')).toBe(false)
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'codigo_barras.eq.7790001000015,sku.ilike.7790001000015']))
+    expect(mocks.llamadas.some(([, f]) => typeof f === 'string' && f.includes('nombre_norm'))).toBe(false)
     expect(screen.getByLabelText('Buscar por nombre, SKU o código de barras')).toBe(campo)
     expect(campo).toHaveFocus()
   })
@@ -221,7 +221,7 @@ describe('ProductoList', () => {
     const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
     fireEvent.change(campo, { target: { value: 'joy' } })
     fireEvent.keyDown(campo, { key: 'Enter' })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
   })
 
   it('buscar estando en la página 2 vuelve a pedir range(0, 24)', async () => {
@@ -232,7 +232,7 @@ describe('ProductoList', () => {
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
     mocks.llamadas.length = 0
     fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'joy' } })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
     expect(mocks.llamadas).toContainEqual(['range', 0, 24])
     expect(mocks.llamadas).not.toContainEqual(['range', 25, 49])
   })
