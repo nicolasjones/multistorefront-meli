@@ -3,6 +3,7 @@ import { Box, LinearProgress, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { useListarFaltantes } from '../../hooks/useListarFaltantes'
 import { formatearCuando } from '../../lib/actividad'
 import {
@@ -13,6 +14,7 @@ import {
 } from '../../lib/ventasFaltantes'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
@@ -29,7 +31,7 @@ const ALTO_BARRA_CARGA = 2
 const AYUDA_FILTRO_TIENDA =
   'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
 
-const columnas: ColumnaAdaptable<FaltanteVenta>[] = [
+const armarColumnas = (imagenes: ReadonlyMap<string, string>): ColumnaAdaptable<FaltanteVenta>[] => [
   { clave: 'empresa', encabezado: 'Tienda', render: (faltante) => <EtiquetaEstado texto={faltante.empresa} variante="contorno" /> },
   {
     clave: 'cliente',
@@ -40,9 +42,12 @@ const columnas: ColumnaAdaptable<FaltanteVenta>[] = [
     clave: 'producto',
     encabezado: 'Producto',
     render: (faltante) => (
-      <Stack spacing={0}>
-        <Typography component="span" sx={{ fontWeight: 600 }}>{faltante.producto}</Typography>
-        <Typography component="span" variant="caption" color="text.secondary">{faltante.sku ?? '—'}</Typography>
+      <Stack direction="row" spacing={1.25} alignItems="center">
+        <MiniaturaProducto alt="" src={faltante.producto_id ? imagenes.get(faltante.producto_id) : undefined} />
+        <Stack spacing={0}>
+          <Typography component="span" sx={{ fontWeight: 600 }}>{faltante.producto}</Typography>
+          <Typography component="span" variant="caption" color="text.secondary">{faltante.sku ?? '—'}</Typography>
+        </Stack>
       </Stack>
     ),
   },
@@ -110,6 +115,8 @@ export function FaltantesList() {
   // Carga infinita (Principio VI): se suman las tandas que entrega el hook; cambiar de tienda reinicia.
   const listado = useListadoAcumulado({ items: faltantes, pagina, setPagina, total, cargando: isFetching, reinicio: empresaId })
   const falloTanda = isError && pagina > 1
+  const imagenes = useImagenesProductos(listado.filas.map((f) => f.producto_id))
+  const columnas = armarColumnas(imagenes)
 
   // Cambió el ámbito (organización + tienda): la pantalla se reencuadra (Principio VIII, FR-046). Se
   // ajusta en el MISMO render —no en un efecto— para que la paginación vuelva a la primera página sin

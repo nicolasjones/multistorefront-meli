@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   cambiarFiltro: vi.fn(),
 }))
 
+const imagenes = vi.hoisted(() => ({ mapa: new Map<string, string>() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => imagenes.mapa }))
+
 vi.mock('../../lib/ventasFaltantes', async (original) => ({
   ...(await original<typeof import('../../lib/ventasFaltantes')>()),
   listarFaltantes: mocks.listar,
@@ -32,6 +35,7 @@ const fila = (n: number, empresaId: string, empresa: string) => ({
   empresa,
   cliente: `Cliente ${n}`,
   producto: `Producto ${n}`,
+  producto_id: null as string | null,
   sku: `SKU-${n}`,
   cantidad_faltante: 3,
   linea_orden: 1,
@@ -118,6 +122,16 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     await act(async () => { resolver({ faltantes: [TODAS[0]], total: 1 }) })
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Cargando contenido' })).not.toBeInTheDocument()
+  })
+
+  it('muestra la miniatura del producto cuando la fila trae producto_id y no cuando es null', async () => {
+    imagenes.mapa = new Map([['p-1', 'https://img/f1.png']])
+    mocks.listar.mockResolvedValue({ faltantes: [{ ...fila(1, 'e-1', 'San Javucho'), producto_id: 'p-1' }, fila(2, 'e-1', 'San Javucho')], total: 2 })
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(document.querySelectorAll('img')).toHaveLength(1)
+    expect(document.querySelector('img[src="https://img/f1.png"]')).not.toBeNull()
+    imagenes.mapa = new Map()
   })
 
   it('«Cargar más» suma la tanda siguiente y el contador conserva el total (FR-044)', async () => {

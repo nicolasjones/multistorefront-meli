@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, LinearProgress, Link, Snackbar, Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
@@ -14,6 +15,7 @@ import {
 } from '../../lib/rma'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
@@ -38,6 +40,7 @@ const TODAS_LAS_FORMAS = 'todas'
 const MENSAJE_SIN_FORMA = 'No hay registros con esa forma de RMA.'
 
 type AccionEstado = {
+  imagenes: ReadonlyMap<string, string>
   puedeEditar: boolean
   pendienteId: string | null
   onAvanzar: (r: RmaListado) => void
@@ -48,7 +51,7 @@ type AccionEstado = {
 // transición posible y la acción queda deshabilitada (FR-012).
 const ETIQUETA_AVANCE = { en_gestion: 'Pasar a En gestión', cerrado: 'Cerrar' } as const
 
-const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar, onResolver }: AccionEstado): ColumnaAdaptable<RmaListado>[] => [
+const armarColumnas = ({ imagenes, puedeEditar, pendienteId, onAvanzar, onResolver }: AccionEstado): ColumnaAdaptable<RmaListado>[] => [
   {
     clave: 'rma', encabezado: 'RMA',
     render: (r) => (
@@ -71,9 +74,12 @@ const armarColumnas = ({ puedeEditar, pendienteId, onAvanzar, onResolver }: Acci
   {
     clave: 'producto', encabezado: 'Producto',
     render: (r) => (
-      <span>
-        {r.producto} <Typography component="span" variant="xs" sx={{ whiteSpace: 'nowrap' }}>×{r.cantidad}</Typography>
-      </span>
+      <Stack direction="row" spacing={1.25} alignItems="center">
+        <MiniaturaProducto alt="" src={r.producto_id ? imagenes.get(r.producto_id) : undefined} />
+        <span>
+          {r.producto} <Typography component="span" variant="xs" sx={{ whiteSpace: 'nowrap' }}>×{r.cantidad}</Typography>
+        </span>
+      </Stack>
     ),
   },
   {
@@ -224,8 +230,9 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
     recargarDesdeInicio()
   }
   const [resolviendo, setResolviendo] = useState<{ rma: RmaListado; modo: ModoResolucion } | null>(null)
+  const imagenes = useImagenesProductos(listado.filas.map((f) => f.producto_id))
   const columnas = armarColumnas({
-    puedeEditar: puedeCrear, pendienteId, onAvanzar: (r) => void avanzar(r),
+    imagenes, puedeEditar: puedeCrear, pendienteId, onAvanzar: (r) => void avanzar(r),
     onResolver: (r, modo) => setResolviendo({ rma: r, modo }),
   })
 

@@ -19,6 +19,9 @@ const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
 }))
 
+const imagenes = vi.hoisted(() => ({ mapa: new Map<string, string>() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => imagenes.mapa }))
+
 vi.mock('../../lib/rma', async (importar) => ({
   ...(await importar<typeof import('../../lib/rma')>()),
   listarRma: mocks.listarRma,
@@ -50,7 +53,7 @@ import { DevolucionesList } from './devoluciones'
 
 const rma = (n: number, extra: Partial<RmaListado> = {}): RmaListado => ({
   id: `r-${n}`, actualizado_en: '2026-10-07T15:00:00+00:00', nota_credito_id: null, nota_credito_numero: null, stock_reingresado: false, numero: `RMA-009${n}`, creado_en: '2026-10-07T15:00:00+00:00', empresa_id: 'e-1', empresa: 'San Javucho',
-  comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, cantidad: 3,
+  comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, producto_id: null, cantidad: 3,
   forma_rma: 'cambio_directo', motivo: 'No enciende', operador: 'Javier', estado: 'abierto', ...extra,
 })
 const pagina = (devoluciones: RmaListado[], total = devoluciones.length) => ({ devoluciones, total })
@@ -161,6 +164,16 @@ describe('DevolucionesList (F-VTA-28, FR-003…FR-008)', () => {
     expect(screen.getByRole('tab', { name: 'Devoluciones (RMA)' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: 'Comprobantes' })).toHaveAttribute('href', '/ventas/comprobantes')
     expect(screen.getByRole('tab', { name: 'Presupuestos' })).toHaveAttribute('href', '/ventas/presupuestos')
+  })
+
+  it('muestra la miniatura del producto cuando la fila trae producto_id y no cuando es null', async () => {
+    imagenes.mapa = new Map([['p-1', 'https://img/r1.png']])
+    mocks.listarRma.mockResolvedValue(pagina([rma(1, { producto_id: 'p-1' }), rma(2)]))
+    abrir()
+    await screen.findByText('Cliente 1')
+    expect(document.querySelectorAll('img')).toHaveLength(1)
+    expect(document.querySelector('img[src="https://img/r1.png"]')).not.toBeNull()
+    imagenes.mapa = new Map()
   })
 
   it('«Cargar más» pide la tanda siguiente al servidor y la suma a lo mostrado', async () => {
