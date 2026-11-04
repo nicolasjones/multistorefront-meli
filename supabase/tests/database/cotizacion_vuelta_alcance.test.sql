@@ -42,10 +42,11 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((public.estado_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'vigente' ->> 'valor')::numeric,
   1500::numeric, 'el estado muestra 1500 como vigente');
 
--- Cargar 1505 (+0,33 %) es menor al umbral: la anterior que se informa es 1500, no 1000.
-select lives_ok($$select public.cargar_cotizacion(1505, 'e1000000-0000-0000-0000-000000000001')$$, 'cargar 1505');
-select is((public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') ->> 'anterior')::numeric,
-  1500::numeric, 'la vista previa mide contra 1500');
+-- Cargar 1505 (+0,33 %) mide contra 1500, no contra su 1000 viejo: la anterior y la variación lo confirman.
+select is((public.cargar_cotizacion(1505, 'e1000000-0000-0000-0000-000000000001') ->> 'anterior')::numeric,
+  1500::numeric, 'cargar informa 1500 como anterior');
+select is((public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') ->> 'variacion_pct')::numeric,
+  0.3333::numeric, 'la vista previa mide la variación contra 1500');
 
 -- Aislamiento: una sesión de la organización 1 no ve la configuración ni las empresas de la 2.
 select is((select k.redondeo_pesos from private.cotizacion_config('22222222-2222-2222-2222-222222222222') k),
