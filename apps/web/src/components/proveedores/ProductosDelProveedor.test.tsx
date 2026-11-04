@@ -2,9 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useHistorialCostos: vi.fn(), useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn() }))
 
 vi.mock('../../hooks/useProductosDeProveedor', () => ({ useProductosDeProveedor: mocks.useProductosDeProveedor }))
+
+vi.mock('../../hooks/useHistorialCostos', () => ({ useHistorialCostos: mocks.useHistorialCostos }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 
@@ -26,6 +28,20 @@ describe('ProductosDelProveedor', () => {
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
     mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1), producto(2, { activo: false, codigo_proveedor: null })]))
+    mocks.useHistorialCostos.mockReturnValue({ puntos: [], cargando: false, hayError: false, recargar: vi.fn() })
+  })
+
+  it('[MSF-448:T018] con Rentabilidad y Proveedores ofrece «Evolución del costo» y abre el diálogo del producto', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Evolución del costo de Producto 1' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(mocks.useHistorialCostos).toHaveBeenCalledWith('p-1', null, true)
+  })
+
+  it('sin Rentabilidad no ofrece «Evolución del costo»', () => {
+    abrir()
+    expect(screen.queryByRole('button', { name: /Evolución del costo/ })).not.toBeInTheDocument()
   })
 
   it('lista producto, código del proveedor y Ver producto; marca los inactivos', () => {
