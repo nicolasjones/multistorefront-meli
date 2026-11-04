@@ -45,3 +45,5 @@ Un listado puede conservar su paginación solo si hay una razón de negocio (tot
 depende de la página visible). Se justifica en la spec y su plan y se anota acá.
 
 Stock: sin excepciones. Pendiente fuera de alcance de ese grupo: `HistorialLotes` usa un botón «Ver más» por cursor propio (no `TablePagination`) y no se migró.
+
+Sin excepciones en Clientes y Contactos: todos sus listados (clientes, inactivos, ranking, compras y reparaciones de la ficha, correo masivo y contactos) usan carga infinita.
