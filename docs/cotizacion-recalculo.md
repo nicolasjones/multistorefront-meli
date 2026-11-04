@@ -92,3 +92,5 @@ precios vuelven a calcularse con la cotización inicial.
 - **Aislamiento entre organizaciones.** `private.cotizacion_config(uuid)` y `private.empresa_de_cotizacion(uuid, uuid)` son `security definer`
   con grant a `authenticated`, pero solo operan sobre la organización de la sesión: la primera devuelve los valores del lanzamiento para una
   ajena y la segunda falla con `42501`. Prueba: `supabase/tests/database/cotizacion_vuelta_alcance.test.sql`.
+
+`cargar_cotizacion` es `security definer` (MSF-419): llama a `private.cotizacion_vigente_para`, que no tiene grant a `authenticated`; organización, usuario y nivel de la sección `cotizacion_dolar` salen de la sesión, igual que en `previsualizar_cotizacion` y `confirmar_cotizacion`.
