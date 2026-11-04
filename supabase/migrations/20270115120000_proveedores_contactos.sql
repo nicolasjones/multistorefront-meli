@@ -32,10 +32,10 @@ comment on table dominio.proveedores_contactos is
 comment on column dominio.proveedores_contactos.principal is
   'A lo sumo uno por proveedor (índice único parcial). Alimenta persona de contacto, correo y teléfono de la ficha.';
 
-create index proveedores_contactos_org_proveedor_idx
+create index if not exists proveedores_contactos_org_proveedor_idx
   on dominio.proveedores_contactos (organizacion_id, proveedor_id);
 
-create unique index proveedores_contactos_un_principal_idx
+create unique index if not exists proveedores_contactos_un_principal_idx
   on dominio.proveedores_contactos (proveedor_id)
   where principal;
 
