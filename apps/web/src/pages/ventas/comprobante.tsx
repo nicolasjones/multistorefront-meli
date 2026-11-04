@@ -85,7 +85,6 @@ import {
   cambiarEstadoComprobante,
   definicionEstado,
   esConflictoDeEstado,
-  esEstadoDeCobro,
   mensajeDeCambioEstado,
   transicionesPermitidas,
   type EstadoComprobante,
@@ -105,6 +104,10 @@ import {
 const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
+// MSF-598: el despacho, el envío y los faltantes viven en cualquier estado vivo de la factura (no solo «confirmada»).
+// Debe coincidir con la lista de estados vivos de `cambiar_estado_despacho`, `registrar_faltantes_despacho` y
+// `guardar_envio_comprobante` (migración 20270202202101).
+const ESTADOS_DESPACHABLES: readonly string[] = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
 // La relectura posterior al cobro falló: el cobro YA está en la base, así que la pantalla no cae
 // en el error general (parecería que el cobro falló). Se avisa y se recurre a recargar la página.
 const MENSAJE_RELECTURA_TRAS_COBRO =
@@ -630,18 +633,6 @@ export function ComprobanteVenta() {
   // base los rechaza y la pantalla no ofrece una acción que va a fallar (escenario 5 de US1).
   const admiteCobros = comprobante !== null && comprobanteAdmiteCobros(comprobante)
 
-  // Envío y responsables (F-VTA-15/F-VTA-16): existen mientras la factura esté en un estado de
-  // despacho. Tras el cobro la factura pasa a «cobrado»/«deuda»: lo ya cargado (transporte, guía y
-  // responsables) se sigue leyendo —que no se pierda es parte del detalle— pero ya no se cambia (la
-  // base solo admite el envío y el despacho de una factura confirmada). Una factura sin confirmar no
-  // tiene despacho: el bloque no aparece.
-  const estadoDespachoVisible =
-    comprobante !== null &&
-    comprobante.tipo === 'factura' &&
-    (comprobante.estado === 'confirmada' || esEstadoDeCobro(comprobante.estado))
-  // Con la factura cobrada (o con deuda) el envío y el despacho quedan en solo lectura.
-  const despachoSoloLectura = comprobante !== null && esEstadoDeCobro(comprobante.estado)
-
   const volver = (
     <Button component={RouterLink} to={RUTA_COMPROBANTES} variant="outlined" size="small" sx={{ mb: 1.5 }}>
       Comprobantes
@@ -935,33 +926,29 @@ export function ComprobanteVenta() {
             />
           ) : null}
           {/* Envío y transporte (F-VTA-16, FR-023): el bloque con el selector de transporte, la guía y la fecha de
-              envío existe en una factura confirmada (el envío se registra sobre la factura confirmada) y sigue
-              visible, en solo lectura, cuando el cobro la pasó a «cobrado»/«deuda». Al cambiar la empresa activa la
-              pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo elegido: nunca se guarda un envío de
-              una tienda bajo otra. */}
-          {estadoDespachoVisible && comprobante ? (
+              envío existe en una factura viva (MSF-598). Al
+              cambiar la empresa activa la pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo
+              elegido: nunca se guarda un envío de una tienda bajo otra. */}
+          {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
             <EnvioTransporte
               comprobanteId={comprobante.id}
               empresaId={comprobante.empresa_id}
               envioId={comprobante.envio_id}
               empresaActivaId={empresaActivaId}
               puedeEditar={comprobante.puede_editar}
-              soloLectura={despachoSoloLectura}
               onCambio={() => void cargar()}
             />
           ) : null}
-          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta existe en una factura confirmada,
-              porque el despacho arranca al confirmar, y sigue visible, en solo lectura, cuando el cobro la pasó a
-              «cobrado»/«deuda». Al cambiar la empresa activa la pantalla se cierra con aviso
+          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta existe en una factura viva (MSF-598),
+              porque el despacho arranca al confirmar. Al cambiar la empresa activa la pantalla se cierra con aviso
               (Principio VIII) y la tarjeta suelta lo elegido: nunca se guarda un responsable de otra tienda. */}
-          {estadoDespachoVisible && comprobante ? (
+          {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
             <ResponsablesDespacho
               comprobanteId={comprobante.id}
               empresaId={comprobante.empresa_id}
               operador={comprobante.operador}
               empresaActivaId={empresaActivaId}
               claveRecarga={`${comprobante.updated_at}|${empresaActivaId ?? 'todas'}`}
-              soloLectura={despachoSoloLectura}
               onCambio={() => void cargar()}
               onRegistrarFaltantes={() => { setAviso(null); setRegistrandoFaltantes(true) }}
             />
@@ -1027,9 +1014,8 @@ export function ComprobanteVenta() {
 
       {/* Faltantes (F-VTA-18, FR-047): elegir el estado «Incompleto» en el despacho abre este diálogo. Con el
           diálogo abierto, un cambio de empresa activa lo cierra con aviso (Principio VIII): jamás se registran
-          faltantes de una tienda bajo otra. El diálogo queda montado aunque la factura pase a «cobrado»/«deuda»
-          (el cobro no lo abre: en solo lectura no se ofrece «Incompleto»). */}
-      {comprobante && comprobante.tipo === 'factura' ? (
+          faltantes de una tienda bajo otra. */}
+      {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
         <RegistrarFaltantesDialog
           open={registrandoFaltantes}
           comprobante={comprobante}
