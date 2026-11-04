@@ -6,6 +6,10 @@
 - [x] T002 [F-SVC-31][US2] Redactar requisitos e implementar comisiones de técnicos (SC-001). Desvío: en espera hasta G-1; sin dependencia dura declarada.
 - [x] T003 [F-SVC-32][US3] Redactar requisitos e implementar la etiqueta con QR del equipo (SC-001). Desvío: en espera hasta G-1; sin dependencia dura declarada.
 
+## Fase 2: Cierre
+
+- [x] T004 [CIERRE] Actualizar la fila de MSF-118 en `docs/roadmap-template.md` al cerrar la spec. Desvío: no hay cierre mientras la épica esté en espera; se hará al retomarla.
+
 ## Matriz de trazabilidad (tracker ↔ US ↔ tasks)
 
 | Tracker | Historia | Requisito | Verificación | Tarea |
@@ -13,20 +17,21 @@
 | MSF-181 | F-SVC-30 (US1) | SC-001 (G-1, G-2, G-3) | Sin desarrollo abierto mientras el gate esté cerrado | T001 |
 | MSF-187 | F-SVC-31 (US2) | SC-001 (G-1) | ídem | T002 |
 | MSF-190 | F-SVC-32 (US3) | SC-001 (G-1) | ídem | T003 |
+| Tarea de cierre (label cierre) | — | — | — | T004 |
 
 ## Plan de ejecución (historias)
-
-Sin tarea de cierre: no hay trabajo real de docs/seguridad/roadmap que ninguna historia atienda mientras la épica está en espera.
 
 | Historia | Depende de | Grupo |
 |---|---|---|
 | F-SVC-30 | MSF-232 (externa, Finalizada) | 1 |
 | F-SVC-31 | — | 1 |
 | F-SVC-32 | — | 1 |
+| [Cierre] | F-SVC-30, F-SVC-31, F-SVC-32 | 2 |
 
 ```mermaid
 flowchart LR
     MSF-232 --> F-SVC-30
-    F-SVC-31
-    F-SVC-32
+    F-SVC-31 --> Cierre
+    F-SVC-32 --> Cierre
+    F-SVC-30 --> Cierre
 ```
