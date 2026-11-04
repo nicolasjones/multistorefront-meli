@@ -195,7 +195,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   queda como fidelidad de MSF-180.
 - **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
   NO se implementa acá.
-- **MSF-445 (mejoras)**: la etiqueta impresa F-CLI-17 (MSF-446) está entregada, ver «Etiqueta impresa del cliente». El resto de la épica (fusión, proveedores) NO se implementa acá.
+- **MSF-445 (mejoras)**: entregada completa: etiqueta impresa F-CLI-17 (MSF-446) y fusión F-CLI-18 (MSF-447), ver sus secciones; costos y contactos de proveedor están en `docs/proveedores.md` y `docs/ingreso-de-mercaderia.md`. Contratos: `specs/20261029-100000-mejoras-de-clientes-y-proveedores/contracts/`.
 - **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
