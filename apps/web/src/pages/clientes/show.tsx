@@ -5,6 +5,7 @@ import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
@@ -22,7 +23,10 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { ComprasCliente } from '../../components/clientes/ComprasCliente'
+import { DialogoFusionarClientes } from '../../components/clientes/DialogoFusionarClientes'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+
+const MENSAJE_FUSIONADO = 'Clientes fusionados: las compras se sumaron en esta ficha'
 
 const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'documento', etiqueta: 'DNI/CUIT' },
@@ -52,6 +56,9 @@ export function ClienteShow() {
   const [mensajeCuenta, setMensajeCuenta] = useState<string | null>(null)
   const [errorCuenta, setErrorCuenta] = useState<string | null>(null)
   const [procesandoCuenta, setProcesandoCuenta] = useState<string | null>(null)
+  const [fusionando, setFusionando] = useState(false)
+  // Sube al fusionar para volver a pedir las compras (ComprasCliente) con la suma de ambas fichas.
+  const [versionCompras, setVersionCompras] = useState(0)
   const [seleccionTienda, setSeleccionTienda] = useState<{ base: string | null; valor: string } | null>(null)
 
   const cliente = query.data?.data
@@ -74,6 +81,22 @@ export function ClienteShow() {
   // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
   const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
+  // Fusionar clientes (F-CLI-18, FR-014): solo el Administrador; la base lo impone, acá solo se oculta la acción.
+  const { contexto } = useContextoPanel()
+  const puedeFusionar = contexto?.rol_efectivo === 'administrador' && !archivado && !cliente?.es_consumidor_final
+
+  const alFusionar = async (conservadoId: string) => {
+    setFusionando(false)
+    setErrorAccion(null)
+    setConfirmacion(MENSAJE_FUSIONADO)
+    if (cliente && conservadoId !== cliente.id) {
+      // Esta ficha quedó archivada: se sigue en la que se conservó.
+      navegar(`/clientes/show/${conservadoId}`, { state: { mensaje: MENSAJE_FUSIONADO } })
+      return
+    }
+    setVersionCompras((n) => n + 1)
+    await query.refetch().catch(() => undefined)
+  }
 
   const cambiarArchivado = async () => {
     if (!cliente || procesando) {
@@ -142,6 +165,7 @@ export function ClienteShow() {
     <Stack direction="row" spacing={1}>
       <Button component={RouterLink} to="/clientes">Volver al listado</Button>
       {cliente ? <Button variant="outlined" onClick={imprimirEtiqueta}>Etiqueta</Button> : null}
+      {puedeFusionar ? <Button variant="outlined" onClick={() => setFusionando(true)}>Fusionar con otro cliente…</Button> : null}
       {puedeEditar && cliente ? (
         <>
           <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} variant="contained">Editar</Button>
@@ -242,12 +266,20 @@ export function ClienteShow() {
                     />
                   </>
                 )}
-                <ComprasCliente key={cliente.id} clienteId={cliente.id} />
+                <ComprasCliente key={`${cliente.id}-${versionCompras}`} clienteId={cliente.id} />
               </>
             ) : null}
           </Stack>
         )}
       </ContenedorSeccion>
+      {cliente && puedeFusionar ? (
+        <DialogoFusionarClientes
+          abierto={fusionando}
+          cliente={{ id: cliente.id, numero: cliente.numero, nombre: cliente.nombre }}
+          onCerrar={() => setFusionando(false)}
+          onFusionado={(id) => void alFusionar(id)}
+        />
+      ) : null}
       <Dialog open={confirmando} onClose={() => !procesando && setConfirmando(false)} aria-labelledby="titulo-confirmar-archivado">
         <TituloDialogo id="titulo-confirmar-archivado" onCerrar={() => !procesando && setConfirmando(false)}>{archivado ? 'Restaurar cliente' : 'Archivar cliente'}</TituloDialogo>
         <DialogContent>

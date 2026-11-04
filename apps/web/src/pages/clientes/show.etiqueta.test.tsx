@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ useOne: vi.fn(), refetch: vi.fn() }))
 
 vi.mock('@refinedev/core', () => ({ useOne: mocks.useOne, useUpdate: () => ({ mutateAsync: vi.fn() }) }))
+vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: () => ({ contexto: { rol_efectivo: 'miembro' }, isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: 'lectura', isLoading: false }) }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: () => ({ empresas: [], isLoading: false, isError: false }) }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({ useEmpresasDeCliente: () => ({ empresas: [], isLoading: false, isError: false, refetch: vi.fn() }) }))

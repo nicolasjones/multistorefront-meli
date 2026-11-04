@@ -97,6 +97,8 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
   registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
   <nombre>», sin datos de contacto.
+- `cliente.fusionado` (F-CLI-18, MSF-447): `fusionar_clientes` lo registra en la misma transacción; el detalle nombra a
+  los dos clientes («Nº <n> · <nombre>»), sin DNI/CUIT.
 - `producto.creado` (F-CAT-02): el trigger `registrar_actividad_producto` lo registra en la misma transacción,
   solo con sesión; el detalle lleva «<nombre> (SKU …)», sin costo ni precio. Ver `docs/catalogo.md`.
 - `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
