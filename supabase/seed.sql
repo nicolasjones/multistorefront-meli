@@ -120,6 +120,35 @@ begin
   end if;
 end $$;
 
+-- F-SVC-23 (MSF-168): registra el reporte «Service técnico» cuando la migración
+-- 20270122130300_reportes_service.sql no pudo hacerlo (reset desde cero: las
+-- migraciones corren antes que este seed, sin usuarios todavía, y la fila exige
+-- `creado_por`). Los roles por defecto se cargan acá porque en el reset limpio la
+-- migración tampoco pudo insertarlos (dependen de la fila). La asignación a las
+-- organizaciones la hacen los triggers de esa migración cuando la organización
+-- habilita el módulo `service-tecnico`.
+do $$
+declare
+  v_actor uuid;
+begin
+  select user_id into v_actor from public.superadmins order by user_id limit 1;
+  if v_actor is null then
+    return;
+  end if;
+
+  if not exists (select 1 from public.reportes where nombre = 'Service técnico') then
+    insert into public.reportes (superset_dashboard_uuid, nombre, creado_por, seccion)
+    values ('service-tecnico', 'Service técnico', v_actor, 'service_tecnico');
+  end if;
+
+  insert into public.reportes_roles_default (reporte_id, rol_id)
+  select r.id, d.rol_id
+  from public.reportes r
+  cross join (values ('administracion'), ('consulta')) as d(rol_id)
+  where r.nombre = 'Service técnico'
+  on conflict (reporte_id, rol_id) do nothing;
+end $$;
+
 -- F-AUD-01 (MSF-463): eventos de ejemplo para probar la pantalla Actividad.
 -- Solo corre en local (seed.sql no se aplica a producción). Para cada
 -- organización que todavía no tenga historial inserta unos pocos eventos

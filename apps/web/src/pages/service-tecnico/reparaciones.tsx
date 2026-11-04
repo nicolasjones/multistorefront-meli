@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Box, Button, LinearProgress, Link, Stack, TablePagination, Typography } from '@mui/material'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useExportarCsv } from '../../hooks/useExportarCsv'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { ExportarCsvBoton } from '../../components/stock/ExportarCsvBoton'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
@@ -13,6 +16,13 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { FiltrosReparaciones } from '../../components/service/FiltrosReparaciones'
 import { ETIQUETA_PENDIENTE_STOCK, MarcaStockItem } from '../../components/service/MarcaStockItem'
 import { PestanasService } from '../../components/service/PestanasService'
+import { nombreArchivoCsv } from '../../lib/exportarCsv'
+import {
+  COLUMNAS as COLUMNAS_EXPORTACION,
+  pedirLoteReparaciones,
+  TAMANO_LOTE_REPARACIONES,
+  type FiltrosExportacionReparaciones,
+} from '../../lib/exportarReparaciones'
 import { listarTecnicos, type Tecnico } from '../../lib/reparaciones'
 import {
   formatearDiaCompleto,
@@ -31,6 +41,8 @@ const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
+
+const nombreArchivoReparaciones = () => nombreArchivoCsv('reparaciones')
 
 const columnas: ColumnaAdaptable<ReparacionListada>[] = [
   {
@@ -82,6 +94,7 @@ const columnas: ColumnaAdaptable<ReparacionListada>[] = [
 export function ServicioReparaciones() {
   const { nivel } = useNivelSeccion('service_tecnico')
   const puedeEditar = nivel === 'edicion'
+  const puedeExportar = usePuedeAccion('service_tecnico', 'exportar').puede === true
   const { empresaActivaId, isLoading: cargandoEmpresas } = useEmpresasAccesibles()
   const [periodo, setPeriodo] = useState<PeriodoReparaciones>(PERIODO_INICIAL)
   const [serie, setSerie] = useState('')
@@ -116,6 +129,24 @@ export function ServicioReparaciones() {
   useEffect(() => {
     if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setElegida({ clave, pagina: 1 })
   }, [isLoading, isFetching, isError, filas.length, pagina, clave])
+
+  // «Exportar» baja todas las filas del filtro vigente (no solo la página). Los filtros y la empresa activa se
+  // congelan al pulsar: si cambian mientras corre, el archivo sigue siendo el de la consulta que se pidió (FR-060).
+  const filtrosCongelados = useRef<FiltrosExportacionReparaciones | null>(null)
+  const congelarFiltros = useCallback(() => {
+    filtrosCongelados.current = { empresaId: empresaActivaId, periodo, serie, tecnicoId }
+  }, [empresaActivaId, periodo, serie, tecnicoId])
+  const pedirLoteExportacion = useCallback(
+    (desde: number, limite: number) => pedirLoteReparaciones(filtrosCongelados.current!, desde, limite),
+    [],
+  )
+  const exportacion = useExportarCsv({
+    columnas: COLUMNAS_EXPORTACION,
+    nombreArchivo: nombreArchivoReparaciones,
+    tamanoLote: TAMANO_LOTE_REPARACIONES,
+    pedirLote: pedirLoteExportacion,
+    iniciar: congelarFiltros,
+  })
 
   const alCambiarSerie = useCallback((nueva: string) => setSerie(nueva), [])
   const buscandoPorSerie = serie.trim() !== ''
@@ -152,6 +183,7 @@ export function ServicioReparaciones() {
               tecnicos={tecnicos}
               errorTecnicos={errorTecnicos}
             />
+            {puedeExportar ? <ExportarCsvBoton {...exportacion} /> : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
