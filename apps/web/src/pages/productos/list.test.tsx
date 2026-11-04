@@ -406,7 +406,7 @@ describe('ProductoList', () => {
     await screen.findByText('Joystick')
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /^Editar/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Nuevo producto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
   })
 

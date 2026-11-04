@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
@@ -21,6 +21,9 @@ import {
 } from '../../lib/productosListado'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
+
+// El popup de alta trae el formulario completo: se carga recién al abrirlo.
+const NuevoProductoDialog = lazy(() => import('../../components/productos/NuevoProductoDialog').then((modulo) => ({ default: modulo.NuevoProductoDialog })))
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -148,6 +151,7 @@ export function ProductoList() {
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
+  const [creando, setCreando] = useState(false)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
@@ -299,7 +303,7 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : undefined}
+        accion={puedeEditar ? <Button variant="contained" onClick={() => setCreando(true)}>Nuevo producto</Button> : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
@@ -378,6 +382,11 @@ export function ProductoList() {
           )}
         </Stack>
       </ContenedorSeccion>
+      {creando ? (
+        <Suspense fallback={null}>
+          <NuevoProductoDialog onCerrar={() => setCreando(false)} onCreado={recargarDesdeElPrincipio} />
+        </Suspense>
+      ) : null}
     </Box>
   )
 }
