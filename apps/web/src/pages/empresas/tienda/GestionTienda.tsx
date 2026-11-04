@@ -17,7 +17,7 @@ import { AccesoRestringido } from '../../acceso-restringido/AccesoRestringido'
 import { EncabezadoTienda } from './EncabezadoTienda'
 import { cargarPestana, esClavePestanaTienda, type ClavePestanaTienda, type PropsPestanaTienda } from './pestanas'
 
-function ContenidoPestana({ clave, empresaId, empresaNombre }: { clave: ClavePestanaTienda } & PropsPestanaTienda) {
+function ContenidoPestana({ clave, empresaId, empresaNombre, alCambiarDominio }: { clave: ClavePestanaTienda } & PropsPestanaTienda) {
   // El contenido lo aporta cada historia de la épica en `pestanas/<clave>.tsx` (carga
   // diferida). Hasta que exista, la pestaña se muestra vacía con un aviso del kit.
   const Componente = useMemo(() => {
@@ -30,7 +30,7 @@ function ContenidoPestana({ clave, empresaId, empresaNombre }: { clave: ClavePes
   }
   return (
     <Suspense fallback={<EstadoCargaPagina />}>
-      <Componente empresaId={empresaId} empresaNombre={empresaNombre} />
+      <Componente empresaId={empresaId} empresaNombre={empresaNombre} alCambiarDominio={alCambiarDominio} />
     </Suspense>
   )
 }
@@ -203,7 +203,7 @@ export function GestionTienda() {
       />
       <ContenedorSeccion>
         {errorCambio ? <Box sx={{ mb: 2 }}><Alert severity="error" role="alert" onClose={limpiarError}>{errorCambio}</Alert></Box> : null}
-        <ContenidoPestana clave={clave} empresaId={empresa.id} empresaNombre={empresa.nombre} />
+        <ContenidoPestana clave={clave} empresaId={empresa.id} empresaNombre={empresa.nombre} alCambiarDominio={() => void recargarTienda()} />
       </ContenedorSeccion>
       <Dialog
         open={pendiente !== null}
