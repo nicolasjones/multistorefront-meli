@@ -1,0 +1,12 @@
+version: 1.0.0
+slice_name: Productos y stock
+description: 'Tabla de productos activos con cantidad, mínimo, estado, costo en su moneda y en pesos y valor (F-REP-01, FR-003). Se descarga en CSV tal como se filtró (F-REP-06).'
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "raw", "all_columns": ["producto_nombre", "sku", "categoria", "cantidad", "minimo", "estado_texto", "moneda_costo", "costo", "costo_ars", "valor_ars"], "order_by_cols": ["[\"producto_nombre\", true]"], "row_limit": 10000, "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: c16ffb4b-ae62-4391-a2a0-1224f0d6e234
+version: 1.0.0
+dataset_uuid: 2311d58c-a140-4fd4-b803-aee5dc363024

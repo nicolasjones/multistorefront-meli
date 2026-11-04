@@ -62,6 +62,7 @@ vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: ()
 
 import type { Comprobante } from '../../lib/ventas'
 import { MENSAJE_ERROR_DESPACHO } from '../../lib/ventasDespacho'
+import { MENSAJE_ENVIO_SOLO_LECTURA } from '../../lib/ventasEnvio'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -183,6 +184,24 @@ describe('Detalle · bloque «Envío y transporte» (F-VTA-16)', () => {
     await screen.findByRole('heading', { name: /Presupuesto 00000001/ })
     expect(screen.queryByRole('region', { name: 'Envío y transporte' })).not.toBeInTheDocument()
     expect(mocks.obtenerFormaEnvioDeComprobante).not.toHaveBeenCalled()
+  })
+
+  // MSF-715: tras el cobro la factura pasa a «cobrado»/«deuda». El envío ya cargado se sigue
+  // leyendo (no desaparece del detalle) pero la base ya no lo admite: solo se muestra.
+  it('con la factura cobrada el bloque sigue visible, en solo lectura', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({
+      ...FACTURA,
+      estado: 'cobrado',
+      updated_at: '2026-10-25T10:00:00Z',
+    })
+    render(arbol())
+
+    expect(await screen.findByRole('region', { name: 'Envío y transporte' })).toBeInTheDocument()
+    const transporte = await screen.findByRole('combobox', { name: /Transporte \/ expreso/ })
+    expect(transporte).toHaveAttribute('aria-disabled', 'true')
+    // No se ofrece guardar un envío que la base va a rechazar.
+    expect(screen.queryByRole('button', { name: 'Guardar envío' })).not.toBeInTheDocument()
+    expect(await screen.findByText(MENSAJE_ENVIO_SOLO_LECTURA)).toBeInTheDocument()
   })
 })
 
