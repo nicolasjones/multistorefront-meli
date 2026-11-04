@@ -26,7 +26,8 @@ module.exports = {
       2,
       "always",
       // `spec` lo escribe el Especificador al cerrar la spec; no es un cambio de producto.
-      ["feat", "fix", "docs", "chore", "refactor", "test", "build", "ci", "perf", "style", "revert", "spec"],
+      // `merge` son los commits de integración de la base (p. ej. `merge: dokploy en <rama>`).
+      ["feat", "fix", "docs", "chore", "refactor", "test", "build", "ci", "perf", "style", "revert", "spec", "merge"],
     ],
     "type-empty": [2, "never"],
     "subject-empty": [2, "never"],
