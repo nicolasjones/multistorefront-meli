@@ -262,7 +262,7 @@ Lista **ordenada** de otros productos de la misma organización por producto («
 - **Pruebas**: pgTAP `catalogo_relacionados.test.sql` (orden, autorrelación, duplicado, cruce de organización, aislamiento, `anon`, solo lectura, cascada, evento) y Vitest (`BloqueRelacionados`, `productos-relacionados`, `create`/`edit`). E2E `apps/web/e2e/productos-relacionados.e2e.ts` (buscar, agregar, reordenar, guardar y reabrir; se omite sin el stack local — ver `docs/e2e-app.md`).
 - **Reversión** (migración posterior, no en el mismo PR): `drop function public.guardar_relacionados(uuid, uuid[]); drop view public.v_producto_relacionados; drop table dominio.producto_relacionados;`.
 
-## Variantes (F-CAT-15, MSF-408, migraciones `20270125120000` a `20270125120400`)
+## Variantes (F-CAT-15, MSF-408, migraciones `20270203120200` a `20270203120600`)
 
 Una variante (color, talle, modelo) es una fila de `dominio.producto_variantes` que cuelga de un producto **sin duplicar la ficha**. Contrato en `specs/20270125-100000-catalogo-variantes/contracts/variantes.md`.
 
