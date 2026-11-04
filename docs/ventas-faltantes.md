@@ -114,7 +114,7 @@ chocar con el mismo token vencido. El diálogo sigue abierto con las cantidades 
 | `private.puede_leer_faltantes_empresa(p_empresa_id uuid)` | Ayuda de las políticas de RLS: Ventas al menos en lectura en esa empresa. |
 | `private.resolver_faltantes_al_reanudar()` | Disparador de cierre: resuelve los faltantes abiertos al volver a Armando. |
 
-`listar_faltantes` devuelve, por fila: `id`, `empresa_id`, `empresa`, `cliente`, `producto`, `sku`,
+`listar_faltantes` devuelve, por fila: `id`, `empresa_id`, `empresa`, `cliente`, `producto_id`, `producto`, `sku`,
 `cantidad_faltante`, `linea_orden`, `comprobante_id`, `comprobante`, `fecha`, `desde`, `stock_estado`,
 `stock_disponible` y `filas` (el total del filtro). El contrato de la spec
 (`specs/20261024-130000-ventas-despacho-y-faltantes/contracts/ventas-despacho-y-faltantes.md`) dibuja esa fila con
@@ -162,3 +162,7 @@ migración posterior:
 Los faltantes ya registrados **no se deshacen solos**: son dato nuevo de esta épica (exportarlos antes de borrar la
 tabla). Y los que quedaron registrados dejan la factura en `incompleto`: hay que corregirla desde el despacho
 (reanudar el armado o volver a armarla).
+
+## `producto_id` para la imagen del producto (migración `20270204100000`)
+
+`listar_faltantes` devuelve también `producto_id` (el producto del faltante, el mismo cuyo nombre y SKU ya devolvía) para mostrar su imagen principal como miniatura con zoom, según la regla de listados de la constitución 1.10.0 (`docs/listados.md`). Cambiar las columnas de retorno obliga a recrear la función (`drop function` + `create`, misma firma): sin pérdida de datos, mismas reglas de seguridad. Cubierto por `supabase/tests/database/faltantes.test.sql`.

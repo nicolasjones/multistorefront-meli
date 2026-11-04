@@ -562,6 +562,11 @@ select is(
   'JOY-1', 'el listado trae el SKU del producto');
 
 select is(
+  (select producto_id from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
+  (select producto_id from dominio.faltantes_venta where comprobante_id = pg_temp.id_de('f5')),
+  'el listado trae el producto_id del faltante (para mostrar la imagen principal)');
+
+select is(
   (select cantidad_faltante from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
   2, 'el listado trae la cantidad faltante');
 
