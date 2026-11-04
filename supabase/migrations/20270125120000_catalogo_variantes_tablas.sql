@@ -31,11 +31,11 @@ create table dominio.producto_variantes (
 comment on table dominio.producto_variantes is
   'F-CAT-15: variantes de un producto (nombre libre, código y código de barras propios, Activa/Inactiva, orden). Sin precio propio. Sin DELETE: se desactiva. Escritura por public.guardar_variantes_producto.';
 
-create index producto_variantes_producto_idx on dominio.producto_variantes (organizacion_id, producto_id, orden);
+create index if not exists producto_variantes_producto_idx on dominio.producto_variantes (organizacion_id, producto_id, orden);
 -- Unicidad por organización entre variantes (sin distinguir mayúsculas ni espacios extremos, como el SKU).
-create unique index producto_variantes_org_codigo_uidx
+create unique index if not exists producto_variantes_org_codigo_uidx
   on dominio.producto_variantes (organizacion_id, lower(btrim(codigo)));
-create unique index producto_variantes_org_codigo_barras_uidx
+create unique index if not exists producto_variantes_org_codigo_barras_uidx
   on dominio.producto_variantes (organizacion_id, codigo_barras) where codigo_barras is not null;
 
 -- Normaliza y verifica la unicidad contra los productos (la base es la autoridad).

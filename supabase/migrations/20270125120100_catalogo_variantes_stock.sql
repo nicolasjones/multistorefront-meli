@@ -28,8 +28,8 @@ create table dominio.existencias_variante (
 comment on table dominio.existencias_variante is
   'F-CAT-15: cantidad por variante y depósito. El stock de un producto con variantes es la suma de las activas. Solo la escriben las RPC de stock.';
 
-create index existencias_variante_deposito_idx on dominio.existencias_variante (deposito_id);
-create index existencias_variante_organizacion_idx on dominio.existencias_variante (organizacion_id);
+create index if not exists existencias_variante_deposito_idx on dominio.existencias_variante (deposito_id);
+create index if not exists existencias_variante_organizacion_idx on dominio.existencias_variante (organizacion_id);
 
 alter table dominio.existencias_variante enable row level security;
 
@@ -43,13 +43,13 @@ create policy existencias_variante_select on dominio.existencias_variante
 revoke all on dominio.existencias_variante from public, anon, authenticated;
 grant select on dominio.existencias_variante to authenticated;
 
-alter table dominio.movimientos_stock add column variante_id uuid;
+alter table dominio.movimientos_stock add column if not exists variante_id uuid;
 
 alter table dominio.movimientos_stock
   add constraint movimientos_stock_variante_fk
   foreign key (variante_id, organizacion_id) references dominio.producto_variantes (id, organizacion_id);
 
-create index movimientos_stock_variante_idx on dominio.movimientos_stock (variante_id) where variante_id is not null;
+create index if not exists movimientos_stock_variante_idx on dominio.movimientos_stock (variante_id) where variante_id is not null;
 
 comment on column dominio.movimientos_stock.variante_id is
   'F-CAT-15: variante sobre la que se aplicó el movimiento (nulo en productos sin variantes). Lo fija registrar_movimiento_stock.';
