@@ -4,6 +4,7 @@ import {
   analizarCsv,
   descargarCsv,
   detectarSeparador,
+  erroresDeColumnas,
   escaparCampoCsv,
   generarCsv,
   leerCsvUtf8,
@@ -49,6 +50,44 @@ describe('analizarCsv', () => {
   it('rellena columnas faltantes y recorta los valores', () => {
     const csv = analizarCsv('nombre,documento\n  Uno  \n')
     expect(csv.filas[0].celdas).toEqual(['Uno', ''])
+  })
+
+  it('marca la fila con más columnas que el encabezado y no descarta las celdas sobrantes (MSF-699)', () => {
+    // Export de Excel con punto y coma: la fila trae una celda de más.
+    const csv = analizarCsv('id_externo;nombre\n1;Calle 1, piso 2;extra\n')
+    expect(csv.filas[0].error).toBe('La fila 2 tiene 3 columnas y se esperaban 2')
+    // Nada se descarta: las celdas sobrantes quedan en la fila.
+    expect(csv.filas[0].celdas).toEqual(['1', 'Calle 1, piso 2', 'extra'])
+  })
+
+  it('marca la fila con una coma sin escapar en un valor (MSF-699)', () => {
+    const csv = analizarCsv('id_externo,nombre\n1,Cliente, S.A.\n')
+    expect(csv.filas[0].error).toBe('La fila 2 tiene 3 columnas y se esperaban 2')
+    expect(csv.filas[0].celdas).toEqual(['1', 'Cliente', 'S.A.'])
+  })
+
+  it('no marca la fila cuando las celdas sobrantes están vacías (coma final)', () => {
+    const csv = analizarCsv('id_externo,nombre\n1,Cliente,\n')
+    expect(csv.filas[0].error).toBeUndefined()
+    expect(csv.filas[0].celdas).toEqual(['1', 'Cliente', ''])
+  })
+
+  it('marca la fila cuando una celda vacía precede al dato sobrante y cuenta el ancho real (MSF-699)', () => {
+    const csv = analizarCsv('id_externo,nombre,documento\n1,Cliente,,20300123456\n')
+    expect(csv.filas[0].error).toBe('La fila 2 tiene 4 columnas y se esperaban 3')
+  })
+
+  it('no marca la fila cuando tiene menos columnas que el encabezado', () => {
+    const csv = analizarCsv('id_externo,nombre,documento\n1,Cliente\n')
+    expect(csv.filas[0].error).toBeUndefined()
+  })
+
+  it('devuelve los errores de columna por fila', () => {
+    const csv = analizarCsv('id_externo,nombre\n1,Cliente, S.A.\n2,Otro\n3,Uno, Dos, Tres\n')
+    expect(erroresDeColumnas(csv)).toEqual([
+      { fila: 2, motivo: 'La fila 2 tiene 3 columnas y se esperaban 2' },
+      { fila: 4, motivo: 'La fila 4 tiene 4 columnas y se esperaban 2' },
+    ])
   })
 
   it('nombra las columnas sin encabezado en vez de perderlas', () => {

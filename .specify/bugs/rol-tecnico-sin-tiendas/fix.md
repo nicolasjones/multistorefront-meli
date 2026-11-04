@@ -9,8 +9,7 @@
 
 | File | Change | Notes |
 |------|--------|-------|
-| `supabase/migrations/20270201200200_rol_tecnico_por_empresa.sql` | added | Amplía el CHECK y `private.validar_asignaciones` con `tecnico`. Aditiva; reversión documentada en el encabezado. Esquema `public`, sin tablas nuevas. |
-| `apps/web/src/lib/asignacionesEmpresas.ts` | modified | `ROLES_POR_EMPRESA` incluye `tecnico` para que Usuarios pueda asignarlo. |
+| `supabase/migrations/20270202202000_tecnico_invitable_y_por_empresa.sql` | no tocado | El fix funcional (CHECK y `validar_asignaciones` con `tecnico`) llegó a `dokploy` por MSF-606 (PR #634). La migración propia de este bug era redundante y se eliminó de la rama. |
 | `docs/permisos-por-rol.md` | modified | Documenta la asignación del Técnico a tiendas. |
 | `supabase/tests/database/rol_tecnico_por_empresa.test.sql` | added | pgTAP del flujo completo. |
 

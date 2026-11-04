@@ -2,7 +2,7 @@ import { listarEmpresasSelector } from './empresaActiva'
 import { supabaseClient } from './supabase'
 
 // Asignación de empresas y rol por empresa desde Usuarios (F-ROL-07, FR-015…FR-017).
-// Los seis roles por empresa (el Técnico, MSF-597); `administrador` no es uno de ellos: accede a todas las empresas.
+// Los seis roles por empresa (los cinco originales + Técnico, MSF-606); `administrador` no es uno de ellos: accede a todas las empresas.
 export const ROLES_POR_EMPRESA = ['operador', 'consulta', 'mostrador', 'deposito', 'administracion', 'tecnico'] as const
 
 export type AsignacionEmpresa = { empresa_id: string; rol_id: string }

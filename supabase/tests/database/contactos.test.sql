@@ -5,7 +5,7 @@
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, como «authenticated» o «anon».
 begin;
 
-select plan(54);
+select plan(55);
 
 -- Devuelve el DETAIL del 23505 de crear_contacto (pgTAP no lo expone).
 create function pg_temp.detalle_duplicado(p_correo text) returns text language plpgsql as $f$
