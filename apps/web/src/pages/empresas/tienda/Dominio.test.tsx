@@ -131,7 +131,8 @@ describe('Dominio · estado y tabla de registros (FR-001, FR-004, FR-005, FR-007
     render(<MemoryRouter><PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" /></MemoryRouter>)
 
     expect(await screen.findByText('No pudimos cargar el dominio de la tienda.')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    const seccion = within(screen.getByRole('region', { name: 'Dominio' }))
+    fireEvent.click(seccion.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByLabelText('Dominio principal')).toHaveValue('mundojc.com.ar')
   })
 
@@ -151,7 +152,8 @@ describe('Dominio · «Verificar ahora» (FR-006, FR-010, FR-011)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Verificar ahora' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Verificando registros DNS…')
+    const seccion = within(screen.getByRole('region', { name: 'Dominio' }))
+    expect(await seccion.findByRole('alert')).toHaveTextContent('Verificando registros DNS…')
     expect(screen.getByRole('button', { name: 'Verificar ahora' })).toBeDisabled()
     expect(mocks.verificar).toHaveBeenCalledWith('e-1')
 
