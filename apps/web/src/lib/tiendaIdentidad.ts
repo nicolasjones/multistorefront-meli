@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { guardarBorrador, obtenerBorrador, rutasSinReferencia } from './tiendaBorrador'
 
 // F-TDA-02 (MSF-266): identidad visual de la tienda online (colores, tipografías, logo y banners).
 // La base repite estas reglas (checks de color/tipografía, bucket `tienda-identidad`, RPC): acá se
@@ -214,8 +215,9 @@ const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fon
 
 export type IdentidadDeEmpresa = { organizacionId: string; identidad: IdentidadTienda }
 
-// Identidad guardada de una empresa para la gestión (RLS: solo la organización de la sesión). Sin fila
-// devuelve el tema base. La empresa se lee aparte porque da la carpeta (organización) de los archivos.
+// Identidad de una empresa para la gestión: el borrador si existe para esta área (F-TDA-06, FR-051), si no la
+// publicada (RLS: solo la organización de la sesión). Sin fila devuelve el tema base. La empresa se lee aparte
+// porque da la carpeta (organización) de los archivos.
 export async function leerIdentidadDeEmpresa(empresaId: string): Promise<IdentidadDeEmpresa> {
   const { data: empresa, error: errorEmpresa } = await supabaseClient
     .schema('dominio')
@@ -225,6 +227,11 @@ export async function leerIdentidadDeEmpresa(empresaId: string): Promise<Identid
     .maybeSingle<{ organizacion_id: string }>()
   if (errorEmpresa) throw new Error(errorEmpresa.message)
   if (!empresa) throw new Error('La empresa no existe')
+
+  const borrador = await obtenerBorrador(empresaId)
+  if (borrador.identidad) {
+    return { organizacionId: empresa.organizacion_id, identidad: desdeFila(borrador.identidad as unknown as FilaIdentidad) }
+  }
 
   const { data, error } = await supabaseClient
     .schema('dominio')
@@ -236,22 +243,21 @@ export async function leerIdentidadDeEmpresa(empresaId: string): Promise<Identid
   return { organizacionId: empresa.organizacion_id, identidad: data ? desdeFila(data) : IDENTIDAD_BASE }
 }
 
-// «Guardar»: estado completo por la RPC (idempotente). Devuelve lo que quedó guardado.
+// «Guardar»: el estado completo va al borrador (F-TDA-06): la tienda pública no cambia hasta publicar.
+// Devuelve lo que quedó guardado.
 export async function guardarIdentidad(empresaId: string, identidad: IdentidadTienda): Promise<IdentidadTienda> {
-  const { data, error } = await supabaseClient.rpc('guardar_tienda_identidad', {
-    p_empresa_id: empresaId,
-    p_color_primario: identidad.colorPrimario,
-    p_color_primario_oscuro: identidad.colorPrimarioOscuro,
-    p_color_acento: identidad.colorAcento,
-    p_color_fondo: identidad.colorFondo,
-    p_tipografia_titulos: identidad.tipografiaTitulos,
-    p_tipografia_texto: identidad.tipografiaTexto,
-    p_logo_ruta: identidad.logoRuta,
-    p_banner_ruta: identidad.bannerRuta,
-    p_banner_movil_ruta: identidad.bannerMovilRuta,
+  await guardarBorrador(empresaId, 'identidad', {
+    color_primario: identidad.colorPrimario,
+    color_primario_oscuro: identidad.colorPrimarioOscuro,
+    color_acento: identidad.colorAcento,
+    color_fondo: identidad.colorFondo,
+    tipografia_titulos: identidad.tipografiaTitulos,
+    tipografia_texto: identidad.tipografiaTexto,
+    logo_ruta: identidad.logoRuta,
+    banner_ruta: identidad.bannerRuta,
+    banner_movil_ruta: identidad.bannerMovilRuta,
   })
-  if (error) throw new Error(error.message)
-  return desdeFila(data as FilaIdentidad)
+  return identidad
 }
 
 export async function subirImagen(ruta: string, archivo: File): Promise<void> {
@@ -260,9 +266,21 @@ export async function subirImagen(ruta: string, archivo: File): Promise<void> {
 }
 
 // Limpieza de archivos que ya no se usan. No interrumpe: un huérfano no rompe nada, solo ocupa lugar.
-export async function borrarImagenes(rutas: string[]): Promise<void> {
+// Con `empresaId` solo borra los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
+// los archivos reemplazados pueden seguir en uso por la tienda en línea o por una versión anterior.
+export async function borrarImagenes(rutas: string[], empresaId?: string): Promise<void> {
   if (rutas.length === 0) return
-  const { error } = await supabaseClient.storage.from(BUCKET_IDENTIDAD).remove(rutas)
+  let aBorrar = rutas
+  if (empresaId) {
+    try {
+      aBorrar = await rutasSinReferencia(empresaId, rutas)
+    } catch (error) {
+      console.error('No se pudo comprobar qué archivos de identidad siguen en uso', error instanceof Error ? error.message : error)
+      return
+    }
+  }
+  if (aBorrar.length === 0) return
+  const { error } = await supabaseClient.storage.from(BUCKET_IDENTIDAD).remove(aBorrar)
   if (error) console.error('No se pudieron borrar archivos de identidad sin uso', error.message)
 }
 

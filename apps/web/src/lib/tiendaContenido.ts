@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { ErrorBorrador, guardarBorrador, obtenerBorrador } from './tiendaBorrador'
 
 // F-TDA-03 (MSF-294): contenido y textos comerciales de la tienda. La base es la fuente de verdad
 // de los límites (dominio.tienda_contenido, D5); acá se espejan solo para avisar por campo antes de
@@ -100,9 +101,12 @@ function aContenido(fila: FilaContenido | null | undefined): ContenidoTienda {
 
 const COLUMNAS = 'titulo, subtitulo, texto_boton, boton_destino, bienvenida, pie, aviso_ficha, texto_boton_contacto'
 
-// Contenido guardado de la empresa para la gestión. RLS de dominio.tienda_contenido: solo la
-// organización de la sesión. Sin fila = todo vacío (la tienda no muestra textos opcionales).
+// Contenido de la empresa para la gestión: el borrador si existe para esta área (F-TDA-06, FR-051), si no el
+// publicado. RLS de dominio.tienda_contenido: solo la organización de la sesión. Sin fila = todo vacío (la
+// tienda no muestra textos opcionales).
 export async function leerContenido(empresaId: string): Promise<ContenidoTienda> {
+  const borrador = await obtenerBorrador(empresaId)
+  if (borrador.contenido) return aContenido(borrador.contenido)
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('tienda_contenido')
@@ -126,23 +130,16 @@ export class ErrorGuardadoContenido extends Error {
   }
 }
 
-// «Guardar» aplica de inmediato a la tienda pública (FR-035). Idempotente en la base.
+// «Guardar» deja los textos en el borrador (FR-051): la tienda pública no cambia hasta publicar. La base
+// valida con las mismas reglas de siempre y el `hint` nombra el campo.
 export async function guardarContenido(empresaId: string, valores: ContenidoTienda): Promise<ContenidoTienda> {
-  const { data, error } = await supabaseClient.rpc('guardar_tienda_contenido', {
-    p_empresa_id: empresaId,
-    p_titulo: valores.titulo,
-    p_subtitulo: valores.subtitulo,
-    p_texto_boton: valores.texto_boton,
-    p_boton_destino: valores.boton_destino,
-    p_bienvenida: valores.bienvenida,
-    p_pie: valores.pie,
-    p_aviso_ficha: valores.aviso_ficha,
-    p_texto_boton_contacto: valores.texto_boton_contacto,
-  })
-  if (error) {
-    throw new ErrorGuardadoContenido(error.message, (error as { hint?: string | null }).hint)
+  try {
+    await guardarBorrador(empresaId, 'contenido', { ...valores })
+  } catch (error) {
+    if (error instanceof ErrorBorrador) throw new ErrorGuardadoContenido(error.message, error.campo)
+    throw error
   }
-  return aContenido(data as FilaContenido)
+  return aContenido(valores)
 }
 
 // publico.contenido_por_dominio es ejecutable por anon: no hace falta sesión. Cero filas
