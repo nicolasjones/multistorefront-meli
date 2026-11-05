@@ -14,6 +14,8 @@ import { EVENTO_PUBLICACION } from './Publicacion'
 // cargar una anterior como borrador (no publica). Va después de «Publicación» y antes de la vista previa.
 export const orden = 25
 
+const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
+
 type Aviso = { severidad: 'success' | 'info' | 'error'; texto: string }
 
 function SeccionVersiones({ empresaId, alAbrirDialogo, avisoInicial }: PropsPestanaTienda & {
@@ -95,7 +97,7 @@ function SeccionVersiones({ empresaId, alAbrirDialogo, avisoInicial }: PropsPest
                   <TableCell>Fecha</TableCell>
                   <TableCell>Por</TableCell>
                   <TableCell>Cambios</TableCell>
-                  <TableCell><Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Acciones</Box></TableCell>
+                  <TableCell><Box component="span" sx={visuallyHidden}>Acciones</Box></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

@@ -78,6 +78,9 @@ do $$ begin
     '{"categorias":[],"productos":[{"id":"a1000000-0000-0000-0000-000000000001","visible":false,"destacado":false},{"id":"a1000000-0000-0000-0000-000000000003","visible":false,"destacado":false}]}'::jsonb);
   perform public.publicar_tienda('e1000000-0000-0000-0000-000000000001');
   perform public.guardar_borrador_tienda('e1000000-0000-0000-0000-000000000001', 'identidad', pg_temp.ident('#00FF00'));
+  -- La v3 también destaca el Joystick: lo publicado difiere de la v2 y restaurarla sí deja catálogo en el borrador.
+  perform public.guardar_borrador_tienda('e1000000-0000-0000-0000-000000000001', 'catalogo',
+    '{"categorias":[],"productos":[{"id":"a1000000-0000-0000-0000-000000000001","visible":false,"destacado":true},{"id":"a1000000-0000-0000-0000-000000000003","visible":false,"destacado":false}]}'::jsonb);
   perform public.publicar_tienda('e1000000-0000-0000-0000-000000000001');
 end $$;
 
