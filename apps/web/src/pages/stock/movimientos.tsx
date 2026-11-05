@@ -14,6 +14,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { renderOpcionProducto } from '../../components/base/OpcionProducto'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useImagenesProductos } from '../../hooks/useImagenesProductos'
@@ -187,6 +188,9 @@ export function MovimientosStock() {
 
   const listado = useListadoAcumulado({ items: movimientos ?? SIN_FILAS, pagina, setPagina, total, cargando, reinicio: productoId })
   const imagenes = useImagenesProductos(listado.filas.map((fila) => fila.producto_id))
+  // Imágenes de las opciones solo mientras el desplegable está abierto (el catálogo puede ser largo).
+  const [desplegableAbierto, setDesplegableAbierto] = useState(false)
+  const imagenesOpciones = useImagenesProductos(desplegableAbierto ? productos.map((opcion) => opcion.id) : [])
   const columnas = useMemo(() => columnasMovimientos(imagenes), [imagenes])
   const falloTanda = hayError && pagina > 1
 
@@ -208,6 +212,9 @@ export function MovimientosStock() {
               options={productos}
               value={opcionActual}
               getOptionLabel={etiquetaProducto}
+              onOpen={() => setDesplegableAbierto(true)}
+              onClose={() => setDesplegableAbierto(false)}
+              renderOption={renderOpcionProducto<OpcionProducto>(imagenesOpciones)}
               isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
               onChange={(_, nueva) => {
                 setProductoId(nueva?.id ?? '')

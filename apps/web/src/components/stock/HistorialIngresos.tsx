@@ -11,6 +11,7 @@ import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { MiniaturaProducto } from '../base/MiniaturaProducto'
+import { renderOpcionProducto } from '../base/OpcionProducto'
 import { CargaInfinita } from '../pagina/CargaInfinita'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useImagenesProductos } from '../../hooks/useImagenesProductos'
@@ -100,6 +101,7 @@ export function HistorialIngresos({ revision }: Props) {
     reinicio: [desde, hasta, proveedorId, empresaId, productoId, operadorId],
   })
   const imagenes = useImagenesProductos(listado.filas.map((fila) => fila.producto_id))
+  const imagenesOpciones = useImagenesProductos(productos.opciones.map((opcion) => opcion.id))
   const falloTanda = hayError && pagina > 1
 
   // Lo que cambia filas (un ingreso nuevo, una anulación) recarga desde la primera tanda.
@@ -226,6 +228,7 @@ export function HistorialIngresos({ revision }: Props) {
           onClose={() => productos.buscar('')}
           onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto); else if (motivo === 'clear') productos.buscar('') }}
           getOptionLabel={etiquetaProducto}
+          renderOption={renderOpcionProducto<ProductoOpcion>(imagenesOpciones)}
           isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
           onChange={(_, nueva) => cambiarFiltro(() => { setProductoElegido(nueva); setProductoId(nueva?.id ?? ''); productos.buscar('') })}
           noOptionsText={productos.error ? 'No pudimos buscar productos. Probá de nuevo.' : 'Sin productos'}
