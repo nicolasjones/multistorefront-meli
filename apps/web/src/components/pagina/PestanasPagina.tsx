@@ -6,7 +6,13 @@ type Pestana = { etiqueta: string; to: string }
 // hermanas ya existentes, como los `<a href>` del diseño. No agregan secciones.
 export function PestanasPagina({ pestanas, etiqueta }: { pestanas: Pestana[]; etiqueta?: string }) {
   const pathname = typeof window === 'undefined' ? '' : window.location.pathname
-  const activa = pestanas.findIndex((pestana) => pathname === pestana.to || pathname.startsWith(`${pestana.to}/`))
+  // Gana la coincidencia MÁS específica: la primera pestaña suele ser la ruta base (p. ej. `/rentabilidad`), que es prefijo de
+  // todas las demás; con `findIndex` quedaba siempre marcada como activa.
+  const activa = pestanas.reduce((mejor, pestana, indice) => {
+    const coincide = pathname === pestana.to || pathname.startsWith(`${pestana.to}/`)
+    if (!coincide) return mejor
+    return mejor === -1 || pestana.to.length > pestanas[mejor].to.length ? indice : mejor
+  }, -1)
 
   return (
     <Tabs

@@ -60,6 +60,11 @@ navegar. Reutiliza `AltaCliente` y `EdicionCliente` (de `pages/clientes/create.t
 recarga y muestra el aviso. Las rutas `/clientes/create` y `/clientes/edit/:id` siguen existiendo (la ficha enlaza a la
 edición) y su «Cancelar» vuelve a la ficha o al listado.
 
+### Pestañas de pantalla
+
+`PestanasPagina` marca como activa la pestaña cuya ruta coincide con la **más larga** (más específica). La primera pestaña suele
+ser la ruta base (`/rentabilidad`), prefijo de todas las demás; con la primera coincidencia quedaba siempre seleccionada.
+
 ## Excepciones
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
