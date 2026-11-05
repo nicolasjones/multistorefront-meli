@@ -4,8 +4,8 @@ import { ProveedorTemaTienda } from '../../tema/ProveedorTemaTienda'
 import { contrasteBlancoSobre, urlFuentes, urlPublica } from '../../lib/tiendaIdentidad'
 import type { MarcaTiendaPausada } from '../../lib/tiendaEstado'
 
-const TEXTO_OSCURO = '#1A1A1A'
-const TEXTO_CLARO = '#FFFFFF'
+const TEXTO_OSCURO = '#1A1A1A' // estilos-sueltos: ok: texto sobre la marca de la tienda, fuera del tema del panel
+const TEXTO_CLARO = '#FFFFFF' // estilos-sueltos: ok: texto sobre la marca de la tienda, fuera del tema del panel
 
 // Texto legible sobre el fondo de la tienda: blanco si el fondo es oscuro (el texto blanco alcanza AA).
 function colorTextoSobre(fondo: string): string {

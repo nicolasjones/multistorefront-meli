@@ -20,7 +20,7 @@ insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
 
 -- A tiene identidad propia con logo; B no tiene fila (tema base).
 insert into dominio.tienda_identidad (empresa_id, organizacion_id, color_primario, color_fondo, tipografia_titulos, tipografia_texto, logo_ruta) values
-  ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '#AA1111', '#FAF7F0', 'Playfair Display', 'Lato', 'org/a/logo.png');
+  ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '#AA1111', '#FAF7F0', 'Playfair Display', 'Lato', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/logo.png');
 
 create temp table res (clave text primary key, j jsonb);
 grant all on res to anon;
