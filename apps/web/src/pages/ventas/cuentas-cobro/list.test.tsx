@@ -87,19 +87,38 @@ describe('CuentasCobroList', () => {
     expect(screen.queryByText('c-1')).not.toBeInTheDocument()
   })
 
-  it('el recuento y la paginación dicen «1–10 de N» y pasan de página en el servidor', () => {
-    mocks.useListarCuentasCobro.mockReturnValue(respuesta([cuenta(1)], { total: 23 }))
+  it('el recuento se conserva y «Cargar más» pide la tanda siguiente al servidor y la suma', () => {
+    // Arreglos estables: el hook de datos real también entrega la misma referencia entre renders.
+    const tandas = [[cuenta(1)], [cuenta(2)]]
+    mocks.useListarCuentasCobro.mockImplementation(({ pagina }: { pagina: number }) => respuesta(tandas[pagina - 1], { total: 3 }))
     abrir()
-    expect(screen.getByText('23 cuentas')).toBeInTheDocument()
-    expect(screen.getByText('1–10 de 23')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.getByText('3 cuentas')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getByText('Cuenta 1')).toBeInTheDocument()
+    expect(screen.getByText('Cuenta 2')).toBeInTheDocument()
+  })
+
+  it('cambiar el estado reinicia desde la primera tanda', () => {
+    const tandas = [[cuenta(1)], [cuenta(2)]]
+    const filtradas = [cuenta(9)]
+    mocks.useListarCuentasCobro.mockImplementation(({ pagina, estado }: { pagina: number; estado: string }) => (
+      estado === 'activas' ? respuesta(filtradas, { total: 1 }) : respuesta(tandas[pagina - 1], { total: 3 })
+    ))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Cuenta 2')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Activas' }))
+    expect(ultimosFiltros()).toMatchObject({ estado: 'activas', pagina: 1 })
+    expect(screen.getByText('Cuenta 9')).toBeInTheDocument()
+    expect(screen.queryByText('Cuenta 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cuenta 2')).not.toBeInTheDocument()
   })
 
   it('el filtro Tienda ofrece «Todas las tiendas» y una por empresa, y vuelve a la página 1', () => {
     mocks.useListarCuentasCobro.mockReturnValue(respuesta([cuenta(1)], { total: 23 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
     fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
     expect(mocks.elegirEmpresa).toHaveBeenCalledWith('e-2')

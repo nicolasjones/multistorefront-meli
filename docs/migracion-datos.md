@@ -19,6 +19,14 @@ El informe de conciliación, el ensayo y el plan de corte están en [migracion-i
   vínculos; una fila ya aplicada en la misma carga se omite, no se re-procesa.
 - **Documento duplicado** (DNI/CUIT ya existente en la organización) **sí es error de fila**:
   no se importa y se informa con número de fila y motivo.
+- **Celdas de más (MSF-699):** una fila con **más valores que columnas** tiene los datos
+  corridos (típico: una coma sin escapar en un export de Excel). El navegador **no descarta
+  las celdas sobrantes**: marca la fila con error («La fila 12 tiene 4 columnas y se esperaban
+  3»), la muestra en el **resumen del mapeo** («N con columnas de más») y en la vista previa
+  («filas con error»), y **no la importa**. Las celdas sobrantes **vacías** (una coma final) se
+  toleran: no corren datos. Como esas filas se rechazan en el navegador (no viajan a la base),
+  el **informe de conciliación cuenta las filas que se procesaron**, no las del archivo: las
+  excluidas aparecen como error en el resultado del asistente, con su motivo.
 
 ## Registro y cierre
 
@@ -81,3 +89,9 @@ cargados y el catálogo de productos cargado por Catálogo).
   CSV/Excel; hasta entonces las plantillas son el contrato del archivo.
 - Empresa activa: no aplica filtrado por empresa (los proveedores son de la organización); la
   pantalla lo declara y el cambio de empresa no altera la carga (test de F-MIG-01).
+
+## Errores de base en la UI (MSF-702)
+
+`lib/mensajeErrorBase.ts` (`mensajeDeErrorBase`) traduce el error de base a un mensaje en castellano por `code`
+y nunca muestra el `message` crudo. En consola registra solo el `code` (no el objeto): `details`/`hint` de
+PostgREST pueden traer datos de la fila (PII).

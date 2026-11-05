@@ -1,5 +1,7 @@
-import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material'
+import { Box, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { type FilaPrevia, formatearPesosPrecio } from '../../lib/precios'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 
 type Props = {
@@ -25,6 +27,7 @@ function Importe({ valor, fuerte, motivo = SIN_PRECIO }: { valor: number | null;
 // «Así quedan los precios» (F-PRE-07, FR-013): muestra de productos con el precio central y el
 // neto de la empresa (o su final con IVA, F-PRE-12). Todo el cálculo viene del servidor (vista previa), con el ajuste sin guardar.
 export function TablaAsiQuedan({ nombreEmpresa, mostrarConIva, filas, cargando, hayError, ajusteInvalido, reintentar }: Props) {
+  const imagenes = useImagenesProductos((filas ?? []).map((fila) => fila.productoId))
   let cuerpo
   if (hayError) cuerpo = <EstadoError descripcion="No pudimos calcular la vista previa de precios." reintentar={reintentar} />
   else if (ajusteInvalido) cuerpo = <EstadoVacio titulo="Corregí el ajuste" descripcion="La tabla se actualiza cuando el ajuste es válido." />
@@ -45,10 +48,15 @@ export function TablaAsiQuedan({ nombreEmpresa, mostrarConIva, filas, cargando, 
             {filas.map((fila) => (
               <TableRow key={fila.productoId}>
                 <TableCell>
-                  <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>{fila.nombre}</Typography>
-                  <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    {fila.sku ? `${fila.sku} · ` : ''}{fila.moneda}
-                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <MiniaturaProducto alt="" src={imagenes.get(fila.productoId)} />
+                    <span>
+                      <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>{fila.nombre}</Typography>
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        {fila.sku ? `${fila.sku} · ` : ''}{fila.moneda}
+                      </Typography>
+                    </span>
+                  </Stack>
                 </TableCell>
                 <TableCell align="right"><Importe valor={fila.centralArs} /></TableCell>
                 <TableCell align="right"><Importe

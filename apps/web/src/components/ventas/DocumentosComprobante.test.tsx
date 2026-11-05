@@ -56,12 +56,16 @@ function Pantalla({ c, puedeImprimir = true, puedeEnviar = false, empresa }: { c
   )
 }
 
+// Pestaña que `window.open('', '_blank')` abre en el clic (MSF-722); la URL se le asigna al estar listo el PDF.
+let ventana: { opener: null; closed: boolean; close: ReturnType<typeof vi.fn>; location: { href: string } }
+
 const generado = { id: 'd-1', estado: 'generado', ruta: 'o/e/k/d-1.pdf' }
 
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
-  vi.spyOn(window, 'open').mockImplementation(() => ({ opener: null }) as Window)
+  ventana = { opener: null, closed: false, close: vi.fn(), location: { href: '' } }
+  vi.spyOn(window, 'open').mockImplementation(() => ventana as unknown as Window)
   mocks.urlFirmadaDocumento.mockResolvedValue('https://storage/doc.pdf')
   mocks.ultimasImpresiones.mockResolvedValue({})
   mocks.listarEnviosCorreo.mockResolvedValue([])
@@ -152,6 +156,34 @@ describe('DocumentosComprobante (F-VTA-19)', () => {
     expect(await screen.findByText('Enviado a imprimir')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(mocks.solicitarDocumento).toHaveBeenCalledWith('k-1', 'remito')
+    // MSF-722: la pestaña se abre en blanco en el clic y recién después recibe la URL del PDF.
+    expect(window.open).toHaveBeenCalledWith('', '_blank')
+    expect(ventana.location.href).toBe('https://storage/doc.pdf')
+  })
+
+  it('si el navegador bloquea la pestaña no registra la impresión hasta que se abre el enlace (MSF-722)', async () => {
+    vi.mocked(window.open).mockReturnValue(null)
+    mocks.solicitarDocumento.mockResolvedValue(generado)
+    render(<Pantalla c={comprobante()} empresa="e-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir remito' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Imprimir', hidden: false }))
+    const enlace = await screen.findByRole('link', { name: 'Abrir documento' })
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
+    expect(screen.queryByText('Enviado a imprimir')).not.toBeInTheDocument()
+
+    fireEvent.click(enlace)
+    await waitFor(() => expect(mocks.registrarImpresion).toHaveBeenCalledWith('d-1'))
+    expect(mocks.registrarImpresion).toHaveBeenCalledTimes(1)
+    expect(await screen.findByText('Enviado a imprimir')).toBeInTheDocument()
+  })
+
+  it('si falla el documento cierra la pestaña en blanco y no registra la impresión (MSF-722)', async () => {
+    mocks.solicitarDocumento.mockRejectedValue(new Error('sin red'))
+    render(<Pantalla c={comprobante()} empresa="e-1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir remito' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Imprimir', hidden: false }))
+    await waitFor(() => expect(ventana.close).toHaveBeenCalled())
+    expect(mocks.registrarImpresion).not.toHaveBeenCalled()
   })
 
   it('una factura sin confirmar no ofrece imprimir y explica el motivo', () => {

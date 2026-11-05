@@ -378,6 +378,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - La política SELECT de `public.cuentas_cliente` filtra además por `private.empresas_accesibles()` (migración `20261211100300`); reversión: recrearla sin ese filtro.
 - «Habilitar/Deshabilitar en <tienda>» relee `clientes_empresas` antes de llamar a `guardar_empresas_de_cliente`, para no pisar cambios de otro operador.
 - Editar un cliente con estados mixtos (una tienda activa, otra suspendida): si el operador no cambia el campo «Cuenta web», no se reactiva ni suspende ninguna cuenta existente (solo se crean las de tiendas nuevas); únicamente cambiar el campo transiciona (`aplicarCuentaWebEnTiendas(..., estadoPrevio)`).
+- Si falla la lectura de las cuentas web existentes al guardar (MSF-694), `aplicarCuentaWebEnTiendas` no lanza: devuelve `errores = N tiendas`. El alta ya creó el cliente, así que sigue a la ficha con «Cliente creado · no se pudo crear la cuenta web en N tiendas» y no vuelve al formulario (reintentar duplicaría el cliente).
 - `exportar_clientes` con «Con cuenta web» filtra por `private.empresas_accesibles()`, como `buscar_clientes` por RLS. La columna «Cuenta web» del listado (`cuentas_web`) solo incluye tiendas donde el cliente sigue habilitado, igual que la ficha (FR-002).
 - `invitar-cliente` crea el usuario de Auth con `createUser` y envía el enlace recién después de `vincular_cuenta_cliente` (ya no `inviteUserByEmail`): si vincular falla no queda un correo de invitación muerto.
 
@@ -404,6 +405,10 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 | D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
+
+## Reparaciones del cliente (F-SVC-15, MSF-429)
+
+La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
 
 ## Clientes inactivos (F-CLI-16, MSF-400 · épica MSF-171)
 
@@ -440,3 +445,14 @@ oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada
 `cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
 `docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
 (aditiva; reversión en su encabezado).
+
+## Listados con carga infinita (Principio VI)
+
+Los listados de Clientes dejaron la paginación numerada: cada pantalla sigue pidiendo «la página N» a su RPC y
+`useListadoAcumulado` suma cada tanda a las anteriores; al pie, `CargaInfinita` (scroll + «Cargar más»). Buscar, filtrar
+o cambiar de tienda vuelve a la primera tanda; el contador total, las exportaciones (usan los filtros, no lo cargado) y la
+selección no cambian. Si falla una tanda posterior se conserva lo cargado y el error se muestra al pie con «Reintentar».
+
+- Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
+  «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
+- Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.

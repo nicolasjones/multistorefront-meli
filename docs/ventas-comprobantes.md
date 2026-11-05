@@ -108,6 +108,16 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
 
+**Origen y líneas sin stock (F-SVC-13, `20270121120100_comprobantes_origen.sql` y
+`20270121120200_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
+`origen_id` (solo los escribe la RPC `generar_comprobante_reparacion`; índice único parcial: un comprobante
+vigente por origen) y `dominio.comprobantes_venta_lineas` suma `sin_stock`: la línea **no mueve stock** (ni
+descuento, ni reserva, ni devolución al anular o emitir una nota de crédito) y por eso admite `producto_id`,
+`deposito_id` y `escala` nulos. Editar las líneas de catálogo conserva las `sin_stock` y las suma a los totales;
+en pantalla se ven en solo lectura, con la marca «No descuenta stock». `obtener_comprobante` expone el origen
+(`origen_tipo`, `origen_id`, `origen_numero`) y la marca por línea, de forma aditiva. Detalle en
+[service-cobro.md](service-cobro.md).
+
 RLS vigente en el comprobante y en las líneas: `select` por organización y sección `ventas`
 (`lectura`/`edicion`). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC
 `security definer`. `anon` sin acceso.
@@ -291,3 +301,11 @@ aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para q
 cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de líneas rotula
 «escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
 «Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
+
+## Costo y cotización por línea (F-REN-09)
+
+`confirmar_comprobante` guarda en cada línea `costo_unitario` (costo en pesos por unidad) y `cotizacion` (dólar vigente) al confirmar, una sola vez: reconfirmar o cambiar el costo después no los mueve. Las notas de crédito copian el costo de la línea original. Detalle y vista `analitica.rentabilidad_ventas_real` en `docs/rentabilidad.md`.
+
+## Carga infinita e imagen en las líneas
+
+La lista de Presupuestos pasa a carga infinita (ver `ventas-listado-comprobantes.md`). En el detalle del comprobante, la tabla de **Líneas** muestra la imagen principal del producto (`producto_id`) como miniatura 40×40 con zoom al pasar el mouse (`MiniaturaProducto` + `useImagenesProductos`) junto al nombre; las líneas `sin_stock` (de Service) no tienen producto y no llevan miniatura.

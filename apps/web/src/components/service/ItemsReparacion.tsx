@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Alert,
   Box,
@@ -21,7 +21,9 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { formatearARS } from '../../lib/serviceTecnico'
 import { MarcaStockItem } from './MarcaStockItem'
 import { mensajeDeErrorItem, quitarItem } from '../../lib/reparacionItems'
@@ -34,6 +36,8 @@ type Props = {
   onAgregarManoObra: () => void
   onAgregarRepuesto: () => void
   onActualizada: (reparacion: Reparacion, mensaje: string) => void
+  // Acción de cobro junto al «Total al cliente» (F-SVC-13: «Generar comprobante»); la decide la pantalla.
+  accionTotal?: ReactNode
 }
 
 // La épica manda sobre el prototipo: el descuento ocurre al agregar, no al marcar Entregado (FR-009).
@@ -68,6 +72,8 @@ type TablaProps = {
 }
 
 function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, subtotal, puedeEditar, conSku, conDeposito = false, onQuitar }: TablaProps) {
+  // Solo los repuestos vinculados al catálogo (`producto_id`) tienen imagen; la mano de obra no.
+  const imagenes = useImagenesProductos(conSku ? items.map((item) => item.producto_id) : [])
   const columnas = 4 + (conDeposito ? 1 : 0) + (puedeEditar ? 1 : 0)
   return (
     <TableContainer>
@@ -93,12 +99,17 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
             items.map((item) => (
               <TableRow key={item.id}>
                 <TableCell sx={{ overflowWrap: 'anywhere' }}>
-                  {item.descripcion}
-                  {conSku && item.sku ? (
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {`SKU ${item.sku}`}
-                    </Typography>
-                  ) : null}
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    {conSku && item.producto_id ? <MiniaturaProducto alt="" src={imagenes.get(item.producto_id)} /> : null}
+                    <span>
+                      {item.descripcion}
+                      {conSku && item.sku ? (
+                        <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {`SKU ${item.sku}`}
+                        </Typography>
+                      ) : null}
+                    </span>
+                  </Stack>
                 </TableCell>
                 {conDeposito ? (
                   <TableCell>
@@ -148,7 +159,7 @@ function FilaResumen({ etiqueta, valor, fuerte }: { etiqueta: string; valor: str
 
 // Sección «Mano de obra y repuestos» del detalle (F-SVC-06, FR-027): dos tablas con subtotales y el resumen con el
 // Total al cliente (copiable). La Ganancia estimada, solo con `ver_costos`, va junto a la tarjeta «Costo interno».
-export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, onAgregarRepuesto, onActualizada }: Props) {
+export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, onAgregarRepuesto, onActualizada, accionTotal }: Props) {
   const [aQuitar, setAQuitar] = useState<ItemReparacion | null>(null)
   const [quitando, setQuitando] = useState(false)
   const [errorQuitar, setErrorQuitar] = useState<string | null>(null)
@@ -229,6 +240,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
             <FilaResumen etiqueta="Repuestos" valor={formatearARS(reparacion.total_repuestos)} />
             <FilaResumen etiqueta="Total al cliente" valor={formatearARS(reparacion.total_cliente)} fuerte />
             <Typography variant="caption" color="text.secondary">Importes en pesos, sin IVA.</Typography>
+            {accionTotal ?? null}
           </Stack>
         </Stack>
       </CardContent>

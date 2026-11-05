@@ -15,7 +15,7 @@ export const CANALES_VENTA: ReadonlyArray<{ valor: CanalVenta; etiqueta: string 
   { valor: 'tienda_online', etiqueta: 'Tienda online' },
   { valor: 'telefono_whatsapp', etiqueta: 'Teléfono/WhatsApp' },
 ]
-export const AYUDA_CANAL_ML = 'Mercado Libre queda para la Etapa 2.'
+export const AYUDA_CANAL_ML = 'Mercado Libre no está disponible todavía como canal.'
 
 export const ETIQUETA_TIPO: Readonly<Record<TipoComprobante, string>> = { factura: 'Factura', presupuesto: 'Presupuesto' }
 
@@ -43,6 +43,10 @@ export type Comprobante = {
   operador: string
   forma_pago_id: string | null
   envio_id: string | null
+  // F-SVC-13: de qué documento nació el comprobante (hoy solo una reparación de Service). Solo lectura.
+  origen_tipo?: 'reparacion' | null
+  origen_id?: string | null
+  origen_numero?: string | null
   lineas: LineaComprobante[]
   total_sin_iva: number
   iva: number
