@@ -62,7 +62,7 @@ edición) y su «Cancelar» vuelve a la ficha o al listado.
 
 ### Pestañas de pantalla
 
-`PestanasPagina` marca como activa la pestaña cuya ruta coincide con la **más larga** (más específica). La primera pestaña suele
+`PestanasPagina` marca como activa la pestaña cuya ruta coincide con la **más larga** (más específica). Dentro del router de la app, cambiar de pestaña es **navegación interna** (`Link` de react-router): no recarga la aplicación, se conservan el menú, la barra superior y el estado, y solo cambia el contenido. Fuera de un router (pruebas aisladas) son enlaces comunes. La primera pestaña suele
 ser la ruta base (`/rentabilidad`), prefijo de todas las demás; con la primera coincidencia quedaba siempre seleccionada.
 
 ## Excepciones
