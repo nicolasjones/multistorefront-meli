@@ -28,15 +28,15 @@ cantidad declarada.
 
 ## Sharding de la suite web
 
-El job `web` es el 80 % del tiempo del CI y corre en 3 shards. El flag tiene que
+El job `web` es el 80 % del tiempo del CI y corre en 6 shards (antes 3: cada uno tardaba 17–22 min). El flag tiene que
 llegar a vitest como **opción**, no como filtro de archivos:
 
 ```bash
-pnpm --filter @platform/web exec vitest run --shard=N/3   # correcto
-pnpm --filter @platform/web test -- --shard=N/3           # INCORRECTO
+pnpm --filter @platform/web exec vitest run --shard=N/6   # correcto
+pnpm --filter @platform/web test -- --shard=N/6           # INCORRECTO
 ```
 
-Con `--` en el medio, vitest interpreta `--shard=N/3` como un patrón posicional:
+Con `--` en el medio, vitest interpreta `--shard=N/6` como un patrón posicional:
 no matchea ningún archivo y **cada job corre la suite completa**. Eso triplica la
 carga del pool, hace que todos los shards rocen el timeout y termina bloqueando
 `validacion` en todos los PRs de épica (MSF-237, AGE-1049). Por eso el
