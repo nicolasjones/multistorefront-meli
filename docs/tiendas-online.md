@@ -100,7 +100,7 @@ worker en `workers/` con el mismo contrato.
 `obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`,
 `private.promover_dominio_pendiente` y `publico.redireccion_por_dominio`; `drop table
 dominio.tienda_registros_dns, public.tienda_dns_plataforma`; `alter table dominio.tiendas drop column …` de las
-columnas nuevas (detalle en el encabezado de `20270203130000_tienda_dominio_verificacion.sql`); retirar la función
+columnas nuevas (detalle en el encabezado de `20270205110000_tienda_dominio_verificacion.sql`); retirar la función
 `verificar-dominio-tienda`.
 
 ### Alta técnica por SQL (primera carga)
@@ -695,7 +695,7 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 
 ## Borrador, vista previa y publicación (F-TDA-06, MSF-216)
 
-Migración `supabase/migrations/20270203130100_tienda_borrador_publicacion.sql`. Pruebas:
+Migración `supabase/migrations/20270205110100_tienda_borrador_publicacion.sql`. Pruebas:
 `supabase/tests/database/tienda_borrador.test.sql`, `apps/web/src/pages/empresas/tienda/Publicacion.test.tsx`.
 
 | Objeto | Esquema | Justificación | RLS |
@@ -718,7 +718,7 @@ Migración `supabase/migrations/20270203130100_tienda_borrador_publicacion.sql`.
 
 ## Versiones y restauración (F-TDA-07, MSF-235)
 
-Migración `supabase/migrations/20270203130200_tienda_versiones.sql` (solo funciones; **sin tablas nuevas**: usa
+Migración `supabase/migrations/20270205110200_tienda_versiones.sql` (solo funciones; **sin tablas nuevas**: usa
 `dominio.tienda_versiones` y `dominio.tienda_borrador`, ambas en `dominio`, de F-TDA-06). Pruebas:
 `supabase/tests/database/tienda_versiones.test.sql`, `apps/web/src/pages/empresas/tienda/Versiones.test.tsx`.
 

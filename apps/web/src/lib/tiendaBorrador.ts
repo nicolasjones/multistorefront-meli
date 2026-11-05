@@ -3,7 +3,7 @@ import { supabaseClient } from './supabase'
 // F-TDA-06 (MSF-216): borrador, vista previa y publicación de la tienda. Los cambios de Identidad visual,
 // Contenido y Catálogo visible se guardan en un borrador que la tienda pública no ve; «Publicar» los aplica en
 // una transacción y deja una versión. El resumen de cambios, la versión vigente y la vista previa los calcula la
-// base (migración 20270203130100_tienda_borrador_publicacion.sql); acá solo se leen y se mandan los valores.
+// base (migración 20270205110100_tienda_borrador_publicacion.sql); acá solo se leen y se mandan los valores.
 
 export type AreaBorrador = 'identidad' | 'contenido' | 'catalogo'
 
@@ -157,7 +157,7 @@ export function textoAvisoCambios(cambios: CambiosBorrador): string {
   return `${n} ${n === 1 ? 'cambio sin publicar' : 'cambios sin publicar'}: ${cambios.resumen}.`
 }
 
-// F-TDA-07 (MSF-235): versiones publicadas y restauración como borrador (migración 20270203130200_tienda_versiones.sql).
+// F-TDA-07 (MSF-235): versiones publicadas y restauración como borrador (migración 20270205110200_tienda_versiones.sql).
 export type VersionTienda = {
   numero: number
   publicadaAt: string
