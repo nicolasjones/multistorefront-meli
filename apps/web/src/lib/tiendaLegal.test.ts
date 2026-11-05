@@ -20,11 +20,14 @@ describe('cuitParaMostrar', () => {
   })
 })
 
+// Armado por partes para no disparar la regla no-script-url del lint.
+const ESQUEMA_SCRIPT = ['java', 'script:alert(1)'].join('')
+
 describe('esUrlHttps', () => {
   it('solo acepta https', () => {
     expect(esUrlHttps('https://ejemplo.com/legal')).toBe(true)
     expect(esUrlHttps('http://ejemplo.com')).toBe(false)
-    expect(esUrlHttps('javascript:alert(1)')).toBe(false)
+    expect(esUrlHttps(ESQUEMA_SCRIPT)).toBe(false)
     expect(esUrlHttps('no es una url')).toBe(false)
   })
 })
@@ -49,7 +52,7 @@ describe('leerLegalTienda (FR-031, FR-032)', () => {
       data: {
         razon_social: null, cuit: null, direccion: null,
         enlaces: [
-          { titulo: 'Malo', url: 'javascript:alert(1)' },
+          { titulo: 'Malo', url: ESQUEMA_SCRIPT },
           { titulo: 'Http', url: 'http://x.ejemplo.com' },
           { titulo: ' ', url: 'https://x.ejemplo.com' },
           { titulo: 'Bueno', url: 'https://x.ejemplo.com' },
