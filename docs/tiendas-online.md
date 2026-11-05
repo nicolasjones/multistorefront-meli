@@ -732,3 +732,38 @@ Migración `supabase/migrations/20270203130200_tienda_versiones.sql` (solo funci
   «Versión restaurada como borrador». Avisa por `EVENTO_PUBLICACION` (`origen: 'versiones'`) para que Publicación relea el
   aviso de cambios y la vista previa se actualice. Con otra empresa activa, un diálogo abierto se cierra con aviso (Principio VIII).
 - Reversión: `drop function public.restaurar_version_tienda(uuid, integer); drop function public.listar_versiones_tienda(uuid);`
+
+## Cierre de la épica MSF-133: tienda · dominio y publicación (MSF-779)
+
+Spec: `specs/20270125-100000-tienda-dominio-y-publicacion/`. Historias: F-TDA-05 (dominio y certificado, MSF-198),
+F-TDA-06 (borrador y publicación, MSF-216) y F-TDA-07 (versiones, MSF-235). Las secciones anteriores de esta guía describen
+cada una; esta resume el cierre.
+
+### Verificación de punta a punta (SC-003)
+
+`apps/web/e2e/tienda-publicacion.e2e.ts` (`[MSF-779:T024]`): dos organizaciones con una empresa cada una; alta del dominio,
+verificación con DNS simulado (`registrar_verificacion_dns` se llama con la service-role key **desde Node**; el navegador
+nunca la ve), cambio en borrador, publicar, restaurar la versión 1 y publicar de nuevo (versión 3). Comprueba que `anon`
+solo ve lo publicado, que no accede al borrador y que la otra empresa no cambia. Se omite sin el stack local
+(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`) y aborta si `SUPABASE_URL` no es local.
+
+### Revisión de seguridad (SC-002)
+
+Sin hallazgos P0/P1. `anon` solo ejecuta `publico.redireccion_por_dominio`; `registrar_verificacion_dns` es solo
+`service_role`; toda RPC nueva tiene `revoke … from public, anon`; las cuatro tablas nuevas tienen RLS sin política de
+escritura; la comprobación TLS conecta solo a la IP de la plataforma, con el A correcto y hostnames guardados (sin SSRF).
+Deuda real trazada como seguimiento:
+
+| Sev. | Hallazgo | Tratamiento |
+|---|---|---|
+| P2 | La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión restaurable aún referencia; `rutas_tienda_sin_referencia` es solo consejo del cliente. | Seguimiento MSF-796: exigir en la política que la ruta no esté referenciada, o mover la limpieza al servidor. |
+| P3 | `tienda_dns_plataforma.ip_publica` solo valida el formato (admite loopback/privadas/octetos > 255). La carga el equipo técnico por SQL. | Seguimiento MSF-797: `check` contra rangos no públicos. |
+| P3 | El timeout de 5 s de la comprobación TLS no cierra el socket colgado (acotado por 1 verificación cada 10 s). | Seguimiento MSF-797: cerrar el `Deno.Conn` al vencer. |
+| P3 | El bucket es público: logos y banners de un borrador o versión vieja son legibles por quien conozca la ruta (lleva UUID, no adivinable). | Aceptado y documentado: no son confidenciales a nivel de almacenamiento. |
+
+### Operación y reversión
+
+Las tres migraciones (`…130000`, `…130100`, `…130200`) son aditivas y cada una trae su reversión en el encabezado. Orden de
+reversión: versiones → borrador y publicación → dominio. **Ojo (BREAKING de F-TDA-06)**: `guardar_tienda_identidad`,
+`guardar_tienda_contenido` y `guardar_catalogo_tienda` ya no son ejecutables por `authenticated`; revertir la épica entera
+(`git revert -m 1 <merge>`) los devuelve. DNS por entorno: ver «DNS de la plataforma por entorno» arriba.
