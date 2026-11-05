@@ -137,7 +137,7 @@ describe('Dominio · estado y tabla de registros (FR-001, FR-004, FR-005, FR-007
   it('mientras carga muestra el estado de carga del kit', () => {
     mocks.leer.mockReturnValue(new Promise(() => {}))
     render(<MemoryRouter><PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" /></MemoryRouter>)
-    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    expect(screen.getAllByRole('status', { name: 'Cargando contenido' }).length).toBeGreaterThan(0)
   })
 })
 
@@ -291,7 +291,7 @@ describe('Dominio · empresa activa (FR-018, SC-006)', () => {
     expect(screen.queryByDisplayValue('sin-guardar.com.ar')).not.toBeInTheDocument()
     expect(screen.queryByText('www.mundojc.com.ar')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Redirigir también')).toHaveValue('')
-    expect(screen.getByText(/San Javucho/)).toBeInTheDocument()
+    expect(screen.getAllByText(/San Javucho/).length).toBeGreaterThan(0)
   })
 
   it('una respuesta tardía de la empresa anterior no pisa la actual', async () => {

@@ -688,3 +688,26 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
   se ve literal. Se omiten sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (ver `docs/e2e-app.md`).
 - **Gates del cierre** (T072): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`,
   `pnpm matriz:check` y `pnpm docs:check`.
+
+## Borrador, vista previa y publicación (F-TDA-06, MSF-216)
+
+Migración `supabase/migrations/20270203130100_tienda_borrador_publicacion.sql`. Pruebas:
+`supabase/tests/database/tienda_borrador.test.sql`, `apps/web/src/pages/empresas/tienda/Publicacion.test.tsx`.
+
+| Objeto | Esquema | Justificación | RLS |
+|---|---|---|---|
+| `dominio.tienda_borrador` | `dominio` | Cambios sin publicar de una tienda: dato del producto | Por organización y nivel de sección; sin escritura directa |
+| `dominio.tienda_versiones` | `dominio` | Instantánea de cada publicación (versión 1 «Configuración inicial» por backfill) | Por organización; sin escritura directa |
+
+- **Guardar ya no publica.** Las pestañas Identidad, Contenido y Catálogo llaman a `guardar_borrador_tienda(empresa, area, datos)`;
+  lo público (`publico.*`) no cambia hasta `publicar_tienda(empresa)`. **BREAKING**: `guardar_tienda_identidad`,
+  `guardar_tienda_contenido` y `guardar_catalogo_tienda` dejan de ser ejecutables por `authenticated`; solo las invoca
+  `publicar_tienda`. Reversión: reponer el `grant execute` de las tres a `authenticated`.
+- `obtener_borrador_tienda` devuelve el borrador con el resumen de cambios calculado en servidor; `descartar_borrador_tienda`
+  lo borra. Precios, stock y activo de producto quedan fuera del borrador.
+- `publicar_tienda` es transaccional, con bloqueo por empresa, idempotente sin borrador; crea la versión y borra el borrador.
+- `vista_previa_tienda` superpone el borrador sobre lo vivo con lista blanca (sin costos, stock exacto ni proveedor). La ruta
+  `/empresas/:id/tienda/vista-previa` es perezosa, autenticada y lleva `noindex,nofollow`.
+- UI: sección `pestanas/publicacion/Publicacion.tsx` («Estado», versión vigente, «Ver cambios», diálogos «Publicar cambios» /
+  «Descartar cambios») y `VistaPrevia.tsx`; las secciones públicas leen de una fuente inyectable (`lib/fuenteTienda.tsx`).
+  Con otra empresa activa un diálogo abierto se cierra con aviso y no aplica nada (Principio VIII).
