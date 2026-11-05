@@ -101,7 +101,7 @@ describe('pestaña Contenido (FR-031…FR-037, SC-013)', () => {
     fireEvent.change(await screen.findByLabelText('Título'), { target: { value: 'Otro título' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
-    expect(await screen.findByText('Cambios guardados. La tienda ya muestra los textos nuevos.')).toBeInTheDocument()
+    expect(await screen.findByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).toBeInTheDocument()
     expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ titulo: 'Otro título' }))
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
