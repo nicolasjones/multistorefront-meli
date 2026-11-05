@@ -205,7 +205,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           # En un PR hace falta el historial para calcular qué tests afecta el diff (`--changed`).
-          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 1 }}
+          # OJO: '0' va entre comillas. En una expresión `a && 0 || 1`, el 0 es falso y siempre daría 1 (clon superficial).
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0

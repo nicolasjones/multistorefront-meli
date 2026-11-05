@@ -50,6 +50,10 @@ imports) de los archivos modificados; un cambio de configuración o de `package.
 **completa** corre en el `push` a `dokploy`/`main`/`staging`, en el cierre de la épica (PR `epic/* → dokploy`) y en
 `merge_group`: es la red de seguridad. El store de pnpm se cachea entre corridas (`setup-node` con `cache: pnpm`).
 
+El job `web` hace el clon completo en los PRs para poder calcular el diff (`fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}`).
+El `'0'` va **entre comillas**: en una expresión de GitHub el número `0` es falso, y `a && 0 || 1` siempre da `1` (clon
+superficial, `git merge-base` falla y los 3 tramos web quedan en rojo; pasó con #716 y se corrigió en #719).
+
 Buenas prácticas para no repetir el CI: agrupar cambios relacionados en una rama de épica (los PRs a `epic/*` saltean la suite
 web y el e2e), juntar commits antes de empujar (cada push cancela y reinicia la corrida) y, ante un tramo con fallo
 intermitente, repetir solo ese job con `gh run rerun <id> --failed`.
