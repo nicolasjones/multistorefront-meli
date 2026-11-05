@@ -43,7 +43,7 @@ select is((select j ->> 'estado' from res where clave = 'a'), 'pausada', 'empres
 select is((select j ->> 'nombre' from res where clave = 'a'), 'Tienda Pausada A', 'devuelve el nombre comercial de la propia tienda');
 select is(
   (select j - 'nombre' from res where clave = 'a'),
-  '{"estado": "pausada", "color_primario": "#AA1111", "color_primario_oscuro": "#000000", "color_acento": "#222222", "color_fondo": "#FAF7F0", "tipografia_titulos": "Playfair Display", "tipografia_texto": "Lato", "logo_ruta": "org/a/logo.png"}'::jsonb,
+  '{"estado": "pausada", "color_primario": "#AA1111", "color_primario_oscuro": "#000000", "color_acento": "#222222", "color_fondo": "#FAF7F0", "tipografia_titulos": "Playfair Display", "tipografia_texto": "Lato", "logo_ruta": "11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/logo.png"}'::jsonb,
   'devuelve la identidad guardada, con los defaults de identidad_por_dominio donde no hay valor'
 );
 select is((select j from res where clave = 'a_host'), (select j from res where clave = 'a'), 'el host se normaliza (mayúsculas, espacios, punto final y puerto)');
