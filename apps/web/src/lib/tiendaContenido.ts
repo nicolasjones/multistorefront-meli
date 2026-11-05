@@ -83,9 +83,9 @@ export function contenidoIgual(a: ContenidoTienda, b: ContenidoTienda): boolean 
   return a.boton_destino === b.boton_destino && CAMPOS_CONTENIDO.every((campo) => a[campo.clave].trim() === b[campo.clave].trim())
 }
 
-type FilaContenido = Partial<Record<ClaveCampoContenido | 'boton_destino', string | null>>
+export type FilaContenido = Partial<Record<ClaveCampoContenido | 'boton_destino', string | null>>
 
-function aContenido(fila: FilaContenido | null | undefined): ContenidoTienda {
+export function aContenido(fila: FilaContenido | null | undefined): ContenidoTienda {
   const destino = DESTINOS_BOTON.some((d) => d.valor === fila?.boton_destino) ? (fila?.boton_destino as DestinoBoton) : 'catalogo'
   return {
     titulo: fila?.titulo ?? '',

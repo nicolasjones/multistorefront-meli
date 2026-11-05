@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useFuenteTienda } from './fuenteTienda'
 import { urlsImagenesProducto } from './imagenProducto'
 import type { ProductoListado } from './tiendaListado'
 import { supabaseClient } from './supabase'
@@ -76,10 +77,13 @@ type Resultado = { host: string; intento: number } & ({ error: true } | { error:
 // Al cambiar de host no se muestran los destacados del anterior; un error queda en el bloque que lo usa
 // y ofrece reintentar (FR-007).
 export function useInicioTienda(host: string): EstadoInicioTienda {
+  const fuente = useFuenteTienda()
   const [intento, setIntento] = useState(0)
   const [resultado, setResultado] = useState<Resultado | null>(null)
 
   useEffect(() => {
+    // En la vista previa (F-TDA-06) el inicio llega inyectado: no se lee `publico.*`.
+    if (fuente) return
     let cancelada = false
     leerCompartido(host)
       .then((inicio) => { if (!cancelada) setResultado({ host, intento, error: false, inicio }) })
@@ -88,8 +92,9 @@ export function useInicioTienda(host: string): EstadoInicioTienda {
         if (!cancelada) setResultado({ host, intento, error: true })
       })
     return () => { cancelada = true }
-  }, [host, intento])
+  }, [host, intento, fuente])
 
+  if (fuente) return { fase: 'lista', ...fuente.inicio }
   if (!resultado || resultado.host !== host || resultado.intento !== intento) return { fase: 'cargando' }
   if (resultado.error) return { fase: 'error', reintentar: () => setIntento((actual) => actual + 1) }
   return { fase: 'lista', ...resultado.inicio }

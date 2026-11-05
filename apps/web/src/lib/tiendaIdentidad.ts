@@ -187,7 +187,7 @@ export function urlPublica(ruta: string | null): string | null {
 // Lectura y escritura
 // ---------------------------------------------------------------------------
 
-type FilaIdentidad = {
+export type FilaIdentidad = {
   color_primario: string
   color_primario_oscuro: string
   color_acento: string
@@ -199,7 +199,7 @@ type FilaIdentidad = {
   banner_movil_ruta: string | null
 }
 
-const desdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
+export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
   colorPrimario: fila.color_primario,
   colorPrimarioOscuro: fila.color_primario_oscuro,
   colorAcento: fila.color_acento,
@@ -230,7 +230,7 @@ export async function leerIdentidadDeEmpresa(empresaId: string): Promise<Identid
 
   const borrador = await obtenerBorrador(empresaId)
   if (borrador.identidad) {
-    return { organizacionId: empresa.organizacion_id, identidad: desdeFila(borrador.identidad as unknown as FilaIdentidad) }
+    return { organizacionId: empresa.organizacion_id, identidad: identidadDesdeFila(borrador.identidad as unknown as FilaIdentidad) }
   }
 
   const { data, error } = await supabaseClient
@@ -240,7 +240,7 @@ export async function leerIdentidadDeEmpresa(empresaId: string): Promise<Identid
     .eq('empresa_id', empresaId)
     .maybeSingle<FilaIdentidad>()
   if (error) throw new Error(error.message)
-  return { organizacionId: empresa.organizacion_id, identidad: data ? desdeFila(data) : IDENTIDAD_BASE }
+  return { organizacionId: empresa.organizacion_id, identidad: data ? identidadDesdeFila(data) : IDENTIDAD_BASE }
 }
 
 // «Guardar»: el estado completo va al borrador (F-TDA-06): la tienda pública no cambia hasta publicar.
@@ -290,7 +290,7 @@ export async function resolverIdentidadPublica(host: string): Promise<IdentidadT
   const { data, error } = await supabaseClient.schema('publico').rpc('identidad_por_dominio', { host })
   if (error) throw new Error(error.message)
   const fila = ((data ?? []) as FilaIdentidad[])[0]
-  return fila ? desdeFila(fila) : null
+  return fila ? identidadDesdeFila(fila) : null
 }
 
 // Familias de Google Fonts a cargar para una identidad (la tipografía del sistema no necesita carga).
