@@ -39,6 +39,12 @@ firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto 
 al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
 de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
+### Alta de producto en popup
+
+«Nuevo producto» del listado de Productos abre un popup (`components/productos/NuevoProductoDialog.tsx`), como «Nueva
+categoría», en lugar de navegar a otra pantalla: el listado no pierde filtros ni posición y, al crear, se recarga desde el
+principio. El formulario es el mismo (`AltaProducto`, de `pages/productos/create.tsx`); la ruta `/productos/create` sigue
+existiendo (accesos directos del inicio) y su «Cancelar» vuelve a `/productos`.
 ### Combos y popups de producto
 
 Los `Autocomplete` que ofrecen productos (búsqueda global, Agregar producto, Agregar repuesto, ingreso y carga en lote,
