@@ -36,24 +36,82 @@ que una tienda no cruce organizaciones.
 - El pgTAP `rls_en_toda_tabla` recorre `public` + `dominio`; `tienda_dominio.test.sql` comprueba
   además que `publico` no tiene tablas.
 
-## Configurar el dominio de una tienda (sin pantalla, FR-004)
+## Dominio, verificación DNS y certificado (F-TDA-05, MSF-198)
 
-En el lanzamiento **no hay pantalla de dominio** ni verificación DNS (eso es F-TDA-05/MSF-133). El
-equipo técnico lo hace por SQL sobre la base self-hosted. El dominio se guarda normalizado
-(minúsculas, sin puerto ni punto final) y debe ser único a nivel plataforma.
+Desde la pestaña **Empresas › _empresa_ › Tienda › Dominio y publicación** (clave `publicacion`,
+`/empresas/:id/tienda/publicacion`, solo con edición en Empresas) el administrador conecta y verifica el
+dominio por su cuenta. El alta por SQL de MSF-147 sigue siendo válida (primera carga del equipo técnico).
+
+**Qué hace la pantalla**
+
+- «Dominio principal» y «Redirigir también» (opcional) se guardan con `public.configurar_dominio_tienda`:
+  normaliza (minúsculas, sin puerto ni punto final), exige unicidad a nivel plataforma entre dominios
+  principales, pendientes y de redirección de **todas** las tiendas, y crea la tienda si la empresa no tenía
+  (estado vacío «Esta empresa todavía no tiene dominio»). Errores por campo: `dominio_invalido`,
+  `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso`; si falla no se guarda nada.
+- **Dominio nuevo sin cortar el actual (D5)**: un principal distinto del vigente queda en
+  `dominio.tiendas.dominio_pendiente` y reinicia la verificación; la tienda sigue respondiendo en el vigente.
+  Cuando el pendiente queda **verificado con certificado activo**, `private.promover_dominio_pendiente` lo
+  intercambia por `dominio` (el trigger deja `tienda.dominio_configurado`).
+- **Tabla de registros** (Tipo, Nombre, Valor, Estado) calculada en el servidor por
+  `public.obtener_dominio_tienda`: **A** `@` → IP pública, **CNAME** del «Redirigir también» → destino y
+  **TXT** `_verif` → `<prefijo>=<token>` (token propio de la tienda, `dominio.tiendas.token_verificacion`).
+  Estados: Correcto / Incorrecto (con el valor encontrado) / Pendiente.
+- **Verificar ahora** invoca la Edge Function `verificar-dominio-tienda` (contrato en
+  `openapi/verificar-dominio-tienda.json`). Una verificación cada 10 s por tienda (`demasiado_pronto`).
+- **Dominio verificado** = A y TXT correctos (y CNAME si hay redirección). **Certificado**: solo con el dominio
+  verificado, la función intenta una conexión TLS al dominio y valida el certificado: válido → `activo`; sin
+  emitir → `pendiente`; inválido o vencido → `error`. Es una función aislada y reemplazable por el estado que
+  informe el proveedor del SSL (D1: quién emite el SSL sigue **a confirmar**; el equipo técnico agrega cada
+  dominio en el proveedor, esta épica no llama a su API).
+- **Redirección pública**: `publico.redireccion_por_dominio(host)` (`anon`) devuelve el dominio principal si el
+  host es el «Redirigir también» de una tienda activa; desconocido y desactivada responden igual (vacío). El
+  front público (`TiendaPublicaApp`) la consulta cuando `tienda_por_dominio` no devuelve fila y hace
+  `location.replace` al principal conservando ruta, query y hash.
+
+**DNS de la plataforma por entorno (D2)** — `public.tienda_dns_plataforma` (fila única, solo lectura para
+`authenticated`, sin secretos). La migración siembra **valores de documentación** (`203.0.113.24`,
+`tiendas.plataforma.example.com`, `gc-verify`); el equipo técnico carga los reales de cada entorno por SQL:
 
 ```sql
--- Alta de la tienda de una empresa (una sola por empresa).
-insert into dominio.tiendas (organizacion_id, empresa_id, dominio)
-values ('<organizacion_id>', '<empresa_id>', 'tienda.ejemplo.com');
-
--- Cambiar el dominio (normaliza igual y registra tienda.dominio_configurado).
-update dominio.tiendas set dominio = 'Nuevo-Dominio.Ejemplo.com:443.'
-where empresa_id = '<empresa_id>';
+update public.tienda_dns_plataforma
+   set ip_publica = '<IP pública de la plataforma>',
+       cname_destino = '<host de destino del CNAME>',
+       prefijo_txt = 'gc-verify',
+       updated_at = now();
 ```
 
-Cada alta o cambio de dominio deja un evento `tienda.dominio_configurado` en
-`public.registro_actividad` (empresa, actor si lo hubo y fecha; nunca el valor del dominio).
+**Edge Function `verificar-dominio-tienda`**: autentica con el JWT de la persona; `preparar_verificacion_tienda`
+valida edición en Empresas, pertenencia de la empresa a su organización y el límite de 10 s, y devuelve los
+hostnames **guardados** (nunca los del request); consulta DNS solo de esos hostnames y escribe con
+`public.registrar_verificacion_dns`, ejecutable **solo por `service_role`** (la key vive solo en la función). La
+conexión TLS solo se intenta con el dominio verificado y va a la IP de la plataforma guardada en la base
+(no a una IP resuelta del DNS del usuario), validando el certificado contra el dominio. `registrar_verificacion_dns`
+recibe el dominio y la redirección comprobados y rechaza (`verificacion_obsoleta`) el resultado si ya no coinciden
+con los guardados. Un fallo de
+red/DNS responde 502 sin tocar ningún estado guardado. Requiere `Deno.resolveDns`, `Deno.connect` y `Deno.startTls` en el
+runtime de Edge Functions self-hosted: validarlo al desplegar; si no estuvieran, mover la verificación a un
+worker en `workers/` con el mismo contrato.
+
+**Auditoría** (sin valores de registros): `tienda.dominio_configurado` (también al guardar el pendiente) y
+`tienda.dominio_verificado` (actor = quien pidió la verificación).
+
+**Reversión** (solo mientras no haya datos productivos): `drop function` de `configurar_dominio_tienda`,
+`obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`,
+`private.promover_dominio_pendiente` y `publico.redireccion_por_dominio`; `drop table
+dominio.tienda_registros_dns, public.tienda_dns_plataforma`; `alter table dominio.tiendas drop column …` de las
+columnas nuevas (detalle en el encabezado de `20270203130000_tienda_dominio_verificacion.sql`); retirar la función
+`verificar-dominio-tienda`.
+
+### Alta técnica por SQL (primera carga)
+
+El equipo técnico puede seguir cargando la tienda por SQL; el dominio se guarda normalizado y es único a nivel
+plataforma:
+
+```sql
+insert into dominio.tiendas (organizacion_id, empresa_id, dominio)
+values ('<organizacion_id>', '<empresa_id>', 'tienda.ejemplo.com');
+```
 
 ## Exposición de `publico` en la API
 
