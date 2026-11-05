@@ -96,7 +96,7 @@ Debajo del formulario está **Ingresos de mercadería**, de lo más reciente a l
 | **Operador** | Quién lo registró |
 | **Estado** | **Registrado** o **Anulado** (con su motivo) |
 
-Para encontrar un ingreso usá los filtros **Desde**, **Hasta**, **Proveedor**, **Producto**, **Operador** y **Tienda**; se pueden combinar. **Limpiar filtros** vuelve a la lista completa. Si no hay resultados, ves «No hay ingresos con esos filtros.» La lista se muestra de a 25 líneas.
+Para encontrar un ingreso usá los filtros **Desde**, **Hasta**, **Proveedor**, **Producto**, **Operador** y **Tienda**; se pueden combinar. **Limpiar filtros** vuelve a la lista completa. Si no hay resultados, ves «No hay ingresos con esos filtros.» La lista carga de a 25 líneas: cuando llegás al final se siguen cargando solas, o apretá **Cargar más** al pie.
 
 ![Historial de ingresos con los filtros Desde, Hasta, Proveedor y Tienda resaltados](img/ingreso-de-mercaderia/05-historial-filtros.png)
 

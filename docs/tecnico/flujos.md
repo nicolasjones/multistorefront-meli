@@ -539,7 +539,7 @@ sequenceDiagram
 ```
 
 Empresa activa (Principio VIII): las tres pantallas invalidan y recargan **todas** sus consultas al
-cambiarla, reencuadran la paginación y descartan el filtro de cuenta que ya no existe; el detalle del
+cambiarla, reencuadran la carga por tandas y descartan el filtro de cuenta que ya no existe; el detalle del
 comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
 
 Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
@@ -679,7 +679,7 @@ flowchart TD
 ```
 
 Empresa activa (Principio VIII): el tablero y la pantalla de Faltantes recarga todas sus consultas y reencuadra
-la paginación al cambiarla; en la factura, la tarjeta de responsables y el bloque de envío sueltan lo elegido y
+la carga por tandas al cambiarla; en la factura, la tarjeta de responsables y el bloque de envío sueltan lo elegido y
 releen; el diálogo «Registrar faltantes» se cierra con aviso.
 
 Detalle: [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).

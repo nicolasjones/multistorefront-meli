@@ -191,8 +191,8 @@ archivo (alcance acotado documentado en la migración).
 - **Entradas:** «Importar» en Clientes y Proveedores (solo Administrador) y, al terminar proveedores,
   el enlace para seguir con los vínculos.
 - **Archivo:** segunda pestaña de **Stock › Ingreso de mercadería**, componente
-  `apps/web/src/components/stock/ArchivoIngresos.tsx` con `useArchivoIngresos` (25 filas por página,
-  orden `fecha desc, id asc`, estados de carga/vacío/error). Es de solo consulta.
+  `apps/web/src/components/stock/ArchivoIngresos.tsx` con `useArchivoIngresos` (25 filas por tanda con «Cargar
+  más», orden `fecha desc, id asc`, estados de carga/vacío/error). Es de solo consulta.
 - **Empresa activa:** no aplica filtrado por empresa; el lote y el archivo son de la organización.
   Cambiar la empresa no cambia el destino ni recarga datos de otra. Test: cambio de empresa durante el
   asistente y en la pestaña.

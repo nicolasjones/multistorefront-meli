@@ -157,17 +157,20 @@ transacción del movimiento (`public.registro_actividad`, plataforma).
   `/stock/motivos`.
 - `apps/web/src/pages/stock/list.tsx` (Stock actual): lee `stock_estados`, muestra producto, SKU, cantidad, mínimo,
   estado y último movimiento; búsqueda por nombre o SKU, filtro por estado y resumen «N productos sin stock y M con
-  stock bajo» con «Ver solo alertas». «Nuevo movimiento» y «Editar mínimo» solo con `edicion`.
+  stock bajo» con «Ver solo alertas». «Nuevo movimiento» y «Editar mínimo» solo con `edicion`. Carga por tandas de
+  25 con «Cargar más» y **miniatura del producto** en su columna.
 - `apps/web/src/pages/stock/NuevoMovimientoDialog.tsx`: tipo, producto, cantidad o stock contado, motivo, fecha y nota;
   vista previa del stock resultante y responsable; deshabilita el doble envío; confirma «Movimiento registrado». La
   salida que supera el stock muestra «No hay stock suficiente» con el detalle y deshabilita «Registrar»; si el
   servidor rechaza por carrera (`23514`), muestra el mismo mensaje, relee el stock y deja reintentar.
-- `apps/web/src/pages/stock/EditarMinimoDialog.tsx` y `apps/web/src/pages/stock/movimientos.tsx` (historial paginado
-  en servidor, filtro por producto, solo lectura).
+- `apps/web/src/pages/stock/EditarMinimoDialog.tsx` y `apps/web/src/pages/stock/movimientos.tsx` (historial por
+  tandas en servidor con filtro por producto, solo lectura).
 - `apps/web/src/pages/stock/motivos.tsx` (Administrador): alta, renombre, tipos a los que aplica y activar/desactivar.
   Operador y Consulta no ven el acceso. La misma tabla se edita desde Administración → Listas configurables
   (MSF-189), sin copia.
 - Ninguna pantalla filtra por empresa: el stock es único por organización (Principio VIII, no aplica).
+- La carga por tandas y la miniatura son la regla compartida de listados: ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 
 ## Pruebas
 

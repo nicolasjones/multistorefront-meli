@@ -41,6 +41,8 @@ los estados del comprobante, de MSF-177, en
   etiqueta de menú no cambia (la pantalla sí cambia de título).
 - Las tres pantallas usan `FiltroEmpresa` («Todas las tiendas» + empresas accesibles) y respetan la
   **empresa activa** de la barra superior (Principio VIII).
+- Los tres listados (Cobros del comprobante, Pagos y Contrarreembolsos) **acumulan** sus tandas con un
+  **«Cargar más»** al pie; ver [Listados: carga infinita e imagen de producto](listados.md).
 
 ## Modelo de datos
 

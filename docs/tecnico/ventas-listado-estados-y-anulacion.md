@@ -32,12 +32,13 @@ MSF-159, de la que se parte, en [Ventas · comprobantes (técnico)](ventas-compr
 - **Presupuestos**: `/ventas/presupuestos` (MSF-159) suma el botón **Exportar**.
 - Menú **Ventas** (`ReceiptLongIcon`), sección `ventas`; sin la sección, «Acceso restringido».
 - El filtro **Tienda** usa `FiltroEmpresa` («Todas las tiendas» + empresas accesibles) y sigue a la empresa
-  activa de la barra superior: al cambiarla, `ComprobantesList` se remonta (por `key`), vuelve a la página 1 y
+  activa de la barra superior: al cambiarla, `ComprobantesList` se remonta (por `key`), vuelve a la primera tanda y
   recarga todo (Principio VIII).
 - Columnas del listado: Comprobante (número + tipo, enlace al detalle) · Tienda · Fecha · Cliente ·
   Operador · Estado (chip de `estadosComprobante`) · Pago · Envío · Total a la derecha. Contador «N
-  comprobantes», paginación de 12 («1–12 de N»); en pantallas angostas, `ContenidoAdaptable` muestra las
-  mismas columnas como tarjetas. Las notas de crédito se marcan con `varianteFila='negativa'`.
+  comprobantes», carga por tandas de 12 con **«Cargar más»** al pie; en pantallas angostas, `ContenidoAdaptable`
+  muestra las mismas columnas como tarjetas. Las notas de crédito se marcan con `varianteFila='negativa'`. Ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 
 ### Catálogo de estados (F-VTA-10)
 

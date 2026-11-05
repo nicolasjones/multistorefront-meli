@@ -63,5 +63,6 @@ Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés
 ## Para seguir
 
 - [Qué podés hacer con el sistema](capacidades.md): resumen por área.
+- [Cómo se muestran las listas](listados.md): cómo se cargan los resultados y qué foto ves en cada producto.
 - [Glosario](glosario.md): los términos que ves en pantalla.
 - [Actividad](actividad.md): quién hizo qué y cuándo.

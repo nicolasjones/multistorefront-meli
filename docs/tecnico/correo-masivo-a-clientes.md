@@ -80,6 +80,8 @@ en servidor). Responde siempre `{ ok: true }` (400 si el token tiene forma invá
 (`historial.tsx`, `detalle.tsx`), `DialogoCorreoSeleccionados` en el listado, interruptor en
 `FormularioCliente` y bloque «Comunicaciones» de la ficha. Empresa activa (Principio VIII): recarga y reencuadre
 en las tres pantallas; diálogos abiertos se cierran con aviso.
+Las tres listas **acumulan** sus tandas (25, 25 y 50) con un **«Cargar más»** al pie; ver
+[Listados: carga infinita e imagen de producto](listados.md).
 
 ## Pruebas
 

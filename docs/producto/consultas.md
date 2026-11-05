@@ -37,7 +37,7 @@ Menú lateral **Canales → Consultas**. Al lado del nombre aparece el número d
 
 ## Cómo se ve la bandeja
 
-Cada fila es una consulta, de la más nueva a la más vieja (25 por página).
+Cada fila es una consulta, de la más nueva a la más vieja. La lista carga de a 25: cuando llegás al final se siguen cargando solas, o apretá **Cargar más** al pie. Ver [Cómo se muestran las listas](listados.md).
 
 | Columna | Qué muestra |
 |---|---|

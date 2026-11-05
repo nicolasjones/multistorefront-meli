@@ -17,8 +17,9 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
   **Tipo**, **Tienda** («Compartido» si el evento no es de una empresa), **Detalle** y **Quién**
   («Sistema» si no hay actor). Nunca se muestran identificadores técnicos.
 - Filtros combinables: período (hoy / 7 / 30 días / todo), tienda, usuario y tipo; búsqueda
-  «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); paginación
-  en servidor («1–10 de N»).
+  «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); carga por
+  tandas de 10 en servidor, con **«Cargar más»** al pie (ver
+  [Listados: carga infinita e imagen de producto](tecnico/listados.md)).
 - Sin botón «Exportar» (fuera de alcance de esta historia).
 
 ## Permisos

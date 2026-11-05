@@ -55,7 +55,7 @@ Arriba, a la derecha, están los botones **Importar** (solo Administrador), **Ex
 
 *Con **Archivados** ves los clientes dados de baja.*
 
-El listado muestra de a 25 clientes por página y cuántos hay en total (por ejemplo, «57 clientes»).
+El listado carga de a 25 clientes y dice cuántos hay en total (por ejemplo, «57 clientes»). Cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. Ver [Cómo se muestran las listas](listados.md).
 
 ### Qué significa cada columna
 
@@ -133,7 +133,7 @@ Un cliente **no se borra**: se archiva.
 
 1. Poné la búsqueda y los filtros que quieras.
 2. Hacé clic en **Exportar**.
-3. El sistema te dice cuántos clientes va a exportar: **todos los que coinciden con la búsqueda y los filtros**, no solo los de la página que ves.
+3. El sistema te dice cuántos clientes va a exportar: **todos los que coinciden con la búsqueda y los filtros**, no solo los que ya cargaste.
 4. Hacé clic en **Descargar archivo**. Se baja una planilla de Excel (.xlsx). Mientras se arma ves el avance y podés usar **Cancelar exportación**. Al terminar dice «Listo: el archivo se descargó.»
 
 ![Cuadro Exportar clientes que informa cuántos clientes se van a descargar, con los botones Cancelar y Descargar archivo](img/clientes/09-exportar.png)
