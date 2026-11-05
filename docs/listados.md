@@ -65,6 +65,11 @@ edición) y su «Cancelar» vuelve a la ficha o al listado.
 `PestanasPagina` marca como activa la pestaña cuya ruta coincide con la **más larga** (más específica). La primera pestaña suele
 ser la ruta base (`/rentabilidad`), prefijo de todas las demás; con la primera coincidencia quedaba siempre seleccionada.
 
+### Errores de una sección
+
+`LimiteDeError` (`components/estados/LimiteDeError.tsx`) contiene el error de dibujado de una parte de la pantalla: muestra qué
+falló y permite reintentar, en lugar de dejar la aplicación en blanco. La gestión de tienda lo usa en el contenido de cada pestaña.
+
 ## Excepciones
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
