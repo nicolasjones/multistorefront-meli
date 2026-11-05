@@ -138,6 +138,7 @@ const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) =
 // Inicio (F-INI-01): reemplaza la portada de servicios del template.
 const InicioPage = lazy(() => import('./pages/inicio').then((modulo) => ({ default: modulo.InicioPage })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const VistaPreviaTiendaPagina = lazy(() => import('./pages/empresas/tienda/VistaPreviaTienda').then((modulo) => ({ default: modulo.VistaPreviaTiendaPagina })))
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
 function App() {
@@ -348,6 +349,16 @@ function App() {
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
+                <Route
+                  path="/empresas/:id/tienda/vista-previa"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas" nivelMinimo="edicion">
+                        <Suspense fallback={<EstadoCargaPagina />}><VistaPreviaTiendaPagina /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/empresas/:id/tienda/:pestana"
                   element={

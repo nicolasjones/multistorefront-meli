@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 import type { DominioTienda } from '../../../lib/tiendaDominio'
@@ -12,6 +13,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.advertir }) }))
 vi.mock('../../../lib/supabase', () => ({ supabaseClient: {} }))
+// Las secciones de F-TDA-06 que comparten la pestaña no son objeto de este archivo: se mockean (ver Publicacion.test.tsx).
+vi.mock('../../../lib/tiendaBorrador', async (original) => ({
+  ...(await original<typeof import('../../../lib/tiendaBorrador')>()),
+  obtenerBorrador: vi.fn().mockReturnValue(new Promise(() => {})),
+  leerVistaPrevia: vi.fn().mockReturnValue(new Promise(() => {})),
+}))
 vi.mock('../../../lib/tiendaDominio', async (original) => ({
   ...(await original<typeof import('../../../lib/tiendaDominio')>()),
   leerDominioTienda: mocks.leer,
@@ -59,7 +66,7 @@ const SIN_DOMINIO: DominioTienda = {
 
 async function abrir(dominio: DominioTienda = VERIFICADO, alCambiarDominio?: () => void) {
   mocks.leer.mockResolvedValue(dominio)
-  const vista = render(<PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" alCambiarDominio={alCambiarDominio} />)
+  const vista = render(<MemoryRouter><PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" alCambiarDominio={alCambiarDominio} /></MemoryRouter>)
   await screen.findByRole('heading', { name: 'Dominio' })
   await screen.findByLabelText('Dominio principal')
   return vista
@@ -120,7 +127,7 @@ describe('Dominio · estado y tabla de registros (FR-001, FR-004, FR-005, FR-007
 
   it('un error al cargar ofrece reintentar y no muestra datos', async () => {
     mocks.leer.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(VERIFICADO)
-    render(<PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" />)
+    render(<MemoryRouter><PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" /></MemoryRouter>)
 
     expect(await screen.findByText('No pudimos cargar el dominio de la tienda.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
@@ -129,8 +136,8 @@ describe('Dominio · estado y tabla de registros (FR-001, FR-004, FR-005, FR-007
 
   it('mientras carga muestra el estado de carga del kit', () => {
     mocks.leer.mockReturnValue(new Promise(() => {}))
-    render(<PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" />)
-    expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
+    render(<MemoryRouter><PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" /></MemoryRouter>)
+    expect(screen.getAllByRole('status', { name: 'Cargando contenido' }).length).toBeGreaterThan(0)
   })
 })
 
@@ -277,23 +284,23 @@ describe('Dominio · empresa activa (FR-018, SC-006)', () => {
     fireEvent.change(screen.getByLabelText('Dominio principal'), { target: { value: 'sin-guardar.com.ar' } })
 
     mocks.leer.mockResolvedValue(SAN_JAVUCHO)
-    rerender(<PestanaPublicacion empresaId="e-2" empresaNombre="San Javucho" />)
+    rerender(<MemoryRouter><PestanaPublicacion empresaId="e-2" empresaNombre="San Javucho" /></MemoryRouter>)
 
     await waitFor(() => expect(screen.getByLabelText('Dominio principal')).toHaveValue('sanjavucho.com.ar'))
     expect(mocks.leer).toHaveBeenLastCalledWith('e-2')
     expect(screen.queryByDisplayValue('sin-guardar.com.ar')).not.toBeInTheDocument()
     expect(screen.queryByText('www.mundojc.com.ar')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Redirigir también')).toHaveValue('')
-    expect(screen.getByText(/San Javucho/)).toBeInTheDocument()
+    expect(screen.getAllByText(/San Javucho/).length).toBeGreaterThan(0)
   })
 
   it('una respuesta tardía de la empresa anterior no pisa la actual', async () => {
     let tardia: (dominio: DominioTienda) => void = () => {}
     mocks.leer.mockReturnValueOnce(new Promise<DominioTienda>((resolver) => { tardia = resolver }))
-    const { rerender } = render(<PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" />)
+    const { rerender } = render(<MemoryRouter><PestanaPublicacion empresaId="e-1" empresaNombre="Mundo JC" /></MemoryRouter>)
 
     mocks.leer.mockResolvedValueOnce(SAN_JAVUCHO)
-    rerender(<PestanaPublicacion empresaId="e-2" empresaNombre="San Javucho" />)
+    rerender(<MemoryRouter><PestanaPublicacion empresaId="e-2" empresaNombre="San Javucho" /></MemoryRouter>)
     await waitFor(() => expect(screen.getByLabelText('Dominio principal')).toHaveValue('sanjavucho.com.ar'))
 
     tardia(VERIFICADO)
