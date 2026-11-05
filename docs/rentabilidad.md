@@ -52,6 +52,19 @@ consulta (el rol de solo lectura de Superset), no contra el dueño de la vista, 
 de la tienda está escrita dentro de `margen_producto_canal` y de `margen_historico_producto_canal` (migraciones
 `20270205100000` y `20270205100001`).
 
+## Gráficos del Resumen
+
+Además de las tarjetas por empresa y el consolidado, el tablero «Rentabilidad · Resumen» muestra cuatro gráficos de Superset sobre
+`analitica.margen_producto_canal` (se versionan en `infra/superset/dashboards/rentabilidad/`):
+
+- **Margen % por tienda** (barras): margen ponderado de cada tienda, un color por tienda.
+- **Productos por estado de margen** (dona): OK en verde, Bajo en ámbar y Negativo en rojo (colores fijados con `label_colors`
+  del tablero, los mismos de la tabla «Por producto»).
+- **Top 10 productos por margen ($ por unidad)** (barras horizontales).
+- **10 productos con peor margen %** (barras horizontales): el eje se acota en -100 % para que un valor extremo no aplaste el resto.
+
+Los colores salen de la paleta `supersetColors` de Superset; los estados usan la paleta del proyecto (`#2E7D32`, `#B36B00`, `#C62828`).
+
 ## Umbral de margen bajo
 
 - Por organización, en `dominio.rentabilidad_config` (fracción: `0,10` = 10 %). Sin fila rige **10 %**.
