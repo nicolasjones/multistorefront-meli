@@ -113,9 +113,8 @@ export function ServicioReparaciones() {
   const isLoading = cargandoEmpresas || cargandoListado
 
   // Página fuera de rango (p. ej. bajó la cantidad): vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setElegida({ clave, pagina: 1 })
-  }, [isLoading, isFetching, isError, filas.length, pagina, clave])
+  // Se corrige durante el render (sin efecto): React reintenta de inmediato con la primera página.
+  if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setElegida({ clave, pagina: 1 })
 
   const alCambiarSerie = useCallback((nueva: string) => setSerie(nueva), [])
   const buscandoPorSerie = serie.trim() !== ''
