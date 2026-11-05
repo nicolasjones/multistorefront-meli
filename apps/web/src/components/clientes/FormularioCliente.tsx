@@ -39,6 +39,8 @@ type Props = {
   // `opciones` lleva el campo «Cuenta web» para crear/suspenderla en las tiendas tildadas.
   onGuardar: (valores: ReturnType<typeof aValores> & { descuento?: number | null }, opciones: OpcionesCuentaWeb) => Promise<void>
   rutaCancelar: string
+  // Dentro de un popup no se navega: al cancelar se avisa al que lo abrió.
+  onCancelar?: () => void
 }
 
 const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?: string; type?: string }> = [
@@ -59,7 +61,7 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 // número readonly). «Habilitado en» elige las tiendas del cliente (F-CLI-05); las tiendas
 // llegan como prop (catálogo de la organización). «Cuenta web» crea o suspende la cuenta en
 // cada tienda tildada al guardar (FR-015).
-export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, onGuardar, rutaCancelar }: Props) {
+export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, onGuardar, rutaCancelar, onCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -253,7 +255,9 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
         />
         {formulario.tipo !== inicial.tipo ? <Alert severity="info">{AVISO_CAMBIO_TIPO}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
-          <Button component={RouterLink} to={rutaCancelar} disabled={guardando}>Cancelar</Button>
+          {onCancelar
+            ? <Button onClick={onCancelar} disabled={guardando}>Cancelar</Button>
+            : <Button component={RouterLink} to={rutaCancelar} disabled={guardando}>Cancelar</Button>}
           <Button type="submit" variant="contained" disabled={guardando}>
             {guardando ? 'Guardando…' : etiquetaGuardar}
           </Button>

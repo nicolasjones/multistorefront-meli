@@ -45,6 +45,12 @@ de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 categoría», en lugar de navegar a otra pantalla: el listado no pierde filtros ni posición y, al crear, se recarga desde el
 principio. El formulario es el mismo (`AltaProducto`, de `pages/productos/create.tsx`); la ruta `/productos/create` sigue
 existiendo (accesos directos del inicio) y su «Cancelar» vuelve a `/productos`.
+### Alta y edición de cliente en popup
+
+«Nuevo cliente» y «Editar» del listado de Clientes abren un popup (`components/clientes/DialogoCliente.tsx`) en lugar de
+navegar. Reutiliza `AltaCliente` y `EdicionCliente` (de `pages/clientes/create.tsx` y `edit.tsx`); al guardar, el listado se
+recarga y muestra el aviso. Las rutas `/clientes/create` y `/clientes/edit/:id` siguen existiendo (la ficha enlaza a la
+edición) y su «Cancelar» vuelve a la ficha o al listado.
 
 ## Excepciones
 
