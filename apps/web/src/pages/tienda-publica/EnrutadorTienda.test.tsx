@@ -68,9 +68,11 @@ describe('layout, menú y pie (FR-003, FR-004, FR-005, FR-008)', () => {
   it('marca la categoría de la ruta actual', async () => {
     montar('/categoria/c-cargadores')
 
-    const menu = await screen.findByRole('navigation', { name: 'Categorías' })
-    const activa = await within(menu).findByRole('link', { name: 'Cargadores' })
-    await waitFor(() => expect(activa).toHaveAttribute('aria-current', 'page'))
+    // El import dinámico de la ruta (MUI) tarda en un runner cargado: más margen que el 1 s por defecto.
+    const espera = { timeout: 10_000 }
+    const menu = await screen.findByRole('navigation', { name: 'Categorías' }, espera)
+    const activa = await within(menu).findByRole('link', { name: 'Cargadores' }, espera)
+    await waitFor(() => expect(activa).toHaveAttribute('aria-current', 'page'), espera)
     expect(within(menu).getByRole('link', { name: 'Joysticks' })).not.toHaveAttribute('aria-current')
     expect(within(menu).getByRole('link', { name: 'Inicio' })).not.toHaveAttribute('aria-current')
   })
