@@ -711,3 +711,24 @@ Migración `supabase/migrations/20270203130100_tienda_borrador_publicacion.sql`.
 - UI: sección `pestanas/publicacion/Publicacion.tsx` («Estado», versión vigente, «Ver cambios», diálogos «Publicar cambios» /
   «Descartar cambios») y `VistaPrevia.tsx`; las secciones públicas leen de una fuente inyectable (`lib/fuenteTienda.tsx`).
   Con otra empresa activa un diálogo abierto se cierra con aviso y no aplica nada (Principio VIII).
+
+## Versiones y restauración (F-TDA-07, MSF-235)
+
+Migración `supabase/migrations/20270203130200_tienda_versiones.sql` (solo funciones; **sin tablas nuevas**: usa
+`dominio.tienda_versiones` y `dominio.tienda_borrador`, ambas en `dominio`, de F-TDA-06). Pruebas:
+`supabase/tests/database/tienda_versiones.test.sql`, `apps/web/src/pages/empresas/tienda/Versiones.test.tsx`.
+
+- `listar_versiones_tienda(empresa)`: últimas 100 versiones, la más nueva primero, con nombre de quien publicó y marca
+  `vigente` (la de número mayor). Lectura con nivel `lectura` o `edicion` en Empresas.
+- `restaurar_version_tienda(empresa, numero)`: requiere `edicion`; **no publica**. Reemplaza el borrador entero con la
+  instantánea de la versión. Como la instantánea solo guarda el catálogo distinto del predeterminado, lo vivo que la versión
+  no menciona vuelve a visible/no destacado en el borrador. Productos y categorías que ya no existen se omiten. Si el
+  resultado coincide con lo publicado, el borrador queda vacío. La versión vigente no se restaura (`22023`). Deja el evento
+  `tienda.version_restaurada` en el registro de actividad.
+- No reescribe el historial: publicar después crea la versión siguiente (`publicar_tienda`).
+- `anon` no ejecuta ninguna de las dos (`revoke … from public, anon`; `grant … to authenticated`).
+- UI: sección `pestanas/publicacion/Versiones.tsx` (`orden` 25, entre Publicación y Vista previa): tabla Versión / Fecha / Por /
+  Cambios, «Restaurar» en todas menos la vigente, diálogo «Restaurar versión» (con línea extra si hay borrador) y mensaje
+  «Versión restaurada como borrador». Avisa por `EVENTO_PUBLICACION` (`origen: 'versiones'`) para que Publicación relea el
+  aviso de cambios y la vista previa se actualice. Con otra empresa activa, un diálogo abierto se cierra con aviso (Principio VIII).
+- Reversión: `drop function public.restaurar_version_tienda(uuid, integer); drop function public.listar_versiones_tienda(uuid);`

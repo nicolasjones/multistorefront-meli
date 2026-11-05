@@ -156,3 +156,33 @@ export function textoAvisoCambios(cambios: CambiosBorrador): string {
   const n = cambios.total
   return `${n} ${n === 1 ? 'cambio sin publicar' : 'cambios sin publicar'}: ${cambios.resumen}.`
 }
+
+// F-TDA-07 (MSF-235): versiones publicadas y restauración como borrador (migración 20270203130200_tienda_versiones.sql).
+export type VersionTienda = {
+  numero: number
+  publicadaAt: string
+  publicadaPor: string | null
+  resumen: string
+  vigente: boolean
+}
+
+type FilaVersion = { numero: number; publicada_at: string; publicada_por: string | null; resumen: string; vigente: boolean }
+
+// Últimas 100 versiones, la más nueva primero.
+export async function listarVersiones(empresaId: string): Promise<VersionTienda[]> {
+  const { data, error } = await supabaseClient.rpc('listar_versiones_tienda', { p_empresa: empresaId })
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as FilaVersion[]).map((v) => ({
+    numero: v.numero,
+    publicadaAt: v.publicada_at,
+    publicadaPor: v.publicada_por,
+    resumen: v.resumen,
+    vigente: v.vigente,
+  }))
+}
+
+// Carga la versión como borrador (reemplaza el actual). No publica.
+export async function restaurarVersion(empresaId: string, numero: number): Promise<void> {
+  const { error } = await supabaseClient.rpc('restaurar_version_tienda', { p_empresa: empresaId, p_numero: numero })
+  if (error) throw new Error(error.message)
+}

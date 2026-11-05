@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   descartar: vi.fn(),
   vista: vi.fn(),
   advertir: vi.fn(),
+  versiones: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.advertir }) }))
@@ -27,6 +28,7 @@ vi.mock('../../../lib/tiendaBorrador', async (original) => ({
   publicarTienda: mocks.publicar,
   descartarBorrador: mocks.descartar,
   leerVistaPrevia: mocks.vista,
+  listarVersiones: mocks.versiones,
 }))
 
 import PestanaPublicacion from './pestanas/publicacion'
@@ -90,6 +92,7 @@ beforeEach(() => {
   mocks.publicar.mockResolvedValue(15)
   mocks.descartar.mockResolvedValue(undefined)
   mocks.vista.mockResolvedValue(VISTA)
+  mocks.versiones.mockResolvedValue([])
 })
 
 describe('Publicación · estado y aviso de cambios (FR-053, FR-054, FR-055)', () => {

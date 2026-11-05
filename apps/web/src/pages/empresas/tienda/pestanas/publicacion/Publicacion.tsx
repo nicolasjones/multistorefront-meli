@@ -48,6 +48,15 @@ function SeccionPublicacion({ empresaId, empresaNombre, alAbrirDialogo, avisoIni
     alAbrirDialogo(dialogo !== null)
   }, [dialogo, alAbrirDialogo])
 
+  // Restaurar una versión (sección Versiones) deja un borrador nuevo: se relee el aviso de cambios (F-TDA-07, FR-072).
+  useEffect(() => {
+    const alRestaurar = (evento: Event) => {
+      if ((evento as CustomEvent<{ origen?: string }>).detail?.origen === 'versiones') void refetch()
+    }
+    window.addEventListener(EVENTO_PUBLICACION, alRestaurar)
+    return () => window.removeEventListener(EVENTO_PUBLICACION, alRestaurar)
+  }, [refetch])
+
   const cerrar = () => {
     if (procesando) return
     setDialogo(null)
