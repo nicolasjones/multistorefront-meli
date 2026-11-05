@@ -905,3 +905,46 @@ test('el directorio versionado de inventario se importa y registra el reporte co
   await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
   assert.equal(estadoFalso.reportes.size, 2, 'reimportar no duplica los reportes');
 });
+
+// El import de Superset exige la cookie de sesión que llega con el token CSRF; sin ella redirige al login y un
+// `fetch` que sigue redirecciones lo veía como éxito sin haber importado nada.
+test('importarPaquete reenvía la cookie de sesión del token CSRF al importar', async () => {
+  let cookieEnviada = null;
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) {
+      return new Response(JSON.stringify({ result: 'csrf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=abc123; HttpOnly; Path=/' },
+      });
+    }
+    if (url.endsWith('/api/v1/dashboard/import/')) {
+      cookieEnviada = opciones.headers.cookie;
+      return respuestaJson({});
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  await importarPaquete({
+    paquete: Buffer.from('zip'),
+    fetch: fetchFalso,
+    config: { supersetUrl: 'http://superset:8088', username: 'u', password: 'p' },
+  });
+  assert.equal(cookieEnviada, 'session=abc123');
+});
+
+test('importarPaquete falla si Superset redirige el import al login (no lo toma por éxito)', async () => {
+  const fetchFalso = async (url) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/dashboard/import/')) return new Response(null, { status: 302, headers: { location: '/login/' } });
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  await assert.rejects(
+    () => importarPaquete({
+      paquete: Buffer.from('zip'),
+      fetch: fetchFalso,
+      config: { supersetUrl: 'http://superset:8088', username: 'u', password: 'p' },
+    }),
+    /redirigió el import/,
+  );
+});
