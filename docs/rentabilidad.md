@@ -47,6 +47,10 @@ importes. Con ~4.600 filas producto × tienda responde en ~70 ms y el consolidad
 fila tardaba segundos y `rentabilidad_conteo_margen()` superaba el `statement_timeout` de 8 s del rol `authenticated`
 (la pantalla respondía 500). La regla de cálculo es la misma de `private.precio_neto_empresa`, `private.a_pesos` y
 `analitica.costos_adicionales_de`: si cambia alguna, hay que cambiar la vista (migración `20270205100000`).
+Las vistas de `analitica` no llaman a funciones de `private`: el permiso de ejecutar una función se comprueba contra quien
+consulta (el rol de solo lectura de Superset), no contra el dueño de la vista, y ese rol no puede ejecutarlas. La regla de precio
+de la tienda está escrita dentro de `margen_producto_canal` y de `margen_historico_producto_canal` (migraciones
+`20270205100000` y `20270205100001`).
 
 ## Umbral de margen bajo
 

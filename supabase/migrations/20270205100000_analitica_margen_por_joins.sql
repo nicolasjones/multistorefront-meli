@@ -10,7 +10,7 @@
 -- margen_pct, estado y costos adicionales sobre las 4.574 filas.
 --
 -- La lógica de negocio no cambia y sigue sin guardarse ningún importe (se calcula al leer):
---   precio_neto          = private.aplicar_regla_precio(precio de lista en pesos, base, ajuste, redondeo)
+--   precio_neto          = regla de precio de la tienda (igual a private.aplicar_regla_precio) sobre el precio de lista en pesos
 --   precio de lista/costo en pesos = ARS tal cual; USD × cotización vigente (`dominio.cotizacion_inicial`); otra moneda → null
 --   costos_adicionales   = Σ (porcentaje del neto | monto fijo) de los costos activos de la tienda
 -- Equivalen a `private.precio_neto_empresa`, `private.a_pesos` y `analitica.costos_adicionales_de`, que se conservan
@@ -34,12 +34,21 @@ left join dominio.rentabilidad_config c on c.organizacion_id = p.organizacion_id
 left join dominio.cotizacion_inicial ci on ci.organizacion_id = p.organizacion_id
 left join dominio.precios_empresa r on r.empresa_id = e.id and r.organizacion_id = e.organizacion_id
 cross join lateral (
+  select case when p.precio_lista is null then null when p.moneda = 'ARS' then p.precio_lista when p.moneda = 'USD' then round(p.precio_lista * ci.valor, 2) end as lista
+) l
+cross join lateral (
+  -- Regla de precio de la tienda, escrita acá y no como llamada a `private.aplicar_regla_precio`: el permiso de EJECUTAR una
+  -- función se comprueba contra quien consulta (el rol de solo lectura de Superset), no contra el dueño de la vista, y ese rol no
+  -- puede ejecutar funciones de `private`. Misma fórmula que esa función.
+  select case when l.lista is null then null
+              when coalesce(r.base, 'central') = 'central_ajuste'
+                then round(l.lista * (1 + coalesce(r.ajuste_pct, 0) / 100) / coalesce(r.redondeo_pesos, 10)) * coalesce(r.redondeo_pesos, 10)
+              else l.lista end as precio_neto
+) n
+cross join lateral (
   select n.precio_neto,
          case when k.costo is null then null when p.moneda = 'ARS' then k.costo when p.moneda = 'USD' then round(k.costo * ci.valor, 2) end as costo,
          (select coalesce(sum(case a.tipo when 'porcentaje' then n.precio_neto * a.valor / 100 else a.valor end), 0)
             from dominio.costos_adicionales_canal a where a.empresa_id = e.id and a.activo) as costos_adicionales
-  from (select private.aplicar_regla_precio(
-          case when p.precio_lista is null then null when p.moneda = 'ARS' then p.precio_lista when p.moneda = 'USD' then round(p.precio_lista * ci.valor, 2) end,
-          coalesce(r.base, 'central'), coalesce(r.ajuste_pct, 0), coalesce(r.redondeo_pesos, 10)) as precio_neto) n
 ) x
 where p.activo and e.activa and x.precio_neto > 0 and x.costo is not null;
