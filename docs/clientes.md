@@ -445,3 +445,14 @@ oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada
 `cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
 `docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
 (aditiva; reversión en su encabezado).
+
+## Listados con carga infinita (Principio VI)
+
+Los listados de Clientes dejaron la paginación numerada: cada pantalla sigue pidiendo «la página N» a su RPC y
+`useListadoAcumulado` suma cada tanda a las anteriores; al pie, `CargaInfinita` (scroll + «Cargar más»). Buscar, filtrar
+o cambiar de tienda vuelve a la primera tanda; el contador total, las exportaciones (usan los filtros, no lo cargado) y la
+selección no cambian. Si falla una tanda posterior se conserva lo cargado y el error se muestra al pie con «Reintentar».
+
+- Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
+  «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
+- Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.

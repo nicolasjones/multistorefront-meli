@@ -115,9 +115,9 @@ describe('empresa activa en Clientes (FR-017, SC-004, Principio VIII)', () => {
     mocks.guardar.mockResolvedValue(undefined)
   })
 
-  it('el listado vuelve a la página 1, descarta la selección y recarga con la nueva tienda', async () => {
+  it('el listado vuelve a la primera tanda, descarta la selección y recarga con la nueva tienda', async () => {
     const { rerender } = abrirListado()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.useBuscarClientes.mock.calls.at(-1)![0]).toMatchObject({ empresaId: 'e-1', pagina: 2 })
     // La selección de filas de la empresa anterior queda vacía al cambiar de empresa.
     fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Cliente 1' }))

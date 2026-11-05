@@ -15,6 +15,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
 import { AccesoRestringido } from '../../acceso-restringido/AccesoRestringido'
 import { EncabezadoTienda } from './EncabezadoTienda'
+import { LimiteDeError } from '../../../components/estados/LimiteDeError'
 import { cargarPestana, esClavePestanaTienda, type ClavePestanaTienda, type PropsPestanaTienda } from './pestanas'
 
 function ContenidoPestana({ clave, empresaId, empresaNombre, alCambiarDominio }: { clave: ClavePestanaTienda } & PropsPestanaTienda) {
@@ -29,9 +30,13 @@ function ContenidoPestana({ clave, empresaId, empresaNombre, alCambiarDominio }:
     return <EstadoVacio titulo="Esta sección todavía no está disponible." />
   }
   return (
-    <Suspense fallback={<EstadoCargaPagina />}>
-      <Componente empresaId={empresaId} empresaNombre={empresaNombre} alCambiarDominio={alCambiarDominio} />
-    </Suspense>
+    // `key`: al cambiar de pestaña se descarta cualquier error de la anterior. Un fallo de una sección se muestra acá y no deja la
+    // pantalla en blanco ni obliga a recargar.
+    <LimiteDeError key={clave}>
+      <Suspense fallback={<EstadoCargaPagina />}>
+        <Componente empresaId={empresaId} empresaNombre={empresaNombre} alCambiarDominio={alCambiarDominio} />
+      </Suspense>
+    </LimiteDeError>
   )
 }
 

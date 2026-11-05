@@ -31,6 +31,8 @@ export type RmaListado = {
   comprobante_numero: string
   cliente: string
   producto: string
+  /** Producto de la primera línea (la que da nombre a `producto`); null si es un artículo sin stock. */
+  producto_id: string | null
   cantidad: number
   forma_rma: string
   motivo: string

@@ -4,6 +4,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
 import { usePermisosPanel } from '../../context/PermisosPanel'
+import { EstadoError } from '../estados/EstadosPagina'
 import { InsigniaConsultasNuevas } from '../consultas/InsigniaConsultasNuevas'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useFeatureHabilitada } from '../../hooks/useFeatureHabilitada'
@@ -162,6 +163,14 @@ export function SiderPanel() {
       render={({ collapsed }) => {
         if (isLoading || !contexto) {
           return null
+        }
+
+        if (permisosPanel?.error && !(contexto.es_superadmin && !contexto.organizacion_id)) {
+          return collapsed ? null : (
+            <Box sx={{ p: 1 }}>
+              <EstadoError titulo="No pudimos verificar tus permisos." reintentar={permisosPanel.recargar} />
+            </Box>
+          )
         }
 
         return (
