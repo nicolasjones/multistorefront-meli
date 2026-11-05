@@ -628,6 +628,38 @@ Los helpers `private.disponible_publico`, `private.precio_final_publico` y `priv
 [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md) y
 [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
 
+### Dominio, publicación y versiones de la tienda (MSF-133)
+
+Épica **MSF-133** (F-TDA-05 `MSF-198`, F-TDA-06 `MSF-216`, F-TDA-07 `MSF-235`); rama
+`epic/MSF-133-tiendas-online-tienda-dominio-y-publicac`. Migraciones `20270203130000`–`20270203130200`.
+Detalle completo: [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
+
+| RPC / función | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.configurar_dominio_tienda(empresa, dominio, redireccion)` | `{ dominio_vigente, dominio_pendiente, redireccion }`; normaliza y exige unicidad a nivel plataforma entre principales, pendientes y redirecciones | `security definer`; edición en Empresas; `dominio_invalido`, `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso` |
+| `public.obtener_dominio_tienda(empresa)` | Dominio vigente y pendiente, redirección, estado de verificación y certificado, última verificación y la tabla de registros con su estado | `security definer`; lectura en Empresas |
+| `public.preparar_verificacion_tienda(empresa)` | `{ dominio, redireccion, token, ip_publica, cname_destino, prefijo_txt }`; aplica el límite de 10 s por tienda | `security definer`; edición en Empresas; `sin_permiso`, `sin_dominio`, `demasiado_pronto` |
+| `public.registrar_verificacion_dns(empresa, dominio, redireccion, resultados, certificado)` | Guarda el resultado de la comprobación y promueve el pendiente si corresponde | **`service_role` únicamente** (la ejecuta la Edge Function); `verificacion_obsoleta` |
+| `publico.redireccion_por_dominio(host)` | `{ dominio_principal }` o `null`; vacío para host desconocido y empresa desactivada | `security definer`; `anon` y `authenticated` |
+| `public.guardar_borrador_tienda(empresa, area, datos)` | Deja el valor completo de un área (`identidad`\|`contenido`\|`catalogo`) en el borrador; valida con las mismas reglas que las RPC vivas | `security definer`; edición en Empresas; `42501`, `22023` por campo |
+| `public.obtener_borrador_tienda(empresa)` | Borrador por área, resumen de cambios calculado en el servidor, versión vigente y estado en línea | `security definer`; lectura en Empresas |
+| `public.descartar_borrador_tienda(empresa)` | Borra el borrador | `security definer`; edición en Empresas |
+| `public.publicar_tienda(empresa)` | `{ version }` (`null` si no había borrador): aplica el borrador en una transacción, crea la versión y borra el borrador | `security definer`; edición en Empresas |
+| `public.vista_previa_tienda(empresa)` | Borrador superpuesto a lo publicado, con precios en vivo; nunca costos, stock exacto ni proveedor | `security definer`; edición en Empresas |
+| `public.rutas_tienda_sin_referencia(empresa, rutas)` | Rutas que ya no referencia ni el borrador ni ninguna versión | `security definer`; edición en Empresas |
+| `public.listar_versiones_tienda(empresa)` | Últimas 100 versiones, la más nueva primero, con nombre de autor y marca de vigente | `security definer`; lectura en Empresas |
+| `public.restaurar_version_tienda(empresa, numero)` | `{ omitidos }`: reemplaza el borrador con la instantánea de esa versión; **no publica** | `security definer`; edición en Empresas; `22023` si es la vigente |
+
+**BREAKING (MSF-133):** `public.guardar_tienda_identidad`, `public.guardar_tienda_contenido` y
+`public.guardar_catalogo_tienda` **dejan de ser ejecutables por `authenticated`**; la firma no cambia y solo
+las invoca `public.publicar_tienda`. El motivo: que todo cambio visible pase por el borrador y quede en una
+versión.
+
+**Edge Function `verificar-dominio-tienda`** (`supabase/functions/verificar-dominio-tienda/`, contrato en
+`openapi/verificar-dominio-tienda.json`): `POST /verificar-dominio-tienda { empresa_id }` con el JWT de la
+persona. Respuestas `200` (`dominio_verificado`, `certificado`, `registros[]`), `400`, `401`, `403`, `429` y
+`502`. La service-role key vive **solo** en la función.
+
 ### Acceso y sesión (MSF-119)
 
 Épica MSF-119 (F-ACC-01, F-ACC-02, F-ACC-03, F-ORG-01). El login, la recuperación y la definición de contraseña

@@ -95,6 +95,10 @@ Todas hacen `revoke execute … from public` y `grant execute … to anon, authe
 `private.catalogo_tienda_efectivo(empresa)` es la única definición de la visibilidad efectiva y la usan la
 gestión, el resumen y la función pública. No tiene `execute` para roles de API.
 
+**BREAKING desde MSF-133:** las tres `guardar_*` (identidad, contenido y catálogo) **dejan de ser ejecutables
+por `authenticated`**; la firma no cambia y solo las invoca `public.publicar_tienda`. El navegador guarda en el
+borrador. Ver [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
+
 ## Reglas de implementación
 
 - **Visibilidad efectiva:** producto activo, `productos_tienda.visible` verdadero y su categoría (y la
@@ -118,8 +122,8 @@ gestión, el resumen y la función pública. No tiene `execute` para roles de AP
 
 | Ruta / pieza | Archivos |
 |---|---|
-| Gestión `/empresas/:id/tienda/:pestaña` (`identidad`, `contenido`, `catalogo`) | `apps/web/src/pages/empresas/tienda/GestionTienda.tsx`, `EncabezadoTienda.tsx`, `pestanas.ts` |
-| Pestañas (carga diferida por `import.meta.glob`) | `pestanas/identidad.tsx`, `pestanas/contenido.tsx`, `pestanas/catalogo.tsx` |
+| Gestión `/empresas/:id/tienda/:pestaña` (`identidad`, `contenido`, `catalogo`, `publicacion`) | `apps/web/src/pages/empresas/tienda/GestionTienda.tsx`, `EncabezadoTienda.tsx`, `pestanas.ts` |
+| Pestañas (carga diferida por `import.meta.glob`) | `pestanas/identidad.tsx`, `pestanas/contenido.tsx`, `pestanas/catalogo.tsx`, `pestanas/publicacion.tsx` (de MSF-133) |
 | Identidad: logo/banners, colores y contraste | `componentes/imagen-tienda/ImagenTienda.tsx`, `componentes/identidad/CamposDeIdentidad.tsx`, `apps/web/src/lib/tiendaIdentidad.ts` |
 | Contenido: límites y cliente de la RPC | `apps/web/src/lib/tiendaContenido.ts` |
 | Catálogo: borrador, resumen y RPC | `apps/web/src/lib/tiendaCatalogo.ts`, `apps/web/src/hooks/useCatalogoTienda.ts` |
@@ -148,7 +152,9 @@ gestión, el resumen y la función pública. No tiene `execute` para roles de AP
 - **Hosts:** `VITE_PANEL_HOSTS` debe listar todos los hosts del panel de cada entorno; cualquier otro host
   se sirve como tienda. Sin la variable en producción, ningún host se enruta como tienda (falla segura).
 - **Dominios:** se configuran por SQL/operación en `dominio.tiendas`; no hay RPC de alta ni pantalla. Los
-  cambios de dominio quedan auditados por trigger.
+  cambios de dominio quedan auditados por trigger. **Desde MSF-133 el alta y la verificación las hace el
+  administrador desde el panel** (pestaña «Dominio y publicación»): ver
+  [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
 - **Bucket:** `tienda-identidad` es de **lectura pública** (las imágenes se muestran sin sesión) y de
   escritura acotada a la carpeta de la organización/empresa. Si se revierte la épica, exportar los
   archivos antes de borrar el bucket.
@@ -197,7 +203,11 @@ pnpm --filter @platform/web test:e2e tienda-dos-dominios
   siendo accesible por su URL pública. Si se requiere cierre total, validar el SVG en el servidor.
 - **Archivos huérfanos:** la limpieza es mejor esfuerzo después de guardar; un fallo de borrado no rompe
   la tienda, solo deja un archivo sin uso.
-- **Sin borrador, versiones ni «Publicar cambios»:** son de MSF-133 (F-TDA-05/06/07, Etapa 2).
+- **Sin borrador, versiones ni «Publicar cambios»:** son de MSF-133 (F-TDA-05/06/07, Etapa 2). **Ya
+  entregados:** el borrador, la vista previa, la publicación y las versiones están documentados en
+  [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md). Lo que esta épica
+  (MSF-147) deja atrás es el guardado «aplica de inmediato»: desde MSF-133 las pestañas de identidad,
+  contenido y catálogo guardan en el **borrador** y la publicación se hace aparte.
 - **`publico.catalogo_visible_por_dominio` no la consume el front actual:** el catálogo de MSF-167 usa
   `catalogo_pagina_por_dominio` y la home de MSF-191 usa `destacados_por_dominio` (ver
   [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)). La función de esta épica
@@ -206,9 +216,13 @@ pnpm --filter @platform/web test:e2e tienda-dos-dominios
 
 ## Diferencias con el prototipo
 
-- Se adapta «Guardar y publicar» a **«Guardar»** (aplica de inmediato) y «Descartar» restaura el último
-  valor guardado; no hay diálogos de publicación ni de descarte.
+- Se adapta «Guardar y publicar» a **«Guardar»**: desde MSF-133 «Guardar» deja el cambio en el **borrador**
+  (no aplica de inmediato) y «Descartar» restaura el último valor guardado; los diálogos de publicación y de
+  descarte viven en la pestaña **Dominio y publicación** (ver
+  [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md)).
 - La vista previa es en vivo y local; no publica una versión aparte.
-- `StorePublicacion` (dominio, DNS, versiones) y `StoreGeneral` (datos de la empresa) quedan fuera.
+- `StorePublicacion` (dominio, DNS, versiones) y `StoreGeneral` (datos de la empresa) quedan fuera **de esta
+  épica**: los entrega MSF-133 (dominio, borrador, publicación y versiones), salvo la pantalla de datos de la
+  empresa.
 - Las pestañas General, Precios y moneda y Mercado Libre no se dibujan.
 - El bloque «Información de contacto visible» no se implementa.

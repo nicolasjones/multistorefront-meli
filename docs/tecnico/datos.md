@@ -296,10 +296,103 @@ erDiagram
 - **Ausencia de fila = valor predeterminado:** identidad y contenido usan el tema base y textos vacíos;
   categorías y productos se toman visibles (y no destacados).
 - Los dominios los configura el equipo técnico; no hay pantalla ni RPC de alta de dominio. El cambio de
-  dominio queda auditado (`tienda.dominio_configurado`).
+  dominio queda auditado (`tienda.dominio_configurado`). **Esto cambió en MSF-133**: el alta de dominio la
+  hace el administrador desde el panel (ver «Dominio, publicación y versiones de la tienda (MSF-133)»).
 - La visibilidad efectiva de un producto se calcula en `private.catalogo_tienda_efectivo` (producto activo,
   visible y con categoría y categoría padre visibles). El detalle de contratos y operación está en
   [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
+
+## Dominio, publicación y versiones de la tienda (MSF-133)
+
+Cuatro tablas nuevas y una alterada. Migraciones aditivas `20270203130000_tienda_dominio_verificacion.sql`
+(F-TDA-05), `20270203130100_tienda_borrador_publicacion.sql` (F-TDA-06) y
+`20270203130200_tienda_versiones.sql` (F-TDA-07, sin tablas nuevas), en la rama de la épica
+`epic/MSF-133-tiendas-online-tienda-dominio-y-publicac`; reversión en el encabezado de cada una y
+consolidada en [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md#alcance-de-entrega).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tiendas` | **alterada** | Gana `dominio_redireccion`, `dominio_pendiente`, `token_verificacion` (uuid hex, no secreto), `dominio_verificado_at`, `ultima_verificacion_at`, `certificado_estado` (`pendiente`\|`activo`\|`error`), `certificado_verificado_at`, `verificacion_solicitada_at` y `verificacion_solicitada_por`. Unicidad a nivel plataforma de `dominio_pendiente` y `dominio_redireccion`; `check` de formato de dominio y de que la redirección sea distinta del principal. |
+| `dominio.tienda_registros_dns` | **nueva** | Resultado de la última comprobación de cada registro DNS de una tienda: PK `(empresa_id, tipo)`, `tipo` ∈ `A`\|`CNAME`\|`TXT`, `estado` ∈ `correcto`\|`incorrecto`\|`pendiente`, `nombre`, `valor_encontrado`, `comprobado_at`. FK compuesta `(empresa_id, organizacion_id)` a `dominio.empresas`. |
+| `public.tienda_dns_plataforma` | **nueva** | **Fila única** de configuración de plataforma (`id boolean primary key default true check (id)`): `ip_publica`, `cname_destino`, `prefijo_txt`, `updated_at`. Vive en `public` porque es transversal a todas las tiendas y no tiene `organizacion_id`. La siembra valores de documentación; los reales los carga el equipo técnico por SQL. |
+| `dominio.tienda_borrador` | **nueva** | Cambios preparados de una tienda, por área: PK `empresa_id`, `identidad jsonb`, `contenido jsonb`, `catalogo jsonb`, `updated_by`, `updated_at`. Área ausente = sin cambios; sin áreas = sin borrador. |
+| `dominio.tienda_versiones` | **nueva** | Historial de publicaciones: PK `(empresa_id, numero)`, `publicada_at`, `publicada_por`, `resumen`, `cambios jsonb` e `instantanea jsonb` (estado vivo de las tres áreas; en `catalogo`, solo las filas que difieren del predeterminado). |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `public.organizaciones` | existente | FK `on delete cascade` en las tres tablas de `dominio`; no cambia. |
+| `public.registro_actividad` | existente | Recibe `tienda.dominio_verificado`, `tienda.publicada`, `tienda.borrador_descartado` y `tienda.version_restaurada` (`tienda.dominio_configurado` ya existía). Sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ TIENDAS : "es dueña"
+  ORGANIZACIONES ||--o{ TIENDA_REGISTROS_DNS : "es dueña"
+  ORGANIZACIONES ||--o{ TIENDA_BORRADOR : "es dueña"
+  ORGANIZACIONES ||--o{ TIENDA_VERSIONES : "es dueña"
+  EMPRESAS ||--|| TIENDAS : "publica"
+  EMPRESAS ||--o{ TIENDA_REGISTROS_DNS : "comprueba"
+  EMPRESAS ||--o| TIENDA_BORRADOR : "prepara"
+  EMPRESAS ||--o{ TIENDA_VERSIONES : "publica"
+
+  TIENDAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "único"
+    text dominio "único, normalizado, vigente"
+    text dominio_pendiente "nueva: pendiente de verificar"
+    text dominio_redireccion "nueva: redirige al principal"
+    text token_verificacion "nueva: TXT _verif, no secreto"
+    timestamptz dominio_verificado_at "nueva"
+    timestamptz ultima_verificacion_at "nueva"
+    text certificado_estado "nueva: pendiente|activo|error"
+    timestamptz certificado_verificado_at "nueva"
+    timestamptz verificacion_solicitada_at "nueva: límite de 10 s"
+    uuid verificacion_solicitada_por "nueva"
+    timestamptz created_at
+    timestamptz updated_at }
+  TIENDA_REGISTROS_DNS { uuid empresa_id PK
+    text tipo PK "A|CNAME|TXT"
+    uuid organizacion_id FK
+    text nombre
+    text valor_encontrado "lo que hay en DNS"
+    text estado "correcto|incorrecto|pendiente"
+    timestamptz comprobado_at }
+  TIENDA_BORRADOR { uuid empresa_id PK
+    uuid organizacion_id FK
+    jsonb identidad "nueva: área completa"
+    jsonb contenido "nueva: área completa"
+    jsonb catalogo "nueva: área completa"
+    uuid updated_by
+    timestamptz updated_at }
+  TIENDA_VERSIONES { uuid empresa_id PK
+    uuid numero PK "correlativo por empresa"
+    uuid organizacion_id FK
+    timestamptz publicada_at
+    uuid publicada_por
+    text resumen
+    jsonb cambios "nueva: campos tocados"
+    jsonb instantanea "nueva: estado vivo al publicar" }
+  TIENDA_DNS_PLATAFORMA { boolean id PK "fila única"
+    text ip_publica
+    text cname_destino
+    text prefijo_txt
+    timestamptz updated_at }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- **RLS:** las cuatro tablas nuevas tienen RLS por organización y nivel `private.nivel_seccion('empresas')` en
+  `lectura` o `edicion`; nacen con `revoke all … from public, anon, authenticated` y `grant select …
+  to authenticated`. **Nadie escribe por tabla**: todo pasa por RPC `security definer`, así la auditoría nunca
+  se omite.
+- **`public.tienda_dns_plataforma`** es configuración de plataforma, no de negocio: RLS de solo lectura para
+  `authenticated` y **sin** política de escritura (la carga el equipo técnico por SQL).
+- **El borrador y las versiones no son públicos:** ninguna función de `publico` los lee y `anon` no tiene
+  privilegios sobre ellas.
+- **Un borrador por empresa**, con un `jsonb` por área; al publicar se borra. **Una versión por publicación**,
+  con número correlativo por empresa: el historial no se reescribe.
+- **Precios, stock y estado activo de los productos no pasan por el borrador:** se leen siempre en vivo.
 
 ## Stock: movimientos, mínimo y estados (MSF-136)
 
@@ -2730,13 +2823,15 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
 | `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) (MSF-167) |
 | `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes (MSF-167) |
 | `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles (MSF-167) |
+| `publico.redireccion_por_dominio(host)` | Dominio principal de la tienda, si el host es su «Redirigir también»; `null` para host desconocido y empresa inactiva (MSF-133) |
 
 - La visibilidad efectiva sale de `private.catalogo_tienda_efectivo` (producto activo, visible y con
   categoría visible); el precio, de `private.precio_final_publico`, y la disponibilidad, de
   `private.disponible_publico` (solo booleano).
 - `anon` ejecuta solo funciones de `publico`; las tablas conservan su RLS por organización.
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
-  visible](tienda-dominio-e-identidad.md) y [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+  visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y
+  [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
   Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
 ## Inicio, búsqueda y móvil (MSF-191)
