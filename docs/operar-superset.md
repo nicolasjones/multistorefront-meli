@@ -123,7 +123,7 @@ Cada dashboard tiene dos UUIDs distintos, fáciles de confundir:
 
 Rentabilidad usa dos tableros embebidos (`Resumen` y `Por producto`) que leen **solo** el esquema `analitica` de
 la base de la app con el rol `superset_analitica` (solo lectura). Se importan desde
-`infra/superset/dashboards/rentabilidad/` con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging|production`,
+`infra/superset/dashboards/rentabilidad/` con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno dev|staging|production`,
 que además registra los reportes en `public.reportes` con `seccion = 'rentabilidad'`. La conexión necesita
 `SUPERSET_ANALITICA_DB_HOST` y `SUPERSET_ANALITICA_DB_PASSWORD` (nunca en Git; el rol nace `nologin` y el operador le
 asigna login y contraseña por entorno). El aislamiento entre organizaciones lo fuerza la cláusula `rls`
@@ -135,7 +135,7 @@ asigna login y contraseña por entorno). El aislamiento entre organizaciones lo 
 «Más vendidos» es el primer tablero de **Ventas · Reportes**: la tabla de productos más
 vendidos en un período (unidades, facturado neto y estado del stock vigente). Vive en
 `infra/superset/dashboards/ventas-reportes/` y se importa con
-`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`,
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno dev|staging|production`,
 que además registra el reporte en `public.reportes` con `seccion = 'reportes'` y
 `filtro_empresa = true` (el registro es idempotente: reimportar no duplica la fila). La conexión
 (`Ventas analitica`) usa el mismo rol de solo lectura `superset_analitica` que la de Rentabilidad:
@@ -188,7 +188,7 @@ organización) y su cláusula sigue siendo solo `organizacion_id`. El importador
 Es el segundo tablero de **Ventas · Reportes**: el ranking de clientes por facturación neta
 (comprobantes, facturado, participación con barra y última compra). Vive en el mismo directorio
 `infra/superset/dashboards/ventas-reportes/` y se importa **con el mismo paquete** que «Más
-vendidos» (`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging|production`):
+vendidos» (`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno dev|staging|production`):
 se registran los dos reportes en `public.reportes` con `seccion = 'reportes'` y `filtro_empresa = true`
 (el registro es idempotente: reimportar no duplica la fila).
 
@@ -268,7 +268,7 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-ventas-rea
 Paquete propio `infra/superset/dashboards/consultas-reportes/` (no comparte `reportes.json` con
 `ventas-reportes/`): dataset sobre `analitica.consultas_producto_mas_consultado`, un gráfico de tabla (posición,
 consultas, última consulta; orden por consultas descendente) y filtros nativos de rango y empresa. Se importa con
-`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging|production`
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno dev|staging|production`
 (idempotente) y se registra en `public.reportes` con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto
 `administracion`. Reutiliza la conexión «Ventas analitica» (mismo rol `superset_analitica`, contraseña por
 `SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional: [`ventas-reportes.md`](./ventas-reportes.md).
@@ -278,7 +278,7 @@ consultas, última consulta; orden por consultas descendente) y filtros nativos 
 Paquete propio `infra/superset/dashboards/ventas-periodo-canal/`: dataset sobre `analitica.ventas_periodo_canal`, un
 gráfico de barras apiladas por canal (facturado con IVA), una tabla por canal (facturado, comprobantes, unidades) y
 filtros nativos de rango, empresa y «Agrupar por» (día, semana o mes; `filter_timegrain`). Se importa con
-`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging|production`
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno dev|staging|production`
 (idempotente; el workflow de despliegue lo hace después de `consultas-reportes`) y se registra en `public.reportes`
 con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto `administracion`. Reutiliza la conexión «Ventas
 analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional:
