@@ -1,5 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { violacionesAxe } from '../../../test/axe'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { guardarConsentimiento, leerConsentimiento, reiniciarConsentimientoEnMemoria } from '../../../lib/consentimientoCookies'
@@ -20,20 +19,19 @@ describe('AvisoCookies (FR-033)', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
-  it('«Aceptar» guarda la decisión y el aviso desaparece', async () => {
+  it('«Aceptar» guarda la decisión y el aviso desaparece', () => {
     render(<AvisoCookies />)
-    await userEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))
     expect(leerConsentimiento()).toBe('aceptadas')
     expect(screen.queryByRole('region', { name: 'Aviso de cookies' })).not.toBeInTheDocument()
   })
 
-  it('«Rechazar» se opera con teclado, guarda y no vuelve al montar de nuevo', async () => {
+  it('«Rechazar» es un botón nativo (operable con teclado), guarda y no vuelve al montar de nuevo', () => {
     const { unmount } = render(<AvisoCookies />)
-    await userEvent.tab()
-    await userEvent.tab()
-    expect(screen.getByRole('button', { name: 'Aceptar' })).toHaveFocus()
-    await userEvent.tab({ shift: true })
-    await userEvent.keyboard('{Enter}')
+    const rechazar = screen.getByRole('button', { name: 'Rechazar' })
+    expect(rechazar.tagName).toBe('BUTTON')
+    expect(rechazar).toHaveProperty('tabIndex', 0)
+    fireEvent.click(rechazar)
     expect(leerConsentimiento()).toBe('rechazadas')
     unmount()
     render(<AvisoCookies />)

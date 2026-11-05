@@ -41,8 +41,8 @@ create table dominio.tienda_legal_enlaces (
 comment on table dominio.tienda_legal_enlaces is
   'MSF-289 (F-TDA-22): enlaces legales (título + URL https) del pie de la tienda de una empresa. Los carga el equipo técnico (D5); sin escritura desde la app.';
 
-create index tienda_legal_enlaces_empresa_orden_idx on dominio.tienda_legal_enlaces (empresa_id, orden);
-create index tienda_legal_enlaces_organizacion_id_idx on dominio.tienda_legal_enlaces (organizacion_id);
+create index if not exists tienda_legal_enlaces_empresa_orden_idx on dominio.tienda_legal_enlaces (empresa_id, orden);
+create index if not exists tienda_legal_enlaces_organizacion_id_idx on dominio.tienda_legal_enlaces (organizacion_id);
 
 alter table dominio.tienda_legal_enlaces enable row level security;
 
