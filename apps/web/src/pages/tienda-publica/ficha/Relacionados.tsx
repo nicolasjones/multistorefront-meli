@@ -9,7 +9,7 @@ export default function Relacionados({ host, productoId }: { host: string; produ
   const estado = useRelacionados(host, productoId)
   if (estado.fase === 'vacia' || estado.fase === 'error') return null
 
-  const columnas = { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' }
+  const columnas = { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(4, minmax(0, 1fr))' }
   if (estado.fase === 'cargando') {
     return (
       <Box data-testid="relacionados-cargando" aria-hidden sx={{ mt: 6, display: 'grid', gap: 2, gridTemplateColumns: columnas }}>

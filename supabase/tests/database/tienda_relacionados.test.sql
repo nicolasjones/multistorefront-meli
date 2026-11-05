@@ -46,7 +46,8 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
 select p.id, 'e1000000-0000-0000-0000-000000000001', p.organizacion_id
   from dominio.productos p
- where p.id not in ('a1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-00000000000c');
+ where p.organizacion_id = '11111111-1111-1111-1111-111111111111'
+   and p.id not in ('a1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-00000000000c');
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
   ('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),

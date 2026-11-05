@@ -59,7 +59,9 @@ describe('Relacionados', () => {
     const reglas = Array.from(document.querySelectorAll('style')).map((s) => s.textContent).join('')
     expect(rejilla.className).toBeTruthy()
     expect(reglas).toContain('repeat(2, minmax(0, 1fr))')
-    expect(reglas).toContain('repeat(4, minmax(0, 1fr))')
+    // 4 columnas desde `sm` (600 px): a 768 px ya son 4, no 2 (FR-012).
+    expect(reglas).toMatch(/@media \(min-width:600px\)\{[^}]*\{[^}]*repeat\(4, minmax\(0, 1fr\)\)/)
+    expect(reglas).not.toMatch(/min-width:900px[^}]*\{[^}]*repeat\(4/)
   })
 
   it('mientras carga muestra un estado discreto sin título', () => {
