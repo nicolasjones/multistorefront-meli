@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Box, Link } from '@mui/material'
 import { Link as EnlaceRuta, useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
@@ -10,6 +11,9 @@ import { PreciosCliente } from '../ficha/PreciosCliente'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ErrorConReintento } from '../ErrorConReintento'
+
+// Carga diferida (FR-012): los relacionados quedan fuera del primer pintado de la ficha.
+const Relacionados = lazy(() => import('../ficha/Relacionados'))
 
 // `/producto/:productoId` (F-TDA-13, FR-051/FR-056): ficha del producto de ESTA tienda. Inexistente,
 // inactivo, oculto, de categoría oculta, de otra empresa o con un id inválido → la misma 404 amable.
@@ -44,6 +48,9 @@ export default function RutaProducto() {
           <Compatibilidad compatibilidad={datos.compatibilidad} />
         </Box>
       </Box>
+      <Suspense fallback={null}>
+        <Relacionados host={host} productoId={datos.id} />
+      </Suspense>
     </Box>
   )
 }
