@@ -95,7 +95,10 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   misma organización. Los proveedores existentes quedan sin tiendas marcadas; un alta nueva también (hay que elegir).
 - Diálogo Nuevo/Editar: casillas «Compra para» (una por tienda), con el mismo patrón de
   `SelectorEmpresas` que «Disponible en» de Cuentas de cobro. Se guardan después del proveedor; si fallan, el aviso
-  dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
+  dice que el proveedor sí se guardó y ofrece «Reintentar»: el reintento **vuelve a guardar el formulario
+  completo** sobre el mismo proveedor —no lo duplica— con lo que la persona editó después del fallo, y usando el
+  `updated_at` que devolvió el guardado anterior (si no, el reintento chocaría con el bloqueo optimista). Si no se
+  tocan las tiendas, no se llama a la RPC. (MSF-698)
 - Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
 - Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
 
@@ -155,3 +158,7 @@ Migraciones aditivas. Para volver atrás, en una migración **posterior** (no en
 datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
 `private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, y la tabla
 `dominio.proveedores`. El encabezado de cada migración lista los pasos exactos.
+
+## Listados con carga infinita
+
+El listado de proveedores y la sección «Productos» de la ficha cargan por tandas (25 y 10) al llegar al final del scroll, con «Cargar más» como alternativa por teclado; no hay paginación numerada. Siguen pidiendo «la página N» a `listar_proveedores` y `productos_de_proveedor`; el contador total, la búsqueda y los filtros se conservan y cambiarlos (o guardar un proveedor nuevo) vuelve a la primera tanda. En «Productos» cada fila muestra la imagen principal como miniatura con zoom al pasar el mouse. Ver [`listados.md`](./listados.md).

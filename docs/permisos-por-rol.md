@@ -221,6 +221,10 @@ es defensa de UX (RLS es la autoridad) y falla cerrada: solo `lectura`/`edicion`
 nivel nulo tras cargar se trata como denegado. El rol mostrado sale de `usuarios_organizacion`
 filtrado por `user_id` y por la organización activa (`useOrganizacionDeTrabajo`, por si la persona
 pertenece a varias); si falla, se muestra «actual» y nunca una pantalla en blanco.
+Si falla la carga de permisos (`permisos_actuales`: red, 5xx, schema cache) el proveedor expone
+`error` (con `permisos: null`, nunca `[]`): el guard y el menú muestran «No pudimos verificar tus
+permisos» con **Reintentar** (`recargar()`) en vez de «Acceso restringido» / «Solicitar acceso». La
+sección sigue sin montarse (falla cerrada); «sin acceso» solo aparece con un nivel `ninguno` real (MSF-697).
 
 ## Reversión
 
@@ -312,3 +316,10 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracio
   `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
 - **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
 - **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.
+
+## Rol mostrado en «Acceso restringido» (MSF-637)
+
+Las pantallas solo-Administrador (`/stock/motivos`, Listas configurables) muestran el nombre real del rol
+(`useNombreRolActual`, misma consulta que `RequiereAccesoSeccion`, vía `lib/rolActual.ts`). Si no se puede
+resolver, el texto genérico es «actual». Pendiente de decisión de negocio: la matriz otorga `edicion`/`lectura`
+a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las limita al Administrador.

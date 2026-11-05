@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Chip, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
 import { useHistorialCorreoMasivo } from '../../../hooks/useHistorialCorreoMasivo'
@@ -8,6 +8,8 @@ import {
   ETIQUETA_ESTADO_CAMPANA, RUTA_HISTORIAL_CORREO_MASIVO, textoFechaCampana, textoProgreso, type CampanaHistorial,
 } from '../../../lib/correoMasivoHistorial'
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
+import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
@@ -16,7 +18,7 @@ import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { PestanasCorreoMasivo } from './pestanas'
 
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
@@ -56,12 +58,11 @@ export function CorreoMasivoHistorial() {
     setPagina(1)
   }, [empresaId])
 
-  const { filas, total, isLoading, isFetching, isError, refetch } = useHistorialCorreoMasivo({ empresaId, pagina, tamano: TAMANO_PAGINA })
+  const { filas, total, isLoading, isFetching, isError, refetch } = useHistorialCorreoMasivo({ empresaId, pagina, tamano: TAMANO_TANDA })
 
-  // Si la página quedó fuera de rango, el servidor no devuelve filas: se vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, filas.length, pagina])
+  // Carga infinita (Principio VI): las campañas se suman por tandas; cambiar de empresa vuelve a la primera.
+  const listado = useListadoAcumulado({ items: filas, pagina, setPagina, total, cargando: isFetching, reinicio: empresaId })
+  const falloTanda = isError && listado.filas.length > 0
 
   const puedeVer = nivel === 'lectura' || nivel === 'edicion'
 
@@ -97,28 +98,24 @@ export function CorreoMasivoHistorial() {
             <Box aria-busy={isFetching}>
               {isLoading ? (
                 <EstadoCargaPagina />
-              ) : isError ? (
+              ) : isError && !falloTanda ? (
                 <EstadoError descripcion="No pudimos cargar el historial de campañas." reintentar={() => void refetch()} />
-              ) : filas.length === 0 && pagina === 1 ? (
+              ) : listado.filas.length === 0 ? (
                 <EstadoVacio titulo="Todavía no se envió ninguna campaña" />
               ) : (
                 <>
                   <ContenidoAdaptable
-                    items={filas}
+                    items={listado.filas}
                     columnas={columnas}
                     obtenerClave={(campana) => campana.id}
                     etiquetaTabla="Historial de campañas de correo"
                   />
-                  {filas.length > 0 ? <TablePagination
-                    component="div"
-                    count={total}
-                    page={pagina - 1}
-                    rowsPerPage={TAMANO_PAGINA}
-                    rowsPerPageOptions={[TAMANO_PAGINA]}
-                    onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                    labelRowsPerPage="Campañas por página"
-                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                  /> : null}
+                  <CargaInfinita
+                    hayMas={listado.hayMas}
+                    cargando={listado.cargandoMas}
+                    hayError={falloTanda}
+                    onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                  />
                 </>
               )}
             </Box>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
   Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link, Snackbar, Stack,
-  TablePagination, Typography,
+  Typography,
 } from '@mui/material'
 import { useFaltantes } from '../../hooks/useFaltantes'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
@@ -16,6 +16,10 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
@@ -63,9 +67,13 @@ export function FaltantesStock() {
     }
   }
 
+  const listado = useListadoAcumulado({ items: faltantes, pagina, setPagina, total, cargando: isFetching, reinicio: ambito })
+  const imagenes = useImagenesProductos(listado.filas.map((fila) => fila.producto_id))
+  const falloTanda = isError && pagina > 1
+
   const cantidadElegidos = Object.keys(elegidos).length
   const clientesElegidos = new Set(Object.values(elegidos)).size
-  const todosElegidos = faltantes.length > 0 && faltantes.every((fila) => elegidos[fila.linea_id])
+  const todosElegidos = listado.filas.length > 0 && listado.filas.every((fila) => elegidos[fila.linea_id])
 
   const enviar = async () => {
     if (enviando) return
@@ -73,6 +81,9 @@ export function FaltantesStock() {
     try {
       const resultado = await avisar()
       setDialogo(false)
+      // Los avisos cambian filas de tandas anteriores: se recarga desde la primera. Sin comparar con `pagina`:
+      // este cierre es del render del clic y la persona pudo sumar tandas mientras el aviso viajaba.
+      setPagina(1)
       // Si no se encoló ningún correo, el aviso no es un éxito: lo dice el texto y el color.
       setAviso({
         texto: mensajeResultadoAviso(resultado),
@@ -114,9 +125,12 @@ export function FaltantesStock() {
       clave: 'producto',
       encabezado: 'Producto',
       render: (fila) => (
-        <Stack spacing={0}>
-          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto}</Typography>
-          <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <MiniaturaProducto alt="" src={imagenes.get(fila.producto_id)} />
+          <Stack spacing={0}>
+            <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto}</Typography>
+            <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+          </Stack>
         </Stack>
       ),
     },
@@ -143,15 +157,15 @@ export function FaltantesStock() {
   ]
 
   const contenido = () => {
-    if (isError) return <EstadoError descripcion="No pudimos cargar los faltantes." reintentar={() => void refetch()} />
+    if (isError && !falloTanda) return <EstadoError descripcion="No pudimos cargar los faltantes." reintentar={() => void refetch()} />
     if (isLoading) return <EstadoCargaPagina />
-    if (faltantes.length === 0 && total === 0) {
+    if (listado.filas.length === 0 && total === 0 && !falloTanda) {
       return <EstadoVacio titulo="No hay faltantes" descripcion="Cuando vendas productos «A pedido» sin stock, los vas a ver acá." />
     }
     return (
-      <Box aria-busy={isFetching} sx={{ opacity: isFetching ? 0.5 : 1, transition: 'opacity 150ms' }}>
+      <Box aria-busy={isFetching} sx={{ opacity: isFetching && pagina === 1 ? 0.5 : 1, transition: 'opacity 150ms' }}>
         <ContenidoAdaptable
-          items={faltantes}
+          items={listado.filas}
           columnas={columnas}
           obtenerClave={(fila) => fila.linea_id}
           etiquetaTabla="Faltantes"
@@ -160,21 +174,17 @@ export function FaltantesStock() {
             // sin texto visible (`VentasFaltantes.dc.html`): se nombra con `aria-label`.
             <Checkbox
               checked={todosElegidos}
-              indeterminate={!todosElegidos && faltantes.some((fila) => elegidos[fila.linea_id])}
-              onChange={alternarTodos}
+              indeterminate={!todosElegidos && listado.filas.some((fila) => elegidos[fila.linea_id])}
+              onChange={() => alternarTodos(listado.filas)}
               slotProps={{ input: { 'aria-label': 'Seleccionar todos' } }}
             />
           ) : undefined}
         />
-        <TablePagination
-          component="div"
-          count={total}
-          page={pagina - 1}
-          rowsPerPage={TAMANO_PAGINA_FALTANTES}
-          rowsPerPageOptions={[TAMANO_PAGINA_FALTANTES]}
-          onPageChange={(_, nueva) => setPagina(nueva + 1)}
-          labelRowsPerPage="Faltantes por página"
-          labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+        <CargaInfinita
+          hayMas={listado.hayMas}
+          cargando={listado.cargandoMas}
+          hayError={falloTanda}
+          onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
         />
         <Typography variant="xs" component="p" sx={{ mt: 1 }}>
           {`${cantidadElegidos} ${cantidadElegidos === 1 ? 'seleccionado' : 'seleccionados'} de ${total} ${total === 1 ? 'faltante' : 'faltantes'}. `}
