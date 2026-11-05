@@ -39,6 +39,13 @@ firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto 
 al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
 de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
+### Alta y edición de cliente en popup
+
+«Nuevo cliente» y «Editar» del listado de Clientes abren un popup (`components/clientes/DialogoCliente.tsx`) en lugar de
+navegar. Reutiliza `AltaCliente` y `EdicionCliente` (de `pages/clientes/create.tsx` y `edit.tsx`); al guardar, el listado se
+recarga y muestra el aviso. Las rutas `/clientes/create` y `/clientes/edit/:id` siguen existiendo (la ficha enlaza a la
+edición) y su «Cancelar» vuelve a la ficha o al listado.
+
 ## Excepciones
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que

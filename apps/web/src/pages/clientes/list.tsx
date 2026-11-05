@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { CreateButton } from '@refinedev/mui'
 import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
@@ -22,6 +21,9 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+
+// El popup de alta/edición trae el formulario completo: se descarga solo al abrirlo.
+const DialogoCliente = lazy(() => import('../../components/clientes/DialogoCliente').then((modulo) => ({ default: modulo.DialogoCliente })))
 
 // El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
 const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
@@ -111,6 +113,9 @@ export function ClienteList() {
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
   const [avisoSeleccion, setAvisoSeleccion] = useState(false)
   const [dialogoCorreo, setDialogoCorreo] = useState(false)
+  // undefined = cerrado, null = cliente nuevo, id = editar ese cliente.
+  const [clienteEnDialogo, setClienteEnDialogo] = useState<string | null | undefined>(undefined)
+  const [avisoGuardado, setAvisoGuardado] = useState<string | null>(null)
   const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
   const dialogoCorreoAbierto = useRef(false)
   dialogoCorreoAbierto.current = dialogoCorreo
@@ -189,7 +194,7 @@ export function ClienteList() {
         <Stack direction="row" spacing={1}>
           {puedeMigrar ? <ImportarClientes /> : null}
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
-          {puedeEditar ? <CreateButton /> : null}
+          {puedeEditar ? <Button variant="contained" onClick={() => setClienteEnDialogo(null)}>Nuevo cliente</Button> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
@@ -318,7 +323,7 @@ export function ClienteList() {
                       ) : null}
                       {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
                       <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`} size="small" variant="outlined">Ver ficha</Button>
-                      {puedeEditar ? <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} size="small">Editar</Button> : null}
+                      {puedeEditar ? <Button onClick={() => setClienteEnDialogo(cliente.id)} size="small">Editar</Button> : null}
                     </Stack>
                   )}
                 />
@@ -341,6 +346,23 @@ export function ClienteList() {
         onCerrar={() => setDialogoCorreo(false)}
         onEnviado={correoEnviado}
       />
+      {clienteEnDialogo !== undefined ? (
+        <Suspense fallback={null}>
+          <DialogoCliente
+            clienteId={clienteEnDialogo}
+            onCerrar={() => setClienteEnDialogo(undefined)}
+            onGuardado={(mensaje) => {
+              setClienteEnDialogo(undefined)
+              setAvisoGuardado(mensaje)
+              setPagina(1)
+              void refetch()
+            }}
+          />
+        </Suspense>
+      ) : null}
+      <Snackbar open={avisoGuardado !== null} autoHideDuration={6000} onClose={() => setAvisoGuardado(null)}>
+        <Alert severity="success" onClose={() => setAvisoGuardado(null)}>{avisoGuardado}</Alert>
+      </Snackbar>
       <Snackbar open={avisoCorreo !== null} autoHideDuration={6000} onClose={() => setAvisoCorreo(null)}>
         <Alert severity="info" onClose={() => setAvisoCorreo(null)}>{avisoCorreo}</Alert>
       </Snackbar>
