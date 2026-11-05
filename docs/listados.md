@@ -45,6 +45,12 @@ Los `Autocomplete` que ofrecen productos (búsqueda global, Agregar producto, Ag
 Nuevo movimiento y los filtros de producto) muestran la miniatura con `renderOpcionProducto(imagenes)` de
 `components/base/OpcionProducto.tsx`, con las URL de `useImagenesProductos`. Si el catálogo ofrecido es largo (hasta 500
 opciones), las imágenes se piden solo mientras el desplegable está abierto.
+### Alta y edición de cliente en popup
+
+«Nuevo cliente» y «Editar» del listado de Clientes abren un popup (`components/clientes/DialogoCliente.tsx`) en lugar de
+navegar. Reutiliza `AltaCliente` y `EdicionCliente` (de `pages/clientes/create.tsx` y `edit.tsx`); al guardar, el listado se
+recarga y muestra el aviso. Las rutas `/clientes/create` y `/clientes/edit/:id` siguen existiendo (la ficha enlaza a la
+edición) y su «Cancelar» vuelve a la ficha o al listado.
 
 ## Excepciones
 
