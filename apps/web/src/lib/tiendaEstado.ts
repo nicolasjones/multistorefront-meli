@@ -56,23 +56,25 @@ export async function resolverEstadoTienda(host: string): Promise<MarcaTiendaPau
   }
 }
 
-// Estado de un host sin tienda publicada. `reintentar` repite la consulta tras un error.
+// Estado de un host sin tienda publicada. `reintentar` repite la consulta tras un error. El resultado
+// guarda el host y el intento al que pertenece: si cambia el host, vuelve a `cargando` sin mostrar el anterior.
 export function useEstadoTienda(host: string): { estado: EstadoTienda; reintentar: () => void } {
-  const [estado, setEstado] = useState<EstadoTienda>({ fase: 'cargando' })
   const [intento, setIntento] = useState(0)
+  const [resultado, setResultado] = useState<{ host: string; intento: number; estado: EstadoTienda } | null>(null)
 
   useEffect(() => {
     let cancelada = false
-    setEstado({ fase: 'cargando' })
+    const guardar = (estado: EstadoTienda) => { if (!cancelada) setResultado({ host, intento, estado }) }
     resolverEstadoTienda(host)
-      .then((marca) => { if (!cancelada) setEstado(marca ? { fase: 'pausada', marca } : { fase: 'desconocida' }) })
+      .then((marca) => guardar(marca ? { fase: 'pausada', marca } : { fase: 'desconocida' }))
       .catch((error) => {
         console.error('No se pudo consultar el estado de la tienda', error instanceof Error ? error.message : error)
-        if (!cancelada) setEstado({ fase: 'error' })
+        guardar({ fase: 'error' })
       })
     return () => { cancelada = true }
   }, [host, intento])
 
   const reintentar = useCallback(() => setIntento((actual) => actual + 1), [])
-  return { estado, reintentar }
+  const vigente = resultado && resultado.host === host && resultado.intento === intento
+  return { estado: vigente ? resultado.estado : { fase: 'cargando' }, reintentar }
 }

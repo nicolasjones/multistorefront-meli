@@ -24,7 +24,8 @@ type Estado =
 // sugerencias que se piden con una espera corta entre teclas; una respuesta vieja nunca pisa a la
 // nueva. Teclado completo (flechas, Enter, Esc) y cierre al hacer clic afuera. El texto del visitante
 // va siempre como nodo de React (se escapa solo). Se carga de forma diferida desde `LayoutTienda`.
-export default function BuscadorTienda({ host }: { host: string }) {
+// `etiqueta` nombra la región de búsqueda cuando hay más de un buscador en la página (la 404, F-TDA-19).
+export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqueta?: string }) {
   const navegar = useNavigate()
   const { pathname } = useLocation()
   const [params] = useSearchParams()
@@ -120,7 +121,7 @@ export default function BuscadorTienda({ host }: { host: string }) {
   return (
     <ClickAwayListener onClickAway={() => setAbierto(false)}>
       <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360 }, maxWidth: '100%' }}>
-        <Box component="form" role="search" onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
+        <Box component="form" role="search" aria-label={etiqueta} onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
           <TextField
             fullWidth
             size="small"

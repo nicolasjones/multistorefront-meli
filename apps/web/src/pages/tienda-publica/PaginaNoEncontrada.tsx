@@ -20,7 +20,7 @@ export function PaginaNoEncontrada() {
       {contexto ? (
         <Box data-testid="buscador-no-encontrada" sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <Suspense fallback={<Box sx={(tema) => ({ width: { xs: '100%', sm: tema.spacing(45) }, height: tema.spacing(5) })} aria-hidden />}>
-            <BuscadorTienda host={contexto.host} />
+            <BuscadorTienda host={contexto.host} etiqueta="Buscar en la tienda" />
           </Suspense>
         </Box>
       ) : null}

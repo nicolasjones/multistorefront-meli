@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Box, Typography } from '@mui/material'
 import { ProveedorTemaTienda } from '../../tema/ProveedorTemaTienda'
-import { contrasteBlancoSobre, familiasACargar, urlFuentes, urlPublica } from '../../lib/tiendaIdentidad'
+import { contrasteBlancoSobre, urlFuentes, urlPublica } from '../../lib/tiendaIdentidad'
 import type { MarcaTiendaPausada } from '../../lib/tiendaEstado'
 
 const TEXTO_OSCURO = '#1A1A1A'
@@ -18,7 +18,7 @@ function colorTextoSobre(fondo: string): string {
 // desconocido) es la versión genérica, que no revela si el dominio existe. Nunca enlaza al catálogo ni
 // muestra contacto.
 export function VolvemosPronto({ marca }: { marca?: MarcaTiendaPausada }) {
-  const url = marca ? urlFuentes(familiasACargar(marca)) : null
+  const url = marca ? urlFuentes([...new Set([marca.tipografiaTitulos, marca.tipografiaTexto])]) : null
 
   useEffect(() => {
     if (!url) return undefined

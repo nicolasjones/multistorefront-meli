@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
@@ -36,7 +36,7 @@ describe('PaginaNoEncontrada (FR-003)', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'No encontramos esta página' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/')
     const cuerpo = screen.getByTestId('buscador-no-encontrada')
-    expect(await screen.findAllByRole('combobox', { name: 'Buscar productos' })).toHaveLength(2)
+    await waitFor(() => expect(screen.getAllByRole('combobox', { name: 'Buscar productos' })).toHaveLength(2))
     expect(cuerpo.querySelector('input')).not.toBeNull()
   })
 
@@ -48,7 +48,7 @@ describe('PaginaNoEncontrada (FR-003)', () => {
 
   it('no tiene violaciones de accesibilidad ni ids duplicados con el buscador del encabezado', async () => {
     const { container } = montar()
-    await screen.findAllByRole('combobox', { name: 'Buscar productos' })
+    await waitFor(() => expect(screen.getAllByRole('combobox', { name: 'Buscar productos' })).toHaveLength(2))
     expect(await violacionesAxe(container)).toEqual([])
     const ids = [...container.querySelectorAll('[id]')].map((el) => el.id)
     expect(new Set(ids).size).toBe(ids.length)
