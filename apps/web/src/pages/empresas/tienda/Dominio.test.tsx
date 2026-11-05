@@ -18,6 +18,7 @@ vi.mock('../../../lib/tiendaBorrador', async (original) => ({
   ...(await original<typeof import('../../../lib/tiendaBorrador')>()),
   obtenerBorrador: vi.fn().mockReturnValue(new Promise(() => {})),
   leerVistaPrevia: vi.fn().mockReturnValue(new Promise(() => {})),
+  listarVersiones: vi.fn().mockReturnValue(new Promise(() => {})),
 }))
 vi.mock('../../../lib/tiendaDominio', async (original) => ({
   ...(await original<typeof import('../../../lib/tiendaDominio')>()),
