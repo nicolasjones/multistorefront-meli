@@ -630,3 +630,14 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
   se ve literal. Se omiten sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (ver `docs/e2e-app.md`).
 - **Gates del cierre** (T072): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`,
   `pnpm matriz:check` y `pnpm docs:check`.
+
+## Información legal y aviso de cookies (F-TDA-22, MSF-289, épica MSF-149)
+
+Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-030…FR-034, SC-009, SC-010). Migración `20270125120000_tienda_legal.sql` (aditiva).
+
+- **Tabla `dominio.tienda_legal_enlaces`** (esquema `dominio`: dato del producto atado a una empresa): `titulo` ≤ 80, `url` solo `https://` ≤ 500 (check), `orden`, FK compuesta a `dominio.empresas`. RLS por organización con solo `select` a `authenticated` (acceso a Empresas); `anon` sin privilegios.
+- **Carga (D5)**: sin pantalla ni RPC de escritura; el equipo técnico inserta los enlaces por SQL, como el dominio de la tienda. Razón social, CUIT y dirección ya se editan en Empresas. Qué legal lleva cada marca (D6) se confirma con el cliente; el código no espera esa respuesta.
+- **`publico.legal_por_dominio(host)`**: `{ razon_social, cuit, direccion, enlaces: [{ titulo, url }] }` por `orden`; lista blanca; `null` idéntico para host desconocido o empresa desactivada. Ejecutable por `anon`.
+- **Front**: `layout/PieLegal.tsx` (montado desde `PieCategorias`): «<Razón social> · CUIT XX-XXXXXXXX-X», dirección y enlaces en pestaña nueva con `rel="noopener noreferrer"`; datos ausentes se omiten y sin datos el bloque no aparece. `layout/AvisoCookies.tsx` (carga diferida): «Aceptar» / «Rechazar», sin bloquear ni robar el foco.
+- **Contrato de consentimiento para F-TDA-24** (`lib/consentimientoCookies.ts`): `leerConsentimiento()` (`'aceptadas' | 'rechazadas' | null`; `null` equivale a rechazadas), `guardarConsentimiento(valor)`, `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies` (`detail` = decisión). Persiste en `localStorage`; si está bloqueado el aviso reaparece en la próxima visita y nada se rompe.
+- **Reversión** (migración posterior, no en el PR que la crea): `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;`.
