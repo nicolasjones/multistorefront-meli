@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   depositosActivos: vi.fn(),
   stockPorDeposito: vi.fn(),
   descargarCsv: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
 
 vi.mock('../../lib/exportarCsv', async (importarOriginal) => ({
@@ -53,6 +54,7 @@ vi.mock('../../lib/supabase', () => ({
     },
   },
 }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -100,6 +102,7 @@ describe('StockList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.llamadas.length = 0
+    mocks.imagenes = new Map()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
@@ -129,6 +132,44 @@ describe('StockList', () => {
     expect(screen.getByText('3 productos')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Reservado' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Disponible' })).toBeInTheDocument()
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente y no hay paginación numerada', async () => {
+    const extra = { producto_id: 'p-4', nombre: 'Teclado', sku: 'TEC-1', cantidad: 9, reservado: 0, disponible: 9, minimo: 1, estado: 'disponible', ultimo_movimiento_en: null }
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 4 })
+    mocks.consulta.mockResolvedValueOnce({ data: [extra], error: null, count: 4 })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByText(/Productos por página/)).not.toBeInTheDocument()
+    expect(screen.getByText('4 productos')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Teclado')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    expect(llamadasDe('range').at(-1)).toEqual([25, 49])
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('buscar reinicia la lista desde la primera tanda', async () => {
+    const extra = { producto_id: 'p-4', nombre: 'Teclado', sku: 'TEC-1', cantidad: 9, reservado: 0, disponible: 9, minimo: 1, estado: 'disponible', ultimo_movimiento_en: null }
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 4 })
+    mocks.consulta.mockResolvedValueOnce({ data: [extra], error: null, count: 4 })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Teclado')
+    mocks.consulta.mockResolvedValue({ data: [FILAS[2]], error: null, count: 1 })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
+    await waitFor(() => expect(screen.queryByText('Teclado')).not.toBeInTheDocument())
+    expect(screen.queryByText('Joystick')).not.toBeInTheDocument()
+    expect(screen.getByText('Mouse')).toBeInTheDocument()
+    expect(llamadasDe('range').at(-1)).toEqual([0, 24])
+  })
+
+  it('muestra la imagen principal del producto como miniatura junto al nombre', async () => {
+    mocks.imagenes = new Map([['p-1', 'https://img.test/joystick.jpg']])
+    abrir()
+    await screen.findByText('Joystick')
+    expect(document.querySelector('img[src="https://img.test/joystick.jpg"]')).not.toBeNull()
   })
 
   it('el control de depósito cambia las cifras del listado', async () => {
@@ -180,6 +221,23 @@ describe('StockList', () => {
     await screen.findByText('Joystick')
     fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'JOY_1,(x)' } })
     await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%joy\\_1  x%,sku.ilike.%joy\\_1  x%']))
+  })
+
+  it('búsqueda con carga infinita: muestra solo coincidencias y «Cargar más» pide la tanda siguiente con el mismo filtro', async () => {
+    const mouse2 = { ...FILAS[2], producto_id: 'p-9', nombre: 'Mouse gamer', sku: 'MOU-2' }
+    abrir()
+    await screen.findByText('Joystick')
+    mocks.consulta.mockResolvedValueOnce({ data: [FILAS[2]], error: null, count: 2 })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
+    expect(await screen.findByText('2 productos')).toBeInTheDocument()
+    expect(screen.queryByText('Joystick')).not.toBeInTheDocument()
+    mocks.consulta.mockResolvedValueOnce({ data: [mouse2], error: null, count: 2 })
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Mouse gamer')).toBeInTheDocument()
+    expect(screen.getByText('Mouse')).toBeInTheDocument()
+    expect(screen.queryByText('Joystick')).not.toBeInTheDocument()
+    expect(llamadasDe('or').at(-1)).toEqual(['nombre_norm.ilike.%mou%,sku.ilike.%mou%'])
+    expect(llamadasDe('range').at(-1)).toEqual([25, 49])
   })
 
   it('una búsqueda sin resultados avisa y no confunde con el catálogo vacío', async () => {
