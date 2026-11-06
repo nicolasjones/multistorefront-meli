@@ -61,6 +61,7 @@ Spec: [`20270105-100000-configuracion-dolar-y-precio-propio`](../specs/20270105-
 - **Ficha del producto** (`pages/productos/edit.tsx`): bloque «Precio propio por empresa» (`components/precios/PrecioPropioEmpresas.tsx`), una fila por empresa a la que se vende (`Moneda`, `Precio propio`, «Guardar», «Quitar»), marca «Precio propio» y neto de ejemplo; solo lectura para Consulta. En el **alta** (`create.tsx`) el producto todavía no existe: el precio propio se fija desde la edición.
 - **Fuera de alcance**: el listado de productos no tiene columna de precio por empresa, así que la marca «Precio propio» no se muestra allí (Decisión abierta 4). `private.precio_para` (escalas x5/x10/x50) **no** lee el precio propio todavía. Los precios propios no van a Mercado Libre (Etapa 2, FR-020: sin cola ni columna ML).
 - **Reversión** (migraciones `20270205110201` y `20270205110202`): ver el encabezado de cada una; exportar los precios propios antes de borrar la tabla.
+- **Alerta de dólar** (`20270205110203`): restaura en `recalcular_alertas_inicio` el chequeo de «Aviso en Inicio» y alcance (F-PRE-06) que `20270201200138` había pisado por orden de versiones; reversión: recrear la función con el cuerpo de `20270201200138`.
 
 ## Reversión
 
