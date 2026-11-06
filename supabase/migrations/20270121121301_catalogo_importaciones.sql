@@ -51,8 +51,8 @@ create table dominio.importaciones_productos (
 comment on table dominio.importaciones_productos is
   'Importación de productos desde CSV (F-CAT-10). Sin escritura para authenticated: la crean solicitar_importacion_productos y la cierra el worker.';
 
-create index importaciones_productos_org_idx on dominio.importaciones_productos (organizacion_id, creada_en desc);
-create unique index importaciones_productos_ejecucion_uidx
+create index if not exists importaciones_productos_org_idx on dominio.importaciones_productos (organizacion_id, creada_en desc);
+create unique index if not exists importaciones_productos_ejecucion_uidx
   on dominio.importaciones_productos (ejecucion_id) where ejecucion_id is not null;
 
 -- ============================================================================
@@ -83,7 +83,7 @@ create table dominio.importaciones_productos_filas (
 comment on table dominio.importaciones_productos_filas is
   'Filas de una importación de productos (F-CAT-10): carga validada y resultado por fila. Sin escritura para authenticated.';
 
-create index importaciones_productos_filas_pendientes_idx
+create index if not exists importaciones_productos_filas_pendientes_idx
   on dominio.importaciones_productos_filas (importacion_id, fila) where resultado = 'pendiente';
 
 -- ============================================================================
