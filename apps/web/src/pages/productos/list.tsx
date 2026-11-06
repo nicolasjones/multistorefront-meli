@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
@@ -132,6 +133,7 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const { esAdministrador } = useEsAdministrador()
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
@@ -242,7 +244,14 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : undefined}
+        accion={
+          puedeEditar || esAdministrador ? (
+            <Stack direction="row" spacing={1}>
+              {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
+              {puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : null}
+            </Stack>
+          ) : undefined
+        }
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
