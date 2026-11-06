@@ -53,3 +53,5 @@ Migraciones aditivas (`20270121121301`…`20270121121304`). Para volver atrás: 
 (`git revert -m 1`) y, en una migración posterior, eliminar las tablas `dominio.importaciones_productos*`
 y las funciones asociadas (ver encabezado de `20270121121301_catalogo_importaciones.sql`), exportando
 antes los datos. Nunca en el mismo PR que las crea.
+
+> Nota: en `validar_importacion_productos` los textos que se agregan a `v_errores`/`v_avisos` (`text[]`) van con cast `::text`; sin él Postgres lee el literal como arreglo («malformed array literal»).
