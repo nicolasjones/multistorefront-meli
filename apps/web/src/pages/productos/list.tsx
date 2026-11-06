@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link as RouterLink } from 'react-router'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
@@ -21,6 +20,9 @@ import {
 } from '../../lib/productosListado'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
+
+// El popup de alta/edición trae el formulario completo: se carga recién al abrirlo.
+const DialogoProducto = lazy(() => import('../../components/productos/DialogoProducto').then((modulo) => ({ default: modulo.DialogoProducto })))
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -148,6 +150,8 @@ export function ProductoList() {
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
+  // undefined = cerrado, null = producto nuevo, id = editar ese producto.
+  const [productoEnDialogo, setProductoEnDialogo] = useState<string | null | undefined>(undefined)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
@@ -299,7 +303,7 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : undefined}
+        accion={puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
@@ -359,7 +363,7 @@ export function ProductoList() {
                     puedeEditar
                       ? (producto) => (
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Button component={RouterLink} to={`/productos/${producto.id}/edit`} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
+                            <Button onClick={() => setProductoEnDialogo(producto.id)} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
                             <CambiarEstadoProducto
                               id={producto.id}
                               nombre={producto.nombre}
@@ -378,6 +382,11 @@ export function ProductoList() {
           )}
         </Stack>
       </ContenedorSeccion>
+      {productoEnDialogo !== undefined ? (
+        <Suspense fallback={null}>
+          <DialogoProducto productoId={productoEnDialogo} onCerrar={() => setProductoEnDialogo(undefined)} onGuardado={recargarDesdeElPrincipio} />
+        </Suspense>
+      ) : null}
     </Box>
   )
 }

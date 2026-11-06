@@ -73,37 +73,39 @@ describe('contenidoIgual', () => {
 describe('leerContenido', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('sin fila devuelve todo vacío', async () => {
+  const SIN_BORRADOR = { data: { hay_borrador: false, identidad: null, contenido: null, catalogo: null, cambios: { total: 0, resumen: '', detalle: [] }, version_vigente: null, en_linea: true, dominio: null }, error: null }
+
+  it('sin fila ni borrador devuelve todo vacío', async () => {
+    mocks.rpc.mockResolvedValue(SIN_BORRADOR)
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null })
     await expect(leerContenido('e-1')).resolves.toEqual(CONTENIDO_VACIO)
+    expect(mocks.rpc).toHaveBeenCalledWith('obtener_borrador_tienda', { p_empresa: 'e-1' })
     expect(mocks.eq).toHaveBeenCalledWith('dominio', 'empresa_id', 'e-1')
   })
 
+  it('con borrador del área muestra el borrador y no lee lo publicado (FR-051)', async () => {
+    mocks.rpc.mockResolvedValue({ data: { ...SIN_BORRADOR.data, hay_borrador: true, contenido: { ...CONTENIDO_VACIO, titulo: 'En borrador' } }, error: null })
+    await expect(leerContenido('e-1')).resolves.toMatchObject({ titulo: 'En borrador' })
+    expect(mocks.maybeSingle).not.toHaveBeenCalled()
+  })
+
   it('propaga el error de lectura', async () => {
+    mocks.rpc.mockResolvedValue(SIN_BORRADOR)
     mocks.maybeSingle.mockResolvedValue({ data: null, error: { message: 'boom' } })
     await expect(leerContenido('e-1')).rejects.toThrow('boom')
   })
 })
 
-describe('guardarContenido (FR-035)', () => {
+describe('guardarContenido (FR-035, FR-050)', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('llama a la RPC con todos los campos y devuelve lo guardado', async () => {
+  it('guarda el valor completo del área en el borrador y devuelve lo guardado', async () => {
     const fila = { ...CONTENIDO_VACIO, titulo: 'Todo para tu consola' }
-    mocks.rpc.mockResolvedValue({ data: fila, error: null })
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
 
     await expect(guardarContenido('e-1', fila)).resolves.toEqual(fila)
-    expect(mocks.rpc).toHaveBeenCalledWith('guardar_tienda_contenido', {
-      p_empresa_id: 'e-1',
-      p_titulo: 'Todo para tu consola',
-      p_subtitulo: '',
-      p_texto_boton: '',
-      p_boton_destino: 'catalogo',
-      p_bienvenida: '',
-      p_pie: '',
-      p_aviso_ficha: '',
-      p_texto_boton_contacto: '',
-    })
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_borrador_tienda', { p_empresa: 'e-1', p_area: 'contenido', p_datos: fila })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_tienda_contenido', expect.anything())
   })
 
   it('devuelve el campo que rechazó la base (hint)', async () => {

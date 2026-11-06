@@ -39,6 +39,37 @@ firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto 
 al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
 de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
+### Alta y edición de producto en popup
+
+«Nuevo producto» y «Editar» del listado de Productos abren un popup (`components/productos/DialogoProducto.tsx`), como
+«Nueva categoría», en lugar de navegar a otra pantalla: el listado no pierde filtros ni posición y, al crear o guardar, se
+recarga desde el principio. Reutiliza `AltaProducto` (`pages/productos/create.tsx`) y `EdicionProducto`
+(`pages/productos/edit.tsx`). Las rutas `/productos/create` y `/productos/:id/edit` siguen existiendo (accesos directos del
+inicio, búsqueda global, ficha del proveedor) y su «Cancelar» vuelve a `/productos`.
+
+### Combos y popups de producto
+
+Los `Autocomplete` que ofrecen productos (búsqueda global, Agregar producto, Agregar repuesto, ingreso y carga en lote,
+Nuevo movimiento y los filtros de producto) muestran la miniatura con `renderOpcionProducto(imagenes)` de
+`components/base/OpcionProducto.tsx`, con las URL de `useImagenesProductos`. Si el catálogo ofrecido es largo (hasta 500
+opciones), las imágenes se piden solo mientras el desplegable está abierto.
+### Alta y edición de cliente en popup
+
+«Nuevo cliente» y «Editar» del listado de Clientes abren un popup (`components/clientes/DialogoCliente.tsx`) en lugar de
+navegar. Reutiliza `AltaCliente` y `EdicionCliente` (de `pages/clientes/create.tsx` y `edit.tsx`); al guardar, el listado se
+recarga y muestra el aviso. Las rutas `/clientes/create` y `/clientes/edit/:id` siguen existiendo (la ficha enlaza a la
+edición) y su «Cancelar» vuelve a la ficha o al listado.
+
+### Pestañas de pantalla
+
+`PestanasPagina` marca como activa la pestaña cuya ruta coincide con la **más larga** (más específica). Dentro del router de la app, cambiar de pestaña es **navegación interna** (`Link` de react-router): no recarga la aplicación, se conservan el menú, la barra superior y el estado, y solo cambia el contenido. Fuera de un router (pruebas aisladas) son enlaces comunes. La primera pestaña suele
+ser la ruta base (`/rentabilidad`), prefijo de todas las demás; con la primera coincidencia quedaba siempre seleccionada.
+
+### Errores de una sección
+
+`LimiteDeError` (`components/estados/LimiteDeError.tsx`) contiene el error de dibujado de una parte de la pantalla: muestra qué
+falló y permite reintentar, en lugar de dejar la aplicación en blanco. La gestión de tienda lo usa en el contenido de cada pestaña.
+
 ## Excepciones
 
 Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
