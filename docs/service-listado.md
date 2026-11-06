@@ -88,3 +88,7 @@ migrar.
 KPIs «En reparación / Listas para entregar / Esperando repuesto» (MSF-124), chips de tienda dentro de la
 pantalla, mensaje de éxito (el listado no ejecuta acciones). Diferencia con el prototipo anotada en el PR: el vacío
 dice «No hay reparaciones en este período» (la épica) y no «Sin entregas en este período».
+
+## Carga infinita
+
+El listado de reparaciones carga por tandas de 25 al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. Período, N.º de serie, técnico o empresa activa reinician desde la primera tanda; el contador se conserva. La fila es una reparación (no un producto), por eso no lleva miniatura. Ver [`listados.md`](./listados.md).

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   elegirEmpresa: vi.fn(),
   costos: vi.fn(),
   esAdmin: vi.fn(),
+  precios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
@@ -30,7 +31,11 @@ vi.mock('../../lib/supabase', () => {
           return { select: () => ({ in: (_columna: string, ids: string[]) => { mocks.llamadas.push(['in', ids]); return { returns: mocks.costos } } }) }
         },
       }),
-      from: (vista: string) => { mocks.llamadas.push(['from', vista]); return cadena },
+      from: (vista: string) => {
+        mocks.llamadas.push(['from', vista])
+        if (vista === 'productos_precio_costo') return { select: () => ({ in: () => ({ returns: mocks.precios }) }) }
+        return cadena
+      },
       storage: { from: () => ({ createSignedUrls: mocks.firmar }) },
     },
   }
@@ -66,6 +71,13 @@ describe('ProductoList', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'ninguno')
     mocks.costos.mockResolvedValue({ data: [{ producto_id: 'p-1', costo: '12.5' }], error: null })
+    mocks.precios.mockResolvedValue({
+      data: [
+        { producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: '157000' },
+        { producto_id: 'p-2', moneda: 'ARS', precio_lista: '2500.5', precio_central_ars: '2500.5' },
+      ],
+      error: null,
+    })
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 2 })
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     mocks.useFiltro.mockReturnValue({
@@ -102,8 +114,32 @@ describe('ProductoList', () => {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Precio, Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
-    expect(within(filaCable).getAllByText('—')).toHaveLength(4)
+    // Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(3)
+  })
+
+  it('Precio siempre en pesos: ARS tal cual y USD convertido con la última cotización y el USD entre paréntesis', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('$ 157.000,00 (USD 100,00)')).toBeInTheDocument()
+    expect(within(filaCable).getByText('$ 2.500,50')).toBeInTheDocument()
+  })
+
+  it('producto en USD sin cotización muestra el USD y lo aclara; si falla la consulta de precios avisa', async () => {
+    mocks.precios.mockResolvedValueOnce({ data: [{ producto_id: 'p-1', moneda: 'USD', precio_lista: '100', precio_central_ars: null }], error: null })
+    abrir()
+    expect(await screen.findByText('USD 100,00 (sin cotización)')).toBeInTheDocument()
+  })
+
+  it('si falla la consulta de precios el listado se muestra igual con «—» y un aviso', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.precios.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    abrir()
+    expect(await screen.findByText(/No pudimos cargar los precios/)).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
   })
 
   it('sin acceso a Rentabilidad no muestra la columna Costo ni consulta producto_costos (F-CAT-16, FR-002)', async () => {
@@ -128,7 +164,7 @@ describe('ProductoList', () => {
     expect(within(filaJoystick).getByText('12,50')).toBeInTheDocument()
     // Cable no tiene costo cargado: «—», no 0.
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    expect(within(filaCable).getAllByText('—')).toHaveLength(5)
+    expect(within(filaCable).getAllByText('—')).toHaveLength(4)
   })
 
   it('si falla la consulta de costos el listado se muestra igual con «—» (F-CAT-16)', async () => {
@@ -202,7 +238,7 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: '100%' } })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%100\\%%,sku.ilike.%100\\%%']))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%100\\%%,sku.ilike.%100\\%%']))
   })
 
   it('13 dígitos + Enter consulta el código de barras exacto al instante y el campo conserva el foco (F-CAT-14)', async () => {
@@ -213,8 +249,8 @@ describe('ProductoList', () => {
     mocks.llamadas.length = 0
     fireEvent.change(campo, { target: { value: '7790001000015' } })
     fireEvent.keyDown(campo, { key: 'Enter' })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015']))
-    expect(mocks.llamadas.some(([m]) => m === 'or')).toBe(false)
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'codigo_barras.eq.7790001000015,sku.ilike.7790001000015']))
+    expect(mocks.llamadas.some(([, f]) => typeof f === 'string' && f.includes('nombre_norm'))).toBe(false)
     expect(screen.getByLabelText('Buscar por nombre, SKU o código de barras')).toBe(campo)
     expect(campo).toHaveFocus()
   })
@@ -236,20 +272,53 @@ describe('ProductoList', () => {
     const campo = screen.getByLabelText('Buscar por nombre, SKU o código de barras')
     fireEvent.change(campo, { target: { value: 'joy' } })
     fireEvent.keyDown(campo, { key: 'Enter' })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
   })
 
-  it('buscar estando en la página 2 vuelve a pedir range(0, 24)', async () => {
-    mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
+  const FILAS_2 = [
+    { id: 'p-3', nombre: 'Teclado', sku: 'TEC-1', activo: true, imagen_ruta: null, empresa_ids: [], categoria_id: null, categoria_ruta: null, disponibilidad: 'stock' },
+  ]
+
+  it('«Cargar más» pide la tanda siguiente y la suma a lo ya mostrado (carga infinita)', async () => {
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 3 }).mockResolvedValueOnce({ data: FILAS_2, error: null, count: 3 })
     abrir()
     await screen.findByText('Joystick')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
+    expect(await screen.findByText('Teclado')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('buscar después de cargar más reinicia la lista desde el principio: range(0, 24)', async () => {
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 60 }).mockResolvedValueOnce({ data: FILAS_2, error: null, count: 60 })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.llamadas).toContainEqual(['range', 25, 49]))
     mocks.llamadas.length = 0
-    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'joy' } })
-    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%']))
+    mocks.consulta.mockResolvedValue({ data: FILAS_2, error: null, count: 1 })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre, SKU o código de barras'), { target: { value: 'tec' } })
+    await waitFor(() => expect(mocks.llamadas).toContainEqual(['or', 'nombre_norm.ilike.%tec%,sku.ilike.%tec%']))
     expect(mocks.llamadas).toContainEqual(['range', 0, 24])
     expect(mocks.llamadas).not.toContainEqual(['range', 25, 49])
+    await waitFor(() => expect(screen.queryByText('Joystick')).not.toBeInTheDocument())
+  })
+
+  it('si falla una tanda siguiente mantiene lo ya cargado y ofrece reintentar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 60 }).mockResolvedValueOnce({ data: null, error: { message: 'boom' }, count: null })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('No pudimos cargar más resultados.')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS_2, error: null, count: 60 })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Teclado')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
   })
 
   it('el filtro Inactivos consulta activo = false y «Limpiar filtros» lo quita', async () => {
@@ -328,17 +397,18 @@ describe('ProductoList', () => {
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
   })
 
-  it('muestra el pie «desde–hasta de N»', async () => {
+  it('muestra el contador total de productos y no tiene paginación numerada', async () => {
     mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
     abrir()
     await screen.findByText('Joystick')
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
+    expect(screen.getByText('60 productos')).toBeInTheDocument()
+    expect(screen.queryByText(/Productos por página/)).not.toBeInTheDocument()
   })
 
   it('con edición ofrece editar y activar/desactivar, y desactivar llama a la RPC y recarga', async () => {
     abrir()
     await screen.findByText('Joystick')
-    expect(screen.getByRole('link', { name: 'Editar Joystick' })).toHaveAttribute('href', '/productos/p-1/edit')
+    expect(screen.getByRole('button', { name: 'Editar Joystick' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activar Cable' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
@@ -350,8 +420,8 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /^Editar/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Nuevo producto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
   })
 

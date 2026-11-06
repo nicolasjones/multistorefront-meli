@@ -30,7 +30,11 @@ type Props = {
   onGuardado: (proveedor: Proveedor) => void
   // Ante un conflicto de edición: recargar la ficha con los datos de la otra persona.
   onRecargar?: () => void
+  // Con contacto principal, persona de contacto, correo y teléfono se toman de él (F-PRV-08, FR-026).
+  contactoPrincipal?: boolean
 }
+
+const CAMPOS_DEL_PRINCIPAL: ReadonlyArray<CampoProveedor> = ['persona_contacto', 'correo', 'telefono']
 
 const CAMPOS: ReadonlyArray<{ campo: CampoProveedor; etiqueta: string; type?: string; multilinea?: boolean; requerido?: boolean }> = [
   { campo: 'razon_social', etiqueta: 'Razón social', requerido: true },
@@ -46,32 +50,33 @@ const CAMPOS: ReadonlyArray<{ campo: CampoProveedor; etiqueta: string; type?: st
 // Proveedores · Listado / Ficha, más «Compra para» (MSF-524, informativo); las
 // condiciones de compra quedan fuera de alcance (spec, Decisiones abiertas 3). La autoridad es la base (CUIT, unicidad, bloqueo
 // optimista): acá se valida antes de viajar y se traducen sus errores.
-export function ProveedorFormDialog({ open, proveedor = null, onCerrar, onGuardado, onRecargar }: Props) {
+export function ProveedorFormDialog({ open, proveedor = null, onCerrar, onGuardado, onRecargar, contactoPrincipal = false }: Props) {
   return (
     <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-proveedor-form">
       {/* El formulario se monta al abrir: cada apertura parte de los datos vigentes. */}
-      <Formulario proveedor={proveedor} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} />
+      <Formulario proveedor={proveedor} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} contactoPrincipal={contactoPrincipal} />
     </Dialog>
   )
 }
 
 type PropsFormulario = Omit<Props, 'open'>
 
-function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormulario) {
+function Formulario({ proveedor, onCerrar, onGuardado, onRecargar, contactoPrincipal }: PropsFormulario) {
   const edicion = Boolean(proveedor)
   const inicial: FormularioProveedor = proveedor
     ? { ...aFormulario(proveedor), cuit: formatearCuit(proveedor.cuit) }
     : FORMULARIO_PROVEEDOR_VACIO
   const [formulario, setFormulario] = useState<FormularioProveedor>(inicial)
   const [errores, setErrores] = useState<ErroresProveedor>({})
-  const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean } | null>(null)
+  const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean; tiendas: boolean } | null>(null)
   const [guardando, setGuardando] = useState(false)
   // «Compra para» (MSF-524): null = sin tocar (rige lo guardado); array = selección editada.
   const { empresas: tiendas, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresas()
   const guardadas = useEmpresasDeProveedor(proveedor?.id)
   const [seleccion, setSeleccion] = useState<string[] | null>(null)
   const compraPara = seleccion ?? guardadas.empresas
-  // Si el proveedor ya se guardó pero fallaron las tiendas, el reintento no lo vuelve a guardar.
+  // El proveedor ya guardado (alta o edición): el reintento lo actualiza en vez de duplicarlo y
+  // con el `updated_at` que devolvió ese guardado (MSF-698).
   const persistido = useRef<Proveedor | null>(null)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
@@ -94,8 +99,11 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
     }
   }
 
-  const enviar = async (event: FormEvent) => {
-    event.preventDefault()
+  // Guarda el proveedor y sus tiendas. Es la misma operación del formulario y la del botón
+  // «Reintentar» del aviso (MSF-698): si el proveedor ya se guardó, el reintento lo **actualiza**
+  // (no crea otro) con lo que el formulario tiene en ese momento, así no se pierde lo editado
+  // después del fallo; el sello `updated_at` es el que devolvió el guardado anterior.
+  const guardar = async () => {
     if (enVuelo.current) {
       return
     }
@@ -109,12 +117,13 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
     enVuelo.current = true
     setGuardando(true)
     try {
-      if (!persistido.current) {
-        persistido.current = proveedor
+      const anterior = persistido.current
+      const guardado = anterior
+        ? await actualizarProveedor(formulario, { id: anterior.id, actualizadoEn: anterior.updated_at })
+        : proveedor
           ? await actualizarProveedor(formulario, { id: proveedor.id, actualizadoEn: proveedor.updated_at })
           : await crearProveedor(formulario)
-      }
-      const guardado = persistido.current
+      persistido.current = guardado
       if (seleccion !== null) {
         try {
           await guardarEmpresasDeProveedor(guardado.id, seleccion)
@@ -122,6 +131,7 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
           setErrorServidor({
             texto: `El proveedor se guardó, pero no pudimos guardar «Compra para». ${mensajeDeError(error, 'Intentá de nuevo.')}`,
             conflicto: false,
+            tiendas: true,
           })
           return
         }
@@ -137,12 +147,18 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
         setErrorServidor({
           texto: mensajeDeError(error, 'No pudimos guardar el proveedor. Intentá de nuevo.'),
           conflicto: esConflicto(error),
+          tiendas: false,
         })
       }
     } finally {
       enVuelo.current = false
       setGuardando(false)
     }
+  }
+
+  const enviar = async (event: FormEvent) => {
+    event.preventDefault()
+    await guardar()
   }
 
   return (
@@ -154,13 +170,19 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
         <Stack spacing={2} sx={{ pt: 1 }}>
           {errorServidor ? (
             <EstadoError
-              titulo={errorServidor.conflicto ? 'El proveedor cambió.' : 'No se guardó el proveedor.'}
+              titulo={errorServidor.conflicto
+                ? 'El proveedor cambió.'
+                : errorServidor.tiendas ? 'No se guardó «Compra para».' : 'No se guardó el proveedor.'}
               descripcion={errorServidor.texto}
-              reintentar={errorServidor.conflicto && onRecargar ? onRecargar : undefined}
-              etiquetaReintentar="Recargar"
+              reintentar={errorServidor.conflicto
+                ? onRecargar
+                : errorServidor.tiendas ? () => void guardar() : undefined}
+              etiquetaReintentar={errorServidor.conflicto ? 'Recargar' : 'Reintentar'}
             />
           ) : null}
-          {CAMPOS.map(({ campo, etiqueta, type, multilinea, requerido }, indice) => (
+          {CAMPOS.map(({ campo, etiqueta, type, multilinea, requerido }, indice) => {
+            const delPrincipal = edicion && contactoPrincipal && CAMPOS_DEL_PRINCIPAL.includes(campo)
+            return (
             <TextField
               key={campo}
               label={etiqueta}
@@ -169,7 +191,8 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               onChange={cambiar(campo)}
               onBlur={campo === 'cuit' ? formatearAlSalir : undefined}
               error={Boolean(errores[campo])}
-              helperText={errores[campo]}
+              helperText={delPrincipal ? 'Se toma del contacto principal' : errores[campo]}
+              slotProps={delPrincipal ? { input: { readOnly: true } } : undefined}
               required={requerido}
               multiline={multilinea}
               minRows={multilinea ? 3 : undefined}
@@ -178,7 +201,8 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               inputRef={(el: HTMLInputElement | HTMLTextAreaElement | null) => { refs.current[campo] = el }}
               fullWidth
             />
-          ))}
+            )
+          })}
           <SelectorEmpresas
             empresas={tiendas}
             seleccion={compraPara}

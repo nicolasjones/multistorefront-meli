@@ -162,3 +162,7 @@ migración posterior:
 Los faltantes ya registrados **no se deshacen solos**: son dato nuevo de esta épica (exportarlos antes de borrar la
 tabla). Y los que quedaron registrados dejan la factura en `incompleto`: hay que corregirla desde el despacho
 (reanudar el armado o volver a armarla).
+
+## Carga infinita e imagen del producto
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Faltantes pide de a 10 y reinicia al cambiar de tienda. `public.listar_faltantes` devuelve `producto_id` (migración `20270205110201`, PR #694): la columna Producto muestra la imagen principal como miniatura 40×40 con zoom (`useImagenesProductos` + `MiniaturaProducto`); sin `producto_id` no hay miniatura y la fila queda igual.
