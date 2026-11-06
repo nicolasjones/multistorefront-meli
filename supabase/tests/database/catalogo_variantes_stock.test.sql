@@ -47,16 +47,16 @@ select is((select count(*)::int from pg_proc where proname = 'registrar_movimien
 -- Con variantes, la variante es obligatoria; sin variantes, prohibida
 select throws_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 5,
-      (select id from ids where nombre = 'Compra a proveedor'), null, current_date)$$,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date)$$,
   '22023', 'Este producto tiene variantes: elegí la variante del movimiento', 'un producto con variantes exige la variante');
 select throws_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000002', 'entrada', 5,
-      (select id from ids where nombre = 'Compra a proveedor'), null, current_date, null, null,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date, null, null,
       'c1000000-0000-0000-0000-000000000001')$$,
   '22023', 'Este producto no tiene variantes', 'un producto sin variantes rechaza una variante');
 select throws_ok(
   $$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 5,
-      (select id from ids where nombre = 'Compra a proveedor'), null, current_date, null, null,
+      (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date, null, null,
       'c1000000-0000-0000-0000-0000000000ff')$$,
   '22023', 'La variante no pertenece a este producto', 'la variante tiene que ser del producto');
 
@@ -65,13 +65,13 @@ select is(private.disponibilidad_producto('a1000000-0000-0000-0000-000000000001'
 
 -- Entradas a las tres variantes: 4 + 3 + 2
 select lives_ok($$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 4,
-  (select id from ids where nombre = 'Compra a proveedor'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000001')$$,
+  (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000001')$$,
   'entrada de 4 a Negro');
 select lives_ok($$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 3,
-  (select id from ids where nombre = 'Compra a proveedor'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000002')$$,
+  (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000002')$$,
   'entrada de 3 a Blanco');
 select lives_ok($$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'entrada', 2,
-  (select id from ids where nombre = 'Compra a proveedor'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000003')$$,
+  (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000003')$$,
   'entrada de 2 a Rojo');
 
 select is(
@@ -95,7 +95,7 @@ select is(private.disponible_publico('a1000000-0000-0000-0000-000000000001'), tr
 -- No se pueden sacar más unidades de las que tiene la variante
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000001', 'salida', 5,
-  (select id from ids where nombre = 'Venta en local'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000003')$$,
+  (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Venta en local'), null, current_date, null, null, 'c1000000-0000-0000-0000-000000000003')$$,
   '23514', 'No hay stock suficiente', 'la salida no deja la variante bajo cero');
 
 -- Desactivar resta (FR-010)
@@ -117,7 +117,7 @@ select is((select cantidad from dominio.existencias_variante where variante_id =
 -- Producto sin variantes: igual que antes (FR-004, SC-005)
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select lives_ok($$select public.registrar_movimiento_stock('a1000000-0000-0000-0000-000000000002', 'entrada', 6,
-  (select id from ids where nombre = 'Compra a proveedor'), null, current_date)$$,
+  (select id from ids where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Compra a proveedor'), null, current_date)$$,
   'el llamador sin variante sigue funcionando (firma compatible)');
 select is((select cantidad from dominio.existencias where producto_id = 'a1000000-0000-0000-0000-000000000002'), 6, 'sin variantes: la existencia del producto sube');
 select is(private.disponibilidad_producto('a1000000-0000-0000-0000-000000000002'), 'stock', 'sin variantes: disponibilidad por existencias');
