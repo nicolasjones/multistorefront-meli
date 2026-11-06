@@ -1,7 +1,7 @@
 -- F-PRE-08 (MSF-423, épica MSF-352) · FR-012, FR-013, FR-016, FR-017, FR-020: precio propio de un producto en una empresa.
 --   dominio.precios_propios_empresa      precio neto (sin IVA) fijado a mano para un producto en una empresa:
 --                                        moneda `ARS`|`USD` + importe > 0. Reemplaza a «central + ajuste» (el cálculo
---                                        lo lee la migración 20270122110100).
+--                                        lo lee la migración 20270205110202).
 --   public.fijar_precio_propio(...)      crea o actualiza (idempotente). `productos` = edición.
 --   public.quitar_precio_propio(...)     borra (idempotente): el producto vuelve a la regla de la empresa.
 --   public.leer_precios_propios(...)     lista los precios propios de un producto. `productos` ≥ lectura.

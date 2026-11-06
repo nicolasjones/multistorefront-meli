@@ -19,7 +19,7 @@
 -- `alicuota_producto`). Con sesión queda acotada a la organización del llamador; sin sesión (`auth.uid()` nulo:
 -- el envoltorio SECURITY DEFINER de analítica) no filtra por organización porque la clave es (producto, empresa).
 --
--- FR-020: el precio propio no genera cola ni columna de Mercado Libre (ver 20270122110000).
+-- FR-020: el precio propio no genera cola ni columna de Mercado Libre (ver 20270205110201).
 -- `precio_para` (escalas x5/x10/x50, F-PRE-15) no se toca aquí: no está entre los caminos de lectura de FR-014.
 --
 -- Migración aditiva (create or replace; la vista solo suma una columna al final). Reversión (migración posterior):
