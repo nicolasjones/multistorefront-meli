@@ -57,3 +57,5 @@ límite por defecto, el shard daba rojo intermitente en el runner self-hosted (M
 ## Roadmap del programa
 F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 errores/backups/secretos ·
 F4 release/preview/flags · F5 mutation/a11y/perf.
+
+> MSF-687: `knip`, `jscpd`, `dependency-cruiser` y `@commitlint/cli` corren con `pnpm dlx` a versión fija en `scripts/calidad.mjs`; al subirlas, cambiar ahí la versión.

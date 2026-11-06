@@ -59,10 +59,12 @@ jobs:
             FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
           fi
           echo "== archivos =="; printf '%s\n' "$FILES"
-          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/|mkdocs\.yml$)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
+          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.specify/|\.github/|mkdocs\.yml$)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
           # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
-          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/|mkdocs\.yml$)' | head -1)
+          # Exentos (MSF-687): documentación (`docs/`, `mkdocs.yml`, `*.md` de la raíz) y `.specify/`:
+          # un PR de solo docs no corre la suite web ni el e2e.
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.specify/|\.github/|mkdocs\.yml$|[^/]+\.md$)' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
           # e2e=true SALVO que el PR apunte a una rama de ÉPICA: las historias y el cierre van a

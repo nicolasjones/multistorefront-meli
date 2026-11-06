@@ -436,7 +436,8 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   **merge queue** (disparador `merge_group`) prueba el PR sobre el base actualizado; se activa con un
   ruleset de rama (`merge_queue` + `required_status_checks`) — ver `docs/control-ci.md`.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
-  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`, `mkdocs.yml`), los jobs **`web`** (suite shardeada) y el
+  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.specify/`, `.github/`, `mkdocs.yml` o `*.md` de la raíz —
+  MSF-687: un PR de solo documentación ya no dispara la suite web ni el e2e), los jobs **`web`** (suite shardeada) y el
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
   archivos caen en esos dirs (cualquier archivo de raíz o desconocido lo vuelve a prender). `apps/web` depende
   de `@platform/ia`, por eso `packages/**` cuenta como `web`.
