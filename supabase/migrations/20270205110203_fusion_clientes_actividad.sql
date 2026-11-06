@@ -9,7 +9,7 @@
 -- El detalle nombra a los dos clientes (Nº y nombre); nunca lleva DNI/CUIT. Se registra en la misma transacción.
 --
 -- Migración aditiva. Reversión (migración posterior):
---   restaurar fusionar_clientes de 20270204100100_fusion_clientes_cuenta_web.sql con `create or replace` y
+--   restaurar fusionar_clientes de 20270205110202_fusion_clientes_cuenta_web.sql con `create or replace` y
 --   drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);
 
 create or replace function private.registrar_actividad_fusion_clientes(

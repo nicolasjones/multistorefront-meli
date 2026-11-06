@@ -13,7 +13,7 @@
 -- Migración aditiva. Reversión (en una migración posterior; exportar antes los datos):
 --   drop table dominio.proveedores_contactos;
 
-create table dominio.proveedores_contactos (
+create table if not exists dominio.proveedores_contactos (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null default private.organizacion_id()
     references public.organizaciones (id) on delete cascade,

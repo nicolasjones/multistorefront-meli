@@ -184,12 +184,12 @@ drop table dominio.ingresos_mercaderia;
 ## Costo opcional y evolución del costo (F-PRV-07, MSF-448)
 
 - **Costo opcional por línea.** `dominio.ingresos_mercaderia_lineas.costo_unitario_usd` admite `NULL`
-  (migración `20270204110000_costo_ingreso_opcional.sql`). `registrar_ingreso_mercaderia` (misma firma)
+  (migración `20270205110205_costo_ingreso_opcional.sql`). `registrar_ingreso_mercaderia` (misma firma)
   acepta líneas sin costo —clave ausente o `null`— y las guarda con costo nulo, **no cero**. Con
   `p_actualizar_costo`, una línea sin costo no toca el costo del producto. El formulario deja el campo
   «Costo unit. USD» vacío sin error; un costo mal escrito (más de dos decimales) sigue rechazándose.
 - **Evolución del costo.** `public.historial_costos_producto(p_producto_id, p_proveedor_id default null)`
-  (`20270204110100_historial_costos_producto.sql`, `security definer`, solo lectura): una fila por línea de
+  (`20270205110206_historial_costos_producto.sql`, `security definer`, solo lectura): una fila por línea de
   ingreso **registrado** (no anulado) **con costo**, con proveedor, fecha, comprobante y costo, ordenada por
   fecha. Exige lectura/edición en **Rentabilidad y Proveedores** (no depende de Stock), toma la organización de
   la sesión y respeta las empresas accesibles. `anon` sin acceso. No crea tablas (esquema: función en `public`).

@@ -9,7 +9,7 @@
 -- dos activas, `p_cuenta_web_de` es obligatorio; la cuenta no elegida se da de baja (se elimina; el usuario de
 -- Auth queda sin uso). Si solo un lado tiene cuentas activas, prevalece ese.
 --
--- Migración aditiva. Reversión: restaurar la definición de 20270204100000_fusion_clientes.sql con `create or replace`.
+-- Migración aditiva. Reversión: restaurar la definición de 20270205110201_fusion_clientes.sql con `create or replace`.
 
 create or replace function public.fusionar_clientes(
   p_conservar_id uuid,

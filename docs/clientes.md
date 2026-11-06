@@ -418,7 +418,7 @@ Solo frontend, **sin migración ni escritura** (el grant `select` de `public.cli
 
 ## Fusionar clientes duplicados (F-CLI-18, MSF-447 · épica MSF-445)
 
-Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y la ficha oculta la acción al resto. Sin tablas nuevas (Principio VII: las RPC viven en `public`; `dominio.comprobantes_venta` solo cambia el `cliente_id` de sus filas). Migraciones aditivas `20270204100000`…`20270204100300`.
+Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y la ficha oculta la acción al resto. Sin tablas nuevas (Principio VII: las RPC viven en `public`; `dominio.comprobantes_venta` solo cambia el `cliente_id` de sus filas). Migraciones aditivas `20270205110201`…`20270205110204`.
 
 - **`public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`** (`security definer`, `search_path = ''`, `revoke … from public, anon`, `grant … to authenticated`): bloquea ambas filas ordenadas por id y, en **una sola transacción**, reasigna los documentos de venta y la cuenta web al conservado, archiva al descartado (`archivado_en`; no se borra ni se tocan sus datos) y registra `cliente.fusionado` (Nº y nombre de ambos, sin DNI/CUIT). Devuelve `{ documentos_reasignados, cuentas_reasignadas, campanas_reasignadas, cuentas_dadas_de_baja }`.
 - **Rechazos** (mensaje claro y sin cambios): no Administrador (42501), mismo cliente, falta un cliente, cuenta web de un tercero (22023), inexistente u otra organización (P0002), alguno archivado — también cubre repetir la fusión (22023).

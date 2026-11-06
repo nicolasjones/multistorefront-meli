@@ -10,7 +10,7 @@
 -- El detalle nombra la razón social y el nombre del contacto; nunca lleva correo ni teléfono.
 -- Lo llaman las RPC de contactos en la misma transacción.
 --
--- Nota de orden: las RPC de 20270204120100 invocan este auxiliar en tiempo de ejecución (plpgsql
+-- Nota de orden: las RPC de 20270205110208 invocan este auxiliar en tiempo de ejecución (plpgsql
 -- resuelve la llamada al ejecutar, no al crear), por eso el orden de migraciones es válido.
 --
 -- Migración aditiva. Reversión (migración posterior):
