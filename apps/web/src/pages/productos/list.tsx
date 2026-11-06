@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
 import { supabaseClient } from '../../lib/supabase'
@@ -18,6 +19,7 @@ import {
   type FilaProductoListado,
 } from '../../lib/productosListado'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
+import { DialogoExportarProductos } from '../../components/productos/DialogoExportarProductos'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -136,10 +138,19 @@ export function ProductoList() {
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
+  // Exportar (F-CAT-11, FR-201): solo el Administrador; el diálogo y el aviso de resultado viven acá.
+  const { esAdministrador } = useEsAdministrador()
+  const [exportando, setExportando] = useState(false)
+  const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info'; texto: string } | null>(null)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
   if (empresaPrevia !== empresaId) {
     setEmpresaPrevia(empresaId)
+    // FR-209 (Principio VIII): un diálogo de exportación abierto no mezcla empresas; se cierra con aviso.
+    if (exportando) {
+      setExportando(false)
+      setAvisoExportacion({ severidad: 'info', texto: 'Cambiaste de empresa: se cerró la exportación. Volvé a abrirla para exportar con la empresa nueva.' })
+    }
     setConsulta((actual) => ({ ...actual, pagina: 1 }))
   }
   const { categorias, isLoading: cargandoCategorias, isError: errorCategorias } = useCategorias()
@@ -242,12 +253,18 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : undefined}
+        accion={puedeEditar || esAdministrador ? (
+          <Stack direction="row" spacing={1}>
+            {esAdministrador ? <Button variant="outlined" onClick={() => { setAvisoExportacion(null); setExportando(true) }}>Exportar</Button> : null}
+            {puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : null}
+          </Stack>
+        ) : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+          {avisoExportacion ? <Alert severity={avisoExportacion.severidad} onClose={() => setAvisoExportacion(null)}>{avisoExportacion.texto}</Alert> : null}
           {veCosto && falloCostos && !hayError ? (
             <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
           ) : null}
@@ -327,6 +344,18 @@ export function ProductoList() {
           )}
         </Stack>
       </ContenedorSeccion>
+      {exportando && esAdministrador ? (
+        <DialogoExportarProductos
+          consulta={consulta}
+          totalFiltrado={total}
+          veRentabilidad={veCosto}
+          onCerrar={() => setExportando(false)}
+          onExportado={(productos, columnas) => {
+            setExportando(false)
+            setAvisoExportacion({ severidad: 'success', texto: `Exportación CSV lista: ${productos} ${productos === 1 ? 'producto' : 'productos'}, ${columnas} ${columnas === 1 ? 'columna' : 'columnas'}` })
+          }}
+        />
+      ) : null}
     </Box>
   )
 }
