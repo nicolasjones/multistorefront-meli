@@ -47,7 +47,7 @@ function agregar(etiqueta: 'meta' | 'link' | 'script', atributos: Record<string,
 // Metadatos por página (FR-021, FR-024): `<title>`, descripción, canónica, Open Graph y `robots`. Se escriben al
 // montar y se quitan al salir, así una página nunca hereda los de la anterior. No pinta nada.
 export function CabeceraSeo({ host, pagina, descripcion, imagen, ruta = '/', tipo = 'website', noindex = false, indexable = true, datosEstructurados }: Props) {
-  const seo = useSeoTienda(noindex ? undefined : host)
+  const seo = useSeoTienda(noindex || !indexable ? undefined : host)
   const robotsCerrado = noindex || !indexable || (seo !== null && !seo.indexable)
   const url = seo ? urlCanonica(seo.dominio, ruta) : null
   const titulo = noindex ? (pagina ?? null) : seo ? armarTitulo(pagina, seo.nombre) : null
