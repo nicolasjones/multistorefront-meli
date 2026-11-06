@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useNavigate } from 'react-router'
 import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
@@ -12,6 +12,7 @@ import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
+import { rutaEtiquetas } from '../../lib/etiquetasCliente'
 import { DialogoCorreoSeleccionados } from '../../components/clientes/DialogoCorreoSeleccionados'
 import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -92,6 +93,7 @@ const columnas = (empresaId: string | null): ColumnaAdaptable<ClienteListado>[] 
 // (`buscar_clientes`, FR-006); el buscador espera a que se deje de tipear.
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
+  const navegar = useNavigate()
   const puedeEditar = nivel === 'edicion'
   // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
   const puedeVerRanking = nivel === 'lectura' || nivel === 'edicion'
@@ -194,6 +196,15 @@ export function ClienteList() {
         <Stack direction="row" spacing={1}>
           {puedeMigrar ? <ImportarClientes /> : null}
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
+          {puedeEditar ? (
+            <Button
+              variant="outlined"
+              disabled={seleccion.size === 0}
+              onClick={() => navegar(rutaEtiquetas([...seleccion]), { state: { volverA: '/clientes' } })}
+            >
+              {seleccion.size > 0 ? `Imprimir etiquetas (${seleccion.size})` : 'Imprimir etiquetas'}
+            </Button>
+          ) : null}
           {puedeEditar ? <Button variant="contained" onClick={() => setClienteEnDialogo(null)}>Nuevo cliente</Button> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />

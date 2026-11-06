@@ -1,13 +1,15 @@
 # F5 — Profundidad (no bloqueante)
 
-Checks que **informan** sin frenar PRs. Corren en `.github/workflows/nightly.yml` (06:00 UTC o a mano).
+Checks que no frenan PRs, pero **fallan el nightly** (rojo) si encuentran algo (MSF-687). Corren en `.github/workflows/nightly.yml` (06:00 UTC o a mano).
 
 | Check | Herramienta | Qué mide |
 |---|---|---|
 | **Performance** | **Lighthouse CI** (`.lighthouserc.json`) | perf/a11y/best-practices sobre el build (`apps/web/dist`) |
 | **Accesibilidad** | **axe-core CLI** | violaciones a11y sobre el preview |
 
-Reportes en `reports/lighthouse/` (artefacto `nightly-reportes`).
+Reportes en `reports/lighthouse/` y `reports/axe/axe.json` (artefacto `nightly-reportes`). Las aserciones de
+`.lighthouserc.json` son `error` y axe corre con `--exit`; las herramientas van con versión fija (`@lhci/cli@0.16.0`,
+`@axe-core/cli@4.14.0`).
 
 ## Pendiente (necesita devDependencies)
 - **Mutation testing** (**Stryker**): requiere `@stryker-mutator/core` + `@stryker-mutator/vitest-runner` como devDeps (no se agregan sin poder actualizar el lockfile). Config sugerida: mutar `apps/web/src/lib/**` y `packages/**`.
