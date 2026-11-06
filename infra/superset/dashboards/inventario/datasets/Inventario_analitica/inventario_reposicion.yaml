@@ -1,0 +1,167 @@
+# Dataset sobre la vista `analitica.inventario_reposicion` (contrato:
+# specs/20270201-100000-reportes-de-inventario-y-exportacion/contracts/analitica-inventario.md).
+#
+# Grano: una fila por producto activo sin stock o con stock bajo. La tabla del tablero la muestra tal
+# cual (modo raw), ordenada por severidad (el código `sin_stock` ordena antes que `stock_bajo`).
+# `organizacion_id` es la columna sobre la que el guest token fuerza la cláusula `rls`.
+table_name: inventario_reposicion
+main_dttm_col: null
+description: 'Productos activos sin stock o con stock bajo, con proveedor y faltante sugerido (F-REP-02).'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7c0e5b1a-3f42-4d6e-9a8b-2e1d5f6a7b81
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: "Organización dueña de la fila; el token de Superset filtra por esta columna."
+  python_date_format: null
+- column_name: producto_id
+  verbose_name: Producto (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: "Identificador interno del producto; no se muestra en la tabla."
+  python_date_format: null
+- column_name: producto_nombre
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Nombre del producto; filtro nativo de producto/SKU."
+  python_date_format: null
+- column_name: sku
+  verbose_name: SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Código del producto; filtro nativo de producto/SKU."
+  python_date_format: null
+- column_name: categoria
+  verbose_name: Categoría
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Categoría del producto (vacía si no tiene); filtro nativo de categoría."
+  python_date_format: null
+- column_name: proveedor
+  verbose_name: Proveedor
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Razón social del proveedor del producto (vacía si no tiene); filtro nativo de proveedor."
+  python_date_format: null
+- column_name: codigo_proveedor
+  verbose_name: Código de proveedor
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Código con el que el proveedor identifica el producto; vacío si no tiene."
+  python_date_format: null
+- column_name: cantidad
+  verbose_name: Cantidad
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Existencia vigente del producto."
+  python_date_format: null
+- column_name: minimo
+  verbose_name: Mínimo
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Stock mínimo definido para el producto."
+  python_date_format: null
+- column_name: estado
+  verbose_name: Estado (código)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: "sin_stock o stock_bajo (misma regla que public.stock_estados). Ordena por severidad: sin_stock va antes que stock_bajo."
+  python_date_format: null
+- column_name: estado_texto
+  verbose_name: Estado
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE estado WHEN 'sin_stock' THEN 'Sin stock' ELSE 'Bajo' END"
+  description: "Estado con las etiquetas de la app (Sin stock / Bajo); es la columna del filtro nativo de estado."
+  python_date_format: null
+- column_name: faltante_sugerido
+  verbose_name: Faltante sugerido
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Mínimo menos cantidad, nunca negativo: lo que falta para volver al mínimo (regla provisional, FR-006)."
+  python_date_format: null
+database_uuid: a9165376-939c-4a8a-b6fc-1eb4f3c07c63
+version: 1.0.0

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
@@ -10,9 +10,11 @@ import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
-  TAMANO_PAGINA_PRODUCTOS,
   consultarCostos,
   agruparCompatibles,
+  consultarPrecios,
+  formatearPrecioListado,
+  type PrecioListado,
   consultarProductos,
   expandirCompatibles,
   formatearCosto,
@@ -23,9 +25,13 @@ import {
 } from '../../lib/productosListado'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
+
+// El popup de alta/edición trae el formulario completo: se carga recién al abrirlo.
+const DialogoProducto = lazy(() => import('../../components/productos/DialogoProducto').then((modulo) => ({ default: modulo.DialogoProducto })))
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -38,14 +44,24 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Precio y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114) y Rentabilidad
-// (FR-002, Decisiones 4 y 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
+// Margen queda visible con «—» hasta que llegue Rentabilidad (FR-002, Decisión 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
 const SIN_DATO = '—'
 const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
   clave,
   encabezado,
   align: 'right',
   render: () => <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>,
+})
+
+// «Precio»: siempre en pesos; si el producto está en USD, pesos a la última cotización y el USD entre paréntesis.
+const columnaPrecio = (precios: ReadonlyMap<string, PrecioListado>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'precio',
+  encabezado: 'Precio',
+  align: 'right',
+  render: (producto) => {
+    const precio = precios.get(producto.id)
+    return <Typography variant="b" color={precio === undefined ? 'text.secondary' : undefined}>{formatearPrecioListado(precio)}</Typography>
+  },
 })
 
 type EmpresaListado = { id: string; nombre: string }
@@ -152,6 +168,8 @@ export function ProductoList() {
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
+  // undefined = cerrado, null = producto nuevo, id = editar ese producto.
+  const [productoEnDialogo, setProductoEnDialogo] = useState<string | null | undefined>(undefined)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
@@ -180,17 +198,23 @@ export function ProductoList() {
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
+  const [precios, setPrecios] = useState<ReadonlyMap<string, PrecioListado>>(new Map())
   const columnas = useMemo(() => {
-    const [producto, precio, ...resto] = columnasBase
-    return [producto, precio, ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
-  }, [empresas, veCosto, costos])
+    const [producto, , ...resto] = columnasBase
+    return [producto, columnaPrecio(precios), ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
+  }, [empresas, veCosto, costos, precios])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [falloCostos, setFalloCostos] = useState(false)
+  const [falloPrecios, setFalloPrecios] = useState(false)
+  // Carga infinita: la página 1 reemplaza la lista y las siguientes se suman; `cargandoMas`/`errorMas` son solo de la tanda.
+  const [cargandoMas, setCargandoMas] = useState(false)
+  const [errorMas, setErrorMas] = useState(false)
   const ultimaPeticion = useRef(0)
+  const mostradas = useRef(0)
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
   useEffect(() => {
@@ -208,12 +232,17 @@ export function ProductoList() {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     setFalloCostos(false)
+    setFalloPrecios(false)
+    setErrorMas(false)
+    const esTandaSiguiente = consulta.pagina > 1
+    setCargandoMas(esTandaSiguiente)
     try {
       const resultado = await consultarProductos(supabaseClient, consulta)
       if (peticion !== ultimaPeticion.current) return
-      // Si la página quedó fuera de rango, se vuelve a la primera.
-      if (resultado.filas.length === 0 && consulta.pagina > 1) {
-        setConsulta((actual) => ({ ...actual, pagina: 1 }))
+      // Una tanda siguiente vacía (se borraron productos mientras tanto): no hay más, sin tocar lo ya mostrado.
+      if (resultado.filas.length === 0 && esTandaSiguiente) {
+        setTotal((anterior) => Math.min(anterior, mostradas.current))
+        setCargandoMas(false)
         return
       }
       // Las imágenes viven en un bucket privado: se firman las del conjunto visible. Si falla la
@@ -237,12 +266,29 @@ export function ProductoList() {
         }
         if (peticion !== ultimaPeticion.current) return
       }
-      setCostos(costosPagina)
-      setFilas(resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null })))
+      // Precio (F-PRE-01): segunda consulta por los ids de la página. Si falla, «—» en Precio y un aviso.
+      let preciosPagina = new Map<string, PrecioListado>()
+      try {
+        preciosPagina = await consultarPrecios(supabaseClient, resultado.filas.map((fila) => fila.id))
+      } catch (errorPrecio) {
+        console.error('No pudimos cargar los precios de los productos.', errorPrecio)
+        setFalloPrecios(true)
+      }
+      if (peticion !== ultimaPeticion.current) return
+      const nuevas = resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null }))
+      setPrecios((anterior) => (esTandaSiguiente ? new Map([...anterior, ...preciosPagina]) : preciosPagina))
+      setCostos((anterior) => (esTandaSiguiente ? new Map([...anterior, ...costosPagina]) : costosPagina))
+      setFilas((anterior) => (esTandaSiguiente && anterior ? [...anterior, ...nuevas] : nuevas))
       setTotal(resultado.total)
+      setCargandoMas(false)
     } catch (error) {
       console.error('No pudimos cargar los productos.', error)
-      if (peticion === ultimaPeticion.current) setHayError(true)
+      if (peticion === ultimaPeticion.current) {
+        setCargandoMas(false)
+        // Una tanda siguiente que falla no tira abajo lo ya cargado: error y «Reintentar» al pie.
+        if (esTandaSiguiente) setErrorMas(true)
+        else setHayError(true)
+      }
     }
   }, [consulta, veCosto])
 
@@ -250,6 +296,22 @@ export function ProductoList() {
     if (cargandoRentabilidad) return
     void cargar()
   }, [cargar, cargandoRentabilidad])
+
+  mostradas.current = filas?.length ?? 0
+  const hayMas = filas !== null && filas.length < total
+  const cargarMas = () => {
+    if (cargandoMas) return
+    if (errorMas) {
+      void cargar()
+      return
+    }
+    setConsulta((actual) => ({ ...actual, pagina: actual.pagina + 1 }))
+  }
+  // Cambiar el estado de un producto recarga la lista desde el principio (no se mezcla con las tandas ya sumadas).
+  const recargarDesdeElPrincipio = () => {
+    if (consulta.pagina === 1) void cargar()
+    else setConsulta((actual) => ({ ...actual, pagina: 1 }))
+  }
 
   const hayFiltros = hayFiltrosActivos(consulta) || textoEscrito.trim() !== ''
   const limpiar = () => {
@@ -277,7 +339,7 @@ export function ProductoList() {
           puedeEditar || esAdministrador ? (
             <Stack direction="row" spacing={1}>
               {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
-              {puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : null}
+              {puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : null}
             </Stack>
           ) : undefined
         }
@@ -288,6 +350,9 @@ export function ProductoList() {
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
           {veCosto && falloCostos && !hayError ? (
             <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
+          ) : null}
+          {falloPrecios && !hayError ? (
+            <Alert severity="warning">No pudimos cargar los precios: la columna Precio puede no estar completa.</Alert>
           ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar los productos." reintentar={() => void cargar()} />
@@ -341,12 +406,12 @@ export function ProductoList() {
                     puedeEditar
                       ? (producto) => (
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Button component={RouterLink} to={`/productos/${producto.id}/edit`} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
+                            <Button onClick={() => setProductoEnDialogo(producto.id)} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
                             <CambiarEstadoProducto
                               id={producto.id}
                               nombre={producto.nombre}
                               activo={producto.activo}
-                              onCambiado={() => void cargar()}
+                              onCambiado={recargarDesdeElPrincipio}
                               onError={setErrorEstado}
                             />
                           </Stack>
@@ -355,20 +420,16 @@ export function ProductoList() {
                   }
                 />
               )}
-              <TablePagination
-                component="div"
-                count={total}
-                page={consulta.pagina - 1}
-                rowsPerPage={TAMANO_PAGINA_PRODUCTOS}
-                rowsPerPageOptions={[TAMANO_PAGINA_PRODUCTOS]}
-                onPageChange={(_, nueva) => setConsulta((actual) => ({ ...actual, pagina: nueva + 1 }))}
-                labelRowsPerPage="Productos por página"
-                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-              />
+              <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} mostrarFin={filas.length > 0} />
             </>
           )}
         </Stack>
       </ContenedorSeccion>
+      {productoEnDialogo !== undefined ? (
+        <Suspense fallback={null}>
+          <DialogoProducto productoId={productoEnDialogo} onCerrar={() => setProductoEnDialogo(undefined)} onGuardado={recargarDesdeElPrincipio} />
+        </Suspense>
+      ) : null}
     </Box>
   )
 }

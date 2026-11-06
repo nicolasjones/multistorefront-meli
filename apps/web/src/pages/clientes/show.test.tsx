@@ -20,6 +20,7 @@ vi.mock('@refinedev/core', () => ({
   useOne: mocks.useOne,
   useUpdate: () => ({ mutateAsync: mocks.mutateAsync }),
 }))
+vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: () => ({ contexto: { rol_efectivo: 'miembro' }, isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({ useEmpresasDeCliente: mocks.useEmpresasDeCliente }))

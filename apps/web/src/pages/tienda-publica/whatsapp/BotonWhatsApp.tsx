@@ -33,7 +33,7 @@ export function BotonWhatsApp({ host, empresa, producto, productoId, precio = nu
 
   const nombreEmpresa = empresa.trim() || contacto.contacto.nombre
   const mensaje = armarMensaje(nombreEmpresa, producto, precio)
-  const url = urlWhatsapp(contacto.contacto.digitos, mensaje)
+  const url = urlWhatsapp(contacto.contacto.numero, mensaje)
   if (!url) return null
 
   return (
