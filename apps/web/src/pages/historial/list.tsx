@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import { Alert, Box, Chip, LinearProgress, Stack, Tab, Tabs, TablePagination, TextField, Typography } from '@mui/material'
+import { Alert, Box, Chip, LinearProgress, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import {
-  TAMANO_PAGINA_HISTORIAL,
   useHistorialVentasCobros,
   type CobroHistorico,
   type TipoConsultaHistorial,
@@ -17,6 +17,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 
@@ -127,16 +128,22 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
     onEmpresa(id)
     setPagina(1)
   }
+  // Carga infinita: se suman las tandas de 25 que ya entrega la RPC del historial.
+  const listado = useListadoAcumulado<VentaHistorica | CobroHistorico>({
+    items: filas, pagina, setPagina, total, cargando: isFetching, reinicio: [tipo, empresaId, textoAplicado],
+  })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
   const hayFiltros = textoAplicado.trim() !== '' || empresaId !== ''
   const nombre = esVentas ? 'ventas' : 'cobros'
 
   let contenido: ReactNode
   // Página fuera de rango: el hook vuelve a la 1; mientras tanto no se muestra «Sin resultados».
-  if (isLoading || (pagina > 1 && filas.length === 0 && !isError)) {
+  if (isLoading || (pagina > 1 && listado.filas.length === 0 && !isError)) {
     contenido = <EstadoCargaPagina />
-  } else if (isError) {
+  } else if (isError && !falloTanda) {
     contenido = <EstadoError descripcion={`No pudimos cargar el historial de ${nombre}.`} reintentar={() => void refetch()} />
-  } else if (filas.length === 0) {
+  } else if (listado.filas.length === 0) {
     contenido = hayFiltros ? (
       <EstadoVacio titulo="Sin resultados" descripcion="Probá con otro texto o con otra tienda." />
     ) : (
@@ -146,19 +153,15 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
     contenido = (
       <>
         {esVentas ? (
-          <ContenidoAdaptable items={filas as VentaHistorica[]} columnas={columnasVentas} obtenerClave={(fila) => fila.id} etiquetaTabla="Ventas históricas" />
+          <ContenidoAdaptable items={listado.filas as VentaHistorica[]} columnas={columnasVentas} obtenerClave={(fila) => fila.id} etiquetaTabla="Ventas históricas" />
         ) : (
-          <ContenidoAdaptable items={filas as CobroHistorico[]} columnas={columnasCobros} obtenerClave={(fila) => fila.id} etiquetaTabla="Cobros históricos" />
+          <ContenidoAdaptable items={listado.filas as CobroHistorico[]} columnas={columnasCobros} obtenerClave={(fila) => fila.id} etiquetaTabla="Cobros históricos" />
         )}
-        <TablePagination
-          component="div"
-          count={total}
-          page={pagina - 1}
-          rowsPerPage={TAMANO_PAGINA_HISTORIAL}
-          rowsPerPageOptions={[TAMANO_PAGINA_HISTORIAL]}
-          onPageChange={(_, nueva) => setPagina(nueva + 1)}
-          labelRowsPerPage="Registros por página"
-          labelDisplayedRows={({ from, to, count }) => `Página ${pagina} · ${from}–${to} de ${count}`}
+        <CargaInfinita
+          hayMas={listado.hayMas}
+          cargando={listado.cargandoMas}
+          hayError={falloTanda}
+          onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
         />
       </>
     )
@@ -175,7 +178,7 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
         />
       ) : null}
 
-      <BarraHerramientas contador={isLoading || isError ? undefined : `${total} registros mostrados`}>
+      <BarraHerramientas contador={isLoading || (isError && !falloTanda) ? undefined : `${total} registros mostrados`}>
         <TextField
           type="search"
           label="Buscar por cliente o número"
@@ -189,7 +192,7 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
       </BarraHerramientas>
 
       <Box role="status" aria-live="polite" sx={visuallyHidden}>
-        {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+        {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label={`Actualizando ${nombre}`} sx={{ height: ALTO_BARRA_CARGA }} /> : null}
       <Box aria-busy={isFetching}>{contenido}</Box>

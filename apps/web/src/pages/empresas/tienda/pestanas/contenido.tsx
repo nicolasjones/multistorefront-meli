@@ -146,7 +146,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
       </Box>
       <Stack spacing={1} sx={{ mt: 3 }}>
         {hayCambios ? <Alert severity="info" role="status">Hay cambios sin guardar.</Alert> : null}
-        {exito ? <Alert severity="success" role="status">Cambios guardados. La tienda ya muestra los textos nuevos.</Alert> : null}
+        {exito ? <Alert severity="success" role="status">Cambios guardados en el borrador. Publicalos desde Dominio y publicación.</Alert> : null}
         {errorGeneral ? <Alert severity="error" role="alert">{errorGeneral}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={descartar} disabled={!hayCambios || guardando}>Descartar</Button>
