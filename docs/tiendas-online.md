@@ -701,7 +701,7 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 
 | Capa | Dónde |
 |---|---|
-| Base | `supabase/migrations/20270125110000_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
+| Base | `supabase/migrations/20270205110201_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
 | Front | `apps/web/src/lib/tiendaRelacionados.ts` (cliente + `useRelacionados`), `apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx` (carga diferida, 4 columnas en escritorio y 2 en celular), integrada en `rutas/producto.tsx` |
 | Pruebas | pgTAP `tienda_relacionados.test.sql`; Vitest `tiendaRelacionados.test.ts` y `ficha/Relacionados.test.tsx` (con axe); E2E `apps/web/e2e/tienda-relacionados.e2e.ts` |
 

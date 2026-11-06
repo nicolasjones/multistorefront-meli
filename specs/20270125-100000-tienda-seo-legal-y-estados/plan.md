@@ -38,7 +38,7 @@ Regla del proyecto «anon solo ejecuta las RPC de acceso»: se respeta (las func
 | Historia | Migración | Contenido | Reversión |
 |---|---|---|---|
 | F-TDA-19 | `20270125100000_tienda_estado_pausada.sql` | `publico.estado_tienda_por_dominio` + grants | `drop function publico.estado_tienda_por_dominio(text)` |
-| F-TDA-20 | `20270125110000_tienda_relacionados.sql` | `publico.relacionados_por_dominio` + grants | `drop function publico.relacionados_por_dominio(text, uuid)` |
+| F-TDA-20 | `20270205110201_tienda_relacionados.sql` | `publico.relacionados_por_dominio` + grants | `drop function publico.relacionados_por_dominio(text, uuid)` |
 | F-TDA-22 | `20270125120000_tienda_legal.sql` | `dominio.tienda_legal_enlaces` + RLS + índice + check de URL; `publico.legal_por_dominio` + grants | `drop function publico.legal_por_dominio(text)`; `drop table dominio.tienda_legal_enlaces` **en una migración posterior**, no en este PR (regla de aditividad) |
 | F-TDA-21 | `20270125130000_tienda_seo.sql` | `publico.seo_tienda_por_dominio`, `publico.sitemap_por_dominio` + grants | `drop function` de ambas |
 

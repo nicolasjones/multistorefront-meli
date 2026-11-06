@@ -5,7 +5,7 @@ import { supabaseClient } from './supabase'
 
 // F-TDA-20 (MSF-263): productos relacionados de la ficha. Cuáles son (misma categoría, hasta 4, sin el
 // actual, destacados primero), su precio y su disponibilidad los decide la base
-// (migración 20270125110000_tienda_relacionados.sql); acá solo se lee y se firman las imágenes.
+// (migración 20270205110201_tienda_relacionados.sql); acá solo se lee y se firman las imágenes.
 
 export type Relacionados = {
   productos: ProductoListado[]
