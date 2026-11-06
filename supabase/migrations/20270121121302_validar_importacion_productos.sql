@@ -166,11 +166,11 @@ begin
     v_sku := btrim(coalesce(r.sku, ''));
 
     -- Obligatorias.
-    if v_sku = '' then v_errores := v_errores || 'Falta el SKU'; end if;
-    if btrim(coalesce(r.nombre, '')) = '' then v_errores := v_errores || 'Falta el nombre'; end if;
-    if btrim(coalesce(r.categoria, '')) = '' then v_errores := v_errores || 'Falta la categoría'; end if;
-    if length(v_sku) > 80 then v_errores := v_errores || 'El SKU supera los 80 caracteres'; end if;
-    if length(btrim(coalesce(r.nombre, ''))) > 200 then v_errores := v_errores || 'El nombre supera los 200 caracteres'; end if;
+    if v_sku = '' then v_errores := v_errores || 'Falta el SKU'::text; end if;
+    if btrim(coalesce(r.nombre, '')) = '' then v_errores := v_errores || 'Falta el nombre'::text; end if;
+    if btrim(coalesce(r.categoria, '')) = '' then v_errores := v_errores || 'Falta la categoría'::text; end if;
+    if length(v_sku) > 80 then v_errores := v_errores || 'El SKU supera los 80 caracteres'::text; end if;
+    if length(btrim(coalesce(r.nombre, ''))) > 200 then v_errores := v_errores || 'El nombre supera los 200 caracteres'::text; end if;
 
     -- Categoría existente.
     if btrim(coalesce(r.categoria, '')) <> '' and private.resolver_categoria_importacion(p_org, r.categoria) is null then
@@ -205,22 +205,22 @@ begin
       end if;
     end loop;
     if (case when btrim(coalesce(r.precio_x1, '')) ~ v_numero then btrim(r.precio_x1)::numeric = 0 else false end) then
-      v_errores := v_errores || '«precio_x1» debe ser mayor a cero';
+      v_errores := v_errores || '«precio_x1» debe ser mayor a cero'::text;
     end if;
     if v_accion = 'nuevo' and btrim(coalesce(r.precio_x1, '')) = '' then
-      v_errores := v_errores || 'Falta el precio x1 de un producto nuevo';
+      v_errores := v_errores || 'Falta el precio x1 de un producto nuevo'::text;
     end if;
 
     -- Costo sin acceso a Rentabilidad: se ignora con aviso (FR-106).
     if btrim(coalesce(r.costo, '')) <> '' and not p_con_costo then
-      v_avisos := v_avisos || 'Se ignora el costo: tu rol no tiene acceso a Rentabilidad';
+      v_avisos := v_avisos || 'Se ignora el costo: tu rol no tiene acceso a Rentabilidad'::text;
     end if;
 
     -- Código de barras.
     v_barras := btrim(coalesce(r.codigo_barras, ''));
     if v_barras <> '' then
       if v_barras !~ '^[0-9]{13}$' then
-        v_errores := v_errores || 'El código de barras debe tener 13 dígitos';
+        v_errores := v_errores || 'El código de barras debe tener 13 dígitos'::text;
       else
         if v_barras_vistos ? v_barras then
           v_errores := v_errores || format('Código de barras repetido en la planilla (fila %s)', v_barras_vistos ->> v_barras);
@@ -232,7 +232,7 @@ begin
            where p.organizacion_id = p_org and p.codigo_barras = v_barras
              and p.id is distinct from v_existente
         ) then
-          v_errores := v_errores || 'El código de barras ya lo usa otro producto';
+          v_errores := v_errores || 'El código de barras ya lo usa otro producto'::text;
         end if;
       end if;
     end if;
@@ -262,7 +262,7 @@ begin
       end if;
     end loop;
     if v_cantidad_imagenes > 4 then
-      v_avisos := v_avisos || 'Más de 4 imágenes: se usan las primeras 4';
+      v_avisos := v_avisos || 'Más de 4 imágenes: se usan las primeras 4'::text;
     end if;
 
     fila := v_fila;
