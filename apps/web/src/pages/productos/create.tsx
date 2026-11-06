@@ -9,6 +9,7 @@ import { asignarCategoriaProducto } from '../../lib/categorias'
 import { asignarAlicuotaProducto, mensajeErrorIva } from '../../lib/iva'
 import { type PreciosEscala, guardarPreciosEscala, hayPreciosEscala, mensajeErrorEscalas } from '../../lib/escalas'
 import { guardarRelacionados, mensajeErrorRelacionados } from '../../lib/productos-relacionados'
+import { type FilaVariante, guardarVariantes, mensajeErrorVariantes } from '../../lib/productos-variantes'
 import { supabaseClient } from '../../lib/supabase'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -21,11 +22,12 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // formulario a quien no puede editar Productos y el costo a quien no edita
 // Rentabilidad. La ficha del producto llega con F-CAT-04; hasta entonces el éxito
 // se confirma en esta misma pantalla.
-type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null; relacionadosPendientes: string[] | null }
+type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null; relacionadosPendientes: string[] | null; variantesPendientes: FilaVariante[] | null }
 
 export function ProductoCreate() {
   const { nivel, isLoading } = useNivelSeccion('productos')
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
+  const { nivel: nivelStock } = useNivelSeccion('stock')
   const [creado, setCreado] = useState<Creado | null>(null)
   const [intento, setIntento] = useState(0)
   const [reintentando, setReintentando] = useState(false)
@@ -34,6 +36,7 @@ export function ProductoCreate() {
   const [errorAlicuota, setErrorAlicuota] = useState<string | null>(null)
   const [errorEscalas, setErrorEscalas] = useState<string | null>(null)
   const [errorRelacionados, setErrorRelacionados] = useState<string | null>(null)
+  const [errorVariantes, setErrorVariantes] = useState<string | null>(null)
 
   // `releer` en el reintento: las que ya subieron ocupan posiciones que hay que respetar.
   const subirImagenes = async (producto: { id: string; organizacion_id: string }, nuevas: File[], releer = false) => {
@@ -112,13 +115,25 @@ export function ProductoCreate() {
     }
   }
 
-  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[]) => {
+  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[], variantes: FilaVariante[]) => {
     const parametros = aParametrosCrear(formulario, { conCosto: nivelRentabilidad === 'edicion' })
     const { data, error } = await supabaseClient.rpc('crear_producto', parametros)
     if (error) {
       throw error
     }
-    const fila = data as { id: string; organizacion_id: string; nombre: string }
+    const fila = data as { id: string; organizacion_id: string; nombre: string; updated_at: string }
+    // Variantes (F-CAT-15): primero, para que un fallo no deje al resto sin guardar. El producto ya existe: si
+    // fallan se ofrece reintentar (la RPC no duplica las filas que ya se guardaron).
+    let variantesPendientes: FilaVariante[] | null = null
+    let mensajeVariantes: string | null = null
+    if (variantes.length > 0) {
+      try {
+        await guardarVariantes(supabaseClient, fila.id, fila.updated_at, variantes, nivelStock === 'edicion')
+      } catch (errorGuardado) {
+        variantesPendientes = variantes
+        mensajeVariantes = mensajeErrorVariantes(errorGuardado)
+      }
+    }
     // El producto ya existe: si alguna imagen falla no se revierte, se ofrece reintentar.
     const { fallidas, errores } = imagenes.nuevas.length > 0 ? await subirImagenes(fila, imagenes.nuevas) : { fallidas: [], errores: [] }
     const empresasPendientes = await guardarEmpresas(fila.id, empresaIds)
@@ -131,7 +146,8 @@ export function ProductoCreate() {
     setErrorAlicuota(null)
     setErrorEscalas(null)
     setErrorRelacionados(null)
-    setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes, relacionadosPendientes })
+    setErrorVariantes(mensajeVariantes)
+    setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes, relacionadosPendientes, variantesPendientes })
   }
 
   const reintentarEmpresas = async () => {
@@ -189,6 +205,20 @@ export function ProductoCreate() {
     } catch (error) {
       console.error('No pudimos reintentar guardar los precios por escala del producto.', error)
       setErrorEscalas(mensajeErrorEscalas(error))
+    } finally {
+      setReintentando(false)
+    }
+  }
+
+  const reintentarVariantes = async () => {
+    if (!creado?.variantesPendientes) return
+    setReintentando(true)
+    setErrorVariantes(null)
+    try {
+      await guardarVariantes(supabaseClient, creado.id, null, creado.variantesPendientes, nivelStock === 'edicion')
+      setCreado({ ...creado, variantesPendientes: null })
+    } catch (error) {
+      setErrorVariantes(mensajeErrorVariantes(error))
     } finally {
       setReintentando(false)
     }
@@ -296,6 +326,19 @@ export function ProductoCreate() {
                 {errorEscalas ? <Box component="span" sx={{ display: 'block' }}>{errorEscalas}</Box> : null}
               </Alert>
             ) : null}
+            {creado.variantesPendientes ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void reintentarVariantes()} disabled={reintentando}>
+                    {reintentando ? 'Reintentando…' : 'Reintentar variantes'}
+                  </Button>
+                }
+              >
+                <strong>El producto se creó, pero no pudimos guardar las variantes.</strong>
+                {errorVariantes ? <Box component="span" sx={{ display: 'block' }}>{errorVariantes}</Box> : null}
+              </Alert>
+            ) : null}
             {creado.relacionadosPendientes ? (
               <Alert
                 severity="warning"
@@ -337,6 +380,8 @@ export function ProductoCreate() {
             key={intento}
             inicial={FORMULARIO_PRODUCTO_VACIO}
             conCosto={nivelRentabilidad === 'edicion'}
+            verStock={nivelStock === 'lectura' || nivelStock === 'edicion'}
+            editarStock={nivelStock === 'edicion'}
             etiquetaGuardar="Crear producto"
             rutaCancelar="/"
             onGuardar={guardar}

@@ -27,12 +27,13 @@ const mocks = vi.hoisted(() => ({
   escalasProducto: vi.fn(),
   disponibilidad: vi.fn(),
   relacionados: vi.fn(),
+  variantes: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad, order: () => ({ returns: mocks.relacionados }) }) }) }),
+    from: (tabla: string) => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad, order: () => ({ returns: tabla === 'v_producto_variantes' ? mocks.variantes : mocks.relacionados }) }) }) }),
     schema: () => ({
       from: (tabla: string) => ({
         select: () => ({
@@ -118,6 +119,7 @@ describe('ProductoEdit', () => {
     mocks.escalasProducto.mockResolvedValue({ data: [{ escala: 'x5', precio: '40.00' }], error: null })
     mocks.disponibilidad.mockResolvedValue({ data: { disponibilidad: 'sin_stock' }, error: null })
     mocks.relacionados.mockResolvedValue({ data: [], error: null })
+    mocks.variantes.mockResolvedValue({ data: [], error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })

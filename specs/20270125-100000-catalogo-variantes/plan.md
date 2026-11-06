@@ -18,7 +18,7 @@ Dos historias sobre el formulario de producto que dejaron MSF-456, MSF-179 y MSF
 ### F-CAT-18 · Relacionados (migración `20270125110000_catalogo_relacionados.sql`)
 
 - Tabla `dominio.producto_relacionados (producto_id, relacionado_id, organizacion_id, orden, creado_en)`; PK `(producto_id, relacionado_id)`; FK compuestas `(producto_id, organizacion_id)` y `(relacionado_id, organizacion_id)` a `productos` con `on delete cascade`; `check (producto_id <> relacionado_id)`; índice `(organizacion_id, producto_id, orden)`.
-- RLS: select `lectura`/`edicion` en `productos`; insert/update/delete `edicion`. `anon` sin privilegios.
+- RLS: select `lectura`/`edicion` en `productos`; sin escritura directa (solo la RPC `security definer`). `anon` sin privilegios.
 - `public.guardar_relacionados` y `v_producto_relacionados` según `contracts/relacionados.md`; evento `producto.relacionados_editados`.
 - UI: componente `BloqueRelacionados` (buscador sobre `v_productos_listado` por nombre/SKU/categoría con tope de 4, lista con ↑ ↓ ✕, avisos, estado vacío). Integrado en alta (tras `crear_producto`) y edición.
 - Reversión: `drop function public.guardar_relacionados`, `drop view public.v_producto_relacionados`, luego `drop table dominio.producto_relacionados` en migración posterior.
