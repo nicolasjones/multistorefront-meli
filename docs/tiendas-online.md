@@ -782,3 +782,20 @@ Las tres migraciones (`…130000`, `…130100`, `…130200`) son aditivas y cada
 reversión: versiones → borrador y publicación → dominio. **Ojo (BREAKING de F-TDA-06)**: `guardar_tienda_identidad`,
 `guardar_tienda_contenido` y `guardar_catalogo_tienda` ya no son ejecutables por `authenticated`; revertir la épica entera
 (`git revert -m 1 <merge>`) los devuelve. DNS por entorno: ver «DNS de la plataforma por entorno» arriba.
+
+## Estados especiales de la tienda (F-TDA-19, MSF-247, épica MSF-149)
+
+Qué ve el visitante según el estado del dominio (la sección completa «Estados, relacionados, SEO y legal» la consolida la tarea de cierre T090):
+
+| Situación | Pantalla |
+|---|---|
+| Falla al resolver la tienda o al consultar su estado | `PantallaError`: «No pudimos cargar esta página.» con «Reintentar» y «Volver al inicio» (`role="alert"`, sin detalle técnico). Nunca se disfraza de «Volvemos pronto». |
+| Dominio desconocido o inválido | «Volvemos pronto» genérica (sin marca). |
+| Empresa desactivada (interruptor «Store activa», F-EMP-04) | «Volvemos pronto» con la marca de la tienda (logo o nombre, nombre comercial, colores y tipografías). |
+| Ruta inexistente, producto o categoría oculto / de otra empresa | 404 «No encontramos esta página» con `BuscadorTienda` y «Volver al inicio»; el mismo mensaje en todos los casos. |
+
+- **Función pública**: `publico.estado_tienda_por_dominio(host)` (`jsonb`, `security definer`, `anon` ejecuta). Devuelve `{ estado: 'pausada', nombre, color_primario, color_primario_oscuro, color_acento, color_fondo, tipografia_titulos, tipografia_texto, logo_ruta }` solo si la empresa del host está desactivada; `null` para host desconocido, inválido o empresa activa. Lista blanca: nunca organización, contacto ni datos fiscales. Sin tablas nuevas (esquema `publico`, solo función).
+- **D1 (supuesto)**: la marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. Para volver a la pantalla genérica en todos los casos basta con dejar de llamar a la función desde `SinTienda` (`pages/tienda-publica/index.tsx`).
+- **Migración** `20270205120000_tienda_estado_pausada.sql`, aditiva. Reversión: `drop function publico.estado_tienda_por_dominio(text);`.
+- **Front**: `lib/tiendaEstado.ts` (`resolverEstadoTienda`, `useEstadoTienda`), `VolvemosPronto.tsx`, `PantallaError.tsx` (también en `ErrorDeRuta` de `EnrutadorTienda.tsx`, sin repetir el landmark `main` dentro de la tienda) y `PaginaNoEncontrada.tsx` (buscador diferido, solo con tienda).
+- **Verificación**: pgTAP `tienda_estado_pausada.test.sql`; Vitest + axe (`VolvemosPronto`, `PaginaNoEncontrada`, `PantallaError`, `index`); E2E `apps/web/e2e/tienda-estados.e2e.ts` con las dos tiendas (la pausa se aplica con el mismo campo `dominio.empresas.activa` que el botón «Pausar tienda»).
