@@ -114,6 +114,12 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   misma transacción, solo con sesión y **solo ante cambios reales**; un evento por guardado con el detalle «Cambió las
   empresas del producto <nombre> (SKU …): agregó …; quitó …», sin precios ni costo. Lo cubre el pgTAP
   `catalogo_producto_empresa`. Ver `docs/catalogo.md`.
+- `producto.variantes_editadas` (F-CAT-15): `public.guardar_variantes_producto` lo registra en la misma transacción, solo con
+  sesión y **solo ante cambios reales** (alta, edición, activar/desactivar, reorden o stock contado); detalle con los
+  nombres y códigos de las variantes, sin precios ni costo. Lo cubre el pgTAP `catalogo_variantes_rpc`. Ver `docs/catalogo.md`.
+- `producto.relacionados_editados` (F-CAT-18): `public.guardar_relacionados` lo registra en la misma transacción, solo con
+  sesión y **solo ante cambios reales** (agregar, quitar o reordenar); detalle «Cambió los productos relacionados de
+  <nombre> (SKU …): <lista en orden>», sin precios ni costo. Lo cubre el pgTAP `catalogo_relacionados`. Ver `docs/catalogo.md`.
 - `proveedor.creado|editado|desactivado|reactivado` (F-PRV-01): los triggers `registrar_actividad_proveedor_alta` y
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó

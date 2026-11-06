@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   useCotizacionInicial: vi.fn(),
   useEmpresas: vi.fn(),
   useAlicuotas: vi.fn(),
+  buscarRelacionables: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -32,6 +33,10 @@ vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks
 vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
 vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../lib/productos-relacionados', async (original) => ({
+  ...(await original<typeof import('../../lib/productos-relacionados')>()),
+  buscarRelacionables: mocks.buscarRelacionables,
+}))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { AltaProducto, ProductoCreate } from './create'
@@ -454,6 +459,39 @@ describe('ProductoCreate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('definir_empresas_producto', { p_producto_id: 'p-9', p_empresa_ids: ['emp-2'] })
+  })
+
+  it('tras crear, guarda los relacionados agregados en el orden mostrado (F-CAT-18)', async () => {
+    mocks.buscarRelacionables.mockResolvedValue([{ id: 'r-1', nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }])
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(nombre === 'crear_producto' ? { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null } : { data: {}, error: null }))
+    abrir()
+    completar()
+    expect(screen.getByText('0 productos')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar por nombre, SKU o categoría' }), { target: { value: 'vidrio' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar Vidrio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_relacionados', { p_producto: 'p-9', p_relacionados: ['r-1'] })
+  })
+
+  it('si fallan los relacionados, el producto queda creado y se ofrece reintentar', async () => {
+    mocks.buscarRelacionables.mockResolvedValue([{ id: 'r-1', nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }])
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'crear_producto') return Promise.resolve({ data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: {}, error: null })
+    })
+    abrir()
+    completar()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar por nombre, SKU o categoría' }), { target: { value: 'vidrio' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar Vidrio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar los productos relacionados/)).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar los productos relacionados/)).not.toBeInTheDocument())
   })
 
   it('sin empresas elegidas no llama a la RPC de empresas', async () => {

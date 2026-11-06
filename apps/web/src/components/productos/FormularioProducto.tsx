@@ -45,6 +45,10 @@ import { empresasCambiaron } from '../../lib/productoEmpresas'
 import { EmpresasProducto } from './EmpresasProducto'
 import { SelectorCategoria } from './SelectorCategoria'
 import { ImagenesProducto } from './ImagenesProducto'
+import { BloqueRelacionados } from './BloqueRelacionados'
+import { BloqueVariantes } from './BloqueVariantes'
+import { type ErrorVariante, ErrorGuardarVariantes, type FilaVariante, erroresPorFila, mensajeErrorVariantes, variantesCambiaron } from '../../lib/productos-variantes'
+import { type Relacionado, relacionadosCambiaron } from '../../lib/productos-relacionados'
 
 type Props = {
   inicial: DatosFormulario
@@ -60,13 +64,24 @@ type Props = {
   escalasIniciales?: PreciosEscala
   // Disponibilidad vigente del producto (edición, F-CAT-17); la deriva la base. En el alta no hay.
   disponibilidadActual?: Disponibilidad | null
+  // Productos relacionados del producto (edición, F-CAT-18); en el alta no hay. `productoId` lo excluye del buscador.
+  productoId?: string | null
+  relacionadosIniciales?: readonly Relacionado[]
+  // La lectura de los relacionados falló (edición): el bloque ofrece reintentar y no se guardan.
+  errorRelacionados?: boolean
+  // Variantes del producto (edición, F-CAT-15); en el alta no hay. Stock: se ve con lectura/edición en Stock y se
+  // edita solo con edición (la base lo exige igual). `errorVariantes`: la lectura falló, el bloque ofrece reintentar.
+  variantesIniciales?: readonly FilaVariante[]
+  errorVariantes?: boolean
+  verStock?: boolean
+  editarStock?: boolean
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[], variantes: FilaVariante[]) => Promise<void>
   rutaCancelar: string
   // Dentro de un popup no se navega: al cancelar (o descartar) se avisa al que lo abrió.
   onCancelar?: () => void
@@ -94,7 +109,7 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, onCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, productoId = null, relacionadosIniciales = [], errorRelacionados = false, variantesIniciales = [], errorVariantes = false, verStock = false, editarStock = false, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, onCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
   const salir = () => (onCancelar ? onCancelar() : navigate(rutaCancelar))
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
@@ -122,10 +137,13 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
   const { alicuotas, porId: alicuotaPorId, isLoading: cargandoAlicuotas, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
   const alicuotaCategoria = alicuotaPorId.get(categorias.find((categoria) => categoria.id === categoriaId)?.alicuota_iva_id ?? '') ?? null
   const [escalas, setEscalas] = useState<PreciosEscala>(escalasIniciales)
+  const [relacionados, setRelacionados] = useState<Relacionado[]>(() => [...relacionadosIniciales])
+  const [variantes, setVariantes] = useState<FilaVariante[]>(() => [...variantesIniciales])
+  const [erroresVariantes, setErroresVariantes] = useState<Record<string, ErrorVariante>>({})
   const [erroresEscalas, setErroresEscalas] = useState<ErroresEscala>({})
   const refsEscalas = useRef<Partial<Record<(typeof ESCALAS_CON_PRECIO)[number], HTMLInputElement | null>>>({})
   const netoEnPesos = formulario.moneda === 'ARS' ? parsearImporte(formulario.precio_lista) : null
-  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial || alicuotaId !== alicuotaInicial || hayCambiosEscalas(escalas, escalasIniciales)
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial || alicuotaId !== alicuotaInicial || hayCambiosEscalas(escalas, escalasIniciales) || relacionadosCambiaron(relacionados.map((r) => r.id), relacionadosIniciales.map((r) => r.id)) || variantesCambiaron(variantes, variantesIniciales)
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -157,6 +175,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     setErrorServidor(null)
     setErrorSku(null)
     setErrorCodigoBarras(null)
+    setErroresVariantes({})
     setConflicto(false)
     const nuevos = validarProducto(formulario, { conCosto })
     setErrores(nuevos)
@@ -175,10 +194,23 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId, alicuotaId === SIN_ALICUOTA_PRODUCTO ? null : alicuotaId, escalas)
+      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId, alicuotaId === SIN_ALICUOTA_PRODUCTO ? null : alicuotaId, escalas, relacionados.map((r) => r.id), variantes)
     } catch (error) {
+      if (error instanceof ErrorGuardarVariantes) {
+        setErroresVariantes(erroresPorFila(error.origen, variantes))
+        setErrorServidor(mensajeErrorVariantes(error.origen))
+        setConflicto(esConflicto(error.origen))
+        return
+      }
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
-      if (esSkuRepetido(error)) {
+      const detalleUnicidad = error as { code?: string; message?: string } | null
+      if (detalleUnicidad?.code === '23505' && /^El SKU ".*" ya lo usa una variante/.test(detalleUnicidad.message ?? '')) {
+        setErrorSku(detalleUnicidad.message ?? mensaje)
+        refs.current.sku?.focus()
+      } else if (detalleUnicidad?.code === '23505' && /^El código de barras ".*" ya lo usa una variante/.test(detalleUnicidad.message ?? '')) {
+        setErrorCodigoBarras(detalleUnicidad.message ?? mensaje)
+        refs.current.codigo_barras?.focus()
+      } else if (esSkuRepetido(error)) {
         setErrorSku(mensaje)
         refs.current.sku?.focus()
       } else if (esCodigoBarrasRepetido(error)) {
@@ -390,6 +422,27 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           cargando={cargandoEmpresas}
           hayError={errorEmpresas}
           onReintentar={() => void recargarEmpresas()}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <BloqueVariantes
+          filas={variantes}
+          onCambiar={(filas) => { setVariantes(filas); setErroresVariantes({}) }}
+          skuProducto={formulario.sku}
+          verStock={verStock}
+          editarStock={editarStock}
+          errores={erroresVariantes}
+          hayError={errorVariantes}
+          onReintentar={onRecargar}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <BloqueRelacionados
+          productoId={productoId}
+          seleccion={relacionados}
+          onCambiar={setRelacionados}
+          hayError={errorRelacionados}
+          onReintentar={onRecargar}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />

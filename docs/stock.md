@@ -32,6 +32,10 @@ recibe ningún privilegio.
   conocido; el diálogo limita la fecha máxima al día local.
 - Organización y responsable salen de la sesión, nunca de parámetros.
 
+### Variantes (F-CAT-15, MSF-229)
+
+`registrar_movimiento_stock` pasó de 8 a **9 parámetros** (`p_variante uuid default null`, migración `20270203120400`): los llamadores existentes siguen válidos. En un producto con variantes la variante es obligatoria y el movimiento queda en el libro con `variante_id`; sin variantes debe ser nula. El stock de un producto con variantes es la **suma de las variantes activas** (`dominio.existencias_variante`). Ver `docs/catalogo.md`.
+
 ## Interfaz (`apps/web`)
 
 - Ítem **Stock** en la navegación (sección `stock`) y recurso `stock`; rutas `/stock` y `/stock/motivos`, ambas con
@@ -104,7 +108,7 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 ## Reversión
 
 Migraciones aditivas. Para deshacer (en una migración posterior; exportar antes los datos): `drop function
-public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date)`, los disparadores
+public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date)` (firma de 8; la de 9 con `p_variante` la reemplaza, ver «Variantes»), los disparadores
 `organizaciones_sembrar_motivos_movimiento` y `productos_crear_existencias` con sus funciones, y
 `drop table dominio.movimientos_stock, dominio.motivos_movimiento, dominio.existencias`. El detalle está en el
 encabezado de cada migración.

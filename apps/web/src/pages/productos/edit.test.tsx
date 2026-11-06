@@ -26,12 +26,14 @@ const mocks = vi.hoisted(() => ({
   empresasProducto: vi.fn(),
   escalasProducto: vi.fn(),
   disponibilidad: vi.fn(),
+  relacionados: vi.fn(),
+  variantes: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad }) }) }),
+    from: (tabla: string) => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad, order: () => ({ returns: tabla === 'v_producto_variantes' ? mocks.variantes : mocks.relacionados }) }) }) }),
     schema: () => ({
       from: (tabla: string) => ({
         select: () => ({
@@ -116,6 +118,8 @@ describe('ProductoEdit', () => {
     mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
     mocks.escalasProducto.mockResolvedValue({ data: [{ escala: 'x5', precio: '40.00' }], error: null })
     mocks.disponibilidad.mockResolvedValue({ data: { disponibilidad: 'sin_stock' }, error: null })
+    mocks.relacionados.mockResolvedValue({ data: [], error: null })
+    mocks.variantes.mockResolvedValue({ data: [], error: null })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -485,6 +489,84 @@ describe('ProductoEdit', () => {
     fallar = false
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar empresas' }))
     await waitFor(() => expect(screen.queryByText(/no pudimos guardar las empresas que lo venden/)).not.toBeInTheDocument())
+  })
+
+  it('carga los relacionados y guarda solo el cambio de orden con guardar_relacionados (F-CAT-18)', async () => {
+    mocks.relacionados.mockResolvedValue({
+      data: [
+        { relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' },
+        { relacionado_id: 'r-2', orden: 2, nombre: 'Funda', sku: 'FUN-1', categoria: null, precio: 15, moneda: 'USD' },
+      ],
+      error: null,
+    })
+    abrir()
+    expect(await screen.findByText('2 productos')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Subir Funda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_relacionados', { p_producto: 'p-1', p_relacionados: ['r-2', 'r-1'] })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('si no cambian los relacionados no llama a guardar_relacionados', async () => {
+    abrir()
+    expect(await screen.findByText('0 productos')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_relacionados', expect.anything())
+  })
+
+  it('si falla guardar los relacionados, los datos quedan guardados y se ofrece reintentar', async () => {
+    mocks.relacionados.mockResolvedValue({
+      data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }],
+      error: null,
+    })
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre !== 'guardar_relacionados') return Promise.resolve({ data: PRODUCTO, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: {}, error: null })
+    })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitar Vidrio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar los productos relacionados/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar los productos relacionados/)).not.toBeInTheDocument())
+  })
+
+  it('si la lectura de los relacionados falla, tras el reintento muestra la lista y no la borra al guardar', async () => {
+    let fallar = true
+    mocks.relacionados.mockImplementation(async () =>
+      fallar
+        ? { data: null, error: { code: 'XX000' } }
+        : { data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }], error: null },
+    )
+    abrir()
+    expect(await screen.findByText('No pudimos cargar los productos relacionados.')).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    expect(await screen.findByText('1 producto')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    // La lista que ya estaba guardada no se manda vacía: los relacionados siguen en pie.
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_relacionados', expect.anything())
+  })
+
+  it('con solo lectura los relacionados se ven sin controles', async () => {
+    mocks.relacionados.mockResolvedValue({
+      data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }],
+      error: null,
+    })
+    niveles('lectura', 'ninguno')
+    abrir()
+    expect(await screen.findByText('Vidrio')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Quitar Vidrio' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Buscar por nombre, SKU o categoría' })).not.toBeInTheDocument()
   })
 
   it('con solo lectura las empresas se ven pero no se pueden cambiar', async () => {
