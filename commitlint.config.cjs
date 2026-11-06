@@ -10,7 +10,7 @@ module.exports = {
   // ella, el job `quality` de la integración de la épica a DEV falla en `commitlint` y la épica no llega nunca
   // a DEV (2026-11-03: MSF-140 y MSF-192 rechazadas por sus propios commits de spec).
   ignores: [
-    (message) => /^(Merge (pull request|branch|remote-tracking|tag)|MSF-\d+: F-[A-Z]+-\d+ · )/.test(message || ""),
+    (message) => /^(Merge (pull request|branch|remote-tracking|tag)|Merge base de la épica en |MSF-\d+: F-[A-Z]+-\d+ · )/.test(message || ""),
     (message) =>
       /^(Especificación del correo masivo a clientes|Verificación nombrada por requisito en la spec del correo masivo|Verificación nombrada en cada requisito y tarea dueña del correo masivo) \(MSF-155\)$/.test(
         message || "",
