@@ -79,3 +79,7 @@ E2E de cierre (SC-009): `apps/web/e2e/precios-iva.e2e.ts` (ver [`e2e-app.md`](./
 ## Precio público en la tienda online
 
 El catálogo y la ficha de la tienda muestran el precio final de la empresa con el mismo interruptor de IVA («Precios que ve el cliente»); sin precio calculable, no muestran precio. Detalle en [`tiendas-online.md`](./tiendas-online.md) («Catálogo con filtros y orden» y «Cierre de la épica MSF-167»).
+
+## Imagen en «Así quedan los precios»
+
+Cada producto de la muestra de «Así quedan los precios» muestra su imagen principal como miniatura con zoom al pasar el mouse (sin cambiar el ancho de la fila).

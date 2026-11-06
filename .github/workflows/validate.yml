@@ -105,6 +105,10 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
+      # (es Node puro, sin base) para que la regresión no vuelva a colarse.
+      - name: test:db:guard-migraciones
+        run: pnpm test:db:guard-migraciones
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
@@ -191,6 +195,7 @@ jobs:
     # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
     # (no había test rojo). La suite completa tarda ~30 min; con 3 shards reales cada job baja a
     # ~10-15 min. 45 min es sólo la red de seguridad (si un shard se cuelga, no espera una hora).
+    # Más de 3 shards NO ayuda: la máquina (8 núcleos, load ~30) está limitada por CPU, no por tramos.
     timeout-minutes: 45
     strategy:
       fail-fast: true
@@ -199,19 +204,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # En un PR hace falta el historial para calcular qué tests afecta el diff (`--changed`).
+          # OJO: '0' va entre comillas. En una expresión `a && 0 || 1`, el 0 es falso y siempre daría 1 (clon superficial).
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas: ahorra el costo fijo de `pnpm install` en cada tramo.
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: web tests (shard ${{ matrix.shard }}/3)
         # `exec` pasa el flag DIRECTO al binario. Con `pnpm test -- --shard=N/3`, el `--`
         # corta el parseo y vitest toma `--shard=N/3` como filtro posicional: cada shard
         # corría la suite COMPLETA (3x carga) y moría por timeout (MSF-237/AGE-1049).
-        run: pnpm --filter @platform/web exec vitest run --shard=${{ matrix.shard }}/3
+        # En un PR corren SOLO los tests afectados por el diff (grafo de imports de vitest; un cambio de
+        # config o de package.json dispara la suite completa). La suite COMPLETA corre en el push a
+        # `dokploy`/`main`/`staging`, en el cierre de la épica y en `merge_group`. Ver docs/control-ci.md.
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+            echo "PR: solo los tests afectados desde $BASE"
+            pnpm --filter @platform/web exec vitest run --changed "$BASE" --passWithNoTests --shard=${{ matrix.shard }}/3
+          else
+            pnpm --filter @platform/web exec vitest run --shard=${{ matrix.shard }}/3
+          fi
       - name: edge tests (invitar-miembro)
         if: matrix.shard == 1
         run: pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:recuperar-clave-cliente && pnpm test:edge:baja-correo-masivo

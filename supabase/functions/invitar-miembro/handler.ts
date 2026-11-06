@@ -3,7 +3,7 @@
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-const ROLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion']
+const ROLES = ['administrador', 'operador', 'consulta', 'mostrador', 'deposito', 'administracion', 'tecnico']
 
 type DbError = { message: string; code?: string }
 type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>

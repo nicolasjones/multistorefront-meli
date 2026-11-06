@@ -186,15 +186,73 @@ describe('DespachoList · tablero (F-VTA-17, FR-031, FR-033)', () => {
     expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
   })
 
-  it('la paginación muestra el rango y el total de facturas', async () => {
-    mocks.listar.mockResolvedValue({ filas: TODAS, total: 30, conteos: normalizarConteos(CONTEOS) })
+  it('«Cargar más» suma la tanda siguiente a lo ya mostrado y avisa cuando no hay más', async () => {
+    const porPagina = [[fila(1, 'e-1', 'San Javucho'), fila(2, 'e-1', 'San Javucho')], [fila(3, 'e-1', 'San Javucho')]]
+    mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => ({ filas: porPagina[pagina - 1], total: 3, conteos: normalizarConteos(CONTEOS) }))
     abrir()
     expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
-    expect(screen.getByText('1–10 de 30')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
-    await waitFor(() =>
-      expect(mocks.listar).toHaveBeenCalledWith({ busqueda: '', estado: null, empresaId: null, pagina: 2, tamano: 10 }),
-    )
+    expect(screen.getByText('3 facturas')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Cliente 3')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
+    expect(mocks.listar).toHaveBeenCalledWith({ busqueda: '', estado: null, empresaId: null, pagina: 2, tamano: 10 })
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('cambiar el filtro de estado reinicia desde la primera tanda', async () => {
+    const porPagina = [[fila(1, 'e-1', 'San Javucho')], [fila(3, 'e-1', 'San Javucho')]]
+    mocks.listar.mockImplementation(async ({ pagina, estado }: { pagina: number; estado: string | null }) => (
+      estado ? { filas: [fila(9, 'e-1', 'San Javucho')], total: 1, conteos: normalizarConteos(CONTEOS) }
+        : { filas: porPagina[pagina - 1], total: 2, conteos: normalizarConteos(CONTEOS) }
+    ))
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente 3')
+    fireEvent.click(screen.getByRole('button', { name: 'Armando (1)' }))
+    expect(await screen.findByText('Cliente 9')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 3')).not.toBeInTheDocument()
+    expect(mocks.listar).toHaveBeenLastCalledWith({ busqueda: '', estado: 'armando', empresaId: null, pagina: 1, tamano: 10 })
+  })
+
+  it('buscar muestra solo coincidencias, descarta lo acumulado y «Cargar más» conserva la búsqueda', async () => {
+    const f = (n: number, cliente: string) => fila(n, 'e-1', 'San Javucho', { cliente })
+    mocks.listar.mockImplementation(async ({ busqueda, pagina }: { busqueda: string; pagina: number }) => {
+      if (busqueda === 'Norte') {
+        return { filas: [pagina === 2 ? f(12, 'Norte 2') : f(11, 'Norte 1')], total: 2, conteos: normalizarConteos(CONTEOS) }
+      }
+      return { filas: [pagina === 2 ? f(30, 'Cliente 30') : f(1, 'Cliente 1')], total: 40, conteos: normalizarConteos(CONTEOS) }
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente 30')
+
+    fireEvent.change(screen.getByLabelText('Buscar por cliente o número'), { target: { value: 'Norte' } })
+    expect(await screen.findByText('Norte 1')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(screen.getByText('2 facturas')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Norte 2')).toBeInTheDocument()
+    expect(screen.getByText('Norte 1')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(mocks.listar).toHaveBeenLastCalledWith({ busqueda: 'Norte', estado: null, empresaId: null, pagina: 2, tamano: 10 })
+  })
+
+  it('si la tanda siguiente falla, conserva lo cargado y ofrece reintentar', async () => {
+    mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => {
+      if (pagina === 2) throw new Error('falló')
+      return { filas: [fila(1, 'e-1', 'San Javucho')], total: 2, conteos: normalizarConteos(CONTEOS) }
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('No pudimos cargar más resultados.')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
   })
 
   it('en pantalla angosta se ven tarjetas con los mismos datos', async () => {
@@ -262,7 +320,7 @@ describe('DespachoList · empresa activa (F-VTA-17, FR-033, Principio VIII)', ()
     expect(screen.getByRole('button', { name: 'Sin armar (0)' })).toBeInTheDocument()
   })
 
-  it('al cambiar la empresa activa reencuadra la paginación: una sola consulta, ya en la primera página', async () => {
+  it('al cambiar la empresa activa reinicia la carga infinita: una sola consulta, ya en la primera tanda', async () => {
     mocks.listar.mockImplementation(async ({ empresaId }: { empresaId: string | null }) => {
       const filas = TODAS.filter((f) => !empresaId || f.empresa_id === empresaId)
       return { filas, total: 30, conteos: normalizarConteos(CONTEOS) }
@@ -270,7 +328,7 @@ describe('DespachoList · empresa activa (F-VTA-17, FR-033, Principio VIII)', ()
     const { rerender } = abrir()
     expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() =>
       expect(mocks.listar).toHaveBeenCalledWith({ busqueda: '', estado: null, empresaId: null, pagina: 2, tamano: 10 }),
     )
