@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Button, LinearProgress, Stack, TablePagination, TextField, Typography } from '@mui/material'
+import { Box, Button, LinearProgress, Stack, TextField, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useMasVendidos } from '../../hooks/useMasVendidos'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
@@ -13,6 +13,10 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
@@ -23,7 +27,7 @@ import { tokens } from '../../tema/tokens'
 // QUÉ MUESTRA: las unidades de las líneas de las FACTURAS que cuentan, del período elegido y de
 // las tiendas visibles para quien consulta. El orden (unidades descendente y, en empate, el
 // nombre) y la posición global los calcula la base (`public.productos_mas_vendidos`): la pantalla
-// no reordena ni recalcula nada, solo pagina de a 25.
+// no reordena ni recalcula nada, solo va sumando tandas de 25 (carga infinita).
 //
 // EMPRESA ACTIVA (Principio VIII, FR-406): el filtro de tienda sigue a la empresa activa de la
 // barra superior (`useFiltroPorEmpresaActiva`). Cuando cambia el ámbito —organización, tienda o
@@ -57,6 +61,10 @@ export function MasVendidosStock() {
     setPagina(1)
   }
 
+  const listado = useListadoAcumulado({ items: filas, pagina, setPagina, total, cargando: isFetching, reinicio: ambito })
+  const imagenes = useImagenesProductos(listado.filas.map((fila) => fila.producto_id))
+  const falloTanda = isError && pagina > 1
+
   const aplicar = (rango: RangoFechas) => {
     const nuevos = validarRango(rango)
     setErrores(nuevos)
@@ -77,9 +85,12 @@ export function MasVendidosStock() {
       clave: 'producto',
       encabezado: 'Producto',
       render: (fila) => (
-        <Stack spacing={0}>
-          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
-          <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <MiniaturaProducto alt="" src={imagenes.get(fila.producto_id)} />
+          <Stack spacing={0}>
+            <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
+            <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+          </Stack>
         </Stack>
       ),
     },
@@ -93,10 +104,10 @@ export function MasVendidosStock() {
 
   const contenido = () => {
     if (isLoading) return <EstadoCargaPagina />
-    if (isError) {
+    if (isError && !falloTanda) {
       return <EstadoError descripcion="No pudimos cargar los productos más vendidos." reintentar={() => void refetch()} />
     }
-    if (filas.length === 0) {
+    if (listado.filas.length === 0 && !falloTanda) {
       return (
         <EstadoVacio
           titulo="No hay ventas en el período"
@@ -105,22 +116,18 @@ export function MasVendidosStock() {
       )
     }
     return (
-      <Box aria-busy={isFetching} sx={{ opacity: isFetching ? 0.5 : 1, transition: 'opacity 150ms' }}>
+      <Box aria-busy={isFetching} sx={{ opacity: isFetching && pagina === 1 ? 0.5 : 1, transition: 'opacity 150ms' }}>
         <ContenidoAdaptable
-          items={filas}
+          items={listado.filas}
           columnas={columnas}
           obtenerClave={(fila) => fila.producto_id}
           etiquetaTabla="Productos más vendidos"
         />
-        <TablePagination
-          component="div"
-          count={total}
-          page={pagina - 1}
-          rowsPerPage={TAMANO_PAGINA_MAS_VENDIDOS}
-          rowsPerPageOptions={[TAMANO_PAGINA_MAS_VENDIDOS]}
-          onPageChange={(_, nueva) => setPagina(nueva + 1)}
-          labelRowsPerPage="Productos por página"
-          labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+        <CargaInfinita
+          hayMas={listado.hayMas}
+          cargando={listado.cargandoMas}
+          hayError={falloTanda}
+          onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
         />
         <Typography variant="xs" component="p" sx={{ mt: 1 }}>
           {`Unidades vendidas del ${formatearFecha(aplicado.desde)} al ${formatearFecha(aplicado.hasta)}. Cuentan las facturas que no están en borrador ni anuladas; los presupuestos no suman.`}

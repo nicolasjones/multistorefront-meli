@@ -1,0 +1,59 @@
+slice_name: 10 productos con peor margen %
+description: Los 10 productos-tienda con menor margen porcentual (el eje se acota en -100 % para que un valor extremo no aplaste el resto).
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 1__table
+  adhoc_filters: []
+  extra_form_data: {}
+  dashboards: []
+  color_scheme: supersetColors
+  show_empty_columns: true
+  viz_type: echarts_timeseries_bar
+  x_axis: producto_nombre
+  x_axis_force_categorical: true
+  time_grain_sqla: null
+  metrics:
+  - expressionType: SQL
+    sqlExpression: GREATEST(ROUND(MIN(margen_pct) * 100, 1), -100)
+    label: Margen %
+    hasCustomLabel: true
+  orientation: horizontal
+  show_value: true
+  stack: Stack
+  only_total: true
+  rich_tooltip: true
+  showTooltipTotal: false
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  truncate_metric: true
+  y_axis_format: ',.1f'
+  logAxis: false
+  minorSplitLine: false
+  truncateXAxis: true
+  y_axis_bounds:
+  - null
+  - null
+  x_axis_title_margin: 15
+  y_axis_title_margin: 30
+  y_axis_title_position: Left
+  comparison_type: values
+  annotation_layers: []
+  forecastEnabled: false
+  opacity: 0.9
+  bar_opacity: null
+  groupby:
+  - empresa_nombre
+  row_limit: 10
+  order_desc: false
+  x_axis_sort: Margen %
+  x_axis_sort_asc: true
+  y_axis_title: Margen %
+  x_axis_title: ''
+query_context: null
+cache_timeout: null
+uuid: de1df952-1080-52fb-992c-dbc24778d238
+version: 1.0.0
+dataset_uuid: 9c2e4a7b-1f60-4d83-b5a9-3e7c0d1f2a64

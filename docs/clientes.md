@@ -195,7 +195,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   queda como fidelidad de MSF-180.
 - **MSF-155 (correo masivo)**: destinatarios, redacción y envío con baja, historial (F-CLI-11/12/13).
   Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
-- **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
+- **MSF-445 (mejoras)**: entregada completa: etiqueta impresa F-CLI-17 (MSF-446) y fusión F-CLI-18 (MSF-447), ver sus secciones; costos y contactos de proveedor están en `docs/proveedores.md` y `docs/ingreso-de-mercaderia.md`. Contratos: `specs/20261029-100000-mejoras-de-clientes-y-proveedores/contracts/`.
 - **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
 - **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
@@ -406,6 +406,30 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
 
+## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
+
+Solo frontend, **sin migración ni escritura** (el grant `select` de `public.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
+
+- **Ficha** (`pages/clientes/show.tsx`): «Etiqueta» (encabezado) e «Imprimir etiqueta de envío» (bloque). Sin dirección no se abre la hoja: aviso «falta dirección» (CA-CLI-17-1).
+- **Listado** (`pages/clientes/list.tsx`): «Imprimir etiquetas (n)» con las filas marcadas (quien edita). Al cambiar la empresa activa se descarta la selección y se reencuadra la página (Principio VIII).
+- **Hoja** (`components/clientes/HojaEtiquetas.tsx`, ruta lazy `/clientes/etiquetas?ids=…` bajo `RequiereAccesoSeccion` «clientes»): una etiqueta por cliente apto en A4 (`@page`, `@media print` oculta menú y barra); guardable como PDF desde el diálogo del navegador. Los clientes sin dirección se omiten y el aviso los nombra. Tras imprimir, «Volver» regresa a la ficha con «Etiqueta enviada a imprimir».
+- **Reglas puras** (`lib/etiquetasCliente.ts`): solo la dirección bloquea; CP, localidad, provincia, teléfono y transporte vacíos se omiten. El parámetro `ids` se valida como UUID, sin repetidos y hasta 200.
+- Pruebas: `etiquetasCliente.test.ts`, `HojaEtiquetas.test.tsx`, `show.etiqueta.test.tsx`, `list.etiquetas.test.tsx` y `apps/web/e2e/clientes-etiqueta.e2e.ts`.
+
+## Fusionar clientes duplicados (F-CLI-18, MSF-447 · épica MSF-445)
+
+Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y la ficha oculta la acción al resto. Sin tablas nuevas (Principio VII: las RPC viven en `public`; `dominio.comprobantes_venta` solo cambia el `cliente_id` de sus filas). Migraciones aditivas `20270205110201`…`20270205110204`.
+
+- **`public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`** (`security definer`, `search_path = ''`, `revoke … from public, anon`, `grant … to authenticated`): bloquea ambas filas ordenadas por id y, en **una sola transacción**, reasigna los documentos de venta y la cuenta web al conservado, archiva al descartado (`archivado_en`; no se borra ni se tocan sus datos) y registra `cliente.fusionado` (Nº y nombre de ambos, sin DNI/CUIT). Devuelve `{ documentos_reasignados, cuentas_reasignadas, campanas_reasignadas, cuentas_dadas_de_baja }`.
+- **Rechazos** (mensaje claro y sin cambios): no Administrador (42501), mismo cliente, falta un cliente, cuenta web de un tercero (22023), inexistente u otra organización (P0002), alguno archivado — también cubre repetir la fusión (22023).
+- **Cuenta web** (un usuario de Auth por cliente, D1): si los dos tienen cuenta web, queda una sola. Con las dos **activas** hay que indicar `p_cuenta_web_de` (de lo contrario se rechaza); si solo un lado tiene cuentas activas, prevalece ese. La no elegida se **elimina** (el usuario de Auth queda sin uso) y la tienda de la que se mantiene queda habilitada en el conservado.
+- **Campañas:** no existe tabla de campañas (MSF-155 sin entregar), así que `campanas_reasignadas` es siempre 0.
+- **Fuera de alcance:** otras tablas con `cliente_id` (p. ej. reparaciones) no se reasignan; no hay deshacer ni detección automática de duplicados.
+- **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos y cuentas web (activas/total) de cada cliente.
+- **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
+- **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
+- Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.
+
 ## Reparaciones del cliente (F-SVC-15, MSF-429)
 
 La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
@@ -445,3 +469,14 @@ oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada
 `cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
 `docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
 (aditiva; reversión en su encabezado).
+
+## Listados con carga infinita (Principio VI)
+
+Los listados de Clientes dejaron la paginación numerada: cada pantalla sigue pidiendo «la página N» a su RPC y
+`useListadoAcumulado` suma cada tanda a las anteriores; al pie, `CargaInfinita` (scroll + «Cargar más»). Buscar, filtrar
+o cambiar de tienda vuelve a la primera tanda; el contador total, las exportaciones (usan los filtros, no lo cargado) y la
+selección no cambian. Si falla una tanda posterior se conserva lo cargado y el error se muestra al pie con «Reintentar».
+
+- Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
+  «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
+- Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.

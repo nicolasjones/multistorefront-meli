@@ -325,6 +325,61 @@ describe('PresupuestosList', () => {
     await waitFor(() => expect(ultimoPedido()).toMatchObject({ estado: 'vencido', pagina: 1 }))
   })
 
+  it('«Cargar más» pide la tanda siguiente y la suma; el contador conserva el total', async () => {
+    mocks.listarPresupuestos.mockImplementation(async ({ pagina: n }: { pagina: number }) =>
+      n === 2 ? pagina([presupuesto(30)], 3) : pagina([presupuesto(1), presupuesto(2)], 3))
+    abrir()
+    await screen.findByText('Cliente 1')
+    expect(screen.getByText('3 presupuestos')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Cliente 30')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
+    expect(ultimoPedido()).toMatchObject({ pagina: 2 })
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('cambiar el filtro de estado reinicia desde la primera tanda', async () => {
+    mocks.listarPresupuestos.mockImplementation(async ({ pagina: n, estado }: { pagina: number; estado: string }) => {
+      if (estado === 'vencido') return pagina([presupuesto(9, { estado: 'vencido' })], 1)
+      return n === 2 ? pagina([presupuesto(30)], 2) : pagina([presupuesto(1)], 2)
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente 30')
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filtrar por estado' })).getByRole('button', { name: 'Vencido' }))
+    expect(await screen.findByText('Cliente 9')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(ultimoPedido()).toMatchObject({ estado: 'vencido', pagina: 1 })
+  })
+
+  it('buscar muestra solo coincidencias, descarta lo acumulado y «Cargar más» conserva la búsqueda', async () => {
+    mocks.listarPresupuestos.mockImplementation(async ({ busqueda, pagina: n }: { busqueda: string; pagina: number }) => {
+      if (busqueda === 'Norte') {
+        return n === 2 ? pagina([presupuesto(12, { cliente: 'Norte 2' })], 2) : pagina([presupuesto(11, { cliente: 'Norte 1' })], 2)
+      }
+      return n === 2 ? pagina([presupuesto(30)], 40) : pagina([presupuesto(1)], 40)
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente 30')
+
+    fireEvent.change(screen.getByLabelText('Buscar por cliente o número'), { target: { value: 'Norte' } })
+    expect(await screen.findByText('Norte 1')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(screen.getByText('2 presupuestos')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Norte 2')).toBeInTheDocument()
+    expect(screen.getByText('Norte 1')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(ultimoPedido()).toMatchObject({ busqueda: 'Norte', pagina: 2 })
+  })
+
   it('sin resultados con un filtro activo muestra «Sin resultados»', async () => {
     abrir()
     await screen.findByText('Cliente 1')

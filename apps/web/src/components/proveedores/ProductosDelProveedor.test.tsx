@@ -2,9 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useHistorialCostos: vi.fn(), useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn(), imagenes: new Map<string, string>() }))
+
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../hooks/useProductosDeProveedor', () => ({ useProductosDeProveedor: mocks.useProductosDeProveedor }))
+
+vi.mock('../../hooks/useHistorialCostos', () => ({ useHistorialCostos: mocks.useHistorialCostos }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 
@@ -24,8 +28,23 @@ const abrir = () => render(<MemoryRouter><ProductosDelProveedor proveedorId="prv
 describe('ProductosDelProveedor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes.clear()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
     mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1), producto(2, { activo: false, codigo_proveedor: null })]))
+    mocks.useHistorialCostos.mockReturnValue({ puntos: [], cargando: false, hayError: false, recargar: vi.fn() })
+  })
+
+  it('[MSF-448:T018] con Rentabilidad y Proveedores ofrece «Evolución del costo» y abre el diálogo del producto', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Evolución del costo de Producto 1' }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(mocks.useHistorialCostos).toHaveBeenCalledWith('p-1', null, true)
+  })
+
+  it('sin Rentabilidad no ofrece «Evolución del costo»', () => {
+    abrir()
+    expect(screen.queryByRole('button', { name: /Evolución del costo/ })).not.toBeInTheDocument()
   })
 
   it('lista producto, código del proveedor y Ver producto; marca los inactivos', () => {
@@ -57,13 +76,30 @@ describe('ProductosDelProveedor', () => {
     expect(screen.queryByText(/99/)).not.toBeInTheDocument()
   })
 
-  it('pide la primera página de 10 y pagina en el servidor', () => {
+  it('pide la primera tanda de 10 y «Cargar más» pide la siguiente', () => {
     mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1)], { total: 25 }))
     abrir()
     expect(mocks.useProductosDeProveedor).toHaveBeenLastCalledWith('prv-1', 1, 10)
-    expect(screen.getByText('1–10 de 25')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.useProductosDeProveedor).toHaveBeenLastCalledWith('prv-1', 2, 10)
+  })
+
+  it('«Cargar más» suma la tanda siguiente a la ya mostrada y no hay paginación numerada', () => {
+    mocks.useProductosDeProveedor.mockImplementation((_id: string, pagina: number) =>
+      respuesta(pagina === 2 ? [producto(2)] : [producto(1)], { total: 2 }))
+    abrir()
+    expect(screen.queryByText(/por página/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByText('Producto 2')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('muestra la imagen principal del producto como miniatura junto al nombre', () => {
+    mocks.imagenes.set('p-1', 'https://ejemplo/p1.png')
+    const { container } = abrir()
+    expect(container.querySelector('img[src="https://ejemplo/p1.png"]')).not.toBeNull()
+    expect(container.querySelectorAll('img')).toHaveLength(1)
   })
 
   it('sin productos muestra el vacío', () => {
