@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material'
 import { ProveedorTemaTienda } from '../../tema/ProveedorTemaTienda'
 import { contrasteBlancoSobre, urlFuentes, urlPublica } from '../../lib/tiendaIdentidad'
 import type { MarcaTiendaPausada } from '../../lib/tiendaEstado'
+import { CabeceraSeo } from './seo/CabeceraSeo'
 
 const TEXTO_OSCURO = '#1A1A1A' // estilos-sueltos: ok: texto sobre la marca de la tienda, fuera del tema del panel
 const TEXTO_CLARO = '#FFFFFF' // estilos-sueltos: ok: texto sobre la marca de la tienda, fuera del tema del panel
@@ -40,6 +41,7 @@ export function VolvemosPronto({ marca }: { marca?: MarcaTiendaPausada }) {
         ...(marca ? { bgcolor: 'background.default', color: 'text.primary' } : {}),
       }}
     >
+      <CabeceraSeo noindex pagina="Volvemos pronto" />
       {marca ? (
         <>
           {logo ? <Box component="img" src={logo} alt="" sx={{ display: 'block', height: (tema) => tema.spacing(8), maxWidth: '100%', objectFit: 'contain', mb: 2 }} /> : null}
