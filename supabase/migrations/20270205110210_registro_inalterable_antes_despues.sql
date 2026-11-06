@@ -84,8 +84,8 @@ insert into public.tipos_evento_actividad (tipo, sensible, descripcion) values
 -- ============================================================================
 
 alter table public.registro_actividad
-  add column valor_anterior jsonb,
-  add column valor_nuevo jsonb;
+  add column if not exists valor_anterior jsonb,
+  add column if not exists valor_nuevo jsonb;
 
 alter table public.registro_actividad
   add constraint registro_actividad_valores_check check (
