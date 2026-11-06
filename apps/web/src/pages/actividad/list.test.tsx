@@ -241,4 +241,48 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     expect(screen.queryByText('Detalle 1')).not.toBeInTheDocument()
     expect(screen.getByText('Detalle 2')).toBeInTheDocument()
   })
+
+  describe('detalle del registro (F-AUD-02, FR-007)', () => {
+    const responderConDetalle = () => {
+      mocks.rpc.mockImplementation((nombre: string) => {
+        if (nombre === 'opciones_actividad') return Promise.resolve({ data: OPCIONES, error: null })
+        if (nombre === 'obtener_detalle_actividad') {
+          return Promise.resolve({
+            data: [{ ...fila(1), tipo: 'usuario.rol_cambiado', sensible: true, valor_anterior: { rol: 'Consulta' }, valor_nuevo: { rol: 'Mostrador' } }],
+            error: null,
+          })
+        }
+        return Promise.resolve({ data: [fila(1, { tipo: 'usuario.rol_cambiado' })], error: null })
+      })
+    }
+
+    it('abrir una fila muestra el antes y el después', async () => {
+      responderConDetalle()
+      abrir()
+      await screen.findByRole('table', { name: 'Actividad' })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver detalle: Detalle 1' }))
+
+      const dialogo = await screen.findByRole('dialog', { name: 'Detalle de la actividad' })
+      expect(mocks.rpc).toHaveBeenCalledWith('obtener_detalle_actividad', { p_id: 'ev-1' })
+      const tabla = await within(dialogo).findByRole('table', { name: 'Valores del cambio' })
+      expect(within(tabla).getByText('Consulta')).toBeInTheDocument()
+      expect(within(tabla).getByText('Mostrador')).toBeInTheDocument()
+    })
+
+    it('cierra el detalle con aviso al cambiar la empresa activa de la barra superior', async () => {
+      responderConDetalle()
+      mockFiltro({ empresaActivaId: 'e-1' })
+      const { rerender } = abrir()
+      await screen.findByRole('table', { name: 'Actividad' })
+      fireEvent.click(screen.getByRole('button', { name: 'Ver detalle: Detalle 1' }))
+      await screen.findByRole('dialog', { name: 'Detalle de la actividad' })
+
+      mockFiltro({ empresaActivaId: 'e-2' })
+      rerender(<MemoryRouter><ActividadList /></MemoryRouter>)
+
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Detalle de la actividad' })).not.toBeInTheDocument())
+      expect(await screen.findByText('Cambiaste de empresa: cerramos el detalle que estabas viendo.')).toBeInTheDocument()
+    })
+  })
 })

@@ -114,3 +114,40 @@ export function formatearCuando(iso: string): string {
   const partes = Object.fromEntries(formatoCuando.formatToParts(new Date(iso)).map((parte) => [parte.type, parte.value]))
   return `${partes.day}/${partes.month}/${partes.year} ${partes.hour}:${partes.minute}`
 }
+
+// Detalle de un evento (F-AUD-02, FR-006/FR-007): trae el valor anterior y el nuevo.
+export type ValoresActividad = Record<string, unknown>
+
+export type DetalleActividad = EventoActividadListado & {
+  sensible: boolean
+  valorAnterior: ValoresActividad | null
+  valorNuevo: ValoresActividad | null
+}
+
+export type CampoCambiado = { campo: string; anterior: string; nuevo: string }
+
+const SIN_VALOR = '—'
+
+function textoDelValor(valor: unknown): string {
+  if (valor === undefined || valor === null || valor === '') return SIN_VALOR
+  if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
+  if (typeof valor === 'object') return JSON.stringify(valor)
+  return String(valor)
+}
+
+function etiquetaDelCampo(clave: string): string {
+  return clave.charAt(0).toUpperCase() + clave.slice(1).replace(/_/g, ' ')
+}
+
+// Campo por campo, antes → después, en el orden en que se registraron (anterior primero, luego los que solo
+// existen en el nuevo). Un campo que no existía de un lado se muestra «—».
+export function camposDelCambio(anterior: ValoresActividad | null, nuevo: ValoresActividad | null): CampoCambiado[] {
+  const antes = anterior ?? {}
+  const despues = nuevo ?? {}
+  const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
+  return claves.map((clave) => ({
+    campo: etiquetaDelCampo(clave),
+    anterior: textoDelValor(antes[clave]),
+    nuevo: textoDelValor(despues[clave]),
+  }))
+}
