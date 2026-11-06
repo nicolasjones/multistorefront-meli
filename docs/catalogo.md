@@ -225,9 +225,9 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 
 ## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261020120101`)
 
-`/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la paginación (25 por página, pie «desde–hasta de N», `range` + `count`). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
+`/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la carga por tandas (25 por tanda, `range` + `count`; **carga infinita**, sin paginación numerada: ver «Carga infinita del listado»). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
-- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo y Margen («—» hasta Precios, Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen («—» hasta Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
 - **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
 - **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
@@ -236,6 +236,14 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 - **Pruebas**: pgTAP `catalogo_listado.test.sql` (aislamiento, `anon`, sin costo, comodines escapados) y `catalogo_listado_plan.test.sql` (10 000 productos sembrados; `explain` de la condición `ilike` sobre la vista usa los índices trigram y `explain` del orden usa los btree). El plan de búsqueda se mide sin el filtro de organización: con el catálogo de una sola organización ese filtro no discrimina y, a 10 000 filas, el planner prefiere el btree por organización; el trigram es el único índice que resuelve el `ilike` y rinde cuando el catálogo crece. Se ejecutan en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
 - **Reversión** (migración posterior, no en el mismo PR): `drop view public.v_productos_listado;` y `drop index dominio.productos_nombre_trgm_idx, dominio.productos_sku_trgm_idx, dominio.productos_org_nombre_orden_idx, dominio.productos_org_sku_orden_idx;`.
 - **Sin cambios** en la ruta `/productos`, los permisos ni las acciones de F-CAT-06.
+
+### Carga infinita del listado
+
+Primera pantalla migrada a la regla de listados de la constitución (Principio VI): el listado no usa `TablePagination`. La tanda 1 reemplaza la lista y las siguientes (`pagina` + 1, `range` de 25) se **suman** a lo ya mostrado, junto con sus miniaturas firmadas, precios y costos. Las pide el componente compartido `components/pagina/CargaInfinita`: `IntersectionObserver` con 400 px de anticipo, botón «Cargar más» operable con teclado (y única vía sin `IntersectionObserver`), indicador de carga, «No hay más resultados.» al final y, si falla una tanda, «No pudimos cargar más resultados.» con «Reintentar» sin perder lo ya cargado. Buscar, filtrar (estado, tienda, categoría, disponibilidad) u ordenar vuelve a la tanda 1; activar/desactivar un producto recarga desde el principio. El contador «N productos» sigue visible. Sin migración. Las demás pantallas con paginación se migran de forma gradual reutilizando `CargaInfinita`.
+
+### Precio en el listado
+
+La columna **Precio** muestra siempre pesos. El listado pide los precios de la página (por los ids de los productos visibles) a la vista `public.productos_precio_costo` (F-PRE-01) y usa `precio_central_ars`, que la base ya convierte con la cotización vigente (`private.a_pesos`); la pantalla no calcula ni redondea nada. Formatos (`formatearPrecioListado`, `lib/productosListado.ts`): producto en ARS → `$ 2.500,50`; producto en USD → `$ 157.000,00 (USD 100,00)` (pesos = USD × última cotización, el USD entre paréntesis); USD sin cotización cargada → `USD 100,00 (sin cotización)`; sin precio → «—». Es el precio de lista, sin IVA, el mismo del formulario. Si la consulta de precios falla, el listado se muestra igual con «—» en Precio y un aviso («No pudimos cargar los precios…»). Sin migración ni cambios de permisos: la vista es `security_invoker` y rige su RLS.
 
 ## Empresas que venden el producto (F-CAT-07, MSF-276, migraciones `20261020130000`, `20261020130101` y `20261020130201`)
 
@@ -355,3 +363,9 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Búsqueda**: `%`, `_` y `\` escapados y `, ( ) " *` descartados antes de armar el filtro de PostgREST, con tope de 80 caracteres.
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
+
+## Búsqueda sin tildes y SKU de 13 dígitos (MSF-722)
+
+La búsqueda por nombre de Productos, Stock y «Agregar producto» ignora mayúsculas y tildes (columna calculada
+`nombre_norm`, migración `20270203120000`, sobre `private.normalizar_busqueda`). Un texto de 13 dígitos se busca por
+código de barras **o** por SKU. El buscador de «Agregar producto» avisa «Hay más resultados» al superar los 20.

@@ -97,11 +97,11 @@ describe('ClientesInactivos', () => {
     expect(ultimosParametros().pagina).toBe(1)
   })
 
-  it('manda la empresa activa y al cambiarla vuelve a la página 1', () => {
+  it('manda la empresa activa y al cambiarla vuelve a la primera tanda', () => {
     mocks.useClientesInactivos.mockReturnValue(respuesta(Array.from({ length: 25 }, (_, i) => fila(i + 1)), { total: 60 }))
     const { rerender } = render(<MemoryRouter><ClientesInactivos empresaId="e-1" /></MemoryRouter>)
     expect(ultimosParametros().empresaId).toBe('e-1')
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosParametros().pagina).toBe(2)
     rerender(<MemoryRouter><ClientesInactivos empresaId="e-2" /></MemoryRouter>)
     expect(ultimosParametros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
@@ -128,5 +128,19 @@ describe('ClientesInactivos', () => {
     abrir()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Aplicar' })).toBeDisabled()
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente y cambiar el tipo vuelve a la primera', () => {
+    const tanda1 = [fila(1)]
+    const tanda2 = [fila(2)]
+    mocks.useClientesInactivos.mockImplementation((p: { pagina: number }) => respuesta(p.pagina === 2 ? tanda2 : tanda1, { total: 60 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosParametros().pagina).toBe(2)
+    expect(screen.getByRole('link', { name: 'Cliente 1' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Cliente 2' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Minorista' }))
+    expect(ultimosParametros()).toMatchObject({ tipo: 'minorista', pagina: 1 })
+    expect(screen.queryByRole('link', { name: 'Cliente 2' })).not.toBeInTheDocument()
   })
 })

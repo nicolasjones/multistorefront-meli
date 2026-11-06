@@ -244,3 +244,7 @@ y `private.puede_accion` con su propia lista, y la última en aplicarse pisaba a
 `20270114130000_reconciliar_acciones_cobros_despacho.sql` deja las diez acciones juntas (`despachar` exige lectura;
 las demás de escritura, edición). Los tests de matriz (`permisos_por_rol`, `rol_tecnico`, `editar_matriz_permisos`)
 cuentan ahora 7 acciones propias de Ventas por rol.
+
+## Carga infinita
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Aplica a **Pagos** (de a 9; las tarjetas y las cuentas se vuelven a pedir con cada tanda, como antes con cada página; conciliar o revertir recarga desde la primera tanda) y a **Cuentas de cobro** (de a 10; «Marcar No usar», reactivar y guardar recargan desde la primera tanda). Sin miniatura: son pagos y cuentas, no productos.

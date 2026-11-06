@@ -9,7 +9,7 @@ resolución de permisos por empresa está en `docs/permisos-por-rol.md`; el sele
 - **Lista de Usuarios**: columna **Empresas** con una etiqueta «Tienda: Rol» por asignación. Un
   Administrador figura como «Todas las empresas»; quien no tiene asignaciones, «Sin asignar» (rige su
   rol de organización).
-- **Editar usuario**: el selector de **Rol** ofrece los seis roles (Administrador y los cinco por empresa).
+- **Editar usuario**: el selector de **Rol** ofrece los siete roles (Administrador, los cinco por empresa y Técnico).
   Debajo, un casillero por empresa con su selector «Rol en <empresa>». Elegir **Administrador** reemplaza
   la lista por el aviso «accede a todas las empresas» y, al guardar, quita sus asignaciones previas.
 - **Invitar usuario**: la misma lista de empresas y roles; con rol Administrador no se pide ni se envía.

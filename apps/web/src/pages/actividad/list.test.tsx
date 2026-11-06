@@ -170,24 +170,27 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     await waitFor(() => expect(ultimaLlamada()).toMatchObject({ p_texto: 'lámpara', p_empresa: 'e-2' }))
   })
 
-  it('pagina en servidor y muestra el rango «1–10 de N»', async () => {
+  it('carga por tandas: suma cada tanda a las anteriores y muestra el total', async () => {
     responder(Array.from({ length: 10 }, (_, i) => fila(i + 1)))
     abrir()
 
-    expect(await screen.findByText('1–10 de 25')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
+    expect(await screen.findByText('Detalle 1')).toBeInTheDocument()
+    expect(screen.getByText('25 eventos')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Página siguiente' })).not.toBeInTheDocument()
 
     responder(Array.from({ length: 10 }, (_, i) => fila(i + 11)))
-    fireEvent.click(screen.getByRole('button', { name: 'Página siguiente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
 
-    expect(await screen.findByText('11–20 de 25')).toBeInTheDocument()
+    expect(await screen.findByText('Detalle 20')).toBeInTheDocument()
+    expect(screen.getByText('Detalle 1')).toBeInTheDocument()
     expect(ultimaLlamada()).toMatchObject({ p_pagina: 2 })
 
     responder(Array.from({ length: 5 }, (_, i) => fila(i + 21)))
-    fireEvent.click(screen.getByRole('button', { name: 'Página siguiente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
 
-    expect(await screen.findByText('21–25 de 25')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Página siguiente' })).toBeDisabled()
+    expect(await screen.findByText('Detalle 25')).toBeInTheDocument()
+    expect(screen.getByText('Detalle 1')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
   })
 
   it('muestra el estado de carga mientras consulta', () => {

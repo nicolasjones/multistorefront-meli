@@ -45,9 +45,15 @@ export type Props = {
   dialogoAbierto: boolean
   onAbrirDialogo: () => void
   onCerrarDialogo: () => void
+  // Recarga la lista de cobros y el saldo (es el «Reintentar» de la tarjeta): NO toca el
+  // comprobante, así no pisa lo que la persona está editando en el formulario.
   onRecargar: () => void
   // Aviso de éxito para la pantalla (el Snackbar de la página).
   onRegistrado: (mensaje: string) => void
+  // El cobro quedó registrado: la base cambió el estado y el `updated_at` del comprobante, así que la
+  // pantalla relee el comprobante (MSF-715). Sin esto, la acción siguiente mandaría un `updated_at`
+  // viejo y la base respondería «Otra persona modificó este comprobante».
+  onCobroRegistrado: () => void
 }
 
 // Tarjeta «Cobros» del detalle del comprobante (F-VTA-12, FR-007). Muestra lo cobrado, lo que
@@ -56,7 +62,7 @@ export type Props = {
 // recalcula ella; acá solo se ofrece y se muestra.
 export function CobrosComprobante({
   comprobanteId, empresaId, cobros, saldo, cargando, error, puedeRegistrarCobro,
-  dialogoAbierto, onAbrirDialogo, onCerrarDialogo, onRecargar, onRegistrado,
+  dialogoAbierto, onAbrirDialogo, onCerrarDialogo, onRecargar, onRegistrado, onCobroRegistrado,
 }: Props) {
   const pendiente = saldo?.saldo ?? null
   const sinSaldo = pendiente !== null && pendiente <= 0
@@ -110,6 +116,7 @@ export function CobrosComprobante({
         onCerrar={onCerrarDialogo}
         onRegistrado={onRegistrado}
         onRecargar={onRecargar}
+        onCobroRegistrado={onCobroRegistrado}
       />
     </Card>
   )
@@ -197,12 +204,13 @@ type DialogoProps = {
   onCerrar: () => void
   onRegistrado: (mensaje: string) => void
   onRecargar: () => void
+  onCobroRegistrado: () => void
 }
 
 // Diálogo «Registrar cobro» (F-VTA-12, FR-007): forma de pago, cuenta de cobro (cuando la forma
 // la exige) e importe, con el saldo como valor sugerido. Los errores de la base llegan con el
 // nombre del campo (`hint`): se marcan donde están, no como un error general.
-function DialogoRegistrarCobro({ open, comprobanteId, empresaId, saldo, onCerrar, onRegistrado, onRecargar }: DialogoProps) {
+function DialogoRegistrarCobro({ open, comprobanteId, empresaId, saldo, onCerrar, onRegistrado, onRecargar, onCobroRegistrado }: DialogoProps) {
   return (
     <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-registrar-cobro">
       {/* El contenido se monta al abrir: cada apertura parte sin errores previos. */}
@@ -213,12 +221,13 @@ function DialogoRegistrarCobro({ open, comprobanteId, empresaId, saldo, onCerrar
         onCerrar={onCerrar}
         onRegistrado={onRegistrado}
         onRecargar={onRecargar}
+        onCobroRegistrado={onCobroRegistrado}
       />
     </Dialog>
   )
 }
 
-function Contenido({ comprobanteId, empresaId, saldo, onCerrar, onRegistrado, onRecargar }: Omit<DialogoProps, 'open'>) {
+function Contenido({ comprobanteId, empresaId, saldo, onCerrar, onRegistrado, onRecargar, onCobroRegistrado }: Omit<DialogoProps, 'open'>) {
   const [formulario, setFormulario] = useState<FormularioCobro>(FORMULARIO_COBRO_VACIO)
   const [errores, setErrores] = useState<ErroresCobro>({})
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
@@ -286,6 +295,9 @@ function Contenido({ comprobanteId, empresaId, saldo, onCerrar, onRegistrado, on
     try {
       const cobro = await registrarCobro(comprobanteId, formulario)
       onRegistrado(`Cobro registrado · ${formatearImporteHistorial(cobro.importe)}`)
+      // La base ya cambió el estado y el `updated_at` del comprobante: la pantalla lo relee para que
+      // la acción siguiente no mande un valor viejo (MSF-715). La lista de cobros se recarga aparte.
+      onCobroRegistrado()
       onRecargar()
       onCerrar()
     } catch (error) {

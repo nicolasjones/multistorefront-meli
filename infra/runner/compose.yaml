@@ -28,6 +28,16 @@ services:
       RUNNER_REPO: nicolasjones/multistorefront-meli
       RUNNER_NAME: multistorefront-meli-docker
       RUNNER_LABELS: self-hosted,platform-local
+      # El runner NO se autoactualiza dentro del contenedor. La autoactualización
+      # renombra `bin` a `bin.<version>` y deja el `bin` nuevo DESPUÉS: si el
+      # contenedor se reinicia en medio de ese swap (host saturado, OOM,
+      # `docker compose up`), `bin` queda ausente, el runner no arranca y el
+      # contenedor entra en crash-loop. En GitHub el runner queda OFFLINE+OCUPADO
+      # y el job que tenía tomado queda huérfano: el PR espera un CI que nunca
+      # termina (pasó el 2026-11-03: 9 runs en cola, 2 h sin avanzar, MSF-223 y
+      # MSF-326 trabados). La versión la fija la imagen (`RUNNER_VERSION` del
+      # Dockerfile): se actualiza reconstruyendo la imagen, no en caliente.
+      RUNNER_DISABLE_AUTO_UPDATE: "1"
       # Los steps de los jobs heredan este entorno. pnpm 11 lee pnpm_config_*
       # (no npm_config_*) y store_dir gana sobre el $PNPM_HOME/store que
       # implica pnpm/action-setup, así validate.yml no cambia.
