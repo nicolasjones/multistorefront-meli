@@ -1,8 +1,9 @@
 name: quality
 
 # F1 del programa de calidad: checks DETERMINISTAS sobre el PR (secretos, SAST, dead code, duplicación,
-# ciclos de arquitectura, versiones). REQUERIDO (baseline limpio): si hay hallazgos, el PR no mergea.
-# Complementa `Validate`; no lo reemplaza.
+# ciclos de arquitectura, versiones). El job FALLA si hay hallazgos, pero NO bloquea el merge por sí solo:
+# el ruleset de GitHub exige únicamente `validacion`. Para volverlo bloqueante hay que agregar `quality`
+# al ruleset (ver docs/calidad.md). Complementa `Validate`; no lo reemplaza.
 on:
   pull_request:
   workflow_dispatch:
@@ -29,8 +30,8 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
-      # REQUERIDO (FEAT-169): el baseline quedó limpio (gitleaks/knip/jscpd/dependency-cruiser/syncpack/commitlint).
-      # Si aparece un hallazgo, el check falla y no se mergea (junto con `database`).
+      # FEAT-169: el baseline quedó limpio (gitleaks/knip/jscpd/dependency-cruiser/syncpack/commitlint).
+      # Si aparece un hallazgo, el job falla (rojo visible en el PR); el bloqueo real depende del ruleset.
       - name: gitleaks (binario nativo)
         run: |
           if ! command -v gitleaks >/dev/null 2>&1; then
@@ -47,5 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: calidad-reporte
-          path: reports/calidad.md
+          path: |
+            reports/calidad.md
+            reports/calidad.log
           if-no-files-found: ignore

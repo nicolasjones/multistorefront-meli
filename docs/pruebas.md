@@ -70,15 +70,14 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 ## Calidad determinista (`pnpm calidad`)
 - `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,
   dependency-cruiser, syncpack, commitlint). `pnpm calidad:code` omite los que usan Docker.
-- En CI corre el workflow **`quality`**. Al inicio es **no bloqueante** (`continue-on-error`) para
-  observar el baseline; cuando el baseline esté limpio pasa a **check requerido** junto con `database`.
-- El reporte queda en `reports/calidad.md` (artifact `calidad-reporte`).
+- En CI corre el workflow **`quality`**: falla ante hallazgos pero **no bloquea el merge** (el ruleset
+  exige solo `validacion`; no hay `continue-on-error`). Ver `docs/calidad.md`.
+- El reporte queda en `reports/calidad.md` y la salida completa en `reports/calidad.log` (artifact `calidad-reporte`).
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile` (no marca exports usados en el mismo archivo); `syncpack` ignora los paquetes locales `@platform/*` (`workspace:*`); `semgrep` usa reglas **vendorizadas** en `.semgrep/registry/` (packs `p/typescript`/`p/react`; los secretos los cubre `gitleaks`): corre **offline** (sin registry). Si igual sale != 0 sin salida, se considera error de herramienta (saltado).
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile`; `syncpack` ignora los paquetes locales
   `@platform/*` y `@types/node`; el **SAST** usa **oxlint** con reglas de seguridad (`no-eval`,
   `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
 
-- `quality` es un **check REQUERIDO** (bloqueante) en los PRs a `dokploy` (baseline limpio).
 
 - **gitleaks** corre con el **binario nativo** (el `-v` de Docker en runners containerizados puede
   escanear 0 bytes y dar falso verde). Docker queda como fallback local.
