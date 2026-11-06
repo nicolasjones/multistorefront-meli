@@ -701,7 +701,7 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 
 | Capa | Dónde |
 |---|---|
-| Base | `supabase/migrations/20270205110201_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
+| Base | `supabase/migrations/20270205120001_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
 | Front | `apps/web/src/lib/tiendaRelacionados.ts` (cliente + `useRelacionados`), `apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx` (carga diferida, 4 columnas en escritorio y 2 en celular), integrada en `rutas/producto.tsx` |
 | Pruebas | pgTAP `tienda_relacionados.test.sql`; Vitest `tiendaRelacionados.test.ts` y `ficha/Relacionados.test.tsx` (con axe); E2E `apps/web/e2e/tienda-relacionados.e2e.ts` |
 
@@ -797,9 +797,75 @@ reversión: versiones → borrador y publicación → dominio. **Ojo (BREAKING d
 `guardar_tienda_contenido` y `guardar_catalogo_tienda` ya no son ejecutables por `authenticated`; revertir la épica entera
 (`git revert -m 1 <merge>`) los devuelve. DNS por entorno: ver «DNS de la plataforma por entorno» arriba.
 
+## Estados, relacionados, SEO y legal (épica MSF-149)
+
+Visión de conjunto de la épica; el detalle de cada historia está en las secciones que siguen. Spec:
+`specs/20270125-100000-tienda-seo-legal-y-estados/` (contrato en `contracts/tienda-seo-legal-estados.md`). Alcance de entrega: `refine` y `supabase`.
+
+### Funciones públicas y tabla nueva
+
+| Historia | Pieza | Esquema | Quién la ejecuta |
+|---|---|---|---|
+| F-TDA-19 (MSF-247) | `publico.estado_tienda_por_dominio(host)`: marca de la tienda **desactivada** | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4 de la misma categoría | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-21 (MSF-279) | `publico.seo_tienda_por_dominio(host)` y `publico.sitemap_por_dominio(host)` | `publico` (funciones) | `anon`, `authenticated` |
+| F-TDA-22 (MSF-289) | `publico.legal_por_dominio(host)` y la tabla `dominio.tienda_legal_enlaces` | tabla en **`dominio`** (dato del producto atado a una empresa, Principio VII), función en `publico` | tabla: solo `select` a `authenticated` con RLS por organización, sin privilegios para `anon`; función: `anon` |
+
+Todas son `security definer` con lista blanca de campos y devuelven `null` idéntico para host desconocido o inválido; las únicas
+que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, con la misma respuesta de «cerrada», la Edge Function
+`tienda-seo`. `publico` sigue sin tablas.
+
+### Edge Function `tienda-seo` y nginx
+
+`robots.txt` y `sitemap.xml` los sirve la Edge Function `supabase/functions/tienda-seo` (`verify_jwt = false`, contrato en
+`openapi/tienda-seo.json`) detrás de `location ~ ^/(robots\.txt|sitemap\.xml)$` de `apps/web/nginx.conf`, que manda el host original en
+`X-Tienda-Host`. La configuración de despliegue (sin variables nuevas en runtime) está en «SEO y posicionamiento básico» y en
+`docs/deployment.md` (sección Producción › `apps/web`).
+
+### Enlaces legales y consentimiento de cookies
+
+- **Cómo se cargan (D5)**: los enlaces legales (título + URL `https://`) los inserta el equipo técnico por SQL en
+  `dominio.tienda_legal_enlaces`, sin pantalla ni RPC de escritura; razón social, CUIT y dirección ya se editan en Empresas.
+- **Contrato para F-TDA-24 (analítica)**: `apps/web/src/lib/consentimientoCookies.ts` expone `leerConsentimiento()`
+  (`'aceptadas' | 'rechazadas' | null`; `null` cuenta como rechazadas), `guardarConsentimiento(valor)`,
+  `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies`. Ninguna analítica puede cargarse sin `'aceptadas'`.
+
+### Decisiones y supuestos (D1…D8)
+
+| # | Supuesto adoptado | Cómo cambiarlo |
+|---|---|---|
+| D1 | La marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. | Dejar de llamar a la función desde `SinTienda` y vuelve la pantalla genérica. |
+| D2 | Relacionados: hasta 4 visibles de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
+| D3 | SEO básico: título, descripción, canónica, Open Graph, JSON-LD (organización y producto), `robots.txt`, `sitemap.xml` y `noindex` en páginas de estado, cuenta y búsqueda. | Fuera de alcance: campos SEO por producto, hreflang, analítica. |
+| D4 | La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender. | Otra historia (prerender o HTML desde la Edge Function). |
+| D5 | Los enlaces legales los carga el equipo técnico por SQL. | Otra historia, dentro de Empresas. |
+| D6 | Qué legal lleva cada marca se confirma con el cliente; el código no espera esa respuesta. | Cargar los datos reales cuando se confirmen. |
+| D7 | Aviso de cookies mínimo: «Aceptar» y «Rechazar», decisión en `localStorage`, sin categorías. | Extender `consentimientoCookies.ts`. |
+| D8 | SEO sin fallas en Lighthouse (categoría SEO) sobre home, catálogo, categoría, ficha y contacto de ambas tiendas, sin puntaje inventado. | — |
+
+### Contradicciones prototipo ↔ épica (para el PR)
+
+1. «Volvemos pronto» figura P0 en F-TDA-01 y P1 en F-TDA-19: la versión mínima ya estaba; esta épica agrega la identidad.
+2. El interruptor «Store activa» ya existe en el panel (F-EMP-04); acá solo se verifica su efecto en la tienda, sin rediseñar esa pantalla.
+3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano; se aplica la regla D2 y se mantienen «Sin imagen» / «Sin stock».
+4. Aviso de cookies, SEO y bloque legal no tienen pantalla en el prototipo: se construyen con los componentes del template y los tokens de la tienda.
+
+### Migraciones y reversión
+
+Todas son aditivas; la reversión va en una migración posterior (no en el PR que las crea). Orden inverso al de aplicación:
+
+| Migración | Reversión |
+|---|---|
+| `20270125120000_tienda_legal.sql` | `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;` |
+| `20270205120000_tienda_estado_pausada.sql` | `drop function publico.estado_tienda_por_dominio(text);` |
+| `20270205120001_tienda_relacionados.sql` | `drop function publico.relacionados_por_dominio(text, uuid);` |
+| `20270205120002_tienda_seo.sql` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
+
+Deshacer la épica completa: `git revert -m 1 <merge>`.
+
 ## Estados especiales de la tienda (F-TDA-19, MSF-247, épica MSF-149)
 
-Qué ve el visitante según el estado del dominio (la sección completa «Estados, relacionados, SEO y legal» la consolida la tarea de cierre T090):
+Qué ve el visitante según el estado del dominio (la visión de conjunto está en «Estados, relacionados, SEO y legal» más arriba):
 
 | Situación | Pantalla |
 |---|---|
