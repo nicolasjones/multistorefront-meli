@@ -92,7 +92,7 @@ describe('ProveedorList', () => {
   it('el filtro por tienda pide esa tienda al servidor y vuelve a la página 1', () => {
     mocks.useListarProveedores.mockReturnValue(respuesta([proveedor(1)], { total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
     fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
@@ -134,7 +134,7 @@ describe('ProveedorList', () => {
   it('el filtro de estado pide inactivos/todos y vuelve a la página 1', () => {
     mocks.useListarProveedores.mockReturnValue(respuesta([proveedor(1)], { total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
     fireEvent.click(screen.getByRole('button', { name: 'Inactivos' }))
     expect(ultimosFiltros()).toMatchObject({ estado: 'inactivos', pagina: 1 })
@@ -142,23 +142,72 @@ describe('ProveedorList', () => {
     expect(ultimosFiltros().estado).toBe('todos')
   })
 
-  it('pagina en el servidor conservando búsqueda y estado', () => {
+  it('carga infinita: pide la tanda siguiente al servidor conservando búsqueda y estado', () => {
     mocks.useListarProveedores.mockReturnValue(respuesta([proveedor(1)], { total: 60 }))
     abrir()
     fireEvent.change(screen.getByLabelText('Buscar por razón social o CUIT'), { target: { value: 'uno' } })
     act(() => { vi.advanceTimersByTime(300) })
     fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.getByText('60 proveedores')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros()).toMatchObject({ texto: 'uno', estado: 'todos', pagina: 2 })
   })
 
-  it('si estando en la página 2 el servidor devuelve 0 filas, vuelve a la página 1', () => {
+  it('«Cargar más» suma la tanda siguiente a las ya mostradas y avisa cuando no hay más', () => {
     mocks.useListarProveedores.mockImplementation((f: { pagina: number }) =>
-      f.pagina === 2 ? respuesta([], { total: 0 }) : respuesta([proveedor(1)], { total: 60 }))
+      f.pagina === 2 ? respuesta([proveedor(2)], { total: 2 }) : respuesta([proveedor(1)], { total: 2 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
-    expect(ultimosFiltros().pagina).toBe(1)
+    expect(screen.queryByText('Proveedor 2')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getByText('Proveedor 1')).toBeInTheDocument()
+    expect(screen.getByText('Proveedor 2')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+  })
+
+  it('cambiar el filtro de estado reinicia: vuelve a la tanda 1 y descarta lo acumulado', () => {
+    mocks.useListarProveedores.mockImplementation((f: { pagina: number; estado: string }) =>
+      f.estado === 'inactivos' ? respuesta([proveedor(9)], { total: 1 })
+        : f.pagina === 2 ? respuesta([proveedor(2)], { total: 2 }) : respuesta([proveedor(1)], { total: 2 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Proveedor 2')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Inactivos' }))
+    expect(ultimosFiltros()).toMatchObject({ estado: 'inactivos', pagina: 1 })
+    expect(screen.getByText('Proveedor 9')).toBeInTheDocument()
+    expect(screen.queryByText('Proveedor 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Proveedor 2')).not.toBeInTheDocument()
+  })
+
+  it('búsqueda: reinicia en la tanda 1, solo ve coincidencias y «Cargar más» pide la siguiente con el mismo texto', () => {
+    // Servidor simulado: sin texto hay 3 tandas del listado completo; con «ala» solo 2 coincidencias en 2 tandas.
+    mocks.useListarProveedores.mockImplementation((f: { pagina: number; texto: string }) =>
+      f.texto === 'ala'
+        ? respuesta([proveedor(f.pagina === 2 ? 22 : 21, { razon_social: `Alamo ${f.pagina}` })], { total: 2 })
+        : respuesta([proveedor(f.pagina, { razon_social: `Completo ${f.pagina}` })], { total: 3 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Completo 3')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Buscar por razón social o CUIT'), { target: { value: 'ala' } })
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ala', pagina: 1 })
+    expect(screen.getByText('Alamo 1')).toBeInTheDocument()
+    expect(screen.queryByText(/Completo/)).not.toBeInTheDocument()
+    expect(screen.getByText('2 proveedores')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ala', pagina: 2 })
+    expect(screen.getByText('Alamo 1')).toBeInTheDocument()
+    expect(screen.getByText('Alamo 2')).toBeInTheDocument()
+    expect(screen.queryByText(/Completo/)).not.toBeInTheDocument()
+  })
+
+  it('no usa paginación numerada', () => {
+    mocks.useListarProveedores.mockReturnValue(respuesta([proveedor(1)], { total: 60 }))
+    abrir()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/por página/i)).not.toBeInTheDocument()
   })
 
   it('con filtros y sin coincidencias muestra «Sin resultados»', () => {

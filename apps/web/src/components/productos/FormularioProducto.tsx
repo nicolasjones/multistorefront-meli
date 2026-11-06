@@ -83,6 +83,8 @@ type Props = {
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
   onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[], variantes: FilaVariante[]) => Promise<void>
   rutaCancelar: string
+  // Dentro de un popup no se navega: al cancelar (o descartar) se avisa al que lo abrió.
+  onCancelar?: () => void
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
   // Ante un conflicto de edición concurrente (40001) se ofrece recargar el producto.
@@ -107,8 +109,9 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, productoId = null, relacionadosIniciales = [], errorRelacionados = false, variantesIniciales = [], errorVariantes = false, verStock = false, editarStock = false, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, productoId = null, relacionadosIniciales = [], errorRelacionados = false, variantesIniciales = [], errorVariantes = false, verStock = false, editarStock = false, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, onCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
+  const salir = () => (onCancelar ? onCancelar() : navigate(rutaCancelar))
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -240,7 +243,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     if (sucio) {
       setConfirmandoDescarte(true)
     } else {
-      navigate(rutaCancelar)
+      salir()
     }
   }
 
@@ -460,7 +463,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmandoDescarte(false)} autoFocus>Seguir editando</Button>
-          <Button color="error" onClick={() => navigate(rutaCancelar)}>Descartar cambios</Button>
+          <Button color="error" onClick={salir}>Descartar cambios</Button>
         </DialogActions>
       </Dialog>
     </Box>

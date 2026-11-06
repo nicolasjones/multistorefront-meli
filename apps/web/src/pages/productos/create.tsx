@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Alert, Box, Button, Stack } from '@mui/material'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useNavigate } from 'react-router'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { FORMULARIO_PRODUCTO_VACIO, type FormularioProducto as DatosFormulario, aParametrosCrear } from '../../lib/productos'
 import { type CambiosImagenes, aplicarCambiosImagenes, leerImagenesProducto } from '../../lib/productoImagenes'
@@ -24,7 +24,16 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // se confirma en esta misma pantalla.
 type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null; relacionadosPendientes: string[] | null; variantesPendientes: FilaVariante[] | null }
 
-export function ProductoCreate() {
+type AltaProductoProps = {
+  // Salir sin crear, o cerrar una vez creado: la página vuelve al listado y el popup se cierra.
+  onCancelar: () => void
+  // Avisa que se creó un producto (el listado se recarga).
+  onCreado?: () => void
+  etiquetaSalir?: string
+}
+
+// Alta de producto sin marco de página: la usan la ruta `/productos/create` y el popup «Nuevo producto» del listado.
+export function AltaProducto({ onCancelar, onCreado, etiquetaSalir = 'Ir a productos' }: AltaProductoProps) {
   const { nivel, isLoading } = useNivelSeccion('productos')
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const { nivel: nivelStock } = useNivelSeccion('stock')
@@ -148,6 +157,7 @@ export function ProductoCreate() {
     setErrorRelacionados(null)
     setErrorVariantes(mensajeVariantes)
     setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes, relacionadosPendientes, variantesPendientes })
+    onCreado?.()
   }
 
   const reintentarEmpresas = async () => {
@@ -250,9 +260,7 @@ export function ProductoCreate() {
   }
 
   return (
-    <Box>
-      <EncabezadoPagina titulo="Nuevo producto" contexto={<ContextoOrganizacionActiva />} />
-      <ContenedorSeccion>
+    <>
         {isLoading || cargandoRentabilidad || nivel === null ? (
           <EstadoCargaPagina />
         ) : nivel !== 'edicion' ? (
@@ -263,15 +271,18 @@ export function ProductoCreate() {
               titulo="Producto creado"
               descripcion={`${creado.nombre} quedó activo en el catálogo.`}
               accion={
-                <Button
-                  color="inherit"
-                  onClick={() => {
-                    setCreado(null)
-                    setIntento((actual) => actual + 1)
-                  }}
-                >
-                  Cargar otro producto
-                </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    color="inherit"
+                    onClick={() => {
+                      setCreado(null)
+                      setIntento((actual) => actual + 1)
+                    }}
+                  >
+                    Cargar otro producto
+                  </Button>
+                  <Button color="inherit" onClick={onCancelar}>{etiquetaSalir}</Button>
+                </Stack>
               }
             />
             {creado.empresasPendientes ? (
@@ -383,10 +394,22 @@ export function ProductoCreate() {
             verStock={nivelStock === 'lectura' || nivelStock === 'edicion'}
             editarStock={nivelStock === 'edicion'}
             etiquetaGuardar="Crear producto"
-            rutaCancelar="/"
+            rutaCancelar="/productos"
+            onCancelar={onCancelar}
             onGuardar={guardar}
           />
         )}
+    </>
+  )
+}
+
+export function ProductoCreate() {
+  const navigate = useNavigate()
+  return (
+    <Box>
+      <EncabezadoPagina titulo="Nuevo producto" contexto={<ContextoOrganizacionActiva />} />
+      <ContenedorSeccion>
+        <AltaProducto onCancelar={() => navigate('/productos')} />
       </ContenedorSeccion>
     </Box>
   )

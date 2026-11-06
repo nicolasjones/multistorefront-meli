@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useSearchParams } from 'react-router'
 import {
-  Alert, Box, Button, Chip, Dialog, DialogContent, LinearProgress, Link, Snackbar, Stack, TablePagination, TextField,
+  Alert, Box, Button, Chip, Dialog, DialogContent, LinearProgress, Link, Snackbar, Stack, TextField,
   ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useBandejaConsultas, useConsulta, useConsultasNuevas } from '../../hooks/useConsultas'
 import {
@@ -15,11 +17,15 @@ import {
   TAMANO_PAGINA_CONSULTAS,
   formatearCuando,
   nombreProducto,
+  revisionConsultas,
+  suscribirCambioConsultas,
   type Consulta,
   type EstadoConsulta,
 } from '../../lib/consultas'
 import { RespuestasRapidasDialog } from './RespuestasRapidasDialog'
 import { DetalleConsulta } from '../../components/consultas/DetalleConsulta'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -122,10 +128,14 @@ export function ConsultaList() {
   const { total: nuevas } = useConsultasNuevas(empresaId, { habilitado: listo })
   const detalle = useConsulta(consultaId)
 
-  // Si la página quedó fuera de rango, el servidor no devuelve filas: se vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && consultas.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, consultas.length, pagina])
+  // Carga infinita: se suman las tandas que ya entrega la bandeja. Guardar una consulta (`revision`) recarga desde la tanda 1.
+  const revision = useSyncExternalStore(suscribirCambioConsultas, revisionConsultas, revisionConsultas)
+  const listado = useListadoAcumulado({
+    items: consultas, pagina, setPagina, total, cargando: isFetching, reinicio: [empresaId, estado, textoAplicado, desde, hasta, revision],
+  })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
+  const imagenes = useImagenesProductos(listado.filas.map((consulta) => consulta.producto_id))
 
   const hayFiltros = textoAplicado.trim() !== '' || estado !== null || desde !== '' || hasta !== '' || empresaId !== null
 
@@ -154,7 +164,15 @@ export function ConsultaList() {
         </Stack>
       ),
     },
-    { clave: 'producto', encabezado: 'Producto', render: (consulta) => nombreProducto(consulta) },
+    {
+      clave: 'producto', encabezado: 'Producto',
+      render: (consulta) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          {consulta.producto_id ? <MiniaturaProducto alt="" src={imagenes.get(consulta.producto_id)} /> : null}
+          <span>{nombreProducto(consulta)}</span>
+        </Stack>
+      ),
+    },
     { clave: 'origen', encabezado: 'Origen', render: (consulta) => <Chip size="small" variant="outlined" label={ETIQUETA_ORIGEN_CONSULTA[consulta.origen]} /> },
   ]
 
@@ -249,14 +267,14 @@ export function ConsultaList() {
           </Stack>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
-            {isLoading || isError ? '' : textoConteo(total)}
+            {isLoading || (isError && !falloTanda) ? '' : textoConteo(total)}
           </Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando consultas" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar las consultas." reintentar={() => void refetch()} />
             ) : consultas.length === 0 && pagina === 1 ? (
               hayFiltros ? (
@@ -267,26 +285,18 @@ export function ConsultaList() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={consultas}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(consulta) => consulta.id}
                   etiquetaTabla="Consultas"
                 />
-                <Stack direction="row" justifyContent="flex-end" alignItems="center" useFlexGap flexWrap="wrap">
-                  <Typography component="span" variant="s">{textoConteo(total)}</Typography>
-                  {consultas.length > 0 ? (
-                    <TablePagination
-                      component="div"
-                      count={total}
-                      page={pagina - 1}
-                      rowsPerPage={TAMANO_PAGINA_CONSULTAS}
-                      rowsPerPageOptions={[TAMANO_PAGINA_CONSULTAS]}
-                      onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                      labelRowsPerPage="Consultas por página"
-                      labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                    />
-                  ) : null}
-                </Stack>
+                <Typography component="span" variant="s" sx={{ display: 'block', textAlign: 'right' }}>{textoConteo(total)}</Typography>
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                />
               </>
             )}
           </Box>

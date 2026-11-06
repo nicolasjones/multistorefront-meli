@@ -7,7 +7,10 @@ const mocks = vi.hoisted(() => ({
   buscarProductos: vi.fn(),
   listarDepositosParaRepuesto: vi.fn(),
   disponibleEnDeposito: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
+
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/reparacionItems', async (importOriginal) => ({
@@ -123,6 +126,7 @@ const llenarManoObra = (concepto = 'Cambio de pantalla', precio = '1500,50', can
 describe('ItemsReparacion (FR-027)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes.clear()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.quitarItem.mockResolvedValue(reparacion({ items: [REPUESTO], total_mano_obra: 0, total_cliente: 200 }))
     mocks.buscarProductos.mockResolvedValue([])
@@ -189,6 +193,17 @@ describe('ItemsReparacion (FR-027)', () => {
     expect(await screen.findByText(MENSAJE_SOLO_LECTURA)).toBeInTheDocument()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(onActualizada).not.toHaveBeenCalled()
+  })
+})
+
+describe('Imagen principal del repuesto', () => {
+  it('muestra la miniatura solo en los repuestos con producto del catálogo, no en la mano de obra', () => {
+    mocks.imagenes.set('p-1', 'https://ejemplo/pantalla.png')
+    const { container } = render(
+      <ItemsReparacion reparacion={reparacion({ items: [MANO_OBRA, REPUESTO] })} puedeEditar onAgregarManoObra={vi.fn()} onAgregarRepuesto={vi.fn()} onActualizada={vi.fn()} />,
+    )
+    expect(container.querySelector('img[src="https://ejemplo/pantalla.png"]')).not.toBeNull()
+    expect(container.querySelectorAll('img')).toHaveLength(1)
   })
 })
 

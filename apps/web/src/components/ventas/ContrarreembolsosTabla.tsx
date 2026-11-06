@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import {
-  Alert, Box, Button, Card, CardContent, LinearProgress, Link, Snackbar, Stack, TablePagination, Typography,
+  Alert, Box, Button, Card, CardContent, LinearProgress, Link, Snackbar, Stack, Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
@@ -121,7 +123,10 @@ export type PropsTabla = {
   contrarreembolsos: Contrarreembolso[]
   total: number
   pagina: number
-  tamanoPagina: number
+  // Se está pidiendo la tanda siguiente (o recargando): alimenta la carga infinita.
+  cargandoTanda: boolean
+  // Cambia cuando cambia la tienda o el contexto: vuelve a la primera tanda.
+  reinicio: unknown
   // Primera carga: se muestra el esqueleto. Recarga: solo la barrita de progreso.
   cargando: boolean
   actualizando: boolean
@@ -131,7 +136,7 @@ export type PropsTabla = {
   // Tiendas donde la persona tiene la acción `cobrar_contrarreembolso` (FR-041 y FR-047): sin
   // permiso, el botón «Marcar cobrado» no aparece. La base igual lo rechaza.
   empresasConPermiso: ReadonlySet<string>
-  // Recarga la lista y las tarjetas después de cobrar.
+  // Recarga la tanda actual (y las tarjetas); también es el «Reintentar» de una tanda que falló.
   onRecargar: () => void
   onCambiarPagina: (pagina: number) => void
 }
@@ -141,9 +146,12 @@ export type PropsTabla = {
 // permiso). El cobro lo resuelve la base (`marcar_contrarreembolso_cobrado`): es idempotente y
 // con bloqueo optimista, así que acá solo se ofrece y se avisa.
 export function ContrarreembolsosTabla({
-  contrarreembolsos, total, pagina, tamanoPagina, cargando, actualizando, error, hayFiltro,
+  contrarreembolsos, total, pagina, cargandoTanda, reinicio, cargando, actualizando, error, hayFiltro,
   empresasConPermiso, onRecargar, onCambiarPagina,
 }: PropsTabla) {
+  // Carga infinita (Principio VI): se suman las tandas que entrega el padre.
+  const listado = useListadoAcumulado({ items: contrarreembolsos, pagina, setPagina: onCambiarPagina, total, cargando: cargandoTanda, reinicio })
+  const falloTanda = error !== null && pagina > 1
   const [cobrando, setCobrando] = useState<string | null>(null)
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null)
 
@@ -154,7 +162,9 @@ export function ContrarreembolsosTabla({
     try {
       await marcarContrarreembolsoCobrado(cr.id, cr.actualizado_en)
       setAviso({ texto: `Contrarreembolso cobrado · ${cr.transporte}`, error: false })
-      onRecargar()
+      // El estado de la fila cambió: se vuelve a leer desde la primera tanda.
+      if (pagina === 1) onRecargar()
+      else onCambiarPagina(1)
     } catch (errorCobro) {
       setAviso({
         texto: mensajeDeErrorContrarreembolso(errorCobro, 'No pudimos marcar el contrarreembolso como cobrado. Intentá de nuevo.'),
@@ -185,12 +195,12 @@ export function ContrarreembolsosTabla({
 
   return (
     <Stack spacing={2}>
-      {actualizando && !cargando ? <LinearProgress aria-label="Actualizando contrarreembolsos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
+      {actualizando && !cargando && pagina === 1 ? <LinearProgress aria-label="Actualizando contrarreembolsos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
       <Box aria-busy={cargando}>
         {cargando ? (
           <EstadoCargaPagina />
-        ) : error !== null ? (
+        ) : error !== null && !falloTanda ? (
           <EstadoError descripcion={error} reintentar={onRecargar} />
         ) : contrarreembolsos.length === 0 && pagina === 1 ? (
           hayFiltro ? (
@@ -204,22 +214,13 @@ export function ContrarreembolsosTabla({
         ) : (
           <>
             <ContenidoAdaptable
-              items={contrarreembolsos}
+              items={listado.filas}
               columnas={COLUMNAS}
               obtenerClave={(cr) => cr.id}
               etiquetaTabla="Contrarreembolsos"
               acciones={empresasConPermiso.size > 0 ? acciones : undefined}
             />
-            <TablePagination
-              component="div"
-              count={total}
-              page={pagina - 1}
-              rowsPerPage={tamanoPagina}
-              rowsPerPageOptions={[tamanoPagina]}
-              onPageChange={(_, nueva) => onCambiarPagina(nueva + 1)}
-              labelRowsPerPage="Contrarreembolsos por página"
-              labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-            />
+            <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? onRecargar : listado.cargarMas} />
           </>
         )}
       </Box>

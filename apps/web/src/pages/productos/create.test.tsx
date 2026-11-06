@@ -39,7 +39,7 @@ vi.mock('../../lib/productos-relacionados', async (original) => ({
 }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
-import { ProductoCreate } from './create'
+import { AltaProducto, ProductoCreate } from './create'
 
 const niveles = (productos: string, rentabilidad: string) =>
   mocks.useNivelSeccion.mockImplementation((seccion: string) => ({
@@ -66,7 +66,7 @@ const abrir = () =>
     <MemoryRouter initialEntries={['/productos/create']}>
       <Routes>
         <Route path="/productos/create" element={<ProductoCreate />} />
-        <Route path="/" element={<p>Inicio</p>} />
+        <Route path="/productos" element={<p>Listado de productos</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -335,7 +335,7 @@ describe('ProductoCreate', () => {
   it('Cancelar con datos pide confirmar «Descartar cambios»; sin datos sale directo', () => {
     const primera = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    expect(screen.getByText('Inicio')).toBeInTheDocument()
+    expect(screen.getByText('Listado de productos')).toBeInTheDocument()
     primera.unmount()
 
     abrir()
@@ -344,6 +344,19 @@ describe('ProductoCreate', () => {
     expect(screen.getByRole('dialog', { name: 'Descartar cambios' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Seguir editando' }))
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Joystick Pro')
+  })
+
+  it('dentro del popup, Cancelar avisa con onCancelar en vez de navegar', () => {
+    const alCancelar = vi.fn()
+    render(
+      <MemoryRouter initialEntries={['/productos']}>
+        <Routes>
+          <Route path="/productos" element={<AltaProducto onCancelar={alCancelar} />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(alCancelar).toHaveBeenCalledTimes(1)
   })
 
   it('con solo lectura en Productos no ofrece el formulario', () => {
