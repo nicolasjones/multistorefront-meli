@@ -33,7 +33,7 @@ Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`
 | `public.listar_rma(busqueda, forma, estado, empresa, pagina, tamano)` | `public` | `security invoker`; delega en `private.listar_rma_sesion`, que deriva organización y tiendas del JWT. Orden: creación desc, número desc. Desde F-VTA-29 devuelve también `actualizado_en` (sello del bloqueo optimista). |
 | `public.cambiar_estado_rma(id, estado, actualizado_en)` | `public` | `security definer`. `ventas` en edición en la tienda del RMA; transición lineal; idempotente; bloqueo optimista (`for update` + `actualizado_en`, renovado con `clock_timestamp()`); evento `rma.estado_cambiado`. Errores: `42501` permiso, `P0002` no existe, `22023` estado o transición inválidos, `40001` conflicto. |
 
-Ambas tablas tienen RLS por organización y sección `ventas` (`select` con lectura o edición), **sin escritura directa** y `anon` sin privilegios. Las RPC llevan `revoke … from public, anon` y `grant execute … to authenticated`.
+Ambas tablas tienen RLS por organización, sección `ventas` (`select` con lectura o edición) y **empresa accesible** (`private.empresas_accesibles()`; `rma_items` la hereda del RMA — MSF-656), **sin escritura directa** y `anon` sin privilegios. Las RPC llevan `revoke … from public, anon` y `grant execute … to authenticated`.
 
 La cantidad ya devuelta se cuenta sobre los ítems de RMA anteriores de la misma línea. Una nota de crédito de «Devolución de productos» emitida aparte (sin pasar por el RMA) no se descuenta acá.
 

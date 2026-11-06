@@ -220,8 +220,8 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   filtrado, no sobre la página. Valida rango (Desde ≤ Hasta, máx. 5 años), tipo, página y tamaño (1–1.000) con `22023`.
   `p_empresa_id` acota a los clientes habilitados en esa tienda (F-CLI-11); `null` = todos.
 - **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
-- **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
-  sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
+- **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización,
+  sección `ventas` y empresa accesible (MSF-656), solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
   aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `public.clientes`), `tipo`
   (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
   en local: `supabase/seed.sql`.
