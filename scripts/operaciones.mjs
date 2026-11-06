@@ -40,3 +40,10 @@ export function argumentValue(args, name, fallback) {
   if (!value || value.startsWith('--')) throw new Error(`Falta el valor de ${name}.`);
   return value;
 }
+
+export function separarContrasena(url) {
+  const parsed = new URL(url);
+  const contrasena = decodeURIComponent(parsed.password);
+  parsed.password = '';
+  return { urlSinContrasena: parsed.toString(), env: contrasena ? { PGPASSWORD: contrasena } : {} };
+}

@@ -351,7 +351,7 @@ mano desde la pestaña Actions (`workflow_dispatch`) — alternativa sin costo
 a required reviewers, que necesita un plan de pago no disponible aquí (ver
 tasks.md T027 de la spec).
 `SUPABASE_DB_URL` es un secret por Environment — una cadena de conexión
-acotada al proyecto, no un access token de cuenta. Antes de aplicar nada,
+acotada al proyecto, no un access token de cuenta. El script separa la contraseña de la URL y la pasa por `PGPASSWORD` (no por `argv`, visible en `ps`). Antes de aplicar nada,
 `scripts/validar-migraciones-aditivas.mjs` rechaza cualquier migración
 destructiva (`DROP TABLE`/`COLUMN`, `TRUNCATE`) que no documente su
 Reversión — misma convención ya vigente en `supabase/migrations/` (un
