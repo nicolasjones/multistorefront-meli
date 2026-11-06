@@ -15,8 +15,9 @@
 //       node scripts/calidad.mjs --only secrets,sast
 //
 // Escribe `reports/calidad.md` (resumen) y `reports/calidad.log` (salida COMPLETA de cada herramienta) y
-// devuelve exit != 0 si algún check falló. SIEMPRE llega al bloque `---- RESUMEN ----`: un error de una
-// herramienta (excepción, timeout, buffer) queda como `hallazgos` con su causa, nunca mata el proceso.
+// devuelve exit != 0 si algún check falló. Un error de una herramienta (excepción, timeout, buffer)
+// queda como `hallazgos` con su causa y se llega al bloque `---- RESUMEN ----`. Un error del propio script
+// (uncaughtException/unhandledRejection) sale con exit 1 dejando la causa en consola y en `reports/calidad.log`.
 // Si el workflow bloquea o no el merge lo decide el ruleset de GitHub (ver docs/calidad.md), no este script.
 
 import { spawnSync } from "node:child_process";

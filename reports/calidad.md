@@ -1,6 +1,10 @@
-# Calidad determinista — 2026-11-06
+# Calidad determinista — 2026-11-05
 
 | check | estado |
 |---|---|
-
-Salida completa de cada herramienta: `reports/calidad.log` (artifact `calidad-reporte`).
+| gitleaks (secretos) | hallazgos |
+| oxlint (SAST) | ok |
+| knip (código muerto) | ok |
+| jscpd (duplicación) | ok |
+| dependency-cruiser (arquitectura) | ok |
+| syncpack (versiones) | ok |
