@@ -11,13 +11,6 @@
 
 create index if not exists productos_compatible_con_gin on dominio.productos using gin (compatible_con);
 
-create or replace view` conserva todas las columnas vigentes y suma `codigo_barras` AL FINAL.
--- Sin costo, sin `anon`.
--- REVERSIÓN: volver a ejecutar `create or replace view public.v_productos_listado` con la definición de
--- 20261022120900_catalogo_disponibilidad.sql (sin la columna final; `create or replace` no puede quitar
--- columnas, por lo que la reversión es `drop view public.v_productos_listado;` seguido de esa definición y
--- de sus `revoke`/`grant`). Ningún dato se pierde: la columna sigue en `dominio.productos`.
-
 create or replace view public.v_productos_listado
 with (security_invoker = true) as
 select
