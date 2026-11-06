@@ -1,0 +1,56 @@
+slice_name: Margen % por tienda
+description: Margen ponderado (Σ margen ÷ Σ precio neto) de cada tienda.
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 1__table
+  adhoc_filters: []
+  extra_form_data: {}
+  dashboards: []
+  color_scheme: supersetColors
+  show_empty_columns: true
+  viz_type: echarts_timeseries_bar
+  x_axis: empresa_nombre
+  x_axis_force_categorical: true
+  time_grain_sqla: null
+  metrics:
+  - expressionType: SQL
+    sqlExpression: ROUND(100.0 * SUM(margen) / NULLIF(SUM(precio_neto), 0), 1)
+    label: Margen %
+    hasCustomLabel: true
+  orientation: vertical
+  show_value: true
+  stack: Stack
+  only_total: true
+  rich_tooltip: true
+  showTooltipTotal: false
+  show_legend: false
+  legendType: scroll
+  legendOrientation: top
+  truncate_metric: true
+  y_axis_format: ',.1f'
+  logAxis: false
+  minorSplitLine: false
+  truncateXAxis: true
+  y_axis_bounds:
+  - null
+  - null
+  x_axis_title_margin: 15
+  y_axis_title_margin: 30
+  y_axis_title_position: Left
+  comparison_type: values
+  annotation_layers: []
+  forecastEnabled: false
+  opacity: 0.9
+  bar_opacity: null
+  groupby:
+  - empresa_nombre
+  row_limit: 50
+  y_axis_title: Margen %
+  x_axis_title: Tienda
+query_context: null
+cache_timeout: null
+uuid: c6177f8b-c90b-5de8-a2f3-728663637416
+version: 1.0.0
+dataset_uuid: 9c2e4a7b-1f60-4d83-b5a9-3e7c0d1f2a64

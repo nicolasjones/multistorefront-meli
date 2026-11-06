@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useActividad, useOpcionesActividad } from '../../hooks/useActividad'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import {
   ETIQUETA_PERIODO,
   etiquetaTipoActividad,
   FILTROS_ACTIVIDAD_INICIALES,
   formatearCuando,
-  TAMANO_PAGINA_ACTIVIDAD,
   type EventoActividadListado,
   type FiltrosActividad,
   type PeriodoActividad,
@@ -30,15 +31,8 @@ const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
   { clave: 'quien', encabezado: 'Quién', render: (evento) => evento.actorNombre ?? 'Sistema' },
 ]
 
-// «1–10 de N» (rango de la página actual sobre el total del filtro).
-function rangoVisible(pagina: number, cantidad: number, total: number): string {
-  if (total === 0) return '0 de 0'
-  const desde = (pagina - 1) * TAMANO_PAGINA_ACTIVIDAD + 1
-  return `${desde}–${desde + cantidad - 1} de ${total}`
-}
-
 // Historial de actividad (F-AUD-01, FR-003…FR-006): filtros, búsqueda y
-// paginación en servidor. El acceso lo decide la matriz (`actividad`): la ruta
+// carga infinita por tandas desde el servidor. El acceso lo decide la matriz (`actividad`): la ruta
 // va envuelta en RequiereAccesoSeccion y la RLS devuelve cero filas a quien no
 // tenga acceso. Sin «Exportar» (fuera de alcance).
 export function ActividadList() {
@@ -53,6 +47,8 @@ export function ActividadList() {
   const filtrosEfectivos = { ...filtros, empresa: empresaFiltro }
   const { eventos, total, isLoading, isError, refetch } = useActividad(filtrosEfectivos, pagina)
   const opciones = useOpcionesActividad()
+  const listado = useListadoAcumulado({ items: eventos, pagina, setPagina, total, cargando: isLoading, reinicio: filtrosEfectivos })
+  const falloTanda = isError && pagina > 1
 
   // Si una recarga deja la página fuera de rango (p. ej. «Reintentar» tras un
   // error con menos resultados), vuelve a la 1 en vez de dejar el vacío sin salida.
@@ -78,7 +74,6 @@ export function ActividadList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busqueda])
 
-  const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_ACTIVIDAD))
   const hayFiltros =
     empresaFiltro !== null || filtros.actor !== null || filtros.tipo !== null || filtros.texto !== '' || filtros.periodo !== FILTROS_ACTIVIDAD_INICIALES.periodo
 
@@ -154,29 +149,25 @@ export function ActividadList() {
           Las altas, ediciones y publicaciones llevan su tienda. Los cambios del catálogo y del stock compartido se ven siempre.
         </Typography>
 
-        {isLoading ? (
+        {isLoading && pagina === 1 ? (
           <EstadoCargaPagina />
-        ) : isError ? (
+        ) : isError && !falloTanda ? (
           <EstadoError descripcion="No pudimos cargar la actividad." reintentar={() => void refetch()} />
-        ) : eventos.length === 0 ? (
+        ) : listado.filas.length === 0 && total === 0 ? (
           <EstadoVacio
             titulo={hayFiltros ? 'No hay actividad con esos filtros.' : 'Todavía no hay actividad registrada.'}
             descripcion={hayFiltros ? 'Probá con otro período o quitá algún filtro.' : undefined}
           />
         ) : (
           <>
-            <ContenidoAdaptable items={eventos} columnas={columnas} obtenerClave={(evento) => evento.id} etiquetaTabla="Actividad" />
-            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ mt: 2 }}>
-              <Typography color="text.secondary" aria-live="polite">{rangoVisible(pagina, eventos.length, total)}</Typography>
-              <Stack direction="row" spacing={1}>
-                <Button size="small" disabled={pagina <= 1} onClick={() => setPagina((actual) => actual - 1)} aria-label="Página anterior">
-                  Anterior
-                </Button>
-                <Button size="small" disabled={pagina >= totalPaginas} onClick={() => setPagina((actual) => actual + 1)} aria-label="Página siguiente">
-                  Siguiente
-                </Button>
-              </Stack>
-            </Stack>
+            <Typography color="text.secondary" aria-live="polite" sx={{ mb: 1 }}>{total} {total === 1 ? 'evento' : 'eventos'}</Typography>
+            <ContenidoAdaptable items={listado.filas} columnas={columnas} obtenerClave={(evento) => evento.id} etiquetaTabla="Actividad" />
+            <CargaInfinita
+              hayMas={listado.hayMas}
+              cargando={listado.cargandoMas}
+              hayError={falloTanda}
+              onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+            />
           </>
         )}
       </ContenedorSeccion>

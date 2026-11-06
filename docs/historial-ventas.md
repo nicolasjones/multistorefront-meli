@@ -308,3 +308,7 @@ Storage. Nunca en el mismo PR que crea las tablas.
     referencias `{{ envs.* }}` de los flows de Kestra (plantillas, no valores).
   - Para confirmarlo con el escáner real: `pnpm calidad` en el CI o en una
     máquina con Docker.
+
+## Carga infinita
+
+Las pestañas Ventas, Cobros y Cotizaciones del dólar cargan por tandas de 25 al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. La búsqueda y la tienda reinician desde la primera tanda y el contador «N registros mostrados» se conserva. No mencionan productos: sin miniatura. Ver [`listados.md`](./listados.md).

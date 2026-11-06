@@ -24,7 +24,7 @@ import { ClienteShow } from './show'
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: null, correo: null, telefono: null, celular: null,
   direccion: 'Av. Siempre Viva 742', codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null,
-  archivado_en: null, tipo: 'minorista', es_consumidor_final: false, created_at: '2026-10-16T10:00:00Z',
+  archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: true, created_at: '2026-10-16T10:00:00Z',
 }
 
 const Otra = () => { const l = useLocation(); return <div>Otra ficha {JSON.stringify(l.state)}</div> }

@@ -1,0 +1,38 @@
+slice_name: Productos por estado de margen
+description: 'Cuántos productos-tienda hay en cada estado: OK, margen bajo o negativo.'
+certified_by: null
+certification_details: null
+viz_type: pie
+params:
+  datasource: 1__table
+  adhoc_filters: []
+  extra_form_data: {}
+  dashboards: []
+  color_scheme: supersetColors
+  show_empty_columns: true
+  viz_type: pie
+  groupby:
+  - estado_etiqueta
+  metric: count
+  row_limit: 10
+  sort_by_metric: true
+  show_labels: true
+  labels_outside: true
+  label_type: key_value
+  label_line: true
+  donut: true
+  innerRadius: 48
+  outerRadius: 78
+  show_legend: true
+  legendType: scroll
+  legendOrientation: right
+  show_total: true
+  number_format: ',d'
+  date_format: smart_date
+  threshold_for_other: 0
+  roseType: null
+query_context: null
+cache_timeout: null
+uuid: ae2a3744-a8a2-5cb9-a24d-d3213f7f5d08
+version: 1.0.0
+dataset_uuid: 9c2e4a7b-1f60-4d83-b5a9-3e7c0d1f2a64

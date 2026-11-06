@@ -40,6 +40,31 @@ estado      = negativo  si margen_pct < 0
 - **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización en un producto en USD (no se inventa). Un producto en pesos sin cotizaciones cargadas conserva su historia.
 - Solo productos y empresas activos.
 
+## Rendimiento de las vistas
+
+`analitica.margen_producto_canal` calcula el margen con joins (no con una llamada a funciones por fila) y no guarda
+importes. Con ~4.600 filas producto × tienda responde en ~70 ms y el consolidado en ~130 ms; la versión con funciones por
+fila tardaba segundos y `rentabilidad_conteo_margen()` superaba el `statement_timeout` de 8 s del rol `authenticated`
+(la pantalla respondía 500). La regla de cálculo es la misma de `private.precio_neto_empresa`, `private.a_pesos` y
+`analitica.costos_adicionales_de`: si cambia alguna, hay que cambiar la vista (migración `20270205100000`).
+Las vistas de `analitica` no llaman a funciones de `private`: el permiso de ejecutar una función se comprueba contra quien
+consulta (el rol de solo lectura de Superset), no contra el dueño de la vista, y ese rol no puede ejecutarlas. La regla de precio
+de la tienda está escrita dentro de `margen_producto_canal` y de `margen_historico_producto_canal` (migraciones
+`20270205100000` y `20270205100001`).
+
+## Gráficos del Resumen
+
+Además de las tarjetas por empresa y el consolidado, el tablero «Rentabilidad · Resumen» muestra cuatro gráficos de Superset sobre
+`analitica.margen_producto_canal` (se versionan en `infra/superset/dashboards/rentabilidad/`):
+
+- **Margen % por tienda** (barras): margen ponderado de cada tienda, un color por tienda.
+- **Productos por estado de margen** (dona): OK en verde, Bajo en ámbar y Negativo en rojo (colores fijados con `label_colors`
+  del tablero, los mismos de la tabla «Por producto»).
+- **Top 10 productos por margen ($ por unidad)** (barras horizontales).
+- **10 productos con peor margen %** (barras horizontales): el eje se acota en -100 % para que un valor extremo no aplaste el resto.
+
+Los colores salen de la paleta `supersetColors` de Superset; los estados usan la paleta del proyecto (`#2E7D32`, `#B36B00`, `#C62828`).
+
 ## Umbral de margen bajo
 
 - Por organización, en `dominio.rentabilidad_config` (fracción: `0,10` = 10 %). Sin fila rige **10 %**.
