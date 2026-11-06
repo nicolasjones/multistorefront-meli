@@ -69,3 +69,14 @@ test('separarContrasena saca la contraseña de la URL y la pasa por PGPASSWORD',
 test('separarContrasena sin contraseña no define PGPASSWORD', () => {
   assert.deepEqual(separarContrasena('postgresql://u@host/db').env, {});
 });
+
+test('redactError enmascara la contraseña de SUPABASE_DB_URL aunque aparezca suelta', () => {
+  const anterior = process.env.SUPABASE_DB_URL;
+  process.env.SUPABASE_DB_URL = 'postgres://usuario:clave%2Bsuelta@host/db';
+  try {
+    assert.equal(redactError(new Error('FATAL: password clave+suelta rechazada')), 'FATAL: password [REDACTADO] rechazada');
+  } finally {
+    if (anterior === undefined) delete process.env.SUPABASE_DB_URL;
+    else process.env.SUPABASE_DB_URL = anterior;
+  }
+});
