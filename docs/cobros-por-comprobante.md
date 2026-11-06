@@ -238,6 +238,23 @@ saldo** y **cierra con aviso** el diálogo «Registrar cobro» que estuviera abi
 un cobro de una tienda cargado bajo la otra. Si además la tienda nueva no es la del
 comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
 
+### Después del cobro, el detalle se relee (MSF-715)
+
+Registrar un cobro cambia el comprobante en la base: si el saldo queda en 0 la factura pasa a
+**Cobrado**, y si la forma de pago genera deuda pasa a **Deuda**; en ambos casos avanza su
+`updated_at`. Por eso, al registrarse el cobro la pantalla **relee el comprobante** (estado,
+`updated_at`, transiciones, historial y despacho), además de la lista de cobros y el saldo. Así la
+acción siguiente (cambiar el estado, anular) manda el `updated_at` vigente y no choca con «Otra
+persona modificó este comprobante».
+
+- Mientras relee, la tarjeta «Estado» y las acciones que mandan el `updated_at` quedan bloqueadas.
+- La relectura **no toca el formulario**: el «Reintentar» de la tarjeta de Cobros solo recarga cobros
+  y saldo, y no pisa lo que la persona esté editando.
+- Si la relectura falla, la pantalla no cae al error general (el cobro ya está registrado): avisa
+  que recargue la página y deja sin acciones de estado.
+- Con la factura en **Cobrado**/**Deuda**, «Envío y transporte» y «Responsables del despacho» siguen
+  visibles **en solo lectura** (la base solo admite editarlos con la factura confirmada).
+
 ### Pruebas de la pantalla (SC-002)
 
 `apps/web/src/pages/ventas/comprobante.cobros.test.tsx` (`pnpm test:web`) cubre:
@@ -246,7 +263,7 @@ comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
   «Reintentar». Con la lectura en error **no** se ofrece «Registrar cobro» (deny-by-default: el
   saldo es desconocido y el diálogo no dejaría cobrar nada);
 - **el diálogo**: la apertura con el saldo como importe sugerido, la forma de pago que exige
-  cuenta de cobro, el importe mayor al saldo, el registro con aviso y la recarga de la lista;
+  cuenta de cobro, el importe mayor al saldo, el registro con aviso y la recarga de la lista (también la relectura del comprobante, MSF-715);
 - **los estados del diálogo**: si el catálogo de formas de pago de la tienda no se puede leer, el
   diálogo lo dice y no manda un cobro a ciegas; si la tienda no tiene formas de pago, aparece el
   aviso y el botón queda deshabilitado; si las cuentas de cobro no se pueden listar, el error queda

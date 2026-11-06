@@ -57,6 +57,25 @@ export async function resolverTienda(host: string): Promise<TiendaPublica | null
   return fila ? { tiendaId: fila.tienda_id, empresaNombre: fila.empresa_nombre, estado: fila.estado } : null
 }
 
+// F-TDA-05 (FR-013): `publico.redireccion_por_dominio` (anon) devuelve el dominio principal si el host es el
+// «Redirigir también» de una tienda activa; sin filas (desconocido, desactivada o no es redirección) → null.
+export async function resolverRedireccion(host: string): Promise<string | null> {
+  const { data, error } = await supabaseClient.schema('publico').rpc('redireccion_por_dominio', { host })
+  if (error) {
+    throw new Error(error.message)
+  }
+  const fila = ((data ?? []) as { dominio_principal: string }[])[0]
+  return fila ? fila.dominio_principal : null
+}
+
+// URL equivalente en el dominio principal: conserva ruta, query y hash de lo que pidió el visitante.
+export function urlDeRedireccion(
+  principal: string,
+  ubicacion: Pick<Location, 'protocol' | 'port' | 'pathname' | 'search' | 'hash'> = window.location,
+): string {
+  return `${urlDeTienda(principal, ubicacion).replace(/\/$/, '')}${ubicacion.pathname}${ubicacion.search}${ubicacion.hash}`
+}
+
 export type TiendaDeEmpresa = { id: string; dominio: string }
 
 // Tienda (dominio) de una empresa para la gestión. RLS de dominio.tiendas: solo la organización

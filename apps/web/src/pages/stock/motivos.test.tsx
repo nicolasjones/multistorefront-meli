@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   insertar: vi.fn(),
   actualizar: vi.fn(),
   usePuedeEscribir: vi.fn(),
+  useNombreRolActual: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -20,11 +21,12 @@ vi.mock('../../lib/supabase', () => ({
     }),
   },
 }))
+vi.mock('../../hooks/useNombreRolActual', () => ({ useNombreRolActual: mocks.useNombreRolActual }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: () => ({ organizacionId: 'org-1', isLoading: false }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../acceso-restringido/AccesoRestringido', () => ({
-  AccesoRestringido: ({ seccion }: { seccion: string }) => <p>Sin acceso a {seccion}</p>,
+  AccesoRestringido: ({ rol, seccion }: { rol: string; seccion: string }) => <p>Sin acceso a {seccion} con rol {rol}</p>,
 }))
 
 import { MotivosMovimiento } from './motivos'
@@ -41,6 +43,7 @@ describe('MotivosMovimiento', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.useNombreRolActual.mockReturnValue('actual')
     mocks.listar.mockResolvedValue({ data: MOTIVOS, error: null })
     mocks.insertar.mockResolvedValue({ error: null })
     mocks.actualizar.mockResolvedValue({ error: null })
@@ -125,8 +128,11 @@ describe('MotivosMovimiento', () => {
 
   it('quien no es Administrador no ve la pantalla ni carga ningún dato', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    mocks.useNombreRolActual.mockReturnValue('Operador')
     abrir()
-    expect(await screen.findByText('Sin acceso a Motivos de movimiento')).toBeInTheDocument()
+    // MSF-637: muestra el nombre del rol, no el literal «actual».
+    expect(await screen.findByText('Sin acceso a Motivos de movimiento con rol Operador')).toBeInTheDocument()
+    expect(mocks.useNombreRolActual).toHaveBeenCalledWith(true)
     expect(mocks.listar).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Nuevo motivo' })).not.toBeInTheDocument()
   })

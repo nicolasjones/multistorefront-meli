@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, LinearProgress, Link, Stack, TablePagination, Typography } from '@mui/material'
+import { Box, Button, LinearProgress, Link, Stack, Typography } from '@mui/material'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -9,6 +10,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltrosReparaciones } from '../../components/service/FiltrosReparaciones'
 import { ETIQUETA_PENDIENTE_STOCK, MarcaStockItem } from '../../components/service/MarcaStockItem'
@@ -112,10 +114,12 @@ export function ServicioReparaciones() {
   // Mientras se resuelve (o se relee) la empresa activa no se muestra nada: ni filas de otra empresa ni de «todas».
   const isLoading = cargandoEmpresas || cargandoListado
 
-  // Página fuera de rango (p. ej. bajó la cantidad): vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setElegida({ clave, pagina: 1 })
-  }, [isLoading, isFetching, isError, filas.length, pagina, clave])
+  // Carga infinita: se suman las tandas que ya entrega el listado. `clave` reúne todo lo que cambia el resultado.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina: (nueva) => setElegida({ clave, pagina: nueva }), total, cargando: isFetching, reinicio: clave,
+  })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
 
   const alCambiarSerie = useCallback((nueva: string) => setSerie(nueva), [])
   const buscandoPorSerie = serie.trim() !== ''
@@ -139,7 +143,7 @@ export function ServicioReparaciones() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           <BarraHerramientas
-            contador={isLoading || isError ? undefined : contador}
+            contador={isLoading || (isError && !falloTanda) ? undefined : contador}
             ayuda={buscandoPorSerie ? 'La búsqueda por N.º de serie no depende del período.' : subtituloPeriodo()}
           >
             <FiltrosReparaciones
@@ -155,16 +159,16 @@ export function ServicioReparaciones() {
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
-            {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+            {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando reparaciones" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion={mensajeError ?? undefined} reintentar={() => void refetch()} />
-            ) : filas.length === 0 ? (
+            ) : listado.filas.length === 0 ? (
               <EstadoVacio
                 titulo={buscandoPorSerie ? 'No hay reparaciones con ese número de serie' : 'No hay reparaciones en este período'}
                 descripcion={buscandoPorSerie ? 'Revisá el número o probá con una parte.' : 'Probá con otro período, otro técnico u otra tienda.'}
@@ -172,20 +176,16 @@ export function ServicioReparaciones() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={filas}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(reparacion) => reparacion.id}
                   etiquetaTabla="Reparaciones"
                 />
-                <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA_REPARACIONES}
-                  rowsPerPageOptions={[TAMANO_PAGINA_REPARACIONES]}
-                  onPageChange={(_, nueva) => setElegida({ clave, pagina: nueva + 1 })}
-                  labelRowsPerPage="Reparaciones por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
                 />
               </>
             )}

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Card, CardContent, CardHeader, IconButton, Stack, TextField, Typography } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { AgregarProductoDialog } from './AgregarProductoDialog'
 import { DepositoSelect } from './DepositoSelect'
 import { EtiquetaAPedido, FaltanteAviso, StockLinea } from './FaltanteAviso'
@@ -53,11 +55,13 @@ type FilaProps = {
   editable: boolean
   puedeEditarPrecio: boolean
   ocupado: boolean
+  // Imagen principal del producto (URL firmada); sin ella se dibuja el marcador vacío.
+  imagen?: string
   onCambiar: Props['onCambiar']
   onQuitar: Props['onQuitar']
 }
 
-function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocupado, onCambiar, onQuitar }: FilaProps) {
+function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocupado, imagen, onCambiar, onQuitar }: FilaProps) {
   const [cantidad, setCantidad] = useState(String(linea.cantidad))
   const [precio, setPrecio] = useState(String(linea.precio_unitario))
   const [errorCantidad, setErrorCantidad] = useState<string | null>(null)
@@ -177,19 +181,22 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         minWidth: ANCHO_MINIMO,
       }}
     >
-      <Box role="cell" sx={{ minWidth: 0 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
-          {nombre}
-        </Typography>
-        {linea.codigo ? (
-          <Typography variant="caption" color="text.secondary" component="p">
-            {linea.codigo}
+      <Stack role="cell" direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+        <MiniaturaProducto alt="" src={imagen} />
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+            {nombre}
           </Typography>
-        ) : null}
-        <Box sx={{ mt: 0.5 }}>
-          <EtiquetaAPedido linea={linea} />
+          {linea.codigo ? (
+            <Typography variant="caption" color="text.secondary" component="p">
+              {linea.codigo}
+            </Typography>
+          ) : null}
+          <Box sx={{ mt: 0.5 }}>
+            <EtiquetaAPedido linea={linea} />
+          </Box>
         </Box>
-      </Box>
+      </Stack>
       <Box role="cell">
         <StockLinea linea={linea} />
       </Box>
@@ -323,6 +330,7 @@ export function LineasComprobante({
   onQuitar,
   onAgregar,
 }: Props) {
+  const imagenes = useImagenesProductos(lineas.map((linea) => linea.producto_id))
   const depositoPorDefecto = depositos.find((deposito) => deposito.por_defecto) ?? depositos[0] ?? null
 
   return (
@@ -380,6 +388,7 @@ export function LineasComprobante({
               editable={editable}
               puedeEditarPrecio={puedeEditarPrecio}
               ocupado={ocupado}
+              imagen={linea.producto_id ? imagenes.get(linea.producto_id) : undefined}
               onCambiar={onCambiar}
               onQuitar={onQuitar}
             />
