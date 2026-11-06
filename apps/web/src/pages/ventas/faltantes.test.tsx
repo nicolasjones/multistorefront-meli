@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   cambiarFiltro: vi.fn(),
 }))
 
+const imagenes = vi.hoisted(() => ({ mapa: new Map<string, string>() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => imagenes.mapa }))
+
 vi.mock('../../lib/ventasFaltantes', async (original) => ({
   ...(await original<typeof import('../../lib/ventasFaltantes')>()),
   listarFaltantes: mocks.listar,
@@ -32,6 +35,7 @@ const fila = (n: number, empresaId: string, empresa: string) => ({
   empresa,
   cliente: `Cliente ${n}`,
   producto: `Producto ${n}`,
+  producto_id: null as string | null,
   sku: `SKU-${n}`,
   cantidad_faltante: 3,
   linea_orden: 1,
@@ -120,12 +124,43 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     expect(screen.queryByRole('status', { name: 'Cargando contenido' })).not.toBeInTheDocument()
   })
 
-  it('la paginación muestra el rango y el total de faltantes (FR-044)', async () => {
-    mocks.listar.mockImplementation(async () => ({ faltantes: TODAS, total: 30 }))
+  it('muestra la miniatura del producto cuando la fila trae producto_id y no cuando es null', async () => {
+    imagenes.mapa = new Map([['p-1', 'https://img/f1.png']])
+    mocks.listar.mockResolvedValue({ faltantes: [{ ...fila(1, 'e-1', 'San Javucho'), producto_id: 'p-1' }, fila(2, 'e-1', 'San Javucho')], total: 2 })
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(document.querySelectorAll('img')).toHaveLength(1)
+    expect(document.querySelector('img[src="https://img/f1.png"]')).not.toBeNull()
+    imagenes.mapa = new Map()
+  })
+
+  it('«Cargar más» suma la tanda siguiente y el contador conserva el total (FR-044)', async () => {
+    const porPagina = [[fila(1, 'e-1', 'San Javucho'), fila(2, 'e-1', 'San Javucho')], [fila(3, 'e-1', 'San Javucho')]]
+    mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => ({ faltantes: porPagina[pagina - 1], total: 3 }))
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
-    expect(screen.getByText('1–10 de 30')).toBeInTheDocument()
-    expect(screen.getByText('30 faltantes')).toBeInTheDocument()
+    expect(screen.getByText('3 faltantes')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Producto 3')).toBeInTheDocument()
+    expect(screen.getByText('Producto 1')).toBeInTheDocument()
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('cambiar de tienda reinicia desde la primera tanda', async () => {
+    mocks.listar.mockImplementation(async ({ empresaId, pagina }: { empresaId: string | null; pagina: number }) => {
+      if (empresaId) return { faltantes: [fila(9, 'e-1', 'San Javucho')], total: 1 }
+      return { faltantes: [pagina === 1 ? fila(1, 'e-1', 'San Javucho') : fila(3, 'e-1', 'San Javucho')], total: 2 }
+    })
+    const { rerender } = abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Producto 3')
+    empresaActivaId = 'e-1'
+    rerender(<MemoryRouter><FaltantesList /></MemoryRouter>)
+    expect(await screen.findByText('Producto 9')).toBeInTheDocument()
+    expect(screen.queryByText('Producto 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Producto 3')).not.toBeInTheDocument()
   })
 
   it('al cambiar la empresa activa recarga acotada a ella y no deja filas de la anterior', async () => {
@@ -148,7 +183,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     expect(screen.queryByText('Producto 2')).not.toBeInTheDocument()
   })
 
-  it('al cambiar la empresa activa reencuadra la paginación: una sola consulta, ya en la primera página', async () => {
+  it('al cambiar la empresa activa reinicia la carga infinita: una sola consulta, ya en la primera tanda', async () => {
     // Con muchas filas hay varias páginas: se pide la segunda.
     mocks.listar.mockImplementation(async ({ empresaId }: { empresaId: string | null }) => {
       const filas = TODAS.filter((f) => !empresaId || f.empresa_id === empresaId)
@@ -157,7 +192,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     const { rerender } = abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 2, tamano: 10 }))
 
     empresaActivaId = 'e-1'
@@ -235,7 +270,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 2, tamano: 10 }))
 
     // La segunda página vino vacía: la pantalla vuelve a la primera y vuelve a mostrar las filas.

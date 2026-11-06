@@ -8,14 +8,15 @@ el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirm
 ## Qué hace
 
 La pantalla `/rentabilidad` (menú «Análisis») muestra, para cada producto y cada tienda, cuánto se gana
-sobre el precio sin IVA. Tiene cuatro pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
+sobre el precio sin IVA. Tiene estas pestañas: **Resumen** (tarjetas por empresa y Consolidado, aviso de
 productos en riesgo, «Cómo se calcula»), **Por producto** (tabla con filtros) y **Comparativo** (ruta
 `/rentabilidad/comparativo`, F-REN-06: el margen del mismo producto lado a lado en cada empresa, con la
 diferencia en pp y mejor/peor; solo productos con margen en 2 o más empresas, sin depender de la empresa
 activa de la barra superior; sin `lectura` en `rentabilidad` o ante un 403 del token muestra el acceso restringido)
 e **Historia** (ruta `/rentabilidad/historia`, F-REN-07: se elige un producto y se ve cómo evolucionó su margen en
 cada empresa, con la cotización del dólar más cercana a cada fecha y el costo vigente ese día; mismos estados y
-acceso que Comparativo). La pestaña «Por publicación
+acceso que Comparativo), **Ventas reales** (ruta `/rentabilidad/ventas-reales`, F-REN-09: margen de lo efectivamente
+vendido en un período, ver «Ventas reales» más abajo) y **Costos adicionales**. La pestaña «Por publicación
 de ML» no existe todavía: se oculta hasta que la organización tenga Mercado Libre activo.
 
 Las tarjetas y la tabla son tableros de Superset embebidos; las pestañas, el aviso, el diálogo del umbral,
@@ -38,6 +39,31 @@ estado      = negativo  si margen_pct < 0
   precio y el margen cambia solo.
 - **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización en un producto en USD (no se inventa). Un producto en pesos sin cotizaciones cargadas conserva su historia.
 - Solo productos y empresas activos.
+
+## Rendimiento de las vistas
+
+`analitica.margen_producto_canal` calcula el margen con joins (no con una llamada a funciones por fila) y no guarda
+importes. Con ~4.600 filas producto × tienda responde en ~70 ms y el consolidado en ~130 ms; la versión con funciones por
+fila tardaba segundos y `rentabilidad_conteo_margen()` superaba el `statement_timeout` de 8 s del rol `authenticated`
+(la pantalla respondía 500). La regla de cálculo es la misma de `private.precio_neto_empresa`, `private.a_pesos` y
+`analitica.costos_adicionales_de`: si cambia alguna, hay que cambiar la vista (migración `20270205100000`).
+Las vistas de `analitica` no llaman a funciones de `private`: el permiso de ejecutar una función se comprueba contra quien
+consulta (el rol de solo lectura de Superset), no contra el dueño de la vista, y ese rol no puede ejecutarlas. La regla de precio
+de la tienda está escrita dentro de `margen_producto_canal` y de `margen_historico_producto_canal` (migraciones
+`20270205100000` y `20270205100001`).
+
+## Gráficos del Resumen
+
+Además de las tarjetas por empresa y el consolidado, el tablero «Rentabilidad · Resumen» muestra cuatro gráficos de Superset sobre
+`analitica.margen_producto_canal` (se versionan en `infra/superset/dashboards/rentabilidad/`):
+
+- **Margen % por tienda** (barras): margen ponderado de cada tienda, un color por tienda.
+- **Productos por estado de margen** (dona): OK en verde, Bajo en ámbar y Negativo en rojo (colores fijados con `label_colors`
+  del tablero, los mismos de la tabla «Por producto»).
+- **Top 10 productos por margen ($ por unidad)** (barras horizontales).
+- **10 productos con peor margen %** (barras horizontales): el eje se acota en -100 % para que un valor extremo no aplaste el resto.
+
+Los colores salen de la paleta `supersetColors` de Superset; los estados usan la paleta del proyecto (`#2E7D32`, `#B36B00`, `#C62828`).
 
 ## Umbral de margen bajo
 
@@ -103,6 +129,8 @@ y `drop table dominio.producto_costos_historial;` (exportar antes), más borrar 
 | RPC | `public` | superficie de ejecución, no almacena datos |
 | `reportes.seccion` | `public` | plataforma (catálogo de reportes) |
 | `producto_costos_historial` | `dominio` | dato de negocio del producto (historia del costo); RLS por organización y `rentabilidad` |
+| `comprobantes_venta_lineas.costo_unitario` / `.cotizacion` | `dominio` | dato de la venta (qué costaba y con qué dólar); misma tabla y RLS de `ventas`, columnas ocultas a quien no tiene `rentabilidad` |
+| `analitica.rentabilidad_ventas_real` | `analitica` | vista de lectura para Superset, sin tablas |
 
 ## Permisos
 
@@ -196,3 +224,74 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
 6. Pendientes de F-REN-03 trazados en **MSF-556**: selector «Mayor/Menor margen primero» y buscador de texto
    libre (hoy orden fijo por menor margen y lista con búsqueda).
+
+## Costos adicionales del canal (F-REN-08, MSF-209)
+
+Pestaña **Costos adicionales** (`/rentabilidad/costos`). El Administrador define, por empresa (tienda), los costos reales
+de vender que el margen debe descontar. El catálogo es **libre**: cada costo tiene un nombre (único entre los activos de la
+empresa), un tipo —**porcentaje sobre el neto sin IVA** (0–100) o **monto en pesos por unidad**— y un valor ≥ 0.
+
+- **Dónde vive** (Principio VII): `dominio.costos_adicionales_canal` (regla de negocio de cada tienda) con RLS por
+  organización, empresa accesible y sección `rentabilidad`. No hay políticas de escritura: se escribe solo con las RPC
+  `public.guardar_costo_adicional` y `public.dar_baja_costo_adicional` (`security definer`, exigen `edicion`;
+  `anon` sin ejecución). `public.listar_costos_adicionales` pide `lectura`. La baja es `activo = false`.
+- **Cómo descuenta**: `analitica.margen_producto_canal` suma la columna `costos_adicionales` (por unidad) y
+  `margen = neto − costo − costos_adicionales`. Sin costos activos los valores son idénticos a los de MSF-120; con ellos
+  se recalculan `margen_pct`, `estado` y todo lo que lee la vista (Resumen, Por producto, Comparativo, Historia). Es un cambio
+  `BREAKING` de semántica de `margen` (ver `specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/`).
+- **Permisos**: botones de alta, edición y baja solo con `edicion` (Administrador); Administración (`lectura`) los ve sin
+  botones; sin `lectura` la ruta muestra acceso restringido.
+- **Empresa activa** (Principio VIII): la lista sigue a la empresa de la barra superior (o «Todas las tiendas»); al cambiarla
+  se recarga y un diálogo abierto se cierra con aviso sin guardar. El alta con varias empresas marcadas en «Aplica a» crea
+  un costo por empresa; la edición no cambia de empresa.
+- **Reversión**: la tabla y las RPC son aditivas (`drop function` y `drop table` en una migración posterior, exportando
+  antes los datos); la vista se restituye con su definición de `20261130100200` y se borra `analitica.costos_adicionales_de`.
+
+## Ventas reales (F-REN-09, MSF-223)
+
+Pestaña **Ventas reales** (`/rentabilidad/ventas-reales`). Mide cuánto se ganó con lo **efectivamente vendido** en un
+período, con el precio, el costo y la cotización de cada venta, no con la lista. Es un tablero de Superset embebido
+(`Rentabilidad · Ventas reales`, slug `rentabilidad-ventas-reales`, sección `rentabilidad`, rol por defecto
+`administracion`): rango «Desde / Hasta», totales (vendido, costo, costos adicionales, margen, margen % y estado según el
+umbral), desglose por empresa y por producto, vacío «Sin ventas en este período». Compara **todas** las empresas: no sigue
+a la empresa activa de la barra superior (Principio VIII, no aplica; ver la matriz de la spec). No hay Mercado Libre.
+
+- **Captura** (Principio VII, todo en `dominio`): `dominio.comprobantes_venta_lineas` suma `costo_unitario` (pesos por
+  unidad) y `cotizacion` (dólar vigente), nulables. `public.confirmar_comprobante(uuid)` (misma firma y grants) los guarda
+  en cada línea al confirmar, una sola vez: un cambio posterior de costo o de cotización no altera lo ya guardado. Un
+  trigger copia el costo de la línea original a las líneas de una nota de crédito de «Devolución de productos» (la RPC
+  `emitir_nota_credito` no cambia); las notas por importe no tienen líneas y no mueven el margen real.
+- **Sin histórico**: las ventas confirmadas antes de esta migración **no** tienen costo guardado y quedan fuera (no se
+  inventa costo); el tablero lo aclara en su nota. Una línea cuyo producto no tenía costo (o USD sin cotización) tampoco entra.
+- **Secreto del costo**: el costo guardado es de la sección `rentabilidad`. Se revocó el `select` de tabla de `authenticated`
+  sobre las líneas y se concedió columna por columna **sin** `costo_unitario` ni `cotizacion`; la vista no se concede a
+  `anon` ni `authenticated` (solo al rol `superset_analitica`, con el `rls` del guest token por `organizacion_id`).
+- **Vista** `analitica.rentabilidad_ventas_real` (empresa × producto × fecha): usa `analitica.comprobante_cuenta_como_facturado`
+  y `analitica.signo_comprobante` (sin reimplementarlos: factura y nota de crédito; no borrador, anulada ni presupuesto).
+  `vendido` = Σ signo × neto sin IVA; `costo` = Σ signo × cantidad × costo guardado; `costos_adicionales` = los **vigentes al
+  consultar** (% sobre el neto vendido + monto por unidad vendida, `analitica.costos_adicionales_de`); `margen` = vendido −
+  costo − costos adicionales; `margen_pct` = margen / vendido (nulo si el neto no es positivo). Los productos dados de baja y
+  las empresas pausadas con ventas hechas **sí** cuentan.
+- **Reversión** (todo aditivo; en una migración posterior, nunca en el PR que lo crea): `drop view
+  analitica.rentabilidad_ventas_real`; restituir `confirmar_comprobante` con su definición de `20261204140000`;
+  `drop trigger comprobantes_venta_lineas_costo_nota` y `drop function private.copiar_costo_linea_nota()`; devolver el
+  `select` de tabla a `authenticated` y `drop column costo_unitario, cotizacion` (exportar antes si interesa). La pestaña se
+  quita sacando la ruta y la entrada de `PESTANAS_RENTABILIDAD`.
+- **Pruebas**: pgTAP `rentabilidad_ventas_real.test.sql` (captura, idempotencia, vista, notas, exclusiones, privilegios) y
+  `rentabilidad_ventas_real_aislamiento.test.sql` (dos organizaciones, roles sin `rentabilidad`); Vitest `VentasReales.test.tsx`
+  y `tableroVentasReales.contrato.test.ts`; `infra/superset/importar-dashboards.test.mjs` (YAML y reporte).
+
+## Revisión de seguridad de la superficie nueva (cierre de MSF-192, FR-015)
+
+Revisada contra las migraciones `20270202201000`–`20270202201007` y sus pruebas pgTAP:
+
+- **Esquemas (Principio VII)**: `dominio.costos_adicionales_canal` (dominio del producto) con RLS por organización y sección
+  `rentabilidad`; sin políticas de escritura (solo las RPC `security definer` con `search_path = ''`). Las vistas y funciones de
+  lectura viven en `analitica`, cerrado a `anon` y `authenticated`: solo las lee `superset_analitica`.
+- **`anon`**: sin privilegios en la tabla; las RPC (`listar/guardar/dar_baja_costo_adicional`, `consultas_reportes_conteo`)
+  llevan `revoke ... from public, anon` y `grant ... to authenticated` explícitos.
+- **Costo y margen**: solo con `rentabilidad`. `costo_unitario` y `cotizacion` quedan fuera del `select` por columna de
+  `authenticated`; las RPC exigen `lectura`/`edicion` de `rentabilidad`; el token de Superset es por sección y el `rls` del
+  guest token filtra por `organizacion_id` (y empresas accesibles).
+- **Aislamiento**: pruebas `*_aislamiento.test.sql` con dos organizaciones y roles sin la sección; `rls_en_toda_tabla` recorre `public` + `dominio`.
+- **Sin hallazgos abiertos.** Límite conocido: el 403 del guest token es de Superset y se prueba en su importador, no en pgTAP.

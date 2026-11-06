@@ -22,6 +22,7 @@ import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EnviarCorreoProveedorDialog } from '../../components/proveedores/EnviarCorreoProveedorDialog'
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
+import { ListaContactos } from '../../components/proveedores/ListaContactos'
 import { ProductosDelProveedor } from '../../components/proveedores/ProductosDelProveedor'
 
 const DATOS: ReadonlyArray<{ campo: keyof Proveedor; etiqueta: string; formato?: (valor: string) => string }> = [
@@ -50,6 +51,7 @@ export function ProveedorShow() {
   const [procesando, setProcesando] = useState(false)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
+  const [tienePrincipal, setTienePrincipal] = useState(false)
   const ultimaPeticion = useRef(0)
   const { empresas: tiendas } = useEmpresas()
   const guardadas = useEmpresasDeProveedor(id)
@@ -72,6 +74,24 @@ export function ProveedorShow() {
       if (peticion === ultimaPeticion.current) setHayError(true)
     } finally {
       if (peticion === ultimaPeticion.current) setCargando(false)
+    }
+  }, [id])
+
+  // Relee la ficha sin pantalla de carga: tras cambiar el contacto principal la base la actualizó
+  // (y avanzó su updated_at, que usa el control de concurrencia de «Editar proveedor»).
+  const releerFicha = useCallback(async () => {
+    const peticion = ++ultimaPeticion.current
+    try {
+      const { data, error } = await supabaseClient
+        .schema('dominio')
+        .from('proveedores')
+        .select(COLUMNAS_PROVEEDOR)
+        .eq('id', id ?? '')
+        .maybeSingle<Proveedor>()
+      if (error) throw error
+      if (peticion === ultimaPeticion.current && data) setProveedor(data)
+    } catch (error) {
+      console.error('No pudimos actualizar la ficha del proveedor.', error)
     }
   }, [id])
 
@@ -159,6 +179,12 @@ export function ProveedorShow() {
                 {guardadas.isError ? 'No pudimos cargar las tiendas.' : compraPara.length > 0 ? compraPara.join(', ') : '—'}
               </Typography>
             </Box>
+            <ListaContactos
+              proveedorId={proveedor.id}
+              puedeEditar={puedeEditar}
+              onPrincipal={setTienePrincipal}
+              onFichaCambiada={() => void releerFicha()}
+            />
             {/* Solo con lectura en Productos: la función exige ambas secciones. */}
             {nivelProductos === 'lectura' || nivelProductos === 'edicion' ? <ProductosDelProveedor proveedorId={proveedor.id} /> : null}
           </Stack>
@@ -169,6 +195,7 @@ export function ProveedorShow() {
         <ProveedorFormDialog
           open
           proveedor={proveedor}
+          contactoPrincipal={tienePrincipal}
           onCerrar={() => setEditando(false)}
           onGuardado={(guardado) => {
             setProveedor(guardado)

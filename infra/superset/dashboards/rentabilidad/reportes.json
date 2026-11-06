@@ -24,6 +24,12 @@
       "dashboard_slug": "rentabilidad-historia",
       "seccion": "rentabilidad",
       "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Ventas reales",
+      "dashboard_slug": "rentabilidad-ventas-reales",
+      "seccion": "rentabilidad",
+      "rolesPorDefecto": ["administracion"]
     }
   ]
 }
