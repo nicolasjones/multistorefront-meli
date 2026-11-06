@@ -9,6 +9,7 @@ import {
 import {
   ETIQUETA_GUARDAR_ENVIO,
   MENSAJE_ERROR_CARGA_ENVIO,
+  MENSAJE_ENVIO_SOLO_LECTURA,
   MENSAJE_EXITO_ENVIO,
   MENSAJE_FACTURA_ENTREGADA,
   MENSAJE_SIN_FORMA_ENVIO,
@@ -51,6 +52,9 @@ type Props = {
   // Ventas en `edicion` en la empresa del comprobante (lo devuelve `obtener_comprobante`). El permiso
   // `despachar` lo resuelve la base en esa misma empresa.
   puedeEditar: boolean
+  // La factura ya no admite cambios de envío (quedó cobrada o con deuda): el bloque se sigue leyendo
+  // pero no ofrece guardar (la base solo admite el envío de una factura confirmada, MSF-715).
+  soloLectura?: boolean
   // Avisa a la pantalla que el envío cambió, para que recargue el comprobante (su `updated_at` avanzó).
   onCambio?: () => void
 }
@@ -88,6 +92,7 @@ export function EnvioTransporte({
   envioId,
   empresaActivaId,
   puedeEditar,
+  soloLectura = false,
   onCambio,
 }: Props) {
   const [forma, setForma] = useState<FormaEnvioDelComprobante | null>(null)
@@ -220,7 +225,7 @@ export function EnvioTransporte({
   const entregado = lecturaDespacho === 'entregado'
   // Una factura que todavía no entró al despacho tampoco: la base rechaza el envío hasta que tenga estado.
   const sinEstadoDespacho = lecturaDespacho === 'sin-estado'
-  const puedeGuardar = !entregado && !sinEstadoDespacho && (puedeEditar || puedeDespachar)
+  const puedeGuardar = !soloLectura && !entregado && !sinEstadoDespacho && (puedeEditar || puedeDespachar)
   // Mientras no se sepa el estado del despacho no se ofrece el envío: podría ser una factura ya entregada, que
   // la base rechaza siempre (FR-021).
   const cargandoDespacho = lecturaDespacho === null
@@ -421,7 +426,7 @@ export function EnvioTransporte({
                     </Stack>
                   ) : (
                     <Typography variant="caption" color="text.secondary">
-                      {MENSAJE_SIN_PERMISO_ENVIO}
+                      {soloLectura ? MENSAJE_ENVIO_SOLO_LECTURA : MENSAJE_SIN_PERMISO_ENVIO}
                     </Typography>
                   )}
                 </>

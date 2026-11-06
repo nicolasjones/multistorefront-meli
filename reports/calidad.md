@@ -1,11 +1,10 @@
-# Calidad determinista — 2026-11-01
+# Calidad determinista — 2026-11-05
 
 | check | estado |
 |---|---|
 | gitleaks (secretos) | hallazgos |
-| oxlint (SAST) | ok |
+| oxlint (SAST) | hallazgos |
 | knip (código muerto) | ok |
 | jscpd (duplicación) | ok |
 | dependency-cruiser (arquitectura) | ok |
 | syncpack (versiones) | ok |
-| commitlint (mensajes) | ok |

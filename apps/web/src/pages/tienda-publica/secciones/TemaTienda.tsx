@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Box } from '@mui/material'
 import { ProveedorTemaTienda } from '../../../tema/ProveedorTemaTienda'
+import { useFuenteTienda } from '../../../lib/fuenteTienda'
 import { familiasACargar, resolverIdentidadPublica, urlFuentes, urlPublica, type IdentidadTienda } from '../../../lib/tiendaIdentidad'
 import type { PropsSeccionTienda } from '../PaginaTienda'
 
@@ -49,18 +50,23 @@ function aplicarVariables(identidad: IdentidadTienda): () => void {
 }
 
 export default function TemaTienda({ tienda, host }: PropsSeccionTienda) {
-  const [identidad, setIdentidad] = useState<IdentidadTienda | null>(null)
+  const fuente = useFuenteTienda()
+  const [leida, setIdentidad] = useState<IdentidadTienda | null>(null)
+  // En la vista previa (F-TDA-06) la identidad llega inyectada y NO se aplican variables globales: el panel no
+  // debe cambiar de colores ni de fondo.
+  const identidad = fuente ? fuente.identidad : leida
 
   useEffect(() => {
+    if (fuente) return
     let cancelada = false
     setIdentidad(null)
     resolverIdentidadPublica(host)
       .then((resultado) => { if (!cancelada) setIdentidad(resultado) })
       .catch((error) => console.error('No se pudo leer la identidad de la tienda', error instanceof Error ? error.message : error))
     return () => { cancelada = true }
-  }, [host])
+  }, [host, fuente])
 
-  useEffect(() => (identidad ? aplicarVariables(identidad) : undefined), [identidad])
+  useEffect(() => (leida && !fuente ? aplicarVariables(leida) : undefined), [leida, fuente])
 
   if (!identidad) return null
   const logo = urlPublica(identidad.logoRuta)

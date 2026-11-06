@@ -4,6 +4,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { useConteoVentasReporte } from '../../hooks/useVentasReportes'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { MENSAJE_SIN_VENTAS, SECCION_REPORTES, type RangoFechas } from '../../lib/ventas-reportes'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 
@@ -31,6 +32,9 @@ type Props = {
   // Filtros nativos preseleccionados en el tablero (rison). Si cambian, el tablero se remonta con
   // los filtros nuevos (la clave de montaje los incluye).
   urlParams: Record<string, string>
+  // Fuente del conteo del período y texto del estado vacío. Por defecto, las ventas.
+  leerConteo?: (cliente: SupabaseClient, filtros: { rango: RangoFechas; empresaId: string | null }) => Promise<number>
+  mensajeVacio?: string
 }
 
 // Tablero embebido de una pestaña de «Reportes de ventas» con los estados compartidos del panel:
@@ -44,12 +48,15 @@ export function TableroReporte({
   nombreReporte,
   etiquetaReporte,
   urlParams,
+  leerConteo,
+  mensajeVacio = MENSAJE_SIN_VENTAS,
 }: Props) {
   const { reportes, isLoading: cargandoReportes } = useReportesAsignados()
   const { conteo, hayError, isLoading: cargandoConteo } = useConteoVentasReporte({
     rango,
     empresaId,
     habilitado: !cargandoEmpresa,
+    leerConteo,
   })
   // Cada intento remonta el tablero: repite la solicitud del token y el montaje.
   const [intento, setIntento] = useState(0)
@@ -86,7 +93,7 @@ export function TableroReporte({
   } else if (conteo === 0) {
     tablero = (
       <EstadoVacio
-        titulo={MENSAJE_SIN_VENTAS}
+        titulo={mensajeVacio}
         descripcion="Probá con otro período o con otra tienda."
       />
     )
