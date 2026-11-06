@@ -64,7 +64,7 @@ Las cuentas bancarias y billeteras son de la **organización** y se habilitan po
 
 - La tabla muestra **Cuenta**, **Titular**, **Banco**, **CBU**, **CUIT**, **Disponible en** (chips por
   tienda), **Estado** y la acción de editar. Tiene filtro **Tienda**, filtro de estado
-  (**Todas / Activas / No usar**), recuento y paginación.
+  (**Todas / Activas / No usar**), recuento y carga por tandas con **«Cargar más»** al pie.
 - **Nueva cuenta de cobro** pide nombre, titular, CUIT del titular, banco, alias, CBU/CVU, tipo de
   cuenta (Cuenta corriente / Caja de ahorro / Billetera virtual), moneda (ARS / USD), orden, notas
   internas y las empresas donde está disponible.

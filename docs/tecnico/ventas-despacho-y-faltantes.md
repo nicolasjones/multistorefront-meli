@@ -210,6 +210,11 @@ entera sin aplicar (todo o nada).
   (`creado_en`) y el **stock de hoy** (estado y disponible) con la lectura de Stock que ya existe
   (`public.stock_estados`, leída por organización). Paginación en el servidor (tope de 200 por página) y total del
   filtro en `filas`. Una tienda ajena devuelve **cero filas**, no un error: el error delataría que esa tienda existe.
+- El listado de faltantes **acumula** las tandas de 10 con un **«Cargar más»** al pie y muestra la **miniatura del
+  producto**; ver [Listados: carga infinita e imagen de producto](listados.md). La miniatura depende de
+  `producto_id`, que `listar_faltantes` todavía **no** devuelve: lo agrega la migración
+  `20270204100000_ventas_listados_producto_id.sql`, que está en la rama
+  `origin/feat/ventas-faltantes-rma-producto-id` y todavía no está integrada.
 
 ### Listado del tablero (FR-030)
 
@@ -228,6 +233,8 @@ agrega el índice parcial `comprobantes_venta_despacho_listado_idx`.
   página queda sin filas, devuelve **una** fila con `id` nulo que lleva `filas = 0` y los `conteos`: la pantalla
   conserva las píldoras y muestra «Sin resultados». `lib/ventasDespachoLista.ts` descarta esa fila.
 - Errores: `42501` sin sesión con organización · `22023` estado desconocido. Orden: fecha, número e id descendente.
+- El tablero **acumula** las tandas de 10 con un **«Cargar más»** al pie, en vez de paginar numerado; ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 
 ## RPC
 

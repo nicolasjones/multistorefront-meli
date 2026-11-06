@@ -68,10 +68,11 @@ Para el **equipo que administra Clientes** (roles con edición en la sección Cl
 1. **Aceptación:** en `/clientes/show/:id` de un cliente, bloque **«Comunicaciones»**, encender/apagar
    «Incluir en el correo masivo». Se ve que guarda al instante; con solo lectura el control no es editable.
 2. **Destinatarios:** menú Contactos → **«Correo masivo»** (`/clientes/correo-masivo`, «Nueva campaña»). Se ve la
-   lista paginada de elegibles, el conteo y el resumen de quedan afuera «sin correo» y «no aceptan».
+   lista de elegibles (carga por tandas de 25, con «Cargar más» al pie), el conteo y el resumen de quedan afuera
+   «sin correo» y «no aceptan».
    El archivado y el Consumidor final no aparecen.
 3. **Filtros:** escribir en «Buscar clientes», cambiar el filtro de tipo (Minorista/Mayorista) y el selector de
-   empresa. La lista y el conteo se recargan y vuelven a la página 1.
+   empresa. La lista y el conteo se recargan y arrancan de nuevo desde la primera tanda.
 4. **Desde el listado:** en `/clientes` marcar dos clientes y usar **«Enviar correo a seleccionados (N)»**. Sin
    marcar nada aparece «Elegí al menos un cliente con las casillas». Con marcados se abre el diálogo con
    «Se envía a los N clientes marcados…», Asunto, Mensaje, «Cancelar» y «Enviar correo».

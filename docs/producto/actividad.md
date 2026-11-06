@@ -57,7 +57,7 @@ También podés combinar filtros, por ejemplo una tienda, los últimos 30 días 
 
 *Filtros combinados: tienda, período y tipo.*
 
-Si ningún evento coincide, ves «No hay actividad con esos filtros». Probá con otro período o quitá algún filtro. Los resultados se muestran de a diez; usá **Página anterior** y **Página siguiente** para recorrerlos.
+Si ningún evento coincide, ves «No hay actividad con esos filtros». Probá con otro período o quitá algún filtro. Los resultados se cargan de a diez: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie de la lista. Ver [Cómo se muestran las listas](listados.md).
 
 ## Cómo leer cada fila
 

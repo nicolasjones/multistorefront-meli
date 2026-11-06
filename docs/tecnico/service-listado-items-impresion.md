@@ -181,14 +181,16 @@ dejara de alcanzar, se evalúa un índice trigram en una migración aditiva.
 ## Interfaz
 
 - `apps/web/src/pages/service-tecnico/reparaciones.tsx`: listado, tabla/tarjetas (`ContenidoAdaptable`),
-  paginación en servidor, contador, estados de carga/error/vacío y botón «Nueva reparación» solo con `edicion`.
+  carga por tandas en servidor con «Cargar más», contador, estados de carga/error/vacío y botón «Nueva reparación»
+  solo con `edicion` (regla de listados: [Listados: carga infinita e imagen de producto](listados.md)).
 - `apps/web/src/components/service/FiltrosReparaciones.tsx`: chips Hoy/Semana/Mes, buscador por N.º de serie
   con espera de 300 ms y selector de técnico.
 - `apps/web/src/lib/reparacionesListado.ts`: tipos, llamada a `listar_reparaciones`, formato de fechas y
-  mensajes de error. La paginación y los filtros viajan al servidor; el navegador no descarga la lista
+  mensajes de error. Las tandas y los filtros viajan al servidor; el navegador no descarga la lista
   completa.
 - `apps/web/src/components/service/ItemsReparacion.tsx`: sección «Mano de obra y repuestos», tablas,
-  subtotales, Total al cliente copiable, ganancia estimada y confirmación de quitar.
+  subtotales, Total al cliente copiable, ganancia estimada y confirmación de quitar. Los ítems que son repuestos
+  del catálogo muestran la **miniatura del producto** (`MiniaturaProducto`), con zoom al pasar el mouse.
 - `AgregarManoObraDialog.tsx`, `AgregarRepuestoDialog.tsx` y el cuerpo común `AgregarItemDialog.tsx`: campos
   del prototipo, «Subtotal:» en vivo, validación antes de enviar y errores de la base en el campo.
 - `apps/web/src/lib/reparacionItems.ts`: validación, subtotal en vivo, llamadas a las RPC y mapeo de errores
@@ -198,11 +200,11 @@ dejara de alcanzar, se evalúa un índice trigram en una migración aditiva.
 
 La tienda del listado es la **empresa activa** de la barra superior, no un filtro de la pantalla. Al cambiarla:
 
-- se vuelve a la **página 1** y se descartan las filas de la empresa anterior y las de «todas»;
+- se vuelve a la **primera tanda** y se descartan las filas de la empresa anterior y las de «todas»;
 - mientras se resuelve la empresa activa no se muestran filas (`useListarReparaciones` conserva las filas
   anteriores solo mientras llega otra página de la **misma** combinación de filtros);
 - la búsqueda por serie y el filtro de técnico se mantienen, pero se reejecutan con la nueva empresa;
-- si la página quedó fuera de rango, la pantalla vuelve a la primera.
+- si la última tanda quedó vacía (el filtro dejó todo fuera de rango), la pantalla vuelve a la primera.
 
 ## Impresión
 

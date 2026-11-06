@@ -31,7 +31,7 @@ En el menú lateral, grupo **Servicio técnico**, hay tres pantallas (también c
 
 ## El listado de reparaciones
 
-Entrá en **Servicio técnico → Reparaciones**. Ves los equipos que ingresaron al taller, de la reparación más nueva a la más antigua, de a 25 por página. El listado respeta la tienda elegida arriba, en el selector de empresa: con una tienda ves solo sus reparaciones; con «Todas mis empresas», las de todas.
+Entrá en **Servicio técnico → Reparaciones**. Ves los equipos que ingresaron al taller, de la reparación más nueva a la más antigua. La lista carga de a 25: cuando llegás al final se siguen cargando solas, o apretá **Cargar más** al pie. El listado respeta la tienda elegida arriba, en el selector de empresa: con una tienda ves solo sus reparaciones; con «Todas mis empresas», las de todas.
 
 
 ![Listado de reparaciones del taller, con tienda, cliente, equipo, número de serie, estado, técnico y fecha de entrega](img/service-tecnico/01-reparaciones.png)
