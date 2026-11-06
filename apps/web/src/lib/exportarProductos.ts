@@ -26,7 +26,7 @@ export const COLUMNAS_EXPORTACION: ReadonlyArray<ColumnaExportacion> = [
   { clave: 'nombre', etiqueta: 'Nombre', requiereRentabilidad: false, porDefecto: true },
   { clave: 'categoria', etiqueta: 'Categoría', requiereRentabilidad: false, porDefecto: true },
   { clave: 'precio', etiqueta: 'Precio', requiereRentabilidad: false, porDefecto: true },
-  { clave: 'costo', etiqueta: 'Costo', requiereRentabilidad: true, porDefecto: false },
+  { clave: 'costo', etiqueta: 'Costo', requiereRentabilidad: true, porDefecto: true },
   { clave: 'stock', etiqueta: 'Stock', requiereRentabilidad: false, porDefecto: true },
   { clave: 'visible_en', etiqueta: 'Visible en', requiereRentabilidad: false, porDefecto: true },
   { clave: 'estado', etiqueta: 'Estado', requiereRentabilidad: false, porDefecto: true },
@@ -38,7 +38,7 @@ export function columnasOfrecidas(veRentabilidad: boolean): ColumnaExportacion[]
   return COLUMNAS_EXPORTACION.filter((columna) => veRentabilidad || !columna.requiereRentabilidad)
 }
 
-/** Las ocho columnas por defecto (FR-204), sin costo ni proveedor. */
+/** Las ocho primeras por defecto (FR-204); sin acceso a Rentabilidad el Costo no se ofrece y quedan siete. */
 export function columnasPorDefecto(veRentabilidad: boolean): ClaveColumnaExportacion[] {
   return columnasOfrecidas(veRentabilidad).filter((columna) => columna.porDefecto).map((columna) => columna.clave)
 }
