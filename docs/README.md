@@ -13,6 +13,7 @@ Tres entradas según lo que necesites:
 | Funcionalidad | Documento |
 |---|---|
 | Ingreso y bloqueo por intentos | [acceso-ingreso.md](acceso-ingreso.md) |
+| Acceso de soporte auditado | [acceso-soporte.md](acceso-soporte.md) |
 | Solicitud de acceso | [solicitar-acceso.md](solicitar-acceso.md) |
 | Invitaciones de usuarios | [invitar-usuarios.md](invitar-usuarios.md), [migracion-invitaciones-usuarios.md](migracion-invitaciones-usuarios.md) |
 | Migración inicial de datos (importador, conciliación, plan de corte) | [migracion-datos.md](migracion-datos.md), [migracion-inicial-de-datos.md](migracion-inicial-de-datos.md) |
