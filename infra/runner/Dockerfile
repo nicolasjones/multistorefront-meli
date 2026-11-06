@@ -48,6 +48,15 @@ RUN curl -fsSL -o scout.tar.gz \
 # existe dentro de este contenedor, no en el host real (Docker-fuera-de-
 # Docker no traduce paths de un contenedor a otro).
 
+# gh: el paso «avisar el link del visor en el PR» de validate.yml comenta con
+# `gh pr comment`; sin el binario fallaba con exit 127 (MSF-801). Repo apt oficial.
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli.gpg \
+    && chmod a+r /etc/apt/keyrings/githubcli.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /home/runner
 RUN curl -fsSL -o actions-runner.tar.gz \
       "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \

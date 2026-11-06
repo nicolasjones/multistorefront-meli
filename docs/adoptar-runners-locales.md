@@ -111,3 +111,14 @@ Revertir el merge del PR de adopción y recrear los runners (verificando antes
 que ninguno esté ocupado). El volumen compartido no se borra: lo sigue usando
 el template. Para aislar el producto sin revertir, fijar
 `RUNNER_PNPM_STORE_VOLUME` con otro nombre en su `.env` y recrear.
+
+## `gh` en la imagen del runner y aviso del visor E2E (2026-11-06, MSF-801)
+
+El paso «avisar el link del visor en el PR» de `validate.yml` comenta con
+`gh pr comment`, pero la imagen no traía `gh`: fallaba con `gh: command not
+found` (exit 127) y dejaba `application` en rojo aunque `test:e2e` pasara
+(PR #715 y #696). Dos mitigaciones independientes: `infra/runner/Dockerfile`
+instala `gh` desde el repo apt oficial de GitHub CLI (requiere reconstruir la
+imagen del runner), y el paso lleva `continue-on-error: true` porque es un
+aviso informativo que no valida nada y no debe tumbar el job. Reversión:
+quitar ambos cambios.
