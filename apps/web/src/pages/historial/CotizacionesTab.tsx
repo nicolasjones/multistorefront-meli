@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
-import { Box, LinearProgress, Stack, TablePagination, TextField } from '@mui/material'
-import { TAMANO_PAGINA_HISTORIAL } from '../../hooks/useHistorialVentasCobros'
+import { Box, LinearProgress, Stack, TextField } from '@mui/material'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useHistorialCotizaciones, type CotizacionHistorica } from '../../hooks/useHistorialCotizaciones'
 import { formatearFecha, formatearImporteHistorial } from '../../lib/formatoHistorial'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 
@@ -23,15 +24,19 @@ const columnas: ColumnaAdaptable<CotizacionHistorica>[] = [
 // resuelve la ruta y, en serio, la RLS de `historial_cotizaciones_dolar`.
 export function CotizacionesTab() {
   const { filas, total, texto, setTexto, textoAplicado, pagina, setPagina, isLoading, isFetching, isError, refetch } = useHistorialCotizaciones()
+  // Carga infinita: se suman las tandas de 25 que ya entrega la RPC de cotizaciones.
+  const listado = useListadoAcumulado({ items: filas, pagina, setPagina, total, cargando: isFetching, reinicio: textoAplicado })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
   const hayFiltros = textoAplicado.trim() !== ''
 
   let contenido: ReactNode
   // Página fuera de rango: el hook vuelve a la 1; mientras tanto no se muestra «Sin resultados».
-  if (isLoading || (pagina > 1 && filas.length === 0 && !isError)) {
+  if (isLoading || (pagina > 1 && listado.filas.length === 0 && !isError)) {
     contenido = <EstadoCargaPagina />
-  } else if (isError) {
+  } else if (isError && !falloTanda) {
     contenido = <EstadoError descripcion="No pudimos cargar las cotizaciones del dólar." reintentar={() => void refetch()} />
-  } else if (filas.length === 0) {
+  } else if (listado.filas.length === 0) {
     contenido = hayFiltros ? (
       <EstadoVacio titulo="Sin resultados" descripcion="Probá con otra fecha." />
     ) : (
@@ -40,16 +45,12 @@ export function CotizacionesTab() {
   } else {
     contenido = (
       <>
-        <ContenidoAdaptable items={filas} columnas={columnas} obtenerClave={(fila) => fila.id} etiquetaTabla="Cotizaciones del dólar históricas" />
-        <TablePagination
-          component="div"
-          count={total}
-          page={pagina - 1}
-          rowsPerPage={TAMANO_PAGINA_HISTORIAL}
-          rowsPerPageOptions={[TAMANO_PAGINA_HISTORIAL]}
-          onPageChange={(_, nueva) => setPagina(nueva + 1)}
-          labelRowsPerPage="Registros por página"
-          labelDisplayedRows={({ from, to, count }) => `Página ${pagina} · ${from}–${to} de ${count}`}
+        <ContenidoAdaptable items={listado.filas} columnas={columnas} obtenerClave={(fila) => fila.id} etiquetaTabla="Cotizaciones del dólar históricas" />
+        <CargaInfinita
+          hayMas={listado.hayMas}
+          cargando={listado.cargandoMas}
+          hayError={falloTanda}
+          onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
         />
       </>
     )
@@ -57,7 +58,7 @@ export function CotizacionesTab() {
 
   return (
     <Stack spacing={2}>
-      <BarraHerramientas contador={isLoading || isError ? undefined : `${total} registros mostrados`}>
+      <BarraHerramientas contador={isLoading || (isError && !falloTanda) ? undefined : `${total} registros mostrados`}>
         <TextField
           type="search"
           label="Buscar por fecha"
@@ -70,7 +71,7 @@ export function CotizacionesTab() {
       </BarraHerramientas>
 
       <Box role="status" aria-live="polite" sx={visuallyHidden}>
-        {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+        {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando cotizaciones del dólar" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
       <Box aria-busy={isFetching}>{contenido}</Box>

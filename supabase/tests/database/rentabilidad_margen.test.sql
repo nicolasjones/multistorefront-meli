@@ -77,7 +77,7 @@ select has_view('analitica', 'margen_producto_canal', 'existe analitica.margen_p
 select columns_are(
   'analitica', 'margen_producto_canal',
   array['organizacion_id', 'empresa_id', 'empresa_nombre', 'producto_id', 'producto_nombre', 'sku',
-        'precio_neto', 'costo', 'comision', 'margen', 'margen_pct', 'estado'],
+        'precio_neto', 'costo', 'comision', 'margen', 'margen_pct', 'estado', 'costos_adicionales'],
   'la vista expone exactamente las columnas del contrato'
 );
 

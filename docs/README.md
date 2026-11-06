@@ -16,6 +16,7 @@ Tres entradas según lo que necesites:
 | Solicitud de acceso | [solicitar-acceso.md](solicitar-acceso.md) |
 | Invitaciones de usuarios | [invitar-usuarios.md](invitar-usuarios.md), [migracion-invitaciones-usuarios.md](migracion-invitaciones-usuarios.md) |
 | Migración inicial de datos (importador, conciliación, plan de corte) | [migracion-datos.md](migracion-datos.md), [migracion-inicial-de-datos.md](migracion-inicial-de-datos.md) |
+| Documentos IA (búsqueda documental: subida, versiones, permisos) | [documentos-ia.md](documentos-ia.md) |
 | Empresa activa | [empresa-activa.md](empresa-activa.md) |
 | Usuarios, empresas y permisos | [usuarios-y-empresas.md](usuarios-y-empresas.md), [permisos-por-rol.md](permisos-por-rol.md) |
 | Organización: alta, administración, empresas | [alta-de-organizaciones.md](alta-de-organizaciones.md), [administracion-organizacion.md](administracion-organizacion.md), [empresas.md](empresas.md) |
@@ -33,6 +34,7 @@ Tres entradas según lo que necesites:
 | Ventas: cobros por comprobante y conciliación de pagos | [cobros-por-comprobante.md](cobros-por-comprobante.md), [pagos-conciliacion.md](pagos-conciliacion.md) |
 | Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
 | Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md) |
+| Ventas: venta de mostrador con lector de código de barras | [ventas-mostrador.md](ventas-mostrador.md) |
 | Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-cobro.md](service-cobro.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |

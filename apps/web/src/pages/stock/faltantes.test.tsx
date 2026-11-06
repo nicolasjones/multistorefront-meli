@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   avisar: vi.fn(),
   useNivelSeccion: vi.fn(),
   useFiltroPorEmpresaActiva: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
 
 vi.mock('../../lib/faltantes', async (original) => ({
@@ -14,6 +15,7 @@ vi.mock('../../lib/faltantes', async (original) => ({
   listarFaltantes: mocks.listar,
   avisarFaltantes: mocks.avisar,
 }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
@@ -27,6 +29,7 @@ const fila = (n: number, extra: Record<string, unknown> = {}) => ({
   empresa: 'San Javucho',
   cliente_id: `c-${n}`,
   cliente: `Cliente ${n}`,
+  producto_id: `p-${n}`,
   producto: `Producto ${n}`,
   sku: `SKU-${n}`,
   pedido: n,
@@ -66,6 +69,7 @@ describe('FaltantesStock (F-STK-17)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes = new Map()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useFiltroPorEmpresaActiva.mockReturnValue({
       empresas, valor: null, cambiar: vi.fn(), empresaActivaId: null, cargando: false, hayError: false,
@@ -320,19 +324,20 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(fechas).toEqual(['09/10/2026', '05/10/2026', '01/10/2026'])
   })
 
-  it('pagina: con más de 25 faltantes, «Siguiente» pide la página 2 (FR-303)', async () => {
+  it('carga infinita: con más de 25 faltantes, «Cargar más» suma la tanda 2 a la 1 (FR-303)', async () => {
     mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => ({
       filas: [fila(pagina, { producto: `Producto de la página ${pagina}` })],
       total: 60,
     }))
     abrir()
     expect(await screen.findByText('Producto de la página 1')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(await screen.findByText('Producto de la página 2')).toBeInTheDocument()
+    expect(screen.getByText('Producto de la página 1')).toBeInTheDocument()
     expect(mocks.listar).toHaveBeenLastCalledWith({ empresaId: null, pagina: 2, tamano: 25 })
   })
 
-  it('tras avisar, la recarga usa los filtros vigentes y no vuelve a la página anterior', async () => {
+  it('tras avisar, la recarga vuelve a la primera tanda', async () => {
     mocks.listar.mockImplementation(async ({ pagina }: { pagina: number }) => ({
       filas: [fila(pagina, { producto: `Producto de la página ${pagina}` })],
       total: 60,
@@ -345,16 +350,25 @@ describe('FaltantesStock (F-STK-17)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
 
-    // La persona cambia de página mientras el aviso viaja: cuando vuelve, la recarga tiene que
-    // pedir la página que está a la vista (nunca la anterior: FR-311, nada de filas viejas).
-    fireEvent.click(screen.getByRole('button', { name: /next page/i, hidden: true }))
+    // La persona suma una tanda mientras el aviso viaja: cuando vuelve, las filas cambiaron y se
+    // recarga desde la primera tanda (nada de filas viejas, FR-311).
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más', hidden: true }))
     expect(await screen.findByText('Producto de la página 2')).toBeInTheDocument()
 
     resolverAviso({
       encolados: 1, lineas_avisadas: 1, omitidos_ya_avisados: 0, omitidos_sin_stock: 0, omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
     })
-    await waitFor(() => expect(mocks.listar).toHaveBeenLastCalledWith({ empresaId: null, pagina: 2, tamano: 25 }))
-    expect(screen.getByText('Producto de la página 2')).toBeInTheDocument()
+    await waitFor(() => expect(mocks.listar).toHaveBeenLastCalledWith({ empresaId: null, pagina: 1, tamano: 25 }))
+    expect(await screen.findByText('Producto de la página 1')).toBeInTheDocument()
+    expect(screen.queryByText('Producto de la página 2')).not.toBeInTheDocument()
+  })
+
+  it('muestra la imagen principal del producto como miniatura', async () => {
+    mocks.imagenes = new Map([['p-1', 'https://img.test/uno.jpg']])
+    mocks.listar.mockResolvedValue({ filas: [fila(1)], total: 1 })
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(document.querySelector('img[src="https://img.test/uno.jpg"]')).not.toBeNull()
   })
 
   it('no muestra identificadores técnicos de la fila (FR-310)', async () => {
