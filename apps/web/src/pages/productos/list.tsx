@@ -3,7 +3,6 @@ import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
-import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
 import { useCompatibles } from '../../hooks/useCompatibles'
@@ -174,7 +173,6 @@ export function ProductoList() {
   const [productoEnDialogo, setProductoEnDialogo] = useState<string | null | undefined>(undefined)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
   // Exportar (F-CAT-11, FR-201): solo el Administrador; el diálogo y el aviso de resultado viven acá.
-  const { esAdministrador } = useEsAdministrador()
   const [exportando, setExportando] = useState(false)
   const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info'; texto: string } | null>(null)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
