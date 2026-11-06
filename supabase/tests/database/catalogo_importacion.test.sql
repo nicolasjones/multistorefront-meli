@@ -176,6 +176,8 @@ select is(
   'un producto nuevo sin precio x1: error'
 );
 
+-- La función privada no es ejecutable por authenticated: se prueba como dueño (postgres).
+reset role;
 select is(
   (select estado from private.validar_filas_importacion_productos(
      '11111111-1111-1111-1111-111111111111', false,
@@ -183,6 +185,8 @@ select is(
   'aviso',
   'con costo y sin acceso a Rentabilidad, la fila se importa con aviso (FR-106)'
 );
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 
 select throws_ok(
   $$ select * from public.validar_importacion_productos(
