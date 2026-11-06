@@ -126,6 +126,7 @@ nav:
           - Tiendas online: producto/tiendas-online.md
           - Dominio, identidad y textos: producto/tienda-dominio-e-identidad.md
           - Dominio, publicación y versiones: producto/tienda-dominio-y-publicacion.md
+          - Estados, relacionados, Google y legales: producto/tienda-seo-legal-y-estados.md
           - Consultas de las tiendas: producto/consultas.md
           - Contactos: producto/contactos.md
       - Configuración y datos:
@@ -207,6 +208,7 @@ nav:
           - WhatsApp y contacto: tecnico/tienda-whatsapp-y-contacto.md
           - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md
           - Dominio, publicación y versiones: tecnico/tienda-dominio-y-publicacion.md
+          - Estados, relacionados, SEO y legal: tecnico/tienda-seo-legal-y-estados.md
           - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
       - Consultas y datos:
           - Consultas: tecnico/consultas.md

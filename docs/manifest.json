@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "6012ae22a4d4e345c3dda641bfd65dd28da79acc36b7960dc6872622d210dea8",
+      "pageHash": "72ff65647b72701a383e2bb2f6e75eab88b59f3aed5c23d7370be017a466e3b7",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "801de684"
+      "commit": "29bf8f31"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -727,6 +727,15 @@
     "docs/producto/tienda-dominio-y-publicacion.md": {
       "title": "Dominio, publicación y versiones de la tienda",
       "pageHash": "9d2a250704b19324edb14f70c0f89161bf82679bc92880cda5bd461e20e58164",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/tienda-seo-legal-y-estados.md": {
+      "title": "Páginas de estado, productos relacionados, Google y datos legales de la tienda",
+      "pageHash": "64175f3b9b5f00e89645f1048977b7870f57ad6f42c7c3cbc7dea84c96bdad47",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1741,6 +1750,22 @@
       ],
       "owner": "tecnico",
       "commit": "43372ac7"
+    },
+    "docs/tecnico/tienda-seo-legal-y-estados.md": {
+      "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
+      "pageHash": "4e460da3107bb7d07251c7996d6bc00dd3d7c3eba594777f9deae60b3df47dcd",
+      "sourceHash": "555689c017426bc19f899fa9f967656121542016c5de48701a08d955971fd783",
+      "sourceAt": "3f3cee19",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/functions",
+        "supabase/tests/database",
+        "apps/web/src",
+        "openapi"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
