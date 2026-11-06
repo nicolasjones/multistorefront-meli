@@ -358,7 +358,9 @@ begin
     where a.value is distinct from d.value
     order by 1
   loop
-    if octet_length(anterior::text) + octet_length(nuevo::text) < 6000 then
+    if octet_length(anterior::text) + octet_length(nuevo::text)
+       + octet_length(coalesce(k.valor_antes::text, '')) + octet_length(coalesce(k.valor_despues::text, ''))
+       + 2 * octet_length(k.clave) < 6000 then
       if k.valor_antes is not null then anterior := anterior || jsonb_build_object(k.clave, k.valor_antes); end if;
       if k.valor_despues is not null then nuevo := nuevo || jsonb_build_object(k.clave, k.valor_despues); end if;
     else
@@ -366,8 +368,8 @@ begin
     end if;
   end loop;
   if v_omitidos > 0 then
-    anterior := anterior || jsonb_build_object('otros cambios', 'sin detalle');
-    nuevo := nuevo || jsonb_build_object('otros cambios', v_omitidos);
+    anterior := anterior || jsonb_build_object('… otros cambios', 'sin detalle');
+    nuevo := nuevo || jsonb_build_object('… otros cambios', v_omitidos);
   end if;
 end;
 $$;

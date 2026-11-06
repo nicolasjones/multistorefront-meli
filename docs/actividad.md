@@ -231,7 +231,7 @@ y `20270201200142_depurar_registro_actividad.sql`.
   organización o sin permiso; sin acceso para `anon`).
 - **Matriz de permisos**: `guardar_matriz_permisos` y `restablecer_matriz_permisos` guardan solo lo que cambió, antes y
   después (`{"Operador · stock": "edicion"}` → `{"Operador · stock": "lectura"}`); si hay tantos cambios que no entran
-  en 8 KB, el resto se resume en «otros cambios». El trigger de membresía guarda rol/estado anterior y nuevo.
+  en 8 KB, el resto se resume en «… otros cambios». El trigger de membresía guarda rol/estado anterior y nuevo.
 
 ### Contrato de `registrar_cambio_actividad`
 
@@ -251,7 +251,7 @@ perform private.registrar_cambio_actividad(
 
 ### Depuración por retención
 
-`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses**, deja un evento
+`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
 `sistema.depurada` («Sistema», sin actor) por organización con la cantidad y es idempotente. Solo la ejecutan
 `workers_orquestacion` y `kestra_orquestacion` (el rol con el que corre Kestra). La dispara el flow
 `infra/kestra/flows/depuracion-actividad.yml` (todos los días a las 04:00; si la función falla, la ejecución queda en

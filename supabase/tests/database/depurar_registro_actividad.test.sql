@@ -2,7 +2,7 @@
 -- Cubre FR-008 y SC-003. Las fechas son relativas al reloj de la base (sin fechas absolutas).
 begin;
 
-select plan(14);
+select plan(15);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -53,6 +53,11 @@ set local role workers_orquestacion;
 select is(private.depurar_registro_actividad(), 0, 'una segunda corrida no borra nada');
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'sistema.depurada'), 2, 'y no suma eventos de Sistema');
+
+-- p_hasta no puede adelantar el corte: una fecha futura no borra lo que tiene menos de 24 meses
+set local role workers_orquestacion;
+select is(private.depurar_registro_actividad(now() + interval '100 years'), 0, 'p_hasta futuro se limita a now(): no borra eventos recientes');
+reset role;
 
 -- La excepción de la depuración no queda abierta: el borrado directo sigue bloqueado
 select throws_ok($$delete from registro_actividad$$, '42501', null, 'tras depurar, el borrado directo sigue rechazado');

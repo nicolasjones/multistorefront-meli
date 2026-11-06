@@ -37,7 +37,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_corte timestamptz := p_hasta - interval '24 months';
+  v_corte timestamptz := least(p_hasta, pg_catalog.now()) - interval '24 months';
   v_total integer := 0;
   r record;
 begin
@@ -52,6 +52,7 @@ begin
 
   perform pg_catalog.set_config('msf.depurando_actividad', 'on', true);
 
+  begin
   for r in
     with borradas as (
       delete from public.registro_actividad a
@@ -70,6 +71,11 @@ begin
       format('Depuró %s %s con más de 24 meses', r.cantidad, case when r.cantidad = 1 then 'evento' else 'eventos' end)
     );
   end loop;
+  exception when others then
+    -- Que la marca no sobreviva a un error capturado por quien llama dentro de la misma transacción.
+    perform pg_catalog.set_config('msf.depurando_actividad', 'off', true);
+    raise;
+  end;
 
   perform pg_catalog.set_config('msf.depurando_actividad', 'off', true);
   return v_total;
