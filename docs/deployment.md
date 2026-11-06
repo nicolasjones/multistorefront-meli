@@ -31,6 +31,9 @@ Staging valida migraciones, permisos, workflows y conexión entre componentes si
   revalida y baja el bundle nuevo en cada deploy) y los assets con hash, con cache
   inmutable de 1 año. Como el HTML referencia el hash del bundle, no hace falta invalidar
   nada a mano (evita el «no aparece la pantalla nueva» hasta un Ctrl+Shift+R).
+  También proxea `/robots.txt` y `/sitemap.xml` a la Edge Function `tienda-seo` (F-TDA-21): la
+  URL de Supabase y la clave pública se toman de los `ARG VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_PUBLISHABLE_KEY` del build de la imagen (ver `docs/tiendas-online.md`).
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.

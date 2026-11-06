@@ -813,3 +813,40 @@ Qué ve el visitante según el estado del dominio (la sección completa «Estado
 - **Migración** `20270205120000_tienda_estado_pausada.sql`, aditiva. Reversión: `drop function publico.estado_tienda_por_dominio(text);`.
 - **Front**: `lib/tiendaEstado.ts` (`resolverEstadoTienda`, `useEstadoTienda`), `VolvemosPronto.tsx`, `PantallaError.tsx` (también en `ErrorDeRuta` de `EnrutadorTienda.tsx`, sin repetir el landmark `main` dentro de la tienda) y `PaginaNoEncontrada.tsx` (buscador diferido, solo con tienda).
 - **Verificación**: pgTAP `tienda_estado_pausada.test.sql`; Vitest + axe (`VolvemosPronto`, `PaginaNoEncontrada`, `PantallaError`, `index`); E2E `apps/web/e2e/tienda-estados.e2e.ts` con las dos tiendas (la pausa se aplica con el mismo campo `dominio.empresas.activa` que el botón «Pausar tienda»).
+
+## SEO y posicionamiento básico (F-TDA-21, MSF-279, épica MSF-149)
+
+Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-006…SC-008). Migración
+`20270205120002_tienda_seo.sql` (aditiva, sin tablas: `publico` sigue sin tablas — Principio VII).
+
+- **Funciones públicas** (`security definer`, `anon` ejecuta, lista blanca): `publico.seo_tienda_por_dominio(host)` →
+  `{ dominio (canónico), nombre, descripcion, logo_ruta, indexable }` (la descripción es el subtítulo publicado de
+  `dominio.tienda_contenido` o «<nombre> · tienda online»; `indexable` es `true`: punto de extensión del «no indexar» de borrador de
+  MSF-133) y `publico.sitemap_por_dominio(host)` → `{ dominio, urls: [{ ruta, modificado }] }` con inicio, catálogo, contacto,
+  categorías visibles y productos efectivamente visibles (`private.catalogo_tienda_efectivo`), hasta 50.000 URLs (constante única
+  `c_tope`, límite del protocolo). Host desconocido, inválido o empresa desactivada → `null` idéntico; al reactivar la empresa vuelven
+  a responder sin otra acción.
+- **Reversión** (migración posterior): `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);`.
+- **`robots.txt` y `sitemap.xml`**: Edge Function `supabase/functions/tienda-seo` (`verify_jwt = false` en `supabase/config.toml`,
+  contrato en `openapi/tienda-seo.json`). Tienda activa: `Allow: /` + `Sitemap: https://<dominio canónico>/sitemap.xml` y el sitemap
+  con las URLs de arriba (XML escapado, `<lastmod>` si existe). Desactivada, desconocida o sin cabecera: **la misma** respuesta
+  (`Disallow: /` y un `urlset` sin URLs), nunca un 404 distinto. Error de la base: 500 genérico. Pruebas: `pnpm test:edge:tienda-seo`.
+- **nginx de `apps/web`** (`location ~ ^/(robots\.txt|sitemap\.xml)$`) proxea a `<SUPABASE_URL>/functions/v1/tienda-seo/<archivo>` y manda
+  el host original en `X-Tienda-Host` (más `apikey` y `Authorization` con la clave pública). La URL de Supabase y la clave pública
+  salen de los mismos `ARG VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` del build: el `Dockerfile` los reemplaza en la
+  configuración de nginx (marcadores `__SUPABASE_URL__` y `__SUPABASE_ANON_KEY__`), así que **no hay variables de entorno nuevas en
+  runtime**. El nombre del servidor se resuelve al pedir (resolver `127.0.0.11`, el DNS de Docker/Dokploy, y `8.8.8.8` de respaldo),
+  de modo que un Supabase caído no impide arrancar nginx: el buscador recibe 502 y reintenta. Si el entorno no usa el DNS de Docker,
+  hay que ajustar la línea `resolver`. Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
+- **Front**: `lib/tiendaSeo.ts` (`useSeoTienda`, una lectura por host), `pages/tienda-publica/seo/CabeceraSeo.tsx` (título «<página> | <empresa>»
+  ≤ 60, descripción ≤ 160, canónica `https://<dominio canónico><ruta sin filtros>`, Open Graph y `robots`; limpia al salir de la página) y
+  `seo/datosEstructurados.ts` (JSON-LD `Organization` en el inicio y `Product` en la ficha: `priceCurrency` ARS, `price` solo si es
+  calculable, `availability` booleana, `<` escapado; nunca costos ni existencias). Montado en inicio, catálogo, categoría, ficha y contacto.
+- **`noindex`** (`<meta name="robots" content="noindex">`): 404, «Volvemos pronto» (con y sin marca), pantalla de error, ingresar,
+  recuperar y definir contraseña, y resultados de búsqueda (`/catalogo?q=`).
+- **Límite conocido (D4)**: la tienda es una SPA; los buscadores que ejecutan JavaScript leen los metadatos, pero los previews de redes
+  (que no lo ejecutan) pueden no leer Open Graph. Prerender queda fuera de alcance. La imagen de Open Graph de la ficha es la URL firmada
+  de su primera imagen (vence); sin imagen se usa el logo.
+- **Verificación**: pgTAP `tienda_seo.test.sql`; Vitest `seo/CabeceraSeo.test.tsx` y `seo/datosEstructurados.test.ts`; `handler.test.ts` de la
+  función; E2E `apps/web/e2e/tienda-seo.e2e.ts` (dos tiendas y una pausada; pide `robots.txt` y `sitemap.xml` directo a la función con
+  `X-Tienda-Host`, requiere `supabase functions serve` y `SUPABASE_ANON_KEY`).
