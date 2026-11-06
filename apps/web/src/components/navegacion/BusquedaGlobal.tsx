@@ -3,6 +3,8 @@ import SearchIcon from '@mui/icons-material/Search'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { supabaseClient } from '../../lib/supabase'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
+import { OpcionProducto } from '../base/OpcionProducto'
 import { EstadoError } from '../estados/EstadosPagina'
 
 // F-INI-03 (MSF-374): búsqueda global de productos en la barra superior.
@@ -28,6 +30,7 @@ export function BusquedaGlobal() {
   const [cargando, setCargando] = useState(false)
   const [fallo, setFallo] = useState(false)
   const [reintento, setReintento] = useState(0)
+  const imagenes = useImagenesProductos(resultados.map((resultado) => resultado.producto_id))
 
   const consulta = texto.trim()
   const buscable = consulta.length >= MINIMO_CARACTERES
@@ -101,10 +104,7 @@ export function BusquedaGlobal() {
           const { key, ...resto } = props
           return (
             <li key={key} {...resto}>
-              <Box component="span" sx={{ display: 'flex', flexDirection: 'column' }}>
-                <span>{opcion.nombre}</span>
-                <Box component="span" sx={{ typography: 'caption', color: 'text.secondary' }}>{opcion.sku}</Box>
-              </Box>
+              <OpcionProducto nombre={opcion.nombre} sku={opcion.sku} imagen={imagenes.get(opcion.producto_id)} />
             </li>
           )
         }}

@@ -219,3 +219,9 @@ Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120
 - Token de baja de unos 244 bits aleatorios; la base guarda solo su SHA-256 y `token_hashes` queda fuera del `grant select` por columna.
 - La service-role vive solo en la Edge Function (servidor); el mensaje se escapa en el correo y el asunto no admite saltos de línea.
 - Riesgos bajos aceptados: la Edge Function anónima no tiene límite de frecuencia propio (conviene ponerlo en el borde) y el token viaja en la ruta `/baja-correo/:token`, mitigado porque la baja exige confirmar con un POST.
+
+## Listas con carga infinita
+
+«Nueva campaña» (destinatarios), «Historial» y el detalle de la campaña (destinatarios) cargan por tandas con
+`useListadoAcumulado` + `CargaInfinita` en vez de páginas numeradas. El resumen de elegibles y el envío usan los filtros
+y no lo que está cargado en pantalla, así que la selección masiva no depende de la tanda visible.

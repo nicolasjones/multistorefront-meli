@@ -16,6 +16,7 @@ export type Faltante = {
   empresa: string
   cliente_id: string
   cliente: string
+  producto_id: string
   producto: string
   sku: string | null
   pedido: number
@@ -40,7 +41,7 @@ export type ResultadoAviso = {
 }
 
 const COLUMNAS =
-  'linea_id, empresa_id, empresa, cliente_id, cliente, producto, sku, pedido, comprobante_id, comprobante_numero, desde, estado_stock, aviso'
+  'linea_id, empresa_id, empresa, cliente_id, cliente, producto_id, producto, sku, pedido, comprobante_id, comprobante_numero, desde, estado_stock, aviso'
 
 /** Una página de faltantes, del más reciente al más antiguo. `empresaId` null = todas las tiendas visibles. */
 export async function listarFaltantes({ empresaId, pagina, tamano = TAMANO_PAGINA_FALTANTES }: FiltrosFaltantes) {

@@ -1,13 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { CreateButton } from '@refinedev/mui'
-import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { ImportarClientes } from '../../components/clientes/ImportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
@@ -21,6 +22,9 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
+// El popup de alta/edición trae el formulario completo: se descarga solo al abrirlo.
+const DialogoCliente = lazy(() => import('../../components/clientes/DialogoCliente').then((modulo) => ({ default: modulo.DialogoCliente })))
+
 // El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
 const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
 
@@ -31,7 +35,7 @@ type Solapa = 'listado' | 'ranking' | 'inactivos'
 
 const AVISO_SIN_SELECCION = 'Elegí al menos un cliente con las casillas'
 const ESPERA_BUSQUEDA_MS = 300
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
@@ -109,6 +113,9 @@ export function ClienteList() {
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
   const [avisoSeleccion, setAvisoSeleccion] = useState(false)
   const [dialogoCorreo, setDialogoCorreo] = useState(false)
+  // undefined = cerrado, null = cliente nuevo, id = editar ese cliente.
+  const [clienteEnDialogo, setClienteEnDialogo] = useState<string | null | undefined>(undefined)
+  const [avisoGuardado, setAvisoGuardado] = useState<string | null>(null)
   const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
   const dialogoCorreoAbierto = useRef(false)
   dialogoCorreoAbierto.current = dialogoCorreo
@@ -126,7 +133,7 @@ export function ClienteList() {
   }, [texto, textoAplicado])
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
-    texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb, pagina, tamano: TAMANO_TANDA,
   })
 
   // Cambió la empresa (barra superior o chip): se reencuadra la paginación y se
@@ -141,11 +148,13 @@ export function ClienteList() {
     }
   }, [empresaId])
 
-  // Si la página quedó fuera de rango (p. ej. se archivó el último de la
-  // última página), el servidor no devuelve filas: se vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && clientes.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, clientes.length, pagina])
+  // Carga infinita (Principio VI): cada tanda se suma a las anteriores; buscar, filtrar o cambiar de tienda vuelve a la primera.
+  const listado = useListadoAcumulado({
+    items: clientes, pagina, setPagina, total, cargando: isFetching,
+    reinicio: { textoAplicado, tipo, archivados, empresaId, conCuentaWeb },
+  })
+  // Falló una tanda posterior: se conserva lo ya cargado y el error se muestra al pie.
+  const falloTanda = isError && listado.filas.length > 0
 
   const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null || conCuentaWeb
 
@@ -185,7 +194,7 @@ export function ClienteList() {
         <Stack direction="row" spacing={1}>
           {puedeMigrar ? <ImportarClientes /> : null}
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
-          {puedeEditar ? <CreateButton /> : null}
+          {puedeEditar ? <Button variant="contained" onClick={() => setClienteEnDialogo(null)}>Nuevo cliente</Button> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
@@ -287,9 +296,9 @@ export function ClienteList() {
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los clientes." reintentar={() => void refetch()} />
-            ) : clientes.length === 0 && pagina === 1 ? (
+            ) : listado.filas.length === 0 ? (
               hayFiltros ? (
                 <EstadoVacio titulo="No encontramos clientes con esos criterios." descripcion="Probá con otro texto o quitá algún filtro." />
               ) : (
@@ -298,7 +307,7 @@ export function ClienteList() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={clientes}
+                  items={listado.filas}
                   columnas={columnas(empresaId)}
                   obtenerClave={(cliente) => cliente.id}
                   etiquetaTabla="Clientes"
@@ -314,20 +323,16 @@ export function ClienteList() {
                       ) : null}
                       {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
                       <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`} size="small" variant="outlined">Ver ficha</Button>
-                      {puedeEditar ? <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} size="small">Editar</Button> : null}
+                      {puedeEditar ? <Button onClick={() => setClienteEnDialogo(cliente.id)} size="small">Editar</Button> : null}
                     </Stack>
                   )}
                 />
-                {clientes.length > 0 ? <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA}
-                  rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Clientes por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                /> : null}
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                />
               </>
             )}
           </Box>
@@ -341,6 +346,23 @@ export function ClienteList() {
         onCerrar={() => setDialogoCorreo(false)}
         onEnviado={correoEnviado}
       />
+      {clienteEnDialogo !== undefined ? (
+        <Suspense fallback={null}>
+          <DialogoCliente
+            clienteId={clienteEnDialogo}
+            onCerrar={() => setClienteEnDialogo(undefined)}
+            onGuardado={(mensaje) => {
+              setClienteEnDialogo(undefined)
+              setAvisoGuardado(mensaje)
+              setPagina(1)
+              void refetch()
+            }}
+          />
+        </Suspense>
+      ) : null}
+      <Snackbar open={avisoGuardado !== null} autoHideDuration={6000} onClose={() => setAvisoGuardado(null)}>
+        <Alert severity="success" onClose={() => setAvisoGuardado(null)}>{avisoGuardado}</Alert>
+      </Snackbar>
       <Snackbar open={avisoCorreo !== null} autoHideDuration={6000} onClose={() => setAvisoCorreo(null)}>
         <Alert severity="info" onClose={() => setAvisoCorreo(null)}>{avisoCorreo}</Alert>
       </Snackbar>

@@ -17,6 +17,8 @@ export type FaltanteVenta = {
   empresa: string
   cliente: string
   producto: string
+  /** Producto de la línea (para la miniatura); null si la línea no tiene producto. */
+  producto_id: string | null
   sku: string | null
   /** Unidades que faltaron de lo pedido. */
   cantidad_faltante: number

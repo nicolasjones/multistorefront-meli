@@ -14,19 +14,19 @@ function clienteFalso(respuesta: { data: unknown; error: unknown; count: number 
 
 describe('filtroBusquedaProductos', () => {
   it('busca por nombre o SKU', () => {
-    expect(filtroBusquedaProductos('joy')).toBe('nombre.ilike.%joy%,sku.ilike.%joy%')
+    expect(filtroBusquedaProductos('joy')).toBe('nombre_norm.ilike.%joy%,sku.ilike.%joy%')
   })
   it('escapa los comodines % y _ para buscarlos como texto', () => {
-    expect(filtroBusquedaProductos('100%_x')).toBe('nombre.ilike.%100\\%\\_x%,sku.ilike.%100\\%\\_x%')
+    expect(filtroBusquedaProductos('100%_x')).toBe('nombre_norm.ilike.%100\\%\\_x%,sku.ilike.%100\\%\\_x%')
   })
   it('quita los caracteres que alterarían el filtro', () => {
-    expect(filtroBusquedaProductos('a,b(c)"d\\e')).toBe('nombre.ilike.%a b c  d e%,sku.ilike.%a b c  d e%')
+    expect(filtroBusquedaProductos('a,b(c)"d\\e')).toBe('nombre_norm.ilike.%a b c  d e%,sku.ilike.%a b c  d e%')
   })
   it('quita el comodín * de PostgREST', () => {
-    expect(filtroBusquedaProductos('a*b')).toBe('nombre.ilike.%a b%,sku.ilike.%a b%')
+    expect(filtroBusquedaProductos('a*b')).toBe('nombre_norm.ilike.%a b%,sku.ilike.%a b%')
   })
   it('acota el largo y devuelve null si queda vacío', () => {
-    expect(filtroBusquedaProductos('x'.repeat(500))).toBe(`nombre.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%,sku.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%`)
+    expect(filtroBusquedaProductos('x'.repeat(500))).toBe(`nombre_norm.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%,sku.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%`)
     expect(filtroBusquedaProductos('   ')).toBeNull()
     expect(filtroBusquedaProductos('(,)')).toBeNull()
   })
@@ -51,7 +51,7 @@ describe('consultarProductos', () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
     await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null, disponibilidad: null })
     expect(llamadas).toContainEqual(['eq', 'activo', false])
-    expect(llamadas).toContainEqual(['or', 'nombre.ilike.%cab%,sku.ilike.%cab%'])
+    expect(llamadas).toContainEqual(['or', 'nombre_norm.ilike.%cab%,sku.ilike.%cab%'])
     expect(llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }])
     expect(llamadas).toContainEqual(['range', 50, 74])
   })
@@ -107,16 +107,19 @@ describe('búsqueda por código de barras (F-CAT-14)', () => {
     expect(codigoBarrasBuscado(' 7790001000015 ')).toBe('7790001000015')
     for (const otro of ['779000100001', '77900010000150', '77900010000AB', 'joystick', '']) expect(codigoBarrasBuscado(otro)).toBeNull()
   })
-  it('13 dígitos consulta por coincidencia exacta y no usa nombre/SKU', async () => {
+  it('13 dígitos consulta por coincidencia exacta de código de barras o de SKU, sin buscar por nombre', async () => {
     const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
     await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: '7790001000015' })
-    expect(llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015'])
-    expect(llamadas.some(([m]) => m === 'or')).toBe(false)
+    expect(llamadas).toContainEqual(['or', 'codigo_barras.eq.7790001000015,sku.ilike.7790001000015'])
+    expect(llamadas.some(([, f]) => typeof f === 'string' && f.includes('nombre_norm'))).toBe(false)
+  })
+  it('ignora tildes y mayúsculas: «CÁMARA» se busca como «camara»', () => {
+    expect(filtroBusquedaProductos('CÁMARA')).toBe('nombre_norm.ilike.%camara%,sku.ilike.%camara%')
   })
   it('otro texto sigue por nombre/SKU sin condición de código de barras', async () => {
     const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
     await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: 'joy' })
-    expect(llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%'])
+    expect(llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%'])
     expect(llamadas.some(([m, columna]) => m === 'eq' && columna === 'codigo_barras')).toBe(false)
   })
 })

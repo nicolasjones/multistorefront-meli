@@ -36,24 +36,82 @@ que una tienda no cruce organizaciones.
 - El pgTAP `rls_en_toda_tabla` recorre `public` + `dominio`; `tienda_dominio.test.sql` comprueba
   además que `publico` no tiene tablas.
 
-## Configurar el dominio de una tienda (sin pantalla, FR-004)
+## Dominio, verificación DNS y certificado (F-TDA-05, MSF-198)
 
-En el lanzamiento **no hay pantalla de dominio** ni verificación DNS (eso es F-TDA-05/MSF-133). El
-equipo técnico lo hace por SQL sobre la base self-hosted. El dominio se guarda normalizado
-(minúsculas, sin puerto ni punto final) y debe ser único a nivel plataforma.
+Desde la pestaña **Empresas › _empresa_ › Tienda › Dominio y publicación** (clave `publicacion`,
+`/empresas/:id/tienda/publicacion`, solo con edición en Empresas) el administrador conecta y verifica el
+dominio por su cuenta. El alta por SQL de MSF-147 sigue siendo válida (primera carga del equipo técnico).
+
+**Qué hace la pantalla**
+
+- «Dominio principal» y «Redirigir también» (opcional) se guardan con `public.configurar_dominio_tienda`:
+  normaliza (minúsculas, sin puerto ni punto final), exige unicidad a nivel plataforma entre dominios
+  principales, pendientes y de redirección de **todas** las tiendas, y crea la tienda si la empresa no tenía
+  (estado vacío «Esta empresa todavía no tiene dominio»). Errores por campo: `dominio_invalido`,
+  `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso`; si falla no se guarda nada.
+- **Dominio nuevo sin cortar el actual (D5)**: un principal distinto del vigente queda en
+  `dominio.tiendas.dominio_pendiente` y reinicia la verificación; la tienda sigue respondiendo en el vigente.
+  Cuando el pendiente queda **verificado con certificado activo**, `private.promover_dominio_pendiente` lo
+  intercambia por `dominio` (el trigger deja `tienda.dominio_configurado`).
+- **Tabla de registros** (Tipo, Nombre, Valor, Estado) calculada en el servidor por
+  `public.obtener_dominio_tienda`: **A** `@` → IP pública, **CNAME** del «Redirigir también» → destino y
+  **TXT** `_verif` → `<prefijo>=<token>` (token propio de la tienda, `dominio.tiendas.token_verificacion`).
+  Estados: Correcto / Incorrecto (con el valor encontrado) / Pendiente.
+- **Verificar ahora** invoca la Edge Function `verificar-dominio-tienda` (contrato en
+  `openapi/verificar-dominio-tienda.json`). Una verificación cada 10 s por tienda (`demasiado_pronto`).
+- **Dominio verificado** = A y TXT correctos (y CNAME si hay redirección). **Certificado**: solo con el dominio
+  verificado, la función intenta una conexión TLS al dominio y valida el certificado: válido → `activo`; sin
+  emitir → `pendiente`; inválido o vencido → `error`. Es una función aislada y reemplazable por el estado que
+  informe el proveedor del SSL (D1: quién emite el SSL sigue **a confirmar**; el equipo técnico agrega cada
+  dominio en el proveedor, esta épica no llama a su API).
+- **Redirección pública**: `publico.redireccion_por_dominio(host)` (`anon`) devuelve el dominio principal si el
+  host es el «Redirigir también» de una tienda activa; desconocido y desactivada responden igual (vacío). El
+  front público (`TiendaPublicaApp`) la consulta cuando `tienda_por_dominio` no devuelve fila y hace
+  `location.replace` al principal conservando ruta, query y hash.
+
+**DNS de la plataforma por entorno (D2)** — `public.tienda_dns_plataforma` (fila única, solo lectura para
+`authenticated`, sin secretos). La migración siembra **valores de documentación** (`203.0.113.24`,
+`tiendas.plataforma.example.com`, `gc-verify`); el equipo técnico carga los reales de cada entorno por SQL:
 
 ```sql
--- Alta de la tienda de una empresa (una sola por empresa).
-insert into dominio.tiendas (organizacion_id, empresa_id, dominio)
-values ('<organizacion_id>', '<empresa_id>', 'tienda.ejemplo.com');
-
--- Cambiar el dominio (normaliza igual y registra tienda.dominio_configurado).
-update dominio.tiendas set dominio = 'Nuevo-Dominio.Ejemplo.com:443.'
-where empresa_id = '<empresa_id>';
+update public.tienda_dns_plataforma
+   set ip_publica = '<IP pública de la plataforma>',
+       cname_destino = '<host de destino del CNAME>',
+       prefijo_txt = 'gc-verify',
+       updated_at = now();
 ```
 
-Cada alta o cambio de dominio deja un evento `tienda.dominio_configurado` en
-`public.registro_actividad` (empresa, actor si lo hubo y fecha; nunca el valor del dominio).
+**Edge Function `verificar-dominio-tienda`**: autentica con el JWT de la persona; `preparar_verificacion_tienda`
+valida edición en Empresas, pertenencia de la empresa a su organización y el límite de 10 s, y devuelve los
+hostnames **guardados** (nunca los del request); consulta DNS solo de esos hostnames y escribe con
+`public.registrar_verificacion_dns`, ejecutable **solo por `service_role`** (la key vive solo en la función). La
+conexión TLS solo se intenta con el dominio verificado y va a la IP de la plataforma guardada en la base
+(no a una IP resuelta del DNS del usuario), validando el certificado contra el dominio. `registrar_verificacion_dns`
+recibe el dominio y la redirección comprobados y rechaza (`verificacion_obsoleta`) el resultado si ya no coinciden
+con los guardados. Un fallo de
+red/DNS responde 502 sin tocar ningún estado guardado. Requiere `Deno.resolveDns`, `Deno.connect` y `Deno.startTls` en el
+runtime de Edge Functions self-hosted: validarlo al desplegar; si no estuvieran, mover la verificación a un
+worker en `workers/` con el mismo contrato.
+
+**Auditoría** (sin valores de registros): `tienda.dominio_configurado` (también al guardar el pendiente) y
+`tienda.dominio_verificado` (actor = quien pidió la verificación).
+
+**Reversión** (solo mientras no haya datos productivos): `drop function` de `configurar_dominio_tienda`,
+`obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`,
+`private.promover_dominio_pendiente` y `publico.redireccion_por_dominio`; `drop table
+dominio.tienda_registros_dns, public.tienda_dns_plataforma`; `alter table dominio.tiendas drop column …` de las
+columnas nuevas (detalle en el encabezado de `20270205110000_tienda_dominio_verificacion.sql`); retirar la función
+`verificar-dominio-tienda`.
+
+### Alta técnica por SQL (primera carga)
+
+El equipo técnico puede seguir cargando la tienda por SQL; el dominio se guarda normalizado y es único a nivel
+plataforma:
+
+```sql
+insert into dominio.tiendas (organizacion_id, empresa_id, dominio)
+values ('<organizacion_id>', '<empresa_id>', 'tienda.ejemplo.com');
+```
 
 ## Exposición de `publico` en la API
 
@@ -92,6 +150,10 @@ dominio existe (anti-enumeración). Nunca devuelve `organizacion_id` ni datos de
 renderiza la tienda pública sin sesión. Un error de red no se disfraza de «Volvemos pronto»: se
 ofrece reintentar.
 
+- **Vencimiento por inactividad (MSF-673, MSF-700)**: a las 12 h sin actividad (`lib/vencimientoSesion.ts`,
+  enganchado en `main.tsx`) en un host de tienda se cierra solo la sesión local (`salirCliente`) y se vuelve a `/`;
+  nunca se redirige a `/login` (la tienda no lo tiene; su ingreso es `/ingresar`) ni se revoca la sesión en otros
+  dispositivos. Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts`.
 - **Desarrollo**: sin la variable, el panel vive en `localhost,127.0.0.1`; un subdominio de
   `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba.
 - **Producción**: `VITE_PANEL_HOSTS` se pasa como build arg (`apps/web/Dockerfile`) con el dominio
@@ -641,6 +703,85 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-030…FR-034, SC-0
 - **Front**: `layout/PieLegal.tsx` (montado desde `PieCategorias`): «<Razón social> · CUIT XX-XXXXXXXX-X», dirección y enlaces en pestaña nueva con `rel="noopener noreferrer"`; datos ausentes se omiten y sin datos el bloque no aparece. `layout/AvisoCookies.tsx` (carga diferida): «Aceptar» / «Rechazar», sin bloquear ni robar el foco.
 - **Contrato de consentimiento para F-TDA-24** (`lib/consentimientoCookies.ts`): `leerConsentimiento()` (`'aceptadas' | 'rechazadas' | null`; `null` equivale a rechazadas), `guardarConsentimiento(valor)`, `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies` (`detail` = decisión). Persiste en `localStorage`; si está bloqueado el aviso reaparece en la próxima visita y nada se rompe.
 - **Reversión** (migración posterior, no en el PR que la crea): `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;`.
+
+## Borrador, vista previa y publicación (F-TDA-06, MSF-216)
+
+Migración `supabase/migrations/20270205110100_tienda_borrador_publicacion.sql`. Pruebas:
+`supabase/tests/database/tienda_borrador.test.sql`, `apps/web/src/pages/empresas/tienda/Publicacion.test.tsx`.
+
+| Objeto | Esquema | Justificación | RLS |
+|---|---|---|---|
+| `dominio.tienda_borrador` | `dominio` | Cambios sin publicar de una tienda: dato del producto | Por organización y nivel de sección; sin escritura directa |
+| `dominio.tienda_versiones` | `dominio` | Instantánea de cada publicación (versión 1 «Configuración inicial» por backfill) | Por organización; sin escritura directa |
+
+- **Guardar ya no publica.** Las pestañas Identidad, Contenido y Catálogo llaman a `guardar_borrador_tienda(empresa, area, datos)`;
+  lo público (`publico.*`) no cambia hasta `publicar_tienda(empresa)`. **BREAKING**: `guardar_tienda_identidad`,
+  `guardar_tienda_contenido` y `guardar_catalogo_tienda` dejan de ser ejecutables por `authenticated`; solo las invoca
+  `publicar_tienda`. Reversión: reponer el `grant execute` de las tres a `authenticated`.
+- `obtener_borrador_tienda` devuelve el borrador con el resumen de cambios calculado en servidor; `descartar_borrador_tienda`
+  lo borra. Precios, stock y activo de producto quedan fuera del borrador.
+- `publicar_tienda` es transaccional, con bloqueo por empresa, idempotente sin borrador; crea la versión y borra el borrador.
+- `vista_previa_tienda` superpone el borrador sobre lo vivo con lista blanca (sin costos, stock exacto ni proveedor). La ruta
+  `/empresas/:id/tienda/vista-previa` es perezosa, autenticada y lleva `noindex,nofollow`.
+- UI: sección `pestanas/publicacion/Publicacion.tsx` («Estado», versión vigente, «Ver cambios», diálogos «Publicar cambios» /
+  «Descartar cambios») y `VistaPrevia.tsx`; las secciones públicas leen de una fuente inyectable (`lib/fuenteTienda.tsx`).
+  Con otra empresa activa un diálogo abierto se cierra con aviso y no aplica nada (Principio VIII).
+
+## Versiones y restauración (F-TDA-07, MSF-235)
+
+Migración `supabase/migrations/20270205110200_tienda_versiones.sql` (solo funciones; **sin tablas nuevas**: usa
+`dominio.tienda_versiones` y `dominio.tienda_borrador`, ambas en `dominio`, de F-TDA-06). Pruebas:
+`supabase/tests/database/tienda_versiones.test.sql`, `apps/web/src/pages/empresas/tienda/Versiones.test.tsx`.
+
+- `listar_versiones_tienda(empresa)`: últimas 100 versiones, la más nueva primero, con nombre de quien publicó y marca
+  `vigente` (la de número mayor). Lectura con nivel `lectura` o `edicion` en Empresas.
+- `restaurar_version_tienda(empresa, numero)`: requiere `edicion`; **no publica**. Reemplaza el borrador entero con la
+  instantánea de la versión. Como la instantánea solo guarda el catálogo distinto del predeterminado, lo vivo que la versión
+  no menciona vuelve a visible/no destacado en el borrador. Productos y categorías que ya no existen se omiten. Si el
+  resultado coincide con lo publicado, el borrador queda vacío. La versión vigente no se restaura (`22023`). Deja el evento
+  `tienda.version_restaurada` en el registro de actividad.
+- No reescribe el historial: publicar después crea la versión siguiente (`publicar_tienda`).
+- `anon` no ejecuta ninguna de las dos (`revoke … from public, anon`; `grant … to authenticated`).
+- UI: sección `pestanas/publicacion/Versiones.tsx` (`orden` 25, entre Publicación y Vista previa): tabla Versión / Fecha / Por /
+  Cambios, «Restaurar» en todas menos la vigente, diálogo «Restaurar versión» (con línea extra si hay borrador) y mensaje
+  «Versión restaurada como borrador». Avisa por `EVENTO_PUBLICACION` (`origen: 'versiones'`) para que Publicación relea el
+  aviso de cambios y la vista previa se actualice. Con otra empresa activa, un diálogo abierto se cierra con aviso (Principio VIII).
+- Reversión: `drop function public.restaurar_version_tienda(uuid, integer); drop function public.listar_versiones_tienda(uuid);`
+
+## Cierre de la épica MSF-133: tienda · dominio y publicación (MSF-779)
+
+Spec: `specs/20270125-100000-tienda-dominio-y-publicacion/`. Historias: F-TDA-05 (dominio y certificado, MSF-198),
+F-TDA-06 (borrador y publicación, MSF-216) y F-TDA-07 (versiones, MSF-235). Las secciones anteriores de esta guía describen
+cada una; esta resume el cierre.
+
+### Verificación de punta a punta (SC-003)
+
+`apps/web/e2e/tienda-publicacion.e2e.ts` (`[MSF-779:T024]`): dos organizaciones con una empresa cada una; alta del dominio,
+verificación con DNS simulado (`registrar_verificacion_dns` se llama con la service-role key **desde Node**; el navegador
+nunca la ve), cambio en borrador, publicar, restaurar la versión 1 y publicar de nuevo (versión 3). Comprueba que `anon`
+solo ve lo publicado, que no accede al borrador y que la otra empresa no cambia. Se omite sin el stack local
+(`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`) y aborta si `SUPABASE_URL` no es local.
+
+### Revisión de seguridad (SC-002)
+
+Sin hallazgos P0/P1. `anon` solo ejecuta `publico.redireccion_por_dominio`; `registrar_verificacion_dns` es solo
+`service_role`; toda RPC nueva tiene `revoke … from public, anon`; las cuatro tablas nuevas tienen RLS sin política de
+escritura; la comprobación TLS conecta solo a la IP de la plataforma, con el A correcto y hostnames guardados (sin SSRF).
+Deuda real trazada como seguimiento:
+
+| Sev. | Hallazgo | Tratamiento |
+|---|---|---|
+| P2 | La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión restaurable aún referencia; `rutas_tienda_sin_referencia` es solo consejo del cliente. | Seguimiento MSF-796: exigir en la política que la ruta no esté referenciada, o mover la limpieza al servidor. |
+| P3 | `tienda_dns_plataforma.ip_publica` solo valida el formato (admite loopback/privadas/octetos > 255). La carga el equipo técnico por SQL. | Seguimiento MSF-797: `check` contra rangos no públicos. |
+| P3 | El timeout de 5 s de la comprobación TLS no cierra el socket colgado (acotado por 1 verificación cada 10 s). | Seguimiento MSF-797: cerrar el `Deno.Conn` al vencer. |
+| P3 | El bucket es público: logos y banners de un borrador o versión vieja son legibles por quien conozca la ruta (lleva UUID, no adivinable). | Aceptado y documentado: no son confidenciales a nivel de almacenamiento. |
+
+### Operación y reversión
+
+Las tres migraciones (`…130000`, `…130100`, `…130200`) son aditivas y cada una trae su reversión en el encabezado. Orden de
+reversión: versiones → borrador y publicación → dominio. **Ojo (BREAKING de F-TDA-06)**: `guardar_tienda_identidad`,
+`guardar_tienda_contenido` y `guardar_catalogo_tienda` ya no son ejecutables por `authenticated`; revertir la épica entera
+(`git revert -m 1 <merge>`) los devuelve. DNS por entorno: ver «DNS de la plataforma por entorno» arriba.
 
 ## Estados especiales de la tienda (F-TDA-19, MSF-247, épica MSF-149)
 
