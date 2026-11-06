@@ -133,10 +133,13 @@ select is(
   29186::numeric, 'San Javucho no cambia'
 );
 select is(private.precio_neto_empresa('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'), 27000::numeric, 'private.precio_neto_empresa devuelve el precio propio');
+-- La función es privada (sin execute para authenticated): se ejerce como dueño.
+reset role;
 select is(
   private.precio_visible_desde_central(29186, 'a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'),
   27000::numeric, 'precio_visible_desde_central respeta el precio propio (SC-006)'
 );
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- Cambiar la regla de la empresa no mueve el precio propio.
 reset role;
