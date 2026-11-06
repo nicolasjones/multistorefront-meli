@@ -28,6 +28,7 @@ const fila = (cambios: Partial<FaltanteVenta> = {}): FaltanteVenta => ({
   empresa_id: 'e-1',
   empresa: 'San Javucho',
   cliente: 'Cliente Uno',
+  producto_id: 'p-1',
   producto: 'Joystick',
   sku: 'JOY-1',
   cantidad_faltante: 3,

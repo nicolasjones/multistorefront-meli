@@ -147,3 +147,7 @@ no en este PR; exportar antes los datos):
 | `20261022100600_reparacion_items_actividad.sql` | disparadores de actividad | `drop trigger`/`drop function` de alta y baja |
 
 Orden inverso: actividad → lectura → quitar → agregar → totales → tabla.
+
+## Imagen del repuesto
+
+En «Mano de obra y repuestos» cada repuesto vinculado al catálogo (`producto_id`) muestra su imagen principal como miniatura con zoom al pasar el mouse; la mano de obra no lleva imagen.

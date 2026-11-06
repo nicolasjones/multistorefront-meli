@@ -19,6 +19,9 @@ const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
 }))
 
+const imagenes = vi.hoisted(() => ({ mapa: new Map<string, string>() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => imagenes.mapa }))
+
 vi.mock('../../lib/rma', async (importar) => ({
   ...(await importar<typeof import('../../lib/rma')>()),
   listarRma: mocks.listarRma,
@@ -50,7 +53,7 @@ import { DevolucionesList } from './devoluciones'
 
 const rma = (n: number, extra: Partial<RmaListado> = {}): RmaListado => ({
   id: `r-${n}`, actualizado_en: '2026-10-07T15:00:00+00:00', nota_credito_id: null, nota_credito_numero: null, stock_reingresado: false, numero: `RMA-009${n}`, creado_en: '2026-10-07T15:00:00+00:00', empresa_id: 'e-1', empresa: 'San Javucho',
-  comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, cantidad: 3,
+  comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, producto_id: null, cantidad: 3,
   forma_rma: 'cambio_directo', motivo: 'No enciende', operador: 'Javier', estado: 'abierto', ...extra,
 })
 const pagina = (devoluciones: RmaListado[], total = devoluciones.length) => ({ devoluciones, total })
@@ -163,15 +166,43 @@ describe('DevolucionesList (F-VTA-28, FR-003…FR-008)', () => {
     expect(screen.getByRole('tab', { name: 'Presupuestos' })).toHaveAttribute('href', '/ventas/presupuestos')
   })
 
-  it('pagina en el servidor con «1–8 de N»', async () => {
-    mocks.listarRma.mockImplementation(async (_filtros: unknown, pag: number) =>
-      pag === 2 ? pagina([rma(5, { cliente: 'Cliente de la página dos' })], 9) : pagina([rma(1)], 9))
+  it('muestra la miniatura del producto cuando la fila trae producto_id y no cuando es null', async () => {
+    imagenes.mapa = new Map([['p-1', 'https://img/r1.png']])
+    mocks.listarRma.mockResolvedValue(pagina([rma(1, { producto_id: 'p-1' }), rma(2)]))
     abrir()
     await screen.findByText('Cliente 1')
-    expect(screen.getByText('1–8 de 9', { exact: false })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente|Go to next page/i }))
-    expect(await screen.findByText('Cliente de la página dos')).toBeInTheDocument()
+    expect(document.querySelectorAll('img')).toHaveLength(1)
+    expect(document.querySelector('img[src="https://img/r1.png"]')).not.toBeNull()
+    imagenes.mapa = new Map()
+  })
+
+  it('«Cargar más» pide la tanda siguiente al servidor y la suma a lo mostrado', async () => {
+    mocks.listarRma.mockImplementation(async (_filtros: unknown, pag: number) =>
+      pag === 2 ? pagina([rma(5, { cliente: 'Cliente de la tanda dos' })], 9) : pagina([rma(1)], 9))
+    abrir()
+    await screen.findByText('Cliente 1')
+    expect(screen.getByText('9 devoluciones')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente|Go to next page/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Cliente de la tanda dos')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
     expect(mocks.listarRma.mock.calls.at(-1)![1]).toBe(2)
+  })
+
+  it('cambiar la forma de RMA reinicia desde la primera tanda y descarta lo acumulado', async () => {
+    mocks.listarRma.mockImplementation(async ({ formaRma }: { formaRma: string }, pag: number) => {
+      if (formaRma) return pagina([rma(7, { cliente: 'Cliente filtrado', forma_rma: formaRma })], 1)
+      return pag === 2 ? pagina([rma(5, { cliente: 'Cliente de la tanda dos' })], 9) : pagina([rma(1)], 9)
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente de la tanda dos')
+    fireEvent.click(screen.getByRole('button', { name: 'Reclamo faltante' }))
+    expect(await screen.findByText('Cliente filtrado')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente de la tanda dos')).not.toBeInTheDocument()
+    expect(mocks.listarRma.mock.calls.at(-1)![1]).toBe(1)
   })
 
   it('sin devoluciones muestra «Sin devoluciones» con «Todavía no registraste devoluciones.»', async () => {

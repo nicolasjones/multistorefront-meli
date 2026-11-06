@@ -1,4 +1,4 @@
-import { Authenticated, ErrorComponent, Refine } from '@refinedev/core'
+import { Authenticated, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -21,6 +21,7 @@ import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
+import { PaginaNoEncontrada } from './pages/no-encontrada/PaginaNoEncontrada'
 import { OrganizacionCreate } from './pages/organizaciones/create'
 import { OrganizacionList } from './pages/organizaciones/list'
 import { OrganizacionEdit } from './pages/organizacion/edit'
@@ -138,6 +139,7 @@ const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) =
 // Inicio (F-INI-01): reemplaza la portada de servicios del template.
 const InicioPage = lazy(() => import('./pages/inicio').then((modulo) => ({ default: modulo.InicioPage })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const VistaPreviaTiendaPagina = lazy(() => import('./pages/empresas/tienda/VistaPreviaTienda').then((modulo) => ({ default: modulo.VistaPreviaTiendaPagina })))
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
 function App() {
@@ -348,6 +350,16 @@ function App() {
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
+                <Route
+                  path="/empresas/:id/tienda/vista-previa"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas" nivelMinimo="edicion">
+                        <Suspense fallback={<EstadoCargaPagina />}><VistaPreviaTiendaPagina /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/empresas/:id/tienda/:pestana"
                   element={
@@ -807,7 +819,7 @@ function App() {
                   </Authenticated>
                 }
               >
-                <Route path="*" element={<ErrorComponent />} />
+                <Route path="*" element={<PaginaNoEncontrada />} />
               </Route>
             </Routes>
             </PermisosPanelProvider>

@@ -63,9 +63,13 @@ select is(
 );
 select is(
   has_function_privilege('authenticated', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text)', 'execute'),
-  true,
-  'authenticated ejecuta public.guardar_tienda_contenido'
+  false,
+  'authenticated ya no ejecuta public.guardar_tienda_contenido: solo public.publicar_tienda (F-TDA-06, FR-052)'
 );
+-- F-TDA-06 (FR-052): las RPC vivas ya no son ejecutables por authenticated (solo publicar_tienda). Para seguir
+-- probando su cuerpo se reconcede el permiso dentro de esta transacción (se revierte con el rollback del test).
+grant execute on function public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text) to authenticated;
+
 
 -- ============================================================================
 -- Sin fila: la tienda no muestra textos opcionales (FR-034, FR-036)

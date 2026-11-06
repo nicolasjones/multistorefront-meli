@@ -2,7 +2,9 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useProductosDeProveedor: vi.fn(), useNivelSeccion: vi.fn(), recargar: vi.fn(), imagenes: new Map<string, string>() }))
+
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../hooks/useProductosDeProveedor', () => ({ useProductosDeProveedor: mocks.useProductosDeProveedor }))
 
@@ -24,6 +26,7 @@ const abrir = () => render(<MemoryRouter><ProductosDelProveedor proveedorId="prv
 describe('ProductosDelProveedor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes.clear()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
     mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1), producto(2, { activo: false, codigo_proveedor: null })]))
   })
@@ -57,13 +60,30 @@ describe('ProductosDelProveedor', () => {
     expect(screen.queryByText(/99/)).not.toBeInTheDocument()
   })
 
-  it('pide la primera página de 10 y pagina en el servidor', () => {
+  it('pide la primera tanda de 10 y «Cargar más» pide la siguiente', () => {
     mocks.useProductosDeProveedor.mockReturnValue(respuesta([producto(1)], { total: 25 }))
     abrir()
     expect(mocks.useProductosDeProveedor).toHaveBeenLastCalledWith('prv-1', 1, 10)
-    expect(screen.getByText('1–10 de 25')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.useProductosDeProveedor).toHaveBeenLastCalledWith('prv-1', 2, 10)
+  })
+
+  it('«Cargar más» suma la tanda siguiente a la ya mostrada y no hay paginación numerada', () => {
+    mocks.useProductosDeProveedor.mockImplementation((_id: string, pagina: number) =>
+      respuesta(pagina === 2 ? [producto(2)] : [producto(1)], { total: 2 }))
+    abrir()
+    expect(screen.queryByText(/por página/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByText('Producto 2')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('muestra la imagen principal del producto como miniatura junto al nombre', () => {
+    mocks.imagenes.set('p-1', 'https://ejemplo/p1.png')
+    const { container } = abrir()
+    expect(container.querySelector('img[src="https://ejemplo/p1.png"]')).not.toBeNull()
+    expect(container.querySelectorAll('img')).toHaveLength(1)
   })
 
   it('sin productos muestra el vacío', () => {
