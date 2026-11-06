@@ -99,8 +99,8 @@ select is(
   true, 'listar_compatibles es security definer con search_path vacío'
 );
 select is(
-  (select proconfig::text from pg_proc where oid = 'public.listar_compatibles()'::regprocedure),
-  '{search_path=""}', 'search_path fijado a vacío'
+  (select proconfig[1] from pg_proc where oid = 'public.listar_compatibles()'::regprocedure),
+  'search_path=""', 'search_path fijado a vacío'
 );
 
 -- Sin sesión (anon) no ejecuta
