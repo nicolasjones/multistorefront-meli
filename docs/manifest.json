@@ -447,6 +447,17 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/catalogo-variantes-y-relacionados.md": {
+      "title": "Variantes y productos relacionados",
+      "pageHash": "1a670cc76f20c818f3b7b97f6e176bf6646f7ad3a64d19bfbe401de5b9c72e38",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "296f9096",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/clientes.md": {
       "title": "Clientes",
       "pageHash": "76497a9608386e8f505e4a0f377e8d856f1843777632e548fec80ae991d5da06",
@@ -1203,6 +1214,18 @@
       "sourceAt": "5453c757",
       "sources": [
         "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/catalogo-variantes-y-relacionados.md": {
+      "title": "Catálogo: variantes y relacionados (MSF-229), construcción interna",
+      "pageHash": "1742923d65f6031830ae5581c8dd80f06dff6df90cb6b5256e716390efd26125",
+      "sourceHash": "83b553e0aa1122583b4a9d58ec9cab30478d918a052d69958dd0fa4acc629759",
+      "sourceAt": "296f9096",
+      "sources": [
+        "specs",
+        "supabase"
       ],
       "owner": "tecnico",
       "commit": null
