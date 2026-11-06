@@ -312,6 +312,18 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
   función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
 
+## Filtro «Compatible con» y etiquetas (F-CAT-09, MSF-360, épica MSF-202; migraciones `20270121121301` y `20270121121302`)
+
+Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US1). El campo «Compatible con» del alta/edición **no cambia** (texto separado por comas, `dominio.productos.compatible_con text[]`, hasta 50 valores de 100 caracteres); un test de regresión lo cubre (`FormularioProducto.test.tsx`).
+
+- **Base (aditiva, sin tablas nuevas; Principio VII):** `public.v_productos_listado` suma `compatible_con text[]` **al final**; índice GIN `productos_compatible_con_gin` sobre `dominio.productos(compatible_con)`; `public.listar_compatibles()` (`security definer`, `stable`, solo lectura, exige lectura en Productos, `revoke … from public, anon` + `grant … to authenticated`) devuelve los valores distintos de la organización, ordenados y sin vacíos. Reversión en el encabezado de cada migración.
+- **Listado:** selector múltiple «Compatible con» en la barra de filtros (aparece solo si hay valores cargados). Muestra los productos con **alguno** (OR) de los valores elegidos, sin distinguir mayúsculas, combinado con búsqueda, categoría, tienda y disponibilidad. Cada valor del producto se ve como etiqueta bajo el nombre; sin valores no se muestra nada.
+- **Mayúsculas:** la base guarda cada valor como se tipeó. El selector agrupa por clave en minúsculas y la consulta envía **todas las variantes guardadas** (`compatible_con && {…}` con el literal entrecomillado y escapado), así se usa el índice GIN y no se altera el dato.
+- **Empresa activa (Principio VIII):** al cambiar de empresa se recargan los valores y los productos, se descartan los valores elegidos que ya no existen y se vuelve a la página 1. «Limpiar filtros» limpia también este filtro.
+- **«Etiquetas»:** no es una entidad nueva; son los propios valores de «Compatible con» (Decisión 2 de la spec, confirmada por Nicolás).
+- **Pruebas:** pgTAP `catalogo_compatible_filtro.test.sql`; Vitest `filtro-compatible`, `FormularioProducto`.
+- **Contrato de la vista:** `compatible_con` pasa a ser la última columna de `v_productos_listado` (tras `codigo_barras`); `catalogo_listado.test.sql` y `catalogo_categorias.test.sql` verifican ese orden.
+
 ## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
 
 Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
