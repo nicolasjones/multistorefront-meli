@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../lib/supabase', () => {
   const cadena: Record<string, unknown> = {}
-  for (const metodo of ['select', 'eq', 'or', 'contains', 'order', 'range']) {
+  for (const metodo of ['select', 'eq', 'or', 'contains', 'overlaps', 'order', 'range']) {
     cadena[metodo] = (...args: unknown[]) => { mocks.llamadas.push([metodo, ...args]); return cadena }
   }
   cadena.returns = () => mocks.consulta()

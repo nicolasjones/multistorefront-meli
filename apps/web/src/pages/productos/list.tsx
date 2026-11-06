@@ -4,13 +4,16 @@ import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@m
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
+import { useCompatibles } from '../../hooks/useCompatibles'
 import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
   TAMANO_PAGINA_PRODUCTOS,
   consultarCostos,
+  agruparCompatibles,
   consultarProductos,
+  expandirCompatibles,
   formatearCosto,
   hayFiltrosActivos,
   type ColumnaOrdenProducto,
@@ -86,6 +89,17 @@ const columnaCosto = (costos: ReadonlyMap<string, number | string>): ColumnaAdap
   },
 })
 
+// «Compatible con» (F-CAT-09, FR-004): cada valor es una etiqueta; sin valores no se muestra nada.
+const etiquetasCompatible = (producto: FilaProducto) => {
+  const valores = producto.compatible_con ?? []
+  if (valores.length === 0) return null
+  return (
+    <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" role="list" aria-label="Compatible con">
+      {valores.map((valor) => <Chip key={valor} size="small" variant="outlined" label={valor} role="listitem" />)}
+    </Stack>
+  )
+}
+
 const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   {
     clave: 'nombre',
@@ -97,6 +111,7 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
         <Stack spacing={0}>
           <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{producto.nombre}</Typography>
           <Typography variant="xs">{producto.sku ?? SIN_DATO}</Typography>
+          {etiquetasCompatible(producto)}
         </Stack>
       </Stack>
     ),
@@ -145,7 +160,21 @@ export function ProductoList() {
   const { categorias, isLoading: cargandoCategorias, isError: errorCategorias } = useCategorias()
   // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
   const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
-  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
+  // «Compatible con» (F-CAT-09): los valores se recargan al cambiar de empresa (FR-007). Las claves elegidas que
+  // ya no existen se descartan; al servidor van todas las variantes de mayúsculas de las claves vigentes.
+  const { valores: valoresCompatibles, cargando: cargandoCompatibles, hayError: errorCompatibles } = useCompatibles(empresaId)
+  const gruposCompatibles = useMemo(() => agruparCompatibles(valoresCompatibles), [valoresCompatibles])
+  const clavesCompatibles = cargandoCompatibles
+    ? consultaBase.compatibles
+    : consultaBase.compatibles.filter((clave) => gruposCompatibles.some((g) => g.clave === clave))
+  const variantes = cargandoCompatibles ? clavesCompatibles : expandirCompatibles(clavesCompatibles, gruposCompatibles)
+  // Identidad estable mientras el contenido no cambia: evita consultar de nuevo por un arreglo equivalente.
+  const variantesClave = JSON.stringify(variantes)
+  const variantesCompatibles = useMemo(() => variantes, [variantesClave])
+  const consulta = useMemo<ConsultaProductos>(
+    () => ({ ...consultaBase, empresaId, categoriaId, compatibles: variantesCompatibles }),
+    [consultaBase, empresaId, categoriaId, variantesCompatibles],
+  )
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
@@ -282,6 +311,10 @@ export function ProductoList() {
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}
                 disponibilidad={consulta.disponibilidad}
                 onDisponibilidad={(disponibilidad) => setConsulta((actual) => ({ ...actual, disponibilidad, pagina: 1 }))}
+                grupoCompatibles={gruposCompatibles}
+                compatibles={clavesCompatibles}
+                onCompatibles={(claves) => setConsulta((actual) => ({ ...actual, compatibles: claves, pagina: 1 }))}
+                errorCompatibles={errorCompatibles}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />
