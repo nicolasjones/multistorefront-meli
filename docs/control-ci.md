@@ -28,7 +28,7 @@ cantidad declarada.
 
 ## Sharding de la suite web
 
-El job `web` es el 80 % del tiempo del CI y corre en 3 shards. El flag tiene que
+El job `web` es el 80 % del tiempo del CI y corre en 3 shards. Más tramos no aceleran: la máquina (8 núcleos) está limitada por CPU, no por tramos. El flag tiene que
 llegar a vitest como **opción**, no como filtro de archivos:
 
 ```bash
@@ -42,6 +42,21 @@ carga del pool, hace que todos los shards rocen el timeout y termina bloqueando
 `validacion` en todos los PRs de épica (MSF-237, AGE-1049). Por eso el
 `timeout-minutes` del job es sólo una red de seguridad: si los shards son reales,
 cada uno termina muy por debajo.
+
+### Tests afectados en los PRs, suite completa al integrar
+
+En un PR a `dokploy` el job `web` corre `vitest run --changed <merge-base>`: solo los tests que dependen (por el grafo de
+imports) de los archivos modificados; un cambio de configuración o de `package.json` dispara la suite completa. La suite
+**completa** corre en el `push` a `dokploy`/`main`/`staging`, en el cierre de la épica (PR `epic/* → dokploy`) y en
+`merge_group`: es la red de seguridad. El store de pnpm se cachea entre corridas (`setup-node` con `cache: pnpm`).
+
+El job `web` hace el clon completo en los PRs para poder calcular el diff (`fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}`).
+El `'0'` va **entre comillas**: en una expresión de GitHub el número `0` es falso, y `a && 0 || 1` siempre da `1` (clon
+superficial, `git merge-base` falla y los 3 tramos web quedan en rojo; pasó con #716 y se corrigió en #719).
+
+Buenas prácticas para no repetir el CI: agrupar cambios relacionados en una rama de épica (los PRs a `epic/*` saltean la suite
+web y el e2e), juntar commits antes de empujar (cada push cancela y reinicia la corrida) y, ante un tramo con fallo
+intermitente, repetir solo ese job con `gh run rerun <id> --failed`.
 
 ## Activación
 
@@ -129,9 +144,11 @@ archivo` sin pasos de código.
   falla si `changes`, `application`, `web`, `infrastructure` o `database`
   fallaron o se cancelaron; los `skipped` cuentan como OK). Así un PR de docs
   (que saltea `web`/`database`) no queda bloqueado, pero un shard web rojo sí.
-- **Rama al día** (`strict_required_status_checks_policy`): el PR se prueba
-  contra el `dokploy` actual. Si `dokploy` avanzó, hay que actualizar la rama
-  (`gh pr update-branch <n>`) y esperar la nueva corrida antes de mergear.
+- **Rama al día: desactivada** (`strict_required_status_checks_policy: false`, desde 2026-11-04). Antes el PR debía
+  probarse contra el `dokploy` actual y, cada vez que otro PR entraba, había que actualizar la rama y repetir todo el CI;
+  con PRs de agentes entrando seguido ninguno llegaba a mergear. Con el auto-merge del repo habilitado, un PR entra solo
+  cuando `validacion` pasa. Riesgo aceptado: dos PRs verdes por separado podrían romper juntos; lo cubre la suite completa
+  del push a `dokploy` y el e2e del cierre de épica. Para volver atrás: ponerlo en `true` en el ruleset.
 - **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
   falla a propósito: mientras el CI está pausado no se mergea.
 

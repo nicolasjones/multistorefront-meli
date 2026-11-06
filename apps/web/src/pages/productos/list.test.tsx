@@ -393,7 +393,7 @@ describe('ProductoList', () => {
   it('con edición ofrece editar y activar/desactivar, y desactivar llama a la RPC y recarga', async () => {
     abrir()
     await screen.findByText('Joystick')
-    expect(screen.getByRole('link', { name: 'Editar Joystick' })).toHaveAttribute('href', '/productos/p-1/edit')
+    expect(screen.getByRole('button', { name: 'Editar Joystick' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activar Cable' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
@@ -405,8 +405,8 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /^Editar/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Nuevo producto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
   })
 
