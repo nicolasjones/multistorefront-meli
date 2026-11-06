@@ -87,6 +87,9 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   `productos` en `edicion`, `stock` en `lectura`/`edicion` o `proveedores` en `lectura`/`edicion`; así el Operador
   ve los proveedores por la vista aunque no lea la tabla. La ficha
   llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
+- **`dominio.proveedores_contactos` (F-PRV-08, MSF-449):** lectura con `nivel_seccion('proveedores')` en `lectura`/`edicion`;
+  escritura solo por `agregar_contacto_proveedor` y `marcar_contacto_principal` (exigen `edicion`, `42501` si no); sin
+  `DELETE` directo; `anon` sin acceso. Detalle en `docs/proveedores.md`.
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
@@ -287,6 +290,13 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
 `service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
 `lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
 
+**Asignación a tiendas (MSF-597 · BUG-315).** El Técnico accede a Service solo en las tiendas con fila en
+`usuarios_empresas` (`private.empresas_accesibles()`), así que `tecnico` es el sexto rol válido por empresa:
+el CHECK `usuarios_empresas_rol_por_empresa` y `private.validar_asignaciones` (usada por
+`asignar_empresas_usuario`, `guardar_asignaciones_invitacion` y `aceptar_invitacion`) lo admiten, y el selector
+de Usuarios lo ofrece. Migración aditiva `20270201200200_rol_tecnico_por_empresa.sql`; test
+`supabase/tests/database/rol_tecnico_por_empresa.test.sql`. Los permisos de `mostrador` no cambian.
+
 - **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
   (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
   `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
@@ -316,6 +326,10 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracio
   `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
 - **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
 - **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.
+
+## Fusionar clientes (F-CLI-18, MSF-447)
+
+`public.fusionar_clientes` y `public.vista_previa_fusion_clientes` exigen **Administrador** de la organización (`private.es_administrador_de`), independientemente del nivel de la sección `clientes`; `anon` no las ejecuta. La ficha oculta «Fusionar con otro cliente…» a los demás roles.
 
 ## Rol mostrado en «Acceso restringido» (MSF-637)
 

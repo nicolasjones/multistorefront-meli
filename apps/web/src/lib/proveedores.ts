@@ -49,7 +49,7 @@ export const MENSAJE_CONFLICTO =
   'Otra persona modificó este proveedor mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
 // Misma regla que el disparador de dominio.proveedores (migración 20261018190000): mantener alineadas.
-const CORREO_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+export const CORREO_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export function validarProveedor(formulario: FormularioProveedor): ErroresProveedor {
   const errores: ErroresProveedor = {}
