@@ -2,7 +2,7 @@
 -- Cubre FR-008 y SC-003. Las fechas son relativas al reloj de la base (sin fechas absolutas).
 begin;
 
-select plan(16);
+select plan(15);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
