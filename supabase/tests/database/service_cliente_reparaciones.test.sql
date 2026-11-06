@@ -102,12 +102,13 @@ select c.clave, (public.crear_reparacion(
 select public.agregar_item_reparacion((select id from reps where clave = 'A'), 'mano_obra', 'Diagnóstico', null, 2, 50);
 select public.agregar_item_reparacion((select id from reps where clave = 'A'), 'repuesto', 'Cinta', null, 1, 50);
 reset role;
-update dominio.reparaciones set entrega_prevista = current_date + 3 where id = (select id from reps where clave = 'D');
+-- «Hoy» es el de Buenos Aires, como en crear_reparacion (v_hoy); con current_date UTC la prueba falla entre 00:00 y 03:00 UTC.
+update dominio.reparaciones set entrega_prevista = (now() at time zone 'America/Argentina/Buenos_Aires')::date + 3 where id = (select id from reps where clave = 'D');
 -- Ingreso distinto para fijar el orden sin depender del azar: B la más antigua, C de ayer; A y D comparten día
 -- dentro de la misma tienda (desempata el número). La numeración es por empresa, así que C (otra tienda) no
 -- puede empatar con A por día y número.
-update dominio.reparaciones set ingreso_en = current_date - 10 where id = (select id from reps where clave = 'B');
-update dominio.reparaciones set ingreso_en = current_date - 1 where id = (select id from reps where clave = 'C');
+update dominio.reparaciones set ingreso_en = (now() at time zone 'America/Argentina/Buenos_Aires')::date - 10 where id = (select id from reps where clave = 'B');
+update dominio.reparaciones set ingreso_en = (now() at time zone 'America/Argentina/Buenos_Aires')::date - 1 where id = (select id from reps where clave = 'C');
 
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 
