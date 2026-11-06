@@ -218,7 +218,7 @@ export function ProductoCarga() {
                 <Paper variant="outlined" sx={{ p: 2.5, flex: 1, minWidth: 0 }}>
                   <Typography variant="h3">1 · Archivos</Typography>
                   <Stack spacing={1.5} sx={{ mt: 1.5 }}>
-                    <Box sx={{ border: '1.5px dashed', borderColor: 'divider', borderRadius: 1.5, p: 2.5, textAlign: 'center' }}>
+                    <Box sx={{ border: '1.5px dashed', borderColor: 'divider', borderRadius: (tema) => `${tema.shape.borderRadius}px`, p: 2.5, textAlign: 'center' }}>
                       <Typography sx={{ fontWeight: 600 }}>{nombreCsv ?? 'Archivo CSV de productos'}</Typography>
                       <Typography variant="s" color="text.secondary" component="p">
                         {planilla && nombreCsv ? resumenCsv(nombreCsv, planilla) : 'Ningún archivo elegido'}
@@ -229,7 +229,7 @@ export function ProductoCarga() {
                         {planilla ? 'Cambiar archivo' : 'Elegir CSV'}
                       </Button>
                     </Box>
-                    <Box sx={{ border: '1.5px dashed', borderColor: 'divider', borderRadius: 1.5, p: 2.5, textAlign: 'center' }}>
+                    <Box sx={{ border: '1.5px dashed', borderColor: 'divider', borderRadius: (tema) => `${tema.shape.borderRadius}px`, p: 2.5, textAlign: 'center' }}>
                       <Typography sx={{ fontWeight: 600 }}>Imágenes (ZIP o archivos sueltos)</Typography>
                       <Typography variant="s" color="text.secondary" component="p">
                         {imagenes.length > 0 ? `${imagenes.length} ${imagenes.length === 1 ? 'imagen cargada' : 'imágenes cargadas'}` : 'Ninguna imagen elegida (opcional)'}

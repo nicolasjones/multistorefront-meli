@@ -204,7 +204,7 @@ begin
         v_errores := v_errores || format('«%s» debe ser un número no negativo con hasta 2 decimales', v_campo);
       end if;
     end loop;
-    if case when btrim(coalesce(r.precio_x1, '')) ~ v_numero then btrim(r.precio_x1)::numeric = 0 else false end then
+    if (case when btrim(coalesce(r.precio_x1, '')) ~ v_numero then btrim(r.precio_x1)::numeric = 0 else false end) then
       v_errores := v_errores || '«precio_x1» debe ser mayor a cero';
     end if;
     if v_accion = 'nuevo' and btrim(coalesce(r.precio_x1, '')) = '' then
