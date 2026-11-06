@@ -2,7 +2,7 @@
 -- Cubre FR-008 y SC-003. Las fechas son relativas al reloj de la base (sin fechas absolutas).
 begin;
 
-select plan(15);
+select plan(16);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -20,6 +20,10 @@ insert into registro_actividad (organizacion_id, actor_id, actor_nombre, tipo, d
   ('22222222-2222-2222-2222-222222222222', null, null, 'otra.cosa', 'Viejo dos', now() - interval '36 months'),
   ('22222222-2222-2222-2222-222222222222', null, null, 'otra.cosa', 'Hoy dos', now());
 
+-- El rol de Sistema no ve las funciones de pgTAP: sus resultados se guardan en una tabla temporal
+create temp table resultado_depuracion (corrida int, borrados int);
+grant all on resultado_depuracion to workers_orquestacion;
+
 -- Estructura y privilegios
 select is(has_function_privilege('authenticated', 'private.depurar_registro_actividad(timestamptz)', 'execute'), false, 'authenticated no ejecuta la depuración');
 select is(has_function_privilege('anon', 'private.depurar_registro_actividad(timestamptz)', 'execute'), false, 'anon no ejecuta la depuración');
@@ -29,12 +33,13 @@ select is(has_function_privilege('workers_orquestacion', 'private.depurar_regist
 set local role authenticated;
 select throws_ok($$select private.depurar_registro_actividad()$$, '42501', null, 'un usuario autenticado no depura');
 reset role;
-select is((select count(*)::int from registro_actividad), 5, 'el rechazo no borra nada');
+select is((select count(*)::int from registro_actividad where tipo = 'otra.cosa'), 5, 'el rechazo no borra nada');
 
 -- Corrida del rol de Sistema
 set local role workers_orquestacion;
-select is(private.depurar_registro_actividad(), 3, 'borra los 3 eventos con más de 24 meses');
+insert into resultado_depuracion values (1, private.depurar_registro_actividad());
 reset role;
+select is((select borrados from resultado_depuracion where corrida = 1), 3, 'borra los 3 eventos con más de 24 meses');
 
 select is((select count(*)::int from registro_actividad where detalle like 'Viejo%'), 0, 'no queda ningún evento viejo');
 select is((select count(*)::int from registro_actividad where detalle in ('Reciente uno', 'Hoy dos')), 2, 'los de menos de 24 meses se conservan');
@@ -50,14 +55,16 @@ select is((select actor_id from registro_actividad where tipo = 'sistema.depurad
 
 -- Idempotencia
 set local role workers_orquestacion;
-select is(private.depurar_registro_actividad(), 0, 'una segunda corrida no borra nada');
+insert into resultado_depuracion values (2, private.depurar_registro_actividad());
 reset role;
-select is((select count(*)::int from registro_actividad where tipo = 'sistema.depurada'), 2, 'y no suma eventos de Sistema');
+select is((select borrados from resultado_depuracion where corrida = 2), 0, 'una segunda corrida no borra nada');
+select is((select count(*)::int from registro_actividad where tipo = 'sistema.depurada' and organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')), 2, 'y no suma eventos de Sistema');
 
 -- p_hasta no puede adelantar el corte: una fecha futura no borra lo que tiene menos de 24 meses
 set local role workers_orquestacion;
-select is(private.depurar_registro_actividad(now() + interval '100 years'), 0, 'p_hasta futuro se limita a now(): no borra eventos recientes');
+insert into resultado_depuracion values (3, private.depurar_registro_actividad(now() + interval '100 years'));
 reset role;
+select is((select borrados from resultado_depuracion where corrida = 3), 0, 'p_hasta futuro se limita a now(): no borra eventos recientes');
 
 -- La excepción de la depuración no queda abierta: el borrado directo sigue bloqueado
 select throws_ok($$delete from registro_actividad$$, '42501', null, 'tras depurar, el borrado directo sigue rechazado');
