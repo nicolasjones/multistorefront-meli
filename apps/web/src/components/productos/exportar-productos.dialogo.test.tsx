@@ -86,4 +86,13 @@ describe('DialogoExportarProductos', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     await waitFor(() => expect(onExportado).toHaveBeenCalled())
   })
+
+  it('si falla el conteo de «Todos» lo informa y permite reintentar', async () => {
+    mocks.contar.mockResolvedValueOnce({ count: null, error: new Error('rls') }).mockResolvedValueOnce({ count: 196 })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    expect(await screen.findByText('No pudimos contar los productos del catálogo.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Todos (196)')).toBeInTheDocument()
+  })
 })

@@ -28,6 +28,8 @@ export function DialogoExportarProductos({ consulta, totalFiltrado, veRentabilid
   const [queExportar, setQueExportar] = useState<'filtrado' | 'todos'>('filtrado')
   const [columnas, setColumnas] = useState<ClaveColumnaExportacion[]>(() => columnasPorDefecto(veRentabilidad))
   const [totalCatalogo, setTotalCatalogo] = useState<number | null>(null)
+  const [errorConteo, setErrorConteo] = useState(false)
+  const [reintentoConteo, setReintentoConteo] = useState(0)
   const [estado, setEstado] = useState<Estado>('configurando')
   const [progreso, setProgreso] = useState({ descargados: 0, total: 0 })
   const [mensajeError, setMensajeError] = useState('')
@@ -38,12 +40,21 @@ export function DialogoExportarProductos({ consulta, totalFiltrado, veRentabilid
   // «Todos (N)»: todo el catálogo de la organización, sin filtros.
   useEffect(() => {
     let vigente = true
+    setErrorConteo(false)
     void supabaseClient
       .from('v_productos_listado')
       .select('id', { count: 'exact', head: true })
-      .then(({ count }) => { if (vigente) setTotalCatalogo(count ?? 0) })
+      .then(({ count, error }) => {
+        if (!vigente) return
+        if (error || count === null) {
+          if (error) console.error('No pudimos contar el catálogo.', error)
+          setErrorConteo(true)
+          return
+        }
+        setTotalCatalogo(count)
+      })
     return () => { vigente = false }
-  }, [])
+  }, [reintentoConteo])
 
   const cantidad = queExportar === 'todos' ? totalCatalogo : totalFiltrado
   const sinFilas = cantidad === 0
@@ -121,6 +132,14 @@ export function DialogoExportarProductos({ consulta, totalFiltrado, veRentabilid
               ))}
             </FormGroup>
           </FormControl>
+          {errorConteo ? (
+            <Alert
+              severity="error"
+              action={<Button color="inherit" size="small" onClick={() => setReintentoConteo((n) => n + 1)}>Reintentar</Button>}
+            >
+              No pudimos contar los productos del catálogo.
+            </Alert>
+          ) : null}
           {sinFilas ? <Alert severity="info">No hay productos para exportar.</Alert> : null}
           {exportando ? (
             <>
