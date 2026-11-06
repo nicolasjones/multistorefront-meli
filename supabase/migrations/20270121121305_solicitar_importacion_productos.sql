@@ -1,7 +1,7 @@
 -- MSF-375 (F-CAT-10, FR-107, FR-109, FR-111): solicitar y seguir una importación de productos.
 --
 -- Esquemas (Principio VII): solo funciones. Escriben `dominio.importaciones_productos` y
--- `dominio.importaciones_productos_filas` (dominio, migración 20270121121301) y, por
+-- `dominio.importaciones_productos_filas` (dominio, migración 20270121121303) y, por
 -- `iniciar_ejecucion_worker`, el ciclo de ejecuciones de la plataforma (`public`).
 --
 -- Serialización (FR-109): una sola importación por organización tiene ejecución; las demás quedan

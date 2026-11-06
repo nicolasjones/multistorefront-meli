@@ -29,7 +29,7 @@ reintentable desde la pantalla de ejecuciones.
 
 **Falla (FR-111).** Si el worker agota los reintentos del flow o sale con 78, nadie llama a
 `cerrar_importacion_productos`. `private.reconciliar_importaciones_fallidas` (migración
-`20270121121305`) pasa a `fallida`, con `mensaje_fallo`, toda importación cuya orden de la outbox quedó
+`20270121121307`) pasa a `fallida`, con `mensaje_fallo`, toda importación cuya orden de la outbox quedó
 `agotada`, cuya ejecución se cerró sin terminarla o que superó el tiempo máximo de la capacidad, y cierra
 su ejecución para liberar el candado. La llaman `despachar_importacion_siguiente` y el sondeo
 `obtener_importacion_productos`, así la cola se libera sin un proceso extra.
@@ -49,9 +49,9 @@ salen de la columna `tiendas`.
 
 ## Reversión
 
-Migraciones aditivas (`20270121121301`…`20270121121304`). Para volver atrás: revertir el merge del PR
+Migraciones aditivas (`20270121121303`…`20270121121307`). Para volver atrás: revertir el merge del PR
 (`git revert -m 1`) y, en una migración posterior, eliminar las tablas `dominio.importaciones_productos*`
-y las funciones asociadas (ver encabezado de `20270121121301_catalogo_importaciones.sql`), exportando
+y las funciones asociadas (ver encabezado de `20270121121303_catalogo_importaciones.sql`), exportando
 antes los datos. Nunca en el mismo PR que las crea.
 
 > Nota: en `validar_importacion_productos` los textos que se agregan a `v_errores`/`v_avisos` (`text[]`) van con cast `::text`; sin él Postgres lee el literal como arreglo («malformed array literal»).

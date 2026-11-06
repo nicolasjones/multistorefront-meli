@@ -16,7 +16,7 @@
 -- Esquemas (Principio VII): solo funciones; escriben `dominio.importaciones_productos` y
 -- `public.ejecuciones_worker` (plataforma). Migración aditiva (create or replace de dos funciones
 -- existentes + una nueva). Reversión (migración posterior): restaurar los cuerpos de
--- `despachar_importacion_siguiente` y `obtener_importacion_productos` de 20270121121303 y
+-- `despachar_importacion_siguiente` y `obtener_importacion_productos` de 20270121121306 y
 --   drop function private.reconciliar_importaciones_fallidas(uuid);
 
 create or replace function private.reconciliar_importaciones_fallidas(p_org uuid)
@@ -81,7 +81,7 @@ $$;
 revoke execute on function private.reconciliar_importaciones_fallidas(uuid) from public, anon, authenticated;
 grant execute on function private.reconciliar_importaciones_fallidas(uuid) to workers_orquestacion;
 
--- Igual que en 20270121121303, más la reconciliación previa a la decisión de «hay una en curso».
+-- Igual que en 20270121121306, más la reconciliación previa a la decisión de «hay una en curso».
 create or replace function private.despachar_importacion_siguiente(p_org uuid)
 returns uuid
 language plpgsql
