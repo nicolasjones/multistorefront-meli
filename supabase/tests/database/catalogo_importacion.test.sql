@@ -11,7 +11,7 @@
 -- verifica con has_function_privilege, igual que en historial_importacion.test.sql.
 begin;
 
-select plan(60);
+select plan(66);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -480,6 +480,55 @@ select is(
 select throws_ok(
   format($f$ select * from private.iniciar_importacion_productos('%s'::uuid) $f$, current_setting('t.ejec1')),
   'P0001', null, 'una ejecución cerrada no se puede reiniciar (EJECUCION_NO_EN_CURSO)'
+);
+
+
+-- ============================================================================
+-- Falla (FR-109/FR-111): una orden agotada lleva la importación a `fallida` y libera la cola
+-- ============================================================================
+
+update despachos_ejecucion set estado = 'agotada', reclamada_en = null, vence_en = null
+ where ejecucion_id = (select ejecucion_id from dominio.importaciones_productos where id = current_setting('t.imp2')::uuid);
+
+insert into dominio.importaciones_productos (id, organizacion_id, clave, solicitante, total_filas, importables)
+values ('e1000000-0000-0000-0000-0000000000e3', '11111111-1111-1111-1111-111111111111',
+        '0a000000-0000-0000-0000-000000000099', 'd1000000-0000-0000-0000-000000000011', 1, 1);
+
+select is(
+  private.reconciliar_importaciones_fallidas('11111111-1111-1111-1111-111111111111'),
+  1,
+  'la importación con orden agotada se reconcilia'
+);
+
+select is(
+  (select estado || '/' || (mensaje_fallo is not null) from dominio.importaciones_productos where id = current_setting('t.imp2')::uuid),
+  'fallida/true',
+  'queda fallida con su mensaje de fallo'
+);
+
+select is(
+  (select e.estado from ejecuciones_worker e join dominio.importaciones_productos i on i.ejecucion_id = e.id
+    where i.id = current_setting('t.imp2')::uuid),
+  'fallida',
+  'su ejecución también se cierra como fallida'
+);
+
+select is(
+  private.reconciliar_importaciones_fallidas('11111111-1111-1111-1111-111111111111'),
+  0,
+  'reconciliar es idempotente'
+);
+
+select is(
+  private.despachar_importacion_siguiente('11111111-1111-1111-1111-111111111111'),
+  'e1000000-0000-0000-0000-0000000000e3'::uuid,
+  'tras la falla se despacha la siguiente importación de la organización'
+);
+
+select is(
+  (select r ->> 'estado' from (select public.obtener_importacion_productos(current_setting('t.imp2')::uuid) as r) s),
+  'fallida',
+  'la pantalla ve la importación como fallida'
 );
 
 select * from finish();

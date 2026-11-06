@@ -27,6 +27,13 @@ Productos y solo la ve el Administrador. No tiene ítem de menú.
 serializan: la segunda queda `en_cola` hasta que termine la primera (FR-109). Una falla técnica queda
 reintentable desde la pantalla de ejecuciones.
 
+**Falla (FR-111).** Si el worker agota los reintentos del flow o sale con 78, nadie llama a
+`cerrar_importacion_productos`. `private.reconciliar_importaciones_fallidas` (migración
+`20270121121305`) pasa a `fallida`, con `mensaje_fallo`, toda importación cuya orden de la outbox quedó
+`agotada`, cuya ejecución se cerró sin terminarla o que superó el tiempo máximo de la capacidad, y cierra
+su ejecución para liberar el candado. La llaman `despachar_importacion_siguiente` y el sondeo
+`obtener_importacion_productos`, así la cola se libera sin un proceso extra.
+
 ## Worker
 
 Paquete `@workers/importar-productos` (`build`, `lint`, `test`, `start`), contrato `workers/CONTRATO.md`:
