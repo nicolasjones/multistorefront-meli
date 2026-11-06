@@ -322,6 +322,7 @@ Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US1). El cam
 - **Empresa activa (Principio VIII):** al cambiar de empresa se recargan los valores y los productos, se descartan los valores elegidos que ya no existen y se vuelve a la página 1. «Limpiar filtros» limpia también este filtro.
 - **«Etiquetas»:** no es una entidad nueva; son los propios valores de «Compatible con» (Decisión 2 de la spec, confirmada por Nicolás).
 - **Pruebas:** pgTAP `catalogo_compatible_filtro.test.sql`; Vitest `filtro-compatible`, `FormularioProducto`.
+- **Contrato de la vista:** `compatible_con` pasa a ser la última columna de `v_productos_listado` (tras `codigo_barras`); `catalogo_listado.test.sql` y `catalogo_categorias.test.sql` verifican ese orden.
 
 ## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
 
