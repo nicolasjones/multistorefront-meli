@@ -11,6 +11,8 @@ import { PreciosCliente } from '../ficha/PreciosCliente'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
+import { productoJsonLd } from '../seo/datosEstructurados'
 
 // Carga diferida (FR-012): los relacionados quedan fuera del primer pintado de la ficha.
 const Relacionados = lazy(() => import('../ficha/Relacionados'))
@@ -33,8 +35,20 @@ export default function RutaProducto() {
   if (ficha.fase === 'no-encontrada') return <PaginaNoEncontrada />
 
   const { ficha: datos, urls } = ficha
+  const primeraImagen = datos.imagenes[0] ? (urls[datos.imagenes[0].ruta] ?? null) : null
   return (
     <Box>
+      <CabeceraSeo
+        host={host}
+        pagina={datos.nombre}
+        descripcion={datos.descripcion}
+        imagen={primeraImagen}
+        ruta={`/producto/${datos.id}`}
+        tipo="product"
+        datosEstructurados={({ url }) => [
+          productoJsonLd({ nombre: datos.nombre, descripcion: datos.descripcion, sku: datos.sku, imagen: primeraImagen, url, precio: datos.precio, disponible: datos.disponible }),
+        ]}
+      />
       {/* Celular (F-TDA-17, FR-042): enlace de vuelta arriba; las migas son de escritorio. */}
       <Link component={EnlaceRuta} to="/catalogo" underline="hover" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center', minHeight: (tema) => tema.spacing(5.5), mb: 1, color: 'inherit' }}>
         ← Todos los productos

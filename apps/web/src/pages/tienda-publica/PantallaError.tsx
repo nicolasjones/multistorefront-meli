@@ -1,4 +1,5 @@
 import { Box, Button, Typography } from '@mui/material'
+import { CabeceraSeo } from './seo/CabeceraSeo'
 
 type Props = {
   alReintentar: () => void
@@ -17,6 +18,7 @@ export function PantallaError({ alReintentar, alVolverAlInicio = () => window.lo
       data-testid="pantalla-error"
       sx={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 2, py: 6 }}
     >
+      <CabeceraSeo noindex pagina="No pudimos cargar esta página" />
       <Box role="alert" sx={{ mb: 3 }}>
         <Typography component="h1" variant="h4" gutterBottom>No pudimos cargar esta página.</Typography>
         <Typography color="text.secondary">Revisá tu conexión y probá de nuevo.</Typography>

@@ -2,6 +2,7 @@ import { Box, Button, Typography } from '@mui/material'
 import { lazy, Suspense } from 'react'
 import { Link as EnlaceRuta, useOutletContext } from 'react-router'
 import type { ContextoTienda } from './layout/LayoutTienda'
+import { CabeceraSeo } from './seo/CabeceraSeo'
 
 const BuscadorTienda = lazy(() => import('./layout/BuscadorTienda'))
 
@@ -13,6 +14,7 @@ export function PaginaNoEncontrada() {
   const contexto = useOutletContext<ContextoTienda | undefined>()
   return (
     <Box data-testid="pagina-no-encontrada" sx={{ py: 6, textAlign: 'center' }}>
+      <CabeceraSeo noindex pagina="Página no encontrada" />
       <Typography component="h1" variant="h4" gutterBottom>No encontramos esta página</Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Puede que el enlace esté desactualizado o que ya no esté disponible.
