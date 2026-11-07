@@ -22,7 +22,7 @@
 --   drop function private.tocar_promocion_precio();
 --   drop table dominio.promociones_precio;
 
-create table dominio.promociones_precio (
+create table if not exists dominio.promociones_precio (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
@@ -44,8 +44,8 @@ create table dominio.promociones_precio (
 comment on table dominio.promociones_precio is
   'Precio promocional fijo (sin IVA, en pesos) de un producto en una empresa, vigente en [desde, hasta) (F-PRE-11). Estados derivados por fecha; solo anulada_at es un dato. Sin política DELETE.';
 
-create index promociones_precio_organizacion_id_idx on dominio.promociones_precio (organizacion_id);
-create index promociones_precio_vigencia_idx
+create index if not exists promociones_precio_organizacion_id_idx on dominio.promociones_precio (organizacion_id);
+create index if not exists promociones_precio_vigencia_idx
   on dominio.promociones_precio (empresa_id, producto_id, desde, hasta);
 
 -- updated_at avanza solo ante un cambio real (bloqueo optimista; repetir lo mismo es idempotente).
