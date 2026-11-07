@@ -1,6 +1,6 @@
 // MSF-369 · F-OPS-03 (FR-021, FR-023, SC-006): filtrado de datos personales, ambiente y versión, y no-op sin DSN.
 import { describe, expect, it, vi } from 'vitest'
-import { crearEvento, crearRegistroErrores, filtrarEvento, iniciarErrores, leerDsn } from './erroresWeb'
+import { crearEvento, fijarOrganizacionErrores, crearRegistroErrores, filtrarEvento, iniciarErrores, leerDsn } from './erroresWeb'
 
 const DSN = 'https://abc123@errores.example.com/7'
 
@@ -82,5 +82,18 @@ describe('erroresWeb', () => {
     t = 61_000
     registro.capturar(new Error('bucle'))
     expect(enviar).toHaveBeenCalledTimes(11)
+  })
+
+  it('conserva la organización de la sesión como tag (solo su id) y no otros tags', () => {
+    const org = '3f2b8c1e-5a4d-4e6f-9a7b-1c2d3e4f5a6b'
+    fijarOrganizacionErrores(org)
+    const evento = { ...crearEvento(new Error('x'), { ambiente: 'local', version: 'dev' }), tags: { organizacion_id: org, nombre: 'Ana' } }
+    const filtrado = filtrarEvento(evento as never)!
+    expect(filtrado.tags).toEqual({ organizacion_id: org })
+    fijarOrganizacionErrores('no-es-uuid')
+    expect(crearEvento(new Error('x'), { ambiente: 'local', version: 'dev' }).tags).toBeUndefined()
+    fijarOrganizacionErrores(org)
+    expect(crearEvento(new Error('x'), { ambiente: 'local', version: 'dev' }).tags).toEqual({ organizacion_id: org })
+    fijarOrganizacionErrores(null)
   })
 })

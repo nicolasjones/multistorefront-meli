@@ -2,6 +2,7 @@ import type { AuthProvider } from '@refinedev/core'
 import { getMantenerSesion, setIngresoEnCurso, setMantenerSesion, supabaseClient } from '../lib/supabase'
 import { limpiarRastroDeSesion, registrarActividad, sesionVencidaPorInactividad } from '../lib/vencimientoSesion'
 import { destinoInternoSeguro } from '../lib/destinoIngreso'
+import { fijarOrganizacionErrores } from '../lib/erroresWeb'
 
 // No hay registro propio (spec 003, US2/US4): toda cuenta llega invitada
 // por email desde la Edge Function crear-organizacion, o cargada a mano
@@ -37,10 +38,11 @@ type VeredictoAcceso = 'permitido' | 'denegado' | 'indeterminado'
 async function consultarAcceso(userId: string): Promise<VeredictoAcceso> {
   const { data: membresia, error: errorMembresia } = await supabaseClient
     .from('usuarios_organizacion')
-    .select('estado')
+    .select('estado, organizacion_id')
     .eq('user_id', userId)
     .maybeSingle()
   if (errorMembresia) return 'indeterminado'
+  fijarOrganizacionErrores(membresia?.organizacion_id)
   if (membresia) return membresia.estado === 'suspendido' ? 'denegado' : 'permitido'
 
   const { data: superadmin, error: errorSuperadmin } = await supabaseClient
@@ -161,6 +163,7 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
+    fijarOrganizacionErrores(null)
     const cierre = await supabaseClient.auth.signOut().catch((falla: unknown) => ({ error: falla as Error }))
     // Si el cierre global falla (sin red), se descarta al menos la sesión local
     // antes de borrar la marca: sin sesión local, el siguiente check no la da por válida.

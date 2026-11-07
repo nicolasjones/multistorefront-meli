@@ -25,7 +25,17 @@ export interface EventoError {
   release: string
   exception: { values: { type: string; value: string }[] }
   request?: { url?: string }
+  tags?: { organizacion_id?: string }
   [clave: string]: unknown
+}
+
+// Organización de la sesión (RF-OPS-03-1): solo su id (UUID), nunca nombre ni datos de personas. La fija el
+// proveedor de autenticación cuando conoce la membresía y la limpia al cerrar sesión.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+let organizacionActual: string | null = null
+
+export function fijarOrganizacionErrores(id: string | null | undefined): void {
+  organizacionActual = id && UUID.test(id) ? id : null
 }
 
 const CORREO = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
@@ -76,6 +86,8 @@ export function filtrarEvento(evento: EventoError): EventoError | null {
     // Agrupa por tipo y mensaje ya limpios, no por datos que cambian en cada ocurrencia.
     fingerprint: [valores[0].type, valores[0].value],
   }
+  const organizacion = evento.tags?.organizacion_id
+  if (typeof organizacion === 'string' && UUID.test(organizacion)) filtrado.tags = { organizacion_id: organizacion }
   if (evento.request?.url) filtrado.request = { url: limpiarUrl(evento.request.url) }
   return filtrado
 }
@@ -107,6 +119,7 @@ export function crearEvento(error: unknown, config: { ambiente: string; version:
     release: config.version,
     exception: { values: [{ type: e.name || 'Error', value: e.message }] },
     ...(url ? { request: { url } } : {}),
+    ...(organizacionActual ? { tags: { organizacion_id: organizacionActual } } : {}),
   }
 }
 
