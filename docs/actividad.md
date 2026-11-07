@@ -301,3 +301,7 @@ perform private.registrar_cambio_actividad(
 rojo). El plazo no se edita desde la app.
 
 Reversión: ver el encabezado de cada migración (los eventos escritos se conservan).
+
+## Eventos del centro de importaciones (F-IMP-01)
+
+`importacion.iniciada`, `importacion.finalizada` e `importacion.cancelada` (no sensibles) los escriben las funciones del proceso masivo en la misma transacción: iniciar, cancelar (una vez por pedido) y cerrar o reconciliar. El detalle trae el nombre del proceso y, al finalizar, las cifras «N correctas y M con error»; nunca referencias, motivos de error ni parámetros. Reversión: `delete from public.tipos_evento_actividad where tipo like 'importacion.%';`.

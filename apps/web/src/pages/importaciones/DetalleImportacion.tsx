@@ -1,37 +1,51 @@
-import { useState } from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
+import { useCallback } from 'react'
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { useErroresProceso } from '../../hooks/useErroresProceso'
+import { useExportarCsv } from '../../hooks/useExportarCsv'
 import {
-  TAMANO_PAGINA_ERRORES,
+  COLUMNAS_CSV_ERRORES,
+  LOTE_CSV_ERRORES,
   avance,
   duracion,
   etiquetaEstado,
   etiquetaFuncionalidad,
   etiquetaTipo,
   formatearFecha,
+  nombreArchivoErrores,
+  resultado,
+  pedirLoteErrores,
   type ErrorProceso,
   type ProcesoMasivo,
 } from '../../lib/procesosMasivos'
 
 const columnas: ColumnaAdaptable<ErrorProceso>[] = [
   { clave: 'fila', encabezado: 'Fila', render: (error) => error.fila ?? '—' },
+  { clave: 'columna', encabezado: 'Columna', render: (error) => error.columna ?? '—' },
   { clave: 'referencia', encabezado: 'Referencia', render: (error) => error.referencia ?? '—' },
   { clave: 'motivo', encabezado: 'Motivo', render: (error) => error.motivo_sanitizado },
 ]
 
 // Diálogo «Detalle de la importación» (FR-013): resumen del proceso y sus errores paginados.
 export function DetalleImportacion({ proceso, onCerrar }: { proceso: ProcesoMasivo; onCerrar: () => void }) {
-  const [pagina, setPagina] = useState(1)
-  const { errores, total, isLoading, isError, refetch } = useErroresProceso(proceso.id, pagina, `${proceso.estado}:${proceso.procesados}:${proceso.con_errores}`)
-  const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_ERRORES))
+  const { errores, total, hayMas, cargandoMas, errorMas, cargarMas, isLoading, isError, refetch } = useErroresProceso(proceso.id, `${proceso.estado}:${proceso.procesados}:${proceso.con_errores}`)
+  // Descarga TODO el reporte del proceso (no solo lo cargado en pantalla), por lotes (RF-IMP-01-3).
+  const pedirLote = useCallback((desde: number, limite: number) => pedirLoteErrores(proceso.id, desde, limite), [proceso.id])
+  const nombreArchivo = useCallback(() => nombreArchivoErrores(proceso.nombre), [proceso.nombre])
+  const { exportar, exportando, mensaje, cerrarMensaje } = useExportarCsv<ErrorProceso>({
+    columnas: COLUMNAS_CSV_ERRORES,
+    nombreArchivo,
+    tamanoLote: LOTE_CSV_ERRORES,
+    pedirLote,
+  })
   const resumen: [string, string][] = [
     ['Nombre', proceso.nombre],
     ['Origen', `${etiquetaTipo(proceso.tipo)} · ${etiquetaFuncionalidad(proceso.funcionalidad)}`],
     ['Estado', etiquetaEstado(proceso)],
     ['Avance', avance(proceso)],
-    ['Errores', String(proceso.con_errores)],
+    ['Resultado', resultado(proceso)],
     ['Creado', formatearFecha(proceso.creado_en)],
     ['Duración', duracion(proceso)],
   ]
@@ -48,7 +62,15 @@ export function DetalleImportacion({ proceso, onCerrar }: { proceso: ProcesoMasi
             </Stack>
           ))}
         </Stack>
-        <Typography component="h3" variant="subtitle1" sx={{ mb: 1 }}>Errores</Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+          <Typography component="h3" variant="subtitle1">Errores ({total})</Typography>
+          {proceso.con_errores > 0 || total > 0 ? (
+            <Button size="small" variant="outlined" disabled={exportando} onClick={() => void exportar()}>
+              {exportando ? 'Preparando el archivo…' : 'Descargar errores (CSV)'}
+            </Button>
+          ) : null}
+        </Stack>
+        {mensaje ? <Alert severity={mensaje.tipo === 'error' ? 'error' : 'info'} onClose={cerrarMensaje} sx={{ mb: 1 }}>{mensaje.texto}</Alert> : null}
         {isLoading ? (
           <EstadoCargaPagina lineas={2} />
         ) : isError ? (
@@ -58,13 +80,8 @@ export function DetalleImportacion({ proceso, onCerrar }: { proceso: ProcesoMasi
         ) : (
           <>
             <ContenidoAdaptable items={errores} columnas={columnas} obtenerClave={(error) => error.id} etiquetaTabla="Errores del proceso" />
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
-              <Typography color="text.secondary" aria-live="polite">Página {pagina} de {totalPaginas}</Typography>
-              <Stack direction="row" spacing={1}>
-                <Button size="small" disabled={pagina <= 1} onClick={() => setPagina((actual) => actual - 1)} aria-label="Página anterior de errores">Anterior</Button>
-                <Button size="small" disabled={pagina >= totalPaginas} onClick={() => setPagina((actual) => actual + 1)} aria-label="Página siguiente de errores">Siguiente</Button>
-              </Stack>
-            </Stack>
+            <Typography color="text.secondary" aria-live="polite" sx={{ mt: 1 }}>Mostrando {errores.length} de {total} errores</Typography>
+            <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} />
           </>
         )}
       </DialogContent>
