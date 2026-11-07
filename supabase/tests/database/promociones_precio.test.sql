@@ -473,8 +473,8 @@ select is(
   'lista blanca de la ficha: solo suma precio_anterior'
 );
 select is(
-  (select p -> 'precio_anterior' from res, jsonb_array_elements(j -> 'productos') p where clave = 'cat_a' and p ->> 'nombre' = 'Beta'),
-  'null'::jsonb, 'catálogo de A: la promoción de B no se filtra'
+  (select p -> 'precio_anterior' from res, jsonb_array_elements(j -> 'productos') p where clave = 'cat_a' and p ->> 'nombre' = 'Alfa'),
+  'null'::jsonb, 'catálogo de A: la promoción de B no se filtra (Alfa de A sin promoción vigente)'
 );
 
 -- ============================================================================
