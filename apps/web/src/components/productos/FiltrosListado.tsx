@@ -1,10 +1,10 @@
-import { Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip } from '@mui/material'
+import { Autocomplete, Box, Button, Chip, InputAdornment, Stack, TextField, Tooltip } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { FiltroEmpresa } from '../pagina/FiltroEmpresa'
 import { DISPONIBILIDADES, type Disponibilidad } from '../../lib/productos'
 import { opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
-import { LARGO_MAXIMO_BUSQUEDA, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
+import { LARGO_MAXIMO_BUSQUEDA, type GrupoCompatible, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
 
 // Filtros que llegan con otras épicas (FR-004): se ven, pero deshabilitados y con su explicación.
 const FILTROS_PENDIENTES: ReadonlyArray<{ etiqueta: string; motivo: string }> = [
@@ -44,11 +44,16 @@ type FiltrosListadoProps = {
   // Filtro de disponibilidad (F-CAT-17, FR-009): Todos o una; se resuelve en el servidor.
   disponibilidad?: Disponibilidad | null
   onDisponibilidad?: (disponibilidad: Disponibilidad | null) => void
+  // Filtro «Compatible con» (F-CAT-09, FR-003): selector múltiple; muestra productos con ALGUNO de los valores.
+  grupoCompatibles?: ReadonlyArray<GrupoCompatible>
+  compatibles?: ReadonlyArray<string>
+  onCompatibles?: (claves: string[]) => void
+  errorCompatibles?: boolean
 }
 
 // Barra de búsqueda y filtros del listado de productos. Solo presenta: el estado y la espera de
 // tipeo viven en la pantalla (el texto sube sin demora; ella decide cuándo consultar).
-export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad }: FiltrosListadoProps) {
+export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, columnaOrden, direccion, onOrden, hayFiltros, onLimpiar, contador, ayuda, empresas = [], empresaId = null, onEmpresa, errorEmpresas = false, categorias = [], categoriaId = null, onCategoria, disponibilidad = null, onDisponibilidad, grupoCompatibles = [], compatibles = [], onCompatibles, errorCompatibles = false }: FiltrosListadoProps) {
   const opcionesCategoria = opcionesCategoriaProducto(categorias)
   return (
     <BarraHerramientas contador={contador} ayuda={ayuda}>
@@ -129,6 +134,30 @@ export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, col
           <option value="">Todos</option>
           {DISPONIBILIDADES.map(({ valor, etiqueta }) => <option key={valor} value={valor}>{etiqueta}</option>)}
         </TextField>
+      ) : null}
+      {onCompatibles && (grupoCompatibles.length > 0 || errorCompatibles) ? (
+        <Autocomplete
+          multiple
+          size="small"
+          sx={{ minWidth: 220, maxWidth: '100%' }}
+          clearText="Borrar"
+          openText="Abrir"
+          closeText="Cerrar"
+          noOptionsText="No hay valores que coincidan"
+          options={grupoCompatibles}
+          value={grupoCompatibles.filter((grupo) => compatibles.includes(grupo.clave))}
+          getOptionLabel={(grupo) => grupo.etiqueta}
+          isOptionEqualToValue={(a, b) => a.clave === b.clave}
+          onChange={(_, elegidos) => onCompatibles(elegidos.map((grupo) => grupo.clave))}
+          renderInput={(parametros) => (
+            <TextField
+              {...parametros}
+              label="Compatible con"
+              error={errorCompatibles}
+              helperText={errorCompatibles ? 'No pudimos cargar los valores.' : undefined}
+            />
+          )}
+        />
       ) : null}
       <Stack direction="row" spacing={0.75} alignItems="center" role="group" aria-label="Orden del listado">
         <TextField

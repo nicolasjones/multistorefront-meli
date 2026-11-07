@@ -693,6 +693,31 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 - **Gates del cierre** (T072): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`,
   `pnpm matriz:check` y `pnpm docs:check`.
 
+## Productos relacionados de la ficha (F-TDA-20, MSF-263)
+
+Épica MSF-149 (spec `20270125-100000-tienda-seo-legal-y-estados`). Debajo de los datos de la ficha
+(`/producto/:productoId`) aparece «Productos relacionados»: hasta **4** productos efectivamente visibles de la
+**misma categoría**, sin el actual, destacados primero y luego por nombre (D2 de la spec).
+
+| Capa | Dónde |
+|---|---|
+| Base | `supabase/migrations/20270212100003_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
+| Front | `apps/web/src/lib/tiendaRelacionados.ts` (cliente + `useRelacionados`), `apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx` (carga diferida, 4 columnas en escritorio y 2 en celular), integrada en `rutas/producto.tsx` |
+| Pruebas | pgTAP `tienda_relacionados.test.sql`; Vitest `tiendaRelacionados.test.ts` y `ficha/Relacionados.test.tsx` (con axe); E2E `apps/web/e2e/tienda-relacionados.e2e.ts` |
+
+Sin relacionados, o si el pedido falla, la sección no se renderiza (ni título, ni hueco, ni mensaje de error).
+
+## Información legal y aviso de cookies (F-TDA-22, MSF-289, épica MSF-149)
+
+Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-030…FR-034, SC-009, SC-010). Migración `20270212100001_tienda_legal.sql` (aditiva).
+
+- **Tabla `dominio.tienda_legal_enlaces`** (esquema `dominio`: dato del producto atado a una empresa): `titulo` ≤ 80, `url` solo `https://` ≤ 500 (check), `orden`, FK compuesta a `dominio.empresas`. RLS por organización con solo `select` a `authenticated` (acceso a Empresas); `anon` sin privilegios.
+- **Carga (D5)**: sin pantalla ni RPC de escritura; el equipo técnico inserta los enlaces por SQL, como el dominio de la tienda. Razón social, CUIT y dirección ya se editan en Empresas. Qué legal lleva cada marca (D6) se confirma con el cliente; el código no espera esa respuesta.
+- **`publico.legal_por_dominio(host)`**: `{ razon_social, cuit, direccion, enlaces: [{ titulo, url }] }` por `orden`; lista blanca; `null` idéntico para host desconocido o empresa desactivada. Ejecutable por `anon`.
+- **Front**: `layout/PieLegal.tsx` (montado desde `PieCategorias`): «<Razón social> · CUIT XX-XXXXXXXX-X», dirección y enlaces en pestaña nueva con `rel="noopener noreferrer"`; datos ausentes se omiten y sin datos el bloque no aparece. `layout/AvisoCookies.tsx` (carga diferida): «Aceptar» / «Rechazar», sin bloquear ni robar el foco.
+- **Contrato de consentimiento para F-TDA-24** (`lib/consentimientoCookies.ts`): `leerConsentimiento()` (`'aceptadas' | 'rechazadas' | null`; `null` equivale a rechazadas), `guardarConsentimiento(valor)`, `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies` (`detail` = decisión). Persiste en `localStorage`; si está bloqueado el aviso reaparece en la próxima visita y nada se rompe.
+- **Reversión** (migración posterior, no en el PR que la crea): `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;`.
+
 ## Borrador, vista previa y publicación (F-TDA-06, MSF-216)
 
 Migración `supabase/migrations/20270205110100_tienda_borrador_publicacion.sql`. Pruebas:
@@ -776,7 +801,7 @@ reversión: versiones → borrador y publicación → dominio. **Ojo (BREAKING d
 
 Spec: `specs/20270210-100000-tienda-contenido-y-analitica/`. Cada empresa crea páginas de texto propias (p. ej. «Cómo comprar», «Envíos») que el visitante lee desde el pie de **su** tienda. (La sección completa «Contenido y analítica» la cierra la tarea T071 de la épica; acá queda lo de esta historia.)
 
-- **Datos** (`supabase/migrations/20270210110100_tienda_paginas.sql`, esquema **`dominio`**): `dominio.tienda_paginas` (`titulo` ≤ 80, `slug` único por empresa, `contenido` ≤ 10 000, `visible` apagado por defecto). RLS por organización, solo `select` a `authenticated`, sin privilegios para `anon`. Escritura solo por `public.guardar_pagina_tienda` / `public.eliminar_pagina_tienda` (edición en Empresas; `revoke … from public, anon` + `grant … to authenticated`). El `slug` sale del título (sin tildes, minúsculas, guiones, sufijo numérico si choca) **solo al crear** y no cambia al editar. Lectura anónima: `publico.paginas_por_dominio(host)` y `publico.pagina_por_dominio(host, slug)` (lista blanca; `null` idéntico para host desconocido, empresa desactivada y página inexistente, oculta o ajena). Migración aditiva; reversión en el encabezado de la migración.
+- **Datos** (`supabase/migrations/20270212200001_tienda_paginas.sql`, esquema **`dominio`**): `dominio.tienda_paginas` (`titulo` ≤ 80, `slug` único por empresa, `contenido` ≤ 10 000, `visible` apagado por defecto). RLS por organización, solo `select` a `authenticated`, sin privilegios para `anon`. Escritura solo por `public.guardar_pagina_tienda` / `public.eliminar_pagina_tienda` (edición en Empresas; `revoke … from public, anon` + `grant … to authenticated`). El `slug` sale del título (sin tildes, minúsculas, guiones, sufijo numérico si choca) **solo al crear** y no cambia al editar. Lectura anónima: `publico.paginas_por_dominio(host)` y `publico.pagina_por_dominio(host, slug)` (lista blanca; `null` idéntico para host desconocido, empresa desactivada y página inexistente, oculta o ajena). Migración aditiva; reversión en el encabezado de la migración.
 - **Panel**: pestaña «Páginas» en `/empresas/:id/tienda/paginas` (`pestanas/paginas.tsx`): lista con carga infinita, contador, vacío, error con «Reintentar»; diálogo crear/editar con interruptor «Visible en la tienda» y confirmación de borrado con el título. Se reencuadra al cambiar de empresa (la pestaña se remonta por empresa y cierra sus diálogos). Las páginas se aplican **al guardar**, no pasan por el borrador de MSF-133 (decisión D3 de la spec).
 - **Tienda pública**: ruta `/pagina/:slug` (`rutas/pagina.tsx`, carga diferida) con migas, título y texto plano en párrafos (nunca HTML); la 404 de la tienda cubre todo caso no visible. Columna «Información» en el pie (`layout/PieInformacion.tsx`), sin hueco si no hay páginas visibles y sin error propio si el pedido falla.
 - **Diferencia con la spec**: la spec pide `CabeceraSeo` de MSF-149, que todavía no está en esta base; la ruta fija `document.title` con el título de la página y pasará a `CabeceraSeo` cuando MSF-149 esté integrada.
@@ -791,3 +816,123 @@ Historia `MSF-325`, sin migración ni cambios de base (spec `specs/20270210-1000
 - **Enlace** (`lib/enlaceProducto.ts`): `origen del Host actual` + `/producto/<id>`; sin parámetros de seguimiento, filtro ni búsqueda y sin datos de la persona. Cada tienda comparte su propio dominio.
 - **Pruebas**: Vitest `lib/enlaceProducto.test.ts` y `ficha/BotonCompartir.test.tsx` (con axe); E2E `apps/web/e2e/tienda-compartir.e2e.ts` en las dos tiendas del seed a 320 / 768 / 1440 px.
 - **Reversión**: solo front; `git revert -m 1` del merge de la spec.
+
+## Estados, relacionados, SEO y legal (épica MSF-149)
+
+Visión de conjunto de la épica; el detalle de cada historia está en las secciones que siguen. Spec:
+`specs/20270125-100000-tienda-seo-legal-y-estados/` (contrato en `contracts/tienda-seo-legal-estados.md`). Alcance de entrega: `refine` y `supabase`.
+
+### Funciones públicas y tabla nueva
+
+| Historia | Pieza | Esquema | Quién la ejecuta |
+|---|---|---|---|
+| F-TDA-19 (MSF-247) | `publico.estado_tienda_por_dominio(host)`: marca de la tienda **desactivada** | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4 de la misma categoría | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-21 (MSF-279) | `publico.seo_tienda_por_dominio(host)` y `publico.sitemap_por_dominio(host)` | `publico` (funciones) | `anon`, `authenticated` |
+| F-TDA-22 (MSF-289) | `publico.legal_por_dominio(host)` y la tabla `dominio.tienda_legal_enlaces` | tabla en **`dominio`** (dato del producto atado a una empresa, Principio VII), función en `publico` | tabla: solo `select` a `authenticated` con RLS por organización, sin privilegios para `anon`; función: `anon` |
+
+Todas son `security definer` con lista blanca de campos y devuelven `null` idéntico para host desconocido o inválido; las únicas
+que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, con la misma respuesta de «cerrada», la Edge Function
+`tienda-seo`. `publico` sigue sin tablas.
+
+### Edge Function `tienda-seo` y nginx
+
+`robots.txt` y `sitemap.xml` los sirve la Edge Function `supabase/functions/tienda-seo` (`verify_jwt = false`, contrato en
+`openapi/tienda-seo.json`) detrás de `location ~ ^/(robots\.txt|sitemap\.xml)$` de `apps/web/nginx.conf`, que manda el host original en
+`X-Tienda-Host`. La configuración de despliegue (sin variables nuevas en runtime) está en «SEO y posicionamiento básico» y en
+`docs/deployment.md` (sección Producción › `apps/web`).
+
+### Enlaces legales y consentimiento de cookies
+
+- **Cómo se cargan (D5)**: los enlaces legales (título + URL `https://`) los inserta el equipo técnico por SQL en
+  `dominio.tienda_legal_enlaces`, sin pantalla ni RPC de escritura; razón social, CUIT y dirección ya se editan en Empresas.
+- **Contrato para F-TDA-24 (analítica)**: `apps/web/src/lib/consentimientoCookies.ts` expone `leerConsentimiento()`
+  (`'aceptadas' | 'rechazadas' | null`; `null` cuenta como rechazadas), `guardarConsentimiento(valor)`,
+  `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies`. Ninguna analítica puede cargarse sin `'aceptadas'`.
+
+### Decisiones y supuestos (D1…D8)
+
+| # | Supuesto adoptado | Cómo cambiarlo |
+|---|---|---|
+| D1 | La marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. | Dejar de llamar a la función desde `SinTienda` y vuelve la pantalla genérica. |
+| D2 | Relacionados: hasta 4 visibles de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
+| D3 | SEO básico: título, descripción, canónica, Open Graph, JSON-LD (organización y producto), `robots.txt`, `sitemap.xml` y `noindex` en páginas de estado, cuenta y búsqueda. | Fuera de alcance: campos SEO por producto, hreflang, analítica. |
+| D4 | La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender. | Otra historia (prerender o HTML desde la Edge Function). |
+| D5 | Los enlaces legales los carga el equipo técnico por SQL. | Otra historia, dentro de Empresas. |
+| D6 | Qué legal lleva cada marca se confirma con el cliente; el código no espera esa respuesta. | Cargar los datos reales cuando se confirmen. |
+| D7 | Aviso de cookies mínimo: «Aceptar» y «Rechazar», decisión en `localStorage`, sin categorías. | Extender `consentimientoCookies.ts`. |
+| D8 | SEO sin fallas en Lighthouse (categoría SEO) sobre home, catálogo, categoría, ficha y contacto de ambas tiendas, sin puntaje inventado. | — |
+
+### Contradicciones prototipo ↔ épica (para el PR)
+
+1. «Volvemos pronto» figura P0 en F-TDA-01 y P1 en F-TDA-19: la versión mínima ya estaba; esta épica agrega la identidad.
+2. El interruptor «Store activa» ya existe en el panel (F-EMP-04); acá solo se verifica su efecto en la tienda, sin rediseñar esa pantalla.
+3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano; se aplica la regla D2 y se mantienen «Sin imagen» / «Sin stock».
+4. Aviso de cookies, SEO y bloque legal no tienen pantalla en el prototipo: se construyen con los componentes del template y los tokens de la tienda.
+
+### Migraciones y reversión
+
+Todas son aditivas; la reversión va en una migración posterior (no en el PR que las crea). Orden inverso al de aplicación:
+
+| Migración | Reversión |
+|---|---|
+| `20270212100001_tienda_legal.sql` | `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;` |
+| `20270212100002_tienda_estado_pausada.sql` | `drop function publico.estado_tienda_por_dominio(text);` |
+| `20270212100003_tienda_relacionados.sql` | `drop function publico.relacionados_por_dominio(text, uuid);` |
+| `20270212100004_tienda_seo.sql` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
+
+Deshacer la épica completa: `git revert -m 1 <merge>`.
+
+## Estados especiales de la tienda (F-TDA-19, MSF-247, épica MSF-149)
+
+Qué ve el visitante según el estado del dominio (la visión de conjunto está en «Estados, relacionados, SEO y legal» más arriba):
+
+| Situación | Pantalla |
+|---|---|
+| Falla al resolver la tienda o al consultar su estado | `PantallaError`: «No pudimos cargar esta página.» con «Reintentar» y «Volver al inicio» (`role="alert"`, sin detalle técnico). Nunca se disfraza de «Volvemos pronto». |
+| Dominio desconocido o inválido | «Volvemos pronto» genérica (sin marca). |
+| Empresa desactivada (interruptor «Store activa», F-EMP-04) | «Volvemos pronto» con la marca de la tienda (logo o nombre, nombre comercial, colores y tipografías). |
+| Ruta inexistente, producto o categoría oculto / de otra empresa | 404 «No encontramos esta página» con `BuscadorTienda` y «Volver al inicio»; el mismo mensaje en todos los casos. |
+
+- **Función pública**: `publico.estado_tienda_por_dominio(host)` (`jsonb`, `security definer`, `anon` ejecuta). Devuelve `{ estado: 'pausada', nombre, color_primario, color_primario_oscuro, color_acento, color_fondo, tipografia_titulos, tipografia_texto, logo_ruta }` solo si la empresa del host está desactivada; `null` para host desconocido, inválido o empresa activa. Lista blanca: nunca organización, contacto ni datos fiscales. Sin tablas nuevas (esquema `publico`, solo función).
+- **D1 (supuesto)**: la marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. Para volver a la pantalla genérica en todos los casos basta con dejar de llamar a la función desde `SinTienda` (`pages/tienda-publica/index.tsx`).
+- **Migración** `20270212100002_tienda_estado_pausada.sql`, aditiva. Reversión: `drop function publico.estado_tienda_por_dominio(text);`.
+- **Front**: `lib/tiendaEstado.ts` (`resolverEstadoTienda`, `useEstadoTienda`), `VolvemosPronto.tsx`, `PantallaError.tsx` (también en `ErrorDeRuta` de `EnrutadorTienda.tsx`, sin repetir el landmark `main` dentro de la tienda) y `PaginaNoEncontrada.tsx` (buscador diferido, solo con tienda).
+- **Verificación**: pgTAP `tienda_estado_pausada.test.sql`; Vitest + axe (`VolvemosPronto`, `PaginaNoEncontrada`, `PantallaError`, `index`); E2E `apps/web/e2e/tienda-estados.e2e.ts` con las dos tiendas (la pausa se aplica con el mismo campo `dominio.empresas.activa` que el botón «Pausar tienda»).
+
+## SEO y posicionamiento básico (F-TDA-21, MSF-279, épica MSF-149)
+
+Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-006…SC-008). Migración
+`20270212100004_tienda_seo.sql` (aditiva, sin tablas: `publico` sigue sin tablas — Principio VII).
+
+- **Funciones públicas** (`security definer`, `anon` ejecuta, lista blanca): `publico.seo_tienda_por_dominio(host)` →
+  `{ dominio (canónico), nombre, descripcion, logo_ruta, indexable }` (la descripción es el subtítulo publicado de
+  `dominio.tienda_contenido` o «<nombre> · tienda online»; `indexable` es `true`: punto de extensión del «no indexar» de borrador de
+  MSF-133) y `publico.sitemap_por_dominio(host)` → `{ dominio, urls: [{ ruta, modificado }] }` con inicio, catálogo, contacto,
+  categorías visibles y productos efectivamente visibles (`private.catalogo_tienda_efectivo`), hasta 50.000 URLs (constante única
+  `c_tope`, límite del protocolo). Host desconocido, inválido o empresa desactivada → `null` idéntico; al reactivar la empresa vuelven
+  a responder sin otra acción.
+- **Reversión** (migración posterior): `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);`.
+- **`robots.txt` y `sitemap.xml`**: Edge Function `supabase/functions/tienda-seo` (`verify_jwt = false` en `supabase/config.toml`,
+  contrato en `openapi/tienda-seo.json`). Tienda activa: `Allow: /` + `Sitemap: https://<dominio canónico>/sitemap.xml` y el sitemap
+  con las URLs de arriba (XML escapado, `<lastmod>` si existe). Desactivada, desconocida o sin cabecera: **la misma** respuesta
+  (`Disallow: /` y un `urlset` sin URLs), nunca un 404 distinto. Error de la base: 500 genérico. Pruebas: `pnpm test:edge:tienda-seo`.
+- **nginx de `apps/web`** (`location ~ ^/(robots\.txt|sitemap\.xml)$`) proxea a `<SUPABASE_URL>/functions/v1/tienda-seo/<archivo>` y manda
+  el host original en `X-Tienda-Host` (más `apikey` y `Authorization` con la clave pública). La URL de Supabase y la clave pública
+  salen de los mismos `ARG VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` del build: el `Dockerfile` los reemplaza en la
+  configuración de nginx (marcadores `__SUPABASE_URL__` y `__SUPABASE_ANON_KEY__`), así que **no hay variables de entorno nuevas en
+  runtime**. El nombre del servidor se resuelve al pedir (resolver `127.0.0.11`, el DNS de Docker/Dokploy, y `8.8.8.8` de respaldo),
+  de modo que un Supabase caído no impide arrancar nginx: el buscador recibe 502 y reintenta. Si el entorno no usa el DNS de Docker,
+  hay que ajustar la línea `resolver`. Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
+- **Front**: `lib/tiendaSeo.ts` (`useSeoTienda`, una lectura por host), `pages/tienda-publica/seo/CabeceraSeo.tsx` (título «<página> | <empresa>»
+  ≤ 60, descripción ≤ 160, canónica `https://<dominio canónico><ruta sin filtros>`, Open Graph y `robots`; limpia al salir de la página) y
+  `seo/datosEstructurados.ts` (JSON-LD `Organization` en el inicio y `Product` en la ficha: `priceCurrency` ARS, `price` solo si es
+  calculable, `availability` booleana, `<` escapado; nunca costos ni existencias). Montado en inicio, catálogo, categoría, ficha y contacto.
+- **`noindex`** (`<meta name="robots" content="noindex">`): 404, «Volvemos pronto» (con y sin marca), pantalla de error, ingresar,
+  recuperar y definir contraseña, y resultados de búsqueda (`/catalogo?q=`).
+- **Límite conocido (D4)**: la tienda es una SPA; los buscadores que ejecutan JavaScript leen los metadatos, pero los previews de redes
+  (que no lo ejecutan) pueden no leer Open Graph. Prerender queda fuera de alcance. La imagen de Open Graph de la ficha es la URL firmada
+  de su primera imagen (vence); sin imagen se usa el logo.
+- **Verificación**: pgTAP `tienda_seo.test.sql`; Vitest `seo/CabeceraSeo.test.tsx` y `seo/datosEstructurados.test.ts`; `handler.test.ts` de la
+  función; E2E `apps/web/e2e/tienda-seo.e2e.ts` (dos tiendas y una pausada; pide `robots.txt` y `sitemap.xml` directo a la función con
+  `X-Tienda-Host`, requiere `supabase functions serve` y `SUPABASE_ANON_KEY`).

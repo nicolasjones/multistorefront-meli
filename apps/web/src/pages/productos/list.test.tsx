@@ -12,12 +12,13 @@ const mocks = vi.hoisted(() => ({
   useFiltro: vi.fn(),
   elegirEmpresa: vi.fn(),
   costos: vi.fn(),
+  esAdmin: vi.fn(),
   precios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
   const cadena: Record<string, unknown> = {}
-  for (const metodo of ['select', 'eq', 'or', 'contains', 'order', 'range']) {
+  for (const metodo of ['select', 'eq', 'or', 'contains', 'overlaps', 'order', 'range']) {
     cadena[metodo] = (...args: unknown[]) => { mocks.llamadas.push([metodo, ...args]); return cadena }
   }
   cadena.returns = () => mocks.consulta()
@@ -39,6 +40,7 @@ vi.mock('../../lib/supabase', () => {
     },
   }
 })
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: mocks.esAdmin(), isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
@@ -62,6 +64,7 @@ const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 describe('ProductoList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.esAdmin.mockReturnValue(false)
     mocks.useCategorias.mockReturnValue({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.llamadas.length = 0
     mocks.firmar.mockResolvedValue({ data: [{ path: 'o/p-1/frente.png', signedUrl: 'https://firmada/p-1.png' }], error: null })
@@ -81,6 +84,18 @@ describe('ProductoList', () => {
       empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
       valor: null, cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
     })
+  })
+
+  it('«Importar CSV» solo aparece para el Administrador y lleva a /productos/carga (FR-101)', async () => {
+    mocks.esAdmin.mockReturnValue(true)
+    abrir()
+    expect((await screen.findByRole('link', { name: 'Importar CSV' })).getAttribute('href')).toBe('/productos/carga')
+  })
+
+  it('«Importar CSV» no aparece para quien no es Administrador (FR-101)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('link', { name: 'Importar CSV' })).toBeNull()
   })
 
   it('muestra nombre, SKU y la etiqueta «Inactivo» del producto desactivado', async () => {
