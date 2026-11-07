@@ -45,6 +45,9 @@ existentes. Spec: `specs/20261102-220000-importaciones-y-monitoreo/`.
 3. El worker (rol `worker_<org>`) toma `proceso_id` del `detalle` de su ejecución y usa
    `actualizar_progreso_proceso_masivo`, `registrar_error_proceso_masivo`,
    `proceso_masivo_cancelado` y `cerrar_proceso_masivo` (ver `workers/CONTRATO.md`).
+   `registrar_error_proceso_masivo` es idempotente por (proceso, fila): reintentar un lote no
+   duplica el error ni suma a `con_errores`. La detección y redacción de secretos cubre también la
+   forma JSON (`"password": "x"`). El detalle de la pantalla se refresca mientras el proceso avanza.
 4. Para que la pantalla muestre un nombre legible, sumá la clave de `p_funcionalidad`
    a `ETIQUETA_FUNCIONALIDAD` en `apps/web/src/lib/procesosMasivos.ts`.
 
