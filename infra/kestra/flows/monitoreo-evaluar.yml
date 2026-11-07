@@ -1,0 +1,71 @@
+# MSF-369 · F-OPS-03 (FR-029, FR-030). Cada 2 minutos llama a public.evaluar_monitoreo, que abre/resuelve las
+# alertas por umbral (5 fallos en 10 min por fuente y clave; cola 15 min sin avanzar) y devuelve SOLO las
+# nuevas, ya marcadas como notificadas (idempotente: no se repite mientras siga abierta). Cada alerta nueva
+# se publica por el subflow `alertas` existente (tipo `tecnica`), sin modificarlo. El subflow solo admite el
+# motivo FALLA_TECNICA_SANITIZADA (private.procesar_falla_orquestacion), así que el detalle de qué falló vive
+# en public.alertas_monitoreo (lectura del operador) y no viaja al webhook. Sin secretos en el YAML.
+# Umbrales: son inputs; se ajustan sin cambiar código.
+id: monitoreo-evaluar
+namespace: platform.monitoreo
+labels:
+  capa: core
+  dominio: plataforma
+  componente: monitoreo
+description: "Evalúa los umbrales de monitoreo y notifica cada alerta nueva por el subflow alertas."
+inputs:
+  - id: ventana_min
+    type: INT
+    defaults: 10
+  - id: fallos
+    type: INT
+    defaults: 5
+  - id: cola_min
+    type: INT
+    defaults: 15
+tasks:
+  - id: evaluar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select fuente, clave, organizacion_id, motivo_sanitizado from public.evaluar_monitoreo(CAST(:ventana AS integer), CAST(:fallos AS integer), CAST(:cola AS integer));
+    parameters:
+      ventana: "{{ inputs.ventana_min }}"
+      fallos: "{{ inputs.fallos }}"
+      cola: "{{ inputs.cola_min }}"
+  - id: notificar_alertas
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.evaluar.rows }}"
+    concurrencyLimit: 1
+    allowFailure: true
+    tasks:
+      - id: con_organizacion
+        type: io.kestra.plugin.core.flow.If
+        # Una organización nula no se pasa al subflow: el input llegaría vacío y rompería el CAST a uuid.
+        condition: "{{ fromJson(taskrun.value).organizacion_id is not null }}"
+        then:
+          - id: alertar_con_organizacion
+            type: io.kestra.plugin.core.flow.Subflow
+            namespace: platform.alertas
+            flowId: alertas
+            wait: true
+            transmitFailed: false
+            inputs:
+              tipo: tecnica
+              organizacion_id: "{{ fromJson(parent.taskrun.value).organizacion_id }}"
+              motivo_sanitizado: FALLA_TECNICA_SANITIZADA
+        else:
+          - id: alertar_sin_organizacion
+            type: io.kestra.plugin.core.flow.Subflow
+            namespace: platform.alertas
+            flowId: alertas
+            wait: true
+            transmitFailed: false
+            inputs:
+              tipo: tecnica
+              motivo_sanitizado: FALLA_TECNICA_SANITIZADA
+triggers:
+  - id: cada_2_minutos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/2 * * * *"

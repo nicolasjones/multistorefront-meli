@@ -20,8 +20,8 @@ Marcas de tiempo posteriores a la última migración del repo (`20270201200140`)
 | `20270202100200_procesos_masivos_worker.sql` | F-IMP-01 | `actualizar_progreso_…`, `registrar_error_…`, `cerrar_…` (`public`) | `drop function …` por cada una |
 | `20270202100300_procesos_masivos_cancelacion.sql` | F-IMP-01 | `solicitar_cancelacion_…`, `proceso_masivo_cancelado` (`public`) | `drop function …` |
 | `20270202100400_procesos_masivos_reconciliar.sql` | F-IMP-01 | trigger y función `private.reconciliar_proceso_masivo` sobre `ejecuciones_worker` | `drop trigger …; drop function …` |
-| `20270202110000_monitoreo_tablas.sql` | F-OPS-03 | `public.eventos_monitoreo`, `public.alertas_monitoreo`, RLS, grants | `drop table public.alertas_monitoreo; drop table public.eventos_monitoreo;` |
-| `20270202110100_monitoreo_funciones.sql` | F-OPS-03 | `public.registrar_evento_monitoreo`, `public.evaluar_monitoreo`, permisos a `kestra_orquestacion` | `drop function …` |
+| `20270211100011_monitoreo_tablas.sql` | F-OPS-03 | `public.eventos_monitoreo`, `public.alertas_monitoreo`, RLS, grants | `drop table public.alertas_monitoreo; drop table public.eventos_monitoreo;` |
+| `20270211100012_monitoreo_funciones.sql` | F-OPS-03 | `public.registrar_evento_monitoreo`, `public.evaluar_monitoreo`, permisos a `kestra_orquestacion` | `drop function …` |
 
 Cada tabla/vista/RPC se re-verifica contra el Principio VII (spec → plan → tareas → implementación → PR). Ninguna migración destruye lo que crea en el mismo PR.
 
