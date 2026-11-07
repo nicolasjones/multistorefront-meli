@@ -17,7 +17,11 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
   (F-ROL-06): al cambiarla arriba, la Actividad se filtra por esa tienda. El filtro de píldoras
   (`FiltroEmpresa`) puede fijar otra tienda o «Todas» sin cambiar la activa persistida
   (`hooks/useFiltroPorEmpresaActiva.ts`).
-- Sin botón «Exportar» (fuera de alcance de esta historia).
+- Cada fila tiene **Ver detalle**: abre el detalle del evento (cuándo, tipo, tienda, quién, detalle) y, campo por
+  campo, el valor **Antes → Después** (F-AUD-02). Es solo consulta: no hay «deshacer». Un evento sin valores
+  (anterior a F-AUD-02 o de un tipo no sensible) dice «Este evento no tiene valores registrados.». Si cambiás de
+  empresa en la barra superior con el detalle abierto, se cierra con un aviso.
+- Sin botón «Exportar» (lo agrega F-AUD-03).
 
 ## Permisos
 
@@ -31,7 +35,7 @@ Los fija únicamente la matriz (`private.nivel_seccion('actividad')`), tanto en 
 | Consulta, Mostrador, Depósito, Miembro | `ninguno` | nada (sin menú, la ruta redirige, la consulta directa devuelve 0 filas) |
 
 Si la matriz cambia, la pantalla y la RLS siguen a la matriz sin tocar código. Nadie —tampoco el
-administrador— edita ni borra eventos desde la app: el registro es solo de agregado.
+administrador— edita ni borra eventos desde la app: el registro es solo de agregado e **inalterable** (ver abajo).
 
 ## Esquema de datos
 
@@ -211,3 +215,52 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `reparacion.item_quitado` (ver
 `docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
 Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.
+
+
+## Registro inalterable con antes y después (F-AUD-02)
+
+Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (épica MSF-170, historia MSF-259). Todo en el
+esquema **`public`** (plataforma, Principio VII); migraciones aditivas `20270201200141_registro_inalterable_antes_despues.sql`
+y `20270201200142_depurar_registro_actividad.sql`.
+
+- **Catálogo de tipos** `public.tipos_evento_actividad` (`tipo`, `sensible`, `descripcion`; RLS: `select` para
+  `authenticated`, nada para `anon`, sin escritura desde la app). Son **sensibles**: `usuario.rol_cambiado`,
+  `usuario.removido`, `usuario.suspendido`, `usuario.reactivado`, `permisos.matriz_guardada` y
+  `permisos.matriz_restablecida`. Un tipo ausente del catálogo es no sensible. Para marcar uno nuevo, agregar la fila
+  en una migración.
+- **Valores**: `registro_actividad.valor_anterior` / `valor_nuevo` (`jsonb`, objeto `{campo: valor}`, hasta 8 KB cada uno;
+  nullable: los eventos viejos y los no sensibles no los tienen).
+- **Inalterable**: triggers `before update`, `before delete` y `before truncate` rechazan con `42501` para cualquier rol
+  (también el dueño de la tabla) y se revocó `update, delete, truncate`. Únicas excepciones: el borrado en cascada al
+  eliminar la organización (solo si la organización ya no existe) y la depuración por retención.
+- **Detalle**: `public.obtener_detalle_actividad(p_id)` (security invoker, rige la RLS; 0 filas si no es de la
+  organización o sin permiso; sin acceso para `anon`).
+- **Matriz de permisos**: `guardar_matriz_permisos` y `restablecer_matriz_permisos` guardan solo lo que cambió, antes y
+  después (`{"Operador · stock": "edicion"}` → `{"Operador · stock": "lectura"}`); si hay tantos cambios que no entran
+  en 8 KB, el resto se resume en «… otros cambios». El trigger de membresía guarda rol/estado anterior y nuevo.
+
+### Contrato de `registrar_cambio_actividad`
+
+```sql
+perform private.registrar_cambio_actividad(
+  'usuario.rol_cambiado', 'Cambió el rol de Carla: Consulta → Mostrador',
+  jsonb_build_object('rol', 'Consulta'), jsonb_build_object('rol', 'Mostrador'), p_empresa_id);
+```
+
+- Misma regla que `registrar_actividad` (organización y actor de la sesión, misma transacción). Con `insertar_cambio_actividad`
+  la organización y el actor llegan por parámetro (triggers).
+- Si el tipo es **sensible**, ambos valores son obligatorios: alta → anterior `{}`; baja → nuevo `{}`. Sin ellos, o con más
+  de 8 KB, `22023` y la operación de origen se revierte.
+- `registrar_actividad` / `insertar_actividad` conservan su firma pero **rechazan** (`22023`) los tipos sensibles.
+- Un test que necesite reordenar fechas de eventos debe apagar el trigger `registro_actividad_inalterable_fila` solo
+  mientras lo hace (ver `comprobante_estados.test.sql`).
+
+### Depuración por retención
+
+`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
+`sistema.depurada` («Sistema», sin actor) por organización con la cantidad y es idempotente. Solo la ejecutan
+`workers_orquestacion` y `kestra_orquestacion` (el rol con el que corre Kestra). La dispara el flow
+`infra/kestra/flows/depuracion-actividad.yml` (todos los días a las 04:00; si la función falla, la ejecución queda en
+rojo). El plazo no se edita desde la app.
+
+Reversión: ver el encabezado de cada migración (los eventos escritos se conservan).

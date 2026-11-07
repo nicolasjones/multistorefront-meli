@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { useActividad, useOpcionesActividad } from '../../hooks/useActividad'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
@@ -19,6 +19,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { DetalleActividadDialog } from '../../components/actividad/DetalleActividadDialog'
 
 const TODOS = ''
 const DEMORA_BUSQUEDA_MS = 300
@@ -34,7 +35,7 @@ const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
 // Historial de actividad (F-AUD-01, FR-003…FR-006): filtros, búsqueda y
 // carga infinita por tandas desde el servidor. El acceso lo decide la matriz (`actividad`): la ruta
 // va envuelta en RequiereAccesoSeccion y la RLS devuelve cero filas a quien no
-// tenga acceso. Sin «Exportar» (fuera de alcance).
+// tenga acceso. Cada fila abre su detalle con el antes y después (F-AUD-02, FR-007).
 export function ActividadList() {
   const [filtros, setFiltros] = useState<FiltrosActividad>(FILTROS_ACTIVIDAD_INICIALES)
   const [busqueda, setBusqueda] = useState('')
@@ -43,7 +44,11 @@ export function ActividadList() {
   // El filtro por tienda sigue a la empresa activa de la barra superior (F-ROL-06):
   // al cambiarla arriba, la Actividad se filtra por esa tienda. El select de la
   // pantalla la sobreescribe sin cambiar la activa persistida.
-  const { empresas, valor: empresaFiltro, cambiar: elegirEmpresa } = useFiltroPorEmpresaActiva()
+  const { empresas, valor: empresaFiltro, cambiar: elegirEmpresa, empresaActivaId } = useFiltroPorEmpresaActiva()
+  // Detalle abierto: recuerda la empresa activa con que se abrió. Si la barra superior cambia de empresa, se cierra
+  // con aviso en vez de seguir mostrando datos de la anterior (Principio VIII).
+  const [detalleAbierto, setDetalleAbierto] = useState<{ eventoId: string; empresaActivaId: string | null } | null>(null)
+  const [avisoEmpresa, setAvisoEmpresa] = useState(false)
   const filtrosEfectivos = { ...filtros, empresa: empresaFiltro }
   const { eventos, total, isLoading, isError, refetch } = useActividad(filtrosEfectivos, pagina)
   const opciones = useOpcionesActividad()
@@ -55,6 +60,13 @@ export function ActividadList() {
   useEffect(() => {
     if (!isLoading && !isError && eventos.length === 0 && pagina > 1) setPagina(1)
   }, [isLoading, isError, eventos.length, pagina])
+
+  useEffect(() => {
+    if (detalleAbierto && detalleAbierto.empresaActivaId !== empresaActivaId) {
+      setDetalleAbierto(null)
+      setAvisoEmpresa(true)
+    }
+  }, [detalleAbierto, empresaActivaId])
 
   const cambiar = (cambio: Partial<FiltrosActividad>) => {
     setFiltros((anteriores) => ({ ...anteriores, ...cambio }))
@@ -149,6 +161,12 @@ export function ActividadList() {
           Las altas, ediciones y publicaciones llevan su tienda. Los cambios del catálogo y del stock compartido se ven siempre.
         </Typography>
 
+        {avisoEmpresa ? (
+          <Alert severity="info" onClose={() => setAvisoEmpresa(false)} sx={{ mb: 2 }}>
+            Cambiaste de empresa: cerramos el detalle que estabas viendo.
+          </Alert>
+        ) : null}
+
         {isLoading && pagina === 1 ? (
           <EstadoCargaPagina />
         ) : isError && !falloTanda ? (
@@ -161,7 +179,24 @@ export function ActividadList() {
         ) : (
           <>
             <Typography color="text.secondary" aria-live="polite" sx={{ mb: 1 }}>{total} {total === 1 ? 'evento' : 'eventos'}</Typography>
-            <ContenidoAdaptable items={listado.filas} columnas={columnas} obtenerClave={(evento) => evento.id} etiquetaTabla="Actividad" />
+            <ContenidoAdaptable
+              items={listado.filas}
+              columnas={columnas}
+              obtenerClave={(evento) => evento.id}
+              etiquetaTabla="Actividad"
+              acciones={(evento) => (
+                <Button
+                  size="small"
+                  aria-label={`Ver detalle: ${evento.detalle}`}
+                  onClick={() => {
+                    setAvisoEmpresa(false)
+                    setDetalleAbierto({ eventoId: evento.id, empresaActivaId })
+                  }}
+                >
+                  Ver detalle
+                </Button>
+              )}
+            />
             <CargaInfinita
               hayMas={listado.hayMas}
               cargando={listado.cargandoMas}
@@ -171,6 +206,7 @@ export function ActividadList() {
           </>
         )}
       </ContenedorSeccion>
+      {detalleAbierto ? <DetalleActividadDialog eventoId={detalleAbierto.eventoId} onCerrar={() => setDetalleAbierto(null)} /> : null}
     </Box>
   )
 }
