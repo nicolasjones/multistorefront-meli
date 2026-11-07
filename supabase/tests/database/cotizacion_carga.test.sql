@@ -50,10 +50,10 @@ select is(has_table_privilege('anon', 'dominio.cotizaciones', 'SELECT'), false, 
 select is(has_table_privilege('authenticated', 'dominio.cotizaciones', 'INSERT'), false, 'authenticated no inserta en cotizaciones');
 select is(has_table_privilege('authenticated', 'dominio.cotizaciones', 'UPDATE'), false, 'authenticated no actualiza cotizaciones');
 select is(has_table_privilege('authenticated', 'dominio.cotizaciones', 'DELETE'), false, 'authenticated no borra de cotizaciones');
-select is(has_function_privilege('anon', 'public.cargar_cotizacion(numeric)', 'EXECUTE'), false, 'anon no ejecuta cargar_cotizacion');
-select is(has_function_privilege('anon', 'public.estado_cotizacion()', 'EXECUTE'), false, 'anon no ejecuta estado_cotizacion');
-select is(has_function_privilege('authenticated', 'public.cargar_cotizacion(numeric)', 'EXECUTE'), true, 'authenticated ejecuta cargar_cotizacion');
-select is(has_function_privilege('authenticated', 'public.estado_cotizacion()', 'EXECUTE'), true, 'authenticated ejecuta estado_cotizacion');
+select is(has_function_privilege('anon', 'public.cargar_cotizacion(numeric, uuid)', 'EXECUTE'), false, 'anon no ejecuta cargar_cotizacion');
+select is(has_function_privilege('anon', 'public.estado_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta estado_cotizacion');
+select is(has_function_privilege('authenticated', 'public.cargar_cotizacion(numeric, uuid)', 'EXECUTE'), true, 'authenticated ejecuta cargar_cotizacion');
+select is(has_function_privilege('authenticated', 'public.estado_cotizacion(uuid)', 'EXECUTE'), true, 'authenticated ejecuta estado_cotizacion');
 
 -- ============================================================================
 -- Administrador (org 1): estado inicial y carga
