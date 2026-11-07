@@ -575,21 +575,21 @@
     },
     "docs/producto/precios-dolar.md": {
       "title": "Cargar la cotización del dólar",
-      "pageHash": "cdb1631b19668d5eec63fb16351af3d43771eef9ef27b001216ead34f372f550",
+      "pageHash": "1f379412a6e6f992b016897c38706929a9289056e4334ce6d3beb0e9009905d2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/precios-e-iva.md": {
       "title": "Cómo se calcula el precio final",
-      "pageHash": "e1c643ba4c2167ae3ed923be2e85a09d1463255ae2fbabff84af93530943d2c6",
+      "pageHash": "528d11338c7367ad2d0aa088e66f49d79bdb59c192a2e9fe1bf917b4ec9ab112",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
@@ -1261,6 +1261,19 @@
       "owner": "tecnico",
       "commit": "3d951332"
     },
+    "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
+      "title": "Configuración del dólar y precio propio",
+      "pageHash": "37f48f0a04088af784b67a7fe13b86a0e79627d16593e917bdacffb9aac445f8",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "aa1c55c6",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
       "pageHash": "2fafaa8f174ac1ad8a063cc7a30b2176f4ac1d3ee011db5380df2e616a6b18f7",
@@ -1328,16 +1341,16 @@
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
-      "pageHash": "40b9d0b3f54081fd950fe0925f02495dcfd77d02b93be7cb240b44f093e2d1c5",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "71ca58e",
+      "pageHash": "2b72482ba6c4725bfc6f0709b3f8958d7a3be504edb5c89b7d92c05345c09d6f",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "aa1c55c6",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "6ac44b5c"
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
@@ -1492,16 +1505,16 @@
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
-      "pageHash": "c53dcb436318e4a8c7dc2be0e9482fc51b15e5e167f099c7cd2a34987d731f72",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "0ec03287",
+      "pageHash": "3d4ac2e4ce5999a36a67c5b3eee428853e2da867e0f8ce5edb6ba6725b670576",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "aa1c55c6",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "2fdc460f"
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
