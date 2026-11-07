@@ -72,12 +72,12 @@
 
 ## Fase 3 — F-TDA-25 · Compartir producto (US3)
 
-- [ ] T040 [P] [F-TDA-25][US3] `lib/enlaceProducto.ts` (FR-023): URL con el dominio del `Host` y `/producto/<id>`, sin parámetros; Vitest `enlaceProducto.test.ts`.
-- [ ] T041 [F-TDA-25][US3] Componente `ficha/BotonCompartir.tsx` y montaje en la ficha (FR-020): estilo de botón secundario con `TemaTienda`, nombre accesible. Verificación: Vitest + axe `ficha/BotonCompartir.test.tsx` (presente, nombre accesible, teclado) con `pnpm --filter @platform/web test`. Depende de T040.
-- [ ] T042 [F-TDA-25][US3] Comportamiento de compartir (FR-021, FR-022): `navigator.share` con nombre y enlace, cancelación silenciosa, copia al portapapeles con aviso «Enlace copiado» (`aria-live`), enlace manual si no se puede copiar, caída de un fallo no-cancelación al camino de copia. Verificación: Vitest `ficha/BotonCompartir.test.tsx` (`navigator.share` con título y URL, `AbortError` silencioso, copia, aviso, rechazo del portapapeles) y E2E `apps/web/e2e/tienda-compartir.e2e.ts` con `pnpm test`. Depende de T041.
-- [ ] T043 [F-TDA-25][US3] Accesibilidad y responsivo (FR-024): teclado, lector de pantalla y 320 / 768 / 1440 px; Vitest + axe `ficha/BotonCompartir.test.tsx`. Depende de T042.
-- [ ] T044 [F-TDA-25][US3] Verificación Vitest de SC-007: cobertura de `BotonCompartir` y `enlaceProducto` (selector, copia, rechazo, cancelación, dominio correcto). Depende de T043.
-- [ ] T045 [F-TDA-25][US3] E2E `apps/web/e2e/tienda-compartir.e2e.ts` en las dos tiendas (SC-008): selector simulado, copia con aviso, enlace con el dominio correcto; anchos. Depende de T043.
+- [x] T040 [P] [F-TDA-25][US3] `lib/enlaceProducto.ts` (FR-023): URL con el dominio del `Host` y `/producto/<id>`, sin parámetros; Vitest `enlaceProducto.test.ts`. Evidencia: ver commit 87f9eb03 (`enlaceProducto.test.ts`).
+- [x] T041 [F-TDA-25][US3] Componente `ficha/BotonCompartir.tsx` y montaje en la ficha (FR-020): estilo de botón secundario con `TemaTienda`, nombre accesible. Verificación: Vitest + axe `ficha/BotonCompartir.test.tsx` (presente, nombre accesible, teclado) con `pnpm --filter @platform/web test`. Depende de T040. Evidencia: ver commit 87f9eb03 (`BotonCompartir.tsx`, `BotonCompartir.test.tsx`).
+- [x] T042 [F-TDA-25][US3] Comportamiento de compartir (FR-021, FR-022): `navigator.share` con nombre y enlace, cancelación silenciosa, copia al portapapeles con aviso «Enlace copiado» (`aria-live`), enlace manual si no se puede copiar, caída de un fallo no-cancelación al camino de copia. Verificación: Vitest `ficha/BotonCompartir.test.tsx` (`navigator.share` con título y URL, `AbortError` silencioso, copia, aviso, rechazo del portapapeles) y E2E `apps/web/e2e/tienda-compartir.e2e.ts` con `pnpm test`. Depende de T041. Evidencia: ver commit 87f9eb03 (`BotonCompartir.test.tsx`, `tienda-compartir.e2e.ts`).
+- [x] T043 [F-TDA-25][US3] Accesibilidad y responsivo (FR-024): teclado, lector de pantalla y 320 / 768 / 1440 px; Vitest + axe `ficha/BotonCompartir.test.tsx`. Depende de T042. Evidencia: ver commit 87f9eb03 (axe en `BotonCompartir.test.tsx`).
+- [x] T044 [F-TDA-25][US3] Verificación Vitest de SC-007: cobertura de `BotonCompartir` y `enlaceProducto` (selector, copia, rechazo, cancelación, dominio correcto). Depende de T043. Evidencia: ver commit 87f9eb03 (Vitest de `BotonCompartir` y `enlaceProducto`).
+- [x] T045 [F-TDA-25][US3] E2E `apps/web/e2e/tienda-compartir.e2e.ts` en las dos tiendas (SC-008): selector simulado, copia con aviso, enlace con el dominio correcto; anchos. Depende de T043. Evidencia: ver commit 87f9eb03 (`tienda-compartir.e2e.ts`).
 
 **Checkpoint F-TDA-25**: el visitante comparte o copia el enlace del producto.
 
