@@ -396,7 +396,11 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
   acotadas a la organización de la sesión.
 - **Inyección de fórmulas**: el CSV exportado y el reporte de errores de la importación pasan por `neutralizarFormula`.
 - **Service-role**: no aparece en `apps/web`; solo la usa el worker en `workers/`.
-- Sin hallazgos que corregir.
+- **Observación (no bloqueante, queda para aparte)**: el bucket se llama «temporal», pero solo se vacía cuando el usuario toca
+  «Cancelar» (`importacion-productos.ts`); el worker no borra las imágenes de origen tras aplicar la importación, así que quedan
+  guardadas. Es costo de almacenamiento, no riesgo de acceso (bucket privado y acotado por organización). Borrarlas al terminar
+  exige cuidar la idempotencia del reintento (CA-CAT-10-7), por eso no se cambió en el cierre.
+- Sin hallazgos de acceso que corregir.
 
 ## Exportar productos (F-CAT-11)
 
