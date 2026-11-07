@@ -4,10 +4,10 @@ import { armarCsv, descargarCsv, nombreArchivoCsv, type ColumnaCsv } from './exp
 
 // Exportación de la actividad a CSV (F-AUD-03, MSF-278, FR-011…FR-013). Las filas salen de la RPC
 // `exportar_actividad` (mismos filtros que `listar_actividad`), en lotes y con un instante de corte
-// estable; acá se arma el CSV con las columnas de la tabla y se descarga. Si algo falla no se
-// descarga nada: nunca un archivo parcial.
+// estable; acá se arma el CSV con las columnas de la tabla y se descarga. Si algo falla, falta
+// alguna fila o el filtro supera el tope, no se descarga nada: nunca un archivo parcial.
 
-/** Tope por archivo (RF-AUD-03-3). Lo aplica también la base; acá solo se usa para avisar. */
+/** Tope por archivo (RF-AUD-03-3). Lo aplica también la base; acá decide si se descarga o se pide acotar. */
 export const TOPE_FILAS_ACTIVIDAD = 50_000
 export const LOTE_EXPORTACION_ACTIVIDAD = 1000
 
@@ -22,10 +22,12 @@ export type FilaExportacionActividad = {
 
 type RespuestaExportacion = {
   filas: FilaExportacionActividad[]
-  total: number
+  /** Solo viene cuando se pide (primera llamada). */
+  total: number | null
   tope: number
-  recortado: boolean
   corte: string
+  hay_mas: boolean
+  siguiente: { creado_en: string; id: string } | null
 }
 
 // Las mismas columnas y textos que la tabla de Actividad, en el mismo orden (FR-012).
@@ -44,26 +46,34 @@ export function armarCsvActividad(filas: readonly FilaExportacionActividad[]): s
 /** `actividad-AAAA-MM-DD.csv`, con la fecha de hoy en la zona de la organización. */
 export const nombreArchivoActividad = (ahora?: Date) => nombreArchivoCsv('actividad', ahora)
 
-export type ResultadoExportacionActividad = {
-  filas: FilaExportacionActividad[]
-  /** Total real del filtro (puede superar el tope). */
-  total: number
-  /** El filtro tenía más filas que el tope: el archivo trae las primeras. */
-  recortado: boolean
-}
+export type ResultadoExportacionActividad =
+  | { estado: 'vacio' }
+  /** El filtro supera el tope por archivo: no se descarga nada y se pide acotar (CA-AUD-03-3). */
+  | { estado: 'excede'; total: number }
+  | { estado: 'completo'; filas: FilaExportacionActividad[]; total: number }
 
-/** Trae todo el filtro (hasta el tope) por lotes, con el mismo corte para que las páginas no se corran. */
+/** Error de una exportación que no pudo traer todo el filtro: nunca se entrega un archivo parcial. */
+export class ExportacionIncompletaError extends Error {}
+
+/**
+ * Trae todo el filtro por lotes con cursor (creado_en, id) y el mismo corte, para que las páginas no se corran.
+ * El total se pide solo en la primera llamada. Si el filtro supera el tope no baja más filas; si algún lote
+ * falta o el conteo final no coincide con el total, lanza (nunca devuelve algo parcial).
+ */
 export async function traerActividadParaExportar(
   cliente: Pick<SupabaseClient, 'rpc'>,
   filtros: FiltrosActividad,
+  /** Id de la corrida: la base registra la constancia una sola vez por id (un reintento no la duplica). */
+  exportacion: string = crypto.randomUUID(),
 ): Promise<ResultadoExportacionActividad> {
   const { desde, hasta } = rangoDelPeriodo(filtros.periodo)
   const texto = filtros.texto.trim()
   const filas: FilaExportacionActividad[] = []
   let corte: string | null = null
+  let cursor: RespuestaExportacion['siguiente'] = null
   let total = 0
-  let recortado = false
   for (;;) {
+    const primera = corte === null
     const { data, error } = await cliente.rpc('exportar_actividad', {
       p_desde: desde,
       p_hasta: hasta,
@@ -72,18 +82,32 @@ export async function traerActividadParaExportar(
       p_tipo: filtros.tipo,
       p_texto: texto === '' ? null : texto,
       p_corte: corte,
-      p_desplazamiento: filas.length,
+      p_cursor_creado_en: cursor?.creado_en ?? null,
+      p_cursor_id: cursor?.id ?? null,
       p_limite: LOTE_EXPORTACION_ACTIVIDAD,
+      p_entregadas: filas.length,
+      p_exportacion: exportacion,
+      p_con_total: primera,
     })
     if (error) throw error
     const respuesta = data as RespuestaExportacion
     corte = respuesta.corte
-    total = Number(respuesta.total)
-    recortado = Boolean(respuesta.recortado)
+    if (primera) {
+      total = Number(respuesta.total)
+      if (total === 0) return { estado: 'vacio' }
+      if (total > TOPE_FILAS_ACTIVIDAD) return { estado: 'excede', total }
+    }
     filas.push(...respuesta.filas)
-    if (respuesta.filas.length === 0 || filas.length >= Math.min(total, TOPE_FILAS_ACTIVIDAD)) break
+    if (!respuesta.hay_mas) break
+    if (respuesta.filas.length === 0 || !respuesta.siguiente) {
+      throw new ExportacionIncompletaError('La base no entregó el resto de las filas del filtro.')
+    }
+    cursor = respuesta.siguiente
   }
-  return { filas, total, recortado }
+  if (filas.length !== total) {
+    throw new ExportacionIncompletaError(`Se esperaban ${total} filas y llegaron ${filas.length}.`)
+  }
+  return { estado: 'completo', filas, total }
 }
 
 export function descargarCsvActividad(filas: readonly FilaExportacionActividad[], nombre: string = nombreArchivoActividad()): void {
