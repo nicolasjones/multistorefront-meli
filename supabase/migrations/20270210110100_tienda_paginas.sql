@@ -30,7 +30,7 @@ grant usage on schema publico to anon, authenticated;
 -- dominio.tienda_paginas (FR-001)
 -- ============================================================================
 
-create table dominio.tienda_paginas (
+create table if not exists dominio.tienda_paginas (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
@@ -54,8 +54,8 @@ comment on table dominio.tienda_paginas is
 comment on column dominio.tienda_paginas.slug is
   'Dirección legible (/pagina/<slug>), única por empresa; se genera del título al crear y no cambia después.';
 
-create index tienda_paginas_organizacion_id_idx on dominio.tienda_paginas (organizacion_id);
-create index tienda_paginas_empresa_titulo_idx on dominio.tienda_paginas (empresa_id, lower(titulo), slug);
+create index if not exists tienda_paginas_organizacion_id_idx on dominio.tienda_paginas (organizacion_id);
+create index if not exists tienda_paginas_empresa_titulo_idx on dominio.tienda_paginas (empresa_id, lower(titulo), slug);
 
 -- Mantiene updated_at.
 create or replace function private.normalizar_tienda_pagina()
