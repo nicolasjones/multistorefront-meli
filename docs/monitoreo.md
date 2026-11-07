@@ -12,7 +12,7 @@ Spec: `specs/20261102-220000-importaciones-y-monitoreo` (MSF-369, F-OPS-03). Est
 | `cola` | Una orden de `despachos_ejecucion` sin avanzar | `evaluar_monitoreo` (estado `pendiente`/`reclamada` sin cambios) | `alertas_monitoreo` |
 
 `eventos_monitoreo` y `alertas_monitoreo` (esquema `public`, plataforma) las lee **solo el operador de plataforma (superadmin)**; las escribe solo `kestra_orquestacion` por `registrar_evento_monitoreo` y `evaluar_monitoreo`. La cola de Mercado Libre se agrega como otra fuente cuando exista (MSF-175).
-`registrar_evento_monitoreo` además admite por nombre a `postgres` y `supabase_admin` (en Supabase no son superusuarios reales): es lo que usa el pgTAP en CI. `authenticated` y `anon` siguen sin `execute`.
+Las tres funciones (`registrar_evento_monitoreo`, `evaluar_monitoreo` y `tiendas_a_sondear`) además admiten por nombre a `postgres` y `supabase_admin` (en Supabase no son superusuarios reales): es lo que usa el pgTAP en CI. `authenticated` y `anon` siguen sin `execute`.
 
 ## Umbrales
 
