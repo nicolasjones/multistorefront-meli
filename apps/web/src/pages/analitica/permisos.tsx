@@ -97,6 +97,7 @@ export function AnaliticaPermisos() {
         .from('superadmin_organizacion_activa')
         .select('organizacion_id')
         .eq('user_id', identity.id)
+        .gt('vence_en', new Date().toISOString()) // un acceso de soporte vencido no cuenta (F-OPS-04)
         .maybeSingle(),
     ]).then(([membresia, organizacionActiva]) => {
       if (cancelled) {

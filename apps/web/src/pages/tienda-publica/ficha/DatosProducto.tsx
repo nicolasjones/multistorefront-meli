@@ -4,6 +4,7 @@ import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import type { FichaProducto } from '../../../lib/tiendaFicha'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { BotonWhatsApp } from '../whatsapp/BotonWhatsApp'
+import { BotonCompartir } from './BotonCompartir'
 
 function Dato({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
@@ -51,6 +52,7 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
           productoId={ficha.id}
           precio={ficha.precio}
         />
+        <BotonCompartir productoId={ficha.id} nombre={ficha.nombre} />
         <Button component={EnlaceRuta} to="/catalogo" variant="outlined" sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, width: { xs: '100%', sm: 'auto' } }}>Ver más productos</Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Precios y disponibilidad sujetos a cambios.</Typography>

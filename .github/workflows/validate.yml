@@ -30,7 +30,7 @@ jobs:
   # Además calcula `web`: si el diff SÓLO toca dirs que NO afectan a la app web (supabase/, infra/, scripts/,
   # apps/api/, docs/, specs/) la suite web + e2e se saltean. CONSERVADOR: `web` es true por defecto y sólo se
   # apaga cuando TODOS los archivos cambiados caen en esos dirs (cualquier archivo desconocido o de raíz lo
-  # vuelve a prender). `apps/web` depende de `@platform/ia`, por eso `packages/**` cuenta como web.
+  # vuelve a prender), salvo `mkdocs.yml`, que es solo la navegación de la documentación (MSF-799). `apps/web` depende de `@platform/ia`, por eso `packages/**` cuenta como web.
   #
   # Este job también RESERVA el carril de admisión (si `CI_LANES` está seteada): los jobs pesados lo esperan
   # por `needs` y el job `liberar` lo suelta al final, así un PR ocupa un carril mientras corre.
@@ -59,10 +59,12 @@ jobs:
             FILES=$(git diff --name-only "$BASE"...HEAD 2>/dev/null || git diff --name-only HEAD~1 2>/dev/null || echo "")
           fi
           echo "== archivos =="; printf '%s\n' "$FILES"
-          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.github/)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
+          CODE=$(printf '%s\n' "$FILES" | grep -vE '^(docs/|specs/|design/|\.specify/|\.github/|mkdocs\.yml$)|\.(md|txt)$' | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|sql|py|json|ya?ml|toml|sh|css|html)$' | head -1)
           DB=$(printf '%s\n' "$FILES" | grep -E '^supabase/' | head -1)
           # web=true salvo que TODOS los archivos estén en dirs que no afectan a la app web.
-          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.github/)' | head -1)
+          # Exentos (MSF-687): documentación (`docs/`, `mkdocs.yml`, `*.md` de la raíz) y `.specify/`:
+          # un PR de solo docs no corre la suite web ni el e2e.
+          WEB=$(printf '%s\n' "$FILES" | grep -vE '^$' | grep -vE '^(docs/|specs/|design/|supabase/|infra/|scripts/|apps/api/|\.specify/|\.github/|mkdocs\.yml$|[^/]+\.md$)' | head -1)
           # infra=true sólo si toca infra/ o scripts/ (el job `infrastructure` valida la config de infra).
           INFRA=$(printf '%s\n' "$FILES" | grep -E '^(infra/|scripts/)' | head -1)
           # e2e=true SALVO que el PR apunte a una rama de ÉPICA: las historias y el cierre van a
@@ -233,7 +235,7 @@ jobs:
           fi
       - name: edge tests (invitar-miembro)
         if: matrix.shard == 1
-        run: pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:recuperar-clave-cliente && pnpm test:edge:baja-correo-masivo
+        run: pnpm test:edge:invitar-miembro && pnpm test:edge:invitar-cliente && pnpm test:edge:recuperar-clave-cliente && pnpm test:edge:baja-correo-masivo && pnpm test:edge:tienda-seo
       - name: Limpiar navegadores del job
         if: always()
         timeout-minutes: 2

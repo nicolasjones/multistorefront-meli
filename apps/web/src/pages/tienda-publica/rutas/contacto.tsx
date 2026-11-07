@@ -8,6 +8,7 @@ import { FormularioContacto } from '../contacto/FormularioContacto'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 
 // `/contacto` (F-TDA-16, FR-009…FR-013): datos de contacto de ESTA tienda y el formulario «Escribinos».
 // `/contacto/<algo>` no existe → la misma 404 amable. La bajada sale del texto de la tienda (F-TDA-03); sin
@@ -26,6 +27,7 @@ export default function RutaContacto() {
   const bajada = contenido?.pie.trim()
   return (
     <Box>
+      <CabeceraSeo host={host} pagina="Contacto" ruta="/contacto" />
       <Breadcrumbs aria-label="Migas de pan" sx={{ mb: 2 }}>
         <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit' }}>Inicio</Box>
         <Typography color="text.primary" aria-current="page">Contacto</Typography>

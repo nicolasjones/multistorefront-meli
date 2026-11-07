@@ -252,6 +252,7 @@ Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`,
 - **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
 - **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
 - Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
+- **Métrica de la serie: sin columnas calculadas en SQL libre.** Superset no expande las columnas calculadas del dataset dentro de una métrica de tipo SQL libre. `Historia_serie_5.yaml` usaba `MAX(margen_pct_valor)` (columna calculada) y el gráfico fallaba; ahora la métrica lleva la expresión de esa columna, `MAX(round(margen_pct * 100, 1))`, con la misma etiqueta «Margen %». Al tocar métricas de otros gráficos, usá columnas físicas o la expresión completa, no el nombre de una columna calculada.
 
 ## Tablero «Rentabilidad · Ventas reales» (F-REN-09, MSF-223)
 

@@ -3,6 +3,7 @@ import { Link as EnlaceRuta, useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 import { ordenarSeccionesCatalogo, type ModuloSeccionCatalogo } from '../seccionesCatalogo'
 import { ErrorConReintento } from '../ErrorConReintento'
 
@@ -22,6 +23,7 @@ export default function RutaCategoria({ modulos }: { modulos?: Record<string, Mo
   const secciones = ordenarSeccionesCatalogo(modulos)
   return (
     <Box>
+      <CabeceraSeo host={host} pagina={categoria.nombre} ruta={`/categoria/${categoria.id}`} />
       <Breadcrumbs aria-label="Migas de pan" sx={{ mb: 1 }}>
         <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit' }}>Inicio</Box>
         <Typography color="text.primary" aria-current="page">{categoria.nombre}</Typography>
