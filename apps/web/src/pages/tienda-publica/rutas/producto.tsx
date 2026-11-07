@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Box, Link } from '@mui/material'
 import { Link as EnlaceRuta, useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useFichaProducto } from '../../../hooks/useFichaProducto'
+import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { usePreciosCliente } from '../../../hooks/usePreciosCliente'
 import { Compatibilidad } from '../ficha/Compatibilidad'
 import { DatosProducto, Migas } from '../ficha/DatosProducto'
@@ -26,6 +27,12 @@ export default function RutaProducto() {
   const { productoId } = useParams()
   const ficha = useFichaProducto(host, productoId ?? '')
   const preciosCliente = usePreciosCliente(host, productoId ?? '')
+
+  // Vista de producto (RF-TDA-24-2): una vez por ficha abierta, sin datos del visitante ni del producto.
+  const idFichaAbierta = ficha.fase === 'lista' ? ficha.ficha.id : null
+  useEffect(() => {
+    if (idFichaAbierta) registrarEventoTienda('vista_producto')
+  }, [idFichaAbierta])
 
   if (!productoId) return <PaginaNoEncontrada />
   if (ficha.fase === 'cargando') return <EstadoCargaPagina />
