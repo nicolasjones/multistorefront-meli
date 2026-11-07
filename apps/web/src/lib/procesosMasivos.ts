@@ -66,6 +66,7 @@ const ETIQUETA_FUNCIONALIDAD: Record<string, string> = {
   stock: 'Stock',
   'mercado-libre': 'Mercado Libre',
   'exportacion-total': 'Exportación total',
+  exportacion_total: 'Exportación total',
   historial: 'Historial de ventas',
 }
 

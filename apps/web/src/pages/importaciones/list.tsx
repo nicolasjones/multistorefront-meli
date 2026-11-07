@@ -24,6 +24,7 @@ import {
 } from '../../lib/procesosMasivos'
 import { CancelarProceso } from './CancelarProceso'
 import { DetalleImportacion } from './DetalleImportacion'
+import { ExportacionTotal } from './ExportacionTotal'
 
 const columnas: ColumnaAdaptable<ProcesoMasivo>[] = [
   { clave: 'fecha', encabezado: 'Fecha', render: (proceso) => formatearFecha(proceso.creado_en) },
@@ -105,6 +106,8 @@ export function ImportacionesList() {
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
+        {/* Toda la organización: no depende de la empresa activa ni del filtro de abajo (F-OPS-06, FR-039). */}
+        <ExportacionTotal onSolicitada={() => void refrescar()} />
         <Stack sx={{ mb: 2 }}>
           <FiltroEmpresa
             empresas={empresas}

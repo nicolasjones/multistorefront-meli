@@ -252,3 +252,10 @@ con `/ejecuciones`). El `Dockerfile` lo copia a `dist/errores.mjs` y los entrypo
 (`capturarError(error, { worker })` en el `catch` final). Sin `ERRORES_DSN` no hace nada y un fallo del envío no
 cambia el código de salida. El mensaje se limpia de correos, teléfonos y tokens antes de enviarse. Un worker nuevo
 debe hacer lo mismo en su entrypoint; ver `docs/monitoreo.md` (variables y egress).
+
+## exportar-organizacion (MSF-396)
+
+Exporta todos los datos de una organización a un ZIP (un CSV por conjunto) en el bucket `exportaciones-organizacion`.
+Lo lanza el flow `exportar-organizacion.yml` con la imagen `EXPORTAR_ORGANIZACION_IMAGEN`; se construye como los demás
+(`WORKER=exportar-organizacion` en el `Dockerfile`). Scripts: `pnpm --filter @workers/exportar-organizacion build|lint|test`.
+Guía: `docs/exportacion-total.md`.
