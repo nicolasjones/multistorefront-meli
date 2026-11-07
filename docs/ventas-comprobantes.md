@@ -118,8 +118,8 @@ en pantalla se ven en solo lectura, con la marca «No descuenta stock». `obtene
 (`origen_tipo`, `origen_id`, `origen_numero`) y la marca por línea, de forma aditiva. Detalle en
 [service-cobro.md](service-cobro.md).
 
-RLS vigente en el comprobante y en las líneas: `select` por organización y sección `ventas`
-(`lectura`/`edicion`). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC
+RLS vigente en el comprobante y en las líneas: `select` por organización, sección `ventas`
+(`lectura`/`edicion`) y empresa accesible (las líneas la heredan del comprobante; un comprobante sin empresa sigue visible; MSF-656). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC
 `security definer`. `anon` sin acceso.
 
 ## Numeración
