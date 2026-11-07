@@ -9,7 +9,7 @@
 -- evento. Por eso los conteos de abajo filtran por tipo o por período cuando una llamada previa ya registró.
 begin;
 
-select plan(43);
+select plan(44);
 
 -- ============================================================================
 -- Fixture (mismo que registro_actividad.test.sql)
@@ -202,13 +202,16 @@ select set_config('t.m2', public.exportar_actividad(p_desde => '2026-09-30', p_h
   p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid)::text, true);
 select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Exportó 2 registros de la actividad a CSV (filtros: desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado)'), 1,
   'una exportación de varios lotes registra el evento exactamente UNA vez');
--- Reintento de la última página con el mismo id: no se registra de nuevo.
-select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
-  p_limite => 1, p_entregadas => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
-  p_cursor_creado_en => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
-  p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid);
+-- Reutilizar un id ya registrado (reintento de la última página o intento de bajar datos sin dejar rastro) se RECHAZA:
+-- una exportación cerrada no se puede repetir con el mismo id, así que no hay forma de exportar sin constancia.
+select throws_ok(
+  $q$select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
+       p_limite => 1, p_entregadas => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
+       p_cursor_creado_en => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
+       p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid)$q$,
+  '22023', 'Esa exportación ya está registrada: iniciá una nueva', 'un id de exportación ya cerrado no se puede reutilizar');
 select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 1,
-  'un reintento de la última página no registra el evento dos veces');
+  'y el rechazo no registra el evento una segunda vez');
 -- Otra exportación (otro id) con los mismos filtros sí es otra constancia.
 select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado', p_exportacion => 'c0000000-0000-0000-0000-000000000002');
 select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 2,

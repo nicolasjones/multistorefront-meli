@@ -29,10 +29,13 @@
 --   drop table private.exportaciones_actividad;
 
 create table if not exists private.exportaciones_actividad (
-  id uuid primary key,
+  id uuid not null,
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
-  usuario_id uuid,
-  creado_en timestamptz not null default now()
+  usuario_id uuid not null,
+  creado_en timestamptz not null default now(),
+  -- La clave incluye organización y usuario: un id de otra organización o de otra persona nunca choca ni se puede
+  -- usar para ocultar una exportación propia.
+  primary key (organizacion_id, usuario_id, id)
 );
 comment on table private.exportaciones_actividad is
   'MSF-278: exportaciones de actividad ya registradas (una fila por id de corrida). Hace idempotente el evento actividad.exportada ante reintentos.';
@@ -86,6 +89,14 @@ begin
      or coalesce((select private.nivel_seccion('actividad')), 'ninguno') <> 'edicion'
      or not coalesce((select private.puede_accion('actividad', 'exportar')), false) then
     raise exception 'Solo quien administra la actividad puede exportarla' using errcode = '42501';
+  end if;
+  -- Un id de exportación que ya dejó su constancia está CERRADO: reutilizarlo no puede servir para volver a bajar datos
+  -- sin que quede el evento de auditoría (RF-AUD-03-2). Una exportación nueva lleva un id nuevo.
+  if p_exportacion is not null and exists (
+    select 1 from private.exportaciones_actividad x
+     where x.organizacion_id = v_org and x.usuario_id = (select auth.uid()) and x.id = p_exportacion
+  ) then
+    raise exception 'Esa exportación ya está registrada: iniciá una nueva' using errcode = '22023';
   end if;
   if p_limite is null or p_limite < 1 or p_limite > 1000
      or p_entregadas is null or p_entregadas < 0
@@ -161,7 +172,7 @@ begin
   if v_n > 0 and (not v_hay_mas or v_exportables >= v_tope) then
     insert into private.exportaciones_actividad (id, organizacion_id, usuario_id)
     values (coalesce(p_exportacion, gen_random_uuid()), v_org, (select auth.uid()))
-    on conflict (id) do nothing;
+    on conflict (organizacion_id, usuario_id, id) do nothing;
     get diagnostics v_filas_nuevas = row_count;
     v_nueva := v_filas_nuevas > 0;
   end if;

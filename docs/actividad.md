@@ -239,9 +239,11 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
   «No hay actividad para exportar.» y no baja archivo. Si se cambia la empresa activa a mitad de la exportación, se
   descarta lo traído (nunca se baja un archivo de otra empresa).
 - **Constancia**: al entregar la última fila se registra el evento `actividad.exportada` («Exportó N registros de la
-  actividad a CSV (filtros: …)», con los filtros en palabras y sin ids). Es **idempotente por exportación**: el cliente
-  genera un id por corrida (`p_exportacion`) y `private.exportaciones_actividad` (clave primaria) impide registrarlo
-  dos veces, así que un reintento de la última página no duplica la constancia. Se registra al entregar la última fila,
+  actividad a CSV (filtros: …)», con los filtros en palabras y sin ids). Es **una constancia por exportación**: el cliente genera un id por corrida (`p_exportacion`) y
+  `private.exportaciones_actividad` (clave primaria `organizacion_id + usuario_id + id`) lo guarda al entregar la última
+  fila. Un id **ya registrado se rechaza** (`22023`, «Esa exportación ya está registrada: iniciá una nueva»), así que no
+  hay manera de volver a bajar datos sin que quede el evento, ni de pisar el id de otra persona u organización. Un
+  reintento tras un fallo del navegador usa un id nuevo (y deja una constancia más: es preferible a una exportación sin rastro). Se registra al entregar la última fila,
   no al completarse la descarga en el navegador (la base no ve eso). Un tipo no sensible, dado de alta en
   `tipos_evento_actividad`.
 - **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean);`,
