@@ -35,6 +35,11 @@ export function guardarConsentimiento(valor: ConsentimientoCookies): void {
   window.dispatchEvent(new CustomEvent<ConsentimientoCookies>(EVENTO_CONSENTIMIENTO, { detail: valor }))
 }
 
+// Decisión vigente en este instante (almacenamiento o, si está bloqueado, memoria). Se consulta en CADA emisión.
+export function consentimientoActual(): ConsentimientoCookies | null {
+  return instantanea()
+}
+
 function instantanea(): ConsentimientoCookies | null {
   return leerConsentimiento() ?? enMemoria
 }
