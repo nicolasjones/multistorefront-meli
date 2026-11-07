@@ -130,6 +130,7 @@ nav:
           - Consultas de las tiendas: producto/consultas.md
           - Contactos: producto/contactos.md
       - Configuración y datos:
+          - Importaciones y exportaciones: producto/importaciones.md
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
           - Migración inicial de datos: producto/migracion-inicial-de-datos.md
       - Glosario: producto/glosario.md
@@ -223,6 +224,7 @@ nav:
           - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación:
           - Operación: tecnico/operacion.md
+          - Importaciones y monitoreo: tecnico/importaciones-y-monitoreo.md
           - Operación, copias y documentación: tecnico/operacion-copias-y-documentacion.md
           - Runbooks: tecnico/runbooks/README.md
           - Sandbox: tecnico/sandbox.md
