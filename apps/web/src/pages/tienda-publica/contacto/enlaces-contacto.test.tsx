@@ -1,8 +1,11 @@
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MenuCategorias } from '../layout/MenuCategorias'
 import { PieCategorias } from '../layout/PieCategorias'
+
+// El pie suma el bloque legal (F-TDA-22): acá no se prueba, así que no sale a la red.
+vi.mock('../../../lib/tiendaLegal', async (original) => ({ ...(await original<typeof import('../../../lib/tiendaLegal')>()), useLegalTienda: () => null }))
 
 const categorias = { fase: 'lista' as const, categorias: [{ id: 'c-1', nombre: 'Joysticks', padreId: null, productos: 3 }], reintentar: () => undefined }
 
@@ -14,10 +17,10 @@ describe('enlaces a /contacto', () => {
   })
 
   it('«Escribinos» del pie lleva a /contacto, con o sin categorías', () => {
-    const { unmount } = render(<MemoryRouter><PieCategorias categorias={categorias.categorias} /></MemoryRouter>)
+    const { unmount } = render(<MemoryRouter><PieCategorias categorias={categorias.categorias} host="tienda.ejemplo.com" /></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Escribinos' })).toHaveAttribute('href', '/contacto')
     unmount()
-    render(<MemoryRouter><PieCategorias categorias={[]} /></MemoryRouter>)
+    render(<MemoryRouter><PieCategorias categorias={[]} host="tienda.ejemplo.com" /></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Escribinos' })).toHaveAttribute('href', '/contacto')
     expect(screen.queryByTestId('pie-categorias')).not.toBeInTheDocument()
   })
