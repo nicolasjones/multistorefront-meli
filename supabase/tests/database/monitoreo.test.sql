@@ -120,7 +120,7 @@ select is(
 select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'sincronizacion'),
   0::bigint, 'reevaluar no duplica los eventos ni la notificación de sincronización');
 select is((select count(*) from public.eventos_monitoreo where fuente = 'sincronizacion'),
-  5::bigint, 'cada ejecución fallida se registra una sola vez como evento');
+  9::bigint, 'cada ejecución fallida de la ventana (5 + 4; las antiguas no) se registra una sola vez como evento');
 
 -- Cola: 14 minutos sin avanzar no alerta; 15 sí (SC-005).
 insert into ejecuciones_worker (id, organizacion_id, conexion_id, capacidad_id, origen, estado, iniciada_en, finalizada_en) values
