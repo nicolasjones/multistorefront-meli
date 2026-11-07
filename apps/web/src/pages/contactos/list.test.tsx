@@ -88,7 +88,7 @@ describe('ContactoList (F-CON-05, FR-005, FR-012)', () => {
     expect(screen.getByText('Todavía no hay contactos.')).toBeInTheDocument()
   })
 
-  it('busca con espera y vuelve a la página 1', () => {
+  it('busca con espera y vuelve a la primera tanda', () => {
     vi.useFakeTimers()
     abrir()
     fireEvent.change(screen.getByLabelText('Buscar contactos'), { target: { value: 'ana' } })
@@ -103,15 +103,63 @@ describe('ContactoList (F-CON-05, FR-005, FR-012)', () => {
     expect(screen.getByRole('button', { name: 'Nuevo contacto' })).toBeDisabled()
   })
 
-  it('cambiar la empresa activa recarga con la nueva empresa y vuelve a la página 1', () => {
+  it('cambiar la empresa activa recarga con la nueva empresa y vuelve a la primera tanda', () => {
     vi.useFakeTimers()
     mocks.useLibretaContactos.mockReturnValue(libreta([contacto()], { total: 60 }))
     const { rerender } = abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
     estadoFiltro.empresaActivaId = 'e-2'
     rerender(<MemoryRouter><ContactoList /></MemoryRouter>)
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+    vi.useRealTimers()
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente a lo ya mostrado', () => {
+    const tanda1 = [contacto({ id: 'k-1', nombre: 'Ana Pérez' })]
+    const tanda2 = [contacto({ id: 'k-2', nombre: 'Beto Gómez' })]
+    mocks.useLibretaContactos.mockImplementation((f: { pagina: number }) => libreta(f.pagina === 2 ? tanda2 : tanda1, { total: 2 }))
+    abrir()
+    expect(screen.queryByText('Beto Gómez')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getByText('Ana Pérez')).toBeInTheDocument()
+    expect(screen.getByText('Beto Gómez')).toBeInTheDocument()
+  })
+
+  it('buscar vuelve a la primera tanda', () => {
+    vi.useFakeTimers()
+    mocks.useLibretaContactos.mockReturnValue(libreta([contacto()], { total: 60 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros().pagina).toBe(2)
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar contactos' }), { target: { value: 'ana' } })
+    act(() => { vi.advanceTimersByTime(350) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 1 })
+    vi.useRealTimers()
+  })
+
+  it('búsqueda: solo coincidencias, «Cargar más» conserva el texto y el contador es el de las coincidencias', () => {
+    vi.useFakeTimers()
+    const todos = [contacto({ id: 'k-1', nombre: 'Zoe Ruiz' })]
+    const todos2 = [contacto({ id: 'k-2', nombre: 'Yago Sosa' })]
+    const c1 = [contacto({ id: 'k-3', nombre: 'Ana Pérez' })]
+    const c2 = [contacto({ id: 'k-4', nombre: 'Ana Gómez' })]
+    mocks.useLibretaContactos.mockImplementation((f: { texto: string; pagina: number }) => (
+      f.texto === 'ana' ? libreta(f.pagina === 2 ? c2 : c1, { total: 2 }) : libreta(f.pagina === 2 ? todos2 : todos, { total: 60 })))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Yago Sosa')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar contactos' }), { target: { value: 'ana' } })
+    act(() => { vi.advanceTimersByTime(350) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 1 })
+    expect(screen.queryByText('Zoe Ruiz')).not.toBeInTheDocument()
+    expect(screen.queryByText('Yago Sosa')).not.toBeInTheDocument()
+    expect(screen.getAllByText('2 contactos').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 2 })
+    expect(screen.getByText('Ana Pérez')).toBeInTheDocument()
+    expect(screen.getByText('Ana Gómez')).toBeInTheDocument()
     vi.useRealTimers()
   })
 })

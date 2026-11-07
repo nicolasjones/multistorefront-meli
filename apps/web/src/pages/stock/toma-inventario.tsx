@@ -14,6 +14,8 @@ import {
   MENSAJE_TOMA_CONFIRMADA, armarItemsToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
   rotularDiferencia, validarToma, type AjusteToma, type FilaToma,
 } from '../../lib/tomaInventario'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { PestanasStock } from './PestanasStock'
 
 type Resultado = { ajustes: AjusteToma[]; nombres: Record<string, string> }
@@ -44,6 +46,7 @@ export function TomaInventario() {
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [recargaCategorias, setRecargaCategorias] = useState(0)
   const [recargaFilas, setRecargaFilas] = useState(0)
+  const imagenes = useImagenesProductos(filas.map((fila) => fila.producto_id))
 
   useEffect(() => {
     let vigente = true
@@ -164,8 +167,13 @@ export function TomaInventario() {
                         return (
                           <TableRow key={fila.producto_id}>
                             <TableCell>
-                              <Typography variant="body2">{fila.nombre}</Typography>
-                              {fila.sku && <Typography variant="caption" color="text.secondary">{fila.sku}</Typography>}
+                              <Stack direction="row" spacing={1.5} alignItems="center">
+                                <MiniaturaProducto alt="" src={imagenes.get(fila.producto_id)} />
+                                <Box>
+                                  <Typography variant="body2">{fila.nombre}</Typography>
+                                  {fila.sku && <Typography variant="caption" color="text.secondary">{fila.sku}</Typography>}
+                                </Box>
+                              </Stack>
                             </TableCell>
                             <TableCell align="right">{fila.sistema}</TableCell>
                             <TableCell align="right">

@@ -3,6 +3,7 @@ import { Alert, Box, Button, Link, Stack, TextField, Typography } from '@mui/mat
 import { Link as EnlaceRuta } from 'react-router'
 import { AVISO_RECUPERACION, solicitarRecuperacionCliente } from '../../../lib/tiendaCuenta'
 import { useContextoTienda } from '../layout/LayoutTienda'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 
 // Recuperación de la contraseña del cliente (F-CLI-06, FR-023): el aviso es el mismo exista o no la cuenta.
 export default function RutaRecuperarContrasena() {
@@ -25,6 +26,7 @@ export default function RutaRecuperarContrasena() {
 
   return (
     <Box sx={{ maxWidth: 420, mx: 'auto', py: 2 }}>
+      <CabeceraSeo noindex pagina="Recuperar contraseña" />
       <Stack spacing={2} component="form" onSubmit={solicitar} aria-labelledby="titulo-recuperar">
         <Typography id="titulo-recuperar" component="h1" variant="h5" sx={{ fontWeight: 700 }}>Recuperar contraseña</Typography>
         <Typography color="text.secondary">Te enviamos un enlace para definir una contraseña nueva.</Typography>

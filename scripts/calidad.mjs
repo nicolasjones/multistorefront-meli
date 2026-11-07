@@ -67,20 +67,20 @@ if (wants("sast") && pnpm) {
 }
 
 // 3) código muerto
-if (wants("deadcode") && pnpm) add("knip (código muerto)", run("pnpm", ["dlx", "knip", "--no-progress"]));
+if (wants("deadcode") && pnpm) add("knip (código muerto)", run("pnpm", ["dlx", "knip@6.44.1", "--no-progress"]));
 
 // 4) duplicación
-if (wants("dup") && pnpm) add("jscpd (duplicación)", run("pnpm", ["dlx", "jscpd", "--config", ".jscpd.json"]));
+if (wants("dup") && pnpm) add("jscpd (duplicación)", run("pnpm", ["dlx", "jscpd@5.4.2", "--config", ".jscpd.json"]));
 
 // 5) arquitectura / ciclos
-if (wants("arch") && pnpm) add("dependency-cruiser (arquitectura)", run("pnpm", ["dlx", "depcruise", "--config", ".dependency-cruiser.cjs", "apps/web/src", "packages"]));
+if (wants("arch") && pnpm) add("dependency-cruiser (arquitectura)", run("pnpm", ["dlx", "--package=dependency-cruiser@18.7.2", "depcruise", "--config", ".dependency-cruiser.cjs", "apps/web/src", "packages"]));
 
 // 6) deps coherentes entre workspaces
 if (wants("deps") && pnpm) add("syncpack (versiones)", run("pnpm", ["dlx", "syncpack@13", "list-mismatches"]));
 
 // 7) mensajes de commit (conventional) — sólo si el runner pasa el rango (PR)
 if (wants("commits") && pnpm && process.env.COMMITLINT_FROM && process.env.COMMITLINT_TO) {
-  add("commitlint (mensajes)", run("pnpm", ["dlx", "@commitlint/cli",
+  add("commitlint (mensajes)", run("pnpm", ["dlx", "@commitlint/cli@21.2.4",
     "--from", process.env.COMMITLINT_FROM, "--to", process.env.COMMITLINT_TO]));
 }
 

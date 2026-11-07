@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EntradaLinea, LineaComprobante } from '../../lib/ventasLineas'
 import { LineasComprobante } from './LineasComprobante'
+
+const mocks = vi.hoisted(() => ({ imagenes: vi.fn() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: mocks.imagenes }))
 
 const DEPOSITOS = [
   { id: 'd-1', nombre: 'Principal', por_defecto: true },
@@ -54,6 +57,24 @@ function montar(lineas: LineaComprobante[], opciones: Opciones = {}) {
   )
   return { onCambiar, onQuitar }
 }
+
+beforeEach(() => mocks.imagenes.mockReturnValue(new Map()))
+
+describe('LineasComprobante · miniatura del producto', () => {
+  it('muestra la imagen principal del producto junto al nombre y pide solo los productos de las líneas', () => {
+    mocks.imagenes.mockReturnValue(new Map([['p-1', 'https://img/joystick.png']]))
+    montar([linea(), linea({ id: 'l-2', producto_id: null, sin_stock: true, descripcion: 'Mano de obra' })])
+    expect(document.querySelector('img[src="https://img/joystick.png"]')).not.toBeNull()
+    expect(mocks.imagenes).toHaveBeenCalledWith(['p-1', null])
+  })
+
+  it('sin imagen dibuja el marcador vacío y no rompe la fila', () => {
+    mocks.imagenes.mockReturnValue(new Map())
+    montar([linea()])
+    expect(document.querySelector('img')).toBeNull()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+  })
+})
 
 describe('LineasComprobante · columnas, disponible y totales (FR-017, FR-019)', () => {
   it('muestra las columnas del prototipo y el pie Subtotal sin IVA / IVA / Total', () => {

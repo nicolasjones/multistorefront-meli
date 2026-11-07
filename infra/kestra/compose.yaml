@@ -107,6 +107,9 @@ services:
       # {{ envs.historial_importador_imagen }}; en producción se publica por
       # digest, igual que el resto de los workers.
       ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
+      # Imagen del worker que aplica las importaciones de productos desde CSV
+      # (MSF-375); flow `importar-productos.yml`.
+      ENV_IMPORTAR_PRODUCTOS_IMAGEN: ${IMPORTAR_PRODUCTOS_IMAGEN:-local/worker-importar-productos:latest}
       # Imagen del worker de exportación diferida de comprobantes (MSF-346); flow
       # `exportar-comprobantes.yml`.
       ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:-local/worker-exportar-comprobantes:latest}
@@ -153,6 +156,12 @@ services:
       ENV_ALERTAS_INICIO_URL: ${ALERTAS_INICIO_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/recalcular-alertas-inicio}
       ENV_ALERTAS_INICIO_APIKEY: ${ALERTAS_INICIO_APIKEY:-change-me-local}
       SECRET_ALERTAS_INICIO_TOKEN: ${SECRET_ALERTAS_INICIO_TOKEN:-}
+      # Monitoreo de errores de la aplicación (MSF-369, flow monitoreo-errores-aplicacion.yml). El token de lectura
+      # de GlitchTip es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_ERRORES_APP_URL: ${ERRORES_APP_URL:-}
+      ENV_ERRORES_APP_ORGANIZACION: ${ERRORES_APP_ORGANIZACION:-plataforma}
+      ENV_ERRORES_APP_PROYECTO: ${ERRORES_APP_PROYECTO:-aplicacion}
+      SECRET_ERRORES_APP_TOKEN: ${SECRET_ERRORES_APP_TOKEN:-}
       # Avisos de faltantes (MSF-405, flow avisos-faltantes.yml): mismas reglas, contra la Edge Function
       # `enviar-aviso-faltante`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
       ENV_AVISOS_FALTANTES_URL: ${AVISOS_FALTANTES_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-faltante}

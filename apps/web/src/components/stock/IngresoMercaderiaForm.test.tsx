@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  or: vi.fn(),
   proveedores: vi.fn(),
   productos: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('../../lib/supabase', () => ({
           select: () => cadena,
           eq: () => cadena,
           order: () => cadena,
+          or: (...argumentos: unknown[]) => { mocks.or(...argumentos); return cadena },
           limit: () => cadena,
           returns: tabla === 'proveedores' ? mocks.proveedores : mocks.productos,
         }
@@ -67,7 +69,24 @@ describe('IngresoMercaderiaForm', () => {
 
     expect(await screen.findByText('Elegí el proveedor.')).toBeInTheDocument()
     expect(screen.getByText('Elegí un producto.')).toBeInTheDocument()
-    expect(screen.getByText('Costo en USD con hasta dos decimales.')).toBeInTheDocument()
+    // F-PRV-07: el costo es opcional; vacío no es un error.
+    expect(screen.queryByText('Costo en USD con hasta dos decimales.')).not.toBeInTheDocument()
+  })
+
+  it('[MSF-448:T017] acepta el costo unitario vacío y solo rechaza un costo mal escrito', async () => {
+    abrir()
+    await screen.findByText('Nuevo ingreso')
+    const costo = screen.getByLabelText('Costo unit. USD')
+    expect(costo).not.toBeRequired()
+    const boton = screen.getByRole('button', { name: 'Registrar ingreso' })
+    await waitFor(() => expect(boton).not.toBeDisabled())
+    fireEvent.click(boton)
+    await screen.findByText('Elegí el proveedor.')
+    expect(screen.queryByText('Costo en USD con hasta dos decimales.')).not.toBeInTheDocument()
+
+    fireEvent.change(costo, { target: { value: '1.555' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
+    expect(await screen.findByText('Costo en USD con hasta dos decimales.')).toBeInTheDocument()
   })
 
   it('agrega y quita líneas de producto', async () => {
@@ -90,5 +109,67 @@ describe('IngresoMercaderiaForm', () => {
     mocks.useNivelSeccion.mockImplementation(() => ({ nivel: 'lectura', isLoading: false }))
     abrir()
     await waitFor(() => expect(screen.queryByText('Nuevo ingreso')).not.toBeInTheDocument())
+  })
+
+  it('avisa cuando el catálogo de productos supera el tope y no deja de avisar tras elegir', async () => {
+    const muchos = Array.from({ length: 501 }, (_, i) => ({ id: `p-${i}`, nombre: `Producto ${String(i).padStart(3, '0')}`, sku: null, proveedor_id: null }))
+    mocks.productos.mockResolvedValue({ data: muchos, error: null })
+    abrir()
+    const campo = await screen.findByLabelText('Producto 1')
+    fireEvent.mouseDown(campo)
+    expect(await screen.findByText(/Hay más de 500 productos/)).toBeInTheDocument()
+    expect(await screen.findAllByRole('option')).toHaveLength(500)
+    fireEvent.click(screen.getByRole('option', { name: 'Producto 000' }))
+    expect(screen.getByText(/Hay más de 500 productos/)).toBeInTheDocument()
+  })
+
+  it('busca en el servidor y permite elegir un producto fuera de los primeros 500', async () => {
+    mocks.productos.mockResolvedValueOnce({ data: [{ id: 'p-0', nombre: 'Alfa', sku: null, proveedor_id: null }], error: null })
+    abrir()
+    const campo = await screen.findByLabelText('Producto 1')
+    fireEvent.mouseDown(campo)
+    await screen.findByRole('option', { name: 'Alfa' })
+
+    mocks.productos.mockResolvedValue({ data: [{ id: 'p-999', nombre: 'Zeta final', sku: 'Z_1', proveedor_id: null }], error: null })
+    fireEvent.change(campo, { target: { value: 'Z_1,(x)' } })
+    fireEvent.click(await screen.findByRole('option', { name: 'Zeta final · Z_1' }))
+
+    expect(mocks.or).toHaveBeenCalledWith('nombre.ilike.%Z\\_1  x%,sku.ilike.%Z\\_1  x%')
+    expect(campo).toHaveValue('Zeta final · Z_1')
+  })
+
+  it('busca el proveedor en el servidor y avisa si el catálogo se cortó', async () => {
+    const muchos = Array.from({ length: 501 }, (_, i) => ({ id: `pr-${i}`, razon_social: `Proveedor ${String(i).padStart(3, '0')}` }))
+    mocks.proveedores.mockResolvedValue({ data: muchos, error: null })
+    abrir()
+    const campo = await screen.findByLabelText('Proveedor')
+    fireEvent.mouseDown(campo)
+    expect(await screen.findByText(/Hay más de 500 proveedores/)).toBeInTheDocument()
+    fireEvent.change(campo, { target: { value: 'importadora' } })
+    await waitFor(() => expect(mocks.or).toHaveBeenCalledWith('razon_social.ilike.%importadora%'))
+  })
+
+  it('conserva el producto elegido cuando cambia la búsqueda', async () => {
+    abrir()
+    const campoProveedor = await screen.findByLabelText('Proveedor')
+    fireEvent.mouseDown(campoProveedor)
+    fireEvent.click(await screen.findByRole('option', { name: 'Proveedor Uno' }))
+
+    const campo = await screen.findByLabelText('Producto 1')
+    fireEvent.mouseDown(campo)
+    fireEvent.click(await screen.findByRole('option', { name: 'Producto Uno · SKU-1' }))
+    expect(screen.getByText('Proveedor del producto: coincide')).toBeInTheDocument()
+
+    mocks.productos.mockResolvedValue({ data: [{ id: 'otro', nombre: 'Otro', sku: null, proveedor_id: null }], error: null })
+    fireEvent.change(campo, { target: { value: 'otro' } })
+    await waitFor(() => expect(mocks.or).toHaveBeenCalled())
+    expect(screen.getByText('Proveedor del producto: coincide')).toBeInTheDocument()
+  })
+
+  it('muestra el error de búsqueda de productos sin romper el formulario', async () => {
+    mocks.productos.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    abrir()
+    fireEvent.mouseDown(await screen.findByLabelText('Producto 1'))
+    expect(await screen.findAllByText('No pudimos buscar productos. Probá de nuevo.')).not.toHaveLength(0)
   })
 })

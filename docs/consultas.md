@@ -74,7 +74,7 @@ Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada 
 
 El botón `Responder por <correo|WhatsApp>` del detalle **no envía nada**: abre el cliente externo y registra en la base que la consulta quedó atendida.
 
-- **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono (7 a 15 dígitos) → `https://wa.me/<solo dígitos>?text=…`. Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
+- **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono → `https://wa.me/<dígitos internacionales>?text=…` (misma `normalizarNumero` que la ficha, MSF-696: un teléfono local argentino lleva `549`; sin código de área o ambiguo no ofrece enlace). Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
 - **Texto inicial**: `armarTextoInicial` (`apps/web/src/lib/textoInicialConsulta.ts`) con una plantilla fija (nombre, tienda y producto si lo hay). Es el único punto que reemplaza F-CON-06: con una respuesta rápida elegida, el cuerpo es su texto con las variables resueltas (ver «Respuestas rápidas»).
 - **Registro**: llama a `public.actualizar_consulta` (MSF-122, sin migración nueva): `nueva` pasa a `en_curso` (`en_curso` y `resuelta` conservan el estado; no se reabre), el responsable es quien responde **solo si no había**, y se mandan la nota y el `updated_at` vigentes. La actividad la registra la propia RPC.
 - **Lo que está en el formulario** (MSF-698): el registro manda el estado, el responsable y la nota **que la persona tiene en el formulario en ese momento**, no la foto leída al abrir el detalle: responder no descarta lo recién editado ni vuelve a escribir la nota vieja. El «Reintentar» del aviso manda lo mismo.
@@ -207,3 +207,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, y aborta si `SUPABASE_URL` no es un host local (crea usuarios con
   contraseña conocida). La limpieza borra la organización y el `on delete cascade` arrastra empresas, tiendas,
   consultas, avisos y configuración.
+
+## Bandeja con carga infinita e imagen del producto
+
+La bandeja de consultas carga por tandas de 25 desde `consultas_bandeja` al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. Buscar, cambiar estado, fechas, tienda o guardar una consulta reinicia desde la primera tanda; el contador total se mantiene. La columna «Producto» muestra la imagen principal como miniatura con zoom cuando la consulta tiene `producto_id`, y lo mismo el diálogo «Interés por WhatsApp». Ver [`listados.md`](./listados.md).
