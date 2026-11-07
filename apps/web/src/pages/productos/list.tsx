@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, Stack, TablePagination, Typography } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Chip, Snackbar, Stack, TablePagination, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
+import { useSeleccionProductos } from '../../hooks/useSeleccionProductos'
 import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
@@ -17,6 +18,7 @@ import {
   type ConsultaProductos,
   type FilaProductoListado,
 } from '../../lib/productosListado'
+import { BarraSeleccion } from '../../components/productos/BarraSeleccion'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -28,6 +30,13 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { infoDisponibilidad } from '../../lib/productos'
 import { tokens } from '../../tema/tokens'
+
+// Diálogos de la edición masiva (F-CAT-12): carga diferida, no pesan en el recorrido principal del listado.
+const MoverCategoriaDialog = lazy(() => import('../../components/productos/MoverCategoriaDialog').then((m) => ({ default: m.MoverCategoriaDialog })))
+const CambiarEstadoDialog = lazy(() => import('../../components/productos/CambiarEstadoDialog').then((m) => ({ default: m.CambiarEstadoDialog })))
+const CambiarEmpresasDialog = lazy(() => import('../../components/productos/CambiarEmpresasDialog').then((m) => ({ default: m.CambiarEmpresasDialog })))
+
+type DialogoMasivo = 'categoria' | 'estado' | 'empresas'
 
 const ESPERA_BUSQUEDA_MS = 300
 const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku', 'activo']
@@ -149,10 +158,6 @@ export function ProductoList() {
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
-  const columnas = useMemo(() => {
-    const [producto, precio, ...resto] = columnasBase
-    return [producto, precio, ...(veCosto ? [columnaCosto(costos)] : []), ...resto, columnaVisibleEn(empresas), columnaEstado]
-  }, [empresas, veCosto, costos])
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
@@ -160,6 +165,49 @@ export function ProductoList() {
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [falloCostos, setFalloCostos] = useState(false)
   const ultimaPeticion = useRef(0)
+
+  // Edición masiva (F-CAT-12): la selección y el diálogo viven mientras no cambie nada de lo que define la
+  // lista (empresa activa, página, filtros, búsqueda u orden); si cambia, se descartan (Principio VIII).
+  const contextoLista = JSON.stringify(consulta)
+  const idsVisibles = useMemo(() => (filas ?? []).map((fila) => fila.id), [filas])
+  const { ids: idsMarcados, cantidad: cantidadMarcados, todosMarcados, alternar, alternarTodos, limpiar: limpiarSeleccion } =
+    useSeleccionProductos(contextoLista, idsVisibles)
+  const [dialogo, setDialogo] = useState<DialogoMasivo | null>(null)
+  const [aviso, setAviso] = useState<string | null>(null)
+  const [contextoPrevio, setContextoPrevio] = useState(contextoLista)
+  if (contextoPrevio !== contextoLista) {
+    setContextoPrevio(contextoLista)
+    if (dialogo !== null) {
+      setDialogo(null)
+      setAviso('Cerramos el cambio masivo porque la lista cambió. Volvé a elegir los productos.')
+    }
+  }
+  const idsSeleccionados = useMemo(() => [...idsMarcados], [idsMarcados])
+
+  const columnas = useMemo(() => {
+    const [producto, precio, ...resto] = columnasBase
+    const columnaSeleccion: ColumnaAdaptable<FilaProducto> = {
+      clave: 'seleccion',
+      // Sin texto visible: el «Seleccionar todos» va en el encabezado de esta columna (como el prototipo).
+      encabezado: '',
+      render: (fila) => (
+        <Checkbox
+          checked={idsMarcados.has(fila.id)}
+          onChange={() => alternar(fila.id)}
+          slotProps={{ input: { 'aria-label': 'Seleccionar producto' } }}
+        />
+      ),
+    }
+    return [
+      ...(puedeEditar ? [columnaSeleccion] : []),
+      producto,
+      precio,
+      ...(veCosto ? [columnaCosto(costos)] : []),
+      ...resto,
+      columnaVisibleEn(empresas),
+      columnaEstado,
+    ]
+  }, [empresas, veCosto, costos, puedeEditar, idsMarcados, alternar])
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
   useEffect(() => {
@@ -219,6 +267,13 @@ export function ProductoList() {
     if (cargandoRentabilidad) return
     void cargar()
   }, [cargar, cargandoRentabilidad])
+
+  const terminarMasivo = (mensaje: string) => {
+    setDialogo(null)
+    limpiarSeleccion()
+    setAviso(mensaje)
+    void cargar()
+  }
 
   const hayFiltros = hayFiltrosActivos(consulta) || textoEscrito.trim() !== ''
   const limpiar = () => {
@@ -285,6 +340,15 @@ export function ProductoList() {
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />
+              {puedeEditar ? (
+                <BarraSeleccion
+                  cantidad={cantidadMarcados}
+                  onMoverCategoria={() => setDialogo('categoria')}
+                  onCambiarEstado={() => setDialogo('estado')}
+                  onCambiarEmpresas={() => setDialogo('empresas')}
+                  onQuitar={limpiarSeleccion}
+                />
+              ) : null}
               {filas.length === 0 ? (
                 <EstadoVacio titulo="No hay productos que coincidan" descripcion="Probá con otra búsqueda o limpiá los filtros." />
               ) : (
@@ -295,6 +359,14 @@ export function ProductoList() {
                   etiquetaTabla="Productos"
                   orden={{ clave: consulta.columnaOrden, direccion: consulta.direccion }}
                   alOrdenar={ordenar}
+                  seleccionEnCabecera={puedeEditar ? (
+                    <Checkbox
+                      checked={todosMarcados}
+                      indeterminate={!todosMarcados && cantidadMarcados > 0}
+                      onChange={alternarTodos}
+                      slotProps={{ input: { 'aria-label': 'Seleccionar todos' } }}
+                    />
+                  ) : undefined}
                   acciones={
                     puedeEditar
                       ? (producto) => (
@@ -327,6 +399,29 @@ export function ProductoList() {
           )}
         </Stack>
       </ContenedorSeccion>
+      {puedeEditar && dialogo !== null && cantidadMarcados > 0 ? (
+        <Suspense fallback={null}>
+          {dialogo === 'categoria' ? (
+            <MoverCategoriaDialog open ids={idsSeleccionados} categorias={categorias} onCerrar={() => setDialogo(null)} onHecho={terminarMasivo} />
+          ) : null}
+          {dialogo === 'estado' ? (
+            <CambiarEstadoDialog open ids={idsSeleccionados} onCerrar={() => setDialogo(null)} onHecho={terminarMasivo} />
+          ) : null}
+          {dialogo === 'empresas' ? (
+            <CambiarEmpresasDialog
+              open
+              ids={idsSeleccionados}
+              empresas={empresas}
+              errorEmpresas={errorEmpresas}
+              onCerrar={() => setDialogo(null)}
+              onHecho={terminarMasivo}
+            />
+          ) : null}
+        </Suspense>
+      ) : null}
+      <Snackbar open={aviso !== null} autoHideDuration={6000} onClose={() => setAviso(null)}>
+        <Alert severity="info" onClose={() => setAviso(null)}>{aviso}</Alert>
+      </Snackbar>
     </Box>
   )
 }
