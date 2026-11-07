@@ -376,6 +376,16 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
 
+## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270213100000`)
+
+Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/edicion-masiva.md`). La sección se completa con «Duplicar» (F-CAT-13) en el cierre de la épica.
+
+- **Quién**: solo quien tiene `edicion` en Productos ve las casillas (por fila y «Seleccionar todos» en el encabezado, sobre las filas ya cargadas) y la barra «N seleccionados». Con `lectura` no aparece nada.
+- **Acciones**: «Mover de categoría» (árbol de MSF-160, un clic mueve), «Cambiar estado» (Activar / Desactivar, no borra nada) y «Cambiar empresas» (`SelectorEmpresas`: «Agregar a» y «Quitar de»; el resultado por producto es `(actuales ∪ agregar) − quitar`). Los diálogos se cargan de forma diferida.
+- **Base**: tres RPC en `public` (`mover_productos_categoria`, `cambiar_estado_productos`, `definir_empresas_productos`), `security invoker`, de 1 a 100 ids, atómicas e idempotentes; devuelven cuántos productos cambiaron (si ninguno, el aviso es «No hubo cambios»). Reutilizan las RPC individuales, así que cada producto con cambio real deja su evento de Actividad (`producto.categoria_asignada`, `producto.activado|desactivado`, `producto.empresas_actualizadas`). Sin tablas nuevas (Principio VII); `anon` sin ejecución. Reversión: `drop function` de las tres RPC y de `private.bloquear_productos_masivo`.
+- **Empresa activa (Principio VIII)**: la selección se descarta al cambiar empresa, filtro, búsqueda u orden (pedir más filas con la carga infinita no la descarta), y un diálogo abierto se cierra con aviso.
+- **Diferencias con el prototipo**: no se construyen «Marcar destacado», «Enviar al newsletter» ni «Borrar» (el producto se desactiva, no se borra); el texto «hasta 3.er nivel» se omite (el árbol es de 2 niveles); «Cambiar estado» y «Cambiar empresas» no están dibujados y usan el mismo patrón de botón y diálogo.
+
 ## Importar y exportar productos (épica MSF-202)
 
 Índice de la carga y la descarga masivas del catálogo (spec `specs/20270125-100000-catalogo-compatibilidad-y-planillas/`):
