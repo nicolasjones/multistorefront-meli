@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "72ff65647b72701a383e2bb2f6e75eab88b59f3aed5c23d7370be017a466e3b7",
+      "pageHash": "8c28cd4d1aec08289028270ea8ba90720891b6e5d50cf33e6e3ba4b0b69ea659",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "c43dc141"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -515,6 +515,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "801de684"
+    },
+    "docs/producto/importaciones.md": {
+      "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
+      "pageHash": "a2db7a97d0a0eab1721019e42c1d29474073fc2c3b2aff3b22963a55f542e89c",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
@@ -1299,14 +1308,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "2216f99e7fd1fb780529181aba483bd328d9f1a3c6733a29796c50f2db7c1670",
+      "pageHash": "17bed58f6eab27954384f4c30b4f6beb8d1dfe07982413c85d52df9cf7ff29b1",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "01821f1c",
+      "sourceAt": "f3861761",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "801de684"
+      "commit": "29bf8f31"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1343,6 +1352,27 @@
       ],
       "owner": "tecnico",
       "commit": "cdf9b4d2"
+    },
+    "docs/tecnico/importaciones-y-monitoreo.md": {
+      "title": "Importaciones y monitoreo (MSF-206)",
+      "pageHash": "126ce7107c9adbe5b7948d073aa1b2aa1debae795ae485c40c1b4ea4e2250c95",
+      "sourceHash": "f702f0776f079d4efa8338d28b1dacb98c29e40fe4b3996c41f8bee499defae5",
+      "sourceAt": "f3861761",
+      "sources": [
+        "apps/web/src/pages/importaciones",
+        "apps/web/src/hooks/useProcesosMasivos.ts",
+        "apps/web/src/hooks/useErroresProceso.ts",
+        "apps/web/src/lib/procesosMasivos.ts",
+        "apps/web/src/lib/erroresWeb.ts",
+        "apps/web/e2e",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "infra/kestra/flows",
+        "infra/glitchtip",
+        "workers"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
