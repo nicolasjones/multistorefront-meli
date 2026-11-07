@@ -33,8 +33,12 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 
 ## Estado
 
-- **No bloqueante** por ahora (`continue-on-error: true` en `.github/workflows/quality.yml`). Cuando el
-  baseline esté limpio, se quita y `quality` pasa a **check requerido** junto con `database`.
+- El job `quality` **falla** (rojo) ante hallazgos, pero **no bloquea el merge**: el ruleset de GitHub
+  (25358575) exige solo `validacion`. No existe `continue-on-error` en el workflow. Para volverlo
+  bloqueante hay que agregar `quality` a los checks requeridos del ruleset (acción de administración).
+- `pnpm calidad` siempre termina en su bloque `---- RESUMEN ----`; si una herramienta se cae, queda como
+  `hallazgos` con la causa. La salida completa de cada una va a `reports/calidad.log` (artifact
+  `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
 
