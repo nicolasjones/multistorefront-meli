@@ -164,7 +164,7 @@ oculto en la ficha); dueño: Catálogo. Cubren esa base hoy los tests pgTAP `cat
 | Depósitos, stock por depósito y reservado | MSF-292 |
 | Cálculo, edición y margen de las escalas; tipo de cliente | Precios (MSF-114) |
 | Columna Margen, stock numérico y «Stock bajo» | Rentabilidad (MSF-120) y Stock |
-| Exportar, importar CSV, edición masiva, variantes y su código de barras | MSF-202, MSF-218 y variantes (P1) |
+| Exportar, importar CSV, edición masiva, variantes y su código de barras | Todavía no se puede; está planificado |
 | Restringir el proveedor al Administrador | Decisión abierta de MSF-205 |
 | Lector por cámara | Fuera de alcance (el lector es de teclado/USB) |
 | Rediseño del listado y de las pantallas | Fuera de alcance: se amplían las de MSF-456 y MSF-160 |

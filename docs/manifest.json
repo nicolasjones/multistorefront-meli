@@ -418,25 +418,25 @@
     },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
-      "pageHash": "5790807f9d9630f1003b6f24d3ef07d3c73f8250d2792da36d5ca433cfd9a19f",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "pageHash": "170735e273be7ed10c49448c2097f8ebb8e80c157660807f7cd51d82c5a41b8c",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "f3861761",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "cdf9b4d2"
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
-      "pageHash": "89e08c7bc21cff780a1ae4814a6e15a7da5b2e276547adf8d5a67ce7b86e3f02",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "5453c757",
+      "pageHash": "cd56a959d2bfb5c7e2239eb36a6b57d20f77da9f21e54cf13be2771e8c588fd4",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "f3861761",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "d1de6312"
     },
     "docs/producto/catalogo-productos.md": {
       "title": "Productos y categorías",
@@ -1191,6 +1191,18 @@
       "sources": [
         "specs",
         "supabase"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/catalogo-compatibilidad-y-planillas.md": {
+      "title": "Catálogo: compatibilidad y planillas (MSF-202)",
+      "pageHash": "6f284f96d9f10f7ba4be956c40ab25585927cef174059beb3a44242903a79d82",
+      "sourceHash": "e08843104f8af2cb1d9d63d350e19ea18e89e5e0331845d856a268ec6418a0c4",
+      "sourceAt": "f3861761",
+      "sources": [
+        "supabase/migrations",
+        "workers"
       ],
       "owner": "tecnico",
       "commit": null
