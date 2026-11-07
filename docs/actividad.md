@@ -257,8 +257,8 @@ Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucio
 ## Registro inalterable con antes y después (F-AUD-02)
 
 Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (épica MSF-170, historia MSF-259). Todo en el
-esquema **`public`** (plataforma, Principio VII); migraciones aditivas `20270201200141_registro_inalterable_antes_despues.sql`
-y `20270201200142_depurar_registro_actividad.sql`.
+esquema **`public`** (plataforma, Principio VII); migraciones aditivas `20270207100001_registro_inalterable_antes_despues.sql`
+y `20270207100002_depurar_registro_actividad.sql`.
 
 - **Catálogo de tipos** `public.tipos_evento_actividad` (`tipo`, `sensible`, `descripcion`; RLS: `select` para
   `authenticated`, nada para `anon`, sin escritura desde la app). Son **sensibles**: `usuario.rol_cambiado`,

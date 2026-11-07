@@ -31,6 +31,7 @@ import TuneIcon from '@mui/icons-material/Tune'
 import CommentIcon from '@mui/icons-material/Comment'
 import ContactsIcon from '@mui/icons-material/Contacts'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
+import ImportExportIcon from '@mui/icons-material/ImportExport'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
@@ -221,6 +222,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
       { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
+      // F-IMP-01 (MSF-354): centro de cargas y descargas masivas; solo administradores (D-6).
+      { id: 'importaciones', etiqueta: 'Importaciones', ruta: '/importaciones', icono: ImportExportIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
