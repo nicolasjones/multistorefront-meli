@@ -83,6 +83,7 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+#variable_conflict use_column
 begin
   -- postgres / supabase_admin no son superusuarios reales en Supabase: se admiten por nombre (mantenimiento y pgTAP).
   if session_user not in ('kestra_orquestacion', 'postgres', 'supabase_admin')
