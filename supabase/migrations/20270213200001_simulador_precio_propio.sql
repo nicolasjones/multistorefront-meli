@@ -66,27 +66,29 @@ begin
     raise exception 'La empresa no existe en tu organización' using errcode = 'P0002';
   end if;
 
-  -- La muestra se recorta ANTES de resolver el IVA: la alícuota se calcula solo para las filas devueltas.
+  -- La muestra se recorta ANTES de calcular nada: primero se ordena y limita (barato, solo columnas de la tabla) y
+  -- recién sobre esas filas se resuelven la conversión, el precio propio y el IVA. Con un catálogo grande, cada
+  -- cambio del ajuste cuesta como mucho `p_muestra` evaluaciones, no una por producto de la organización.
   return query
-  select m.id, m.nombre, m.sku, m.moneda, m.central, m.neto,
-         private.aplicar_iva(m.neto, al.porcentaje, coalesce(al.exento, false)),
-         m.propio
+  select m.id, m.nombre, m.sku, m.moneda, x.central,
+         case when pp.moneda is not null then pp.neto_ars
+              else private.aplicar_regla_precio(x.central, p_base, v_ajuste, 10) end,
+         private.aplicar_iva(
+           case when pp.moneda is not null then pp.neto_ars
+                else private.aplicar_regla_precio(x.central, p_base, v_ajuste, 10) end,
+           al.porcentaje, coalesce(al.exento, false)),
+         (pp.moneda is not null)
     from (
-      select p.id, p.nombre, p.sku, p.moneda, x.central,
-             case
-               when pp.moneda is not null then pp.neto_ars
-               else private.aplicar_regla_precio(x.central, p_base, v_ajuste, 10)
-             end as neto,
-             (pp.moneda is not null) as propio
+      select p.id, p.nombre, p.sku, p.moneda, p.precio_lista, p.organizacion_id
         from dominio.productos p
-        cross join lateral (
-          select private.a_pesos(p.precio_lista, p.moneda, p.organizacion_id, p_empresa) as central
-        ) x
-        left join lateral private.precio_propio_empresa(p.id, p_empresa) pp on true
        where p.organizacion_id = v_organizacion and p.activo
        order by lower(p.nombre), p.id
        limit least(greatest(coalesce(p_muestra, 6), 1), 20)
     ) m
+    cross join lateral (
+      select private.a_pesos(m.precio_lista, m.moneda, m.organizacion_id, p_empresa) as central
+    ) x
+    left join lateral private.precio_propio_empresa(m.id, p_empresa) pp on true
     left join lateral private.alicuota_producto(m.id) al on true
    order by lower(m.nombre), m.id;
 end;

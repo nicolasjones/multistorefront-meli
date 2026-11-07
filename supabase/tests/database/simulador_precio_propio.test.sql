@@ -5,7 +5,7 @@
 -- lo mismo que la tienda. Corre como postgres para armar el fixture y como "authenticated" para verificar.
 begin;
 
-select plan(27);
+select plan(33);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -136,11 +136,11 @@ select ok(
 );
 
 -- Precio propio en USD: se convierte con la cotización.
-select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'USD', 12);
+select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'USD', 11);
 select is(
   (select p.neto_ars from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'central_ajuste', 20) p where p.producto_id = 'a1000000-0000-0000-0000-000000000002'),
-  18000::numeric,
-  'un precio propio en USD se muestra en pesos con la cotización (12 × 1.500)'
+  16500::numeric,
+  'un precio propio en USD se muestra en pesos con la cotización (11 × 1.500), distinto del calculado con la regla (18.000)'
 );
 select is(
   (select p.precio_propio from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'central_ajuste', 20) p where p.producto_id = 'a1000000-0000-0000-0000-000000000002'),
@@ -210,6 +210,49 @@ select is(
   'y no ve ninguna marca de precio propio ajena'
 );
 reset role;
+
+-- ============================================================================
+-- Todos los caminos de lectura respetan el precio propio (MSF-423, revisión retroactiva):
+-- tienda pública (x1 y escalas) y líneas de comprobante (private.precio_para). Mundo JC: Joystick propio $ 25.000 y
+-- Auricular propio USD 11 (× 1.500 = 16.500); los dos se venden en la empresa; la regla es «central −5 %», sin IVA.
+-- ============================================================================
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
+  ('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
+  ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111')
+on conflict do nothing;
+
+select is(
+  private.precio_final_publico('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'),
+  25000::numeric,
+  'la tienda pública muestra el precio propio en pesos, no «central − 5 %»'
+);
+select is(
+  private.precio_final_publico('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001'),
+  16500::numeric,
+  'la tienda pública convierte un precio propio en USD con la cotización de la empresa'
+);
+select is(
+  private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x5'),
+  25000::numeric,
+  'una escala sin precio propio cargado cae en el precio base, que es el precio propio'
+);
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  (select neto from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x1')),
+  25000::numeric,
+  'las líneas de presupuestos y comprobantes usan el precio propio'
+);
+select is(
+  (select neto from private.precio_para('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'x10')),
+  16500::numeric,
+  'también en una escala sin precio cargado (USD ⇒ pesos con la cotización de la empresa)'
+);
+reset role;
+select is(
+  private.precio_final_publico('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002'),
+  null,
+  'sin producto asignado a la empresa no hay precio público (el precio propio es por empresa)'
+);
 
 select * from finish();
 rollback;

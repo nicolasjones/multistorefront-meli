@@ -170,6 +170,13 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(screen.queryByLabelText('Precio propio (San Javucho)')).not.toBeInTheDocument()
   })
 
+  it('una empresa con precio propio guardado sigue visible aunque ya no se venda ahí, para poder quitarlo', async () => {
+    montar({ productoId: 'p-2', empresaIds: [] })
+    expect(await screen.findByLabelText('Precio propio (San Javucho)')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quitar precio propio de San Javucho' })).toBeEnabled()
+    expect(screen.queryByText(/no se vende en ninguna empresa todavía/)).not.toBeInTheDocument()
+  })
+
   it('sin empresas en el producto explica qué hacer; si la lectura falla, avisa sin romper la ficha', async () => {
     const { unmount } = montar({ empresaIds: [] })
     expect(await screen.findByText(/no se vende en ninguna empresa todavía/)).toBeInTheDocument()

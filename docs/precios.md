@@ -96,3 +96,7 @@ El catálogo y la ficha de la tienda muestran el precio final de la empresa con 
 ## Imagen en «Así quedan los precios»
 
 Cada producto de la muestra de «Así quedan los precios» muestra su imagen principal como miniatura con zoom al pasar el mouse (sin cambiar el ancho de la fila).
+
+### Precio propio en todos los caminos de lectura (corrección de la revisión retroactiva de MSF-423)
+
+El precio propio reemplaza al calculado **en todo lugar que entregue un precio**, no solo en Precios: la tienda pública (`private.precio_final_publico` y `precio_final_publico_escala`), las líneas de presupuestos y comprobantes (`private.precio_para`), el margen actual de Rentabilidad (`analitica.margen_producto_canal`, y con él la alerta `margen_negativo`) y el simulador. Migraciones `20270213200001` (simulador), `20270213200002` (tienda y líneas) y `20270213200003` (margen). Reglas: la conversión de USD usa la cotización de la **empresa** (la de la organización en el margen, como el resto de esa vista); un **precio de escala por cantidad** (x5/x10/x50) cargado a mano sigue mandando sobre el precio propio, que reemplaza al precio base; el margen «Historia» no cambia porque el precio propio no tiene historial. Una empresa con precio propio guardado sigue visible en la ficha aunque ya no se venda el producto ahí, para poder quitarlo.

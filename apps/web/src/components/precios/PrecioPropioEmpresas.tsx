@@ -134,9 +134,11 @@ function FilaEmpresa({ empresaId, nombre, guardado, neto, soloLectura, onFijar, 
 export function PrecioPropioEmpresas({ productoId, empresaIds, soloLectura }: Props) {
   const { empresas, isLoading: cargandoEmpresas } = useEmpresas()
   const { precios, netos, cargando, hayError, fijar, quitar } = usePreciosPropios(productoId)
-  const ids = new Set(empresaIds)
-  const filas = empresas.filter((empresa) => ids.has(empresa.id))
   const porEmpresa = new Map(precios.map((precio) => [precio.empresaId, precio]))
+  // Una fila por empresa a la que se vende el producto Y por cada empresa que ya tenga un precio propio guardado:
+  // si se quitó la empresa del producto, el precio propio sigue vigente en el cálculo y tiene que poder quitarse.
+  const ids = new Set(empresaIds)
+  const filas = empresas.filter((empresa) => ids.has(empresa.id) || porEmpresa.has(empresa.id))
 
   return (
     <Box component="section" aria-labelledby="precio-propio-titulo">
