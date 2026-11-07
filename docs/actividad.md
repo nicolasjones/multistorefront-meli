@@ -21,7 +21,7 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
   campo, el valor **Antes → Después** (F-AUD-02). Es solo consulta: no hay «deshacer». Un evento sin valores
   (anterior a F-AUD-02 o de un tipo no sensible) dice «Este evento no tiene valores registrados.». Si cambiás de
   empresa en la barra superior con el detalle abierto, se cierra con un aviso.
-- Sin botón «Exportar» (lo agrega F-AUD-03).
+- Botón **Exportar** en el encabezado, solo para quien puede exportar (ver «Exportar a CSV (F-AUD-03)» más abajo).
 
 ## Permisos
 
@@ -33,6 +33,8 @@ Los fija únicamente la matriz (`private.nivel_seccion('actividad')`), tanto en 
 | Operador | `lectura` | todos, incluidos los de usuarios y permisos |
 | Administración | `lectura` | todos |
 | Consulta, Mostrador, Depósito, Miembro | `ninguno` | nada (sin menú, la ruta redirige, la consulta directa devuelve 0 filas) |
+
+**Exportar** (F-AUD-03) pide además la acción `exportar` y el nivel `edicion` en Actividad: por defecto solo el Administrador.
 
 Si la matriz cambia, la pantalla y la RLS siguen a la matriz sin tocar código. Nadie —tampoco el
 administrador— edita ni borra eventos desde la app: el registro es solo de agregado e **inalterable** (ver abajo).
@@ -201,6 +203,41 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 `supabase/seed.sql` siembra unos eventos por organización sin historial (solo local, tras `supabase db reset`).
 Para sembrar una organización puntual en local/staging, insertar filas en `public.registro_actividad` como
 `postgres`; nunca en producción.
+
+## Exportar a CSV (F-AUD-03)
+
+Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US2, FR-010…FR-013). El botón **Exportar** del
+encabezado baja el historial **con los filtros de la pantalla** (período, tienda, usuario, tipo y búsqueda) y la
+**empresa activa** de la barra superior, no solo la página que se ve.
+
+- **Quién**: nivel `edicion` en Actividad **y** la acción `exportar` de la matriz (`private.puede_accion('actividad','exportar')`).
+  Por defecto es solo el Administrador; el Operador y Administración, que leen la pantalla, no ven el botón y la
+  llamada directa devuelve `42501` (CA-AUD-03-2). *Diferencia con el spec*: FR-010 hablaba solo de la acción
+  `exportar` (que por defecto también tienen Operador y Administración); se sumó el nivel `edicion` porque la historia
+  (RF-AUD-03-2, CA-AUD-03-2) pide que el Operador de solo lectura no exporte.
+- **RPC** `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_desplazamiento, p_limite)`
+  (migración `20270210110000`): mismos filtros, zona horaria (America/Argentina/Buenos_Aires) y orden que `listar_actividad`,
+  así que `total` coincide con el «N» del listado (SC-004). Devuelve `{ filas, total, tope, recortado, corte }`.
+  `security definer` (necesita registrar la exportación; el spec decía `invoker`) con chequeo explícito de permiso y toda
+  lectura acotada a la organización de la sesión. `anon` no ejecuta.
+- **Lotes y corte estable**: se pide de a 1.000 filas. La primera respuesta trae `corte` (el instante), que el cliente
+  reenvía en las siguientes: el historial sigue creciendo mientras se exporta y sin corte las páginas se correrían.
+- **Tope de 50.000 filas** por archivo (RF-AUD-03-3). Si el filtro da más, el archivo trae las primeras 50.000 y la
+  pantalla avisa «Se exportaron las primeras 50.000 filas de N. Acotá el período o los filtros…» (CA-AUD-03-3).
+- **CSV** (`lib/exportarActividad.ts` sobre `lib/exportarCsv.ts`): UTF-8 con BOM, separador `;`, fin de línea CRLF,
+  columnas **Cuándo, Tipo, Tienda, Detalle, Quién** (las de la tabla), hora de Buenos Aires, celdas que empiezan con
+  `= + - @` neutralizadas con apóstrofo, comillas, `;` y saltos de línea escapados (CA-AUD-03-4), y nombre
+  `actividad-AAAA-MM-DD.csv`. No lleva los valores antes/después (fuera de alcance del spec).
+- **Estados**: «Exportando…» mientras corre; si falla no se descarga nada y se ofrece **Reintentar**; sin filas dice
+  «No hay actividad para exportar.» y no baja archivo. Si se cambia la empresa activa a mitad de la exportación, se
+  descarta lo traído (nunca se baja un archivo de otra empresa).
+- **Constancia**: al entregar la última fila se registra el evento `actividad.exportada` («Exportó N registros de la
+  actividad a CSV (filtros: …)», con los filtros en palabras y sin ids). Cuenta lo exportado (hasta el tope), no el
+  total. Un tipo no sensible, dado de alta en `tipos_evento_actividad`.
+- **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, integer, integer);`
+  y `delete from public.tipos_evento_actividad where tipo = 'actividad.exportada';`.
+- **Pruebas**: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
+  `exportarActividad.test.tsx` (hook) y `BotonExportarActividad.test.tsx`.
 
 ## Reversión
 

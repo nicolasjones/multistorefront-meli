@@ -47,6 +47,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'empresa.pausada': 'Empresa pausada',
   'empresa.reactivada': 'Empresa reactivada',
   'usuario.agregado': 'Usuario agregado',
+  'actividad.exportada': 'Actividad exportada',
   'usuario.rol_cambiado': 'Cambio de rol',
   'usuario.removido': 'Usuario removido',
   'usuario.empresa_activa_cambiada': 'Cambio de empresa activa',
@@ -69,6 +70,11 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
 
 // Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.
 const PALABRA_ACTIVIDAD: Readonly<Record<string, string>> = { reparacion: 'reparación', credito: 'crédito', rma: 'RMA' }
+
+// Texto de la columna «Tienda»: lo comparten la tabla y el CSV exportado (F-AUD-03, FR-012).
+export function tiendaDelEvento(empresaNombre: string | null, empresaId: string | null): string {
+  return empresaNombre ?? (empresaId ? 'Empresa no disponible' : 'Compartido')
+}
 
 export function etiquetaTipoActividad(tipo: string): string {
   const conocida = ETIQUETA_TIPO_ACTIVIDAD[tipo]

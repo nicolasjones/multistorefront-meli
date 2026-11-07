@@ -9,6 +9,7 @@ import {
   etiquetaTipoActividad,
   FILTROS_ACTIVIDAD_INICIALES,
   formatearCuando,
+  tiendaDelEvento,
   type EventoActividadListado,
   type FiltrosActividad,
   type PeriodoActividad,
@@ -19,6 +20,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { BotonExportarActividad } from '../../components/actividad/BotonExportarActividad'
 import { DetalleActividadDialog } from '../../components/actividad/DetalleActividadDialog'
 
 const TODOS = ''
@@ -27,7 +29,7 @@ const DEMORA_BUSQUEDA_MS = 300
 const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
   { clave: 'cuando', encabezado: 'Cuándo', render: (evento) => formatearCuando(evento.creadoEn) },
   { clave: 'tipo', encabezado: 'Tipo', render: (evento) => etiquetaTipoActividad(evento.tipo) },
-  { clave: 'tienda', encabezado: 'Tienda', render: (evento) => evento.empresaNombre ?? (evento.empresaId ? 'Empresa no disponible' : 'Compartido') },
+  { clave: 'tienda', encabezado: 'Tienda', render: (evento) => tiendaDelEvento(evento.empresaNombre, evento.empresaId) },
   { clave: 'detalle', encabezado: 'Detalle', render: (evento) => evento.detalle },
   { clave: 'quien', encabezado: 'Quién', render: (evento) => evento.actorNombre ?? 'Sistema' },
 ]
@@ -91,7 +93,7 @@ export function ActividadList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Actividad" descripcion="Historial básico: cambios de productos, movimientos de stock, importaciones y configuración de tiendas." contexto={<ContextoOrganizacionActiva />} />
+      <EncabezadoPagina titulo="Actividad" descripcion="Historial básico: cambios de productos, movimientos de stock, importaciones y configuración de tiendas." accion={<BotonExportarActividad filtros={filtrosEfectivos} />} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack
           component="form"
