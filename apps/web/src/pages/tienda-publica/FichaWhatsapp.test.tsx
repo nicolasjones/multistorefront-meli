@@ -103,10 +103,10 @@ describe('Ficha · botón de WhatsApp (FR-020)', () => {
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('contacto_por_dominio', { host: HOST }))
     expect(screen.queryByRole('button', { name: 'Consultar por WhatsApp' })).not.toBeInTheDocument()
     expect(screen.queryByTestId('boton-whatsapp')).not.toBeInTheDocument()
-    // La fila de acciones queda con el único botón que sí existe: no queda un hueco vacío.
+    // La fila de acciones queda con «Compartir» y «Ver más productos»: no queda un hueco vacío.
     const fila = screen.getByTestId('acciones-ficha')
     expect(within(fila).queryAllByTestId('boton-whatsapp')).toHaveLength(0)
-    expect(fila.children).toHaveLength(1)
+    expect(fila.children).toHaveLength(2)
     expect(within(fila).getByRole('link', { name: 'Ver más productos' })).toBeInTheDocument()
   })
 
