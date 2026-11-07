@@ -3,12 +3,13 @@ import { MemoryRouter, Link } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { guardarConsentimiento, reiniciarConsentimientoEnMemoria } from '../../../lib/consentimientoCookies'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), cargar: vi.fn(), visita: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), cargar: vi.fn(), visita: vi.fn(), retirar: vi.fn() }))
 vi.mock('../../../lib/analiticaTienda', async (original) => ({
   ...(await original<typeof import('../../../lib/analiticaTienda')>()),
   leerAnaliticaPublica: mocks.leer,
   cargarMedicion: mocks.cargar,
   registrarVisita: mocks.visita,
+  retirarMedicion: mocks.retirar,
 }))
 
 import MedicionTienda from './MedicionTienda'
@@ -98,5 +99,31 @@ describe('MedicionTienda (F-TDA-24, FR-014, FR-015, FR-017)', () => {
     await waitFor(() => expect(mocks.visita).toHaveBeenCalledWith('/producto/1'))
     expect(mocks.visita).toHaveBeenCalledTimes(2)
     expect(mocks.leer).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la persona revoca con la página abierta, apaga la medición', async () => {
+    guardarConsentimiento('aceptadas')
+    abrir()
+    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(IDS))
+    mocks.retirar.mockClear()
+    act(() => guardarConsentimiento('rechazadas'))
+    await waitFor(() => expect(mocks.retirar).toHaveBeenCalled())
+  })
+
+  it('al cambiar de host descarta los IDs del anterior y carga los del nuevo', async () => {
+    guardarConsentimiento('aceptadas')
+    const NUEVOS = { ga4_id: 'G-NUEVO99', meta_pixel_id: null }
+    const vista = (host: string) => (
+      <MemoryRouter initialEntries={['/']}>
+        <MedicionTienda host={host} />
+      </MemoryRouter>
+    )
+    const { rerender } = render(vista('a.com'))
+    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(IDS))
+    mocks.leer.mockResolvedValue(NUEVOS)
+    rerender(vista('b.com'))
+    await waitFor(() => expect(mocks.leer).toHaveBeenCalledWith('b.com'))
+    await waitFor(() => expect(mocks.cargar).toHaveBeenLastCalledWith(NUEVOS))
+    expect(mocks.retirar).toHaveBeenCalled()
   })
 })

@@ -3,7 +3,9 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn(), evento: vi.fn() }))
+
+vi.mock('../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
 vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaFicha')>()),
@@ -75,6 +77,21 @@ beforeEach(() => {
   mocks.firmar.mockResolvedValue(URLS)
   mocks.rpc.mockResolvedValue({ data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null })
   mocks.precios.mockResolvedValue(null)
+})
+
+describe('Ficha de producto · evento de medición (RF-TDA-24-2)', () => {
+  it('emite vista_producto una vez al abrir la ficha, sin datos del producto', async () => {
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Joystick Pro' })
+    expect(mocks.evento).toHaveBeenCalledTimes(1)
+    expect(mocks.evento).toHaveBeenCalledWith('vista_producto')
+  })
+  it('una ficha inexistente no emite nada', async () => {
+    mocks.leer.mockResolvedValue(null)
+    montar()
+    await screen.findByTestId('pagina-no-encontrada')
+    expect(mocks.evento).not.toHaveBeenCalled()
+  })
 })
 
 describe('Ficha de producto · contenido (FR-054)', () => {

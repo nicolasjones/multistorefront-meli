@@ -1,6 +1,7 @@
 import { Box, Button, ClickAwayListener, TextField, Typography } from '@mui/material'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
 import {
   ESPERA_ENTRE_TECLAS_MS,
@@ -102,6 +103,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
   const irAResultados = () => {
     if (!buscable) return
     setAbierto(false)
+    registrarEventoTienda('busqueda') // solo el evento: el texto buscado no se envía (RF-TDA-24-2)
     navegar(urlResultados(consulta))
   }
   const irAFicha = (id: string) => {
