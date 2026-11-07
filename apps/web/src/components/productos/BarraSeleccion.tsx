@@ -1,4 +1,5 @@
 import { Box, Button, Stack, Typography } from '@mui/material'
+import { MAXIMO_SELECCION } from '../../hooks/useSeleccionProductos'
 
 type Props = {
   cantidad: number
@@ -26,6 +27,7 @@ export function BarraSeleccion({ cantidad, onMoverCategoria, onCambiarEstado, on
       sx={{ px: 2, py: 1.25, bgcolor: 'action.hover', borderRadius: 1 }}
     >
       <Typography variant="b" component="b" aria-live="polite" sx={{ fontWeight: 600 }}>{cantidad} seleccionados</Typography>
+      {cantidad >= MAXIMO_SELECCION ? <Typography variant="b" color="text.secondary">Máximo {MAXIMO_SELECCION} a la vez</Typography> : null}
       <Button variant="outlined" size="small" onClick={onMoverCategoria}>Mover de categoría</Button>
       <Button variant="outlined" size="small" onClick={onCambiarEstado}>Cambiar estado</Button>
       <Button variant="outlined" size="small" onClick={onCambiarEmpresas}>Cambiar empresas</Button>

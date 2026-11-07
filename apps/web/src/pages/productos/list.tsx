@@ -374,7 +374,7 @@ export function ProductoList() {
     setDialogo(null)
     limpiarSeleccion()
     setAviso(mensaje)
-    void cargar()
+    recargarDesdeElPrincipio()
   }
 
   const hayFiltros = hayFiltrosActivos(consulta) || textoEscrito.trim() !== ''
