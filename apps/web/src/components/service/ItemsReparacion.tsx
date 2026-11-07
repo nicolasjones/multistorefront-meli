@@ -21,7 +21,9 @@ import {
   Typography,
 } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { formatearARS } from '../../lib/serviceTecnico'
 import { MarcaStockItem } from './MarcaStockItem'
 import { mensajeDeErrorItem, quitarItem } from '../../lib/reparacionItems'
@@ -70,6 +72,8 @@ type TablaProps = {
 }
 
 function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, subtotal, puedeEditar, conSku, conDeposito = false, onQuitar }: TablaProps) {
+  // Solo los repuestos vinculados al catálogo (`producto_id`) tienen imagen; la mano de obra no.
+  const imagenes = useImagenesProductos(conSku ? items.map((item) => item.producto_id) : [])
   const columnas = 4 + (conDeposito ? 1 : 0) + (puedeEditar ? 1 : 0)
   return (
     <TableContainer>
@@ -95,12 +99,17 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
             items.map((item) => (
               <TableRow key={item.id}>
                 <TableCell sx={{ overflowWrap: 'anywhere' }}>
-                  {item.descripcion}
-                  {conSku && item.sku ? (
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                      {`SKU ${item.sku}`}
-                    </Typography>
-                  ) : null}
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    {conSku && item.producto_id ? <MiniaturaProducto alt="" src={imagenes.get(item.producto_id)} /> : null}
+                    <span>
+                      {item.descripcion}
+                      {conSku && item.sku ? (
+                        <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                          {`SKU ${item.sku}`}
+                        </Typography>
+                      ) : null}
+                    </span>
+                  </Stack>
                 </TableCell>
                 {conDeposito ? (
                   <TableCell>

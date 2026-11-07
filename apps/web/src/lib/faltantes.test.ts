@@ -23,6 +23,7 @@ const fila = (extra: Partial<Faltante> = {}): Faltante => ({
   empresa: 'San Javucho',
   cliente_id: 'c-1',
   cliente: 'Cliente Uno',
+  producto_id: 'p-1',
   producto: 'Consola bajo pedido',
   sku: 'CON-1',
   pedido: 2,

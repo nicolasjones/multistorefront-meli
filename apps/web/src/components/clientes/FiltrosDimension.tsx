@@ -1,5 +1,7 @@
 import { Autocomplete, Stack, TextField } from '@mui/material'
 import type { OpcionCategoria, OpcionProducto } from '../../hooks/useOpcionesDimension'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
+import { renderOpcionProducto } from '../base/OpcionProducto'
 
 const ANCHO_FILTRO = 240
 // Textos de los botones del selector en castellano (los de MUI vienen en inglés).
@@ -33,6 +35,7 @@ export function FiltrosDimension({
   const categoria = categorias.find((opcion) => opcion.id === categoriaId) ?? null
   // El producto elegido sigue ofrecido aunque la búsqueda actual ya no lo devuelva.
   const opcionesProducto = producto && !productos.some((opcion) => opcion.id === producto.id) ? [producto, ...productos] : productos
+  const imagenes = useImagenesProductos(opcionesProducto.map((opcion) => opcion.id))
 
   return (
     <Stack direction="row" spacing={1.25} useFlexGap flexWrap="wrap" role="group" aria-label="Filtros por producto, categoría y provincia">
@@ -40,6 +43,7 @@ export function FiltrosDimension({
         size="small" sx={{ width: ANCHO_FILTRO }} {...TEXTOS_SELECTOR}
         options={opcionesProducto} value={producto} loading={cargandoProductos}
         getOptionLabel={etiquetaProducto} isOptionEqualToValue={(a, b) => a.id === b.id}
+        renderOption={renderOpcionProducto<OpcionProducto>(imagenes)}
         // La búsqueda es del servidor: no se vuelve a filtrar en el cliente.
         filterOptions={(opciones) => opciones}
         onChange={(_, valor) => alCambiarProducto(valor)}

@@ -17,7 +17,11 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
   (F-ROL-06): al cambiarla arriba, la Actividad se filtra por esa tienda. El filtro de píldoras
   (`FiltroEmpresa`) puede fijar otra tienda o «Todas» sin cambiar la activa persistida
   (`hooks/useFiltroPorEmpresaActiva.ts`).
-- Sin botón «Exportar» (fuera de alcance de esta historia).
+- Cada fila tiene **Ver detalle**: abre el detalle del evento (cuándo, tipo, tienda, quién, detalle) y, campo por
+  campo, el valor **Antes → Después** (F-AUD-02). Es solo consulta: no hay «deshacer». Un evento sin valores
+  (anterior a F-AUD-02 o de un tipo no sensible) dice «Este evento no tiene valores registrados.». Si cambiás de
+  empresa en la barra superior con el detalle abierto, se cierra con un aviso.
+- Botón **Exportar** en el encabezado, solo para quien puede exportar (ver «Exportar a CSV (F-AUD-03)» más abajo).
 
 ## Permisos
 
@@ -30,8 +34,10 @@ Los fija únicamente la matriz (`private.nivel_seccion('actividad')`), tanto en 
 | Administración | `lectura` | todos |
 | Consulta, Mostrador, Depósito, Miembro | `ninguno` | nada (sin menú, la ruta redirige, la consulta directa devuelve 0 filas) |
 
+**Exportar** (F-AUD-03) pide además la acción `exportar` y el nivel `edicion` en Actividad: por defecto solo el Administrador.
+
 Si la matriz cambia, la pantalla y la RLS siguen a la matriz sin tocar código. Nadie —tampoco el
-administrador— edita ni borra eventos desde la app: el registro es solo de agregado.
+administrador— edita ni borra eventos desde la app: el registro es solo de agregado e **inalterable** (ver abajo).
 
 ## Esquema de datos
 
@@ -97,6 +103,8 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 - `cliente.creado|editado|archivado|restaurado` (F-CLI-01): el trigger `registrar_actividad_cliente` los
   registra en la misma transacción, solo con sesión y ante cambios reales; el detalle lleva «Nº <número> ·
   <nombre>», sin datos de contacto.
+- `cliente.fusionado` (F-CLI-18, MSF-447): `fusionar_clientes` lo registra en la misma transacción; el detalle nombra a
+  los dos clientes («Nº <n> · <nombre>»), sin DNI/CUIT.
 - `producto.creado` (F-CAT-02): el trigger `registrar_actividad_producto` lo registra en la misma transacción,
   solo con sesión; el detalle lleva «<nombre> (SKU …)», sin costo ni precio. Ver `docs/catalogo.md`.
 - `producto.editado` (F-CAT-04): el trigger `registrar_actividad_producto_editado` lo registra en la misma
@@ -116,6 +124,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
   el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `proveedor.contacto_agregado|contacto_principal_cambiado` (F-PRV-08): las RPC `agregar_contacto_proveedor` y
+  `marcar_contacto_principal` los registran en la misma transacción por `private.registrar_actividad_contacto_proveedor`;
+  detalle con la razón social y el nombre del contacto, **sin correo ni teléfono**. Lo cubre el pgTAP
+  `proveedores_contactos`.
 - `cuenta_cobro.creada|editada|desactivada|reactivada` (F-VTA-03): los triggers
   `registrar_actividad_cuenta_cobro_alta` y `registrar_actividad_cuenta_cobro` los registran en la misma transacción,
   solo con sesión y ante cambios reales (`updated_at` avanzó; repetir «No usar» no duplica; un cambio solo de
@@ -192,6 +204,41 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 Para sembrar una organización puntual en local/staging, insertar filas en `public.registro_actividad` como
 `postgres`; nunca en producción.
 
+## Exportar a CSV (F-AUD-03)
+
+Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US2, FR-010…FR-013). El botón **Exportar** del
+encabezado baja el historial **con los filtros de la pantalla** (período, tienda, usuario, tipo y búsqueda) y la
+**empresa activa** de la barra superior, no solo la página que se ve.
+
+- **Quién**: nivel `edicion` en Actividad **y** la acción `exportar` de la matriz (`private.puede_accion('actividad','exportar')`).
+  Por defecto es solo el Administrador; el Operador y Administración, que leen la pantalla, no ven el botón y la
+  llamada directa devuelve `42501` (CA-AUD-03-2). *Diferencia con el spec*: FR-010 hablaba solo de la acción
+  `exportar` (que por defecto también tienen Operador y Administración); se sumó el nivel `edicion` porque la historia
+  (RF-AUD-03-2, CA-AUD-03-2) pide que el Operador de solo lectura no exporte.
+- **RPC** `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_desplazamiento, p_limite)`
+  (migración `20270210110000`): mismos filtros, zona horaria (America/Argentina/Buenos_Aires) y orden que `listar_actividad`,
+  así que `total` coincide con el «N» del listado (SC-004). Devuelve `{ filas, total, tope, recortado, corte }`.
+  `security definer` (necesita registrar la exportación; el spec decía `invoker`) con chequeo explícito de permiso y toda
+  lectura acotada a la organización de la sesión. `anon` no ejecuta.
+- **Lotes y corte estable**: se pide de a 1.000 filas. La primera respuesta trae `corte` (el instante), que el cliente
+  reenvía en las siguientes: el historial sigue creciendo mientras se exporta y sin corte las páginas se correrían.
+- **Tope de 50.000 filas** por archivo (RF-AUD-03-3). Si el filtro da más, el archivo trae las primeras 50.000 y la
+  pantalla avisa «Se exportaron las primeras 50.000 filas de N. Acotá el período o los filtros…» (CA-AUD-03-3).
+- **CSV** (`lib/exportarActividad.ts` sobre `lib/exportarCsv.ts`): UTF-8 con BOM, separador `;`, fin de línea CRLF,
+  columnas **Cuándo, Tipo, Tienda, Detalle, Quién** (las de la tabla), hora de Buenos Aires, celdas que empiezan con
+  `= + - @` neutralizadas con apóstrofo, comillas, `;` y saltos de línea escapados (CA-AUD-03-4), y nombre
+  `actividad-AAAA-MM-DD.csv`. No lleva los valores antes/después (fuera de alcance del spec).
+- **Estados**: «Exportando…» mientras corre; si falla no se descarga nada y se ofrece **Reintentar**; sin filas dice
+  «No hay actividad para exportar.» y no baja archivo. Si se cambia la empresa activa a mitad de la exportación, se
+  descarta lo traído (nunca se baja un archivo de otra empresa).
+- **Constancia**: al entregar la última fila se registra el evento `actividad.exportada` («Exportó N registros de la
+  actividad a CSV (filtros: …)», con los filtros en palabras y sin ids). Cuenta lo exportado (hasta el tope), no el
+  total. Un tipo no sensible, dado de alta en `tipos_evento_actividad`.
+- **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, integer, integer);`
+  y `delete from public.tipos_evento_actividad where tipo = 'actividad.exportada';`.
+- **Pruebas**: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
+  `exportarActividad.test.tsx` (hook) y `BotonExportarActividad.test.tsx`.
+
 ## Reversión
 
 En una migración posterior (no en el mismo PR): quitar el trigger `registrar_actividad_membresia` y su
@@ -205,3 +252,52 @@ función, restaurar `guardar_matriz_permisos` / `restablecer_matriz_permisos` de
 Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `reparacion.item_quitado` (ver
 `docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
 Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.
+
+
+## Registro inalterable con antes y después (F-AUD-02)
+
+Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (épica MSF-170, historia MSF-259). Todo en el
+esquema **`public`** (plataforma, Principio VII); migraciones aditivas `20270207100001_registro_inalterable_antes_despues.sql`
+y `20270207100002_depurar_registro_actividad.sql`.
+
+- **Catálogo de tipos** `public.tipos_evento_actividad` (`tipo`, `sensible`, `descripcion`; RLS: `select` para
+  `authenticated`, nada para `anon`, sin escritura desde la app). Son **sensibles**: `usuario.rol_cambiado`,
+  `usuario.removido`, `usuario.suspendido`, `usuario.reactivado`, `permisos.matriz_guardada` y
+  `permisos.matriz_restablecida`. Un tipo ausente del catálogo es no sensible. Para marcar uno nuevo, agregar la fila
+  en una migración.
+- **Valores**: `registro_actividad.valor_anterior` / `valor_nuevo` (`jsonb`, objeto `{campo: valor}`, hasta 8 KB cada uno;
+  nullable: los eventos viejos y los no sensibles no los tienen).
+- **Inalterable**: triggers `before update`, `before delete` y `before truncate` rechazan con `42501` para cualquier rol
+  (también el dueño de la tabla) y se revocó `update, delete, truncate`. Únicas excepciones: el borrado en cascada al
+  eliminar la organización (solo si la organización ya no existe) y la depuración por retención.
+- **Detalle**: `public.obtener_detalle_actividad(p_id)` (security invoker, rige la RLS; 0 filas si no es de la
+  organización o sin permiso; sin acceso para `anon`).
+- **Matriz de permisos**: `guardar_matriz_permisos` y `restablecer_matriz_permisos` guardan solo lo que cambió, antes y
+  después (`{"Operador · stock": "edicion"}` → `{"Operador · stock": "lectura"}`); si hay tantos cambios que no entran
+  en 8 KB, el resto se resume en «… otros cambios». El trigger de membresía guarda rol/estado anterior y nuevo.
+
+### Contrato de `registrar_cambio_actividad`
+
+```sql
+perform private.registrar_cambio_actividad(
+  'usuario.rol_cambiado', 'Cambió el rol de Carla: Consulta → Mostrador',
+  jsonb_build_object('rol', 'Consulta'), jsonb_build_object('rol', 'Mostrador'), p_empresa_id);
+```
+
+- Misma regla que `registrar_actividad` (organización y actor de la sesión, misma transacción). Con `insertar_cambio_actividad`
+  la organización y el actor llegan por parámetro (triggers).
+- Si el tipo es **sensible**, ambos valores son obligatorios: alta → anterior `{}`; baja → nuevo `{}`. Sin ellos, o con más
+  de 8 KB, `22023` y la operación de origen se revierte.
+- `registrar_actividad` / `insertar_actividad` conservan su firma pero **rechazan** (`22023`) los tipos sensibles.
+- Un test que necesite reordenar fechas de eventos debe apagar el trigger `registro_actividad_inalterable_fila` solo
+  mientras lo hace (ver `comprobante_estados.test.sql`).
+
+### Depuración por retención
+
+`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
+`sistema.depurada` («Sistema», sin actor) por organización con la cantidad y es idempotente. Solo la ejecutan
+`workers_orquestacion` y `kestra_orquestacion` (el rol con el que corre Kestra). La dispara el flow
+`infra/kestra/flows/depuracion-actividad.yml` (todos los días a las 04:00; si la función falla, la ejecución queda en
+rojo). El plazo no se edita desde la app.
+
+Reversión: ver el encabezado de cada migración (los eventos escritos se conservan).

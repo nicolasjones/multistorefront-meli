@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   productos: vi.fn(),
   resumen: vi.fn(),
   descargarCsv: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
 
 vi.mock('../../lib/exportarCsv', async (importarOriginal) => ({
@@ -34,6 +35,7 @@ vi.mock('../../lib/supabase', () => ({
     }),
   },
 }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { MovimientosStock } from './movimientos'
@@ -70,6 +72,7 @@ const abrir = () => render(<MemoryRouter><MovimientosStock /></MemoryRouter>)
 describe('MovimientosStock', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes = new Map()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.rpc.mockResolvedValue({ data: FILAS, error: null })
     mocks.productos.mockResolvedValue({ data: [{ id: 'p-1', nombre: 'Joystick Pro', sku: 'JOY-1' }], error: null })
@@ -141,10 +144,44 @@ describe('MovimientosStock', () => {
     mocks.rpc.mockResolvedValue({ data: FILAS.map((f) => ({ ...f, total: 60 })), error: null })
     abrir()
     await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
-    fireEvent.click(screen.getByRole('button', { name: /next page|página siguiente|go to next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() =>
       expect(mocks.rpc).toHaveBeenLastCalledWith('listar_movimientos_stock', { p_producto: null, p_limite: 25, p_desplazamiento: 25 }),
     )
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente a lo ya mostrado', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: FILAS.map((f) => ({ ...f, total: 4 })), error: null })
+    mocks.rpc.mockResolvedValueOnce({ data: [fila({ id: 'm-9', motivo: 'Motivo de la tanda dos', total: 4 })], error: null })
+    abrir()
+    await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+    expect(screen.queryByText(/Movimientos por página/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Motivo de la tanda dos')).toBeInTheDocument()
+    expect(screen.getByText('Venta en local')).toBeInTheDocument()
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('cambiar el filtro de producto descarta lo acumulado y vuelve a la tanda 1', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: FILAS.map((f) => ({ ...f, total: 4 })), error: null })
+    mocks.rpc.mockResolvedValueOnce({ data: [fila({ id: 'm-9', motivo: 'Motivo de la tanda dos', total: 4 })], error: null })
+    abrir()
+    await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Motivo de la tanda dos')
+    mocks.rpc.mockResolvedValue({ data: [fila({ id: 'm-7', motivo: 'Solo del producto', total: 1 })], error: null })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Filtrar por producto' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Joystick Pro · JOY-1' }))
+    expect(await screen.findByText('Solo del producto')).toBeInTheDocument()
+    expect(screen.queryByText('Motivo de la tanda dos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Venta en local')).not.toBeInTheDocument()
+  })
+
+  it('muestra la imagen principal del producto como miniatura', async () => {
+    mocks.imagenes = new Map([['p-1', 'https://img.test/joystick.jpg']])
+    abrir()
+    await screen.findByRole('table', { name: 'Historial de movimientos de stock' })
+    expect(document.querySelector('img[src="https://img.test/joystick.jpg"]')).not.toBeNull()
   })
 
   it('filtra por producto y vuelve a la primera página', async () => {

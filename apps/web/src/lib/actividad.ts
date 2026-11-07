@@ -47,6 +47,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'empresa.pausada': 'Empresa pausada',
   'empresa.reactivada': 'Empresa reactivada',
   'usuario.agregado': 'Usuario agregado',
+  'actividad.exportada': 'Actividad exportada',
   'usuario.rol_cambiado': 'Cambio de rol',
   'usuario.removido': 'Usuario removido',
   'usuario.empresa_activa_cambiada': 'Cambio de empresa activa',
@@ -62,13 +63,28 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'cliente.editado': 'Cliente editado',
   'cliente.archivado': 'Cliente archivado',
   'cliente.restaurado': 'Cliente restaurado',
+  'comprobante.nota_credito_emitida': 'Comprobante nota crédito emitida',
+  'rma.nota_credito_vinculada': 'RMA nota crédito vinculada',
+  'reparacion.editada': 'Reparación editada',
+}
+
+// Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.
+const PALABRA_ACTIVIDAD: Readonly<Record<string, string>> = { reparacion: 'reparación', credito: 'crédito', rma: 'RMA' }
+
+// Texto de la columna «Tienda»: lo comparten la tabla y el CSV exportado (F-AUD-03, FR-012).
+export function tiendaDelEvento(empresaNombre: string | null, empresaId: string | null): string {
+  return empresaNombre ?? (empresaId ? 'Empresa no disponible' : 'Compartido')
 }
 
 export function etiquetaTipoActividad(tipo: string): string {
   const conocida = ETIQUETA_TIPO_ACTIVIDAD[tipo]
   if (conocida) return conocida
   const [entidad, accion] = tipo.split('.')
-  const texto = `${entidad ?? ''} ${(accion ?? '').replace(/_/g, ' ')}`.trim()
+  const texto = `${entidad ?? ''} ${(accion ?? '').replace(/_/g, ' ')}`
+    .trim()
+    .split(' ')
+    .map((palabra) => PALABRA_ACTIVIDAD[palabra] ?? palabra)
+    .join(' ')
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
@@ -113,4 +129,41 @@ const formatoCuando = new Intl.DateTimeFormat('es-AR', {
 export function formatearCuando(iso: string): string {
   const partes = Object.fromEntries(formatoCuando.formatToParts(new Date(iso)).map((parte) => [parte.type, parte.value]))
   return `${partes.day}/${partes.month}/${partes.year} ${partes.hour}:${partes.minute}`
+}
+
+// Detalle de un evento (F-AUD-02, FR-006/FR-007): trae el valor anterior y el nuevo.
+export type ValoresActividad = Record<string, unknown>
+
+export type DetalleActividad = EventoActividadListado & {
+  sensible: boolean
+  valorAnterior: ValoresActividad | null
+  valorNuevo: ValoresActividad | null
+}
+
+export type CampoCambiado = { campo: string; anterior: string; nuevo: string }
+
+const SIN_VALOR = '—'
+
+function textoDelValor(valor: unknown): string {
+  if (valor === undefined || valor === null || valor === '') return SIN_VALOR
+  if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
+  if (typeof valor === 'object') return JSON.stringify(valor)
+  return String(valor)
+}
+
+function etiquetaDelCampo(clave: string): string {
+  return clave.charAt(0).toUpperCase() + clave.slice(1).replace(/_/g, ' ')
+}
+
+// Campo por campo, antes → después, en el orden en que se registraron (anterior primero, luego los que solo
+// existen en el nuevo). Un campo que no existía de un lado se muestra «—».
+export function camposDelCambio(anterior: ValoresActividad | null, nuevo: ValoresActividad | null): CampoCambiado[] {
+  const antes = anterior ?? {}
+  const despues = nuevo ?? {}
+  const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
+  return claves.map((clave) => ({
+    campo: etiquetaDelCampo(clave),
+    anterior: textoDelValor(antes[clave]),
+    nuevo: textoDelValor(despues[clave]),
+  }))
 }

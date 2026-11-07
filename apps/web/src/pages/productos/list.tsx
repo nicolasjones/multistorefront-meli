@@ -1,17 +1,23 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Checkbox, Chip, Snackbar, Stack, TablePagination, Typography } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Chip, Snackbar, Stack, Typography } from '@mui/material'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
 import { useSeleccionProductos } from '../../hooks/useSeleccionProductos'
+import { useCompatibles } from '../../hooks/useCompatibles'
 import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
-  TAMANO_PAGINA_PRODUCTOS,
   consultarCostos,
+  agruparCompatibles,
+  consultarPrecios,
+  formatearPrecioListado,
+  type PrecioListado,
   consultarProductos,
+  expandirCompatibles,
   formatearCosto,
   hayFiltrosActivos,
   type ColumnaOrdenProducto,
@@ -20,10 +26,15 @@ import {
 } from '../../lib/productosListado'
 import { BarraSeleccion } from '../../components/productos/BarraSeleccion'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
+import { DialogoExportarProductos } from '../../components/productos/DialogoExportarProductos'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
+
+// El popup de alta/edición trae el formulario completo: se carga recién al abrirlo.
+const DialogoProducto = lazy(() => import('../../components/productos/DialogoProducto').then((modulo) => ({ default: modulo.DialogoProducto })))
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -43,14 +54,24 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Precio y Margen quedan visibles con «—» hasta que lleguen Precios (MSF-114) y Rentabilidad
-// (FR-002, Decisiones 4 y 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
+// Margen queda visible con «—» hasta que llegue Rentabilidad (FR-002, Decisión 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
 const SIN_DATO = '—'
 const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
   clave,
   encabezado,
   align: 'right',
   render: () => <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>,
+})
+
+// «Precio»: siempre en pesos; si el producto está en USD, pesos a la última cotización y el USD entre paréntesis.
+const columnaPrecio = (precios: ReadonlyMap<string, PrecioListado>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'precio',
+  encabezado: 'Precio',
+  align: 'right',
+  render: (producto) => {
+    const precio = precios.get(producto.id)
+    return <Typography variant="b" color={precio === undefined ? 'text.secondary' : undefined}>{formatearPrecioListado(precio)}</Typography>
+  },
 })
 
 type EmpresaListado = { id: string; nombre: string }
@@ -95,6 +116,17 @@ const columnaCosto = (costos: ReadonlyMap<string, number | string>): ColumnaAdap
   },
 })
 
+// «Compatible con» (F-CAT-09, FR-004): cada valor es una etiqueta; sin valores no se muestra nada.
+const etiquetasCompatible = (producto: FilaProducto) => {
+  const valores = producto.compatible_con ?? []
+  if (valores.length === 0) return null
+  return (
+    <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" role="list" aria-label="Compatible con">
+      {valores.map((valor) => <Chip key={valor} size="small" variant="outlined" label={valor} role="listitem" />)}
+    </Stack>
+  )
+}
+
 const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   {
     clave: 'nombre',
@@ -106,6 +138,7 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
         <Stack spacing={0}>
           <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{producto.nombre}</Typography>
           <Typography variant="xs">{producto.sku ?? SIN_DATO}</Typography>
+          {etiquetasCompatible(producto)}
         </Stack>
       </Stack>
     ),
@@ -141,34 +174,65 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const { esAdministrador } = useEsAdministrador()
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
+  // undefined = cerrado, null = producto nuevo, id = editar ese producto.
+  const [productoEnDialogo, setProductoEnDialogo] = useState<string | null | undefined>(undefined)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
+  // Exportar (F-CAT-11, FR-201): solo el Administrador; el diálogo y el aviso de resultado viven acá.
+  const [exportando, setExportando] = useState(false)
+  const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info'; texto: string } | null>(null)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
   if (empresaPrevia !== empresaId) {
     setEmpresaPrevia(empresaId)
+    // FR-209 (Principio VIII): un diálogo de exportación abierto no mezcla empresas; se cierra con aviso.
+    if (exportando) {
+      setExportando(false)
+      setAvisoExportacion({ severidad: 'info', texto: 'Cambiaste de empresa: se cerró la exportación. Volvé a abrirla para exportar con la empresa nueva.' })
+    }
     setConsulta((actual) => ({ ...actual, pagina: 1 }))
   }
   const { categorias, isLoading: cargandoCategorias, isError: errorCategorias } = useCategorias()
   // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
   const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
-  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
+  // «Compatible con» (F-CAT-09): los valores se recargan al cambiar de empresa (FR-007). Las claves elegidas que
+  // ya no existen se descartan; al servidor van todas las variantes de mayúsculas de las claves vigentes.
+  const { valores: valoresCompatibles, cargando: cargandoCompatibles, hayError: errorCompatibles } = useCompatibles(empresaId)
+  const gruposCompatibles = useMemo(() => agruparCompatibles(valoresCompatibles), [valoresCompatibles])
+  const clavesCompatibles = cargandoCompatibles
+    ? consultaBase.compatibles
+    : consultaBase.compatibles.filter((clave) => gruposCompatibles.some((g) => g.clave === clave))
+  const variantes = cargandoCompatibles ? clavesCompatibles : expandirCompatibles(clavesCompatibles, gruposCompatibles)
+  // Identidad estable mientras el contenido no cambia: evita consultar de nuevo por un arreglo equivalente.
+  const variantesClave = JSON.stringify(variantes)
+  const variantesCompatibles = useMemo(() => variantes, [variantesClave])
+  const consulta = useMemo<ConsultaProductos>(
+    () => ({ ...consultaBase, empresaId, categoriaId, compatibles: variantesCompatibles }),
+    [consultaBase, empresaId, categoriaId, variantesCompatibles],
+  )
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
+  const [precios, setPrecios] = useState<ReadonlyMap<string, PrecioListado>>(new Map())
   const [textoEscrito, setTextoEscrito] = useState('')
   const [filas, setFilas] = useState<FilaProducto[] | null>(null)
   const [total, setTotal] = useState(0)
   const [hayError, setHayError] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [falloCostos, setFalloCostos] = useState(false)
+  const [falloPrecios, setFalloPrecios] = useState(false)
+  // Carga infinita: la página 1 reemplaza la lista y las siguientes se suman; `cargandoMas`/`errorMas` son solo de la tanda.
+  const [cargandoMas, setCargandoMas] = useState(false)
+  const [errorMas, setErrorMas] = useState(false)
   const ultimaPeticion = useRef(0)
+  const mostradas = useRef(0)
 
   // Edición masiva (F-CAT-12): la selección y el diálogo viven mientras no cambie nada de lo que define la
-  // lista (empresa activa, página, filtros, búsqueda u orden); si cambia, se descartan (Principio VIII).
-  const contextoLista = JSON.stringify(consulta)
+  // lista (empresa activa, filtros, búsqueda u orden); si cambia, se descartan (Principio VIII).
+  const contextoLista = JSON.stringify({ ...consulta, pagina: 0 })
   const idsVisibles = useMemo(() => (filas ?? []).map((fila) => fila.id), [filas])
   const { ids: idsMarcados, cantidad: cantidadMarcados, todosMarcados, alternar, alternarTodos, limpiar: limpiarSeleccion } =
     useSeleccionProductos(contextoLista, idsVisibles)
@@ -185,7 +249,7 @@ export function ProductoList() {
   const idsSeleccionados = useMemo(() => [...idsMarcados], [idsMarcados])
 
   const columnas = useMemo(() => {
-    const [producto, precio, ...resto] = columnasBase
+    const [producto, , ...resto] = columnasBase
     const columnaSeleccion: ColumnaAdaptable<FilaProducto> = {
       clave: 'seleccion',
       // Sin texto visible: el «Seleccionar todos» va en el encabezado de esta columna (como el prototipo).
@@ -201,13 +265,13 @@ export function ProductoList() {
     return [
       ...(puedeEditar ? [columnaSeleccion] : []),
       producto,
-      precio,
+      columnaPrecio(precios),
       ...(veCosto ? [columnaCosto(costos)] : []),
       ...resto,
       columnaVisibleEn(empresas),
       columnaEstado,
     ]
-  }, [empresas, veCosto, costos, puedeEditar, idsMarcados, alternar])
+  }, [empresas, veCosto, costos, precios, puedeEditar, idsMarcados, alternar])
 
   // Espera de tipeo: el texto se aplica a la consulta tras una pausa y vuelve a la página 1.
   useEffect(() => {
@@ -225,12 +289,17 @@ export function ProductoList() {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
     setFalloCostos(false)
+    setFalloPrecios(false)
+    setErrorMas(false)
+    const esTandaSiguiente = consulta.pagina > 1
+    setCargandoMas(esTandaSiguiente)
     try {
       const resultado = await consultarProductos(supabaseClient, consulta)
       if (peticion !== ultimaPeticion.current) return
-      // Si la página quedó fuera de rango, se vuelve a la primera.
-      if (resultado.filas.length === 0 && consulta.pagina > 1) {
-        setConsulta((actual) => ({ ...actual, pagina: 1 }))
+      // Una tanda siguiente vacía (se borraron productos mientras tanto): no hay más, sin tocar lo ya mostrado.
+      if (resultado.filas.length === 0 && esTandaSiguiente) {
+        setTotal((anterior) => Math.min(anterior, mostradas.current))
+        setCargandoMas(false)
         return
       }
       // Las imágenes viven en un bucket privado: se firman las del conjunto visible. Si falla la
@@ -254,12 +323,29 @@ export function ProductoList() {
         }
         if (peticion !== ultimaPeticion.current) return
       }
-      setCostos(costosPagina)
-      setFilas(resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null })))
+      // Precio (F-PRE-01): segunda consulta por los ids de la página. Si falla, «—» en Precio y un aviso.
+      let preciosPagina = new Map<string, PrecioListado>()
+      try {
+        preciosPagina = await consultarPrecios(supabaseClient, resultado.filas.map((fila) => fila.id))
+      } catch (errorPrecio) {
+        console.error('No pudimos cargar los precios de los productos.', errorPrecio)
+        setFalloPrecios(true)
+      }
+      if (peticion !== ultimaPeticion.current) return
+      const nuevas = resultado.filas.map((fila) => ({ ...fila, imagen_url: urls.get(fila.id) ?? null }))
+      setPrecios((anterior) => (esTandaSiguiente ? new Map([...anterior, ...preciosPagina]) : preciosPagina))
+      setCostos((anterior) => (esTandaSiguiente ? new Map([...anterior, ...costosPagina]) : costosPagina))
+      setFilas((anterior) => (esTandaSiguiente && anterior ? [...anterior, ...nuevas] : nuevas))
       setTotal(resultado.total)
+      setCargandoMas(false)
     } catch (error) {
       console.error('No pudimos cargar los productos.', error)
-      if (peticion === ultimaPeticion.current) setHayError(true)
+      if (peticion === ultimaPeticion.current) {
+        setCargandoMas(false)
+        // Una tanda siguiente que falla no tira abajo lo ya cargado: error y «Reintentar» al pie.
+        if (esTandaSiguiente) setErrorMas(true)
+        else setHayError(true)
+      }
     }
   }, [consulta, veCosto])
 
@@ -267,6 +353,22 @@ export function ProductoList() {
     if (cargandoRentabilidad) return
     void cargar()
   }, [cargar, cargandoRentabilidad])
+
+  mostradas.current = filas?.length ?? 0
+  const hayMas = filas !== null && filas.length < total
+  const cargarMas = () => {
+    if (cargandoMas) return
+    if (errorMas) {
+      void cargar()
+      return
+    }
+    setConsulta((actual) => ({ ...actual, pagina: actual.pagina + 1 }))
+  }
+  // Cambiar el estado de un producto recarga la lista desde el principio (no se mezcla con las tandas ya sumadas).
+  const recargarDesdeElPrincipio = () => {
+    if (consulta.pagina === 1) void cargar()
+    else setConsulta((actual) => ({ ...actual, pagina: 1 }))
+  }
 
   const terminarMasivo = (mensaje: string) => {
     setDialogo(null)
@@ -297,14 +399,24 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : undefined}
+        accion={puedeEditar || esAdministrador ? (
+          <Stack direction="row" spacing={1}>
+            {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
+            {esAdministrador ? <Button variant="outlined" onClick={() => { setAvisoExportacion(null); setExportando(true) }}>Exportar</Button> : null}
+            {puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : null}
+          </Stack>
+        ) : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+          {avisoExportacion ? <Alert severity={avisoExportacion.severidad} onClose={() => setAvisoExportacion(null)}>{avisoExportacion.texto}</Alert> : null}
           {veCosto && falloCostos && !hayError ? (
             <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
+          ) : null}
+          {falloPrecios && !hayError ? (
+            <Alert severity="warning">No pudimos cargar los precios: la columna Precio puede no estar completa.</Alert>
           ) : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar los productos." reintentar={() => void cargar()} />
@@ -337,6 +449,10 @@ export function ProductoList() {
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}
                 disponibilidad={consulta.disponibilidad}
                 onDisponibilidad={(disponibilidad) => setConsulta((actual) => ({ ...actual, disponibilidad, pagina: 1 }))}
+                grupoCompatibles={gruposCompatibles}
+                compatibles={clavesCompatibles}
+                onCompatibles={(claves) => setConsulta((actual) => ({ ...actual, compatibles: claves, pagina: 1 }))}
+                errorCompatibles={errorCompatibles}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />
@@ -371,12 +487,12 @@ export function ProductoList() {
                     puedeEditar
                       ? (producto) => (
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Button component={RouterLink} to={`/productos/${producto.id}/edit`} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
+                            <Button onClick={() => setProductoEnDialogo(producto.id)} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
                             <CambiarEstadoProducto
                               id={producto.id}
                               nombre={producto.nombre}
                               activo={producto.activo}
-                              onCambiado={() => void cargar()}
+                              onCambiado={recargarDesdeElPrincipio}
                               onError={setErrorEstado}
                             />
                           </Stack>
@@ -385,20 +501,28 @@ export function ProductoList() {
                   }
                 />
               )}
-              <TablePagination
-                component="div"
-                count={total}
-                page={consulta.pagina - 1}
-                rowsPerPage={TAMANO_PAGINA_PRODUCTOS}
-                rowsPerPageOptions={[TAMANO_PAGINA_PRODUCTOS]}
-                onPageChange={(_, nueva) => setConsulta((actual) => ({ ...actual, pagina: nueva + 1 }))}
-                labelRowsPerPage="Productos por página"
-                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-              />
+              <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} mostrarFin={filas.length > 0} />
             </>
           )}
         </Stack>
       </ContenedorSeccion>
+      {exportando && esAdministrador ? (
+        <DialogoExportarProductos
+          consulta={consulta}
+          totalFiltrado={total}
+          veRentabilidad={veCosto}
+          onCerrar={() => setExportando(false)}
+          onExportado={(productos, columnas) => {
+            setExportando(false)
+            setAvisoExportacion({ severidad: 'success', texto: `Exportación CSV lista: ${productos} ${productos === 1 ? 'producto' : 'productos'}, ${columnas} ${columnas === 1 ? 'columna' : 'columnas'}` })
+          }}
+        />
+      ) : null}
+      {productoEnDialogo !== undefined ? (
+        <Suspense fallback={null}>
+          <DialogoProducto productoId={productoEnDialogo} onCerrar={() => setProductoEnDialogo(undefined)} onGuardado={recargarDesdeElPrincipio} />
+        </Suspense>
+      ) : null}
       {puedeEditar && dialogo !== null && cantidadMarcados > 0 ? (
         <Suspense fallback={null}>
           {dialogo === 'categoria' ? (

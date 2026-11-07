@@ -1,0 +1,85 @@
+# Listados: carga infinita e imagen de producto
+
+Regla de la constitución (Principio VI, 1.10.0): los listados del panel **no usan paginación numerada**. Cargan por
+tandas desde el servidor al llegar al final del scroll y suman cada tanda a lo ya mostrado. Los listados que
+mencionan productos muestran su **imagen principal** como miniatura con zoom al pasar el mouse.
+
+## Piezas compartidas
+
+| Pieza | Para qué |
+|---|---|
+| `components/pagina/CargaInfinita` | Pie del listado: `IntersectionObserver` (400 px de anticipo), botón «Cargar más» operable con teclado, indicador de carga, error con «Reintentar» y «No hay más resultados.». |
+| `hooks/useListadoAcumulado` | Suma las páginas que ya entrega el hook de datos de la pantalla (RPC, vista, react-query…): no se reescribe la capa de datos. |
+| `hooks/useListadoLocal` | Igual para listados que ya tienen TODAS las filas en memoria (paginación del lado del cliente). |
+| `hooks/useImagenesProductos` | `Map<productoId, urlFirmada>` con la imagen principal de los productos visibles; pide solo los que faltan. |
+| `components/base/MiniaturaProducto` | Miniatura 40×40 con zoom (280×280) al pasar el mouse. |
+
+## Cómo migrar una pantalla
+
+1. Quitar `TablePagination` y su `labelDisplayedRows`; el contador total («N resultados») se conserva.
+2. Pasar a la pantalla lo que ya tenía (`pagina`, `setPagina`, `total`, las filas de la página y si está cargando) por `useListadoAcumulado`
+   y mostrar `listado.filas` en lugar de las filas de la página:
+
+   ```tsx
+   const listado = useListadoAcumulado({ items: datos.filas, pagina, setPagina, total: datos.total, cargando, reinicio: filtros })
+   // …
+   <ContenidoAdaptable items={listado.filas} … />
+   <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={listado.cargarMas} />
+   ```
+3. `reinicio` es todo lo que cambia el resultado (búsqueda, filtros, orden, empresa): cambia → vuelve a la tanda 1.
+4. `items` debe ser el arreglo que entrega el hook de datos (referencia estable entre renders); no se arma uno nuevo en cada render.
+5. Si la tanda siguiente falla, el error se muestra al pie con «Reintentar» (`hayError`) y no tira abajo lo ya cargado.
+6. Acciones que cambian las filas (activar/desactivar, borrar, importar) recargan **desde la primera tanda**.
+7. La exportación y los totales siguen usando los filtros, no la página visible.
+
+## Imagen principal en listados con productos
+
+Si la fila tiene el `producto_id`, `useImagenesProductos(listado.filas.map((f) => f.producto_id))` entrega la URL
+firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto alt="" src={imagenes.get(id)} />` junto
+al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
+de la fila. Si falla la carga de imágenes, el listado se muestra igual.
+
+### Alta y edición de producto en popup
+
+«Nuevo producto» y «Editar» del listado de Productos abren un popup (`components/productos/DialogoProducto.tsx`), como
+«Nueva categoría», en lugar de navegar a otra pantalla: el listado no pierde filtros ni posición y, al crear o guardar, se
+recarga desde el principio. Reutiliza `AltaProducto` (`pages/productos/create.tsx`) y `EdicionProducto`
+(`pages/productos/edit.tsx`). Las rutas `/productos/create` y `/productos/:id/edit` siguen existiendo (accesos directos del
+inicio, búsqueda global, ficha del proveedor) y su «Cancelar» vuelve a `/productos`.
+
+### Combos y popups de producto
+
+Los `Autocomplete` que ofrecen productos (búsqueda global, Agregar producto, Agregar repuesto, ingreso y carga en lote,
+Nuevo movimiento y los filtros de producto) muestran la miniatura con `renderOpcionProducto(imagenes)` de
+`components/base/OpcionProducto.tsx`, con las URL de `useImagenesProductos`. Si el catálogo ofrecido es largo (hasta 500
+opciones), las imágenes se piden solo mientras el desplegable está abierto.
+### Alta y edición de cliente en popup
+
+«Nuevo cliente» y «Editar» del listado de Clientes abren un popup (`components/clientes/DialogoCliente.tsx`) en lugar de
+navegar. Reutiliza `AltaCliente` y `EdicionCliente` (de `pages/clientes/create.tsx` y `edit.tsx`); al guardar, el listado se
+recarga y muestra el aviso. Las rutas `/clientes/create` y `/clientes/edit/:id` siguen existiendo (la ficha enlaza a la
+edición) y su «Cancelar» vuelve a la ficha o al listado.
+
+### Pestañas de pantalla
+
+`PestanasPagina` marca como activa la pestaña cuya ruta coincide con la **más larga** (más específica). Dentro del router de la app, cambiar de pestaña es **navegación interna** (`Link` de react-router): no recarga la aplicación, se conservan el menú, la barra superior y el estado, y solo cambia el contenido. Fuera de un router (pruebas aisladas) son enlaces comunes. La primera pestaña suele
+ser la ruta base (`/rentabilidad`), prefijo de todas las demás; con la primera coincidencia quedaba siempre seleccionada.
+
+### Errores de una sección
+
+`LimiteDeError` (`components/estados/LimiteDeError.tsx`) contiene el error de dibujado de una parte de la pantalla: muestra qué
+falló y permite reintentar, en lugar de dejar la aplicación en blanco. La gestión de tienda lo usa en el contenido de cada pestaña.
+
+## Excepciones
+
+Un listado puede conservar su paginación solo si hay una razón de negocio (totales por página, una exportación que
+depende de la página visible). Se justifica en la spec y su plan y se anota acá.
+
+Stock: sin excepciones. Pendiente fuera de alcance de ese grupo: `HistorialLotes` usa un botón «Ver más» por cursor propio (no `TablePagination`) y no se migró.
+
+Sin excepciones en Clientes y Contactos: todos sus listados (clientes, inactivos, ranking, compras y reparaciones de la ficha, correo masivo y contactos) usan carga infinita.
+
+Sin excepciones registradas por el grupo «proveedores, consultas, historial y service técnico»: las cinco pantallas
+migraron. No se agregó imagen a `pages/empresas/tienda/pestanas/catalogo.tsx` (catálogo visible de la tienda): no tiene
+paginación y renderiza el catálogo completo, así que pedir las imágenes de todas las filas de una vez haría un `in()` enorme;
+queda pendiente hasta migrarlo a carga infinita.

@@ -13,10 +13,10 @@ import {
 } from '../componentes/identidad/CamposDeIdentidad'
 import type { PropsPestanaTienda } from '../pestanas'
 
-// F-TDA-02 (US2, FR-020…FR-030): pestaña «Identidad visual». Todo cambio vive en el formulario hasta
-// «Guardar» (sin borrador: no se escribe nada al elegir ni al previsualizar); «Descartar» vuelve al
-// último valor guardado. «Guardar» sube los archivos nuevos, llama a la RPC y recién entonces la tienda
-// pública cambia.
+// F-TDA-02 (US2, FR-020…FR-030) y F-TDA-06 (FR-051): pestaña «Identidad visual». Todo cambio vive en el
+// formulario hasta «Guardar» (no se escribe nada al elegir ni al previsualizar); «Descartar» vuelve al último
+// valor guardado (borrador o publicado). «Guardar» sube los archivos nuevos y los deja en el borrador: la tienda
+// pública cambia recién al publicar desde «Dominio y publicación».
 
 type Imagenes = Record<ClaveImagen, EstadoImagen>
 
@@ -203,7 +203,7 @@ function FormularioIdentidad({
       setCampos(camposDe(resultado))
       setImagenes(imagenesDe(resultado))
       setExito(true)
-      void borrarImagenes(sinUso)
+      void borrarImagenes(sinUso, empresaId)
     } catch (error) {
       if (error instanceof ErrorSubida) {
         await borrarImagenes(subidas)
@@ -266,7 +266,7 @@ function FormularioIdentidad({
           <Stack spacing={1.5}>
             {hayCambios ? <Alert severity="warning" role="status">Hay cambios sin guardar.</Alert> : null}
             {errorGuardar ? <Alert severity="error" role="alert">{errorGuardar}</Alert> : null}
-            {exito && !hayCambios ? <Alert severity="success" role="status">Cambios guardados: la tienda ya los muestra.</Alert> : null}
+            {exito && !hayCambios ? <Alert severity="success" role="status">Cambios guardados en el borrador. Publicalos desde Dominio y publicación.</Alert> : null}
             <Stack direction="row" spacing={1} justifyContent="flex-end">
               <Button color="inherit" size="small" onClick={descartar} disabled={!hayCambios || guardando}>Descartar</Button>
               <Button variant="contained" size="small" onClick={() => void guardar()} disabled={!hayCambios || guardando}>
