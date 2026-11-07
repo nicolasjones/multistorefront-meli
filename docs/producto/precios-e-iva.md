@@ -111,6 +111,41 @@ Para pasar a otra tienda sin volver al listado, usá el botón **Cambiar a… �
 
 *La otra tienda, Mundo JC, tiene su propia configuración: el mismo producto puede tener un precio distinto en cada una.*
 
+## Precio propio de un producto en una empresa
+
+A veces un producto tiene que valer otra cosa en una empresa, sin importar la regla de ajuste. Para eso fijás un **precio propio**: es el precio sin IVA que reemplaza al calculado en esa empresa. El IVA de la empresa se suma encima, como siempre. Las demás empresas no cambian.
+
+El precio propio puede estar en pesos o en dólares. Si está en dólares, se convierte con la cotización que corresponde a esa empresa (la general o la propia, según la [configuración de la cotización](precios-dolar.md#configuracion-de-la-cotizacion)) y se actualiza solo cuando confirmás un dólar nuevo.
+
+Lo puede fijar quien tiene permiso de edición en Productos. Consulta lo ve sin poder cambiarlo.
+
+### Fijar o quitar un precio propio
+
+1. Entrá a **Productos** y abrí el producto.
+2. En el bloque **Precio propio por empresa** hay una fila por cada empresa a la que se vende el producto.
+3. Elegí la **Moneda**, escribí el **Precio propio** y hacé clic en **Guardar**. La fila queda con la marca «Precio propio» y ves un precio neto de ejemplo.
+4. Para volver a la regla de la empresa, hacé clic en **Quitar**.
+
+Si el importe está vacío, es cero, negativo o no es un número, ves un mensaje y no se guarda. Cada cambio queda en la actividad del producto, sin los importes.
+
+Límites de hoy:
+
+- Se fija desde la ficha de un producto que ya existe; en el alta todavía no.
+- El listado de productos no muestra la marca «Precio propio».
+- Los precios propios no se envían a Mercado Libre: eso llega cuando esa integración esté activa.
+
+## Probar un cambio antes de guardar: «Así quedan los precios»
+
+En la pestaña **Precios y moneda** de cada empresa, la tabla **Así quedan los precios** muestra una muestra de productos y se recalcula mientras cambiás **Base**, **Ajuste** o **Precios que ve el cliente**, antes de guardar. Si salís sin guardar, no se escribe nada.
+
+Cada fila dice de dónde sale su precio:
+
+- **Precio propio**: el producto tiene un precio fijado en esa empresa. Su valor no se mueve con el ajuste.
+- **Ajustado**: el ajuste que estás probando lo mueve.
+- **Central**: queda igual que el precio central.
+
+Al lado, el bloque **Cómo se calcula** muestra los pasos: precio central, ajuste de la empresa, precio propio si existe y recargo de Mercado Libre. Al abrir otra empresa, la pestaña arranca limpia, sin la regla ni la simulación de la anterior.
+
 ## IVA
 
 El IVA se define por categoría y, si hace falta, por producto:
