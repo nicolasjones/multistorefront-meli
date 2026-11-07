@@ -4,13 +4,14 @@
 -- Excluyen avisos `descartado` y tipos cuya sección la persona ya no puede ver.
 --
 -- Reversión (migración posterior):
---   drop function public.listar_notificaciones(integer, timestamptz);
+--   drop function public.listar_notificaciones(integer, timestamptz, uuid);
 --   drop function public.contar_notificaciones_sin_leer();
 --   drop function public.marcar_notificaciones_leidas(uuid[]);
 
 create or replace function public.listar_notificaciones(
   p_limite integer default 20,
-  p_antes_de timestamptz default null
+  p_antes_de timestamptz default null,
+  p_antes_id uuid default null
 )
 returns jsonb
 language plpgsql
@@ -52,7 +53,7 @@ begin
         join public.tipos_aviso t on t.clave = a.tipo_aviso
         where a.user_id = v_user and a.organizacion_id = v_org and a.estado <> 'descartado'
           and a.tipo_aviso in (select clave from visibles)
-          and (p_antes_de is null or a.creado_en < p_antes_de)
+          and (p_antes_de is null or (a.creado_en, a.id) < (p_antes_de, coalesce(p_antes_id, 'ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid)))
         order by a.creado_en desc, a.id desc
         limit v_limite
       ) x
@@ -107,16 +108,16 @@ begin
 end;
 $$;
 
-comment on function public.listar_notificaciones(integer, timestamptz) is
-  'Avisos propios de la sesión (sin descartados ni tipos sin acceso vigente), del más nuevo al más viejo, por tandas (p_antes_de = cursor por creado_en; límite máx. 50) + total.';
+comment on function public.listar_notificaciones(integer, timestamptz, uuid) is
+  'Avisos propios de la sesión (sin descartados ni tipos sin acceso vigente), del más nuevo al más viejo, por tandas (cursor compuesto p_antes_de + p_antes_id = (creado_en, id) del último ítem; límite máx. 50) + total.';
 comment on function public.contar_notificaciones_sin_leer() is
   'Cantidad de avisos propios sin leer (mismos filtros que listar_notificaciones).';
 comment on function public.marcar_notificaciones_leidas(uuid[]) is
   'Marca como leídos los avisos propios indicados (o todos los sin leer si p_ids es nulo). Idempotente; devuelve cuántos marcó.';
 
-revoke all on function public.listar_notificaciones(integer, timestamptz) from public, anon;
+revoke all on function public.listar_notificaciones(integer, timestamptz, uuid) from public, anon;
 revoke all on function public.contar_notificaciones_sin_leer() from public, anon;
 revoke all on function public.marcar_notificaciones_leidas(uuid[]) from public, anon;
-grant execute on function public.listar_notificaciones(integer, timestamptz) to authenticated;
+grant execute on function public.listar_notificaciones(integer, timestamptz, uuid) to authenticated;
 grant execute on function public.contar_notificaciones_sin_leer() to authenticated;
 grant execute on function public.marcar_notificaciones_leidas(uuid[]) to authenticated;

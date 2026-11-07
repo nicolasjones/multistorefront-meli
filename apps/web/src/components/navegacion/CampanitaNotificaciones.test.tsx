@@ -67,7 +67,7 @@ describe('CampanitaNotificaciones (FR-006)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Notificaciones/ }))
     fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(screen.getAllByText(/Persona/)).toHaveLength(3))
-    expect(rpc).toHaveBeenLastCalledWith('listar_notificaciones', { p_limite: 20, p_antes_de: primera[1].creado_en })
+    expect(rpc).toHaveBeenLastCalledWith('listar_notificaciones', { p_limite: 20, p_antes_de: primera[1].creado_en, p_antes_id: primera[1].id })
     expect(llamadas).toBe(2)
   })
 })

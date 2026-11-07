@@ -27,6 +27,7 @@ export function CampanitaNotificaciones() {
     const { error } = await supabaseClient.rpc('marcar_notificaciones_leidas', { p_ids: ids })
     if (error) {
       setFalloMarcar(true)
+      void refrescar()
       return
     }
     lista.marcarLocal(ids)

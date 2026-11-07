@@ -3,7 +3,7 @@
 -- request.jwt.claims. Dos organizaciones y avisos propios, ajenos, descartados y de una sección sin acceso.
 begin;
 
-select plan(22);
+select plan(23);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -93,6 +93,13 @@ select is(
 select is(
   (select jsonb_array_length(public.listar_notificaciones(2, now() - interval '90 minutes')->'items')), 2,
   'el cursor devuelve los avisos anteriores a la fecha dada'
+);
+select is(
+  (select jsonb_array_length(public.listar_notificaciones(
+    10,
+    (public.listar_notificaciones(1)->'items'->0->>'creado_en')::timestamptz,
+    (public.listar_notificaciones(1)->'items'->0->>'id')::uuid)->'items')), 2,
+  'el cursor compuesto (creado_en, id) continúa justo después del último ítem'
 );
 select is(
   (select jsonb_array_length(public.listar_notificaciones(1000)->'items')), 3,

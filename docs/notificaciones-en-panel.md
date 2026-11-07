@@ -24,7 +24,7 @@ para esa persona.
 - Se excluyen los avisos `descartado` y los de tipos cuya sección la persona ya no puede ver
   (`private.nivel_seccion_de_usuario`).
 - `revoke … from public, anon` y `grant execute … to authenticated` en las tres funciones.
-- `p_limite` se acota a 50. La paginación usa cursor por `creado_en` (`p_antes_de`).
+- `p_limite` se acota a 50. La paginación usa cursor compuesto `(creado_en, id)` (`p_antes_de` + `p_antes_id`, desempata avisos con el mismo instante).
 
 ## Comportamiento
 

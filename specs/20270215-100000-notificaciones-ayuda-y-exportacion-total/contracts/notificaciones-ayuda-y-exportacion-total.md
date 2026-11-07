@@ -7,7 +7,7 @@ Todos nuevos (sin `BREAKING`). No hay Edge Functions nuevas (no aplica OpenAPI).
 Alteración aditiva: `public.avisos_pendientes.leido_en timestamptz null` + índice `(user_id, creado_en desc)`. Sin cambios de RLS ni de privilegios.
 
 ```ts
-listar_notificaciones(p_limite?: int = 20, p_antes_de?: timestamptz): { total: int, items: { id: uuid, tipo_nombre: text, datos: jsonb, creado_en: timestamptz, leido_en: timestamptz | null }[] }
+listar_notificaciones(p_limite?: int = 20, p_antes_de?: timestamptz, p_antes_id?: uuid): { total: int, items: { id: uuid, tipo_nombre: text, datos: jsonb, creado_en: timestamptz, leido_en: timestamptz | null }[] }
 contar_notificaciones_sin_leer(): int
 marcar_notificaciones_leidas(p_ids?: uuid[]): int   // cantidad marcada; p_ids nulo = todas las propias sin leer
 ```

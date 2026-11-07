@@ -52,9 +52,11 @@ export function useListaNotificaciones(abierta: boolean) {
     setCargando(true)
     if (reiniciar) setError(false)
     else setErrorMas(false)
+    const ultimo = previos.length ? previos[previos.length - 1] : null
     const { data, error: fallo } = await supabaseClient.rpc('listar_notificaciones', {
       p_limite: LIMITE_TANDA,
-      p_antes_de: previos.length ? previos[previos.length - 1].creado_en : null,
+      p_antes_de: ultimo ? ultimo.creado_en : null,
+      p_antes_id: ultimo ? ultimo.id : null,
     })
     if (actual !== generacion.current) return
     enVuelo.current = false
