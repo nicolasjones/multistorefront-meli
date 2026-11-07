@@ -176,9 +176,14 @@ select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where clave 
 select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null;
 
 -- SSRF: solo se sondean nombres DNS públicos.
-select ok(pg_get_functiondef('public.tiendas_a_sondear()'::regprocedure) ~ 'localhost'
-  and pg_get_functiondef('public.tiendas_a_sondear()'::regprocedure) ~ '\[a-z\]\(\[a-z0-9-\]',
-  'tiendas_a_sondear filtra localhost, sufijos internos y hosts que no son nombre DNS (IP)');
+select is(
+  (select array_agg(d order by lower(d) collate "C") from unnest(array[
+      'tienda.example.com', 'www.mi-tienda.com.ar', 'XN--tienda-9ra.example.org', 'LOCALHOST', 'localhost.', '127.0.0.1',
+      '0x7f.1', '2130706433', '0x7f.0x0.0x0.0x1', '[::1]', 'tienda.internal', 'db.local', 'x.svc.cluster.local',
+      'tienda.example.com:8080', 'tienda.example.com.', 'tienda', '10.0.0.5', 'ñandú.example.com', '']) as d
+    where private.dominio_sondeable(d)),
+  array['tienda.example.com', 'www.mi-tienda.com.ar', 'XN--tienda-9ra.example.org']::text[],
+  'solo se sondean nombres DNS públicos: fuera localhost, IPs (decimal, hex, v6), puertos, punto final, sufijos internos y unicode');
 
 -- Vista de estado para soporte.
 select is((select estado from public.estado_tiendas_monitoreo where dominio = 'uno.example.com'),

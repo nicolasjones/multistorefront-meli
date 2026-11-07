@@ -141,6 +141,22 @@ grant execute on function public.marcar_alerta_notificada(uuid) to kestra_orques
 
 -- Solo nombres DNS públicos: al menos dos etiquetas, TLD alfabético (descarta IP decimal, hex y octal, puertos
 -- y corchetes) y sin `localhost` ni sufijos de red interna.
+-- Regla de «nombre DNS público sondeable» en un solo lugar (y probable por comportamiento en pgTAP): dos o más etiquetas
+-- DNS válidas, el TLD empieza con letra (descarta IPs, 0x7f.1 y decimales), sin puerto, corchetes, unicode ni punto final,
+-- y sin sufijos de red interna. No resuelve DNS: un nombre público que apunte a una IP privada se mitiga con el egress de Kestra.
+create or replace function private.dominio_sondeable(p_dominio text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $f$
+  select p_dominio is not null
+    and lower(p_dominio) ~ '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$'
+    and lower(p_dominio) !~ '(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp|private|arpa)$';
+$f$;
+
+revoke all on function private.dominio_sondeable(text) from public, anon, authenticated;
+
 create or replace function public.tiendas_a_sondear()
 returns table (dominio text, organizacion_id uuid)
 language plpgsql
@@ -154,9 +170,7 @@ begin
   end if;
   return query
   select t.dominio, t.organizacion_id from dominio.tiendas t
-  where t.dominio is not null
-    and lower(t.dominio) ~ '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$'
-    and lower(t.dominio) !~ '(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp|private|arpa)$'
+  where private.dominio_sondeable(t.dominio)
   order by t.dominio;
 end;
 $$;
