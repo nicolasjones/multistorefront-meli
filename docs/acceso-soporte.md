@@ -37,3 +37,27 @@ Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, 
 ## Reversión
 
 Documentada en el encabezado de la migración: restaurar la versión de un argumento, volver los helpers a la tabla, y `drop` de la vista y de las columnas `vence_en` / `motivo`. Los eventos ya escritos se conservan.
+
+## Revisión de seguridad de la épica MSF-170 (T029)
+
+Revisión de `20270207100001`, `20270207100002`, `20270207100003` y `20270210110000` (authz-security):
+
+- **RLS**: `tipos_evento_actividad` con RLS (`select` para `authenticated`, nada para `anon`, sin escritura desde la app);
+  `registro_actividad` conserva su RLS por organización y sección. Nadie escribe por API directa.
+- **Inalterabilidad**: triggers `before update/delete` y `before truncate` rechazan con `42501`, y se revocó
+  `update, delete, truncate` a `public`, `anon`, `authenticated` (y a `service_role` si existe). La **única** vía de borrado es
+  `private.depurar_registro_actividad` (retención de 24 meses), que solo ejecutan `workers_orquestacion` y `kestra_orquestacion`.
+- **`anon`**: sin ejecución en ninguna RPC nueva (`obtener_detalle_actividad`, `exportar_actividad`, `entrar_a_organizacion(uuid, text)`,
+  `salir_de_organizacion`); las funciones `private.*` no las ejecuta `authenticated`.
+- **Acceso de soporte**: motivo obligatorio (≤ 500 caracteres), vencimiento de 4 horas (`vence_en`) y una organización a la vez;
+  `private.organizacion_id()` y los helpers que leen el contexto ignoran un acceso vencido. Ingreso, salida y vencimiento quedan
+  en `superadmin_entradas` y como `soporte.*` en el historial de la organización visitada, en la misma transacción.
+- **Hallazgo corregido en la misma épica**: `entrar_a_organizacion` y `salir_de_organizacion` eran `security definer` con
+  `set search_path = public` (heredado de `20261013110000`). Pasan a `set search_path = ''` con todos los nombres calificados
+  (`public.organizaciones`, `public.superadmin_organizacion_activa`, `public.superadmin_entradas`). Sin cambio de comportamiento.
+- **Exportar la actividad**: exige nivel `edicion` en Actividad **y** la acción `exportar`; lectura acotada a la organización de la
+  sesión, tope de 50.000 filas, fórmulas neutralizadas en el CSV. Ver `docs/actividad.md`.
+- **Verificación**: `rls_en_toda_tabla`, `aislamiento_organizaciones`, los pgTAP de la épica (`registro_inalterable`,
+  `depurar_registro_actividad`, `acceso_soporte_*`, `exportar_actividad`) y el test de grants de `anon` corren en el job
+  `database` del CI. En local: `tsc` limpio, `oxlint` sin errores y 193 pruebas Vitest en verde.
+

@@ -100,7 +100,7 @@ create or replace function public.entrar_a_organizacion(org_id uuid, p_motivo te
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_motivo text := btrim(coalesce(p_motivo, ''));
@@ -116,17 +116,17 @@ begin
     raise exception 'El motivo del acceso de soporte es obligatorio (hasta 500 caracteres)' using errcode = '22023';
   end if;
 
-  if not exists (select 1 from organizaciones where id = org_id) then
+  if not exists (select 1 from public.organizaciones where id = org_id) then
     raise exception 'La organización % no existe', org_id using errcode = 'P0002';
   end if;
 
   select organizacion_id, vence_en into v_anterior
-    from superadmin_organizacion_activa
+    from public.superadmin_organizacion_activa
    where user_id = auth.uid();
 
   -- Cierra el acceso anterior (otra organización, o el mismo ya vencido).
   if found and (v_anterior.organizacion_id <> org_id or v_anterior.vence_en <= v_ahora) then
-    insert into superadmin_entradas (user_id, organizacion_id, entrado_en, accion)
+    insert into public.superadmin_entradas (user_id, organizacion_id, entrado_en, accion)
     values (auth.uid(), v_anterior.organizacion_id, v_ahora, 'salida');
 
     if v_anterior.vence_en <= v_ahora then
@@ -140,14 +140,14 @@ begin
     end if;
   end if;
 
-  insert into superadmin_organizacion_activa (user_id, organizacion_id, entrado_en, vence_en)
+  insert into public.superadmin_organizacion_activa (user_id, organizacion_id, entrado_en, vence_en)
   values (auth.uid(), org_id, v_ahora, v_vence)
   on conflict (user_id) do update
     set organizacion_id = excluded.organizacion_id,
         entrado_en = excluded.entrado_en,
         vence_en = excluded.vence_en;
 
-  insert into superadmin_entradas (user_id, organizacion_id, entrado_en, accion, motivo)
+  insert into public.superadmin_entradas (user_id, organizacion_id, entrado_en, accion, motivo)
   values (auth.uid(), org_id, clock_timestamp(), 'entrada', v_motivo);
 
   perform private.insertar_actividad(
@@ -172,7 +172,7 @@ create or replace function public.salir_de_organizacion()
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_ctx record;
@@ -183,7 +183,7 @@ begin
   end if;
 
   select organizacion_id, vence_en into v_ctx
-    from superadmin_organizacion_activa
+    from public.superadmin_organizacion_activa
    where user_id = auth.uid();
 
   -- No-op si no tenía ninguna organización activa.
@@ -191,9 +191,9 @@ begin
     return;
   end if;
 
-  delete from superadmin_organizacion_activa where user_id = auth.uid();
+  delete from public.superadmin_organizacion_activa where user_id = auth.uid();
 
-  insert into superadmin_entradas (user_id, organizacion_id, entrado_en, accion)
+  insert into public.superadmin_entradas (user_id, organizacion_id, entrado_en, accion)
   values (auth.uid(), v_ctx.organizacion_id, v_ahora, 'salida');
 
   if v_ctx.vence_en <= v_ahora then

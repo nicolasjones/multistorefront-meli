@@ -61,8 +61,8 @@
 
 ## Phase 4: Cierre
 
-- [ ] T028 [CIERRE] Actualizar `docs/roadmap-template.md` (estado, link a la spec), índice de docs y correr `pnpm docs:check` y `pnpm matriz:check` (FR-020; verifica `pnpm docs:check`, `pnpm matriz:check`)
-- [ ] T029 [CIERRE] Revisión de seguridad integral (`authz-security`): `rls_en_toda_tabla`, `aislamiento_organizaciones`, ejecutabilidad por `anon`, inalterabilidad y vigencia del soporte; `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test` (SC-008; verifica los comandos listados)
+- [x] T028 [CIERRE] Actualizar `docs/roadmap-template.md` (estado, link a la spec), índice de docs y correr `pnpm docs:check` y `pnpm matriz:check` (FR-020; verifica `pnpm docs:check`, `pnpm matriz:check`)
+- [x] T029 [CIERRE] Revisión de seguridad integral (`authz-security`): `rls_en_toda_tabla`, `aislamiento_organizaciones`, ejecutabilidad por `anon`, inalterabilidad y vigencia del soporte; `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test` (SC-008; verifica los comandos listados)
 
 ## Plan de ejecución (historias)
 
