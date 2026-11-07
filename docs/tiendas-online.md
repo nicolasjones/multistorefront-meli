@@ -772,6 +772,16 @@ reversión: versiones → borrador y publicación → dominio. **Ojo (BREAKING d
 `guardar_tienda_contenido` y `guardar_catalogo_tienda` ya no son ejecutables por `authenticated`; revertir la épica entera
 (`git revert -m 1 <merge>`) los devuelve. DNS por entorno: ver «DNS de la plataforma por entorno» arriba.
 
+## Contenido y analítica · Páginas de contenido (F-TDA-23, MSF-306, épica MSF-164)
+
+Spec: `specs/20270210-100000-tienda-contenido-y-analitica/`. Cada empresa crea páginas de texto propias (p. ej. «Cómo comprar», «Envíos») que el visitante lee desde el pie de **su** tienda. (La sección completa «Contenido y analítica» la cierra la tarea T071 de la épica; acá queda lo de esta historia.)
+
+- **Datos** (`supabase/migrations/20270210110100_tienda_paginas.sql`, esquema **`dominio`**): `dominio.tienda_paginas` (`titulo` ≤ 80, `slug` único por empresa, `contenido` ≤ 10 000, `visible` apagado por defecto). RLS por organización, solo `select` a `authenticated`, sin privilegios para `anon`. Escritura solo por `public.guardar_pagina_tienda` / `public.eliminar_pagina_tienda` (edición en Empresas; `revoke … from public, anon` + `grant … to authenticated`). El `slug` sale del título (sin tildes, minúsculas, guiones, sufijo numérico si choca) **solo al crear** y no cambia al editar. Lectura anónima: `publico.paginas_por_dominio(host)` y `publico.pagina_por_dominio(host, slug)` (lista blanca; `null` idéntico para host desconocido, empresa desactivada y página inexistente, oculta o ajena). Migración aditiva; reversión en el encabezado de la migración.
+- **Panel**: pestaña «Páginas» en `/empresas/:id/tienda/paginas` (`pestanas/paginas.tsx`): lista con carga infinita, contador, vacío, error con «Reintentar»; diálogo crear/editar con interruptor «Visible en la tienda» y confirmación de borrado con el título. Se reencuadra al cambiar de empresa (la pestaña se remonta por empresa y cierra sus diálogos). Las páginas se aplican **al guardar**, no pasan por el borrador de MSF-133 (decisión D3 de la spec).
+- **Tienda pública**: ruta `/pagina/:slug` (`rutas/pagina.tsx`, carga diferida) con migas, título y texto plano en párrafos (nunca HTML); la 404 de la tienda cubre todo caso no visible. Columna «Información» en el pie (`layout/PieInformacion.tsx`), sin hueco si no hay páginas visibles y sin error propio si el pedido falla.
+- **Diferencia con la spec**: la spec pide `CabeceraSeo` de MSF-149, que todavía no está en esta base; la ruta fija `document.title` con el título de la página y pasará a `CabeceraSeo` cuando MSF-149 esté integrada.
+- **Verificación**: pgTAP `supabase/tests/database/tienda_paginas.test.sql`; Vitest + axe `empresas/tienda/paginas.test.tsx`, `tienda-publica/rutas/pagina.test.tsx`, `tienda-publica/layout/PieInformacion.test.tsx`; E2E `apps/web/e2e/tienda-paginas.e2e.ts` con las dos tiendas del seed.
+
 ## Compartir producto (F-TDA-25, épica MSF-164)
 
 Historia `MSF-325`, sin migración ni cambios de base (spec `specs/20270210-100000-tienda-contenido-y-analitica/`).
