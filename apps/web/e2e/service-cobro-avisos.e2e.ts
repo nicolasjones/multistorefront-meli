@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 
-// MSF-576 · T032 (SC-009, cierre de MSF-232): recorrido completo de Service cobro y avisos. Reparación de dos ítems →
+// MSF-232 · T032 (SC-009, cierre de la épica; historia de cierre MSF-576): recorrido completo de Service cobro y avisos. Reparación de dos ítems →
 // comprobante de Ventas (F-SVC-13) → confirmado y cobrado → aviso al cliente por correo (F-SVC-14) → la reparación
 // aparece en la pestaña «Reparaciones» de la ficha del cliente (F-SVC-15).
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida. Siembra con la API admin desde Node (la service-role
@@ -103,7 +104,7 @@ async function actualizar(ruta: string, cuerpo: unknown, esquema = 'dominio') {
 test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('[MSF-576:T032] reparación de dos ítems: comprobante, cobro en Ventas, aviso por correo y pestaña del cliente', async ({ browser }) => {
+  test('[MSF-232:T032] reparación de dos ítems: comprobante, cobro en Ventas, aviso por correo y pestaña del cliente', async ({ browser }, testInfo) => {
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-recorrido-${sufijo}@example.com`
     const correoCliente = `cliente-${sufijo}@example.com`
@@ -140,8 +141,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
         await rpcComo(correo, 'agregar_item_reparacion', { p_reparacion_id: reparacionId, p_tipo: tipo, p_descripcion: descripcion, p_cantidad: 1, p_precio: precio })
       }
 
-      const contexto = await browser.newContext()
-      const page = await contexto.newPage()
+      const { contexto, page } = await abrirContextoGrabado(browser, testInfo)
       await ingresar(page, correo)
       await page.goto(`/service-tecnico/reparaciones/${reparacionId}`)
       await expect(page.getByRole('heading', { name: /Reparación R-/ })).toBeVisible()
@@ -185,7 +185,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       await page.goto(`/clientes/show/${cliente.id}`)
       await page.getByRole('tab', { name: 'Reparaciones' }).click()
       await expect(page.getByRole('link', { name: /R-\d+/ }).or(page.getByText(/R-\d+/)).first()).toBeVisible()
-      await contexto.close()
+      await cerrarContextoGrabado(contexto, page, testInfo)
     } finally {
       if (orgId) await borrar(`organizaciones?id=eq.${orgId}`)
       if (userId) await borrarUsuario(userId)
