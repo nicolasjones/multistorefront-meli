@@ -320,6 +320,18 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
   función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
 
+## Filtro «Compatible con» y etiquetas (F-CAT-09, MSF-360, épica MSF-202; migraciones `20270206100101` y `20270206100102`)
+
+Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US1). El campo «Compatible con» del alta/edición **no cambia** (texto separado por comas, `dominio.productos.compatible_con text[]`, hasta 50 valores de 100 caracteres); un test de regresión lo cubre (`FormularioProducto.test.tsx`).
+
+- **Base (aditiva, sin tablas nuevas; Principio VII):** `public.v_productos_listado` suma `compatible_con text[]` **al final**; índice GIN `productos_compatible_con_gin` sobre `dominio.productos(compatible_con)`; `public.listar_compatibles()` (`security definer`, `stable`, solo lectura, exige lectura en Productos, `revoke … from public, anon` + `grant … to authenticated`) devuelve los valores distintos de la organización, ordenados y sin vacíos. Reversión en el encabezado de cada migración.
+- **Listado:** selector múltiple «Compatible con» en la barra de filtros (aparece solo si hay valores cargados). Muestra los productos con **alguno** (OR) de los valores elegidos, sin distinguir mayúsculas, combinado con búsqueda, categoría, tienda y disponibilidad. Cada valor del producto se ve como etiqueta bajo el nombre; sin valores no se muestra nada.
+- **Mayúsculas:** la base guarda cada valor como se tipeó. El selector agrupa por clave en minúsculas y la consulta envía **todas las variantes guardadas** (`compatible_con && {…}` con el literal entrecomillado y escapado), así se usa el índice GIN y no se altera el dato.
+- **Empresa activa (Principio VIII):** al cambiar de empresa se recargan los valores y los productos, se descartan los valores elegidos que ya no existen y se vuelve a la página 1. «Limpiar filtros» limpia también este filtro.
+- **«Etiquetas»:** no es una entidad nueva; son los propios valores de «Compatible con» (Decisión 2 de la spec, confirmada por Nicolás).
+- **Pruebas:** pgTAP `catalogo_compatible_filtro.test.sql`; Vitest `filtro-compatible`, `FormularioProducto`.
+- **Contrato de la vista:** `compatible_con` pasa a ser la última columna de `v_productos_listado` (tras `codigo_barras`); `catalogo_listado.test.sql` y `catalogo_categorias.test.sql` verifican ese orden.
+
 ## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
 
 Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
@@ -363,6 +375,36 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Búsqueda**: `%`, `_` y `\` escapados y `, ( ) " *` descartados antes de armar el filtro de PostgREST, con tope de 80 caracteres.
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
+
+## Importar y exportar productos (épica MSF-202)
+
+Índice de la carga y la descarga masivas del catálogo (spec `specs/20270125-100000-catalogo-compatibilidad-y-planillas/`):
+
+- Importar desde CSV (F-CAT-10): [`catalogo-importacion.md`](catalogo-importacion.md).
+- Exportar a CSV (F-CAT-11): [`catalogo-exportacion.md`](catalogo-exportacion.md).
+- Ambas son solo del Administrador (`es_administrador_de`); el costo y el proveedor exigen además Rentabilidad
+  (`docs/permisos-por-rol.md`, no cambia la matriz: no hay acciones nuevas).
+
+### Revisión de seguridad de la épica MSF-202 (T032)
+
+- **Tablas nuevas** (`dominio.importaciones_productos` y `…_filas`, esquema `dominio`): RLS por organización, solo `select`
+  para `authenticated`, escritura por RPC `security definer` con `search_path` fijo; `anon` sin privilegios.
+- **RPC**: `exportar_productos`, `validar_importacion_productos`, `solicitar_importacion_productos` y
+  `obtener_importacion_productos` llevan `revoke … from public, anon` + `grant … to authenticated` y exigen Administrador
+  (`42501`). Las `private.*` del worker solo las ejecuta `workers_orquestacion`.
+- **Bucket temporal** `productos-importaciones`: privado, solo JPG/PNG/WebP de hasta 2 MB, rutas `<organización>/<clave>/<archivo>`
+  acotadas a la organización de la sesión.
+- **Inyección de fórmulas**: el CSV exportado y el reporte de errores de la importación pasan por `neutralizarFormula`.
+- **Service-role**: no aparece en `apps/web`; solo la usa el worker en `workers/`.
+- **Observación (no bloqueante, queda para aparte)**: el bucket se llama «temporal», pero solo se vacía cuando el usuario toca
+  «Cancelar» (`importacion-productos.ts`); el worker no borra las imágenes de origen tras aplicar la importación, así que quedan
+  guardadas. Es costo de almacenamiento, no riesgo de acceso (bucket privado y acotado por organización). Borrarlas al terminar
+  exige cuidar la idempotencia del reintento (CA-CAT-10-7), por eso no se cambió en el cierre.
+- Sin hallazgos de acceso que corregir.
+
+## Exportar productos (F-CAT-11)
+
+El Administrador exporta el listado a CSV desde el diálogo «Exportar productos». Detalle en [`catalogo-exportacion.md`](catalogo-exportacion.md).
 
 ## Búsqueda sin tildes y SKU de 13 dígitos (MSF-722)
 
