@@ -132,3 +132,47 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
     }
   })
 })
+
+test.describe('Catálogo · productividad (MSF-218, F-CAT-13)', () => {
+  test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+
+  test('[MSF-398:T014] [F-CAT-13#1] duplica y guarda un producto nuevo activo sin SKU copiado', async ({ page }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    const correo = `operador-duplica-${sufijo}@example.com`
+    const nombre = `Original ${sufijo}`
+    const skuOrigen = `E2E-D-${sufijo}`
+    const usuarios: string[] = []
+    let orgId: string | undefined
+    try {
+      const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E duplica ${sufijo}` })
+      orgId = org.id
+      const idOperador = await altaUsuario(correo)
+      usuarios.push(idOperador)
+      await rest('usuarios_organizacion', { user_id: idOperador, organizacion_id: org.id, rol_id: 'operador' })
+      await rest('productos', { organizacion_id: org.id, nombre, sku: skuOrigen, precio_lista: 10, activo: false }, 'dominio')
+
+      await ingresar(page, correo)
+      await page.goto('/productos')
+      await page.getByLabel('Buscar por nombre, SKU o código de barras').fill(sufijo)
+      await page.getByRole('button', { name: `Duplicar ${nombre}` }).click()
+      await expect(page).toHaveURL(/\/productos\/create\?duplicar_de=/)
+      await expect(page.getByLabel(/^Nombre/)).toHaveValue(nombre)
+      await expect(page.getByLabel(/^SKU/)).toHaveValue('')
+
+      await page.getByLabel(/^Nombre/).fill(`Copia ${sufijo}`)
+      await page.getByRole('button', { name: 'Crear producto' }).click()
+      await expect(page.getByText('Producto creado')).toBeVisible()
+
+      const copias = await leer<{ activo: boolean; sku: string | null }>(`productos?organizacion_id=eq.${org.id}&nombre=eq.Copia ${sufijo}&select=activo,sku`, 'dominio')
+      expect(copias).toHaveLength(1)
+      expect(copias[0].activo).toBe(true)
+      expect(copias[0].sku).not.toBe(skuOrigen)
+    } finally {
+      if (orgId) {
+        await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
+        await borrar(`organizaciones?id=eq.${orgId}`)
+      }
+      for (const id of usuarios) await borrarUsuario(id)
+    }
+  })
+})

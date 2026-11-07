@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -61,6 +61,21 @@ const niveles = (productos: string, rentabilidad: string) =>
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 
+const abrirConDestino = () =>
+  render(
+    <MemoryRouter initialEntries={['/productos']}>
+      <Routes>
+        <Route path="/productos" element={<ProductoList />} />
+        <Route path="/productos/create" element={<LugarActual />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+
+function LugarActual() {
+  const lugar = useLocation()
+  return <p>Destino {lugar.pathname}{lugar.search}</p>
+}
+
 describe('ProductoList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -84,6 +99,19 @@ describe('ProductoList', () => {
       empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
       valor: null, cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
     })
+  })
+
+  it('Duplicar solo con edición: navega a ?duplicar_de=<id> (FR-009)', async () => {
+    abrirConDestino()
+    fireEvent.click(await screen.findByRole('button', { name: 'Duplicar Joystick' }))
+    expect(await screen.findByText('Destino /productos/create?duplicar_de=p-1')).toBeInTheDocument()
+  })
+
+  it('Duplicar no aparece sin edición (FR-009)', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('button', { name: /^Duplicar/ })).not.toBeInTheDocument()
   })
 
   it('«Importar CSV» solo aparece para el Administrador y lleva a /productos/carga (FR-101)', async () => {
