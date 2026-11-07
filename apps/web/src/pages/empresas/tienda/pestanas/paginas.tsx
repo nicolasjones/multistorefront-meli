@@ -224,7 +224,7 @@ function Paginas({ empresaId, empresaNombre }: PropsPestanaTienda) {
             </Typography>
             {nueva}
           </Stack>
-          <Box component="ul" aria-label="Páginas de la tienda" sx={{ listStyle: 'none', m: 0, p: 0, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Box component="ul" aria-label="Páginas de la tienda" sx={{ listStyle: 'none', m: 0, p: 0, border: 1, borderColor: 'divider', borderRadius: (tema) => tema.shape.borderRadius }}>
             {carga.filas.map((fila) => (
               <Stack
                 component="li"
