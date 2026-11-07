@@ -51,7 +51,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if session_user <> 'kestra_orquestacion'
+  -- postgres / supabase_admin no son superusuarios reales en Supabase: se admiten por nombre (mantenimiento y pgTAP).
+  if session_user not in ('kestra_orquestacion', 'postgres', 'supabase_admin')
     and not (select rolsuper from pg_catalog.pg_roles where rolname = session_user) then
     raise exception 'NO_AUTORIZADO: solo kestra_orquestacion registra eventos de monitoreo' using errcode = 'P0001';
   end if;
@@ -83,7 +84,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if session_user <> 'kestra_orquestacion'
+  -- postgres / supabase_admin no son superusuarios reales en Supabase: se admiten por nombre (mantenimiento y pgTAP).
+  if session_user not in ('kestra_orquestacion', 'postgres', 'supabase_admin')
     and not (select rolsuper from pg_catalog.pg_roles where rolname = session_user) then
     raise exception 'NO_AUTORIZADO: solo kestra_orquestacion evalúa el monitoreo' using errcode = 'P0001';
   end if;
@@ -178,7 +180,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if session_user <> 'kestra_orquestacion'
+  -- postgres / supabase_admin no son superusuarios reales en Supabase: se admiten por nombre (mantenimiento y pgTAP).
+  if session_user not in ('kestra_orquestacion', 'postgres', 'supabase_admin')
     and not (select rolsuper from pg_catalog.pg_roles where rolname = session_user) then
     raise exception 'NO_AUTORIZADO: solo kestra_orquestacion lista las tiendas a sondear' using errcode = 'P0001';
   end if;
