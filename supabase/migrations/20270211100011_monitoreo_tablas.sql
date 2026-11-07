@@ -19,9 +19,9 @@ create table public.eventos_monitoreo (
   ocurrido_en timestamptz not null default now()
 );
 
-create index eventos_monitoreo_fuente_clave_idx
+create index if not exists eventos_monitoreo_fuente_clave_idx
   on public.eventos_monitoreo (fuente, clave, ocurrido_en desc);
-create index eventos_monitoreo_organizacion_idx
+create index if not exists eventos_monitoreo_organizacion_idx
   on public.eventos_monitoreo (organizacion_id) where organizacion_id is not null;
 
 create table public.alertas_monitoreo (
@@ -38,9 +38,9 @@ create table public.alertas_monitoreo (
 );
 
 -- Una sola alerta abierta por fuente y clave (FR-028): la base deduplica, no el flow.
-create unique index alertas_monitoreo_abierta_unica
+create unique index if not exists alertas_monitoreo_abierta_unica
   on public.alertas_monitoreo (fuente, clave) where estado = 'abierta';
-create index alertas_monitoreo_organizacion_idx
+create index if not exists alertas_monitoreo_organizacion_idx
   on public.alertas_monitoreo (organizacion_id) where organizacion_id is not null;
 
 comment on table public.eventos_monitoreo is
