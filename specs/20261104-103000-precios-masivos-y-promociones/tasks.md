@@ -53,6 +53,8 @@ Dentro de F-PRE-11: T011 → (T012 [P], T013 [P]) → T014 ← T013; T015 ← T0
 | MSF-439 · F-PRE-11 | US2 | FR-011, 012 → T011 · FR-013 → T012 · FR-014, 015 → T013 · FR-017 → T014 · FR-016 → T017 · FR-018 → T018 · SC-004 → T015 · SC-005 → T019 · SC-006 → T020 | T011–T021 |
 | Tarea de cierre (label `cierre`) | — | FR-019 → T022 · FR-020 → T023 · FR-021, SC-007 → T024 | T022–T024 |
 
+**Verificación por requisito**: cada FR/SC tiene su prueba o comando nombrado en la sección «Matriz de verificación» de `spec.md`. Las tareas de prueba son: T004 (`precios_masivos.test.sql`, FR-002/004/005/006/007/008/009), T008 (`precios-masivos.test.tsx` y `preciosMasivos.test.ts`, FR-001/003/010), T009 (`e2e/precios-masivos.spec.ts`), T015 (`promociones_precio.test.sql`, FR-011…015 y FR-017), T019 (`promociones.test.tsx`, `PrecioTachado.test.tsx`, FR-016/018), T020 (`e2e/tienda-promocion.spec.ts`) y, en el cierre, `pnpm docs:check` (FR-019), el pgTAP de aislamiento (FR-020) y la validación completa (FR-021, SC-007).
+
 ## Plan de ejecución (historias)
 
 El **orden de toma** lo declara esta tabla: el orquestador la **consume**. F-PRE-10 y F-PRE-11 son **independientes**: no comparten tabla nueva, migración, pantalla ni archivo (F-PRE-10 toca `pages/productos/list.tsx` y `precios-masivos.tsx`, y escribe en `productos`/`producto_costos`; F-PRE-11 crea `promociones_precio`, `promociones.tsx`, el módulo de la tienda y la navegación); solo comparten el contrato de MSF-114, que ya está entregado. Por eso van en el **mismo grupo** (paralelo).
