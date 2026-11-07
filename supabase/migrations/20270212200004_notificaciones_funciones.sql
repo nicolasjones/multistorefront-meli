@@ -95,14 +95,17 @@ begin
     return 0;
   end if;
 
-  -- Idempotente: solo toca avisos propios que siguen sin leer (leido_en conserva el primer momento).
+  -- Idempotente: solo toca avisos propios vigentes (mismo filtro de acceso que el conteo) que siguen sin leer (leido_en conserva el primer momento).
   update public.avisos_pendientes a
      set leido_en = now()
    where a.user_id = auth.uid()
      and a.organizacion_id = private.organizacion_id()
      and a.estado <> 'descartado'
      and a.leido_en is null
-     and (p_ids is null or a.id = any (p_ids));
+     and (p_ids is null or a.id = any (p_ids))
+     and a.tipo_aviso in (
+       select t.clave from public.tipos_aviso t
+        where private.nivel_seccion_de_usuario(auth.uid(), t.seccion) <> 'ninguno');
   get diagnostics v_marcadas = row_count;
   return v_marcadas;
 end;
