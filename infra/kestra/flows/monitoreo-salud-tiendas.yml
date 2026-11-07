@@ -1,0 +1,56 @@
+# MSF-369 · F-OPS-03 (FR-025, FR-030). Cada 2 minutos sondea la página principal de cada tienda con dominio
+# (public.tiendas_a_sondear) y registra ok/fallo en eventos_monitoreo. La base decide si hay alerta
+# (monitoreo-evaluar.yml); este flow solo mide. SSRF: el único host que se pide es el dominio ya validado y
+# normalizado de dominio.tiendas, y NO se siguen redirecciones (followRedirects: false), así que una tienda
+# no puede hacernos pedir otro host. Un 3xx cuenta como «responde»; 4xx/5xx o sin respuesta, como fallo.
+# Frecuencia: el cron del trigger (editarlo para cambiarla); el tiempo de espera es el input `timeout_seg`.
+id: monitoreo-salud-tiendas
+namespace: platform.monitoreo
+labels:
+  capa: core
+  dominio: plataforma
+  componente: monitoreo
+description: "Sondea cada 2 minutos las tiendas con dominio y registra el resultado para el monitoreo."
+inputs:
+  - id: timeout_seg
+    type: INT
+    defaults: 10
+tasks:
+  - id: tiendas
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select dominio, organizacion_id from public.tiendas_a_sondear();
+  - id: sondear_tiendas
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.tiendas.rows }}"
+    concurrencyLimit: 5
+    allowFailure: true
+    tasks:
+      - id: sondear
+        type: io.kestra.plugin.core.http.Request
+        uri: "https://{{ fromJson(taskrun.value).dominio }}/"
+        method: GET
+        allowFailure: true
+        options:
+          followRedirects: false
+          allowFailed: true
+          connectTimeout: PT10S
+          readTimeout: PT10S
+      - id: registrar
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        url: "{{ envs.kestra_orquestacion_db_url }}"
+        username: kestra_orquestacion
+        password: "{{ envs.kestra_orquestacion_db_password }}"
+        sql: select public.registrar_evento_monitoreo('tienda', :clave, :resultado, :motivo, CAST(:organizacion_id AS uuid));
+        parameters:
+          clave: "{{ fromJson(taskrun.value).dominio }}"
+          resultado: "{{ (outputs.sondear[taskrun.value].code ?? 0) >= 200 and (outputs.sondear[taskrun.value].code ?? 0) < 400 ? 'ok' : 'fallo' }}"
+          motivo: "{{ outputs.sondear[taskrun.value].code is defined ? 'HTTP ' ~ outputs.sondear[taskrun.value].code : 'SIN_RESPUESTA' }}"
+          organizacion_id: "{{ fromJson(taskrun.value).organizacion_id }}"
+triggers:
+  - id: cada_2_minutos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/2 * * * *"

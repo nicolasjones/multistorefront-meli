@@ -35,8 +35,9 @@ En desarrollo Docker, cada producto usa su propio proyecto Compose:
 `multistorefront-meli-supabase-dev`,
 `multistorefront-meli-kestra-dev`,
 `multistorefront-meli-superset-dev`,
-`multistorefront-meli-playwright-dev` y
-`multistorefront-meli-runner-dev`. No existe un Compose raíz que los
+`multistorefront-meli-playwright-dev`,
+`multistorefront-meli-runner-dev` y
+`multistorefront-meli-glitchtip-dev`. No existe un Compose raíz que los
 fusione.
 
 ### V. Simplicidad operativa
