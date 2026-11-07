@@ -67,3 +67,7 @@ E2E de cierre (SC-009): `apps/web/e2e/precios-iva.e2e.ts` (ver [`e2e-app.md`](./
 ## Precio público en la tienda online
 
 El catálogo y la ficha de la tienda muestran el precio final de la empresa con el mismo interruptor de IVA («Precios que ve el cliente»); sin precio calculable, no muestran precio. Detalle en [`tiendas-online.md`](./tiendas-online.md) («Catálogo con filtros y orden» y «Cierre de la épica MSF-167»).
+
+## Promociones de precio por empresa
+
+Precio promocional con vigencia por empresa y precio anterior tachado en la tienda: [`promociones-precio.md`](./promociones-precio.md) (F-PRE-11, MSF-439).

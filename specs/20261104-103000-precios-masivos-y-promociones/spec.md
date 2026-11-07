@@ -206,6 +206,8 @@ El administrador programa, para una empresa, un precio promocional de un product
 
 Escenarios de aceptación (Given/When/Then) de las historias: ver *User Scenarios & Testing* (US1 y US2); cada uno se cubre con las pruebas de esta tabla.
 
+Guía de F-PRE-11: [`docs/promociones-precio.md`](../../docs/promociones-precio.md).
+
 ## Decisiones abiertas (anotadas, no son gates de Nicolás)
 
 1. **Cómo vencen las promociones — resuelto: consulta por fecha.** El precio vigente se calcula al leer comparando `desde`/`hasta` con la hora actual (FR-014). Razón: coincide con el modelo «el precio se calcula al leer» de MSF-114, no necesita Kestra ni worker (el template no trae ningún worker concreto), no hay ventana en la que un precio quede vencido por una tarea caída y es testeable con pgTAP. Costo: una comparación más por lectura de precio (con índice por `(empresa_id, producto_id, desde, hasta)`). *Alternativa descartada:* tarea programada que cierre promociones (más piezas, y un fallo deja precios promocionales de más).
