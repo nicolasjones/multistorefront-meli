@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useNavigate } from 'react-router'
 import { Alert, Box, Button, Checkbox, Chip, Snackbar, Stack, Typography } from '@mui/material'
 import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
@@ -8,6 +8,7 @@ import { useCategorias } from '../../hooks/useCategorias'
 import { useSeleccionProductos } from '../../hooks/useSeleccionProductos'
 import { useCompatibles } from '../../hooks/useCompatibles'
 import { supabaseClient } from '../../lib/supabase'
+import { PARAMETRO_DUPLICAR } from '../../lib/duplicarProducto'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
@@ -174,6 +175,7 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const navigate = useNavigate()
   const { esAdministrador } = useEsAdministrador()
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
@@ -488,6 +490,7 @@ export function ProductoList() {
                       ? (producto) => (
                           <Stack direction="row" spacing={1} alignItems="center">
                             <Button onClick={() => setProductoEnDialogo(producto.id)} aria-label={`Editar ${producto.nombre}`}>Editar</Button>
+                            <Button onClick={() => navigate(`/productos/create?${PARAMETRO_DUPLICAR}=${encodeURIComponent(producto.id)}`)} aria-label={`Duplicar ${producto.nombre}`}>Duplicar</Button>
                             <CambiarEstadoProducto
                               id={producto.id}
                               nombre={producto.nombre}
