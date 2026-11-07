@@ -51,7 +51,7 @@ export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: st
         <Outlet context={contexto} />
       </Box>
       <Box component="footer" sx={{ px: 2, py: 3, borderTop: 1, borderColor: 'divider' }}>
-        <PieCategorias categorias={categorias.categorias} />
+        <PieCategorias categorias={categorias.categorias} host={host} />
       </Box>
     </Box>
   )

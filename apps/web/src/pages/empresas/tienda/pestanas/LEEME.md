@@ -2,7 +2,7 @@
 
 Cada archivo `*.tsx` de esta carpeta es una pestaña de `/empresas/:id/tienda/:pestana`
 (`GestionTienda` las carga con `import.meta.glob`, de forma diferida). El nombre del
-archivo es la clave de la ruta: `identidad`, `contenido`, `catalogo` y `publicacion`.
+archivo es la clave de la ruta: `identidad`, `contenido`, `catalogo`, `publicacion` y `paginas`.
 
 Contrato (ver `../pestanas.ts`):
 
