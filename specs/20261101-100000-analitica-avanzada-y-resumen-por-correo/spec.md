@@ -83,6 +83,28 @@ Como administrador quiero recibir cada semana por correo un resumen del negocio,
 - **SC-002** (F-REP-08): en una corrida semanal, cada destinatario recibe un único correo; reintentar la corrida no duplica.
 - **SC-003** (F-REP-08): sin ventas ni stock en alerta, el resumen sale sin esas secciones.
 
+## Verificación por requisito
+
+Cada FR/SC tiene una única tarea dueña y una verificación nombrada. No hay NFR declarados en la épica. Los tests de abajo se crean en la tarea indicada; hasta entonces son el contrato de verificación (los nombres de archivo pueden ajustarse sin cambiar la verificación).
+
+| Requisito | Tarea dueña | Verificación (test / comando) |
+|---|---|---|
+| FR-001 | T004 | `pnpm --filter @platform/web test -- tableros-propios` (Vitest por rol: el administrador ve la pantalla y arma/elige según P1) |
+| FR-002 | T001 | `pnpm test:db` (pgTAP `analitica_tablero_libre.test.sql`: vistas `analitica` solo con `select` para el rol de Superset) + `pnpm test:edge:emitir-acceso-reporte` (el navegador solo recibe guest token) |
+| FR-003 | T001 | `pnpm test:db` (pgTAP: toda fila trae `organizacion_id`; el `rls` del token excluye a la otra organización) + Vitest `pnpm --filter @platform/web test -- tableros-propios-empresa` (cambio de empresa recarga y descarta) |
+| FR-004 | T003 | `pnpm infra:config` y `node --test infra/superset/rol-tableros.test.mjs` (rol acotado a su organización y a vistas `analitica`); revisión documental de la excepción a 007 FR-013 con `pnpm docs:check` |
+| FR-005 | T004 | `pnpm --filter @platform/web test -- tableros-propios-estados` (carga, vacío, error, «Analítica no disponible en este momento») + `pnpm --filter @platform/web test -- tableros-propios-a11y` (axe y teclado a 320/768/1440 px) |
+| FR-010 | T007 | `pnpm test:db` (pgTAP `resumen_semanal.test.sql`: tipo `resumen_semanal` en `tipos_aviso` y reclamo de destinatarios por semana) |
+| FR-011 | T010 | `node --test infra/kestra/flows/resumen-semanal.test.mjs` (el flow usa `KESTRA_SMTP_*` y el flujo de `enviar-avisos`, sin proveedor nuevo) + `pnpm infra:config` |
+| FR-012 | T008 | `pnpm test:db` (pgTAP: sin la vista de ventas o de stock la función devuelve el resumen sin esa sección y sin error) |
+| FR-013 | T007 | `pnpm test:db` (pgTAP: reclamar dos veces la misma semana no duplica; fila de auditoría con origen, estado, timestamps y error) |
+| FR-014 | T008 | `pnpm test:db` (pgTAP: solo datos de la organización del destinatario) + `node --test infra/kestra/flows/resumen-semanal.test.mjs` (HTML escapado) |
+| SC-001 | T002 | `pnpm test:db` (pgTAP de aislamiento entre A y B) + Vitest `tableros-propios` (reabrir el tablero devuelve el mismo resultado) |
+| SC-002 | T011 | `node --test infra/kestra/flows/resumen-semanal.test.mjs` (un correo por destinatario; la corrida repetida no duplica) |
+| SC-003 | T012 | `pnpm test:db` (pgTAP `resumen_semanal_secciones`: sin ventas ni stock en alerta, el resumen sale sin esas secciones) |
+
+Validación general antes del PR: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm docs:check`, `pnpm matriz:check`.
+
 ## Matriz pantalla↔criterios
 
 `pnpm prototipo:inventario` no aplica: **ninguna de las dos historias tiene pantalla en el prototipo** (el documento del componente dice «Sin dibujar»; las pantallas existentes `RentabilidadResumen`, `RentabilidadProductos`, `VentasReportes` pertenecen a otras historias). No hay `.dc.html` ni inventario que mapear; no hay ítems visibles sin dueño. La UI se resuelve con el sistema de diseño (MSF-117) y los componentes del template, sin inventar secciones del prototipo.
