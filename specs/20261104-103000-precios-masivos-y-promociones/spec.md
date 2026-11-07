@@ -7,6 +7,8 @@
 
 > Estado de la épica bloqueante: MSF-114 tiene todas sus historias `Finalizada`; solo falta la aprobación de despliegue DEV→STG de Nicolás, que **no** impide escribir esta spec (solo el despliegue).
 
+Guías de implementación: [`docs/precios-masivos.md`](../../docs/precios-masivos.md) (F-PRE-10).
+
 ## Objetivo
 
 Al terminar, el administrador puede subir o bajar costos y precios en bloque con vista previa y programar precios promocionales por empresa con fecha de inicio y fin.

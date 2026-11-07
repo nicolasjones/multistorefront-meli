@@ -92,6 +92,7 @@ const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) 
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
+const PreciosMasivos = lazy(() => import('./pages/productos/precios-masivos').then((modulo) => ({ default: modulo.PreciosMasivos })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
 const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo) => ({ default: modulo.CategoriaList })))
 // Stock: también fuera del recorrido principal (Principio VI).
@@ -385,6 +386,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="categorias"><Suspense fallback={<EstadoCargaPagina />}><CategoriaList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/precios-masivos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><PreciosMasivos /></Suspense>
                     </RequiereOrganizacionActiva>
                   }
                 />
