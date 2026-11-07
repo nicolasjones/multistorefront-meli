@@ -10,6 +10,7 @@ Guía de la épica: cuatro historias entregadas (F-PRE-01, F-PRE-07, F-PRE-12, F
 | `precios_empresa` (regla de precio + interruptor «Precios que ve el cliente» por empresa) | `dominio` | dato de negocio |
 | `alicuotas_iva` (21 %, 10,5 %, Exento) y `alicuota_iva_id` en `categorias`/`productos` | `dominio` | dato de negocio |
 | `producto_precios_escala` (x5, x10, x50; x1 es el precio de lista) | `dominio` | dato de negocio |
+| `precios_propios_empresa` (precio neto fijado por producto y empresa, F-PRE-08) | `dominio` | dato de negocio |
 | Vistas `productos_precio_costo`, `precios_empresa_neto`, `precios_empresa_final` y RPC de guardado | `public` | superficie de lectura/ejecución, sin datos propios (`security_invoker`) |
 | `private.a_pesos`, `precio_central_ars`, `aplicar_regla_precio`, `precio_neto_empresa`, `alicuota_producto`, `aplicar_iva`, `precio_para` | `private` | cálculo |
 
@@ -49,6 +50,18 @@ Devuelve `escala_usada`, `neto`, `alicuota_*` y `final` (detalle en [`precios-es
 | Service-role en el navegador | no se usa; el E2E la usa solo desde Node contra un Supabase local |
 
 Sin hallazgos que corregir. Las pruebas pgTAP que lo sostienen: `precios_cotizacion_conversion`, `precios_empresa`, `precios_iva`, `precios_escala` y `rls_en_toda_tabla`.
+
+## Precio propio de un producto en una empresa (F-PRE-08, MSF-423 · épica MSF-352)
+
+Spec: [`20270105-100000-configuracion-dolar-y-precio-propio`](../specs/20270105-100000-configuracion-dolar-y-precio-propio/spec.md) (FR-012…FR-020).
+
+- **Dato**: `dominio.precios_propios_empresa` (PK `producto_id + empresa_id`; `moneda` ARS|USD; `importe > 0`, hasta 2 decimales). FK compuestas a `productos` y `empresas` (no cruza organizaciones), RLS por organización, `select` con `productos` ≥ lectura, **sin escritura directa**: se escribe solo con las RPC.
+- **RPC** (`public`, `anon` sin ejecución): `fijar_precio_propio(producto, empresa, moneda, importe)` (`productos` = edición; idempotente; actividad `producto.precio_propio_fijado` **sin importes**), `quitar_precio_propio(producto, empresa)` (idempotente; `producto.precio_propio_quitado`) y `leer_precios_propios(producto)`. Errores: `42501` sin permiso, `P0002` producto o empresa ajenos, `22023` moneda inválida o importe vacío, `23514` importe ≤ 0 o con más de 2 decimales, `22003` demasiado grande.
+- **Cálculo**: con precio propio el **neto** es ese precio (reemplaza a «central + ajuste», sin redondeo de la regla) y el IVA de la empresa se aplica encima como siempre. Lo leen `private.precio_neto_empresa`, `public.precios_empresa_neto` (nueva columna `precio_propio boolean`, al final) y, por lo tanto, `precios_empresa_final`; `private.precio_visible_desde_central` y la vista previa `previsualizar_cotizacion` (hoy / nuevo) pasan por `private.precio_visible_con_cotizacion`. Un precio propio en **USD** se convierte con `private.cotizacion_para(organización, empresa)` (la de la empresa con alcance «una por empresa», la general con «sistema»); sin cotización el neto es `null` (no se inventa ni se cae a la regla). Al confirmar un dólar los precios se recalculan solos porque se calculan al leer; `private.precios_usd_por_empresa` cuenta también los precios propios en USD.
+- **Ficha del producto** (`pages/productos/edit.tsx`): bloque «Precio propio por empresa» (`components/precios/PrecioPropioEmpresas.tsx`), una fila por empresa a la que se vende (`Moneda`, `Precio propio`, «Guardar», «Quitar»), marca «Precio propio» y neto de ejemplo; solo lectura para Consulta. En el **alta** (`create.tsx`) el producto todavía no existe: el precio propio se fija desde la edición.
+- **Fuera de alcance**: el listado de productos no tiene columna de precio por empresa, así que la marca «Precio propio» no se muestra allí (Decisión abierta 4). `private.precio_para` (escalas x5/x10/x50) **no** lee el precio propio todavía. Los precios propios no van a Mercado Libre (Etapa 2, FR-020: sin cola ni columna ML).
+- **Reversión** (migraciones `20270205110201` y `20270205110202`): ver el encabezado de cada una; exportar los precios propios antes de borrar la tabla.
+- **Alerta de dólar** (`20270205110203`): restaura en `recalcular_alertas_inicio` el chequeo de «Aviso en Inicio» y alcance (F-PRE-06) que `20270201200138` había pisado por orden de versiones; reversión: recrear la función con el cuerpo de `20270201200138`.
 
 ## Reversión
 
