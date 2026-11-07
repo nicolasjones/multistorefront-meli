@@ -781,3 +781,13 @@ Spec: `specs/20270210-100000-tienda-contenido-y-analitica/`. Cada empresa crea p
 - **Tienda pública**: ruta `/pagina/:slug` (`rutas/pagina.tsx`, carga diferida) con migas, título y texto plano en párrafos (nunca HTML); la 404 de la tienda cubre todo caso no visible. Columna «Información» en el pie (`layout/PieInformacion.tsx`), sin hueco si no hay páginas visibles y sin error propio si el pedido falla.
 - **Diferencia con la spec**: la spec pide `CabeceraSeo` de MSF-149, que todavía no está en esta base; la ruta fija `document.title` con el título de la página y pasará a `CabeceraSeo` cuando MSF-149 esté integrada.
 - **Verificación**: pgTAP `supabase/tests/database/tienda_paginas.test.sql`; Vitest + axe `empresas/tienda/paginas.test.tsx`, `tienda-publica/rutas/pagina.test.tsx`, `tienda-publica/layout/PieInformacion.test.tsx`; E2E `apps/web/e2e/tienda-paginas.e2e.ts` con las dos tiendas del seed.
+
+## Compartir producto (F-TDA-25, épica MSF-164)
+
+Historia `MSF-325`, sin migración ni cambios de base (spec `specs/20270210-100000-tienda-contenido-y-analitica/`).
+
+- **Botón «Compartir»** en la fila de acciones de la ficha (`ficha/BotonCompartir.tsx`, montado en `ficha/DatosProducto.tsx`), con el estilo de botón secundario (borde) de «Ver más productos».
+- **Comportamiento**: con `navigator.share` abre el selector del sistema con el nombre del producto y el enlace; si la persona lo cierra (`AbortError`) no hay error ni aviso. Sin selector —o ante cualquier otro fallo del selector— copia el enlace con el aviso «Enlace copiado» (región `role="status"` / `aria-live="polite"`); si el portapapeles rechaza, muestra el enlace en un campo de solo lectura seleccionado («Copiá este enlace»).
+- **Enlace** (`lib/enlaceProducto.ts`): `origen del Host actual` + `/producto/<id>`; sin parámetros de seguimiento, filtro ni búsqueda y sin datos de la persona. Cada tienda comparte su propio dominio.
+- **Pruebas**: Vitest `lib/enlaceProducto.test.ts` y `ficha/BotonCompartir.test.tsx` (con axe); E2E `apps/web/e2e/tienda-compartir.e2e.ts` en las dos tiendas del seed a 320 / 768 / 1440 px.
+- **Reversión**: solo front; `git revert -m 1` del merge de la spec.
