@@ -45,4 +45,4 @@ Cada historia trae su propia migración con timestamp propio; ninguna depende de
 
 Verificado contra las migraciones: `public.registro_actividad` (`20261016120000`), `insertar_actividad`, el trigger `registrar_actividad_membresia`, `guardar_matriz_permisos` (versión vigente en `20261020130100`) y `restablecer_matriz_permisos` existen; `tipos_evento_actividad` no existía. Esquema de cada tabla: `tipos_evento_actividad` → `public` (catálogo transversal); `registro_actividad` → `public` (altera). Nada en `dominio`.
 
-Desvíos de implementación de F-AUD-02: las migraciones llevan las versiones que fijó el runner (`20270201200141`, `20270201200142`) y no las del tasks.md; la depuración se concede también a `kestra_orquestacion` porque es el rol con que corre el flow (ver commit del flow).
+Desvíos de implementación de F-AUD-02: las migraciones llevan las versiones `20270207100001` a `20270207100003` (renumeradas al integrar con `dokploy`; el runner había fijado `20270201200141`, `20270201200142`) y no las del tasks.md; la depuración se concede también a `kestra_orquestacion` porque es el rol con que corre el flow (ver commit del flow).

@@ -65,3 +65,26 @@ Producto propio `infra/glitchtip/compose.yaml` (proyecto `multistorefront-meli-g
 5. Adjuntar la evidencia al PR.
 
 Los workers corren con egress restringido: agregar el host de GlitchTip a la allowlist del worker en `workers/egress-allowlists.json` al activar `ERRORES_DSN` en un entorno.
+
+## Revisión de seguridad de la épica MSF-206 (T025)
+
+Revisión de las migraciones `20270211100001`…`05` (procesos masivos) y `20270211100011`/`12` (monitoreo), del Compose de GlitchTip, de los
+flows de Kestra y del cliente de errores (authz-security, crypto-secrets, infra-security, supply-chain-security):
+
+- **Autorización**: RLS en `procesos_masivos`, `procesos_masivos_errores`, `eventos_monitoreo` y `alertas_monitoreo`; `select` por columnas en
+  los procesos; sin `insert/update/delete` para la app (escriben funciones `security definer` con `search_path` vacío). `anon` sin ejecución
+  en ninguna función. Las del worker solo las ejecuta `workers_orquestacion` (con `autorizar_worker_proceso`) y las de monitoreo,
+  `kestra_orquestacion`. Cancelar o iniciar un proceso ajeno devuelve `42501`. Los datos de monitoreo solo los lee un superadmin: no hay fuga
+  entre organizaciones.
+- **Datos sensibles**: los motivos de error se sanitizan antes de guardarse (`private.sanitizar_motivo_*`) y el cliente de errores limpia
+  correos, teléfonos, tokens y credenciales en URL antes de enviar un evento (`workers/_comun/errores.mjs`).
+- **Secretos**: DSN vacío por defecto (no se envía nada); el token de lectura de GlitchTip es un secreto de Kestra y solo vive en
+  `infra/kestra/.env` (ignorado en git); el valor de `.env.example` es un placeholder.
+- **Cadena de suministro**: ninguna dependencia nueva y el lockfile no cambia; el cliente de errores es propio.
+- **Hallazgo corregido en el cierre**: el Compose de GlitchTip publicaba el puerto en todas las interfaces (`8100:8000`), a diferencia de
+  todos los demás Compose del repo, que lo atan a `127.0.0.1`. Ahora es `127.0.0.1:${GLITCHTIP_PORT:-8100}:8000`.
+- **Observación aceptada (convención del repo)**: GlitchTip trae contraseña y `SECRET_KEY` de desarrollo por defecto
+  (`glitchtip-local`, `change-me-local-only`), igual que Kestra y Superset. En cualquier entorno compartido hay que fijarlos por variables fuera
+  de Git; olvidarlo deja un secreto débil sin aviso. Queda como seguimiento: fallar al arrancar si falta el valor fuera de desarrollo.
+- **Observación aceptada**: `valkey/valkey:8-alpine` usa un tag de versión mayor flotante; las demás imágenes tienen tag fijo.
+
