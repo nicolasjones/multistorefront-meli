@@ -38,6 +38,7 @@ comment on function private.reconciliar_proceso_masivo() is
 
 revoke execute on function private.reconciliar_proceso_masivo() from public, anon, authenticated;
 
+drop trigger if exists reconciliar_proceso_masivo on public.ejecuciones_worker;
 create trigger reconciliar_proceso_masivo
   after update of estado on public.ejecuciones_worker
   for each row

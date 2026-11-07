@@ -50,7 +50,7 @@ revoke execute on function private.sanitizar_motivo_proceso(text, boolean) from 
 -- public.procesos_masivos
 -- ============================================================================
 
-create table public.procesos_masivos (
+create table if not exists public.procesos_masivos (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid references dominio.empresas (id) on delete cascade,
@@ -76,13 +76,14 @@ create table public.procesos_masivos (
 comment on table public.procesos_masivos is
   'F-IMP-01 (FR-001): carga o descarga masiva con su estado y avance, ligada a su ejecución auditable de worker. Lectura solo para administradores de la organización; escritura únicamente por las funciones *_proceso_masivo.';
 
-create index procesos_masivos_listado_idx on public.procesos_masivos (organizacion_id, creado_en desc);
-create index procesos_masivos_empresa_idx on public.procesos_masivos (empresa_id) where empresa_id is not null;
-create index procesos_masivos_abiertos_idx on public.procesos_masivos (organizacion_id) where estado in ('pendiente', 'en_curso');
-create index procesos_masivos_solicitado_por_idx on public.procesos_masivos (solicitado_por);
+create index if not exists procesos_masivos_listado_idx on public.procesos_masivos (organizacion_id, creado_en desc);
+create index if not exists procesos_masivos_empresa_idx on public.procesos_masivos (empresa_id) where empresa_id is not null;
+create index if not exists procesos_masivos_abiertos_idx on public.procesos_masivos (organizacion_id) where estado in ('pendiente', 'en_curso');
+create index if not exists procesos_masivos_solicitado_por_idx on public.procesos_masivos (solicitado_por);
 
 alter table public.procesos_masivos enable row level security;
 
+drop policy if exists procesos_masivos_select on public.procesos_masivos;
 create policy procesos_masivos_select on public.procesos_masivos for select to authenticated
   using ((select private.es_administrador_de(organizacion_id)));
 
@@ -107,6 +108,7 @@ $$;
 
 revoke execute on function private.proteger_proceso_masivo() from public, anon, authenticated;
 
+drop trigger if exists proteger_proceso_masivo on public.procesos_masivos;
 create trigger proteger_proceso_masivo
   before update of estado on public.procesos_masivos
   for each row execute function private.proteger_proceso_masivo();
@@ -115,7 +117,7 @@ create trigger proteger_proceso_masivo
 -- public.procesos_masivos_errores
 -- ============================================================================
 
-create table public.procesos_masivos_errores (
+create table if not exists public.procesos_masivos_errores (
   id uuid primary key default gen_random_uuid(),
   proceso_id uuid not null references public.procesos_masivos (id) on delete cascade,
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
@@ -128,11 +130,12 @@ create table public.procesos_masivos_errores (
 comment on table public.procesos_masivos_errores is
   'F-IMP-01 (FR-006): errores por fila de un proceso masivo (fila, referencia, motivo sanitizado). Con tope por proceso; `procesos_masivos.con_errores` cuenta todos.';
 
-create index procesos_masivos_errores_proceso_idx on public.procesos_masivos_errores (proceso_id, fila, creado_en);
-create index procesos_masivos_errores_organizacion_idx on public.procesos_masivos_errores (organizacion_id);
+create index if not exists procesos_masivos_errores_proceso_idx on public.procesos_masivos_errores (proceso_id, fila, creado_en);
+create index if not exists procesos_masivos_errores_organizacion_idx on public.procesos_masivos_errores (organizacion_id);
 
 alter table public.procesos_masivos_errores enable row level security;
 
+drop policy if exists procesos_masivos_errores_select on public.procesos_masivos_errores;
 create policy procesos_masivos_errores_select on public.procesos_masivos_errores for select to authenticated
   using ((select private.es_administrador_de(organizacion_id)));
 
