@@ -1,0 +1,15 @@
+slice_name: Productos más consultados
+description: 'Productos más consultados por WhatsApp en el período (F-REP-04): cantidad de consultas y última consulta.'
+certified_by: null
+certification_details: null
+viz_type: table
+# Orden: en modo aggregate el viz de tabla de Superset 6.1.0 ignora `order_by_cols`; ordena por la
+# métrica de `timeseries_limit_metric` + `order_desc` (consultas de mayor a menor). `posicion` va
+# primera en `metrics` solo para el orden de las columnas (#, Consultas, Última consulta); como métrica
+# es un ROW_NUMBER ascendente, si fuera la primera mostraría los menos consultados al principio.
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre", "sku"], "metrics": ["posicion", "consultas_total", "ultima_consulta_max"], "percent_metrics": [], "timeseries_limit_metric": "consultas_total", "order_desc": true, "row_limit": 10000, "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: c71184f5-f92f-409b-9ba4-92bfa1571ac2
+version: 1.0.0
+dataset_uuid: f2a18de9-ca73-462b-ba49-f33b51bb764a

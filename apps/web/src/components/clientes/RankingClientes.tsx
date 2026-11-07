@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useOpcionesDimension, type OpcionProducto } from '../../hooks/useOpcionesDimension'
 import { useRankingClientes, type FilaRanking } from '../../hooks/useRankingClientes'
@@ -10,13 +10,15 @@ import { descargarArchivo, ExportacionCancelada, type ProgresoExportacion } from
 import { exportarRanking, nombreArchivoRanking, type ParametrosExportacionRanking } from '../../lib/exportarRanking'
 import { formatearParticipacion, formatearPesos } from '../../lib/formatoRanking'
 import { ATAJOS_PERIODO, periodoAnteriorIgualDuracion, rangoDeAtajo, validarRango, type AtajoPeriodo, type ErroresRango, type RangoFechas } from '../../lib/periodosRanking'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
 import { FiltrosDimension } from './FiltrosDimension'
 import { RankingComparado } from './RankingComparado'
 
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 const ANCHO_CAMPO_FECHA = 170
 const ANCHO_CAMPO_FECHA_COMPARACION = 210
 const ANCHO_BARRA = 120
@@ -112,15 +114,22 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
 
   const opciones = useOpcionesDimension({ busquedaProducto, habilitado: opcionesPedidas })
   const basico = useRankingClientes({
-    desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_PAGINA,
+    desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_TANDA,
     // Con la comparación o un filtro de dimensión la tabla es la de otra consulta: no se pide el ranking básico.
     ...(comparar || porDimension ? { pausado: true } : {}),
   })
   const dimension = useRankingPorDimension({
     desde: aplicado.desde, hasta: aplicado.hasta, productoId: producto?.id ?? null, categoriaId, provincia,
-    tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_PAGINA, pausado: !porDimension,
+    tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_TANDA, pausado: !porDimension,
   })
   const { filas, total, isLoading, isFetching, isError, refetch } = porDimension ? dimension : basico
+
+  // Carga infinita (Principio VI): las tandas se suman; período, filtros y tienda reinician desde la primera.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina, total, cargando: isFetching,
+    reinicio: { aplicado, tipo, incluirConsumidorFinal, conIva, empresaId, producto: producto?.id ?? null, categoriaId, provincia, comparar },
+  })
+  const falloTanda = isError && listado.filas.length > 0
 
   // Cambiar de tienda (filtro de pantalla, F-CLI-11) vuelve a la primera página y descarta la selección de
   // producto, categoría y provincia (Principio VIII: nunca queda una selección de la tienda anterior).
@@ -170,8 +179,8 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
     setAplicadaComparacion(anterior)
   }
 
-  // La barra es proporcional al primero de la página visible.
-  const mayor = filas.reduce((maximo, fila) => Math.max(maximo, fila.participacion), 0)
+  // La barra es proporcional al primero del ranking.
+  const mayor = listado.filas.reduce((maximo, fila) => Math.max(maximo, fila.participacion), 0)
   const baseIva = conIva ? 'con IVA' : 'sin IVA'
 
   const columnas: ColumnaAdaptable<FilaRanking>[] = [
@@ -288,7 +297,7 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
       {puedeExportar && !comparar && !porDimension ? (
         <ExportarRanking
           parametros={{ desde: aplicado.desde, hasta: aplicado.hasta, tipo, incluirConsumidorFinal, conIva, empresaId }}
-          deshabilitado={isLoading || isError || filas.length === 0}
+          deshabilitado={isLoading || isError || listado.filas.length === 0}
         />
       ) : null}
 
@@ -309,9 +318,9 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
       <Box aria-busy={isFetching}>
         {isLoading ? (
           <EstadoCargaPagina />
-        ) : isError ? (
+        ) : isError && !falloTanda ? (
           <EstadoError descripcion="No pudimos cargar el ranking." reintentar={() => void refetch()} />
-        ) : filas.length === 0 ? (
+        ) : listado.filas.length === 0 ? (
           <EstadoVacio
             titulo="Sin facturación en el período"
             descripcion={porDimension ? 'Probá con otro rango de fechas o de filtros.' : 'Probá con otro rango de fechas.'}
@@ -320,16 +329,16 @@ export function RankingClientes({ empresaId = null }: { empresaId?: string | nul
           <>
             <Typography variant="xs">Facturado {baseIva} del {aplicado.desde} al {aplicado.hasta}.</Typography>
             <ContenidoAdaptable
-              items={filas}
+              items={listado.filas}
               columnas={columnas}
               obtenerClave={(fila) => fila.cliente_id}
               etiquetaTabla="Ranking de clientes por facturación"
             />
-            <TablePagination
-              component="div" count={total} page={pagina - 1} rowsPerPage={TAMANO_PAGINA} rowsPerPageOptions={[TAMANO_PAGINA]}
-              onPageChange={(_, nueva) => setPagina(nueva + 1)}
-              labelRowsPerPage="Clientes por página"
-              labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+            <CargaInfinita
+              hayMas={listado.hayMas}
+              cargando={listado.cargandoMas}
+              hayError={falloTanda}
+              onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
             />
           </>
         )}

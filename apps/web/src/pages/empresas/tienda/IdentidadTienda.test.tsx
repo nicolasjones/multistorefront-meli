@@ -196,12 +196,12 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
     await screen.findByText('Hay cambios sin guardar.')
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
-    expect(await screen.findByText('Cambios guardados: la tienda ya los muestra.')).toBeInTheDocument()
+    expect(await screen.findByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).toBeInTheDocument()
     expect(mocks.subir).toHaveBeenCalledTimes(1)
     const rutaNueva = mocks.subir.mock.calls[0][0] as string
     expect(rutaNueva).toMatch(/^org-1\/e-1\/logo-[0-9a-f-]{36}\.png$/)
     expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ colorPrimario: '#C8102E', logoRuta: rutaNueva, bannerRuta: 'org-1/e-1/banner-viejo.png' }))
-    expect(mocks.borrar).toHaveBeenCalledWith(['org-1/e-1/logo-viejo.png'])
+    expect(mocks.borrar).toHaveBeenCalledWith(['org-1/e-1/logo-viejo.png'], 'e-1')
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
   })
 
@@ -214,7 +214,7 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
 
     expect(await screen.findByText(/No pudimos subir el banner principal\./)).toBeInTheDocument()
     expect(mocks.guardar).not.toHaveBeenCalled()
-    expect(screen.queryByText('Cambios guardados: la tienda ya los muestra.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).not.toBeInTheDocument()
     expect(screen.getByText('Hay cambios sin guardar.')).toBeInTheDocument()
   })
 

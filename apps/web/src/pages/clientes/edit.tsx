@@ -19,9 +19,15 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // quien no tiene edición en Clientes aunque llegue por URL directa.
 // Tiendas (F-CLI-05): se cargan las actuales para preseleccionarlas y al guardar
 // se reemplaza el conjunto con public.guardar_empresas_de_cliente.
-export function ClienteEdit() {
-  const { id } = useParams()
-  const navigate = useNavigate()
+type EdicionClienteProps = {
+  id: string | undefined
+  onCancelar: () => void
+  // Guardado: la página vuelve a la ficha, el popup se cierra y el listado se recarga.
+  alGuardar: (mensaje: string) => void
+}
+
+// Edición de cliente sin marco de página: la usan la ruta `/clientes/edit/:id` y el popup «Editar» del listado.
+export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProps) {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('clientes')
   const { query } = useOne<Cliente>({ resource: 'clientes', id })
   const { mutateAsync } = useUpdate()
@@ -41,9 +47,7 @@ export function ClienteEdit() {
     : cuentas.some((cuenta) => cuenta.estado === 'suspendida') ? 'suspendida' : 'sin_cuenta'
 
   return (
-    <Box>
-      <EncabezadoPagina titulo="Editar cliente" contexto={<ContextoOrganizacionActiva />} />
-      <ContenedorSeccion>
+    <>
         {verificandoPermiso || nivel === null || query.isLoading || (nivel === 'edicion' && (cargandoEmpresas || cargandoTiendas || cargandoCuentas)) ? (
           <EstadoCargaPagina />
         ) : nivel !== 'edicion' ? (
@@ -69,6 +73,7 @@ export function ClienteEdit() {
             puedeEditarDescuento={esAdministrador}
             etiquetaGuardar="Guardar cambios"
             rutaCancelar={`/clientes/show/${cliente.id}`}
+            onCancelar={onCancelar}
             onGuardar={async (valores, opciones) => {
               const { empresas: seleccion, ...datos } = valores
               await mutateAsync({ resource: 'clientes', id: cliente.id, values: datos, successNotification: false })
@@ -78,16 +83,28 @@ export function ClienteEdit() {
               // Crea o suspende/reactiva la cuenta en las tiendas tildadas (FR-015);
               // no reenvía invitaciones de cuentas que ya existían.
               const { errores } = await aplicarCuentaWebEnTiendas(cliente.id, seleccion, opciones.estado, opciones.invitar, estadoCuentaWeb)
-              navigate(`/clientes/show/${cliente.id}`, {
-                state: {
-                  mensaje: errores > 0
-                    ? `Cliente guardado · no se pudo actualizar la cuenta web en ${errores} ${errores === 1 ? 'tienda' : 'tiendas'}`
-                    : 'Cliente guardado',
-                },
-              })
+              alGuardar(errores > 0
+                ? `Cliente guardado · no se pudo actualizar la cuenta web en ${errores} ${errores === 1 ? 'tienda' : 'tiendas'}`
+                : 'Cliente guardado')
             }}
           />
         )}
+    </>
+  )
+}
+
+export function ClienteEdit() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  return (
+    <Box>
+      <EncabezadoPagina titulo="Editar cliente" contexto={<ContextoOrganizacionActiva />} />
+      <ContenedorSeccion>
+        <EdicionCliente
+          id={id}
+          onCancelar={() => navigate(`/clientes/show/${id}`)}
+          alGuardar={(mensaje) => navigate(`/clientes/show/${id}`, { state: { mensaje } })}
+        />
       </ContenedorSeccion>
     </Box>
   )

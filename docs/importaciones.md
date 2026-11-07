@@ -53,7 +53,7 @@ existentes. Spec: `specs/20261102-220000-importaciones-y-monitoreo/`.
 
 ## Reversión
 
-Las migraciones `20270201200141`…`20270201200145` son aditivas. Para deshacer:
+Las migraciones `20270211100001`…`20270211100005` son aditivas. Para deshacer:
 `drop trigger reconciliar_proceso_masivo on public.ejecuciones_worker`, las seis
 funciones `*_proceso_masivo`, `private.autorizar_worker_proceso`,
 `private.reconciliar_proceso_masivo`, `private.proteger_proceso_masivo`,

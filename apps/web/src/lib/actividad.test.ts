@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { diaEnBuenosAires, etiquetaTipoActividad, formatearCuando, rangoDelPeriodo } from './actividad'
+import { camposDelCambio, diaEnBuenosAires, etiquetaTipoActividad, formatearCuando, rangoDelPeriodo } from './actividad'
 
 describe('hora de Buenos Aires (F-AUD-01, FR-004)', () => {
   it('el día se calcula en Buenos Aires, no en UTC', () => {
@@ -37,5 +37,34 @@ describe('etiqueta del tipo', () => {
   it('un tipo nuevo de otro componente se muestra legible', () => {
     expect(etiquetaTipoActividad('producto.creado')).toBe('Producto creado')
     expect(etiquetaTipoActividad('stock.ajuste_manual')).toBe('Stock ajuste manual')
+    expect(etiquetaTipoActividad('reparacion.creada')).toBe('Reparación creada')
+    expect(etiquetaTipoActividad('rma.estado_cambiado')).toBe('RMA estado cambiado')
+  })
+
+  it('lleva tildes en los tipos de comprobante, RMA y reparación', () => {
+    expect(etiquetaTipoActividad('comprobante.nota_credito_emitida')).toBe('Comprobante nota crédito emitida')
+    expect(etiquetaTipoActividad('rma.nota_credito_vinculada')).toBe('RMA nota crédito vinculada')
+    expect(etiquetaTipoActividad('reparacion.editada')).toBe('Reparación editada')
+  })
+})
+
+describe('campos del cambio (F-AUD-02, FR-007)', () => {
+  it('arma campo por campo el antes y el después', () => {
+    expect(camposDelCambio({ rol: 'Consulta' }, { rol: 'Mostrador' })).toEqual([{ campo: 'Rol', anterior: 'Consulta', nuevo: 'Mostrador' }])
+  })
+
+  it('un campo que existe de un solo lado muestra «—» del otro', () => {
+    expect(camposDelCambio({ rol: 'Consulta', estado: 'Miembro' }, {})).toEqual([
+      { campo: 'Rol', anterior: 'Consulta', nuevo: '—' },
+      { campo: 'Estado', anterior: 'Miembro', nuevo: '—' },
+    ])
+    expect(camposDelCambio({}, { rol: 'Operador' })).toEqual([{ campo: 'Rol', anterior: '—', nuevo: 'Operador' }])
+  })
+
+  it('formatea booleanos y sin valores devuelve una lista vacía', () => {
+    expect(camposDelCambio({ 'Operador · stock · eliminar': false }, { 'Operador · stock · eliminar': true })).toEqual([
+      { campo: 'Operador · stock · eliminar', anterior: 'No', nuevo: 'Sí' },
+    ])
+    expect(camposDelCambio(null, null)).toEqual([])
   })
 })
