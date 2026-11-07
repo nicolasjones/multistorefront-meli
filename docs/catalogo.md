@@ -332,6 +332,10 @@ Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US1). El cam
 - **Pruebas:** pgTAP `catalogo_compatible_filtro.test.sql`; Vitest `filtro-compatible`, `FormularioProducto`.
 - **Contrato de la vista:** `compatible_con` pasa a ser la última columna de `v_productos_listado` (tras `codigo_barras`); `catalogo_listado.test.sql` y `catalogo_categorias.test.sql` verifican ese orden.
 
+## Duplicar producto (F-CAT-13, MSF-398, épica MSF-218; sin migración)
+
+«Duplicar» es una acción de fila del listado (solo con edición en Productos) que navega a `/productos/create?duplicar_de=<id>`. `lib/duplicarProducto.ts` lee el origen (RLS oculta los de otra organización) y precarga el alta: nombre, descripción, «Compatible con», moneda, precio de lista, categoría y empresas; costo y proveedor solo con acceso a Rentabilidad. SKU y código de barras quedan vacíos, no se copian imágenes ni stock y el producto nace activo. Nada se guarda hasta confirmar: el guardado es `crear_producto` con sus validaciones (el parámetro `duplicar_de` nunca llega al servidor). Origen inexistente o ajeno: aviso y alta vacía. Sin tablas, RPC ni migración; reversión: quitar la acción y el parámetro.
+
 ## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
 
 Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
