@@ -97,7 +97,9 @@ describe('TiendaPublicaApp (FR-007, SC-004, SC-011)', () => {
     const redirigir = vi.fn()
     render(<TiendaPublicaApp host="www.mundojc.com.ar" redirigir={redirigir} />)
 
-    expect(await screen.findByText('No pudimos cargar la tienda.')).toBeInTheDocument()
+    // La pantalla de error de la tienda (MSF-247, F-TDA-19) reemplazó al texto viejo «No pudimos cargar la tienda.».
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar esta página.')
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
     expect(redirigir).not.toHaveBeenCalled()
   })
 
