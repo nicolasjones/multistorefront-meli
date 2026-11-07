@@ -5,7 +5,7 @@
 -- el rol que corresponda.
 begin;
 
-select plan(28);
+select plan(30);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -103,6 +103,18 @@ select throws_ok(
   $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
        null, '{"clave":"password=hunter2"}'::jsonb) $$,
   'P0001', null, 'los parámetros con forma de credencial se rechazan'
+);
+
+select throws_ok(
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
+       null, '{"password":"hunter2"}'::jsonb) $$,
+  'P0001', null, 'una credencial con forma JSON ("password": "x") se rechaza'
+);
+
+select throws_ok(
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
+       null, '{"api_key":"abc"}'::jsonb) $$,
+  'P0001', null, 'una api_key con forma JSON se rechaza'
 );
 
 select throws_ok(

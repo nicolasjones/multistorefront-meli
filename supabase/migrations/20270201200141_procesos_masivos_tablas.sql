@@ -35,7 +35,7 @@ as $$
     select regexp_replace(
       regexp_replace(
         regexp_replace(regexp_replace(coalesce(p_texto, ''), '[[:cntrl:]]+', ' ', 'g'),
-          '(api[_-]?key|bearer|session|passwd|password|pwd|secret|token)\s*[:=]\s*\S+', '[secreto]', 'gi'),
+          '(api[_-]?key|bearer|session|passwd|password|pwd|secret|token)["'']?\s*[:=]\s*\S+', '[secreto]', 'gi'),
         'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+|://[^/\s:]+:[^/\s@]+@|AKIA[0-9A-Z]{16}', '[secreto]', 'g'),
       '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', '[correo]', 'g') as sin_correos
   ) t;
@@ -129,6 +129,10 @@ create table if not exists public.procesos_masivos_errores (
 
 comment on table public.procesos_masivos_errores is
   'F-IMP-01 (FR-006): errores por fila de un proceso masivo (fila, referencia, motivo sanitizado). Con tope por proceso; `procesos_masivos.con_errores` cuenta todos.';
+
+-- Idempotencia (Principio III): un reintento del mismo lote no duplica el error de una fila.
+create unique index if not exists procesos_masivos_errores_fila_uq
+  on public.procesos_masivos_errores (proceso_id, fila) where fila is not null;
 
 create index if not exists procesos_masivos_errores_proceso_idx on public.procesos_masivos_errores (proceso_id, fila, creado_en);
 create index if not exists procesos_masivos_errores_organizacion_idx on public.procesos_masivos_errores (organizacion_id);

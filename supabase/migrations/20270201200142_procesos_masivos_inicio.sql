@@ -41,7 +41,7 @@ begin
   if p_parametros is null or jsonb_typeof(p_parametros) <> 'object' then
     raise exception 'ARGUMENTO_INVALIDO: los parámetros deben ser un objeto' using errcode = '22023';
   end if;
-  if p_parametros::text ~* '(api[_-]?key|bearer|session|passwd|password|pwd|secret|token)\s*[:=]\s*\S+'
+  if p_parametros::text ~* '(api[_-]?key|bearer|session|passwd|password|pwd|secret|token)["'']?\s*[:=]\s*\S+'
      or p_parametros::text ~ 'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+' then
     raise exception 'SECRETO_DETECTADO: los parámetros no pueden llevar credenciales' using errcode = 'P0001';
   end if;

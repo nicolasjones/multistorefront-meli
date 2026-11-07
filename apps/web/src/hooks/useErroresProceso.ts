@@ -3,16 +3,16 @@ import { supabaseClient } from '../lib/supabase'
 import { TAMANO_PAGINA_ERRORES, type ErrorProceso } from '../lib/procesosMasivos'
 
 // Errores por fila de un proceso, paginados en servidor (FR-013). El motivo ya viene sanitizado de la base.
-export function useErroresProceso(procesoId: string, pagina: number) {
+export function useErroresProceso(procesoId: string, pagina: number, refrescarCon?: unknown) {
   const [errores, setErrores] = useState<ErrorProceso[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
   const ultimaPeticion = useRef(0)
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (silencioso = false) => {
     const peticion = ++ultimaPeticion.current
-    setIsLoading(true)
+    if (!silencioso) setIsLoading(true)
     const desde = (pagina - 1) * TAMANO_PAGINA_ERRORES
     let resultado: { data: unknown[] | null; count: number | null; error: unknown }
     try {
@@ -27,9 +27,12 @@ export function useErroresProceso(procesoId: string, pagina: number) {
       resultado = { data: null, count: null, error: excepcion }
     }
     if (peticion !== ultimaPeticion.current) return
-    setIsError(Boolean(resultado.error))
-    setErrores(resultado.error ? [] : ((resultado.data ?? []) as ErrorProceso[]))
-    setTotal(resultado.error ? 0 : resultado.count ?? 0)
+    // Un refresco silencioso fallido no tapa los errores que ya se ven.
+    if (!(silencioso && resultado.error)) {
+      setIsError(Boolean(resultado.error))
+      setErrores(resultado.error ? [] : ((resultado.data ?? []) as ErrorProceso[]))
+      setTotal(resultado.error ? 0 : resultado.count ?? 0)
+    }
     setIsLoading(false)
   }, [procesoId, pagina])
 
@@ -37,5 +40,15 @@ export function useErroresProceso(procesoId: string, pagina: number) {
     void cargar()
   }, [cargar])
 
-  return { errores, total, isLoading, isError, refetch: cargar }
+  // Con el proceso en curso la lista cambia: se vuelve a consultar cuando cambia su avance o su conteo de errores.
+  const primera = useRef(true)
+  useEffect(() => {
+    if (primera.current) {
+      primera.current = false
+      return
+    }
+    void cargar(true)
+  }, [refrescarCon, cargar])
+
+  return { errores, total, isLoading, isError, refetch: () => cargar(false) }
 }

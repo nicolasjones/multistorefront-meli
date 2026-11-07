@@ -107,10 +107,18 @@ begin
     raise exception 'ARGUMENTO_INVALIDO: la fila no puede ser negativa' using errcode = '22023';
   end if;
 
+  -- Idempotente por (proceso, fila): si el lote se reintenta, la fila ya registrada no se cuenta de nuevo.
+  if p_fila is not null and exists (
+    select 1 from public.procesos_masivos_errores e where e.proceso_id = p_proceso_id and e.fila = p_fila
+  ) then
+    return;
+  end if;
+
   if (select count(*) from public.procesos_masivos_errores e where e.proceso_id = p_proceso_id) < c_tope then
     insert into public.procesos_masivos_errores (proceso_id, organizacion_id, fila, referencia, motivo_sanitizado)
     values (p_proceso_id, v_p.organizacion_id, p_fila,
-            left(private.sanitizar_motivo_proceso(p_referencia, false), 200), v_motivo);
+            left(private.sanitizar_motivo_proceso(p_referencia, false), 200), v_motivo)
+    on conflict do nothing;
   end if;
 
   update public.procesos_masivos

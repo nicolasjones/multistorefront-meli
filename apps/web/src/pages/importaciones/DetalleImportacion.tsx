@@ -24,7 +24,7 @@ const columnas: ColumnaAdaptable<ErrorProceso>[] = [
 // Diálogo «Detalle de la importación» (FR-013): resumen del proceso y sus errores paginados.
 export function DetalleImportacion({ proceso, onCerrar }: { proceso: ProcesoMasivo; onCerrar: () => void }) {
   const [pagina, setPagina] = useState(1)
-  const { errores, total, isLoading, isError, refetch } = useErroresProceso(proceso.id, pagina)
+  const { errores, total, isLoading, isError, refetch } = useErroresProceso(proceso.id, pagina, `${proceso.estado}:${proceso.procesados}:${proceso.con_errores}`)
   const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_ERRORES))
   const resumen: [string, string][] = [
     ['Nombre', proceso.nombre],

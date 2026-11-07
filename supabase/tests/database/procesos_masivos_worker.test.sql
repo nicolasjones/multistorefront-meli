@@ -5,7 +5,7 @@
 -- administrador (lo que `autorizar_llamante_ciclo` acepta) y el gate de rol se cubre con grants.
 begin;
 
-select plan(39);
+select plan(42);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -161,6 +161,24 @@ select is(
   (select referencia from public.procesos_masivos_errores where proceso_id = current_setting('t.p1')::uuid and fila = 4),
   '7791234567890',
   'la referencia no se confunde con un teléfono'
+);
+
+select is(
+  private.sanitizar_motivo_proceso('Falló {"token":"abc"} y "password": "x"'),
+  'Falló {"[secreto] y "[secreto]',
+  'el motivo redacta credenciales con forma JSON'
+);
+
+select lives_ok(
+  format($f$ select public.registrar_error_proceso_masivo('%s', 3, 'SKU-1', 'Precio inválido') $f$, current_setting('t.p1')),
+  'el reintento del mismo lote (misma fila) no falla'
+);
+
+select is(
+  (select count(*)::int from public.procesos_masivos_errores where proceso_id = current_setting('t.p1')::uuid and fila = 3)
+  || '/' || (select con_errores from public.procesos_masivos where id = current_setting('t.p1')::uuid),
+  '1/2',
+  'el reintento no duplica el error de la fila ni suma a con_errores'
 );
 
 select throws_ok(
