@@ -117,9 +117,12 @@ async function recorrer(contexto: BrowserContext, page: Page, base: string, prod
   await page.getByRole('combobox', { name: 'Buscar productos' }).fill('joystick')
   await page.getByRole('combobox', { name: 'Buscar productos' }).press('Enter')
   await expect(page).toHaveURL(/\/catalogo\?q=joystick/)
+  // La capa de datos se reinicia con cada carga completa de página: el evento de búsqueda se lee ANTES de volver a la ficha.
+  const busquedas = await eventosDe(page, 'busqueda')
   await page.goto(`${base}/producto/${producto.id}`)
   await expect(page.getByRole('heading', { level: 1, name: producto.nombre })).toBeVisible()
   await pulsarAbrirWhatsapp(contexto, page)
+  return { busquedas }
 }
 
 const capaDeDatos = (page: Page) =>
@@ -208,9 +211,9 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         expect(eventos).toEqual([['event', 'envio_contacto']])
 
         // 4b) Eventos de la tienda (RF-TDA-24-2): vista de producto, búsqueda y clic en WhatsApp, solo con su nombre.
-        await recorrer(contexto, page, base, productos.get(t.host)!)
+        const { busquedas } = await recorrer(contexto, page, base, productos.get(t.host)!)
         expect(await eventosDe(page, 'vista_producto')).toEqual([['event', 'vista_producto']])
-        expect(await eventosDe(page, 'busqueda')).toEqual([['event', 'busqueda']])
+        expect(busquedas).toEqual([['event', 'busqueda']])
         expect(await eventosDe(page, 'clic_whatsapp')).toEqual([['event', 'clic_whatsapp']])
 
         // 4c) Acepta y luego revoca con la página abierta: no se emite ningún evento más.
