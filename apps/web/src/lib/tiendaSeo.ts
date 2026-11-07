@@ -20,9 +20,10 @@ type FilaSeo = { dominio: string; nombre: string; descripcion: string; logo_ruta
 export const LIMITE_TITULO = 60
 export const LIMITE_DESCRIPCION = 160
 
-// Junta los espacios y recorta con «…» para no pasar `max` caracteres.
-export function recortar(texto: string, max: number): string {
-  const limpio = texto.replace(/\s+/g, ' ').trim()
+// Junta los espacios y recorta con «…» para no pasar `max` caracteres. Tolera un texto ausente (`null`/`undefined`):
+// una cabecera de SEO nunca debe tumbar la página de un producto por un dato que falta.
+export function recortar(texto: string | null | undefined, max: number): string {
+  const limpio = (texto ?? '').replace(/\s+/g, ' ').trim()
   if (limpio.length <= max) return limpio
   return `${limpio.slice(0, max - 1).trimEnd()}…`
 }
