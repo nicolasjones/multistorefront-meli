@@ -112,14 +112,14 @@
     },
     "docs/adoptar-runners-locales.md": {
       "title": "Adoptar los runners locales optimizados",
-      "pageHash": "6c79a0e7dd80df2fdd0f81c31946d26034da050e352e34c5ed4f212d43cf9eac",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "ec67c41d09073efa8fbd402b1c539cedc878f5466059d9814cf74de78fa8e761",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "1862747d",
       "sources": [
         "specs"
       ],
       "owner": "plataforma",
-      "commit": "1598b10"
+      "commit": "1862747d"
     },
     "docs/adoptar-tooling-typescript.md": {
       "title": "Adoptar tooling Node/TypeScript en un producto derivado",
@@ -1425,9 +1425,9 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "9e775a4c13f63de7252c9d4075c409844f9d87b4f881d60bfbf6bf898a04223a",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "pageHash": "d4b47a99b9687ba40d337d92970b753e4cb292f2636582708fc8ffb264580a23",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1558,9 +1558,9 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "19fed6e83dd90f06bf5a82b7187418cfb23716ee392a35db5fa44d0a620b3e56",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "pageHash": "c8d580656030f39f80f959a555403dbdc0653979e66a92cab1b06465ff659129",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1570,21 +1570,21 @@
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "d2c50913bedabb084748e3aa6d49789b449a7b0965b2db8e0f69d855bcd3e668",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "911af6c3",
+      "pageHash": "c4d52d0308d6c310fdde40d703411269ec11897945ff8af74a62bf210a106ec1",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "2e40e7c0"
+      "commit": "4314aa20"
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "5f77aae75387f76ce7820772a9ef7f0367d6d59005281ab4ef835f70c8fb2407",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "pageHash": "23e40ad6a189431722f5d4e90088ce1c07eff06455a26091a3d0cf93352f0475",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1594,9 +1594,9 @@
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
-      "pageHash": "567d51c969f257f9405494f1ebd4d1f9504f257ca5f5a6b8ed6a9d497975f723",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "pageHash": "d9fe1098875c663273d3f907f0d22da8d12109a1f0d30716eae07174df943d93",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1606,9 +1606,9 @@
     },
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
-      "pageHash": "f59cd797286f60b7a9dc2d1d0184b13f0fbe60fea0901f2bebbe984f3045763b",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "pageHash": "922e0208f90d314b9c9a86f42a0445a824509892bb4fbc24057842418cd7352f",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
@@ -1618,9 +1618,9 @@
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "99c54d5878fec7ea4eb39cdc39cbda9953b020c3851134496ab2f00550f31cb6",
-      "sourceHash": "2a9282e32bf3ef44dc4b72f2f74e83dd2062270a6523bcd69dbeea652b9420a8",
-      "sourceAt": "2e40e7c0",
+      "pageHash": "6924ab3c33f49bb54433640ee9bdf5024ba198ff7478f9a9f3856039fdc0836f",
+      "sourceHash": "71db184702332e01fb7af9f407925cb3ac693523db49a26b85a7723e2bb7ef91",
+      "sourceAt": "c4f3d317",
       "sources": [
         ".github/workflows",
         "infra"
