@@ -30,7 +30,7 @@ Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan po
 ## Decisiones
 
 - **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda. Queda como pregunta para Nicolás.
-- **Decisión 7**: se adopta el precio vigente solo en catálogo y ficha. No se tocan destacados, búsqueda, precio por escala ni precios de cliente (ver cabecera de la migración `20270202202004`).
+- **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270202202004` y `20270202202005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento MSF-816.
 
 ## Verificación
 

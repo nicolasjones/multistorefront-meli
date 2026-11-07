@@ -44,7 +44,7 @@ Dos historias independientes sobre el contrato de MSF-114 (precio calculado al l
 1. **Vencimiento por consulta** (Decisión 1): `desde <= ahora < hasta` con `ahora` inyectable (`p_ahora`) para probar los bordes en pgTAP; en producción `now()`.
 2. **Sin solapes en la base**: disparador `before insert/update` que rechaza promociones no anuladas solapadas del mismo producto y empresa (no se habilita `btree_gist` para una restricción de exclusión: evita sumar una extensión sin otro uso; si el equipo la prefiere, es un cambio local a T011).
 3. **Cálculo único**: `precio_vigente_empresa` = promo (si hay) → alícuota → interruptor; devuelve `precio` y `precio_anterior` (el que habría sin promoción). Reutiliza las funciones de MSF-114; no duplica fórmulas.
-4. **Tienda**: solo catálogo y ficha en alcance (Decisión 7). Las demás superficies siguen con `precio_final_publico`; T014 deja el inventario de usos.
+4. **Tienda**: catálogo, ficha, destacados y búsqueda en alcance (Decisión 7). Escala y precios de cliente por dominio siguen con `precio_final_publico*` (seguimiento MSF-816).
 5. **Mercado Libre y ventas**: fuera (Decisión 6). El cálculo único queda disponible.
 
 ## Migraciones (todas aditivas, con reversión)

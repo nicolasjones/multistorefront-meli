@@ -7,7 +7,7 @@
 -- `anon` y se guardan en una tabla temporal; las verificaciones corren como postgres.
 begin;
 
-select plan(86);
+select plan(90);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -44,6 +44,10 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Alfa', 'PR-1', 1000, 'ARS', true),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Beta', 'PR-2', 3000, 'ARS', true),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajeno', 'PD-1', 700, 'ARS', true);
+-- Con IVA visible el precio necesita alícuota: se asigna la de 21 % a los productos de la organización 1.
+update dominio.productos set alicuota_iva_id = (select id from dominio.alicuotas_iva
+  where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = '21 %')
+ where organizacion_id = '11111111-1111-1111-1111-111111111111';
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
 select p.id, e.id, '11111111-1111-1111-1111-111111111111'
   from dominio.productos p
@@ -399,10 +403,17 @@ grant all on res to anon;
 -- pB se anuló arriba: se programa una vigente nueva para B/Beta como postgres, sin pasar por la RPC.
 update dominio.promociones_precio set anulada_at = null where id = 'c1000000-0000-0000-0000-00000000000b';
 
+-- Beta destacada en B: la home debe mostrar el mismo precio vigente que catálogo y ficha.
+insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values
+  ('e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', true, true);
+
 select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
 set local role anon;
 
 insert into res values
+  ('dest_b', publico.destacados_por_dominio('promo-b.ejemplo.com')),
+  ('bus_b', publico.busqueda_pagina_por_dominio('promo-b.ejemplo.com', 'beta')),
+  ('sug_b', publico.sugerencias_busqueda_por_dominio('promo-b.ejemplo.com', 'beta')),
   ('cat_b', publico.catalogo_pagina_por_dominio('promo-b.ejemplo.com')),
   ('cat_b_asc', publico.catalogo_pagina_por_dominio('promo-b.ejemplo.com', null, false, null, 'precio_asc', 1)),
   ('cat_b_max', publico.catalogo_pagina_por_dominio('promo-b.ejemplo.com', null, false, 2000, 'relevancia', 1)),
@@ -425,6 +436,23 @@ select is(
 select is(
   (select p -> 'precio_anterior' from res, jsonb_array_elements(j -> 'productos') p where clave = 'cat_b' and p ->> 'nombre' = 'Alfa'),
   'null'::jsonb, 'catálogo de B: Alfa sin promoción, precio_anterior null'
+);
+select is(
+  (select jsonb_build_array((p ->> 'precio')::numeric, (p ->> 'precio_anterior')::numeric) from res, jsonb_array_elements(j -> 'productos') p where clave = 'dest_b' and p ->> 'nombre' = 'Beta'),
+  '[2500, 3000]'::jsonb, 'destacados de B: Beta con el precio vigente y el anterior'
+);
+select is(
+  (select jsonb_build_array((p ->> 'precio')::numeric, (p ->> 'precio_anterior')::numeric) from res, jsonb_array_elements(j -> 'productos') p where clave = 'bus_b' and p ->> 'nombre' = 'Beta'),
+  '[2500, 3000]'::jsonb, 'resultados de búsqueda de B: Beta con el precio vigente y el anterior'
+);
+select is(
+  (select jsonb_build_array((p ->> 'precio')::numeric, (p ->> 'precio_anterior')::numeric) from res, jsonb_array_elements(j -> 'productos') p where clave = 'sug_b' and p ->> 'nombre' = 'Beta'),
+  '[2500, 3000]'::jsonb, 'sugerencias de B: Beta con el precio vigente y el anterior'
+);
+select is(
+  (select jsonb_agg(k order by k) from (select distinct jsonb_object_keys(p) k from res, jsonb_array_elements(j -> 'productos') p where clave = 'dest_b') s),
+  '["categoria_id", "disponible", "id", "imagen", "nombre", "precio", "precio_anterior"]'::jsonb,
+  'lista blanca de destacados: solo suma precio_anterior'
 );
 select is(
   (select jsonb_agg(p ->> 'nombre' order by ord) from res, jsonb_array_elements(j -> 'productos') with ordinality t(p, ord) where clave = 'cat_b_asc'),
