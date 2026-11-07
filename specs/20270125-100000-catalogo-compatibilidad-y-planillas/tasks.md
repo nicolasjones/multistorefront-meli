@@ -68,9 +68,9 @@
 
 ## Phase 4: Cierre
 
-- [ ] T031 [CIERRE] Índice en `docs/catalogo.md` hacia `catalogo-importacion.md` y `catalogo-exportacion.md`; `docs/permisos-por-rol.md` si aplica; `pnpm docs:check`
-- [ ] T032 [CIERRE] Revisión de seguridad: RLS de las tablas nuevas, grants de RPC (`anon` sin ejecución), bucket temporal, inyección de fórmulas en CSV, la service-role fuera del navegador
-- [ ] T033 [CIERRE] Roadmap: actualizar la fila de MSF-202 en `docs/roadmap-template.md` (estado, link a la spec)
+- [x] T031 [CIERRE] Índice en `docs/catalogo.md` hacia `catalogo-importacion.md` y `catalogo-exportacion.md`; `docs/permisos-por-rol.md` si aplica; `pnpm docs:check`
+- [x] T032 [CIERRE] Revisión de seguridad: RLS de las tablas nuevas, grants de RPC (`anon` sin ejecución), bucket temporal, inyección de fórmulas en CSV, la service-role fuera del navegador
+- [x] T033 [CIERRE] Roadmap: actualizar la fila de MSF-202 en `docs/roadmap-template.md` (estado, link a la spec)
 
 ## Plan de ejecución (historias)
 
