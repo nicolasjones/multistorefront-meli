@@ -3,7 +3,6 @@
 // página (25). La autoridad es la base: acá solo se llaman y se traducen sus errores.
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export const TOPE_EDICION_MASIVA = 100
 export const MENSAJE_SIN_CAMBIOS = 'No hubo cambios'
 
 type ClienteRpc = Pick<SupabaseClient, 'rpc'>
