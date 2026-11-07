@@ -365,7 +365,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
-- **Sin acciones masivas** sobre el listado.
+- **Acciones masivas**: solo las de «Productividad» (mover de categoría, estado y empresas; ver la sección homónima).
 - **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
@@ -382,13 +382,24 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 
 ## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270213100000`)
 
-Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/edicion-masiva.md`). La sección se completa con «Duplicar» (F-CAT-13) en el cierre de la épica.
+Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/edicion-masiva.md`). Junto con «Duplicar» (F-CAT-13, sección anterior) forma la épica MSF-218; no cambia la matriz de permisos (`docs/permisos-por-rol.md`): ambas acciones exigen `edicion` en Productos.
 
 - **Quién**: solo quien tiene `edicion` en Productos ve las casillas (por fila y «Seleccionar todos» en el encabezado, sobre las filas ya cargadas) y la barra «N seleccionados». Con `lectura` no aparece nada.
 - **Acciones**: «Mover de categoría» (árbol de MSF-160, un clic mueve), «Cambiar estado» (Activar / Desactivar, no borra nada) y «Cambiar empresas» (`SelectorEmpresas`: «Agregar a» y «Quitar de»; el resultado por producto es `(actuales ∪ agregar) − quitar`). Los diálogos se cargan de forma diferida.
 - **Base**: tres RPC en `public` (`mover_productos_categoria`, `cambiar_estado_productos`, `definir_empresas_productos`), `security invoker`, de 1 a 100 ids, atómicas e idempotentes; devuelven cuántos productos cambiaron (si ninguno, el aviso es «No hubo cambios»). Reutilizan las RPC individuales, así que cada producto con cambio real deja su evento de Actividad (`producto.categoria_asignada`, `producto.activado|desactivado`, `producto.empresas_actualizadas`). Sin tablas nuevas (Principio VII); `anon` sin ejecución. Reversión: `drop function` de las tres RPC y de `private.bloquear_productos_masivo`.
 - **Empresa activa (Principio VIII)**: la selección se descarta al cambiar empresa, filtro, búsqueda u orden (pedir más filas con la carga infinita no la descarta), y un diálogo abierto se cierra con aviso.
 - **Diferencias con el prototipo**: no se construyen «Marcar destacado», «Enviar al newsletter» ni «Borrar» (el producto se desactiva, no se borra); el texto «hasta 3.er nivel» se omite (el árbol es de 2 niveles); «Cambiar estado» y «Cambiar empresas» no están dibujados y usan el mismo patrón de botón y diálogo.
+
+### Revisión de seguridad de MSF-218 (cierre, SC-004)
+
+Revisión (authz-security) de `20270213100000_catalogo_edicion_masiva.sql`, sin hallazgos que corregir:
+
+- **Sin tablas**: ninguna tabla nueva ni alterada (Principio VII); las RPC viven en `public` y los datos siguen en `dominio` con su RLS.
+- **Grants**: las tres RPC con `revoke … from public, anon` y `grant execute … to authenticated`; `anon` no ejecuta nada (lo verifica el test de grants de pgTAP).
+- **Authz**: `security invoker`; rigen la RLS y la sección `productos` en `edicion`. Ids de otra organización: `P0002` y nada cambia (atómica). Tope de 100 ids (`22023`).
+- **Concurrencia**: filas bloqueadas en orden de id para evitar interbloqueos entre dos ediciones masivas.
+- **Duplicar**: sin RPC ni contrato nuevos; `crear_producto` conserva sus validaciones y `duplicar_de` no llega al servidor.
+- **Verificación**: `supabase/tests/database/catalogo_edicion_masiva.test.sql` y `rls_en_toda_tabla`.
 
 ## Importar y exportar productos (épica MSF-202)
 
