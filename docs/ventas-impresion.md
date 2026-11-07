@@ -312,3 +312,10 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).
   Hoy es texto libre (tope de 60 caracteres, sin catálogo): cuando se agregue la edición en la ficha del
   cliente hay que cerrar los valores (lista cerrada o enum) para que no salgan variantes en la factura.
+
+## Pestaña abierta en el clic y marca «impreso» (MSF-722)
+
+«Imprimir» abre una pestaña en blanco en el propio clic (para que el navegador no la bloquee) y le asigna la URL
+firmada cuando el PDF está listo; si la generación falla, la pestaña se cierra. La impresión se registra solo con la
+pestaña lista para mostrar el PDF. Si el navegador la bloquea (o la persona la cerró), no se registra nada: queda el
+enlace «Abrir documento» y la impresión se registra al abrirlo.

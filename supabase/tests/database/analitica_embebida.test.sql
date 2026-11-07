@@ -592,7 +592,7 @@ select set_config(
 );
 set local role authenticated;
 
-select entrar_a_organizacion('b1111111-1111-1111-1111-111111111111');
+select entrar_a_organizacion('b1111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
   (select public.resolver_organizacion_reporte((select val from t_ids where key = 'reporte1'))),
@@ -600,7 +600,7 @@ select is(
   'con X activa, resolver_organizacion_reporte devuelve X (no una fila cualquiera)'
 );
 
-select entrar_a_organizacion('b2222222-2222-2222-2222-222222222222');
+select entrar_a_organizacion('b2222222-2222-2222-2222-222222222222', 'prueba de soporte');
 
 select is(
   (select public.resolver_organizacion_reporte((select val from t_ids where key = 'reporte1'))),
@@ -618,7 +618,7 @@ select is(
 -- aunque no estuviera asignado a la organización activa. Esta función no
 -- tiene ese bypass: mismo criterio que un administrador normal.
 
-select entrar_a_organizacion('b3333333-3333-3333-3333-333333333333');
+select entrar_a_organizacion('b3333333-3333-3333-3333-333333333333', 'prueba de soporte');
 
 select is(
   (select count(*)::int from public.reportes_visibles_para_mi()),
@@ -626,7 +626,7 @@ select is(
   'con Z activa (sin nada asignado), reportes_visibles_para_mi() no ofrece el reporte — antes el superadmin lo veía igual (bug real)'
 );
 
-select entrar_a_organizacion('b1111111-1111-1111-1111-111111111111');
+select entrar_a_organizacion('b1111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
   (select count(*)::int from public.reportes_visibles_para_mi()),

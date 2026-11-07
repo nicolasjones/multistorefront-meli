@@ -1,9 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ resolver: vi.fn(), categorias: vi.fn() }))
+const mocks = vi.hoisted(() => ({ resolver: vi.fn(), redireccion: vi.fn(), categorias: vi.fn(), estado: vi.fn() }))
 
-vi.mock('../../lib/tienda', () => ({ resolverTienda: mocks.resolver }))
+// El hook se prueba en lib/tiendaEstado.test.ts: acá se controla el estado que devuelve.
+vi.mock('../../lib/tiendaEstado', () => ({ useEstadoTienda: mocks.estado }))
+
+vi.mock('../../lib/tienda', () => ({
+  resolverTienda: mocks.resolver,
+  resolverRedireccion: mocks.redireccion,
+  urlDeRedireccion: (principal: string) => `https://${principal}/`,
+}))
 vi.mock('../../lib/tiendaCategorias', () => ({ leerCategoriasPublicas: mocks.categorias }))
 
 import { TiendaPublicaApp } from './index'
@@ -12,6 +19,8 @@ describe('TiendaPublicaApp (FR-007, SC-004, SC-011)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.categorias.mockResolvedValue([])
+    mocks.estado.mockReturnValue({ estado: { fase: 'desconocida' }, reintentar: vi.fn() })
+    mocks.redireccion.mockResolvedValue(null)
   })
 
   it('muestra la tienda cuando el Host resuelve', async () => {
@@ -27,13 +36,78 @@ describe('TiendaPublicaApp (FR-007, SC-004, SC-011)', () => {
     render(<TiendaPublicaApp host="no-existe.test" />)
 
     expect(await screen.findByRole('heading', { name: 'Volvemos pronto' })).toBeInTheDocument()
+    expect(screen.getByTestId('volvemos-pronto-generica')).toBeInTheDocument()
+    expect(mocks.estado).toHaveBeenCalledWith('no-existe.test')
+  })
+
+  it('para una tienda desactivada muestra «Volvemos pronto» con su marca (FR-002)', async () => {
+    mocks.resolver.mockResolvedValue(null)
+    mocks.estado.mockReturnValue({
+      estado: {
+        fase: 'pausada',
+        marca: {
+          nombre: 'Mundo JC', colorPrimario: '#AA1111', colorPrimarioOscuro: '#000000', colorAcento: '#222222', colorFondo: '#FFFFFF',
+          tipografiaTitulos: 'system-ui', tipografiaTexto: 'system-ui', logoRuta: null,
+        },
+      },
+      reintentar: vi.fn(),
+    })
+    render(<TiendaPublicaApp host="mundojc.localhost" />)
+
+    expect(await screen.findByTestId('volvemos-pronto-marca')).toBeInTheDocument()
+    expect(screen.getByText('Mundo JC')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Volvemos pronto' })).toBeInTheDocument()
+  })
+
+  it('si falla la consulta del estado ofrece reintentar y no lo disfraza de «Volvemos pronto» (FR-004)', async () => {
+    mocks.resolver.mockResolvedValue(null)
+    const reintentar = vi.fn()
+    mocks.estado.mockReturnValue({ estado: { fase: 'error' }, reintentar })
+    render(<TiendaPublicaApp host="no-existe.test" />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar esta página.')
+    expect(screen.queryByRole('heading', { name: 'Volvemos pronto' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(reintentar).toHaveBeenCalledTimes(1)
+  })
+
+  it('redirige al dominio principal cuando el host es el «Redirigir también» de una tienda (F-TDA-05, FR-013)', async () => {
+    mocks.resolver.mockResolvedValue(null)
+    mocks.redireccion.mockResolvedValue('mundojc.com.ar')
+    const redirigir = vi.fn()
+    render(<TiendaPublicaApp host="www.mundojc.com.ar" redirigir={redirigir} />)
+
+    await waitFor(() => expect(redirigir).toHaveBeenCalledWith('https://mundojc.com.ar/'))
+    expect(mocks.redireccion).toHaveBeenCalledWith('www.mundojc.com.ar')
+    expect(screen.queryByRole('heading', { name: 'Volvemos pronto' })).not.toBeInTheDocument()
+  })
+
+  it('un host que resuelve una tienda no consulta la redirección', async () => {
+    mocks.resolver.mockResolvedValue({ tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' })
+    render(<TiendaPublicaApp host="mundojc.com.ar" redirigir={vi.fn()} />)
+
+    expect(await screen.findByRole('heading', { name: 'Mundo JC' })).toBeInTheDocument()
+    expect(mocks.redireccion).not.toHaveBeenCalled()
+  })
+
+  it('un error al consultar la redirección ofrece reintentar y no redirige', async () => {
+    mocks.resolver.mockResolvedValue(null)
+    mocks.redireccion.mockRejectedValueOnce(new Error('sin red'))
+    const redirigir = vi.fn()
+    render(<TiendaPublicaApp host="www.mundojc.com.ar" redirigir={redirigir} />)
+
+    // La pantalla de error de la tienda (MSF-247, F-TDA-19) reemplazó al texto viejo «No pudimos cargar la tienda.».
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar esta página.')
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(redirigir).not.toHaveBeenCalled()
   })
 
   it('ante un error de red ofrece reintentar y no lo disfraza de «Volvemos pronto»', async () => {
     mocks.resolver.mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce({ tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' })
     render(<TiendaPublicaApp host="mundojc.localhost" />)
 
-    expect(await screen.findByText('No pudimos cargar la tienda.')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar esta página.')
     expect(screen.queryByRole('heading', { name: 'Volvemos pronto' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))

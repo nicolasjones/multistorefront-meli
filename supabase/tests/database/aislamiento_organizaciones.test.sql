@@ -240,7 +240,7 @@ select set_config(
 );
 set local role authenticated;
 
-select entrar_a_organizacion('11111111-1111-1111-1111-111111111111');
+select entrar_a_organizacion('11111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
   (select count(*) from clientes)::int, 3,
@@ -254,7 +254,7 @@ select is(
   'con la organización 1 activa, el superadmin puede editar sus clientes (como su administrador)'
 );
 
-select entrar_a_organizacion('22222222-2222-2222-2222-222222222222');
+select entrar_a_organizacion('22222222-2222-2222-2222-222222222222', 'prueba de soporte');
 
 select is(
   (select count(*) from clientes)::int, 2,
@@ -351,7 +351,7 @@ reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'a5000000-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
 set local role authenticated;
-select entrar_a_organizacion('22222222-2222-2222-2222-222222222222');
+select entrar_a_organizacion('22222222-2222-2222-2222-222222222222', 'prueba de soporte');
 select lives_ok($$select agregar_miembro('a9000000-0000-0000-0000-000000000009', 'miembro', 'miembro_agregado')$$, 'superadmin incorpora dentro de su organización activa');
 reset role;
 
@@ -394,7 +394,7 @@ reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'a5000000-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
 set local role authenticated;
-select entrar_a_organizacion('11111111-1111-1111-1111-111111111111');
+select entrar_a_organizacion('11111111-1111-1111-1111-111111111111', 'prueba de soporte');
 select throws_ok($$select cambiar_rol_miembro('a1000000-0000-0000-0000-000000000001', 'miembro')$$, null, null, 'el superadmin no puede degradar al último administrador');
 reset role;
 
@@ -430,7 +430,7 @@ reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'a5000000-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
 set local role authenticated;
-select entrar_a_organizacion('11111111-1111-1111-1111-111111111111');
+select entrar_a_organizacion('11111111-1111-1111-1111-111111111111', 'prueba de soporte');
 select throws_ok($$select remover_miembro('a1000000-0000-0000-0000-000000000001')$$, null, null, 'el superadmin no puede remover al último administrador');
 reset role;
 
