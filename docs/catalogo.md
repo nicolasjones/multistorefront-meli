@@ -320,7 +320,7 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
   función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
 
-## Filtro «Compatible con» y etiquetas (F-CAT-09, MSF-360, épica MSF-202; migraciones `20270121121301` y `20270121121302`)
+## Filtro «Compatible con» y etiquetas (F-CAT-09, MSF-360, épica MSF-202; migraciones `20270206100101` y `20270206100102`)
 
 Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US1). El campo «Compatible con» del alta/edición **no cambia** (texto separado por comas, `dominio.productos.compatible_con text[]`, hasta 50 valores de 100 caracteres); un test de regresión lo cubre (`FormularioProducto.test.tsx`).
 

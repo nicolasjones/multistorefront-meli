@@ -162,7 +162,9 @@ describe('Filtro «Compatible con» del listado', () => {
     rerender(<MemoryRouter><ProductoList /></MemoryRouter>)
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(2))
     await waitFor(() => {
-      const ultimoFrom = mocks.llamadas.map((l) => l[0]).lastIndexOf('from')
+      // La pantalla también consulta precios y costos después del listado: se busca la última consulta de la VISTA
+      // del listado, no el último `from` (que ya no es el de productos).
+      const ultimoFrom = mocks.llamadas.map((l) => l[0] === 'from' && l[1] === 'v_productos_listado').lastIndexOf(true)
       expect(ultimoFrom).toBeGreaterThanOrEqual(0)
       const desdeUltima = mocks.llamadas.slice(ultimoFrom)
       expect(desdeUltima.some((l) => l[0] === 'overlaps')).toBe(false)

@@ -18,7 +18,7 @@ UTF-8 con BOM, separador `;`, fin de línea CRLF (abre bien en Excel en castella
 
 ## Servidor
 
-`public.exportar_productos(p_filtros jsonb, p_columnas text[], p_desde uuid, p_limite integer) returns jsonb` (`{filas, siguiente, total}`), migración `20270121121301_exportar_productos.sql`. Esquema `public` (función de solo lectura sobre `v_productos_listado` y `dominio`); no crea tablas.
+`public.exportar_productos(p_filtros jsonb, p_columnas text[], p_desde uuid, p_limite integer) returns jsonb` (`{filas, siguiente, total}`), migración `20270205110210_exportar_productos.sql`. Esquema `public` (función de solo lectura sobre `v_productos_listado` y `dominio`); no crea tablas.
 
 - `security definer` (para registrar actividad) con autorización propia: `42501` si no es Administrador de la organización de la sesión; `42501` si pide `costo` o `proveedor` sin Rentabilidad; `22023` por columna desconocida o `p_limite` fuera de 1…1000. Toda lectura va acotada a la organización de la sesión. `anon` y `public` sin ejecución.
 - Paginación estable por cursor de `id` (el cliente pide páginas de 500 y las concatena).
