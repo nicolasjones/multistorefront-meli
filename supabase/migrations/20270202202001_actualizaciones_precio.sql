@@ -9,7 +9,7 @@
 -- Migración aditiva. Reversión (en una migración posterior, no en este PR; exportar antes los datos):
 --   drop table dominio.actualizaciones_precio;
 
-create table dominio.actualizaciones_precio (
+create table if not exists dominio.actualizaciones_precio (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   actor_id uuid,
@@ -29,7 +29,7 @@ comment on column dominio.actualizaciones_precio.clave is
 comment on column dominio.actualizaciones_precio.parametros is
   'Parámetros del lote sin importes de costo (modo porcentaje: qué cambia, alcance y %; planilla: cantidad de filas).';
 
-create index actualizaciones_precio_org_creado_idx
+create index if not exists actualizaciones_precio_org_creado_idx
   on dominio.actualizaciones_precio (organizacion_id, creado_en desc, id);
 
 alter table dominio.actualizaciones_precio enable row level security;
