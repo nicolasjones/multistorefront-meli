@@ -18,11 +18,11 @@ Extiende `registro_actividad` (F-AUD-01) con antes/después, inalterabilidad y d
 
 | Pieza | Archivos (previstos) |
 |---|---|
-| F-AUD-02 BD | `supabase/migrations/20270210100000_registro_inalterable_antes_despues.sql`, `20270210100100_depurar_registro_actividad.sql`, pgTAP `registro_inalterable.test.sql` y `depurar_registro_actividad.test.sql` |
+| F-AUD-02 BD | `supabase/migrations/20270207100001_registro_inalterable_antes_despues.sql`, `20270207100002_depurar_registro_actividad.sql`, pgTAP `registro_inalterable.test.sql` y `depurar_registro_actividad.test.sql` |
 | F-AUD-02 Kestra | `infra/kestra/flows/depuracion-actividad.yml` + test de validación del flow (patrón `validar-copias-flows.test.mjs`) |
 | F-AUD-02 UI | `apps/web/src/hooks/useDetalleActividad.ts`, `components/DetalleActividadDialog.tsx`, integración en `pages/actividad/list.tsx` |
 | F-AUD-03 | `supabase/migrations/20270210110000_exportar_actividad.sql`, `lib/exportarCsv.ts` (reuso), `components/BotonExportarActividad.tsx`, integración en `pages/actividad/list.tsx` |
-| F-OPS-04 | `supabase/migrations/20270210120000_acceso_soporte_auditado.sql`, `pages/organizaciones/list.tsx`, `components/OrganizacionActivaBanner.tsx`, `lib/superadmin.ts`, pgTAP `acceso_soporte.test.sql` |
+| F-OPS-04 | `supabase/migrations/20270207100003_acceso_soporte_auditado.sql`, `pages/organizaciones/list.tsx`, `components/OrganizacionActivaBanner.tsx`, `lib/superadmin.ts`, pgTAP `acceso_soporte.test.sql` |
 
 Cada historia trae su propia migración con timestamp propio; ninguna depende de otra. `soporte.*` no usa el mecanismo de «sensible» (no es un cambio de dato con antes/después), por eso F-OPS-04 solo usa `private.insertar_actividad` (firma estable) y es independiente de F-AUD-02.
 

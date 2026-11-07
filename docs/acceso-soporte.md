@@ -1,7 +1,7 @@
 # Acceso de soporte auditado (F-OPS-04)
 
 Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US3, FR-014…FR-018). Migración:
-`supabase/migrations/20270205110212_acceso_soporte_auditado.sql`. Todo vive en `public` (plataforma, Principio VII).
+`supabase/migrations/20270207100003_acceso_soporte_auditado.sql`. Todo vive en `public` (plataforma, Principio VII).
 
 ## Qué cambia para el equipo de soporte
 
