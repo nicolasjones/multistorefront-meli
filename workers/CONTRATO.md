@@ -158,3 +158,32 @@ cualquier escritura en stderr marca la tarea con advertencia.
   (`publicar_evidencia`), las borra del host y las purga al superar
   `EVIDENCIA_RETENCION_DIAS` (30 por defecto) con el flow
   `limpieza-evidencia`. El worker no lee esa variable ni borra evidencia.
+
+## Procesos masivos (importaciones y exportaciones)
+
+Toda carga o descarga masiva registra su avance en el centro de importaciones
+(`/importaciones`, F-IMP-01 / MSF-354) con este protocolo. La guía completa
+para la funcionalidad que lo usa está en `docs/importaciones.md`.
+
+1. **Iniciar**: la app llama a `iniciar_proceso_masivo` (administrador de la
+   organización). Crea el proceso `pendiente` y su ejecución del ciclo con su
+   orden de despacho en una sola transacción; el `detalle` de la ejecución trae
+   `proceso_id` y los `parametros`. El worker lee `proceso_id` de su ejecución.
+2. **Progreso por lote**: `actualizar_progreso_proceso_masivo(proceso, procesados,
+   total)`. El primer aviso pasa el proceso a `en_curso`; `procesados` no
+   retrocede ni supera `total`.
+3. **Errores por fila**: `registrar_error_proceso_masivo(proceso, fila,
+   referencia, motivo)`. El motivo se sanitiza en la base, pero el worker nunca
+   manda el error crudo ni datos personales. Se guardan hasta 1000 detalles por
+   proceso; `con_errores` cuenta todos.
+4. **Revisar la cancelación entre lotes**: `proceso_masivo_cancelado(proceso)`.
+   Si devuelve `true`, el worker deja de procesar, conserva lo ya hecho y cierra
+   `cancelado`. No se mata el contenedor.
+5. **Cerrar**: `cerrar_proceso_masivo(proceso, estado, motivo)` con `completado`
+   (sin filas rechazadas), `con_errores` (terminó con filas rechazadas), `fallido`
+   (no pudo terminar) o `cancelado`. Después el worker cierra su ejecución con
+   `cerrar_ejecucion_worker`. Si la ejecución termina `fallida` o `timeout` sin
+   que el worker cerrara el proceso, la base lo pasa a `fallido`.
+
+Las funciones del worker las ejecuta solo su rol `worker_<org>` y solo sobre
+procesos de su propia organización.
