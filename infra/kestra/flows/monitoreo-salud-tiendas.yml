@@ -37,8 +37,8 @@ tasks:
         options:
           followRedirects: false
           allowFailed: true
-          connectTimeout: PT10S
-          readTimeout: PT10S
+          connectTimeout: "PT{{ inputs.timeout_seg }}S"
+          readTimeout: "PT{{ inputs.timeout_seg }}S"
       - id: registrar
         type: io.kestra.plugin.jdbc.postgresql.Query
         url: "{{ envs.kestra_orquestacion_db_url }}"

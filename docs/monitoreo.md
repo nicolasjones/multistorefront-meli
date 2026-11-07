@@ -20,6 +20,7 @@ Spec: `specs/20261102-220000-importaciones-y-monitoreo` (MSF-369, F-OPS-03). Est
 | Fallos para alertar (tienda, sincronización) | 5 en 10 minutos, por fuente y clave | inputs `fallos` y `ventana_min` del flow `monitoreo-evaluar` |
 | Cola sin avanzar | 15 minutos | input `cola_min` de `monitoreo-evaluar` |
 | Errores de la aplicación | 5 eventos en 10 minutos en el proyecto | inputs `umbral` y `ventana_min` de `monitoreo-errores-aplicacion` |
+| Errores repetidos del panel | Un mismo error se envía una vez por minuto y por sesión; máximo 10 envíos por minuto | `erroresWeb.ts` (evita que una sesión rota dispare la alerta) |
 | Frecuencia de sondeo y evaluación | cada 2 minutos | `cron` del trigger de cada flow |
 
 Con el sondeo cada 2 minutos, 5 fallos consecutivos se alcanzan justo a los 10 minutos. Cambiar un umbral no requiere cambiar código.

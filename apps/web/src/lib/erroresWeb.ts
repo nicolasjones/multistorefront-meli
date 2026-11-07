@@ -9,7 +9,12 @@ export interface ConfigErrores {
   ambiente?: string
   version?: string
   enviar?: (url: string, cuerpo: string) => Promise<unknown>
+  ahora?: () => number
 }
+
+// Tope por sesión: un error en bucle no puede inundar GlitchTip ni disparar la alerta por conteo.
+const VENTANA_REPETIDO_MS = 60_000
+const MAX_ENVIOS_POR_MINUTO = 10
 
 export interface EventoError {
   event_id: string
@@ -119,12 +124,23 @@ export function crearRegistroErrores(config: ConfigErrores): RegistroErrores {
   const version = config.version || 'dev'
   const enviar = config.enviar ?? ((url: string, cuerpo: string) =>
     fetch(url, { method: 'POST', body: cuerpo, keepalive: true, headers: { 'content-type': 'application/json' } }))
+  const ahora = config.ahora ?? Date.now
+  const vistos = new Map<string, number>()
+  let enviosMinuto: number[] = []
   return {
     activo: true,
     capturar(error) {
       try {
         const evento = filtrarEvento(crearEvento(error, { ambiente, version }, globalThis.location?.href))
         if (!evento) return
+        const t = ahora()
+        const huella = JSON.stringify(evento.fingerprint)
+        const ultimo = vistos.get(huella)
+        if (ultimo !== undefined && t - ultimo < VENTANA_REPETIDO_MS) return
+        enviosMinuto = enviosMinuto.filter((x) => t - x < VENTANA_REPETIDO_MS)
+        if (enviosMinuto.length >= MAX_ENVIOS_POR_MINUTO) return
+        vistos.set(huella, t)
+        enviosMinuto.push(t)
         Promise.resolve(enviar(destino.url, JSON.stringify(evento))).catch(() => {})
       } catch {
         // El monitoreo nunca rompe la aplicación.

@@ -70,4 +70,17 @@ describe('erroresWeb', () => {
     expect(() => registro.capturar(new Error('boom'))).not.toThrow()
     await Promise.resolve()
   })
+
+  it('no reenvía el mismo error dentro de un minuto y limita el volumen por sesión', () => {
+    let t = 0
+    const enviar = vi.fn().mockResolvedValue(undefined)
+    const registro = crearRegistroErrores({ dsn: DSN, enviar, ahora: () => t })
+    for (let i = 0; i < 100; i++) registro.capturar(new Error('bucle'))
+    expect(enviar).toHaveBeenCalledTimes(1)
+    for (let i = 0; i < 50; i++) registro.capturar(new Error(`distinto ${'x'.repeat(i)}`))
+    expect(enviar).toHaveBeenCalledTimes(10)
+    t = 61_000
+    registro.capturar(new Error('bucle'))
+    expect(enviar).toHaveBeenCalledTimes(11)
+  })
 })
