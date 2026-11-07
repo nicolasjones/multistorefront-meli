@@ -3334,3 +3334,28 @@ erDiagram
   un superadmin; la columna `organizacion_id` es opcional y contextual.
 - Reversión: ver el encabezado de cada migración y la sección «Reversión» de
   [Importaciones y monitoreo](importaciones-y-monitoreo.md#reversion).
+
+## Páginas de contenido y analítica de la tienda (MSF-164)
+
+Dos tablas nuevas en `dominio` (migraciones `20270212200001_tienda_paginas.sql` y `20270212200002_tienda_analitica.sql`), ambas con RLS por organización, solo `select` para `authenticated` y escritura únicamente por RPC. Ver [Tienda pública: contenido, analítica y compartir](tienda-contenido-y-analitica.md).
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ TIENDA_PAGINAS : "tiene"
+  EMPRESAS ||--o| TIENDA_ANALITICA : "mide con"
+  TIENDA_PAGINAS {
+    uuid id PK
+    uuid empresa_id FK
+    uuid organizacion_id FK
+    text titulo "1 a 80"
+    text slug "unico por empresa"
+    text contenido "hasta 10000"
+    boolean visible "false por defecto"
+  }
+  TIENDA_ANALITICA {
+    uuid empresa_id PK
+    uuid organizacion_id FK
+    text ga4_id "G-..."
+    text meta_pixel_id "8 a 20 digitos"
+  }
+```

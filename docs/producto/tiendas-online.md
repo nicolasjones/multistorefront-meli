@@ -96,6 +96,7 @@ La disponibilidad que ve el visitante es solo «Disponible» o «Sin stock», se
 - Los clientes con cuenta pueden **Ingresar** y ver los precios que les corresponden. Ver [Cuenta web del cliente](cuenta-web-cliente.md).
 - Si la tienda está pausada o todavía no tiene dirección web, se ve la página «Volvemos pronto».
 - Una dirección que no existe muestra «No encontramos esta página».
+- Cada tienda puede tener sus propias páginas de texto, medir visitas con Google Analytics y Meta Pixel, y ofrecer el botón **Compartir** en las fichas. Ver [Páginas propias, medición de visitas y botón Compartir](tienda-contenido-y-analitica.md).
 
 ## Qué se publica y cómo se oculta
 
