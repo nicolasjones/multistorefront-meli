@@ -356,7 +356,7 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
 
-## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270201200141`)
+## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270210120000`)
 
 Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/edicion-masiva.md`). La sección se completa con «Duplicar» (F-CAT-13) en el cierre de la épica.
 
