@@ -14,7 +14,7 @@ type Preparacion = { correo: string; dominio: string; auth_user_id: string | nul
 type CuentaWeb = { empresa_id: string; estado: string }
 
 export type Deps = {
-  // `http` solo en desarrollo local; en cualquier otro entorno las tiendas viven en https.
+  // `http` solo con ALLOW_HTTP_REDIRECT=true (desarrollo local); en cualquier otro entorno las tiendas viven en https.
   protocolo: 'https' | 'http'
   admin: {
     auth: {
