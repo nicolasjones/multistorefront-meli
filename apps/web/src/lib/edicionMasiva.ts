@@ -1,6 +1,6 @@
 // Edición masiva de productos (F-CAT-12, MSF-392). Tres RPC atómicas e idempotentes (`security invoker`,
-// de 1 a 100 ids) que devuelven cuántos productos cambiaron de verdad; la pantalla manda como mucho una
-// página (25). La autoridad es la base: acá solo se llaman y se traducen sus errores.
+// de 1 a 100 ids) que devuelven cuántos productos cambiaron de verdad; la pantalla manda como mucho 100
+// (tope de la selección). La autoridad es la base: acá solo se llaman y se traducen sus errores.
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const MENSAJE_SIN_CAMBIOS = 'No hubo cambios'
