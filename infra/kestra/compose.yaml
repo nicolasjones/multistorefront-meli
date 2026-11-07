@@ -107,6 +107,9 @@ services:
       # {{ envs.historial_importador_imagen }}; en producción se publica por
       # digest, igual que el resto de los workers.
       ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
+      # Imagen del worker que aplica las importaciones de productos desde CSV
+      # (MSF-375); flow `importar-productos.yml`.
+      ENV_IMPORTAR_PRODUCTOS_IMAGEN: ${IMPORTAR_PRODUCTOS_IMAGEN:-local/worker-importar-productos:latest}
       # Imagen del worker de exportación diferida de comprobantes (MSF-346); flow
       # `exportar-comprobantes.yml`.
       ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:-local/worker-exportar-comprobantes:latest}

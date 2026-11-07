@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
@@ -17,6 +17,10 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import type { ColumnaCsv } from '../../lib/exportarCsv'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
@@ -27,6 +31,7 @@ const EditarMinimoDialog = lazy(() => import('./EditarMinimoDialog'))
 const TrasladarDialog = lazy(() => import('./TrasladarDialog'))
 
 const TAMANO_PAGINA = 25
+const SIN_FILAS: FilaStock[] = []
 // Lote chico: cada lote arma un `in (…)` con sus ids para las cifras por depósito.
 const LOTE_EXPORTACION = 200
 const nombreArchivoStock = () => nombreArchivoCsv('stock-actual')
@@ -57,15 +62,18 @@ const etiquetaEstado = (estado: EstadoStock) => ESTADOS_STOCK.find((e) => e.valo
 
 // Una sola declaración de columnas para la tabla y para el CSV (F-STK-08, FR-104): lo que se
 // exporta es lo que se ve, con los mismos encabezados y orden, sin la columna de acciones.
-const columnasStock = (cifrasDe: (fila: FilaStock) => Cifras): Array<ColumnaAdaptable<FilaStock> & ColumnaCsv<FilaStock>> => [
+const columnasStock = (cifrasDe: (fila: FilaStock) => Cifras, imagenes: ReadonlyMap<string, string> = new Map()): Array<ColumnaAdaptable<FilaStock> & ColumnaCsv<FilaStock>> => [
   {
     clave: 'producto',
     encabezado: 'Producto',
     valor: (fila) => (fila.sku ? `${fila.nombre} · ${fila.sku}` : fila.nombre),
     render: (fila) => (
-      <Stack spacing={0}>
-        <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
-        <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <MiniaturaProducto alt="" src={imagenes.get(fila.producto_id)} />
+        <Stack spacing={0}>
+          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.nombre}</Typography>
+          <Typography variant="xs">{fila.sku ?? '—'}</Typography>
+        </Stack>
       </Stack>
     ),
   },
@@ -100,6 +108,7 @@ export function StockList() {
   const [filtro, setFiltro] = useState<FiltroEstado>('todos')
   const [resumen, setResumen] = useState<{ sinStock: number; stockBajo: number } | null>(null)
   const [hayError, setHayError] = useState(false)
+  const [cargando, setCargando] = useState(false)
   // Control de depósito (D-4): «todos» muestra los totales únicos; un depósito, sus cifras.
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [depositoId, setDepositoId] = useState<'todos' | string>('todos')
@@ -141,6 +150,7 @@ export function StockList() {
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
     setHayError(false)
+    setCargando(true)
     try {
       const desde = (pagina - 1) * TAMANO_PAGINA
       const { data, error, count } = await consultaStock(true)
@@ -148,24 +158,22 @@ export function StockList() {
         .returns<FilaStock[]>()
       if (error) throw error
       if (peticion !== ultimaPeticion.current) return
-      // Si la página quedó fuera de rango, se vuelve a la primera.
-      if ((data ?? []).length === 0 && pagina > 1) {
-        setPagina(1)
-        return
-      }
       const filasCargadas = data ?? []
       setFilas(filasCargadas)
       setTotal(count ?? 0)
       if (depositoId !== 'todos' && filasCargadas.length > 0) {
         const porDeposito = await listarStockPorDepositoDe(filasCargadas.map((fila) => fila.producto_id), depositoId)
         if (peticion !== ultimaPeticion.current) return
-        setStockPorDeposito(porDeposito)
-      } else {
+        // Las tandas acumuladas conservan las cifras de las anteriores.
+        setStockPorDeposito((previas) => (pagina === 1 ? porDeposito : { ...previas, ...porDeposito }))
+      } else if (pagina === 1) {
         setStockPorDeposito({})
       }
     } catch (error) {
       console.error('No pudimos cargar el stock.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
+    } finally {
+      if (peticion === ultimaPeticion.current) setCargando(false)
     }
   }, [pagina, consultaStock, depositoId])
 
@@ -186,8 +194,10 @@ export function StockList() {
     return () => { vigente = false }
   }, [])
 
+  // Lo que cambia filas recarga desde la primera tanda.
   const refrescar = () => {
-    void cargar()
+    if (pagina !== 1) setPagina(1)
+    else void cargar()
     void cargarResumen()
   }
 
@@ -205,7 +215,9 @@ export function StockList() {
     ? { cantidad: fila.cantidad, reservado: fila.reservado, disponible: fila.disponible }
     : stockPorDeposito[fila.producto_id] ?? { cantidad: 0, reservado: 0, disponible: 0 }
   const hayAlertas = resumen !== null && resumen.sinStock + resumen.stockBajo > 0
-  const columnas = columnasStock(cifrasDe)
+  const listado = useListadoAcumulado({ items: filas ?? SIN_FILAS, pagina, setPagina, total, cargando, reinicio: [busqueda, filtro, depositoId] })
+  const imagenes = useImagenesProductos(listado.filas.map((fila) => fila.producto_id))
+  const columnas = columnasStock(cifrasDe, imagenes)
 
   // Exportar (F-STK-08): la misma consulta y filtros, todas las filas por lotes. Con un depósito
   // elegido, las cifras de cada lote se completan igual que en pantalla.
@@ -255,7 +267,7 @@ export function StockList() {
       <ContenedorSeccion>
         <PestanasStock activa="stock" />
         <Stack spacing={2}>
-          {hayError ? (
+          {hayError && pagina === 1 ? (
             <EstadoError descripcion="No pudimos cargar el stock." reintentar={() => void cargar()} />
           ) : filas === null ? (
             <EstadoCargaPagina />
@@ -318,11 +330,11 @@ export function StockList() {
                   {ESTADOS_STOCK.map((estado) => <ToggleButton key={estado.valor} value={estado.valor}>{estado.etiqueta}</ToggleButton>)}
                 </ToggleButtonGroup>
               </BarraHerramientas>
-              {filas.length === 0 ? (
+              {listado.filas.length === 0 ? (
                 <EstadoVacio titulo="Ningún producto coincide con la búsqueda o el filtro." />
               ) : (
                 <ContenidoAdaptable
-                  items={filas}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(fila) => fila.producto_id}
                   etiquetaTabla="Stock actual"
@@ -345,15 +357,11 @@ export function StockList() {
                   }
                 />
               )}
-              <TablePagination
-                component="div"
-                count={total}
-                page={pagina - 1}
-                rowsPerPage={TAMANO_PAGINA}
-                rowsPerPageOptions={[TAMANO_PAGINA]}
-                onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                labelRowsPerPage="Productos por página"
-                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+              <CargaInfinita
+                hayMas={listado.hayMas}
+                cargando={listado.cargandoMas}
+                hayError={hayError && pagina > 1}
+                onCargarMas={hayError && pagina > 1 ? () => void cargar() : listado.cargarMas}
               />
             </>
           )}

@@ -40,3 +40,7 @@ Migraciones aditivas `20261020130000_transportes.sql` y `20261020130100_transpor
 
 - pgTAP: `supabase/tests/database/transportes.test.sql` (RLS, Administrador, CUIT, rangos, unicidad, empresas ajenas, conflicto, estado idempotente, sin DELETE, `anon`).
 - Vitest: `apps/web/src/pages/ventas/transportes/list.test.tsx` (abre la sub-pestaña «Terminales de retiro» antes de mirar la tabla), `apps/web/src/pages/ventas/transportes/contrarreembolsos.test.tsx` (título, subtítulo, filtro y sub-pestañas de F-VTA-14) y `apps/web/src/components/ventas/TransporteDialog.test.tsx`.
+
+## Carga infinita
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Rige para las dos sub-pestañas: Terminales de retiro (de a 25; alta y edición recargan desde la primera tanda) y Contrarreembolsos (de a 10; «Marcar cobrado» recarga desde la primera tanda). El recuento «N de M empresas de transporte» no cambia. Sin miniatura: no hay productos en estas filas.

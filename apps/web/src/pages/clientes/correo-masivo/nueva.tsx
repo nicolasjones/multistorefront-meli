@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink, useLocation } from 'react-router'
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, LinearProgress, Link, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, LinearProgress, Link, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
 import { useDestinatariosCorreoMasivo, type DestinatarioCorreoMasivo } from '../../../hooks/useDestinatariosCorreoMasivo'
@@ -11,6 +11,8 @@ import { VistaPreviaCorreo } from './vista-previa'
 import { PestanasCorreoMasivo } from './pestanas'
 import type { TipoCliente } from '../../../lib/clientes'
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
+import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
@@ -19,7 +21,7 @@ import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 
 const ESPERA_BUSQUEDA_MS = 300
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
@@ -98,13 +100,15 @@ export function CorreoMasivoNueva() {
   }, [empresaId])
 
   const { filas, total, resumen, isLoading, isFetching, isError, refetch } = useDestinatariosCorreoMasivo({
-    texto: textoAplicado, tipo, empresaId, conCuentaWeb, clientes: marcados, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, empresaId, conCuentaWeb, clientes: marcados, pagina, tamano: TAMANO_TANDA,
   })
 
-  // Si la página quedó fuera de rango, el servidor no devuelve filas: se vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, filas.length, pagina])
+  // Carga infinita (Principio VI): la lista se arma por tandas; el resumen y el envío usan los filtros, no lo cargado.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina, total, cargando: isFetching,
+    reinicio: { textoAplicado, tipo, empresaId, conCuentaWeb, marcados },
+  })
+  const falloTanda = isError && listado.filas.length > 0
 
   const elegibles = resumen?.elegibles ?? 0
 
@@ -222,9 +226,9 @@ export function CorreoMasivoNueva() {
             <Box aria-busy={isFetching}>
               {isLoading ? (
                 <EstadoCargaPagina />
-              ) : isError ? (
+              ) : isError && !falloTanda ? (
                 <EstadoError descripcion="No pudimos cargar los destinatarios." reintentar={() => void refetch()} />
-              ) : filas.length === 0 && pagina === 1 ? (
+              ) : listado.filas.length === 0 ? (
                 hayFiltros ? (
                   <EstadoVacio titulo="No hay destinatarios con esos criterios." descripcion="Probá con otro texto o quitá algún filtro." />
                 ) : (
@@ -233,21 +237,17 @@ export function CorreoMasivoNueva() {
               ) : (
                 <>
                   <ContenidoAdaptable
-                    items={filas}
+                    items={listado.filas}
                     columnas={columnas}
                     obtenerClave={(cliente) => cliente.id}
                     etiquetaTabla="Destinatarios del correo masivo"
                   />
-                  {filas.length > 0 ? <TablePagination
-                    component="div"
-                    count={total}
-                    page={pagina - 1}
-                    rowsPerPage={TAMANO_PAGINA}
-                    rowsPerPageOptions={[TAMANO_PAGINA]}
-                    onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                    labelRowsPerPage="Destinatarios por página"
-                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                  /> : null}
+                  <CargaInfinita
+                    hayMas={listado.hayMas}
+                    cargando={listado.cargandoMas}
+                    hayError={falloTanda}
+                    onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                  />
                 </>
               )}
             </Box>
