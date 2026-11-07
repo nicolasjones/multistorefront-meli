@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3edfee47e60588c3f81e50fa2a905e3442638f59469760fd3d2867afeefda005",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a24d10db",
+      "pageHash": "c2b054bca62fa706110c1318ed9a922a80e02dafffb96bf4bcfda5988f2da9e5",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "f3861761",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "d1de6312"
+      "commit": "56b6373c"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "78bcf6db1239e8ae01b3b3eeabbfdf47c287c263ecce91a5a8a3ab45da5c099e",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a24d10db",
+      "pageHash": "a693d8797f1898c3a0d49e5fc99df89511f9a4e5d1a07ee44c313be1ad3a1d07",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "f3861761",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cdf9b4d2"
+      "commit": "56b6373c"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -380,12 +380,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "67e436ddd07d58797b507ccc002a282c3f665a7ea87da3a6cf9cabe1ad7b4daa",
+      "pageHash": "be1b8deeb7af651b03b1b38e8c7d88c5283408331529c7e9529df08ee1ae160a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
@@ -1139,14 +1139,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "a12369b1144552148bcef0f20e44d758e0c679fee9cb1ab9f57c0d6b407cb7a1",
+      "pageHash": "0f1e97c7b597da17328690f9494d93355d6909438ef91e2925272e4e808ff9df",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "01821f1c",
+      "sourceAt": "f3861761",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "56b6373c"
+      "commit": "29bf8f31"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1159,6 +1159,21 @@
       ],
       "owner": "tecnico",
       "commit": "2d033b4a"
+    },
+    "docs/tecnico/auditoria-y-soporte.md": {
+      "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
+      "pageHash": "36915d9ff5ca3746ff77a27124bfd8ece109266ac495cd97c828c6eb3cfa75d5",
+      "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
+      "sourceAt": "f3861761",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src",
+        "infra/kestra/flows"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -1299,14 +1314,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "2216f99e7fd1fb780529181aba483bd328d9f1a3c6733a29796c50f2db7c1670",
+      "pageHash": "1ecfac80771dcd249832320f7243de79519f9040e00c5b05290b13c5cf2a2504",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "01821f1c",
+      "sourceAt": "f3861761",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "801de684"
+      "commit": "29bf8f31"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
