@@ -259,6 +259,78 @@ describe('EmpresaPrecios', () => {
     expect(screen.queryByText('$ 31.640')).not.toBeInTheDocument()
   })
 
+  // Vista previa con un producto de precio propio (valor fijo) y otro que sigue la regla (F-PRE-09, FR-024).
+  const filasConPropio = (args: { p_empresa: string; p_base: string; p_ajuste_pct: number }) => {
+    const sigueRegla = args.p_base === 'central_ajuste' ? Math.round((10000 * (1 + args.p_ajuste_pct / 100)) / 10) * 10 : 10000
+    return [
+      { producto_id: 'p-1', nombre: 'Joystick Pro cableado', sku: 'JOY-1', moneda: 'ARS', central_ars: 29300, neto_ars: 25000, final_ars: 25000, precio_propio: args.p_empresa === 'e-2' },
+      { producto_id: 'p-2', nombre: 'Cable USB', sku: 'CAB-1', moneda: 'ARS', central_ars: 10000, neto_ars: sigueRegla, final_ars: sigueRegla, precio_propio: false },
+    ]
+  }
+  const conPrecioPropio = () =>
+    mocks.rpc.mockImplementation((nombre: string, args: { p_empresa: string; p_base: string; p_ajuste_pct: number }) =>
+      nombre === 'previsualizar_precios_empresa'
+        ? Promise.resolve({ data: filasConPropio(args), error: null })
+        : Promise.resolve({ data: { base: args.p_base, ajuste_pct: args.p_ajuste_pct, updated_at: '2026-10-22T11:00:00.000Z' }, error: null }),
+    )
+  const marcaDe = (tabla: HTMLElement, producto: string) => within(within(tabla).getByText(producto).closest('tr') as HTMLElement)
+
+  it('marca los productos con precio propio y su valor no se mueve al cambiar el ajuste; nada se guarda (CA-PRE-09-1, FR-024)', async () => {
+    conPrecioPropio()
+    mocks.regla.mockResolvedValue(conRegla('central', 0))
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Así quedan los precios' })
+    await within(tabla).findByText('Joystick Pro cableado')
+    expect(marcaDe(tabla, 'Joystick Pro cableado').getByText('Precio propio')).toBeInTheDocument()
+    expect(marcaDe(tabla, 'Cable USB').getByText('Central')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Central con ajuste' }))
+    fireEvent.change(screen.getByLabelText('Ajuste sobre el precio central'), { target: { value: '15' } })
+
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('previsualizar_precios_empresa', { p_empresa: 'e-2', p_base: 'central_ajuste', p_ajuste_pct: 15 }),
+    )
+    // La fila sin precio propio se movió y quedó «Ajustado»; la del precio propio conserva su valor y su marca.
+    await waitFor(() => expect(marcaDe(tabla, 'Cable USB').getByText('Ajustado')).toBeInTheDocument())
+    expect(marcaDe(tabla, 'Cable USB').getByText('$ 11.500')).toBeInTheDocument()
+    expect(marcaDe(tabla, 'Joystick Pro cableado').getByText('Precio propio')).toBeInTheDocument()
+    expect(marcaDe(tabla, 'Joystick Pro cableado').getByText('$ 25.000')).toBeInTheDocument()
+    // La regla guardada no cambia hasta pulsar «Guardar».
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_regla_precio_empresa', expect.anything())
+  })
+
+  it('explica que el precio propio ignora el ajuste y muestra los cuatro pasos de «Cómo se calcula» (FR-025)', async () => {
+    conPrecioPropio()
+    abrir()
+    await screen.findByRole('table', { name: 'Así quedan los precios' })
+    // La nota vive junto a la regla (prototipo) y aparece una sola vez.
+    expect(screen.getAllByText(/ignoran el ajuste/)).toHaveLength(1)
+
+    const bloque = screen.getByRole('region', { name: 'Cómo se calcula' })
+    const pasos = within(bloque).getAllByRole('listitem')
+    expect(pasos).toHaveLength(4)
+    expect(pasos[1]).toHaveTextContent('Ajuste de Mundo JC, si lo tiene.')
+    expect(pasos[2]).toHaveTextContent('Precio propio del producto en esta empresa, si existe: reemplaza al calculado.')
+  })
+
+  it('al abrir otra empresa se reinician regla, simulación y marcas: no arrastra el precio propio de la anterior (FR-026, SC-011)', async () => {
+    conPrecioPropio()
+    mocks.regla.mockImplementation((id: string) => Promise.resolve(id === 'e-2' ? conRegla('central', 0) : conRegla('central_ajuste', -5)))
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Así quedan los precios' })
+    await within(tabla).findByText('Joystick Pro cableado')
+    expect(marcaDe(tabla, 'Joystick Pro cableado').getByText('Precio propio')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Cambiar a San Javucho ↔' }))
+
+    expect(await screen.findByRole('heading', { name: 'Precio de venta de San Javucho' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Ajuste sobre el precio central')).toHaveValue('-5')
+    // San Javucho no tiene precio propio: el mismo producto vuelve a seguir la regla (ajustada −5 %).
+    const nueva = await screen.findByRole('table', { name: 'Así quedan los precios' })
+    await waitFor(() => expect(marcaDe(nueva, 'Joystick Pro cableado').getByText('Ajustado')).toBeInTheDocument())
+    expect(within(nueva).queryByText('Precio propio')).not.toBeInTheDocument()
+  })
+
   it('una respuesta tardía de guardar de la empresa anterior no marca como guardada a la nueva', async () => {
     mocks.regla.mockResolvedValue(conRegla('central', 0))
     let resolver: (valor: unknown) => void = () => {}

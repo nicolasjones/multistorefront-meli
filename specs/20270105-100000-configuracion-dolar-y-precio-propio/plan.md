@@ -23,9 +23,9 @@ Los valores fijos de MSF-116 (umbral 1 %, confirmación 15 %, redondeo $ 10, avi
 | F-PRE-06 | `20270213100002_cotizacion_alcance_empresa.sql` | `empresa_id` en `cotizacion_pendiente`/`cotizaciones`/`cotizacion_aplicada`, índices únicos, `private.cotizacion_para` |
 | F-PRE-06 | `20270213100003_cotizacion_cambio_alcance.sql` | `previsualizar_cambio_alcance`, `cambiar_alcance_cotizacion` |
 | F-PRE-06 | `20270213100004_cotizacion_usa_configuracion.sql` | `previsualizar`/`confirmar`/`descartar_cotizacion` y `cotizacion_del_dia` leen la configuración y `p_empresa` |
-| F-PRE-08 | `20270122110000_precios_propios_empresa.sql` | `dominio.precios_propios_empresa`, `fijar_`/`quitar_`/`leer_precios_propios` |
-| F-PRE-08 | `20270122110100_precios_propios_calculo.sql` | `precio_neto_empresa`, `precios_empresa_neto`, `precio_visible_desde_central` con precio propio |
-| F-PRE-09 | `20270122120000_simulador_precio_propio.sql` | `previsualizar_precios_empresa` con `precio_propio` |
+| F-PRE-08 | `20270213100005_precios_propios_empresa.sql` | `dominio.precios_propios_empresa`, `fijar_`/`quitar_`/`leer_precios_propios` |
+| F-PRE-08 | `20270213100006_precios_propios_calculo.sql` | `precio_neto_empresa`, `precios_empresa_neto`, `precio_visible_desde_central` con precio propio |
+| F-PRE-09 | `20270213200001_simulador_precio_propio.sql` | `previsualizar_precios_empresa` con `precio_propio` |
 
 Reversión general (migración posterior, exportando datos antes): `drop function` de cada RPC nueva; restaurar las funciones redefinidas a su versión previa; `alter table … drop column empresa_id` solo en una migración posterior a haber consolidado datos; `drop table dominio.precios_propios_empresa, dominio.cotizacion_configuracion`. Nunca en el mismo PR que las crea.
 

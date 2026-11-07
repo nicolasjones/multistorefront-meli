@@ -63,6 +63,18 @@ Spec: [`20270105-100000-configuracion-dolar-y-precio-propio`](../specs/20270105-
 - **Reversión** (migraciones `20270205110201` y `20270205110202`): ver el encabezado de cada una; exportar los precios propios antes de borrar la tabla.
 - **Alerta de dólar** (`20270205110203`): restaura en `recalcular_alertas_inicio` el chequeo de «Aviso en Inicio» y alcance (F-PRE-06) que `20270201200138` había pisado por orden de versiones; reversión: recrear la función con el cuerpo de `20270201200138`.
 
+## Simulador «Así quedan los precios» con precio propio (F-PRE-09, MSF-427 · épica MSF-352)
+
+Spec: `specs/20270105-100000-configuracion-dolar-y-precio-propio/` (US3, FR-021…FR-026). La tabla de la pestaña «Precios y moneda» de la empresa (`pages/empresas/precios.tsx`, `components/precios/TablaAsiQuedan.tsx`) se recalcula en el servidor con cada cambio de la regla (`Base`, `Ajuste`, `Precios que ve el cliente`) **antes de guardar**, y no escribe nada: guardar sigue siendo `guardar_regla_precio_empresa` y salir sin guardar descarta el cambio.
+
+- **Base** (`supabase/migrations/20270213200001_simulador_precio_propio.sql`): `public.previsualizar_precios_empresa(empresa, base, ajuste, muestra)` conserva su firma de entrada y suma la columna `precio_propio boolean`. Es de solo lectura (`security invoker`, `search_path` vacío, `42501` sin acceso a Empresas, `anon` sin ejecución). Una fila con precio propio muestra **ese valor** (ya en pesos; en USD, × la cotización de la empresa) y no se mueve con el ajuste; sin precio propio rige la regla de siempre.
+- **Cotización de la empresa**: el precio central de la muestra se convierte con la cotización de **la empresa** cuando tiene una propia (F-PRE-06), igual que `public.precios_empresa_neto`. Antes usaba la de la organización y el simulador podía mostrar un central distinto del que cobra la tienda. Un pgTAP compara el simulador con el precio real.
+- **Marca por fila**: «Precio propio» (tono propio) / «Ajustado» (la regla en pantalla mueve el precio) / «Central». El significado va en el texto de la marca, no solo en el color; la columna tiene un encabezado para lectores de pantalla («Origen del precio»).
+- **Textos**: la nota «Los productos con **precio propio** en esta empresa ignoran el ajuste…» vive junto a la regla y el bloque «Cómo se calcula» (`components/precios/ComoSeCalcula.tsx`) muestra los cuatro pasos del prototipo; el paso 3 es el del precio propio.
+- **Una empresa por ruta**: al abrir otra (`Cambiar a … ↔`) se reinician regla, formulario, simulación, avisos y marcas.
+- **Pruebas**: pgTAP `supabase/tests/database/simulador_precio_propio.test.sql`; Vitest `components/precios/TablaAsiQuedan.test.tsx`, `ComoSeCalcula.test.tsx` (con axe a 320 / 768 / 1440 px) y `pages/empresas/precios.test.tsx` (marca, valor fijo al mover el ajuste, nada se guarda, cambio de empresa); E2E `apps/web/e2e/configuracion-dolar-precio-propio.e2e.ts`.
+- **Reversión** (migración posterior): restaurar `previsualizar_precios_empresa` a su cuerpo de `20261022140200` (sin `precio_propio` y con el central de la organización).
+
 ## Reversión
 
 Todas las migraciones son aditivas (`20261022120000`…`20261022150100`); cada una trae su reversión en el encabezado. Orden inverso: `precio_para` → `producto_precios_escala` → interruptor/vista final (`140200`) → alícuotas (`140100`, `140000`) → regla por empresa (`130200`…`130000`) → costo/margen y conversión (`120300`…`120000`). Las que borran columna o tabla piden **exportar los datos antes** y van en una migración posterior, nunca en el PR que las creó.

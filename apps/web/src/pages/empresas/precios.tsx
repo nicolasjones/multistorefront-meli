@@ -22,6 +22,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { ReglaPrecioEmpresa, type EjemploIva } from '../../components/precios/ReglaPrecioEmpresa'
+import { ComoSeCalcula } from '../../components/precios/ComoSeCalcula'
 import { TablaAsiQuedan } from '../../components/precios/TablaAsiQuedan'
 import { PestanasEmpresa } from './PestanasEmpresa'
 
@@ -200,8 +201,12 @@ export function EmpresaPrecios() {
             cargando={previa.cargando}
             hayError={previa.hayError}
             ajusteInvalido={validarAjuste(actual.base, actual.ajuste) !== undefined}
+            hayAjuste={actual.base === 'central_ajuste' && (parsearAjuste(actual.ajuste) ?? 0) !== 0}
             reintentar={previa.reintentar}
           />
+          <Box sx={{ mt: 2 }}>
+            <ComoSeCalcula nombreEmpresa={empresa.nombre} />
+          </Box>
         </Box>
       </Stack>
     </Stack>,
