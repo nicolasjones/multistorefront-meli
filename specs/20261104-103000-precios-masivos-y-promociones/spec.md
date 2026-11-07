@@ -206,6 +206,8 @@ El administrador programa, para una empresa, un precio promocional de un product
 
 Escenarios de aceptación (Given/When/Then) de las historias: ver *User Scenarios & Testing* (US1 y US2); cada uno se cubre con las pruebas de esta tabla.
 
+Guía de F-PRE-11: [`docs/promociones-precio.md`](../../docs/promociones-precio.md).
+
 ## Decisiones abiertas (anotadas, no son gates de Nicolás)
 
 1. **Cómo vencen las promociones — resuelto: consulta por fecha.** El precio vigente se calcula al leer comparando `desde`/`hasta` con la hora actual (FR-014). Razón: coincide con el modelo «el precio se calcula al leer» de MSF-114, no necesita Kestra ni worker (el template no trae ningún worker concreto), no hay ventana en la que un precio quede vencido por una tarea caída y es testeable con pgTAP. Costo: una comparación más por lectura de precio (con índice por `(empresa_id, producto_id, desde, hasta)`). *Alternativa descartada:* tarea programada que cierre promociones (más piezas, y un fallo deja precios promocionales de más).
@@ -214,7 +216,7 @@ Escenarios de aceptación (Given/When/Then) de las historias: ver *User Scenario
 4. **Alcance del porcentaje (supuesto):** «todos los activos» o «una categoría» (filtro que ya existe en Productos). Otros filtros (proveedor, marca) quedan fuera.
 5. **Escalas de precio (F-PRE-15):** la masiva **no** las cambia; subir la lista puede dejar una escala por encima de x1. Se anota; actualizar escalas sería otra historia.
 6. **Ventas y pedidos:** esta épica pide mostrar el precio promocional en la tienda. Que el carrito, los comprobantes y el POS cobren el promocional **no** está en la épica: con `private.precio_vigente_empresa` queda el cálculo único listo para adoptarlo, pero queda como pregunta para Nicolás (riesgo: cobrar distinto de lo mostrado).
-7. **Otras superficies de la tienda** (inicio/destacados, búsqueda, móvil) usan `private.precio_final_publico`: la épica nombra catálogo y ficha; las demás se incorporan solo si Nicolás lo pide.
+7. **Superficies de la tienda**: catálogo, ficha, inicio/destacados y búsqueda (sugerencias y resultados) muestran el mismo precio vigente y `precio_anterior` (migraciones `20270202202004` y `20270202202005`; un producto no sale con dos precios). Quedan fuera el precio por escala y los precios de cliente por dominio: seguimiento **MSF-816**.
 8. **Editar y anular una promoción** no figuran literalmente en la épica; se asumen como parte de «programar» (sin ellas una carga equivocada no tiene salida).
 
 ## Matriz pantalla↔criterios
