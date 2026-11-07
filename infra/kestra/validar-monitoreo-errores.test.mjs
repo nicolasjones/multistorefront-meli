@@ -32,3 +32,11 @@ test('sin URL configurada el flow no hace nada', async () => {
   const content = await leer();
   assert.match(content, /condition: "\{\{ envs\.errores_app_url is defined and envs\.errores_app_url != '' \}\}"/);
 });
+
+test('un fallo del conteo se registra como fallo del monitor y tolera variables ausentes', async () => {
+  const content = await leer();
+  assert.match(content, /allowFailure: true/);
+  assert.match(content, /monitor:\{\{ envs\.errores_app_proyecto \?\? 'aplicacion' \}\}/);
+  assert.match(content, /errores_app_organizacion \?\? 'plataforma'/);
+  assert.match(content, /\(outputs\.contar_eventos\.code \?\? 0\) != 200/);
+});
