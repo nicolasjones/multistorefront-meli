@@ -89,7 +89,7 @@ export function responderProcesos(filas: ProcesoMasivo[] | Error | (() => Proces
   }
 }
 
-export function responderErrores(filas: { id: string; fila: number | null; referencia: string | null; motivo_sanitizado: string }[], total = filas.length) {
+export function responderErrores(filas: { id: string; fila: number | null; columna?: string | null; referencia: string | null; motivo_sanitizado: string }[], total = filas.length) {
   falso.respuestas.procesos_masivos_errores = () => ({ data: filas, count: total, error: null })
 }
 

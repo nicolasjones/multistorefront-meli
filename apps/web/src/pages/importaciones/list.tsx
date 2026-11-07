@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Alert, Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -10,7 +11,6 @@ import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useProcesosMasivos } from '../../hooks/useProcesosMasivos'
 import {
-  TAMANO_PAGINA_PROCESOS,
   avance,
   colorEstado,
   duracion,
@@ -20,6 +20,7 @@ import {
   etiquetaTipo,
   formatearFecha,
   porcentaje,
+  resultado,
   type ProcesoMasivo,
 } from '../../lib/procesosMasivos'
 import { CancelarProceso } from './CancelarProceso'
@@ -58,7 +59,7 @@ const columnas: ColumnaAdaptable<ProcesoMasivo>[] = [
       )
     },
   },
-  { clave: 'errores', encabezado: 'Errores', align: 'right', render: (proceso) => proceso.con_errores },
+  { clave: 'resultado', encabezado: 'Resultado', render: (proceso) => (proceso.procesados === 0 && proceso.con_errores === 0 ? '—' : resultado(proceso)) },
   { clave: 'duracion', encabezado: 'Duración', render: (proceso) => duracion(proceso) },
 ]
 
@@ -68,19 +69,17 @@ const columnas: ColumnaAdaptable<ProcesoMasivo>[] = [
 export function ImportacionesList() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
   const { empresas, valor: empresaFiltro, cambiar: elegirEmpresa } = useFiltroPorEmpresaActiva()
-  const [pagina, setPagina] = useState(1)
   const [detalle, setDetalle] = useState<ProcesoMasivo | null>(null)
   const [cancelando, setCancelando] = useState<ProcesoMasivo | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [empresaVista, setEmpresaVista] = useState(empresaFiltro)
-  const { procesos, total, isLoading, isError, refetch, refrescar } = useProcesosMasivos(empresaFiltro, pagina, puedeEscribir === true)
+  const { procesos, total, hayMas, cargandoMas, errorMas, cargarMas, isLoading, isError, refetch, refrescar } = useProcesosMasivos(empresaFiltro, puedeEscribir === true)
 
-  // Al cambiar de empresa: paginación reencuadrada y diálogos cerrados con aviso, sin guardar nada de
+  // Al cambiar de empresa: el hook vuelve a la primera tanda y los diálogos cerrados con aviso, sin guardar nada de
   // la anterior bajo la nueva. Se ajusta durante el render (patrón de React) para que ni un cuadro
   // llegue a pintar datos de la empresa previa.
   if (empresaVista !== empresaFiltro) {
     setEmpresaVista(empresaFiltro)
-    setPagina(1)
     if (detalle || cancelando) {
       setDetalle(null)
       setCancelando(null)
@@ -93,7 +92,6 @@ export function ImportacionesList() {
     return <Alert severity="error" sx={{ m: 2 }}>Solo un administrador de la organización puede ver las importaciones y exportaciones.</Alert>
   }
 
-  const totalPaginas = Math.max(1, Math.ceil(total / TAMANO_PAGINA_PROCESOS))
   // El detalle sigue el refresco de la tabla; si el proceso salió de la página, queda lo último visto.
   const detalleActual = detalle ? procesos.find((proceso) => proceso.id === detalle.id) ?? detalle : null
 
@@ -141,13 +139,8 @@ export function ImportacionesList() {
                 </Stack>
               )}
             />
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
-              <Typography color="text.secondary" aria-live="polite">Página {pagina} de {totalPaginas}</Typography>
-              <Stack direction="row" spacing={1}>
-                <Button size="small" disabled={pagina <= 1} onClick={() => setPagina((actual) => actual - 1)} aria-label="Página anterior">Anterior</Button>
-                <Button size="small" disabled={pagina >= totalPaginas} onClick={() => setPagina((actual) => actual + 1)} aria-label="Página siguiente">Siguiente</Button>
-              </Stack>
-            </Stack>
+            <Typography color="text.secondary" aria-live="polite" sx={{ mt: 1 }}>Mostrando {procesos.length} de {total} procesos</Typography>
+            <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} />
           </>
         )}
       </ContenedorSeccion>
