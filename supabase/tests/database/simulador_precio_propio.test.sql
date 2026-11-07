@@ -5,7 +5,7 @@
 -- lo mismo que la tienda. Corre como postgres para armar el fixture y como "authenticated" para verificar.
 begin;
 
-select plan(33);
+select plan(35);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -221,6 +221,8 @@ insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) 
   ('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111')
 on conflict do nothing;
 
+-- La tienda no depende de la sesión: sin claims (anónimo) y con la sesión de OTRA organización el precio es el mismo.
+select set_config('request.jwt.claims', '{}', true);
 select is(
   private.precio_final_publico('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'),
   25000::numeric,
@@ -235,6 +237,17 @@ select is(
   private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x5'),
   25000::numeric,
   'una escala sin precio propio cargado cae en el precio base, que es el precio propio'
+);
+select set_config('request.jwt.claims', json_build_object('sub', 'd2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select is(
+  private.precio_final_publico('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'),
+  25000::numeric,
+  'con la sesión de otra organización (cliente u operador ajeno) la tienda muestra el mismo precio propio'
+);
+select is(
+  private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'x1'),
+  16500::numeric,
+  'y también en la escala x1 con un precio propio en USD'
 );
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
