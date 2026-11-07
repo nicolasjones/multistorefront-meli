@@ -1,7 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
-import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEsAdministrador } from '../../hooks/useEsAdministrador'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
 import { useCompatibles } from '../../hooks/useCompatibles'
@@ -164,6 +165,7 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const { esAdministrador } = useEsAdministrador()
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
@@ -171,7 +173,6 @@ export function ProductoList() {
   const [productoEnDialogo, setProductoEnDialogo] = useState<string | null | undefined>(undefined)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
   // Exportar (F-CAT-11, FR-201): solo el Administrador; el diálogo y el aviso de resultado viven acá.
-  const { esAdministrador } = useEsAdministrador()
   const [exportando, setExportando] = useState(false)
   const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info'; texto: string } | null>(null)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
@@ -345,6 +346,7 @@ export function ProductoList() {
         titulo="Productos"
         accion={puedeEditar || esAdministrador ? (
           <Stack direction="row" spacing={1}>
+            {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
             {esAdministrador ? <Button variant="outlined" onClick={() => { setAvisoExportacion(null); setExportando(true) }}>Exportar</Button> : null}
             {puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : null}
           </Stack>

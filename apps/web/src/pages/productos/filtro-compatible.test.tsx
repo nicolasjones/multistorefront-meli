@@ -25,6 +25,7 @@ vi.mock('../../lib/supabase', () => {
     },
   }
 })
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: () => ({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
