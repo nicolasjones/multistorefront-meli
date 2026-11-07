@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// MSF-806: en `main` rige el default de 5s (el testTimeout global de 15s solo está en `dokploy`)
+// y con el runner cargado un test de este archivo se pasaba de tiempo (PR #715, solo docs).
+vi.setConfig({ testTimeout: 20000 })
+
 const mocks = vi.hoisted(() => ({
   productos: vi.fn(),
   motivos: vi.fn(),

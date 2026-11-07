@@ -115,7 +115,7 @@ select is(public.bloqueo_acceso_hasta(repeat('a', 255) || '@example.com'), null:
 
 -- anon no alcanza las RPC de contexto de superadmin (endurecimiento)
 select throws_ok(
-  $$select public.entrar_a_organizacion('a1111111-1111-1111-1111-111111111111')$$,
+  $$select public.entrar_a_organizacion('a1111111-1111-1111-1111-111111111111', 'prueba de soporte')$$,
   '42501', null, 'anon no ejecuta entrar_a_organizacion');
 select throws_ok($$select public.salir_de_organizacion()$$,
   '42501', null, 'anon no ejecuta salir_de_organizacion');

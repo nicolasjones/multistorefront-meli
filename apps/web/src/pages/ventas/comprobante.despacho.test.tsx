@@ -44,6 +44,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: () => <div /> }))
 
 import type { Comprobante } from '../../lib/ventas'
+import { MENSAJE_DESPACHO_SOLO_LECTURA } from '../../lib/ventasDespacho'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -145,6 +146,21 @@ describe('Detalle · tarjeta «Responsables» (F-VTA-15)', () => {
     render(arbol())
     await screen.findByRole('heading', { name: /Presupuesto 00000001/ })
     expect(screen.queryByRole('region', { name: 'Responsables' })).not.toBeInTheDocument()
+  })
+
+  // MSF-598: la factura cobrada o con deuda sigue viva para el despacho: se puede armar, controlar y entregar.
+  it('con la factura cobrada la tarjeta permite avanzar el despacho', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({
+      ...FACTURA,
+      estado: 'cobrado',
+      updated_at: '2026-10-25T10:00:00Z',
+    })
+    render(arbol())
+
+    expect(await screen.findByRole('region', { name: 'Responsables' })).toBeInTheDocument()
+    expect(await screen.findByText('Sin armar')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Empezar a armar' })).toBeInTheDocument()
+    expect(screen.queryByText(MENSAJE_DESPACHO_SOLO_LECTURA)).not.toBeInTheDocument()
   })
 })
 

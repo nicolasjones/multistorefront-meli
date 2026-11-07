@@ -1,15 +1,17 @@
 import { Suspense, lazy, useState } from 'react'
-import { Link as RouterLink, useLocation, useParams } from 'react-router'
+import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControlLabel, Stack, Switch, Tab, Tabs, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
+import { faltantes, rutaEtiquetas } from '../../lib/etiquetasCliente'
 import {
   cambiarEstadoCuentaWeb, habilitarTiendaDeCliente, invitarCuentaWeb, tiendaCuentaWeb, type TiendaCuentaWeb,
 } from '../../lib/cuentasCliente'
@@ -21,7 +23,10 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { ComprasCliente } from '../../components/clientes/ComprasCliente'
+import { DialogoFusionarClientes } from '../../components/clientes/DialogoFusionarClientes'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+
+const MENSAJE_FUSIONADO = 'Clientes fusionados: las compras se sumaron en esta ficha'
 
 // Pestaña de Service técnico (F-SVC-15): se descarga solo al abrirla (Principio VI).
 const ReparacionesDeCliente = lazy(() => import('../../components/clientes/ReparacionesDeCliente').then((modulo) => ({ default: modulo.ReparacionesDeCliente })))
@@ -44,6 +49,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
 export function ClienteShow() {
   const { id } = useParams()
   const location = useLocation()
+  const navegar = useNavigate()
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('clientes')
   const { nivel: nivelService } = useNivelSeccion('service_tecnico')
   const [pestana, setPestana] = useState<'datos' | 'reparaciones'>('datos')
@@ -56,6 +62,9 @@ export function ClienteShow() {
   const [mensajeCuenta, setMensajeCuenta] = useState<string | null>(null)
   const [errorCuenta, setErrorCuenta] = useState<string | null>(null)
   const [procesandoCuenta, setProcesandoCuenta] = useState<string | null>(null)
+  const [fusionando, setFusionando] = useState(false)
+  // Sube al fusionar para volver a pedir las compras (ComprasCliente) con la suma de ambas fichas.
+  const [versionCompras, setVersionCompras] = useState(0)
   const [seleccionTienda, setSeleccionTienda] = useState<{ base: string | null; valor: string } | null>(null)
 
   const cliente = query.data?.data
@@ -78,6 +87,23 @@ export function ClienteShow() {
   // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
   const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
+  // Fusionar clientes (F-CLI-18, FR-014): solo el Administrador; la base lo impone, acá solo se oculta la acción.
+  const { contexto } = useContextoPanel()
+  const puedeFusionar = contexto?.rol_efectivo === 'administrador' && !archivado && !cliente?.es_consumidor_final
+
+  const alFusionar = async (conservadoId: string) => {
+    setFusionando(false)
+    setErrorAccion(null)
+    setConfirmacion(MENSAJE_FUSIONADO)
+    if (cliente && conservadoId !== cliente.id) {
+      // Esta ficha quedó archivada: se sigue en la que se conservó.
+      navegar(`/clientes/show/${conservadoId}`, { state: { mensaje: MENSAJE_FUSIONADO } })
+      return
+    }
+    setVersionCompras((n) => n + 1)
+    await query.refetch().catch(() => undefined)
+  }
+
   // Sin acceso a Service técnico la pestaña no existe (FR-045); si se pierde el acceso, vuelve a «Datos».
   const verReparaciones = nivelService === 'lectura' || nivelService === 'edicion'
   const pestanaActiva = verReparaciones ? pestana : 'datos'
@@ -155,9 +181,24 @@ export function ClienteShow() {
     )
   }
 
+  // Etiqueta de envío (F-CLI-17, FR-003): sin dirección no hay hoja, solo el aviso con el dato que falta.
+  const imprimirEtiqueta = () => {
+    if (!cliente) return
+    const falta = faltantes(cliente)
+    if (falta.length > 0) {
+      setConfirmacion(null)
+      setErrorAccion(`No se puede imprimir la etiqueta: falta ${falta.join(', ')}. Cargala en «Editar» y probá de nuevo.`)
+      return
+    }
+    setErrorAccion(null)
+    navegar(rutaEtiquetas([cliente.id]), { state: { volverA: location.pathname } })
+  }
+
   const accion = (
     <Stack direction="row" spacing={1}>
       <Button component={RouterLink} to="/clientes">Volver al listado</Button>
+      {cliente ? <Button variant="outlined" onClick={imprimirEtiqueta}>Etiqueta</Button> : null}
+      {puedeFusionar ? <Button variant="outlined" onClick={() => setFusionando(true)}>Fusionar con otro cliente…</Button> : null}
       {puedeEditar && cliente ? (
         <>
           <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} variant="contained">Editar</Button>
@@ -219,6 +260,9 @@ export function ClienteShow() {
                   <Typography component="dd" sx={{ m: 0 }}>{campo === 'descuento' ? (cliente.descuento ? `${cliente.descuento} %` : '—') : (cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
+            </Box>
+            <Box>
+              <Button variant="outlined" onClick={imprimirEtiqueta}>Imprimir etiqueta de envío</Button>
             </Box>
             <Box component="section" aria-labelledby="titulo-comunicaciones">
               <Typography component="h2" variant="subtitle2" id="titulo-comunicaciones" sx={{ fontWeight: 600 }}>Comunicaciones</Typography>
@@ -282,7 +326,7 @@ export function ClienteShow() {
                     />
                   </>
                 )}
-                <ComprasCliente key={cliente.id} clienteId={cliente.id} />
+                <ComprasCliente key={`${cliente.id}-${versionCompras}`} clienteId={cliente.id} />
               </>
             ) : null}
               </Stack>
@@ -290,6 +334,14 @@ export function ClienteShow() {
           </Stack>
         )}
       </ContenedorSeccion>
+      {cliente && puedeFusionar ? (
+        <DialogoFusionarClientes
+          abierto={fusionando}
+          cliente={{ id: cliente.id, numero: cliente.numero, nombre: cliente.nombre }}
+          onCerrar={() => setFusionando(false)}
+          onFusionado={(id) => void alFusionar(id)}
+        />
+      ) : null}
       <Dialog open={confirmando} onClose={() => !procesando && setConfirmando(false)} aria-labelledby="titulo-confirmar-archivado">
         <TituloDialogo id="titulo-confirmar-archivado" onCerrar={() => !procesando && setConfirmando(false)}>{archivado ? 'Restaurar cliente' : 'Archivar cliente'}</TituloDialogo>
         <DialogContent>
