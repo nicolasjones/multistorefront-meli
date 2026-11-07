@@ -1,7 +1,8 @@
 # MSF-369 · F-OPS-03 (FR-025, FR-030). Cada 2 minutos sondea la página principal de cada tienda con dominio
-# (public.tiendas_a_sondear) y registra ok/fallo en eventos_monitoreo. La base decide si hay alerta
+# (public.tiendas_a_sondear, que solo devuelve nombres DNS públicos: sin IP, localhost ni sufijos internos) y registra ok/fallo en eventos_monitoreo. La base decide si hay alerta
 # (monitoreo-evaluar.yml); este flow solo mide. SSRF: el único host que se pide es el dominio ya validado y
-# normalizado de dominio.tiendas, y NO se siguen redirecciones (followRedirects: false), así que una tienda
+# normalizado de dominio.tiendas y filtrado en la base (la resolución DNS hacia una IP privada no se controla acá; ver
+# docs/monitoreo.md: egress de red de Kestra), y NO se siguen redirecciones (followRedirects: false), así que una tienda
 # no puede hacernos pedir otro host. Un 3xx cuenta como «responde»; 4xx/5xx o sin respuesta, como fallo.
 # Frecuencia: el cron del trigger (editarlo para cambiarla); el tiempo de espera es el input `timeout_seg`.
 id: monitoreo-salud-tiendas
