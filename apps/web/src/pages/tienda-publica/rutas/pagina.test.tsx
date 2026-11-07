@@ -3,13 +3,22 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leerPagina: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leerPagina: vi.fn(), rpc: vi.fn() }))
+
+// Datos SEO de la tienda (los lee la cabecera compartida de MSF-149).
+vi.mock('../../../lib/supabase', () => ({
+  supabaseClient: {
+    schema: () => ({ rpc: mocks.rpc }),
+    storage: { from: () => ({ getPublicUrl: (ruta: string) => ({ data: { publicUrl: `https://cdn.test/${ruta}` } }) }) },
+  },
+}))
 
 vi.mock('../../../lib/tiendaPaginas', async (original) => ({
   ...(await original<typeof import('../../../lib/tiendaPaginas')>()),
   leerPaginaPublica: mocks.leerPagina,
 }))
 
+import { limpiarCacheSeo } from '../../../lib/tiendaSeo'
 import RutaPagina from './pagina'
 
 const contexto = { tienda: { tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' }, host: 'mundojc.localhost', categorias: { fase: 'lista', categorias: [], reintentar: () => undefined } }
@@ -29,6 +38,8 @@ function montar(ruta = '/pagina/como-comprar') {
 
 describe('ruta pública /pagina/:slug (FR-006, SC-002)', () => {
   beforeEach(() => {
+    limpiarCacheSeo()
+    mocks.rpc.mockResolvedValue({ data: { dominio: 'mundojc.test', nombre: 'Mundo JC', descripcion: 'Joysticks y repuestos', logo_ruta: null, indexable: true }, error: null })
     vi.clearAllMocks()
     mocks.leerPagina.mockResolvedValue({ titulo: 'Cómo comprar', slug: 'como-comprar', contenido: 'Paso 1\nsigue\n\nPaso 2' })
   })
@@ -43,7 +54,8 @@ describe('ruta pública /pagina/:slug (FR-006, SC-002)', () => {
     expect(parrafos).toHaveLength(2)
     expect(parrafos[0].textContent).toBe('Paso 1\nsigue')
     expect(await violacionesAxe(container)).toEqual([])
-    await waitFor(() => expect(document.title).toBe('Cómo comprar'))
+    // Cabecera SEO compartida: plantilla «<página> | <empresa>».
+    await waitFor(() => expect(document.title).toBe('Cómo comprar | Mundo JC'))
   })
 
   it('un texto con HTML se ve literal y no se ejecuta ni se inserta como elemento', async () => {

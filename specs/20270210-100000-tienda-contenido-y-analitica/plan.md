@@ -36,7 +36,7 @@ Tres historias independientes sobre la tienda pública y su gestión: (F-TDA-23)
 | Migración | Historia | Crea | Reversión (documentada, no se ejecuta en el mismo PR) |
 |---|---|---|---|
 | `20270210100000_tienda_paginas.sql` | F-TDA-23 | `dominio.tienda_paginas`, RLS, `public.guardar_pagina_tienda`, `public.eliminar_pagina_tienda`, `publico.paginas_por_dominio`, `publico.pagina_por_dominio` | Migración posterior `drop function … ; drop table dominio.tienda_paginas;` |
-| `20270210100100_tienda_analitica.sql` | F-TDA-24 | `dominio.tienda_analitica`, RLS, `public.guardar_analitica_tienda`, `publico.analitica_por_dominio` | Migración posterior `drop function … ; drop table dominio.tienda_analitica;` |
+| `20270212200002_tienda_analitica.sql` | F-TDA-24 | `dominio.tienda_analitica`, RLS, `public.guardar_analitica_tienda`, `publico.analitica_por_dominio` | Migración posterior `drop function … ; drop table dominio.tienda_analitica;` |
 
 Cada historia trae la suya y no se encadenan entre sí. F-TDA-25 no tiene migración. La reversión del front es `git revert -m 1` del merge de la spec.
 
@@ -44,7 +44,7 @@ Cada historia trae la suya y no se encadenan entre sí. F-TDA-25 no tiene migrac
 
 ```text
 supabase/migrations/20270210100000_tienda_paginas.sql
-supabase/migrations/20270210100100_tienda_analitica.sql
+supabase/migrations/20270212200002_tienda_analitica.sql
 supabase/tests/database/tienda_paginas.test.sql
 supabase/tests/database/tienda_analitica.test.sql
 apps/web/src/pages/empresas/tienda/pestanas/{paginas,analitica}.tsx   (+ registro en pestanas.ts)

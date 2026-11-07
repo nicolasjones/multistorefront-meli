@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
-const mocks = vi.hoisted(() => ({ registrar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ registrar: vi.fn(), evento: vi.fn() }))
+
+vi.mock('../../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
 vi.mock('../../../lib/registroWhatsapp', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../lib/registroWhatsapp')>()),
@@ -119,6 +121,25 @@ describe('DialogoWhatsApp', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(onAviso).toHaveBeenCalledTimes(1)
     abrir.mockRestore()
+  })
+
+  it('«Abrir WhatsApp» emite el evento clic_whatsapp una sola vez y sin datos (F-TDA-24, FR-016)', async () => {
+    const abrir = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<Montar />)
+    await screen.findByRole('dialog')
+    const boton = screen.getByRole('button', { name: 'Abrir WhatsApp' })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    expect(mocks.evento).toHaveBeenCalledTimes(1)
+    expect(mocks.evento).toHaveBeenCalledWith('clic_whatsapp')
+    abrir.mockRestore()
+  })
+
+  it('«Cancelar» no emite ningún evento de medición', async () => {
+    render(<Montar />)
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(mocks.evento).not.toHaveBeenCalled()
   })
 
   it('el registro no bloquea la apertura: el diálogo cierra aunque la llamada no termine', async () => {

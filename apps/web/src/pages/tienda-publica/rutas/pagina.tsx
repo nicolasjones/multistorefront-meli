@@ -1,10 +1,10 @@
-import { useEffect } from 'react'
 import { Box, Breadcrumbs, Typography } from '@mui/material'
 import { Link as EnlaceRuta, useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { usePaginaTienda } from '../../../hooks/usePaginaTienda'
 import { aParrafos } from '../../../lib/tiendaPaginas'
 import { useContextoTienda } from '../layout/LayoutTienda'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ErrorConReintento } from '../ErrorConReintento'
 
@@ -16,16 +16,6 @@ export default function RutaPagina() {
   const { host } = useContextoTienda()
   const { paginaId = '' } = useParams()
   const pagina = usePaginaTienda(host, paginaId)
-  const titulo = pagina.fase === 'lista' ? pagina.pagina.titulo : null
-
-  // Título del documento (la cabecera SEO compartida de MSF-149 todavía no está en esta base).
-  useEffect(() => {
-    if (!titulo) return
-    const anterior = document.title
-    document.title = titulo
-    return () => { document.title = anterior }
-  }, [titulo])
-
   if (!paginaId) return <PaginaNoEncontrada />
   if (pagina.fase === 'cargando') return <EstadoCargaPagina />
   if (pagina.fase === 'error') return <ErrorConReintento alReintentar={pagina.reintentar} />
@@ -34,6 +24,8 @@ export default function RutaPagina() {
   const { titulo: nombre, contenido } = pagina.pagina
   return (
     <Box>
+      {/* Cabecera SEO compartida (MSF-149): título «<página> | <empresa>», descripción de la tienda, canónica y Open Graph. */}
+      <CabeceraSeo host={host} pagina={nombre} ruta={`/pagina/${paginaId}`} />
       <Breadcrumbs aria-label="Migas de pan" sx={{ mb: 2 }}>
         <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit' }}>Inicio</Box>
         <Typography color="text.primary" aria-current="page" sx={{ overflowWrap: 'anywhere' }}>{nombre}</Typography>
