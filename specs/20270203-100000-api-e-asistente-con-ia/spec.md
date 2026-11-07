@@ -143,14 +143,17 @@ Quien lo pida (organización con la funcionalidad activa) le pregunta al asisten
 | Requisito | Verifica |
 |---|---|
 | FR-001, FR-002, FR-003 | pgTAP de RPC de claves (hash, un solo valor visible, revocación) + Vitest de la función `api-v1` |
-| FR-004, FR-005 | prueba de contrato contra `openapi/api-v1.json` + guard de contratos |
+| FR-004 | prueba de contrato contra `openapi/api-v1.json` |
+| FR-005, SC-004 | guard de contratos (`openapi/api-v1.json` describe todas las rutas de `/api-v1`) |
 | FR-006, SC-001 | pgTAP de aislamiento entre dos organizaciones |
 | FR-007, FR-008 | Vitest/Deno de la función (429, auditoría) + pgTAP de retención |
 | FR-009 | prueba de cabeceras `Deprecation`/`Sunset` |
 | FR-010, FR-011, FR-012, SC-003 | pgTAP de `api_entregas` (idempotencia, lease, reintentos) + Vitest del firmado + validación SSRF |
 | FR-013, FR-014 | Vitest de la pantalla (permisos, estados, un solo valor visible, no depende de la empresa activa) |
 | FR-020–FR-024, SC-005, SC-006 | pgTAP del registro y de las vistas + Vitest del chat con dos organizaciones |
-| FR-025, FR-030, FR-031 | Vitest de capacidades + `pnpm docs:check` |
+| FR-025 | Vitest de capacidades (`ia/capacidades-chat`, `ia/capacidades-mcp`) |
+| FR-030 | `pnpm docs:check` con `docs/api-publica.md` |
+| FR-031 | `pnpm docs:check` con `docs/asistente-catalogo.md` |
 
 ## Decisiones abiertas (a confirmar con Nicolás; valor por defecto anotado)
 
