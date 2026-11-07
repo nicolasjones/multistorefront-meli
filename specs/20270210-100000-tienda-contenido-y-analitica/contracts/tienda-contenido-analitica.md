@@ -60,4 +60,4 @@ enlaceProducto(productoId: string): string   // `${origen del Host}/producto/${p
 
 ## Dependencia de contrato (MSF-149)
 
-F-TDA-24 consume `leerConsentimiento(): 'aceptadas' | 'rechazadas' | null`, `useConsentimientoCookies()` y el evento de cambio de `lib/consentimientoCookies.ts` (MSF-149 FR-034). No se redefinen aquí.
+F-TDA-24 consume `leerConsentimiento(): 'aceptadas' | 'rechazadas' | null`, `useConsentimientoCookies()` y el evento de cambio de `lib/consentimientoCookies.ts` (contrato de consentimiento de MSF-149). No se redefinen aquí.

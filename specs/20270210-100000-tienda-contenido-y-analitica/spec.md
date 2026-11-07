@@ -33,7 +33,7 @@
 
 | Dependencia | Qué aporta | Estado en esta rama | ¿Bloquea? |
 |---|---|---|---|
-| MSF-149 · Tienda SEO, legal y estados (F-TDA-22) | Aviso de cookies y contrato de consentimiento (`lib/consentimientoCookies.ts`: `leerConsentimiento()`, `guardarConsentimiento()`, `useConsentimientoCookies()` y evento de cambio; MSF-149 FR-033/FR-034); `CabeceraSeo` (título/descripción por página) | Su rama está **desbloqueada y desplegada en DEV**; el código **no está aún en `main`**. | Sí, para F-TDA-24 (consentimiento) y para el `<head>` de F-TDA-23. Antes de implementar hay que tener MSF-149 mergeada en la base; si los nombres del contrato cambian, se ajusta la tarea dueña (FR-021). |
+| MSF-149 · Tienda SEO, legal y estados (F-TDA-22) | Aviso de cookies y contrato de consentimiento (`lib/consentimientoCookies.ts`: `leerConsentimiento()`, `guardarConsentimiento()`, `useConsentimientoCookies()` y evento de cambio; contrato de consentimiento de MSF-149); `CabeceraSeo` (título/descripción por página) | Su rama está **desbloqueada y desplegada en DEV**; el código **no está aún en `main`**. | Sí, para F-TDA-24 (consentimiento) y para el `<head>` de F-TDA-23. Antes de implementar hay que tener MSF-149 mergeada en la base; si los nombres del contrato cambian, se ajusta la tarea dueña (FR-014). |
 | MSF-212 · Tienda WhatsApp y contacto (F-TDA-14, F-TDA-16) | Puntos de enganche en el diálogo «Abrir WhatsApp» (`whatsapp/DialogoWhatsApp.tsx`) y en el éxito del formulario de contacto (`contacto/FormularioContacto.tsx`) | **Presente** en la base | No (ya está). |
 | MSF-191 · Tienda inicio, búsqueda y móvil | Menú, pie (`layout/PieCategorias.tsx`) y búsqueda | Presente | No (relacionada, sin bloqueo). |
 | MSF-133 · Tienda dominio y publicación | Gestión de la tienda por pestañas (`empresas/tienda/pestanas.ts`), vista previa, borrador y versiones | Presente | No. |
@@ -65,7 +65,7 @@ F-TDA-25 **no toca la base**. Cada historia trae **su propia migración aditiva*
 - **D5 · Formato del texto.** **Supuesto**: texto plano; una línea en blanco separa párrafos; los saltos simples se respetan. Sin negritas, enlaces ni imágenes (supuesto de la épica). Límites: título ≤ 80, contenido ≤ 10 000 caracteres.
 - **D6 · Eventos de medición.** La épica pide que F-TDA-24 emita los eventos de WhatsApp y de contacto (MSF-212). **Supuesto**: visita de página (en cada cambio de ruta de la tienda, que es una SPA), `clic_whatsapp` (al pulsar «Abrir WhatsApp») y `envio_contacto` (al confirmarse el envío del formulario). En GA4 se envían con ese nombre; en Meta Pixel como `PageView` y `trackCustom` con el mismo nombre. Compartir producto **no** emite evento (no está pedido).
 - **D7 · «Compartir» sin WhatsApp propio.** La historia dice «con un enlace o por WhatsApp», pero el requisito solo pide **copiar el enlace o abrir el selector del sistema** (conflicto anotado en «A revisar» de la épica). **Supuesto**: manda el requisito; sin botón de WhatsApp propio (el selector del sistema ya lo ofrece donde exista).
-- **D8 · Consentimiento.** **Supuesto**: sin decisión equivale a «rechazadas» (MSF-149 FR-034): no se carga ninguna herramienta. Si la persona acepta con la página abierta, se cargan en ese momento sin recargar. No hay «revocar» (el aviso de MSF-149 no lo trae).
+- **D8 · Consentimiento.** **Supuesto**: sin decisión equivale a «rechazadas» (contrato de consentimiento de MSF-149): no se carga ninguna herramienta. Si la persona acepta con la página abierta, se cargan en ese momento sin recargar. No hay «revocar» (el aviso de MSF-149 no lo trae).
 
 ## Navegación y patrones (Principio VI)
 
@@ -191,7 +191,7 @@ En la ficha, el visitante comparte el producto con el selector del sistema o cop
 - Título vacío, solo espacios o que genera un `slug` vacío (p. ej. solo símbolos): se rechaza con mensaje bajo el campo.
 - Texto o título con HTML: se guarda literal y se muestra escapado (React); nunca `dangerouslySetInnerHTML`.
 - Host desconocido o tienda pausada: las funciones de lectura devuelven `null`, idéntico para ambos casos (no revelan existencia).
-- `localStorage` bloqueado: el consentimiento queda sin decisión y no se carga medición (MSF-149 FR-034).
+- `localStorage` bloqueado: el consentimiento queda sin decisión y no se carga medición (contrato de consentimiento de MSF-149).
 - Bloqueador de anuncios o falla al descargar un script de medición: la tienda sigue funcionando; el error no se muestra al visitante.
 - Producto oculto o de otra tienda: «Compartir» no existe (la ficha ya muestra la 404 de la tienda).
 - Cambio de empresa en la gestión con un formulario con cambios sin guardar: aviso estándar del kit (`useWarnAboutChange`), como las otras pestañas.
@@ -215,7 +215,7 @@ En la ficha, el visitante comparte el producto con el selector del sistema o cop
 - **FR-011**: `public.guardar_analitica_tienda(empresa, ga4_id, meta_pixel_id)`: exige edición en Empresas y empresa de la organización; recorta espacios, pasa a mayúsculas el ID de GA4, vacío = quitar la herramienta; formato inválido → error con `hint` del campo y no guarda nada; `revoke … from public, anon` + `grant execute … to authenticated`. **Verificación:** pgTAP `tienda_analitica.test.sql` (permisos, empresa ajena, formatos, vaciar); `pnpm test`.
 - **FR-012**: `publico.analitica_por_dominio(host)` (ejecutable por `anon`) devuelve `{ ga4_id, meta_pixel_id }` (cada uno `string | null`) **solo** si el host pertenece a una empresa **activa**; `null` idéntico para host desconocido, inválido o empresa desactivada. Lista blanca (nunca `organizacion_id`). **Verificación:** pgTAP `tienda_analitica.test.sql` (lista blanca, `null` idéntico para pausada/desconocida/inválida, aislamiento entre tiendas); `pnpm test`.
 - **FR-013**: Pestaña «Analítica» en la gestión de la tienda (`pestanas/analitica.tsx`, registrada en `pestanas.ts`; D1): campos «ID de Google Analytics 4» (ej. `G-XXXXXXXXXX`) y «ID de Meta Pixel», cada uno con ayuda y validación de formato bajo el campo, aviso «Solo se cargan en la tienda publicada y si la persona acepta las cookies», «Guardar» y «Descartar» (restaura el último valor guardado); éxito y error con los patrones del kit. Se reencuadra al cambiar de empresa y avisa de cambios sin guardar. **Verificación:** Vitest + axe `apps/web/src/pages/empresas/tienda/analitica.test.tsx` (validación, guardar, descartar, error, cambio de empresa); `pnpm --filter @platform/web test`.
-- **FR-014**: Carga condicional: el cargador `lib/analiticaTienda.ts` consulta `analitica_por_dominio` una vez por visita y **solo** carga los scripts oficiales (`googletagmanager.com`, `connect.facebook.net`) si se cumplen **todas**: (a) tienda publicada, (b) la empresa tiene al menos un ID, (c) el consentimiento es `aceptadas` (MSF-149 FR-034), (d) no es la vista previa del panel. Los IDs se pasan como datos (nunca se arma código con texto de la persona usuaria). Si la persona acepta con la página abierta, se cargan en ese momento; sin decisión o `rechazadas`, no se descarga nada. Una falla de carga no afecta a la tienda ni se muestra. **Verificación:** Vitest `apps/web/src/lib/analiticaTienda.test.ts` (cada condición por separado, aceptación tardía, falla silenciosa, IDs como datos) y E2E `apps/web/e2e/tienda-analitica.e2e.ts` (con y sin consentimiento, pausada, vista previa; sin pedidos a los dominios de medición); `pnpm test`.
+- **FR-014**: Carga condicional: el cargador `lib/analiticaTienda.ts` consulta `analitica_por_dominio` una vez por visita y **solo** carga los scripts oficiales (`googletagmanager.com`, `connect.facebook.net`) si se cumplen **todas**: (a) tienda publicada, (b) la empresa tiene al menos un ID, (c) el consentimiento es `aceptadas` (contrato de consentimiento de MSF-149), (d) no es la vista previa del panel. Los IDs se pasan como datos (nunca se arma código con texto de la persona usuaria). Si la persona acepta con la página abierta, se cargan en ese momento; sin decisión o `rechazadas`, no se descarga nada. Una falla de carga no afecta a la tienda ni se muestra. **Verificación:** Vitest `apps/web/src/lib/analiticaTienda.test.ts` (cada condición por separado, aceptación tardía, falla silenciosa, IDs como datos) y E2E `apps/web/e2e/tienda-analitica.e2e.ts` (con y sin consentimiento, pausada, vista previa; sin pedidos a los dominios de medición); `pnpm test`.
 - **FR-015**: Visita de página: con la medición cargada, cada cambio de ruta de la tienda (SPA) registra una visita (D6) en las herramientas que la empresa tenga; sin medición cargada no hace nada. **Verificación:** Vitest `analiticaTienda.test.ts` (una visita por navegación, ninguna sin carga) y E2E `tienda-analitica.e2e.ts`; `pnpm test`.
 - **FR-016**: Eventos de MSF-212: `clic_whatsapp` al pulsar «Abrir WhatsApp» (`whatsapp/DialogoWhatsApp.tsx`) y `envio_contacto` al confirmarse el envío del formulario (`contacto/FormularioContacto.tsx`, solo en estado `exito`). El evento nunca bloquea ni retrasa la acción (apertura de WhatsApp, registro de la consulta, envío) ni muestra fallas; no incluye datos del visitante ni del mensaje (solo el nombre del evento). **Verificación:** Vitest `DialogoWhatsApp.test.tsx` y `FormularioContacto.test.tsx` (evento emitido una vez; ninguno en envío inválido o fallido) y E2E `tienda-analitica.e2e.ts`; `pnpm --filter @platform/web test`.
 - **FR-017**: Aislamiento por tienda: cada tienda carga solo los IDs de su empresa (resueltos por el `Host`); nada mezcla empresas. **Verificación:** pgTAP `tienda_analitica.test.sql` y E2E `tienda-analitica.e2e.ts` con las dos tiendas del seed (IDs distintos); `pnpm test`.
@@ -245,6 +245,46 @@ En la ficha, el visitante comparte el producto con el selector del sistema o cop
 - **SC-009** (Cierre): documentación al día (`docs/tiendas-online.md`: sección «Contenido y analítica», contradicciones para el PR). **Verificación:** `pnpm docs:check`.
 - **SC-010** (Cierre): `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` y `pnpm docs:check` pasan; FR-060 verificado de punta a punta.
 - **SC-011** (Cierre): la fila de la épica en `docs/roadmap-template.md` refleja estado y link a esta spec al cerrar el PR (paso manual). **Verificación:** revisión de la fila MSF-164 y `pnpm docs:check`.
+
+## Verificación por requisito
+
+Cada FR/SC tiene su verificación nombrada (test o comando) y su tarea dueña en `tasks.md`.
+
+| Requisito | Verificación (test/archivo) | Comando |
+|---|---|---|
+| FR-001 | pgTAP `supabase/tests/database/tienda_paginas.test.sql` (RLS, checks, unique, sin grant a anon) | `pnpm test` |
+| FR-002 | pgTAP `supabase/tests/database/tienda_paginas.test.sql` (permisos, slug, límites, HTML literal) | `pnpm test` |
+| FR-003 | pgTAP `supabase/tests/database/tienda_paginas.test.sql` (visibles, `null` idéntico, lista blanca) | `pnpm test` |
+| FR-004 | Vitest `apps/web/src/pages/empresas/tienda/paginas.test.tsx` | `pnpm --filter @platform/web test` |
+| FR-005 | Vitest `apps/web/src/pages/empresas/tienda/paginas.test.tsx` (diálogo) | `pnpm --filter @platform/web test` |
+| FR-006 | Vitest `apps/web/src/pages/tienda-publica/rutas/pagina.test.tsx` + E2E `apps/web/e2e/tienda-paginas.e2e.ts` | `pnpm test` |
+| FR-007 | Vitest `apps/web/src/pages/tienda-publica/layout/PieInformacion.test.tsx` + E2E `apps/web/e2e/tienda-paginas.e2e.ts` | `pnpm test` |
+| FR-008 | pgTAP `supabase/tests/database/tienda_paginas.test.sql` + E2E `apps/web/e2e/tienda-paginas.e2e.ts` | `pnpm test` |
+| FR-010 | pgTAP `supabase/tests/database/tienda_analitica.test.sql` (RLS, checks, sin grant a anon) | `pnpm test` |
+| FR-011 | pgTAP `supabase/tests/database/tienda_analitica.test.sql` (permisos, formatos, vaciar) | `pnpm test` |
+| FR-012 | pgTAP `supabase/tests/database/tienda_analitica.test.sql` (lista blanca, `null` idéntico) | `pnpm test` |
+| FR-013 | Vitest `apps/web/src/pages/empresas/tienda/analitica.test.tsx` | `pnpm --filter @platform/web test` |
+| FR-014 | Vitest `apps/web/src/lib/analiticaTienda.test.ts` + E2E `apps/web/e2e/tienda-analitica.e2e.ts` | `pnpm test` |
+| FR-015 | Vitest `apps/web/src/lib/analiticaTienda.test.ts` + E2E `apps/web/e2e/tienda-analitica.e2e.ts` | `pnpm test` |
+| FR-016 | Vitest `DialogoWhatsApp.test.tsx` y `FormularioContacto.test.tsx` (en `apps/web/src/pages/tienda-publica/`) + E2E `apps/web/e2e/tienda-analitica.e2e.ts` | `pnpm test` |
+| FR-017 | pgTAP `supabase/tests/database/tienda_analitica.test.sql` + E2E `apps/web/e2e/tienda-analitica.e2e.ts` (dos tiendas) | `pnpm test` |
+| FR-020 | Vitest + axe `apps/web/src/pages/tienda-publica/ficha/BotonCompartir.test.tsx` | `pnpm --filter @platform/web test` |
+| FR-021 | Vitest `apps/web/src/pages/tienda-publica/ficha/BotonCompartir.test.tsx` (`navigator.share` con título y URL; `AbortError` silencioso) | `pnpm --filter @platform/web test` |
+| FR-022 | Vitest `apps/web/src/pages/tienda-publica/ficha/BotonCompartir.test.tsx` + E2E `apps/web/e2e/tienda-compartir.e2e.ts` | `pnpm test` |
+| FR-023 | Vitest `apps/web/src/lib/enlaceProducto.test.ts` + E2E `apps/web/e2e/tienda-compartir.e2e.ts` | `pnpm test` |
+| FR-024 | Vitest + axe `BotonCompartir.test.tsx` + E2E `apps/web/e2e/tienda-compartir.e2e.ts` (320/768/1440 px) | `pnpm test` |
+| FR-060 | pgTAP existente de `anon` + `tienda_paginas.test.sql` y `tienda_analitica.test.sql` (en `supabase/tests/database/`) | `pnpm test` |
+| SC-001 | `supabase/tests/database/tienda_paginas.test.sql` | `pnpm test` |
+| SC-002 | `paginas.test.tsx`, `pagina.test.tsx`, `PieInformacion.test.tsx` | `pnpm --filter @platform/web test` |
+| SC-003 | `apps/web/e2e/tienda-paginas.e2e.ts` | `pnpm test` |
+| SC-004 | `supabase/tests/database/tienda_analitica.test.sql` | `pnpm test` |
+| SC-005 | `analiticaTienda.test.ts`, `analitica.test.tsx` | `pnpm --filter @platform/web test` |
+| SC-006 | `apps/web/e2e/tienda-analitica.e2e.ts` | `pnpm test` |
+| SC-007 | `BotonCompartir.test.tsx`, `enlaceProducto.test.ts` | `pnpm --filter @platform/web test` |
+| SC-008 | `apps/web/e2e/tienda-compartir.e2e.ts` | `pnpm test` |
+| SC-009 | revisión de `docs/tiendas-online.md` (sección «Contenido y analítica») | `pnpm docs:check` |
+| SC-010 | los siete comandos de validación del repo | `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check` |
+| SC-011 | revisión de la fila MSF-164 en `docs/roadmap-template.md` | `pnpm docs:check` |
 
 ## Matriz pantalla↔criterios
 
@@ -283,7 +323,7 @@ Inventario corrido con `pnpm prototipo:inventario` sobre las pantallas vecinas: 
 - Páginas con HTML libre, imágenes, enlaces o formato enriquecido (supuesto de la épica: texto simple).
 - Orden manual de las páginas, páginas en el menú principal o en el buscador, y páginas en el `sitemap.xml` de MSF-149 (se ordenan por título; solo en el pie).
 - Páginas y analítica dentro del borrador y las versiones de MSF-133 (D3).
-- Otras herramientas de medición (Google Tag Manager, Hotjar, TikTok, etc.) y scripts pegados a mano; eventos de comercio (compra, ver producto).
+- Otras herramientas de medición (Google Tag Manager, Hotjar, TikTok y similares) y scripts pegados a mano; eventos de comercio (compra, ver producto).
 - Categorías de cookies, «revocar consentimiento» y enlace a política (MSF-149 D7).
 - Botón propio de «Compartir por WhatsApp» (D7) y evento de analítica al compartir.
 - Prerender / previews en redes (MSF-149 D4), campos SEO editables por página.
