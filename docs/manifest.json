@@ -735,6 +735,15 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/tienda-contenido-y-analitica.md": {
+      "title": "Páginas propias, medición de visitas y botón Compartir",
+      "pageHash": "879e8ffbb29005f8d1c7682f2e6975ec634330b6525ecea0cac12d191743a562",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Identidad, textos y dirección de la tienda",
       "pageHash": "e170f907e380c3c37aebf74bea82fd8db19682d9d5f17cdd8abe768cedbf520c",
@@ -764,12 +773,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "d997ca009a2da222d678db7d7984bfe432af7d613745d005ea7a9383b947acfc",
+      "pageHash": "da51188e3183ee20fd6b54f895f805e63387f8a578290634f2e3899c683d0981",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "29bf8f31"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -1308,14 +1317,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "17bed58f6eab27954384f4c30b4f6beb8d1dfe07982413c85d52df9cf7ff29b1",
+      "pageHash": "b490ac707bb800e1bcb83aa7ae5bb3eccceba0713c02c520848fa35a00316872",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f3861761",
+      "sourceAt": "390e14df",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "29bf8f31"
+      "commit": "23ce2d28"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1755,6 +1764,20 @@
       ],
       "owner": "tecnico",
       "commit": "07b71b15"
+    },
+    "docs/tecnico/tienda-contenido-y-analitica.md": {
+      "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
+      "pageHash": "89a658bd322a56d187ebe16135890134007abb6c2cd535afc4ab5c525aae1870",
+      "sourceHash": "c43bdd9fa145630ab620f0d3ae6b40581f17cc25499012bc30733220a828875a",
+      "sourceAt": "390e14df",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
