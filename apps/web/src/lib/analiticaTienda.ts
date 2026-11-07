@@ -207,7 +207,6 @@ function emitir(nombre: EventoTienda): void {
 export function registrarEventoTienda(nombre: EventoTienda): void {
   try {
     if (!consentimientoAceptado()) return retirarMedicion()
-    const w = ventana()
     if (!ga4Activo && !pixelActivo) {
       // La medición aún se está cargando (la ficha puede resolver antes que los IDs): el evento espera su turno.
       if (pendientes.length < 5) pendientes.push(nombre)
