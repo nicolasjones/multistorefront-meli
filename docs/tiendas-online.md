@@ -701,7 +701,7 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 
 | Capa | Dónde |
 |---|---|
-| Base | `supabase/migrations/20270205120001_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
+| Base | `supabase/migrations/20270212100003_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
 | Front | `apps/web/src/lib/tiendaRelacionados.ts` (cliente + `useRelacionados`), `apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx` (carga diferida, 4 columnas en escritorio y 2 en celular), integrada en `rutas/producto.tsx` |
 | Pruebas | pgTAP `tienda_relacionados.test.sql`; Vitest `tiendaRelacionados.test.ts` y `ficha/Relacionados.test.tsx` (con axe); E2E `apps/web/e2e/tienda-relacionados.e2e.ts` |
 
@@ -709,7 +709,7 @@ Sin relacionados, o si el pedido falla, la sección no se renderiza (ni título,
 
 ## Información legal y aviso de cookies (F-TDA-22, MSF-289, épica MSF-149)
 
-Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-030…FR-034, SC-009, SC-010). Migración `20270125120000_tienda_legal.sql` (aditiva).
+Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-030…FR-034, SC-009, SC-010). Migración `20270212100001_tienda_legal.sql` (aditiva).
 
 - **Tabla `dominio.tienda_legal_enlaces`** (esquema `dominio`: dato del producto atado a una empresa): `titulo` ≤ 80, `url` solo `https://` ≤ 500 (check), `orden`, FK compuesta a `dominio.empresas`. RLS por organización con solo `select` a `authenticated` (acceso a Empresas); `anon` sin privilegios.
 - **Carga (D5)**: sin pantalla ni RPC de escritura; el equipo técnico inserta los enlaces por SQL, como el dominio de la tienda. Razón social, CUIT y dirección ya se editan en Empresas. Qué legal lleva cada marca (D6) se confirma con el cliente; el código no espera esa respuesta.
@@ -856,10 +856,10 @@ Todas son aditivas; la reversión va en una migración posterior (no en el PR qu
 
 | Migración | Reversión |
 |---|---|
-| `20270125120000_tienda_legal.sql` | `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;` |
-| `20270205120000_tienda_estado_pausada.sql` | `drop function publico.estado_tienda_por_dominio(text);` |
-| `20270205120001_tienda_relacionados.sql` | `drop function publico.relacionados_por_dominio(text, uuid);` |
-| `20270205120002_tienda_seo.sql` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
+| `20270212100001_tienda_legal.sql` | `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;` |
+| `20270212100002_tienda_estado_pausada.sql` | `drop function publico.estado_tienda_por_dominio(text);` |
+| `20270212100003_tienda_relacionados.sql` | `drop function publico.relacionados_por_dominio(text, uuid);` |
+| `20270212100004_tienda_seo.sql` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
 
 Deshacer la épica completa: `git revert -m 1 <merge>`.
 
@@ -876,14 +876,14 @@ Qué ve el visitante según el estado del dominio (la visión de conjunto está 
 
 - **Función pública**: `publico.estado_tienda_por_dominio(host)` (`jsonb`, `security definer`, `anon` ejecuta). Devuelve `{ estado: 'pausada', nombre, color_primario, color_primario_oscuro, color_acento, color_fondo, tipografia_titulos, tipografia_texto, logo_ruta }` solo si la empresa del host está desactivada; `null` para host desconocido, inválido o empresa activa. Lista blanca: nunca organización, contacto ni datos fiscales. Sin tablas nuevas (esquema `publico`, solo función).
 - **D1 (supuesto)**: la marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. Para volver a la pantalla genérica en todos los casos basta con dejar de llamar a la función desde `SinTienda` (`pages/tienda-publica/index.tsx`).
-- **Migración** `20270205120000_tienda_estado_pausada.sql`, aditiva. Reversión: `drop function publico.estado_tienda_por_dominio(text);`.
+- **Migración** `20270212100002_tienda_estado_pausada.sql`, aditiva. Reversión: `drop function publico.estado_tienda_por_dominio(text);`.
 - **Front**: `lib/tiendaEstado.ts` (`resolverEstadoTienda`, `useEstadoTienda`), `VolvemosPronto.tsx`, `PantallaError.tsx` (también en `ErrorDeRuta` de `EnrutadorTienda.tsx`, sin repetir el landmark `main` dentro de la tienda) y `PaginaNoEncontrada.tsx` (buscador diferido, solo con tienda).
 - **Verificación**: pgTAP `tienda_estado_pausada.test.sql`; Vitest + axe (`VolvemosPronto`, `PaginaNoEncontrada`, `PantallaError`, `index`); E2E `apps/web/e2e/tienda-estados.e2e.ts` con las dos tiendas (la pausa se aplica con el mismo campo `dominio.empresas.activa` que el botón «Pausar tienda»).
 
 ## SEO y posicionamiento básico (F-TDA-21, MSF-279, épica MSF-149)
 
 Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-006…SC-008). Migración
-`20270205120002_tienda_seo.sql` (aditiva, sin tablas: `publico` sigue sin tablas — Principio VII).
+`20270212100004_tienda_seo.sql` (aditiva, sin tablas: `publico` sigue sin tablas — Principio VII).
 
 - **Funciones públicas** (`security definer`, `anon` ejecuta, lista blanca): `publico.seo_tienda_por_dominio(host)` →
   `{ dominio (canónico), nombre, descripcion, logo_ruta, indexable }` (la descripción es el subtítulo publicado de

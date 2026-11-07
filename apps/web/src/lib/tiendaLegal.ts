@@ -4,7 +4,7 @@ import { supabaseClient } from './supabase'
 
 // F-TDA-22 (MSF-289): información legal pública de la tienda (razón social, CUIT, dirección y enlaces).
 // La lista blanca de campos, el orden y el `null` para tienda desconocida o desactivada los resuelve la
-// base (migración 20270125120000_tienda_legal.sql); acá se lee, se formatea y se descarta lo no `https`.
+// base (migración 20270212100001_tienda_legal.sql); acá se lee, se formatea y se descarta lo no `https`.
 
 export type EnlaceLegal = { titulo: string; url: string }
 

@@ -244,3 +244,11 @@ credenciales siguen el manejo de secretos ya establecido para el proyecto:
 nunca en Git, solo en gestores de variables o vault por entorno (ver
 `.env.example` en la raíz y en cada `infra/<producto>/`). Esta convención no
 define un mecanismo de almacenamiento nuevo ni específico para conectores.
+
+## Captura de errores (MSF-369)
+
+`workers/_comun/errores.mjs` envía el error de un worker a GlitchTip con el tag `EJECUCION_ID` (para enlazarlo
+con `/ejecuciones`). El `Dockerfile` lo copia a `dist/errores.mjs` y los entrypoints lo cargan de forma opcional
+(`capturarError(error, { worker })` en el `catch` final). Sin `ERRORES_DSN` no hace nada y un fallo del envío no
+cambia el código de salida. El mensaje se limpia de correos, teléfonos y tokens antes de enviarse. Un worker nuevo
+debe hacer lo mismo en su entrypoint; ver `docs/monitoreo.md` (variables y egress).

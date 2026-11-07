@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabaseClient } from './supabase'
 
 // F-TDA-21 (MSF-279): datos para buscadores de la tienda pública. Qué dominio es el canónico, el nombre, la
-// descripción por defecto y el logo los decide la base (migración 20270205120002_tienda_seo.sql); acá solo se
+// descripción por defecto y el logo los decide la base (migración 20270212100004_tienda_seo.sql); acá solo se
 // lee y se recorta lo que va a `<title>` y `<meta description>`.
 
 export type SeoTienda = {

@@ -23,6 +23,13 @@ module.exports = {
         message || "",
       ),
     (message) => /^Spec de rentabilidad real y reportes de ventas \(MSF-192\)$/.test(message || ""),
+    // MSF-202: el commit de especificación "verificación nombrada en línea para FR-113 y los SC…" (106 caracteres, límite 100)
+    // se escribió antes de que la etapa de spec respetara el largo del título. Mismo criterio que MSF-155/140/192: no se
+    // reescribe la historia de una rama de épica con 48 commits; se lista por texto exacto para no abrir la excepción.
+    (message) =>
+      /^spec: verificación nombrada en línea para FR-113 y los SC de catálogo compatibilidad y planillas \(MSF-202\)$/.test(
+        message || "",
+      ),
   ],
   rules: {
     "type-enum": [

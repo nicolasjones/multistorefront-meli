@@ -1,17 +1,22 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
+import { useCompatibles } from '../../hooks/useCompatibles'
 import { supabaseClient } from '../../lib/supabase'
 import { firmarImagenes } from '../../lib/productoImagenes'
 import {
   CONSULTA_INICIAL,
   consultarCostos,
+  agruparCompatibles,
   consultarPrecios,
   formatearPrecioListado,
   type PrecioListado,
   consultarProductos,
+  expandirCompatibles,
   formatearCosto,
   hayFiltrosActivos,
   type ColumnaOrdenProducto,
@@ -19,6 +24,7 @@ import {
   type FilaProductoListado,
 } from '../../lib/productosListado'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
+import { DialogoExportarProductos } from '../../components/productos/DialogoExportarProductos'
 import { FiltrosListado } from '../../components/productos/FiltrosListado'
 
 // El popup de alta/edición trae el formulario completo: se carga recién al abrirlo.
@@ -101,6 +107,17 @@ const columnaCosto = (costos: ReadonlyMap<string, number | string>): ColumnaAdap
   },
 })
 
+// «Compatible con» (F-CAT-09, FR-004): cada valor es una etiqueta; sin valores no se muestra nada.
+const etiquetasCompatible = (producto: FilaProducto) => {
+  const valores = producto.compatible_con ?? []
+  if (valores.length === 0) return null
+  return (
+    <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" role="list" aria-label="Compatible con">
+      {valores.map((valor) => <Chip key={valor} size="small" variant="outlined" label={valor} role="listitem" />)}
+    </Stack>
+  )
+}
+
 const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
   {
     clave: 'nombre',
@@ -112,6 +129,7 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
         <Stack spacing={0}>
           <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{producto.nombre}</Typography>
           <Typography variant="xs">{producto.sku ?? SIN_DATO}</Typography>
+          {etiquetasCompatible(producto)}
         </Stack>
       </Stack>
     ),
@@ -147,22 +165,45 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const { esAdministrador } = useEsAdministrador()
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
   // en el servidor; elegir otra tienda acá no cambia la empresa activa persistida.
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
   // undefined = cerrado, null = producto nuevo, id = editar ese producto.
   const [productoEnDialogo, setProductoEnDialogo] = useState<string | null | undefined>(undefined)
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
+  // Exportar (F-CAT-11, FR-201): solo el Administrador; el diálogo y el aviso de resultado viven acá.
+  const [exportando, setExportando] = useState(false)
+  const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info'; texto: string } | null>(null)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
   if (empresaPrevia !== empresaId) {
     setEmpresaPrevia(empresaId)
+    // FR-209 (Principio VIII): un diálogo de exportación abierto no mezcla empresas; se cierra con aviso.
+    if (exportando) {
+      setExportando(false)
+      setAvisoExportacion({ severidad: 'info', texto: 'Cambiaste de empresa: se cerró la exportación. Volvé a abrirla para exportar con la empresa nueva.' })
+    }
     setConsulta((actual) => ({ ...actual, pagina: 1 }))
   }
   const { categorias, isLoading: cargandoCategorias, isError: errorCategorias } = useCategorias()
   // Si la categoría filtrada ya no existe (se eliminó), el filtro se descarta: el selector y la consulta no se desfasan.
   const categoriaId = !cargandoCategorias && !errorCategorias && consultaBase.categoriaId && !categorias.some((c) => c.id === consultaBase.categoriaId) ? null : consultaBase.categoriaId
-  const consulta = useMemo<ConsultaProductos>(() => ({ ...consultaBase, empresaId, categoriaId }), [consultaBase, empresaId, categoriaId])
+  // «Compatible con» (F-CAT-09): los valores se recargan al cambiar de empresa (FR-007). Las claves elegidas que
+  // ya no existen se descartan; al servidor van todas las variantes de mayúsculas de las claves vigentes.
+  const { valores: valoresCompatibles, cargando: cargandoCompatibles, hayError: errorCompatibles } = useCompatibles(empresaId)
+  const gruposCompatibles = useMemo(() => agruparCompatibles(valoresCompatibles), [valoresCompatibles])
+  const clavesCompatibles = cargandoCompatibles
+    ? consultaBase.compatibles
+    : consultaBase.compatibles.filter((clave) => gruposCompatibles.some((g) => g.clave === clave))
+  const variantes = cargandoCompatibles ? clavesCompatibles : expandirCompatibles(clavesCompatibles, gruposCompatibles)
+  // Identidad estable mientras el contenido no cambia: evita consultar de nuevo por un arreglo equivalente.
+  const variantesClave = JSON.stringify(variantes)
+  const variantesCompatibles = useMemo(() => variantes, [variantesClave])
+  const consulta = useMemo<ConsultaProductos>(
+    () => ({ ...consultaBase, empresaId, categoriaId, compatibles: variantesCompatibles }),
+    [consultaBase, empresaId, categoriaId, variantesCompatibles],
+  )
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = !cargandoRentabilidad && (nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion')
   const [costos, setCostos] = useState<ReadonlyMap<string, number | string>>(new Map())
@@ -303,12 +344,19 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : undefined}
+        accion={puedeEditar || esAdministrador ? (
+          <Stack direction="row" spacing={1}>
+            {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
+            {esAdministrador ? <Button variant="outlined" onClick={() => { setAvisoExportacion(null); setExportando(true) }}>Exportar</Button> : null}
+            {puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : null}
+          </Stack>
+        ) : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
           {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+          {avisoExportacion ? <Alert severity={avisoExportacion.severidad} onClose={() => setAvisoExportacion(null)}>{avisoExportacion.texto}</Alert> : null}
           {veCosto && falloCostos && !hayError ? (
             <Alert severity="warning">No pudimos cargar los costos: la columna Costo puede no estar completa.</Alert>
           ) : null}
@@ -346,6 +394,10 @@ export function ProductoList() {
                 onCategoria={(categoriaId) => setConsulta((actual) => ({ ...actual, categoriaId, pagina: 1 }))}
                 disponibilidad={consulta.disponibilidad}
                 onDisponibilidad={(disponibilidad) => setConsulta((actual) => ({ ...actual, disponibilidad, pagina: 1 }))}
+                grupoCompatibles={gruposCompatibles}
+                compatibles={clavesCompatibles}
+                onCompatibles={(claves) => setConsulta((actual) => ({ ...actual, compatibles: claves, pagina: 1 }))}
+                errorCompatibles={errorCompatibles}
                 contador={`${total} ${total === 1 ? 'producto' : 'productos'}`}
                 ayuda="El catálogo es compartido: cada producto se publica en las tiendas que elijas. Un producto nuevo no está en ninguna tienda hasta que la marques: para verlo, elegí «Todas las tiendas»."
               />
@@ -382,6 +434,18 @@ export function ProductoList() {
           )}
         </Stack>
       </ContenedorSeccion>
+      {exportando && esAdministrador ? (
+        <DialogoExportarProductos
+          consulta={consulta}
+          totalFiltrado={total}
+          veRentabilidad={veCosto}
+          onCerrar={() => setExportando(false)}
+          onExportado={(productos, columnas) => {
+            setExportando(false)
+            setAvisoExportacion({ severidad: 'success', texto: `Exportación CSV lista: ${productos} ${productos === 1 ? 'producto' : 'productos'}, ${columnas} ${columnas === 1 ? 'columna' : 'columnas'}` })
+          }}
+        />
+      ) : null}
       {productoEnDialogo !== undefined ? (
         <Suspense fallback={null}>
           <DialogoProducto productoId={productoEnDialogo} onCerrar={() => setProductoEnDialogo(undefined)} onGuardado={recargarDesdeElPrincipio} />

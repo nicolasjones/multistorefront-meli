@@ -1,0 +1,54 @@
+# MSF-369 · F-OPS-03 (FR-033, FR-030). Cada 2 minutos cuenta en GlitchTip los eventos de error de los últimos
+# `ventana_min` minutos del proyecto de la aplicación; con `umbral` o más registra UN fallo de fuente
+# `aplicacion` (monitoreo-evaluar abre la alerta y la deduplica), y con menos registra `ok` (la resuelve).
+# El conteo vive en la herramienta de errores; la base solo guarda el resultado. Sin ERRORES_APP_URL el flow
+# no hace nada (herramienta no configurada). Secretos: el token de LECTURA va solo como secreto de Kestra
+# (SECRET_ERRORES_APP_TOKEN, base64, infra/kestra/.env); nunca en el YAML. Endpoint: ver docs/monitoreo.md
+# (spike D-1: la ruta de listado de eventos es el input `ruta_eventos`, ajustable sin cambiar código).
+id: monitoreo-errores-aplicacion
+namespace: platform.monitoreo
+labels:
+  capa: core
+  dominio: plataforma
+  componente: monitoreo
+description: "Cuenta los errores de la aplicación en la herramienta de errores y registra el resultado."
+inputs:
+  - id: ventana_min
+    type: INT
+    defaults: 10
+  - id: umbral
+    type: INT
+    defaults: 5
+  - id: ruta_eventos
+    type: STRING
+    defaults: "/api/0/projects/{organizacion}/{proyecto}/events/"
+tasks:
+  - id: configurada
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ envs.errores_app_url is defined and envs.errores_app_url != '' }}"
+    then:
+      - id: contar_eventos
+        type: io.kestra.plugin.core.http.Request
+        uri: "{{ envs.errores_app_url }}{{ inputs.ruta_eventos | replace({'{organizacion}': envs.errores_app_organizacion, '{proyecto}': envs.errores_app_proyecto}) }}?start={{ now() | dateAdd(-inputs.ventana_min, 'MINUTES') | date(\"yyyy-MM-dd'T'HH:mm:ss\") }}&end={{ now() | date(\"yyyy-MM-dd'T'HH:mm:ss\") }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ secret('ERRORES_APP_TOKEN') }}"
+        timeout: PT1M
+        retry:
+          type: constant
+          interval: PT15S
+          maxAttempts: 2
+      - id: registrar_resultado
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        url: "{{ envs.kestra_orquestacion_db_url }}"
+        username: kestra_orquestacion
+        password: "{{ envs.kestra_orquestacion_db_password }}"
+        sql: select public.registrar_evento_monitoreo('aplicacion', :proyecto, :resultado, :motivo, null);
+        parameters:
+          proyecto: "{{ envs.errores_app_proyecto }}"
+          resultado: "{{ (fromJson(outputs.contar_eventos.body) | length) >= inputs.umbral ? 'fallo' : 'ok' }}"
+          motivo: "{{ (fromJson(outputs.contar_eventos.body) | length) }} errores en {{ inputs.ventana_min }} min"
+triggers:
+  - id: cada_2_minutos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/2 * * * *"

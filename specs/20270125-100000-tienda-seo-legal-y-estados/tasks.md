@@ -69,7 +69,7 @@ Cada FR/SC declara su verificación nombrada en `spec.md`; la tarea dueña la ej
 
 ## Phase 3 — F-TDA-22 · Información legal (US4)
 
-**Base de datos** (un solo archivo `supabase/migrations/20270125120000_tienda_legal.sql`, reversión en `plan.md`)
+**Base de datos** (un solo archivo `supabase/migrations/20270212100001_tienda_legal.sql`, reversión en `plan.md`)
 
 - [ ] T040 [F-TDA-22][US4] Crear en la migración la tabla `dominio.tienda_legal_enlaces` (esquema `dominio`; `titulo` ≤ 80; `url` con check `^https://` ≤ 500; `orden`; FK compuesta a `dominio.empresas`; RLS por organización con solo `select` a `authenticated`; sin privilegios para `anon`; índice `(empresa_id, orden)`) (FR-030).
 - [ ] T041 [F-TDA-22][US4] En la misma migración: `publico.legal_por_dominio(host)` con `razon_social`, `cuit`, `direccion` de `dominio.empresas` y `enlaces` por `orden`; lista blanca; `null` idéntico para desconocida / desactivada; grants de `anon` (depende de T040) (FR-031).
