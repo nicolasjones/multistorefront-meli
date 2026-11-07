@@ -54,7 +54,7 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
 
 | Tema | Dónde queda |
 |---|---|
-| Exportar productos | MSF-202 (lee `v_productos_listado`) |
+| Exportar productos | Todavía no se puede; está planificado |
 | Importar CSV, destacado, newsletter | Sin historia en esta épica |
 | Selección múltiple: «Mover de categoría», «Borrar» | MSF-218 (edición masiva); el producto se desactiva, no se borra |
 | IVA de la categoría | F-PRE-12 (MSF-114) |
