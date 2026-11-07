@@ -32,6 +32,8 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
   Un superadmin con organización activa equivale a administrador.
 - `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar` exige `edicion`;
   `exportar` y `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+- Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
+  Administrador); ver `docs/actividad.md`.
 
 ### Cómo usarlas en una tabla de dominio
 

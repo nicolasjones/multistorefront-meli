@@ -50,12 +50,12 @@
 
 ## Phase 3: F-AUD-03 — Exportar la actividad (US2)
 
-- [ ] T022 [F-AUD-03][US2] Migración `20270210110000_exportar_actividad.sql`: `public.exportar_actividad` (mismos filtros, `puede_accion('actividad','exportar')`, tope 50.000, `total` real) con `revoke … public, anon` / `grant … authenticated` (FR-011; verifica `exportar_actividad.test.sql`)
-- [ ] T023 [F-AUD-03][US2] `BotonExportarActividad` en el encabezado de `pages/actividad/list.tsx` visible solo con la acción `exportar` (FR-010; verifica `BotonExportarActividad.test.tsx`)
-- [ ] T024 [F-AUD-03][US2] CSV con `lib/exportarCsv.ts`: UTF-8 con BOM, columnas de la tabla, hora de Buenos Aires, neutralización de `= + - @`, nombre `actividad-AAAA-MM-DD.csv` (FR-012; verifica `exportarActividadCsv.test.ts`)
-- [ ] T025 [F-AUD-03][US2] Filtros y empresa activa en el export, estados «Exportando…», error con reintento, vacío y aviso de recorte (FR-013; verifica `exportarActividad.test.tsx`)
-- [ ] T026 [P] [F-AUD-03][US2] Tests: pgTAP de `exportar_actividad` (permiso, `anon`, aislamiento, filtros = total de `listar_actividad`) y Vitest del botón, del CSV y del cambio de empresa activa (verifica FR-010…FR-013, SC-004, SC-005; `pnpm test:db`, `pnpm test`)
-- [ ] T027 [F-AUD-03][US2] Actualizar `docs/actividad.md` (sección Exportar; quitar «sin Exportar») y `docs/permisos-por-rol.md` si corresponde
+- [x] T022 [F-AUD-03][US2] Migración `20270210110000_exportar_actividad.sql`: `public.exportar_actividad` (mismos filtros, `puede_accion('actividad','exportar')`, tope 50.000, `total` real) con `revoke … public, anon` / `grant … authenticated` (FR-011; verifica `exportar_actividad.test.sql`)
+- [x] T023 [F-AUD-03][US2] `BotonExportarActividad` en el encabezado de `pages/actividad/list.tsx` visible solo con la acción `exportar` (FR-010; verifica `BotonExportarActividad.test.tsx`)
+- [x] T024 [F-AUD-03][US2] CSV con `lib/exportarCsv.ts`: UTF-8 con BOM, columnas de la tabla, hora de Buenos Aires, neutralización de `= + - @`, nombre `actividad-AAAA-MM-DD.csv` (FR-012; verifica `exportarActividadCsv.test.ts`)
+- [x] T025 [F-AUD-03][US2] Filtros y empresa activa en el export, estados «Exportando…», error con reintento, vacío y aviso de recorte (FR-013; verifica `exportarActividad.test.tsx`)
+- [x] T026 [P] [F-AUD-03][US2] Tests: pgTAP de `exportar_actividad` (permiso, `anon`, aislamiento, filtros = total de `listar_actividad`) y Vitest del botón, del CSV y del cambio de empresa activa (verifica FR-010…FR-013, SC-004, SC-005; `pnpm test:db`, `pnpm test`)
+- [x] T027 [F-AUD-03][US2] Actualizar `docs/actividad.md` (sección Exportar; quitar «sin Exportar») y `docs/permisos-por-rol.md` si corresponde
 
 **Checkpoint**: `pnpm test:db`, `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 
