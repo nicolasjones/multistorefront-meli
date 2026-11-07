@@ -75,16 +75,16 @@ describe('[MSF-354:T012] Empresa activa en el centro de importaciones (FR-015, S
     expect(consultasDe('procesos_masivos').at(-1)?.filtros).toContainEqual(['empresa_id', 'e-2'])
   })
 
-  it('al cambiar de empresa vuelve a la primera página', async () => {
+  it('al cambiar de empresa vuelve a la primera tanda', async () => {
     falso.respuestas.procesos_masivos = () => ({ data: [proceso(1)], count: 45, error: null })
     const cambiarActiva = conActivaCambiante()
     render(<MemoryRouter><ImportacionesList /></MemoryRouter>)
-    await screen.findByText('Página 1 de 3')
-    fireEvent.click(screen.getByRole('button', { name: 'Página siguiente' }))
-    await screen.findByText('Página 2 de 3')
+    await screen.findByText('Mostrando 1 de 45 procesos')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(consultasDe('procesos_masivos').at(-1)?.rango).toEqual([0, 39]))
 
     await cambiarActiva('e-2')
-    await screen.findByText('Página 1 de 3')
+    await waitFor(() => expect(consultasDe('procesos_masivos').at(-1)?.filtros).toContainEqual(['empresa_id', 'e-2']))
     expect(consultasDe('procesos_masivos').at(-1)?.rango).toEqual([0, 19])
   })
 
