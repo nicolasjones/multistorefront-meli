@@ -41,9 +41,9 @@
 
 ## Fase 1 — F-TDA-23 · Páginas de contenido (US1)
 
-- [ ] T001 [F-TDA-23][US1] Migración `supabase/migrations/20270210100000_tienda_paginas.sql`: tabla `dominio.tienda_paginas` en esquema `dominio` (FR-001), RLS por organización, solo `select` a `authenticated`, sin privilegios a `anon`, checks de longitud y de `slug`, `unique (empresa_id, slug)`; reversión documentada en `plan.md`. Verificar con `graphify`/migraciones que la tabla no existe antes.
-- [ ] T002 [F-TDA-23][US1] RPC `public.guardar_pagina_tienda` y `public.eliminar_pagina_tienda` (FR-002) en la misma migración: permisos de edición en Empresas, empresa de la organización, slug estable y único, `revoke … from public, anon` + `grant … to authenticated`. Depende de T001.
-- [ ] T003 [F-TDA-23][US1] Funciones `publico.paginas_por_dominio` y `publico.pagina_por_dominio` (FR-003) en la misma migración: lista blanca, `null` idéntico, solo visibles de empresa activa, `grant … to anon, authenticated`. Depende de T001.
+- [ ] T001 [F-TDA-23][US1] Migración `supabase/migrations/20270210100000_tienda_paginas.sql`: tabla `dominio.tienda_paginas` en esquema `dominio` (FR-001), RLS por organización, solo `select` a `authenticated`, sin privilegios a `anon`, checks de longitud y de `slug`, `unique (empresa_id, slug)`; reversión documentada en `plan.md`. Verificar con `graphify`/migraciones que la tabla no existe antes. Verificación: pgTAP `supabase/tests/database/tienda_paginas.test.sql` (RLS, checks, `unique`, sin `grant` a `anon`) con `pnpm test`.
+- [ ] T002 [F-TDA-23][US1] RPC `public.guardar_pagina_tienda` y `public.eliminar_pagina_tienda` (FR-002) en la misma migración: permisos de edición en Empresas, empresa de la organización, slug estable y único, `revoke … from public, anon` + `grant … to authenticated`. Verificación: pgTAP `tienda_paginas.test.sql` (permisos, empresa ajena, slug único y estable, límites, HTML literal) con `pnpm test`. Depende de T001.
+- [ ] T003 [F-TDA-23][US1] Funciones `publico.paginas_por_dominio` y `publico.pagina_por_dominio` (FR-003) en la misma migración: lista blanca, `null` idéntico, solo visibles de empresa activa, `grant … to anon, authenticated`. Verificación: pgTAP `tienda_paginas.test.sql` (solo visibles, orden, `null` idéntico, lista blanca) con `pnpm test`. Depende de T001.
 - [ ] T004 [F-TDA-23][US1] pgTAP `supabase/tests/database/tienda_paginas.test.sql` (FR-008, SC-001): RLS, checks, permisos, slug único/estable, texto con HTML literal, visibles solamente, aislamiento entre dos tiendas, `null` idéntico, lista blanca, sin `grant` a `anon`. Depende de T002 y T003.
 - [ ] T005 [P] [F-TDA-23][US1] Pestaña «Páginas» (`pestanas/paginas.tsx` + registro en `pestanas.ts` + `lib/tiendaPaginas.ts`) (FR-004): lista con carga infinita, contador, vacío, error con reintento, reencuadre al cambiar de empresa; Vitest + axe `empresas/tienda/paginas.test.tsx`.
 - [ ] T006 [F-TDA-23][US1] Diálogo crear/editar y confirmación de borrado (FR-005) dentro de la pestaña: validación, errores por campo, interruptor «Visible en la tienda», foco y cierre al cambiar de empresa; Vitest + axe. Depende de T005.
@@ -57,9 +57,9 @@
 
 ## Fase 2 — F-TDA-24 · Analítica de visitas (US2)
 
-- [ ] T020 [F-TDA-24][US2] Migración `supabase/migrations/20270210100100_tienda_analitica.sql`: tabla `dominio.tienda_analitica` en esquema `dominio` (FR-010, FR-017), RLS por organización, solo `select` a `authenticated`, sin privilegios a `anon`, checks de formato; reversión documentada en `plan.md`.
-- [ ] T021 [F-TDA-24][US2] RPC `public.guardar_analitica_tienda` (FR-011) en la misma migración: permisos, empresa de la organización, normalización y errores con `hint`. Depende de T020.
-- [ ] T022 [F-TDA-24][US2] Función `publico.analitica_por_dominio` (FR-012) en la misma migración: lista blanca, solo empresa activa, `null` idéntico. Depende de T020.
+- [ ] T020 [F-TDA-24][US2] Migración `supabase/migrations/20270210100100_tienda_analitica.sql`: tabla `dominio.tienda_analitica` en esquema `dominio` (FR-010, FR-017), RLS por organización, solo `select` a `authenticated`, sin privilegios a `anon`, checks de formato; reversión documentada en `plan.md`. Verificación: pgTAP `supabase/tests/database/tienda_analitica.test.sql` (RLS, checks, sin `grant` a `anon`; aislamiento entre tiendas de FR-017) con `pnpm test`.
+- [ ] T021 [F-TDA-24][US2] RPC `public.guardar_analitica_tienda` (FR-011) en la misma migración: permisos, empresa de la organización, normalización y errores con `hint`. Verificación: pgTAP `tienda_analitica.test.sql` (permisos, empresa ajena, formatos, vaciar) con `pnpm test`. Depende de T020.
+- [ ] T022 [F-TDA-24][US2] Función `publico.analitica_por_dominio` (FR-012) en la misma migración: lista blanca, solo empresa activa, `null` idéntico. Verificación: pgTAP `tienda_analitica.test.sql` (lista blanca, `null` idéntico pausada/desconocida/inválida) con `pnpm test`. Depende de T020.
 - [ ] T023 [F-TDA-24][US2] pgTAP `supabase/tests/database/tienda_analitica.test.sql` (SC-004): RLS, formatos, permisos, vaciar, `null` idéntico pausada/desconocida/inválida, lista blanca, aislamiento. Depende de T021 y T022.
 - [ ] T024 [P] [F-TDA-24][US2] Pestaña «Analítica» (`pestanas/analitica.tsx` + registro en `pestanas.ts`) (FR-013): campos, validación, «Guardar»/«Descartar», aviso de condiciones, reencuadre y aviso de cambios sin guardar; Vitest + axe `empresas/tienda/analitica.test.tsx`.
 - [ ] T025 [P] [F-TDA-24][US2] `lib/analiticaTienda.ts` (FR-014, FR-015): consulta única por visita, carga condicional (publicada, con IDs, `aceptadas` de MSF-149, fuera de vista previa), aceptación tardía, visita por navegación, falla silenciosa, IDs como datos; integración en `LayoutTienda`/`index.tsx` con carga diferida; Vitest `analiticaTienda.test.ts`.
@@ -73,8 +73,8 @@
 ## Fase 3 — F-TDA-25 · Compartir producto (US3)
 
 - [ ] T040 [P] [F-TDA-25][US3] `lib/enlaceProducto.ts` (FR-023): URL con el dominio del `Host` y `/producto/<id>`, sin parámetros; Vitest `enlaceProducto.test.ts`.
-- [ ] T041 [F-TDA-25][US3] Componente `ficha/BotonCompartir.tsx` y montaje en la ficha (FR-020): estilo de botón secundario con `TemaTienda`, nombre accesible. Depende de T040.
-- [ ] T042 [F-TDA-25][US3] Comportamiento de compartir (FR-021, FR-022): `navigator.share` con nombre y enlace, cancelación silenciosa, copia al portapapeles con aviso «Enlace copiado» (`aria-live`), enlace manual si no se puede copiar, caída de un fallo no-cancelación al camino de copia. Depende de T041.
+- [ ] T041 [F-TDA-25][US3] Componente `ficha/BotonCompartir.tsx` y montaje en la ficha (FR-020): estilo de botón secundario con `TemaTienda`, nombre accesible. Verificación: Vitest + axe `ficha/BotonCompartir.test.tsx` (presente, nombre accesible, teclado) con `pnpm --filter @platform/web test`. Depende de T040.
+- [ ] T042 [F-TDA-25][US3] Comportamiento de compartir (FR-021, FR-022): `navigator.share` con nombre y enlace, cancelación silenciosa, copia al portapapeles con aviso «Enlace copiado» (`aria-live`), enlace manual si no se puede copiar, caída de un fallo no-cancelación al camino de copia. Verificación: Vitest `ficha/BotonCompartir.test.tsx` (`navigator.share` con título y URL, `AbortError` silencioso, copia, aviso, rechazo del portapapeles) y E2E `apps/web/e2e/tienda-compartir.e2e.ts` con `pnpm test`. Depende de T041.
 - [ ] T043 [F-TDA-25][US3] Accesibilidad y responsivo (FR-024): teclado, lector de pantalla y 320 / 768 / 1440 px; Vitest + axe `ficha/BotonCompartir.test.tsx`. Depende de T042.
 - [ ] T044 [F-TDA-25][US3] Verificación Vitest de SC-007: cobertura de `BotonCompartir` y `enlaceProducto` (selector, copia, rechazo, cancelación, dominio correcto). Depende de T043.
 - [ ] T045 [F-TDA-25][US3] E2E `apps/web/e2e/tienda-compartir.e2e.ts` en las dos tiendas (SC-008): selector simulado, copia con aviso, enlace con el dominio correcto; anchos. Depende de T043.
@@ -86,7 +86,7 @@
 ## Fase 4 — Cierre (docs, seguridad y roadmap)
 
 - [ ] T070 [CIERRE] Verificar FR-060 de punta a punta: pgTAP de `anon` (solo funciones de `publico`), `revoke/grant` de las RPC nuevas, contrato `contracts/tienda-contenido-analitica.md` al día con las firmas finales y re-verificación de esquema (`dominio` para ambas tablas) en la implementación y el PR.
-- [ ] T071 [CIERRE] Documentar en `docs/tiendas-online.md` la sección «Contenido y analítica» (pestañas, rutas, IDs de medición, consentimiento, eventos, límites) y las contradicciones/diferencias de prototipo para la descripción del PR (SC-009).
+- [ ] T071 [CIERRE] Documentar en `docs/tiendas-online.md` la sección «Contenido y analítica» (pestañas, rutas, IDs de medición, consentimiento, eventos, límites) y las contradicciones/diferencias de prototipo para la descripción del PR (SC-009). Verificación: `pnpm docs:check` y revisión de la sección en `docs/tiendas-online.md`.
 - [ ] T072 [CIERRE] Correr `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check` (SC-010) y, al mergear, actualizar a mano la fila de MSF-164 en `docs/roadmap-template.md` (SC-011).
 
 ---
