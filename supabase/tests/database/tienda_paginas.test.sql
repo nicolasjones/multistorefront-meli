@@ -4,7 +4,7 @@
 -- blanca) y FR-008 (aislamiento entre dos tiendas).
 begin;
 
-select plan(43);
+select plan(44);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -86,6 +86,13 @@ select set_config(
   json_build_object('sub', 'd1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text,
   true
 );
+-- Título largo con separador justo en la posición 70: el corte no deja guion final.
+select is(
+  private.slug_pagina_tienda(repeat('a', 69) || ' bbb'),
+  repeat('a', 69),
+  'el slug de un título largo no termina en guion tras el corte a 70'
+);
+
 set local role authenticated;
 
 select throws_ok(

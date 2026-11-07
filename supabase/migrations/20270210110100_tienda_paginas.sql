@@ -101,15 +101,18 @@ set search_path = ''
 as $$
   select coalesce(
     nullif(
-      left(
-        btrim(
-          regexp_replace(
-            translate(lower(coalesce(p_titulo, '')), 'áàäâãéèëêíìïîóòöôõúùüûñç', 'aaaaaeeeeiiiiooooouuuunc'),
-            '[^a-z0-9]+', '-', 'g'
+      btrim(
+        left(
+          btrim(
+            regexp_replace(
+              translate(lower(coalesce(p_titulo, '')), 'áàäâãéèëêíìïîóòöôõúùüûñç', 'aaaaaeeeeiiiiooooouuuunc'),
+              '[^a-z0-9]+', '-', 'g'
+            ),
+            '-'
           ),
-          '-'
+          70
         ),
-        70
+        '-'
       ),
       ''
     ),
