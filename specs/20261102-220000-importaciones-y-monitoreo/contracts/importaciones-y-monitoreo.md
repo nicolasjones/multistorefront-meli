@@ -7,7 +7,7 @@ Todos nuevos (sin `BREAKING`). No hay Edge Functions nuevas (no aplica OpenAPI).
 ```ts
 iniciar_proceso_masivo(p_conexion_id: uuid, p_capacidad: text, p_tipo: 'importacion' | 'exportacion', p_funcionalidad: text, p_nombre: text, p_empresa_id?: uuid, p_parametros?: jsonb): uuid
 ```
-`security invoker`. Solo administradores de la organización de la sesión. Crea el proceso `pendiente` y su ejecución (`iniciar_ejecucion_worker`, origen `manual`) en la misma transacción. Errores: `NO_AUTORIZADO`, `TIPO_INVALIDO`, `YA_EN_CURSO` (propagado del ciclo). `revoke … from public, anon`; `grant … to authenticated`.
+`security definer` (`authenticated` no escribe las tablas; autoriza dentro con la organización de la sesión). Solo administradores de la organización de la sesión. Crea el proceso `pendiente` y su ejecución (`iniciar_ejecucion_worker`, origen `manual`) en la misma transacción. Errores: `NO_AUTORIZADO`, `TIPO_INVALIDO`, `ARGUMENTO_INVALIDO`, `SECRETO_DETECTADO`, `EMPRESA_INVALIDA`, `YA_EN_CURSO` (propagado del ciclo). `revoke … from public, anon`; `grant … to authenticated`.
 
 ```ts
 actualizar_progreso_proceso_masivo(p_proceso_id: uuid, p_procesados: int, p_total?: int): void
@@ -15,12 +15,12 @@ registrar_error_proceso_masivo(p_proceso_id: uuid, p_fila?: int, p_referencia?: 
 cerrar_proceso_masivo(p_proceso_id: uuid, p_estado: 'completado' | 'con_errores' | 'fallido' | 'cancelado', p_motivo?: text): void
 proceso_masivo_cancelado(p_proceso_id: uuid): boolean   // true si hay cancelación solicitada
 ```
-`security definer`, `search_path = ''`. Solo el rol `worker_<org>` de la organización dueña del proceso. `procesados` no retrocede ni supera `total`. El motivo se sanitiza en la base. Primer cambio a `en_curso` en `actualizar_progreso_proceso_masivo`. `revoke … from public, anon, authenticated`; grant al rol de worker como el ciclo de ejecuciones.
+`security definer`, `search_path = ''`. Solo el rol `worker_<org>` de la organización dueña del proceso. `procesados` no retrocede ni supera `total`. El motivo se sanitiza en la base; el motivo del cierre queda como detalle sin fila (no suma a `con_errores`); se guardan hasta 1000 detalles por proceso. Primer cambio a `en_curso` en `actualizar_progreso_proceso_masivo`. `revoke … from public, anon, authenticated`; grant al rol de worker como el ciclo de ejecuciones.
 
 ```ts
 solicitar_cancelacion_proceso_masivo(p_proceso_id: uuid): 'cancelado' | 'cancelacion_solicitada'
 ```
-`security invoker`. Solo administradores de la organización. Terminal → error `PROCESO_TERMINADO`. `grant … to authenticated`; `revoke … from public, anon`.
+`security definer` (por la misma razón). Solo administradores de la organización. Terminal → error `PROCESO_TERMINADO`. `grant … to authenticated`; `revoke … from public, anon`.
 
 ```ts
 procesos_masivos: { id, organizacion_id, empresa_id, tipo, funcionalidad, nombre, estado, ejecucion_id, solicitado_por, total, procesados, con_errores, cancelacion_solicitada, creado_en, iniciado_en, finalizado_en }
