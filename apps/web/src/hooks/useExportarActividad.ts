@@ -6,7 +6,7 @@ import type { MensajeExportacion } from './useExportarCsv'
 
 // Exportar la actividad (F-AUD-03, FR-013): respeta todos los filtros de la pantalla y la empresa activa
 // (ya vienen en `filtros.empresa`). «Exportando…» mientras corre, error con reintento, aviso si no hay
-// nada y aviso de recorte. Si la empresa activa cambia a mitad de la exportación se descarta lo traído:
+// nada y, si el filtro supera el tope, un aviso que pide acotar sin descargar. Si la empresa activa cambia a mitad de la exportación se descarta lo traído:
 // nunca se baja un archivo de otra empresa (Principio VIII).
 export function useExportarActividad(filtros: FiltrosActividad) {
   const [exportando, setExportando] = useState(false)
@@ -39,19 +39,21 @@ export function useExportarActividad(filtros: FiltrosActividad) {
     setExportando(true)
     setMensaje(null)
     try {
-      const { filas, total, recortado } = await traerActividadParaExportar(supabaseClient, filtros)
+      const resultado = await traerActividadParaExportar(supabaseClient, filtros)
       if (!montado.current || miGeneracion !== generacion.current) return
-      if (total === 0) {
+      if (resultado.estado === 'vacio') {
         setMensaje({ tipo: 'aviso', texto: 'No hay actividad para exportar.' })
         return
       }
-      descargarCsvActividad(filas)
-      if (recortado) {
+      if (resultado.estado === 'excede') {
+        // CA-AUD-03-3: no se baja un archivo recortado; el aviso queda hasta que se cierre.
         setMensaje({
           tipo: 'aviso',
-          texto: `Se exportaron las primeras ${TOPE_FILAS_ACTIVIDAD.toLocaleString('es-AR')} filas de ${total.toLocaleString('es-AR')}. Acotá el período o los filtros para exportar el resto.`,
+          texto: `El filtro tiene ${resultado.total.toLocaleString('es-AR')} filas y el máximo por archivo es ${TOPE_FILAS_ACTIVIDAD.toLocaleString('es-AR')}. No se descargó ningún archivo: acotá el período o los filtros y exportá de nuevo.`,
         })
+        return
       }
+      descargarCsvActividad(resultado.filas)
     } catch (error) {
       console.error('No pudimos exportar la actividad.', error)
       if (montado.current && miGeneracion === generacion.current) {

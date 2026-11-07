@@ -9,7 +9,7 @@
 -- evento. Por eso los conteos de abajo filtran por tipo o por período cuando una llamada previa ya registró.
 begin;
 
-select plan(31);
+select plan(43);
 
 -- ============================================================================
 -- Fixture (mismo que registro_actividad.test.sql)
@@ -33,6 +33,15 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('b1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'consulta'),
   ('b1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'administracion'),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
+
+insert into auth.users (id, email) values
+  ('b8000000-0000-0000-0000-000000000001', 'soporte-activo@example.com'),
+  ('b8000000-0000-0000-0000-000000000002', 'soporte-sin-org@example.com');
+insert into superadmins (user_id) values
+  ('b8000000-0000-0000-0000-000000000001'), ('b8000000-0000-0000-0000-000000000002');
+-- Modo soporte: el primero entró a la Organización Uno; el segundo no entró a ninguna.
+insert into superadmin_organizacion_activa (user_id, organizacion_id) values
+  ('b8000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
 
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Empresa A1'),
@@ -69,8 +78,8 @@ end $$;
 -- Privilegios (SC-005)
 -- ============================================================================
 
-select is(has_function_privilege('anon', 'public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, integer, integer)', 'EXECUTE'), false, 'anon no ejecuta exportar_actividad');
-select is(has_function_privilege('authenticated', 'public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, integer, integer)', 'EXECUTE'), true, 'authenticated ejecuta exportar_actividad');
+select is(has_function_privilege('anon', 'public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean)', 'EXECUTE'), false, 'anon no ejecuta exportar_actividad');
+select is(has_function_privilege('authenticated', 'public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean)', 'EXECUTE'), true, 'authenticated ejecuta exportar_actividad');
 
 -- ============================================================================
 -- Permiso: solo quien tiene edición en Actividad y la acción exportar (CA-AUD-03-2)
@@ -99,7 +108,7 @@ reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 
 -- Primera llamada sin filtros: todavía no hay eventos de exportación, así que son los 4 del fixture.
-select set_config('t.todo', public.exportar_actividad()::text, true);
+select set_config('t.todo', public.exportar_actividad(p_con_total => true)::text, true);
 select is((current_setting('t.todo')::jsonb ->> 'total')::int, 4, 'el administrador exporta los 4 eventos de su organización (total real)');
 select is(jsonb_array_length(current_setting('t.todo')::jsonb -> 'filas'), 4, 'la entrega trae las 4 filas');
 select is(current_setting('t.todo')::jsonb -> 'filas' -> 0 ->> 'detalle', 'Creó el producto Cañería', 'va de lo más nuevo a lo más viejo, igual que el listado');
@@ -107,7 +116,7 @@ select is(current_setting('t.todo')::jsonb ->> 'recortado', 'false', 'con 4 fila
 
 -- El total coincide con el «N» del listado para el mismo filtro (SC-004).
 select is(
-  (public.exportar_actividad(p_tipo => 'producto.creado') ->> 'total')::int,
+  (public.exportar_actividad(p_tipo => 'producto.creado', p_con_total => true) ->> 'total')::int,
   (select max(total)::int from public.listar_actividad(p_tipo => 'producto.creado')),
   'el total exportado coincide con el total de listar_actividad para el mismo filtro');
 select is(jsonb_array_length(public.exportar_actividad(p_tipo => 'producto.creado') -> 'filas'), 2, 'el filtro por tipo trae solo esas filas');
@@ -121,23 +130,30 @@ select is(jsonb_array_length(public.exportar_actividad(p_texto => '%') -> 'filas
 
 -- Tienda y usuario.
 select is(jsonb_array_length(public.exportar_actividad(p_empresa => 'e1000000-0000-0000-0000-000000000001') -> 'filas'), 2, 'el filtro por tienda trae solo esa tienda');
-select is((public.exportar_actividad(p_actor => 'b1000000-0000-0000-0000-000000000002') ->> 'total')::int, 1, 'el filtro por usuario trae solo sus eventos');
+select is((public.exportar_actividad(p_actor => 'b1000000-0000-0000-0000-000000000002', p_con_total => true) ->> 'total')::int, 1, 'el filtro por usuario trae solo sus eventos');
 
 -- ============================================================================
 -- Lotes y corte estable
 -- ============================================================================
 
-select is(jsonb_array_length(public.exportar_actividad(p_tipo => 'producto.creado', p_desplazamiento => 0, p_limite => 1) -> 'filas'), 1, 'un lote de 1 trae 1 fila');
-select is(jsonb_array_length(public.exportar_actividad(p_tipo => 'producto.creado', p_desplazamiento => 1, p_limite => 1) -> 'filas'), 1, 'el siguiente lote trae la fila que sigue');
-select is(jsonb_array_length(public.exportar_actividad(p_tipo => 'producto.creado', p_desplazamiento => 2, p_limite => 1) -> 'filas'), 0, 'pasado el final no hay filas');
+select set_config('t.p1', public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1)::text, true);
+select is(jsonb_array_length(current_setting('t.p1')::jsonb -> 'filas'), 1, 'un lote de 1 trae 1 fila');
+select is(current_setting('t.p1')::jsonb ->> 'hay_mas', 'true', 'avisa que hay más páginas');
+select set_config('t.p2', public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1,
+  p_cursor_creado_en => (current_setting('t.p1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
+  p_cursor_id => (current_setting('t.p1')::jsonb -> 'siguiente' ->> 'id')::uuid, p_entregadas => 1)::text, true);
+select is(current_setting('t.p2')::jsonb -> 'filas' -> 0 ->> 'detalle', 'Creó el producto Lámpara 100%', 'el cursor sigue con la fila que sigue, sin repetir ni saltear');
+select is(current_setting('t.p2')::jsonb ->> 'hay_mas', 'false', 'la última página dice que no hay más');
+select is(current_setting('t.p1')::jsonb ->> 'total', null, 'sin p_con_total no se calcula el total');
+select throws_ok($$select public.exportar_actividad(p_cursor_id => 'a0000000-0000-0000-0000-000000000001')$$, '22023', null, 'un cursor incompleto se rechaza');
 select is(
-  (public.exportar_actividad(p_corte => '2026-10-01 12:00:00+00') ->> 'total')::int, 2,
+  (public.exportar_actividad(p_corte => '2026-10-01 12:00:00+00', p_con_total => true) ->> 'total')::int, 2,
   'con corte, solo entra lo anterior o igual a ese instante');
 
 -- Parámetros inválidos.
 select throws_ok($$select public.exportar_actividad(p_limite => 0)$$, '22023', null, 'un límite de 0 se rechaza');
 select throws_ok($$select public.exportar_actividad(p_limite => 1001)$$, '22023', null, 'un límite mayor a 1000 se rechaza');
-select throws_ok($$select public.exportar_actividad(p_desplazamiento => -1)$$, '22023', null, 'un desplazamiento negativo se rechaza');
+select throws_ok($$select public.exportar_actividad(p_entregadas => -1)$$, '22023', null, 'unas entregadas negativas se rechazan');
 
 -- ============================================================================
 -- Registro de actividad.exportada (RF-AUD-03-2)
@@ -159,14 +175,58 @@ reset role;
 -- ============================================================================
 
 select pg_temp.como('b2000000-0000-0000-0000-000000000001');
-select set_config('t.tope', public.exportar_actividad(p_desplazamiento => 49990, p_limite => 100)::text, true);
+select set_config('t.tope', public.exportar_actividad(p_entregadas => 49990, p_limite => 100, p_con_total => true)::text, true);
 select is((current_setting('t.tope')::jsonb ->> 'total')::int, 50002, 'el total es el real aunque supere el tope, y es solo de su organización');
 select is(current_setting('t.tope')::jsonb ->> 'recortado', 'true', 'pasado el tope se avisa que se recortó');
 select is(jsonb_array_length(current_setting('t.tope')::jsonb -> 'filas'), 10, 'el archivo no pasa de 50.000 filas (49.990 + 10)');
-select is(jsonb_array_length(public.exportar_actividad(p_desplazamiento => 50000, p_limite => 100) -> 'filas'), 0, 'más allá de las 50.000 no entrega filas');
+select is(jsonb_array_length(public.exportar_actividad(p_entregadas => 50000, p_limite => 100) -> 'filas'), 0, 'más allá de las 50.000 no entrega filas');
 select ok(
   exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Exportó 50000 registros de la actividad a CSV'),
   'el evento cuenta lo que se exportó (el tope), no el total');
+reset role;
+
+-- ============================================================================
+-- Constancia idempotente por exportación (MSF-278, hallazgo 4)
+-- ============================================================================
+
+select pg_temp.como('b1000000-0000-0000-0000-000000000001');
+-- Exportación de 2 lotes (límite 1) con el mismo id: el evento queda registrado UNA sola vez.
+select set_config('t.m1', public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
+  p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001', p_con_total => true)::text, true);
+select is(current_setting('t.m1')::jsonb ->> 'total', '2', 'la primera llamada trae el total real');
+select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 0,
+  'con un lote entregado y más pendientes todavía no hay constancia');
+select set_config('t.m2', public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
+  p_limite => 1, p_entregadas => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
+  p_cursor_creado_en => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
+  p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid)::text, true);
+select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Exportó 2 registros de la actividad a CSV (filtros: desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado)'), 1,
+  'una exportación de varios lotes registra el evento exactamente UNA vez');
+-- Reintento de la última página con el mismo id: no se registra de nuevo.
+select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
+  p_limite => 1, p_entregadas => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
+  p_cursor_creado_en => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
+  p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid);
+select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 1,
+  'un reintento de la última página no registra el evento dos veces');
+-- Otra exportación (otro id) con los mismos filtros sí es otra constancia.
+select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado', p_exportacion => 'c0000000-0000-0000-0000-000000000002');
+select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 2,
+  'otra exportación (otro id) deja su propia constancia');
+reset role;
+
+-- ============================================================================
+-- Superadmin en modo soporte (MSF-278, hallazgo 5): nivel_seccion nunca devuelve NULL
+-- ============================================================================
+
+select pg_temp.como('b8000000-0000-0000-0000-000000000001');
+select is(private.nivel_seccion('actividad'), 'edicion', 'el superadmin en modo soporte resuelve edición en Actividad (no NULL)');
+select is(private.puede_accion('actividad', 'exportar'), true, 'el superadmin en modo soporte puede la acción exportar (no NULL)');
+select lives_ok($$select public.exportar_actividad(p_tipo => 'producto.creado')$$, 'el superadmin en modo soporte exporta la organización que entró');
+reset role;
+
+select pg_temp.como('b8000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.exportar_actividad()$$, '42501', null, 'el superadmin que no entró a ninguna organización no exporta');
 reset role;
 
 select * from finish();

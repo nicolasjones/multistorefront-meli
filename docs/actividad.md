@@ -215,15 +215,22 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
   llamada directa devuelve `42501` (CA-AUD-03-2). *Diferencia con el spec*: FR-010 hablaba solo de la acción
   `exportar` (que por defecto también tienen Operador y Administración); se sumó el nivel `edicion` porque la historia
   (RF-AUD-03-2, CA-AUD-03-2) pide que el Operador de solo lectura no exporte.
-- **RPC** `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_desplazamiento, p_limite)`
-  (migración `20270210110000`): mismos filtros, zona horaria (America/Argentina/Buenos_Aires) y orden que `listar_actividad`,
-  así que `total` coincide con el «N» del listado (SC-004). Devuelve `{ filas, total, tope, recortado, corte }`.
-  `security definer` (necesita registrar la exportación; el spec decía `invoker`) con chequeo explícito de permiso y toda
-  lectura acotada a la organización de la sesión. `anon` no ejecuta.
-- **Lotes y corte estable**: se pide de a 1.000 filas. La primera respuesta trae `corte` (el instante), que el cliente
-  reenvía en las siguientes: el historial sigue creciendo mientras se exporta y sin corte las páginas se correrían.
-- **Tope de 50.000 filas** por archivo (RF-AUD-03-3). Si el filtro da más, el archivo trae las primeras 50.000 y la
-  pantalla avisa «Se exportaron las primeras 50.000 filas de N. Acotá el período o los filtros…» (CA-AUD-03-3).
+- **RPC** `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_cursor_creado_en,
+  p_cursor_id, p_limite, p_entregadas, p_exportacion, p_con_total)` (migración `20270210110000`, reemplazada por
+  `20270214300001`, que elimina la firma de 9 parámetros): mismos filtros, zona horaria (America/Argentina/Buenos_Aires)
+  y orden que `listar_actividad`, así que `total` coincide con el «N» del listado (SC-004). Devuelve
+  `{ filas, total, tope, recortado, corte, hay_mas, siguiente }`. `security definer` (necesita registrar la exportación;
+  el spec decía `invoker`) con chequeo explícito de permiso (`coalesce`: un NULL de `nivel_seccion`/`puede_accion` nunca
+  deja pasar) y toda lectura acotada a la organización de la sesión. El superadmin en modo soporte resuelve edición y
+  `exportar` por esas funciones. `anon` no ejecuta.
+- **Lotes por cursor y corte estable**: se pide de a 1.000 filas con un cursor `(creado_en, id)` (`siguiente` de la
+  respuesta anterior) y `LIMIT`, sin recalcular el filtro entero en cada lote. El `total` real se calcula solo en la
+  primera llamada (`p_con_total`). La primera respuesta trae `corte` (el instante), que el cliente reenvía: el
+  historial sigue creciendo mientras se exporta y sin corte las páginas se correrían.
+- **Tope de 50.000 filas** por archivo (RF-AUD-03-3, CA-AUD-03-3). Si el filtro da más, **no se descarga nada**: queda un
+  aviso persistente (hasta cerrarlo) «El filtro tiene N filas y el máximo por archivo es 50.000… acotá el período o los
+  filtros y exportá de nuevo». Si la base no entrega todas las filas (corte antes de tiempo o conteo distinto del total)
+  es un **error** con Reintentar y tampoco se descarga: nunca un archivo parcial.
 - **CSV** (`lib/exportarActividad.ts` sobre `lib/exportarCsv.ts`): UTF-8 con BOM, separador `;`, fin de línea CRLF,
   columnas **Cuándo, Tipo, Tienda, Detalle, Quién** (las de la tabla), hora de Buenos Aires, celdas que empiezan con
   `= + - @` neutralizadas con apóstrofo, comillas, `;` y saltos de línea escapados (CA-AUD-03-4), y nombre
@@ -232,12 +239,16 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
   «No hay actividad para exportar.» y no baja archivo. Si se cambia la empresa activa a mitad de la exportación, se
   descarta lo traído (nunca se baja un archivo de otra empresa).
 - **Constancia**: al entregar la última fila se registra el evento `actividad.exportada` («Exportó N registros de la
-  actividad a CSV (filtros: …)», con los filtros en palabras y sin ids). Cuenta lo exportado (hasta el tope), no el
-  total. Un tipo no sensible, dado de alta en `tipos_evento_actividad`.
-- **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, integer, integer);`
-  y `delete from public.tipos_evento_actividad where tipo = 'actividad.exportada';`.
+  actividad a CSV (filtros: …)», con los filtros en palabras y sin ids). Es **idempotente por exportación**: el cliente
+  genera un id por corrida (`p_exportacion`) y `private.exportaciones_actividad` (clave primaria) impide registrarlo
+  dos veces, así que un reintento de la última página no duplica la constancia. Se registra al entregar la última fila,
+  no al completarse la descarga en el navegador (la base no ve eso). Un tipo no sensible, dado de alta en
+  `tipos_evento_actividad`.
+- **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean);`,
+  `drop table private.exportaciones_actividad;` y `delete from public.tipos_evento_actividad where tipo = 'actividad.exportada';`.
 - **Pruebas**: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
-  `exportarActividad.test.tsx` (hook) y `BotonExportarActividad.test.tsx`.
+  `exportarActividad.test.tsx` (hook), `BotonExportarActividad.test.tsx` y E2E `e2e/actividad-exportar.e2e.ts`
+  (CA-AUD-03-1/3/4).
 
 ## Reversión
 
