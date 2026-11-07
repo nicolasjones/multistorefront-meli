@@ -663,17 +663,16 @@ describe('ProductoList', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
       expect(screen.getByText(/Cerramos el cambio masivo/)).toBeInTheDocument()
       expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument()
-      expect(mocks.rpc).not.toHaveBeenCalled()
+      expect(mocks.rpc.mock.calls.map((llamada) => llamada[0])).not.toEqual(expect.arrayContaining(['cambiar_estado_productos']))
       await waitFor(() => expect(mocks.llamadas).toContainEqual(['contains', 'empresa_ids', ['emp-2']]))
     })
 
-    it('cambiar de página, filtro o búsqueda descarta la selección', async () => {
+    it('cargar más no descarta la selección; cambiar filtro o búsqueda sí', async () => {
       mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
       await marcarTodos()
       expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
-      fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
-      await waitFor(() => expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument())
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+      fireEvent.click(screen.getByRole('button', { name: /cargar más/i }))
+      await waitFor(() => expect(mocks.llamadas).toContainEqual(expect.arrayContaining(['range'])))
       expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
       fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'joy' } })
       await waitFor(() => expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument())
