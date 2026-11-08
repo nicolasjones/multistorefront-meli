@@ -42,7 +42,7 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
   tandas de 25 con **«Cargar más»** al pie (ver
   [Listados: carga infinita e imagen de producto](../tecnico/listados.md)). Se
   permiten períodos superpuestos o idénticos (variación 0).
-- **Producto, Categoría y Provincia (F-CLI-15):** tres filtros opcionales y combinables entre sí y con los anteriores.
+- **Producto, Categoría y Provincia:** tres filtros opcionales y combinables entre sí y con los anteriores.
   Con Producto o Categoría, «Facturado» es la suma de **esas líneas** de factura, no del comprobante entero; una
   categoría raíz incluye sus subcategorías; Producto y Categoría se intersecan. Provincia compara sin distinguir
   mayúsculas ni tildes; un cliente sin provincia no coincide con ninguna. La participación se recalcula sobre el
@@ -56,8 +56,8 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
 - **Estados:** vacío («Sin facturación en los períodos» / «Ningún cliente dejó de comprar en ese plazo.»), error con
   «Reintentar» y carga, como el ranking básico.
 - **Empresa activa:** la barra superior acota las tres vistas a esa tienda (o a todas); al cambiarla el listado arranca
-  de nuevo desde la primera tanda, se recargan las consultas y no quedan filas de la empresa anterior. En F-CLI-15
-  se descartan Producto, Categoría y Provincia elegidos.
+  de nuevo desde la primera tanda, se recargan las consultas y no quedan filas de la empresa anterior. También se
+  descartan los filtros de Producto, Categoría y Provincia que estuvieran elegidos.
 - **Quién lo ve:** sección Clientes en `lectura` o `edicion`; con `ninguno` no aparece la solapa ni se puede consultar.
 
 ## Límites y fuera de alcance

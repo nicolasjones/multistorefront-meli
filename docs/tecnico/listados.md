@@ -206,7 +206,7 @@ Las dos pantallas muestran la miniatura en la columna **Producto**, pero sus RPC
 La migración que lo resuelve es **`supabase/migrations/20270204100000_ventas_listados_producto_id.sql`** (recrea
 `public.listar_faltantes`, `private.listar_rma_sesion` y `public.listar_rma` con `producto_id`; `drop function` +
 `create` con la misma firma, y la reversión documentada en el encabezado). **Esa migración está en la rama
-`origin/feat/ventas-faltantes-rma-producto-id` (commit `d8345089`) y NO está mergeada en `dokploy` ni en `main`**:
+`origin/feat/ventas-faltantes-rma-producto-id` (commit `d8345089`, PR #694 abierto contra `dokploy`) y NO está mergeada en `dokploy` ni en `main`**:
 hasta que se integre, esas dos pantallas muestran el nombre del producto **sin** miniatura, porque el código ya
 pide `producto_id` y la base todavía no lo devuelve.
 

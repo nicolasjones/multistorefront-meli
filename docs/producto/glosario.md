@@ -12,7 +12,7 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | Término | Qué significa |
 |---|---|
 | **Cargar más** | Botón al pie de una lista para pedir los resultados siguientes sin bajar hasta el final. Las listas ya cargan solas al llegar al final; el botón sirve para hacerlo a mano o con el teclado. Ver [Cómo se muestran las listas](listados.md). |
-| **No hay más resultados** | Mensaje que aparece al final de una lista cuando ya se vimos todo. |
+| **No hay más resultados** | Mensaje que aparece al final de una lista cuando ya se vio todo. |
 | **Foto del producto (miniatura)** | La imagen chica del producto que acompaña al nombre en algunas listas. Si el producto no tiene foto, se ve un recuadro vacío. Al pasar el mouse por la foto se la ve ampliada. |
 
 ## Organización y personas

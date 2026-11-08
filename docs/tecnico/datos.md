@@ -10,7 +10,7 @@ sources:
 
 | Esquema | Qué guarda |
 |---|---|
-| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
+| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports, procesos masivos y monitoreo. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
 | `dominio` | Negocio: empresas, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, contactos, respuestas rápidas, historial |
 | `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
@@ -3244,3 +3244,118 @@ Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md).
 | `dominio.campanas_correo` | **nueva** | Campaña: asunto, mensaje, empresa, clave de idempotencia. |
 | `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
 | `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |
+
+## Importaciones y monitoreo (MSF-206)
+
+Detalle técnico, contratos, flows y guía de prueba en [Importaciones y monitoreo](importaciones-y-monitoreo.md).
+Migraciones aditivas `20270211100001…05` (procesos masivos) y `20270211100011…12` (monitoreo), de la línea de la
+épica (`cba8f00a`, PR #764); a la fecha de esta página no están en `main`.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.procesos_masivos` | **nueva** | Carga o descarga masiva: `id`, `organizacion_id`, `empresa_id` opcional, `tipo` (`importacion`/`exportacion`), `funcionalidad`, `nombre`, `estado` (`pendiente`/`en_curso`/`completado`/`con_errores`/`fallido`/`cancelado`), `ejecucion_id` único, `solicitado_por`, `total`, `procesados`, `con_errores`, `cancelacion_solicitada`, `creado_en`, `iniciado_en`, `finalizado_en`. Terminal irreversible; `finalizado_en` nulo si y solo si sigue abierta. |
+| `public.procesos_masivos_errores` | **nueva** | Error por fila: `id`, `proceso_id`, `organizacion_id`, `fila` opcional, `referencia` opcional, `motivo_sanitizado`, `creado_en`. Índice único parcial `(proceso_id, fila)` para idempotencia; hasta 1000 detalles por proceso. |
+| `public.eventos_monitoreo` | **nueva** | Resultado `ok`/`fallo` de una fuente (`tienda`, `sincronizacion`, `cola`, `aplicacion`): `id`, `organizacion_id` opcional, `fuente`, `clave`, `resultado`, `motivo_sanitizado`, `ocurrido_en`. |
+| `public.alertas_monitoreo` | **nueva** | Alerta por `(fuente, clave)`: `id`, `fuente`, `clave`, `organizacion_id` opcional, `estado` (`abierta`/`resuelta`), `motivo_sanitizado`, `abierta_en`, `notificada_en`, `resuelta_en`. Índice único parcial `(fuente, clave) where estado = 'abierta'`: una sola alerta abierta. |
+| `public.organizaciones` | existente | FK de las cuatro tablas nuevas; sin cambios de esquema. |
+| `dominio.empresas` | existente | FK opcional de `procesos_masivos.empresa_id`; sin cambios. |
+| `public.ejecuciones_worker` | existente | `procesos_masivos.ejecucion_id` la referencia; un trigger `AFTER UPDATE OF estado` cierra como `fallido` el proceso abierto cuya ejecución termina `fallida`/`timeout`. Sin cambios de esquema. |
+| `public.despachos_ejecucion` | existente | La lee `evaluar_monitoreo` para alertar por cola sin avanzar (fuente `cola`); no hay FK con las tablas nuevas. Sin cambios. |
+| `public.capacidades_ejecucion` | existente | `evaluar_monitoreo` la usa para derivar la fuente `sincronizacion` por capacidad; sin cambios. |
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ procesos_masivos : "organizacion_id"
+  empresas ||--o{ procesos_masivos : "empresa_id opcional"
+  ejecuciones_worker ||--o| procesos_masivos : "ejecucion_id"
+  procesos_masivos ||--o{ procesos_masivos_errores : "proceso_id"
+  organizaciones ||--o{ procesos_masivos_errores : "organizacion_id"
+  organizaciones ||--o{ eventos_monitoreo : "organizacion_id opcional"
+  organizaciones ||--o{ alertas_monitoreo : "organizacion_id opcional"
+  ejecuciones_worker ||--o{ eventos_monitoreo : "lee, sin FK"
+  despachos_ejecucion ||--o{ alertas_monitoreo : "monitorea, sin FK"
+
+  procesos_masivos {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "opcional"
+    text tipo "importacion | exportacion"
+    text funcionalidad
+    text nombre
+    text estado "pendiente | en_curso | completado | con_errores | fallido | cancelado"
+    uuid ejecucion_id FK "unico"
+    uuid solicitado_por
+    integer total "nulo si no se informo"
+    integer procesados "no retrocede ni supera total"
+    integer con_errores
+    boolean cancelacion_solicitada
+    timestamptz creado_en
+    timestamptz iniciado_en
+    timestamptz finalizado_en "nulo mientras sigue abierto"
+  }
+  procesos_masivos_errores {
+    uuid id PK
+    uuid proceso_id FK
+    uuid organizacion_id FK
+    integer fila "opcional"
+    text referencia "opcional"
+    text motivo_sanitizado
+    timestamptz creado_en
+  }
+  eventos_monitoreo {
+    uuid id PK
+    uuid organizacion_id FK "opcional"
+    text fuente "tienda | sincronizacion | cola | aplicacion"
+    text clave
+    text resultado "ok | fallo"
+    text motivo_sanitizado
+    timestamptz ocurrido_en
+  }
+  alertas_monitoreo {
+    uuid id PK
+    text fuente "tienda | sincronizacion | cola | aplicacion"
+    text clave
+    uuid organizacion_id FK "opcional"
+    text estado "abierta | resuelta"
+    text motivo_sanitizado
+    timestamptz abierta_en
+    timestamptz notificada_en
+    timestamptz resuelta_en
+  }
+```
+
+- RLS: `procesos_masivos` y `procesos_masivos_errores` se leen solo como administrador de la organización
+  (`private.es_administrador_de`); `eventos_monitoreo` y `alertas_monitoreo`, solo como superadmin
+  (`private.is_superadmin`). Ninguna admite `insert`/`update`/`delete` desde la app: escriben funciones
+  `security definer` (`iniciar_proceso_masivo`, `actualizar_progreso_…`, `registrar_error_…`, `cerrar_…`,
+  `solicitar_cancelacion_…` para los procesos; `registrar_evento_monitoreo` y `evaluar_monitoreo` para el
+  monitoreo). `anon` no tiene privilegios en ninguna.
+- La lectura de las tablas de monitoreo es de **plataforma**: no hay fuga entre organizaciones porque solo las ve
+  un superadmin; la columna `organizacion_id` es opcional y contextual.
+- Reversión: ver el encabezado de cada migración y la sección «Reversión» de
+  [Importaciones y monitoreo](importaciones-y-monitoreo.md#reversion).
+
+## Páginas de contenido y analítica de la tienda (MSF-164)
+
+Dos tablas nuevas en `dominio` (migraciones `20270212200001_tienda_paginas.sql` y `20270212200002_tienda_analitica.sql`), ambas con RLS por organización, solo `select` para `authenticated` y escritura únicamente por RPC. Ver [Tienda pública: contenido, analítica y compartir](tienda-contenido-y-analitica.md).
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ TIENDA_PAGINAS : "tiene"
+  EMPRESAS ||--o| TIENDA_ANALITICA : "mide con"
+  TIENDA_PAGINAS {
+    uuid id PK
+    uuid empresa_id FK
+    uuid organizacion_id FK
+    text titulo "1 a 80"
+    text slug "unico por empresa"
+    text contenido "hasta 10000"
+    boolean visible "false por defecto"
+  }
+  TIENDA_ANALITICA {
+    uuid empresa_id PK
+    uuid organizacion_id FK
+    text ga4_id "G-..."
+    text meta_pixel_id "8 a 20 digitos"
+  }
+```
