@@ -93,11 +93,11 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
       if (!respuesta.ok) throw new Error(`BORRADO_FALLIDO:${respuesta.status}`);
     },
     async cerrarImportacion(id, estado, mensaje) {
-      const r = await pool.query<{ r: { procesadas: number; omitidas: number } }>(
+      const r = await pool.query<{ r: { procesadas: number; omitidas: number; sin_imagenes?: number } }>(
         'select private.cerrar_importacion_productos($1::uuid, $2::text, $3::text) as r',
         [id, estado, mensaje],
       );
-      return { procesadas: Number(r.rows[0].r.procesadas), omitidas: Number(r.rows[0].r.omitidas) };
+      return { procesadas: Number(r.rows[0].r.procesadas), omitidas: Number(r.rows[0].r.omitidas), sin_imagenes: Number(r.rows[0].r.sin_imagenes ?? 0) };
     },
     async cerrarEjecucion(id, estado, motivo, detalle) {
       await pool.query('select public.cerrar_ejecucion_worker($1::uuid, $2::text, $3::text, $4::jsonb)', [id, estado, motivo, JSON.stringify(detalle)]);

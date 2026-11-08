@@ -55,10 +55,20 @@ export interface Puertos {
   /** Registra un fallo transitorio de la fila (en su propia transacción); al tercero la base la omite. Devuelve los intentos. */
   registrarFallo(ejecucionId: string, filaId: string): Promise<number>;
   borrarTemporales(rutas: string[]): Promise<void>;
-  cerrarImportacion(ejecucionId: string, estado: 'terminada' | 'fallida', mensaje: string | null): Promise<{ procesadas: number; omitidas: number }>;
+  cerrarImportacion(ejecucionId: string, estado: 'terminada' | 'fallida', mensaje: string | null): Promise<{ procesadas: number; omitidas: number; sin_imagenes: number }>;
   cerrarEjecucion(ejecucionId: string, estado: 'exitosa' | 'fallida', motivo: string, detalle: Record<string, unknown>): Promise<void>;
   despacharSiguiente(organizacionId: string): Promise<void>;
   evento(etapa: string, estado: 'iniciada' | 'completada' | 'fallida', mensaje?: string): void;
+}
+
+/**
+ * ¿Es un error transitorio de la base? SQLSTATE clase 40 (rollback/deadlock), 53 (recursos), 55 (estado del objeto,
+ * p. ej. lock no disponible) o 57 (cancelación). Solo esos cuentan como intento de la fila; los demás (autorización,
+ * conexión caída, errores de programación) se propagan tal cual.
+ */
+export function esErrorTransitorio(error: unknown): boolean {
+  const codigo = (error as { code?: unknown } | null)?.code;
+  return typeof codigo === 'string' && /^(40|53|55|57)/.test(codigo);
 }
 
 export interface Salida {
@@ -146,9 +156,9 @@ export async function importarProductos(ejecucionId: string, puertos: Puertos): 
       try {
         resultado = await puertos.aplicar(ejecucionId, pendiente.fila_id);
       } catch (error) {
-        const mensaje = error instanceof Error ? error.message : '';
-        // Fallas contractuales: no son de la fila, se propagan tal cual.
-        if (mensaje.startsWith('EJECUCION_NO_EN_CURSO') || mensaje.startsWith('CONFIGURACION_INVALIDA')) throw error;
+        // Solo un error transitorio de la base (SQLSTATE 40/53/55/57) cuenta como intento de la fila; el resto
+        // (fallas contractuales, autorización, conexión caída, errores de programación) se propaga como antes.
+        if (!esErrorTransitorio(error)) throw error;
         // Error transitorio de la fila (deadlock, lock, cancelación): se cuenta el intento (al tercero la base la omite) y
         // las filas siguientes se procesan igual, en vez de abortar la corrida en cada reintento.
         await puertos.registrarFallo(ejecucionId, pendiente.fila_id);
@@ -183,7 +193,11 @@ export async function importarProductos(ejecucionId: string, puertos: Puertos): 
     importacion_id: inicio.importacion_id,
     procesadas: cierre.procesadas,
     omitidas: cierre.omitidas,
+    sin_imagenes: cierre.sin_imagenes,
   });
+  if (cierre.sin_imagenes > 0) {
+    puertos.evento('cierre', 'completada', `${cierre.sin_imagenes} productos quedaron sin imágenes`);
+  }
   // Serialización (FR-109): al cerrar esta ejecución, la siguiente de la organización pasa a la outbox.
   await puertos.despacharSiguiente(inicio.organizacion_id);
   return { codigo: SALIDA_OK };

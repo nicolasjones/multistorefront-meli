@@ -1,6 +1,6 @@
 import { zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
-import { COLUMNAS_PLANTILLA, ErrorImportacion, MAX_IMAGENES_CARGA, armarPlantilla, armarReporteErrores, importacionDeUrl, leerImagenes, leerPlanillaProductos, normalizarCsv, normalizarImporte, validarImagenCarga } from './importacion-productos'
+import { COLUMNAS_PLANTILLA, mensajeFinal, ErrorImportacion, MAX_IMAGENES_CARGA, armarPlantilla, armarReporteErrores, importacionDeUrl, leerImagenes, leerPlanillaProductos, normalizarCsv, normalizarImporte, validarImagenCarga } from './importacion-productos'
 import { TAMANO_MAXIMO_BYTES } from './migracionCsv'
 
 
@@ -108,6 +108,35 @@ describe('leerImagenes · topes y nombres repetidos', () => {
     expect(rechazadas.join(' ')).toMatch(/«grande\.jpg» pesa más de 2 MB una vez descomprimida/)
   })
 
+  function archivoDe(bytes: Uint8Array, name = 'roto.zip'): File {
+    return { name, size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) } as unknown as File
+  }
+
+  it.each([
+    ['basura', () => new Uint8Array(2048).map((_, i) => (i * 31 + 7) % 251)],
+    ['texto plano', () => new TextEncoder().encode('esto no es un zip, ni de cerca')],
+    ['truncado', () => {
+      const completo = zipSync({ 'a.jpg': Uint8Array.from({ length: 5000 }, (_, i) => (i * 7919) % 256) })
+      return completo.slice(0, Math.floor(completo.length * 0.5))
+    }],
+  ])('un ZIP %s avisa que no se pudo abrir', async (_nombre, crear) => {
+    const { imagenes, rechazadas } = await leerImagenes([archivoDe(crear())])
+    expect(imagenes).toHaveLength(0)
+    expect(rechazadas).toEqual(['No pudimos abrir «roto.zip». Verificá que sea un ZIP válido.'])
+  })
+
+  it('gana la primera aunque la primera homónima haya sido rechazada (por peso o por inválida)', async () => {
+    const enorme = new Uint8Array(3 * 1024 * 1024)
+    const { imagenes, rechazadas } = await leerImagenes([
+      zipDe({ 'uno/a.jpg': enorme, 'dos/a.jpg': new Uint8Array([1]), 'b.png': new Uint8Array([2]) }),
+      new File([new Uint8Array(0)], 'c.jpg', { type: 'image/jpeg' }),
+      new File([new Uint8Array([3])], 'c.jpg', { type: 'image/jpeg' }),
+    ])
+    expect(imagenes.map((i) => i.nombre)).toEqual(['b.png'])
+    expect(rechazadas.join(' ')).toMatch(/«a\.jpg» aparece más de una vez/)
+    expect(rechazadas.join(' ')).toMatch(/«c\.jpg» ya estaba entre los archivos elegidos/)
+  })
+
   it('un ZIP de más de maxBytesZip se rechaza sin abrirlo', async () => {
     const { imagenes, rechazadas } = await leerImagenes([zipDe({ 'a.jpg': new Uint8Array([1]) })], { ...limites, maxBytesZip: 10 })
     expect(imagenes).toHaveLength(0)
@@ -149,5 +178,14 @@ describe('importacionDeUrl', () => {
     expect(importacionDeUrl('5b1c9c2e-7f3a-4d51-9a0e-0c2f4a6b8d10')).toBe('5b1c9c2e-7f3a-4d51-9a0e-0c2f4a6b8d10')
     expect(importacionDeUrl('imp-1')).toBeNull()
     expect(importacionDeUrl(null)).toBeNull()
+  })
+})
+
+describe('mensajeFinal', () => {
+  it('sin omitidas temporales mantiene el texto de siempre', () => {
+    expect(mensajeFinal(1, 1)).toBe('Importación terminada. 1 producto procesado, 1 omitido por error. Ya figuran en Catálogo · Productos.')
+  })
+  it('distingue las omitidas por un error temporal de las omitidas por datos', () => {
+    expect(mensajeFinal(5, 3, 2)).toBe('Importación terminada. 5 productos procesados, 1 omitido por error y 2 omitidos por un error temporal (volvé a importar esas filas). Ya figuran en Catálogo · Productos.')
   })
 })

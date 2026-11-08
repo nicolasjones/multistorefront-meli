@@ -75,6 +75,8 @@ export type ImportacionObtenida = {
   omitidas: number
   /** Productos aplicados cuyas imágenes no llegaron a adjuntarse (también si la importación cerró como fallida). */
   sin_imagenes?: number
+  /** Omitidas por un error temporal repetido (no por sus datos): se pueden volver a importar. */
+  omitidas_temporales?: number
   mensaje_fallo: string | null
   errores: ErrorFila[]
 }
@@ -188,14 +190,24 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
   const imagenes = new Map<string, ImagenCarga>()
   const rechazadas: string[] = []
 
+  // Nombres vistos en esta llamada, aunque la primera ocurrencia se haya rechazado (inválida, >2 MB…): «gana la primera»
+  // se decide por el NOMBRE visto, no por lo que quedó aceptado.
+  const nombresVistos = new Set<string>()
+
   const agregar = (nombre: string, bytes: number, blob: Blob) => {
+    if (nombresVistos.has(nombre)) {
+      rechazadas.push(`«${nombre}» ya estaba entre los archivos elegidos: se usó la primera.`)
+      return
+    }
+    nombresVistos.add(nombre)
+    aceptar(nombre, bytes, blob)
+  }
+
+  // Valida y suma una imagen cuyo nombre ya se marcó como visto (los ZIP lo marcan al ver la entrada).
+  const aceptar = (nombre: string, bytes: number, blob: Blob) => {
     const motivo = validarImagenCarga(nombre, bytes)
     if (motivo) {
       rechazadas.push(motivo)
-      return
-    }
-    if (imagenes.has(nombre)) {
-      rechazadas.push(`«${nombre}» ya estaba entre los archivos elegidos: se usó la primera.`)
       return
     }
     if (imagenes.size >= limites.maxImagenes) {
@@ -224,6 +236,8 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
         let recortadasPorPeso = 0
         let invalido = false
         let detenido = false
+        let entradasVistas = 0
+        let entradasCerradas = 0
         const repetidas = new Set<string>()
         const pesadas: string[] = []
         const lector = new Unzip()
@@ -231,13 +245,20 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
         lector.register(UnzipPassThrough)
         lector.onfile = (entrada) => {
           const nombre = nombreBase(entrada.name)
-          if (detenido || entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') || !tipoDeNombreImagen(nombre)) return
-          if (imagenes.has(nombre)) {
-            repetidas.add(nombre)
+          entradasVistas += 1
+          if (detenido || entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') || !tipoDeNombreImagen(nombre)) {
+            entradasCerradas += 1
             return
           }
+          if (nombresVistos.has(nombre)) {
+            repetidas.add(nombre)
+            entradasCerradas += 1
+            return
+          }
+          nombresVistos.add(nombre)
           if (imagenes.size >= limites.maxImagenes) {
             recortadas += 1
+            entradasCerradas += 1
             return
           }
           const trozos: Uint8Array[] = []
@@ -249,9 +270,11 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
               return
             }
             if (descartada) return
+            if (final) entradasCerradas += 1
             pesoEntrada += trozo.length
             if (pesoEntrada > MAX_BYTES_IMAGEN_IMPORTACION || bytesReales + pesoEntrada > limites.maxBytesDescomprimido) {
               descartada = true
+              entradasCerradas += 1
               trozos.length = 0
               entrada.terminate()
               if (pesoEntrada > MAX_BYTES_IMAGEN_IMPORTACION) pesadas.push(nombre)
@@ -270,7 +293,7 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
                 posicion += parte.length
               }
               bytesReales += pesoEntrada
-              agregar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
+              aceptar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
             }
           }
           entrada.start()
@@ -282,7 +305,10 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
           const hasta = Math.min(desde + REBANADA_ZIP, datos.length)
           lector.push(datos.subarray(desde, hasta), hasta === datos.length)
         }
-        if (invalido) throw new Error('ZIP inválido')
+        // Un archivo no vacío que no emitió ninguna entrada (basura) o que dejó entradas sin terminar (truncado) no es un ZIP válido.
+        if (invalido || (!detenido && datos.length > 0 && (entradasVistas === 0 || entradasCerradas < entradasVistas))) {
+          throw new Error('ZIP inválido')
+        }
         for (const nombre of repetidas) {
           rechazadas.push(`«${nombre}» aparece más de una vez (en «${archivo.name}» o entre los archivos elegidos): se usó la primera.`)
         }
@@ -379,8 +405,14 @@ export const ROTULO_ESTADO: Readonly<Record<EstadoImportacion, string>> = {
 export const mensajeSinImagenes = (cantidad: number) =>
   `${cantidad} ${cantidad === 1 ? 'producto quedó' : 'productos quedaron'} sin imágenes: se importaron, pero sus fotos no se pudieron adjuntar. Subilas desde la ficha de cada producto.`
 
-export function mensajeFinal(procesadas: number, omitidas: number): string {
-  return `Importación terminada. ${procesadas} ${procesadas === 1 ? 'producto procesado' : 'productos procesados'}, ${omitidas} ${omitidas === 1 ? 'omitido' : 'omitidos'} por error. Ya figuran en Catálogo · Productos.`
+export function mensajeFinal(procesadas: number, omitidas: number, temporales = 0): string {
+  const porDatos = Math.max(omitidas - temporales, 0)
+  const procesados = `${procesadas} ${procesadas === 1 ? 'producto procesado' : 'productos procesados'}`
+  const omitidosPorDatos = `${porDatos} ${porDatos === 1 ? 'omitido' : 'omitidos'} por error`
+  const omitidosTemporales = temporales > 0
+    ? ` y ${temporales} ${temporales === 1 ? 'omitido' : 'omitidos'} por un error temporal (volvé a importar ${temporales === 1 ? 'esa fila' : 'esas filas'})`
+    : ''
+  return `Importación terminada. ${procesados}, ${omitidosPorDatos}${omitidosTemporales}. Ya figuran en Catálogo · Productos.`
 }
 
 // ---------------------------------------------------------------------------------------------

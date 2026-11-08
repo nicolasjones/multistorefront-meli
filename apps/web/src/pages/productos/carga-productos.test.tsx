@@ -216,6 +216,15 @@ describe('ProductoCarga', () => {
     expect(await screen.findByText(/2 productos quedaron sin imágenes/)).toBeTruthy()
   })
 
+  it('el mensaje final separa las filas omitidas por un error temporal', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      return { data: { estado: 'terminada', procesadas: 4, omitidas: 3, omitidas_temporales: 1, errores: [] }, error: null }
+    })
+    abrir(`/productos/carga?importacion=${IMPORTACION}`)
+    expect(await screen.findByText(/2 omitidos por error y 1 omitido por un error temporal/)).toBeTruthy()
+  })
+
   it('un doble clic en «Importar» solicita una sola vez', async () => {
     abrir()
     await elegirCsv()

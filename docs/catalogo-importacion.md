@@ -65,17 +65,24 @@ solo conserva las columnas conocidas, acotadas.
 
 ## Fila que siempre falla e imágenes sin adjuntar
 
-- Un error transitorio (40/53/55/57) en `aplicar_fila_…` revierte esa fila y el worker lo registra
-  (`registrar_fallo_fila_importacion_productos`, columna `intentos`) y **sigue con las demás**; si quedan filas con
-  intentos disponibles la corrida sale con error y el flow reintenta. Al tercer intento la fila queda `omitida` con
-  «No se pudo aplicar tras varios intentos», así una fila mala no traba al resto.
+- Solo un error de la base con SQLSTATE clase 40, 53, 55 o 57 (`err.code`: deadlock, lock no disponible, recursos,
+  cancelación) cuenta como intento: revierte esa fila y el worker lo registra (`registrar_fallo_fila_importacion_productos`,
+  columna `intentos`) y **sigue con las demás**; si quedan filas con intentos disponibles la corrida sale con error y el
+  flow reintenta. Cualquier otro error (autorización, conexión caída, errores de programación, fallas contractuales) se
+  propaga como siempre y no suma intentos. El tope es 3, igual a los reintentos del flow (3 intentos, 30 s a 2 min): un
+  lock que dure más que eso agota los intentos. Entonces la fila queda `omitida` con «Error temporal repetido; volvé a
+  importar esta fila» y la pantalla la cuenta aparte (`omitidas_temporales`): «N omitidos por error y M omitidos por un
+  error temporal (volvé a importar esas filas)». Así una fila mala no traba al resto y el motivo no se confunde con un
+  dato inválido.
 - Si una importación cierra (`terminada`, o `fallida` por la reconciliación) con productos cuyas imágenes no se
   adjuntaron, `cerrar_importacion_productos` y `obtener_importacion_productos` devuelven `sin_imagenes` y la pantalla
-  avisa «N productos quedaron sin imágenes».
+  avisa «N productos quedaron sin imágenes». El worker lo incluye en el detalle de la ejecución (`sin_imagenes`) y en un evento de cierre.
 
 ## Seguimiento pendiente (revisión independiente de la épica)
 
 Los hallazgos de código de la revisión están resueltos. Lo que sigue siendo así a propósito o depende de operación:
+
+- Un `.zip` ilegible (basura, truncado) se informa «No pudimos abrir…»: el lector en streaming no lanza, así que se detecta por no haber emitido entradas o haber dejado alguna sin terminar. «Gana la primera» se decide por el nombre visto en la selección, aunque la primera homónima se haya rechazado.
 
 - La conexión `importar-productos` de cada organización la crea un Administrador con `crear_conexion` (servidor y
   credencial, ver `docs/historial-ventas.md`); la pantalla avisa mientras falte.

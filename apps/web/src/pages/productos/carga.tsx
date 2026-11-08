@@ -245,7 +245,7 @@ export function ProductoCarga() {
                 ) : null}
                 {reutilizada ? <Alert severity="info">{AVISO_IMPORTACION_REUTILIZADA}</Alert> : null}
                 {seguimiento?.estado === 'terminada' ? (
-                  <Alert severity="success">{mensajeFinal(seguimiento.procesadas, seguimiento.omitidas)}</Alert>
+                  <Alert severity="success">{mensajeFinal(seguimiento.procesadas, seguimiento.omitidas, seguimiento.omitidas_temporales ?? 0)}</Alert>
                 ) : seguimiento?.estado === 'fallida' ? (
                   <Alert severity="error">
                     {seguimiento.mensaje_fallo ?? 'La importación falló.'} Podés reintentarla desde la pantalla de ejecuciones.

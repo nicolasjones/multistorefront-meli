@@ -700,6 +700,10 @@ begin
                     where f.importacion_id = v_imp.id and f.resultado = 'aplicada'),
     'omitidas', (select count(*) from dominio.importaciones_productos_filas f
                   where f.importacion_id = v_imp.id and f.resultado = 'omitida'),
+    -- Omitidas por un error temporal repetido (se pueden volver a importar), distintas de las omitidas por datos.
+    'omitidas_temporales', (select count(*) from dominio.importaciones_productos_filas f
+                             where f.importacion_id = v_imp.id and f.resultado = 'omitida'
+                               and f.resultado_mensaje like 'Error temporal repetido%'),
     -- Productos aplicados cuyas imágenes no llegaron a adjuntarse (también en una importación cerrada como fallida).
     'sin_imagenes', (select count(*) from dominio.importaciones_productos_filas f
                       where f.importacion_id = v_imp.id and f.resultado = 'aplicada' and f.imagenes_pendientes),
@@ -745,7 +749,7 @@ begin
   if v_intentos >= v_tope then
     update dominio.importaciones_productos_filas f
        set resultado = 'omitida', aplicada_en = now(),
-           resultado_mensaje = 'No se pudo aplicar tras varios intentos'
+           resultado_mensaje = 'Error temporal repetido; volvé a importar esta fila'
      where f.id = p_fila_id;
   end if;
   return v_intentos;
@@ -753,7 +757,7 @@ end;
 $$;
 
 comment on function private.registrar_fallo_fila_importacion_productos(uuid, uuid) is
-  'F-CAT-10: suma un intento fallido (error transitorio) a una fila pendiente; al tercero la omite con «No se pudo aplicar tras varios intentos». Devuelve los intentos.';
+  'F-CAT-10: suma un intento fallido (error transitorio) a una fila pendiente; al tercero la omite con «Error temporal repetido; volvé a importar esta fila» (el motivo dice que fue transitorio). Devuelve los intentos.';
 
 revoke execute on function private.registrar_fallo_fila_importacion_productos(uuid, uuid) from public, anon, authenticated;
 grant execute on function private.registrar_fallo_fila_importacion_productos(uuid, uuid) to workers_orquestacion;

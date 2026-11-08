@@ -40,6 +40,8 @@ function crearPuertos(
     /** Filas que SIEMPRE fallan con un error transitorio. */
     siempreFallan?: string[];
     falloLimpieza?: boolean;
+    /** `sin_imagenes` que informa la base al cerrar. */
+    sinImagenes?: number;
   } = {},
 ) {
   const estado = new Map<string, ResultadoFila>();
@@ -72,7 +74,7 @@ function crearPuertos(
         .slice(0, limite)
         .map((fila, indice) => ({ fila_id: fila.id, fila: indice + 2, sku: fila.sku })),
     aplicar: async (_id, filaId) => {
-      if (opciones.siempreFallan?.includes(filaId) && !estado.has(filaId)) throw new Error('canceling statement due to lock timeout');
+      if (opciones.siempreFallan?.includes(filaId) && !estado.has(filaId)) throw Object.assign(new Error('canceling statement due to lock timeout'), { code: '55P03' });
       const guardado = estado.get(filaId);
       if (guardado) return guardado;
       const fila = filas.find((f) => f.id === filaId)!;
@@ -119,7 +121,7 @@ function crearPuertos(
     registrarFallo: async (_id, filaId) => {
       const n = (intentos.get(filaId) ?? 0) + 1;
       intentos.set(filaId, n);
-      if (n >= 3) estado.set(filaId, { resultado: 'omitida', producto_id: null, mensaje: 'No se pudo aplicar tras varios intentos', imagenes: [] });
+      if (n >= 3) estado.set(filaId, { resultado: 'omitida', producto_id: null, mensaje: 'Error temporal repetido; volvé a importar esta fila', imagenes: [] });
       return n;
     },
     cerrarImportacion: async () => {
@@ -127,6 +129,7 @@ function crearPuertos(
       return {
         procesadas: [...estado.values()].filter((r) => r.resultado === 'aplicada').length,
         omitidas: [...estado.values()].filter((r) => r.resultado === 'omitida').length,
+        sin_imagenes: opciones.sinImagenes ?? 0,
       };
     },
     cerrarEjecucion: async (_id, est) => {
@@ -304,13 +307,41 @@ describe('importarProductos (FR-108)', () => {
     expect(mundo.cierres).toEqual([{ importacion: 'terminada' }, { ejecucion: 'exitosa' }]);
   })
 
-  it('las fallas contractuales de aplicar no cuentan como intento de la fila', async () => {
+  it.each([
+    ['EJECUCION_NO_EN_CURSO sin código', new Error('EJECUCION_NO_EN_CURSO: x')],
+    ['NO_AUTORIZADO (42501)', Object.assign(new Error('NO_AUTORIZADO'), { code: '42501' })],
+    ['conexión caída (08006)', Object.assign(new Error('connection terminated'), { code: '08006' })],
+    ['error de programación', new TypeError('x is undefined')],
+  ])('%s no cuenta como intento de la fila: se propaga', async (_nombre, error) => {
     const mundo = crearPuertos([{ id: 'f1', sku: 'X', nuevo: true }]);
     mundo.puertos.aplicar = async () => {
-      throw new Error('EJECUCION_NO_EN_CURSO: x');
+      throw error;
     };
-    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toThrow('EJECUCION_NO_EN_CURSO');
+    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toBe(error);
     expect(mundo.intentos.size).toBe(0);
+  })
+
+  it.each(['40P01', '40001', '53200', '55P03', '57014'])('el SQLSTATE %s cuenta como intento de la fila', async (code) => {
+    const mundo = crearPuertos([{ id: 'f1', sku: 'X', nuevo: true }, { id: 'f2', sku: 'Y', nuevo: true }]);
+    const original = mundo.puertos.aplicar;
+    mundo.puertos.aplicar = async (id, filaId) => {
+      if (filaId === 'f1') throw Object.assign(new Error('transitorio'), { code });
+      return original(id, filaId);
+    };
+    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toThrow('FILAS_PENDIENTES');
+    expect(mundo.intentos.get('f1')).toBe(1);
+    expect(mundo.estado.get('f2')?.resultado).toBe('aplicada');
+  })
+
+  it('la ejecución cierra con sin_imagenes en el detalle y lo informa en un evento', async () => {
+    const mundo = crearPuertos([{ id: 'f1', sku: 'X', nuevo: true }], { sinImagenes: 2 });
+    const detalles: Record<string, unknown>[] = [];
+    mundo.puertos.cerrarEjecucion = async (_id, _estado, _motivo, detalle) => {
+      detalles.push(detalle);
+    };
+    await importarProductos(EJECUCION, mundo.puertos);
+    expect(detalles[0]).toMatchObject({ sin_imagenes: 2 });
+    expect(mundo.eventos).toContain('cierre:completada:2 productos quedaron sin imágenes');
   })
 
   it('al empezar limpia los huérfanos en tandas acotadas (antes de aplicar) y al cerrar las de la importación', async () => {

@@ -6,7 +6,7 @@
 -- catalogo_importacion.test.sql: en el CI no es superusuario y no puede simular el login del worker).
 begin;
 
-select plan(28);
+select plan(29);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -184,7 +184,7 @@ select lives_ok(
 select is(
   (select resultado || '/' || intentos || '/' || resultado_mensaje from dominio.importaciones_productos_filas
     where importacion_id = current_setting('t.imp1')::uuid and sku = 'TRANS-1'),
-  'omitida/3/No se pudo aplicar tras varios intentos',
+  'omitida/3/Error temporal repetido; volvé a importar esta fila',
   'al tercer intento la fila queda omitida con un motivo claro');
 select is(
   (select string_agg(sku || ':' || resultado || ':' || intentos, ',' order by fila) from dominio.importaciones_productos_filas
@@ -199,6 +199,9 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 select is(
   (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'sin_imagenes')::int, 1,
   'obtener_importacion_productos cuenta los productos que quedaron sin imágenes');
+select is(
+  (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'omitidas_temporales')::int, 1,
+  'obtener_importacion_productos distingue las omitidas por un error temporal repetido');
 reset role;
 
 -- ============================================================================
