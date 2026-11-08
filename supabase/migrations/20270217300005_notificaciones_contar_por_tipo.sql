@@ -5,7 +5,7 @@
 -- Mismo contrato: mismos filtros, mismo tipo de retorno y mismos privilegios (`create or replace` los conserva).
 --
 -- Migración aditiva. Reversión (migración posterior): volver a la definición de
--- `20270217000002_notificaciones_funciones.sql` (`create or replace` con el join por fila).
+-- `20270217300002_notificaciones_funciones.sql` (`create or replace` con el join por fila).
 
 create or replace function public.contar_notificaciones_sin_leer()
 returns integer

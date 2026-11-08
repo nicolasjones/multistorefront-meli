@@ -16,10 +16,10 @@ Verificado contra el repo (migraciones `20261210120000`–`20261210120600`, `202
 
 | Migración (nombres tentativos) | Contenido | Esquema | Reversión (migración posterior) |
 |---|---|---|---|
-| `20270217000001_notificaciones_leido.sql` | `alter table public.avisos_pendientes add column leido_en` + índice | `public` | `drop index …; alter table … drop column leido_en` (en otro PR, no en el que la crea) |
-| `20270217000002_notificaciones_funciones.sql` | `listar_notificaciones`, `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas` + grants | `public` | `drop function` de las tres |
-| `20270217000003_exportacion_total_conjuntos.sql` | `private.conjuntos_exportacion_total`, `private.datos_exportacion_total`, `private.filas_exportacion_total` + grants al rol de worker | `private` | `drop function` de las tres |
-| `20270217000004_exportacion_total_solicitud.sql` | `public.solicitar_exportacion_total`, iniciador privado, capacidad `exportar-organizacion-<org>`, bucket `exportaciones-organizacion` y política `select` | `public` / `private` / Storage | `drop function`, `drop policy … on storage.objects`, vaciar y borrar el bucket por la API de Storage |
+| `20270217300001_notificaciones_leido.sql` | `alter table public.avisos_pendientes add column leido_en` + índice | `public` | `drop index …; alter table … drop column leido_en` (en otro PR, no en el que la crea) |
+| `20270217300002_notificaciones_funciones.sql` | `listar_notificaciones`, `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas` + grants | `public` | `drop function` de las tres |
+| `20270217300003_exportacion_total_conjuntos.sql` | `private.conjuntos_exportacion_total`, `private.datos_exportacion_total`, `private.filas_exportacion_total` + grants al rol de worker | `private` | `drop function` de las tres |
+| `20270217300004_exportacion_total_solicitud.sql` | `public.solicitar_exportacion_total`, iniciador privado, capacidad `exportar-organizacion-<org>`, bucket `exportaciones-organizacion` y política `select` | `public` / `private` / Storage | `drop function`, `drop policy … on storage.objects`, vaciar y borrar el bucket por la API de Storage |
 
 Cada historia trae **su** migración con su propio timestamp; F-NOT-02 y F-OPS-06 no se encadenan. Re-verificar el esquema de cada objeto en tareas, implementación y PR (Principio VII).
 

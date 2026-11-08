@@ -7,7 +7,7 @@
 -- exclusiones no cambia.
 --
 -- Migración aditiva. Reversión (migración posterior): volver a la definición de
--- `20270217000003_exportacion_total_conjuntos.sql` (sin las dos tablas).
+-- `20270217300003_exportacion_total_conjuntos.sql` (sin las dos tablas).
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])

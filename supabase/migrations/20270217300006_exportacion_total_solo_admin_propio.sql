@@ -7,7 +7,7 @@
 -- `exportaciones-organizacion`. `iniciar_proceso_masivo` conserva su propia regla; el punto de entrada ya lo filtra.
 --
 -- Migración aditiva. Reversión (migración posterior): volver a las definiciones de
--- `20270217000004_exportacion_total_solicitud.sql` (función y política con `es_administrador_de`) y
+-- `20270217300004_exportacion_total_solicitud.sql` (función y política con `es_administrador_de`) y
 -- `drop function private.es_administrador_propio_de(uuid);`
 
 create or replace function private.es_administrador_propio_de(p_organizacion_id uuid)

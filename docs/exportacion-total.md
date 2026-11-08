@@ -20,8 +20,8 @@ El bloque no depende de la empresa activa (la exportación es de toda la organiz
 
 ## Conjuntos agregados después de la primera versión
 
-- `20270217000007_exportacion_total_conjuntos_nuevos.sql`: `dominio.cotizacion_configuracion` y `dominio.precios_propios_empresa` (llegaron con la integración de `dokploy` en la épica; el pgTAP de completitud lo detectó).
-- `20270217000006_exportacion_total_solo_admin_propio.sql`: la solicitud y la descarga exigen la membresía propia de administrador (`private.es_administrador_propio_de`); un superadmin con acceso de soporte no exporta.
+- `20270217300007_exportacion_total_conjuntos_nuevos.sql`: `dominio.cotizacion_configuracion` y `dominio.precios_propios_empresa` (llegaron con la integración de `dokploy` en la épica; el pgTAP de completitud lo detectó).
+- `20270217300006_exportacion_total_solo_admin_propio.sql`: la solicitud y la descarga exigen la membresía propia de administrador (`private.es_administrador_propio_de`); un superadmin con acceso de soporte no exporta.
 
 ## Agregar un conjunto
 
