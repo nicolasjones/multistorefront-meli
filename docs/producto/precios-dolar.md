@@ -40,7 +40,44 @@ En el menú de la izquierda: **Administración → Cotización del dólar**.
 
 *El historial de cargas: cada valor con su variación y los precios que se recalcularon.*
 
-La cotización es una sola para todo el negocio: no cambia según la empresa que tengas elegida arriba.
+Por defecto la cotización es una sola para todo el negocio y no cambia según la empresa que tengas elegida arriba. Si el Administrador eligió una cotización por empresa, ver [Configuración de la cotización](#configuracion-de-la-cotizacion).
+
+## Configuración de la cotización
+
+Debajo del valor vigente está la tarjeta **Configuración**. Ahí el Administrador decide cómo se usa el dólar. Si entrás solo con permiso de lectura, ves los valores pero no podés cambiarlos.
+
+Hasta ahora estos valores eran fijos. Si no cambiás nada, el sistema se comporta igual que antes:
+
+| Campo | Qué decide | Valor de arranque |
+|---|---|---|
+| **Alcance** | **Una para todo el sistema** o **Una por empresa** | Una para todo el sistema |
+| **Redondeo del precio en pesos** | A cuánto se redondean los precios nuevos que ves en «Qué va a cambiar» (sin redondeo, $ 10, $ 50 o $ 100) | Al $ 10 más cercano |
+| **Umbral para recalcular** | Si el dólar varía menos que este porcentaje, se anota el valor pero no se tocan los precios | 1 % |
+| **Aviso en Inicio** | Muestra la alerta cuando no se cargó el dólar de hoy | Activo |
+
+Este redondeo es el del recálculo del dólar. El redondeo del ajuste de cada tienda se sigue eligiendo en su pestaña **Precios y moneda** y no cambia.
+
+### Cambiar los valores
+
+1. Entrá a **Administración → Cotización del dólar**.
+2. En **Configuración**, cambiá el redondeo, el umbral o el interruptor **Aviso en Inicio**.
+3. Hacé clic en **Guardar configuración**. Vas a ver «Configuración guardada» y la próxima carga ya usa los valores nuevos.
+
+Si el umbral no es un número entre 0 y 100, ves un mensaje y no se guarda nada. Con el aviso apagado, no aparece la alerta de «dólar sin cargar» ni en Inicio ni en esta pantalla; al volver a encenderlo, vuelve.
+
+### Pasar de una cotización general a una por empresa
+
+1. En **Alcance**, elegí **Una por empresa** y confirmá el cambio.
+2. Antes de aplicar, ves una vista previa por empresa con cuántos precios cambian. Al principio cada empresa arranca con el valor vigente, así que no cambia ninguno.
+3. Si estás de acuerdo, confirmá. Si no, cancelá: todo queda igual.
+
+Con **Una por empresa**, cada empresa carga su propio dólar y los productos en dólares usan el de su empresa. La carga, el historial y el aviso son los de la empresa que tengas elegida arriba; si elegiste **Todas mis empresas**, la pantalla te pide que elijas una. Al cambiar de empresa se recarga todo.
+
+Para volver a **Una para todo el sistema** hacés lo mismo: la vista previa muestra, por empresa, cuántos precios pasan a usar el valor general, y no se aplica hasta que confirmes.
+
+En la pestaña **Precios y moneda** de cada empresa, **Cotización que usa** dice «La de <empresa>» o «La general del sistema» según este alcance.
+
+Otra organización no ve ninguno de estos cambios.
 
 ## Cargar la cotización del día
 
@@ -57,7 +94,7 @@ La cotización es una sola para todo el negocio: no cambia según la empresa que
 
 *Paso 3: el valor escrito y, debajo, la comparación con el anterior.*
 
-4. Si la variación supera el 15 %, aparece «Variación inusual». Es solo un aviso: revisá que el valor esté bien escrito y seguí.
+4. Si la variación supera el 15 % (el valor de confirmación de la configuración), aparece «Variación inusual». Es solo un aviso: revisá que el valor esté bien escrito y seguí.
 
 ![Cuadro Cargar dólar del día con un valor 1700 y el aviso amarillo Variación inusual](img/precios-dolar/04-variacion-inusual.png)
 
@@ -69,12 +106,12 @@ La cotización es una sola para todo el negocio: no cambia según la empresa que
 
 ### Cuando el cambio es muy chico
 
-Si el dólar varió menos de un 1 % respecto del valor vigente, el sistema no recalcula precios: avisa «Sin recálculo» y el botón dice **Registrar cotización**. El valor queda anotado en el historial, pero los precios siguen igual.
+Si el dólar varió menos del umbral configurado (1 % de arranque) respecto del valor vigente, el sistema no recalcula precios: avisa «Sin recálculo» y el botón dice **Registrar cotización**. El valor queda anotado en el historial, pero los precios siguen igual.
 
 ## Cuándo se recalculan los precios en pesos
 
 - Solo cuando confirmás con **Aplicar y recalcular**. Hasta entonces rigen los precios del último dólar confirmado.
-- Se recalculan todas las tiendas juntas, para que ninguna quede con un valor distinto de otra.
+- Con la cotización general, se recalculan todas las tiendas juntas. Con una cotización por empresa, solo cambian los precios en dólares de la empresa que cargó su valor.
 - Si no confirmás en un día, la cotización cargada vence y hay que volver a cargarla.
 - Los productos en pesos no cambian con el dólar.
 
@@ -82,7 +119,7 @@ Si el dólar varió menos de un 1 % respecto del valor vigente, el sistema no re
 
 **¿Me equivoqué al escribir el valor, qué hago?** Si todavía no confirmaste, hacé clic en **Cancelar** y cargalo de nuevo. Si ya aplicaste, cargá la cotización correcta: queda en el historial y se recalcula otra vez.
 
-**¿Por qué mis precios en pesos no cambiaron?** Puede ser que el dólar haya variado menos de un 1 %, o que todavía no hayas hecho clic en **Aplicar y recalcular**.
+**¿Por qué mis precios en pesos no cambiaron?** Puede ser que el dólar haya variado menos que el umbral de la **Configuración**, o que todavía no hayas hecho clic en **Aplicar y recalcular**.
 
 **¿Qué pasa con las tiendas online?** Muestran el precio nuevo en cuanto confirmás.
 
@@ -96,4 +133,4 @@ Si el dólar varió menos de un 1 % respecto del valor vigente, el sistema no re
 | **No pudimos cargar / confirmar la cotización. Intentá de nuevo.** | Falló la conexión. Probá otra vez. |
 | **No pudimos calcular qué va a cambiar.** | Usá el botón **Reintentar** del paso de vista previa. |
 
-Ver también: [Precios e IVA](precios-e-iva.md) y [Productos y categorías](catalogo-productos.md).
+Ver también: [Precio propio y simulador](precios-e-iva.md#precio-propio-de-un-producto-en-una-empresa), [Precios e IVA](precios-e-iva.md) y [Productos y categorías](catalogo-productos.md).
