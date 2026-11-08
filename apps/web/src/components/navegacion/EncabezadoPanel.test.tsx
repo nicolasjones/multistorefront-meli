@@ -57,4 +57,21 @@ describe('EncabezadoPanel', () => {
 
     expect(screen.getByRole('button', { name: 'open drawer' })).toBeInTheDocument()
   })
+  it('muestra el botón «Ayuda» junto a la campanita de notificaciones (FR-020)', async () => {
+    useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
+
+    render(<MemoryRouter><EncabezadoPanel /></MemoryRouter>)
+
+    const campanita = await screen.findByRole('button', { name: /^Notificaciones/ })
+    const ayuda = screen.getByRole('button', { name: 'Ayuda' })
+    expect(campanita.nextElementSibling).toBe(ayuda)
+  })
+
+  it('las migas de pan siguen mostrando el PRIMER destino que coincide (no cambió al extraer coincideRuta)', () => {
+    useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
+
+    render(<MemoryRouter initialEntries={['/stock/movimientos']}><EncabezadoPanel /></MemoryRouter>)
+
+    expect(screen.getByRole('navigation', { name: 'Ubicación' })).toHaveTextContent('Stock · Stock')
+  })
 })
