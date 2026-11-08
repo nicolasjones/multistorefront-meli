@@ -35,6 +35,10 @@ function crearPuertos(
     /** Cuántas subidas a Storage fallan antes de funcionar (simula una caída del servicio). */
     fallasDeSubida?: number;
     rutasABorrar?: string[];
+    /** Huérfanos viejos que ofrece la base al empezar la corrida. */
+    rutasHuerfanas?: string[];
+    /** Filas que SIEMPRE fallan con un error transitorio. */
+    siempreFallan?: string[];
     falloLimpieza?: boolean;
   } = {},
 ) {
@@ -43,6 +47,10 @@ function crearPuertos(
   const imagenesPendientes = new Set<string>();
   const borradas: string[][] = [];
   let fallasRestantes = opciones.fallasDeSubida ?? 0;
+  const intentos = new Map<string, number>();
+  const colaFinal = [...(opciones.rutasABorrar ?? [])];
+  const colaHuerfanos = [...(opciones.rutasHuerfanas ?? [])];
+  const ordenBorrado: string[] = [];
   const productos = new Map<string, string>();
   const imagenes = new Set<string>();
   const subidas: string[] = [];
@@ -64,6 +72,7 @@ function crearPuertos(
         .slice(0, limite)
         .map((fila, indice) => ({ fila_id: fila.id, fila: indice + 2, sku: fila.sku })),
     aplicar: async (_id, filaId) => {
+      if (opciones.siempreFallan?.includes(filaId) && !estado.has(filaId)) throw new Error('canceling statement due to lock timeout');
       const guardado = estado.get(filaId);
       if (guardado) return guardado;
       const fila = filas.find((f) => f.id === filaId)!;
@@ -99,12 +108,19 @@ function crearPuertos(
     confirmarImagenes: async (_id, filaId) => {
       imagenesPendientes.delete(filaId);
     },
-    temporalesABorrar: async () => {
+    temporalesABorrar: async (_id, _dias, incluirImportacion) => {
       if (opciones.falloLimpieza) throw new Error('conexión caída');
-      return opciones.rutasABorrar ?? [];
+      ordenBorrado.push(incluirImportacion ? 'cierre' : 'inicio');
+      return (incluirImportacion ? colaFinal : colaHuerfanos).splice(0, 1000);
     },
     borrarTemporales: async (rutas) => {
       borradas.push(rutas);
+    },
+    registrarFallo: async (_id, filaId) => {
+      const n = (intentos.get(filaId) ?? 0) + 1;
+      intentos.set(filaId, n);
+      if (n >= 3) estado.set(filaId, { resultado: 'omitida', producto_id: null, mensaje: 'No se pudo aplicar tras varios intentos', imagenes: [] });
+      return n;
     },
     cerrarImportacion: async () => {
       cierres.push({ importacion: 'terminada' });
@@ -123,7 +139,7 @@ function crearPuertos(
       eventos.push(`${etapa}:${est}${mensaje ? `:${mensaje}` : ''}`);
     },
   };
-  return { puertos, productos, imagenes, subidas, eventos, cierres, estado, borradas, imagenesPendientes, despachos: () => despachos };
+  return { puertos, productos, imagenes, subidas, eventos, cierres, estado, borradas, imagenesPendientes, intentos, ordenBorrado, despachos: () => despachos };
 }
 
 describe('importarProductos (FR-108)', () => {
@@ -263,6 +279,50 @@ describe('importarProductos (FR-108)', () => {
     expect(mundo.eventos.some((e) => e.startsWith('limpieza:fallida'))).toBe(true);
     expect(mundo.despachos()).toBe(1);
   });
+
+  it('una fila que siempre falla no frena a las demás y se omite al tercer intento', async () => {
+    const mundo = crearPuertos(
+      [
+        { id: 'f1', sku: 'MALA', nuevo: true },
+        { id: 'f2', sku: 'BUENA-1', nuevo: true },
+        { id: 'f3', sku: 'BUENA-2', nuevo: true },
+      ],
+      { siempreFallan: ['f1'] },
+    );
+    // Corridas 1 y 2: las demás se aplican, la mala suma un intento y la corrida falla para que el flow reintente.
+    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toThrow('FILAS_PENDIENTES');
+    expect(mundo.productos.size).toBe(2);
+    expect(mundo.cierres).toEqual([]);
+    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toThrow('FILAS_PENDIENTES');
+    // Corrida 3: tercer intento, la base la omite y la importación cierra sin trabarse.
+    const salida = await importarProductos(EJECUCION, mundo.puertos);
+    expect(salida).toEqual({ codigo: SALIDA_OK });
+    expect(mundo.intentos.get('f1')).toBe(3);
+    expect(mundo.estado.get('f1')?.resultado).toBe('omitida');
+    expect(mundo.estado.get('f2')?.resultado).toBe('aplicada');
+    expect(mundo.estado.get('f3')?.resultado).toBe('aplicada');
+    expect(mundo.cierres).toEqual([{ importacion: 'terminada' }, { ejecucion: 'exitosa' }]);
+  })
+
+  it('las fallas contractuales de aplicar no cuentan como intento de la fila', async () => {
+    const mundo = crearPuertos([{ id: 'f1', sku: 'X', nuevo: true }]);
+    mundo.puertos.aplicar = async () => {
+      throw new Error('EJECUCION_NO_EN_CURSO: x');
+    };
+    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toThrow('EJECUCION_NO_EN_CURSO');
+    expect(mundo.intentos.size).toBe(0);
+  })
+
+  it('al empezar limpia los huérfanos en tandas acotadas (antes de aplicar) y al cerrar las de la importación', async () => {
+    const huerfanos = Array.from({ length: 2500 }, (_, i) => `${ORGANIZACION}/otra/${i}.jpg`);
+    const mundo = crearPuertos([{ id: 'f1', sku: 'X-3', nuevo: true }], { rutasHuerfanas: huerfanos, rutasABorrar: [`${ORGANIZACION}/${CLAVE}/a.jpg`] });
+    await importarProductos(EJECUCION, mundo.puertos);
+    expect(mundo.borradas.flat()).toHaveLength(2501);
+    expect(mundo.ordenBorrado.slice(0, 4)).toEqual(['inicio', 'inicio', 'inicio', 'inicio']);
+    expect(mundo.ordenBorrado.at(-1)).toBe('cierre');
+    // Tope de tandas: nunca más de 5 consultas por fase.
+    expect(mundo.ordenBorrado.filter((x) => x === 'inicio').length).toBeLessThanOrEqual(5);
+  })
 
   it('con la ejecución cerrada no actúa y sale con 78 y EJECUCION_NO_EN_CURSO', async () => {
     const mundo = crearPuertos([{ id: 'f1', sku: 'X', nuevo: true }], { enCurso: false });

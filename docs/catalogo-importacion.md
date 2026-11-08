@@ -8,7 +8,7 @@ Productos y solo la ve el Administrador. No tiene ítem de menú.
 
 1. **Archivos.** El navegador lee el CSV (UTF-8, `,` o `;`, con o sin BOM; hasta 2.000 filas) y las
    imágenes (ZIP o sueltas, JPG/PNG/WebP de hasta 2 MB, máximo 500). De los ZIP de una misma carga no se expande más de 500
-   entradas ni más de 100 MB descomprimidos en total: el tope se comprueba con el tamaño **real** descomprimido (la
+   entradas ni más de 100 MB descomprimidos en total: el tope se comprueba en streaming (fflate `Unzip`, rebanadas de 16 KB) con el tamaño **real** descomprimido de cada entrada y del total (la
    cabecera del ZIP, `originalSize`, puede mentir) y lo que lo pasa se descarta con aviso. Nombres repetidos: **gana la
    primera**, siempre (entre carpetas de un ZIP, entre archivos de una misma selección y entre selecciones
    sucesivas de la pantalla; la repetida se descarta y se avisa; para reemplazar una imagen hay que cancelar y volver a
@@ -47,25 +47,43 @@ para la organización (la capacidad cuelga de esa conexión, igual que el histor
 hace: la conexión la crea un Administrador con `crear_conexion` y exige servidor de la organización y credencial en
 Vault, es decir una decisión de operación/credenciales que no se inventa en una migración. En su lugar, la pantalla
 llama a `importacion_productos_habilitada()` (solo Administrador, solo lectura) al abrirse y, si la organización no
-tiene la conexión, muestra el aviso «Tu organización todavía no tiene habilitada la importación de productos» y
-deshabilita la elección de archivos, **antes** de pedir el CSV. Si la consulta falla no se bloquea: el servidor igual
+tiene la conexión, muestra el aviso «Tu organización todavía no tiene habilitada la importación de productos. Un
+Administrador tiene que crear la conexión «importar-productos» (servidor y credencial)» y deshabilita la elección de archivos, **antes** de pedir el CSV. Si la consulta falla no se bloquea: el servidor igual
 rechaza con `SIN_CONEXION_IMPORTACION`.
 
 ## Imágenes temporales
 
-Al cerrar la importación (`terminada`), el worker borra por la API de Storage las imágenes de su clave en
-`productos-importaciones` y las huérfanas de la organización con más de 7 días que no pertenezcan a una importación
-en curso (`private.imagenes_temporales_a_borrar`, hasta 1000 por corrida). Es de mejor esfuerzo: si el borrado falla la
+Al **empezar** cada corrida el worker borra los huérfanos de la organización (más de 7 días, que no pertenezcan a una
+importación en curso) y al cerrar (`terminada`) también las imágenes de su clave en `productos-importaciones`, por la
+API de Storage (`private.imagenes_temporales_a_borrar`, hasta 1000 por llamada; el worker repite hasta 5 tandas por
+fase para vaciar el backlog). Es de mejor esfuerzo: si el borrado falla la
 importación igual termina y lo que quede se borra en la corrida siguiente. Una importación que cierra como `fallida`
 (la cierra la base, no el worker) deja sus imágenes hasta que una corrida posterior las barre como huérfanas pasados
 los 7 días; lo mismo vale para subidas que nunca llegaron a solicitarse. El tope por celda (hallazgo 3) es de 1000
 caracteres en `categoria`, `proveedor`, `tiendas` e `imagenes` (error de la fila con mensaje) y la `carga` guardada
 solo conserva las columnas conocidas, acotadas.
 
+## Fila que siempre falla e imágenes sin adjuntar
+
+- Un error transitorio (40/53/55/57) en `aplicar_fila_…` revierte esa fila y el worker lo registra
+  (`registrar_fallo_fila_importacion_productos`, columna `intentos`) y **sigue con las demás**; si quedan filas con
+  intentos disponibles la corrida sale con error y el flow reintenta. Al tercer intento la fila queda `omitida` con
+  «No se pudo aplicar tras varios intentos», así una fila mala no traba al resto.
+- Si una importación cierra (`terminada`, o `fallida` por la reconciliación) con productos cuyas imágenes no se
+  adjuntaron, `cerrar_importacion_productos` y `obtener_importacion_productos` devuelven `sin_imagenes` y la pantalla
+  avisa «N productos quedaron sin imágenes».
+
 ## Seguimiento pendiente (revisión independiente de la épica)
 
-Todos los hallazgos de la revisión están resueltos. Queda como decisión de operación (no de código) que soporte
-cree la conexión `importar-productos` de cada organización con `crear_conexion`; la pantalla avisa mientras falte.
+Los hallazgos de código de la revisión están resueltos. Lo que sigue siendo así a propósito o depende de operación:
+
+- La conexión `importar-productos` de cada organización la crea un Administrador con `crear_conexion` (servidor y
+  credencial, ver `docs/historial-ventas.md`); la pantalla avisa mientras falte.
+- El borrado de imágenes temporales es de mejor esfuerzo (si Storage falla se reintenta en la corrida siguiente; los
+  huérfanos esperan 7 días).
+- La descompresión de ZIP en el navegador se corta al superar los topes, pero deflate puede inflar hasta ~1000× lo que
+  se empuja de una vez: el lector recibe rebanadas de 16 KB, así que lo transitorio queda acotado (~16 MB) y lo
+  retenido nunca supera 100 MB totales ni 2 MB por imagen. No hay garantía de cortar a mitad de una rebanada.
 
 ## Estados y serialización
 

@@ -6,7 +6,7 @@
 -- catalogo_importacion.test.sql: en el CI no es superusuario y no puede simular el login del worker).
 begin;
 
-select plan(22);
+select plan(27);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -175,6 +175,32 @@ select is(
   'TRANS-1,TRANS-2',
   'confirmadas las imágenes la fila deja de ofrecerse');
 
+-- Fila que siempre falla (revisión de #794): al tercer intento queda omitida y el resto sigue.
+select lives_ok(
+  format($f$ select private.registrar_fallo_fila_importacion_productos('%s'::uuid, f.id) from dominio.importaciones_productos_filas f,
+              generate_series(1, 3) g where f.importacion_id = '%s'::uuid and f.sku = 'TRANS-1' $f$,
+         current_setting('t.ejec1'), current_setting('t.imp1')),
+  'el worker registra tres fallos transitorios de la misma fila');
+select is(
+  (select resultado || '/' || intentos || '/' || resultado_mensaje from dominio.importaciones_productos_filas
+    where importacion_id = current_setting('t.imp1')::uuid and sku = 'TRANS-1'),
+  'omitida/3/No se pudo aplicar tras varios intentos',
+  'al tercer intento la fila queda omitida con un motivo claro');
+select is(
+  (select string_agg(sku || ':' || resultado || ':' || intentos, ',' order by fila) from dominio.importaciones_productos_filas
+    where importacion_id = current_setting('t.imp1')::uuid),
+  'TRANS-1:omitida:3,TRANS-2:pendiente:0,DATO-1:omitida:0,IMG-1:aplicada:0',
+  'las demás filas no se ven afectadas (una fila que falla siempre no frena al resto)');
+
+-- Imágenes que nunca se adjuntaron: la pantalla y el cierre las cuentan (hallazgos 3 y 4 de la revisión de #794).
+update dominio.importaciones_productos_filas set imagenes_pendientes = true
+ where importacion_id = current_setting('t.imp1')::uuid and sku = 'IMG-1';
+select pg_temp.como('d1000000-0000-0000-0000-000000000011');
+select is(
+  (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'sin_imagenes')::int, 1,
+  'obtener_importacion_productos cuenta los productos que quedaron sin imágenes');
+reset role;
+
 -- ============================================================================
 -- Hallazgo 4: objetos temporales a borrar
 -- ============================================================================
@@ -198,14 +224,24 @@ select is(
      from private.imagenes_temporales_a_borrar(current_setting('t.ejec1')::uuid, 7) n),
   array['a.jpg', 'huerfana-vieja.jpg'],
   'se borran las imágenes de la importación y las huérfanas viejas; no las jóvenes, las de una importación en cola ni las de otra organización');
+select is(
+  (select array_agg(regexp_replace(n, '^.*/', '') order by n)
+     from private.imagenes_temporales_a_borrar(current_setting('t.ejec1')::uuid, 7, false) n),
+  array['huerfana-vieja.jpg'],
+  'al empezar una corrida (sin la importación propia) solo se ofrecen los huérfanos');
 select throws_ok(
   format($f$ select * from private.imagenes_temporales_a_borrar('%s'::uuid, 0) $f$, current_setting('t.ejec1')),
   'P0001', null, 'los días de retención fuera de rango se rechazan');
 select ok(
-  not has_function_privilege('authenticated', 'private.imagenes_temporales_a_borrar(uuid, integer)', 'execute')
-  and has_function_privilege('workers_orquestacion', 'private.imagenes_temporales_a_borrar(uuid, integer)', 'execute')
+  not has_function_privilege('authenticated', 'private.imagenes_temporales_a_borrar(uuid, integer, boolean)', 'execute')
+  and has_function_privilege('workers_orquestacion', 'private.imagenes_temporales_a_borrar(uuid, integer, boolean)', 'execute')
   and not has_function_privilege('anon', 'public.importacion_productos_habilitada()', 'execute'),
   'solo el worker lista los temporales a borrar y anon no consulta la habilitación');
+
+select is(
+  (select private.cerrar_importacion_productos(current_setting('t.ejec1')::uuid, 'terminada') ->> 'sin_imagenes'),
+  '1',
+  'cerrar la importación informa cuántos productos quedaron sin imágenes');
 
 select * from finish();
 rollback;

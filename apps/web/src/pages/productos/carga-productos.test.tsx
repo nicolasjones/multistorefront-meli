@@ -207,6 +207,15 @@ describe('ProductoCarga', () => {
     expect(await screen.findByText(/ya se había solicitado/)).toBeTruthy()
   })
 
+  it('avisa cuántos productos quedaron sin imágenes, también si la importación falló', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      return { data: { estado: 'fallida', procesadas: 3, omitidas: 0, sin_imagenes: 2, mensaje_fallo: 'Falló', errores: [] }, error: null }
+    })
+    abrir(`/productos/carga?importacion=${IMPORTACION}`)
+    expect(await screen.findByText(/2 productos quedaron sin imágenes/)).toBeTruthy()
+  })
+
   it('un doble clic en «Importar» solicita una sola vez', async () => {
     abrir()
     await elegirCsv()

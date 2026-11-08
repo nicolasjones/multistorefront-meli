@@ -76,21 +76,36 @@ describe('leerImagenes · topes y nombres repetidos', () => {
       limites,
     )
     expect(imagenes).toHaveLength(1)
-    expect(rechazadas.join(' ')).toMatch(/1 imagen\(es\) no entran/)
+    expect(rechazadas.join(' ')).toMatch(/se superó el máximo/)
   })
 
-  it('el tope se comprueba con el tamaño REAL descomprimido, no con el que declara la cabecera', async () => {
-    // Cabecera mentirosa: el ZIP declara 1 byte por entrada (originalSize) pero cada una descomprime a 6.
-    const bytes = zipSync({ 'a.jpg': new Uint8Array(6).fill(1), 'b.jpg': new Uint8Array(6).fill(2) }, { level: 0 })
+  // Una cabecera local que miente: declara `declarado` bytes sin comprimir, pero el contenido infla a lo real.
+  function zipMentiroso(entradas: Record<string, Uint8Array>, declarado: number): File {
+    const bytes = zipSync(entradas)
     const vista = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-    for (let i = 0; i + 46 <= bytes.length; i += 1) {
-      // Registro del directorio central (firma PK\x01\x02): tamaño sin comprimir en el offset 24.
-      if (vista.getUint32(i, true) === 0x02014b50) vista.setUint32(i + 24, 1, true)
+    for (let i = 0; i + 30 <= bytes.length; i += 1) {
+      // Cabecera local (PK\x03\x04): tamaño sin comprimir en el offset 22.
+      if (vista.getUint32(i, true) === 0x04034b50) vista.setUint32(i + 22, declarado, true)
     }
-    const archivo = { name: 'mentira.zip', size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) } as unknown as File
-    const { imagenes } = await leerImagenes([archivo], limites)
+    return { name: 'mentira.zip', size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) } as unknown as File
+  }
+
+  it('el tope total se comprueba con los bytes REALES inflados, no con los que declara la cabecera', async () => {
+    const { imagenes, rechazadas } = await leerImagenes(
+      [zipMentiroso({ 'a.jpg': new Uint8Array(6).fill(1), 'b.jpg': new Uint8Array(6).fill(2), 'c.jpg': new Uint8Array(6).fill(3) }, 1)],
+      limites,
+    )
     const total = imagenes.reduce((suma, imagen) => suma + imagen.blob.size, 0)
     expect(total).toBeLessThanOrEqual(limites.maxBytesDescomprimido)
+    expect(imagenes).toHaveLength(1)
+    expect(rechazadas.join(' ')).toMatch(/se superó el máximo/)
+  })
+
+  it('una imagen que infla a más de 2 MB con una cabecera que dice 10 bytes se descarta sin acumularla', async () => {
+    const enorme = new Uint8Array(3 * 1024 * 1024) // ceros: comprime a casi nada
+    const { imagenes, rechazadas } = await leerImagenes([zipMentiroso({ 'grande.jpg': enorme, 'chica.png': new Uint8Array([7]) }, 10)])
+    expect(imagenes.map((i) => i.nombre)).toEqual(['chica.png'])
+    expect(rechazadas.join(' ')).toMatch(/«grande\.jpg» pesa más de 2 MB una vez descomprimida/)
   })
 
   it('un ZIP de más de maxBytesZip se rechaza sin abrirlo', async () => {

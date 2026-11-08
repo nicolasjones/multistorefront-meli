@@ -73,6 +73,8 @@ export type ImportacionObtenida = {
   importables: number
   procesadas: number
   omitidas: number
+  /** Productos aplicados cuyas imágenes no llegaron a adjuntarse (también si la importación cerró como fallida). */
+  sin_imagenes?: number
   mensaje_fallo: string | null
   errores: ErrorFila[]
 }
@@ -176,6 +178,9 @@ export const LIMITES_IMAGENES_POR_DEFECTO: LimitesImagenes = {
  * repetida se descarta y se avisa. Para reemplazar una imagen hay que cancelar y volver a cargarla.
  */
 
+/** Tamaño de cada empuje al lector de ZIP en streaming. */
+const REBANADA_ZIP = 16 * 1024
+
 const nombreBase = (ruta: string) => ruta.split(/[\\/]/).pop() ?? ruta
 
 /** Junta archivos sueltos y ZIP (se abren acá) en una lista de imágenes válidas y los motivos de rechazo. */
@@ -201,8 +206,6 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
   }
 
   // Los topes del ZIP valen por importación (todos los ZIP de la misma llamada), no por archivo.
-  let aceptadas = 0
-  let bytesAceptados = 0
   // Bytes realmente descomprimidos: `originalSize` viene de la cabecera del ZIP y puede mentir.
   let bytesReales = 0
 
@@ -213,51 +216,82 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
         continue
       }
       try {
-        const { unzipSync } = await import('fflate')
-        // El filtro corre antes de descomprimir: no se expande lo que ya sabemos que no sirve, ni más de
-        // `MAX_IMAGENES_CARGA` entradas ni más de `MAX_BYTES_DESCOMPRIMIDO_ZIP` en total (un ZIP muy comprimible
-        // no debe agotar la memoria del navegador).
+        const { Unzip, UnzipInflate, UnzipPassThrough } = await import('fflate')
+        // Descompresión en streaming: se cuentan los bytes REALES de cada entrada y el total a medida que salen
+        // (la cabecera, `originalSize`, puede mentir). Al pasar un tope la entrada se termina (`terminate`), se
+        // descarta lo ya acumulado de ella y, si es el tope total, se deja de empujar el resto del ZIP.
         let recortadas = 0
         let recortadasPorPeso = 0
-        const nombresVistos = new Set<string>()
-        const repetidas: string[] = []
-        const contenido = unzipSync(new Uint8Array(await archivo.arrayBuffer()), {
-          filter: (entrada) => {
-            const nombre = nombreBase(entrada.name)
-            if (entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') ||
-              entrada.originalSize > MAX_BYTES_IMAGEN_IMPORTACION || !tipoDeNombreImagen(nombre)) return false
-            if (nombresVistos.has(nombre) || imagenes.has(nombre)) {
-              repetidas.push(nombre)
-              return false
+        let invalido = false
+        let detenido = false
+        const repetidas = new Set<string>()
+        const pesadas: string[] = []
+        const lector = new Unzip()
+        lector.register(UnzipInflate)
+        lector.register(UnzipPassThrough)
+        lector.onfile = (entrada) => {
+          const nombre = nombreBase(entrada.name)
+          if (detenido || entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') || !tipoDeNombreImagen(nombre)) return
+          if (imagenes.has(nombre)) {
+            repetidas.add(nombre)
+            return
+          }
+          if (imagenes.size >= limites.maxImagenes) {
+            recortadas += 1
+            return
+          }
+          const trozos: Uint8Array[] = []
+          let pesoEntrada = 0
+          let descartada = false
+          entrada.ondata = (error, trozo, final) => {
+            if (error) {
+              invalido = true
+              return
             }
-            if (aceptadas >= limites.maxImagenes || bytesAceptados + entrada.originalSize > limites.maxBytesDescomprimido) {
-              recortadas += 1
-              return false
+            if (descartada) return
+            pesoEntrada += trozo.length
+            if (pesoEntrada > MAX_BYTES_IMAGEN_IMPORTACION || bytesReales + pesoEntrada > limites.maxBytesDescomprimido) {
+              descartada = true
+              trozos.length = 0
+              entrada.terminate()
+              if (pesoEntrada > MAX_BYTES_IMAGEN_IMPORTACION) pesadas.push(nombre)
+              else {
+                recortadasPorPeso += 1
+                detenido = true
+              }
+              return
             }
-            nombresVistos.add(nombre)
-            aceptadas += 1
-            bytesAceptados += entrada.originalSize
-            return true
-          },
-        })
-        for (const nombre of new Set(repetidas)) {
+            trozos.push(trozo)
+            if (final) {
+              const bytes = new Uint8Array(pesoEntrada)
+              let posicion = 0
+              for (const parte of trozos) {
+                bytes.set(parte, posicion)
+                posicion += parte.length
+              }
+              bytesReales += pesoEntrada
+              agregar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
+            }
+          }
+          entrada.start()
+        }
+        // Se empuja en rebanadas chicas: entre una y otra se puede cortar, y lo que se infla de golpe queda acotado
+        // (deflate expande como mucho ~1000 veces: 16 KB comprimidos ≤ ~16 MB transitorios).
+        const datos = new Uint8Array(await archivo.arrayBuffer())
+        for (let desde = 0; desde < datos.length && !detenido && !invalido; desde += REBANADA_ZIP) {
+          const hasta = Math.min(desde + REBANADA_ZIP, datos.length)
+          lector.push(datos.subarray(desde, hasta), hasta === datos.length)
+        }
+        if (invalido) throw new Error('ZIP inválido')
+        for (const nombre of repetidas) {
           rechazadas.push(`«${nombre}» aparece más de una vez (en «${archivo.name}» o entre los archivos elegidos): se usó la primera.`)
         }
+        for (const nombre of pesadas) rechazadas.push(`«${nombre}» pesa más de 2 MB una vez descomprimida.`)
         if (recortadas > 0) {
-          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${limites.maxImagenes} imágenes o ${limites.maxBytesDescomprimido / (1024 * 1024)} MB descomprimidos por importación).`)
-        }
-        for (const [ruta, bytes] of Object.entries(contenido)) {
-          const nombre = nombreBase(ruta)
-          // El tope de bytes se verifica con el tamaño REAL descomprimido, no con el que declara la cabecera.
-          if (bytesReales + bytes.length > limites.maxBytesDescomprimido) {
-            recortadasPorPeso += 1
-            continue
-          }
-          bytesReales += bytes.length
-          agregar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
+          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${limites.maxImagenes} imágenes por importación).`)
         }
         if (recortadasPorPeso > 0) {
-          rechazadas.push(`«${archivo.name}»: ${recortadasPorPeso} imagen(es) pesan más de lo que declaraba el ZIP y superan el máximo de ${limites.maxBytesDescomprimido / (1024 * 1024)} MB descomprimidos: se descartaron.`)
+          rechazadas.push(`«${archivo.name}»: se superó el máximo de ${limites.maxBytesDescomprimido / (1024 * 1024)} MB descomprimidos por importación; se dejó de leer el ZIP y lo que faltaba se descartó.`)
         }
       } catch {
         rechazadas.push(`No pudimos abrir «${archivo.name}». Verificá que sea un ZIP válido.`)
@@ -342,6 +376,9 @@ export const ROTULO_ESTADO: Readonly<Record<EstadoImportacion, string>> = {
   fallida: 'Fallida',
 }
 
+export const mensajeSinImagenes = (cantidad: number) =>
+  `${cantidad} ${cantidad === 1 ? 'producto quedó' : 'productos quedaron'} sin imágenes: se importaron, pero sus fotos no se pudieron adjuntar. Subilas desde la ficha de cada producto.`
+
 export function mensajeFinal(procesadas: number, omitidas: number): string {
   return `Importación terminada. ${procesadas} ${procesadas === 1 ? 'producto procesado' : 'productos procesados'}, ${omitidas} ${omitidas === 1 ? 'omitido' : 'omitidos'} por error. Ya figuran en Catálogo · Productos.`
 }
@@ -367,6 +404,6 @@ export function mensajeDeErrorImportacion(error: unknown, porDefecto: string): s
   const e = error as { code?: string; message?: string } | null
   if (e?.code === '42501') return 'No tenés permiso para importar productos. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '22023' && e.message) return e.message.replace(/^[A-Z_]+:\s*/, '')
-  if (e?.message?.startsWith('SIN_CONEXION_IMPORTACION')) return 'Tu organización todavía no tiene habilitada la importación de productos. Pedile a soporte que la active.'
+  if (e?.message?.startsWith('SIN_CONEXION_IMPORTACION')) return 'Tu organización todavía no tiene habilitada la importación de productos. Un Administrador tiene que crear la conexión «importar-productos» (servidor y credencial).'
   return porDefecto
 }

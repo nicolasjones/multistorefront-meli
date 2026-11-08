@@ -27,15 +27,23 @@
 --
 -- Migración aditiva (una columna con default + funciones). Reversión (migración posterior):
 --   drop function public.importacion_productos_habilitada();
---   drop function private.imagenes_temporales_a_borrar(uuid, integer);
+--   drop function private.imagenes_temporales_a_borrar(uuid, integer, boolean);
 --   drop function private.confirmar_imagenes_fila_importacion_productos(uuid, uuid);
 --   restaurar los cuerpos de validar_filas_importacion_productos (20270206100002), aplicar_fila_..., iniciar_... y
 --   filas_pendientes_... (20270206100004) y solicitar_importacion_productos (20270206100003);
 --   drop index dominio.importaciones_productos_filas_imagenes_idx;
---   alter table dominio.importaciones_productos_filas drop column imagenes_pendientes;  -- antes, exportar los datos.
+--   drop function private.registrar_fallo_fila_importacion_productos(uuid, uuid);
+--   restaurar cerrar_importacion_productos (20270206100004) y obtener_importacion_productos (20270206100005);
+--   alter table dominio.importaciones_productos_filas drop column imagenes_pendientes, drop column intentos;  -- antes, exportar los datos.
 
 alter table dominio.importaciones_productos_filas
   add column if not exists imagenes_pendientes boolean not null default false;
+
+-- Intentos fallidos por error transitorio (hallazgo de la revisión de #794): una fila que SIEMPRE falla con 40/53/55/57
+-- no debe frenar a las demás en cada reintento. El worker la registra (`registrar_fallo_fila_...`) y al tercer intento
+-- la fila queda `omitida` con un motivo claro.
+alter table dominio.importaciones_productos_filas
+  add column if not exists intentos smallint not null default 0;
 
 comment on column dominio.importaciones_productos_filas.imagenes_pendientes is
   'Fila aplicada cuyas imágenes todavía no se adjuntaron: el worker la vuelve a ver hasta confirmarlas (no se pierden si Storage falla).';
@@ -459,8 +467,10 @@ grant execute on function private.confirmar_imagenes_fila_importacion_productos(
 
 -- Objetos del bucket temporal que el worker debe borrar: todos los de la importación de la ejecución (se llama ya
 -- cerrada la importación) y los huérfanos de la organización con más de `p_dias` días que no pertenecen a una
--- importación en curso. Hasta 1000 por llamada; el resto cae en la corrida siguiente.
-create or replace function private.imagenes_temporales_a_borrar(p_ejecucion_id uuid, p_dias integer default 7)
+-- importación en curso. Con `p_incluir_importacion = false` (al empezar una corrida) solo devuelve huérfanos: las imágenes
+-- de la propia importación todavía se necesitan. Hasta 1000 por llamada; el worker repite en una tanda acotada.
+create or replace function private.imagenes_temporales_a_borrar(
+  p_ejecucion_id uuid, p_dias integer default 7, p_incluir_importacion boolean default true)
 returns setof text
 language plpgsql
 stable
@@ -479,7 +489,7 @@ begin
       from storage.objects o
      where o.bucket_id = 'productos-importaciones'
        and (
-         o.name like v_imp.organizacion_id::text || '/' || v_imp.clave::text || '/%'
+         (p_incluir_importacion and o.name like v_imp.organizacion_id::text || '/' || v_imp.clave::text || '/%')
          or (
            o.name like v_imp.organizacion_id::text || '/%'
            and o.created_at < now() - make_interval(days => p_dias)
@@ -494,8 +504,8 @@ begin
 end;
 $$;
 
-revoke execute on function private.imagenes_temporales_a_borrar(uuid, integer) from public, anon, authenticated;
-grant execute on function private.imagenes_temporales_a_borrar(uuid, integer) to workers_orquestacion;
+revoke execute on function private.imagenes_temporales_a_borrar(uuid, integer, boolean) from public, anon, authenticated;
+grant execute on function private.imagenes_temporales_a_borrar(uuid, integer, boolean) to workers_orquestacion;
 
 create or replace function public.solicitar_importacion_productos(p_filas jsonb, p_clave uuid default gen_random_uuid())
 returns jsonb
@@ -610,3 +620,140 @@ comment on function public.importacion_productos_habilitada() is
 
 revoke execute on function public.importacion_productos_habilitada() from public, anon;
 grant execute on function public.importacion_productos_habilitada() to authenticated;
+
+create or replace function private.cerrar_importacion_productos(p_ejecucion_id uuid, p_estado text, p_mensaje text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_imp dominio.importaciones_productos;
+  v_procesadas integer;
+  v_omitidas integer;
+  v_sin_imagenes integer;
+begin
+  if p_estado not in ('terminada', 'fallida') then
+    raise exception 'ESTADO_INVALIDO: debe ser terminada o fallida' using errcode = 'P0001';
+  end if;
+  v_imp := private.autorizar_worker_importacion_productos(p_ejecucion_id);
+
+  if p_estado = 'terminada' then
+    update dominio.importaciones_productos_filas f
+       set resultado = 'omitida', resultado_mensaje = 'La fila no se procesó', aplicada_en = now()
+     where f.importacion_id = v_imp.id and f.resultado = 'pendiente';
+  end if;
+
+  select count(*) filter (where f.resultado = 'aplicada'), count(*) filter (where f.resultado = 'omitida')
+    into v_procesadas, v_omitidas
+    from dominio.importaciones_productos_filas f
+   where f.importacion_id = v_imp.id;
+
+  update dominio.importaciones_productos i
+     set estado = p_estado, procesadas = v_procesadas, omitidas = v_omitidas, terminada_en = now(),
+         mensaje_fallo = case when p_estado = 'fallida' then left(p_mensaje, 500) end
+   where i.id = v_imp.id;
+
+  -- Filas aplicadas cuyas imágenes nunca se adjuntaron: el resultado final las cuenta (no se cierran en silencio).
+  select count(*)::integer into v_sin_imagenes
+    from dominio.importaciones_productos_filas f
+   where f.importacion_id = v_imp.id and f.resultado = 'aplicada' and f.imagenes_pendientes;
+
+  return jsonb_build_object('procesadas', v_procesadas, 'omitidas', v_omitidas, 'sin_imagenes', v_sin_imagenes,
+                            'organizacion_id', v_imp.organizacion_id);
+end;
+$$;
+
+revoke execute on function private.cerrar_importacion_productos(uuid, text, text) from public, anon, authenticated;
+grant execute on function private.cerrar_importacion_productos(uuid, text, text) to workers_orquestacion;
+
+create or replace function public.obtener_importacion_productos(p_importacion_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_org uuid := (select private.organizacion_id());
+  v_imp dominio.importaciones_productos;
+begin
+  if v_org is null or (select auth.uid()) is null or not (select private.es_administrador_de(v_org)) then
+    raise exception 'NO_AUTORIZADO: solo el Administrador importa productos' using errcode = '42501';
+  end if;
+
+  select * into v_imp from dominio.importaciones_productos i
+   where i.id = p_importacion_id and i.organizacion_id = v_org;
+  if not found then
+    raise exception 'La importación no existe' using errcode = 'P0002';
+  end if;
+
+  if v_imp.estado in ('en_cola', 'aplicando') then
+    perform private.despachar_importacion_siguiente(v_org);
+    select * into v_imp from dominio.importaciones_productos where id = p_importacion_id;
+  end if;
+
+  return jsonb_build_object(
+    'estado', v_imp.estado,
+    'total_filas', v_imp.total_filas,
+    'importables', v_imp.importables,
+    'procesadas', (select count(*) from dominio.importaciones_productos_filas f
+                    where f.importacion_id = v_imp.id and f.resultado = 'aplicada'),
+    'omitidas', (select count(*) from dominio.importaciones_productos_filas f
+                  where f.importacion_id = v_imp.id and f.resultado = 'omitida'),
+    -- Productos aplicados cuyas imágenes no llegaron a adjuntarse (también en una importación cerrada como fallida).
+    'sin_imagenes', (select count(*) from dominio.importaciones_productos_filas f
+                      where f.importacion_id = v_imp.id and f.resultado = 'aplicada' and f.imagenes_pendientes),
+    'ejecucion_id', v_imp.ejecucion_id,
+    'mensaje_fallo', v_imp.mensaje_fallo,
+    'errores', coalesce((
+      select jsonb_agg(jsonb_build_object('fila', f.fila, 'sku', f.sku, 'mensaje', f.resultado_mensaje) order by f.fila)
+        from dominio.importaciones_productos_filas f
+       where f.importacion_id = v_imp.id and f.resultado = 'omitida'
+    ), '[]'::jsonb)
+  );
+end;
+$$;
+
+revoke execute on function public.obtener_importacion_productos(uuid) from public, anon;
+grant execute on function public.obtener_importacion_productos(uuid) to authenticated;
+
+-- ============================================================================
+-- Fila que siempre falla con un error transitorio: el worker la registra y, al tercer intento, queda omitida para que
+-- el resto de la importación avance (si no, cada reintento chocaría con la misma fila y las siguientes no se verían).
+-- Corre en su propia transacción: la de `aplicar_fila_...` se revirtió al propagar el error.
+-- ============================================================================
+
+create or replace function private.registrar_fallo_fila_importacion_productos(p_ejecucion_id uuid, p_fila_id uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_imp dominio.importaciones_productos;
+  v_intentos integer;
+  v_tope constant integer := 3;
+begin
+  v_imp := private.autorizar_worker_importacion_productos(p_ejecucion_id);
+  update dominio.importaciones_productos_filas f
+     set intentos = least(f.intentos + 1, 32000)::smallint
+   where f.id = p_fila_id and f.importacion_id = v_imp.id and f.resultado = 'pendiente'
+  returning f.intentos into v_intentos;
+  if not found then
+    raise exception 'FILA_DESCONOCIDA: %', p_fila_id using errcode = 'P0001';
+  end if;
+  if v_intentos >= v_tope then
+    update dominio.importaciones_productos_filas f
+       set resultado = 'omitida', aplicada_en = now(),
+           resultado_mensaje = 'No se pudo aplicar tras varios intentos'
+     where f.id = p_fila_id;
+  end if;
+  return v_intentos;
+end;
+$$;
+
+comment on function private.registrar_fallo_fila_importacion_productos(uuid, uuid) is
+  'F-CAT-10: suma un intento fallido (error transitorio) a una fila pendiente; al tercero la omite con «No se pudo aplicar tras varios intentos». Devuelve los intentos.';
+
+revoke execute on function private.registrar_fallo_fila_importacion_productos(uuid, uuid) from public, anon, authenticated;
+grant execute on function private.registrar_fallo_fila_importacion_productos(uuid, uuid) to workers_orquestacion;

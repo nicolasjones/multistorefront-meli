@@ -23,6 +23,7 @@ import {
   leerPlanillaProductos,
   mensajeDeErrorImportacion,
   mensajeFinal,
+  mensajeSinImagenes,
   obtenerImportacion,
   PARAMETRO_IMPORTACION,
   resumenCsv,
@@ -230,7 +231,7 @@ export function ProductoCarga() {
           {error ? <Alert severity="error">{error}</Alert> : null}
           {habilitada === false && !enSeguimiento ? (
             <Alert severity="warning">
-              Tu organización todavía no tiene habilitada la importación de productos. Pedile a soporte que la active antes de cargar un archivo.
+              Tu organización todavía no tiene habilitada la importación de productos. Un Administrador tiene que crear la conexión «importar-productos» (servidor y credencial) antes de cargar un archivo.
             </Alert>
           ) : null}
 
@@ -239,6 +240,9 @@ export function ProductoCarga() {
               <Stack spacing={1.5} role="status" aria-live="polite">
                 <Typography variant="h3">Importación</Typography>
                 <Box><Chip label={ROTULO_ESTADO[seguimiento?.estado ?? 'en_cola']} /></Box>
+                {seguimiento && (seguimiento.estado === 'terminada' || seguimiento.estado === 'fallida') && (seguimiento.sin_imagenes ?? 0) > 0 ? (
+                  <Alert severity="warning">{mensajeSinImagenes(seguimiento.sin_imagenes ?? 0)}</Alert>
+                ) : null}
                 {reutilizada ? <Alert severity="info">{AVISO_IMPORTACION_REUTILIZADA}</Alert> : null}
                 {seguimiento?.estado === 'terminada' ? (
                   <Alert severity="success">{mensajeFinal(seguimiento.procesadas, seguimiento.omitidas)}</Alert>

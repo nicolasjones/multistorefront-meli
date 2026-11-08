@@ -71,9 +71,16 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
     async confirmarImagenes(id, filaId) {
       await pool.query('select private.confirmar_imagenes_fila_importacion_productos($1::uuid, $2::uuid)', [id, filaId]);
     },
-    async temporalesABorrar(id, dias) {
-      const r = await pool.query<{ ruta: string }>('select n as ruta from private.imagenes_temporales_a_borrar($1::uuid, $2::integer) n', [id, dias]);
+    async temporalesABorrar(id, dias, incluirImportacion) {
+      const r = await pool.query<{ ruta: string }>(
+        'select n as ruta from private.imagenes_temporales_a_borrar($1::uuid, $2::integer, $3::boolean) n',
+        [id, dias, incluirImportacion],
+      );
       return r.rows.map((fila) => fila.ruta);
+    },
+    async registrarFallo(id, filaId) {
+      const r = await pool.query<{ intentos: number }>('select private.registrar_fallo_fila_importacion_productos($1::uuid, $2::uuid) as intentos', [id, filaId]);
+      return Number(r.rows[0].intentos);
     },
     async borrarTemporales(rutas) {
       if (rutas.length === 0) return;
