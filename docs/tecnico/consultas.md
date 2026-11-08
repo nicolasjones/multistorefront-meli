@@ -298,8 +298,10 @@ asunto: 'Tu consulta en San Javucho'
 cuerpo:  'Hola Ana Pérez, te escribimos de San Javucho por tu consulta por Funda. '
 ```
 
-Es el **único punto** que arma el mensaje: F-CON-06 (MSF-144 · contactos y respuestas rápidas) lo reemplaza
-sin tocar el botón ni el enlace.
+Es el **único punto** que arma el mensaje. Desde **F-CON-06** (MSF-144 · contactos y respuestas rápidas)
+acepta una respuesta rápida opcional: su cuerpo es el texto con las variables resueltas; sin selección,
+queda la plantilla fija. El asunto no cambia y el botón y el enlace siguen iguales. Detalle:
+[Contactos y respuestas rápidas](contactos.md#respuestas-rapidas).
 
 ### Registro en la base
 
@@ -335,6 +337,22 @@ La actividad (`consulta.estado_cambiado`, `consulta.asignada`) la registra la pr
 - E2E `apps/web/e2e/consultas-responder.e2e.ts`: una consulta de WhatsApp y una de correo abren el enlace
   correcto, quedan En curso con el responsable y el rol de solo lectura ve el botón deshabilitado.
 
+## Respuestas rápidas y libreta de contactos (MSF-144)
+
+La bandeja y el detalle suman dos capacidades de la épica MSF-144:
+
+- **Respuestas rápidas** (`apps/web/src/pages/consultas/RespuestasRapidasDialog.tsx`): botón en el
+  encabezado de Consultas; lista, crea, edita y elimina textos de la empresa activa. El detalle ofrece el
+  selector **Respuesta rápida** solo con las respuestas de la empresa de la consulta y solo con
+  `consultas = edicion`. La sustitución de `{nombre}`, `{tienda}` y `{producto}` vive en
+  `apps/web/src/lib/respuestasRapidas.ts` (`resolverVariables`); `armarTextoInicial` la aplica antes de
+  abrir WhatsApp o el correo. El panel sigue sin enviar nada.
+- **Libreta de contactos** (`pages/consultas/ContactoConsulta.tsx`): el detalle muestra **Crear contacto**
+  con nombre y contacto precargados, o el enlace **Contacto en la libreta** cuando la consulta ya está
+  vinculada. `consultas_bandeja` suma `contacto_id` al final.
+
+Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápidas](contactos.md).
+
 ## Revisión de seguridad (MSF-130)
 
 - **RLS en la tabla nueva**: `enable row level security`, una sola política de `select` por organización,
@@ -365,6 +383,8 @@ La actividad (`consulta.estado_cambiado`, `consulta.asignada`) la registra la pr
   contacto y registra la respuesta (ver «Responder desde el panel»).
 - Diálogo del conteo: `apps/web/src/pages/consultas/InteresWhatsappDialog.tsx` (botón «Interés por
   WhatsApp» en el encabezado de la pantalla, visible con `consultas` ≥ lectura).
+- Encabezado: botón **Respuestas rápidas** (`RespuestasRapidasDialog.tsx`) y, en cada fila, el detalle
+  con **Crear contacto** o el contacto vinculado (`ContactoConsulta.tsx`).
 - **Empresa activa:** la barra superior manda. Con una empresa concreta, los chips de tienda quedan
   seleccionados y bloqueados; con «Todas mis empresas» filtran entre las accesibles. Al cambiarla se
   invalidan y recargan lista, contador y responsables, se reencuadra la paginación, se descarta la selección
@@ -447,6 +467,10 @@ spec). Esta entrega **no borra ni expira nada**. Cuando se defina, será una spe
 
 Los intereses por WhatsApp (MSF-130) **no guardan datos personales**, pero sus filas tampoco tienen política
 de vencimiento: cada toque queda para siempre hasta que se defina la retención.
+
+Los **contactos** (MSF-144) guardan datos personales y tampoco tienen expiración automática: el plazo de
+conservación sigue sin definir y la baja es manual por **Anonimizar**. Ver
+[Contactos y respuestas rápidas](contactos.md#decisiones-abiertas-y-límites).
 
 ## Reversión
 
