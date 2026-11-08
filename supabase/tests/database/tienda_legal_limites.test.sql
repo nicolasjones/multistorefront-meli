@@ -33,8 +33,8 @@ select throws_ok(
 );
 select throws_ok(
   $$insert into dominio.tienda_legal_enlaces (organizacion_id, empresa_id, titulo, url)
-    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'x', 'https://host.ejemplo.com?x=1@evil.com')$$,
-  '23514', null, 'un @ en la autoridad antes de ? se rechaza'
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'x', 'https://@host.ejemplo.com?x=1')$$,
+  '23514', null, 'un @ vacío en la autoridad (antes de ?) se rechaza'
 );
 select lives_ok(
   $$insert into dominio.tienda_legal_enlaces (organizacion_id, empresa_id, titulo, url, orden)
