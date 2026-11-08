@@ -480,6 +480,39 @@ estado no válido (factura anulada, borrador) · `40001` conflicto de edición �
 (con `hint = 'importe'`). Contrato completo:
 [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#rpc).
 
+### Ventas mejoras (MSF-193)
+
+Fuente: `supabase/migrations/20270201200102`–`20270201200103` (F-VTA-32),
+`20270202200400` (F-VTA-31) y `20270202201100`–`20270202201102` (F-VTA-33), en las ramas
+`epic/MSF-193-ventas-mejoras` y `dokploy`, aún sin merge a `main`. Todas en `public`, con
+`set search_path = ''`, `revoke execute … from public, anon` y `grant execute … to authenticated`; la
+organización y el actor salen de la sesión.
+
+| RPC | Contrato | Seguridad |
+|---|---|---|
+| `buscar_producto_por_codigo_barras(p_codigo_barras text)` | Resuelve el producto **activo** de la organización por su EAN-13 (`productos_org_codigo_barras_uidx`). Valida 13 dígitos; sin coincidencia **no devuelve filas** (la pantalla muestra «Producto no encontrado»). Devuelve `(producto_id, nombre, sku, codigo_barras)`. | `security definer`; exige `ventas` en **edición** en la empresa activa |
+| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **Misma firma y mismo retorno** (sin `BREAKING`): el precio de cada línea sale de `private.precio_para` y, si el cliente tiene descuento, se le resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes` en el servidor: el `payload` **no** puede imponerlo. Un `precio_manual` no se toca. La línea guarda `descuento_pct`. | `security definer`; exige `ventas` en edición en la empresa del comprobante |
+| `obtener_comprobante(p_id)` | **Misma firma y mismo retorno**: la línea suma la clave `descuento_pct`. | `security definer`; exige `ventas` en lectura o edición |
+| `cerrar_caja(p_empresa_id, p_fecha)` | Cierra el día de una empresa: resume los cobros de esa fecha **por forma de pago y cuenta de cobro**, guarda cierre + detalle y marca `cerrada`. **Idempotente** (un segundo cierre devuelve el existente); si estaba `reabierta`, la vuelve a cerrar y rehace el detalle. No se cierra un día futuro. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
+| `reabrir_caja(p_cierre_id)` | `cerrada` → `reabierta`, con `reabierto_por`/`reabierto_en`. **Idempotente**. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
+| `listar_cierres_caja(p_empresa_id, p_pagina, p_tamano)` | Página de cierres con `filas` (total del filtro); por fila: `id`, `empresa_id`, `empresa`, `fecha`, `estado`, `total`, `cerrado_por`, `cerrado_en`, `detalle` (jsonb por forma de pago y cuenta) y `filas`. `p_empresa_id = null` devuelve todas las empresas accesibles; `p_tamano` acotado a 1..100. | `security invoker`; la RLS recorta por organización, empresa accesible y sección `ventas` |
+
+Sin grant a `authenticated`: `private.caja_cerrada`, `private.candado_caja`, `private.dia_caja`,
+`private.hoy_caja`, `private.bloquear_cobro_caja_cerrada`, `private.exigir_admin_descuento_cliente` y
+`private.registrar_actividad_cliente_descuento`.
+
+El **disparador** `cobros_comprobante_caja_cerrada` (`before insert or update` sobre
+`dominio.cobros_comprobante`) bloquea toda escritura de los cobros de un día cerrado con `55000`
+(«La caja de ese día está cerrada; reabrila para registrar o modificar cobros»), venga de la RPC que
+venga: `registrar_cobro`, la conciliación y los contrarreembolsos.
+
+Errores: `42501` permiso (no Administrador, no `ventas` en edición, empresa ajena) · `22023` dato
+inválido (`hint` = `codigo_barras`, `descuento`, `lineas`, `producto_id`) · `P0002` inexistente o ajeno ·
+`55000` estado no válido (caja cerrada, comprobante cerrado). Contrato completo:
+[Venta de mostrador (técnico)](ventas-mostrador.md),
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md) y
+[Cierre de caja (técnico)](ventas-cierre-caja.md#rpc).
+
 ### Ventas despacho y faltantes (MSF-135)
 
 Fuente: `supabase/migrations/20270112100100`–`20270112150000` (rama `epic/MSF-135-…`, aún sin merge a `main`).

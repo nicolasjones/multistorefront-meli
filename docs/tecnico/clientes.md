@@ -161,6 +161,37 @@ en el PR de la historia.
   permite el borrado en cascada al eliminar la organización. `es_consumidor_final` no se concede a
   `authenticated`: nadie puede convertir a otro cliente en Consumidor final.
 
+## Descuento por cliente (MSF-193 · F-VTA-32)
+
+La columna `descuento` la agrega la épica **MSF-193** (*Ventas y despacho · Ventas mejoras*, spec
+`specs/20261027-100000-ventas-mejoras`), historia **F-VTA-32** (Jira **MSF-340**). Migración
+`20270201200102_clientes_descuento.sql`, en la rama `epic/MSF-193-ventas-mejoras` y `dokploy`, pendiente
+de merge a `main`; reversión en el encabezado de la migración y en
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversión).
+
+| Objeto | Estado | Cambio |
+|---|---|---|
+| `public.clientes` | **alterada** | Gana `descuento numeric(5,2)`: porcentaje de 0 a 100 con dos decimales, `null` = sin descuento. `check (descuento is null or (descuento >= 0 and descuento <= 100))` (`clientes_descuento_ck`). |
+| `public.permisos_rol_accion` | existente | Sin cambio: el descuento no es una acción de la matriz; lo gatea el rol efectivo de Administrador. |
+
+- **Permiso**: `grant update (descuento) on public.clientes to authenticated` — el permiso es **por
+  columna**. **No se concede en `INSERT`**: un cliente nace sin descuento.
+- **Solo el Administrador** lo cambia: el disparador `clientes_descuento_solo_admin`
+  (`before update of descuento`) responde `42501` («Solo un administrador puede cambiar el descuento del
+  cliente», `hint = 'descuento'`) si el descuento cambia y la sesión no es de un Administrador de la
+  organización. Las cargas **sin sesión** (importación, API de servicio) no pasan por el disparador
+  (`auth.uid()` es `null`).
+- **Auditoría**: el disparador `clientes_descuento_registrar_actividad` (`after update of descuento`)
+  registra el evento **`cliente.descuento_editado`** en la **misma transacción**. El detalle lleva «Nº
+  <número> · <nombre>» y **no** incluye el valor del descuento.
+- **Cómo lo usa Ventas**: `public.guardar_lineas_comprobante` lo lee **en el servidor**
+  (`select cl.tipo, coalesce(cl.descuento, 0) … from public.clientes`) y lo resta **sobre el neto de
+  escala, antes del IVA**. El `payload` de la RPC **no puede imponer** un descuento. Un `precio_manual`
+  no se toca.
+- **Frontend**: el campo **«Descuento (%)»** del formulario solo se renderiza para el Administrador
+  (`useEsAdministrador`); los demás roles no lo ven y no lo envían. La validación es «Ingresá un
+  porcentaje entre 0 y 100, con hasta 2 decimales.». En la ficha, el valor se lee como `5 %` (o `—`).
+
 ## Contratos RPC
 
 | RPC | Qué hace | Seguridad |

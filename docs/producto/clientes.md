@@ -17,6 +17,7 @@ Con los permisos que trae el sistema por defecto (el Administrador puede ajustar
 |---|---|
 | Ver el listado, las fichas y el ranking | Administrador, Operador, Mostrador, Administración, Consulta y Técnico |
 | Crear, editar, archivar y restaurar clientes | Administrador, Operador, Mostrador y Administración |
+| **Fijar o cambiar el descuento de un cliente** | Administrador |
 | Imprimir la etiqueta de envío de un cliente | Cualquiera que pueda ver la ficha |
 | Imprimir las etiquetas de varios clientes del listado | Administrador, Operador, Mostrador y Administración |
 | Unir dos fichas del mismo cliente | Solo Administrador |
@@ -114,6 +115,42 @@ Arriba tenés los botones **Editar**, **Archivar** (o **Restaurar**) y **Volver 
 ![Ficha de un cliente minorista con sus datos de contacto, las tiendas donde está habilitado, la cuenta web y las compras](img/clientes/07-ficha-minorista.png)
 
 *La ficha de un cliente minorista: datos, tiendas, cuenta web y compras.*
+
+## Descuento por cliente
+
+Un cliente puede tener un **descuento propio**: un porcentaje que se le descuenta del precio de escala en
+cada venta. Lo usa el Administrador para no editar los precios línea por línea.
+
+### Fijar el descuento
+
+1. Entrá a **Contactos → Clientes** y abrí la edición del cliente.
+2. En el campo **Descuento (%)** escribí el porcentaje (por ejemplo `5`). Va de 0 a 100 y admite hasta
+   dos decimales.
+3. Guardá. Vas a ver «Cliente guardado».
+
+El campo dice: «Se resta del precio de escala en cada venta. Vacío = sin descuento.»
+
+- El campo **solo le aparece al Administrador**. Con otros roles no se ve y no se puede cambiar.
+- Si el valor está mal (fuera de 0 a 100, más de dos decimales o no es un número), el campo avisa:
+  «Ingresá un porcentaje entre 0 y 100, con hasta 2 decimales.»
+- Para sacarle el descuento, borrá el contenido del campo y guardá: queda **sin descuento**.
+
+### Ver el descuento
+
+En la ficha del cliente, la fila **Descuento** muestra el porcentaje (por ejemplo `5 %`). Si el cliente no
+tiene descuento, muestra «—».
+
+### Cómo se aplica en las ventas
+
+- El descuento se resta **del precio de escala** de cada línea, **antes** del IVA.
+- Si el cliente es mayorista, primero se aplica la escala por cantidad y después el descuento.
+- Si en una línea el precio está **cargado a mano**, ese precio **no** lleva descuento: el precio manual
+  es una decisión explícita de quien lo cargó.
+- En la línea del comprobante se lee de dónde salió el precio: «escala x1 · 5 % de descuento».
+- **Lo ya vendido no cambia**: si después editás el descuento del cliente, las facturas viejas siguen
+  con el precio con el que se hicieron. El descuento nuevo se aplica a las ventas siguientes.
+
+Ver más en [Presupuestos y facturas](ventas-comprobantes.md#descuento-por-cliente).
 
 ## Imprimir la etiqueta de envío
 

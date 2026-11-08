@@ -17,7 +17,9 @@ vender, cobrar, despachar, controlar el stock, cargar mercadería, atender el se
 | Ingresar por primera vez | [Ingresar y recuperar tu contraseña](producto/acceso-y-sesion.md) |
 | Entender qué puede hacer cada persona de tu equipo | [Usuarios y roles](producto/usuarios-y-roles.md) |
 | Hacer una venta | [Presupuestos y facturas](producto/ventas-comprobantes.md) |
+| Vender en el mostrador con el lector de código de barras | [Venta de mostrador](producto/ventas-mostrador.md) |
 | Registrar un cobro | [Cobros y conciliación](producto/ventas-cobros-y-conciliacion.md) |
+| Cerrar la caja del día | [Cierre de caja](producto/ventas-cierre-caja.md) |
 | Cargar mercadería que llegó | [Ingreso de mercadería](producto/ingreso-de-mercaderia.md) |
 | Revisar o mover el stock | [Stock: ver, mover y controlar](producto/stock-movimientos.md) |
 | Cargar o cambiar precios | [Precios, escalas e IVA](producto/precios-e-iva.md) |
@@ -31,7 +33,7 @@ También podés usar el buscador de arriba: escribí la palabra que buscás (por
 - **Primeros pasos:** ingreso, perfil, organización y empresas, usuarios y roles, actividad.
 - **Catálogo y precios:** productos y categorías, cotización del dólar, precios, escalas e IVA, rentabilidad.
 - **Stock y compras:** stock, depósitos, traslados y reservas, lotes e inventario, proveedores, ingreso de mercadería.
-- **Ventas:** presupuestos y facturas, estados, cobros, despacho, devoluciones, impresión.
+- **Ventas:** venta de mostrador, presupuestos y facturas, estados, cobros, cierre de caja, despacho, devoluciones, impresión.
 - **Clientes:** fichas de clientes y cuenta web.
 - **Service técnico:** reparaciones y repuestos.
 - **Tiendas online:** identidad, textos, consultas de los visitantes.

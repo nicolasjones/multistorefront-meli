@@ -27,6 +27,7 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **SKU** | Código propio de cada producto. |
 | **Precio por escala (escala de precio)** | Precio según la cantidad que se compra: x1, x5, x10, x50. El tipo de cliente define qué lista le toca y la cantidad define la escala. |
 | **Cliente minorista / mayorista** | Tipo de cliente. El minorista paga el precio x1; el mayorista accede a las escalas por cantidad. |
+| **Descuento por cliente** | Porcentaje propio de un cliente que se le descuenta del precio de escala en cada venta. Lo fija el Administrador. Ver [Clientes](clientes.md#descuento-por-cliente). |
 | **Precio neto** | Precio sin IVA. |
 | **Margen** | Lo que queda después de restar el costo al precio neto. El **margen %** lo expresa como porcentaje del precio neto. |
 | **Margen bajo / margen negativo** | Producto con margen por debajo del límite que fija la organización, o que se vende por debajo de su costo. |
@@ -77,6 +78,10 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **Despacho** | Preparar y entregar el pedido de una factura. |
 | **Faltante** | Producto de una venta que todavía no se pudo entregar por falta de stock. |
 | **RMA (devolución o reclamo)** | Registro de una devolución o reclamo de un cliente, por producto. |
+| **Venta de mostrador** | Venta en el mostrador: escaneás el código de barras de cada producto y cobrás en el momento. Ver [Venta de mostrador](ventas-mostrador.md). |
+| **Código de barras (EAN-13)** | Código de 13 dígitos de un producto, que se carga en el catálogo y se lee con el lector. |
+| **Cierre de caja** | Cierre del día de una tienda: resume lo cobrado por forma de pago y cuenta, y bloquea los cobros de ese día. Ver [Cierre de caja](ventas-cierre-caja.md). |
+| **Reabrir la caja** | Volver a habilitar los cobros de un día que estaba cerrado. Queda registrado quién lo hizo. |
 
 ## Service técnico
 

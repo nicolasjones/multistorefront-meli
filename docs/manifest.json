@@ -309,12 +309,12 @@
     },
     "docs/index.md": {
       "title": "Manual de usuario de MSF",
-      "pageHash": "b2ed1ec70a24526797a66b1754b5b266e5140c4ca7234e23f7d1a3692d76ad66",
+      "pageHash": "61c8b00aa02e13cd884e4458352444d0b4fe18d8e0984c541fdeedfd15dbaa4a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "98fbbddf"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "054872a79bf4a1d11f99b81b08963c4e39e502e334abe74fe22a48661e674383",
+      "pageHash": "112b0c986a3729b06c42e043e6c5488281a5ce428f98252cc8033b2055d73dd7",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4bc68324"
+      "commit": "23ce2d28"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -398,7 +398,7 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "c2ab566612170a38afb5a9debd5e758b57d99417d4d24a3ecda19bbb7e2b415a",
+      "pageHash": "ea64b37ecf4d49bdc6aa6d0228faf5839677cf953d330eade7a5c9adf386b0c9",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -460,12 +460,12 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "affa13bbd76b2dec231be57a5520dcecc0a542323637a929e01e12243fdc292e",
+      "pageHash": "1239abb54a185a10b4c6b09d024679205a940b8f0ed6333dd6b81ee324aa4e7e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "fdd3dcd1"
+      "commit": "98fbbddf"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
@@ -509,7 +509,7 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "be24690947cd667c17c600d3f733582e0b849b7c8f06c618222cbfae7414853d",
+      "pageHash": "fabf72dfce6dc8ac9acc8ef0db8785b86f1d72d4ca92e69ed5e85f6878e0b113",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -802,6 +802,15 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/ventas-cierre-caja.md": {
+      "title": "Cierre de caja",
+      "pageHash": "84c1d83e0eefa9f2ebba0bcc148aa796d74bc315dfdc568e4a25254556e34df2",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "98fbbddf"
+    },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
       "pageHash": "519cbfc5e67c5cbb4b8f33a0ac926cedac539f2259a3a2f7239eeaa14a3d9ef5",
@@ -813,12 +822,12 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
-      "pageHash": "2007991d38a92a273ee5e4075f7c4285f0e14d32f13b404fd1e223b5966c3108",
+      "pageHash": "b3509074b64b1810f65090b13f0eb14e3f0dd5586b46ee96d14a11f979744989",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "98fbbddf"
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
@@ -855,6 +864,15 @@
       "sources": [],
       "owner": "producto",
       "commit": null
+    },
+    "docs/producto/ventas-mostrador.md": {
+      "title": "Venta de mostrador",
+      "pageHash": "558eaf75d006062ed2e781860061050cb55cf100bbd7ed8b7c04ef78e42f2088",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "98fbbddf"
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
@@ -932,7 +950,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "4509780384419ade20353e0145e514fe34dbdde5c42e5359bde19ce301c31ba6",
+      "pageHash": "433bcb5adea466542abc36fcaa7cfa003539b263bb8eaf5c73c33dd6ffab14b8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1154,9 +1172,9 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "09fd352e24a089206ee4c8842503b152949230b0e9160ddc9a07010e04bfda97",
+      "pageHash": "a767b1e71bd517308a2ef1f090eee6af1a3b9d729990eb7b53c4a7b223aae286",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "8f5c0001",
+      "sourceAt": "6f26168e",
       "sources": [
         "supabase/migrations"
       ],
@@ -1189,14 +1207,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "5fc34fba008501067198689e874b4373892657c0de1f981b7ad417b48436f68b",
+      "pageHash": "f78b6d96233df9f773ea6ec5b347e1717582180ce1e4f5345ea47971468e038d",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "911af6c3",
+      "sourceAt": "6f26168e",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "cdf9b4d2"
+      "commit": "98fbbddf"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1247,16 +1265,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "9917d555624574b1f2453a0a712b1a9161d9457826973a69ea94c4b7bbd7135d",
+      "pageHash": "c065c051cea26fc87fc4bdb14c8876d247f4d3f27a736f867606307f6de2e330",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "8f5c0001",
+      "sourceAt": "6f26168e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "fdd3dcd1"
+      "commit": "98fbbddf"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -1327,9 +1345,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "3ffc7ff2222f1c4efa81428f3a6e64f272c54ca6d3b49304a571ed28f411b6a6",
+      "pageHash": "a66ea0f61f756806c96f0ba8caa94d75c9026df3199594b1f6fa2879e29d8dc5",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "8f5c0001",
+      "sourceAt": "6f26168e",
       "sources": [
         "supabase/migrations"
       ],
@@ -1363,14 +1381,14 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "685e1026bc354ba277e501c303f081a785ee11eb77a1622d719306b6c0ae3351",
+      "pageHash": "593766460fdab09cf7389980c114b2b15919527051eb208cebbc378586c432e7",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "8f5c0001",
+      "sourceAt": "6f26168e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "fdd3dcd1"
+      "commit": "98fbbddf"
     },
     "docs/tecnico/importaciones-y-monitoreo.md": {
       "title": "Importaciones y monitoreo (MSF-206)",
@@ -1911,31 +1929,44 @@
       "owner": "tecnico",
       "commit": null
     },
-    "docs/tecnico/ventas-cobros-y-conciliacion.md": {
-      "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
-      "pageHash": "1e8e4c41c640c0a89cbb320021c03dcaa75a399a1e58bb60c40ffccced5402ff",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "0b052501",
+    "docs/tecnico/ventas-cierre-caja.md": {
+      "title": "Ventas · cierre de caja (técnico, MSF-193)",
+      "pageHash": "6310d7b64f1785c003107157c4f919cbfccf3f8b344d10b350a0cee5673409d4",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "98fbbddf"
+    },
+    "docs/tecnico/ventas-cobros-y-conciliacion.md": {
+      "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
+      "pageHash": "ff01af604a30982bb5b5345a7e66bb97dc3838d99f2f703f2873cd539723e56a",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "98fbbddf"
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "616739b85c6ae1de2f44a1cfa03d2726e76f321a6eab27b884511ed8551982ba",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "a24d10db",
+      "pageHash": "23ea4f5623bde3ce05a17e1898b59acbdb028c297de68fc49cc9cb76414bf621",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "7e55c01a"
+      "commit": "98fbbddf"
     },
     "docs/tecnico/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
@@ -1989,6 +2020,32 @@
       ],
       "owner": "tecnico",
       "commit": "7e55c01a"
+    },
+    "docs/tecnico/ventas-mostrador.md": {
+      "title": "Ventas · venta de mostrador (técnico, MSF-193)",
+      "pageHash": "bb1d715bedd6b865d45bb93dc115b08a76a8555fe12f83f9b5169e93dc2d2c92",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "98fbbddf"
+    },
+    "docs/tecnico/ventas-precios-especiales.md": {
+      "title": "Ventas · precios especiales por cliente (técnico, MSF-193)",
+      "pageHash": "eb67faacfb5baf8ff6efee6346ea05465d0255aae56eb78e52fd4a4932916f5b",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "98fbbddf"
     },
     "docs/tecnico/ventas-reportes.md": {
       "title": "Ventas · reportes (técnico, MSF-338, MSF-192)",
