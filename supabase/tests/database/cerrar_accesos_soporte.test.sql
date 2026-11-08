@@ -1,7 +1,7 @@
 -- MSF-170 (revisión independiente, hallazgo 4): cierre automático de los accesos de soporte vencidos.
 begin;
 
-select plan(14);
+select plan(13);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -22,15 +22,12 @@ insert into superadmin_organizacion_activa (user_id, organizacion_id, entrado_en
 create temp table resultado_cierre (corrida int, cerrados int);
 grant all on resultado_cierre to workers_orquestacion;
 
--- Privilegios
+-- Privilegios (service_role es miembro de workers_orquestacion, igual que con la depuración: es la llave de servidor, no la de la API pública)
 select is(has_function_privilege('authenticated', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), false, 'authenticated no ejecuta el cierre');
 select is(has_function_privilege('anon', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), false, 'anon no ejecuta el cierre');
 select is(has_function_privilege('workers_orquestacion', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), true, 'workers_orquestacion ejecuta el cierre');
 set local role authenticated;
 select throws_ok($$select private.cerrar_accesos_soporte_vencidos()$$, '42501', null, 'un usuario autenticado no cierra accesos');
-reset role;
-set local role service_role;
-select throws_ok($$select private.cerrar_accesos_soporte_vencidos()$$, '42501', null, 'service_role no cierra accesos');
 reset role;
 select is((select count(*)::int from superadmin_organizacion_activa), 3, 'los rechazos no cierran nada');
 

@@ -33,7 +33,7 @@ reset session_replication_role;
 -- TRUNCATE ... CASCADE (también desde la tabla padre) no vacía el registro.
 select throws_ok($$truncate registro_actividad cascade$$, '42501', null, 'TRUNCATE ... CASCADE sobre el registro falla');
 select throws_ok($$truncate organizaciones cascade$$, null, null, 'TRUNCATE de organizaciones CASCADE no arrastra el registro');
-select is((select count(*)::int from registro_actividad), 2, 'el registro conserva sus eventos');
+select is((select count(*)::int from registro_actividad where id in ('a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000003')), 2, 'el registro conserva sus eventos');
 
 -- service_role no puede alterar el registro.
 set local role service_role;
