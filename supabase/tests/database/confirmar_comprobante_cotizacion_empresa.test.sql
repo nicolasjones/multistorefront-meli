@@ -115,6 +115,48 @@ select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_d
 select is(pg_temp.col_linea('E1', 'cotizacion'), 1500.0000, 'la cotización guardada no se mueve');
 select is(pg_temp.col_linea('E1', 'costo_unitario'), 15000.00, 'el costo guardado tampoco');
 
+
+-- ============================================================================
+-- Alcance «empresa» sin fila propia Y sin cotización general: cae a la inicial (revisión de #799)
+-- ============================================================================
+reset role;
+delete from dominio.cotizacion_aplicada where organizacion_id = '11111111-1111-1111-1111-111111111111';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.armar('INI2', 'a1000000-0000-0000-0000-000000000002');
+select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('INI2')), 'alcance empresa sin ninguna cotización aplicada confirma');
+select is(pg_temp.col_linea('INI2', 'cotizacion'), 1000.0000, 'cae a la cotización inicial');
+select is(pg_temp.col_linea('INI2', 'costo_unitario'), 10000.00, 'y el costo usa la inicial (USD 10 × 1.000)');
+
+-- ============================================================================
+-- Producto en ARS: el costo queda sin convertir; la cotización guardada es la vigente
+-- ============================================================================
+reset role;
+insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, activo) values
+  ('b1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Cable', 'CAB-1', 'ARS', 500, true);
+insert into dominio.producto_costos (producto_id, organizacion_id, costo) values
+  ('b1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 200);
+insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado) values
+  ('b1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 50, 0)
+on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
+insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado) values
+  ('b1000000-0000-0000-0000-000000000004', (select principal from datos), '11111111-1111-1111-1111-111111111111', 50, 0)
+on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
+insert into dominio.cotizacion_aplicada (organizacion_id, empresa_id, valor) values
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 1500);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+create function pg_temp.armar_ars(p_clave text, p_empresa uuid) returns void language plpgsql as $$
+declare v_c dominio.comprobantes_venta;
+begin
+  v_c := public.crear_comprobante('factura', p_empresa, 'c5000000-0000-0000-0000-000000000001', 'mostrador', current_date);
+  insert into comps (clave, id) values (p_clave, v_c.id);
+  perform public.guardar_lineas_comprobante(v_c.id, jsonb_build_array(
+    jsonb_build_object('producto_id', 'b1000000-0000-0000-0000-000000000004', 'cantidad', 1, 'deposito_id', (select principal from datos))), v_c.updated_at);
+end $$;
+select pg_temp.armar_ars('ARS1', 'a1000000-0000-0000-0000-000000000001');
+select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('ARS1')), 'confirma una factura con un producto en ARS');
+select is(pg_temp.col_linea('ARS1', 'costo_unitario'), 200.00, 'el costo de un producto en ARS no se convierte');
+select is(pg_temp.col_linea('ARS1', 'cotizacion'), 1500.0000, 'y la cotización guardada es la de la empresa');
+
 -- Misma firma y grants.
 select is(has_function_privilege('anon', 'public.confirmar_comprobante(uuid)', 'execute'), false, 'anon no confirma');
 select is(has_function_privilege('authenticated', 'public.confirmar_comprobante(uuid)', 'execute'), true, 'authenticated confirma');
