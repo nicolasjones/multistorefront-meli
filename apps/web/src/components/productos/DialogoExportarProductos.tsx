@@ -19,7 +19,8 @@ type Props = {
   totalFiltrado: number
   veRentabilidad: boolean
   onCerrar: () => void
-  onExportado: (productos: number, columnas: number) => void
+  /** `recortadoA`: solo si el filtro tenía más productos que el tope del archivo. */
+  onExportado: (productos: number, columnas: number, recortadoA?: number) => void
 }
 
 // Diálogo «Exportar productos» (F-CAT-11, FR-201…FR-205): Qué exportar, Formato y Columnas. Solo se monta para el
@@ -74,7 +75,8 @@ export function DialogoExportarProductos({ consulta, totalFiltrado, veRentabilid
         signal: abort.signal,
       })
       descargarCsvProductos(resultado.csv)
-      onExportado(resultado.productos, resultado.columnas)
+      if (resultado.recortado) onExportado(resultado.productos, resultado.columnas, resultado.tope)
+      else onExportado(resultado.productos, resultado.columnas)
     } catch (error) {
       if (error instanceof ExportacionCancelada) {
         setEstado('configurando')
