@@ -979,6 +979,66 @@ El precio sigue el tipo y el estado del cliente en cada carga: visitante o cuent
 público; minorista, x1; mayorista, x1/x5/x10/x50 en la ficha (tarjetas en x1, D3). La recuperación
 responde siempre igual y solo envía el enlace con una cuenta activa en esa tienda.
 
+## Mejoras de clientes y proveedores (MSF-445)
+
+Detalle: [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md). Los cuatro flujos
+transcriben los requisitos de la spec (`specs/20261029-100000-mejoras-de-clientes-y-proveedores/`).
+
+```mermaid
+flowchart TD
+  A["Ficha: Imprimir etiqueta de envío<br/>o Listado: clientes marcados"] --> B{"¿Tiene dirección?"}
+  B -- "No (ninguno apto)" --> C["Aviso: qué dato falta<br/>no se genera etiqueta"]
+  B -- "Sí / algunos" --> D["Hoja con una etiqueta por cliente apto<br/>(los sin dirección se nombran en el aviso)"]
+  D --> E["Diálogo de impresión / guardar como PDF"]
+  E --> F["Etiqueta enviada a imprimir"]
+```
+
+```mermaid
+sequenceDiagram
+  actor Adm as Administrador
+  participant UI as Ficha / diálogo Fusionar
+  participant DB as RPC fusionar_clientes
+  Adm->>UI: Fusionar con otro cliente…
+  UI->>DB: vista previa (conservar, descartar)
+  DB-->>UI: compras y cuentas web de cada uno
+  alt ambos con cuenta web activa
+    UI->>Adm: elegir cuál cuenta web se mantiene
+  end
+  Adm->>UI: Confirmar
+  UI->>DB: fusionar_clientes(conservar, descartar, cuenta_web_de)
+  alt no es Administrador / datos inválidos / dos activas sin resolver
+    DB-->>UI: rechazo sin cambios
+  else
+    DB->>DB: reasigna ventas, cuenta web y campañas
+    DB->>DB: archiva al descartado
+    DB->>DB: registra cliente.fusionado
+    DB-->>UI: resumen
+    UI->>Adm: ficha del conservado con la suma de compras
+  end
+```
+
+```mermaid
+flowchart TD
+  A["Registrar ingreso de mercadería"] --> B{"¿La línea trae costo?"}
+  B -- "Sí" --> C["Se guarda el costo unitario"]
+  B -- "No" --> D["Se guarda sin costo<br/>(no es cero)"]
+  C --> E["Evolución del costo por producto"]
+  D --> E
+  E --> F["Serie por proveedor: solo líneas con costo<br/>de ingresos no anulados, con su fecha"]
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> Secundario: agregar contacto
+  Secundario --> Principal: marcar como principal
+  Principal --> Secundario: se marca otro como principal
+  note right of Principal
+    A lo sumo uno por proveedor.
+    Alimenta persona de contacto,
+    correo y teléfono de la ficha.
+  end note
+```
+
 ## Convención
 
 - **Mermaid** para lo que se lee en GitHub y en esta wiki.

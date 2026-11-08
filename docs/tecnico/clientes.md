@@ -241,6 +241,23 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
 - **UX** (`apps/web/src/components/clientes/ExportarClientes.tsx`): confirmación con el total,
   progreso, cancelación y error con «Reintentar».
 
+## Etiqueta impresa y fusión de clientes (MSF-445)
+
+La épica **MSF-445** ([detalle](mejoras-de-clientes-y-proveedores.md), PR #695; aún sin merge a `main`)
+suma dos capacidades sobre esta base:
+
+- **Etiqueta impresa del cliente (F-CLI-17, MSF-446):** sin RPC y sin escrituras. La hoja
+  (`apps/web/src/lib/etiquetasCliente.ts` + `apps/web/src/components/clientes/HojaEtiquetas.tsx`, ruta
+  `/clientes/etiquetas`) lee `public.clientes` con las columnas `id, nombre, direccion, codigo_postal,
+  localidad, provincia, telefono, expreso_preferido` y arma una etiqueta por cliente. **Solo la dirección
+  bloquea** (CA-CLI-17-1); los demás datos vacíos se omiten. La impresión usa `@page` (A4) y `@media
+  print` para ocultar menú y barra superior.
+- **Fusión de clientes duplicados (F-CLI-18, MSF-447):** `public.fusionar_clientes(p_conservar_id,
+  p_descartar_id, p_cuenta_web_de)` (solo Administrador, todo en una transacción) reasigna los documentos
+  de venta (`dominio.comprobantes_venta`) y la cuenta web (`public.cuentas_cliente`) al conservado, da de
+  baja la cuenta no elegida, **archiva** al descartado (`archivado_en`) y registra `cliente.fusionado`.
+  `public.vista_previa_fusion_clientes` da la vista previa sin escribir.
+
 ## Actividad
 
 `private.registrar_actividad_cliente()` (`AFTER INSERT OR UPDATE`, `security definer`,
@@ -331,6 +348,8 @@ Reversión por migración:
 ## Ver también
 
 - [Clientes](../clientes.md) — guía de producto: qué resuelve, para quién y qué no hace.
+- [Mejoras de clientes y proveedores (MSF-445)](mejoras-de-clientes-y-proveedores.md) — etiqueta impresa,
+  fusión de clientes, costo por línea, evolución del costo y contactos de proveedor.
 - [Service técnico: cobro, avisos y ficha del cliente](service-cobro-y-avisos.md) — la RPC
   `reparaciones_de_cliente` y la pestaña «Reparaciones» de la ficha (MSF-232).
 - [Permisos por rol](../permisos-por-rol.md) — contrato `nivel_seccion` / `puede_accion`.

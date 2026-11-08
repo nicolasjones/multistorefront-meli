@@ -136,6 +136,15 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   transacción, solo con sesión y ante cambios reales (`updated_at` avanzó; repetir un estado o guardar sin
   cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó el proveedor <razón social>», sin CUIT ni
   identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `cliente.fusionado` (F-CLI-18, MSF-447, épica MSF-445): lo registra
+  `private.registrar_actividad_fusion_clientes` dentro de la **misma transacción** que la fusión; el detalle
+  nombra a los dos clientes («Fusionó al cliente Nº <n> · <nombre> en el cliente Nº <n> · <nombre>»), **nunca
+  DNI/CUIT**. Lo cubre el pgTAP `fusion_clientes`. Ver
+  [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md#actividad).
+- `proveedor.contacto_agregado|contacto_principal_cambiado` (F-PRV-08, MSF-449, épica MSF-445): las RPC
+  `agregar_contacto_proveedor` y `marcar_contacto_principal` los registran en la misma transacción por
+  `private.registrar_actividad_contacto_proveedor`; el detalle lleva la razón social y el nombre del
+  contacto, **sin correo ni teléfono**. Lo cubre el pgTAP `proveedores_contactos`.
 - `ingreso.registrado` e `ingreso.anulado` (MSF-219): los registran `public.registrar_ingreso_mercaderia` y
   `public.anular_ingreso_mercaderia` en la misma transacción que el movimiento de stock, solo con sesión.
   El detalle lleva proveedor, empresa, comprobante, unidades y cantidad de productos (y el motivo al anular),
