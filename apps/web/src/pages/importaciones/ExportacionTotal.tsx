@@ -34,7 +34,7 @@ function Estado({ ultima, descargando, errorDescarga, onDescargar }: {
       <Stack spacing={1}>
         <EstadoExito
           titulo="Tu exportación está lista."
-          descripcion={`${pedida} ${ultima.estado === 'con_errores' ? 'Algunos grupos de datos no se pudieron leer completos: lo ves en el detalle del proceso, en la tabla de abajo.' : 'Incluye todos los datos de la organización.'}`}
+          descripcion={`${pedida} ${ultima.estado === 'con_errores' ? 'Algunos grupos de datos no se pudieron leer completos: lo ves en el detalle del proceso, en la tabla de abajo.' : 'Es una copia de los datos de negocio de la organización; no incluye archivos adjuntos ni el historial de actividad.'}`}
           accion={<Button color="inherit" onClick={onDescargar} disabled={descargando}>Descargar</Button>}
         />
         {errorDescarga ? <Alert severity="error">{errorDescarga}</Alert> : null}
@@ -93,7 +93,7 @@ export function ExportacionTotal({ onSolicitada }: Props) {
         <Box>
           <Typography id="exportacion-total-titulo" component="h2" variant="h6">Exportar todos los datos</Typography>
           <Typography color="text.secondary">
-            Descargá toda la información de la organización en un archivo ZIP, con una planilla por cada tipo de dato. No incluye contraseñas ni claves.
+            Descargá en un archivo ZIP una copia de los datos de negocio de la organización, con una planilla por cada tipo de dato. No incluye contraseñas ni claves, imágenes ni archivos adjuntos, el historial de actividad, las conversaciones del asistente ni las invitaciones.
           </Typography>
         </Box>
         <Button variant="contained" onClick={() => { setErrorSolicitud(null); setConfirmando(true) }} disabled={abierta} sx={{ flexShrink: 0 }}>
@@ -117,7 +117,7 @@ export function ExportacionTotal({ onSolicitada }: Props) {
           <DialogTitle id="exportacion-total-confirmar-titulo">¿Exportar todos los datos de la organización?</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Vamos a preparar un archivo ZIP con una planilla CSV por cada tipo de dato (productos, clientes, ventas, stock y más), de todas las tiendas. No incluye contraseñas, claves ni datos de acceso.
+              Vamos a preparar un archivo ZIP con una planilla CSV por cada tipo de dato (productos, clientes, ventas, stock y más), de todas las tiendas. No incluye contraseñas, claves ni datos de acceso, ni imágenes o archivos adjuntos, el historial de actividad, las conversaciones del asistente ni las invitaciones.
             </DialogContentText>
             <DialogContentText sx={{ mt: 1 }}>
               Se genera en segundo plano y podés seguirlo en esta pantalla. Solo queda disponible el último archivo: al terminar una exportación nueva, se reemplaza la anterior. El archivo tiene información sensible: guardalo con cuidado.
