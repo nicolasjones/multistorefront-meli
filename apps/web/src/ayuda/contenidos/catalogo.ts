@@ -20,7 +20,7 @@ export const ayudaCatalogo: AyudaPorDestino = {
       'Pulsá «Nueva categoría» para crear una y elegí su IVA.',
       'Usá «Expandir todo» o «Contraer todo» para recorrer el árbol más rápido.',
       'Arrastrá una categoría a su nueva posición para reordenarla.',
-      'Si algo no carga, pulsá «Reintentar IVA» o «Limpiar filtros».',
+      'Si no ves categorías, probá «Limpiar filtros»; si el IVA no carga, pulsá «Reintentar IVA».',
     ],
   },
 }

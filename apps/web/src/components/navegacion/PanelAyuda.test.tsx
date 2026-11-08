@@ -35,15 +35,17 @@ describe('PanelAyuda (FR-020, FR-021, FR-026, FR-027)', () => {
     for (const paso of c.pasos ?? []) expect(dialogo).toHaveTextContent(paso)
   })
 
-  it('tres pantallas distintas abren textos distintos (SC-003)', () => {
-    const textos = ['/categorias', '/ventas/comprobantes', '/usuarios'].map((ruta) => {
+  it('tres pantallas distintas abren textos distintos (SC-003): cada una muestra SU resumen', () => {
+    const casos = [['/categorias', 'categorias'], ['/ventas/comprobantes', 'ventas-comprobantes'], ['/usuarios', 'usuarios']] as const
+    const resumenes = casos.map(([ruta, id]) => {
       const { unmount } = en(ruta)
       fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }))
-      const t = screen.getByRole('dialog').textContent
+      const resumen = AYUDA_POR_DESTINO[id].resumen
+      expect(screen.getByRole('dialog')).toHaveTextContent(resumen)
       unmount()
-      return t
+      return resumen
     })
-    expect(new Set(textos).size).toBe(3)
+    expect(new Set(resumenes).size).toBe(3)
   })
 
   it('una subruta (ficha) muestra la ayuda de su destino padre', () => {

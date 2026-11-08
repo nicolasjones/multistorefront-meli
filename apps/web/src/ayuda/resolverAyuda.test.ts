@@ -26,6 +26,12 @@ describe('resolverAyuda (FR-022, FR-025)', () => {
     expect(resolverAyuda('/clientes/correo-masivo', todas).destinoId).toBe('correo-masivo')
   })
 
+  it('/organizacion y /organizaciones son destinos distintos: gana el más específico en cada caso', () => {
+    expect(resolverAyuda('/organizacion', todas).destinoId).toBe('organizacion')
+    expect(resolverAyuda('/organizaciones', todas).destinoId).toBe('organizaciones')
+    expect(resolverAyuda('/organizaciones/create', todas).destinoId).toBe('organizaciones')
+  })
+
   it('la raíz «/» solo coincide exacta (no se lleva todas las rutas)', () => {
     expect(resolverAyuda('/', todas).destinoId).toBe('inicio')
     expect(resolverAyuda('/ruta-que-no-existe', todas)).toEqual({ destinoId: null, contenido: null })

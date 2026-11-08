@@ -27,6 +27,10 @@ depende de la empresa activa. Se revisa en el PR como cualquier otro texto.
    se quedan con el primero del menú y no cambiaron; para la ayuda sería engañoso mostrar la de «Stock» en «Movimientos».
 3. Si la ruta no coincide con ningún destino, el panel dice «Esta pantalla todavía no tiene ayuda».
 
+**Limitación heredada de las migas de pan:** la coincidencia por prefijo no exige separador, así que una ruta futura como
+`/stockx` coincidiría con `/stock`. Hoy ninguna ruta real colisiona (`/organizacion` y `/organizaciones` se resuelven por
+«gana la más larga»). Si se endurece, hacerlo en `coincideRuta`, un solo lugar, y revisar las migas.
+
 ## Cómo agregar la ayuda de una pantalla nueva
 
 1. Agregá el destino a `SECCIONES_PANEL` (`destinosPanel.ts`) con su `id`.
@@ -43,14 +47,15 @@ dejar una pantalla sin ayuda y evita textos huérfanos tras renombrar un destino
 
 ## Brevedad
 
-`ayuda-contenidos.test.ts` verifica: el título coincide con la etiqueta del menú, el resumen tiene como máximo 600 caracteres,
-hasta 5 pasos de como máximo 140 caracteres cada uno (sin repetidos) y que no aparezcan términos técnicos (RPC, API, RLS,
-etc.). Los topes viven en `tipos.ts`.
+`ayuda-contenidos.test.ts` verifica: el título coincide con la etiqueta del menú, el resumen y los pasos respetan los topes de
+longitud (sin pasos repetidos) y que no aparezcan términos técnicos (RPC, API, RLS, etc.). Los topes viven **solo** en
+`tipos.ts` (`AYUDA_MAX_*`): ahí se ajustan.
 
 ## Accesibilidad
 
 El panel es un diálogo con nombre accesible (el título de la pantalla), se opera por teclado, tiene botón «Cerrar», cierra con
-Escape y devuelve el foco al botón; el ancho se adapta a 320 px. Lo verifica `PanelAyuda.test.tsx` (con axe) y el E2E.
+Escape y devuelve el foco al botón. `PanelAyuda.test.tsx` verifica el diálogo, el foco y axe; el ancho (320, 768 y 1440 px: el botón
+y el panel caben en la pantalla y la página no desborda) lo verifica **solo el E2E** `ayuda.e2e.ts`, porque jsdom no tiene layout.
 
 ## Empresa activa: no aplica
 

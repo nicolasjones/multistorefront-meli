@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Box, Button, Drawer, IconButton, Stack, Typography } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { useLocation } from 'react-router'
@@ -8,6 +8,7 @@ import { resolverAyuda, TEXTO_SIN_AYUDA } from '../../ayuda/resolverAyuda'
 // La ayuda es contenido estático del repo: abrirla no consulta datos ni depende de la empresa activa (FR-027).
 export function PanelAyuda() {
   const [abierta, setAbierta] = useState(false)
+  const idTitulo = useId()
   const { pathname } = useLocation()
   const { contenido } = resolverAyuda(pathname)
 
@@ -20,10 +21,10 @@ export function PanelAyuda() {
         anchor="right"
         open={abierta}
         onClose={() => setAbierta(false)}
-        slotProps={{ paper: { role: 'dialog', 'aria-labelledby': 'panel-ayuda-titulo', sx: { width: 'min(420px, 100vw)' } } }}
+        slotProps={{ paper: { role: 'dialog', 'aria-modal': true, 'aria-labelledby': idTitulo, sx: { width: 'min(420px, 100vw)' } } }}
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1 }}>
-          <Typography component="h2" variant="h6" id="panel-ayuda-titulo">
+          <Typography component="h2" variant="h6" id={idTitulo}>
             {contenido ? contenido.titulo : 'Ayuda'}
           </Typography>
           <Button size="small" onClick={() => setAbierta(false)}>Cerrar</Button>
