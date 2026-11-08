@@ -15,7 +15,7 @@ En las tiendas **no se puede comprar ni pagar**: el visitante mira el catálogo,
 
 | Tarea | Quién |
 |---|---|
-| Administrar la tienda (productos y categorías visibles, destacados, identidad, textos, pausar o reactivar) | Administrador |
+| Administrar la tienda (productos y categorías visibles, destacados, identidad, textos, dirección web, publicación, pausar o reactivar) | Administrador |
 | Elegir en qué tiendas se vende cada producto | Administrador y Operador, desde [Productos y categorías](catalogo-productos.md) |
 | Recibir y contestar las consultas | Quienes tienen acceso a [Consultas](consultas.md) |
 
@@ -96,6 +96,7 @@ La disponibilidad que ve el visitante es solo «Disponible» o «Sin stock», se
 - Los clientes con cuenta pueden **Ingresar** y ver los precios que les corresponden. Ver [Cuenta web del cliente](cuenta-web-cliente.md).
 - Si la tienda está pausada o todavía no tiene dirección web, se ve la página «Volvemos pronto».
 - Una dirección que no existe muestra «No encontramos esta página».
+- Cada tienda puede tener sus propias páginas de texto, medir visitas con Google Analytics y Meta Pixel, y ofrecer el botón **Compartir** en las fichas. Ver [Páginas propias, medición de visitas y botón Compartir](tienda-contenido-y-analitica.md).
 
 ## Qué se publica y cómo se oculta
 
@@ -120,7 +121,7 @@ Para sacar algo de una tienda sin tocar las otras, ocultalo en esa tienda.
 *Paso 2: en cada fila de **Canales → Empresas** está el enlace **Tienda**.*
 
 3. Arriba ves el nombre de la empresa, su dirección web y si está **Publicada** o **Pausada**. El botón **Ver tienda** abre la tienda en otra pestaña (queda apagado si todavía no tiene dirección). Para pasar a la otra tienda, usá **Cambiar a… ↔** o **Cambiar de empresa**.
-4. Usá las pestañas **Identidad visual**, **Contenido** y **Catálogo visible**. La identidad y los textos se explican en [Identidad, textos y dirección de la tienda](tienda-dominio-e-identidad.md).
+4. Usá las pestañas **Identidad visual**, **Contenido**, **Catálogo visible** y **Dominio y publicación**. La identidad y los textos se explican en [Identidad, textos y dirección de la tienda](tienda-dominio-e-identidad.md); la dirección web, la publicación y las versiones, en [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md).
 
 ### Elegir qué categorías y productos se ven
 
@@ -139,6 +140,8 @@ Para sacar algo de una tienda sin tocar las otras, ocultalo en esa tienda.
 
 El precio y el stock se ven en esta pantalla pero no se cambian acá.
 
+**Guardar deja los cambios sin publicar.** Recién cuando los publicás desde la pestaña **Dominio y publicación** los ve la tienda. El paso a paso está en [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md).
+
 ### Pausar o reactivar la tienda
 
 1. En **Canales → Empresas**, hacé clic en **Editar** en la fila de la empresa.
@@ -156,8 +159,8 @@ En **Canales → Empresas → Editar** completá **WhatsApp**, **Correo**, **Ins
 
 ## Casos comunes
 
-- **Cargué un producto y no aparece en la tienda.** Revisá las cuatro condiciones de arriba: que esté activo, que tenga activada la tienda, que esté **Visible** en **Catálogo visible** y que su categoría esté visible.
-- **Quiero destacar los productos de la temporada.** En **Catálogo visible**, tocá la estrella de hasta 8 productos y hacé clic en **Guardar**.
+- **Cargué un producto y no aparece en la tienda.** Revisá las cuatro condiciones de arriba: que esté activo, que tenga activada la tienda, que esté **Visible** en **Catálogo visible** y que su categoría esté visible. Si acabás de guardar el cambio, faltaría **publicarlo**.
+- **Quiero destacar los productos de la temporada.** En **Catálogo visible**, tocá la estrella de hasta 8 productos y hacé clic en **Guardar**; después publicá desde **Dominio y publicación**.
 - **La tienda dice «Catálogo en preparación».** Todavía no hay ningún producto visible en esa tienda.
 - **Los precios no muestran IVA.** Es una decisión de cada tienda: ver [Precios e IVA](precios-e-iva.md).
 

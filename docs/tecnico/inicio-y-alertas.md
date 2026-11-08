@@ -10,7 +10,7 @@ sources:
 
 **Épica:** MSF-156 · **Spec:** `specs/20261030-100000-inicio-y-alertas/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/inicio-y-alertas.md`) · **Rama:** `epic/MSF-156-inicio-rentabilidad-y-reportes-inicio-y-` · **Historias:** F-INI-01 (MSF-344, PR #521), F-INI-02 (MSF-361, PR #523), F-INI-03 (MSF-374, PR #520), E2E de cierre (MSF-578, PR #561).
 
-> Detalle de implementación, tablas de origen y variables: `docs/inicio-y-alertas.md` y `docs/busqueda-global.md` (viven en la rama de la épica; este documento no los duplica, resume lo que hay que saber para operar y probar). Producto: [Inicio, alertas y búsqueda](../producto/inicio-y-alertas.md).
+> Detalle de implementación, tablas de origen y variables: `docs/inicio-y-alertas.md` y `docs/busqueda-global.md` (viven en `dokploy` y llegan a `main` con la promoción; este documento no los duplica, resume lo que hay que saber para operar y probar). Producto: [Inicio, alertas y búsqueda](../producto/inicio-y-alertas.md).
 
 ## Decisiones
 
@@ -31,7 +31,7 @@ sources:
 
 Fuentes de las tarjetas: `perfiles_usuario`, `empresas_para_selector()`, `public.stock_estados`, `public.consultas_bandeja` (estado `nueva`, empresa activa), `estado_cotizacion()` y `cotizacion_del_dia()`. Carga y error son por tarjeta. Al cambiar de empresa Inicio se remonta y recarga todo (Principio VIII). Sin tarjetas de Mercado Libre hasta que existan esas épicas (FR-009, FR-027).
 
-## Datos (migraciones aditivas `20270121120000`–`20270121120300`)
+## Datos (migraciones aditivas `20270201200127`–`20270201200140`, más `20270203120000` (búsqueda sin tildes) y `20270213100007` (alertas respetan el aviso))
 
 | Objeto | Esquema | Función | Reversión |
 |---|---|---|---|
@@ -74,7 +74,7 @@ Variables (solo ejemplos en `.env.example`): `ALERTAS_INICIO_URL`, `ALERTAS_INIC
 | Alerta `margen_negativo` | Se activa cuando exista la vista de rentabilidad (MSF-120). |
 | Gráficos de ventas en Inicio | Fuera de alcance (F-REP-05). |
 | Capturas del manual de usuario | TODO (dueño: Documentador): no hay guion en `apps/web/e2e/capturas/` para Inicio ni la búsqueda; generarlo y correr `pnpm docs:capturas`. |
-| Documentos `docs/inicio-y-alertas.md` y `docs/busqueda-global.md` | Llegan a `main` con el merge de la rama de la épica; enlazarlos al nav entonces. |
+| Documentos `docs/inicio-y-alertas.md` y `docs/busqueda-global.md` | Ya están en `dokploy`; llegan a `main` con la próxima promoción. Enlazarlos al nav entonces. |
 
 ## Reversión
 

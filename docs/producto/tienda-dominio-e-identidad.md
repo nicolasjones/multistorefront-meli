@@ -7,7 +7,7 @@ sources: []
 
 ## Para qué sirve
 
-Acá definís cómo se ve y qué dice la tienda online de cada empresa: el logo, los colores, las tipografías, los banners y los textos (título, subtítulo, botones, bienvenida y pie). También te contamos cómo se relaciona la tienda con su dirección web (el dominio) y qué cosas no se hacen desde el sistema.
+Acá definís cómo se ve y qué dice la tienda online de cada empresa: el logo, los colores, las tipografías, los banners y los textos (título, subtítulo, botones, bienvenida y pie). También te contamos cómo se relaciona la tienda con su dirección web (el dominio) y dónde se publica lo que preparás.
 
 ## Quién puede hacerlo
 
@@ -63,11 +63,11 @@ En **Tipografía** elegís una letra para los **Títulos** y otra para el **Text
 
 ### Guardar
 
-En el bloque **Publicación**:
+En el bloque **Publicación** de esta pestaña (el que lleva los botones de guardar):
 
 - Mientras hay cambios sin guardar ves «Hay cambios sin guardar.».
 - **Descartar** vuelve a lo último que guardaste.
-- **Guardar** aplica los cambios. Vas a ver «Cambios guardados: la tienda ya los muestra.»
+- **Guardar** deja los cambios **sin publicar**: vas a ver «Cambios guardados en el borrador. Publicalos desde Dominio y publicación.» La tienda pública sigue mostrando lo que estaba publicado hasta que publiques; la publicación se hace en la pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)).
 
 ## Cambiar los textos de la tienda
 
@@ -79,7 +79,7 @@ En el bloque **Publicación**:
    - **Aviso en la ficha de producto**: un texto que se muestra en cada ficha.
    - **Texto del botón de contacto**.
 4. A la derecha ves una **Vista previa** del banner. Se actualiza con lo que escribís.
-5. Hacé clic en **Guardar**. Vas a ver «Cambios guardados. La tienda ya muestra los textos nuevos.» Con **Descartar** volvés a lo anterior.
+5. Hacé clic en **Guardar**. Vas a ver «Cambios guardados en el borrador. Publicalos desde Dominio y publicación.» Los cambios quedan **sin publicar** hasta que los publiques desde la pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)). Con **Descartar** volvés a lo anterior.
 
 ![Pestaña Contenido con el título, subtítulo y texto del botón del banner, los textos comerciales y la vista previa del banner](img/tienda-dominio-e-identidad/04-contenido.png)
 
@@ -89,9 +89,15 @@ Los largos máximos son: título y textos de botón, 120 caracteres; subtítulo,
 
 ## La dirección web (dominio)
 
-Cada tienda vive en su propia dirección web. **El alta de la dirección la hace el equipo técnico**: desde el sistema no se puede cargar ni cambiar. Si necesitás una dirección nueva o cambiar la actual, pedíselo al equipo de soporte.
+Cada tienda vive en su propia dirección web. La dirección la cargás vos, desde la pestaña **Dominio y
+publicación** de la misma pantalla: escribís el **Dominio principal** (y, si querés, un **Redirigir también**),
+copiás los registros que te muestra el sistema en tu proveedor de dominio y hacés clic en **Verificar ahora**.
+El sistema te avisa cuándo el dominio y el certificado están listos.
 
-Mientras una tienda no tenga dirección, el botón **Ver tienda** queda apagado y el encabezado dice «Sin dominio configurado». Si una tienda está pausada o todavía sin dirección, quien entre ve la página «Volvemos pronto».
+Mientras una tienda no tenga dirección, el botón **Ver tienda** queda apagado y el encabezado dice «Sin dominio
+configurado». Si una tienda está pausada o todavía sin dirección, quien entre ve la página «Volvemos pronto».
+
+El paso a paso está en [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md).
 
 ## Cómo se ven las dos tiendas
 
@@ -112,15 +118,16 @@ Cada tienda toma sus propios colores y textos. Así se ven las dos del ejemplo:
 | Logo, colores, tipografías y banners | Acá, en **Identidad visual** |
 | Título, subtítulo, botón, bienvenida, pie y avisos | Acá, en **Contenido** |
 | Qué productos y categorías se ven, y cuáles se destacan | Pestaña **Catálogo visible** (ver [Tiendas online](tiendas-online.md)) |
+| Dirección web de la tienda y su verificación | Pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)) |
+| Publicar los cambios o volver a una versión anterior | Pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)) |
 | Pausar o reactivar la tienda | **Canales → Empresas → Editar** (ver [Tiendas online](tiendas-online.md)) |
 | WhatsApp, correo y horarios de atención | **Canales → Empresas → Editar** |
 | Ajuste de precios y IVA de la tienda | **Canales → Empresas → Editar → Precios y moneda** (ver [Precios e IVA](precios-e-iva.md)) |
-| Alta o cambio de la dirección web | El equipo de soporte |
 
 ## Casos comunes
 
-- **Cambié el color y la tienda sigue igual.** Revisá que hayas hecho clic en **Guardar**. Si ya guardaste, recargá la tienda en el navegador.
-- **Quiero sacar la barra de bienvenida.** Dejá vacío el **Mensaje de bienvenida** y guardá.
+- **Cambié el color y la tienda sigue igual.** Guardar deja el cambio **sin publicar**: publicá desde la pestaña **Dominio y publicación**. Si ya publicaste, recargá la tienda en el navegador.
+- **Quiero sacar la barra de bienvenida.** Dejá vacío el **Mensaje de bienvenida**, guardá y publicá.
 - **Mi logo se ve mal sobre el encabezado.** Usá un PNG o SVG con fondo transparente.
 
 ## Si algo no sale

@@ -11,8 +11,6 @@ Inicio es la primera pantalla que ves al entrar. En pocos segundos te muestra lo
 
 Cada persona ve solamente lo que su rol permite: si no tenés acceso a una sección (por ejemplo, Consultas), su tarjeta, sus alertas y sus resultados de búsqueda no aparecen.
 
-> **TODO (dueño: Documentador, con datos de `pnpm demo:dataset`):** agregar las capturas de Inicio y de la búsqueda en `img/inicio-y-alertas/` con `pnpm docs:capturas`. Todavía no hay un guion de capturas para esta pantalla.
-
 ## La pantalla de Inicio
 
 Se abre con el ítem **Inicio** del menú. Arriba ves un saludo con tu nombre («Buen día, …») y la fecha. Debajo aparecen, según tu rol:
