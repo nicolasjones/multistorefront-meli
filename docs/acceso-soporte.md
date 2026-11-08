@@ -35,11 +35,11 @@ Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, 
 
 ## Cierre automático de accesos vencidos
 
-`private.cerrar_accesos_soporte_vencidos()` (`20270215300002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
+`private.cerrar_accesos_soporte_vencidos()` (`20270215600002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
 
 ## Bitácora inalterable
 
-`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270215300000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
+`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270215600000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
 
 ## Pruebas
 

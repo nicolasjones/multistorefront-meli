@@ -237,7 +237,7 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
 - **Estados**: «Exportando…» mientras corre; si falla no se descarga nada y se ofrece **Reintentar**; sin filas dice
   «No hay actividad para exportar.» y no baja archivo. Si se cambia la empresa activa a mitad de la exportación, se
   descarta lo traído (nunca se baja un archivo de otra empresa).
-- **Constancia y conteo del lado servidor** (migración `20270215300001`, hallazgo de la revisión independiente de MSF-170):
+- **Constancia y conteo del lado servidor** (migración `20270215600001`, hallazgo de la revisión independiente de MSF-170):
   la constancia `actividad.exportada` se registra en la **primera llamada** de cada exportación («Inició la exportación
   de N registros de la actividad a CSV (filtros: …)», con los filtros en palabras y sin ids y N = lo exportable, el menor
   entre el total y el tope). Así quedan cubiertos quien pagina y abandona, y el filtro que excede el tope (la primera
@@ -309,7 +309,7 @@ perform private.registrar_cambio_actividad(
 - Si el tipo es **sensible**, ambos valores son obligatorios: alta → anterior `{}`; baja → nuevo `{}`. Sin ellos, o con más
   de 8 KB, `22023` y la operación de origen se revierte.
 - `registrar_actividad` / `insertar_actividad` conservan su firma pero **rechazan** (`22023`) los tipos sensibles.
-- Los triggers están en **ENABLE ALWAYS** (`20270215300000`): ni `session_replication_role = replica` ni un `disable trigger` desde otro rol (salvo `alter table ... disable trigger` explícito, como hace el fixture de fechas) los saltean. Casos de borde cubiertos en `registro_actividad_bordes.test.sql` (8192/8193 bytes, `TRUNCATE ... CASCADE`, `service_role`).
+- Los triggers están en **ENABLE ALWAYS** (`20270215600000`): ni `session_replication_role = replica` ni un `disable trigger` desde otro rol (salvo `alter table ... disable trigger` explícito, como hace el fixture de fechas) los saltean. Casos de borde cubiertos en `registro_actividad_bordes.test.sql` (8192/8193 bytes, `TRUNCATE ... CASCADE`, `service_role`).
 - Un test que necesite reordenar fechas de eventos debe apagar el trigger `registro_actividad_inalterable_fila` solo
   mientras lo hace (ver `comprobante_estados.test.sql`).
 
