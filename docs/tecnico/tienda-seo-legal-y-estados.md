@@ -22,7 +22,7 @@ Resumen para quien administra la tienda: [Páginas de estado, relacionados, Goog
 > verificaron contra `dokploy`. La guía consolidada de la épica está en `docs/tiendas-online.md` (sección «Estados,
 > relacionados, SEO y legal», también en `dokploy`). Las correcciones de la revisión independiente (caché y límite de
 > pedidos en nginx, tope del sitemap parametrizable, páginas en el sitemap, límites de enlaces legales) viven en el PR
-> `fix/msf-149-pendientes` contra `dokploy`: migraciones `20270216100000` y `20270216100100`.
+> `fix/msf-149-pendientes` contra `dokploy`: migraciones `20270217300000` y `20270217300100`.
 
 Depende de **MSF-191** (el 404 reutiliza `BuscadorTienda`). Bloquea a **MSF-164** (F-TDA-24 usa el contrato de
 cookies de F-TDA-22). El «no indexar» de borrador y vista previa lo agrega **MSF-133**: `indexable` queda como
