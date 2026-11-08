@@ -546,6 +546,32 @@ son RPC: las consume Superset con el rol `superset_analitica`; el aislamiento lo
 guest token, que desde esta épica acota también por `empresa_id`. Contrato y detalle:
 [Ventas · reportes básicos (técnico)](ventas-reportes.md).
 
+### Rentabilidad real y reportes de ventas (MSF-192)
+
+Fuente: `supabase/migrations/20270202201000`–`20270202201007` (rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, aún sin merge a `main`). Las RPC de escritura de
+costos exigen `edicion` en `rentabilidad`; las de lectura, `lectura` o `edicion`; todas validan la
+organización activa y las empresas accesibles adentro (`security definer`, `set search_path = ''`).
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `listar_costos_adicionales(p_empresa_id uuid default null)` | Costos activos de las empresas accesibles (o de una): `id`, `empresa_id`, `empresa_nombre`, `nombre`, `tipo`, `valor`, `creado_en`. | `42501` sin `rentabilidad` |
+| `guardar_costo_adicional(p_id uuid, p_empresa_id uuid, p_nombre text, p_tipo text, p_valor numeric)` | Alta (`p_id` null) o edición de un costo; un costo no cambia de empresa. Escribe Actividad. | `42501` sin edición o empresa no accesible · `23514` nombre/tipo/valor inválido · `23505` nombre repetido entre activos · `P0002` el costo no existe |
+| `dar_baja_costo_adicional(p_id uuid)` | Baja lógica (`activo = false`), idempotente. Escribe Actividad. | `42501` sin edición · `P0002` el costo no existe |
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). | `42501` sin `reportes` · `22023` rango inválido |
+
+`public.confirmar_comprobante(uuid)` **conserva su firma** (F-REN-09): al confirmar guarda en cada línea
+`costo_unitario` (pesos por unidad) y `cotizacion` (dólar vigente), una sola vez e idempotente. Las notas de
+crédito de devolución copian esos valores de la línea original con el disparador
+`comprobantes_venta_lineas_costo_nota`. Las ventas anteriores a la migración quedan con `null` y no entran en
+`analitica.rentabilidad_ventas_real`.
+
+Las vistas nuevas (`analitica.rentabilidad_ventas_real`, `analitica.consultas_producto_mas_consultado` y
+`analitica.ventas_periodo_canal`) no son RPC: las consume Superset con `superset_analitica` y las acota la
+cláusula `rls` del guest token por `organizacion_id` y `empresa_id`. Contrato y detalle:
+[Rentabilidad real y reportes (MSF-192)](rentabilidad.md#rentabilidad-real-y-reportes-msf-192) y
+[Ventas · reportes](ventas-reportes.md#productos-mas-consultados-y-ventas-por-periodo-y-canal-msf-192).
+
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC
 > de `service_role` quedan para drenar lo que ya estaba encolado. Detalle:
