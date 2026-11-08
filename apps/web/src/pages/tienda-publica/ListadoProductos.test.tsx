@@ -258,6 +258,8 @@ describe('ListadoProductos · estados', () => {
     mocks.leer.mockRejectedValueOnce(new Error('boom'))
     montar('/catalogo')
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar los productos.')
+    // FR-004/FR-024: la pantalla de error no se indexa.
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex')
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findAllByTestId('tarjeta-producto')).toHaveLength(2)
   })
