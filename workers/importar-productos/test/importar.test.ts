@@ -27,8 +27,22 @@ interface FilaSimulada {
 }
 
 /** «Base» en memoria: cada fila pasa de pendiente a aplicada/omitida una sola vez, como en SQL. */
-function crearPuertos(filas: FilaSimulada[], opciones: { enCurso?: boolean; temporales?: Record<string, Uint8Array> } = {}) {
+function crearPuertos(
+  filas: FilaSimulada[],
+  opciones: {
+    enCurso?: boolean;
+    temporales?: Record<string, Uint8Array>;
+    /** Cuántas subidas a Storage fallan antes de funcionar (simula una caída del servicio). */
+    fallasDeSubida?: number;
+    rutasABorrar?: string[];
+    falloLimpieza?: boolean;
+  } = {},
+) {
   const estado = new Map<string, ResultadoFila>();
+  // Filas aplicadas con imágenes sin confirmar: la base las sigue ofreciendo (imagenes_pendientes).
+  const imagenesPendientes = new Set<string>();
+  const borradas: string[][] = [];
+  let fallasRestantes = opciones.fallasDeSubida ?? 0;
   const productos = new Map<string, string>();
   const imagenes = new Set<string>();
   const subidas: string[] = [];
@@ -42,11 +56,11 @@ function crearPuertos(filas: FilaSimulada[], opciones: { enCurso?: boolean; temp
       importacion_id: 'imp-1',
       organizacion_id: ORGANIZACION,
       clave: CLAVE,
-      pendientes: filas.filter((fila) => !estado.has(fila.id)).length,
+      pendientes: filas.filter((fila) => !estado.has(fila.id) || imagenesPendientes.has(fila.id)).length,
     }),
     pendientes: async (_id, limite): Promise<FilaPendiente[]> =>
       filas
-        .filter((fila) => !estado.has(fila.id))
+        .filter((fila) => !estado.has(fila.id) || imagenesPendientes.has(fila.id))
         .slice(0, limite)
         .map((fila, indice) => ({ fila_id: fila.id, fila: indice + 2, sku: fila.sku })),
     aplicar: async (_id, filaId) => {
@@ -66,16 +80,31 @@ function crearPuertos(filas: FilaSimulada[], opciones: { enCurso?: boolean; temp
         };
       }
       estado.set(filaId, resultado);
+      if (resultado.resultado === 'aplicada' && resultado.imagenes.length > 0) imagenesPendientes.add(filaId);
       return resultado;
     },
     descargarTemporal: async (ruta) => opciones.temporales?.[ruta] ?? null,
     subirImagen: async (ruta) => {
+      if (fallasRestantes > 0) {
+        fallasRestantes -= 1;
+        throw new Error('SUBIDA_FALLIDA:503');
+      }
       subidas.push(ruta);
     },
     registrarImagen: async (_id, _fila, _nombre, ruta): Promise<EstadoRegistro> => {
       if (imagenes.has(ruta)) return 'existente';
       imagenes.add(ruta);
       return 'registrada';
+    },
+    confirmarImagenes: async (_id, filaId) => {
+      imagenesPendientes.delete(filaId);
+    },
+    temporalesABorrar: async () => {
+      if (opciones.falloLimpieza) throw new Error('conexión caída');
+      return opciones.rutasABorrar ?? [];
+    },
+    borrarTemporales: async (rutas) => {
+      borradas.push(rutas);
     },
     cerrarImportacion: async () => {
       cierres.push({ importacion: 'terminada' });
@@ -94,7 +123,7 @@ function crearPuertos(filas: FilaSimulada[], opciones: { enCurso?: boolean; temp
       eventos.push(`${etapa}:${est}${mensaje ? `:${mensaje}` : ''}`);
     },
   };
-  return { puertos, productos, imagenes, subidas, eventos, cierres, estado, despachos: () => despachos };
+  return { puertos, productos, imagenes, subidas, eventos, cierres, estado, borradas, imagenesPendientes, despachos: () => despachos };
 }
 
 describe('importarProductos (FR-108)', () => {
@@ -178,6 +207,61 @@ describe('importarProductos (FR-108)', () => {
 
     expect(mundo.productos.size).toBe(1);
     expect(mundo.imagenes.size).toBe(1);
+  });
+
+  it('si Storage falla, la fila no pierde sus imágenes: el reintento las adjunta sin duplicar', async () => {
+    const mundo = crearPuertos(
+      [
+        { id: 'f1', sku: 'IMG-5', nuevo: true, imagenes: ['uno.jpg', 'dos.png'] },
+        { id: 'f2', sku: 'SIN-IMG', nuevo: true },
+      ],
+      {
+        fallasDeSubida: 1,
+        temporales: { [`${ORGANIZACION}/${CLAVE}/uno.jpg`]: JPG, [`${ORGANIZACION}/${CLAVE}/dos.png`]: PNG },
+      },
+    );
+    // Primera corrida: la subida falla, el proceso sale con error (el flow reintenta) y la importación NO se cierra.
+    await expect(importarProductos(EJECUCION, mundo.puertos)).rejects.toThrow('SUBIDA_FALLIDA');
+    expect(mundo.cierres).toEqual([]);
+    expect(mundo.imagenesPendientes.has('f1')).toBe(true);
+    expect(mundo.borradas).toEqual([]);
+
+    // Reintento: la fila aplicada con imágenes pendientes se vuelve a ofrecer y se completa.
+    const salida = await importarProductos(EJECUCION, mundo.puertos);
+    expect(salida).toEqual({ codigo: SALIDA_OK });
+    expect(mundo.imagenes.size).toBe(2);
+    expect(mundo.subidas).toHaveLength(2);
+    expect(mundo.productos.size).toBe(2);
+    expect(mundo.imagenesPendientes.size).toBe(0);
+    expect(mundo.cierres).toEqual([{ importacion: 'terminada' }, { ejecucion: 'exitosa' }]);
+
+    // Una tercera corrida (reintento tardío) no repite nada.
+    await importarProductos(EJECUCION, mundo.puertos);
+    expect(mundo.imagenes.size).toBe(2);
+  });
+
+  it('una imagen no subida (no está en el bucket) se descarta y la fila deja de ofrecerse', async () => {
+    const mundo = crearPuertos([{ id: 'f1', sku: 'IMG-6', nuevo: true, imagenes: ['falta.jpg'] }]);
+    await importarProductos(EJECUCION, mundo.puertos);
+    expect(mundo.imagenesPendientes.size).toBe(0);
+    expect(mundo.cierres).toEqual([{ importacion: 'terminada' }, { ejecucion: 'exitosa' }]);
+  });
+
+  it('al cerrar la importación borra las imágenes temporales (de a lotes) antes de cerrar la ejecución', async () => {
+    const rutas = Array.from({ length: 250 }, (_, i) => `${ORGANIZACION}/${CLAVE}/${i}.jpg`);
+    const mundo = crearPuertos([{ id: 'f1', sku: 'X-1', nuevo: true }], { rutasABorrar: rutas });
+    await importarProductos(EJECUCION, mundo.puertos);
+    expect(mundo.borradas.map((lote) => lote.length)).toEqual([100, 100, 50]);
+    expect(mundo.eventos).toContain('limpieza:completada:250 imágenes temporales borradas');
+  });
+
+  it('si el borrado de temporales falla, la importación igual termina y la limpieza queda para la próxima corrida', async () => {
+    const mundo = crearPuertos([{ id: 'f1', sku: 'X-2', nuevo: true }], { falloLimpieza: true });
+    const salida = await importarProductos(EJECUCION, mundo.puertos);
+    expect(salida).toEqual({ codigo: SALIDA_OK });
+    expect(mundo.cierres).toEqual([{ importacion: 'terminada' }, { ejecucion: 'exitosa' }]);
+    expect(mundo.eventos.some((e) => e.startsWith('limpieza:fallida'))).toBe(true);
+    expect(mundo.despachos()).toBe(1);
   });
 
   it('con la ejecución cerrada no actúa y sale con 78 y EJECUCION_NO_EN_CURSO', async () => {

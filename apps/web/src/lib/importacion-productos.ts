@@ -77,7 +77,8 @@ export type ImportacionObtenida = {
   errores: ErrorFila[]
 }
 
-export type ResultadoSolicitud = { importacion_id: string; estado: EstadoImportacion; importables: number; omitidas: number }
+/** `reutilizada`: la clave ya tenía una importación; se devolvió esa y las filas enviadas ahora NO se tomaron. */
+export type ResultadoSolicitud = { importacion_id: string; estado: EstadoImportacion; importables: number; omitidas: number; reutilizada?: boolean }
 
 // Importes: acepta «1200», «1200,50» y «1.200,50» (Excel en castellano) y los lleva a «1200.50». Lo que
 // no se reconoce queda como vino: el servidor lo marca como error con su motivo.
@@ -161,10 +162,24 @@ export function validarImagenCarga(nombre: string, bytes: number): string | null
 
 export type ImagenesLeidas = { imagenes: ImagenCarga[]; rechazadas: string[] }
 
+/** Topes de una carga de imágenes; parametrizables para probar el de bytes sin crear 100 MB. */
+export type LimitesImagenes = { maxImagenes: number; maxBytesZip: number; maxBytesDescomprimido: number }
+export const LIMITES_IMAGENES_POR_DEFECTO: LimitesImagenes = {
+  maxImagenes: MAX_IMAGENES_CARGA,
+  maxBytesZip: MAX_BYTES_ZIP,
+  maxBytesDescomprimido: MAX_BYTES_DESCOMPRIMIDO_ZIP,
+}
+
+/**
+ * Regla única para nombres repetidos (hallazgo 8): GANA LA PRIMERA. Vale entre carpetas de un mismo ZIP, entre archivos
+ * (ZIP o sueltos) de una misma selección y entre selecciones sucesivas de la pantalla (lo ya cargado manda); la
+ * repetida se descarta y se avisa. Para reemplazar una imagen hay que cancelar y volver a cargarla.
+ */
+
 const nombreBase = (ruta: string) => ruta.split(/[\\/]/).pop() ?? ruta
 
 /** Junta archivos sueltos y ZIP (se abren acá) en una lista de imágenes válidas y los motivos de rechazo. */
-export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesLeidas> {
+export async function leerImagenes(archivos: readonly File[], limites: LimitesImagenes = LIMITES_IMAGENES_POR_DEFECTO): Promise<ImagenesLeidas> {
   const imagenes = new Map<string, ImagenCarga>()
   const rechazadas: string[] = []
 
@@ -174,8 +189,12 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
       rechazadas.push(motivo)
       return
     }
-    if (imagenes.size >= MAX_IMAGENES_CARGA && !imagenes.has(nombre)) {
-      rechazadas.push(`«${nombre}» no entra: el máximo es ${MAX_IMAGENES_CARGA} imágenes por importación.`)
+    if (imagenes.has(nombre)) {
+      rechazadas.push(`«${nombre}» ya estaba entre los archivos elegidos: se usó la primera.`)
+      return
+    }
+    if (imagenes.size >= limites.maxImagenes) {
+      rechazadas.push(`«${nombre}» no entra: el máximo es ${limites.maxImagenes} imágenes por importación.`)
       return
     }
     imagenes.set(nombre, { nombre, tipo: tipoDeNombreImagen(nombre), blob })
@@ -184,11 +203,13 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
   // Los topes del ZIP valen por importación (todos los ZIP de la misma llamada), no por archivo.
   let aceptadas = 0
   let bytesAceptados = 0
+  // Bytes realmente descomprimidos: `originalSize` viene de la cabecera del ZIP y puede mentir.
+  let bytesReales = 0
 
   for (const archivo of archivos) {
     if (/\.zip$/i.test(archivo.name)) {
-      if (archivo.size > MAX_BYTES_ZIP) {
-        rechazadas.push(`«${archivo.name}» pesa más de ${MAX_BYTES_ZIP / (1024 * 1024)} MB.`)
+      if (archivo.size > limites.maxBytesZip) {
+        rechazadas.push(`«${archivo.name}» pesa más de ${limites.maxBytesZip / (1024 * 1024)} MB.`)
         continue
       }
       try {
@@ -197,6 +218,7 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
         // `MAX_IMAGENES_CARGA` entradas ni más de `MAX_BYTES_DESCOMPRIMIDO_ZIP` en total (un ZIP muy comprimible
         // no debe agotar la memoria del navegador).
         let recortadas = 0
+        let recortadasPorPeso = 0
         const nombresVistos = new Set<string>()
         const repetidas: string[] = []
         const contenido = unzipSync(new Uint8Array(await archivo.arrayBuffer()), {
@@ -204,11 +226,11 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
             const nombre = nombreBase(entrada.name)
             if (entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') ||
               entrada.originalSize > MAX_BYTES_IMAGEN_IMPORTACION || !tipoDeNombreImagen(nombre)) return false
-            if (nombresVistos.has(nombre)) {
+            if (nombresVistos.has(nombre) || imagenes.has(nombre)) {
               repetidas.push(nombre)
               return false
             }
-            if (aceptadas >= MAX_IMAGENES_CARGA || bytesAceptados + entrada.originalSize > MAX_BYTES_DESCOMPRIMIDO_ZIP) {
+            if (aceptadas >= limites.maxImagenes || bytesAceptados + entrada.originalSize > limites.maxBytesDescomprimido) {
               recortadas += 1
               return false
             }
@@ -219,20 +241,30 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
           },
         })
         for (const nombre of new Set(repetidas)) {
-          rechazadas.push(`«${nombre}» aparece más de una vez en «${archivo.name}»: se usó la primera.`)
+          rechazadas.push(`«${nombre}» aparece más de una vez (en «${archivo.name}» o entre los archivos elegidos): se usó la primera.`)
         }
         if (recortadas > 0) {
-          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${MAX_IMAGENES_CARGA} imágenes o ${MAX_BYTES_DESCOMPRIMIDO_ZIP / (1024 * 1024)} MB descomprimidos por importación).`)
+          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${limites.maxImagenes} imágenes o ${limites.maxBytesDescomprimido / (1024 * 1024)} MB descomprimidos por importación).`)
         }
         for (const [ruta, bytes] of Object.entries(contenido)) {
           const nombre = nombreBase(ruta)
+          // El tope de bytes se verifica con el tamaño REAL descomprimido, no con el que declara la cabecera.
+          if (bytesReales + bytes.length > limites.maxBytesDescomprimido) {
+            recortadasPorPeso += 1
+            continue
+          }
+          bytesReales += bytes.length
           agregar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
+        }
+        if (recortadasPorPeso > 0) {
+          rechazadas.push(`«${archivo.name}»: ${recortadasPorPeso} imagen(es) pesan más de lo que declaraba el ZIP y superan el máximo de ${limites.maxBytesDescomprimido / (1024 * 1024)} MB descomprimidos: se descartaron.`)
         }
       } catch {
         rechazadas.push(`No pudimos abrir «${archivo.name}». Verificá que sea un ZIP válido.`)
       }
       continue
     }
+    // Los sueltos no necesitan tope de bytes propio: cada uno pesa a lo sumo 2 MB y el tope de cantidad los acota.
     agregar(archivo.name, archivo.size, archivo)
   }
   return { imagenes: [...imagenes.values()], rechazadas }
@@ -279,11 +311,26 @@ export async function solicitarImportacion(filas: readonly FilaImportacion[], cl
   return data as ResultadoSolicitud
 }
 
+/** ¿La organización tiene la conexión `importar-productos`? Se consulta al abrir la pantalla, antes de pedir el CSV. */
+export async function importacionHabilitada(): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('importacion_productos_habilitada')
+  if (error) throw error
+  return data === true
+}
+
 export async function obtenerImportacion(importacionId: string): Promise<ImportacionObtenida> {
   const { data, error } = await supabaseClient.rpc('obtener_importacion_productos', { p_importacion_id: importacionId })
   if (error) throw error
   return data as ImportacionObtenida
 }
+
+/** Parámetro de la URL que guarda la importación en seguimiento: sobrevive a salir de la pantalla y a recargar. */
+export const PARAMETRO_IMPORTACION = 'importacion'
+const UUID_IMPORTACION = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const importacionDeUrl = (valor: string | null): string | null => (valor && UUID_IMPORTACION.test(valor) ? valor : null)
+
+export const AVISO_IMPORTACION_REUTILIZADA =
+  'Esta importación ya se había solicitado con el mismo archivo de trabajo: te mostramos la existente. Las filas que enviaste ahora no se tomaron; para importar otras, elegí «Importar otro archivo».'
 
 export const contarPorEstado = (filas: readonly FilaValidada[], estado: EstadoValidacion) => filas.filter((fila) => fila.estado === estado).length
 export const contarImportables = (filas: readonly FilaValidada[]) => filas.filter((fila) => fila.estado !== 'error').length

@@ -10,6 +10,10 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
 
 - Categoría y listado real se entregaron en MSF-160 (secciones «Listado», «Empresas» y «Categorías» más abajo). Fuera de
   alcance: proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529); ver también `docs/proveedores.md`.
+- Importación y exportación CSV (F-CAT-10/11, épica MSF-202): `docs/catalogo-importacion.md` y
+  `docs/catalogo-exportacion.md`. La revisión independiente de la épica quedó resuelta (imágenes pendientes que el
+  reintento recupera, errores transitorios que se reintentan, topes por celda, limpieza de temporales, seguimiento en
+  la URL, aviso de conexión faltante, exportación con cursor y tope de 50.000); sin seguimiento pendiente de código.
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 

@@ -68,6 +68,23 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
       );
       return r.rows[0].estado;
     },
+    async confirmarImagenes(id, filaId) {
+      await pool.query('select private.confirmar_imagenes_fila_importacion_productos($1::uuid, $2::uuid)', [id, filaId]);
+    },
+    async temporalesABorrar(id, dias) {
+      const r = await pool.query<{ ruta: string }>('select n as ruta from private.imagenes_temporales_a_borrar($1::uuid, $2::integer) n', [id, dias]);
+      return r.rows.map((fila) => fila.ruta);
+    },
+    async borrarTemporales(rutas) {
+      if (rutas.length === 0) return;
+      // Storage API: borra varios objetos de un bucket por su ruta completa (Storage no se borra por SQL en self-hosted).
+      const respuesta = await fetch(`${baseUrl}/storage/v1/object/${BUCKET_TEMPORAL}`, {
+        method: 'DELETE',
+        headers: { ...cabeceras, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefixes: rutas }),
+      });
+      if (!respuesta.ok) throw new Error(`BORRADO_FALLIDO:${respuesta.status}`);
+    },
     async cerrarImportacion(id, estado, mensaje) {
       const r = await pool.query<{ r: { procesadas: number; omitidas: number } }>(
         'select private.cerrar_importacion_productos($1::uuid, $2::text, $3::text) as r',
