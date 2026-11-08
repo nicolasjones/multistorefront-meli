@@ -17,9 +17,15 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
   **Tipo**, **Tienda** («Compartido» si el evento no es de una empresa), **Detalle** y **Quién**
   («Sistema» si no hay actor). Nunca se muestran identificadores técnicos.
 - Filtros combinables: período (hoy / 7 / 30 días / todo), tienda, usuario y tipo; búsqueda
-  «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); paginación
-  en servidor («1–10 de N»).
-- Sin botón «Exportar» (fuera de alcance de esta historia).
+  «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); carga por
+  tandas de 10 en servidor, con **«Cargar más»** al pie (ver
+  [Listados: carga infinita e imagen de producto](tecnico/listados.md)).
+- Cada fila tiene **Ver detalle**: abre el detalle del evento y, campo por campo, el valor anterior → el nuevo
+  (F-AUD-02). Es solo consulta: no hay «deshacer»; un evento sin valores lo dice. Si cambiás de empresa con el
+  detalle abierto, se cierra con aviso.
+- Botón **Exportar** en el encabezado, solo para quien tiene nivel `edicion` en Actividad y la acción `exportar`
+  (por defecto, el Administrador): baja todo el filtro (no solo la página) como CSV, con tope de 50.000 filas.
+  Detalle técnico en [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md).
 
 ## Permisos
 
@@ -33,7 +39,8 @@ Los fija únicamente la matriz (`private.nivel_seccion('actividad')`), tanto en 
 | Consulta, Mostrador, Depósito, Miembro | `ninguno` | nada (sin menú, la ruta redirige, la consulta directa devuelve 0 filas) |
 
 Si la matriz cambia, la pantalla y la RLS siguen a la matriz sin tocar código. Nadie —tampoco el
-administrador— edita ni borra eventos desde la app: el registro es solo de agregado.
+administrador— edita ni borra eventos desde la app: el registro es solo de agregado e **inalterable**
+(triggers `before update/delete/truncate`; ver [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md)).
 
 ## Esquema de datos
 
@@ -136,6 +143,15 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   transacción, solo con sesión y ante cambios reales (`updated_at` avanzó; repetir un estado o guardar sin
   cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó el proveedor <razón social>», sin CUIT ni
   identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `cliente.fusionado` (F-CLI-18, MSF-447, épica MSF-445): lo registra
+  `private.registrar_actividad_fusion_clientes` dentro de la **misma transacción** que la fusión; el detalle
+  nombra a los dos clientes («Fusionó al cliente Nº <n> · <nombre> en el cliente Nº <n> · <nombre>»), **nunca
+  DNI/CUIT**. Lo cubre el pgTAP `fusion_clientes`. Ver
+  [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md#actividad).
+- `proveedor.contacto_agregado|contacto_principal_cambiado` (F-PRV-08, MSF-449, épica MSF-445): las RPC
+  `agregar_contacto_proveedor` y `marcar_contacto_principal` los registran en la misma transacción por
+  `private.registrar_actividad_contacto_proveedor`; el detalle lleva la razón social y el nombre del
+  contacto, **sin correo ni teléfono**. Lo cubre el pgTAP `proveedores_contactos`.
 - `ingreso.registrado` e `ingreso.anulado` (MSF-219): los registran `public.registrar_ingreso_mercaderia` y
   `public.anular_ingreso_mercaderia` en la misma transacción que el movimiento de stock, solo con sesión.
   El detalle lleva proveedor, empresa, comprobante, unidades y cantidad de productos (y el motivo al anular),

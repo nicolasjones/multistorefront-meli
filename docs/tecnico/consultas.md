@@ -376,8 +376,10 @@ Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápida
 - Menú: **Canales → Consultas** (`/consultas`, sección `consultas`), primero del grupo, con contador de
   nuevas (`apps/web/src/components/navegacion/destinosPanel.ts`, `InsigniaConsultasNuevas.tsx`).
 - Lista: búsqueda, chips de estado, filtro de fecha y chips de tienda; tabla con `Estado`, `Cuándo`,
-  `Empresa`, `Contacto`, `Producto` y `Origen`; pie «N consultas»; paginación de 25
-  (`apps/web/src/pages/consultas/list.tsx`, `apps/web/src/lib/consultas.ts`).
+  `Empresa`, `Contacto`, `Producto` y `Origen`; pie «N consultas»; carga por tandas de 25 con
+  **«Cargar más»** al pie y miniatura del producto en su columna
+  (`apps/web/src/pages/consultas/list.tsx`, `apps/web/src/lib/consultas.ts`; regla de listados en
+  [Listados: carga infinita e imagen de producto](listados.md)).
 - Detalle: `apps/web/src/components/consultas/DetalleConsulta.tsx`; abre por fila o por
   `/consultas?consulta=<id>`. Desde MSF-130 el botón «Responder por …» elige el canal por el formato del
   contacto y registra la respuesta (ver «Responder desde el panel»).
@@ -387,7 +389,7 @@ Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápida
   con **Crear contacto** o el contacto vinculado (`ContactoConsulta.tsx`).
 - **Empresa activa:** la barra superior manda. Con una empresa concreta, los chips de tienda quedan
   seleccionados y bloqueados; con «Todas mis empresas» filtran entre las accesibles. Al cambiarla se
-  invalidan y recargan lista, contador y responsables, se reencuadra la paginación, se descarta la selección
+  invalidan y recargan lista, contador y responsables, se reencuadra la carga por tandas, se descarta la selección
   y se cierra el detalle abierto. El diálogo de interés por WhatsApp hace lo propio: al cambiar la empresa con
   el diálogo abierto, descarta lo cargado y se cierra con aviso. Test: `apps/web/src/pages/consultas/list.test.tsx`,
   `apps/web/src/hooks/useConsultas.test.tsx` y `apps/web/src/pages/consultas/InteresWhatsappDialog.test.tsx`.

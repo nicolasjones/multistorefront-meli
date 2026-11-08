@@ -193,11 +193,12 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
   arreglo** que usan la tabla y el CSV (`columnasStock` en `list.tsx`, `COLUMNAS` en `movimientos.tsx`), así que no
   se desfasan.
 - **Faltantes.** `apps/web/src/pages/stock/faltantes.tsx` + `apps/web/src/lib/faltantes.ts`: tabla con casilla por
-  fila y «seleccionar todo» en el encabezado de la columna de casillas (como en el prototipo), filtro `FiltroEmpresa`
-  y pie «N seleccionados de M faltantes».
+  fila y «seleccionar todo» en el encabezado de la columna de casillas (como en el prototipo), filtro `FiltroEmpresa`,
+  carga por tandas de 25 con «Cargar más» y **miniatura del producto**; pie «N seleccionados de M faltantes».
 - **Más vendidos.** `apps/web/src/pages/stock/mas-vendidos.tsx` + `apps/web/src/lib/masVendidos.ts` +
-  `apps/web/src/hooks/useMasVendidos.ts`: paginación de a 25 y período con `apps/web/src/lib/periodosRanking.ts`
-  (mismo rango máximo de 5 años y misma zona `America/Argentina/Buenos_Aires` que el ranking de clientes).
+  `apps/web/src/hooks/useMasVendidos.ts`: carga por tandas de a 25 (con «Cargar más») y período con
+  `apps/web/src/lib/periodosRanking.ts` (mismo rango máximo de 5 años y misma zona `America/Argentina/Buenos_Aires`
+  que el ranking de clientes).
 
 ### Formato del CSV (F-STK-08)
 
@@ -219,8 +220,8 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
 ### Empresa activa (Principio VIII)
 
 - **No aplica** en la carga inicial ni en la exportación: el stock es único y compartido.
-- **Sí aplica** en Faltantes y Más vendidos: al cambiar la empresa se invalidan las consultas, la paginación vuelve
-  a la página 1, la **selección se descarta**, el diálogo «Avisar a los clientes» abierto **se cierra con aviso**
+- **Sí aplica** en Faltantes y Más vendidos: al cambiar la empresa se invalidan las consultas, el listado arranca
+  de nuevo desde la primera tanda, la **selección se descarta**, el diálogo «Avisar a los clientes» abierto **se cierra con aviso**
   («Cambiaste de empresa: se cerró el aviso a los clientes») y una respuesta tardía de la empresa anterior no pisa la
   nueva. Nunca se muestran filas ni totales de la empresa anterior.
 

@@ -56,7 +56,7 @@ Menú **Ventas → Comprobantes**. Muestra facturas y notas de crédito. Los pre
 - **Buscar por cliente o número**: escribí parte del nombre o del número.
 - **Operador**, **Estado**, **Pago** y **Envío**: cada uno es un desplegable con la opción «Todos».
 - **Limpiar filtros**: aparece cuando hay algún filtro puesto y los saca todos.
-- Arriba de la tabla se ve cuántos comprobantes cumplen el filtro. La lista se muestra de a 12 por página.
+- Arriba de la tabla se ve cuántos comprobantes cumplen el filtro. La lista carga de a 12: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie.
 
 ![Desplegable Estado abierto con las opciones Todos, Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando e Incompleto](img/ventas-listado-estados-y-anulacion/02-filtro-estado.png)
 

@@ -83,7 +83,7 @@ Detalle de errores y flujo de invitación: [Invitar usuarios](../invitar-usuario
 | `src/hooks/useEmpresaActiva.ts` | Carga las empresas, ejecuta el cambio y, al volver, invalida la caché de permisos (`invalidarCachePermisos()`), recarga `PermisosPanelProvider` e invalida todas las consultas de Refine (`invalidates: ['all']`). «Última petición gana» al cargar. |
 | `src/components/navegacion/SelectorEmpresaActiva.tsx` | Botón/menú de la barra superior con la activa marcada y el rol por empresa; etiqueta fija si hay una sola; estados de carga y error; confirmación «¿Cambiar de empresa?» con cambios sin guardar (FR-011). |
 | `src/components/navegacion/EncabezadoPanel.tsx` | Convive con `SelectorEmpresa` de F-EMP-05, que no cambia: ese elige la empresa de la ruta, este la empresa activa persistida (FR-013). |
-| `src/components/pagina/ContenidoPorEmpresa.tsx` + `src/hooks/useVersionEmpresaActiva.ts` | Remonta la pantalla ruteada al cambiar la empresa (`key={version}`): paginación, selección y diálogos abiertos arrancan de cero; el encabezado queda montado. |
+| `src/components/pagina/ContenidoPorEmpresa.tsx` + `src/hooks/useVersionEmpresaActiva.ts` | Remonta la pantalla ruteada al cambiar la empresa (`key={version}`): la carga por tandas, la selección y los diálogos abiertos arrancan de cero; el encabezado queda montado. |
 | `src/pages/usuarios/list.tsx` + `src/components/usuarios/SelectorAsignacionesEmpresa.tsx` | Columna **Empresas** con «Tienda: Rol»; diálogos Invitar y Editar con empresas y rol por empresa; Editar ofrece los seis roles y Administrador = todas las empresas. |
 | `src/lib/asignacionesEmpresas.ts` | Llama `asignar_empresas_usuario` y `listar_empresas_usuarios`; normaliza el jsonb. |
 

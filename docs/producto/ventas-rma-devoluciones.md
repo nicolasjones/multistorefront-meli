@@ -69,7 +69,7 @@ Cada devolución recibe un número (**RMA-0010**, por ejemplo) y queda con el es
 | **Motivo / operador** | El motivo y quién la cargó. |
 | **Estado** | **Abierta**, **En gestión** o **Cerrada**, con los botones de avance. |
 
-Arriba hay una fila de botones para filtrar por forma (**Todas**, **Cambio directo**, **Enviado a proveedor**, **Faltante en envío**, **Reclamo faltante**, **Devolución de importe**) y el filtro **Tienda**. La lista se muestra de a 8 por página.
+Arriba hay una fila de botones para filtrar por forma (**Todas**, **Cambio directo**, **Enviado a proveedor**, **Faltante en envío**, **Reclamo faltante**, **Devolución de importe**) y el filtro **Tienda**. La lista carga de a 8: cuando llegás al final se siguen cargando solas, o apretá **Cargar más** al pie.
 
 ![Pantalla Devoluciones con los botones de forma de RMA señalados y la lista de devoluciones de una tienda](img/ventas-rma-devoluciones/01-rma-san-javucho.png)
 

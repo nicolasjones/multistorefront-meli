@@ -57,15 +57,22 @@ MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en
 - `guardar_lineas_comprobante` **reemplaza todas las líneas** en una transacción y recalcula los totales del
   comprobante. Se envía con el `updated_at` vigente; mientras guarda, los controles quedan bloqueados. Un
   rechazo no deja líneas a medias.
+- **Descuento por cliente** (F-VTA-32 / MSF-340, épica **MSF-193**): si el cliente tiene **descuento**, la
+  base se lo resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes`
+  **en el servidor** (el `payload` no puede imponerlo) y un **precio manual no se toca**. La línea guarda
+  `descuento_pct` (0 si el precio es manual) y el rótulo pasa a «escala x1 · 5 % de descuento». Detalle:
+  [Precios especiales por cliente (técnico)](ventas-precios-especiales.md).
 
 ### Presupuestos (F-VTA-08)
 
 - **Listado** (`PresupuestosList`, `design/pantallas/VentasPresupuestos.dc.html`): Presupuesto, Tienda,
-  Fecha, Cliente, Operador, Válido hasta, Estado, Total y Acciones, paginado (25), con «Buscar por cliente o
+  Fecha, Cliente, Operador, Válido hasta, Estado, Total y Acciones, cargado por tandas de 25 con «Cargar más»,
+  con «Buscar por cliente o
   número» (espera a que se deje de tipear), píldoras de estado (Todos, Pendiente, Aceptado, Vencido,
   Convertido en factura) y el filtro de tienda (`FiltroEmpresa`): por defecto **todas**; la empresa activa de
-  la barra superior lo acota y al cambiarla la pantalla se remonta (página 1, búsqueda limpia, todo
-  recargado). «Sin resultados» cuando el filtro no devuelve nada.
+  la barra superior lo acota y al cambiarla la pantalla se remonta (primera tanda, búsqueda limpia, todo
+  recargado). «Sin resultados» cuando el filtro no devuelve nada. Ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 - **Estados**: `pendiente` → `aceptado`. **`vencido` se deriva** (no se guarda ni hay job): un `pendiente`
   con `valido_hasta` anterior a hoy (hoy en America/Argentina/Buenos_Aires, `private.hoy_argentina`). Un
   vencido no se acepta ni se modifica. `Convertido en factura` existe como filtro pero no tiene filas hasta
@@ -118,6 +125,11 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `escala` (`x1`/`x5`/`x10`/`x50`), `precio_manual`, `alicuota_id`/`alicuota_porcentaje`, `deposito_id`,
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
+
+**Columna agregada por MSF-193** (F-VTA-32 / MSF-340, migración `20270201200103_lineas_descuento.sql`):
+`descuento_pct numeric(5,2) not null default 0` con `check (descuento_pct >= 0 and descuento_pct <= 100)`
+— el descuento del cliente que se aplicó a esa línea (0 si el precio es manual). Es una **foto**: cambiar
+después el descuento de la ficha del cliente **no altere lo ya vendido**.
 
 RLS vigente en el comprobante y en las líneas: `select` por organización y sección `ventas`
 (`lectura`/`edicion`). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC

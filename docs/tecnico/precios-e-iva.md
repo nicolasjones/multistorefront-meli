@@ -186,7 +186,7 @@ Guardar lo mismo **no** deja evento: los triggers comparan antes/después.
 | Pestaña «Precios y moneda» de la empresa (ruta `/empresas/edit/:id/precios`) | `apps/web/src/pages/empresas/precios.tsx` |
 | Pestaña en la ficha de empresa y ruta en `App.tsx` (protegida por `RequiereAccesoSeccion seccion="empresas"`) | `apps/web/src/pages/empresas/PestanasEmpresa.tsx`, `apps/web/src/App.tsx` |
 | Bloques «Precio de venta de <Empresa>» y «Moneda y cotización» | `apps/web/src/components/precios/ReglaPrecioEmpresa.tsx` |
-| Tabla «Así quedan los precios» | `apps/web/src/components/precios/TablaAsiQuedan.tsx` |
+| Tabla «Así quedan los precios» (muestra la **miniatura del producto** en su columna) | `apps/web/src/components/precios/TablaAsiQuedan.tsx` |
 | Bloque «Precio y costo» del formulario de producto | `apps/web/src/components/precios/PrecioCostoBloque.tsx` |
 | «Margen estimado (escala x1)» | `apps/web/src/components/precios/MargenEstimado.tsx` |
 | Bloque «Precios por escala · sin IVA» | `apps/web/src/components/precios/EscalasPrecio.tsx` |

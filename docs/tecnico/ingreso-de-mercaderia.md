@@ -79,7 +79,7 @@ erDiagram
     uuid organizacion_id FK
     uuid producto_id FK
     integer cantidad "1..1000000"
-    numeric costo_unitario_usd "numeric(14,2), >= 0"
+    numeric costo_unitario_usd "numeric(14,2), >= 0, admite null (MSF-445)"
     uuid movimiento_id FK "unique"
     uuid movimiento_anulacion_id FK "unique, nullable"
     timestamptz creado_en
@@ -134,7 +134,8 @@ Detalle de las tablas nuevas:
   - Índices `(organizacion_id, creado_en desc, id)`, `(organizacion_id, proveedor_id, fecha desc)` y
     `(organizacion_id, empresa_id, fecha desc)`.
 - **`dominio.ingresos_mercaderia_lineas`**: `id`, `ingreso_id` (cascada), `organizacion_id`,
-  `producto_id`, `cantidad` (`> 0`), `costo_unitario_usd` (`numeric(14,2)`, `>= 0`), `movimiento_id`
+  `producto_id`, `cantidad` (`> 0`), `costo_unitario_usd` (`numeric(14,2)`, `>= 0`; desde MSF-445 admite
+  `null` = «sin costo»), `movimiento_id`
   (único), `movimiento_anulacion_id` (único, opcional) y `creado_en`.
   - FK compuesta `(producto_id, organizacion_id)` → `dominio.productos`.
   - `unique (ingreso_id, producto_id)`: un producto no se repite en el mismo ingreso.
@@ -166,6 +167,11 @@ p_actualizar_costo boolean default false, p_clave_idempotencia uuid default null
 - Valida `p_lineas`: array no vacío, hasta 100 elementos; `producto_id` UUID; `cantidad` entero entre 1 y
   1.000.000; `costo_unitario_usd` con hasta dos decimales y `>= 0`; sin productos repetidos; todos los
   productos activos y de la organización.
+  - **Desde MSF-445 (F-PRV-07, MSF-448)** el `costo_unitario_usd` de la línea es **opcional**: la
+    migración `20270204110000_costo_ingreso_opcional.sql` (rama `epic/MSF-445-…`, PR #695; aún sin merge
+    a `main`) relaxes el `not null` de la columna y deja la **misma firma** de la RPC. Una línea sin costo
+    se guarda con `null` (que **no es cero**) y, con `p_actualizar_costo`, **no** actualiza el costo del
+    producto. Detalle: [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md).
 - Si `p_actualizar_costo`, exige `nivel_seccion('rentabilidad') = 'edicion'` (`42501`). La UI oculta la
   casilla sin ese permiso, pero la base lo vuelve a validar.
 - Busca el motivo activo «Compra a proveedor» (`aplica_a = {entrada}`). Inserta la cabecera y, por cada
@@ -234,7 +240,8 @@ Todas hacen `revoke ... from public, anon` y `grant execute ... to authenticated
   ingreso» con estado de envío y snackbar «Ingreso registrado · N unidades». Si el producto tiene
   `proveedor_id` igual al proveedor elegido, muestra «Proveedor del producto: coincide»; no lo exige.
 - `HistorialIngresos.tsx`: tabla o tarjetas adaptables, filtros por fechas, proveedor, empresa, producto y
-  operador, chip «Registrado» / «Anulado» (con motivo), paginación de 25 líneas y acción «Anular» una sola
+  operador, chip «Registrado» / «Anulado» (con motivo), carga por tandas de 25 líneas con «Cargar más» y
+  **miniatura del producto**, y acción «Anular» una sola
   vez por ingreso, solo con edición y estado `registrado`.
 - `AnularIngresoDialog.tsx`: motivo obligatorio (3–500), confirmación y estados de envío/error; el mensaje
   de stock insuficiente es «No hay stock suficiente para anular: parte de la mercadería ya se movió.».

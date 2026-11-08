@@ -203,7 +203,7 @@ public.eliminar_respuesta_rapida(p_id uuid) returns void
 
 | Ruta / componente | Qué hace |
 |---|---|
-| `/contactos` (`pages/contactos/list.tsx`) | Libreta de la empresa activa o de todas las accesibles: búsqueda con espera de 300 ms, tabla adaptable, paginación de 25, estados de carga/vacío/error y botón **Nuevo contacto** (exige una tienda elegida). |
+| `/contactos` (`pages/contactos/list.tsx`) | Libreta de la empresa activa o de todas las accesibles: búsqueda con espera de 300 ms, tabla adaptable, carga por tandas de 25 con **«Cargar más»** al pie, estados de carga/vacío/error y botón **Nuevo contacto** (exige una tienda elegida). Ver [Listados: carga infinita e imagen de producto](listados.md). |
 | `/contactos/:id` (`pages/contactos/ficha.tsx`) | Ficha con carga diferida: edición con bloqueo optimista, historial, **Vincular comprobante**, **Desvincular** y **Anonimizar**. Si cambia la empresa activa, vuelve a la libreta con aviso. |
 | `pages/consultas/CrearContactoDialog.tsx` | Alta desde la libreta o desde una consulta; precarga nombre y contacto, valida consentimiento y ofrece vincular al existente ante `23505`. |
 | `pages/consultas/ContactoConsulta.tsx` | En el detalle de la consulta: **Crear contacto** o el enlace **Contacto en la libreta**. |
@@ -218,7 +218,7 @@ se usan los patrones compartidos del panel.
 
 ### Empresa activa (Principio VIII)
 
-- La libreta invalida y recarga al cambiar la empresa, reencuadra la paginación y cierra el formulario
+- La libreta invalida y recarga al cambiar la empresa, reencuadra la carga por tandas y cierra el formulario
   abierto con aviso.
 - La ficha vuelve a la libreta con aviso.
 - Los diálogos de alta, anonimización, vinculación y respuestas rápidas se cierran con aviso.
