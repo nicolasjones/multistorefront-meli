@@ -123,16 +123,18 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
 - Estados (`useExportarActividad.ts`): «Exportando…», error con **Reintentar** sin descargar un archivo
   parcial, «No hay actividad para exportar.» y aviso de recorte. Cambiar la empresa activa invalida la
   exportación en curso (nunca se baja un archivo de otra empresa).
-- Constancia y conteo del lado servidor (migración `20270215600001`): `actividad.exportada` se registra en la
-  **primera llamada** de cada exportación («Inició la exportación de N registros…», N = menor entre el total y el
-  tope, con los filtros en palabras), de modo que paginar y abandonar, o un filtro que excede el tope, también
+- Constancia y conteo del lado servidor (migración `20270217100001`): `actividad.exportada` se registra en la
+  **primera llamada** de cada exportación («Inició la exportación de N registros…», N = el total real y «(supera el tope
+  de 50000)» si lo excede, con los filtros en palabras), de modo que paginar y abandonar, o un filtro que excede el tope, también
   dejan constancia. El cliente genera un id por corrida (`p_exportacion`); `private.exportaciones_actividad`
   (clave primaria `(organizacion_id, usuario_id, id)`, columnas `entregadas` y `cerrada`, RLS activa y sin
   acceso para los roles de la API) lleva el conteo y aplica el tope de 50.000. `p_entregadas` se ignora (queda en
   la firma por compatibilidad). El id se cierra al entregar la última fila o llegar al tope; reutilizar un id
   cerrado, también el reintento de la última página, lanza `22023` (el comentario de `20270214300001`, que dice
-  que un reintento «no vuelve a registrar», es inexacto). Un cliente que use un id nuevo por página deja una
-  constancia por página. La depuración purga las filas de `exportaciones_actividad` con más de 30 días.
+  que un reintento «no vuelve a registrar», es inexacto). El tope de 50.000 es de UX; el control real es la constancia. Un cliente que use un id nuevo por página deja una
+  constancia por página y el servidor rechaza (`22023`) la exportación nueva número 61 de una persona en una hora.
+  Repetir la misma página (mismo id y cursor) es idempotente. Cuando el filtro excede el tope la primera llamada ya
+  entregó hasta 1.000 filas que el navegador descarta; la constancia cubre ese caso. La depuración purga las filas de `exportaciones_actividad` con más de 30 días.
 - Pruebas: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
   `exportarActividad.test.tsx` y `BotonExportarActividad.test.tsx`; E2E
   `apps/web/e2e/actividad-exportar.e2e.ts`.
@@ -149,7 +151,7 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
   contextos existentes). La vista `private.superadmin_contexto_vigente` (`security_invoker`) excluye los
   vencidos; la migración reescribe **todos** los helpers que leían la tabla (`organizacion_id`,
   `puede_escribir`, `nivel_seccion`, `puede_accion*`, `rol_id`, los `puede_*_en_empresa`, etc.) para que
-  lean la vista. `entrar_a_organizacion`, `salir_de_organizacion` y `cerrar_accesos_soporte_vencidos` (`20270215600002`, la
+  lean la vista. `entrar_a_organizacion`, `salir_de_organizacion` y `cerrar_accesos_soporte_vencidos` (`20270217100002`, la
   ejecuta Kestra cada 15 minutos) leen la tabla para distinguir salida de vencimiento.
 - Contrato **BREAKING**: `public.entrar_a_organizacion(org_id uuid, p_motivo text)` reemplaza a la versión
   de un argumento; sin motivo (o en blanco o > 500) devuelve `22023`, sin ser superadmin `42501`, y si la
@@ -266,19 +268,19 @@ solo en base local/staging.
 
 ## Limitaciones conocidas (revisión independiente de la épica)
 
-Los hallazgos de la revisión independiente se corrigieron en las migraciones `20270215600000`, `20270215600001`
-y `20270215600002` (PR a `dokploy`): constancia y tope del lado servidor, triggers de `registro_actividad`
+Los hallazgos de la revisión independiente se corrigieron en las migraciones `20270217100000`, `20270217100001`
+y `20270217100002` (PR a `dokploy`): constancia y tope del lado servidor, triggers de `registro_actividad`
 y `superadmin_entradas` en `ENABLE ALWAYS` (esta última append-only), cierre automático de accesos de soporte
 vencidos (flow de Kestra `cierre-accesos-soporte`, cada 15 minutos), purga a 30 días de
 `exportaciones_actividad` y guardia de CI `acceso_soporte_sin_lecturas_crudas` contra lecturas crudas de
 `superadmin_organizacion_activa`. Siguen abiertas:
 
-- **Reingreso sin tope acumulado (decisión de negocio pendiente).** Reingresar a la misma organización con el
-  acceso vigente renueva el vencimiento a 4 h desde ese momento, sin límite acumulado (cada vez pide motivo y
-  queda `soporte.ingreso`). No se inventó un tope: falta que Nicolás defina el máximo de renovaciones u horas
-  seguidas.
+- **Reingreso sin tope acumulado.** Reingresar a la misma organización con el acceso vigente renueva el vencimiento a 4 h
+  desde ese momento, sin límite acumulado (cada vez pide motivo y queda `soporte.ingreso`). **Decisión aceptada por el
+  dueño (2026-11-08):** se queda así y se cambia solo si el cliente lo pide.
 - **Borrado en cascada de la cuenta de soporte.** Eliminar la cuenta de una persona de soporte borra sus filas de
   `superadmin_entradas` (la FK es `on delete cascade`; el trigger append-only lo permite para no impedir bajas
   de superadmins, igual que el borrado de la organización).
 - **E2E pendientes.** Faltan los E2E del detalle de Actividad y del acceso de soporte (diálogo de motivo,
-  banner, vencimiento): necesitan Supabase y no se pudieron ejecutar al corregir, así que no se agregaron a ciegas.
+  banner, vencimiento): necesitan Supabase y no se pudieron ejecutar al corregir, así que no se agregaron a ciegas. Criterio de aceptación pendiente: E2E deterministas
+  verdes en el CI al integrar la épica.
