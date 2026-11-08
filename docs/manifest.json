@@ -362,7 +362,7 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "112b0c986a3729b06c42e043e6c5488281a5ce428f98252cc8033b2055d73dd7",
+      "pageHash": "3a0f031eb77e0a0c9d397a669cac7b0bbf8e7fc98a8e04428e3f37e68d2cd002",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -533,6 +533,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "fdd3dcd1"
+    },
+    "docs/producto/inicio-y-alertas.md": {
+      "title": "Inicio, alertas y búsqueda de productos",
+      "pageHash": "6753a97491d5373f18c3cce86f8bb97b115be89d77881569fb856e22ade7beca",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "4b311c19"
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
@@ -1421,6 +1430,19 @@
       ],
       "owner": "tecnico",
       "commit": "fdd3dcd1"
+    },
+    "docs/tecnico/inicio-y-alertas.md": {
+      "title": "Inicio y alertas: pantalla, recálculo y búsqueda global",
+      "pageHash": "d72adad5902610addcf5374766834914457da80f93220e520e72ac50f85d32ed",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "e75a236b",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "4b311c19"
     },
     "docs/tecnico/mejoras-de-clientes-y-proveedores.md": {
       "title": "Mejoras de clientes y proveedores: modelo, RPC y pantallas (MSF-445)",
