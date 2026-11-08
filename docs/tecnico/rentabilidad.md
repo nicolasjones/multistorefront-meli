@@ -7,13 +7,17 @@ sources:
   - specs
 ---
 
-# Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127)
+# Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)
 
 - **MSF-120** — spec `rentabilidad-margen` · historias F-REN-01 (`0aab690`), F-REN-02 (`730d42d`) y
   F-REN-03 (`1cf16a9`).
 - **MSF-127** — spec `rentabilidad-comparativos-e-historia` · historia F-REN-06 (`28f5c82c`, `ac5d548e`,
   `087ec27b`, `4bd94e07`, `af1459e2`) e historia F-REN-07 (`fb03665f`, `a7916e28`, `9e41f6e2`, `64df8502`);
   cierre MSF-569 (`ec852933`).
+- **MSF-192** — spec `rentabilidad-real-y-reportes-de-ventas` · F-REN-08 (MSF-209, costos adicionales),
+  F-REN-09 (MSF-223, ventas reales), F-REP-04 (MSF-236, productos más consultados) y F-REP-05 (MSF-248,
+  ventas por período y canal); cierre MSF-741. Rama
+  `epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, **pendiente de merge a `main`**.
 
 Alcance de entrega: `refine` + `supabase` + `superset`; sin `kestra` ni `workers` (el cálculo es SQL y el
 tablero lo sirve Superset).
@@ -27,10 +31,11 @@ tableros, como YAML versionado en `infra/superset/dashboards/rentabilidad/`.
 
 | Capa | Qué hace | Dónde |
 |---|---|---|
-| Refine | Rutas `/rentabilidad`, `/rentabilidad/productos`, `/rentabilidad/comparativo` y `/rentabilidad/historia`, pestañas, aviso, «Cómo se calcula», diálogo del umbral, acceso restringido, error con reintento | `apps/web/src/pages/rentabilidad/`, `apps/web/src/lib/rentabilidad.ts`, `apps/web/src/App.tsx` |
+| Refine | Rutas `/rentabilidad`, `/rentabilidad/productos`, `/rentabilidad/comparativo`, `/rentabilidad/historia`, `/rentabilidad/ventas-reales` y `/rentabilidad/costos`, pestañas, aviso, «Cómo se calcula», diálogo del umbral, diálogo de costos, acceso restringido, error con reintento | `apps/web/src/pages/rentabilidad/`, `apps/web/src/lib/rentabilidad.ts`, `apps/web/src/lib/costosAdicionales.ts`, `apps/web/src/App.tsx` |
 | Supabase | Umbral por organización, RPC, cálculo en vistas, rol de lectura de Superset y restricción por sección del token | `supabase/migrations/2026113010*` y `2026113011*` |
 | Supabase (MSF-127) | Vistas del comparativo y del histórico, funciones `costo_en_fecha` y `cotizacion_cercana`, tabla `dominio.producto_costos_historial` y su disparador | `supabase/migrations/2027011110*` y `2027011111*` |
-| Superset | Cuatro tableros embebidos («Resumen», «Por producto», «Comparativo» y «Historia») y su registro en `public.reportes` | `infra/superset/dashboards/rentabilidad/` |
+| Supabase (MSF-192) | Tabla `dominio.costos_adicionales_canal`, sus RPC, la vista de ventas reales y el costo/cotización guardados en la línea del comprobante | `supabase/migrations/2027020220100*` (`20270202201000`–`20270202201007`) |
+| Superset | Cinco tableros embebidos («Resumen», «Por producto», «Comparativo», «Historia» y «Ventas reales») y su registro en `public.reportes` | `infra/superset/dashboards/rentabilidad/` |
 | Edge Function | `emitir-acceso-reporte` responde 403 sin token si falta la sección del reporte | `supabase/functions/emitir-acceso-reporte/` |
 
 ## Flujo de acceso y cálculo
@@ -87,6 +92,11 @@ sequenceDiagram
 | `costo_en_fecha` / `cotizacion_cercana` | `analitica` | nuevas (funciones, MSF-127) | Apoyo de la vista histórica: costo vigente en una fecha y cotización más cercana a una fecha. |
 | `producto_costos_historial` | `dominio` | nueva (tabla, MSF-127) | Append-only: una fila por alta o cambio real de costo, con `vigente_desde`. |
 | `producto_costos_historial` (disparador) | `dominio` | nuevo (MSF-127) | Disparador `after insert or update of costo` sobre `dominio.producto_costos` que escribe la historia. |
+| `costos_adicionales_canal` | `dominio` | nueva (tabla, MSF-192) | Costos por empresa que se descuentan del margen: `nombre`, `tipo` (`porcentaje`/`monto`), `valor`, `activo`; único por empresa entre los activos. |
+| `costos_adicionales_de` | `analitica` | nueva (función, MSF-192) | Costo adicional por unidad de una empresa: Σ porcentajes × neto / 100 + Σ montos activos. |
+| `margen_producto_canal` | `analitica` | alterada (vista, MSF-192) | Suma `costos_adicionales` por unidad y los descuenta de `margen` y `margen_pct`. Sin costos activos da lo mismo que MSF-120. |
+| `rentabilidad_ventas_real` | `analitica` | nueva (vista, MSF-192) | Margen de lo efectivamente vendido: costo y cotización guardados en la línea; una fila por empresa × producto × fecha. |
+| `comprobantes_venta_lineas.costo_unitario` / `.cotizacion` | `dominio` | alterada (MSF-192) | Columnas `numeric(14,2)` y `numeric(14,4)` nullable que se completan al confirmar el comprobante; ocultas para `authenticated`. |
 | `reportes.seccion` | `public` | alterada | Columna nueva, nullable; el reporte declara qué sección exige para emitir el token. |
 | `reportes` | `public` | existente | Catálogo de reportes de la spec 007; sin cambios más que la columna anterior. |
 | `reportes_organizaciones` | `public` | existente | Asignación reporte ↔ organización que consulta el resolver. |
@@ -384,13 +394,257 @@ previa» de la épica queda resuelta por esta decisión.
   (`pnpm test:superset:importar-dashboards`).
 - Detalle operativo: [Operar Superset](../operar-superset.md#tableros-de-rentabilidad-msf-120).
 
+## Rentabilidad real y reportes (MSF-192)
+
+Épica **MSF-192**, spec `rentabilidad-real-y-reportes-de-ventas`, rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili` (pendiente de merge a `main`). Suma dos pestañas a
+`/rentabilidad` —**Ventas reales** y **Costos adicionales**— y dos pestañas a `/ventas/reportes` —**Productos
+más consultados** y **Ventas por período y canal**—. Migraciones `20270202201000`–`20270202201007`, todas
+aditivas, con la reversión en el encabezado de cada una.
+
+### Objetos y migraciones
+
+| Objeto | Tipo | Qué hace | Migración |
+|---|---|---|---|
+| `dominio.costos_adicionales_canal` | tabla nueva | Costo adicional de una empresa: `nombre` (≤ 80), `tipo` (`porcentaje`/`monto`), `valor numeric(14,4) ≥ 0`, `activo`; porcentaje ≤ 100 y único por empresa entre los activos (sin distinguir mayúsculas ni espacios de borde). | `20270202201000_costos_adicionales_canal.sql` |
+| `public.listar_costos_adicionales(uuid)` | RPC nueva | Costos activos de las empresas accesibles, o de una (`p_empresa_id`). | `20270202201001_costos_adicionales_rpc.sql` |
+| `public.guardar_costo_adicional(uuid, uuid, text, text, numeric)` | RPC nueva | Alta (`p_id` null) o edición de un costo; valida nombre, tipo, valor, empresa accesible y nombre único; escribe Actividad. | `20270202201001_costos_adicionales_rpc.sql` |
+| `public.dar_baja_costo_adicional(uuid)` | RPC nueva | Baja lógica (`activo = false`), idempotente; escribe Actividad. | `20270202201001_costos_adicionales_rpc.sql` |
+| `analitica.costos_adicionales_de(uuid, numeric)` | función nueva | Costo adicional **por unidad**: Σ `porcentaje × neto / 100` + Σ `monto` de los costos activos. `security definer`, `search_path = ''`, solo `superset_analitica`. | `20270202201002_analitica_margen_costos_adicionales.sql` |
+| `analitica.margen_producto_canal` | vista alterada | Suma `costos_adicionales` y los descuenta de `margen` y `margen_pct`; `estado` sale del margen resultante. | `20270202201002_analitica_margen_costos_adicionales.sql` |
+| `dominio.comprobantes_venta_lineas.costo_unitario` / `.cotizacion` | columnas nuevas | Costo en pesos por unidad y cotización usada al confirmar el comprobante; nullable para las ventas anteriores. `authenticated` no tiene `select` sobre esas dos columnas. | `20270202201005_comprobante_lineas_costo_cotizacion.sql` |
+| `public.confirmar_comprobante(uuid)` | RPC alterada | Misma firma: al confirmar guarda en cada línea el costo del producto (en pesos) y la cotización vigente, una sola vez e idempotente. | `20270202201006_confirmar_comprobante_costo_cotizacion.sql` |
+| `private.copiar_costo_linea_nota()` + disparador `comprobantes_venta_lineas_costo_nota` | disparador | Al insertar una línea de nota de crédito de devolución, copia `costo_unitario` y `cotizacion` de la línea original. | `20270202201006_confirmar_comprobante_costo_cotizacion.sql` |
+| `analitica.rentabilidad_ventas_real` | vista nueva | Margen de lo efectivamente vendido: una fila por organización × empresa × producto × fecha, con `unidades`, `vendido`, `costo`, `costos_adicionales`, `margen`, `margen_pct`, `estado` y `umbral_margen_bajo`. | `20270202201007_analitica_rentabilidad_ventas_real.sql` |
+
+La tabla nueva guarda datos y tiene RLS por organización, empresa accesible y sección `rentabilidad`
+(`lectura` o `edicion`); `authenticated` solo tiene `select`, porque la única vía de escritura son las RPC
+`security definer`. Las vistas de `analitica` siguen cerradas para `anon` y `authenticated`, y las lee solo
+`superset_analitica`.
+
+### Cálculo del margen con costos adicionales
+
+`analitica.margen_producto_canal` conserva la fórmula de MSF-120 y le resta el costo adicional por unidad de
+la empresa:
+
+```text
+costos_adicionales = analitica.costos_adicionales_de(empresa, precio_neto)
+margen             = precio_neto - costo - costos_adicionales
+margen_pct         = margen / precio_neto
+estado             = negativo si margen_pct < 0
+                     bajo     si margen_pct < umbral
+                     ok       en otro caso
+```
+
+- Un costo de tipo `porcentaje` se aplica sobre el **neto sin IVA**; uno de tipo `monto`, por **unidad**.
+- Solo cuentan los costos `activo`; darlos de baja los saca del cálculo sin borrar la fila.
+- **Sin costos activos la vista devuelve exactamente los valores de MSF-120**: la épica es aditiva y no
+  cambia el resultado de quien no cargó costos.
+- La columna `costos_adicionales` se agrega al final de la vista; es un **BREAKING de semántica** de
+  `margen`/`margen_pct`, no de firma, documentado en el contrato de la épica.
+
+### Ventas reales
+
+`analitica.rentabilidad_ventas_real` usa el **costo guardado en la línea al confirmar la venta**, no el costo
+vigente hoy:
+
+```text
+lineas  = líneas de comprobantes que cuentan (factura o nota de crédito) con costo_unitario no nulo
+signo   = analitica.signo_comprobante(tipo)          -- nota de crédito = -1
+unidades            = Σ signo × cantidad
+vendido             = Σ signo × subtotal_sin_iva     -- neto sin IVA
+costo               = Σ signo × cantidad × costo_unitario
+costos_adicionales  = Σ signo × cantidad × costos_adicionales_de(empresa, subtotal_sin_iva / cantidad)
+margen              = vendido - costo - costos_adicionales
+margen_pct          = margen / vendido               -- null si vendido ≤ 0
+```
+
+- **Las ventas anteriores a la columna no figuran**: una línea sin `costo_unitario` queda fuera de la vista;
+  no se inventa un costo retroactivo.
+- Las notas de crédito restan unidades, vendido, costo y costos adicionales.
+- Los costos adicionales que se descuentan son los **vigentes hoy** (la vista no guarda su historia); el
+  costo del producto sí es el de la venta.
+- `estado` usa el mismo umbral de `dominio.rentabilidad_config` (`ok`/`bajo`/`negativo`).
+- `fecha` es la del comprobante y `empresa_nombre`, `producto_nombre` y `sku` se leen de las tablas de
+  dominio. La vista expone `organizacion_id` y `empresa_id` para la cláusula `rls` del guest token.
+
+### Frontend de Costos adicionales
+
+- Ruta `/rentabilidad/costos` (`RentabilidadCostosAdicionales`), pestaña **Costos adicionales** en
+  `PESTANAS_RENTABILIDAD` (`apps/web/src/lib/rentabilidad.ts`).
+- La pantalla usa `useFiltroPorEmpresaActiva`: muestra los costos de la empresa activa o de todas con
+  «Todas las tiendas». Es la única pestaña de Rentabilidad que sigue a la barra superior (Principio VIII).
+- `useNivelSeccion('rentabilidad')` decide los botones: con `edicion` aparecen **Nuevo costo adicional**,
+  **Editar** y **Dar de baja**; con `lectura` (Administración) solo se ve la lista.
+- `DialogoCostoAdicional` se carga con `lazy` y se monta al abrir. En el alta se puede marcar **varias
+  empresas**: se hace una llamada por empresa y, si alguna falla, las ya guardadas quedan y el diálogo sigue
+  abierto con el error de la que faltó. En edición la empresa queda fija.
+- Al cambiar la empresa activa con el diálogo abierto, se cierra sin guardar y se muestra el aviso «Cambiaste
+  de empresa: cerramos el formulario sin guardar…». Nunca guarda datos bajo la empresa anterior.
+- Los mensajes de validación y de error de la base se traducen en `apps/web/src/lib/costosAdicionales.ts`
+  (`42501`, `23505`, `23514`, `P0002`), sin mostrar el texto técnico.
+
+### Frontend de Ventas reales
+
+- Ruta `/rentabilidad/ventas-reales` (`RentabilidadVentasReales`), con `ReporteEmbebido` y el mismo patrón de
+  error con **Reintentar** y acceso restringido de las otras pestañas.
+- No depende de la empresa activa: muestra todas las empresas de la organización (excepción declarada al
+  Principio VIII).
+- El rango Desde/Hasta vive en el tablero (`NATIVE_FILTER-rango`); la nota de la pantalla explica que solo
+  cuentan las ventas confirmadas con costo guardado.
+- El tablero **Rentabilidad · Ventas reales** (`rentabilidad-ventas-reales`) tiene tres gráficos: totales del
+  período, tabla por empresa y tabla por producto. Se registra en `public.reportes` con
+  `seccion = 'rentabilidad'` y rol por defecto `administracion`.
+
+### Pruebas de MSF-192
+
+| Prueba | Qué cubre |
+|---|---|
+| `supabase/tests/database/costos_adicionales_canal.test.sql` | Alta, edición, baja lógica, nombre único por empresa, tipo/valor y efecto en el margen. |
+| `supabase/tests/database/costos_adicionales_aislamiento.test.sql` | Dos organizaciones, empresas no accesibles, RLS y 42501 sin `rentabilidad`. |
+| `supabase/tests/database/rentabilidad_ventas_real.test.sql` | Costo guardado en la venta, nota de crédito resta, líneas sin costo fuera, costos adicionales y estados. |
+| `supabase/tests/database/rentabilidad_ventas_real_aislamiento.test.sql` | Dos organizaciones y superficie cerrada para `anon`/`authenticated`. |
+| `apps/web/src/pages/rentabilidad/CostosAdicionales.test.tsx` | Lista, permisos, alta simple y multiempresa, falla parcial, validaciones, edición, baja y cambio de empresa. |
+| `apps/web/src/pages/rentabilidad/VentasReales.test.tsx` | Estados, error/reintento, acceso restringido y que no dependa de la empresa activa. |
+| `apps/web/src/pages/rentabilidad/tableroVentasReales.contrato.test.ts` | Contrato del YAML: totales, tablas, nota y registro en `reportes.json`. |
+| `apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts` | `[MSF-741:T041]`: los cuatro reportes y la sección de costos con Administrador, Administración y Operador/Consulta. |
+
+### Cómo probarlo (MSF-192)
+
+> El paso a paso para quien usa el sistema está en el manual de usuario
+> ([Rentabilidad](../producto/rentabilidad.md)). Acá va la **guía de prueba técnica**: qué sembrar, cómo
+> comprobarlo en la base y qué test lo cubre.
+
+#### Prerrequisitos
+
+- **Entorno:** stack local con la rama de la épica (`pnpm dev:supabase` + `pnpm dev`; panel en
+  `http://localhost:5173`) **con un Superset real** —los tableros no se simulan: sin él, la pantalla de
+  «Ventas reales» muestra «El tablero de Rentabilidad todavía no está disponible para tu organización»— o el
+  ambiente **DEV** con la épica desplegada y los tableros importados:
+
+  ```bash
+  pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging
+  ```
+
+- **Personas y permisos** (en la organización de prueba):
+  - **Administrador** con la sección **Rentabilidad** en edición: crea, edita y da de baja costos.
+  - **Administración** con la sección en lectura: ve la lista sin botones.
+  - **Operador** o **Consulta** sin la sección: ven «No tenés acceso a esta sección».
+- **Datos a sembrar:**
+  - Dos **empresas** (tiendas) de la misma organización.
+  - Un producto con **neto $ 10.000** y **costo $ 6.000** en la empresa A (y el mismo producto en la B).
+  - Una **factura confirmada** de 3 unidades a $ 10.000 (para que la línea quede con `costo_unitario`) y una
+    **nota de crédito de devolución** sobre esa factura.
+  - Una **factura anulada** y un **presupuesto** (no pueden contar en el margen real).
+
+#### Pasos
+
+1. **Cargar un costo adicional.** Con el Administrador, abrí `/rentabilidad` → pestaña **Costos
+   adicionales** → **Nuevo costo adicional**: nombre «Envío», tipo **Porcentaje sobre el neto**, valor `5`,
+   **Aplica a** = empresa A → **Guardar**. Tenés que ver el aviso «Costo «Envío» creado.» y la fila con
+   **Empresa** = A, **Tipo** = «Porcentaje sobre el neto» y **Valor** = «5 %».
+2. **Comprobar que el margen lo descuenta.** En `/rentabilidad` → **Por producto**, la tabla tiene una fila
+   por producto y **Canal** (empresa): el producto con neto $ 10.000 y costo $ 6.000 tiene que mostrar
+   **margen $ 3.500 (35 %)** en el canal A y **$ 4.000 (40 %)** en el B. En la base:
+
+   ```sql
+   select empresa_nombre, precio_neto, costo, costos_adicionales, margen, margen_pct, estado
+     from analitica.margen_producto_canal
+    where producto_nombre = 'Producto de prueba';
+   ```
+
+   `costos_adicionales` da 500 (= 5 % de 10.000) en la empresa A y 0 en la B.
+3. **Costo por unidad.** Cargá «Envío fijo» con tipo **Monto por unidad** = `200`: el margen de la empresa A
+   baja $ 200 por unidad y el de la B no cambia.
+4. **Dar de baja.** Con **Dar de baja** en la fila: el costo sale de la lista y `costos_adicionales` vuelve a
+   0; el margen queda igual al de MSF-120 (`neto − costo`). La fila **no se borra**: `activo` queda en `false`.
+5. **Nombre repetido.** Creá otra vez «Envío» en la misma empresa: el formulario lo rechaza con «Ya hay un
+   costo con ese nombre en <empresa>» (la base devuelve `23505`).
+6. **Valor inválido.** Porcentaje `120` → «El porcentaje debe estar entre 0 y 100»; valor `-5` o texto no
+   numérico → «Ingresá un valor mayor o igual a 0, por ejemplo 5 o 12,5.»; nombre vacío → «Ingresá un nombre
+   para el costo.»
+7. **Permisos.** Con Administración, la lista se ve pero **no** aparecen «Nuevo costo adicional», «Editar» ni
+   «Dar de baja». Con Operador o Consulta, `/rentabilidad` muestra «No tenés acceso a esta sección» y **no**
+   pide token.
+8. **Cambio de empresa.** Con el formulario abierto, cambiá la empresa activa en la barra superior: el
+   formulario se cierra con el aviso «Cambiaste de empresa: cerramos el formulario sin guardar…» y **no** se
+   guarda nada bajo la empresa anterior.
+9. **Margen real.** Confirmá una factura de 3 unidades a $ 10.000 con costo $ 6.000 y abrí `/rentabilidad` →
+   **Ventas reales** con un rango que incluya la fecha: los totales del período tienen que dar **vendido
+   $ 30.000**, **costo $ 18.000** y **margen $ 12.000 (40 %)**. En la base:
+
+   ```sql
+   select v.numero, l.cantidad, l.subtotal_sin_iva, l.costo_unitario, l.cotizacion
+     from dominio.comprobantes_venta_lineas l
+     join dominio.comprobantes_venta v on v.id = l.comprobante_id
+    where v.estado = 'confirmada';
+   ```
+
+   `costo_unitario` = 6000 y `cotizacion` = el dólar vigente **en ese momento**.
+10. **El costo guardado no se mueve.** Cambiá el costo del producto y la cotización **después** de confirmar:
+    el margen real de esa venta no cambia (usa el `costo_unitario` guardado), mientras que el margen de lista
+    de **Por producto** sí cambia.
+11. **La nota de crédito resta.** Emití una nota de crédito de devolución sobre esa factura: las unidades, el
+    vendido y el costo bajan en el mismo importe; el disparador
+    `comprobantes_venta_lineas_costo_nota` copió `costo_unitario` y `cotizacion` de la línea original.
+12. **Lo que no cuenta.** La factura anulada y el presupuesto no aparecen en **Ventas reales**, y una factura
+    confirmada **antes** de la migración (sin `costo_unitario`) tampoco: no se inventa un costo.
+13. **Los costos adicionales que se descuentan son los de hoy.** Cargá un costo nuevo y volvé al rango de la
+    venta vieja: el margen real descuenta el costo vigente, no el de la fecha de la venta.
+
+#### Resultado esperado
+
+- **Given** una empresa sin costos adicionales, **when** se mira el margen de lista, **then** es exactamente
+  `neto − costo`: la vista no cambia los valores de MSF-120.
+- **Given** un costo del 5 % sobre el neto en la empresa A, **when** se calcula el margen, **then** es
+  `neto − costo − 5 % del neto` en A y sigue igual en las demás empresas.
+- **Given** un costo por unidad, **when** se dan de baja varios costos activos de la misma empresa, **then** se
+  descuentan todos y, dados de baja, dejan de descontarse sin borrarse.
+- **Given** una factura confirmada, **when** se cambia el costo o la cotización después, **then** el margen
+  real no cambia (usa lo guardado) y las ventas sin costo guardado no figuran.
+- **Given** una nota de crédito, **when** se calcula el margen real, **then** resta unidades, vendido, costo y
+  costos adicionales.
+- **Given** una persona sin la sección `rentabilidad`, **when** abre `/rentabilidad`, **then** ve «No tenés
+  acceso a esta sección» y no se emite token.
+
+#### Cómo automatizarlo
+
+| Recorrido | Cobertura | Rótulo |
+|---|---|---|
+| Alta, edición, baja, nombre único, tipo/valor y efecto en el margen | pgTAP `supabase/tests/database/costos_adicionales_canal.test.sql` | — |
+| Aislamiento entre organizaciones, empresas no accesibles y RLS | pgTAP `supabase/tests/database/costos_adicionales_aislamiento.test.sql` | — |
+| Costo guardado, nota de crédito, líneas sin costo, estados | pgTAP `supabase/tests/database/rentabilidad_ventas_real.test.sql` | — |
+| Aislamiento de la vista de ventas reales | pgTAP `supabase/tests/database/rentabilidad_ventas_real_aislamiento.test.sql` | — |
+| Pantalla de costos: permisos, alta multiempresa, falla parcial, cambio de empresa | Vitest `apps/web/src/pages/rentabilidad/CostosAdicionales.test.tsx` | — |
+| Pantalla de ventas reales: estados, error con reintento, acceso restringido | Vitest `apps/web/src/pages/rentabilidad/VentasReales.test.tsx` | — |
+| Contrato del tablero (totales, tablas, nota, registro en `reportes.json`) | Vitest `apps/web/src/pages/rentabilidad/tableroVentasReales.contrato.test.ts` | — |
+| Los cuatro reportes y la sección de costos con los tres roles | E2E `apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts` | `[MSF-741:T041]` |
+
+```bash
+pnpm test:db                                    # pgTAP (requiere pnpm dev:supabase)
+pnpm --filter @platform/web test:e2e rentabilidad-real-reportes-roles
+```
+
+**Pendiente de automatizar:** el E2E `[MSF-741:T041]` está escrito pero **no se ejecutó** en el entorno de la
+épica (sin Docker); requiere `pnpm dev:supabase` y **no monta Superset**: valida el marco, la pestaña y el
+acceso contra la base. Tampoco se verificó contra un Superset real que los filtros nativos lleguen al tablero.
+
+### Capturas pendientes
+
+Las pestañas **Ventas reales** y **Costos adicionales** no tienen captura en `docs/producto/img/rentabilidad/`:
+`pnpm docs:capturas` **no existe en esta rama** (vive en la rama no mergeada
+`origin/docs/dataset-demo-y-capturas`, commit `78a94d97`), y el código de la épica tampoco está en `main`.
+**Dueño:** cierre de MSF-192, cuando la épica esté mergeada y la herramienta disponible. No se inventan
+capturas.
+
 ## Frontend
 
 - Rutas: `/rentabilidad` (`RentabilidadResumen`), `/rentabilidad/productos` (`RentabilidadPorProducto`),
-  `/rentabilidad/comparativo` (`RentabilidadComparativo`) y `/rentabilidad/historia` (`RentabilidadHistoria`),
-  en `apps/web/src/App.tsx`. Menú **Análisis**, ícono `Insights`.
-- Pestañas: **Resumen**, **Por producto**, **Comparativo** y **Historia**. «Por publicación de ML» no se
-  monta (Etapa 2).
+  `/rentabilidad/comparativo` (`RentabilidadComparativo`), `/rentabilidad/historia` (`RentabilidadHistoria`),
+  `/rentabilidad/ventas-reales` (`RentabilidadVentasReales`) y `/rentabilidad/costos`
+  (`RentabilidadCostosAdicionales`), en `apps/web/src/App.tsx`. Menú **Análisis**, ícono `Insights`.
+- Pestañas: **Resumen**, **Por producto**, **Comparativo**, **Historia**, **Ventas reales** y **Costos
+  adicionales**. «Por publicación de ML» no se monta (Etapa 2).
 - El resumen usa `useConteoMargen` para el aviso y el estado vacío; si no hay productos con margen
   calculado muestra `EstadoVacio`, y si no hay reporte asignado o falla el montaje muestra `EstadoError`
   con reintento (`apps/web/src/pages/rentabilidad/index.tsx`).
@@ -413,13 +667,13 @@ previa» de la épica queda resuelta por esta decisión.
 
 - YAML versionado en `infra/superset/dashboards/rentabilidad/`: base de datos lógica
   `Rentabilidad_analitica`, datasets `margen_producto_canal`, `rentabilidad_resumen_empresa`,
-  `rentabilidad_consolidado`, `margen_comparativo_producto` y `margen_historico_producto_canal`, charts y los
-  dashboards `rentabilidad-resumen`, `rentabilidad-por-producto`, `rentabilidad-comparativo` y
-  `rentabilidad-historia`.
+  `rentabilidad_consolidado`, `margen_comparativo_producto`, `margen_historico_producto_canal` y
+  `rentabilidad_ventas_real`, charts y los dashboards `rentabilidad-resumen`, `rentabilidad-por-producto`,
+  `rentabilidad-comparativo`, `rentabilidad-historia` y `rentabilidad-ventas-reales`.
 - `infra/superset/dashboards/rentabilidad/reportes.json` registra los nombres que busca la pantalla:
-  `Rentabilidad · Resumen`, `Rentabilidad · Por producto`, `Rentabilidad · Comparativo` y
-  `Rentabilidad · Historia`, todos con `seccion = 'rentabilidad'` y rol por defecto `administracion`. El
-  Administrador no se lista porque tiene acceso incondicional.
+  `Rentabilidad · Resumen`, `Rentabilidad · Por producto`, `Rentabilidad · Comparativo`,
+  `Rentabilidad · Historia` y `Rentabilidad · Ventas reales`, todos con `seccion = 'rentabilidad'` y rol por
+  defecto `administracion`. El Administrador no se lista porque tiene acceso incondicional.
 - Importación (idempotente) desde `infra/superset/importar-dashboards.mjs`, usada por el despliegue:
 
   ```bash
@@ -442,6 +696,13 @@ previa» de la épica queda resuelta por esta decisión.
 - `dominio.producto_costos_historial` (MSF-127): RLS por organización y sección `rentabilidad`; solo
   `select` para `authenticated`; **sin políticas de escritura** (la escribe el disparador `security definer`);
   `anon` sin privilegios.
+- `dominio.costos_adicionales_canal` (MSF-192): RLS por organización, empresa accesible y sección
+  `rentabilidad` (`lectura` o `edicion`); solo `select` para `authenticated`; escriben las RPC
+  `security definer`; `anon` sin privilegios. `costo_unitario` y `cotizacion` de
+  `dominio.comprobantes_venta_lineas` quedan fuera del `select` de `authenticated`.
+- `analitica.margen_producto_canal` (MSF-192) descuenta los costos adicionales; la función
+  `analitica.costos_adicionales_de` revoca `execute` a `public`, `anon` y `authenticated` y solo la ejecuta
+  `superset_analitica`.
 - `analitica`: `revoke all` para `public`, `anon` y `authenticated`; solo `superset_analitica` lo usa. Las
   funciones nuevas de MSF-127 además revocan `execute` a `public`, `anon` y `authenticated`.
 - Las vistas no aplican RLS dentro de Superset: el aislamiento depende de la cláusula `rls` del guest
@@ -476,6 +737,7 @@ previa» de la épica queda resuelta por esta decisión.
 | Vitest `apps/web/src/pages/rentabilidad/Comparativo.test.tsx` y `Historia.test.tsx` (MSF-127) | Pestañas: error y reintento, acceso restringido, sin Mercado Libre, teclado/lector y que cambiar la empresa de la barra superior no altera el tablero. |
 | Vitest `apps/web/src/pages/rentabilidad/tableroComparativo.contrato.test.ts` y `tableroHistoria.contrato.test.ts` (MSF-127) | Contrato de los YAML: columnas de las tablas, contador «N productos», estados vacíos con motivo de negocio, filtros nativos, serie por empresa y registro en `reportes.json`. |
 | `apps/web/e2e/rentabilidad-roles.e2e.ts` | Administrador edita el umbral, Administración lee, Operador/Consulta restringidos (SC-008); desde MSF-127 recorre además `/rentabilidad/comparativo` y `/rentabilidad/historia` (SC-007). |
+| `apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts` (MSF-192) | `[MSF-741:T041]`: los cuatro reportes de ventas, `/rentabilidad/ventas-reales` y la sección de costos con Administrador, Administración y Operador/Consulta. |
 
 El E2E con roles está **escrito pero no ejecutado** en el entorno del desarrollo (sin Docker); requiere
 `pnpm dev:supabase` y se corre con `pnpm --filter @platform/web test:e2e rentabilidad-roles`. No monta
@@ -505,6 +767,27 @@ drop table dominio.producto_costos_historial;  -- exportar antes los datos
 Además hay que borrar las filas de `public.reportes` de «Comparativo» y «Historia». La tabla de historia de
 costos es el único objeto de MSF-127 que **guarda datos**: exportala antes de borrarla.
 
+Para MSF-192, la reversión de cada migración está en su encabezado; el camino completo es (migración
+posterior, nunca en el PR que crea los objetos):
+
+```sql
+drop view analitica.rentabilidad_ventas_real;
+drop function analitica.costos_adicionales_de(uuid, numeric);
+drop trigger comprobantes_venta_lineas_costo_nota on dominio.comprobantes_venta_lineas;
+drop function private.copiar_costo_linea_nota();
+alter table dominio.comprobantes_venta_lineas
+  drop column cotizacion, drop column costo_unitario;
+drop function public.dar_baja_costo_adicional(uuid);
+drop function public.guardar_costo_adicional(uuid, uuid, text, text, numeric);
+drop function public.listar_costos_adicionales(uuid);
+drop table dominio.costos_adicionales_canal;  -- exportar antes los datos
+-- restaurar public.confirmar_comprobante y analitica.margen_producto_canal con su definición previa
+```
+
+Además hay que borrar la fila de `public.reportes` de «Ventas reales» y restaurar
+`public.confirmar_comprobante` y la vista `margen_producto_canal` a su versión de MSF-120. La tabla de
+costos adicionales **guarda datos**: exportala antes de borrarla.
+
 ## Pendientes y deuda trazada
 
 | Pendiente | Dueño / seguimiento |
@@ -520,4 +803,7 @@ costos es el único objeto de MSF-127 que **guarda datos**: exportala antes de b
 | Ejecutar el E2E con los dos tableros nuevos (MSF-569, ya escrito). | Cierre de MSF-127 |
 | Columnas y series de cuentas de Mercado Libre en los dos tableros. | Épica de Mercado Libre (Etapa 2) |
 | Validar con el cliente los márgenes de ejemplo de los escenarios (40 % contra 33,3 %). | Producto (AGE-1102) |
+| Verificar en un Superset real el tablero «Ventas reales» y los costos adicionales descontados en los otros cuatro. | Cierre de MSF-192 |
+| Capturas de **Ventas reales** y **Costos adicionales**: `pnpm docs:capturas` no existe en esta rama. | Cierre de MSF-192 |
+| Ejecutar el E2E `rentabilidad-real-reportes-roles.e2e.ts` (`[MSF-741:T041]`) con el stack local. | Cierre de MSF-192 |
 

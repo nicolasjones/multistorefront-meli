@@ -31,8 +31,9 @@ de reposición.
 
 | Persona | Qué puede hacer |
 |---|---|
-| **Administrador/a y Administración** (`edicion` en Proveedores) | Crear, editar, desactivar y reactivar proveedores; ver la ficha y sus productos |
-| **Con `lectura` en Proveedores** | Ver el listado y la ficha, sin acciones de alta, edición ni estado |
+| **Administrador/a y Administración** (`edicion` en Proveedores) | Crear, editar, desactivar y reactivar proveedores; ver la ficha y sus productos; **agregar contactos y cambiar el principal** |
+| **Con `lectura` en Proveedores** | Ver el listado y la ficha, sin acciones de alta, edición ni estado; **los contactos se ven, sin botones** |
+| **Con `lectura` en Proveedores y en Rentabilidad** | Además, ver la **evolución del costo** de cada producto del proveedor |
 | **Operador** (`edicion` en Productos, `ninguno` en Proveedores) | Elegir proveedor y cargar el código del proveedor en el producto; no ve CUIT ni contacto |
 | **Depósito** (registra ingresos) | Elegir proveedor por la vista mínima al ingresar mercadería (MSF-219); no ve CUIT ni contacto |
 | **Mostrador, Consulta y demás roles sin Proveedores** | No ven la sección ni reciben filas de la tabla por la API |
@@ -98,6 +99,40 @@ Si se quita el proveedor, también se borra el código. Un producto ya asignado 
 se desactiva **conserva la asignación** y se sigue mostrando; el proveedor desactivado no se ofrece para
 nuevas asignaciones.
 
+## Varios contactos por proveedor (F-PRV-08, MSF-449)
+
+**Épica:** MSF-445 — Clientes y proveedores · Mejoras de clientes y proveedores.
+**Spec:** `specs/20261029-100000-mejoras-de-clientes-y-proveedores/`.
+**Construcción interna:** [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md).
+
+- La ficha del proveedor tiene una sección **Contactos**: varias personas (nombre obligatorio, rol,
+  correo, teléfono) con **una sola principal** garantizada por la base (índice único parcial).
+- **Marcar un contacto como principal** desmarca al anterior y **copia su nombre, correo y teléfono**
+  a `persona_contacto`, `correo` y `telefono` de la ficha, en la misma transacción.
+- Con un contacto principal, «Persona de contacto», «Correo» y «Teléfono» del diálogo «Editar
+  proveedor» quedan **de solo lectura** con la leyenda «Se toma del contacto principal»; sin principal
+  se editan como antes.
+- Agregar contactos y cambiar el principal exigen **edición** en Proveedores (lo comprueba la base);
+  con solo lectura la lista se ve, sin botones.
+- Editar o quitar un contacto **no** entran en la épica.
+- Los eventos `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado` quedan en
+  Actividad, con la razón social y el nombre del contacto (sin correo ni teléfono).
+
+## Historial de costos por proveedor (F-PRV-07, MSF-448)
+
+**Épica:** MSF-445 — Clientes y proveedores · Mejoras de clientes y proveedores.
+
+- El **costo unitario de cada línea de ingreso pasa a ser opcional**: `registrar_ingreso_mercaderia`
+  acepta líneas sin costo (misma firma) y, con «Actualizar el costo del producto con este ingreso», una
+  línea sin costo no actualiza el costo del producto. Sin costo **no es cero**.
+- La RPC `public.historial_costos_producto(p_producto_id, p_proveedor_id)` devuelve la **evolución del
+  costo** de un producto: una fila por línea de ingreso **registrado** (no anulado) **con costo**, con
+  fecha, proveedor, comprobante y costo. Exige **Rentabilidad y Proveedores** en lectura o edición, y
+  respeta la organización de la sesión y las empresas accesibles del usuario.
+- En la pantalla, la ficha del proveedor ofrece **«Evolución del costo»** por producto (junto a «Ver
+  producto»): una tabla por proveedor con **Fecha**, **Comprobante** y **Costo unit. USD**. Sin
+  permiso, el cuadro dice «No tenés permiso.» y no muestra importes.
+
 ## Fuera de alcance
 
 El prototipo muestra más de lo que esta épica entrega. Queda **fuera de alcance** y trazado como
@@ -110,9 +145,15 @@ El **costo del producto** vive en Catálogo y Precios (MSF-179), no en esta épi
 mercadería** y los **reportes de reposición** son MSF-219 y siguientes: esta épica solo deja el contrato
 de datos (`productos.proveedor_id` y `productos.codigo_proveedor`) y la vista mínima para elegir.
 
+De MSF-445 quedan fuera de alcance: editar o quitar un contacto, el costo unitario obligatorio de las
+líneas de ingreso (MSF-445 lo vuelve opcional), las órdenes de compra (F-PRV-09) y la regla de costo
+del producto (MSF-179).
+
 ## Para seguir
 
 - **[Catálogo de productos](catalogo.md)** — alta y edición del producto, donde se elige el proveedor.
 - **[Ingreso de mercadería por proveedor](producto/ingreso-de-mercaderia.md)** — consumo del proveedor.
+- **[Mejoras de clientes y proveedores (MSF-445)](tecnico/mejoras-de-clientes-y-proveedores.md)** — contactos,
+  evolución del costo y costo opcional de la línea de ingreso.
 - **[Actividad e historial](actividad.md)** — eventos `proveedor.*`.
 - **[Permisos por rol](permisos-por-rol.md)** — sección `proveedores` de la matriz.

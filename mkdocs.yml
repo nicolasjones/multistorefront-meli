@@ -110,9 +110,11 @@ nav:
           - Proveedores: producto/proveedores.md
           - Ingreso de mercadería: producto/ingreso-de-mercaderia.md
       - Ventas:
+          - Venta de mostrador: producto/ventas-mostrador.md
           - Presupuestos y facturas: producto/ventas-comprobantes.md
           - Listado, estados y anulación: producto/ventas-listado-estados-y-anulacion.md
           - Cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
+          - Cierre de caja: producto/ventas-cierre-caja.md
           - Despacho y faltantes: producto/ventas-despacho-y-faltantes.md
           - Devoluciones y reclamos (RMA): producto/ventas-rma-devoluciones.md
           - Imprimir factura, remito y presupuesto: producto/ventas-impresion.md
@@ -154,7 +156,7 @@ nav:
           - Variantes y productos relacionados: producto/catalogo-variantes-y-relacionados.md
           - Sistema de diseño: producto/sistema-de-diseno.md
           - Ventas, catálogos de cobro y envío: producto/ventas-catalogos.md
-          - Ventas, reportes básicos: producto/ventas-reportes.md
+          - Reportes de ventas: producto/ventas-reportes.md
           - Stock único y alertas: producto/stock-unico-y-alertas.md
           - Ranking de clientes: producto/ranking-de-clientes.md
           - Ranking avanzado de clientes: producto/ranking-avanzado-de-clientes.md
@@ -190,9 +192,12 @@ nav:
           - Catálogos de cobro y envío: tecnico/ventas-catalogos.md
           - Listado, estados y anulación: tecnico/ventas-listado-estados-y-anulacion.md
           - Cobros y conciliación: tecnico/ventas-cobros-y-conciliacion.md
+          - Venta de mostrador: tecnico/ventas-mostrador.md
+          - Precios especiales por cliente: tecnico/ventas-precios-especiales.md
+          - Cierre de caja: tecnico/ventas-cierre-caja.md
           - Despacho y faltantes: tecnico/ventas-despacho-y-faltantes.md
           - Devoluciones (RMA): tecnico/ventas-rma-devoluciones.md
-          - Reportes básicos: tecnico/ventas-reportes.md
+          - Reportes de ventas: tecnico/ventas-reportes.md
           - Impresión: tecnico/ventas-impresion.md
           - Historial y consulta: tecnico/ventas-historial-consulta.md
       - Stock y compras:
@@ -204,6 +209,7 @@ nav:
           - Ingreso de mercadería: tecnico/ingreso-de-mercaderia.md
           - Proveedores: tecnico/proveedores.md
           - Clientes: tecnico/clientes.md
+          - Mejoras de clientes y proveedores (MSF-445): tecnico/mejoras-de-clientes-y-proveedores.md
       - Service técnico:
           - Alta, estados y permisos: tecnico/service-alta-estados-y-permisos.md
           - Listado, ítems e impresión: tecnico/service-listado-items-impresion.md

@@ -17,6 +17,10 @@ Con los permisos que trae el sistema por defecto (el Administrador puede ajustar
 |---|---|
 | Ver el listado, las fichas y el ranking | Administrador, Operador, Mostrador, Administración, Consulta y Técnico |
 | Crear, editar, archivar y restaurar clientes | Administrador, Operador, Mostrador y Administración |
+| **Fijar o cambiar el descuento de un cliente** | Administrador |
+| Imprimir la etiqueta de envío de un cliente | Cualquiera que pueda ver la ficha |
+| Imprimir las etiquetas de varios clientes del listado | Administrador, Operador, Mostrador y Administración |
+| Unir dos fichas del mismo cliente | Solo Administrador |
 | Exportar a Excel | Administrador, Operador y Administración |
 | Importar clientes desde otro sistema | Administrador (ver [Migración inicial de datos](migracion-inicial-de-datos.md)) |
 | No ve Clientes | Depósito |
@@ -106,11 +110,105 @@ Al hacer clic en **Ver ficha** ves el nombre, el número («Cliente Nº …»), 
 - **Tiendas** y **Cuenta web**: en qué tiendas puede comprar y el estado de su cuenta.
 - **Compras**: un **Resumen comercial** con lo facturado en el año (sin IVA) y los **Últimos comprobantes**, con **Comprobante**, **Fecha**, **Estado** y **Total (sin IVA)**.
 
-Arriba tenés los botones **Editar**, **Archivar** (o **Restaurar**) y **Volver al listado**.
+Arriba tenés los botones **Editar**, **Archivar** (o **Restaurar**) y **Volver al listado**. También está **Etiqueta**, que abre la hoja de envío del cliente (ver abajo), y, si sos Administrador, **Fusionar con otro cliente…**.
 
 ![Ficha de un cliente minorista con sus datos de contacto, las tiendas donde está habilitado, la cuenta web y las compras](img/clientes/07-ficha-minorista.png)
 
 *La ficha de un cliente minorista: datos, tiendas, cuenta web y compras.*
+
+## Descuento por cliente
+
+Un cliente puede tener un **descuento propio**: un porcentaje que se le descuenta del precio de escala en
+cada venta. Lo usa el Administrador para no editar los precios línea por línea.
+
+### Fijar el descuento
+
+1. Entrá a **Contactos → Clientes** y abrí la edición del cliente.
+2. En el campo **Descuento (%)** escribí el porcentaje (por ejemplo `5`). Va de 0 a 100 y admite hasta
+   dos decimales.
+3. Guardá. Vas a ver «Cliente guardado».
+
+El campo dice: «Se resta del precio de escala en cada venta. Vacío = sin descuento.»
+
+- El campo **solo le aparece al Administrador**. Con otros roles no se ve y no se puede cambiar.
+- Si el valor está mal (fuera de 0 a 100, más de dos decimales o no es un número), el campo avisa:
+  «Ingresá un porcentaje entre 0 y 100, con hasta 2 decimales.»
+- Para sacarle el descuento, borrá el contenido del campo y guardá: queda **sin descuento**.
+
+### Ver el descuento
+
+En la ficha del cliente, la fila **Descuento** muestra el porcentaje (por ejemplo `5 %`). Si el cliente no
+tiene descuento, muestra «—».
+
+### Cómo se aplica en las ventas
+
+- El descuento se resta **del precio de escala** de cada línea, **antes** del IVA.
+- Si el cliente es mayorista, primero se aplica la escala por cantidad y después el descuento.
+- Si en una línea el precio está **cargado a mano**, ese precio **no** lleva descuento: el precio manual
+  es una decisión explícita de quien lo cargó.
+- En la línea del comprobante se lee de dónde salió el precio: «escala x1 · 5 % de descuento».
+- **Lo ya vendido no cambia**: si después editás el descuento del cliente, las facturas viejas siguen
+  con el precio con el que se hicieron. El descuento nuevo se aplica a las ventas siguientes.
+
+Ver más en [Presupuestos y facturas](ventas-comprobantes.md#descuento-por-cliente).
+
+## Imprimir la etiqueta de envío
+
+La etiqueta es la hoja que se pega en el paquete: trae el nombre del cliente, la dirección, el código postal, la localidad, la provincia, el teléfono y el transporte que suele usar.
+
+### Desde la ficha de un cliente
+
+1. Abrí la ficha del cliente.
+2. Hacé clic en **Etiqueta** (arriba) o en **Imprimir etiqueta de envío** (más abajo, en el bloque de la ficha).
+3. Se abre la hoja **Etiquetas de envío** con una sola etiqueta. Hacé clic en **Imprimir**: se abre el diálogo de impresión del sistema, donde podés elegir la impresora o **Guardar como PDF**.
+4. Cuando volvés al listado o a la ficha, el sistema te avisa «Etiqueta enviada a imprimir».
+
+Si el cliente **no tiene dirección cargada**, no se genera la hoja: el sistema te avisa que falta la dirección y te pide que la cargues en **Editar** antes de volver a imprimir.
+
+Si le falta algún dato menos importante (código postal, localidad, provincia, teléfono o transporte), la etiqueta sale igual: ese dato simplemente no se imprime.
+
+### Desde el listado, con varios clientes
+
+1. En **Contactos → Clientes**, marcá la casilla de las filas que querés y, si querés todas las de la página, **Seleccionar todos**.
+2. Arriba a la derecha aparece **Imprimir etiquetas (2)** (el número es la cantidad de clientes marcados). Hacé clic.
+3. Se abre la hoja **Etiquetas de envío** con una etiqueta por cliente, en el mismo orden en que los marcaste.
+4. Hacé clic en **Imprimir** y elegí la impresora o **Guardar como PDF**.
+
+Si alguno de los clientes marcados no tiene dirección, se omite y el sistema lo nombra: «Algunos clientes no tienen etiqueta.» y abajo, por ejemplo, «Pérez, Juan (falta dirección)». Si **ninguno** de los marcados tiene dirección, no se genera ninguna hoja.
+
+Si cambiás la empresa activa de la barra superior con la selección hecha, la selección se descarta y el listado se recarga: volvé a marcar los clientes.
+
+## Unir dos fichas del mismo cliente
+
+A veces el mismo cliente quedó cargado dos veces (por ejemplo, una con el nombre y otra con el nombre y el apellido). Esta función **une las dos fichas en una sola**, sin perder el historial.
+
+Solo el **Administrador** puede hacerlo, y **no se puede deshacer**.
+
+1. Abrí la ficha del cliente que querés conservar y hacé clic en **Fusionar con otro cliente…**.
+2. En el cuadro **Fusionar clientes**, buscá el otro cliente y elegilo.
+3. El sistema te muestra cuántas compras tiene cada uno y **qué ficha se conserva**. Elegí con las opciones **Ficha que se conserva**.
+4. Si **los dos clientes tienen cuenta web activa**, el sistema te pide que elijas **cuál cuenta web se mantiene**; la que no elijas se da de baja. Tenés que elegir una para poder seguir.
+5. Hacé clic en **Fusionar clientes**.
+
+Qué pasa después:
+
+- La ficha que se conserva suma las compras de las dos (por ejemplo, si una tenía 3 y la otra 5, quedan 8).
+- La ficha que se descartó **queda archivada**, no se borra: conserva sus datos y se puede ver con el filtro **Archivados**.
+- El sistema registra el movimiento en **Actividad**.
+
+Si algo no sale:
+
+| Mensaje | Qué significa y qué hacer |
+|---|---|
+| «Solo el Administrador puede fusionar clientes» | La acción es del Administrador; pedile que la haga |
+| «No se puede fusionar un cliente consigo mismo» | Elegí otro cliente distinto |
+| «Alguno de los clientes no existe» | La ficha elegida no está; buscá otro |
+| «Alguno de los clientes ya está archivado (¿la fusión ya se hizo?)» | Una de las dos fichas ya fue archivada; elegí otra |
+| «Los dos clientes tienen cuenta web activa: elegí cuál se mantiene» | Elegí con qué cuenta web te quedás en el paso 4 |
+| «No pudimos fusionar los clientes. No se cambió nada; probá de nuevo.» | No se movió nada; reintentá |
+
+!!! note "Lo que no se une"
+    La función une **las compras** y **la cuenta web**. Los datos de ficha (nombre, DNI/CUIT, dirección, teléfono) de cada cliente se quedan donde estaban: el que se descarta queda archivado con los suyos.
 
 ## Consumidor final
 
@@ -168,6 +266,12 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 
 **¿Dónde cargo la condición de IVA del cliente?** Por ahora la ficha solo guarda el DNI/CUIT; no hay un campo para la condición de IVA.
 
+**¿Se puede deshacer una unión de dos clientes?** No. La ficha que se descarta queda archivada con todos sus datos, pero las compras ya están en la ficha que se conserva.
+
+**¿La etiqueta se puede guardar como PDF?** Sí: en el diálogo de impresión elegí «Guardar como PDF» en el destino.
+
+**¿Por qué no imprime la etiqueta de un cliente?** Le falta la dirección. Cargala en **Editar** y volvé a imprimir.
+
 ## Si algo no sale
 
 | Mensaje | Qué significa y qué hacer |
@@ -181,3 +285,7 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 | **Todavía no hay clientes cargados.** | Creá el primero con **Crear** o importalos (ver [Migración inicial de datos](migracion-inicial-de-datos.md)). |
 | **No pudimos exportar los clientes.** | Usá **Reintentar**. |
 | **Tu rol no puede crear clientes / editar clientes.** | Pedile al Administrador que revise tus permisos. |
+| **No se puede imprimir la etiqueta: falta dirección.** | Cargá la dirección del cliente en **Editar** y probá de nuevo. |
+| **Algunos clientes no tienen etiqueta.** | A esos clientes les falta la dirección: el sistema los nombra y arma la hoja solo con los que la tienen. |
+| **No hay clientes para imprimir.** | Volvé al listado y marcá al menos un cliente con dirección. |
+| **No pudimos fusionar los clientes. No se cambió nada; probá de nuevo.** | No se movió nada: reintentá. |
