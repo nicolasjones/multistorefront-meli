@@ -8,7 +8,7 @@ sources:
 
 # Configuración del dólar y precio propio
 
-**Épica:** MSF-352 · **Spec:** `specs/20270105-100000-configuracion-dolar-y-precio-propio/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/`) · **Rama:** `epic/MSF-352-precios-y-dolar-configuracion-dolar-y-pr` (al escribir esta página la épica **no está mergeada a `main`**; las citas salen de esa rama) · **Alcance de entrega:** `refine` y `supabase`.
+**Épica:** MSF-352 · **Spec:** `specs/20270105-100000-configuracion-dolar-y-precio-propio/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/`) · **Rama:** `epic/MSF-352-precios-y-dolar-configuracion-dolar-y-pr` (la épica está integrada en `dokploy` —PR #774 y las correcciones de su revisión, PR #799 y #801—; en `main` llega con la próxima promoción; las citas salen de `dokploy`) · **Alcance de entrega:** `refine` y `supabase`.
 
 Historias: F-PRE-06 (MSF-419, commit `86c47cea`), F-PRE-08 (MSF-423, `3cfdf6ee`), F-PRE-09 (MSF-427, `4edda1c4`) y correcciones de la épica `6d8937d0` y `d77c632f`. Base: [Dólar y recálculo](dolar-y-recalculo.md) (MSF-116) y [Precios e IVA](precios-e-iva.md) (MSF-114).
 
@@ -91,3 +91,15 @@ Rótulos de tareas de `tasks.md`:
 - Mercado Libre: sin cola ni columna; llega con esa integración.
 - TODO (dueño: Documentador, tras el merge de la épica): generar capturas del manual con `pnpm docs:capturas` para la tarjeta «Configuración», el bloque «Precio propio por empresa» y la tabla «Así quedan los precios» (esta rama no tiene aún el código de la épica). Las páginas de producto no llevan imágenes nuevas hasta entonces.
 - TODO (dueño: Nicolás): confirmar que el redondeo de la configuración y el de F-PRE-07 son dos cosas distintas.
+
+## Correcciones de la revisión independiente
+
+Contrato vigente en `dokploy` (migraciones `20270216400000` a `20270216400600`; detalle en `docs/configuracion-dolar-y-precio-propio.md` de esa rama):
+
+- `confirmar_comprobante` guarda costo y cotización de cada línea con `private.cotizacion_para(org, empresa)` y `private.a_pesos` de 4 argumentos de la empresa del comprobante (antes fallaba con alcance «empresa» por una subconsulta de varias filas).
+- `confirmar_cotizacion(p_empresa, p_confirmado)`: umbral y variación contra la cotización **aplicada**; si |variación| supera `confirmacion_pct` sin `p_confirmado = true`, error `22023` (hint `variacion_inusual`). `estado_cotizacion` suma `aplicada`.
+- `dominio.precios_propios_historial`: historial append-only e inalterable de cada cambio de precio propio (lectura con la sección `productos`; la RLS de los precios propios usa `productos`, no `empresas`).
+- `private.cotizacion_alcance(org)` lee el alcance sin depender de la sesión, de modo que la tienda cobra igual a un visitante anónimo y a un usuario de otra organización.
+- Rentabilidad (`analitica.margen_producto_canal`, alerta `margen_negativo`) convierte con `analitica.cotizacion_para(org, empresa)`; la historia con `analitica.cotizacion_cercana(org, fecha, empresa)` y sin precio propio.
+- Guardar la configuración o cambiar el alcance recalcula las alertas de Inicio; las vistas previas cuentan y simulan con el precio propio y la cotización destino.
+- Limitaciones: `productos_precio_costo` y la valorización de inventario usan la cotización general; exportar/importar productos no llevan precios propios (decisión de producto pendiente).
