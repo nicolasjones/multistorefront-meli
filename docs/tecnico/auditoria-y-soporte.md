@@ -123,13 +123,16 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
 - Estados (`useExportarActividad.ts`): «Exportando…», error con **Reintentar** sin descargar un archivo
   parcial, «No hay actividad para exportar.» y aviso de recorte. Cambiar la empresa activa invalida la
   exportación en curso (nunca se baja un archivo de otra empresa).
-- Constancia: al entregar la última página se registra `actividad.exportada` («Exportó N registros…» con
-  los filtros en palabras), una sola vez por exportación. El cliente genera un id por corrida
-  (`p_exportacion`) y `private.exportaciones_actividad` (clave primaria `(organizacion_id, usuario_id, id)`,
-  RLS activa y sin acceso para los roles de la API) lo guarda; reutilizar un id ya cerrado lanza `22023`. El
-  tipo se da de alta como no sensible en `tipos_evento_actividad`.
-- Límite conocido: `p_entregadas` y `p_exportacion` los manda el cliente, así que el tope de 50.000 y la
-  constancia dependen de que el cliente sea el de la app (ver «Limitaciones conocidas»).
+- Constancia y conteo del lado servidor (migración `20270215600001`): `actividad.exportada` se registra en la
+  **primera llamada** de cada exportación («Inició la exportación de N registros…», N = menor entre el total y el
+  tope, con los filtros en palabras), de modo que paginar y abandonar, o un filtro que excede el tope, también
+  dejan constancia. El cliente genera un id por corrida (`p_exportacion`); `private.exportaciones_actividad`
+  (clave primaria `(organizacion_id, usuario_id, id)`, columnas `entregadas` y `cerrada`, RLS activa y sin
+  acceso para los roles de la API) lleva el conteo y aplica el tope de 50.000. `p_entregadas` se ignora (queda en
+  la firma por compatibilidad). El id se cierra al entregar la última fila o llegar al tope; reutilizar un id
+  cerrado, también el reintento de la última página, lanza `22023` (el comentario de `20270214300001`, que dice
+  que un reintento «no vuelve a registrar», es inexacto). Un cliente que use un id nuevo por página deja una
+  constancia por página. La depuración purga las filas de `exportaciones_actividad` con más de 30 días.
 - Pruebas: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
   `exportarActividad.test.tsx` y `BotonExportarActividad.test.tsx`; E2E
   `apps/web/e2e/actividad-exportar.e2e.ts`.
@@ -146,8 +149,8 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
   contextos existentes). La vista `private.superadmin_contexto_vigente` (`security_invoker`) excluye los
   vencidos; la migración reescribe **todos** los helpers que leían la tabla (`organizacion_id`,
   `puede_escribir`, `nivel_seccion`, `puede_accion*`, `rol_id`, los `puede_*_en_empresa`, etc.) para que
-  lean la vista. `entrar_a_organizacion` y `salir_de_organizacion` leen la tabla para distinguir salida de
-  vencimiento.
+  lean la vista. `entrar_a_organizacion`, `salir_de_organizacion` y `cerrar_accesos_soporte_vencidos` (`20270215600002`, la
+  ejecuta Kestra cada 15 minutos) leen la tabla para distinguir salida de vencimiento.
 - Contrato **BREAKING**: `public.entrar_a_organizacion(org_id uuid, p_motivo text)` reemplaza a la versión
   de un argumento; sin motivo (o en blanco o > 500) devuelve `22023`, sin ser superadmin `42501`, y si la
   organización no existe `P0002`. `public.salir_de_organizacion()` conserva la firma.
@@ -263,31 +266,19 @@ solo en base local/staging.
 
 ## Limitaciones conocidas (revisión independiente de la épica)
 
-Revisión QA y Code/Security hecha sobre el código de `dokploy`; ninguna es bloqueante. Las que piden migración
-no se corrigieron porque no se pueden probar con pgTAP sin Supabase local.
+Los hallazgos de la revisión independiente se corrigieron en las migraciones `20270215600000`, `20270215600001`
+y `20270215600002` (PR a `dokploy`): constancia y tope del lado servidor, triggers de `registro_actividad`
+y `superadmin_entradas` en `ENABLE ALWAYS` (esta última append-only), cierre automático de accesos de soporte
+vencidos (flow de Kestra `cierre-accesos-soporte`, cada 15 minutos), purga a 30 días de
+`exportaciones_actividad` y guardia de CI `acceso_soporte_sin_lecturas_crudas` contra lecturas crudas de
+`superadmin_organizacion_activa`. Siguen abiertas:
 
-- **Constancia de exportación y tope (medio).** `actividad.exportada` se registra solo al entregar la última
-  página, y `p_entregadas` y `p_exportacion` los manda el cliente. Quien llame a la RPC directo (con edición
-  y la acción `exportar`) puede paginar y detenerse antes de la última página sin dejar constancia, o mandar
-  `p_entregadas = 0` para saltear el tope de 50.000. Arreglo previsto: registrar la constancia en la primera
-  llamada o llevar el conteo del lado servidor en `private.exportaciones_actividad`.
-- **Inalterabilidad (medio).** Los triggers de `registro_actividad` son comunes y no `ENABLE ALWAYS`, así que
-  un rol con `session_replication_role = replica` o `alter table … disable trigger` los saltea. Hoy
-  `authenticated`, `anon` y `service_role` no tienen privilegios de escritura. Arreglo previsto: `alter table
-  public.registro_actividad enable always trigger …` para el trigger de fila y el de `truncate`.
-- **Vencimiento del soporte sin registro (medio).** `soporte.vencido` y la salida solo se asientan si el
-  superadmin vuelve a llamar a entrar o salir, o si su pestaña sigue abierta y el banner llama a salir al
-  vencer. Si cierra el navegador, el Administrador de la organización ve el ingreso con su «hasta HH:MM» pero
-  nunca la salida ni el vencimiento (FR-016). Arreglo previsto: un flow de Kestra, como el de depuración,
-  que cierre los accesos vencidos y los registre.
-- **Bajo.**
-  - `superadmin_entradas` no tiene trigger append-only: solo carece de grants de escritura.
-  - La reescritura de helpers por expresión regular en `20270207100003` es frágil hacia adelante; el pgTAP
-    `acceso_soporte_vigencia` es la guardia: una migración futura no debe leer
-    `superadmin_organizacion_activa` directo, siempre la vista `private.superadmin_contexto_vigente`.
-  - Reingresar con acceso vigente renueva las 4 h sin límite acumulado (cada vez pide motivo y queda
-    `soporte.ingreso`).
-  - `private.exportaciones_actividad` crece una fila por exportación sin purga.
-  - Cuando el filtro excede el tope, la primera llamada ya trajo hasta 1.000 filas al navegador sin descarga
-    ni constancia.
-  - Faltan tests de borde: 8192 y 8193 bytes exactos, y la depuración con `p_hasta` futuro.
+- **Reingreso sin tope acumulado (decisión de negocio pendiente).** Reingresar a la misma organización con el
+  acceso vigente renueva el vencimiento a 4 h desde ese momento, sin límite acumulado (cada vez pide motivo y
+  queda `soporte.ingreso`). No se inventó un tope: falta que Nicolás defina el máximo de renovaciones u horas
+  seguidas.
+- **Borrado en cascada de la cuenta de soporte.** Eliminar la cuenta de una persona de soporte borra sus filas de
+  `superadmin_entradas` (la FK es `on delete cascade`; el trigger append-only lo permite para no impedir bajas
+  de superadmins, igual que el borrado de la organización).
+- **E2E pendientes.** Faltan los E2E del detalle de Actividad y del acceso de soporte (diálogo de motivo,
+  banner, vencimiento): necesitan Supabase y no se pudieron ejecutar al corregir, así que no se agregaron a ciegas.
