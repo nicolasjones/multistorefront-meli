@@ -11,12 +11,19 @@ existentes. Spec: `specs/20261102-220000-importaciones-y-monitoreo/`.
 - Ítem **Importaciones** (icono de carga/descarga) en *Administración*, solo para
   administradores de la organización. Ruta `/importaciones`; no hay rutas anteriores.
 - Tabla con **fecha, origen** (nombre de la funcionalidad, nunca su clave técnica),
-  **estado, avance, errores y duración**, con los estados compartidos de carga,
-  vacío y error.
+  **estado, avance, resultado y duración**, con los estados compartidos de carga,
+  vacío y error. El resultado dice «N correctas y M con error» (480 correctas y 20
+  con error para 500 filas con 20 inválidas). La lista usa carga infinita (se
+  suma una tanda de 20 al acercarse al final o con «Cargar más») y muestra
+  «Mostrando X de Y procesos».
 - Se actualiza sola cada 5 segundos mientras haya procesos `pendiente` o `en_curso`
   y deja de consultar cuando todos terminaron.
-- **Ver detalle** abre «Detalle de la importación»: resumen y errores paginados
-  (fila, referencia, motivo).
+- **Ver detalle** abre «Detalle de la importación»: resumen y errores con carga
+  infinita (fila, columna, referencia, motivo) y el total de errores visible.
+  **«Descargar errores (CSV)»** baja el reporte completo del proceso (todos los
+  errores guardados, no solo los de la pantalla) con fila, columna, referencia y
+  motivo: UTF-8 con BOM, separador `;`, fórmulas neutralizadas (`= + - @`, tab, CR) y
+  nombre `errores-<proceso>-AAAA-MM-DD.csv`.
 - **Cancelar** (con confirmación) solo en procesos abiertos. Un proceso `pendiente`
   pasa a `cancelado` de inmediato; uno `en_curso` queda «Cancelando» hasta que el
   worker lo confirme entre lotes. Si ya terminó, avisa que no se puede cancelar.
@@ -48,12 +55,23 @@ existentes. Spec: `specs/20261102-220000-importaciones-y-monitoreo/`.
    `registrar_error_proceso_masivo` es idempotente por (proceso, fila): reintentar un lote no
    duplica el error ni suma a `con_errores`. La detección y redacción de secretos cubre también la
    forma JSON (`"password": "x"`). El detalle de la pantalla se refresca mientras el proceso avanza.
+   **Contadores**: `procesados` cuenta TODAS las filas leídas (correctas y con error) y
+   `con_errores` las rechazadas; las correctas son `procesados - con_errores`.
+   `registrar_error_proceso_masivo(proceso, fila, referencia, motivo, columna)` recibe
+   la columna donde falló la fila (opcional, sin valores del usuario). Es idempotente por
+   fila o, sin fila, por (referencia, motivo), incluso pasadas las 1000 filas de detalle
+   (guarda solo claves en `procesos_masivos_errores_claves`).
+   **Actividad** (RF-IMP-01-5): la base registra `importacion.iniciada` (al iniciar),
+   `importacion.cancelada` (al pedir la cancelación) e `importacion.finalizada` (al cerrar
+   o al reconciliar una ejecución caída, con las cifras correctas/con error). El detalle
+   no lleva referencias, motivos ni parámetros.
 4. Para que la pantalla muestre un nombre legible, sumá la clave de `p_funcionalidad`
    a `ETIQUETA_FUNCIONALIDAD` en `apps/web/src/lib/procesosMasivos.ts`.
 
 ## Reversión
 
-Las migraciones `20270211100001`…`20270211100005` son aditivas. Para deshacer:
+Las migraciones `20270211100001`…`20270211100005` y `20270214100001`…`02` (columna del
+reporte, claves de idempotencia y eventos de actividad) son aditivas. Para deshacer:
 `drop trigger reconciliar_proceso_masivo on public.ejecuciones_worker`, las seis
 funciones `*_proceso_masivo`, `private.autorizar_worker_proceso`,
 `private.reconciliar_proceso_masivo`, `private.proteger_proceso_masivo`,

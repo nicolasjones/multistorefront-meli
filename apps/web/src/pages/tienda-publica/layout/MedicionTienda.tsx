@@ -6,6 +6,7 @@ import {
   debeMedir,
   leerAnaliticaPublica,
   registrarVisita,
+  retirarMedicion,
   type IdsMedicion,
 } from '../../../lib/analiticaTienda'
 
@@ -21,6 +22,8 @@ export default function MedicionTienda({ host }: { host: string }) {
 
   useEffect(() => {
     let cancelada = false
+    // Otro host: se descartan los IDs del anterior y se apaga su medición hasta conocer los nuevos.
+    setIds(null)
     void leerAnaliticaPublica(host).then((datos) => {
       if (!cancelada) setIds(datos)
     })
@@ -33,7 +36,10 @@ export default function MedicionTienda({ host }: { host: string }) {
 
   // Primero se carga (idempotente) y, en el mismo commit, se registra la visita de la ruta actual.
   useEffect(() => {
+    // Con IDs nuevos (otro host o cambio de configuración) `cargarMedicion` reemplaza a los anteriores; si se revocó
+    // el consentimiento o ya no hay IDs, se apaga la medición (los scripts ya descargados quedan inertes).
     if (medir && ids) cargarMedicion(ids)
+    else retirarMedicion()
   }, [medir, ids])
 
   useEffect(() => {

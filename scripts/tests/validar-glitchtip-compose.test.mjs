@@ -36,3 +36,11 @@ test('los DSN están vacíos en .env.example (sin DSN no se envía nada)', () =>
 test('la constitución lista el proyecto Compose de GlitchTip', () => {
   assert.match(readFileSync('.specify/memory/constitution.md', 'utf8'), /multistorefront-meli-glitchtip-dev/);
 });
+
+test('puerto solo en 127.0.0.1 y secretos obligatorios sin valor por defecto', () => {
+  assert.match(compose, /"127\.0\.0\.1:\$\{GLITCHTIP_PORT:-8100\}:8000"/);
+  assert.doesNotMatch(compose, /GLITCHTIP_(DB_PASSWORD|SECRET_KEY):-/);
+  assert.match(compose, /GLITCHTIP_SECRET_KEY:\?/);
+  assert.match(compose, /GLITCHTIP_DB_PASSWORD:\?/);
+  assert.match(readFileSync('infra/glitchtip/.env.example', 'utf8'), /^GLITCHTIP_SECRET_KEY=$/m);
+});

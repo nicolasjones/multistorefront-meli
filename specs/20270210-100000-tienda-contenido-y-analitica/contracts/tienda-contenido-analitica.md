@@ -52,7 +52,8 @@ publico.analitica_por_dominio(host: string): {
 
 ```ts
 // apps/web/src/lib/analiticaTienda.ts (F-TDA-24)
-registrarEventoTienda(nombre: 'clic_whatsapp' | 'envio_contacto'): void   // no-op si no hay medición cargada
+registrarEventoTienda(nombre: 'vista_producto' | 'busqueda' | 'clic_whatsapp' | 'envio_contacto'): void
+// no-op si no hay medición cargada o si el consentimiento vigente no es «aceptadas»; sin datos del visitante
 
 // apps/web/src/lib/enlaceProducto.ts (F-TDA-25)
 enlaceProducto(productoId: string): string   // `${origen del Host}/producto/${productoId}`

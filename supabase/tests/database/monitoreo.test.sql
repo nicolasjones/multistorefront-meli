@@ -5,7 +5,7 @@
 -- como «authenticated» / «anon», igual que PostgREST.
 begin;
 
-select plan(42);
+select plan(56);
 
 select has_table('public', 'eventos_monitoreo', 'existe public.eventos_monitoreo');
 select has_table('public', 'alertas_monitoreo', 'existe public.alertas_monitoreo');
@@ -69,12 +69,21 @@ select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente
 select public.registrar_evento_monitoreo('tienda', 'uno.example.com', 'fallo', 'HTTP 503', 'c1111111-1111-1111-1111-111111111111');
 select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'tienda' and clave = 'uno.example.com'),
   1::bigint, 'el 5.º fallo abre la alerta y la devuelve como nueva');
+-- Pendiente de notificar: si el envío falló (no se marcó), la próxima evaluación la devuelve de nuevo.
 select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'tienda' and clave = 'uno.example.com'),
-  0::bigint, 'mientras siga abierta no se repite (una sola notificación)');
+  1::bigint, 'sin marcar notificada, la alerta sigue pendiente y se devuelve otra vez');
+select ok((select notificada_en is null from public.alertas_monitoreo where clave = 'uno.example.com'),
+  'la alerta nace sin notificada_en (se marca solo tras enviarla)');
+select is((select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where clave = 'uno.example.com'),
+  true, 'marcar_alerta_notificada marca la alerta');
+select is((select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where clave = 'uno.example.com'),
+  false, 'marcar dos veces es idempotente');
+select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'tienda' and clave = 'uno.example.com'),
+  0::bigint, 'ya notificada no se repite (una sola notificación)');
 select is((select count(*) from public.alertas_monitoreo where fuente = 'tienda' and clave = 'uno.example.com' and estado = 'abierta'),
   1::bigint, 'hay una sola alerta abierta por fuente y clave');
 select ok((select notificada_en is not null from public.alertas_monitoreo where clave = 'uno.example.com'),
-  'la alerta devuelta queda marcada como notificada');
+  'la alerta marcada queda notificada');
 select throws_ok(
   $$insert into public.alertas_monitoreo (fuente, clave) values ('tienda', 'uno.example.com')$$,
   '23505', null, 'el índice único parcial impide una segunda alerta abierta');
@@ -93,6 +102,7 @@ select is((select estado from public.alertas_monitoreo where clave = 'uno.exampl
 select public.registrar_evento_monitoreo('tienda', 'uno.example.com', 'fallo', 'HTTP 503') from generate_series(1, 5);
 select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where clave = 'uno.example.com'),
   1::bigint, 'una nueva caída abre otra alerta');
+select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null;
 select is((select count(*) from public.alertas_monitoreo where clave = 'uno.example.com'),
   2::bigint, 'queda la historia: una resuelta y una abierta');
 
@@ -117,6 +127,7 @@ select is(
   (select array_agg(clave order by clave) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'sincronizacion'),
   array['c1111111-1111-1111-1111-111111111111:cap-a'],
   'solo la capacidad con 5 ejecuciones fallida/timeout recientes alerta (4 y las antiguas no)');
+select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null;
 select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'sincronizacion'),
   0::bigint, 'reevaluar no duplica los eventos ni la notificación de sincronización');
 select is((select count(*) from public.eventos_monitoreo where fuente = 'sincronizacion'),
@@ -134,6 +145,7 @@ insert into despachos_ejecucion (id, ejecucion_id, organizacion_id, estado, crea
   ('c1111111-1111-1111-1111-1111111111d2', 'c1111111-1111-1111-1111-1111111111e2', 'c1111111-1111-1111-1111-111111111111', 'pendiente', now() - interval '15 minutes', now() - interval '15 minutes');
 select is((select array_agg(clave) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'cola'),
   array['c1111111-1111-1111-1111-1111111111d2'], 'una orden con 15 minutos sin avanzar abre su alerta de cola');
+select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null;
 
 -- Cuando la orden avanza, la alerta de cola se resuelve.
 update despachos_ejecucion set estado = 'completada', updated_at = now()
@@ -143,6 +155,40 @@ select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente
 select is((select estado from public.alertas_monitoreo where fuente = 'cola'),
   'resuelta', 'la alerta de cola se resuelve cuando la orden avanza');
 
+-- Aplicación: la alerta no se resuelve sola sin un `ok` posterior; el fallo del propio monitor alerta tras N.
+select public.registrar_evento_monitoreo('aplicacion', 'proyecto-x', 'fallo', '7 errores en 10 min');
+select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'aplicacion'),
+  1::bigint, 'un fallo de aplicación abre alerta');
+update public.eventos_monitoreo set ocurrido_en = now() - interval '30 minutes' where fuente = 'aplicacion';
+select public.evaluar_monitoreo(10, 5, 15);
+select is((select estado from public.alertas_monitoreo where clave = 'proyecto-x'),
+  'abierta', 'sin ok posterior (el monitor no pudo contar) la alerta de aplicación no se resuelve sola');
+select public.registrar_evento_monitoreo('aplicacion', 'proyecto-x', 'ok', '0 errores en 10 min');
+select public.evaluar_monitoreo(10, 5, 15);
+select is((select estado from public.alertas_monitoreo where clave = 'proyecto-x'),
+  'resuelta', 'con un ok posterior la alerta de aplicación se resuelve');
+select public.registrar_evento_monitoreo('aplicacion', 'monitor:proyecto-x', 'fallo', 'MONITOR_SIN_CONTEO') from generate_series(1, 4);
+select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where clave = 'monitor:proyecto-x'),
+  0::bigint, '4 fallos del monitor no alertan');
+select public.registrar_evento_monitoreo('aplicacion', 'monitor:proyecto-x', 'fallo', 'MONITOR_SIN_CONTEO');
+select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where clave = 'monitor:proyecto-x'),
+  1::bigint, 'el 5.º fallo seguido del monitor abre alerta');
+select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null;
+
+-- SSRF: solo se sondean nombres DNS públicos.
+select is(
+  (select array_agg(d order by lower(d) collate "C") from unnest(array[
+      'tienda.example.com', 'www.mi-tienda.com.ar', 'XN--tienda-9ra.example.org', 'LOCALHOST', 'localhost.', '127.0.0.1',
+      '0x7f.1', '2130706433', '0x7f.0x0.0x0.0x1', '[::1]', 'tienda.internal', 'db.local', 'x.svc.cluster.local',
+      'tienda.example.com:8080', 'tienda.example.com.', 'tienda', '10.0.0.5', 'ñandú.example.com', '']) as d
+    where private.dominio_sondeable(d)),
+  array['tienda.example.com', 'www.mi-tienda.com.ar', 'XN--tienda-9ra.example.org']::text[],
+  'solo se sondean nombres DNS públicos: fuera localhost, IPs (decimal, hex, v6), puertos, punto final, sufijos internos y unicode');
+
+-- Vista de estado para soporte.
+select is((select estado from public.estado_tiendas_monitoreo where dominio = 'uno.example.com'),
+  'caida', 'la vista marca «caida» a la tienda con alerta abierta');
+
 -- Lectura: solo el operador de plataforma (FR-031).
 select set_config('request.jwt.claims', json_build_object('sub', 'c1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 set local role authenticated;
@@ -151,12 +197,17 @@ select is((select count(*) from public.alertas_monitoreo), 0::bigint, 'un admini
 select throws_ok(
   $$select * from public.evaluar_monitoreo(10, 5, 15)$$,
   '42501', null, 'authenticated no puede ejecutar evaluar_monitoreo');
+select throws_ok(
+  $$select public.marcar_alerta_notificada(gen_random_uuid())$$,
+  '42501', null, 'authenticated no puede ejecutar marcar_alerta_notificada');
+select is((select count(*) from public.estado_tiendas_monitoreo), 0::bigint, 'un administrador de organización no ve el estado de tiendas');
 reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'c1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select cmp_ok((select count(*) from public.alertas_monitoreo), '>', 0::bigint, 'el superadmin lee las alertas');
 select cmp_ok((select count(*) from public.eventos_monitoreo), '>', 0::bigint, 'el superadmin lee los eventos');
+select cmp_ok((select count(*) from public.estado_tiendas_monitoreo), '>', 0::bigint, 'el superadmin ve el estado de tiendas');
 reset role;
 
 set local role anon;

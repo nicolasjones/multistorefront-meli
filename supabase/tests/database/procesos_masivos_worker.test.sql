@@ -53,8 +53,8 @@ select set_config('t.p1', pg_temp.nuevo(1)::text, false);
 select ok(
   not has_function_privilege('authenticated', 'public.actualizar_progreso_proceso_masivo(uuid, integer, integer)', 'execute')
   and not has_function_privilege('anon', 'public.actualizar_progreso_proceso_masivo(uuid, integer, integer)', 'execute')
-  and not has_function_privilege('authenticated', 'public.registrar_error_proceso_masivo(uuid, integer, text, text)', 'execute')
-  and not has_function_privilege('anon', 'public.registrar_error_proceso_masivo(uuid, integer, text, text)', 'execute')
+  and not has_function_privilege('authenticated', 'public.registrar_error_proceso_masivo(uuid, integer, text, text, text)', 'execute')
+  and not has_function_privilege('anon', 'public.registrar_error_proceso_masivo(uuid, integer, text, text, text)', 'execute')
   and not has_function_privilege('authenticated', 'public.cerrar_proceso_masivo(uuid, text, text)', 'execute')
   and not has_function_privilege('anon', 'public.cerrar_proceso_masivo(uuid, text, text)', 'execute'),
   'ni authenticated ni anon ejecutan las funciones del worker'
@@ -62,7 +62,7 @@ select ok(
 
 select ok(
   has_function_privilege('workers_orquestacion', 'public.actualizar_progreso_proceso_masivo(uuid, integer, integer)', 'execute')
-  and has_function_privilege('workers_orquestacion', 'public.registrar_error_proceso_masivo(uuid, integer, text, text)', 'execute')
+  and has_function_privilege('workers_orquestacion', 'public.registrar_error_proceso_masivo(uuid, integer, text, text, text)', 'execute')
   and has_function_privilege('workers_orquestacion', 'public.cerrar_proceso_masivo(uuid, text, text)', 'execute'),
   'los workers ejecutan las funciones de su proceso'
 );

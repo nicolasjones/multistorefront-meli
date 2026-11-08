@@ -380,7 +380,7 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
 
-## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270213100000`)
+## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270215100000`)
 
 Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/edicion-masiva.md`). Junto con «Duplicar» (F-CAT-13, sección anterior) forma la épica MSF-218; no cambia la matriz de permisos (`docs/permisos-por-rol.md`): ambas acciones exigen `edicion` en Productos.
 
@@ -392,7 +392,7 @@ Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/ed
 
 ### Revisión de seguridad de MSF-218 (cierre, SC-004)
 
-Revisión (authz-security) de `20270213100000_catalogo_edicion_masiva.sql`, sin hallazgos que corregir:
+Revisión (authz-security) de `20270215100000_catalogo_edicion_masiva.sql`, sin hallazgos que corregir:
 
 - **Sin tablas**: ninguna tabla nueva ni alterada (Principio VII); las RPC viven en `public` y los datos siguen en `dominio` con su RLS.
 - **Grants**: las tres RPC con `revoke … from public, anon` y `grant execute … to authenticated`; `anon` no ejecuta nada (lo verifica el test de grants de pgTAP).
