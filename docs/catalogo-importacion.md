@@ -7,8 +7,10 @@ Productos y solo la ve el Administrador. No tiene ítem de menú.
 ## Flujo
 
 1. **Archivos.** El navegador lee el CSV (UTF-8, `,` o `;`, con o sin BOM; hasta 2.000 filas) y las
-   imágenes (ZIP o sueltas, JPG/PNG/WebP de hasta 2 MB, máximo 500). Las imágenes se suben al bucket
-   temporal `productos-importaciones` bajo `<organización>/<clave>/<archivo>`.
+   imágenes (ZIP o sueltas, JPG/PNG/WebP de hasta 2 MB, máximo 500). De los ZIP de una misma carga no se expande más de 500
+   entradas ni más de 100 MB descomprimidos en total, y si dos carpetas traen el mismo nombre se usa la primera y se
+   avisa. Las imágenes se suben al bucket temporal `productos-importaciones` bajo
+   `<organización>/<clave>/<archivo>`.
 2. **Vista previa.** `validar_importacion_productos` evalúa cada fila (FR-105) sin persistir nada. La
    acción Nuevo/Actualiza sale de que el SKU exista en la organización. Si quien importa no tiene
    Rentabilidad, `costo` se ignora con un aviso por fila (FR-106).
@@ -20,6 +22,21 @@ Productos y solo la ve el Administrador. No tiene ítem de menú.
    que el alta/edición, SKU único, actividad registrada) y adjunta las imágenes.
 5. **Resultado.** La pantalla sondea `obtener_importacion_productos` hasta `terminada` o `fallida` y
    ofrece «Descargar reporte de errores» (CSV: fila, SKU, motivo).
+
+## Requisito: conexión por organización
+
+`solicitar_importacion_productos` exige una fila en `conexiones` con `sistema_externo = 'importar-productos'`
+para la organización (la capacidad cuelga de esa conexión, igual que el historial de ventas). Ninguna
+migración ni pantalla la aprovisiona: hoy la da de alta soporte a mano. Sin ella la vista previa funciona,
+pero «Importar» falla con `SIN_CONEXION_IMPORTACION` y la pantalla lo informa. Idempotencia: reenviar la misma
+`clave` con otras filas devuelve la importación anterior sin avisar.
+
+## Seguimiento pendiente (revisión independiente de la épica)
+
+Quedan sin arreglar porque piden migración y no se pueden probar con pgTAP sin Supabase local: imágenes que
+se pierden si el Storage falla después de marcar la fila como aplicada (el reintento solo mira filas
+`pendiente`), errores transitorios (deadlock) que se vuelven «omitida» definitiva, tope de largo por celda,
+limpieza de imágenes temporales huérfanas y el seguimiento que no sobrevive a salir de la pantalla.
 
 ## Estados y serialización
 
