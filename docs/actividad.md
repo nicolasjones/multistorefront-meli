@@ -237,10 +237,10 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
 - **Estados**: «Exportando…» mientras corre; si falla no se descarga nada y se ofrece **Reintentar**; sin filas dice
   «No hay actividad para exportar.» y no baja archivo. Si se cambia la empresa activa a mitad de la exportación, se
   descarta lo traído (nunca se baja un archivo de otra empresa).
-- **Constancia y conteo del lado servidor** (migración `20270215600001`, hallazgo de la revisión independiente de MSF-170):
+- **Constancia y conteo del lado servidor** (migración `20270217100001`, hallazgo de la revisión independiente de MSF-170):
   la constancia `actividad.exportada` se registra en la **primera llamada** de cada exportación («Inició la exportación
-  de N registros de la actividad a CSV (filtros: …)», con los filtros en palabras y sin ids y N = lo exportable, el menor
-  entre el total y el tope). Así quedan cubiertos quien pagina y abandona, y el filtro que excede el tope (la primera
+  de N registros de la actividad a CSV (filtros: …)», con los filtros en palabras y sin ids y N = el total real; si
+  supera el tope se agrega «(supera el tope de 50000)»). Así quedan cubiertos quien pagina y abandona, y el filtro que excede el tope (la primera
   llamada ya entrega hasta 1.000 filas). El cliente genera un id por corrida (`p_exportacion`);
   `private.exportaciones_actividad` (clave `organizacion_id + usuario_id + id`) guarda `entregadas` y `cerrada`. El tope
   de 50.000 se aplica con ese conteo: `p_entregadas` lo manda el cliente y **se ignora** (queda en la firma por
@@ -248,13 +248,20 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
   reintento de la última página, se rechaza** (`22023`, «Esa exportación ya está registrada: iniciá una nueva»). Esto corrige
   el comentario de `20270214300001`, que decía que un reintento «no vuelve a registrar»: lanza `22023`. Un reintento tras
   un fallo del navegador usa un id nuevo y deja otra constancia (preferible a una exportación sin rastro). La constancia
-  se escribe al pedir los datos, no al completarse la descarga en el navegador (la base no ve eso). Quien use un id nuevo en
-  cada página deja una constancia por página: el tope por exportación no es un límite de volumen por persona. Tipo no
+  se escribe al pedir los datos, no al completarse la descarga en el navegador (la base no ve eso). **El tope de 50.000 es de UX; el control real es la constancia.** Quien use un id nuevo en cada
+  página deja una constancia por página, así que el rastro queda; además el servidor rechaza (`22023`, «Superaste el
+  límite de 60 exportaciones por hora…») la exportación nueva número 61 de una persona en una hora (uso normal: unas pocas).
+  Repetir la misma página (mismo id y mismo cursor) es idempotente: no suma `entregadas`. Cuando el filtro excede el
+  tope, la primera llamada ya entregó hasta 1.000 filas que el navegador descarta; por eso la constancia se escribe ahí,
+  con el total real. El hook muestra el mensaje propio de cualquier `22023`. Tipo no
   sensible, dado de alta en `tipos_evento_actividad`.
 - **Purga**: `private.depurar_registro_actividad` borra además las filas de `private.exportaciones_actividad` con más de
   **30 días** (decisión conservadora: un id viejo ya no se reutiliza; la constancia vive en el historial de 24 meses).
 - **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean);`,
   `alter table private.exportaciones_actividad drop column cerrada, drop column entregadas;` (o `drop table` si se retira todo) y `delete from public.tipos_evento_actividad where tipo = 'actividad.exportada';`.
+- **E2E NO escritos**: faltan los E2E del detalle de Actividad (abrir un cambio sensible y ver Antes/Después) y del acceso de soporte
+  (diálogo de motivo, banner, vencimiento). Necesitan Supabase y no se pueden ejecutar sin el CI de integración de la épica; no se
+  agregaron a ciegas. Criterio de aceptación pendiente: ambos E2E deterministas y verdes en el CI al integrar la épica.
 - **Pruebas**: pgTAP `exportar_actividad.test.sql` (incluye abandono, `p_entregadas` falso, filtro de exactamente 50.000 filas e id reutilizado); Vitest `exportarActividadCsv.test.ts`,
   `exportarActividad.test.tsx` (hook), `BotonExportarActividad.test.tsx` y E2E `e2e/actividad-exportar.e2e.ts`
   (CA-AUD-03-1/3/4).
@@ -309,7 +316,7 @@ perform private.registrar_cambio_actividad(
 - Si el tipo es **sensible**, ambos valores son obligatorios: alta → anterior `{}`; baja → nuevo `{}`. Sin ellos, o con más
   de 8 KB, `22023` y la operación de origen se revierte.
 - `registrar_actividad` / `insertar_actividad` conservan su firma pero **rechazan** (`22023`) los tipos sensibles.
-- Los triggers están en **ENABLE ALWAYS** (`20270215600000`): ni `session_replication_role = replica` ni un `disable trigger` desde otro rol (salvo `alter table ... disable trigger` explícito, como hace el fixture de fechas) los saltean. Casos de borde cubiertos en `registro_actividad_bordes.test.sql` (8192/8193 bytes, `TRUNCATE ... CASCADE`, `service_role`).
+- Los triggers están en **ENABLE ALWAYS** (`20270217100000`): ni `session_replication_role = replica` ni un `disable trigger` desde otro rol (salvo `alter table ... disable trigger` explícito, como hace el fixture de fechas) los saltean. Casos de borde cubiertos en `registro_actividad_bordes.test.sql` (8192/8193 bytes, `TRUNCATE ... CASCADE`, `service_role`).
 - Un test que necesite reordenar fechas de eventos debe apagar el trigger `registro_actividad_inalterable_fila` solo
   mientras lo hace (ver `comprobante_estados.test.sql`).
 

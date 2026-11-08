@@ -8,9 +8,12 @@
 -- Ahora:
 --   * `private.exportaciones_actividad` lleva `entregadas` y `cerrada` por id de corrida.
 --   * La constancia se registra en la PRIMERA llamada de cada id (filtros + total, «Inició la exportación de N
---     registros…», con N = min(total, tope)). Cubre el abandono a mitad de camino y el filtro que excede el tope.
+--     registros…», con N = el total real y «(supera el tope de 50000)» si lo excede). Cubre el abandono a mitad de camino y el filtro que excede el tope.
 --   * El tope se aplica con el conteo del servidor. `p_entregadas` se IGNORA (se conserva en la firma por
 --     compatibilidad). Un cliente que usa un id nuevo en cada página deja una constancia por página.
+--   * Reintento idempotente: repetir la misma página (mismo id y mismo cursor) no suma `entregadas` otra vez.
+--   * Límite de 60 exportaciones nuevas por persona y hora (22023): el tope de 50.000 es de UX, el control real es la
+--     constancia; sin esto se podría bajar el historial en tandas con un id nuevo por llamada.
 --   * El id se cierra al entregar la última fila o al llegar al tope; reutilizarlo lanza 22023 (también un
 --     reintento de la última página: el comentario de 20270214300001 que decía lo contrario es inexacto).
 --   * La respuesta suma `exportacion` (el id de la corrida).
@@ -24,7 +27,11 @@
 
 alter table private.exportaciones_actividad
   add column if not exists entregadas integer not null default 0,
-  add column if not exists cerrada boolean not null default false;
+  add column if not exists cerrada boolean not null default false,
+  -- Cursor y tamaño de la última página entregada: repetir la misma página (mismo id y mismo cursor) no suma dos veces.
+  add column if not exists cursor_creado_en timestamptz,
+  add column if not exists cursor_id uuid,
+  add column if not exists ultima_entrega integer not null default 0;
 
 -- Las filas existentes ya estaban registradas (cerradas).
 update private.exportaciones_actividad set cerrada = true;
@@ -71,6 +78,9 @@ declare
   v_entregadas integer;
   v_cerrada boolean;
   v_acumuladas integer;
+  v_recientes integer;
+  v_repetida integer;
+  v_limite_hora constant integer := 60;
 begin
   if v_org is null
      or (select auth.uid()) is null
@@ -91,13 +101,28 @@ begin
   get diagnostics v_filas_nuevas = row_count;
   v_nueva := v_filas_nuevas > 0;
 
-  select x.entregadas, x.cerrada into v_entregadas, v_cerrada
+  -- Límite de constancias por persona y hora: el tope de 50.000 es de UX; el control real es el rastro, y esto evita
+  -- bajar todo el historial en tandas con un id nuevo por llamada.
+  if v_nueva then
+    select count(*)::integer into v_recientes
+      from private.exportaciones_actividad x
+     where x.organizacion_id = v_org and x.usuario_id = (select auth.uid()) and x.creado_en > now() - interval '1 hour';
+    if v_recientes > v_limite_hora then
+      raise exception 'Superaste el límite de % exportaciones por hora: esperá un rato e intentá de nuevo', v_limite_hora using errcode = '22023';
+    end if;
+  end if;
+
+  select x.entregadas, x.cerrada,
+         case when not v_nueva and x.cursor_id is not distinct from p_cursor_id then x.ultima_entrega else 0 end
+    into v_entregadas, v_cerrada, v_repetida
     from private.exportaciones_actividad x
    where x.organizacion_id = v_org and x.usuario_id = (select auth.uid()) and x.id = v_id
    for update;
   if v_cerrada then
     raise exception 'Esa exportación ya está registrada: iniciá una nueva' using errcode = '22023';
   end if;
+  -- Repetir la misma página (mismo id y mismo cursor) no suma otra vez lo entregado.
+  v_entregadas := v_entregadas - v_repetida;
 
   v_corte := coalesce(p_corte, now());
   v_lim := greatest(least(p_limite, v_tope - v_entregadas), 0);
@@ -166,6 +191,9 @@ begin
   -- Se cierra el id al entregar la última fila o al llegar al tope: no se puede reutilizar.
   update private.exportaciones_actividad x
      set entregadas = v_acumuladas,
+         cursor_creado_en = p_cursor_creado_en,
+         cursor_id = p_cursor_id,
+         ultima_entrega = v_n,
          cerrada = (not v_hay_mas or v_acumuladas >= v_tope)
    where x.organizacion_id = v_org and x.usuario_id = (select auth.uid()) and x.id = v_id;
 
@@ -189,9 +217,10 @@ begin
     perform private.registrar_actividad(
       'actividad.exportada',
       left(
-        format('Inició la exportación de %s %s de la actividad a CSV%s',
-          least(v_total, v_tope),
-          case when least(v_total, v_tope) = 1 then 'registro' else 'registros' end,
+        format('Inició la exportación de %s %s de la actividad a CSV%s%s',
+          v_total,
+          case when v_total = 1 then 'registro' else 'registros' end,
+          case when v_total > v_tope then format(' (supera el tope de %s)', v_tope) else '' end,
           case when cardinality(v_filtros) = 0 then '' else ' (filtros: ' || array_to_string(v_filtros, ', ') || ')' end),
         480)
     );

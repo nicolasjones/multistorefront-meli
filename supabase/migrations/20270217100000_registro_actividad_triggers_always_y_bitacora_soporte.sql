@@ -47,7 +47,7 @@ begin
       return old;
     end if;
   end if;
-  raise exception 'La bitácora de accesos de soporte es inalterable: no se puede % ', lower(tg_op) using errcode = '42501';
+  raise exception 'La bitácora de accesos de soporte es inalterable: no se puede %', lower(tg_op) using errcode = '42501';
 end;
 $$;
 

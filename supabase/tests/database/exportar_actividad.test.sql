@@ -9,7 +9,7 @@
 -- evento. Por eso los conteos de abajo filtran por tipo o por período cuando una llamada previa ya registró.
 begin;
 
-select plan(51);
+select plan(54);
 
 -- ============================================================================
 -- Fixture (mismo que registro_actividad.test.sql)
@@ -182,8 +182,8 @@ select set_config('t.tope', public.exportar_actividad(p_limite => 100, p_con_tot
 select is((current_setting('t.tope')::jsonb ->> 'total')::int, 50002, 'el total es el real aunque supere el tope, y es solo de su organización');
 select is(current_setting('t.tope')::jsonb ->> 'recortado', 'true', 'pasado el tope se avisa que se recortó');
 select ok(
-  exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Inició la exportación de 50000 registros de la actividad a CSV'),
-  'la primera llamada deja la constancia aunque el filtro exceda el tope: cuenta lo exportable (el tope), no el total');
+  exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Inició la exportación de 50002 registros de la actividad a CSV (supera el tope de 50000)'),
+  'la primera llamada deja la constancia aunque el filtro exceda el tope, con el total real y el aviso del tope');
 
 -- Un cliente que miente con p_entregadas = 0 en cada página no saltea el tope: lo cuenta el servidor.
 do $$
@@ -267,7 +267,20 @@ select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado', p_exportacion => 'c0000000-0000-0000-0000-000000000002');
 select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 2,
   'otra exportación (otro id) deja su propia constancia');
+
+-- Repetir la misma página (mismo id y mismo cursor) no suma lo entregado dos veces.
+select set_config('t.r1', public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000003')::text, true);
+select public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000003');
 reset role;
+select is((select entregadas from private.exportaciones_actividad where id = 'c0000000-0000-0000-0000-000000000003'), 1,
+  'repetir la misma página no suma entregadas dos veces');
+select pg_temp.como('b1000000-0000-0000-0000-000000000001');
+select public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000003',
+  p_cursor_creado_en => (current_setting('t.r1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
+  p_cursor_id => (current_setting('t.r1')::jsonb -> 'siguiente' ->> 'id')::uuid);
+reset role;
+select is((select entregadas = 2 and cerrada from private.exportaciones_actividad where id = 'c0000000-0000-0000-0000-000000000003'), true,
+  'y la página siguiente sí suma: 2 filas entregadas y el id cerrado');
 
 -- ============================================================================
 -- Superadmin en modo soporte (MSF-278, hallazgo 5): nivel_seccion nunca devuelve NULL
@@ -281,6 +294,15 @@ reset role;
 
 select pg_temp.como('b8000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.exportar_actividad()$$, '42501', null, 'el superadmin que no entró a ninguna organización no exporta');
+reset role;
+
+-- Límite de exportaciones nuevas por persona y hora: el control real es la constancia, no el tope.
+insert into private.exportaciones_actividad (id, organizacion_id, usuario_id, cerrada)
+select gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'b2000000-0000-0000-0000-000000000001', true
+  from generate_series(1, 60);
+select pg_temp.como('b2000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.exportar_actividad(p_tipo => 'carga.extra')$$, '22023',
+  'Superaste el límite de 60 exportaciones por hora: esperá un rato e intentá de nuevo', 'pasadas 60 exportaciones nuevas en una hora se rechaza la siguiente');
 reset role;
 
 select * from finish();

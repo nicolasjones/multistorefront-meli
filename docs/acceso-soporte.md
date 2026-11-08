@@ -9,7 +9,7 @@ Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US3, FR-014…FR-01
 - El acceso **vence solo a las 4 horas**. El banner de la parte superior muestra «Acceso de soporte hasta HH:MM» (hora de Buenos Aires) y la acción **Salir**.
 - Al vencer, la app limpia el contexto y vuelve a Organizaciones con un aviso. Un acceso vencido no ve ninguna fila de la organización ni puede escribir.
 - Si la persona de soporte cierra el navegador sin salir, el vencimiento igual queda asentado: el flow de Kestra `cierre-accesos-soporte` corre cada 15 minutos y ejecuta `private.cerrar_accesos_soporte_vencidos()`.
-- **Reingresar a la misma organización con el acceso vigente renueva el vencimiento a 4 horas desde ese momento, sin límite acumulado.** Es el comportamiento actual (`entrar_a_organizacion` hace `on conflict do update`) y queda sin cambios hasta que Nicolás defina el tope; es una decisión de negocio pendiente (¿máximo de renovaciones o de horas seguidas por organización?). Cada reingreso queda igualmente registrado con su motivo.
+- **Reingresar a la misma organización con el acceso vigente renueva el vencimiento a 4 horas desde ese momento, sin límite acumulado.** Es el comportamiento actual (`entrar_a_organizacion` hace `on conflict do update`). **Decisión aceptada por el dueño (2026-11-08):** se queda así y se cambia solo si el cliente lo pide. Cada reingreso queda igualmente registrado con su motivo.
 - Sigue siendo una organización a la vez: entrar a otra cierra la anterior.
 
 ## Qué ve el cliente
@@ -35,11 +35,15 @@ Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, 
 
 ## Cierre automático de accesos vencidos
 
-`private.cerrar_accesos_soporte_vencidos()` (`20270215600002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
+`private.cerrar_accesos_soporte_vencidos()` (`20270217100002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
+
+## E2E no escritos
+
+Faltan los E2E del acceso de soporte (diálogo de motivo, banner «Acceso de soporte hasta HH:MM», salida y vencimiento) y del detalle de Actividad. Necesitan Supabase y no se pueden ejecutar fuera del CI; no se agregaron a ciegas. Criterio de aceptación pendiente: E2E deterministas (siguiendo `docs/e2e-app.md`) verdes en el CI al integrar la épica.
 
 ## Bitácora inalterable
 
-`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270215600000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
+`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270217100000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
 
 ## Pruebas
 

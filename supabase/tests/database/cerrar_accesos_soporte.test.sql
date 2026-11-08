@@ -1,7 +1,7 @@
 -- MSF-170 (revisión independiente, hallazgo 4): cierre automático de los accesos de soporte vencidos.
 begin;
 
-select plan(13);
+select plan(15);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -26,6 +26,8 @@ grant all on resultado_cierre to workers_orquestacion;
 select is(has_function_privilege('authenticated', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), false, 'authenticated no ejecuta el cierre');
 select is(has_function_privilege('anon', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), false, 'anon no ejecuta el cierre');
 select is(has_function_privilege('workers_orquestacion', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), true, 'workers_orquestacion ejecuta el cierre');
+select is(pg_has_role('service_role', 'workers_orquestacion', 'member'), true, 'service_role es miembro de workers_orquestacion (20261005000000)');
+select is(has_function_privilege('service_role', 'private.cerrar_accesos_soporte_vencidos()', 'execute'), true, 'por esa membresía service_role (llave de servidor, no pública) también la ejecuta');
 set local role authenticated;
 select throws_ok($$select private.cerrar_accesos_soporte_vencidos()$$, '42501', null, 'un usuario autenticado no cierra accesos');
 reset role;

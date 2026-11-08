@@ -83,4 +83,6 @@ flowchart LR
     C --> Z
 ```
 
+Desvío: los E2E del detalle de Actividad y del acceso de soporte NO están escritos (necesitan Supabase y no se ejecutaron al corregir); criterio de aceptación pendiente: E2E deterministas verdes en el CI al integrar la épica.
+
 Desvío: FR-010/FR-011 decían que exportan Administrador, Operador y Administración; el código exige además nivel `edicion` en Actividad, así que por defecto solo exporta el Administrador (decisión deliberada, CA-AUD-03-2). Spec y contrato alineados con el código en MSF-170 (revisión independiente).

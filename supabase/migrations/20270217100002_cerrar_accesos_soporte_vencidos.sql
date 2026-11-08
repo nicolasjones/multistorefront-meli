@@ -50,6 +50,8 @@ begin
 end;
 $$;
 
+-- Quita cualquier permiso directo. Ojo: service_role es miembro de workers_orquestacion (20261005000000), así que
+-- la ejecuta igual por esa membresía (como la depuración): es la llave de servidor, no la de la API pública.
 revoke all on function private.cerrar_accesos_soporte_vencidos() from public, anon, authenticated, service_role;
 grant execute on function private.cerrar_accesos_soporte_vencidos() to workers_orquestacion;
 
