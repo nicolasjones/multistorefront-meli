@@ -125,6 +125,19 @@ describe('leerImagenes · topes y nombres repetidos', () => {
     expect(rechazadas).toEqual(['No pudimos abrir «roto.zip». Verificá que sea un ZIP válido.'])
   })
 
+  it('un ZIP válido pero vacío, con solo carpetas o con entradas que no son imágenes no muestra error', async () => {
+    const casos = [
+      zipSync({}),
+      zipSync({ 'carpeta/': new Uint8Array(0) }),
+      zipSync({ 'notas.txt': new TextEncoder().encode('hola'), 'datos/planilla.csv': new TextEncoder().encode('a,b') }),
+    ]
+    for (const bytes of casos) {
+      const { imagenes, rechazadas } = await leerImagenes([archivoDe(bytes, 'ok.zip')])
+      expect(imagenes).toHaveLength(0)
+      expect(rechazadas).toEqual([])
+    }
+  })
+
   it('gana la primera aunque la primera homónima haya sido rechazada (por peso o por inválida)', async () => {
     const enorme = new Uint8Array(3 * 1024 * 1024)
     const { imagenes, rechazadas } = await leerImagenes([

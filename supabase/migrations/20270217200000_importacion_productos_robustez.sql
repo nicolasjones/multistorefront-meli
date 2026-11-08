@@ -34,7 +34,7 @@
 --   drop index dominio.importaciones_productos_filas_imagenes_idx;
 --   drop function private.registrar_fallo_fila_importacion_productos(uuid, uuid);
 --   restaurar cerrar_importacion_productos (20270206100004) y obtener_importacion_productos (20270206100005);
---   alter table dominio.importaciones_productos_filas drop column imagenes_pendientes, drop column intentos;  -- antes, exportar los datos.
+--   alter table dominio.importaciones_productos_filas drop column imagenes_pendientes, drop column intentos, drop column motivo_codigo;  -- antes, exportar los datos.
 
 alter table dominio.importaciones_productos_filas
   add column if not exists imagenes_pendientes boolean not null default false;
@@ -44,6 +44,12 @@ alter table dominio.importaciones_productos_filas
 -- la fila queda `omitida` con un motivo claro.
 alter table dominio.importaciones_productos_filas
   add column if not exists intentos smallint not null default 0;
+
+-- Código estable del motivo de una omisión que no es por los datos de la fila (el texto de `resultado_mensaje` es solo
+-- para mostrar): hoy solo ERROR_TEMPORAL (intentos agotados por errores transitorios). Lo escribe
+-- `registrar_fallo_fila_…` y lo lee `obtener_importacion_productos`.
+alter table dominio.importaciones_productos_filas
+  add column if not exists motivo_codigo text check (motivo_codigo in ('ERROR_TEMPORAL'));
 
 comment on column dominio.importaciones_productos_filas.imagenes_pendientes is
   'Fila aplicada cuyas imágenes todavía no se adjuntaron: el worker la vuelve a ver hasta confirmarlas (no se pierden si Storage falla).';
@@ -703,14 +709,14 @@ begin
     -- Omitidas por un error temporal repetido (se pueden volver a importar), distintas de las omitidas por datos.
     'omitidas_temporales', (select count(*) from dominio.importaciones_productos_filas f
                              where f.importacion_id = v_imp.id and f.resultado = 'omitida'
-                               and f.resultado_mensaje like 'Error temporal repetido%'),
+                               and f.motivo_codigo = 'ERROR_TEMPORAL'),
     -- Productos aplicados cuyas imágenes no llegaron a adjuntarse (también en una importación cerrada como fallida).
     'sin_imagenes', (select count(*) from dominio.importaciones_productos_filas f
                       where f.importacion_id = v_imp.id and f.resultado = 'aplicada' and f.imagenes_pendientes),
     'ejecucion_id', v_imp.ejecucion_id,
     'mensaje_fallo', v_imp.mensaje_fallo,
     'errores', coalesce((
-      select jsonb_agg(jsonb_build_object('fila', f.fila, 'sku', f.sku, 'mensaje', f.resultado_mensaje) order by f.fila)
+      select jsonb_agg(jsonb_build_object('fila', f.fila, 'sku', f.sku, 'mensaje', f.resultado_mensaje, 'codigo', f.motivo_codigo) order by f.fila)
         from dominio.importaciones_productos_filas f
        where f.importacion_id = v_imp.id and f.resultado = 'omitida'
     ), '[]'::jsonb)
@@ -748,7 +754,7 @@ begin
   end if;
   if v_intentos >= v_tope then
     update dominio.importaciones_productos_filas f
-       set resultado = 'omitida', aplicada_en = now(),
+       set resultado = 'omitida', aplicada_en = now(), motivo_codigo = 'ERROR_TEMPORAL',
            resultado_mensaje = 'Error temporal repetido; volvé a importar esta fila'
      where f.id = p_fila_id;
   end if;

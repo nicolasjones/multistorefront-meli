@@ -6,7 +6,7 @@
 -- catalogo_importacion.test.sql: en el CI no es superusuario y no puede simular el login del worker).
 begin;
 
-select plan(29);
+select plan(30);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -182,9 +182,9 @@ select lives_ok(
          current_setting('t.ejec1'), current_setting('t.imp1')),
   'el worker registra tres fallos transitorios de la misma fila');
 select is(
-  (select resultado || '/' || intentos || '/' || resultado_mensaje from dominio.importaciones_productos_filas
+  (select resultado || '/' || intentos || '/' || motivo_codigo || '/' || resultado_mensaje from dominio.importaciones_productos_filas
     where importacion_id = current_setting('t.imp1')::uuid and sku = 'TRANS-1'),
-  'omitida/3/Error temporal repetido; volvé a importar esta fila',
+  'omitida/3/ERROR_TEMPORAL/Error temporal repetido; volvé a importar esta fila',
   'al tercer intento la fila queda omitida con un motivo claro');
 select is(
   (select string_agg(sku || ':' || resultado || ':' || intentos, ',' order by fila) from dominio.importaciones_productos_filas
@@ -201,7 +201,13 @@ select is(
   'obtener_importacion_productos cuenta los productos que quedaron sin imágenes');
 select is(
   (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'omitidas_temporales')::int, 1,
-  'obtener_importacion_productos distingue las omitidas por un error temporal repetido');
+  'obtener_importacion_productos distingue las omitidas por un error temporal repetido (por código, no por texto)');
+-- El texto es solo para mostrar: cambiarlo no altera el conteo.
+update dominio.importaciones_productos_filas set resultado_mensaje = 'otro texto'
+ where importacion_id = current_setting('t.imp1')::uuid and sku = 'TRANS-1';
+select is(
+  (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'omitidas_temporales')::int, 1,
+  'el conteo de omitidas temporales no depende del texto del motivo');
 reset role;
 
 -- ============================================================================

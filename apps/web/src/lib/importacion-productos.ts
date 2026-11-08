@@ -180,6 +180,16 @@ export const LIMITES_IMAGENES_POR_DEFECTO: LimitesImagenes = {
  * repetida se descarta y se avisa. Para reemplazar una imagen hay que cancelar y volver a cargarla.
  */
 
+/** ¿Trae el registro de fin de directorio central (EOCD, `PK\x05\x06`) en los últimos 22 + 65535 bytes? Un ZIP vacío es solo eso. */
+export function tieneRegistroFinalZip(datos: Uint8Array): boolean {
+  if (datos.length < 22) return false
+  const desde = Math.max(0, datos.length - 22 - 65535)
+  for (let i = datos.length - 22; i >= desde; i -= 1) {
+    if (datos[i] === 0x50 && datos[i + 1] === 0x4b && datos[i + 2] === 0x05 && datos[i + 3] === 0x06) return true
+  }
+  return false
+}
+
 /** Tamaño de cada empuje al lector de ZIP en streaming. */
 const REBANADA_ZIP = 16 * 1024
 
@@ -306,7 +316,9 @@ export async function leerImagenes(archivos: readonly File[], limites: LimitesIm
           lector.push(datos.subarray(desde, hasta), hasta === datos.length)
         }
         // Un archivo no vacío que no emitió ninguna entrada (basura) o que dejó entradas sin terminar (truncado) no es un ZIP válido.
-        if (invalido || (!detenido && datos.length > 0 && (entradasVistas === 0 || entradasCerradas < entradasVistas))) {
+        // Sin entradas: solo es válido un ZIP vacío (un registro EOCD, `PK\x05\x06`); la basura no tiene esa estructura.
+        const sinEstructura = entradasVistas === 0 && !tieneRegistroFinalZip(datos)
+        if (invalido || (!detenido && datos.length > 0 && (sinEstructura || entradasCerradas < entradasVistas))) {
           throw new Error('ZIP inválido')
         }
         for (const nombre of repetidas) {

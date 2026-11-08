@@ -82,7 +82,7 @@ solo conserva las columnas conocidas, acotadas.
 
 Los hallazgos de código de la revisión están resueltos. Lo que sigue siendo así a propósito o depende de operación:
 
-- Un `.zip` ilegible (basura, truncado) se informa «No pudimos abrir…»: el lector en streaming no lanza, así que se detecta por no haber emitido entradas o haber dejado alguna sin terminar. «Gana la primera» se decide por el nombre visto en la selección, aunque la primera homónima se haya rechazado.
+- Un `.zip` ilegible se informa «No pudimos abrir…»: el lector en streaming no lanza, así que se detecta cuando no emitió ninguna entrada y el archivo no tiene el registro final de ZIP (`PK\x05\x06` en los últimos 66 KB), o cuando dejó alguna entrada sin terminar. Un ZIP **vacío** válido (solo ese registro), con solo carpetas o con entradas que no son imágenes no muestra error y no aporta imágenes. Límite: un ZIP truncado justo después de la última entrada completa (le falta solo el directorio central) no se detecta; no se pierde nada, porque todas las entradas llegaron enteras y se leen igual (el lector no necesita el directorio central), y las imágenes que citaba el CSV se validan igual contra lo subido. «Gana la primera» se decide por el nombre visto en la selección, aunque la primera homónima se haya rechazado.
 
 - La conexión `importar-productos` de cada organización la crea un Administrador con `crear_conexion` (servidor y
   credencial, ver `docs/historial-ventas.md`); la pantalla avisa mientras falte.
