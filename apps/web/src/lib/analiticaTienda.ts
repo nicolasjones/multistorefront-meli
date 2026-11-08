@@ -85,11 +85,17 @@ let enVuelo = 0
 // IDs de la última sincronización pedida y recarga/reanudación diferida hasta que sea seguro.
 let ultimosIds: IdsMedicion | null = null
 let reintentoArmado = false
+// Cada herramienta pidió su script en esta página (en vuelo o evaluado): solo recargar lo descarga de memoria.
+let pixelEnMemoria = false
+// Reintento pendiente (lo arma `armarReintento`): lo llaman los eventos, el temporizador y los cambios de ruta.
+let reintentarAhora: (() => void) | null = null
+let desarmarReintento: (() => void) | null = null
+const INTERVALO_REINTENTO_MS = 5000
 
 // Acciones del navegador que las pruebas reemplazan (jsdom no navega).
 export const accionesPagina = { recargar: (): void => window.location.reload() }
 
-function agregarScript(src: string, alFallar: () => void): void {
+function agregarScript(src: string, alFallar: () => void, alLlegarTarde: () => void = () => undefined): void {
   try {
     enVuelo++
     let resuelto = false
@@ -104,14 +110,22 @@ function agregarScript(src: string, alFallar: () => void): void {
     nodo.onload = () => {
       resolver()
       scriptsEnMemoria = true
-      // Se evaluó tras una revocación: no corresponde. Se deja inerte y, si es seguro, se recarga.
-      if (!consentimientoAceptado()) {
-        quitarGlobales('dataLayer', 'gtag', 'fbq', '_fbq', 'google_tag_manager', 'google_tag_data')
-        borrarCookies(COOKIES_GOOGLE)
-        borrarCookies(COOKIES_META)
-        borrarAlmacenamiento()
-        if (!consentimientoAceptado() && !recargarSiSeguro()) armarReintento()
+      try {
+        if (!consentimientoAceptado()) {
+          // Se evaluó tras una revocación: no corresponde. Se deja inerte y, si es seguro, se recarga.
+          quitarGlobales('dataLayer', 'gtag', 'fbq', '_fbq', 'google_tag_manager', 'google_tag_data')
+          borrarCookies(COOKIES_GOOGLE)
+          borrarCookies(COOKIES_META)
+          borrarAlmacenamiento(ALMACENAMIENTO_GOOGLE)
+          borrarAlmacenamiento(ALMACENAMIENTO_META)
+        } else {
+          // Con consentimiento vigente pero de un ID que ya no es el vigente (reemplazado en la misma visita).
+          alLlegarTarde()
+        }
+      } catch {
+        // Un fallo al limpiar no puede perder el reintento de abajo.
       }
+      if (!consentimientoAceptado() && !recargarSiSeguro()) armarReintento()
     }
     nodo.onerror = () => {
       resolver()
@@ -150,20 +164,6 @@ export function dominiosCookie(host: string = window.location.hostname): Array<s
   return dominios
 }
 
-// Claves de `localStorage` / `sessionStorage` que dejan Google y Meta (nunca la decisión de cookies de la tienda).
-const ALMACENAMIENTO_MEDICION = /^(_ga|_gid|_gat|_gcl_|__gads|__gpi|__eoi|google_experiment_mod|_fbp|_fbc|_fbq|fbevents|fbq)/
-
-function borrarAlmacenamiento(): void {
-  for (const almacen of ['localStorage', 'sessionStorage'] as const) {
-    try {
-      const memoria = window[almacen]
-      for (const clave of Object.keys(memoria)) if (ALMACENAMIENTO_MEDICION.test(clave)) memoria.removeItem(clave)
-    } catch {
-      // Almacenamiento bloqueado: nada que limpiar.
-    }
-  }
-}
-
 function borrarCookies(patron: RegExp): void {
   const nombres = document.cookie
     .split(';')
@@ -185,6 +185,22 @@ const quitarScripts = (selector: string): void => {
   document.querySelectorAll(selector).forEach((nodo) => nodo.remove())
 }
 
+// Claves de `localStorage` / `sessionStorage` que dejan Google y Meta, por proveedor y ancladas al final (nunca la
+// decisión de cookies de la tienda ni claves de la app como `_galeria` o `fbqueue`).
+const ALMACENAMIENTO_GOOGLE = /^(_ga(_|$)|_gid$|_gat(_|$)|_gcl_|__gads$|__gpi$|__eoi$|google_experiment_mod$)/
+const ALMACENAMIENTO_META = /^(_fbp$|_fbc$|_fbq$|fbevents$|fbq$)/
+
+function borrarAlmacenamiento(patron: RegExp): void {
+  for (const almacen of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const memoria = window[almacen]
+      for (const clave of Object.keys(memoria)) if (patron.test(clave)) memoria.removeItem(clave)
+    } catch {
+      // Almacenamiento bloqueado: nada que limpiar.
+    }
+  }
+}
+
 // Apaga Google Analytics: el interruptor oficial `ga-disable-ID` queda puesto (aunque el script ya evaluado siga en
 // memoria no envía), consentimiento denegado, cookies fuera, script y globales quitados.
 function apagarGa4(): void {
@@ -194,7 +210,7 @@ function apagarGa4(): void {
     if (ga4Activo) w.gtag?.('consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied' })
   }
   borrarCookies(COOKIES_GOOGLE)
-  borrarAlmacenamiento()
+  borrarAlmacenamiento(ALMACENAMIENTO_GOOGLE)
   quitarScripts(`script[src^="${URL_GTAG}"]`)
   quitarGlobales('dataLayer', 'gtag', 'google_tag_manager', 'google_tag_data')
   ga4Cargado = null
@@ -205,7 +221,7 @@ function apagarGa4(): void {
 function apagarPixel(): void {
   if (pixelCargado && pixelActivo) ventana().fbq?.('consent', 'revoke')
   borrarCookies(COOKIES_META)
-  borrarAlmacenamiento()
+  borrarAlmacenamiento(ALMACENAMIENTO_META)
   quitarScripts(`script[src="${URL_PIXEL}"]`)
   quitarGlobales('fbq', '_fbq')
   pixelCargado = null
@@ -224,6 +240,9 @@ function recargaSegura(): boolean {
   for (const lista of Array.from(document.querySelectorAll('select'))) {
     if (Array.from(lista.options).some((opcion) => opcion.selected !== opcion.defaultSelected)) return false
   }
+  for (const marca of Array.from(document.querySelectorAll<HTMLInputElement>('input[type=checkbox], input[type=radio]'))) {
+    if (marca.checked !== marca.defaultChecked) return false
+  }
   if (document.querySelector('[contenteditable=""], [contenteditable="true"]') !== null) return false
   const enfocado = document.activeElement
   if (enfocado && enfocado !== document.body && enfocado.matches('input, textarea, select, [contenteditable], [role="dialog"] *')) return false
@@ -232,32 +251,47 @@ function recargaSegura(): boolean {
 
 // Descarta de memoria los scripts de terceros ya evaluados recargando la página, solo si no hay nada que perder.
 function recargarSiSeguro(): boolean {
-  if (!scriptsEnMemoria || !recargaSegura()) return false
+  if (!(scriptsEnMemoria || pixelEnMemoria) || !recargaSegura()) return false
   scriptsEnMemoria = false
+  pixelEnMemoria = false
   enVuelo = 0
   accionesPagina.recargar()
   return true
 }
 
-// Si no era seguro recargar, se reintenta cuando la persona suelta un campo (`focusout`) o vuelve a la pestaña
-// (`visibilitychange`). Con consentimiento vigente retoma la carga; sin él, recarga para soltar los scripts.
+// Si no era seguro recargar, se reintenta cuando la persona suelta un campo hacia algo que no es otro campo
+// (`focusout`), vuelve a la pestaña (`visibilitychange`), cambia de ruta de la SPA o, como red de seguridad, cada 5 s
+// mientras la pestaña esté visible (por ejemplo, un diálogo que se cierra sin mover el foco). Con consentimiento
+// vigente retoma la carga; sin él, recarga para soltar los scripts. Se cancela al recargar o al resolverse.
 function armarReintento(): void {
   if (reintentoArmado || typeof document === 'undefined') return
   reintentoArmado = true
-  const reintentar = () => {
-    if (!scriptsEnMemoria) return desarmar()
+  const reintentar = (evento?: Event) => {
+    if (evento?.type === 'focusout') {
+      // Pasar de un campo a otro (o dentro de un formulario o diálogo) no es soltar el foco.
+      const destino = (evento as FocusEvent).relatedTarget as Element | null
+      if (destino?.closest?.('input, textarea, select, [contenteditable], form, [role="dialog"], [role="alertdialog"], dialog')) return
+    }
+    if (document.hidden && evento?.type !== 'visibilitychange') return
+    if (!scriptsEnMemoria && !pixelEnMemoria) return desarmar()
     if (consentimientoAceptado()) {
       if (ultimosIds) cargarMedicion(ultimosIds)
     } else {
       recargarSiSeguro()
     }
-    if (!scriptsEnMemoria) desarmar()
+    if (!scriptsEnMemoria && !pixelEnMemoria) desarmar()
   }
+  const temporizador = window.setInterval(() => reintentar(), INTERVALO_REINTENTO_MS)
   const desarmar = () => {
     document.removeEventListener('visibilitychange', reintentar)
     document.removeEventListener('focusout', reintentar)
+    window.clearInterval(temporizador)
+    reintentarAhora = null
+    desarmarReintento = null
     reintentoArmado = false
   }
+  desarmarReintento = desarmar
+  reintentarAhora = () => reintentar()
   document.addEventListener('visibilitychange', reintentar)
   document.addEventListener('focusout', reintentar)
 }
@@ -292,11 +326,20 @@ function cargarGa4(id: string): void {
   // La visita se registra a mano en cada navegación (FR-015): se evita el page_view automático duplicado.
   w.gtag('config', id, { send_page_view: false })
   if (document.querySelector(`script[src^="${URL_GTAG}"]`) === null) {
-    agregarScript(`${URL_GTAG}?id=${encodeURIComponent(id)}`, () => {
-      if (ga4Cargado !== id) return
-      ga4Bloqueado = id
-      apagarGa4()
-    })
+    agregarScript(
+      `${URL_GTAG}?id=${encodeURIComponent(id)}`,
+      () => {
+        if (ga4Cargado !== id) return
+        ga4Bloqueado = id
+        apagarGa4()
+      },
+      () => {
+        // Llegó tarde un script de un ID que ya no es el vigente: queda inerte (sin tocar las globales del ID nuevo).
+        if (ga4Cargado === id) return
+        ;(ventana() as unknown as Record<string, unknown>)[`ga-disable-${id}`] = true
+        borrarCookies(new RegExp(`^_ga_${id.slice(2)}$`))
+      },
+    )
   }
 }
 
@@ -306,6 +349,12 @@ function cargarPixel(id: string): void {
   if (pixelCargado === id) {
     w.fbq?.('consent', 'grant')
     pixelActivo = true
+    return
+  }
+  // `fbevents.js` ya se pidió en esta página y no se puede descargar de memoria (se quitó y se volvió a agregar el ID):
+  // no se inyecta otra copia, se espera a poder recargar.
+  if (pixelEnMemoria && !pixelCargado) {
+    if (!recargarSiSeguro()) armarReintento()
     return
   }
   const hayScript = document.querySelector(`script[src="${URL_PIXEL}"]`) !== null
@@ -329,7 +378,9 @@ function cargarPixel(id: string): void {
   w.fbq('set', 'autoConfig', false, id)
   w.fbq('init', id, {})
   if (!hayScript) {
+    pixelEnMemoria = true
     agregarScript(URL_PIXEL, () => {
+      pixelEnMemoria = false // nunca se evaluó
       if (pixelCargado !== id) return
       pixelBloqueado = id
       apagarPixel()
@@ -391,6 +442,7 @@ export function hayMedicionCargada(): boolean {
 // emisión; si se revocó apaga la medición. Sin medición cargada no hace nada.
 export function registrarVisita(ruta: string): void {
   try {
+    reintentarAhora?.() // cambio de ruta de la SPA: oportunidad de completar una recarga pendiente
     if (!consentimientoAceptado()) return retirarMedicion()
     const w = ventana()
     if (ga4Activo && w.gtag) w.gtag('event', 'page_view', { page_path: ruta })
@@ -435,6 +487,8 @@ export function reiniciarMedicionParaPruebas(): void {
   scriptsEnMemoria = false
   enVuelo = 0
   ultimosIds = null
+  pixelEnMemoria = false
+  desarmarReintento?.()
   reintentoArmado = false
   accionesPagina.recargar = (): void => window.location.reload()
   pendientes.length = 0
