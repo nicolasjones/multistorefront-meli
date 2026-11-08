@@ -120,7 +120,7 @@ salen de la columna `tiendas`.
 
 ## Reversión
 
-Migraciones aditivas (`20270206100001`…`20270206100005` y `20270215500000_importacion_productos_robustez`). Para volver
+Migraciones aditivas (`20270206100001`…`20270206100005` y `20270217200000_importacion_productos_robustez`). Para volver
 atrás: revertir el merge del PR (`git revert -m 1`) y, en una migración posterior, eliminar las tablas
 `dominio.importaciones_productos*` y las funciones asociadas (ver el encabezado de cada migración), exportando antes
 los datos. Nunca en el mismo PR que las crea.
@@ -135,7 +135,7 @@ bloquea el borrado directo de objetos por SQL; la migración es inmutable y no s
    `supabase.storage.emptyBucket(...)` + `deleteBucket(...)` del cliente de servidor).
 3. En una migración posterior: `drop table dominio.importaciones_productos_filas; drop table dominio.importaciones_productos;`
    y las funciones `private.capacidad_importacion_productos()` y `private.codigo_tienda(text)`, más las de
-   `20270206100002…5` y `20270215500000` (cada encabezado lista las suyas). Las políticas de `storage.objects` del
+   `20270206100002…5` y `20270217200000` (cada encabezado lista las suyas). Las políticas de `storage.objects` del
    bucket (`productos_importaciones_*`) se eliminan con `drop policy`.
 
 
