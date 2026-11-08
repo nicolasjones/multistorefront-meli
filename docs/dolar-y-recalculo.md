@@ -32,7 +32,7 @@ Las tres tablas tienen RLS por organización (`private.organizacion_id()`) y per
 
 ## Atomicidad y concurrencia
 
-`confirmar_cotizacion` toma `pg_advisory_xact_lock` por organización y `select … for update` de la pendiente; historial, cotización aplicada, borrado de la pendiente y eventos van en la misma transacción. Doble clic o dos operadores: una confirmación gana y la otra recibe `P0002` sin duplicar el historial. `descartar_cotizacion` es idempotente.
+`confirmar_cotizacion(p_empresa, p_variacion_vista)` toma `pg_advisory_xact_lock` por organización (antes de leer la configuración) y `select … for update` de la pendiente; historial, cotización aplicada, borrado de la pendiente y eventos van en la misma transacción. Doble clic o dos operadores: una confirmación gana y la otra recibe `P0002` sin duplicar el historial. `descartar_cotizacion` es idempotente. Si |variación| supera la confirmación configurada, exige `p_variacion_vista` (la que el usuario vio) y que coincida con la real ±0,05 puntos; si no, `22023` con hint `variacion_inusual` (falta) o `variacion_cambio` (el dólar cambió mientras revisaba). Ver `configuracion-dolar-y-precio-propio.md`.
 
 ## Permisos
 

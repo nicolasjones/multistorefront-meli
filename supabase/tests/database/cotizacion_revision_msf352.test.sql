@@ -121,7 +121,16 @@ select lives_ok($$select public.cargar_cotizacion(1713.5)$$, 'cargar 1713,5 (jus
 select lives_ok($$select public.confirmar_cotizacion()$$, 'una variación igual a la confirmación configurada no exige confirmación explícita');
 select lives_ok($$select public.cargar_cotizacion(1370.8)$$, 'cargar 1370,8 (−20 %)');
 select is(pg_temp.hint_de('select public.confirmar_cotizacion()'), '22023:variacion_inusual', 'una baja inusual también exige confirmación');
-select lives_ok($$select public.descartar_cotizacion()$$, 'se descarta');
+-- Signo opuesto: −20 % real contra +20 % vista ⇒ cambió.
+select is(pg_temp.hint_de('select public.confirmar_cotizacion(null, 20)'), '22023:variacion_cambio', 'la variación vista con el signo opuesto se rechaza');
+-- Borde de tolerancia (0,05 puntos): justo fuera se rechaza, justo dentro (y un valor redondeado a 1 decimal) se acepta.
+select is(pg_temp.hint_de('select public.confirmar_cotizacion(null, -20.0501)'), '22023:variacion_cambio', 'a 0,0501 puntos de la real se rechaza');
+select is(pg_temp.hint_de('select public.confirmar_cotizacion(null, -19.9499)'), '22023:variacion_cambio', 'a 0,0501 puntos por el otro lado también');
+select lives_ok($$select public.confirmar_cotizacion(null, -20.05)$$, 'a 0,05 puntos exactos se acepta');
+select is(private.cotizacion_para('11111111-1111-1111-1111-111111111111', null), 1370.8::numeric, 'y se aplicó la baja');
+select lives_ok($$select public.cargar_cotizacion(1490)$$, 'cargar 1490 (+8,69 %)');
+select lives_ok($$select public.confirmar_cotizacion(null, 99)$$, 'si la variación real NO es inusual el servidor ignora la variación vista');
+select is(private.cotizacion_para('11111111-1111-1111-1111-111111111111', null), 1490::numeric, 'y se aplicó');
 
 -- ============================================================================
 -- La configuración deja el valor anterior y el nuevo en la actividad (registro inalterable)

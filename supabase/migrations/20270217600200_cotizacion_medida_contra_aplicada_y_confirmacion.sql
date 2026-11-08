@@ -12,7 +12,7 @@
 -- 2. (MEDIO) La «variación inusual» (`confirmacion_pct`) solo avisaba en la pantalla: por API, tipear 149000 en vez de
 --    1490 se aplicaba y multiplicaba por 100 los precios en USD. `confirmar_cotizacion` recibe
 --    `p_variacion_vista numeric default null` (la variación que el usuario vio) y, si |variación| > `confirmacion_pct`,
---    la exige: sin ella 22023 (hint `variacion_inusual`); si difiere de la real en más de 0,01 puntos (otro usuario
+--    la exige: sin ella 22023 (hint `variacion_inusual`); si difiere de la real en más de 0,05 puntos (otro usuario
 --    cambió el dólar mientras revisaba) 22023 (hint `variacion_cambio`). Sin escribir nada. La pantalla envía la
 --    variación del aviso que estaba a la vista.
 --    BREAKING compatible: `confirmar_cotizacion(uuid)` se reemplaza por `confirmar_cotizacion(uuid, numeric)`; un cliente
@@ -22,10 +22,10 @@
 --    que ninguna empresa calcula en USD, y el «nuevo» de un producto en ARS no se multiplica por el dólar.
 --
 -- Esquema (Principio VII): sin tablas nuevas; solo funciones `public`. Migración aditiva (create or replace; la firma de
--- `confirmar_cotizacion` cambia con `drop function` de la anterior). Reversión (migración posterior): recrear
--- `confirmar_cotizacion(uuid)`, `previsualizar_cotizacion`, `estado_cotizacion` y `cargar_cotizacion` con los cuerpos de
--- 20270213100004 / 20270213100006 y
+-- `confirmar_cotizacion` cambia con `drop function` de la anterior). Reversión (migración posterior): primero hay que BORRAR
 --   drop function public.confirmar_cotizacion(uuid, numeric);
+-- (si no, quedarían dos funciones con el mismo nombre) y recién después recrear `confirmar_cotizacion(uuid)`,
+-- `previsualizar_cotizacion`, `estado_cotizacion` y `cargar_cotizacion` con los cuerpos de 20270213100004 / 20270213100006.
 
 create or replace function public.cargar_cotizacion(p_valor numeric, p_empresa uuid default null)
 returns jsonb
@@ -305,14 +305,14 @@ begin
   v_recalcula := v_vigente is null or abs(v_pendiente.valor - v_vigente) * 100 >= v_vigente * v_config.umbral_pct;
 
   -- Variación inusual: el cliente tiene que mandar la variación que VIO (p_variacion_vista) y debe coincidir con la real
-  -- (tolerancia 0,01 puntos). Un booleano no alcanza: si otro usuario aplicó un dólar distinto entre la vista previa y la
+  -- (tolerancia 0,05 puntos: tolera un valor redondeado a 1 decimal). Un booleano no alcanza: si otro usuario aplicó un dólar distinto entre la vista previa y la
   -- confirmación, la variación real pudo pasar de +16 % a +60 % sin que nadie la viera.
   if v_variacion is not null and abs(v_variacion) > v_config.confirmacion_pct then
     if p_variacion_vista is null then
       raise exception 'La variación de la cotización (% %%) supera el % %% configurado: confirmala explícitamente',
         trim_scale(v_variacion)::text, trim_scale(v_config.confirmacion_pct)::text
         using errcode = '22023', hint = 'variacion_inusual';
-    elsif abs(v_variacion - p_variacion_vista) > 0.01 then
+    elsif abs(v_variacion - p_variacion_vista) > 0.05 then
       raise exception 'El dólar cambió mientras revisabas: revisá de nuevo'
         using errcode = '22023', hint = 'variacion_cambio';
     end if;
@@ -381,7 +381,7 @@ end;
 $$;
 
 comment on function public.confirmar_cotizacion(uuid, numeric) is
-  'F-PRE-03/F-PRE-06: confirma la cotización pendiente (de la organización o de p_empresa) en una transacción: historial (con el umbral usado), cotización aplicada (si la variación alcanza el umbral configurado), eventos. El umbral y la variación se miden contra la cotización aplicada; si |variación| supera la confirmación configurada exige p_variacion_vista (la variación que el usuario vio) y que coincida con la real ±0,01 (22023: hint variacion_inusual si falta, variacion_cambio si difiere). 42501 sin edición; P0002 sin_cotizacion_pendiente o empresa ajena; 22023 falta empresa.';
+  'F-PRE-03/F-PRE-06: confirma la cotización pendiente (de la organización o de p_empresa) en una transacción: historial (con el umbral usado), cotización aplicada (si la variación alcanza el umbral configurado), eventos. El umbral y la variación se miden contra la cotización aplicada; si |variación| supera la confirmación configurada exige p_variacion_vista (la variación que el usuario vio) y que coincida con la real ±0,05 (22023: hint variacion_inusual si falta, variacion_cambio si difiere). 42501 sin edición; P0002 sin_cotizacion_pendiente o empresa ajena; 22023 falta empresa.';
 
 revoke execute on function public.cargar_cotizacion(numeric, uuid) from public, anon;
 revoke execute on function public.estado_cotizacion(uuid) from public, anon;

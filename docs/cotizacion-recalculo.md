@@ -39,7 +39,7 @@ Migraciones aditivas: `20261023140200_cotizacion_previsualizar.sql` y `202610231
   y IVA si la empresa lo muestra), con una muestra de 6 productos activos en USD. `security definer` solo para
   leer la regla de cada empresa (sección `empresas`) sin exigírsela a quien carga el dólar; filtra por la
   organización de la sesión.
-- `confirmar_cotizacion()` → `{ id, recalculo_aplicado, precios_recalculados }`. Exige `edicion`. **`security definer`**
+- `confirmar_cotizacion(p_empresa default null, p_variacion_vista default null)` → `{ id, recalculo_aplicado, precios_recalculados }`. Con variación inusual exige `p_variacion_vista` (±0,05 puntos de la real): `22023` con hint `variacion_inusual` o `variacion_cambio`. Exige `edicion`. **`security definer`**
   (único camino de escritura a `cotizaciones` y `cotizacion_aplicada`; excepción acotada al estilo `security invoker`).
   Una transacción: bloqueo por organización (`pg_advisory_xact_lock` + `for update` de la pendiente), historial,
   cotización aplicada (si alcanza el umbral), borrado de la pendiente y eventos. Errores: `42501` sin permiso,

@@ -232,6 +232,8 @@ export type Previsualizacion = {
   recalcula: boolean
   // F-PRE-06: lo configurado con lo que decidió la base.
   umbralPct: number
+  // La variación inusual configurada AHORA en la base: manda sobre la que pudo quedar vieja en la pantalla.
+  confirmacionPct?: number
   redondeoPesos: number
   empresas: { empresaId: string; nombre: string; precios: number }[]
   muestra: MuestraPrecio[]
@@ -243,6 +245,7 @@ type PrevisualizacionRpc = {
   variacion_pct: number | string | null
   recalcula: boolean
   umbral_pct?: number | string
+  confirmacion_pct?: number | string
   redondeo_pesos?: number | string
   empresas: { empresa_id: string; nombre: string; precios: number | string }[]
   muestra: MuestraRpc[]
@@ -290,6 +293,7 @@ export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empres
     variacionPct: aNumeroONulo(previa.variacion_pct),
     recalcula: previa.recalcula,
     umbralPct: previa.umbral_pct === undefined ? UMBRAL_RECALCULO_PCT : Number(previa.umbral_pct),
+    confirmacionPct: previa.confirmacion_pct === undefined ? undefined : Number(previa.confirmacion_pct),
     redondeoPesos: previa.redondeo_pesos === undefined ? REDONDEO_POR_DEFECTO : Number(previa.redondeo_pesos),
     empresas: previa.empresas.map((e) => ({ empresaId: e.empresa_id, nombre: e.nombre, precios: Number(e.precios) })),
     muestra: previa.muestra.map(aMuestraPrecio),

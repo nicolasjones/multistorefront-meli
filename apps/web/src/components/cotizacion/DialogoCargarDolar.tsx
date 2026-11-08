@@ -186,6 +186,8 @@ type PasoConfirmarProps = {
 function PasoConfirmar({ carga, vigente, aplicada = null, revision = 0, empresaId, nombreEmpresa, confirmacionPct, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
   const { previa, cargando, hayError, recargar } = usePrevisualizarCotizacion(empresaId)
   const variacion = previa?.variacionPct ?? carga.variacionPct
+  // El umbral de la base manda sobre la prop (que puede estar vieja si alguien lo cambió): evita rechazos en bucle.
+  const confirmacionVigente = previa?.confirmacionPct ?? confirmacionPct
   const ultimaRevision = useRef(revision)
   useEffect(() => {
     if (revision === ultimaRevision.current) return
@@ -213,7 +215,7 @@ function PasoConfirmar({ carga, vigente, aplicada = null, revision = 0, empresaI
               <Typography variant="b" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatearVariacion(variacion)}</Typography>
             </Stack>
           </Stack>
-          {esVariacionInusual(variacion, confirmacionPct) ? <AlertaVariacionInusual confirmacionPct={confirmacionPct} /> : null}
+          {esVariacionInusual(variacion, confirmacionVigente) ? <AlertaVariacionInusual confirmacionPct={confirmacionVigente} /> : null}
           {cargando ? <EstadoCargaPagina lineas={2} /> : null}
           {hayError ? <EstadoError descripcion="No pudimos calcular qué va a cambiar." reintentar={() => void recargar()} /> : null}
           {previa && !previa.recalcula ? (
@@ -227,7 +229,9 @@ function PasoConfirmar({ carga, vigente, aplicada = null, revision = 0, empresaI
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
-        <Button variant="contained" disabled={!previa || ocupado} onClick={() => onConfirmar(esVariacionInusual(variacion, confirmacionPct) ? variacion : null)}>
+        <Button variant="contained" disabled={!previa || ocupado} // Con vista previa se manda SIEMPRE la variación que se ve (la base la ignora si no es inusual): así un umbral desfasado
+          // en pantalla no entra en un bucle de rechazos.
+          onClick={() => onConfirmar(previa ? variacion : null)}>
           {previa && !previa.recalcula ? 'Registrar cotización' : 'Aplicar y recalcular'}
         </Button>
       </DialogActions>

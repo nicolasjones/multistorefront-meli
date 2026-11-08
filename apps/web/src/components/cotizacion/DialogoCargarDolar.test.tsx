@@ -211,7 +211,7 @@ describe('DialogoCargarDolar · paso 2 (vista previa y confirmación)', () => {
     await waitFor(() => expect(onConfirmada).toHaveBeenCalledWith(confirmada))
     expect(mocks.confirmar).toHaveBeenCalledTimes(1)
     // Sin aviso de variación inusual a la vista, no se manda la confirmación explícita (la base la exigiría igual).
-    expect(mocks.confirmar).toHaveBeenCalledWith(null, null)
+    expect(mocks.confirmar).toHaveBeenCalledWith(null, 1.7065)
   })
 
   it('con variación inusual a la vista, «Aplicar» manda la confirmación explícita', async () => {
@@ -223,6 +223,20 @@ describe('DialogoCargarDolar · paso 2 (vista previa y confirmación)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
     // Manda la variación que tenía a la vista: la base la compara con la real.
     await waitFor(() => expect(mocks.confirmar).toHaveBeenCalledWith(null, 40))
+  })
+
+  it('con la variación inusual desfasada en pantalla (15) y 10 en la base: avisa con la de la base y se puede aplicar sin bucle', async () => {
+    mocks.usePrevisualizarCotizacion.mockReturnValue(previa({ variacionPct: 12, confirmacionPct: 10 } as never))
+    mocks.confirmar.mockResolvedValue({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 1 } })
+    const onConfirmada = vi.fn()
+    abrir({ onConfirmada, confirmacionPct: 15 })
+    await irAlPaso2()
+    expect(screen.getByText('Variación inusual')).toBeInTheDocument()
+    expect(screen.getByText(/La variación supera el 10 %/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
+    await waitFor(() => expect(onConfirmada).toHaveBeenCalledTimes(1))
+    expect(mocks.confirmar).toHaveBeenCalledTimes(1)
+    expect(mocks.confirmar).toHaveBeenCalledWith(null, 12)
   })
 
   it('si el dólar cambió mientras revisaba, muestra el aviso y recalcula la vista previa', async () => {

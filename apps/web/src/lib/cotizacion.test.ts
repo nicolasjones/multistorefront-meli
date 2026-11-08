@@ -205,6 +205,11 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     expect(rpc).toHaveBeenCalledWith('previsualizar_cotizacion')
   })
 
+  it('previsualizarCotizacionRpc: trae la variación inusual configurada en la base', async () => {
+    const { cliente } = clienteCon({ data: { variacion_pct: '12', recalcula: true, confirmacion_pct: '10.000', empresas: [], muestra: [] }, error: null })
+    await expect(previsualizarCotizacionRpc(cliente)).resolves.toMatchObject({ confirmacionPct: 10 })
+  })
+
   it('sin cotización previa la variación llega nula (no se inventa)', async () => {
     const { cliente } = clienteCon({ data: { variacion_pct: null, recalcula: true, empresas: [], muestra: [] }, error: null })
     await expect(previsualizarCotizacionRpc(cliente)).resolves.toMatchObject({ variacionPct: null })
