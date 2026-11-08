@@ -59,9 +59,11 @@ Importes alineados a la derecha; en pantalla angosta las tablas pasan a tarjetas
 
 El filtro **Tienda** parte de la empresa activa de la barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06) y los
 chips lo sobreescriben hasta que la activa cambie. Al cambiar de empresa o de organización, `list.tsx` remonta el
-panel (`key` con organización + empresa + pestaña): página 1, búsqueda limpia y recarga completa, sin filas de la
+panel (`key` con organización + empresa + pestaña): primera tanda, búsqueda limpia y recarga completa, sin filas de la
 empresa anterior. La pestaña de cotizaciones **no** depende de la empresa activa: se remonta solo al cambiar de
 organización. Test: `apps/web/src/pages/historial/list.test.tsx` («sigue a la empresa activa…»).
+- El historial **acumula** las tandas de 25 con un **«Cargar más»** al pie; ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 
 ## Modelo de datos
 

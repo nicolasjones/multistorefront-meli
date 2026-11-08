@@ -539,10 +539,82 @@ sequenceDiagram
 ```
 
 Empresa activa (Principio VIII): las tres pantallas invalidan y recargan **todas** sus consultas al
-cambiarla, reencuadran la paginación y descartan el filtro de cuenta que ya no existe; el detalle del
+cambiarla, reencuadran la carga por tandas y descartan el filtro de cuenta que ya no existe; el detalle del
 comprobante además cierra con aviso el diálogo «Registrar cobro» abierto.
 
 Detalle: [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md).
+
+## Ventas mejoras (MSF-193)
+
+Venta de mostrador (F-VTA-31 / MSF-329), precio especial por cliente (F-VTA-32 / MSF-340) y cierre de
+caja diario (F-VTA-33 / MSF-349). Las tres historias **reutilizan** el comprobante, las líneas y el
+libro de cobros ya construidos: ninguna recrea el comprobante ni el cobro.
+
+Venta de mostrador (F-VTA-31): el borrador **nace en el primer escaneo**, no al abrir la pantalla. Los
+códigos que llegan mientras otro se resuelve **se encolan** y se procesan en orden.
+
+```mermaid
+flowchart TD
+  A[Abrir Venta de mostrador<br/>empresa activa concreta] --> B{Escanear EAN-13}
+  B --> C[buscar_producto_por_codigo_barras]
+  C --> D{¿Existe y está activo?}
+  D -- no --> X[«Producto no encontrado»]
+  X --> B
+  D -- sí --> E{¿Es el primer escaneo?}
+  E -- sí --> F[crear_comprobante: factura borrador,<br/>canal Mostrador, Consumidor final]
+  E -- no --> G[Venta en curso]
+  F --> G
+  G --> H[guardar_lineas_comprobante: cantidad 1<br/>o incrementa la línea]
+  H --> I{¿Seguir escaneando?}
+  I -- sí --> B
+  I -- no --> J[Cobrar: confirmar_comprobante<br/>+ registrar_cobro por el total]
+  J --> K[Venta confirmada y cobrada]
+```
+
+Precio especial (F-VTA-32): el descuento lo pone el **Administrador** en la ficha del cliente y lo
+aplica la **base** sobre el neto de escala, antes del IVA. El cliente nunca manda el descuento.
+
+```mermaid
+sequenceDiagram
+  participant AD as Administrador
+  participant DB as Base
+  participant V as Vendedor
+  AD->>DB: UPDATE clientes SET descuento = 5
+  DB-->>DB: comprueba que el actor es Administrador (42501 si no)
+  DB-->>DB: evento cliente.descuento_editado
+  V->>DB: guardar_lineas_comprobante(lineas)
+  DB->>DB: lee clientes.descuento (nunca el payload)
+  DB-->>DB: precio = round(neto de escala × (1 − 5/100), 2)
+  DB-->>V: línea con descuento_pct = 5
+```
+
+Cierre de caja (F-VTA-33): es una **máquina de estados** sobre (empresa, fecha). «Abierta» es la
+ausencia de fila: solo existe cuando alguien cerró.
+
+```mermaid
+stateDiagram-v2
+  [*] --> abierta: día sin cierre (cobros registrables)
+  abierta --> cerrada: cerrar_caja (resume por forma de pago y cuenta)
+  cerrada --> reabierta: reabrir_caja (habilita los cobros del día)
+  reabierta --> cerrada: cerrar_caja de nuevo (rehace el resumen)
+  note right of cerrada
+    Toda escritura sobre los cobros de ese día se rechaza
+    con 55000: el disparador cobros_comprobante_caja_cerrada.
+  end note
+```
+
+Cerrar y registrar un cobro del mismo día toman el **mismo candado transaccional**
+(`private.candado_caja`), así que ningún cobro se cuela entre el resumen y el cierre. El «día» se
+calcula en la **zona horaria de la organización** (`private.dia_caja` / `private.hoy_caja`), no en la de
+la sesión de la base.
+
+Empresa activa (Principio VIII): el mostrador es de **una sola tienda** (con «Todas mis empresas» pide
+elegir una) y al cambiarla **descarta la venta en curso con aviso**; el cierre de caja recarga la
+lista, vuelve a la página 1 y **descarta el diálogo abierto**.
+
+Detalle: [Venta de mostrador (técnico)](ventas-mostrador.md),
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md) y
+[Cierre de caja (técnico)](ventas-cierre-caja.md).
 
 ## Ventas reportes básicos (MSF-338)
 
@@ -679,7 +751,7 @@ flowchart TD
 ```
 
 Empresa activa (Principio VIII): el tablero y la pantalla de Faltantes recarga todas sus consultas y reencuadra
-la paginación al cambiarla; en la factura, la tarjeta de responsables y el bloque de envío sueltan lo elegido y
+la carga por tandas al cambiarla; en la factura, la tarjeta de responsables y el bloque de envío sueltan lo elegido y
 releen; el diálogo «Registrar faltantes» se cierra con aviso.
 
 Detalle: [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).
@@ -906,6 +978,66 @@ sequenceDiagram
 El precio sigue el tipo y el estado del cliente en cada carga: visitante o cuenta no activa, precio
 público; minorista, x1; mayorista, x1/x5/x10/x50 en la ficha (tarjetas en x1, D3). La recuperación
 responde siempre igual y solo envía el enlace con una cuenta activa en esa tienda.
+
+## Mejoras de clientes y proveedores (MSF-445)
+
+Detalle: [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md). Los cuatro flujos
+transcriben los requisitos de la spec (`specs/20261029-100000-mejoras-de-clientes-y-proveedores/`).
+
+```mermaid
+flowchart TD
+  A["Ficha: Imprimir etiqueta de envío<br/>o Listado: clientes marcados"] --> B{"¿Tiene dirección?"}
+  B -- "No (ninguno apto)" --> C["Aviso: qué dato falta<br/>no se genera etiqueta"]
+  B -- "Sí / algunos" --> D["Hoja con una etiqueta por cliente apto<br/>(los sin dirección se nombran en el aviso)"]
+  D --> E["Diálogo de impresión / guardar como PDF"]
+  E --> F["Etiqueta enviada a imprimir"]
+```
+
+```mermaid
+sequenceDiagram
+  actor Adm as Administrador
+  participant UI as Ficha / diálogo Fusionar
+  participant DB as RPC fusionar_clientes
+  Adm->>UI: Fusionar con otro cliente…
+  UI->>DB: vista previa (conservar, descartar)
+  DB-->>UI: compras y cuentas web de cada uno
+  alt ambos con cuenta web activa
+    UI->>Adm: elegir cuál cuenta web se mantiene
+  end
+  Adm->>UI: Confirmar
+  UI->>DB: fusionar_clientes(conservar, descartar, cuenta_web_de)
+  alt no es Administrador / datos inválidos / dos activas sin resolver
+    DB-->>UI: rechazo sin cambios
+  else
+    DB->>DB: reasigna ventas, cuenta web y campañas
+    DB->>DB: archiva al descartado
+    DB->>DB: registra cliente.fusionado
+    DB-->>UI: resumen
+    UI->>Adm: ficha del conservado con la suma de compras
+  end
+```
+
+```mermaid
+flowchart TD
+  A["Registrar ingreso de mercadería"] --> B{"¿La línea trae costo?"}
+  B -- "Sí" --> C["Se guarda el costo unitario"]
+  B -- "No" --> D["Se guarda sin costo<br/>(no es cero)"]
+  C --> E["Evolución del costo por producto"]
+  D --> E
+  E --> F["Serie por proveedor: solo líneas con costo<br/>de ingresos no anulados, con su fecha"]
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> Secundario: agregar contacto
+  Secundario --> Principal: marcar como principal
+  Principal --> Secundario: se marca otro como principal
+  note right of Principal
+    A lo sumo uno por proveedor.
+    Alimenta persona de contacto,
+    correo y teléfono de la ficha.
+  end note
+```
 
 ## Convención
 

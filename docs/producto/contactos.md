@@ -40,7 +40,7 @@ La tabla tiene estas columnas:
 | **Teléfono** | Su teléfono, si lo tiene. |
 | **Estado** | **Activo** o **Anonimizado**. |
 
-Arriba podés **Buscar contactos** por nombre, correo o teléfono: escribí parte del dato y la lista se actualiza sola. El listado muestra de a 25 contactos por página e indica cuántos hay en total.
+Arriba podés **Buscar contactos** por nombre, correo o teléfono: escribí parte del dato y la lista se actualiza sola. El listado carga de a 25 contactos e indica cuántos hay en total; cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. Ver [Cómo se muestran las listas](listados.md).
 
 - Si un filtro no encuentra nada, ves «Sin resultados para el filtro».
 - Si todavía no cargaste ninguno, ves «Todavía no hay contactos».
@@ -159,7 +159,7 @@ El estado y el responsable de la consulta cambian igual que siempre al responder
 
 La libreta y las respuestas rápidas respetan la tienda elegida en la barra superior.
 
-- Si cambiás de tienda en la libreta, se recarga la lista, la búsqueda vuelve a la primera página y se cierra el formulario que estuviera abierto, con un aviso.
+- Si cambiás de tienda en la libreta, se recarga la lista desde el principio y se cierra el formulario que estuviera abierto, con un aviso.
 - Si cambiás de tienda mientras ves la ficha de un contacto, volvés a la libreta con un aviso.
 - Si cambiás de tienda con el diálogo **Respuestas rápidas** abierto, se cierra con un aviso.
 - Nunca se muestran ni se guardan datos de la tienda anterior.

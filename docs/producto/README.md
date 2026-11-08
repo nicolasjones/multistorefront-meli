@@ -19,15 +19,15 @@ El menú de la izquierda agrupa las pantallas por tema. Hacé clic en el nombre 
 
 | Grupo del menú | Para qué sirve | Guías |
 |---|---|---|
-| **Inicio** | Pantalla de bienvenida. | — |
+| **Inicio** | Tarjetas de empresas, stock, consultas y dólar, alertas con enlace y búsqueda de productos. | [Inicio, alertas y búsqueda](inicio-y-alertas.md) |
 | **Catálogo** | Productos y categorías. | [Productos](catalogo-productos.md) · [Precios por escala](precios-e-iva.md) |
 | **Stock** | Existencias, movimientos, ingreso de mercadería y depósitos. | [Stock](stock-movimientos.md) · [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) |
-| **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho y transportes. | [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Devoluciones](ventas-rma-devoluciones.md) |
+| **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho, venta de mostrador, cierre de caja, transportes y reportes. | [Venta de mostrador](ventas-mostrador.md) · [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Cierre de caja](ventas-cierre-caja.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Devoluciones](ventas-rma-devoluciones.md) · [Reportes de ventas](ventas-reportes.md) |
 | **Servicio técnico** | Reparaciones de equipos. | [Service técnico](service-listado-items-impresion.md) |
 | **Contactos** | Clientes y proveedores. | [Clientes](clientes.md) · [Proveedores](proveedores.md) |
 | **Canales** | Consultas que llegan desde las tiendas, la libreta de contactos y las empresas (tiendas). | [Consultas](consultas.md) · [Contactos (libreta)](contactos.md) · [Tiendas online](tiendas-online.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Estados, relacionados, Google y legales](tienda-seo-legal-y-estados.md) |
-| **Análisis** | Rentabilidad de los productos. | [Rentabilidad](rentabilidad.md) |
-| **Administración** | Organización, cotización del dólar, actividad, usuarios y permisos. | [Precios y dólar](precios-dolar.md) · [Actividad](actividad.md) · [Usuarios y roles](usuarios-y-roles.md) |
+| **Análisis** | Rentabilidad real de los productos, costos adicionales y márgenes. | [Rentabilidad](rentabilidad.md) |
+| **Administración** | Organización, cotización del dólar, actividad, usuarios y permisos. | [Precios y dólar](precios-dolar.md) · [Actividad](actividad.md) · [Importaciones](importaciones.md) · [Usuarios y roles](usuarios-y-roles.md) |
 
 Arriba, junto al menú, está el selector de **empresa activa** (1: con qué tienda estás trabajando) y, a la derecha, el menú con tu nombre (2: perfil, contraseña, cerrar sesión). Ver [Tu organización y tus empresas](organizacion-y-empresas.md) y [Tu perfil](perfil-propio.md).
 
@@ -47,9 +47,9 @@ Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés
 |---|---|
 | **Administrador** | [Usuarios y roles](usuarios-y-roles.md), [Tu organización y tus empresas](organizacion-y-empresas.md) y [Precios y dólar](precios-dolar.md). |
 | **Operador** | [Productos](catalogo-productos.md), [Comprobantes](ventas-comprobantes.md) y [Clientes](clientes.md). |
-| **Mostrador** | [Comprobantes](ventas-comprobantes.md), [Cobros](ventas-cobros-y-conciliacion.md) e [Impresión](ventas-impresion.md). |
+| **Mostrador** | [Venta de mostrador](ventas-mostrador.md), [Comprobantes](ventas-comprobantes.md), [Cobros](ventas-cobros-y-conciliacion.md) e [Impresión](ventas-impresion.md). |
 | **Depósito** | [Stock](stock-movimientos.md), [Ingreso de mercadería](ingreso-de-mercaderia.md) y [Despacho](ventas-despacho-y-faltantes.md). |
-| **Administración** | [Cobros y conciliación](ventas-cobros-y-conciliacion.md), [Proveedores](proveedores.md) y [Rentabilidad](rentabilidad.md). |
+| **Administración** | [Cobros y conciliación](ventas-cobros-y-conciliacion.md), [Cierre de caja](ventas-cierre-caja.md), [Proveedores](proveedores.md) y [Rentabilidad](rentabilidad.md). |
 | **Técnico** | [Service técnico](service-listado-items-impresion.md) y [repuestos](service-repuestos-y-stock.md). |
 | **Consulta** | Las pantallas que tu rol permita ver; consultá [Usuarios y roles](usuarios-y-roles.md). |
 
@@ -63,5 +63,6 @@ Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés
 ## Para seguir
 
 - [Qué podés hacer con el sistema](capacidades.md): resumen por área.
+- [Cómo se muestran las listas](listados.md): cómo se cargan los resultados y qué foto ves en cada producto.
 - [Glosario](glosario.md): los términos que ves en pantalla.
 - [Actividad](actividad.md): quién hizo qué y cuándo.

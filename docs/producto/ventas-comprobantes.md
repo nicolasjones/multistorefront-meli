@@ -94,6 +94,18 @@ Abajo de las líneas se ven **Subtotal sin IVA**, **IVA** y **Total**.
 - Cliente **mayorista**: x1 de 1 a 4 unidades, x5 de 5 a 9, x10 de 10 a 49 y x50 desde 50.
 - Si cambiás el cliente del comprobante y guardás, los precios de las líneas se recalculan con el tipo del nuevo cliente.
 
+### Descuento por cliente
+
+Si el cliente de la factura tiene un **descuento propio**, el precio de cada línea baja ese porcentaje
+**antes** del IVA. Debajo del precio se lee de dónde salió: «escala x1 · 5 % de descuento».
+
+- El descuento lo fija el **Administrador** en la ficha del cliente (ver
+  [Clientes](clientes.md#descuento-por-cliente)). Vos no lo escribís en la línea.
+- Si el cliente es mayorista, primero se aplica la escala por cantidad y después el descuento.
+- Si en una línea el precio está **cargado a mano**, ese precio **no** lleva descuento.
+- **Lo ya vendido no cambia**: si después se edita el descuento del cliente, esa factura sigue con el
+  precio con el que se hizo. El descuento nuevo se aplica a las ventas siguientes.
+
 ### Cambiar el precio a mano
 
 Si tu rol puede editar precios, la columna **Precio s/IVA** es un campo editable. Escribí el precio (cero o más, hasta dos decimales) y apretá Enter. La línea queda marcada como «precio manual». Para volver al precio de la escala, borrá el valor y apretá Enter.

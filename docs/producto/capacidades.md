@@ -7,6 +7,8 @@ sources: []
 
 Este resumen cuenta, área por área, qué resuelve MSF. Cada área tiene su guía con el paso a paso. Lo que veas en tu menú depende de tu rol: [Usuarios y roles](usuarios-y-roles.md).
 
+En todas las pantallas las listas se van cargando solas al bajar y las filas que son de un producto muestran su foto: [Cómo se muestran las listas](listados.md).
+
 ## Catálogo
 Un solo catálogo de productos para todas las tiendas, con categorías, fotos y estado activo o inactivo. Cada tienda decide cuáles muestra. Guía: [Productos](catalogo-productos.md).
 
@@ -18,13 +20,13 @@ Un solo catálogo de productos para todas las tiendas, con categorías, fotos y 
 Ver las existencias por producto y depósito, registrar movimientos, trasladar mercadería entre depósitos, reservar, hacer tomas de inventario, cargar y exportar stock y recibir avisos. Guías: [Movimientos](stock-movimientos.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) · [Lotes e inventario](stock-lotes-e-inventario.md) · [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 
 ## Compras
-Registrar la mercadería que llega de un proveedor (con su costo) y mantener la lista de proveedores. Guías: [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Proveedores](proveedores.md).
+Registrar la mercadería que llega de un proveedor (con su costo, opcional) y mantener la lista de proveedores, con sus contactos y el historial de costo de cada producto. Guías: [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Proveedores](proveedores.md).
 
 ## Ventas
-Armar facturas y presupuestos, buscar y anular comprobantes, imprimirlos. Guías: [Comprobantes](ventas-comprobantes.md) · [Listado, estados y anulación](ventas-listado-estados-y-anulacion.md) · [Impresión](ventas-impresion.md).
+Armar facturas y presupuestos, buscar y anular comprobantes, imprimirlos, y vender en el mostrador escaneando el código de barras. Guías: [Venta de mostrador](ventas-mostrador.md) · [Comprobantes](ventas-comprobantes.md) · [Listado, estados y anulación](ventas-listado-estados-y-anulacion.md) · [Impresión](ventas-impresion.md).
 
 ## Cobros
-Registrar cómo se cobra cada venta, conciliar transferencias y depósitos, y controlar los contrarreembolsos. Guía: [Cobros y conciliación](ventas-cobros-y-conciliacion.md).
+Registrar cómo se cobra cada venta, conciliar transferencias y depósitos, controlar los contrarreembolsos y cerrar la caja del día. Guías: [Cobros y conciliación](ventas-cobros-y-conciliacion.md) · [Cierre de caja](ventas-cierre-caja.md).
 
 ## Despacho
 Preparar y entregar los pedidos, y ver qué ventas quedaron con faltantes. Guía: [Despacho y faltantes](ventas-despacho-y-faltantes.md).
@@ -36,7 +38,7 @@ Registrar devoluciones y reclamos (RMA) por producto. Guía: [Devoluciones](vent
 Recibir equipos, seguir el estado de cada reparación, cargar mano de obra y repuestos, e imprimir la orden de ingreso y el remito de entrega. Guías: [Service técnico](service-listado-items-impresion.md) · [Repuestos y stock](service-repuestos-y-stock.md).
 
 ## Clientes
-Ficha de cada cliente, con su tipo (minorista o mayorista) y su historial de compras. Guía: [Clientes](clientes.md).
+Ficha de cada cliente, con su tipo (minorista o mayorista), su descuento propio y su historial de compras. Imprimir la etiqueta de envío para pegar en el paquete y unir dos fichas del mismo cliente cuando quedaron duplicadas. Guía: [Clientes](clientes.md).
 
 ## Tiendas online
 Cada empresa tiene su tienda web: identidad visual, contenido, qué productos se muestran, su dirección web (dominio) y las versiones publicadas. Los clientes mayoristas pueden tener una cuenta para ver sus precios por escala. Guías: [Tiendas online](tiendas-online.md) · [Dominio e identidad](tienda-dominio-e-identidad.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Cuenta web del cliente](cuenta-web-cliente.md).

@@ -117,10 +117,11 @@ con el conteo **directo** por categoría; el árbol suma las subcategorías en e
 ## Listado (F-CAT-01)
 
 - La pantalla consulta la vista por PostgREST con `range` y `count: 'exact'` (`productosListado.ts`), 25 filas por
-  página. El total y el pie «desde–hasta de N» salen del servidor; nunca se traen todas las filas.
+  tanda. El total sale del servidor; nunca se traen todas las filas. Las tandas **se acumulan** con un
+  **«Cargar más»** al pie (ver [Listados: carga infinita e imagen de producto](listados.md)).
 - **Búsqueda** (`filtroBusquedaProductos`): `ilike` sobre `nombre` o `sku`, máximo 80 caracteres, espera de tipeo de
   300 ms. Se quitan `, ( ) " \ *` y se escapan `%` y `_` para que se busquen como texto. Al cambiar la búsqueda vuelve
-  a la página 1.
+  a la primera tanda.
 - **Filtro de estado**: `todos` o `inactivos` (`activo = false`). Los filtros «Sin stock», «Stock bajo» y «Sin
   vincular a ML» están deshabilitados en la UI hasta Stock y Mercado Libre (no hay columnas para ellos en la vista).
 - **Filtro de tienda**: `empresa_ids @> {empresa}`. **Filtro de categoría**: `categoria_ids @> {categoría}`, de modo que

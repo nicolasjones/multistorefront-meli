@@ -302,15 +302,20 @@ Entrada de menú **Devoluciones** (`AssignmentReturnIcon`, sección `ventas`) en
 
 Librerías: `apps/web/src/lib/formasRma.ts` (cinco formas con etiqueta, descripción y tono),
 `apps/web/src/lib/estadoRma.ts` (tres estados, etiqueta, tono y próximo paso), `apps/web/src/lib/rma.ts`
-(tipos, paginación de 8, límites, envoltorios de las RPC y traducción de errores) y
-`apps/web/src/hooks/useRma.ts` (carga, «última petición gana», cambio de tienda y de forma a página 1).
+(tipos, paginación de 8 por tanda, límites, envoltorios de las RPC y traducción de errores) y
+`apps/web/src/hooks/useRma.ts` (carga, «última petición gana», cambio de tienda y de forma a la primera tanda).
 
 ### Reglas de la interfaz
 
 - **Empresa activa (Principio VIII):** `ListadoDevoluciones` se remonta con `key={claveTienda}`; al cambiar
-  de empresa vuelve a la página 1, el filtro de forma vuelve a «Todas» y no quedan filas ni totales de la
+  de empresa vuelve a la primera tanda, el filtro de forma vuelve a «Todas» y no quedan filas ni totales de la
   empresa anterior. El diálogo vive en el componente padre y se cierra con aviso (`AVISO_CAMBIO_DE_TIENDA`)
   si cambia la empresa.
+- **Carga por tandas:** el listado acumula tandas de 8 con **«Cargar más»** al pie y muestra la **miniatura del
+  producto** en su columna; ver [Listados: carga infinita e imagen de producto](listados.md). La miniatura depende de
+  `producto_id`, que `listar_rma` todavía **no** devuelve: lo agrega la migración
+  `20270204100000_ventas_listados_producto_id.sql`, que está en la rama
+  `origin/feat/ventas-faltantes-rma-producto-id` y todavía no está integrada.
 - **Solo lectura:** sin `ventas` en edición no se ofrece «Nueva devolución», ni avance, ni resolución
   (`puedeCrear`).
 - **Doble clic:** el registro, el avance y la resolución se deshabilitan mientras la petición está en

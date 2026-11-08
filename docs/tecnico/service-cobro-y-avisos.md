@@ -257,8 +257,9 @@ Mensajes y mapeo de errores: `apps/web/src/lib/reparacionAvisos.ts` (`MENSAJE_AV
   carga **diferida** (`lazy`) y **no aparece** con `service_tecnico` en `ninguno`; con `lectura` aparece sin acciones
   de edición. Si se pierde el acceso, vuelve a «Datos».
 - `ReparacionesDeCliente` (`apps/web/src/components/clientes/ReparacionesDeCliente.tsx`): tabla en escritorio y
-  tarjetas en móvil (`ContenidoAdaptable`), contador «N reparaciones», paginación en el servidor (25 por página) y
-  estado vacío «Este cliente todavía no tiene reparaciones».
+  tarjetas en móvil (`ContenidoAdaptable`), contador «N reparaciones», carga por tandas en el servidor (25 por
+  tanda, con «Cargar más») y estado vacío «Este cliente todavía no tiene reparaciones». Ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 - `apps/web/src/lib/reparacionesDeCliente.ts`: tipos, llamada a `reparaciones_de_cliente` y hook con **«última petición
   gana»**: al cambiar de cliente, de empresa activa o de organización se descartan las filas anteriores.
 
@@ -275,7 +276,7 @@ Mensajes y mapeo de errores: `apps/web/src/lib/reparacionAvisos.ts` (`MENSAJE_AV
 - El detalle de una reparación y su comprobante son de **una sola tienda**: al cambiar la empresa activa se recarga la
   consulta del comprobante y se descarta el de la tienda anterior.
 - La pestaña «Reparaciones» de la ficha filtra por la empresa activa; al cambiarla, la consulta se invalida, se
-  recarga, vuelve a la **página 1** y no quedan filas de la empresa anterior.
+  recarga, vuelve a la **primera tanda** y no quedan filas de la empresa anterior.
 
 ## Actividad
 

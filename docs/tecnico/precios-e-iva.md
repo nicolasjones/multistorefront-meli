@@ -186,7 +186,7 @@ Guardar lo mismo **no** deja evento: los triggers comparan antes/después.
 | Pestaña «Precios y moneda» de la empresa (ruta `/empresas/edit/:id/precios`) | `apps/web/src/pages/empresas/precios.tsx` |
 | Pestaña en la ficha de empresa y ruta en `App.tsx` (protegida por `RequiereAccesoSeccion seccion="empresas"`) | `apps/web/src/pages/empresas/PestanasEmpresa.tsx`, `apps/web/src/App.tsx` |
 | Bloques «Precio de venta de <Empresa>» y «Moneda y cotización» | `apps/web/src/components/precios/ReglaPrecioEmpresa.tsx` |
-| Tabla «Así quedan los precios» | `apps/web/src/components/precios/TablaAsiQuedan.tsx` |
+| Tabla «Así quedan los precios» (muestra la **miniatura del producto** en su columna) | `apps/web/src/components/precios/TablaAsiQuedan.tsx` |
 | Bloque «Precio y costo» del formulario de producto | `apps/web/src/components/precios/PrecioCostoBloque.tsx` |
 | «Margen estimado (escala x1)» | `apps/web/src/components/precios/MargenEstimado.tsx` |
 | Bloque «Precios por escala · sin IVA» | `apps/web/src/components/precios/EscalasPrecio.tsx` |
@@ -233,7 +233,7 @@ A nivel de épica, el cierre es un merge commit: `git revert -m 1 <hash>` deshac
 | ¿La cantidad de la línea cambia la escala? | No en esta épica: la escala la **pasa el consumidor** a `precio_para` y hoy la define el **tipo de cliente**. La selección automática por cantidad la define Ventas (F-VTA-06). El texto del prototipo «Mayorista usa la escala según la cantidad» se adaptó a «cada tipo de cliente usa su escala». |
 | Alícuotas reales y valor inicial del interruptor | Pregunta abierta del relevamiento: se parte de 21 % / 10,5 % / Exento y del interruptor en «Sin IVA»; se ajusta editando, no con código. |
 | ¿El Operador ve el costo? | Se mantiene la matriz vigente: el costo y el margen solo con la sección `rentabilidad`. |
-| Precio propio por empresa | Fuera de alcance (MSF-352). El punto de extensión queda en `private.precio_neto_empresa`, no en las pantallas. |
+| Precio propio por empresa | Entregado en MSF-352 por el punto de extensión `private.precio_neto_empresa`; ver [Configuración del dólar y precio propio](configuracion-dolar-y-precio-propio.md). |
 | Carga y recálculo masivo del dólar | Fuera de alcance (MSF-116): aquí solo la cotización inicial y el punto de lectura `private.a_pesos`. |
 | Administración de alícuotas (27 %) | Fuera de alcance: `alicuotas_iva` se crea sin escritura desde la app. |
 | Tipos de cliente: «descuento adicional» y «condición de pago» | Fuera de alcance: no están en ninguna historia de la épica. |

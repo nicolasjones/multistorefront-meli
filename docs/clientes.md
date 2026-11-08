@@ -37,10 +37,11 @@ Ventas los use.
 
 | Persona | Qué puede hacer |
 |---|---|
-| **Administrador/a, Administración, Operador y Mostrador** (`edicion` en Clientes) | Ver el listado, dar de alta, editar, archivar y restaurar clientes |
-| **Consulta** (`lectura` en Clientes) | Ver el listado y la ficha; no cambia nada, ni desde la pantalla ni llamando directo a la base |
+| **Administrador/a, Administración, Operador y Mostrador** (`edicion` en Clientes) | Ver el listado, dar de alta, editar, archivar y restaurar clientes; **imprimir las etiquetas** de los clientes marcados del listado |
+| **Consulta** (`lectura` en Clientes) | Ver el listado y la ficha; no cambia nada, ni desde la pantalla ni llamando directo a la base. **Puede imprimir la etiqueta** de un cliente |
 | **Miembro** (`lectura` en Clientes) | Igual que Consulta |
 | **Depósito** (`ninguno` en la matriz vigente) | No ve la sección ni recibe filas de clientes por la API |
+| **Administrador/a** | Además, **fusionar dos fichas** del mismo cliente (la base lo exige: ningún otro rol puede) |
 | **Con la acción `exportar`** (Administrador, Administración y Operador por defecto) | Además, descargar los clientes a Excel |
 
 La matriz de roles y el detalle de permisos están en [Permisos por rol](permisos-por-rol.md).
@@ -143,6 +144,64 @@ avisos y ficha del cliente](producto/service-cobro-y-avisos.md).
   la planilla no los ejecute como fórmula. **Costo aceptado:** el apóstrofo queda visible (un teléfono
   «+54…» se ve «'+54…»).
 
+## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
+
+**Épica:** MSF-445 — Clientes y proveedores · Mejoras de clientes y proveedores.
+**Spec:** `specs/20261029-100000-mejoras-de-clientes-y-proveedores/`.
+**Construcción interna:** [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md).
+
+- Genera una **hoja imprimible** (una etiqueta por cliente) para pegar en el paquete: nombre o razón
+  social, dirección, código postal y localidad, provincia, `Tel.` y `Transporte:` (de
+  `clientes.expreso_preferido`). Se imprime con el diálogo del navegador y se puede **guardar como
+  PDF**; no hay worker ni Kestra.
+- La hoja vive en `/clientes/etiquetas` (ruta `lazy` dentro de `RequiereAccesoSeccion` de `clientes`).
+  Es A4 (`@page size A4; margin 10mm`) y, al imprimir, se ocultan el menú, la barra superior y los
+  avisos (`@media print` + `.no-imprimir`): sale solo la etiqueta.
+- **No escribe nada**: solo lee `public.clientes` con las columnas `id, nombre, direccion,
+  codigo_postal, localidad, provincia, telefono, expreso_preferido`.
+- **Solo la dirección bloquea** (CA-CLI-17-1): sin dirección no se genera etiqueta y el aviso nombra
+  el dato que falta. En la impresión por selección, los que no la tienen se omiten y se nombran en el
+  aviso; si ninguno la tiene, no se genera hoja. Los demás datos vacíos (CP, localidad, provincia,
+  teléfono, transporte) no bloquean: se omiten de la hoja.
+- Dos entradas: desde la **ficha** («Etiqueta» en el encabezado e «Imprimir etiqueta de envío» en el
+  bloque) y desde el **listado** (casillas de fila y «Seleccionar todos» → «Imprimir etiquetas (N)»).
+- **Empresa activa:** la impresión por selección está acotada a la empresa activa: al cambiarla se
+  invalidan las consultas, se reencuadra la paginación y **se descarta la selección** (Principio VIII).
+- Tope de 200 clientes por hoja; los identificadores del parámetro `ids` se validan como UUID antes de
+  llegar a la consulta.
+- Al volver del diálogo de impresión, el sistema avisa «Etiqueta enviada a imprimir».
+
+## Fusión de clientes duplicados (F-CLI-18, MSF-447)
+
+**Épica:** MSF-445 — Clientes y proveedores · Mejoras de clientes y proveedores.
+
+- Une dos fichas del mismo cliente en una sola, **en una sola transacción** (todo o nada). Solo el
+  **Administrador** puede hacerlo: lo comprueba la base (`private.es_administrador_de`), no la pantalla.
+- `public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`: reasigna al cliente
+  conservado los **documentos de venta** (`dominio.comprobantes_venta.cliente_id`) y la **cuenta web**
+  (`public.cuentas_cliente.cliente_id`), habilita en el conservado las tiendas de esa cuenta
+  (`public.clientes_empresas`), **archiva** al descartado (`clientes.archivado_en`, no lo borra) y
+  registra el evento `cliente.fusionado` con ambos clientes (nombre y N.º; nunca DNI/CUIT).
+- `public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`: solo lectura; por cliente
+  devuelve N.º, nombre, cantidad de documentos de venta y cuentas web (activas y total). Es lo que
+  permite mostrar «3 compras y 5 compras» antes de confirmar.
+- **Cuenta web:** si los dos clientes tienen cuenta web activa, hay que elegir cuál se mantiene; la
+  que no se elige **se da de baja** (se elimina la fila de `cuentas_cliente`; el usuario de Auth queda
+  sin uso). Sin resolverlo, la fusión se rechaza y no se toca nada.
+- Se rechazan, con mensaje claro y sin cambios parciales: el mismo cliente en ambos lados, un cliente
+  inexistente o de otra organización, un cliente ya archivado y repetir una fusión. Las dos filas se
+  bloquean **ordenadas por id** para que dos fusiones cruzadas no se traben.
+- **Campañas:** no se reasignan porque no existe la tabla (MSF-155 no se entregó). Cuando esa épica
+  cree su tabla, tiene que sumar la reasignación a `fusionar_clientes`.
+- **Lo que no se toca:** reparaciones de Service, avisos de faltantes, tiendas habilitadas e
+  identificadores externos quedan asociados al cliente archivado (no se pierde nada).
+- **Empresa activa: no aplica.** Los clientes son de la organización: la ficha, la vista previa y la
+  fusión no leen ni escriben por empresa.
+- En la pantalla, «Fusionar con otro cliente…» aparece en la ficha **solo para el Administrador** (ni
+  en clientes archivados ni en el Consumidor final). El cuadro «Fusionar clientes» busca el otro
+  cliente, deja elegir la ficha a conservar y la cuenta web que se mantiene, y al terminar recarga la
+  ficha del conservado con la suma de las compras.
+
 ## Límites y fuera de alcance
 
 Lo que **no** hace esta épica (pertenece a otras historias o épicas):
@@ -150,7 +209,7 @@ Lo que **no** hace esta épica (pertenece a otras historias o épicas):
 - **Cuenta web del cliente**, invitación, «Tiendas / Habilitado en» y el filtro «Con cuenta web»
   (MSF-237). Lo entregado está en [Cuenta web del cliente](producto/cuenta-web-cliente.md).
 - **Ranking por facturación** (MSF-126, [especificado](producto/ranking-de-clientes.md); sin implementar en `main`), **correo masivo a seleccionados** (MSF-155, [guía](producto/correo-masivo-a-clientes.md)), **Importar
-  clientes** (MSF-142) y **etiquetas**.
+  clientes** (MSF-142) y **etiquetas de clasificación**.
 - La pantalla «Tipos de cliente» (crear tipos, descuento adicional, condición de pago).
 - «Expreso preferido» y los datos de comprobantes (Facturado, Participación) son de Ventas y despacho
   (MSF-159). La columna «Expreso preferido» ya se ve en el listado, pero la agregó después un cambio
@@ -158,7 +217,8 @@ Lo que **no** hace esta épica (pertenece a otras historias o épicas):
 - El filtro por empresa o tienda del cliente: **los clientes son de la organización**, compartidos
   entre sus empresas.
 - **Eliminar** cliente (se archiva).
-- Las mejoras de clientes y proveedores (MSF-445) y los **Proveedores** (MSF-205).
+- Deshacer una fusión y detectar duplicados automáticamente: no lo pide la épica (MSF-445).
+- Los **Proveedores** (MSF-205).
 
 ## Fidelidad al prototipo
 
@@ -177,10 +237,13 @@ los requisitos.
 | Columnas «Tiendas» y «Cuenta web» | Se muestran como «—»; las entrega MSF-237 |
 | Pantalla «Tipos de cliente» (crear tipos, descuento, condición de pago) | No: los tipos son fijos |
 | «Expreso preferido» | No en esta épica: la columna se ve, pero la agregó después un cambio de fidelidad al prototipo (fuera de MSF-180); el dato es de Ventas (MSF-159) |
+| Botón «Etiqueta» e «Imprimir etiqueta de envío» de la ficha (`ClienteFicha.dc.html`) | Sí, en MSF-445: hoja imprimible con los datos de envío |
 
 ## Ver también
 
 - [Clientes: modelo, RPC y pantallas](tecnico/clientes.md) — cómo está construido.
+- [Mejoras de clientes y proveedores (MSF-445)](tecnico/mejoras-de-clientes-y-proveedores.md) — etiqueta impresa,
+  fusión de clientes, costo por línea, evolución del costo y contactos de proveedor.
 - [Service técnico: cobro, avisos y ficha del cliente (producto)](producto/service-cobro-y-avisos.md) — la pestaña
   «Reparaciones» de la ficha (MSF-232).
 - [Cuenta web del cliente](producto/cuenta-web-cliente.md) — la cuenta del cliente en la tienda (MSF-237).

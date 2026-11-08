@@ -63,7 +63,7 @@ El estado se calcula siempre sobre el disponible total del negocio, aunque esté
 - **Aviso de alertas**: arriba aparece, por ejemplo, «11 productos sin stock y 9 con stock bajo». Con **Ver solo alertas** la lista se limita a esos productos; con **Ver todos** volvés a la lista completa.
 - **Exportar**: baja lo que estás viendo a un archivo. Ver [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 
-La lista se muestra de a 25 productos por página.
+La lista carga de a 25 productos: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. En la columna **Producto** cada fila muestra la **foto chica** del producto; pasá el mouse por ella para verla ampliada.
 
 ![Un producto de la lista con sus botones Nuevo movimiento y Editar mínimo resaltados](img/stock-movimientos/04-botones-por-producto.png)
 
@@ -158,7 +158,7 @@ En **Stock → Movimientos** (o la pestaña **Movimientos**) está el historial 
 | **Saldo** | Cuánto quedó después del movimiento |
 | **Responsable** | Quién lo registró |
 
-Se muestran de a 25 movimientos por página.
+Se muestran de a 25 movimientos: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie.
 
 ![Movimientos filtrados por el producto PlayStation 5 Pro con su resumen y su historial](img/stock-movimientos/10-historial-filtrado.png)
 

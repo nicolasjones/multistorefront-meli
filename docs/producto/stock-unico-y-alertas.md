@@ -51,12 +51,12 @@ verifica sus alertas contra los requisitos.
 - **Tabla por producto:** nombre, SKU, **stock total**, mínimo, estado (**Sin stock / Stock bajo /
   Disponible**) y último movimiento, con el total de productos.
 - **Resumen de reposición:** «N productos sin stock y M con stock bajo» sobre toda la organización, no
-  solo sobre la página visible. **Ver solo alertas** filtra a esos productos.
+  solo sobre las filas ya cargadas. **Ver solo alertas** filtra a esos productos.
 - **Búsqueda y filtros:** buscar por nombre o SKU y filtrar por Todos / Sin stock / Stock bajo /
   Disponible; la lista y el total reflejan el filtro.
 - **Actualización sin recargar:** si otra sesión registra un movimiento, la cantidad, el estado, el
-  último movimiento y el resumen se actualizan solos. La búsqueda, el filtro, la página y el foco no se
-  pierden.
+  último movimiento y el resumen se actualizan solos. La búsqueda, el filtro, las filas ya cargadas y el
+  foco no se pierden.
 - **Sin conexión en vivo:** si el canal de Realtime falla, la pantalla sigue funcionando con los últimos
   datos y se puede recargar a mano; no queda bloqueada.
 - **Ráfagas:** varios avisos seguidos (por ejemplo, 20 salidas) se agrupan en un solo refresco.

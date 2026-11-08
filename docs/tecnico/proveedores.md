@@ -178,9 +178,12 @@ reversión restaura esas dos funciones.
 
 - Entrada de menú **Proveedores** (icono camión) en Clientes y proveedores, visible con `lectura` o
   `edicion`; la ruta directa sin permiso lleva a «Acceso restringido».
-- El listado espera 300 ms antes de buscar; conserva búsqueda y estado al paginar; muestra «Sin
-  resultados», vacío inicial, carga y error con «Reintentar»; en pantallas angostas usa tarjetas.
+- El listado espera 300 ms antes de buscar; conserva búsqueda y estado al pedir la tanda siguiente; muestra
+  «Sin resultados», vacío inicial, carga y error con «Reintentar»; en pantallas angostas usa tarjetas.
 - La ficha carga los productos en una consulta aparte: un error ahí no rompe el resto de la ficha.
+- **Carga por tandas:** el listado de proveedores acumula tandas de 25 y el de productos de la ficha
+  (con **miniatura del producto**) de 10, ambos con «Cargar más» al pie; ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 - **Empresa activa: no aplica.** No hay `empresa_id` ni consulta filtrada por empresa; cambiar de
   empresa no invalida estas consultas.
 
@@ -193,6 +196,22 @@ reversión restaura esas dos funciones.
 | `42501` | Sin `edicion` o sin `lectura` | «No tenés permiso para esta acción…». |
 | `P0002` | Proveedor inexistente o de otra organización | «El proveedor ya no existe o no pertenece a tu organización.» |
 | `22023` / `23514` | Dato inválido (CUIT, correo, largo) | Revisar el formulario. |
+
+## Contactos y evolución del costo (MSF-445)
+
+La épica **MSF-445** ([detalle](mejoras-de-clientes-y-proveedores.md), PR #695; aún sin merge a `main`)
+suma dos capacidades sobre esta base:
+
+- **Varios contactos por proveedor (F-PRV-08, MSF-449):** tabla nueva `dominio.proveedores_contactos`
+  (RLS por organización y `nivel_seccion('proveedores')`, solo `grant select`, escritura **solo por RPC**)
+  con índice único parcial que garantiza **un solo contacto principal por proveedor**. Las RPC
+  `listar_contactos_proveedor`, `agregar_contacto_proveedor` y `marcar_contacto_principal` bloquean la
+  fila del proveedor (`for update`) antes de escribir; `marcar_contacto_principal` desmarca al anterior y
+  copia nombre, correo y teléfono a `persona_contacto`, `correo` y `telefono` de la ficha.
+- **Historial de costos (F-PRV-07, MSF-448):** `public.historial_costos_producto(p_producto_id,
+  p_proveedor_id)` devuelve la evolución del costo de un producto (solo ingresos **registrados** con
+  costo, con fecha, proveedor, comprobante y costo). Exige **Rentabilidad y Proveedores** en
+  `lectura`/`edicion` y respeta la organización de la sesión y las empresas accesibles.
 
 ## Actividad
 
@@ -235,6 +254,8 @@ Cada archivo lleva los pasos exactos en su encabezado.
 ## Para seguir
 
 - **[Proveedores (producto)](../proveedores.md)** — qué resuelve y cómo se usa.
+- **[Mejoras de clientes y proveedores (MSF-445)](mejoras-de-clientes-y-proveedores.md)** — contactos del
+  proveedor, evolución del costo y costo opcional de la línea de ingreso.
 - **[Datos y DER](datos.md)** — modelo completo, tablas y demás épicas.
 - **[Ingreso de mercadería](ingreso-de-mercaderia.md)** — consumo de `proveedores_basico`.
 - **[API y RPC](api.md)** — catálogo de funciones públicas.
