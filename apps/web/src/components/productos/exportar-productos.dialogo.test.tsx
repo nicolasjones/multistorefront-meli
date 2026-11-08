@@ -63,6 +63,13 @@ describe('DialogoExportarProductos', () => {
     expect(mocks.descargar).toHaveBeenCalledWith('x')
   })
 
+  it('si el archivo se recortó al tope lo informa al padre (hallazgo 5)', async () => {
+    mocks.exportar.mockResolvedValue({ csv: 'x', productos: 50000, columnas: 7, recortado: true, tope: 50000 })
+    const { onExportado } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(onExportado).toHaveBeenCalledWith(50000, 7, 50000))
+  })
+
   it('«Todos» exporta sin filtros', async () => {
     mocks.exportar.mockResolvedValue({ csv: 'x', productos: 196, columnas: 7 })
     abrir()

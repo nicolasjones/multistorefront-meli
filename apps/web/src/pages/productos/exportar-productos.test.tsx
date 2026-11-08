@@ -20,10 +20,11 @@ vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaAct
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/productoImagenes', () => ({ firmarImagenes: vi.fn().mockResolvedValue([]) }))
 vi.mock('../../components/productos/DialogoExportarProductos', () => ({
-  DialogoExportarProductos: ({ consulta, totalFiltrado, onExportado }: { consulta: { empresaId: string | null }; totalFiltrado: number; onExportado: (p: number, c: number) => void }) => (
+  DialogoExportarProductos: ({ consulta, totalFiltrado, onExportado }: { consulta: { empresaId: string | null }; totalFiltrado: number; onExportado: (p: number, c: number, r?: number) => void }) => (
     <div role="dialog" aria-label="Exportar productos">
       <span>empresa:{String(consulta.empresaId)} filtrado:{totalFiltrado}</span>
       <button onClick={() => onExportado(1, 7)}>Terminar</button>
+      <button onClick={() => onExportado(50000, 7, 50000)}>Terminar recortada</button>
     </div>
   ),
 }))
@@ -58,6 +59,14 @@ describe('Exportar productos en el listado', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Terminar' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByText('Exportación CSV lista: 1 producto, 7 columnas')).toBeInTheDocument()
+  })
+
+  it('si el archivo se recortó al tope avisa con una advertencia (hallazgo 5)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Terminar recortada' }))
+    expect(screen.getByText(/se recortó a los primeros 50\.000 productos/)).toBeInTheDocument()
   })
 
   it('al cambiar de empresa el diálogo abierto se cierra con aviso (FR-209, Principio VIII)', async () => {

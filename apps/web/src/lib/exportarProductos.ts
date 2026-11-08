@@ -9,6 +9,8 @@ import { infoDisponibilidad } from './productos'
 import type { ConsultaProductos } from './productosListado'
 
 export const TAMANO_PAGINA_EXPORTACION = 500
+/** Tope de productos por archivo (el mismo que aplica `exportar_productos`): el CSV se arma en memoria. */
+export const TOPE_EXPORTACION_PRODUCTOS = 50000
 
 export type ClaveColumnaExportacion =
   | 'sku' | 'nombre' | 'categoria' | 'precio' | 'costo' | 'stock' | 'visible_en' | 'estado' | 'codigo_barras' | 'proveedor'
@@ -57,7 +59,14 @@ export type FilaExportacionProducto = {
   proveedor?: string | null
 }
 
-type PaginaExportacion = { filas: FilaExportacionProducto[]; siguiente: string | null; total: number }
+/** `total` y `recortado` solo vienen en la primera página (el cliente pide el total una vez: `p_con_total`). */
+type PaginaExportacion = {
+  filas: FilaExportacionProducto[]
+  siguiente: string | null
+  total: number | null
+  tope: number
+  recortado: boolean | null
+}
 
 /** `p_filtros` de `exportar_productos`: «todos» ignora el resto; «filtrado» replica la consulta del listado. */
 export function filtrosExportacion(consulta: ConsultaProductos, todos: boolean): Record<string, unknown> {
@@ -111,7 +120,8 @@ export class ExportacionCancelada extends Error {
   }
 }
 
-export type ResultadoExportacion = { csv: string; productos: number; columnas: number }
+/** `recortado`: el filtro tenía más productos que el tope del archivo (`tope`); el CSV trae solo los primeros. */
+export type ResultadoExportacion = { csv: string; productos: number; columnas: number; recortado: boolean; tope: number }
 
 /** Concatena las páginas de `exportar_productos` y arma el CSV. La actividad la registra la base en la primera página. */
 export async function exportarProductos(
@@ -125,6 +135,9 @@ export async function exportarProductos(
 ): Promise<ResultadoExportacion> {
   const filas: FilaExportacionProducto[] = []
   let desde: string | null = null
+  let total = 0
+  let tope = TOPE_EXPORTACION_PRODUCTOS
+  let recortado = false
   do {
     if (opciones.signal?.aborted) throw new ExportacionCancelada()
     const { data, error } = await cliente.rpc('exportar_productos', {
@@ -132,15 +145,21 @@ export async function exportarProductos(
       p_columnas: [...opciones.columnas],
       p_desde: desde,
       p_limite: TAMANO_PAGINA_EXPORTACION,
+      // La base lleva la cuenta contra el tope total y calcula el total del filtro solo en la primera página.
+      p_entregadas: filas.length,
+      p_con_total: desde === null,
     })
     if (error) throw error
     if (opciones.signal?.aborted) throw new ExportacionCancelada()
     const pagina = data as PaginaExportacion
     filas.push(...pagina.filas)
-    opciones.alProgresar?.(filas.length, pagina.total)
+    if (pagina.total !== null && pagina.total !== undefined) total = Math.min(pagina.total, pagina.tope ?? tope)
+    if (pagina.tope) tope = pagina.tope
+    if (pagina.recortado) recortado = true
+    opciones.alProgresar?.(filas.length, total)
     desde = pagina.siguiente
   } while (desde !== null)
-  return { csv: armarCsvProductos(opciones.columnas, filas), productos: filas.length, columnas: opciones.columnas.length }
+  return { csv: armarCsvProductos(opciones.columnas, filas), productos: filas.length, columnas: opciones.columnas.length, recortado, tope }
 }
 
 export function descargarCsvProductos(csv: string, nombre: string = nombreArchivoProductos()): void {

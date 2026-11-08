@@ -22,7 +22,13 @@ validar_importacion_productos(
 solicitar_importacion_productos(
   p_filas jsonb,
   p_clave uuid default gen_random_uuid()   // idempotencia: misma clave => misma importación, sin encolar de nuevo
-) returns { importacion_id: uuid, estado: 'en_cola', importables: integer, omitidas: integer }
+) returns { importacion_id: uuid, estado: 'en_cola', importables: integer, omitidas: integer, reutilizada: boolean }
+```
+
+`reutilizada = true` cuando la clave ya tenía importación (se devuelve esa y las filas enviadas ahora no se toman; la UI lo avisa).
+
+```ts
+importacion_productos_habilitada() returns boolean   // true si la organización tiene la conexión importar-productos; solo Administrador
 ```
 
 ```ts
@@ -42,11 +48,13 @@ exportar_productos(
   p_filtros jsonb,        // { busqueda, categoria_id, estado, empresa_id, compatible: text[], todos: boolean }
   p_columnas text[],      // sku, nombre, categoria, precio, costo, stock, visible_en, estado, codigo_barras, proveedor
   p_desde uuid default null,  // cursor por id (paginación estable)
-  p_limite integer default 500
-) returns { filas: jsonb[], siguiente: uuid|null, total: integer }
+  p_limite integer default 500,
+  p_entregadas integer default 0,   // productos ya entregados en la corrida (tope total de 50.000)
+  p_con_total boolean default false // total del filtro solo si se pide; siempre en la primera página
+) returns { filas: jsonb[], siguiente: uuid|null, total: integer|null, tope: 50000, recortado: boolean|null }
 ```
 
-Errores: `42501` sin Administrador o con `costo`/`proveedor` sin Rentabilidad; `22023` columna desconocida o `p_limite` fuera de 1…1000.
+Errores: `42501` sin Administrador o con `costo`/`proveedor` sin Rentabilidad; `22023` columna desconocida, `p_limite` fuera de 1…1000 o `p_entregadas` negativo.
 
 ## OpenAPI
 

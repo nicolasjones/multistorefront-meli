@@ -185,7 +185,7 @@ export function ProductoList() {
   const [consultaBase, setConsulta] = useState<ConsultaProductos>(CONSULTA_INICIAL)
   // Exportar (F-CAT-11, FR-201): solo el Administrador; el diálogo y el aviso de resultado viven acá.
   const [exportando, setExportando] = useState(false)
-  const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info'; texto: string } | null>(null)
+  const [avisoExportacion, setAvisoExportacion] = useState<{ severidad: 'success' | 'info' | 'warning'; texto: string } | null>(null)
   // Al cambiar la tienda (desde acá o desde la barra superior) se vuelve a la página 1.
   const [empresaPrevia, setEmpresaPrevia] = useState(empresaId)
   if (empresaPrevia !== empresaId) {
@@ -515,9 +515,12 @@ export function ProductoList() {
           totalFiltrado={total}
           veRentabilidad={veCosto}
           onCerrar={() => setExportando(false)}
-          onExportado={(productos, columnas) => {
+          onExportado={(productos, columnas, recortadoA) => {
             setExportando(false)
-            setAvisoExportacion({ severidad: 'success', texto: `Exportación CSV lista: ${productos} ${productos === 1 ? 'producto' : 'productos'}, ${columnas} ${columnas === 1 ? 'columna' : 'columnas'}` })
+            const texto = `Exportación CSV lista: ${productos} ${productos === 1 ? 'producto' : 'productos'}, ${columnas} ${columnas === 1 ? 'columna' : 'columnas'}`
+            setAvisoExportacion(recortadoA
+              ? { severidad: 'warning', texto: `${texto}. El archivo se recortó a los primeros ${recortadoA.toLocaleString('es-AR')} productos: había más con ese filtro. Acotá el filtro para exportar el resto.` }
+              : { severidad: 'success', texto })
           }}
         />
       ) : null}
