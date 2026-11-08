@@ -40,9 +40,9 @@ definir_empresas_productos(p_producto_ids: uuid[], p_agregar: uuid[], p_quitar: 
 ```
 
 - `security invoker`, `search_path = ''`, `revoke … from public, anon`, `grant execute … to authenticated`.
-- Exigen `edicion` en la sección `productos` (`42501` si no). De 1 a 100 ids **distintos**: primero se quitan los
-  repetidos y después se cuenta, así que 150 ids con repetidos que sean 80 distintos pasan; `22023` si la lista está
-  vacía, trae valores nulos o supera 100 ids distintos.
+- Exigen `edicion` en la sección `productos` (`42501` si no). De 1 a 100 ids **recibidos**: el tope se mide antes de
+  quitar los repetidos (migración `20270215400000`), así que 101 ids con repetidos fallan aunque los distintos sean 100 o
+  menos; `22023` si la lista está vacía o nula, trae valores nulos o supera 100 ids.
 - Productos o categoría inexistentes o de otra organización: `P0002`. Empresa inexistente o ajena: `22023` (igual que la
   RPC individual), y se valida antes de bloquear los productos, así que gana sobre un producto inexistente.
   Atómicas (todo o nada) e idempotentes.
