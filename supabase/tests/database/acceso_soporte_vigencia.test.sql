@@ -28,11 +28,11 @@ select ok(
 );
 delete from superadmin_organizacion_activa;
 
--- Ninguna función fuera de entrar/salir lee la tabla cruda: todas leen la vista vigente.
+-- Ninguna función fuera de entrar/salir/cierre automático lee la tabla cruda: todas leen la vista vigente.
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'private', 'dominio') and p.prokind = 'f'
-      and p.proname not in ('entrar_a_organizacion', 'salir_de_organizacion')
+      and p.proname not in ('entrar_a_organizacion', 'salir_de_organizacion', 'cerrar_accesos_soporte_vencidos')
       and p.prosrc ~ 'superadmin_organizacion_activa'),
   0, 'ninguna función lee superadmin_organizacion_activa sin filtrar la vigencia (FR-015)'
 );

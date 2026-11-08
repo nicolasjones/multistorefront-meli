@@ -2,7 +2,7 @@
 -- Cubre FR-008 y SC-003. Las fechas son relativas al reloj de la base (sin fechas absolutas).
 begin;
 
-select plan(15);
+select plan(18);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -19,6 +19,11 @@ insert into registro_actividad (organizacion_id, actor_id, actor_nombre, tipo, d
   ('11111111-1111-1111-1111-111111111111', null, null, 'otra.cosa', 'Reciente uno', now() - interval '23 months'),
   ('22222222-2222-2222-2222-222222222222', null, null, 'otra.cosa', 'Viejo dos', now() - interval '36 months'),
   ('22222222-2222-2222-2222-222222222222', null, null, 'otra.cosa', 'Hoy dos', now());
+
+insert into private.exportaciones_actividad (id, organizacion_id, usuario_id, creado_en, cerrada) values
+  ('c0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000001', now() - interval '31 days', true),
+  ('c0000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000001', now() - interval '29 days', true),
+  ('c0000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000001', now() - interval '60 days', false);
 
 -- El rol de Sistema no ve las funciones de pgTAP: sus resultados se guardan en una tabla temporal
 create temp table resultado_depuracion (corrida int, borrados int);
@@ -53,6 +58,10 @@ select is(
 );
 select is((select actor_id from registro_actividad where tipo = 'sistema.depurada' and organizacion_id = '11111111-1111-1111-1111-111111111111'), null, 'el evento de Sistema no tiene actor');
 
+-- Las exportaciones de más de 30 días se purgan (abiertas o cerradas); las recientes se conservan
+select is((select count(*)::int from private.exportaciones_actividad), 1, 'la depuración purga las exportaciones de actividad con más de 30 días');
+select is((select id from private.exportaciones_actividad), 'c0000000-0000-0000-0000-000000000002'::uuid, 'y conserva la de 29 días');
+
 -- Idempotencia
 set local role workers_orquestacion;
 insert into resultado_depuracion values (2, private.depurar_registro_actividad());
@@ -65,6 +74,9 @@ set local role workers_orquestacion;
 insert into resultado_depuracion values (3, private.depurar_registro_actividad(now() + interval '100 years'));
 reset role;
 select is((select borrados from resultado_depuracion where corrida = 3), 0, 'p_hasta futuro se limita a now(): no borra eventos recientes');
+
+-- El corte de 30 días tampoco se adelanta con p_hasta futuro
+select is((select count(*)::int from private.exportaciones_actividad), 1, 'p_hasta futuro no purga exportaciones recientes');
 
 -- La excepción de la depuración no queda abierta: el borrado directo sigue bloqueado
 select throws_ok($$delete from registro_actividad$$, '42501', null, 'tras depurar, el borrado directo sigue rechazado');

@@ -8,6 +8,8 @@ Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US3, FR-014…FR-01
 - Para **Ingresar** a una organización desde **Organizaciones** hay que escribir un **motivo** (obligatorio, hasta 500 caracteres).
 - El acceso **vence solo a las 4 horas**. El banner de la parte superior muestra «Acceso de soporte hasta HH:MM» (hora de Buenos Aires) y la acción **Salir**.
 - Al vencer, la app limpia el contexto y vuelve a Organizaciones con un aviso. Un acceso vencido no ve ninguna fila de la organización ni puede escribir.
+- Si la persona de soporte cierra el navegador sin salir, el vencimiento igual queda asentado: el flow de Kestra `cierre-accesos-soporte` corre cada 15 minutos y ejecuta `private.cerrar_accesos_soporte_vencidos()`.
+- **Reingresar a la misma organización con el acceso vigente renueva el vencimiento a 4 horas desde ese momento, sin límite acumulado.** Es el comportamiento actual (`entrar_a_organizacion` hace `on conflict do update`) y queda sin cambios hasta que Nicolás defina el tope; es una decisión de negocio pendiente (¿máximo de renovaciones o de horas seguidas por organización?). Cada reingreso queda igualmente registrado con su motivo.
 - Sigue siendo una organización a la vez: entrar a otra cierra la anterior.
 
 ## Qué ve el cliente
@@ -28,11 +30,20 @@ Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, 
 - `superadmin_organizacion_activa.vence_en` (default y backfill: `now() + 4 h`).
 - La vista `private.superadmin_contexto_vigente` devuelve el contexto sin los vencidos (`security_invoker`).
 - La migración reescribe **todas** las funciones que leían la tabla (`private.organizacion_id`, `puede_escribir`, `nivel_seccion`, `puede_accion*`, `rol_id`, los `puede_*_en_empresa`, etc.) para que lean la vista. **Regla para funciones nuevas:** un helper que resuelva la organización del superadmin lee `private.superadmin_contexto_vigente`, nunca la tabla; el pgTAP `acceso_soporte_vigencia.test.sql` falla si una función fuera de entrar/salir referencia la tabla cruda.
-- `entrar_a_organizacion` y `salir_de_organizacion` leen la tabla para distinguir salida de vencimiento.
+- `entrar_a_organizacion`, `salir_de_organizacion` y `cerrar_accesos_soporte_vencidos` leen la tabla para distinguir salida de vencimiento. Toman el contexto con bloqueo de fila (`FOR UPDATE` / `DELETE ... RETURNING`), así que una salida y el cierre automático simultáneos no duplican `soporte.vencido`.
+- **Convención escrita (guardia de CI)**: ninguna función, vista, vista materializada ni política puede referenciar `public.superadmin_organizacion_activa` fuera de la vista `private.superadmin_contexto_vigente` y esas tres funciones. Lo verifica `supabase/tests/database/acceso_soporte_sin_lecturas_crudas.test.sql` (funciones por texto, vistas y políticas por `pg_depend`). Si falla, la función nueva debe leer la vista. La reescritura por regexp de `20270207100003` fue de una sola vez: no se repite para funciones futuras.
+
+## Cierre automático de accesos vencidos
+
+`private.cerrar_accesos_soporte_vencidos()` (`20270215300002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
+
+## Bitácora inalterable
+
+`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270215300000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
 
 ## Pruebas
 
-`supabase/tests/database/acceso_soporte_vigencia.test.sql`, `acceso_soporte_actividad.test.sql` (`pnpm test:db`) y `apps/web/src/components/AccesoSoporte.test.tsx` (`pnpm test`).
+`supabase/tests/database/acceso_soporte_vigencia.test.sql`, `acceso_soporte_actividad.test.sql`, `cerrar_accesos_soporte.test.sql`, `acceso_soporte_sin_lecturas_crudas.test.sql`, `superadmin_entradas_inalterable.test.sql` (`pnpm test:db`), `infra/kestra/validar-cierre-accesos-soporte.test.mjs` y `apps/web/src/components/AccesoSoporte.test.tsx` (`pnpm test`).
 
 ## Reversión
 

@@ -82,3 +82,5 @@ flowchart LR
     A --> Z
     C --> Z
 ```
+
+Desvío: FR-010/FR-011 decían que exportan Administrador, Operador y Administración; el código exige además nivel `edicion` en Actividad, así que por defecto solo exporta el Administrador (decisión deliberada, CA-AUD-03-2). Spec y contrato alineados con el código en MSF-170 (revisión independiente).
