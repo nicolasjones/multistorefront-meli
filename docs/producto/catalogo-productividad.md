@@ -61,8 +61,7 @@ más las que agregás, menos las que quitás; las demás no cambian. Avisa «N p
 
 1. En **Productos**, buscá el producto parecido y pulsá **Duplicar** en su fila.
 2. Se abre el formulario de **Nuevo producto** ya cargado con los datos del original.
-3. Ajustá lo que cambia y guardá. Hasta que guardes no se crea nada; si salís, el sistema te pregunta si querés
-   descartar los cambios.
+3. Ajustá lo que cambia y guardá. Hasta que guardes no se crea nada.
 
 Qué se copia y qué no:
 
@@ -82,13 +81,10 @@ Qué se copia y qué no:
 - **Borrar productos:** no se borran, se desactivan (usá «Cambiar estado → Desactivar»).
 - **Marcar destacado** y **enviar al newsletter** de a varios.
 - **Cambiar SKU, código de barras, precio o costo** de varios productos a la vez.
+- **Seleccionar todos los resultados** de una búsqueda o filtro: la casilla del encabezado marca solo los productos que
+  ya se ven en la lista.
 - **Seleccionar más de 100** productos, ni deshacer un cambio masivo.
 - **Duplicar desde la ficha** del producto, o copiar imágenes y stock.
-
-## Capturas
-
-<!-- TODO(dueño: documentación de catálogo): agregar capturas en docs/producto/img/catalogo-productividad/
-     (barra «N seleccionados», diálogos de la barra y alta desde «Duplicar») con `pnpm docs:capturas`. -->
 
 Ver también: [Catálogo: listado y categorías](catalogo-listado-y-categorias.md) y
 [Catálogo: alta y edición](catalogo-alta-y-edicion.md).

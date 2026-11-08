@@ -13,16 +13,11 @@ sources:
 sin Kestra, Superset ni workers. Guía de usuario: [Cambios masivos y duplicar](../producto/catalogo-productividad.md).
 Referencia del módulo: [Catálogo de productos](../catalogo.md) (secciones «Duplicar producto» y «Productividad»).
 
-!!! warning "Estado de las fuentes"
-    Esta página se escribió contra las ramas de las historias (`feat/story-MSF-392`, `feat/story-MSF-398`, cierre en
-    `a346a396`), que al momento de redactarla no estaban en la rama de documentación. Rutas y nombres salen de esos
-    commits (`f4a30441`, `57e1e270`, `bbac1173`, `56966feb`); verificarlos tras el merge a `main`.
-
 ## Piezas
 
 | Pieza | Dónde | Qué resuelve |
 |---|---|---|
-| RPC de edición masiva | `supabase/migrations/20270213100000_catalogo_edicion_masiva.sql` | `public.mover_productos_categoria`, `public.cambiar_estado_productos`, `public.definir_empresas_productos` y la función auxiliar `private.bloquear_productos_masivo` |
+| RPC de edición masiva | `supabase/migrations/20270215100000_catalogo_edicion_masiva.sql` | `public.mover_productos_categoria`, `public.cambiar_estado_productos`, `public.definir_empresas_productos` y la función auxiliar `private.bloquear_productos_masivo` |
 | Cliente de las RPC | `apps/web/src/lib/edicionMasiva.ts`, `hooks/useEjecutarEdicionMasiva.ts` | Llamadas, avisos («N productos movidos a …», «No hubo cambios») y traducción de errores |
 | Selección y barra | `hooks/useSeleccionProductos.ts`, `components/productos/BarraSeleccion.tsx` | Casillas, «N seleccionados» y tope de 100 |
 | Diálogos | `components/productos/MoverCategoriaDialog.tsx`, `CambiarEstadoDialog.tsx`, `CambiarEmpresasDialog.tsx` | Carga diferida; empresas con `SelectorEmpresas` |
@@ -45,8 +40,12 @@ definir_empresas_productos(p_producto_ids: uuid[], p_agregar: uuid[], p_quitar: 
 ```
 
 - `security invoker`, `search_path = ''`, `revoke … from public, anon`, `grant execute … to authenticated`.
-- Exigen `edicion` en la sección `productos` (`42501` si no). De 1 a 100 ids (`22023` si hay 0 o más de 100).
-  Ids, categoría o empresas inexistentes o de otra organización: `P0002` / `22023`. Atómicas (todo o nada) e idempotentes.
+- Exigen `edicion` en la sección `productos` (`42501` si no). De 1 a 100 ids **distintos**: primero se quitan los
+  repetidos y después se cuenta, así que 150 ids con repetidos que sean 80 distintos pasan; `22023` si la lista está
+  vacía, trae valores nulos o supera 100 ids distintos.
+- Productos o categoría inexistentes o de otra organización: `P0002`. Empresa inexistente o ajena: `22023` (igual que la
+  RPC individual), y se valida antes de bloquear los productos, así que gana sobre un producto inexistente.
+  Atómicas (todo o nada) e idempotentes.
 - Devuelven cuántos productos **cambiaron de verdad**; con 0 la pantalla avisa «No hubo cambios».
 - Delegan por producto en las RPC individuales (`asignar_categoria_producto`, `cambiar_estado_producto`,
   `definir_empresas_producto`), así que se reutilizan los eventos de Actividad `producto.categoria_asignada`,
@@ -59,8 +58,8 @@ definir_empresas_productos(p_producto_ids: uuid[], p_agregar: uuid[], p_quitar: 
 ## Pantalla
 
 - Casillas y barra solo con `edicion` en `productos` (`private.nivel_seccion('productos')`, nunca `puede_escribir()`).
-- La selección es de las filas ya cargadas; con la carga infinita del listado se limitó a **100** (commit `caa80bae`),
-  por eso la spec original habla de 25 filas por página y el comportamiento vigente es el de 100.
+- La selección es de las filas ya cargadas; con la carga infinita del listado se limitó a **100**. La spec original
+  habla de 25 filas por página y el comportamiento vigente es el de 100 filas cargadas.
 - **Empresa activa (Principio VIII):** al cambiar empresa, filtro, búsqueda u orden se descarta la selección y un diálogo
   abierto se cierra con aviso; pedir más filas no la descarta. Las consultas del listado se invalidan y se reencuadra la
   paginación.
@@ -117,7 +116,18 @@ Pendiente de automatizar: el paso 8 (SKU repetido en el duplicado) está en Vite
 
 ## Pendientes
 
-- TODO (dueño: documentación de catálogo): capturas del manual en `docs/producto/img/catalogo-productividad/` con
-  `pnpm docs:capturas`; no se generaron porque el código de la épica aún no está en esta rama.
-- Fuera de alcance de la épica: destacado, newsletter, borrado, exportar/importar CSV, edición masiva de SKU, código de
-  barras, precio o costo, selección más allá del tope, deshacer y duplicar desde la ficha.
+- Capturas del manual de producto: faltan las de la barra de selección, los tres diálogos y «Duplicar». El código de la
+  épica ya está en `dokploy`. El repositorio no tiene todavía un script de capturas (`pnpm docs:capturas` no existe), así
+  que se sacan a mano en `docs/producto/img/catalogo-productividad/` y se agregan en un cambio aparte.
+
+## Fuera de alcance
+
+Quedó fuera por decisión, no por olvido:
+
+- **«Seleccionar todos los resultados»** (RF-CAT-12-1): la casilla del encabezado marca solo las filas ya cargadas, con
+  un tope de **100**. Seleccionar el resultado completo del filtro no se construyó.
+- **Evento único `producto.edicion_masiva`** (RF-CAT-12-3): no existe. Cada producto con cambio real deja su propio
+  evento de Actividad (el mismo de la edición individual). Un evento único exigiría silenciar los disparadores de
+  actividad que ya existen, y no se pudo probar sin pgTAP local.
+- Destacado, newsletter, borrado, exportar/importar CSV, edición masiva de SKU, código de barras, precio o costo,
+  selección más allá del tope, deshacer y duplicar desde la ficha.
