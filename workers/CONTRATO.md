@@ -167,7 +167,8 @@ para la funcionalidad que lo usa está en `docs/importaciones.md`.
 
 1. **Iniciar**: la app llama a `iniciar_proceso_masivo` (administrador de la
    organización). Crea el proceso `pendiente` y su ejecución del ciclo con su
-   orden de despacho en una sola transacción; el `detalle` de la ejecución trae
+   orden de despacho en una sola transacción (la capacidad debe llamarse `importar-…` para una
+   importación o `exportar-…` para una exportación); el `detalle` de la ejecución trae
    `proceso_id` y los `parametros`. El worker lee `proceso_id` de su ejecución.
 2. **Progreso por lote**: `actualizar_progreso_proceso_masivo(proceso, procesados,
    total)`. El primer aviso pasa el proceso a `en_curso`; `procesados` no
@@ -178,15 +179,23 @@ para la funcionalidad que lo usa está en `docs/importaciones.md`.
    motivo): un reintento no vuelve a contar. `procesados` cuenta todas las filas, con
    error o no; las correctas son `procesados - con_errores`. El motivo se sanitiza en la base, pero el worker nunca
    manda el error crudo ni datos personales. Se guardan hasta 1000 detalles por
-   proceso; `con_errores` cuenta todos.
+   proceso; `con_errores` cuenta todos. Pasados 10.000 errores solo se cuentan (sin clave de
+   idempotencia: un reintento del lote ya no es idempotente) y el proceso queda `detalle_truncado`.
 4. **Revisar la cancelación entre lotes**: `proceso_masivo_cancelado(proceso)`.
    Si devuelve `true`, el worker deja de procesar, conserva lo ya hecho y cierra
    `cancelado`. No se mata el contenedor.
 5. **Cerrar**: `cerrar_proceso_masivo(proceso, estado, motivo)` con `completado`
    (sin filas rechazadas), `con_errores` (terminó con filas rechazadas), `fallido`
-   (no pudo terminar) o `cancelado`. Después el worker cierra su ejecución con
+   (no pudo terminar) o `cancelado`. La base valida el cierre (`ESTADO_INVALIDO`):
+   `completado` y `con_errores` exigen `procesados = total` si se informó el total (un archivo
+   vacío es 0 de 0: el worker informa `total = 0` y cierra `completado`); si no terminó, cierra
+   `fallido` o `cancelado`; `cancelado` exige que el administrador haya pedido la cancelación
+   (`proceso_masivo_cancelado` devolvió `true`). Después el worker cierra su ejecución con
    `cerrar_ejecucion_worker`. Si la ejecución termina `fallida` o `timeout` sin
-   que el worker cerrara el proceso, la base lo pasa a `fallido`.
+   que el worker cerrara el proceso, la base lo pasa a `fallido`. Lo mismo si la orden de
+   despacho se agota (la ejecución se cierra `fallida` con `DESPACHO_AGOTADO`) o la ejecución supera
+   el tiempo máximo de su capacidad (la cierra `timeout` el monitoreo, cada 2 minutos). Si el
+   administrador cancela un proceso sin worker vivo, la base lo cierra `cancelado` sin esperar al worker.
 
 Las funciones del worker las ejecuta solo su rol `worker_<org>` y solo sobre
 procesos de su propia organización.

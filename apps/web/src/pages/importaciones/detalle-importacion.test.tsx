@@ -115,4 +115,42 @@ describe('[MSF-354:T010] Diálogo «Detalle de la importación» (FR-013)', () =
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
+  it('con más errores que detalles guardados avisa el tope en vez de mostrar «Errores (1000)» como si fueran todos', async () => {
+    responderProcesos([proceso(1, { estado: 'con_errores', con_errores: 1500, procesados: 2000, total: 2000 })])
+    responderErrores([{ id: 'x1', fila: 1, columna: 'sku', referencia: 'A', motivo_sanitizado: 'Mal' }], 1000)
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver detalle de Carga 1' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Detalle de la importación' })
+    expect(await within(dialogo).findByText('Mostrando los primeros 1000 errores de 1500: el detalle se limita a 1000 por proceso.')).toBeInTheDocument()
+    expect(within(dialogo).getByText('500 correctas y 1500 con error')).toBeInTheDocument()
+  })
+
+  it('sin truncado no muestra el aviso del tope', async () => {
+    responderErrores([{ id: 'x1', fila: 1, columna: null, referencia: null, motivo_sanitizado: 'Mal' }], 25)
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver detalle de Carga 1' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Detalle de la importación' })
+    await within(dialogo).findByRole('table', { name: 'Errores del proceso' })
+    expect(within(dialogo).queryByText(/el detalle se limita a/)).not.toBeInTheDocument()
+  })
+
+  it('el CSV de un detalle truncado termina con una fila que lo avisa', async () => {
+    responderProcesos([proceso(1, { estado: 'con_errores', con_errores: 30, detalle_truncado: true })])
+    const todos = [1, 2, 3].map((i) => ({ id: `x${i}`, fila: i, columna: null, referencia: null, motivo_sanitizado: `Motivo ${i}` }))
+    falso.respuestas.procesos_masivos_errores = (llamada) => {
+      const [desde, hasta] = llamada.rango ?? [0, 19]
+      return { data: todos.slice(desde, hasta + 1), count: todos.length, error: null }
+    }
+    const descargar = vi.spyOn(exportarCsv, 'descargarCsv').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver detalle de Carga 1' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Detalle de la importación' })
+    expect(await within(dialogo).findByText(/Mostrando los primeros 3 errores de 30/)).toBeInTheDocument()
+    fireEvent.click(await within(dialogo).findByRole('button', { name: 'Descargar errores (CSV)' }))
+    await waitFor(() => expect(descargar).toHaveBeenCalledTimes(1))
+    const lineas = descargar.mock.calls[0][0].slice(1).split('\r\n').filter(Boolean)
+    expect(lineas).toHaveLength(5)
+    expect(lineas[4]).toContain('Mostrando los primeros 3 errores de 30')
+    descargar.mockRestore()
+  })
 })

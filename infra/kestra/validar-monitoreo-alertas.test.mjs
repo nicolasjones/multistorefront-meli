@@ -44,7 +44,7 @@ test('sin organización no se pasa el input vacío al subflow y no hay secretos 
 test('marca la alerta como notificada solo después de enviarla y propaga el fallo del envío', async () => {
   const content = await leer();
   assert.match(content, /select alerta_id, fuente, clave/);
-  assert.match(content, /public\.marcar_alerta_notificada\(CAST\(:alerta_id AS uuid\)\)/);
+  assert.match(content, /public\.marcar_alerta_notificada\(CAST\(NULLIF\(:alerta_id, ''\) AS uuid\)\)/);
   assert.doesNotMatch(content, /transmitFailed: false/, 'un envío fallido debe dejar la alerta pendiente');
   assert.ok(content.indexOf('id: marcar_notificada') > content.indexOf('id: alertar_sin_organizacion'), 'marca después de enviar');
 });

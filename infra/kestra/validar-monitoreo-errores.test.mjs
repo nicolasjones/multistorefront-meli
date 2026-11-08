@@ -40,3 +40,12 @@ test('un fallo del conteo se registra como fallo del monitor y tolera variables 
   assert.match(content, /errores_app_organizacion \?\? 'plataforma'/);
   assert.match(content, /\(outputs\.contar_eventos\.code \?\? 0\) != 200/);
 });
+
+test('el conteo usa el total real (X-Hits) o una página de al menos el umbral, no la primera página por defecto', async () => {
+  const content = await leer();
+  assert.match(content, /- id: limite_pagina\n\s+type: INT\n\s+defaults: 100/);
+  assert.match(content, /&limit=\{\{ inputs\.limite_pagina > inputs\.umbral \? inputs\.limite_pagina : inputs\.umbral \}\}/);
+  assert.match(content, /outputs\.contar_eventos\.headers\['x-hits'\] is defined/);
+  assert.match(content, /\(vars\.conteo \| number\) >= inputs\.umbral \? 'fallo' : 'ok'/);
+  assert.doesNotMatch(content, /fromJson\(outputs\.contar_eventos\.body\) \| length\) >= inputs\.umbral/, 'no decide con el largo de la primera página');
+});

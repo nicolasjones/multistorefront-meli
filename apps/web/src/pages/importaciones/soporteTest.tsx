@@ -74,6 +74,7 @@ export function proceso(n: number, sobre: Partial<ProcesoMasivo> = {}): ProcesoM
     procesados: 100,
     con_errores: 0,
     cancelacion_solicitada: false,
+    detalle_truncado: false,
     creado_en: '2026-11-01T12:00:00Z',
     iniciado_en: '2026-11-01T12:00:05Z',
     finalizado_en: '2026-11-01T12:01:35Z',

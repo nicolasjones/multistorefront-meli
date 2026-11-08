@@ -21,15 +21,18 @@ test('lista las tiendas por la función dedicada y registra por registrar_evento
   assert.match(content, /username: kestra_orquestacion/);
 });
 
-test('pide solo el dominio de la tienda y no sigue redirecciones', async () => {
+test('pide solo el dominio de la tienda, fijando la IP validada, sin seguir redirecciones', async () => {
   const content = await leer();
-  assert.match(content, /uri: "https:\/\/\{\{ fromJson\(taskrun\.value\)\.dominio \}\}\/"/);
-  assert.match(content, /followRedirects: false/);
+  assert.match(content, /https\.request\(\{\n\s+host: dominio,/);
+  assert.match(content, /clasificarIp\(address\)/);
+  assert.match(content, /NO_SONDEABLE_/);
+  assert.doesNotMatch(content, /followRedirects: true/);
 });
 
-test('un sondeo caído no corta el barrido y no hay secretos literales', async () => {
+test('un sondeo bloqueado o caído no corta el barrido y no hay secretos literales', async () => {
   const content = await leer();
-  assert.match(content, /allowFailure: true/);
+  assert.match(content, /resultado: 'no_sondeable'/);
+  assert.match(content, /jsonb_to_recordset/);
   assert.doesNotMatch(content, /password: "(?!\{\{)/);
   assert.doesNotMatch(content, /eyJ[A-Za-z0-9_-]{10,}/);
 });

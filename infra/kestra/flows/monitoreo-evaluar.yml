@@ -3,6 +3,7 @@
 # PENDIENTES de notificar (nuevas y las que fallaron en corridas anteriores). Cada alerta se publica por el subflow `alertas` existente (tipo `tecnica`), sin modificarlo. El subflow solo admite el
 # motivo FALLA_TECNICA_SANITIZADA (private.procesar_falla_orquestacion), así que el detalle de qué falló vive
 # en public.alertas_monitoreo (lectura del operador) y no viaja al webhook. Sin secretos en el YAML.
+# La fila de resumen («y N alertas más») que devuelve la base lleva alerta_id nulo: se notifica y no se marca.
 # Umbrales: son inputs; se ajustan sin cambiar código.
 id: monitoreo-evaluar
 namespace: platform.monitoreo
@@ -69,7 +70,7 @@ tasks:
         url: "{{ envs.kestra_orquestacion_db_url }}"
         username: kestra_orquestacion
         password: "{{ envs.kestra_orquestacion_db_password }}"
-        sql: select public.marcar_alerta_notificada(CAST(:alerta_id AS uuid));
+        sql: select public.marcar_alerta_notificada(CAST(NULLIF(:alerta_id, '') AS uuid));
         parameters:
           alerta_id: "{{ fromJson(taskrun.value).alerta_id }}"
 triggers:

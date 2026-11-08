@@ -7,9 +7,9 @@ Spec: `specs/20261102-220000-importaciones-y-monitoreo` (MSF-369, F-OPS-03). Est
 | Fuente | Qué mide | Cómo se mide | Dónde se ve |
 |---|---|---|---|
 | `aplicacion` | Errores no manejados y de render del panel (`apps/web`) y de los workers | SDK mínimo compatible con Sentry (`apps/web/src/lib/erroresWeb.ts`, `workers/_comun/errores.mjs`) → GlitchTip; el flow `monitoreo-errores-aplicacion` cuenta los eventos | GlitchTip (errores agrupados) y `alertas_monitoreo` |
-| `tienda` | Que la tienda con dominio responda | Flow `monitoreo-salud-tiendas` cada 2 min (`GET https://<dominio>/`, sin seguir redirecciones) | vista `estado_tiendas_monitoreo` (último chequeo por tienda: `operativa`, `con_fallos`, `caida`) y `eventos_monitoreo` |
+| `tienda` | Que la tienda con dominio responda | Flow `monitoreo-salud-tiendas` cada 2 min (`GET https://<dominio>/` contra la IP resuelta y validada, sin seguir redirecciones) | vista `estado_tiendas_monitoreo` (último chequeo por tienda: `operativa`, `con_fallos`, `caida`) y `eventos_monitoreo` |
 | `sincronizacion` | Ejecuciones `fallida`/`timeout` de una capacidad | `evaluar_monitoreo` las lee de `ejecuciones_worker` (clave `<organizacion_id>:<capacidad>`) | `/ejecuciones` y `alertas_monitoreo` |
-| `cola` | Una orden de `despachos_ejecucion` sin avanzar | `evaluar_monitoreo` (estado `pendiente`/`reclamada` sin cambios) | `alertas_monitoreo` |
+| `cola` | Órdenes de `despachos_ejecucion` sin avanzar (una alerta por organización) | `evaluar_monitoreo` (estado `pendiente`/`reclamada` sin cambios) | `alertas_monitoreo` |
 
 `eventos_monitoreo` y `alertas_monitoreo` (esquema `public`, plataforma) las lee **solo el operador de plataforma (superadmin)**; las escribe solo `kestra_orquestacion` por `registrar_evento_monitoreo` y `evaluar_monitoreo`. La vista `estado_tiendas_monitoreo` (`security_invoker`) hereda esa RLS: un administrador de organización recibe 0 filas. Reemplaza a la tabla `salud_tiendas` de la historia (RF-OPS-03-3, CA-OPS-03-4/5). La cola de Mercado Libre se agrega como otra fuente cuando exista (MSF-175).
 Las tres funciones (`registrar_evento_monitoreo`, `evaluar_monitoreo` y `tiendas_a_sondear`) además admiten por nombre a `postgres` y `supabase_admin` (en Supabase no son superusuarios reales): es lo que usa el pgTAP en CI. `authenticated` y `anon` siguen sin `execute`.
@@ -20,7 +20,25 @@ Los eventos al registro central llevan el tag `organizacion_id` (solo el UUID, n
 
 ## SSRF del sondeo de tiendas
 
-`tiendas_a_sondear()` solo devuelve nombres DNS públicos: al menos dos etiquetas, TLD alfabético (descarta IP en cualquier notación, puertos y corchetes) y sin `localhost`, `.local`, `.internal`, `.lan`, `.home`, `.corp`, `.private`, `.arpa`. El flow además no sigue redirecciones. **Límite conocido:** un dominio público cuyo DNS resuelva a una IP privada (rebinding) no se detecta en la base; la mitigación es restringir el egress de red del contenedor de Kestra hacia rangos privados y metadatos de nube.
+El sondeo ya **no delega solo en el egress de red**: hay cuatro capas, todas en código.
+
+1. **Base** (`tiendas_a_sondear()` / `private.dominio_sondeable`): solo nombres DNS públicos (al menos dos etiquetas, TLD alfabético, sin IP en cualquier notación, puertos, corchetes ni `localhost`, `.local`, `.internal`, `.lan`, `.home`, `.corp`, `.private`, `.arpa`).
+2. **Resolución previa** (script `sondeo.mjs` embebido en el flow `monitoreo-salud-tiendas`, que corre en un contenedor `node:22-alpine`): antes del GET resuelve el hostname (A **y** AAAA). Si **cualquier** IP resuelta cae en loopback, red privada RFC1918, link-local (`169.254.0.0/16`, que incluye los metadatos de nube, y `fe80::/10`), ULA `fc00::/7`, CGNAT `100.64.0.0/10`, multicast, `0.0.0.0`, rangos reservados o de documentación (también por IPv4 mapeada o NAT64), **no se pide nada**.
+3. **IP fijada**: si todas son públicas, el GET se hace contra esa IP ya validada (`lookup` fijo de `https.request`, con el SNI y el certificado del dominio): no hay segunda resolución, así que el DNS rebinding no sirve.
+4. **Sin redirecciones**: no se siguen 3xx (un 3xx cuenta como «responde»), así que una tienda no puede hacernos pedir otro host.
+
+Un sondeo bloqueado registra un evento `no_sondeable` (motivo `NO_SONDEABLE_<RED>`): **no es un fallo de la tienda**, no suma al umbral ni abre alertas, y la vista `estado_tiendas_monitoreo` lo muestra como `no_sondeable`. Un dominio que no resuelve (DNS) sí es fallo (`SIN_RESPUESTA`). La clasificación de IP y el pinning se prueban con `node:test` (`infra/kestra/sondeo-tiendas.test.mjs`, que extrae el script del propio flow). Restringir el egress del contenedor sigue siendo una defensa adicional recomendable, ya no la única.
+
+## Retención de datos
+
+`eventos_monitoreo` crece rápido (un evento cada 2 minutos por tienda: ~72.000 filas por día con 100 tiendas). El flow `depuracion-monitoreo` (diario, 04:30) llama a `private.depurar_monitoreo_y_procesos()`, que borra: eventos con más de **30 días**, alertas **resueltas** con más de **90 días** y procesos masivos **terminados** con más de **180 días** (con sus errores y claves de idempotencia). Nunca toca alertas abiertas ni procesos abiertos; es idempotente. Solo la ejecutan `kestra_orquestacion` / `workers_orquestacion`. Hay un índice por `ocurrido_en` (evaluación y purga) y la vista `estado_tiendas_monitoreo` salta de tienda en tienda por el índice `(fuente, clave, ocurrido_en desc)`, así que su costo no crece con la cantidad de eventos.
+
+## Tormenta de alertas
+
+- La fuente `cola` se agrupa **por organización**: una sola alerta (clave = id de la organización) con la cantidad de órdenes que no avanzan, aunque sean cientos. Mientras esa alerta siga abierta, nuevas órdenes trabadas de la misma organización no abren otra.
+- Cada corrida de `evaluar_monitoreo` devuelve **como máximo 20** notificaciones: 19 alertas y una fila de resumen («y N alertas más abiertas (ver `alertas_monitoreo`)», con `alerta_id` nulo, que el flow notifica sin marcar). Las alertas cubiertas por el resumen quedan marcadas notificadas y siguen visibles en `alertas_monitoreo`. Así, si Kestra pierde la red y caen N tiendas a la vez, el webhook no recibe N envíos.
+- Cancelar un proceso masivo pendiente cierra su ejecución `fallida` con motivo `CANCELADA`; `evaluar_monitoreo` **no** la cuenta como fallo de sincronización.
+- Además, `evaluar_monitoreo` cierra por tiempo máximo (`timeout`) las ejecuciones de procesos masivos abiertos que lo superaron, para que la pantalla de importaciones no quede sondeando para siempre.
 
 ## Umbrales
 
@@ -64,7 +82,7 @@ Producto propio `infra/glitchtip/compose.yaml` (proyecto `multistorefront-meli-g
 
 **Decisión sobre el SDK:** en vez de sumar `@sentry/*` (dependencia nueva con muchas transitivas), se usa un cliente mínimo del endpoint `store` de la API compatible, sin dependencias; así no hay cambio de lockfile ni superficie de supply chain, y el filtrado de datos personales está en nuestro código y probado. Si se quisiera el SDK oficial, `filtrarEvento` es el equivalente directo de `beforeSend`.
 
-**Spike de la API de conteo (pendiente de verificación contra una instancia):** el flow `monitoreo-errores-aplicacion` usa el listado de eventos del proyecto (`/api/0/projects/{organizacion}/{proyecto}/events/` con `start`/`end`) y cuenta los elementos devueltos. La ruta es el input `ruta_eventos` para ajustarla sin cambiar código. Esto no se pudo comprobar en esta entrega (sin Docker en el entorno de desarrollo); verificarlo en el paso manual de abajo. Si la API no sirve para contar, se vuelve a D-1 y se pregunta.
+**Spike de la API de conteo (pendiente de verificación contra una instancia):** el flow `monitoreo-errores-aplicacion` usa el listado de eventos del proyecto (`/api/0/projects/{organizacion}/{proyecto}/events/` con `start`/`end`) y usa el total real del listado (encabezado `X-Hits`) o, si la herramienta no lo envía, una página de al menos `umbral` eventos (input `limite_pagina`, parámetro `limit`), no la primera página por defecto. La ruta es el input `ruta_eventos` para ajustarla sin cambiar código. Esto no se pudo comprobar en esta entrega (sin Docker en el entorno de desarrollo); verificarlo en el paso manual de abajo. Si la API no sirve para contar, se vuelve a D-1 y se pregunta.
 
 ## Verificación manual de SC-006 (error inducido)
 
