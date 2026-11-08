@@ -1359,9 +1359,9 @@
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
-      "pageHash": "15e14a316cc1509f084f8d98f8860adf9197253c2d48f48a2f6fb0e1ad44582e",
+      "pageHash": "17a98afa091e6c5a930dd9d72c9fe86c358ba5b1c1072c1f694640b9a8c711ef",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "55e69df7",
+      "sourceAt": "8766b990",
       "sources": [
         "specs",
         "supabase/migrations",
