@@ -131,7 +131,7 @@
     "infra:config:playwright": "docker compose -f infra/playwright/compose.yaml config --quiet",
     "infra:config:runner": "docker compose -f infra/runner/compose.yaml config --quiet",
     "infra:config:nango": "docker compose -f infra/nango/compose.yaml config --quiet",
-    "infra:config:glitchtip": "docker compose -f infra/glitchtip/compose.yaml config --quiet",
+    "infra:config:glitchtip": "GLITCHTIP_DB_PASSWORD=solo-validar-config GLITCHTIP_SECRET_KEY=solo-validar-config docker compose -f infra/glitchtip/compose.yaml config --quiet",
     "infra:config:mcp-server": "docker compose -f infra/mcp-server/compose.yaml config --quiet",
     "test:template:adoption": "node --test scripts/verificar-versiones-capacidades.test.mjs",
     "superset:empaquetar-dashboards": "node infra/superset/empaquetar-dashboards.mjs"

@@ -45,3 +45,10 @@ test('un fallo del envío no lanza', async () => {
   const ok = await capturarError(new Error('boom'), { worker: 'w', env: { ERRORES_DSN: DSN }, enviar: async () => { throw new Error('red'); } });
   assert.equal(ok, false);
 });
+
+test('el evento lleva la organización como tag (solo su id) y descarta valores que no son UUID', () => {
+  const org = '3f2b8c1e-5a4d-4e6f-9a7b-1c2d3e4f5a6b';
+  assert.equal(crearEvento(new Error('x'), { worker: 'w', env: { ORGANIZACION_ID: org } }).tags.organizacion_id, org);
+  assert.equal(crearEvento(new Error('x'), { worker: 'w', env: { ORGANIZACION_ID: 'ana@example.com' } }).tags.organizacion_id, 'sin_organizacion');
+  assert.equal(crearEvento(new Error('x'), { worker: 'w', env: {} }).tags.organizacion_id, 'sin_organizacion');
+});

@@ -2,8 +2,8 @@ name: multistorefront-meli-glitchtip-dev
 
 # Registro central de errores (MSF-369, F-OPS-03, D-1): GlitchTip self-hosted (MIT, compatible con los SDK
 # de Sentry). Producto propio y bajo demanda (Principio V): `pnpm dev:glitchtip` / `pnpm dev:down:glitchtip`.
-# Los valores por defecto son solo de desarrollo local; en cualquier entorno compartido se fijan por
-# variables de entorno fuera de Git (infra/glitchtip/.env). Ver docs/monitoreo.md.
+# La contraseña de la base y la SECRET_KEY son OBLIGATORIAS (sin valor por defecto): se fijan en
+# infra/glitchtip/.env (copiá infra/glitchtip/.env.example), fuera de Git. El puerto se publica solo en 127.0.0.1. Ver docs/monitoreo.md.
 x-glitchtip: &glitchtip
   image: glitchtip/glitchtip:v5.1
   depends_on:
@@ -12,8 +12,8 @@ x-glitchtip: &glitchtip
     glitchtip-redis:
       condition: service_started
   environment: &glitchtip-env
-    DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:-glitchtip-local}@glitchtip-db:5432/glitchtip
-    SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-change-me-local-only}
+    DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:?Definí GLITCHTIP_DB_PASSWORD en infra/glitchtip/.env}@glitchtip-db:5432/glitchtip
+    SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?Definí GLITCHTIP_SECRET_KEY en infra/glitchtip/.env}
     REDIS_URL: redis://glitchtip-redis:6379/0
     PORT: "8000"
     GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:${GLITCHTIP_PORT:-8100}}
@@ -29,7 +29,7 @@ services:
     environment:
       POSTGRES_DB: glitchtip
       POSTGRES_USER: glitchtip
-      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:-glitchtip-local}
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:?Definí GLITCHTIP_DB_PASSWORD en infra/glitchtip/.env}
     volumes:
       - glitchtip-db-data:/var/lib/postgresql/data
     healthcheck:

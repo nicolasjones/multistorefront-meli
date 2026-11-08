@@ -13,11 +13,13 @@ import {
   UMBRAL_RECALCULO_PCT,
   UMBRAL_VARIACION_INUSUAL_PCT,
   esVariacionInusual,
+  formatearPorcentaje,
   formatearCotizacion,
   formatearVariacion,
   parsearCotizacion,
   soloCaracteresDeCotizacion,
   textoAnterior,
+  textoUmbralNoAlcanzado,
   variacionPorcentual,
 } from '../../lib/cotizacion'
 
@@ -26,13 +28,17 @@ type Props = {
   vigente: CotizacionVigente | null
   onCerrar: () => void
   onConfirmada: (confirmada: CotizacionConfirmada) => void
+  // F-PRE-06: con alcance «una por empresa» la carga es de esta empresa; la variación inusual es la configurada.
+  empresaId?: string | null
+  nombreEmpresa?: string | null
+  confirmacionPct?: number
 }
 
-function AlertaVariacionInusual() {
+function AlertaVariacionInusual({ confirmacionPct }: { confirmacionPct: number }) {
   return (
     <Alert severity="warning">
       <Typography component="p" fontWeight={600}>Variación inusual</Typography>
-      La variación supera el {UMBRAL_VARIACION_INUSUAL_PCT} %. Revisá que el valor sea correcto antes de aplicarlo.
+      La variación supera el {formatearPorcentaje(confirmacionPct)} %. Revisá que el valor sea correcto antes de aplicarlo.
     </Alert>
   )
 }
@@ -41,9 +47,12 @@ function AlertaVariacionInusual() {
 // Paso 1: el valor con `$` y `por USD`, «Anterior», «Variación» y la alerta «Variación inusual»; al
 // continuar queda como cotización PENDIENTE y no cambia ningún precio. Paso 2: vista previa «Qué va a
 // cambiar» y la decisión: «Aplicar y recalcular» / «Registrar cotización» (bajo el umbral de 1 %) o
-// «Cancelar», que descarta la pendiente. La validación y el umbral reales son los de la base. El dueño
-// lo MONTA al abrir (y lo desmonta al cerrar): cada apertura empieza con el campo vacío.
-export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }: Props) {
+// «Cancelar», que descarta la pendiente. La validación y el umbral reales son los de la base; los textos
+// muestran los valores configurados (F-PRE-06). El dueño lo MONTA al abrir (y lo desmonta al cerrar): cada
+// apertura empieza con el campo vacío.
+export function DialogoCargarDolar({
+  abierto, vigente, onCerrar, onConfirmada, empresaId = null, nombreEmpresa = null, confirmacionPct = UMBRAL_VARIACION_INUSUAL_PCT,
+}: Props) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [carga, setCarga] = useState<CotizacionCargada | null>(null)
@@ -60,7 +69,7 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
   const cerrar = async () => {
     if (ocupado) return
     if (carga) {
-      const resultado = await descartar()
+      const resultado = await descartar(empresaId)
       if (!resultado.ok) {
         setError(resultado.mensaje)
         return
@@ -73,7 +82,7 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
     evento.preventDefault()
     if (valor === null || ocupado) return
     setError(null)
-    const resultado = await cargar(valor)
+    const resultado = await cargar(valor, empresaId)
     if (!resultado.ok) {
       setError(resultado.mensaje)
       return
@@ -85,7 +94,7 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
   const confirmarValor = async () => {
     if (ocupado) return
     setError(null)
-    const resultado = await confirmar()
+    const resultado = await confirmar(empresaId)
     if (!resultado.ok) {
       setError(resultado.mensaje)
       return
@@ -99,6 +108,9 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
         <PasoConfirmar
           carga={carga}
           vigente={vigente}
+          empresaId={empresaId}
+          nombreEmpresa={nombreEmpresa}
+          confirmacionPct={confirmacionPct}
           error={error}
           ocupado={ocupado}
           onCancelar={() => void cerrar()}
@@ -109,6 +121,7 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
           <TituloDialogo id="titulo-cargar-dolar" onCerrar={() => void cerrar()}>Cargar dólar del día</TituloDialogo>
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 1 }}>
+              {nombreEmpresa ? <Typography variant="s">Cotización de {nombreEmpresa}</Typography> : null}
               {error ? <Alert severity="error">{error}</Alert> : null}
               <TextField
                 label="Dólar del día (pesos por dólar)"
@@ -130,7 +143,7 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
                 <Typography variant="s">Variación</Typography>
                 <Typography variant="b" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatearVariacion(variacion)}</Typography>
               </Stack>
-              {esVariacionInusual(variacion) ? <AlertaVariacionInusual /> : null}
+              {esVariacionInusual(variacion, confirmacionPct) ? <AlertaVariacionInusual confirmacionPct={confirmacionPct} /> : null}
             </Stack>
           </DialogContent>
           <DialogActions>
@@ -148,6 +161,9 @@ export function DialogoCargarDolar({ abierto, vigente, onCerrar, onConfirmada }:
 type PasoConfirmarProps = {
   carga: CotizacionCargada
   vigente: CotizacionVigente | null
+  empresaId: string | null
+  nombreEmpresa: string | null
+  confirmacionPct: number
   error: string | null
   ocupado: boolean
   onCancelar: () => void
@@ -155,8 +171,8 @@ type PasoConfirmarProps = {
 }
 
 // Paso 2: la cotización ya está pendiente; se ve qué cambiaría y se decide (F-PRE-03).
-function PasoConfirmar({ carga, vigente, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
-  const { previa, cargando, hayError, recargar } = usePrevisualizarCotizacion()
+function PasoConfirmar({ carga, vigente, empresaId, nombreEmpresa, confirmacionPct, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
+  const { previa, cargando, hayError, recargar } = usePrevisualizarCotizacion(empresaId)
   const variacion = previa?.variacionPct ?? carga.variacionPct
 
   return (
@@ -164,6 +180,7 @@ function PasoConfirmar({ carga, vigente, error, ocupado, onCancelar, onConfirmar
       <TituloDialogo id="titulo-cargar-dolar" onCerrar={onCancelar}>Cargar dólar del día</TituloDialogo>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
+          {nombreEmpresa ? <Typography variant="s">Cotización de {nombreEmpresa}</Typography> : null}
           {error ? <Alert severity="error">{error}</Alert> : null}
           <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={2}>
             <Stack>
@@ -178,13 +195,13 @@ function PasoConfirmar({ carga, vigente, error, ocupado, onCancelar, onConfirmar
               <Typography variant="b" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatearVariacion(variacion)}</Typography>
             </Stack>
           </Stack>
-          {esVariacionInusual(variacion) ? <AlertaVariacionInusual /> : null}
+          {esVariacionInusual(variacion, confirmacionPct) ? <AlertaVariacionInusual confirmacionPct={confirmacionPct} /> : null}
           {cargando ? <EstadoCargaPagina lineas={2} /> : null}
           {hayError ? <EstadoError descripcion="No pudimos calcular qué va a cambiar." reintentar={() => void recargar()} /> : null}
           {previa && !previa.recalcula ? (
             <Alert severity="info">
               <Typography component="p" fontWeight={600}>Sin recálculo</Typography>
-              La variación es menor al umbral de {UMBRAL_RECALCULO_PCT} %: la cotización queda registrada, pero no se recalculan precios.
+              {textoUmbralNoAlcanzado(previa.umbralPct ?? UMBRAL_RECALCULO_PCT)}
             </Alert>
           ) : null}
           {previa?.recalcula ? <BloqueQueVaACambiar previa={previa} /> : null}

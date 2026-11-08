@@ -28,6 +28,7 @@ Formato: `- [ ] T### [P] [Historia][USn] descripción (FR/SC que posee)`. `[P]` 
 - [x] T012 [F-IMP-01][US1] Empresa activa: `queryKey` con la empresa, invalidación al cambiar, paginación reencuadrada y diálogo cerrado con aviso. Verifica: `empresa-activa-importaciones.test.tsx` (FR-015)
 - [x] T013 [F-IMP-01][US1] Accesibilidad y responsive a 320/768/1440 px, teclado y lector de pantalla, sin identificadores técnicos visibles. Verifica: E2E `importaciones-a11y.e2e.ts` (`pnpm test:e2e`) (FR-016)
 - [x] T014 [F-IMP-01][US1] E2E `apps/web/e2e/importaciones.e2e.ts` con axe: proceso creado por las funciones, avance visible, errores en el detalle, cancelación y cambio de empresa. Verifica: `pnpm test:e2e` (`importaciones.e2e.ts`) (SC-001, SC-002, SC-007)
+- [x] T014b [F-IMP-01][US1] Correcciones de la revisión retroactiva (migraciones `20270214100001`/`02`): columna en el reporte y «Descargar errores (CSV)» (RF-IMP-01-3), eventos `importacion.iniciada/finalizada/cancelada` (RF-IMP-01-5), carga infinita en lista y errores, resultado «N correctas y M con error» (CA-IMP-01-1) e idempotencia de `con_errores`. Verifica: `detalle-importacion.test.tsx`, `importaciones.test.tsx`, `procesosMasivos.test.ts`, pgTAP `procesos_masivos_reporte_actividad.test.sql`
 
 **Checkpoint F-IMP-01**: un proceso registrado por una funcionalidad se ve, se sigue, se cancela y se aísla por organización y empresa.
 

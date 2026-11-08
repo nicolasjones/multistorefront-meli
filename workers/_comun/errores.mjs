@@ -31,6 +31,8 @@ export function leerDsn(dsn) {
   }
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function crearEvento(error, { worker, env = process.env, version } = {}) {
   const e = error instanceof Error ? error : new Error(typeof error === 'string' ? error : 'Error desconocido');
   const tipo = limpiarTexto(e.name || 'Error');
@@ -43,7 +45,12 @@ export function crearEvento(error, { worker, env = process.env, version } = {}) 
     environment: env.ERRORES_AMBIENTE || 'local',
     release: version || env.ERRORES_VERSION || 'dev',
     server_name: worker,
-    tags: { worker: worker ?? 'desconocido', EJECUCION_ID: env.EJECUCION_ID ?? 'sin_ejecucion' },
+    tags: {
+      worker: worker ?? 'desconocido',
+      EJECUCION_ID: env.EJECUCION_ID ?? 'sin_ejecucion',
+      // RF-OPS-03-1: solo el id de la organización (UUID que entrega Kestra); nunca datos personales.
+      organizacion_id: UUID.test(env.ORGANIZACION_ID ?? '') ? env.ORGANIZACION_ID : 'sin_organizacion',
+    },
     exception: { values: [{ type: tipo, value: valor }] },
     fingerprint: [worker ?? 'worker', tipo, valor],
   };

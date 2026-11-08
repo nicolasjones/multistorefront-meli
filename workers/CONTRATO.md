@@ -173,7 +173,10 @@ para la funcionalidad que lo usa está en `docs/importaciones.md`.
    total)`. El primer aviso pasa el proceso a `en_curso`; `procesados` no
    retrocede ni supera `total`.
 3. **Errores por fila**: `registrar_error_proceso_masivo(proceso, fila,
-   referencia, motivo)`. El motivo se sanitiza en la base, pero el worker nunca
+   referencia, motivo, columna)` (`columna` opcional: el campo donde falló la fila; va
+   al reporte CSV de errores). Idempotente por fila (o, sin fila, por referencia y
+   motivo): un reintento no vuelve a contar. `procesados` cuenta todas las filas, con
+   error o no; las correctas son `procesados - con_errores`. El motivo se sanitiza en la base, pero el worker nunca
    manda el error crudo ni datos personales. Se guardan hasta 1000 detalles por
    proceso; `con_errores` cuenta todos.
 4. **Revisar la cancelación entre lotes**: `proceso_masivo_cancelado(proceso)`.

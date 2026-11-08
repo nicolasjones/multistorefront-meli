@@ -7,12 +7,20 @@ Spec: `specs/20261102-220000-importaciones-y-monitoreo` (MSF-369, F-OPS-03). Est
 | Fuente | Qué mide | Cómo se mide | Dónde se ve |
 |---|---|---|---|
 | `aplicacion` | Errores no manejados y de render del panel (`apps/web`) y de los workers | SDK mínimo compatible con Sentry (`apps/web/src/lib/erroresWeb.ts`, `workers/_comun/errores.mjs`) → GlitchTip; el flow `monitoreo-errores-aplicacion` cuenta los eventos | GlitchTip (errores agrupados) y `alertas_monitoreo` |
-| `tienda` | Que la tienda con dominio responda | Flow `monitoreo-salud-tiendas` cada 2 min (`GET https://<dominio>/`, sin seguir redirecciones) | `eventos_monitoreo` |
+| `tienda` | Que la tienda con dominio responda | Flow `monitoreo-salud-tiendas` cada 2 min (`GET https://<dominio>/`, sin seguir redirecciones) | vista `estado_tiendas_monitoreo` (último chequeo por tienda: `operativa`, `con_fallos`, `caida`) y `eventos_monitoreo` |
 | `sincronizacion` | Ejecuciones `fallida`/`timeout` de una capacidad | `evaluar_monitoreo` las lee de `ejecuciones_worker` (clave `<organizacion_id>:<capacidad>`) | `/ejecuciones` y `alertas_monitoreo` |
 | `cola` | Una orden de `despachos_ejecucion` sin avanzar | `evaluar_monitoreo` (estado `pendiente`/`reclamada` sin cambios) | `alertas_monitoreo` |
 
-`eventos_monitoreo` y `alertas_monitoreo` (esquema `public`, plataforma) las lee **solo el operador de plataforma (superadmin)**; las escribe solo `kestra_orquestacion` por `registrar_evento_monitoreo` y `evaluar_monitoreo`. La cola de Mercado Libre se agrega como otra fuente cuando exista (MSF-175).
+`eventos_monitoreo` y `alertas_monitoreo` (esquema `public`, plataforma) las lee **solo el operador de plataforma (superadmin)**; las escribe solo `kestra_orquestacion` por `registrar_evento_monitoreo` y `evaluar_monitoreo`. La vista `estado_tiendas_monitoreo` (`security_invoker`) hereda esa RLS: un administrador de organización recibe 0 filas. Reemplaza a la tabla `salud_tiendas` de la historia (RF-OPS-03-3, CA-OPS-03-4/5). La cola de Mercado Libre se agrega como otra fuente cuando exista (MSF-175).
 Las tres funciones (`registrar_evento_monitoreo`, `evaluar_monitoreo` y `tiendas_a_sondear`) además admiten por nombre a `postgres` y `supabase_admin` (en Supabase no son superusuarios reales): es lo que usa el pgTAP en CI. `authenticated` y `anon` siguen sin `execute`.
+
+## Organización en los eventos de error (RF-OPS-03-1)
+
+Los eventos al registro central llevan el tag `organizacion_id` (solo el UUID, nunca nombre ni datos de personas). En el panel lo fija `authProvider` al verificar la membresía (`fijarOrganizacionErrores`; se limpia al cerrar sesión) y `filtrarEvento` lo conserva validando que sea un UUID. En los workers sale de `ORGANIZACION_ID` (lo entrega Kestra); si falta o no es un UUID el tag es `sin_organizacion`. Un superadmin sin organización no lleva el tag.
+
+## SSRF del sondeo de tiendas
+
+`tiendas_a_sondear()` solo devuelve nombres DNS públicos: al menos dos etiquetas, TLD alfabético (descarta IP en cualquier notación, puertos y corchetes) y sin `localhost`, `.local`, `.internal`, `.lan`, `.home`, `.corp`, `.private`, `.arpa`. El flow además no sigue redirecciones. **Límite conocido:** un dominio público cuyo DNS resuelva a una IP privada (rebinding) no se detecta en la base; la mitigación es restringir el egress de red del contenedor de Kestra hacia rangos privados y metadatos de nube.
 
 ## Umbrales
 
@@ -29,6 +37,8 @@ Con el sondeo cada 2 minutos, 5 fallos consecutivos se alcanzan justo a los 10 m
 ## Qué significa cada alerta
 
 - **Una sola alerta abierta por fuente y clave**, notificada una vez; mientras siga abierta no se repite aunque sigan los fallos.
+- **Pendiente de notificar**: la alerta nace sin `notificada_en`. `evaluar_monitoreo` devuelve las abiertas sin notificar (nuevas y las que quedaron de corridas anteriores) y el flow llama a `marcar_alerta_notificada(id)` solo **después** de que el subflow `alertas` envió bien. Si el webhook falla, la alerta sigue pendiente y se reintenta en la próxima corrida (cada 2 minutos), así soporte no se queda sin enterar.
+- **Fallo del propio monitor**: si `monitoreo-errores-aplicacion` no puede contar los errores (GlitchTip caído, token inválido), registra un fallo de fuente `aplicacion` con clave `monitor:<proyecto>`; tras 5 seguidos en la ventana se abre una alerta. Una alerta `aplicacion` abierta **no se resuelve sola** mientras no haya un `ok` real posterior (que el conteo falle no cuenta como normalidad).
 - Se **resuelve** cuando la fuente vuelve a la normalidad (tienda/aplicación: un `ok` posterior; sincronización y cola: ya no se cumple la condición). Una nueva caída abre **otra** alerta.
 - La notificación sale por el subflow `alertas` (tipo `tecnica`) hacia `KESTRA_ALERTAS_WEBHOOK_URL`. Ese subflow solo admite el motivo fijo `FALLA_TECNICA_SANITIZADA`, por eso el webhook trae la organización pero no el detalle; el detalle (fuente, clave, motivo sanitizado) está en `alertas_monitoreo`.
 - Los motivos se sanitizan en la base: sin correos, teléfonos ni tokens.
@@ -46,7 +56,7 @@ El subflow `alertas` **no se modifica**: publica al webhook `KESTRA_ALERTAS_WEBH
 | `ERRORES_APP_URL`, `ERRORES_APP_ORGANIZACION`, `ERRORES_APP_PROYECTO` | `infra/kestra/.env` | Dónde cuenta Kestra los errores. Sin URL el flow no hace nada |
 | `SECRET_ERRORES_APP_TOKEN` | `infra/kestra/.env` (base64) | Token de **lectura** de GlitchTip, secreto de Kestra; nunca en Git |
 | `KESTRA_ALERTAS_WEBHOOK_URL` | `.env` / `infra/kestra/.env` | Destino de las alertas |
-| `GLITCHTIP_PORT`, `GLITCHTIP_DB_PASSWORD`, `GLITCHTIP_SECRET_KEY` | `infra/glitchtip/.env` | GlitchTip local; cambiar los valores de ejemplo en cualquier entorno compartido |
+| `GLITCHTIP_DB_PASSWORD`, `GLITCHTIP_SECRET_KEY` (obligatorias), `GLITCHTIP_PORT` | `infra/glitchtip/.env` (copiar de `.env.example`) | GlitchTip: el Compose **no arranca** sin la contraseña y la clave; el puerto se publica solo en `127.0.0.1` |
 
 ## GlitchTip (D-1)
 
@@ -83,8 +93,6 @@ flows de Kestra y del cliente de errores (authz-security, crypto-secrets, infra-
 - **Cadena de suministro**: ninguna dependencia nueva y el lockfile no cambia; el cliente de errores es propio.
 - **Hallazgo corregido en el cierre**: el Compose de GlitchTip publicaba el puerto en todas las interfaces (`8100:8000`), a diferencia de
   todos los demás Compose del repo, que lo atan a `127.0.0.1`. Ahora es `127.0.0.1:${GLITCHTIP_PORT:-8100}:8000`.
-- **Observación aceptada (convención del repo)**: GlitchTip trae contraseña y `SECRET_KEY` de desarrollo por defecto
-  (`glitchtip-local`, `change-me-local-only`), igual que Kestra y Superset. En cualquier entorno compartido hay que fijarlos por variables fuera
-  de Git; olvidarlo deja un secreto débil sin aviso. Queda como seguimiento: fallar al arrancar si falta el valor fuera de desarrollo.
+- **Hallazgo corregido (revisión retroactiva)**: la contraseña de la base y la `SECRET_KEY` de GlitchTip ya no tienen valor por defecto: son obligatorias (`${VAR:?mensaje}`) y se definen en `infra/glitchtip/.env`. `pnpm infra:config:glitchtip` pasa valores ficticios solo para validar el Compose.
 - **Observación aceptada**: `valkey/valkey:8-alpine` usa un tag de versión mayor flotante; las demás imágenes tienen tag fijo.
 

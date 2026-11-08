@@ -25,7 +25,7 @@ Las tres tablas tienen RLS por organización (`private.organizacion_id()`) y per
 
 ## Umbral y recálculo
 
-- El umbral es **1 %**, medido contra la cotización **vigente** (última confirmada o, sin ninguna, la inicial de MSF-114). Con variación ≥ 1 % (en valor absoluto) se recalcula; justo 1 % recalcula.
+- El umbral es **1 % por defecto** (se configura por organización desde la tarjeta «Configuración» de Cotización; ver `configuracion-dolar-y-precio-propio.md`), medido contra la cotización **vigente** (última confirmada o, sin ninguna, la inicial de MSF-114). Con variación ≥ 1 % (en valor absoluto) se recalcula; justo 1 % recalcula.
 - Bajo el umbral la cotización **se registra** (queda en el historial) pero no se mueve `cotizacion_aplicada`: los precios no cambian.
 - No se guarda ningún precio en pesos. «Recalcular todos los precios» es cambiar, en **una transacción**, la única fila `cotizacion_aplicada` de la organización; `private.a_pesos` lee `coalesce(aplicada, inicial)`. Por eso ninguna empresa puede quedar con un valor distinto de otra.
 - «Precios recalculados» = productos activos en USD × empresas activas, el mismo número del mosaico de la vista previa.

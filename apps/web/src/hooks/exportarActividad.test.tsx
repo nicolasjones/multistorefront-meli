@@ -31,14 +31,14 @@ describe('useExportarActividad (F-AUD-03, FR-013)', () => {
     await waitFor(() => expect(result.current.exportando).toBe(true))
     expect(mocks.traer).toHaveBeenCalledWith(expect.anything(), f)
 
-    await act(async () => { terminar({ filas: [{ detalle: 'x' }], total: 1, recortado: false }) })
+    await act(async () => { terminar({ estado: 'completo', filas: [{ detalle: 'x' }], total: 1 }) })
     await waitFor(() => expect(result.current.exportando).toBe(false))
     expect(mocks.descargar).toHaveBeenCalledTimes(1)
     expect(result.current.mensaje).toBeNull()
   })
 
   it('avisa que no hay actividad y no descarga nada', async () => {
-    mocks.traer.mockResolvedValue({ filas: [], total: 0, recortado: false })
+    mocks.traer.mockResolvedValue({ estado: 'vacio' })
     const { result } = renderHook(() => useExportarActividad(filtros()))
     await act(async () => { await result.current.exportar() })
     expect(mocks.descargar).not.toHaveBeenCalled()
@@ -46,7 +46,7 @@ describe('useExportarActividad (F-AUD-03, FR-013)', () => {
   })
 
   it('si falla muestra el error, no descarga y permite reintentar', async () => {
-    mocks.traer.mockRejectedValueOnce(new Error('red caída')).mockResolvedValueOnce({ filas: [{}], total: 1, recortado: false })
+    mocks.traer.mockRejectedValueOnce(new Error('red caída')).mockResolvedValueOnce({ estado: 'completo', filas: [{}], total: 1 })
     const { result } = renderHook(() => useExportarActividad(filtros()))
     await act(async () => { await result.current.exportar() })
     expect(mocks.descargar).not.toHaveBeenCalled()
@@ -58,15 +58,23 @@ describe('useExportarActividad (F-AUD-03, FR-013)', () => {
     expect(result.current.mensaje).toBeNull()
   })
 
-  it('avisa del recorte cuando el filtro supera las 50.000 filas, pero descarga lo que hay', async () => {
-    mocks.traer.mockResolvedValue({ filas: [{}], total: 80_000, recortado: true })
+  it('si el filtro supera las 50.000 filas no descarga y deja un aviso que pide acotar con el total real (CA-AUD-03-3)', async () => {
+    mocks.traer.mockResolvedValue({ estado: 'excede', total: 80_000 })
     const { result } = renderHook(() => useExportarActividad(filtros()))
     await act(async () => { await result.current.exportar() })
-    expect(mocks.descargar).toHaveBeenCalledTimes(1)
+    expect(mocks.descargar).not.toHaveBeenCalled()
     expect(result.current.mensaje?.tipo).toBe('aviso')
-    expect(result.current.mensaje?.texto).toContain('50.000')
     expect(result.current.mensaje?.texto).toContain('80.000')
-    expect(result.current.mensaje?.texto).toContain('Acotá')
+    expect(result.current.mensaje?.texto).toContain('50.000')
+    expect(result.current.mensaje?.texto).toContain('acotá el período')
+  })
+
+  it('si faltan filas (exportación incompleta) es un error con reintento y no descarga nada', async () => {
+    mocks.traer.mockRejectedValue(new Error('Se esperaban 10 filas y llegaron 3.'))
+    const { result } = renderHook(() => useExportarActividad(filtros()))
+    await act(async () => { await result.current.exportar() })
+    expect(mocks.descargar).not.toHaveBeenCalled()
+    expect(result.current.mensaje?.tipo).toBe('error')
   })
 
   it('no empieza otra exportación mientras hay una en curso', async () => {
@@ -84,7 +92,7 @@ describe('useExportarActividad (F-AUD-03, FR-013)', () => {
     act(() => { void result.current.exportar() })
     await waitFor(() => expect(result.current.exportando).toBe(true))
     rerender({ f: filtros('e-2') })
-    await act(async () => { terminar({ filas: [{}], total: 1, recortado: false }) })
+    await act(async () => { terminar({ estado: 'completo', filas: [{}], total: 1 }) })
 
     await waitFor(() => expect(result.current.exportando).toBe(false))
     expect(mocks.descargar).not.toHaveBeenCalled()

@@ -110,7 +110,7 @@ describe('DialogoCargarDolar · paso 1 (carga)', () => {
     abrir({ onConfirmada })
     escribir('1490,50')
     fireEvent.click(screen.getByRole('button', { name: 'Cargar dólar' }))
-    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490.5))
+    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490.5, null))
     expect(await screen.findByRole('button', { name: 'Aplicar y recalcular' })).toBeInTheDocument()
     expect(onConfirmada).not.toHaveBeenCalled()
     expect(mocks.confirmar).not.toHaveBeenCalled()
@@ -138,7 +138,7 @@ describe('DialogoCargarDolar · paso 1 (carga)', () => {
     abrir()
     escribir('1490')
     fireEvent.submit(screen.getByLabelText(ETIQUETA).closest('form') as HTMLFormElement)
-    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490))
+    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490, null))
   })
 
   it('mientras envía no deja cerrar ni reenviar', () => {
