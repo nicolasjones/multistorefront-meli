@@ -137,8 +137,12 @@ Ver también: [Precio propio y simulador](precios-e-iva.md#precio-propio-de-un-p
 
 ### Si el valor cambia mucho (variación inusual)
 
-Si el valor que cargaste se aleja más del porcentaje de variación inusual (15 % de arranque) de la cotización con la que se calculan hoy los precios, el sistema te lo avisa y **exige que lo confirmes de forma explícita** al aplicar; sin esa confirmación no cambia nada (esto vale también si la carga llega desde otro sistema). El umbral y la variación se miden siempre contra la cotización **aplicada** (la de los precios), no contra la última que cargaste: varias cargas chicas seguidas no dejan los precios atrasados sin aviso.
+Si el valor que cargaste se aleja más del porcentaje de variación inusual (15 % de arranque) de la cotización con la que se calculan hoy los precios, el sistema te lo avisa y **exige que lo confirmes de forma explícita** al aplicar; sin esa confirmación no cambia nada (esto vale también si la carga llega desde otro sistema). La confirmación es sobre el porcentaje que viste: si otra persona cambió el dólar mientras revisabas, ves «El dólar cambió mientras revisabas: revisá de nuevo» y se recalcula la vista previa. El umbral y la variación se miden siempre contra la cotización **aplicada** (la de los precios), no contra la última que cargaste: varias cargas chicas seguidas no dejan los precios atrasados sin aviso.
 
 ### Precios propios
 
 Cada cambio de un precio propio (quién, de cuánto a cuánto y cuándo) queda guardado en un historial que no se puede modificar ni borrar, y lo ve quien tiene acceso a Productos.
+
+### Por qué el historial puede mostrar otro porcentaje
+
+La variación que ves al confirmar se mide contra la cotización que usan hoy los precios. En el historial, cada fila muestra la variación contra la carga anterior. Si la última carga quedó bajo el umbral (se anotó pero no cambió precios), los dos números pueden diferir: por ejemplo, con precios en 1.000, una carga anotada en 1.040 y una nueva de 1.151, al confirmar ves +15,1 % y el historial muestra +10,67 %.

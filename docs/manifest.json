@@ -613,12 +613,12 @@
     },
     "docs/producto/precios-dolar.md": {
       "title": "Cargar la cotización del dólar",
-      "pageHash": "1f379412a6e6f992b016897c38706929a9289056e4334ce6d3beb0e9009905d2",
+      "pageHash": "4922ed190a53d84b961982c814e52a1761ef439926749c5a0f1eca90c6a76631",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "b4fbf2c5"
     },
     "docs/producto/precios-e-iva.md": {
       "title": "Cómo se calcula el precio final",
@@ -1359,16 +1359,16 @@
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
-      "pageHash": "37f48f0a04088af784b67a7fe13b86a0e79627d16593e917bdacffb9aac445f8",
+      "pageHash": "15e14a316cc1509f084f8d98f8860adf9197253c2d48f48a2f6fb0e1ad44582e",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "aa1c55c6",
+      "sourceAt": "55e69df7",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "55e69df7"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
