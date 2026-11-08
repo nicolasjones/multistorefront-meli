@@ -266,7 +266,7 @@ begin
 
   perform pg_catalog.set_config('msf.depurando_actividad', 'off', true);
 
-  delete from private.exportaciones_actividad x where x.creado_en < pg_catalog.least(p_hasta, pg_catalog.now()) - interval '30 days';
+  delete from private.exportaciones_actividad x where x.creado_en < least(p_hasta, pg_catalog.now()) - interval '30 days';
 
   return v_total;
 end;

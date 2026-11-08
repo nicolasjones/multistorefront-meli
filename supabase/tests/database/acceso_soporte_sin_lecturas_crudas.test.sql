@@ -27,7 +27,7 @@ select is(
   null::text[], 'ninguna otra vista ni vista materializada depende de la tabla cruda');
 
 select is(
-  (select array_agg(pol.polname order by pol.polname)
+  (select array_agg(pol.polname::text order by pol.polname)
      from pg_depend d
      join pg_policy pol on pol.oid = d.objid and d.classid = 'pg_policy'::regclass
     where d.refobjid = 'public.superadmin_organizacion_activa'::regclass

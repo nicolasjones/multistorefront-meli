@@ -147,7 +147,7 @@ select set_config('t.p2', public.exportar_actividad(p_tipo => 'producto.creado',
   p_cursor_id => (current_setting('t.p1')::jsonb -> 'siguiente' ->> 'id')::uuid)::text, true);
 select is(current_setting('t.p2')::jsonb -> 'filas' -> 0 ->> 'detalle', 'Creó el producto Lámpara 100%', 'el cursor sigue con la fila que sigue, sin repetir ni saltear');
 select is(current_setting('t.p2')::jsonb ->> 'hay_mas', 'false', 'la última página dice que no hay más');
-select is(current_setting('t.p1')::jsonb ->> 'total', null, 'sin p_con_total no se calcula el total');
+select is(current_setting('t.p1')::jsonb ->> 'total', '2', 'la primera llamada de una exportación trae el total (lo necesita la constancia)');
 select throws_ok($$select public.exportar_actividad(p_cursor_id => 'a0000000-0000-0000-0000-000000000001')$$, '22023', null, 'un cursor incompleto se rechaza');
 select is(
   (public.exportar_actividad(p_corte => '2026-10-01 12:00:00+00', p_con_total => true) ->> 'total')::int, 2,

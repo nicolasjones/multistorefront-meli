@@ -50,7 +50,7 @@ begin
 end;
 $$;
 
-revoke all on function private.cerrar_accesos_soporte_vencidos() from public, anon, authenticated;
+revoke all on function private.cerrar_accesos_soporte_vencidos() from public, anon, authenticated, service_role;
 grant execute on function private.cerrar_accesos_soporte_vencidos() to workers_orquestacion;
 
 do $$
