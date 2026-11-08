@@ -98,7 +98,7 @@ Productos, Mercado Libre y el importador del historial (MSF-275) es trabajo de s
 ## Reversión
 
 Las migraciones `20270211100001`…`20270211100005`, `20270214100001`…`02` (columna del
-reporte, claves de idempotencia y eventos de actividad) y `20270216200001` (tope de claves,
+reporte, claves de idempotencia y eventos de actividad) y `20270217400001` (tope de claves,
 `detalle_truncado`, validaciones de cierre y de capacidad, huérfanos) son aditivas. Para la
 última: `drop trigger reconciliar_despacho_agotado on public.despachos_ejecucion`,
 `private.reconciliar_despacho_agotado()`, `private.cerrar_procesos_masivos_vencidos()`, la
