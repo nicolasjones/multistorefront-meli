@@ -125,13 +125,13 @@ select is(
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- ============================================================================
--- Recalculo: 1050 sobre la vigente 1005 (+4,5 %) cambia todas las empresas juntas
+-- Recalculo: 1050 sobre la aplicada 1000 (+5 %; la carga de 1005 no se aplicó) cambia todas las empresas juntas
 -- ============================================================================
 
 select lives_ok($$select public.cargar_cotizacion(1050)$$, 'cargar 1050');
 select is((select (public.confirmar_cotizacion() ->> 'recalculo_aplicado')::boolean), true, 'confirmar 1050: recalcula');
 select is((select precios_recalculados from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 4, 'precios recalculados: 2 productos × 2 empresas');
-select is((select valor_anterior from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 1005::numeric, 'el historial guarda la cotización anterior');
+select is((select valor_anterior from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 1000::numeric, 'el historial guarda la cotización aplicada anterior (1.000; la carga de 1.005 no se aplicó, MSF-352)');
 select is((select valor from dominio.cotizacion_aplicada), 1050::numeric, 'la cotización aplicada pasa a 1050');
 select is(private.a_pesos(20, 'USD', '11111111-1111-1111-1111-111111111111'), 21000::numeric, 'a_pesos con aplicada: usa 1050');
 select is(private.precio_neto_empresa('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001'), 10500::numeric, 'empresa 1 recalculada con 1050');
@@ -195,7 +195,8 @@ create trigger falla_simulada_recalculo before insert on public.registro_activid
   for each row execute function public.falla_simulada_recalculo();
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
-select throws_ok($$select public.confirmar_cotizacion()$$, 'P0001', 'falla simulada', 'la falla simulada aborta la confirmación');
+-- 1300 sobre 1050 es una variación inusual (> 15 %): se confirma explícitamente para llegar a la falla simulada.
+select throws_ok($$select public.confirmar_cotizacion(null, true)$$, 'P0001', 'falla simulada', 'la falla simulada aborta la confirmación');
 select is((select count(*)::int from dominio.cotizaciones), 3, 'tras la falla: el historial no suma ninguna fila');
 select is((select valor from dominio.cotizacion_aplicada), 1050::numeric, 'tras la falla: la cotización aplicada no cambia');
 select is((select valor from dominio.cotizacion_pendiente), 1300::numeric, 'tras la falla: la pendiente sigue ahí');

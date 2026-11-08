@@ -72,3 +72,7 @@ y las funciones asociadas (ver encabezado de `20270121121303_catalogo_importacio
 antes los datos. Nunca en el mismo PR que las crea.
 
 > Nota: en `validar_importacion_productos` los textos que se agregan a `v_errores`/`v_avisos` (`text[]`) van con cast `::text`; sin él Postgres lee el literal como arreglo («malformed array literal»).
+
+## Precios propios por empresa (límite conocido)
+
+La importación escribe solo `precio_lista`; no crea, cambia ni borra precios propios por empresa (F-PRE-08). Ver `catalogo-exportacion.md` («Precios propios por empresa»).

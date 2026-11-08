@@ -25,6 +25,10 @@ UTF-8 con BOM, separador `;`, fin de línea CRLF (abre bien en Excel en castella
 - La **primera página** registra la actividad `producto.exportado` (quién, cuántos productos, qué columnas; sin precios ni costos). Una exportación cancelada a mitad igual queda registrada.
 - `p_filtros`: `{ busqueda, categoria_id, estado, empresa_id, disponibilidad, compatible: text[], todos }`. `compatible` (F-CAT-09) lo entiende el servidor aunque el listado todavía no lo mande.
 
+## Precios propios por empresa (límite conocido)
+
+La exportación y la importación llevan solo `precio_lista` (el precio central del producto). Los **precios propios por empresa** (F-PRE-08) no viajan en el archivo: se fijan y quitan en la ficha del producto. Reimportar un archivo no los toca. Si el contrato de exportación debe incluir el precio propio por empresa (una columna por empresa o un archivo aparte), es una **decisión de producto** pendiente; no se inventó.
+
 ## Reversión
 
 Aditiva. `drop function public.exportar_productos(jsonb, text[], uuid, integer);` y quitar el botón del listado. No hay datos que migrar.

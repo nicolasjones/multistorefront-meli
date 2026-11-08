@@ -85,7 +85,8 @@ export function useConfirmarCotizacion() {
   const confirmar = useCallback(async (empresaId?: string | null): Promise<ResultadoConfirmacion> => {
     setEnviando(true)
     try {
-      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient, empresaId) }
+      // Se aprieta «Aplicar» después de ver el aviso de variación inusual (si la hay): es la confirmación explícita que exige la base.
+      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient, empresaId, true) }
     } catch (error) {
       console.error('No pudimos confirmar la cotización.', error)
       return { ok: false, mensaje: mensajeDeErrorConfirmacion(error as { code?: string }) }

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   AVISO_COTIZACION_REGISTRADA,
   MENSAJE_COTIZACION_VENCIDA,
+  MENSAJE_VARIACION_SIN_CONFIRMAR,
   MENSAJE_VALOR_INVALIDO,
   avisoCotizacionAplicada,
   cargarCotizacionRpc,
@@ -118,6 +119,7 @@ describe('llamadas a la base', () => {
     })
     await expect(leerEstadoCotizacion(cliente)).resolves.toEqual({
       vigente: { valor: 1465, cargadaEn: '2026-09-25T12:00:00Z', cargadaPor: null },
+      aplicada: null,
       productosUsd: 38,
       pendiente: { valor: 1490, expiraEn: '2026-09-26T12:00:00Z' },
       alcance: 'sistema', umbralPct: 1, confirmacionPct: 15, redondeoPesos: 10,
@@ -127,7 +129,7 @@ describe('llamadas a la base', () => {
 
   it('estado_cotizacion sin vigente ni pendiente', async () => {
     const { cliente } = clienteCon({ data: { vigente: null, productos_usd: 0, pendiente: null }, error: null })
-    await expect(leerEstadoCotizacion(cliente)).resolves.toEqual({ vigente: null, productosUsd: 0, pendiente: null, alcance: 'sistema', umbralPct: 1, confirmacionPct: 15, redondeoPesos: 10 })
+    await expect(leerEstadoCotizacion(cliente)).resolves.toEqual({ vigente: null, aplicada: null, productosUsd: 0, pendiente: null, alcance: 'sistema', umbralPct: 1, confirmacionPct: 15, redondeoPesos: 10 })
   })
 
   it('un error de la base no se traga', async () => {
@@ -196,7 +198,7 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
       umbralPct: 1,
       redondeoPesos: 10,
       empresas: [{ empresaId: 'e1', nombre: 'Mundo JC', precios: 2 }],
-      muestra: [{ producto: 'Case', sku: 'CAS-1', usd: 10, porEmpresa: [{ empresaId: 'e1', hoy: 10000, nuevo: null }] }],
+      muestra: [{ producto: 'Case', sku: 'CAS-1', usd: 10, porEmpresa: [{ empresaId: 'e1', hoy: 10000, nuevo: null, usd: null }] }],
     })
     expect(rpc).toHaveBeenCalledWith('previsualizar_cotizacion')
   })
@@ -210,6 +212,38 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     const { cliente, rpc } = clienteCon({ data: { id: 'c1', recalculo_aplicado: false, precios_recalculados: '0' }, error: null })
     await expect(confirmarCotizacionRpc(cliente)).resolves.toEqual({ id: 'c1', recalculoAplicado: false, preciosRecalculados: 0 })
     expect(rpc).toHaveBeenCalledWith('confirmar_cotizacion')
+  })
+
+  it('confirmarCotizacionRpc manda la confirmación explícita solo cuando se la pide (variación inusual)', async () => {
+    const { cliente, rpc } = clienteCon({ data: { id: 'c1', recalculo_aplicado: true, precios_recalculados: '4' }, error: null })
+    await confirmarCotizacionRpc(cliente, 'e1', true)
+    expect(rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_empresa: 'e1', p_confirmado: true })
+    await confirmarCotizacionRpc(cliente, 'e1')
+    expect(rpc).toHaveBeenLastCalledWith('confirmar_cotizacion', { p_empresa: 'e1' })
+  })
+
+  it('mensajeDeErrorConfirmacion: la variación inusual sin confirmar se explica (22023)', () => {
+    expect(mensajeDeErrorConfirmacion({ code: '22023' })).toBe(MENSAJE_VARIACION_SIN_CONFIRMAR)
+  })
+
+  it('previsualizarCotizacionRpc: un producto en pesos con precio propio en USD toma el USD de la empresa (no 0)', async () => {
+    const { cliente } = clienteCon({
+      data: {
+        variacion_pct: '6.6667', recalcula: true, empresas: [{ empresa_id: 'e1', nombre: 'Mundo JC', precios: 1 }],
+        muestra: [{ producto: 'Cable', sku: null, usd: null, por_empresa: [{ empresa_id: 'e1', usd: '4.00', hoy: '6000.00', nuevo: '6400.00' }] }],
+      },
+      error: null,
+    })
+    await expect(previsualizarCotizacionRpc(cliente)).resolves.toMatchObject({
+      muestra: [{ producto: 'Cable', usd: 4, porEmpresa: [{ empresaId: 'e1', hoy: 6000, nuevo: 6400 }] }],
+    })
+  })
+
+  it('leerEstadoCotizacion: informa la cotización aplicada; sin dato queda nula', async () => {
+    const con = clienteCon({ data: { vigente: null, aplicada: '1000.0000', productos_usd: 0, pendiente: null }, error: null })
+    await expect(leerEstadoCotizacion(con.cliente)).resolves.toMatchObject({ aplicada: 1000 })
+    const sin = clienteCon({ data: { vigente: null, aplicada: null, productos_usd: 0, pendiente: null }, error: null })
+    await expect(leerEstadoCotizacion(sin.cliente)).resolves.toMatchObject({ aplicada: null })
   })
 
   it('descartarCotizacionRpc llama a la base y propaga el error', async () => {

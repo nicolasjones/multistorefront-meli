@@ -57,6 +57,10 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
   // «Aviso en Inicio» apagado: no se avisa. Con alcance por empresa y «Todas mis empresas» no hay a quién cargarle.
   const sinCargar = !dia.delDia.cargadaHoy && dia.delDia.avisoActivo
   const puedeCargar = puedeEditar && (!porEmpresa || empresaId !== null)
+  // Alcance «una por empresa» y «Todas mis empresas»: no hay a quién cargarle el dólar; se pide elegir una empresa.
+  const pedirEmpresa = porEmpresa && empresaId === null
+  // Los precios usan la cotización APLICADA, que puede ser anterior a la última carga si esta quedó bajo el umbral.
+  const aplicada = estado.estado.aplicada ?? vigente?.valor ?? null
   const alConfirmar = (confirmada: CotizacionConfirmada) => {
     setDialogoAbierto(false)
     setConfirmacion(confirmada.recalculoAplicado ? avisoCotizacionAplicada(confirmada.preciosRecalculados) : AVISO_COTIZACION_REGISTRADA)
@@ -71,9 +75,11 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
           action={puedeCargar ? <Button color="inherit" variant="outlined" size="small" onClick={() => setDialogoAbierto(true)}>Cargar ahora</Button> : undefined}
         >
           <AlertTitle>Todavía no se cargó el dólar de hoy</AlertTitle>
-          {vigente
-            ? `Los precios en dólares se siguen calculando con ${formatearCotizacion(vigente.valor)} (${subtituloVigente(vigente)}).`
-            : 'Todavía no hay una cotización vigente para calcular los precios en dólares.'}
+          {pedirEmpresa
+            ? 'La cotización es una por empresa: elegí una empresa en la barra superior para ver y cargar su dólar de hoy.'
+            : aplicada !== null
+              ? `Los precios en dólares se siguen calculando con ${formatearCotizacion(aplicada)}${vigente && vigente.valor === aplicada ? ` (${subtituloVigente(vigente)})` : ''}.`
+              : 'Todavía no hay una cotización vigente para calcular los precios en dólares.'}
         </Alert>
       ) : null}
       {dialogoAbierto ? (

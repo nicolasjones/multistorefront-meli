@@ -120,3 +120,7 @@ E2E de cierre (MSF-578 · T024): `apps/web/e2e/inicio.e2e.ts` — Administrador,
 tarjetas, alertas y accesos según su permiso, y el cambio de empresa activa que recarga Inicio sin dejar
 datos de la empresa anterior (SC-001, SC-002, SC-003). Requiere el stack local (`pnpm dev:supabase`) y la
 web servida; se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (ver [`docs/e2e-app.md`](./e2e-app.md)).
+
+## Alerta de dólar: se recalcula al cambiar la configuración (MSF-352)
+
+`guardar_configuracion_cotizacion` y `cambiar_alcance_cotizacion` llaman a `recalcular_alertas_inicio` en la misma transacción: apagar o encender «Aviso en Inicio» o cambiar el alcance actualiza `dolar_sin_cargar` de inmediato (antes quedaba desfasada hasta el siguiente barrido). Prueba: `cotizacion_revision_msf352.test.sql`.

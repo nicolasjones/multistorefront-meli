@@ -104,7 +104,7 @@ describe('useConfirmarCotizacion', () => {
     let resultado
     await act(async () => { resultado = await result.current.confirmar() })
     expect(resultado).toEqual({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 60 } })
-    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion')
+    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_confirmado: true })
     expect(result.current.enviando).toBe(false)
   })
 
