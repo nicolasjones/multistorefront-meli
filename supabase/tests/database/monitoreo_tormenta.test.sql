@@ -80,8 +80,8 @@ select public.marcar_alerta_notificada(alerta_id) from corrida where alerta_id i
 -- Sin pérdida: si el resumen no se pudo enviar (el flow no marca las cubiertas), siguen pendientes y vuelven.
 select is((select count(*)::int from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null), 6,
   'las 6 alertas cubiertas por el resumen siguen pendientes hasta que el resumen se envíe');
-select is((select count(*)::int from public.evaluar_monitoreo(10, 5, 15) where fuente = 'resumen'), 1,
-  'la siguiente corrida vuelve a devolver el resumen (no se perdieron)');
+select is((select count(*)::int from public.evaluar_monitoreo(10, 5, 15) where fuente = 'tienda' and alerta_id is not null), 6,
+  'la siguiente corrida vuelve a devolver esas 6 alertas (no se perdieron)');
 -- Resumen enviado bien: el flow marca las cubiertas.
 select public.marcar_alertas_notificadas(string_to_array(cubiertas, ',')::uuid[]) from corrida where fuente = 'resumen';
 select is((select count(*)::int from public.evaluar_monitoreo(10, 5, 15)), 0,

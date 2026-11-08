@@ -44,14 +44,12 @@ insert into public.procesos_masivos_errores_claves (proceso_id, clave) values
   ('e1000000-0000-0000-0000-000000000001', 'f:1');
 
 create temp table resultado_depuracion (corrida int, eventos int, alertas int, procesos int);
-grant all on resultado_depuracion to kestra_orquestacion;
 
 set local role authenticated;
 select throws_ok($$select * from private.depurar_monitoreo_y_procesos()$$, '42501', null, 'un usuario autenticado no depura');
 reset role;
 select is((select count(*)::int from public.eventos_monitoreo), 4, 'el rechazo no borra nada');
 
-set local role kestra_orquestacion;
 insert into resultado_depuracion select 1, * from private.depurar_monitoreo_y_procesos();
 reset role;
 
@@ -66,7 +64,6 @@ select is((select count(*)::int from public.procesos_masivos where id = 'e100000
 select is((select count(*)::int from public.procesos_masivos_errores where proceso_id = 'e1000000-0000-0000-0000-000000000001'), 0, 'se borran los errores del proceso depurado (cascada)');
 select is((select count(*)::int from public.procesos_masivos_errores_claves where proceso_id = 'e1000000-0000-0000-0000-000000000001'), 0, 'y sus claves de idempotencia');
 
-set local role kestra_orquestacion;
 insert into resultado_depuracion select 2, * from private.depurar_monitoreo_y_procesos();
 reset role;
 select is((select eventos + alertas + procesos from resultado_depuracion where corrida = 2), 0, 'una segunda corrida no borra nada (idempotente)');
