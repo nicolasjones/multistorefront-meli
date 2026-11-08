@@ -33,3 +33,22 @@ describe('useSeleccionProductos', () => {
     expect(result.current.cantidad).toBe(0)
   })
 })
+
+describe('useSeleccionProductos: bordes', () => {
+  it('sin filas visibles (lista vacía) «Seleccionar todos» no marca nada', () => {
+    const { result } = renderHook(() => useSeleccionProductos('ctx', []))
+    act(() => result.current.alternarTodos())
+    expect(result.current.cantidad).toBe(0)
+    expect(result.current.todosMarcados).toBe(false)
+  })
+
+  it('marcar dos veces el mismo id lo desmarca: nunca hay ids duplicados', () => {
+    const visibles = ids(3)
+    const { result } = renderHook(() => useSeleccionProductos('ctx', visibles))
+    act(() => result.current.alternar('p-1'))
+    act(() => result.current.alternar('p-1'))
+    expect(result.current.cantidad).toBe(0)
+    act(() => result.current.alternar('p-1'))
+    expect(result.current.cantidad).toBe(1)
+  })
+})

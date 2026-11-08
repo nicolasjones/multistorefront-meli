@@ -6,7 +6,7 @@
 -- migración no crea tablas. El fixture corre como postgres y las verificaciones como "authenticated".
 begin;
 
-select plan(45);
+select plan(65);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -15,7 +15,8 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000001', 'administrador@example.com'),
   ('d1000000-0000-0000-0000-000000000003', 'consulta@example.com'),
-  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
+  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com'),
+  ('d3000000-0000-0000-0000-000000000001', 'sin-membresia@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
@@ -37,6 +38,10 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista) v
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Cable', 'CAB-1', 10),
   ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Funda', 'FUN-1', 5),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto Dos', 'DOS-1', 5);
+
+-- Lote de exactamente 100 productos para el borde del tope.
+insert into dominio.productos (organizacion_id, nombre, sku, precio_lista)
+select '11111111-1111-1111-1111-111111111111', 'Lote ' || n, 'LOT-' || n, 1 from generate_series(1, 100) n;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -256,6 +261,109 @@ reset role;
 select is(
   pg_temp.empresas_de('a1000000-0000-0000-0000-000000000001'),
   array['e1000000-0000-0000-0000-000000000002']::uuid[], 'el producto válido no cambió (atomicidad)'
+);
+
+-- ============================================================================
+-- Bordes: tope de 100 sobre la entrada ANTES del dedup, lista vacía/nula, permisos y errores
+-- ============================================================================
+
+-- Rol sin permiso: el permiso se comprueba antes que la lista (aun vacía).
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select throws_ok(
+  $$select public.cambiar_estado_productos('{}'::uuid[], true)$$,
+  '42501', null, 'consulta con lista vacía: gana el permiso (42501)'
+);
+-- Usuario sin membresía en ninguna organización.
+select pg_temp.como('d3000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select public.mover_productos_categoria(array['a1000000-0000-0000-0000-000000000001']::uuid[], 'c1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'un usuario sin organización no puede editar (42501)'
+);
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+-- 101 ids recibidos que se reducen a 1 distinto: el tope cuenta lo recibido (22023) en las tres RPC.
+select throws_ok(
+  $$select public.mover_productos_categoria(array_fill('a1000000-0000-0000-0000-000000000003'::uuid, array[101]), 'c1000000-0000-0000-0000-000000000002')$$,
+  '22023', null, 'mover: 101 ids repetidos (1 distinto) superan el tope'
+);
+select throws_ok(
+  $$select public.cambiar_estado_productos(array_fill('a1000000-0000-0000-0000-000000000003'::uuid, array[101]), false)$$,
+  '22023', null, 'cambiar estado: 101 ids repetidos (1 distinto) superan el tope'
+);
+select throws_ok(
+  $$select public.definir_empresas_productos(array_fill('a1000000-0000-0000-0000-000000000003'::uuid, array[101]), array['e1000000-0000-0000-0000-000000000001']::uuid[], '{}')$$,
+  '22023', null, 'empresas: 101 ids repetidos (1 distinto) superan el tope'
+);
+select throws_ok(
+  $$select public.cambiar_estado_productos(
+      (select array_agg(id) from dominio.productos where sku like 'LOT-%') || (select id from dominio.productos where sku = 'LOT-1'), false)$$,
+  '22023', null, '101 ids con un repetido que bajan a 100 distintos: 22023'
+);
+select throws_ok(
+  $$select public.cambiar_estado_productos(
+      (select array_agg(id) from dominio.productos where sku like 'LOT-%') || 'a1000000-0000-0000-0000-000000000003'::uuid, false)$$,
+  '22023', null, '101 ids distintos: 22023'
+);
+-- Exactamente 100 ids distintos pasan.
+select is(
+  public.cambiar_estado_productos((select array_agg(id) from dominio.productos where sku like 'LOT-%'), false),
+  100, '100 ids distintos pasan y cambian los 100'
+);
+-- 100 ids repetidos (1 distinto) caben en el tope y se deduplican: cambia 1 producto, un solo evento.
+select is(
+  public.mover_productos_categoria(array_fill('a1000000-0000-0000-0000-000000000003'::uuid, array[100]), 'c1000000-0000-0000-0000-000000000002'),
+  1, '100 ids repetidos se deduplican y cuentan como 1 producto'
+);
+reset role;
+select is(pg_temp.eventos('producto.categoria_asignada'), 4, 'los repetidos dejan un solo evento');
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+-- Lista vacía o nula, y valores nulos.
+select throws_ok(
+  $$select public.cambiar_estado_productos('{}'::uuid[], true)$$,
+  '22023', null, 'cambiar estado: lista vacía'
+);
+select throws_ok(
+  $$select public.cambiar_estado_productos(null::uuid[], true)$$,
+  '22023', null, 'cambiar estado: lista nula'
+);
+select throws_ok(
+  $$select public.definir_empresas_productos('{}'::uuid[], array['e1000000-0000-0000-0000-000000000001']::uuid[], '{}')$$,
+  '22023', null, 'empresas: lista de productos vacía'
+);
+select throws_ok(
+  $$select public.cambiar_estado_productos(array['a1000000-0000-0000-0000-000000000001', null]::uuid[], true)$$,
+  '22023', null, 'cambiar estado: un id nulo en la lista'
+);
+
+-- Contrato de errores: empresa inexistente o ajena = 22023 (se valida antes de bloquear productos);
+-- producto o categoría inexistente = P0002.
+select throws_ok(
+  $$select public.definir_empresas_productos(array['a1000000-0000-0000-0000-000000000001']::uuid[], array['e9999999-0000-0000-0000-000000000009']::uuid[], '{}')$$,
+  '22023', null, 'empresa inexistente: 22023'
+);
+select throws_ok(
+  $$select public.definir_empresas_productos(array['b2000000-0000-0000-0000-000000000001']::uuid[], array['e2000000-0000-0000-0000-000000000001']::uuid[], '{}')$$,
+  '22023', null, 'empresa ajena con producto ajeno: gana la empresa (22023)'
+);
+select throws_ok(
+  $$select public.definir_empresas_productos(array[gen_random_uuid()]::uuid[], array['e1000000-0000-0000-0000-000000000001']::uuid[], '{}')$$,
+  'P0002', null, 'producto inexistente con empresa válida: P0002'
+);
+select throws_ok(
+  $$select public.mover_productos_categoria(array['a1000000-0000-0000-0000-000000000001']::uuid[], gen_random_uuid())$$,
+  'P0002', null, 'categoría inexistente: P0002'
+);
+
+-- Productos de otra organización en cada RPC (desde la otra organización).
+select pg_temp.como('d2000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select public.cambiar_estado_productos(array['a1000000-0000-0000-0000-000000000001']::uuid[], false)$$,
+  'P0002', null, 'cambiar estado: producto de otra organización'
+);
+select throws_ok(
+  $$select public.definir_empresas_productos(array['a1000000-0000-0000-0000-000000000001']::uuid[], array['e2000000-0000-0000-0000-000000000001']::uuid[], '{}')$$,
+  'P0002', null, 'empresas: producto de otra organización (empresa propia)'
 );
 
 -- ============================================================================
