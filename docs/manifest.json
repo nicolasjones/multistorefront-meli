@@ -1322,15 +1322,15 @@
     },
     "docs/tecnico/catalogo-productividad.md": {
       "title": "Catálogo: productividad (edición masiva y duplicar)",
-      "pageHash": "36893af90197de4f6f60c57a73bc1f591d572d17611806ec7138d21e9887b362",
+      "pageHash": "200294a69615c0e02c25221535ca3ba0cbcbc6b23d0b966ec0f3211d4ed86b2e",
       "sourceHash": "a66cc94b66f107a552dd82e9cf37559e780a877da85018f95949527e2e6d27bb",
-      "sourceAt": "48968f59",
+      "sourceAt": "27546272",
       "sources": [
         "specs",
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "48968f59"
+      "commit": "27546272"
     },
     "docs/tecnico/catalogo-variantes-y-relacionados.md": {
       "title": "Catálogo: variantes y relacionados (MSF-229), construcción interna",
