@@ -69,6 +69,8 @@ No confundir `listar_cotizaciones` (historial de esta épica) con
 
 ## Umbral, recálculo y atomicidad
 
+> MSF-352: umbral, confirmación, redondeo, aviso y alcance (sistema o empresa) pasan a ser configurables; ver [Configuración del dólar y precio propio](configuracion-dolar-y-precio-propio.md). Lo que sigue describe los valores por defecto.
+
 - **Umbral fijo de 1 %**, en valor absoluto, medido contra la **cotización vigente** (última confirmada o,
   sin ninguna, `cotizacion_inicial`). Con |variación| ≥ 1 % se recalcula; con menos, **solo se registra**
   en el historial y `cotizacion_aplicada` no se mueve. Sin cotización previa siempre se aplica. La línea
