@@ -6,7 +6,7 @@
 -- catalogo_importacion.test.sql: en el CI no es superusuario y no puede simular el login del worker).
 begin;
 
-select plan(27);
+select plan(28);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
