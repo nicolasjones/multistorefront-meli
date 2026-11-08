@@ -93,7 +93,7 @@ describe('tienda-seo · cabeceras y rutas (MSF-149)', () => {
     for (const archivo of ['/robots.txt', '/sitemap.xml']) {
       for (const activa of [true, false]) {
         const r = await manejar(pedir(archivo, 'tienda-a.ejemplo.com'), montar({ activa }).deps)
-        assert.equal(r.headers.get('cache-control'), 'public, max-age=300')
+        assert.equal(r.headers.get('cache-control'), 'public, max-age=300, stale-if-error=300')
         assert.equal(r.headers.get('vary'), 'X-Tienda-Host')
       }
     }

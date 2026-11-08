@@ -9,6 +9,7 @@ import {
   type SeoTienda,
 } from '../../../lib/tiendaSeo'
 import { serializarJsonLd } from './datosEstructurados'
+import { declararRobots, declararTitulo } from './pilaCabecera'
 
 // Marca de los nodos que escribe este componente: es lo único que se limpia al salir de la página.
 const MARCA = 'data-tienda-seo'
@@ -58,15 +59,15 @@ export function CabeceraSeo({ host, pagina, descripcion, imagen, ruta = '/', tip
 
   useEffect(() => {
     if (noindex || !indexable) {
-      const nodo = agregar('meta', { name: 'robots', content: 'noindex' })
-      const anterior = document.title
-      if (titulo) document.title = titulo
-      return () => { nodo.remove(); document.title = anterior }
+      // Una sola meta `robots` y un solo título aunque haya otra `CabeceraSeo` montada (ver pilaCabecera.ts).
+      const quitarRobots = declararRobots('noindex')
+      const quitarTitulo = titulo ? declararTitulo(titulo, 1) : () => undefined
+      return () => { quitarRobots(); quitarTitulo() }
     }
     if (!seo || !url || titulo === null || texto === null) return undefined
 
-    const anterior = document.title
-    document.title = titulo
+    const quitarTitulo = declararTitulo(titulo, 0)
+    const quitarRobots = declararRobots(seo.indexable ? 'index, follow' : 'noindex')
     const nodos = [
       agregar('meta', { name: 'description', content: texto }),
       agregar('link', { rel: 'canonical', href: url }),
@@ -74,11 +75,10 @@ export function CabeceraSeo({ host, pagina, descripcion, imagen, ruta = '/', tip
       agregar('meta', { property: 'og:description', content: texto }),
       agregar('meta', { property: 'og:type', content: tipo }),
       agregar('meta', { property: 'og:url', content: url }),
-      agregar('meta', { name: 'robots', content: seo.indexable ? 'index, follow' : 'noindex' }),
     ]
     if (imagenOg) nodos.push(agregar('meta', { property: 'og:image', content: imagenOg }))
     for (const json of JSON.parse(claveJsonLd) as string[]) nodos.push(agregar('script', { type: 'application/ld+json' }, json))
-    return () => { nodos.forEach((n) => n.remove()); document.title = anterior }
+    return () => { nodos.forEach((n) => n.remove()); quitarRobots(); quitarTitulo() }
   }, [noindex, indexable, seo, url, titulo, texto, tipo, imagenOg, claveJsonLd])
 
   return null

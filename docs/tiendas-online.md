@@ -962,18 +962,28 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
   runtime**. El nombre del servidor se resuelve al pedir (resolver `127.0.0.11`, el DNS de Docker/Dokploy, y `8.8.8.8` de respaldo),
   de modo que un Supabase caído no impide arrancar nginx: el buscador recibe 502 y reintenta. Si el entorno no usa el DNS de Docker,
   hay que ajustar la línea `resolver`. **Caché y límite (MSF-149)**: como `sitemap_por_dominio` arma hasta 50.000 filas para cualquier
-  anónimo, nginx cachea (`proxy_cache tienda_seo`: 5 min para respuestas 200, `proxy_cache_lock`, `proxy_cache_use_stale` ante error,
-  timeout, 5xx y actualización; 20 MB máx., se vacía a los 10 min sin uso) con clave `$http_host$uri` (el host del visitante: nunca se
-  mezclan tiendas) y aplica `limit_req` por IP (5 pedidos/s, ráfaga 20, responde 429). Detrás de un proxy inverso sin `real_ip` la IP es la
-  del proxy: el límite pasa a ser compartido y por eso es generoso. El `Dockerfile` **falla el build** si `VITE_SUPABASE_URL` o
-  `VITE_SUPABASE_PUBLISHABLE_KEY` quedan vacíos (sin ellos el `proxy_pass` queda roto y robots/sitemap darían 500 sin aviso). Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
+  anónimo, nginx cachea (`proxy_cache tienda_seo`: 5 min para respuestas 200, `proxy_cache_lock`; 20 MB máx., se vacía a los 10 min sin
+  uso) con clave `$http_host$uri` (el host del visitante: nunca se mezclan tiendas) y limita pedidos con `limit_req` por **IP de cliente +
+  host**: 20 pedidos/s con ráfaga de 100 (429 si se pasa). El cubo es holgado a propósito porque `limit_req` corre antes de la caché y
+  cuenta también los HIT, y porque un crawler legítimo puede pedir varias veces seguidas; al incluir el host en la clave, un cliente que
+  insista sobre una tienda no agota el cubo de las demás. nginx corre en Dokploy **detrás de Traefik**, así que `$remote_addr` es la del
+  proxy: `set_real_ip_from` (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1 y fc00::/7) con `real_ip_header X-Forwarded-For` y
+  `real_ip_recursive on` toman la IP real del cliente solo cuando el pedido llega desde la red del proxy; un cliente de internet no puede
+  falsearla. **Ventana de contenido viejo:** una tienda que se desactiva o se pausa puede seguir viendo su `robots.txt`/sitemap anteriores
+  hasta ~10 minutos (5 de caché de nginx + `max-age=300` en el navegador o gateway), por lo que «desactivada = desconocida» (FR-025) tiene esa
+  ventana; ante una caída de Supabase nginx sirve el contenido anterior solo ante `error`/`timeout`/5xx y acotado por `stale-if-error=300`
+  de la función (no hay `updating`). **Qué se probó:** `nginx -t` valida solo la sintaxis, no el comportamiento del límite; el comportamiento
+  se verificó a mano con nginx en docker (IP tomada de `X-Forwarded-For`, 429 al pasar el cubo, otro host sin afectarse, caché separada por
+  host) y `supabase/functions/tienda-seo/nginx.test.ts` fija en CI la presencia de `real_ip` y la clave IP + host. El `Dockerfile` **falla
+  el build** si `VITE_SUPABASE_URL` o `VITE_SUPABASE_PUBLISHABLE_KEY` quedan vacíos (sin ellos el `proxy_pass` queda roto y robots/sitemap darían
+  500 sin aviso). Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
 - **Front**: `lib/tiendaSeo.ts` (`useSeoTienda`, una lectura por host), `pages/tienda-publica/seo/CabeceraSeo.tsx` (título «<página> | <empresa>»
   ≤ 60, descripción ≤ 160, canónica `https://<dominio canónico><ruta sin filtros>`, Open Graph y `robots`; limpia al salir de la página) y
   `seo/datosEstructurados.ts` (JSON-LD `Organization` en el inicio y `Product` en la ficha: `priceCurrency` ARS, `price` solo si es
   calculable, `availability` booleana, `<` escapado; nunca costos ni existencias). Montado en inicio, catálogo, categoría, ficha y contacto.
 - **`noindex`** (`<meta name="robots" content="noindex">`): 404, «Volvemos pronto» (con y sin marca), pantalla de error, ingresar,
   recuperar y definir contraseña, y resultados de búsqueda (`/catalogo?q=`). Los errores de carga **de la página** (`ErrorConReintento` en
-  ficha, página de contenido, categoría, contacto y listado del catálogo) también montan `<CabeceraSeo noindex>`. Los errores de un
+  ficha, página de contenido, categoría, contacto y listado del catálogo) también montan `<CabeceraSeo noindex>`; cuando conviven con la `CabeceraSeo` indexable de la página (catálogo, categoría) la pila de `seo/pilaCabecera.ts` deja UNA sola meta `robots` (gana `noindex`) y restaura bien el título al desmontar. Los errores de un
   bloque dentro de una página que sí cargó (destacados y categorías del inicio, menús, formulario de contacto) no: la página sigue
   teniendo su contenido indexable.
 - **Caché de la lectura SEO**: `seoDeTienda` guarda una lectura por host y pestaña con vencimiento de 5 minutos; `recortar()` cuenta

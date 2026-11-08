@@ -19,7 +19,8 @@ export type Deps = {
 
 export type UrlSitemap = { ruta: string; modificado: string | null }
 
-const CACHE = 'public, max-age=300'
+// `stale-if-error` acota cuánto puede servir un caché (nginx lo respeta) contenido viejo si Supabase está caído.
+const CACHE = 'public, max-age=300, stale-if-error=300'
 const HOST_MAXIMO = 255
 // Un dominio canónico válido; cualquier otra cosa que devuelva la base se trata como «sin tienda».
 const DOMINIO = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/

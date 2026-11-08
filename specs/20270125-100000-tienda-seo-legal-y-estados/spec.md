@@ -66,6 +66,7 @@ Bloquea a: MSF-164 (tienda-contenido-y-analitica): F-TDA-22 define el aviso de c
 ## Decisiones aceptadas por el dueño (2026-11-08)
 
 - **D1 (aceptada)**: `publico.estado_tienda_por_dominio` distingue «desactivada» de «desconocida» y entrega la marca (nombre, logo, colores, tipografías) de una tienda desactivada: permite enumerar dominios desactivados. **FR-025 y SC-006 quedan explícitamente matizados por D1**: «desactivada = desconocida» rige para el resto de las funciones públicas, `robots.txt` y el sitemap, no para esta. Se mantiene así y se cambia si el cliente lo pide.
+- **Ventana por caché (MSF-149)**: la caché de nginx de `robots.txt` y `sitemap.xml` (5 min) más el `max-age=300` downstream hacen que «desactivada = desconocida» (FR-025) se cumpla con una demora de hasta ~10 minutos tras desactivar o pausar la tienda.
 - **Datos legales (aceptada)**: `publico.legal_por_dominio` publica razón social, CUIT y dirección de toda empresa con tienda activa, sin opt-in por tienda. Se mantiene así y se cambia si el cliente lo pide.
 
 ## Modelo y supuestos técnicos
