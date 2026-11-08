@@ -71,15 +71,22 @@ stable
 security definer
 set search_path = ''
 as $$
+  -- Mismo criterio que `listar_notificaciones`: el acceso se evalúa una vez por TIPO de aviso (una decena de filas), no
+  -- por cada aviso acumulado. Este conteo corre cada 60 s por pestaña abierta.
+  with visibles as (
+    select t.clave
+    from public.tipos_aviso t
+    where auth.uid() is not null
+      and private.nivel_seccion_de_usuario(auth.uid(), t.seccion) <> 'ninguno'
+  )
   select count(*)::int
   from public.avisos_pendientes a
-  join public.tipos_aviso t on t.clave = a.tipo_aviso
   where auth.uid() is not null
     and a.user_id = auth.uid()
     and a.organizacion_id = private.organizacion_id()
     and a.estado <> 'descartado'
     and a.leido_en is null
-    and private.nivel_seccion_de_usuario(auth.uid(), t.seccion) <> 'ninguno';
+    and a.tipo_aviso in (select clave from visibles);
 $$;
 
 create or replace function public.marcar_notificaciones_leidas(p_ids uuid[] default null)

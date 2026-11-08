@@ -10,8 +10,8 @@ para esa persona.
 
 | Pieza | Dónde |
 |---|---|
-| Columna `leido_en` + índice `(user_id, creado_en desc)` | `supabase/migrations/20270212200003_notificaciones_leido.sql` |
-| `listar_notificaciones`, `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas` | `supabase/migrations/20270212200004_notificaciones_funciones.sql` |
+| Columna `leido_en` + índice `(user_id, creado_en desc)` | `supabase/migrations/20270217000001_notificaciones_leido.sql` |
+| `listar_notificaciones`, `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas` | `supabase/migrations/20270217000002_notificaciones_funciones.sql` |
 | pgTAP | `supabase/tests/database/notificaciones_panel.test.sql` |
 | Campanita, lista y hooks | `apps/web/src/components/navegacion/` (`CampanitaNotificaciones`, `ListaNotificaciones`, `useNotificaciones`) |
 | E2E | `apps/web/e2e/notificaciones.e2e.ts` |

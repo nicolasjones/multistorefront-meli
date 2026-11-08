@@ -7,12 +7,22 @@ export const INTERVALO_REFRESCO_MS = 60_000
 // FR-009: el conteo se refresca al montar el panel, al volver a la pestaña y cada 60 s solo con la
 // pestaña visible (nunca consulta con la pestaña oculta).
 export function useConteoSinLeer() {
-  const [conteo, setConteo] = useState(0)
+  const [conteo, setConteoCrudo] = useState(0)
+  // Cada refresco y cada cambio local (marcar leído) abre una generación nueva: una respuesta que llega después de que
+  // la persona ya marcó, o después de otro refresco, se descarta en vez de hacer reaparecer el punto rojo.
+  const generacion = useRef(0)
+
+  const setConteo = useCallback((valor: number | ((actual: number) => number)) => {
+    generacion.current++
+    setConteoCrudo(valor)
+  }, [])
 
   const refrescar = useCallback(async () => {
     if (document.visibilityState === 'hidden') return
+    const actual = ++generacion.current
     const { data, error } = await supabaseClient.rpc('contar_notificaciones_sin_leer')
-    if (!error && typeof data === 'number') setConteo(data)
+    if (actual !== generacion.current) return
+    if (!error && typeof data === 'number') setConteoCrudo(data)
   }, [])
 
   useEffect(() => {

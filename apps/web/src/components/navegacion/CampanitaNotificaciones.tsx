@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Badge, Box, Button, Divider, IconButton, Popover, Stack, Typography } from '@mui/material'
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import { supabaseClient } from '../../lib/supabase'
@@ -15,6 +15,7 @@ export function CampanitaNotificaciones() {
   const [falloMarcar, setFalloMarcar] = useState(false)
   const { conteo, setConteo, refrescar } = useConteoSinLeer()
   const lista = useListaNotificaciones(abierta)
+  const marcando = useRef(new Set<string>())
 
   const abrir = (evento: React.MouseEvent<HTMLButtonElement>) => {
     setAncla(evento.currentTarget)
@@ -36,9 +37,11 @@ export function CampanitaNotificaciones() {
   }
 
   const abrirAviso = (notificacion: Notificacion) => {
-    if (notificacion.leido_en === null) {
+    // Un doble clic no descuenta ni repite la llamada mientras ese aviso ya se está marcando.
+    if (notificacion.leido_en === null && !marcando.current.has(notificacion.id)) {
+      marcando.current.add(notificacion.id)
       setConteo((actual) => Math.max(0, actual - 1))
-      void marcar([notificacion.id])
+      void marcar([notificacion.id]).finally(() => marcando.current.delete(notificacion.id))
     }
   }
 

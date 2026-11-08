@@ -3,7 +3,7 @@
 -- el estado leído es del mismo aviso, una tabla nueva duplicaría datos. Aditiva: no toca RLS
 -- (activada sin políticas) ni privilegios.
 --
--- Reversión (migración posterior; solo después de revertir 20270212200004):
+-- Reversión (migración posterior; solo después de revertir 20270217000002):
 --   drop index if exists public.avisos_pendientes_usuario_creado_idx;
 --   alter table public.avisos_pendientes drop column if exists leido_en;
 
