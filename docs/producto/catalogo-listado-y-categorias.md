@@ -57,7 +57,7 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
 |---|---|
 | Exportar productos e importar CSV | Ya se puede (solo el Administrador): ver [filtrar por compatible, importar y exportar planillas](catalogo-compatibilidad-y-planillas.md) |
 | Destacado, newsletter | Sin historia en esta épica |
-| Selección múltiple: «Mover de categoría», «Borrar» | MSF-218 (edición masiva); el producto se desactiva, no se borra |
+| Selección múltiple: «Mover de categoría», «Borrar» | Ya se puede mover, cambiar estado y empresas: ver [cambios masivos y duplicar](catalogo-productividad.md). «Borrar» no existe: el producto se desactiva |
 | IVA de la categoría | F-PRE-12 (MSF-114) |
 | Categorías de más de dos niveles | Decisión de la spec: dos niveles (el prototipo muestra «hasta 3») |
 | Etiquetas de stock (Disponible, A pedido…) | F-CAT-17 (MSF-179) |

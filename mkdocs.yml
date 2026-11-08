@@ -155,6 +155,7 @@ nav:
           - "Stock: movimientos, historial y mínimo": stock.md
           - Catálogo, alta y edición: producto/catalogo-alta-y-edicion.md
           - Catálogo, listado y categorías: producto/catalogo-listado-y-categorias.md
+          - Catálogo, cambios masivos y duplicar: producto/catalogo-productividad.md
           - Catálogo, costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
           - Variantes y productos relacionados: producto/catalogo-variantes-y-relacionados.md
           - Catálogo, filtrar por compatible, importar y exportar: producto/catalogo-compatibilidad-y-planillas.md
@@ -186,6 +187,7 @@ nav:
       - Catálogo y precios:
           - Alta y edición: tecnico/catalogo-alta-y-edicion.md
           - Listado y categorías: tecnico/catalogo-listado-y-categorias.md
+          - Productividad (masiva y duplicar): tecnico/catalogo-productividad.md
           - Costo y disponibilidad: tecnico/catalogo-costo-y-disponibilidad.md
           - Variantes y relacionados: tecnico/catalogo-variantes-y-relacionados.md
           - Compatibilidad y planillas (MSF-202): tecnico/catalogo-compatibilidad-y-planillas.md

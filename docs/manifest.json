@@ -438,14 +438,25 @@
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
-      "pageHash": "1555e7be6447092de25a56b17195ca6a137db2a60ce99692d733fe08c9f83f28",
+      "pageHash": "67a55b909d3b6ab14f5707913f874ca18c2526e74e17ddf67444923907d9ef44",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "8fd8aaf5",
+      "sourceAt": "48968f59",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8fd8aaf5"
+      "commit": "c21df19c"
+    },
+    "docs/producto/catalogo-productividad.md": {
+      "title": "Catálogo: cambios masivos y duplicar productos",
+      "pageHash": "5cb5828a1cb24e32f268f53750d0b06530092506dde0d4a9a4f558e5701936eb",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "48968f59",
+      "sources": [
+        "specs"
+      ],
+      "owner": "producto",
+      "commit": "48968f59"
     },
     "docs/producto/catalogo-productos.md": {
       "title": "Productos y categorías",
@@ -1308,6 +1319,18 @@
       ],
       "owner": "tecnico",
       "commit": "53cb4c30"
+    },
+    "docs/tecnico/catalogo-productividad.md": {
+      "title": "Catálogo: productividad (edición masiva y duplicar)",
+      "pageHash": "36893af90197de4f6f60c57a73bc1f591d572d17611806ec7138d21e9887b362",
+      "sourceHash": "a66cc94b66f107a552dd82e9cf37559e780a877da85018f95949527e2e6d27bb",
+      "sourceAt": "48968f59",
+      "sources": [
+        "specs",
+        "supabase/migrations"
+      ],
+      "owner": "tecnico",
+      "commit": "48968f59"
     },
     "docs/tecnico/catalogo-variantes-y-relacionados.md": {
       "title": "Catálogo: variantes y relacionados (MSF-229), construcción interna",
