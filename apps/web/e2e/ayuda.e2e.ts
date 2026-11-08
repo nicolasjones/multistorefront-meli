@@ -71,7 +71,8 @@ test.describe('Ayuda dentro del panel (MSF-385)', () => {
           await expect(boton).toBeFocused()
         })
       }
-      expect(textos.every((x) => x.length > 0) && new Set(textos).size, 'cada pantalla muestra un resumen distinto').toBe(PANTALLAS.length)
+      expect(textos.every((x) => x.length > 0), 'ningún resumen viene vacío').toBe(true)
+      expect(new Set(textos).size, 'cada pantalla muestra un resumen distinto').toBe(PANTALLAS.length)
 
       // FR-026: operable a 320, 768 y 1440 px — el botón y el panel caben en la pantalla y la página no desborda.
       for (const ancho of ANCHOS) {
@@ -86,10 +87,11 @@ test.describe('Ayuda dentro del panel (MSF-385)', () => {
           await clic(page, boton)
           const dialogo = page.getByRole('dialog', { name: 'Categorías' })
           await expect(dialogo).toBeVisible()
-          const caja = await dialogo.boundingBox()
-          expect(caja, 'el panel tiene caja').not.toBeNull()
-          expect(caja?.x ?? -1).toBeGreaterThanOrEqual(-1)
-          expect((caja?.x ?? 0) + (caja?.width ?? 0)).toBeLessThanOrEqual(ancho + 1)
+          // El Drawer entra deslizándose (transición de MUI de 225 ms): se mide cuando la caja ya se acomodó, no al primer cuadro.
+          await expect.poll(async () => {
+            const caja = await dialogo.boundingBox()
+            return caja ? caja.x >= -1 && caja.x + caja.width <= ancho + 1 : false
+          }, { message: `el panel cabe en ${ancho} px` }).toBe(true)
           expect(await violacionesAxe(page)).toEqual([])
           await page.keyboard.press('Escape')
           await expect(dialogo).toBeHidden()
