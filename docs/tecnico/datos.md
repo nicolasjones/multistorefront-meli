@@ -10,7 +10,7 @@ sources:
 
 | Esquema | Qué guarda |
 |---|---|
-| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
+| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports, procesos masivos y monitoreo. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
 | `dominio` | Negocio: empresas, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, contactos, respuestas rápidas, historial |
 | `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
@@ -296,10 +296,103 @@ erDiagram
 - **Ausencia de fila = valor predeterminado:** identidad y contenido usan el tema base y textos vacíos;
   categorías y productos se toman visibles (y no destacados).
 - Los dominios los configura el equipo técnico; no hay pantalla ni RPC de alta de dominio. El cambio de
-  dominio queda auditado (`tienda.dominio_configurado`).
+  dominio queda auditado (`tienda.dominio_configurado`). **Esto cambió en MSF-133**: el alta de dominio la
+  hace el administrador desde el panel (ver «Dominio, publicación y versiones de la tienda (MSF-133)»).
 - La visibilidad efectiva de un producto se calcula en `private.catalogo_tienda_efectivo` (producto activo,
   visible y con categoría y categoría padre visibles). El detalle de contratos y operación está en
   [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
+
+## Dominio, publicación y versiones de la tienda (MSF-133)
+
+Cuatro tablas nuevas y una alterada. Migraciones aditivas `20270203130000_tienda_dominio_verificacion.sql`
+(F-TDA-05), `20270203130100_tienda_borrador_publicacion.sql` (F-TDA-06) y
+`20270203130200_tienda_versiones.sql` (F-TDA-07, sin tablas nuevas), en la rama de la épica
+`epic/MSF-133-tiendas-online-tienda-dominio-y-publicac`; reversión en el encabezado de cada una y
+consolidada en [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md#alcance-de-entrega).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tiendas` | **alterada** | Gana `dominio_redireccion`, `dominio_pendiente`, `token_verificacion` (uuid hex, no secreto), `dominio_verificado_at`, `ultima_verificacion_at`, `certificado_estado` (`pendiente`\|`activo`\|`error`), `certificado_verificado_at`, `verificacion_solicitada_at` y `verificacion_solicitada_por`. Unicidad a nivel plataforma de `dominio_pendiente` y `dominio_redireccion`; `check` de formato de dominio y de que la redirección sea distinta del principal. |
+| `dominio.tienda_registros_dns` | **nueva** | Resultado de la última comprobación de cada registro DNS de una tienda: PK `(empresa_id, tipo)`, `tipo` ∈ `A`\|`CNAME`\|`TXT`, `estado` ∈ `correcto`\|`incorrecto`\|`pendiente`, `nombre`, `valor_encontrado`, `comprobado_at`. FK compuesta `(empresa_id, organizacion_id)` a `dominio.empresas`. |
+| `public.tienda_dns_plataforma` | **nueva** | **Fila única** de configuración de plataforma (`id boolean primary key default true check (id)`): `ip_publica`, `cname_destino`, `prefijo_txt`, `updated_at`. Vive en `public` porque es transversal a todas las tiendas y no tiene `organizacion_id`. La siembra valores de documentación; los reales los carga el equipo técnico por SQL. |
+| `dominio.tienda_borrador` | **nueva** | Cambios preparados de una tienda, por área: PK `empresa_id`, `identidad jsonb`, `contenido jsonb`, `catalogo jsonb`, `updated_by`, `updated_at`. Área ausente = sin cambios; sin áreas = sin borrador. |
+| `dominio.tienda_versiones` | **nueva** | Historial de publicaciones: PK `(empresa_id, numero)`, `publicada_at`, `publicada_por`, `resumen`, `cambios jsonb` e `instantanea jsonb` (estado vivo de las tres áreas; en `catalogo`, solo las filas que difieren del predeterminado). |
+| `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
+| `public.organizaciones` | existente | FK `on delete cascade` en las tres tablas de `dominio`; no cambia. |
+| `public.registro_actividad` | existente | Recibe `tienda.dominio_verificado`, `tienda.publicada`, `tienda.borrador_descartado` y `tienda.version_restaurada` (`tienda.dominio_configurado` ya existía). Sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ TIENDAS : "es dueña"
+  ORGANIZACIONES ||--o{ TIENDA_REGISTROS_DNS : "es dueña"
+  ORGANIZACIONES ||--o{ TIENDA_BORRADOR : "es dueña"
+  ORGANIZACIONES ||--o{ TIENDA_VERSIONES : "es dueña"
+  EMPRESAS ||--|| TIENDAS : "publica"
+  EMPRESAS ||--o{ TIENDA_REGISTROS_DNS : "comprueba"
+  EMPRESAS ||--o| TIENDA_BORRADOR : "prepara"
+  EMPRESAS ||--o{ TIENDA_VERSIONES : "publica"
+
+  TIENDAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "único"
+    text dominio "único, normalizado, vigente"
+    text dominio_pendiente "nueva: pendiente de verificar"
+    text dominio_redireccion "nueva: redirige al principal"
+    text token_verificacion "nueva: TXT _verif, no secreto"
+    timestamptz dominio_verificado_at "nueva"
+    timestamptz ultima_verificacion_at "nueva"
+    text certificado_estado "nueva: pendiente|activo|error"
+    timestamptz certificado_verificado_at "nueva"
+    timestamptz verificacion_solicitada_at "nueva: límite de 10 s"
+    uuid verificacion_solicitada_por "nueva"
+    timestamptz created_at
+    timestamptz updated_at }
+  TIENDA_REGISTROS_DNS { uuid empresa_id PK
+    text tipo PK "A|CNAME|TXT"
+    uuid organizacion_id FK
+    text nombre
+    text valor_encontrado "lo que hay en DNS"
+    text estado "correcto|incorrecto|pendiente"
+    timestamptz comprobado_at }
+  TIENDA_BORRADOR { uuid empresa_id PK
+    uuid organizacion_id FK
+    jsonb identidad "nueva: área completa"
+    jsonb contenido "nueva: área completa"
+    jsonb catalogo "nueva: área completa"
+    uuid updated_by
+    timestamptz updated_at }
+  TIENDA_VERSIONES { uuid empresa_id PK
+    uuid numero PK "correlativo por empresa"
+    uuid organizacion_id FK
+    timestamptz publicada_at
+    uuid publicada_por
+    text resumen
+    jsonb cambios "nueva: campos tocados"
+    jsonb instantanea "nueva: estado vivo al publicar" }
+  TIENDA_DNS_PLATAFORMA { boolean id PK "fila única"
+    text ip_publica
+    text cname_destino
+    text prefijo_txt
+    timestamptz updated_at }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    boolean activa }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- **RLS:** las cuatro tablas nuevas tienen RLS por organización y nivel `private.nivel_seccion('empresas')` en
+  `lectura` o `edicion`; nacen con `revoke all … from public, anon, authenticated` y `grant select …
+  to authenticated`. **Nadie escribe por tabla**: todo pasa por RPC `security definer`, así la auditoría nunca
+  se omite.
+- **`public.tienda_dns_plataforma`** es configuración de plataforma, no de negocio: RLS de solo lectura para
+  `authenticated` y **sin** política de escritura (la carga el equipo técnico por SQL).
+- **El borrador y las versiones no son públicos:** ninguna función de `publico` los lee y `anon` no tiene
+  privilegios sobre ellas.
+- **Un borrador por empresa**, con un `jsonb` por área; al publicar se borra. **Una versión por publicación**,
+  con número correlativo por empresa: el historial no se reescribe.
+- **Precios, stock y estado activo de los productos no pasan por el borrador:** se leen siempre en vivo.
 
 ## Stock: movimientos, mínimo y estados (MSF-136)
 
@@ -2871,13 +2964,15 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
 | `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) (MSF-167) |
 | `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes (MSF-167) |
 | `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles (MSF-167) |
+| `publico.redireccion_por_dominio(host)` | Dominio principal de la tienda, si el host es su «Redirigir también»; `null` para host desconocido y empresa inactiva (MSF-133) |
 
 - La visibilidad efectiva sale de `private.catalogo_tienda_efectivo` (producto activo, visible y con
   categoría visible); el precio, de `private.precio_final_publico`, y la disponibilidad, de
   `private.disponible_publico` (solo booleano).
 - `anon` ejecuta solo funciones de `publico`; las tablas conservan su RLS por organización.
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
-  visible](tienda-dominio-e-identidad.md) y [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+  visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y
+  [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
   Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
 ## Inicio, búsqueda y móvil (MSF-191)
@@ -3290,3 +3385,118 @@ Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md).
 | `dominio.campanas_correo` | **nueva** | Campaña: asunto, mensaje, empresa, clave de idempotencia. |
 | `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
 | `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |
+
+## Importaciones y monitoreo (MSF-206)
+
+Detalle técnico, contratos, flows y guía de prueba en [Importaciones y monitoreo](importaciones-y-monitoreo.md).
+Migraciones aditivas `20270211100001…05` (procesos masivos) y `20270211100011…12` (monitoreo), de la línea de la
+épica (`cba8f00a`, PR #764); a la fecha de esta página no están en `main`.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.procesos_masivos` | **nueva** | Carga o descarga masiva: `id`, `organizacion_id`, `empresa_id` opcional, `tipo` (`importacion`/`exportacion`), `funcionalidad`, `nombre`, `estado` (`pendiente`/`en_curso`/`completado`/`con_errores`/`fallido`/`cancelado`), `ejecucion_id` único, `solicitado_por`, `total`, `procesados`, `con_errores`, `cancelacion_solicitada`, `creado_en`, `iniciado_en`, `finalizado_en`. Terminal irreversible; `finalizado_en` nulo si y solo si sigue abierta. |
+| `public.procesos_masivos_errores` | **nueva** | Error por fila: `id`, `proceso_id`, `organizacion_id`, `fila` opcional, `referencia` opcional, `motivo_sanitizado`, `creado_en`. Índice único parcial `(proceso_id, fila)` para idempotencia; hasta 1000 detalles por proceso. |
+| `public.eventos_monitoreo` | **nueva** | Resultado `ok`/`fallo` de una fuente (`tienda`, `sincronizacion`, `cola`, `aplicacion`): `id`, `organizacion_id` opcional, `fuente`, `clave`, `resultado`, `motivo_sanitizado`, `ocurrido_en`. |
+| `public.alertas_monitoreo` | **nueva** | Alerta por `(fuente, clave)`: `id`, `fuente`, `clave`, `organizacion_id` opcional, `estado` (`abierta`/`resuelta`), `motivo_sanitizado`, `abierta_en`, `notificada_en`, `resuelta_en`. Índice único parcial `(fuente, clave) where estado = 'abierta'`: una sola alerta abierta. |
+| `public.organizaciones` | existente | FK de las cuatro tablas nuevas; sin cambios de esquema. |
+| `dominio.empresas` | existente | FK opcional de `procesos_masivos.empresa_id`; sin cambios. |
+| `public.ejecuciones_worker` | existente | `procesos_masivos.ejecucion_id` la referencia; un trigger `AFTER UPDATE OF estado` cierra como `fallido` el proceso abierto cuya ejecución termina `fallida`/`timeout`. Sin cambios de esquema. |
+| `public.despachos_ejecucion` | existente | La lee `evaluar_monitoreo` para alertar por cola sin avanzar (fuente `cola`); no hay FK con las tablas nuevas. Sin cambios. |
+| `public.capacidades_ejecucion` | existente | `evaluar_monitoreo` la usa para derivar la fuente `sincronizacion` por capacidad; sin cambios. |
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ procesos_masivos : "organizacion_id"
+  empresas ||--o{ procesos_masivos : "empresa_id opcional"
+  ejecuciones_worker ||--o| procesos_masivos : "ejecucion_id"
+  procesos_masivos ||--o{ procesos_masivos_errores : "proceso_id"
+  organizaciones ||--o{ procesos_masivos_errores : "organizacion_id"
+  organizaciones ||--o{ eventos_monitoreo : "organizacion_id opcional"
+  organizaciones ||--o{ alertas_monitoreo : "organizacion_id opcional"
+  ejecuciones_worker ||--o{ eventos_monitoreo : "lee, sin FK"
+  despachos_ejecucion ||--o{ alertas_monitoreo : "monitorea, sin FK"
+
+  procesos_masivos {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "opcional"
+    text tipo "importacion | exportacion"
+    text funcionalidad
+    text nombre
+    text estado "pendiente | en_curso | completado | con_errores | fallido | cancelado"
+    uuid ejecucion_id FK "unico"
+    uuid solicitado_por
+    integer total "nulo si no se informo"
+    integer procesados "no retrocede ni supera total"
+    integer con_errores
+    boolean cancelacion_solicitada
+    timestamptz creado_en
+    timestamptz iniciado_en
+    timestamptz finalizado_en "nulo mientras sigue abierto"
+  }
+  procesos_masivos_errores {
+    uuid id PK
+    uuid proceso_id FK
+    uuid organizacion_id FK
+    integer fila "opcional"
+    text referencia "opcional"
+    text motivo_sanitizado
+    timestamptz creado_en
+  }
+  eventos_monitoreo {
+    uuid id PK
+    uuid organizacion_id FK "opcional"
+    text fuente "tienda | sincronizacion | cola | aplicacion"
+    text clave
+    text resultado "ok | fallo"
+    text motivo_sanitizado
+    timestamptz ocurrido_en
+  }
+  alertas_monitoreo {
+    uuid id PK
+    text fuente "tienda | sincronizacion | cola | aplicacion"
+    text clave
+    uuid organizacion_id FK "opcional"
+    text estado "abierta | resuelta"
+    text motivo_sanitizado
+    timestamptz abierta_en
+    timestamptz notificada_en
+    timestamptz resuelta_en
+  }
+```
+
+- RLS: `procesos_masivos` y `procesos_masivos_errores` se leen solo como administrador de la organización
+  (`private.es_administrador_de`); `eventos_monitoreo` y `alertas_monitoreo`, solo como superadmin
+  (`private.is_superadmin`). Ninguna admite `insert`/`update`/`delete` desde la app: escriben funciones
+  `security definer` (`iniciar_proceso_masivo`, `actualizar_progreso_…`, `registrar_error_…`, `cerrar_…`,
+  `solicitar_cancelacion_…` para los procesos; `registrar_evento_monitoreo` y `evaluar_monitoreo` para el
+  monitoreo). `anon` no tiene privilegios en ninguna.
+- La lectura de las tablas de monitoreo es de **plataforma**: no hay fuga entre organizaciones porque solo las ve
+  un superadmin; la columna `organizacion_id` es opcional y contextual.
+- Reversión: ver el encabezado de cada migración y la sección «Reversión» de
+  [Importaciones y monitoreo](importaciones-y-monitoreo.md#reversion).
+
+## Páginas de contenido y analítica de la tienda (MSF-164)
+
+Dos tablas nuevas en `dominio` (migraciones `20270212200001_tienda_paginas.sql` y `20270212200002_tienda_analitica.sql`), ambas con RLS por organización, solo `select` para `authenticated` y escritura únicamente por RPC. Ver [Tienda pública: contenido, analítica y compartir](tienda-contenido-y-analitica.md).
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o{ TIENDA_PAGINAS : "tiene"
+  EMPRESAS ||--o| TIENDA_ANALITICA : "mide con"
+  TIENDA_PAGINAS {
+    uuid id PK
+    uuid empresa_id FK
+    uuid organizacion_id FK
+    text titulo "1 a 80"
+    text slug "unico por empresa"
+    text contenido "hasta 10000"
+    boolean visible "false por defecto"
+  }
+  TIENDA_ANALITICA {
+    uuid empresa_id PK
+    uuid organizacion_id FK
+    text ga4_id "G-..."
+    text meta_pixel_id "8 a 20 digitos"
+  }
+```

@@ -39,7 +39,7 @@ Recibir equipos, seguir el estado de cada reparación, cargar mano de obra y rep
 Ficha de cada cliente, con su tipo (minorista o mayorista), su descuento propio y su historial de compras. Guía: [Clientes](clientes.md).
 
 ## Tiendas online
-Cada empresa tiene su tienda web: identidad visual, contenido y qué productos se muestran. Los clientes mayoristas pueden tener una cuenta para ver sus precios por escala. Guías: [Tiendas online](tiendas-online.md) · [Dominio e identidad](tienda-dominio-e-identidad.md) · [Cuenta web del cliente](cuenta-web-cliente.md).
+Cada empresa tiene su tienda web: identidad visual, contenido, qué productos se muestran, su dirección web (dominio) y las versiones publicadas. Los clientes mayoristas pueden tener una cuenta para ver sus precios por escala. Guías: [Tiendas online](tiendas-online.md) · [Dominio e identidad](tienda-dominio-e-identidad.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Cuenta web del cliente](cuenta-web-cliente.md).
 
 ## Consultas
 Una bandeja con los mensajes que los visitantes envían desde las tiendas, y avisos por correo cuando entra uno nuevo. Guías: [Consultas](consultas.md) · [Avisos y listas](avisos-y-listas.md).
