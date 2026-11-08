@@ -24,7 +24,7 @@ y pruebas.
 !!! warning "Dónde vive el código"
     La implementación está en la línea `dokploy`: merge `cba8f00a` (PR #764, rama
     `epic/MSF-206-plataforma-importaciones-y-monitoreo`) y los arreglos de la revisión independiente (PR #798,
-    migraciones `20270216200000…02`). Llega a `main` con la promoción de `dokploy`; hasta entonces las rutas,
+    migraciones `20270217400000…02`). Llega a `main` con la promoción de `dokploy`; hasta entonces las rutas,
     migraciones y pruebas citadas no existen en `main`. La spec vive en
     `specs/20261102-220000-importaciones-y-monitoreo/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/`).
 
@@ -41,7 +41,7 @@ y pruebas.
 ## Modelo de datos
 
 Migraciones **aditivas** (los números reales son `20270211100001…05`, `20270211100011…12`, `20270214100001…02`,
-`20270214200001` y `20270216200000…02`; los nombres de `plan.md` quedaron desactualizados por la renumeración de la
+`20270214200001` y `20270217400000…02`; los nombres de `plan.md` quedaron desactualizados por la renumeración de la
 integración):
 
 | Migración | Contenido |
@@ -56,9 +56,9 @@ integración):
 | `20270214100001_procesos_masivos_errores_columna.sql` | Columna `columna` en los errores, tabla `procesos_masivos_errores_claves` (idempotencia) y `registrar_error_proceso_masivo(..., p_columna)` |
 | `20270214100002_procesos_masivos_actividad.sql` | Eventos de actividad `importacion.iniciada`/`finalizada`/`cancelada` en iniciar, cerrar, cancelar y reconciliar |
 | `20270214200001_monitoreo_alerta_pendiente_ssrf_estado.sql` | `evaluar_monitoreo` con `alerta_id` y alertas pendientes de notificar, `marcar_alerta_notificada`, `private.dominio_sondeable`, vista `estado_tiendas_monitoreo` |
-| `20270216200000_monitoreo_retencion_indices.sql` | Índices por `ocurrido_en`, resultado `no_sondeable`, vista por skip scan y `private.depurar_monitoreo_y_procesos` |
-| `20270216200001_procesos_masivos_robustez.sql` | `detalle_truncado`, tope de claves, validaciones de cierre y de capacidad, reconciliación de orden agotada y de ejecución vencida, cancelación sin worker vivo |
-| `20270216200002_evaluar_monitoreo_tormenta.sql` | `evaluar_monitoreo` con cola por organización, tope de 20 notificaciones con resumen y sin contar `CANCELADA` |
+| `20270217400000_monitoreo_retencion_indices.sql` | Índices por `ocurrido_en`, resultado `no_sondeable`, vista por skip scan y `private.depurar_monitoreo_y_procesos` |
+| `20270217400001_procesos_masivos_robustez.sql` | `detalle_truncado`, tope de claves, validaciones de cierre y de capacidad, reconciliación de orden agotada y de ejecución vencida, cancelación sin worker vivo |
+| `20270217400002_evaluar_monitoreo_tormenta.sql` | `evaluar_monitoreo` con cola por organización, tope de 20 notificaciones con resumen y sin contar `CANCELADA` |
 
 Tablas y DER del grafo afectado: [Datos y DER](datos.md#importaciones-y-monitoreo-msf-206). Resumen:
 
@@ -271,7 +271,7 @@ GlitchTip (SC-006) todavía no está automatizado contra una instancia real: que
 
 ## Reversión
 
-Cada migración trae su reversión en el encabezado. En orden inverso: las de `20270216200000…02` (`drop trigger
+Cada migración trae su reversión en el encabezado. En orden inverso: las de `20270217400000…02` (`drop trigger
 reconciliar_despacho_agotado on public.despachos_ejecucion`, `private.reconciliar_despacho_agotado`,
 `private.cerrar_procesos_masivos_vencidos`, `private.depurar_monitoreo_y_procesos`, la columna `detalle_truncado`, los
 índices `eventos_monitoreo_ocurrido_idx` y `alertas_monitoreo_resueltas_idx`, el constraint
