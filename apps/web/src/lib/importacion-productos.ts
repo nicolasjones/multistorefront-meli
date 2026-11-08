@@ -20,6 +20,8 @@ export const BUCKET_IMPORTACIONES = 'productos-importaciones'
 export const MAX_BYTES_IMAGEN_IMPORTACION = 2 * 1024 * 1024
 export const MAX_BYTES_ZIP = 50 * 1024 * 1024
 export const MAX_IMAGENES_CARGA = 500
+/** Tope de bytes que se descomprimen de un ZIP de imágenes (los 2 MB por imagen no acotan el total). */
+export const MAX_BYTES_DESCOMPRIMIDO_ZIP = 100 * 1024 * 1024
 export const TEXTO_FILAS_CON_ERROR = 'Las filas con error no se importan. Los avisos se importan igual.'
 export const AYUDA_COLUMNAS =
   'En la columna imagenes poné los nombres de archivo separados por «|». La primera es la principal. ' +
@@ -187,12 +189,39 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
       }
       try {
         const { unzipSync } = await import('fflate')
-        // El filtro corre antes de descomprimir: no se expande lo que ya sabemos que no sirve.
+        // El filtro corre antes de descomprimir: no se expande lo que ya sabemos que no sirve, ni más de
+        // `MAX_IMAGENES_CARGA` entradas ni más de `MAX_BYTES_DESCOMPRIMIDO_ZIP` en total (un ZIP muy comprimible
+        // no debe agotar la memoria del navegador).
+        let aceptadas = 0
+        let bytesAceptados = 0
+        let recortadas = 0
+        const nombresVistos = new Set<string>()
+        const repetidas: string[] = []
         const contenido = unzipSync(new Uint8Array(await archivo.arrayBuffer()), {
-          filter: (entrada) =>
-            !entrada.name.endsWith('/') && !entrada.name.startsWith('__MACOSX') &&
-            entrada.originalSize <= MAX_BYTES_IMAGEN_IMPORTACION && Boolean(tipoDeNombreImagen(nombreBase(entrada.name))),
+          filter: (entrada) => {
+            const nombre = nombreBase(entrada.name)
+            if (entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') ||
+              entrada.originalSize > MAX_BYTES_IMAGEN_IMPORTACION || !tipoDeNombreImagen(nombre)) return false
+            if (nombresVistos.has(nombre)) {
+              repetidas.push(nombre)
+              return false
+            }
+            if (aceptadas >= MAX_IMAGENES_CARGA || bytesAceptados + entrada.originalSize > MAX_BYTES_DESCOMPRIMIDO_ZIP) {
+              recortadas += 1
+              return false
+            }
+            nombresVistos.add(nombre)
+            aceptadas += 1
+            bytesAceptados += entrada.originalSize
+            return true
+          },
         })
+        for (const nombre of new Set(repetidas)) {
+          rechazadas.push(`«${nombre}» aparece más de una vez en «${archivo.name}»: se usó la primera.`)
+        }
+        if (recortadas > 0) {
+          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${MAX_IMAGENES_CARGA} imágenes o ${MAX_BYTES_DESCOMPRIMIDO_ZIP / (1024 * 1024)} MB descomprimidos por importación).`)
+        }
         for (const [ruta, bytes] of Object.entries(contenido)) {
           const nombre = nombreBase(ruta)
           agregar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))

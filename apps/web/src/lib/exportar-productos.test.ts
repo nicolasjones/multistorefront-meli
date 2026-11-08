@@ -54,8 +54,14 @@ describe('filtros de exportación (FR-202)', () => {
 
   it('«Lo filtrado» respeta búsqueda, estado, categoría y empresa activa', () => {
     expect(filtrosExportacion(consulta, false)).toEqual({
-      busqueda: 'joy', categoria_id: 'cat-1', estado: 'inactivos', empresa_id: 'emp-1', disponibilidad: 'stock',
+      busqueda: 'joy', categoria_id: 'cat-1', estado: 'inactivos', empresa_id: 'emp-1', disponibilidad: 'stock', compatible: [],
     })
+  })
+
+  it('«Lo filtrado» manda el filtro «Compatible con» tal como lo usa el listado', () => {
+    const filtrado = { ...consulta, compatibles: ['PS5', 'ps5', 'PlayStation 5'] }
+    expect(filtrosExportacion(filtrado, false)).toMatchObject({ compatible: ['PS5', 'ps5', 'PlayStation 5'] })
+    expect(filtrosExportacion(filtrado, true)).toEqual({ todos: true })
   })
 
   it('«Todos» no manda filtros', () => {

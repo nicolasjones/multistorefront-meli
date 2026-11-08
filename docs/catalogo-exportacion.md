@@ -6,7 +6,7 @@ Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US3, FR-201�
 
 El **Administrador** ve el botón «Exportar» en el listado de Productos. Abre el diálogo «Exportar productos» (prototipo `design/pantallas/Productos.dc.html`) con tres campos:
 
-- **Qué exportar**: «Lo filtrado (N)» (respeta búsqueda, estado, categoría, disponibilidad y la empresa activa) o «Todos (N)» (todo el catálogo, sin filtros).
+- **Qué exportar**: «Lo filtrado (N)» (respeta búsqueda, estado, categoría, disponibilidad, el filtro «Compatible con» y la empresa activa) o «Todos (N)» (todo el catálogo, sin filtros).
 - **Formato**: CSV. «Excel (.xlsx)» se muestra deshabilitado (Decisión 5 de la spec: manda el requisito «exportación CSV»).
 - **Columnas**: SKU, Nombre, Categoría, Precio, Costo, Stock, Visible en, Estado, Código de barras, Proveedor. Por defecto las ocho primeras. **Costo** y **Proveedor** solo se ofrecen con acceso a Rentabilidad.
 

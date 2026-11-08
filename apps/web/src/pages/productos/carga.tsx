@@ -129,6 +129,8 @@ export function ProductoCarga() {
       setImagenes([...unidas.values()].filter((imagen) => !fallidas.includes(imagen.nombre)))
       setRechazadas([...leidas.rechazadas, ...fallidas.map((nombre) => `No pudimos subir «${nombre}».`)])
       if (planilla) await validar(planilla, clave)
+    } catch (fallo) {
+      setError(mensajeDeErrorImportacion(fallo, 'No pudimos procesar las imágenes.'))
     } finally {
       setOcupado(false)
     }
