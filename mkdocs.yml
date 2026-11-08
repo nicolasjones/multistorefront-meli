@@ -157,6 +157,7 @@ nav:
           - Catálogo, listado y categorías: producto/catalogo-listado-y-categorias.md
           - Catálogo, costo y disponibilidad: producto/catalogo-costo-y-disponibilidad.md
           - Variantes y productos relacionados: producto/catalogo-variantes-y-relacionados.md
+          - Catálogo, filtrar por compatible, importar y exportar: producto/catalogo-compatibilidad-y-planillas.md
           - Sistema de diseño: producto/sistema-de-diseno.md
           - Ventas, catálogos de cobro y envío: producto/ventas-catalogos.md
           - Reportes de ventas: producto/ventas-reportes.md
@@ -187,6 +188,7 @@ nav:
           - Listado y categorías: tecnico/catalogo-listado-y-categorias.md
           - Costo y disponibilidad: tecnico/catalogo-costo-y-disponibilidad.md
           - Variantes y relacionados: tecnico/catalogo-variantes-y-relacionados.md
+          - Compatibilidad y planillas (MSF-202): tecnico/catalogo-compatibilidad-y-planillas.md
           - Precios e IVA: tecnico/precios-e-iva.md
           - Dólar y recálculo: tecnico/dolar-y-recalculo.md
           - Configuración del dólar y precio propio: tecnico/configuracion-dolar-y-precio-propio.md

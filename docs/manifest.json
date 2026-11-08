@@ -416,27 +416,36 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/catalogo-compatibilidad-y-planillas.md": {
+      "title": "Productos: filtrar por compatible, importar y exportar planillas",
+      "pageHash": "32a6601abfca426ec512228bc1056986568afe22c726b845541db2fd8f5e61a5",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "8fd8aaf5"
+    },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
-      "pageHash": "5790807f9d9630f1003b6f24d3ef07d3c73f8250d2792da36d5ca433cfd9a19f",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "45ebddde",
+      "pageHash": "d927f7abdb6036740551eab88ca445ce1fdf0d9f2cfa8f88c1c7b4ad301efb41",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "8fd8aaf5",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "8fd8aaf5"
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
-      "pageHash": "b0cffbd421b01f685e477db4b862f10e34545f7bd5a2b1dce6d92e91f10f0e41",
+      "pageHash": "1555e7be6447092de25a56b17195ca6a137db2a60ce99692d733fe08c9f83f28",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "9d91048c",
+      "sourceAt": "8fd8aaf5",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "53cb4c30"
+      "commit": "8fd8aaf5"
     },
     "docs/producto/catalogo-productos.md": {
       "title": "Productos y categorías",
@@ -1260,6 +1269,22 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tecnico/catalogo-compatibilidad-y-planillas.md": {
+      "title": "Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)",
+      "pageHash": "4a7d6b8e4ac19dab360a5a0954d4f9545a70aab91e3fff9962f69845d4578f8a",
+      "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
+      "sourceAt": "8fd8aaf5",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "workers/importar-productos",
+        "infra/kestra/flows",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "8fd8aaf5"
     },
     "docs/tecnico/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (técnico)",
