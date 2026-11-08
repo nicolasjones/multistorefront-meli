@@ -8,7 +8,8 @@ import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
 
 // Valores del lanzamiento (F-PRE-06 los vuelve configurables): lo que rige mientras la base no informe otra cosa.
 // Alerta «Variación inusual» (FR-007): la pantalla avisa y, por encima de este porcentaje, la base EXIGE la confirmación
-// explícita (`confirmar_cotizacion(…, p_confirmado)`, 22023 con hint `variacion_inusual`); no se aplica sin ella.
+// explícita: `confirmar_cotizacion(…, p_variacion_vista)` exige la variación que el usuario VIO y que coincida con la real
+// (22023, hint `variacion_inusual` si falta y `variacion_cambio` si el dólar cambió mientras revisaba); no se aplica sin ella.
 export const UMBRAL_VARIACION_INUSUAL_PCT = 15
 
 export type AlcanceCotizacion = 'sistema' | 'empresa'
@@ -208,6 +209,7 @@ export async function leerCotizacionDelDia(cliente: SupabaseClient, empresaId?: 
 export const UMBRAL_RECALCULO_PCT = 1
 export const REDONDEO_POR_DEFECTO = 10
 
+export const MENSAJE_DOLAR_CAMBIO = 'El dólar cambió mientras revisabas: revisá de nuevo.'
 export const MENSAJE_VARIACION_SIN_CONFIRMAR = 'La variación supera lo configurado y hay que confirmarla de forma explícita. Revisá el valor y volvé a intentar.'
 export const MENSAJE_COTIZACION_VENCIDA = 'La cotización cargada venció; volvé a cargarla.'
 export const AVISO_COTIZACION_REGISTRADA = 'Cotización registrada · variación menor al umbral, precios sin cambios'
@@ -263,13 +265,19 @@ export const formatearPrecioPrevio = (valor: number | null) => (valor === null ?
 // «38 precios» / «1 precio» del mosaico por empresa.
 export const textoPrecios = (cantidad: number) => `${cantidad} ${cantidad === 1 ? 'precio' : 'precios'}`
 
+// ¿Hay que volver a calcular la vista previa? Sí cuando la base rechazó porque la variación real ya no es la que se vio.
+export const requiereRevisarDeNuevo = (error: { code?: string; hint?: string | null } | null | undefined) =>
+  error?.code === '22023' && (error.hint === 'variacion_cambio' || error.hint === 'variacion_inusual')
+
 // Mensaje claro para el usuario al confirmar o descartar; nunca el texto técnico de la base.
 export function mensajeDeErrorConfirmacion(error: { code?: string; hint?: string | null } | null | undefined): string {
   switch (error?.code) {
     case 'P0002': return MENSAJE_COTIZACION_VENCIDA
     case '42501': return 'Tu rol no puede confirmar la cotización del dólar.'
     // 22023 también es «falta empresa»: solo la variación inusual lleva este hint.
-    case '22023': return error.hint === 'variacion_inusual' ? MENSAJE_VARIACION_SIN_CONFIRMAR : 'No pudimos confirmar la cotización. Intentá de nuevo.'
+    case '22023':
+      if (error.hint === 'variacion_cambio') return MENSAJE_DOLAR_CAMBIO
+      return error.hint === 'variacion_inusual' ? MENSAJE_VARIACION_SIN_CONFIRMAR : 'No pudimos confirmar la cotización. Intentá de nuevo.'
     default: return 'No pudimos confirmar la cotización. Intentá de nuevo.'
   }
 }
@@ -288,14 +296,17 @@ export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empres
   }
 }
 
-// `confirmado` es la confirmación EXPLÍCITA de una variación inusual (la base la exige por encima de `confirmacion_pct`):
-// la pantalla la manda en true recién después de mostrar el aviso de variación inusual.
+// `variacionVista`: la variación (%) del aviso de variación inusual que el usuario tenía a la vista al apretar «Aplicar»; la base
+// exige que coincida con la real (±0,01) y rechaza si el dólar cambió mientras revisaba. Sin aviso a la vista va null.
 export async function confirmarCotizacionRpc(
   cliente: SupabaseClient,
   empresaId?: string | null,
-  confirmado = false,
+  variacionVista: number | null = null,
 ): Promise<CotizacionConfirmada> {
-  const { data, error } = await llamar(cliente, 'confirmar_cotizacion', { ...conEmpresa(empresaId), ...(confirmado ? { p_confirmado: true } : {}) })
+  const { data, error } = await llamar(cliente, 'confirmar_cotizacion', {
+    ...conEmpresa(empresaId),
+    ...(variacionVista !== null ? { p_variacion_vista: variacionVista } : {}),
+  })
   if (error) throw error
   const confirmada = data as ConfirmadaRpc
   return {

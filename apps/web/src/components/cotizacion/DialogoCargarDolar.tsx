@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, InputAdornment, Stack, TextField, Typography } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { EstadoCargaPagina, EstadoError } from '../estados/EstadosPagina'
@@ -61,6 +61,8 @@ export function DialogoCargarDolar({
   const { cargar, enviando: cargando } = useCargarCotizacion()
   const { confirmar, descartar, enviando: resolviendo } = useConfirmarCotizacion()
   const ocupado = cargando || resolviendo
+  // Sube cuando la base rechaza porque el dólar cambió mientras se revisaba: el paso 2 recalcula la vista previa.
+  const [revision, setRevision] = useState(0)
 
   const valor = parsearCotizacion(texto)
   const invalido = valor === null
@@ -94,13 +96,15 @@ export function DialogoCargarDolar({
   }
 
   // El llamador avisa según lo que decidió la base (puede diferir de la vista previa si el dólar cambió).
-  // `inusual`: el aviso de variación inusual estaba a la vista al apretar «Aplicar» ⇒ confirmación explícita.
-  const confirmarValor = async (inusual: boolean) => {
+  // `variacionVista`: la variación del aviso de variación inusual que estaba a la vista al apretar «Aplicar» (null sin aviso);
+  // la base la compara con la real y rechaza si el dólar cambió mientras se revisaba.
+  const confirmarValor = async (variacionVista: number | null) => {
     if (ocupado) return
     setError(null)
-    const resultado = await confirmar(empresaId, inusual)
+    const resultado = await confirmar(empresaId, variacionVista)
     if (!resultado.ok) {
       setError(resultado.mensaje)
+      if (resultado.revisar) setRevision((n) => n + 1)
       return
     }
     onConfirmada(resultado.confirmada)
@@ -119,7 +123,8 @@ export function DialogoCargarDolar({
           error={error}
           ocupado={ocupado}
           onCancelar={() => void cerrar()}
-          onConfirmar={(inusual) => void confirmarValor(inusual)}
+          onConfirmar={(variacionVista) => void confirmarValor(variacionVista)}
+          revision={revision}
         />
       ) : (
         <form onSubmit={(evento) => void cargarValor(evento)} noValidate>
@@ -172,14 +177,21 @@ type PasoConfirmarProps = {
   error: string | null
   ocupado: boolean
   onCancelar: () => void
-  onConfirmar: (variacionInusual: boolean) => void
+  onConfirmar: (variacionVista: number | null) => void
+  revision?: number
   aplicada?: number | null
 }
 
 // Paso 2: la cotización ya está pendiente; se ve qué cambiaría y se decide (F-PRE-03).
-function PasoConfirmar({ carga, vigente, aplicada = null, empresaId, nombreEmpresa, confirmacionPct, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
+function PasoConfirmar({ carga, vigente, aplicada = null, revision = 0, empresaId, nombreEmpresa, confirmacionPct, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
   const { previa, cargando, hayError, recargar } = usePrevisualizarCotizacion(empresaId)
   const variacion = previa?.variacionPct ?? carga.variacionPct
+  const ultimaRevision = useRef(revision)
+  useEffect(() => {
+    if (revision === ultimaRevision.current) return
+    ultimaRevision.current = revision
+    void recargar()
+  }, [revision, recargar])
 
   return (
     <>
@@ -215,7 +227,7 @@ function PasoConfirmar({ carga, vigente, aplicada = null, empresaId, nombreEmpre
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
-        <Button variant="contained" disabled={!previa || ocupado} onClick={() => onConfirmar(esVariacionInusual(variacion, confirmacionPct))}>
+        <Button variant="contained" disabled={!previa || ocupado} onClick={() => onConfirmar(esVariacionInusual(variacion, confirmacionPct) ? variacion : null)}>
           {previa && !previa.recalcula ? 'Registrar cotización' : 'Aplicar y recalcular'}
         </Button>
       </DialogActions>

@@ -3,6 +3,8 @@ import {
   AVISO_COTIZACION_REGISTRADA,
   MENSAJE_COTIZACION_VENCIDA,
   MENSAJE_VARIACION_SIN_CONFIRMAR,
+  MENSAJE_DOLAR_CAMBIO,
+  requiereRevisarDeNuevo,
   MENSAJE_VALOR_INVALIDO,
   avisoCotizacionAplicada,
   cargarCotizacionRpc,
@@ -214,16 +216,23 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     expect(rpc).toHaveBeenCalledWith('confirmar_cotizacion')
   })
 
-  it('confirmarCotizacionRpc manda la confirmación explícita solo cuando se la pide (variación inusual)', async () => {
+  it('confirmarCotizacionRpc manda la variación vista solo cuando hay aviso de variación inusual', async () => {
     const { cliente, rpc } = clienteCon({ data: { id: 'c1', recalculo_aplicado: true, precios_recalculados: '4' }, error: null })
-    await confirmarCotizacionRpc(cliente, 'e1', true)
-    expect(rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_empresa: 'e1', p_confirmado: true })
+    await confirmarCotizacionRpc(cliente, 'e1', 37.8353)
+    expect(rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_empresa: 'e1', p_variacion_vista: 37.8353 })
     await confirmarCotizacionRpc(cliente, 'e1')
     expect(rpc).toHaveBeenLastCalledWith('confirmar_cotizacion', { p_empresa: 'e1' })
+    await confirmarCotizacionRpc(cliente, null, -20)
+    expect(rpc).toHaveBeenLastCalledWith('confirmar_cotizacion', { p_variacion_vista: -20 })
   })
 
   it('mensajeDeErrorConfirmacion: la variación inusual se distingue por el hint; otro 22023 (falta empresa) es genérico', () => {
     expect(mensajeDeErrorConfirmacion({ code: '22023', hint: 'variacion_inusual' })).toBe(MENSAJE_VARIACION_SIN_CONFIRMAR)
+    expect(mensajeDeErrorConfirmacion({ code: '22023', hint: 'variacion_cambio' })).toBe(MENSAJE_DOLAR_CAMBIO)
+    expect(requiereRevisarDeNuevo({ code: '22023', hint: 'variacion_cambio' })).toBe(true)
+    expect(requiereRevisarDeNuevo({ code: '22023', hint: 'variacion_inusual' })).toBe(true)
+    expect(requiereRevisarDeNuevo({ code: '22023', hint: null })).toBe(false)
+    expect(requiereRevisarDeNuevo({ code: 'P0002' })).toBe(false)
     expect(mensajeDeErrorConfirmacion({ code: '22023', hint: null })).toBe('No pudimos confirmar la cotización. Intentá de nuevo.')
     expect(mensajeDeErrorConfirmacion({ code: '22023' })).not.toBe(MENSAJE_VARIACION_SIN_CONFIRMAR)
   })

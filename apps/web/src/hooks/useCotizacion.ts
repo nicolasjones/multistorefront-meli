@@ -6,6 +6,7 @@ import {
   leerEstadoCotizacion,
   mensajeDeErrorCotizacion,
   mensajeDeErrorConfirmacion,
+  requiereRevisarDeNuevo,
   type CotizacionCargada,
   type CotizacionConfirmada,
   type EstadoCotizacion,
@@ -74,7 +75,8 @@ export function useCargarCotizacion() {
   return { cargar, enviando }
 }
 
-export type ResultadoConfirmacion = { ok: true; confirmada: CotizacionConfirmada } | { ok: false; mensaje: string }
+// `revisar`: la base rechazó porque la variación real ya no es la que el usuario vio ⇒ hay que recalcular la vista previa.
+export type ResultadoConfirmacion = { ok: true; confirmada: CotizacionConfirmada } | { ok: false; mensaje: string; revisar?: boolean }
 export type ResultadoDescarte = { ok: true } | { ok: false; mensaje: string }
 
 // Confirma o descarta la cotización pendiente (F-PRE-03, FR-010/FR-012/FR-015). La base decide si
@@ -82,14 +84,15 @@ export type ResultadoDescarte = { ok: true } | { ok: false; mensaje: string }
 export function useConfirmarCotizacion() {
   const [enviando, setEnviando] = useState(false)
 
-  // `confirmado`: true solo si el usuario vio y aceptó el aviso de variación inusual; si no, la base lo exige igual.
-  const confirmar = useCallback(async (empresaId?: string | null, confirmado = false): Promise<ResultadoConfirmacion> => {
+  // `variacionVista`: la variación del aviso de variación inusual que el usuario tenía a la vista (null si no había aviso).
+  const confirmar = useCallback(async (empresaId?: string | null, variacionVista: number | null = null): Promise<ResultadoConfirmacion> => {
     setEnviando(true)
     try {
-      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient, empresaId, confirmado) }
+      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient, empresaId, variacionVista) }
     } catch (error) {
       console.error('No pudimos confirmar la cotización.', error)
-      return { ok: false, mensaje: mensajeDeErrorConfirmacion(error as { code?: string; hint?: string | null }) }
+      const e = error as { code?: string; hint?: string | null }
+      return { ok: false, mensaje: mensajeDeErrorConfirmacion(e), revisar: requiereRevisarDeNuevo(e) }
     } finally {
       setEnviando(false)
     }

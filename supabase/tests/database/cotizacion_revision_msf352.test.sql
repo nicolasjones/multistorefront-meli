@@ -37,6 +37,20 @@ insert into dominio.precios_propios_empresa (producto_id, empresa_id, organizaci
   ('a1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'USD', 4);
 insert into dominio.cotizacion_inicial (organizacion_id, valor) values ('11111111-1111-1111-1111-111111111111', 1000);
 
+-- SQLSTATE y hint del error de una sentencia ('sin error' si no falla): la pantalla depende del hint.
+create function pg_temp.hint_de(p_sql text) returns text language plpgsql as $$
+declare h text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics h = pg_exception_hint;
+  return sqlstate || ':' || coalesce(h, '');
+end $$;
+
+create temp table vista (v numeric);
+grant all on vista to public;
+
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
@@ -70,10 +84,12 @@ select is((select (f ->> 'variacion_pct')::numeric from jsonb_array_elements(pub
 -- ============================================================================
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select lives_ok($$select public.cargar_cotizacion(149000)$$, 'cargar 149000 por error (en vez de 1490)');
-select throws_ok($$select public.confirmar_cotizacion()$$, '22023', null, 'sin confirmación explícita una variación inusual no se aplica');
+select throws_ok($$select public.confirmar_cotizacion()$$, '22023', null, 'sin la variación vista una variación inusual no se aplica');
+select is(pg_temp.hint_de('select public.confirmar_cotizacion()'), '22023:variacion_inusual', 'el hint es variacion_inusual');
 select throws_like($$select public.confirmar_cotizacion()$$, 'La variación de la cotización%supera el 15%configurado: confirmala explícitamente',
   'el error es claro');
-select throws_ok($$select public.confirmar_cotizacion(null, false)$$, '22023', null, 'p_confirmado = false tampoco la aplica');
+select is(pg_temp.hint_de('select public.confirmar_cotizacion(null, 1)'), '22023:variacion_cambio',
+  'una variación vista que no coincide con la real (1 % vs la real) no la aplica: hint variacion_cambio');
 select is(private.cotizacion_para('11111111-1111-1111-1111-111111111111', null), 1081::numeric, 'la aplicada no se movió');
 reset role;
 select is((select count(*)::int from dominio.cotizacion_pendiente where organizacion_id = '11111111-1111-1111-1111-111111111111'), 1,
@@ -84,13 +100,27 @@ select lives_ok($$select public.descartar_cotizacion()$$, 'se descarta el valor 
 
 select lives_ok($$select public.cargar_cotizacion(1490)$$, 'cargar 1490 (+37,8 %)');
 select throws_ok($$select public.confirmar_cotizacion()$$, '22023', null, 'una suba grande también pide confirmación');
-select lives_ok($$select public.confirmar_cotizacion(null, true)$$, 'con p_confirmado = true se aplica');
+-- Escenario concurrente: el usuario ve +37,84 % y, antes de apretar «Aplicar», otro usuario deja la aplicada en 900
+-- (la variación real pasa a +65,56 %). La confirmación con lo que vio se rechaza; con la variación real se aplica.
+insert into vista select (public.previsualizar_cotizacion() ->> 'variacion_pct')::numeric;
+select is((select v from vista), 37.8353::numeric, 'la vista previa muestra +37,8353 %');
+reset role;
+update dominio.cotizacion_aplicada set valor = 900 where organizacion_id = '11111111-1111-1111-1111-111111111111' and empresa_id is null;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(pg_temp.hint_de('select public.confirmar_cotizacion(null, ' || (select v from vista) || ')'), '22023:variacion_cambio',
+  'si la aplicada cambió mientras revisaba, la confirmación con la variación vieja se rechaza (variacion_cambio)');
+select throws_like($$select public.confirmar_cotizacion(null, 37.8353)$$, 'El dólar cambió mientras revisabas: revisá de nuevo', 'con el mensaje claro');
+select is(private.cotizacion_para('11111111-1111-1111-1111-111111111111', null), 900::numeric, 'no se aplicó nada');
+reset role;
+update dominio.cotizacion_aplicada set valor = 1081 where organizacion_id = '11111111-1111-1111-1111-111111111111' and empresa_id is null;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($$select public.confirmar_cotizacion(null, 37.84)$$, 'con la variación que vio (dentro de 0,01 puntos) se aplica');
 select is(private.cotizacion_para('11111111-1111-1111-1111-111111111111', null), 1490::numeric, 'la aplicada pasa a 1.490');
 
 select lives_ok($$select public.cargar_cotizacion(1713.5)$$, 'cargar 1713,5 (justo +15 %)');
 select lives_ok($$select public.confirmar_cotizacion()$$, 'una variación igual a la confirmación configurada no exige confirmación explícita');
 select lives_ok($$select public.cargar_cotizacion(1370.8)$$, 'cargar 1370,8 (−20 %)');
-select throws_ok($$select public.confirmar_cotizacion()$$, '22023', null, 'una baja inusual también exige confirmación');
+select is(pg_temp.hint_de('select public.confirmar_cotizacion()'), '22023:variacion_inusual', 'una baja inusual también exige confirmación');
 select lives_ok($$select public.descartar_cotizacion()$$, 'se descarta');
 
 -- ============================================================================
@@ -230,9 +260,26 @@ select is(jsonb_typeof(public.estado_cotizacion() -> 'pendiente'), 'null', 'y no
 select throws_ok($$select public.estado_cotizacion('e2000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'una empresa ajena se rechaza');
 reset role;
 
+-- 42501: sin acceso a cotizacion_dolar ('ninguno') y desde una sesión de OTRA organización sin esa sección.
+update permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'cotizacion_dolar';
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.estado_cotizacion()$$, '42501', null, 'un rol con cotizacion_dolar en ninguno no ve el estado');
+reset role;
+insert into auth.users (id, email) values ('d2000000-0000-0000-0000-000000000002', 'consulta-dos@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
+  ('d2000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'consulta');
+insert into permisos_rol (organizacion_id, rol_id, seccion, nivel) values
+  ('22222222-2222-2222-2222-222222222222', 'consulta', 'cotizacion_dolar', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = excluded.nivel;
+select pg_temp.como('d2000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.estado_cotizacion()$$, '42501', null, 'una sesión de otra organización sin la sección tampoco');
+select throws_ok($$select public.estado_cotizacion('e1000000-0000-0000-0000-000000000001')$$, '42501', null, 'y no usa la empresa de otra organización');
+reset role;
+
 -- Privilegios de las funciones nuevas o con firma nueva.
-select is(has_function_privilege('anon', 'public.confirmar_cotizacion(uuid, boolean)', 'execute'), false, 'anon no confirma');
-select is(has_function_privilege('authenticated', 'public.confirmar_cotizacion(uuid, boolean)', 'execute'), true, 'authenticated confirma');
+select is(has_function_privilege('anon', 'public.confirmar_cotizacion(uuid, numeric)', 'execute'), false, 'anon no confirma');
+select is(has_function_privilege('authenticated', 'public.confirmar_cotizacion(uuid, numeric)', 'execute'), true, 'authenticated confirma');
 select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'public' and p.proname = 'confirmar_cotizacion'), 1, 'queda una sola confirmar_cotizacion (la firma vieja se reemplazó)');
 

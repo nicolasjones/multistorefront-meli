@@ -60,9 +60,9 @@ select is(has_table_privilege('anon', 'dominio.cotizacion_aplicada', 'SELECT'), 
 select is(has_table_privilege('authenticated', 'dominio.cotizacion_aplicada', 'INSERT'), false, 'authenticated no inserta en cotizacion_aplicada');
 select is(has_table_privilege('authenticated', 'dominio.cotizacion_aplicada', 'UPDATE'), false, 'authenticated no actualiza cotizacion_aplicada');
 select is(has_function_privilege('anon', 'public.previsualizar_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta previsualizar_cotizacion');
-select is(has_function_privilege('anon', 'public.confirmar_cotizacion(uuid, boolean)', 'EXECUTE'), false, 'anon no ejecuta confirmar_cotizacion');
+select is(has_function_privilege('anon', 'public.confirmar_cotizacion(uuid, numeric)', 'EXECUTE'), false, 'anon no ejecuta confirmar_cotizacion');
 select is(has_function_privilege('anon', 'public.descartar_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta descartar_cotizacion');
-select is(has_function_privilege('authenticated', 'public.confirmar_cotizacion(uuid, boolean)', 'EXECUTE'), true, 'authenticated ejecuta confirmar_cotizacion');
+select is(has_function_privilege('authenticated', 'public.confirmar_cotizacion(uuid, numeric)', 'EXECUTE'), true, 'authenticated ejecuta confirmar_cotizacion');
 
 -- ============================================================================
 -- Administrador (org 1): sin cotización aplicada rige la inicial
@@ -196,7 +196,7 @@ create trigger falla_simulada_recalculo before insert on public.registro_activid
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- 1300 sobre 1050 es una variación inusual (> 15 %): se confirma explícitamente para llegar a la falla simulada.
-select throws_ok($$select public.confirmar_cotizacion(null, true)$$, 'P0001', 'falla simulada', 'la falla simulada aborta la confirmación');
+select throws_ok($$select public.confirmar_cotizacion(null, 23.8095)$$, 'P0001', 'falla simulada', 'la falla simulada aborta la confirmación');
 select is((select count(*)::int from dominio.cotizaciones), 3, 'tras la falla: el historial no suma ninguna fila');
 select is((select valor from dominio.cotizacion_aplicada), 1050::numeric, 'tras la falla: la cotización aplicada no cambia');
 select is((select valor from dominio.cotizacion_pendiente), 1300::numeric, 'tras la falla: la pendiente sigue ahí');

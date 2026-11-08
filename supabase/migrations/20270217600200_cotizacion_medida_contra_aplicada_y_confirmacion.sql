@@ -11,10 +11,12 @@
 --    siguen siendo contra la carga anterior (coherentes con `listar_cotizaciones`).
 -- 2. (MEDIO) La «variación inusual» (`confirmacion_pct`) solo avisaba en la pantalla: por API, tipear 149000 en vez de
 --    1490 se aplicaba y multiplicaba por 100 los precios en USD. `confirmar_cotizacion` recibe
---    `p_confirmado boolean default false` y, si |variación| > `confirmacion_pct` sin confirmación explícita, falla con
---    22023 (hint `variacion_inusual`) sin escribir nada. La pantalla envía `true` después de mostrar el aviso.
---    BREAKING compatible: `confirmar_cotizacion(uuid)` se reemplaza por `confirmar_cotizacion(uuid, boolean)`; un cliente
---    que la llame sin `p_confirmado` sigue funcionando para variaciones normales.
+--    `p_variacion_vista numeric default null` (la variación que el usuario vio) y, si |variación| > `confirmacion_pct`,
+--    la exige: sin ella 22023 (hint `variacion_inusual`); si difiere de la real en más de 0,01 puntos (otro usuario
+--    cambió el dólar mientras revisaba) 22023 (hint `variacion_cambio`). Sin escribir nada. La pantalla envía la
+--    variación del aviso que estaba a la vista.
+--    BREAKING compatible: `confirmar_cotizacion(uuid)` se reemplaza por `confirmar_cotizacion(uuid, numeric)`; un cliente
+--    que la llame sin `p_variacion_vista` sigue funcionando para variaciones normales.
 -- 3. (MEDIO) `previsualizar_cotizacion`: la muestra «hoy / nuevo» solo listaba productos en USD y trataba todo como USD.
 --    Ahora incluye también los productos en ARS con precio propio en USD (que sí cambian con el dólar), excluye los
 --    que ninguna empresa calcula en USD, y el «nuevo» de un producto en ARS no se multiplica por el dólar.
@@ -23,7 +25,7 @@
 -- `confirmar_cotizacion` cambia con `drop function` de la anterior). Reversión (migración posterior): recrear
 -- `confirmar_cotizacion(uuid)`, `previsualizar_cotizacion`, `estado_cotizacion` y `cargar_cotizacion` con los cuerpos de
 -- 20270213100004 / 20270213100006 y
---   drop function public.confirmar_cotizacion(uuid, boolean);
+--   drop function public.confirmar_cotizacion(uuid, numeric);
 
 create or replace function public.cargar_cotizacion(p_valor numeric, p_empresa uuid default null)
 returns jsonb
@@ -253,8 +255,9 @@ comment on function public.previsualizar_cotizacion(uuid) is
   'F-PRE-03/F-PRE-06/F-PRE-08: vista previa de la cotización pendiente (de la organización o de p_empresa): variación y umbral medidos contra la cotización aplicada; precios por empresa y muestra hoy/nuevo (productos en USD y productos con precio propio en USD, por empresa) con el redondeo configurado. No escribe. 42501 sin edición en cotizacion_dolar, P0002 sin_cotizacion_pendiente o empresa ajena, 22023 falta empresa.';
 
 drop function if exists public.confirmar_cotizacion(uuid);
+drop function if exists public.confirmar_cotizacion(uuid, boolean);
 
-create or replace function public.confirmar_cotizacion(p_empresa uuid default null, p_confirmado boolean default false)
+create or replace function public.confirmar_cotizacion(p_empresa uuid default null, p_variacion_vista numeric default null)
 returns jsonb
 language plpgsql
 security definer
@@ -281,10 +284,12 @@ begin
      or (select private.nivel_seccion('cotizacion_dolar')) <> 'edicion' then
     raise exception 'Tu rol no puede confirmar la cotización del dólar' using errcode = '42501';
   end if;
+  -- El lock va ANTES de leer la configuración: un guardar_configuracion_cotizacion concurrente (mismo lock) no deja el umbral
+  -- ni la confirmación desfasados respecto de lo que se aplica.
+  perform pg_advisory_xact_lock(hashtextextended('cotizacion:' || v_organizacion::text, 0));
+
   select * into v_config from private.cotizacion_config(v_organizacion);
   v_empresa := private.empresa_de_cotizacion(v_organizacion, p_empresa);
-
-  perform pg_advisory_xact_lock(hashtextextended('cotizacion:' || v_organizacion::text, 0));
 
   select * into v_pendiente from dominio.cotizacion_pendiente p
    where p.organizacion_id = v_organizacion and p.empresa_id is not distinct from v_empresa and p.expira_en > now()
@@ -299,11 +304,18 @@ begin
   v_variacion := case when v_vigente is null then null else round((v_pendiente.valor / v_vigente - 1) * 100, 4) end;
   v_recalcula := v_vigente is null or abs(v_pendiente.valor - v_vigente) * 100 >= v_vigente * v_config.umbral_pct;
 
-  -- Variación inusual: se exige confirmación explícita en el servidor (no solo el aviso de la pantalla).
-  if v_variacion is not null and abs(v_variacion) > v_config.confirmacion_pct and p_confirmado is distinct from true then
-    raise exception 'La variación de la cotización (% %%) supera el % %% configurado: confirmala explícitamente',
-      trim_scale(v_variacion)::text, trim_scale(v_config.confirmacion_pct)::text
-      using errcode = '22023', hint = 'variacion_inusual';
+  -- Variación inusual: el cliente tiene que mandar la variación que VIO (p_variacion_vista) y debe coincidir con la real
+  -- (tolerancia 0,01 puntos). Un booleano no alcanza: si otro usuario aplicó un dólar distinto entre la vista previa y la
+  -- confirmación, la variación real pudo pasar de +16 % a +60 % sin que nadie la viera.
+  if v_variacion is not null and abs(v_variacion) > v_config.confirmacion_pct then
+    if p_variacion_vista is null then
+      raise exception 'La variación de la cotización (% %%) supera el % %% configurado: confirmala explícitamente',
+        trim_scale(v_variacion)::text, trim_scale(v_config.confirmacion_pct)::text
+        using errcode = '22023', hint = 'variacion_inusual';
+    elsif abs(v_variacion - p_variacion_vista) > 0.01 then
+      raise exception 'El dólar cambió mientras revisabas: revisá de nuevo'
+        using errcode = '22023', hint = 'variacion_cambio';
+    end if;
   end if;
 
   -- El historial conserva la carga ANTERIOR (valor_anterior y variacion_pct entre cargas consecutivas, como lo muestra
@@ -368,14 +380,14 @@ begin
 end;
 $$;
 
-comment on function public.confirmar_cotizacion(uuid, boolean) is
-  'F-PRE-03/F-PRE-06: confirma la cotización pendiente (de la organización o de p_empresa) en una transacción: historial (con el umbral usado), cotización aplicada (si la variación alcanza el umbral configurado), eventos. El umbral y la variación se miden contra la cotización aplicada; si |variación| supera la confirmación configurada exige p_confirmado = true (22023, hint variacion_inusual). 42501 sin edición; P0002 sin_cotizacion_pendiente o empresa ajena; 22023 falta empresa.';
+comment on function public.confirmar_cotizacion(uuid, numeric) is
+  'F-PRE-03/F-PRE-06: confirma la cotización pendiente (de la organización o de p_empresa) en una transacción: historial (con el umbral usado), cotización aplicada (si la variación alcanza el umbral configurado), eventos. El umbral y la variación se miden contra la cotización aplicada; si |variación| supera la confirmación configurada exige p_variacion_vista (la variación que el usuario vio) y que coincida con la real ±0,01 (22023: hint variacion_inusual si falta, variacion_cambio si difiere). 42501 sin edición; P0002 sin_cotizacion_pendiente o empresa ajena; 22023 falta empresa.';
 
 revoke execute on function public.cargar_cotizacion(numeric, uuid) from public, anon;
 revoke execute on function public.estado_cotizacion(uuid) from public, anon;
 revoke execute on function public.previsualizar_cotizacion(uuid) from public, anon;
-revoke execute on function public.confirmar_cotizacion(uuid, boolean) from public, anon;
+revoke execute on function public.confirmar_cotizacion(uuid, numeric) from public, anon;
 grant execute on function public.cargar_cotizacion(numeric, uuid) to authenticated;
 grant execute on function public.estado_cotizacion(uuid) to authenticated;
 grant execute on function public.previsualizar_cotizacion(uuid) to authenticated;
-grant execute on function public.confirmar_cotizacion(uuid, boolean) to authenticated;
+grant execute on function public.confirmar_cotizacion(uuid, numeric) to authenticated;
