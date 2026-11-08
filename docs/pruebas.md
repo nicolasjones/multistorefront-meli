@@ -66,6 +66,15 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   de 5 s queda justo y da **falsos rojos** en PRs ajenos. Se sube el timeout del
   archivo (`vi.setConfig({ testTimeout })`) y las lecturas que dependen de datos
   async usan `findBy*`.
+- **Falso rojo por `EnvironmentTeardownError`**: si todos los tests pasan pero vitest
+  sale con `Closing rpc while "onUserConsoleLog" was pending` (atribuido a
+  archivos como `RutaCatalogo.test.tsx` o `SiderPanel.test.tsx`), era una carrera
+  de cierre de workers: un `console.*` emitido justo al terminar el archivo dejaba
+  pendiente el RPC de logs. `apps/web/vite.config.ts` fija
+  `disableConsoleIntercept: true` para que la consola salga directo a la salida
+  estándar sin pasar por RPC (se pierde solo la atribución de cada línea al test).
+  Si reaparece, no relanzar sin mirar: revisar qué test escribe a consola después
+  de terminar.
 
 ## Calidad determinista (`pnpm calidad`)
 - `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,
