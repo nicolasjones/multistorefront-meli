@@ -158,7 +158,7 @@ Como persona con permiso de edición, quiero duplicar un producto parecido, para
 ### Edge Cases
 
 - Selección con 0 productos: la barra no se muestra; las RPC rechazan listas vacías (`22023`).
-- Más de 100 ids recibidos (aunque tras quitar repetidos queden menos): la RPC rechaza (`22023`); la pantalla nunca manda más de 25.
+- Más de 100 ids recibidos (aunque tras quitar repetidos queden menos): la RPC rechaza (`22023`); la pantalla solo manda las filas cargadas (tope de 100, ver el `Desvío:` de RF-CAT-12-1 en `tasks.md`).
 - Productos que ya tienen el estado, categoría o empresas pedidos: no se cambian ni dejan evento; si ninguno cambia, el aviso es «No hubo cambios».
 - Dos personas editan a la vez: gana la última escritura; cada RPC es una sola transacción.
 - Empresa en `agregar` y en `quitar` a la vez, o de otra organización: `22023`.

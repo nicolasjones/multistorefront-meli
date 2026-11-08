@@ -1,7 +1,7 @@
 -- MSF-392 / F-CAT-12, hallazgo de Code Review: el tope de 100 ids de la edición masiva se contaba DESPUÉS
--- de quitar los repetidos. El contrato (`specs/20261103-100000-catalogo-productividad/contracts/edicion-masiva.md`
--- y la historia) lo define sobre la entrada ANTES del dedup: más de 100 ids recibidos es `22023` aunque
--- los distintos sean 100 o menos. Se redefine solo `private.bloquear_productos_masivo` (misma firma); las
+-- de quitar los repetidos. Se aclara el contrato (`specs/20261103-100000-catalogo-productividad/contracts/edicion-masiva.md`)
+-- y se fija sobre la entrada ANTES del dedup: más de 100 ids recibidos es `22023` aunque los distintos sean 100
+-- o menos. Se redefine solo `private.bloquear_productos_masivo` (misma firma); las
 -- tres RPC públicas la llaman, así que el tope vale para todas sin tocarlas.
 --
 -- Esquemas (Principio VII): no se crea ni altera ninguna tabla. Migración aditiva (`create or replace`,
