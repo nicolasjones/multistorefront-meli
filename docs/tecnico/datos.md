@@ -2372,6 +2372,156 @@ erDiagram
 - Detalle de RPC, tableros, token, exportación y reversión:
   [Ventas · reportes básicos (técnico)](ventas-reportes.md).
 
+## Rentabilidad real y reportes de ventas (MSF-192)
+
+Épica **MSF-192** (spec `20270201-100000-rentabilidad-real-y-reportes-de-ventas`), rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili` (pendiente de merge a `main`). Agrega **una tabla**
+en `dominio`, **dos columnas** en las líneas de comprobante, **cuatro vistas** en `analitica` y **cuatro
+RPC** en `public`. Migraciones `20270202201000`–`20270202201007`, aditivas; reversión en el encabezado de
+cada una y consolidada en [Rentabilidad (técnico)](rentabilidad.md#reversion) y
+[Ventas · reportes (técnico)](ventas-reportes.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.costos_adicionales_canal` | **nueva** | Costo adicional por empresa: `nombre`, `tipo` (`porcentaje`/`monto`), `valor`, `activo`; único entre activos por empresa. Se escribe solo por RPC y se da de baja lógicamente. |
+| `dominio.comprobantes_venta_lineas` | **alterada** | Columnas `costo_unitario numeric(14,2)` y `cotizacion numeric(14,4)`, nullable, guardadas al confirmar; ocultas para `authenticated`. |
+| `analitica.margen_producto_canal` | **alterada (vista)** | Suma `costos_adicionales` y los descuenta de `margen` y `margen_pct`. Sin costos activos conserva los valores de MSF-120. |
+| `analitica.rentabilidad_ventas_real` | **nueva (vista)** | Margen de lo efectivamente vendido: costo y cotización guardados en la línea; grano empresa × producto × fecha. |
+| `analitica.consultas_producto_mas_consultado` | **nueva (vista)** | Toques en «Consultar por WhatsApp»: grano empresa × producto × fecha, con `consultas` y `ultima_consulta`. |
+| `analitica.ventas_periodo_canal` | **nueva (vista)** | Comprobantes, unidades y facturado con IVA: grano empresa × fecha (la tienda es el canal). |
+| `public.consultas_reportes_conteo` | **nueva (RPC)** | Conteo de consultas del período para el estado vacío de «Productos más consultados». |
+| `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `total_con_iva`). |
+| `dominio.intereses_whatsapp` | existente | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`): un registro = un toque. |
+| `dominio.empresas`, `dominio.productos`, `dominio.producto_costos` | existentes | Nombre/SKU/estado, costo del producto y tienda de cada fila. |
+| `dominio.rentabilidad_config` | existente | Umbral de margen bajo usado por `estado` en las dos vistas de rentabilidad. |
+| `public.organizaciones` | existente | Dueña de los datos y del aislamiento. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COSTOS_ADICIONALES_CANAL : "configura"
+  EMPRESAS ||--o{ COSTOS_ADICIONALES_CANAL : "aplica"
+  ORGANIZACIONES ||--o| RENTABILIDAD_CONFIG : "umbral"
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "vende"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  ORGANIZACIONES ||--o{ INTERESES_WHATSAPP : "registra"
+  EMPRESAS ||--o{ INTERESES_WHATSAPP : "recibe"
+  PRODUCTOS ||--o{ INTERESES_WHATSAPP : "consulta"
+  EMPRESAS ||--o{ MARGEN_PRODUCTO_CANAL : "margen"
+  PRODUCTOS ||--o{ MARGEN_PRODUCTO_CANAL : "producto"
+  EMPRESAS ||--o{ RENTABILIDAD_VENTAS_REAL : "vende"
+  PRODUCTOS ||--o{ RENTABILIDAD_VENTAS_REAL : "producto"
+  INTERESES_WHATSAPP ||--o{ CONSULTAS_PRODUCTO_MAS_CONSULTADO : "agrega"
+  PRODUCTOS ||--o{ CONSULTAS_PRODUCTO_MAS_CONSULTADO : "consulta"
+  COMPROBANTES_VENTA ||--o{ VENTAS_PERIODO_CANAL : "agrega"
+  EMPRESAS ||--o{ VENTAS_PERIODO_CANAL : "canal"
+
+  COSTOS_ADICIONALES_CANAL { uuid id PK "nueva"
+    uuid organizacion_id FK "nueva"
+    uuid empresa_id FK "nueva"
+    text nombre "nueva: 1-80, único entre activos"
+    text tipo "nueva: porcentaje|monto"
+    numeric valor "nueva: >= 0; % <= 100"
+    boolean activo "nueva: baja lógica"
+    timestamptz creado_en "nueva" }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    numeric cantidad
+    numeric subtotal_sin_iva
+    numeric iva
+    numeric costo_unitario "alterada: nueva, pesos por unidad, nullable"
+    numeric cotizacion "alterada: nueva, dólar al confirmar, nullable" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text tipo
+    text estado
+    date fecha
+    numeric total_con_iva }
+  INTERESES_WHATSAPP { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid producto_id FK
+    timestamptz created_at }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    bool activo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  RENTABILIDAD_CONFIG { uuid organizacion_id PK
+    numeric umbral_margen_bajo }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  MARGEN_PRODUCTO_CANAL { uuid organizacion_id
+    uuid empresa_id
+    uuid producto_id
+    numeric precio_neto
+    numeric costo
+    numeric costos_adicionales "alterada: nueva, por unidad"
+    numeric margen "alterada: descuenta costos adicionales"
+    numeric margen_pct "alterada: descuenta costos adicionales"
+    text estado "alterada" }
+  RENTABILIDAD_VENTAS_REAL { uuid organizacion_id "nueva"
+    uuid empresa_id "nueva"
+    text empresa_nombre "nueva"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    date fecha "nueva"
+    bigint unidades "nueva"
+    numeric vendido "nueva: neto sin IVA"
+    numeric costo "nueva: costo guardado en la venta"
+    numeric costos_adicionales "nueva: vigentes hoy"
+    numeric margen "nueva"
+    numeric margen_pct "nueva"
+    text estado "nueva: ok|bajo|negativo"
+    numeric umbral_margen_bajo "nueva" }
+  CONSULTAS_PRODUCTO_MAS_CONSULTADO { uuid organizacion_id "nueva"
+    uuid empresa_id "nueva"
+    text empresa_nombre "nueva"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    date fecha "nueva: día en Buenos Aires"
+    bigint consultas "nueva"
+    timestamptz ultima_consulta "nueva" }
+  VENTAS_PERIODO_CANAL { uuid organizacion_id "nueva"
+    uuid empresa_id "nueva"
+    text empresa_nombre "nueva"
+    date fecha "nueva"
+    bigint comprobantes "nueva: solo facturas"
+    bigint unidades "nueva"
+    numeric facturado "nueva: con IVA" }
+```
+
+- **La tabla nueva guarda datos y tiene RLS** por organización, empresa accesible y sección `rentabilidad`
+  (`lectura`/`edicion`); `authenticated` solo tiene `select` y las escrituras pasan por las RPC
+  `security definer` (`listar_costos_adicionales`, `guardar_costo_adicional`,
+  `dar_baja_costo_adicional`).
+- **El costo del margen usa el valor vigente** (`costos_adicionales_de`), pero el de una venta usa el
+  `costo_unitario` guardado en la línea al confirmar: por eso las ventas anteriores a la columna quedan
+  fuera de `rentabilidad_ventas_real` en lugar de recibir un costo inventado.
+- **Las cuatro vistas de `analitica` no son tablas**: no guardan datos ni tienen RLS; exponen
+  `organizacion_id` y `empresa_id` para la cláusula `rls` del guest token y las lee solo
+  `superset_analitica`.
+- **`consultas_producto_mas_consultado` y `ventas_periodo_canal` no exponen costo ni margen**; los
+  reportes de ventas se calculan con `analitica.comprobante_cuenta_como_facturado` y
+  `analitica.signo_comprobante`, sin reimplementar el predicado.
+- Detalle de RPC, cálculos, tableros y reversión: [Rentabilidad (técnico)](rentabilidad.md#rentabilidad-real-y-reportes-msf-192)
+  y [Ventas · reportes (técnico)](ventas-reportes.md#productos-mas-consultados-y-ventas-por-periodo-y-canal-msf-192).
+
 ## Ventas despacho y faltantes (MSF-135)
 
 Estado de despacho con responsables, envío con transporte y guía, y registro de los faltantes de stock. Una

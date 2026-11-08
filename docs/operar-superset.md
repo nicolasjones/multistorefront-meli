@@ -213,6 +213,30 @@ Slug `rentabilidad-historia`. Lee la vista `analitica.margen_historico_producto_
    staging (seguimiento **MSF-570**).
 - Modelo, RPC, seguridad y reversión: [Rentabilidad](tecnico/rentabilidad.md#comparativo-e-historia-msf-127).
 
+## Tableros de Rentabilidad: ventas reales (MSF-192)
+
+Épica **MSF-192**, spec `rentabilidad-real-y-reportes-de-ventas` (rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, pendiente de merge a `main`). Suma el tablero
+**Rentabilidad · Ventas reales** (`rentabilidad-ventas-reales`) al paquete
+`infra/superset/dashboards/rentabilidad/`, con el mismo importador y la misma conexión `analitica`:
+
+```bash
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno production
+```
+
+| Tablero | Slug | Dataset | Registro |
+|---|---|---|---|
+| **Rentabilidad · Ventas reales** | `rentabilidad-ventas-reales` | `analitica.rentabilidad_ventas_real` | `seccion = 'rentabilidad'`, `filtro_empresa = false`, rol `administracion` |
+
+- Tres gráficos: totales del período (Handlebars), tabla por empresa y tabla por producto. Filtro nativo
+  `NATIVE_FILTER-rango` sobre `fecha`; el tablero muestra **todas** las empresas de la organización, así que
+  no lleva filtro por empresa.
+- Los costos adicionales que descuenta son los **vigentes hoy**; el costo del producto es el guardado en la
+  línea al confirmar la venta. Las líneas sin `costo_unitario` no aparecen.
+- **Límite conocido:** no se probó contra un Superset real y el total no se paginó (`row_limit` 10000).
+- Modelo, RPC y reversión: [Rentabilidad](tecnico/rentabilidad.md#rentabilidad-real-y-reportes-msf-192).
+
 ## Tableros de Ventas · Reportes (MSF-338)
 
 Épica **MSF-338**, spec `ventas-reportes-basicos` (rama
@@ -244,3 +268,31 @@ pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/vent
   Superset real; la exportación a Excel **no** usa la exportación nativa de Superset (la arma el panel).
 - Modelo, RPC, token, exportación y reversión:
   [Ventas · reportes básicos (técnico)](tecnico/ventas-reportes.md).
+
+## Tableros de Ventas · Reportes: nuevas pestañas (MSF-192)
+
+Épica **MSF-192**, spec `rentabilidad-real-y-reportes-de-ventas` (rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, pendiente de merge a `main`). Dos paquetes nuevos de
+tableros embebidos en «Ventas · Reportes», con el mismo importador idempotente:
+
+```bash
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno production
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno production
+```
+
+| Tablero | Slug | Dataset | Registro |
+|---|---|---|---|
+| **Reportes · Productos más consultados** | `reportes-mas-consultados` | `analitica.consultas_producto_mas_consultado` | `seccion = 'reportes'`, `filtro_empresa = true`, rol `administracion` |
+| **Reportes · Ventas por período y canal** | `reportes-ventas-periodo-canal` | `analitica.ventas_periodo_canal` | `seccion = 'reportes'`, `filtro_empresa = true`, rol `administracion` |
+
+- **Productos más consultados**: tabla por producto y SKU, ordenada por consultas; filtros nativos
+  `NATIVE_FILTER-rango` y `NATIVE_FILTER-empresa`. No muestra costo ni margen.
+- **Ventas por período y canal**: barras de facturado por fecha y empresa, más tabla por canal; suma el
+  filtro nativo `NATIVE_FILTER-periodo` (día/semana/mes). Los canales son las tiendas: no hay Mercado Libre.
+- **Los filtros de la pantalla llegan por `native_filters`** (período y empresa), igual que en MSF-338.
+  **Verificar en un Superset real** que el SDK los respeta y que el gráfico por día/semana/mes se pinta.
+- **Límites conocidos:** verificado contra los YAML y el test del importador, no contra un Superset real; las
+  capturas de las dos pestañas quedan pendientes (`pnpm docs:capturas` no existe en esta rama).
+- Modelo, RPC y reversión: [Ventas · reportes (técnico)](tecnico/ventas-reportes.md#productos-mas-consultados-y-ventas-por-periodo-y-canal-msf-192).

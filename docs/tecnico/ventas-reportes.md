@@ -6,21 +6,23 @@ sources:
   - apps/web/src
 ---
 
-# Ventas · reportes básicos (técnico, MSF-338)
+# Ventas · reportes (técnico, MSF-338, MSF-192)
 
 Implementación de la épica **MSF-338** (spec `20270104-100000-ventas-reportes-basicos`): **F-VTA-22**
 «Productos más vendidos» (MSF-347) y **F-VTA-23** «Ranking de clientes con exportación» (MSF-358), más el
-cierre (MSF-568: docs, revisión de seguridad, pgTAP de superficie y E2E). La vista de producto está en
-[Ventas · reportes básicos (producto)](../producto/ventas-reportes.md).
+cierre (MSF-568: docs, revisión de seguridad, pgTAP de superficie y E2E). La **MSF-192** suma dos pestañas:
+**Productos más consultados** (F-REP-04) y **Ventas por período y canal** (F-REP-05). La vista de producto
+está en [Reportes de ventas (producto)](../producto/ventas-reportes.md).
 
 !!! note "Estado"
-    Implementado en la rama `epic/MSF-338-ventas-y-despacho-ventas-reportes-basico` (historias en
-    `feat/story-MSF-347`, `feat/story-MSF-358` y `feat/story-MSF-568`), **pendiente de merge a `main`**.
-    Migraciones `20270104090000`–`20270104090200` (todas aditivas, con la reversión en el encabezado).
-    Contrato de las vistas:
-    `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`.
+    MSF-338 se implementó en la rama `epic/MSF-338-ventas-y-despacho-ventas-reportes-basico` y MSF-192 en
+    `epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, **ambas pendientes de merge a `main`**.
+    Migraciones de MSF-338: `20270104090000`–`20270104090200`. Migraciones de MSF-192:
+    `20270202201000`–`20270202201007` (todas aditivas, con la reversión en el encabezado).
+    Contratos: `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md` y
+    `specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/rentabilidad-real-y-reportes.md`.
 
-    La rama de la épica trae además su guía operativa en la estructura plana de la documentación
+    La rama de MSF-338 trae además su guía operativa en la estructura plana de la documentación
     (`docs/ventas-reportes.md`): esta página es la versión estructurada (producto + técnico) de esa
     información y es la que manda en la sección Técnica.
 
@@ -32,14 +34,16 @@ cierre (MSF-568: docs, revisión de seguridad, pgTAP de superficie y E2E). La vi
   `apps/web/src/components/navegacion/destinosPanel.ts`, con `seccionPermiso: 'reportes'` (no `ventas`: es
   la sección que exige el token).
 - **Marco** (`pages/ventas-reportes/index.tsx`): `EncabezadoPagina` con el título «Reportes de ventas» y
-  el subtítulo del prototipo, `Tabs` con «Más vendidos» / «Ranking de clientes», `FiltroEmpresa` (píldoras
-  «Todas las tiendas» + las accesibles) y `FiltrosPeriodo` («Desde» / «Hasta» + atajos **Hoy**, **7 días**,
-  **Este mes**, **Mes anterior**; abre en **Este mes**).
+  el subtítulo del prototipo, `Tabs` con «Más vendidos», «Ranking de clientes», «Productos más consultados»
+  y «Ventas por período y canal», `FiltroEmpresa` (píldoras «Todas las tiendas» + las accesibles) y
+  `FiltrosPeriodo` («Desde» / «Hasta» + atajos **Hoy**, **7 días**, **Este mes**, **Mes anterior**; abre en
+  **Este mes**).
 - **Textos y constantes**: `apps/web/src/lib/ventas-reportes.ts` (sección, título, subtítulo, atajos,
   mensaje de vacío `MENSAJE_SIN_VENTAS = 'No hay ventas en ese período'`, ids de los filtros nativos y el
   código rison de `dashboardUiConfig.urlParams.native_filters`).
 - **Tableros**: `TableroReporte.tsx` (embebido + estados), `MasVendidos.tsx`, `RankingClientes.tsx`
-  (interruptor «Consumidor final»), `ExportarRankingVentas.tsx` (botón, progreso, cancelación y avisos).
+  (interruptor «Consumidor final»), `MasConsultados.tsx` y `VentasPeriodoCanal.tsx` (MSF-192),
+  `ExportarRankingVentas.tsx` (botón, progreso, cancelación y avisos).
 - **Hooks**: `useVentasReportes.ts` (conteo del período, con la clave de filtros para invalidar en render) y
   `useFiltroPorEmpresaActiva` (filtro por empresa activa).
 
@@ -60,8 +64,10 @@ vuelve a montar.
 
 ## Modelo de datos
 
-**No hay tablas nuevas.** La épica agrega **vistas** en el esquema `analitica` (solo vistas y funciones),
-**dos RPC** en `public` y **una columna** en `public.reportes`.
+**No hay tablas nuevas.** MSF-338 agrega **vistas** en el esquema `analitica` (solo vistas y funciones),
+**dos RPC** en `public` y **una columna** en `public.reportes`. MSF-192 suma **dos vistas** más y **una RPC
+de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.intereses_whatsapp` y
+`dominio.comprobantes_venta*`).
 
 | Objeto | Esquema | Estado | Cambio |
 |---|---|---|---|
@@ -72,6 +78,10 @@ vuelve a montar.
 | `analitica.stock_de_producto(uuid, uuid)` | `analitica` | **nueva (función)** | Envoltorio `security definer` de `public.stock_estados`. |
 | `public.ventas_reportes_conteo(date, date, uuid)` | `public` | **nueva (RPC)** | Comprobantes que cuentan como venta en el período (estado vacío de la pantalla). |
 | `public.leer_ranking_ventas(date, date, boolean, uuid, integer, integer)` | `public` | **nueva (RPC)** | Lectura del ranking para la exportación a Excel (misma vista que el tablero). |
+| `analitica.consultas_producto_mas_consultado` | `analitica` | **nueva (vista, MSF-192)** | Productos más consultados por WhatsApp: grano empresa × producto × fecha, con `consultas` y `ultima_consulta`. |
+| `analitica.ventas_periodo_canal` | `analitica` | **nueva (vista, MSF-192)** | Ventas por período y canal: grano empresa × fecha, con `comprobantes`, `unidades` y `facturado` con IVA. |
+| `public.consultas_reportes_conteo(date, date, uuid)` | `public` | **nueva (RPC, MSF-192)** | Toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). |
+| `dominio.intereses_whatsapp` | `dominio` | **existente** | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`). |
 | `public.reportes` | `public` | **alterada** | Columna `filtro_empresa boolean not null default false` (migración `20270104090050`). |
 | `dominio.comprobantes_venta` / `dominio.comprobantes_venta_lineas` | `dominio` | **existentes** | Solo se leen. |
 | `public.clientes` | `public` | **existente** | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
@@ -154,6 +164,75 @@ superset_analitica`. `analitica.stock_de_producto` envuelve `public.stock_estado
 
 Un cliente con **solo notas de crédito** en el período tiene facturación neta **negativa** (el neto real,
 sin piso en cero): es la decisión 3 de la spec, **provisional** hasta que el cliente la confirme.
+
+## Productos más consultados y ventas por período y canal (MSF-192)
+
+Épica **MSF-192** (spec `rentabilidad-real-y-reportes-de-ventas`), F-REP-04 y F-REP-05. Dos pestañas nuevas
+que reusan el marco, los filtros, `TableroReporte` y el patrón de estados de MSF-338. Migraciones
+`20270202201003_analitica_consultas_producto_mas_consultado.sql` y
+`20270202201004_analitica_ventas_periodo_canal.sql` (aditivas).
+
+### `analitica.consultas_producto_mas_consultado`
+
+Columnas: `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`,
+`fecha date`, `consultas bigint`, `ultima_consulta timestamptz`.
+
+- Lee `dominio.intereses_whatsapp` (F-CON-02): **un toque en «Consultar por WhatsApp» = una consulta**, no
+  una venta.
+- `fecha` es el día en `America/Argentina/Buenos_Aires` de `created_at`; `ultima_consulta` es el instante
+  máximo del grupo.
+- Grano empresa × producto × fecha; el tablero agrupa por producto y suma.
+- No expone costo ni margen. `revoke all` para `public`, `anon`, `authenticated` y `select` solo a
+  `superset_analitica`.
+
+### `analitica.ventas_periodo_canal`
+
+Columnas: `organizacion_id`, `empresa_id`, `empresa_nombre`, `fecha date`, `comprobantes bigint`,
+`unidades bigint`, `facturado numeric`.
+
+- Usa `analitica.comprobante_cuenta_como_facturado` y `analitica.signo_comprobante`: factura y nota de
+  crédito; presupuestos, borradores y anuladas no cuentan; la nota resta.
+- `facturado` = Σ signo × `total_con_iva` (con IVA, igual al listado); `unidades` = Σ signo × cantidad;
+  `comprobantes` cuenta solo facturas.
+- Grano empresa × fecha (la tienda es el canal). No expone costo ni margen. Solo `superset_analitica`.
+
+### RPC de conteo
+
+| RPC | Qué hace | Seguridad / errores |
+|---|---|---|
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | Toques de WhatsApp del período; decide el vacío «No hay consultas por WhatsApp en ese período». | `security definer`, `search_path = ''`; exige `reportes` ≥ lectura (`42501`) y acota a `private.empresas_accesibles()`; `revoke … from public, anon` y `grant … to authenticated`. |
+
+### Frontend
+
+- `MasConsultados.tsx` y `VentasPeriodoCanal.tsx` montan `TableroReporte` con `urlParamsReportes` (período
+  y empresa). «Productos más consultados» pasa `leerConteoConsultas` y `MENSAJE_SIN_CONSULTAS`; «Ventas por
+  período y canal» usa los valores por defecto de `TableroReporte` (el conteo de ventas y
+  `MENSAJE_SIN_VENTAS`).
+- Los nombres de reporte son `Reportes · Productos más consultados` y `Reportes · Ventas por período y
+  canal` (`apps/web/src/lib/ventas-reportes.ts`); el importador los registra con `seccion = 'reportes'` y
+  `filtro_empresa = true`.
+- La pestaña «Ventas por período y canal» no ofrece canal Mercado Libre: los canales son las empresas.
+
+### Tableros
+
+| Tablero | Slug | Dataset | Gráficos | Filtros nativos |
+|---|---|---|---|---|
+| **Reportes · Productos más consultados** | `reportes-mas-consultados` | `analitica.consultas_producto_mas_consultado` | tabla por producto y SKU con consultas totales y última consulta (orden por consultas) | `NATIVE_FILTER-rango` y `NATIVE_FILTER-empresa` |
+| **Reportes · Ventas por período y canal** | `reportes-ventas-periodo-canal` | `analitica.ventas_periodo_canal` | barras de facturado por fecha y empresa, más tabla por canal con facturado, comprobantes y unidades | `NATIVE_FILTER-rango`, `NATIVE_FILTER-empresa` y `NATIVE_FILTER-periodo` (día/semana/mes) |
+
+Los dos paquetes viven en `infra/superset/dashboards/consultas-reportes/` y
+`infra/superset/dashboards/ventas-periodo-canal/` y se importan con el mismo importador idempotente.
+
+### Pruebas
+
+| Prueba | Qué cubre |
+|---|---|
+| `supabase/tests/database/consultas_mas_consultados.test.sql` | Conteo por toque, día de Buenos Aires, última consulta, rango y sin ventas. |
+| `supabase/tests/database/consultas_mas_consultados_aislamiento.test.sql` | Dos organizaciones y superficie cerrada sin `reportes`. |
+| `supabase/tests/database/ventas_periodo_canal.test.sql` | Cuadre con `total_con_iva`, nota resta, exclusiones, rango y sin Mercado Libre. |
+| `supabase/tests/database/ventas_periodo_canal_aislamiento.test.sql` | Dos organizaciones y empresas no accesibles. |
+| Vitest `MasConsultados` / `VentasPeriodoCanal` | Vacío, error/reintento, acceso restringido, rango, filtro y cambio de empresa. |
+| `apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts` | `[MSF-741:T041]`: los cuatro reportes con los tres roles. |
 
 ## Filtro por empresa en el guest token
 
@@ -306,12 +385,145 @@ como fracción con formato `0.0%`; las dos pantallas muestran el mismo número.
 - **Edge Function**: `node --test supabase/functions/emitir-acceso-reporte/handler.test.ts` (cláusula `rls`
   con y sin filtro por empresa).
 - **Superset**: `pnpm test:superset:importar-dashboards` (dataset, tablero y registro idempotente).
+- **MSF-192**: `consultas_mas_consultados.test.sql`, `consultas_mas_consultados_aislamiento.test.sql`,
+  `ventas_periodo_canal.test.sql` y `ventas_periodo_canal_aislamiento.test.sql` (detalle de qué cubre cada
+  uno en la sección de MSF-192).
 - **E2E**: `apps/web/e2e/ventas-reportes.e2e.ts` (cierre MSF-568, T015): acceso restringido de Operador y
   Consulta con el rechazo `42501` del servidor, pantalla para Administración y Administrador, cambio de
   empresa que reencuadra el filtro de tienda y exportación del ranking a `.xlsx`. Se omite sin
-  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (no corre en el CI público) y **no monta Superset**.
+  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (no corre en el CI público) y **no monta Superset**. El cierre
+  de MSF-192 suma `apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts` (`[MSF-741:T041]`).
 - **Guards**: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm prototipo:check`, `pnpm matriz:check` y
   `pnpm docs:check`.
+
+## Cómo probarlo (MSF-338 y MSF-192)
+
+> El paso a paso para quien usa el sistema está en el manual de usuario
+> ([Reportes de ventas](../producto/ventas-reportes.md)). Acá va la **guía de prueba técnica**: qué sembrar,
+> cómo comprobarlo en la base y qué test lo cubre.
+
+### Prerrequisitos
+
+- **Entorno:** stack local con las ramas de las épicas (`pnpm dev:supabase` + `pnpm dev`; panel en
+  `http://localhost:5173`) **con un Superset real** —los tableros no se simulan: sin él la pantalla muestra
+  «El tablero de «…» todavía no está disponible para tu organización»— o el ambiente **DEV** con las épicas
+  desplegadas y los tableros importados:
+
+  ```bash
+  pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno staging
+  pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging
+  pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging
+  ```
+
+- **Personas y permisos** (en la organización de prueba):
+  - **Administración** o **Administrador** con la sección **Reportes** en la empresa: ven la pantalla y exportan.
+  - **Operador** o **Consulta** sin la sección **Reportes**: ven «No tenés acceso a esta sección».
+- **Datos a sembrar:**
+  - Dos **empresas** (tiendas) de la misma organización y dos o tres **productos** con y sin stock.
+  - Dos **clientes** (uno minorista y otro minorista más) y el **«Consumidor final»** de la organización.
+  - Una **factura confirmada** en la tienda A, otra en la tienda B y, en el mismo período, una **nota de
+    crédito** (resta) y un **presupuesto** (no cuenta).
+  - Dos o tres **toques en «Consultar por WhatsApp»** sobre un producto (para «Productos más consultados»).
+
+### Pasos
+
+1. **Entrar sin permiso.** Con la sesión de **Operador**, abrí `http://localhost:5173/ventas/reportes`: se tiene
+   que ver «No tenés acceso a esta sección» y **ningún** botón «Exportar a Excel». Lo mismo con **Consulta**.
+2. **Entrar con permiso.** Con la sesión de **Administración**, la misma ruta muestra el título «Reportes de
+   ventas», las cuatro pestañas («Más vendidos», «Ranking de clientes», «Productos más consultados» y «Ventas
+   por período y canal»), el filtro de tienda con sus píldoras y los campos «Desde» / «Hasta».
+3. **Ver el período por defecto.** La pantalla abre en **Este mes**. Los atajos **Hoy**, **7 días** y **Mes
+   anterior** cambian el rango y recargan el tablero. Con un «Hasta» anterior al «Desde» el campo avisa y el
+   rango **no** se aplica.
+4. **Ver «Más vendidos».** La tabla viene por producto (Producto, SKU, #, Unidades, Facturado, Stock hoy),
+   ordenada por unidades de mayor a menor. El producto que solo está en un **presupuesto** no aparece; el que
+   tiene **nota de crédito** aparece con unidades e importe **en negativo** o reducido.
+5. **Ver «Ranking de clientes».** La tabla viene por cliente (Cliente, Nº, Tipo, #, Comprobantes, Facturado,
+   Participación con barra y Último comprador), ordenada por facturación descendente. El **«Consumidor final»**
+   viene **excluido**; al encender el interruptor aparece y al apagarlo desaparece.
+6. **Exportar.** Con «Ranking de clientes» abierta, pulsá **«Exportar a Excel»**: se ve el progreso y, al
+   terminar, el aviso «Exportación lista: el archivo se descargó.». El archivo baja como
+   `ranking-clientes-ventas-<desde>_<hasta>.xlsx` con **todas** las filas del ranking y los mismos totales que
+   la tabla. Con el rango vacío no baja ningún archivo: avisa «No hay clientes en el ranking con esos filtros.
+   Probá con otro período o activá el «Consumidor final».» Con más de 100.000 clientes en el alcance, la
+   pantalla avisa que hay que acotar y no baja un archivo a medias.
+7. **Ver «Productos más consultados» (MSF-192).** La tabla viene por producto (Producto, SKU, #, Consultas,
+   Última consulta), ordenada por consultas de mayor a menor, y **no muestra costo ni margen**. En la base:
+
+   ```sql
+   select empresa_nombre, producto_nombre, fecha, consultas, ultima_consulta
+     from analitica.consultas_producto_mas_consultado
+    order by fecha desc;
+   ```
+
+   Con un rango sin consultas, la pantalla muestra «No hay consultas por WhatsApp en ese período» (lo decide
+   `public.consultas_reportes_conteo`, no las filas del tablero).
+8. **Ver «Ventas por período y canal» (MSF-192).** El tablero trae un **gráfico de barras** con el facturado a
+   lo largo del período, separado por empresa, y una **tabla por canal** (Empresa, Facturado, Comprobantes,
+   Unidades). El filtro nativo **«Agrupar por»** cambia la agrupación entre **día**, **semana** y **mes**. El
+   facturado tiene que cuadrar con el listado de comprobantes (`total_con_iva`) del mismo período y empresa:
+
+   ```sql
+   select empresa_nombre, fecha, comprobantes, unidades, facturado
+     from analitica.ventas_periodo_canal
+    order by fecha desc;
+   ```
+
+   La nota de crédito **resta** y los presupuestos, borradores y anulados **no cuentan**. El reporte **no
+   muestra costo ni margen**.
+9. **Ver el vacío.** Poné un rango sin ventas (por ejemplo, «Hoy» en una tienda sin comprobantes): se tiene que
+   ver «No hay ventas en ese período» con la ayuda «Probá con otro período o con otra tienda.» y ningún error.
+10. **Filtrar por tienda.** Elegí la píldora de la **tienda B**: el tablero se recarga y quedan solo las filas
+    de esa tienda. Volvé a «Todas las tiendas» y comprobá que vuelven las dos.
+11. **Cambiar de empresa.** En la barra superior cambiá la empresa activa: el filtro de tienda se reencuadra,
+    el tablero se recarga y **no** quedan filas de la tienda anterior. Si había una exportación en curso, se
+    cancela.
+12. **Sin permiso en el servidor.** Con la sesión de **Operador**, pedí la exportación por la API
+    (`POST /rest/v1/rpc/leer_ranking_ventas` con su token): tiene que responder **42501** aunque el botón esté
+    oculto en la pantalla.
+
+### Resultado esperado
+
+- **Given** un período con facturas, presupuestos, anuladas y notas de crédito, **when** se abre «Más
+  vendidos», **then** el ranking suma solo las facturas confirmadas no anuladas y las notas de crédito restan.
+- **Given** un filtro de tienda, **when** se aplica, **then** el ranking suma solo las ventas de esa tienda y
+  coincide con el listado exportado de comprobantes.
+- **Given** un rango sin ventas, **when** se consulta, **then** la pantalla dice «No hay ventas en ese período» y
+  no es un error.
+- **Given** un rango con ventas, **when** se exporta el ranking, **then** el archivo tiene las mismas filas y
+  los mismos totales que la pantalla y respeta los filtros vigentes.
+- **Given** una persona sin la sección **Reportes**, **when** pide la exportación, **then** el servidor la
+  rechaza (42501) aunque la pantalla no muestre el botón.
+- **Given** dos empresas activas distintas, **when** se cambia de empresa, **then** el tablero y el filtro se
+  reencuadran y no quedan filas de la empresa anterior.
+- **Given** consultas por WhatsApp en un período, **when** se abre «Productos más consultados», **then** los
+  productos vienen ordenados por consultas, con la última consulta, y sin costo ni margen.
+- **Given** ventas en un período, **when** se abre «Ventas por período y canal», **then** el facturado cuadra
+  con `total_con_iva` de los comprobantes del período y por empresa.
+
+### Cómo automatizarlo
+
+| Recorrido | Cobertura | Rótulo |
+|---|---|---|
+| Acceso restringido, pantalla, cambio de empresa y exportación a `.xlsx` | E2E `apps/web/e2e/ventas-reportes.e2e.ts` (cierre MSF-568, T015) | `[MSF-338:T015]` |
+| Los cuatro reportes y la sección de costos con los tres roles | E2E `apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts` (cierre MSF-741, T041) | `[MSF-741:T041]` |
+| Vista de más vendidos y de ranking: qué cuenta y qué no | pgTAP `ventas_reportes_mas_vendido.test.sql`, `ventas_reportes_ranking.test.sql` | — |
+| Lectura del ranking para exportar: superficie, 42501, filtros y aislamiento | pgTAP `ventas_reportes_leer_ranking.test.sql` | — |
+| Conteo de consultas del período (estado vacío) y aislamiento | pgTAP `consultas_mas_consultados.test.sql`, `consultas_mas_consultados_aislamiento.test.sql` | — |
+| Cuadre con `total_con_iva`, la nota resta, exclusiones y aislamiento | pgTAP `ventas_periodo_canal.test.sql`, `ventas_periodo_canal_aislamiento.test.sql` | — |
+| Pantallas: vacío, error con reintento, acceso restringido, rango, filtro y cambio de empresa | Vitest `apps/web/src/pages/ventas-reportes/*.test.tsx` | — |
+| Paridad entre las columnas del `.xlsx` y las del tablero | Vitest `apps/web/src/pages/ventas-reportes/rankingClientes.contrato.test.ts` | — |
+
+```bash
+pnpm test:db                                    # pgTAP (requiere pnpm dev:supabase)
+pnpm --filter @platform/web test:e2e ventas-reportes
+pnpm test:superset:importar-dashboards          # contrato de los YAML de los tableros
+```
+
+**Pendiente de automatizar:** el E2E `[MSF-741:T041]` está escrito pero **no se ejecutó** en el entorno de la
+épica (sin Docker). Ninguno de los dos E2E **monta Superset**: validan el marco, los filtros, el botón y el
+acceso contra la base, no las filas de los tableros. Tampoco se verificó contra un Superset real que los
+filtros nativos (`rango`, `empresa` y `periodo`) lleguen a los tableros.
 
 ## Revisión de seguridad del cierre (T014, FR-010)
 
@@ -344,6 +556,17 @@ mismo PR que lo crea):
 5. El código de la pantalla (`apps/web/src/pages/ventas-reportes/`, `apps/web/src/lib/ventas-reportes.ts`,
    `apps/web/src/lib/exportarRankingVentas.ts`) y el menú se vuelven con el `git revert` del PR.
 
+Para MSF-192, en migraciones posteriores:
+
+```sql
+drop function public.consultas_reportes_conteo(date, date, uuid);
+drop view analitica.consultas_producto_mas_consultado;
+drop view analitica.ventas_periodo_canal;
+```
+
+También hay que dar de baja las filas de `public.reportes` de «Productos más consultados» y «Ventas por
+período y canal». Las dos vistas no guardan datos.
+
 ## Pendientes
 
 | Qué falta | Por qué | Dueño |
@@ -352,15 +575,15 @@ mismo PR que lo crea):
 | **Rótulo del E2E y `**Jira Epic**:` en la spec** | `pnpm cobertura:e2e` ata cada test a su épica con `[EPICA:TASK]` y la línea `**Jira Epic**: MSF-338` del `spec.md`; hoy el E2E no tiene rótulo y la spec no la declara, así que el manifiesto lo reporta como «épica desconocida» | responsable de plataforma (cierre de MSF-338) |
 | **E2E que monte el tablero** | El E2E actual valida el marco, el filtro, el botón y el acceso contra la base, pero no monta Superset: no cubre las filas de los tableros | responsable de plataforma |
 | **Vacío del ranking cuando solo hay ventas al «Consumidor final»** | `ventas_reportes_conteo` cuenta comprobantes y no distingue el «Consumidor final»; la RPC de lectura ya podría distinguirlo mirando `total_filas` | Producto / Ventas |
+| **Verificar en un Superset real las dos pestañas de MSF-192** | Que los filtros nativos (`rango`, `empresa` y `periodo`) lleguen a los tableros y que el gráfico por día/semana/mes se pinte: hoy está verificado contra los YAML | Cierre de MSF-192 |
+| **Capturas de las pestañas nuevas** | `pnpm docs:capturas` no existe en esta rama (vive en `origin/docs/dataset-demo-y-capturas`); no se inventan capturas | Cierre de MSF-192 |
+| **Ejecutar el E2E `[MSF-741:T041]`** | El E2E está escrito pero requiere `pnpm dev:supabase` y un Superset real | Cierre de MSF-192 |
 
 ## Fuera de alcance
 
 - Los **avisos «avisame cuando vuelva»** (tercera pestaña del prototipo) y el botón «Avisar».
 - El **desglose por tienda** que dibuja el prototipo (el filtro por tienda sí está).
 - La **exportación de «Más vendidos»** a Excel.
-- El **reporte de ventas por período y canal** (F-REP-05, MSF-248) y el **desglose por empresa** de
-  MSF-192: hay que decidir a quién pertenece cada reporte (el de ranking se solapa con F-CLI-08/F-CLI-09 de
-  MSF-126).
 - La **exportación nativa de Superset**: la del panel es propia (decisión 2 de la spec).
 - Mercado Libre y el resto de los canales en los reportes (Etapa 2).
 
