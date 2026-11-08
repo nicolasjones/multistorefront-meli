@@ -416,27 +416,36 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/catalogo-compatibilidad-y-planillas.md": {
+      "title": "Productos: filtrar por compatible, importar y exportar planillas",
+      "pageHash": "32a6601abfca426ec512228bc1056986568afe22c726b845541db2fd8f5e61a5",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
-      "pageHash": "170735e273be7ed10c49448c2097f8ebb8e80c157660807f7cd51d82c5a41b8c",
+      "pageHash": "d927f7abdb6036740551eab88ca445ce1fdf0d9f2cfa8f88c1c7b4ad301efb41",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "f3861761",
+      "sourceAt": "8b556203",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cdf9b4d2"
+      "commit": "8b556203"
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
-      "pageHash": "cd56a959d2bfb5c7e2239eb36a6b57d20f77da9f21e54cf13be2771e8c588fd4",
+      "pageHash": "96ce6986e39c8502a89ad77983a47d1a96b9fd34dcf609d7a18d887b0960ce2b",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "f3861761",
+      "sourceAt": "8b556203",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "d1de6312"
+      "commit": "8b556203"
     },
     "docs/producto/catalogo-productos.md": {
       "title": "Productos y categorías",
@@ -1196,16 +1205,20 @@
       "commit": null
     },
     "docs/tecnico/catalogo-compatibilidad-y-planillas.md": {
-      "title": "Catálogo: compatibilidad y planillas (MSF-202)",
-      "pageHash": "6f284f96d9f10f7ba4be956c40ab25585927cef174059beb3a44242903a79d82",
-      "sourceHash": "e08843104f8af2cb1d9d63d350e19ea18e89e5e0331845d856a268ec6418a0c4",
-      "sourceAt": "f3861761",
+      "title": "Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)",
+      "pageHash": "4a7d6b8e4ac19dab360a5a0954d4f9545a70aab91e3fff9962f69845d4578f8a",
+      "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
+      "sourceAt": "8b556203",
       "sources": [
+        "specs",
         "supabase/migrations",
-        "workers"
+        "supabase/tests/database",
+        "workers/importar-productos",
+        "infra/kestra/flows",
+        "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "8b556203"
     },
     "docs/tecnico/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (técnico)",
