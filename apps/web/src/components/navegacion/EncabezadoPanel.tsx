@@ -2,6 +2,7 @@ import { AppBar, Box, Toolbar, Typography } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
 import { useLocation } from 'react-router'
 import { BusquedaGlobal } from './BusquedaGlobal'
+import { CampanitaNotificaciones } from './CampanitaNotificaciones'
 import { MenuCuenta } from './MenuCuenta'
 import { SelectorEmpresa } from './SelectorEmpresa'
 import { SelectorEmpresaActiva } from './SelectorEmpresaActiva'
@@ -44,6 +45,7 @@ export function EncabezadoPanel() {
         <MigasPanel />
         <Box sx={{ flexGrow: 1 }} />
         <BusquedaGlobal />
+        <CampanitaNotificaciones />
         <MenuCuenta />
       </Toolbar>
     </AppBar>

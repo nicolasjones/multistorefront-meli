@@ -11,6 +11,7 @@ const from = vi.hoisted(() => vi.fn(() => ({ select })))
 const createSignedUrl = vi.hoisted(() => vi.fn())
 const storageFrom = vi.hoisted(() => vi.fn(() => ({ createSignedUrl })))
 
+const rpc = vi.hoisted(() => vi.fn())
 const useContextoPanel = vi.hoisted(() => vi.fn())
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel }))
 vi.mock('@refinedev/core', async (importOriginal) => ({
@@ -21,7 +22,7 @@ vi.mock('@refinedev/core', async (importOriginal) => ({
 }))
 vi.mock('../../lib/supabase', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/supabase')>()
-  return { ...actual, supabaseClient: { ...actual.supabaseClient, from, storage: { ...actual.supabaseClient.storage, from: storageFrom } } }
+  return { ...actual, supabaseClient: { ...actual.supabaseClient, from, rpc, storage: { ...actual.supabaseClient.storage, from: storageFrom } } }
 })
 
 import { EncabezadoPanel } from './EncabezadoPanel'
@@ -35,6 +36,7 @@ describe('EncabezadoPanel', () => {
     vi.clearAllMocks()
     useContextoPanel.mockReturnValue({ contexto: null, isLoading: false })
     maybeSingle.mockResolvedValue({ data: null, error: null })
+    rpc.mockResolvedValue({ data: 0, error: null })
     createSignedUrl.mockResolvedValue({ data: null })
     useLogout.mockReturnValue({ mutate: vi.fn() })
   })
