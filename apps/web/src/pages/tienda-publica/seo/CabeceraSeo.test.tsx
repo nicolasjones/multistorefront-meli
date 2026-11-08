@@ -1,4 +1,5 @@
 import { render, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -159,5 +160,52 @@ describe('CabeceraSeo · anidada (padre indexable + hijo noindex)', () => {
     unmount()
     expect(document.title).toBe('web')
     expect(robots()).toHaveLength(0)
+  })
+
+  it('desmontaje real padre/hijo en orden inverso: el hijo sale primero y el padre queda; luego el padre y se restaura el título', async () => {
+    function Pagina({ conError }: { conError: boolean }) {
+      return (
+        <>
+          <CabeceraSeo host="mundojc.test" pagina="Todos los productos" ruta="/catalogo" />
+          {conError ? <CabeceraSeo noindex pagina="No pudimos cargar los productos" /> : null}
+        </>
+      )
+    }
+    const { rerender, unmount } = render(<Pagina conError />)
+    await waitFor(() => expect(canonica()).toBe('https://mundojc.test/catalogo'))
+    expect(robots()).toHaveLength(1)
+    expect(meta('meta[name="robots"]')).toBe('noindex')
+    // Sale el hijo (primero que se desmonta): el padre sigue indexable y con su título.
+    rerender(<Pagina conError={false} />)
+    await waitFor(() => expect(meta('meta[name="robots"]')).toBe('index, follow'))
+    expect(robots()).toHaveLength(1)
+    expect(document.title).toBe('Todos los productos | Mundo JC')
+    // Sale el padre: no queda nada y el título vuelve al original.
+    unmount()
+    expect(robots()).toHaveLength(0)
+    expect(document.title).toBe('web')
+  })
+
+  it('con StrictMode (efectos doblemente ejecutados) sigue habiendo UNA meta robots y el título se restaura', async () => {
+    const { unmount } = render(
+      <StrictMode>
+        <CabeceraSeo host="mundojc.test" pagina="Contacto" ruta="/contacto" />
+        <CabeceraSeo noindex pagina="Error" />
+      </StrictMode>,
+    )
+    await waitFor(() => expect(canonica()).toBe('https://mundojc.test/contacto'))
+    expect(robots()).toHaveLength(1)
+    expect(meta('meta[name="robots"]')).toBe('noindex')
+    expect(document.title).toBe('Error')
+    unmount()
+    expect(robots()).toHaveLength(0)
+    expect(document.title).toBe('web')
+  })
+
+  it('limitación documentada: un cambio externo de document.title en el medio se pierde al vaciarse la pila', () => {
+    const { unmount } = render(<CabeceraSeo noindex pagina="Error" />)
+    document.title = 'cambio externo'
+    unmount()
+    expect(document.title).toBe('web')
   })
 })

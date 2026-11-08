@@ -963,20 +963,27 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
   de modo que un Supabase caído no impide arrancar nginx: el buscador recibe 502 y reintenta. Si el entorno no usa el DNS de Docker,
   hay que ajustar la línea `resolver`. **Caché y límite (MSF-149)**: como `sitemap_por_dominio` arma hasta 50.000 filas para cualquier
   anónimo, nginx cachea (`proxy_cache tienda_seo`: 5 min para respuestas 200, `proxy_cache_lock`; 20 MB máx., se vacía a los 10 min sin
-  uso) con clave `$http_host$uri` (el host del visitante: nunca se mezclan tiendas) y limita pedidos con `limit_req` por **IP de cliente +
-  host**: 20 pedidos/s con ráfaga de 100 (429 si se pasa). El cubo es holgado a propósito porque `limit_req` corre antes de la caché y
-  cuenta también los HIT, y porque un crawler legítimo puede pedir varias veces seguidas; al incluir el host en la clave, un cliente que
-  insista sobre una tienda no agota el cubo de las demás. nginx corre en Dokploy **detrás de Traefik**, así que `$remote_addr` es la del
-  proxy: `set_real_ip_from` (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1 y fc00::/7) con `real_ip_header X-Forwarded-For` y
+  uso) con clave `$http_host$uri` (el host del visitante: nunca se mezclan tiendas) y limita pedidos con `limit_req` en **dos zonas**: por
+  **IP de cliente + host** (20 pedidos/s, ráfaga 100: quien insiste sobre una tienda no agota el cubo de las demás) y por **solo IP**
+  (100 pedidos/s, ráfaga 200: quien rota el `Host` para abrir un cubo nuevo por pedido, y de paso llenar la caché, choca igual con este tope);
+  ambos responden 429. Los cubos son holgados a propósito porque `limit_req` corre antes de la caché y cuenta también los HIT, y un crawler
+  legítimo puede pedir varias veces seguidas. nginx corre en Dokploy **detrás de Traefik**, así que `$remote_addr` es la del proxy:
+  `set_real_ip_from` (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1 y fc00::/7) con `real_ip_header X-Forwarded-For` y
   `real_ip_recursive on` toman la IP real del cliente solo cuando el pedido llega desde la red del proxy; un cliente de internet no puede
-  falsearla. **Ventana de contenido viejo:** una tienda que se desactiva o se pausa puede seguir viendo su `robots.txt`/sitemap anteriores
-  hasta ~10 minutos (5 de caché de nginx + `max-age=300` en el navegador o gateway), por lo que «desactivada = desconocida» (FR-025) tiene esa
-  ventana; ante una caída de Supabase nginx sirve el contenido anterior solo ante `error`/`timeout`/5xx y acotado por `stale-if-error=300`
-  de la función (no hay `updating`). **Qué se probó:** `nginx -t` valida solo la sintaxis, no el comportamiento del límite; el comportamiento
-  se verificó a mano con nginx en docker (IP tomada de `X-Forwarded-For`, 429 al pasar el cubo, otro host sin afectarse, caché separada por
-  host) y `supabase/functions/tienda-seo/nginx.test.ts` fija en CI la presencia de `real_ip` y la clave IP + host. El `Dockerfile` **falla
-  el build** si `VITE_SUPABASE_URL` o `VITE_SUPABASE_PUBLISHABLE_KEY` quedan vacíos (sin ellos el `proxy_pass` queda roto y robots/sitemap darían
-  500 sin aviso). Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
+  falsearla. **Requisito:** el repo no define la configuración de Traefik (`trustedIPs`/`forwardedHeaders`) ni lo que haya delante; debe
+  mandar `X-Forwarded-For` con la IP del cliente. Si hubiera Cloudflare u otro proxy delante, todas las IPs serían las suyas: habría que
+  sumar sus rangos con `set_real_ip_from` y usar `real_ip_header CF-Connecting-IP`. **Contenido viejo:** NO se usa `proxy_cache_use_stale`.
+  Se probó con nginx real (upstream que responde 200 y luego 502, con tráfico continuo) que, con `use_stale error …`, la entrada se seguía
+  sirviendo vieja sin límite (a los 5, 12, 20 y 40 s con `max-age=3, stale-if-error=3`): el `stale-if-error` del upstream **no** la acota
+  (tiene menor prioridad que `proxy_cache_use_stale`) y una entrada con tráfico no vence por `inactive`. Sin stale, una tienda
+  desactivada o pausada deja de verse activa a lo sumo ~10 minutos después (5 de caché de nginx + `max-age=300` en el navegador o gateway:
+  esa es la ventana de «desactivada = desconocida», FR-025, con Supabase caído o no); si Supabase cae el buscador recibe 502 y reintenta.
+  `stale-if-error=300` queda en la cabecera de la función solo para gateways o CDN que lo respeten. **Qué se probó:** `nginx -t` valida solo
+  la sintaxis; `sh scripts/probar-nginx-tienda-seo.sh` prueba el comportamiento con nginx real en docker (IP tomada de `X-Forwarded-For`,
+  429 por IP + host, 429 al rotar el `Host`, otra IP o host sin afectarse, caché separada por host y sin contenido viejo con el upstream
+  caído; no corre en CI para no saturar los runners) y `supabase/functions/tienda-seo/nginx.test.ts` fija en CI los valores exactos. El
+  `Dockerfile` **falla el build** si `VITE_SUPABASE_URL` o `VITE_SUPABASE_PUBLISHABLE_KEY` quedan vacíos (sin ellos el `proxy_pass` queda
+  roto y robots/sitemap darían 500 sin aviso). Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
 - **Front**: `lib/tiendaSeo.ts` (`useSeoTienda`, una lectura por host), `pages/tienda-publica/seo/CabeceraSeo.tsx` (título «<página> | <empresa>»
   ≤ 60, descripción ≤ 160, canónica `https://<dominio canónico><ruta sin filtros>`, Open Graph y `robots`; limpia al salir de la página) y
   `seo/datosEstructurados.ts` (JSON-LD `Organization` en el inicio y `Product` en la ficha: `priceCurrency` ARS, `price` solo si es

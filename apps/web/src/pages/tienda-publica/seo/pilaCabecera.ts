@@ -4,6 +4,8 @@
 //  * `robots`: una sola meta; `noindex` gana sobre cualquier otra declaración.
 //  * título: gana la declaración de mayor prioridad (las `noindex` van primero) y, a igual prioridad, la última;
 //    al quedar la pila vacía se restaura el título que había antes de la primera declaración.
+// Limitación conocida: ese título «base» se captura una vez; si algo externo cambia `document.title` mientras hay
+// cabeceras montadas, al vaciarse la pila se restaura el base original (no el cambio externo). Hoy nada más lo toca.
 
 const MARCA = 'data-tienda-seo'
 
