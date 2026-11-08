@@ -81,9 +81,13 @@ select is((select count(*)::int from analitica.margen_producto_canal), 4, 'una f
 -- ============================================================================
 -- El rol de CI no es miembro de superset_analitica: se lo agrega dentro de la transacción (el rollback lo deshace).
 do $$ begin execute format('grant superset_analitica to %I', current_user); end $$;
+create temp table resultado_superset (n integer);
+grant all on resultado_superset to public;
 set local role superset_analitica;
-select is((select count(*)::int from analitica.margen_producto_canal), 4, 'Superset consulta el margen actual sin permission denied');
+insert into resultado_superset select count(*)::int from analitica.margen_producto_canal;
 reset role;
+select is((select n from resultado_superset), 4, 'Superset consulta el margen actual sin permission denied');
+delete from resultado_superset;
 
 -- ============================================================================
 -- Historia: la carga más cercana entre las generales y las de la empresa
@@ -123,8 +127,9 @@ select is(pg_temp.hist('e1000000-0000-0000-0000-000000000002', interval '1 minut
 select is(pg_temp.hist('e1000000-0000-0000-0000-000000000001', interval '1 minute', interval '-1 minute', 'costo'), 17000::numeric,
   'y el costo en USD se convierte con esa cotización (USD 10 × 1.700)');
 set local role superset_analitica;
-select ok((select count(*) from analitica.margen_historico_producto_canal) > 0, 'Superset consulta la historia sin permission denied');
+insert into resultado_superset select count(*)::int from analitica.margen_historico_producto_canal;
 reset role;
+select ok((select n from resultado_superset) > 0, 'Superset consulta la historia sin permission denied');
 select is(analitica.cotizacion_cercana('11111111-1111-1111-1111-111111111111', now(), 'e1000000-0000-0000-0000-000000000001'), 1700::numeric,
   'cotizacion_cercana por empresa devuelve la carga de Mundo JC');
 
