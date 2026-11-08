@@ -83,6 +83,27 @@ describe('exportarProductos', () => {
     expect(resultado.csv).toContain('A\r\nB')
   })
 
+  it('pide el total solo en la primera página y lleva la cuenta de lo entregado para el tope', async () => {
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({ data: { filas: [{ id: '1', sku: 'A' }], siguiente: '1', total: 2, tope: 50000, recortado: false }, error: null })
+      .mockResolvedValueOnce({ data: { filas: [{ id: '2', sku: 'B' }], siguiente: null, total: null, tope: 50000, recortado: null }, error: null })
+    const progreso = vi.fn()
+    const resultado = await exportarProductos({ rpc } as never, { filtros: {}, columnas: ['sku'], alProgresar: progreso })
+    expect(rpc.mock.calls.map((c) => [c[1].p_entregadas, c[1].p_con_total])).toEqual([[0, true], [1, false]])
+    // El total de la primera página se conserva para el progreso de las siguientes.
+    expect(progreso.mock.calls).toEqual([[1, 2], [2, 2]])
+    expect(resultado).toMatchObject({ productos: 2, recortado: false, tope: 50000 })
+  })
+
+  it('avisa cuando el filtro superaba el tope del archivo (recortado)', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: { filas: [{ id: '1', sku: 'A' }], siguiente: null, total: 60000, tope: 50000, recortado: true }, error: null })
+    const progreso = vi.fn()
+    const resultado = await exportarProductos({ rpc } as never, { filtros: {}, columnas: ['sku'], alProgresar: progreso })
+    expect(resultado).toMatchObject({ recortado: true, tope: 50000 })
+    // El progreso nunca promete más que el tope.
+    expect(progreso).toHaveBeenCalledWith(1, 50000)
+  })
+
   it('propaga el error de la base y respeta la cancelación', async () => {
     await expect(exportarProductos({ rpc: vi.fn().mockResolvedValue({ data: null, error: new Error('42501') }) } as never, { filtros: {}, columnas: ['sku'] })).rejects.toThrow('42501')
     const control = new AbortController()

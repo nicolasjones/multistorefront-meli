@@ -3,7 +3,7 @@
 -- precios ni costos. `anon` no ejecuta.
 begin;
 
-select plan(18);
+select plan(25);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -33,8 +33,8 @@ begin
   set local role authenticated;
 end $$;
 
-select is(has_function_privilege('anon', 'public.exportar_productos(jsonb, text[], uuid, integer)', 'EXECUTE'), false, 'anon no ejecuta exportar_productos');
-select is(has_function_privilege('authenticated', 'public.exportar_productos(jsonb, text[], uuid, integer)', 'EXECUTE'), true, 'authenticated ejecuta exportar_productos');
+select is(has_function_privilege('anon', 'public.exportar_productos(jsonb, text[], uuid, integer, integer, boolean)', 'EXECUTE'), false, 'anon no ejecuta exportar_productos');
+select is(has_function_privilege('authenticated', 'public.exportar_productos(jsonb, text[], uuid, integer, integer, boolean)', 'EXECUTE'), true, 'authenticated ejecuta exportar_productos');
 
 -- Operador: no es Administrador.
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
@@ -86,6 +86,40 @@ select is(
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'producto.exportado' and detalle ~ '49|20\.|precio_lista'),
   0, 'actividad: sin valores de precio ni costo');
+
+-- Filtro «Compatible con» (hallazgo 9): las filas, no solo el total.
+select is(
+  (select jsonb_agg(x ->> 'sku' order by x ->> 'sku')
+     from jsonb_array_elements(public.exportar_productos('{"compatible": ["ps5"]}', array['sku']) -> 'filas') x),
+  '["CAR-1", "JOY-1"]'::jsonb,
+  'compatible: devuelve los productos de la variante (sin distinguir mayúsculas), incluso el inactivo');
+select is(
+  (select jsonb_agg(x ->> 'sku' order by x ->> 'sku')
+     from jsonb_array_elements(public.exportar_productos('{"compatible": ["switch", "xbox"], "estado": "inactivos"}', array['sku']) -> 'filas') x),
+  null::jsonb,
+  'compatible + inactivos: se combinan (Switch solo lo tiene el joystick, que está activo)');
+
+-- Total solo cuando se pide (hallazgo 5): las páginas siguientes no recalculan el conjunto.
+select is(
+  (select public.exportar_productos('{}', array['sku'], (select (r ->> 'siguiente')::uuid from pagina1), 2, 2) ->> 'total'),
+  null,
+  'paginación: las páginas siguientes no calculan el total');
+select is(
+  (select (public.exportar_productos('{}', array['sku'], (select (r ->> 'siguiente')::uuid from pagina1), 2, 2, true) ->> 'total')::int),
+  3,
+  'p_con_total pide el total real en cualquier página');
+select is(
+  (select (r ->> 'total')::int || '/' || (r ->> 'tope') || '/' || (r ->> 'recortado') from pagina1),
+  '3/50000/false',
+  'la primera página trae total, tope de 50.000 y recortado=false');
+
+-- Tope total: con 49.999 ya entregados solo sale 1 producto y no hay página siguiente.
+select is(
+  (select jsonb_array_length(r -> 'filas') || '/' || coalesce(r ->> 'siguiente', 'sin siguiente')
+     from (select public.exportar_productos('{}', array['sku'], '00000000-0000-0000-0000-000000000000', 5, 49999) as r) t),
+  '1/sin siguiente',
+  'tope: se corta en 50.000 productos aunque queden más');
+select throws_ok($$select public.exportar_productos('{}', array['sku'], null, 5, -1)$$, '22023', null, 'p_entregadas negativo se rechaza');
 reset role;
 
 -- Administrador sin Rentabilidad: costo y proveedor se rechazan (42501). El Administrador no se puede restringir
