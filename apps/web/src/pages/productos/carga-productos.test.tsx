@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -29,7 +29,16 @@ const VALIDADAS = [
   { fila: 3, sku: '', accion: 'nuevo', estado: 'error', mensaje: 'Falta el SKU' },
 ]
 
-const abrir = () => render(<MemoryRouter><ProductoCarga /></MemoryRouter>)
+const IMPORTACION = '5b1c9c2e-7f3a-4d51-9a0e-0c2f4a6b8d10'
+
+function Ubicacion() {
+  const ubicacion = useLocation()
+  return <output data-testid="ubicacion">{ubicacion.pathname + ubicacion.search}</output>
+}
+
+const abrir = (entrada = '/productos/carga') => render(
+  <MemoryRouter initialEntries={[entrada]}><ProductoCarga /><Ubicacion /></MemoryRouter>,
+)
 const elegirCsv = async (texto = CSV) => {
   const archivo = new File([texto], 'productos.csv', { type: 'text/csv' })
   fireEvent.change(await screen.findByTestId('entrada-csv'), { target: { files: [archivo] } })
@@ -43,7 +52,8 @@ describe('ProductoCarga', () => {
     mocks.subir.mockResolvedValue({ error: null })
     mocks.rpc.mockImplementation(async (nombre: string) => {
       if (nombre === 'validar_importacion_productos') return { data: VALIDADAS, error: null }
-      if (nombre === 'solicitar_importacion_productos') return { data: { importacion_id: 'imp-1', estado: 'en_cola', importables: 1, omitidas: 1 }, error: null }
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      if (nombre === 'solicitar_importacion_productos') return { data: { importacion_id: IMPORTACION, estado: 'en_cola', importables: 1, omitidas: 1, reutilizada: false }, error: null }
       return { data: { estado: 'terminada', procesadas: 1, omitidas: 1, errores: [{ fila: 3, sku: '', mensaje: 'Falta el SKU' }] }, error: null }
     })
   })
@@ -79,7 +89,8 @@ describe('ProductoCarga', () => {
     abrir()
     await elegirCsv('sku,nombre\n1,a\n')
     expect(await screen.findByText(/Faltan columnas obligatorias: categoria/)).toBeTruthy()
-    expect(mocks.rpc).not.toHaveBeenCalled()
+    // Solo la comprobación de la conexión al abrir: la planilla no llega al servidor.
+    expect(mocks.rpc.mock.calls.map(([nombre]) => nombre)).toEqual(['importacion_productos_habilitada'])
   })
 
   it('Cancelar descarta la vista previa sin persistir nada (FR-107)', async () => {
@@ -107,7 +118,8 @@ describe('ProductoCarga', () => {
   ])('muestra el estado %s (FR-111)', async (estado, rotulo) => {
     mocks.rpc.mockImplementation(async (nombre: string) => {
       if (nombre === 'validar_importacion_productos') return { data: VALIDADAS, error: null }
-      if (nombre === 'solicitar_importacion_productos') return { data: { importacion_id: 'imp-1', estado: 'en_cola', importables: 1, omitidas: 1 }, error: null }
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      if (nombre === 'solicitar_importacion_productos') return { data: { importacion_id: IMPORTACION, estado: 'en_cola', importables: 1, omitidas: 1 }, error: null }
       return { data: { estado, procesadas: 0, omitidas: 0, mensaje_fallo: 'Falló el worker', errores: [] }, error: null }
     })
     abrir()
@@ -133,6 +145,113 @@ describe('ProductoCarga', () => {
     fireEvent.change(await screen.findByTestId('entrada-imagenes'), { target: { files: [buenas, mala] } })
     expect(await screen.findByText('1 imagen cargada')).toBeTruthy()
     expect(screen.getByText('«b.gif» no es JPG, PNG ni WebP.')).toBeTruthy()
+    expect(mocks.subir).toHaveBeenCalledTimes(1)
+  })
+
+  it('la importación en seguimiento queda en la URL y se rehidrata al volver o recargar (hallazgo 6)', async () => {
+    const primera = abrir()
+    await elegirCsv()
+    fireEvent.click(await screen.findByRole('button', { name: 'Importar 1 producto' }))
+    await screen.findByText('Terminada')
+    expect(screen.getByTestId('ubicacion').textContent).toBe(`/productos/carga?importacion=${IMPORTACION}`)
+    primera.unmount()
+
+    // «Volver» a la pantalla con la URL guardada: sin elegir ningún archivo se ve el estado de esa importación.
+    mocks.rpc.mockClear()
+    abrir(`/productos/carga?importacion=${IMPORTACION}`)
+    expect(await screen.findByText('Terminada')).toBeTruthy()
+    expect(mocks.rpc).toHaveBeenCalledWith('obtener_importacion_productos', { p_importacion_id: IMPORTACION })
+    expect(screen.queryByText('Elegir CSV')).toBeNull()
+  })
+
+  it('un id de importación inválido en la URL se ignora y una inexistente (P0002) limpia la URL', async () => {
+    abrir('/productos/carga?importacion=no-es-un-uuid')
+    expect(await screen.findByText('Elegir CSV')).toBeTruthy()
+    expect(mocks.rpc.mock.calls.some(([nombre]) => nombre === 'obtener_importacion_productos')).toBe(false)
+
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      return { data: null, error: { code: 'P0002', message: 'La importación no existe' } }
+    })
+    abrir(`/productos/carga?importacion=${IMPORTACION}`)
+    expect(await screen.findByText(/No encontramos esa importación/)).toBeTruthy()
+    await waitFor(() => expect(screen.getAllByTestId('ubicacion').at(-1)?.textContent).toBe('/productos/carga'))
+  })
+
+  it('«Importar otro archivo» limpia la importación de la URL', async () => {
+    abrir()
+    await elegirCsv()
+    fireEvent.click(await screen.findByRole('button', { name: 'Importar 1 producto' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Importar otro archivo' }))
+    await waitFor(() => expect(screen.getByTestId('ubicacion').textContent).toBe('/productos/carga'))
+  })
+
+  it('sin la conexión del importador avisa antes de pedir el CSV y no deja elegir archivos (hallazgo 7)', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => (nombre === 'importacion_productos_habilitada' ? { data: false, error: null } : { data: null, error: null }))
+    abrir()
+    expect(await screen.findByText(/todavía no tiene habilitada la importación de productos/)).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Elegir CSV' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Elegir imágenes' }) as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('si la misma clave ya tenía una importación lo avisa (hallazgo 10)', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'validar_importacion_productos') return { data: VALIDADAS, error: null }
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      if (nombre === 'solicitar_importacion_productos') return { data: { importacion_id: IMPORTACION, estado: 'aplicando', importables: 1, omitidas: 1, reutilizada: true }, error: null }
+      return { data: { estado: 'aplicando', procesadas: 0, omitidas: 0, errores: [] }, error: null }
+    })
+    abrir()
+    await elegirCsv()
+    fireEvent.click(await screen.findByRole('button', { name: 'Importar 1 producto' }))
+    expect(await screen.findByText(/ya se había solicitado/)).toBeTruthy()
+  })
+
+  it('avisa cuántos productos quedaron sin imágenes, también si la importación falló', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      return { data: { estado: 'fallida', procesadas: 3, omitidas: 0, sin_imagenes: 2, mensaje_fallo: 'Falló', errores: [] }, error: null }
+    })
+    abrir(`/productos/carga?importacion=${IMPORTACION}`)
+    expect(await screen.findByText(/2 productos quedaron sin imágenes/)).toBeTruthy()
+  })
+
+  it('el mensaje final separa las filas omitidas por un error temporal', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
+      return { data: { estado: 'terminada', procesadas: 4, omitidas: 3, omitidas_temporales: 1, errores: [] }, error: null }
+    })
+    abrir(`/productos/carga?importacion=${IMPORTACION}`)
+    expect(await screen.findByText(/2 omitidos por error y 1 omitido por un error temporal/)).toBeTruthy()
+  })
+
+  it('un doble clic en «Importar» solicita una sola vez', async () => {
+    abrir()
+    await elegirCsv()
+    const boton = await screen.findByRole('button', { name: 'Importar 1 producto' })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    await screen.findByText('Terminada')
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'solicitar_importacion_productos')).toHaveLength(1)
+  })
+
+  it('si falla el procesamiento de las imágenes lo informa y la pantalla sigue usable (catch de elegirImagenes)', async () => {
+    mocks.subir.mockRejectedValue(new Error('storage caído'))
+    abrir()
+    const buena = new File([new Uint8Array([1, 2, 3])], 'a.jpg', { type: 'image/jpeg' })
+    fireEvent.change(await screen.findByTestId('entrada-imagenes'), { target: { files: [buena] } })
+    expect(await screen.findByText('No pudimos procesar las imágenes.')).toBeTruthy()
+    expect((screen.getByRole('button', { name: 'Elegir imágenes' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('un nombre de imagen repetido entre selecciones conserva la primera y avisa (hallazgo 8)', async () => {
+    abrir()
+    const entrada = await screen.findByTestId('entrada-imagenes')
+    fireEvent.change(entrada, { target: { files: [new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' })] } })
+    await screen.findByText('1 imagen cargada')
+    fireEvent.change(entrada, { target: { files: [new File([new Uint8Array([2])], 'a.jpg', { type: 'image/jpeg' })] } })
+    expect(await screen.findByText(/«a\.jpg» ya estaba cargada: se mantiene la primera/)).toBeTruthy()
+    expect(screen.getByText('1 imagen cargada')).toBeTruthy()
     expect(mocks.subir).toHaveBeenCalledTimes(1)
   })
 })
