@@ -1283,9 +1283,9 @@
     },
     "docs/tecnico/catalogo-compatibilidad-y-planillas.md": {
       "title": "Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)",
-      "pageHash": "7158286a9da2cba52f35d0429697c22f5bcba2532a236833d1e72528186bfa76",
+      "pageHash": "19d62e2aff990b54afb957da34f6fbdf6b0774993b84eb53b6ead8f552abcd46",
       "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
-      "sourceAt": "8759345d",
+      "sourceAt": "e6042b72",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1295,7 +1295,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "5b338969"
     },
     "docs/tecnico/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (técnico)",

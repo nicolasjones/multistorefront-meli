@@ -79,7 +79,7 @@ Principio VII (esquema por naturaleza): lo del producto va en `dominio`; el cont
 | `carga` | `jsonb` | Las 12 columnas de la plantilla (más `fila`), cada una acotada a 1000 caracteres; una clave extra del archivo no se guarda |
 | `resultado` / `resultado_mensaje` | `text` | `pendiente` (por defecto) · `aplicada` · `omitida` |
 | `producto_id` / `aplicada_en` | `uuid` / `timestamptz` | Producto resultante |
-| `intentos` | `smallint` | Fallos transitorios registrados por el worker; al tercero la fila queda `omitida` («No se pudo aplicar tras varios intentos») |
+| `intentos` | `smallint` | Fallos transitorios registrados por el worker; al tercero la fila queda `omitida` («Error temporal repetido; volvé a importar esta fila»); solo cuentan errores con SQLSTATE 40/53/55/57 |
 | `imagenes_pendientes` | `boolean` | `true` en una fila `aplicada` cuyas imágenes el worker todavía no adjuntó ni confirmó (migración `20270215500000`) |
 
 Los índices parciales `importaciones_productos_filas_pendientes_idx` e `importaciones_productos_filas_imagenes_idx` aceleran `filas_pendientes_importacion_productos`.
@@ -197,7 +197,7 @@ Todas en `public`, `security definer`, `search_path = ''`; organización y actor
 |---|---|---|
 | `validar_importacion_productos(p_filas jsonb, p_clave uuid default null)` | `table (fila, sku, accion, estado, mensaje)` | `42501` no es Administrador · `22023` `FILAS_INVALIDAS` (no es lista, vacía o más de 2000) |
 | `solicitar_importacion_productos(p_filas jsonb, p_clave uuid default gen_random_uuid())` | `jsonb { importacion_id, estado, importables, omitidas, reutilizada }` | `42501` · `22023` `CLAVE_INVALIDA`, `FILAS_INVALIDAS` (fuera de 1…2000 o «ninguna fila se puede importar») · `P0001` `SIN_CONEXION_IMPORTACION` |
-| `obtener_importacion_productos(p_importacion_id uuid)` | `jsonb { estado, procesadas, omitidas, sin_imagenes, errores[{fila, sku, mensaje}], mensaje_fallo }` (`sin_imagenes`: productos aplicados cuyas imágenes no se adjuntaron, también en una importación `fallida`; la pantalla lo avisa) | `42501` · `P0002` «La importación no existe» |
+| `obtener_importacion_productos(p_importacion_id uuid)` | `jsonb { estado, procesadas, omitidas, omitidas_temporales, sin_imagenes, errores[{fila, sku, mensaje}], mensaje_fallo }` (`sin_imagenes`: productos aplicados cuyas imágenes no se adjuntaron, también en una importación `fallida`; la pantalla lo avisa) | `42501` · `P0002` «La importación no existe» |
 
 Comportamiento de `solicitar_importacion_productos`:
 
