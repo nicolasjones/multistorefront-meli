@@ -7,8 +7,8 @@ Productos y solo la ve el Administrador. No tiene ítem de menú.
 ## Flujo
 
 1. **Archivos.** El navegador lee el CSV (UTF-8, `,` o `;`, con o sin BOM; hasta 2.000 filas) y las
-   imágenes (ZIP o sueltas, JPG/PNG/WebP de hasta 2 MB, máximo 500). De un ZIP no se expande más de 500
-   entradas ni más de 100 MB descomprimidos, y si dos carpetas traen el mismo nombre se usa la primera y se
+   imágenes (ZIP o sueltas, JPG/PNG/WebP de hasta 2 MB, máximo 500). De los ZIP de una misma carga no se expande más de 500
+   entradas ni más de 100 MB descomprimidos en total, y si dos carpetas traen el mismo nombre se usa la primera y se
    avisa. Las imágenes se suben al bucket temporal `productos-importaciones` bajo
    `<organización>/<clave>/<archivo>`.
 2. **Vista previa.** `validar_importacion_productos` evalúa cada fila (FR-105) sin persistir nada. La

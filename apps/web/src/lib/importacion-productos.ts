@@ -181,6 +181,10 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
     imagenes.set(nombre, { nombre, tipo: tipoDeNombreImagen(nombre), blob })
   }
 
+  // Los topes del ZIP valen por importación (todos los ZIP de la misma llamada), no por archivo.
+  let aceptadas = 0
+  let bytesAceptados = 0
+
   for (const archivo of archivos) {
     if (/\.zip$/i.test(archivo.name)) {
       if (archivo.size > MAX_BYTES_ZIP) {
@@ -192,8 +196,6 @@ export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesL
         // El filtro corre antes de descomprimir: no se expande lo que ya sabemos que no sirve, ni más de
         // `MAX_IMAGENES_CARGA` entradas ni más de `MAX_BYTES_DESCOMPRIMIDO_ZIP` en total (un ZIP muy comprimible
         // no debe agotar la memoria del navegador).
-        let aceptadas = 0
-        let bytesAceptados = 0
         let recortadas = 0
         const nombresVistos = new Set<string>()
         const repetidas: string[] = []
