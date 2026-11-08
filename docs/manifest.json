@@ -13,14 +13,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "4326819f7058a29b7a46afa897732591719502f69e6bb2263749a9317d509e83",
+      "pageHash": "9f7a781e4977d2b5def209be8881c5776030ec01cf003639c911c241329a7795",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "8f5c0001",
+      "sourceAt": "22331d47",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "fdd3dcd1"
+      "commit": "dc8c0e42"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -351,14 +351,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "a0ea66639ffdc7b05f3b3e657c35eab3c5283e7d6961a7eaa16bb5a6e179e7d5",
+      "pageHash": "f9c350ad5234345c5358a9be38310ed44c1e707f01deb9db9857d598a1fb4079",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "8f5c0001",
+      "sourceAt": "22331d47",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "fdd3dcd1"
+      "commit": "dc8c0e42"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -380,12 +380,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "67e436ddd07d58797b507ccc002a282c3f665a7ea87da3a6cf9cabe1ad7b4daa",
+      "pageHash": "f5296b1bcb4a5e25c79c04a2a20325b02cf0317579f14eed8a823d4299aeb833",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "dc8c0e42"
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
@@ -1181,14 +1181,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "a767b1e71bd517308a2ef1f090eee6af1a3b9d729990eb7b53c4a7b223aae286",
+      "pageHash": "b8741da0a6db507e677b88dcee77c28daa1fee177c91cc3ea489fcaf2011228c",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "6f26168e",
+      "sourceAt": "22331d47",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "29bf8f31"
+      "commit": "dc8c0e42"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1201,6 +1201,21 @@
       ],
       "owner": "tecnico",
       "commit": "2d033b4a"
+    },
+    "docs/tecnico/auditoria-y-soporte.md": {
+      "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
+      "pageHash": "532daa4f38d965e1eedcc6023cce0da97c751b68993d8e551b09e79324208591",
+      "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
+      "sourceAt": "22331d47",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src",
+        "infra/kestra/flows"
+      ],
+      "owner": "tecnico",
+      "commit": "dc8c0e42"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -1354,9 +1369,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "a66ea0f61f756806c96f0ba8caa94d75c9026df3199594b1f6fa2879e29d8dc5",
+      "pageHash": "a9f9b5e4e7f6c6165748651b2f8e046aaca82c96ba5b25784076c089c50e5697",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "6f26168e",
+      "sourceAt": "22331d47",
       "sources": [
         "supabase/migrations"
       ],

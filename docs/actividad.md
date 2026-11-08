@@ -19,7 +19,12 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
 - Filtros combinables: período (hoy / 7 / 30 días / todo), tienda, usuario y tipo; búsqueda
   «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); paginación
   en servidor («1–10 de N»).
-- Sin botón «Exportar» (fuera de alcance de esta historia).
+- Cada fila tiene **Ver detalle**: abre el detalle del evento y, campo por campo, el valor anterior → el nuevo
+  (F-AUD-02). Es solo consulta: no hay «deshacer»; un evento sin valores lo dice. Si cambiás de empresa con el
+  detalle abierto, se cierra con aviso.
+- Botón **Exportar** en el encabezado, solo para quien tiene nivel `edicion` en Actividad y la acción `exportar`
+  (por defecto, el Administrador): baja todo el filtro (no solo la página) como CSV, con tope de 50.000 filas.
+  Detalle técnico en [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md).
 
 ## Permisos
 
@@ -33,7 +38,8 @@ Los fija únicamente la matriz (`private.nivel_seccion('actividad')`), tanto en 
 | Consulta, Mostrador, Depósito, Miembro | `ninguno` | nada (sin menú, la ruta redirige, la consulta directa devuelve 0 filas) |
 
 Si la matriz cambia, la pantalla y la RLS siguen a la matriz sin tocar código. Nadie —tampoco el
-administrador— edita ni borra eventos desde la app: el registro es solo de agregado.
+administrador— edita ni borra eventos desde la app: el registro es solo de agregado e **inalterable**
+(triggers `before update/delete/truncate`; ver [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md)).
 
 ## Esquema de datos
 

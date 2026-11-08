@@ -808,6 +808,28 @@ Fuente: `supabase/migrations/20261206100000`–`20261206110100` y
 - **Helper interno:** `private.precio_final_publico_escala(producto, empresa, escala)` no tiene `grant` a
   `anon`/`authenticated`; el pgTAP de paridad lo compara con `private.precio_para(...).final`.
 
+### Auditoría avanzada y soporte (MSF-170)
+
+Fuente: `supabase/migrations/20270207100001…`, `20270207100002…`, `20270207100003…` y
+`20270210110000_exportar_actividad.sql` (integrada en `dokploy`, PR #762; aún no en `main`). Contratos
+completos, datos y prueba: [Auditoría avanzada y soporte](auditoria-y-soporte.md).
+
+| RPC / función | Para qué | Seguridad |
+|---|---|---|
+| `public.obtener_detalle_actividad(p_id uuid)` | Evento con `valor_anterior`, `valor_nuevo` y `sensible`. | `security invoker`; `authenticated`; 0 filas sin permiso; `anon` no ejecuta |
+| `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_desplazamiento, p_limite)` | Todo el filtro por lotes con corte estable; tope de 50.000 filas. | `security definer` con `search_path = ''`, lectura acotada a la organización y nivel `edicion` + acción `exportar`; `42501` sin permiso |
+| `public.entrar_a_organizacion(org_id uuid, p_motivo text)` | **BREAKING**: reemplaza la versión de un argumento; exige motivo (≤ 500) y fija vencimiento a 4 h. | `security definer`; `42501` sin superadmin, `22023` sin motivo, `P0002` si la organización no existe |
+| `public.salir_de_organizacion()` | Cierra el acceso y registra `soporte.salida` o `soporte.vencido`. | `security definer`; `42501` sin superadmin |
+| `private.registrar_cambio_actividad(...)` / `private.insertar_cambio_actividad(...)` | Alta de eventos con antes/después; los tipos sensibles exigen ambos valores. | Solo internas; `22023` sin valores o > 8 KB; no las ejecutan `authenticated` ni `anon` |
+| `private.depurar_registro_actividad(p_hasta)` | Retención de 24 meses, idempotente y con evento `sistema.depurada`. | Solo `workers_orquestacion` y `kestra_orquestacion` |
+
+- **Inalterabilidad:** `update`, `delete` y `truncate` sobre `registro_actividad` devuelven `42501` para
+  cualquier rol; las únicas excepciones son la cascada de organización y la depuración autorizada.
+- **Vigencia del soporte:** `private.organizacion_id()` y los demás helpers leen
+  `private.superadmin_contexto_vigente`, así que un acceso vencido no ve ni escribe filas.
+- **Eventos:** `soporte.ingreso`, `soporte.salida`, `soporte.vencido` y `actividad.exportada` quedan en
+  `registro_actividad`; la exportación se registra una sola vez por archivo.
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).

@@ -3536,6 +3536,55 @@ Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md).
 | `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
 | `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |
 
+## Auditoría avanzada y soporte (MSF-170)
+
+Épica MSF-170 (historias F-AUD-02, F-AUD-03 y F-OPS-04). Todo es plataforma/transversal → **`public`**; no se crea nada en `dominio`. Migraciones aditivas `20270207100001_registro_inalterable_antes_despues.sql`, `20270207100002_depurar_registro_actividad.sql`, `20270207100003_acceso_soporte_auditado.sql` y `20270210110000_exportar_actividad.sql`. Detalle de contratos, UI y pruebas: [Auditoría avanzada y soporte](auditoria-y-soporte.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.tipos_evento_actividad` | **nueva** | Catálogo global de tipos de evento: `tipo` PK con formato `entidad.accion`, `sensible boolean not null default false`, `descripcion text`. RLS con `select` para `authenticated`, sin escritura desde la app y sin privilegios para `anon`. Se siembra por migración; un tipo ausente se trata como no sensible. |
+| `public.registro_actividad` | **alterada** | Agrega `valor_anterior jsonb` y `valor_nuevo jsonb` (nullable; objeto `{campo: valor}` de hasta 8 KB cada uno). Triggers `before update`, `before delete` y `before truncate` que rechazan con `42501`, más `revoke update, delete, truncate`. |
+| `public.superadmin_entradas` | **alterada** | Agrega `motivo text` (nullable, no vacío y ≤ 500 si está presente). Las filas anteriores quedan en `null`. |
+| `public.superadmin_organizacion_activa` | **alterada** | Agrega `vence_en timestamptz not null default now() + interval '4 hours'` y backfill de los contextos existentes. La vista `private.superadmin_contexto_vigente` excluye los vencidos. |
+| `public.organizaciones` | existente | FK `organizacion_id` de `registro_actividad` con `on delete cascade`; sin cambios de esquema. El trigger de inalterabilidad deja pasar solo el borrado en cascada cuando la organización ya no existe. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "organizacion_id"
+  ORGANIZACIONES ||--o{ SUPERADMIN_ENTRADAS : "organizacion_id"
+  ORGANIZACIONES ||--o| SUPERADMIN_ORGANIZACION_ACTIVA : "organizacion_id"
+  TIPOS_EVENTO_ACTIVIDAD ||--o{ REGISTRO_ACTIVIDAD : "tipo (lógico)"
+
+  TIPOS_EVENTO_ACTIVIDAD { text tipo PK
+    boolean sensible "nueva: exige antes y después"
+    text descripcion "nueva" }
+  REGISTRO_ACTIVIDAD { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id "opcional, sin FK"
+    uuid actor_id
+    text actor_nombre "foto al registrar"
+    text tipo "entidad.accion"
+    text detalle
+    jsonb valor_anterior "nueva: {campo: valor}, hasta 8 KB"
+    jsonb valor_nuevo "nueva: {campo: valor}, hasta 8 KB"
+    timestamptz creado_en }
+  SUPERADMIN_ENTRADAS { bigint id PK
+    uuid user_id FK
+    uuid organizacion_id FK
+    timestamptz entrado_en
+    text accion "entrada | salida"
+    text motivo "nueva: <= 500" }
+  SUPERADMIN_ORGANIZACION_ACTIVA { uuid user_id PK
+    uuid organizacion_id FK
+    timestamptz entrado_en
+    timestamptz vence_en "nueva: now() + 4 h" }
+```
+
+- **Inalterabilidad:** `update`, `delete` y `truncate` fallan con `42501` para cualquier rol. Únicas excepciones: el borrado en cascada de la organización y `private.depurar_registro_actividad` (retención de 24 meses, solo roles de servicio).
+- **Valores antes/después:** obligatorios en los tipos marcados `sensible` (alta → anterior `{}`; baja → nuevo `{}`); sin ellos o con más de 8 KB, `22023` y la operación de origen se revierte.
+- **Vigencia del soporte:** `vence_en` a 4 horas; `private.organizacion_id()` y los demás helpers leen `private.superadmin_contexto_vigente`, así que un acceso vencido no ve ni escribe filas.
+- **Reversión:** cada migración la documenta en su encabezado; los eventos ya escritos se conservan. Detalle en [Auditoría avanzada y soporte](auditoria-y-soporte.md#reversion).
+
 ## Mejoras de clientes y proveedores (MSF-445)
 
 Detalle y reversión en [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md).
