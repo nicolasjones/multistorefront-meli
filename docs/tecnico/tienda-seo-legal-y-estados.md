@@ -17,9 +17,12 @@ sources:
 (`MSF-263`), **F-TDA-21** SEO (`MSF-279`), **F-TDA-22** legal (`MSF-289`); cierre de la épica: `MSF-798`.
 Resumen para quien administra la tienda: [Páginas de estado, relacionados, Google y legales](../producto/tienda-seo-legal-y-estados.md).
 
-> **Estado del código:** la implementación vive en la rama `feat/story-MSF-798` (commit `b72a8e59`) y todavía no
-> está en `main` al escribir esta página. Las rutas citadas se verificaron contra esa rama. La guía consolidada
-> de la épica está en `docs/tiendas-online.md` (sección «Estados, relacionados, SEO y legal», misma rama).
+> **Estado del código:** la implementación está integrada en la rama `dokploy` (migraciones
+> `20270212100001` a `20270212100004`) y todavía no llegó a `main` al escribir esta página. Las rutas citadas se
+> verificaron contra `dokploy`. La guía consolidada de la épica está en `docs/tiendas-online.md` (sección «Estados,
+> relacionados, SEO y legal», también en `dokploy`). Las correcciones de la revisión independiente (caché y límite de
+> pedidos en nginx, tope del sitemap parametrizable, páginas en el sitemap, límites de enlaces legales) viven en el PR
+> `fix/msf-149-pendientes` contra `dokploy`: migraciones `20270216100000` y `20270216100100`.
 
 Depende de **MSF-191** (el 404 reutiliza `BuscadorTienda`). Bloquea a **MSF-164** (F-TDA-24 usa el contrato de
 cookies de F-TDA-22). El «no indexar» de borrador y vista previa lo agrega **MSF-133**: `indexable` queda como
@@ -31,10 +34,10 @@ punto de extensión.
 
 | Historia | Migración | Contenido | Reversión |
 |---|---|---|---|
-| F-TDA-22 | `supabase/migrations/20270125120000_tienda_legal.sql` | tabla `dominio.tienda_legal_enlaces` y `publico.legal_por_dominio` | `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;` |
-| F-TDA-19 | `supabase/migrations/20270205120000_tienda_estado_pausada.sql` | `publico.estado_tienda_por_dominio` | `drop function publico.estado_tienda_por_dominio(text);` |
-| F-TDA-20 | `supabase/migrations/20270205120001_tienda_relacionados.sql` | `publico.relacionados_por_dominio` | `drop function publico.relacionados_por_dominio(text, uuid);` |
-| F-TDA-21 | `supabase/migrations/20270205120002_tienda_seo.sql` | `publico.seo_tienda_por_dominio` y `publico.sitemap_por_dominio` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
+| F-TDA-22 | `supabase/migrations/20270212100001_tienda_legal.sql` | tabla `dominio.tienda_legal_enlaces` y `publico.legal_por_dominio` | `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;` |
+| F-TDA-19 | `supabase/migrations/20270212100002_tienda_estado_pausada.sql` | `publico.estado_tienda_por_dominio` | `drop function publico.estado_tienda_por_dominio(text);` |
+| F-TDA-20 | `supabase/migrations/20270212100003_tienda_relacionados.sql` | `publico.relacionados_por_dominio` | `drop function publico.relacionados_por_dominio(text, uuid);` |
+| F-TDA-21 | `supabase/migrations/20270212100004_tienda_seo.sql` | `publico.seo_tienda_por_dominio` y `publico.sitemap_por_dominio` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
 
 Orden de reversión: el inverso al de aplicación, en una migración posterior (no en el PR que las crea). Deshacer
 la épica entera: `git revert -m 1 <merge>`.
@@ -107,6 +110,11 @@ campos por producto ni hreflang · D4 sin prerender · D5 enlaces legales por SQ
 se confirma con el cliente · D7 cookies mínimas (Aceptar / Rechazar) · D8 Lighthouse SEO sin fallas, sin puntaje
 inventado. Detalle en `docs/tiendas-online.md`.
 
+**Quién puede pausar (verificado contra el RBAC real):** «Pausar tienda» actualiza `dominio.empresas.activa`; la política
+`empresas_update` exige `private.puede_escribir()`, que hoy es el rol **Administrador** de la organización (o un superadmin
+con organización activa). Por eso «Pausar tienda es del Administrador» es correcto; no depende del nivel de la sección
+Empresas de un rol personalizado.
+
 ## Guía de prueba técnica
 
 pgTAP (`supabase/tests/database/`): `tienda_estado_pausada.test.sql`, `tienda_relacionados.test.sql`,
@@ -137,7 +145,13 @@ legales (otra historia dentro de Empresas) y el «no indexar» de borrador y vis
 
 - **Capturas** de «Volvemos pronto» (con marca y genérica), 404 con buscador, pantalla de error, «Productos
   relacionados», pie legal y aviso de cookies. **Dueño:** agente Documentador, con el stack local y la rama
-  `feat/story-MSF-798` (el código no está en `main`). Van en `docs/producto/img/tienda-seo-legal-y-estados/` y se
+  `dokploy` (el código todavía no está en `main`). Van en `docs/producto/img/tienda-seo-legal-y-estados/` y se
   referencian desde la página de producto. **Sin video.**
 - **Datos legales reales** de cada marca (razones sociales, CUIT, políticas y botones). **Dueño:** cliente /
   responsable de producto (D6).
+- **Verificación manual pendiente (SC-007):** Lighthouse (categoría SEO) no corre en el repo. Ejecutar
+  `npx lighthouse <url> --only-categories=seo` sobre inicio, catálogo, categoría, ficha y contacto de las dos tiendas y
+  validar el JSON-LD de la ficha con el Rich Results Test. **Criterio de aceptación:** sin fallas (D8), resultado adjunto
+  al PR de cierre.
+- **Cobertura de los E2E:** `tienda-seo.e2e.ts` y `tienda-estados.e2e.ts` hacen `test.skip` si el CI no levanta el stack
+  de Supabase; la cobertura real de la épica es pgTAP + `handler.test.ts` + Vitest.
