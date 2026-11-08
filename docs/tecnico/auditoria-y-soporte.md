@@ -97,10 +97,17 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
 ## F-AUD-03 — Exportar la actividad
 
 - RPC `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte,
-  p_desplazamiento, p_limite)` (`20270210110000…`), `security definer` con `search_path = ''`. El spec
-  pedía `security invoker`; se pasó a `definer` porque necesita registrar `actividad.exportada` y
+  p_cursor_creado_en, p_cursor_id, p_limite, p_entregadas, p_exportacion, p_con_total)`, `security definer`
+  con `search_path = ''`. Nació en `20270210110000` con paginación por desplazamiento y la reemplazó
+  `20270214300001` (fix de la revisión retroactiva de MSF-278), que **elimina** la firma de 9 parámetros. El
+  spec pedía `security invoker`; se pasó a `definer` porque necesita registrar `actividad.exportada` y
   `authenticated` no escribe en `registro_actividad`. La lectura se acota explícitamente a
   `private.organizacion_id()`.
+- Paginación por cursor `(creado_en, id)`: cada lote lee solo su página y usa los índices de
+  `registro_actividad`. La primera llamada pide el total (`p_con_total`) y recibe el `corte`; las siguientes
+  reenvían `corte` y el cursor `siguiente`. Devuelve `{ filas, total, tope, recortado, corte, hay_mas,
+  siguiente }`. El cliente verifica que las filas bajadas coincidan con el total y, si no, lanza
+  `ExportacionIncompletaError` (nunca entrega un archivo parcial).
 - Permiso: nivel `edicion` en `actividad` **y** `private.puede_accion('actividad','exportar')`; en
   cualquier otro caso `42501`. `anon` y `public` no ejecutan. En la UI,
   `apps/web/src/components/actividad/BotonExportarActividad.tsx` solo renderiza el botón si se cumplen
@@ -111,17 +118,26 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
   recorte.
 - CSV (`apps/web/src/lib/exportarActividad.ts` sobre `lib/exportarCsv.ts`): UTF-8 con BOM, separador `;`,
   CRLF, columnas **Cuándo, Tipo, Tienda, Detalle, Quién**, hora de Buenos Aires, celdas que empiezan con
-  `= + - @` neutralizadas y nombre `actividad-AAAA-MM-DD.csv`. No lleva los valores antes/después.
+  `= + - @` neutralizadas y nombre `actividad-AAAA-MM-DD.csv`. No lleva los valores antes/después. Las
+  celdas con tabulación o retorno de carro también se neutralizan.
 - Estados (`useExportarActividad.ts`): «Exportando…», error con **Reintentar** sin descargar un archivo
   parcial, «No hay actividad para exportar.» y aviso de recorte. Cambiar la empresa activa invalida la
   exportación en curso (nunca se baja un archivo de otra empresa).
-- Constancia: al entregar la última fila se registra `actividad.exportada` («Exportó N registros…» con los
-  filtros en palabras), una sola vez por archivo; el tipo se da de alta como no sensible en
-  `tipos_evento_actividad`.
+- Constancia: al entregar la última página se registra `actividad.exportada` («Exportó N registros…» con
+  los filtros en palabras), una sola vez por exportación. El cliente genera un id por corrida
+  (`p_exportacion`) y `private.exportaciones_actividad` (clave primaria `(organizacion_id, usuario_id, id)`,
+  RLS activa y sin acceso para los roles de la API) lo guarda; reutilizar un id ya cerrado lanza `22023`. El
+  tipo se da de alta como no sensible en `tipos_evento_actividad`.
+- Límite conocido: `p_entregadas` y `p_exportacion` los manda el cliente, así que el tope de 50.000 y la
+  constancia dependen de que el cliente sea el de la app (ver «Limitaciones conocidas»).
 - Pruebas: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
-  `exportarActividad.test.tsx` y `BotonExportarActividad.test.tsx`.
-- Reversión: `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz,
-  integer, integer);` y borrar el tipo `actividad.exportada`.
+  `exportarActividad.test.tsx` y `BotonExportarActividad.test.tsx`; E2E
+  `apps/web/e2e/actividad-exportar.e2e.ts`.
+- Reversión (migración posterior; las migraciones aplicadas no se editan): para volver al contrato
+  anterior hay que eliminar la firma de 13 parámetros, `drop function
+  public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer,
+  integer, uuid, boolean);`, y `drop table private.exportaciones_actividad;`; y recién entonces recrear la
+  de `20270210110000`. El tipo `actividad.exportada` se borra de `tipos_evento_actividad`.
 
 ## F-OPS-04 — Acceso de soporte auditado
 
@@ -161,15 +177,21 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
 | Administrador | Sí (`edicion`) | Sí, con la acción `exportar` | Ve `soporte.*` de su organización |
 | Operador y Administración | Sí (`lectura`) | No | Ven `soporte.*` si la matriz les da lectura de Actividad |
 | Consulta, Mostrador, Depósito, Miembro | No | No | No |
-| Superadmin | Solo con organización activa | Según la matriz de esa organización | Entra con motivo y vence a las 4 h |
+| Superadmin | Solo con organización activa | Sí: en modo soporte `nivel_seccion` resuelve `edicion` y `puede_accion` resuelve `true` sin consultar la matriz de esa organización (lo prueba el pgTAP) | Entra con motivo y vence a las 4 h |
 
-La matriz manda: si cambia el nivel o la acción, la pantalla y la RLS siguen sin tocar código.
+La matriz manda para los roles de la organización: si cambia el nivel o la acción, la pantalla y la RLS
+siguen sin tocar código. Exportar exige las dos cosas a la vez (nivel `edicion` y acción `exportar`): un
+Operador con la acción pero con nivel `lectura` recibe `42501`. La spec (FR-010/FR-011) decía que por
+defecto exportaban Administrador, Operador y Administración; el código es más estricto a propósito (solo el
+Administrador, de hecho) y la spec no se actualizó.
 
 ## Operación y despliegue
 
 - Orden de migraciones: `…100001` (F-AUD-02), `…100002` (depuración), `…100003` (F-OPS-04) y
-  `20270210110000` (exportación). Todas son aditivas salvo el reemplazo declarado de
-  `entrar_a_organizacion`; la reversión está en el encabezado de cada una.
+  `20270210110000` (exportación) y `20270214300001` (exportación por cursor y constancia idempotente; elimina la
+  firma anterior de `exportar_actividad`). Todas son aditivas salvo el reemplazo declarado de
+  `entrar_a_organizacion` y de la firma de `exportar_actividad`; la reversión está en el encabezado de cada
+  una.
 - La reescritura de los helpers de organización activa toca todas las RLS: desplegar primero en staging y
   correr `aislamiento_organizaciones` (riesgo anotado en `plan.md`).
 - Kestra: flow `depuracion-actividad` con el rol `kestra_orquestacion`; no agrega variables de entorno
@@ -222,8 +244,9 @@ solo en base local/staging.
 - Vitest: `[MSF-170:T012]` (`DetalleActividadDialog`), `[MSF-170:T020]` (`AccesoSoporte`) y
   `[MSF-170:T023]`/`[MSF-170:T026]` (botón y CSV de exportación).
 - Kestra: `[MSF-170:T011]` (`validar-depuracion-actividad.test.mjs`, `pnpm infra:config`).
-- **Pendiente de automatizar:** no hay E2E de Actividad ni del acceso de soporte; los recorridos de los pasos
-  1–10 se cubrirían con un E2E nuevo (propuesta de rótulo `[MSF-170:T029]`, cierre) sobre la suite Playwright
+- E2E: `apps/web/e2e/actividad-exportar.e2e.ts` cubre la exportación (CA-AUD-03-1, 3 y 4).
+- **Pendiente de automatizar:** no hay E2E del detalle del evento ni del acceso de soporte; esos recorridos
+  se cubrirían con un E2E nuevo (propuesta de rótulo `[MSF-170:T029]`, cierre) sobre la suite Playwright
   (`docs/e2e-app.md`).
 
 ## Pendientes
@@ -231,9 +254,40 @@ solo en base local/staging.
 - TODO (dueño: Documentación/QA): capturas del manual para el detalle, la exportación, el diálogo de motivo y
   el banner en `docs/producto/img/actividad/` con `pnpm docs:capturas`; no se pudieron generar porque el
   código de la épica no está en esta rama y el comando no existe todavía en `package.json`.
-- TODO (dueño: QA): automatizar el E2E de Actividad (detalle y exportación) y del acceso de soporte; hoy
-  quedan cubiertos por pgTAP y Vitest.
+- TODO (dueño: QA): automatizar el E2E del detalle de Actividad y del acceso de soporte; hoy quedan cubiertos
+  por pgTAP y Vitest (la exportación ya tiene su E2E).
 - TODO (dueño: Producto): confirmar con el cliente la retención de 24 meses, el plazo de 4 horas del acceso
   de soporte y la lista de eventos sensibles (hoy usuarios y permisos).
 - TODO (dueño: Ingeniería): al fusionar la épica en `main`, verificar las rutas citadas, regenerar el
   inventario y el manifest de `docs/` y quitar la nota de «rama sin fusionar».
+
+## Limitaciones conocidas (revisión independiente de la épica)
+
+Revisión QA y Code/Security hecha sobre el código de `dokploy`; ninguna es bloqueante. Las que piden migración
+no se corrigieron porque no se pueden probar con pgTAP sin Supabase local.
+
+- **Constancia de exportación y tope (medio).** `actividad.exportada` se registra solo al entregar la última
+  página, y `p_entregadas` y `p_exportacion` los manda el cliente. Quien llame a la RPC directo (con edición
+  y la acción `exportar`) puede paginar y detenerse antes de la última página sin dejar constancia, o mandar
+  `p_entregadas = 0` para saltear el tope de 50.000. Arreglo previsto: registrar la constancia en la primera
+  llamada o llevar el conteo del lado servidor en `private.exportaciones_actividad`.
+- **Inalterabilidad (medio).** Los triggers de `registro_actividad` son comunes y no `ENABLE ALWAYS`, así que
+  un rol con `session_replication_role = replica` o `alter table … disable trigger` los saltea. Hoy
+  `authenticated`, `anon` y `service_role` no tienen privilegios de escritura. Arreglo previsto: `alter table
+  public.registro_actividad enable always trigger …` para el trigger de fila y el de `truncate`.
+- **Vencimiento del soporte sin registro (medio).** `soporte.vencido` y la salida solo se asientan si el
+  superadmin vuelve a llamar a entrar o salir, o si su pestaña sigue abierta y el banner llama a salir al
+  vencer. Si cierra el navegador, el Administrador de la organización ve el ingreso con su «hasta HH:MM» pero
+  nunca la salida ni el vencimiento (FR-016). Arreglo previsto: un flow de Kestra, como el de depuración,
+  que cierre los accesos vencidos y los registre.
+- **Bajo.**
+  - `superadmin_entradas` no tiene trigger append-only: solo carece de grants de escritura.
+  - La reescritura de helpers por expresión regular en `20270207100003` es frágil hacia adelante; el pgTAP
+    `acceso_soporte_vigencia` es la guardia: una migración futura no debe leer
+    `superadmin_organizacion_activa` directo, siempre la vista `private.superadmin_contexto_vigente`.
+  - Reingresar con acceso vigente renueva las 4 h sin límite acumulado (cada vez pide motivo y queda
+    `soporte.ingreso`).
+  - `private.exportaciones_actividad` crece una fila por exportación sin purga.
+  - Cuando el filtro excede el tope, la primera llamada ya trajo hasta 1.000 filas al navegador sin descarga
+    ni constancia.
+  - Faltan tests de borde: 8192 y 8193 bytes exactos, y la depuración con `p_hasta` futuro.

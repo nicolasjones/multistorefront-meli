@@ -1233,9 +1233,9 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "532daa4f38d965e1eedcc6023cce0da97c751b68993d8e551b09e79324208591",
+      "pageHash": "5d115b93b09de3e2edfaf41787a2c09244c6390ab1a77ff0821b3c2a0d7874b4",
       "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
-      "sourceAt": "22331d47",
+      "sourceAt": "2650f139",
       "sources": [
         "specs",
         "supabase/migrations",
