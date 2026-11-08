@@ -22,6 +22,7 @@ Todas son aditivas. Las versiones se asignaron al integrar la épica con `dokplo
 | `20270213100006_precios_propios_calculo.sql` | el precio propio rige en `precio_neto_empresa`, `precios_empresa_neto` y las vistas previas | `private` / `public` |
 | `20270213100007_alertas_inicio_respeta_aviso.sql` | `recalcular_alertas_inicio` respeta el aviso configurado | `public` (solo `service_role`) |
 | `20270213200001_simulador_precio_propio.sql` | `previsualizar_precios_empresa` suma `precio_propio` | `public` |
+| `20270216400000_confirmar_comprobante_cotizacion_por_empresa.sql` | `confirmar_comprobante` guarda costo y cotización de cada línea con la cotización de la empresa del comprobante (`private.cotizacion_para`) | `public` |
 
 ## Revisión de seguridad de la épica (T039, FR-028)
 
@@ -33,3 +34,16 @@ Todas son aditivas. Las versiones se asignaron al integrar la épica con `dokplo
 - **Mercado Libre**: el precio propio no genera cola ni columna propia (FR-020).
 - **Hallazgo corregido**: la vista previa del simulador convertía el precio central con la cotización de la **organización** aunque la empresa tuviera una propia, así que podía mostrar un central distinto del que cobra la tienda. Ahora usa la de la empresa, igual que `precios_empresa_neto`.
 - **Verificación**: pgTAP `cotizacion_configuracion`, `cotizacion_alcance`, `precios_propios_empresa` y `simulador_precio_propio`, más `rls_en_toda_tabla` y los tests de `anon`, que corren en el job `database` del CI.
+
+## Auditoría de lectores de `cotizacion_aplicada` (hallazgo bloqueante de la revisión)
+
+`dominio.cotizacion_aplicada` pasó a una fila por empresa (20270213100002). Un lector que la consulta solo por organización puede devolver varias filas (error 21000 en una subconsulta escalar) o la cotización equivocada. Revisados todos los lectores de `cotizacion_aplicada`, `cotizacion_inicial` y `a_pesos` en `supabase/`, `workers/` y `apps/web/src`:
+
+| Lector | Resultado |
+|---|---|
+| `public.confirmar_comprobante` (20270202201006) | **Arreglado** en 20270216400000: la subconsulta sin `empresa_id` fallaba con alcance «empresa» y el costo usaba la cotización general. Ahora `private.cotizacion_para(org, empresa)` y `private.a_pesos` de 4 argumentos con la empresa del comprobante. |
+| `private.cotizacion_para`, `private.cotizacion_vigente_para`, `cotizacion_estado` (20270213100002/100004) | No aplica: filtran por `empresa_id` (igual o nulo) y por alcance. |
+| `previsualizar_cambio_alcance`, `cambiar_alcance_cotizacion`, `confirmar_cotizacion` (20270213100003/100004) | No aplica: insertan o borran con `empresa_id` explícito; las lecturas pasan por `cotizacion_para`. |
+| `private.a_pesos` de 3 argumentos y sus usuarios (`productos_precio_costo`, `analitica.a_pesos`, inventario valorizado) | No fallan (leen solo la fila general, `empresa_id is null`, una por organización): valorizan con la cotización general. Limitación declarada: con alcance «empresa» ignoran la cotización propia, porque no tienen empresa. |
+| Joins a `cotizacion_inicial` (vistas de margen y `productos_precio_costo`) | No aplica: es una fila por organización, no duplica filas. |
+| Workers, funciones de borde y `apps/web/src` | No leen `cotizacion_aplicada`: la web solo lee `cotizacion_inicial` (una fila). |
