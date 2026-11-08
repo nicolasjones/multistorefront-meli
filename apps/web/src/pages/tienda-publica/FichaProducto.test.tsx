@@ -83,7 +83,8 @@ describe('Ficha de producto · evento de medición (RF-TDA-24-2)', () => {
   it('emite vista_producto una vez al abrir la ficha, sin datos del producto', async () => {
     montar()
     await screen.findByRole('heading', { level: 1, name: 'Joystick Pro' })
-    expect(mocks.evento).toHaveBeenCalledTimes(1)
+    // El efecto que registra el evento corre después del pintado: se espera (bajo carga del CI llegaba tarde).
+    await waitFor(() => expect(mocks.evento).toHaveBeenCalledTimes(1))
     expect(mocks.evento).toHaveBeenCalledWith('vista_producto')
   })
   it('una ficha inexistente no emite nada', async () => {

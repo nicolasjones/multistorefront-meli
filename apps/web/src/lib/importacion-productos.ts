@@ -73,11 +73,16 @@ export type ImportacionObtenida = {
   importables: number
   procesadas: number
   omitidas: number
+  /** Productos aplicados cuyas imágenes no llegaron a adjuntarse (también si la importación cerró como fallida). */
+  sin_imagenes?: number
+  /** Omitidas por un error temporal repetido (no por sus datos): se pueden volver a importar. */
+  omitidas_temporales?: number
   mensaje_fallo: string | null
   errores: ErrorFila[]
 }
 
-export type ResultadoSolicitud = { importacion_id: string; estado: EstadoImportacion; importables: number; omitidas: number }
+/** `reutilizada`: la clave ya tenía una importación; se devolvió esa y las filas enviadas ahora NO se tomaron. */
+export type ResultadoSolicitud = { importacion_id: string; estado: EstadoImportacion; importables: number; omitidas: number; reutilizada?: boolean }
 
 // Importes: acepta «1200», «1200,50» y «1.200,50» (Excel en castellano) y los lleva a «1200.50». Lo que
 // no se reconoce queda como vino: el servidor lo marca como error con su motivo.
@@ -161,78 +166,177 @@ export function validarImagenCarga(nombre: string, bytes: number): string | null
 
 export type ImagenesLeidas = { imagenes: ImagenCarga[]; rechazadas: string[] }
 
+/** Topes de una carga de imágenes; parametrizables para probar el de bytes sin crear 100 MB. */
+export type LimitesImagenes = { maxImagenes: number; maxBytesZip: number; maxBytesDescomprimido: number }
+export const LIMITES_IMAGENES_POR_DEFECTO: LimitesImagenes = {
+  maxImagenes: MAX_IMAGENES_CARGA,
+  maxBytesZip: MAX_BYTES_ZIP,
+  maxBytesDescomprimido: MAX_BYTES_DESCOMPRIMIDO_ZIP,
+}
+
+/**
+ * Regla única para nombres repetidos (hallazgo 8): GANA LA PRIMERA. Vale entre carpetas de un mismo ZIP, entre archivos
+ * (ZIP o sueltos) de una misma selección y entre selecciones sucesivas de la pantalla (lo ya cargado manda); la
+ * repetida se descarta y se avisa. Para reemplazar una imagen hay que cancelar y volver a cargarla.
+ */
+
+/** ¿Trae el registro de fin de directorio central (EOCD, `PK\x05\x06`) en los últimos 22 + 65535 bytes? Un ZIP vacío es solo eso. */
+export function tieneRegistroFinalZip(datos: Uint8Array): boolean {
+  if (datos.length < 22) return false
+  const desde = Math.max(0, datos.length - 22 - 65535)
+  for (let i = datos.length - 22; i >= desde; i -= 1) {
+    if (datos[i] === 0x50 && datos[i + 1] === 0x4b && datos[i + 2] === 0x05 && datos[i + 3] === 0x06) return true
+  }
+  return false
+}
+
+/** Tamaño de cada empuje al lector de ZIP en streaming. */
+const REBANADA_ZIP = 16 * 1024
+
 const nombreBase = (ruta: string) => ruta.split(/[\\/]/).pop() ?? ruta
 
 /** Junta archivos sueltos y ZIP (se abren acá) en una lista de imágenes válidas y los motivos de rechazo. */
-export async function leerImagenes(archivos: readonly File[]): Promise<ImagenesLeidas> {
+export async function leerImagenes(archivos: readonly File[], limites: LimitesImagenes = LIMITES_IMAGENES_POR_DEFECTO): Promise<ImagenesLeidas> {
   const imagenes = new Map<string, ImagenCarga>()
   const rechazadas: string[] = []
 
+  // Nombres vistos en esta llamada, aunque la primera ocurrencia se haya rechazado (inválida, >2 MB…): «gana la primera»
+  // se decide por el NOMBRE visto, no por lo que quedó aceptado.
+  const nombresVistos = new Set<string>()
+
   const agregar = (nombre: string, bytes: number, blob: Blob) => {
+    if (nombresVistos.has(nombre)) {
+      rechazadas.push(`«${nombre}» ya estaba entre los archivos elegidos: se usó la primera.`)
+      return
+    }
+    nombresVistos.add(nombre)
+    aceptar(nombre, bytes, blob)
+  }
+
+  // Valida y suma una imagen cuyo nombre ya se marcó como visto (los ZIP lo marcan al ver la entrada).
+  const aceptar = (nombre: string, bytes: number, blob: Blob) => {
     const motivo = validarImagenCarga(nombre, bytes)
     if (motivo) {
       rechazadas.push(motivo)
       return
     }
-    if (imagenes.size >= MAX_IMAGENES_CARGA && !imagenes.has(nombre)) {
-      rechazadas.push(`«${nombre}» no entra: el máximo es ${MAX_IMAGENES_CARGA} imágenes por importación.`)
+    if (imagenes.size >= limites.maxImagenes) {
+      rechazadas.push(`«${nombre}» no entra: el máximo es ${limites.maxImagenes} imágenes por importación.`)
       return
     }
     imagenes.set(nombre, { nombre, tipo: tipoDeNombreImagen(nombre), blob })
   }
 
   // Los topes del ZIP valen por importación (todos los ZIP de la misma llamada), no por archivo.
-  let aceptadas = 0
-  let bytesAceptados = 0
+  // Bytes realmente descomprimidos: `originalSize` viene de la cabecera del ZIP y puede mentir.
+  let bytesReales = 0
 
   for (const archivo of archivos) {
     if (/\.zip$/i.test(archivo.name)) {
-      if (archivo.size > MAX_BYTES_ZIP) {
-        rechazadas.push(`«${archivo.name}» pesa más de ${MAX_BYTES_ZIP / (1024 * 1024)} MB.`)
+      if (archivo.size > limites.maxBytesZip) {
+        rechazadas.push(`«${archivo.name}» pesa más de ${limites.maxBytesZip / (1024 * 1024)} MB.`)
         continue
       }
       try {
-        const { unzipSync } = await import('fflate')
-        // El filtro corre antes de descomprimir: no se expande lo que ya sabemos que no sirve, ni más de
-        // `MAX_IMAGENES_CARGA` entradas ni más de `MAX_BYTES_DESCOMPRIMIDO_ZIP` en total (un ZIP muy comprimible
-        // no debe agotar la memoria del navegador).
+        const { Unzip, UnzipInflate, UnzipPassThrough } = await import('fflate')
+        // Descompresión en streaming: se cuentan los bytes REALES de cada entrada y el total a medida que salen
+        // (la cabecera, `originalSize`, puede mentir). Al pasar un tope la entrada se termina (`terminate`), se
+        // descarta lo ya acumulado de ella y, si es el tope total, se deja de empujar el resto del ZIP.
         let recortadas = 0
-        const nombresVistos = new Set<string>()
-        const repetidas: string[] = []
-        const contenido = unzipSync(new Uint8Array(await archivo.arrayBuffer()), {
-          filter: (entrada) => {
-            const nombre = nombreBase(entrada.name)
-            if (entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') ||
-              entrada.originalSize > MAX_BYTES_IMAGEN_IMPORTACION || !tipoDeNombreImagen(nombre)) return false
-            if (nombresVistos.has(nombre)) {
-              repetidas.push(nombre)
-              return false
+        let recortadasPorPeso = 0
+        let invalido = false
+        let detenido = false
+        let entradasVistas = 0
+        let entradasCerradas = 0
+        const repetidas = new Set<string>()
+        const pesadas: string[] = []
+        const lector = new Unzip()
+        lector.register(UnzipInflate)
+        lector.register(UnzipPassThrough)
+        lector.onfile = (entrada) => {
+          const nombre = nombreBase(entrada.name)
+          entradasVistas += 1
+          if (detenido || entrada.name.endsWith('/') || entrada.name.startsWith('__MACOSX') || !tipoDeNombreImagen(nombre)) {
+            entradasCerradas += 1
+            return
+          }
+          if (nombresVistos.has(nombre)) {
+            repetidas.add(nombre)
+            entradasCerradas += 1
+            return
+          }
+          nombresVistos.add(nombre)
+          if (imagenes.size >= limites.maxImagenes) {
+            recortadas += 1
+            entradasCerradas += 1
+            return
+          }
+          const trozos: Uint8Array[] = []
+          let pesoEntrada = 0
+          let descartada = false
+          entrada.ondata = (error, trozo, final) => {
+            if (error) {
+              invalido = true
+              return
             }
-            if (aceptadas >= MAX_IMAGENES_CARGA || bytesAceptados + entrada.originalSize > MAX_BYTES_DESCOMPRIMIDO_ZIP) {
-              recortadas += 1
-              return false
+            if (descartada) return
+            if (final) entradasCerradas += 1
+            pesoEntrada += trozo.length
+            if (pesoEntrada > MAX_BYTES_IMAGEN_IMPORTACION || bytesReales + pesoEntrada > limites.maxBytesDescomprimido) {
+              descartada = true
+              entradasCerradas += 1
+              trozos.length = 0
+              entrada.terminate()
+              if (pesoEntrada > MAX_BYTES_IMAGEN_IMPORTACION) pesadas.push(nombre)
+              else {
+                recortadasPorPeso += 1
+                detenido = true
+              }
+              return
             }
-            nombresVistos.add(nombre)
-            aceptadas += 1
-            bytesAceptados += entrada.originalSize
-            return true
-          },
-        })
-        for (const nombre of new Set(repetidas)) {
-          rechazadas.push(`«${nombre}» aparece más de una vez en «${archivo.name}»: se usó la primera.`)
+            trozos.push(trozo)
+            if (final) {
+              const bytes = new Uint8Array(pesoEntrada)
+              let posicion = 0
+              for (const parte of trozos) {
+                bytes.set(parte, posicion)
+                posicion += parte.length
+              }
+              bytesReales += pesoEntrada
+              aceptar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
+            }
+          }
+          entrada.start()
         }
+        // Se empuja en rebanadas chicas: entre una y otra se puede cortar, y lo que se infla de golpe queda acotado
+        // (deflate expande como mucho ~1000 veces: 16 KB comprimidos ≤ ~16 MB transitorios).
+        const datos = new Uint8Array(await archivo.arrayBuffer())
+        for (let desde = 0; desde < datos.length && !detenido && !invalido; desde += REBANADA_ZIP) {
+          const hasta = Math.min(desde + REBANADA_ZIP, datos.length)
+          lector.push(datos.subarray(desde, hasta), hasta === datos.length)
+        }
+        // Un archivo no vacío que no emitió ninguna entrada (basura) o que dejó entradas sin terminar (truncado) no es un ZIP válido.
+        // Sin entradas: solo es válido un ZIP vacío (un registro EOCD, `PK\x05\x06`); la basura no tiene esa estructura.
+        const sinEstructura = entradasVistas === 0 && !tieneRegistroFinalZip(datos)
+        if (invalido || (!detenido && datos.length > 0 && (sinEstructura || entradasCerradas < entradasVistas))) {
+          throw new Error('ZIP inválido')
+        }
+        for (const nombre of repetidas) {
+          rechazadas.push(`«${nombre}» aparece más de una vez (en «${archivo.name}» o entre los archivos elegidos): se usó la primera.`)
+        }
+        for (const nombre of pesadas) rechazadas.push(`«${nombre}» pesa más de 2 MB una vez descomprimida.`)
         if (recortadas > 0) {
-          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${MAX_IMAGENES_CARGA} imágenes o ${MAX_BYTES_DESCOMPRIMIDO_ZIP / (1024 * 1024)} MB descomprimidos por importación).`)
+          rechazadas.push(`«${archivo.name}»: ${recortadas} imagen(es) no entran (máximo ${limites.maxImagenes} imágenes por importación).`)
         }
-        for (const [ruta, bytes] of Object.entries(contenido)) {
-          const nombre = nombreBase(ruta)
-          agregar(nombre, bytes.length, new Blob([bytes as BlobPart], { type: tipoDeNombreImagen(nombre) }))
+        if (recortadasPorPeso > 0) {
+          rechazadas.push(`«${archivo.name}»: se superó el máximo de ${limites.maxBytesDescomprimido / (1024 * 1024)} MB descomprimidos por importación; se dejó de leer el ZIP y lo que faltaba se descartó.`)
         }
       } catch {
         rechazadas.push(`No pudimos abrir «${archivo.name}». Verificá que sea un ZIP válido.`)
       }
       continue
     }
+    // Los sueltos no necesitan tope de bytes propio: cada uno pesa a lo sumo 2 MB y el tope de cantidad los acota.
     agregar(archivo.name, archivo.size, archivo)
   }
   return { imagenes: [...imagenes.values()], rechazadas }
@@ -279,11 +383,26 @@ export async function solicitarImportacion(filas: readonly FilaImportacion[], cl
   return data as ResultadoSolicitud
 }
 
+/** ¿La organización tiene la conexión `importar-productos`? Se consulta al abrir la pantalla, antes de pedir el CSV. */
+export async function importacionHabilitada(): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('importacion_productos_habilitada')
+  if (error) throw error
+  return data === true
+}
+
 export async function obtenerImportacion(importacionId: string): Promise<ImportacionObtenida> {
   const { data, error } = await supabaseClient.rpc('obtener_importacion_productos', { p_importacion_id: importacionId })
   if (error) throw error
   return data as ImportacionObtenida
 }
+
+/** Parámetro de la URL que guarda la importación en seguimiento: sobrevive a salir de la pantalla y a recargar. */
+export const PARAMETRO_IMPORTACION = 'importacion'
+const UUID_IMPORTACION = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const importacionDeUrl = (valor: string | null): string | null => (valor && UUID_IMPORTACION.test(valor) ? valor : null)
+
+export const AVISO_IMPORTACION_REUTILIZADA =
+  'Esta importación ya se había solicitado con el mismo archivo de trabajo: te mostramos la existente. Las filas que enviaste ahora no se tomaron; para importar otras, elegí «Importar otro archivo».'
 
 export const contarPorEstado = (filas: readonly FilaValidada[], estado: EstadoValidacion) => filas.filter((fila) => fila.estado === estado).length
 export const contarImportables = (filas: readonly FilaValidada[]) => filas.filter((fila) => fila.estado !== 'error').length
@@ -295,8 +414,17 @@ export const ROTULO_ESTADO: Readonly<Record<EstadoImportacion, string>> = {
   fallida: 'Fallida',
 }
 
-export function mensajeFinal(procesadas: number, omitidas: number): string {
-  return `Importación terminada. ${procesadas} ${procesadas === 1 ? 'producto procesado' : 'productos procesados'}, ${omitidas} ${omitidas === 1 ? 'omitido' : 'omitidos'} por error. Ya figuran en Catálogo · Productos.`
+export const mensajeSinImagenes = (cantidad: number) =>
+  `${cantidad} ${cantidad === 1 ? 'producto quedó' : 'productos quedaron'} sin imágenes: se importaron, pero sus fotos no se pudieron adjuntar. Subilas desde la ficha de cada producto.`
+
+export function mensajeFinal(procesadas: number, omitidas: number, temporales = 0): string {
+  const porDatos = Math.max(omitidas - temporales, 0)
+  const procesados = `${procesadas} ${procesadas === 1 ? 'producto procesado' : 'productos procesados'}`
+  const omitidosPorDatos = `${porDatos} ${porDatos === 1 ? 'omitido' : 'omitidos'} por error`
+  const omitidosTemporales = temporales > 0
+    ? ` y ${temporales} ${temporales === 1 ? 'omitido' : 'omitidos'} por un error temporal (volvé a importar ${temporales === 1 ? 'esa fila' : 'esas filas'})`
+    : ''
+  return `Importación terminada. ${procesados}, ${omitidosPorDatos}${omitidosTemporales}. Ya figuran en Catálogo · Productos.`
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -320,6 +448,6 @@ export function mensajeDeErrorImportacion(error: unknown, porDefecto: string): s
   const e = error as { code?: string; message?: string } | null
   if (e?.code === '42501') return 'No tenés permiso para importar productos. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '22023' && e.message) return e.message.replace(/^[A-Z_]+:\s*/, '')
-  if (e?.message?.startsWith('SIN_CONEXION_IMPORTACION')) return 'Tu organización todavía no tiene habilitada la importación de productos. Pedile a soporte que la active.'
+  if (e?.message?.startsWith('SIN_CONEXION_IMPORTACION')) return 'Tu organización todavía no tiene habilitada la importación de productos. Un Administrador tiene que crear la conexión «importar-productos» (servidor y credencial).'
   return porDefecto
 }

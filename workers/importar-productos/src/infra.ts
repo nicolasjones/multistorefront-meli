@@ -68,12 +68,36 @@ export function crearPuertos(env: Record<string, string | undefined>): { puertos
       );
       return r.rows[0].estado;
     },
+    async confirmarImagenes(id, filaId) {
+      await pool.query('select private.confirmar_imagenes_fila_importacion_productos($1::uuid, $2::uuid)', [id, filaId]);
+    },
+    async temporalesABorrar(id, dias, incluirImportacion) {
+      const r = await pool.query<{ ruta: string }>(
+        'select n as ruta from private.imagenes_temporales_a_borrar($1::uuid, $2::integer, $3::boolean) n',
+        [id, dias, incluirImportacion],
+      );
+      return r.rows.map((fila) => fila.ruta);
+    },
+    async registrarFallo(id, filaId) {
+      const r = await pool.query<{ intentos: number }>('select private.registrar_fallo_fila_importacion_productos($1::uuid, $2::uuid) as intentos', [id, filaId]);
+      return Number(r.rows[0].intentos);
+    },
+    async borrarTemporales(rutas) {
+      if (rutas.length === 0) return;
+      // Storage API: borra varios objetos de un bucket por su ruta completa (Storage no se borra por SQL en self-hosted).
+      const respuesta = await fetch(`${baseUrl}/storage/v1/object/${BUCKET_TEMPORAL}`, {
+        method: 'DELETE',
+        headers: { ...cabeceras, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefixes: rutas }),
+      });
+      if (!respuesta.ok) throw new Error(`BORRADO_FALLIDO:${respuesta.status}`);
+    },
     async cerrarImportacion(id, estado, mensaje) {
-      const r = await pool.query<{ r: { procesadas: number; omitidas: number } }>(
+      const r = await pool.query<{ r: { procesadas: number; omitidas: number; sin_imagenes?: number } }>(
         'select private.cerrar_importacion_productos($1::uuid, $2::text, $3::text) as r',
         [id, estado, mensaje],
       );
-      return { procesadas: Number(r.rows[0].r.procesadas), omitidas: Number(r.rows[0].r.omitidas) };
+      return { procesadas: Number(r.rows[0].r.procesadas), omitidas: Number(r.rows[0].r.omitidas), sin_imagenes: Number(r.rows[0].r.sin_imagenes ?? 0) };
     },
     async cerrarEjecucion(id, estado, motivo, detalle) {
       await pool.query('select public.cerrar_ejecucion_worker($1::uuid, $2::text, $3::text, $4::jsonb)', [id, estado, motivo, JSON.stringify(detalle)]);
