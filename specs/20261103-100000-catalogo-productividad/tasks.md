@@ -16,16 +16,16 @@
 
 ## Phase 1: Edición masiva (F-CAT-12 · supabase + refine)
 
-- [ ] T001 [F-CAT-12][US1] Migración `20261103100000_catalogo_edicion_masiva.sql`: `mover_productos_categoria`, `cambiar_estado_productos`, `definir_empresas_productos` según `contracts/edicion-masiva.md` (`security invoker`, atómicas, tope 100, `revoke … public, anon`, `grant … authenticated`, reversión en el encabezado; ninguna tabla) (FR-006; verificación: T002)
-- [ ] T002 [P] [F-CAT-12][US1] pgTAP `supabase/tests/database/catalogo_edicion_masiva.test.sql` (verifica FR-006): dos organizaciones, lectura rechazada, `anon` sin acceso, un id inválido no cambia nada, tope 100, idempotencia, un evento por producto con cambio real, `rls_en_toda_tabla` verde (SC-001)
-- [ ] T003 [P] [F-CAT-12][US1] `useSeleccionProductos` y la casilla por fila y de encabezado «Seleccionar todos», solo con `edicion` (FR-001)
-- [ ] T004 [P] [F-CAT-12][US1] `BarraSeleccion`: «N seleccionados», «Mover de categoría», «Cambiar estado», «Cambiar empresas», «Quitar selección» (FR-002)
-- [ ] T005 [P] [F-CAT-12][US1] `MoverCategoriaDialog` con el árbol de categorías, texto y aviso del prototipo (FR-003)
-- [ ] T006 [P] [F-CAT-12][US1] `CambiarEstadoDialog` Activar / Desactivar con confirmación y aviso (FR-004)
-- [ ] T007 [P] [F-CAT-12][US1] `CambiarEmpresasDialog` con `SelectorEmpresas` para «Agregar a» y «Quitar de» (FR-005)
-- [ ] T008 [P] [F-CAT-12][US1] `lib/edicionMasiva.ts` + hook de ejecución con carga, error con selección intacta y éxito; foco y teclado de los diálogos (FR-008)
-- [ ] T009 [F-CAT-12][US1] Integrar en `pages/productos/list.tsx`: casillas, barra y diálogos (carga diferida); invalidar consultas, reencuadrar paginación, descartar selección y cerrar diálogos al cambiar empresa, página, filtro o búsqueda (FR-007)
-- [ ] T010 [F-CAT-12][US1] Vitest en `list.test.tsx` de pantalla (casillas, barra, tres diálogos, error, solo lectura, cambio de empresa, 320/768/1440, teclado) y E2E `catalogo-productividad.e2e.ts`: mover, desactivar y asignar empresa a 3 productos (SC-002; también verifica FR-001…FR-005, FR-007, FR-008)
+- [x] T001 [F-CAT-12][US1] Migración `20261103100000_catalogo_edicion_masiva.sql`: `mover_productos_categoria`, `cambiar_estado_productos`, `definir_empresas_productos` según `contracts/edicion-masiva.md` (`security invoker`, atómicas, tope 100, `revoke … public, anon`, `grant … authenticated`, reversión en el encabezado; ninguna tabla) (FR-006; verificación: T002) Desvío: migración renumerada a `20270215100000` y tope de 100 medido antes del dedup en `20270215400000` (MSF-392).
+- [x] T002 [P] [F-CAT-12][US1] pgTAP `supabase/tests/database/catalogo_edicion_masiva.test.sql` (verifica FR-006): dos organizaciones, lectura rechazada, `anon` sin acceso, un id inválido no cambia nada, tope 100, idempotencia, un evento por producto con cambio real, `rls_en_toda_tabla` verde (SC-001)
+- [x] T003 [P] [F-CAT-12][US1] `useSeleccionProductos` y la casilla por fila y de encabezado «Seleccionar todos», solo con `edicion` (FR-001) Desvío: RF-CAT-12-1 «seleccionar todos los resultados» no se construye; la casilla marca solo las filas cargadas, tope 100 (decisión de Nicolás).
+- [x] T004 [P] [F-CAT-12][US1] `BarraSeleccion`: «N seleccionados», «Mover de categoría», «Cambiar estado», «Cambiar empresas», «Quitar selección» (FR-002)
+- [x] T005 [P] [F-CAT-12][US1] `MoverCategoriaDialog` con el árbol de categorías, texto y aviso del prototipo (FR-003)
+- [x] T006 [P] [F-CAT-12][US1] `CambiarEstadoDialog` Activar / Desactivar con confirmación y aviso (FR-004)
+- [x] T007 [P] [F-CAT-12][US1] `CambiarEmpresasDialog` con `SelectorEmpresas` para «Agregar a» y «Quitar de» (FR-005)
+- [x] T008 [P] [F-CAT-12][US1] `lib/edicionMasiva.ts` + hook de ejecución con carga, error con selección intacta y éxito; foco y teclado de los diálogos (FR-008)
+- [x] T009 [F-CAT-12][US1] Integrar en `pages/productos/list.tsx`: casillas, barra y diálogos (carga diferida); invalidar consultas, reencuadrar paginación, descartar selección y cerrar diálogos al cambiar empresa, página, filtro o búsqueda (FR-007) Desvío: RF-CAT-12-3 evento único `producto.edicion_masiva` no se construye; sale un evento por producto con cambio real (decisión de Nicolás).
+- [x] T010 [F-CAT-12][US1] Vitest en `list.test.tsx` de pantalla (casillas, barra, tres diálogos, error, solo lectura, cambio de empresa, 320/768/1440, teclado) y E2E `catalogo-productividad.e2e.ts`: mover, desactivar y asignar empresa a 3 productos (SC-002; también verifica FR-001…FR-005, FR-007, FR-008)
 
 **Checkpoint**: se cambia categoría, estado y empresas de varios productos; `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 
