@@ -69,4 +69,14 @@ describe('columna «Información» del pie (FR-007, SC-002)', () => {
     expect(await screen.findByTestId('pie-informacion')).toBeInTheDocument()
     expect(screen.getByTestId('pie-contacto')).toBeInTheDocument()
   })
+
+  it('tolera el tope de 50 páginas: muestra las 50 y no más aunque la respuesta traiga de más', async () => {
+    mocks.leerEnlaces.mockResolvedValue(Array.from({ length: 60 }, (_, i) => ({ titulo: `Página ${i + 1}`, slug: `pagina-${i + 1}` })))
+    const { container } = montar()
+
+    expect(await screen.findByRole('heading', { name: 'Información' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link')).toHaveLength(50)
+    expect(screen.queryByRole('link', { name: 'Página 51' })).not.toBeInTheDocument()
+    expect(await violacionesAxe(container)).toEqual([])
+  })
 })

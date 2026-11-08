@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useWarnAboutChange } from '@refinedev/core'
 import { EstadoCargaPagina, EstadoError } from '../../../../components/estados/EstadosPagina'
+import { useNivelSeccion } from '../../../../hooks/useNivelSeccion'
 import {
   analiticaIgual,
   ErrorGuardadoAnalitica,
@@ -29,8 +30,14 @@ const CAMPOS: ReadonlyArray<{ clave: CampoAnalitica; etiqueta: string; ayuda: st
   },
 ]
 
+const MENSAJE_SIN_PERMISO = 'Tu rol no puede editar la analítica de la tienda.'
+
 function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & { inicial: AnaliticaTienda }) {
   const { setWarnWhen } = useWarnAboutChange()
+  // Solo para gatear la UI; la base es la autorización real. Sin nivel cargado (null) no se bloquea: la gestión ya
+  // exige edición en Empresas para llegar acá.
+  const { nivel } = useNivelSeccion('empresas')
+  const soloLectura = nivel === 'lectura' || nivel === 'ninguno'
   const [guardado, setGuardado] = useState<AnaliticaTienda>(inicial)
   const [valores, setValores] = useState<AnaliticaTienda>(inicial)
   const [errores, setErrores] = useState<ErroresAnalitica>({})
@@ -87,6 +94,8 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
       console.error('No se pudo guardar la analítica de la tienda', error instanceof Error ? error.message : error)
       if (error instanceof ErrorGuardadoAnalitica && error.campo) {
         setErrores({ [error.campo]: error.message })
+      } else if (error instanceof ErrorGuardadoAnalitica && error.codigo === '42501') {
+        setErrorGeneral(MENSAJE_SIN_PERMISO)
       } else {
         setErrorGeneral('No pudimos guardar los cambios. Intentá de nuevo.')
       }
@@ -101,9 +110,17 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
         dónde enviar la medición y no dan acceso a nada.
       </Typography>
       {/* Es información permanente, no una alerta: `note` evita que un lector de pantalla la anuncie como urgente. */}
-      <Alert severity="info" role="note" sx={{ mb: 3 }}>
+      <Alert severity="info" role="note" sx={{ mb: 2 }}>
         Solo se cargan en la tienda publicada y si la persona acepta las cookies.
       </Alert>
+      <Alert severity="info" role="note" sx={{ mb: 3 }}>
+        No se envían datos del visitante: ni nombre, ni email, ni teléfono, ni lo que escribe en el buscador o en los formularios.
+        Solo viajan las visitas y cuatro acciones (ver un producto, buscar, tocar WhatsApp y enviar una consulta), sin su contenido.
+        Si la persona retira su consentimiento, la medición se apaga y se borran sus cookies. En tu propiedad de Google Analytics 4
+        desactivá la «Medición mejorada» (Administrar &gt; Flujos de datos &gt; tu flujo web): si no, Google suma por su cuenta visitas y
+        eventos de formularios que la tienda ya registra y las visitas se duplican.
+      </Alert>
+      {soloLectura ? <Alert severity="info" role="status" sx={{ mb: 2 }}>{MENSAJE_SIN_PERMISO} Podés verla, pero no cambiarla.</Alert> : null}
       <Stack spacing={2} sx={{ maxWidth: 520 /* estilos-sueltos: ok: ancho de lectura del formulario */ }}>
         {CAMPOS.map((campo) => (
           <TextField
@@ -117,7 +134,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
             placeholder={campo.ejemplo}
             fullWidth
             size="small"
-            disabled={guardando}
+            disabled={guardando || soloLectura}
             slotProps={{ htmlInput: { autoComplete: 'off', spellCheck: false } }}
           />
         ))}
@@ -127,8 +144,8 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
         {exito ? <Alert severity="success" role="status">Cambios guardados. Se aplican a la tienda publicada.</Alert> : null}
         {errorGeneral ? <Alert severity="error" role="alert">{errorGeneral}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
-          <Button onClick={descartar} disabled={!hayCambios || guardando}>Descartar</Button>
-          <Button variant="contained" onClick={() => void guardar()} disabled={!hayCambios || guardando}>Guardar</Button>
+          <Button onClick={descartar} disabled={!hayCambios || guardando || soloLectura}>Descartar</Button>
+          <Button variant="contained" onClick={() => void guardar()} disabled={!hayCambios || guardando || soloLectura}>Guardar</Button>
         </Stack>
       </Stack>
     </Box>

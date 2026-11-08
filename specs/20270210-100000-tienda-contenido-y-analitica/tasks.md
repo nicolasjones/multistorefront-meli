@@ -110,3 +110,11 @@ flowchart LR
   F24 --> Cierre
   F25 --> Cierre
 ```
+
+## Revisión independiente (QA y Code/Security) de la épica
+
+- [x] T029 [F-TDA-24] Revocar el consentimiento borra cookies y globales de medición y recarga si es seguro; Meta Pixel sin `autoConfig` ni coincidencia avanzada; cambio de ID de GA4 y scripts bloqueados (`lib/analiticaTienda.ts` y su Vitest). Ver commit de la rama `fix/msf-164-pendientes`.
+- [x] T030 [F-TDA-23] Tope de 50 páginas por empresa (`20270216300000_tienda_paginas_tope.sql`, pgTAP `tienda_paginas_tope.test.sql`), pie tolerante y bordes de 10000 / 10001 caracteres.
+- [x] T031 [F-TDA-23][F-TDA-24] Pestañas «Páginas» y «Analítica» en solo lectura y mensaje propio para `42501` (Vitest de rol sin permiso).
+- [x] T032 [F-TDA-24] CSP en modo reporte en `apps/web/nginx.conf`, tienda pausada sin medición (Vitest) y documentación (`docs/tiendas-online.md`). Desvío: la CSP queda en `Report-Only` con plan de endurecimiento documentado; el límite de frecuencia de las RPC públicas depende de PostgREST (no pasan por nginx).
+

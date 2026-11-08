@@ -5,7 +5,9 @@ vi.mock('./supabase', () => ({ supabaseClient: { schema: () => ({ rpc: mocks.rpc
 
 import { guardarConsentimiento, reiniciarConsentimientoEnMemoria } from './consentimientoCookies'
 import {
+  accionesPagina,
   cargarMedicion,
+  dominiosCookie,
   debeMedir,
   hayMedicionCargada,
   retirarMedicion,
@@ -20,9 +22,24 @@ import {
 const scripts = () => Array.from(document.head.querySelectorAll('script')).map((s) => s.getAttribute('src'))
 const IDS = { ga4_id: 'G-ABC123', meta_pixel_id: '123456789' }
 
+const recargar = vi.fn()
+const scriptCargado = (inicio: string) => {
+  const nodo = Array.from(document.head.querySelectorAll('script')).find((s) => s.getAttribute('src')?.startsWith(inicio))
+  nodo?.onload?.(new Event('load'))
+}
+const scriptFallido = (inicio: string) => {
+  const nodo = Array.from(document.head.querySelectorAll('script')).find((s) => s.getAttribute('src')?.startsWith(inicio))
+  nodo?.onerror?.(new Event('error'))
+}
+const cookiesActuales = () => document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter(Boolean)
+const borrarTodasLasCookies = () => cookiesActuales().forEach((n) => { document.cookie = `${n}=; max-age=0; path=/` })
+
 describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
   beforeEach(() => {
     reiniciarMedicionParaPruebas()
+    recargar.mockReset()
+    accionesPagina.recargar = recargar
+    borrarTodasLasCookies()
     window.localStorage.clear()
     reiniciarConsentimientoEnMemoria()
     guardarConsentimiento('aceptadas')
@@ -164,16 +181,18 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       const fbq = conPixel()
       registrarEventoTienda('clic_whatsapp')
       expect(capa()).toContainEqual(['event', 'clic_whatsapp'])
+      const capaViva = (window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer
 
       guardarConsentimiento('rechazadas')
       registrarEventoTienda('envio_contacto')
       registrarEventoTienda('vista_producto')
       registrarVisita('/x')
 
-      expect(capa().filter((e) => e[1] === 'envio_contacto' || e[1] === 'vista_producto' || e[1] === 'page_view')).toEqual([])
+      const capaFinal = capaViva.map((x) => Array.from(x))
+      expect(capaFinal.filter((e) => e[1] === 'envio_contacto' || e[1] === 'vista_producto' || e[1] === 'page_view')).toEqual([])
       expect(fbq).not.toHaveBeenCalledWith('trackSingleCustom', expect.anything(), 'envio_contacto')
       expect((window as unknown as Record<string, unknown>)['ga-disable-G-ABC123']).toBe(true)
-      expect(capa()).toContainEqual(['consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied' }])
+      expect(capaFinal).toContainEqual(['consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied' }])
       expect(fbq).toHaveBeenCalledWith('consent', 'revoke')
       expect(hayMedicionCargada()).toBe(false)
     })
@@ -196,7 +215,7 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       expect((window as unknown as Record<string, unknown>)['ga-disable-G-ABC123']).toBe(true)
       expect(capa()).toContainEqual(['config', 'G-NUEVO99', { send_page_view: false }])
       registrarEventoTienda('vista_producto')
-      expect(fbq).toHaveBeenCalledWith('init', '987654321')
+      expect(fbq).toHaveBeenCalledWith('init', '987654321', {})
       expect(fbq).toHaveBeenCalledWith('trackSingleCustom', '987654321', 'vista_producto')
       expect(fbq).not.toHaveBeenCalledWith('trackSingleCustom', '123456789', 'vista_producto')
     })
@@ -205,6 +224,172 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       expect((window as unknown as { dataLayer?: unknown[] }).dataLayer).toBeUndefined()
       cargarMedicion({ ga4_id: 'G-ABC123', meta_pixel_id: null })
       expect(capa()).toContainEqual(['event', 'vista_producto'])
+    })
+  })
+
+  describe('Meta Pixel sin datos del visitante (hallazgo 2)', () => {
+    it('apaga la configuración automática ANTES de init y hace init sin opciones de coincidencia avanzada', () => {
+      cargarMedicion({ ga4_id: null, meta_pixel_id: '123456789' })
+      const cola = (window as unknown as { fbq: { queue: ArrayLike<unknown>[] } }).fbq.queue.map((x) => Array.from(x))
+      const iSet = cola.findIndex((c) => c[0] === 'set' && c[1] === 'autoConfig')
+      const iInit = cola.findIndex((c) => c[0] === 'init')
+      expect(cola[iSet]).toEqual(['set', 'autoConfig', false, '123456789'])
+      expect(cola[iInit]).toEqual(['init', '123456789', {}])
+      expect(iSet).toBeGreaterThanOrEqual(0)
+      expect(iSet).toBeLessThan(iInit)
+    })
+    it('los eventos propios llevan solo el nombre, sin parámetros del visitante', () => {
+      cargarMedicion({ ga4_id: null, meta_pixel_id: '123456789' })
+      registrarEventoTienda('envio_contacto')
+      const cola = (window as unknown as { fbq: { queue: ArrayLike<unknown>[] } }).fbq.queue.map((x) => Array.from(x))
+      expect(cola).toContainEqual(['trackSingleCustom', '123456789', 'envio_contacto'])
+    })
+  })
+
+  describe('revocar el consentimiento borra las huellas (hallazgo 1)', () => {
+    it('borra las cookies de medición de Google y Meta y deja las demás', () => {
+      cargarMedicion(IDS)
+      document.cookie = '_ga=GA1.1.1; path=/'
+      document.cookie = '_ga_ABC123=GS1; path=/'
+      document.cookie = '_gid=1; path=/'
+      document.cookie = '_gat=1; path=/'
+      document.cookie = '_fbp=fb.1; path=/'
+      document.cookie = 'carrito=abc; path=/'
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(cookiesActuales()).toEqual(['carrito'])
+    })
+    it('quita los scripts y las globales de medición para que nada siga emitiendo', () => {
+      cargarMedicion(IDS)
+      const w = window as unknown as Record<string, unknown>
+      w._fbq = {}
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(scripts()).toEqual([])
+      for (const clave of ['dataLayer', 'gtag', 'fbq', '_fbq']) expect(w[clave]).toBeUndefined()
+      expect(w['ga-disable-G-ABC123']).toBe(true) // el interruptor oficial queda puesto
+    })
+    it('es idempotente y no recarga si nunca se descargó un script', () => {
+      cargarMedicion(IDS)
+      retirarMedicion()
+      retirarMedicion()
+      expect(recargar).not.toHaveBeenCalled()
+    })
+    it('recarga la página para soltar los scripts evaluados cuando no hay nada que perder', () => {
+      cargarMedicion(IDS)
+      scriptCargado(URL_GTAG)
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      retirarMedicion()
+      expect(recargar).toHaveBeenCalledTimes(1)
+    })
+    it('NO recarga con un formulario con texto escrito, y recarga cuando ya no lo hay', () => {
+      cargarMedicion(IDS)
+      scriptCargado(URL_GTAG)
+      const campo = document.createElement('input')
+      campo.type = 'email'
+      document.body.appendChild(campo)
+      campo.value = 'ana@example.com'
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(recargar).not.toHaveBeenCalled()
+      expect(cookiesActuales()).not.toContain('_ga') // igual quedó apagada y limpia
+      campo.value = ''
+      retirarMedicion()
+      expect(recargar).toHaveBeenCalledTimes(1)
+      campo.remove()
+    })
+    it('NO recarga con un diálogo abierto', () => {
+      cargarMedicion(IDS)
+      scriptCargado(URL_PIXEL)
+      const dialogo = document.createElement('div')
+      dialogo.setAttribute('role', 'dialog')
+      document.body.appendChild(dialogo)
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(recargar).not.toHaveBeenCalled()
+      dialogo.remove()
+    })
+    it('si se aceptó de nuevo tras una revocación sin recarga, se recarga antes de cargar otra vez', () => {
+      cargarMedicion(IDS)
+      scriptCargado(URL_GTAG)
+      const campo = document.createElement('textarea')
+      document.body.appendChild(campo)
+      campo.value = 'texto'
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      campo.value = ''
+      guardarConsentimiento('aceptadas')
+      cargarMedicion(IDS)
+      expect(recargar).toHaveBeenCalledTimes(1)
+      expect(scripts()).toEqual([])
+      campo.remove()
+    })
+    it('Meta: `consent revoke` posterior a `init` sobre la pila real del píxel', () => {
+      cargarMedicion({ ga4_id: null, meta_pixel_id: '123456789' })
+      const pila = (window as unknown as { fbq: { queue: ArrayLike<unknown>[] } }).fbq
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      const cola = pila.queue.map((x) => Array.from(x))
+      const iInit = cola.findIndex((c) => c[0] === 'init')
+      const iRevoke = cola.findIndex((c) => c[0] === 'consent' && c[1] === 'revoke')
+      expect(iInit).toBeGreaterThanOrEqual(0)
+      expect(iRevoke).toBeGreaterThan(iInit)
+      expect((window as unknown as { fbq?: unknown }).fbq).toBeUndefined()
+    })
+    it('dominiosCookie: el host y cada dominio padre con dos etiquetas o más; nunca una IP', () => {
+      expect(dominiosCookie('www.mundojc.com.ar')).toEqual([null, 'www.mundojc.com.ar', 'mundojc.com.ar', 'com.ar'])
+      expect(dominiosCookie('localhost')).toEqual([null])
+      expect(dominiosCookie('127.0.0.1')).toEqual([null])
+    })
+  })
+
+  describe('cambio de ID de GA4 en la misma visita (hallazgo 4)', () => {
+    it('descarga el script del ID anterior, limpia el dataLayer y carga el del ID nuevo', () => {
+      cargarMedicion({ ga4_id: 'G-ABC123', meta_pixel_id: null })
+      const capaVieja = (window as unknown as { dataLayer: unknown[] }).dataLayer
+      cargarMedicion({ ga4_id: 'G-NUEVO99', meta_pixel_id: null })
+      expect(scripts()).toEqual([`${URL_GTAG}?id=G-NUEVO99`])
+      const capaNueva = (window as unknown as { dataLayer: unknown[] }).dataLayer
+      expect(capaNueva).not.toBe(capaVieja)
+      const texto = JSON.stringify(capaNueva.map((x) => Array.from(x as ArrayLike<unknown>)))
+      expect(texto).toContain('G-NUEVO99')
+      expect(texto).not.toContain('G-ABC123')
+      expect((window as unknown as Record<string, unknown>)['ga-disable-G-ABC123']).toBe(true)
+      registrarEventoTienda('busqueda')
+      expect(capaNueva.map((x) => Array.from(x as ArrayLike<unknown>))).toContainEqual(['event', 'busqueda'])
+    })
+  })
+
+  describe('script bloqueado por un bloqueador de anuncios (hallazgo 12)', () => {
+    it('onerror de gtag/fbq apaga la herramienta, no rompe la tienda y no acumula eventos', () => {
+      cargarMedicion(IDS)
+      expect(() => {
+        scriptFallido(URL_GTAG)
+        scriptFallido(URL_PIXEL)
+      }).not.toThrow()
+      expect(hayMedicionCargada()).toBe(false)
+      const w = window as unknown as Record<string, unknown>
+      expect(w.dataLayer).toBeUndefined()
+      expect(w.fbq).toBeUndefined()
+      for (let i = 0; i < 200; i++) {
+        registrarEventoTienda('busqueda')
+        registrarVisita(`/p/${i}`)
+      }
+      expect(w.dataLayer).toBeUndefined()
+      // Sin reintentos en esta visita: no se vuelven a agregar los scripts bloqueados ni se recarga.
+      cargarMedicion(IDS)
+      expect(scripts()).toEqual([])
+      expect(w.dataLayer).toBeUndefined()
+      expect(recargar).not.toHaveBeenCalled()
+    })
+    it('si solo falla uno, el otro sigue midiendo', () => {
+      cargarMedicion(IDS)
+      scriptFallido(URL_PIXEL)
+      registrarEventoTienda('clic_whatsapp')
+      const capa = (window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer.map((x) => Array.from(x))
+      expect(capa).toContainEqual(['event', 'clic_whatsapp'])
+      expect(hayMedicionCargada()).toBe(true)
     })
   })
 })

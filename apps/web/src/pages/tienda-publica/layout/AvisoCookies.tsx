@@ -33,7 +33,8 @@ export default function AvisoCookies() {
       }}
     >
       <Typography variant="body2" sx={{ flex: '1 1 16rem', minWidth: 0 }}>
-        Usamos cookies para mejorar tu experiencia. Podés aceptarlas o rechazarlas.
+        Usamos cookies para mejorar tu experiencia y, si la tienda lo configuró, medir las visitas con Google Analytics y
+        Meta. No enviamos tus datos personales (nombre, email, teléfono ni lo que escribís). Podés aceptarlas o rechazarlas.
       </Typography>
       <Box sx={{ display: 'flex', gap: 1 }}>
         <Button variant="outlined" onClick={() => guardarConsentimiento('rechazadas')}>Rechazar</Button>

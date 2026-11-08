@@ -19,6 +19,13 @@ describe('AvisoCookies (FR-033)', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
+  it('avisa que se mide con Google Analytics y Meta y que no se envían datos personales', () => {
+    render(<AvisoCookies />)
+    const aviso = screen.getByRole('region', { name: 'Aviso de cookies' })
+    expect(aviso).toHaveTextContent(/Google Analytics y\s+Meta/)
+    expect(aviso).toHaveTextContent(/No enviamos tus datos personales/)
+  })
+
   it('«Aceptar» guarda la decisión y el aviso desaparece', () => {
     render(<AvisoCookies />)
     fireEvent.click(screen.getByRole('button', { name: 'Aceptar' }))

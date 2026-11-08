@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 import { ANALITICA_VACIA, ErrorGuardadoAnalitica } from '../../../lib/tiendaAnalitica'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), guardar: vi.fn(), setWarnWhen: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  leer: vi.fn(), guardar: vi.fn(), setWarnWhen: vi.fn(),
+  nivel: { valor: 'edicion' as 'edicion' | 'lectura' | 'ninguno' },
+}))
+
+vi.mock('../../../hooks/useNivelSeccion', () => ({
+  useNivelSeccion: () => ({ nivel: mocks.nivel.valor, isLoading: false, error: false }),
+}))
 
 vi.mock('@refinedev/core', () => ({
   useWarnAboutChange: () => ({ warnWhen: false, setWarnWhen: mocks.setWarnWhen }),
@@ -27,6 +34,7 @@ const pixel = () => screen.getByLabelText('ID de Meta Pixel')
 describe('pestaña Analítica (F-TDA-24, FR-013, SC-005)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.nivel.valor = 'edicion'
     mocks.leer.mockResolvedValue(guardado)
   })
 
@@ -177,6 +185,50 @@ describe('pestaña Analítica (F-TDA-24, FR-013, SC-005)', () => {
     expect(pixel()).toHaveValue('')
     expect(screen.queryByDisplayValue('G-SINGUARDAR')).not.toBeInTheDocument()
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
+  })
+})
+
+describe('pestaña Analítica: rol y aviso de privacidad (hallazgos 2, 3 y 9)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.nivel.valor = 'edicion'
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.leer.mockResolvedValue(guardado)
+  })
+
+  it.each(['lectura', 'ninguno'] as const)('con nivel «%s» los campos y los botones están deshabilitados y avisa que es solo lectura', async (nivel) => {
+    mocks.nivel.valor = nivel
+    abrir()
+
+    expect(await screen.findByLabelText('ID de Google Analytics 4')).toBeDisabled()
+    expect(pixel()).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Descartar' })).toBeDisabled()
+    expect(screen.getByText(/Tu rol no puede editar la analítica de la tienda\./)).toBeInTheDocument()
+  })
+
+  it('con edición los campos están activos y no hay aviso de solo lectura', async () => {
+    abrir()
+    expect(await screen.findByLabelText('ID de Google Analytics 4')).toBeEnabled()
+    expect(screen.queryByText(/Tu rol no puede editar/)).not.toBeInTheDocument()
+  })
+
+  it('si la base rechaza por rol (42501) al guardar, muestra «Tu rol no puede editar…» y no el genérico', async () => {
+    mocks.guardar.mockRejectedValue(new ErrorGuardadoAnalitica('permission denied', null, '42501'))
+    abrir()
+    fireEvent.change(await screen.findByLabelText('ID de Google Analytics 4'), { target: { value: 'G-NUEVO99' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tu rol no puede editar la analítica de la tienda.')
+    expect(screen.queryByText(/No pudimos guardar/)).not.toBeInTheDocument()
+  })
+
+  it('avisa que no se envían datos del visitante y que las mediciones mejoradas de GA4 se desactivan en la propiedad', async () => {
+    abrir()
+    await screen.findByLabelText('ID de Google Analytics 4')
+    expect(screen.getByText(/No se envían datos del visitante/)).toBeInTheDocument()
+    expect(screen.getByText(/desactivá la «Medición mejorada»/)).toBeInTheDocument()
+    expect(screen.getByText(/se apaga y se borran sus cookies/)).toBeInTheDocument()
   })
 })
 
