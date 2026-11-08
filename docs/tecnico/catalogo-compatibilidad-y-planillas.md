@@ -79,6 +79,7 @@ Principio VII (esquema por naturaleza): lo del producto va en `dominio`; el cont
 | `carga` | `jsonb` | Las 12 columnas de la plantilla (más `fila`), cada una acotada a 1000 caracteres; una clave extra del archivo no se guarda |
 | `resultado` / `resultado_mensaje` | `text` | `pendiente` (por defecto) · `aplicada` · `omitida` |
 | `producto_id` / `aplicada_en` | `uuid` / `timestamptz` | Producto resultante |
+| `intentos` | `smallint` | Fallos transitorios registrados por el worker; al tercero la fila queda `omitida` («No se pudo aplicar tras varios intentos») |
 | `imagenes_pendientes` | `boolean` | `true` en una fila `aplicada` cuyas imágenes el worker todavía no adjuntó ni confirmó (migración `20270215200000`) |
 
 Los índices parciales `importaciones_productos_filas_pendientes_idx` e `importaciones_productos_filas_imagenes_idx` aceleran `filas_pendientes_importacion_productos`.
@@ -129,7 +130,7 @@ Todas aditivas (versiones reales en `origin/dokploy`):
 | `20270206100004_importacion_rpc_worker` | RPC `private.*` del rol de worker: iniciar, listar filas pendientes, aplicar fila, registrar imagen, cerrar | F-CAT-10 |
 | `20270206100005_importacion_cierre_fallida` | `private.reconciliar_importaciones_fallidas`; redefine `despachar_importacion_siguiente` y `obtener_importacion_productos` para reconciliar | F-CAT-10 |
 | `20270206100101_catalogo_compatible_filtro` | Índice GIN y columna `compatible_con` en `v_productos_listado` | F-CAT-09 |
-| `20270215200000_importacion_productos_robustez` | Columna `imagenes_pendientes`; redefine validar (tope por celda, `carga` acotada), `aplicar_fila` (errores transitorios 40/53/55/57 se propagan), `iniciar`, `filas_pendientes` y `solicitar` (`reutilizada`); nuevas `confirmar_imagenes_fila_importacion_productos`, `imagenes_temporales_a_borrar` e `importacion_productos_habilitada` | F-CAT-10 (revisión) |
+| `20270215200000_importacion_productos_robustez` | Columna `imagenes_pendientes`; redefine validar (tope por celda, `carga` acotada), `aplicar_fila` (errores transitorios 40/53/55/57 se propagan), `iniciar`, `filas_pendientes` y `solicitar` (`reutilizada`); redefine también `cerrar_importacion_productos` y `obtener_importacion_productos` (campo `sin_imagenes`); nuevas `confirmar_imagenes_fila_importacion_productos`, `registrar_fallo_fila_importacion_productos`, `imagenes_temporales_a_borrar` e `importacion_productos_habilitada` | F-CAT-10 (revisión) |
 | `20270215200001_exportar_productos_cursor` | Reemplaza `exportar_productos` por la firma con `p_entregadas` y `p_con_total` (cursor sin recalcular, tope de 50.000) | F-CAT-11 (revisión) |
 | `20270206100102_listar_compatibles` | `public.listar_compatibles()` | F-CAT-09 |
 
@@ -180,7 +181,7 @@ sequenceDiagram
 - Ruta `/productos/carga` (`App.tsx`, carga diferida). Sin ítem de menú; se llega desde el botón «Importar CSV» del listado, que solo ve el Administrador (`useEsAdministrador`). Sin permiso: «No tenés permiso para importar productos.»
 - **CSV:** UTF-8, separador `,` o `;`, con o sin BOM (`leerCsvUtf8`). Columnas de la plantilla (`COLUMNAS_PLANTILLA`): `sku, nombre, categoria, costo, precio_x1, precio_x5, precio_x10, precio_x50, proveedor, codigo_barras, tiendas, imagenes`. Obligatorias: `sku`, `nombre`, `categoria`. Máximo `MAXIMO_FILAS_IMPORTACION = 2000`.
 - **Importes:** `normalizarImporte` acepta `1200`, `1200,50` y `1.200,50`, quita espacios y `$`, y deja `1200.50`. Lo que no reconoce lo deja como vino para que el servidor lo marque como error.
-- **Imágenes:** ZIP (hasta 50 MB, `MAX_BYTES_ZIP`) o sueltas; JPG, PNG o WebP de hasta 2 MB (`MAX_BYTES_IMAGEN_IMPORTACION`); hasta 500 por importación (`MAX_IMAGENES_CARGA`). El filtro corre antes de descomprimir y el tope de 100 MB descomprimidos se vuelve a comprobar con el tamaño real (la cabecera del ZIP puede mentir). Nombres repetidos: gana siempre la primera (carpetas de un ZIP, archivos de una selección y selecciones sucesivas); `leerImagenes(archivos, limites?)` acepta los topes como último argumento. Se suben a `productos-importaciones/<organización>/<clave>/<archivo>` con `upsert`. «Cancelar» las elimina (`descartarImagenes`).
+- **Imágenes:** ZIP (hasta 50 MB, `MAX_BYTES_ZIP`) o sueltas; JPG, PNG o WebP de hasta 2 MB (`MAX_BYTES_IMAGEN_IMPORTACION`); hasta 500 por importación (`MAX_IMAGENES_CARGA`). El filtro corre antes de descomprimir y el tope de 100 MB descomprimidos se comprueba en streaming (fflate `Unzip`, rebanadas de 16 KB) con los bytes reales de cada entrada y del total, porque la cabecera del ZIP puede mentir; al pasar un tope se termina la entrada y, si es el total, se deja de leer el ZIP (lo transitorio queda acotado a ~16 MB). Nombres repetidos: gana siempre la primera (carpetas de un ZIP, archivos de una selección y selecciones sucesivas); `leerImagenes(archivos, limites?)` acepta los topes como último argumento. Se suben a `productos-importaciones/<organización>/<clave>/<archivo>` con `upsert`. «Cancelar» las elimina (`descartarImagenes`).
 - **Clave de idempotencia:** `crypto.randomUUID()` por importación; se regenera con «Importar otro archivo».
 - **Seguimiento en la URL:** la importación en curso vive en `?importacion=<id>` (`PARAMETRO_IMPORTACION`); al volver o recargar se rehidrata con `obtener_importacion_productos`. Un id que no es UUID se ignora y uno inexistente (`P0002`) limpia la URL. Al abrir, `importacion_productos_habilitada()` avisa si falta la conexión y deshabilita la elección de archivos antes de pedir el CSV.
 - **Sondeo:** `ESPERA_SONDEO_MS = 3000` sobre `obtener_importacion_productos` hasta `terminada` o `fallida`.
@@ -196,7 +197,7 @@ Todas en `public`, `security definer`, `search_path = ''`; organización y actor
 |---|---|---|
 | `validar_importacion_productos(p_filas jsonb, p_clave uuid default null)` | `table (fila, sku, accion, estado, mensaje)` | `42501` no es Administrador · `22023` `FILAS_INVALIDAS` (no es lista, vacía o más de 2000) |
 | `solicitar_importacion_productos(p_filas jsonb, p_clave uuid default gen_random_uuid())` | `jsonb { importacion_id, estado, importables, omitidas, reutilizada }` | `42501` · `22023` `CLAVE_INVALIDA`, `FILAS_INVALIDAS` (fuera de 1…2000 o «ninguna fila se puede importar») · `P0001` `SIN_CONEXION_IMPORTACION` |
-| `obtener_importacion_productos(p_importacion_id uuid)` | `jsonb { estado, procesadas, omitidas, errores[{fila, sku, mensaje}], mensaje_fallo }` | `42501` · `P0002` «La importación no existe» |
+| `obtener_importacion_productos(p_importacion_id uuid)` | `jsonb { estado, procesadas, omitidas, sin_imagenes, errores[{fila, sku, mensaje}], mensaje_fallo }` (`sin_imagenes`: productos aplicados cuyas imágenes no se adjuntaron, también en una importación `fallida`; la pantalla lo avisa) | `42501` · `P0002` «La importación no existe» |
 
 Comportamiento de `solicitar_importacion_productos`:
 
@@ -234,7 +235,8 @@ Todas validan la ejecución con `private.autorizar_worker_importacion_productos(
 | `iniciar_importacion_productos(p_ejecucion_id)` | Pasa la importación a `aplicando` (fija `iniciada_en`) y devuelve `(importacion_id, organizacion_id, clave, pendientes)` |
 | `filas_pendientes_importacion_productos(p_ejecucion_id, p_limite default 200)` | Lote de filas `pendiente` **o `aplicada` con `imagenes_pendientes`** (límite 1…1000, si no `LIMITE_INVALIDO`) |
 | `confirmar_imagenes_fila_importacion_productos(p_ejecucion_id, p_fila_id)` | El worker confirma que adjuntó (o descartó con motivo) las imágenes de la fila |
-| `imagenes_temporales_a_borrar(p_ejecucion_id, p_dias default 7)` | Rutas del bucket temporal a borrar: las de la importación y las huérfanas de la organización de más de `p_dias` días que no son de una importación en curso (hasta 1000); el borrado lo hace el worker por la API de Storage |
+| `registrar_fallo_fila_importacion_productos(p_ejecucion_id, p_fila_id)` | Suma un intento fallido (error transitorio) a una fila pendiente en su propia transacción; al tercero la omite. El worker lo llama y sigue con las demás filas; si quedan filas con intentos disponibles la corrida sale con error y el flow reintenta |
+| `imagenes_temporales_a_borrar(p_ejecucion_id, p_dias default 7, p_incluir_importacion default true)` | Rutas del bucket temporal a borrar: las de la importación (si `p_incluir_importacion`; al empezar una corrida el worker pasa `false`) y las huérfanas de la organización de más de `p_dias` días que no son de una importación en curso (hasta 1000); el borrado lo hace el worker por la API de Storage |
 | `aplicar_fila_importacion_productos(p_ejecucion_id, p_fila_id)` | Aplica una fila (ver abajo) |
 | `registrar_imagen_importacion_productos(p_ejecucion_id, p_fila_id, p_nombre, p_ruta)` | Asocia la imagen subida al producto (`RUTA_INVALIDA` si la ruta no es del producto) |
 | `cerrar_importacion_productos(p_ejecucion_id, p_estado, p_mensaje)` | Cierra en `terminada` o `fallida` (`ESTADO_INVALIDO` si no); devuelve contadores |
