@@ -725,7 +725,7 @@ Fuente: `supabase/migrations/20261206100000`–`20261206110100` y
 ### Auditoría avanzada y soporte (MSF-170)
 
 Fuente: `supabase/migrations/20270207100001…`, `20270207100002…`, `20270207100003…` y
-`20270210110000_exportar_actividad.sql` (rama `epic/MSF-170-…`, aún sin merge a `main`). Contratos
+`20270210110000_exportar_actividad.sql` (integrada en `dokploy`, PR #762; aún no en `main`). Contratos
 completos, datos y prueba: [Auditoría avanzada y soporte](auditoria-y-soporte.md).
 
 | RPC / función | Para qué | Seguridad |

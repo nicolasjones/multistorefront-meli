@@ -15,10 +15,11 @@ sources:
 **Producto:** [Consultar la actividad](../producto/actividad.md) · **Datos y DER:** [Auditoría avanzada y soporte](datos.md#auditoria-avanzada-y-soporte-msf-170).
 Alcance de entrega: `refine`, `supabase` y `kestra`.
 
-> **Fuente.** La implementación vive en la rama `epic/MSF-170-plataforma-auditoria-avanzada-y-soporte`
-> (aún sin fusionar en `main` al escribir esta página). Los datos salen de sus migraciones, spec, pruebas y
-> commits `2d322e7f` (F-AUD-02), `b456c01c` (F-OPS-04), `92831860` (F-AUD-03) y `e0f3de00` (cierre y
-> revisión de seguridad). Verificar contra `main` tras el merge.
+> **Fuente.** La implementación está integrada en `dokploy` (PR #762, rama de origen
+> `epic/MSF-170-plataforma-auditoria-avanzada-y-soporte`) y todavía no en `main`: esta página describe `dokploy`.
+> Los datos salen de sus migraciones, spec, pruebas y commits `2d322e7f` (F-AUD-02), `b456c01c` (F-OPS-04),
+> `92831860` (F-AUD-03) y `e0f3de00` (cierre y revisión de seguridad). Verificar contra `main` cuando
+> llegue la promoción de `dokploy`.
 
 ## Qué resuelve
 

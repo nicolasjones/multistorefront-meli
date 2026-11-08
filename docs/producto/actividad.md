@@ -113,7 +113,7 @@ El archivo se puede abrir con una planilla de cálculo.
 - **Productos, proveedores y stock:** altas, cambios, activaciones e ingresos o anulaciones de mercadería.
 - **Ventas y cobros:** comprobantes, presupuestos copiados, cobros registrados y cambios de estado.
 - **Service técnico:** reparaciones creadas o editadas, y repuestos o mano de obra agregados o quitados.
-- **Soporte:** ingreso, salida y vencimiento del acceso del equipo de soporte a tu organización, con el motivo y hasta cuándo valía.
+- **Soporte:** ingreso, salida y vencimiento del acceso del equipo de soporte a tu organización, con el motivo y hasta cuándo valía. Estos eventos los ve solo el Administrador.
 
 El detalle de los eventos nunca incluye costos ni importes de los productos ni datos de contacto de los clientes.
 

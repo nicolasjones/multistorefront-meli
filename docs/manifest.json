@@ -15,12 +15,12 @@
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "c2b054bca62fa706110c1318ed9a922a80e02dafffb96bf4bcfda5988f2da9e5",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "f3861761",
+      "sourceAt": "dc8c0e42",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "56b6373c"
+      "commit": "dc8c0e42"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -353,21 +353,21 @@
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "a693d8797f1898c3a0d49e5fc99df89511f9a4e5d1a07ee44c313be1ad3a1d07",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "f3861761",
+      "sourceAt": "dc8c0e42",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "56b6373c"
+      "commit": "dc8c0e42"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "72ff65647b72701a383e2bb2f6e75eab88b59f3aed5c23d7370be017a466e3b7",
+      "pageHash": "8c28cd4d1aec08289028270ea8ba90720891b6e5d50cf33e6e3ba4b0b69ea659",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "c43dc141"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -380,12 +380,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "be1b8deeb7af651b03b1b38e8c7d88c5283408331529c7e9529df08ee1ae160a",
+      "pageHash": "f5296b1bcb4a5e25c79c04a2a20325b02cf0317579f14eed8a823d4299aeb833",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "dc8c0e42"
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
@@ -516,6 +516,15 @@
       "owner": "producto",
       "commit": "801de684"
     },
+    "docs/producto/importaciones.md": {
+      "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
+      "pageHash": "a2db7a97d0a0eab1721019e42c1d29474073fc2c3b2aff3b22963a55f542e89c",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
       "pageHash": "48dc3e02a1431267d51b8432c9b735afc08d47bbb5d09fd973ababdfb5035519",
@@ -566,21 +575,21 @@
     },
     "docs/producto/precios-dolar.md": {
       "title": "Cargar la cotización del dólar",
-      "pageHash": "cdb1631b19668d5eec63fb16351af3d43771eef9ef27b001216ead34f372f550",
+      "pageHash": "1f379412a6e6f992b016897c38706929a9289056e4334ce6d3beb0e9009905d2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/precios-e-iva.md": {
       "title": "Cómo se calcula el precio final",
-      "pageHash": "e1c643ba4c2167ae3ed923be2e85a09d1463255ae2fbabff84af93530943d2c6",
+      "pageHash": "528d11338c7367ad2d0aa088e66f49d79bdb59c192a2e9fe1bf917b4ec9ab112",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
@@ -726,6 +735,15 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/tienda-contenido-y-analitica.md": {
+      "title": "Páginas propias, medición de visitas y botón Compartir",
+      "pageHash": "879e8ffbb29005f8d1c7682f2e6975ec634330b6525ecea0cac12d191743a562",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Identidad, textos y dirección de la tienda",
       "pageHash": "e170f907e380c3c37aebf74bea82fd8db19682d9d5f17cdd8abe768cedbf520c",
@@ -755,12 +773,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "d997ca009a2da222d678db7d7984bfe432af7d613745d005ea7a9383b947acfc",
+      "pageHash": "da51188e3183ee20fd6b54f895f805e63387f8a578290634f2e3899c683d0981",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "29bf8f31"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -1139,14 +1157,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "0f1e97c7b597da17328690f9494d93355d6909438ef91e2925272e4e808ff9df",
+      "pageHash": "e7f698ff1978a6b8add14da2f82df18a573096fdc0842a94d7d24ad1e4d0fa40",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f3861761",
+      "sourceAt": "dc8c0e42",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "29bf8f31"
+      "commit": "dc8c0e42"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1162,9 +1180,9 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "36915d9ff5ca3746ff77a27124bfd8ece109266ac495cd97c828c6eb3cfa75d5",
+      "pageHash": "532daa4f38d965e1eedcc6023cce0da97c751b68993d8e551b09e79324208591",
       "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
-      "sourceAt": "f3861761",
+      "sourceAt": "dc8c0e42",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1173,7 +1191,7 @@
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "dc8c0e42"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -1258,6 +1276,19 @@
       "owner": "tecnico",
       "commit": "3d951332"
     },
+    "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
+      "title": "Configuración del dólar y precio propio",
+      "pageHash": "37f48f0a04088af784b67a7fe13b86a0e79627d16593e917bdacffb9aac445f8",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "aa1c55c6",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
       "pageHash": "2fafaa8f174ac1ad8a063cc7a30b2176f4ac1d3ee011db5380df2e616a6b18f7",
@@ -1314,27 +1345,27 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "1ecfac80771dcd249832320f7243de79519f9040e00c5b05290b13c5cf2a2504",
+      "pageHash": "c405fa625e4b2ba00bb9487e5ff39d0188424c728b4c5e7dabc6e9158dc61264",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "f3861761",
+      "sourceAt": "dc8c0e42",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "29bf8f31"
+      "commit": "dc8c0e42"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
-      "pageHash": "40b9d0b3f54081fd950fe0925f02495dcfd77d02b93be7cb240b44f093e2d1c5",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "71ca58e",
+      "pageHash": "2b72482ba6c4725bfc6f0709b3f8958d7a3be504edb5c89b7d92c05345c09d6f",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "aa1c55c6",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "6ac44b5c"
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
@@ -1358,6 +1389,27 @@
       ],
       "owner": "tecnico",
       "commit": "cdf9b4d2"
+    },
+    "docs/tecnico/importaciones-y-monitoreo.md": {
+      "title": "Importaciones y monitoreo (MSF-206)",
+      "pageHash": "126ce7107c9adbe5b7948d073aa1b2aa1debae795ae485c40c1b4ea4e2250c95",
+      "sourceHash": "f702f0776f079d4efa8338d28b1dacb98c29e40fe4b3996c41f8bee499defae5",
+      "sourceAt": "f3861761",
+      "sources": [
+        "apps/web/src/pages/importaciones",
+        "apps/web/src/hooks/useProcesosMasivos.ts",
+        "apps/web/src/hooks/useErroresProceso.ts",
+        "apps/web/src/lib/procesosMasivos.ts",
+        "apps/web/src/lib/erroresWeb.ts",
+        "apps/web/e2e",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "infra/kestra/flows",
+        "infra/glitchtip",
+        "workers"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
@@ -1468,16 +1520,16 @@
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
-      "pageHash": "c53dcb436318e4a8c7dc2be0e9482fc51b15e5e167f099c7cd2a34987d731f72",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "0ec03287",
+      "pageHash": "3d4ac2e4ce5999a36a67c5b3eee428853e2da867e0f8ce5edb6ba6725b670576",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "aa1c55c6",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "2fdc460f"
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
@@ -1740,6 +1792,20 @@
       ],
       "owner": "tecnico",
       "commit": "07b71b15"
+    },
+    "docs/tecnico/tienda-contenido-y-analitica.md": {
+      "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
+      "pageHash": "89a658bd322a56d187ebe16135890134007abb6c2cd535afc4ab5c525aae1870",
+      "sourceHash": "c43bdd9fa145630ab620f0d3ae6b40581f17cc25499012bc30733220a828875a",
+      "sourceAt": "390e14df",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
