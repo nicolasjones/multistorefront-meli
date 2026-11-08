@@ -28,7 +28,7 @@
         "parameters": [{ "$ref": "#/components/parameters/XTiendaHost" }],
         "responses": {
           "200": {
-            "description": "Tienda activa: inicio, catálogo, contacto, categorías visibles y productos efectivamente visibles (hasta 50.000 URLs) con el dominio canónico, <lastmod> cuando existe y URLs escapadas. Tienda desactivada, dominio desconocido o sin cabecera: urlset válido sin URLs.",
+            "description": "Tienda activa: inicio, catálogo, contacto, páginas de contenido visibles, categorías visibles y productos efectivamente visibles (hasta 50.000 URLs; si se excede se truncan los productos primero) con el dominio canónico, <lastmod> cuando existe y URLs escapadas. Tienda desactivada, dominio desconocido o sin cabecera: urlset válido sin URLs.",
             "content": { "application/xml": { "schema": { "type": "string" } } }
           },
           "405": { "$ref": "#/components/responses/Texto", "description": "Método distinto de GET o HEAD." },

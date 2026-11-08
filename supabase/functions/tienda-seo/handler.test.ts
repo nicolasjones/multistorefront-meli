@@ -88,6 +88,43 @@ describe('tienda-seo · sitemap.xml', () => {
   })
 })
 
+describe('tienda-seo · cabeceras y rutas (MSF-149)', () => {
+  it('robots y sitemap llevan Cache-Control y Vary: X-Tienda-Host (sin mezclar tiendas en una caché por URL)', async () => {
+    for (const archivo of ['/robots.txt', '/sitemap.xml']) {
+      for (const activa of [true, false]) {
+        const r = await manejar(pedir(archivo, 'tienda-a.ejemplo.com'), montar({ activa }).deps)
+        assert.equal(r.headers.get('cache-control'), 'public, max-age=300')
+        assert.equal(r.headers.get('vary'), 'X-Tienda-Host')
+      }
+    }
+  })
+
+  it('descarta rutas con «//» inicial, caracteres de control, espacios, sin «/» o demasiado largas', async () => {
+    const malas = ['//evil.com/x', '/a\u0000b', '/a\nb', '/a\u007fb', '/a\u0085b', '/a b', 'producto/1', '', `/${'x'.repeat(2100)}`]
+    const mapa = { dominio: 'tienda-a.ejemplo.com', urls: [...malas.map((ruta) => ({ ruta, modificado: null })), { ruta: 7, modificado: null }, { ruta: '/producto/ok', modificado: null }] }
+    const xml = await (await manejar(pedir('/sitemap.xml', 'tienda-a.ejemplo.com'), montar({ mapa }).deps)).text()
+    assert.equal((xml.match(/<url>/g) ?? []).length, 1)
+    assert.match(xml, /<loc>https:\/\/tienda-a\.ejemplo\.com\/producto\/ok<\/loc>/)
+    assert.doesNotMatch(xml, /evil\.com/)
+  })
+})
+
+describe('tienda-seo · sitemap truncado (MSF-149)', () => {
+  it('registra un aviso en el log cuando la base marca truncado, y responde igual', async () => {
+    const avisos: unknown[][] = []
+    const original = console.warn
+    console.warn = (...args: unknown[]) => { avisos.push(args) }
+    try {
+      const r = await manejar(pedir('/sitemap.xml', 'tienda-a.ejemplo.com'), montar({ mapa: { ...MAPA, truncado: true } }).deps)
+      assert.equal(r.status, 200)
+      assert.equal(avisos.length, 1)
+      assert.match(String(avisos[0][0]), /truncado/)
+    } finally {
+      console.warn = original
+    }
+  })
+})
+
 describe('tienda-seo · errores', () => {
   it('un fallo de la base responde 500 genérico sin detalles', async () => {
     const r = await manejar(pedir('/robots.txt', 'tienda-a.ejemplo.com'), montar({ falla: true }).deps)
