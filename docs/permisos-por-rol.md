@@ -107,6 +107,21 @@ relaciones por empresa) usan este contrato:
   `proveedores` en `lectura`/`edicion`; así el Operador ve los proveedores por la vista aunque no lea la
   tabla. La ficha llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en
   `docs/proveedores.md`.
+- **`dominio.proveedores_contactos` (F-PRV-08, MSF-449, épica MSF-445):** lectura con
+  `nivel_seccion('proveedores')` en `lectura`/`edicion`; la **escritura es solo por RPC**
+  (`agregar_contacto_proveedor` y `marcar_contacto_principal`, que exigen `edicion` y rechazan con `42501`
+  al resto); **sin `DELETE` directo** y sin `INSERT`/`UPDATE` directos; `anon` sin acceso. La FK compuesta
+  `(proveedor_id, organizacion_id)` impide colgar un contacto de un proveedor de otra organización. Detalle
+  en [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md).
+- **Fusión de clientes (F-CLI-18, MSF-447, épica MSF-445):** `public.fusionar_clientes` y
+  `public.vista_previa_fusion_clientes` exigen **rol Administrador** (`private.es_administrador_de`); el
+  resto de los roles recibe `42501` («Solo el Administrador puede fusionar clientes»), aunque llame a la
+  base directamente. La pantalla además oculta la acción. Ver
+  [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md).
+- **Evolución del costo (F-PRV-07, MSF-448, épica MSF-445):** `public.historial_costos_producto` exige
+  `nivel_seccion('rentabilidad')` **y** `nivel_seccion('proveedores')` en `lectura`/`edicion`; sin los dos,
+  `42501` («Tu rol no puede ver el historial de costos») y la pantalla no muestra importes. La organización
+  sale de la sesión y se respetan las empresas accesibles del usuario.
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el

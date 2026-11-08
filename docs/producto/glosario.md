@@ -49,6 +49,17 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **Lote** | Grupo de productos que entraron juntos con un mismo número. El sistema lo numera solo. |
 | **Toma de inventario** | Conteo de los productos de una categoría contra lo que dice el sistema. |
 | **Proveedor** | Empresa a la que se le compra mercadería. |
+| **Contacto principal** | La persona de referencia de un proveedor. Es la que el sistema usa como nombre, correo y teléfono del proveedor, y sus datos alimentan la ficha. Ver [Proveedores](proveedores.md). |
+| **Evolución del costo** | Historial de a qué precio te vendió un proveedor un producto a lo largo del tiempo. Ver [Proveedores](proveedores.md). |
+
+## Clientes
+
+| Término | Qué significa |
+|---|---|
+| **Cliente** | Persona o empresa que compra en el negocio. Es único para toda la organización: lo habilitás en una o más tiendas. |
+| **Etiqueta de envío** | Hoja imprimible con el nombre y el domicilio del cliente, para pegar en el paquete. Ver [Clientes](clientes.md). |
+| **Unir dos fichas (fusión)** | Unión de dos fichas del mismo cliente en una sola: las compras quedan juntas y la ficha descartada queda archivada. Solo lo puede hacer el Administrador y no se puede deshacer. Ver [Clientes](clientes.md). |
+| **Archivado** | Baja lógica: el cliente deja de verse en el listado pero conserva sus datos y se puede restaurar. No se borra. |
 
 ## Ventas y cobros
 

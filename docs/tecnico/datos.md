@@ -3395,6 +3395,80 @@ Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md).
 | `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
 | `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |
 
+## Mejoras de clientes y proveedores (MSF-445)
+
+Detalle y reversión en [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md).
+Migraciones `20270204100000`–`20270204120200` (rama `epic/MSF-445-…`, PR #695; aún no en `main`; se
+renumeraron al integrar `dokploy`, antes `20270115…`).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.proveedores_contactos` | **nueva** | Contactos del proveedor: `nombre` (obligatorio), `rol`, `correo`, `telefono`, `principal`; FK compuesta `(proveedor_id, organizacion_id)` contra `dominio.proveedores`. |
+| `dominio.ingresos_mercaderia_lineas` | **alterada** | `costo_unitario_usd` deja de ser `not null`: nulo significa «sin costo», no cero. |
+| `public.clientes` | existente | La fusión solo escribe `archivado_en` del descartado. Sin cambios de esquema. |
+| `public.cuentas_cliente` | existente | La fusión reasigna `cliente_id` y da de baja la cuenta no elegida. Sin cambios de esquema. |
+| `dominio.comprobantes_venta` | existente | La fusión reasigna `cliente_id`. Sin cambios de esquema. |
+| `public.clientes_empresas` | existente | La fusión habilita en el conservado las tiendas de la cuenta reasignada. Sin cambios de esquema. |
+| `dominio.proveedores` | existente | `persona_contacto`, `correo` y `telefono` los copia el contacto principal. Sin cambios de esquema. |
+| `public.registro_actividad` | existente | Recibe `cliente.fusionado`, `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado`. Sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ PROVEEDORES : "es dueña"
+  ORGANIZACIONES ||--o{ PROVEEDORES_CONTACTOS : "es dueña"
+  ORGANIZACIONES ||--o{ CLIENTES : "es dueña"
+
+  PROVEEDORES ||--o{ PROVEEDORES_CONTACTOS : "tiene"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "acumula"
+  CLIENTES ||--o{ CUENTAS_CLIENTE : "tiene"
+
+  PROVEEDORES_CONTACTOS { uuid id PK
+                          uuid organizacion_id FK
+                          uuid proveedor_id FK
+                          text nombre "nueva: obligatorio, hasta 200"
+                          text rol "nueva: hasta 100"
+                          text correo "nueva: hasta 254"
+                          text telefono "nueva: hasta 50"
+                          boolean principal "nueva: a lo sumo uno por proveedor"
+                          timestamptz creado_en
+                          timestamptz updated_at }
+  PROVEEDORES { uuid id PK
+                uuid organizacion_id FK
+                text razon_social
+                text cuit
+                text persona_contacto "lo copia el contacto principal"
+                text correo "lo copia el contacto principal"
+                text telefono "lo copia el contacto principal"
+                boolean activo }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             integer numero
+             text nombre
+             text direccion "la etiqueta la necesita"
+             text codigo_postal
+             text localidad
+             text provincia
+             text telefono
+             text expreso_preferido "transporte de la etiqueta"
+             timestamptz archivado_en "la fusión archiva al descartado" }
+  CUENTAS_CLIENTE { uuid id PK
+                    uuid organizacion_id FK
+                    uuid cliente_id FK
+                    uuid empresa_id FK
+                    text estado "activa | suspendida" }
+  COMPROBANTES_VENTA { uuid id PK
+                        uuid organizacion_id FK
+                        uuid cliente_id FK
+                        date fecha
+                        text estado
+                        numeric total_sin_iva }
+```
+
+- Índice único parcial `proveedores_contactos_un_principal_idx` (`unique (proveedor_id) where principal`):
+  **a lo sumo un contacto principal por proveedor**, garantizado por la base.
+- RLS de `dominio.proveedores_contactos`: solo `select` para `authenticated`, por organización y
+  `nivel_seccion('proveedores')` en `lectura`/`edicion`; la escritura es solo por RPC y no hay `DELETE`.
+
 ## Importaciones y monitoreo (MSF-206)
 
 Detalle técnico, contratos, flows y guía de prueba en [Importaciones y monitoreo](importaciones-y-monitoreo.md).

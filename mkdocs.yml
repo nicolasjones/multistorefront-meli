@@ -202,6 +202,7 @@ nav:
           - Ingreso de mercadería: tecnico/ingreso-de-mercaderia.md
           - Proveedores: tecnico/proveedores.md
           - Clientes: tecnico/clientes.md
+          - Mejoras de clientes y proveedores (MSF-445): tecnico/mejoras-de-clientes-y-proveedores.md
       - Service técnico:
           - Alta, estados y permisos: tecnico/service-alta-estados-y-permisos.md
           - Listado, ítems e impresión: tecnico/service-listado-items-impresion.md

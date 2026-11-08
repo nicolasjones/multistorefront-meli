@@ -18,7 +18,7 @@ Un solo catálogo de productos para todas las tiendas, con categorías, fotos y 
 Ver las existencias por producto y depósito, registrar movimientos, trasladar mercadería entre depósitos, reservar, hacer tomas de inventario, cargar y exportar stock y recibir avisos. Guías: [Movimientos](stock-movimientos.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) · [Lotes e inventario](stock-lotes-e-inventario.md) · [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 
 ## Compras
-Registrar la mercadería que llega de un proveedor (con su costo) y mantener la lista de proveedores. Guías: [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Proveedores](proveedores.md).
+Registrar la mercadería que llega de un proveedor (con su costo, opcional) y mantener la lista de proveedores, con sus contactos y el historial de costo de cada producto. Guías: [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Proveedores](proveedores.md).
 
 ## Ventas
 Armar facturas y presupuestos, buscar y anular comprobantes, imprimirlos. Guías: [Comprobantes](ventas-comprobantes.md) · [Listado, estados y anulación](ventas-listado-estados-y-anulacion.md) · [Impresión](ventas-impresion.md).
@@ -36,7 +36,7 @@ Registrar devoluciones y reclamos (RMA) por producto. Guía: [Devoluciones](vent
 Recibir equipos, seguir el estado de cada reparación, cargar mano de obra y repuestos, e imprimir la orden de ingreso y el remito de entrega. Guías: [Service técnico](service-listado-items-impresion.md) · [Repuestos y stock](service-repuestos-y-stock.md).
 
 ## Clientes
-Ficha de cada cliente, con su tipo (minorista o mayorista) y su historial de compras. Guía: [Clientes](clientes.md).
+Ficha de cada cliente, con su tipo (minorista o mayorista) y su historial de compras. Imprimir la etiqueta de envío para pegar en el paquete y unir dos fichas del mismo cliente cuando quedaron duplicadas. Guía: [Clientes](clientes.md).
 
 ## Tiendas online
 Cada empresa tiene su tienda web: identidad visual, contenido, qué productos se muestran, su dirección web (dominio) y las versiones publicadas. Los clientes mayoristas pueden tener una cuenta para ver sus precios por escala. Guías: [Tiendas online](tiendas-online.md) · [Dominio e identidad](tienda-dominio-e-identidad.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Cuenta web del cliente](cuenta-web-cliente.md).
