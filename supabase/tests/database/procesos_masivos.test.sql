@@ -118,7 +118,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'no-existe', 'importacion', 'catalogo', 'Carga') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-no-existe', 'importacion', 'catalogo', 'Carga') $$,
   'P0001', null, 'una capacidad no registrada se rechaza con el error del ciclo'
 );
 
