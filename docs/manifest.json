@@ -13,9 +13,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "f3f77da14bb7c65598d267b2231e7dc590ba518112795f409784829a0020252f",
+      "pageHash": "152f18278caef746a71518a2a1b500ba6e9d21f8205c847a2d42147d7cd02c9d",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs"
       ],
@@ -220,15 +220,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "9605b27cd039602939fe45f440d0f8e5ea4ee4b03de1ecb9e716a3e3cb974acd",
-      "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "6db05d28",
+      "pageHash": "5226923a655b63805feb6f16e8aaf8efc67a176ddf9a7732f6213e8ff5265cdc",
+      "sourceHash": "43afca1cb08a48bf18e1afc4001b366099348cb0aeb9c8bdec8bffc608141c4a",
+      "sourceAt": "8f5c0001",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "b325af7d"
+      "commit": "fdd3dcd1"
     },
     "docs/crear-producto-derivado.md": {
       "title": "Crear un producto derivado",
@@ -276,14 +276,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "5295784fdb9540ffc19a7bef68a57cd701c3b5476b838f38b7e48c093dcf96dc",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "911af6c3",
+      "pageHash": "406df3871e6e8c8fbf74eb8109b6a6d552a6ff4b0e74f1a10ff769f7b14b5822",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "4bc68324",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "26d136d5"
+      "commit": "4bc68324"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -309,12 +309,12 @@
     },
     "docs/index.md": {
       "title": "Manual de usuario de MSF",
-      "pageHash": "b2ed1ec70a24526797a66b1754b5b266e5140c4ca7234e23f7d1a3692d76ad66",
+      "pageHash": "61c8b00aa02e13cd884e4458352444d0b4fe18d8e0984c541fdeedfd15dbaa4a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "98fbbddf"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -340,34 +340,34 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "7294e85217c0c79bcebf307d1f381730655e0d1ddf8f737b84a8232b4ca93dc7",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "c7266c4e",
+      "pageHash": "3cd32708c35f53b8cd8f83857fe7cdaa429d8cd0f37858966df84d33e809469c",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "4bc68324",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "009901c2"
+      "commit": "4bc68324"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "78bcf6db1239e8ae01b3b3eeabbfdf47c287c263ecce91a5a8a3ab45da5c099e",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "a24d10db",
+      "pageHash": "f9c350ad5234345c5358a9be38310ed44c1e707f01deb9db9857d598a1fb4079",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "22331d47",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cdf9b4d2"
+      "commit": "dc8c0e42"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "3500f41ac45e172bd32531d33b1f716b9ba09b2d3f48958f3e764b7eeb3d0d40",
+      "pageHash": "03f8e50e77478ff186a27e126dddbb317e40cceea1b742f94d0e8a1a0d48f860",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "23ce2d28"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -380,7 +380,7 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "2d2a853241634b7d8d06d6d8e3a5aa614690689442bab154554ff7e5af313d2f",
+      "pageHash": "692d53199c321aefe144cfafbb165c049ee9e3aef99207336ee2df3ce6d3ff25",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -398,7 +398,7 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "5ac8185a50049261a8d79da71b0c8048a712a37b672986b2f40de85710536632",
+      "pageHash": "0f4ce9bad44e6f1d5d0fefb693acf8075fabe01151ca1d2585628f7da794c25f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -431,7 +431,7 @@
       "title": "Catálogo: listado y categorías (MSF-160)",
       "pageHash": "b0cffbd421b01f685e477db4b862f10e34545f7bd5a2b1dce6d92e91f10f0e41",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs"
       ],
@@ -460,7 +460,7 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "1e0e52b230aa5e53ca29c57282e824e68a5bad827c299f25ee35df22722e3a94",
+      "pageHash": "b237eb31c87ab1917a64b253cde960368bde28dcee169359b36641f45fbe9e4e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -489,7 +489,7 @@
       "title": "Clientes · correo masivo a clientes (MSF-155)",
       "pageHash": "0b18c402c8d5c7225efdfbcd887a96b52341b40ad0275b5f9e917621398d93b6",
       "sourceHash": "2f81c74c5933a322f5facb641b7a2e10f81e684a8f21e78175c342b9d128567b",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "design/pantallas",
@@ -509,7 +509,7 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "f805779052b7edbb5e88a93a8227fb0933c8a003bff0946054cf3a9111a3efdf",
+      "pageHash": "08b7b8d6efff6d3faee03ec908c6086d07d6e9d4ceca0007223f7d96c4997e80",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -527,12 +527,21 @@
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
-      "pageHash": "22a5a0d55cbab9c3161c37848e30d312cf3d55af11fbd956b4f3861587ee4e49",
+      "pageHash": "10effca92834f96b890d6ae13c2b8e18e49dff304ba335b59e23ba6fb8c72e1e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
       "commit": "53cb4c30"
+    },
+    "docs/producto/inicio-y-alertas.md": {
+      "title": "Inicio, alertas y búsqueda de productos",
+      "pageHash": "6753a97491d5373f18c3cce86f8bb97b115be89d77881569fb856e22ade7beca",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "4b311c19"
     },
     "docs/producto/listados.md": {
       "title": "Cómo se muestran las listas",
@@ -602,7 +611,7 @@
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "e3f3257a6f16dd77be23156fa18b457ddd61a7359878db0044aa47960a6cb196",
+      "pageHash": "097efea86ba2bbc1650f4deb5d5b3a354711acc21ade6a72b671157e3ab7da1c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -613,7 +622,7 @@
       "title": "Clientes · ranking avanzado de clientes (MSF-171)",
       "pageHash": "e87bf6c34157804f78f9dba63e879a17cf44dcfc4c3982e316935b9f9d67186c",
       "sourceHash": "41144798247c32b102fa17a5acf0330f2653c3b32a96e3114ce4cdb2e7cc9dda",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "design/pantallas"
@@ -625,7 +634,7 @@
       "title": "Clientes · ranking de clientes (MSF-126)",
       "pageHash": "c6e6793535661f794780f2671cb8c39147a3d7ddf054fe408ca11e23324c8390",
       "sourceHash": "41144798247c32b102fa17a5acf0330f2653c3b32a96e3114ce4cdb2e7cc9dda",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "design/pantallas"
@@ -635,12 +644,12 @@
     },
     "docs/producto/rentabilidad.md": {
       "title": "Ver la rentabilidad: costos y márgenes",
-      "pageHash": "6ceb3f67f610b243752bcb7f0411fe2dc16605584c5a1223fcc0ced0868e2659",
+      "pageHash": "eb371a4e71d8dacb168f23c26470b3cb4a7adcb224b2c139c986f193fc9a0c29",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "4bc68324"
     },
     "docs/producto/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
@@ -658,7 +667,7 @@
       "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
       "pageHash": "a29522415c1d0761af366b410225852654f4014a2fc040e3b1fbfabd378e23ac",
       "sourceHash": "c3faeaeb615329c44da2d4230e5a05b015c862858ddf16ee701eb4e07d14768e",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "design/pantallas",
@@ -737,7 +746,7 @@
       "title": "Stock único y alertas (MSF-231)",
       "pageHash": "107583c225c93ef2d256eecca591d2f55c2edb44f8de7799a0c8fcf2c753a33e",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs"
       ],
@@ -802,7 +811,7 @@
       "title": "Ventas · catálogos de cobro y envío (MSF-139)",
       "pageHash": "fd0227d20d6ac7b0ab5f7d5538830e7fcca32175fdcb51c32cfd14d0a316b6f7",
       "sourceHash": "2f81c74c5933a322f5facb641b7a2e10f81e684a8f21e78175c342b9d128567b",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "apps/web/src",
@@ -810,6 +819,15 @@
       ],
       "owner": "producto",
       "commit": "53cb4c30"
+    },
+    "docs/producto/ventas-cierre-caja.md": {
+      "title": "Cierre de caja",
+      "pageHash": "84c1d83e0eefa9f2ebba0bcc148aa796d74bc315dfdc568e4a25254556e34df2",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "98fbbddf"
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
@@ -822,12 +840,12 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
-      "pageHash": "2007991d38a92a273ee5e4075f7c4285f0e14d32f13b404fd1e223b5966c3108",
+      "pageHash": "b3509074b64b1810f65090b13f0eb14e3f0dd5586b46ee96d14a11f979744989",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "98fbbddf"
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
@@ -865,17 +883,23 @@
       "owner": "producto",
       "commit": "53cb4c30"
     },
-    "docs/producto/ventas-reportes.md": {
-      "title": "Ventas · reportes básicos (MSF-338)",
-      "pageHash": "28cf6185b01fbe5896434e6c87b14d396ff68213dbfbe750c5fe31a080fd5ef6",
-      "sourceHash": "05a2bad1ff052632081503eb0cb07710deda770be582559943ad666a07db347c",
-      "sourceAt": "c7266c4e",
-      "sources": [
-        "specs",
-        "design/pantallas"
-      ],
+    "docs/producto/ventas-mostrador.md": {
+      "title": "Venta de mostrador",
+      "pageHash": "558eaf75d006062ed2e781860061050cb55cf100bbd7ed8b7c04ef78e42f2088",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "98fbbddf"
+    },
+    "docs/producto/ventas-reportes.md": {
+      "title": "Reportes de ventas",
+      "pageHash": "fcbcae6b2cba7524d5fc25941d2dd9925f160eae20a46192b63a1d1bb51dac52",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "4bc68324"
     },
     "docs/producto/ventas-rma-devoluciones.md": {
       "title": "Registrar y resolver devoluciones y reclamos (RMA)",
@@ -910,15 +934,15 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores (MSF-205)",
-      "pageHash": "f307f40b663684317f253aef9fe6f166d9c7f93a714296075525b9033b9f7891",
-      "sourceHash": "30913af7f5335b76c4091acb84124895d8e1eae5cef6116dbd04103c6c22c3d8",
-      "sourceAt": "f0e28977",
+      "pageHash": "541afa39e99f7f325f678410c229dcdb7a99b1007d48c6cffe844d11e95d7f43",
+      "sourceHash": "43afca1cb08a48bf18e1afc4001b366099348cb0aeb9c8bdec8bffc608141c4a",
+      "sourceAt": "8f5c0001",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "fdd3dcd1"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -944,12 +968,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "64e49c7b3723aa81a1ec033d743434ac24deeba0ceacceb7d269fa85a942a60a",
+      "pageHash": "433bcb5adea466542abc36fcaa7cfa003539b263bb8eaf5c73c33dd6ffab14b8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "801de684"
+      "commit": "29bf8f31"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1166,9 +1190,9 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "4dcb6f03607b8a7ac23e13b64affb31ea78987a94080d30c48d7fe8e37f1c62c",
+      "pageHash": "6aa58d0311e873cbcedd433dc92ec9c7c5f36ba7d1826ad5ddf2768902c59787",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations"
       ],
@@ -1187,6 +1211,21 @@
       "owner": "tecnico",
       "commit": "2d033b4a"
     },
+    "docs/tecnico/auditoria-y-soporte.md": {
+      "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
+      "pageHash": "532daa4f38d965e1eedcc6023cce0da97c751b68993d8e551b09e79324208591",
+      "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
+      "sourceAt": "22331d47",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/src",
+        "infra/kestra/flows"
+      ],
+      "owner": "tecnico",
+      "commit": "dc8c0e42"
+    },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
       "pageHash": "3eda6087c0b97d61ee387adce06b7ef3b62f72c14362d63df8b6f12fe4b21b06",
@@ -1201,14 +1240,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "5fc34fba008501067198689e874b4373892657c0de1f981b7ad417b48436f68b",
+      "pageHash": "f78b6d96233df9f773ea6ec5b347e1717582180ce1e4f5345ea47971468e038d",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "911af6c3",
+      "sourceAt": "6f26168e",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "cdf9b4d2"
+      "commit": "98fbbddf"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1238,7 +1277,7 @@
       "title": "Catálogo: listado, empresas y categorías (MSF-160)",
       "pageHash": "caf5b72884deccc3afee5c2637ac59cf5d15316c38bb3d33ecb4a4a7407d6dea",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations"
       ],
@@ -1259,9 +1298,9 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "12f02de54188197cca334a6b03230412c28a0e7a5e8190e972b9f5c870774784",
+      "pageHash": "4ad0a5405beed50320dc352afdf80b3ca3c1e7aba7919d1e95bab5aa09c1af00",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1287,7 +1326,7 @@
       "title": "Consultas: modelo, RPC y aviso",
       "pageHash": "b7c63121a87aefed7fff692c74f691fc6038747e1dc74357b414cb1ea3d600fa",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
@@ -1299,7 +1338,7 @@
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
       "pageHash": "53d40654b7a39130ae28ef5fc00342728622d40fba26bbd64a2793fc2297e769",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1312,7 +1351,7 @@
       "title": "Correo masivo a clientes: datos, RPC, flow y baja (MSF-155)",
       "pageHash": "63fff8597393acfdb82cc1a3fe09970c31aaf5380caa8ec99110ab37b436159e",
       "sourceHash": "7ad96517db64459724b56c3b7ec5770826d4367e092b341fe02a30a6bf13ddd0",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1339,14 +1378,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "b490ac707bb800e1bcb83aa7ae5bb3eccceba0713c02c520848fa35a00316872",
+      "pageHash": "a9f9b5e4e7f6c6165748651b2f8e046aaca82c96ba5b25784076c089c50e5697",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "390e14df",
+      "sourceAt": "22331d47",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "23ce2d28"
+      "commit": "188fd42d"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1375,9 +1414,9 @@
     },
     "docs/tecnico/flujos.md": {
       "title": "Flujos",
-      "pageHash": "ddf16fa58995cfd4f9fca5dd2510b3a02bdcb2f9d4bead520369538c2bf07a7e",
+      "pageHash": "568b019072105eb2508476ae10dc0acb5cfd953db30c23cd7a8caabc70c3b290",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs"
       ],
@@ -1407,31 +1446,57 @@
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
-      "pageHash": "133217d54cb4f9e08bdaae5a2b012864b85238e38aee734cd64e924ba78142a9",
+      "pageHash": "4ff7cd1b00c77303b9b69059aac244c04069965f2a434ab31b6e071e64136429",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
       "commit": "53cb4c30"
     },
+    "docs/tecnico/inicio-y-alertas.md": {
+      "title": "Inicio y alertas: pantalla, recálculo y búsqueda global",
+      "pageHash": "d72adad5902610addcf5374766834914457da80f93220e520e72ac50f85d32ed",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "e75a236b",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "4b311c19"
+    },
     "docs/tecnico/listados.md": {
       "title": "Listados: carga infinita e imagen de producto (MSF-789)",
       "pageHash": "fc4acb5dd3f3f7fe79fc32ede868c1a0459dde9a7d2871e18bb322e7228b7de5",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": "53cb4c30"
     },
+    "docs/tecnico/mejoras-de-clientes-y-proveedores.md": {
+      "title": "Mejoras de clientes y proveedores: modelo, RPC y pantallas (MSF-445)",
+      "pageHash": "14c4d03b9d1aab95dd6318b94f1d4b936e3040d2018b621d027ee0208b5f4e78",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "8f5c0001",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "fdd3dcd1"
+    },
     "docs/tecnico/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos: modelo, RPC y operación",
       "pageHash": "1b6329964cdc3a5b40b4ca35caba4f4f5fdc2d606f8b2fedd6a6d59a87813f62",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1513,7 +1578,7 @@
       "title": "Permisos por empresa: construcción interna (MSF-121)",
       "pageHash": "4ec0743e5a6e2c469d154a7e8aac94ce3e85d8cc1bf67274ecab5840367de41e",
       "sourceHash": "cb33fac37912541db64c775a1d610c23a432a662986805723d58f20fc0d54e37",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations",
@@ -1527,20 +1592,20 @@
       "title": "Precios e IVA: modelo, RPC y cálculo",
       "pageHash": "dfcd0fcfe396433e6f40430d8266953818059f2db1cbeb40cc57db71658129cd",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "53cb4c30"
+      "commit": "514dd9e7"
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
-      "pageHash": "b16b84307b48e061c8e09b2fb6df5593035394abbfba21251d23cde49440adca",
+      "pageHash": "224a645382b5483850752efe599549471dee5ad1674017645e63b68c9763351a",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations",
         "apps/web/src",
@@ -1553,7 +1618,7 @@
       "title": "Ranking avanzado de clientes: RPC y pantallas (MSF-171)",
       "pageHash": "2fccfccbf611027bb9df1b4174a4ed8c5af278cedbc2c9f6627e853a4b9417b5",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1566,7 +1631,7 @@
       "title": "Ranking de clientes: contrato, RPC y pantallas (MSF-126)",
       "pageHash": "d37fad42a93b331419dbc6a01b8e92afd1970e2b6e113c540c620c071900574e",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1576,10 +1641,10 @@
       "commit": "53cb4c30"
     },
     "docs/tecnico/rentabilidad.md": {
-      "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127)",
-      "pageHash": "a9d72ec35f5d5300a05e1efca60347f38f231827488b90f185a5ce164fb9528c",
-      "sourceHash": "820b7392776899e057a80da4b7f6f19068e9c9cc7b0d4d84b7ac078b3b341d46",
-      "sourceAt": "fcbd6e64",
+      "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
+      "pageHash": "c49deea773e2cfdaa5c2e4f96c4754d848e0699efbc51dff0f3f9da9517706ee",
+      "sourceHash": "6b80ad7198f6c265faa44498bec6b7c34e5f7d40bfd161a643ca469c5f764e7d",
+      "sourceAt": "4bc68324",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -1587,7 +1652,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "bfa1e1a0"
+      "commit": "4bc68324"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
@@ -1687,7 +1752,7 @@
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
       "pageHash": "3e45dcc35933c042fdf029d2dbf642f6567b755784d7be73a8601d70da03701f",
       "sourceHash": "7ad96517db64459724b56c3b7ec5770826d4367e092b341fe02a30a6bf13ddd0",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1701,7 +1766,7 @@
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
       "pageHash": "572eadc9c22386e1cbcc0b7f80e77016cd5a4b17cbee3193d057269d2598d57b",
       "sourceHash": "c3faeaeb615329c44da2d4230e5a05b015c862858ddf16ee701eb4e07d14768e",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1729,7 +1794,7 @@
       "title": "Stock · carga inicial, exportación y avisos (MSF-368)",
       "pageHash": "2238b3db8131c48aa3ce4e2221e87c56f4db7b23f129b7316d1a8fb120e4ef04",
       "sourceHash": "19c83f1a106e7427e472c1be4170630644d5b84513e55639449b41e8218c89f5",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/stock"
@@ -1764,7 +1829,7 @@
       "title": "Stock · movimientos, historial y estados (MSF-136)",
       "pageHash": "7166672da6928778c0947456e3e68263e45c1d656cb1da2748b7e897a92f15f1",
       "sourceHash": "be71f2cd17d733fb7d07397aa8bcb7400ffdede117963931bde45ec51c279424",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "supabase/migrations",
         "specs/20261017-120000-stock-movimientos"
@@ -1911,7 +1976,7 @@
       "title": "Ventas · catálogos de cobro y envío (técnico, MSF-139)",
       "pageHash": "4dcf565037a56698855c673183f9609c8802eee4839c8688754105902c4c1a03",
       "sourceHash": "3574b9e70e4de583de7b7e2a324d62a6db480509a384510f7c9898849f89bf59",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs/20261020-100000-ventas-catalogos-de-cobro-y-envio",
         "supabase/migrations",
@@ -1921,11 +1986,24 @@
       "owner": "tecnico",
       "commit": "53cb4c30"
     },
+    "docs/tecnico/ventas-cierre-caja.md": {
+      "title": "Ventas · cierre de caja (técnico, MSF-193)",
+      "pageHash": "6310d7b64f1785c003107157c4f919cbfccf3f8b344d10b350a0cee5673409d4",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "98fbbddf"
+    },
     "docs/tecnico/ventas-cobros-y-conciliacion.md": {
       "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
-      "pageHash": "83fe4e7259c704467e7b91eb778bc62e0669b8d01f1f14d657dc214a3fde065d",
+      "pageHash": "30cd0a9ed6d0699b6ebc2deff45033a867bd133511db9f86e2c4e41e55cb340f",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1936,9 +2014,9 @@
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "807be18ee2bc379a423135ba1572996c5b303b4a7d1b19705ad0e8ac5c45e773",
+      "pageHash": "6299e6b1b83dab467f66b6472e8a17aec13de52610c53e57163df8820462a238",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1951,7 +2029,7 @@
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
       "pageHash": "28ba8d07950db4d5c2af489ffed27bc83adfa1fe2450baa56266dc06de538bdc",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1964,7 +2042,7 @@
       "title": "Ventas · historial de consulta (técnico, MSF-275)",
       "pageHash": "c3c48cd5ffa964ca09eee140ecaf36526373ae0b69b785a99f833b33a3280b4d",
       "sourceHash": "7ad96517db64459724b56c3b7ec5770826d4367e092b341fe02a30a6bf13ddd0",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1991,7 +2069,7 @@
       "title": "Ventas · listado, estados y anulación (técnico, MSF-177)",
       "pageHash": "74c7f7ce8a9a8c7bccf11e79368d3c3ccadc484ea76f4374cfa949efd3fa1302",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -2000,24 +2078,50 @@
       "owner": "tecnico",
       "commit": "53cb4c30"
     },
-    "docs/tecnico/ventas-reportes.md": {
-      "title": "Ventas · reportes básicos (técnico, MSF-338)",
-      "pageHash": "b7a7b5f57f8e1e00859383fcf2147c88ef639e110675af88d65fd2b1db010ec3",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "c7266c4e",
+    "docs/tecnico/ventas-mostrador.md": {
+      "title": "Ventas · venta de mostrador (técnico, MSF-193)",
+      "pageHash": "bb1d715bedd6b865d45bb93dc115b08a76a8555fe12f83f9b5169e93dc2d2c92",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "98fbbddf"
+    },
+    "docs/tecnico/ventas-precios-especiales.md": {
+      "title": "Ventas · precios especiales por cliente (técnico, MSF-193)",
+      "pageHash": "eb67faacfb5baf8ff6efee6346ea05465d0255aae56eb78e52fd4a4932916f5b",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "6f26168e",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "98fbbddf"
+    },
+    "docs/tecnico/ventas-reportes.md": {
+      "title": "Ventas · reportes (técnico, MSF-338, MSF-192)",
+      "pageHash": "0839ee288ad31e5f51e4afc842e9949098ea7a36c36f47d1d8263f5ea039d02e",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "4bc68324",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "4bc68324"
     },
     "docs/tecnico/ventas-rma-devoluciones.md": {
       "title": "Ventas · devoluciones (RMA), técnico (MSF-178)",
       "pageHash": "c2abae98148bb0a0183cac3d6449046d21d148af094673ed5b90872dc6fe90e7",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "11179f95",
+      "sourceAt": "9d91048c",
       "sources": [
         "specs",
         "supabase/migrations",

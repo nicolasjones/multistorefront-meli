@@ -39,6 +39,8 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
 - `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar`, `editar_precio`,
   `registrar_cobro`, `conciliar_pago` y `cobrar_contrarreembolso` exigen `edicion`; `exportar` y
   `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+- Exportar la actividad (MSF-170) exige la acción `exportar` **y** el nivel `edicion` en `actividad`
+  (por defecto, solo el Administrador); ver [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md).
 
 ### Cómo usarlas en una tabla de dominio
 
@@ -107,6 +109,21 @@ relaciones por empresa) usan este contrato:
   `proveedores` en `lectura`/`edicion`; así el Operador ve los proveedores por la vista aunque no lea la
   tabla. La ficha llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en
   `docs/proveedores.md`.
+- **`dominio.proveedores_contactos` (F-PRV-08, MSF-449, épica MSF-445):** lectura con
+  `nivel_seccion('proveedores')` en `lectura`/`edicion`; la **escritura es solo por RPC**
+  (`agregar_contacto_proveedor` y `marcar_contacto_principal`, que exigen `edicion` y rechazan con `42501`
+  al resto); **sin `DELETE` directo** y sin `INSERT`/`UPDATE` directos; `anon` sin acceso. La FK compuesta
+  `(proveedor_id, organizacion_id)` impide colgar un contacto de un proveedor de otra organización. Detalle
+  en [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md).
+- **Fusión de clientes (F-CLI-18, MSF-447, épica MSF-445):** `public.fusionar_clientes` y
+  `public.vista_previa_fusion_clientes` exigen **rol Administrador** (`private.es_administrador_de`); el
+  resto de los roles recibe `42501` («Solo el Administrador puede fusionar clientes»), aunque llame a la
+  base directamente. La pantalla además oculta la acción. Ver
+  [Mejoras de clientes y proveedores](tecnico/mejoras-de-clientes-y-proveedores.md).
+- **Evolución del costo (F-PRV-07, MSF-448, épica MSF-445):** `public.historial_costos_producto` exige
+  `nivel_seccion('rentabilidad')` **y** `nivel_seccion('proveedores')` en `lectura`/`edicion`; sin los dos,
+  `42501` («Tu rol no puede ver el historial de costos») y la pantalla no muestra importes. La organización
+  sale de la sesión y se respetan las empresas accesibles del usuario.
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
@@ -210,8 +227,8 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 - **No dibujado en `Roles.dc.html`** (marcado en el PR): la edición de acciones (FR-006) y el diálogo
   de «Restablecer valores iniciales» (FR-015) son propuestas de diseño, a confirmar con el cliente.
 - Tope: un guardado acepta hasta 200 niveles y 400 acciones (la matriz tiene 6×16 y 6×16×3); más se rechaza con `22023`.
-- Auditoría (F-AUD-01, entregada): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). El valor previo y nuevo de cada celda no se guarda. Ver `docs/actividad.md`.
-- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 deja quién y cuándo guardó, no el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
+- Auditoría (F-AUD-01 y F-AUD-02, entregadas): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). Ahora guardan también el valor previo y el nuevo de cada celda modificada (hasta 8 KB; si hay más cambios, el resto se resume en «… otros cambios»), consultables en el detalle del evento. Ver [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md).
+- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría deja quién y cuándo guardó y, para los cambios de matriz, el valor previo y nuevo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
 - El contador de usuarios por rol filtra por la organización activa (la policy también deja ver las propias membresías en otras organizaciones).
 - Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 

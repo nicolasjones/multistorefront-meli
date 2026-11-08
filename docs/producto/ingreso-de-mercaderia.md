@@ -31,7 +31,7 @@ Cuando llega mercadería de un proveedor, la registrás acá y el stock sube en 
 2. Elegí el **Proveedor**.
 3. Revisá la **Fecha** (hoy por defecto; no puede ser futura).
 4. Si querés, escribí el **Remito o factura de compra** (opcional, hasta 100 caracteres).
-5. En **Producto 1** buscá y elegí el producto. Cargá la **Cantidad** (podés usar los botones + y − ) y el **Costo unit. USD**.
+5. En **Producto 1** buscá y elegí el producto. Cargá la **Cantidad** (podés usar los botones + y − ) y el **Costo unit. USD** (opcional: si lo dejás vacío, el ingreso se guarda igual).
 6. Para agregar más productos, hacé clic en **Agregar producto**. Con el ícono del tacho quitás una línea. Debajo ves el total, por ejemplo «12 unidades en 1 producto». Un ingreso admite hasta 100 productos y un producto no se puede repetir.
 7. Si tu rol lo permite, marcá **Actualizar el costo del producto con este ingreso** (ver abajo).
 8. Hacé clic en **Registrar ingreso**. Aparece «Ingreso registrado» con las unidades, y el ingreso aparece en el historial de abajo.
@@ -47,7 +47,7 @@ El registro es todo o nada: si una línea tiene un problema, no se guarda ningun
 ### Datos que tenés que tener en cuenta
 
 - **Cantidad**: número entero, de 1 en adelante.
-- **Costo unit. USD**: el costo de una unidad en dólares, de cero en adelante, con hasta dos decimales.
+- **Costo unit. USD**: el costo de una unidad en dólares, de cero en adelante, con hasta dos decimales. Es **opcional**: si lo dejás vacío, la línea se guarda **sin costo** (que no es lo mismo que costo cero) y, si marcaste **Actualizar el costo del producto con este ingreso**, esa línea no cambia el costo del producto.
 - **Compra a nombre de** solo indica a nombre de quién se compró. El stock es uno solo y lo ven todas las tiendas: no se separa por empresa.
 - El producto no tiene que estar asignado al proveedor elegido. Si coincide, la pantalla lo indica: «Proveedor del producto: coincide».
 - La mercadería entra al **depósito por defecto**. Si la necesitás en otro depósito, después la trasladás ([ver cómo](stock-depositos-y-reservas.md)).
@@ -145,3 +145,7 @@ El stock baja en todas las cantidades del ingreso, descontando del depósito don
 **¿Puedo cargar un ingreso con la fecha de otro día?** Sí, de hoy o anterior; no futura.
 
 **Mi rol no ve el formulario.** Solo quienes editan el stock pueden registrar ingresos.
+
+**¿El costo es obligatorio?** No. Si no lo cargás, la línea se guarda sin costo y el producto no cambia de costo. Después podés ver el costo de cada compra en la [evolución del costo del proveedor](proveedores.md#ver-la-evolucion-del-costo-de-un-producto).
+
+**Si dejé el costo vacío, ¿el producto quedó sin costo?** No: el costo del producto solo cambia si marcaste **Actualizar el costo del producto con este ingreso** y esa línea traía costo.
