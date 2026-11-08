@@ -16,7 +16,9 @@
 -- máximo se considera colgada: el inicio cierra su ejecución por timeout y la base la pasa a `fallido`.
 --
 -- Seguridad:
---   · Solo administradores de la organización de la sesión; `anon` no ejecuta la función.
+--   · Solo administradores de la organización de la sesión POR MEMBRESÍA PROPIA (`private.es_administrador_propio_de`):
+--     un superadmin con organización activa NO exporta los datos de otra organización (decisión de producto tras la
+--     revisión retroactiva de MSF-396: es la copia completa de datos personales; el soporte no la tiene). `anon` no ejecuta la función.
 --   · El archivo vive en `<organizacion_id>/<ejecucion_id>.zip`; la política de Storage deja leerlo solo a un
 --     administrador de esa organización. El worker escribe con la clave de servicio del servidor (nunca del
 --     navegador); no hay política de insert/update/delete para `authenticated`.
@@ -28,6 +30,7 @@
 --
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function public.solicitar_exportacion_total();
+--   drop function private.es_administrador_propio_de(uuid);
 --   drop policy exportaciones_organizacion_select on storage.objects;
 --   y el bucket `exportaciones-organizacion` (tras vaciarlo desde la API de Storage).
 
@@ -35,13 +38,30 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('exportaciones-organizacion', 'exportaciones-organizacion', false, 524288000, array['application/zip'])
 on conflict (id) do nothing;
 
+-- Administrador de la organización por MEMBRESÍA (rol `administrador` activo). A diferencia de
+-- `private.es_administrador_de`, NO acepta a un superadmin.
+create or replace function private.es_administrador_propio_de(p_organizacion_id uuid)
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from public.usuarios_organizacion u
+    where u.user_id = (select auth.uid())
+      and u.organizacion_id = p_organizacion_id
+      and u.rol_id = 'administrador'
+      and u.estado = 'activo'
+  );
+$$;
+revoke execute on function private.es_administrador_propio_de(uuid) from public, anon;
+grant execute on function private.es_administrador_propio_de(uuid) to authenticated;
+
 drop policy if exists exportaciones_organizacion_select on storage.objects;
 create policy exportaciones_organizacion_select on storage.objects
   for select to authenticated
   using (
     bucket_id = 'exportaciones-organizacion'
     and (storage.foldername(name))[1] = (select private.organizacion_id())::text
-    and (select private.es_administrador_de((select private.organizacion_id())))
+    and (select private.es_administrador_propio_de((select private.organizacion_id())))
   );
 
 create or replace function public.solicitar_exportacion_total()
@@ -59,7 +79,7 @@ declare
   v_clave text;
   v_nuevo uuid;
 begin
-  if v_org is null or v_uid is null or not (select private.es_administrador_de(v_org)) then
+  if v_org is null or v_uid is null or not (select private.es_administrador_propio_de(v_org)) then
     raise exception 'NO_AUTORIZADO: solo un administrador de la organización exporta todos los datos'
       using errcode = '42501';
   end if;

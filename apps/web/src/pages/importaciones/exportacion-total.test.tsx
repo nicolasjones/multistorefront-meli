@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { configurarFiltro, consultasExportacionTotal, exportacionTotal, falso, reiniciarFalso, responderExportacionTotal } from './soporteTest'
 
 vi.mock('../../lib/supabase', async () => ({ supabaseClient: (await import('./soporteTest')).supabaseFalso }))
-const permiso = vi.hoisted(() => ({ puedeEscribir: true }))
+const permiso = vi.hoisted(() => ({ puedeEscribir: true, esSuperadmin: false }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: () => ({ puedeEscribir: permiso.puedeEscribir, isLoading: false }) }))
+vi.mock('../../hooks/useIsSuperadmin', () => ({ useIsSuperadmin: () => ({ isSuperadmin: permiso.esSuperadmin, isLoading: false }) }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: (...args: unknown[]) => falso.filtro(...args) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -20,6 +21,7 @@ describe('[MSF-396:T026] Exportar todos los datos (FR-039, FR-040)', () => {
     reiniciarFalso()
     configurarFiltro(null)
     permiso.puedeEscribir = true
+    permiso.esSuperadmin = false
     falso.rpc.mockResolvedValue({ data: [{ proceso_id: 'p-900', ejecucion_id: 'ej-900', estado: 'pendiente', reutilizado: false }], error: null })
   })
   afterEach(() => vi.restoreAllMocks())
@@ -30,6 +32,14 @@ describe('[MSF-396:T026] Exportar todos los datos (FR-039, FR-040)', () => {
     expect(b.getByRole('heading', { name: 'Exportar todos los datos' })).toBeInTheDocument()
     expect(b.getByRole('button', { name: 'Exportar todos los datos' })).toBeEnabled()
     expect(await b.findByText('Todavía no pediste una exportación total.')).toBeInTheDocument()
+  })
+
+  it('un superadmin con acceso de soporte NO ve el bloque ni consulta nada (la base también lo rechaza)', () => {
+    permiso.esSuperadmin = true
+    abrir()
+    expect(screen.queryByRole('region', { name: 'Exportar todos los datos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Exportar todos los datos' })).not.toBeInTheDocument()
+    expect(consultasExportacionTotal()).toHaveLength(0)
   })
 
   it('quien no es administrador no ve el bloque ni consulta nada', () => {

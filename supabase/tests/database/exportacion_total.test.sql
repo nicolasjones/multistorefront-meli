@@ -6,13 +6,14 @@
 -- worker se hacen como dueño con el JWT de un administrador (lo que `autorizar_llamante_ciclo` acepta).
 begin;
 
-select plan(40);
+select plan(45);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
 insert into auth.users (id, email) values
+  ('d9000000-0000-0000-0000-000000000001', 'superadmin@example.com'),
   ('d1000000-0000-0000-0000-000000000011', 'admin-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000012', 'miembro-uno@example.com'),
   ('d2000000-0000-0000-0000-000000000011', 'admin-dos@example.com');
@@ -21,6 +22,11 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 'administrador'),
   ('d1000000-0000-0000-0000-000000000012', '11111111-1111-1111-1111-111111111111', 'miembro'),
   ('d2000000-0000-0000-0000-000000000011', '22222222-2222-2222-2222-222222222222', 'administrador');
+
+-- Un superadmin con la organización Uno activa (acceso de soporte): puede operar la organización, pero NO exportar sus datos.
+insert into superadmins (user_id) values ('d9000000-0000-0000-0000-000000000001');
+insert into superadmin_organizacion_activa (user_id, organizacion_id)
+values ('d9000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
 
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda Total Uno'),
@@ -91,6 +97,25 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000012');
 select throws_ok(
   $$ select * from public.solicitar_exportacion_total() $$,
   '42501', null, 'un miembro que no es administrador no puede pedir la exportación total'
+);
+
+select pg_temp.como('d9000000-0000-0000-0000-000000000001');
+-- Precondiciones: sin ellas el rechazo de abajo podría ser solo «sin organización» y no probaría la restricción.
+select is(private.organizacion_id(), '11111111-1111-1111-1111-111111111111'::uuid,
+  'precondición: el superadmin tiene la organización Uno activa');
+select ok(private.es_administrador_de('11111111-1111-1111-1111-111111111111'::uuid),
+  'precondición: la regla anterior (es_administrador_de) SÍ lo dejaba pasar');
+select throws_ok(
+  $$ select * from public.solicitar_exportacion_total() $$,
+  '42501', null, 'un superadmin con la organización activa NO puede pedir la exportación total de otra organización'
+);
+select is(pg_temp.cantidad_procesos(), 0, 'el pedido rechazado del superadmin no creó ningún proceso');
+select ok(
+  (select qual from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'exportaciones_organizacion_select')
+    ~ 'es_administrador_propio_de'
+  and (select qual from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'exportaciones_organizacion_select')
+    !~ 'es_administrador_de\(',
+  'la política de Storage del ZIP exige la membresía propia: un superadmin no lo descarga'
 );
 
 reset role;

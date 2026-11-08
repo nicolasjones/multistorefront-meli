@@ -10,7 +10,7 @@ Bloque **«Exportar todos los datos»** en `/importaciones`. Un administrador de
 4. El avance (`total` = cantidad de conjuntos) se ve en el bloque y en la tabla del centro. Un conjunto que falla queda como error del proceso y la exportación cierra `con_errores`; si fallan todos o se agota el reintento, `fallido` con motivo sanitizado. Cancelar corta entre lotes sin dejar ZIP parcial.
 5. «Descargar» pide una URL firmada de 60 s; la política de Storage solo deja leer a administradores de esa organización. Solo existe el último archivo.
 
-El bloque no depende de la empresa activa (la exportación es de toda la organización) y no se muestra a quien no administra.
+El bloque no depende de la empresa activa (la exportación es de toda la organización) y no se muestra a quien no administra **ni a un superadmin con acceso de soporte**: la exportación completa la pide y la descarga solo el administrador de la propia organización (`private.es_administrador_propio_de`; la base rechaza al superadmin con 42501).
 
 ## Qué incluye y qué excluye
 

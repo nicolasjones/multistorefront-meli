@@ -8,6 +8,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useIsSuperadmin } from '../../hooks/useIsSuperadmin'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useProcesosMasivos } from '../../hooks/useProcesosMasivos'
 import {
@@ -69,6 +70,7 @@ const columnas: ColumnaAdaptable<ProcesoMasivo>[] = [
 // La empresa activa de la barra superior manda (Principio VIII): una sola fuente de verdad.
 export function ImportacionesList() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
+  const { isSuperadmin } = useIsSuperadmin()
   const { empresas, valor: empresaFiltro, cambiar: elegirEmpresa } = useFiltroPorEmpresaActiva()
   const [detalle, setDetalle] = useState<ProcesoMasivo | null>(null)
   const [cancelando, setCancelando] = useState<ProcesoMasivo | null>(null)
@@ -105,7 +107,8 @@ export function ImportacionesList() {
       />
       <ContenedorSeccion>
         {/* Toda la organización: no depende de la empresa activa ni del filtro de abajo (F-OPS-06, FR-039). */}
-        <ExportacionTotal onSolicitada={() => void refrescar()} />
+        {/* La copia completa de datos la pide solo el administrador de la propia organización; un superadmin con acceso de soporte no (la base lo rechaza). */}
+        {isSuperadmin === false ? <ExportacionTotal onSolicitada={() => void refrescar()} /> : null}
         <Stack sx={{ mb: 2 }}>
           <FiltroEmpresa
             empresas={empresas}
