@@ -282,6 +282,33 @@ Además:
 - **No hay borrado**: no existe política ni grant `DELETE` para nadie; la baja lógica es `archivado_en`.
 - **`anon`** no ejecuta ninguna de las tres RPC ni tiene privilegios sobre la tabla.
 
+### Mejoras de clientes y proveedores (MSF-445)
+
+Fuente: `supabase/migrations/20270204100000`–`20270204120200` (rama `epic/MSF-445-…`, PR #695; aún sin
+merge a `main`; renumeradas al integrar `dokploy`, antes `20270115…`). Contrato completo, modelo,
+reversión y guía de prueba: [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.fusionar_clientes(p_conservar_id uuid, p_descartar_id uuid, p_cuenta_web_de uuid default null) returns jsonb` | Reasigna al conservado los documentos de venta y la cuenta web, habilita en él las tiendas de esa cuenta, archiva al descartado (`archivado_en`) y registra `cliente.fusionado`; devuelve `{documentos_reasignados, cuentas_reasignadas, campanas_reasignadas, cuentas_dadas_de_baja}` | `security definer`, `search_path = ''`; exige **Administrador** (`private.es_administrador_de`); bloquea ambas filas `order by id for update`; `42501` sin permiso, `22023` cliente inválido/archivado/cuenta web sin resolver, `P0002` inexistente o de otra organización; todo o nada |
+| `public.vista_previa_fusion_clientes(p_conservar_id uuid, p_descartar_id uuid) returns table (cliente_id, numero, nombre, documentos, cuentas_web_activas, cuentas_web_total)` | Vista previa de solo lectura: por cliente, N.º, nombre, documentos de venta y cuentas web (activas/total) | `security definer`, `stable`; mismas validaciones que la fusión |
+| `public.historial_costos_producto(p_producto_id uuid, p_proveedor_id uuid default null) returns table (proveedor_id, proveedor_razon_social, ingreso_id, fecha, comprobante, costo_unitario_usd)` | Evolución del costo de un producto: una fila por línea de ingreso **registrado** (no anulado) **con costo**, con fecha, proveedor, comprobante y costo; sin costo no figura (no es cero) | `security definer`, `search_path = ''`, `stable`; exige `rentabilidad` **y** `proveedores` en `lectura`/`edicion`; organización de la sesión y `private.empresas_accesibles()`; `42501` «Tu rol no puede ver el historial de costos» |
+| `public.listar_contactos_proveedor(p_proveedor_id uuid) returns table (id, nombre, rol, correo, telefono, principal)` | Contactos del proveedor, principal primero | `security definer`, `stable`; exige `proveedores` en `lectura`/`edicion`; `42501` «Tu rol no puede ver los contactos del proveedor» |
+| `public.agregar_contacto_proveedor(p_proveedor_id uuid, p_nombre text, p_rol text default null, p_correo text default null, p_telefono text default null, p_principal boolean default false) returns uuid` | Alta de un contacto; opcionalmente como principal (copia sus datos a la ficha) | `security definer`; exige `proveedores` en `edicion`; bloquea la fila del proveedor; `22023` nombre vacío o correo inválido, `P0002` proveedor inexistente, `42501` sin edición |
+| `public.marcar_contacto_principal(p_contacto_id uuid) returns void` | Deja al contacto como único principal y copia nombre, correo y teléfono a la ficha del proveedor | `security definer`; exige `proveedores` en `edicion`; bloquea la fila del proveedor; `P0002` contacto inexistente, `42501` sin edición |
+
+Además:
+
+- `public.registrar_ingreso_mercaderia(...)` **mantiene la firma**; cambio de comportamiento: el
+  `costo_unitario_usd` de cada línea pasa a ser opcional (`null` = sin costo, no cero) y una línea sin
+  costo no actualiza `dominio.producto_costos` aunque venga `p_actualizar_costo = true`.
+- **F-CLI-17 (etiqueta impresa) no agrega RPC**: la hoja lee `public.clientes` por PostgREST con las
+  columnas `id, nombre, direccion, codigo_postal, localidad, provincia, telefono, expreso_preferido` y
+  **no escribe nada**.
+- `dominio.proveedores_contactos` solo tiene `grant select` para `authenticated`: sin `INSERT`, `UPDATE`
+  ni `DELETE` directos y `anon` sin acceso.
+- Todas las RPC nuevas llevan `revoke execute … from public, anon` y `grant execute … to authenticated`.
+
 ### Consultas (MSF-122)
 
 Fuente: `supabase/migrations/20261205100100`–`20261205200200` (rama `epic/MSF-122-…`, aún sin merge a
@@ -453,6 +480,39 @@ estado no válido (factura anulada, borrador) · `40001` conflicto de edición �
 (con `hint = 'importe'`). Contrato completo:
 [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#rpc).
 
+### Ventas mejoras (MSF-193)
+
+Fuente: `supabase/migrations/20270201200102`–`20270201200103` (F-VTA-32),
+`20270202200400` (F-VTA-31) y `20270202201100`–`20270202201102` (F-VTA-33), en las ramas
+`epic/MSF-193-ventas-mejoras` y `dokploy`, aún sin merge a `main`. Todas en `public`, con
+`set search_path = ''`, `revoke execute … from public, anon` y `grant execute … to authenticated`; la
+organización y el actor salen de la sesión.
+
+| RPC | Contrato | Seguridad |
+|---|---|---|
+| `buscar_producto_por_codigo_barras(p_codigo_barras text)` | Resuelve el producto **activo** de la organización por su EAN-13 (`productos_org_codigo_barras_uidx`). Valida 13 dígitos; sin coincidencia **no devuelve filas** (la pantalla muestra «Producto no encontrado»). Devuelve `(producto_id, nombre, sku, codigo_barras)`. | `security definer`; exige `ventas` en **edición** en la empresa activa |
+| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **Misma firma y mismo retorno** (sin `BREAKING`): el precio de cada línea sale de `private.precio_para` y, si el cliente tiene descuento, se le resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes` en el servidor: el `payload` **no** puede imponerlo. Un `precio_manual` no se toca. La línea guarda `descuento_pct`. | `security definer`; exige `ventas` en edición en la empresa del comprobante |
+| `obtener_comprobante(p_id)` | **Misma firma y mismo retorno**: la línea suma la clave `descuento_pct`. | `security definer`; exige `ventas` en lectura o edición |
+| `cerrar_caja(p_empresa_id, p_fecha)` | Cierra el día de una empresa: resume los cobros de esa fecha **por forma de pago y cuenta de cobro**, guarda cierre + detalle y marca `cerrada`. **Idempotente** (un segundo cierre devuelve el existente); si estaba `reabierta`, la vuelve a cerrar y rehace el detalle. No se cierra un día futuro. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
+| `reabrir_caja(p_cierre_id)` | `cerrada` → `reabierta`, con `reabierto_por`/`reabierto_en`. **Idempotente**. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
+| `listar_cierres_caja(p_empresa_id, p_pagina, p_tamano)` | Página de cierres con `filas` (total del filtro); por fila: `id`, `empresa_id`, `empresa`, `fecha`, `estado`, `total`, `cerrado_por`, `cerrado_en`, `detalle` (jsonb por forma de pago y cuenta) y `filas`. `p_empresa_id = null` devuelve todas las empresas accesibles; `p_tamano` acotado a 1..100. | `security invoker`; la RLS recorta por organización, empresa accesible y sección `ventas` |
+
+Sin grant a `authenticated`: `private.caja_cerrada`, `private.candado_caja`, `private.dia_caja`,
+`private.hoy_caja`, `private.bloquear_cobro_caja_cerrada`, `private.exigir_admin_descuento_cliente` y
+`private.registrar_actividad_cliente_descuento`.
+
+El **disparador** `cobros_comprobante_caja_cerrada` (`before insert or update` sobre
+`dominio.cobros_comprobante`) bloquea toda escritura de los cobros de un día cerrado con `55000`
+(«La caja de ese día está cerrada; reabrila para registrar o modificar cobros»), venga de la RPC que
+venga: `registrar_cobro`, la conciliación y los contrarreembolsos.
+
+Errores: `42501` permiso (no Administrador, no `ventas` en edición, empresa ajena) · `22023` dato
+inválido (`hint` = `codigo_barras`, `descuento`, `lineas`, `producto_id`) · `P0002` inexistente o ajeno ·
+`55000` estado no válido (caja cerrada, comprobante cerrado). Contrato completo:
+[Venta de mostrador (técnico)](ventas-mostrador.md),
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md) y
+[Cierre de caja (técnico)](ventas-cierre-caja.md#rpc).
+
 ### Ventas despacho y faltantes (MSF-135)
 
 Fuente: `supabase/migrations/20270112100100`–`20270112150000` (rama `epic/MSF-135-…`, aún sin merge a `main`).
@@ -518,6 +578,32 @@ Las vistas del contrato (`analitica.ventas_producto_mas_vendido` y `analitica.ve
 son RPC: las consume Superset con el rol `superset_analitica`; el aislamiento lo fuerza la cláusula `rls` del
 guest token, que desde esta épica acota también por `empresa_id`. Contrato y detalle:
 [Ventas · reportes básicos (técnico)](ventas-reportes.md).
+
+### Rentabilidad real y reportes de ventas (MSF-192)
+
+Fuente: `supabase/migrations/20270202201000`–`20270202201007` (rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, aún sin merge a `main`). Las RPC de escritura de
+costos exigen `edicion` en `rentabilidad`; las de lectura, `lectura` o `edicion`; todas validan la
+organización activa y las empresas accesibles adentro (`security definer`, `set search_path = ''`).
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `listar_costos_adicionales(p_empresa_id uuid default null)` | Costos activos de las empresas accesibles (o de una): `id`, `empresa_id`, `empresa_nombre`, `nombre`, `tipo`, `valor`, `creado_en`. | `42501` sin `rentabilidad` |
+| `guardar_costo_adicional(p_id uuid, p_empresa_id uuid, p_nombre text, p_tipo text, p_valor numeric)` | Alta (`p_id` null) o edición de un costo; un costo no cambia de empresa. Escribe Actividad. | `42501` sin edición o empresa no accesible · `23514` nombre/tipo/valor inválido · `23505` nombre repetido entre activos · `P0002` el costo no existe |
+| `dar_baja_costo_adicional(p_id uuid)` | Baja lógica (`activo = false`), idempotente. Escribe Actividad. | `42501` sin edición · `P0002` el costo no existe |
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). | `42501` sin `reportes` · `22023` rango inválido |
+
+`public.confirmar_comprobante(uuid)` **conserva su firma** (F-REN-09): al confirmar guarda en cada línea
+`costo_unitario` (pesos por unidad) y `cotizacion` (dólar vigente), una sola vez e idempotente. Las notas de
+crédito de devolución copian esos valores de la línea original con el disparador
+`comprobantes_venta_lineas_costo_nota`. Las ventas anteriores a la migración quedan con `null` y no entran en
+`analitica.rentabilidad_ventas_real`.
+
+Las vistas nuevas (`analitica.rentabilidad_ventas_real`, `analitica.consultas_producto_mas_consultado` y
+`analitica.ventas_periodo_canal`) no son RPC: las consume Superset con `superset_analitica` y las acota la
+cláusula `rls` del guest token por `organizacion_id` y `empresa_id`. Contrato y detalle:
+[Rentabilidad real y reportes (MSF-192)](rentabilidad.md#rentabilidad-real-y-reportes-msf-192) y
+[Ventas · reportes](ventas-reportes.md#productos-mas-consultados-y-ventas-por-periodo-y-canal-msf-192).
 
 > **MSF-189 (MSF-562):** el alta de una consulta ya no encola en `dominio.consultas_avisos`; el disparador
 > llama a `private.emitir_aviso('consulta_nueva', …, empresa)` y lo envía el flow `enviar-avisos`. Esas RPC

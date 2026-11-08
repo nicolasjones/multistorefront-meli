@@ -2372,6 +2372,156 @@ erDiagram
 - Detalle de RPC, tableros, token, exportación y reversión:
   [Ventas · reportes básicos (técnico)](ventas-reportes.md).
 
+## Rentabilidad real y reportes de ventas (MSF-192)
+
+Épica **MSF-192** (spec `20270201-100000-rentabilidad-real-y-reportes-de-ventas`), rama
+`epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili` (pendiente de merge a `main`). Agrega **una tabla**
+en `dominio`, **dos columnas** en las líneas de comprobante, **cuatro vistas** en `analitica` y **cuatro
+RPC** en `public`. Migraciones `20270202201000`–`20270202201007`, aditivas; reversión en el encabezado de
+cada una y consolidada en [Rentabilidad (técnico)](rentabilidad.md#reversion) y
+[Ventas · reportes (técnico)](ventas-reportes.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.costos_adicionales_canal` | **nueva** | Costo adicional por empresa: `nombre`, `tipo` (`porcentaje`/`monto`), `valor`, `activo`; único entre activos por empresa. Se escribe solo por RPC y se da de baja lógicamente. |
+| `dominio.comprobantes_venta_lineas` | **alterada** | Columnas `costo_unitario numeric(14,2)` y `cotizacion numeric(14,4)`, nullable, guardadas al confirmar; ocultas para `authenticated`. |
+| `analitica.margen_producto_canal` | **alterada (vista)** | Suma `costos_adicionales` y los descuenta de `margen` y `margen_pct`. Sin costos activos conserva los valores de MSF-120. |
+| `analitica.rentabilidad_ventas_real` | **nueva (vista)** | Margen de lo efectivamente vendido: costo y cotización guardados en la línea; grano empresa × producto × fecha. |
+| `analitica.consultas_producto_mas_consultado` | **nueva (vista)** | Toques en «Consultar por WhatsApp»: grano empresa × producto × fecha, con `consultas` y `ultima_consulta`. |
+| `analitica.ventas_periodo_canal` | **nueva (vista)** | Comprobantes, unidades y facturado con IVA: grano empresa × fecha (la tienda es el canal). |
+| `public.consultas_reportes_conteo` | **nueva (RPC)** | Conteo de consultas del período para el estado vacío de «Productos más consultados». |
+| `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `total_con_iva`). |
+| `dominio.intereses_whatsapp` | existente | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`): un registro = un toque. |
+| `dominio.empresas`, `dominio.productos`, `dominio.producto_costos` | existentes | Nombre/SKU/estado, costo del producto y tienda de cada fila. |
+| `dominio.rentabilidad_config` | existente | Umbral de margen bajo usado por `estado` en las dos vistas de rentabilidad. |
+| `public.organizaciones` | existente | Dueña de los datos y del aislamiento. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ COSTOS_ADICIONALES_CANAL : "configura"
+  EMPRESAS ||--o{ COSTOS_ADICIONALES_CANAL : "aplica"
+  ORGANIZACIONES ||--o| RENTABILIDAD_CONFIG : "umbral"
+  ORGANIZACIONES ||--o{ EMPRESAS : "tiene"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "vende"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  ORGANIZACIONES ||--o{ INTERESES_WHATSAPP : "registra"
+  EMPRESAS ||--o{ INTERESES_WHATSAPP : "recibe"
+  PRODUCTOS ||--o{ INTERESES_WHATSAPP : "consulta"
+  EMPRESAS ||--o{ MARGEN_PRODUCTO_CANAL : "margen"
+  PRODUCTOS ||--o{ MARGEN_PRODUCTO_CANAL : "producto"
+  EMPRESAS ||--o{ RENTABILIDAD_VENTAS_REAL : "vende"
+  PRODUCTOS ||--o{ RENTABILIDAD_VENTAS_REAL : "producto"
+  INTERESES_WHATSAPP ||--o{ CONSULTAS_PRODUCTO_MAS_CONSULTADO : "agrega"
+  PRODUCTOS ||--o{ CONSULTAS_PRODUCTO_MAS_CONSULTADO : "consulta"
+  COMPROBANTES_VENTA ||--o{ VENTAS_PERIODO_CANAL : "agrega"
+  EMPRESAS ||--o{ VENTAS_PERIODO_CANAL : "canal"
+
+  COSTOS_ADICIONALES_CANAL { uuid id PK "nueva"
+    uuid organizacion_id FK "nueva"
+    uuid empresa_id FK "nueva"
+    text nombre "nueva: 1-80, único entre activos"
+    text tipo "nueva: porcentaje|monto"
+    numeric valor "nueva: >= 0; % <= 100"
+    boolean activo "nueva: baja lógica"
+    timestamptz creado_en "nueva" }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    numeric cantidad
+    numeric subtotal_sin_iva
+    numeric iva
+    numeric costo_unitario "alterada: nueva, pesos por unidad, nullable"
+    numeric cotizacion "alterada: nueva, dólar al confirmar, nullable" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text tipo
+    text estado
+    date fecha
+    numeric total_con_iva }
+  INTERESES_WHATSAPP { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid producto_id FK
+    timestamptz created_at }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    bool activo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    bool activa }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  RENTABILIDAD_CONFIG { uuid organizacion_id PK
+    numeric umbral_margen_bajo }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  MARGEN_PRODUCTO_CANAL { uuid organizacion_id
+    uuid empresa_id
+    uuid producto_id
+    numeric precio_neto
+    numeric costo
+    numeric costos_adicionales "alterada: nueva, por unidad"
+    numeric margen "alterada: descuenta costos adicionales"
+    numeric margen_pct "alterada: descuenta costos adicionales"
+    text estado "alterada" }
+  RENTABILIDAD_VENTAS_REAL { uuid organizacion_id "nueva"
+    uuid empresa_id "nueva"
+    text empresa_nombre "nueva"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    date fecha "nueva"
+    bigint unidades "nueva"
+    numeric vendido "nueva: neto sin IVA"
+    numeric costo "nueva: costo guardado en la venta"
+    numeric costos_adicionales "nueva: vigentes hoy"
+    numeric margen "nueva"
+    numeric margen_pct "nueva"
+    text estado "nueva: ok|bajo|negativo"
+    numeric umbral_margen_bajo "nueva" }
+  CONSULTAS_PRODUCTO_MAS_CONSULTADO { uuid organizacion_id "nueva"
+    uuid empresa_id "nueva"
+    text empresa_nombre "nueva"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    date fecha "nueva: día en Buenos Aires"
+    bigint consultas "nueva"
+    timestamptz ultima_consulta "nueva" }
+  VENTAS_PERIODO_CANAL { uuid organizacion_id "nueva"
+    uuid empresa_id "nueva"
+    text empresa_nombre "nueva"
+    date fecha "nueva"
+    bigint comprobantes "nueva: solo facturas"
+    bigint unidades "nueva"
+    numeric facturado "nueva: con IVA" }
+```
+
+- **La tabla nueva guarda datos y tiene RLS** por organización, empresa accesible y sección `rentabilidad`
+  (`lectura`/`edicion`); `authenticated` solo tiene `select` y las escrituras pasan por las RPC
+  `security definer` (`listar_costos_adicionales`, `guardar_costo_adicional`,
+  `dar_baja_costo_adicional`).
+- **El costo del margen usa el valor vigente** (`costos_adicionales_de`), pero el de una venta usa el
+  `costo_unitario` guardado en la línea al confirmar: por eso las ventas anteriores a la columna quedan
+  fuera de `rentabilidad_ventas_real` en lugar de recibir un costo inventado.
+- **Las cuatro vistas de `analitica` no son tablas**: no guardan datos ni tienen RLS; exponen
+  `organizacion_id` y `empresa_id` para la cláusula `rls` del guest token y las lee solo
+  `superset_analitica`.
+- **`consultas_producto_mas_consultado` y `ventas_periodo_canal` no exponen costo ni margen**; los
+  reportes de ventas se calculan con `analitica.comprobante_cuenta_como_facturado` y
+  `analitica.signo_comprobante`, sin reimplementar el predicado.
+- Detalle de RPC, cálculos, tableros y reversión: [Rentabilidad (técnico)](rentabilidad.md#rentabilidad-real-y-reportes-msf-192)
+  y [Ventas · reportes (técnico)](ventas-reportes.md#productos-mas-consultados-y-ventas-por-periodo-y-canal-msf-192).
+
 ## Ventas despacho y faltantes (MSF-135)
 
 Estado de despacho con responsables, envío con transporte y guía, y registro de los faltantes de stock. Una
@@ -2741,6 +2891,147 @@ erDiagram
 - **[ERD interactivo (Archify)](../diagrams/msf-195-erd.html)** — el libro de cobros, los contrarreembolsos,
   las tablas de donde salen sus datos (comprobante, empresas, formas de pago, cuentas de cobro, transportes) y
   las de plataforma, con PK/FK y cardinalidad.
+## Ventas mejoras (MSF-193)
+
+Tres mejoras de la épica **MSF-193** (*Ventas y despacho · Ventas mejoras*, spec
+`specs/20261027-100000-ventas-mejoras`): la venta de mostrador (F-VTA-31 / MSF-329), el descuento por
+cliente (F-VTA-32 / MSF-340) y el cierre de caja diario (F-VTA-33 / MSF-349). Dos tablas **nuevas** en
+`dominio` (el cierre de caja), **dos columnas nuevas** (el descuento del cliente y el descuento aplicado
+a la línea) y **sin cambios** en las tablas que ya existían, salvo el disparador de bloqueo que se le
+agrega al libro de cobros. Migraciones aditivas `20270201200102`–`20270201200103` (F-VTA-32),
+`20270202200400` (F-VTA-31) y `20270202201100`–`20270202201102` (F-VTA-33), en las ramas
+`epic/MSF-193-ventas-mejoras` y `dokploy`, pendientes de merge a `main`; reversión en el encabezado de
+cada una y consolidada en
+[Venta de mostrador (técnico)](ventas-mostrador.md#reversión),
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversión) y
+[Cierre de caja (técnico)](ventas-cierre-caja.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.cierres_caja` | **nueva** | Cierre del día de una tienda: `organizacion_id`, `empresa_id`, `fecha`, `estado` (`cerrada`/`reabierta`), `cerrado_por`, `cerrado_en`, `reabierto_por`, `reabierto_en`. Índice único (organización, empresa, fecha): un cierre por día y empresa. RLS de solo lectura; sin escritura directa. |
+| `dominio.cierres_caja_detalle` | **nueva** | Resumen del cierre por forma de pago y cuenta de cobro (`cuenta_cobro_id` nula para el efectivo). FK compuestas contra el cierre, la forma de pago y la cuenta. RLS de solo lectura; sin escritura directa. |
+| `public.clientes` | **alterada** | Gana `descuento numeric(5,2)` (porcentaje 0..100, `null` = sin descuento) con `check (descuento is null or (descuento >= 0 and descuento <= 100))` y `grant update` acotado a la columna. |
+| `dominio.comprobantes_venta_lineas` | **alterada** | Gana `descuento_pct numeric(5,2) not null default 0` con `check (descuento_pct >= 0 and descuento_pct <= 100)`: el descuento que se aplicó a esa línea (0 si el precio es manual). |
+| `dominio.cobros_comprobante` | existente | Sin cambio de columnas ni de políticas (MSF-195): recibe el disparador `cobros_comprobante_caja_cerrada`, que bloquea la escritura de los cobros de un día cerrado. |
+| `dominio.comprobantes_venta` | existente | Sin cambio: la venta de mostrador reutiliza la factura `borrador` y el total los calcula la base. |
+| `dominio.productos` | existente | Sin cambio: de ahí sale el EAN-13 (`codigo_barras`, índice único `productos_org_codigo_barras_uidx`) que resuelve la venta de mostrador. |
+| `dominio.formas_pago`, `dominio.cuentas_cobro` | existentes | Sin cambio: son los catálogos que el cierre resume. |
+| `public.organizaciones` | existente | Sin cambio: de `zona_horaria` sale el «día de caja» del cierre. |
+| `public.registro_actividad` | existente | Sin cambio: de ahí salen los eventos `cliente.descuento_editado`, `caja.cerrada` y `caja.reabierta`. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ CIERRES_CAJA : "dueña"
+  ORGANIZACIONES ||--o{ CLIENTES : "es dueña"
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "es dueña"
+  EMPRESAS ||--o{ CIERRES_CAJA : "tiende"
+  CIERRES_CAJA ||--o{ CIERRES_CAJA_DETALLE : "resume"
+  FORMAS_PAGO ||--o{ CIERRES_CAJA_DETALLE : "se cobra con"
+  CUENTAS_COBRO ||--o{ CIERRES_CAJA_DETALLE : "entra a"
+  COBROS_COMPROBANTE ||--o{ CIERRES_CAJA_DETALLE : "se resume en"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "compra"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "tiene"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+
+  ORGANIZACIONES { uuid id PK }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  CIERRES_CAJA { uuid id PK
+                 uuid organizacion_id FK
+                 uuid empresa_id FK
+                 date fecha
+                 text estado "nueva: cerrada | reabierta"
+                 uuid cerrado_por "nueva: sin FK a auth.users"
+                 timestamptz cerrado_en "nueva: cuándo"
+                 uuid reabierto_por "nueva: sin FK a auth.users"
+                 timestamptz reabierto_en "nueva: cuándo" }
+  CIERRES_CAJA_DETALLE { uuid id PK
+                        uuid organizacion_id FK
+                        uuid cierre_id FK
+                        uuid forma_pago_id FK
+                        uuid cuenta_cobro_id FK "nueva: nula si la forma no exige cuenta"
+                        numeric total "nueva: 14,2" }
+  COBROS_COMPROBANTE { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       uuid comprobante_id FK
+                       numeric importe
+                       uuid forma_pago_id FK
+                       uuid cuenta_cobro_id FK
+                       timestamptz registrado_en "el día se calcula en la zona de la organización" }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             integer numero
+             text nombre
+             text tipo "minorista | mayorista"
+             boolean es_consumidor_final
+             numeric descuento "alterada: nuevo, 0..100, null = sin descuento" }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       uuid cliente_id FK
+                       text numero
+                       text tipo "factura | presupuesto"
+                       text estado
+                       text canal "mostrador | tienda_online | telefono_whatsapp"
+                       numeric total_sin_iva
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                              uuid organizacion_id FK
+                              uuid comprobante_id FK
+                              uuid producto_id FK
+                              numeric cantidad
+                              numeric precio_unitario
+                              numeric precio_manual
+                              numeric descuento_pct "alterada: nuevo, el descuento aplicado"
+                              numeric subtotal_sin_iva }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre
+              text sku
+              text codigo_barras "EAN-13, único por organización"
+              numeric precio_lista
+              boolean activo }
+  FORMAS_PAGO { uuid id PK
+                uuid organizacion_id FK
+                uuid empresa_id FK
+                text nombre
+                boolean exige_cuenta_cobro
+                boolean activo }
+  CUENTAS_COBRO { uuid id PK
+                  uuid organizacion_id FK
+                  text nombre
+                  text banco
+                  boolean activa }
+  REGISTRO_ACTIVIDAD { uuid id PK
+                        uuid organizacion_id FK
+                        uuid actor_id FK
+                        text tipo "cliente.descuento_editado | caja.cerrada | caja.reabierta"
+                        text detalle
+                        timestamptz creado_en }
+```
+
+- Las dos tablas del cierre son **libros de resumen**: no tienen política ni permiso de `insert`,
+  `update` o `delete`; escriben solo `public.cerrar_caja` y `public.reabrir_caja` (`security definer`).
+- Las **FK son compuestas contra `organizacion_id`**: un cierre o una línea de detalle no puede apuntar
+  a una forma de pago, una cuenta o un cobro de otra organización.
+- **`anon` sin privilegios** y `authenticated` con solo lectura: la escritura llega por RPC.
+- El **descuento del cliente** es una columna de `public.clientes` (la tabla vive en `public` por la
+  excepción documentada al Principio VII, ver «Clientes (MSF-180)»): 0..100, `null` = sin descuento, y
+  **solo el Administrador** lo cambia (disparador `clientes_descuento_solo_admin`).
+- El **descuento de la línea** (`descuento_pct`) es una foto: guarda el descuento que se aplicó, para
+  que cambiar después la ficha del cliente **no altere lo ya vendido**.
+- Detalle de RPC, reglas, permisos y reversión:
+  [Venta de mostrador (técnico)](ventas-mostrador.md),
+  [Precios especiales por cliente (técnico)](ventas-precios-especiales.md) y
+  [Cierre de caja (técnico)](ventas-cierre-caja.md).
+- **TODO (Documentación · Owner: agente Documentador)**: falta el **ERD interactivo (Archify)** de la
+  épica (`docs/diagrams/msf-193-erd.html`), como el de
+  [MSF-195](../diagrams/msf-195-erd.html). El DER de esta sección (Mermaid) ya está; el interactivo se
+  genera cuando el modelo esté integrado en `main`, porque las tablas todavía no están en el árbol de
+  esta rama.
+
 ## Avisos y listas configurables (MSF-189)
 
 Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estado de consulta) y ninguna
@@ -3293,6 +3584,80 @@ erDiagram
 - **Valores antes/después:** obligatorios en los tipos marcados `sensible` (alta → anterior `{}`; baja → nuevo `{}`); sin ellos o con más de 8 KB, `22023` y la operación de origen se revierte.
 - **Vigencia del soporte:** `vence_en` a 4 horas; `private.organizacion_id()` y los demás helpers leen `private.superadmin_contexto_vigente`, así que un acceso vencido no ve ni escribe filas.
 - **Reversión:** cada migración la documenta en su encabezado; los eventos ya escritos se conservan. Detalle en [Auditoría avanzada y soporte](auditoria-y-soporte.md#reversion).
+
+## Mejoras de clientes y proveedores (MSF-445)
+
+Detalle y reversión en [Mejoras de clientes y proveedores](mejoras-de-clientes-y-proveedores.md).
+Migraciones `20270204100000`–`20270204120200` (rama `epic/MSF-445-…`, PR #695; aún no en `main`; se
+renumeraron al integrar `dokploy`, antes `20270115…`).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.proveedores_contactos` | **nueva** | Contactos del proveedor: `nombre` (obligatorio), `rol`, `correo`, `telefono`, `principal`; FK compuesta `(proveedor_id, organizacion_id)` contra `dominio.proveedores`. |
+| `dominio.ingresos_mercaderia_lineas` | **alterada** | `costo_unitario_usd` deja de ser `not null`: nulo significa «sin costo», no cero. |
+| `public.clientes` | existente | La fusión solo escribe `archivado_en` del descartado. Sin cambios de esquema. |
+| `public.cuentas_cliente` | existente | La fusión reasigna `cliente_id` y da de baja la cuenta no elegida. Sin cambios de esquema. |
+| `dominio.comprobantes_venta` | existente | La fusión reasigna `cliente_id`. Sin cambios de esquema. |
+| `public.clientes_empresas` | existente | La fusión habilita en el conservado las tiendas de la cuenta reasignada. Sin cambios de esquema. |
+| `dominio.proveedores` | existente | `persona_contacto`, `correo` y `telefono` los copia el contacto principal. Sin cambios de esquema. |
+| `public.registro_actividad` | existente | Recibe `cliente.fusionado`, `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado`. Sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ PROVEEDORES : "es dueña"
+  ORGANIZACIONES ||--o{ PROVEEDORES_CONTACTOS : "es dueña"
+  ORGANIZACIONES ||--o{ CLIENTES : "es dueña"
+
+  PROVEEDORES ||--o{ PROVEEDORES_CONTACTOS : "tiene"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "acumula"
+  CLIENTES ||--o{ CUENTAS_CLIENTE : "tiene"
+
+  PROVEEDORES_CONTACTOS { uuid id PK
+                          uuid organizacion_id FK
+                          uuid proveedor_id FK
+                          text nombre "nueva: obligatorio, hasta 200"
+                          text rol "nueva: hasta 100"
+                          text correo "nueva: hasta 254"
+                          text telefono "nueva: hasta 50"
+                          boolean principal "nueva: a lo sumo uno por proveedor"
+                          timestamptz creado_en
+                          timestamptz updated_at }
+  PROVEEDORES { uuid id PK
+                uuid organizacion_id FK
+                text razon_social
+                text cuit
+                text persona_contacto "lo copia el contacto principal"
+                text correo "lo copia el contacto principal"
+                text telefono "lo copia el contacto principal"
+                boolean activo }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             integer numero
+             text nombre
+             text direccion "la etiqueta la necesita"
+             text codigo_postal
+             text localidad
+             text provincia
+             text telefono
+             text expreso_preferido "transporte de la etiqueta"
+             timestamptz archivado_en "la fusión archiva al descartado" }
+  CUENTAS_CLIENTE { uuid id PK
+                    uuid organizacion_id FK
+                    uuid cliente_id FK
+                    uuid empresa_id FK
+                    text estado "activa | suspendida" }
+  COMPROBANTES_VENTA { uuid id PK
+                        uuid organizacion_id FK
+                        uuid cliente_id FK
+                        date fecha
+                        text estado
+                        numeric total_sin_iva }
+```
+
+- Índice único parcial `proveedores_contactos_un_principal_idx` (`unique (proveedor_id) where principal`):
+  **a lo sumo un contacto principal por proveedor**, garantizado por la base.
+- RLS de `dominio.proveedores_contactos`: solo `select` para `authenticated`, por organización y
+  `nivel_seccion('proveedores')` en `lectura`/`edicion`; la escritura es solo por RPC y no hay `DELETE`.
 
 ## Importaciones y monitoreo (MSF-206)
 
