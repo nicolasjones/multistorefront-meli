@@ -7,6 +7,8 @@ sources: []
 
 Este resumen cuenta, área por área, qué resuelve MSF. Cada área tiene su guía con el paso a paso. Lo que veas en tu menú depende de tu rol: [Usuarios y roles](usuarios-y-roles.md).
 
+En todas las pantallas las listas se van cargando solas al bajar y las filas que son de un producto muestran su foto: [Cómo se muestran las listas](listados.md).
+
 ## Catálogo
 Un solo catálogo de productos para todas las tiendas, con categorías, fotos y estado activo o inactivo. Cada tienda decide cuáles muestra. Guía: [Productos](catalogo-productos.md).
 

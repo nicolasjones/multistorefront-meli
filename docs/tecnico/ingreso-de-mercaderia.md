@@ -240,7 +240,8 @@ Todas hacen `revoke ... from public, anon` y `grant execute ... to authenticated
   ingreso» con estado de envío y snackbar «Ingreso registrado · N unidades». Si el producto tiene
   `proveedor_id` igual al proveedor elegido, muestra «Proveedor del producto: coincide»; no lo exige.
 - `HistorialIngresos.tsx`: tabla o tarjetas adaptables, filtros por fechas, proveedor, empresa, producto y
-  operador, chip «Registrado» / «Anulado» (con motivo), paginación de 25 líneas y acción «Anular» una sola
+  operador, chip «Registrado» / «Anulado» (con motivo), carga por tandas de 25 líneas con «Cargar más» y
+  **miniatura del producto**, y acción «Anular» una sola
   vez por ingreso, solo con edición y estado `registrado`.
 - `AnularIngresoDialog.tsx`: motivo obligatorio (3–500), confirmación y estados de envío/error; el mensaje
   de stock insuficiente es «No hay stock suficiente para anular: parte de la mercadería ya se movió.».

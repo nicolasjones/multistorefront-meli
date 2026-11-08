@@ -26,7 +26,7 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
 
 - **Ver qué clientes facturan más** en un rango de fechas, en una solapa «Ranking por facturación» dentro
   de Clientes.
-- **Exportar el ranking a Excel** (`.xlsx`) con todas las filas, no solo la página visible.
+- **Exportar el ranking a Excel** (`.xlsx`) con todas las filas, no solo las que ya cargaste.
 - **Revisar las compras de un cliente** desde su ficha: total facturado del año y últimos comprobantes.
 
 ## Cómo funciona (según la spec)
@@ -40,14 +40,16 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
 - **Filtros:** tipo de cliente (Todos / Minorista / Mayorista) e interruptor **Consumidor final** (arranca
   desactivado: excluido).
 - **Tabla:** #, Cliente (enlaza a la ficha), Tipo, Comprobantes, Facturado, Participación (porcentaje del
-  total filtrado, con barra). Orden por facturado descendente; desempate por nombre y número. 25 por página.
+  total filtrado, con barra). Orden por facturado descendente; desempate por nombre y número. Carga por
+  tandas de 25 con **«Cargar más»** al pie (ver
+  [Listados: carga infinita e imagen de producto](../tecnico/listados.md)).
 - **Estados:** vacío «Sin facturación en el período», error con «Reintentar», carga.
 - **Excel:** botón «Exportar a Excel», visible solo con la acción `exportar` sobre Clientes (por defecto no
   la tienen Mostrador, Depósito y Consulta); progreso, cancelación, hoja «Ranking de clientes», período y
   base indicados; las celdas que empiezan con `=`, `+`, `-` o `@` se neutralizan.
 - **Ficha:** sección «Compras» con «Resumen comercial» (**total facturado del año en curso**, no «12 meses»
-  como dibuja el prototipo) y «Últimos comprobantes» (número, fecha, estado, total; 10 por página). Un
-  cliente sin compras muestra «Este cliente todavía no tiene compras.» y `$ 0`.
+  como dibuja el prototipo) y «Últimos comprobantes» (número, fecha, estado, total; carga por tandas de 10).
+  Un cliente sin compras muestra «Este cliente todavía no tiene compras.» y `$ 0`.
 - **Empresa activa: no aplica.** Los clientes son de la organización y compartidos entre sus empresas
   (spec MSF-180); el ranking y las compras se acotan por organización, no por empresa, y la pantalla no
   ofrece «Todas mis empresas». TODO (dueño: producto): confirmar con Ventas si el ranking debe filtrar por

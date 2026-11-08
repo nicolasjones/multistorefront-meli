@@ -178,9 +178,12 @@ reversión restaura esas dos funciones.
 
 - Entrada de menú **Proveedores** (icono camión) en Clientes y proveedores, visible con `lectura` o
   `edicion`; la ruta directa sin permiso lleva a «Acceso restringido».
-- El listado espera 300 ms antes de buscar; conserva búsqueda y estado al paginar; muestra «Sin
-  resultados», vacío inicial, carga y error con «Reintentar»; en pantallas angostas usa tarjetas.
+- El listado espera 300 ms antes de buscar; conserva búsqueda y estado al pedir la tanda siguiente; muestra
+  «Sin resultados», vacío inicial, carga y error con «Reintentar»; en pantallas angostas usa tarjetas.
 - La ficha carga los productos en una consulta aparte: un error ahí no rompe el resto de la ficha.
+- **Carga por tandas:** el listado de proveedores acumula tandas de 25 y el de productos de la ficha
+  (con **miniatura del producto**) de 10, ambos con «Cargar más» al pie; ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 - **Empresa activa: no aplica.** No hay `empresa_id` ni consulta filtrada por empresa; cambiar de
   empresa no invalida estas consultas.
 

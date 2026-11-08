@@ -15,6 +15,11 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 - **Errores:** códigos Postgres (`P0001`, `P0002`, `22023`, `23505`, `40001`) que la UI traduce a mensajes.
 - **Actividad:** las acciones importantes registran un evento en `registro_actividad` en la misma transacción.
 
+> **Paginación en el servidor, carga infinita en la pantalla.** Las RPC y las vistas siguen paginando (`p_pagina`,
+> `p_tamano`, `range`): **no hay RPC ni endpoint nuevos**. Lo que cambió en el panel es que las pantallas **acumulan**
+> las páginas que pide su hook de datos y muestran un **«Cargar más»** al pie, en vez de paginar numerado. Ver
+> [Listados: carga infinita e imagen de producto](listados.md).
+
 ## RPCs principales
 
 | RPC | Para qué |

@@ -92,7 +92,7 @@ La planilla **reemplaza** la cantidad del depósito: si ponés 20, el depósito 
 
 El botón **Exportar** está en **Stock actual** y en **Movimientos**.
 
-- Baja un archivo con **todas las filas del filtro que tengas aplicado** (no solo la página que ves), con las mismas columnas que la tabla.
+- Baja un archivo con **todas las filas del filtro que tengas aplicado** (no solo las que ya cargaste), con las mismas columnas que la tabla.
 - El archivo se llama `stock-actual-AAAA-MM-DD` o `movimientos-stock-AAAA-MM-DD` (con la fecha de hoy) y es de tipo CSV: se abre con Excel y con cualquier planilla.
 - Mientras se prepara, el botón dice «Exportando…».
 

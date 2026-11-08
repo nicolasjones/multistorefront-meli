@@ -38,9 +38,11 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
 - **Comparar con otro período (F-CLI-14):** interruptor en la solapa «Ranking por facturación». Al activarlo aparecen
   Desde/Hasta de comparación, precargados con el **período anterior de igual duración**. La tabla agrega las columnas
   del período de comparación y la variación; un cliente que compró en un solo período aparece con 0 en el otro, y la
-  variación porcentual sobre base 0 se muestra «—». Orden: lo facturado en el período aplicado; 25 por página. Se
+  variación porcentual sobre base 0 se muestra «—». Orden: lo facturado en el período aplicado; carga por
+  tandas de 25 con **«Cargar más»** al pie (ver
+  [Listados: carga infinita e imagen de producto](../tecnico/listados.md)). Se
   permiten períodos superpuestos o idénticos (variación 0).
-- **Producto, Categoría y Provincia (F-CLI-15):** tres filtros opcionales y combinables entre sí y con los anteriores.
+- **Producto, Categoría y Provincia:** tres filtros opcionales y combinables entre sí y con los anteriores.
   Con Producto o Categoría, «Facturado» es la suma de **esas líneas** de factura, no del comprobante entero; una
   categoría raíz incluye sus subcategorías; Producto y Categoría se intersecan. Provincia compara sin distinguir
   mayúsculas ni tildes; un cliente sin provincia no coincide con ninguna. La participación se recalcula sobre el
@@ -49,12 +51,13 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
   **Días sin comprar** (por defecto 90; entero de 1 a 3650; atajos 30, 60, 90 y 180) y **Aplicar**. Es inactivo el
   cliente con al menos una factura que cuenta y cuya **última compra** es anterior a *hoy menos N días*. Un cliente
   **sin compras** o **archivado** nunca aparece. Columnas: Cliente (enlaza a la ficha), Tipo, Última compra, Días sin
-  comprar, Comprobantes y Facturado histórico (neto sin IVA). Orden: última compra más antigua primero; 25 por página.
+  comprar, Comprobantes y Facturado histórico (neto sin IVA). Orden: última compra más antigua primero; carga
+  por tandas de 25.
 - **Estados:** vacío («Sin facturación en los períodos» / «Ningún cliente dejó de comprar en ese plazo.»), error con
   «Reintentar» y carga, como el ranking básico.
-- **Empresa activa:** la barra superior acota las tres vistas a esa tienda (o a todas); al cambiarla se vuelve a la
-  página 1, se recargan las consultas y no quedan filas de la empresa anterior. En F-CLI-15 se descartan Producto,
-  Categoría y Provincia elegidos.
+- **Empresa activa:** la barra superior acota las tres vistas a esa tienda (o a todas); al cambiarla el listado arranca
+  de nuevo desde la primera tanda, se recargan las consultas y no quedan filas de la empresa anterior. También se
+  descartan los filtros de Producto, Categoría y Provincia que estuvieran elegidos.
 - **Quién lo ve:** sección Clientes en `lectura` o `edicion`; con `ninguno` no aparece la solapa ni se puede consultar.
 
 ## Límites y fuera de alcance
@@ -100,8 +103,8 @@ Para el **administrador** (y cualquier rol con la sección Clientes en lectura o
 7. Quitá el producto y elegí una **Categoría raíz**. **Ves** que incluye las ventas de sus subcategorías.
 8. Elegí una **Provincia** (probá con otra escritura de mayúsculas/tildes). **Ves** solo clientes de esa provincia.
 9. Combiná Producto con una Categoría a la que no pertenece. **Ves** «Sin facturación en el período».
-10. Cambiá la empresa activa en la barra superior. **Ves** que se descartan Producto/Categoría/Provincia, vuelve la
-    página 1 y no quedan filas de la empresa anterior.
+10. Cambiá la empresa activa en la barra superior. **Ves** que se descartan Producto/Categoría/Provincia, el listado
+    vuelve a empezar desde la primera tanda y no quedan filas de la empresa anterior.
 11. Abrí «Clientes inactivos». **Ves** «Días sin comprar» en 90; pulsá «Aplicar». **Ves** los clientes de ~100 y ~400
     días, del más antiguo al más reciente; no aparecen el de ~20 días, el sin compras ni el archivado.
 12. Poné 30 con el atajo y un valor inválido (0 o vacío). **Ves** que 30 incluye a más clientes y que el inválido

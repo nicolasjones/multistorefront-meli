@@ -49,7 +49,7 @@ Para encontrar uno:
 
 *El filtro **Tienda** (1) deja solo los proveedores a los que se les compra para esa tienda.*
 
-El listado se muestra de a 25 proveedores. Si no hay coincidencias dice «Sin resultados».
+El listado carga de a 25 proveedores: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. Si no hay coincidencias dice «Sin resultados».
 
 ## Crear un proveedor
 

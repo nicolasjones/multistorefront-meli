@@ -213,9 +213,10 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
 - La búsqueda es insensible a mayúsculas pero **no ignora tildes**: «ñ» no coincide con «n». No hay
   `unaccent` en el índice.
 - La pantalla espera **≈300 ms** antes de consultar (no busca en cada tecla) y vuelve a la primera
-  página cuando cambia el texto.
+  tanda cuando cambia el texto.
 - El navegador **nunca** carga la lista completa: la paginación, el total y los filtros se resuelven en
-  el servidor.
+  el servidor. La pantalla **acumula** las tandas (25 por vez) con un **«Cargar más»** al pie, en vez de
+  paginar numerada; ver [Listados: carga infinita e imagen de producto](listados.md).
 - Evidencia de plan: `supabase/tests/database/clientes_plan_indices.test.sql` (T019) siembra ~5.000
   clientes con tilde y corre `EXPLAIN` con `enable_seqscan = off`; **falla** si la búsqueda no usa
   `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Es un test de
@@ -278,7 +279,7 @@ Catálogo completo: [Actividad e historial](../actividad.md).
 
 | Pieza | Archivo |
 |---|---|
-| Listado (búsqueda con espera, filtros de tipo y estado, paginación en servidor, estados compartidos, vista adaptable) | `apps/web/src/pages/clientes/list.tsx` |
+| Listado (búsqueda con espera, filtros de tipo y estado, carga por tandas en servidor con «Cargar más», estados compartidos, vista adaptable) | `apps/web/src/pages/clientes/list.tsx` |
 | Hook de búsqueda («última petición gana»; conserva filas mientras llega la siguiente) | `apps/web/src/hooks/useBuscarClientes.ts` |
 | Formulario compartido por alta y edición (validación en el campo, error `23505` en «DNI/CUIT», selector de tipo con explicación y aviso de cambio) | `apps/web/src/components/clientes/FormularioCliente.tsx` |
 | Ficha (datos, estado, «Editar» y «Archivar»/«Restaurar» con confirmación; sin «Eliminar») | `apps/web/src/pages/clientes/show.tsx` |

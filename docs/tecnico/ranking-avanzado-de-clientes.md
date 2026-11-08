@@ -59,8 +59,12 @@ commits `5c413298`, `68778722`).
   con un filtro de dimensión activo (commit `fd4ebe8b`).
 - F-CLI-16: `hooks/useClientesInactivos.ts`, `lib/diasInactivos.ts` y `components/clientes/ClientesInactivos.tsx`,
   tercera solapa en `pages/clientes/list.tsx` (carga diferida, visible con `lectura`/`edicion`).
-- **Empresa activa:** se pasa como `p_empresa_id`; al cambiarla se vuelve a la página 1, se recargan las consultas y no
+- **Empresa activa:** se pasa como `p_empresa_id`; al cambiarla el listado arranca de nuevo desde la primera tanda,
+  se recargan las consultas y no
   se muestran filas de la tienda anterior (commits `e3e349c9`, `23c29c1a`); en F-CLI-15 se descartan los filtros.
+- **Carga por tandas:** las tres vistas (ranking, ranking por dimensión y clientes inactivos) **acumulan** las
+  tandas de 25 con un **«Cargar más»** al pie; ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 - Fix relevante: sin filtro de producto el total del comprobante se suma una sola vez (commit `06284896`).
 
 ## Operación y reversión

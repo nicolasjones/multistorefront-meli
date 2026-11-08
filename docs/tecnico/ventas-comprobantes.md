@@ -66,11 +66,13 @@ MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en
 ### Presupuestos (F-VTA-08)
 
 - **Listado** (`PresupuestosList`, `design/pantallas/VentasPresupuestos.dc.html`): Presupuesto, Tienda,
-  Fecha, Cliente, Operador, Válido hasta, Estado, Total y Acciones, paginado (25), con «Buscar por cliente o
+  Fecha, Cliente, Operador, Válido hasta, Estado, Total y Acciones, cargado por tandas de 25 con «Cargar más»,
+  con «Buscar por cliente o
   número» (espera a que se deje de tipear), píldoras de estado (Todos, Pendiente, Aceptado, Vencido,
   Convertido en factura) y el filtro de tienda (`FiltroEmpresa`): por defecto **todas**; la empresa activa de
-  la barra superior lo acota y al cambiarla la pantalla se remonta (página 1, búsqueda limpia, todo
-  recargado). «Sin resultados» cuando el filtro no devuelve nada.
+  la barra superior lo acota y al cambiarla la pantalla se remonta (primera tanda, búsqueda limpia, todo
+  recargado). «Sin resultados» cuando el filtro no devuelve nada. Ver
+  [Listados: carga infinita e imagen de producto](listados.md).
 - **Estados**: `pendiente` → `aceptado`. **`vencido` se deriva** (no se guarda ni hay job): un `pendiente`
   con `valido_hasta` anterior a hoy (hoy en America/Argentina/Buenos_Aires, `private.hoy_argentina`). Un
   vencido no se acepta ni se modifica. `Convertido en factura` existe como filtro pero no tiene filas hasta
