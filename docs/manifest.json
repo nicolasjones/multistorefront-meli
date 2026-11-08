@@ -1285,7 +1285,7 @@
       "title": "Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)",
       "pageHash": "7158286a9da2cba52f35d0429697c22f5bcba2532a236833d1e72528186bfa76",
       "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
-      "sourceAt": null,
+      "sourceAt": "8759345d",
       "sources": [
         "specs",
         "supabase/migrations",
