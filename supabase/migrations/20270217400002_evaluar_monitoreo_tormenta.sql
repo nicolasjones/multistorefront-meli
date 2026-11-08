@@ -12,16 +12,22 @@
 --   * MEDIO (huérfanos): antes de evaluar se cierran por tiempo máximo las ejecuciones de procesos masivos que no
 --     terminaron (`private.cerrar_procesos_masivos_vencidos`), así la UI no queda sondeando para siempre.
 --
--- Misma firma y grants que 20270214200001 (`create or replace`); la fila de resumen lleva `alerta_id` nulo.
+-- Mismos argumentos y grants que 20270214200001; el resultado suma `cubiertas` (ids, separados por coma, de las
+-- alertas que cubre el resumen) y la fila de resumen lleva `alerta_id` nulo. Las cubiertas NO se marcan notificadas
+-- al devolverlas: las marca el flow con `marcar_alertas_notificadas` solo después de que el resumen se envió bien, así
+-- un webhook caído no las pierde (siguen pendientes y vuelven en la próxima corrida).
 -- Esquemas (Principio VII): función en `public` sobre tablas de plataforma. Migración aditiva.
--- Reversión (migración posterior): restaurar el cuerpo de `evaluar_monitoreo` de 20270214200001.
+-- Reversión (migración posterior): restaurar `evaluar_monitoreo` de 20270214200001 (con `drop function` previo por el cambio de
+-- tipo de retorno) y `drop function public.marcar_alertas_notificadas(uuid[])`.
+
+drop function if exists public.evaluar_monitoreo(integer, integer, integer);
 
 create or replace function public.evaluar_monitoreo(
   p_ventana_min integer default 10,
   p_fallos integer default 5,
   p_cola_min integer default 15
 )
-returns table (alerta_id uuid, fuente text, clave text, organizacion_id uuid, motivo_sanitizado text)
+returns table (alerta_id uuid, fuente text, clave text, organizacion_id uuid, motivo_sanitizado text, cubiertas text)
 language plpgsql
 security definer
 set search_path = ''
@@ -111,30 +117,27 @@ begin
 
   if v_pendientes <= c_max_notificaciones then
     return query
-    select a.id, a.fuente, a.clave, a.organizacion_id, a.motivo_sanitizado
+    select a.id, a.fuente, a.clave, a.organizacion_id, a.motivo_sanitizado, null::text
     from public.alertas_monitoreo a
     where a.estado = 'abierta' and a.notificada_en is null
     order by a.abierta_en, a.id;
   else
     return query
-    select a.id, a.fuente, a.clave, a.organizacion_id, a.motivo_sanitizado
+    select a.id, a.fuente, a.clave, a.organizacion_id, a.motivo_sanitizado, null::text
     from public.alertas_monitoreo a
     where a.estado = 'abierta' and a.notificada_en is null
     order by a.abierta_en, a.id
     limit c_max_notificaciones - 1;
 
-    -- El resto queda cubierto por el resumen (el detalle sigue en alertas_monitoreo).
-    update public.alertas_monitoreo a
-    set notificada_en = now()
-    where a.id in (
-      select r.id from public.alertas_monitoreo r
-      where r.estado = 'abierta' and r.notificada_en is null
-      order by r.abierta_en, r.id
-      offset c_max_notificaciones - 1);
-
+    -- El resto queda cubierto por el resumen (el detalle sigue en alertas_monitoreo). NO se marca acá: lo hace el flow
+    -- tras enviar el resumen (marcar_alertas_notificadas); si el envío falla, siguen pendientes.
     return query
     select null::uuid, 'resumen'::text, 'resumen'::text, null::uuid,
-      'y ' || (v_pendientes - (c_max_notificaciones - 1)) || ' alertas más abiertas (ver alertas_monitoreo)';
+      'y ' || (v_pendientes - (c_max_notificaciones - 1)) || ' alertas más abiertas (ver alertas_monitoreo)',
+      (select string_agg(r.id::text, ',' order by r.abierta_en, r.id)
+       from (select q.id, q.abierta_en from public.alertas_monitoreo q
+             where q.estado = 'abierta' and q.notificada_en is null
+             order by q.abierta_en, q.id offset c_max_notificaciones - 1) r);
   end if;
 end;
 $$;
@@ -144,3 +147,29 @@ comment on function public.evaluar_monitoreo(integer, integer, integer) is
 
 revoke all on function public.evaluar_monitoreo(integer, integer, integer) from public, anon, authenticated;
 grant execute on function public.evaluar_monitoreo(integer, integer, integer) to kestra_orquestacion;
+
+-- Marca varias alertas como notificadas (las cubiertas por el resumen, después de enviarlo bien).
+create or replace function public.marcar_alertas_notificadas(p_alerta_ids uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_filas integer;
+begin
+  if session_user not in ('kestra_orquestacion', 'postgres', 'supabase_admin')
+    and not (select rolsuper from pg_catalog.pg_roles where rolname = session_user) then
+    raise exception 'NO_AUTORIZADO: solo kestra_orquestacion marca alertas notificadas' using errcode = 'P0001';
+  end if;
+  update public.alertas_monitoreo set notificada_en = now()
+  where id = any (coalesce(p_alerta_ids, '{}'::uuid[])) and notificada_en is null;
+  get diagnostics v_filas = row_count;
+  return v_filas;
+end;
+$$;
+
+comment on function public.marcar_alertas_notificadas(uuid[]) is
+  'MSF-369: marca como notificadas las alertas cubiertas por el resumen de evaluar_monitoreo, después de enviarlo bien. Solo kestra_orquestacion. Devuelve cuántas marcó.';
+revoke all on function public.marcar_alertas_notificadas(uuid[]) from public, anon, authenticated;
+grant execute on function public.marcar_alertas_notificadas(uuid[]) to kestra_orquestacion;

@@ -156,12 +156,10 @@ declare
   v_alertas integer;
   v_procesos integer;
 begin
-  -- Solo el rol de Sistema (el de Kestra o un worker de la plataforma), igual que depurar_registro_actividad.
-  if not exists (
-    select 1 from pg_catalog.pg_roles ro
-    where ro.rolname in ('workers_orquestacion', 'kestra_orquestacion')
-      and pg_catalog.pg_has_role(session_user, ro.oid, 'member')
-  ) then
+  -- Solo el rol de Kestra (o el dueño en mantenimiento y pgTAP, como en las demás funciones de monitoreo). NO se usa
+  -- la pertenencia a `workers_orquestacion`: cada `worker_<org>` es miembro de ese rol (ver 20260915125203) y un
+  -- worker de una organización no puede disparar una purga global.
+  if session_user not in ('kestra_orquestacion', 'postgres', 'supabase_admin') then
     raise exception 'Runtime no autorizado para depurar el monitoreo y los procesos masivos' using errcode = '42501';
   end if;
 
@@ -183,11 +181,9 @@ end;
 $$;
 
 comment on function private.depurar_monitoreo_y_procesos(timestamptz) is
-  'MSF-369 / MSF-354: borra eventos de monitoreo con más de 30 días, alertas resueltas con más de 90 y procesos masivos terminados con más de 180 (con sus errores). No toca alertas abiertas ni procesos abiertos. Solo workers_orquestacion / kestra_orquestacion; idempotente.';
+  'MSF-369 / MSF-354: borra eventos de monitoreo con más de 30 días, alertas resueltas con más de 90 y procesos masivos terminados con más de 180 (con sus errores). No toca alertas abiertas ni procesos abiertos. Solo kestra_orquestacion (por session_user, no por membresía de workers_orquestacion); idempotente.';
 
 revoke all on function private.depurar_monitoreo_y_procesos(timestamptz) from public, anon, authenticated;
-grant execute on function private.depurar_monitoreo_y_procesos(timestamptz) to workers_orquestacion;
-
 do $$
 begin
   if exists (select 1 from pg_catalog.pg_roles where rolname = 'kestra_orquestacion') then

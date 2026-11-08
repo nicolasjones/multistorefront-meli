@@ -8,7 +8,7 @@ select plan(26);
 -- Estructura y privilegios
 select has_index('public', 'eventos_monitoreo', 'eventos_monitoreo_ocurrido_idx', 'hay un índice por ocurrido_en');
 select has_index('public', 'alertas_monitoreo', 'alertas_monitoreo_resueltas_idx', 'hay un índice de alertas resueltas por fecha');
-select ok(has_function_privilege('workers_orquestacion', 'private.depurar_monitoreo_y_procesos(timestamptz)', 'execute'), 'workers_orquestacion ejecuta la depuración');
+select ok(not has_function_privilege('workers_orquestacion', 'private.depurar_monitoreo_y_procesos(timestamptz)', 'execute'), 'workers_orquestacion (y por herencia cada worker_<org>) no dispara la purga global');
 select ok(has_function_privilege('kestra_orquestacion', 'private.depurar_monitoreo_y_procesos(timestamptz)', 'execute'), 'kestra_orquestacion ejecuta la depuración');
 select ok(not has_function_privilege('authenticated', 'private.depurar_monitoreo_y_procesos(timestamptz)', 'execute'), 'authenticated no ejecuta la depuración');
 select ok(not has_function_privilege('anon', 'private.depurar_monitoreo_y_procesos(timestamptz)', 'execute'), 'anon no ejecuta la depuración');
@@ -44,14 +44,14 @@ insert into public.procesos_masivos_errores_claves (proceso_id, clave) values
   ('e1000000-0000-0000-0000-000000000001', 'f:1');
 
 create temp table resultado_depuracion (corrida int, eventos int, alertas int, procesos int);
-grant all on resultado_depuracion to workers_orquestacion;
+grant all on resultado_depuracion to kestra_orquestacion;
 
 set local role authenticated;
 select throws_ok($$select * from private.depurar_monitoreo_y_procesos()$$, '42501', null, 'un usuario autenticado no depura');
 reset role;
 select is((select count(*)::int from public.eventos_monitoreo), 4, 'el rechazo no borra nada');
 
-set local role workers_orquestacion;
+set local role kestra_orquestacion;
 insert into resultado_depuracion select 1, * from private.depurar_monitoreo_y_procesos();
 reset role;
 
@@ -66,7 +66,7 @@ select is((select count(*)::int from public.procesos_masivos where id = 'e100000
 select is((select count(*)::int from public.procesos_masivos_errores where proceso_id = 'e1000000-0000-0000-0000-000000000001'), 0, 'se borran los errores del proceso depurado (cascada)');
 select is((select count(*)::int from public.procesos_masivos_errores_claves where proceso_id = 'e1000000-0000-0000-0000-000000000001'), 0, 'y sus claves de idempotencia');
 
-set local role workers_orquestacion;
+set local role kestra_orquestacion;
 insert into resultado_depuracion select 2, * from private.depurar_monitoreo_y_procesos();
 reset role;
 select is((select eventos + alertas + procesos from resultado_depuracion where corrida = 2), 0, 'una segunda corrida no borra nada (idempotente)');

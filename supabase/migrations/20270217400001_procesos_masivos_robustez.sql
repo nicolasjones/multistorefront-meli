@@ -4,7 +4,7 @@
 --   * MEDIO: `procesos_masivos_errores_claves` guardaba una fila por error sin tope (un CSV de 1M de filas inválidas
 --     = 1M de filas y de RPC serializadas por el `for update`). Desde 10.000 errores contados ya no se inserta la
 --     clave: solo se cuenta y el proceso queda marcado `detalle_truncado` (también cuando se supera el tope de 1000
---     detalles visibles). Pasado el tope de claves un reintento del mismo lote ya no es idempotente (límite documentado).
+--     detalles visibles). Pasado el tope de claves la idempotencia pasa a una marca de agua de fila (`fila_maxima_sin_clave`), que supone errores informados en orden ascendente; un error sin fila solo se cuenta.
 --   * MEDIO (huérfanos): cuando la orden de despacho pasa a `agotada`, la ejecución del proceso masivo se cierra
 --     `fallida` y la base lleva el proceso a `fallido` con un motivo claro. Las ejecuciones vencidas por tiempo máximo
 --     se cierran `timeout` con `private.cerrar_procesos_masivos_vencidos` (la invoca `evaluar_monitoreo`, cada 2
@@ -19,11 +19,15 @@
 --   drop trigger reconciliar_despacho_agotado on public.despachos_ejecucion;
 --   drop function private.reconciliar_despacho_agotado();
 --   drop function private.cerrar_procesos_masivos_vencidos();
---   alter table public.procesos_masivos drop column detalle_truncado;
+--   alter table public.procesos_masivos drop column detalle_truncado, drop column fila_maxima_sin_clave;
 --   y restaurar las funciones de 20270214100001 (registrar_error_proceso_masivo) y 20270214100002 (iniciar_proceso_masivo,
 --   cerrar_proceso_masivo, solicitar_cancelacion_proceso_masivo, reconciliar_proceso_masivo).
 
 alter table public.procesos_masivos add column if not exists detalle_truncado boolean not null default false;
+
+-- Marca de agua de filas contadas sin clave (pasado el tope de 10.000): permite descartar el reintento de un lote
+-- de errores informado en orden ascendente de fila sin guardar una fila por error. Sin grants para la app.
+alter table public.procesos_masivos add column if not exists fila_maxima_sin_clave integer;
 
 comment on column public.procesos_masivos.detalle_truncado is
   'F-IMP-01: true si algún error contado no se guardó en el detalle (tope de 1000 detalles o de 10.000 claves). con_errores sigue contando todos.';
@@ -56,6 +60,7 @@ declare
   v_clave text;
   v_nuevo integer;
   v_truncado boolean := false;
+  v_marca integer;
 begin
   v_p := private.autorizar_worker_proceso(p_proceso_id);
   if v_p.estado not in ('pendiente', 'en_curso') then
@@ -69,7 +74,17 @@ begin
   end if;
 
   if v_p.con_errores >= c_tope_claves then
-    -- Tope de claves: solo se cuenta (sin clave ni detalle). Un reintento del lote ya no es idempotente.
+    -- Tope de claves: solo se cuenta (sin clave ni detalle). La idempotencia pasa a una marca de agua por proceso:
+    -- una fila ya registrada con clave, o menor o igual a la mayor fila contada sin clave, es un reintento y no suma.
+    -- Supone que el worker informa los errores en orden ascendente de fila (contrato). Sin fila, solo se cuenta.
+    if p_fila is not null then
+      if exists (select 1 from public.procesos_masivos_errores_claves k
+                 where k.proceso_id = p_proceso_id and k.clave = 'f:' || p_fila)
+         or p_fila <= coalesce(v_p.fila_maxima_sin_clave, -1) then
+        return;
+      end if;
+      v_marca := p_fila;
+    end if;
     v_truncado := true;
   else
     -- Idempotente: con fila, por (proceso, fila); sin fila, por (referencia, motivo).
@@ -96,6 +111,7 @@ begin
   update public.procesos_masivos
   set con_errores = con_errores + 1,
       detalle_truncado = detalle_truncado or v_truncado,
+      fila_maxima_sin_clave = greatest(coalesce(fila_maxima_sin_clave, -1), coalesce(v_marca, -1)),
       estado = 'en_curso',
       iniciado_en = coalesce(iniciado_en, clock_timestamp())
   where id = p_proceso_id;
@@ -103,7 +119,7 @@ end;
 $$;
 
 comment on function public.registrar_error_proceso_masivo(uuid, integer, text, text, text) is
-  'F-IMP-01 (FR-006): error por fila (fila, referencia, columna, motivo) sanitizado en la base. Idempotente por fila o, sin fila, por referencia y motivo hasta 10.000 errores; guarda hasta 1000 detalles (el proceso queda detalle_truncado si hay más); con_errores cuenta todos. Solo el worker de la organización dueña.';
+  'F-IMP-01 (FR-006): error por fila (fila, referencia, columna, motivo) sanitizado en la base. Idempotente por fila o, sin fila, por referencia y motivo hasta 10.000 errores (después, por marca de agua de fila: el worker informa en orden ascendente); guarda hasta 1000 detalles (el proceso queda detalle_truncado si hay más); con_errores cuenta todos. Solo el worker de la organización dueña.';
 
 revoke execute on function public.registrar_error_proceso_masivo(uuid, integer, text, text, text) from public, anon, authenticated;
 grant execute on function public.registrar_error_proceso_masivo(uuid, integer, text, text, text) to workers_orquestacion;

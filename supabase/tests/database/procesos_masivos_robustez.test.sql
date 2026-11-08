@@ -8,7 +8,7 @@
 -- Mismo esquema de fixture que procesos_masivos_worker.test.sql (como postgres con el JWT de un administrador).
 begin;
 
-select plan(34);
+select plan(37);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
@@ -94,6 +94,14 @@ select is((select con_errores from public.procesos_masivos where id = current_se
 select is((select count(*)::int from public.procesos_masivos_errores_claves where proceso_id = current_setting('t.p1')::uuid), 2,
   'pasado el tope de claves no se inserta ninguna fila de clave ni de detalle nueva');
 select is((select detalle_truncado from public.procesos_masivos where id = current_setting('t.p1')::uuid), true, 'el proceso queda marcado «detalle truncado»');
+
+-- Reintentos pasado el tope: la marca de agua evita contar de nuevo (el worker informa en orden ascendente).
+select public.registrar_error_proceso_masivo(current_setting('t.p1')::uuid, 20001, 'C', 'Mal');
+select is((select con_errores from public.procesos_masivos where id = current_setting('t.p1')::uuid), 10002, 'reintentar una fila contada sin clave no vuelve a sumar');
+select public.registrar_error_proceso_masivo(current_setting('t.p1')::uuid, 1, 'A', 'Mal');
+select is((select con_errores from public.procesos_masivos where id = current_setting('t.p1')::uuid), 10002, 'reintentar una fila que tiene clave tampoco suma');
+select public.registrar_error_proceso_masivo(current_setting('t.p1')::uuid, 20003, 'E', 'Mal');
+select is((select con_errores from public.procesos_masivos where id = current_setting('t.p1')::uuid), 10003, 'una fila nueva posterior sí suma');
 
 -- Tope de 1000 detalles: 1000 errores no truncan, el 1001 sí.
 select set_config('t.p2', pg_temp.nuevo(2)::text, false);

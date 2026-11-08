@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import net from 'node:net';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 
@@ -29,7 +30,7 @@ const script = extraerScript(bruto);
 const dir = await mkdtemp(path.join(tmpdir(), 'sondeo-'));
 const archivo = path.join(dir, 'sondeo.mjs');
 await writeFile(archivo, script);
-const { clasificarIp, sondearDominio, sondearTodas } = await import(pathToFileURL(archivo).href);
+const { clasificarIp, sondearDominio, sondearTodas, conTope, solicitarFijando } = await import(pathToFileURL(archivo).href);
 
 test('estructura: sondea con un script en Docker, registra por la función y no sigue redirecciones', () => {
   assert.match(sinComentarios, /type: io\.kestra\.plugin\.scripts\.shell\.Commands/);
@@ -49,7 +50,7 @@ test('el script embebido no usa secuencias que Kestra interprete como plantilla'
 });
 
 test('el script fija la IP validada (lookup) y no sigue redirecciones', () => {
-  assert.match(script, /lookup: \(_host, opciones, devolver\)/);
+  assert.match(script, /lookup: \(_host, o, devolver\)/);
   assert.match(script, /servername: dominio/);
   assert.doesNotMatch(script, /followRedirects|maxRedirects|location/i);
 });
@@ -67,10 +68,10 @@ test('IPv4: bloquea loopback, privadas, link-local/metadatos, CGNAT, multicast, 
 
 test('IPv6: bloquea loopback, link-local, ULA, multicast, mapeadas a IPv4 privada y NAT64 hacia metadatos', () => {
   for (const ip of ['::1', '::', 'fe80::1', 'febf::1', 'fc00::1', 'fd00:ec2::254', 'fdff::1', 'ff02::1', '::ffff:127.0.0.1',
-    '::ffff:10.0.0.1', '::ffff:a9fe:a9fe', '64:ff9b::a9fe:a9fe', '2001:db8::1', '2002:7f00:1::1', '::127.0.0.1', 'not-an-ip']) {
+    '::ffff:10.0.0.1', '::ffff:a9fe:a9fe', '64:ff9b::a9fe:a9fe', '2001:db8::1', '2002:7f00:1::1', '::127.0.0.1', '2001::1', '2001:0:4136:e378:8000:63bf:3fff:fdd2', '2001:1ff::1', '64:ff9b:1::1', '64:ff9b:1:ffff::1', 'not-an-ip']) {
     assert.equal(clasificarIp(ip).publica, false, `${ip} debe bloquearse`);
   }
-  for (const ip of ['2606:4700:4700::1111', '2001:4860:4860::8888', '::ffff:8.8.8.8', '2a00:1450:4001::1']) {
+  for (const ip of ['2606:4700:4700::1111', '2001:4860:4860::8888', '::ffff:8.8.8.8', '2a00:1450:4001::1', '2001:200::1', '2001:4860::1']) {
     assert.equal(clasificarIp(ip).publica, true, `${ip} es pública`);
   }
 });
@@ -143,4 +144,50 @@ test('sondearTodas conserva el orden, la organización y limita la concurrencia'
   assert.equal(resultados[3].resultado, 'no_sondeable');
   assert.equal(resultados[0].organizacion_id, 'org-0');
   assert.ok(maxima <= 5);
+});
+
+test('estructura: tope total por petición, la respuesta se destruye al llegar el estado y el flow registra el fallo del monitor', () => {
+  assert.match(script, /signal: AbortSignal\.timeout\(timeoutMs\)/);
+  assert.match(script, /respuesta\.destroy\(\);\s+resolve\(codigo\)/);
+  assert.doesNotMatch(script, /respuesta\.resume\(\)/, 'no se descarga el cuerpo');
+  assert.match(script, /Promise\.race/);
+  assert.match(sinComentarios, /\nerrors:\n\s+- id: registrar_fallo_monitor/);
+  assert.match(sinComentarios, /registrar_evento_monitoreo\('aplicacion', 'monitor:tiendas', 'fallo'/);
+  assert.match(sinComentarios, /registrar_evento_monitoreo\('aplicacion', 'monitor:tiendas', 'ok'/);
+});
+
+test('conTope corta una promesa colgada', async () => {
+  const t0 = Date.now();
+  await assert.rejects(conTope(new Promise(() => {}), 50, 'dns_timeout'), /dns_timeout/);
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(await conTope(Promise.resolve(7), 50), 7);
+});
+
+test('un servidor que acepta y no responde (goteo/handshake colgado) se corta por el tope TOTAL', async () => {
+  const sockets = [];
+  const servidor = net.createServer((socket) => { sockets.push(socket); });
+  await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
+  const { port } = servidor.address();
+  const t0 = Date.now();
+  try {
+    await assert.rejects(solicitarFijando('lento.example.com', '127.0.0.1', 4, 300, { port }));
+    assert.ok(Date.now() - t0 < 3000, 'el tope total corta la petición');
+  } finally {
+    sockets.forEach((s) => s.destroy());
+    servidor.close();
+  }
+});
+
+test('un DNS colgado o una tienda lenta fallan solo esa tienda y el resto se registra', async () => {
+  const tiendas = ['a', 'colgada', 'lenta', 'b'].map((n) => ({ dominio: `${n}.example.com`, organizacion_id: `o-${n}` }));
+  const t0 = Date.now();
+  const resultados = await sondearTodas(tiendas, {
+    timeoutSeg: 0.2,
+    resolver: async (d) => (d.startsWith('colgada') ? new Promise(() => {}) : [{ address: '93.184.216.34', family: 4 }]),
+    solicitar: async (d) => (d.startsWith('lenta') ? new Promise(() => {}) : 200),
+  });
+  assert.ok(Date.now() - t0 < 5000);
+  assert.deepEqual(resultados.map((r) => r.resultado), ['ok', 'fallo', 'fallo', 'ok']);
+  assert.equal(resultados[1].motivo, 'SIN_RESPUESTA');
+  assert.equal(resultados[2].motivo, 'SIN_RESPUESTA');
 });

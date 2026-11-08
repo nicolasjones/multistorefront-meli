@@ -30,10 +30,10 @@ inputs:
     type: INT
     defaults: 100
 variables:
-  # Total REAL de eventos de la ventana: el encabezado X-Hits (total del listado, sin paginar) y, si la herramienta no lo
+  # Total REAL de eventos de la ventana: el encabezado X-Hits (en cualquier capitalización: x-hits, X-Hits o X-HITS; total del listado, sin paginar) y, si la herramienta no lo
   # envía, la cantidad de la página pedida con `limit` = max(limite_pagina, umbral), que siempre alcanza para decidir
   # el umbral (nunca se mira una página más chica que el umbral).
-  conteo: "{{ outputs.contar_eventos.headers['x-hits'] is defined ? (outputs.contar_eventos.headers['x-hits'][0] | number) : (fromJson(outputs.contar_eventos.body) | length) }}"
+  conteo: "{{ (outputs.contar_eventos.headers['x-hits'] ?? outputs.contar_eventos.headers['X-Hits'] ?? outputs.contar_eventos.headers['X-HITS']) is not null ? ((outputs.contar_eventos.headers['x-hits'] ?? outputs.contar_eventos.headers['X-Hits'] ?? outputs.contar_eventos.headers['X-HITS'])[0] | number) : (fromJson(outputs.contar_eventos.body) | length) }}"
 tasks:
   - id: configurada
     type: io.kestra.plugin.core.flow.If

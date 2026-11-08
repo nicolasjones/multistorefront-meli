@@ -45,7 +45,7 @@ test('el conteo usa el total real (X-Hits) o una página de al menos el umbral, 
   const content = await leer();
   assert.match(content, /- id: limite_pagina\n\s+type: INT\n\s+defaults: 100/);
   assert.match(content, /&limit=\{\{ inputs\.limite_pagina > inputs\.umbral \? inputs\.limite_pagina : inputs\.umbral \}\}/);
-  assert.match(content, /outputs\.contar_eventos\.headers\['x-hits'\] is defined/);
+  for (const nombre of ['x-hits', 'X-Hits', 'X-HITS']) assert.ok(content.includes(`outputs.contar_eventos.headers['${nombre}']`), `lee ${nombre}`);
   assert.match(content, /\(vars\.conteo \| number\) >= inputs\.umbral \? 'fallo' : 'ok'/);
   assert.doesNotMatch(content, /fromJson\(outputs\.contar_eventos\.body\) \| length\) >= inputs\.umbral/, 'no decide con el largo de la primera página');
 });

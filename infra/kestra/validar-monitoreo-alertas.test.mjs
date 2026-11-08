@@ -48,3 +48,10 @@ test('marca la alerta como notificada solo después de enviarla y propaga el fal
   assert.doesNotMatch(content, /transmitFailed: false/, 'un envío fallido debe dejar la alerta pendiente');
   assert.ok(content.indexOf('id: marcar_notificada') > content.indexOf('id: alertar_sin_organizacion'), 'marca después de enviar');
 });
+
+test('las alertas cubiertas por el resumen se marcan solo tras el envío (misma tarea, después del subflow)', async () => {
+  const content = await leer();
+  assert.match(content, /motivo_sanitizado, cubiertas from public\.evaluar_monitoreo/);
+  assert.match(content, /public\.marcar_alertas_notificadas\(string_to_array\(NULLIF\(:cubiertas, ''\), ','\)::uuid\[\]\)/);
+  assert.match(content, /cubiertas: "\{\{ fromJson\(taskrun\.value\)\.cubiertas \?\? '' \}\}"/);
+});

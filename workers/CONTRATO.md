@@ -179,8 +179,9 @@ para la funcionalidad que lo usa está en `docs/importaciones.md`.
    motivo): un reintento no vuelve a contar. `procesados` cuenta todas las filas, con
    error o no; las correctas son `procesados - con_errores`. El motivo se sanitiza en la base, pero el worker nunca
    manda el error crudo ni datos personales. Se guardan hasta 1000 detalles por
-   proceso; `con_errores` cuenta todos. Pasados 10.000 errores solo se cuentan (sin clave de
-   idempotencia: un reintento del lote ya no es idempotente) y el proceso queda `detalle_truncado`.
+   proceso; `con_errores` cuenta todos. Pasados 10.000 errores solo se cuentan (sin clave) y el proceso queda `detalle_truncado`; la idempotencia pasa a una
+   marca de agua de fila, así que **el worker informa los errores con fila en orden ascendente** (un reintento de una fila ya
+   contada no suma); un error sin fila pasado el tope solo se cuenta.
 4. **Revisar la cancelación entre lotes**: `proceso_masivo_cancelado(proceso)`.
    Si devuelve `true`, el worker deja de procesar, conserva lo ya hecho y cierra
    `cancelado`. No se mata el contenedor.

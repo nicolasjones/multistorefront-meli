@@ -5,7 +5,7 @@
 --   * Organización ajena: cada organización tiene su propia alerta de cola y un administrador no lee el monitoreo.
 begin;
 
-select plan(13);
+select plan(15);
 
 insert into organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111111', 'Tormenta Uno'),
@@ -77,8 +77,15 @@ select is((select motivo_sanitizado from corrida where fuente = 'resumen'), 'y 6
 select is((select count(*)::int from public.alertas_monitoreo where estado = 'abierta' and fuente = 'tienda'), 25,
   'las 25 alertas quedan abiertas y visibles en alertas_monitoreo');
 select public.marcar_alerta_notificada(alerta_id) from corrida where alerta_id is not null;
+-- Sin pérdida: si el resumen no se pudo enviar (el flow no marca las cubiertas), siguen pendientes y vuelven.
+select is((select count(*)::int from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null), 6,
+  'las 6 alertas cubiertas por el resumen siguen pendientes hasta que el resumen se envíe');
+select is((select count(*)::int from public.evaluar_monitoreo(10, 5, 15) where fuente = 'resumen'), 1,
+  'la siguiente corrida vuelve a devolver el resumen (no se perdieron)');
+-- Resumen enviado bien: el flow marca las cubiertas.
+select public.marcar_alertas_notificadas(string_to_array(cubiertas, ',')::uuid[]) from corrida where fuente = 'resumen';
 select is((select count(*)::int from public.evaluar_monitoreo(10, 5, 15)), 0,
-  'la siguiente corrida no repite nada: las cubiertas por el resumen quedaron notificadas');
+  'tras enviar el resumen y marcar las cubiertas la siguiente corrida no repite nada');
 
 -- Organización ajena: el administrador de Dos no lee el monitoreo de Uno.
 select set_config('request.jwt.claims', json_build_object('sub', 'a2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);

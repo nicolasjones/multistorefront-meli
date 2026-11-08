@@ -78,7 +78,7 @@ Productos, Mercado Libre y el importador del historial (MSF-275) es trabajo de s
    fila o, sin fila, por (referencia, motivo), incluso pasadas las 1000 filas de detalle
    (guarda solo claves en `procesos_masivos_errores_claves`). **Topes**: se guardan hasta 1000
    detalles por proceso y hasta 10.000 claves de idempotencia; pasado el tope de claves los
-   errores solo se cuentan (un reintento del lote ya no es idempotente) y el proceso queda con
+   errores solo se cuentan (la idempotencia pasa a una marca de agua de fila: el worker informa en orden ascendente) y el proceso queda con
    `detalle_truncado = true`, igual que al superar los 1000 detalles. `cerrar_proceso_masivo`
    exige `procesados = total` para `completado` y `con_errores` (si se informó total; un archivo
    vacío es 0 de 0) y una cancelación solicitada para `cancelado`.
