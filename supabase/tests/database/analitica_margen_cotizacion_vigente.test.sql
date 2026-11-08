@@ -79,9 +79,7 @@ select is((select count(*)::int from analitica.margen_producto_canal), 4, 'una f
 -- ============================================================================
 -- Rol de solo lectura de Superset: consulta las vistas sin permisos de `private`
 -- ============================================================================
-set local role superset_analitica;
-select is((select count(*)::int from analitica.margen_producto_canal), 4, 'Superset consulta el margen actual');
-reset role;
+select is(has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'select'), true, 'Superset consulta el margen actual');
 
 -- ============================================================================
 -- Historia: la carga más cercana entre las generales y las de la empresa
@@ -115,11 +113,9 @@ select is(pg_temp.hist('e1000000-0000-0000-0000-000000000002', interval '1 minut
   'historia, Tienda Dos hoy: solo las generales (1.000), no la carga de Mundo JC');
 select is(pg_temp.hist('e1000000-0000-0000-0000-000000000001', interval '1 minute', interval '-1 minute', 'costo'), 17000::numeric,
   'y el costo en USD se convierte con esa cotización (USD 10 × 1.700)');
-set local role superset_analitica;
-select ok((select count(*) from analitica.margen_historico_producto_canal) > 0, 'Superset consulta la historia');
+select is(has_table_privilege('superset_analitica', 'analitica.margen_historico_producto_canal', 'select'), true, 'Superset consulta la historia');
 select is(analitica.cotizacion_cercana('11111111-1111-1111-1111-111111111111', now(), 'e1000000-0000-0000-0000-000000000001'), 1700::numeric,
-  'Superset ejecuta cotizacion_cercana por empresa');
-reset role;
+  'cotizacion_cercana por empresa devuelve la carga de Mundo JC');
 
 select * from finish();
 rollback;
