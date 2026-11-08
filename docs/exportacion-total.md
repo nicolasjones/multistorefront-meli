@@ -18,6 +18,11 @@ El bloque no depende de la empresa activa (la exportación es de toda la organiz
 - **Excluye** (documentado en `private.exclusiones_exportacion_total()`, con motivo): colas internas de avisos y correo, registros operativos y de monitoreo, procesos masivos, credenciales y conexiones, e índices o datos derivados.
 - **Completitud**: el pgTAP `exportacion_total.test.sql` falla si una tabla con `organizacion_id` de `public` o `dominio` no está en la lista ni en las exclusiones.
 
+## Conjuntos agregados después de la primera versión
+
+- `20270217000007_exportacion_total_conjuntos_nuevos.sql`: `dominio.cotizacion_configuracion` y `dominio.precios_propios_empresa` (llegaron con la integración de `dokploy` en la épica; el pgTAP de completitud lo detectó).
+- `20270217000006_exportacion_total_solo_admin_propio.sql`: la solicitud y la descarga exigen la membresía propia de administrador (`private.es_administrador_propio_de`); un superadmin con acceso de soporte no exporta.
+
 ## Agregar un conjunto
 
 Una tabla nueva con `organizacion_id` rompe el pgTAP hasta que se decida. Agregá una migración **nueva** (nunca editar la anterior) que redefina `private.conjuntos_exportacion_total()` con la tabla, o `private.exclusiones_exportacion_total()` con el motivo.
