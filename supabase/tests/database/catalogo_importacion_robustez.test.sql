@@ -203,8 +203,10 @@ select is(
   (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'omitidas_temporales')::int, 1,
   'obtener_importacion_productos distingue las omitidas por un error temporal repetido (por código, no por texto)');
 -- El texto es solo para mostrar: cambiarlo no altera el conteo.
+reset role;
 update dominio.importaciones_productos_filas set resultado_mensaje = 'otro texto'
  where importacion_id = current_setting('t.imp1')::uuid and sku = 'TRANS-1';
+select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 select is(
   (public.obtener_importacion_productos(current_setting('t.imp1')::uuid) ->> 'omitidas_temporales')::int, 1,
   'el conteo de omitidas temporales no depende del texto del motivo');
