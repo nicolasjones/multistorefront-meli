@@ -79,20 +79,42 @@ let ga4Bloqueado: string | null = null
 let pixelBloqueado: string | null = null
 // Hubo scripts de terceros evaluados en esta página que siguen en memoria hasta recargar.
 let scriptsEnMemoria = false
+// Scripts pedidos que aún no cargaron ni fallaron. Quitar su nodo no cancela la descarga: si llegan después de una
+// revocación se evalúan igual, así que al revocar cuentan como «en memoria» (se recarga o se deja apagado).
+let enVuelo = 0
+// IDs de la última sincronización pedida y recarga/reanudación diferida hasta que sea seguro.
+let ultimosIds: IdsMedicion | null = null
+let reintentoArmado = false
 
 // Acciones del navegador que las pruebas reemplazan (jsdom no navega).
 export const accionesPagina = { recargar: (): void => window.location.reload() }
 
 function agregarScript(src: string, alFallar: () => void): void {
   try {
+    enVuelo++
+    let resuelto = false
+    const resolver = () => {
+      if (!resuelto) enVuelo = Math.max(0, enVuelo - 1)
+      resuelto = true
+    }
     const nodo = document.createElement('script')
     nodo.async = true
     nodo.src = src
     // Solo un script que se descargó y evaluó queda en memoria (y justifica una recarga al revocar).
     nodo.onload = () => {
+      resolver()
       scriptsEnMemoria = true
+      // Se evaluó tras una revocación: no corresponde. Se deja inerte y, si es seguro, se recarga.
+      if (!consentimientoAceptado()) {
+        quitarGlobales('dataLayer', 'gtag', 'fbq', '_fbq', 'google_tag_manager', 'google_tag_data')
+        borrarCookies(COOKIES_GOOGLE)
+        borrarCookies(COOKIES_META)
+        borrarAlmacenamiento()
+        if (!consentimientoAceptado() && !recargarSiSeguro()) armarReintento()
+      }
     }
     nodo.onerror = () => {
+      resolver()
       // Una falla de red o un bloqueador no afecta a la tienda ni se muestra: la herramienta queda apagada.
       try {
         alFallar()
@@ -110,12 +132,36 @@ const COOKIES_GOOGLE = /^(_ga|_ga_[A-Za-z0-9]+|_gid|_gat(_.+)?|_gcl_[a-z]+)$/
 const COOKIES_META = /^(_fbp|_fbc)$/
 
 // Dominios donde pudo haberse escrito una cookie: el host actual y cada dominio padre con al menos dos etiquetas.
+// Sufijos públicos de dos niveles frecuentes (el navegador rechaza cookies con `domain=` igual a uno de ellos).
+const SUFIJOS_PUBLICOS = new Set([
+  'com.ar', 'net.ar', 'org.ar', 'gob.ar', 'gov.ar', 'edu.ar', 'int.ar', 'mil.ar', 'tur.ar',
+  'co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.br', 'net.br', 'org.br', 'com.mx', 'org.mx', 'com.uy', 'com.co',
+  'com.pe', 'com.cl', 'com.py', 'com.bo', 'com.ec', 'com.ve', 'com.au', 'net.au', 'org.au', 'co.nz', 'co.za', 'co.jp',
+])
+
 export function dominiosCookie(host: string = window.location.hostname): Array<string | null> {
   const dominios: Array<string | null> = [null]
   if (!host || /^[\d.]+$/.test(host) || host.includes(':')) return dominios
   const partes = host.split('.')
-  for (let i = 0; i <= partes.length - 2; i++) dominios.push(partes.slice(i).join('.'))
+  for (let i = 0; i <= partes.length - 2; i++) {
+    const candidato = partes.slice(i).join('.')
+    if (!SUFIJOS_PUBLICOS.has(candidato)) dominios.push(candidato)
+  }
   return dominios
+}
+
+// Claves de `localStorage` / `sessionStorage` que dejan Google y Meta (nunca la decisión de cookies de la tienda).
+const ALMACENAMIENTO_MEDICION = /^(_ga|_gid|_gat|_gcl_|__gads|__gpi|__eoi|google_experiment_mod|_fbp|_fbc|_fbq|fbevents|fbq)/
+
+function borrarAlmacenamiento(): void {
+  for (const almacen of ['localStorage', 'sessionStorage'] as const) {
+    try {
+      const memoria = window[almacen]
+      for (const clave of Object.keys(memoria)) if (ALMACENAMIENTO_MEDICION.test(clave)) memoria.removeItem(clave)
+    } catch {
+      // Almacenamiento bloqueado: nada que limpiar.
+    }
+  }
 }
 
 function borrarCookies(patron: RegExp): void {
@@ -148,6 +194,7 @@ function apagarGa4(): void {
     if (ga4Activo) w.gtag?.('consent', 'update', { analytics_storage: 'denied', ad_storage: 'denied' })
   }
   borrarCookies(COOKIES_GOOGLE)
+  borrarAlmacenamiento()
   quitarScripts(`script[src^="${URL_GTAG}"]`)
   quitarGlobales('dataLayer', 'gtag', 'google_tag_manager', 'google_tag_data')
   ga4Cargado = null
@@ -158,18 +205,28 @@ function apagarGa4(): void {
 function apagarPixel(): void {
   if (pixelCargado && pixelActivo) ventana().fbq?.('consent', 'revoke')
   borrarCookies(COOKIES_META)
+  borrarAlmacenamiento()
   quitarScripts(`script[src="${URL_PIXEL}"]`)
   quitarGlobales('fbq', '_fbq')
   pixelCargado = null
   pixelActivo = false
 }
 
-// ¿Se puede recargar sin que la persona pierda algo? No si hay un campo de texto con contenido o un diálogo abierto.
+// ¿Se puede recargar sin que la persona pierda algo? No si la pestaña está en segundo plano (se difiere hasta que vuelva),
+// hay un campo de texto con contenido, un `select` cambiado respecto de lo inicial (variante, filtro), un campo
+// `contenteditable`, el foco dentro de un campo o de un diálogo, o un diálogo abierto.
 function recargaSegura(): boolean {
+  if (document.hidden) return false
   const campos = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
     'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]), textarea',
   )
   for (const campo of Array.from(campos)) if (campo.value.trim() !== '') return false
+  for (const lista of Array.from(document.querySelectorAll('select'))) {
+    if (Array.from(lista.options).some((opcion) => opcion.selected !== opcion.defaultSelected)) return false
+  }
+  if (document.querySelector('[contenteditable=""], [contenteditable="true"]') !== null) return false
+  const enfocado = document.activeElement
+  if (enfocado && enfocado !== document.body && enfocado.matches('input, textarea, select, [contenteditable], [role="dialog"] *')) return false
   return document.querySelector('dialog[open], [role="dialog"], [role="alertdialog"]') === null
 }
 
@@ -177,8 +234,32 @@ function recargaSegura(): boolean {
 function recargarSiSeguro(): boolean {
   if (!scriptsEnMemoria || !recargaSegura()) return false
   scriptsEnMemoria = false
+  enVuelo = 0
   accionesPagina.recargar()
   return true
+}
+
+// Si no era seguro recargar, se reintenta cuando la persona suelta un campo (`focusout`) o vuelve a la pestaña
+// (`visibilitychange`). Con consentimiento vigente retoma la carga; sin él, recarga para soltar los scripts.
+function armarReintento(): void {
+  if (reintentoArmado || typeof document === 'undefined') return
+  reintentoArmado = true
+  const reintentar = () => {
+    if (!scriptsEnMemoria) return desarmar()
+    if (consentimientoAceptado()) {
+      if (ultimosIds) cargarMedicion(ultimosIds)
+    } else {
+      recargarSiSeguro()
+    }
+    if (!scriptsEnMemoria) desarmar()
+  }
+  const desarmar = () => {
+    document.removeEventListener('visibilitychange', reintentar)
+    document.removeEventListener('focusout', reintentar)
+    reintentoArmado = false
+  }
+  document.addEventListener('visibilitychange', reintentar)
+  document.addEventListener('focusout', reintentar)
 }
 
 const consentimientoAceptado = (): boolean => consentimientoActual() === 'aceptadas'
@@ -266,7 +347,8 @@ export function retirarMedicion(): void {
     apagarGa4()
     apagarPixel()
     pendientes.length = 0
-    if (scriptsEnMemoria) recargarSiSeguro()
+    if (enVuelo > 0) scriptsEnMemoria = true
+    if (scriptsEnMemoria && !recargarSiSeguro()) armarReintento()
   } catch {
     // Nunca rompe la tienda.
   }
@@ -281,7 +363,14 @@ export function cargarMedicion(ids: IdsMedicion): void {
       return
     }
     // Se aceptó de nuevo tras una revocación que no pudo recargar la página: se recarga para empezar sin scripts viejos.
-    if (!ga4Cargado && !pixelCargado && scriptsEnMemoria && recargarSiSeguro()) return
+    ultimosIds = ids
+    if (!ga4Cargado && !pixelCargado && scriptsEnMemoria) {
+      if (recargarSiSeguro()) return
+      // Hay scripts viejos evaluados y no se puede recargar todavía: no se carga nada encima (podría haber doble envío).
+      // La medición queda apagada y se reintenta cuando sea seguro.
+      armarReintento()
+      return
+    }
     const ga4 = ids.ga4_id && FORMATO_GA4.test(ids.ga4_id) ? ids.ga4_id : null
     const pixel = ids.meta_pixel_id && FORMATO_PIXEL.test(ids.meta_pixel_id) ? ids.meta_pixel_id : null
     if (ga4) cargarGa4(ga4)
@@ -344,6 +433,9 @@ export function reiniciarMedicionParaPruebas(): void {
   ga4Bloqueado = null
   pixelBloqueado = null
   scriptsEnMemoria = false
+  enVuelo = 0
+  ultimosIds = null
+  reintentoArmado = false
   accionesPagina.recargar = (): void => window.location.reload()
   pendientes.length = 0
   const w = ventana()

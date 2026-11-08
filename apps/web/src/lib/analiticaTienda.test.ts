@@ -269,8 +269,10 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       for (const clave of ['dataLayer', 'gtag', 'fbq', '_fbq']) expect(w[clave]).toBeUndefined()
       expect(w['ga-disable-G-ABC123']).toBe(true) // el interruptor oficial queda puesto
     })
-    it('es idempotente y no recarga si nunca se descargó un script', () => {
+    it('es idempotente y no recarga si los scripts fallaron (nunca se evaluaron)', () => {
       cargarMedicion(IDS)
+      scriptFallido(URL_GTAG)
+      scriptFallido(URL_PIXEL)
       retirarMedicion()
       retirarMedicion()
       expect(recargar).not.toHaveBeenCalled()
@@ -310,20 +312,115 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       expect(recargar).not.toHaveBeenCalled()
       dialogo.remove()
     })
-    it('si se aceptó de nuevo tras una revocación sin recarga, se recarga antes de cargar otra vez', () => {
+    it('revocar con texto escrito y volver a aceptar NO carga encima de los scripts viejos: espera y recarga cuando es seguro', () => {
       cargarMedicion(IDS)
       scriptCargado(URL_GTAG)
+      scriptCargado(URL_PIXEL)
       const campo = document.createElement('textarea')
       document.body.appendChild(campo)
       campo.value = 'texto'
       guardarConsentimiento('rechazadas')
       retirarMedicion()
-      campo.value = ''
+      expect(recargar).not.toHaveBeenCalled()
       guardarConsentimiento('aceptadas')
       cargarMedicion(IDS)
-      expect(recargar).toHaveBeenCalledTimes(1)
+      // No se inyectó ningún script nuevo ni se borró el interruptor del GA4 viejo.
       expect(scripts()).toEqual([])
+      expect((window as unknown as Record<string, unknown>)['ga-disable-G-ABC123']).toBe(true)
+      expect(hayMedicionCargada()).toBe(false)
+      expect(recargar).not.toHaveBeenCalled()
+      // Cuando suelta el campo (ya vacío), se recarga.
+      campo.value = ''
+      campo.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+      expect(recargar).toHaveBeenCalledTimes(1)
       campo.remove()
+    })
+    it('un select cambiado, un contenteditable o el foco en un campo impiden recargar', () => {
+      const cargarYRevocar = () => {
+        cargarMedicion(IDS)
+        scriptCargado(URL_GTAG)
+        guardarConsentimiento('rechazadas')
+        retirarMedicion()
+      }
+      const lista = document.createElement('select')
+      lista.innerHTML = '<option value="a" selected>A</option><option value="b">B</option>'
+      document.body.appendChild(lista)
+      lista.value = 'b'
+      cargarYRevocar()
+      expect(recargar).not.toHaveBeenCalled()
+      lista.value = 'a' // vuelve a lo inicial
+      reiniciarMedicionParaPruebas()
+      accionesPagina.recargar = recargar
+      guardarConsentimiento('aceptadas')
+      cargarYRevocar()
+      expect(recargar).toHaveBeenCalledTimes(1)
+      lista.remove()
+
+      recargar.mockReset()
+      reiniciarMedicionParaPruebas()
+      accionesPagina.recargar = recargar
+      guardarConsentimiento('aceptadas')
+      const editable = document.createElement('div')
+      editable.setAttribute('contenteditable', 'true')
+      document.body.appendChild(editable)
+      cargarYRevocar()
+      expect(recargar).not.toHaveBeenCalled()
+      editable.remove()
+
+      reiniciarMedicionParaPruebas()
+      accionesPagina.recargar = recargar
+      guardarConsentimiento('aceptadas')
+      const campo = document.createElement('input')
+      document.body.appendChild(campo)
+      campo.focus()
+      cargarYRevocar()
+      expect(recargar).not.toHaveBeenCalled()
+      campo.blur()
+      campo.remove()
+    })
+    it('con la pestaña en segundo plano difiere la recarga hasta que vuelve a primer plano', () => {
+      const oculto = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+      cargarMedicion(IDS)
+      scriptCargado(URL_GTAG)
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(recargar).not.toHaveBeenCalled()
+      oculto.mockReturnValue(false)
+      document.dispatchEvent(new Event('visibilitychange'))
+      expect(recargar).toHaveBeenCalledTimes(1)
+      oculto.mockRestore()
+    })
+    it('revocar con un script en vuelo: se trata como en memoria y se recarga; si llega tarde, queda inerte y limpio', () => {
+      cargarMedicion(IDS)
+      const nodo = Array.from(document.head.querySelectorAll('script')).find((n) => n.getAttribute('src')?.startsWith(URL_GTAG))!
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(recargar).toHaveBeenCalledTimes(1)
+      // El script, ya sin nodo en el documento, se evalúa igual y deja huellas: se limpian.
+      recargar.mockReset()
+      document.cookie = '_ga=GA1.1.1; path=/'
+      window.localStorage.setItem('_gcl_ls', 'x')
+      ;(window as unknown as Record<string, unknown>).dataLayer = []
+      nodo.onload?.(new Event('load'))
+      expect(cookiesActuales()).not.toContain('_ga')
+      expect(window.localStorage.getItem('_gcl_ls')).toBeNull()
+      expect((window as unknown as Record<string, unknown>).dataLayer).toBeUndefined()
+      expect(recargar).toHaveBeenCalledTimes(1)
+    })
+    it('revocar borra las claves de Google y Meta de localStorage / sessionStorage y respeta la decisión de cookies', () => {
+      cargarMedicion(IDS)
+      window.localStorage.setItem('_gcl_ls', 'x')
+      window.localStorage.setItem('fbevents', 'x')
+      window.sessionStorage.setItem('_ga_ABC123', 'x')
+      window.localStorage.setItem('carrito', 'x')
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      expect(window.localStorage.getItem('_gcl_ls')).toBeNull()
+      expect(window.localStorage.getItem('fbevents')).toBeNull()
+      expect(window.sessionStorage.getItem('_ga_ABC123')).toBeNull()
+      expect(window.localStorage.getItem('carrito')).toBe('x')
+      expect(window.localStorage.getItem('tienda:consentimiento-cookies')).toBe('rechazadas')
+      window.localStorage.removeItem('carrito')
     })
     it('Meta: `consent revoke` posterior a `init` sobre la pila real del píxel', () => {
       cargarMedicion({ ga4_id: null, meta_pixel_id: '123456789' })
@@ -337,8 +434,10 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       expect(iRevoke).toBeGreaterThan(iInit)
       expect((window as unknown as { fbq?: unknown }).fbq).toBeUndefined()
     })
-    it('dominiosCookie: el host y cada dominio padre con dos etiquetas o más; nunca una IP', () => {
-      expect(dominiosCookie('www.mundojc.com.ar')).toEqual([null, 'www.mundojc.com.ar', 'mundojc.com.ar', 'com.ar'])
+    it('dominiosCookie: el host y cada dominio padre registrable (sin sufijos públicos como com.ar); nunca una IP', () => {
+      expect(dominiosCookie('www.mundojc.com.ar')).toEqual([null, 'www.mundojc.com.ar', 'mundojc.com.ar'])
+      expect(dominiosCookie('tienda.ejemplo.co.uk')).toEqual([null, 'tienda.ejemplo.co.uk', 'ejemplo.co.uk'])
+      expect(dominiosCookie('ejemplo.com')).toEqual([null, 'ejemplo.com'])
       expect(dominiosCookie('localhost')).toEqual([null])
       expect(dominiosCookie('127.0.0.1')).toEqual([null])
     })
