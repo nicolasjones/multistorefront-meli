@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -115,7 +115,7 @@ describe('RutaContacto', () => {
     const alerta = await screen.findByTestId('error-con-reintento')
     expect(alerta).toHaveTextContent('No pudimos cargar los datos de contacto.')
     // FR-004/FR-024: la pantalla de error no se indexa.
-    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex')
+    await waitFor(() => expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex'))
     screen.getByRole('button', { name: 'Reintentar' }).click()
     expect(await screen.findByRole('heading', { name: 'Escribinos' })).toBeInTheDocument()
     consola.mockRestore()

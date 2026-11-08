@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
@@ -259,7 +259,7 @@ describe('ListadoProductos · estados', () => {
     montar('/catalogo')
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar los productos.')
     // FR-004/FR-024: la pantalla de error no se indexa.
-    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex')
+    await waitFor(() => expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex'))
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findAllByTestId('tarjeta-producto')).toHaveLength(2)
   })
