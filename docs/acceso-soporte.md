@@ -35,15 +35,15 @@ Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, 
 
 ## Cierre automático de accesos vencidos
 
-`private.cerrar_accesos_soporte_vencidos()` (`20270217100002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
+`private.cerrar_accesos_soporte_vencidos()` (`20270217900002`): por cada fila de `superadmin_organizacion_activa` con `vence_en <= now()` borra el contexto, deja la salida en `superadmin_entradas` y registra `soporte.vencido` en la organización visitada. Es idempotente y solo la ejecutan `workers_orquestacion` / `kestra_orquestacion` (`42501` para los demás). El flow `infra/kestra/flows/cierre-accesos-soporte.yml` la dispara cada 15 minutos y, si falla, la ejecución queda en rojo.
 
-## E2E no escritos
+## E2E del acceso de soporte: no escrito
 
-Faltan los E2E del acceso de soporte (diálogo de motivo, banner «Acceso de soporte hasta HH:MM», salida y vencimiento) y del detalle de Actividad. Necesitan Supabase y no se pueden ejecutar fuera del CI; no se agregaron a ciegas. Criterio de aceptación pendiente: E2E deterministas (siguiendo `docs/e2e-app.md`) verdes en el CI al integrar la épica.
+No hay E2E del acceso de soporte (diálogo de motivo, banner, salida y vencimiento) porque no se puede sembrar de forma determinista con el patrón de `docs/e2e-app.md`: crear un superadmin exige insertar en `superadmins`, y `service_role` solo tiene `select` sobre esa tabla (hace falta acceso SQL directo, que los E2E no usan). El comportamiento está cubierto por pgTAP (`acceso_soporte_*`, `cerrar_accesos_soporte`) y Vitest (`AccesoSoporte.test.tsx`). Pendiente: un E2E cuando exista un superadmin sembrado en el stack de E2E con sesión.
 
 ## Bitácora inalterable
 
-`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270217100000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
+`superadmin_entradas` tiene triggers `before update/delete/truncate` en **ENABLE ALWAYS** (`20270217900000`) y ningún rol de la API (incluido `service_role`) tiene escritura. Las únicas excepciones son el borrado en cascada al eliminar la organización o la cuenta de la persona de soporte (la FK es `on delete cascade`). Prueba: `superadmin_entradas_inalterable.test.sql`.
 
 ## Pruebas
 
