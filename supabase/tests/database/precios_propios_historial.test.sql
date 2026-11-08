@@ -102,9 +102,39 @@ select throws_ok($$delete from dominio.precios_propios_historial$$, '42501', nul
 select throws_ok($$truncate dominio.precios_propios_historial$$, '42501', null, 'no se vacía');
 select is((select count(*)::int from dominio.precios_propios_historial), 5, 'sigue entero');
 
+-- Aun con session_replication_role = replica (cargas lógicas, herramientas de réplica) los triggers siguen disparando.
+set local session_replication_role = replica;
+select throws_ok($$update dominio.precios_propios_historial set importe_nuevo = 1$$, '42501', null, 'replica: no se actualiza');
+select throws_ok($$delete from dominio.precios_propios_historial$$, '42501', null, 'replica: no se borra');
+select throws_ok($$truncate dominio.precios_propios_historial$$, '42501', null, 'replica: no se vacía');
+set local session_replication_role = origin;
+select is((select count(*)::int from dominio.precios_propios_historial), 5, 'replica: sigue entero');
+
 -- La baja de la organización sí lo elimina en cascada.
 select lives_ok($$delete from organizaciones where id = '22222222-2222-2222-2222-222222222222'$$, 'se elimina la organización Dos');
 select is((select count(*)::int from dominio.precios_propios_historial), 4, 'y solo se llevó su historial');
+
+-- Borrar un producto elimina en cascada su precio propio: el historial deja la baja ('quitado'), no una última fila 'fijado' vigente.
+insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista) values
+  ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Teclado', 'TEC-1', 'ARS', 100);
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($$select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'USD', 7)$$, 'se fija un precio propio al Teclado');
+reset role;
+select lives_ok($$delete from dominio.productos where id = 'a1000000-0000-0000-0000-000000000002'$$, 'se borra el producto');
+select is((select accion || ' ' || moneda_anterior || ' ' || importe_anterior from dominio.precios_propios_historial
+            where producto_id = 'a1000000-0000-0000-0000-000000000002' order by creado_en desc, id limit 1),
+  'quitado USD 7.00', 'la baja en cascada queda como quitado con el último valor');
+select is((select count(*)::int from dominio.precios_propios_historial where producto_id = 'a1000000-0000-0000-0000-000000000002'), 2,
+  'el historial del producto borrado sobrevive (fijado y quitado)');
+
+-- El precio propio fijado sin RPC concurrente: el bloqueo por (producto, empresa) no cambia el resultado secuencial.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select lives_ok($$select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'ARS', 100)$$, 'fijar de nuevo');
+select lives_ok($$select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'ARS', 90)$$, 'y bajar');
+select is((select moneda_anterior || ' ' || importe_anterior || ' -> ' || moneda_nueva || ' ' || importe_nuevo
+             from dominio.precios_propios_historial order by creado_en desc, id limit 1),
+  'ARS 100.00 -> ARS 90.00', 'cada fila lleva el valor previo real');
+reset role;
 
 select * from finish();
 rollback;

@@ -5,8 +5,10 @@
 --    (4 %, no se aplica) y luego 1.081 (4 % contra 1.040, tampoco): la tienda quedaba en 1.000 con el dólar real 8,1 %
 --    arriba y sin aviso. Ahora `cargar_`, `previsualizar_` y `confirmar_cotizacion` miden variación, umbral y variación
 --    inusual contra `private.cotizacion_para(org, empresa)` (la aplicada; la general si la empresa no tiene la suya; la
---    inicial si no hay ninguna). `estado_cotizacion` suma `aplicada` (el valor con el que se calculan los precios).
---    `dominio.cotizaciones.valor_anterior` y `variacion_pct` pasan a guardar la aplicada vigente al confirmar.
+--    inicial si no hay ninguna). `estado_cotizacion` suma `aplicada` (el valor con el que se calculan los precios) y pasa
+--    a SECURITY DEFINER con chequeo explícito de `cotizacion_dolar` (antes, invoker: un rol sin `productos` recibía
+--    `aplicada` nula por la RLS de `cotizacion_aplicada`). `dominio.cotizaciones.valor_anterior` y `variacion_pct`
+--    siguen siendo contra la carga anterior (coherentes con `listar_cotizaciones`).
 -- 2. (MEDIO) La «variación inusual» (`confirmacion_pct`) solo avisaba en la pantalla: por API, tipear 149000 en vez de
 --    1490 se aplicaba y multiplicaba por 100 los precios en USD. `confirmar_cotizacion` recibe
 --    `p_confirmado boolean default false` y, si |variación| > `confirmacion_pct` sin confirmación explícita, falla con
@@ -75,7 +77,9 @@ create or replace function public.estado_cotizacion(p_empresa uuid default null)
 returns jsonb
 language plpgsql
 stable
-security invoker
+-- Definer: la cotización aplicada tiene RLS por `productos` y este estado lo ve quien tiene `cotizacion_dolar`. La organización
+-- sale de la SESIÓN, todo se filtra por ella y la empresa pasa por `private.empresa_de_cotizacion` (rechaza empresas ajenas).
+security definer
 set search_path = ''
 as $$
 declare
@@ -85,11 +89,13 @@ declare
   v_vigente jsonb;
   v_productos integer;
   v_pendiente jsonb;
+  v_edita boolean;
 begin
   if v_organizacion is null
      or (select private.nivel_seccion('cotizacion_dolar')) not in ('lectura', 'edicion') then
     raise exception 'Tu rol no puede ver la cotización del dólar' using errcode = '42501';
   end if;
+  v_edita := (select private.nivel_seccion('cotizacion_dolar')) = 'edicion';
   select * into v_config from private.cotizacion_config(v_organizacion);
   -- La pantalla pide el estado de la organización aun con alcance «empresa» y «Todas mis empresas»: ahí no
   -- hay empresa que mostrar y se devuelve la cotización general.
@@ -136,7 +142,7 @@ begin
   select jsonb_build_object('valor', p.valor, 'expira_en', p.expira_en)
     into v_pendiente
     from dominio.cotizacion_pendiente p
-    where p.organizacion_id = v_organizacion and p.empresa_id is not distinct from v_empresa and p.expira_en > now();
+    where v_edita and p.organizacion_id = v_organizacion and p.empresa_id is not distinct from v_empresa and p.expira_en > now();
 
   return jsonb_build_object(
     'vigente', v_vigente, 'aplicada', private.cotizacion_para(v_organizacion, v_empresa), 'productos_usd', v_productos, 'pendiente', v_pendiente, 'alcance', v_config.alcance,
@@ -263,6 +269,7 @@ declare
   v_pendiente dominio.cotizacion_pendiente;
   v_vigente numeric;
   v_variacion numeric;
+  v_ultima numeric;
   v_recalcula boolean;
   v_precios integer := 0;
   v_nombre text;
@@ -299,6 +306,10 @@ begin
       using errcode = '22023', hint = 'variacion_inusual';
   end if;
 
+  -- El historial conserva la carga ANTERIOR (valor_anterior y variacion_pct entre cargas consecutivas, como lo muestra
+  -- `listar_cotizaciones`); la decisión de arriba se tomó contra la aplicada.
+  v_ultima := private.cotizacion_vigente_para(v_organizacion, v_empresa);
+
   if v_recalcula then
     select coalesce(sum(u.precios), 0)::integer into v_precios
       from private.precios_usd_por_empresa(v_organizacion) u
@@ -316,7 +327,8 @@ begin
     organizacion_id, empresa_id, valor, valor_anterior, variacion_pct, cargada_por, cargada_por_nombre,
     cargada_en, recalculo_aplicado, precios_recalculados, umbral_pct
   ) values (
-    v_organizacion, v_empresa, v_pendiente.valor, v_vigente, v_variacion, coalesce(v_pendiente.cargada_por, v_usuario), v_nombre,
+    v_organizacion, v_empresa, v_pendiente.valor, v_ultima,
+    case when v_ultima is null then null else round((v_pendiente.valor / v_ultima - 1) * 100, 4) end, coalesce(v_pendiente.cargada_por, v_usuario), v_nombre,
     clock_timestamp(), v_recalcula, v_precios, v_config.umbral_pct
   ) returning id into v_id;
 

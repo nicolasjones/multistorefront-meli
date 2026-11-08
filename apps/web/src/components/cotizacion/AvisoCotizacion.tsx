@@ -87,6 +87,7 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
           <DialogoCargarDolar
             abierto
             vigente={vigente}
+            aplicada={estado.estado.aplicada ?? null}
             onCerrar={() => setDialogoAbierto(false)}
             onConfirmada={alConfirmar}
             empresaId={empresaId}

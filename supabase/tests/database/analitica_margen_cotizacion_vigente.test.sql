@@ -79,15 +79,21 @@ select is((select count(*)::int from analitica.margen_producto_canal), 4, 'una f
 -- ============================================================================
 -- Rol de solo lectura de Superset: consulta las vistas sin permisos de `private`
 -- ============================================================================
-select is(has_table_privilege('superset_analitica', 'analitica.margen_producto_canal', 'select'), true, 'Superset consulta el margen actual');
+-- El rol de CI no es miembro de superset_analitica: se lo agrega dentro de la transacción (el rollback lo deshace).
+do $$ begin execute format('grant superset_analitica to %I', current_user); end $$;
+set local role superset_analitica;
+select is((select count(*)::int from analitica.margen_producto_canal), 4, 'Superset consulta el margen actual sin permission denied');
+reset role;
 
 -- ============================================================================
 -- Historia: la carga más cercana entre las generales y las de la empresa
 -- ============================================================================
 -- Generales: hace 2 días 1.000. Mundo JC: hace 1 día 1.700. Costo de Joystick USD 10 desde hace 3 días.
-insert into dominio.cotizaciones (organizacion_id, empresa_id, valor, valor_anterior, variacion_pct, cargada_por_nombre, cargada_en) values
-  ('11111111-1111-1111-1111-111111111111', null, 1000, null, null, 'Javier', now() - interval '2 days'),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 1700, null, null, 'Emilse', now() - interval '1 day');
+insert into dominio.cotizaciones (organizacion_id, empresa_id, valor, valor_anterior, variacion_pct, cargada_por_nombre, cargada_en, recalculo_aplicado) values
+  ('11111111-1111-1111-1111-111111111111', null, 1000, null, null, 'Javier', now() - interval '2 days', true),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 1700, null, null, 'Emilse', now() - interval '1 day', true),
+  -- Confirmada bajo el umbral (NO se aplicó): la tienda nunca cobró con 1.040.
+  ('11111111-1111-1111-1111-111111111111', null, 1040, 1000, 4, 'Javier', now() - interval '12 hours', false);
 insert into dominio.producto_costos_historial (organizacion_id, producto_id, costo, vigente_desde) values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 10, now() - interval '3 days');
 
@@ -108,12 +114,17 @@ select is((select count(*)::int from analitica.margen_historico_producto_canal
 select is(pg_temp.hist('e1000000-0000-0000-0000-000000000001', interval '3 days 1 minute', interval '3 days -1 minute', 'cotizacion'), 1000::numeric,
   'historia, Mundo JC hace 3 días: la general 1.000 (más cercana)');
 select is(pg_temp.hist('e1000000-0000-0000-0000-000000000001', interval '1 minute', interval '-1 minute', 'cotizacion'), 1700::numeric,
-  'historia, Mundo JC hoy: su última carga 1.700');
+  'historia, Mundo JC hoy: su última carga APLICADA 1.700 (no la 1.040 confirmada bajo el umbral)');
+select is((select count(*)::int from analitica.margen_historico_producto_canal
+            where producto_id = 'a1000000-0000-0000-0000-000000000001' and fecha between now() - interval '12 hours 1 minute' and now() - interval '11 hours 59 minutes'), 0,
+  'una carga sin aplicar no genera fila en la historia');
 select is(pg_temp.hist('e1000000-0000-0000-0000-000000000002', interval '1 minute', interval '-1 minute', 'cotizacion'), 1000::numeric,
   'historia, Tienda Dos hoy: solo las generales (1.000), no la carga de Mundo JC');
 select is(pg_temp.hist('e1000000-0000-0000-0000-000000000001', interval '1 minute', interval '-1 minute', 'costo'), 17000::numeric,
   'y el costo en USD se convierte con esa cotización (USD 10 × 1.700)');
-select is(has_table_privilege('superset_analitica', 'analitica.margen_historico_producto_canal', 'select'), true, 'Superset consulta la historia');
+set local role superset_analitica;
+select ok((select count(*) from analitica.margen_historico_producto_canal) > 0, 'Superset consulta la historia sin permission denied');
+reset role;
 select is(analitica.cotizacion_cercana('11111111-1111-1111-1111-111111111111', now(), 'e1000000-0000-0000-0000-000000000001'), 1700::numeric,
   'cotizacion_cercana por empresa devuelve la carga de Mundo JC');
 

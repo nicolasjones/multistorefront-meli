@@ -108,7 +108,7 @@ vigente al lanzar. **Antes de esa fecha no hay costo registrado, así que no hay
 | --- | --- |
 | `analitica.costo_en_fecha(producto, organización, fecha)` | último costo con `vigente_desde ≤ fecha`; `null` si no hay |
 | `analitica.cotizacion_cercana(organización, fecha)` | carga de `dominio.cotizaciones` más cercana en el tiempo; a igual distancia, la anterior; `null` si no hay |
-| `analitica.cotizacion_cercana(organización, fecha, empresa)` | (MSF-352) lo mismo entre las cargas generales y las de esa empresa; la usa la historia por empresa |
+| `analitica.cotizacion_cercana(organización, fecha, empresa)` | (MSF-352) lo mismo entre las cargas APLICADAS (`recalculo_aplicado`) generales y las de esa empresa; la usa la historia por empresa. Los cambios de alcance no son un punto de la historia |
 | `analitica.cotizacion_para(organización, empresa)` | (MSF-352) cotización aplicada que usa la tienda para esa empresa según el alcance; la usa el margen actual y su alerta `margen_negativo` |
 | `analitica.margen_historico_producto_canal` | una fila por producto × empresa × fecha (cambios de costo y cargas de cotización): `cotizacion`, `precio_neto`, `costo`, `margen`, `margen_pct` |
 

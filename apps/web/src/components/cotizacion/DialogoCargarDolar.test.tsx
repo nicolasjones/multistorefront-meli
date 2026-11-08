@@ -210,6 +210,26 @@ describe('DialogoCargarDolar · paso 2 (vista previa y confirmación)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
     await waitFor(() => expect(onConfirmada).toHaveBeenCalledWith(confirmada))
     expect(mocks.confirmar).toHaveBeenCalledTimes(1)
+    // Sin aviso de variación inusual a la vista, no se manda la confirmación explícita (la base la exigiría igual).
+    expect(mocks.confirmar).toHaveBeenCalledWith(null, false)
+  })
+
+  it('con variación inusual a la vista, «Aplicar» manda la confirmación explícita', async () => {
+    mocks.usePrevisualizarCotizacion.mockReturnValue(previa({ variacionPct: 40 }))
+    mocks.confirmar.mockResolvedValue({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 1 } })
+    abrir({ onConfirmada: vi.fn() })
+    await irAlPaso2()
+    expect(screen.getByText('Variación inusual')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
+    await waitFor(() => expect(mocks.confirmar).toHaveBeenCalledWith(null, true))
+  })
+
+  it('el paso 1 mide la variación contra la cotización APLICADA y la muestra como «Anterior»', () => {
+    // Aplicada 1.000, última carga 1.465 (no aplicada): 1.151 es +15,1 % contra la aplicada.
+    abrir({ aplicada: 1000 })
+    expect(screen.getByText('Anterior: $ 1.000 (la que usan los precios)')).toBeInTheDocument()
+    escribir('1151')
+    expect(screen.getByText('Variación inusual')).toBeInTheDocument()
   })
 
   it('«Cancelar» descarta la cotización pendiente y cierra', async () => {

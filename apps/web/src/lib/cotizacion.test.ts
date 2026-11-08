@@ -222,8 +222,17 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     expect(rpc).toHaveBeenLastCalledWith('confirmar_cotizacion', { p_empresa: 'e1' })
   })
 
-  it('mensajeDeErrorConfirmacion: la variación inusual sin confirmar se explica (22023)', () => {
-    expect(mensajeDeErrorConfirmacion({ code: '22023' })).toBe(MENSAJE_VARIACION_SIN_CONFIRMAR)
+  it('mensajeDeErrorConfirmacion: la variación inusual se distingue por el hint; otro 22023 (falta empresa) es genérico', () => {
+    expect(mensajeDeErrorConfirmacion({ code: '22023', hint: 'variacion_inusual' })).toBe(MENSAJE_VARIACION_SIN_CONFIRMAR)
+    expect(mensajeDeErrorConfirmacion({ code: '22023', hint: null })).toBe('No pudimos confirmar la cotización. Intentá de nuevo.')
+    expect(mensajeDeErrorConfirmacion({ code: '22023' })).not.toBe(MENSAJE_VARIACION_SIN_CONFIRMAR)
+  })
+
+  it('textoAnterior: con una aplicada distinta de la última carga muestra la aplicada', () => {
+    const vigente = { valor: 1040, cargadaEn: '2026-09-25T12:00:00Z', cargadaPor: null }
+    expect(textoAnterior(vigente, 1000)).toBe('Anterior: $ 1.000 (la que usan los precios)')
+    expect(textoAnterior(vigente, 1040)).toBe(textoAnterior(vigente))
+    expect(textoAnterior(vigente, null)).toBe(textoAnterior(vigente))
   })
 
   it('previsualizarCotizacionRpc: un producto en pesos con precio propio en USD toma el USD de la empresa (no 0)', async () => {

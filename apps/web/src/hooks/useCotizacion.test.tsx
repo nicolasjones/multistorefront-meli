@@ -104,8 +104,28 @@ describe('useConfirmarCotizacion', () => {
     let resultado
     await act(async () => { resultado = await result.current.confirmar() })
     expect(resultado).toEqual({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 60 } })
-    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_confirmado: true })
+    // Por omisión NO manda la confirmación explícita: solo la manda quien vio y aceptó el aviso.
+    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion')
     expect(result.current.enviando).toBe(false)
+  })
+
+  it('manda p_confirmado = true solo cuando se lo pide (variación inusual aceptada)', async () => {
+    mocks.rpc.mockResolvedValue({ data: { id: 'c1', recalculo_aplicado: true, precios_recalculados: 1 }, error: null })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    await act(async () => { await result.current.confirmar('e1', true) })
+    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_empresa: 'e1', p_confirmado: true })
+  })
+
+  it('una variación inusual sin confirmar da el mensaje claro; otro 22023 no', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '22023', hint: 'variacion_inusual', message: 'x' } })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    let r1
+    await act(async () => { r1 = await result.current.confirmar() })
+    expect(r1).toMatchObject({ ok: false, mensaje: expect.stringContaining('confirmarla de forma explícita') })
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '22023', hint: null, message: 'Elegí la empresa' } })
+    let r2
+    await act(async () => { r2 = await result.current.confirmar() })
+    expect(r2).toMatchObject({ ok: false, mensaje: 'No pudimos confirmar la cotización. Intentá de nuevo.' })
   })
 
   it('una cotización vencida o ya confirmada da un mensaje claro', async () => {

@@ -59,9 +59,11 @@ select is((public.previsualizar_cotizacion() ->> 'variacion_pct')::numeric, 8.1:
 select is((public.previsualizar_cotizacion() ->> 'recalcula')::boolean, true, 'la vista previa recalcula');
 select is((public.confirmar_cotizacion() ->> 'recalculo_aplicado')::boolean, true, '1081 se aplica: la deriva no se acumula sin aviso');
 select is(private.cotizacion_para('11111111-1111-1111-1111-111111111111', null), 1081::numeric, 'la aplicada pasa a 1.081');
-reset role;
-select is((select valor_anterior from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 1000::numeric,
-  'el historial guarda la aplicada anterior (1.000), no la última carga');
+select is((select valor_anterior from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 1040::numeric,
+  'el historial guarda la carga anterior (1.040), coherente con listar_cotizaciones');
+select is((select (f ->> 'variacion_pct')::numeric from jsonb_array_elements(public.listar_cotizaciones(10, null) -> 'filas') f
+            order by f ->> 'cargada_en' desc limit 1), (select variacion_pct from dominio.cotizaciones order by cargada_en desc, id desc limit 1),
+  'la variación del historial guardada y la que lista listar_cotizaciones coinciden');
 
 -- ============================================================================
 -- Variación inusual: confirmación explícita en el servidor
@@ -168,6 +170,8 @@ select is((select (e -> 'nuevo')::numeric from jsonb_array_elements((public.prev
 select lives_ok($$select public.cargar_cotizacion(1600, 'e1000000-0000-0000-0000-000000000001')$$, 'cargar 1.600 para Mundo JC');
 select is((select (e ->> 'precios')::int from jsonb_array_elements((public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'empresas')) e), 2,
   'Mundo JC: 2 precios dependen del dólar (Joystick y el precio propio en USD de Cable)');
+select is(jsonb_array_length(public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'muestra'), 2,
+  'la muestra coincide con precios_usd_por_empresa: 2 productos para Mundo JC');
 select ok(exists (select 1 from jsonb_array_elements((public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'muestra')) m where m ->> 'producto' = 'Cable'),
   'la muestra incluye Cable (ARS con precio propio en USD)');
 select ok(not exists (select 1 from jsonb_array_elements((public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'muestra')) m where m ->> 'producto' in ('Teclado', 'Mouse')),
@@ -207,6 +211,24 @@ select is(private.precio_final_publico('a1000000-0000-0000-0000-000000000001', '
 select is(private.cotizacion_alcance('11111111-1111-1111-1111-111111111111'), 'empresa', 'cotizacion_alcance lee el alcance sin depender de la sesión');
 select is(private.cotizacion_alcance('33333333-3333-3333-3333-333333333333'), 'sistema', 'sin configuración el alcance es sistema');
 select is(has_function_privilege('anon', 'private.cotizacion_alcance(uuid)', 'execute'), false, 'anon no ejecuta cotizacion_alcance');
+
+
+-- ============================================================================
+-- estado_cotizacion para un rol con cotizacion_dolar pero SIN productos: la aplicada no llega nula
+-- ============================================================================
+insert into auth.users (id, email) values ('d1000000-0000-0000-0000-000000000002', 'consulta@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta');
+insert into permisos_rol (organizacion_id, rol_id, seccion, nivel) values
+  ('11111111-1111-1111-1111-111111111111', 'consulta', 'cotizacion_dolar', 'lectura'),
+  ('11111111-1111-1111-1111-111111111111', 'consulta', 'productos', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = excluded.nivel;
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is((select count(*)::int from dominio.cotizacion_aplicada), 0, 'el rol sin productos no lee cotizacion_aplicada directamente (RLS)');
+select is((public.estado_cotizacion() ->> 'aplicada')::numeric, 1000::numeric, 'pero estado_cotizacion le informa la aplicada (1.000)');
+select is(jsonb_typeof(public.estado_cotizacion() -> 'pendiente'), 'null', 'y no ve una pendiente (solo la ve quien edita)');
+select throws_ok($$select public.estado_cotizacion('e2000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'una empresa ajena se rechaza');
+reset role;
 
 -- Privilegios de las funciones nuevas o con firma nueva.
 select is(has_function_privilege('anon', 'public.confirmar_cotizacion(uuid, boolean)', 'execute'), false, 'anon no confirma');

@@ -7,7 +7,8 @@ import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
 // `descartar_cotizacion`); acá se espeja SOLO el parseo y la variación para dar feedback mientras se escribe.
 
 // Valores del lanzamiento (F-PRE-06 los vuelve configurables): lo que rige mientras la base no informe otra cosa.
-// Alerta «Variación inusual» (FR-007): solo avisa, no bloquea.
+// Alerta «Variación inusual» (FR-007): la pantalla avisa y, por encima de este porcentaje, la base EXIGE la confirmación
+// explícita (`confirmar_cotizacion(…, p_confirmado)`, 22023 con hint `variacion_inusual`); no se aplica sin ella.
 export const UMBRAL_VARIACION_INUSUAL_PCT = 15
 
 export type AlcanceCotizacion = 'sistema' | 'empresa'
@@ -129,7 +130,12 @@ export function subtituloCargadaHoy(delDia: CotizacionDelDia): string {
 }
 
 // «Anterior: $ 1.465 (vie 25/09)» del diálogo.
-export function textoAnterior(vigente: CotizacionVigente): string {
+// Con una cotización APLICADA distinta de la última carga (quedó bajo el umbral) se muestra la aplicada: es la que usan los precios
+// y contra la que la base mide la variación.
+export function textoAnterior(vigente: CotizacionVigente, aplicada?: number | null): string {
+  if (aplicada !== undefined && aplicada !== null && aplicada !== vigente.valor) {
+    return `Anterior: ${formatearCotizacion(aplicada)} (la que usan los precios)`
+  }
   const fecha = formatearFechaCotizacion(vigente.cargadaEn)
   return `Anterior: ${formatearCotizacion(vigente.valor)}${fecha ? ` (${fecha})` : ''}`
 }
@@ -258,11 +264,12 @@ export const formatearPrecioPrevio = (valor: number | null) => (valor === null ?
 export const textoPrecios = (cantidad: number) => `${cantidad} ${cantidad === 1 ? 'precio' : 'precios'}`
 
 // Mensaje claro para el usuario al confirmar o descartar; nunca el texto técnico de la base.
-export function mensajeDeErrorConfirmacion(error: { code?: string } | null | undefined): string {
+export function mensajeDeErrorConfirmacion(error: { code?: string; hint?: string | null } | null | undefined): string {
   switch (error?.code) {
     case 'P0002': return MENSAJE_COTIZACION_VENCIDA
     case '42501': return 'Tu rol no puede confirmar la cotización del dólar.'
-    case '22023': return MENSAJE_VARIACION_SIN_CONFIRMAR
+    // 22023 también es «falta empresa»: solo la variación inusual lleva este hint.
+    case '22023': return error.hint === 'variacion_inusual' ? MENSAJE_VARIACION_SIN_CONFIRMAR : 'No pudimos confirmar la cotización. Intentá de nuevo.'
     default: return 'No pudimos confirmar la cotización. Intentá de nuevo.'
   }
 }

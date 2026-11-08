@@ -14,8 +14,10 @@
 --     con `execute` solo para `superset_analitica` (como `analitica.a_pesos`).
 --   * `analitica.margen_producto_canal`  convierte precio y costo en USD con esa cotización, por empresa (calculada
 --     una vez por empresa, no por fila). Mismas columnas y orden, grants y comentario.
---   * `analitica.cotizacion_cercana(org, fecha, empresa)`  NUEVA sobrecarga para la historia: la carga más cercana a la
---     fecha entre las GENERALES (`empresa_id` nulo) y las de ESA empresa. Es exacto sin conocer el alcance de cada
+--   * `analitica.cotizacion_cercana(org, fecha, empresa)`  NUEVA sobrecarga para la historia: la carga APLICADA
+--     (`recalculo_aplicado`; una confirmada bajo el umbral no se usó para cobrar) más cercana a la fecha entre las
+--     GENERALES (`empresa_id` nulo) y las de ESA empresa. Límite: un cambio de alcance escribe `cotizacion_aplicada` sin
+--     fila en `dominio.cotizaciones`, así que no aparece como punto de la historia. Es exacto sin conocer el alcance de cada
 --     fecha porque `cargar_cotizacion` guarda `empresa_id` nulo solo con alcance «sistema» y la empresa solo con
 --     «empresa» (`private.empresa_de_cotizacion`): las cargas ajenas nunca aplicaron a esta empresa. La de dos
 --     argumentos (solo generales) se conserva.
@@ -57,12 +59,14 @@ as $$
   select c.valor
   from dominio.cotizaciones c
   where c.organizacion_id = p_organizacion and (c.empresa_id is null or c.empresa_id = p_empresa)
+    -- Solo las cargas que se APLICARON: una confirmada bajo el umbral se registra pero la tienda nunca cobró con ella.
+    and c.recalculo_aplicado
   order by abs(extract(epoch from (c.cargada_en - p_fecha))), c.cargada_en, c.id
   limit 1;
 $$;
 
 comment on function analitica.cotizacion_cercana(uuid, timestamptz, uuid) is
-  'MSF-352: cotización cargada más cercana a la fecha entre las generales y las de la empresa (las de otra empresa nunca le aplicaron); a igual distancia, la anterior; null si no hay.';
+  'MSF-352: cotización APLICADA (recalculo_aplicado) más cercana a la fecha entre las generales y las de la empresa (las de otra empresa nunca le aplicaron); a igual distancia, la anterior; null si no hay.';
 
 revoke execute on function analitica.cotizacion_cercana(uuid, timestamptz, uuid) from public, anon, authenticated;
 grant execute on function analitica.cotizacion_cercana(uuid, timestamptz, uuid) to superset_analitica;
@@ -119,7 +123,7 @@ from (
     from dominio.producto_costos_historial h
   union
   select p2.organizacion_id, p2.id, c.cargada_en, c.empresa_id
-    from dominio.productos p2 join dominio.cotizaciones c on c.organizacion_id = p2.organizacion_id
+    from dominio.productos p2 join dominio.cotizaciones c on c.organizacion_id = p2.organizacion_id and c.recalculo_aplicado
 ) f
 join dominio.productos p on p.id = f.producto_id and p.organizacion_id = f.organizacion_id
 join dominio.empresas e on e.organizacion_id = p.organizacion_id and (f.empresa_carga is null or f.empresa_carga = e.id)

@@ -12,13 +12,21 @@
 --   * triggers de inalterabilidad (update, delete y truncate fallan con 42501 aun para el dueño; única excepción: el
 --     borrado en cascada al eliminar la organización);
 --   * sin claves foráneas a productos ni empresas: el historial sobrevive a la baja del producto o de la empresa.
--- Una operación idempotente (fijar lo mismo, quitar lo que no existe) no agrega fila.
+-- Una operación idempotente (fijar lo mismo, quitar lo que no existe) no agrega fila. Las dos RPC toman un
+-- `pg_advisory_xact_lock` por (producto, empresa) antes de leer el valor previo: dos `fijar` concurrentes no dejan
+-- «5000→4000» y «5000→3000» sino una cadena coherente. La baja la registra un trigger sobre `precios_propios_empresa`,
+-- así que también queda 'quitado' cuando el precio desaparece por la baja en cascada del producto o de la empresa.
+--
+-- `actor_nombre` guarda el nombre (o el email) del actor en el momento del cambio, igual que la actividad («foto al
+-- registrar»): es un dato personal en una tabla inalterable y se rige por la misma política de retención que la actividad.
 --
 -- La actividad de estos dos eventos sigue sin importes (el detalle es público para quien ve Actividad); los importes
 -- viven en esta tabla, con la sección `productos`.
 --
 -- Migración aditiva. Reversión (migración posterior; exportar antes el historial):
 --   restaurar fijar_precio_propio y quitar_precio_propio a su cuerpo de 20270213100005;
+--   drop trigger precios_propios_empresa_baja_historial on dominio.precios_propios_empresa;
+--   drop function private.registrar_baja_precio_propio();
 --   drop trigger precios_propios_historial_inalterable_fila on dominio.precios_propios_historial;
 --   drop trigger precios_propios_historial_inalterable_truncate on dominio.precios_propios_historial;
 --   drop function private.bloquear_alteracion_precios_propios_historial();
@@ -100,6 +108,42 @@ create trigger precios_propios_historial_inalterable_truncate
   before truncate on dominio.precios_propios_historial
   for each statement execute function private.bloquear_alteracion_precios_propios_historial();
 
+-- ENABLE ALWAYS: también disparan con `session_replication_role = replica` (cargas lógicas, herramientas de réplica),
+-- como el historial de cotizaciones (20261023140400).
+alter table dominio.precios_propios_historial enable always trigger precios_propios_historial_inalterable_fila;
+alter table dominio.precios_propios_historial enable always trigger precios_propios_historial_inalterable_truncate;
+
+-- Baja de un precio propio por CUALQUIER camino (RPC `quitar_precio_propio`, o la baja en cascada de su producto o su
+-- empresa): deja la fila 'quitado'. Sin esto, borrar un producto dejaba la última fila 'fijado' como si siguiera vigente.
+-- Si la organización ya no existe (baja de la organización) no se escribe nada: el historial se va con ella.
+create or replace function private.registrar_baja_precio_propio()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid := (select auth.uid());
+begin
+  if not exists (select 1 from public.organizaciones o where o.id = old.organizacion_id) then
+    return old;
+  end if;
+  insert into dominio.precios_propios_historial
+    (organizacion_id, producto_id, empresa_id, accion, moneda_anterior, importe_anterior, moneda_nueva, importe_nuevo,
+     actor_id, actor_nombre)
+  values (old.organizacion_id, old.producto_id, old.empresa_id, 'quitado', old.moneda, old.importe, null, null,
+          v_actor, case when v_actor is null then null else private.nombre_de_actor(v_actor) end);
+  return old;
+end;
+$$;
+
+revoke execute on function private.registrar_baja_precio_propio() from public, anon, authenticated;
+
+drop trigger if exists precios_propios_empresa_baja_historial on dominio.precios_propios_empresa;
+create trigger precios_propios_empresa_baja_historial
+  after delete on dominio.precios_propios_empresa
+  for each row execute function private.registrar_baja_precio_propio();
+
 -- Nombre del actor en el momento del cambio (el mismo criterio que la actividad).
 create or replace function private.nombre_de_actor(p_actor uuid)
 returns text
@@ -163,6 +207,9 @@ begin
     raise exception 'El precio propio es demasiado grande' using errcode = '22003';
   end if;
 
+  -- Serializa los cambios del mismo (producto, empresa): el valor previo que queda en el historial es el real.
+  perform pg_advisory_xact_lock(hashtextextended('precio_propio:' || p_producto::text || ':' || p_empresa::text, 0));
+
   select * into v_previo from dominio.precios_propios_empresa x
    where x.producto_id = p_producto and x.empresa_id = p_empresa;
 
@@ -206,7 +253,6 @@ declare
   v_nombre text;
   v_empresa text;
   v_borrados integer;
-  v_previo dominio.precios_propios_empresa;
 begin
   if v_org is null or v_actor is null or (select private.nivel_seccion('productos')) <> 'edicion' then
     raise exception 'Tu rol no puede editar productos' using errcode = '42501';
@@ -221,19 +267,15 @@ begin
     raise exception 'La empresa no existe' using errcode = 'P0002';
   end if;
 
+  perform pg_advisory_xact_lock(hashtextextended('precio_propio:' || p_producto::text || ':' || p_empresa::text, 0));
+
   delete from dominio.precios_propios_empresa x
-   where x.producto_id = p_producto and x.empresa_id = p_empresa and x.organizacion_id = v_org
-  returning x.* into v_previo;
+   where x.producto_id = p_producto and x.empresa_id = p_empresa and x.organizacion_id = v_org;
   get diagnostics v_borrados = row_count;
 
   -- Idempotente: sin precio propio previo no hay nada que quitar ni que registrar.
   if v_borrados > 0 then
-    insert into dominio.precios_propios_historial
-      (organizacion_id, producto_id, empresa_id, accion, moneda_anterior, importe_anterior, moneda_nueva, importe_nuevo,
-       actor_id, actor_nombre)
-    values (v_org, p_producto, p_empresa, 'quitado', v_previo.moneda, v_previo.importe, null, null,
-            v_actor, private.nombre_de_actor(v_actor));
-
+    -- La fila 'quitado' del historial la escribe el trigger de baja de dominio.precios_propios_empresa.
     perform private.insertar_actividad(
       v_org, v_actor, 'producto.precio_propio_quitado',
       format('Quitó el precio propio de %s en %s', v_nombre, v_empresa), p_empresa

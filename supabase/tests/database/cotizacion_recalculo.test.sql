@@ -131,7 +131,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select lives_ok($$select public.cargar_cotizacion(1050)$$, 'cargar 1050');
 select is((select (public.confirmar_cotizacion() ->> 'recalculo_aplicado')::boolean), true, 'confirmar 1050: recalcula');
 select is((select precios_recalculados from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 4, 'precios recalculados: 2 productos × 2 empresas');
-select is((select valor_anterior from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 1000::numeric, 'el historial guarda la cotización aplicada anterior (1.000; la carga de 1.005 no se aplicó, MSF-352)');
+select is((select valor_anterior from dominio.cotizaciones order by cargada_en desc, id desc limit 1), 1005::numeric, 'el historial guarda la carga anterior (1.005); la decisión se tomó contra la aplicada (1.000)');
 select is((select valor from dominio.cotizacion_aplicada), 1050::numeric, 'la cotización aplicada pasa a 1050');
 select is(private.a_pesos(20, 'USD', '11111111-1111-1111-1111-111111111111'), 21000::numeric, 'a_pesos con aplicada: usa 1050');
 select is(private.precio_neto_empresa('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001'), 10500::numeric, 'empresa 1 recalculada con 1050');

@@ -82,14 +82,14 @@ export type ResultadoDescarte = { ok: true } | { ok: false; mensaje: string }
 export function useConfirmarCotizacion() {
   const [enviando, setEnviando] = useState(false)
 
-  const confirmar = useCallback(async (empresaId?: string | null): Promise<ResultadoConfirmacion> => {
+  // `confirmado`: true solo si el usuario vio y aceptó el aviso de variación inusual; si no, la base lo exige igual.
+  const confirmar = useCallback(async (empresaId?: string | null, confirmado = false): Promise<ResultadoConfirmacion> => {
     setEnviando(true)
     try {
-      // Se aprieta «Aplicar» después de ver el aviso de variación inusual (si la hay): es la confirmación explícita que exige la base.
-      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient, empresaId, true) }
+      return { ok: true, confirmada: await confirmarCotizacionRpc(supabaseClient, empresaId, confirmado) }
     } catch (error) {
       console.error('No pudimos confirmar la cotización.', error)
-      return { ok: false, mensaje: mensajeDeErrorConfirmacion(error as { code?: string }) }
+      return { ok: false, mensaje: mensajeDeErrorConfirmacion(error as { code?: string; hint?: string | null }) }
     } finally {
       setEnviando(false)
     }

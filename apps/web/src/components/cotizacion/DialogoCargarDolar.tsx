@@ -26,6 +26,8 @@ import {
 type Props = {
   abierto: boolean
   vigente: CotizacionVigente | null
+  // Cotización APLICADA (la de los precios): contra ella se mide la variación. Sin dato rige la última carga (`vigente`).
+  aplicada?: number | null
   onCerrar: () => void
   onConfirmada: (confirmada: CotizacionConfirmada) => void
   // F-PRE-06: con alcance «una por empresa» la carga es de esta empresa; la variación inusual es la configurada.
@@ -51,7 +53,7 @@ function AlertaVariacionInusual({ confirmacionPct }: { confirmacionPct: number }
 // muestran los valores configurados (F-PRE-06). El dueño lo MONTA al abrir (y lo desmonta al cerrar): cada
 // apertura empieza con el campo vacío.
 export function DialogoCargarDolar({
-  abierto, vigente, onCerrar, onConfirmada, empresaId = null, nombreEmpresa = null, confirmacionPct = UMBRAL_VARIACION_INUSUAL_PCT,
+  abierto, vigente, aplicada = null, onCerrar, onConfirmada, empresaId = null, nombreEmpresa = null, confirmacionPct = UMBRAL_VARIACION_INUSUAL_PCT,
 }: Props) {
   const [texto, setTexto] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +64,8 @@ export function DialogoCargarDolar({
 
   const valor = parsearCotizacion(texto)
   const invalido = valor === null
-  const variacion = valor !== null && vigente ? variacionPorcentual(valor, vigente.valor) : null
+  const base = aplicada ?? vigente?.valor ?? null
+  const variacion = valor !== null && base !== null ? variacionPorcentual(valor, base) : null
   const mostrarInvalido = texto.trim() !== '' && invalido
 
   // Con una pendiente cargada, cerrar equivale a «Cancelar»: se descarta (si falla, el diálogo sigue abierto).
@@ -91,10 +94,11 @@ export function DialogoCargarDolar({
   }
 
   // El llamador avisa según lo que decidió la base (puede diferir de la vista previa si el dólar cambió).
-  const confirmarValor = async () => {
+  // `inusual`: el aviso de variación inusual estaba a la vista al apretar «Aplicar» ⇒ confirmación explícita.
+  const confirmarValor = async (inusual: boolean) => {
     if (ocupado) return
     setError(null)
-    const resultado = await confirmar(empresaId)
+    const resultado = await confirmar(empresaId, inusual)
     if (!resultado.ok) {
       setError(resultado.mensaje)
       return
@@ -108,13 +112,14 @@ export function DialogoCargarDolar({
         <PasoConfirmar
           carga={carga}
           vigente={vigente}
+          aplicada={aplicada}
           empresaId={empresaId}
           nombreEmpresa={nombreEmpresa}
           confirmacionPct={confirmacionPct}
           error={error}
           ocupado={ocupado}
           onCancelar={() => void cerrar()}
-          onConfirmar={() => void confirmarValor()}
+          onConfirmar={(inusual) => void confirmarValor(inusual)}
         />
       ) : (
         <form onSubmit={(evento) => void cargarValor(evento)} noValidate>
@@ -128,7 +133,7 @@ export function DialogoCargarDolar({
                 value={texto}
                 onChange={(evento) => setTexto(soloCaracteresDeCotizacion(evento.target.value))}
                 error={mostrarInvalido}
-                helperText={mostrarInvalido ? MENSAJE_VALOR_INVALIDO : (vigente ? textoAnterior(vigente) : undefined)}
+                helperText={mostrarInvalido ? MENSAJE_VALOR_INVALIDO : (vigente ? textoAnterior(vigente, aplicada) : undefined)}
                 autoFocus
                 slotProps={{
                   htmlInput: { inputMode: 'decimal', autoComplete: 'off' },
@@ -138,7 +143,7 @@ export function DialogoCargarDolar({
                   },
                 }}
               />
-              {mostrarInvalido && vigente ? <Typography variant="s">{textoAnterior(vigente)}</Typography> : null}
+              {mostrarInvalido && vigente ? <Typography variant="s">{textoAnterior(vigente, aplicada)}</Typography> : null}
               <Stack direction="row" justifyContent="space-between" role="status" aria-live="polite">
                 <Typography variant="s">Variación</Typography>
                 <Typography variant="b" sx={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatearVariacion(variacion)}</Typography>
@@ -167,11 +172,12 @@ type PasoConfirmarProps = {
   error: string | null
   ocupado: boolean
   onCancelar: () => void
-  onConfirmar: () => void
+  onConfirmar: (variacionInusual: boolean) => void
+  aplicada?: number | null
 }
 
 // Paso 2: la cotización ya está pendiente; se ve qué cambiaría y se decide (F-PRE-03).
-function PasoConfirmar({ carga, vigente, empresaId, nombreEmpresa, confirmacionPct, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
+function PasoConfirmar({ carga, vigente, aplicada = null, empresaId, nombreEmpresa, confirmacionPct, error, ocupado, onCancelar, onConfirmar }: PasoConfirmarProps) {
   const { previa, cargando, hayError, recargar } = usePrevisualizarCotizacion(empresaId)
   const variacion = previa?.variacionPct ?? carga.variacionPct
 
@@ -188,7 +194,7 @@ function PasoConfirmar({ carga, vigente, empresaId, nombreEmpresa, confirmacionP
               <Typography variant="t2" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                 {formatearCotizacion(carga.valor)} <Typography component="span" variant="s">por USD</Typography>
               </Typography>
-              {vigente ? <Typography variant="xs">{textoAnterior(vigente)}</Typography> : null}
+              {vigente ? <Typography variant="xs">{textoAnterior(vigente, aplicada)}</Typography> : null}
             </Stack>
             <Stack role="status" aria-live="polite" sx={{ alignItems: 'flex-end' }}>
               <Typography variant="xs">Variación</Typography>
@@ -209,7 +215,7 @@ function PasoConfirmar({ carga, vigente, empresaId, nombreEmpresa, confirmacionP
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancelar} disabled={ocupado}>Cancelar</Button>
-        <Button variant="contained" disabled={!previa || ocupado} onClick={onConfirmar}>
+        <Button variant="contained" disabled={!previa || ocupado} onClick={() => onConfirmar(esVariacionInusual(variacion, confirmacionPct))}>
           {previa && !previa.recalcula ? 'Registrar cotización' : 'Aplicar y recalcular'}
         </Button>
       </DialogActions>
