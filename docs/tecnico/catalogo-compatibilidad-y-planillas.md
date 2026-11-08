@@ -23,8 +23,8 @@ sources:
 | Historia | Estado | Dónde |
 |---|---|---|
 | F-CAT-09 filtro «Compatible con» | Entregada | migraciones `20270206100101`, `20270206100102`; `FiltrosListado.tsx`, `useCompatibles.ts` |
-| F-CAT-10 importación CSV | Entregada | migraciones `20270206100001`…`5` y `20270215500000`; `workers/importar-productos`; flow `importar-productos`; `carga.tsx` |
-| F-CAT-11 exportación CSV | Entregada | migraciones `20270205110210` y `20270215500001`; `DialogoExportarProductos.tsx`, `lib/exportarProductos.ts` |
+| F-CAT-10 importación CSV | Entregada | migraciones `20270206100001`…`5` y `20270217200000`; `workers/importar-productos`; flow `importar-productos`; `carga.tsx` |
+| F-CAT-11 exportación CSV | Entregada | migraciones `20270205110210` y `20270217200001`; `DialogoExportarProductos.tsx`, `lib/exportarProductos.ts` |
 | Cierre (T031–T033) | Hecho | índice en `docs/catalogo.md`, revisión de seguridad, fila en `docs/roadmap-template.md` |
 
 Diferencias entre la spec y lo construido (verificadas contra el código):
@@ -80,7 +80,7 @@ Principio VII (esquema por naturaleza): lo del producto va en `dominio`; el cont
 | `resultado` / `resultado_mensaje` | `text` | `pendiente` (por defecto) · `aplicada` · `omitida` |
 | `producto_id` / `aplicada_en` | `uuid` / `timestamptz` | Producto resultante |
 | `intentos` | `smallint` | Fallos transitorios registrados por el worker; al tercero la fila queda `omitida` («Error temporal repetido; volvé a importar esta fila»); solo cuentan errores con SQLSTATE 40/53/55/57 |
-| `imagenes_pendientes` | `boolean` | `true` en una fila `aplicada` cuyas imágenes el worker todavía no adjuntó ni confirmó (migración `20270215500000`) |
+| `imagenes_pendientes` | `boolean` | `true` en una fila `aplicada` cuyas imágenes el worker todavía no adjuntó ni confirmó (migración `20270217200000`) |
 
 Los índices parciales `importaciones_productos_filas_pendientes_idx` e `importaciones_productos_filas_imagenes_idx` aceleran `filas_pendientes_importacion_productos`.
 
@@ -130,8 +130,8 @@ Todas aditivas (versiones reales en `origin/dokploy`):
 | `20270206100004_importacion_rpc_worker` | RPC `private.*` del rol de worker: iniciar, listar filas pendientes, aplicar fila, registrar imagen, cerrar | F-CAT-10 |
 | `20270206100005_importacion_cierre_fallida` | `private.reconciliar_importaciones_fallidas`; redefine `despachar_importacion_siguiente` y `obtener_importacion_productos` para reconciliar | F-CAT-10 |
 | `20270206100101_catalogo_compatible_filtro` | Índice GIN y columna `compatible_con` en `v_productos_listado` | F-CAT-09 |
-| `20270215500000_importacion_productos_robustez` | Columna `imagenes_pendientes`; redefine validar (tope por celda, `carga` acotada), `aplicar_fila` (errores transitorios 40/53/55/57 se propagan), `iniciar`, `filas_pendientes` y `solicitar` (`reutilizada`); redefine también `cerrar_importacion_productos` y `obtener_importacion_productos` (campo `sin_imagenes`); nuevas `confirmar_imagenes_fila_importacion_productos`, `registrar_fallo_fila_importacion_productos`, `imagenes_temporales_a_borrar` e `importacion_productos_habilitada` | F-CAT-10 (revisión) |
-| `20270215500001_exportar_productos_cursor` | Reemplaza `exportar_productos` por la firma con `p_entregadas` y `p_con_total` (cursor sin recalcular, tope de 50.000) | F-CAT-11 (revisión) |
+| `20270217200000_importacion_productos_robustez` | Columna `imagenes_pendientes`; redefine validar (tope por celda, `carga` acotada), `aplicar_fila` (errores transitorios 40/53/55/57 se propagan), `iniciar`, `filas_pendientes` y `solicitar` (`reutilizada`); redefine también `cerrar_importacion_productos` y `obtener_importacion_productos` (campo `sin_imagenes`); nuevas `confirmar_imagenes_fila_importacion_productos`, `registrar_fallo_fila_importacion_productos`, `imagenes_temporales_a_borrar` e `importacion_productos_habilitada` | F-CAT-10 (revisión) |
+| `20270217200001_exportar_productos_cursor` | Reemplaza `exportar_productos` por la firma con `p_entregadas` y `p_con_total` (cursor sin recalcular, tope de 50.000) | F-CAT-11 (revisión) |
 | `20270206100102_listar_compatibles` | `public.listar_compatibles()` | F-CAT-09 |
 
 ## F-CAT-09: filtro «Compatible con»
@@ -261,7 +261,7 @@ Si el flow agota los reintentos, el worker sale con 78 o la ejecución supera `t
 
 ### Servidor
 
-`public.exportar_productos(p_filtros jsonb, p_columnas text[], p_desde uuid default null, p_limite integer default 500, p_entregadas integer default 0, p_con_total boolean default false) returns jsonb` (`{ filas, siguiente, total, tope, recortado }`), firma vigente desde `20270215500001` (reemplaza a la de 4 parámetros). Cada página lee solo desde el cursor de `id`; el total se calcula en la primera página o con `p_con_total` (en las otras `total` es nulo); tope de 50.000 productos por archivo (`p_entregadas` lleva la cuenta; `recortado` avisa y el listado muestra una advertencia). `security definer` (necesita registrar actividad) con autorización propia sobre la organización de la sesión. Solo lectura sobre `v_productos_listado` y `dominio`.
+`public.exportar_productos(p_filtros jsonb, p_columnas text[], p_desde uuid default null, p_limite integer default 500, p_entregadas integer default 0, p_con_total boolean default false) returns jsonb` (`{ filas, siguiente, total, tope, recortado }`), firma vigente desde `20270217200001` (reemplaza a la de 4 parámetros). Cada página lee solo desde el cursor de `id`; el total se calcula en la primera página o con `p_con_total` (en las otras `total` es nulo); tope de 50.000 productos por archivo (`p_entregadas` lleva la cuenta; `recortado` avisa y el listado muestra una advertencia). `security definer` (necesita registrar actividad) con autorización propia sobre la organización de la sesión. Solo lectura sobre `v_productos_listado` y `dominio`.
 
 | Condición | Error |
 |---|---|
