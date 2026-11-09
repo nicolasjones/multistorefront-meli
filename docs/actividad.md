@@ -251,7 +251,14 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
   se escribe al pedir los datos, no al completarse la descarga en el navegador (la base no ve eso). **El tope de 50.000 es de UX; el control real es la constancia.** Quien use un id nuevo en cada
   página deja una constancia por página, así que el rastro queda; además el servidor rechaza (`22023`, «Superaste el
   límite de 60 exportaciones por hora…») la exportación nueva número 61 de una persona en una hora (uso normal: unas pocas).
-  Repetir la misma página (mismo id y mismo cursor) es idempotente: no suma `entregadas`. Cuando el filtro excede el
+  Lo que hace el código (migración `20270218300000`): el alta y el conteo del límite por hora se serializan por
+  organización y persona con un candado asesor (`pg_advisory_xact_lock`), así que sesiones en paralelo con ids nuevos
+  no esquivan el límite de 60. El tope de 50.000 es **por id**: con ids nuevos cada exportación tiene su propia
+  constancia y el volumen máximo por persona es 60 exportaciones por hora. Repetir la misma página (mismo id, mismo
+  cursor y un límite que no baja) es idempotente: no suma `entregadas`; con un límite menor se cuenta como entrega
+  nueva (criterio conservador, no se puede reciclar el crédito). La primera llamada del id **fija los filtros**
+  (hash en `private.exportaciones_actividad`) y el **corte**: otro filtro con el mismo id se rechaza (`22023`, «Los
+  filtros no coinciden…») y el `p_corte` de las llamadas siguientes se ignora. Cuando el filtro excede el
   tope, la primera llamada ya entregó hasta 1.000 filas que el navegador descarta; por eso la constancia se escribe ahí,
   con el total real. El hook muestra el mensaje propio de cualquier `22023`. Tipo no
   sensible, dado de alta en `tipos_evento_actividad`.
