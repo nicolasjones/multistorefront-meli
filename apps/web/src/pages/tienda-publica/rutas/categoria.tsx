@@ -15,7 +15,12 @@ export default function RutaCategoria({ modulos }: { modulos?: Record<string, Mo
 
   if (categorias.fase === 'cargando') return <EstadoCargaPagina />
   if (categorias.fase === 'error') {
-    return <ErrorConReintento titulo="No pudimos cargar la categoría." alReintentar={categorias.reintentar} />
+    return (
+      <>
+        <CabeceraSeo noindex pagina="No pudimos cargar la categoría" />
+        <ErrorConReintento titulo="No pudimos cargar la categoría." alReintentar={categorias.reintentar} />
+      </>
+    )
   }
   const categoria = categoriaId ? categorias.categorias.find((c) => c.id === categoriaId) : undefined
   if (!categoria) return <PaginaNoEncontrada />

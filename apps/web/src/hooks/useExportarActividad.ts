@@ -57,7 +57,12 @@ export function useExportarActividad(filtros: FiltrosActividad) {
     } catch (error) {
       console.error('No pudimos exportar la actividad.', error)
       if (montado.current && miGeneracion === generacion.current) {
-        setMensaje({ tipo: 'error', texto: 'No pudimos exportar. No se descargó ningún archivo; intentá de nuevo.' })
+        // 22023 lo lanza la base con un mensaje propio y claro (exportación ya registrada, límite por hora): se muestra tal cual.
+        const rechazo = error as { code?: string; message?: string } | null
+        const texto = rechazo?.code === '22023' && rechazo.message
+          ? `No se descargó ningún archivo: ${rechazo.message}.`
+          : 'No pudimos exportar. No se descargó ningún archivo; intentá de nuevo.'
+        setMensaje({ tipo: 'error', texto })
       }
     } finally {
       enCurso.current = false

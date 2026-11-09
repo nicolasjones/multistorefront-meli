@@ -74,6 +74,32 @@ describe('useEmpresasAccesibles', () => {
     await waitFor(() => expect(result.current.empresaActivaId).toBe('e-2'))
   })
 
+  it('si la petición falla DESPUÉS de desmontar no toca el estado ni escribe a consola', async () => {
+    let rechazar: (e: Error) => void = () => undefined
+    mocks.listar.mockReturnValue(new Promise((_, reject) => { rechazar = reject }))
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { unmount } = renderHook(() => useEmpresasAccesibles())
+    unmount()
+    await act(async () => {
+      rechazar(new Error('red caída'))
+      await Promise.resolve()
+    })
+    expect(error).not.toHaveBeenCalled()
+    error.mockRestore()
+  })
+
+  it('si la petición se resuelve DESPUÉS de desmontar se descarta', async () => {
+    let resolver: (l: ReturnType<typeof accesible>[]) => void = () => undefined
+    mocks.listar.mockReturnValue(new Promise((resolve) => { resolver = resolve }))
+    const { result, unmount } = renderHook(() => useEmpresasAccesibles())
+    unmount()
+    await act(async () => {
+      resolver([accesible(1, true)])
+      await Promise.resolve()
+    })
+    expect(result.current.empresas).toEqual([])
+  })
+
   it('refetch vuelve a consultar', async () => {
     mocks.listar.mockResolvedValue([])
     const { result } = renderHook(() => useEmpresasAccesibles())
