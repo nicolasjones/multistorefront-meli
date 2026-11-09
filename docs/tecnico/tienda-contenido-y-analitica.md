@@ -16,9 +16,8 @@ sources:
 **F-TDA-25** compartir producto (`MSF-325`, commit `87f9eb03`).
 Resumen para quien administra la tienda: [Páginas propias, medición de visitas y botón Compartir](../producto/tienda-contenido-y-analitica.md).
 
-> **Estado del código:** la implementación está en `dokploy` (PR #772 de la épica, #779 con la revocación del
-> consentimiento y el tope de eventos, y #800 con los hallazgos de la revisión independiente) y llega a `main` con la
-> promoción. Depende de **MSF-149** (contrato de consentimiento de cookies, `lib/consentimientoCookies.ts`) y de
+> **Estado del código:** implementado y mergeado en `dokploy` (PR #772 de la épica, #779 con la revocación del
+> consentimiento y el tope de eventos, y #800 con los hallazgos de la revisión independiente). Depende de **MSF-149** (contrato de consentimiento de cookies, `lib/consentimientoCookies.ts`) y de
 > **MSF-212** (puntos de enganche de WhatsApp y contacto: [WhatsApp y contacto](tienda-whatsapp-y-contacto.md),
 > que dejó los eventos para esta épica).
 
@@ -55,9 +54,21 @@ IDs se pasan siempre como datos.
   una sugerencia ni al entrar directo a la URL.
 - *Consentimiento vigente:* cada emisión y cada visita consultan el consentimiento actual. **Revocar apaga la
   medición** (`retirarMedicion`): `ga-disable-<ID>` y `consent update denied` en GA4, `consent revoke` en Meta; borra las
-  cookies `_ga`, `_ga_<ID>`, `_gid`, `_gat*`, `_gcl_*`, `_fbp`, `_fbc` (path `/`, dominio actual y padres), quita los
-  `<script>` y las globales (`dataLayer`, `gtag`, `fbq`, `_fbq`) y recarga la página si no hay campos con texto ni
-  diálogos abiertos. Un cambio de consentimiento a «aceptadas» con la página abierta carga los scripts en ese momento.
+  cookies `_ga`, `_ga_<ID>`, `_gid`, `_gat*`, `_gcl_*`, `_fbp`, `_fbc` (path `/`, dominio actual y dominios padre, sin
+  sufijos públicos como `com.ar` o `co.uk`); borra las claves de `localStorage` / `sessionStorage` **por proveedor** con
+  regex ancladas (Google: `_ga`, `_ga_*`, `_gid`, `_gat*`, `_gcl_*`, `__gads`, `__gpi`, `__eoi`, `google_experiment_mod`;
+  Meta: `_fbp`, `_fbc`, `_fbq`, `fbevents`, `fbq`; nunca la decisión de cookies ni claves de la app); quita los `<script>` y
+  las globales (`dataLayer`, `gtag`, `fbq`, `_fbq`, `google_tag_manager`, `google_tag_data`). Un cambio de consentimiento
+  a «aceptadas» con la página abierta carga los scripts en ese momento.
+- *Recarga diferida:* los scripts ya evaluados solo se sueltan recargando. Se recarga **únicamente si es seguro**: no con
+  la pestaña en segundo plano, un campo con texto, un `select` cambiado, un checkbox o radio cambiado, un
+  `contenteditable`, el foco en un campo o un diálogo abierto. Si no es seguro se difiere y se reintenta al soltar el
+  foco hacia algo que no es otro campo, al volver a la pestaña, al cambiar de ruta de la SPA y cada 5 s con la pestaña
+  visible (se cancela al recargar). El contador `enVuelo` cuenta los scripts pedidos que no cargaron ni fallaron: al
+  revocar cuentan como «en memoria». Un script que llega tarde tras revocar se deja **inerte** y se limpian sus huellas;
+  uno de un ID de GA4 anterior queda con `ga-disable` y sin sus cookies sin tocar el vigente. `pixelEnMemoria` evita
+  inyectar otro `fbevents.js` si se quita y se vuelve a agregar el ID de Meta. Re-aceptar con scripts viejos que no se
+  pudieron recargar **no carga nada encima** (evita doble envío): la medición queda apagada hasta poder recargar.
 - *Cambio de ID de GA4 en la misma visita:* se descarga el script y el `dataLayer` del ID anterior y se carga el nuevo.
 - *Scripts bloqueados:* `onerror` apaga esa herramienta (borra su `dataLayer` o pila), no se reintenta en esa visita y
   no se acumulan eventos. Una falla de carga nunca se muestra.
@@ -125,9 +136,16 @@ Vitest + axe: `pages/empresas/tienda/paginas.test.tsx`, `analitica.test.tsx`, `r
   frecuencia y su caché dependen de PostgREST y del proxy delante de Supabase, no de este repositorio. Lo que acota el
   daño es la lista blanca de campos y el tope de páginas.
 - **Tope de páginas.** `public.guardar_pagina_tienda` rechaza la página 51 de una empresa con `22023` («La empresa ya tiene
-  el máximo de 50 páginas…», migración `20270216300000`); editar no se bloquea. El pie también acota a 50 enlaces.
+  el máximo de 50 páginas…», migración `20270218400000`); editar no se bloquea. El pie también acota a 50 enlaces.
 - **CSP.** `apps/web/nginx.conf` envía `Content-Security-Policy-Report-Only` en `location /` (mismo `index.html` que el
   panel) con `self`, `googletagmanager.com`, `google-analytics.com`, `connect.facebook.net`, `facebook.com`, el origen de
-  Supabase e imágenes `https:`. Está en modo reporte porque sin un navegador real no se puede garantizar que el panel
-  (embebidos de Superset, fuentes) no se rompa. Plan de endurecimiento: revisar las violaciones de la consola en tienda y
-  panel, sumar al allowlist lo legítimo y pasar el mismo valor a `Content-Security-Policy`.
+  Supabase e imágenes `https:`. Está en **modo solo reporte** porque sin un navegador real no se puede garantizar que el
+  panel (embebidos de Superset, fuentes) no se rompa. **Sin `report-uri`**: el endpoint de seguridad de GlitchTip lleva una
+  clave por proyecto y entorno y habría que inyectarla al construir la imagen (`ARG` en `apps/web/Dockerfile` y marcador en
+  `nginx.conf`); queda como seguimiento pendiente para conectar GlitchTip. `index.html` no tiene scripts inline. Plan de
+  endurecimiento: revisar a mano la consola de un navegador real en tienda y panel durante un ciclo de uso, sumar al
+  allowlist lo legítimo y pasar el mismo valor a `Content-Security-Policy`.
+- **Meta Pixel.** `fbq('set','autoConfig',false,<ID>)` antes de `init` y `init(<ID>, {})`: sin coincidencia avanzada ni
+  lectura de formularios o clics.
+- **GA4.** La «Medición mejorada» de la propiedad suma `page_view` e interacciones de formularios por su cuenta y duplica
+  visitas: se desactiva en la propiedad de GA4, no desde la tienda (lo avisa la pestaña «Analítica»).

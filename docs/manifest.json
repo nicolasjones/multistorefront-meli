@@ -775,12 +775,12 @@
     },
     "docs/producto/tienda-contenido-y-analitica.md": {
       "title": "Páginas propias, medición de visitas y botón Compartir",
-      "pageHash": "879e8ffbb29005f8d1c7682f2e6975ec634330b6525ecea0cac12d191743a562",
+      "pageHash": "1e21b2e4f4d5a4519e1760d1f5660df8f178ff2decff564eed464a0fb4433a3b",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "b5c48ebf"
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Identidad, textos y dirección de la tienda",
@@ -1913,9 +1913,9 @@
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
-      "pageHash": "89a658bd322a56d187ebe16135890134007abb6c2cd535afc4ab5c525aae1870",
+      "pageHash": "47e91500f094b54237a66ab62ace60a66eced0239451eee9c6d2a2b1c71b8053",
       "sourceHash": "c43bdd9fa145630ab620f0d3ae6b40581f17cc25499012bc30733220a828875a",
-      "sourceAt": "390e14df",
+      "sourceAt": "ae698d22",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1923,7 +1923,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "b5c48ebf"
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
