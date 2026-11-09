@@ -18,6 +18,8 @@ export type ProcesoMasivo = {
   procesados: number
   con_errores: number
   cancelacion_solicitada: boolean
+  // true si algún error contado no quedó en el detalle (tope de 1000 detalles por proceso).
+  detalle_truncado: boolean
   creado_en: string
   iniciado_en: string | null
   finalizado_en: string | null
@@ -37,7 +39,7 @@ export const TAMANO_TANDA_ERRORES = 20
 export const COLUMNAS_ERROR = 'id, fila, columna, referencia, motivo_sanitizado'
 export const REFRESCO_PROCESOS_MS = 5000
 
-export const COLUMNAS_PROCESO = 'id, empresa_id, tipo, funcionalidad, nombre, estado, total, procesados, con_errores, cancelacion_solicitada, creado_en, iniciado_en, finalizado_en'
+export const COLUMNAS_PROCESO = 'id, empresa_id, tipo, funcionalidad, nombre, estado, total, procesados, con_errores, cancelacion_solicitada, detalle_truncado, creado_en, iniciado_en, finalizado_en'
 
 const ETIQUETA_ESTADO: Record<EstadoProceso, string> = {
   pendiente: 'Pendiente',
@@ -146,6 +148,18 @@ export const COLUMNAS_CSV_ERRORES: readonly ColumnaCsv<ErrorProceso>[] = [
 ]
 
 export const LOTE_CSV_ERRORES = 1000
+
+// La base guarda hasta 1000 detalles por proceso; `con_errores` cuenta todos. Si hay más errores que detalles,
+// la pantalla y el CSV lo avisan en vez de mostrar «Errores (1000)» como si fueran todos.
+export const TOPE_DETALLE_ERRORES = 1000
+
+export function detalleTruncado(proceso: Pick<ProcesoMasivo, 'detalle_truncado' | 'con_errores'>, guardados: number): boolean {
+  return proceso.detalle_truncado || (guardados > 0 && proceso.con_errores > guardados)
+}
+
+export function textoDetalleTruncado(guardados: number, conErrores: number): string {
+  return `Mostrando los primeros ${guardados} errores de ${Math.max(conErrores, guardados)}: el detalle se limita a ${TOPE_DETALLE_ERRORES} por proceso.`
+}
 
 // `errores-carga-de-catalogo-2026-11-07.csv`: nombre del proceso (sin caracteres raros) y día de hoy.
 export function nombreArchivoErrores(nombre: string, ahora: Date = new Date()): string {

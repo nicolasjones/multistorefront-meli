@@ -49,7 +49,7 @@ select throws_ok(
   'P0001', 'FUENTE_INVALIDA: la fuente no es válida', 'una fuente desconocida se rechaza');
 select throws_ok(
   $$select public.registrar_evento_monitoreo('tienda', 'x', 'raro')$$,
-  'P0001', 'RESULTADO_INVALIDO: el resultado debe ser ok o fallo', 'un resultado desconocido se rechaza');
+  'P0001', 'RESULTADO_INVALIDO: el resultado debe ser ok, fallo o no_sondeable', 'un resultado desconocido se rechaza');
 select throws_ok(
   $$select * from public.evaluar_monitoreo(0, 5, 15)$$,
   'P0001', 'UMBRAL_INVALIDO: ventana 1–1440 min, fallos 1–1000, cola 1–1440 min', 'un umbral inválido se rechaza');
@@ -144,7 +144,7 @@ select is((select count(*) from public.evaluar_monitoreo(10, 5, 15) where fuente
 insert into despachos_ejecucion (id, ejecucion_id, organizacion_id, estado, created_at, updated_at) values
   ('c1111111-1111-1111-1111-1111111111d2', 'c1111111-1111-1111-1111-1111111111e2', 'c1111111-1111-1111-1111-111111111111', 'pendiente', now() - interval '15 minutes', now() - interval '15 minutes');
 select is((select array_agg(clave) from public.evaluar_monitoreo(10, 5, 15) where fuente = 'cola'),
-  array['c1111111-1111-1111-1111-1111111111d2'], 'una orden con 15 minutos sin avanzar abre su alerta de cola');
+  array['c1111111-1111-1111-1111-111111111111'], 'una orden con 15 minutos sin avanzar abre la alerta de cola de su organización (clave agregada)');
 select public.marcar_alerta_notificada(id) from public.alertas_monitoreo where estado = 'abierta' and notificada_en is null;
 
 -- Cuando la orden avanza, la alerta de cola se resuelve.
