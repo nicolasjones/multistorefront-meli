@@ -13,6 +13,9 @@ vi.mock('../../lib/tienda', () => ({
 }))
 vi.mock('../../lib/tiendaCategorias', () => ({ leerCategoriasPublicas: mocks.categorias }))
 
+// La medición real se prueba en layout/MedicionTienda.test.tsx: acá solo importa si el front la monta.
+vi.mock('./layout/MedicionTienda', () => ({ default: () => <div data-testid="medicion-montada" /> }))
+
 import { TiendaPublicaApp } from './index'
 
 describe('TiendaPublicaApp (FR-007, SC-004, SC-011)', () => {
@@ -131,5 +134,41 @@ describe('TiendaPublicaApp (FR-007, SC-004, SC-011)', () => {
 
     expect(await screen.findByRole('heading', { name: 'San Javucho' })).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Mundo JC' })).not.toBeInTheDocument())
+  })
+
+  // Tienda «pausada» = empresa desactivada (MSF-149 / F-TDA-19): `resolverTienda` devuelve null y se muestra
+  // «Volvemos pronto». El layout (donde vive la medición) no se monta: no se consultan IDs ni se carga ningún script
+  // de Google o Meta (CA US2.4, SC-006).
+  describe('la medición solo se monta en la tienda publicada (CA US2.4, SC-006)', () => {
+    it('una tienda publicada monta la medición', async () => {
+      mocks.resolver.mockResolvedValue({ tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' })
+      render(<TiendaPublicaApp host="mundojc.localhost" />)
+      expect(await screen.findByTestId('medicion-montada')).toBeInTheDocument()
+    })
+
+    it('una tienda pausada («Volvemos pronto» con su marca) no monta la medición', async () => {
+      mocks.resolver.mockResolvedValue(null)
+      mocks.estado.mockReturnValue({
+        estado: {
+          fase: 'pausada',
+          marca: {
+            nombre: 'Mundo JC', colorPrimario: '#AA1111', colorPrimarioOscuro: '#000000', colorAcento: '#222222', colorFondo: '#FFFFFF',
+            tipografiaTitulos: 'system-ui', tipografiaTexto: 'system-ui', logoRuta: null,
+          },
+        },
+        reintentar: vi.fn(),
+      })
+      render(<TiendaPublicaApp host="mundojc.localhost" />)
+      expect(await screen.findByTestId('volvemos-pronto-marca')).toBeInTheDocument()
+      expect(screen.queryByTestId('medicion-montada')).not.toBeInTheDocument()
+      expect(document.head.querySelectorAll('script[src*="googletagmanager"], script[src*="facebook"]')).toHaveLength(0)
+    })
+
+    it('un dominio desconocido tampoco monta la medición', async () => {
+      mocks.resolver.mockResolvedValue(null)
+      render(<TiendaPublicaApp host="no-existe.test" />)
+      expect(await screen.findByTestId('volvemos-pronto-generica')).toBeInTheDocument()
+      expect(screen.queryByTestId('medicion-montada')).not.toBeInTheDocument()
+    })
   })
 })

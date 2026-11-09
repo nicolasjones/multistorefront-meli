@@ -8,10 +8,12 @@ import DeleteOutline from '@mui/icons-material/DeleteOutline'
 import { useWarnAboutChange } from '@refinedev/core'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../../components/estados/EstadosPagina'
 import { CargaInfinita } from '../../../../components/pagina/CargaInfinita'
+import { useNivelSeccion } from '../../../../hooks/useNivelSeccion'
 import {
   ErrorGuardadoPagina,
   LIMITE_CONTENIDO_PAGINA,
   LIMITE_TITULO_PAGINA,
+  TOPE_PAGINAS_EMPRESA,
   eliminarPagina,
   guardarPagina,
   largoPagina,
@@ -25,6 +27,17 @@ import type { PropsPestanaTienda } from '../pestanas'
 type Valores = { titulo: string; contenido: string; visible: boolean }
 
 const VALORES_NUEVA: Valores = { titulo: '', contenido: '', visible: false }
+
+const MENSAJE_SIN_PERMISO = 'Tu rol no puede editar las páginas de la tienda.'
+
+// 42501 = la base rechazó por rol; 22023 sin campo = regla de la RPC (p. ej. el tope), con su mensaje claro.
+function mensajeDeError(error: unknown, generico: string): string {
+  if (error instanceof ErrorGuardadoPagina) {
+    if (error.codigo === '42501') return MENSAJE_SIN_PERMISO
+    if (error.codigo === '22023' && !error.campo) return error.message
+  }
+  return generico
+}
 
 // Diálogo crear/editar (FR-005). Se monta solo mientras está abierto: cada apertura parte de cero.
 function DialogoPagina({
@@ -66,7 +79,7 @@ function DialogoPagina({
     } catch (error) {
       console.error('No se pudo guardar la página de la tienda', error instanceof Error ? error.message : error)
       if (error instanceof ErrorGuardadoPagina && error.campo) setErrores({ [error.campo]: error.message })
-      else setErrorGeneral('No pudimos guardar la página. Intentá de nuevo.')
+      else setErrorGeneral(mensajeDeError(error, 'No pudimos guardar la página. Intentá de nuevo.'))
       setGuardando(false)
     }
   }
@@ -123,17 +136,17 @@ function DialogoEliminar({
   alEliminar: () => void
 }) {
   const [eliminando, setEliminando] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const confirmar = async () => {
     setEliminando(true)
-    setError(false)
+    setError(null)
     try {
       await eliminarPagina(empresaId, pagina.id)
       alEliminar()
     } catch (e) {
       console.error('No se pudo eliminar la página de la tienda', e instanceof Error ? e.message : e)
-      setError(true)
+      setError(mensajeDeError(e, 'No pudimos eliminar la página. Intentá de nuevo.'))
       setEliminando(false)
     }
   }
@@ -145,7 +158,7 @@ function DialogoEliminar({
         <DialogContentText>
           ¿Eliminás la página «{pagina.titulo}»? Deja de verse en la tienda y no se puede recuperar.
         </DialogContentText>
-        {error ? <Alert severity="error" role="alert" sx={{ mt: 2 }}>No pudimos eliminar la página. Intentá de nuevo.</Alert> : null}
+        {error ? <Alert severity="error" role="alert" sx={{ mt: 2 }}>{error}</Alert> : null}
       </DialogContent>
       <DialogActions>
         <Button onClick={alCerrar} disabled={eliminando}>Cancelar</Button>
@@ -166,6 +179,10 @@ type Carga = {
 const CARGA_INICIAL: Carga = { fase: 'cargando', filas: [], total: 0, cargandoMas: false, falloMas: false }
 
 function Paginas({ empresaId, empresaNombre }: PropsPestanaTienda) {
+  // Solo para gatear la UI; la base (RLS y las RPC) es la autorización real. Sin nivel cargado (null) no se bloquea:
+  // la gestión ya exige edición en Empresas para llegar acá.
+  const { nivel } = useNivelSeccion('empresas')
+  const soloLectura = nivel === 'lectura' || nivel === 'ninguno'
   const [carga, setCarga] = useState<Carga>(CARGA_INICIAL)
   const [intento, setIntento] = useState(0)
   const [dialogo, setDialogo] = useState<{ tipo: 'editar'; pagina: PaginaTienda | null } | { tipo: 'eliminar'; pagina: PaginaTienda } | null>(null)
@@ -204,8 +221,15 @@ function Paginas({ empresaId, empresaNombre }: PropsPestanaTienda) {
     return <EstadoError descripcion="No pudimos cargar las páginas de la tienda." reintentar={recargar} />
   }
 
+  const enElTope = carga.total >= TOPE_PAGINAS_EMPRESA
   const nueva = (
-    <Button variant="contained" onClick={() => { setAviso(null); setDialogo({ tipo: 'editar', pagina: null }) }}>Nueva página</Button>
+    <Button
+      variant="contained"
+      disabled={soloLectura || enElTope}
+      onClick={() => { setAviso(null); setDialogo({ tipo: 'editar', pagina: null }) }}
+    >
+      Nueva página
+    </Button>
   )
 
   return (
@@ -213,6 +237,12 @@ function Paginas({ empresaId, empresaNombre }: PropsPestanaTienda) {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Páginas de texto de la tienda de {empresaNombre} (por ejemplo «Cómo comprar» o «Envíos»). Las visibles aparecen en el pie de la tienda.
       </Typography>
+      {soloLectura ? <Alert severity="info" role="status" sx={{ mb: 2 }}>{MENSAJE_SIN_PERMISO} Podés verlas, pero no crearlas, editarlas ni eliminarlas.</Alert> : null}
+      {enElTope && !soloLectura ? (
+        <Alert severity="info" role="status" sx={{ mb: 2 }}>
+          Llegaste al máximo de {TOPE_PAGINAS_EMPRESA} páginas por tienda. Eliminá alguna para crear otra.
+        </Alert>
+      ) : null}
       {aviso ? <Alert severity="success" role="status" sx={{ mb: 2 }} onClose={() => setAviso(null)}>{aviso}</Alert> : null}
       {carga.total === 0 ? (
         <EstadoVacio titulo="Todavía no hay páginas." descripcion="Creá la primera: queda oculta hasta que la actives." accion={nueva} />
@@ -240,12 +270,12 @@ function Paginas({ empresaId, empresaNombre }: PropsPestanaTienda) {
                 </Box>
                 <Chip size="small" label={fila.visible ? 'Visible' : 'Oculta'} color={fila.visible ? 'success' : 'default'} />
                 <Tooltip title="Editar">
-                  <IconButton aria-label={`Editar ${fila.titulo}`} onClick={() => { setAviso(null); setDialogo({ tipo: 'editar', pagina: fila }) }}>
+                  <IconButton aria-label={`Editar ${fila.titulo}`} disabled={soloLectura} onClick={() => { setAviso(null); setDialogo({ tipo: 'editar', pagina: fila }) }}>
                     <EditOutlined />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Eliminar">
-                  <IconButton aria-label={`Eliminar ${fila.titulo}`} onClick={() => { setAviso(null); setDialogo({ tipo: 'eliminar', pagina: fila }) }}>
+                  <IconButton aria-label={`Eliminar ${fila.titulo}`} disabled={soloLectura} onClick={() => { setAviso(null); setDialogo({ tipo: 'eliminar', pagina: fila }) }}>
                     <DeleteOutline />
                   </IconButton>
                 </Tooltip>

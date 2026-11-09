@@ -1,24 +1,30 @@
 import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import { useEnlacesPaginas } from '../../../hooks/useEnlacesPaginas'
+import { TOPE_PAGINAS_EMPRESA } from '../../../lib/tiendaPaginas'
 
 // Columna «Información» del pie (F-TDA-23, FR-007): un enlace por página visible de ESTA tienda, en el mismo
 // estilo que «Categorías». Sin páginas visibles (o si el pedido falla) no se muestra: sin hueco ni error propio.
+// La base limita a 50 páginas por empresa; acá también se acota la lista (defensa en profundidad) y, cuando son muchas,
+// se reparte en columnas para no alargar el pie.
 export function PieInformacion({ host }: { host: string }) {
-  const paginas = useEnlacesPaginas(host)
+  const paginas = useEnlacesPaginas(host).slice(0, TOPE_PAGINAS_EMPRESA)
   if (paginas.length === 0) return null
   return (
     <Box component="nav" aria-label="Información del pie" data-testid="pie-informacion">
       <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
         Información
       </Typography>
-      <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+      <Box
+        component="ul"
+        sx={{ listStyle: 'none', m: 0, p: 0, ...(paginas.length > 8 ? { columnWidth: '12rem', columnGap: 3, maxWidth: '40rem' } : {}) }}
+      >
         {paginas.map((pagina) => (
-          <li key={pagina.slug}>
+          <Box component="li" key={pagina.slug} sx={{ breakInside: 'avoid' }}>
             <Box component={EnlaceRuta} to={`/pagina/${pagina.slug}`} sx={{ color: 'inherit', display: 'inline-block', py: 0.5, overflowWrap: 'anywhere' }}>
               {pagina.titulo}
             </Box>
-          </li>
+          </Box>
         ))}
       </Box>
     </Box>

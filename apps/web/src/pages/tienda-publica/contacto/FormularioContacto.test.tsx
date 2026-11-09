@@ -93,7 +93,7 @@ describe('FormularioContacto', () => {
     llenar()
     enviar()
     await screen.findByText('¡Gracias! Recibimos tu consulta')
-    expect(mocks.evento).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(mocks.evento).toHaveBeenCalledTimes(1))
     expect(mocks.evento).toHaveBeenCalledWith('envio_contacto')
   })
 

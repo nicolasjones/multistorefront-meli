@@ -41,9 +41,12 @@ export function validarPagina(valores: { titulo: string; contenido: string }): E
 
 export class ErrorGuardadoPagina extends Error {
   campo: CampoPagina | null
-  constructor(mensaje: string, campo: string | null | undefined) {
+  // Código SQLSTATE de la base: 42501 = el rol no puede editar; 22023 sin campo = regla de la RPC (p. ej. el tope).
+  codigo: string | null
+  constructor(mensaje: string, campo: string | null | undefined, codigo?: string | null) {
     super(mensaje)
     this.name = 'ErrorGuardadoPagina'
+    this.codigo = codigo ?? null
     this.campo = campo === 'titulo' || campo === 'contenido' ? campo : null
   }
 }
@@ -75,14 +78,17 @@ export async function guardarPagina(empresaId: string, paginaId: string | null, 
     p_contenido: valores.contenido,
     p_visible: valores.visible,
   })
-  if (error) throw new ErrorGuardadoPagina(error.message, (error as { hint?: string | null }).hint)
+  if (error) throw new ErrorGuardadoPagina(error.message, (error as { hint?: string | null }).hint, (error as { code?: string | null }).code)
   return data as PaginaTienda
 }
 
 export async function eliminarPagina(empresaId: string, paginaId: string): Promise<void> {
   const { error } = await supabaseClient.rpc('eliminar_pagina_tienda', { p_empresa_id: empresaId, p_pagina_id: paginaId })
-  if (error) throw new Error(error.message)
+  if (error) throw new ErrorGuardadoPagina(error.message, null, (error as { code?: string | null }).code)
 }
+
+// Tope de páginas por empresa que impone la RPC (`guardar_pagina_tienda`, 22023): el pie de la tienda las lista todas.
+export const TOPE_PAGINAS_EMPRESA = 50
 
 // publico.paginas_por_dominio es ejecutable por anon. `null` cubre host desconocido y empresa desactivada.
 export async function leerEnlacesPaginas(host: string): Promise<EnlacePagina[] | null> {

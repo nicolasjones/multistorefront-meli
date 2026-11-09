@@ -40,9 +40,12 @@ export function analiticaIgual(a: AnaliticaTienda, b: AnaliticaTienda): boolean 
 
 export class ErrorGuardadoAnalitica extends Error {
   campo: CampoAnalitica | null
-  constructor(mensaje: string, campo: string | null | undefined) {
+  // Código SQLSTATE de la base (42501 = el rol no puede editar).
+  codigo: string | null
+  constructor(mensaje: string, campo: string | null | undefined, codigo?: string | null) {
     super(mensaje)
     this.name = 'ErrorGuardadoAnalitica'
+    this.codigo = codigo ?? null
     this.campo = campo === 'ga4_id' || campo === 'meta_pixel_id' ? campo : null
   }
 }
@@ -74,6 +77,6 @@ export async function guardarAnalitica(empresaId: string, valores: AnaliticaTien
     p_ga4_id: ga4_id,
     p_meta_pixel_id: meta_pixel_id,
   })
-  if (error) throw new ErrorGuardadoAnalitica(error.message, (error as { hint?: string | null }).hint)
+  if (error) throw new ErrorGuardadoAnalitica(error.message, (error as { hint?: string | null }).hint, (error as { code?: string | null }).code)
   return aValores(data as FilaAnalitica)
 }
