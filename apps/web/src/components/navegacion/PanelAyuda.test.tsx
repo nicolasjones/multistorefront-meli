@@ -11,6 +11,7 @@ vi.mock('../../lib/supabase', async (importOriginal) => {
 })
 
 import { AYUDA_POR_DESTINO } from '../../ayuda/contenidos'
+import { urlManual } from '../../ayuda/manual'
 import { TEXTO_SIN_AYUDA } from '../../ayuda/resolverAyuda'
 import { PanelAyuda } from './PanelAyuda'
 
@@ -52,6 +53,39 @@ describe('PanelAyuda (FR-020, FR-021, FR-026, FR-027)', () => {
     en('/clientes/123/editar')
     fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }))
     expect(screen.getByRole('dialog', { name: 'Clientes' })).toBeInTheDocument()
+  })
+
+  it('el panel enlaza a la página del manual de SU pantalla, en una pestaña nueva y sin dar acceso a la ventana de origen', () => {
+    en('/productos')
+    fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }))
+    const enlace = screen.getByRole('link', { name: /Ver el manual completo de esta pantalla/ })
+    expect(enlace).toHaveAttribute('href', urlManual('catalogo-productos'))
+    expect(enlace).toHaveAttribute('target', '_blank')
+    expect(enlace.getAttribute('rel')).toContain('noopener')
+    expect(enlace).toHaveTextContent('se abre en una pestaña nueva')
+  })
+
+  it('pantallas distintas enlazan a páginas distintas y una subruta usa la de su destino padre', () => {
+    const hrefs = ['/clientes', '/ventas/pagos', '/clientes/123/editar'].map((ruta) => {
+      const { unmount } = en(ruta)
+      fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }))
+      const href = screen.getByRole('link', { name: /manual/i }).getAttribute('href')
+      unmount()
+      return href
+    })
+    expect(hrefs[0]).toBe(urlManual('clientes'))
+    expect(hrefs[1]).toBe(urlManual('ventas-cobros-y-conciliacion'))
+    expect(hrefs[2]).toBe(hrefs[0])
+  })
+
+  it('una pantalla sin página propia y una ruta sin destino abren el índice del manual', () => {
+    for (const ruta of ['/servidores', '/ruta-que-no-existe']) {
+      const { unmount } = en(ruta)
+      fireEvent.click(screen.getByRole('button', { name: 'Ayuda' }))
+      const enlace = screen.getByRole('link', { name: /Abrir el manual/ })
+      expect(enlace).toHaveAttribute('href', urlManual())
+      unmount()
+    }
   })
 
   it('una ruta sin destino muestra «Esta pantalla todavía no tiene ayuda» (FR-025)', () => {
