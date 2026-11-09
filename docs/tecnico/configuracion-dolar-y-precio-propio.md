@@ -94,7 +94,7 @@ Rótulos de tareas de `tasks.md`:
 
 ## Correcciones de la revisión independiente
 
-Contrato vigente en `dokploy` (migraciones `20270216400000` a `20270216400600`; detalle en `docs/configuracion-dolar-y-precio-propio.md` de esa rama):
+Contrato vigente en `dokploy` (migraciones `20270216400000` y `20270218500100` a `20270218500600`; detalle en `docs/configuracion-dolar-y-precio-propio.md` de esa rama):
 
 - `confirmar_comprobante` guarda costo y cotización de cada línea con `private.cotizacion_para(org, empresa)` y `private.a_pesos` de 4 argumentos de la empresa del comprobante (antes fallaba con alcance «empresa» por una subconsulta de varias filas).
 - `confirmar_cotizacion(p_empresa, p_variacion_vista)`: umbral y variación contra la cotización **aplicada**; si |variación| supera `confirmacion_pct` exige `p_variacion_vista` (la variación que el usuario vio, tolerancia ±0,05 puntos): sin ella `22023` con hint `variacion_inusual`; si difiere de la real (el dólar cambió mientras revisaba) `22023` con hint `variacion_cambio`. `estado_cotizacion` suma `aplicada`.

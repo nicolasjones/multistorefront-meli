@@ -1359,16 +1359,16 @@
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
-      "pageHash": "17a98afa091e6c5a930dd9d72c9fe86c358ba5b1c1072c1f694640b9a8c711ef",
+      "pageHash": "100e22138f826113b6d708867c654ac3a9608e40fb3297fd49badfd6aa050379",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "8766b990",
+      "sourceAt": "bf5e780a",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "55e69df7"
+      "commit": "bf5e780a"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
