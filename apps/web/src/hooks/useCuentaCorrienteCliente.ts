@@ -4,6 +4,9 @@ import { supabaseClient } from '../lib/supabase'
 // Comprobante abierto de la cuenta corriente del cliente: lo que devuelve
 // `public.cuenta_corriente_cliente` (F-CLI-19) y que la ficha muestra.
 export type ComprobanteDeuda = {
+  // El id del comprobante: el número se repite entre tiendas (el correlativo es por
+  // empresa), así que el id es lo que identifica a la fila.
+  id: string
   numero: string
   fecha: string
   estado: string
@@ -15,6 +18,7 @@ export type ComprobanteDeuda = {
 // La fila que llega del servidor: el encabezado (`saldo_total`) viaja en cada fila
 // y la de encabezado (sin documentos) trae los datos en nulo.
 type FilaServidor = {
+  id: string | null
   saldo_total: number | string
   numero: string | null
   fecha: string | null
@@ -57,6 +61,7 @@ export function useCuentaCorrienteCliente(clienteId: string | undefined) {
       // El encabezado (saldo total) viaja en cada fila; la primera lo trae.
       setSaldo(filas.length > 0 ? Number(filas[0].saldo_total) : 0)
       setDocumentos(filas.filter((f) => f.numero !== null).map((f) => ({
+        id: String(f.id),
         numero: String(f.numero),
         fecha: String(f.fecha),
         estado: String(f.estado),

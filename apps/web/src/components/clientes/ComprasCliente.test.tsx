@@ -1,5 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { violacionesAxe } from '../../test/axe'
+import { celular } from '../../test/matchMedia'
+import { tokens } from '../../tema/tokens'
 
 const mocks = vi.hoisted(() => ({ useComprasCliente: vi.fn(), useCuentaCorrienteCliente: vi.fn(), refetch: vi.fn(), reintentarCuenta: vi.fn() }))
 
@@ -19,7 +22,7 @@ const respuesta = (compras: CompraCliente[], extra: Record<string, unknown> = {}
 })
 
 const documento = (n: number, extra: Partial<ComprobanteDeuda> = {}): ComprobanteDeuda => ({
-  numero: `0001-0000001${n}`, fecha: '2026-10-12', estado: 'deuda',
+  id: `d-${n}`, numero: `0001-0000001${n}`, fecha: '2026-10-12', estado: 'deuda',
   total_con_iva: 1210, cobrado: 0, saldo: 1210, ...extra,
 })
 
@@ -33,10 +36,17 @@ const tablaCuenta = () => within(screen.getByRole('table', { name: 'Comprobantes
 const abrir = () => render(<ComprasCliente clienteId="c-1" />)
 
 describe('ComprasCliente', () => {
+  const matchMediaOriginal = window.matchMedia
+
   beforeEach(() => {
     vi.clearAllMocks()
+    window.matchMedia = matchMediaOriginal
     mocks.useComprasCliente.mockReturnValue(respuesta([compra(1), compra(2, { tipo: 'presupuesto', estado: 'anulada', total_sin_iva: 500 })]))
     mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([documento(1)]))
+  })
+
+  afterEach(() => {
+    window.matchMedia = matchMediaOriginal
   })
 
   it('muestra el resumen comercial con el total del año y el listado en formato argentino', () => {
@@ -64,6 +74,48 @@ describe('ComprasCliente', () => {
     abrir()
     const saldo = screen.getByText('Saldo deudor').parentElement!
     expect(within(saldo).getByText('$ 1.210')).toBeInTheDocument()
+  })
+
+  it('el saldo deudor se pinta como el prototipo: ámbar con deuda y verde sin deuda', () => {
+    abrir()
+    const saldo = screen.getByText('Saldo deudor').parentElement!
+    expect(within(saldo).getByText('$ 1.210')).toHaveStyle({ color: tokens.color.etiqueta.aviso.texto })
+  })
+
+  it('sin deuda el saldo deudor se pinta en verde', () => {
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([]))
+    abrir()
+    const saldo = screen.getByText('Saldo deudor').parentElement!
+    expect(within(saldo).getByText('$ 0')).toHaveStyle({ color: tokens.color.etiqueta.exito.texto })
+  })
+
+  it('la etiqueta «Deuda» va en ámbar, como en el prototipo', () => {
+    abrir()
+    const chip = tablaCuenta().getByText('Deuda').closest('.MuiChip-root')
+    expect(chip).toHaveStyle({
+      backgroundColor: tokens.color.etiqueta.aviso.fondo,
+      color: tokens.color.etiqueta.aviso.texto,
+    })
+  })
+
+  it('si fallan las compras, el saldo deudor igual se ve', () => {
+    mocks.useComprasCliente.mockReturnValue(respuesta([], { isError: true }))
+    abrir()
+    expect(screen.getByText('No pudimos cargar las compras del cliente.')).toBeInTheDocument()
+    const saldo = screen.getByText('Saldo deudor').parentElement!
+    expect(within(saldo).getByText('$ 1.210')).toBeInTheDocument()
+  })
+
+  it('dos comprobantes con el mismo número (tiendas distintas) son filas distintas', () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([
+      documento(1),
+      documento(1, { id: 'd-otro', total_con_iva: 500, cobrado: 0, saldo: 500 }),
+    ]))
+    abrir()
+    expect(tablaCuenta().getAllByText('0001-00000011')).toHaveLength(2)
+    expect(consola.mock.calls.flat().join(' ')).not.toMatch(/same key/i)
+    consola.mockRestore()
   })
 
   it('muestra la cuenta corriente con los comprobantes que tienen saldo', () => {
@@ -141,5 +193,13 @@ describe('ComprasCliente', () => {
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('consumidor-final', 1, 10)
     expect(mocks.useCuentaCorrienteCliente).toHaveBeenLastCalledWith('consumidor-final')
     expect(screen.getByRole('heading', { name: 'Compras' })).toBeInTheDocument()
+  })
+
+  // FR-006: la sección se usa a 320 px (tarjetas), a 768 px y a 1440 px (tabla), con teclado
+  // y lector de pantalla.
+  it.each([320, 768, 1440])('no tiene violaciones de accesibilidad a %i px', async (ancho) => {
+    celular(ancho < 600)
+    const { container } = abrir()
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })

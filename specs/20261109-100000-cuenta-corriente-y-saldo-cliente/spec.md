@@ -50,15 +50,19 @@ ningún estado nuevo de comprobante.
 
 - **FR-001** (F-CLI-19): DEBE existir `public.cuenta_corriente_cliente(p_cliente_id uuid)` que
   devuelve la cuenta corriente del cliente: `saldo_total` (cuánto debe), `comprobantes` (cuántos
-  comprobantes tienen saldo) y una fila por comprobante **con saldo** (`numero`, `fecha`, `tipo`,
-  `estado`, `total_con_iva`, `cobrado`, `saldo`), del más reciente al más antiguo. `security
+  comprobantes tienen saldo) y una fila por comprobante **con saldo** (`id`, `numero`, `fecha`,
+  `tipo`, `estado`, `total_con_iva`, `cobrado`, `saldo`), del más reciente al más antiguo. El `id`
+  es el del comprobante: el número se repite entre tiendas (el correlativo es por organización,
+  empresa y tipo) y el `id` es lo que identifica la fila. `security
   definer` con `search_path = ''`, organización de `private.organizacion_id()` (nunca del
   llamador), sección `clientes` en `lectura`/`edicion`; un cliente de otra organización devuelve
   saldo 0 y sin documentos (no revela si existe); `revoke … from public, anon` y `grant execute
   … to authenticated`. **Verificación**: pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql`.
-- **FR-002** (F-CLI-19): El saldo de un comprobante DEBE ser `greatest(total_con_iva − Σ cobros, 0)`
-  (mismo criterio que `private.saldo_comprobante`). **Verificación**: pgTAP (cobro parcial, cobro
-  total, cobro que supera el total → 0).
+- **FR-002** (F-CLI-19): El saldo de un comprobante DEBE ser el que devuelve
+  `private.saldo_comprobante` —su único dueño: `greatest(total_con_iva − Σ cobros, 0)`—, sin
+  recalcularlo en esta RPC. **Verificación**: pgTAP (cobro parcial, cobro
+  total, cobro que supera el total → 0) + comparación documento por documento con
+  `private.saldo_comprobante` (SC-001).
 - **FR-003** (F-CLI-19): A la cuenta corriente entran **solo facturas** que no están en
   `borrador` ni `anulada`. Los presupuestos no son deuda y no entran; las notas de crédito no
   restan (ver *Fuera de alcance*). **Verificación**: pgTAP (presupuesto, anulada, borrador y nota
@@ -114,7 +118,8 @@ ningún estado nuevo de comprobante.
 ## Criterios de éxito
 
 - **SC-001**: la cuenta corriente de un cliente cuadra con `private.saldo_comprobante` documento
-  por documento, y el saldo total es la suma de los saldos listados (pgTAP).
+  por documento —el pgTAP la llama y compara cada fila—, y el saldo total es la suma de los saldos
+  listados (pgTAP).
 - **SC-002**: aislamiento: otra organización no lee saldos ajenos; la sección Clientes en
   `ninguno` no lee la cuenta corriente; `anon` sin ejecución; ninguna tabla nueva sin RLS
   (pgTAP).
@@ -194,7 +199,9 @@ el saldo del cliente tampoco se guarda: se calcula sumando los documentos abiert
 - La reversa de un cobro mal cargado (es de MSF-195) y la exportación de la cuenta corriente.
 - El «Nuevo comprobante», el contador de «Comprobantes» y la fecha del «Último» de la ficha
   (son de Ventas y quedaron fuera de alcance en F-CLI-08…10).
-- El saldo por tienda o el detalle por tienda de la cuenta corriente.
+- El saldo por tienda o el detalle por tienda de la cuenta corriente: la tabla no muestra la
+  tienda de cada documento. Como el correlativo es por empresa, el número puede repetirse entre
+  tiendas de la misma organización; lo que distingue las filas es el `id` del comprobante.
 
 ## Decisiones (provisorias, con valor por defecto)
 
@@ -208,9 +215,13 @@ el saldo del cliente tampoco se guarda: se calcula sumando los documentos abiert
 4. **Paginación** — la cuenta corriente **no** pagina: lista los documentos abiertos del cliente.
    El «Facturado en el año» y los «Últimos comprobantes» de F-CLI-10 sí paginan.
 5. **Notas de crédito** — no restan (ver *Fuera de alcance*).
+6. **Identidad de la fila** — el `id` del comprobante, no el número: el correlativo es por
+   organización, empresa y tipo, así que el mismo número puede repetirse entre tiendas de la misma
+   organización. La tabla no muestra la tienda (el detalle por tienda está fuera de alcance), pero
+   cada fila es un comprobante distinto.
 
 ## Matriz de trazabilidad Jira ↔ US ↔ FR ↔ tareas
 
 | Jira | Historia | FR / SC | Tasks |
 |---|---|---|---|
-| MSF-451 | F-CLI-19 US1 Cuenta corriente y saldo del cliente | FR-001…FR-009, SC-001…SC-005 | T001–T008 |
+| MSF-451 | F-CLI-19 US1 Cuenta corriente y saldo del cliente | FR-001…FR-009, SC-001…SC-005 | T001–T007 |
