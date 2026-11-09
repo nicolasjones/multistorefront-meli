@@ -85,7 +85,9 @@ La respuesta pública es una lista blanca de 8 claves: `codigo`, `tienda`, `equi
 ## Variables
 
 `SEGUIMIENTO_IP_SALT` — solo en `supabase/functions/.env.example` (sin valor). Se configura como secreto de la
-función (`supabase secrets set`), nunca en el navegador ni en Git. Sin ella la función responde 500.
+función, nunca en el navegador ni en Git: en Supabase Cloud con `supabase secrets set`; en el stack local o de dev
+(`supabase start`) la declara `supabase/config.toml` en `[edge_runtime.secrets]` y su valor va en `supabase/.env` del
+servidor (ignorado por Git); cambiarlo exige recrear el stack. Sin ella la función responde 500 (falla cerrada).
 `SEGUIMIENTO_SALTOS_PROXY` — mismo archivo (sin valor): proxies de confianza que agregan su IP al final de
 `x-forwarded-for` (por defecto **1**; ver «IP» arriba). Vacío = 1.
 La página pública llama a la función con la clave pública (anon) para pasar el gateway; no usa ni crea sesión.
