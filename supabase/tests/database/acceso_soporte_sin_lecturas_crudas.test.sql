@@ -13,8 +13,9 @@ select is(
     where n.nspname not in ('pg_catalog', 'information_schema', 'pg_toast')
       and p.prokind in ('f', 'p')
       and p.prosrc ~ 'superadmin_organizacion_activa'
-      -- exclusiones_exportacion_total solo nombra la tabla como texto (no la lee).
-      and p.proname not in ('entrar_a_organizacion', 'salir_de_organizacion', 'cerrar_accesos_soporte_vencidos', 'exclusiones_exportacion_total')),
+      -- private.exclusiones_exportacion_total() solo nombra la tabla como texto (no la lee); se fija por oid, no por nombre.
+      and p.proname not in ('entrar_a_organizacion', 'salir_de_organizacion', 'cerrar_accesos_soporte_vencidos')
+      and p.oid <> 'private.exclusiones_exportacion_total()'::regprocedure),
   null::text[], 'ninguna función (en cualquier esquema) lee la tabla cruda fuera de entrar/salir/cierre');
 
 select is(
