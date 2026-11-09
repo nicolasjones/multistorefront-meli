@@ -154,6 +154,29 @@ describe('ProductoEdit', () => {
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
   })
 
+  it('al cambiar solo el stock de una variante, manda solo esa fila con lo que se leyó y no toca el producto (F-CAT-15)', async () => {
+    mocks.variantes.mockResolvedValue({
+      data: [
+        { id: 'v1', nombre: 'Negro', codigo: 'JOY-N', codigo_barras: null, activa: true, stock: 4 },
+        { id: 'v2', nombre: 'Blanco', codigo: 'JOY-B', codigo_barras: null, activa: true, stock: 3 },
+      ],
+      error: null,
+    })
+    abrir()
+    const stock = await screen.findByLabelText('Stock de la variante 1')
+    expect(stock).toHaveValue(4)
+    fireEvent.change(stock, { target: { value: '9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('guardar_variantes_producto', expect.anything()))
+    const llamada = mocks.rpc.mock.calls.find(([nombre]) => nombre === 'guardar_variantes_producto')
+    const variantes = (llamada?.[1] as { p_variantes: Array<Record<string, unknown>> }).p_variantes
+    expect(variantes[0]).toMatchObject({ id: 'v1', stock: 9, stock_leido: 4 })
+    // Blanco no se tocó: su stock no viaja, así que la base no puede interpretarlo como un conteo que pise un movimiento ajeno.
+    expect(variantes[1]).toMatchObject({ id: 'v2' })
+    expect(variantes[1]).not.toHaveProperty('stock')
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
   it('conserva el proveedor desactivado ya asignado y reenvía proveedor y código al guardar', async () => {
     abrir()
     expect(await screen.findByLabelText(/^Proveedor$/)).toHaveValue('Proveedor Viejo SA (inactivo)')

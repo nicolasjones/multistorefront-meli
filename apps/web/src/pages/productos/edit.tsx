@@ -212,7 +212,7 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
     // producto a medias; con el `updated_at` leído al abrir la ficha (bloqueo optimista). Reenviar es idempotente.
     if (cambioVariantes) {
       try {
-        await guardarVariantes(supabaseClient, producto.id, producto.updated_at, variantes, nivelStock === 'edicion')
+        await guardarVariantes(supabaseClient, producto.id, producto.updated_at, variantes, nivelStock === 'edicion', carga?.variantes ?? undefined)
       } catch (errorVariantes) {
         throw new ErrorGuardarVariantes(errorVariantes)
       }

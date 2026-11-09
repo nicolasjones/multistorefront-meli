@@ -11,7 +11,7 @@ guardar_relacionados(
 ): jsonb                   // { relacionados: [{ id, orden }] }
 ```
 
-- `security invoker` (rige RLS); exige `edicion` en `productos`; `grant execute … to authenticated`, `revoke … from public, anon`.
+- `security definer` con `search_path = ''` (el evento de actividad solo lo registra una función definer; valida organización y rol dentro); exige `edicion` en `productos`; `grant execute … to authenticated`, `revoke … from public, anon`.
 - Reemplazo completo e idempotente de la lista del producto. Errores: `P0002` (producto o relacionado inexistente/otra organización), `22023` (el propio producto o un id repetido), `42501`.
 - Evento: `producto.relacionados_editados` en `registro_actividad`, solo con cambio real.
 

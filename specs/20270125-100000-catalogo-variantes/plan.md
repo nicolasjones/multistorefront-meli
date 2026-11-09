@@ -15,7 +15,7 @@ Dos historias sobre el formulario de producto que dejaron MSF-456, MSF-179 y MSF
 
 ## Diseño por historia
 
-### F-CAT-18 · Relacionados (migración `20270125110000_catalogo_relacionados.sql`)
+### F-CAT-18 · Relacionados (migración `20270220120100_catalogo_relacionados.sql`)
 
 - Tabla `dominio.producto_relacionados (producto_id, relacionado_id, organizacion_id, orden, creado_en)`; PK `(producto_id, relacionado_id)`; FK compuestas `(producto_id, organizacion_id)` y `(relacionado_id, organizacion_id)` a `productos` con `on delete cascade`; `check (producto_id <> relacionado_id)`; índice `(organizacion_id, producto_id, orden)`.
 - RLS: select `lectura`/`edicion` en `productos`; sin escritura directa (solo la RPC `security definer`). `anon` sin privilegios.
@@ -25,8 +25,8 @@ Dos historias sobre el formulario de producto que dejaron MSF-456, MSF-179 y MSF
 
 ### F-CAT-15 · Variantes (cuatro bloques, migraciones propias)
 
-- **A · Datos** (`20270125100000_catalogo_variantes_tablas.sql`): `dominio.producto_variantes (id, organizacion_id, producto_id, nombre, codigo, codigo_barras, activa, orden, creado_en, updated_at)`; únicos por organización de `codigo` y `codigo_barras`; disparador que impide que un `codigo` coincida con un `productos.sku` (y viceversa) y que un `codigo_barras` coincida con `productos.codigo_barras`; `check` EAN-13; RLS sin DELETE; se agrega a `rls_en_toda_tabla`.
-- **B · Stock** (`20270125100100_catalogo_variantes_stock.sql`, `…100200_…`): `dominio.existencias_variante (variante_id, deposito_id, organizacion_id, cantidad >= 0)` espejo de `existencias_deposito`; `movimientos_stock.variante_id` nullable; `registrar_movimiento_stock` con `p_variante` (BREAKING declarado); cuerpo nuevo de `private.disponibilidad_producto`, `productos_con_stock`, `disponible_publico` (suma de variantes activas; reservado de variantes = 0 hasta que Reservas se adapte). `guardar_variantes_producto` y `v_producto_variantes` (`…100300_…`).
+- **A · Datos** (`20270220120200_catalogo_variantes_tablas.sql`): `dominio.producto_variantes (id, organizacion_id, producto_id, nombre, codigo, codigo_barras, activa, orden, creado_en, updated_at)`; únicos por organización de `codigo` y `codigo_barras`; disparador que impide que un `codigo` coincida con un `productos.sku` (y viceversa) y que un `codigo_barras` coincida con `productos.codigo_barras`; `check` EAN-13; RLS sin DELETE; se agrega a `rls_en_toda_tabla`.
+- **B · Stock** (`20270220120300_catalogo_variantes_stock.sql`, `…100200_…`): `dominio.existencias_variante (variante_id, deposito_id, organizacion_id, cantidad >= 0)` espejo de `existencias_deposito`; `movimientos_stock.variante_id` nullable; `registrar_movimiento_stock` con `p_variante` (BREAKING declarado); cuerpo nuevo de `private.disponibilidad_producto`, `productos_con_stock`, `disponible_publico` (suma de variantes activas; reservado de variantes = 0 hasta que Reservas se adapte). `guardar_variantes_producto` y `v_producto_variantes` (`…100300_…`).
 - **C · Ficha**: `BloqueVariantes` (tabla Variante/Código/Código de barras/Stock/Activa, «Agregar variante» con valores por defecto, celdas editables en línea del kit, interruptor Activa, textos y avisos del prototipo), integrado en alta y edición; errores de `23505`/`22023` mapeados al campo.
 - **D · Precio y verificación**: la variante no guarda precio; prueba de que `precio_para` se resuelve por `producto_id`; regresión de productos sin variantes.
 - Reversión: `drop` de RPC/vistas, restaurar cuerpos y firma previos de las funciones (migración posterior), luego `drop table` de `existencias_variante` y `producto_variantes` y `drop column movimientos_stock.variante_id` en una migración **posterior** a la que las crea.

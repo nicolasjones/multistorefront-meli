@@ -36,6 +36,7 @@ declare
   v_ids_payload uuid[] := '{}';
   v_ids uuid[] := '{}';
   v_stocks integer[] := '{}';
+  v_leidos integer[] := '{}';
   v_existentes integer;
   v_filas integer;
   v_cambio boolean := false;
@@ -51,6 +52,11 @@ begin
     raise exception 'Tu rol no puede editar productos' using errcode = '42501';
   end if;
 
+  -- Orden de bloqueos IGUAL al de `registrar_movimiento_stock` (primero `existencias` y recién después `productos`, que es lo que pide la FK
+  -- de `movimientos_stock`): al revés, un guardado y un movimiento concurrentes del mismo producto se bloquean entre sí (deadlock 40P01). Además
+  -- serializa la regla de la primera variante (paso 3) y el stock actual (paso 6) con los movimientos que mueven el stock del producto.
+  perform 1 from dominio.existencias e where e.producto_id = p_producto and e.organizacion_id = v_org for update;
+
   -- Serializa guardados del mismo producto y aplica el bloqueo optimista (como actualizar_producto).
   select * into v_producto from dominio.productos p
    where p.id = p_producto and p.organizacion_id = v_org for update;
@@ -63,6 +69,14 @@ begin
 
   if jsonb_typeof(v_items) <> 'array' then
     raise exception 'Las variantes deben enviarse como una lista' using errcode = '22023';
+  end if;
+
+  -- Sin edición en Stock no se acepta ningún valor de stock, ni siquiera el que coincide con el actual: comparar primero y rechazar después dejaría
+  -- adivinar el stock exacto probando valores (el rol sin acceso a Stock no lo ve en la pantalla).
+  if exists (select 1 from jsonb_array_elements(v_items) as x
+              where jsonb_typeof(x.value) = 'object' and jsonb_typeof(x.value -> 'stock') = 'number')
+     and (select private.nivel_seccion('stock')) <> 'edicion' then
+    raise exception 'Tu rol no puede ajustar el stock' using errcode = '42501';
   end if;
 
   -- 0. Reintento idempotente (alta que se repite): una fila sin id cuyo código ya es de una variante de ESTE
@@ -118,8 +132,15 @@ begin
     end if;
     if v_item ? 'stock' and jsonb_typeof(v_item -> 'stock') <> 'null' then
       if jsonb_typeof(v_item -> 'stock') <> 'number' or (v_item ->> 'stock')::numeric <> trunc((v_item ->> 'stock')::numeric)
-         or (v_item ->> 'stock')::numeric < 0 then
-        raise exception 'El stock de "%" debe ser un entero de cero o más', v_nombre using errcode = '22023', detail = 'stock';
+         or (v_item ->> 'stock')::numeric < 0 or (v_item ->> 'stock')::numeric > 2147483647 then
+        raise exception 'El stock de "%" debe ser un entero de cero a 2147483647', v_nombre using errcode = '22023', detail = 'stock';
+      end if;
+    end if;
+    -- `stock_leido`: el stock que la persona vio al abrir la ficha (opcional; ver el paso 6).
+    if v_item ? 'stock_leido' and jsonb_typeof(v_item -> 'stock_leido') <> 'null' then
+      if jsonb_typeof(v_item -> 'stock_leido') <> 'number' or (v_item ->> 'stock_leido')::numeric <> trunc((v_item ->> 'stock_leido')::numeric)
+         or (v_item ->> 'stock_leido')::numeric < 0 or (v_item ->> 'stock_leido')::numeric > 2147483647 then
+        raise exception 'El stock leído de "%" no es válido', v_nombre using errcode = '22023', detail = 'stock';
       end if;
     end if;
     if nullif(v_item ->> 'id', '') is not null then
@@ -196,14 +217,23 @@ begin
     end if;
     v_ids := v_ids || v_id;
     v_stocks := v_stocks || v_stock;
+    v_leidos := v_leidos || (case when v_item ? 'stock_leido' and jsonb_typeof(v_item -> 'stock_leido') = 'number'
+                                  then (v_item ->> 'stock_leido')::integer end);
   end loop;
 
-  -- 6. Stock contado: ajuste en el depósito por defecto, solo si difiere (requiere edición en Stock).
+  -- 6. Stock contado: ajuste en el depósito por defecto, solo si difiere (requiere edición en Stock; ver el control de `stock_leido`).
   for v_n in 1 .. coalesce(cardinality(v_ids), 0) loop
     continue when v_stocks[v_n] is null;
     select coalesce(sum(x.cantidad), 0)::integer into v_actual
       from dominio.existencias_variante x where x.variante_id = v_ids[v_n];
     continue when v_actual = v_stocks[v_n];
+
+    -- Compare-and-set: si la ficha trajo el stock que vio la persona y ya es otro, alguien lo movió mientras editaba; sobrescribirlo con un
+    -- conteo perdería ese movimiento sin avisar. Se rechaza y la persona recarga.
+    if v_leidos[v_n] is not null and v_actual <> v_leidos[v_n] then
+      raise exception 'El stock de la variante cambió mientras editabas (ahora hay %, vos viste %): recargá la ficha', v_actual, v_leidos[v_n]
+        using errcode = '40001', detail = 'stock';
+    end if;
 
     if (select private.nivel_seccion('stock')) <> 'edicion' then
       raise exception 'Tu rol no puede ajustar el stock' using errcode = '42501';

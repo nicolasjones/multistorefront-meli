@@ -34,7 +34,7 @@ recibe ningún privilegio.
 
 ### Variantes (F-CAT-15, MSF-229)
 
-`registrar_movimiento_stock` pasó de 8 a **9 parámetros** (`p_variante uuid default null`, migración `20270220120400`): los llamadores existentes siguen válidos. En un producto con variantes la variante es obligatoria y el movimiento queda en el libro con `variante_id`; sin variantes debe ser nula. El stock de un producto con variantes es la **suma de las variantes activas** (`dominio.existencias_variante`). Ver `docs/catalogo.md`.
+`registrar_movimiento_stock` pasó de 8 a **9 parámetros** (`p_variante uuid default null`, migración `20270220120400`): los llamadores existentes siguen válidos **para productos sin variantes** (los llamadores posicionales resuelven a la firma de 9 con el valor por defecto). En un producto con variantes ninguno de ellos funciona (ingreso de mercadería, toma de inventario, carga inicial, RMA, lotes: fallan con 22023 y, al ser todo-o-nada, abortan el ingreso o la toma completa; ver «Avisos de límites» en `docs/catalogo.md`). En un producto con variantes la variante es obligatoria y el movimiento queda en el libro con `variante_id`; sin variantes debe ser nula. El stock de un producto con variantes es la **suma de las variantes activas** (`dominio.existencias_variante`). Ver `docs/catalogo.md`.
 
 ## Interfaz (`apps/web`)
 

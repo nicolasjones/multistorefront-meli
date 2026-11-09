@@ -12,7 +12,7 @@ guardar_variantes_producto(
 ): jsonb                           // { variantes: [{ id, nombre, codigo, codigo_barras, activa, orden, stock }] }
 ```
 
-- `security invoker` (rige RLS); exige `edicion` en `productos`. Si una fila trae `stock`, exige además `edicion` en `stock` y registra un `ajuste` (motivo «Conteo de inventario», depósito por defecto) solo si difiere del actual.
+- `security definer` con `search_path = ''` (el evento de actividad solo lo registra una función definer; valida organización y rol dentro); exige `edicion` en `productos`. Si una fila trae `stock`, exige además `edicion` en `stock` y registra un `ajuste` (motivo «Conteo de inventario», depósito por defecto) solo si difiere del actual.
 - Reemplazo completo e idempotente: las filas con `id` se actualizan, las sin `id` se crean; el orden es la posición en el arreglo. Las variantes existentes ausentes del arreglo **no se borran** (no hay DELETE): se informan por error `22023` (hay que enviarlas, desactivadas si corresponde).
 - Errores: `40001` (producto cambió), `P0002` (producto inexistente/otra organización), `23505` (código o código de barras repetido, con el valor en el mensaje), `22023` (formato EAN-13, nombre vacío, primera variante sobre producto con stock > 0), `42501` (sin permiso).
 - Evento: `producto.variantes_editadas` en `registro_actividad`, sin costo, solo con cambio real.

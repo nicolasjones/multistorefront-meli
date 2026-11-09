@@ -1,5 +1,5 @@
 // Variantes de un producto (F-CAT-15, MSF-408, FR-001…FR-012). La autoridad es la base: la RPC
-// `guardar_variantes_producto` (migración 20270125120400) exige edición en Productos, valida unicidad de código y
+// `guardar_variantes_producto` (migración 20270220120600) exige edición en Productos, valida unicidad de código y
 // código de barras (EAN-13), la regla de la primera variante y el bloqueo optimista; `v_producto_variantes` es el
 // contrato de lectura (sin precio: la variante hereda el del producto). Acá solo se arman filas, payload y mensajes.
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -76,25 +76,47 @@ export async function leerVariantes(cliente: Pick<SupabaseClient, 'from'>, produ
 
 type ParametrosVariantes = { p_producto: string; p_actualizado_en: string | null; p_variantes: Array<Record<string, unknown>> }
 
-// Payload de `guardar_variantes_producto` (`actualizadoEn` nulo = sin bloqueo optimista, solo para reintentar un alta): el orden del arreglo es el orden de las variantes. El stock solo viaja
-// con edición en Stock (la base lo exige igual) y si la fila tiene valor.
-export function parametrosGuardarVariantes(productoId: string, actualizadoEn: string | null, filas: readonly FilaVariante[], conStock: boolean): ParametrosVariantes {
+// Payload de `guardar_variantes_producto` (`actualizadoEn` nulo = sin bloqueo optimista, solo para reintentar un alta): el orden del arreglo es el orden de las variantes.
+// `stock` solo viaja con edición en Stock (la base lo exige igual) y, si se pasan las filas `leidas` al abrir la ficha, SOLO en las que la persona
+// cambió, junto con `stock_leido` (lo que vio): la base lo toma como un conteo, así que mandar el de una fila que no tocó pisaría un movimiento que otra
+// persona hizo mientras tanto; con `stock_leido` la base rechaza (40001) si el stock ya es otro. Una fila nueva manda su stock inicial sin `stock_leido`.
+export function parametrosGuardarVariantes(
+  productoId: string,
+  actualizadoEn: string | null,
+  filas: readonly FilaVariante[],
+  conStock: boolean,
+  leidas?: readonly FilaVariante[],
+): ParametrosVariantes {
+  const leidaDe = (fila: FilaVariante) => (leidas && fila.id ? leidas.find((leida) => leida.id === fila.id) : undefined)
   return {
     p_producto: productoId,
     p_actualizado_en: actualizadoEn,
-    p_variantes: filas.map((fila) => ({
-      ...(fila.id ? { id: fila.id } : {}),
-      nombre: fila.nombre.trim(),
-      codigo: fila.codigo.trim(),
-      codigo_barras: fila.codigoBarras.trim() === '' ? null : fila.codigoBarras.trim(),
-      activa: fila.activa,
-      ...(conStock && fila.stock !== null ? { stock: fila.stock } : {}),
-    })),
+    p_variantes: filas.map((fila) => {
+      const leida = leidaDe(fila)
+      // Con `leidas`, una fila existente solo manda stock si lo cambió; sin `leidas` (alta, reintento) manda el de toda fila que lo tenga.
+      const mandaStock = conStock && fila.stock !== null && (leidas === undefined || !fila.id || !leida || leida.stock !== fila.stock)
+      return {
+        ...(fila.id ? { id: fila.id } : {}),
+        nombre: fila.nombre.trim(),
+        codigo: fila.codigo.trim(),
+        codigo_barras: fila.codigoBarras.trim() === '' ? null : fila.codigoBarras.trim(),
+        activa: fila.activa,
+        ...(mandaStock ? { stock: fila.stock } : {}),
+        ...(mandaStock && leida && leida.stock !== null ? { stock_leido: leida.stock } : {}),
+      }
+    }),
   }
 }
 
-export async function guardarVariantes(cliente: Pick<SupabaseClient, 'rpc'>, productoId: string, actualizadoEn: string | null, filas: readonly FilaVariante[], conStock: boolean): Promise<void> {
-  const { error } = await cliente.rpc('guardar_variantes_producto', parametrosGuardarVariantes(productoId, actualizadoEn, filas, conStock))
+export async function guardarVariantes(
+  cliente: Pick<SupabaseClient, 'rpc'>,
+  productoId: string,
+  actualizadoEn: string | null,
+  filas: readonly FilaVariante[],
+  conStock: boolean,
+  leidas?: readonly FilaVariante[],
+): Promise<void> {
+  const { error } = await cliente.rpc('guardar_variantes_producto', parametrosGuardarVariantes(productoId, actualizadoEn, filas, conStock, leidas))
   if (error) throw error
 }
 
@@ -142,7 +164,7 @@ export function erroresPorFila(error: unknown, filas: readonly FilaVariante[]): 
 export function mensajeErrorVariantes(error: unknown): string {
   console.error('No pudimos guardar las variantes.', error)
   const e = error as ErrorRpc
-  if (e?.code === '40001') return 'El producto fue modificado por otra persona. Recargá la página para ver los cambios.'
+  if (e?.code === '40001') return e.message?.includes('stock') ? e.message : 'El producto fue modificado por otra persona. Recargá la página para ver los cambios.'
   if (e?.code === '42501') return 'No tenés permiso para editar las variantes o su stock. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === 'P0002') return 'El producto ya no existe.'
   if ((e?.code === '23505' || e?.code === '22023') && e.message) return e.message

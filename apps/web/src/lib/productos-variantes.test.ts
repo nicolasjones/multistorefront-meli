@@ -83,6 +83,32 @@ describe('productos-variantes', () => {
     expect(sinStock.p_variantes[0]).not.toHaveProperty('stock')
   })
 
+  it('con las filas leídas, solo manda stock de las que la persona cambió, con lo que vio (stock_leido)', () => {
+    const leidas = [NEGRO, BLANCO]
+    // Negro cambió de 4 a 9; Blanco no se tocó: su stock NO viaja (si no, la base lo tomaría como un conteo y pisaría un movimiento ajeno).
+    const p = parametrosGuardarVariantes('p1', '2026-01-01T00:00:00Z', [{ ...NEGRO, stock: 9 }, BLANCO], true, leidas)
+    expect(p.p_variantes[0]).toMatchObject({ id: 'v1', stock: 9, stock_leido: 4 })
+    expect(p.p_variantes[1]).not.toHaveProperty('stock')
+    expect(p.p_variantes[1]).not.toHaveProperty('stock_leido')
+  })
+
+  it('una fila nueva manda su stock inicial sin stock_leido, y sin acceso a Stock no viaja nada', () => {
+    const nueva: FilaVariante = { ...NEGRO, clave: 'n1', id: null, codigo: 'REM-1-R', stock: 2 }
+    const p = parametrosGuardarVariantes('p1', null, [NEGRO, nueva], true, [NEGRO])
+    expect(p.p_variantes[0]).not.toHaveProperty('stock')
+    expect(p.p_variantes[1]).toMatchObject({ stock: 2 })
+    expect(p.p_variantes[1]).not.toHaveProperty('stock_leido')
+    const sinAcceso = parametrosGuardarVariantes('p1', null, [{ ...NEGRO, stock: 9 }], false, [NEGRO])
+    expect(sinAcceso.p_variantes[0]).not.toHaveProperty('stock')
+    expect(sinAcceso.p_variantes[0]).not.toHaveProperty('stock_leido')
+  })
+
+  it('sin las filas leídas (alta, reintento) el comportamiento no cambia: manda el stock de toda fila que lo tenga', () => {
+    const p = parametrosGuardarVariantes('p1', null, [NEGRO, BLANCO], true)
+    expect(p.p_variantes.map((v) => v.stock)).toEqual([4, 3])
+    expect(p.p_variantes[0]).not.toHaveProperty('stock_leido')
+  })
+
   it('guarda por RPC y propaga el error', async () => {
     const rpc = vi.fn().mockResolvedValue({ error: null })
     await guardarVariantes({ rpc } as never, 'p1', '2026-01-01T00:00:00Z', [NEGRO], true)
@@ -129,6 +155,7 @@ describe('productos-variantes', () => {
   it('traduce los códigos de la base a mensajes para la persona', () => {
     const silenciar = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(mensajeErrorVariantes({ code: '40001' })).toMatch(/El producto fue modificado por otra persona/)
+    expect(mensajeErrorVariantes({ code: '40001', message: 'El stock de la variante cambió mientras editabas (ahora hay 6, vos viste 5): recargá la ficha' })).toMatch(/El stock de la variante cambió/)
     expect(mensajeErrorVariantes({ code: '42501' })).toMatch(/No tenés permiso/)
     expect(mensajeErrorVariantes({ code: 'P0002' })).toBe('El producto ya no existe.')
     expect(mensajeErrorVariantes({ code: '23505', message: 'El código "X" ya lo usa otra variante' })).toBe('El código "X" ya lo usa otra variante')

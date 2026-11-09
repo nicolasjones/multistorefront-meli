@@ -1,5 +1,5 @@
 // Productos relacionados (F-CAT-18, MSF-416, FR-013…FR-018). La autoridad es la base: la RPC
-// `guardar_relacionados` (migración 20270125110000) exige edición en Productos y rechaza el propio
+// `guardar_relacionados` (migración 20270220120100) exige edición en Productos y rechaza el propio
 // producto, repetidos y productos de otra organización; `v_producto_relacionados` es el contrato de
 // lectura. Acá solo se arma la consulta del buscador, el payload y los mensajes.
 import type { SupabaseClient } from '@supabase/supabase-js'

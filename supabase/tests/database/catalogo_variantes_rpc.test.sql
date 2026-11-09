@@ -132,6 +132,64 @@ select throws_ok(
   $$select public.guardar_variantes_producto('b2000000-0000-0000-0000-000000000001', now(), '[]'::jsonb)$$,
   'P0002', null, 'un producto de otra organización no existe');
 
+-- Control de stock (revisión independiente de MSF-229)
+-- Un rol que edita Productos pero NO Stock: ningún valor de stock se acepta, ni el que coincide con el actual (si no, probando valores se
+-- adivinaría el stock exacto); sin `stock` en el envío, el guardado funciona.
+reset role;
+insert into auth.users (id, email) values ('d1000000-0000-0000-0000-000000000004', 'operador@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado)
+values ('d1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'operador', 'activo');
+update public.permisos_rol set nivel = 'edicion'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'productos';
+update public.permisos_rol set nivel = 'lectura'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'stock';
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+select throws_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', pg_temp.actualizado('a1000000-0000-0000-0000-000000000001'),
+      (select jsonb_agg(jsonb_build_object('id', id, 'nombre', nombre, 'codigo', codigo, 'codigo_barras', codigo_barras, 'activa', activa, 'stock', stock) order by orden)
+         from public.v_producto_variantes where producto_id = 'a1000000-0000-0000-0000-000000000001'))$$,
+  '42501', 'Tu rol no puede ajustar el stock', 'sin edición en Stock se rechaza el stock aunque coincida con el actual (sin oráculo)');
+select lives_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', pg_temp.actualizado('a1000000-0000-0000-0000-000000000001'),
+      (select jsonb_agg(jsonb_build_object('id', id, 'nombre', nombre, 'codigo', codigo, 'codigo_barras', codigo_barras, 'activa', activa) order by orden)
+         from public.v_producto_variantes where producto_id = 'a1000000-0000-0000-0000-000000000001'))$$,
+  'sin stock en el envío, quien edita Productos guarda las variantes');
+
+-- Compare-and-set (`stock_leido`): si el stock ya no es el que la persona vio, se rechaza y no se pisa.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', pg_temp.actualizado('a1000000-0000-0000-0000-000000000001'),
+      (select jsonb_agg(jsonb_build_object('id', id, 'nombre', nombre, 'codigo', codigo, 'codigo_barras', codigo_barras, 'activa', activa,
+                        'stock', case when codigo = '5134a-N' then 9 else stock end,
+                        'stock_leido', case when codigo = '5134a-N' then 5 else stock end) order by orden)
+         from public.v_producto_variantes where producto_id = 'a1000000-0000-0000-0000-000000000001'))$$,
+  '40001', null, 'si el stock cambió desde que se leyó (vio 5, hay 6), el conteo se rechaza');
+select is((select stock from public.v_producto_variantes where codigo = '5134a-N'), 6, 'y el stock que movió otra persona no se pisa');
+select lives_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', pg_temp.actualizado('a1000000-0000-0000-0000-000000000001'),
+      (select jsonb_agg(jsonb_build_object('id', id, 'nombre', nombre, 'codigo', codigo, 'codigo_barras', codigo_barras, 'activa', activa,
+                        'stock', case when codigo = '5134a-N' then 9 else stock end,
+                        'stock_leido', case when codigo = '5134a-N' then 6 else stock end) order by orden)
+         from public.v_producto_variantes where producto_id = 'a1000000-0000-0000-0000-000000000001'))$$,
+  'con el stock leído vigente (6) el conteo se aplica');
+select is((select stock from public.v_producto_variantes where codigo = '5134a-N'), 9, 'y el stock queda en el valor contado');
+select throws_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', pg_temp.actualizado('a1000000-0000-0000-0000-000000000001'),
+      (select jsonb_agg(jsonb_build_object('id', id, 'nombre', nombre, 'codigo', codigo, 'codigo_barras', codigo_barras, 'activa', activa,
+                        'stock', case when codigo = '5134a-N' then 2147483648 else stock end) order by orden)
+         from public.v_producto_variantes where producto_id = 'a1000000-0000-0000-0000-000000000001'))$$,
+  '22023', null, 'un stock mayor a 2147483647 se rechaza con un error de validación (no un desborde crudo)');
+select throws_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', pg_temp.actualizado('a1000000-0000-0000-0000-000000000001'),
+      (select jsonb_agg(jsonb_build_object('id', id, 'nombre', nombre, 'codigo', codigo, 'codigo_barras', codigo_barras, 'activa', activa) order by orden)
+         || '[{"nombre":"Repetida","codigo":"X-1","activa":true},{"nombre":"Repetida 2","codigo":"x-1","activa":true}]'::jsonb
+         from public.v_producto_variantes where producto_id = 'a1000000-0000-0000-0000-000000000001'))$$,
+  '23505', null, 'un código repetido dentro del mismo envío se rechaza');
+select throws_ok(
+  $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000002', pg_temp.actualizado('a1000000-0000-0000-0000-000000000002'),
+      jsonb_build_array(jsonb_build_object('id', (select id from dominio.producto_variantes limit 1), 'nombre', 'X', 'codigo', 'GOR-X')))$$,
+  '22023', 'Alguna variante no pertenece a este producto', 'una variante de otro producto en el envío se rechaza');
+
 -- Primera variante sobre un producto con stock (FR-008)
 reset role;
 update dominio.existencias set cantidad = 5 where producto_id = 'a1000000-0000-0000-0000-000000000003';
