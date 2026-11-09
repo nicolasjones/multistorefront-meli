@@ -123,14 +123,24 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
 - Estados (`useExportarActividad.ts`): «Exportando…», error con **Reintentar** sin descargar un archivo
   parcial, «No hay actividad para exportar.» y aviso de recorte. Cambiar la empresa activa invalida la
   exportación en curso (nunca se baja un archivo de otra empresa).
-- Constancia: al entregar la última página se registra `actividad.exportada` («Exportó N registros…» con
-  los filtros en palabras), una sola vez por exportación. El cliente genera un id por corrida
-  (`p_exportacion`) y `private.exportaciones_actividad` (clave primaria `(organizacion_id, usuario_id, id)`,
-  RLS activa y sin acceso para los roles de la API) lo guarda; reutilizar un id ya cerrado lanza `22023`. El
-  tipo se da de alta como no sensible en `tipos_evento_actividad`.
-- Límite conocido: `p_entregadas` y `p_exportacion` los manda el cliente, así que el tope de 50.000 y la
-  constancia dependen de que el cliente sea el de la app (ver «Limitaciones conocidas»).
-- Pruebas: pgTAP `exportar_actividad.test.sql`; Vitest `exportarActividadCsv.test.ts`,
+- Constancia y conteo del lado servidor (migración `20270217900001`): `actividad.exportada` se registra en la
+  **primera llamada** de cada exportación («Inició la exportación de N registros…», N = el total real y «(supera el tope
+  de 50000)» si lo excede, con los filtros en palabras), de modo que paginar y abandonar, o un filtro que excede el tope, también
+  dejan constancia. El cliente genera un id por corrida (`p_exportacion`); `private.exportaciones_actividad`
+  (clave primaria `(organizacion_id, usuario_id, id)`, columnas `entregadas` y `cerrada`, RLS activa y sin
+  acceso para los roles de la API) lleva el conteo y aplica el tope de 50.000. `p_entregadas` se ignora (queda en
+  la firma por compatibilidad). El id se cierra al entregar la última fila o llegar al tope; reutilizar un id
+  cerrado, también el reintento de la última página, lanza `22023` (el comentario de `20270214300001`, que dice
+  que un reintento «no vuelve a registrar», es inexacto). El tope de 50.000 es de UX; el control real es la constancia. Un cliente que use un id nuevo por página deja una
+  constancia por página y el servidor rechaza (`22023`) la exportación nueva número 61 de una persona en una hora.
+  Detalle de lo que hace el código (migración `20270218300000`): un candado asesor por organización y persona serializa
+  el alta y el conteo, así que sesiones en paralelo no esquivan el límite de 60; el tope de 50.000 es por id (el máximo
+  por persona es 60 exportaciones por hora, cada una con su constancia). Repetir la misma página (mismo id, cursor y un
+  límite que no baja) es idempotente; con un límite menor cuenta como entrega nueva. La primera llamada fija los
+  filtros (hash) y el corte: otro filtro con el mismo id se rechaza (`22023`) y el `p_corte` posterior se ignora.
+  Cuando el filtro excede el tope la primera llamada ya
+  entregó hasta 1.000 filas que el navegador descarta; la constancia cubre ese caso. La depuración purga las filas de `exportaciones_actividad` con más de 30 días.
+- Pruebas: pgTAP `exportar_actividad.test.sql` y `exportar_actividad_limites.test.sql` (clave del candado, reintento de la misma página, filtros y corte fijados, filas viejas sin hash); Vitest `exportarActividadCsv.test.ts`,
   `exportarActividad.test.tsx` y `BotonExportarActividad.test.tsx`; E2E
   `apps/web/e2e/actividad-exportar.e2e.ts`.
 - Reversión (migración posterior; las migraciones aplicadas no se editan): para volver al contrato
@@ -146,8 +156,8 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
   contextos existentes). La vista `private.superadmin_contexto_vigente` (`security_invoker`) excluye los
   vencidos; la migración reescribe **todos** los helpers que leían la tabla (`organizacion_id`,
   `puede_escribir`, `nivel_seccion`, `puede_accion*`, `rol_id`, los `puede_*_en_empresa`, etc.) para que
-  lean la vista. `entrar_a_organizacion` y `salir_de_organizacion` leen la tabla para distinguir salida de
-  vencimiento.
+  lean la vista. `entrar_a_organizacion`, `salir_de_organizacion` y `cerrar_accesos_soporte_vencidos` (`20270217900002`, la
+  ejecuta Kestra cada 15 minutos) leen la tabla para distinguir salida de vencimiento.
 - Contrato **BREAKING**: `public.entrar_a_organizacion(org_id uuid, p_motivo text)` reemplaza a la versión
   de un argumento; sin motivo (o en blanco o > 500) devuelve `22023`, sin ser superadmin `42501`, y si la
   organización no existe `P0002`. `public.salir_de_organizacion()` conserva la firma.
@@ -261,33 +271,26 @@ solo en base local/staging.
 - TODO (dueño: Ingeniería): al fusionar la épica en `main`, verificar las rutas citadas, regenerar el
   inventario y el manifest de `docs/` y quitar la nota de «rama sin fusionar».
 
-## Limitaciones conocidas (revisión independiente de la épica)
+## Limitaciones conocidas
 
-Revisión QA y Code/Security hecha sobre el código de `dokploy`; ninguna es bloqueante. Las que piden migración
-no se corrigieron porque no se pueden probar con pgTAP sin Supabase local.
+Los hallazgos de la revisión independiente quedaron resueltos en `20270217900000_registro_actividad_triggers_always_y_bitacora_soporte.sql`,
+`20270217900001_exportar_actividad_constancia_servidor.sql`, `20270217900002_cerrar_accesos_soporte_vencidos.sql` (#793)
+y `20270218300000_exportar_actividad_limites.sql` (#812: candado por organización y persona contra la carrera del
+límite de 60 exportaciones por hora, regla `p_limite >= ultima_entrega` contra el reciclaje del crédito de «misma página»,
+hash de filtros y corte guardados en la primera llamada con `22023` si cambian, y guardia por `oid` en los pgTAP de
+`superadmin_organizacion_activa`). Las pruebas de los límites afinadas están en #813
+(`exportar_actividad_limites.test.sql`). Lo que sigue abierto:
 
-- **Constancia de exportación y tope (medio).** `actividad.exportada` se registra solo al entregar la última
-  página, y `p_entregadas` y `p_exportacion` los manda el cliente. Quien llame a la RPC directo (con edición
-  y la acción `exportar`) puede paginar y detenerse antes de la última página sin dejar constancia, o mandar
-  `p_entregadas = 0` para saltear el tope de 50.000. Arreglo previsto: registrar la constancia en la primera
-  llamada o llevar el conteo del lado servidor en `private.exportaciones_actividad`.
-- **Inalterabilidad (medio).** Los triggers de `registro_actividad` son comunes y no `ENABLE ALWAYS`, así que
-  un rol con `session_replication_role = replica` o `alter table … disable trigger` los saltea. Hoy
-  `authenticated`, `anon` y `service_role` no tienen privilegios de escritura. Arreglo previsto: `alter table
-  public.registro_actividad enable always trigger …` para el trigger de fila y el de `truncate`.
-- **Vencimiento del soporte sin registro (medio).** `soporte.vencido` y la salida solo se asientan si el
-  superadmin vuelve a llamar a entrar o salir, o si su pestaña sigue abierta y el banner llama a salir al
-  vencer. Si cierra el navegador, el Administrador de la organización ve el ingreso con su «hasta HH:MM» pero
-  nunca la salida ni el vencimiento (FR-016). Arreglo previsto: un flow de Kestra, como el de depuración,
-  que cierre los accesos vencidos y los registre.
-- **Bajo.**
-  - `superadmin_entradas` no tiene trigger append-only: solo carece de grants de escritura.
-  - La reescritura de helpers por expresión regular en `20270207100003` es frágil hacia adelante; el pgTAP
-    `acceso_soporte_vigencia` es la guardia: una migración futura no debe leer
-    `superadmin_organizacion_activa` directo, siempre la vista `private.superadmin_contexto_vigente`.
-  - Reingresar con acceso vigente renueva las 4 h sin límite acumulado (cada vez pide motivo y queda
-    `soporte.ingreso`).
-  - `private.exportaciones_actividad` crece una fila por exportación sin purga.
-  - Cuando el filtro excede el tope, la primera llamada ya trajo hasta 1.000 filas al navegador sin descarga
-    ni constancia.
-  - Faltan tests de borde: 8192 y 8193 bytes exactos, y la depuración con `p_hasta` futuro.
+- **E2E del acceso de soporte: no escrito.** No se puede sembrar un superadmin con el patrón de `docs/e2e-app.md`:
+  `service_role` solo tiene `select` sobre `superadmins`. Su cobertura es pgTAP (`acceso_soporte_*`,
+  `cerrar_accesos_soporte`) y Vitest (`AccesoSoporte.test.tsx`).
+- **E2E del detalle de Actividad: escrito pero no verificable en el CI actual.** `apps/web/e2e/actividad-detalle.e2e.ts`
+  requiere stack con sesión; el job `application` solo corre `acceso-publico.e2e.ts`, así que queda omitido. Criterio de
+  aceptación pendiente: que corra verde cuando exista el job de E2E con sesión.
+- **La concurrencia real del candado no se simula en pgTAP.** El pgTAP corre en una sola sesión: verifica que el candado
+  de la clave exacta se toma, no que N sesiones en paralelo se serialicen.
+- **Reingreso a +4 h sin tope acumulado: decisión aceptada por el dueño (2026-11-08).** Reingresar a la misma organización
+  con el acceso vigente renueva el vencimiento a 4 h desde ese momento; se cambia solo si el cliente lo pide.
+- **Borrado en cascada de la cuenta de soporte.** Eliminar la cuenta de una persona de soporte borra sus filas de
+  `superadmin_entradas` (la FK es `on delete cascade`; el trigger append-only lo permite para no impedir bajas de
+  superadmins, igual que el borrado de la organización).

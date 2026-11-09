@@ -1233,9 +1233,9 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "5d115b93b09de3e2edfaf41787a2c09244c6390ab1a77ff0821b3c2a0d7874b4",
+      "pageHash": "3e0999f2608c4177dca411c4ac36c37bdc2f18600e43dff3f31d585e49146269",
       "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
-      "sourceAt": "2650f139",
+      "sourceAt": "e1059443",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1244,7 +1244,7 @@
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "dc8c0e42"
+      "commit": "225df67b"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
