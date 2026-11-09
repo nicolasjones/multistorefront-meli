@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 import { ErrorGuardadoPagina, type PaginaTienda } from '../../../lib/tiendaPaginas'
 
-const mocks = vi.hoisted(() => ({ listar: vi.fn(), guardar: vi.fn(), eliminar: vi.fn(), setWarnWhen: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  listar: vi.fn(), guardar: vi.fn(), eliminar: vi.fn(), setWarnWhen: vi.fn(),
+  nivel: { valor: 'edicion' as 'edicion' | 'lectura' | 'ninguno' },
+}))
+
+vi.mock('../../../hooks/useNivelSeccion', () => ({
+  useNivelSeccion: () => ({ nivel: mocks.nivel.valor, isLoading: false, error: false }),
+}))
 
 vi.mock('@refinedev/core', () => ({
   useWarnAboutChange: () => ({ warnWhen: false, setWarnWhen: mocks.setWarnWhen }),
@@ -25,6 +32,7 @@ const abrir = (empresaId = 'e-1', empresaNombre = 'Mundo JC') =>
 describe('pestaña Páginas (FR-004, FR-005, SC-002)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.nivel.valor = 'edicion'
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.listar.mockResolvedValue({ filas: [pagina(1, true), pagina(2)], total: 2 })
   })
@@ -173,5 +181,98 @@ describe('pestaña Páginas (FR-004, FR-005, SC-002)', () => {
     expect(screen.queryByText('Página 1')).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(mocks.listar).toHaveBeenLastCalledWith('e-2', 0)
+  })
+})
+
+describe('pestaña Páginas: rol y tope (hallazgo 9, hallazgo 6)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.nivel.valor = 'edicion'
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.listar.mockResolvedValue({ filas: [pagina(1, true), pagina(2)], total: 2 })
+  })
+
+  it.each(['lectura', 'ninguno'] as const)('con nivel «%s» deshabilita Nueva página, Editar y Eliminar y avisa que es solo lectura', async (nivel) => {
+    mocks.nivel.valor = nivel
+    abrir()
+
+    expect(await screen.findByText('Página 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nueva página' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Editar Página 1' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Eliminar Página 2' })).toBeDisabled()
+    expect(screen.getByText(/Tu rol no puede editar las páginas de la tienda\./)).toBeInTheDocument()
+  })
+
+  it('con solo lectura y sin páginas, «Nueva página» también queda deshabilitado', async () => {
+    mocks.nivel.valor = 'lectura'
+    mocks.listar.mockResolvedValue({ filas: [], total: 0 })
+    abrir()
+    expect(await screen.findByRole('button', { name: 'Nueva página' })).toBeDisabled()
+  })
+
+  it('con edición los controles están activos y no hay aviso de solo lectura', async () => {
+    abrir()
+    expect(await screen.findByRole('button', { name: 'Editar Página 1' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Nueva página' })).toBeEnabled()
+    expect(screen.queryByText(/Tu rol no puede editar/)).not.toBeInTheDocument()
+  })
+
+  it('si la base rechaza por rol (42501) al guardar, muestra «Tu rol no puede editar…» y no el genérico', async () => {
+    mocks.guardar.mockRejectedValue(new ErrorGuardadoPagina('permission denied', null, '42501'))
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar Página 1' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.change(within(dialogo).getByLabelText('Título'), { target: { value: 'Otro título' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Tu rol no puede editar las páginas de la tienda.')
+    expect(within(dialogo).queryByText(/No pudimos guardar/)).not.toBeInTheDocument()
+  })
+
+  it('si la base rechaza por rol (42501) al eliminar, muestra el mensaje de rol', async () => {
+    mocks.eliminar.mockRejectedValue(new ErrorGuardadoPagina('permission denied', null, '42501'))
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar Página 1' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Eliminar' }))
+
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Tu rol no puede editar las páginas de la tienda.')
+  })
+
+  it('el tope de 50 páginas de la base (22023, sin campo) se muestra con su mensaje claro', async () => {
+    const mensaje = 'La empresa ya tiene el máximo de 50 páginas. Eliminá alguna para crear otra'
+    mocks.guardar.mockRejectedValue(new ErrorGuardadoPagina(mensaje, null, '22023'))
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva página' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.change(within(dialogo).getByLabelText('Título'), { target: { value: 'Una más' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent(mensaje)
+  })
+
+  it('con 50 páginas «Nueva página» se deshabilita y explica el máximo', async () => {
+    mocks.listar.mockResolvedValue({ filas: Array.from({ length: 20 }, (_, i) => pagina(i + 1)), total: 50 })
+    abrir()
+    expect(await screen.findByText('Página 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nueva página' })).toBeDisabled()
+    expect(screen.getByText(/Llegaste al máximo de 50 páginas/)).toBeInTheDocument()
+  })
+
+  it('un contenido de exactamente 10000 caracteres se guarda; 10001 se rechaza en el campo antes de llamar a la base', async () => {
+    mocks.guardar.mockResolvedValue(pagina(3))
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva página' }))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.change(within(dialogo).getByLabelText('Título'), { target: { value: 'Larga' } })
+
+    fireEvent.change(within(dialogo).getByLabelText('Contenido'), { target: { value: 'a'.repeat(10001) } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    expect(await within(dialogo).findByText('El contenido no puede superar los 10000 caracteres.')).toBeInTheDocument()
+    expect(mocks.guardar).not.toHaveBeenCalled()
+
+    fireEvent.change(within(dialogo).getByLabelText('Contenido'), { target: { value: 'a'.repeat(10000) } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(mocks.guardar).toHaveBeenCalledTimes(1))
   })
 })

@@ -37,7 +37,8 @@ export default function MedicionTienda({ host }: { host: string }) {
   // Primero se carga (idempotente) y, en el mismo commit, se registra la visita de la ruta actual.
   useEffect(() => {
     // Con IDs nuevos (otro host o cambio de configuración) `cargarMedicion` reemplaza a los anteriores; si se revocó
-    // el consentimiento o ya no hay IDs, se apaga la medición (los scripts ya descargados quedan inertes).
+    // el consentimiento o ya no hay IDs, se apaga la medición: se borran sus cookies y scripts y, si no hay nada que
+    // perder, se recarga la página para descargar de memoria los scripts de terceros (ver `retirarMedicion`).
     if (medir && ids) cargarMedicion(ids)
     else retirarMedicion()
   }, [medir, ids])
