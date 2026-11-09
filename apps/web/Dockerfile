@@ -26,6 +26,9 @@ FROM nginx:alpine AS runner
 # clave pública (anon/publishable) salen de los mismos ARG que el build del front (no son secretos).
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
+# Sin URL de Supabase o sin clave pública el `proxy_pass` queda roto y robots/sitemap darían 500 sin aviso: el build falla.
+RUN test -n "${VITE_SUPABASE_URL}" && test -n "${VITE_SUPABASE_PUBLISHABLE_KEY}" \
+  || { echo "ERROR: VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY son obligatorios (build-arg): nginx los necesita para proxear robots.txt y sitemap.xml." >&2; exit 1; }
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 RUN sed -i "s|__SUPABASE_URL__|${VITE_SUPABASE_URL%/}|; s|__SUPABASE_ANON_KEY__|${VITE_SUPABASE_PUBLISHABLE_KEY}|g" /etc/nginx/conf.d/default.conf
 COPY --from=builder /workspace/apps/web/dist /usr/share/nginx/html

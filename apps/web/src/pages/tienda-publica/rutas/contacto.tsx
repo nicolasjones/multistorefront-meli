@@ -21,7 +21,14 @@ export default function RutaContacto() {
 
   if (contactoId) return <PaginaNoEncontrada />
   if (contacto.fase === 'cargando') return <EstadoCargaPagina />
-  if (contacto.fase === 'error') return <ErrorConReintento titulo="No pudimos cargar los datos de contacto." alReintentar={contacto.reintentar} />
+  if (contacto.fase === 'error') {
+    return (
+      <>
+        <CabeceraSeo noindex pagina="No pudimos cargar los datos de contacto" />
+        <ErrorConReintento titulo="No pudimos cargar los datos de contacto." alReintentar={contacto.reintentar} />
+      </>
+    )
+  }
   if (contacto.fase === 'no-encontrada') return <PaginaNoEncontrada />
 
   const bajada = contenido?.pie.trim()

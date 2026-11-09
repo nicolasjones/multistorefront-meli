@@ -36,7 +36,7 @@
     "test:edge:invitar-cliente": "node --test supabase/functions/invitar-cliente/handler.test.ts",
     "test:edge:recuperar-clave-cliente": "node --test supabase/functions/recuperar-clave-cliente/handler.test.ts",
     "correo:verificar-salida": "node scripts/verificar-salida-correo.mjs",
-    "test:edge:tienda-seo": "node --test supabase/functions/tienda-seo/handler.test.ts",
+    "test:edge:tienda-seo": "node --test supabase/functions/tienda-seo/handler.test.ts supabase/functions/tienda-seo/nginx.test.ts",
     "test:edge:baja-correo-masivo": "node --test supabase/functions/baja-correo-masivo/handler.test.ts",
     "test:edge:solicitar-acceso": "node --test supabase/functions/solicitar-acceso/handler.test.ts",
     "test:edge:crear-organizacion": "node --test supabase/functions/crear-organizacion/handler.test.ts",
