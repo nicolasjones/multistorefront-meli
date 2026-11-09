@@ -538,12 +538,12 @@
     },
     "docs/producto/importaciones.md": {
       "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
-      "pageHash": "a2db7a97d0a0eab1721019e42c1d29474073fc2c3b2aff3b22963a55f542e89c",
+      "pageHash": "2d20aaeae1db406e5ad647386e6c02b7a2a0aeb87e6a0e321f94d4cc8092f772",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "d53b6778"
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
@@ -613,12 +613,12 @@
     },
     "docs/producto/precios-dolar.md": {
       "title": "Cargar la cotización del dólar",
-      "pageHash": "1f379412a6e6f992b016897c38706929a9289056e4334ce6d3beb0e9009905d2",
+      "pageHash": "4922ed190a53d84b961982c814e52a1761ef439926749c5a0f1eca90c6a76631",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "b4fbf2c5"
     },
     "docs/producto/precios-e-iva.md": {
       "title": "Cómo se calcula el precio final",
@@ -1359,16 +1359,16 @@
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
-      "pageHash": "37f48f0a04088af784b67a7fe13b86a0e79627d16593e917bdacffb9aac445f8",
+      "pageHash": "f4c87de421f3dbd565d4d460826c709123a0bdd2ded2978440474a8e54413d22",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "aa1c55c6",
+      "sourceAt": "86db38a2",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "86db38a2"
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
@@ -1473,9 +1473,9 @@
     },
     "docs/tecnico/importaciones-y-monitoreo.md": {
       "title": "Importaciones y monitoreo (MSF-206)",
-      "pageHash": "126ce7107c9adbe5b7948d073aa1b2aa1debae795ae485c40c1b4ea4e2250c95",
+      "pageHash": "b89df75cc1882fdac0dc9b8ab1fe2198a94f00d3f76f231baa773ff4e861b292",
       "sourceHash": "f702f0776f079d4efa8338d28b1dacb98c29e40fe4b3996c41f8bee499defae5",
-      "sourceAt": "f3861761",
+      "sourceAt": "63b3ac13",
       "sources": [
         "apps/web/src/pages/importaciones",
         "apps/web/src/hooks/useProcesosMasivos.ts",
@@ -1490,7 +1490,7 @@
         "workers"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "33e20f40"
     },
     "docs/tecnico/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería: modelo, RPC y flujos (MSF-219)",
