@@ -12,21 +12,22 @@ sources:
 **Producto:** [Variantes y productos relacionados](../producto/catalogo-variantes-y-relacionados.md).
 Alcance de entrega: `refine` y `supabase`.
 
-> **Fuente.** La implementación vive en la rama `epic/MSF-229-catalogo-catalogo-variantes` (aún sin fusionar en `main` al
-> escribir esta página). Los datos de abajo salen de sus migraciones, spec y pruebas, y de `docs/catalogo.md` y
-> `docs/stock.md` de esa rama. Verificar contra `main` tras el merge.
+> **Fuente.** Implementación mergeada en `dokploy` (PR #749, rama `integra/msf-229`). Los datos salen de sus migraciones
+> `20270220120100` a `20270220120600` y `20270220170000`, y de `docs/catalogo.md`, `docs/stock.md` y
+> `docs/exportacion-total.md` de esa rama.
 
 ## Datos (esquema `dominio`, Principio VII)
 
 | Objeto | Migración | Notas |
 |---|---|---|
-| `dominio.producto_relacionados` | `20270203120100_catalogo_relacionados` | PK `(producto_id, relacionado_id)`, `orden >= 1`, `check (producto_id <> relacionado_id)`, FKs compuestas a `productos` con `on delete cascade`. Unidireccional. |
-| `dominio.producto_variantes` | `20270203120200_catalogo_variantes_tablas` | `nombre`, `codigo`, `codigo_barras` (EAN-13), `activa`, `orden`. Sin precio ni costo propios. Sin INSERT/UPDATE/DELETE directos: se escribe por RPC. |
-| `dominio.existencias_variante` | `20270203120300_catalogo_variantes_stock` | Cantidad por variante y depósito; RLS por `nivel_seccion('stock')`; escriben solo las RPC. |
-| `dominio.movimientos_stock.variante_id` | `20270203120400_catalogo_variantes_movimientos` | Columna nullable, aditiva. |
-| `private.disponibilidad_producto`, `productos_con_stock`, `disponible_publico` | `20270203120500_catalogo_variantes_disponibilidad` | Solo cambia el cuerpo: con variantes, suma de las activas. |
-| `public.guardar_variantes_producto` | `20270203120600_catalogo_variantes_rpc` | Ver «Contratos». |
+| `dominio.producto_relacionados` | `20270220120100_catalogo_relacionados` | PK `(producto_id, relacionado_id)`, `orden >= 1`, `check (producto_id <> relacionado_id)`, FKs compuestas a `productos` con `on delete cascade`. Unidireccional. |
+| `dominio.producto_variantes` | `20270220120200_catalogo_variantes_tablas` | `nombre`, `codigo`, `codigo_barras` (EAN-13), `activa`, `orden`. Sin precio ni costo propios. Sin INSERT/UPDATE/DELETE directos: se escribe por RPC. |
+| `dominio.existencias_variante` | `20270220120300_catalogo_variantes_stock` | Cantidad por variante y depósito; RLS por `nivel_seccion('stock')`; escriben solo las RPC. |
+| `dominio.movimientos_stock.variante_id` | `20270220120400_catalogo_variantes_movimientos` | Columna nullable, aditiva. |
+| `private.disponibilidad_producto`, `productos_con_stock`, `disponible_publico` | `20270220120500_catalogo_variantes_disponibilidad` | Solo cambia el cuerpo: con variantes, suma de las activas. |
+| `public.guardar_variantes_producto` | `20270220120600_catalogo_variantes_rpc` | Ver «Contratos». |
 | `public.v_producto_variantes`, `public.v_producto_relacionados` | `…120600`, `…120100` | Vistas `security_invoker`, `anon` sin acceso. |
+| Exportación total | `20270220170000_exportacion_total_variantes_y_relacionados` | Suma `producto_variantes`, `existencias_variante` y `producto_relacionados` al conjunto exportado (`docs/exportacion-total.md`). |
 
 ```mermaid
 erDiagram
@@ -58,15 +59,19 @@ erDiagram
   = posición del arreglo, bloqueo optimista `40001`, `P0002`, `23505` (código o EAN repetido), `22023` (EAN-13, nombre
   vacío, variante ausente del arreglo, primera variante sobre producto con stock > 0), `42501`. Una fila con `stock`
   distinto exige además `edicion` en `stock` y registra un `ajuste` «Conteo de inventario» en el depósito por defecto.
-  Evento `producto.variantes_editadas` solo ante cambio real.
+  Stock máximo 2147483647. Evento `producto.variantes_editadas` solo ante cambio real.
+- **Stock y concurrencia:** la ficha manda `stock` solo de las variantes cuyo stock se editó, con el valor que se vio
+  (`stock_leido`); si el stock actual ya es otro, la RPC responde `40001` y hay que recargar la ficha (no pisa lo que otra
+  persona movió). Sin edición en Stock se rechaza cualquier valor de stock (`42501`), aunque coincida con el actual. La RPC
+  toma los bloqueos en el mismo orden que `registrar_movimiento_stock` (primero `existencias`, después `productos`).
 - `guardar_relacionados(p_producto, p_relacionados uuid[])`: reemplazo idempotente; `P0002`, `22023`, `42501`; evento
   `producto.relacionados_editados` solo ante cambio real.
 - `registrar_movimiento_stock` pasa de 8 a **9 parámetros** (`p_variante uuid default null`): **BREAKING** de firma, los
   llamadores existentes siguen válidos. Con variantes es obligatoria (`22023`); sin variantes debe ser nula.
 - Unicidad cruzada de `codigo` y `codigo_barras` por organización entre variantes y productos, con disparadores y
   `pg_advisory_xact_lock`.
-- **Desvío del contrato:** `contracts/*.md` dice `security invoker` para las RPC; las migraciones las crean
-  `security definer` (necesario para registrar el evento de actividad), validando organización y rol antes de escribir
+- **Desvío del contrato:** `contracts/*.md` dice `security invoker` para las RPC; las dos son
+  `security definer` (`guardar_variantes_producto` y `guardar_relacionados`) (necesario para registrar el evento de actividad), validando organización y rol antes de escribir
   (encabezados de `…120100` y `…120600`).
 
 ## Frontend
@@ -78,12 +83,34 @@ Empresa activa: no aplica (datos de la organización, stock único compartido).
 
 ## Límites y fuera de alcance
 
-- Ventas, reservas, Mercado Libre y tienda **no** descuentan stock de variante (Decisión 5 de la spec); `stock.actualizado`
-  no se emite para movimientos de variante.
-- Relacionados en ficha pública de la tienda y sugerencia en comprobantes: fuera (consumen `v_producto_relacionados` en
-  sus propias specs).
+Limitaciones reales de lo entregado (detalle en `docs/catalogo.md`, «Avisos de límites de las variantes»):
+
+- **Un producto con variantes hoy no se puede vender.** Comprobantes (`confirmar_comprobante`) y reservas leen y mueven
+  `dominio.existencias` del producto, que vale 0: la venta se rechaza («No hay stock suficiente… hay 0», salvo líneas «a
+  pedido»). Falla cerrado, sin sobreventa. Mercado Libre y tienda tampoco descuentan stock de variante (Decisión 5);
+  `stock.actualizado` no se emite para movimientos de variante.
+- **Otros llamadores de `registrar_movimiento_stock` no pasan `p_variante`** y fallan con `22023` sobre un producto con
+  variantes: ingreso de mercadería (y su anulación), toma de inventario (`confirmar_toma_inventario`), carga inicial de
+  stock, reingreso de RMA, lotes y el diálogo «Nuevo movimiento». El ingreso y la toma son todo-o-nada: una línea con un
+  producto con variantes aborta el ingreso o la confirmación completos; hay que dejar ese producto afuera.
+- **Lecturas que no suman variantes:** `public.stock_estados` (pantalla Stock y alertas de Inicio),
+  `analitica.inventario_productos_stock` (reportes de inventario) y `listar_catalogo_tienda` leen `dominio.existencias`. Un
+  producto con variantes figura «Con stock» en catálogo y ficha, y «Sin stock» ahí. Solo `disponibilidad_producto`,
+  `productos_con_stock` y `disponible_publico` suman variantes.
+- **Las variantes no se borran**, se desactivan: un producto con variantes queda siempre en «modo variantes». Se aceptan
+  movimientos sobre una variante inactiva (entran al libro, no suman a la disponibilidad).
+- **Relacionados curados sin consumidor:** la ficha pública de la tienda arma «relacionados» por categoría
+  (`publico.relacionados_por_dominio`); `v_producto_relacionados` no se lee en público. Hoy es escritura sin lectura pública.
+  Tampoco se sugieren en comprobantes.
+- **Detalles aceptados:** intercambiar los códigos de dos variantes en un solo guardado se rechaza (`23505`, «ya lo usa otra
+  variante»; se hace en dos pasos); sin tope de cantidad de variantes ni de relacionados; «Duplicar» no copia variantes ni
+  relacionados; el buscador de relacionados incluye productos inactivos.
+- **Escritura directa de relacionados:** quien edita Productos puede insertar, borrar y reordenar filas de
+  `producto_relacionados` por PostgREST (RLS por organización y FKs compuestas); esa vía no registra evento de actividad ni
+  garantiza un `orden` sin huecos. Decisión del diseño original; si se quiere solo por RPC, quitar esos permisos en una
+  migración posterior.
 - Precio propio por variante: fuera (hereda `private.precio_para` del producto).
-- Importación (MSF-202) y envío de stock/precios a Mercado Libre (MSF-123, MSF-137): se adaptan en sus specs.
+- Importación (MSF-202) y envío de stock/precios a Mercado Libre (MSF-123, MSF-137): siguen operando por producto.
 
 ## Reversión (migración posterior, no en el mismo PR)
 
@@ -120,6 +147,10 @@ organización; el orden de relacionados guardado se lee igual; dos organizacione
 ## Pendientes
 
 - TODO (dueño: Documentación/QA): capturas del manual en `docs/producto/img/catalogo-variantes-y-relacionados/` con
-  `pnpm docs:capturas`; no se pudieron generar porque el código de la épica no está en esta rama.
-- TODO (dueño: Producto): confirmar con el cliente las Decisiones 1, 3, 4 y 5 de la spec (relacionados públicos, precio por
-  variante, traspaso de stock a la primera variante, adaptación de canales).
+  `pnpm docs:capturas`.
+- Decisión de producto pendiente: adaptar ventas, reservas, ingresos, toma de inventario, carga inicial, RMA, lotes,
+  «Nuevo movimiento» y las pantallas Stock/alertas/reportes a variantes (o excluir de los selectores los productos con
+  variantes).
+- Decisión de producto pendiente: qué hacer con los relacionados curados (mostrarlos en la ficha pública o retirarlos).
+- TODO (dueño: Producto): confirmar con el cliente las Decisiones 3 y 4 de la spec (precio por variante, traspaso de stock a
+  la primera variante).

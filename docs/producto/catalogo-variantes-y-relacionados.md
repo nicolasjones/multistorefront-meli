@@ -36,14 +36,32 @@ uno, cargás una **variante** con su propio código, su código de barras y su s
 - **Primera variante.** Si el producto ya tiene stock, no se le pueden agregar variantes: primero dejá el stock del
   producto en 0 y cargalo en las variantes.
 - **Cambiar el stock de una variante.** Se escribe el stock contado en la celda **Stock**; al guardar queda registrado
-  como un ajuste «Conteo de inventario». Hace falta permiso de edición en Stock; sin acceso a Stock la columna muestra «—».
+  como un ajuste «Conteo de inventario». Hace falta permiso de edición en Stock; sin acceso a Stock la columna muestra «—» y no se puede cambiar ningún stock.
+- **Si otra persona movió el stock mientras tenías la ficha abierta.** Al guardar, el sistema no pisa ese cambio: te
+  avisa y tenés que recargar la ficha y volver a cargar tu conteo. El stock máximo por variante es 2147483647.
+- **No se borran.** Las variantes solo se desactivan, y un producto con variantes sigue funcionando como producto con
+  variantes aunque todas estén inactivas. Si registrás un movimiento sobre una variante inactiva, queda en el historial
+  pero no suma.
+- **Intercambiar códigos.** Si querés que dos variantes se cambien los códigos entre sí, hacelo en dos pasos (guardá con
+  un código provisorio en una de ellas); en un solo guardado el sistema avisa que el código ya lo usa otra variante.
+- **Límites.** No hay tope de variantes por producto. «Duplicar» un producto no copia sus variantes.
 - **Sin variantes** el producto funciona igual que siempre.
 
 ### Lo que todavía no se puede
 
 - Un **precio distinto por variante**: hoy la variante se vende al precio del producto.
-- Las **ventas, las reservas, Mercado Libre y la tienda** todavía no descuentan stock de una variante. Conviene cargar
-  variantes solo en productos que no se vendan por esos canales hasta que se adapten.
+- **Un producto con variantes hoy no se puede vender.** Los comprobantes y las reservas miran el stock del producto, que
+  vale 0, y los rechazan; no hay riesgo de vender de más, pero tampoco se puede vender. Conviene cargar variantes solo en
+  productos que todavía no se venden.
+- **Ingresos y movimientos de stock.** El ingreso de mercadería (y su anulación), la toma de inventario, la carga inicial
+  de stock, el reingreso de devoluciones, los lotes y el diálogo «Nuevo movimiento» no permiten elegir variante: con un
+  producto con variantes fallan. Si un ingreso o una toma incluye un producto así, se cancela completo: sacá ese
+  producto y repetí.
+- **Pantallas de stock.** La pantalla Stock, las alertas de Inicio y los reportes de inventario no suman las variantes:
+  un producto con variantes figura «Con stock» en el catálogo y en la ficha, pero «Sin stock» ahí.
+- Mercado Libre y la tienda tampoco descuentan stock de una variante.
+
+Está pendiente de decisión de producto adaptar ventas, ingresos, toma de inventario y Stock a las variantes.
 
 ## Productos relacionados
 
@@ -62,8 +80,10 @@ Relacionar A con B **no** relaciona B con A: cada ficha tiene su propia lista.
 
 ### Lo que todavía no se puede
 
-- Mostrar los relacionados en la ficha pública de la tienda y sugerirlos al agregar una línea en un comprobante: por
-  ahora solo se cargan y se ordenan.
+- Mostrar tus relacionados en la ficha pública de la tienda y sugerirlos al agregar una línea en un comprobante: por
+  ahora solo se cargan y se ordenan. La tienda arma sus «relacionados» por categoría, así que la lista que cargás acá
+  todavía no se ve ahí. Está pendiente de decisión qué hacer con esta lista.
+- No hay tope de relacionados por producto. «Duplicar» no los copia. El buscador también muestra productos inactivos.
 
 ## Quién puede hacerlo
 
