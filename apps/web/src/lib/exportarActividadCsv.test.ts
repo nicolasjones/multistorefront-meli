@@ -81,7 +81,7 @@ describe('traerActividadParaExportar', () => {
   }
   const lote = (n: number) => Array.from({ length: n }, () => fila())
 
-  it('pide con los filtros de la pantalla, pide el total solo la primera vez y reenvía corte, cursor y entregadas', async () => {
+  it('pide con los filtros de la pantalla, pide el total solo la primera vez y reenvía corte y cursor (sin entregadas: la base cuenta)', async () => {
     const rpc = vi.fn()
       .mockResolvedValueOnce(respuesta(lote(LOTE_EXPORTACION_ACTIVIDAD), { total: 1500, hayMas: true, corte: 'corte-1' }))
       .mockResolvedValueOnce(respuesta(lote(500), { corte: 'corte-1' }))
@@ -93,12 +93,13 @@ describe('traerActividadParaExportar', () => {
     expect(rpc.mock.calls[0]).toEqual(['exportar_actividad', {
       p_desde: null, p_hasta: null, p_empresa: 'e-1', p_actor: 'u-1', p_tipo: 'producto.creado', p_texto: 'lámpara',
       p_corte: null, p_cursor_creado_en: null, p_cursor_id: null, p_limite: LOTE_EXPORTACION_ACTIVIDAD,
-      p_entregadas: 0, p_exportacion: 'exp-1', p_con_total: true,
+      p_exportacion: 'exp-1', p_con_total: true,
     }])
     expect(rpc.mock.calls[1][1]).toMatchObject({
       p_corte: 'corte-1', p_cursor_creado_en: '2026-10-01T00:00:00Z', p_cursor_id: 'id-ult',
-      p_entregadas: LOTE_EXPORTACION_ACTIVIDAD, p_exportacion: 'exp-1', p_con_total: false,
+      p_exportacion: 'exp-1', p_con_total: false,
     })
+    expect(rpc.mock.calls[1][1]).not.toHaveProperty('p_entregadas')
     expect(resultado.estado).toBe('completo')
     if (resultado.estado === 'completo') {
       expect(resultado.filas).toHaveLength(1500)

@@ -27,10 +27,12 @@ private.depurar_registro_actividad(p_hasta timestamptz default now()): integer
 ## F-AUD-03
 
 ```ts
-public.exportar_actividad(p_desde date default null, p_hasta date default null, p_empresa uuid default null, p_actor uuid default null, p_tipo text default null, p_texto text default null): { creado_en, tipo, empresa_nombre, actor_nombre, detalle, total: bigint }
+public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_cursor_creado_en, p_cursor_id, p_limite, p_entregadas /* ignorado */, p_exportacion uuid, p_con_total boolean): { filas, total, tope, recortado, corte, hay_mas, siguiente, exportacion }
 ```
 
-- Mismos filtros y semántica que `listar_actividad`; security invoker; exige `private.puede_accion('actividad','exportar')` (`42501` si no); máximo 50.000 filas (`total` trae el conteo real para avisar el recorte).
+- Mismos filtros y semántica que `listar_actividad`; security definer; exige `private.puede_accion('actividad','exportar')` **y** nivel `edicion` en `actividad` (por defecto solo el Administrador; `42501` si no).
+- Lotes por cursor `(creado_en, id)`, máximo 50.000 filas por exportación; el conteo y el tope los lleva el servidor (`p_entregadas` se ignora). `total` trae el conteo real para avisar el recorte.
+- La constancia `actividad.exportada` se registra en la **primera** llamada de cada `p_exportacion` (filtros + total) y el id se cierra al entregar la última fila o llegar al tope; reutilizar un id cerrado, incluido el reintento de la última página, devuelve `22023`.
 
 ## F-OPS-04
 
