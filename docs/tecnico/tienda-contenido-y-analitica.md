@@ -16,34 +16,10 @@ sources:
 **F-TDA-25** compartir producto (`MSF-325`, commit `87f9eb03`).
 Resumen para quien administra la tienda: [Páginas propias, medición de visitas y botón Compartir](../producto/tienda-contenido-y-analitica.md).
 
-> **Estado del código:** la implementación vive en la rama `epic/MSF-164-tiendas-online-tienda-contenido-y-analit`
-> (tip `232d1cab`) y no está en `main` al escribir esta página. Las rutas y migraciones se verificaron contra esa
-> rama. Depende de **MSF-149** (contrato de consentimiento de cookies, `lib/consentimientoCookies.ts`) y de
+> **Estado del código:** implementado y mergeado en `dokploy` (PR #772 de la épica, #779 con la revocación del
+> consentimiento y el tope de eventos, y #800 con los hallazgos de la revisión independiente). Depende de **MSF-149** (contrato de consentimiento de cookies, `lib/consentimientoCookies.ts`) y de
 > **MSF-212** (puntos de enganche de WhatsApp y contacto: [WhatsApp y contacto](tienda-whatsapp-y-contacto.md),
 > que dejó los eventos para esta épica).
-
-## Alcance de entrega
-
-`refine` (front público y pestañas de la gestión de la tienda) y `supabase` (migraciones aditivas, funciones de
-`publico` y pgTAP). Sin `kestra`, `superset`, `workers`, Edge Function ni `openapi/`. F-TDA-25 no toca la base.
-
-## Datos (esquema `dominio`, Principio VII)
-
-| Historia | Migración | Contenido | Reversión (migración posterior) |
-|---|---|---|---|
-| F-TDA-23 | `supabase/migrations/20270212200001_tienda_paginas.sql` | tabla `dominio.tienda_paginas` + RLS (solo `select` a `authenticated`, sin privilegios a `anon`); `private.slug_pagina_tienda`, `private.normalizar_tienda_pagina`; `public.guardar_pagina_tienda`, `public.eliminar_pagina_tienda`; `publico.paginas_por_dominio`, `publico.pagina_por_dominio` | `drop function` de las funciones y `drop table dominio.tienda_paginas` (cabecera del archivo) |
-| F-TDA-24 | `supabase/migrations/20270212200002_tienda_analitica.sql` | tabla `dominio.tienda_analitica` (una fila por empresa) + RLS; `public.guardar_analitica_tienda`; `publico.analitica_por_dominio` | `drop function` de las funciones y `drop table dominio.tienda_analitica` (cabecera del archivo) |
-
-Reglas comunes: la escritura es **solo por RPC** `SECURITY DEFINER` que exige `private.nivel_seccion('empresas') = 'edicion'`
-y empresa de la organización; `revoke … from public, anon` + `grant execute … to authenticated`. Las funciones de
-`publico` devuelven lista blanca (nunca `organizacion_id`) y `null` idéntico para host desconocido y empresa
-desactivada. Detalle de firmas: `specs/20270210-100000-tienda-contenido-y-analitica/contracts/tienda-contenido-analitica.md`.
-
-Restricciones relevantes (migraciones citadas):
-
-- `tienda_paginas`: `unique (empresa_id, slug)`; título 1–80, contenido ≤ 10 000, `slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`; `visible` por defecto `false`. El `slug` se genera al crear (con sufijo `-n` si choca) y no cambia al editar. El `hint` del error nombra el campo (`titulo`, `contenido`, `pagina`).
-- `tienda_analitica`: `ga4_id ~ '^G-[A-Z0-9]{4,20}$'`, `meta_pixel_id ~ '^[0-9]{8,20}$'`. Se guardan en mayúsculas/recortados y el vacío significa «quitar» (`null`). Son identificadores públicos, no secretos.
-- Texto plano: se guarda literal; el front lo escapa siempre.
 
 El modelo se resume en [Datos](datos.md#paginas-de-contenido-y-analitica-de-la-tienda-msf-164).
 
@@ -56,17 +32,46 @@ El modelo se resume en [Datos](datos.md#paginas-de-contenido-y-analitica-de-la-t
 | Ruta pública `/pagina/:slug` | `apps/web/src/pages/tienda-publica/rutas/pagina.tsx`, `hooks/usePaginaTienda.ts` |
 | Columna «Información» del pie | `tienda-publica/layout/PieInformacion.tsx` (montada desde `PieCategorias`), `hooks/useEnlacesPaginas.ts` |
 | Medición | `apps/web/src/lib/analiticaTienda.ts`, `tienda-publica/layout/MedicionTienda.tsx` (montada en `LayoutTienda`) |
-| Eventos | `whatsapp/DialogoWhatsApp.tsx` (`clic_whatsapp`), `contacto/FormularioContacto.tsx` (`envio_contacto`) |
+| Eventos | `rutas/producto.tsx` (`vista_producto`), `layout/BuscadorTienda.tsx` (`busqueda`), `whatsapp/DialogoWhatsApp.tsx` (`clic_whatsapp`), `contacto/FormularioContacto.tsx` (`envio_contacto`) |
 | Compartir | `tienda-publica/ficha/BotonCompartir.tsx` (montado en `DatosProducto.tsx`), `lib/enlaceProducto.ts` |
 
 **Medición.** `MedicionTienda` consulta `publico.analitica_por_dominio` una vez por visita y llama a `cargarMedicion`
 solo si `debeMedir`: hay al menos un ID **y** `useConsentimientoCookies()` vale `aceptadas`. Se monta solo en el
-front público, por lo que la vista previa del panel y una tienda desactivada nunca cargan scripts. Los scripts son
+front público (`LayoutTienda`), por lo que la vista previa del panel y una tienda pausada (`empresa.activa = false`,
+que muestra «Volvemos pronto» sin pasar por el layout) nunca cargan scripts. Los scripts son
 `https://www.googletagmanager.com/gtag/js?id=<ID codificado>` y `https://connect.facebook.net/en_US/fbevents.js`; los
-IDs se pasan siempre como datos. GA4 se configura con `send_page_view: false` y cada cambio de ruta emite
-`page_view` a mano (`registrarVisita`) para no duplicar. Una falla de carga se traga. Los eventos
-(`registrarEventoTienda`) llevan solo el nombre y son no-op sin medición cargada. Un cambio de consentimiento con la
-página abierta carga los scripts en ese momento.
+IDs se pasan siempre como datos.
+
+- *GA4:* `gtag('config', id, { send_page_view: false })` y cada cambio de ruta emite `page_view` a mano
+  (`registrarVisita`). Con la «Medición mejorada» activa en la propiedad Google suma `page_view` e interacciones de
+  formularios por su cuenta: solo se desactiva en la propiedad (Administrar → Flujos de datos → flujo web).
+- *Meta Pixel:* antes de `init` se ejecuta `fbq('set','autoConfig',false,<ID>)` y `init` va con objeto vacío: sin
+  coincidencia avanzada automática, sin lectura de formularios ni de clics. Los eventos usan
+  `trackSingle` / `trackSingleCustom` con el ID vigente.
+- *Eventos* (`registrarEventoTienda`): `vista_producto`, `busqueda`, `clic_whatsapp` y `envio_contacto`; llevan solo el
+  nombre (nunca el texto buscado ni datos del visitante) y son no-op sin medición cargada. Uno que llega antes de
+  que cargue la medición espera (máx. 5). `busqueda` se emite al ir a resultados (Enter o «Ver todos»), no al elegir
+  una sugerencia ni al entrar directo a la URL.
+- *Consentimiento vigente:* cada emisión y cada visita consultan el consentimiento actual. **Revocar apaga la
+  medición** (`retirarMedicion`): `ga-disable-<ID>` y `consent update denied` en GA4, `consent revoke` en Meta; borra las
+  cookies `_ga`, `_ga_<ID>`, `_gid`, `_gat*`, `_gcl_*`, `_fbp`, `_fbc` (path `/`, dominio actual y dominios padre, sin
+  sufijos públicos como `com.ar` o `co.uk`); borra las claves de `localStorage` / `sessionStorage` **por proveedor** con
+  regex ancladas (Google: `_ga`, `_ga_*`, `_gid`, `_gat*`, `_gcl_*`, `__gads`, `__gpi`, `__eoi`, `google_experiment_mod`;
+  Meta: `_fbp`, `_fbc`, `_fbq`, `fbevents`, `fbq`; nunca la decisión de cookies ni claves de la app); quita los `<script>` y
+  las globales (`dataLayer`, `gtag`, `fbq`, `_fbq`, `google_tag_manager`, `google_tag_data`). Un cambio de consentimiento
+  a «aceptadas» con la página abierta carga los scripts en ese momento.
+- *Recarga diferida:* los scripts ya evaluados solo se sueltan recargando. Se recarga **únicamente si es seguro**: no con
+  la pestaña en segundo plano, un campo con texto, un `select` cambiado, un checkbox o radio cambiado, un
+  `contenteditable`, el foco en un campo o un diálogo abierto. Si no es seguro se difiere y se reintenta al soltar el
+  foco hacia algo que no es otro campo, al volver a la pestaña, al cambiar de ruta de la SPA y cada 5 s con la pestaña
+  visible (se cancela al recargar). El contador `enVuelo` cuenta los scripts pedidos que no cargaron ni fallaron: al
+  revocar cuentan como «en memoria». Un script que llega tarde tras revocar se deja **inerte** y se limpian sus huellas;
+  uno de un ID de GA4 anterior queda con `ga-disable` y sin sus cookies sin tocar el vigente. `pixelEnMemoria` evita
+  inyectar otro `fbevents.js` si se quita y se vuelve a agregar el ID de Meta. Re-aceptar con scripts viejos que no se
+  pudieron recargar **no carga nada encima** (evita doble envío): la medición queda apagada hasta poder recargar.
+- *Cambio de ID de GA4 en la misma visita:* se descarga el script y el `dataLayer` del ID anterior y se carga el nuevo.
+- *Scripts bloqueados:* `onerror` apaga esa herramienta (borra su `dataLayer` o pila), no se reintenta en esa visita y
+  no se acumulan eventos. Una falla de carga nunca se muestra.
 
 **Compartir.** `enlaceProducto(id)` = `${window.location.origin}/producto/${id}`, sin parámetros. `BotonCompartir`
 usa `navigator.share({ title, url })`; `AbortError` no avisa; cualquier otro fallo o la ausencia de la API cae a
@@ -77,7 +82,9 @@ usa `navigator.share({ title, url })`; `AbortError` no avisa; cualquier otro fal
 
 Las pestañas **Páginas** y **Analítica** pertenecen a la gestión de la tienda de una empresa (`/empresas/:id/tienda/:pestana`):
 al cambiar de empresa se reencuadra la lista y se descartan diálogos; **Analítica** avisa de cambios sin guardar
-(`useWarnAboutChange`). Permiso: edición en Empresas. No se creó una pantalla nueva (decisión D1 de la spec).
+(`useWarnAboutChange`). Permiso: edición en Empresas. No se creó una pantalla nueva (decisión D1 de la spec). Con un nivel
+que no es edición, las dos pestañas deshabilitan sus controles y avisan que es solo lectura; un rechazo `42501` de la base
+muestra «Tu rol no puede editar…».
 
 ## Fuera de alcance / pendiente
 
@@ -106,8 +113,8 @@ Prerrequisitos: usuario con edición en Empresas; las dos tiendas del seed con d
 3. Eliminar la página (diálogo de confirmación) → `/pagina/como-comprar` vuelve a dar 404.
 4. **Analítica.** En `/empresas/<id>/tienda/analitica` guardar `G-TEST12345` y un píxel de 10 dígitos; un ID inválido muestra el error bajo el campo.
 5. En la tienda publicada, sin aceptar cookies: la pestaña de red no muestra pedidos a `googletagmanager.com` ni `facebook.net`. Aceptar → se cargan con los IDs de **esa** tienda; navegar emite una visita.
-6. Abrir WhatsApp desde una ficha y enviar el formulario de contacto → un evento cada uno (`clic_whatsapp`, `envio_contacto`); un envío fallido no emite.
-7. Pausar la tienda o abrir la vista previa del panel → no se cargan scripts.
+6. Abrir una ficha, buscar con Enter y abrir WhatsApp desde una ficha, y enviar el formulario de contacto → un evento cada uno (`vista_producto`, `busqueda`, `clic_whatsapp`, `envio_contacto`); un envío fallido no emite; elegir una sugerencia no emite `busqueda`. Luego **revocar** el consentimiento (`localStorage.setItem('tienda:consentimiento-cookies', 'rechazadas')` y el evento `tienda:consentimiento-cookies`) y repetir una acción: no sale ningún pedido nuevo, las cookies `_ga*`/`_fbp` desaparecen y la medición queda apagada.
+7. Pausar la tienda (empresa desactivada) o abrir la vista previa del panel → no se cargan scripts.
 8. **Compartir.** En una ficha, **Compartir**: con selector se abre con nombre y enlace; sin él, aparece «Enlace copiado»; con el portapapeles bloqueado, el campo «Copiá este enlace».
 
 Resultado esperado: las páginas se ven solo cuando están visibles y solo en su tienda; la medición solo se carga con la tienda publicada, IDs cargados y cookies aceptadas; compartir siempre deja el enlace de la ficha al alcance del visitante.
@@ -121,3 +128,24 @@ Resultado esperado: las páginas se ven solo cuando están visibles y solo en su
 | `[MSF-325:T045]` | `apps/web/e2e/tienda-compartir.e2e.ts` |
 
 Vitest + axe: `pages/empresas/tienda/paginas.test.tsx`, `analitica.test.tsx`, `rutas/pagina.test.tsx`, `layout/PieInformacion.test.tsx`, `layout/MedicionTienda.test.tsx`, `lib/analiticaTienda.test.ts`, `ficha/BotonCompartir.test.tsx`, `lib/enlaceProducto.test.ts`.
+
+## Seguridad y límites
+
+- **Lecturas públicas.** `publico.paginas_por_dominio`, `publico.pagina_por_dominio` y `publico.analitica_por_dominio` las
+  llama el navegador directo a Supabase (PostgREST): **no pasan por el nginx de la tienda**, así que su límite de
+  frecuencia y su caché dependen de PostgREST y del proxy delante de Supabase, no de este repositorio. Lo que acota el
+  daño es la lista blanca de campos y el tope de páginas.
+- **Tope de páginas.** `public.guardar_pagina_tienda` rechaza la página 51 de una empresa con `22023` («La empresa ya tiene
+  el máximo de 50 páginas…», migración `20270218400000`); editar no se bloquea. El pie también acota a 50 enlaces.
+- **CSP.** `apps/web/nginx.conf` envía `Content-Security-Policy-Report-Only` en `location /` (mismo `index.html` que el
+  panel) con `self`, `googletagmanager.com`, `google-analytics.com`, `connect.facebook.net`, `facebook.com`, el origen de
+  Supabase e imágenes `https:`. Está en **modo solo reporte** porque sin un navegador real no se puede garantizar que el
+  panel (embebidos de Superset, fuentes) no se rompa. **Sin `report-uri`**: el endpoint de seguridad de GlitchTip lleva una
+  clave por proyecto y entorno y habría que inyectarla al construir la imagen (`ARG` en `apps/web/Dockerfile` y marcador en
+  `nginx.conf`); queda como seguimiento pendiente para conectar GlitchTip. `index.html` no tiene scripts inline. Plan de
+  endurecimiento: revisar a mano la consola de un navegador real en tienda y panel durante un ciclo de uso, sumar al
+  allowlist lo legítimo y pasar el mismo valor a `Content-Security-Policy`.
+- **Meta Pixel.** `fbq('set','autoConfig',false,<ID>)` antes de `init` y `init(<ID>, {})`: sin coincidencia avanzada ni
+  lectura de formularios o clics.
+- **GA4.** La «Medición mejorada» de la propiedad suma `page_view` e interacciones de formularios por su cuenta y duplica
+  visitas: se desactiva en la propiedad de GA4, no desde la tienda (lo avisa la pestaña «Analítica»).
