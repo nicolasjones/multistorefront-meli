@@ -21,6 +21,8 @@ import {
   leerPreciosEscala,
   mensajeErrorEscalas,
 } from '../../lib/escalas'
+import { type Relacionado, guardarRelacionados, leerRelacionados, mensajeErrorRelacionados, relacionadosCambiaron } from '../../lib/productos-relacionados'
+import { ErrorGuardarVariantes, type FilaVariante, guardarVariantes, leerVariantes, variantesCambiaron } from '../../lib/productos-variantes'
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { EscalasPrecio } from '../../components/productos/EscalasPrecio'
@@ -33,7 +35,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 
 const COLUMNAS = 'id, organizacion_id, nombre, descripcion, sku, compatible_con, moneda, precio_lista, activo, updated_at, proveedor_id, codigo_proveedor, codigo_barras, categoria_id, alicuota_iva_id, disponibilidad_manual'
 
-type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string; alicuotaId: string; escalas: PreciosEscala; disponibilidad: Disponibilidad | null }
+type Carga = { producto: Producto | null; costo: number | string | null; imagenes: ImagenExistente[]; empresaIds: string[]; categoriaId: string; alicuotaId: string; escalas: PreciosEscala; disponibilidad: Disponibilidad | null; relacionados: Relacionado[] | null; variantes: FilaVariante[] | null }
 
 // Edición de producto (F-CAT-04, FR-009/FR-011). La autoridad es RLS dentro de
 // public.actualizar_producto (security invoker, bloqueo optimista por updated_at):
@@ -52,6 +54,7 @@ type EdicionProductoProps = {
 export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'Ir a productos' }: EdicionProductoProps) {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
+  const { nivel: nivelStock } = useNivelSeccion('stock')
   const veCosto = nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion'
   const [carga, setCarga] = useState<Carga | null>(null)
   const [hayError, setHayError] = useState(false)
@@ -71,6 +74,8 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
   // Precios por escala elegidos que no se pudieron guardar (los datos del producto sí quedaron guardados).
   const [escalasPendientes, setEscalasPendientes] = useState<PreciosEscala | null>(null)
   const [errorEscalas, setErrorEscalas] = useState<string | null>(null)
+  const [relacionadosPendientes, setRelacionadosPendientes] = useState<string[] | null>(null)
+  const [errorRelacionados, setErrorRelacionados] = useState<string | null>(null)
   const ultimaPeticion = useRef(0)
 
   const cargar = useCallback(async () => {
@@ -88,6 +93,8 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
     setErrorAlicuota(null)
     setEscalasPendientes(null)
     setErrorEscalas(null)
+    setRelacionadosPendientes(null)
+    setErrorRelacionados(null)
     try {
       const { data, error } = await supabaseClient
         .schema('dominio')
@@ -125,6 +132,26 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
           console.error('No pudimos leer la disponibilidad del producto.', errorDisponibilidad)
         }
       }
+      // Relacionados (F-CAT-18): si no se pueden leer, el bloque lo avisa y no se guardan (null).
+      let relacionados: Relacionado[] | null = []
+      if (data) {
+        try {
+          relacionados = await leerRelacionados(supabaseClient, data.id)
+        } catch (errorRelacionadosLectura) {
+          console.error('No pudimos leer los productos relacionados.', errorRelacionadosLectura)
+          relacionados = null
+        }
+      }
+      // Variantes (F-CAT-15): igual, si no se pueden leer el bloque lo avisa y no se guardan (null).
+      let variantes: FilaVariante[] | null = []
+      if (data) {
+        try {
+          variantes = await leerVariantes(supabaseClient, data.id)
+        } catch (errorVariantesLectura) {
+          console.error('No pudimos leer las variantes.', errorVariantesLectura)
+          variantes = null
+        }
+      }
       let imagenes: ImagenExistente[] = []
       if (data) {
         const { data: filas, error: errorImagenes } = await supabaseClient
@@ -137,7 +164,7 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
         if (errorImagenes) throw errorImagenes
         imagenes = await firmarImagenes(supabaseClient, filas ?? [])
       }
-      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '', alicuotaId: data?.alicuota_iva_id ?? SIN_ALICUOTA_PRODUCTO, escalas, disponibilidad })
+      if (peticion === ultimaPeticion.current) setCarga({ producto: data, costo, imagenes, empresaIds, categoriaId: data?.categoria_id ?? '', alicuotaId: data?.alicuota_iva_id ?? SIN_ALICUOTA_PRODUCTO, escalas, disponibilidad, relacionados, variantes })
     } catch (error) {
       console.error('No pudimos cargar el producto.', error)
       if (peticion === ultimaPeticion.current) setHayError(true)
@@ -169,7 +196,7 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
     }
   }
 
-  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala) => {
+  const guardar = async (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[], variantes: FilaVariante[]) => {
     if (!producto) return
     // Si solo cambian imágenes o empresas no se llama a la RPC: evita subir `updated_at`, un evento
     // «producto actualizado» sin cambio real y un conflicto de bloqueo optimista falso.
@@ -179,7 +206,18 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
     const cambioCategoria = (categoriaId ?? '') !== (carga?.categoriaId ?? '')
     const cambioAlicuota = (alicuotaId ?? SIN_ALICUOTA_PRODUCTO) !== (carga?.alicuotaId ?? SIN_ALICUOTA_PRODUCTO)
     const cambioEscalas = hayCambiosEscalas(escalas, carga?.escalas ?? PRECIOS_ESCALA_VACIOS)
-    if (hayCambios || !(hayCambiosImagenes(imagenes) || cambioEmpresas || cambioCategoria || cambioAlicuota || cambioEscalas)) {
+    const cambioRelacionados = carga?.relacionados != null && relacionadosCambiaron(relacionadosIds, carga.relacionados.map((r) => r.id))
+    const cambioVariantes = carga?.variantes != null && variantesCambiaron(variantes, carga.variantes)
+    // Variantes (F-CAT-15) primero: un código repetido se ve en su campo con el formulario intacto y sin dejar el
+    // producto a medias; con el `updated_at` leído al abrir la ficha (bloqueo optimista). Reenviar es idempotente.
+    if (cambioVariantes) {
+      try {
+        await guardarVariantes(supabaseClient, producto.id, producto.updated_at, variantes, nivelStock === 'edicion', carga?.variantes ?? undefined)
+      } catch (errorVariantes) {
+        throw new ErrorGuardarVariantes(errorVariantes)
+      }
+    }
+    if (hayCambios || !(hayCambiosImagenes(imagenes) || cambioEmpresas || cambioCategoria || cambioAlicuota || cambioEscalas || cambioRelacionados || cambioVariantes)) {
       const parametros = aParametrosActualizar(formulario, { conCosto: editaCosto, id: producto.id, actualizadoEn: producto.updated_at })
       const { error } = await supabaseClient.rpc('actualizar_producto', parametros)
       if (error) {
@@ -231,6 +269,17 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
     }
     setEscalasPendientes(escalasSinGuardar)
     setErrorEscalas(null)
+    let relacionadosSinGuardar: string[] | null = null
+    if (cambioRelacionados) {
+      try {
+        await guardarRelacionados(supabaseClient, producto.id, relacionadosIds)
+      } catch (error) {
+        console.error('No pudimos guardar los productos relacionados.', error)
+        relacionadosSinGuardar = relacionadosIds
+      }
+    }
+    setRelacionadosPendientes(relacionadosSinGuardar)
+    setErrorRelacionados(null)
     const resultado = await aplicarImagenes(imagenes, carga?.imagenes ?? [])
     setPendientes(resultado.errores.length > 0 ? resultado : null)
     setGuardado(formulario.nombre.trim())
@@ -247,6 +296,20 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
     } catch (error) {
       console.error('No pudimos reintentar guardar las empresas del producto.', error)
       setErrorEmpresas('No pudimos guardar las empresas. Probá de nuevo.')
+    } finally {
+      setReintentando(false)
+    }
+  }
+
+  const reintentarRelacionados = async () => {
+    if (!producto || !relacionadosPendientes) return
+    setReintentando(true)
+    setErrorRelacionados(null)
+    try {
+      await guardarRelacionados(supabaseClient, producto.id, relacionadosPendientes)
+      setRelacionadosPendientes(null)
+    } catch (error) {
+      setErrorRelacionados(mensajeErrorRelacionados(error))
     } finally {
       setReintentando(false)
     }
@@ -358,6 +421,19 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
                 {errorEmpresas ? <Box component="span" sx={{ display: 'block' }}>{errorEmpresas}</Box> : null}
               </Alert>
             ) : null}
+            {relacionadosPendientes ? (
+              <Alert
+                severity="warning"
+                action={
+                  <Button color="inherit" size="small" onClick={() => void reintentarRelacionados()} disabled={reintentando}>
+                    {reintentando ? 'Reintentando…' : 'Reintentar relacionados'}
+                  </Button>
+                }
+              >
+                <strong>Los datos se guardaron, pero no pudimos guardar los productos relacionados.</strong>
+                {errorRelacionados ? <Box component="span" sx={{ display: 'block' }}>{errorRelacionados}</Box> : null}
+              </Alert>
+            ) : null}
             {categoriaPendiente !== null && categoriaPendiente !== undefined ? (
               <Alert
                 severity="warning"
@@ -446,6 +522,13 @@ export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'I
             alicuotaInicial={carga?.alicuotaId ?? SIN_ALICUOTA_PRODUCTO}
             escalasIniciales={carga?.escalas ?? PRECIOS_ESCALA_VACIOS}
             disponibilidadActual={carga?.disponibilidad ?? null}
+            productoId={producto.id}
+            relacionadosIniciales={carga?.relacionados ?? []}
+            errorRelacionados={carga?.relacionados === null}
+            variantesIniciales={carga?.variantes ?? []}
+            errorVariantes={carga?.variantes === null}
+            verStock={nivelStock === 'lectura' || nivelStock === 'edicion'}
+            editarStock={nivelStock === 'edicion'}
             conCosto={veCosto}
             costoEditable={editaCosto}
             soloLectura={nivel !== 'edicion'}
