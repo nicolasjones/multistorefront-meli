@@ -47,7 +47,22 @@ Dejá un campo vacío para no usar esa herramienta. **Guardar** y **Descartar** 
 - Solo en la **tienda publicada**. En la vista previa y en una tienda pausada no se mide.
 - Solo si el visitante **aceptó las cookies** en el aviso de la tienda (ver [Estados, relacionados, Google y legales](tienda-seo-legal-y-estados.md)). Si las rechaza o no decide, no se carga nada.
 - Cada página que mira el visitante cuenta como una visita.
-- También se registran dos acciones: cuando el visitante abre WhatsApp desde una ficha y cuando envía el formulario de contacto. Solo se informa que ocurrió; **no** se envía su nombre, su mensaje ni sus datos.
+- Además de las visitas se registran **cuatro acciones**, y de cada una solo se informa que ocurrió: **ver un producto** (`vista_producto`, al abrir su ficha), **buscar** (`busqueda`), **abrir WhatsApp desde una ficha** (`clic_whatsapp`) y **enviar el formulario de contacto** (`envio_contacto`, solo si el envío salió bien). **No** se envía su nombre, su mensaje, su email, su teléfono ni el texto que buscó.
+- «Buscar» se registra cuando el visitante **va a la página de resultados** (con Enter o con «Ver todos los resultados»). **No** se registra al elegir una sugerencia de la lista ni al entrar directo a la dirección de resultados.
+- Si el visitante **retira su consentimiento** (por ejemplo, borrando su decisión sobre las cookies), la medición se apaga de inmediato: deja de enviarse todo, se borran las cookies de medición de Google y Meta y se descargan sus scripts (la página puede recargarse sola, salvo que el visitante esté escribiendo algo). Si después vuelve a aceptar, la medición empieza de nuevo.
+- Si el navegador o un bloqueador de anuncios impide cargar las herramientas, la tienda funciona igual y simplemente no se mide.
+
+**Privacidad y configuración de tus herramientas**
+
+- **Meta Pixel** se carga sin sus funciones automáticas: no lee los campos de los formularios (email, teléfono, nombre) ni los clics en botones. Solo recibe las visitas y las cuatro acciones de arriba.
+- **Google Analytics 4**: la tienda ya registra cada visita por su cuenta. Si en tu propiedad está activada la **Medición mejorada** (viene activada por defecto), Google suma por su cuenta visitas por cambios de página y eventos de formularios y las visitas se **duplican**. Desactivala en Google Analytics: *Administrar → Flujos de datos → tu flujo web → Medición mejorada*. Eso no se puede resolver desde la tienda.
+- El aviso de cookies y la pestaña **Analítica** le avisan a la persona que no se envían sus datos personales.
+- Si cambiás el ID de Google Analytics 4, la tienda deja de enviar al ID anterior y empieza a enviar al nuevo en la misma visita.
+
+**Límites**
+
+- Cada tienda puede tener hasta **50 páginas**. Al llegar al tope, «Nueva página» se desactiva con un aviso y hay que eliminar alguna para crear otra; editar las existentes siempre se puede.
+- Si tu rol solo puede **ver** las empresas, las pestañas **Páginas** y **Analítica** se muestran en solo lectura: los botones y campos quedan desactivados con el aviso «Tu rol no puede editar…». Si igual el sistema rechaza un cambio por el rol, se muestra ese mismo mensaje.
 
 Cada empresa mide con sus propios identificadores: los datos de una tienda no se mezclan con los de otra.
 
