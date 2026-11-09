@@ -190,3 +190,10 @@ para la funcionalidad que lo usa está en `docs/importaciones.md`.
 
 Las funciones del worker las ejecuta solo su rol `worker_<org>` y solo sobre
 procesos de su propia organización.
+
+### Exportación total (`exportar-organizacion`, MSF-396)
+
+Usa el protocolo de procesos masivos de arriba: `total` = cantidad de conjuntos (tablas), un error por conjunto fallido
+(cierra `con_errores`), cancelación revisada entre lotes sin ZIP parcial, y código 78 (ejecución cerrada, configuración o
+tope de 200 MB) como `fallido` con motivo sanitizado. La subida es idempotente (misma ruta, `upsert`), así que el flow
+puede reintentar. Detalle en `docs/exportacion-total.md`.
