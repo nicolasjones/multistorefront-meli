@@ -478,14 +478,14 @@
     },
     "docs/producto/catalogo-variantes-y-relacionados.md": {
       "title": "Variantes y productos relacionados",
-      "pageHash": "1a670cc76f20c818f3b7b97f6e176bf6646f7ad3a64d19bfbe401de5b9c72e38",
+      "pageHash": "d43d0b383b299a6d52153f90827eabab0674e18c249f6f36e048a50f9c7b0e6d",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "296f9096",
+      "sourceAt": "7851c929",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "8a37fbc3"
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
@@ -1365,15 +1365,15 @@
     },
     "docs/tecnico/catalogo-variantes-y-relacionados.md": {
       "title": "Catálogo: variantes y relacionados (MSF-229), construcción interna",
-      "pageHash": "1742923d65f6031830ae5581c8dd80f06dff6df90cb6b5256e716390efd26125",
+      "pageHash": "d4b7afee89e19e058f72180e9f0b1595c164ad2d93dc335840e3a1b53b783d0a",
       "sourceHash": "83b553e0aa1122583b4a9d58ec9cab30478d918a052d69958dd0fa4acc629759",
-      "sourceAt": "296f9096",
+      "sourceAt": "7851c929",
       "sources": [
         "specs",
         "supabase"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "8a37fbc3"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
