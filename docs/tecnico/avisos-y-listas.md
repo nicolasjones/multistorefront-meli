@@ -238,7 +238,8 @@ Variables del envío, solo en `.env` (nunca en Git):
   migraciones (`insert into public.tipos_aviso …`).
 - **Sin historial para el usuario ni reenvío desde la UI:** la cola se opera desde la base.
 - **Sin reordenamiento ni borrado de ítems:** se desactivan.
-- **Campanita:** MSF-224, fuera de esta épica.
+- **Campanita:** la entrega en el panel (MSF-224, F-NOT-02) ya está: lee estas mismas filas y suma la columna
+  `leido_en`. Ver [Notificaciones, ayuda y exportación total](notificaciones-ayuda-y-exportacion-total.md).
 
 ## Verificación
 

@@ -15,7 +15,7 @@ Referencia general del módulo: [Catálogo de productos](../catalogo.md).
 ## Qué resuelve y para quién
 
 - **Quien administra el catálogo** encuentra cualquier producto en segundos: busca por nombre o SKU, filtra por estado,
-  tienda y categoría, ordena por encabezado y pagina sin cargar todo el catálogo.
+  tienda y categoría, ordena por encabezado y recorre el listado por tandas, sin cargar todo el catálogo de una vez.
 - **Quien decide la publicación** marca en qué empresas se vende cada producto. El producto y su stock son únicos y
   compartidos; cada tienda lo publica con su propio precio cuando llegue Precios.
 - **Quien arma el menú de las tiendas** organiza categorías y subcategorías (dos niveles), decide en qué tiendas se ven
@@ -25,7 +25,8 @@ Referencia general del módulo: [Catálogo de productos](../catalogo.md).
 
 - **Listado** (`/productos`): columnas Producto (miniatura, nombre, SKU), Precio, Costo, Margen, Stock, Categoría,
   «Visible en» y Estado. Precio, Margen y Stock muestran «—» hasta que lleguen sus componentes (Precios, Rentabilidad,
-  Stock). Pie «desde–hasta de N».
+  Stock). El listado carga por tandas de 25 y lleva un **«Cargar más»** al pie (regla de listados: ver
+  [Listados: carga infinita e imagen de producto](../tecnico/listados.md)).
 - **Filtros:** «Todos», «Inactivos», tienda y categoría (una categoría raíz incluye sus subcategorías). «Sin stock»,
   «Stock bajo» y «Sin vincular a ML» se ven **deshabilitados** con la explicación «Se activa cuando llegue Stock /
   Mercado Libre».
@@ -40,7 +41,7 @@ Referencia general del módulo: [Catálogo de productos](../catalogo.md).
 
 El listado de Productos arranca filtrado por la empresa activa de la barra superior; elegir otra tienda en la pantalla
 es una sobreescritura local que se descarta cuando la empresa activa vuelve a cambiar. Al cambiar la empresa activa el
-listado se vuelve a consultar y la paginación vuelve a la página 1. Categorías se recarga al cambiar la empresa activa
+listado se vuelve a consultar y arranca de nuevo desde la primera tanda. Categorías se recarga al cambiar la empresa activa
 o la organización; al cambiar de organización se vacía el árbol y se cierran los diálogos para no guardar datos de la
 anterior.
 
@@ -54,9 +55,9 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
 
 | Tema | Dónde queda |
 |---|---|
-| Exportar productos | MSF-202 (lee `v_productos_listado`) |
-| Importar CSV, destacado, newsletter | Sin historia en esta épica |
-| Selección múltiple: «Mover de categoría», «Borrar» | MSF-218 (edición masiva); el producto se desactiva, no se borra |
+| Exportar productos e importar CSV | Ya se puede (solo el Administrador): ver [filtrar por compatible, importar y exportar planillas](catalogo-compatibilidad-y-planillas.md) |
+| Destacado, newsletter | Sin historia en esta épica |
+| Selección múltiple: «Mover de categoría», «Borrar» | Ya se puede mover, cambiar estado y empresas: ver [cambios masivos y duplicar](catalogo-productividad.md). «Borrar» no existe: el producto se desactiva |
 | IVA de la categoría | F-PRE-12 (MSF-114) |
 | Categorías de más de dos niveles | Decisión de la spec: dos niveles (el prototipo muestra «hasta 3») |
 | Etiquetas de stock (Disponible, A pedido…) | F-CAT-17 (MSF-179) |
@@ -69,13 +70,13 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
 
 - Entorno local (`pnpm dev:supabase` + app web) o DEV, con la rama de la épica.
 - Un usuario con **edición** en las secciones `productos` y `categorias`, y otro de **solo lectura**.
-- Una organización con al menos dos empresas y varios productos (conviene más de 25 para ver la paginación), alguno
+- Una organización con al menos dos empresas y varios productos (conviene más de 25 para ver la carga por tandas), alguno
   inactivo. Una segunda organización con productos propios para comprobar el aislamiento.
 
 ### Pasos
 
 1. Abrí **Catálogo → Productos** (`/productos`). Se ve la tabla (tarjetas en pantalla angosta) con las columnas
-   indicadas, «—» en Precio, Margen y Stock, y el pie «1–25 de N».
+   indicadas, «—» en Precio, Margen y Stock, y el botón «Cargar más» al pie.
 2. Escribí un trozo de nombre o SKU en «Buscar por nombre o SKU». Tras una breve espera el listado se reduce a las
    coincidencias, sin distinguir mayúsculas. Probá con `%` o `_`: se buscan como texto, no como comodín.
 3. Elegí el chip **Inactivos**. Solo quedan los productos inactivos. Los chips «Sin stock», «Stock bajo» y «Sin vincular
@@ -85,7 +86,7 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
 5. Ordená por Producto, SKU y Estado haciendo clic en el encabezado. El orden es estable y cambia la dirección.
 6. Buscá un texto sin resultados. Aparece «No hay productos que coincidan» y «Probá con otra búsqueda o limpiá los
    filtros.»; «Limpiar filtros» restablece todo.
-7. Cambiá la empresa activa en la barra superior. El listado se vuelve a consultar y vuelve a la página 1.
+7. Cambiá la empresa activa en la barra superior. El listado se vuelve a consultar y arranca de nuevo desde la primera tanda.
 8. Abrí **Nuevo producto** o **Editar** un producto. En «Empresas que lo venden» activá/desactivá una empresa y guardá.
    Reabrí la ficha: queda como la dejaste. En Actividad aparece «Cambió las empresas del producto …».
 9. En el mismo formulario elegí una categoría (opcional) y guardá. En el listado se ve la categoría como «Padre > Hija».

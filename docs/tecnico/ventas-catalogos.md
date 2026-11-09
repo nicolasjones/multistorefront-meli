@@ -154,10 +154,12 @@ Rutas dentro del grupo **Ventas** del menú, todas con `RequiereOrganizacionActi
   aplica» y crea un ítem por empresa. Al cambiar de empresa, la pestaña recarga con «última petición
   gana».
 - **Cuentas de cobro:** el filtro `Tienda` sigue a la empresa activa (`useFiltroPorEmpresaActiva`) y
-  permite «Todas las tiendas»; estado y paginación se resuelven en el servidor con
-  `listar_cuentas_cobro` (10 por página). Al cambiar de empresa se invalida y recarga la consulta.
+  permite «Todas las tiendas»; el estado y las tandas (10) se resuelven en el servidor con
+  `listar_cuentas_cobro`, y la pantalla las acumula con «Cargar más» (ver
+  [Listados: carga infinita e imagen de producto](listados.md)). Al cambiar de empresa se invalida y recarga la
+  consulta.
 - **Transportes:** filtro `Tienda` que arranca en «Todas las tiendas»; el recuento muestra «N de M»
-  con los totales que devuelve `listar_transportes`; 25 por página.
+  con los totales que devuelve `listar_transportes`; 25 por tanda.
 - Acciones ocultas sin edición: `Nueva`, `Editar` e interruptores solo se muestran al Administrador.
 
 ## Actividad

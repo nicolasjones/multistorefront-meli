@@ -27,6 +27,7 @@ sección **«Fotos y adjuntos»**, debajo de «Mano de obra y repuestos».
 
 Qué tenés que saber:
 
+- El sistema verifica que cada archivo sea realmente una imagen del tipo y tamaño permitidos; si una subida falla, no queda ninguna foto a medias en la reparación.
 - Se aceptan **JPG, PNG y WebP**, de hasta **5 MB** cada una, y hasta **20 fotos por reparación**. No se pueden adjuntar PDF ni otros formatos.
 - Para agregar o quitar fotos necesitás permiso de **edición** en Servicio técnico. Con permiso de solo lectura las ves, pero no las cambiás.
 - Una reparación **anulada** solo se puede consultar. Una reparación **entregada** sí admite fotos (por ejemplo, la de la entrega).
@@ -44,6 +45,7 @@ Cuando un equipo vuelve por garantía, no hace falta cargarlo de nuevo.
 La reparación nueva copia la tienda, el cliente, el contacto, el modelo, el N.º de serie y los accesorios de la original, y arranca en el primer estado activo con la fecha de hoy. **No copia ítems, importes ni fotos.** En su detalle ves **«Reingreso por garantía de R-xxxx»** con un enlace a la original; en la original ves la lista de sus reingresos con el estado de cada uno.
 
 - Una misma reparación puede tener varios reingresos, y también se puede reingresar desde un reingreso ya entregado.
+- Queda registrado en la actividad de la empresa tanto el alta de la reparación nueva como que viene de un reingreso por garantía.
 - Todavía **no** se controla el plazo de garantía ni se marca el reingreso «sin cargo»: cómo se cobra queda a criterio del taller.
 - Si cambiás de empresa en la barra superior con el diálogo abierto, el diálogo se cierra con un aviso.
 
@@ -60,7 +62,9 @@ Lo que ve el cliente al abrirlo (no necesita iniciar sesión): el código de la 
 **No** ve su nombre ni su contacto, el N.º de serie, la falla, los accesorios, el técnico, las notas, los ítems, los importes ni las fotos.
 
 - Si el enlace está mal escrito o no existe, el cliente ve «No encontramos esa reparación».
-- Si se consulta demasiadas veces seguidas, ve «Demasiadas consultas, probá en unos minutos».
+- Si la reparación fue anulada, el cliente ve «Esta reparación fue anulada», con el rótulo «Último estado», sin entrega prevista y sin el paso de anulación en la línea de tiempo. El motivo de la anulación nunca se muestra.
+- Si se consulta demasiadas veces seguidas (más de 30 en 10 minutos desde la misma conexión), ve «Demasiadas consultas, probá en unos minutos».
+- La página del seguimiento le pide a los buscadores que no la muestren en sus resultados.
 - El estado siempre es el actual: si cambia, el cliente lo ve al volver a abrir el enlace.
 - El enlace **no vence ni se puede anular**: quien lo tenga ve el estado de esa reparación. No lo publiques en lugares abiertos.
 
@@ -83,7 +87,7 @@ La pestaña **«Reportes»** de Servicio técnico muestra el tablero **«Service
 - Reparaciones ingresadas por mes y tienda.
 - Importe al cliente por mes y tienda (mano de obra y repuestos).
 
-Las reparaciones anuladas no cuentan, y el tablero no muestra costos internos ni ganancia. Se puede filtrar por tienda y por período de ingreso. Si no tenés acceso a Servicio técnico, ves «Acceso restringido».
+Las reparaciones anuladas no cuentan, y el tablero no muestra costos internos ni ganancia. Se puede filtrar por tienda y por período de ingreso. Si tu organización todavía no tiene el tablero asignado o tu rol no lo incluye, ves «No tenés acceso al tablero de Service técnico: tu organización todavía no lo tiene asignado o tu rol no lo incluye. Pedile acceso a un administrador.» Por defecto lo ven los roles de administración y de consulta; un administrador puede darle acceso a otros roles. La pantalla de ayuda del panel tiene una entrada «Reportes» de Servicio técnico.
 
 > **Ojo:** el tablero muestra las cifras de **todas** las tiendas de la organización, aunque tu rol solo vea algunas. No cambia con la empresa activa.
 

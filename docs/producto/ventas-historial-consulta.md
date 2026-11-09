@@ -85,9 +85,9 @@ Las cotizaciones valen para toda la organización: no tienen tienda. La cotizaci
 
 - **Buscar por cliente o número** (Ventas y Cobros): escribí parte del nombre del cliente, su número de cliente o el número del comprobante. No distingue mayúsculas ni tildes. La lista se actualiza sola mientras escribís.
 - **Buscar por fecha** (Cotizaciones del dólar): escribí la fecha como `dd/mm/aaaa`, `aaaa-mm-dd` o solo una parte (por ejemplo `03/2020`).
-- **Tienda** (Ventas y Cobros): elegí «Todas las tiendas» o una tienda en particular. Solo aparecen las tiendas que tenés asignadas, y el filtro arranca en la empresa activa de la barra superior. Si cambiás de empresa activa, la pantalla vuelve a la primera página y limpia la búsqueda.
+- **Tienda** (Ventas y Cobros): elegí «Todas las tiendas» o una tienda en particular. Solo aparecen las tiendas que tenés asignadas, y el filtro arranca en la empresa activa de la barra superior. Si cambiás de empresa activa, la pantalla vuelve a empezar desde el principio y limpia la búsqueda.
 - **Indicadores:** «N registros mostrados», y en Ventas y Cobros también «Desde: …» y «Hasta: …», que marcan el rango de fechas de lo importado.
-- **Paginación:** se ven 25 registros por página. Abajo aparece «Página N · 1–25 de total» y los botones para pasar de página.
+- **Carga por tandas:** se ven 25 registros por vez. Cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. Ver [Cómo se muestran las listas](listados.md).
 
 En pantallas angostas (celular), las tablas se muestran como tarjetas.
 

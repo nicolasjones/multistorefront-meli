@@ -100,6 +100,8 @@ Reglas del ranking:
   pantalla (lectura paginada por posición); se documenta, no se bloquea.
 - **Ficha** (F-CLI-10): `useComprasCliente.ts` y `ComprasCliente.tsx` en `pages/clientes/show.tsx`
   (T014/T015, FR-013).
+- **Carga por tandas:** el ranking y las «Compras» de la ficha **acumulan** sus tandas (25 y 10) con un
+  **«Cargar más»** al pie; ver [Listados: carga infinita e imagen de producto](listados.md).
 - **Empresa activa:** no aplica; el ranking y las compras se acotan por organización.
 
 ## Operación y reversión

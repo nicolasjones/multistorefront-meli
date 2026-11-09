@@ -114,8 +114,9 @@ Service técnico; con lectura aparece, pero sin acciones de edición.
 - La tabla muestra **Reparación** (`R-0238`, con enlace al detalle), **Tienda**, **Equipo** (con el modelo debajo),
   **Estado** (chip), **Ingreso**, **Entrega** y **Total** («A presupuestar» si es cero, «—» si falta un dato), más
   el contador **«N reparaciones»**.
-- El orden es **de más reciente a más antigua** y la paginación es **en el servidor** (25 por página): el navegador
-  nunca descarga todas las reparaciones.
+- El orden es **de más reciente a más antigua** y la carga es **por tandas en el servidor** (25 por tanda): el
+  navegador nunca descarga todas las reparaciones de una vez, y el **«Cargar más»** al pie trae la tanda siguiente
+  (ver [Listados: carga infinita e imagen de producto](../tecnico/listados.md)).
 - Un cliente sin reparaciones muestra el estado vacío **«Este cliente todavía no tiene reparaciones»**; con error,
   el patrón compartido con «Reintentar».
 - Cada fila lleva al detalle `/service-tecnico/reparaciones/:id`. En escritorio es tabla y en móvil, tarjetas.
@@ -125,8 +126,8 @@ Service técnico; con lectura aparece, pero sin acciones de edición.
 La pestaña **«Reparaciones»** respeta la **empresa activa** de la barra superior (Principio VIII):
 
 - Con una tienda elegida se ven **solo** sus reparaciones; con «Todas» se ven todas las accesibles.
-- Al **cambiar de empresa** la consulta se invalida y se recarga, la paginación vuelve a la **página 1** y **no**
-  quedan filas de la empresa anterior.
+- Al **cambiar de empresa** la consulta se invalida y se recarga, el listado **arranca de nuevo desde la primera
+  tanda** y **no** quedan filas de la empresa anterior.
 
 El detalle de una reparación y su comprobante son de **una sola tienda** (la de la reparación): al cambiar la
 empresa activa se recarga la consulta del comprobante y se descarta el de la tienda anterior.
@@ -251,7 +252,7 @@ Prototipos: `design/pantallas/ServicioReparacion.dc.html` y `design/pantallas/Cl
 14. **Sin acceso a Service.** Con una sesión sin `service_tecnico`, la ficha **no** muestra la pestaña
     «Reparaciones» y la de «Datos» sigue igual.
 15. **Cambiar de empresa.** Con la pestaña «Reparaciones» abierta, cambiá la empresa activa en la barra superior: la
-    tabla se recarga, la paginación vuelve a la **página 1** y **no** quedan filas de la tienda anterior.
+    tabla se recarga, **arranca de nuevo desde la primera tanda** y **no** quedan filas de la tienda anterior.
 16. **Cliente sin reparaciones.** Abrí la ficha de un cliente sin reparaciones: la pestaña «Reparaciones» muestra el
     vacío **«Este cliente todavía no tiene reparaciones»**.
 

@@ -51,7 +51,7 @@ Los botones **Stock bajo** y **Sin vincular a ML** se ven apagados: por ahora no
 
 *El buscador resaltado con el número 1: escribí parte del nombre, del SKU o del código de barras y la lista se acorta sola.*
 
-Arriba a la derecha de los filtros ves cuántos productos hay (por ejemplo, «99 productos»). La lista se muestra de a páginas; abajo tenés los controles para pasar de una a otra.
+Arriba a la derecha de los filtros ves cuántos productos hay (por ejemplo, «99 productos»). La lista se carga de a 25: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. Ver [Cómo se muestran las listas](listados.md).
 
 > **Ojo:** un producto nuevo no está en ninguna tienda hasta que lo marcás en «Empresas que lo venden». Si buscás un producto recién creado y no aparece, elegí **Todas las tiendas**.
 

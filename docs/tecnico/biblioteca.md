@@ -48,12 +48,17 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md)
 - [Migración inicial de datos: modelo, RPC y operación](migracion-inicial-de-datos.md)
 ## Ventas
+- [Ventas · venta de mostrador (producto)](../producto/ventas-mostrador.md)
+- [Ventas · venta de mostrador (técnico)](ventas-mostrador.md)
 - [Ventas · comprobantes (producto)](../producto/ventas-comprobantes.md)
 - [Ventas · comprobantes (técnico)](ventas-comprobantes.md)
 - [Ventas · listado, estados y anulación (producto)](../producto/ventas-listado-estados-y-anulacion.md)
 - [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md)
 - [Ventas · cobros y conciliación (producto)](../producto/ventas-cobros-y-conciliacion.md)
 - [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md)
+- [Ventas · precios especiales por cliente (técnico)](ventas-precios-especiales.md)
+- [Ventas · cierre de caja (producto)](../producto/ventas-cierre-caja.md)
+- [Ventas · cierre de caja (técnico)](ventas-cierre-caja.md)
 - [Ventas · despacho y faltantes (producto)](../producto/ventas-despacho-y-faltantes.md)
 - [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md)
 - [Ventas · devoluciones (RMA) (producto)](../producto/ventas-rma-devoluciones.md)
@@ -64,6 +69,15 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 ## Consultas
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
+
+## Plataforma
+- [La campanita de notificaciones (producto)](../producto/notificaciones.md)
+- [La ayuda dentro del panel (producto)](../producto/ayuda.md)
+- [Notificaciones, ayuda y exportación total (técnico)](notificaciones-ayuda-y-exportacion-total.md)
+- [Importaciones y exportaciones (producto)](../producto/importaciones.md)
+- [Importaciones y monitoreo (técnico)](importaciones-y-monitoreo.md)
+- [Avisos por correo y listas configurables (producto)](../producto/avisos-y-listas.md)
+- [Avisos y listas: modelo, RPC y flujos (técnico)](avisos-y-listas.md)
 
 ## Service técnico
 - [Service técnico: listado, ítems e impresión (producto)](../producto/service-listado-items-impresion.md)
