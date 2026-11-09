@@ -24,7 +24,7 @@ y pruebas.
 !!! warning "Dónde vive el código"
     La implementación está en la línea `dokploy`: merge `cba8f00a` (PR #764, rama
     `epic/MSF-206-plataforma-importaciones-y-monitoreo`) y los arreglos de la revisión independiente (PR #798,
-    migraciones `20270217400000…02`). Llega a `main` con la promoción de `dokploy`; hasta entonces las rutas,
+    migraciones `20270218000000…02`). Llega a `main` con la promoción de `dokploy`; hasta entonces las rutas,
     migraciones y pruebas citadas no existen en `main`. La spec vive en
     `specs/20261102-220000-importaciones-y-monitoreo/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/`).
 
@@ -41,7 +41,7 @@ y pruebas.
 ## Modelo de datos
 
 Migraciones **aditivas** (los números reales son `20270211100001…05`, `20270211100011…12`, `20270214100001…02`,
-`20270214200001` y `20270217400000…02`; los nombres de `plan.md` quedaron desactualizados por la renumeración de la
+`20270214200001` y `20270218000000…02`; los nombres de `plan.md` quedaron desactualizados por la renumeración de la
 integración):
 
 | Migración | Contenido |
@@ -56,9 +56,9 @@ integración):
 | `20270214100001_procesos_masivos_errores_columna.sql` | Columna `columna` en los errores, tabla `procesos_masivos_errores_claves` (idempotencia) y `registrar_error_proceso_masivo(..., p_columna)` |
 | `20270214100002_procesos_masivos_actividad.sql` | Eventos de actividad `importacion.iniciada`/`finalizada`/`cancelada` en iniciar, cerrar, cancelar y reconciliar |
 | `20270214200001_monitoreo_alerta_pendiente_ssrf_estado.sql` | `evaluar_monitoreo` con `alerta_id` y alertas pendientes de notificar, `marcar_alerta_notificada`, `private.dominio_sondeable`, vista `estado_tiendas_monitoreo` |
-| `20270217400000_monitoreo_retencion_indices.sql` | Índices por `ocurrido_en`, resultado `no_sondeable`, vista por skip scan y `private.depurar_monitoreo_y_procesos` |
-| `20270217400001_procesos_masivos_robustez.sql` | `detalle_truncado`, tope de claves, validaciones de cierre y de capacidad, reconciliación de orden agotada y de ejecución vencida, cancelación sin worker vivo |
-| `20270217400002_evaluar_monitoreo_tormenta.sql` | `evaluar_monitoreo` con cola por organización, tope de 20 notificaciones con resumen y sin contar `CANCELADA` |
+| `20270218000000_monitoreo_retencion_indices.sql` | Índices por `ocurrido_en`, resultado `no_sondeable`, vista por skip scan y `private.depurar_monitoreo_y_procesos` |
+| `20270218000001_procesos_masivos_robustez.sql` | `detalle_truncado`, tope de claves, validaciones de cierre y de capacidad, reconciliación de orden agotada y de ejecución vencida, cancelación sin worker vivo |
+| `20270218000002_evaluar_monitoreo_tormenta.sql` | `evaluar_monitoreo` con cola por organización, tope de 20 notificaciones con resumen y sin contar `CANCELADA` |
 
 Tablas y DER del grafo afectado: [Datos y DER](datos.md#importaciones-y-monitoreo-msf-206). Resumen:
 
@@ -84,7 +84,7 @@ de un parámetro.
 |---|---|---|
 | `public.iniciar_proceso_masivo(p_conexion_id, p_capacidad, p_tipo, p_funcionalidad, p_nombre, p_empresa_id?, p_parametros?)` | `authenticated`, solo administrador | Crea proceso `pendiente` + ejecución (`iniciar_ejecucion_worker`, origen `manual`) + orden de despacho en una transacción. Devuelve el `id`. Errores: `NO_AUTORIZADO`, `TIPO_INVALIDO`, `CAPACIDAD_INVALIDA` (la capacidad debe ser `importar-…` para una importación o `exportar-…` para una exportación), `ARGUMENTO_INVALIDO`, `SECRETO_DETECTADO`, `EMPRESA_INVALIDA`, más `YA_EN_CURSO`/`CAPACIDAD_NO_HABILITADA` del ciclo |
 | `public.actualizar_progreso_proceso_masivo(p_proceso_id, p_procesados, p_total?)` | `workers_orquestacion` autorizado sobre su organización | Pasa a `en_curso` en el primer aviso; `procesados` no retrocede ni supera `total` |
-| `public.registrar_error_proceso_masivo(p_proceso_id, p_fila?, p_referencia?, p_motivo, p_columna?)` | ídem | Guarda un error por fila con motivo sanitizado; idempotente por fila o, sin fila, por `md5(referencia\|motivo)` (vía `procesos_masivos_errores_claves`); hasta 1000 detalles y 10.000 claves por proceso, pasado el tope solo cuenta y marca `detalle_truncado`; `con_errores` cuenta todos |
+| `public.registrar_error_proceso_masivo(p_proceso_id, p_fila?, p_referencia?, p_motivo, p_columna?)` | ídem | Guarda un error por fila con motivo sanitizado; idempotente por fila o, sin fila, por `md5(referencia\|motivo)` (vía `procesos_masivos_errores_claves`); hasta 1000 detalles y 10.000 claves por proceso, pasado el tope solo cuenta, marca `detalle_truncado` y la idempotencia pasa a una marca de agua de fila (el worker informa en orden ascendente); `con_errores` cuenta todos |
 | `public.proceso_masivo_cancelado(p_proceso_id)` | ídem | `true` si hay cancelación solicitada; el worker lo consulta entre lotes |
 | `public.cerrar_proceso_masivo(p_proceso_id, p_estado, p_motivo?)` | ídem | Cierra como `completado`, `con_errores`, `fallido` o `cancelado`; `completado`/`con_errores` exigen `procesados = total` (si hay total) y `cancelado`, una cancelación solicitada (`ESTADO_INVALIDO`); un motivo de cierre queda como detalle sin fila |
 | `public.solicitar_cancelacion_proceso_masivo(p_proceso_id)` | `authenticated`, solo administrador | `pendiente` → `cancelado` (libera la orden y cierra la ejecución como `fallida`/`CANCELADA`, que el monitoreo no cuenta como fallo); abierto **sin worker vivo** (orden agotada, ejecución cerrada o vencida) → `cancelado` de inmediato; `en_curso` con worker → `cancelacion_solicitada`; terminal → `PROCESO_TERMINADO` |
@@ -142,7 +142,7 @@ la cierra `timeout` con `private.cerrar_procesos_masivos_vencidos`.
   alertas **pendientes de notificar** (`alerta_id`, fuente, clave, organización, motivo): las nuevas y las que
   quedaron de corridas anteriores. Ya no las marca notificadas: el flow llama a `marcar_alerta_notificada(id)` solo
   después de que el subflow `alertas` envió bien, así un webhook caído se reintenta. Devuelve como máximo 20 por
-  corrida (19 alertas y una fila de resumen «y N alertas más», con `alerta_id` nulo).
+  corrida (19 alertas y una fila de resumen «y N alertas más», con `alerta_id` nulo y la columna `cubiertas`). Las cubiertas se marcan notificadas con `marcar_alertas_notificadas` solo después de que el resumen se envió bien; si el webhook falla vuelven en la próxima corrida.
 - Umbrales por defecto: **5 fallos en 10 minutos** por fuente y clave (tienda, sincronización; aplicación con un
   fallo porque el flow ya contó contra el umbral) y **cola sin avanzar 15 minutos**. Son inputs de los flows.
 - Sincronización se deriva de `ejecuciones_worker` con estado `fallida`/`timeout` por `(organización, capacidad)`;
@@ -162,10 +162,10 @@ la cierra `timeout` con `private.cerrar_procesos_masivos_vencidos`.
 
 | Flow | Frecuencia | Qué hace |
 |---|---|---|
-| `monitoreo-salud-tiendas` | cada 2 min | Script en `node:22-alpine`: resuelve cada dominio de `public.tiendas_a_sondear()` (A y AAAA), si alguna IP no es pública registra `no_sondeable`, si no hace el GET `https://<dominio>/` fijando la IP validada, sin seguir redirecciones; 2xx/3xx = `ok`, el resto fallo. Ver «SSRF del sondeo de tiendas» en `docs/monitoreo.md` (línea `dokploy`) |
+| `monitoreo-salud-tiendas` | cada 2 min | Script en `node:22-alpine`: resuelve cada dominio de `public.tiendas_a_sondear()` (A y AAAA), si alguna IP no es pública registra `no_sondeable`, si no hace el GET `https://<dominio>/` fijando la IP validada, sin seguir redirecciones; 2xx/3xx = `ok`, el resto fallo. Ver «SSRF del sondeo de tiendas» en `docs/monitoreo.md` (línea `dokploy`). Cada petición tiene un tope total (`AbortSignal.timeout`), la respuesta se destruye al llegar el estado y el DNS tiene su propio tope; un fallo por tienda no tumba al resto. Un bloque `errors:` registra un fallo `aplicacion` con clave `monitor:tiendas` si el script cae o no deja `resultados.json`, y un barrido bueno registra el `ok` que lo resuelve |
 | `monitoreo-evaluar` | cada 2 min | Llama a `evaluar_monitoreo` con `ventana_min=10`, `fallos=5`, `cola_min=15`, notifica cada alerta pendiente por el subflow `alertas` y la marca con `marcar_alerta_notificada` |
-| `monitoreo-errores-aplicacion` | cada 2 min | Cuenta eventos de los últimos 10 min en GlitchTip (total real por `X-Hits` o una página de al menos el umbral; umbral 5) y registra `fallo`/`ok` de fuente `aplicacion`; sin `ERRORES_APP_URL` no hace nada |
-| `depuracion-monitoreo` | diario 04:30 | Llama a `private.depurar_monitoreo_y_procesos()` (retención de eventos, alertas resueltas y procesos terminados) |
+| `monitoreo-errores-aplicacion` | cada 2 min | Cuenta eventos de los últimos 10 min en GlitchTip (total real por el encabezado `X-Hits`, leído en las capitalizaciones `x-hits`, `X-Hits` y `X-HITS` —Pebble no tiene filtros con lambda, así que no es case-insensitive de verdad—, o una página de al menos el umbral; umbral 5) y registra `fallo`/`ok` de fuente `aplicacion`; sin `ERRORES_APP_URL` no hace nada |
+| `depuracion-monitoreo` | diario 04:30 | Llama a `private.depurar_monitoreo_y_procesos()` (retención de eventos de monitoreo a 30 días, alertas resueltas a 90 y procesos terminados a 180). La función solo la ejecuta `kestra_orquestacion` (se comprueba `session_user`, no la pertenencia a `workers_orquestacion`: cada `worker_<org>` es miembro de ese rol) |
 
 Todos los flows usan el rol `kestra_orquestacion`; las funciones de monitoreo tienen `revoke` para `public`,
 `anon` y `authenticated`. `postgres`/`supabase_admin` se admiten por nombre para el pgTAP y el mantenimiento.
@@ -271,9 +271,9 @@ GlitchTip (SC-006) todavía no está automatizado contra una instancia real: que
 
 ## Reversión
 
-Cada migración trae su reversión en el encabezado. En orden inverso: las de `20270217400000…02` (`drop trigger
+Cada migración trae su reversión en el encabezado. En orden inverso: las de `20270218000000…02` (`drop trigger
 reconciliar_despacho_agotado on public.despachos_ejecucion`, `private.reconciliar_despacho_agotado`,
-`private.cerrar_procesos_masivos_vencidos`, `private.depurar_monitoreo_y_procesos`, la columna `detalle_truncado`, los
+`private.cerrar_procesos_masivos_vencidos`, `private.depurar_monitoreo_y_procesos`, las columnas `detalle_truncado` y `fila_maxima_sin_clave`, los
 índices `eventos_monitoreo_ocurrido_idx` y `alertas_monitoreo_resueltas_idx`, el constraint
 `eventos_monitoreo_resultado_valido` y volver a aplicar las funciones y la vista de las migraciones anteriores);
 `public.marcar_alerta_notificada`, la vista `public.estado_tiendas_monitoreo` y `private.dominio_sondeable`;
