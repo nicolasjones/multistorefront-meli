@@ -94,7 +94,7 @@ Rótulos de tareas de `tasks.md`:
 
 ## Correcciones de la revisión independiente
 
-Contrato vigente en `dokploy` (migraciones `20270216400000` y `20270218500100` a `20270218500600`; detalle en `docs/configuracion-dolar-y-precio-propio.md` de esa rama):
+Contrato vigente en `dokploy` (migraciones `20270216400000` y `20270218500100` a `20270218500700`; detalle en `docs/configuracion-dolar-y-precio-propio.md` de esa rama):
 
 - `confirmar_comprobante` guarda costo y cotización de cada línea con `private.cotizacion_para(org, empresa)` y `private.a_pesos` de 4 argumentos de la empresa del comprobante (antes fallaba con alcance «empresa» por una subconsulta de varias filas).
 - `confirmar_cotizacion(p_empresa, p_variacion_vista)`: umbral y variación contra la cotización **aplicada**; si |variación| supera `confirmacion_pct` exige `p_variacion_vista` (la variación que el usuario vio, tolerancia ±0,05 puntos): sin ella `22023` con hint `variacion_inusual`; si difiere de la real (el dólar cambió mientras revisaba) `22023` con hint `variacion_cambio`. `estado_cotizacion` suma `aplicada`.
@@ -103,3 +103,5 @@ Contrato vigente en `dokploy` (migraciones `20270216400000` y `20270218500100` a
 - Rentabilidad (`analitica.margen_producto_canal`, alerta `margen_negativo`) convierte con `analitica.cotizacion_para(org, empresa)`; la historia con `analitica.cotizacion_cercana(org, fecha, empresa)` y sin precio propio.
 - Guardar la configuración o cambiar el alcance recalcula las alertas de Inicio; las vistas previas cuentan y simulan con el precio propio y la cotización destino.
 - Limitaciones: `productos_precio_costo` y la valorización de inventario usan la cotización general; exportar/importar productos no llevan precios propios (decisión de producto pendiente).
+- Exportación total de la organización: `dominio.precios_propios_historial` es un dato de negocio de la organización (la historia de los precios que cargó el cliente) y se EXPORTA (`20270218500700`, que agrega la tabla a `private.conjuntos_exportacion_total()`); incluye `actor_nombre`, igual que la actividad exportada.
+- `confirmar_cotizacion(p_empresa, p_variacion_vista)`: la tolerancia entre la variación vista y la real es de 0,05 puntos; mandá el valor exacto de la vista previa. Hints de `22023`: `variacion_inusual` (falta la variación vista) y `variacion_cambio` (el dólar cambió mientras se revisaba).
