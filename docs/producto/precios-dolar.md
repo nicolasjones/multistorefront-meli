@@ -51,7 +51,7 @@ Hasta ahora estos valores eran fijos. Si no cambiás nada, el sistema se comport
 | Campo | Qué decide | Valor de arranque |
 |---|---|---|
 | **Alcance** | **Una para todo el sistema** o **Una por empresa** | Una para todo el sistema |
-| **Redondeo del precio en pesos** | A cuánto se redondean los precios nuevos que ves en «Qué va a cambiar» (sin redondeo, $ 10, $ 50 o $ 100) | Al $ 10 más cercano |
+| **Redondeo del precio en pesos** | A cuánto se redondean los precios nuevos que ves en «Qué va a cambiar» (sin redondeo, $ 10, $ 50 o $ 100) | Al $ 10 más cercano (opciones: sin redondeo, $ 10, $ 50 o $ 100) |
 | **Umbral para recalcular** | Si el dólar varía menos que este porcentaje, se anota el valor pero no se tocan los precios | 1 % |
 | **Aviso en Inicio** | Muestra la alerta cuando no se cargó el dólar de hoy | Activo |
 
@@ -63,7 +63,7 @@ Este redondeo es el del recálculo del dólar. El redondeo del ajuste de cada ti
 2. En **Configuración**, cambiá el redondeo, el umbral o el interruptor **Aviso en Inicio**.
 3. Hacé clic en **Guardar configuración**. Vas a ver «Configuración guardada» y la próxima carga ya usa los valores nuevos.
 
-Si el umbral no es un número entre 0 y 100, ves un mensaje y no se guarda nada. Con el aviso apagado, no aparece la alerta de «dólar sin cargar» ni en Inicio ni en esta pantalla; al volver a encenderlo, vuelve.
+El umbral tiene que ser un número mayor o igual que 0 y **menor que el porcentaje de «variación inusual»** (15 % de arranque; ese porcentaje hoy no se edita desde la pantalla): si no, ves un mensaje y no se guarda nada. Con el aviso apagado, no aparece la alerta de «dólar sin cargar» ni en Inicio ni en esta pantalla; al volver a encenderlo, vuelve.
 
 ### Pasar de una cotización general a una por empresa
 
@@ -101,7 +101,7 @@ Otra organización no ve ninguno de estos cambios.
 *Paso 4: si el valor se aleja más del 15 % del anterior, aparece el aviso amarillo.*
 
 5. Hacé clic en **Cargar dólar**. Todavía no cambió ningún precio.
-6. Se abre el paso siguiente con **Qué va a cambiar**: un cuadro por empresa con la cantidad de precios que se modifican y una muestra de productos con «<Empresa> hoy» y «Nuevo». Los precios se redondean al $ 10 más cercano.
+6. Se abre el paso siguiente con **Qué va a cambiar**: un cuadro por empresa con la cantidad de precios que se modifican y una muestra de productos con «<Empresa> hoy» y «Nuevo». Los precios se redondean según el **Redondeo del precio en pesos** configurado (sin redondeo, $ 10, $ 50 o $ 100; al principio, $ 10).
 7. Si estás de acuerdo, hacé clic en **Aplicar y recalcular**. Vas a ver «Cotización aplicada · N precios recalculados». Si no, hacé clic en **Cancelar**: se descarta lo que cargaste y todo queda como estaba.
 
 ### Cuando el cambio es muy chico
@@ -134,3 +134,15 @@ Si el dólar varió menos del umbral configurado (1 % de arranque) respecto del 
 | **No pudimos calcular qué va a cambiar.** | Usá el botón **Reintentar** del paso de vista previa. |
 
 Ver también: [Precio propio y simulador](precios-e-iva.md#precio-propio-de-un-producto-en-una-empresa), [Precios e IVA](precios-e-iva.md) y [Productos y categorías](catalogo-productos.md).
+
+### Si el valor cambia mucho (variación inusual)
+
+Si el valor que cargaste se aleja más del porcentaje de variación inusual (15 % de arranque) de la cotización con la que se calculan hoy los precios, el sistema te lo avisa y **exige que lo confirmes de forma explícita** al aplicar; sin esa confirmación no cambia nada (esto vale también si la carga llega desde otro sistema). La confirmación es sobre el porcentaje que viste: si otra persona cambió el dólar mientras revisabas, ves «El dólar cambió mientras revisabas: revisá de nuevo» y se recalcula la vista previa. El umbral y la variación se miden siempre contra la cotización **aplicada** (la de los precios), no contra la última que cargaste: varias cargas chicas seguidas no dejan los precios atrasados sin aviso.
+
+### Precios propios
+
+Cada cambio de un precio propio (quién, de cuánto a cuánto y cuándo) queda guardado en un historial que no se puede modificar ni borrar, y lo ve quien tiene acceso a Productos.
+
+### Por qué el historial puede mostrar otro porcentaje
+
+La variación que ves al confirmar se mide contra la cotización que usan hoy los precios. En el historial, cada fila muestra la variación contra la carga anterior. Si la última carga quedó bajo el umbral (se anotó pero no cambió precios), los dos números pueden diferir: por ejemplo, con precios en 1.000, una carga anotada en 1.040 y una nueva de 1.151, al confirmar ves +15,1 % y el historial muestra +10,67 %.

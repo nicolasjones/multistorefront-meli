@@ -37,7 +37,7 @@ Cada fila es una carga o descarga, de la más reciente a la más antigua.
 | **Origen** | El nombre del trabajo, con el área de donde viene (por ejemplo, Catálogo, Stock, Mercado Libre o Exportación total) y si es una importación o una exportación. |
 | **Estado** | En qué punto está (ver abajo). |
 | **Avance** | Cuántas filas se procesaron sobre el total. Mientras está abierto muestra una barra de progreso. |
-| **Errores** | Cuántas filas no se pudieron procesar. |
+| **Resultado** | Cuántas filas salieron bien y cuántas no, por ejemplo «480 correctas y 20 con error». Muestra «—» si todavía no se procesó ninguna. |
 | **Duración** | Cuánto tardó, o «en curso» / «sin empezar» si todavía no terminó. |
 
 ### Los estados
@@ -59,10 +59,11 @@ Si todavía no hay trabajos, ves el mensaje **«Todavía no hay importaciones ni
 ## Ver el detalle y los errores
 
 1. En la fila del trabajo, hacé clic en **Ver detalle**.
-2. Se abre el cuadro **«Detalle de la importación»** con un resumen: nombre, origen, estado, avance, cantidad de errores, fecha de creación y duración.
-3. Más abajo está la tabla de errores, con **Fila**, **Referencia** y **Motivo**. Se muestra de a diez; usá **Anterior** y **Siguiente** para recorrerla.
-4. Si el trabajo no tuvo errores, el cuadro dice **«Este proceso no registró errores»**.
-5. Para cerrarlo, usá **Cerrar** o la tecla **Escape**.
+2. Se abre el cuadro **«Detalle de la importación»** con un resumen: nombre, origen, estado, avance, resultado, fecha de creación y duración.
+3. Más abajo está la tabla de errores, con **Fila**, **Columna**, **Referencia** y **Motivo**. Se carga de a 20: al llegar al final aparecen los siguientes (o usá **Cargar más**) y el contador «Mostrando N de M errores» siempre está a la vista. El detalle guarda hasta 1000 errores por trabajo: si hubo más, el cuadro avisa «Mostrando los primeros 1000 errores de N» y el resultado sigue contando todos.
+4. **Descargar errores (CSV)** baja el registro completo de errores del trabajo (fila, columna, referencia y motivo) para corregirlos y volver a cargar; si el detalle quedó truncado, el archivo termina con una fila que lo avisa.
+5. Si el trabajo no tuvo errores, el cuadro dice **«Este proceso no registró errores»**.
+6. Para cerrarlo, usá **Cerrar** o la tecla **Escape**.
 
 ## Cancelar un trabajo
 
@@ -76,6 +77,7 @@ Qué pasa según el estado:
 
 - Si estaba **Pendiente**, pasa a **Cancelado** de inmediato y no llega a ejecutarse.
 - Si estaba **En curso**, queda **Cancelando** hasta que se detiene al terminar el lote actual y pasa a **Cancelado**.
+- Si estaba **En curso** pero ya no hay nadie procesándolo (por ejemplo, el trabajo se trabó y se agotaron los reintentos), pasa a **Cancelado** de inmediato.
 - Si ya había terminado, aparece el aviso **«El proceso ya terminó, no se puede cancelar.»**
 
 ## La empresa activa
@@ -84,12 +86,12 @@ La pantalla sigue la **empresa activa** de la barra superior.
 
 - Con una empresa elegida, ves solo los trabajos de esa empresa.
 - Con **Todas mis empresas**, ves los de todas, incluidos los que no pertenecen a una empresa en particular.
-- Al cambiar de empresa, la tabla se recarga desde la primera página. Si tenías un cuadro abierto, se cierra con un aviso para que no queden datos de la empresa anterior en pantalla.
+- Al cambiar de empresa, la tabla se recarga desde el principio. Si tenías un cuadro abierto, se cierra con un aviso para que no queden datos de la empresa anterior en pantalla.
 
 ## Lo que todavía no hace esta pantalla
 
 - **No inicia** cargas ni descargas: cada área las dispara desde su propia pantalla.
-- **No reintenta** las filas con error ni permite descargar el registro de errores.
+- **No reintenta** las filas con error: el registro de errores se puede descargar en CSV, pero reintentar es cosa de cada área.
 - **No muestra** los errores internos del panel ni las alertas del equipo de soporte: eso se revisa por fuera de esta pantalla.
 
 Hasta que las demás áreas empiecen a registrar sus cargas y descargas, la pantalla puede estar vacía.
