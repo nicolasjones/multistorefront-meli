@@ -1,0 +1,232 @@
+# MSF-369 · F-OPS-03 (FR-025, FR-030). Cada 2 minutos sondea la página principal de cada tienda con dominio
+# (public.tiendas_a_sondear, que solo devuelve nombres DNS públicos: sin IP, localhost ni sufijos internos) y registra
+# ok / fallo / no_sondeable en eventos_monitoreo. La base decide si hay alerta (monitoreo-evaluar.yml); este flow solo mide.
+# SSRF (defensa en la aplicación, no solo en el egress de red): el script resuelve cada hostname (A y AAAA) y, si CUALQUIER
+# IP cae en loopback, red privada RFC1918, link-local (169.254/16 con los metadatos de nube, fe80::/10), ULA fc00::/7,
+# CGNAT 100.64/10, multicast, 0.0.0.0 o rangos reservados, NO pide nada y registra `no_sondeable` (que no es un fallo de la
+# tienda y no genera alertas). Si todas son públicas, hace el GET FIJANDO la IP ya validada (sin segunda resolución:
+# el DNS rebinding no sirve), conservando SNI y certificado del dominio, y NO sigue redirecciones. Un 3xx cuenta como
+# «responde»; 4xx/5xx o sin respuesta, como fallo. La lógica vive en el script embebido `sondeo.mjs` (probada con
+# node:test en infra/kestra/sondeo-tiendas.test.mjs, que lo extrae de este mismo archivo).
+# Frecuencia: el cron del trigger (editarlo para cambiarla); el tiempo de espera es el input `timeout_seg`.
+id: monitoreo-salud-tiendas
+namespace: platform.monitoreo
+labels:
+  capa: core
+  dominio: plataforma
+  componente: monitoreo
+description: "Sondea cada 2 minutos las tiendas con dominio público y registra el resultado para el monitoreo."
+inputs:
+  - id: timeout_seg
+    type: INT
+    defaults: 10
+tasks:
+  - id: tiendas
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select dominio, organizacion_id from public.tiendas_a_sondear();
+  - id: sondear
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: node:22-alpine
+    env:
+      TIMEOUT_SEG: "{{ inputs.timeout_seg }}"
+    inputFiles:
+      dominios.json: "{{ outputs.tiendas.rows | json }}"
+      sondeo.mjs: |
+          import dns from 'node:dns/promises';
+          import fs from 'node:fs';
+          import https from 'node:https';
+          import net from 'node:net';
+          import { pathToFileURL } from 'node:url';
+
+          // Clasificación de IP: devuelve { publica, motivo }. Cualquier IP de una red no pública se rechaza.
+          const V4_BLOQUEADOS = [
+            ['0.0.0.0', 8, 'ESTA_RED'], ['10.0.0.0', 8, 'PRIVADA_RFC1918'], ['100.64.0.0', 10, 'CGNAT'],
+            ['127.0.0.0', 8, 'LOOPBACK'], ['169.254.0.0', 16, 'LINK_LOCAL_METADATOS'], ['172.16.0.0', 12, 'PRIVADA_RFC1918'],
+            ['192.0.0.0', 24, 'RESERVADA_IETF'], ['192.0.2.0', 24, 'DOCUMENTACION'], ['192.168.0.0', 16, 'PRIVADA_RFC1918'],
+            ['198.18.0.0', 15, 'BENCHMARK'], ['198.51.100.0', 24, 'DOCUMENTACION'], ['203.0.113.0', 24, 'DOCUMENTACION'],
+            ['224.0.0.0', 4, 'MULTICAST'], ['240.0.0.0', 4, 'RESERVADA'],
+          ];
+
+          const aEntero = (ip) => ip.split('.').reduce((acc, parte) => acc * 256 + Number(parte), 0);
+
+          function clasificarIpv4(ip) {
+            const valor = aEntero(ip);
+            for (const [base, bits, motivo] of V4_BLOQUEADOS) {
+              const tamano = 2 ** (32 - bits);
+              const inicio = aEntero(base);
+              if (valor >= inicio && valor < inicio + tamano) return { publica: false, motivo };
+            }
+            return { publica: true, motivo: null };
+          }
+
+          // Expande una IPv6 a 8 grupos de 16 bits (acepta "::" y un sufijo IPv4 embebido).
+          function expandirIpv6(ip) {
+            let texto = ip.toLowerCase().split('%')[0];
+            const ultimo = texto.slice(texto.lastIndexOf(':') + 1);
+            if (ultimo.includes('.')) {
+              const [a, b, c, d] = ultimo.split('.').map(Number);
+              texto = texto.slice(0, texto.lastIndexOf(':') + 1) + ((a << 8) | b).toString(16) + ':' + ((c << 8) | d).toString(16);
+            }
+            const [cabeza, cola] = texto.split('::');
+            const izquierda = cabeza ? cabeza.split(':') : [];
+            const derecha = cola ? cola.split(':') : [];
+            const relleno = texto.includes('::') ? new Array(8 - izquierda.length - derecha.length).fill('0') : [];
+            return [...izquierda, ...relleno, ...derecha].map((grupo) => parseInt(grupo || '0', 16));
+          }
+
+          const ipv4DeGrupos = (g1, g2) => `${g1 >> 8}.${g1 & 255}.${g2 >> 8}.${g2 & 255}`;
+
+          function clasificarIpv6(ip) {
+            const g = expandirIpv6(ip);
+            if (g.length !== 8 || g.some((x) => Number.isNaN(x))) return { publica: false, motivo: 'IP_INVALIDA' };
+            if (g.every((x) => x === 0)) return { publica: false, motivo: 'NO_ESPECIFICADA' };
+            if (g.slice(0, 7).every((x) => x === 0) && g[7] === 1) return { publica: false, motivo: 'LOOPBACK' };
+            // IPv4 mapeada (::ffff:a.b.c.d), IPv4 compatible (::a.b.c.d) y NAT64 (64:ff9b::/96): vale la regla de la IPv4 embebida.
+            if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) return clasificarIpv4(ipv4DeGrupos(g[6], g[7]));
+            if (g.slice(0, 6).every((x) => x === 0)) return clasificarIpv4(ipv4DeGrupos(g[6], g[7]));
+            // NAT64 local (64:ff9b:1::/48), Teredo (2001::/32) y asignaciones del IETF (2001::/23): no son destinos públicos.
+            if (g[0] === 0x64 && g[1] === 0xff9b && g[2] === 1) return { publica: false, motivo: 'NAT64_LOCAL' };
+            if (g[0] === 0x2001 && g[1] < 0x0200) return { publica: false, motivo: 'TEREDO_IETF' };
+            if (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0)) return clasificarIpv4(ipv4DeGrupos(g[6], g[7]));
+            if (g[0] === 0x2002) return clasificarIpv4(ipv4DeGrupos(g[1], g[2]));
+            if ((g[0] & 0xffc0) === 0xfe80) return { publica: false, motivo: 'LINK_LOCAL' };
+            if ((g[0] & 0xfe00) === 0xfc00) return { publica: false, motivo: 'ULA' };
+            if ((g[0] & 0xff00) === 0xff00) return { publica: false, motivo: 'MULTICAST' };
+            if (g[0] === 0x2001 && g[1] === 0x0db8) return { publica: false, motivo: 'DOCUMENTACION' };
+            if (g[0] === 0x0100 && g.slice(1, 4).every((x) => x === 0)) return { publica: false, motivo: 'DESCARTE' };
+            return { publica: true, motivo: null };
+          }
+
+          export function clasificarIp(ip) {
+            if (net.isIPv4(ip)) return clasificarIpv4(ip);
+            if (net.isIPv6(ip)) return clasificarIpv6(ip);
+            return { publica: false, motivo: 'IP_INVALIDA' };
+          }
+
+          // Resuelve el hostname (A y AAAA). Si CUALQUIER IP no es pública, el dominio no es sondeable. Si todas lo son,
+          // se pide la primera FIJANDO esa IP: no hay segunda resolución, así que el DNS rebinding no sirve.
+          export async function sondearDominio(dominio, { resolver, solicitar }) {
+            let direcciones;
+            try {
+              direcciones = await resolver(dominio);
+            } catch {
+              return { resultado: 'fallo', motivo: 'SIN_RESPUESTA' };
+            }
+            if (!direcciones || direcciones.length === 0) return { resultado: 'fallo', motivo: 'SIN_RESPUESTA' };
+            for (const { address } of direcciones) {
+              const clase = clasificarIp(address);
+              if (!clase.publica) return { resultado: 'no_sondeable', motivo: `NO_SONDEABLE_${clase.motivo}` };
+            }
+            const elegida = direcciones[0];
+            try {
+              const codigo = await solicitar(dominio, elegida.address, elegida.family);
+              return { resultado: codigo >= 200 && codigo < 400 ? 'ok' : 'fallo', motivo: `HTTP ${codigo}` };
+            } catch {
+              return { resultado: 'fallo', motivo: 'SIN_RESPUESTA' };
+            }
+          }
+
+          const resolverDns = (dominio) => dns.lookup(dominio, { all: true, verbatim: true });
+
+          // Tope TOTAL para una promesa (dns.lookup no tiene timeout propio): un DNS colgado no ocupa un hueco para siempre.
+          export function conTope(promesa, ms, etiqueta = 'timeout') {
+            let temporizador;
+            const tope = new Promise((_, rechazar) => { temporizador = setTimeout(() => rechazar(new Error(etiqueta)), ms); });
+            return Promise.race([promesa, tope]).finally(() => clearTimeout(temporizador));
+          }
+
+          // GET https://<dominio>/ contra la IP ya validada: el SNI y el certificado siguen siendo los del dominio y no se
+          // siguen redirecciones (un 3xx cuenta como «responde»).
+          export const solicitarFijando = (dominio, ip, familia, timeoutMs, opciones = {}) => new Promise((resolve, reject) => {
+            // `timeout` de https.request es de inactividad del socket (un goteo lento lo evita): el tope TOTAL por petición lo da
+            // la señal. Solo interesa el código de estado: se destruye la respuesta apenas llega, sin descargar el cuerpo.
+            const peticion = https.request({
+              host: dominio,
+              servername: dominio,
+              path: '/',
+              method: 'GET',
+              signal: AbortSignal.timeout(timeoutMs),
+              ...opciones,
+              lookup: (_host, o, devolver) => (o && o.all
+                ? devolver(null, [{ address: ip, family: familia }])
+                : devolver(null, ip, familia)),
+            }, (respuesta) => {
+              const codigo = respuesta.statusCode ?? 0;
+              respuesta.destroy();
+              resolve(codigo);
+            });
+            peticion.on('error', reject);
+            peticion.end();
+          });
+
+          export async function sondearTodas(tiendas, { timeoutSeg = 10, concurrencia = 5, resolver = resolverDns, solicitar } = {}) {
+            const ms = timeoutSeg * 1000;
+            const pedirSinTope = solicitar ?? ((dominio, ip, familia) => solicitarFijando(dominio, ip, familia, ms));
+            // Cada paso tiene un tope total: una tienda lenta o un DNS colgado fallan SOLO esa tienda y nunca tumban el resto.
+            const resolverAcotado = (dominio) => conTope(Promise.resolve().then(() => resolver(dominio)), ms, 'dns_timeout');
+            const pedir = (dominio, ip, familia) => conTope(Promise.resolve().then(() => pedirSinTope(dominio, ip, familia)), ms + 1000, 'http_timeout');
+            const resultados = new Array(tiendas.length);
+            let siguiente = 0;
+            const trabajador = async () => {
+              while (siguiente < tiendas.length) {
+                const indice = siguiente++;
+                const tienda = tiendas[indice];
+                let r;
+                try {
+                  r = await sondearDominio(tienda.dominio, { resolver: resolverAcotado, solicitar: pedir });
+                } catch {
+                  r = { resultado: 'fallo', motivo: 'SIN_RESPUESTA' };
+                }
+                resultados[indice] = { dominio: tienda.dominio, organizacion_id: tienda.organizacion_id, ...r };
+              }
+            };
+            await Promise.all(Array.from({ length: Math.min(concurrencia, tiendas.length) }, trabajador));
+            return resultados;
+          }
+
+          if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+            const tiendas = JSON.parse(fs.readFileSync('dominios.json', 'utf8'));
+            const resultados = await sondearTodas(tiendas, { timeoutSeg: Number(process.env.TIMEOUT_SEG) || 10 });
+            fs.writeFileSync('resultados.json', JSON.stringify(resultados));
+          }
+    outputFiles:
+      - resultados.json
+    commands:
+      - node sondeo.mjs
+    timeout: PT10M
+  - id: registrar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    sql: >-
+      select public.registrar_evento_monitoreo('tienda', r.dominio, r.resultado, r.motivo, r.organizacion_id)
+      from jsonb_to_recordset(CAST(:resultados AS jsonb)) as r(dominio text, organizacion_id uuid, resultado text, motivo text);
+    parameters:
+      resultados: "{{ read(outputs.sondear.outputFiles['resultados.json']) }}"
+  # El barrido terminó bien: el monitor está vivo (resuelve una alerta `monitor:tiendas` abierta).
+  - id: monitor_ok
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    sql: select public.registrar_evento_monitoreo('aplicacion', 'monitor:tiendas', 'ok', null, null);
+errors:
+  # Si el script falla o no deja resultados.json no se registra ningún evento de tienda: el monitoreo quedaría ciego sin
+  # alerta. Se registra un fallo del PROPIO monitor (clave monitor:tiendas); tras 5 seguidos monitoreo-evaluar abre la alerta.
+  - id: registrar_fallo_monitor
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    sql: select public.registrar_evento_monitoreo('aplicacion', 'monitor:tiendas', 'fallo', 'MONITOR_SIN_BARRIDO', null);
+triggers:
+  - id: cada_2_minutos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/2 * * * *"

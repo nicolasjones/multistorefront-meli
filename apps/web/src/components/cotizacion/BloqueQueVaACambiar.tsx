@@ -1,8 +1,10 @@
 import { Box, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
-import { NOTA_REDONDEO, type Previsualizacion, formatearPrecioPrevio, textoPrecios } from '../../lib/cotizacion'
+import { type Previsualizacion, formatearPrecioPrevio, notaRedondeo, textoPrecios } from '../../lib/cotizacion'
 
 type Props = {
-  previa: Previsualizacion
+  // El bloque solo necesita los mosaicos, la muestra y el redondeo: sirve también a la vista previa del alcance.
+  previa: Pick<Previsualizacion, 'empresas' | 'muestra' | 'redondeoPesos'>
+  leyendaPrecios?: string
 }
 
 const formatoUsd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -11,7 +13,7 @@ const formatoUsd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, ma
 // cantidad de precios en USD visibles y la tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo».
 // Se muestra solo si la variación alcanza el umbral (lo decide el diálogo con `previa.recalcula`).
 // Mercado Libre queda fuera (Etapa 2). Solo muestra: el cálculo es de la base.
-export function BloqueQueVaACambiar({ previa }: Props) {
+export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD visibles' }: Props) {
   return (
     <Stack component="section" spacing={1.5} aria-labelledby="titulo-que-va-a-cambiar">
       <Typography id="titulo-que-va-a-cambiar" component="h3" variant="b" sx={{ fontWeight: 600 }}>Qué va a cambiar</Typography>
@@ -20,7 +22,7 @@ export function BloqueQueVaACambiar({ previa }: Props) {
           <Box key={empresa.empresaId} sx={{ flex: '1 1 140px', bgcolor: 'action.hover', borderRadius: 2, px: 1.75, py: 1.5 }}>
             <Typography variant="xs">{empresa.nombre}</Typography>
             <Typography variant="t3" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>{textoPrecios(empresa.precios)}</Typography>
-            <Typography variant="xs">productos en USD visibles</Typography>
+            <Typography variant="xs">{leyendaPrecios}</Typography>
           </Box>
         ))}
       </Stack>
@@ -42,7 +44,7 @@ export function BloqueQueVaACambiar({ previa }: Props) {
                   <TableCell>
                     <Typography component="span" sx={{ fontWeight: 600 }}>{fila.producto}</Typography>
                     <Typography variant="xs" component="span" sx={{ display: 'block' }}>
-                      {[fila.sku, `US$ ${formatoUsd.format(fila.usd)}`].filter(Boolean).join(' · ')}
+                      {[fila.sku, fila.usd === null ? null : `US$ ${formatoUsd.format(fila.usd)}`].filter(Boolean).join(' · ')}
                     </Typography>
                   </TableCell>
                   {previa.empresas.flatMap((empresa) => {
@@ -62,7 +64,7 @@ export function BloqueQueVaACambiar({ previa }: Props) {
           </Table>
         </TableContainer>
       ) : null}
-      <Typography variant="xs">{NOTA_REDONDEO}</Typography>
+      <Typography variant="xs">{notaRedondeo(previa.redondeoPesos)}</Typography>
     </Stack>
   )
 }

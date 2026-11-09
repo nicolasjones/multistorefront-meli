@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   disponibilidad: vi.fn(),
   relacionados: vi.fn(),
   variantes: vi.fn(),
+  usePreciosPropios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -59,6 +60,8 @@ vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks
 vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
 vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+// El bloque «Precio propio por empresa» (F-PRE-08) tiene su propio test; acá solo se comprueba que se monta.
+vi.mock('../../hooks/usePreciosPropios', () => ({ usePreciosPropios: mocks.usePreciosPropios }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoEdit } from './edit'
@@ -120,6 +123,9 @@ describe('ProductoEdit', () => {
     mocks.disponibilidad.mockResolvedValue({ data: { disponibilidad: 'sin_stock' }, error: null })
     mocks.relacionados.mockResolvedValue({ data: [], error: null })
     mocks.variantes.mockResolvedValue({ data: [], error: null })
+    mocks.usePreciosPropios.mockReturnValue({
+      precios: [], netos: new Map(), cargando: false, hayError: false, fijar: vi.fn(), quitar: vi.fn(),
+    })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -658,5 +664,13 @@ describe('ProductoEdit', () => {
     abrir()
     const selector = await screen.findByRole('combobox', { name: 'Categoría' })
     expect(selector).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('[MSF-423:T025] la ficha monta «Precio propio por empresa» con las empresas del producto', async () => {
+    abrir()
+    expect(await screen.findByRole('heading', { name: 'Precio propio por empresa' })).toBeInTheDocument()
+    // Solo San Javucho vende el producto (emp-1); Mundo JC no tiene fila.
+    expect(await screen.findByLabelText('Precio propio (San Javucho)')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Precio propio (Mundo JC)')).not.toBeInTheDocument()
   })
 })

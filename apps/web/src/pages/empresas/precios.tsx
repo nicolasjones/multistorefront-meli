@@ -5,6 +5,7 @@ import { Box, Button, Stack } from '@mui/material'
 import { useEmpresa } from '../../hooks/useEmpresa'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useCotizacionInicial } from '../../hooks/useCotizacionInicial'
+import { useEstadoCotizacion } from '../../hooks/useCotizacion'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePreciosEmpresa, usePrevisualizacionPrecios } from '../../hooks/usePreciosEmpresa'
 import {
@@ -21,6 +22,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { ReglaPrecioEmpresa, type EjemploIva } from '../../components/precios/ReglaPrecioEmpresa'
+import { ComoSeCalcula } from '../../components/precios/ComoSeCalcula'
 import { TablaAsiQuedan } from '../../components/precios/TablaAsiQuedan'
 import { PestanasEmpresa } from './PestanasEmpresa'
 
@@ -46,6 +48,10 @@ export function EmpresaPrecios() {
   const { empresa, isLoading: cargandoEmpresa, isError: errorEmpresa, noEncontrada, refetch: recargarEmpresa } = useEmpresa(id)
   const { regla, cargando: cargandoRegla, hayError: errorRegla, recargar, guardar, esVigente } = usePreciosEmpresa(id)
   const { cotizacion, cargando: cargandoCotizacion, hayError: errorCotizacion } = useCotizacionInicial()
+  // Con alcance «una por empresa» (F-PRE-06, FR-010) la cotización de la empresa es la suya; solo se pide con acceso a la sección.
+  const { nivel: nivelCotizacion } = useNivelSeccion('cotizacion_dolar')
+  const puedeVerCotizacion = nivelCotizacion === 'lectura' || nivelCotizacion === 'edicion'
+  const estadoCotizacion = useEstadoCotizacion(id ?? null, puedeVerCotizacion)
   const { empresas: accesibles } = useEmpresasAccesibles()
   const { setWarnWhen } = useWarnAboutChange()
 
@@ -95,6 +101,9 @@ export function EmpresaPrecios() {
   if (cargandoRegla || !regla || !actual) return envolver(<EstadoCargaPagina />)
 
   const empresaId = empresa.id
+  const cotizacionPropia = estadoCotizacion.estado?.alcance === 'empresa'
+  const vigentePropia = cotizacionPropia ? estadoCotizacion.estado?.vigente ?? null : null
+  const cotizacionDeLaEmpresa = vigentePropia ? { valor: vigentePropia.valor, fecha: vigentePropia.cargadaEn } : cotizacion
   const errorAjuste = accion.intento ? validarAjuste(actual.base, actual.ajuste) : undefined
   const otras = accesibles.filter((otra) => otra.id !== empresaId)
 
@@ -177,7 +186,9 @@ export function EmpresaPrecios() {
             onMostrarConIva={cambiarMostrarConIva}
             ejemplo={ejemploIva(previa.filas)}
             soloLectura={soloLectura}
-            cotizacion={cotizacion}
+            cotizacion={cotizacionDeLaEmpresa}
+            puedeAbrirCotizacion={puedeVerCotizacion}
+            cotizacionQueUsa={cotizacionPropia ? `La de ${empresa.nombre}` : undefined}
             cargandoCotizacion={cargandoCotizacion}
             errorCotizacion={errorCotizacion}
           />
@@ -190,8 +201,12 @@ export function EmpresaPrecios() {
             cargando={previa.cargando}
             hayError={previa.hayError}
             ajusteInvalido={validarAjuste(actual.base, actual.ajuste) !== undefined}
+            hayAjuste={actual.base === 'central_ajuste' && (parsearAjuste(actual.ajuste) ?? 0) !== 0}
             reintentar={previa.reintentar}
           />
+          <Box sx={{ mt: 2 }}>
+            <ComoSeCalcula nombreEmpresa={empresa.nombre} />
+          </Box>
         </Box>
       </Stack>
     </Stack>,

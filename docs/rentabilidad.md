@@ -108,6 +108,8 @@ vigente al lanzar. **Antes de esa fecha no hay costo registrado, así que no hay
 | --- | --- |
 | `analitica.costo_en_fecha(producto, organización, fecha)` | último costo con `vigente_desde ≤ fecha`; `null` si no hay |
 | `analitica.cotizacion_cercana(organización, fecha)` | carga de `dominio.cotizaciones` más cercana en el tiempo; a igual distancia, la anterior; `null` si no hay |
+| `analitica.cotizacion_cercana(organización, fecha, empresa)` | (MSF-352) lo mismo entre las cargas APLICADAS (`recalculo_aplicado`) generales y las de esa empresa; la usa la historia por empresa. Los cambios de alcance no son un punto de la historia |
+| `analitica.cotizacion_para(organización, empresa)` | (MSF-352) cotización aplicada que usa la tienda para esa empresa según el alcance; la usa el margen actual y su alerta `margen_negativo` |
 | `analitica.margen_historico_producto_canal` | una fila por producto × empresa × fecha (cambios de costo y cargas de cotización): `cotizacion`, `precio_neto`, `costo`, `margen`, `margen_pct` |
 
 El precio es el neto de la tienda **vigente hoy** en su moneda (no se reconstruyen precios de lista históricos),
@@ -295,3 +297,7 @@ Revisada contra las migraciones `20270202201000`–`20270202201007` y sus prueba
   guest token filtra por `organizacion_id` (y empresas accesibles).
 - **Aislamiento**: pruebas `*_aislamiento.test.sql` con dos organizaciones y roles sin la sección; `rls_en_toda_tabla` recorre `public` + `dominio`.
 - **Sin hallazgos abiertos.** Límite conocido: el 403 del guest token es de Superset y se prueba en su importador, no en pgTAP.
+
+## Cotización del margen actual (MSF-352)
+
+`analitica.margen_producto_canal` convierte el precio (propio en USD incluido) y el costo en USD con la **cotización aplicada de la empresa** (`analitica.cotizacion_para`), la misma que usa la tienda; antes usaba la cotización inicial y mostraba márgenes falsos (p. ej. inicial 1.000, aplicada 1.500, precio propio $ 14.000 y costo USD 10: margen real −7,14 %, no +28,6 %). La historia usa `cotizacion_cercana(org, fecha, empresa)` y no aplica el precio propio. `productos_precio_costo` y la valorización de inventario usan la cotización general (no tienen empresa). Pruebas: `analitica_margen_cotizacion_vigente.test.sql`.

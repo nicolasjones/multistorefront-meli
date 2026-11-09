@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -12,12 +12,13 @@ const mocks = vi.hoisted(() => ({
   useFiltro: vi.fn(),
   elegirEmpresa: vi.fn(),
   costos: vi.fn(),
+  esAdmin: vi.fn(),
   precios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
   const cadena: Record<string, unknown> = {}
-  for (const metodo of ['select', 'eq', 'or', 'contains', 'order', 'range']) {
+  for (const metodo of ['select', 'eq', 'or', 'contains', 'overlaps', 'order', 'range']) {
     cadena[metodo] = (...args: unknown[]) => { mocks.llamadas.push([metodo, ...args]); return cadena }
   }
   cadena.returns = () => mocks.consulta()
@@ -39,6 +40,7 @@ vi.mock('../../lib/supabase', () => {
     },
   }
 })
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: mocks.esAdmin(), isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
@@ -59,9 +61,25 @@ const niveles = (productos: string, rentabilidad: string) =>
 
 const abrir = () => render(<MemoryRouter><ProductoList /></MemoryRouter>)
 
+const abrirConDestino = () =>
+  render(
+    <MemoryRouter initialEntries={['/productos']}>
+      <Routes>
+        <Route path="/productos" element={<ProductoList />} />
+        <Route path="/productos/create" element={<LugarActual />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+
+function LugarActual() {
+  const lugar = useLocation()
+  return <p>Destino {lugar.pathname}{lugar.search}</p>
+}
+
 describe('ProductoList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.esAdmin.mockReturnValue(false)
     mocks.useCategorias.mockReturnValue({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.llamadas.length = 0
     mocks.firmar.mockResolvedValue({ data: [{ path: 'o/p-1/frente.png', signedUrl: 'https://firmada/p-1.png' }], error: null })
@@ -81,6 +99,31 @@ describe('ProductoList', () => {
       empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
       valor: null, cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
     })
+  })
+
+  it('Duplicar solo con edición: navega a ?duplicar_de=<id> (FR-009)', async () => {
+    abrirConDestino()
+    fireEvent.click(await screen.findByRole('button', { name: 'Duplicar Joystick' }))
+    expect(await screen.findByText('Destino /productos/create?duplicar_de=p-1')).toBeInTheDocument()
+  })
+
+  it('Duplicar no aparece sin edición (FR-009)', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('button', { name: /^Duplicar/ })).not.toBeInTheDocument()
+  })
+
+  it('«Importar CSV» solo aparece para el Administrador y lleva a /productos/carga (FR-101)', async () => {
+    mocks.esAdmin.mockReturnValue(true)
+    abrir()
+    expect((await screen.findByRole('link', { name: 'Importar CSV' })).getAttribute('href')).toBe('/productos/carga')
+  })
+
+  it('«Importar CSV» no aparece para quien no es Administrador (FR-101)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('link', { name: 'Importar CSV' })).toBeNull()
   })
 
   it('muestra nombre, SKU y la etiqueta «Inactivo» del producto desactivado', async () => {
@@ -490,5 +533,194 @@ describe('ProductoList', () => {
     abrir()
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
     expect(screen.getByText('No pudimos cargar las tiendas para filtrar.')).toBeInTheDocument()
+  })
+
+  describe('edición masiva (F-CAT-12)', () => {
+    const CATEGORIAS = [
+      { id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] },
+      { id: 'cat-1', nombre: 'Cableados', padre_id: 'cat-0', posicion: 0, empresa_ids: [] },
+    ]
+    const marcarTodos = async () => {
+      const vista = abrir()
+      await screen.findByText('Joystick')
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+      return vista
+    }
+
+    it('casillas solo con edición: con lectura no hay casillas y «Seleccionar todos» marca las filas visibles', async () => {
+      niveles('lectura', 'ninguno')
+      abrir()
+      await screen.findByText('Joystick')
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+      expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument()
+      cleanup()
+      niveles('edicion', 'ninguno')
+      await marcarTodos()
+      const casillas = screen.getAllByRole('checkbox', { name: 'Seleccionar producto' })
+      expect(casillas).toHaveLength(2)
+      for (const casilla of casillas) expect(casilla).toBeChecked()
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+      for (const casilla of screen.getAllByRole('checkbox', { name: 'Seleccionar producto' })) expect(casilla).not.toBeChecked()
+    })
+
+    it('barra de selección: «N seleccionados» con las cuatro acciones y ninguna otra', async () => {
+      abrir()
+      await screen.findByText('Joystick')
+      expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument()
+      fireEvent.click(screen.getAllByRole('checkbox', { name: 'Seleccionar producto' })[0])
+      const barra = screen.getByRole('region', { name: 'Acciones sobre los productos seleccionados' })
+      expect(within(barra).getByText('1 seleccionados')).toBeInTheDocument()
+      expect(within(barra).getAllByRole('button').map((boton) => boton.textContent)).toEqual([
+        'Mover de categoría', 'Cambiar estado', 'Cambiar empresas', 'Quitar selección',
+      ])
+      for (const fuera of ['Marcar destacado', 'Enviar al newsletter', 'Borrar']) {
+        expect(screen.queryByRole('button', { name: fuera })).not.toBeInTheDocument()
+      }
+      fireEvent.click(within(barra).getByRole('button', { name: 'Quitar selección' }))
+      expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument()
+    })
+
+    it('«Mover de categoría»: texto, árbol con sangría, llamada a la RPC y aviso', async () => {
+      mocks.useCategorias.mockReturnValue({ categorias: CATEGORIAS, isLoading: false, isError: false, refetch: vi.fn() })
+      mocks.rpc.mockResolvedValue({ data: 2, error: null })
+      await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Mover de categoría' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Mover de categoría' })
+      expect(within(dialogo).getByText('Se mueven 2 productos a la categoría elegida.')).toBeInTheDocument()
+      const opciones = within(dialogo).getAllByRole('button').filter((boton) => ['Joysticks', 'Cableados'].includes(boton.textContent ?? ''))
+      expect(opciones).toHaveLength(2)
+      expect(opciones[1].className).not.toEqual(opciones[0].className)
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Cableados' }))
+      await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('mover_productos_categoria', { p_producto_ids: ['p-1', 'p-2'], p_categoria_id: 'cat-1' }))
+      expect(await screen.findByText('2 productos movidos a Joysticks > Cableados')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument()
+      await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(2))
+    })
+
+    it('«Cambiar estado»: confirmar queda deshabilitado hasta elegir y avisa activados/desactivados', async () => {
+      mocks.rpc.mockResolvedValue({ data: 2, error: null })
+      await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar estado' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar estado' })
+      expect(within(dialogo).getByRole('button', { name: 'Confirmar' })).toBeDisabled()
+      fireEvent.click(within(dialogo).getByRole('radio', { name: 'Desactivar' }))
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Desactivar 2 productos' }))
+      await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_productos', { p_producto_ids: ['p-1', 'p-2'], p_activo: false }))
+      expect(await screen.findByText('2 productos desactivados')).toBeInTheDocument()
+    })
+
+    it('«Cambiar empresas»: usa casillas de empresa para agregar y quitar y avisa «N productos actualizados»', async () => {
+      mocks.rpc.mockResolvedValue({ data: 2, error: null })
+      await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar empresas' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar empresas' })
+      const agregar = within(dialogo).getByRole('group', { name: 'Agregar a' })
+      const quitar = within(dialogo).getByRole('group', { name: 'Quitar de' })
+      expect(within(dialogo).getByRole('button', { name: 'Aplicar a 2 productos' })).toBeDisabled()
+      fireEvent.click(within(agregar).getByRole('checkbox', { name: 'Mundo JC' }))
+      fireEvent.click(within(quitar).getByRole('checkbox', { name: 'San Javucho' }))
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Aplicar a 2 productos' }))
+      await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('definir_empresas_productos', {
+        p_producto_ids: ['p-1', 'p-2'], p_agregar: ['emp-2'], p_quitar: ['emp-1'],
+      }))
+      expect(await screen.findByText('2 productos actualizados')).toBeInTheDocument()
+    })
+
+    it('«Cambiar empresas»: una empresa en ambas listas bloquea la confirmación', async () => {
+      await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar empresas' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar empresas' })
+      fireEvent.click(within(within(dialogo).getByRole('group', { name: 'Agregar a' })).getByRole('checkbox', { name: 'Mundo JC' }))
+      fireEvent.click(within(within(dialogo).getByRole('group', { name: 'Quitar de' })).getByRole('checkbox', { name: 'Mundo JC' }))
+      expect(within(dialogo).getByText(/no puede estar a la vez/)).toBeInTheDocument()
+      expect(within(dialogo).getByRole('button', { name: 'Aplicar a 2 productos' })).toBeDisabled()
+    })
+
+    it('si ningún producto cambió el aviso es «No hubo cambios»', async () => {
+      mocks.rpc.mockResolvedValue({ data: 0, error: null })
+      await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar estado' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar estado' })
+      fireEvent.click(within(dialogo).getByRole('radio', { name: 'Activar' }))
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Activar 2 productos' }))
+      expect(await screen.findByText('No hubo cambios')).toBeInTheDocument()
+    })
+
+    it('estados del diálogo: confirmar deshabilitado mientras corre; el error es claro y deja la selección intacta', async () => {
+      let rechazar: (valor: unknown) => void = () => undefined
+      mocks.rpc.mockReturnValue(new Promise((resolver) => { rechazar = resolver }))
+      await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar estado' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar estado' })
+      fireEvent.click(within(dialogo).getByRole('radio', { name: 'Desactivar' }))
+      const confirmar = within(dialogo).getByRole('button', { name: 'Desactivar 2 productos' })
+      fireEvent.click(confirmar)
+      await waitFor(() => expect(confirmar).toBeDisabled())
+      expect(within(dialogo).getByRole('button', { name: 'Cancelar' })).toBeDisabled()
+      rechazar({ data: null, error: { code: 'P0002', message: 'raw db error' } })
+      expect(await within(dialogo).findByText(/ya no existe/)).toBeInTheDocument()
+      expect(screen.queryByText(/raw db error/)).not.toBeInTheDocument()
+      expect(within(dialogo).getByRole('button', { name: 'Desactivar 2 productos' })).toBeEnabled()
+      // La selección sigue intacta detrás del diálogo.
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
+    })
+
+    it('teclado: Escape cierra el diálogo y el foco vuelve al botón que lo abrió', async () => {
+      await marcarTodos()
+      const origen = screen.getByRole('button', { name: 'Cambiar estado' })
+      origen.focus()
+      fireEvent.click(origen)
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar estado' })
+      fireEvent.keyDown(dialogo, { key: 'Escape' })
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await waitFor(() => expect(origen).toHaveFocus())
+    })
+
+    it('cambio de empresa descarta la selección y cierra el diálogo con aviso (Principio VIII)', async () => {
+      const vista = await marcarTodos()
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar estado' }))
+      await screen.findByRole('dialog', { name: 'Cambiar estado' })
+      mocks.useFiltro.mockReturnValue({
+        empresas: [{ id: 'emp-1', nombre: 'San Javucho' }, { id: 'emp-2', nombre: 'Mundo JC' }],
+        valor: 'emp-2', cambiar: mocks.elegirEmpresa, cargando: false, hayError: false,
+      })
+      vista.rerender(<MemoryRouter><ProductoList /></MemoryRouter>)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(screen.getByText(/Cerramos el cambio masivo/)).toBeInTheDocument()
+      expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument()
+      expect(mocks.rpc.mock.calls.map((llamada) => llamada[0])).not.toEqual(expect.arrayContaining(['cambiar_estado_productos']))
+      await waitFor(() => expect(mocks.llamadas).toContainEqual(['contains', 'empresa_ids', ['emp-2']]))
+    })
+
+    it('cargar más no descarta la selección; cambiar filtro o búsqueda sí', async () => {
+      mocks.consulta.mockResolvedValue({ data: FILAS, error: null, count: 60 })
+      await marcarTodos()
+      expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /cargar más/i }))
+      await waitFor(() => expect(mocks.llamadas).toContainEqual(expect.arrayContaining(['range'])))
+      expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
+      fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'joy' } })
+      await waitFor(() => expect(screen.queryByText(/seleccionados/)).not.toBeInTheDocument())
+    })
+
+    it.each([[320, true], [768, false], [1440, false]])('a %i px la casilla, la barra y el diálogo siguen disponibles', async (_ancho, angosta) => {
+      const original = window.matchMedia
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: angosta, media: query, onchange: null, addListener: () => {}, removeListener: () => {},
+        addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+      })) as unknown as typeof window.matchMedia
+      try {
+        abrir()
+        await screen.findByText('Joystick')
+        fireEvent.click(screen.getAllByRole('checkbox', { name: 'Seleccionar producto' })[0])
+        fireEvent.click(screen.getByRole('button', { name: 'Cambiar estado' }))
+        expect(await screen.findByRole('dialog', { name: 'Cambiar estado' })).toBeInTheDocument()
+      } finally {
+        window.matchMedia = original
+      }
+    })
   })
 })

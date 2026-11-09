@@ -32,6 +32,11 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
   Un superadmin con organización activa equivale a administrador.
 - `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar` exige `edicion`;
   `exportar` y `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+- Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
+  Administrador); ver `docs/actividad.md`. Operador y Administración tienen la acción `exportar` por defecto pero solo
+  lectura en Actividad, así que no exportan (el spec de MSF-170 se alineó con el código).
+- Importar y exportar productos (F-CAT-10 / F-CAT-11) **no** usan `puede_accion`: exigen Administrador de la organización
+  (`private.es_administrador_de`); ni el permiso `exportar` ni el nivel de la sección `productos` los habilitan.
 
 ### Cómo usarlas en una tabla de dominio
 
