@@ -35,4 +35,14 @@ export const ayudaService: AyudaPorDestino = {
       'Usá «Activo» para habilitar o deshabilitar un estado.',
     ],
   },
+  'service-tecnico-reportes': {
+    titulo: 'Reportes',
+    resumen:
+      'Tablero con las reparaciones por estado y por técnico, las que ingresan cada mes por tienda y el importe al cliente. Compara todas las tiendas de la organización, sin importar la tienda activa. Si no lo ves, tu organización todavía no lo tiene asignado o tu rol no lo incluye: pedile acceso a un administrador.',
+    pasos: [
+      'Mirá los cuatro gráficos: estados, técnicos, ingresos por mes e importes.',
+      'Usá «Reintentar» si el tablero no carga.',
+      'Para bajar el detalle, exportá el listado desde Reparaciones con «Exportar».',
+    ],
+  },
 }
