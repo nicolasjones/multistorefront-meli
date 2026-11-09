@@ -860,7 +860,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 ### Enlaces legales y consentimiento de cookies
 
-- **Límites defensivos (MSF-149, migración `20270217400000`)**: la URL no admite credenciales (`https://usuario@host`: sin `@` en la
+- **Límites defensivos (MSF-149, migración `20270218000000`)**: la URL no admite credenciales (`https://usuario@host`: sin `@` en la
   autoridad, antes del primer `/`, `?` o `#`) y cada empresa admite como máximo **10** enlaces legales. El tope es **defensivo** (evita
   inflar el pie y la respuesta anónima), no una regla de negocio: se cambia con una migración nueva. Pruebas: pgTAP
   `tienda_legal_limites.test.sql` (que además verifica la lectura denegada a un usuario sin permiso de la sección `empresas`).

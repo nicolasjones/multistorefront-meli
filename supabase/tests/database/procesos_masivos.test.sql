@@ -31,9 +31,9 @@ insert into conexiones (id, organizacion_id, sistema_externo, credencial_vault_i
   ('c1000000-0000-0000-0000-0000000000c1', '11111111-1111-1111-1111-111111111111', 'procesos-prueba', gen_random_uuid()),
   ('c2000000-0000-0000-0000-0000000000c1', '22222222-2222-2222-2222-222222222222', 'procesos-prueba', gen_random_uuid());
 insert into capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg) values
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'carga-a', 3600),
-  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'carga-b', 3600),
-  ('22222222-2222-2222-2222-222222222222', 'c2000000-0000-0000-0000-0000000000c1', 'carga-a', 3600);
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'importar-a', 3600),
+  ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'exportar-b', 3600),
+  ('22222222-2222-2222-2222-222222222222', 'c2000000-0000-0000-0000-0000000000c1', 'importar-a', 3600);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -72,59 +72,59 @@ select ok(
 select pg_temp.como('d1000000-0000-0000-0000-000000000012');
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga') $$,
   '42501', null, 'quien no es administrador no inicia procesos'
 );
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'migracion', 'catalogo', 'Carga') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'migracion', 'catalogo', 'Carga') $$,
   '22023', null, 'un tipo desconocido se rechaza'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', '   ') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', '   ') $$,
   '22023', null, 'el nombre es obligatorio'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c2000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga') $$,
+  $$ select public.iniciar_proceso_masivo('c2000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga') $$,
   '42501', null, 'una conexión de otra organización se rechaza'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga',
        'a2000000-0000-0000-0000-0000000000a1') $$,
   '22023', null, 'una empresa de otra organización se rechaza'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga',
        null, '{"clave":"password=hunter2"}'::jsonb) $$,
   'P0001', null, 'los parámetros con forma de credencial se rechazan'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga',
        null, '{"password":"hunter2"}'::jsonb) $$,
   'P0001', null, 'una credencial con forma JSON ("password": "x") se rechaza'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga',
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga',
        null, '{"api_key":"abc"}'::jsonb) $$,
   'P0001', null, 'una api_key con forma JSON se rechaza'
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'no-existe', 'importacion', 'catalogo', 'Carga') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-no-existe', 'importacion', 'catalogo', 'Carga') $$,
   'P0001', null, 'una capacidad no registrada se rechaza con el error del ciclo'
 );
 
 select lives_ok(
   $$ select set_config('t.p1', public.iniciar_proceso_masivo(
-       'c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Carga de productos',
+       'c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Carga de productos',
        'a1000000-0000-0000-0000-0000000000a1', '{"archivo":"productos.csv"}'::jsonb)::text, false) $$,
   'un administrador inicia un proceso masivo'
 );
@@ -156,13 +156,13 @@ select is(
 );
 
 select throws_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-a', 'importacion', 'catalogo', 'Otra') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-a', 'importacion', 'catalogo', 'Otra') $$,
   'P0001', null, 'una segunda carga de la misma capacidad en curso falla con YA_EN_CURSO'
 );
 
 select lives_ok(
   $$ select set_config('t.p2', public.iniciar_proceso_masivo(
-       'c1000000-0000-0000-0000-0000000000c1', 'carga-b', 'exportacion', 'exportacion-total', 'Exportación total')::text, false) $$,
+       'c1000000-0000-0000-0000-0000000000c1', 'exportar-b', 'exportacion', 'exportacion-total', 'Exportación total')::text, false) $$,
   'otra capacidad inicia una exportación sin empresa'
 );
 

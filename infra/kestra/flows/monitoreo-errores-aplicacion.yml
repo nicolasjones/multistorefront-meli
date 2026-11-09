@@ -1,6 +1,7 @@
 # MSF-369 · F-OPS-03 (FR-033, FR-030). Cada 2 minutos cuenta en GlitchTip los eventos de error de los últimos
 # `ventana_min` minutos del proyecto de la aplicación; con `umbral` o más registra UN fallo de fuente
 # `aplicacion` (monitoreo-evaluar abre la alerta y la deduplica), y con menos registra `ok` (la resuelve).
+# El conteo usa el total real del listado (encabezado X-Hits) o, sin él, una página de al menos `umbral` eventos (`limit`).
 # Si el conteo falla, registra un fallo del propio monitor (clave monitor:<proyecto>) y alerta tras 5 seguidos; una
 # alerta `aplicacion` abierta solo se resuelve con un `ok` real. Organización/proyecto ausentes usan sus valores por defecto.
 # El conteo vive en la herramienta de errores; la base solo guarda el resultado. Sin ERRORES_APP_URL el flow
@@ -24,6 +25,15 @@ inputs:
   - id: ruta_eventos
     type: STRING
     defaults: "/api/0/projects/{organizacion}/{proyecto}/events/"
+  # Tamaño de página que se pide al listado (la herramienta devuelve una sola página por pedido).
+  - id: limite_pagina
+    type: INT
+    defaults: 100
+variables:
+  # Total REAL de eventos de la ventana: el encabezado X-Hits (en cualquier capitalización: x-hits, X-Hits o X-HITS; total del listado, sin paginar) y, si la herramienta no lo
+  # envía, la cantidad de la página pedida con `limit` = max(limite_pagina, umbral), que siempre alcanza para decidir
+  # el umbral (nunca se mira una página más chica que el umbral).
+  conteo: "{{ (outputs.contar_eventos.headers['x-hits'] ?? outputs.contar_eventos.headers['X-Hits'] ?? outputs.contar_eventos.headers['X-HITS']) is not null ? ((outputs.contar_eventos.headers['x-hits'] ?? outputs.contar_eventos.headers['X-Hits'] ?? outputs.contar_eventos.headers['X-HITS'])[0] | number) : (fromJson(outputs.contar_eventos.body) | length) }}"
 tasks:
   - id: configurada
     type: io.kestra.plugin.core.flow.If
@@ -33,7 +43,7 @@ tasks:
         type: io.kestra.plugin.core.http.Request
         # Un fallo del conteo no rompe el flow: lo registra `registrar_fallo_monitor` (el monitor no queda ciego).
         allowFailure: true
-        uri: "{{ envs.errores_app_url }}{{ inputs.ruta_eventos | replace({'{organizacion}': envs.errores_app_organizacion ?? 'plataforma', '{proyecto}': envs.errores_app_proyecto ?? 'aplicacion'}) }}?start={{ now() | dateAdd(-inputs.ventana_min, 'MINUTES') | date(\"yyyy-MM-dd'T'HH:mm:ss\") }}&end={{ now() | date(\"yyyy-MM-dd'T'HH:mm:ss\") }}"
+        uri: "{{ envs.errores_app_url }}{{ inputs.ruta_eventos | replace({'{organizacion}': envs.errores_app_organizacion ?? 'plataforma', '{proyecto}': envs.errores_app_proyecto ?? 'aplicacion'}) }}?start={{ now() | dateAdd(-inputs.ventana_min, 'MINUTES') | date(\"yyyy-MM-dd'T'HH:mm:ss\") }}&end={{ now() | date(\"yyyy-MM-dd'T'HH:mm:ss\") }}&limit={{ inputs.limite_pagina > inputs.umbral ? inputs.limite_pagina : inputs.umbral }}"
         method: GET
         headers:
           Authorization: "Bearer {{ secret('ERRORES_APP_TOKEN') }}"
@@ -69,8 +79,8 @@ tasks:
             parameters:
               proyecto: "{{ envs.errores_app_proyecto ?? 'aplicacion' }}"
               monitor: "monitor:{{ envs.errores_app_proyecto ?? 'aplicacion' }}"
-              resultado: "{{ (fromJson(outputs.contar_eventos.body) | length) >= inputs.umbral ? 'fallo' : 'ok' }}"
-              motivo: "{{ (fromJson(outputs.contar_eventos.body) | length) }} errores en {{ inputs.ventana_min }} min"
+              resultado: "{{ (vars.conteo | number) >= inputs.umbral ? 'fallo' : 'ok' }}"
+              motivo: "{{ vars.conteo }} errores en {{ inputs.ventana_min }} min"
 triggers:
   - id: cada_2_minutos
     type: io.kestra.plugin.core.trigger.Schedule

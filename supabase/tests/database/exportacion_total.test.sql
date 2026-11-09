@@ -40,7 +40,7 @@ insert into conexiones (id, organizacion_id, sistema_externo, credencial_vault_i
 values ('c1000000-0000-0000-0000-0000000000c1', '11111111-1111-1111-1111-111111111111', 'historial-ventas', gen_random_uuid());
 -- Capacidad de otro producto: una ejecución suya no puede leer la exportación total.
 insert into capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg)
-values ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'otra-capacidad', 3600);
+values ('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'exportar-otra-capacidad', 3600);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -287,14 +287,14 @@ select throws_ok(
 -- Una ejecución de otra capacidad (aunque sea de la misma organización) no sirve para exportar.
 select pg_temp.como('d1000000-0000-0000-0000-000000000011');
 select lives_ok(
-  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'otra-capacidad', 'exportacion', 'otra', 'Otra exportación') $$,
+  $$ select public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'exportar-otra-capacidad', 'exportacion', 'otra', 'Otra exportación') $$,
   'se crea una exportación de otra capacidad'
 );
 reset role;
 select set_config('request.jwt.claims',
   json_build_object('sub', 'd1000000-0000-0000-0000-000000000011', 'role', 'authenticated')::text, true);
 select throws_ok(
-  $$select * from private.datos_exportacion_total((select e.id from public.ejecuciones_worker e join public.capacidades_ejecucion c on c.id = e.capacidad_id where c.clave = 'otra-capacidad' limit 1))$$,
+  $$select * from private.datos_exportacion_total((select e.id from public.ejecuciones_worker e join public.capacidades_ejecucion c on c.id = e.capacidad_id where c.clave = 'exportar-otra-capacidad' limit 1))$$,
   'P0001', null, 'la lectura exige la capacidad exportar-organizacion-*'
 );
 
