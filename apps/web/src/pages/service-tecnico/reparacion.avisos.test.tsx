@@ -21,6 +21,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: () => ({ organizacionId: 'org-1', isLoading: false }) }))
+// F-SVC-20: la sección de fotos tiene su propio test (AdjuntosReparacion.test.tsx); acá se aísla para que su «Reintentar» no se confunda con el de esta pantalla.
+vi.mock('../../components/service/AdjuntosReparacion', () => ({ AdjuntosReparacion: () => null }))
+// F-SVC-21: los vínculos de garantía tienen su propio test; acá se aíslan por el mismo motivo.
+vi.mock('../../components/service/VinculosGarantia', () => ({ VinculosGarantia: () => null }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),

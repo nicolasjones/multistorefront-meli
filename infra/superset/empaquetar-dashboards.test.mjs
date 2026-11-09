@@ -66,6 +66,32 @@ test('empaqueta el directorio real: sustituye el host y deja afuera reportes.jso
   assert.doesNotMatch(paquete.toString('utf8'), /mercado libre/i);
 });
 
+test('empaqueta el tablero de Service técnico (F-SVC-23, FR-063): importable como el de Rentabilidad', async () => {
+  const paquete = await empaquetarDashboards({
+    directorio: 'infra/superset/dashboards/service',
+    variables: { SUPERSET_ANALITICA_DB_HOST: 'base-de-la-app' },
+  });
+  const archivos = leerZip(paquete);
+  const raiz = 'dashboard_export_service';
+  assert.ok(
+    [...archivos.keys()].every((nombre) => nombre.startsWith(`${raiz}/`)),
+    'todo el contenido va bajo una carpeta raíz',
+  );
+  assert.ok(archivos.has(`${raiz}/metadata.yaml`));
+  assert.ok(archivos.has(`${raiz}/databases/Rentabilidad_analitica.yaml`), 'comparte la conexión analítica de Rentabilidad');
+  assert.ok(archivos.has(`${raiz}/datasets/Service_analitica/service_reparaciones.yaml`));
+  assert.ok(archivos.has(`${raiz}/datasets/Service_analitica/service_reparacion_items.yaml`));
+  assert.ok(archivos.has(`${raiz}/dashboards/Service_tecnico_1.yaml`));
+  assert.equal(
+    [...archivos.keys()].filter((nombre) => nombre.startsWith(`${raiz}/charts/`)).length,
+    4,
+    'los cuatro indicadores del tablero',
+  );
+  assert.ok(!archivos.has(`${raiz}/reportes.json`), 'reportes.json no viaja a Superset');
+  assert.doesNotMatch(paquete.toString('utf8'), /\$\{/, 'ninguna variable sin sustituir');
+  assert.doesNotMatch(paquete.toString('utf8'), /costo_|ganancia/i, 'el tablero no expone costos internos ni ganancia');
+});
+
 test('conexionesDelDirectorio lista las bases para el mapa de contraseñas', async () => {
   const archivos = await conexionesDelDirectorio('infra/superset/dashboards/rentabilidad');
   assert.deepEqual(archivos, ['databases/Rentabilidad_analitica.yaml']);
