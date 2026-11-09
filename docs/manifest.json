@@ -733,6 +733,19 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/service-seguimiento-y-reportes.md": {
+      "title": "Service técnico: fotos, garantía, seguimiento del cliente y reportes",
+      "pageHash": "4df22a32e8345d07b07aa122f0f64c7e463b88e052511d20b65123b33c788921",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "60362896",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "producto",
+      "commit": "6d47b766"
+    },
     "docs/producto/sistema-de-diseno.md": {
       "title": "Sistema de diseño (MSF-117)",
       "pageHash": "2c4a9e729e2f848c73d3b83109dca76e48ce7b348d48dd9d60d6215155fdf82d",
@@ -1876,6 +1889,21 @@
       ],
       "owner": "tecnico",
       "commit": null
+    },
+    "docs/tecnico/service-seguimiento-y-reportes.md": {
+      "title": "Service técnico: seguimiento y reportes (técnico, MSF-124)",
+      "pageHash": "0544d24a3e02f520d712b0e8ac63d9620e84267a45398fc9f6aa25a70885375f",
+      "sourceHash": "a380dba2fa54193c3307b6fefd20a591ee254ce5d3fd7bbda660adf1ac8e6c8f",
+      "sourceAt": "60362896",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "supabase/functions",
+        "infra/superset",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "6d47b766"
     },
     "docs/tecnico/stock-carga-exportacion-y-avisos.md": {
       "title": "Stock · carga inicial, exportación y avisos (MSF-368)",
