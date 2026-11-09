@@ -103,7 +103,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     sistema_externo: 'procesos-prueba',
     credencial_vault_id: randomUUID(),
   })
-  await rest('capacidades_ejecucion', { organizacion_id: org.id, conexion_id: conexion.id, clave: 'carga-prueba', tiempo_max_seg: 3600 })
+  await rest('capacidades_ejecucion', { organizacion_id: org.id, conexion_id: conexion.id, clave: 'importar-prueba', tiempo_max_seg: 3600 })
 
   const nombres = {
     pendiente: `Carga pendiente ${sufijo}`,
@@ -118,7 +118,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     headers: { apikey: anonKey ?? '', authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       p_conexion_id: conexion.id,
-      p_capacidad: 'carga-prueba',
+      p_capacidad: 'importar-prueba',
       p_tipo: 'importacion',
       p_funcionalidad: 'catalogo',
       p_nombre: nombres.pendiente,

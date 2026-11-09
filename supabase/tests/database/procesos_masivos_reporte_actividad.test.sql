@@ -16,7 +16,7 @@ on conflict (id) do nothing;
 insert into conexiones (id, organizacion_id, sistema_externo, credencial_vault_id) values
   ('c1000000-0000-0000-0000-0000000000c1', '11111111-1111-1111-1111-111111111111', 'procesos-prueba', gen_random_uuid());
 insert into capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg)
-select '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'carga-' || n, 3600
+select '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'importar-' || n, 3600
 from generate_series(1, 4) n;
 
 create function pg_temp.como_admin() returns void language plpgsql as $$
@@ -30,7 +30,7 @@ declare v uuid;
 begin
   perform pg_temp.como_admin();
   set local role authenticated;
-  v := public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-' || p_n, 'importacion', 'catalogo', 'Carga ' || p_n);
+  v := public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-' || p_n, 'importacion', 'catalogo', 'Carga ' || p_n);
   reset role;
   return v;
 end $$;
@@ -123,7 +123,7 @@ select is(
 -- Actividad: finalizada (solo cifras, sin motivo ni filas)
 -- ============================================================================
 
-select public.actualizar_progreso_proceso_masivo(current_setting('t.p1')::uuid, 1500, 2000);
+select public.actualizar_progreso_proceso_masivo(current_setting('t.p1')::uuid, 1500, 1500);
 select public.cerrar_proceso_masivo(current_setting('t.p1')::uuid, 'con_errores');
 select is(pg_temp.eventos('importacion.finalizada'), 1, 'cerrar el proceso registra importacion.finalizada');
 select ok(

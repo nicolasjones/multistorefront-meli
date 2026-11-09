@@ -44,4 +44,33 @@ describe('BloqueLegal (FR-032)', () => {
     expect(container.querySelector('b')).toBeNull()
     expect(screen.getByText(/<b>Mala<\/b> S\.A\./)).toBeInTheDocument()
   })
+
+  // MSF-149: casos límite. React escapa el texto; estos tests lo fijan.
+  it('con razón social, dirección y título enormes no rompe y los muestra completos (el ajuste de línea es de CSS)', () => {
+    const largo = 'X'.repeat(5000)
+    const { container } = render(
+      <BloqueLegal legal={{ razonSocial: largo, cuit: '30711111114', direccion: largo, enlaces: [{ titulo: largo, url: 'https://uno.ejemplo.com/a' }] }} />,
+    )
+    expect(screen.getByRole('region', { name: 'Información legal' })).toBeInTheDocument()
+    expect(container.textContent).toContain(`${largo} · CUIT 30-71111111-4`)
+    expect(container.textContent?.split(largo).length).toBe(4)
+    expect(screen.getAllByRole('link')).toHaveLength(1)
+  })
+
+  it('HTML en razón social, dirección y título de enlace queda literal', () => {
+    const { container } = render(
+      <BloqueLegal
+        legal={{
+          razonSocial: '<img src=x onerror=alert(1)> S.A.',
+          cuit: null,
+          direccion: '<script>alert(2)</script>',
+          enlaces: [{ titulo: '<b>Términos</b>', url: 'https://uno.ejemplo.com/t' }],
+        }}
+      />,
+    )
+    expect(container.querySelector('img, script, b')).toBeNull()
+    expect(screen.getByText('<script>alert(2)</script>')).toBeInTheDocument()
+    expect(screen.getByRole('link')).toHaveTextContent('<b>Términos</b>')
+    expect(screen.getByText(/<img src=x onerror=alert\(1\)> S\.A\./)).toBeInTheDocument()
+  })
 })

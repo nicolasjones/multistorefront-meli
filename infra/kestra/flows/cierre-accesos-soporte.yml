@@ -1,0 +1,30 @@
+# MSF-170 (revisión independiente, hallazgo 4; FR-016, spec 20261102-100000-auditoria-avanzada-y-soporte).
+# Cierra los accesos de soporte vencidos aunque la persona de soporte no vuelva: registra `soporte.vencido` en la
+# organización visitada y la salida en la bitácora (`private.cerrar_accesos_soporte_vencidos`). Es idempotente: una
+# segunda corrida no encuentra nada que cerrar, así que reintentar es seguro. Si la función falla, la tarea falla y la
+# ejecución queda en rojo: no se traga el error (Principio III).
+# Rol de base: kestra_orquestacion, con EXECUTE solo sobre esta función y la de depuración.
+id: cierre-accesos-soporte
+namespace: platform.auditoria
+labels:
+  capa: core
+  dominio: plataforma
+  componente: cierre-accesos-soporte
+description: "Cada 15 minutos asienta el vencimiento de los accesos de soporte que quedaron abiertos."
+tasks:
+  - id: cerrar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select private.cerrar_accesos_soporte_vencidos() as cerrados;
+    timeout: PT5M
+    retry:
+      type: constant
+      interval: PT2M
+      maxAttempts: 3
+triggers:
+  - id: cada-quince-minutos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/15 * * * *"

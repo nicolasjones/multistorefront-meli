@@ -24,7 +24,7 @@ on conflict (id) do nothing;
 insert into conexiones (id, organizacion_id, sistema_externo, credencial_vault_id) values
   ('c1000000-0000-0000-0000-0000000000c1', '11111111-1111-1111-1111-111111111111', 'procesos-prueba', gen_random_uuid());
 insert into capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg)
-select '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'carga-' || n, 3600
+select '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-0000000000c1', 'importar-' || n, 3600
 from generate_series(1, 6) n;
 
 create function pg_temp.como_admin(p_user uuid) returns void language plpgsql as $$
@@ -33,13 +33,13 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
 end $$;
 
--- Crea un proceso con la capacidad `carga-<n>` como administrador de la organización Uno.
+-- Crea un proceso con la capacidad `importar-<n>` como administrador de la organización Uno.
 create function pg_temp.nuevo(p_n int) returns uuid language plpgsql as $$
 declare v uuid;
 begin
   perform pg_temp.como_admin('d1000000-0000-0000-0000-000000000011');
   set local role authenticated;
-  v := public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'carga-' || p_n, 'importacion', 'catalogo', 'Carga ' || p_n);
+  v := public.iniciar_proceso_masivo('c1000000-0000-0000-0000-0000000000c1', 'importar-' || p_n, 'importacion', 'catalogo', 'Carga ' || p_n);
   reset role;
   return v;
 end $$;

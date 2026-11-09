@@ -53,7 +53,8 @@ publico.seo_tienda_por_dominio(host: string): {
 ```ts
 publico.sitemap_por_dominio(host: string): {
   dominio: string
-  urls: Array<{ ruta: string; modificado: string | null }>   // /, /catalogo, /contacto, /categoria/:id, /producto/:id (solo visibles), hasta 50000
+  urls: Array<{ ruta: string; modificado: string | null }>   // /, /catalogo, /contacto, /pagina/:slug (visibles), /categoria/:id, /producto/:id (solo visibles), hasta 50000
+  truncado: boolean   // true si se excedió el tope: se pierden primero los productos (sin sitemap index)
 } | null
 ```
 

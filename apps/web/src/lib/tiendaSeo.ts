@@ -24,8 +24,10 @@ export const LIMITE_DESCRIPCION = 160
 // una cabecera de SEO nunca debe tumbar la página de un producto por un dato que falta.
 export function recortar(texto: string | null | undefined, max: number): string {
   const limpio = (texto ?? '').replace(/\s+/g, ' ').trim()
-  if (limpio.length <= max) return limpio
-  return `${limpio.slice(0, max - 1).trimEnd()}…`
+  // Por puntos de código (no unidades UTF-16): un emoji o un par sustituto nunca se parte al cortar.
+  const letras = Array.from(limpio)
+  if (letras.length <= max) return limpio
+  return `${letras.slice(0, max - 1).join('').trimEnd()}…`
 }
 
 // Plantilla «<página> | <empresa>» (FR-021); sin página, solo la empresa.
@@ -55,16 +57,20 @@ export async function leerSeoTienda(host: string): Promise<SeoTienda | null> {
 
 // Una sola lectura por host mientras viva la pestaña: cada página monta su `CabeceraSeo` y no hace falta volver
 // a la base. Un fallo no se guarda, así la próxima página reintenta.
-const lecturas = new Map<string, Promise<SeoTienda | null>>()
+// La entrada vence a los 5 minutos: una pestaña abierta mucho tiempo (cambio de nombre, logo, descripción o tienda
+// pausada) no queda con datos viejos para siempre (MSF-149).
+export const TTL_CACHE_SEO_MS = 5 * 60 * 1000
+const lecturas = new Map<string, { promesa: Promise<SeoTienda | null>; vence: number }>()
 
 export function seoDeTienda(host: string): Promise<SeoTienda | null> {
-  let lectura = lecturas.get(host)
-  if (!lectura) {
-    lectura = leerSeoTienda(host)
-    lecturas.set(host, lectura)
-    lectura.catch(() => lecturas.delete(host))
-  }
-  return lectura
+  const ahora = Date.now()
+  const guardada = lecturas.get(host)
+  if (guardada && guardada.vence > ahora) return guardada.promesa
+  const promesa = leerSeoTienda(host)
+  const entrada = { promesa, vence: ahora + TTL_CACHE_SEO_MS }
+  lecturas.set(host, entrada)
+  promesa.catch(() => { if (lecturas.get(host) === entrada) lecturas.delete(host) })
+  return promesa
 }
 
 export const limpiarCacheSeo = () => lecturas.clear()

@@ -14,6 +14,10 @@ module.exports = {
   ignores: [
     (message) => /^(Merge (pull request|branch|remote-tracking|tag)|MSF-\d+: F-[A-Z]+-\d+ · )/.test(message || ""),
     (message) => /^Merge base de la épica en /.test(message || ""),
+    // MSF-224: el merge de `dokploy` en la rama de la épica ("Merge origin/dokploy en epic/MSF-224 y renumerar
+    // migraciones") no lleva `type(scope):`. Reescribirlo exigiría reescribir la historia compartida de la épica; se
+    // exceptúa ESE mensaje exacto (no el patrón general `Merge origin/…`) para no abrir la regla a mensajes futuros.
+    (message) => /^Merge origin\/dokploy en epic\/MSF-224 y renumerar migraciones(\r?\n|$)/.test(message || ""),
     (message) =>
       /^(Especificación del correo masivo a clientes|Verificación nombrada por requisito en la spec del correo masivo|Verificación nombrada en cada requisito y tarea dueña del correo masivo) \(MSF-155\)$/.test(
         message || "",

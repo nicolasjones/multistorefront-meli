@@ -58,6 +58,17 @@ describe('useExportarActividad (F-AUD-03, FR-013)', () => {
     expect(result.current.mensaje).toBeNull()
   })
 
+  it('un rechazo 22023 de la base (límite por hora, exportación ya registrada) muestra su mensaje propio', async () => {
+    mocks.traer.mockRejectedValueOnce({ code: '22023', message: 'Superaste el límite de 60 exportaciones por hora: esperá un rato e intentá de nuevo' })
+    const { result } = renderHook(() => useExportarActividad(filtros()))
+    await act(async () => { await result.current.exportar() })
+    expect(mocks.descargar).not.toHaveBeenCalled()
+    expect(result.current.mensaje).toEqual({
+      tipo: 'error',
+      texto: 'No se descargó ningún archivo: Superaste el límite de 60 exportaciones por hora: esperá un rato e intentá de nuevo.',
+    })
+  })
+
   it('si el filtro supera las 50.000 filas no descarga y deja un aviso que pide acotar con el total real (CA-AUD-03-3)', async () => {
     mocks.traer.mockResolvedValue({ estado: 'excede', total: 80_000 })
     const { result } = renderHook(() => useExportarActividad(filtros()))

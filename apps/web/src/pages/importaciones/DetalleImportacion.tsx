@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
@@ -9,6 +9,7 @@ import {
   COLUMNAS_CSV_ERRORES,
   LOTE_CSV_ERRORES,
   avance,
+  detalleTruncado,
   duracion,
   etiquetaEstado,
   etiquetaFuncionalidad,
@@ -17,6 +18,7 @@ import {
   nombreArchivoErrores,
   resultado,
   pedirLoteErrores,
+  textoDetalleTruncado,
   type ErrorProceso,
   type ProcesoMasivo,
 } from '../../lib/procesosMasivos'
@@ -32,13 +34,26 @@ const columnas: ColumnaAdaptable<ErrorProceso>[] = [
 export function DetalleImportacion({ proceso, onCerrar }: { proceso: ProcesoMasivo; onCerrar: () => void }) {
   const { errores, total, hayMas, cargandoMas, errorMas, cargarMas, isLoading, isError, refetch } = useErroresProceso(proceso.id, `${proceso.estado}:${proceso.procesados}:${proceso.con_errores}`)
   // Descarga TODO el reporte del proceso (no solo lo cargado en pantalla), por lotes (RF-IMP-01-3).
-  const pedirLote = useCallback((desde: number, limite: number) => pedirLoteErrores(proceso.id, desde, limite), [proceso.id])
+  const truncado = detalleTruncado(proceso, total)
+  const nota = textoDetalleTruncado(total, proceso.con_errores)
+  // El CSV cierra con una fila de aviso si el detalle está truncado (se agrega una sola vez, en el último lote).
+  const notaAgregada = useRef(false)
+  const pedirLote = useCallback(async (desde: number, limite: number) => {
+    const lote = await pedirLoteErrores(proceso.id, desde, limite)
+    if (truncado && lote.length < limite && !notaAgregada.current) {
+      notaAgregada.current = true
+      return [...lote, { id: 'nota-detalle-truncado', fila: null, columna: null, referencia: null, motivo_sanitizado: nota }]
+    }
+    return lote
+  }, [proceso.id, truncado, nota])
+  const reiniciarNota = useCallback(() => { notaAgregada.current = false }, [])
   const nombreArchivo = useCallback(() => nombreArchivoErrores(proceso.nombre), [proceso.nombre])
   const { exportar, exportando, mensaje, cerrarMensaje } = useExportarCsv<ErrorProceso>({
     columnas: COLUMNAS_CSV_ERRORES,
     nombreArchivo,
     tamanoLote: LOTE_CSV_ERRORES,
     pedirLote,
+    iniciar: reiniciarNota,
   })
   const resumen: [string, string][] = [
     ['Nombre', proceso.nombre],
@@ -70,6 +85,7 @@ export function DetalleImportacion({ proceso, onCerrar }: { proceso: ProcesoMasi
             </Button>
           ) : null}
         </Stack>
+        {truncado ? <Alert severity="info" sx={{ mb: 1 }}>{nota}</Alert> : null}
         {mensaje ? <Alert severity={mensaje.tipo === 'error' ? 'error' : 'info'} onClose={cerrarMensaje} sx={{ mb: 1 }}>{mensaje.texto}</Alert> : null}
         {isLoading ? (
           <EstadoCargaPagina lineas={2} />
