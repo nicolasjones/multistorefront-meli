@@ -46,11 +46,8 @@ insert into dominio.formas_pago (id, organizacion_id, empresa_id, nombre, tipo) 
   ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'Transferencia Dos', 'transferencia');
 
 -- Fechas relativas a hoy: el orden de la cuenta corriente depende de ellas.
--- La nota de crédito cuelga de una factura (regla de la base) y NO resta del saldo: su efecto
--- en la cuenta corriente es de MSF-195 (fuera de alcance de esta historia).
 insert into dominio.comprobantes_venta
-  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva,
-   comprobante_origen_id, nc_tipo)
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
 values
   -- En deuda, sin cobros: debe su total completo.
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', current_date - 5, 'deuda', 1000, 1210),
@@ -65,11 +62,18 @@ values
   -- Anulada, borrador y nota de crédito: ninguno debe nada.
   ('a1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000006', current_date - 1, 'anulada', 8000, 9680),
   ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000007', current_date - 1, 'borrador', 7000, 8470),
-  ('a1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000008', current_date - 1, 'emitida', 300, 363, 'a1000000-0000-0000-0000-000000000001', 'devolucion_importe'),
   -- Cobro que supera el total: el saldo es 0, no negativo.
   ('a1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000009', current_date - 1, 'confirmada', 200, 300),
   -- De otra organización: no se ve desde la primera.
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', null, 'c2000000-0000-0000-0000-000000000001', 'factura', '0002-00000001', current_date - 1, 'deuda', 70000, 77000);
+
+-- La nota de crédito cuelga de una factura (regla de la base) y NO resta del saldo: su efecto
+-- en la cuenta corriente es de MSF-195 (fuera de alcance de esta historia).
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva,
+   comprobante_origen_id, nc_tipo)
+values
+  ('a1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000008', current_date - 1, 'emitida', 300, 363, 'a1000000-0000-0000-0000-000000000001', 'devolucion_importe');
 
 insert into dominio.cobros_comprobante
   (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
