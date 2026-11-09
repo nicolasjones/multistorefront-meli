@@ -21,6 +21,9 @@ En **Avisos por correo** ves un interruptor por cada tipo de aviso que correspon
 
 Mirá cómo se atienden en [Consultas](consultas.md).
 
+Los mismos avisos que te llegan por correo los ves también en la **campanita** de la barra superior, sin esperar al
+correo: [La campanita de notificaciones](notificaciones.md). El interruptor de acá manda para los dos.
+
 ### Cómo activarlos o desactivarlos
 
 1. Hacé clic en tu nombre, arriba a la derecha.

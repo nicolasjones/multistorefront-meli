@@ -835,6 +835,27 @@ completos, datos y prueba: [Auditoría avanzada y soporte](auditoria-y-soporte.m
 - **Eventos:** `soporte.ingreso`, `soporte.salida`, `soporte.vencido` y `actividad.exportada` quedan en
   `registro_actividad`; la exportación se registra una sola vez por archivo.
 
+### Notificaciones, ayuda y exportación total (MSF-224)
+
+Fuente: `supabase/migrations/20270217300001`–`20270217300007` (rama `epic/MSF-224-…`, aún sin merge a `main`).
+Contratos completos, datos, flows y guía de prueba: [Notificaciones, ayuda y exportación
+total](notificaciones-ayuda-y-exportacion-total.md).
+
+| RPC / función | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.listar_notificaciones(p_limite int default 20, p_antes_de timestamptz default null, p_antes_id uuid default null)` | `jsonb` `{ total, items[] }` con los avisos propios de la sesión, del más nuevo al más viejo; cursor compuesto `(creado_en, id)`; `p_limite` acotado a 1..50 | `security definer`, `search_path = ''`; persona y organización de la sesión; excluye `descartado` y los tipos sin acceso vigente; `revoke … from public, anon` + `grant execute … to authenticated` |
+| `public.contar_notificaciones_sin_leer()` | `integer`: avisos propios sin leer, con los mismos filtros | ídem; el acceso se evalúa una vez por tipo de aviso |
+| `public.marcar_notificaciones_leidas(p_ids uuid[] default null)` | `integer`: cuántos marcó; `p_ids` nulo = todos los propios sin leer; idempotente y conserva el primer `leido_en` | ídem |
+| `public.solicitar_exportacion_total()` | `(proceso_id, ejecucion_id, estado, reutilizado)`: registra el proceso masivo `exportacion_total` (sin empresa) de toda la organización; con una exportación `pendiente` o `en_curso` devuelve esa (`reutilizado = true`) | `security definer`, `search_path = ''`; **membresía propia** de administrador (`private.es_administrador_propio_de`); `42501` `NO_AUTORIZADO`, `P0001` `SIN_CONEXION_EXPORTACION`; `revoke … from public, anon` + `grant execute … to authenticated` |
+| `private.conjuntos_exportacion_total()` | Lista permitida de conjuntos `(esquema, tabla, columnas[])` de la exportación total | Solo el rol de worker; sin `grant` a `authenticated` ni `anon` |
+| `private.exclusiones_exportacion_total()` | Exclusiones `(esquema, tabla, motivo)` con el motivo de cada una | ídem |
+| `private.datos_exportacion_total(p_ejecucion_id uuid)` | `(organizacion_id, proceso_id, conjuntos)` de la ejecución en curso | Solo `worker_<org>` (miembro de `workers_orquestacion`); `P0001` si la ejecución no está en curso o no es de la capacidad `exportar-organizacion-*` |
+| `private.filas_exportacion_total(p_ejecucion_id, p_esquema, p_tabla, p_desde, p_limite)` | `jsonb` con las filas del conjunto, acotadas a la organización de la ejecución | ídem; `22023` `LOTE_INVALIDO` (límite 1..5000) o `CONJUNTO_DESCONOCIDO` |
+
+La **descarga** del ZIP no es una RPC: el panel pide una URL firmada de 60 s del bucket privado
+`exportaciones-organizacion` y la política `exportaciones_organizacion_select` deja leerla solo al administrador
+propio de la organización dueña de la carpeta. El worker escribe con la clave de servicio del servidor.
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).
