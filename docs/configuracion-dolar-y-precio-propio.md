@@ -31,6 +31,7 @@ Todas son aditivas. Las versiones se asignaron al integrar la épica con `dokplo
 | `20270218500400_precios_propios_historial.sql` | `dominio.precios_propios_historial` (append-only) alimentada por `fijar_` y `quitar_precio_propio` | tabla en **`dominio`**, RPC en `public` |
 | `20270218500500_analitica_cotizacion_vigente.sql` | Rentabilidad con la cotización aplicada por empresa: `analitica.cotizacion_para`, `cotizacion_cercana` por empresa, vistas de margen actual e histórico | `analitica` |
 | `20270218500600_precio_final_publico_sin_escala_x1.sql` | saca el código muerto `escala = 'x1'` de `precio_final_publico` | `private` |
+| `20270218500700_exportacion_total_precios_propios_historial.sql` | el historial de precios propios entra a la exportación total de la organización | `private` |
 
 ## Revisión de seguridad de la épica (T039, FR-028)
 
