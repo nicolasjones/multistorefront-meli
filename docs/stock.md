@@ -36,6 +36,8 @@ recibe ningún privilegio.
 
 `registrar_movimiento_stock` pasó de 8 a **9 parámetros** (`p_variante uuid default null`, migración `20270220120400`): los llamadores existentes siguen válidos **para productos sin variantes** (los llamadores posicionales resuelven a la firma de 9 con el valor por defecto). En un producto con variantes ninguno de ellos funciona (ingreso de mercadería, toma de inventario, carga inicial, RMA, lotes: fallan con 22023 y, al ser todo-o-nada, abortan el ingreso o la toma completa; ver «Avisos de límites» en `docs/catalogo.md`). En un producto con variantes la variante es obligatoria y el movimiento queda en el libro con `variante_id`; sin variantes debe ser nula. El stock de un producto con variantes es la **suma de las variantes activas** (`dominio.existencias_variante`). Ver `docs/catalogo.md`.
 
+**Firmas viejas (20270220180000):** la función debe tener UNA sola firma (la de 9 parámetros). Una base de dev quedó con la de 6 parámetros de la época de `20261017140100` y toda llamada de 6 argumentos fallaba con «function … is not unique» (la de 9 tiene valores por defecto, así que las dos aplican). La migración `20270220180000_registrar_movimiento_stock_sin_firmas_viejas.sql` borra las firmas de 6, 7 y 8 parámetros si existen; en una base armada desde cero no hace nada. Para detectar un resto parecido en otra función: `select proname, count(*) from pg_proc where pronamespace = 'public'::regnamespace group by 1 having count(*) > 1`.
+
 ## Interfaz (`apps/web`)
 
 - Ítem **Stock** en la navegación (sección `stock`) y recurso `stock`; rutas `/stock` y `/stock/motivos`, ambas con
