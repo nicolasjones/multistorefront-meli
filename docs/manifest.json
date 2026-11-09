@@ -398,12 +398,12 @@
     },
     "docs/producto/ayuda.md": {
       "title": "La ayuda dentro del panel",
-      "pageHash": "3c006f9c26fd8f4c0839c16615a08aea5bdcf4a931fee0f3e4fb5a3ff2d5cae7",
+      "pageHash": "6a0b634317b98721db92f75e26ad7966d8f998699939d6840250482ce8d61170",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "3a93b935"
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
@@ -1586,9 +1586,9 @@
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
-      "pageHash": "6f5f7a4a64102fcf53de609f90b2c92947df0e7c5f100ff4b7dcb62d9b48c63e",
+      "pageHash": "375e33574c99b4d9b41ea9e30692ea13c19f1169c18e21f44df267211939c729",
       "sourceHash": "dac584cdb9659da264288016300b9e5043b7f9696437d90e2d5e70a7e8ebffcf",
-      "sourceAt": "158ff948",
+      "sourceAt": "f3ca3e8b",
       "sources": [
         "specs/20270215-100000-notificaciones-ayuda-y-exportacion-total",
         "apps/web/src/components/navegacion",
@@ -1603,7 +1603,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "3a93b935"
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
