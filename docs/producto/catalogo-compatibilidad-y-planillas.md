@@ -56,7 +56,7 @@ El campo **Compatible con** del alta y la edición sigue funcionando igual que s
 ### Antes de empezar
 
 - La importación **crea** los productos cuyo SKU no existe y **actualiza** los que ya existen.
-- Hay que tener habilitada la importación de productos para tu organización. Si no lo está, el sistema avisa «Tu organización todavía no tiene habilitada la importación de productos. Pedile a soporte que la active.»
+- Hay que tener habilitada la importación de productos para tu organización. Si no lo está, el sistema avisa «Tu organización todavía no tiene habilitada la importación de productos. Un Administrador tiene que crear la conexión «importar-productos» (servidor y credencial).» y no deja elegir archivos.
 - Podés cargar hasta **2.000 filas** por archivo. Si tenés más, dividilas en varios archivos.
 
 ### Paso a paso
@@ -98,6 +98,7 @@ Algunos detalles del archivo:
 
 - Pueden ser **JPG, PNG o WebP**, de hasta **2 MB** cada una.
 - Podés subir hasta **500 imágenes** por importación. Si las subís en un ZIP, el ZIP puede pesar hasta **50 MB**.
+- Si dos imágenes se llaman igual, se usa la primera y el sistema avisa. Un ZIP que no se puede abrir se informa; uno vacío no da error.
 - Cada imagen tiene que llamarse igual que en la columna `imagenes` de la planilla.
 - Cada producto guarda hasta **4 imágenes**: si la fila cita más, se usan las primeras 4.
 - Las imágenes que no sirven (no son de un tipo permitido, pesan de más o están vacías) se rechazan y el sistema te las lista debajo de los recuadros, por ejemplo «“foto.gif” no es JPG, PNG ni WebP» o «“foto.jpg” pesa más de 2 MB.». El resto sigue.
@@ -166,7 +167,7 @@ Cuando hay filas omitidas aparece **Descargar reporte de errores**. Baja el arch
 
 Cuando la importación termina, **Importar otro archivo** vuelve al inicio de la carga.
 
-Reintentar una importación no duplica los productos ni las imágenes.
+Reintentar una importación no duplica los productos ni las imágenes. Si la importación termina pero algunas fotos no se pudieron adjuntar, la pantalla avisa «N productos quedaron sin imágenes»; si una fila falló varias veces por un error temporal, figura como omitida y podés volver a importarla. El seguimiento queda en la dirección de la página (`?importacion=…`): si salís y volvés, ves el estado.
 
 ## Exportar productos
 

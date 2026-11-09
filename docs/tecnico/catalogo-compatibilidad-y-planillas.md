@@ -23,16 +23,16 @@ sources:
 | Historia | Estado | Dónde |
 |---|---|---|
 | F-CAT-09 filtro «Compatible con» | Entregada | migraciones `20270206100101`, `20270206100102`; `FiltrosListado.tsx`, `useCompatibles.ts` |
-| F-CAT-10 importación CSV | Entregada | migraciones `20270206100001`…`5`; `workers/importar-productos`; flow `importar-productos`; `carga.tsx` |
-| F-CAT-11 exportación CSV | Entregada | migración `20270205110210`; `DialogoExportarProductos.tsx`, `lib/exportarProductos.ts` |
+| F-CAT-10 importación CSV | Entregada | migraciones `20270206100001`…`5` y `20270217200000`; `workers/importar-productos`; flow `importar-productos`; `carga.tsx` |
+| F-CAT-11 exportación CSV | Entregada | migraciones `20270205110210` y `20270217200001`; `DialogoExportarProductos.tsx`, `lib/exportarProductos.ts` |
 | Cierre (T031–T033) | Hecho | índice en `docs/catalogo.md`, revisión de seguridad, fila en `docs/roadmap-template.md` |
 
 Diferencias entre la spec y lo construido (verificadas contra el código):
 
-- **«Lo filtrado» de la exportación no envía el filtro de compatible.** La spec (FR-202) pide que lo respete. `filtrosExportacion` (`lib/exportarProductos.ts`) manda solo `busqueda`, `categoria_id`, `estado`, `empresa_id` y `disponibilidad`. El servidor sí entiende `compatible` (ver [F-CAT-11](#f-cat-11-exportar-productos-a-csv)); falta que la pantalla lo mande. Queda como seguimiento.
+- **«Lo filtrado» de la exportación y «Compatible con».** Resuelto: `filtrosExportacion` manda `compatible` (variantes ya expandidas) igual que el listado.
 - **Numeración de migraciones.** Las guías `docs/catalogo-importacion.md` y la spec citan las versiones previas a la integración (`20270121121303…07`, `20270125…`). Las versiones reales en `dokploy` son las de la tabla de [Migraciones](#migraciones).
-- **Importación habilitada por organización.** La spec no lo dice: `private.capacidad_importacion_productos()` exige una conexión `importar-productos` en `public.conexiones`; sin ella falla con `SIN_CONEXION_IMPORTACION` (`P0001`).
-- **El seguimiento no sobrevive a salir de la pantalla.** La spec (Edge cases) dice que al volver se ve el estado de la importación; `carga.tsx` guarda `importacionId` solo en estado local (sin ruta, `sessionStorage` ni consulta de la última importación), así que al salir se pierde el seguimiento y el reporte de errores. La importación sigue corriendo en el servidor. Queda como seguimiento.
+- **Importación habilitada por organización.** La spec no lo dice: `private.capacidad_importacion_productos()` exige una conexión `importar-productos` en `public.conexiones`; sin ella falla con `SIN_CONEXION_IMPORTACION` (`P0001`). No se aprovisiona sola (mismo patrón que el historial de ventas): la pantalla consulta `importacion_productos_habilitada()` al abrirse y avisa antes de pedir el CSV.
+- **Seguimiento al volver a la pantalla.** Resuelto: la importación en curso vive en `?importacion=<id>` y se rehidrata con `obtener_importacion_productos`.
 - **La validación del servidor corre dos veces.** Una vez en la vista previa (`validar_importacion_productos`) y otra al solicitar (`solicitar_importacion_productos`); la segunda es la que manda.
 - **Rótulos de prueba.** Los tests de `dokploy` no llevan el rótulo `[MSF-202:T0yy]` en su nombre; la correspondencia con las tareas de `tasks.md` está en [Pruebas](#pruebas).
 
@@ -76,11 +76,14 @@ Principio VII (esquema por naturaleza): lo del producto va en `dominio`; el cont
 | `sku` | `text` | Hasta 200 |
 | `accion` | `text` | `nuevo` · `actualiza` |
 | `validacion` / `validacion_mensaje` | `text` | `ok` · `aviso` · `error`; mensaje hasta 1000 |
-| `carga` | `jsonb` | Las 12 columnas de la plantilla, tal cual |
+| `carga` | `jsonb` | Las 12 columnas de la plantilla (más `fila`), cada una acotada a 1000 caracteres; una clave extra del archivo no se guarda |
 | `resultado` / `resultado_mensaje` | `text` | `pendiente` (por defecto) · `aplicada` · `omitida` |
 | `producto_id` / `aplicada_en` | `uuid` / `timestamptz` | Producto resultante |
+| `motivo_codigo` | `text` | Nulo, o `ERROR_TEMPORAL` (omitida por intentos agotados; check) |
+| `intentos` | `smallint` | Fallos transitorios registrados por el worker; al tercero (igual a los 3 reintentos del flow) la fila queda `omitida` con `motivo_codigo = 'ERROR_TEMPORAL'` («Error temporal repetido; volvé a importar esta fila»; el texto es solo para mostrar y `obtener_importacion_productos` cuenta `omitidas_temporales` por el código); solo cuentan errores con SQLSTATE 40/53/55/57 |
+| `imagenes_pendientes` | `boolean` | `true` en una fila `aplicada` cuyas imágenes el worker todavía no adjuntó ni confirmó (migración `20270217200000`) |
 
-El índice parcial `importaciones_productos_filas_pendientes_idx` acelera `filas_pendientes_importacion_productos`.
+Los índices parciales `importaciones_productos_filas_pendientes_idx` e `importaciones_productos_filas_imagenes_idx` aceleran `filas_pendientes_importacion_productos`.
 
 ```mermaid
 erDiagram
@@ -128,6 +131,8 @@ Todas aditivas (versiones reales en `origin/dokploy`):
 | `20270206100004_importacion_rpc_worker` | RPC `private.*` del rol de worker: iniciar, listar filas pendientes, aplicar fila, registrar imagen, cerrar | F-CAT-10 |
 | `20270206100005_importacion_cierre_fallida` | `private.reconciliar_importaciones_fallidas`; redefine `despachar_importacion_siguiente` y `obtener_importacion_productos` para reconciliar | F-CAT-10 |
 | `20270206100101_catalogo_compatible_filtro` | Índice GIN y columna `compatible_con` en `v_productos_listado` | F-CAT-09 |
+| `20270217200000_importacion_productos_robustez` | Columna `imagenes_pendientes`; redefine validar (tope por celda, `carga` acotada), `aplicar_fila` (errores transitorios 40/53/55/57 se propagan), `iniciar`, `filas_pendientes` y `solicitar` (`reutilizada`); redefine también `cerrar_importacion_productos` y `obtener_importacion_productos` (campo `sin_imagenes`); nuevas `confirmar_imagenes_fila_importacion_productos`, `registrar_fallo_fila_importacion_productos`, `imagenes_temporales_a_borrar` e `importacion_productos_habilitada` | F-CAT-10 (revisión) |
+| `20270217200001_exportar_productos_cursor` | Reemplaza `exportar_productos` por la firma con `p_entregadas` y `p_con_total` (cursor sin recalcular, tope de 50.000) | F-CAT-11 (revisión) |
 | `20270206100102_listar_compatibles` | `public.listar_compatibles()` | F-CAT-09 |
 
 ## F-CAT-09: filtro «Compatible con»
@@ -177,11 +182,12 @@ sequenceDiagram
 - Ruta `/productos/carga` (`App.tsx`, carga diferida). Sin ítem de menú; se llega desde el botón «Importar CSV» del listado, que solo ve el Administrador (`useEsAdministrador`). Sin permiso: «No tenés permiso para importar productos.»
 - **CSV:** UTF-8, separador `,` o `;`, con o sin BOM (`leerCsvUtf8`). Columnas de la plantilla (`COLUMNAS_PLANTILLA`): `sku, nombre, categoria, costo, precio_x1, precio_x5, precio_x10, precio_x50, proveedor, codigo_barras, tiendas, imagenes`. Obligatorias: `sku`, `nombre`, `categoria`. Máximo `MAXIMO_FILAS_IMPORTACION = 2000`.
 - **Importes:** `normalizarImporte` acepta `1200`, `1200,50` y `1.200,50`, quita espacios y `$`, y deja `1200.50`. Lo que no reconoce lo deja como vino para que el servidor lo marque como error.
-- **Imágenes:** ZIP (hasta 50 MB, `MAX_BYTES_ZIP`) o sueltas; JPG, PNG o WebP de hasta 2 MB (`MAX_BYTES_IMAGEN_IMPORTACION`); hasta 500 por importación (`MAX_IMAGENES_CARGA`). El filtro corre antes de descomprimir. Se suben a `productos-importaciones/<organización>/<clave>/<archivo>` con `upsert`. «Cancelar» las elimina (`descartarImagenes`).
+- **Imágenes:** ZIP (hasta 50 MB, `MAX_BYTES_ZIP`) o sueltas; JPG, PNG o WebP de hasta 2 MB (`MAX_BYTES_IMAGEN_IMPORTACION`); hasta 500 por importación (`MAX_IMAGENES_CARGA`). Los topes de 500 entradas y 100 MB descomprimidos por carga (todos los ZIP de la misma selección) se comprueban en streaming (fflate `Unzip`, rebanadas de 16 KB) con los bytes reales de cada entrada y del total, porque la cabecera del ZIP puede mentir; al pasar un tope se termina la entrada y, si es el total, se deja de leer el ZIP (lo transitorio queda acotado a ~16 MB). Nombres repetidos: gana siempre la primera (carpetas de un ZIP, archivos de una selección y selecciones sucesivas); `leerImagenes(archivos, limites?)` acepta los topes como último argumento. ZIP ilegible: «No pudimos abrir «x.zip»» cuando no emitió entradas y no trae el registro final (`PK\x05\x06` en los últimos 66 KB) o dejó entradas sin terminar; un ZIP vacío válido, con solo carpetas o sin imágenes no da error. Limitación: un ZIP truncado justo después de su última entrada completa (sin directorio central) no se detecta, pero no se pierde nada porque todas las entradas llegaron enteras. Se suben a `productos-importaciones/<organización>/<clave>/<archivo>` con `upsert`. «Cancelar» las elimina (`descartarImagenes`).
 - **Clave de idempotencia:** `crypto.randomUUID()` por importación; se regenera con «Importar otro archivo».
+- **Seguimiento en la URL:** la importación en curso vive en `?importacion=<id>` (`PARAMETRO_IMPORTACION`); al volver o recargar se rehidrata con `obtener_importacion_productos`. Un id que no es UUID se ignora y uno inexistente (`P0002`) limpia la URL. Al abrir, `importacion_productos_habilitada()` avisa si falta la conexión y deshabilita la elección de archivos antes de pedir el CSV.
 - **Sondeo:** `ESPERA_SONDEO_MS = 3000` sobre `obtener_importacion_productos` hasta `terminada` o `fallida`.
 - **Reporte de errores:** `armarReporteErrores` arma `errores-importacion-productos.csv` (`fila,sku,motivo`, BOM, CRLF) con las celdas neutralizadas contra fórmulas.
-- **Errores de red/RPC** (`mensajeDeErrorImportacion`): `42501` → «No tenés permiso para importar productos. Puede que tu rol haya cambiado: recargá la página.»; `22023` → el mensaje del servidor sin su prefijo; `SIN_CONEXION_IMPORTACION` → «Tu organización todavía no tiene habilitada la importación de productos. Pedile a soporte que la active.»
+- **Errores de red/RPC** (`mensajeDeErrorImportacion`): `42501` → «No tenés permiso para importar productos. Puede que tu rol haya cambiado: recargá la página.»; `22023` → el mensaje del servidor sin su prefijo; `SIN_CONEXION_IMPORTACION` → «Tu organización todavía no tiene habilitada la importación de productos. Un Administrador tiene que crear la conexión «importar-productos» (servidor y credencial).»
 - No depende de la empresa activa (FR-113): las tiendas salen de la columna `tiendas`.
 
 ### RPC públicas
@@ -191,12 +197,12 @@ Todas en `public`, `security definer`, `search_path = ''`; organización y actor
 | Función | Devuelve | Errores |
 |---|---|---|
 | `validar_importacion_productos(p_filas jsonb, p_clave uuid default null)` | `table (fila, sku, accion, estado, mensaje)` | `42501` no es Administrador · `22023` `FILAS_INVALIDAS` (no es lista, vacía o más de 2000) |
-| `solicitar_importacion_productos(p_filas jsonb, p_clave uuid default gen_random_uuid())` | `jsonb { importacion_id, estado, importables, omitidas }` | `42501` · `22023` `CLAVE_INVALIDA`, `FILAS_INVALIDAS` (fuera de 1…2000 o «ninguna fila se puede importar») · `P0001` `SIN_CONEXION_IMPORTACION` |
-| `obtener_importacion_productos(p_importacion_id uuid)` | `jsonb { estado, procesadas, omitidas, errores[{fila, sku, mensaje}], mensaje_fallo }` | `42501` · `P0002` «La importación no existe» |
+| `solicitar_importacion_productos(p_filas jsonb, p_clave uuid default gen_random_uuid())` | `jsonb { importacion_id, estado, importables, omitidas, reutilizada }` | `42501` · `22023` `CLAVE_INVALIDA`, `FILAS_INVALIDAS` (fuera de 1…2000 o «ninguna fila se puede importar») · `P0001` `SIN_CONEXION_IMPORTACION` |
+| `obtener_importacion_productos(p_importacion_id uuid)` | `jsonb { estado, procesadas, omitidas, omitidas_temporales, sin_imagenes, errores[{fila, sku, mensaje}], mensaje_fallo }` (`sin_imagenes`: productos aplicados cuyas imágenes no se adjuntaron, también en una importación `fallida`; la pantalla lo avisa) | `42501` · `P0002` «La importación no existe» |
 
 Comportamiento de `solicitar_importacion_productos`:
 
-1. Toma un `pg_advisory_xact_lock` por organización y busca una importación con la misma `clave`: si existe, devuelve esa (idempotente, sin encolar de nuevo).
+1. Toma un `pg_advisory_xact_lock` por organización y busca una importación con la misma `clave`: si existe, devuelve esa con `reutilizada: true` (idempotente, sin encolar de nuevo y sin tomar las filas enviadas ahora; la UI lo avisa).
 2. Verifica la conexión con `private.capacidad_importacion_productos()` (crea la capacidad si falta).
 3. Fija `con_costo` según `nivel_seccion('rentabilidad') = 'edicion'`.
 4. Valida **otra vez** todas las filas (`private.validar_filas_importacion_productos`) e inserta las filas: las de `error` nacen `omitida`, las demás `pendiente`.
@@ -228,12 +234,15 @@ Todas validan la ejecución con `private.autorizar_worker_importacion_productos(
 | Función | Para qué |
 |---|---|
 | `iniciar_importacion_productos(p_ejecucion_id)` | Pasa la importación a `aplicando` (fija `iniciada_en`) y devuelve `(importacion_id, organizacion_id, clave, pendientes)` |
-| `filas_pendientes_importacion_productos(p_ejecucion_id, p_limite default 200)` | Lote de filas `pendiente` (límite 1…1000, si no `LIMITE_INVALIDO`) |
+| `filas_pendientes_importacion_productos(p_ejecucion_id, p_limite default 200)` | Lote de filas `pendiente` **o `aplicada` con `imagenes_pendientes`** (límite 1…1000, si no `LIMITE_INVALIDO`) |
+| `confirmar_imagenes_fila_importacion_productos(p_ejecucion_id, p_fila_id)` | El worker confirma que adjuntó (o descartó con motivo) las imágenes de la fila |
+| `registrar_fallo_fila_importacion_productos(p_ejecucion_id, p_fila_id)` | Suma un intento fallido (error transitorio) a una fila pendiente en su propia transacción; al tercero la omite. El worker lo llama y sigue con las demás filas; si quedan filas con intentos disponibles la corrida sale con error y el flow reintenta |
+| `imagenes_temporales_a_borrar(p_ejecucion_id, p_dias default 7, p_incluir_importacion default true)` | Rutas del bucket temporal a borrar: las de la importación (si `p_incluir_importacion`; al empezar una corrida el worker pasa `false`) y las huérfanas de la organización de más de `p_dias` días que no son de una importación en curso (hasta 1000); el borrado lo hace el worker por la API de Storage, al empezar (solo huérfanos) y al cerrar `terminada` (también las de la importación), hasta 5 tandas por fase; es de mejor esfuerzo: si falla, la importación igual termina y se reintenta en la corrida siguiente |
 | `aplicar_fila_importacion_productos(p_ejecucion_id, p_fila_id)` | Aplica una fila (ver abajo) |
 | `registrar_imagen_importacion_productos(p_ejecucion_id, p_fila_id, p_nombre, p_ruta)` | Asocia la imagen subida al producto (`RUTA_INVALIDA` si la ruta no es del producto) |
 | `cerrar_importacion_productos(p_ejecucion_id, p_estado, p_mensaje)` | Cierra en `terminada` o `fallida` (`ESTADO_INVALIDO` si no); devuelve contadores |
 
-`aplicar_fila_importacion_productos` (idempotente: si la fila ya no está `pendiente`, devuelve su resultado previo):
+`aplicar_fila_importacion_productos` (idempotente: si la fila ya no está `pendiente`, devuelve su resultado previo y, si fue aplicada, las imágenes a adjuntar):
 
 - Busca el producto por SKU (sin mayúsculas ni espacios) con `for update`.
 - **Nuevo:** inserta `dominio.productos` con nombre, SKU, `precio_lista = precio_x1`, categoría, proveedor y código de barras.
@@ -242,7 +251,8 @@ Todas validan la ejecución con `private.autorizar_worker_importacion_productos(
 - Escalas `x5`, `x10`, `x50`: `upsert` de las celdas con valor en `producto_precios_escala`.
 - Tiendas: con valor, borra de `producto_empresa` las que no estén en la lista e inserta las nuevas; vacía = no se toca.
 - Registra actividad (`producto.creado` o `producto.editado`, con el solicitante como actor).
-- Cada fila corre en su propio subbloque: ante un error la fila queda `omitida` con un motivo legible (`23505` → «El SKU o el código de barras ya lo usa otro producto»; `P0001` → el mensaje; otro → «No se pudo aplicar la fila (código)»), sin efectos parciales.
+- Cada fila corre en su propio subbloque: ante un error la fila queda `omitida` con un motivo legible (`23505` → «El SKU o el código de barras ya lo usa otro producto»; `P0001` → el mensaje; otro → «No se pudo aplicar la fila (código)»), sin efectos parciales. Los errores transitorios (SQLSTATE clases 40, 53, 55 y 57: deadlock, lock no disponible, recursos, cancelación) **no** se convierten en `omitida`: se propagan para que el flow reintente.
+- Una fila aplicada con imágenes queda con `imagenes_pendientes = true` hasta que el worker las adjunta y confirma, así un fallo de Storage no las pierde; el worker borra las imágenes temporales al cerrar y las huérfanas de más de 7 días (mejor esfuerzo).
 
 ### Falla técnica y reconciliación
 
@@ -252,13 +262,13 @@ Si el flow agota los reintentos, el worker sale con 78 o la ejecución supera `t
 
 ### Servidor
 
-`public.exportar_productos(p_filtros jsonb, p_columnas text[], p_desde uuid default null, p_limite integer default 500) returns jsonb` (`{ filas, siguiente, total }`). `security definer` (necesita registrar actividad) con autorización propia sobre la organización de la sesión. Solo lectura sobre `v_productos_listado` y `dominio`.
+`public.exportar_productos(p_filtros jsonb, p_columnas text[], p_desde uuid default null, p_limite integer default 500, p_entregadas integer default 0, p_con_total boolean default false) returns jsonb` (`{ filas, siguiente, total, tope, recortado }`), firma vigente desde `20270217200001` (reemplaza a la de 4 parámetros). Cada página lee solo desde el cursor de `id`; el total se calcula en la primera página o con `p_con_total` (en las otras `total` es nulo); tope de 50.000 productos por archivo (`p_entregadas` lleva la cuenta; `recortado` avisa y el listado muestra una advertencia). `security definer` (necesita registrar actividad) con autorización propia sobre la organización de la sesión. Solo lectura sobre `v_productos_listado` y `dominio`.
 
 | Condición | Error |
 |---|---|
 | No es Administrador de la organización | `42501` |
 | Pide `costo` o `proveedor` sin acceso a Rentabilidad | `42501` |
-| Columna desconocida o `p_limite` fuera de 1…1000 | `22023` |
+| Columna desconocida, `p_limite` fuera de 1…1000 o `p_entregadas` negativo | `22023` |
 
 - `p_filtros`: `{ busqueda, categoria_id, estado, empresa_id, disponibilidad, compatible: text[], todos: boolean }`. `todos: true` ignora el resto.
 - `p_columnas`: `sku, nombre, categoria, precio, costo, stock, visible_en, estado, codigo_barras, proveedor`.
@@ -342,16 +352,16 @@ Los pgTAP requieren `pnpm dev:supabase` corriendo.
 Todo es aditivo; la reversión va en una migración posterior (nunca en el mismo PR que las crea) y después de exportar los datos que interesen:
 
 - **F-CAT-09:** `drop function public.listar_compatibles();`, `drop index dominio.productos_compatible_con_gin;` y volver a crear `public.v_productos_listado` sin la columna `compatible_con` (patrón de `20261022121000`).
-- **F-CAT-10:** `drop table dominio.importaciones_productos_filas; drop table dominio.importaciones_productos;`, borrar las funciones `public.validar_importacion_productos`, `public.solicitar_importacion_productos`, `public.obtener_importacion_productos` y las `private.*` de la importación, y vaciar y borrar el bucket `productos-importaciones`. Quitar el flow `importar-productos` y el paquete `workers/importar-productos`.
-- **F-CAT-11:** `drop function public.exportar_productos(jsonb, text[], uuid, integer);` y quitar el botón del listado. No hay datos que migrar.
+- **F-CAT-10:** `drop table dominio.importaciones_productos_filas; drop table dominio.importaciones_productos;`, borrar las funciones `public.validar_importacion_productos`, `public.solicitar_importacion_productos`, `public.obtener_importacion_productos` y las `private.*` de la importación, y vaciar y borrar el bucket `productos-importaciones` **por la API de Storage** (`DELETE /storage/v1/bucket/productos-importaciones/empty` y luego `DELETE /storage/v1/bucket/productos-importaciones`; el `delete from storage.objects` del comentario de `20270206100001` no funciona en self-hosted y esa migración es inmutable). Quitar el flow `importar-productos` y el paquete `workers/importar-productos`.
+- **F-CAT-11:** `drop function public.exportar_productos(jsonb, text[], uuid, integer, integer, boolean);` y quitar el botón del listado. No hay datos que migrar.
 
 Revertir el merge del PR de la épica con `git revert -m 1` deshace el código; las tablas y funciones ya aplicadas en una base requieren la migración de baja.
 
 ## Deuda trazada y pendientes
 
-- **«Lo filtrado» no incluye «Compatible con»** (ver [Estado de entrega](#estado-de-entrega)): hay que sumar `compatible` a `filtrosExportacion`.
+- **Limitaciones conocidas de la revisión:** el borrado de imágenes temporales es de mejor esfuerzo (una importación cerrada como `fallida` por la base deja sus imágenes hasta que se barren como huérfanas a los 7 días); las migraciones no crean la conexión `importar-productos`, que depende de la operación. Si una importación cierra con productos sin imágenes, `cerrar_importacion_productos` y `obtener_importacion_productos` devuelven `sin_imagenes` y la pantalla lo avisa.
 - **Capturas del manual de producto** de la carga masiva, el diálogo de exportar y el filtro.
-- **Seguimiento de la importación al volver a la pantalla** (ver [Estado de entrega](#estado-de-entrega)): guardar o consultar la última importación de la organización.
+- **Conexión `importar-productos` por organización:** no se aprovisiona sola (igual que el historial de ventas, MSF-293: la crea un Administrador con `crear_conexion`, con servidor y credencial). La pantalla avisa antes de pedir el CSV. Es una decisión de operación, no de código.
 - **Decisiones de la spec marcadas «OK pendiente»** (Decisión 1, orden de entrega y alcance de F-CAT-09; Decisión 4, el rol Consulta no exporta; Decisión 7, una celda vacía no pisa el valor actual): se construyeron con el supuesto de la épica; falta la confirmación del dueño del producto.
 - **F-IMP-01 (MSF-206):** la pantalla de importaciones y monitoreo podrá listar estas ejecuciones; esta épica no depende de ella.
 

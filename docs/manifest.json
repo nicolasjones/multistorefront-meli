@@ -418,7 +418,7 @@
     },
     "docs/producto/catalogo-compatibilidad-y-planillas.md": {
       "title": "Productos: filtrar por compatible, importar y exportar planillas",
-      "pageHash": "32a6601abfca426ec512228bc1056986568afe22c726b845541db2fd8f5e61a5",
+      "pageHash": "3ccba7e77f1b9137e75e077629077c3553222e30783eabceee850b4a644bbe85",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1283,9 +1283,9 @@
     },
     "docs/tecnico/catalogo-compatibilidad-y-planillas.md": {
       "title": "Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)",
-      "pageHash": "4a7d6b8e4ac19dab360a5a0954d4f9545a70aab91e3fff9962f69845d4578f8a",
+      "pageHash": "29bbe87ed15b85cff0de06c2cbe007ac8367473a77801716047580648da60b9c",
       "sourceHash": "1a7ce3537a3c587b012a34de5bca5c64b7456813009bb4a775e18f4b3af6f820",
-      "sourceAt": "8fd8aaf5",
+      "sourceAt": "2e8177a6",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1295,7 +1295,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "8fd8aaf5"
+      "commit": "a65285f8"
     },
     "docs/tecnico/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (técnico)",
