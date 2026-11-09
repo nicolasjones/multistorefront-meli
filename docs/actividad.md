@@ -267,6 +267,7 @@ encabezado baja el historial **con los filtros de la pantalla** (período, tiend
 - **Reversión** (migración posterior): `drop function public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean);`,
   `alter table private.exportaciones_actividad drop column cerrada, drop column entregadas;` (o `drop table` si se retira todo) y `delete from public.tipos_evento_actividad where tipo = 'actividad.exportada';`.
 - **E2E del detalle**: `apps/web/e2e/actividad-detalle.e2e.ts` (cambio de rol con Antes/Después y baja real con «—» del lado nuevo). Con sesión: se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y el job `application` del CI solo corre `acceso-publico.e2e.ts` (sin kong/postgrest), así que **no está verificado en el CI**: se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e actividad-detalle`. El job `e2e-sesion` (`docs/e2e-app.md`) aún no está activo.
+- **Pruebas de los límites**: pgTAP `exportar_actividad_limites.test.sql` (clave exacta del candado asesor, reintento de la misma página con límite igual, menor y mayor, filtros y corte fijados, y adopción de filas abiertas sin hash ni corte; la concurrencia real no se simula).
 - **Pruebas**: pgTAP `exportar_actividad.test.sql` (incluye abandono, `p_entregadas` falso, filtro de exactamente 50.000 filas e id reutilizado); Vitest `exportarActividadCsv.test.ts`,
   `exportarActividad.test.tsx` (hook), `BotonExportarActividad.test.tsx` y E2E `e2e/actividad-exportar.e2e.ts`
   (CA-AUD-03-1/3/4).
