@@ -179,3 +179,10 @@ entregado (MSF-136/MSF-231/MSF-292) y las ventas de MSF-159; una guía por histo
 | [`stock-mas-vendidos.md`](./stock-mas-vendidos.md) | F-STK-18 (MSF-414) | Reporte de unidades vendidas por producto en un período (`/stock/mas-vendidos`), con filtro por tienda que sigue a la empresa activa |
 
 Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
+
+## Órdenes de compra a proveedores (F-PRV-09, MSF-454)
+
+Pestaña «Órdenes de compra» (`/stock/ordenes-compra`): el pedido de mercadería que la organización le
+hace a un proveedor, armado desde el listado de reposición (los productos en alerta de ese proveedor).
+Estados `emitida` / `recibida` / `anulada`; recibir no mueve stock (la mercadería entra por «Ingreso de
+mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).

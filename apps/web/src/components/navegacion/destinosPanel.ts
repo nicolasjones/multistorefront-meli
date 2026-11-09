@@ -13,6 +13,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import HistoryIcon from '@mui/icons-material/History'
 import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
@@ -89,6 +90,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-ingresos', etiqueta: 'Ingreso de mercadería', ruta: '/stock/ingresos', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-depositos', etiqueta: 'Depósitos de mercadería', ruta: '/stock/depositos', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      // F-PRV-09: pedidos de mercadería a proveedor (salen del listado de reposición de Stock).
+      { id: 'stock-ordenes-compra', etiqueta: 'Órdenes de compra', ruta: '/stock/ordenes-compra', icono: ShoppingCartIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   {

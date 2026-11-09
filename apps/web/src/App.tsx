@@ -100,6 +100,7 @@ const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modu
 const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
 const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
+const OrdenesCompra = lazy(() => import('./pages/stock/ordenes-compra').then((modulo) => ({ default: modulo.OrdenesCompra })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const ConsultaList = lazy(() => import('./pages/consultas/list').then((modulo) => ({ default: modulo.ConsultaList })))
 const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
@@ -444,6 +445,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><IngresosMercaderia /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/ordenes-compra"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><OrdenesCompra /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
