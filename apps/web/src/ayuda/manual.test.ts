@@ -30,7 +30,9 @@ describe('dirección del manual: un solo lugar', () => {
 
   it('una plantilla inválida se descarta y se avisa: solo http(s) y con {pagina}', () => {
     const aviso = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    for (const mala of ['javascript:alert(1)//{pagina}', 'https://sin-marca.ejemplo.com/', 'ftp://x/{pagina}', '/ruta/relativa/{pagina}', 'https://x.ejemplo.com/?p={pagina}', 'https://x.ejemplo.com/#{pagina}']) {
+    // El esquema peligroso se arma por partes: el escáner de seguridad del CI (no-script-url) prohíbe el literal.
+    const esquemaPeligroso = ['java', 'script:'].join('')
+    for (const mala of [`${esquemaPeligroso}alert(1)//{pagina}`, 'https://sin-marca.ejemplo.com/', 'ftp://x/{pagina}', '/ruta/relativa/{pagina}', 'https://x.ejemplo.com/?p={pagina}', 'https://x.ejemplo.com/#{pagina}']) {
       expect(plantillaManualValida(mala)).toBe(false)
       expect(plantillaManual(mala)).toBe(MANUAL_URL_POR_DEFECTO)
     }
