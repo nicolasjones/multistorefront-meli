@@ -111,7 +111,7 @@ El equipo de soporte ve agrupados los errores de la aplicación y de los workers
 - **FR-004**: `iniciar_proceso_masivo` DEBE crear el proceso y su ejecución de worker (con su orden en la outbox) en una sola transacción, reutilizando `iniciar_ejecucion_worker`; no crea un ciclo paralelo.
 - **FR-005**: El worker DEBE poder informar `total` y `procesados`; `procesados` nunca retrocede ni supera `total`.
 - **FR-006**: El worker DEBE poder registrar errores por fila (fila, referencia, `motivo_sanitizado`); el motivo nunca contiene el error crudo ni datos personales.
-- **FR-007**: El worker DEBE cerrar el proceso como `completado`, `con_errores` o `fallido`.
+- **FR-007**: El worker DEBE cerrar el proceso como `completado`, `con_errores` o `fallido`. Desvío: la base además valida que `completado`/`con_errores` tengan `procesados = total` (si se informó el total) y que `cancelado` tenga una cancelación solicitada (ver contrato).
 - **FR-008**: Si la ejecución asociada termina `fallida` o `timeout` y el proceso sigue abierto, DEBE pasar a `fallido` automáticamente.
 - **FR-009**: DEBE existir la cancelación: `pendiente` → `cancelado` de inmediato (libera la orden de despacho); `en_curso` → `cancelacion_solicitada` hasta que el worker la confirme entre lotes y cierre `cancelado`; terminal → error claro.
 - **FR-010**: Solo administradores de la organización dueña DEBEN leer y cancelar procesos; ninguna otra organización ni `anon`; el worker solo escribe en procesos de su propia organización.

@@ -37,23 +37,30 @@ export default function RutaProducto() {
   if (!productoId) return <PaginaNoEncontrada />
   if (ficha.fase === 'cargando') return <EstadoCargaPagina />
   if (ficha.fase === 'error') {
-    return <ErrorConReintento titulo="No pudimos cargar el producto." alReintentar={ficha.reintentar} />
+    return (
+      <>
+        {/* FR-004/FR-024: una pantalla de error no se indexa. */}
+        <CabeceraSeo noindex pagina="No pudimos cargar el producto" />
+        <ErrorConReintento titulo="No pudimos cargar el producto." alReintentar={ficha.reintentar} />
+      </>
+    )
   }
   if (ficha.fase === 'no-encontrada') return <PaginaNoEncontrada />
 
   const { ficha: datos, urls } = ficha
-  const primeraImagen = datos.imagenes[0] ? (urls[datos.imagenes[0].ruta] ?? null) : null
+  // La imagen de la ficha es una URL FIRMADA que vence (el bucket `productos-imagenes` es privado): no sirve para
+  // Open Graph ni JSON-LD, que buscadores y redes guardan por días. Sin imagen estable, `CabeceraSeo` cae al logo
+  // público de la tienda y el JSON-LD omite `image` (MSF-149).
   return (
     <Box>
       <CabeceraSeo
         host={host}
         pagina={datos.nombre}
         descripcion={datos.descripcion}
-        imagen={primeraImagen}
         ruta={`/producto/${datos.id}`}
         tipo="product"
         datosEstructurados={({ url }) => [
-          productoJsonLd({ nombre: datos.nombre, descripcion: datos.descripcion, sku: datos.sku, imagen: primeraImagen, url, precio: datos.precio, disponible: datos.disponible }),
+          productoJsonLd({ nombre: datos.nombre, descripcion: datos.descripcion, sku: datos.sku, imagen: null, url, precio: datos.precio, disponible: datos.disponible }),
         ]}
       />
       {/* Celular (F-TDA-17, FR-042): enlace de vuelta arriba; las migas son de escritorio. */}

@@ -873,11 +873,26 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 ### Enlaces legales y consentimiento de cookies
 
+- **Límites defensivos (MSF-149, migración `20270218000000`)**: la URL no admite credenciales (`https://usuario@host`: sin `@` en la
+  autoridad, antes del primer `/`, `?` o `#`) y cada empresa admite como máximo **10** enlaces legales. El tope es **defensivo** (evita
+  inflar el pie y la respuesta anónima), no una regla de negocio: se cambia con una migración nueva. Pruebas: pgTAP
+  `tienda_legal_limites.test.sql` (que además verifica la lectura denegada a un usuario sin permiso de la sección `empresas`).
 - **Cómo se cargan (D5)**: los enlaces legales (título + URL `https://`) los inserta el equipo técnico por SQL en
   `dominio.tienda_legal_enlaces`, sin pantalla ni RPC de escritura; razón social, CUIT y dirección ya se editan en Empresas.
 - **Contrato para F-TDA-24 (analítica)**: `apps/web/src/lib/consentimientoCookies.ts` expone `leerConsentimiento()`
   (`'aceptadas' | 'rechazadas' | null`; `null` cuenta como rechazadas), `guardarConsentimiento(valor)`,
   `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies`. Ninguna analítica puede cargarse sin `'aceptadas'`.
+
+### Decisiones aceptadas por el dueño (2026-11-08)
+
+- **D1 — `estado_tienda_por_dominio` distingue «desactivada» de «desconocida»**: permite enumerar dominios desactivados y ver su nombre,
+  logo, colores y tipografías. Esto **matiza explícitamente FR-025 y SC-006** (desactivada = desconocida solo para las demás funciones,
+  robots y sitemap). Decisión aceptada por el dueño (2026-11-08): se mantiene así y se cambia si el cliente lo pide.
+- **`legal_por_dominio` publica razón social, CUIT y dirección** de toda empresa con tienda activa, sin opt-in por tienda. Decisión
+  aceptada por el dueño (2026-11-08): se mantiene así y se cambia si el cliente lo pide.
+- **Pausar la tienda**: el botón «Pausar tienda» actualiza `dominio.empresas.activa`; la política `empresas_update` exige
+  `private.puede_escribir()`, que hoy es el rol **Administrador** de la organización (o un superadmin con organización activa). No depende
+  del nivel de la sección Empresas de un rol personalizado.
 
 ### Decisiones y supuestos (D1…D8)
 
@@ -937,31 +952,72 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
 - **Funciones públicas** (`security definer`, `anon` ejecuta, lista blanca): `publico.seo_tienda_por_dominio(host)` →
   `{ dominio (canónico), nombre, descripcion, logo_ruta, indexable }` (la descripción es el subtítulo publicado de
   `dominio.tienda_contenido` o «<nombre> · tienda online»; `indexable` es `true`: punto de extensión del «no indexar» de borrador de
-  MSF-133) y `publico.sitemap_por_dominio(host)` → `{ dominio, urls: [{ ruta, modificado }] }` con inicio, catálogo, contacto,
-  categorías visibles y productos efectivamente visibles (`private.catalogo_tienda_efectivo`), hasta 50.000 URLs (constante única
-  `c_tope`, límite del protocolo). Host desconocido, inválido o empresa desactivada → `null` idéntico; al reactivar la empresa vuelven
+  MSF-133) y `publico.sitemap_por_dominio(host)` → `{ dominio, urls: [{ ruta, modificado }], truncado }` con inicio, catálogo, contacto,
+  **páginas de contenido visibles** (`/pagina/<slug>`: son públicas, están enlazadas desde el menú y el pie y su ruta monta `CabeceraSeo`
+  indexable; decisión de MSF-149, migración `20270217400100`), categorías visibles y productos efectivamente visibles
+  (`private.catalogo_tienda_efectivo`), hasta 50.000 URLs (constante única `c_tope`, límite del protocolo). **Más de 50.000 URLs se
+  TRUNCA** (no hay sitemap index: ninguna tienda se acerca a ese tamaño): el recorte es por prioridad —fijas y páginas, luego categorías,
+  luego productos—, así que lo que se pierde son productos, nunca categorías, y `truncado: true` hace que la Edge Function lo deje en el
+  log. El tope es un parámetro de la función privada `private.sitemap_urls_tienda(empresa, organización, tope)` para probar el
+  comportamiento real con una cota baja (pgTAP). Host desconocido, inválido o empresa desactivada → `null` idéntico; al reactivar la empresa vuelven
   a responder sin otra acción.
 - **Reversión** (migración posterior): `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);`.
 - **`robots.txt` y `sitemap.xml`**: Edge Function `supabase/functions/tienda-seo` (`verify_jwt = false` en `supabase/config.toml`,
   contrato en `openapi/tienda-seo.json`). Tienda activa: `Allow: /` + `Sitemap: https://<dominio canónico>/sitemap.xml` y el sitemap
   con las URLs de arriba (XML escapado, `<lastmod>` si existe). Desactivada, desconocida o sin cabecera: **la misma** respuesta
-  (`Disallow: /` y un `urlset` sin URLs), nunca un 404 distinto. Error de la base: 500 genérico. Pruebas: `pnpm test:edge:tienda-seo`.
+  (`Disallow: /` y un `urlset` sin URLs), nunca un 404 distinto. Error de la base: 500 genérico. Pruebas: `pnpm test:edge:tienda-seo`. Las respuestas llevan `Cache-Control: public, max-age=300` y `Vary: X-Tienda-Host`
+  (la URL del proxy es la misma para todas las tiendas: sin `Vary` un gateway/CDN que cachee por URL mezclaría tiendas). Las rutas del
+  sitemap se validan (una sola `/` inicial, sin caracteres de control ni espacios, ≤ 2048) y las que no cumplen se descartan.
 - **nginx de `apps/web`** (`location ~ ^/(robots\.txt|sitemap\.xml)$`) proxea a `<SUPABASE_URL>/functions/v1/tienda-seo/<archivo>` y manda
   el host original en `X-Tienda-Host` (más `apikey` y `Authorization` con la clave pública). La URL de Supabase y la clave pública
   salen de los mismos `ARG VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` del build: el `Dockerfile` los reemplaza en la
   configuración de nginx (marcadores `__SUPABASE_URL__` y `__SUPABASE_ANON_KEY__`), así que **no hay variables de entorno nuevas en
   runtime**. El nombre del servidor se resuelve al pedir (resolver `127.0.0.11`, el DNS de Docker/Dokploy, y `8.8.8.8` de respaldo),
   de modo que un Supabase caído no impide arrancar nginx: el buscador recibe 502 y reintenta. Si el entorno no usa el DNS de Docker,
-  hay que ajustar la línea `resolver`. Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
+  hay que ajustar la línea `resolver`. **Caché y límite (MSF-149)**: como `sitemap_por_dominio` arma hasta 50.000 filas para cualquier
+  anónimo, nginx cachea (`proxy_cache tienda_seo`: 5 min para respuestas 200, `proxy_cache_lock`; 20 MB máx., se vacía a los 10 min sin
+  uso) con clave `$http_host$uri` (el host del visitante: nunca se mezclan tiendas) y limita pedidos con `limit_req` en **dos zonas**: por
+  **IP de cliente + host** (20 pedidos/s, ráfaga 100: quien insiste sobre una tienda no agota el cubo de las demás) y por **solo IP**
+  (100 pedidos/s, ráfaga 200: quien rota el `Host` para abrir un cubo nuevo por pedido, y de paso llenar la caché, choca igual con este tope);
+  ambos responden 429. Los cubos son holgados a propósito porque `limit_req` corre antes de la caché y cuenta también los HIT, y un crawler
+  legítimo puede pedir varias veces seguidas. nginx corre en Dokploy **detrás de Traefik**, así que `$remote_addr` es la del proxy:
+  `set_real_ip_from` (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.1 y fc00::/7) con `real_ip_header X-Forwarded-For` y
+  `real_ip_recursive on` toman la IP real del cliente solo cuando el pedido llega desde la red del proxy; un cliente de internet no puede
+  falsearla. **Requisito:** el repo no define la configuración de Traefik (`trustedIPs`/`forwardedHeaders`) ni lo que haya delante; debe
+  mandar `X-Forwarded-For` con la IP del cliente. Si hubiera Cloudflare u otro proxy delante, todas las IPs serían las suyas: habría que
+  sumar sus rangos con `set_real_ip_from` y usar `real_ip_header CF-Connecting-IP`. **Contenido viejo:** NO se usa `proxy_cache_use_stale`.
+  Se probó con nginx real (upstream que responde 200 y luego 502, con tráfico continuo) que, con `use_stale error …`, la entrada se seguía
+  sirviendo vieja sin límite (a los 5, 12, 20 y 40 s con `max-age=3, stale-if-error=3`): el `stale-if-error` del upstream **no** la acota
+  (tiene menor prioridad que `proxy_cache_use_stale`) y una entrada con tráfico no vence por `inactive`. Sin stale, una tienda
+  desactivada o pausada deja de verse activa a lo sumo ~10 minutos después (5 de caché de nginx + `max-age=300` en el navegador o gateway:
+  esa es la ventana de «desactivada = desconocida», FR-025, con Supabase caído o no); si Supabase cae el buscador recibe 502 y reintenta.
+  `stale-if-error=300` queda en la cabecera de la función solo para gateways o CDN que lo respeten. **Qué se probó:** `nginx -t` valida solo
+  la sintaxis; `sh scripts/probar-nginx-tienda-seo.sh` prueba el comportamiento con nginx real en docker (IP tomada de `X-Forwarded-For`,
+  429 por IP + host, 429 al rotar el `Host`, otra IP o host sin afectarse, caché separada por host y sin contenido viejo con el upstream
+  caído; no corre en CI para no saturar los runners) y `supabase/functions/tienda-seo/nginx.test.ts` fija en CI los valores exactos. El
+  `Dockerfile` **falla el build** si `VITE_SUPABASE_URL` o `VITE_SUPABASE_PUBLISHABLE_KEY` quedan vacíos (sin ellos el `proxy_pass` queda
+  roto y robots/sitemap darían 500 sin aviso). Con el servidor de desarrollo de Vite estas dos rutas no existen (son de la imagen de producción).
 - **Front**: `lib/tiendaSeo.ts` (`useSeoTienda`, una lectura por host), `pages/tienda-publica/seo/CabeceraSeo.tsx` (título «<página> | <empresa>»
   ≤ 60, descripción ≤ 160, canónica `https://<dominio canónico><ruta sin filtros>`, Open Graph y `robots`; limpia al salir de la página) y
   `seo/datosEstructurados.ts` (JSON-LD `Organization` en el inicio y `Product` en la ficha: `priceCurrency` ARS, `price` solo si es
   calculable, `availability` booleana, `<` escapado; nunca costos ni existencias). Montado en inicio, catálogo, categoría, ficha y contacto.
 - **`noindex`** (`<meta name="robots" content="noindex">`): 404, «Volvemos pronto» (con y sin marca), pantalla de error, ingresar,
-  recuperar y definir contraseña, y resultados de búsqueda (`/catalogo?q=`).
+  recuperar y definir contraseña, y resultados de búsqueda (`/catalogo?q=`). Los errores de carga **de la página** (`ErrorConReintento` en
+  ficha, página de contenido, categoría, contacto y listado del catálogo) también montan `<CabeceraSeo noindex>`; cuando conviven con la `CabeceraSeo` indexable de la página (catálogo, categoría) la pila de `seo/pilaCabecera.ts` deja UNA sola meta `robots` (gana `noindex`) y restaura bien el título al desmontar. Los errores de un
+  bloque dentro de una página que sí cargó (destacados y categorías del inicio, menús, formulario de contacto) no: la página sigue
+  teniendo su contenido indexable.
+- **Caché de la lectura SEO**: `seoDeTienda` guarda una lectura por host y pestaña con vencimiento de 5 minutos; `recortar()` cuenta
+  puntos de código (un emoji no se parte).
 - **Límite conocido (D4)**: la tienda es una SPA; los buscadores que ejecutan JavaScript leen los metadatos, pero los previews de redes
-  (que no lo ejecutan) pueden no leer Open Graph. Prerender queda fuera de alcance. La imagen de Open Graph de la ficha es la URL firmada
-  de su primera imagen (vence); sin imagen se usa el logo.
-- **Verificación**: pgTAP `tienda_seo.test.sql`; Vitest `seo/CabeceraSeo.test.tsx` y `seo/datosEstructurados.test.ts`; `handler.test.ts` de la
-  función; E2E `apps/web/e2e/tienda-seo.e2e.ts` (dos tiendas y una pausada; pide `robots.txt` y `sitemap.xml` directo a la función con
-  `X-Tienda-Host`, requiere `supabase functions serve` y `SUPABASE_ANON_KEY`).
+  (que no lo ejecutan) pueden no leer Open Graph. Prerender queda fuera de alcance. La imagen de Open Graph de la ficha es **siempre el logo
+  público de la tienda**: el bucket `productos-imagenes` es privado y su única URL es firmada y vence, así que no sirve para previews ni
+  Google (que la guardan por días); el JSON-LD de la ficha tampoco lleva `image`. Cuando haya un bucket público de imágenes de producto
+  (decisión D1 de F-TDA-12), se cambia solo `rutas/producto.tsx`.
+- **Verificación**: pgTAP `tienda_seo.test.sql` (incluye el tope con cota baja sobre la función privada y las páginas); Vitest
+  `seo/CabeceraSeo.test.tsx` y `seo/datosEstructurados.test.ts`; `handler.test.ts` de la función; E2E `apps/web/e2e/tienda-seo.e2e.ts`
+  (dos tiendas y una pausada; pide `robots.txt` y `sitemap.xml` directo a la función con `X-Tienda-Host`, requiere `supabase functions
+  serve` y `SUPABASE_ANON_KEY`). **Los E2E de SEO y estados hacen `test.skip` si el CI no levanta el stack (sin `SUPABASE_URL` /
+  `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_ANON_KEY`): la cobertura real de la épica es pgTAP + `handler.test.ts` + Vitest.**
+- **Verificación manual pendiente (SC-007)**: Lighthouse (categoría SEO) no corre en el repo. Pendiente: `npx lighthouse <url>
+  --only-categories=seo` sobre inicio, catálogo, categoría, ficha y contacto de las dos tiendas y validación del JSON-LD de la ficha con
+  el Rich Results Test; criterio de aceptación: sin fallas (D8), resultado adjunto en el PR de cierre.

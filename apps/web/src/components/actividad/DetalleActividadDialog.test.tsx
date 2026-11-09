@@ -66,6 +66,25 @@ describe('DetalleActividadDialog (F-AUD-02, FR-007)', () => {
     expect(within(tabla).getByText('—')).toBeInTheDocument()
   })
 
+  it('la baja real (rol y estado antes, nuevo vacío) muestra «—» en cada fila del lado nuevo', async () => {
+    mocks.rpc.mockResolvedValue({ data: [fila({ tipo: 'usuario.removido', valor_anterior: { rol: 'Consulta', estado: 'Miembro' }, valor_nuevo: {} })], error: null })
+    render(<DetalleActividadDialog eventoId="ev-1" onCerrar={() => undefined} />)
+
+    const tabla = await screen.findByRole('table', { name: 'Valores del cambio' })
+    expect(within(tabla).getByText('Consulta')).toBeInTheDocument()
+    expect(within(tabla).getByText('Miembro')).toBeInTheDocument()
+    expect(within(tabla).getAllByText('—')).toHaveLength(2)
+  })
+
+  it('un alta (anterior vacío) muestra «—» del lado anterior', async () => {
+    mocks.rpc.mockResolvedValue({ data: [fila({ tipo: 'usuario.agregado', valor_anterior: {}, valor_nuevo: { rol: 'Operador' } })], error: null })
+    render(<DetalleActividadDialog eventoId="ev-1" onCerrar={() => undefined} />)
+
+    const tabla = await screen.findByRole('table', { name: 'Valores del cambio' })
+    expect(within(tabla).getByText('Operador')).toBeInTheDocument()
+    expect(within(tabla).getAllByText('—')).toHaveLength(1)
+  })
+
   it('si no devuelve filas avisa que el evento ya no está disponible', async () => {
     mocks.rpc.mockResolvedValue({ data: [], error: null })
     render(<DetalleActividadDialog eventoId="ev-1" onCerrar={() => undefined} />)

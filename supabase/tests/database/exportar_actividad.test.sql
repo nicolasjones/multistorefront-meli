@@ -9,7 +9,7 @@
 -- evento. Por eso los conteos de abajo filtran por tipo o por período cuando una llamada previa ya registró.
 begin;
 
-select plan(44);
+select plan(54);
 
 -- ============================================================================
 -- Fixture (mismo que registro_actividad.test.sql)
@@ -62,11 +62,14 @@ insert into registro_actividad (id, organizacion_id, empresa_id, actor_id, actor
   ('a0000000-0000-0000-0000-000000000005', '22222222-2222-2222-2222-222222222222', null,
     'b2000000-0000-0000-0000-000000000001', 'Admin Dos', 'otra.cosa', 'Evento de la otra organización', '2026-10-02 12:00:00+00');
 
--- 50.001 eventos más en la Organización Dos para probar el tope de 50.000 (total real = 50.002).
+-- Organización Dos: exactamente 50.000 eventos 'carga.masiva' (filtro justo en el tope) + 1 'carga.extra' + el
+-- 'otra.cosa' de arriba: el total sin filtro es 50.002 (excede el tope).
 insert into registro_actividad (organizacion_id, tipo, detalle, creado_en)
 select '22222222-2222-2222-2222-222222222222', 'carga.masiva', 'Evento ' || g,
        '2026-09-01 00:00:00+00'::timestamptz + (g || ' seconds')::interval
-  from generate_series(1, 50001) g;
+  from generate_series(1, 50000) g;
+insert into registro_actividad (organizacion_id, tipo, detalle, creado_en)
+values ('22222222-2222-2222-2222-222222222222', 'carga.extra', 'Evento extra', '2026-08-01 00:00:00+00');
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -141,10 +144,10 @@ select is(jsonb_array_length(current_setting('t.p1')::jsonb -> 'filas'), 1, 'un 
 select is(current_setting('t.p1')::jsonb ->> 'hay_mas', 'true', 'avisa que hay más páginas');
 select set_config('t.p2', public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1,
   p_cursor_creado_en => (current_setting('t.p1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
-  p_cursor_id => (current_setting('t.p1')::jsonb -> 'siguiente' ->> 'id')::uuid, p_entregadas => 1)::text, true);
+  p_cursor_id => (current_setting('t.p1')::jsonb -> 'siguiente' ->> 'id')::uuid)::text, true);
 select is(current_setting('t.p2')::jsonb -> 'filas' -> 0 ->> 'detalle', 'Creó el producto Lámpara 100%', 'el cursor sigue con la fila que sigue, sin repetir ni saltear');
 select is(current_setting('t.p2')::jsonb ->> 'hay_mas', 'false', 'la última página dice que no hay más');
-select is(current_setting('t.p1')::jsonb ->> 'total', null, 'sin p_con_total no se calcula el total');
+select is(current_setting('t.p1')::jsonb ->> 'total', '2', 'la primera llamada de una exportación trae el total (lo necesita la constancia)');
 select throws_ok($$select public.exportar_actividad(p_cursor_id => 'a0000000-0000-0000-0000-000000000001')$$, '22023', null, 'un cursor incompleto se rechaza');
 select is(
   (public.exportar_actividad(p_corte => '2026-10-01 12:00:00+00', p_con_total => true) ->> 'total')::int, 2,
@@ -153,70 +156,131 @@ select is(
 -- Parámetros inválidos.
 select throws_ok($$select public.exportar_actividad(p_limite => 0)$$, '22023', null, 'un límite de 0 se rechaza');
 select throws_ok($$select public.exportar_actividad(p_limite => 1001)$$, '22023', null, 'un límite mayor a 1000 se rechaza');
-select throws_ok($$select public.exportar_actividad(p_entregadas => -1)$$, '22023', null, 'unas entregadas negativas se rechazan');
+select lives_ok($$select public.exportar_actividad(p_entregadas => -1, p_tipo => 'zzz.inexistente')$$, 'p_entregadas lo manda el cliente y se ignora (no valida ni cuenta)');
 
 -- ============================================================================
 -- Registro de actividad.exportada (RF-AUD-03-2)
 -- ============================================================================
 
 select ok(
-  exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Exportó 4 registros de la actividad a CSV'),
+  exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Inició la exportación de 4 registros de la actividad a CSV'),
   'la exportación completa quedó registrada en la actividad, sin filtros');
 
 select public.exportar_actividad(p_desde => '2026-10-01', p_hasta => '2026-10-03', p_tipo => 'producto.creado');
 select ok(
   exists (select 1 from registro_actividad where tipo = 'actividad.exportada'
-    and detalle = 'Exportó 1 registro de la actividad a CSV (filtros: desde el 01/10/2026, hasta el 03/10/2026, tipo producto.creado)'),
+    and detalle = 'Inició la exportación de 1 registro de la actividad a CSV (filtros: desde el 01/10/2026, hasta el 03/10/2026, tipo producto.creado)'),
   'el evento deja los filtros usados, en palabras y sin ids');
 reset role;
 
 -- ============================================================================
--- Aislamiento y tope de 50.000 (CA-AUD-03-3)
+-- Aislamiento y tope de 50.000 (CA-AUD-03-3), con el conteo en el servidor
 -- ============================================================================
 
 select pg_temp.como('b2000000-0000-0000-0000-000000000001');
-select set_config('t.tope', public.exportar_actividad(p_entregadas => 49990, p_limite => 100, p_con_total => true)::text, true);
+select set_config('t.tope', public.exportar_actividad(p_limite => 100, p_con_total => true)::text, true);
 select is((current_setting('t.tope')::jsonb ->> 'total')::int, 50002, 'el total es el real aunque supere el tope, y es solo de su organización');
 select is(current_setting('t.tope')::jsonb ->> 'recortado', 'true', 'pasado el tope se avisa que se recortó');
-select is(jsonb_array_length(current_setting('t.tope')::jsonb -> 'filas'), 10, 'el archivo no pasa de 50.000 filas (49.990 + 10)');
-select is(jsonb_array_length(public.exportar_actividad(p_entregadas => 50000, p_limite => 100) -> 'filas'), 0, 'más allá de las 50.000 no entrega filas');
 select ok(
-  exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Exportó 50000 registros de la actividad a CSV'),
-  'el evento cuenta lo que se exportó (el tope), no el total');
+  exists (select 1 from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Inició la exportación de 50002 registros de la actividad a CSV (supera el tope de 50000)'),
+  'la primera llamada deja la constancia aunque el filtro exceda el tope, con el total real y el aviso del tope');
+
+-- Un cliente que miente con p_entregadas = 0 en cada página no saltea el tope: lo cuenta el servidor.
+do $$
+declare r jsonb; c timestamptz; i uuid; n integer := 0;
+begin
+  loop
+    r := public.exportar_actividad(p_limite => 1000, p_entregadas => 0, p_cursor_creado_en => c, p_cursor_id => i,
+                                   p_exportacion => 'c0000000-0000-0000-0000-0000000000a1');
+    n := n + jsonb_array_length(r -> 'filas');
+    exit when not (r ->> 'hay_mas')::boolean;
+    c := (r -> 'siguiente' ->> 'creado_en')::timestamptz;
+    i := (r -> 'siguiente' ->> 'id')::uuid;
+  end loop;
+  perform set_config('t.mentira', n::text, true);
+end $$;
+select is(current_setting('t.mentira')::int, 50000, 'con p_entregadas = 0 mentido en cada página el archivo igual se corta en 50.000');
+select throws_ok(
+  $q$select public.exportar_actividad(p_limite => 1000, p_exportacion => 'c0000000-0000-0000-0000-0000000000a1')$q$,
+  '22023', 'Esa exportación ya está registrada: iniciá una nueva', 'al llegar al tope el id queda cerrado');
+
+-- Filtro de exactamente 50.000 filas: entra completo, sin recorte, en 50 lotes.
+do $$
+declare r jsonb; c timestamptz; i uuid; n integer := 0; llamadas integer := 0;
+begin
+  loop
+    r := public.exportar_actividad(p_tipo => 'carga.masiva', p_limite => 1000, p_cursor_creado_en => c, p_cursor_id => i,
+                                   p_exportacion => 'c0000000-0000-0000-0000-0000000000a2', p_con_total => (c is null));
+    if llamadas = 0 then
+      perform set_config('t.exacto_total', r ->> 'total', true);
+      perform set_config('t.exacto_recortado', r ->> 'recortado', true);
+    end if;
+    n := n + jsonb_array_length(r -> 'filas');
+    llamadas := llamadas + 1;
+    exit when not (r ->> 'hay_mas')::boolean;
+    c := (r -> 'siguiente' ->> 'creado_en')::timestamptz;
+    i := (r -> 'siguiente' ->> 'id')::uuid;
+  end loop;
+  perform set_config('t.exacto_n', n::text, true);
+  perform set_config('t.exacto_llamadas', llamadas::text, true);
+end $$;
+select is(current_setting('t.exacto_total')::int, 50000, 'un filtro de exactamente 50.000 filas informa ese total');
+select is(current_setting('t.exacto_recortado'), 'false', 'y no se recorta (50.000 no excede el tope)');
+select is(current_setting('t.exacto_n')::int, 50000, 'se entregan las 50.000 filas');
+select is(current_setting('t.exacto_llamadas')::int, 50, 'en 50 lotes de 1.000');
 reset role;
 
 -- ============================================================================
--- Constancia idempotente por exportación (MSF-278, hallazgo 4)
+-- Constancia en la primera llamada, cierre del id y abandono (MSF-170, hallazgo 1)
 -- ============================================================================
 
 select pg_temp.como('b1000000-0000-0000-0000-000000000001');
--- Exportación de 2 lotes (límite 1) con el mismo id: el evento queda registrado UNA sola vez.
+-- Exportación de 2 lotes (límite 1) con el mismo id.
 select set_config('t.m1', public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
   p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001', p_con_total => true)::text, true);
 select is(current_setting('t.m1')::jsonb ->> 'total', '2', 'la primera llamada trae el total real');
-select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 0,
-  'con un lote entregado y más pendientes todavía no hay constancia');
+select is(current_setting('t.m1')::jsonb ->> 'exportacion', 'c0000000-0000-0000-0000-000000000001', 'la respuesta devuelve el id de la corrida');
+-- Abandonar tras la primera página ya dejó la constancia.
+select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Inició la exportación de 2 registros de la actividad a CSV (filtros: desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado)'), 1,
+  'con un lote entregado y más pendientes la constancia ya está (paginar y abandonar no evita el rastro)');
 select set_config('t.m2', public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
-  p_limite => 1, p_entregadas => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
+  p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
   p_cursor_creado_en => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
   p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid)::text, true);
-select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle = 'Exportó 2 registros de la actividad a CSV (filtros: desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado)'), 1,
+select is(current_setting('t.m2')::jsonb ->> 'hay_mas', 'false', 'la segunda página es la última');
+select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 1,
   'una exportación de varios lotes registra el evento exactamente UNA vez');
--- Reutilizar un id ya registrado (reintento de la última página o intento de bajar datos sin dejar rastro) se RECHAZA:
--- una exportación cerrada no se puede repetir con el mismo id, así que no hay forma de exportar sin constancia.
+-- Id cerrado: reutilizarlo (incluido el reintento de la última página) se RECHAZA.
 select throws_ok(
   $q$select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado',
-       p_limite => 1, p_entregadas => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
+       p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000001',
        p_cursor_creado_en => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
        p_cursor_id => (current_setting('t.m1')::jsonb -> 'siguiente' ->> 'id')::uuid)$q$,
-  '22023', 'Esa exportación ya está registrada: iniciá una nueva', 'un id de exportación ya cerrado no se puede reutilizar');
+  '22023', 'Esa exportación ya está registrada: iniciá una nueva', 'un id de exportación ya cerrado no se puede reutilizar (22023)');
 select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 1,
   'y el rechazo no registra el evento una segunda vez');
+reset role;
+select is((select cerrada and entregadas = 2 from private.exportaciones_actividad where id = 'c0000000-0000-0000-0000-000000000001'), true,
+  'el servidor lleva el conteo y cierra el id al entregar la última fila');
+select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 -- Otra exportación (otro id) con los mismos filtros sí es otra constancia.
 select public.exportar_actividad(p_desde => '2026-09-30', p_hasta => '2026-10-03', p_tipo => 'producto.creado', p_exportacion => 'c0000000-0000-0000-0000-000000000002');
 select is((select count(*)::int from registro_actividad where tipo = 'actividad.exportada' and detalle like '%desde el 30/09/2026, hasta el 03/10/2026, tipo producto.creado%'), 2,
   'otra exportación (otro id) deja su propia constancia');
+
+-- Repetir la misma página (mismo id y mismo cursor) no suma lo entregado dos veces.
+select set_config('t.r1', public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000003')::text, true);
+select public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000003');
 reset role;
+select is((select entregadas from private.exportaciones_actividad where id = 'c0000000-0000-0000-0000-000000000003'), 1,
+  'repetir la misma página no suma entregadas dos veces');
+select pg_temp.como('b1000000-0000-0000-0000-000000000001');
+select public.exportar_actividad(p_tipo => 'producto.creado', p_limite => 1, p_exportacion => 'c0000000-0000-0000-0000-000000000003',
+  p_cursor_creado_en => (current_setting('t.r1')::jsonb -> 'siguiente' ->> 'creado_en')::timestamptz,
+  p_cursor_id => (current_setting('t.r1')::jsonb -> 'siguiente' ->> 'id')::uuid);
+reset role;
+select is((select entregadas = 2 and cerrada from private.exportaciones_actividad where id = 'c0000000-0000-0000-0000-000000000003'), true,
+  'y la página siguiente sí suma: 2 filas entregadas y el id cerrado');
 
 -- ============================================================================
 -- Superadmin en modo soporte (MSF-278, hallazgo 5): nivel_seccion nunca devuelve NULL
@@ -230,6 +294,15 @@ reset role;
 
 select pg_temp.como('b8000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.exportar_actividad()$$, '42501', null, 'el superadmin que no entró a ninguna organización no exporta');
+reset role;
+
+-- Límite de exportaciones nuevas por persona y hora: el control real es la constancia, no el tope.
+insert into private.exportaciones_actividad (id, organizacion_id, usuario_id, cerrada)
+select gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'b2000000-0000-0000-0000-000000000001', true
+  from generate_series(1, 60);
+select pg_temp.como('b2000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.exportar_actividad(p_tipo => 'carga.extra')$$, '22023',
+  'Superaste el límite de 60 exportaciones por hora: esperá un rato e intentá de nuevo', 'pasadas 60 exportaciones nuevas en una hora se rechaza la siguiente');
 reset role;
 
 select * from finish();

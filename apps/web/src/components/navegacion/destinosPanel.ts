@@ -246,6 +246,12 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
 
 export const DESTINOS_PANEL: DestinoPanel[] = SECCIONES_PANEL.flatMap((seccion) => seccion.destinos)
 
+// ¿La ruta del destino coincide con la ubicación actual? Criterio ÚNICO que comparten las migas de pan y la ayuda
+// (F-CFG-02, FR-022): coincidencia exacta, o prefijo para subrutas (fichas, formularios). La raíz `/` solo coincide exacta.
+export function coincideRuta(ruta: string, pathname: string): boolean {
+  return ruta === pathname || (ruta !== '/' && pathname.startsWith(ruta))
+}
+
 // Para miembro/administrador siempre visible; para superadmin, solo con
 // organización activa. 'administrador' reutiliza puede_escribir (contexto ya
 // resuelve "administrador de su organización, o superadmin con organización

@@ -1,9 +1,9 @@
 import { Alert, Box, Button, Skeleton, Stack, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
 
-export function EstadoCargaPagina({ lineas = 3 }: { lineas?: number }) {
+export function EstadoCargaPagina({ lineas = 3, etiqueta = 'Cargando contenido' }: { lineas?: number; etiqueta?: string }) {
   return (
-    <Stack aria-busy="true" aria-label="Cargando contenido" spacing={1.5} role="status">
+    <Stack aria-busy="true" aria-label={etiqueta} spacing={1.5} role="status">
       {Array.from({ length: lineas }, (_, indice) => <Skeleton key={indice} height={40} variant="rounded" />)}
     </Stack>
   )

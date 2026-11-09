@@ -63,7 +63,7 @@ export class ExportacionIncompletaError extends Error {}
 export async function traerActividadParaExportar(
   cliente: Pick<SupabaseClient, 'rpc'>,
   filtros: FiltrosActividad,
-  /** Id de la corrida: la base registra la constancia una sola vez por id (un reintento no la duplica). */
+  /** Id de la corrida: la base registra la constancia en la primera llamada y cierra el id al entregar la última fila (reutilizarlo falla con 22023). El conteo y el tope los lleva la base. */
   exportacion: string = crypto.randomUUID(),
 ): Promise<ResultadoExportacionActividad> {
   const { desde, hasta } = rangoDelPeriodo(filtros.periodo)
@@ -85,7 +85,6 @@ export async function traerActividadParaExportar(
       p_cursor_creado_en: cursor?.creado_en ?? null,
       p_cursor_id: cursor?.id ?? null,
       p_limite: LOTE_EXPORTACION_ACTIVIDAD,
-      p_entregadas: filas.length,
       p_exportacion: exportacion,
       p_con_total: primera,
     })
