@@ -860,7 +860,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 ### Enlaces legales y consentimiento de cookies
 
-- **Límites defensivos (MSF-149, migración `20270217300000`)**: la URL no admite credenciales (`https://usuario@host`: sin `@` en la
+- **Límites defensivos (MSF-149, migración `20270217400000`)**: la URL no admite credenciales (`https://usuario@host`: sin `@` en la
   autoridad, antes del primer `/`, `?` o `#`) y cada empresa admite como máximo **10** enlaces legales. El tope es **defensivo** (evita
   inflar el pie y la respuesta anónima), no una regla de negocio: se cambia con una migración nueva. Pruebas: pgTAP
   `tienda_legal_limites.test.sql` (que además verifica la lectura denegada a un usuario sin permiso de la sección `empresas`).
@@ -941,7 +941,7 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
   `dominio.tienda_contenido` o «<nombre> · tienda online»; `indexable` es `true`: punto de extensión del «no indexar» de borrador de
   MSF-133) y `publico.sitemap_por_dominio(host)` → `{ dominio, urls: [{ ruta, modificado }], truncado }` con inicio, catálogo, contacto,
   **páginas de contenido visibles** (`/pagina/<slug>`: son públicas, están enlazadas desde el menú y el pie y su ruta monta `CabeceraSeo`
-  indexable; decisión de MSF-149, migración `20270217300100`), categorías visibles y productos efectivamente visibles
+  indexable; decisión de MSF-149, migración `20270217400100`), categorías visibles y productos efectivamente visibles
   (`private.catalogo_tienda_efectivo`), hasta 50.000 URLs (constante única `c_tope`, límite del protocolo). **Más de 50.000 URLs se
   TRUNCA** (no hay sitemap index: ninguna tienda se acerca a ese tamaño): el recorte es por prioridad —fijas y páginas, luego categorías,
   luego productos—, así que lo que se pierde son productos, nunca categorías, y `truncado: true` hace que la Edge Function lo deje en el
