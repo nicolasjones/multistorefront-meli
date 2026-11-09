@@ -81,7 +81,10 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   DESPUÉS de desmontar y de cerrar jsdom. `useEmpresasAccesibles` ya invalida la
   petición en vuelo al desmontar («última petición gana» incluye el desmontaje); un
   hook nuevo con carga asíncrona debe hacer lo mismo y cubrirlo con un test que
-  rechace/resuelva después de `unmount()`.
+  rechace/resuelva después de `unmount()`. Un test que monta un componente con
+  lecturas reales a la red (como la insignia de consultas dentro de `SiderPanel`)
+  debe mockearlo o mockear `lib/supabase`: un `fetch` real que falla tarde produce
+  el mismo error.
 
 ## Calidad determinista (`pnpm calidad`)
 - `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,

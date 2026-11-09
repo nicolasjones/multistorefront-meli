@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useFeatureHabilitada', () => ({ useFeatureHabilitada: mocks.useFeatureHabilitada }))
 
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: mocks.useContextoPanel }))
+// La insignia de consultas nuevas hace lecturas reales a la red (useConsultas y useEmpresasAccesibles): su
+// `fetch` falla DESPUÉS de que el test terminó y el entorno se cerró, y vitest sale con error aunque todos
+// los tests pasen. Este archivo no prueba la insignia, solo la navegación.
+vi.mock('../consultas/InsigniaConsultasNuevas', () => ({ InsigniaConsultasNuevas: () => null }))
 vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermisosPanel }))
 // ThemedSider depende de useMenu/useActiveAuthProvider/etc, que exigen un
 // <Refine> completo — se reemplaza por un stub que solo invoca `render`,
