@@ -25,7 +25,19 @@ El panel tiene tres cosas:
 - un **párrafo** que explica para qué sirve;
 - hasta **cinco pasos o consejos** para usarla.
 
-El texto es corto a propósito: si querés más detalle, la pantalla y sus mensajes te siguen el paso.
+El texto es corto a propósito. Si querés más detalle, al pie del panel está el enlace al manual completo (ver más abajo).
+
+## El manual completo de la pantalla
+
+Al pie del panel hay un enlace: **«Ver el manual completo de esta pantalla»**. Se abre en una **pestaña nueva** y te lleva
+a la página del manual que explica esa pantalla en detalle, con capturas. Así no perdés lo que estabas haciendo.
+
+- Si la pantalla no tiene una página propia en el manual (por ejemplo, algunas pantallas de administración del sistema), o
+  la dirección no corresponde a ninguna pantalla, el enlace dice **«Abrir el manual»** y te lleva al **índice** del manual.
+- Una página muy nueva puede tardar un poco en aparecer: el manual se publica aparte del sistema. Si al abrirla ves «página
+  no encontrada», probá desde el índice y avisá a quien administra el sistema.
+- Si el manual te pide un usuario y una contraseña para abrirse, pedíselos a la persona que administra el sistema.
+- Si el manual cambia de dirección, el enlace se actualiza para todas las pantallas a la vez: no tenés que hacer nada.
 
 ## Cerrar el panel
 

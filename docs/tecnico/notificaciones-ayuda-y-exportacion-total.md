@@ -119,6 +119,20 @@ campanita no guarda su propia empresa ni duplica el selector.
   `AYUDA_MAX_PASO = 140`.
 - **Cobertura**: `ayuda-cobertura.test.ts` falla si un destino de `SECCIONES_PANEL` no tiene entrada o si hay una
   entrada sin destino (44 destinos hoy).
+- **Enlace al manual de producto** (MSF-385, PR #816): al pie del panel, un `Link` abre en pestaña nueva
+  (`target="_blank"`, `rel="noopener noreferrer"`) la página del manual de la pantalla («Ver el manual completo de esta
+  pantalla») o el índice («Abrir el manual») si la pantalla no tiene página propia.
+  - **La dirección vive en un solo lugar**: `apps/web/src/ayuda/manual.ts`. Es una **plantilla con `{pagina}`**
+    (`MANUAL_URL_POR_DEFECTO` = `https://docs.212-90-120-53.sslip.io/producto/{pagina}/`, el sitio MkDocs publicado) que se
+    puede sobrescribir con **`VITE_MANUAL_URL`** al construir la imagen (build-arg de `apps/web/Dockerfile`, documentada en
+    `apps/web/.env.example`). El índice es todo lo que va antes de `{pagina}`. Una plantilla inválida (no `http(s)`, o sin
+    `{pagina}` en la ruta) se descarta y se avisa en consola.
+  - **Qué página le toca a cada pantalla**: `apps/web/src/ayuda/manualPorDestino.ts` (`MANUAL_POR_DESTINO`, nombres de
+    página sin extensión; nunca direcciones) y `SIN_PAGINA_PROPIA`. `manual.test.ts` exige que todo destino del menú esté
+    en una de las dos listas. Que la página exista en `docs/producto/` lo debe revisar quien agrega o renombra páginas: el
+    CI de `dokploy` no ve el manual (vive en `main`).
+  - **El sitio se publica aparte** del sistema: una página nueva del manual no aparece en el enlace hasta que se
+    vuelve a publicar el sitio.
 
 ### Empresa activa: no aplica
 
