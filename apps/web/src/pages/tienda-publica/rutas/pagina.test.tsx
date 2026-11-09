@@ -86,6 +86,9 @@ describe('ruta pública /pagina/:slug (FR-006, SC-002)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     montar()
 
+    // FR-004/FR-024: la pantalla de error no se indexa.
+    await screen.findByTestId('error-con-reintento')
+    await waitFor(() => expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex'))
     fireEvent.click(await screen.findByRole('button', { name: 'Reintentar' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Cómo comprar' })).toBeInTheDocument()

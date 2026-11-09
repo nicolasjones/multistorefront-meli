@@ -32,7 +32,8 @@ delete from superadmin_organizacion_activa;
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'private', 'dominio') and p.prokind = 'f'
-      and p.proname not in ('entrar_a_organizacion', 'salir_de_organizacion', 'cerrar_accesos_soporte_vencidos')
+      -- exclusiones_exportacion_total solo nombra la tabla como texto (no la lee).
+      and p.proname not in ('entrar_a_organizacion', 'salir_de_organizacion', 'cerrar_accesos_soporte_vencidos', 'exclusiones_exportacion_total')
       and p.prosrc ~ 'superadmin_organizacion_activa'),
   0, 'ninguna función lee superadmin_organizacion_activa sin filtrar la vigencia (FR-015)'
 );

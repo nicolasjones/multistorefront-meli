@@ -18,7 +18,15 @@ export default function RutaPagina() {
   const pagina = usePaginaTienda(host, paginaId)
   if (!paginaId) return <PaginaNoEncontrada />
   if (pagina.fase === 'cargando') return <EstadoCargaPagina />
-  if (pagina.fase === 'error') return <ErrorConReintento alReintentar={pagina.reintentar} />
+  if (pagina.fase === 'error') {
+    return (
+      <>
+        {/* FR-004/FR-024: una pantalla de error no se indexa. */}
+        <CabeceraSeo noindex pagina="No pudimos cargar esta página" />
+        <ErrorConReintento alReintentar={pagina.reintentar} />
+      </>
+    )
+  }
   if (pagina.fase === 'no-encontrada') return <PaginaNoEncontrada />
 
   const { titulo: nombre, contenido } = pagina.pagina

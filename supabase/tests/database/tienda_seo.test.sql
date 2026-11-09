@@ -4,7 +4,7 @@
 -- `anon` ejecuta las dos funciones.
 begin;
 
-select plan(19);
+select plan(25);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
@@ -47,6 +47,12 @@ insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) 
   ('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111');
+
+-- Páginas de contenido (MSF-149 h10): A tiene una visible y una oculta; B tiene una visible propia.
+insert into dominio.tienda_paginas (organizacion_id, empresa_id, titulo, slug, contenido, visible) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'Envíos', 'envios', 'Texto', true),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'Borrador', 'borrador', 'Texto', false),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'Garantía', 'garantia', 'Texto', true);
 
 insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values
   ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', false, false);
@@ -107,14 +113,14 @@ select is(
 -- sitemap_por_dominio
 select is(
   pg_temp.rutas((select j from res where clave = 'map_a')),
-  '["/", "/catalogo", "/contacto", "/categoria/ca000000-0000-0000-0000-000000000001", "/producto/a1000000-0000-0000-0000-000000000001"]'::jsonb,
-  'tienda A: inicio, catálogo, contacto, categoría visible y solo el producto efectivamente visible'
+  '["/", "/catalogo", "/contacto", "/pagina/envios", "/categoria/ca000000-0000-0000-0000-000000000001", "/producto/a1000000-0000-0000-0000-000000000001"]'::jsonb,
+  'tienda A: inicio, catálogo, contacto, su página visible (no la oculta), categoría visible y solo el producto efectivamente visible'
 );
 select is((select j ->> 'dominio' from res where clave = 'map_a'), 'seo-a.ejemplo.com', 'el sitemap trae el dominio canónico');
 select is((select j from res where clave = 'map_a_host'), (select j from res where clave = 'map_a'), 'el host del sitemap se normaliza');
 select is(
   pg_temp.rutas((select j from res where clave = 'map_b')),
-  '["/", "/catalogo", "/contacto", "/categoria/ca000000-0000-0000-0000-000000000001", "/categoria/ca000000-0000-0000-0000-000000000002", "/producto/a1000000-0000-0000-0000-000000000001", "/producto/a1000000-0000-0000-0000-000000000004"]'::jsonb,
+  '["/", "/catalogo", "/contacto", "/pagina/garantia", "/categoria/ca000000-0000-0000-0000-000000000001", "/categoria/ca000000-0000-0000-0000-000000000002", "/producto/a1000000-0000-0000-0000-000000000001", "/producto/a1000000-0000-0000-0000-000000000004"]'::jsonb,
   'tienda B: solo sus productos y sus categorías (la categoría oculta en A sí es visible en B), nunca los de A'
 );
 select is(
@@ -127,11 +133,36 @@ select is(
   2, 'sitemap: empresa desactivada y host desconocido devuelven null idéntico'
 );
 
--- Tope: constante única de 50.000 (límite del protocolo sitemaps.org) aplicada al total de URLs.
+-- Tope (MSF-149 h7): la pública usa 50.000 (constante) y el comportamiento se prueba con la función privada y una
+-- cota baja. La tienda A tiene 6 URLs: 3 fijas + 1 página + 1 categoría + 1 producto.
 select ok(
-  (select prosrc ~ 'c_tope constant integer := 50000;' and prosrc ~ 'limit c_tope'
+  (select prosrc ~ 'c_tope constant integer := 50000;' and prosrc ~ 'sitemap_urls_tienda\(v_empresa, v_org, c_tope\)'
      from pg_proc where oid = 'publico.sitemap_por_dominio(text)'::regprocedure),
-  'el tope de 50.000 URLs es una constante única y se aplica con limit'
+  'la pública aplica el tope de 50.000 a través de la función privada'
+);
+select is((select (j -> 'truncado') from res where clave = 'map_a'), 'false'::jsonb, 'sin exceso: truncado = false');
+select is(
+  pg_temp.rutas(private.sitemap_urls_tienda('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 6)),
+  pg_temp.rutas((select j from res where clave = 'map_a')),
+  'tope igual al total: no se corta nada'
+);
+select is(
+  private.sitemap_urls_tienda('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 6) -> 'truncado',
+  'false'::jsonb, 'tope igual al total: truncado = false'
+);
+select is(
+  pg_temp.rutas(private.sitemap_urls_tienda('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 5)),
+  '["/", "/catalogo", "/contacto", "/pagina/envios", "/categoria/ca000000-0000-0000-0000-000000000001"]'::jsonb,
+  'N+1 filas con tope N: se corta en N y se pierde el producto, no la categoría'
+);
+select is(
+  private.sitemap_urls_tienda('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 3),
+  '{"urls": [{"ruta": "/", "modificado": null}, {"ruta": "/catalogo", "modificado": null}, {"ruta": "/contacto", "modificado": null}], "truncado": true}'::jsonb,
+  'tope 3: quedan primero inicio, catálogo y contacto y se avisa truncado'
+);
+select is(
+  private.sitemap_urls_tienda('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 0),
+  '{"urls": [], "truncado": true}'::jsonb, 'tope 0: sin URLs y truncado'
 );
 
 -- FR-025: reactivar cambia el resultado sin otra acción (y apagar lo vuelve idéntico a desconocida).

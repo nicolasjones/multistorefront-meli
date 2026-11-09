@@ -20,6 +20,7 @@ import { TarjetaProducto } from '../catalogo/TarjetaProducto'
 import type { PropsSeccionCatalogo } from '../seccionesCatalogo'
 import { useCelular } from '../useAnchoCelular'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 
 export const orden = 10
 
@@ -129,7 +130,10 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
       <Box component="section" aria-label="Productos">
         {catalogo.fase === 'cargando' ? <EstadoCargaPagina lineas={4} /> : null}
         {catalogo.fase === 'error' ? (
-          <ErrorConReintento titulo="No pudimos cargar los productos." alReintentar={catalogo.reintentar} />
+          <>
+            <CabeceraSeo noindex pagina="No pudimos cargar los productos" />
+            <ErrorConReintento titulo="No pudimos cargar los productos." alReintentar={catalogo.reintentar} />
+          </>
         ) : null}
         {catalogo.fase === 'lista' && espera !== null ? (
           <Box data-testid="busqueda-espera" role="status" sx={{ py: 6, textAlign: 'center' }}>
