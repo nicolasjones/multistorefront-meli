@@ -15,10 +15,14 @@ ARG VITE_NANGO_PUBLIC_SERVER_URL
 # tienda y todo host sirve el panel (falla seguro). Debe incluir el dominio del panel
 # del entorno; los dominios de tienda son los que NO figuran acá.
 ARG VITE_PANEL_HOSTS=""
+# Dirección del manual de producto que enlaza la ayuda del panel: plantilla http(s) con {pagina}. Vacía = la de por defecto
+# (apps/web/src/ayuda/manual.ts). Si el manual cambia de lugar se cambia acá (o allá), sin tocar las pantallas.
+ARG VITE_MANUAL_URL=""
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY
 ENV VITE_NANGO_PUBLIC_SERVER_URL=$VITE_NANGO_PUBLIC_SERVER_URL
 ENV VITE_PANEL_HOSTS=$VITE_PANEL_HOSTS
+ENV VITE_MANUAL_URL=$VITE_MANUAL_URL
 WORKDIR /workspace/apps/web
 RUN pnpm build
 FROM nginx:alpine AS runner

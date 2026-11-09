@@ -1,7 +1,10 @@
 import { useId, useState } from 'react'
-import { Box, Button, Drawer, IconButton, Stack, Typography } from '@mui/material'
+import { Box, Button, Drawer, IconButton, Link, Stack, Typography } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { useLocation } from 'react-router'
+import { urlManual } from '../../ayuda/manual'
+import { MANUAL_POR_DESTINO } from '../../ayuda/manualPorDestino'
 import { resolverAyuda, TEXTO_SIN_AYUDA } from '../../ayuda/resolverAyuda'
 
 // F-CFG-02 (MSF-385): botón «Ayuda» de la barra superior y panel lateral con la explicación breve de la pantalla actual.
@@ -10,7 +13,10 @@ export function PanelAyuda() {
   const [abierta, setAbierta] = useState(false)
   const idTitulo = useId()
   const { pathname } = useLocation()
-  const { contenido } = resolverAyuda(pathname)
+  const { contenido, destinoId } = resolverAyuda(pathname)
+  // La dirección del manual se define en un solo lugar (`ayuda/manual.ts`); acá solo se elige la página de esta pantalla.
+  const paginaManual = destinoId ? MANUAL_POR_DESTINO[destinoId] : undefined
+  const hrefManual = urlManual(paginaManual)
 
   return (
     <>
@@ -44,6 +50,18 @@ export function PanelAyuda() {
           ) : (
             <Typography variant="body1">{TEXTO_SIN_AYUDA}</Typography>
           )}
+          <Link
+            href={hrefManual}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 2 }}
+          >
+            {paginaManual ? 'Ver el manual completo de esta pantalla' : 'Abrir el manual'}
+            <OpenInNewIcon fontSize="inherit" aria-hidden />
+            <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+              (se abre en una pestaña nueva)
+            </Box>
+          </Link>
         </Box>
       </Drawer>
     </>
