@@ -42,6 +42,7 @@ describe('CorreoAvisosConsultas (F-CON-03, FR-010)', () => {
     expect(
       await screen.findByText(/Esta dirección ya no se usa para las consultas nuevas/),
     ).toBeInTheDocument()
+    expect(screen.queryByText(/MSF-\d+/)).not.toBeInTheDocument()
   })
 
   it('si la empresa ya tiene dirección propia, muestra esa y no el contacto', async () => {

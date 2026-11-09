@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Alert, Autocomplete, Button, Dialog, DialogActions, DialogContent, TextField, Typography } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import { TituloDialogo } from '../base/TituloDialogo'
-import { buscarProductos, type ProductoRepuesto } from '../../lib/reparacionItems'
+import { renderOpcionProducto } from '../base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
+import { buscarProductosConAviso, type ProductoRepuesto } from '../../lib/reparacionItems'
 import type { DepositoOpcion } from '../../lib/depositos'
 import { disponibleParaVenta } from '../../lib/ventasLineas'
 
@@ -26,12 +28,15 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
   const [opciones, setOpciones] = useState<ProductoRepuesto[]>([])
   const [elegido, setElegido] = useState<ProductoRepuesto | null>(null)
   const [errorBusqueda, setErrorBusqueda] = useState(false)
+  const [hayMas, setHayMas] = useState(false)
   const [disponible, setDisponible] = useState<number | null | 'cargando' | 'error'>(null)
+  const imagenes = useImagenesProductos(opciones.map((opcion) => opcion.id))
 
   const cerrar = () => {
     setAbierto(false)
     setEntrada('')
     setOpciones([])
+    setHayMas(false)
     setElegido(null)
     setErrorBusqueda(false)
     setDisponible(null)
@@ -41,21 +46,24 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
     const consulta = entrada.trim()
     if (!abierto || consulta === '' || elegido) {
       setOpciones([])
+      setHayMas(false)
       return
     }
     let vigente = true
     const temporizador = setTimeout(() => {
-      buscarProductos(consulta)
-        .then((encontrados) => {
+      buscarProductosConAviso(consulta)
+        .then(({ productos, hayMas: hayMasResultados }) => {
           if (!vigente) return
           setErrorBusqueda(false)
-          setOpciones(encontrados)
+          setOpciones(productos)
+          setHayMas(hayMasResultados)
         })
         .catch((error) => {
           if (!vigente) return
           console.error('No pudimos buscar productos del catálogo.', error)
           setErrorBusqueda(true)
           setOpciones([])
+          setHayMas(false)
         })
     }, ESPERA_BUSQUEDA_MS)
     return () => {
@@ -106,6 +114,7 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
             options={opciones}
             filterOptions={(todas) => todas}
             getOptionLabel={etiquetaProducto}
+            renderOption={renderOpcionProducto<ProductoRepuesto>(imagenes, etiquetaProducto)}
             isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
             value={elegido}
             inputValue={entrada}
@@ -127,7 +136,13 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
                 autoFocus
                 label="Buscar producto del catálogo"
                 error={errorBusqueda}
-                helperText={errorBusqueda ? 'No pudimos buscar en el catálogo. Escribí de nuevo para reintentar.' : 'Nombre o SKU.'}
+                helperText={
+                  errorBusqueda
+                    ? 'No pudimos buscar en el catálogo. Escribí de nuevo para reintentar.'
+                    : hayMas
+                      ? 'Hay más resultados: afiná la búsqueda para verlos.'
+                      : 'Nombre o SKU.'
+                }
               />
             )}
           />

@@ -1,7 +1,8 @@
 name: nightly
 
 # F5 — profundidad (NO bloqueante): performance y accesibilidad del front, sobre el build.
-# Corre de noche (o a mano). Sólo informa: no frena PRs.
+# Corre de noche (o a mano). No frena PRs, pero SÍ falla (rojo) si Lighthouse o axe encuentran algo
+# (MSF-687): antes `continue-on-error` y `|| true` lo dejaban siempre verde y sin reporte.
 on:
   schedule:
     - cron: "0 6 * * *"
@@ -30,18 +31,20 @@ jobs:
       - name: build (web)
         run: pnpm --filter @platform/web build
 
-      # Lighthouse (perf/a11y/best-practices) sobre el dist estático.
+      # Lighthouse (perf/a11y/best-practices) sobre el dist estático. Las aserciones de
+      # `.lighthouserc.json` son `error`: bajo el umbral, el paso (y el nightly) falla.
       - name: Lighthouse CI
-        continue-on-error: true
-        run: pnpm dlx @lhci/cli autorun
+        run: pnpm dlx @lhci/cli@0.16.0 autorun
 
-      # a11y rápida con axe sobre el preview local.
+      # a11y rápida con axe sobre el preview local. `--exit` devuelve código distinto de 0 si hay
+      # violaciones; el reporte queda en reports/axe/ aunque falle.
       - name: a11y (axe)
-        continue-on-error: true
         run: |
-          (cd apps/web && pnpm dlx vite preview --port 4311 >/tmp/preview.log 2>&1 &) || true
+          pnpm --filter @platform/web exec vite preview --port 4311 >/tmp/preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
           sleep 8
-          pnpm dlx @axe-core/cli http://localhost:4311 --exit || true
+          pnpm dlx @axe-core/cli@4.14.0 http://localhost:4311 --exit --dir reports/axe --save axe.json
 
       - name: subir reportes
         if: always()

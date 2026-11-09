@@ -1,4 +1,4 @@
-import { Authenticated, ErrorComponent, Refine } from '@refinedev/core'
+import { Authenticated, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -21,6 +21,7 @@ import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
+import { PaginaNoEncontrada } from './pages/no-encontrada/PaginaNoEncontrada'
 import { OrganizacionCreate } from './pages/organizaciones/create'
 import { OrganizacionList } from './pages/organizaciones/list'
 import { OrganizacionEdit } from './pages/organizacion/edit'
@@ -47,6 +48,7 @@ import { ConfiguracionVentas } from './pages/ventas/configuracion'
 import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
 import { DespachoList } from './pages/ventas/despacho'
 import { FaltantesList } from './pages/ventas/faltantes'
+import { VentaMostrador } from './pages/ventas/mostrador'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
@@ -82,6 +84,8 @@ import './App.css'
 const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
 const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
 const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
+const RentabilidadCostosAdicionales = lazy(() => import('./pages/rentabilidad/CostosAdicionales').then((modulo) => ({ default: modulo.RentabilidadCostosAdicionales })))
+const RentabilidadVentasReales = lazy(() => import('./pages/rentabilidad/VentasReales').then((modulo) => ({ default: modulo.RentabilidadVentasReales })))
 const RentabilidadHistoria = lazy(() => import('./pages/rentabilidad/Historia').then((modulo) => ({ default: modulo.RentabilidadHistoria })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
@@ -89,12 +93,14 @@ const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) 
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
+const ProductoCarga = lazy(() => import('./pages/productos/carga').then((modulo) => ({ default: modulo.ProductoCarga })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
 const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo) => ({ default: modulo.CategoriaList })))
 // Stock: también fuera del recorrido principal (Principio VI).
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const IngresosMercaderia = lazy(() => import('./pages/stock/ingresos').then((modulo) => ({ default: modulo.IngresosMercaderia })))
+const ImportacionesList = lazy(() => import('./pages/importaciones/list').then((modulo) => ({ default: modulo.ImportacionesList })))
 const ListasConfigurables = lazy(() => import('./pages/configuracion/listas').then((modulo) => ({ default: modulo.ListasConfigurables })))
 const LoteStock = lazy(() => import('./pages/stock/lote').then((modulo) => ({ default: modulo.LoteStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
@@ -114,6 +120,8 @@ const HistorialImportar = lazy(() => import('./pages/historial/importar').then((
 const MigracionImportar = lazy(() => import('./pages/migracion/importar').then((modulo) => ({ default: modulo.MigracionImportar })))
 const MigracionInformes = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformes })))
 const MigracionInformeDetalle = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformeDetalle })))
+// Hoja de etiquetas de envío (F-CLI-17): se descarga solo al imprimir, fuera del recorrido principal.
+const HojaEtiquetas = lazy(() => import('./components/clientes/HojaEtiquetas').then((modulo) => ({ default: modulo.HojaEtiquetas })))
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
 const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
@@ -128,12 +136,16 @@ const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((
 const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
 // F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
 const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
+// F-REP-01 (MSF-297): reportes de inventario (menú «Reportes»).
+const ReporteProductosStock = lazy(() => import('./pages/reportes/ProductosYStock').then((modulo) => ({ default: modulo.ProductosYStock })))
+const ReporteReposicion = lazy(() => import('./pages/reportes/Reposicion').then((modulo) => ({ default: modulo.Reposicion })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
 // Inicio (F-INI-01): reemplaza la portada de servicios del template.
 const InicioPage = lazy(() => import('./pages/inicio').then((modulo) => ({ default: modulo.InicioPage })))
 // Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
 const SeguimientoPage = lazy(() => import('./pages/seguimiento').then((modulo) => ({ default: modulo.SeguimientoPage })))
+const VistaPreviaTiendaPagina = lazy(() => import('./pages/empresas/tienda/VistaPreviaTienda').then((modulo) => ({ default: modulo.VistaPreviaTiendaPagina })))
 const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
 function App() {
@@ -185,11 +197,14 @@ function App() {
               { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
               // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              { name: 'reportes-inventario', list: '/reportes/inventario', meta: { label: 'Productos y stock' } },
+              { name: 'reportes-reposicion', list: '/reportes/reposicion', meta: { label: 'Reposición' } },
               // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
+              { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
@@ -341,9 +356,20 @@ function App() {
                 />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/importaciones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportacionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
+                <Route
+                  path="/empresas/:id/tienda/vista-previa"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas" nivelMinimo="edicion">
+                        <Suspense fallback={<EstadoCargaPagina />}><VistaPreviaTiendaPagina /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/empresas/:id/tienda/:pestana"
                   element={
@@ -365,6 +391,8 @@ function App() {
                 <Route path="/rentabilidad/productos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadPorProducto /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/comparativo" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadComparativo /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/historia" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadHistoria /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/ventas-reales" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadVentasReales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/costos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosAdicionales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
@@ -379,6 +407,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="categorias"><Suspense fallback={<EstadoCargaPagina />}><CategoriaList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/carga"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ProductoCarga /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -624,6 +660,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/clientes/etiquetas"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><Suspense fallback={<EstadoCargaPagina />}><HojaEtiquetas /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/clientes/show/:id"
                   element={
                     <RequiereOrganizacionActiva>
@@ -690,6 +734,26 @@ function App() {
                   }
                 />
                 <Route
+                  path="/reportes/inventario"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteProductosStock /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/reposicion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteReposicion /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/ventas/configuracion"
                   element={
                     <RequiereOrganizacionActiva>
@@ -712,6 +776,15 @@ function App() {
                       <RequiereAccesoSeccion seccion="ventas">
                         <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
                       </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (FR-005: ventas en edición). */}
+                <Route
+                  path="/ventas/mostrador"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas" nivelMinimo="edicion"><VentaMostrador /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -782,7 +855,7 @@ function App() {
                   </Authenticated>
                 }
               >
-                <Route path="*" element={<ErrorComponent />} />
+                <Route path="*" element={<PaginaNoEncontrada />} />
               </Route>
             </Routes>
             </PermisosPanelProvider>

@@ -14,7 +14,7 @@ Dos piezas de la épica MSF-124: el botón **Exportar** del listado de reparacio
 
 ## Vistas de analítica (FR-062)
 
-Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `20270122130100_analitica_service_reparaciones.sql` y `20270122130200_analitica_service_reparacion_items.sql`.
+Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `20270219130100_analitica_service_reparaciones.sql` y `20270219130200_analitica_service_reparacion_items.sql`.
 
 | Vista | Una fila por | Columnas |
 |---|---|---|
@@ -29,7 +29,7 @@ Esquema `analitica` (solo vistas, ver `docs/rentabilidad.md`): migraciones `2027
 
 - YAML versionado en `infra/superset/dashboards/service/` (dashboard `service-tecnico`, cuatro gráficos y dos datasets). Se importa con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/service --entorno <staging|production>`; el workflow `deploy-infraestructura-vps.yml` lo importa junto con Rentabilidad. La conexión es la misma de Rentabilidad (mismo `uuid`, contraseña enmascarada).
 - **Indicadores** (provisorios, *Decisiones abiertas* 6 de la spec): reparaciones por estado, reparaciones por técnico, reparaciones ingresadas por mes y tienda, importe al cliente por mes y tienda (mano de obra y repuestos). Las reparaciones anuladas no cuentan. Filtros nativos de Superset: tienda y período de ingreso.
-- **Registro del reporte** (`seccion = 'service_tecnico'`): lo deja la migración `20270122130300_reportes_service.sql`, que agrega la fila en `public.reportes`, sus roles por defecto (`administracion` y `consulta`, los mismos del manifiesto) y los triggers que la asignan a las organizaciones que tienen el módulo `service-tecnico` habilitado. Es idempotente y su reversión está documentada en el encabezado de la migración.
+- **Registro del reporte** (`seccion = 'service_tecnico'`): lo deja la migración `20270219130300_reportes_service.sql`, que agrega la fila en `public.reportes`, sus roles por defecto (`administracion` y `consulta`, los mismos del manifiesto) y los triggers que la asignan a las organizaciones que tienen el módulo `service-tecnico` habilitado. Es idempotente y su reversión está documentada en el encabezado de la migración.
   - El UUID de embebido lo genera Superset al importar el tablero, así que la fila nace con el slug (`service-tecnico`) y el importador (`infra/superset/importar-dashboards.mjs`) la **actualiza por nombre** con el UUID real: el catálogo no puede tener dos filas del mismo tablero.
   - La asignación automática no da datos de otras organizaciones: el token lleva la cláusula `rls` `organizacion_id = '<org>'` y `resolver_organizacion_reporte` exige `lectura` o `edicion` en `service_tecnico`. El superadmin puede desasignarlo como con cualquier otro reporte.
 - **Acceso**: `resolver_organizacion_reporte` (sin cambios) devuelve la organización solo con `lectura` o `edicion` en `service_tecnico` y el reporte asignado; si no, `emitir-acceso-reporte` responde 403 sin emitir token. Pruebas: `supabase/tests/database/service_reportes_acceso.test.sql` y `supabase/functions/emitir-acceso-reporte/handler.test.ts` (cláusula `rls` por `organizacion_id`).
@@ -79,4 +79,4 @@ Lo que se puede verificar sin Superset ni base (lo que corre en el CI): el contr
 
 ## Reversión
 
-Sin datos que perder: revertir el merge de la historia (`git revert -m 1`) y, si ya se aplicaron las migraciones, `drop view analitica.service_reparacion_items; drop view analitica.service_reparaciones;` más el camino de reversión de `20270122130300_reportes_service.sql` (borrar la fila del reporte y sus asignaciones y roles). En Superset, borrar el dashboard `service-tecnico`.
+Sin datos que perder: revertir el merge de la historia (`git revert -m 1`) y, si ya se aplicaron las migraciones, `drop view analitica.service_reparacion_items; drop view analitica.service_reparaciones;` más el camino de reversión de `20270219130300_reportes_service.sql` (borrar la fila del reporte y sus asignaciones y roles). En Superset, borrar el dashboard `service-tecnico`.

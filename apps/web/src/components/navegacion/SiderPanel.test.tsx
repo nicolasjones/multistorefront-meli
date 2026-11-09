@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useFeatureHabilitada', () => ({ useFeatureHabilitada: mocks.useFeatureHabilitada }))
 
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: mocks.useContextoPanel }))
+// La insignia de consultas nuevas hace lecturas reales a la red (useConsultas y useEmpresasAccesibles): su
+// `fetch` falla DESPUÉS de que el test terminó y el entorno se cerró, y vitest sale con error aunque todos
+// los tests pasen. Este archivo no prueba la insignia, solo la navegación.
+vi.mock('../consultas/InsigniaConsultasNuevas', () => ({ InsigniaConsultasNuevas: () => null }))
 vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermisosPanel }))
 // ThemedSider depende de useMenu/useActiveAuthProvider/etc, que exigen un
 // <Refine> completo — se reemplaza por un stub que solo invoca `render`,
@@ -59,6 +63,19 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Modelos' })).toHaveAttribute('href', '/service-tecnico/modelos')
     expect(screen.getByRole('link', { name: 'Estados de reparación' })).toHaveAttribute('href', '/service-tecnico/estados')
   })
+  it('con error al cargar permisos muestra «No pudimos verificar» con Reintentar y no el menú completo', () => {
+    const recargar = vi.fn()
+    mocks.usePermisosPanel.mockReturnValue({ permisos: null, isLoading: false, error: true, recargar })
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+
+    renderSider()
+
+    expect(screen.getByText('No pudimos verificar tus permisos.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(recargar).toHaveBeenCalledTimes(1)
+  })
+
   it('muestra Inicio y Contactos para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 

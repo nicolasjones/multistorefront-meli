@@ -21,8 +21,8 @@ const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function validarEntorno(entorno) {
-  if (!['staging', 'production'].includes(entorno)) {
-    throw new Error('Uso: node infra/superset/importar-dashboards.mjs --source <paquete.zip> --entorno staging|production');
+  if (!['dev', 'staging', 'production'].includes(entorno)) {
+    throw new Error('Uso: node infra/superset/importar-dashboards.mjs --source <paquete.zip> --entorno dev|staging|production');
   }
 }
 
@@ -80,6 +80,10 @@ export async function importarPaquete({ paquete, fetch, config, passwords, timeo
   });
   if (!csrfResponse.ok) throw new Error(`Obtener el CSRF token de Superset devolvió HTTP ${csrfResponse.status}.`);
   const { result: csrfToken } = await csrfResponse.json();
+  // El import (`POST /dashboard/import/`) NO está exento de CSRF: Superset valida el token contra la sesión, así que
+  // hay que reenviar la cookie de sesión que llega con el token. Sin ella, Superset responde 302 al login y, como
+  // `fetch` sigue la redirección, el script creía haber importado cuando no se había creado nada.
+  const cookie = (csrfResponse.headers?.getSetCookie?.() ?? []).map((valor) => valor.split(';')[0]).join('; ');
 
   const formData = new FormData();
   formData.append('formData', new Blob([paquete]), 'dashboard_export.zip');
@@ -88,10 +92,19 @@ export async function importarPaquete({ paquete, fetch, config, passwords, timeo
 
   const importResponse = await fetch(`${baseUrl}/api/v1/dashboard/import/`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}`, 'x-csrftoken': csrfToken },
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      'x-csrftoken': csrfToken,
+      referer: `${baseUrl}/`,
+      ...(cookie ? { cookie } : {}),
+    },
     body: formData,
+    redirect: 'manual',
     signal: senal(),
   });
+  if (importResponse.status >= 300 && importResponse.status < 400) {
+    throw new Error(`Superset redirigió el import (HTTP ${importResponse.status}): falta la sesión o el token CSRF; no se importó nada.`);
+  }
   if (!importResponse.ok) throw new Error(`Import de Superset devolvió HTTP ${importResponse.status}.`);
   return importResponse;
 }

@@ -8,8 +8,9 @@ import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 // `useHistorialCotizaciones`, que lee las cotizaciones importadas del sistema anterior.) La cotización
 // es de la ORGANIZACIÓN, no de la empresa activa (Principio VIII, no aplica): al cambiar la organización
 // de trabajo vuelve a la primera página. «Última petición gana»; un error queda en `hayError`.
-// `habilitado` en false (sin acceso a la sección) no llama a la RPC: la base respondería 42501.
-export function useHistorialCargasCotizacion(habilitado = true) {
+// Con alcance «una por empresa» (F-PRE-06) el historial es el de `empresaId` y vuelve a la primera página al
+// cambiar de empresa (Principio VIII). `habilitado` en false (sin acceso a la sección) no llama a la RPC: la base respondería 42501.
+export function useHistorialCargasCotizacion(habilitado = true, empresaId: string | null = null) {
   const { organizacionId } = useOrganizacionDeTrabajo()
   const [cursores, setCursores] = useState<(string | null)[]>([null])
   const [pagina, setPagina] = useState<PaginaHistorialCotizaciones | null>(null)
@@ -18,9 +19,11 @@ export function useHistorialCargasCotizacion(habilitado = true) {
   const [version, setVersion] = useState(0)
   const ultimaPeticion = useRef(0)
   const [organizacionDelRecorrido, setOrganizacionDelRecorrido] = useState(organizacionId)
-  // Reinicia durante el render (no en un efecto): así nunca se pide con el cursor de la organización anterior.
-  if (organizacionDelRecorrido !== organizacionId) {
+  const [empresaDelRecorrido, setEmpresaDelRecorrido] = useState(empresaId)
+  // Reinicia durante el render (no en un efecto): así nunca se pide con el cursor de la organización (o empresa) anterior.
+  if (organizacionDelRecorrido !== organizacionId || empresaDelRecorrido !== empresaId) {
     setOrganizacionDelRecorrido(organizacionId)
+    setEmpresaDelRecorrido(empresaId)
     setCursores([null])
     setPagina(null)
     setHayError(false) // el error de la organización anterior no se muestra en la nueva
@@ -33,7 +36,7 @@ export function useHistorialCargasCotizacion(habilitado = true) {
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     setHayError(false)
-    listarCotizacionesRpc(supabaseClient, cursorActual)
+    listarCotizacionesRpc(supabaseClient, cursorActual, undefined, empresaId)
       .then((resultado) => {
         if (peticion === ultimaPeticion.current) setPagina(resultado)
       })
@@ -47,7 +50,7 @@ export function useHistorialCargasCotizacion(habilitado = true) {
       .finally(() => {
         if (peticion === ultimaPeticion.current) setCargando(false)
       })
-  }, [cursorActual, organizacionId, version, habilitado])
+  }, [cursorActual, organizacionId, empresaId, version, habilitado])
 
   const siguiente = useCallback(() => {
     const proximo = pagina?.siguienteCursor

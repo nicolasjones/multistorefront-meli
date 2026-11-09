@@ -157,14 +157,37 @@ describe('Service técnico · Reparaciones (F-SVC-04)', () => {
     expect(screen.queryByText(/No pudimos cargar los técnicos/)).not.toBeInTheDocument()
   })
 
-  it('pagina en el servidor y vuelve a la página 1 al cambiar un filtro', async () => {
+  it('carga infinita: pide la tanda siguiente y vuelve a la página 1 al cambiar un filtro', async () => {
     responder([fila(1), fila(2)], 60)
     abrir()
     await screen.findByText('60 reparaciones')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimaLlamada().p_pagina).toBe(2))
     fireEvent.click(screen.getByRole('button', { name: 'Hoy' }))
     await waitFor(() => expect(ultimaLlamada()).toMatchObject({ p_periodo: 'hoy', p_pagina: 1 }))
+  })
+
+  it('búsqueda por N.º de serie: reinicia en la tanda 1 y «Cargar más» pide la siguiente con la misma serie', async () => {
+    mocks.rpc.mockImplementation((_nombre: string, args: Record<string, unknown>) => {
+      if (args.p_serie === 'ABC') return Promise.resolve({ data: { total_filas: 2, filas: [fila(args.p_pagina === 2 ? 72 : 71)] }, error: null })
+      return Promise.resolve({ data: { total_filas: 3, filas: [fila(args.p_pagina as number)] }, error: null })
+    })
+    abrir()
+    await screen.findByText('3 reparaciones')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByRole('link', { name: 'R-0002' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByRole('link', { name: 'R-0003' })
+    fireEvent.change(screen.getByLabelText('Buscar por N.º de serie'), { target: { value: 'ABC' } })
+    expect(await screen.findByRole('link', { name: 'R-0071' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'R-0001' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'R-0003' })).not.toBeInTheDocument()
+    expect(await screen.findByText('2 reparaciones')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByRole('link', { name: 'R-0072' })).toBeInTheDocument()
+    expect(ultimaLlamada()).toMatchObject({ p_serie: 'ABC', p_pagina: 2 })
+    expect(screen.getByRole('link', { name: 'R-0071' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'R-0001' })).not.toBeInTheDocument()
   })
 
   it('al cambiar de empresa activa vuelve a la página 1 y no muestra filas de la anterior', async () => {
@@ -172,7 +195,7 @@ describe('Service técnico · Reparaciones (F-SVC-04)', () => {
     mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: 'e-1', isLoading: false, isError: false })
     const { rerender } = abrir()
     await screen.findByText('60 reparaciones')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimaLlamada().p_pagina).toBe(2))
 
     let resolver: (valor: unknown) => void = () => {}

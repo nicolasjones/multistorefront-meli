@@ -38,9 +38,9 @@ insert into dominio.producto_costos (producto_id, organizacion_id, costo) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 6000),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 8000);
 
-insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en) values
-  ('11111111-1111-1111-1111-111111111111', 1000, 'Test', now() + interval '1 day'),
-  ('22222222-2222-2222-2222-222222222222', 2000, 'Test', now() + interval '1 day');
+insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en, recalculo_aplicado) values
+  ('11111111-1111-1111-1111-111111111111', 1000, 'Test', now() + interval '1 day', true),
+  ('22222222-2222-2222-2222-222222222222', 2000, 'Test', now() + interval '1 day', true);
 
 insert into reportes (id, superset_dashboard_uuid, nombre, creado_por, seccion) values
   ('f1000000-0000-0000-0000-0000000000c1', 'dash-historia', 'Rentabilidad · Historia', 'd1000000-0000-0000-0000-000000000001', 'rentabilidad');

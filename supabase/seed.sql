@@ -121,7 +121,7 @@ begin
 end $$;
 
 -- F-SVC-23 (MSF-168): registra el reporte «Service técnico» cuando la migración
--- 20270122130300_reportes_service.sql no pudo hacerlo (reset desde cero: las
+-- 20270219130300_reportes_service.sql no pudo hacerlo (reset desde cero: las
 -- migraciones corren antes que este seed, sin usuarios todavía, y la fila exige
 -- `creado_por`). Los roles por defecto se cargan acá porque en el reset limpio la
 -- migración tampoco pudo insertarlos (dependen de la fila). La asignación a las

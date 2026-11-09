@@ -1,0 +1,57 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "tienda-seo",
+    "version": "1.0.0",
+    "description": "Edge Function de F-TDA-21 (MSF-279). Sirve el robots.txt y el sitemap.xml de la tienda pública según el dominio que pide el buscador. nginx de apps/web proxea /robots.txt y /sitemap.xml acá y manda el host original en X-Tienda-Host. Sin autenticación (verify_jwt = false): solo lee publico.seo_tienda_por_dominio y publico.sitemap_por_dominio. Host desconocido, ausente o tienda desactivada responden exactamente lo mismo (Disallow: / y sitemap sin URLs); nunca un 404 que revele si el dominio existe."
+  },
+  "paths": {
+    "/tienda-seo/robots.txt": {
+      "get": {
+        "operationId": "robotsTienda",
+        "summary": "robots.txt de la tienda del host indicado",
+        "parameters": [{ "$ref": "#/components/parameters/XTiendaHost" }],
+        "responses": {
+          "200": {
+            "description": "Tienda activa: User-agent: * / Allow: / / Sitemap: https://<dominio canónico>/sitemap.xml. Tienda desactivada, dominio desconocido o sin cabecera: User-agent: * / Disallow: /.",
+            "content": { "text/plain": { "schema": { "type": "string" } } }
+          },
+          "405": { "$ref": "#/components/responses/Texto", "description": "Método distinto de GET o HEAD." },
+          "500": { "$ref": "#/components/responses/Texto", "description": "No se pudo leer la base. Mensaje genérico, sin detalles." }
+        }
+      }
+    },
+    "/tienda-seo/sitemap.xml": {
+      "get": {
+        "operationId": "sitemapTienda",
+        "summary": "sitemap.xml de la tienda del host indicado",
+        "parameters": [{ "$ref": "#/components/parameters/XTiendaHost" }],
+        "responses": {
+          "200": {
+            "description": "Tienda activa: inicio, catálogo, contacto, páginas de contenido visibles, categorías visibles y productos efectivamente visibles (hasta 50.000 URLs; si se excede se truncan los productos primero) con el dominio canónico, <lastmod> cuando existe y URLs escapadas. Tienda desactivada, dominio desconocido o sin cabecera: urlset válido sin URLs.",
+            "content": { "application/xml": { "schema": { "type": "string" } } }
+          },
+          "405": { "$ref": "#/components/responses/Texto", "description": "Método distinto de GET o HEAD." },
+          "500": { "$ref": "#/components/responses/Texto", "description": "No se pudo leer la base. Mensaje genérico, sin detalles." }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "XTiendaHost": {
+        "name": "X-Tienda-Host",
+        "in": "header",
+        "required": false,
+        "description": "Host original de la petición (puede traer puerto). Lo agrega nginx; se normaliza en la base.",
+        "schema": { "type": "string", "maxLength": 255 }
+      }
+    },
+    "responses": {
+      "Texto": {
+        "description": "Texto plano genérico.",
+        "content": { "text/plain": { "schema": { "type": "string" } } }
+      }
+    }
+  }
+}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Chip, LinearProgress, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
@@ -15,6 +16,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
 const ESPERA_BUSQUEDA_MS = 300
@@ -66,6 +68,8 @@ export function ProveedorList() {
   const [creando, setCreando] = useState(false)
   const [paraCorreo, setParaCorreo] = useState<ProveedorListado | null>(null)
   const [correoEnviado, setCorreoEnviado] = useState(false)
+  // Sube al guardar un proveedor nuevo: descarta lo acumulado y vuelve a la primera tanda.
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -82,10 +86,12 @@ export function ProveedorList() {
     texto: textoAplicado, estado, empresaId, pagina, tamano: TAMANO_PAGINA,
   })
 
-  // Página fuera de rango (p. ej. se desactivó el último de la última página): vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && proveedores.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, proveedores.length, pagina])
+  // Carga infinita: se suman las tandas de 25 que ya entrega `listar_proveedores`.
+  const listado = useListadoAcumulado({
+    items: proveedores, pagina, setPagina, total, cargando: isFetching, reinicio: [textoAplicado, estado, empresaId, version],
+  })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
 
   const hayFiltros = textoAplicado.trim() !== '' || estado !== 'activos' || empresaId !== null
 
@@ -106,7 +112,7 @@ export function ProveedorList() {
         <Stack spacing={2}>
           {correoEnviado ? <EstadoExito titulo="Correo enviado al proveedor" /> : null}
           <BarraHerramientas
-            contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'proveedor' : 'proveedores'}`}
+            contador={isLoading || (isError && !falloTanda) ? undefined : `${total} ${total === 1 ? 'proveedor' : 'proveedores'}`}
           >
             <TextField
               type="search"
@@ -151,7 +157,7 @@ export function ProveedorList() {
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los proveedores." reintentar={() => void refetch()} />
             ) : proveedores.length === 0 && pagina === 1 ? (
               hayFiltros ? (
@@ -166,7 +172,7 @@ export function ProveedorList() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={proveedores}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(proveedor) => proveedor.id}
                   etiquetaTabla="Proveedores"
@@ -188,16 +194,12 @@ export function ProveedorList() {
                     </Stack>
                   )}
                 />
-                {proveedores.length > 0 ? <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA}
-                  rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Proveedores por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                /> : null}
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                />
               </>
             )}
           </Box>
@@ -220,6 +222,7 @@ export function ProveedorList() {
             setCreando(false)
             // El nuevo aparece en el listado: vuelve al inicio con la lista vigente.
             setPagina(1)
+            setVersion((v) => v + 1)
             void refetch()
           }}
         />

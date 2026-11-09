@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { Alert, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { type Disponibilidad, type FormularioProducto as DatosFormulario, type Producto, aFormulario, aParametrosActualizar } from '../../lib/productos'
@@ -24,6 +24,7 @@ import {
 import { supabaseClient } from '../../lib/supabase'
 import { CambiarEstadoProducto } from '../../components/productos/CambiarEstadoProducto'
 import { EscalasPrecio } from '../../components/productos/EscalasPrecio'
+import { PrecioPropioEmpresas } from '../../components/precios/PrecioPropioEmpresas'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -38,8 +39,17 @@ type Carga = { producto: Producto | null; costo: number | string | null; imagene
 // public.actualizar_producto (security invoker, bloqueo optimista por updated_at):
 // acá solo se evita ofrecer guardar a quien no puede y el costo a quien no lo ve.
 // Con lectura en Productos la ficha se muestra sin acción de guardar.
-export function ProductoEdit() {
-  const { id } = useParams()
+type EdicionProductoProps = {
+  id: string | undefined
+  // Salir sin guardar, o cerrar una vez guardado: la página vuelve al listado y el popup se cierra.
+  onCancelar: () => void
+  // Avisa que se guardaron cambios (el listado se recarga).
+  onGuardado?: () => void
+  etiquetaSalir?: string
+}
+
+// Edición de producto sin marco de página: la usan la ruta `/productos/:id/edit` y el popup «Editar» del listado.
+export function EdicionProducto({ id, onCancelar, onGuardado, etiquetaSalir = 'Ir a productos' }: EdicionProductoProps) {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const veCosto = nivelRentabilidad === 'lectura' || nivelRentabilidad === 'edicion'
@@ -224,6 +234,7 @@ export function ProductoEdit() {
     const resultado = await aplicarImagenes(imagenes, carga?.imagenes ?? [])
     setPendientes(resultado.errores.length > 0 ? resultado : null)
     setGuardado(formulario.nombre.trim())
+    onGuardado?.()
   }
 
   const reintentarEmpresas = async () => {
@@ -309,9 +320,7 @@ export function ProductoEdit() {
   }
 
   return (
-    <Box>
-      <EncabezadoPagina titulo="Editar producto" contexto={<ContextoOrganizacionActiva />} />
-      <ContenedorSeccion>
+    <>
         {verificandoPermiso || cargandoRentabilidad || nivel === null || (!carga && !hayError) ? (
           <EstadoCargaPagina />
         ) : hayError ? (
@@ -322,15 +331,18 @@ export function ProductoEdit() {
               titulo="Producto guardado"
               descripcion={`Los cambios de ${guardado} quedaron guardados.`}
               accion={
-                <Button
-                  color="inherit"
-                  onClick={() => {
-                    setGuardado(null)
-                    void cargar()
-                  }}
-                >
-                  Seguir editando
-                </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    color="inherit"
+                    onClick={() => {
+                      setGuardado(null)
+                      void cargar()
+                    }}
+                  >
+                    Seguir editando
+                  </Button>
+                  <Button color="inherit" onClick={onCancelar}>{etiquetaSalir}</Button>
+                </Stack>
               }
             />
             {empresasPendientes ? (
@@ -439,12 +451,26 @@ export function ProductoEdit() {
             soloLectura={nivel !== 'edicion'}
             etiquetaGuardar="Guardar cambios"
             rutaCancelar="/productos"
+            onCancelar={onCancelar}
             onGuardar={guardar}
             onRecargar={() => void cargar()}
           />
           <EscalasPrecio productoId={producto.id} />
+          <PrecioPropioEmpresas key={producto.id} productoId={producto.id} empresaIds={carga?.empresaIds ?? []} soloLectura={nivel !== 'edicion'} />
           </Stack>
         )}
+    </>
+  )
+}
+
+export function ProductoEdit() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  return (
+    <Box>
+      <EncabezadoPagina titulo="Editar producto" contexto={<ContextoOrganizacionActiva />} />
+      <ContenedorSeccion>
+        <EdicionProducto id={id} onCancelar={() => navigate('/productos')} />
       </ContenedorSeccion>
     </Box>
   )

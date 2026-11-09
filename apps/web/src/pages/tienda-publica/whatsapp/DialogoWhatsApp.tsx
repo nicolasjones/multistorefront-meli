@@ -1,5 +1,6 @@
 import { Box, Button, Dialog, DialogActions, DialogContent, TextField, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
+import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { nuevaClaveEnvioWhatsapp, registrarConsultaWhatsapp } from '../../../lib/registroWhatsapp'
 import { IconoWhatsapp } from './IconoWhatsapp'
 
@@ -56,6 +57,8 @@ export default function DialogoWhatsApp({
     window.open(url, '_blank', 'noopener')
     // El registro no bloquea la apertura ni muestra fallas o límite al visitante (FR-024, D3).
     void registrarConsultaWhatsapp(host, productoId, clave.current)
+    // Evento de medición (F-TDA-24, FR-016): solo el nombre, sin datos del visitante; sin medición cargada es un no-op.
+    registrarEventoTienda('clic_whatsapp')
     onCerrar()
     onAviso()
   }

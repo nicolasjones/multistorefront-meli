@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Alert, Box, Button, Stack } from '@mui/material'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { FORMULARIO_PRODUCTO_VACIO, type FormularioProducto as DatosFormulario, aParametrosCrear } from '../../lib/productos'
 import { type CambiosImagenes, aplicarCambiosImagenes, leerImagenesProducto } from '../../lib/productoImagenes'
@@ -9,6 +9,7 @@ import { asignarCategoriaProducto } from '../../lib/categorias'
 import { asignarAlicuotaProducto, mensajeErrorIva } from '../../lib/iva'
 import { type PreciosEscala, guardarPreciosEscala, hayPreciosEscala, mensajeErrorEscalas } from '../../lib/escalas'
 import { supabaseClient } from '../../lib/supabase'
+import { AVISO_ORIGEN_NO_ENCONTRADO, PARAMETRO_DUPLICAR, type OrigenDuplicado, leerOrigenDuplicado } from '../../lib/duplicarProducto'
 import { FormularioProducto } from '../../components/productos/FormularioProducto'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -22,7 +23,18 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // se confirma en esta misma pantalla.
 type Creado = { id: string; organizacionId: string; nombre: string; fallidas: File[]; errores: string[]; empresasPendientes: string[] | null; categoriaPendiente: string | null; alicuotaPendiente: string | null; escalasPendientes: PreciosEscala | null }
 
-export function ProductoCreate() {
+type AltaProductoProps = {
+  // Salir sin crear, o cerrar una vez creado: la página vuelve al listado y el popup se cierra.
+  onCancelar: () => void
+  // Avisa que se creó un producto (el listado se recarga).
+  onCreado?: () => void
+  etiquetaSalir?: string
+  // F-CAT-13: id del producto a duplicar; precarga el formulario sin guardar nada.
+  duplicarDe?: string | null
+}
+
+// Alta de producto sin marco de página: la usan la ruta `/productos/create` y el popup «Nuevo producto» del listado.
+export function AltaProducto({ onCancelar, onCreado, etiquetaSalir = 'Ir a productos', duplicarDe = null }: AltaProductoProps) {
   const { nivel, isLoading } = useNivelSeccion('productos')
   const { nivel: nivelRentabilidad, isLoading: cargandoRentabilidad } = useNivelSeccion('rentabilidad')
   const [creado, setCreado] = useState<Creado | null>(null)
@@ -32,6 +44,38 @@ export function ProductoCreate() {
   const [errorCategoria, setErrorCategoria] = useState<string | null>(null)
   const [errorAlicuota, setErrorAlicuota] = useState<string | null>(null)
   const [errorEscalas, setErrorEscalas] = useState<string | null>(null)
+  // Duplicar (F-CAT-13): `undefined` = cargando el origen; `null` = alta vacía (sin duplicar, o origen inexistente/ajeno).
+  const [origen, setOrigen] = useState<OrigenDuplicado | null | undefined>(duplicarDe ? undefined : null)
+  const [avisoOrigen, setAvisoOrigen] = useState<string | null>(null)
+  const permitido = !isLoading && !cargandoRentabilidad && nivel === 'edicion'
+  const conCostoOrigen = nivelRentabilidad === 'edicion'
+
+  useEffect(() => {
+    if (!duplicarDe) {
+      setOrigen(null)
+      setAvisoOrigen(null)
+      return
+    }
+    if (!permitido) return
+    let vigente = true
+    setOrigen(undefined)
+    setAvisoOrigen(null)
+    leerOrigenDuplicado(supabaseClient, duplicarDe, { conCosto: conCostoOrigen })
+      .then((leido) => {
+        if (!vigente) return
+        setOrigen(leido)
+        if (!leido) setAvisoOrigen(AVISO_ORIGEN_NO_ENCONTRADO)
+      })
+      .catch((error) => {
+        console.error('No pudimos leer el producto a duplicar.', error)
+        if (!vigente) return
+        setOrigen(null)
+        setAvisoOrigen(AVISO_ORIGEN_NO_ENCONTRADO)
+      })
+    return () => {
+      vigente = false
+    }
+  }, [duplicarDe, permitido, conCostoOrigen])
 
   // `releer` en el reintento: las que ya subieron ocupan posiciones que hay que respetar.
   const subirImagenes = async (producto: { id: string; organizacion_id: string }, nuevas: File[], releer = false) => {
@@ -116,6 +160,7 @@ export function ProductoCreate() {
     setErrorAlicuota(null)
     setErrorEscalas(null)
     setCreado({ id: fila.id, organizacionId: fila.organizacion_id, nombre: fila.nombre ?? parametros.p_nombre, fallidas, errores, empresasPendientes, categoriaPendiente, alicuotaPendiente, escalasPendientes })
+    onCreado?.()
   }
 
   const reintentarEmpresas = async () => {
@@ -190,28 +235,31 @@ export function ProductoCreate() {
   }
 
   return (
-    <Box>
-      <EncabezadoPagina titulo="Nuevo producto" contexto={<ContextoOrganizacionActiva />} />
-      <ContenedorSeccion>
+    <>
         {isLoading || cargandoRentabilidad || nivel === null ? (
           <EstadoCargaPagina />
         ) : nivel !== 'edicion' ? (
           <EstadoError titulo="Sin permiso" descripcion="Tu rol no puede crear productos." />
+        ) : origen === undefined ? (
+          <EstadoCargaPagina />
         ) : creado !== null ? (
           <Stack spacing={2}>
             <EstadoExito
               titulo="Producto creado"
               descripcion={`${creado.nombre} quedó activo en el catálogo.`}
               accion={
-                <Button
-                  color="inherit"
-                  onClick={() => {
-                    setCreado(null)
-                    setIntento((actual) => actual + 1)
-                  }}
-                >
-                  Cargar otro producto
-                </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    color="inherit"
+                    onClick={() => {
+                      setCreado(null)
+                      setIntento((actual) => actual + 1)
+                    }}
+                  >
+                    Cargar otro producto
+                  </Button>
+                  <Button color="inherit" onClick={onCancelar}>{etiquetaSalir}</Button>
+                </Stack>
               }
             />
             {creado.empresasPendientes ? (
@@ -290,15 +338,33 @@ export function ProductoCreate() {
             ) : null}
           </Stack>
         ) : (
+          <>
+          {avisoOrigen ? <Alert severity="warning" sx={{ mb: 2 }}>{avisoOrigen}</Alert> : null}
           <FormularioProducto
             key={intento}
-            inicial={FORMULARIO_PRODUCTO_VACIO}
+            inicial={origen?.formulario ?? FORMULARIO_PRODUCTO_VACIO}
+            empresasIniciales={origen?.empresaIds}
+            categoriaInicial={origen?.categoriaId}
             conCosto={nivelRentabilidad === 'edicion'}
             etiquetaGuardar="Crear producto"
-            rutaCancelar="/"
+            rutaCancelar="/productos"
+            onCancelar={onCancelar}
             onGuardar={guardar}
           />
+          </>
         )}
+    </>
+  )
+}
+
+export function ProductoCreate() {
+  const navigate = useNavigate()
+  const [parametros] = useSearchParams()
+  return (
+    <Box>
+      <EncabezadoPagina titulo="Nuevo producto" contexto={<ContextoOrganizacionActiva />} />
+      <ContenedorSeccion>
+        <AltaProducto onCancelar={() => navigate('/productos')} duplicarDe={parametros.get(PARAMETRO_DUPLICAR)} />
       </ContenedorSeccion>
     </Box>
   )

@@ -18,6 +18,7 @@ import CategoryIcon from '@mui/icons-material/Category'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner'
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
 import CreditCardIcon from '@mui/icons-material/CreditCard'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
@@ -30,10 +31,12 @@ import TuneIcon from '@mui/icons-material/Tune'
 import CommentIcon from '@mui/icons-material/Comment'
 import ContactsIcon from '@mui/icons-material/Contacts'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
+import ImportExportIcon from '@mui/icons-material/ImportExport'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
+import AssessmentIcon from '@mui/icons-material/Assessment'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -99,6 +102,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
+      // F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (sección `ventas`).
+      { id: 'ventas-mostrador', etiqueta: 'Venta de mostrador', ruta: '/ventas/mostrador', icono: QrCodeScannerIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
       { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
@@ -200,6 +205,16 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'rentabilidad', etiqueta: 'Rentabilidad', ruta: '/rentabilidad', icono: InsightsIcon, audiencia: 'organizacion', seccionPermiso: 'rentabilidad' },
     ],
   },
+  {
+    // F-REP-01 (MSF-297): menú «Reportes». Cada reporte sigue la sección de sus datos (los de
+    // inventario, `stock`), no la de `reportes`; los reportes de Ventas y Rentabilidad no se mueven.
+    id: 'reportes',
+    etiqueta: 'Reportes',
+    destinos: [
+      { id: 'reportes-inventario', etiqueta: 'Productos y stock', ruta: '/reportes/inventario', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'reportes-reposicion', etiqueta: 'Reposición', ruta: '/reportes/reposicion', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+    ],
+  },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):
   //   Ejecuciones (/ejecuciones), Analítica (/analitica y /analitica/administrar),
   //   Chat IA (/ia/chat), Documentos (/ia/documentos), Conexiones (/conexiones)
@@ -217,6 +232,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
       { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
+      // F-IMP-01 (MSF-354): centro de cargas y descargas masivas; solo administradores (D-6).
+      { id: 'importaciones', etiqueta: 'Importaciones', ruta: '/importaciones', icono: ImportExportIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
@@ -238,6 +255,12 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
 ]
 
 export const DESTINOS_PANEL: DestinoPanel[] = SECCIONES_PANEL.flatMap((seccion) => seccion.destinos)
+
+// ¿La ruta del destino coincide con la ubicación actual? Criterio ÚNICO que comparten las migas de pan y la ayuda
+// (F-CFG-02, FR-022): coincidencia exacta, o prefijo para subrutas (fichas, formularios). La raíz `/` solo coincide exacta.
+export function coincideRuta(ruta: string, pathname: string): boolean {
+  return ruta === pathname || (ruta !== '/' && pathname.startsWith(ruta))
+}
 
 // Para miembro/administrador siempre visible; para superadmin, solo con
 // organización activa. 'administrador' reutiliza puede_escribir (contexto ya
