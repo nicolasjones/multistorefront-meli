@@ -24,6 +24,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   'service-tecnico-reparaciones': 'service-listado-items-impresion',
   'service-tecnico-modelos': 'service-alta-estados-y-permisos',
   'service-tecnico-estados': 'service-alta-estados-y-permisos',
+  'service-tecnico-reportes': 'service-seguimiento-y-reportes',
   clientes: 'clientes',
   'correo-masivo': 'correo-masivo-a-clientes',
   proveedores: 'proveedores',

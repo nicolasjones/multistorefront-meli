@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DESTINOS_PANEL } from '../components/navegacion/destinosPanel'
-import { MANUAL_URL_POR_DEFECTO, PAGINA_INDICE_MANUAL, plantillaManual, plantillaManualValida, urlManual } from './manual'
+import { MANUAL_URL_POR_DEFECTO, plantillaManual, plantillaManualValida, urlManual } from './manual'
 import { MANUAL_POR_DESTINO, SIN_PAGINA_PROPIA } from './manualPorDestino'
 
 describe('dirección del manual: un solo lugar', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
-  it('por defecto apunta a las páginas del manual en el repo', () => {
+  it('por defecto apunta a las páginas del sitio de documentación publicado', () => {
     expect(plantillaManual(undefined)).toBe(MANUAL_URL_POR_DEFECTO)
     expect(plantillaManual('')).toBe(MANUAL_URL_POR_DEFECTO)
     expect(plantillaManual('   ')).toBe(MANUAL_URL_POR_DEFECTO)
-    expect(urlManual('catalogo-productos')).toBe('https://github.com/nicolasjones/multistorefront-meli/blob/main/docs/producto/catalogo-productos.md')
+    expect(urlManual('catalogo-productos')).toBe('https://docs.212-90-120-53.sslip.io/producto/catalogo-productos/')
   })
 
   it('cambiar la dirección es cambiar la plantilla: todas las páginas la siguen', () => {
@@ -20,19 +20,21 @@ describe('dirección del manual: un solo lugar', () => {
     expect(urlManual('rentabilidad', plantilla)).toBe('https://manual.ejemplo.com/ayuda/rentabilidad/')
   })
 
-  it('sin página, o con una página vacía, abre el índice', () => {
-    expect(urlManual()).toContain(`/${PAGINA_INDICE_MANUAL}.md`)
-    expect(urlManual(null)).toContain(`/${PAGINA_INDICE_MANUAL}.md`)
-    expect(urlManual('  ')).toContain(`/${PAGINA_INDICE_MANUAL}.md`)
+  it('sin página, o con una página vacía, abre el índice: la carpeta del manual, sin configurar nada más', () => {
+    expect(urlManual()).toBe('https://docs.212-90-120-53.sslip.io/producto/')
+    expect(urlManual(null)).toBe('https://docs.212-90-120-53.sslip.io/producto/')
+    expect(urlManual('  ')).toBe('https://docs.212-90-120-53.sslip.io/producto/')
+    expect(urlManual(undefined, 'https://manual.ejemplo.com/ayuda/{pagina}/')).toBe('https://manual.ejemplo.com/ayuda/')
+    expect(urlManual(undefined, 'https://github.com/o/r/blob/main/docs/producto/{pagina}.md')).toBe('https://github.com/o/r/blob/main/docs/producto/')
   })
 
   it('una plantilla inválida se descarta y se avisa: solo http(s) y con {pagina}', () => {
     const aviso = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    for (const mala of ['javascript:alert(1)//{pagina}', 'https://sin-marca.ejemplo.com/', 'ftp://x/{pagina}', '/ruta/relativa/{pagina}']) {
+    for (const mala of ['javascript:alert(1)//{pagina}', 'https://sin-marca.ejemplo.com/', 'ftp://x/{pagina}', '/ruta/relativa/{pagina}', 'https://x.ejemplo.com/?p={pagina}', 'https://x.ejemplo.com/#{pagina}']) {
       expect(plantillaManualValida(mala)).toBe(false)
       expect(plantillaManual(mala)).toBe(MANUAL_URL_POR_DEFECTO)
     }
-    expect(aviso).toHaveBeenCalledTimes(4)
+    expect(aviso).toHaveBeenCalledTimes(6)
   })
 
   it('el nombre de la página se escapa y no puede cambiar el destino del enlace', () => {
