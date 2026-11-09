@@ -84,11 +84,11 @@ comment on column dominio.ordenes_compra.estado is
 comment on column dominio.ordenes_compra.empresa_id is
   'Empresa a nombre de quien se compra (la empresa activa de la barra superior por omisión).';
 
-create index ordenes_compra_org_creado_idx
+create index if not exists ordenes_compra_org_creado_idx
   on dominio.ordenes_compra (organizacion_id, fecha desc, id);
-create index ordenes_compra_org_empresa_idx
+create index if not exists ordenes_compra_org_empresa_idx
   on dominio.ordenes_compra (organizacion_id, empresa_id, fecha desc);
-create index ordenes_compra_org_proveedor_idx
+create index if not exists ordenes_compra_org_proveedor_idx
   on dominio.ordenes_compra (organizacion_id, proveedor_id, fecha desc);
 
 alter table dominio.ordenes_compra enable row level security;
@@ -122,9 +122,9 @@ create table if not exists dominio.ordenes_compra_items (
 comment on table dominio.ordenes_compra_items is
   'Líneas de la orden de compra (F-PRV-09): producto y cantidad pedida. Sin costo: el costo se conoce al ingresar la mercadería.';
 
-create index ordenes_compra_items_org_producto_idx
+create index if not exists ordenes_compra_items_org_producto_idx
   on dominio.ordenes_compra_items (organizacion_id, producto_id);
-create index ordenes_compra_items_orden_idx
+create index if not exists ordenes_compra_items_orden_idx
   on dominio.ordenes_compra_items (orden_id);
 
 alter table dominio.ordenes_compra_items enable row level security;
