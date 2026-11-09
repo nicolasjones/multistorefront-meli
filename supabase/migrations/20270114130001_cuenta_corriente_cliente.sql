@@ -10,14 +10,18 @@
 --                                                   no una entidad de negocio.
 --   dominio.comprobantes_venta       dominio (existente) los documentos del cliente: se leen.
 --   dominio.cobros_comprobante       dominio (existente) el libro de cobros (F-VTA-12): se lee.
+--   private.saldo_comprobante         private (existente) el saldo del comprobante (F-VTA-12): se
+--                                                   llama; es su único dueño.
 --   public.clientes                   public (existente)  se lee para saber si el cliente es de
 --                                                   la organización de la sesión.
 -- Esta migración NO crea ni altera tablas.
 --
 -- Reglas del dato:
--- · El saldo de un comprobante es `greatest(total_con_iva − Σ cobros, 0)`: el mismo criterio de
---   `private.saldo_comprobante` (F-VTA-12). El estado «Deuda» no se consulta: una factura en
---   «Deuda» no tiene cobros (debe su total completo) y una «Cobrada» tiene el saldo en 0.
+-- · El saldo de un comprobante NO se recalcula acá: lo trae `private.saldo_comprobante`
+--   (F-VTA-12), que es su único dueño (`total con IVA − Σ cobros`, nunca negativo). Si esta
+--   función recalculara el saldo, habría dos reglas que pueden divergir; por eso la llama.
+--   El estado «Deuda» no se consulta: una factura en «Deuda» no tiene cobros (debe su total
+--   completo) y una «Cobrada» tiene el saldo en 0.
 -- · Cuentan las facturas que no están en `borrador` ni `anulada`: un borrador no se debe y una
 --   factura anulada no le debe nada a nadie (mismo criterio que `public.resumen_pagos`).
 -- · Los presupuestos no son deuda: no entran. Las notas de crédito NO restan: su efecto en la
@@ -25,6 +29,8 @@
 -- · El saldo total es la suma de los saldos listados; la lista trae los comprobantes con saldo
 --   del más reciente al más antiguo. Si el cliente no debe nada, la función devuelve la fila de
 --   encabezado (saldo 0, 0 comprobantes) sin documentos.
+-- · Cada fila trae el `id` del comprobante: el número se repite entre tiendas (el correlativo
+--   es por organización, empresa y tipo) y el id es lo que identifica a la fila.
 --
 -- Autorización (Principio I):
 -- · `security definer` + `search_path = ''`: la organización sale de `private.organizacion_id()`,
@@ -37,13 +43,16 @@
 -- · `anon` sin privilegios; `authenticated` puede ejecutarla.
 --
 -- Índices: los que ya existen bastan (`comprobantes_venta_cliente_fecha_idx` por
--- organización/cliente/fecha y `cobros_comprobante_comprobante_idx` por comprobante).
+-- organización/cliente/fecha, la clave primaria de `dominio.comprobantes_venta` y
+-- `cobros_comprobante_comprobante_idx` por comprobante, que es lo que usa
+-- `private.saldo_comprobante` por documento).
 --
 -- Migración aditiva. Reversión (en una migración posterior; no se ejecuta en este PR):
 --   drop function public.cuenta_corriente_cliente(uuid);
 
 create or replace function public.cuenta_corriente_cliente(p_cliente_id uuid)
 returns table (
+  id uuid,
   saldo_total numeric,
   comprobantes bigint,
   numero text,
@@ -73,7 +82,7 @@ begin
   if not exists (
     select 1 from public.clientes c where c.id = p_cliente_id and c.organizacion_id = v_org
   ) then
-    return query select 0::numeric, 0::bigint, null::text, null::date, null::text, null::text,
+    return query select null::uuid, 0::numeric, 0::bigint, null::text, null::date, null::text, null::text,
                         null::numeric, null::numeric, null::numeric;
     return;
   end if;
@@ -81,30 +90,23 @@ begin
   -- El encabezado (saldo total y cantidad) se calcula sobre TODOS los comprobantes abiertos y
   -- se repite en cada fila; sin documentos abiertos vuelve solo la fila de encabezado.
   return query
-  with cuentas as (
-    select v.numero, v.fecha, v.tipo, v.estado, v.total_con_iva,
-           coalesce(sum(b.importe), 0) as cobrado
+  with abiertos as (
+    select v.id, v.numero, v.fecha, v.tipo, v.estado,
+           s.total as total_con_iva, s.cobrado, s.saldo
       from dominio.comprobantes_venta v
-      left join dominio.cobros_comprobante b
-        on b.comprobante_id = v.id
-       and b.organizacion_id = v.organizacion_id
+      cross join lateral private.saldo_comprobante(v.id) s
      where v.organizacion_id = v_org
        and v.cliente_id = p_cliente_id
        and v.tipo = 'factura'
        and v.estado not in ('borrador', 'anulada')
-     group by v.id, v.numero, v.fecha, v.tipo, v.estado, v.total_con_iva
-  ),
-  abiertos as (
-    select c.numero, c.fecha, c.tipo, c.estado, c.total_con_iva, c.cobrado,
-           greatest(c.total_con_iva - c.cobrado, 0) as saldo
-      from cuentas c
-     where greatest(c.total_con_iva - c.cobrado, 0) > 0
+       and s.saldo > 0
   ),
   encabezado as (
     select coalesce(sum(a.saldo), 0) as saldo_total, count(*) as comprobantes
       from abiertos a
   )
-  select e.saldo_total,
+  select a.id,
+         e.saldo_total,
          e.comprobantes,
          a.numero,
          a.fecha,
@@ -115,7 +117,7 @@ begin
          a.saldo
     from encabezado e
     left join abiertos a on true
-   order by a.fecha desc nulls last, a.numero desc nulls last;
+   order by a.fecha desc nulls last, a.numero desc nulls last, a.id;
 end;
 $$;
 
@@ -123,4 +125,4 @@ revoke execute on function public.cuenta_corriente_cliente(uuid) from public, an
 grant execute on function public.cuenta_corriente_cliente(uuid) to authenticated;
 
 comment on function public.cuenta_corriente_cliente(uuid) is
-  'Cuenta corriente del cliente (F-CLI-19): saldo total, cantidad de comprobantes abiertos y sus filas (total, cobrado y saldo). Solo lectura: la autorización y el aislamiento por organización los resuelve la función en el servidor.';
+  'Cuenta corriente del cliente (F-CLI-19): saldo total, cantidad de comprobantes abiertos y sus filas (id, número, fecha, estado, total, cobrado y saldo; el saldo sale de private.saldo_comprobante). Solo lectura: la autorización y el aislamiento por organización los resuelve la función en el servidor.';

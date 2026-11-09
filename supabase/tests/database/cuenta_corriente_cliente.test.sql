@@ -1,10 +1,12 @@
 -- F-CLI-19 (MSF-451, épica MSF-450, spec 20261109-100000-cuenta-corriente-y-saldo-cliente,
 -- FR-001…FR-004, SC-001, SC-002): `public.cuenta_corriente_cliente` — la cuenta corriente del
--- cliente: saldo total, comprobantes abiertos y sus filas (total, cobrado y saldo).
+-- cliente: saldo total, comprobantes abiertos y sus filas (id, total, cobrado y saldo).
 --
 -- Qué se comprueba:
--- · el saldo de cada comprobante es `total con IVA − cobros` (nunca negativo) y el total es la
---   suma de los abiertos (FR-002, FR-004);
+-- · el saldo de cada comprobante es el de `private.saldo_comprobante` (F-VTA-12) —el único
+--   dueño de la regla— y el total es la suma de los abiertos (FR-002, FR-004, SC-001);
+-- · cada fila trae el id del comprobante: el número se repite entre tiendas (el correlativo es
+--   por organización, empresa y tipo) y el id es lo que distingue las filas;
 -- · entran solo las facturas que no están en `borrador` ni `anulada`: presupuesto, anulada,
 --   borrador y nota de crédito quedan fuera (FR-003);
 -- · una factura en estado «deuda» (sin cobros) debe su total completo (FR-002);
@@ -13,7 +15,7 @@
 -- · los niveles de la sección Clientes y la ejecutabilidad por `anon` (SC-002).
 begin;
 
-select plan(19);
+select plan(23);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -55,8 +57,10 @@ values
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', current_date - 4, 'confirmada', 800, 1000),
   -- Cobrada: saldo 0, no aparece.
   ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000003', current_date - 3, 'cobrado', 400, 500),
-  -- De la otra tienda: suma en el mismo saldo (FR-007).
-  ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000004', current_date - 2, 'confirmada', 1600, 2000),
+  -- De la otra tienda: suma en el mismo saldo (FR-007). Comparte el número con la primera
+  -- factura: el correlativo es por empresa, así que el número se repite entre tiendas y la
+  -- fila se distingue por su id.
+  ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', current_date - 2, 'confirmada', 1600, 2000),
   -- Presupuesto: no es deuda.
   ('a1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'presupuesto', '0001-00000005', current_date - 1, 'confirmada', 9000, 12099),
   -- Anulada, borrador y nota de crédito: ninguno debe nada.
@@ -108,19 +112,47 @@ select is(
 
 -- Las filas: documento, total, cobrado y saldo; del más reciente al más antiguo.
 select results_eq(
-  $$select numero, estado, total_con_iva, cobrado, saldo from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')$$,
+  $$select id, numero, estado, total_con_iva, cobrado, saldo from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')$$,
   $$values
-    ('0001-00000004', 'confirmada', 2000::numeric, 500::numeric, 1500::numeric),
-    ('0001-00000002', 'confirmada', 1000::numeric, 400::numeric, 600::numeric),
-    ('0001-00000001', 'deuda', 1210::numeric, 0::numeric, 1210::numeric)$$,
-  'las filas traen total, cobrado y saldo, ordenadas por fecha descendente');
+    ('a1000000-0000-0000-0000-000000000004'::uuid, '0001-00000001', 'confirmada', 2000::numeric, 500::numeric, 1500::numeric),
+    ('a1000000-0000-0000-0000-000000000002'::uuid, '0001-00000002', 'confirmada', 1000::numeric, 400::numeric, 600::numeric),
+    ('a1000000-0000-0000-0000-000000000001'::uuid, '0001-00000001', 'deuda', 1210::numeric, 0::numeric, 1210::numeric)$$,
+  'las filas traen el id, el número, el total, el cobrado y el saldo, ordenadas por fecha descendente');
 select is(
-  (select saldo from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') where numero = '0001-00000001'),
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')
+    where numero = '0001-00000001'),
+  2::bigint, 'el número se repite entre tiendas: las dos facturas con el mismo número son filas distintas');
+select is(
+  (select count(distinct id) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')),
+  3::bigint, 'cada fila es un comprobante distinto: el id la identifica aunque el número se repita');
+select is(
+  (select saldo from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')
+    where id = 'a1000000-0000-0000-0000-000000000001'),
   1210::numeric, 'la factura en estado «deuda» debe su total completo');
 select is(
   (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')
     where numero in ('0001-00000003', '0001-00000005', '0001-00000006', '0001-00000007', '0001-00000008', '0001-00000009')),
   0::bigint, 'no aparecen la cobrada, el presupuesto, la anulada, el borrador, la nota de crédito ni la que tiene cobro de más');
+
+-- SC-001: el saldo sale de `private.saldo_comprobante` (F-VTA-12), su único dueño, y la función
+-- interna no la ejecuta `authenticated`: el test la llama como el dueño de la base.
+reset role;
+select results_eq(
+  $$select c.saldo, s.saldo
+     from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') c
+     join private.saldo_comprobante(c.id) s on true
+    order by c.id$$,
+  $$values
+    (1210::numeric, 1210::numeric),
+    (600::numeric, 600::numeric),
+    (1500::numeric, 1500::numeric)$$,
+  'SC-001: el saldo de cada documento cuadra con private.saldo_comprobante, documento por documento');
+select is(
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') c
+     join private.saldo_comprobante(c.id) s on true
+    where c.total_con_iva = s.total and c.cobrado = s.cobrado and c.saldo = s.saldo),
+  3::bigint, 'total, cobrado y saldo de cada fila son los de private.saldo_comprobante');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- Cliente sin deuda: saldo 0 y sin documentos.
 select results_eq(
