@@ -435,8 +435,18 @@ deno_version = 2
 [functions.tienda-seo]
 verify_jwt = false
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+# Secretos de las Edge Functions en el stack LOCAL / de dev (`supabase start`). Acá solo se DECLARA qué secretos necesita el runtime:
+# los valores salen de las variables de entorno con el mismo nombre, que el CLI lee de `supabase/.env` (ignorado por Git, ver
+# `supabase/functions/.env.example` para el significado de cada una). Sin esta sección el runtime arranca SIN ellas y, por ejemplo,
+# `emitir-acceso-reporte` y `consultar-estado-reparacion` fallan (500) hasta que alguien las agregue a mano: pasó al recrear el stack
+# de dev el 2026-11-09. En Supabase Cloud los secretos se cargan con `supabase secrets set`, no con esta sección.
+# Una variable sin valor queda vacía: la función que la necesita lo informa (falla cerrada), el resto no se ve afectado.
+[edge_runtime.secrets]
+SUPERSET_URL = "env(SUPERSET_URL)"
+SUPERSET_PUBLIC_URL = "env(SUPERSET_PUBLIC_URL)"
+SUPERSET_GUEST_TOKEN_USERNAME = "env(SUPERSET_GUEST_TOKEN_USERNAME)"
+SUPERSET_GUEST_TOKEN_PASSWORD = "env(SUPERSET_GUEST_TOKEN_PASSWORD)"
+SEGUIMIENTO_IP_SALT = "env(SEGUIMIENTO_IP_SALT)"
 
 # consultar-estado-reparacion (F-SVC-22, MSF-157, docs/service-seguimiento.md): la página pública
 # `/seguimiento/:token` consulta el estado SIN sesión; la función valida el token y usa la service-role
