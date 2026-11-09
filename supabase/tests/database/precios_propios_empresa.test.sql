@@ -372,8 +372,9 @@ select is(
 );
 select is(
   (select count(*)::int from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'dominio' and c.relname = 'precios_propios_empresa' and not t.tgisinternal),
-  0, 'la tabla no dispara colas ni triggers de salida'
+    where n.nspname = 'dominio' and c.relname = 'precios_propios_empresa' and not t.tgisinternal
+      and t.tgname <> 'precios_propios_empresa_baja_historial'),
+  0, 'la tabla no dispara colas ni triggers de salida (salvo el de baja del historial, MSF-352)'
 );
 
 select * from finish();

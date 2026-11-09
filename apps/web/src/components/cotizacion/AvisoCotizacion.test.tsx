@@ -132,4 +132,23 @@ describe('AvisoCotizacion', () => {
     expect(mocks.useEstadoCotizacion).toHaveBeenLastCalledWith(null)
     expect(screen.queryByRole('button', { name: 'Cargar ahora' })).not.toBeInTheDocument()
   })
+
+  it('con alcance por empresa y «Todas mis empresas» pide elegir una empresa (no muestra una cotización que no es de nadie)', () => {
+    montar({ configuracion: { ...CONFIGURACION, alcance: 'empresa' }, empresaActiva: null })
+    expect(screen.getByText('Todavía no se cargó el dólar de hoy')).toBeInTheDocument()
+    expect(screen.getByText('La cotización es una por empresa: elegí una empresa en la barra superior para ver y cargar su dólar de hoy.')).toBeInTheDocument()
+    expect(screen.queryByText(/se siguen calculando/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar ahora' })).not.toBeInTheDocument()
+  })
+
+  it('con alcance por empresa y una empresa elegida no pide elegir otra', () => {
+    montar({ configuracion: { ...CONFIGURACION, alcance: 'empresa' }, empresaActiva: 'e-1' })
+    expect(screen.queryByText(/elegí una empresa/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cargar ahora' })).toBeInTheDocument()
+  })
+
+  it('informa la cotización APLICADA (la de los precios) aunque la última carga haya quedado bajo el umbral', () => {
+    montar({ estado: { ...ESTADO, aplicada: 1000, vigente: { valor: 1040, cargadaEn: '2026-09-25T12:00:00Z', cargadaPor: 'Javier' } } })
+    expect(screen.getByText('Los precios en dólares se siguen calculando con $ 1.000.')).toBeInTheDocument()
+  })
 })

@@ -5,7 +5,7 @@
 -- lo mismo que la tienda. Corre como postgres para armar el fixture y como "authenticated" para verificar.
 begin;
 
-select plan(35);
+select plan(42);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -266,6 +266,34 @@ select is(
   null,
   'sin producto asignado a la empresa no hay precio público (el precio propio es por empresa)'
 );
+
+-- ============================================================================
+-- Escala manual + precio propio (MSF-352, revisión de QA): un precio de escala x5/x10/x50 cargado a mano gana sobre el
+-- precio propio (es un precio por cantidad, no el base); el precio propio manda en x1 y donde la escala no tiene precio.
+-- Joystick: propio $ 25.000, escalas ARS 20.000 / 18.000 / 15.000 con la regla «central −5 %» (redondeo $ 10) ⇒ 19.000,
+-- 17.100 y 14.250. Auricular: propio USD 11 y escala x5 USD 8 × 1.500 = 12.000 ⇒ 11.400.
+-- ============================================================================
+insert into dominio.producto_precios_escala (producto_id, organizacion_id, escala, precio) values
+  ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x5', 20000),
+  ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x10', 18000),
+  ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x50', 15000),
+  ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'x5', 8);
+select is(private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x5'),
+  19000::numeric, 'tienda: la escala x5 cargada a mano gana sobre el precio propio');
+select is(private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x10'),
+  17100::numeric, 'tienda: la escala x10 cargada a mano gana sobre el precio propio');
+select is(private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x50'),
+  14250::numeric, 'tienda: la escala x50 cargada a mano gana sobre el precio propio');
+select is(private.precio_final_publico_escala('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'x5'),
+  11400::numeric, 'tienda: la escala x5 en USD gana sobre el precio propio en USD y se convierte con la cotización');
+select is(private.precio_final_publico('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001'),
+  25000::numeric, 'tienda: con escalas cargadas el precio base (x1) sigue siendo el precio propio');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is((select neto from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x10')),
+  17100::numeric, 'líneas: la escala x10 cargada a mano gana sobre el precio propio');
+select is((select escala_usada from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x50')),
+  'x50', 'líneas: la escala usada es x50 (no el precio propio)');
+reset role;
 
 select * from finish();
 rollback;

@@ -162,6 +162,7 @@ export function CotizacionPage() {
           <DialogoCargarDolar
             abierto
             vigente={estado?.vigente ?? null}
+            aplicada={estado?.aplicada ?? null}
             onCerrar={() => setDialogoPara(null)}
             onConfirmada={alConfirmar}
             empresaId={empresaId}

@@ -44,7 +44,7 @@ export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD
                   <TableCell>
                     <Typography component="span" sx={{ fontWeight: 600 }}>{fila.producto}</Typography>
                     <Typography variant="xs" component="span" sx={{ display: 'block' }}>
-                      {[fila.sku, `US$ ${formatoUsd.format(fila.usd)}`].filter(Boolean).join(' · ')}
+                      {[fila.sku, fila.usd === null ? null : `US$ ${formatoUsd.format(fila.usd)}`].filter(Boolean).join(' · ')}
                     </Typography>
                   </TableCell>
                   {previa.empresas.flatMap((empresa) => {

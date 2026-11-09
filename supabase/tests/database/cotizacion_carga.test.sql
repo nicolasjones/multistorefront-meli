@@ -151,13 +151,15 @@ insert into dominio.cotizaciones (organizacion_id, valor, valor_anterior, variac
 values
   ('11111111-1111-1111-1111-111111111111', 1470, 1465, 0.3413, 'Javier', now() - interval '2 days'),
   ('11111111-1111-1111-1111-111111111111', 1480, 1470, 0.6803, 'Emilse', now() - interval '1 day');
+-- La última confirmada (1480) también es la aplicada: la variación de una carga nueva se mide contra la aplicada (MSF-352).
+insert into dominio.cotizacion_aplicada (organizacion_id, valor) values ('11111111-1111-1111-1111-111111111111', 1480);
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 select is((select (public.estado_cotizacion() -> 'vigente' ->> 'valor')::numeric), 1480::numeric, 'la vigente es la última confirmada');
 select is((select public.estado_cotizacion() -> 'vigente' ->> 'cargada_por'), 'Emilse', 'la vigente dice quién la cargó');
 select is(
   (select (public.cargar_cotizacion(1500) ->> 'anterior')::numeric),
-  1480::numeric, 'el anterior de una carga nueva es la última confirmada'
+  1480::numeric, 'el anterior de una carga nueva es la cotización aplicada (la última confirmada que se aplicó)'
 );
 
 -- ============================================================================

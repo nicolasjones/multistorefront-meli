@@ -140,3 +140,7 @@ bloquea el borrado directo de objetos por SQL; la migración es inmutable y no s
 
 
 > Nota: en `validar_importacion_productos` los textos que se agregan a `v_errores`/`v_avisos` (`text[]`) van con cast `::text`; sin él Postgres lee el literal como arreglo («malformed array literal»).
+
+## Precios propios por empresa (límite conocido)
+
+La importación escribe solo `precio_lista`; no crea, cambia ni borra precios propios por empresa (F-PRE-08). Ver `catalogo-exportacion.md` («Precios propios por empresa»).
