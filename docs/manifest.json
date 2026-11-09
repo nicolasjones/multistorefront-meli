@@ -802,12 +802,12 @@
     },
     "docs/producto/tienda-seo-legal-y-estados.md": {
       "title": "Páginas de estado, productos relacionados, Google y datos legales de la tienda",
-      "pageHash": "64175f3b9b5f00e89645f1048977b7870f57ad6f42c7c3cbc7dea84c96bdad47",
+      "pageHash": "90551bdd648330ed7fb1364ec2fc2b21a0816666ebf80e33060f7a9c6aa20187",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "7c05dc06"
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
@@ -1975,9 +1975,9 @@
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
-      "pageHash": "4e460da3107bb7d07251c7996d6bc00dd3d7c3eba594777f9deae60b3df47dcd",
+      "pageHash": "904b7f6d2578935a05a87a588af9e4596f6a2d73b16150d7f581127b1c6458bc",
       "sourceHash": "555689c017426bc19f899fa9f967656121542016c5de48701a08d955971fd783",
-      "sourceAt": "3f3cee19",
+      "sourceAt": "7c05dc06",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1987,7 +1987,7 @@
         "openapi"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7c05dc06"
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
