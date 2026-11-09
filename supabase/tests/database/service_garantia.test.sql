@@ -233,7 +233,7 @@ select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select lives_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'entregada')),
   'el operador reingresa en su tienda');
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'tienda_b')),
-  '42501', null, 'el operador no reingresa desde una tienda sin acceso');
+  'P0002', null, 'el operador no reingresa desde una tienda sin acceso (responde como una reparación inexistente)');
 select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select id from rg where clave = 'tienda_b')),
   'P0002', null, 'el operador no ve vínculos de una tienda sin acceso');
 

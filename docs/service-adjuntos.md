@@ -30,7 +30,7 @@ Esquema (Constitución, Principio VII): `dominio.reparacion_adjuntos` es una ent
 | `dominio.reparacion_adjuntos` | `20270219140100` | `id`, `organizacion_id`, `reparacion_id`, `ruta` (única), `nombre_original`, `mime`, `bytes`, `creado_por`, `creado_en`. FK compuesta `(reparacion_id, organizacion_id)`. RLS por organización + nivel `service_tecnico` + tienda accesible. Sin `insert/update/delete` directos; `anon` sin privilegios. |
 | Bucket `reparacion-adjuntos` | `20270219140200` | Privado, 5 MB, `image/jpeg`, `image/png`, `image/webp`. Políticas `select` (`lectura`/`edicion`), `insert` y `delete` (`edicion`) por prefijo; sin `update`. |
 | Políticas del bucket (endurecidas) | `20270219140600` | `insert`: reparación no anulada y como máximo 20 objetos por carpeta. `delete`: solo objetos sin fila en `reparacion_adjuntos` (huérfanos) y reparación no anulada; un adjunto registrado solo se quita con `quitar_adjunto_reparacion`. |
-| `public.registrar_adjunto_reparacion` | `20270219140300` | `security definer`; `edicion`, tienda accesible, no anulada (`55000`), ruta con el prefijo, objeto existente, mime/bytes, máximo 20 (`22023`, `hint = maximo`) bajo el `for update` de la reparación. Actividad `reparacion.adjunto_agregado`. |
+| `public.registrar_adjunto_reparacion` | `20270219140300` | `security definer`; `edicion`, tienda accesible, no anulada (`55000`), ruta con el prefijo, objeto existente, mime/bytes (que coincidan con los metadatos `mimetype` y `size` que Storage guardó del objeto subido; `22023`, `hint = archivo`), máximo 20 (`22023`, `hint = maximo`) bajo el `for update` de la reparación. Actividad `reparacion.adjunto_agregado`. |
 | `public.quitar_adjunto_reparacion` | `20270219140400` | Mismas reglas; borra la fila y devuelve la `ruta`. Actividad `reparacion.adjunto_quitado`. |
 | `public.listar_adjuntos_reparacion` | `20270219140500` | `lectura` o `edicion`; solo tiendas accesibles; `subido_por` es el nombre visible, nunca el correo. |
 
@@ -50,11 +50,22 @@ Las tres RPC llevan `revoke … from public, anon` y `grant execute … to authe
 ## Flujo y huérfanos
 
 1. La interfaz sube el archivo al bucket (política de `insert`) y llama a `registrar_adjunto_reparacion`.
-   Si el registro falla, borra el objeto recién subido.
+   Si el registro falla, borra el objeto recién subido (con reintentos).
 2. Para quitar, llama a `quitar_adjunto_reparacion` (borra la fila, devuelve la ruta) y después borra el
-   objeto. Si ese segundo paso falla queda un **archivo huérfano**: sin fila, nadie lo ve desde la
-   aplicación. No hay limpieza automática; se puede detectar con
-   `select o.name from storage.objects o left join dominio.reparacion_adjuntos a on a.ruta = o.name where o.bucket_id = 'reparacion-adjuntos' and a.id is null`.
+   objeto, con hasta 3 intentos. El orden no se puede invertir: la política de `delete` solo deja borrar objetos
+   **sin fila**. Si los 3 intentos fallan queda un **archivo huérfano**: sin fila, no aparece en la aplicación.
+   - **No es inaccesible del todo**: la política de `select` de `storage.objects` no mira la tabla (el borrado de
+     Storage necesita poder listar el objeto), así que quien tenga `lectura` en esa reparación podría pedirlo a
+     Storage si conoce su ruta (un UUID aleatorio). No hay forma de listar huérfanos desde la interfaz.
+   - **Cuenta para el tope**: la política de `insert` cuenta objetos de la carpeta, no filas. Con huérfanos, la
+     subida podría rechazarse aunque la lista muestre menos de 20.
+   - **Limpieza**: cuando Storage rechaza una subida, la interfaz borra los objetos de esa carpeta que no tienen fila
+     y tienen más de 10 minutos (los más nuevos pueden ser la subida en curso de otra persona) y reintenta una sola
+     vez (`limpiarHuerfanos` en `apps/web/src/lib/reparacionAdjuntos.ts`). Una reparación que se anula después deja de
+     poder limpiarse (la política de `delete` exige reparación no anulada); no hay purga automática. Para detectarlos:
+     `select o.name from storage.objects o left join dominio.reparacion_adjuntos a on a.ruta = o.name where o.bucket_id = 'reparacion-adjuntos' and a.id is null`.
+3. El tope de 20 de la política de `insert` no serializa cargas concurrentes (puede haber algo más de 20 objetos en
+   Storage); el de 20 **filas** sí es exacto, por el bloqueo `for update` de `registrar_adjunto_reparacion`.
 
 ## Pruebas
 

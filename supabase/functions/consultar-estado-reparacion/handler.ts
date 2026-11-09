@@ -43,16 +43,17 @@ export function cadenaProxy(req: Request): string[] {
   return (req.headers.get('x-forwarded-for') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 }
 
-// IP del cliente: `x-real-ip` si la fija el proxy más cercano; si no, el valor de `x-forwarded-for` que está
-// `saltos` proxies antes del último (el del cliente). Sin ninguna cabecera, un valor fijo (contador compartido:
-// falla cerrada, como en la tienda online).
+// IP del cliente: el valor de `x-forwarded-for` que está `saltos` proxies antes del último. NO se usa
+// `x-real-ip`: si ningún proxy lo pisa lo falsifica el cliente (cada pedido abriría un contador nuevo y el
+// límite quedaría anulado), y si Kong lo pisa con la IP de Traefik todos compartirían uno solo.
+// Sin cabecera, o con una cadena MÁS CORTA que `saltos + 1` (algún proxy no agregó su IP, así que el primer
+// valor lo puede haber escrito el cliente), un valor fijo: contador compartido, falla cerrada como en la
+// tienda online. Se avisa (sin IP) para corregir `SEGUIMIENTO_SALTOS_PROXY`.
 export function ipDelPedido(req: Request, saltos = SALTOS_PROXY_CONFIABLES): string {
-  const real = req.headers.get('x-real-ip')?.trim()
-  if (real) return real
   const cadena = cadenaProxy(req)
-  if (!cadena.length) return IP_FIJA
-  const indice = Math.max(0, cadena.length - 1 - Math.max(0, saltos))
-  return cadena[indice] ?? IP_FIJA
+  const esperados = Math.max(0, saltos) + 1
+  if (cadena.length < esperados) return IP_FIJA
+  return cadena[cadena.length - esperados] ?? IP_FIJA
 }
 
 const texto = (v: unknown) => (typeof v === 'string' ? v : null)
@@ -69,6 +70,7 @@ export function listaBlanca(bruto: unknown) {
     modelo: texto(o.modelo),
     estado: { nombre: texto(estado.nombre), descripcion: texto(estado.descripcion) },
     entrega_prevista: texto(o.entrega_prevista),
+    anulada: o.anulada === true,
     linea_de_tiempo: linea.map((p) => ({ estado: texto(p?.estado), fecha: texto(p?.fecha) })),
   }
 }
@@ -85,10 +87,10 @@ export async function manejar(req: Request, { sal, saltosProxy, datos }: Deps): 
     ? Math.max(0, Math.trunc(saltosProxy))
     : SALTOS_PROXY_CONFIABLES
   const cadena = cadenaProxy(req)
-  // Si la cadena trae más saltos de los esperados, la IP resuelta puede ser la de un proxy: todos los
-  // clientes detrás de él compartirían el mismo contador. Se avisa (sin IP) para ajustar el entorno.
-  if (cadena.length > saltos + 1) {
-    console.warn(`consultar-estado-reparacion: x-forwarded-for trae ${cadena.length} valores y se esperaban ${saltos + 1}; la IP resuelta puede ser la de un proxy (contador compartido): revisá SEGUIMIENTO_SALTOS_PROXY`)
+  // Si la cadena no tiene la longitud esperada, la IP resuelta puede ser la de un proxy o el pedido cae al
+  // contador compartido: en ambos casos todos los clientes detrás comparten cupo. Se avisa (sin IP).
+  if (cadena.length !== saltos + 1) {
+    console.warn(`consultar-estado-reparacion: x-forwarded-for trae ${cadena.length} valores y se esperaban ${saltos + 1}; ${cadena.length < saltos + 1 ? 'el pedido usa el contador compartido (falla cerrada)' : 'la IP resuelta puede ser la de un proxy (contador compartido)'}: revisá SEGUIMIENTO_SALTOS_PROXY`)
   }
   const ipHash = createHmac('sha256', sal).update(ipDelPedido(req, saltos)).digest('hex')
   const limite = await datos.registrarConsulta(ipHash, VENTANA_SEG, LIMITE_CONSULTAS)

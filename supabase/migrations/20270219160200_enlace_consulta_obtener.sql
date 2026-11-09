@@ -34,7 +34,8 @@ begin
     raise exception 'La reparación no existe' using errcode = 'P0002';
   end if;
   if not exists (select 1 from private.empresas_accesibles() a(id) where a.id = v_rep.empresa_id) then
-    raise exception 'No tenés acceso a la tienda de esta reparación' using errcode = '42501';
+    -- Misma respuesta que una reparación inexistente o de otra organización: no se confirma que el id exista.
+    raise exception 'La reparación no existe' using errcode = 'P0002';
   end if;
 
   select e.token into v_token

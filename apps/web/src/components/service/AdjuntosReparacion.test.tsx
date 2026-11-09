@@ -166,6 +166,10 @@ describe('AdjuntosReparacion (FR-007, FR-008, FR-010)', () => {
     const dialogo = await screen.findByRole('dialog')
     expect(within(dialogo).getByText('foto-1.png', { selector: 'span' })).toBeTruthy()
     expect(within(dialogo).getByText(/Subida por Ana Pérez/)).toBeTruthy()
+    // La fecha (FR-007) va en un <time> con el instante exacto y un texto legible con el día y el año.
+    const hora = dialogo.querySelector('time')
+    expect(hora?.getAttribute('datetime')).toBe('2026-10-28T15:00:00Z')
+    expect(hora?.textContent).toMatch(/28\/10\/26/)
     expect(within(dialogo).getByAltText('foto-1.png')).toBeTruthy()
   })
 

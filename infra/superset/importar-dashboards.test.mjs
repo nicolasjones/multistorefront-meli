@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { spawn } from 'node:child_process';
 import {
+  buscarReportePorNombre,
   ejecutar,
   importarPaquete,
   mapasDeContrasenas,
@@ -649,6 +650,8 @@ test('el paquete consultas-reportes se importa y registra «Productos más consu
     if (/\/api\/v1\/dashboard\/[^/]+\/embedded$/.test(url)) {
       return opciones.method === 'POST' ? respuestaJson({ result: { uuid: UUID_A } }) : respuestaJson({}, 404);
     }
+    // El importador busca primero el reporte por nombre: en este paquete todavía no existe.
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) return respuestaJson([]);
     if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
       const fila = JSON.parse(opciones.body);
       const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
@@ -710,6 +713,8 @@ test('el paquete ventas-periodo-canal se importa y registra «Ventas por períod
     if (/\/api\/v1\/dashboard\/[^/]+\/embedded$/.test(url)) {
       return opciones.method === 'POST' ? respuestaJson({ result: { uuid: UUID_A } }) : respuestaJson({}, 404);
     }
+    // El importador busca primero el reporte por nombre: en este paquete todavía no existe.
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) return respuestaJson([]);
     if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
       const fila = JSON.parse(opciones.body);
       const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
@@ -834,6 +839,8 @@ test('el tablero Ventas reales versiona dataset, rango de fechas y reporte de la
   assert.equal(registrados.length, 1, 'registro único (idempotente)');
   assert.equal(registrados[0].seccion, 'rentabilidad');
   assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
+});
+
 // F-REP-01 (FR-003): dataset, tablero «Inventario · Productos y stock» y su registro en
 // `public.reportes` con la sección `stock` (no la de `reportes`) y sin filtro por empresa.
 test('los YAML versionados de Inventario son coherentes: filtros nativos, valor total y reporte', async () => {
@@ -917,6 +924,8 @@ test('el directorio versionado de inventario se importa y registra el reporte co
       const uuidEmbebido = `${UUID_A.slice(0, -12)}${String(url.length).padStart(12, '0')}`;
       return opciones.method === 'POST' ? respuestaJson({ result: { uuid: uuidEmbebido } }) : respuestaJson({}, 404);
     }
+    // El importador busca primero el reporte por nombre: en este paquete todavía no existe.
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) return respuestaJson([]);
     if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
       const fila = JSON.parse(opciones.body);
       const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
@@ -1004,4 +1013,30 @@ test('importarPaquete falla si Superset redirige el import al login (no lo toma 
     }),
     /redirigió el import/,
   );
+});
+
+test('buscarReportePorNombre pide el orden por antigüedad y, con duplicados, usa el más viejo y avisa', async () => {
+  const urls = [];
+  const avisos = [];
+  const original = console.warn;
+  console.warn = (...args) => { avisos.push(args.join(' ')); };
+  try {
+    const fetch = async (url) => {
+      urls.push(url);
+      return respuestaJson([{ id: 'viejo', superset_dashboard_uuid: 'a' }, { id: 'nuevo', superset_dashboard_uuid: 'b' }]);
+    };
+    const fila = await buscarReportePorNombre({ baseUrl: 'http://sb', cabeceras: {}, fetch, nombre: 'Service técnico' });
+    assert.equal(fila.id, 'viejo');
+    assert.match(urls[0], /order=creado_en\.asc,id\.asc/);
+    assert.equal(avisos.length, 1);
+    assert.match(avisos[0], /2 reportes llamados «Service técnico»/);
+
+    avisos.length = 0;
+    const sola = await buscarReportePorNombre({ baseUrl: 'http://sb', cabeceras: {}, fetch: async () => respuestaJson([{ id: 'unica' }]), nombre: 'X' });
+    assert.equal(sola.id, 'unica');
+    assert.equal(avisos.length, 0, 'con una sola fila no hay aviso');
+    assert.equal(await buscarReportePorNombre({ baseUrl: 'http://sb', cabeceras: {}, fetch: async () => respuestaJson([]), nombre: 'X' }), null);
+  } finally {
+    console.warn = original;
+  }
 });

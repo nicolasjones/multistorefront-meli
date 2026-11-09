@@ -3,7 +3,9 @@
 --
 -- `private.estado_publico_reparacion(token)` arma la respuesta desde una LISTA BLANCA explícita (nunca `select *`):
 -- código, tienda, equipo y modelo, estado actual (nombre y «Qué significa»), entrega prevista y línea de tiempo de
--- estados (nombre y fecha). NO incluye cliente, contacto, N.º de serie, falla, accesorios, técnico, notas ni
+-- estados (nombre y fecha) y si la reparación está anulada (`anulada`, booleano: sin él el cliente vería el último
+-- estado como si siguiera en curso; el evento de anulación NO entra en la línea de tiempo porque repite el estado
+-- vigente). NO incluye cliente, contacto, N.º de serie, falla, accesorios, técnico, notas ni
 -- usuarios del historial, ítems, importes, costos, adjuntos ni ids internos. Token mal formado o desconocido → null.
 -- `public.obtener_estado_publico_reparacion(token)` es el envoltorio ejecutable SOLO por `service_role`.
 --
@@ -25,11 +27,12 @@ as $$
     'modelo', m.modelo,
     'estado', jsonb_build_object('nombre', s.nombre, 'descripcion', s.descripcion),
     'entrega_prevista', r.entrega_prevista,
+    'anulada', r.anulada_en is not null,
     'linea_de_tiempo', coalesce((
       select jsonb_agg(jsonb_build_object('estado', se.nombre, 'fecha', h.creado_en) order by h.creado_en, h.id)
         from dominio.reparacion_historial h
         join dominio.estados_reparacion se on se.id = h.estado_nuevo_id and se.organizacion_id = h.organizacion_id
-       where h.reparacion_id = r.id and h.organizacion_id = r.organizacion_id
+       where h.reparacion_id = r.id and h.organizacion_id = r.organizacion_id and h.tipo <> 'anulacion'
     ), '[]'::jsonb)
   )
   from dominio.reparacion_enlaces_consulta e

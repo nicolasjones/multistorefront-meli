@@ -37,7 +37,7 @@ export function ServicioReportes() {
 
   let tablero
   if (cargandoNivel || cargandoReportes) tablero = <EstadoCargaPagina />
-  else if (!reporte) tablero = <EstadoError descripcion="El tablero de Service técnico todavía no está disponible para tu organización." />
+  else if (!reporte) tablero = <EstadoError descripcion="No tenés acceso al tablero de Service técnico: tu organización todavía no lo tiene asignado o tu rol no lo incluye. Pedile acceso a un administrador." />
   else if (fallo === 'no_disponible') tablero = <EstadoError descripcion="No pudimos cargar el tablero de Service técnico." reintentar={reintentar} />
   else tablero = <ReporteEmbebido key={`${reporte.id}-${intento}`} reporteId={reporte.id} alFallar={setFallo} />
 

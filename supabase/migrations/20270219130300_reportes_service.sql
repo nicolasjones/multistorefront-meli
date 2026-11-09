@@ -185,3 +185,25 @@ create trigger reportes_service_roles_default
 -- No hace falta revocar el EXECUTE: una función de trigger solo se puede invocar como trigger
 -- (Postgres la rechaza si se la llama directo), y estas viven en el esquema `private`, que no se
 -- expone. Es el mismo criterio que los triggers de la spec 007.
+
+-- ---------------------------------------------------------------------------
+-- 4. Backfill (después de crear los triggers): STG y PROD ya tienen usuarios y organizaciones con el módulo, así
+-- que la fila del paso 1 y sus roles del paso 2 nacieron ANTES de los triggers y nadie los disparó. Sin esto el
+-- tablero aparecería como «no disponible» hasta que un superadmin lo asignara a mano. Es idempotente: en un reset
+-- limpio (sin la fila todavía) no inserta nada, y al re-aplicarla no duplica.
+-- ---------------------------------------------------------------------------
+
+insert into public.reportes_organizaciones (reporte_id, organizacion_id, asignado_por)
+select r.id, f.organizacion_id, r.creado_por
+from public.reportes r
+join public.organizaciones_features f on f.feature_id = 'service-tecnico'
+where r.nombre = 'Service técnico'
+  and r.seccion = 'service_tecnico'
+on conflict (reporte_id, organizacion_id) do nothing;
+
+insert into public.reportes_organizaciones_roles (reporte_id, organizacion_id, rol_id)
+select ro.reporte_id, ro.organizacion_id, d.rol_id
+from public.reportes_organizaciones ro
+join public.reportes r on r.id = ro.reporte_id and r.nombre = 'Service técnico' and r.seccion = 'service_tecnico'
+join public.reportes_roles_default d on d.reporte_id = ro.reporte_id
+on conflict (reporte_id, organizacion_id, rol_id) do nothing;

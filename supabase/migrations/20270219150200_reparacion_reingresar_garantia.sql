@@ -48,7 +48,8 @@ begin
     raise exception 'La reparación no existe' using errcode = 'P0002';
   end if;
   if not exists (select 1 from private.empresas_accesibles() a(id) where a.id = v_origen.empresa_id) then
-    raise exception 'No tenés acceso a la tienda de esta reparación' using errcode = '42501';
+    -- Misma respuesta que una reparación inexistente o de otra organización: no se confirma que el id exista.
+    raise exception 'La reparación no existe' using errcode = 'P0002';
   end if;
   if v_origen.anulada_en is not null then
     raise exception 'La reparación está anulada: no se puede reingresar por garantía' using errcode = '55000';

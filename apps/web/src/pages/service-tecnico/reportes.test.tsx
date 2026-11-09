@@ -85,7 +85,7 @@ describe('Service técnico · Reportes (F-SVC-23, FR-064/FR-065)', () => {
 
   it('si el reporte no está asignado a la organización lo dice, sin tablero', () => {
     montar({ reportes: [] })
-    expect(screen.getByText('El tablero de Service técnico todavía no está disponible para tu organización.')).toBeInTheDocument()
+    expect(screen.getByText('No tenés acceso al tablero de Service técnico: tu organización todavía no lo tiene asignado o tu rol no lo incluye. Pedile acceso a un administrador.')).toBeInTheDocument()
     expect(mocks.montajes).not.toHaveBeenCalled()
   })
 

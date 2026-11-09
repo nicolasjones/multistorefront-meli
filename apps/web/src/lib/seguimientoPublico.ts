@@ -10,6 +10,8 @@ export type EstadoPublico = {
   modelo: string
   estado: { nombre: string; descripcion: string }
   entrega_prevista: string | null
+  /** Reparación anulada: la línea de tiempo no trae el evento de anulación, así que este flag es la única señal. */
+  anulada: boolean
   linea_de_tiempo: PuntoLineaDeTiempo[]
 }
 
@@ -33,6 +35,7 @@ export function aEstadoPublico(bruto: unknown): EstadoPublico {
     modelo: texto(o.modelo),
     estado: { nombre: texto(estado.nombre), descripcion: texto(estado.descripcion) },
     entrega_prevista: typeof o.entrega_prevista === 'string' ? o.entrega_prevista : null,
+    anulada: o.anulada === true,
     linea_de_tiempo: linea.map((punto) => ({ estado: texto(punto?.estado), fecha: texto(punto?.fecha) })),
   }
 }

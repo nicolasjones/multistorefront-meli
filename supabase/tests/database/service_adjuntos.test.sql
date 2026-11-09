@@ -190,6 +190,23 @@ select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'x.
 select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'x.png', 'image/png', 10)$$,
   (select id from reps where clave = 'r2'), pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r2'), 9)),
   '22023', null, 'objeto inexistente en Storage rechazado');
+-- El tipo y el tamaño informados tienen que ser los del objeto realmente subido (metadatos de Storage).
+savepoint metadatos_del_objeto;
+insert into storage.objects (bucket_id, name, owner, metadata)
+select 'reparacion-adjuntos', pg_temp.ruta('11111111-1111-1111-1111-111111111111', id, 7), 'e1000000-0000-0000-0000-000000000001',
+       '{"mimetype": "image/png", "size": 2048}'::jsonb
+  from reps where clave = 'r2';
+select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'x.png', 'image/png', 10)$$,
+  (select id from reps where clave = 'r2'), pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r2'), 7)),
+  '22023', null, 'un tamaño distinto al del objeto subido se rechaza');
+select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'x.webp', 'image/webp', 2048)$$,
+  (select id from reps where clave = 'r2'), pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r2'), 7)),
+  '22023', null, 'un tipo distinto al del objeto subido se rechaza');
+select lives_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'x.png', 'image/png', 2048)$$,
+  (select id from reps where clave = 'r2'), pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r2'), 7)),
+  'con el tipo y el tamaño del objeto se registra');
+rollback to savepoint metadatos_del_objeto;
+
 select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'x.gif', 'image/gif', 10)$$,
   (select id from reps where clave = 'r2'), pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'r2'), 1)),
   '22023', null, 'tipo no permitido rechazado');

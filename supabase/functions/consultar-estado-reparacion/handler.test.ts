@@ -60,7 +60,7 @@ describe('consultar-estado-reparacion', () => {
     const { deps } = montar({ estado: { ...ESTADO, cliente: 'Ana', contacto: '11-5555', numero_serie: 'SN1', falla: 'x', tecnico: 't',
       id: 'uuid', estado: { ...ESTADO.estado, id: 'u' }, linea_de_tiempo: [{ estado: 'Recibido', fecha: 'f', nota: 'privada', usuario: 'u' }] } })
     const cuerpo = await (await pedir(deps)).json()
-    assert.deepEqual(Object.keys(cuerpo).sort(), ['codigo', 'entrega_prevista', 'equipo', 'estado', 'linea_de_tiempo', 'modelo', 'tienda'])
+    assert.deepEqual(Object.keys(cuerpo).sort(), ['anulada', 'codigo', 'entrega_prevista', 'equipo', 'estado', 'linea_de_tiempo', 'modelo', 'tienda'])
     assert.deepEqual(Object.keys(cuerpo.estado).sort(), ['descripcion', 'nombre'])
     assert.deepEqual(Object.keys(cuerpo.linea_de_tiempo[0]).sort(), ['estado', 'fecha'])
   })
@@ -104,19 +104,20 @@ describe('consultar-estado-reparacion', () => {
     console.error = (...args: unknown[]) => { logs.push(args) }
     try {
       const { deps, estado } = montar({ falloConsulta: true })
-      await pedir(deps, { headers: { 'x-real-ip': '203.0.113.9' } })
+      await pedir(deps, { headers: { 'x-forwarded-for': '203.0.113.9, 10.0.0.9' } })
       assert.match(estado.registros[0][0], /^[0-9a-f]{64}$/)
       assert.ok(!estado.registros[0][0].includes('203.0.113.9'))
       assert.ok(!JSON.stringify(logs).includes('203.0.113.9'))
       const otra = montar()
-      await pedir({ ...otra.deps, sal: 'otra-sal' }, { headers: { 'x-real-ip': '203.0.113.9' } })
+      await pedir({ ...otra.deps, sal: 'otra-sal' }, { headers: { 'x-forwarded-for': '203.0.113.9, 10.0.0.9' } })
       assert.notEqual(otra.estado.registros[0][0], estado.registros[0][0], 'la sal cambia el hash')
     } finally { console.error = original }
   })
 
-  it('toma la IP de x-real-ip, o del valor del cliente en x-forwarded-for, o un valor fijo', () => {
+  it('toma la IP del cliente en x-forwarded-for y ignora x-real-ip; sin cadena suficiente, un valor fijo', () => {
     const req = (headers: Record<string, string>) => new Request('http://x', { headers })
-    assert.equal(ipDelPedido(req({ 'x-real-ip': '1.1.1.1', 'x-forwarded-for': '9.9.9.9, 2.2.2.2' })), '1.1.1.1')
+    assert.equal(ipDelPedido(req({ 'x-real-ip': '1.1.1.1', 'x-forwarded-for': '9.9.9.9, 2.2.2.2' })), '9.9.9.9', 'x-real-ip no cuenta: lo puede falsificar el cliente')
+    assert.equal(ipDelPedido(req({ 'x-real-ip': '1.1.1.1' })), 'sin-ip', 'solo x-real-ip: no alcanza')
     assert.equal(ipDelPedido(req({ 'x-forwarded-for': '9.9.9.9, 2.2.2.2' })), '9.9.9.9', 'STG/PROD: el cliente es el penúltimo (Traefik → Kong)')
     assert.equal(ipDelPedido(req({})), 'sin-ip')
   })
@@ -127,8 +128,10 @@ describe('consultar-estado-reparacion', () => {
     assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7, 10.0.0.9' })), '203.0.113.7')
     // Con un valor inventado a la izquierda (lo puede mandar el cliente): se ignora.
     assert.equal(ipDelPedido(req({ 'x-forwarded-for': '198.51.100.1, 203.0.113.7, 10.0.0.9' })), '203.0.113.7')
-    // Cadena más corta que lo esperado: se toma el primero (el del cliente).
-    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7' })), '203.0.113.7')
+    // Cadena más corta que lo esperado (un proxy no agregó su IP): el primer valor lo puede escribir el cliente,
+    // así que no se usa; contador compartido (falla cerrada).
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7' })), 'sin-ip')
+    assert.equal(ipDelPedido(req({ 'x-forwarded-for': '198.51.100.1' })), 'sin-ip', 'un valor inventado por el cliente no abre un contador propio')
     // Saltos = 0: el último valor (semántica de `private.saltos_proxy_confiables()`).
     assert.equal(ipDelPedido(req({ 'x-forwarded-for': '203.0.113.7, 10.0.0.9' }), 0), '10.0.0.9')
     assert.equal(SALTOS_PROXY_CONFIABLES, 1)
@@ -152,6 +155,10 @@ describe('consultar-estado-reparacion', () => {
       assert.equal(logs.length, 1)
       assert.match(String(logs[0][0]), /SEGUIMIENTO_SALTOS_PROXY/)
       assert.ok(!JSON.stringify(logs).includes('203.0.113.7'), 'el aviso no lleva la IP')
+      logs.length = 0
+      await pedir(montar().deps, { headers: { 'x-forwarded-for': '203.0.113.7' } })
+      assert.equal(logs.length, 1, 'una cadena más corta también avisa (cae al contador compartido)')
+      assert.match(String(logs[0][0]), /falla cerrada/)
       logs.length = 0
       await pedir(montar().deps, { headers: { 'x-forwarded-for': '203.0.113.7, 10.0.0.9' } })
       assert.equal(logs.length, 0, 'con la forma esperada no hay aviso')

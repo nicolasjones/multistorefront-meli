@@ -281,3 +281,19 @@ Los repuestos de una reparación mueven stock real del depósito elegido. Guías
 (descuento por depósito, F-SVC-10), `docs/service-repuestos-devolucion.md` (devolución al quitar o anular,
 F-SVC-11) y `docs/service-repuestos-pendiente.md` (repuesto pendiente de stock, F-SVC-12). Recorrido E2E:
 `apps/web/e2e/service-repuestos-stock.e2e.ts` (se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`).
+
+## Revisión independiente posterior (2026-11-09)
+
+Antes de integrar la épica a `dokploy` se hicieron dos revisiones independientes del diff completo (QA y Code Review técnica + seguridad, con los prompts del SDLC), sobre el código ya integrado. Sin bloqueantes; **se corrigió todo lo que tiene arreglo**:
+
+- **Límite de tasa de la consulta pública**: se dejó de usar `x-real-ip` (falsificable o pisado por un proxy) y una cadena de `x-forwarded-for` más corta que la esperada cae al contador compartido (falla cerrada). La topología Traefik → Kong **sigue sin estar confirmada** en el entorno: hay que probarla en STG antes de promover (`docs/service-seguimiento.md`, «IP»).
+- **Reparación anulada en el enlace público**: la respuesta incluye `anulada`, la línea de tiempo no trae el evento de anulación y la página lo dice (FR-044).
+- **Reporte «Service técnico»**: backfill idempotente para las organizaciones que ya tienen el módulo (en STG/PROD el tablero quedaba sin asignar); mensaje claro para quien no tiene el rol asignado (`docs/service-reportes.md`).
+- **Exportación total**: `reparacion_adjuntos` se exporta y `reparacion_enlaces_consulta` (tokens) se excluye (`docs/exportacion-total.md`).
+- **Adjuntos**: el registro compara tipo y tamaño con los metadatos que Storage guardó del objeto; el borrado del objeto reintenta y una subida rechazada limpia los huérfanos viejos de la carpeta (`docs/service-adjuntos.md`).
+- **Consistencia**: `obtener_enlace_consulta` y `reingresar_por_garantia` responden `P0002` también para una tienda inaccesible; la purga de intentos usa `for update skip locked`; el importador de Superset ordena y avisa si hay reportes con el mismo nombre; `nginx` agrega `X-Robots-Tag` y `Referrer-Policy` a `/seguimiento/`.
+- **Pruebas**: se corrigió un test de pgTAP que elegía el modelo de la organización Dos sin orden, y el archivo `infra/superset/importar-dashboards.test.mjs` (un bloque sin cerrar lo hacía imposible de cargar, y tres de sus pruebas estaban desactualizadas).
+
+**Aceptado a propósito** (decisiones de la spec o de producto, se cambian si el cliente lo pide): el token del enlace se guarda en claro, no vence ni se revoca (*Decisiones abiertas* 4); el tablero compara todas las tiendas de la organización (decisión 6); un reingreso por garantía deja dos eventos de actividad (`reparacion.creada` y `reparacion.reingreso_garantia`).
+
+**No se pudo verificar** (lo valida el CI o hay que hacerlo en STG): los pgTAP y los E2E con sesión; la concurrencia real de la numeración y del tope de 20 (el pgTAP es secuencial y solo comprueba el `for update`); el comportamiento de Traefik/Kong/Storage/Superset en STG/PROD; la revisión visual a 320/768/1440 px (FR-010, manual con `pnpm --filter @platform/web pantallas:capturar`).

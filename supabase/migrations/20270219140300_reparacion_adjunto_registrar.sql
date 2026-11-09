@@ -81,6 +81,16 @@ begin
   if not exists (select 1 from storage.objects o where o.bucket_id = 'reparacion-adjuntos' and o.name = p_ruta) then
     raise exception 'El archivo no se subió' using errcode = '22023', hint = 'ruta';
   end if;
+  -- El tipo y el tamaño que informa el cliente tienen que ser los del objeto realmente subido: Storage los guarda en
+  -- `metadata` (`mimetype`, `size`). Si una de las dos claves no está (objeto sin metadatos), no se compara esa.
+  if not exists (
+    select 1 from storage.objects o
+     where o.bucket_id = 'reparacion-adjuntos' and o.name = p_ruta
+       and coalesce(o.metadata ->> 'mimetype', p_mime) = p_mime
+       and coalesce((o.metadata ->> 'size')::bigint, p_bytes) = p_bytes
+  ) then
+    raise exception 'El archivo subido no coincide con el tipo o el tamaño informados' using errcode = '22023', hint = 'archivo';
+  end if;
   if exists (select 1 from dominio.reparacion_adjuntos a where a.ruta = p_ruta) then
     raise exception 'El archivo ya está registrado' using errcode = '22023', hint = 'ruta';
   end if;

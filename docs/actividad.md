@@ -174,6 +174,8 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   la misma transacción que la fila de la reparación nueva y su evento `alta` del historial. El detalle nombra los
   dos códigos visibles («Reingresó por garantía R-0001 como R-0002»), nunca ids; el evento lleva la tienda de
   la reparación original. Lo cubre el pgTAP `service_garantia`. Ver `docs/service-garantia.md`.
+  Un reingreso deja **dos** eventos, a propósito: `reparacion.creada` (el trigger de alta de `reparaciones`, porque nace
+  una reparación nueva) y `reparacion.reingreso_garantia` (el vínculo con la original).
 - `reparacion.enlace_generado` (F-SVC-22, Service técnico): lo registra la RPC `obtener_enlace_consulta` solo cuando
   **crea** el enlace de seguimiento de una reparación (los pedidos siguientes devuelven el mismo token y no registran
   nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código

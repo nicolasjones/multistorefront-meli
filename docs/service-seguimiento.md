@@ -14,7 +14,11 @@ ningún mensaje** al cliente: el enlace se copia a mano (avisos al cliente: MSF-
 
 `/seguimiento/:token` está **fuera del panel**: sin sesión, sin menú ni barra superior, con `<meta name="robots"
 content="noindex">`. Muestra **solo** código `R-xxxx`, tienda, equipo y modelo, estado actual con «Qué significa»,
-entrega prevista y línea de tiempo de estados (nombre y fecha). Estados: carga, «No encontramos esa reparación»,
+entrega prevista y línea de tiempo de estados (nombre y fecha). Si la reparación fue **anulada** lo dice («Esta
+reparación fue anulada»), rotula el estado como «Último estado» y no muestra la entrega prevista; la línea de tiempo
+no incluye el evento de anulación (repetiría el último estado con la fecha de anulación) y el motivo nunca sale.
+La respuesta pública es una lista blanca de 8 claves: `codigo`, `tienda`, `equipo`, `modelo`, `estado`,
+`entrega_prevista`, `anulada` y `linea_de_tiempo`. Estados de la página: carga, «No encontramos esa reparación»,
 «Demasiadas consultas, probá en unos minutos» y error con «Reintentar». Se lee en 320, 768 y 1440 px.
 
 **Nunca** muestra: cliente ni contacto, N.º de serie, falla, accesorios, técnico, notas o usuarios del historial,
@@ -45,21 +49,28 @@ entrega prevista y línea de tiempo de estados (nombre y fecha). Estados: carga,
   con `upsert` atómico; al excederse responde 429 **sin consultar reparaciones**. Las ventanas vencidas se purgan de
   a 100 filas por llamada.
 - **IP**: se hashea con HMAC-SHA256 y la sal de servidor `SEGUIMIENTO_IP_SALT`; la IP no se guarda ni se loguea.
-  La IP del cliente sale de `x-real-ip` si la fija el proxy más cercano; si no, del valor de `x-forwarded-for` que
-  está `SEGUIMIENTO_SALTOS_PROXY` proxies antes del último (por defecto **1**).
-  - **Topología STG/PROD** (`docs/deployment.md`, `docs/operar-sistema.md`): navegador → **Traefik** (Dokploy,
-    VPS2) → **Kong** (gateway del stack self-hosted) → Edge Runtime. Traefik agrega la IP del cliente y Kong
-    agrega la de Traefik: hay **un** proxy de confianza, así que el cliente es el valor **penúltimo** y cada
-    cliente tiene su propio contador (nadie comparte cupo). Es el mismo criterio de
-    `private.saltos_proxy_confiables()` (F-TDA-15, `supabase/migrations/20261203110300_tienda_busqueda_visitante_saltos.sql`).
-  - **Cómo confirmarlo en STG/PROD**: la función avisa por log (sin IP) cuando la cadena de `x-forwarded-for`
-    trae **más** valores de los esperados: ahí la IP resuelta podría ser la de un proxy y todos los clientes
-    detrás de él compartirían el mismo contador (30 consultas/10 min). Si aparece el aviso, ajustá
-    `SEGUIMIENTO_SALTOS_PROXY` al número real de proxies de confianza (secreto de la función, sin redeploy).
-  - **Si no llega ninguna cabecera**: se usa un valor fijo → **contador compartido** (falla cerrada, como la
-    tienda online): 30 consultas/10 min entre todos.
+  La IP del cliente sale **solo** de `x-forwarded-for`: el valor que está `SEGUIMIENTO_SALTOS_PROXY` proxies antes del
+  último (por defecto **1**). **`x-real-ip` NO se usa**: si ningún proxy lo pisa lo falsifica el cliente (cada pedido
+  abriría un contador nuevo y el límite quedaría anulado) y si Kong lo pisa con la IP de Traefik todos compartirían
+  uno solo.
+  - **Topología esperada en STG/PROD** (`docs/deployment.md`, `docs/operar-sistema.md`): navegador → **Traefik** (Dokploy,
+    VPS2) → **Kong** (gateway del stack self-hosted) → Edge Runtime. Si Traefik agrega la IP del cliente y Kong agrega
+    la de Traefik, hay **un** proxy de confianza, la cadena trae 2 valores, el cliente es el **penúltimo** y cada
+    cliente tiene su propio contador. **Esto NO está confirmado en el entorno**: el repo no define el
+    `trustedIPs`/`forwardedHeaders` de Traefik (`docs/deployment.md`) ni la configuración de Kong, y la tienda online
+    (`private.saltos_proxy_confiables()`, F-TDA-15) aún tiene la cadena real «pendiente de confirmar en DEV».
+  - **Falla cerrada**: si la cadena trae **menos** valores que `saltos + 1` (algún proxy no agregó su IP, así que
+    el primer valor lo pudo escribir el cliente) o ninguna cabecera, se usa un valor fijo → **contador compartido**
+    (30 consultas/10 min entre todos). Con **más** valores de los esperados la IP resuelta puede ser la de un
+    proxy, con el mismo efecto. En ambos casos la función avisa por log (sin IP).
+  - **Cómo confirmarlo en STG antes de promover**: con la página pública abierta desde dos redes distintas, la
+    función no debe avisar y debe responder 200 a ambas; mandar un `X-Real-Ip` o un `X-Forwarded-For` inventado no
+    debe abrir un contador propio (el aviso del log lo delata). Si aparece el aviso, ajustá `SEGUIMIENTO_SALTOS_PROXY`
+    al número real de proxies de confianza (secreto de la función, sin redeploy).
 
 ## Acceso sin sesión
+
+**Cabeceras de la página**: `apps/web/nginx.conf` agrega `X-Robots-Tag: noindex, nofollow` y `Referrer-Policy: no-referrer` solo a las rutas `/seguimiento/…` (mediante `map` sobre `$request_uri`; en el resto de la tienda y del panel no salen). Se probó con nginx real (`nginx -t` y `curl -I`). El `<meta robots>` de la página queda como segunda capa.
 
 - `supabase/config.toml` declara `[functions.consultar-estado-reparacion] verify_jwt = false`: la página
   pública `/seguimiento/:token` consulta **sin sesión** y la clave pública (anon/publishable) **no es un JWT**;
@@ -85,9 +96,10 @@ La página pública llama a la función con la clave pública (anon) para pasar 
   192 bits de entropía, lista blanca mínima sin datos personales, límite por IP, `no-store` y `noindex`.
   Confirmar si hace falta «Regenerar enlace».
 - Quien tenga el enlace ve el estado de **esa** reparación (código, tienda, equipo, fechas).
-- El límite por IP depende de la cadena de `x-forwarded-for` del proxy (ver «IP»): con la topología de STG/PROD
-  cada cliente tiene su contador; si el entorno tuviera más proxies de confianza, el log de la función avisa y
-  hay que ajustar `SEGUIMIENTO_SALTOS_PROXY`. Si no llega ninguna cabecera, el contador es compartido.
+- El límite por IP depende de la cadena de `x-forwarded-for` del proxy (ver «IP») y **la topología no está
+  confirmada**: si la cadena no tiene la forma esperada el contador es compartido (una sola persona podría dejar
+  la página en 429 para todos hasta que pase la ventana). El token (192 bits) no se puede adivinar, así que el
+  riesgo es de disponibilidad, no de enumeración. Hay que confirmarlo en STG antes de promover.
 
 ## Pruebas
 

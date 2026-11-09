@@ -169,9 +169,15 @@ export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermi
 // insertar otra, porque el catálogo no puede tener dos filas del mismo tablero (la app lo busca por
 // nombre y quedaría mostrando la que no tiene el UUID de embebido).
 export async function buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre }) {
-  const url = `${baseUrl}/rest/v1/reportes?nombre=eq.${encodeURIComponent(nombre)}&select=id,superset_dashboard_uuid`;
+  // `reportes.nombre` no es único: se ordena por antigüedad (la fila más vieja es la que registró la migración o el primer
+  // import) para que el PATCH sea determinista, y si hay más de una se avisa en lugar de elegir una en silencio.
+  const url = `${baseUrl}/rest/v1/reportes?nombre=eq.${encodeURIComponent(nombre)}&select=id,superset_dashboard_uuid&order=creado_en.asc,id.asc`;
   const filas = await pedirJson(fetch, url, { headers: cabeceras });
-  return Array.isArray(filas) ? filas[0] ?? null : null;
+  if (!Array.isArray(filas)) return null;
+  if (filas.length > 1) {
+    console.warn(`importar-dashboards: hay ${filas.length} reportes llamados «${nombre}»; se actualiza el más antiguo (${filas[0].id}). Revisá y borrá el duplicado.`);
+  }
+  return filas[0] ?? null;
 }
 
 // Registro idempotente: upsert por `superset_dashboard_uuid` (no duplica al reimportar) y upsert de

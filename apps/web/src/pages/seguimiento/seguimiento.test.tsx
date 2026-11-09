@@ -46,6 +46,25 @@ describe('SeguimientoPage (FR-041, FR-045)', () => {
     expect(screen.getByRole('list', { name: 'Línea de tiempo de estados' }).querySelectorAll('li')).toHaveLength(2)
   })
 
+  it('una reparación anulada lo dice, no promete entrega y rotula el último estado', async () => {
+    mocks.consultar.mockResolvedValue({ tipo: 'ok', estado: { ...ESTADO, anulada: true } })
+    montar()
+    await screen.findByRole('heading', { name: 'Reparación R-0007' })
+    expect(screen.getByRole('note')).toHaveTextContent('Esta reparación fue anulada')
+    expect(screen.getByText('Último estado')).toBeInTheDocument()
+    expect(screen.queryByText('Estado actual')).not.toBeInTheDocument()
+    expect(screen.queryByText('Entrega prevista')).not.toBeInTheDocument()
+    expect(screen.queryByText('01/02/2027')).not.toBeInTheDocument()
+  })
+
+  it('una reparación en curso no muestra el aviso de anulación', async () => {
+    mocks.consultar.mockResolvedValue({ tipo: 'ok', estado: ESTADO })
+    montar()
+    await screen.findByRole('heading', { name: 'Reparación R-0007' })
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    expect(screen.getByText('Estado actual')).toBeInTheDocument()
+  })
+
   it('no muestra campos internos aunque lleguen y no tiene menú ni barra del panel', async () => {
     mocks.consultar.mockResolvedValue({ tipo: 'ok', estado: ESTADO })
     montar()

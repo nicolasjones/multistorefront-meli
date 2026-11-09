@@ -35,8 +35,11 @@ function Tarjeta({ estado }: { estado: EstadoPublico }) {
             <Typography component="h1" variant="h5">{`Reparación ${estado.codigo}`}</Typography>
             <Typography variant="body1" color="text.secondary">{`${estado.equipo} ${estado.modelo}`}</Typography>
           </Box>
+          {estado.anulada ? (
+            <Alert severity="warning" role="note">Esta reparación fue anulada. Si tenés dudas, consultá en la tienda.</Alert>
+          ) : null}
           <Box component="section" aria-labelledby="seguimiento-estado">
-            <Typography id="seguimiento-estado" component="h2" variant="subtitle2" color="text.secondary">Estado actual</Typography>
+            <Typography id="seguimiento-estado" component="h2" variant="subtitle2" color="text.secondary">{estado.anulada ? 'Último estado' : 'Estado actual'}</Typography>
             <Typography variant="h6">{estado.estado.nombre}</Typography>
             {estado.estado.descripcion ? (
               <Typography variant="body2" color="text.secondary">
@@ -44,10 +47,12 @@ function Tarjeta({ estado }: { estado: EstadoPublico }) {
               </Typography>
             ) : null}
           </Box>
-          <Box>
-            <Typography component="h2" variant="subtitle2" color="text.secondary">Entrega prevista</Typography>
-            <Typography variant="body1">{estado.entrega_prevista ? fechaCorta(estado.entrega_prevista) : 'Sin fecha definida'}</Typography>
-          </Box>
+          {estado.anulada ? null : (
+            <Box>
+              <Typography component="h2" variant="subtitle2" color="text.secondary">Entrega prevista</Typography>
+              <Typography variant="body1">{estado.entrega_prevista ? fechaCorta(estado.entrega_prevista) : 'Sin fecha definida'}</Typography>
+            </Box>
+          )}
           {estado.linea_de_tiempo.length > 0 ? (
             <Box component="section" aria-labelledby="seguimiento-linea">
               <Typography id="seguimiento-linea" component="h2" variant="subtitle2" color="text.secondary">Línea de tiempo</Typography>

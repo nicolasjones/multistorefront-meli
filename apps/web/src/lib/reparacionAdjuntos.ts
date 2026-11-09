@@ -92,7 +92,45 @@ export async function listarAdjuntos(reparacionId: string): Promise<Adjunto[]> {
   return (data ?? []) as Adjunto[]
 }
 
+const ESPERAS_REINTENTO_MS = [200, 800]
+/** Un objeto sin fila más viejo que esto no es una subida en curso de otra persona: es un huérfano. */
+export const EDAD_MINIMA_HUERFANO_MS = 10 * 60 * 1000
+
+const esperar = (ms: number) => new Promise<void>((resolver) => setTimeout(resolver, ms))
+
+async function borrarObjetos(rutas: string[]): Promise<boolean> {
+  for (let intento = 0; intento <= ESPERAS_REINTENTO_MS.length; intento += 1) {
+    const { error } = await supabaseClient.storage.from(BUCKET_ADJUNTOS).remove(rutas)
+    if (!error) return true
+    if (intento < ESPERAS_REINTENTO_MS.length) await esperar(ESPERAS_REINTENTO_MS[intento])
+  }
+  return false
+}
+
+// Si el borrado del objeto de un adjunto quitado falla, o se cortó una subida antes de registrarla, queda un objeto
+// SIN fila: la política de Storage solo deja borrar esos (los registrados se borran vía `quitar_adjunto_reparacion`) y
+// cuenta objetos, no filas, para el tope de 20. Antes de reintentar una subida rechazada se borran los de esa carpeta
+// que no tienen fila y tienen más de 10 minutos (los más nuevos pueden ser la subida en curso de otra persona).
+export async function limpiarHuerfanos(organizacionId: string, reparacionId: string): Promise<number> {
+  const carpeta = `${organizacionId}/${reparacionId}`
+  const { data: objetos, error } = await supabaseClient.storage.from(BUCKET_ADJUNTOS).list(carpeta, { limit: 100 })
+  if (error || !objetos?.length) return 0
+  const registrados = new Set((await listarAdjuntos(reparacionId)).map((adjunto) => adjunto.ruta))
+  const corte = Date.now() - EDAD_MINIMA_HUERFANO_MS
+  const huerfanos = objetos
+    .filter((objeto) => {
+      const creado = Date.parse(objeto.created_at ?? '')
+      return Number.isFinite(creado) && creado < corte
+    })
+    .map((objeto) => `${carpeta}/${objeto.name}`)
+    .filter((ruta) => !registrados.has(ruta))
+  if (!huerfanos.length) return 0
+  return (await borrarObjetos(huerfanos)) ? huerfanos.length : 0
+}
+
 // Sube el archivo ya validado y lo registra. Si el registro falla, borra el objeto recién subido para no dejar huérfanos.
+// Si Storage rechaza la subida (p. ej. el tope de 20 objetos, que cuenta también los huérfanos), limpia los huérfanos
+// viejos de la carpeta y reintenta una sola vez.
 export async function subirAdjunto(
   organizacionId: string,
   reparacionId: string,
@@ -100,7 +138,12 @@ export async function subirAdjunto(
   mime: TipoAdjunto,
 ): Promise<void> {
   const ruta = rutaAdjunto(organizacionId, reparacionId, mime)
-  const subida = await supabaseClient.storage.from(BUCKET_ADJUNTOS).upload(ruta, archivo, { contentType: mime, upsert: false })
+  const subir = () => supabaseClient.storage.from(BUCKET_ADJUNTOS).upload(ruta, archivo, { contentType: mime, upsert: false })
+  let subida = await subir()
+  if (subida.error) {
+    const limpiados = await limpiarHuerfanos(organizacionId, reparacionId).catch(() => 0)
+    if (limpiados > 0) subida = await subir()
+  }
   if (subida.error) throw subida.error
   const { error } = await supabaseClient.rpc('registrar_adjunto_reparacion', {
     p_reparacion: reparacionId,
@@ -110,23 +153,22 @@ export async function subirAdjunto(
     p_bytes: archivo.size,
   })
   if (error) {
-    await supabaseClient.storage.from(BUCKET_ADJUNTOS).remove([ruta]).catch(() => undefined)
+    await borrarObjetos([ruta]).catch(() => undefined)
     throw error
   }
 }
 
-// RPC primero (la fila deja de existir) y luego el objeto: si el borrado falla queda un archivo huérfano pero
-// inaccesible desde la interfaz (docs/service-adjuntos.md).
+// RPC primero (la fila deja de existir) y luego el objeto, con reintentos: si igual falla queda un archivo sin fila,
+// que se limpia al próximo rechazo de subida (`limpiarHuerfanos`). Mientras tanto no aparece en la interfaz, pero
+// quien tenga `lectura` en la reparación podría pedirlo a Storage si conoce su ruta (docs/service-adjuntos.md).
 export async function quitarAdjunto(adjuntoId: string): Promise<void> {
   const { data, error } = await supabaseClient.rpc('quitar_adjunto_reparacion', { p_adjunto: adjuntoId })
   if (error) throw error
   const ruta = (data as { ruta?: string } | null)?.ruta
   if (!ruta) return
-  const { error: errorBorrado } = await supabaseClient.storage.from(BUCKET_ADJUNTOS).remove([ruta])
-  if (errorBorrado) console.error('No se pudo borrar el archivo del adjunto quitado', errorBorrado.message)
+  if (!(await borrarObjetos([ruta]))) console.error('No se pudo borrar el archivo del adjunto quitado', ruta)
 }
 
-// Una sola llamada por listado (miniaturas); las rutas que no se pueden firmar quedan sin URL.
 export async function urlsAdjuntos(rutas: string[]): Promise<Record<string, string>> {
   const unicas = [...new Set(rutas.filter(Boolean))]
   if (unicas.length === 0) return {}

@@ -59,7 +59,9 @@ begin
      select p.ip_hash, p.ventana
        from public.consultas_publicas_intentos p
       where p.ventana < v_ventana - make_interval(secs => p_ventana_seg * 2)
+      order by p.ventana
       limit 100
+        for update skip locked
    );
 
   return jsonb_build_object(

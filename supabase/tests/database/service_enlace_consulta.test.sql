@@ -137,7 +137,7 @@ select throws_ok(format($$select public.obtener_enlace_consulta(%L)$$, (select i
   '42501', null, 'un rol de consulta no genera el enlace');
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.obtener_enlace_consulta(%L)$$, (select id from rg where clave = 'tienda_b')),
-  '42501', null, 'una tienda inaccesible no genera el enlace');
+  'P0002', null, 'una tienda inaccesible no genera el enlace y responde igual que una reparación inexistente');
 select throws_ok($$select public.obtener_enlace_consulta(gen_random_uuid())$$, 'P0002', null, 'una reparación inexistente es P0002');
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.obtener_enlace_consulta(%L)$$, (select id from rg where clave = 'a')),
@@ -155,11 +155,11 @@ reset role;
 set local role service_role;
 
 select is((select jsonb_object_keys_count from (select count(*)::int as jsonb_object_keys_count
-    from jsonb_object_keys(public.obtener_estado_publico_reparacion((select token from rg where clave = 'a')))) k), 7,
-  'la respuesta tiene exactamente 7 claves');
+    from jsonb_object_keys(public.obtener_estado_publico_reparacion((select token from rg where clave = 'a')))) k), 8,
+  'la respuesta tiene exactamente 8 claves');
 select is(
   (select array_agg(k order by k) from jsonb_object_keys(public.obtener_estado_publico_reparacion((select token from rg where clave = 'a'))) k),
-  array['codigo', 'entrega_prevista', 'equipo', 'estado', 'linea_de_tiempo', 'modelo', 'tienda'],
+  array['anulada', 'codigo', 'entrega_prevista', 'equipo', 'estado', 'linea_de_tiempo', 'modelo', 'tienda'],
   'claves exactas de la lista blanca');
 select is(
   (select array_agg(k order by k) from jsonb_object_keys(public.obtener_estado_publico_reparacion((select token from rg where clave = 'a'))->'estado') k),
@@ -182,13 +182,32 @@ select is(public.obtener_estado_publico_reparacion('corto'), null, 'token mal fo
 select is(public.obtener_estado_publico_reparacion(''), null, 'token vacío → null');
 select is(public.obtener_estado_publico_reparacion(null), null, 'token nulo → null');
 
+-- Reparación anulada: el cliente la ve como anulada y la línea de tiempo no repite el último estado con la fecha de anulación.
+select is(public.obtener_estado_publico_reparacion((select token from rg where clave = 'a'))->>'anulada', 'false',
+  'una reparación en curso no figura como anulada');
+reset role;
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+insert into rg (clave, id)
+select 'anul', (public.crear_reparacion('a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000001',
+  (select modelo_uno from datos))->>'id')::uuid;
+update rg set token = public.obtener_enlace_consulta(id)->>'token' where clave = 'anul';
+select public.anular_reparacion((select id from rg where clave = 'anul'), 'Se canceló');
+reset role;
+set local role service_role;
+select is(public.obtener_estado_publico_reparacion((select token from rg where clave = 'anul'))->>'anulada', 'true',
+  'una reparación anulada lo informa en la respuesta pública');
+select is(jsonb_array_length(public.obtener_estado_publico_reparacion((select token from rg where clave = 'anul'))->'linea_de_tiempo'), 1,
+  'la línea de tiempo no incluye el evento de anulación (solo el alta)');
+select ok(public.obtener_estado_publico_reparacion((select token from rg where clave = 'anul'))::text !~* 'cancel',
+  'el motivo de la anulación no sale en la respuesta pública');
+
 -- Aislamiento entre organizaciones: el token de una nunca devuelve datos de la otra.
 reset role;
 insert into dominio.modelos_equipo (organizacion_id, equipo, modelo) values ('22222222-2222-2222-2222-222222222222', 'Equipo Dos', 'Modelo Dos');
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 insert into rg (clave, id)
 select 'dos', (public.crear_reparacion('a2000000-0000-0000-0000-000000000001', 'c6000000-0000-0000-0000-000000000001',
-  (select id from dominio.modelos_equipo where organizacion_id = '22222222-2222-2222-2222-222222222222' limit 1))->>'id')::uuid;
+  (select id from dominio.modelos_equipo where organizacion_id = '22222222-2222-2222-2222-222222222222' and equipo = 'Equipo Dos' and modelo = 'Modelo Dos'))->>'id')::uuid;
 update rg set token = public.obtener_enlace_consulta(id)->>'token' where clave = 'dos';
 reset role;
 set local role service_role;
