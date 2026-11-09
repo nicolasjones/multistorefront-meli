@@ -52,11 +52,14 @@ Se ven 4 por fila en la compu y 2 por fila en el celular. Cada tarjeta lleva a l
 
 Cada página de la tienda lleva ahora título, descripción e imagen para que se vea bien al buscarla en Google o
 al compartir el enlace. Además, la tienda publica la lista de sus páginas (catálogo, categorías, productos
-visibles y contacto) para que Google las encuentre.
+visibles, páginas de contenido visibles y contacto) para que Google las encuentre. Al compartir un producto se
+muestra el **logo de la tienda** como imagen.
 
 - Las páginas de **«Volvemos pronto»**, **404**, **ingresar**, **recuperar contraseña** y **resultados de
   búsqueda** le piden a Google **no aparecer** en los resultados.
-- Una tienda **pausada** o una dirección desconocida le dicen a Google que no indexe nada.
+- Una tienda **pausada** o una dirección desconocida le dicen a Google que no indexe nada. El cambio puede tardar
+  hasta unos 10 minutos en verse.
+- Las pantallas de **error al cargar** una página también le piden a Google no aparecer.
 - La descripción sale del subtítulo que cargaste en el contenido de la tienda; si no hay, se usa «*nombre* ·
   tienda online».
 
@@ -70,7 +73,8 @@ en una pestaña nueva. Cada dato que falte se omite y, si no hay ninguno, el blo
 
 - La razón social, el CUIT y la dirección se editan en **Canales → Empresas**, como siempre.
 - Los **enlaces legales todavía no se pueden cargar desde el panel**: los carga el equipo de soporte. Pedíselos con
-  el título y la dirección web (tiene que empezar con `https://`).
+  el título y la dirección web (tiene que empezar con `https://` y no puede llevar usuario o clave en la dirección). Cada empresa admite hasta
+  10 enlaces.
 - Qué documentos legales lleva cada marca se confirma con el cliente; hasta entonces cada tienda muestra solo lo
   que tenga cargado.
 
