@@ -75,6 +75,13 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   estándar sin pasar por RPC (se pierde solo la atribución de cada línea al test).
   Si reaparece, no relanzar sin mirar: revisar qué test escribe a consola después
   de terminar.
+- **Falso rojo por `ReferenceError: window is not defined`**: si todos los tests pasan
+  pero vitest sale con ese error atribuido a otro archivo (p. ej.
+  `SiderPanel.test.tsx`), es un `setState` tardío de un hook cuya petición termina
+  DESPUÉS de desmontar y de cerrar jsdom. `useEmpresasAccesibles` ya invalida la
+  petición en vuelo al desmontar («última petición gana» incluye el desmontaje); un
+  hook nuevo con carga asíncrona debe hacer lo mismo y cubrirlo con un test que
+  rechace/resuelva después de `unmount()`.
 
 ## Calidad determinista (`pnpm calidad`)
 - `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,
