@@ -3749,6 +3749,98 @@ erDiagram
 - Reversión: ver el encabezado de cada migración y la sección «Reversión» de
   [Importaciones y monitoreo](importaciones-y-monitoreo.md#reversion).
 
+## Notificaciones, ayuda y exportación total (MSF-224)
+
+**Ninguna tabla nueva.** Migraciones aditivas `20270217300001`–`20270217300007` de la rama de la épica
+(`epic/MSF-224-plataforma-notificaciones-ayuda-y-export`); a la fecha de esta página no están en `main`. Detalle
+técnico, contratos, flows y guía de prueba en
+[Notificaciones, ayuda y exportación total](notificaciones-ayuda-y-exportacion-total.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.avisos_pendientes` | **alterada** | Columna `leido_en timestamptz` (nulo = sin leer) e índice `avisos_pendientes_usuario_creado_idx (user_id, creado_en desc)`. El estado «leído» es del mismo aviso de F-NOT-01: no hay tabla paralela de notificaciones. RLS y privilegios sin cambio (activada **sin políticas**). |
+| `public.tipos_aviso` | existente | Sin cambio: la campanita lee el catálogo de tipos (nombre legible y sección de permisos) de MSF-189. |
+| `public.preferencias_aviso` | existente | Sin cambio: un tipo apagado en «Avisos por correo» no se encola, así que tampoco aparece en la campanita. |
+| `public.procesos_masivos` | existente | Sin cambio de tabla ni de RLS: la exportación total se registra como un proceso más (`tipo = 'exportacion'`, `funcionalidad = 'exportacion_total'`, **sin empresa**). |
+| `public.procesos_masivos_errores` | existente | Sin cambio: un error por conjunto de datos que no se pudo leer completo. |
+| `public.ejecuciones_worker` | existente | Sin cambio: la ejecución auditable del worker (ciclo de F-IMP-01). |
+| `public.despachos_ejecucion` | existente | Sin cambio: la orden durable que consume el flow de Kestra. |
+| `public.conexiones`, `public.capacidades_ejecucion` | existente | Sin cambio: se leen para la conexión `historial-ventas` y la capacidad `exportar-organizacion-<organizacion_id>` (se crea al primer uso). |
+| `public.organizaciones` | existente | Sin cambio: es un conjunto exportado, filtrado por su `id` (no por `organizacion_id`). |
+| `storage.buckets` / `storage.objects` | existente | **Objeto nuevo**: bucket privado `exportaciones-organizacion` (`file_size_limit` 524288000, solo `application/zip`) con la política `exportaciones_organizacion_select`, que deja leer el archivo solo al administrador propio de la organización dueña de la carpeta. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ AVISOS_PENDIENTES : "encola"
+  AUTH_USERS ||--o{ AVISOS_PENDIENTES : "recibe"
+  TIPOS_AVISO ||--o{ AVISOS_PENDIENTES : "clasifica"
+  ORGANIZACIONES ||--o{ PROCESOS_MASIVOS : "organizacion_id"
+  PROCESOS_MASIVOS ||--o{ PROCESOS_MASIVOS_ERRORES : "proceso_id"
+  EJECUCIONES_WORKER ||--o| PROCESOS_MASIVOS : "ejecucion_id"
+  DESPACHOS_EJECUCION ||--o{ PROCESOS_MASIVOS : "despacha"
+  ORGANIZACIONES ||--o{ CAPACIDADES_EJECUCION : "capacidad por organizacion"
+  CONEXIONES ||--o{ CAPACIDADES_EJECUCION : "servidor"
+  ORGANIZACIONES ||--o{ STORAGE_OBJECTS : "carpeta del bucket privado"
+
+  AVISOS_PENDIENTES { uuid id PK
+    uuid organizacion_id FK
+    uuid user_id FK
+    text tipo_aviso FK
+    uuid grupo_id
+    jsonb datos
+    text estado "pendiente|enviando|enviado|descartado|fallido"
+    timestamptz leido_en "nueva: null = sin leer"
+    timestamptz creado_en }
+  TIPOS_AVISO { text clave PK
+    text nombre
+    text seccion }
+  PROCESOS_MASIVOS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK "opcional"
+    text tipo "importacion | exportacion"
+    text funcionalidad "exportacion_total para la exportación total"
+    text estado "pendiente | en_curso | completado | con_errores | fallido | cancelado"
+    uuid ejecucion_id FK
+    integer total "cantidad de conjuntos"
+    integer procesados }
+  PROCESOS_MASIVOS_ERRORES { uuid id PK
+    uuid proceso_id FK
+    text referencia "conjunto de datos"
+    text motivo_sanitizado }
+  EJECUCIONES_WORKER { uuid id PK
+    uuid organizacion_id FK
+    uuid capacidad_id FK }
+  DESPACHOS_EJECUCION { uuid id PK
+    uuid organizacion_id FK
+    text capacidad }
+  CAPACIDADES_EJECUCION { uuid id PK
+    uuid organizacion_id FK
+    uuid conexion_id FK
+    text clave "exportar-organizacion-<organizacion_id>"
+    integer tiempo_max_seg }
+  CONEXIONES { uuid id PK
+    uuid organizacion_id FK
+    text sistema_externo "historial-ventas" }
+  STORAGE_OBJECTS { uuid id PK
+    text bucket "exportaciones-organizacion"
+    text name "organizacion_id/ejecucion_id.zip" }
+```
+
+- RLS: `avisos_pendientes` sigue **activada sin políticas** y sin privilegios para `anon` ni `authenticated`: la
+  campanita lee y marca por tres funciones `security definer` (`listar_notificaciones`,
+  `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas`) que filtran por `auth.uid()` y
+  `private.organizacion_id()`, excluyen los avisos `descartado` y los tipos de secciones sin acceso vigente.
+- El bucket de la exportación no tiene política de `insert`/`update`/`delete` para `authenticated`: el worker escribe
+  con la clave de servicio del servidor y el navegador solo recibe una URL firmada de 60 s.
+- La exportación total es de **toda la organización**: las funciones de lectura del worker filtran por la
+  organización de la ejecución (nunca por parámetro) y solo corren sobre una ejecución en curso de la capacidad
+  `exportar-organizacion-*`.
+- **Completitud de la lista**: el pgTAP `exportacion_total.test.sql` falla si una tabla con `organizacion_id` de
+  `public` o `dominio` no está en `private.conjuntos_exportacion_total()` (lista permitida) ni en
+  `private.exclusiones_exportacion_total()` (exclusiones, con su motivo).
+- Reversión: ver el encabezado de cada migración y la sección «Reversión» de
+  [Notificaciones, ayuda y exportación total](notificaciones-ayuda-y-exportacion-total.md#reversion).
+
 ## Páginas de contenido y analítica de la tienda (MSF-164)
 
 Dos tablas nuevas en `dominio` (migraciones `20270212200001_tienda_paginas.sql` y `20270212200002_tienda_analitica.sql`), ambas con RLS por organización, solo `select` para `authenticated` y escritura únicamente por RPC. Ver [Tienda pública: contenido, analítica y compartir](tienda-contenido-y-analitica.md).

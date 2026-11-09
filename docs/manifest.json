@@ -309,7 +309,7 @@
     },
     "docs/index.md": {
       "title": "Manual de usuario de MSF",
-      "pageHash": "61c8b00aa02e13cd884e4458352444d0b4fe18d8e0984c541fdeedfd15dbaa4a",
+      "pageHash": "2134f0ca3e548be403fd5a49640e8c450e6eafda32153737d803874fde2f5aa2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -362,7 +362,7 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "03f8e50e77478ff186a27e126dddbb317e40cceea1b742f94d0e8a1a0d48f860",
+      "pageHash": "1218e424f6ab87c7f5ae7cad16c7c02d05f295a59f5c6437fb49ec8ec5f5ba0d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -389,7 +389,16 @@
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
-      "pageHash": "d360c3ae71a2bbecdb35f0839ab363cb0023ca4a73b629aee6f36dc819ee8587",
+      "pageHash": "6a2345e506a9dbf71e8dfda6a32cb2ef452c7f880c9a7255e897fecba9a0b562",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "a8db4308"
+    },
+    "docs/producto/ayuda.md": {
+      "title": "La ayuda dentro del panel",
+      "pageHash": "3c006f9c26fd8f4c0839c16615a08aea5bdcf4a931fee0f3e4fb5a3ff2d5cae7",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -538,7 +547,7 @@
     },
     "docs/producto/importaciones.md": {
       "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
-      "pageHash": "2d20aaeae1db406e5ad647386e6c02b7a2a0aeb87e6a0e321f94d4cc8092f772",
+      "pageHash": "2db8a5a796e05a8e17fd83a0cdfa5fe079c4bb80a1fd3c35b5f6c4b25775f970",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -575,6 +584,15 @@
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
       "pageHash": "317d7b11d6eaa2e1b432f2a04987ac95875d9bbd94b91c9e836e13c9b524cfde",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/notificaciones.md": {
+      "title": "La campanita de notificaciones",
+      "pageHash": "bf55ec3c2728dd9b6a5a9ad36cc001d72177035cc8ff8a7f1d9dc30835cfdcb1",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1210,14 +1228,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "6aa58d0311e873cbcedd433dc92ec9c7c5f36ba7d1826ad5ddf2768902c59787",
+      "pageHash": "ab6cde6d29bc9c7849f9e0611d881fd5d9f9b8d20304103d4b7dec17055a0be7",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "9d91048c",
+      "sourceAt": "158ff948",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "29bf8f31"
+      "commit": "dc8c0e42"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1248,21 +1266,21 @@
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
-      "pageHash": "3eda6087c0b97d61ee387adce06b7ef3b62f72c14362d63df8b6f12fe4b21b06",
+      "pageHash": "69fa42a45f6a5d51167528a2e174b7a94aa32e19efd7e22a968688d15177aea5",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "b03ce7d",
+      "sourceAt": "158ff948",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "c1c719f2"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "f78b6d96233df9f773ea6ec5b347e1717582180ce1e4f5345ea47971468e038d",
+      "pageHash": "29143652d4e136ab4ee1a9f3d27707f708a30f8f9d29444fa7bfa02863f1a42f",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "6f26168e",
+      "sourceAt": "158ff948",
       "sources": [
         "apps/web/src"
       ],
@@ -1426,9 +1444,9 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "a9f9b5e4e7f6c6165748651b2f8e046aaca82c96ba5b25784076c089c50e5697",
+      "pageHash": "c46646fdc4d3c955a933d65261d0e4f48955388d20f72ed2bdff2f01ebfbbefc",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "22331d47",
+      "sourceAt": "158ff948",
       "sources": [
         "supabase/migrations"
       ],
@@ -1552,6 +1570,27 @@
       ],
       "owner": "tecnico",
       "commit": "53cb4c30"
+    },
+    "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
+      "title": "Notificaciones, ayuda y exportación total (MSF-224)",
+      "pageHash": "6f5f7a4a64102fcf53de609f90b2c92947df0e7c5f100ff4b7dcb62d9b48c63e",
+      "sourceHash": "dac584cdb9659da264288016300b9e5043b7f9696437d90e2d5e70a7e8ebffcf",
+      "sourceAt": "158ff948",
+      "sources": [
+        "specs/20270215-100000-notificaciones-ayuda-y-exportacion-total",
+        "apps/web/src/components/navegacion",
+        "apps/web/src/ayuda",
+        "apps/web/src/pages/importaciones",
+        "apps/web/src/hooks/useExportacionTotal.ts",
+        "apps/web/src/lib/exportacionTotal.ts",
+        "workers/exportar-organizacion",
+        "infra/kestra/flows/exportar-organizacion.yml",
+        "supabase/migrations",
+        "supabase/tests/database",
+        "apps/web/e2e"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",

@@ -70,6 +70,15 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Consultas de las tiendas (producto)](../producto/consultas.md)
 - [Consultas: modelo, RPC y aviso (técnico)](consultas.md)
 
+## Plataforma
+- [La campanita de notificaciones (producto)](../producto/notificaciones.md)
+- [La ayuda dentro del panel (producto)](../producto/ayuda.md)
+- [Notificaciones, ayuda y exportación total (técnico)](notificaciones-ayuda-y-exportacion-total.md)
+- [Importaciones y exportaciones (producto)](../producto/importaciones.md)
+- [Importaciones y monitoreo (técnico)](importaciones-y-monitoreo.md)
+- [Avisos por correo y listas configurables (producto)](../producto/avisos-y-listas.md)
+- [Avisos y listas: modelo, RPC y flujos (técnico)](avisos-y-listas.md)
+
 ## Service técnico
 - [Service técnico: listado, ítems e impresión (producto)](../producto/service-listado-items-impresion.md)
 - [Service técnico: listado, ítems e impresión (técnico)](service-listado-items-impresion.md)

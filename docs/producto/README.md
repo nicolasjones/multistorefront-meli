@@ -35,6 +35,10 @@ Arriba, junto al menú, está el selector de **empresa activa** (1: con qué tie
 
 *Barra superior: el recuadro 1 es la empresa activa y el 2, tu menú personal.*
 
+Entre el buscador y tu nombre están la **campanita de notificaciones** y el botón de **ayuda**. La campanita te
+muestra tus avisos sin leer: [La campanita de notificaciones](notificaciones.md). El botón de ayuda abre una
+explicación corta de la pantalla en la que estás: [La ayuda dentro del panel](ayuda.md).
+
 Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés acceso, con la opción **Todas mis empresas**.
 
 ![Selector de empresa abierto con Todas mis empresas, Mundo JC y San Javucho](img/README/03-selector-empresa.png)
@@ -64,5 +68,7 @@ Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés
 
 - [Qué podés hacer con el sistema](capacidades.md): resumen por área.
 - [Cómo se muestran las listas](listados.md): cómo se cargan los resultados y qué foto ves en cada producto.
+- [La campanita de notificaciones](notificaciones.md): tus avisos, sin leer y leídos.
+- [La ayuda dentro del panel](ayuda.md): la explicación corta de cada pantalla.
 - [Glosario](glosario.md): los términos que ves en pantalla.
 - [Actividad](actividad.md): quién hizo qué y cuándo.

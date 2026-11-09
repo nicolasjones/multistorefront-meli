@@ -30,7 +30,7 @@ También podés usar el buscador de arriba: escribí la palabra que buscás (por
 
 ## Secciones del manual
 
-- **Primeros pasos:** ingreso, perfil, organización y empresas, usuarios y roles, actividad.
+- **Primeros pasos:** ingreso, perfil, organización y empresas, usuarios y roles, actividad, campanita de notificaciones y ayuda del panel.
 - **Catálogo y precios:** productos y categorías, cotización del dólar, precios, escalas e IVA, rentabilidad.
 - **Stock y compras:** stock, depósitos, traslados y reservas, lotes e inventario, proveedores, ingreso de mercadería.
 - **Ventas:** venta de mostrador, presupuestos y facturas, estados, cobros, cierre de caja, despacho, devoluciones, impresión.

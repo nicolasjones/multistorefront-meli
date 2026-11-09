@@ -98,6 +98,8 @@ nav:
           - Usuarios y roles: producto/usuarios-y-roles.md
           - Actividad: producto/actividad.md
           - Inicio, alertas y búsqueda: producto/inicio-y-alertas.md
+          - La campanita de notificaciones: producto/notificaciones.md
+          - La ayuda dentro del panel: producto/ayuda.md
       - Catálogo y precios:
           - Productos y categorías: producto/catalogo-productos.md
           - Cotización del dólar: producto/precios-dolar.md
@@ -184,6 +186,8 @@ nav:
           - Perfil y permisos avanzados: tecnico/perfil-y-permisos.md
           - Auditoría avanzada y soporte (MSF-170): tecnico/auditoria-y-soporte.md
           - Inicio y alertas: tecnico/inicio-y-alertas.md
+      - Plataforma:
+          - Notificaciones, ayuda y exportación total (MSF-224): tecnico/notificaciones-ayuda-y-exportacion-total.md
       - Catálogo y precios:
           - Alta y edición: tecnico/catalogo-alta-y-edicion.md
           - Listado y categorías: tecnico/catalogo-listado-y-categorias.md
