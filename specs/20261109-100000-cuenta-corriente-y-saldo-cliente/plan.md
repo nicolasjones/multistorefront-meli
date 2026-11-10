@@ -46,7 +46,7 @@ resuelve el saldo y el detalle, y la ficha del cliente los muestra.
 | II. Spec antes de implementar | Cumple: esta spec, este plan y estas tareas van antes del código. |
 | VI. Panel operable | La vista usa los patrones compartidos (carga, vacío, error con «Reintentar»), la tabla adaptable (`ContenidoAdaptable`) y los tokens del sistema de diseño. Sin rutas ni navegación nuevas. |
 | VII. Esquemas | Sin tablas nuevas. Se leen tablas `dominio` y `public` ya existentes; la RPC vive en `public` (mecanismo). Declarado en la spec. |
-| VIII. Empresa activa | No aplica a esta sección (es de toda la organización, como la sección «Compras»); declarado en la *Matriz pantalla↔criterios*. |
+| VIII. Empresa activa | No depende de la empresa activa: suma las tiendas a las que la persona accede (`private.empresas_accesibles()`); declarado en la *Matriz pantalla↔criterios*. |
 | Documentación | `docs/clientes.md` se actualiza en el mismo cambio. |
 
 ## Reversión

@@ -20,8 +20,8 @@
 -- · El saldo de un comprobante NO se recalcula acá: lo trae `private.saldo_comprobante`
 --   (F-VTA-12), que es su único dueño (`total con IVA − Σ cobros`, nunca negativo). Si esta
 --   función recalculara el saldo, habría dos reglas que pueden divergir; por eso la llama.
---   El estado «Deuda» no se consulta: una factura en «Deuda» no tiene cobros (debe su total
---   completo).
+--   El estado «Deuda» no se consulta (una factura en «Deuda» no tiene cobros: debe su total
+--   completo); sí se excluye «Cobrado» (ver abajo).
 -- · Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`: un borrador no se
 --   debe, una factura anulada no le debe nada a nadie (mismo criterio que
 --   `public.resumen_pagos`) y una «Cobrada» está saldada por definición aunque su cobro no esté
@@ -130,4 +130,4 @@ revoke execute on function public.cuenta_corriente_cliente(uuid) from public, an
 grant execute on function public.cuenta_corriente_cliente(uuid) to authenticated;
 
 comment on function public.cuenta_corriente_cliente(uuid) is
-  'Cuenta corriente del cliente (F-CLI-19): saldo total, cantidad de comprobantes abiertos y sus filas (id, número, fecha, estado, total, cobrado y saldo; el saldo sale de private.saldo_comprobante). Solo lectura: la autorización y el aislamiento por organización los resuelve la función en el servidor.';
+  'Cuenta corriente del cliente (F-CLI-19): saldo total, cantidad de comprobantes abiertos y sus filas (id, número, fecha, estado, total, cobrado y saldo; el saldo sale de private.saldo_comprobante). Solo lectura: la autorización, el aislamiento por organización y el alcance por tiendas accesibles los resuelve la función en el servidor.';

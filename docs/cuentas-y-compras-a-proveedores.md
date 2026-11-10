@@ -39,3 +39,19 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
 
 Cuando el cliente valide la demanda y la asigne a un hito: se redactan sus requisitos y escenarios, se dibuja su
 pantalla y se escribe su spec propia (con su alcance de entrega y su matriz de pantalla).
+
+## Revisión de seguridad de la épica
+
+Lo único que la épica entrega con código es la RPC `public.cuenta_corriente_cliente` (F-CLI-19, MSF-451). Revisada por
+un agente independiente (técnica + seguridad), sobre el commit final:
+
+- **Sin tablas nuevas:** no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `public.clientes` y
+  `private.saldo_comprobante`.
+- **`security definer` con `search_path = ''`:** todo está calificado (`public.`, `dominio.`, `private.`).
+- **Aislamiento:** la organización sale de `private.organizacion_id()`, nunca de un argumento; el alcance por tienda
+  sale de `private.empresas_accesibles()`. Un cliente ajeno o inexistente devuelve saldo 0 sin revelar si existe.
+- **Permisos:** exige la sección `clientes` en `lectura`/`edicion` (`42501` si no). `revoke … from public, anon` y
+  `grant execute … to authenticated`; `private.saldo_comprobante` no está expuesta.
+- **Sin SQL dinámico:** el único parámetro es un `uuid`.
+- **Secretos, compose y dependencias:** sin cambios.
+- **Pendiente de validar en el CI:** pgTAP y E2E (necesitan Supabase local).

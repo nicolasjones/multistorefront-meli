@@ -7,11 +7,13 @@
 --   dueño de la regla— y el total es la suma de los abiertos (FR-002, FR-004, SC-001);
 -- · cada fila trae el id del comprobante: el número se repite entre tiendas (el correlativo es
 --   por organización, empresa y tipo) y el id es lo que distingue las filas;
--- · entran solo las facturas que no están en `borrador` ni `anulada`: presupuesto, anulada,
+-- · entran solo las facturas que no están en `borrador`, `anulada` ni `cobrado` (una cobrada sin fila
+--   de cobro está saldada): presupuesto, anulada,
 --   borrador y nota de crédito quedan fuera (FR-003);
 -- · una factura en estado «deuda» (sin cobros) debe su total completo (FR-002);
 -- · un cliente sin deuda devuelve saldo 0 y sin documentos; un cliente de otra organización no
 --   revela nada (FR-001);
+-- · el alcance por tienda: quien no accede a una tienda no ve su deuda (`empresas_accesibles`);
 -- · los niveles de la sección Clientes y la ejecutabilidad por `anon` (SC-002).
 begin;
 
@@ -72,7 +74,7 @@ values
   ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000007', current_date - 1, 'borrador', 7000, 8470),
   -- Cobro que supera el total: el saldo es 0, no negativo.
   ('a1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000009', current_date - 1, 'confirmada', 200, 300),
-    -- Cobrada sin fila de cobro (mostrador o anterior al libro): está saldada, no es deuda.
+  -- Cobrada sin fila de cobro (mostrador o anterior al libro): está saldada, no es deuda.
   ('a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000010', current_date - 1, 'cobrado', 500, 600),
   -- De otra organización: no se ve desde la primera.
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', null, 'c2000000-0000-0000-0000-000000000001', 'factura', '0002-00000001', current_date - 1, 'deuda', 70000, 77000);

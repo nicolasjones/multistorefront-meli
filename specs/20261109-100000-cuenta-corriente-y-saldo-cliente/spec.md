@@ -64,7 +64,7 @@ ningún estado nuevo de comprobante.
   total, cobro que supera el total → 0) + comparación documento por documento con
   `private.saldo_comprobante` (SC-001).
 - **FR-003** (F-CLI-19): A la cuenta corriente entran **solo facturas** que no están en
-  `borrador` ni `anulada`. Los presupuestos no son deuda y no entran; las notas de crédito no
+  `borrador`, `anulada` ni `cobrado` (una cobrada está saldada aunque su cobro no esté en el libro). Los presupuestos no son deuda y no entran; las notas de crédito no
   restan (ver *Fuera de alcance*). **Verificación**: pgTAP (presupuesto, anulada, borrador y nota
   de crédito quedan fuera; la factura en estado `deuda` entra con su total completo).
 - **FR-004** (F-CLI-19): `saldo_total` DEBE ser la suma de los saldos de los comprobantes listados
@@ -81,9 +81,9 @@ ningún estado nuevo de comprobante.
   cuenta corriente no se puede leer, el «Saldo deudor» muestra «—» y el bloque «Cuenta corriente»
   muestra el error con «Reintentar» (el error no se come el resto de la ficha). **Verificación**:
   Vitest (carga, vacío, error + reintento).
-- **FR-007** (F-CLI-19): La cuenta corriente se calcula sobre **toda la organización** (las
-  empresas de la organización del cliente), igual que la sección «Compras» que ya existe en la
-  ficha (F-CLI-10): es la deuda del cliente, no la de una tienda. **Verificación**: pgTAP
+- **FR-007** (F-CLI-19): La cuenta corriente se calcula sobre **las tiendas a las que la persona
+  accede** (`private.empresas_accesibles()`, como `public.saldo_comprobante`; el administrador accede
+  a todas): no ve la deuda de tiendas ajenas. **Verificación**: pgTAP
   (las facturas de las dos tiendas suman en el mismo saldo).
 - **FR-008** (F-CLI-19): La RPC NO DEBE crear ni alterar tablas; la migración DEBE ser aditiva
   con el camino de reversión documentado en el encabezado. **Verificación**: pgTAP (`rls_en_toda_tabla`
@@ -109,7 +109,7 @@ ningún estado nuevo de comprobante.
 - **FR-006** — *Given* que la base no responde, *When* se abre la ficha, *Then* el bloque
   «Cuenta corriente» muestra el error con «Reintentar» y el resto de la ficha sigue visible.
 - **FR-007** — *Given* un cliente que debe en dos tiendas, *When* se lee su cuenta corriente,
-  *Then* el saldo suma las dos tiendas.
+  *Then* el saldo suma las dos tiendas si la persona accede a ambas; si accede a una sola, suma solo esa.
 - **FR-001** (seguridad) — *Given* un usuario sin permiso de Clientes, *When* llama la RPC
   directo a la base, *Then* recibe error de permiso; y `anon` no puede ejecutarla.
 - **FR-001** (seguridad) — *Given* un cliente de otra organización, *When* se lee su cuenta
@@ -165,7 +165,7 @@ existía.
 
 | Ítem | Destino | Motivo |
 |---|---|---|
-| Empresa activa (selector de la barra superior) | **No aplica** | La información comercial de la ficha (compras y cuenta corriente) es de **toda la organización**, igual que la sección «Compras» que ya existe (F-CLI-10): el saldo es la deuda total del cliente, no la de una tienda. La RPC calcula sobre todas las empresas de la organización (FR-007), así que la sección **no depende** de la empresa activa y no hay datos que reencuadrar al cambiarla. Lo que sí depende de la empresa activa en esta ficha —el bloque «Cuenta web», que es por tienda— ya se reencuadra (test `apps/web/src/pages/clientes/empresa-activa.test.tsx`). El texto «Si elegís una empresa en la barra superior, se filtra por esa tienda» es del **listado** de Clientes (`Clientes.dc.html`), no de la ficha. |
+| Empresa activa (selector de la barra superior) | **No aplica** | La cuenta corriente suma las tiendas a las que la persona accede (FR-007, `private.empresas_accesibles()`): es la deuda del cliente en esas tiendas, no la de la empresa activa. La sección **no depende** de la empresa activa y no hay datos que reencuadrar al cambiarla. Lo que sí depende de la empresa activa en esta ficha —el bloque «Cuenta web», que es por tienda— ya se reencuadra (test `apps/web/src/pages/clientes/empresa-activa.test.tsx`). El texto «Si elegís una empresa en la barra superior, se filtra por esa tienda» es del **listado** de Clientes (`Clientes.dc.html`), no de la ficha. |
 
 ## Flujos
 
@@ -208,7 +208,7 @@ el saldo del cliente tampoco se guarda: se calcula sumando los documentos abiert
 1. **Base del saldo** — con IVA: es el saldo que el cliente debe (el mismo criterio de
    `private.saldo_comprobante`). El «Facturado» que ya se muestra en la ficha es sin IVA (criterio
    del ranking); son dos números distintos y cada uno dice su base en la etiqueta.
-2. **Alcance organizacional** — toda la organización (FR-007), como la sección «Compras».
+2. **Alcance por tiendas accesibles** — las tiendas a las que la persona accede (FR-007); a diferencia de la sección «Compras», que hoy es de toda la organización (diferencia conocida, con seguimiento).
 3. **Quién ve el saldo** — cualquiera con Clientes en `lectura`/`edicion`, el mismo permiso que
    la sección «Compras»: el saldo es un agregado de comprobantes que esa persona ya ve en la
    ficha, no información nueva.

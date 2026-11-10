@@ -439,6 +439,9 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
 - **Notas de crédito:** **no restan** del saldo. Su efecto en la cuenta corriente es de **MSF-195** (hoy la nota de
   crédito no admite cobros) y esta historia no lo reasigna: queda como diferencia conocida, con seguimiento trazado
   (Tarea `seguimiento` en It's a Plan). Tampoco hay **saldo a favor**: un cobro de más se muestra como $ 0.
+- **Tiendas sin acceso o desactivadas:** una persona sin tiendas asignadas ve saldo $ 0, y la deuda de una tienda
+  desactivada no suma (ni para el administrador). La sección «Compras» de la misma ficha sigue siendo de toda la
+  organización: diferencia conocida.
 - **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
   puede cambiar): qué estados cuentan como deuda, si las notas de crédito restan y si el saldo a favor se muestra.
 - **Reversión (migración posterior, aditiva):** `drop function public.cuenta_corriente_cliente(uuid);` No se destruye
