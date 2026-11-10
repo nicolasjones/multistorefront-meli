@@ -61,7 +61,7 @@ as $$
     when p_empresa_id is null then false
     when (select private.nivel_ventas_en_empresa(p_empresa_id)) <> 'edicion' then false
     when (select private.is_superadmin())
-      and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
+      and exists (select 1 from private.superadmin_contexto_vigente a where a.user_id = (select auth.uid()))
       then true
     else coalesce((select private.rol_en_empresa(p_empresa_id)) in ('operador', 'administrador'), false)
   end;
@@ -84,7 +84,7 @@ as $$
     when p_empresa_id is null then false
     when (select private.nivel_ventas_en_empresa(p_empresa_id)) <> 'edicion' then false
     when (select private.is_superadmin())
-      and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
+      and exists (select 1 from private.superadmin_contexto_vigente a where a.user_id = (select auth.uid()))
       then true
     else coalesce((select private.rol_en_empresa(p_empresa_id)) = 'administrador', false)
   end;
