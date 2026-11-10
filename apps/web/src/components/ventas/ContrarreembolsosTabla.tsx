@@ -105,12 +105,12 @@ export function ContrarreembolsosTarjetas({ resumen, cargando }: PropsTarjetas) 
 
 // Cada tarjeta es una región con su título (así el lector de pantalla anuncia de qué tarjeta
 // habla el importe) y con el color del prototipo: aviso para lo pendiente, éxito para lo cobrado.
-function Tarjeta({ id, titulo, valor, detalle, color }: { id: string; titulo: string; valor: string; detalle: string; color: string }) {
+export function Tarjeta({ id, titulo, valor, detalle, color }: { id: string; titulo: string; valor: string; detalle: string; color: string }) {
   return (
     <Card variant="outlined" component="section" aria-labelledby={id} sx={{ flex: '1 1 260px', minWidth: 0 }}>
       <CardContent>
         <Stack spacing={0.5}>
-          <Typography id={id} component="h3" variant="s" color="text.secondary">{titulo}</Typography>
+          <Typography id={id} component="h2" variant="s" color="text.secondary">{titulo}</Typography>
           <Typography variant="kpi" component="p" sx={{ color, fontVariantNumeric: 'tabular-nums' }}>{valor}</Typography>
           <Typography variant="s" color="text.secondary">{detalle}</Typography>
         </Stack>

@@ -255,7 +255,7 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
   it('arranca en la sub-pestaña «Contrarreembolsos» con su ayuda', () => {
     renderPantalla()
     const pestanas = screen.getAllByRole('tab')
-    expect(pestanas.map((pestana) => pestana.textContent)).toEqual(['Contrarreembolsos', 'Terminales de retiro'])
+    expect(pestanas.map((pestana) => pestana.textContent)).toEqual(['Contrarreembolsos', 'Motos', 'Terminales de retiro'])
     expect(pestanas[0]).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('El transporte cobra al entregar y rinde después.')).toBeInTheDocument()
   })
