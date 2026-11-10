@@ -15,6 +15,8 @@ Un solo catálogo de productos para todas las tiendas, con categorías, fotos y 
 ## Precios y dólar
 - Precios y costos en pesos o en dólares, con **precios por escala** según la cantidad (x1, x5, x10, x50) y el IVA de cada categoría. Guía: [Precios e IVA](precios-e-iva.md).
 - **Cotización del dólar** cargada una vez por día: al confirmarla se recalculan los precios en dólares. Guía: [Precios y dólar](precios-dolar.md).
+- **Actualización masiva**: subir o bajar costo y precio de lista de muchos productos de una vez (por porcentaje o por planilla), con vista previa antes de aplicar. Guía: [Actualizar precios en bloque](precios-masivos.md).
+- **Promociones de precio** por empresa, con fecha de inicio y fin: la tienda muestra el precio promocional con el anterior tachado. Guía: [Promociones de precio](promociones.md).
 
 ## Stock
 Ver las existencias por producto y depósito, registrar movimientos, trasladar mercadería entre depósitos, reservar, hacer tomas de inventario, cargar y exportar stock y recibir avisos. Guías: [Movimientos](stock-movimientos.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) · [Lotes e inventario](stock-lotes-e-inventario.md) · [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md).

@@ -43,6 +43,9 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **Cotización pendiente** | Dólar cargado que todavía no se confirmó: no cambia precios y vence a las 24 horas. |
 | **Cotización vigente / aplicada** | La última confirmada, que es la que se usa hoy para calcular los precios. |
 | **Variación inusual** | Aviso que aparece cuando el dólar cargado cambia mucho respecto del anterior. No impide confirmar. |
+| **Actualización masiva de precios** | Subir o bajar el costo y el precio de lista de muchos productos de una vez, con una vista previa que se ve antes de aplicar. Ver [Actualizar precios en bloque](precios-masivos.md). |
+| **Promoción de precio** | Precio especial de un producto, en una sola tienda, entre una fecha de inicio y una de fin. Vence sola y la tienda muestra el precio anterior tachado. Ver [Promociones de precio](promociones.md). |
+| **Precio anterior** | El precio que el cliente veía antes de una promoción. Sale tachado al lado del precio vigente, solo si era más caro. |
 
 ## Stock y compras
 
