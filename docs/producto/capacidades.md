@@ -40,7 +40,7 @@ Registrar devoluciones y reclamos (RMA) por producto. Guía: [Devoluciones](vent
 Recibir equipos, seguir el estado de cada reparación, cargar mano de obra y repuestos, e imprimir la orden de ingreso y el remito de entrega. Guías: [Service técnico](service-listado-items-impresion.md) · [Repuestos y stock](service-repuestos-y-stock.md).
 
 ## Clientes
-Ficha de cada cliente, con su tipo (minorista o mayorista), su descuento propio y su historial de compras. Imprimir la etiqueta de envío para pegar en el paquete y unir dos fichas del mismo cliente cuando quedaron duplicadas. Guía: [Clientes](clientes.md).
+Ficha de cada cliente, con su tipo (minorista o mayorista), su descuento propio, su historial de compras y su saldo deudor (la cuenta corriente: qué comprobantes tiene abiertos y cuánto debe). Imprimir la etiqueta de envío para pegar en el paquete y unir dos fichas del mismo cliente cuando quedaron duplicadas. Guía: [Clientes](clientes.md).
 
 ## Tiendas online
 Cada empresa tiene su tienda web: identidad visual, contenido, qué productos se muestran, su dirección web (dominio) y las versiones publicadas. Los clientes mayoristas pueden tener una cuenta para ver sus precios por escala. Guías: [Tiendas online](tiendas-online.md) · [Dominio e identidad](tienda-dominio-e-identidad.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Cuenta web del cliente](cuenta-web-cliente.md).

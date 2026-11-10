@@ -36,6 +36,7 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.buscar_clientes(texto, tipo, archivados, pagina, tamano)` | Listado de clientes con búsqueda parcial, filtros y paginación en el servidor (MSF-180 · F-CLI-02) |
 | `public.exportar_clientes(texto, tipo, archivados, despues_de, limite)` | Exportación de clientes por lotes (keyset); exige la acción `exportar` (MSF-180 · F-CLI-04) |
 | `public.escala_de_cliente(cliente_id)` | Escala de precios del cliente según su tipo: `x1` o `por_cantidad` (MSF-180 · F-CLI-03) |
+| `public.cuenta_corriente_cliente(cliente_id)` | Cuenta corriente del cliente: saldo total y los comprobantes con saldo (solo lectura) (MSF-450 · F-CLI-19) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |
 | `public.listar_historial_ventas/cobros/cotizaciones(...)` | Consulta paginada del historial |
 | `public.cambiar_estado_reparacion(p_id, p_estado_id)` | Cambia estado (idempotente); un estado que cierra va por la entrega |
@@ -313,6 +314,25 @@ Además:
 - `dominio.proveedores_contactos` solo tiene `grant select` para `authenticated`: sin `INSERT`, `UPDATE`
   ni `DELETE` directos y `anon` sin acceso.
 - Todas las RPC nuevas llevan `revoke execute … from public, anon` y `grant execute … to authenticated`.
+
+### Cuentas y compras a proveedores (MSF-450)
+
+Fuente: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql` (rama
+`epic/MSF-450-clientes-y-proveedores-cuentas-y-compras`, PR #826/#829; aún sin merge a `main`; el
+número `20270221100000` de la rama de la historia quedó libre al integrar `dokploy`, commit
+`86c2c6fe`). Contrato completo, modelo, reversión y guía de prueba: [Cuentas y compras a
+proveedores](cuentas-y-compras-a-proveedores.md).
+
+| RPC | Devuelve / hace | Seguridad |
+|---|---|---|
+| `public.cuenta_corriente_cliente(p_cliente_id uuid) returns table (id uuid, saldo_total numeric, comprobantes bigint, numero text, fecha date, tipo text, estado text, total_con_iva numeric, cobrado numeric, saldo numeric)` | Cuenta corriente del cliente: una fila por comprobante **con saldo** (del más reciente al más antiguo), con el `id` del comprobante (el número se repite entre tiendas) y su total, cobrado y saldo. El encabezado (`saldo_total`, `comprobantes`) viaja en cada fila; sin documentos abiertos vuelve solo la fila de encabezado. El saldo lo trae `private.saldo_comprobante` (no se recalcula) y solo entran las facturas que no están en `borrador`, `anulada` ni `cobrado` | `security definer`, `search_path = ''`, `stable`; organización de `private.organizacion_id()`; exige la sección `clientes` en `lectura`/`edicion`; `private.empresas_accesibles()` acota a las tiendas de la persona; `42501` sin permiso, `22023` cliente nulo; un cliente de otra organización o inexistente devuelve saldo 0 y sin documentos; `revoke` a `public, anon`; `grant` a `authenticated` |
+
+Además:
+
+- **Sin tablas nuevas ni alteradas**: no hay RLS que agregar; la función solo lee
+  `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
+- **Las otras tres historias de la épica (F-CLI-20, F-CLI-21, F-PRV-09) no tienen RPC**: siguen en
+  Backlog, sin requisitos y sin código.
 
 ### Consultas (MSF-122)
 

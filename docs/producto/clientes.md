@@ -7,7 +7,7 @@ sources: []
 
 ## Para qué sirve
 
-Acá llevás la agenda de tus clientes: sus datos de contacto, su documento, si son minoristas o mayoristas y en qué tiendas pueden comprar. El tipo de cliente define qué precio se le aplica en las ventas. También podés ver cuánto compró cada cliente y quiénes son los que más facturan.
+Acá llevás la agenda de tus clientes: sus datos de contacto, su documento, si son minoristas o mayoristas y en qué tiendas pueden comprar. El tipo de cliente define qué precio se le aplica en las ventas. También podés ver cuánto compró cada cliente, cuánto te debe ahora y quiénes son los que más facturan.
 
 ## Quién puede hacerlo
 
@@ -16,6 +16,7 @@ Con los permisos que trae el sistema por defecto (el Administrador puede ajustar
 | Tarea | Quién |
 |---|---|
 | Ver el listado, las fichas y el ranking | Administrador, Operador, Mostrador, Administración, Consulta y Técnico |
+| Ver el **saldo deudor** y la **cuenta corriente** de un cliente | Los mismos que pueden ver la ficha |
 | Crear, editar, archivar y restaurar clientes | Administrador, Operador, Mostrador y Administración |
 | **Fijar o cambiar el descuento de un cliente** | Administrador |
 | Imprimir la etiqueta de envío de un cliente | Cualquiera que pueda ver la ficha |
@@ -108,13 +109,46 @@ En cada fila tenés **Ver ficha** y, si podés editar, **Editar**. Los clientes 
 Al hacer clic en **Ver ficha** ves el nombre, el número («Cliente Nº …»), el estado (Activo o Archivado), el tipo, y todos los datos de contacto y domicilio. Más abajo:
 
 - **Tiendas** y **Cuenta web**: en qué tiendas puede comprar y el estado de su cuenta.
-- **Compras**: un **Resumen comercial** con lo facturado en el año (sin IVA) y los **Últimos comprobantes**, con **Comprobante**, **Fecha**, **Estado** y **Total (sin IVA)**.
+- **Compras**: un **Resumen comercial** con lo facturado en el año (sin IVA) y el **Saldo deudor** (lo que el cliente te debe, con IVA), los **Últimos comprobantes** (con **Comprobante**, **Fecha**, **Estado** y **Total (sin IVA)**) y la **Cuenta corriente** (los comprobantes que el cliente tiene abiertos, con lo que se cobró y lo que falta).
 
 Arriba tenés los botones **Editar**, **Archivar** (o **Restaurar**) y **Volver al listado**. También está **Etiqueta**, que abre la hoja de envío del cliente (ver abajo), y, si sos Administrador, **Fusionar con otro cliente…**.
 
 ![Ficha de un cliente minorista con sus datos de contacto, las tiendas donde está habilitado, la cuenta web y las compras](img/clientes/07-ficha-minorista.png)
 
 *La ficha de un cliente minorista: datos, tiendas, cuenta web y compras.*
+
+## El saldo del cliente y su cuenta corriente
+
+En la tarjeta **Resumen comercial** de la ficha hay dos números distintos, y conviene no confundirlos:
+
+| Número | Qué es | Con IVA |
+|---|---|---|
+| **Facturado en el año (sin IVA)** | Lo que el cliente compró en lo que va del año. Es un número de **ventas**, no de deuda. | No |
+| **Saldo deudor** | Lo que el cliente te debe **hoy**. Es el número de la **deuda**. | Sí |
+
+Debajo, la tarjeta **Cuenta corriente** lista los comprobantes que el cliente tiene **abiertos**: **Comprobante**, **Fecha**, **Estado**, **Total**, **Cobrado** y **Saldo**, del más reciente al más antiguo.
+
+- El **Saldo deudor** es la suma de los saldos de esa lista. Si el cliente no debe nada, ves `$ 0` y el mensaje «Este cliente no tiene comprobantes con saldo».
+- El **Saldo deudor** se pinta de **ámbar** cuando el cliente debe y de **verde** cuando no debe nada.
+- En la columna **Estado**, «Deuda» va en ámbar, «Cobrado» en verde y «Armando» en azul; los demás estados van en neutro.
+
+### Qué entra y qué no
+
+- Entra solo lo que está en **factura** y todavía no está saldado. Una factura cobrada por completo, una factura anulada y un borrador **no** son deuda y no aparecen.
+- Un **presupuesto** no es deuda: no aparece.
+- Una **nota de crédito** todavía **no descuenta** del saldo.
+- Si le pagaste de más a un cliente, **no hay saldo a favor**: el saldo queda en `$ 0`.
+- El saldo va **con IVA**; el «Facturado en el año» va **sin IVA**. Son dos números distintos y cada uno dice en qué base está.
+
+### De qué tiendas es la deuda
+
+El saldo suma lo que el cliente debe en **las tiendas a las que tenés acceso**, no solo en la tienda de la barra superior. Si sos Administrador, ves la deuda de todas las tiendas; si tu usuario tiene asignada una sola tienda, ves solo la de esa tienda.
+
+### Si la cuenta corriente no carga
+
+Si la base no responde, el bloque muestra «No pudimos cargar la cuenta corriente del cliente.» con un botón **Reintentar** y el **Saldo deudor** queda en «—». El resto de la ficha sigue mostrando los datos del cliente: un error en la cuenta corriente no borra nada.
+
+<!-- TODO (dueño: documentación de producto): capturas de la tarjeta «Resumen comercial» con el «Saldo deudor» y de la tabla «Cuenta corriente» (y de la ficha con el saldo deudor en ámbar) en docs/producto/img/clientes/. No se pudieron generar porque la herramienta de capturas del manual (`pnpm docs:capturas` y `pnpm demo:dataset`) no existe en este repo y el código de la épica todavía no está en `main`; ver la página técnica. La captura `07-ficha-minorista.png` es anterior a la tarjeta y hay que regenerarla. -->
 
 ## Descuento por cliente
 
@@ -256,6 +290,16 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 
 ## Preguntas frecuentes
 
+**¿Cuál es la diferencia entre «Facturado en el año» y «Saldo deudor»?** «Facturado en el año» es lo que el cliente compró en el año (sin IVA); el «Saldo deudor» es lo que te debe hoy (con IVA). Un cliente puede haber comprado mucho y no deberte nada.
+
+**¿Por qué no coinciden con los «Últimos comprobantes»?** «Últimos comprobantes» muestra los últimos documentos del cliente, estén abiertos o no (incluye presupuestos y anuladas). El saldo solo cuenta las **facturas con saldo pendiente**.
+
+**¿Las notas de crédito descuentan del saldo?** Todavía no: la nota de crédito no se descuenta de la cuenta corriente.
+
+**¿Le puedo descontar un saldo a favor?** No hay saldo a favor: si le pagaste de más, el saldo se muestra en `$ 0`.
+
+**¿El saldo es de una tienda o de todas?** De todas las tiendas a las que tenés acceso. No depende de la tienda que tengas elegida en la barra superior.
+
 **¿Puedo borrar un cliente?** No: se archiva. Así conservás su historial de compras.
 
 **¿Puedo tener dos clientes con el mismo nombre?** Sí, pero no con el mismo DNI/CUIT.
@@ -289,3 +333,4 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 | **Algunos clientes no tienen etiqueta.** | A esos clientes les falta la dirección: el sistema los nombra y arma la hoja solo con los que la tienen. |
 | **No hay clientes para imprimir.** | Volvé al listado y marcá al menos un cliente con dirección. |
 | **No pudimos fusionar los clientes. No se cambió nada; probá de nuevo.** | No se movió nada: reintentá. |
+| **No pudimos cargar la cuenta corriente del cliente.** | No se pudo leer la deuda del cliente. Tocá **Reintentar**: el resto de la ficha sigue visible y el **Saldo deudor** queda en «—». |
