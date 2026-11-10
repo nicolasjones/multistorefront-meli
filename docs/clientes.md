@@ -406,6 +406,53 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
 
+## Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)
+
+- **Pantalla:** la ficha `/clientes/show/:id` suma a la tarjeta **«Resumen comercial»** el **«Saldo deudor»**
+  (lo que el cliente debe, **con IVA**) y agrega la tarjeta **«Cuenta corriente»**: los comprobantes con saldo
+  pendiente (Comprobante, Fecha, Estado, Total, Cobrado y Saldo; del más reciente al más antiguo). Si el cliente no
+  debe nada, la cuenta corriente muestra el vacío («Este cliente no tiene comprobantes con saldo») y el saldo es `$ 0`.
+  Si la base no responde, el bloque muestra el error con **«Reintentar»** y el «Saldo deudor» queda en «—»: el error
+  no se come el resto de la ficha. Los números de comprobante son texto: el enlace al comprobante es de Ventas.
+  El «Saldo deudor» se pinta como el prototipo —ámbar con deuda, verde cuando el cliente no debe— y la etiqueta
+  «Deuda» de la cuenta corriente va en ámbar. El saldo no depende de las compras: si la sección «Compras» falla, el
+  «Saldo deudor» se sigue viendo (el «Facturado en el año» queda en «—»).
+- **Función:** `public.cuenta_corriente_cliente(p_cliente_id uuid)` (migración
+  `20270222100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**): `security definer`, `search_path = ''`,
+  organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra
+  organización o inexistente → saldo `0` y sin documentos (no revela si existe); el encabezado (`saldo_total`,
+  `comprobantes`) viaja en cada fila y, sin documentos abiertos, vuelve solo la fila de encabezado. Cada fila trae el
+  **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre
+  tiendas y el `id` es lo que identifica la fila.
+  `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Cómo se calcula el saldo:** el saldo de un comprobante **no se recalcula** en esta función: lo trae
+  `private.saldo_comprobante` (F-VTA-12), que es su único dueño (`total con IVA − cobros`, nunca negativo). El estado
+  «Deuda» no se consulta (una factura en «Deuda» no tiene cobros y debe su total completo). Cuentan las **facturas**
+  que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
+  (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
+  suma de los saldos listados.
+- **Alcance:** es la deuda del cliente en **todas las tiendas a las que la persona accede**
+  (`private.empresas_accesibles()`, como `public.saldo_comprobante`; el administrador accede a todas): no ve deuda de
+  tiendas ajenas. No depende de la empresa activa (Principio VIII). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
+- **Base de las cifras:** el «Saldo deudor» y la cuenta corriente son **con IVA**; el «Facturado en el año» que ya
+  estaba en la ficha es **sin IVA** (criterio del ranking). Cada número dice su base.
+- **Notas de crédito:** **no restan** del saldo. Su efecto en la cuenta corriente es de **MSF-195** (hoy la nota de
+  crédito no admite cobros) y esta historia no lo reasigna: queda como diferencia conocida, con seguimiento trazado
+  (Tarea `seguimiento` en It's a Plan). Tampoco hay **saldo a favor**: un cobro de más se muestra como $ 0.
+- **Tiendas sin acceso o desactivadas:** una persona sin tiendas asignadas ve saldo $ 0, y la deuda de una tienda
+  desactivada no suma (ni para el administrador). La sección «Compras» de la misma ficha sigue siendo de toda la
+  organización: diferencia conocida.
+- **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
+  puede cambiar): qué estados cuentan como deuda, si las notas de crédito restan y si el saldo a favor se muestra.
+- **Reversión (migración posterior, aditiva):** `drop function public.cuenta_corriente_cliente(uuid);` No se destruye
+  ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
+- **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (compara cada fila con
+  `private.saldo_comprobante`); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
+  prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`
+  (rótulo `[MSF-451:T001]`).
+- **Prototipo:** la tarjeta «Cuenta corriente» la dibuja esta historia en `design/pantallas/ClienteFicha.dc.html`
+  (y su copia en `design/pantallas/ClienteFicha/`); los inventarios se regeneran con `pnpm prototipo:inventario`.
+
 ## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
 
 Solo frontend, **sin migración ni escritura** (el grant `select` de `public.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
