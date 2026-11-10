@@ -1,5 +1,5 @@
 // Envíos en moto (F-VTA-24, MSF-145, FR-003…FR-008). El esquema y las RPC viven en las migraciones
-// 20261205100100_envios_moto.sql y 20261205100200_envios_moto_rpc.sql; acá se espejan solo para
+// 20270221100100_envios_moto.sql y 20270221100200_envios_moto_rpc.sql; acá se espejan solo para
 // validar en el diálogo antes de viajar y para traducir los errores (la autoridad es la base).
 // Contrato de las RPC: specs/20261024-130000-ventas-motos/contracts/ventas-motos.md
 import { supabaseClient } from '../supabase'

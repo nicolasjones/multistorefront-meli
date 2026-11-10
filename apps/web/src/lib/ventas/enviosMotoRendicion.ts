@@ -1,5 +1,5 @@
 // Rendición de motos (F-VTA-25, MSF-145, FR-020…FR-023). Las RPC viven en la migración
-// 20261205200100_rendir_envios_moto.sql; acá se espejan para calcular el total del diálogo y
+// 20270221200100_rendir_envios_moto.sql; acá se espejan para calcular el total del diálogo y
 // traducir los errores (la autoridad es la base, que devuelve los mismos totales al rendir).
 // Contrato: specs/20261024-130000-ventas-motos/contracts/ventas-motos.md
 import { supabaseClient } from '../supabase'

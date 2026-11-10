@@ -214,9 +214,9 @@ begin
   -- ── El evento (FR-009): misma transacción, con comprobante, mensajero y datos del envío ──
   perform private.registrar_actividad(
     'envio_moto.registrado',
-    format('Registró el envío en moto de la factura %s con el mensajero %s (guía %s, costo %s, abona %s, %s)',
+    left(format('Registró el envío en moto de la factura %s con el mensajero %s (guía %s, costo %s, abona %s, %s)',
       v_c.numero, v_e.mensajero, coalesce(v_e.guia, 'sin guía'), v_e.costo_envio, v_e.abono,
-      case when v_e.enviado then 'enviado' else 'por enviar' end),
+      case when v_e.enviado then 'enviado' else 'por enviar' end), 500),
     v_c.empresa_id
   );
 
