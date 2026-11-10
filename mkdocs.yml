@@ -104,6 +104,8 @@ nav:
           - Productos y categorías: producto/catalogo-productos.md
           - Cotización del dólar: producto/precios-dolar.md
           - Precios, escalas e IVA: producto/precios-e-iva.md
+          - Actualizar precios en bloque: producto/precios-masivos.md
+          - Promociones de precio: producto/promociones.md
           - Rentabilidad: producto/rentabilidad.md
       - Stock y compras:
           - "Stock: ver, mover y controlar": producto/stock-movimientos.md
@@ -199,6 +201,7 @@ nav:
           - Precios e IVA: tecnico/precios-e-iva.md
           - Dólar y recálculo: tecnico/dolar-y-recalculo.md
           - Configuración del dólar y precio propio: tecnico/configuracion-dolar-y-precio-propio.md
+          - Precios masivos y promociones (MSF-363): tecnico/precios-masivos-y-promociones.md
           - Sistema de diseño y tema: sistema-de-diseno.md
       - Ventas:
           - Comprobantes: tecnico/ventas-comprobantes.md

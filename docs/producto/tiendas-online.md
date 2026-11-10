@@ -45,6 +45,7 @@ Si la tienda está activa pero todavía no tiene ningún producto visible, el in
 - **Filtros**: por categoría, **Solo con stock** y **Precio máximo** (en pesos, o «Sin límite»). El botón **Limpiar filtros** los saca.
 - **Ordenar por**: «Más relevantes» (los destacados primero), «Menor precio» o «Mayor precio».
 - **Buscar productos**: el buscador está en el encabezado de todas las pantallas. A partir de 2 letras muestra hasta 6 sugerencias con foto, nombre y precio; con Enter o con «Ver todos los resultados →» se abre el listado completo. Entiende mayúsculas, tildes y algunos errores de tipeo («cargdor» encuentra «cargador»). Si no hay coincidencias dice «No encontramos productos con ese nombre.»
+- Si un producto tiene una **promoción vigente**, su precio aparece con el **precio anterior tachado** al lado. Ver [Promociones de precio](promociones.md).
 - Si alguien busca demasiado seguido, la tienda le pide esperar unos segundos y sigue sola.
 
 ![Catálogo de la tienda con la lista de categorías a la izquierda, el selector Ordenar por y las tarjetas de producto con precio y disponibilidad](img/tiendas-online/03-catalogo.png)
@@ -58,6 +59,8 @@ Si la tienda está activa pero todavía no tiene ningún producto visible, el in
 ### Ficha de producto
 
 Muestra la galería de fotos (hasta 4, con ampliación), el nombre, la categoría, el precio, la disponibilidad, la descripción, el SKU y, si lo cargaste, para qué es compatible. Al pie dice «Precios y disponibilidad sujetos a cambios.». Si el producto no tiene foto, se ve «Sin imagen».
+
+Si el producto tiene una **promoción vigente** en esa tienda, el precio aparece con el **precio anterior tachado** al lado. El tachado solo se muestra cuando el precio anterior era más caro. Ver [Promociones de precio](promociones.md).
 
 ![Ficha de un producto de la tienda con su nombre, precio, disponibilidad, descripción, SKU, categoría y el botón Consultar por WhatsApp](img/tiendas-online/05-ficha.png)
 

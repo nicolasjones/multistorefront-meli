@@ -3476,6 +3476,78 @@ erDiagram
   `coalesce(aplicada, inicial)`. Sin fila, rige la inicial.
 - `anon` sin privilegios en las tres. RPC, umbral, eventos y operación: [Dólar y recálculo](dolar-y-recalculo.md).
 
+## Precios masivos y promociones (MSF-363)
+
+Dos tablas nuevas en `dominio` (Principio VII) y **ninguna tabla alterada**: la actualización masiva
+escribe `dominio.productos.precio_lista` y `dominio.producto_costos.costo`, que ya existían. Al
+igual que en MSF-114 **no se guarda ningún precio en pesos**: el neto por empresa y el final se
+calculan al leer. Migraciones aditivas `20270221100001`–`20270221100009` (rama de la épica,
+integrada en `dokploy` —PR #822—; reversión en el encabezado de cada una y consolidada en
+[Precios masivos y promociones](precios-masivos-y-promociones.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.actualizaciones_precio` | **nueva** | Un registro por lote de actualización masiva aplicado: `organizacion_id` (FK), `actor_id`, `actor_nombre`, `modo` (`porcentaje` \| `planilla`), `parametros jsonb`, `cantidad integer > 0`, `clave uuid` **única por organización** (idempotencia), `creado_en`. RLS por organización; select con `productos` ≥ lectura; **sin escritura directa** (escribe la RPC `aplicar_actualizacion_precios`); `anon` sin privilegios. `parametros` no guarda importes de costo. |
+| `dominio.promociones_precio` | **nueva** | Precio promocional fijo (sin IVA, en pesos) de un producto en **una** empresa: `id` PK, `organizacion_id` (FK), `empresa_id`, `producto_id`, `precio_promocional numeric(14,2) > 0`, `desde timestamptz`, `hasta timestamptz` (con `check (hasta > desde)`), `anulada_at`, `created_at`, `updated_at`. FK compuestas `(empresa_id, organizacion_id)` → `dominio.empresas` y `(producto_id, organizacion_id)` → `dominio.productos`. Índices por `(organizacion_id)` y `(empresa_id, producto_id, desde, hasta)`. RLS por organización; select con `productos` ≥ lectura; **sin política `DELETE`**; escritura solo por RPC; `anon` sin privilegios. |
+| `dominio.productos` | existente | La RPC masiva actualiza `precio_lista`. Sin cambios de esquema. |
+| `dominio.producto_costos` | existente | La RPC masiva actualiza `costo` (lo crea si no estaba). Sin cambios de esquema. |
+| `dominio.empresas` | existente | FK compuesta de `promociones_precio`. Sin cambios de esquema. |
+| `public.organizaciones` | existente | Dueña de las dos tablas nuevas (`organizacion_id`, `on delete cascade`). Sin cambios de esquema. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ ACTUALIZACIONES_PRECIO : "lotes aplicados"
+  ORGANIZACIONES ||--o{ PROMOCIONES_PRECIO : "promociones"
+  EMPRESAS ||--o{ PROMOCIONES_PRECIO : "tienda de la promoción"
+  PRODUCTOS ||--o{ PROMOCIONES_PRECIO : "producto promocionado"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o{ PRODUCTOS : "categoría"
+
+  ACTUALIZACIONES_PRECIO { uuid id PK
+    uuid organizacion_id FK
+    uuid actor_id "quien la aplicó"
+    text actor_nombre "foto al registrar"
+    text modo "porcentaje | planilla"
+    jsonb parametros "sin importes de costo"
+    integer cantidad "productos afectados"
+    uuid clave "nueva: única por organización"
+    timestamptz creado_en }
+  PROMOCIONES_PRECIO { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid producto_id FK
+    numeric precio_promocional "nueva: sin IVA, en pesos, > 0"
+    timestamptz desde "nueva: incluye"
+    timestamptz hasta "nueva: no incluye"
+    timestamptz anulada_at "nueva: único estado guardado"
+    timestamptz created_at
+    timestamptz updated_at "bloqueo optimista" }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    uuid categoria_id FK
+    text moneda "USD | ARS"
+    numeric precio_lista "sin IVA" }
+  PRODUCTO_COSTOS { uuid producto_id PK
+    uuid organizacion_id FK
+    numeric costo }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- **El lote es de la organización**: una fila por actualización masiva aplicada, con una clave que
+  hace que repetir la misma operación no la aplique dos veces.
+- **La promoción es de una empresa**: la empresa y el producto tienen que ser de la misma
+  organización (FK compuestas). Los estados `programada`, `vigente` y `vencida` **no se guardan**: se
+  derivan de `desde`/`hasta` y la hora actual al consultar. Solo `anulada_at` es un dato.
+- **No se puede borrar una promoción**: no hay política `DELETE`; se anula.
+- La actualización masiva **no altera el esquema** de `productos` ni de `producto_costos`: solo
+  escribe `precio_lista` y `costo`. Moneda, escalas de precio y precios propios por empresa quedan
+  intactos.
+- RPC, cálculo del precio vigente, permisos y reversión: [Precios masivos y promociones](precios-masivos-y-promociones.md).
+
 ## Actividad e historial (MSF-455)
 
 Migración aditiva `supabase/migrations/20261016120000_registro_actividad.sql` (esquema `public`: tabla transversal de plataforma, no de dominio). Detalle funcional y contrato de registro: [Actividad e historial](../actividad.md).

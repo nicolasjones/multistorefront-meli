@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "1218e424f6ab87c7f5ae7cad16c7c02d05f295a59f5c6437fb49ec8ec5f5ba0d",
+      "pageHash": "1ea58a1aad8b1c653b7416b2ed8fb88cc5ef56159823c025260a357e4e170f8d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "23ce2d28"
+      "commit": "3a93b935"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -407,7 +407,7 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "0f4ce9bad44e6f1d5d0fefb693acf8075fabe01151ca1d2585628f7da794c25f",
+      "pageHash": "5fca41da36d7df583a6a3d91fd3932586d91912c0e559626ef4f34ee395ea18d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -538,7 +538,7 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "08b7b8d6efff6d3faee03ec908c6086d07d6e9d4ceca0007223f7d96c4997e80",
+      "pageHash": "48b23188ce7e26e6320069f8d3f177c78fe971db99835a3a46323153c0ae9a85",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -646,6 +646,24 @@
       "sources": [],
       "owner": "producto",
       "commit": "a8db4308"
+    },
+    "docs/producto/precios-masivos.md": {
+      "title": "Actualizar precios en bloque",
+      "pageHash": "4283b89f12ceed89c76be5efbc63cb43267f8758785102d61f8c7277b3f77c05",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/promociones.md": {
+      "title": "Promociones de precio por empresa",
+      "pageHash": "8d5ed442cafb5c1751942bc8ec32e9c045e758c543380e134788871853817c02",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
@@ -842,12 +860,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "da51188e3183ee20fd6b54f895f805e63387f8a578290634f2e3899c683d0981",
+      "pageHash": "643cef4596cbd181ed3b05a784684e1a3cadd589b2c5ec712d618304ce9ad2de",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "188fd42d"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -1457,14 +1475,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "c46646fdc4d3c955a933d65261d0e4f48955388d20f72ed2bdff2f01ebfbbefc",
+      "pageHash": "196168d1997d62c1652f1abc8dd4981e0f820dfff8dd10b79777de62bd55c4f0",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "158ff948",
+      "sourceAt": "5dfa2b7d",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "188fd42d"
+      "commit": "3a93b935"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1700,6 +1718,19 @@
       ],
       "owner": "tecnico",
       "commit": "514dd9e7"
+    },
+    "docs/tecnico/precios-masivos-y-promociones.md": {
+      "title": "Precios masivos y promociones",
+      "pageHash": "e57a8edfba963af1ee883821c077f1aeef4a35fcc664ab8f82ddf09cbba8723b",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "5dfa2b7d",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
