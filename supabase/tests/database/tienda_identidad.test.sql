@@ -54,9 +54,13 @@ select is(
 );
 select is(
   has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
-  true,
-  'authenticated ejecuta public.guardar_tienda_identidad'
+  false,
+  'authenticated ya no ejecuta public.guardar_tienda_identidad: solo public.publicar_tienda (F-TDA-06, FR-052)'
 );
+-- F-TDA-06 (FR-052): las RPC vivas ya no son ejecutables por authenticated (solo publicar_tienda). Para seguir
+-- probando su cuerpo se reconcede el permiso dentro de esta transacción (se revierte con el rollback del test).
+grant execute on function public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text) to authenticated;
+
 select is(
   has_function_privilege('anon', 'publico.identidad_por_dominio(text)', 'execute'),
   true,

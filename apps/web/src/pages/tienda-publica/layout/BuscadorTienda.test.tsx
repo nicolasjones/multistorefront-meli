@@ -3,7 +3,9 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), evento: vi.fn() }))
+
+vi.mock('../../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
 vi.mock('../../../lib/tiendaBusqueda', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../lib/tiendaBusqueda')>()),
@@ -152,6 +154,15 @@ describe('BuscadorTienda · teclado y navegación', () => {
     await escribir('  cargdor   usb  ')
     fireEvent.keyDown(campo(), { key: 'Enter' })
     expect(ubicacion()).toBe('/catalogo?q=cargdor+usb')
+  })
+
+  it('emite el evento busqueda al buscar, solo con su nombre (sin el texto buscado)', async () => {
+    montar()
+    await escribir('juan perez 1155550000')
+    expect(mocks.evento).not.toHaveBeenCalled() // escribir y ver sugerencias no es buscar
+    fireEvent.keyDown(campo(), { key: 'Enter' })
+    expect(mocks.evento).toHaveBeenCalledTimes(1)
+    expect(mocks.evento).toHaveBeenCalledWith('busqueda')
   })
 
   it('«Ver todos los resultados →» con el mouse lleva a /catalogo?q=…', async () => {

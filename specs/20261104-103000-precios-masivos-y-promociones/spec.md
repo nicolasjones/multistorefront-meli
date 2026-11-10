@@ -218,7 +218,7 @@ Guía de F-PRE-11: [`docs/promociones-precio.md`](../../docs/promociones-precio.
 4. **Alcance del porcentaje (supuesto):** «todos los activos» o «una categoría» (filtro que ya existe en Productos). Otros filtros (proveedor, marca) quedan fuera.
 5. **Escalas de precio (F-PRE-15):** la masiva **no** las cambia; subir la lista puede dejar una escala por encima de x1. Se anota; actualizar escalas sería otra historia.
 6. **Ventas y pedidos:** esta épica pide mostrar el precio promocional en la tienda. Que el carrito, los comprobantes y el POS cobren el promocional **no** está en la épica: con `private.precio_vigente_empresa` queda el cálculo único listo para adoptarlo, pero queda como pregunta para Nicolás (riesgo: cobrar distinto de lo mostrado).
-7. **Superficies de la tienda**: catálogo, ficha, inicio/destacados y búsqueda (sugerencias y resultados) muestran el mismo precio vigente y `precio_anterior` (migraciones `20270202202004` y `20270202202005`; un producto no sale con dos precios). Quedan fuera el precio por escala y los precios de cliente por dominio: seguimiento **MSF-816**.
+7. **Superficies de la tienda**: catálogo, ficha, inicio/destacados y búsqueda (sugerencias y resultados) muestran el mismo precio vigente y `precio_anterior` (migraciones `20270221100004` y `20270221100005`; un producto no sale con dos precios). Quedan fuera el precio por escala y los precios de cliente por dominio: seguimiento **MSF-816**.
 8. **Editar y anular una promoción** no figuran literalmente en la épica; se asumen como parte de «programar» (sin ellas una carga equivocada no tiene salida).
 
 ## Matriz pantalla↔criterios

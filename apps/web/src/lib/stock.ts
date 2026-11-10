@@ -3,6 +3,8 @@
 // 20261017140100_stock_registrar_movimiento.sql; acá se espejan solo para validar
 // y previsualizar en el diálogo antes de viajar (la autoridad es la base).
 
+import { normalizarBusqueda } from './busquedaTexto'
+
 export type TipoMovimiento = 'entrada' | 'salida' | 'ajuste'
 
 export const TIPOS_MOVIMIENTO: ReadonlyArray<{ valor: TipoMovimiento; etiqueta: string }> = [
@@ -152,9 +154,9 @@ export function validarMinimo(texto: string): { valor: number } | { error: strin
 // caracteres que separan o agrupan condiciones (`,` `(` `)` `"` `\`) y se escapan los
 // comodines de LIKE (`%` `_`), para que lo tipeado no altere la consulta.
 export function filtroBusquedaStock(texto: string): string | null {
-  const limpio = texto.slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
+  const limpio = normalizarBusqueda(texto).slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
   if (limpio === '') return null
-  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+  return `nombre_norm.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
 // Solo para registrar movimientos: ahí `23514` con mensaje «No hay stock suficiente» es el disparador de stock

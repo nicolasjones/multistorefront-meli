@@ -1,6 +1,6 @@
 -- F-PRE-10 (MSF-436, épica MSF-363): aplicar la actualización masiva de costos y precios.
 -- Esquemas (Principio VII): sin tablas nuevas; escribe `dominio.productos`, `dominio.producto_costos`
--- y `dominio.actualizaciones_precio` (migración 20270202202001). La RPC vive en `public` (no almacena datos).
+-- y `dominio.actualizaciones_precio` (migración 20270221100006). La RPC vive en `public` (no almacena datos).
 --
 -- SECURITY DEFINER (justificado: `authenticated` no puede escribir `actualizaciones_precio`).
 -- Exige `productos` = edicion y, si el pedido toca costos, `rentabilidad` = edicion (42501).

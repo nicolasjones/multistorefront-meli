@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   useReportesAsignados: vi.fn(),
@@ -131,12 +131,21 @@ const montar = ({
 const esperarTiendas = () => screen.findByRole('button', { name: 'San Javucho' })
 
 describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
+  // La fecha se fija: el período inicial es «este mes» (del 1 a hoy) y «7 días» va de hoy-6 a hoy, así que el día 7 de
+  // cualquier mes son IDÉNTICOS y tocar «7 días» no cambia el filtro (el tablero no se vuelve a montar). Con la fecha
+  // real, estos tests fallaban un día por mes (7/11/2026). Solo se simula `Date`: los temporizadores siguen reales.
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-15T15:00:00Z'))
     vi.clearAllMocks()
     mocks.propsReporte.current = null
     empresaActivaId = 'e-sj'
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u1' } } })
     mocks.maybeSingle.mockResolvedValue({ data: { rol_id: 'operador' }, error: null })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('muestra título, subtítulo, pestañas y el tablero embebido de «Más vendidos»', async () => {

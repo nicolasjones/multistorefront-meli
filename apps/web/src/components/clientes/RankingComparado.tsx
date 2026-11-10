@@ -1,13 +1,15 @@
 import { Link as RouterLink } from 'react-router'
-import { Box, Chip, LinearProgress, Link, TablePagination, Typography } from '@mui/material'
+import { Box, Chip, LinearProgress, Link, Typography } from '@mui/material'
 import { useRankingComparado, type FilaRankingComparado } from '../../hooks/useRankingComparado'
 import type { TipoCliente } from '../../lib/clientes'
 import { formatearFecha, formatearParticipacion, formatearPesos } from '../../lib/formatoRanking'
 import type { RangoFechas } from '../../lib/periodosRanking'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
 
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 const SIN_PORCENTAJE = '—'
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
@@ -37,8 +39,14 @@ type Props = {
 export function RankingComparado({ aplicado, comparacion, tipo, incluirConsumidorFinal, conIva, empresaId, pagina, alCambiarPagina }: Props) {
   const { filas, total, isLoading, isFetching, isError, refetch } = useRankingComparado({
     desde: aplicado.desde, hasta: aplicado.hasta, desdeComparacion: comparacion.desde, hastaComparacion: comparacion.hasta,
-    tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_PAGINA,
+    tipo, incluirConsumidorFinal, conIva, empresaId, pagina, tamano: TAMANO_TANDA,
   })
+  // Carga infinita (Principio VI): la página la lleva el padre; acá se suman las tandas.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina: alCambiarPagina, total, cargando: isFetching,
+    reinicio: { aplicado, comparacion, tipo, incluirConsumidorFinal, conIva, empresaId },
+  })
+  const falloTanda = isError && listado.filas.length > 0
   const baseIva = conIva ? 'con IVA' : 'sin IVA'
 
   const columnas: ColumnaAdaptable<FilaRankingComparado>[] = [
@@ -68,9 +76,9 @@ export function RankingComparado({ aplicado, comparacion, tipo, incluirConsumido
       <Box aria-busy={isFetching}>
         {isLoading ? (
           <EstadoCargaPagina />
-        ) : isError ? (
+        ) : isError && !falloTanda ? (
           <EstadoError descripcion="No pudimos cargar la comparación." reintentar={() => void refetch()} />
-        ) : filas.length === 0 ? (
+        ) : listado.filas.length === 0 ? (
           <EstadoVacio titulo="Sin facturación en los períodos" descripcion="Probá con otros rangos de fechas." />
         ) : (
           <>
@@ -79,16 +87,16 @@ export function RankingComparado({ aplicado, comparacion, tipo, incluirConsumido
               {' '}{formatearFecha(comparacion.desde)} al {formatearFecha(comparacion.hasta)}.
             </Typography>
             <ContenidoAdaptable
-              items={filas}
+              items={listado.filas}
               columnas={columnas}
               obtenerClave={(fila) => fila.cliente_id}
               etiquetaTabla="Comparación del ranking de clientes entre dos períodos"
             />
-            <TablePagination
-              component="div" count={total} page={pagina - 1} rowsPerPage={TAMANO_PAGINA} rowsPerPageOptions={[TAMANO_PAGINA]}
-              onPageChange={(_, nueva) => alCambiarPagina(nueva + 1)}
-              labelRowsPerPage="Clientes por página"
-              labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+            <CargaInfinita
+              hayMas={listado.hayMas}
+              cargando={listado.cargandoMas}
+              hayError={falloTanda}
+              onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
             />
           </>
         )}

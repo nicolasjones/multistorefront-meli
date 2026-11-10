@@ -1,18 +1,30 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, LinearProgress, Link, Stack, TablePagination, Typography } from '@mui/material'
+import { Box, Button, LinearProgress, Link, Stack, Typography } from '@mui/material'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useExportarCsv } from '../../hooks/useExportarCsv'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { ExportarCsvBoton } from '../../components/stock/ExportarCsvBoton'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltrosReparaciones } from '../../components/service/FiltrosReparaciones'
 import { ETIQUETA_PENDIENTE_STOCK, MarcaStockItem } from '../../components/service/MarcaStockItem'
 import { PestanasService } from '../../components/service/PestanasService'
+import { nombreArchivoCsv } from '../../lib/exportarCsv'
+import {
+  COLUMNAS as COLUMNAS_EXPORTACION,
+  pedirLoteReparaciones,
+  TAMANO_LOTE_REPARACIONES,
+  type FiltrosExportacionReparaciones,
+} from '../../lib/exportarReparaciones'
 import { listarTecnicos, type Tecnico } from '../../lib/reparaciones'
 import {
   formatearDiaCompleto,
@@ -31,6 +43,8 @@ const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
+
+const nombreArchivoReparaciones = () => nombreArchivoCsv('reparaciones')
 
 const columnas: ColumnaAdaptable<ReparacionListada>[] = [
   {
@@ -82,6 +96,7 @@ const columnas: ColumnaAdaptable<ReparacionListada>[] = [
 export function ServicioReparaciones() {
   const { nivel } = useNivelSeccion('service_tecnico')
   const puedeEditar = nivel === 'edicion'
+  const puedeExportar = usePuedeAccion('service_tecnico', 'exportar').puede === true
   const { empresaActivaId, isLoading: cargandoEmpresas } = useEmpresasAccesibles()
   const [periodo, setPeriodo] = useState<PeriodoReparaciones>(PERIODO_INICIAL)
   const [serie, setSerie] = useState('')
@@ -112,10 +127,30 @@ export function ServicioReparaciones() {
   // Mientras se resuelve (o se relee) la empresa activa no se muestra nada: ni filas de otra empresa ni de «todas».
   const isLoading = cargandoEmpresas || cargandoListado
 
-  // Página fuera de rango (p. ej. bajó la cantidad): vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && filas.length === 0 && pagina > 1) setElegida({ clave, pagina: 1 })
-  }, [isLoading, isFetching, isError, filas.length, pagina, clave])
+  // Carga infinita: se suman las tandas que ya entrega el listado. `clave` reúne todo lo que cambia el resultado.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina: (nueva) => setElegida({ clave, pagina: nueva }), total, cargando: isFetching, reinicio: clave,
+  })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
+
+  // «Exportar» baja todas las filas del filtro vigente (no solo la página). Los filtros y la empresa activa se
+  // congelan al pulsar: si cambian mientras corre, el archivo sigue siendo el de la consulta que se pidió (FR-060).
+  const filtrosCongelados = useRef<FiltrosExportacionReparaciones | null>(null)
+  const congelarFiltros = useCallback(() => {
+    filtrosCongelados.current = { empresaId: empresaActivaId, periodo, serie, tecnicoId }
+  }, [empresaActivaId, periodo, serie, tecnicoId])
+  const pedirLoteExportacion = useCallback(
+    (desde: number, limite: number) => pedirLoteReparaciones(filtrosCongelados.current!, desde, limite),
+    [],
+  )
+  const exportacion = useExportarCsv({
+    columnas: COLUMNAS_EXPORTACION,
+    nombreArchivo: nombreArchivoReparaciones,
+    tamanoLote: TAMANO_LOTE_REPARACIONES,
+    pedirLote: pedirLoteExportacion,
+    iniciar: congelarFiltros,
+  })
 
   const alCambiarSerie = useCallback((nueva: string) => setSerie(nueva), [])
   const buscandoPorSerie = serie.trim() !== ''
@@ -139,7 +174,7 @@ export function ServicioReparaciones() {
       <ContenedorSeccion>
         <Stack spacing={2}>
           <BarraHerramientas
-            contador={isLoading || isError ? undefined : contador}
+            contador={isLoading || (isError && !falloTanda) ? undefined : contador}
             ayuda={buscandoPorSerie ? 'La búsqueda por N.º de serie no depende del período.' : subtituloPeriodo()}
           >
             <FiltrosReparaciones
@@ -152,19 +187,20 @@ export function ServicioReparaciones() {
               tecnicos={tecnicos}
               errorTecnicos={errorTecnicos}
             />
+            {puedeExportar ? <ExportarCsvBoton {...exportacion} /> : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
-            {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+            {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando reparaciones" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion={mensajeError ?? undefined} reintentar={() => void refetch()} />
-            ) : filas.length === 0 ? (
+            ) : listado.filas.length === 0 ? (
               <EstadoVacio
                 titulo={buscandoPorSerie ? 'No hay reparaciones con ese número de serie' : 'No hay reparaciones en este período'}
                 descripcion={buscandoPorSerie ? 'Revisá el número o probá con una parte.' : 'Probá con otro período, otro técnico u otra tienda.'}
@@ -172,20 +208,16 @@ export function ServicioReparaciones() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={filas}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(reparacion) => reparacion.id}
                   etiquetaTabla="Reparaciones"
                 />
-                <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA_REPARACIONES}
-                  rowsPerPageOptions={[TAMANO_PAGINA_REPARACIONES]}
-                  onPageChange={(_, nueva) => setElegida({ clave, pagina: nueva + 1 })}
-                  labelRowsPerPage="Reparaciones por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
                 />
               </>
             )}

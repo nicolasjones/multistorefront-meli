@@ -3,6 +3,7 @@ import { Link as EnlaceRuta, useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 import { ordenarSeccionesCatalogo, type ModuloSeccionCatalogo } from '../seccionesCatalogo'
 import { ErrorConReintento } from '../ErrorConReintento'
 
@@ -14,7 +15,12 @@ export default function RutaCategoria({ modulos }: { modulos?: Record<string, Mo
 
   if (categorias.fase === 'cargando') return <EstadoCargaPagina />
   if (categorias.fase === 'error') {
-    return <ErrorConReintento titulo="No pudimos cargar la categoría." alReintentar={categorias.reintentar} />
+    return (
+      <>
+        <CabeceraSeo noindex pagina="No pudimos cargar la categoría" />
+        <ErrorConReintento titulo="No pudimos cargar la categoría." alReintentar={categorias.reintentar} />
+      </>
+    )
   }
   const categoria = categoriaId ? categorias.categorias.find((c) => c.id === categoriaId) : undefined
   if (!categoria) return <PaginaNoEncontrada />
@@ -22,6 +28,7 @@ export default function RutaCategoria({ modulos }: { modulos?: Record<string, Mo
   const secciones = ordenarSeccionesCatalogo(modulos)
   return (
     <Box>
+      <CabeceraSeo host={host} pagina={categoria.nombre} ruta={`/categoria/${categoria.id}`} />
       <Breadcrumbs aria-label="Migas de pan" sx={{ mb: 1 }}>
         <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit' }}>Inicio</Box>
         <Typography color="text.primary" aria-current="page">{categoria.nombre}</Typography>

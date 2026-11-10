@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { parsearImporte } from './productos'
 
 // Promociones de precio por empresa (F-PRE-11, MSF-439). La autoridad es la base
-// (migraciones 20270202202001…202004): el estado se deriva de `desde`/`hasta` al consultar
+// (migraciones 20270221100001…202004): el estado se deriva de `desde`/`hasta` al consultar
 // (vista `public.promociones_precio_estado`), el solape lo impide un disparador y las RPC
 // `guardar_promocion_precio` / `anular_promocion_precio` validan permisos. Acá solo se lee,
 // se valida lo mínimo para avisar antes de enviar y se traducen los errores.

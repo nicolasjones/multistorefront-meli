@@ -6,9 +6,19 @@ export function requireEnvironment(name) {
   return value;
 }
 
+// Contraseña embebida en la URL de la base: aparte de la URL completa, se enmascara sola por si algún
+// mensaje de psql/supabase la imprime suelta (viaja por PGPASSWORD, no por argv).
+function contrasenaDeUrl(url) {
+  try {
+    return decodeURIComponent(new URL(url).password);
+  } catch {
+    return undefined;
+  }
+}
+
 export function redactError(error) {
   const message = error instanceof Error ? error.message : String(error);
-  return [process.env.KESTRA_BASIC_AUTH_PASSWORD, process.env.KESTRA_WEBHOOK_KEY, process.env.IA_PROVEEDOR_CLAVE, process.env.SUPABASE_DB_URL, process.env.SUPERSET_PASSWORD, process.env.SUPERSET_ANALITICA_DB_PASSWORD, process.env.SUPABASE_SERVICE_ROLE_KEY]
+  return [process.env.KESTRA_BASIC_AUTH_PASSWORD, process.env.KESTRA_WEBHOOK_KEY, process.env.IA_PROVEEDOR_CLAVE, process.env.SUPABASE_DB_URL, contrasenaDeUrl(process.env.SUPABASE_DB_URL), process.env.SUPERSET_PASSWORD, process.env.SUPERSET_ANALITICA_DB_PASSWORD, process.env.SUPABASE_SERVICE_ROLE_KEY]
     .filter((value) => typeof value === 'string' && value.length > 0)
     .reduce((redacted, value) => redacted.replaceAll(value, '[REDACTADO]'), message);
 }
@@ -39,4 +49,11 @@ export function argumentValue(args, name, fallback) {
   const value = args[index + 1];
   if (!value || value.startsWith('--')) throw new Error(`Falta el valor de ${name}.`);
   return value;
+}
+
+export function separarContrasena(url) {
+  const parsed = new URL(url);
+  const contrasena = decodeURIComponent(parsed.password);
+  parsed.password = '';
+  return { urlSinContrasena: parsed.toString(), env: contrasena ? { PGPASSWORD: contrasena } : {} };
 }

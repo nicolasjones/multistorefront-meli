@@ -102,12 +102,15 @@ select c.clave, (public.crear_reparacion(
 select public.agregar_item_reparacion((select id from reps where clave = 'A'), 'mano_obra', 'Diagnóstico', null, 2, 50);
 select public.agregar_item_reparacion((select id from reps where clave = 'A'), 'repuesto', 'Cinta', null, 1, 50);
 reset role;
-update dominio.reparaciones set entrega_prevista = current_date + 3 where id = (select id from reps where clave = 'D');
+-- Las fechas se arman con el día de Buenos Aires, como las RPC: `current_date` es el día UTC y entre las 21:00 y las
+-- 24:00 de Argentina difiere del día de la organización (el CI de #757 falló a las 22:05 por eso: A y D quedaban un día
+-- después de lo esperado y C empataba con A).
+update dominio.reparaciones set entrega_prevista = (now() at time zone 'America/Argentina/Buenos_Aires')::date + 3 where id = (select id from reps where clave = 'D');
 -- Ingreso distinto para fijar el orden sin depender del azar: B la más antigua, C de ayer; A y D comparten día
 -- dentro de la misma tienda (desempata el número). La numeración es por empresa, así que C (otra tienda) no
 -- puede empatar con A por día y número.
-update dominio.reparaciones set ingreso_en = current_date - 10 where id = (select id from reps where clave = 'B');
-update dominio.reparaciones set ingreso_en = current_date - 1 where id = (select id from reps where clave = 'C');
+update dominio.reparaciones set ingreso_en = (now() at time zone 'America/Argentina/Buenos_Aires')::date - 10 where id = (select id from reps where clave = 'B');
+update dominio.reparaciones set ingreso_en = (now() at time zone 'America/Argentina/Buenos_Aires')::date - 1 where id = (select id from reps where clave = 'C');
 
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 

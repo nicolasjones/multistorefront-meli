@@ -40,6 +40,31 @@ estado      = negativo  si margen_pct < 0
 - **Sin fila** si falta el costo, el precio neto no es positivo o falta la cotización en un producto en USD (no se inventa). Un producto en pesos sin cotizaciones cargadas conserva su historia.
 - Solo productos y empresas activos.
 
+## Rendimiento de las vistas
+
+`analitica.margen_producto_canal` calcula el margen con joins (no con una llamada a funciones por fila) y no guarda
+importes. Con ~4.600 filas producto × tienda responde en ~70 ms y el consolidado en ~130 ms; la versión con funciones por
+fila tardaba segundos y `rentabilidad_conteo_margen()` superaba el `statement_timeout` de 8 s del rol `authenticated`
+(la pantalla respondía 500). La regla de cálculo es la misma de `private.precio_neto_empresa`, `private.a_pesos` y
+`analitica.costos_adicionales_de`: si cambia alguna, hay que cambiar la vista (migración `20270205100000`).
+Las vistas de `analitica` no llaman a funciones de `private`: el permiso de ejecutar una función se comprueba contra quien
+consulta (el rol de solo lectura de Superset), no contra el dueño de la vista, y ese rol no puede ejecutarlas. La regla de precio
+de la tienda está escrita dentro de `margen_producto_canal` y de `margen_historico_producto_canal` (migraciones
+`20270205100000` y `20270205100001`).
+
+## Gráficos del Resumen
+
+Además de las tarjetas por empresa y el consolidado, el tablero «Rentabilidad · Resumen» muestra cuatro gráficos de Superset sobre
+`analitica.margen_producto_canal` (se versionan en `infra/superset/dashboards/rentabilidad/`):
+
+- **Margen % por tienda** (barras): margen ponderado de cada tienda, un color por tienda.
+- **Productos por estado de margen** (dona): OK en verde, Bajo en ámbar y Negativo en rojo (colores fijados con `label_colors`
+  del tablero, los mismos de la tabla «Por producto»).
+- **Top 10 productos por margen ($ por unidad)** (barras horizontales).
+- **10 productos con peor margen %** (barras horizontales): el eje se acota en -100 % para que un valor extremo no aplaste el resto.
+
+Los colores salen de la paleta `supersetColors` de Superset; los estados usan la paleta del proyecto (`#2E7D32`, `#B36B00`, `#C62828`).
+
 ## Umbral de margen bajo
 
 - Por organización, en `dominio.rentabilidad_config` (fracción: `0,10` = 10 %). Sin fila rige **10 %**.
@@ -83,6 +108,8 @@ vigente al lanzar. **Antes de esa fecha no hay costo registrado, así que no hay
 | --- | --- |
 | `analitica.costo_en_fecha(producto, organización, fecha)` | último costo con `vigente_desde ≤ fecha`; `null` si no hay |
 | `analitica.cotizacion_cercana(organización, fecha)` | carga de `dominio.cotizaciones` más cercana en el tiempo; a igual distancia, la anterior; `null` si no hay |
+| `analitica.cotizacion_cercana(organización, fecha, empresa)` | (MSF-352) lo mismo entre las cargas APLICADAS (`recalculo_aplicado`) generales y las de esa empresa; la usa la historia por empresa. Los cambios de alcance no son un punto de la historia |
+| `analitica.cotizacion_para(organización, empresa)` | (MSF-352) cotización aplicada que usa la tienda para esa empresa según el alcance; la usa el margen actual y su alerta `margen_negativo` |
 | `analitica.margen_historico_producto_canal` | una fila por producto × empresa × fecha (cambios de costo y cargas de cotización): `cotizacion`, `precio_neto`, `costo`, `margen`, `margen_pct` |
 
 El precio es el neto de la tienda **vigente hoy** en su moneda (no se reconstruyen precios de lista históricos),
@@ -270,3 +297,7 @@ Revisada contra las migraciones `20270202201000`–`20270202201007` y sus prueba
   guest token filtra por `organizacion_id` (y empresas accesibles).
 - **Aislamiento**: pruebas `*_aislamiento.test.sql` con dos organizaciones y roles sin la sección; `rls_en_toda_tabla` recorre `public` + `dominio`.
 - **Sin hallazgos abiertos.** Límite conocido: el 403 del guest token es de Superset y se prueba en su importador, no en pgTAP.
+
+## Cotización del margen actual (MSF-352)
+
+`analitica.margen_producto_canal` convierte el precio (propio en USD incluido) y el costo en USD con la **cotización aplicada de la empresa** (`analitica.cotizacion_para`), la misma que usa la tienda; antes usaba la cotización inicial y mostraba márgenes falsos (p. ej. inicial 1.000, aplicada 1.500, precio propio $ 14.000 y costo USD 10: margen real −7,14 %, no +28,6 %). La historia usa `cotizacion_cercana(org, fecha, empresa)` y no aplica el precio propio. `productos_precio_costo` y la valorización de inventario usan la cotización general (no tienen empresa). Pruebas: `analitica_margen_cotizacion_vigente.test.sql`.

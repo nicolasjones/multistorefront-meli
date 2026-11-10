@@ -1,6 +1,6 @@
 // Actualización masiva de costos y precios (F-PRE-10, MSF-436). La autoridad es la base: las RPC
-// `previsualizar_actualizacion_precios` y `aplicar_actualizacion_precios` (migraciones 20270202202002 y
-// 20270202202003) revalidan todo. Acá: la planilla CSV (plantilla y lectura, sobre `migracionCsv`), la
+// `previsualizar_actualizacion_precios` y `aplicar_actualizacion_precios` (migraciones 20270221100007 y
+// 20270221100008) revalidan todo. Acá: la planilla CSV (plantilla y lectura, sobre `migracionCsv`), la
 // validación previa al viaje y las llamadas a las RPC con sus mensajes de error.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { generarCsv, type CsvLeido } from './migracionCsv'

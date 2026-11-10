@@ -53,7 +53,7 @@ export function ImprimirComprobanteDialog({ open, comprobante, tipoInicial, onCe
   )
 }
 
-type Estado = { fase: 'elegir' } | { fase: 'preparando' } | { fase: 'error'; mensaje: string } | { fase: 'bloqueado'; url: string }
+type Estado = { fase: 'elegir' } | { fase: 'preparando' } | { fase: 'error'; mensaje: string } | { fase: 'bloqueado'; url: string; documentoId: string; registrado: boolean; aviso?: string }
 
 function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado }: Omit<Props, 'open'>) {
   const elegibles = documentosElegibles(comprobante)
@@ -71,39 +71,74 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
     control.current?.abort()
     const actual = new AbortController()
     control.current = actual
+    // MSF-722: la pestaña se abre en el clic (gesto del usuario), antes de esperar el PDF, para que el navegador no la
+    // bloquee; recién cuando el documento está listo se le asigna la URL. Sin `noopener` en la llamada (devolvería
+    // null aunque abra) para poder detectar el bloqueo.
+    const ventana = window.open('', '_blank')
+    if (ventana) ventana.opener = null
+    const cerrarVentana = () => {
+      if (ventana && !ventana.closed) ventana.close()
+    }
     setEstado({ fase: 'preparando' })
     try {
       let documento = await solicitarDocumento(comprobante.id, tipo)
       if (documento.estado !== 'generado') documento = await esperarDocumento(documento.id, { signal: actual.signal })
       if (!documento.ruta) throw new Error('El documento generado no trae ruta')
       const url = await urlFirmadaDocumento(documento.ruta)
-      if (actual.signal.aborted) return
-      // FR-034: se marca como impreso solo con el documento ya disponible (si algo falló antes, no llega acá).
+      if (actual.signal.aborted) {
+        cerrarVentana()
+        return
+      }
+      if (!ventana || ventana.closed) {
+        // Sin pestaña (bloqueada o cerrada): no se marca como impreso; se marca cuando la persona abre el enlace.
+        setEstado({ fase: 'bloqueado', url, documentoId: documento.id, registrado: false })
+        return
+      }
+      // FR-034: se marca como impreso solo con el documento ya disponible y la pestaña lista para mostrarlo.
       // Si el registro falla no se abre el PDF: se avisa y «Reintentar» pide el mismo documento y registra una vez.
       try {
         await registrarImpresion(documento.id)
       } catch (falla) {
         console.error(MENSAJE_ERROR_REGISTRO, falla)
+        cerrarVentana()
         if (actual.signal.aborted) return
         setEstado({ fase: 'error', mensaje: MENSAJE_ERROR_REGISTRO })
         return
       }
       onRegistrado?.()
       if (actual.signal.aborted) return
-      // Sin `noopener` en la llamada (devolvería null aunque abra) para poder detectar el bloqueo del navegador.
-      const ventana = window.open(url, '_blank')
-      if (ventana) {
-        ventana.opener = null
-        // Se puede imprimir otra vez sin límite (FR-035): el diálogo vuelve a quedar listo.
-        setEstado({ fase: 'elegir' })
-        onImpreso(tipo)
-      } else {
-        setEstado({ fase: 'bloqueado', url })
+      if (ventana.closed) {
+        // La pestaña se cerró mientras se registraba: la marca ya está, pero el PDF no se vio. Se ofrece el enlace
+        // (sin volver a registrar) en vez de quedar en silencio.
+        setEstado({ fase: 'bloqueado', url, documentoId: documento.id, registrado: true })
+        return
       }
+      ventana.location.href = url
+      // Se puede imprimir otra vez sin límite (FR-035): el diálogo vuelve a quedar listo.
+      setEstado({ fase: 'elegir' })
+      onImpreso(tipo)
     } catch (falla) {
+      cerrarVentana()
       if (esCancelacion(falla) || actual.signal.aborted) return
       setEstado({ fase: 'error', mensaje: mensajeDeErrorImpresion(falla) })
     }
+  }
+
+  // Pestaña bloqueada: la impresión se registra cuando la persona abre el enlace, no antes.
+  const abrirEnlace = async (documentoId: string, yaRegistrado: boolean) => {
+    if (!tipo) return
+    if (!yaRegistrado) {
+      try {
+        await registrarImpresion(documentoId)
+      } catch (falla) {
+        console.error(MENSAJE_ERROR_REGISTRO, falla)
+        // El enlace igual abre el PDF: se avisa que la marca «impreso» no quedó.
+        setEstado((previo) => ({ ...previo, aviso: MENSAJE_ERROR_REGISTRO }) as Estado)
+        return
+      }
+    }
+    onRegistrado?.()
+    onImpreso(tipo)
   }
 
   const preparando = estado.fase === 'preparando'
@@ -162,9 +197,10 @@ function Contenido({ comprobante, tipoInicial, onCerrar, onImpreso, onRegistrado
           {estado.fase === 'bloqueado' ? (
             <Alert severity="warning">
               Tu navegador bloqueó la ventana del documento.{' '}
-              <Link href={estado.url} target="_blank" rel="noopener noreferrer" onClick={() => tipo && onImpreso(tipo)}>
+              <Link href={estado.url} target="_blank" rel="noopener noreferrer" onClick={() => void abrirEnlace(estado.documentoId, estado.registrado)}>
                 Abrir documento
               </Link>
+              {estado.aviso ? <Typography variant="body2" color="error">{estado.aviso}</Typography> : null}
             </Alert>
           ) : null}
         </Stack>

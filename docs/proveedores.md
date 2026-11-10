@@ -13,6 +13,28 @@ seguimiento en Jira (T029): condiciones de compra MSF-523, «Compra para» MSF-5
 importar/exportar MSF-526, N.º correlativo MSF-527, Último ingreso y Costo MSF-528, código de barras MSF-529 y
 varios proveedores por producto MSF-530.
 
+## Varios contactos por proveedor (F-PRV-08, MSF-449)
+
+- **Tabla** `dominio.proveedores_contactos` (esquema `dominio`: es parte de la entidad de negocio «proveedor»): `nombre`
+  obligatorio, `rol`, `correo`, `telefono`, `principal`. RLS por organización y `nivel_seccion('proveedores')`
+  (`lectura`/`edicion` leen); **sin grants de escritura ni `DELETE`** directos; `anon` sin acceso. FK compuesta
+  `(proveedor_id, organizacion_id)`.
+- **Un solo principal por proveedor**, garantizado por el índice único parcial `proveedores_contactos_un_principal_idx`.
+- **RPC** (`security definer`, `revoke … from public, anon`, `grant … to authenticated`):
+  `listar_contactos_proveedor(p_proveedor_id)` (lectura/edición), `agregar_contacto_proveedor(...)` y
+  `marcar_contacto_principal(p_contacto_id)` (edición). Ambas escrituras bloquean la fila del proveedor (`for update`):
+  dos altas simultáneas como principal se serializan y queda una sola. Marcar un principal desmarca al anterior y
+  **copia nombre, correo y teléfono** a `persona_contacto`, `correo` y `telefono` de la ficha, en la misma transacción
+  (esa copia también deja el evento `proveedor.editado` del disparador existente).
+- **Ficha**: sección «Contactos» (`ListaContactos`) con «Agregar contacto» y «Marcar como principal», ocultas sin
+  edición. En «Editar proveedor», con principal, «Persona de contacto», «Correo» y «Teléfono» son de solo lectura con la
+  leyenda «Se toma del contacto principal»; sin principal se editan como antes.
+- **Actividad**: `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado` (ver `docs/actividad.md`).
+- **Reversión** (migración posterior, exportando antes los datos): `drop` de las tres RPC, de
+  `private.aplicar_contacto_principal`, de `private.registrar_actividad_contacto_proveedor` y de la tabla.
+- Pruebas: pgTAP `proveedores_contactos` (CA-PRV-08-1, concurrencia, RLS, grants, `anon`) y Vitest `ListaContactos` /
+  `ProveedorFormDialog`.
+
 ## Revisión de seguridad de cierre (T028)
 
 Revisión de `20261018190000`–`190700`: esquemas verificados (`proveedores` y `productos` en `dominio`; `proveedores_basico`
@@ -158,3 +180,7 @@ Migraciones aditivas. Para volver atrás, en una migración **posterior** (no en
 datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
 `private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, y la tabla
 `dominio.proveedores`. El encabezado de cada migración lista los pasos exactos.
+
+## Listados con carga infinita
+
+El listado de proveedores y la sección «Productos» de la ficha cargan por tandas (25 y 10) al llegar al final del scroll, con «Cargar más» como alternativa por teclado; no hay paginación numerada. Siguen pidiendo «la página N» a `listar_proveedores` y `productos_de_proveedor`; el contador total, la búsqueda y los filtros se conservan y cambiarlos (o guardar un proveedor nuevo) vuelve a la primera tanda. En «Productos» cada fila muestra la imagen principal como miniatura con zoom al pasar el mouse. Ver [`listados.md`](./listados.md).
