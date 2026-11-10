@@ -15,6 +15,7 @@ import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
+import LocalOfferIcon from '@mui/icons-material/LocalOffer'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
@@ -84,6 +85,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CAT-02: hasta que F-CAT-06 traiga la grilla, /productos redirige al alta (App.tsx).
       { id: 'productos', etiqueta: 'Productos', ruta: '/productos', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
       // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
+      // F-PRE-11: precios promocionales por empresa con fecha de inicio y fin (carga diferida en App.tsx).
+      { id: 'promociones', etiqueta: 'Promociones', ruta: '/productos/promociones', icono: LocalOfferIcon, audiencia: 'organizacion', seccionPermiso: 'productos' },
       { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },

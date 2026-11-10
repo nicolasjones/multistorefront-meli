@@ -106,3 +106,24 @@ El precio propio reemplaza al calculado **en todo lugar que entregue un precio**
 - Cada `fijar_precio_propio`/`quitar_precio_propio` que cambia algo deja una fila en `dominio.precios_propios_historial` (valor anterior y nuevo, moneda, empresa, producto, actor y fecha; append-only e inalterable; lectura con `productos`). La Actividad sigue sin importes.
 - La cotización que rige un precio sale siempre de `private.cotizacion_para(org, empresa)`, que lee el alcance con `private.cotizacion_alcance` (no depende de quién mira la tienda). Rentabilidad usa la misma cotización por empresa (`analitica.cotizacion_para`).
 - Detalle y limitaciones: `docs/configuracion-dolar-y-precio-propio.md`.
+
+## Masivos y promociones
+
+Dos capacidades del administrador sobre el precio, en la misma épica (MSF-363):
+
+- **Actualización masiva de costos y precios** (F-PRE-10, MSF-436): subir o bajar costos y precios de lista en bloque, por porcentaje o por planilla CSV, con vista previa antes de confirmar y aplicación todo-o-nada. Ruta `/productos/precios-masivos`, botón «Actualizar precios» en Productos. Guía: [`precios-masivos.md`](./precios-masivos.md).
+- **Precios promocionales por empresa** (F-PRE-11, MSF-439): precio promocional con fecha de inicio y fin por empresa; la tienda muestra el precio anterior tachado mientras dura y vuelve sola al normal al vencer (el estado se deriva por fecha, sin tarea programada). Ruta `/productos/promociones`. Guía: [`promociones-precio.md`](./promociones-precio.md).
+
+Especificación: [`specs/20261104-103000-precios-masivos-y-promociones/spec.md`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md).
+
+### Revisión de seguridad integral de MSF-363 (T023)
+
+Auditoría de las 8 migraciones de la épica (`20270221100001`…`20270221100008`):
+
+- **RLS**: `dominio.promociones_precio` y `dominio.actualizaciones_precio` tienen RLS activada, política de solo lectura por organización, `revoke all` a `public`/`anon`/`authenticated` y `grant select` solo a `authenticated`. No hay política de escritura: se escribe únicamente por las RPC.
+- **`anon`**: ninguna RPC nueva de `public` (`guardar_promocion_precio`, `anular_promocion_precio`, `previsualizar_actualizacion_precios`, `aplicar_actualizacion_precios`) es ejecutable por `anon`; los helpers de `private` no son ejecutables por `anon` ni `authenticated` (salvo `precios_promocion_sesion`, solo `authenticated`). Las únicas superficies para `anon` son las de la tienda pública (`publico.*_por_dominio`), con lista blanca de campos.
+- **`security definer`**: todas las funciones definer fijan `set search_path = ''` y usan nombres calificados; la justificación de cada una (escribir tablas que `authenticated` solo lee, y validar permisos adentro) está en el encabezado de su migración. La vista `promociones_precio_estado` es `security_invoker`, así rige la RLS de la tabla.
+- **Tienda pública**: `catalogo_pagina_por_dominio` y `producto_por_dominio` se redefinen con la misma firma (los `grant` previos se conservan; se verificó que ninguna migración posterior de `dokploy` las redefine, así no se pisa nada). El precio anterior solo se devuelve durante una promoción vigente.
+- **Sin importes de costo en Actividad**: el detalle de `precios.actualizacion_masiva` y de los eventos `promocion_precio.*` no lleva costos; quien no tiene `rentabilidad` no ve costos ni en la vista previa.
+- **Secretos, compose, dependencias**: la épica no agrega dependencias, variables de entorno ni cambios de compose.
+- **Pruebas**: `precios_masivos.test.sql` y `promociones_precio.test.sql` cubren aislamiento entre organizaciones, permisos y `anon` sin ejecución (corren en el job `database` del CI). **Desvío**: la tarea T023 nombra `aislamiento_rls.test.sql`; ese archivo no existe en el repo, y el aislamiento de las dos tablas nuevas está en sus pgTAP propios. Los E2E de la épica se omiten sin Supabase local y no corren en el CI público.

@@ -204,7 +204,7 @@ select is(
 );
 select is(
   (select pg_temp.claves(p) from jsonb_array_elements(pg_temp.sugerir('bq-a.ejemplo.com', 'cable hdmi') -> 'productos') p limit 1),
-  array['categoria_id', 'disponible', 'id', 'imagen', 'nombre', 'precio'], 'cada sugerencia solo trae la lista blanca de campos'
+  array['categoria_id', 'disponible', 'id', 'imagen', 'nombre', 'precio', 'precio_anterior'], 'cada sugerencia solo trae la lista blanca de campos'
 );
 
 -- Texto vacío, corto, largo y literal.
@@ -305,7 +305,7 @@ select is(publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', '%%') -> 'prod
 select is((publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', '') ->> 'total')::int, 0, 'resultados: texto vacío no devuelve nada');
 select is(
   (select pg_temp.claves(p) from jsonb_array_elements(publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', 'cable hdmi') -> 'productos') p limit 1),
-  array['categoria_id', 'destacado', 'disponible', 'id', 'imagen', 'nombre', 'precio'],
+  array['categoria_id', 'destacado', 'disponible', 'id', 'imagen', 'nombre', 'precio', 'precio_anterior'],
   'cada resultado solo trae la lista blanca de campos'
 );
 select is(

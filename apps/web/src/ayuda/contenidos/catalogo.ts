@@ -12,6 +12,17 @@ export const ayudaCatalogo: AyudaPorDestino = {
       'Desactivá un producto que ya no vendés; queda en el listado como «Inactivo».',
     ],
   },
+  promociones: {
+    titulo: 'Promociones',
+    resumen:
+      'Acá programás precios promocionales por empresa con fecha de inicio y fin. Mientras dura la promoción, la tienda muestra el precio promocional con el precio anterior tachado; al vencer vuelve sola al precio normal. Con permiso de edición podés crear, editar y anular promociones.',
+    pasos: [
+      'Elegí una empresa en la barra superior: con «Todas mis empresas» ves todas, pero para crear una tenés que elegir una.',
+      'Pulsá «Nueva promoción», elegí el producto, el precio promocional y las fechas de inicio y fin.',
+      'Revisá el estado de cada promoción: programada, vigente, vencida o anulada.',
+      'Pulsá «Anular» si una promoción ya no corresponde; no hace falta esperar a que venza.',
+    ],
+  },
   categorias: {
     titulo: 'Categorías',
     resumen:

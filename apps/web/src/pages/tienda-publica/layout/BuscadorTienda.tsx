@@ -222,6 +222,10 @@ function OpcionSugerencia({
 }: { id: string; sugerencia: Sugerencia; urlImagen?: string; activa: boolean; alElegir: () => void }) {
   const [fallo, setFallo] = useState<string | null>(null)
   const precio = formatearPrecioArs(sugerencia.precio)
+  // El anterior solo se tacha si es mayor que el vigente (misma regla que PrecioTachado).
+  const anterior = sugerencia.precio !== null && sugerencia.precioAnterior !== null && sugerencia.precioAnterior > sugerencia.precio
+    ? formatearPrecioArs(sugerencia.precioAnterior)
+    : null
   const mostrarImagen = Boolean(urlImagen) && fallo !== urlImagen
   return (
     <Box
@@ -249,7 +253,9 @@ function OpcionSugerencia({
       <Box sx={{ minWidth: 0 }}>
         <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{sugerencia.nombre}</Typography>
         <Typography variant="body2" component="span">
-          {precio ? `${precio} · ` : ''}
+          {precio ? `${precio} ` : ''}
+          {precio && anterior ? <Box component="del" data-testid="precio-anterior" sx={{ color: 'text.secondary' }}>{anterior}</Box> : null}
+          {precio ? ' · ' : ''}
           <EtiquetaDisponibilidad disponible={sugerencia.disponible} />
         </Typography>
       </Box>
