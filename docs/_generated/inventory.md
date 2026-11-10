@@ -6,7 +6,7 @@
 - Tablas en migraciones: **75**
 - Variables de entorno: **62**
 - Specs: **70**
-- Páginas de documentación: **201**
+- Páginas de documentación: **202**
 
 ## Rutas del panel
 

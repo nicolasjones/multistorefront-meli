@@ -90,6 +90,7 @@ Al crear una forma de pago completás **Nombre**, **Tipo de forma de pago**, **E
 ## Deuda de clientes
 
 - En cada factura, el **Saldo** de la tarjeta **Cobros** es lo que ese cliente todavía debe.
+- En la **ficha del cliente** ves toda la deuda junta: el **Saldo deudor** y la **Cuenta corriente** con los comprobantes que el cliente tiene abiertos (ver [Clientes](clientes.md#el-saldo-del-cliente-y-su-cuenta-corriente)).
 - En **Ventas → Pagos**, la tarjeta **Saldo pendiente de clientes** suma lo que falta cobrar de los comprobantes con pago parcial.
 - En **Ventas → Comprobantes** podés filtrar por **Estado: Deuda** para ver las facturas que se entregaron sin cobrar.
 

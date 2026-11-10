@@ -407,12 +407,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "5fca41da36d7df583a6a3d91fd3932586d91912c0e559626ef4f34ee395ea18d",
+      "pageHash": "6347bc8d26946e87af27ae50b5db859312e7b256a249c6c3fe32c1e6bc16e7ea",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "75ae10b7"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -489,7 +489,7 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "b237eb31c87ab1917a64b253cde960368bde28dcee169359b36641f45fbe9e4e",
+      "pageHash": "1f1a794df888fe43576e164a86e354ebbc23966ad090832ca44eb226519e247a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -900,12 +900,12 @@
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
-      "pageHash": "519cbfc5e67c5cbb4b8f33a0ac926cedac539f2259a3a2f7239eeaa14a3d9ef5",
+      "pageHash": "daccf106529c55222a626bf41387334413b64f5c2eb4bed59bc5c2f4e7d41a94",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
@@ -1037,7 +1037,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "433bcb5adea466542abc36fcaa7cfa003539b263bb8eaf5c73c33dd6ffab14b8",
+      "pageHash": "f98f70eddcee8cd99170565749d057c11fdd012c9be00387022ac6fd183e4a7c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1259,14 +1259,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ab6cde6d29bc9c7849f9e0611d881fd5d9f9b8d20304103d4b7dec17055a0be7",
+      "pageHash": "9941dc9f36cf708d839ef92c35efcedd21a20c10dc15766cfca8cf3a6ec838c4",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "158ff948",
+      "sourceAt": "91c40ba6",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "dc8c0e42"
+      "commit": "3a93b935"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1395,9 +1395,9 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "4ad0a5405beed50320dc352afdf80b3ca3c1e7aba7919d1e95bab5aa09c1af00",
+      "pageHash": "64bb9e9b4ee04248034c2b4540c4b64e1c67fc8d777519ac5bb8d961f9d00713",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "9d91048c",
+      "sourceAt": "91c40ba6",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1469,6 +1469,19 @@
         "supabase/functions",
         "apps/web/src",
         "supabase/config.toml"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
+      "title": "Cuentas y compras a proveedores (MSF-450)",
+      "pageHash": "977b5ad71c217f58b4563bcf942d432381c260b96725aa2e6d996a979b8891d2",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "91c40ba6",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
       ],
       "owner": "tecnico",
       "commit": null

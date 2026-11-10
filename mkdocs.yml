@@ -226,6 +226,7 @@ nav:
           - Proveedores: tecnico/proveedores.md
           - Clientes: tecnico/clientes.md
           - Mejoras de clientes y proveedores (MSF-445): tecnico/mejoras-de-clientes-y-proveedores.md
+          - Cuentas y compras a proveedores (MSF-450): tecnico/cuentas-y-compras-a-proveedores.md
       - Service técnico:
           - Alta, estados y permisos: tecnico/service-alta-estados-y-permisos.md
           - Listado, ítems e impresión: tecnico/service-listado-items-impresion.md
