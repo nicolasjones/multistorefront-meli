@@ -418,7 +418,7 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   «Deuda» de la cuenta corriente va en ámbar. El saldo no depende de las compras: si la sección «Compras» falla, el
   «Saldo deudor» se sigue viendo (el «Facturado en el año» queda en «—»).
 - **Función:** `public.cuenta_corriente_cliente(p_cliente_id uuid)` (migración
-  `20270221100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**): `security definer`, `search_path = ''`,
+  `20270222100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**): `security definer`, `search_path = ''`,
   organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra
   organización o inexistente → saldo `0` y sin documentos (no revela si existe); el encabezado (`saldo_total`,
   `comprobantes`) viaja en cada fila y, sin documentos abiertos, vuelve solo la fila de encabezado. Cada fila trae el

@@ -42,6 +42,8 @@ export type ProductoListado = {
   id: string
   nombre: string
   precio: number | null
+  // F-PRE-11: precio normal, solo cuando hay una promoción vigente (la base devuelve null si no).
+  precioAnterior?: number | null
   disponible: boolean
   imagen: string | null
   categoriaId: string | null
@@ -111,6 +113,7 @@ export type FilaPagina = {
     id: string
     nombre: string
     precio: number | string | null
+    precio_anterior?: number | string | null
     disponible: boolean
     imagen: string | null
     categoria_id: string | null
@@ -148,6 +151,7 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
       id: p.id,
       nombre: p.nombre,
       precio: p.precio === null ? null : Number(p.precio),
+      ...(p.precio_anterior == null ? {} : { precioAnterior: Number(p.precio_anterior) }),
       disponible: p.disponible,
       imagen: p.imagen,
       categoriaId: p.categoria_id,

@@ -450,7 +450,14 @@ describe('ProductoList', () => {
     expect(screen.queryByRole('button', { name: /^(Activar|Desactivar)/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nuevo producto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Actualizar precios' })).not.toBeInTheDocument()
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
+  })
+
+  it('con edición ofrece «Actualizar precios» hacia la actualización masiva (F-PRE-10, FR-001)', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.getByRole('link', { name: 'Actualizar precios' })).toHaveAttribute('href', '/productos/precios-masivos')
   })
 
   it('un error al cambiar el estado se avisa en castellano, sin texto crudo, y no recarga', async () => {

@@ -14,13 +14,16 @@ export type FichaProducto = {
   sku: string | null
   categoria: { id: string; nombre: string } | null
   precio: number | null
+  // F-PRE-11: precio normal, solo cuando hay una promoción vigente.
+  precioAnterior?: number | null
   disponible: boolean
   compatibilidad: string | null
   imagenes: ImagenFicha[]
 }
 
-type FilaFicha = Omit<FichaProducto, 'precio' | 'imagenes'> & {
+type FilaFicha = Omit<FichaProducto, 'precio' | 'precioAnterior' | 'imagenes'> & {
   precio: number | string | null
+  precio_anterior?: number | string | null
   imagenes: ImagenFicha[] | null
 }
 
@@ -42,6 +45,7 @@ export async function leerFichaProducto(host: string, productoId: string): Promi
     sku: fila.sku,
     categoria: fila.categoria,
     precio: fila.precio === null ? null : Number(fila.precio),
+    ...(fila.precio_anterior == null ? {} : { precioAnterior: Number(fila.precio_anterior) }),
     disponible: fila.disponible,
     compatibilidad: fila.compatibilidad,
     imagenes: [...(fila.imagenes ?? [])].sort((a, b) => a.posicion - b.posicion),

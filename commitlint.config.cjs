@@ -34,6 +34,12 @@ module.exports = {
       /^spec: verificación nombrada en línea para FR-113 y los SC de catálogo compatibilidad y planillas \(MSF-202\)$/.test(
         message || "",
       ),
+    // MSF-363: tres commits de especificación (Especificador) sin `type:`. Mismo criterio que MSF-155/140/192/202: no se
+    // reescribe la historia de la rama de la épica; se listan por texto exacto para no abrir la excepción.
+    (message) =>
+      /^(Especificar la épica MSF-363: precios masivos y promociones \(F-PRE-10 y F-PRE-11\)|Completar la verificación nombrada de cada requisito de la spec MSF-363|Nombrar la verificación de cada tarea dueña de requisito en tasks.md de MSF-363)(\r?\n|$)/.test(
+        message || "",
+      ),
   ],
   rules: {
     "type-enum": [

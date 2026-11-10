@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
@@ -20,7 +20,7 @@ import BuscadorTienda from './BuscadorTienda'
 
 const HOST = 'mundojc.localhost'
 const sugerencia = (id: string, nombre: string, extra: Record<string, unknown> = {}) => ({
-  id, nombre, precio: 18455, disponible: true, imagen: null, categoriaId: null, ...extra,
+  id, nombre, precio: 18455, precioAnterior: null, disponible: true, imagen: null, categoriaId: null, ...extra,
 })
 const respuesta = (...sugerencias: ReturnType<typeof sugerencia>[]) => ({ esperaSegundos: null, sugerencias })
 
@@ -73,6 +73,17 @@ describe('BuscadorTienda · sugerencias', () => {
     expect(opciones[0]).toHaveTextContent('Sin imagen')
     expect(opciones[1]).toHaveTextContent('Sin stock')
     expect(campo()).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('tacha el precio anterior de una sugerencia con promoción vigente', async () => {
+    mocks.leer.mockResolvedValue(respuesta(sugerencia('p-1', 'Cargador USB-C', { precio: 2500, precioAnterior: 3000 }), sugerencia('p-2', 'Cargador inalámbrico')))
+    montar()
+    fireEvent.change(campo(), { target: { value: 'carg' } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const opciones = screen.getAllByRole('option')
+    expect(opciones[0]).toHaveTextContent('$ 2.500')
+    expect(within(opciones[0]).getByTestId('precio-anterior')).toHaveTextContent('$ 3.000')
+    expect(within(opciones[1]).queryByTestId('precio-anterior')).not.toBeInTheDocument()
   })
 
   it('con menos de 2 caracteres no consulta ni muestra nada', async () => {

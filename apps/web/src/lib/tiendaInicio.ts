@@ -22,6 +22,7 @@ type FilaInicio = {
     id: string
     nombre: string
     precio: number | string | null
+    precio_anterior?: number | string | null
     disponible: boolean
     imagen: string | null
     categoria_id: string | null
@@ -45,6 +46,7 @@ export async function leerInicioTienda(host: string): Promise<InicioTienda> {
     id: p.id,
     nombre: p.nombre,
     precio: p.precio === null ? null : Number(p.precio),
+    ...(p.precio_anterior == null ? {} : { precioAnterior: Number(p.precio_anterior) }),
     disponible: p.disponible,
     imagen: p.imagen,
     categoriaId: p.categoria_id,

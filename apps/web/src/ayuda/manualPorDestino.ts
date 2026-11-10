@@ -5,6 +5,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   inicio: 'inicio-y-alertas',
   productos: 'catalogo-productos',
   categorias: 'catalogo-listado-y-categorias',
+  promociones: 'precios-e-iva',
   stock: 'stock-movimientos',
   'stock-movimientos': 'stock-movimientos',
   'stock-ingresos': 'ingreso-de-mercaderia',
