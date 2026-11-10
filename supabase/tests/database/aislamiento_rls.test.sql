@@ -2,13 +2,15 @@
 -- `dominio` sobre los esquemas expuestos (`public` + `dominio`), con su política de
 -- lectura por organización y sin escritura ni lectura para `anon`.
 --
--- `rls_en_toda_tabla.test.sql` ya recorre el catálogo completo; esta prueba es la que
--- nombra FR-020 y agrega lo que ese barrido no mira: que la RLS de las dos tablas
--- nuevas tenga política (RLS habilitada sin política es un deny-all silencioso) y que
--- los grants de `authenticated`/`anon` sean los esperados.
+-- `rls_en_toda_tabla.test.sql` es el dueño del invariante «toda tabla expuesta tiene
+-- RLS». Esta prueba usa el mismo catálogo `public` + `dominio` para acotar las dos
+-- tablas nuevas (FR-020) y agrega lo que ese barrido no mira: que cada una tenga
+-- política (RLS habilitada sin política es un deny-all silencioso), que la política
+-- compare `organizacion_id` con la de la sesión y que los grants de
+-- `authenticated`/`anon` sean los esperados.
 begin;
 
-select plan(12);
+select plan(11);
 
 -- Esquema (Principio VII): las dos tablas son datos de negocio → `dominio`.
 select is(
@@ -21,8 +23,8 @@ select is(
   'las dos tablas nuevas viven en dominio'
 );
 
--- Recorrido de los esquemas expuestos (no una lista fija): una tabla nueva sin RLS
--- rompe esta prueba sin tocarla.
+-- Catálogo acotado de los esquemas expuestos para ubicar las dos tablas nuevas; el
+-- invariante general de RLS lo verifica `rls_en_toda_tabla.test.sql`.
 create temp table tablas_expuestas on commit drop as
 select n.nspname as esquema, c.relname as tabla, c.relrowsecurity as rls
 from pg_class c
@@ -40,13 +42,6 @@ where n.nspname in ('public', 'dominio')
 select cmp_ok(
   (select count(*)::int from tablas_expuestas), '>', 0,
   'el recorrido encuentra tablas expuestas en public y dominio (no pasa en vacío)'
-);
-
-select is(
-  (select coalesce(array_agg(esquema || '.' || tabla order by esquema, tabla), array[]::text[])
-     from tablas_expuestas where not rls),
-  array[]::text[],
-  'ninguna tabla de public ni de dominio tiene RLS desactivado'
 );
 
 select is(
@@ -75,13 +70,20 @@ select is(
   2, 'las políticas son SELECT para authenticated'
 );
 
+-- Igual que en `stock_carga_exportacion_avisos_cierre.test.sql`: la política tiene que
+-- COMPARAR la columna `organizacion_id` con la de la sesión. El nombre de la función
+-- `private.organizacion_id()` también contiene ese texto, así que un `like` aceptaría
+-- una política que llame a la función sin filtrar por la columna.
 select is(
-  (select count(distinct tablename)::int from pg_policies
-    where schemaname = 'dominio'
-      and tablename in ('actualizaciones_precio', 'promociones_precio')
-      and qual like '%organizacion_id%'
-      and qual like '%private.organizacion_id()%'),
-  2, 'las políticas acotan por la organización de la sesión'
+  (select count(distinct c.relname)::int
+     from pg_policy pol
+     join pg_class c on c.oid = pol.polrelid
+     join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'dominio'
+      and c.relname in ('actualizaciones_precio', 'promociones_precio')
+      and pol.polcmd = 'r'
+      and pg_get_expr(pol.polqual, pol.polrelid) ~ 'organizacion_id[[:space:]]*='),
+  2, 'las políticas comparan organizacion_id con la de la sesión'
 );
 
 select is(
