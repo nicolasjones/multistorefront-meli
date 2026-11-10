@@ -107,7 +107,7 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
                 <ContenidoAdaptable
                   items={listado.filas}
                   columnas={columnas}
-                  obtenerClave={(c) => `${c.tipo}-${c.numero}`}
+                  obtenerClave={(c, indice) => `${c.tipo}-${c.numero}-${indice}`}
                   etiquetaTabla="Últimos comprobantes del cliente"
                 />
                 <CargaInfinita
