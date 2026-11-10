@@ -242,7 +242,12 @@ export function ProductoList() {
     <Box>
       <EncabezadoPagina
         titulo="Productos"
-        accion={puedeEditar ? <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button> : undefined}
+        accion={puedeEditar ? (
+          <Stack direction="row" spacing={1}>
+            <Button component={RouterLink} to="/productos/precios-masivos" variant="outlined">Actualizar precios</Button>
+            <Button component={RouterLink} to="/productos/create" variant="contained">Nuevo producto</Button>
+          </Stack>
+        ) : undefined}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
