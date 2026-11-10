@@ -5,7 +5,10 @@ const mocks = vi.hoisted(() => ({
   listar: vi.fn(),
   empresas: vi.fn(),
   nivel: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
+
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../lib/interesWhatsapp', async (original) => ({
   ...(await original<typeof import('../../lib/interesWhatsapp')>()),
@@ -29,6 +32,7 @@ const fila = (producto: string, total: number, empresa = 'Tienda Uno', empresaId
 describe('InteresWhatsappDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes.clear()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.empresas.mockReturnValue(accesibles('e1'))
     mocks.nivel.mockReturnValue({ nivel: 'lectura', isLoading: false })
@@ -49,6 +53,13 @@ describe('InteresWhatsappDialog', () => {
     expect(screen.getByRole('columnheader', { name: 'Veces' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Último interés' })).toBeInTheDocument()
     expect(mocks.listar).toHaveBeenCalledWith('e1')
+  })
+
+  it('muestra la imagen principal del producto como miniatura', async () => {
+    mocks.imagenes.set('p-Alfa', 'https://ejemplo/alfa.png')
+    abrir()
+    await screen.findByText('Alfa')
+    expect(document.querySelector('img[src="https://ejemplo/alfa.png"]')).not.toBeNull()
   })
 
   it('sin interés muestra el estado vacío con explicación', async () => {

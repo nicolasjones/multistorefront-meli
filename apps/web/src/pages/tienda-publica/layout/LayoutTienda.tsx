@@ -9,6 +9,8 @@ import { PieCategorias } from './PieCategorias'
 
 const BuscadorTienda = lazy(() => import('./BuscadorTienda'))
 const MenuMovil = lazy(() => import('./MenuMovil'))
+// Medición (F-TDA-24): carga diferida; no hace nada sin IDs configurados y sin consentimiento de cookies.
+const MedicionTienda = lazy(() => import('./MedicionTienda'))
 
 // Lo que el layout comparte con cada ruta por el outlet: la tienda, su host y las categorías.
 export type ContextoTienda = { tienda: TiendaPublica; host: string; categorias: CategoriasTienda }
@@ -47,11 +49,14 @@ export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: st
         </Box>
         <MenuCategorias categorias={categorias} />
       </Box>
+      <Suspense fallback={null}>
+        <MedicionTienda host={host} />
+      </Suspense>
       <Box component="main" sx={{ px: 2, py: 2, flex: 1 }}>
         <Outlet context={contexto} />
       </Box>
       <Box component="footer" sx={{ px: 2, py: 3, borderTop: 1, borderColor: 'divider' }}>
-        <PieCategorias categorias={categorias.categorias} />
+        <PieCategorias categorias={categorias.categorias} host={host} />
       </Box>
     </Box>
   )

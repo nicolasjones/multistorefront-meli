@@ -13,7 +13,7 @@ corriente»): esta spec y estas tareas son esa redacción, y las tareas de acá 
 
 ## Fase 1 — Base de datos
 
-- [ ] T001 [F-CLI-19][US1] Migración aditiva `20270114130001_cuenta_corriente_cliente.sql` con `public.cuenta_corriente_cliente(p_cliente_id uuid)`: saldo total, cantidad de comprobantes y las filas de los comprobantes con saldo (total, cobrado, saldo); `security definer`, `search_path = ''`, organización de la sesión, sección `clientes`, `revoke`/`grant` correctos y reversión documentada en el encabezado. **FR-001, FR-002, FR-003, FR-004, FR-008** — Verificación: pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` + `pnpm test:db:validar-aditivas`.
+- [ ] T001 [F-CLI-19][US1] Migración aditiva `20270221100000_cuenta_corriente_cliente.sql` con `public.cuenta_corriente_cliente(p_cliente_id uuid)`: saldo total, cantidad de comprobantes y las filas de los comprobantes con saldo (total, cobrado, saldo); `security definer`, `search_path = ''`, organización de la sesión, sección `clientes`, `revoke`/`grant` correctos y reversión documentada en el encabezado. **FR-001, FR-002, FR-003, FR-004, FR-008** — Verificación: pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` + `pnpm test:db:validar-aditivas`.
 - [ ] T002 [F-CLI-19][US1] pgTAP de la cuenta corriente: saldo con cobro parcial, total y cobro que supera el total (saldo 0), presupuesto/anulada/borrador/nota de crédito fuera, factura en `deuda` con su total completo, cliente sin deuda, cliente de otra organización, sección `clientes` en `ninguno` y `anon` sin ejecución. **FR-001, FR-002, FR-003, FR-004, SC-001, SC-002** — Verificación: `pnpm test:db` (con `pnpm dev:supabase`).
 
 **Checkpoint**: sin la base no hay pantalla (el saldo sale de la RPC).

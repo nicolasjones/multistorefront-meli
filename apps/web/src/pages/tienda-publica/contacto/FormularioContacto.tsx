@@ -1,5 +1,6 @@
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { enviarConsultaContacto, minutosDeEspera, nuevaClaveEnvio } from '../../../lib/tiendaContacto'
 import { ErrorConReintento } from '../ErrorConReintento'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
@@ -60,6 +61,8 @@ export function FormularioContacto({ host }: { host: string }) {
     enviandoAhora.current = false
     switch (resultado.estado) {
       case 'exito':
+        // Evento de medición (F-TDA-24, FR-016): solo en el envío confirmado, sin datos del mensaje ni del visitante.
+        registrarEventoTienda('envio_contacto')
         setEstado({ fase: 'exito' })
         return
       case 'invalido': {

@@ -95,6 +95,7 @@ import {
   aEntradas,
   conCambio,
   conProductoAgregado,
+  indiceEnEntradas,
   guardarLineasComprobante,
   sinLinea,
   type EntradaLinea,
@@ -103,6 +104,14 @@ import {
 const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
+// MSF-598: el despacho, el envío y los faltantes viven en cualquier estado vivo de la factura (no solo «confirmada»).
+// Debe coincidir con la lista de estados vivos de `cambiar_estado_despacho`, `registrar_faltantes_despacho` y
+// `guardar_envio_comprobante` (migración 20270202202101).
+const ESTADOS_DESPACHABLES: readonly string[] = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
+// La relectura posterior al cobro falló: el cobro YA está en la base, así que la pantalla no cae
+// en el error general (parecería que el cobro falló). Se avisa y se recurre a recargar la página.
+const MENSAJE_RELECTURA_TRAS_COBRO =
+  'El cobro quedó registrado, pero no pudimos actualizar el detalle de la factura. Recargá la página para ver el estado vigente.'
 
 // Ventas · Comprobante (F-VTA-05, FR-006): alta en `/ventas/comprobantes/nuevo` y edición en `/ventas/comprobantes/:id`.
 // La autoridad de permisos y de edición es la base (RPC); acá `puede_editar` y `editable` solo deciden qué se ofrece.
@@ -119,6 +128,7 @@ export function ComprobanteVenta() {
   const [parametros] = useSearchParams()
   const tipoInicial: TipoComprobante = parametros.get('tipo') === 'presupuesto' ? 'presupuesto' : 'factura'
   const { nivel } = useNivelSeccion('ventas')
+  const { nivel: nivelService } = useNivelSeccion('service_tecnico')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
 
   const [comprobante, setComprobante] = useState<Comprobante | null>(null)
@@ -148,6 +158,9 @@ export function ComprobanteVenta() {
   const [puedeCobrar, setPuedeCobrar] = useState(false)
   const [dialogoCobro, setDialogoCobro] = useState(false)
   const [permitidos, setPermitidos] = useState<string[]>([])
+  // El comprobante se está releyendo después de un cobro (MSF-715): mientras tanto las acciones que
+  // mandan el `updated_at` quedan bloqueadas, para no chocar con «Otra persona modificó…».
+  const [recargandoTrasCobro, setRecargandoTrasCobro] = useState(false)
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [detalleAcciones, setDetalleAcciones] = useState<DetalleAnulacion | null>(null)
@@ -159,7 +172,10 @@ export function ComprobanteVenta() {
   const ultimaPeticionEstados = useRef(0)
   const ultimaPeticionDetalle = useRef(0)
 
-  const cargar = useCallback(async () => {
+  // `trasCobro`: la relectura que sigue a un cobro. El formulario NO se toca (el cobro no cambia
+  // los datos de la cabecera) y un fallo no tira la pantalla al error general: el cobro ya está en la
+  // base, así que se avisa y se bloquean las acciones que usarían el `updated_at` viejo (MSF-715).
+  const cargar = useCallback(async (opciones?: { trasCobro?: boolean }) => {
     if (!id) return
     const peticion = ++ultimaPeticion.current
     setErrorCarga(null)
@@ -167,10 +183,20 @@ export function ComprobanteVenta() {
       const existente = await obtenerComprobante(id)
       if (peticion !== ultimaPeticion.current) return
       setComprobante(existente)
-      setFormulario(aFormulario(existente))
+      if (!opciones?.trasCobro) setFormulario(aFormulario(existente))
       setCargado(true)
+      // Solo la lectura vigente baja el bloqueo: una más nueva ya lo gobierna (MSF-715).
+      setRecargandoTrasCobro(false)
     } catch (error) {
       if (peticion !== ultimaPeticion.current) return
+      setRecargandoTrasCobro(false)
+      if (opciones?.trasCobro) {
+        console.error('No pudimos releer el comprobante después del cobro.', error)
+        // Deny-by-default: sin el `updated_at` vigente no se ofrece cambiar el estado.
+        setPermitidos([])
+        setAviso(MENSAJE_RELECTURA_TRAS_COBRO)
+        return
+      }
       setErrorCarga(
         esComprobanteInexistente(error)
           ? 'Ese comprobante no existe o no pertenece a tu organización.'
@@ -181,6 +207,15 @@ export function ComprobanteVenta() {
 
   useEffect(() => {
     void cargar()
+  }, [cargar])
+
+  // Tras registrar un cobro, la base pasó la factura a «cobrado»/«deuda» y avanzó su `updated_at`
+  // (MSF-715). La pantalla relee el comprobante para que el chip de estado, las transiciones y las
+  // acciones siguientes usen el valor vigente (si no, la base responde «Otra persona modificó este
+  // comprobante»). Mientras relee, las acciones que mandan el `updated_at` quedan bloqueadas.
+  const releerTrasCobro = useCallback(async () => {
+    setRecargandoTrasCobro(true)
+    await cargar({ trasCobro: true })
   }, [cargar])
 
   // Acciones y notas del detalle (F-VTA-11, FR-042/FR-045/FR-046): anulación, notas asociadas y qué líneas quedan
@@ -408,6 +443,12 @@ export function ComprobanteVenta() {
       })
   }, [comprobanteId, esFactura, estadoActual, actualizadoEn, empresaActivaId])
 
+  // El error de un cambio de estado no sobrevive al cambio de comprobante ni de tienda (Principio VIII): si no, el
+  // error de una factura queda visible en otra y hace pensar que falló lo que se está viendo ahora.
+  useEffect(() => {
+    setErrorEstado(null)
+  }, [comprobanteId, empresaActivaId])
+
   const elegirEstado = async (destino: EstadoComprobante) => {
     if (!comprobante || cambiandoEstado) return
     setCambiandoEstado(true)
@@ -481,12 +522,12 @@ export function ComprobanteVenta() {
 
   const cambiarLinea = (indice: number, cambio: Partial<EntradaLinea>) => {
     if (!comprobante) return
-    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indice, cambio))
+    void reemplazarLineas(conCambio(aEntradas(comprobante.lineas), indiceEnEntradas(comprobante.lineas, indice), cambio))
   }
 
   const quitarLinea = (indice: number) => {
     if (!comprobante) return
-    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indice))
+    void reemplazarLineas(sinLinea(aEntradas(comprobante.lineas), indiceEnEntradas(comprobante.lineas, indice)))
   }
 
   const agregarProducto = (producto: ProductoRepuesto) => {
@@ -564,6 +605,20 @@ export function ComprobanteVenta() {
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
   const estado = comprobante ? definicionEstado(comprobante.estado) : null
+  // Origen (F-SVC-13, FR-007): «Reparación R-000N» con enlace al detalle de Service solo con acceso a esa sección.
+  const origenNumero = comprobante?.origen_tipo === 'reparacion' ? comprobante.origen_numero : null
+  const enlaceOrigen = nivelService === 'lectura' || nivelService === 'edicion'
+  const origenReparacion =
+    comprobante?.origen_tipo === 'reparacion' && comprobante.origen_id && origenNumero ? (
+      <>
+        Origen:{' '}
+        {enlaceOrigen ? (
+          <RouterLink to={`/service-tecnico/reparaciones/${comprobante.origen_id}`}>Reparación {origenNumero}</RouterLink>
+        ) : (
+          <span>Reparación {origenNumero}</span>
+        )}
+      </>
+    ) : undefined
 
   // El campo «Cuenta de cobro» (FR-008) muestra la del ÚLTIMO cobro con cuenta: la que está
   // vigente. El chip dice si ese cobro ya fue conciliado contra el extracto.
@@ -601,17 +656,20 @@ export function ComprobanteVenta() {
         <EncabezadoPagina
           titulo={titulo}
           descripcion={comprobante ? `${comprobante.empresa} · ${comprobante.cliente.nombre}` : undefined}
+          detalle={origenReparacion}
           accion={
             <>
               {estado ? <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} /> : null}
-              {/* Anular y Nota de crédito (F-VTA-11): la base decide si se ofrecen; sin permiso no se muestran. */}
+              {/* Anular y Nota de crédito (F-VTA-11): la base decide si se ofrecen; sin permiso no se muestran.
+                  Mientras se relee el comprobante después de un cobro quedan bloqueadas: mandan el `updated_at`
+                  del comprobante y con el valor viejo la base responde «Otra persona modificó…» (MSF-715). */}
               {comprobante && detalleAcciones?.puede_anular ? (
-                <Button type="button" variant="outlined" color="error" onClick={() => setAnulandoAbierto(true)} disabled={guardando}>
+                <Button type="button" variant="outlined" color="error" onClick={() => setAnulandoAbierto(true)} disabled={guardando || recargandoTrasCobro}>
                   {ETIQUETA_ANULAR}
                 </Button>
               ) : null}
               {comprobante && detalleAcciones?.puede_emitir_nota_credito ? (
-                <Button type="button" variant="outlined" onClick={() => setNotaAbierta(true)} disabled={guardando}>
+                <Button type="button" variant="outlined" onClick={() => setNotaAbierta(true)} disabled={guardando || recargandoTrasCobro}>
                   {ETIQUETA_NOTA_CREDITO}
                 </Button>
               ) : null}
@@ -626,7 +684,7 @@ export function ComprobanteVenta() {
                 </Button>
               ) : null}
               {puedeEditar ? (
-                <Button type="submit" variant="contained" disabled={guardando}>
+                <Button type="submit" variant="contained" disabled={guardando || recargandoTrasCobro}>
                   {guardando ? 'Guardando…' : 'Guardar cambios'}
                 </Button>
               ) : null}
@@ -857,15 +915,21 @@ export function ComprobanteVenta() {
               dialogoAbierto={dialogoCobro}
               onAbrirDialogo={() => setDialogoCobro(true)}
               onCerrarDialogo={() => setDialogoCobro(false)}
+              // «Reintentar» de la tarjeta: recarga solo la lista de cobros y el saldo (no toca el
+              // comprobante, así no pisa lo que la persona esté editando).
               onRecargar={() => void recargarCobros()}
               onRegistrado={setExito}
+              // El cobro cambió el estado y el `updated_at` del comprobante en la base (MSF-715): se
+              // relee también el comprobante, o las acciones siguientes chocarían con «Otra persona
+              // modificó este comprobante».
+              onCobroRegistrado={() => void releerTrasCobro()}
             />
           ) : null}
           {/* Envío y transporte (F-VTA-16, FR-023): el bloque con el selector de transporte, la guía y la fecha de
-              envío solo existe en una factura confirmada (el envío se registra sobre la factura confirmada). Al
+              envío existe en una factura viva (MSF-598). Al
               cambiar la empresa activa la pantalla se cierra con aviso (Principio VIII) y el bloque suelta lo
               elegido: nunca se guarda un envío de una tienda bajo otra. */}
-          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+          {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
             <EnvioTransporte
               comprobanteId={comprobante.id}
               empresaId={comprobante.empresa_id}
@@ -875,10 +939,10 @@ export function ComprobanteVenta() {
               onCambio={() => void cargar()}
             />
           ) : null}
-          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta solo existe en una factura confirmada,
+          {/* Responsables del despacho (F-VTA-15, FR-010/FR-012): la tarjeta existe en una factura viva (MSF-598),
               porque el despacho arranca al confirmar. Al cambiar la empresa activa la pantalla se cierra con aviso
               (Principio VIII) y la tarjeta suelta lo elegido: nunca se guarda un responsable de otra tienda. */}
-          {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+          {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
             <ResponsablesDespacho
               comprobanteId={comprobante.id}
               empresaId={comprobante.empresa_id}
@@ -903,7 +967,7 @@ export function ComprobanteVenta() {
           {/* Acciones del comprobante: «Confirmar factura» (F-VTA-07). Las demás llegan con sus historias. */}
           <Box data-testid="espacio-acciones">
             {comprobante && puedeConfirmarFactura(comprobante) && nivel === 'edicion' ? (
-              <Button variant="contained" onClick={() => setConfirmandoFactura(true)} disabled={guardando || guardandoLineas}>
+              <Button variant="contained" onClick={() => setConfirmandoFactura(true)} disabled={guardando || guardandoLineas || recargandoTrasCobro}>
                 {ETIQUETA_CONFIRMAR_FACTURA}
               </Button>
             ) : null}
@@ -923,7 +987,9 @@ export function ComprobanteVenta() {
             <TarjetaEstadoComprobante
               estado={comprobante.estado}
               permitidos={permitidos}
-              ocupado={cambiandoEstado || guardando}
+              // Mientras se relee el comprobante después de un cobro los chips quedan deshabilitados:
+              // mandarían el `updated_at` viejo y la base respondería «Otra persona modificó…» (MSF-715).
+              ocupado={cambiandoEstado || guardando || recargandoTrasCobro}
               error={errorEstado}
               onElegir={(destino) => void elegirEstado(destino)}
             />
@@ -949,7 +1015,7 @@ export function ComprobanteVenta() {
       {/* Faltantes (F-VTA-18, FR-047): elegir el estado «Incompleto» en el despacho abre este diálogo. Con el
           diálogo abierto, un cambio de empresa activa lo cierra con aviso (Principio VIII): jamás se registran
           faltantes de una tienda bajo otra. */}
-      {comprobante && comprobante.tipo === 'factura' && comprobante.estado === 'confirmada' ? (
+      {comprobante && comprobante.tipo === 'factura' && ESTADOS_DESPACHABLES.includes(comprobante.estado) ? (
         <RegistrarFaltantesDialog
           open={registrandoFaltantes}
           comprobante={comprobante}

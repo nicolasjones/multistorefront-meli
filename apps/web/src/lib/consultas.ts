@@ -47,10 +47,12 @@ export type Consulta = {
   nota_interna: string | null
   created_at: string
   updated_at: string
+  /** Contacto de la libreta vinculado (F-CON-05); null si no tiene. */
+  contacto_id?: string | null
 }
 
 export const COLUMNAS_CONSULTA =
-  'id, empresa_id, empresa_nombre, origen, nombre, contacto, mensaje, producto_id, producto_nombre, estado, responsable_id, responsable_nombre, nota_interna, created_at, updated_at'
+  'id, empresa_id, empresa_nombre, origen, nombre, contacto, mensaje, producto_id, producto_nombre, estado, responsable_id, responsable_nombre, nota_interna, created_at, updated_at, contacto_id'
 
 export type Responsable = { user_id: string; nombre: string }
 

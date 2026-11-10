@@ -1,0 +1,82 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "verificar-dominio-tienda",
+    "version": "1.0.0",
+    "description": "Edge Function de F-TDA-05 (MSF-133). Comprueba los registros DNS (A, CNAME, TXT) del dominio de una tienda y, con el dominio verificado, el certificado SSL. Los hostnames salen siempre de la base, nunca del request. Una verificación cada 10 s por tienda."
+  },
+  "paths": {
+    "/verificar-dominio-tienda": {
+      "post": {
+        "operationId": "verificarDominioTienda",
+        "summary": "Verifica el DNS y el certificado de la tienda de una empresa",
+        "security": [{ "bearerJwt": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["empresa_id"],
+                "additionalProperties": false,
+                "properties": { "empresa_id": { "type": "string", "format": "uuid" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de la verificación (ya guardado).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["dominio_verificado", "certificado", "registros"],
+                  "properties": {
+                    "dominio_verificado": { "type": "boolean" },
+                    "certificado": { "type": "string", "enum": ["pendiente", "activo", "error"] },
+                    "registros": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["tipo", "nombre", "estado"],
+                        "properties": {
+                          "tipo": { "type": "string", "enum": ["A", "CNAME", "TXT"] },
+                          "nombre": { "type": "string" },
+                          "estado": { "type": "string", "enum": ["correcto", "incorrecto", "pendiente"] }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error", "description": "solicitud_invalida (cuerpo sin empresa_id válido, resultado no guardable) o sin_dominio (la empresa no tiene dominio)." },
+          "401": { "$ref": "#/components/responses/Error", "description": "no_autenticado: falta el JWT o es inválido." },
+          "403": { "$ref": "#/components/responses/Error", "description": "sin_permiso: sin edición en Empresas o empresa de otra organización." },
+          "405": { "$ref": "#/components/responses/Error", "description": "solicitud_invalida: método distinto de POST." },
+          "429": { "$ref": "#/components/responses/Error", "description": "demasiado_pronto: otra verificación hace menos de 10 s; no se consultó DNS." },
+          "502": { "$ref": "#/components/responses/Error", "description": "dns_no_disponible: falló la consulta DNS; no se cambió ningún estado guardado." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "bearerJwt": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" } },
+    "responses": {
+      "Error": {
+        "description": "Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "required": ["error"],
+              "properties": { "error": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

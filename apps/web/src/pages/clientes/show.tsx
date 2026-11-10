@@ -1,15 +1,17 @@
-import { useState } from 'react'
-import { Link as RouterLink, useLocation, useParams } from 'react-router'
+import { Suspense, lazy, useState } from 'react'
+import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, Typography,
+  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControlLabel, Stack, Switch, Tab, Tabs, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
+import { faltantes, rutaEtiquetas } from '../../lib/etiquetasCliente'
 import {
   cambiarEstadoCuentaWeb, habilitarTiendaDeCliente, invitarCuentaWeb, tiendaCuentaWeb, type TiendaCuentaWeb,
 } from '../../lib/cuentasCliente'
@@ -21,7 +23,13 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { ComprasCliente } from '../../components/clientes/ComprasCliente'
+import { DialogoFusionarClientes } from '../../components/clientes/DialogoFusionarClientes'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+
+const MENSAJE_FUSIONADO = 'Clientes fusionados: las compras se sumaron en esta ficha'
+
+// Pestaña de Service técnico (F-SVC-15): se descarga solo al abrirla (Principio VI).
+const ReparacionesDeCliente = lazy(() => import('../../components/clientes/ReparacionesDeCliente').then((modulo) => ({ default: modulo.ReparacionesDeCliente })))
 
 const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'documento', etiqueta: 'DNI/CUIT' },
@@ -33,6 +41,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'localidad', etiqueta: 'Localidad' },
   { campo: 'provincia', etiqueta: 'Provincia' },
   { campo: 'expreso_preferido', etiqueta: 'Expreso preferido' },
+  { campo: 'descuento', etiqueta: 'Descuento' },
 ]
 
 // Ficha de cliente (F-CLI-01, FR-003): datos, estado y, para quien edita,
@@ -40,7 +49,10 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
 export function ClienteShow() {
   const { id } = useParams()
   const location = useLocation()
+  const navegar = useNavigate()
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('clientes')
+  const { nivel: nivelService } = useNivelSeccion('service_tecnico')
+  const [pestana, setPestana] = useState<'datos' | 'reparaciones'>('datos')
   const { query } = useOne<Cliente>({ resource: 'clientes', id })
   const { mutateAsync } = useUpdate()
   const [confirmando, setConfirmando] = useState(false)
@@ -50,6 +62,9 @@ export function ClienteShow() {
   const [mensajeCuenta, setMensajeCuenta] = useState<string | null>(null)
   const [errorCuenta, setErrorCuenta] = useState<string | null>(null)
   const [procesandoCuenta, setProcesandoCuenta] = useState<string | null>(null)
+  const [fusionando, setFusionando] = useState(false)
+  // Sube al fusionar para volver a pedir las compras (ComprasCliente) con la suma de ambas fichas.
+  const [versionCompras, setVersionCompras] = useState(0)
   const [seleccionTienda, setSeleccionTienda] = useState<{ base: string | null; valor: string } | null>(null)
 
   const cliente = query.data?.data
@@ -72,6 +87,26 @@ export function ClienteShow() {
   // El Consumidor final es del mostrador: la base lo hace inmutable (FR-009) y acá no se ofrecen acciones.
   const puedeEditar = nivel === 'edicion' && !cliente?.es_consumidor_final
   const archivado = Boolean(cliente?.archivado_en)
+  // Fusionar clientes (F-CLI-18, FR-014): solo el Administrador; la base lo impone, acá solo se oculta la acción.
+  const { contexto } = useContextoPanel()
+  const puedeFusionar = contexto?.rol_efectivo === 'administrador' && !archivado && !cliente?.es_consumidor_final
+
+  const alFusionar = async (conservadoId: string) => {
+    setFusionando(false)
+    setErrorAccion(null)
+    setConfirmacion(MENSAJE_FUSIONADO)
+    if (cliente && conservadoId !== cliente.id) {
+      // Esta ficha quedó archivada: se sigue en la que se conservó.
+      navegar(`/clientes/show/${conservadoId}`, { state: { mensaje: MENSAJE_FUSIONADO } })
+      return
+    }
+    setVersionCompras((n) => n + 1)
+    await query.refetch().catch(() => undefined)
+  }
+
+  // Sin acceso a Service técnico la pestaña no existe (FR-045); si se pierde el acceso, vuelve a «Datos».
+  const verReparaciones = nivelService === 'lectura' || nivelService === 'edicion'
+  const pestanaActiva = verReparaciones ? pestana : 'datos'
 
   const cambiarArchivado = async () => {
     if (!cliente || procesando) {
@@ -94,6 +129,29 @@ export function ClienteShow() {
       setProcesando(false)
     }
     // Fuera del try: si el refetch falla, el cambio ya se guardó y no es un error de la acción.
+    await query.refetch().catch(() => undefined)
+  }
+
+  // Bloque «Comunicaciones» (F-CLI-11, FR-002): el interruptor guarda al instante, como las tiendas.
+  const cambiarCorreoMasivo = async (acepta: boolean) => {
+    if (!cliente || procesando) {
+      return
+    }
+    setProcesando(true)
+    setErrorAccion(null)
+    try {
+      await mutateAsync({
+        resource: 'clientes',
+        id: cliente.id,
+        values: { acepta_correo_masivo: acepta },
+        successNotification: false,
+      })
+      setConfirmacion(acepta ? 'El cliente se incluye en el correo masivo' : 'El cliente ya no se incluye en el correo masivo')
+    } catch (error) {
+      setErrorAccion(mensajeDeError(error, 'No pudimos guardar la preferencia de correo masivo.'))
+    } finally {
+      setProcesando(false)
+    }
     await query.refetch().catch(() => undefined)
   }
 
@@ -123,9 +181,24 @@ export function ClienteShow() {
     )
   }
 
+  // Etiqueta de envío (F-CLI-17, FR-003): sin dirección no hay hoja, solo el aviso con el dato que falta.
+  const imprimirEtiqueta = () => {
+    if (!cliente) return
+    const falta = faltantes(cliente)
+    if (falta.length > 0) {
+      setConfirmacion(null)
+      setErrorAccion(`No se puede imprimir la etiqueta: falta ${falta.join(', ')}. Cargala en «Editar» y probá de nuevo.`)
+      return
+    }
+    setErrorAccion(null)
+    navegar(rutaEtiquetas([cliente.id]), { state: { volverA: location.pathname } })
+  }
+
   const accion = (
     <Stack direction="row" spacing={1}>
       <Button component={RouterLink} to="/clientes">Volver al listado</Button>
+      {cliente ? <Button variant="outlined" onClick={imprimirEtiqueta}>Etiqueta</Button> : null}
+      {puedeFusionar ? <Button variant="outlined" onClick={() => setFusionando(true)}>Fusionar con otro cliente…</Button> : null}
       {puedeEditar && cliente ? (
         <>
           <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} variant="contained">Editar</Button>
@@ -166,13 +239,43 @@ export function ClienteShow() {
                 El Consumidor final se usa para vender en el mostrador sin cargar un cliente cada vez. No se edita ni se archiva.
               </Typography>
             ) : null}
+            {verReparaciones ? (
+              <Tabs value={pestanaActiva} onChange={(_, valor: 'datos' | 'reparaciones') => setPestana(valor)} aria-label="Secciones de la ficha">
+                <Tab value="datos" label="Datos" id="pestana-cliente-datos" aria-controls="panel-cliente-datos" />
+                <Tab value="reparaciones" label="Reparaciones" id="pestana-cliente-reparaciones" aria-controls="panel-cliente-reparaciones" />
+              </Tabs>
+            ) : null}
+            {pestanaActiva === 'reparaciones' ? (
+              <Box role="tabpanel" id="panel-cliente-reparaciones" aria-labelledby="pestana-cliente-reparaciones">
+                <Suspense fallback={<EstadoCargaPagina />}>
+                  <ReparacionesDeCliente key={cliente.id} clienteId={cliente.id} />
+                </Suspense>
+              </Box>
+            ) : (
+              <Stack spacing={2} role={verReparaciones ? 'tabpanel' : undefined} id={verReparaciones ? 'panel-cliente-datos' : undefined} aria-labelledby={verReparaciones ? 'pestana-cliente-datos' : undefined}>
             <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '12rem 1fr' }, gap: 1 }}>
               {DATOS.map(({ campo, etiqueta }) => (
                 <Box key={campo} sx={{ display: 'contents' }}>
                   <Typography component="dt" color="text.secondary">{etiqueta}</Typography>
-                  <Typography component="dd" sx={{ m: 0 }}>{(cliente[campo] as string | null) || '—'}</Typography>
+                  <Typography component="dd" sx={{ m: 0 }}>{campo === 'descuento' ? (cliente.descuento ? `${cliente.descuento} %` : '—') : (cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
+            </Box>
+            <Box>
+              <Button variant="outlined" onClick={imprimirEtiqueta}>Imprimir etiqueta de envío</Button>
+            </Box>
+            <Box component="section" aria-labelledby="titulo-comunicaciones">
+              <Typography component="h2" variant="subtitle2" id="titulo-comunicaciones" sx={{ fontWeight: 600 }}>Comunicaciones</Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={cliente.acepta_correo_masivo}
+                    disabled={!puedeEditar || procesando}
+                    onChange={(evento) => void cambiarCorreoMasivo(evento.target.checked)}
+                  />
+                }
+                label="Incluir en el correo masivo"
+              />
             </Box>
             {nivel === 'lectura' || nivel === 'edicion' ? (
               <>
@@ -223,12 +326,22 @@ export function ClienteShow() {
                     />
                   </>
                 )}
-                <ComprasCliente key={cliente.id} clienteId={cliente.id} />
+                <ComprasCliente key={`${cliente.id}-${versionCompras}`} clienteId={cliente.id} />
               </>
             ) : null}
+              </Stack>
+            )}
           </Stack>
         )}
       </ContenedorSeccion>
+      {cliente && puedeFusionar ? (
+        <DialogoFusionarClientes
+          abierto={fusionando}
+          cliente={{ id: cliente.id, numero: cliente.numero, nombre: cliente.nombre }}
+          onCerrar={() => setFusionando(false)}
+          onFusionado={(id) => void alFusionar(id)}
+        />
+      ) : null}
       <Dialog open={confirmando} onClose={() => !procesando && setConfirmando(false)} aria-labelledby="titulo-confirmar-archivado">
         <TituloDialogo id="titulo-confirmar-archivado" onCerrar={() => !procesando && setConfirmando(false)}>{archivado ? 'Restaurar cliente' : 'Archivar cliente'}</TituloDialogo>
         <DialogContent>

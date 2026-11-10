@@ -147,23 +147,27 @@ describe('ComprasCliente', () => {
     expect(mocks.reintentarCuenta).toHaveBeenCalledTimes(1)
   })
 
-  it('pide la primera página de 10 y pagina en el servidor', () => {
-    mocks.useComprasCliente.mockReturnValue(respuesta([compra(1)], { total: 25 }))
+  it('pide la primera tanda de 10 y «Cargar más» suma la siguiente a lo ya mostrado', () => {
+    const tanda1 = [compra(1)]
+    const tanda2 = [compra(2)]
+    mocks.useComprasCliente.mockImplementation((_id: string, pagina: number) => respuesta(pagina === 2 ? tanda2 : tanda1, { total: 2 }))
     abrir()
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 1, 10)
-    expect(screen.getByText('1–10 de 25')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.getByText('Factura 0001-00000001')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 2, 10)
+    expect(screen.getByText('Factura 0001-00000001')).toBeInTheDocument()
+    expect(screen.getByText('Factura 0001-00000002')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
   })
 
-  it('si la página pedida quedó vacía pero hay comprobantes, vuelve a la primera', () => {
+  it('al cambiar de cliente vuelve a la primera tanda y descarta lo acumulado', () => {
     mocks.useComprasCliente.mockReturnValue(respuesta([compra(1)], { total: 25 }))
     const { rerender } = abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 2, 10)
-    mocks.useComprasCliente.mockReturnValue(respuesta([], { total: 5 }))
-    rerender(<ComprasCliente clienteId="c-1" />)
-    expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-1', 1, 10)
+    rerender(<ComprasCliente clienteId="c-2" />)
+    expect(mocks.useComprasCliente).toHaveBeenLastCalledWith('c-2', 1, 10)
   })
 
   it('sin compras muestra el vacío y $ 0', () => {

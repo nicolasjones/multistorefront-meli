@@ -1,6 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// La cabecera SEO lee `seo_tienda_por_dominio`: sin este mock hacía un fetch real que fallaba y escribía en la
+// consola cuando el worker de Vitest ya se estaba cerrando (EnvironmentTeardownError intermitente en CI).
+vi.mock('../../lib/supabase', () => ({
+  supabaseClient: { schema: () => ({ rpc: async () => ({ data: null, error: null }) }) },
+}))
+
 import RutaCatalogo from './rutas/catalogo'
 import type { ModuloSeccionCatalogo } from './seccionesCatalogo'
 

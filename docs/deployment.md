@@ -31,6 +31,16 @@ Staging valida migraciones, permisos, workflows y conexión entre componentes si
   revalida y baja el bundle nuevo en cada deploy) y los assets con hash, con cache
   inmutable de 1 año. Como el HTML referencia el hash del bundle, no hace falta invalidar
   nada a mano (evita el «no aparece la pantalla nueva» hasta un Ctrl+Shift+R).
+  También proxea `/robots.txt` y `/sitemap.xml` a la Edge Function `tienda-seo` (F-TDA-21): la
+  URL de Supabase y la clave pública se toman de los `ARG VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_PUBLISHABLE_KEY` del build de la imagen (ver `docs/tiendas-online.md`); el build falla si alguno queda vacío.
+  **Son OBLIGATORIOS**: `apps/web/Dockerfile` solo lo construye Dokploy (ningún compose ni workflow del repo lo hace; `infra/refine/compose.yaml`
+  es de desarrollo con Vite y los workflows construyen solo imágenes de workers), así que en la aplicación de Dokploy de `apps/web` y en
+  cada preview hay que definir los *build args* `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` (además de `VITE_PANEL_HOSTS`).
+  Esas rutas van con caché de nginx (5 min, clave por host) y límite de pedidos por IP + host (20 r/s, ráfaga 100) y por IP (100 r/s, ráfaga 200); como nginx queda
+  detrás de Traefik, la IP real se toma de `X-Forwarded-For` desde los rangos privados de la red del proxy. Requisito: Traefik debe pasar
+  `X-Forwarded-For` con la IP del cliente (el repo no define su `trustedIPs`/`forwardedHeaders`); con Cloudflare u otro proxy delante hay
+  que sumar sus rangos a `set_real_ip_from` y usar `real_ip_header CF-Connecting-IP`.
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.
@@ -351,7 +361,7 @@ mano desde la pestaña Actions (`workflow_dispatch`) — alternativa sin costo
 a required reviewers, que necesita un plan de pago no disponible aquí (ver
 tasks.md T027 de la spec).
 `SUPABASE_DB_URL` es un secret por Environment — una cadena de conexión
-acotada al proyecto, no un access token de cuenta. Antes de aplicar nada,
+acotada al proyecto, no un access token de cuenta. El script separa la contraseña de la URL y la pasa por `PGPASSWORD` (no por `argv`, visible en `ps`); `redactError` también enmascara esa contraseña si algún mensaje la imprime suelta. Antes de aplicar nada,
 `scripts/validar-migraciones-aditivas.mjs` rechaza cualquier migración
 destructiva (`DROP TABLE`/`COLUMN`, `TRUNCATE`) que no documente su
 Reversión — misma convención ya vigente en `supabase/migrations/` (un
@@ -436,7 +446,8 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   **merge queue** (disparador `merge_group`) prueba el PR sobre el base actualizado; se activa con un
   ruleset de rama (`merge_queue` + `required_status_checks`) — ver `docs/control-ci.md`.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
-  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`), los jobs **`web`** (suite shardeada) y el
+  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.specify/`, `.github/`, `mkdocs.yml` o `*.md` de la raíz —
+  MSF-687: un PR de solo documentación ya no dispara la suite web ni el e2e), los jobs **`web`** (suite shardeada) y el
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
   archivos caen en esos dirs (cualquier archivo de raíz o desconocido lo vuelve a prender). `apps/web` depende
   de `@platform/ia`, por eso `packages/**` cuenta como `web`.

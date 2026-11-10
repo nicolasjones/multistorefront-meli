@@ -1,17 +1,20 @@
 import { AppBar, Box, Toolbar, Typography } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
 import { useLocation } from 'react-router'
+import { BusquedaGlobal } from './BusquedaGlobal'
+import { CampanitaNotificaciones } from './CampanitaNotificaciones'
 import { MenuCuenta } from './MenuCuenta'
+import { PanelAyuda } from './PanelAyuda'
 import { SelectorEmpresa } from './SelectorEmpresa'
 import { SelectorEmpresaActiva } from './SelectorEmpresaActiva'
-import { SECCIONES_PANEL } from './destinosPanel'
+import { coincideRuta, SECCIONES_PANEL } from './destinosPanel'
 import { tokens } from '../../tema/tokens'
 
 // Migas de pan (.s, FR-009): se derivan del destino activo del sider, así no
 // duplican rutas ni etiquetas.
 function MigasPanel() {
   const { pathname } = useLocation()
-  const coincide = (ruta: string) => ruta === pathname || (ruta !== '/' && pathname.startsWith(ruta))
+  const coincide = (ruta: string) => coincideRuta(ruta, pathname)
   const seccion = SECCIONES_PANEL.find((candidata) => candidata.destinos.some((destino) => coincide(destino.ruta)))
   const destino = seccion?.destinos.find((candidato) => coincide(candidato.ruta))
 
@@ -42,6 +45,9 @@ export function EncabezadoPanel() {
         <SelectorEmpresaActiva />
         <MigasPanel />
         <Box sx={{ flexGrow: 1 }} />
+        <BusquedaGlobal />
+        <CampanitaNotificaciones />
+        <PanelAyuda />
         <MenuCuenta />
       </Toolbar>
     </AppBar>

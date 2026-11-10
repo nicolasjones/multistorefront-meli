@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
-import { Box, LinearProgress, Stack, TablePagination, Typography } from '@mui/material'
+import { useState } from 'react'
+import { Box, LinearProgress, Stack, Typography } from '@mui/material'
 import { useComprasCliente, type CompraCliente } from '../../hooks/useComprasCliente'
 import { useCuentaCorrienteCliente, type ComprobanteDeuda } from '../../hooks/useCuentaCorrienteCliente'
 import { formatearFecha, formatearPesos } from '../../lib/formatoRanking'
 import { tokens } from '../../tema/tokens'
 import { EtiquetaEstado, type VarianteEtiqueta } from '../base/EtiquetaEstado'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
 
-const TAMANO_PAGINA = 10
+const TAMANO_TANDA = 10
 
 const etiquetaTipo: Record<string, string> = { factura: 'Factura', presupuesto: 'Presupuesto' }
 const etiquetaEstado = (estado: string) => estado.charAt(0).toUpperCase() + estado.slice(1)
@@ -53,14 +55,15 @@ const columnasCuenta: ColumnaAdaptable<ComprobanteDeuda>[] = [
 export function ComprasCliente({ clienteId }: { clienteId: string }) {
   const [pagina, setPagina] = useState(1)
   const { compras, total, facturadoAnio, isLoading, isFetching, isError, refetch } =
-    useComprasCliente(clienteId, pagina, TAMANO_PAGINA)
+    useComprasCliente(clienteId, pagina, TAMANO_TANDA)
   const { saldo, documentos, isLoading: cargandoCuenta, isError: errorCuenta, refetch: reintentarCuenta } =
     useCuentaCorrienteCliente(clienteId)
 
-  // Si la página pedida quedó más allá del final (se borraron comprobantes), vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && pagina > 1 && compras.length === 0 && total > 0) setPagina(1)
-  }, [isLoading, isFetching, isError, pagina, compras.length, total])
+  // Carga infinita (Principio VI): cada tanda de comprobantes se suma a las anteriores.
+  const listado = useListadoAcumulado({
+    items: compras, pagina, setPagina, total, cargando: isFetching, reinicio: clienteId,
+  })
+  const falloTanda = isError && listado.filas.length > 0
 
   return (
     <Box component="section" aria-labelledby="titulo-compras-cliente">
@@ -74,7 +77,7 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
               <Box>
                 <Typography color="text.secondary">Facturado en el año (sin IVA)</Typography>
-                <Typography variant="h5" component="p">{isError ? '—' : formatearPesos(facturadoAnio)}</Typography>
+                <Typography variant="h5" component="p">{isError && !falloTanda ? '—' : formatearPesos(facturadoAnio)}</Typography>
               </Box>
               <Box>
                 <Typography color="text.secondary">Saldo deudor</Typography>
@@ -91,29 +94,27 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
         )}
         {isLoading ? (
           <EstadoCargaPagina />
-        ) : isError ? (
+        ) : isError && !falloTanda ? (
           <EstadoError descripcion="No pudimos cargar las compras del cliente." reintentar={() => void refetch()} />
         ) : (
           <Box aria-busy={isFetching}>
             <Typography component="h3" variant="subtitle1" sx={{ mb: 1 }}>Últimos comprobantes</Typography>
             {isFetching ? <LinearProgress aria-label="Actualizando compras" /> : null}
-            {compras.length === 0 ? (
+            {listado.filas.length === 0 ? (
               <EstadoVacio titulo="Este cliente todavía no tiene compras." />
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={compras}
+                  items={listado.filas}
                   columnas={columnas}
-                  // El número se repite entre tiendas (el correlativo es por empresa) y esta
-                  // consulta no trae el id: el índice de la fila los distingue.
-                  obtenerClave={(c, indice) => `${c.tipo}-${c.numero}-${indice}`}
+                  obtenerClave={(c) => `${c.tipo}-${c.numero}`}
                   etiquetaTabla="Últimos comprobantes del cliente"
                 />
-                <TablePagination
-                  component="div" count={total} page={pagina - 1} rowsPerPage={TAMANO_PAGINA} rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Comprobantes por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
                 />
               </>
             )}

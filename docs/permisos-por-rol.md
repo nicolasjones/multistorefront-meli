@@ -32,6 +32,11 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
   Un superadmin con organización activa equivale a administrador.
 - `private.puede_accion(seccion text, accion text) returns boolean`. `eliminar` exige `edicion`;
   `exportar` y `ver_costos` exigen al menos `lectura`; una acción desconocida es `false`.
+- Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
+  Administrador); ver `docs/actividad.md`. Operador y Administración tienen la acción `exportar` por defecto pero solo
+  lectura en Actividad, así que no exportan (el spec de MSF-170 se alineó con el código).
+- Importar y exportar productos (F-CAT-10 / F-CAT-11) **no** usan `puede_accion`: exigen Administrador de la organización
+  (`private.es_administrador_de`); ni el permiso `exportar` ni el nivel de la sección `productos` los habilitan.
 
 ### Cómo usarlas en una tabla de dominio
 
@@ -78,12 +83,18 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
   (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
   acción `exportar` de Clientes. Depósito (`ninguno`) no lo ve ni lo exporta. Detalle en `docs/clientes.md`.
+  Correo masivo (MSF-155, F-CLI-11/12/13): sin sección ni acción nuevas; se rigen por la sección Clientes: destinatarios, crear
+  campaña y envío de prueba exigen `edicion`; el historial y su detalle, `lectura` o `edicion` (chequeo dentro de cada función). Depósito (`ninguno`) no los ve. Detalle en
+  `docs/correo-masivo.md`.
 - **`dominio.proveedores` (F-PRV-01/02/03, MSF-205):** `dominio.proveedores` usa `nivel_seccion('proveedores')` (Administrador y
   Administración `edicion`; el resto `ninguno`, la base no entrega filas de la tabla); sin `DELETE` (se desactiva). El selector del
   producto lee `public.proveedores_basico` (solo id, razón social y estado), que filtra por organización **y nivel**:
   `productos` en `edicion`, `stock` en `lectura`/`edicion` o `proveedores` en `lectura`/`edicion`; así el Operador
   ve los proveedores por la vista aunque no lea la tabla. La ficha
   llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
+- **`dominio.proveedores_contactos` (F-PRV-08, MSF-449):** lectura con `nivel_seccion('proveedores')` en `lectura`/`edicion`;
+  escritura solo por `agregar_contacto_proveedor` y `marcar_contacto_principal` (exigen `edicion`, `42501` si no); sin
+  `DELETE` directo; `anon` sin acceso. Detalle en `docs/proveedores.md`.
 - **`dominio.productos` y `dominio.producto_costos` nacen en este contrato (F-CAT-02, MSF-458):** `productos`
   con `nivel_seccion('productos')` (Administrador y Operador editan; el resto lee; sin DELETE) y
   `producto_costos` con `nivel_seccion('rentabilidad')` (solo Administrador edita, Administración lee; el
@@ -218,6 +229,10 @@ es defensa de UX (RLS es la autoridad) y falla cerrada: solo `lectura`/`edicion`
 nivel nulo tras cargar se trata como denegado. El rol mostrado sale de `usuarios_organizacion`
 filtrado por `user_id` y por la organización activa (`useOrganizacionDeTrabajo`, por si la persona
 pertenece a varias); si falla, se muestra «actual» y nunca una pantalla en blanco.
+Si falla la carga de permisos (`permisos_actuales`: red, 5xx, schema cache) el proveedor expone
+`error` (con `permisos: null`, nunca `[]`): el guard y el menú muestran «No pudimos verificar tus
+permisos» con **Reintentar** (`recargar()`) en vez de «Acceso restringido» / «Solicitar acceso». La
+sección sigue sin montarse (falla cerrada); «sin acceso» solo aparece con un nivel `ninguno` real (MSF-697).
 
 ## Reversión
 
@@ -280,6 +295,13 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
 `service_tecnico` sigue en Administrador y Operador `edicion`; Consulta, Mostrador y Administración
 `lectura`; Depósito `ninguno` (lo verifica `supabase/tests/database/rol_tecnico.test.sql`).
 
+**Asignación a tiendas (MSF-597 · BUG-315).** El Técnico accede a Service solo en las tiendas con fila en
+`usuarios_empresas` (`private.empresas_accesibles()`), así que `tecnico` es el sexto rol válido por empresa:
+el CHECK `usuarios_empresas_rol_por_empresa` y `private.validar_asignaciones` (usada por
+`asignar_empresas_usuario`, `guardar_asignaciones_invitacion` y `aceptar_invitacion`) lo admiten, y el selector
+de Usuarios lo ofrece. Migración aditiva `20270201200200_rol_tecnico_por_empresa.sql`; test
+`supabase/tests/database/rol_tecnico_por_empresa.test.sql`. Los permisos de `mostrador` no cambian.
+
 - **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
   (`private.matriz_acciones_iniciales()` la deriva sin cambios) y vuelve a correr
   `private.sembrar_permisos()` (`on conflict do nothing`) sobre las organizaciones existentes; las
@@ -309,3 +331,14 @@ Spec: `specs/20261023-120000-migracion-inicial-de-datos/`. Guía: `docs/migracio
   `edicion`) y solo se escribe por la RPC de importación (`docs/ingreso-de-mercaderia.md`).
 - **`anon`:** ninguna de estas RPC es ejecutable por `anon` (`revoke … from public, anon` + `grant … to authenticated`).
 - **Reversión:** las migraciones `20261201100000`…`20261201130000` son aditivas; cada cabecera documenta cómo deshacerlas.
+
+## Fusionar clientes (F-CLI-18, MSF-447)
+
+`public.fusionar_clientes` y `public.vista_previa_fusion_clientes` exigen **Administrador** de la organización (`private.es_administrador_de`), independientemente del nivel de la sección `clientes`; `anon` no las ejecuta. La ficha oculta «Fusionar con otro cliente…» a los demás roles.
+
+## Rol mostrado en «Acceso restringido» (MSF-637)
+
+Las pantallas solo-Administrador (`/stock/motivos`, Listas configurables) muestran el nombre real del rol
+(`useNombreRolActual`, misma consulta que `RequiereAccesoSeccion`, vía `lib/rolActual.ts`). Si no se puede
+resolver, el texto genérico es «actual». Pendiente de decisión de negocio: la matriz otorga `edicion`/`lectura`
+a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las limita al Administrador.

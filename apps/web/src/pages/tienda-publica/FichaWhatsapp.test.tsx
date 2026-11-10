@@ -1,7 +1,12 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
+
+// La primera ficha del archivo paga la carga en frío de la ruta (import dinámico + jsdom). Con el límite
+// por defecto de Testing Library (1 s) la espera queda al borde y el test se vuelve intermitente
+// según la carga del runner: este archivo espera con margen, igual que `comprobante.cobros.test.tsx`.
+configure({ asyncUtilTimeout: 5000 })
 
 const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn() }))
 
@@ -98,10 +103,10 @@ describe('Ficha · botón de WhatsApp (FR-020)', () => {
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('contacto_por_dominio', { host: HOST }))
     expect(screen.queryByRole('button', { name: 'Consultar por WhatsApp' })).not.toBeInTheDocument()
     expect(screen.queryByTestId('boton-whatsapp')).not.toBeInTheDocument()
-    // La fila de acciones queda con el único botón que sí existe: no queda un hueco vacío.
+    // La fila de acciones queda con «Compartir» y «Ver más productos»: no queda un hueco vacío.
     const fila = screen.getByTestId('acciones-ficha')
     expect(within(fila).queryAllByTestId('boton-whatsapp')).toHaveLength(0)
-    expect(fila.children).toHaveLength(1)
+    expect(fila.children).toHaveLength(2)
     expect(within(fila).getByRole('link', { name: 'Ver más productos' })).toBeInTheDocument()
   })
 
