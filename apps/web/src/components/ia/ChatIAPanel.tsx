@@ -5,6 +5,7 @@ import { MensajeChatIA, type Mensaje } from './MensajeChatIA'
 import { EstadoCargaPagina, EstadoVacio } from '../estados/EstadosPagina'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { supabaseClient } from '../../lib/supabase'
+import { mensajeDeErrorBase } from '../../lib/mensajeErrorBase'
 
 // Lógica y UI completa del Chat IA, extraída para reusarse en 3 lugares
 // (pedido explícito del usuario, 2026-10-04): la pantalla dedicada
@@ -56,7 +57,7 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
     )
 
     if (invokeError) {
-      let mensajeError = invokeError.message
+      let mensajeError = mensajeDeErrorBase(invokeError, 'No pudimos enviar el mensaje. Reintentá en unos minutos.')
       if (invokeError instanceof FunctionsHttpError) {
         const cuerpo = await invokeError.context.json().catch(() => null)
         mensajeError = cuerpo?.error ?? mensajeError
@@ -77,7 +78,7 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
     setError(null)
     const { data, error: rpcError } = await supabaseClient.rpc('ejecutar_accion_chat_ia', { p_mensaje_id: mensajeId })
     if (rpcError) {
-      setError(rpcError.message)
+      setError(mensajeDeErrorBase(rpcError, 'No se pudo ejecutar la acción.'))
       return
     }
     if (data?.estado === 'fallida') setError(data.motivo ?? 'No se pudo ejecutar la acción.')

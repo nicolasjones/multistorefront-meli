@@ -3,8 +3,9 @@
 // cli-importar-dashboards-superset.md. Esta versión suma:
 //   - `--directorio <carpeta>`: empaqueta los YAML versionados (con `empaquetar-dashboards.mjs`) y
 //     los importa; es lo que usan CI y el despliegue para no depender de un ZIP a mano.
-//   - registro idempotente en `public.reportes` (con `seccion`) a partir de `reportes.json`, cuando
-//     están `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `SUPERSET_REPORTE_CREADO_POR`.
+//   - registro idempotente en `public.reportes` (con `seccion` y `filtro_empresa`) a partir de
+//     `reportes.json`, cuando están `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y
+//     `SUPERSET_REPORTE_CREADO_POR`.
 //   - contraseñas de las conexiones por entorno (`passwords` del import), nunca en Git.
 //
 // La service-role key se usa SOLO acá, server-side, para escribir el catálogo de reportes; jamás en
@@ -20,8 +21,8 @@ const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function validarEntorno(entorno) {
-  if (!['staging', 'production'].includes(entorno)) {
-    throw new Error('Uso: node infra/superset/importar-dashboards.mjs --source <paquete.zip> --entorno staging|production');
+  if (!['dev', 'staging', 'production'].includes(entorno)) {
+    throw new Error('Uso: node infra/superset/importar-dashboards.mjs --source <paquete.zip> --entorno dev|staging|production');
   }
 }
 
@@ -45,6 +46,9 @@ export function validarReportes(manifiesto) {
     }
     if (reporte.seccion !== undefined && reporte.seccion !== null && String(reporte.seccion).trim() === '') {
       throw new Error(`El reporte ${reporte.nombre} tiene una sección vacía.`);
+    }
+    if (reporte.filtro_empresa !== undefined && typeof reporte.filtro_empresa !== 'boolean') {
+      throw new Error(`El reporte ${reporte.nombre} tiene "filtro_empresa" y debe ser booleano.`);
     }
   }
   return manifiesto.reportes;
@@ -76,6 +80,10 @@ export async function importarPaquete({ paquete, fetch, config, passwords, timeo
   });
   if (!csrfResponse.ok) throw new Error(`Obtener el CSRF token de Superset devolvió HTTP ${csrfResponse.status}.`);
   const { result: csrfToken } = await csrfResponse.json();
+  // El import (`POST /dashboard/import/`) NO está exento de CSRF: Superset valida el token contra la sesión, así que
+  // hay que reenviar la cookie de sesión que llega con el token. Sin ella, Superset responde 302 al login y, como
+  // `fetch` sigue la redirección, el script creía haber importado cuando no se había creado nada.
+  const cookie = (csrfResponse.headers?.getSetCookie?.() ?? []).map((valor) => valor.split(';')[0]).join('; ');
 
   const formData = new FormData();
   formData.append('formData', new Blob([paquete]), 'dashboard_export.zip');
@@ -84,10 +92,19 @@ export async function importarPaquete({ paquete, fetch, config, passwords, timeo
 
   const importResponse = await fetch(`${baseUrl}/api/v1/dashboard/import/`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}`, 'x-csrftoken': csrfToken },
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      'x-csrftoken': csrfToken,
+      referer: `${baseUrl}/`,
+      ...(cookie ? { cookie } : {}),
+    },
     body: formData,
+    redirect: 'manual',
     signal: senal(),
   });
+  if (importResponse.status >= 300 && importResponse.status < 400) {
+    throw new Error(`Superset redirigió el import (HTTP ${importResponse.status}): falta la sesión o el token CSRF; no se importó nada.`);
+  }
   if (!importResponse.ok) throw new Error(`Import de Superset devolvió HTTP ${importResponse.status}.`);
   return importResponse;
 }
@@ -146,6 +163,23 @@ export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermi
   return resueltos;
 }
 
+// Busca en el catálogo una fila con el mismo nombre. Una migración puede haber dejado la fila del
+// reporte con el slug del tablero en vez del UUID de embebido (Superset genera ese UUID al importar,
+// así que la migración no puede conocerlo): en ese caso hay que actualizar esa fila en vez de
+// insertar otra, porque el catálogo no puede tener dos filas del mismo tablero (la app lo busca por
+// nombre y quedaría mostrando la que no tiene el UUID de embebido).
+export async function buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre }) {
+  // `reportes.nombre` no es único: se ordena por antigüedad (la fila más vieja es la que registró la migración o el primer
+  // import) para que el PATCH sea determinista, y si hay más de una se avisa en lugar de elegir una en silencio.
+  const url = `${baseUrl}/rest/v1/reportes?nombre=eq.${encodeURIComponent(nombre)}&select=id,superset_dashboard_uuid&order=creado_en.asc,id.asc`;
+  const filas = await pedirJson(fetch, url, { headers: cabeceras });
+  if (!Array.isArray(filas)) return null;
+  if (filas.length > 1) {
+    console.warn(`importar-dashboards: hay ${filas.length} reportes llamados «${nombre}»; se actualiza el más antiguo (${filas[0].id}). Revisá y borrá el duplicado.`);
+  }
+  return filas[0] ?? null;
+}
+
 // Registro idempotente: upsert por `superset_dashboard_uuid` (no duplica al reimportar) y upsert de
 // los roles por defecto por (reporte_id, rol_id). `administrador` nunca va: tiene acceso
 // incondicional y la tabla lo prohíbe con un CHECK.
@@ -159,16 +193,26 @@ export async function registrarReportes({ reportes, fetch, config }) {
   };
   const registrados = [];
   for (const reporte of reportes) {
-    const [fila] = await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
-      method: 'POST',
-      headers: cabeceras,
-      body: JSON.stringify({
-        superset_dashboard_uuid: reporte.dashboard_uuid,
-        nombre: reporte.nombre,
-        seccion: reporte.seccion ?? null,
-        creado_por: config.creadoPor,
-      }),
-    });
+    const cuerpo = {
+      superset_dashboard_uuid: reporte.dashboard_uuid,
+      nombre: reporte.nombre,
+      seccion: reporte.seccion ?? null,
+      // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente = `false`.
+      filtro_empresa: reporte.filtro_empresa === true,
+    };
+    const existente = await buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre: reporte.nombre });
+    const [fila] = existente
+      ? await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?id=eq.${existente.id}`, {
+        method: 'PATCH',
+        headers: cabeceras,
+        // La fila ya existe: se conserva su autor original (auditoría), no se pisa `creado_por`.
+        body: JSON.stringify(cuerpo),
+      })
+      : await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
+        method: 'POST',
+        headers: cabeceras,
+        body: JSON.stringify({ ...cuerpo, creado_por: config.creadoPor }),
+      });
     if (!fila?.id) throw new Error(`Supabase no devolvió el reporte ${reporte.nombre}.`);
 
     const roles = (reporte.rolesPorDefecto ?? []).filter((rol) => rol && rol !== 'administrador');

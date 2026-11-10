@@ -1,0 +1,155 @@
+# MSF-245 (F-VTA-20, FR-024): consume la outbox de ejecuciones para enviar por correo el PDF de un
+# presupuesto al cliente.
+#
+# La RPC `enviar_presupuesto_correo` ya creó el envío, pidió el PDF (reutiliza el vigente o encola
+# uno nuevo para `comprobantes-documentos`) y dejó la orden durable (spec 019). Este flow reclama solo
+# las capacidades `enviar-presupuesto-correo-*`, y por cada envío decide con `private.datos_envio_correo`:
+#   enviar  → el PDF está generado: lo baja del bucket privado, envía el correo con el PDF adjunto por el
+#             SMTP de Kestra (`KESTRA_SMTP_*`, el mismo de enviar-avisos) y cierra el envío como `enviado`.
+#   esperar → el PDF todavía se está generando: devuelve la orden a pendiente con demora (acotada).
+#   fallar  → el PDF falló: cierra el envío como `fallido`.
+#   nada    → el envío ya estaba cerrado (reclamo repetido): solo confirma la orden.
+# Un fallo del correo se reintenta 3 veces y, si persiste, cierra el envío como `fallido` con un motivo
+# fijo (nunca el mensaje del SMTP, que puede traer hosts o credenciales). La entrega es «al menos una
+# vez»: si Kestra se corta entre enviar y cerrar, el reclamo vence y el correo puede salir dos veces.
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo EXECUTE sobre las funciones
+# de la outbox y de este flow. El PDF se baja con una clave de servicio de Storage guardada como secreto
+# de Kestra (`COMPROBANTES_STORAGE_KEY`, en base64) — nunca en Git ni en el navegador.
+id: comprobantes-correo
+namespace: producto.ventas
+labels:
+  capa: producto
+  dominio: ventas
+  componente: comprobantes-correo
+description: "Envía por correo el PDF de un presupuesto al cliente."
+tasks:
+  - id: reclamar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select r.*, r.detalle->>'envio_id' as envio_id from private.reclamar_despachos_capacidad('enviar-presupuesto-correo-', 5, 900) r;
+  - id: despachar
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar.rows }}"
+    concurrencyLimit: 2
+    allowFailure: true
+    tasks:
+      - id: procesar
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: datos
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            fetchType: FETCH_ONE
+            sql: |
+              select x.d::text as datos,
+                     case when x.d->>'estado_envio' <> 'pendiente' then 'nada'
+                          when x.d->>'estado_documento' = 'generado' then 'enviar'
+                          when x.d->>'estado_documento' = 'pendiente' then 'esperar'
+                          else 'fallar' end as accion
+              from (select private.datos_envio_correo(CAST(:envio_id AS uuid)) as d) x;
+            parameters:
+              envio_id: "{{ fromJson(parent.taskrun.value).envio_id }}"
+          - id: descargar_pdf
+            runIf: "{{ outputs.datos[parent.taskrun.value].row.accion == 'enviar' }}"
+            type: io.kestra.plugin.core.http.Download
+            uri: "{{ envs.comprobantes_storage_url }}/storage/v1/object/comprobantes-documentos/{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).ruta }}"
+            headers:
+              Authorization: "Bearer {{ secret('COMPROBANTES_STORAGE_KEY') }}"
+              apikey: "{{ secret('COMPROBANTES_STORAGE_KEY') }}"
+            failOnEmptyResponse: true
+            timeout: PT2M
+            retry:
+              type: constant
+              maxAttempts: 3
+              interval: PT10S
+          - id: enviar_correo
+            runIf: "{{ outputs.datos[parent.taskrun.value].row.accion == 'enviar' }}"
+            type: io.kestra.plugin.notifications.mail.MailSend
+            host: "{{ envs.kestra_smtp_host }}"
+            port: "{{ envs.kestra_smtp_port }}"
+            username: "{{ envs.kestra_smtp_username }}"
+            password: "{{ envs.kestra_smtp_password }}"
+            transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+            from: "{{ envs.kestra_smtp_from }}"
+            to: "{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).destinatario }}"
+            subject: "Presupuesto {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).numero }} · {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).empresa }}"
+            # Asunto y cuerpo fijos provisorios (spec, Decisiones abiertas). Los valores vienen de datos de
+            # negocio: se escapan para el cuerpo HTML.
+            htmlTextContent: |
+              <p>Hola {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).cliente | escape }},</p>
+              <p>Te enviamos el presupuesto <strong>{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).numero | escape }}</strong> de {{ fromJson(outputs.datos[parent.taskrun.value].row.datos).empresa | escape }}. Lo encontrás adjunto en PDF.</p>
+              <p>Es un documento sin valor fiscal.</p>
+            attachments:
+              - name: "presupuesto-{{ fromJson(outputs.datos[parent.taskrun.value].row.datos).numero }}.pdf"
+                uri: "{{ outputs.descargar_pdf[parent.taskrun.value].uri }}"
+            retry:
+              type: constant
+              maxAttempts: 3
+              interval: PT30S
+          - id: cerrar_enviado
+            runIf: "{{ outputs.datos[parent.taskrun.value].row.accion == 'enviar' }}"
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.cerrar_envio_correo(CAST(:envio_id AS uuid), NULL);
+            parameters:
+              envio_id: "{{ fromJson(parent.taskrun.value).envio_id }}"
+          - id: cerrar_fallido
+            runIf: "{{ outputs.datos[parent.taskrun.value].row.accion == 'fallar' }}"
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.cerrar_envio_correo(CAST(:envio_id AS uuid), 'No se pudo generar el PDF del presupuesto');
+            parameters:
+              envio_id: "{{ fromJson(parent.taskrun.value).envio_id }}"
+          # Esperando el PDF: la orden vuelve a pendiente con demora de 30 s y, a los 20 reclamos, queda
+          # agotada (el envío vence a los 15 minutos y se cierra como fallido al consultarlo).
+          - id: resolver_outbox
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), :accion, NULL, 30, 20);
+            parameters:
+              despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
+              intento: "{{ fromJson(parent.taskrun.value).intento }}"
+              accion: "{{ outputs.datos[parent.taskrun.value].row.accion == 'esperar' ? 'liberar' : 'confirmar' }}"
+        errors:
+          # El correo o la descarga fallaron tras sus reintentos: el envío se cierra como fallido con un
+          # motivo fijo (no el mensaje del SMTP) y la orden se confirma para no reenviar en bucle.
+          - id: cerrar_envio_fallido
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.cerrar_envio_correo(CAST(:envio_id AS uuid), 'No se pudo enviar el correo');
+            parameters:
+              envio_id: "{{ fromJson(parent.taskrun.value).envio_id }}"
+          - id: confirmar_despacho
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.resolver_despacho_ejecucion(CAST(:despacho_id AS uuid), CAST(:intento AS integer), 'agotar', 'ENVIO_FALLIDO', 30, 20);
+            parameters:
+              despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
+              intento: "{{ fromJson(parent.taskrun.value).intento }}"
+triggers:
+  - id: schedule_correo
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"
+finally:
+  - id: publicar_logs
+    type: io.kestra.plugin.core.log.Fetch
+    tasksId:
+      - despachar
+    allowFailure: true
+    allowWarning: true

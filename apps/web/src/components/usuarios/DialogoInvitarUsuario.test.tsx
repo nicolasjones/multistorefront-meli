@@ -19,15 +19,15 @@ describe('DialogoInvitarUsuario', () => {
     rpc.mockResolvedValue({ data: [], error: null })
   })
 
-  it('ofrece los seis roles con descripción y un enlace a la matriz de permisos de cada rol', () => {
+  it('ofrece los siete roles (incluido Técnico) con descripción y un enlace a la matriz de permisos de cada rol', () => {
     abrir()
 
-    expect(screen.getAllByRole('radio')).toHaveLength(6)
-    for (const nombre of ['Administrador', 'Operador', 'Consulta', 'Mostrador', 'Depósito', 'Administración']) {
+    expect(screen.getAllByRole('radio')).toHaveLength(7)
+    for (const nombre of ['Administrador', 'Operador', 'Consulta', 'Mostrador', 'Depósito', 'Administración', 'Técnico']) {
       expect(screen.getByRole('radio', { name: new RegExp(nombre) })).toBeInTheDocument()
     }
     expect(screen.getByText('Solo lectura.')).toBeInTheDocument()
-    expect(screen.getAllByText('Ver permisos de este rol →')).toHaveLength(6)
+    expect(screen.getAllByText('Ver permisos de este rol →')).toHaveLength(7)
     expect(screen.getByRole('link', { name: /Mostrador/ })).toHaveAttribute('href', '/roles?rol=mostrador')
     expect(screen.queryByRole('radio', { name: /^Miembro/ })).not.toBeInTheDocument()
   })
@@ -43,6 +43,17 @@ describe('DialogoInvitarUsuario', () => {
     expect(await screen.findByText('Invitación enviada')).toBeInTheDocument()
     expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'invitar', email: 'Nueva@Example.com', rol: 'mostrador' } })
     expect(onEnviada).toHaveBeenCalled()
+  })
+
+  it('[MSF-606] invita con rol Técnico', async () => {
+    abrir()
+
+    fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'tec@example.com' } })
+    fireEvent.click(screen.getByRole('radio', { name: /Técnico/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+
+    expect(await screen.findByText('Invitación enviada')).toBeInTheDocument()
+    expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: { accion: 'invitar', email: 'tec@example.com', rol: 'tecnico' } })
   })
 
   it('aclara la vigencia: la invitación dura 7 días y el enlace 1 hora', async () => {
@@ -95,6 +106,22 @@ describe('DialogoInvitarUsuario', () => {
       expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: {
         accion: 'invitar', email: 'nueva@example.com', rol: 'consulta',
         asignaciones: [{ empresa_id: 'emp-a', rol_id: 'consulta' }, { empresa_id: 'emp-b', rol_id: 'deposito' }],
+      } })
+    })
+
+    it('[MSF-606] ofrece Técnico como rol por empresa y lo envía', async () => {
+      abrir()
+
+      fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'tec@example.com' } })
+      fireEvent.click(await screen.findByRole('checkbox', { name: 'San Javucho' }))
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Rol en San Javucho' }))
+      fireEvent.click(await screen.findByRole('option', { name: 'Técnico' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar invitación' }))
+
+      expect(await screen.findByText('Invitación enviada')).toBeInTheDocument()
+      expect(invoke).toHaveBeenCalledWith('invitar-miembro', { body: {
+        accion: 'invitar', email: 'tec@example.com', rol: 'consulta',
+        asignaciones: [{ empresa_id: 'emp-a', rol_id: 'tecnico' }],
       } })
     })
 

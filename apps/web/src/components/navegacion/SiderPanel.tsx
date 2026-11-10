@@ -4,6 +4,8 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
 import { usePermisosPanel } from '../../context/PermisosPanel'
+import { EstadoError } from '../estados/EstadosPagina'
+import { InsigniaConsultasNuevas } from '../consultas/InsigniaConsultasNuevas'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useFeatureHabilitada } from '../../hooks/useFeatureHabilitada'
 import { FUNCIONALIDAD_SERVICE_TECNICO } from '../service/RequiereServiceTecnico'
@@ -62,6 +64,7 @@ function ItemDestino({ destino, collapsed, activo }: { destino: DestinoPanel; co
         <Icono aria-hidden="true" fontSize="small" />
       </ListItemIcon>
       {!collapsed && <ListItemText primary={destino.etiqueta} />}
+      {!collapsed && destino.insignia === 'consultas_nuevas' ? <InsigniaConsultasNuevas /> : null}
     </ListItemButton>
   )
   return collapsed ? <Tooltip title={destino.etiqueta} placement="right">{contenido}</Tooltip> : contenido
@@ -160,6 +163,14 @@ export function SiderPanel() {
       render={({ collapsed }) => {
         if (isLoading || !contexto) {
           return null
+        }
+
+        if (permisosPanel?.error && !(contexto.es_superadmin && !contexto.organizacion_id)) {
+          return collapsed ? null : (
+            <Box sx={{ p: 1 }}>
+              <EstadoError titulo="No pudimos verificar tus permisos." reintentar={permisosPanel.recargar} />
+            </Box>
+          )
         }
 
         return (

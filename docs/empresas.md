@@ -40,8 +40,9 @@ Políticas (migración `20261013120000`):
   web, Mercado Libre, precio, moneda y productos visibles; lo que aún no alimenta ninguna épica
   muestra «Sin configurar». Botón «Nueva empresa» y fila final «Crear» solo con permiso de escritura.
 - `/empresas/edit/:id` (General): nombre, dominio solo lectura, idioma «Español (Argentina)» y
-  moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional. Validación (nombre
-  obligatorio, formato de correo), aviso de cambios sin guardar y estados de carga/error/éxito.
+  moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional, razón social y CUIT (11 dígitos, opcionales; se imprimen en la
+  factura y el remito, ver `docs/ventas-impresion.md`). Validación (nombre
+  obligatorio, formato de correo, CUIT de 11 dígitos), aviso de cambios sin guardar y estados de carga/error/éxito.
 - `/empresas/edit/:id/precios` («Precios y moneda», F-PRE-07): regla de precio de la empresa y tabla «Así quedan los precios»;
   ver `docs/catalogo.md` (sección «Regla de precio por empresa»). La ficha muestra las pestañas «General» y «Precios y moneda».
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.

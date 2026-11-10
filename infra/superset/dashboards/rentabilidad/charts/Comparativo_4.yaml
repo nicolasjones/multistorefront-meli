@@ -1,0 +1,11 @@
+slice_name: Comparativo entre empresas
+description: null
+certified_by: null
+certification_details: null
+viz_type: handlebars
+params: {"datasource":"1__table","viz_type":"handlebars","query_mode":"raw","groupby":[],"metrics":[],"all_columns":["producto_nombre","sku","margenes_html","diferencia_texto","mejor_texto","peor_texto","posicion"],"include_time":false,"order_by_cols":["[\"posicion\", true]"],"order_desc":false,"row_limit":10000,"server_page_length":10,"adhoc_filters":[],"extra_form_data":{},"handlebars_template":"<div style=\"background:#FFFFFF;border:1px solid #E3E3DE;border-radius:12px;overflow:hidden;font-family:'Instrument Sans',system-ui,sans-serif;color:#15181D;\">\n<div style=\"display:flex;justify-content:flex-end;padding:12px 16px;font-size:13px;color:#5B6470;\">{{data.length}} productos</div>\n<table style=\"width:100%;border-collapse:collapse;font-size:14px;\">\n<thead><tr style=\"text-align:left;color:#5B6470;font-size:12px;border-top:1px solid #E3E3DE;border-bottom:1px solid #E3E3DE;\"><th style=\"padding:10px 16px;\">Producto</th><th style=\"padding:10px 8px;\">Margen % por empresa</th><th style=\"padding:10px 8px;text-align:right;\">Diferencia</th><th style=\"padding:10px 8px;\">Mejor margen</th><th style=\"padding:10px 16px;\">Peor margen</th></tr></thead>\n<tbody>\n{{#each data}}\n<tr style=\"border-bottom:1px solid #E3E3DE;vertical-align:top;\">\n<td style=\"padding:10px 16px;\"><b>{{producto_nombre}}</b><br><span style=\"font-size:12px;color:#5B6470;\">{{sku}}</span></td>\n<td style=\"padding:10px 8px;min-width:200px;\">{{{margenes_html}}}</td>\n<td style=\"padding:10px 8px;text-align:right;font-weight:700;\">{{diferencia_texto}}</td>\n<td style=\"padding:10px 8px;color:#2E7D32;\">{{mejor_texto}}</td>\n<td style=\"padding:10px 16px;color:#B36B00;\">{{peor_texto}}</td>\n</tr>\n{{else}}\n<tr><td colspan=\"5\" style=\"padding:40px;text-align:center;\"><p style=\"font-size:16px;font-weight:600;margin:0;\">Sin resultados</p><p style=\"font-size:13px;color:#5B6470;margin:6px 0 0;\">No hay productos con margen en dos o más empresas. Cambiá el filtro o la búsqueda.</p></td></tr>\n{{/each}}\n</tbody></table></div>","styleTemplate":"","dashboards":[]}
+query_context: null
+cache_timeout: null
+uuid: 6fc83090-e085-433d-a39b-12c99bc9f11b
+version: 1.0.0
+dataset_uuid: bfd115a5-5bb2-4162-8005-a80db328ce3f

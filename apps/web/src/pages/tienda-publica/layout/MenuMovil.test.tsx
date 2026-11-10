@@ -49,11 +49,11 @@ describe('Menú móvil (FR-040)', () => {
     expect(within(nav).getByRole('link', { name: 'Joysticks' })).not.toHaveAttribute('aria-current')
   })
 
-  it('no ofrece «Contacto» hasta que exista su página (D10)', async () => {
+  it('ofrece «Contacto», que lleva a /contacto (F-TDA-16, FR-010)', async () => {
     montar()
     fireEvent.click(boton())
-    await screen.findByRole('dialog')
-    expect(screen.queryByText(/contacto/i)).not.toBeInTheDocument()
+    const dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).getByRole('link', { name: 'Contacto' })).toHaveAttribute('href', '/contacto')
   })
 
   it('se cierra con el botón «Cerrar menú» y devuelve el foco al botón que lo abrió', async () => {

@@ -32,6 +32,12 @@ recibe ningún privilegio.
   conocido; el diálogo limita la fecha máxima al día local.
 - Organización y responsable salen de la sesión, nunca de parámetros.
 
+### Variantes (F-CAT-15, MSF-229)
+
+`registrar_movimiento_stock` pasó de 8 a **9 parámetros** (`p_variante uuid default null`, migración `20270220120400`): los llamadores existentes siguen válidos **para productos sin variantes** (los llamadores posicionales resuelven a la firma de 9 con el valor por defecto). En un producto con variantes ninguno de ellos funciona (ingreso de mercadería, toma de inventario, carga inicial, RMA, lotes: fallan con 22023 y, al ser todo-o-nada, abortan el ingreso o la toma completa; ver «Avisos de límites» en `docs/catalogo.md`). En un producto con variantes la variante es obligatoria y el movimiento queda en el libro con `variante_id`; sin variantes debe ser nula. El stock de un producto con variantes es la **suma de las variantes activas** (`dominio.existencias_variante`). Ver `docs/catalogo.md`.
+
+**Firmas viejas (20270220180000):** la función debe tener UNA sola firma (la de 9 parámetros). Una base de dev quedó con la de 6 parámetros de la época de `20261017140100` y toda llamada de 6 argumentos fallaba con «function … is not unique» (la de 9 tiene valores por defecto, así que las dos aplican). La migración `20270220180000_registrar_movimiento_stock_sin_firmas_viejas.sql` borra las firmas de 6, 7 y 8 parámetros si existen; en una base armada desde cero no hace nada. Para detectar un resto parecido en otra función: `select proname, count(*) from pg_proc where pronamespace = 'public'::regnamespace group by 1 having count(*) > 1`.
+
 ## Interfaz (`apps/web`)
 
 - Ítem **Stock** en la navegación (sección `stock`) y recurso `stock`; rutas `/stock` y `/stock/motivos`, ambas con
@@ -104,7 +110,7 @@ Migración `20261017170000_stock_sin_negativos.sql` (aditiva, sin tablas nuevas;
 ## Reversión
 
 Migraciones aditivas. Para deshacer (en una migración posterior; exportar antes los datos): `drop function
-public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date)`, los disparadores
+public.registrar_movimiento_stock(uuid, text, integer, uuid, text, date)` (firma de 8; la de 9 con `p_variante` la reemplaza, ver «Variantes»), los disparadores
 `organizaciones_sembrar_motivos_movimiento` y `productos_crear_existencias` con sus funciones, y
 `drop table dominio.movimientos_stock, dominio.motivos_movimiento, dominio.existencias`. El detalle está en el
 encabezado de cada migración.
@@ -165,4 +171,42 @@ Recorrido E2E de cierre (SC-008) y concurrencia mixta traslado + reserva + salid
 Contar una categoría y corregir diferencias con ajustes (`confirmar_toma_inventario`): ver
 [`stock-toma-inventario.md`](./stock-toma-inventario.md).
 
+## Carga, exportación y avisos (épica MSF-368)
+
+Spec: `specs/20261024-130000-stock-carga-exportacion-y-avisos/`. Cinco historias sobre el Stock ya
+entregado (MSF-136/MSF-231/MSF-292) y las ventas de MSF-159; una guía por historia:
+
+| Guía | Historia | Contenido |
+|------|----------|-----------|
+| [`stock-carga-excel.md`](./stock-carga-excel.md) | F-STK-07 (MSF-380) | Carga inicial y masiva por planilla (`/stock/excel`): plantilla `stock.xlsx`, vista previa fila por fila y aplicación de **solo las filas válidas** (una carga inicial por producto) |
+| [`stock-exportacion.md`](./stock-exportacion.md) | F-STK-08 (MSF-388) | Botón «Exportar» en Stock actual y Movimientos: CSV con los filtros y las columnas visibles de la pantalla |
+| [`stock-avisos-reposicion.md`](./stock-avisos-reposicion.md) | F-STK-09 (MSF-394) | Resumen por correo de los productos que **entraron en alerta** de reposición, sin duplicar y sin pantalla nueva |
+| [`stock-faltantes.md`](./stock-faltantes.md) | F-STK-17 (MSF-405) | Pestaña «Faltantes» (`/stock/faltantes`): líneas «A pedido» de facturas confirmadas y aviso al cliente cuando el producto vuelve a tener stock |
+| [`stock-mas-vendidos.md`](./stock-mas-vendidos.md) | F-STK-18 (MSF-414) | Reporte de unidades vendidas por producto en un período (`/stock/mas-vendidos`), con filtro por tienda que sigue a la empresa activa |
+
 Guía de cierre de la épica MSF-131 (lotes e inventario): [`stock-lotes-e-inventario.md`](./stock-lotes-e-inventario.md).
+
+## Salidas desde Service técnico (épica MSF-217)
+
+Los repuestos de una reparación registran movimientos con `origen = 'service'` y `reparacion_id` sobre el depósito
+elegido, con la misma barrera de disponible por depósito. Ver `docs/service-repuestos-stock.md`,
+`docs/service-repuestos-devolucion.md` y `docs/service-repuestos-pendiente.md`.
+
+## Listados con carga infinita e imagen del producto
+
+Los listados de Stock siguen la regla de [`listados.md`](./listados.md): sin paginación numerada, cada tanda de 25 se suma
+a lo ya mostrado (`useListadoAcumulado` + `CargaInfinita`, «Cargar más» como alternativa con teclado) y el producto lleva
+su imagen principal como miniatura con zoom (`MiniaturaProducto`). La capa de datos de cada pantalla no cambió: sigue
+pidiendo «la página N». Contador, filtros, orden y exportaciones (que usan los filtros, no la tanda visible) se conservan.
+
+| Pantalla | Reinicia a la tanda 1 cuando cambia | Miniatura |
+|---|---|---|
+| Stock actual (`/stock`) | búsqueda, estado, depósito; un aviso en vivo o un movimiento nuevo recargan desde la tanda 1 (las cifras por depósito se acumulan por tanda) | sí |
+| Movimientos (`/stock/movimientos`) | filtro de producto | sí |
+| Faltantes (`/stock/faltantes`) | empresa/organización; tras avisar se recarga desde la tanda 1; «seleccionar todos» abarca las filas cargadas | sí (la vista `faltantes_listado` ya exponía `producto_id`) |
+| Más vendidos (`/stock/mas-vendidos`) | tienda, organización y período | sí |
+| Historial de ingresos | fechas, proveedor, empresa, producto, operador; un ingreso nuevo o una anulación recargan desde la tanda 1 | sí |
+| Archivo anterior al sistema | sin filtros | no aplica: el archivo guarda el producto como texto, sin `producto_id` |
+| Toma de inventario | no pagina (carga la categoría completa, con tope) | sí |
+
+`HistorialLotes` («Ver más» por cursor) y el detalle de movimientos de un lote (solo nombre y SKU) quedan como estaban.

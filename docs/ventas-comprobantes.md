@@ -8,7 +8,8 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
 
 - **Alta**: `/ventas/comprobantes/nuevo` (con `?tipo=presupuesto` abre un presupuesto).
 - **Edición / consulta**: `/ventas/comprobantes/:id`.
-- `/ventas` y `/ventas/comprobantes` redirigen al alta hasta que MSF-177 entregue el listado.
+- `/ventas/comprobantes` es el **listado** de facturas y notas (F-VTA-09, MSF-346); el alta sigue en
+  `/ventas/comprobantes/nuevo`. `/ventas` redirige al listado. Ver [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md).
 - **Presupuestos**: `/ventas/presupuestos` (menú **Ventas › Presupuestos**, icono `RequestQuoteIcon`, sección
   `ventas`); ver «Presupuestos (F-VTA-08)».
 - Menú **Ventas** (`ReceiptLongIcon`), audiencia por la sección `ventas`; sin la sección, la ruta muestra
@@ -69,8 +70,11 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   manual**, que se conserva. El depósito se conserva si la tienda aún vende desde él; si no, va el principal.
   Un producto que ya no está activo detiene la copia con un mensaje que lo nombra. El original no cambia.
   Registra `presupuesto.copiado`.
-- Fuera de alcance (matriz de la spec): Exportar, Enviar por correo, Imprimir, Facturar, las demás pestañas
-  de Ventas y el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
+- Fuera de alcance (matriz de la spec): Enviar por correo, Imprimir, Facturar, las demás pestañas de Ventas y
+  el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
+- **Exportar** (F-VTA-09, FR-006/FR-010): exporta todos los presupuestos del filtro a CSV (hasta 10.000) o
+  pide la exportación diferida por encima, igual que Comprobantes. Ver
+  [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md).
 
 ## Modelo de datos
 
@@ -103,6 +107,16 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `escala` (`x1`/`x5`/`x10`/`x50`), `precio_manual`, `alicuota_id`/`alicuota_porcentaje`, `deposito_id`,
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
+
+**Origen y líneas sin stock (F-SVC-13, `20270121120100_comprobantes_origen.sql` y
+`20270121120200_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
+`origen_id` (solo los escribe la RPC `generar_comprobante_reparacion`; índice único parcial: un comprobante
+vigente por origen) y `dominio.comprobantes_venta_lineas` suma `sin_stock`: la línea **no mueve stock** (ni
+descuento, ni reserva, ni devolución al anular o emitir una nota de crédito) y por eso admite `producto_id`,
+`deposito_id` y `escala` nulos. Editar las líneas de catálogo conserva las `sin_stock` y las suma a los totales;
+en pantalla se ven en solo lectura, con la marca «No descuenta stock». `obtener_comprobante` expone el origen
+(`origen_tipo`, `origen_id`, `origen_numero`) y la marca por línea, de forma aditiva. Detalle en
+[service-cobro.md](service-cobro.md).
 
 RLS vigente en el comprobante y en las líneas: `select` por organización y sección `ventas`
 (`lectura`/`edicion`). **Sin** políticas ni grants de escritura directa: se escribe solo por las RPC
@@ -239,9 +253,9 @@ permisos por empresa, `anon`, precio manual y concurrencia de stock. Resultado: 
 
 ## Fuera de alcance (estas historias)
 
-Exportar / correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
-listado y anulación (MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho, notas de crédito,
-observaciones e historial de estados. La elección de forma de pago y envío en pantalla espera los catálogos
+Correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
+anulación y notas de crédito (F-VTA-11, MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho,
+observaciones e historial de estados. El listado y la exportación de Comprobantes y Presupuestos son de F-VTA-09. La elección de forma de pago y envío en pantalla espera los catálogos
 de MSF-139; la base ya los acepta y los valida cuando existan.
 
 ## Reversión
@@ -276,3 +290,22 @@ Si Ventas ya escribió, exportar antes `dominio.comprobantes_venta` y su numerac
 se borran en el mismo PR que las crea.
 
 - Guardia de versiones: `scripts/migraciones-ventas-comprobantes.test.mjs` (en `pnpm test:tooling`) verifica versiones únicas de 14 dígitos, posteriores a `origin/dokploy`, y que esta doc cite solo migraciones existentes.
+
+## Precios especiales por cliente (F-VTA-32, MSF-340 · épica MSF-193)
+
+`guardar_lineas_comprobante` (misma firma y retorno, sin `BREAKING`) calcula el precio de cada línea como
+`round(neto de escala * (1 - descuento / 100), 2)`, **antes del IVA**. El descuento sale de `public.clientes.descuento`
+del cliente del comprobante, leído en el servidor: el payload no puede imponerlo (una clave `descuento` se ignora).
+Un `precio_manual` no se descuenta. La línea guarda `dominio.comprobantes_venta_lineas.descuento_pct` (columna
+aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para que lo ya vendido no cambie si luego
+cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de líneas rotula
+«escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
+«Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
+
+## Costo y cotización por línea (F-REN-09)
+
+`confirmar_comprobante` guarda en cada línea `costo_unitario` (costo en pesos por unidad) y `cotizacion` (dólar vigente) al confirmar, una sola vez: reconfirmar o cambiar el costo después no los mueve. Las notas de crédito copian el costo de la línea original. Detalle y vista `analitica.rentabilidad_ventas_real` en `docs/rentabilidad.md`. Con el alcance de la cotización en «Una por empresa» (F-PRE-06) la cotización y el costo salen de la cotización de la empresa del comprobante (o de la general si la empresa no tiene una propia), igual que el precio de la línea.
+
+## Carga infinita e imagen en las líneas
+
+La lista de Presupuestos pasa a carga infinita (ver `ventas-listado-comprobantes.md`). En el detalle del comprobante, la tabla de **Líneas** muestra la imagen principal del producto (`producto_id`) como miniatura 40×40 con zoom al pasar el mouse (`MiniaturaProducto` + `useImagenesProductos`) junto al nombre; las líneas `sin_stock` (de Service) no tienen producto y no llevan miniatura.

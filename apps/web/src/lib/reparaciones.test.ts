@@ -303,7 +303,7 @@ describe('Estado, entrega y anulación (F-SVC-03)', () => {
   it('anula con el motivo recortado', async () => {
     mocks.rpc.mockReturnValueOnce(respuesta(REPARACION))
     await anularReparacion('r-1', ' Duplicada ')
-    expect(mocks.rpc).toHaveBeenCalledWith('anular_reparacion', { p_id: 'r-1', p_motivo: 'Duplicada' })
+    expect(mocks.rpc).toHaveBeenCalledWith('anular_reparacion', { p_id: 'r-1', p_motivo: 'Duplicada', p_consumidos: [] })
   })
 
   it('propaga el error de la base (no lo traga)', async () => {

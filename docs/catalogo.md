@@ -10,6 +10,12 @@ aislamiento: `docs/aislamiento-por-organizacion.md`; eventos: `docs/actividad.md
 
 - Categoría y listado real se entregaron en MSF-160 (secciones «Listado», «Empresas» y «Categorías» más abajo). Fuera de
   alcance: proveedor (MSF-205). El código de barras se entregó como seguimiento (MSF-529); ver también `docs/proveedores.md`.
+- Importación y exportación CSV (F-CAT-10/11, épica MSF-202): `docs/catalogo-importacion.md` y
+  `docs/catalogo-exportacion.md`. Los hallazgos de código de la revisión independiente de la épica están resueltos (imágenes
+  pendientes que el reintento recupera, errores transitorios con tope de intentos, topes por celda, limpieza de
+  temporales, seguimiento en la URL, aviso de conexión faltante, exportación con cursor y tope de 50.000). Lo que
+  queda a propósito: el borrado de temporales es de mejor esfuerzo y la conexión `importar-productos` la crea un
+  Administrador (ver el «Seguimiento pendiente» de `docs/catalogo-importacion.md`).
 - El E2E de punta a punta «crear, editar, subir fotos y desactivar» queda pendiente de fixtures por rol: ver
   `docs/e2e-app.md`. Mientras tanto lo cubren pgTAP (`catalogo_*`) y Vitest (`pages/productos`, `lib/productos*`).
 
@@ -225,9 +231,9 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 
 ## Listado (F-CAT-01, MSF-252, migraciones `20261020120000` y `20261020120101`)
 
-`/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la paginación (25 por página, pie «desde–hasta de N», `range` + `count`). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
+`/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la carga por tandas (25 por tanda, `range` + `count`; **carga infinita**, sin paginación numerada: ver «Carga infinita del listado»). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
-- **Columnas**: Producto (miniatura, nombre, SKU), Precio, Costo y Margen («—» hasta Precios, Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen («—» hasta Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
 - **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
 - **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
@@ -236,6 +242,14 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 - **Pruebas**: pgTAP `catalogo_listado.test.sql` (aislamiento, `anon`, sin costo, comodines escapados) y `catalogo_listado_plan.test.sql` (10 000 productos sembrados; `explain` de la condición `ilike` sobre la vista usa los índices trigram y `explain` del orden usa los btree). El plan de búsqueda se mide sin el filtro de organización: con el catálogo de una sola organización ese filtro no discrimina y, a 10 000 filas, el planner prefiere el btree por organización; el trigram es el único índice que resuelve el `ilike` y rinde cuando el catálogo crece. Se ejecutan en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
 - **Reversión** (migración posterior, no en el mismo PR): `drop view public.v_productos_listado;` y `drop index dominio.productos_nombre_trgm_idx, dominio.productos_sku_trgm_idx, dominio.productos_org_nombre_orden_idx, dominio.productos_org_sku_orden_idx;`.
 - **Sin cambios** en la ruta `/productos`, los permisos ni las acciones de F-CAT-06.
+
+### Carga infinita del listado
+
+Primera pantalla migrada a la regla de listados de la constitución (Principio VI): el listado no usa `TablePagination`. La tanda 1 reemplaza la lista y las siguientes (`pagina` + 1, `range` de 25) se **suman** a lo ya mostrado, junto con sus miniaturas firmadas, precios y costos. Las pide el componente compartido `components/pagina/CargaInfinita`: `IntersectionObserver` con 400 px de anticipo, botón «Cargar más» operable con teclado (y única vía sin `IntersectionObserver`), indicador de carga, «No hay más resultados.» al final y, si falla una tanda, «No pudimos cargar más resultados.» con «Reintentar» sin perder lo ya cargado. Buscar, filtrar (estado, tienda, categoría, disponibilidad) u ordenar vuelve a la tanda 1; activar/desactivar un producto recarga desde el principio. El contador «N productos» sigue visible. Sin migración. Las demás pantallas con paginación se migran de forma gradual reutilizando `CargaInfinita`.
+
+### Precio en el listado
+
+La columna **Precio** muestra siempre pesos. El listado pide los precios de la página (por los ids de los productos visibles) a la vista `public.productos_precio_costo` (F-PRE-01) y usa `precio_central_ars`, que la base ya convierte con la cotización vigente (`private.a_pesos`); la pantalla no calcula ni redondea nada. Formatos (`formatearPrecioListado`, `lib/productosListado.ts`): producto en ARS → `$ 2.500,50`; producto en USD → `$ 157.000,00 (USD 100,00)` (pesos = USD × última cotización, el USD entre paréntesis); USD sin cotización cargada → `USD 100,00 (sin cotización)`; sin precio → «—». Es el precio de lista, sin IVA, el mismo del formulario. Si la consulta de precios falla, el listado se muestra igual con «—» en Precio y un aviso («No pudimos cargar los precios…»). Sin migración ni cambios de permisos: la vista es `security_invoker` y rige su RLS.
 
 ## Empresas que venden el producto (F-CAT-07, MSF-276, migraciones `20261020130000`, `20261020130101` y `20261020130201`)
 
@@ -248,6 +262,48 @@ El catálogo es único y compartido; cada producto se publica solo en las empres
 - **Listado**: `v_productos_listado` suma `empresa_ids` **al final** (`create or replace view`, todas las columnas previas intactas; F-CAT-08 vuelve a repetir la definición completa). Columna «Visible en» con un chip por empresa (relleno si la vende, contorno si no; el `aria-label` dice «se vende»/«no se vende»). El filtro de tienda (`FiltroEmpresa`: «Todas las tiendas» o una por empresa) **sigue la empresa activa** (`useFiltroPorEmpresaActiva`) y se resuelve en el servidor (`empresa_ids @> {empresa}`); elegir otra tienda acá no cambia la empresa activa persistida. **Rendimiento (justificado):** `empresa_ids` es un `array_agg` correlacionado, así que el filtro por tienda no usa `producto_empresa_empresa_idx`: evalúa, por cada producto de la organización, un subselect por la PK `(producto_id, empresa_id)`. El volumen es el de un catálogo por organización (miles de productos, un puñado de empresas) y la consulta ya viene acotada por `organizacion_id` y paginada; a esa escala el costo es un recorrido de la organización con búsquedas por PK, por eso no se agrega un `explain`. Si el catálogo crece a decenas de miles, la salida es filtrar con `exists` sobre `producto_empresa` (usa el índice por empresa) en una migración posterior. Un producto nuevo no tiene empresas: con una tienda activa filtrando no aparece hasta elegir «Todas las tiendas» o marcarle una tienda; el texto de ayuda del listado lo avisa.
 - **Pruebas**: pgTAP `catalogo_producto_empresa.test.sql` (aislamiento, FK cruzada, permisos por rol, empresa ajena, atomicidad, idempotencia, evento sin precios, RLS de la tabla) y Vitest (`EmpresasProducto`, `productoEmpresas`, `create`/`edit`/`list`). Los pgTAP corren en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger producto_empresa_actividad_baja/alta on dominio.producto_empresa;` `drop function private.registrar_actividad_empresas_baja(), private.registrar_actividad_empresas_alta(), private.registrar_actividad_empresas_producto(uuid, uuid, text, text), public.definir_empresas_producto(uuid, uuid[]);` `drop table dominio.producto_empresa;` `alter table dominio.empresas drop constraint empresas_id_organizacion_uk;` y `create or replace view public.v_productos_listado` con la definición de `20261020120000` (sin `empresa_ids`).
+
+## Productos relacionados (F-CAT-18, MSF-416, migración `20270220120100`)
+
+Lista **ordenada** de otros productos de la misma organización por producto («En este producto (el orden es el que ve el cliente)»). Es **unidireccional**: relacionar A con B no relaciona B con A. Contrato en `specs/20270125-100000-catalogo-variantes/contracts/relacionados.md`.
+
+- **Tabla** `dominio.producto_relacionados` (esquema **`dominio`**: vínculo de negocio entre productos): PK `(producto_id, relacionado_id)`, `organizacion_id`, `orden >= 1`, `check (producto_id <> relacionado_id)` y FKs **compuestas** a `productos` en ambos extremos con `on delete cascade` (no cruza organizaciones; borrar un producto borra sus vínculos). RLS: select con `lectura`/`edicion` en `productos`; insert/update/delete con `edicion`; update solo de `orden`; `anon` sin privilegios.
+- **Escritura** `public.guardar_relacionados(p_producto, p_relacionados uuid[])` → `{ relacionados: [{ id, orden }] }`. `security definer` (el evento de actividad solo lo registra una función definer; valida organización y rol antes de escribir); exige `edicion` en `productos` (`42501`); `P0002` producto o relacionado inexistente/de otra organización; `22023` el propio producto, un id repetido o vacío. **Reemplazo completo e idempotente** con candado por producto: el orden del arreglo es la posición. `revoke … public, anon` / `grant execute … authenticated`.
+- **Lectura** `public.v_producto_relacionados` (VISTA, `security_invoker`): `producto_id, relacionado_id, orden, nombre, sku, categoria, precio, moneda, activo`, ordenada por `orden`; `anon` sin acceso. Es el punto de enlace para la ficha pública y los comprobantes (specs propias).
+- **Actividad** `producto.relacionados_editados`: lo registra la RPC en la misma transacción, con sesión y **solo ante cambio real** (agregar, quitar o reordenar). Sin precios ni costo. Ver `docs/actividad.md`.
+- **Formulario** (`BloqueRelacionados` dentro de `FormularioProducto`, alta y edición): título, subtítulo, contador («0 productos» / «1 producto» / «N productos»), buscador «Buscar por nombre, SKU o categoría» (hasta 4 resultados, sin el propio producto ni los ya agregados, con «Agregar»), lista numerada con ↑ ↓ ✕ (↑ del primero y ↓ del último atenuados) y los avisos «Agregado a relacionados: …» / «Quitado de relacionados». Con solo lectura se ve la lista sin buscador ni controles. Alta: el producto se crea primero y los relacionados se guardan después; si fallan, el producto queda creado y se ofrece **«Reintentar relacionados»**. Edición: se guardan con «Guardar cambios» y, si solo cambian ellos, no se llama a `actualizar_producto`. Si la lectura de los relacionados falla, el bloque ofrece reintentar y no se guardan.
+- **Empresa activa:** no aplica (Principio VIII): los productos son únicos y compartidos entre empresas, así que el bloque no depende de la empresa de la barra superior.
+- **Pruebas**: pgTAP `catalogo_relacionados.test.sql` (orden, autorrelación, duplicado, cruce de organización, aislamiento, `anon`, solo lectura, cascada, evento) y Vitest (`BloqueRelacionados`, `productos-relacionados`, `create`/`edit`). E2E `apps/web/e2e/productos-relacionados.e2e.ts` (buscar, agregar, reordenar, guardar y reabrir; se omite sin el stack local — ver `docs/e2e-app.md`).
+- **Reversión** (migración posterior, no en el mismo PR): `drop function public.guardar_relacionados(uuid, uuid[]); drop view public.v_producto_relacionados; drop table dominio.producto_relacionados;`.
+
+## Variantes (F-CAT-15, MSF-408, migraciones `20270220120200` a `20270220120600`)
+
+Una variante (color, talle, modelo) es una fila de `dominio.producto_variantes` que cuelga de un producto **sin duplicar la ficha**. Contrato en `specs/20270125-100000-catalogo-variantes/contracts/variantes.md`.
+
+- **Tabla** `dominio.producto_variantes` (esquema **`dominio`**: entidad de negocio del catálogo): `nombre` (1–120), `codigo` (1–80), `codigo_barras` opcional (13 dígitos), `activa` y `orden >= 1`; FK **compuesta** `(producto_id, organizacion_id)` a `productos` con `on delete cascade`. RLS por organización: select con `lectura`/`edicion` en `productos`; **sin escritura directa** (ni INSERT, UPDATE ni DELETE para `authenticated`: se escribe solo por `guardar_variantes_producto`, que aplica la Decisión 4, el bloqueo optimista y el evento; se desactiva en vez de borrar para conservar código, stock e historial); `anon` sin privilegios.
+- **Unicidad (FR-002)**: el `codigo` es único por organización entre variantes y no puede coincidir con `productos.sku`; el `codigo_barras` es EAN-13 y único entre variantes y contra `productos.codigo_barras`. Se hace cumplir en ambos sentidos (disparadores y `pg_advisory_xact_lock`), con el valor chocado en el mensaje (`23505`).
+- **Stock (FR-005, FR-006, FR-010)**: `dominio.existencias_variante` guarda la cantidad por variante y depósito (RLS por `nivel_seccion('stock')`; solo escriben las RPC de stock). El stock del producto con variantes es la **suma de las activas**; sin variantes se comporta como siempre. Desactivar una variante la saca de la suma pero conserva su stock; si todas están inactivas, el producto queda «Sin stock». `private.disponibilidad_producto`, `private.productos_con_stock` y `private.disponible_publico` cambian **solo el cuerpo** (firmas y grants sin cambios).
+- **Movimientos (FR-007)**: `dominio.movimientos_stock.variante_id` (nullable) registra la variante en el libro. `public.registrar_movimiento_stock` suma `p_variante uuid default null` (firma de 8 → 9; los llamadores existentes siguen válidos): en un producto con variantes es obligatoria y en uno sin variantes debe ser nula. `stock.actualizado` no se emite para movimientos de variante hasta que los canales se adapten (Decisión 5).
+- **Escritura** `public.guardar_variantes_producto(p_producto, p_actualizado_en, p_variantes jsonb)` (`security definer`, exige `edicion` en `productos`): reemplazo completo e idempotente con el orden del arreglo, bloqueo optimista `40001`, `P0002` producto inexistente/de otra organización, `23505`/`22023` con el campo en `details`, `42501` sin permiso. Una fila con `stock` distinto exige además `edicion` en `stock` y registra un `ajuste` «Conteo de inventario» en el depósito por defecto. Rechaza agregar la primera variante a un producto con stock > 0 (Decisión 4). Evento `producto.variantes_editadas`, sin costo, solo con cambio real.
+- **Lectura** `public.v_producto_variantes` (VISTA, `security_invoker`): `id, producto_id, nombre, codigo, codigo_barras, activa, orden, stock` (el stock es nulo sin acceso a Stock), `anon` sin acceso. **No expone precio ni costo.**
+- **Precio (FR-009, bloque D)**: la variante **no tiene precio propio**: hereda el precio del producto, calculado por Precios (IVA, dólar, escalas) con las funciones vigentes. `private.precio_para(p_producto, p_empresa, p_escala)` **no cambia**; la vista expone `producto_id` para que Precios resuelva por producto al leer una variante. Un precio distinto por variante es otra historia.
+- **Formulario** (`BloqueVariantes` dentro de `FormularioProducto`, alta y edición): título «Variantes», subtítulo, tabla Variante / Código / Código de barras / Stock / Activa (tarjetas en `xs`), «Agregar variante» con «Nueva variante», código `<SKU>-<n>`, código de barras vacío, stock 0 y activa, aviso «Variante agregada: completá código y stock», celdas editables e interruptor Activa. Sin acceso a Stock la columna muestra «—»; el stock solo se edita con `edicion` en Stock. Con solo lectura se ve sin editar. Los errores de unicidad quedan en su campo conservando lo escrito. Alta: el producto se crea primero y las variantes se guardan después; si fallan, se ofrece **«Reintentar variantes»**. Edición: se guardan con «Guardar cambios» y el `updated_at` leído al abrir la ficha.
+- **Empresa activa:** no aplica (Principio VIII): variantes y stock pertenecen a la organización (stock único compartido entre empresas) y el prototipo no muestra selector de empresa en el bloque; cambiarla no lo recarga ni lo altera.
+- **Pruebas**: pgTAP `catalogo_variantes_datos.test.sql`, `catalogo_variantes_stock.test.sql` y `catalogo_variantes_rpc.test.sql` (unicidad cruzada, EAN-13, RLS, `anon`, sin DELETE, suma y disponibilidad, libro con variante, regla de la primera variante, idempotencia, `40001`, evento sin costo, vista sin precio) y Vitest (`productos-variantes`, `BloqueVariantes`, `FormularioProducto.regresion` y `create`/`edit`).
+- **Reversión** (migración posterior, no en el mismo PR; exportar antes el libro con variante): `drop function public.guardar_variantes_producto(uuid, timestamptz, jsonb); drop view public.v_producto_variantes;` restaurar los cuerpos de `private.disponibilidad_producto`, `private.productos_con_stock`, `private.disponible_publico`, `private.emitir_stock_actualizado` y la firma de 8 parámetros de `registrar_movimiento_stock`; `alter table dominio.movimientos_stock drop column variante_id; drop function private.aplicar_movimiento_variante(uuid, uuid, uuid, uuid, integer); drop table dominio.existencias_variante; drop trigger productos_unicidad_variantes on dominio.productos; drop function private.unicidad_codigo_producto_vs_variantes(); drop table dominio.producto_variantes; drop function private.normalizar_variante();`.
+
+### Avisos de límites de las variantes (cierre de MSF-229)
+
+- **Ventas, reservas, comprobantes, Mercado Libre y tienda no se adaptan a variantes en esta épica.** Vender o reservar un producto con variantes **no baja el stock de la variante**: `confirmar_comprobante` y las reservas leen y mueven `dominio.existencias` del **producto**, que para un producto con variantes vale 0, así que la venta se rechaza con «No hay stock suficiente… hay 0» (salvo líneas «a pedido»). Falla cerrado (no hay sobreventa), pero **un producto con variantes hoy no se puede vender**. El stock del producto es la suma de las variantes activas y solo cambia por `registrar_movimiento_stock` con `p_variante` o por el guardado de la ficha. Cargar variantes solo en productos que no se vendan por esos canales hasta que sus specs los adapten (decisión 5 de la spec).
+- **Los demás llamadores de `registrar_movimiento_stock` no pasan `p_variante`** y, sobre un producto con variantes, fallan con 22023 («Este producto tiene variantes: elegí la variante…»): el **ingreso de mercadería** (y su anulación), la **toma de inventario** (`confirmar_toma_inventario`), la **carga inicial de stock**, el reingreso de **RMA**, los lotes y el diálogo «Nuevo movimiento». Como son todo-o-nada, **una línea con un producto con variantes aborta todo el ingreso o toda la confirmación de la toma**: hay que dejar ese producto fuera. Está aceptado y queda como seguimiento (adaptar esos flujos, o excluir de los selectores los productos con variantes).
+- **Las pantallas que leen el stock del producto no suman variantes**: `public.stock_estados` (pantalla Stock y alertas de Inicio), `analitica.inventario_productos_stock` (reportes de inventario) y `listar_catalogo_tienda` leen `dominio.existencias`. Un producto con variantes aparece «Con stock» en el catálogo y la ficha (suma de variantes) pero «Sin stock» en Stock, en las alertas y en los reportes. Solo `disponibilidad_producto`, `productos_con_stock` y `disponible_publico` (catálogo y tienda) suman variantes (FR-006).
+- **Las variantes no se borran**: un producto con variantes queda en «modo variantes» (la variante es obligatoria en cada movimiento) aunque todas estén inactivas. `registrar_movimiento_stock` acepta movimientos sobre una variante inactiva (FR-010: se conserva su stock), que entran al libro pero no suman a la disponibilidad.
+- **Guardar la ficha no pisa el stock que otra persona movió**: la ficha manda `stock` solo de las variantes cuyo stock editaste, con el valor que viste (`stock_leido`); si en la base ya es otro, la RPC responde 40001 y hay que recargar. La RPC toma los bloqueos en el mismo orden que `registrar_movimiento_stock` (primero `existencias`, después `productos`) y sin edición en Stock rechaza cualquier valor de stock (42501), aunque coincida con el actual.
+- **Detalles aceptados**: intercambiar los códigos de dos variantes en un solo guardado se rechaza con un 23505 «ya lo usa otra variante» (se hace en dos pasos); no hay tope de cantidad de variantes ni de relacionados; «Duplicar» no copia variantes ni relacionados; el buscador de relacionados incluye productos inactivos; **la lista curada de relacionados todavía no tiene consumidor** (la ficha pública arma «relacionados» por categoría con `publico.relacionados_por_dominio`; mostrar los curados queda fuera de alcance, decisión 1) — es escritura sin lectura pública y hay que decidir si se consume o se retira.
+- **Escritura directa de relacionados**: además de `guardar_relacionados`, quien edita Productos puede insertar, borrar y reordenar filas de `producto_relacionados` por PostgREST (RLS por organización y claves foráneas compuestas: no cruza organizaciones); esa vía no registra el evento de actividad y no garantiza un `orden` sin huecos. Es una decisión del diseño original (las pruebas pgTAP la ejercitan); si se quiere solo por RPC, quitar esos permisos en una migración posterior.
+- **Mercado Libre** (vínculos MSF-163, envío de stock MSF-123 y de precios MSF-137) e **importación/planillas** (MSF-202) siguen operando por producto.
+- **Seguridad (T028, FR-020):** las tres tablas nuevas (`producto_variantes`, `existencias_variante`, `producto_relacionados`) tienen RLS por organización y `anon` sin privilegios; las vistas `v_producto_variantes` y `v_producto_relacionados` son `security_invoker`; el buscador de relacionados consulta `v_productos_listado` (RLS por organización). Lo cubren los pgTAP de cada historia y `rls_en_toda_tabla`.
+- **E2E de cierre:** `apps/web/e2e/productos-variantes.e2e.ts` (variantes + relacionados + suma de stock).
 
 ## Categorías (F-CAT-08, MSF-298, migraciones `20261020140001`, `20261020140100` y `20261020140200`)
 
@@ -312,6 +368,22 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
   por lo que la ficha muestra «No disponible». Cuando MSF-114 lo publique, solo se reemplaza el cuerpo de esa
   función (devolver `EscalaPrecio[]` con `clave`, `rango` y `precio`).
 
+## Filtro «Compatible con» y etiquetas (F-CAT-09, MSF-360, épica MSF-202; migraciones `20270206100101` y `20270206100102`)
+
+Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US1). El campo «Compatible con» del alta/edición **no cambia** (texto separado por comas, `dominio.productos.compatible_con text[]`, hasta 50 valores de 100 caracteres); un test de regresión lo cubre (`FormularioProducto.test.tsx`).
+
+- **Base (aditiva, sin tablas nuevas; Principio VII):** `public.v_productos_listado` suma `compatible_con text[]` **al final**; índice GIN `productos_compatible_con_gin` sobre `dominio.productos(compatible_con)`; `public.listar_compatibles()` (`security definer`, `stable`, solo lectura, exige lectura en Productos, `revoke … from public, anon` + `grant … to authenticated`) devuelve los valores distintos de la organización, ordenados y sin vacíos. Reversión en el encabezado de cada migración.
+- **Listado:** selector múltiple «Compatible con» en la barra de filtros (aparece solo si hay valores cargados). Muestra los productos con **alguno** (OR) de los valores elegidos, sin distinguir mayúsculas, combinado con búsqueda, categoría, tienda y disponibilidad. Cada valor del producto se ve como etiqueta bajo el nombre; sin valores no se muestra nada.
+- **Mayúsculas:** la base guarda cada valor como se tipeó. El selector agrupa por clave en minúsculas y la consulta envía **todas las variantes guardadas** (`compatible_con && {…}` con el literal entrecomillado y escapado), así se usa el índice GIN y no se altera el dato.
+- **Empresa activa (Principio VIII):** al cambiar de empresa se recargan los valores y los productos, se descartan los valores elegidos que ya no existen y se vuelve a la página 1. «Limpiar filtros» limpia también este filtro.
+- **«Etiquetas»:** no es una entidad nueva; son los propios valores de «Compatible con» (Decisión 2 de la spec, confirmada por Nicolás).
+- **Pruebas:** pgTAP `catalogo_compatible_filtro.test.sql`; Vitest `filtro-compatible`, `FormularioProducto`.
+- **Contrato de la vista:** `compatible_con` pasa a ser la última columna de `v_productos_listado` (tras `codigo_barras`); `catalogo_listado.test.sql` y `catalogo_categorias.test.sql` verifican ese orden.
+
+## Duplicar producto (F-CAT-13, MSF-398, épica MSF-218; sin migración)
+
+«Duplicar» es una acción de fila del listado (solo con edición en Productos) que navega a `/productos/create?duplicar_de=<id>`. `lib/duplicarProducto.ts` lee el origen (RLS oculta los de otra organización) y precarga el alta: nombre, descripción, «Compatible con», moneda, precio de lista, categoría y empresas; costo y proveedor solo con acceso a Rentabilidad. SKU y código de barras quedan vacíos, no se copian imágenes ni stock y el producto nace activo. Nada se guarda hasta confirmar: el guardado es `crear_producto` con sus validaciones (el parámetro `duplicar_de` nunca llega al servidor). Origen inexistente o ajeno: aviso y alta vacía. Sin tablas, RPC ni migración; reversión: quitar la acción y el parámetro.
+
 ## Revisión de seguridad de la épica MSF-179 (T021, FR-016)
 
 Revisión de `20261022120000` y `20261022120100` (authz-security), sin hallazgos que corregir:
@@ -341,7 +413,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
-- **Sin acciones masivas** sobre el listado.
+- **Acciones masivas**: solo las de «Productividad» (mover de categoría, estado y empresas; ver la sección homónima).
 - **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
@@ -355,3 +427,61 @@ Revisión de las migraciones `20261020120000`…`20261020140200` (authz-security
 - **Búsqueda**: `%`, `_` y `\` escapados y `, ( ) " *` descartados antes de armar el filtro de PostgREST, con tope de 80 caracteres.
 - **Vistas**: `security_invoker = true`, sin costo ni precio.
 - **Observación aceptada**: el `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (acotado por RLS a su organización); ver «Límites conocidos».
+
+## Productividad: edición masiva (F-CAT-12, MSF-392, migración `20270215100000`)
+
+Spec: `specs/20261103-100000-catalogo-productividad/` (contrato en `contracts/edicion-masiva.md`). Junto con «Duplicar» (F-CAT-13, sección anterior) forma la épica MSF-218; no cambia la matriz de permisos (`docs/permisos-por-rol.md`): ambas acciones exigen `edicion` en Productos.
+
+- **Quién**: solo quien tiene `edicion` en Productos ve las casillas (por fila y «Seleccionar todos» en el encabezado, sobre las filas ya cargadas) y la barra «N seleccionados». Con `lectura` no aparece nada.
+- **Acciones**: «Mover de categoría» (árbol de MSF-160, un clic mueve), «Cambiar estado» (Activar / Desactivar, no borra nada) y «Cambiar empresas» (`SelectorEmpresas`: «Agregar a» y «Quitar de»; el resultado por producto es `(actuales ∪ agregar) − quitar`). Los diálogos se cargan de forma diferida.
+- **Base**: tres RPC en `public` (`mover_productos_categoria`, `cambiar_estado_productos`, `definir_empresas_productos`), `security invoker`, de 1 a 100 ids recibidos (el tope cuenta los repetidos), atómicas e idempotentes; devuelven cuántos productos cambiaron (si ninguno, el aviso es «No hubo cambios»). Reutilizan las RPC individuales, así que cada producto con cambio real deja su evento de Actividad (`producto.categoria_asignada`, `producto.activado|desactivado`, `producto.empresas_actualizadas`). Sin tablas nuevas (Principio VII); `anon` sin ejecución. Reversión: `drop function` de las tres RPC y de `private.bloquear_productos_masivo`.
+- **Desvíos aceptados (decisión de Nicolás)**: RF-CAT-12-1 «seleccionar todos los resultados» no se construye (la casilla marca solo las filas cargadas, tope 100) y RF-CAT-12-3 evento único `producto.edicion_masiva` no existe (un evento por producto con cambio real).
+- **Empresa activa (Principio VIII)**: la selección se descarta al cambiar empresa, filtro, búsqueda u orden (pedir más filas con la carga infinita no la descarta), y un diálogo abierto se cierra con aviso.
+- **Diferencias con el prototipo**: no se construyen «Marcar destacado», «Enviar al newsletter» ni «Borrar» (el producto se desactiva, no se borra); el texto «hasta 3.er nivel» se omite (el árbol es de 2 niveles); «Cambiar estado» y «Cambiar empresas» no están dibujados y usan el mismo patrón de botón y diálogo.
+
+### Revisión de seguridad de MSF-218 (cierre, SC-004)
+
+Revisión (authz-security) de `20270215100000_catalogo_edicion_masiva.sql`, sin hallazgos que corregir:
+
+- **Sin tablas**: ninguna tabla nueva ni alterada (Principio VII); las RPC viven en `public` y los datos siguen en `dominio` con su RLS.
+- **Grants**: las tres RPC con `revoke … from public, anon` y `grant execute … to authenticated`; `anon` no ejecuta nada (lo verifica el test de grants de pgTAP).
+- **Authz**: `security invoker`; rigen la RLS y la sección `productos` en `edicion`. Productos o categoría de otra organización: `P0002` y nada cambia (atómica); empresa ajena o inexistente: `22023`. Tope de 100 ids **recibidos** (`22023`), medido antes de quitar repetidos (migración `20270215400000`).
+- **Concurrencia**: filas bloqueadas en orden de id para evitar interbloqueos entre dos ediciones masivas.
+- **Duplicar**: sin RPC ni contrato nuevos; `crear_producto` conserva sus validaciones y `duplicar_de` no llega al servidor.
+- **Verificación**: `supabase/tests/database/catalogo_edicion_masiva.test.sql` y `rls_en_toda_tabla`.
+
+## Importar y exportar productos (épica MSF-202)
+
+Índice de la carga y la descarga masivas del catálogo (spec `specs/20270125-100000-catalogo-compatibilidad-y-planillas/`):
+
+- Importar desde CSV (F-CAT-10): [`catalogo-importacion.md`](catalogo-importacion.md).
+- Exportar a CSV (F-CAT-11): [`catalogo-exportacion.md`](catalogo-exportacion.md).
+- Ambas son solo del Administrador (`es_administrador_de`); el costo y el proveedor exigen además Rentabilidad
+  (`docs/permisos-por-rol.md`, no cambia la matriz: no hay acciones nuevas).
+
+### Revisión de seguridad de la épica MSF-202 (T032)
+
+- **Tablas nuevas** (`dominio.importaciones_productos` y `…_filas`, esquema `dominio`): RLS por organización, solo `select`
+  para `authenticated`, escritura por RPC `security definer` con `search_path` fijo; `anon` sin privilegios.
+- **RPC**: `exportar_productos`, `validar_importacion_productos`, `solicitar_importacion_productos` y
+  `obtener_importacion_productos` llevan `revoke … from public, anon` + `grant … to authenticated` y exigen Administrador
+  (`42501`). Las `private.*` del worker solo las ejecuta `workers_orquestacion`.
+- **Bucket temporal** `productos-importaciones`: privado, solo JPG/PNG/WebP de hasta 2 MB, rutas `<organización>/<clave>/<archivo>`
+  acotadas a la organización de la sesión.
+- **Inyección de fórmulas**: el CSV exportado y el reporte de errores de la importación pasan por `neutralizarFormula`.
+- **Service-role**: no aparece en `apps/web`; solo la usa el worker en `workers/`.
+- **Observación (no bloqueante, queda para aparte)**: el bucket se llama «temporal», pero solo se vacía cuando el usuario toca
+  «Cancelar» (`importacion-productos.ts`); el worker no borra las imágenes de origen tras aplicar la importación, así que quedan
+  guardadas. Es costo de almacenamiento, no riesgo de acceso (bucket privado y acotado por organización). Borrarlas al terminar
+  exige cuidar la idempotencia del reintento (CA-CAT-10-7), por eso no se cambió en el cierre.
+- Sin hallazgos de acceso que corregir.
+
+## Exportar productos (F-CAT-11)
+
+El Administrador exporta el listado a CSV desde el diálogo «Exportar productos». Detalle en [`catalogo-exportacion.md`](catalogo-exportacion.md).
+
+## Búsqueda sin tildes y SKU de 13 dígitos (MSF-722)
+
+La búsqueda por nombre de Productos, Stock y «Agregar producto» ignora mayúsculas y tildes (columna calculada
+`nombre_norm`, migración `20270203120000`, sobre `private.normalizar_busqueda`). Un texto de 13 dígitos se busca por
+código de barras **o** por SKU. El buscador de «Agregar producto» avisa «Hay más resultados» al superar los 20.

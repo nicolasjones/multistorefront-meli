@@ -11,6 +11,7 @@ const ETIQUETA_CAMPO: Readonly<Record<string, string>> = {
   correo: 'correo',
   instagram: 'Instagram',
   direccion: 'dirección',
+  horarios: 'horarios de atención',
 }
 
 export function detalleDeEvento(evento: EventoActividad): string {

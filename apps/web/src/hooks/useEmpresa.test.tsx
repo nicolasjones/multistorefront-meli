@@ -31,8 +31,8 @@ vi.mock('../lib/supabase', () => ({
 
 import { useEmpresa } from './useEmpresa'
 
-const base = { id: 'e-1', nombre: 'Uno', whatsapp: null, correo: null, instagram: null, direccion: null, activa: true }
-const datos = { nombre: 'Nuevo', whatsapp: null, correo: null, instagram: null, direccion: null }
+const base = { id: 'e-1', nombre: 'Uno', whatsapp: null, correo: null, instagram: null, direccion: null, horarios: null, razon_social: null, cuit: null, activa: true }
+const datos = { nombre: 'Nuevo', whatsapp: null, correo: null, instagram: null, direccion: null, horarios: null, razon_social: null, cuit: null }
 
 describe('useEmpresa', () => {
   beforeEach(() => {

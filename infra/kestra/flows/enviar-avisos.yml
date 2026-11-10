@@ -1,0 +1,86 @@
+# Envío de avisos por correo configurables (épica MSF-189, F-NOT-01, FR-008/FR-010).
+#
+# Cada minuto reclama los grupos de avisos con la ventana de agrupación vencida
+# (private.reclamar_avisos_listos: sin doble toma, re-verifica preferencia, actividad
+# y acceso), envía UN correo por grupo y registra el resultado: marcar enviado
+# (idempotente) o fallo con reintento de espera creciente (private.registrar_fallo_aviso).
+# Si Kestra se cae a mitad de un envío, el reclamo vence y el grupo vuelve a estar
+# disponible (docs/avisos-por-correo.md).
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), que solo recibe
+# EXECUTE sobre las tres funciones de avisos. SMTP genérico por KESTRA_SMTP_*
+# (infra/kestra/.env.example), igual que aviso-fallo-copias. Sin secretos en Git.
+id: enviar-avisos
+namespace: platform.avisos
+labels:
+  capa: core
+  dominio: plataforma
+  componente: avisos
+
+description: "Reclama los grupos de avisos vencidos y envía un correo por grupo por SMTP, con reintentos."
+
+tasks:
+  - id: reclamar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    # El detalle viaja como texto: se parsea con fromJson al armar el correo.
+    sql: |
+      select grupo_id, destinatario, tipo, nombre, cantidad, detalle::text as detalle
+      from private.reclamar_avisos_listos(50);
+
+  - id: enviar_grupos
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar.rows }}"
+    concurrencyLimit: 5
+    tasks:
+      - id: enviar_grupo
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          # Los valores vienen de datos de negocio (consultas de clientes): se escapan
+          # para el cuerpo HTML.
+          - id: enviar_correo
+            type: io.kestra.plugin.notifications.mail.MailSend
+            host: "{{ envs.kestra_smtp_host }}"
+            port: "{{ envs.kestra_smtp_port }}"
+            username: "{{ envs.kestra_smtp_username }}"
+            password: "{{ envs.kestra_smtp_password }}"
+            transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+            from: "{{ envs.kestra_smtp_from }}"
+            to: "{{ fromJson(parent.taskrun.value).destinatario }}"
+            subject: "{% if fromJson(parent.taskrun.value).cantidad > 1 %}{{ fromJson(parent.taskrun.value).cantidad }} avisos: {% else %}Aviso: {% endif %}{{ fromJson(parent.taskrun.value).nombre }}"
+            htmlTextContent: |
+              <p><strong>{{ fromJson(parent.taskrun.value).nombre | escape }}</strong>: {{ fromJson(parent.taskrun.value).cantidad }} {% if fromJson(parent.taskrun.value).cantidad > 1 %}avisos{% else %}aviso{% endif %}.</p>
+              <ul>
+              {% for aviso in fromJson(fromJson(parent.taskrun.value).detalle) %}
+                <li>{% for clave, valor in aviso %}<strong>{{ clave | escape }}:</strong> {{ valor | escape }} {% endfor %}</li>
+              {% endfor %}
+              </ul>
+              <p>Podés elegir qué avisos recibir en «Avisos por correo», dentro del menú de tu cuenta.</p>
+          - id: marcar_enviado
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.marcar_aviso_enviado(CAST(:grupo_id AS uuid));
+            parameters:
+              grupo_id: "{{ fromJson(parent.taskrun.value).grupo_id }}"
+        errors:
+          # Un grupo que falla no frena a los demás: se reprograma con espera creciente
+          # o queda fallido con el error útil al agotar los reintentos.
+          - id: registrar_fallo
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select * from private.registrar_fallo_aviso(CAST(:grupo_id AS uuid), :motivo);
+            parameters:
+              grupo_id: "{{ fromJson(parent.taskrun.value).grupo_id }}"
+              motivo: "{{ errorLogs()[0]['message'] }}"
+
+triggers:
+  - id: cada_minuto
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"

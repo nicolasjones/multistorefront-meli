@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Card, CardContent, CardHeader, IconButton, Stack, TextField, Typography } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
+import { EtiquetaEstado } from '../base/EtiquetaEstado'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { AgregarProductoDialog } from './AgregarProductoDialog'
 import { DepositoSelect } from './DepositoSelect'
 import { EtiquetaAPedido, FaltanteAviso, StockLinea } from './FaltanteAviso'
@@ -52,11 +55,13 @@ type FilaProps = {
   editable: boolean
   puedeEditarPrecio: boolean
   ocupado: boolean
+  // Imagen principal del producto (URL firmada); sin ella se dibuja el marcador vacío.
+  imagen?: string
   onCambiar: Props['onCambiar']
   onQuitar: Props['onQuitar']
 }
 
-function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocupado, onCambiar, onQuitar }: FilaProps) {
+function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocupado, imagen, onCambiar, onQuitar }: FilaProps) {
   const [cantidad, setCantidad] = useState(String(linea.cantidad))
   const [precio, setPrecio] = useState(String(linea.precio_unitario))
   const [errorCantidad, setErrorCantidad] = useState<string | null>(null)
@@ -71,8 +76,64 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
     setErrorPrecio(null)
   }, [linea.precio_unitario, linea.precio_manual])
 
-  const bloqueado = !editable || ocupado
   const nombre = linea.descripcion
+
+  // Las líneas `sin_stock` vienen de una reparación de Service (F-SVC-13): son una foto del cobro, no mueven
+  // stock y no se editan ni se quitan desde Ventas. Se muestran en solo lectura y no entran en las entradas
+  // que se guardan (`aEntradas`), así que tampoco se ofrecen acciones que cambiarían la línea equivocada.
+  if (linea.sin_stock) {
+    return (
+      <Box
+        role="row"
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: COLUMNAS,
+          gap: 1.25,
+          alignItems: 'center',
+          px: 2.5,
+          py: 1.5,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          minWidth: ANCHO_MINIMO,
+        }}
+      >
+        <Box role="cell" sx={{ minWidth: 0 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+            {nombre}
+          </Typography>
+          {linea.codigo ? (
+            <Typography variant="caption" color="text.secondary" component="p">
+              {linea.codigo}
+            </Typography>
+          ) : null}
+          <Box sx={{ mt: 0.5 }}>
+            <EtiquetaEstado texto="No descuenta stock" variante="info" />
+          </Box>
+        </Box>
+        <Box role="cell">
+          <Typography variant="caption" color="text.secondary">—</Typography>
+        </Box>
+        <Box role="cell">
+          <Typography variant="caption" color="text.secondary">Sin depósito</Typography>
+        </Box>
+        <Box role="cell">
+          <Typography variant="body2">{linea.cantidad}</Typography>
+        </Box>
+        <Box role="cell" sx={{ textAlign: 'right' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {formatearPesosPrecio(linea.precio_unitario)}
+          </Typography>
+        </Box>
+        <Stack role="cell" direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
+          <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {formatearPesosPrecio(linea.subtotal_sin_iva)}
+          </Typography>
+        </Stack>
+      </Box>
+    )
+  }
+
+  const bloqueado = !editable || ocupado
 
   const confirmarCantidad = (texto: string) => {
     const valor = parsearCantidadLinea(texto)
@@ -120,26 +181,29 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         minWidth: ANCHO_MINIMO,
       }}
     >
-      <Box role="cell" sx={{ minWidth: 0 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
-          {nombre}
-        </Typography>
-        {linea.codigo ? (
-          <Typography variant="caption" color="text.secondary" component="p">
-            {linea.codigo}
+      <Stack role="cell" direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+        <MiniaturaProducto alt="" src={imagen} />
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+            {nombre}
           </Typography>
-        ) : null}
-        <Box sx={{ mt: 0.5 }}>
-          <EtiquetaAPedido linea={linea} />
+          {linea.codigo ? (
+            <Typography variant="caption" color="text.secondary" component="p">
+              {linea.codigo}
+            </Typography>
+          ) : null}
+          <Box sx={{ mt: 0.5 }}>
+            <EtiquetaAPedido linea={linea} />
+          </Box>
         </Box>
-      </Box>
+      </Stack>
       <Box role="cell">
         <StockLinea linea={linea} />
       </Box>
       <Box role="cell">
         <DepositoSelect
           depositos={depositos}
-          valor={linea.deposito_id}
+          valor={linea.deposito_id ?? ''}
           disabled={bloqueado}
           etiqueta={`Depósito de mercadería de ${nombre}`}
           onCambio={(depositoId) => onCambiar(indice, { deposito_id: depositoId })}
@@ -266,6 +330,7 @@ export function LineasComprobante({
   onQuitar,
   onAgregar,
 }: Props) {
+  const imagenes = useImagenesProductos(lineas.map((linea) => linea.producto_id))
   const depositoPorDefecto = depositos.find((deposito) => deposito.por_defecto) ?? depositos[0] ?? null
 
   return (
@@ -323,6 +388,7 @@ export function LineasComprobante({
               editable={editable}
               puedeEditarPrecio={puedeEditarPrecio}
               ocupado={ocupado}
+              imagen={linea.producto_id ? imagenes.get(linea.producto_id) : undefined}
               onCambiar={onCambiar}
               onQuitar={onQuitar}
             />

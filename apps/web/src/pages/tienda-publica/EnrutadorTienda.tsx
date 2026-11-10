@@ -4,7 +4,7 @@ import { EstadoCargaPagina } from '../../components/estados/EstadosPagina'
 import type { TiendaPublica } from '../../lib/tienda'
 import { LayoutTienda } from './layout/LayoutTienda'
 import { PaginaNoEncontrada } from './PaginaNoEncontrada'
-import { ErrorConReintento } from './ErrorConReintento'
+import { PantallaError } from './PantallaError'
 
 type ModuloRuta = { default: React.ComponentType }
 type CargadorRuta = () => Promise<ModuloRuta>
@@ -23,7 +23,7 @@ function ErrorDeRuta() {
   const error = useRouteError()
   console.error('No se pudo cargar la página de la tienda', error instanceof Error ? error.message : error)
   return (
-    <ErrorConReintento alReintentar={() => window.location.reload()} />
+    <PantallaError dentroDeTienda alReintentar={() => window.location.reload()} />
   )
 }
 

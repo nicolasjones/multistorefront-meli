@@ -1,6 +1,7 @@
 import { Box, Button, ClickAwayListener, TextField, Typography } from '@mui/material'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
 import {
   ESPERA_ENTRE_TECLAS_MS,
@@ -16,15 +17,16 @@ import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 type Estado =
   | { fase: 'reposo' }
   | { fase: 'cargando' }
-  | { fase: 'lista'; sugerencias: Sugerencia[]; imagenes: Record<string, string> }
-  | { fase: 'espera'; segundos: number }
-  | { fase: 'error' }
+  | { fase: 'lista'; clave: string; sugerencias: Sugerencia[]; imagenes: Record<string, string> }
+  | { fase: 'espera'; clave: string; segundos: number }
+  | { fase: 'error'; clave: string }
 
 // Buscador del encabezado (F-TDA-15, FR-024…FR-028). Un *combobox* con desplegable de hasta 6
 // sugerencias que se piden con una espera corta entre teclas; una respuesta vieja nunca pisa a la
 // nueva. Teclado completo (flechas, Enter, Esc) y cierre al hacer clic afuera. El texto del visitante
 // va siempre como nodo de React (se escapa solo). Se carga de forma diferida desde `LayoutTienda`.
-export default function BuscadorTienda({ host }: { host: string }) {
+// `etiqueta` nombra la región de búsqueda cuando hay más de un buscador en la página (la 404, F-TDA-19).
+export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqueta?: string }) {
   const navegar = useNavigate()
   const { pathname } = useLocation()
   const [params] = useSearchParams()
@@ -36,35 +38,40 @@ export default function BuscadorTienda({ host }: { host: string }) {
   const qUrl = pathname === '/catalogo' ? normalizarConsulta(params.get('q')) : ''
   const [texto, setTexto] = useState(qUrl)
   const [abierto, setAbierto] = useState(false)
-  const [estado, setEstado] = useState<Estado>({ fase: 'reposo' })
+  const [claveUrl, setClaveUrl] = useState(`${pathname}|${qUrl}`)
+  const [guardada, setGuardada] = useState<Estado>({ fase: 'reposo' })
   const [activo, setActivo] = useState(-1)
   const [intento, setIntento] = useState(0)
   const pedido = useRef(0)
 
-  useEffect(() => {
+  // Al cambiar de ruta o de búsqueda en la URL, el campo se realinea durante el render (sin efecto).
+  if (claveUrl !== `${pathname}|${qUrl}`) {
+    setClaveUrl(`${pathname}|${qUrl}`)
     setTexto(qUrl)
     setAbierto(false)
-  }, [qUrl, pathname])
+  }
 
   const consulta = normalizarConsulta(texto)
   const buscable = consulta.length >= MINIMO_CARACTERES_BUSQUEDA
+  // La respuesta guardada solo vale para la consulta (y el intento) que la pidió; si no, se está buscando.
+  const claveActual = `${consulta}|${intento}`
+  const estado: Estado = !abierto || !buscable
+    ? { fase: 'reposo' }
+    : guardada.fase !== 'reposo' && guardada.fase !== 'cargando' && guardada.clave === claveActual
+      ? guardada
+      : { fase: 'cargando' }
 
   useEffect(() => {
     // Cada ejecución invalida a las anteriores: una respuesta tardía se descarta (FR-024).
     const numero = ++pedido.current
-    if (!abierto || !buscable) {
-      setEstado({ fase: 'reposo' })
-      return undefined
-    }
-    setEstado({ fase: 'cargando' })
-    setActivo(-1)
+    if (!abierto || !buscable) return undefined
     let temporizadorEspera: ReturnType<typeof setTimeout> | undefined
     const temporizador = setTimeout(() => {
       leerSugerencias(host, consulta)
         .then(async (respuesta) => {
           if (numero !== pedido.current) return
           if (respuesta.esperaSegundos !== null) {
-            setEstado({ fase: 'espera', segundos: respuesta.esperaSegundos })
+            setGuardada({ fase: 'espera', clave: claveActual, segundos: respuesta.esperaSegundos })
             // El límite se libera solo (FR-027): se repite la búsqueda al terminar la espera.
             temporizadorEspera = setTimeout(() => {
               if (numero === pedido.current) setIntento((actual) => actual + 1)
@@ -72,18 +79,21 @@ export default function BuscadorTienda({ host }: { host: string }) {
             return
           }
           const imagenes = await urlsImagenesProducto(respuesta.sugerencias.flatMap((s) => (s.imagen ? [s.imagen] : [])))
-          if (numero === pedido.current) setEstado({ fase: 'lista', sugerencias: respuesta.sugerencias, imagenes })
+          if (numero === pedido.current) {
+            setActivo(-1)
+            setGuardada({ fase: 'lista', clave: claveActual, sugerencias: respuesta.sugerencias, imagenes })
+          }
         })
         .catch((error) => {
           console.error('No se pudo buscar en la tienda', error instanceof Error ? error.message : error)
-          if (numero === pedido.current) setEstado({ fase: 'error' })
+          if (numero === pedido.current) setGuardada({ fase: 'error', clave: claveActual })
         })
     }, ESPERA_ENTRE_TECLAS_MS)
     return () => {
       clearTimeout(temporizador)
       clearTimeout(temporizadorEspera)
     }
-  }, [abierto, buscable, consulta, host, intento])
+  }, [abierto, buscable, consulta, host, intento, claveActual])
 
   const sugerencias = estado.fase === 'lista' ? estado.sugerencias : []
   // La última opción es «Ver todos los resultados →».
@@ -93,6 +103,7 @@ export default function BuscadorTienda({ host }: { host: string }) {
   const irAResultados = () => {
     if (!buscable) return
     setAbierto(false)
+    registrarEventoTienda('busqueda') // solo el evento: el texto buscado no se envía (RF-TDA-24-2)
     navegar(urlResultados(consulta))
   }
   const irAFicha = (id: string) => {
@@ -120,13 +131,13 @@ export default function BuscadorTienda({ host }: { host: string }) {
   return (
     <ClickAwayListener onClickAway={() => setAbierto(false)}>
       <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360 }, maxWidth: '100%' }}>
-        <Box component="form" role="search" onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
+        <Box component="form" role="search" aria-label={etiqueta} onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
           <TextField
             fullWidth
             size="small"
             placeholder="Buscar productos"
             value={texto}
-            onChange={(evento) => { setTexto(evento.target.value); setAbierto(true) }}
+            onChange={(evento) => { setTexto(evento.target.value); setAbierto(true); setActivo(-1) }}
             onFocus={() => setAbierto(true)}
             onKeyDown={alTeclear}
             slotProps={{

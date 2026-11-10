@@ -20,6 +20,56 @@ const abrir = (
 const escribir = (etiqueta: RegExp | string, valor: string) =>
   fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } })
 
+describe('FormularioCliente · descuento (F-VTA-32)', () => {
+  const abrirConDescuento = (puede: boolean, onGuardar = vi.fn().mockResolvedValue(undefined)) => {
+    render(
+      <MemoryRouter>
+        <FormularioCliente
+          inicial={{ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', descuento: '5' }}
+          etiquetaGuardar="Guardar"
+          onGuardar={onGuardar}
+          rutaCancelar="/clientes"
+          puedeEditarDescuento={puede}
+        />
+      </MemoryRouter>,
+    )
+    return onGuardar
+  }
+
+  it('quien no es Administrador no ve el campo ni envía el descuento', async () => {
+    const onGuardar = abrirConDescuento(false)
+    expect(screen.queryByLabelText(/descuento/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    expect(onGuardar.mock.calls[0][0]).not.toHaveProperty('descuento')
+  })
+
+  it('el Administrador edita el descuento y se envía como número', async () => {
+    const onGuardar = abrirConDescuento(true)
+    escribir(/descuento/i, '7,5')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    expect(onGuardar.mock.calls[0][0]).toMatchObject({ descuento: 7.5 })
+  })
+
+  it('vaciar el campo envía null (sin descuento)', async () => {
+    const onGuardar = abrirConDescuento(true)
+    escribir(/descuento/i, '')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    expect(onGuardar.mock.calls[0][0]).toMatchObject({ descuento: null })
+  })
+
+  it('un descuento fuera de 0–100 muestra el error en el campo y no guarda', async () => {
+    const onGuardar = abrirConDescuento(true)
+    escribir(/descuento/i, '150')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Ingresá un porcentaje entre 0 y 100, con hasta 2 decimales.')).toBeInTheDocument()
+    expect(screen.getByLabelText(/descuento/i)).toHaveAttribute('aria-invalid', 'true')
+    expect(onGuardar).not.toHaveBeenCalled()
+  })
+})
+
 describe('FormularioCliente', () => {
   it('muestra los campos de la ficha y los botones Cancelar y guardar', () => {
     abrir()
@@ -56,6 +106,7 @@ describe('FormularioCliente', () => {
     await waitFor(() => expect(onGuardar).toHaveBeenCalledTimes(1))
     expect(onGuardar).toHaveBeenCalledWith(
       expect.objectContaining({ nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: null, provincia: null }),
+      expect.anything(),
     )
   })
 
@@ -119,7 +170,7 @@ describe('FormularioCliente', () => {
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
     escribir(/nombre o razón social/i, 'Cliente')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'minorista' })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'minorista' }), expect.anything()))
   })
 
   it('alta como mayorista: envía el tipo elegido y cambia la explicación', async () => {
@@ -128,7 +179,7 @@ describe('FormularioCliente', () => {
     expect(screen.getByText('Compra con precio por cantidad.')).toBeInTheDocument()
     escribir(/nombre o razón social/i, 'Distribuidora')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'mayorista' })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'mayorista' }), expect.anything()))
   })
 
   it('edición: cambiar el tipo muestra el aviso y se guarda el nuevo tipo; volver al original lo quita', async () => {
@@ -141,7 +192,7 @@ describe('FormularioCliente', () => {
     expect(screen.queryByText(/próximas ventas/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Minorista/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'Ana', tipo: 'minorista' }), expect.anything()))
   })
 
   it('«Habilitado en»: sin tiendas cargadas lo dice', () => {
@@ -167,6 +218,6 @@ describe('FormularioCliente', () => {
 
     escribir(/nombre o razón social/i, 'Cliente')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
-    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ empresas: ['e-1'] })))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ empresas: ['e-1'] }), expect.anything()))
   })
 })

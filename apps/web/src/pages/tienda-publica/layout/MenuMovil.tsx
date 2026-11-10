@@ -10,9 +10,9 @@ const ID_PANEL = 'menu-movil'
 const ID_TITULO = 'menu-movil-titulo'
 
 // Menú desplegable de celular (F-TDA-17, FR-040/FR-048): el botón del encabezado abre un panel con
-// «Inicio» y la sección «Categorías» (la actual marcada con aria-current). El Drawer de MUI es un modal:
+// «Inicio», «Contacto» (F-TDA-16, FR-010) y la sección «Categorías» (la actual marcada con aria-current). El Drawer de MUI es un modal:
 // atrapa el foco, lo devuelve al botón al cerrar y cierra con Esc o al tocar afuera; además se cierra al
-// navegar. Sin entrada «Contacto» hasta que exista su página (D10, MSF-212). Se muestra solo bajo `md`;
+// navegar. Se muestra solo bajo `md`;
 // desde ahí rige el menú horizontal de escritorio.
 export default function MenuMovil({ categorias }: { categorias: CategoriasTienda }) {
   // Se guarda la ruta en la que se abrió: navegar (también con atrás/adelante) lo cierra sin efectos.
@@ -48,6 +48,11 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
             <ListItem disablePadding>
               <ListItemButton component={NavLink} to="/" end onClick={cerrar} sx={estiloEntrada}>
                 <ListItemText primary="Inicio" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton component={NavLink} to="/contacto" onClick={cerrar} sx={estiloEntrada}>
+                <ListItemText primary="Contacto" />
               </ListItemButton>
             </ListItem>
           </List>

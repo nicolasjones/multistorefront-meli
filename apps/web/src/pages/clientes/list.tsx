@@ -1,16 +1,21 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { Link as RouterLink } from 'react-router'
-import { CreateButton } from '@refinedev/mui'
-import { Box, Button, Checkbox, Chip, LinearProgress, Stack, Tab, TablePagination, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Link as RouterLink, useNavigate } from 'react-router'
+import { Alert, Box, Button, Checkbox, Chip, LinearProgress, Snackbar, Stack, Tab, Tabs, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { ExportarClientes } from '../../components/clientes/ExportarClientes'
 import { ImportarClientes } from '../../components/clientes/ImportarClientes'
 import { useBuscarClientes, type ClienteListado } from '../../hooks/useBuscarClientes'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
+import { rutaEtiquetas } from '../../lib/etiquetasCliente'
+import { DialogoCorreoSeleccionados } from '../../components/clientes/DialogoCorreoSeleccionados'
+import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
+import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -18,20 +23,27 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 
+// El popup de alta/edición trae el formulario completo: se descarga solo al abrirlo.
+const DialogoCliente = lazy(() => import('../../components/clientes/DialogoCliente').then((modulo) => ({ default: modulo.DialogoCliente })))
+
 // El ranking se descarga solo al abrir su solapa: el peso inicial del listado no crece (FR-015).
 const RankingClientes = lazy(() => import('../../components/clientes/RankingClientes').then((modulo) => ({ default: modulo.RankingClientes })))
 
-type Solapa = 'listado' | 'ranking'
+// Igual que el ranking: la lista de inactivos (F-CLI-16) se descarga solo al abrir su solapa.
+const ClientesInactivos = lazy(() => import('../../components/clientes/ClientesInactivos').then((modulo) => ({ default: modulo.ClientesInactivos })))
 
+type Solapa = 'listado' | 'ranking' | 'inactivos'
+
+const AVISO_SIN_SELECCION = 'Elegí al menos un cliente con las casillas'
 const ESPERA_BUSQUEDA_MS = 300
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
 const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
-const columnas: ColumnaAdaptable<ClienteListado>[] = [
+const columnas = (empresaId: string | null): ColumnaAdaptable<ClienteListado>[] => [
   {
     clave: 'cliente', encabezado: 'Cliente',
     render: (cliente) => (
@@ -65,7 +77,13 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
   },
   { clave: 'localidad', encabezado: 'Localidad', render: (cliente) => cliente.localidad ?? '—' },
   { clave: 'expreso', encabezado: 'Expreso preferido', render: (cliente) => cliente.expreso_preferido ?? '—' },
-  { clave: 'cuenta', encabezado: 'Cuenta web', render: () => <Chip size="small" label="—" variant="outlined" /> },
+  {
+    clave: 'cuenta', encabezado: 'Cuenta web',
+    render: (cliente) => {
+      const estado = estadoCuentaWebListado(cliente.cuentas_web ?? [], empresaId)
+      return <EtiquetaEstado texto={TEXTOS_ESTADO_CUENTA_WEB[estado].etiqueta} variante={TEXTOS_ESTADO_CUENTA_WEB[estado].variante} />
+    },
+  },
 ]
 
 // Quien tiene lectura ve el listado; quien tiene edición en Clientes
@@ -75,6 +93,7 @@ const columnas: ColumnaAdaptable<ClienteListado>[] = [
 // (`buscar_clientes`, FR-006); el buscador espera a que se deje de tipear.
 export function ClienteList() {
   const { nivel } = useNivelSeccion('clientes')
+  const navegar = useNavigate()
   const puedeEditar = nivel === 'edicion'
   // Misma regla que la función `ranking_clientes`: sección Clientes en lectura o edición (FR-009).
   const puedeVerRanking = nivel === 'lectura' || nivel === 'edicion'
@@ -87,12 +106,21 @@ export function ClienteList() {
   const [textoAplicado, setTextoAplicado] = useState('')
   const [tipo, setTipo] = useState<TipoCliente | null>(null)
   const [archivados, setArchivados] = useState(false)
+  const [conCuentaWeb, setConCuentaWeb] = useState(false)
   // Filtro de tienda (F-CLI-11, `{{tFilt}}`): comparte la empresa activa de la
   // barra superior y la sigue al cambiarla; el chip de la pantalla la sobreescribe
   // sin tocar la activa persistida (ver useFiltroPorEmpresaActiva).
-  const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
+  const { empresas, valor: empresaId, cambiar: elegirEmpresa, empresaActivaId, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
   const [pagina, setPagina] = useState(1)
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
+  const [avisoSeleccion, setAvisoSeleccion] = useState(false)
+  const [dialogoCorreo, setDialogoCorreo] = useState(false)
+  // undefined = cerrado, null = cliente nuevo, id = editar ese cliente.
+  const [clienteEnDialogo, setClienteEnDialogo] = useState<string | null | undefined>(undefined)
+  const [avisoGuardado, setAvisoGuardado] = useState<string | null>(null)
+  const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
+  const dialogoCorreoAbierto = useRef(false)
+  dialogoCorreoAbierto.current = dialogoCorreo
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -107,20 +135,50 @@ export function ClienteList() {
   }, [texto, textoAplicado])
 
   const { clientes, total, isLoading, isFetching, isError, refetch } = useBuscarClientes({
-    texto: textoAplicado, tipo, archivados, empresaId, pagina, tamano: TAMANO_PAGINA,
+    texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb, pagina, tamano: TAMANO_TANDA,
   })
 
-  // Si la página quedó fuera de rango (p. ej. se archivó el último de la
-  // última página), el servidor no devuelve filas: se vuelve a la primera.
+  // Cambió la empresa (barra superior o chip): se reencuadra la paginación y se
+  // descarta la selección de la empresa anterior (Principio VIII, FR-017).
+  // Un diálogo de correo abierto se cierra con aviso: no guarda los marcados de la empresa anterior bajo la nueva.
   useEffect(() => {
-    if (!isLoading && !isFetching && !isError && clientes.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, clientes.length, pagina])
+    setPagina(1)
+    setSeleccion(new Set())
+    if (dialogoCorreoAbierto.current) {
+      setDialogoCorreo(false)
+      setAvisoCorreo('Cambiaste de empresa: se cerró el envío de correo y se descartó la selección.')
+    }
+  }, [empresaId])
 
-  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null
+  // Carga infinita (Principio VI): cada tanda se suma a las anteriores; buscar, filtrar o cambiar de tienda vuelve a la primera.
+  const listado = useListadoAcumulado({
+    items: clientes, pagina, setPagina, total, cargando: isFetching,
+    reinicio: { textoAplicado, tipo, archivados, empresaId, conCuentaWeb },
+  })
+  // Falló una tanda posterior: se conserva lo ya cargado y el error se muestra al pie.
+  const falloTanda = isError && listado.filas.length > 0
+
+  const hayFiltros = textoAplicado.trim() !== '' || tipo !== null || archivados || empresaId !== null || conCuentaWeb
 
   const cambiarTienda = (id: string | null) => {
     elegirEmpresa(id)
     setPagina(1)
+  }
+
+  // «Enviar correo a seleccionados (N)» (FR-005): abre el diálogo con los marcados. Quienes no son elegibles (sin
+  // correo o sin aceptación) se excluyen igual que al armar el grupo (FR-004); sin selección avisa.
+  const enviarCorreo = () => {
+    if (seleccion.size === 0) {
+      setAvisoSeleccion(true)
+      return
+    }
+    setDialogoCorreo(true)
+  }
+
+  const correoEnviado = (marcados: number) => {
+    setDialogoCorreo(false)
+    setSeleccion(new Set())
+    setAvisoCorreo(`Campaña creada: el correo se envía en lotes a los ${marcados} clientes marcados que lo aceptan.`)
   }
 
   const alternar = (id: string) => {
@@ -137,8 +195,17 @@ export function ClienteList() {
       <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar || puedeMigrar ? (
         <Stack direction="row" spacing={1}>
           {puedeMigrar ? <ImportarClientes /> : null}
-          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId }} total={total} /> : null}
-          {puedeEditar ? <CreateButton /> : null}
+          {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
+          {puedeEditar ? (
+            <Button
+              variant="outlined"
+              disabled={seleccion.size === 0}
+              onClick={() => navegar(rutaEtiquetas([...seleccion]), { state: { volverA: '/clientes' } })}
+            >
+              {seleccion.size > 0 ? `Imprimir etiquetas (${seleccion.size})` : 'Imprimir etiquetas'}
+            </Button>
+          ) : null}
+          {puedeEditar ? <Button variant="contained" onClick={() => setClienteEnDialogo(null)}>Nuevo cliente</Button> : null}
         </Stack>
       ) : undefined} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
@@ -157,12 +224,19 @@ export function ClienteList() {
           <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
             <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
             <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
+            <Tab value="inactivos" label="Clientes inactivos" id="solapa-clientes-inactivos" aria-controls="panel-clientes" />
           </Tabs>
         ) : null}
         {puedeVerRanking && solapa === 'ranking' ? (
           <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-ranking">
             <Suspense fallback={<EstadoCargaPagina />}>
               <RankingClientes empresaId={empresaId} />
+            </Suspense>
+          </Box>
+        ) : puedeVerRanking && solapa === 'inactivos' ? (
+          <Box role="tabpanel" id="panel-clientes" aria-labelledby="solapa-clientes-inactivos">
+            <Suspense fallback={<EstadoCargaPagina />}>
+              <ClientesInactivos empresaId={empresaId} />
             </Suspense>
           </Box>
         ) : (
@@ -194,6 +268,16 @@ export function ClienteList() {
               <ToggleButton value="minorista">Minorista</ToggleButton>
               <ToggleButton value="mayorista">Mayorista</ToggleButton>
             </ToggleButtonGroup>
+            <ToggleButton
+              value="con-cuenta"
+              selected={conCuentaWeb}
+              onChange={() => {
+                setConCuentaWeb((actual) => !actual)
+                setPagina(1)
+              }}
+            >
+              Con cuenta web
+            </ToggleButton>
             <ToggleButtonGroup
               exclusive
               size="small"
@@ -208,6 +292,11 @@ export function ClienteList() {
               <ToggleButton value="activos">Activos</ToggleButton>
               <ToggleButton value="archivados">Archivados</ToggleButton>
             </ToggleButtonGroup>
+            {puedeEditar ? (
+              <Button variant="outlined" size="small" onClick={enviarCorreo}>
+                {seleccion.size > 0 ? `Enviar correo a seleccionados (${seleccion.size})` : 'Enviar correo a seleccionados'}
+              </Button>
+            ) : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={visuallyHidden}>
@@ -218,9 +307,9 @@ export function ClienteList() {
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los clientes." reintentar={() => void refetch()} />
-            ) : clientes.length === 0 && pagina === 1 ? (
+            ) : listado.filas.length === 0 ? (
               hayFiltros ? (
                 <EstadoVacio titulo="No encontramos clientes con esos criterios." descripcion="Probá con otro texto o quitá algún filtro." />
               ) : (
@@ -229,8 +318,8 @@ export function ClienteList() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={clientes}
-                  columnas={columnas}
+                  items={listado.filas}
+                  columnas={columnas(empresaId)}
                   obtenerClave={(cliente) => cliente.id}
                   etiquetaTabla="Clientes"
                   acciones={(cliente) => (
@@ -245,26 +334,52 @@ export function ClienteList() {
                       ) : null}
                       {cliente.archivado_en ? <Chip size="small" label="Archivado" /> : null}
                       <Button component={RouterLink} to={`/clientes/show/${cliente.id}`} aria-label={`Ver ${cliente.nombre}`} size="small" variant="outlined">Ver ficha</Button>
-                      {puedeEditar ? <Button component={RouterLink} to={`/clientes/edit/${cliente.id}`} size="small">Editar</Button> : null}
+                      {puedeEditar ? <Button onClick={() => setClienteEnDialogo(cliente.id)} size="small">Editar</Button> : null}
                     </Stack>
                   )}
                 />
-                {clientes.length > 0 ? <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA}
-                  rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Clientes por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                /> : null}
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                />
               </>
             )}
           </Box>
         </Stack>
         )}
       </ContenedorSeccion>
+      <DialogoCorreoSeleccionados
+        open={dialogoCorreo}
+        clientes={[...seleccion]}
+        empresaId={empresaActivaId}
+        onCerrar={() => setDialogoCorreo(false)}
+        onEnviado={correoEnviado}
+      />
+      {clienteEnDialogo !== undefined ? (
+        <Suspense fallback={null}>
+          <DialogoCliente
+            clienteId={clienteEnDialogo}
+            onCerrar={() => setClienteEnDialogo(undefined)}
+            onGuardado={(mensaje) => {
+              setClienteEnDialogo(undefined)
+              setAvisoGuardado(mensaje)
+              setPagina(1)
+              void refetch()
+            }}
+          />
+        </Suspense>
+      ) : null}
+      <Snackbar open={avisoGuardado !== null} autoHideDuration={6000} onClose={() => setAvisoGuardado(null)}>
+        <Alert severity="success" onClose={() => setAvisoGuardado(null)}>{avisoGuardado}</Alert>
+      </Snackbar>
+      <Snackbar open={avisoCorreo !== null} autoHideDuration={6000} onClose={() => setAvisoCorreo(null)}>
+        <Alert severity="info" onClose={() => setAvisoCorreo(null)}>{avisoCorreo}</Alert>
+      </Snackbar>
+      <Snackbar open={avisoSeleccion} autoHideDuration={4000} onClose={() => setAvisoSeleccion(false)}>
+        <Alert severity="info" onClose={() => setAvisoSeleccion(false)}>{AVISO_SIN_SELECCION}</Alert>
+      </Snackbar>
     </Box>
   )
 }
