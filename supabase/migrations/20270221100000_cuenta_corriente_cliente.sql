@@ -21,9 +21,13 @@
 --   (F-VTA-12), que es su único dueño (`total con IVA − Σ cobros`, nunca negativo). Si esta
 --   función recalculara el saldo, habría dos reglas que pueden divergir; por eso la llama.
 --   El estado «Deuda» no se consulta: una factura en «Deuda» no tiene cobros (debe su total
---   completo) y una «Cobrada» tiene el saldo en 0.
--- · Cuentan las facturas que no están en `borrador` ni `anulada`: un borrador no se debe y una
---   factura anulada no le debe nada a nadie (mismo criterio que `public.resumen_pagos`).
+--   completo).
+-- · Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`: un borrador no se
+--   debe, una factura anulada no le debe nada a nadie (mismo criterio que
+--   `public.resumen_pagos`) y una «Cobrada» está saldada por definición aunque su cobro no esté
+--   en el libro (cobrada en mostrador o anterior al libro de cobros, MSF-195).
+-- · Alcance por tienda: solo las tiendas a las que la persona accede
+--   (`private.empresas_accesibles()`, como `public.saldo_comprobante`); no ve la deuda de otras.
 -- · Los presupuestos no son deuda: no entran. Las notas de crédito NO restan: su efecto en la
 --   cuenta corriente es de MSF-195 (hoy no admiten cobros) y esta historia no lo reasigna.
 -- · El saldo total es la suma de los saldos listados; la lista trae los comprobantes con saldo
@@ -98,7 +102,8 @@ begin
      where v.organizacion_id = v_org
        and v.cliente_id = p_cliente_id
        and v.tipo = 'factura'
-       and v.estado not in ('borrador', 'anulada')
+       and v.estado not in ('borrador', 'anulada', 'cobrado')
+       and v.empresa_id in (select private.empresas_accesibles())
        and s.saldo > 0
   ),
   encabezado as (

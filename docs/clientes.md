@@ -427,17 +427,20 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   `revoke … from public, anon` y `grant execute … to authenticated`.
 - **Cómo se calcula el saldo:** el saldo de un comprobante **no se recalcula** en esta función: lo trae
   `private.saldo_comprobante` (F-VTA-12), que es su único dueño (`total con IVA − cobros`, nunca negativo). El estado
-  «Deuda» no se consulta (una factura en «Deuda» no tiene cobros y debe su total completo; una «Cobrada» tiene el
-  saldo en 0). Cuentan las **facturas** que no están en `borrador` ni `anulada`; los presupuestos no son deuda. El saldo
-  total es la suma de los saldos listados.
-- **Alcance:** es la deuda del cliente en **toda la organización** (las empresas de la organización), igual que la
-  sección «Compras» de la ficha: la cuenta corriente **no depende de la empresa activa** (Principio VIII, declarado
-  en la matriz de la spec). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
+  «Deuda» no se consulta (una factura en «Deuda» no tiene cobros y debe su total completo). Cuentan las **facturas**
+  que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
+  (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
+  suma de los saldos listados.
+- **Alcance:** es la deuda del cliente en **todas las tiendas a las que la persona accede**
+  (`private.empresas_accesibles()`, como `public.saldo_comprobante`; el administrador accede a todas): no ve deuda de
+  tiendas ajenas. No depende de la empresa activa (Principio VIII). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
 - **Base de las cifras:** el «Saldo deudor» y la cuenta corriente son **con IVA**; el «Facturado en el año» que ya
   estaba en la ficha es **sin IVA** (criterio del ranking). Cada número dice su base.
 - **Notas de crédito:** **no restan** del saldo. Su efecto en la cuenta corriente es de **MSF-195** (hoy la nota de
   crédito no admite cobros) y esta historia no lo reasigna: queda como diferencia conocida, con seguimiento trazado
-  (Tarea `seguimiento` en It's a Plan).
+  (Tarea `seguimiento` en It's a Plan). Tampoco hay **saldo a favor**: un cobro de más se muestra como $ 0.
+- **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
+  puede cambiar): qué estados cuentan como deuda, si las notas de crédito restan y si el saldo a favor se muestra.
 - **Reversión (migración posterior, aditiva):** `drop function public.cuenta_corriente_cliente(uuid);` No se destruye
   ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
 - **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (compara cada fila con

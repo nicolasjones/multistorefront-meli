@@ -15,7 +15,7 @@
 -- · los niveles de la sección Clientes y la ejecutabilidad por `anon` (SC-002).
 begin;
 
-select plan(23);
+select plan(25);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -43,6 +43,10 @@ insert into clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Sin deuda', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 201, 'Ajeno', 'minorista');
 
+-- Consulta trabaja solo en Tienda Uno: no ve la deuda de Tienda Dos.
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('d4000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
+
 insert into dominio.formas_pago (id, organizacion_id, empresa_id, nombre, tipo) values
   ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'Transferencia Uno', 'transferencia'),
   ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'Transferencia Dos', 'transferencia');
@@ -68,6 +72,8 @@ values
   ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000007', current_date - 1, 'borrador', 7000, 8470),
   -- Cobro que supera el total: el saldo es 0, no negativo.
   ('a1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000009', current_date - 1, 'confirmada', 200, 300),
+    -- Cobrada sin fila de cobro (mostrador o anterior al libro): está saldada, no es deuda.
+  ('a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000010', current_date - 1, 'cobrado', 500, 600),
   -- De otra organización: no se ve desde la primera.
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', null, 'c2000000-0000-0000-0000-000000000001', 'factura', '0002-00000001', current_date - 1, 'deuda', 70000, 77000);
 
@@ -95,6 +101,10 @@ begin
 end $$;
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') where id = 'a1000000-0000-0000-0000-00000000000a'),
+  0::bigint, 'una factura cobrada sin fila de cobro no es deuda');
 
 -- El saldo total y la cantidad de comprobantes abiertos.
 select is(
@@ -177,7 +187,10 @@ select throws_ok($$select * from cuenta_corriente_cliente(null)$$, '22023', null
 select pg_temp.como('d4000000-0000-0000-0000-000000000001');
 select is(
   (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') limit 1),
-  3310::numeric, 'con lectura en Clientes (rol consulta) se ve la cuenta corriente');
+  1810::numeric, 'con lectura en Clientes (rol consulta) se ve la cuenta corriente de sus tiendas');
+select is(
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') where id = 'a1000000-0000-0000-0000-000000000004'),
+  0::bigint, 'quien no accede a Tienda Dos no ve su factura en deuda');
 
 select pg_temp.como('d5000000-0000-0000-0000-000000000001');
 select throws_ok($$select * from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')$$, '42501', null,
