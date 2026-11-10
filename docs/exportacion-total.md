@@ -30,6 +30,8 @@ El bloque no depende de la empresa activa (la exportación es de toda la organiz
 
 Una tabla nueva con `organizacion_id` rompe el pgTAP hasta que se decida. Agregá una migración **nueva** (nunca editar la anterior) que redefina `private.conjuntos_exportacion_total()` con la tabla, o `private.exclusiones_exportacion_total()` con el motivo.
 
+Las tablas `dominio.actualizaciones_precio` (lotes de actualización masiva de precios, sin importes de costo) y `dominio.promociones_precio` (promociones por empresa) se exportan desde la migración `20270221100009_exportacion_total_precios_masivos_y_promociones.sql` (MSF-363).
+
 ## Configuración
 
 `EXPORTAR_ORGANIZACION_IMAGEN` (`.env.example`, pasa a Kestra como `ENV_EXPORTAR_ORGANIZACION_IMAGEN` en `infra/kestra/compose.yaml`). La organización necesita una conexión `historial-ventas` (la misma de otras exportaciones); sin ella el pedido falla con `SIN_CONEXION_EXPORTACION` y la pantalla lo explica. Tope del ZIP: 200 MB (`TOPE_EXCEDIDO`, falla no reintentable con código 78).

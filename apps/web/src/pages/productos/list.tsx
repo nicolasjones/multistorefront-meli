@@ -403,6 +403,7 @@ export function ProductoList() {
         titulo="Productos"
         accion={puedeEditar || esAdministrador ? (
           <Stack direction="row" spacing={1}>
+            {puedeEditar ? <Button component={RouterLink} to="/productos/precios-masivos" variant="outlined">Actualizar precios</Button> : null}
             {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
             {esAdministrador ? <Button variant="outlined" onClick={() => { setAvisoExportacion(null); setExportando(true) }}>Exportar</Button> : null}
             {puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : null}

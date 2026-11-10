@@ -2,10 +2,10 @@
 -- `exportacion_total.test.sql` exige que esté en la lista permitida o en las exclusiones. Es dato de negocio de la
 -- organización (mensajero, guía, costo, abono y rendición), así que SE EXPORTA.
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente
--- (`20270220170000`). La lista de exclusiones no cambia.
+-- (`20270221100009`). La lista de exclusiones no cambia.
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270220170000_exportacion_total_variantes_y_relacionados.sql`
+-- Reversión (migración posterior): volver a la definición de `20270221100009_exportacion_total_precios_masivos_y_promociones.sql`
 -- (sin la fila de `envios_moto`).
 
 create or replace function private.conjuntos_exportacion_total()
@@ -18,6 +18,7 @@ as $$
   select p.esquema, p.tabla, array_agg(a.attname::text order by a.attnum) as columnas
   from (values
     ('public', 'organizaciones'),
+    ('dominio', 'actualizaciones_precio'),
     ('dominio', 'alicuotas_iva'),
     ('dominio', 'archivo_ingresos_mercaderia'),
     ('dominio', 'campana_correo_destinatarios'),
@@ -77,6 +78,7 @@ as $$
     ('dominio', 'producto_variantes'),
     ('dominio', 'productos'),
     ('dominio', 'productos_tienda'),
+    ('dominio', 'promociones_precio'),
     ('dominio', 'proveedores'),
     ('dominio', 'proveedores_contactos'),
     ('dominio', 'proveedores_empresas'),
