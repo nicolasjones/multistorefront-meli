@@ -14,6 +14,12 @@ module.exports = {
   ignores: [
     (message) => /^(Merge (pull request|branch|remote-tracking|tag)|MSF-\d+: F-[A-Z]+-\d+ · )/.test(message || ""),
     (message) => /^Merge base de la épica en /.test(message || ""),
+    // MSF-145: un commit de la épica quedó con el título en 101 caracteres y ya está publicado; reescribirlo exigiría
+    // forzar el push. Se exceptúa ESE título exacto.
+    (message) =>
+      /^fix\(MSF-145\): leer el contexto vigente del superadmin y registrar envios_moto en la exportación total(\r?\n|$)/.test(
+        message || "",
+      ),
     // MSF-224: el merge de `dokploy` en la rama de la épica ("Merge origin/dokploy en epic/MSF-224 y renumerar
     // migraciones") no lleva `type(scope):`. Reescribirlo exigiría reescribir la historia compartida de la épica; se
     // exceptúa ESE mensaje exacto (no el patrón general `Merge origin/…`) para no abrir la regla a mensajes futuros.
