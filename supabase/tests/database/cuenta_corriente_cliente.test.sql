@@ -38,7 +38,8 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
 
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda Uno'),
-  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda Dos');
+  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda Dos'),
+  ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Tienda Ajena');
 
 insert into clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'mayorista'),
@@ -77,7 +78,7 @@ values
   -- Cobrada sin fila de cobro (mostrador o anterior al libro): está saldada, no es deuda.
   ('a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000010', current_date - 1, 'cobrado', 500, 600),
   -- De otra organización: no se ve desde la primera.
-  ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', null, 'c2000000-0000-0000-0000-000000000001', 'factura', '0002-00000001', current_date - 1, 'deuda', 70000, 77000);
+  ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001', 'factura', '0002-00000001', current_date - 1, 'deuda', 70000, 77000);
 
 -- La nota de crédito cuelga de una factura (regla de la base) y NO resta del saldo: su efecto
 -- en la cuenta corriente es de MSF-195 (fuera de alcance de esta historia).
