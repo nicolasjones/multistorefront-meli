@@ -3,7 +3,7 @@
 -- EXACTAMENTE las columnas del contrato (sin costos, márgenes ni datos del cliente).
 begin;
 
-select plan(23);
+select plan(24);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -21,6 +21,8 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
 
 insert into dominio.categorias (id, organizacion_id, nombre, padre_id) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Periféricos', null);
+insert into dominio.categorias (id, organizacion_id, nombre, padre_id) values
+  ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Categoría de otra org', null);
 insert into dominio.categorias (id, organizacion_id, nombre, padre_id) values
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Joysticks', 'c1000000-0000-0000-0000-000000000001');
 
@@ -137,7 +139,7 @@ select is(
 );
 reset role;
 
--- Organización Uno, técnico: productos en lectura, ventas y categorías en ninguno (15-19)
+-- Organización Uno, técnico: productos en lectura, ventas y categorías en ninguno (15-20)
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select is((select private.nivel_seccion('ventas')), 'ninguno', 'precondición: el técnico no tiene la sección Ventas');
 select is((select count(*)::int from public.ia_consulta_ventas), 0, 'sin sección Ventas el asistente no devuelve ventas');
@@ -147,9 +149,13 @@ select is(
   (select categoria from public.ia_consulta_catalogo where sku = 'JOY-1'),
   'Periféricos > Joysticks', 'sin la sección Categorías igual ve la categoría del producto (se rige por Productos)'
 );
+select is(
+  (select private.ia_categoria_ruta('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222')),
+  null, 'llamada directa con una categoría de otra organización: no la devuelve (no esquiva la RLS)'
+);
 reset role;
 
--- Organización Dos (20-21)
+-- Organización Dos (21-22)
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.ia_consulta_catalogo), 1, 'Dos ve solo su producto');
 select is(
@@ -158,7 +164,7 @@ select is(
 );
 reset role;
 
--- anon (22-23)
+-- anon (23-24)
 select set_config('request.jwt.claims', null, true);
 set local role anon;
 select throws_ok($$select count(*) from public.ia_consulta_catalogo$$, '42501', null, 'anon recibe permiso denegado en el catálogo');

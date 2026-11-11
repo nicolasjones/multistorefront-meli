@@ -14,7 +14,7 @@
 -- Ruta de categoría «Padre > Hija» (o nombre de la raíz) SIN depender de la RLS de `dominio.categorias`: esa política
 -- exige la sección `categorias`, y el contrato del catálogo del asistente se rige por la sección `productos` (un técnico o
 -- un mostrador con Productos en lectura y Categorías en «ninguno» vería la categoría vacía). Definer acotado: solo
--- devuelve el nombre de la categoría del producto que la vista ya filtró por RLS, y busca siempre dentro de la organización.
+-- devuelve el nombre de la categoría del producto que la vista ya filtró por RLS, y con sesión exige que la organización sea la del usuario.
 create or replace function private.ia_categoria_ruta(p_categoria_id uuid, p_organizacion_id uuid)
 returns text
 language sql
@@ -26,7 +26,13 @@ as $$
     from dominio.categorias c
     left join dominio.categorias padre
       on padre.id = c.padre_id and padre.organizacion_id = c.organizacion_id
-   where c.id = p_categoria_id and c.organizacion_id = p_organizacion_id;
+   where c.id = p_categoria_id
+     and c.organizacion_id = p_organizacion_id
+     -- Con sesión (chat, o una llamada directa de un usuario) la organización pedida TIENE que ser la suya: si no, esta
+     -- función saltearía la RLS de `categorias` y leería nombres de otra organización. Sin sesión (`auth.uid()` nulo: la
+     -- lectura de MCP con service role, que ya filtra por organización dentro de `mcp_leer_fila`) no hay organización de
+     -- sesión contra la que comparar.
+     and ((select auth.uid()) is null or p_organizacion_id = (select private.organizacion_id()));
 $$;
 
 comment on function private.ia_categoria_ruta(uuid, uuid) is
