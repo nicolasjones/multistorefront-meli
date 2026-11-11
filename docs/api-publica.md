@@ -119,6 +119,14 @@ tiempo de ejecución no existe y la función cae al arrancar (`500 WORKER_ERROR`
 CI no lo detecta (el handler se prueba con `node --test`), por eso tras desplegar hay que llamar a
 `GET /api-v1/v1/openapi.json`: tiene que responder 200 sin clave.
 
+## Paginación por cursor
+
+El cursor es opaco (base64url de `(actualizado_en en µs)|id`). Cada lectura devuelve `siguiente_cursor` solo si quedan
+filas; pasarlo en `?cursor=` trae la página siguiente, sin repetir filas. Hasta la migración
+`20270227100000_api_decodificar_cursor_devuelve_fila` el decodificador no devolvía fila y la API servía siempre la primera
+página; la regresión está cubierta en `supabase/tests/database/api_paginacion.test.sql`. Al verificar un despliegue,
+recorrer `/v1/productos?limite=2` varias páginas y comprobar que no se repiten filas.
+
 ## Auditoría y retención
 
 Toda llamada, incluidas las rechazadas, queda en `public.api_llamadas` (método,
