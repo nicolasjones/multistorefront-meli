@@ -442,14 +442,23 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
 - **Tiendas sin acceso o desactivadas:** una persona sin tiendas asignadas ve saldo $ 0, y la deuda de una tienda
   desactivada no suma (ni para el administrador). La sección «Compras» de la misma ficha sigue siendo de toda la
   organización: diferencia conocida.
+- **Importes:** con centavos cuando los hay (`$ 1.210,50`, `$ 0,40`) y sin decimales cuando son enteros (`$ 220.000`);
+  el ranking de clientes sigue en pesos enteros.
+- **Estados:** cuentan los siete estados vivos que no son borrador, anulada ni cobrado (`confirmada`, `pendiente`,
+  `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`); un pgTAP los fija uno por uno.
+- **Permiso:** quien tiene `clientes` en lectura ve total, cobrado y saldo aunque no acceda a Ventas (es el mismo dato
+  que la sección «Compras»).
+- **Costo:** dos lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada) y sin paginar; son pocas por cliente. Si un cliente real acumulara
+  cientos, se pagina con carga infinita.
 - **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
-  puede cambiar): qué estados cuentan como deuda, si las notas de crédito restan y si el saldo a favor se muestra.
+  puede cambiar): qué estados cuentan como deuda (en especial «Pendiente»), si las notas de crédito restan, si el saldo
+  a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo.
 - **Reversión (migración posterior, aditiva):** `drop function public.cuenta_corriente_cliente(uuid);` No se destruye
   ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
 - **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (compara cada fila con
   `private.saldo_comprobante`); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
   prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`
-  (rótulo `[MSF-451:T001]`).
+  (rótulo `[MSF-451:T001]`; **no corre en el CI**, se corre a mano con el stack local: ver `docs/e2e-app.md`).
 - **Prototipo:** la tarjeta «Cuenta corriente» la dibuja esta historia en `design/pantallas/ClienteFicha.dc.html`
   (y su copia en `design/pantallas/ClienteFicha/`); los inventarios se regeneran con `pnpm prototipo:inventario`.
 

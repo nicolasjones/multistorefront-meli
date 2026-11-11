@@ -206,4 +206,33 @@ describe('ComprasCliente', () => {
     const { container } = abrir()
     expect(await violacionesAxe(container)).toEqual([])
   })
+
+  it('los importes de la cuenta corriente muestran los centavos: 1.210,50 y 0,40 no se redondean', () => {
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([
+      documento(1, { total_con_iva: 1210.5, cobrado: 0, saldo: 1210.5 }),
+      documento(2, { total_con_iva: 1000, cobrado: 999.6, saldo: 0.4 }),
+    ]))
+    abrir()
+    expect(within(screen.getByText('Saldo deudor').parentElement as HTMLElement).getByText('$ 1.210,90')).toBeInTheDocument()
+    expect(tablaCuenta().getAllByText('$ 1.210,50')).toHaveLength(2)
+    expect(tablaCuenta().getByText('$ 0,40')).toBeInTheDocument()
+    expect(tablaCuenta().getByText('$ 999,60')).toBeInTheDocument()
+    expect(tablaCuenta().getByText('$ 1.000')).toBeInTheDocument()
+  })
+
+  it('mientras carga la cuenta corriente: el saldo deudor muestra «—» y la tabla un estado de carga', () => {
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([], { saldo: 0, isLoading: true, isFetching: true }))
+    abrir()
+    expect(within(screen.getByText('Saldo deudor').parentElement as HTMLElement).getByText('—')).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Comprobantes con saldo del cliente' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Este cliente no tiene comprobantes con saldo.')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('el estado en_proceso se ve «En proceso», sin guion bajo', () => {
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([documento(1, { estado: 'en_proceso' })]))
+    abrir()
+    expect(tablaCuenta().getByText('En proceso')).toBeInTheDocument()
+  })
 })
+
