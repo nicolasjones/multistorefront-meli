@@ -111,6 +111,14 @@ link-local o metadata. La entrega se conecta a la **IP ya resuelta y validada**
 IP interna entre la validación y la conexión. No se siguen redirecciones. El
 error guardado está saneado (sin secreto ni credenciales).
 
+## Contrato OpenAPI y runtime de funciones
+
+`api-v1` importa `openapi.json` como módulo (`import contrato from './openapi.json' with { type: 'json' }`) y no lo lee
+con `Deno.readTextFile`: el runtime de Edge Functions empaqueta solo el código que se importa, así que un archivo leído en
+tiempo de ejecución no existe y la función cae al arrancar (`500 WORKER_ERROR`, «path not found ... openapi.json»). El
+CI no lo detecta (el handler se prueba con `node --test`), por eso tras desplegar hay que llamar a
+`GET /api-v1/v1/openapi.json`: tiene que responder 200 sin clave.
+
 ## Auditoría y retención
 
 Toda llamada, incluidas las rechazadas, queda en `public.api_llamadas` (método,
