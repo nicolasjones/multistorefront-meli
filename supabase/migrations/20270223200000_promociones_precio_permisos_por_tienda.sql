@@ -26,7 +26,7 @@ as $$
       where e.id = p_empresa_id and e.organizacion_id = (select private.organizacion_id())
     ) then 'ninguno'
     when (select private.is_superadmin())
-      and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()))
+      and exists (select 1 from private.superadmin_contexto_vigente a where a.user_id = (select auth.uid()))
       then 'edicion'
     when p_empresa_id not in (select private.empresas_accesibles()) then 'ninguno'
     else private.nivel_de_rol(
