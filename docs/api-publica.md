@@ -140,3 +140,61 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas` y
   `api_eventos` (`pnpm test:db`).
+
+# Cierre · Verificación global y revisión de seguridad (T021)
+
+Cierre de la épica MSF-233
+([`specs/20270203-100000-api-e-asistente-con-ia`](../specs/20270203-100000-api-e-asistente-con-ia/spec.md)):
+las historias MSF-403 (F-API-01) y MSF-411 (F-IA-01) quedaron implementadas y
+esto es la verificación global de la spec (`SC-007`), junto con el estado del
+roadmap (`SC-008`, filas #25, #35, #36 y #47 de `docs/roadmap-template.md`).
+
+## Revisión de seguridad
+
+Sobre el diff de la épica (migraciones `20270223110201`…`20270223110205`, Edge
+Functions `api-v1` y `entregar-webhook`, flows de Kestra y la pantalla `/api`).
+Sin hallazgos críticos ni altos.
+
+- **Aislamiento**: la organización sale siempre de la sesión
+  (`private.organizacion_id()`) o de la clave de API; ningún parámetro del
+  llamador la cambia y el filtro se arma dentro del SQL (`private.api_leer_*`).
+- **RLS**: las cuatro tablas nuevas (`api_claves`, `api_llamadas`,
+  `api_suscripciones`, `api_entregas`) están en `public` —integraciones
+  genéricas de plataforma, no entidades de negocio— y tienen RLS activo; la
+  prueba `rls_en_toda_tabla` las recorre por catálogo y falla si alguna lo
+  pierde.
+- **Privilegios**: `anon` y `public` sin privilegios ni ejecución sobre las RPC
+  de la API. `api_validar_clave`, `api_controlar_limite`, `api_registrar_llamada`
+  y `api_leer_*` son solo `service_role`; `crear_clave_api`, `rotar_clave_api`,
+  `revocar_clave_api` y las tres de suscripción son `authenticated` y exigen
+  Administrador de la organización.
+- **Secretos**: el hash SHA-256 de la clave no entra en el `grant select` por
+  columna, así que ni el panel ni el navegador leen la credencial; el secreto de
+  firma de cada suscripción vive en Vault y `secreto_vault_id` tampoco está en
+  el `grant select`. La clave de servicio existe solo en las Edge Functions y en
+  el flow de Kestra: en `apps/web` no hay ninguna referencia a
+  `SUPABASE_SERVICE_ROLE_KEY`.
+- **SSRF**: la URL del destino se valida al guardar y otra vez al entregar; la
+  entrega se conecta a la IP ya resuelta y validada, sin seguir redirecciones, y
+  el error que queda guardado va saneado (sin secretos ni credenciales).
+
+## Verificación global
+
+Comandos de la spec (`plan.md`, «Verificación»):
+
+| Comprobación | Resultado |
+|---|---|
+| `pnpm lint` | verde: 209 avisos, ninguno en los archivos de la épica |
+| `pnpm build` | verde |
+| `pnpm infra:config` | verde (los siete Compose) |
+| `pnpm docs:check` | verde |
+| `pnpm matriz:check` | verde |
+| `pnpm test:openapi` | verde (8 pruebas) |
+| `pnpm test:edge:api-v1` | verde (17 pruebas) |
+| `pnpm test:edge:entregar-webhook` | verde (13 pruebas) |
+| `pnpm test:kestra:webhooks` | verde (10 pruebas) |
+| `pnpm test` (cadena completa, sin `pnpm test:db`) | verde |
+| `pnpm test:db` — pgTAP: `rls_en_toda_tabla`, `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas`, `api_eventos` | lo corre el job `database` del CI: la máquina de desarrollo no tiene Supabase local |
+
+La salida de cada comando va en el Pull Request de cierre.
+
