@@ -58,9 +58,11 @@ on conflict do nothing;
 
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado)
 select p.id, p.organizacion_id, 100, 0 from dominio.productos p
+ where p.organizacion_id = '11111111-1111-1111-1111-111111111111'
 on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado = 0;
 insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado)
 select p.id, principal, p.organizacion_id, 100, 0 from dominio.productos p, datos
+ where p.organizacion_id = '11111111-1111-1111-1111-111111111111'
 on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad, reservado = 0;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
