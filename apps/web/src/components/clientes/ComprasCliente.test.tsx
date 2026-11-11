@@ -226,6 +226,13 @@ describe('ComprasCliente', () => {
     expect(within(screen.getByText('Saldo deudor').parentElement as HTMLElement).getByText('—')).toBeInTheDocument()
     expect(screen.queryByRole('table', { name: 'Comprobantes con saldo del cliente' })).not.toBeInTheDocument()
     expect(screen.queryByText('Este cliente no tiene comprobantes con saldo.')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('el estado en_proceso se ve «En proceso», sin guion bajo', () => {
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([documento(1, { estado: 'en_proceso' })]))
+    abrir()
+    expect(tablaCuenta().getByText('En proceso')).toBeInTheDocument()
   })
 })
 
