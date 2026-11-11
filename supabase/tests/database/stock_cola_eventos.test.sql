@@ -105,7 +105,8 @@ select lives_ok(
 reset role;
 
 select is(
-  (select count(*)::int from public.cola_eventos where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  (select count(*)::int from public.cola_eventos where organizacion_id = '11111111-1111-1111-1111-111111111111'
+     and tipo = 'stock.actualizado'),
   1, 'un solo evento: la entrada; ni la salida rechazada ni el mínimo emiten'
 );
 select is(
@@ -117,22 +118,23 @@ select is(
 select results_eq(
   $$select c.carga->>'tipo_movimiento', (c.carga->>'cantidad')::int, (c.carga->>'diferencia')::int,
            c.carga->>'producto_id', c.carga->>'organizacion_id'
-      from public.cola_eventos c$$,
+      from public.cola_eventos c where c.tipo = 'stock.actualizado'$$,
   $$values ('entrada'::text, 5, 5, 'a1000000-0000-0000-0000-000000000001'::text, '11111111-1111-1111-1111-111111111111'::text)$$,
   'la carga trae tipo, cantidad resultante, diferencia, producto y organización'
 );
 select is(
-  (select c.carga->>'movimiento_id' from public.cola_eventos c),
+  (select c.carga->>'movimiento_id' from public.cola_eventos c where c.tipo = 'stock.actualizado'),
   (select m.id::text from dominio.movimientos_stock m),
   'la carga referencia el movimiento'
 );
 select ok(
   (select (c.carga->>'ocurrido_en')::timestamptz >= m.creado_en
-     from public.cola_eventos c, dominio.movimientos_stock m),
+     from public.cola_eventos c, dominio.movimientos_stock m
+    where c.tipo = 'stock.actualizado'),
   'la carga trae la fecha del movimiento (reloj real, no anterior al inicio de la transacción)'
 );
 select results_eq(
-  $$select estado, intentos from public.cola_eventos$$,
+  $$select estado, intentos from public.cola_eventos where tipo = 'stock.actualizado'$$,
   $$values ('pendiente'::text, 0)$$,
   'sin consumidor el evento queda pendiente y sin intentos'
 );
@@ -152,7 +154,7 @@ reset role;
 
 select results_eq(
   $$select c.carga->>'tipo_movimiento', (c.carga->>'cantidad')::int, (c.carga->>'diferencia')::int
-      from public.cola_eventos c order by (c.carga->>'cantidad')::int$$,
+      from public.cola_eventos c where c.tipo = 'stock.actualizado' order by (c.carga->>'cantidad')::int$$,
   $$values ('salida'::text, 3, -2), ('entrada'::text, 5, 5), ('ajuste'::text, 9, 6)$$,
   'un evento por entrada, salida y ajuste, con la cantidad resultante y la diferencia'
 );
@@ -161,17 +163,18 @@ select results_eq(
 select lives_ok(
   $$insert into public.cola_eventos (organizacion_id, tipo, clave_idempotencia, carga)
     select organizacion_id, tipo, clave_idempotencia, carga from public.cola_eventos
+    where tipo = 'stock.actualizado'
     on conflict (organizacion_id, tipo, clave_idempotencia) do nothing$$,
   'reinsertar el mismo evento no falla'
 );
-select is((select count(*)::int from public.cola_eventos), 3, 'la reinserción no duplica eventos');
+select is((select count(*)::int from public.cola_eventos where tipo = 'stock.actualizado'), 3, 'la reinserción no duplica eventos');
 
 -- ============================================================================
 -- Aislamiento (FR-007, SC-005)
 -- ============================================================================
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.cola_eventos), 3, 'el Administrador de la organización ve sus 3 eventos');
+select is((select count(*)::int from public.cola_eventos where tipo = 'stock.actualizado'), 3, 'el Administrador de la organización ve sus 3 eventos');
 reset role;
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
@@ -188,7 +191,7 @@ select throws_ok(
 reset role;
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.cola_eventos), 0, 'el Administrador de otra organización no ve eventos ajenos');
+select is((select count(*)::int from public.cola_eventos where tipo = 'stock.actualizado'), 0, 'el Administrador de otra organización no ve eventos ajenos');
 reset role;
 
 set local role anon;
@@ -201,7 +204,7 @@ reset role;
 
 insert into ev (clave, id)
 select case c.carga->>'tipo_movimiento' when 'entrada' then 'e1' when 'salida' then 'e2' else 'e3' end, c.id
-  from public.cola_eventos c;
+  from public.cola_eventos c where c.tipo = 'stock.actualizado';
 -- Orden determinista: e1, luego e2, luego e3.
 update public.cola_eventos set proximo_intento_en = clock_timestamp() - interval '3 hours' where id = (select id from ev where clave = 'e1');
 update public.cola_eventos set proximo_intento_en = clock_timestamp() - interval '2 hours' where id = (select id from ev where clave = 'e2');
@@ -292,7 +295,8 @@ select throws_ok(
 -- Orden por fecha (hallazgo de revisión): creado_en = now() es igual para todos los movimientos de
 -- la transacción; ocurrido_en usa clock_timestamp() y por eso es distinto en cada movimiento.
 select ok(
-  (select count(distinct (carga->>'ocurrido_en')::timestamptz) = count(*) and count(*) > 1 from public.cola_eventos),
+  (select count(distinct (carga->>'ocurrido_en')::timestamptz) = count(*) and count(*) > 1
+     from public.cola_eventos where tipo = 'stock.actualizado'),
   'ocurrido_en es distinto por movimiento aunque compartan transacción'
 );
 

@@ -6,7 +6,12 @@
 
 ## Autenticación y alcances
 
-`Authorization: Bearer <clave>`. La organización se deriva **solo** de la clave; ningún parámetro puede cambiarla.
+`Authorization: Bearer <clave>` o `X-API-Key: <clave>`. La clave **no es un JWT
+de Supabase**: la Edge Function se despliega con `verify_jwt = false`
+(`supabase/config.toml`). Si el gateway sigue validando `Authorization`, el
+cliente manda allí la clave anónima (`apikey` + Bearer) y la clave de API en
+`X-API-Key`. La organización se deriva **solo** de la clave; ningún parámetro
+puede cambiarla.
 
 | Situación | Respuesta |
 |---|---|

@@ -434,6 +434,12 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# API pública v1 (MSF-403, F-API-01): autentica con la clave de API de la
+# organización (`Authorization: Bearer msf_…` o `X-API-Key`), que NO es un JWT
+# de Supabase. Sin esto el gateway rechaza la llamada antes del handler.
+[functions.api-v1]
+verify_jwt = false
+
 [analytics]
 enabled = false
 # Excepción FR-006 (spec 015) — variable equivalente: SUPABASE_ANALYTICS_PORT

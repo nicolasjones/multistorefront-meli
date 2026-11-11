@@ -32,6 +32,7 @@ import CommentIcon from '@mui/icons-material/Comment'
 import ContactsIcon from '@mui/icons-material/Contacts'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import ApiIcon from '@mui/icons-material/Api'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
@@ -226,6 +227,9 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
       // la matriz porque no es una pantalla operativa del día a día.
       { id: 'migracion-datos', etiqueta: 'Migración de datos', ruta: '/migracion/importar/clientes', icono: FileUploadIcon, audiencia: 'administrador' },
+      // API pública de la organización (F-API-01, FR-013): claves, avisos y auditoría. Sin sección
+      // de la matriz porque no es una pantalla operativa del día a día.
+      { id: 'api', etiqueta: 'API', ruta: '/api', icono: ApiIcon, audiencia: 'administrador' },
     ],
   },
   {
