@@ -76,4 +76,6 @@ revisión final (2026-11-11) sobre lo ya mergeado, sin hallazgos bloqueantes. Qu
   - **Vitest** (`ComprasCliente.test.tsx`, `useCuentaCorrienteCliente.test.tsx`, `formatoRanking.test.ts`): corre en el CI.
   - **E2E** (`apps/web/e2e/cuenta-corriente-cliente.e2e.ts`): **el CI no lo corre**. El job `application` ejecuta solo
     `acceso-publico.e2e.ts` y este archivo se omite sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Se corre a mano con
-    el stack local (`docs/e2e-app.md`).
+    el stack local (`docs/e2e-app.md`). Nunca había corrido: el 2026-11-11 se corrió contra un Supabase local con el
+    seed del repo, falló porque leía `public.clientes` con la clave de servicio (sin permiso) y, corregido (ahora usa la
+    sesión de la persona de ejemplo), pasó: `$ 220.000` y 5 filas.
