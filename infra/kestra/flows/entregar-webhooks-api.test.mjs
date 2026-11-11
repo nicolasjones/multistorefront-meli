@@ -44,7 +44,8 @@ test('reparte el evento en una entrega por suscripción y confirma el evento', a
   const generar = tarea(repartir, 'generar_entregas');
   assert.match(generar, /private\.api_fanout_evento\(CAST\(:evento_id AS uuid\)\)/);
   const confirmar = tarea(repartir, 'confirmar_evento');
-  assert.match(confirmar, /private\.resolver_evento\(CAST\(:evento_id AS uuid\), 1, 'confirmar', NULL, \d+, 5\)/);
+  assert.match(confirmar, /private\.resolver_evento\(CAST\(:evento_id AS uuid\), CAST\(:intento AS integer\), 'confirmar', NULL, \d+, 5\)/);
+  assert.match(confirmar, /intento: "\{\{ fromJson\(parent\.taskrun\.value\)\.intento \}\}"/, 'confirma con el intento real del reclamo');
 });
 
 test('reclama las entregas pendientes con lease de 60 s', async () => {
@@ -62,6 +63,7 @@ test('entrega por la Edge Function con la clave de servicio como secreto', async
   assert.match(entrega, /Authorization: "Bearer \{\{ secret\('ENTREGAR_WEBHOOK_APIKEY'\) \}\}"/);
   assert.match(entrega, /body: '\{"entrega_id": "\{\{ fromJson\(parent\.taskrun\.value\)\.id \}\}"\}'/);
   assert.match(entrega, /timeout: PT\d+S/);
+  assert.doesNotMatch(entrega, /retry:/, 'el reintento lo gobierna la base, no Kestra');
 });
 
 test('el flow no lleva secretos ni habla con la base desde SQL', async () => {

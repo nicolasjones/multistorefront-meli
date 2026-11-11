@@ -14,6 +14,9 @@
   "security": [
     {
       "bearerAuth": []
+    },
+    {
+      "apiKeyAuth": []
     }
   ],
   "paths": {
@@ -241,7 +244,13 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Clave de API de la organización (`msf_<prefijo>_<secreto>`)."
+        "description": "Clave de API de la organización (`msf_<prefijo>_<secreto>`). El gateway de Supabase no valida esta cabecera como JWT: la Edge Function se despliega con `verify_jwt = false` (supabase/config.toml)."
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Alternativa cuando el gateway sigue validando `Authorization`: mandar allí la clave anónima (`apikey` + `Authorization: Bearer <anon>`) y la clave de API acá. La organización sale siempre de esta clave."
       }
     },
     "parameters": {

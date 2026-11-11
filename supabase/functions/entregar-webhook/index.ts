@@ -6,6 +6,7 @@
 // de Supabase (nunca una clave de cliente). El secreto de firma de cada
 // suscripción lo lee la base (Vault) y nunca sale hacia el navegador.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { Agent, fetch as fetchConAgente } from 'npm:undici@6.21.0'
 import { manejar, type Deps, type EstadoEntrega } from './handler.ts'
 
 Deno.serve((req) => {
@@ -40,7 +41,45 @@ Deno.serve((req) => {
       }
       return direcciones
     },
-    fetch,
+    enviar: async ({ url, ip, familia, cabeceras, cuerpo, timeoutMs }) => {
+      const host = new URL(url).hostname
+      // El agente fija la IP validada: si el host cambia de DNS entre la
+      // validación y la conexión, igual se conecta a la IP permitida.
+      let consultada = false
+      const agente = new Agent({
+        connect: {
+          lookup: (hostname, opciones, callback) => {
+            if (hostname !== host) {
+              callback(new Error('DESTINO_NO_PERMITIDO'), '', 0)
+              return
+            }
+            consultada = true
+            if ((opciones as { all?: boolean } | undefined)?.all) {
+              callback(null, [{ address: ip, family: familia }])
+              return
+            }
+            callback(null, ip, familia)
+          },
+        },
+      })
+      try {
+        const respuesta = await fetchConAgente(url, {
+          method: 'POST',
+          headers: cabeceras,
+          body: cuerpo,
+          redirect: 'manual',
+          signal: AbortSignal.timeout(timeoutMs),
+          dispatcher: agente,
+        })
+        await respuesta.body?.cancel()
+        // Si el transporte no consultó el lookup, la IP no quedó fijada: mejor
+        // fallar que entregar el aviso firmado a otra dirección.
+        if (!consultada) throw new Error('El transporte no respetó la dirección validada.')
+        return { status: respuesta.status }
+      } finally {
+        await agente.close()
+      }
+    },
     ahora: () => Date.now(),
   }
 

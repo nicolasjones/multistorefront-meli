@@ -123,6 +123,18 @@ function parsearLimite(valor: string | null): number | null {
   return limite >= 1 && limite <= 100 ? limite : null
 }
 
+/**
+ * `actualizado_desde` es ISO-8601 **con zona** (`2027-01-05T00:00:00Z` o
+ * `...-03:00`). Un `Date.parse` laxo acepta «01/02/2027» o «2027» y las
+ * interpretaría en la zona del servidor: el filtro caería en un instante
+ * distinto del que el cliente cree (FR-004).
+ */
+const ISO_8601_CON_ZONA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/
+
+function esIsoConZona(valor: string): boolean {
+  return ISO_8601_CON_ZONA.test(valor) && !Number.isNaN(Date.parse(valor))
+}
+
 type Resolucion = {
   estado: number
   cuerpo: unknown
@@ -134,14 +146,34 @@ type Resolucion = {
 
 /**
  * El SQL de lectura rechaza un cursor que no trae la clave esperada con
- * `CURSOR_INVALIDO` (SQLSTATE 22023). Para el llamador es un parámetro
- * inválido, no un fallo del servidor: responde 400 (FR-004).
+ * `CURSOR_INVALIDO` (SQLSTATE 22023). Un cursor base64 válido con partes que
+ * no son numéricas/uuid revienta al castear (SQLSTATE 22P02). Para el
+ * llamador ambos son un parámetro inválido, no un fallo del servidor:
+ * responde 400 (FR-004).
  */
 function esCursorInvalido(error: { message: string; code?: string } | null): boolean {
   if (!error) return false
+  if (error.code === '22P02') return true
   if (error.code !== '22023') return false
   return !/LIMITE_INVALIDO/.test(error.message)
 }
+
+/**
+ * La clave de API puede viajar en `Authorization: Bearer` (cuando el gateway
+ * de Supabase no valida el JWT de la función) o en `X-API-Key`, para que un
+ * cliente externo pueda mandar la clave anónima en `Authorization` y dejar que
+ * el gateway la valide sin exponer la clave de API a otro esquema.
+ */
+function tokenDeApi(req: Request): string | null {
+  const clave = req.headers.get('x-api-key')?.trim()
+  if (clave) return clave
+  const autorizacion = req.headers.get('authorization')
+  if (!autorizacion) return null
+  return autorizacion.startsWith('Bearer ') ? autorizacion.slice('Bearer '.length).trim() : ''
+}
+
+/** `api_llamadas.ruta` admite 200 caracteres: la auditoría nunca pierde una llamada. */
+const RUTA_AUDITADA_MAX = 200
 
 async function resolver(req: Request, deps: Deps, documento: unknown): Promise<Resolucion> {
   const url = new URL(req.url)
@@ -168,11 +200,10 @@ async function resolver(req: Request, deps: Deps, documento: unknown): Promise<R
     return { ...base, estado: 405, cuerpo: cuerpoError('metodo_no_soportado'), codigo: 'metodo_no_soportado' }
   }
 
-  const autorizacion = req.headers.get('authorization')
-  if (!autorizacion) {
+  const token = tokenDeApi(req)
+  if (token === null) {
     return { ...base, estado: 401, cuerpo: cuerpoError('token_ausente'), codigo: 'token_ausente' }
   }
-  const token = autorizacion.startsWith('Bearer ') ? autorizacion.slice('Bearer '.length).trim() : ''
   if (!token) {
     return { ...base, estado: 401, cuerpo: cuerpoError('token_invalido'), codigo: 'token_invalido' }
   }
@@ -226,7 +257,7 @@ async function resolver(req: Request, deps: Deps, documento: unknown): Promise<R
     return { ...conClave, estado: 400, cuerpo: cuerpoError('parametro_invalido'), codigo: 'parametro_invalido' }
   }
   const actualizadoDesde = params.get('actualizado_desde')
-  if (actualizadoDesde && Number.isNaN(Date.parse(actualizadoDesde))) {
+  if (actualizadoDesde && !esIsoConZona(actualizadoDesde)) {
     return { ...conClave, estado: 400, cuerpo: cuerpoError('parametro_invalido'), codigo: 'parametro_invalido' }
   }
 
@@ -269,17 +300,19 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const resolucion = await resolver(req, deps, documento)
 
   // Toda llamada queda auditada, incluidas las rechazadas (FR-008). Una
-  // falla de auditoría no puede cambiar la respuesta del llamador.
+  // falla de auditoría no puede cambiar la respuesta del llamador, pero sí se
+  // registra: la RPC devuelve el error en vez de lanzarlo.
   try {
-    await deps.registrarLlamada({
+    const { error: errorAuditoria } = await deps.registrarLlamada({
       clave_id: resolucion.clave_id,
       organizacion_id: resolucion.organizacion_id,
       metodo: req.method,
-      ruta,
+      ruta: ruta.slice(0, RUTA_AUDITADA_MAX),
       version,
       estado_http: resolucion.estado,
       duracion_ms: Date.now() - inicio,
     })
+    if (errorAuditoria) console.error('api-v1: no se pudo auditar la llamada', errorAuditoria)
   } catch (error) {
     console.error('api-v1: no se pudo auditar la llamada', error)
   }

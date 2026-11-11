@@ -29,6 +29,7 @@ type Opciones = {
   limite?: Partial<Limite>
   lectura?: Partial<Lectura>
   errorLectura?: { message: string; code?: string } | null
+  errorAuditoria?: { message: string; code?: string } | null
   documento?: unknown
 }
 
@@ -69,7 +70,7 @@ function montar(opciones: Opciones = {}) {
     }),
     registrarLlamada: async (llamada) => {
       llamadas.auditoria.push(llamada)
-      return { data: null, error: null }
+      return { data: null, error: opciones.errorAuditoria ?? null }
     },
     leer: async (...args) => {
       llamadas.lecturas.push(args)
@@ -87,6 +88,11 @@ const pedir = (ruta: string, token: string | null = CLAVE, metodo = 'GET') =>
   new Request(`https://ejemplo.com/api-v1${ruta}`, {
     method: metodo,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+
+const pedirConApiKey = (ruta: string, token: string) =>
+  new Request(`https://ejemplo.com/api-v1${ruta}`, {
+    headers: { Authorization: 'Bearer clave-anonima', 'X-API-Key': token },
   })
 
 describe('api-v1', () => {
@@ -164,6 +170,22 @@ describe('api-v1', () => {
     assert.equal((await res.json() as { error: { codigo: string } }).error.codigo, 'cursor_invalido')
   })
 
+  it('un cursor con partes inválidas (22P02) también responde 400 cursor_invalido', async () => {
+    const { deps } = montar({
+      errorLectura: { message: 'invalid input syntax for type uuid: "def"', code: '22P02' },
+    })
+    const res = await manejar(pedir('/v1/productos?cursor=YWJjfGRlZg'), deps)
+    assert.equal(res.status, 400)
+    assert.equal((await res.json() as { error: { codigo: string } }).error.codigo, 'cursor_invalido')
+  })
+
+  it('la clave de API también se acepta en X-API-Key (gateway con JWT anónimo)', async () => {
+    const { deps, llamadas } = montar()
+    const res = await manejar(pedirConApiKey('/v1/productos', CLAVE), deps)
+    assert.equal(res.status, 200)
+    assert.equal((llamadas.lecturas[0] as unknown[])[1], 'org-1')
+  })
+
   it('un límite o una fecha inválidos responden 400 parametro_invalido', async () => {
     const { deps } = montar()
     const limite = await manejar(pedir('/v1/productos?limite=500'), deps)
@@ -173,6 +195,22 @@ describe('api-v1', () => {
     const fecha = await manejar(pedir('/v1/productos?actualizado_desde=ayer'), deps)
     assert.equal(fecha.status, 400)
     assert.equal((await fecha.json() as { error: { codigo: string } }).error.codigo, 'parametro_invalido')
+  })
+
+  it('actualizado_desde exige ISO-8601 con zona', async () => {
+    const { deps, llamadas } = montar()
+    // «01/02/2027» y «2027» los acepta un Date.parse laxo, pero el filtro
+    // caería en un instante distinto del que el cliente cree.
+    for (const valor of ['01/02/2027', '2027', '2027-01-05']) {
+      const res = await manejar(pedir(`/v1/productos?actualizado_desde=${valor}`), deps)
+      assert.equal(res.status, 400, `«${valor}» no es ISO-8601 con zona`)
+      assert.equal((await res.json() as { error: { codigo: string } }).error.codigo, 'parametro_invalido')
+    }
+    assert.equal(llamadas.lecturas.length, 0, 'una fecha inválida no llega a la lectura')
+
+    const conZona = await manejar(pedir('/v1/productos?actualizado_desde=2027-01-05T00:00:00-03:00'), deps)
+    assert.equal(conZona.status, 200)
+    assert.equal((llamadas.lecturas[0] as unknown[])[4], '2027-01-05T00:00:00-03:00')
   })
 
   it('una ruta inexistente responde 404 y un método de escritura 405', async () => {
@@ -203,6 +241,15 @@ describe('api-v1', () => {
     const res = await manejar(pedir('/v1/productos'), deps)
     assert.equal(res.headers.get('Deprecation'), 'Wed, 30 Jun 2027 00:00:00 GMT')
     assert.equal(res.headers.get('Sunset'), 'Wed, 30 Dec 2027 00:00:00 GMT')
+  })
+
+  it('una ruta larga se audita truncada y una falla de auditoría no cambia la respuesta', async () => {
+    const rutaLarga = `/v1/productos/${'x'.repeat(300)}`
+    const { deps, llamadas } = montar({ errorAuditoria: { message: 'no se pudo insertar' } })
+    const res = await manejar(pedir(rutaLarga), deps)
+    assert.equal(res.status, 404)
+    const rutaAuditada = (llamadas.auditoria[0] as { ruta: string }).ruta
+    assert.equal(rutaAuditada.length, 200)
   })
 
   it('la auditoría no lleva el token y sí el método, la ruta y la versión', async () => {

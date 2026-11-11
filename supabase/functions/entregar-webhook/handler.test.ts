@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 import { createHmac } from 'node:crypto'
 import { describe, it } from 'node:test'
-import { firmar, manejar, TIMEOUT_ENTREGA_MS, type Deps } from './handler.ts'
+import { firmar, manejar, TIMEOUT_ENTREGA_MS, type Deps, type Envio } from './handler.ts'
 
 const TOKEN = 'clave-de-servicio'
 const SECRETO = 'secreto-de-firma'
@@ -24,7 +24,7 @@ type Opciones = {
 function montar(opciones: Opciones = {}) {
   const llamadas = {
     resueltos: [] as unknown[],
-    peticiones: [] as { url: string; init: RequestInit }[],
+    peticiones: [] as Envio[],
   }
 
   const deps: Deps = {
@@ -38,11 +38,11 @@ function montar(opciones: Opciones = {}) {
       return { data: null, error: null }
     },
     resolverDns: async () => opciones.dns ?? ['203.0.113.10'],
-    fetch: (async (url: string, init: RequestInit) => {
-      llamadas.peticiones.push({ url, init })
+    enviar: async (envio) => {
+      llamadas.peticiones.push(envio)
       if (opciones.fallo) throw opciones.fallo
-      return new Response('ok', { status: opciones.destino?.status ?? 200 })
-    }) as unknown as typeof fetch,
+      return { status: opciones.destino?.status ?? 200 }
+    },
     ahora: () => EPOCH * 1000,
   }
 
@@ -82,15 +82,14 @@ describe('entregar-webhook', () => {
     assert.equal((await res.json() as { estado: string }).estado, 'completada')
 
     const peticion = llamadas.peticiones[0]
-    const cuerpo = peticion.init.body as string
+    const cuerpo = peticion.cuerpo
     const epoch = EPOCH
     const esperado = createHmac('sha256', SECRETO).update(`${epoch}.${cuerpo}`).digest('hex')
-    const cabeceras = peticion.init.headers as Record<string, string>
+    const cabeceras = peticion.cabeceras
     assert.equal(cabeceras['X-Firma'], `t=${epoch},v1=${esperado}`)
     assert.equal(cabeceras['X-Evento-Id'], 'evento-1')
     assert.equal(cabeceras['Content-Type'], 'application/json')
-    assert.equal(peticion.init.redirect, 'manual', 'no sigue redirecciones')
-    assert.ok(peticion.init.signal, 'la entrega tiene timeout')
+    assert.equal(peticion.timeoutMs, TIMEOUT_ENTREGA_MS)
     assert.equal(TIMEOUT_ENTREGA_MS, 10_000)
 
     assert.deepEqual(llamadas.resueltos[0], ['e-1', 'completada', 200, null])
@@ -104,6 +103,25 @@ describe('entregar-webhook', () => {
     assert.equal(estado, 'pendiente')
     assert.equal(estadoHttp, 500)
     assert.match(error, /500/)
+  })
+
+  it('una redirección deja la entrega pendiente y no guarda un estado inexistente', async () => {
+    // El transporte devuelve la redirección opaca (status 0): el 0 no es un
+    // estado HTTP y no puede quedar en la auditoría.
+    const opaca = montar({ destino: { status: 0 } })
+    await manejar(pedir({ entrega_id: 'e-1' }), opaca.deps)
+    const [, estado, estadoHttp, error] = opaca.llamadas.resueltos[0] as [string, string, number | null, string]
+    assert.equal(estado, 'pendiente')
+    assert.equal(estadoHttp, null)
+    assert.match(error, /redirección/i)
+
+    // Con el código real de la redirección, el error lo nombra.
+    const conCodigo = montar({ destino: { status: 302 } })
+    await manejar(pedir({ entrega_id: 'e-1' }), conCodigo.deps)
+    const [, , estadoHttp2, error2] = conCodigo.llamadas.resueltos[0] as [string, string, number | null, string]
+    assert.equal(estadoHttp2, 302)
+    assert.match(error2, /302/)
+    assert.match(error2, /redirección/i)
   })
 
   it('un timeout deja la entrega pendiente', async () => {
@@ -136,11 +154,13 @@ describe('entregar-webhook', () => {
     assert.equal(llamadas.peticiones.length, 0, 'una sola dirección interna alcanza para rechazar')
   })
 
-  it('un destino público se entrega', async () => {
+  it('un destino público se entrega contra la IP resuelta (anti-rebinding)', async () => {
     const { deps, llamadas } = montar({ dns: ['203.0.113.10'] })
     await manejar(pedir({ entrega_id: 'e-1' }), deps)
     assert.equal(llamadas.peticiones.length, 1)
     assert.equal(llamadas.peticiones[0].url, 'https://ejemplo.com/aviso')
+    assert.equal(llamadas.peticiones[0].ip, '203.0.113.10', 'se conecta a la IP validada, no vuelve a resolver')
+    assert.equal(llamadas.peticiones[0].familia, 4)
   })
 
   it('la firma se puede verificar con el secreto de la suscripción', () => {

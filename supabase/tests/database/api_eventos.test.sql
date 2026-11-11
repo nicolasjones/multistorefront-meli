@@ -219,5 +219,13 @@ select is(
   'el evento de la otra organización se registra en su propia organización'
 );
 
+-- El reclamo de la API reparte UN lote total entre los tipos, no un lote por tipo.
+select is(
+  (select count(*)::int from private.api_reclamar_eventos_api(
+    ARRAY['precio.actualizado', 'venta.registrada', 'stock.actualizado'], 2, 300, 5)),
+  2,
+  'el reclamo de la API respeta el lote total entre tipos'
+);
+
 select * from finish();
 rollback;

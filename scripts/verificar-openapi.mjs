@@ -110,6 +110,11 @@ export function tieneRompimiento(texto) {
   return /BREAKING:/i.test(texto ?? '')
 }
 
+/** Base del control de rompimiento: la rama del PR o `main` (nunca `dokploy`). */
+export function baseDeComparacion(entorno = process.env) {
+  return entorno.GITHUB_BASE_REF ? `origin/${entorno.GITHUB_BASE_REF}` : 'origin/main'
+}
+
 const git = (args) => spawnSync('git', args, { encoding: 'utf8', cwd: RAIZ })
 
 function textoDelCambio(base) {
@@ -160,7 +165,7 @@ if (esCLI) {
     }
 
     // Rompimiento: contra la base, un cambio incompatible exige `BREAKING:`.
-    const base = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy'
+    const base = baseDeComparacion()
     if (git(['rev-parse', '--verify', '--quiet', base]).status === 0) {
       const texto = textoDelCambio(base)
       for (const contrato of CONTRATOS) {

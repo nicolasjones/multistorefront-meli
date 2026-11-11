@@ -524,12 +524,12 @@ begin
     join public.api_suscripciones s on s.id = d.suscripcion_id
     join public.cola_eventos ev on ev.id = d.evento_id
     join vault.decrypted_secrets vs on vs.id = s.secreto_vault_id
-   where d.id = p_entrega_id;
+   where d.id = p_entrega_id and d.estado = 'reclamada';
 end;
 $$;
 
 comment on function private.api_entrega_para_entregar(uuid) is
-  'F-API-01: devuelve el destino, el evento y el secreto de firma de una entrega. Solo service_role: el secreto nunca llega al navegador.';
+  'F-API-01: devuelve el destino, el evento y el secreto de firma de una entrega RECLAMADA. Solo service_role: el secreto nunca llega al navegador ni a una entrega ya resuelta.';
 
 revoke execute on function private.api_entrega_para_entregar(uuid) from public, anon, authenticated;
 grant execute on function private.api_entrega_para_entregar(uuid) to service_role;
@@ -578,7 +578,8 @@ grant execute on function public.api_resolver_entrega(uuid, text, integer, text,
 -- private.api_reclamar_eventos_api — reclamo de los eventos que la API
 -- avisa, de los tres tipos, en una sola llamada. Envuelve
 -- `private.reclamar_eventos` (mismo lease y mismos intentos) para que el flow
--- de Kestra no tenga que reclamar tipo por tipo.
+-- de Kestra no tenga que reclamar tipo por tipo. `p_limite` es el TOTAL de
+-- eventos por corrida (no por tipo), como lo documenta `API_WEBHOOKS_LOTE`.
 -- ============================================================================
 
 create or replace function private.api_reclamar_eventos_api(
@@ -598,19 +599,35 @@ set search_path = ''
 as $$
 declare
   v_tipo text;
+  v_restantes integer := p_limite;
+  v_evento record;
 begin
+  if p_limite is null or p_limite < 1 or p_limite > 100 then
+    raise exception 'LIMITE_INVALIDO' using errcode = '22023';
+  end if;
+
   foreach v_tipo in array coalesce(p_tipos, '{}'::text[]) loop
-    return query
-    select * from private.reclamar_eventos(v_tipo, p_limite, p_duracion_reclamo_seg, p_max_intentos);
+    exit when v_restantes <= 0;
+    for v_evento in
+      select * from private.reclamar_eventos(v_tipo, v_restantes, p_duracion_reclamo_seg, p_max_intentos)
+    loop
+      return next v_evento;
+      v_restantes := v_restantes - 1;
+      exit when v_restantes <= 0;
+    end loop;
   end loop;
 end;
 $$;
 
 comment on function private.api_reclamar_eventos_api(text[], integer, integer, integer) is
-  'F-API-01: reclama eventos de los tipos que la API avisa (stock, precio y venta) para repartirlos entre las suscripciones.';
+  'F-API-01: reclama hasta p_limite eventos (total, no por tipo) de los tipos que la API avisa para repartirlos entre las suscripciones.';
 
 revoke execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) from public, anon, authenticated;
-grant execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) to kestra_orquestacion, service_role;
+-- Solo `kestra_orquestacion`: el núcleo `private.reclamar_eventos` exige
+-- `session_user = 'kestra_orquestacion'` y por PostgREST `session_user` es
+-- `authenticator`, así que un GRANT a `service_role` haría fallar la llamada
+-- con NO_AUTORIZADO en vez de autorizar.
+grant execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) to kestra_orquestacion;
 
 revoke execute on function private.api_fanout_evento(uuid) from public, anon, authenticated;
 revoke execute on function private.api_reclamar_entregas(integer, integer) from public, anon, authenticated;

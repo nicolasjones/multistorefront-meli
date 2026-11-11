@@ -8,6 +8,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  baseDeComparacion,
   cambiosIncompatibles,
   contratosDesalineados,
   rutasSinDocumentar,
@@ -84,6 +85,11 @@ describe('verificar-openapi', () => {
       '/v1/nuevo': { get: { responses: { 200: {} } } },
     })
     assert.deepEqual(cambiosIncompatibles(antes, despues), [])
+  })
+
+  it('la base por defecto es main y en un PR es la rama base', () => {
+    assert.equal(baseDeComparacion({}), 'origin/main')
+    assert.equal(baseDeComparacion({ GITHUB_BASE_REF: 'epic/MSF-233-…' }), 'origin/epic/MSF-233-…')
   })
 
   it('el rompimiento se avisa con BREAKING:', () => {

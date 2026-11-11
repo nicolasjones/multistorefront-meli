@@ -341,6 +341,12 @@ select is(
   'la entrega cuenta el intento'
 );
 
+select is(
+  (select count(*)::int from private.api_entrega_para_entregar((select id from public.api_entregas))),
+  1,
+  'la entrega reclamada expone destino y secreto de firma'
+);
+
 -- Un fallo deja la entrega pendiente para el reintento y guarda el error
 -- saneado (sin credenciales).
 select lives_ok(
@@ -375,7 +381,16 @@ select ok(
   'el reintento espera 60 s × 2^(intentos-1)'
 );
 
--- El segundo fallo espera el doble: la espera crece con cada intento.
+select is(
+  (select count(*)::int from private.api_entrega_para_entregar((select id from public.api_entregas))),
+  0,
+  'una entrega ya resuelta no expone destino ni secreto de firma'
+);
+
+-- El segundo fallo espera el doble: la espera crece con cada intento. Se
+-- adelanta el reloj de la entrega para no esperar los 60 s reales.
+update public.api_entregas set proximo_intento_en = now() - interval '1 second';
+
 select is(
   (select count(*)::int from private.api_reclamar_entregas(10, 60)),
   1,

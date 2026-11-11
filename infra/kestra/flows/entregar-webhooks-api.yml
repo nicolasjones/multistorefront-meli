@@ -9,13 +9,14 @@
 #      (`private.api_fanout_evento`): una `api_entregas` por suscripción, con
 #      `on conflict (evento_id, suscripcion_id) do nothing`. Un evento llega a lo
 #      sumo una vez por suscripción.
-#   3. Confirma el evento (`private.resolver_evento`): el reintento del aviso
-#      vive en `api_entregas`, no en la cola de eventos.
+#   3. Confirma el evento (`private.resolver_evento`) con el intento REAL que
+#      devolvió el reclamo: el reintento del aviso vive en `api_entregas`, no
+#      en la cola de eventos.
 #   4. Reclama las entregas pendientes (`private.api_reclamar_entregas`, lease de
 #      60 s) y llama a la Edge Function `entregar-webhook`, que firma el aviso,
 #      revalida el destino por DNS (SSRF) y deja el resultado. La base calcula
 #      la espera del reintento: 5 intentos con 60 s × 2^(intentos-1) y estado
-#      final `agotada`.
+#      final `agotada`. El HTTP no reintenta: cada reclamo es UN intento.
 #
 # Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo
 # EXECUTE sobre las funciones de este flow. La Edge Function se autentica con
@@ -23,7 +24,7 @@
 # lee el secreto de firma de cada suscripción, que no puede salir hacia el
 # navegador. Nunca se escribe un secreto en este YAML.
 #
-# Variables: API_WEBHOOKS_LOTE (eventos y entregas por corrida) y
+# Variables: API_WEBHOOKS_LOTE (eventos totales y entregas por corrida) y
 # ENTREGAR_WEBHOOK_URL; ver infra/kestra/.env.example.
 id: entregar-webhooks-api
 namespace: platform.api
@@ -36,7 +37,7 @@ inputs:
   - id: lote
     type: STRING
     required: false
-    description: "Eventos y entregas por corrida (por defecto API_WEBHOOKS_LOTE)."
+    description: "Eventos (total, no por tipo) y entregas por corrida (por defecto API_WEBHOOKS_LOTE)."
 tasks:
   - id: reclamar_eventos
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -70,9 +71,10 @@ tasks:
         url: "{{ envs.kestra_orquestacion_db_url }}"
         username: kestra_orquestacion
         password: "{{ envs.kestra_orquestacion_db_password }}"
-        sql: select private.resolver_evento(CAST(:evento_id AS uuid), 1, 'confirmar', NULL, 300, 5);
+        sql: select private.resolver_evento(CAST(:evento_id AS uuid), CAST(:intento AS integer), 'confirmar', NULL, 300, 5);
         parameters:
           evento_id: "{{ fromJson(parent.taskrun.value).evento_id }}"
+          intento: "{{ fromJson(parent.taskrun.value).intento }}"
   - id: reclamar_entregas
     type: io.kestra.plugin.jdbc.postgresql.Query
     url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -98,10 +100,6 @@ tasks:
           Authorization: "Bearer {{ secret('ENTREGAR_WEBHOOK_APIKEY') }}"
         body: '{"entrega_id": "{{ fromJson(parent.taskrun.value).id }}"}'
         timeout: PT30S
-        retry:
-          type: constant
-          interval: PT30S
-          maxAttempts: 2
 triggers:
   - id: cada_minuto
     type: io.kestra.plugin.core.trigger.Schedule

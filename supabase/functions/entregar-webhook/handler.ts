@@ -25,6 +25,16 @@ export type EstadoEntrega = 'completada' | 'pendiente'
 
 export type Resultado<T> = Promise<{ data: T; error: { message: string; code?: string } | null }>
 
+export type Envio = {
+  url: string
+  /** IP ya resuelta y validada: el transporte se conecta a ella, no al host. */
+  ip: string
+  familia: 4 | 6
+  cabeceras: Record<string, string>
+  cuerpo: string
+  timeoutMs: number
+}
+
 export type Deps = {
   /** Clave de servicio de Supabase: la función solo la acepta a ella. */
   token: string | undefined
@@ -39,7 +49,8 @@ export type Deps = {
   ) => Resultado<null>
   /** Resuelve el host del destino (DNS) para revalidar el SSRF. */
   resolverDns: (host: string) => Promise<string[]>
-  fetch: typeof fetch
+  /** Entrega a la IP resuelta: el host no se vuelve a resolver (anti-rebinding). */
+  enviar: (envio: Envio) => Promise<{ status: number }>
   /** Reloj de la firma (epoch en milisegundos). */
   ahora: () => number
 }
@@ -154,14 +165,17 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   const { url, evento, secreto } = entregas[0]
 
-  // SSRF al entregar (FR-010): el destino se resuelve otra vez y se rechaza
-  // si cae en la red interna. No se siguen redirecciones.
+  // SSRF al entregar (FR-010): el destino se resuelve y la entrega se hace
+  // contra ESA IP (no se vuelve a resolver el host, así un DNS de TTL corto no
+  // puede cambiar a una IP interna entre la validación y la conexión). No se
+  // siguen redirecciones.
   const host = hostDe(url)
   const direcciones = host ? await deps.resolverDns(host) : []
   if (!host || !destinoPermitido(direcciones)) {
     await deps.resolver(entregaId, 'pendiente', null, 'DESTINO_NO_PERMITIDO')
     return respuesta({ estado: 'pendiente', error: 'El destino no se permite.' }, 200)
   }
+  const ip = direcciones[0]
 
   const cuerpoEvento = JSON.stringify(evento)
   const epoch = Math.floor(deps.ahora() / 1000)
@@ -170,20 +184,28 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   let estadoHttp: number | null = null
   let error: string | null = null
   try {
-    const respuestaDestino = await deps.fetch(url, {
-      method: 'POST',
-      headers: {
+    const respuestaDestino = await deps.enviar({
+      url,
+      ip,
+      familia: ip.includes(':') ? 6 : 4,
+      cabeceras: {
         'Content-Type': 'application/json',
         'X-Evento-Id': typeof eventoId === 'string' ? eventoId : entregaId,
         'X-Firma': firmar(cuerpoEvento, secreto, epoch),
       },
-      body: cuerpoEvento,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUT_ENTREGA_MS),
+      cuerpo: cuerpoEvento,
+      timeoutMs: TIMEOUT_ENTREGA_MS,
     })
     estadoHttp = respuestaDestino.status
-    if (respuestaDestino.status < 200 || respuestaDestino.status >= 300) {
-      error = `El destino respondió ${respuestaDestino.status}`
+    if (estadoHttp === 0) {
+      // El transporte devuelve la redirección como respuesta opaca: el 0 no es
+      // un estado HTTP y no sirve para la auditoría.
+      estadoHttp = null
+      error = 'El destino respondió con una redirección no permitida'
+    } else if (estadoHttp >= 300 && estadoHttp < 400) {
+      error = `El destino respondió ${estadoHttp} (redirección no permitida)`
+    } else if (estadoHttp < 200 || estadoHttp >= 300) {
+      error = `El destino respondió ${estadoHttp}`
     }
   } catch (fallo) {
     error = fallo instanceof Error ? fallo.message : String(fallo)
