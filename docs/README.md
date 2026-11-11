@@ -18,6 +18,7 @@ Tres entradas según lo que necesites:
 | Invitaciones de usuarios | [invitar-usuarios.md](invitar-usuarios.md), [migracion-invitaciones-usuarios.md](migracion-invitaciones-usuarios.md) |
 | Migración inicial de datos (importador, conciliación, plan de corte) | [migracion-datos.md](migracion-datos.md), [migracion-inicial-de-datos.md](migracion-inicial-de-datos.md) |
 | Documentos IA (búsqueda documental: subida, versiones, permisos) | [documentos-ia.md](documentos-ia.md) |
+| Asistente con IA sobre catálogo, stock, precios y ventas (solo lectura) | [asistente-catalogo.md](asistente-catalogo.md) |
 | Empresa activa | [empresa-activa.md](empresa-activa.md) |
 | Usuarios, empresas y permisos | [usuarios-y-empresas.md](usuarios-y-empresas.md), [permisos-por-rol.md](permisos-por-rol.md) |
 | Organización: alta, administración, empresas | [alta-de-organizaciones.md](alta-de-organizaciones.md), [administracion-organizacion.md](administracion-organizacion.md), [empresas.md](empresas.md) |
@@ -26,6 +27,7 @@ Tres entradas según lo que necesites:
 | Cotización del dólar: carga diaria | [cotizacion-carga-diaria.md](cotizacion-carga-diaria.md) |
 | Cotización del dólar: vista previa y recálculo | [cotizacion-recalculo.md](cotizacion-recalculo.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
+| API pública, claves y avisos firmados | [api-publica.md](api-publica.md) |
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md), [ventas-estados-comprobante.md](ventas-estados-comprobante.md) |
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |

@@ -139,6 +139,15 @@ jobs:
       - name: test:auth:hook-bloqueo
         if: needs.changes.outputs.code == 'true'
         run: pnpm test:auth:hook-bloqueo
+      - name: test:openapi (contratos y guard de rompimiento)
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:openapi
+      - name: test:edge:api-v1 y entregar-webhook
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:edge:api-v1 && pnpm test:edge:entregar-webhook
+      - name: test:kestra:webhooks
+        if: needs.changes.outputs.code == 'true'
+        run: pnpm test:kestra:webhooks
       # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
       # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
       # SÓLO al integrar la épica (`e2e`): ver docs/deployment.md.

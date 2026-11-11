@@ -87,4 +87,15 @@ export const ayudaAdministracion: AyudaPorDestino = {
       'Pulsá «Importar…» para aplicar; el resultado se ve en pantalla y desde «Ver informe de conciliación» abrís el informe.',
     ],
   },
+  api: {
+    titulo: 'API',
+    resumen:
+      'Permite que otros sistemas lean datos de tu organización de forma segura, con claves que vos controlás. Desde acá creás y revocás claves, configurás avisos automáticos hacia otros sistemas y revisás las llamadas recientes. Es solo para administradores.',
+    pasos: [
+      'Pulsá «Crear clave», dale un nombre y elegí qué datos puede leer. La clave completa se muestra una sola vez: copiala.',
+      'Usá «Rotar» para cambiar una clave o «Revocar» para dejarla sin acceso al instante (pide confirmar).',
+      'En Suscripciones indicá a qué dirección avisar cuando pasa algo, y revisá en Entregas si el aviso llegó.',
+      'En Llamadas recientes ves quién consultó, cuándo y si salió bien.',
+    ],
+  },
 }

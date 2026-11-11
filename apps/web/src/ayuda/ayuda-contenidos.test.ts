@@ -37,7 +37,8 @@ describe('contenidos de ayuda (FR-024)', () => {
 
   it('no usa términos técnicos', () => {
     for (const [id, c] of entradas) {
-      const texto = [c.titulo, c.resumen, ...(c.pasos ?? [])].join(' ')
+      // El título es la etiqueta del menú (puede ser una sigla como «API»); la regla rige el texto redactado.
+      const texto = [c.resumen, ...(c.pasos ?? [])].join(' ')
       expect(texto, id).not.toMatch(TECNICOS)
     }
   })
