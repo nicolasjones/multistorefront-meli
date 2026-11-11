@@ -116,6 +116,12 @@ Dos capacidades del administrador sobre el precio, en la misma épica (MSF-363):
 
 Especificación: [`specs/20261104-103000-precios-masivos-y-promociones/spec.md`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md).
 
+### Correcciones posteriores a la revisión (MSF-363)
+
+- **Permisos de promociones por tienda** (`20270223200000`): programar o anular una promoción exige `productos` en **edición en la tienda de la promoción** (`private.nivel_productos_en_empresa`, gemela de la de `ventas`), no el nivel global más alto; antes quien editaba productos en la tienda A podía programar o anular promociones de la B. La lectura directa de `dominio.promociones_precio` respeta la misma regla (sin acceso a la tienda no se leen). Persona de la organización **sin tiendas asignadas**: no ve promociones (como el resto de los datos por tienda).
+- **Vista previa de costos** (`20270223200100`): cambiar costos (modo «ambos», «costo» o una planilla con costo) exige `rentabilidad` en edición **también en la vista previa**, igual que aplicar; antes con lectura la vista previa respondía y aplicar daba `42501`. Con solo lectura se sigue viendo el costo en una vista previa que cambia únicamente el precio de lista.
+- **Vista previa con carga infinita**: la tabla muestra de a 25 filas con «Cargar más» y el contador «Mostrando N de M» (antes `TablePagination`); el tope de 5.000 filas o productos por vez sigue en el servidor (`54000`) y tiene pruebas.
+
 ### Revisión de seguridad integral de MSF-363 (T023)
 
 Auditoría de las 8 migraciones de la épica (`20270221100001`…`20270221100008`):
@@ -126,7 +132,7 @@ Auditoría de las 8 migraciones de la épica (`20270221100001`…`20270221100008
 - **Tienda pública**: `catalogo_pagina_por_dominio` y `producto_por_dominio` se redefinen con la misma firma (los `grant` previos se conservan; se verificó que ninguna migración posterior de `dokploy` las redefine, así no se pisa nada). El precio anterior solo se devuelve durante una promoción vigente.
 - **Sin importes de costo en Actividad**: el detalle de `precios.actualizacion_masiva` y de los eventos `promocion_precio.*` no lleva costos; quien no tiene `rentabilidad` no ve costos ni en la vista previa.
 - **Secretos, compose, dependencias**: la épica no agrega dependencias, variables de entorno ni cambios de compose.
-- **Pruebas**: `precios_masivos.test.sql` y `promociones_precio.test.sql` cubren aislamiento entre organizaciones, permisos y `anon` sin ejecución (corren en el job `database` del CI). **Desvío**: la tarea T023 nombra `aislamiento_rls.test.sql`; ese archivo no existe en el repo, y el aislamiento de las dos tablas nuevas está en sus pgTAP propios. Los E2E de la épica se omiten sin Supabase local y no corren en el CI público.
+- **Pruebas**: `precios_masivos.test.sql` y `promociones_precio.test.sql` cubren aislamiento entre organizaciones, permisos y `anon` sin ejecución (corren en el job `database` del CI). **Desvío**: la tarea T023 nombraba `aislamiento_rls.test.sql`; ese archivo no existe: el recorrido de `public` + `dominio` lo hace `rls_en_toda_tabla.test.sql` y el aislamiento de las dos tablas nuevas está en sus pgTAP propios. Los E2E de la épica se omiten sin Supabase local y no corren en el CI público.
 
 ## Cotización sugerida (F-PRE-13, MSF-373)
 

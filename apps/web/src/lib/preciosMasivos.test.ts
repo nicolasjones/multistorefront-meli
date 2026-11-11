@@ -4,6 +4,7 @@ import {
   aplicarActualizacion,
   leerPlanilla,
   leerPorcentaje,
+  MAXIMO_FILAS_PLANILLA,
   mensajeErrorActualizacion,
   MENSAJE_CONFLICTO,
   plantillaCsv,
@@ -36,6 +37,13 @@ describe('leerPlanilla (FR-003, FR-006)', () => {
     const { filas, errores } = leerPlanilla(analizarCsv('﻿SKU;costo;precio_lista\r\nA-1;10,5;20,75\r\n'), true)
     expect(errores).toEqual([])
     expect(filas).toEqual([{ fila: 2, sku: 'A-1', costo: 10.5, precio_lista: 20.75 }])
+  })
+
+  it('el tope es de 5.000 filas: con 5.000 lee, con 5.001 avisa', () => {
+    const csv = (n: number) => `SKU,precio_lista\n${Array.from({ length: n }, (_, i) => `S-${i},1`).join('\n')}\n`
+    expect(MAXIMO_FILAS_PLANILLA).toBe(5000)
+    expect(leerPlanilla(analizarCsv(csv(5000)), true).filas).toHaveLength(5000)
+    expect(() => leerPlanilla(analizarCsv(csv(5001)), true)).toThrow('La planilla admite hasta 5.000 filas por vez.')
   })
 
   it('la columna SKU es obligatoria', () => {
@@ -105,6 +113,11 @@ describe('llamadas a las RPC y errores', () => {
   it('un error de la base se propaga', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { code: '40001', message: 'x' } })
     await expect(aplicarActualizacion({ rpc } as never, 'planilla', { filas: [] }, vista, 'c')).rejects.toMatchObject({ code: '40001' })
+  })
+
+  it('el error 54000 del tope trae su texto en castellano', () => {
+    expect(mensajeErrorActualizacion({ code: '54000', message: 'La actualización admite hasta 5.000 productos por vez; elegí una categoría' }))
+      .toBe('La actualización admite hasta 5.000 productos por vez; elegí una categoría')
   })
 
   it('mapea los errores a mensajes claros', () => {
