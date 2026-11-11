@@ -44,7 +44,7 @@
     "test:edge:recalcular-alertas-inicio": "node --test supabase/functions/recalcular-alertas-inicio/handler.test.ts",
     "test:edge:emitir-acceso-reporte": "node --test supabase/functions/emitir-acceso-reporte/handler.test.ts",
     "test:edge:api-v1": "node --test supabase/functions/api-v1/handler.test.ts",
-    "test:edge:entregar-webhook": "node --test supabase/functions/entregar-webhook/handler.test.ts",
+    "test:edge:entregar-webhook": "node --test supabase/functions/entregar-webhook/handler.test.ts supabase/functions/entregar-webhook/envio.test.ts",
     "test:openapi": "node --test scripts/verificar-openapi.test.mjs && node scripts/verificar-openapi.mjs",
     "openapi:verificar": "node scripts/verificar-openapi.mjs",
     "openapi:escribir": "node scripts/verificar-openapi.mjs --escribir",

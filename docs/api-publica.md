@@ -38,7 +38,9 @@ X-API-Key: msf_<prefijo>_<secreto>
 
 La clave anónima es pública y solo sirve para pasar el gateway; no autoriza
 ningún dato. Nunca se usa la clave de servicio desde un sistema externo ni desde
-el navegador.
+el navegador. En el stack self-hosted el `verify_jwt` de `config.toml` no
+necesariamente rige (el gateway se configura aparte): el camino soportado es
+`X-API-Key` con la clave anónima en `Authorization`.
 
 ## Rutas (solo lectura, `GET`)
 

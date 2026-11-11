@@ -26,8 +26,11 @@ export function PanelClaves() {
   const [vence, setVence] = useState('')
   const [valor, setValor] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [errorCrear, setErrorCrear] = useState<string | null>(null)
+  const [confirmacion, setConfirmacion] = useState<{ tipo: 'rotar' | 'revocar'; clave: Clave } | null>(null)
+  const [errorAccion, setErrorAccion] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [accionando, setAccionando] = useState(false)
 
   const cerrar = () => {
     if (guardando) return
@@ -35,6 +38,13 @@ export function PanelClaves() {
     setNombre('')
     setAlcances([])
     setVence('')
+    setErrorCrear(null)
+  }
+
+  const cerrarConfirmacion = () => {
+    if (accionando) return
+    setConfirmacion(null)
+    setErrorAccion(null)
   }
 
   const errorNombre = !nombre.trim() ? 'Ingresá un nombre.' : null
@@ -44,7 +54,7 @@ export function PanelClaves() {
     if (guardando) return
     if (errorNombre || errorAlcances) return
     setGuardando(true)
-    setError(null)
+    setErrorCrear(null)
     const { data, error: errorRpc } = await supabaseClient
       .rpc('crear_clave_api', {
         p_nombre: nombre.trim(),
@@ -54,7 +64,7 @@ export function PanelClaves() {
       .single<{ id: string; valor: string }>()
     setGuardando(false)
     if (errorRpc || !data) {
-      setError('No pudimos crear la clave.')
+      setErrorCrear('No pudimos crear la clave.')
       return
     }
     cerrar()
@@ -62,28 +72,38 @@ export function PanelClaves() {
     recargar()
   }
 
-  const rotar = async (clave: Clave) => {
+  const pedirConfirmacion = (tipo: 'rotar' | 'revocar', clave: Clave) => {
     setAviso(null)
-    setError(null)
-    const { data, error: errorRpc } = await supabaseClient
-      .rpc('rotar_clave_api', { p_clave_id: clave.id })
-      .single<{ id: string; valor: string }>()
-    if (errorRpc || !data) {
-      setError('No pudimos rotar la clave.')
-      return
-    }
-    setValor(data.valor)
-    recargar()
+    setErrorAccion(null)
+    setConfirmacion({ tipo, clave })
   }
 
-  const revocar = async (clave: Clave) => {
-    setAviso(null)
-    setError(null)
-    const { error: errorRpc } = await supabaseClient.rpc('revocar_clave_api', { p_clave_id: clave.id })
-    if (errorRpc) {
-      setError('No pudimos revocar la clave.')
+  const confirmar = async () => {
+    if (!confirmacion || accionando) return
+    const { tipo, clave } = confirmacion
+    setAccionando(true)
+    setErrorAccion(null)
+    if (tipo === 'rotar') {
+      const { data, error: errorRpc } = await supabaseClient
+        .rpc('rotar_clave_api', { p_clave_id: clave.id })
+        .single<{ id: string; valor: string }>()
+      setAccionando(false)
+      if (errorRpc || !data) {
+        setErrorAccion('No pudimos rotar la clave.')
+        return
+      }
+      setConfirmacion(null)
+      setValor(data.valor)
+      recargar()
       return
     }
+    const { error: errorRpc } = await supabaseClient.rpc('revocar_clave_api', { p_clave_id: clave.id })
+    setAccionando(false)
+    if (errorRpc) {
+      setErrorAccion('No pudimos revocar la clave.')
+      return
+    }
+    setConfirmacion(null)
     setAviso(`Revocaste la clave ${clave.nombre}.`)
     recargar()
   }
@@ -108,10 +128,9 @@ export function PanelClaves() {
     <Box>
       <Stack spacing={2}>
         <Stack direction="row" justifyContent="flex-end">
-          <Button variant="contained" onClick={() => setCreando(true)}>Crear clave</Button>
+          <Button variant="contained" onClick={() => { setErrorCrear(null); setCreando(true) }}>Crear clave</Button>
         </Stack>
         {aviso ? <Alert severity="success">{aviso}</Alert> : null}
-        {error ? <Alert severity="error">{error}</Alert> : null}
         {hayError ? (
           <EstadoError descripcion="No pudimos cargar las claves." reintentar={recargar} />
         ) : filas === null ? (
@@ -126,7 +145,7 @@ export function PanelClaves() {
             etiquetaTabla="Claves de API"
             acciones={(clave) => (
               <Stack direction="row" spacing={1}>
-                <Button size="small" aria-label={`Rotar ${clave.nombre}`} onClick={() => void rotar(clave)}>
+                <Button size="small" aria-label={`Rotar ${clave.nombre}`} onClick={() => pedirConfirmacion('rotar', clave)}>
                   Rotar
                 </Button>
                 <Button
@@ -134,7 +153,7 @@ export function PanelClaves() {
                   color="inherit"
                   aria-label={`Revocar ${clave.nombre}`}
                   disabled={Boolean(clave.revocada_en)}
-                  onClick={() => void revocar(clave)}
+                  onClick={() => pedirConfirmacion('revocar', clave)}
                 >
                   Revocar
                 </Button>
@@ -187,6 +206,7 @@ export function PanelClaves() {
                 onChange={(evento) => setVence(evento.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
+              {errorCrear ? <Alert severity="error">{errorCrear}</Alert> : null}
             </Stack>
           </DialogContent>
           <DialogActions>
@@ -196,6 +216,39 @@ export function PanelClaves() {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+
+      <Dialog
+        open={confirmacion !== null}
+        onClose={cerrarConfirmacion}
+        fullWidth
+        maxWidth="xs"
+        aria-labelledby="titulo-confirmar-clave"
+      >
+        <TituloDialogo id="titulo-confirmar-clave" onCerrar={cerrarConfirmacion}>
+          {confirmacion?.tipo === 'revocar' ? 'Revocar clave' : 'Rotar clave'}
+        </TituloDialogo>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography>
+              {confirmacion?.tipo === 'revocar'
+                ? `«${confirmacion.clave.nombre}» deja de funcionar en la llamada siguiente. No se puede deshacer.`
+                : `Se genera una clave nueva para «${confirmacion?.clave.nombre}» y la anterior sigue válida 24 h.`}
+            </Typography>
+            {errorAccion ? <Alert severity="error">{errorAccion}</Alert> : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cerrarConfirmacion} disabled={accionando}>Cancelar</Button>
+          <Button
+            variant="contained"
+            color={confirmacion?.tipo === 'revocar' ? 'error' : 'primary'}
+            onClick={() => void confirmar()}
+            disabled={accionando}
+          >
+            {accionando ? 'Guardando…' : confirmacion?.tipo === 'revocar' ? 'Revocar' : 'Rotar'}
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Dialog open={valor !== null} onClose={() => setValor(null)} fullWidth maxWidth="sm" aria-labelledby="titulo-valor-clave">

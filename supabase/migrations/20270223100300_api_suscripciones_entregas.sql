@@ -26,6 +26,7 @@
 --   drop function private.api_resolver_entrega(uuid, text, integer, text, integer);
 --   drop function private.api_entrega_para_entregar(uuid);
 --   drop function private.api_reclamar_eventos_api(text[], integer, integer, integer);
+--   drop function private.api_reclamar_eventos_api_interno(text[], integer, integer, integer);
 --   drop function public.api_entrega_para_entregar(uuid);
 --   drop function public.api_resolver_entrega(uuid, text, integer, text, integer);
 --   drop function private.api_url_destino_valida(text);
@@ -576,13 +577,15 @@ grant execute on function public.api_resolver_entrega(uuid, text, integer, text,
 
 -- ============================================================================
 -- private.api_reclamar_eventos_api — reclamo de los eventos que la API
--- avisa, de los tres tipos, en una sola llamada. Envuelve
--- `private.reclamar_eventos` (mismo lease y mismos intentos) para que el flow
--- de Kestra no tenga que reclamar tipo por tipo. `p_limite` es el TOTAL de
--- eventos por corrida (no por tipo), como lo documenta `API_WEBHOOKS_LOTE`.
+-- avisa, de los tres tipos, en una sola llamada. Núcleo `_interno` sin guarda
+-- de rol (lo ejercita el pgTAP) + envoltorio con la guarda de `session_user`;
+-- el núcleo delega en `private.reclamar_eventos_interno` (mismo lease y mismos
+-- intentos) para que el flow de Kestra no tenga que reclamar tipo por tipo.
+-- `p_limite` es el TOTAL de eventos por corrida (no por tipo), como lo
+-- documenta `API_WEBHOOKS_LOTE`.
 -- ============================================================================
 
-create or replace function private.api_reclamar_eventos_api(
+create or replace function private.api_reclamar_eventos_api_interno(
   p_tipos text[],
   p_limite integer default 20,
   p_duracion_reclamo_seg integer default 300,
@@ -609,7 +612,7 @@ begin
   foreach v_tipo in array coalesce(p_tipos, '{}'::text[]) loop
     exit when v_restantes <= 0;
     for v_evento in
-      select * from private.reclamar_eventos(v_tipo, v_restantes, p_duracion_reclamo_seg, p_max_intentos)
+      select * from private.reclamar_eventos_interno(v_tipo, v_restantes, p_duracion_reclamo_seg, p_max_intentos)
     loop
       -- Función con parámetros OUT: la fila se arma en las variables de salida
       -- y se devuelve con `RETURN NEXT` sin expresión (mismo patrón de
@@ -629,14 +632,41 @@ begin
 end;
 $$;
 
+create or replace function private.api_reclamar_eventos_api(
+  p_tipos text[],
+  p_limite integer default 20,
+  p_duracion_reclamo_seg integer default 300,
+  p_max_intentos integer default 5
+)
+returns table (
+  evento_id uuid, organizacion_id uuid, tipo text, clave_idempotencia text,
+  carga jsonb, intento integer, vence_en timestamptz
+)
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  if not (select rolsuper from pg_catalog.pg_roles where rolname = session_user)
+    and session_user <> 'kestra_orquestacion' then
+    raise exception 'NO_AUTORIZADO: solo kestra_orquestacion reclama eventos' using errcode = 'P0001';
+  end if;
+  return query select * from private.api_reclamar_eventos_api_interno(
+    p_tipos, p_limite, p_duracion_reclamo_seg, p_max_intentos);
+end;
+$$;
+
 comment on function private.api_reclamar_eventos_api(text[], integer, integer, integer) is
-  'F-API-01: reclama hasta p_limite eventos (total, no por tipo) de los tipos que la API avisa para repartirlos entre las suscripciones.';
+  'F-API-01: reclama hasta p_limite eventos (total, no por tipo) de los tipos que la API avisa para repartirlos entre las suscripciones. Solo kestra_orquestacion.';
+
+comment on function private.api_reclamar_eventos_api_interno(text[], integer, integer, integer) is
+  'F-API-01: núcleo del reclamo de eventos de la API, sin la guarda de session_user (solo lo ejecuta el dueño).';
 
 revoke execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) from public, anon, authenticated;
--- Solo `kestra_orquestacion`: el núcleo `private.reclamar_eventos` exige
--- `session_user = 'kestra_orquestacion'` y por PostgREST `session_user` es
--- `authenticator`, así que un GRANT a `service_role` haría fallar la llamada
--- con NO_AUTORIZADO en vez de autorizar.
+revoke execute on function private.api_reclamar_eventos_api_interno(text[], integer, integer, integer) from public, anon, authenticated;
+-- Solo `kestra_orquestacion` ejecuta el envoltorio guardado; el núcleo no se
+-- otorga a nadie (lo ejecuta el dueño y lo usa el pgTAP).
 grant execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) to kestra_orquestacion;
 
 revoke execute on function private.api_fanout_evento(uuid) from public, anon, authenticated;

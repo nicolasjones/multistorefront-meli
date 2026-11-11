@@ -100,18 +100,33 @@ describe('pantalla API · claves', () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
-  it('rota una clave y muestra el valor nuevo', async () => {
+  it('rota una clave después de confirmar y muestra el valor nuevo', async () => {
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Rotar Integración del cliente' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar clave' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Rotar' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('rotar_clave_api', { p_clave_id: 'c-1' }))
     expect(await screen.findByRole('dialog', { name: 'Copiá la clave' })).toBeInTheDocument()
   })
 
-  it('revoca una clave y avisa que quedó revocada', async () => {
+  it('revoca una clave después de confirmar y avisa que quedó revocada', async () => {
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Revocar Integración del cliente' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    const confirmacion = await screen.findByRole('dialog', { name: 'Revocar clave' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Revocar' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('revocar_clave_api', { p_clave_id: 'c-1' }))
     expect(await screen.findByText('Revocaste la clave Integración del cliente.')).toBeInTheDocument()
+  })
+
+  it('si la revocación falla, el error se muestra dentro del diálogo abierto', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'denied' } })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Revocar Integración del cliente' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Revocar clave' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Revocar' }))
+    expect(await within(confirmacion).findByText('No pudimos revocar la clave.')).toBeInTheDocument()
   })
 
   it('avisa si no se pudo crear la clave', async () => {

@@ -220,8 +220,10 @@ select is(
 );
 
 -- El reclamo de la API reparte UN lote total entre los tipos, no un lote por tipo.
+-- Se usa el núcleo sin guarda de rol: el envoltorio exige `session_user =
+-- kestra_orquestacion` y el pgTAP corre como `postgres`.
 select is(
-  (select count(*)::int from private.api_reclamar_eventos_api(
+  (select count(*)::int from private.api_reclamar_eventos_api_interno(
     ARRAY['precio.actualizado', 'venta.registrada', 'stock.actualizado'], 2, 300, 5)),
   2,
   'el reclamo de la API respeta el lote total entre tipos'
