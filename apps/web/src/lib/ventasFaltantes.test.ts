@@ -5,7 +5,12 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import {
+  avisarFaltantesVenta,
   estadoStockHoy,
+  etiquetaAviso,
+  mensajeResultadoAvisoVenta,
+  TEXTO_AVISO_POR_DEFECTO,
+  type ResultadoAvisoVenta,
   listarFaltantes,
   mensajeDeErrorFaltantes,
   registrarFaltantes,
@@ -39,6 +44,8 @@ const fila = (cambios: Partial<FaltanteVenta> = {}): FaltanteVenta => ({
   desde: '2026-10-07T10:00:00Z',
   stock_estado: 'sin_stock',
   stock_disponible: 0,
+  aviso: 'sin_avisar',
+  aviso_en: null,
   ...cambios,
 })
 
@@ -54,6 +61,7 @@ describe('ventasFaltantes · listado (FR-043, FR-044)', () => {
       p_empresa_id: 'e-1',
       p_pagina: 2,
       p_tamano: 10,
+      p_aviso: null,
     })
   })
 
@@ -64,6 +72,7 @@ describe('ventasFaltantes · listado (FR-043, FR-044)', () => {
       p_empresa_id: null,
       p_pagina: 1,
       p_tamano: 10,
+      p_aviso: null,
     })
   })
 
@@ -163,6 +172,128 @@ describe('ventasFaltantes · mensajes de error', () => {
   it('un error desconocido cae en el mensaje por defecto', () => {
     expect(mensajeDeErrorFaltantes({ code: 'XX000', message: 'detalle interno' }, MENSAJE_ERROR_LISTADO)).toBe(
       MENSAJE_ERROR_LISTADO,
+    )
+  })
+})
+
+describe('ventasFaltantes · aviso en el listado (F-VTA-26, FR-008; F-VTA-27, FR-103)', () => {
+  beforeEach(() => {
+    mocks.rpc.mockReset()
+  })
+
+  it('pasa el filtro de aviso a la RPC y lee aviso y aviso_en de cada fila', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ ...fila(), filas: 1, aviso: 'para_avisar', aviso_en: '2026-10-08T12:00:00Z' }],
+      error: null,
+    })
+    const pagina = await listarFaltantes({ empresaId: null, pagina: 1, tamano: 10, aviso: 'para_avisar' })
+    expect(mocks.rpc).toHaveBeenCalledWith('listar_faltantes', {
+      p_empresa_id: null,
+      p_pagina: 1,
+      p_tamano: 10,
+      p_aviso: 'para_avisar',
+    })
+    expect(pagina.faltantes[0].aviso).toBe('para_avisar')
+    expect(pagina.faltantes[0].aviso_en).toBe('2026-10-08T12:00:00Z')
+  })
+
+  it('rotula el chip de la columna Aviso con la fecha en hora de Buenos Aires', () => {
+    expect(etiquetaAviso({ aviso: 'sin_avisar', aviso_en: null })).toEqual({ texto: 'Sin avisar', variante: 'neutral' })
+    expect(etiquetaAviso({ aviso: 'para_avisar', aviso_en: '2026-10-08T12:00:00Z' })).toEqual({
+      texto: 'Para avisar',
+      variante: 'info',
+    })
+    expect(etiquetaAviso({ aviso: 'avisado', aviso_en: '2026-10-08T12:00:00Z' })).toEqual({
+      texto: 'Avisado · 08/10/2026',
+      variante: 'exito',
+    })
+    // 01:00 UTC es todavía el día anterior en Buenos Aires.
+    expect(etiquetaAviso({ aviso: 'avisado', aviso_en: '2026-10-09T01:00:00Z' }).texto).toBe('Avisado · 08/10/2026')
+    expect(etiquetaAviso({ aviso: 'avisado', aviso_en: null }).texto).toBe('Avisado')
+  })
+})
+
+const resultado = (cambios: Partial<ResultadoAvisoVenta> = {}): ResultadoAvisoVenta => ({
+  encolados: 2,
+  lineas_avisadas: 2,
+  omitidos_ya_avisados: 0,
+  omitidos_en_cola: 0,
+  omitidos_sin_correo: 0,
+  omitidos_sin_permiso: 0,
+  omitidos_no_abiertos: 0,
+  detalle: [],
+  ...cambios,
+})
+
+describe('ventasFaltantes · avisar a los clientes (F-VTA-26, FR-001…FR-005)', () => {
+  beforeEach(() => {
+    mocks.rpc.mockReset()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  it('llama a la RPC con los ids, el texto y la confirmación de reaviso', async () => {
+    mocks.rpc.mockResolvedValue({ data: resultado(), error: null })
+    await avisarFaltantesVenta(['f-1', 'f-2'], '  Ya llegó tu pedido  ', true)
+    expect(mocks.rpc).toHaveBeenCalledWith('avisar_faltantes_venta', {
+      p_ids: ['f-1', 'f-2'],
+      p_mensaje: 'Ya llegó tu pedido',
+      p_reavisar: true,
+    })
+  })
+
+  it('el texto vacío o igual al de por defecto viaja como null', async () => {
+    mocks.rpc.mockResolvedValue({ data: resultado(), error: null })
+    await avisarFaltantesVenta(['f-1'], '   ', false)
+    await avisarFaltantesVenta(['f-1'], TEXTO_AVISO_POR_DEFECTO, false)
+    expect(mocks.rpc.mock.calls[0][1].p_mensaje).toBeNull()
+    expect(mocks.rpc.mock.calls[1][1].p_mensaje).toBeNull()
+  })
+
+  it('valida de 1 a 200 faltantes y un texto de hasta 1.000 caracteres sin llamar a la base', async () => {
+    await expect(avisarFaltantesVenta([], 'x', false)).rejects.toThrow('Elegí entre 1 y 200 faltantes para avisar.')
+    const muchos = Array.from({ length: 201 }, (_, i) => `f-${i}`)
+    await expect(avisarFaltantesVenta(muchos, 'x', false)).rejects.toThrow('Elegí entre 1 y 200 faltantes para avisar.')
+    await expect(avisarFaltantesVenta(['f-1'], 'x'.repeat(1001), false)).rejects.toThrow(/1\.000 caracteres/)
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('los errores llegan en castellano y sin detalle técnico', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'permission denied for table x' } })
+    await expect(avisarFaltantesVenta(['f-1'], '', false)).rejects.toThrow('Tu rol no puede avisar faltantes')
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: 'XX000', message: 'detalle interno' } })
+    await expect(avisarFaltantesVenta(['f-1'], '', false)).rejects.toThrow('No pudimos enviar los avisos. Probá de nuevo.')
+    mocks.rpc.mockResolvedValueOnce({ data: { otra: 'cosa' }, error: null })
+    await expect(avisarFaltantesVenta(['f-1'], '', false)).rejects.toThrow('No pudimos enviar los avisos. Probá de nuevo.')
+  })
+
+  it('arma el aviso emergente con lo omitido y por qué', () => {
+    expect(mensajeResultadoAvisoVenta(resultado())).toBe('Avisos enviados.')
+    expect(mensajeResultadoAvisoVenta(resultado({ omitidos_ya_avisados: 1, omitidos_en_cola: 2 }))).toBe(
+      'Avisos enviados. 1 faltante ya estaba avisado. 2 faltantes tienen un envío en curso.',
+    )
+    expect(mensajeResultadoAvisoVenta(resultado({ omitidos_sin_permiso: 1, omitidos_no_abiertos: 3 }))).toBe(
+      'Avisos enviados. 1 faltante es de una tienda donde tu rol no puede avisar. 3 faltantes ya no están abiertos.',
+    )
+  })
+
+  it('sin correo dice qué cliente y, si no se encoló nada, que no se envió ningún aviso', () => {
+    const uno = resultado({
+      encolados: 0,
+      lineas_avisadas: 0,
+      omitidos_sin_correo: 1,
+      detalle: [{ id: 'f-1', resultado: 'sin_correo' }],
+    })
+    expect(mensajeResultadoAvisoVenta(uno)).toBe('No se enviaron avisos. El cliente no tiene correo.')
+    // Dos faltantes del mismo cliente cuentan como un cliente; dos clientes distintos, como dos.
+    const mismo = resultado({
+      omitidos_sin_correo: 2,
+      detalle: [{ id: 'f-1', resultado: 'sin_correo' }, { id: 'f-2', resultado: 'sin_correo' }],
+    })
+    expect(mensajeResultadoAvisoVenta(mismo, { 'f-1': 'Ana', 'f-2': 'Ana' })).toBe(
+      'Avisos enviados. El cliente no tiene correo.',
+    )
+    expect(mensajeResultadoAvisoVenta(mismo, { 'f-1': 'Ana', 'f-2': 'Beto' })).toBe(
+      'Avisos enviados. 2 clientes no tienen correo.',
     )
   })
 })
