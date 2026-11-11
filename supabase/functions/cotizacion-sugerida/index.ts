@@ -25,5 +25,12 @@ Deno.serve((req) => {
     if (!respuesta.ok) throw new Error(`la fuente respondió ${respuesta.status}`)
     return await respuesta.json()
   }
-  return manejar(req, { getUser, caller, leerFuente })
+  // Una caída de Supabase (red, Auth o RPC) lanza en vez de devolver `error`: se responde 502 en vez de dejar un 500 sin cuerpo.
+  return manejar(req, { getUser, caller, leerFuente }).catch((error) => {
+    console.error('cotizacion-sugerida: falla inesperada', error instanceof Error ? error.message : error)
+    return new Response(JSON.stringify({ error: 'No se pudo verificar tu permiso.' }), {
+      status: 502,
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+    })
+  })
 })
