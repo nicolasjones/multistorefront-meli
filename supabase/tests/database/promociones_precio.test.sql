@@ -7,7 +7,7 @@
 -- `anon` y se guardan en una tabla temporal; las verificaciones corren como postgres.
 begin;
 
-select plan(96);
+select plan(97);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -400,6 +400,10 @@ select throws_ok(
 select throws_ok(
   $$select public.anular_promocion_precio('c1000000-0000-0000-0000-00000000000b', null)$$,
   '42501', null, 'ni anula una promoción de la tienda B'
+);
+select throws_ok(
+  $$select public.guardar_promocion_precio('c1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 10, now() + interval '30 days', now() + interval '31 days', null)$$,
+  '42501', null, 'ni edita una promoción de B diciendo que es de A: responde 42501, no 22023 (no revela de quién es)'
 );
 select is(
   (select count(*) from dominio.promociones_precio where empresa_id = 'e1000000-0000-0000-0000-000000000002'), 1::bigint,

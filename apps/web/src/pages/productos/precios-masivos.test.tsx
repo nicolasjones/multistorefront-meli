@@ -111,7 +111,9 @@ describe('PreciosMasivos (F-PRE-10, FR-001, FR-010)', () => {
     const tabla = await screen.findByRole('table', { name: 'Vista previa de la actualización de precios' })
     expect(within(tabla).getAllByRole('row')).toHaveLength(26)
     expect(screen.getByText('Mostrando 25 de 60')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /next page|Go to next page|página siguiente/i })).not.toBeInTheDocument()
+    // Sin paginación: ni el control de MUI ni sus botones/etiquetas (carga infinita con «Cargar más»).
+    expect(document.querySelector('.MuiTablePagination-root')).toBeNull()
+    expect(screen.queryByText(/rows per page|filas por página/i)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(screen.getByText('Mostrando 50 de 60')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
