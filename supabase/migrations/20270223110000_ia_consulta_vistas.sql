@@ -9,6 +9,31 @@
 -- Esquema: solo vistas en `public` (superficie de lectura sin datos propios; Principio VII). `anon` sin acceso.
 -- Migración aditiva. Reversión (migración posterior):
 --   drop view public.ia_consulta_ventas, public.ia_consulta_precios, public.ia_consulta_stock, public.ia_consulta_catalogo;
+--   drop function private.ia_categoria_ruta(uuid, uuid);
+
+-- Ruta de categoría «Padre > Hija» (o nombre de la raíz) SIN depender de la RLS de `dominio.categorias`: esa política
+-- exige la sección `categorias`, y el contrato del catálogo del asistente se rige por la sección `productos` (un técnico o
+-- un mostrador con Productos en lectura y Categorías en «ninguno» vería la categoría vacía). Definer acotado: solo
+-- devuelve el nombre de la categoría del producto que la vista ya filtró por RLS, y busca siempre dentro de la organización.
+create or replace function private.ia_categoria_ruta(p_categoria_id uuid, p_organizacion_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case when padre.id is not null then padre.nombre || ' > ' || c.nombre else c.nombre end
+    from dominio.categorias c
+    left join dominio.categorias padre
+      on padre.id = c.padre_id and padre.organizacion_id = c.organizacion_id
+   where c.id = p_categoria_id and c.organizacion_id = p_organizacion_id;
+$$;
+
+comment on function private.ia_categoria_ruta(uuid, uuid) is
+  'F-IA-01: ruta de categoría para ia_consulta_catalogo sin depender de la sección Categorías. Solo la usan las vistas, con el producto ya filtrado por RLS.';
+
+revoke execute on function private.ia_categoria_ruta(uuid, uuid) from public, anon;
+grant execute on function private.ia_categoria_ruta(uuid, uuid) to authenticated;
 
 -- Catálogo: producto, nombre, SKU, categoría (ruta «Padre > Hija» o nombre de la raíz) y estado.
 create or replace view public.ia_consulta_catalogo
@@ -19,14 +44,10 @@ select
   p.nombre,
   p.sku,
   p.categoria_id,
-  case when padre.id is not null then padre.nombre || ' > ' || c.nombre else c.nombre end as categoria,
+  private.ia_categoria_ruta(p.categoria_id, p.organizacion_id) as categoria,
   p.activo,
   p.updated_at as actualizado_en
-from dominio.productos p
-left join dominio.categorias c
-  on c.id = p.categoria_id and c.organizacion_id = p.organizacion_id
-left join dominio.categorias padre
-  on padre.id = c.padre_id and padre.organizacion_id = c.organizacion_id;
+from dominio.productos p;
 
 -- Stock por depósito: cantidad, reservado y disponible (cantidad − reservado).
 create or replace view public.ia_consulta_stock

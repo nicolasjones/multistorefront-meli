@@ -10,7 +10,7 @@ Cuatro vistas de solo lectura en `public`, con `organizacion_id` y `security_inv
 
 | Funcionalidad | Vista | Columnas |
 |---|---|---|
-| `catalogo` | `ia_consulta_catalogo` | producto, nombre, SKU, categoría (ruta «Padre > Hija»), activo, actualizado |
+| `catalogo` | `ia_consulta_catalogo` | producto, nombre, SKU, categoría (ruta «Padre > Hija», resuelta con `private.ia_categoria_ruta` para no depender de la sección Categorías), activo, actualizado |
 | `stock` | `ia_consulta_stock` | producto, depósito, cantidad, reservado, disponible (cantidad − reservado) |
 | `precios` | `ia_consulta_precios` | moneda, precio de lista y escalas x5/x10/x50 (null = escala sin precio) |
 | `ventas` | `ia_consulta_ventas` | número, fecha, empresa, totales y estado; **solo facturas confirmadas** |

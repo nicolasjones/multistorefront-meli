@@ -3,7 +3,7 @@
 -- EXACTAMENTE las columnas del contrato (sin costos, márgenes ni datos del cliente).
 begin;
 
-select plan(21);
+select plan(23);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -137,14 +137,19 @@ select is(
 );
 reset role;
 
--- Organización Uno, técnico: productos en lectura, ventas en ninguno (15-17)
+-- Organización Uno, técnico: productos en lectura, ventas y categorías en ninguno (15-19)
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select is((select private.nivel_seccion('ventas')), 'ninguno', 'precondición: el técnico no tiene la sección Ventas');
 select is((select count(*)::int from public.ia_consulta_ventas), 0, 'sin sección Ventas el asistente no devuelve ventas');
 select is((select count(*)::int from public.ia_consulta_catalogo), 2, 'con Productos en lectura sí ve el catálogo');
+select is((select private.nivel_seccion('categorias')), 'ninguno', 'precondición: el técnico no tiene la sección Categorías');
+select is(
+  (select categoria from public.ia_consulta_catalogo where sku = 'JOY-1'),
+  'Periféricos > Joysticks', 'sin la sección Categorías igual ve la categoría del producto (se rige por Productos)'
+);
 reset role;
 
--- Organización Dos (18-19)
+-- Organización Dos (20-21)
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.ia_consulta_catalogo), 1, 'Dos ve solo su producto');
 select is(
@@ -153,7 +158,7 @@ select is(
 );
 reset role;
 
--- anon (20-21)
+-- anon (22-23)
 select set_config('request.jwt.claims', null, true);
 set local role anon;
 select throws_ok($$select count(*) from public.ia_consulta_catalogo$$, '42501', null, 'anon recibe permiso denegado en el catálogo');
