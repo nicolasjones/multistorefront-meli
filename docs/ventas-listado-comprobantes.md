@@ -17,7 +17,7 @@ F-VTA-09 (MSF-346, épica MSF-177): buscar, filtrar y exportar facturas y notas 
 - **Tabla**: Comprobante (número + tipo, enlace a `/ventas/comprobantes/:id`), Tienda, Fecha, Cliente,
   Operador, Estado (chip del catálogo `estadosComprobante`), Pago, Envío y Total a la derecha, con fila
   resaltada en negativo para las notas. En pantallas angostas se muestran las mismas columnas en tarjetas.
-  El contador dice «N comprobantes», la paginación es de 12 y el pie «1–12 de N».
+  El contador dice «N comprobantes», se carga de a 12 con «Cargar más» (ya no hay pie «1–12 de N»).
 - **Estados de la pantalla**: carga inicial, error con «Reintentar», «Sin resultados» con «Probá con otra
   búsqueda o limpiá los filtros.» y vacío real «Todavía no hay comprobantes.».
 - Fuera de alcance (matriz pantalla↔criterios): tarjetas KPI, botón Imprimir por fila, letra A/B del
@@ -96,3 +96,7 @@ Reglas del listado:
 - `private.capacidad_exportacion_comprobantes` ya no tiene grant a `authenticated`: solo la llama `solicitar_exportacion_comprobantes` (migración `20261212110400`).
 - Esa función toma `pg_advisory_xact_lock` por usuario antes del control `YA_EN_CURSO`, así que dos pedidos simultáneos con filtros distintos se serializan.
 - Si entre el listado y el clic el total pasa de 10.000, la vía inmediata (que corta en el tope) no baja un archivo recortado: pasa a la vía diferida.
+
+## Carga infinita (Comprobantes y Presupuestos)
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Comprobantes pide de a 12 y Presupuestos de a 25. Son documentos: la fila no muestra un producto, así que no lleva miniatura. «Aceptar» un presupuesto recarga desde la primera tanda.

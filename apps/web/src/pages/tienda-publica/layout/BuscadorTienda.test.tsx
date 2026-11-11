@@ -1,9 +1,11 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), evento: vi.fn() }))
+
+vi.mock('../../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
 vi.mock('../../../lib/tiendaBusqueda', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../lib/tiendaBusqueda')>()),
@@ -18,7 +20,7 @@ import BuscadorTienda from './BuscadorTienda'
 
 const HOST = 'mundojc.localhost'
 const sugerencia = (id: string, nombre: string, extra: Record<string, unknown> = {}) => ({
-  id, nombre, precio: 18455, disponible: true, imagen: null, categoriaId: null, ...extra,
+  id, nombre, precio: 18455, precioAnterior: null, disponible: true, imagen: null, categoriaId: null, ...extra,
 })
 const respuesta = (...sugerencias: ReturnType<typeof sugerencia>[]) => ({ esperaSegundos: null, sugerencias })
 
@@ -71,6 +73,17 @@ describe('BuscadorTienda · sugerencias', () => {
     expect(opciones[0]).toHaveTextContent('Sin imagen')
     expect(opciones[1]).toHaveTextContent('Sin stock')
     expect(campo()).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('tacha el precio anterior de una sugerencia con promoción vigente', async () => {
+    mocks.leer.mockResolvedValue(respuesta(sugerencia('p-1', 'Cargador USB-C', { precio: 2500, precioAnterior: 3000 }), sugerencia('p-2', 'Cargador inalámbrico')))
+    montar()
+    fireEvent.change(campo(), { target: { value: 'carg' } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const opciones = screen.getAllByRole('option')
+    expect(opciones[0]).toHaveTextContent('$ 2.500')
+    expect(within(opciones[0]).getByTestId('precio-anterior')).toHaveTextContent('$ 3.000')
+    expect(within(opciones[1]).queryByTestId('precio-anterior')).not.toBeInTheDocument()
   })
 
   it('con menos de 2 caracteres no consulta ni muestra nada', async () => {
@@ -141,6 +154,15 @@ describe('BuscadorTienda · teclado y navegación', () => {
     await escribir('  cargdor   usb  ')
     fireEvent.keyDown(campo(), { key: 'Enter' })
     expect(ubicacion()).toBe('/catalogo?q=cargdor+usb')
+  })
+
+  it('emite el evento busqueda al buscar, solo con su nombre (sin el texto buscado)', async () => {
+    montar()
+    await escribir('juan perez 1155550000')
+    expect(mocks.evento).not.toHaveBeenCalled() // escribir y ver sugerencias no es buscar
+    fireEvent.keyDown(campo(), { key: 'Enter' })
+    expect(mocks.evento).toHaveBeenCalledTimes(1)
+    expect(mocks.evento).toHaveBeenCalledWith('busqueda')
   })
 
   it('«Ver todos los resultados →» con el mouse lleva a /catalogo?q=…', async () => {

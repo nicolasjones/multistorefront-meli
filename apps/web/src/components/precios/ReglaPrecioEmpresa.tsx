@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react'
+import { Link as RouterLink } from 'react-router'
 import { Box, Button, InputAdornment, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import {
   AYUDA_AJUSTE,
@@ -29,13 +30,17 @@ type Props = {
   cotizacion: Cotizacion | null
   cargandoCotizacion: boolean
   errorCotizacion: boolean
+  // F-PRE-06, FR-010: «La general del sistema» o «La de <Empresa>» según el alcance de la cotización.
+  cotizacionQueUsa?: string
+  // Con acceso a «Cotización del dólar», `Cotización →` lleva a /cotizacion; sin él queda deshabilitado.
+  puedeAbrirCotizacion?: boolean
 }
 
 // Bloques «Precio de venta de <Empresa>» y «Moneda y cotización» de la pestaña «Precios y moneda»
 // (F-PRE-07, FR-012; StorePrecios.dc.html). Es presentación pura: el estado y el guardado viven
 // en la pantalla. «Precios que ve el cliente» (IVA, F-PRE-12 FR-022) elige qué importe ve el cliente.
 export function ReglaPrecioEmpresa({
-  nombreEmpresa, base, ajuste, errorAjuste, onBase, onAjuste, mostrarConIva, onMostrarConIva, ejemplo, soloLectura, cotizacion, cargandoCotizacion, errorCotizacion,
+  nombreEmpresa, base, ajuste, errorAjuste, onBase, onAjuste, mostrarConIva, onMostrarConIva, ejemplo, soloLectura, cotizacion, cargandoCotizacion, errorCotizacion, cotizacionQueUsa = 'La general del sistema', puedeAbrirCotizacion = false,
 }: Props) {
   const fecha = cotizacion ? formatearFechaCotizacion(cotizacion.fecha) : ''
   let textoDolar: string
@@ -120,13 +125,18 @@ export function ReglaPrecioEmpresa({
         <Stack spacing={1.5}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField label="Moneda de la tienda" value="ARS · Peso argentino" disabled fullWidth />
-            <TextField label="Cotización que usa" value="La general del sistema" disabled fullWidth />
+            <TextField label="Cotización que usa" value={cotizacionQueUsa} disabled fullWidth />
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 2 }}>
             <Typography variant="body2" sx={{ flex: 1 }}>{textoDolar}</Typography>
-            {/* Sin destino hasta la carga del dólar (MSF-116); mismo criterio que el bloque «Precio y costo». */}
-            <Button size="small" disabled aria-describedby="cotizacion-pendiente">Cotización →</Button>
-            <Box id="cotizacion-pendiente" component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Disponible con la carga del dólar</Box>
+            {puedeAbrirCotizacion ? (
+              <Button size="small" component={RouterLink} to="/cotizacion">Cotización →</Button>
+            ) : (
+              <>
+                <Button size="small" disabled aria-describedby="cotizacion-pendiente">Cotización →</Button>
+                <Box id="cotizacion-pendiente" component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Tu rol no tiene acceso a la cotización del dólar</Box>
+              </>
+            )}
           </Stack>
         </Stack>
       </Box>

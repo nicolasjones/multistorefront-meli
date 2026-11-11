@@ -1,9 +1,10 @@
 import { Box, Breadcrumbs, Button, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
-import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import type { FichaProducto } from '../../../lib/tiendaFicha'
+import { PrecioTachado } from '../catalogo/PrecioTachado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { BotonWhatsApp } from '../whatsapp/BotonWhatsApp'
+import { BotonCompartir } from './BotonCompartir'
 
 function Dato({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
@@ -27,12 +28,11 @@ export function Migas({ nombre }: { nombre: string }) {
 }
 
 export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; host: string; empresa: string }) {
-  const precio = formatearPrecioArs(ficha.precio)
   return (
     <Box>
       {ficha.categoria ? <Typography color="text.secondary" variant="body2">{ficha.categoria.nombre}</Typography> : null}
       <Typography component="h1" variant="h4" sx={{ mb: 1, typography: { xs: 'h5', md: 'h4' }, overflowWrap: 'anywhere' }}>{ficha.nombre}</Typography>
-      {precio ? <Typography component="p" variant="h5" sx={{ mb: 0.5 }}>{precio}</Typography> : null}
+      <Box sx={{ mb: 0.5 }}><PrecioTachado precio={ficha.precio} precioAnterior={ficha.precioAnterior} variant="h5" /></Box>
       <Box sx={{ mb: 2 }}><EtiquetaDisponibilidad disponible={ficha.disponible} /></Box>
       {ficha.descripcion ? <Typography sx={{ mb: 2, whiteSpace: 'pre-line' }}>{ficha.descripcion}</Typography> : null}
       <Box component="dl" aria-label="Datos del producto" sx={{ m: 0, mb: 2 }}>
@@ -51,6 +51,7 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
           productoId={ficha.id}
           precio={ficha.precio}
         />
+        <BotonCompartir productoId={ficha.id} nombre={ficha.nombre} />
         <Button component={EnlaceRuta} to="/catalogo" variant="outlined" sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, width: { xs: '100%', sm: 'auto' } }}>Ver más productos</Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Precios y disponibilidad sujetos a cambios.</Typography>

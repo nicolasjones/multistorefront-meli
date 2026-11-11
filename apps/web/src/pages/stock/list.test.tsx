@@ -11,6 +11,13 @@ const mocks = vi.hoisted(() => ({
   alCambiarEnVivo: null as null | (() => void),
   depositosActivos: vi.fn(),
   stockPorDeposito: vi.fn(),
+  descargarCsv: vi.fn(),
+  imagenes: new Map<string, string>(),
+}))
+
+vi.mock('../../lib/exportarCsv', async (importarOriginal) => ({
+  ...(await importarOriginal<typeof import('../../lib/exportarCsv')>()),
+  descargarCsv: mocks.descargarCsv,
 }))
 
 // El hook de Realtime se prueba aparte; acá se captura el aviso para simular un cambio en vivo.
@@ -47,6 +54,7 @@ vi.mock('../../lib/supabase', () => ({
     },
   },
 }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -94,6 +102,7 @@ describe('StockList', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.llamadas.length = 0
+    mocks.imagenes = new Map()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
@@ -123,6 +132,44 @@ describe('StockList', () => {
     expect(screen.getByText('3 productos')).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Reservado' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Disponible' })).toBeInTheDocument()
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente y no hay paginación numerada', async () => {
+    const extra = { producto_id: 'p-4', nombre: 'Teclado', sku: 'TEC-1', cantidad: 9, reservado: 0, disponible: 9, minimo: 1, estado: 'disponible', ultimo_movimiento_en: null }
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 4 })
+    mocks.consulta.mockResolvedValueOnce({ data: [extra], error: null, count: 4 })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByText(/Productos por página/)).not.toBeInTheDocument()
+    expect(screen.getByText('4 productos')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Teclado')).toBeInTheDocument()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+    expect(llamadasDe('range').at(-1)).toEqual([25, 49])
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('buscar reinicia la lista desde la primera tanda', async () => {
+    const extra = { producto_id: 'p-4', nombre: 'Teclado', sku: 'TEC-1', cantidad: 9, reservado: 0, disponible: 9, minimo: 1, estado: 'disponible', ultimo_movimiento_en: null }
+    mocks.consulta.mockResolvedValueOnce({ data: FILAS, error: null, count: 4 })
+    mocks.consulta.mockResolvedValueOnce({ data: [extra], error: null, count: 4 })
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Teclado')
+    mocks.consulta.mockResolvedValue({ data: [FILAS[2]], error: null, count: 1 })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
+    await waitFor(() => expect(screen.queryByText('Teclado')).not.toBeInTheDocument())
+    expect(screen.queryByText('Joystick')).not.toBeInTheDocument()
+    expect(screen.getByText('Mouse')).toBeInTheDocument()
+    expect(llamadasDe('range').at(-1)).toEqual([0, 24])
+  })
+
+  it('muestra la imagen principal del producto como miniatura junto al nombre', async () => {
+    mocks.imagenes = new Map([['p-1', 'https://img.test/joystick.jpg']])
+    abrir()
+    await screen.findByText('Joystick')
+    expect(document.querySelector('img[src="https://img.test/joystick.jpg"]')).not.toBeNull()
   })
 
   it('el control de depósito cambia las cifras del listado', async () => {
@@ -173,7 +220,24 @@ describe('StockList', () => {
     abrir()
     await screen.findByText('Joystick')
     fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'JOY_1,(x)' } })
-    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%JOY\\_1  x%,sku.ilike.%JOY\\_1  x%']))
+    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%joy\\_1  x%,sku.ilike.%joy\\_1  x%']))
+  })
+
+  it('búsqueda con carga infinita: muestra solo coincidencias y «Cargar más» pide la tanda siguiente con el mismo filtro', async () => {
+    const mouse2 = { ...FILAS[2], producto_id: 'p-9', nombre: 'Mouse gamer', sku: 'MOU-2' }
+    abrir()
+    await screen.findByText('Joystick')
+    mocks.consulta.mockResolvedValueOnce({ data: [FILAS[2]], error: null, count: 2 })
+    fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
+    expect(await screen.findByText('2 productos')).toBeInTheDocument()
+    expect(screen.queryByText('Joystick')).not.toBeInTheDocument()
+    mocks.consulta.mockResolvedValueOnce({ data: [mouse2], error: null, count: 2 })
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Mouse gamer')).toBeInTheDocument()
+    expect(screen.getByText('Mouse')).toBeInTheDocument()
+    expect(screen.queryByText('Joystick')).not.toBeInTheDocument()
+    expect(llamadasDe('or').at(-1)).toEqual(['nombre_norm.ilike.%mou%,sku.ilike.%mou%'])
+    expect(llamadasDe('range').at(-1)).toEqual([25, 49])
   })
 
   it('una búsqueda sin resultados avisa y no confunde con el catálogo vacío', async () => {
@@ -218,7 +282,7 @@ describe('StockList', () => {
     await screen.findByText('Joystick')
     fireEvent.click(screen.getByRole('button', { name: 'Stock bajo' }))
     fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'mou' } })
-    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%mou%,sku.ilike.%mou%']))
+    await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%mou%,sku.ilike.%mou%']))
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(3))
     const campo = screen.getByLabelText('Buscar por nombre o SKU')
     campo.focus()
@@ -231,7 +295,7 @@ describe('StockList', () => {
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(1))
     expect(mocks.contar).toHaveBeenCalledTimes(2)
     expect(llamadasDe('eq')).toContainEqual(['estado', 'stock_bajo'])
-    expect(llamadasDe('or')).toContainEqual(['nombre.ilike.%mou%,sku.ilike.%mou%'])
+    expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%mou%,sku.ilike.%mou%'])
     expect(screen.getByText('Joystick')).toBeInTheDocument()
     expect(screen.getByLabelText('Buscar por nombre o SKU')).toBe(campo)
     expect(campo).toHaveFocus()
@@ -283,5 +347,150 @@ describe('StockList', () => {
     expect(screen.queryByText(/boom/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByText('Joystick')).toBeInTheDocument()
+  })
+
+  // Exportar (F-STK-08): «Exportar» descarga el CSV con la misma consulta que la pantalla.
+  describe('Exportar', () => {
+    const exportar = async () => {
+      await screen.findByRole('table', { name: 'Stock actual' })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    }
+    const csvDescargado = () => {
+      const [contenido, nombre] = mocks.descargarCsv.mock.calls[0] as [string, string]
+      return { lineas: contenido.slice(1).split('\r\n').filter(Boolean), nombre, contenido }
+    }
+
+    it('con rol lectura exporta las mismas columnas y filas que la tabla, sin acciones', async () => {
+      mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+      abrir()
+      const tabla = await screen.findByRole('table', { name: 'Stock actual' })
+      const encabezados = within(tabla).getAllByRole('columnheader').map((c) => c.textContent).filter((t) => t && t !== 'Acciones')
+      await exportar()
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      const { lineas, nombre, contenido } = csvDescargado()
+      expect(contenido.startsWith('\uFEFF')).toBe(true)
+      expect(nombre).toMatch(/^stock-actual-\d{4}-\d{2}-\d{2}\.csv$/)
+      expect(lineas[0].split(';')).toEqual(encabezados)
+      expect(lineas).toHaveLength(1 + FILAS.length)
+      expect(lineas[1]).toBe('Joystick · JOY-1;6;1;5;5;Disponible;' + new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' }).format(new Date('2026-10-10T12:00:00Z')))
+      expect(lineas[2]).toBe('Cable;0;0;0;3;Sin stock;Sin movimientos')
+    })
+
+    it('pide todas las filas del filtro por lotes (no solo la página) con búsqueda y estado', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      fireEvent.click(screen.getByRole('button', { name: 'Ver solo alertas' }))
+      fireEvent.change(screen.getByLabelText('Buscar por nombre o SKU'), { target: { value: 'JOY' } })
+      await waitFor(() => expect(llamadasDe('or')).toContainEqual(['nombre_norm.ilike.%joy%,sku.ilike.%joy%']))
+      await screen.findByRole('table', { name: 'Stock actual' })
+      mocks.llamadas.length = 0
+      const lote = Array.from({ length: 200 }, (_, i) => ({ ...FILAS[0], producto_id: `p-${i}` }))
+      mocks.consulta.mockReset()
+      mocks.consulta.mockResolvedValueOnce({ data: lote, error: null }).mockResolvedValueOnce({ data: [FILAS[1]], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(llamadasDe('range')).toEqual([[0, 199], [200, 399]])
+      expect(llamadasDe('in')).toEqual([[ 'estado', ['sin_stock', 'stock_bajo']], ['estado', ['sin_stock', 'stock_bajo']]])
+      expect(llamadasDe('or')).toEqual([['nombre_norm.ilike.%joy%,sku.ilike.%joy%'], ['nombre_norm.ilike.%joy%,sku.ilike.%joy%']])
+      expect(csvDescargado().lineas).toHaveLength(1 + 201)
+    })
+
+    it('con un depósito elegido exporta las cifras de ese depósito, como la pantalla', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito de mercadería' }))
+      fireEvent.click(await screen.findByRole('option', { name: 'Depósito Sur' }))
+      await waitFor(() => expect(mocks.stockPorDeposito).toHaveBeenCalled())
+      await exportar()
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1].startsWith('Joystick · JOY-1;1;0;1;5;Disponible')).toBe(true)
+    })
+
+    it('al exportar con otro depósito sin fila para un producto sale 0, no la cifra del depósito anterior', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      const elegir = async (nombre: string) => {
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito de mercadería' }))
+        fireEvent.click(await screen.findByRole('option', { name: nombre }))
+      }
+      await elegir('Depósito Sur')
+      await waitFor(() => expect(mocks.stockPorDeposito).toHaveBeenCalled())
+      await exportar()
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1].startsWith('Joystick · JOY-1;1;0;1;5')).toBe(true)
+
+      mocks.stockPorDeposito.mockResolvedValue({})
+      await elegir('Depósito principal (por defecto)')
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Exportar' })).toBeEnabled())
+      mocks.descargarCsv.mockClear()
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1].startsWith('Joystick · JOY-1;0;0;0;5')).toBe(true)
+    })
+
+    it('neutraliza un nombre que empieza con «=»', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      mocks.consulta.mockResolvedValue({ data: [{ ...FILAS[0], nombre: '=HIPERVINCULO("x")', sku: null }], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(csvDescargado().lineas[1].startsWith('"\'=HIPERVINCULO(""x"")"')).toBe(true)
+    })
+
+    it('si la consulta falla no descarga nada y ofrece reintentar', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      mocks.consulta.mockResolvedValue({ data: null, error: { message: 'boom' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/No pudimos exportar/)).toBeInTheDocument()
+      expect(mocks.descargarCsv).not.toHaveBeenCalled()
+      mocks.consulta.mockResolvedValue({ data: FILAS, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+    })
+
+    it('sin filas descarga solo los encabezados y avisa «No hay filas para exportar»', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      mocks.consulta.mockResolvedValue({ data: [], error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/No hay filas para exportar/)).toBeInTheDocument()
+      expect(csvDescargado().lineas).toHaveLength(1)
+    })
+
+    it('muestra «Exportando…» y no permite un segundo clic mientras corre', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      let resolver: (valor: unknown) => void = () => undefined
+      mocks.consulta.mockReturnValue(new Promise((r) => { resolver = r }))
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      const boton = await screen.findByRole('button', { name: 'Exportando…' })
+      expect(boton).toBeDisabled()
+      resolver({ data: FILAS, error: null })
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(await screen.findByRole('button', { name: 'Exportar' })).toBeEnabled()
+    })
+
+    it('corta en el tope de 100.000 filas y avisa que hay más', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      const lote = Array.from({ length: 200 }, (_, i) => ({ ...FILAS[0], producto_id: `p-${i}` }))
+      mocks.consulta.mockResolvedValue({ data: lote, error: null })
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      expect(await screen.findByText(/Se exportaron las primeras 100\.000 filas/, undefined, { timeout: 20000 })).toBeInTheDocument()
+      expect(csvDescargado().lineas).toHaveLength(1 + 100_000)
+    }, 30000)
+
+    it('cambiar de filtro exporta con el filtro nuevo (no uno viejo)', async () => {
+      abrir()
+      await screen.findByRole('table', { name: 'Stock actual' })
+      fireEvent.click(screen.getByRole('button', { name: 'Sin stock' }))
+      await waitFor(() => expect(llamadasDe('eq')).toContainEqual(['estado', 'sin_stock']))
+      await screen.findByRole('table', { name: 'Stock actual' })
+      mocks.llamadas.length = 0
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+      await waitFor(() => expect(mocks.descargarCsv).toHaveBeenCalledTimes(1))
+      expect(llamadasDe('eq')).toEqual([['estado', 'sin_stock']])
+    })
   })
 })

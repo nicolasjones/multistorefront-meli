@@ -42,6 +42,23 @@ vi.mock('../../lib/ventasPresupuestos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasPresupuestos')>()),
   copiarPresupuesto: mocks.copiarPresupuesto,
 }))
+vi.mock('../../lib/ventasDespacho', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/ventasDespacho')>()),
+  obtenerDespachoComprobante: vi.fn(async () => ({
+    estado_despacho: 'sin_armar',
+    armo_id: null,
+    armo: null,
+    controlo_id: null,
+    controlo: null,
+    entrego_id: null,
+    entrego: null,
+    entregado_en: null,
+    updated_at: '2026-10-24T10:00:00Z',
+    puede_despachar: false,
+  })),
+  listarResponsablesDespacho: vi.fn(async () => []),
+  cambiarEstadoDespacho: vi.fn(async () => undefined),
+}))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/service/ClienteSelector', () => ({
   ClienteSelector: (props: {
@@ -139,7 +156,7 @@ describe('Comprobante de venta · alta (F-VTA-05)', () => {
     expect(screen.getByRole('button', { name: 'Tienda online' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Teléfono/WhatsApp' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Mercado Libre/ })).not.toBeInTheDocument()
-    expect(screen.getByText('Mercado Libre queda para la Etapa 2.')).toBeInTheDocument()
+    expect(screen.getByText('Mercado Libre no está disponible todavía como canal.')).toBeInTheDocument()
   })
 
   it('muestra los datos de lectura del cliente elegido, incluido Consumidor final', async () => {

@@ -9,7 +9,12 @@ const mocks = vi.hoisted(() => ({
   onRecargar: vi.fn(),
 }))
 
+vi.mock('../../hooks/useRespuestasRapidas', () => ({
+  useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: mocks.useResponsablesConsultas }))
+// El contacto de la libreta (F-CON-05) tiene su propio test: acá no se monta.
+vi.mock('../../pages/consultas/ContactoConsulta', () => ({ ContactoConsulta: () => null }))
 vi.mock('../../lib/consultas', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/consultas')>()),
   actualizarConsulta: mocks.actualizarConsulta,
@@ -82,20 +87,9 @@ describe('DetalleConsulta (F-CON-01, FR-007)', () => {
     expect(screen.getByText(/No dejó mensaje/)).toBeInTheDocument()
   })
 
-  it('«Responder por correo» codifica el contacto y abre el cliente externo', () => {
+  it('ofrece «Responder por correo» o «por WhatsApp» según el contacto (detalle en responder.test.tsx)', () => {
     abrir()
-    const responder = screen.getByRole('link', { name: 'Responder por correo' })
-    expect(responder).toHaveAttribute('href', 'mailto:ana%40example.com')
-    expect(responder).toHaveAttribute('target', '_blank')
-    expect(responder).toHaveAttribute('rel', 'noopener noreferrer')
-  })
-
-  it('«Responder por WhatsApp» deja solo dígitos en el enlace', () => {
-    abrir(consulta({ contacto: '+54 9 11 5555-1234' }))
-    expect(screen.getByRole('link', { name: 'Responder por WhatsApp' })).toHaveAttribute(
-      'href',
-      'https://wa.me/5491155551234',
-    )
+    expect(screen.getByRole('button', { name: 'Responder por correo' })).toBeEnabled()
   })
 
   it('con lectura no deja cambiar nada y no muestra «Guardar»', () => {

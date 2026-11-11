@@ -29,6 +29,9 @@ export type EstadoReparacion = {
 const COLUMNAS_MODELO = 'id, equipo, modelo, mano_obra_base, activo, updated_at'
 const COLUMNAS_ESTADO = 'id, nombre, descripcion, orden, avisa_cliente, cierra, tono, activo, updated_at'
 
+// Nombre del reporte de Service en `public.reportes` (lo registra `infra/superset/dashboards/service/reportes.json`).
+export const NOMBRE_REPORTE_SERVICE = 'Service técnico'
+
 export const LARGO_MAXIMO_EQUIPO = 100
 export const LARGO_MAXIMO_MODELO = 100
 export const LARGO_MAXIMO_NOMBRE_ESTADO = 80

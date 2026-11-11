@@ -123,6 +123,64 @@ describe('ComprobantesList (F-VTA-09, FR-001…FR-010)', () => {
     mocks.solicitarExportacionDiferida.mockResolvedValue('ej-1')
   })
 
+  it('«Cargar más» pide la tanda siguiente y la suma; el contador conserva el total', async () => {
+    mocks.listarComprobantes.mockImplementation(async (_filtros: unknown, pag: number) =>
+      pag === 2 ? pagina([comprobante(30)], 3) : pagina([comprobante(1), comprobante(2)], 3))
+    abrir()
+    expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
+    expect(screen.getByText('3 comprobantes')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Cliente 30')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
+    expect(mocks.listarComprobantes.mock.calls.at(-1)![1]).toBe(2)
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('cambiar un filtro reinicia desde la primera tanda y descarta lo acumulado', async () => {
+    mocks.listarComprobantes.mockImplementation(async (filtros: { estado: string }, pag: number) => {
+      if (filtros.estado) return pagina([comprobante(9)], 1)
+      return pag === 2 ? pagina([comprobante(30)], 2) : pagina([comprobante(1)], 2)
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente 30')
+    fireEvent.click(screen.getByRole('button', { name: /^Estado:/ }))
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Aceptado' }))
+    expect(await screen.findByText('Cliente 9')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(mocks.listarComprobantes.mock.calls.at(-1)![1]).toBe(1)
+  })
+
+  it('buscar muestra solo coincidencias, descarta lo acumulado y «Cargar más» conserva la búsqueda', async () => {
+    mocks.listarComprobantes.mockImplementation(async (filtros: { busqueda: string }, pag: number) => {
+      if (filtros.busqueda === 'Norte') {
+        return pag === 2 ? pagina([comprobante(12, { cliente: 'Norte 2' })], 2) : pagina([comprobante(11, { cliente: 'Norte 1' })], 2)
+      }
+      return pag === 2 ? pagina([comprobante(30)], 40) : pagina([comprobante(1)], 40)
+    })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Cliente 30')
+
+    fireEvent.change(screen.getByLabelText('Buscar por cliente o número'), { target: { value: 'Norte' } })
+    expect(await screen.findByText('Norte 1')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    expect(screen.getByText('2 comprobantes')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Norte 2')).toBeInTheDocument()
+    expect(screen.getByText('Norte 1')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 30')).not.toBeInTheDocument()
+    const ultima = mocks.listarComprobantes.mock.calls.at(-1)!
+    expect(ultima[0]).toMatchObject({ busqueda: 'Norte' })
+    expect(ultima[1]).toBe(2)
+  })
+
   it('muestra título, subtítulo, las columnas del prototipo, chips y el contador', async () => {
     abrir()
     expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
@@ -310,6 +368,20 @@ describe('ComprobantesList (F-VTA-09, FR-001…FR-010)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
     expect(screen.queryByRole('heading', { name: 'Comprobantes' })).not.toBeInTheDocument()
     expect(mocks.listarComprobantes).not.toHaveBeenCalled()
+  })
+
+  it('muestra el aviso que deja el comprobante al cerrarse por cambio de empresa (F-VTA-15, FR-012)', async () => {
+    const mensaje = 'Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.'
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/ventas/comprobantes', state: { mensaje } }]}>
+        <Routes>
+          <Route path="/ventas/comprobantes" element={<ComprobantesList />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    const aviso = await screen.findByText(mensaje)
+    expect(aviso.closest('[role="status"]')).not.toBeNull()
+    expect(await screen.findByText('Cliente 1')).toBeInTheDocument()
   })
 
   it('en pantallas angostas conserva los datos en tarjetas', async () => {

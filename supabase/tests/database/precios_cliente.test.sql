@@ -40,10 +40,14 @@ insert into dominio.productos (id, organizacion_id, nombre, precio_lista, moneda
 insert into dominio.producto_precios_escala (producto_id, organizacion_id, escala, precio) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x5', 900),
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x10', 800);
+-- Solo los productos de ESTA organización: la FK compuesta (producto_id, organizacion_id) rechaza
+-- los productos de otra organización que el seed de desarrollo deja en la base (p. ej. el de
+-- MSF-195). Antes se tomaba `dominio.productos` entero y el alta fallaba con el seed puesto.
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
 select p.id, e.id, '11111111-1111-1111-1111-111111111111'
   from dominio.productos p
-  cross join (values ('e1000000-0000-0000-0000-000000000001'::uuid), ('e1000000-0000-0000-0000-000000000002'::uuid)) e(id);
+  cross join (values ('e1000000-0000-0000-0000-000000000001'::uuid), ('e1000000-0000-0000-0000-000000000002'::uuid)) e(id)
+ where p.organizacion_id = '11111111-1111-1111-1111-111111111111';
 insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values
   ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', false, false);
 

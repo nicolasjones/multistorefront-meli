@@ -47,10 +47,12 @@ export type Consulta = {
   nota_interna: string | null
   created_at: string
   updated_at: string
+  /** Contacto de la libreta vinculado (F-CON-05); null si no tiene. */
+  contacto_id?: string | null
 }
 
 export const COLUMNAS_CONSULTA =
-  'id, empresa_id, empresa_nombre, origen, nombre, contacto, mensaje, producto_id, producto_nombre, estado, responsable_id, responsable_nombre, nota_interna, created_at, updated_at'
+  'id, empresa_id, empresa_nombre, origen, nombre, contacto, mensaje, producto_id, producto_nombre, estado, responsable_id, responsable_nombre, nota_interna, created_at, updated_at, contacto_id'
 
 export type Responsable = { user_id: string; nombre: string }
 
@@ -204,23 +206,6 @@ export function formatearCuando(iso: string, ahora: Date = new Date()): string {
   if (dias === 1) return `Ayer ${hora}`
   const dia = `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}`
   return fecha.getFullYear() === ahora.getFullYear() ? `${dia} ${hora}` : `${dia}/${fecha.getFullYear()} ${hora}`
-}
-
-export type RespuestaExterna = { via: 'correo' | 'WhatsApp'; href: string }
-
-// «Responder por…»: abre el cliente externo; el panel no envía nada. El contacto lo escribió el
-// visitante: el correo va codificado entero en el `mailto:` (así un `?bcc=…` queda como texto del
-// destinatario) y el teléfono se reduce a dígitos para el enlace de WhatsApp.
-export function respuestaExterna(consulta: Pick<Consulta, 'contacto'>): RespuestaExterna | null {
-  const contacto = consulta.contacto.trim()
-  if (contacto.includes('@')) {
-    return { via: 'correo', href: `mailto:${encodeURIComponent(contacto)}` }
-  }
-  const digitos = contacto.replace(/\D/g, '')
-  if (digitos.length >= 7 && digitos.length <= 15) {
-    return { via: 'WhatsApp', href: `https://wa.me/${digitos}` }
-  }
-  return null
 }
 
 // Señal de «cambió una consulta» para que el contador del menú y la bandeja se relean tras

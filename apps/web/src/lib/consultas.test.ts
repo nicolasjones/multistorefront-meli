@@ -6,7 +6,6 @@ import {
   limitesDeFecha,
   mensajeDeError,
   nombreProducto,
-  respuestaExterna,
   textoParaBusqueda,
 } from './consultas'
 
@@ -46,27 +45,6 @@ describe('formatearCuando (columna «Cuándo»)', () => {
 
   it('una fecha inválida no rompe la celda', () => {
     expect(formatearCuando('no-es-fecha', ahora)).toBe('—')
-  })
-})
-
-describe('respuestaExterna (FR-007: abre el cliente externo, el panel no envía nada)', () => {
-  it('un correo va codificado dentro del mailto para que no se inyecten parámetros', () => {
-    expect(respuestaExterna({ contacto: 'ana@example.com' })).toEqual({
-      via: 'correo',
-      href: 'mailto:ana%40example.com',
-    })
-    expect(respuestaExterna({ contacto: 'a?bcc=x@example.com' })?.href).toBe('mailto:a%3Fbcc%3Dx%40example.com')
-  })
-
-  it('un teléfono se reduce a dígitos para WhatsApp', () => {
-    expect(respuestaExterna({ contacto: '+54 9 11 5555-1234' })).toEqual({
-      via: 'WhatsApp',
-      href: 'https://wa.me/5491155551234',
-    })
-  })
-
-  it('un contacto que no es ni correo ni teléfono no ofrece enlace', () => {
-    expect(respuestaExterna({ contacto: '123' })).toBeNull()
   })
 })
 

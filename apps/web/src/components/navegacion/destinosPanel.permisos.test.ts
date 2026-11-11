@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import { panelFixtures } from '../../test/fixtures/panel'
 import type { PermisoSeccion } from '../../lib/permisos'
 import { SECCION_POR_RECURSO } from '../../lib/permisos'
@@ -93,6 +95,17 @@ describe('coherencia menú ↔ rutas (F-ROL-01)', () => {
   })
 })
 
+describe('destino «Correo masivo» (F-CLI-11)', () => {
+  it('cuelga de Contactos, apunta a /clientes/correo-masivo y sigue la sección clientes de la matriz', () => {
+    const correo = destino('correo-masivo')
+    expect(correo.ruta).toBe('/clientes/correo-masivo')
+    expect(correo.seccionPermiso).toBe('clientes')
+    expect(SECCIONES_PANEL.find((seccion) => seccion.destinos.some((d) => d.id === 'correo-masivo'))?.id).toBe('contactos')
+    expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'edicion']))).toBe(true)
+    expect(destinoVisible(correo, panelFixtures.miembro, permisos(['clientes', 'ninguno']))).toBe(false)
+  })
+})
+
 describe('destino «Productos» (F-CAT-02)', () => {
   it('apunta a /productos, pertenece a la sección productos y respeta la matriz', () => {
     const productos = destino('productos')
@@ -137,6 +150,82 @@ describe('destino «Consultas» (F-CON-01, FR-005)', () => {
     expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'edicion']))).toBe(true)
     expect(destinoVisible(consultas, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
     expect(destinoVisible(consultas, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('destino «Contactos» (F-CON-05, FR-005)', () => {
+  it('está en Canales debajo de Consultas, comparte su sección de permisos y no aparece con «ninguno»', () => {
+    const contactos = destino('contactos')
+    expect(contactos.ruta).toBe('/contactos')
+    expect(contactos.seccionPermiso).toBe('consultas')
+    expect(SECCION_POR_RECURSO.contactos).toBe('consultas')
+    const ids = SECCIONES_PANEL.find((seccion) => seccion.id === 'canales')?.destinos.map((d) => d.id) ?? []
+    expect(ids.indexOf('contactos')).toBe(ids.indexOf('consultas') + 1)
+    expect(destinoVisible(contactos, panelFixtures.miembro, permisos(['consultas', 'lectura']))).toBe(true)
+    expect(destinoVisible(contactos, panelFixtures.miembro, permisos(['consultas', 'ninguno']))).toBe(false)
+  })
+})
+
+describe('destino «Despacho» (F-VTA-17, FR-032)', () => {
+  it('está en el grupo Ventas, apunta a /ventas/despacho y usa el icono de camión', () => {
+    const despacho = destino('ventas-despacho')
+    expect(despacho.ruta).toBe('/ventas/despacho')
+    expect(despacho.etiqueta).toBe('Despacho')
+    expect(despacho.seccionPermiso).toBe('ventas')
+    expect(despacho.icono).toBe(LocalShippingIcon)
+    const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')
+    expect(ventas?.destinos.map((d) => d.id)).toContain('ventas-despacho')
+  })
+
+  it('lo ven quienes tienen Ventas en lectura o edición, nunca sin acceso', () => {
+    const despacho = destino('ventas-despacho')
+    expect(destinoVisible(despacho, panelFixtures.miembro, permisos(['ventas', 'lectura']))).toBe(true)
+    expect(destinoVisible(despacho, panelFixtures.miembro, permisos(['ventas', 'edicion']))).toBe(true)
+    expect(destinoVisible(despacho, panelFixtures.miembro, permisos(['ventas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(despacho, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('destino «Faltantes» (F-VTA-18, FR-045)', () => {
+  it('está en el grupo Ventas, apunta a /ventas/faltantes y usa el icono de producción', () => {
+    const faltantes = destino('ventas-faltantes')
+    expect(faltantes.ruta).toBe('/ventas/faltantes')
+    expect(faltantes.etiqueta).toBe('Faltantes')
+    expect(faltantes.seccionPermiso).toBe('ventas')
+    expect(faltantes.icono).toBe(ProductionQuantityLimitsIcon)
+    const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')
+    expect(ventas?.destinos.map((d) => d.id)).toContain('ventas-faltantes')
+  })
+
+  it('lo ven quienes tienen Ventas en lectura o edición, nunca sin acceso', () => {
+    const faltantes = destino('ventas-faltantes')
+    expect(destinoVisible(faltantes, panelFixtures.miembro, permisos(['ventas', 'lectura']))).toBe(true)
+    expect(destinoVisible(faltantes, panelFixtures.miembro, permisos(['ventas', 'edicion']))).toBe(true)
+    expect(destinoVisible(faltantes, panelFixtures.miembro, permisos(['ventas', 'ninguno']))).toBe(false)
+    expect(destinoVisible(faltantes, panelFixtures.miembro, [])).toBe(false)
+  })
+})
+
+describe('destino «Reportes» de Service técnico (F-SVC-23, FR-064)', () => {
+  it('está en el grupo Servicio técnico, apunta a /service-tecnico/reportes y usa la sección service_tecnico', () => {
+    const reportes = destino('service-tecnico-reportes')
+    expect(reportes.ruta).toBe('/service-tecnico/reportes')
+    expect(reportes.etiqueta).toBe('Reportes')
+    expect(reportes.seccionPermiso).toBe('service_tecnico')
+    expect(reportes.feature).toBe('service-tecnico')
+    expect(SECCION_POR_RECURSO['service-tecnico-reportes']).toBe('service_tecnico')
+    const service = SECCIONES_PANEL.find((seccion) => seccion.id === 'service')
+    expect(service?.destinos.map((d) => d.id)).toContain('service-tecnico-reportes')
+  })
+
+  it('lo ven quienes tienen Servicio técnico en lectura o edición, nunca sin acceso', () => {
+    const reportes = destino('service-tecnico-reportes')
+    const conService = new Set(['service-tecnico'])
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'lectura']), conService)).toBe(true)
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'edicion']), conService)).toBe(true)
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'ninguno']), conService)).toBe(false)
+    expect(destinoVisible(reportes, panelFixtures.miembro, [], conService)).toBe(false)
+    expect(destinoVisible(reportes, panelFixtures.miembro, permisos(['service_tecnico', 'lectura']), new Set())).toBe(false)
   })
 })
 

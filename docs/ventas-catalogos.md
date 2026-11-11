@@ -43,11 +43,12 @@ organización según el catálogo), `updated_at` para bloqueo optimista (`40001`
 |---|---|---|
 | `/ventas/configuracion` | Configuración de ventas: pestañas `Formas de pago` y `Formas de envío` | `VentasConfiguracion.dc.html` |
 | `/ventas/cuentas-cobro` | Cuentas de cobro | `CuentasCobro.dc.html` |
-| `/ventas/transportes` | Transportes y terminales de retiro | `VentasTransportes.dc.html` |
+| `/ventas/transportes` | Transportes y contrarreembolsos: sub-pestañas `Contrarreembolsos` y `Terminales de retiro` | `VentasTransportes.dc.html` |
 
-Sin permiso se muestra «Acceso restringido» (`RequiereAccesoSeccion`). Fuera de alcance: pestañas RMA, Contrarreembolsos y Estados,
-tableros de contrarreembolsos y motos, «Envíos del mes», Exportar, transporte preferido del cliente (MSF-180) y la carga de datos
-reales (MSF-142); ver la matriz pantalla↔criterios de la spec.
+Sin permiso se muestra «Acceso restringido» (`RequiereAccesoSeccion`). Fuera de alcance: pestañas RMA y Estados,
+pestaña `Motos` y sus tarjetas, «Envíos del mes», Exportar, transporte preferido del cliente (MSF-180) y la carga de datos
+reales (MSF-142); la pestaña `Contrarreembolsos` la entrega F-VTA-14 (`docs/contrarreembolsos-transporte.md`). Ver la matriz
+pantalla↔criterios de la spec.
 
 ## Reversión
 

@@ -123,12 +123,104 @@ Cada dashboard tiene dos UUIDs distintos, fáciles de confundir:
 
 Rentabilidad usa dos tableros embebidos (`Resumen` y `Por producto`) que leen **solo** el esquema `analitica` de
 la base de la app con el rol `superset_analitica` (solo lectura). Se importan desde
-`infra/superset/dashboards/rentabilidad/` con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging|production`,
+`infra/superset/dashboards/rentabilidad/` con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno dev|staging|production`,
 que además registra los reportes en `public.reportes` con `seccion = 'rentabilidad'`. La conexión necesita
 `SUPERSET_ANALITICA_DB_HOST` y `SUPERSET_ANALITICA_DB_PASSWORD` (nunca en Git; el rol nace `nologin` y el operador le
 asigna login y contraseña por entorno). El aislamiento entre organizaciones lo fuerza la cláusula `rls`
 (`organizacion_id`) del guest token, no la base: ver la revisión de seguridad y la reversión en
 [`rentabilidad.md`](./rentabilidad.md).
+
+## Tableros de Ventas · Reportes (F-VTA-22, MSF-347)
+
+«Más vendidos» es el primer tablero de **Ventas · Reportes**: la tabla de productos más
+vendidos en un período (unidades, facturado neto y estado del stock vigente). Vive en
+`infra/superset/dashboards/ventas-reportes/` y se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno dev|staging|production`,
+que además registra el reporte en `public.reportes` con `seccion = 'reportes'` y
+`filtro_empresa = true` (el registro es idempotente: reimportar no duplica la fila). La conexión
+(`Ventas analitica`) usa el mismo rol de solo lectura `superset_analitica` que la de Rentabilidad:
+no puede leer nada fuera de `analitica`. El aislamiento entre organizaciones **y** empresas lo
+fuerza la cláusula `rls` del guest token (`organizacion_id` + `empresa_id`), no la base.
+
+`filtro_empresa` (columna de `public.reportes`, migración `20270116110200`) es **opt-in por
+tablero**: la cláusula `rls` del guest token se aplica a todos los datasets del tablero, así que
+solo puede llevar `empresa_id` si todas las vistas del tablero exponen esa columna. Ventas ·
+Reportes lo declara en `true`; los tableros de Rentabilidad quedan en `false` (consolidados por
+organización) y su cláusula sigue siendo solo `organizacion_id`. El importador toma el valor de
+`reportes.json`; si falta, escribe `false`.
+
+- **Dataset**: `analitica.ventas_producto_mas_vendido` (vista del contrato
+  `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano
+  es empresa × producto × depósito × fecha: los **filtros nativos** (rango de fechas, empresa,
+  categoría y ubicación de stock) se aplican sobre ese grano y el **gráfico** agrupa por producto y
+  suma (métricas `unidades_total`, `facturado_total`, `posicion` y `stock_hoy_texto` del dataset).
+- **Agrupación**: el gráfico agrupa por `producto_nombre` + `sku`. El nombre del producto **no** es
+  único por organización (`productos_org_nombre_idx` no es único), así que agrupar solo por nombre
+  fusionaba dos productos homónimos y su «Stock hoy» podía no ser el de ninguno; el SKU sí es único
+  por organización (`productos_org_sku_uidx`), de modo que nombre + SKU identifican un producto igual
+  que su id. Por eso el SKU es una columna de la tabla (el prototipo lo dibuja bajo el nombre).
+- **Filtros nativos** (ids, para preseleccionarlos desde Refine por `dashboardUiConfig.urlParams`):
+  `NATIVE_FILTER-rango` (rango de fechas, columna `fecha`), `NATIVE_FILTER-empresa` (`empresa_nombre`),
+  `NATIVE_FILTER-categoria` (`categoria`) y `NATIVE_FILTER-deposito` (`deposito_nombre`).
+- **Orden**: por unidades descendentes. En Superset 6.1.0 el viz de tabla **ignora `order_by_cols` en
+  modo aggregate** (es un control solo-raw) y ordena por la métrica de `timeseries_limit_metric`, en
+  descendente si `order_desc` está activo: el chart versiona `timeseries_limit_metric: unidades_total`
+  + `order_desc: true`. `posicion` va primera en `metrics` solo por el **orden de las columnas**
+  (`#`, Unidades, Facturado, Stock hoy), nunca para ordenar: es un `ROW_NUMBER` ascendente y, si
+  fuera la primera métrica, el tablero mostraría los menos vendidos primero. La posición usa el mismo
+  criterio (unidades descendentes, desempate por nombre y SKU), así el número es estable entre
+  corridas.
+- **Config que no se versiona**: `columns`, `include_time`, `server_page_length` y `order_by_cols` no
+  hacen nada en 6.1.0 con este gráfico (son controles de modo raw o de paginación de servidor) y se
+  quitaron para no confundir el mantenimiento.
+- **Límites conocidos**: el viz de tabla de Superset muestra primero las columnas de agrupación, así
+  que **«Producto» y «SKU» preceden a «#»** (el prototipo los trae al revés); «Stock hoy» es el **estado**
+  del stock como texto («Sin stock» / «Stock bajo» / «Disponible»), no el chip con color del prototipo,
+  porque el viz de tabla no dibuja chips. La pantalla de Refine (`/ventas/reportes`) preselecciona los
+  filtros nativos de período y de empresa por `dashboardUiConfig.urlParams.native_filters` (rison):
+  **verificar en un Superset real** tras importar que el rango de fechas y la tienda llegan
+  preseleccionados; si la versión no los respeta, el tablero abre sin filtro (y el usuario los puede
+  cambiar desde la barra de filtros del tablero). Verificar también que la posición arranca en 1 y que
+  la fila más vendida es la primera.
+
+## Tablero «Ranking de clientes» (F-VTA-23, MSF-358)
+
+Es el segundo tablero de **Ventas · Reportes**: el ranking de clientes por facturación neta
+(comprobantes, facturado, participación con barra y última compra). Vive en el mismo directorio
+`infra/superset/dashboards/ventas-reportes/` y se importa **con el mismo paquete** que «Más
+vendidos» (`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-reportes --entorno dev|staging|production`):
+se registran los dos reportes en `public.reportes` con `seccion = 'reportes'` y `filtro_empresa = true`
+(el registro es idempotente: reimportar no duplica la fila).
+
+- **Dataset**: `analitica.ventas_ranking_clientes` (vista del contrato
+  `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`). Su grano es
+  empresa × cliente × fecha: los **filtros nativos** (rango de fechas, empresa y «Consumidor final») se
+  aplican sobre ese grano y el **gráfico** agrupa por cliente y suma.
+- **Agrupación**: el gráfico agrupa por `nombre` + `numero` + `tipo_texto`. El nombre del cliente **no**
+  es único por organización (`clientes_org_nombre_idx` no es único), así que agrupar solo por nombre
+  fusionaría dos clientes homónimos y su facturación sería la suma de dos; el `numero` (correlativo por
+  organización) sí es único (`clientes_org_numero_uq`), de modo que nombre + número identifican a un
+  cliente igual que su `id` — el mismo desempate que usa `public.ranking_clientes`.
+- **Filtros nativos**: `NATIVE_FILTER-rango` (rango de fechas, columna `fecha`), `NATIVE_FILTER-empresa`
+  (`empresa_nombre`) y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`, columna calculada
+  «Sí» / «No»). El valor inicial del tablero **excluye** al «Consumidor final»; la pantalla de Refine
+  (`/ventas/reportes`, pestaña «Ranking de clientes») lo mueve con su interruptor.
+- **Barra de participación**: la columna `Participación` se dibuja con el formato de celda `CELL_BAR`
+  (`conditional_formatting` del chart), que pinta una barra proporcional al valor de la celda.
+- **Verificar en un Superset real** tras importar (no hay Superset en el entorno de desarrollo):
+  que la barra de participación se pinte, que el filtro de «Consumidor final» llegue preseleccionado
+  con «No» y que la posición arranque en 1 con el cliente de mayor facturación primero. Si la versión
+  no respeta los `native_filters` de la URL, el tablero abre sin filtro (y el usuario los puede cambiar
+  desde la barra de filtros del tablero).
+- **Volumen esperado**: la vista deja una fila por empresa × cliente × día, así que el costo del
+  tablero es del orden de la cantidad de clientes × tiendas y no de la cantidad de comprobantes. No se
+  midió con 10.000 clientes por organización (el `row_limit` del gráfico es 10.000, como el de «Más
+  vendidos»).
+
+> Guía funcional, permisos, exportación y revisión de seguridad de **Ventas · Reportes**:
+> [`ventas-reportes.md`](./ventas-reportes.md). La superficie se cubre con
+> `supabase/tests/database/ventas_reportes_superficie.test.sql` y el recorrido con
+> `apps/web/e2e/ventas-reportes.e2e.ts`.
 
 ## Tablero «Rentabilidad · Por producto» (F-REN-03, MSF-242)
 
@@ -140,3 +232,103 @@ Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa 
 - **Desvío (T025, selector «Mayor/Menor margen primero»)**: no existe como control; Superset no ofrece un orden como filtro nativo ni se pudo hacer con Handlebars sin scripts. El orden queda fijo por menor margen primero. Seguimiento propio: **MSF-556** (Tarea `seguimiento`).
 - **Límites conocidos**: `Buscar producto o SKU` es un `filter_select` (lista desplegable con búsqueda), no un campo de texto libre (desvío del prototipo, seguimiento **MSF-556**); la tabla Handlebars no pagina (`row_limit` 10000, `server_page_length` no aplica) — el volumen esperado (estimación sin medición) es de cientos de filas producto×tienda por organización; no se midió con 10.000 filas.
 - El contrato visible se fija en `apps/web/src/pages/rentabilidad/tableroPorProducto.contrato.test.ts` y las filas/filtros/orden contra Postgres en `supabase/tests/database/rentabilidad_por_producto.test.sql`.
+
+## Tablero «Rentabilidad · Comparativo» (F-REN-06, MSF-261)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-comparativo`, registrado en `reportes.json` con `seccion = 'rentabilidad'`; el importador lo registra una sola vez, es idempotente). Lee la vista `analitica.margen_comparativo_producto` (solo productos con margen en 2 o más empresas; el rol `superset_analitica` solo hace `select`), sin cuentas de Mercado Libre.
+
+- **Dataset virtual** `margen_comparativo_producto`: una fila por producto y por orden. Agrupa el margen % de cada empresa en `margenes_html` (nombres escapados), y expone `diferencia_pp`, `empresa_mejor`, `empresa_peor` y `organizacion_id` (columna del `rls` del guest token).
+- **Orden por diferencia sin Jinja**: el dataset repite cada producto con `orden_etiqueta` = «Mayor diferencia primero» / «Menor diferencia primero» y su `posicion`; el filtro nativo `Orden por diferencia` (selección única, por defecto «Mayor…») elige el conjunto y la tabla ordena por `posicion`. No hace falta activar `ENABLE_TEMPLATE_PROCESSING`.
+- **Filtros nativos**: `Buscar producto o SKU` (`producto_busqueda`, mismo límite de lista desplegable que «Por producto») y `Orden por diferencia`.
+- **Vacío**: «Sin resultados» cuando no hay productos comparables o el filtro no coincide.
+- Verificación: `supabase/tests/database/rentabilidad_comparativo.test.sql` y `rentabilidad_comparativo_aislamiento.test.sql` (vista y token por organización) e `infra/superset/importar-dashboards.test.mjs` (YAML y reporte).
+
+## Tablero «Rentabilidad · Historia» (F-REN-07, MSF-280)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-historia`, registrado en `reportes.json` con `seccion = 'rentabilidad'`; idempotente). Lee la vista `analitica.margen_historico_producto_canal` (rol `superset_analitica` solo `select`), sin cuentas de Mercado Libre.
+
+- **Dataset** `margen_historico_producto_canal`: una fila por producto × empresa × fecha; expone `organizacion_id` (columna del `rls` del guest token), `producto_etiqueta` (nombre y SKU, para el selector) y columnas de texto en pesos para la tabla.
+- **Filtro nativo `Producto`** (selección única, obligatorio: `enableEmptyFilter`). Sin producto elegido Superset no dibuja series mezcladas. Si el SDK embebido no respetara el filtro obligatorio, es un desvío a documentar (ver riesgos del plan).
+- **Gráficos**: serie `echarts_timeseries_line` de margen % por empresa a lo largo de la fecha, y tabla de apoyo (fecha, empresa, cotización, costo, neto, margen, margen %; la más reciente primero).
+- **Vacío**: «Sin historia para este producto» con el motivo de negocio (falta un costo registrado o una cotización cargada).
+- Verificación: `supabase/tests/database/rentabilidad_historia.test.sql` y `rentabilidad_historia_aislamiento.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroHistoria.contrato.test.ts`.
+- **Métrica de la serie: sin columnas calculadas en SQL libre.** Superset no expande las columnas calculadas del dataset dentro de una métrica de tipo SQL libre. `Historia_serie_5.yaml` usaba `MAX(margen_pct_valor)` (columna calculada) y el gráfico fallaba; ahora la métrica lleva la expresión de esa columna, `MAX(round(margen_pct * 100, 1))`, con la misma etiqueta «Margen %». Al tocar métricas de otros gráficos, usá columnas físicas o la expresión completa, no el nombre de una columna calculada.
+
+## Tablero «Rentabilidad · Ventas reales» (F-REN-09, MSF-223)
+
+Vive en `infra/superset/dashboards/rentabilidad/` (slug `rentabilidad-ventas-reales`, registrado en `reportes.json` con `seccion = 'rentabilidad'` y rol por defecto `administracion`; idempotente). Lee la vista `analitica.rentabilidad_ventas_real` (rol `superset_analitica` solo `select`), sin Mercado Libre.
+
+- **Dataset** `rentabilidad_ventas_real`: una fila por empresa × producto × fecha; expone `organizacion_id` (columna del `rls` del guest token) y métricas agregadas (`vendido_total`, `costo_total`, `costos_adicionales_total`, `margen_total`, `margen_pct_total`, `estado_total` con el umbral de la organización) más sus versiones de texto en pesos.
+- **Filtro nativo** `Rango de fechas` (Desde / Hasta) sobre la fecha de la venta; no hay filtro de empresa (compara todas).
+- **Gráficos**: totales del período (con la nota de ventas sin costo guardado), tabla por empresa y tabla por producto.
+- **Vacío**: «Sin ventas en este período».
+- Verificación: `supabase/tests/database/rentabilidad_ventas_real*.test.sql`, `infra/superset/importar-dashboards.test.mjs` y `tableroVentasReales.contrato.test.ts`.
+
+## Tablero «Productos más consultados» (F-REP-04, MSF-236)
+
+Paquete propio `infra/superset/dashboards/consultas-reportes/` (no comparte `reportes.json` con
+`ventas-reportes/`): dataset sobre `analitica.consultas_producto_mas_consultado`, un gráfico de tabla (posición,
+consultas, última consulta; orden por consultas descendente) y filtros nativos de rango y empresa. Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno dev|staging|production`
+(idempotente) y se registra en `public.reportes` con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto
+`administracion`. Reutiliza la conexión «Ventas analitica» (mismo rol `superset_analitica`, contraseña por
+`SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional: [`ventas-reportes.md`](./ventas-reportes.md).
+
+## Tablero «Ventas por período y canal» (F-REP-05, MSF-248)
+
+Paquete propio `infra/superset/dashboards/ventas-periodo-canal/`: dataset sobre `analitica.ventas_periodo_canal`, un
+gráfico de barras apiladas por canal (facturado con IVA), una tabla por canal (facturado, comprobantes, unidades) y
+filtros nativos de rango, empresa y «Agrupar por» (día, semana o mes; `filter_timegrain`). Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno dev|staging|production`
+(idempotente; el workflow de despliegue lo hace después de `consultas-reportes`) y se registra en `public.reportes`
+con `seccion = 'reportes'`, `filtro_empresa = true` y rol por defecto `administracion`. Reutiliza la conexión «Ventas
+analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PASSWORD`). Guía funcional:
+[`ventas-reportes.md`](./ventas-reportes.md).
+## Inventario · Productos y stock (MSF-297)
+
+Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <entorno>`, igual que
+Rentabilidad y Ventas. El directorio trae dos tableros: «Productos y stock» (MSF-297) y «Reposición» (MSF-311, slug
+`inventario-reposicion`, vista `analitica.inventario_reposicion`). Guía: [`reportes-inventario.md`](./reportes-inventario.md).
+
+## Exportar reportes a CSV
+
+Spec `20270201-100000-reportes-de-inventario-y-exportacion` (FR-007, FR-008, FR-009).
+La descarga es la nativa de Superset: el rol guest tiene `can_csv`
+(`configurar_embebido.py`, tabla de arriba) y no existe otro camino de descarga
+fuera del tablero embebido. Sin token (403 de `emitir-acceso-reporte` por no
+tener la sección del reporte) no hay tablero ni descarga.
+
+`CSV_EXPORT` en `superset_config.py` es global y fija `sep=";"` y `decimal=","`,
+para que el archivo abra bien en Excel en español. Aplica también a los reportes
+de Ventas y Rentabilidad. El BOM UTF-8 (sin él Excel abre con doble clic como ANSI
+y rompe tildes y ñ) NO sale de `encoding="utf-8-sig"`: Superset llama a `to_csv`
+sin ruta de salida, pandas devuelve un `str` e ignora `encoding`. Por eso un
+`after_request` (`FLASK_APP_MUTATOR` → `_anteponer_bom_csv`) antepone `EF BB BF`
+a toda respuesta `text/csv`, de forma idempotente. Reversión: quitar `CSV_EXPORT`
+y `FLASK_APP_MUTATOR` (vuelve al formato por defecto de Superset).
+
+Inyección de fórmulas (CWE-1236): el exportador de Superset (`df_to_escaped_csv`,
+`superset.utils.csv.escape_value`) antepone `'` a los textos que empiezan con `=`,
+`+`, `-` o `@`, así que un nombre de cliente o producto no se ejecuta en Excel. No
+se agrega código propio. **Pendiente de verificación manual** (ninguna prueba
+automática la cubre, no hay Superset en CI): sobre `apache/superset:6.1.0`, cargar
+un cliente `=1+1` y verificar que el CSV lo trae como `'=1+1` (paso 4); lo mismo
+para los bytes `EF BB BF` iniciales (paso 3).
+
+Regresión de formato: al ser global, Ventas y Rentabilidad también salen con `;` y
+`,`. Ningún código del repo (workers, Kestra, web) consume esos CSV; la prueba
+`test_ningun_consumidor_del_repo_parsea_csv_de_superset` falla si aparece uno.
+
+Pruebas: `pnpm test:superset:config` (formato, BOM sobre una respuesta Flask y permiso `can_csv`) y el Vitest de
+`ReporteEmbebido` (sin acceso no se monta el tablero).
+
+Procedimiento manual de verificación (tras `pnpm dev:superset`):
+
+1. Entrar a un tablero embebido con acceso, aplicar un filtro nativo.
+2. Menú «...» de la tabla → «Download» → CSV.
+3. Verificar que el archivo empiece con los bytes `EF BB BF` (`head -c3 f.csv | xxd`) y abrir en Excel: debe verse separado en columnas, con tildes correctas y
+   decimales con coma, y solo con las filas filtradas.
+4. Con un cliente cuyo nombre sea `=1+1`, el CSV debe traerlo como `'=1+1` (texto,
+   no fórmula). Si no, Superset no escapa en esta versión y hay que neutralizar
+   en la vista/dataset.

@@ -19,6 +19,9 @@ Tiendas online (MSF-212).
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta de la bandeja; solo `service_role` y la RPC de la tienda (`publico.enviar_consulta_contacto`, que aplica el anti-spam). `anon` y `authenticated` no la ejecutan. |
 | `public.consultas_bandeja` (vista `security_invoker`), `actualizar_consulta`, `contar_consultas_nuevas`, `responsables_consultas`, `guardar_correo_avisos_consultas` | `public` | Lectura y ejecución desde el panel; no guardan datos. |
 | `public.avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consulta` | `public` | Solo `service_role`: las usa la función de aviso. |
+| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto (F-CON-02). Sin datos personales. |
+| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; la ejecuta la tienda (`anon`). |
+| `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. |
 
 ## Estados
 
@@ -52,6 +55,48 @@ cualquiera (reabrir). Los estados editables son F-CFG-01, fuera de alcance.
 - Ejecutable por `anon` y `authenticated`. Vive en `publico`, no en `public`, por eso no entra a la lista de
   RPC de `anon` del pgTAP de `docs/acceso-ingreso.md`.
 - **Sin anti-spam propio**: el campo trampa y el límite por IP son de la tienda (MSF-212).
+
+## Interés por WhatsApp (F-CON-02, MSF-226)
+
+Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada producto. Spec:
+[`specs/20261024-140000-consultas-seguimiento-y-whatsapp`](../specs/20261024-140000-consultas-seguimiento-y-whatsapp/spec.md)
+(contrato en `contracts/consultas-seguimiento.md`).
+
+- **Sin datos personales**: `dominio.intereses_whatsapp` guarda solo `organizacion_id`, `empresa_id`, `producto_id` y `created_at`. No hay nombre, teléfono, correo, IP ni mensaje; cada fila es un toque.
+- **RPC** `publico.registrar_interes_whatsapp(host, producto_id)`: la empresa sale solo del host (`dominio.tiendas`); host desconocido o empresa desactivada → el mismo `P0002` genérico, resuelto antes de validar el producto; producto nulo, inexistente o de otra organización → `22023` con `producto_id` en `DETAIL`. Ejecutable por `anon` y `authenticated`. Sin anti-spam propio (es de la tienda, F-TDA-14 / MSF-212).
+- **Vista** `public.interes_whatsapp_por_producto` (`security_invoker`): `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total`, `ultimo_interes_at`. Aplica la RLS de la tabla; `anon` sin acceso. Es el contrato de lectura para F-REP-04 (productos más consultados).
+- **Permisos**: se ve con `consultas` ≥ `lectura` y empresa accesible; nadie inserta, edita ni borra desde la app (sin políticas de escritura). En el panel, el botón `Interés por WhatsApp` de Consultas abre un diálogo (`InteresWhatsappDialog`) con `Producto`, `Tienda` (solo en «Todas mis empresas»), `Veces` y `Último interés`, ordenado de mayor a menor; al cambiar de empresa se recarga y el diálogo abierto se cierra con aviso (Principio VIII).
+- **Contrato para F-TDA-14**: la tienda llama a la RPC con su host y el `producto_id` al tocar el botón; no manda empresa ni organización.
+- **Pruebas**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`, Vitest `pages/consultas/InteresWhatsappDialog.test.tsx` y E2E de la RPC.
+- **Reversión**: migraciones aditivas `20261214100000`…`20261214100200`; en una migración posterior, de la más nueva a la más vieja: `drop view public.interes_whatsapp_por_producto`, `drop function publico.registrar_interes_whatsapp(text, uuid)` y `drop table dominio.intereses_whatsapp` (exportar antes los datos).
+
+## Responder desde el panel (F-CON-04, MSF-244)
+
+El botón `Responder por <correo|WhatsApp>` del detalle **no envía nada**: abre el cliente externo y registra en la base que la consulta quedó atendida.
+
+- **Canal** por el formato del contacto (`apps/web/src/lib/responderConsulta.ts`, `enlaceRespuesta`): correo → `mailto:<correo codificado>?subject=…&body=…`; teléfono → `https://wa.me/<dígitos internacionales>?text=…` (misma `normalizarNumero` que la ficha, MSF-696: un teléfono local argentino lleva `549`; sin código de área o ambiguo no ofrece enlace). Todo valor va codificado y el enlace se abre en pestaña nueva (`noopener,noreferrer`) en el mismo gesto del clic.
+- **Texto inicial**: `armarTextoInicial` (`apps/web/src/lib/textoInicialConsulta.ts`) con una plantilla fija (nombre, tienda y producto si lo hay). Es el único punto que reemplaza F-CON-06: con una respuesta rápida elegida, el cuerpo es su texto con las variables resueltas (ver «Respuestas rápidas»).
+- **Registro**: llama a `public.actualizar_consulta` (MSF-122, sin migración nueva): `nueva` pasa a `en_curso` (`en_curso` y `resuelta` conservan el estado; no se reabre), el responsable es quien responde **solo si no había**, y se mandan la nota y el `updated_at` vigentes. La actividad la registra la propia RPC.
+- **Lo que está en el formulario** (MSF-698): el registro manda el estado, el responsable y la nota **que la persona tiene en el formulario en ese momento**, no la foto leída al abrir el detalle: responder no descarta lo recién editado ni vuelve a escribir la nota vieja. El «Reintentar» del aviso manda lo mismo.
+- **Sello vigente** (MSF-698): el detalle se relee cuando cambia una consulta, así que su `updated_at` no queda viejo y la acción siguiente no choca con el control de concurrencia (lo que obligaba a recargar y a perder lo pendiente).
+- **Permisos**: con `consultas` = edición responde y registra; con lectura el botón queda deshabilitado («Necesitás permiso de edición»). La base lo impone (`actualizar_consulta` exige edición).
+- **Fallos**: si el registro falla (`40001`, `42501`, red) la app externa ya se abrió; el detalle muestra el error con `Reintentar` (solo registra, no reabre la app) o `Recargar` ante un conflicto. Un reintento tras éxito es idempotente.
+- **Aviso de éxito**: dice cómo quedó la consulta («Consulta En curso a tu nombre»), nunca que el mensaje salió.
+- **Pruebas**: Vitest `apps/web/src/pages/consultas/responder.test.tsx`, pgTAP `supabase/tests/database/consultas_responder.test.sql`, E2E `apps/web/e2e/consultas-responder.e2e.ts`.
+- **Reversión**: sin migración ni datos nuevos; basta revertir el merge de la historia.
+
+## Respuestas rápidas (F-CON-06, MSF-274)
+
+Textos frecuentes **por empresa** que arman el texto inicial de `Responder por…`. Siguen sin enviar nada.
+
+- **Modelo** (migraciones `20270201200000` y `20270201200100`): `dominio.respuestas_rapidas` (esquema `dominio`: contenido de negocio sin datos personales; `titulo` ≤ 80, `texto` ≤ 1000, FK compuesta a `dominio.empresas`, `unique (id, organizacion_id)`). La vista `public.respuestas_rapidas_lista` es `security_invoker`; `guardar_respuesta_rapida(p_id, p_empresa_id, p_titulo, p_texto)` y `eliminar_respuesta_rapida(p_id)` son `security definer`, exigen `consultas` = edición y empresa accesible, y devuelven `42501` igual para lo inexistente, ajeno o sin acceso, y `22023` ante título o texto inválidos. Al editar no se mueve la empresa.
+- **Permisos y RLS**: select con `consultas` ≥ `lectura` + organización + empresa accesible; sin políticas de escritura; `revoke all … from public, anon, authenticated` + `grant select`; RPC con `revoke … from public, anon` + `grant … to authenticated`; `anon` sin privilegios.
+- **Actividad**: `respuesta_rapida.creada|editada|eliminada` con el título y la empresa, nunca el texto.
+- **Variables** (`resolverVariables`, `apps/web/src/lib/respuestasRapidas.ts`): `{nombre}`, `{tienda}`, `{producto}`. Una sola pasada (el valor no se vuelve a expandir); sin valor queda vacía, sin llaves, sin espacios dobles ni espacio antes de la puntuación; una variable desconocida queda tal cual.
+- **UI**: botón `Respuestas rápidas` en el encabezado de Consultas (`RespuestasRapidasDialog`): lista de la empresa activa, crear, editar y eliminar (con confirmación), ayuda de variables y estados compartidos. Con `lectura` se ve sin cambiar; con «todas las empresas» pide elegir una tienda. En el detalle, `Respuesta rápida` ofrece solo las de la empresa de la consulta; sin elección queda la plantilla de F-CON-04.
+- **Empresa activa (Principio VIII)**: al cambiar la empresa se cierra el diálogo con aviso y el hook descarta lo cargado (ámbito organización + empresa); el selector del detalle lee por la empresa de la consulta.
+- **Pruebas**: pgTAP `supabase/tests/database/respuestas_rapidas.test.sql`; Vitest `lib/respuestasRapidas.test.ts`, `pages/consultas/RespuestasRapidasDialog.test.tsx`, `responder.test.tsx` y `list.test.tsx`; E2E `apps/web/e2e/consultas-respuestas-rapidas.e2e.ts`.
+- **Reversión** (migración posterior, exportando antes los textos): `drop view public.respuestas_rapidas_lista`, `drop function public.guardar_respuesta_rapida(uuid, uuid, text, text)` y `public.eliminar_respuesta_rapida(uuid)`, y `drop table dominio.respuestas_rapidas`. Para deshacer la historia en Git: `git revert -m 1 <merge del PR>`.
 
 ## Aviso por correo
 
@@ -113,6 +158,7 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200`, la función y e
   validar datos.
 - **Correo en texto plano** con `lineaSegura` para cabeceras y cuerpo; el destinatario sale de la base y se
   revalida (formato y 254 caracteres) antes de enviar.
+- **Interés por WhatsApp (MSF-130, FR-015)**: `dominio.intereses_whatsapp` con RLS por organización, empresa accesible y `consultas` ≥ `lectura`, sin políticas de escritura y con `revoke all … from public, anon, authenticated` + `grant select` a `authenticated`; la vista es `security_invoker` y `anon` no la lee; `anon` solo ejecuta `publico.registrar_interes_whatsapp` (`search_path = ''`, empresa solo por dominio, mismo `P0002` para dominio desconocido y empresa desactivada); no guarda datos personales. Esquemas: tabla en `dominio`, RPC en `publico`, vista en `public` (sin datos). Los enlaces de `Responder por` van codificados (`encodeURIComponent`, `wa.me` solo con dígitos). Comprobado por pgTAP (`interes_whatsapp.test.sql`, `consultas_responder.test.sql`, `rls_en_toda_tabla`).
 - **Esquemas contra el Principio VII**: las tres tablas son entidades de negocio y viven en `dominio`; ninguna
   tabla en `public`.
 - **Riesgos aceptados**: (1) la RPC pública no tiene límite de frecuencia: el anti-spam es de MSF-212 y mientras
@@ -143,7 +189,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
 
 ## Verificación
 
-- pgTAP: `supabase/tests/database/consultas.test.sql`, `consultas_aviso.test.sql` y `rls_en_toda_tabla`.
+- pgTAP: `supabase/tests/database/consultas.test.sql`, `consultas_aviso.test.sql`, `interes_whatsapp.test.sql`, `consultas_responder.test.sql` y `rls_en_toda_tabla`.
 - Vitest: `pages/consultas`, `components/consultas`, `pages/empresas/CorreoAvisosConsultas.test.tsx`,
   `supabase/functions/enviar-aviso-consulta/handler.test.ts`, `infra/kestra/validar-avisos-consultas.test.mjs`.
 - E2E de cierre (SC-004, SC-008): `apps/web/e2e/consultas-recorrido.e2e.ts`. Con `pnpm dev:supabase`, la función
@@ -161,3 +207,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, y aborta si `SUPABASE_URL` no es un host local (crea usuarios con
   contraseña conocida). La limpieza borra la organización y el `on delete cascade` arrastra empresas, tiendas,
   consultas, avisos y configuración.
+
+## Bandeja con carga infinita e imagen del producto
+
+La bandeja de consultas carga por tandas de 25 desde `consultas_bandeja` al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. Buscar, cambiar estado, fechas, tienda o guardar una consulta reinicia desde la primera tanda; el contador total se mantiene. La columna «Producto» muestra la imagen principal como miniatura con zoom cuando la consulta tiene `producto_id`, y lo mismo el diálogo «Interés por WhatsApp». Ver [`listados.md`](./listados.md).

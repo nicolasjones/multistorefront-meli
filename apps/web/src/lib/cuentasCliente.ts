@@ -183,7 +183,15 @@ export async function aplicarCuentaWebEnTiendas(
   estadoPrevio?: EstadoCuentaWebFormulario,
 ): Promise<ResultadoCuentaWebTiendas> {
   if (estado === 'sin_cuenta' || tiendas.length === 0) return { creadas: 0, errores: 0 }
-  const existentes = await listarCuentasWebDeCliente(clienteId)
+  let existentes: Awaited<ReturnType<typeof listarCuentasWebDeCliente>>
+  try {
+    existentes = await listarCuentasWebDeCliente(clienteId)
+  } catch (error) {
+    // Sin la lectura no se sabe qué aplicar: se informa como error de todas las tiendas
+    // en vez de lanzar (quien llama puede haber creado ya el cliente).
+    console.error('No se pudieron leer las cuentas web del cliente', error instanceof Error ? error.message : error)
+    return { creadas: 0, errores: tiendas.length }
+  }
   let creadas = 0
   let errores = 0
   for (const empresaId of tiendas) {

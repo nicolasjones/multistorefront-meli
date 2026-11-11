@@ -1,0 +1,260 @@
+# Dataset sobre la vista `analitica.margen_historico_producto_canal` (contrato: specs/20261024-130000-rentabilidad-comparativos-e-historia/
+# contracts/analitica-comparativos-historia.md). Una fila por producto × empresa × fecha de la serie. `organizacion_id` es la columna
+# sobre la que el guest token fuerza la cláusula `rls`. Solo tiendas propias: sin cuentas de marketplaces (FR-013).
+table_name: margen_historico_producto_canal
+main_dttm_col: fecha
+description: Margen por producto, tienda y fecha con la cotización más cercana a cada fecha y el costo vigente ese día (F-REN-07).
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 49882bfc-1472-4a3e-8de3-a5ea7739dd9c
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Organización dueña de la fila; el token de Superset filtra por esta columna."
+  python_date_format: null
+  extra: {}
+- column_name: producto_id
+  verbose_name: Producto (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: producto_nombre
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: sku
+  verbose_name: SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Empresa
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: fecha
+  verbose_name: Fecha
+  is_dttm: true
+  is_active: true
+  type: TIMESTAMP
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: "Fecha de la serie: un cambio de costo o una carga de cotización."
+  python_date_format: null
+  extra: {}
+- column_name: cotizacion
+  verbose_name: Cotización
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: precio_neto
+  verbose_name: Neto (pesos)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: costo
+  verbose_name: Costo (pesos)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: margen
+  verbose_name: Margen (pesos)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct
+  verbose_name: Margen %
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: producto_etiqueta
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "producto_nombre || ' · ' || coalesce(sku, '')"
+  description: "Texto del selector de producto: nombre y SKU."
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct_valor
+  verbose_name: Margen % (valor)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "round(margen_pct * 100, 1)"
+  description: "Margen en puntos porcentuales para la serie."
+  python_date_format: null
+  extra: {}
+- column_name: fecha_texto
+  verbose_name: Fecha (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "to_char(fecha at time zone 'America/Argentina/Buenos_Aires', 'DD/MM/YYYY HH24:MI')"
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: cotizacion_texto
+  verbose_name: Cotización (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "'$ ' || translate(to_char(round(cotizacion, 2), 'FM999,999,999,990.00'), ',.', '.,')"
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: costo_texto
+  verbose_name: Costo (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "'$ ' || translate(to_char(round(costo, 2), 'FM999,999,999,990.00'), ',.', '.,')"
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: neto_texto
+  verbose_name: Neto (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "'$ ' || translate(to_char(round(precio_neto, 2), 'FM999,999,999,990.00'), ',.', '.,')"
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: margen_texto
+  verbose_name: Margen (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "'$ ' || translate(to_char(round(margen, 2), 'FM999,999,999,990.00'), ',.', '.,')"
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct_texto
+  verbose_name: Margen % (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "replace(to_char(round(margen_pct * 100, 1), 'FM990.0'), '.', ',') || ' %'"
+  description: null
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31

@@ -18,7 +18,22 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: () => ({ organizacionId: 'org-1', isLoading: false }) }))
+// F-SVC-20: la sección de fotos tiene su propio test (AdjuntosReparacion.test.tsx); acá solo se verifica su integración.
+vi.mock('../../components/service/AdjuntosReparacion', () => ({
+  AdjuntosReparacion: (props: { reparacionId: string; organizacionId: string | null; puedeEditar: boolean; anulada: boolean }) => (
+    <div data-testid="adjuntos" data-puede-editar={String(props.puedeEditar)} data-anulada={String(props.anulada)} data-org={props.organizacionId ?? ''}>
+      Fotos y adjuntos de {props.reparacionId}
+    </div>
+  ),
+}))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+// Avisos al cliente (F-SVC-14): fuera del alcance de este archivo; su historial llega vacío y el cliente con correo.
+vi.mock('../../lib/reparacionAvisos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionAvisos')>()),
+  listarAvisosDeReparacion: vi.fn().mockResolvedValue([]),
+  clienteTieneCorreo: vi.fn().mockResolvedValue(true),
+}))
 vi.mock('../../lib/serviceTecnico', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/serviceTecnico')>()),
   listarModelos: mocks.listarModelos,
@@ -298,6 +313,32 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(screen.getByLabelText('Falla informada')).toBeDisabled()
   })
 
+  it('integra «Fotos y adjuntos»: editable con edición, anulada de solo lectura y entregada editable (FR-008)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    const normal = abrirDetalle()
+    const seccion = await screen.findByTestId('adjuntos')
+    expect(seccion).toHaveAttribute('data-puede-editar', 'true')
+    expect(seccion).toHaveAttribute('data-anulada', 'false')
+    expect(seccion).toHaveAttribute('data-org', 'org-1')
+    normal.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-25', entregado_por: 'Ana' })
+    const entregada = abrirDetalle()
+    expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-puede-editar', 'true')
+    entregada.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-21T10:00:00Z', anulada_motivo: 'x' })
+    abrirDetalle()
+    expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-anulada', 'true')
+  })
+
+  it('con lectura «Fotos y adjuntos» no es editable', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    abrirDetalle()
+    expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-puede-editar', 'false')
+  })
+
   it('muestra la Entrega real como solo lectura cuando ya se entregó', async () => {
     mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-25', entregado_por: 'Ana' })
     abrirDetalle()
@@ -342,7 +383,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
       costo_repuestos: null,
       items: [{
         id: 'i-1', tipo: 'mano_obra', descripcion: 'Cambio de pantalla', producto_id: null, sku: null,
-        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
       }],
       total_mano_obra: 1000,
       total_cliente: 1000,
@@ -364,7 +405,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
       entregado_por: 'Ana',
       items: [{
         id: 'i-1', tipo: 'repuesto', descripcion: 'Pantalla Switch', producto_id: null, sku: null,
-        cantidad: 1, precio_unitario: 1000, subtotal: 1000,
+        cantidad: 1, precio_unitario: 1000, subtotal: 1000, deposito_id: null, deposito_nombre: null, stock_estado: 'sin_movimiento',
       }],
       total_repuestos: 1000,
       total_cliente: 1000,

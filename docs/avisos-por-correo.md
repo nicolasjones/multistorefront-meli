@@ -65,3 +65,9 @@ Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/a
 ## Aviso de consulta nueva (FR-012)
 
 MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por empresa: el disparador de `dominio.consultas` ya no encola en `dominio.consultas_avisos`; emite `consulta_nueva` con la empresa de la consulta y solo llega a quienes acceden a ella. La dirección de avisos por empresa (`dominio.consultas_configuracion`) solo afecta a los avisos que quedaron encolados por el camino anterior; el alta nueva no la usa.
+
+## Relación con el correo masivo a clientes
+
+Los avisos de esta guía son internos (hacia el equipo) y cada persona los enciende o apaga. El correo masivo a clientes
+(MSF-155) es otra cosa: lo redacta el equipo, sale en lotes con cupo diario por el flow `correo-masivo` y cada cliente
+puede darse de baja. No usa `avisos_pendientes` ni estas preferencias. Ver [`correo-masivo.md`](./correo-masivo.md).
