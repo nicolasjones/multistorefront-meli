@@ -3,6 +3,7 @@
 // redirecciones. Corre con `node --test` contra un servidor local.
 import assert from 'node:assert/strict'
 import { createServer, type Server } from 'node:http'
+import { createServer as crearServidorTcp, type Server as ServidorTcp } from 'node:net'
 import { after, before, describe, it } from 'node:test'
 import { enviar } from './envio.ts'
 import type { Envio } from './handler.ts'
@@ -61,5 +62,28 @@ describe('enviar', () => {
     const respuesta = await enviar(envio('/redirigir'))
     assert.equal(respuesta.status, 302)
     assert.deepEqual(vistas, ['/redirigir'])
+  })
+
+  it('un destino que gotea bytes (sin completar la respuesta) se corta por el tope TOTAL, no por inactividad', async () => {
+    // Responde un encabezado que nunca termina, de a un byte cada 40 ms: el `timeout` de inactividad de node no salta nunca.
+    const lento: ServidorTcp = crearServidorTcp((socket) => {
+      socket.write('HTTP/1.1 200 OK\r\nX-Lento: ')
+      const goteo = setInterval(() => socket.write('a'), 40)
+      socket.on('close', () => clearInterval(goteo))
+      socket.on('error', () => clearInterval(goteo))
+    })
+    await new Promise<void>((resolver) => lento.listen(0, '127.0.0.1', resolver))
+    const direccion = lento.address()
+    const puertoLento = direccion && typeof direccion === 'object' ? direccion.port : 0
+    const inicio = Date.now()
+    try {
+      await assert.rejects(
+        enviar({ ...envio('/aviso'), url: `http://destino-lento.invalid:${puertoLento}/aviso`, timeoutMs: 400 }),
+        /TIMEOUT/,
+      )
+      assert.ok(Date.now() - inicio < 1500, 'el corte llega cerca del tope total')
+    } finally {
+      await new Promise<void>((resolver) => lento.close(() => resolver()))
+    }
   })
 })

@@ -47,7 +47,8 @@ export type Validacion = {
   motivo: string | null
 }
 
-export type Limite = { permitido: boolean; reintentar_en_seg: number; restantes: number }
+// `reserva_id`: la fila de auditoría que el control de límite reservó dentro del lock; la llamada la completa al terminar.
+export type Limite = { permitido: boolean; reintentar_en_seg: number; restantes: number; reserva_id?: string | null }
 
 export type Lectura = { filas: unknown[]; siguiente_cursor: string | null }
 
@@ -59,6 +60,7 @@ export type Llamada = {
   version: string
   estado_http: number
   duracion_ms: number
+  reserva_id?: string | null
 }
 
 export type Resultado<T> = Promise<{ data: T; error: { message: string; code?: string } | null }>
@@ -141,6 +143,8 @@ type Resolucion = {
   codigo: CodigoError | null
   clave_id: string | null
   organizacion_id: string | null
+  // Fila de auditoría reservada por el control de límite (solo si la llamada pasó el límite).
+  reserva_id?: string | null
   cabeceras: Record<string, string>
 }
 
@@ -230,6 +234,8 @@ async function resolver(req: Request, deps: Deps, documento: unknown): Promise<R
     ...base,
     clave_id: validacion.clave_id,
     organizacion_id: validacion.organizacion_id,
+    // Se completa al pasar el límite.
+    reserva_id: null as string | null,
   }
 
   if (!validacion.alcances?.includes(recurso.alcance)) {
@@ -250,6 +256,9 @@ async function resolver(req: Request, deps: Deps, documento: unknown): Promise<R
       cabeceras: { ...cabeceras, 'Retry-After': String(Math.max(1, limite.reintentar_en_seg)) },
     }
   }
+
+  // La llamada pasó el límite: queda su lugar reservado y se completa al terminar (`reserva_id`).
+  conClave.reserva_id = limite.reserva_id ?? null
 
   const params = url.searchParams
   const limitePedido = parsearLimite(params.get('limite'))
@@ -311,6 +320,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       version,
       estado_http: resolucion.estado,
       duracion_ms: Date.now() - inicio,
+      reserva_id: resolucion.reserva_id ?? null,
     })
     if (errorAuditoria) console.error('api-v1: no se pudo auditar la llamada', errorAuditoria)
   } catch (error) {

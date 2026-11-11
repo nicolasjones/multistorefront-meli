@@ -29,6 +29,10 @@ export function enviar(envio: Envio): Promise<{ status: number }> {
     const peticion = destino.protocol === 'https:'
       ? httpsRequest(opciones, alResponder)
       : httpRequest(opciones, alResponder)
+    // El `timeout` de node es de INACTIVIDAD del socket: un destino que gotea bytes lo reinicia y retiene al trabajador
+    // para siempre. Este temporizador es el tope TOTAL (conexión + respuesta) de `timeoutMs`.
+    const tope = setTimeout(() => peticion.destroy(new Error('TIMEOUT')), envio.timeoutMs)
+    peticion.on('close', () => clearTimeout(tope))
     peticion.on('timeout', () => peticion.destroy(new Error('TIMEOUT')))
     peticion.on('error', reject)
     peticion.end(envio.cuerpo)

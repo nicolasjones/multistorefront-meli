@@ -65,13 +65,13 @@ select is(
 );
 
 select is(
-  has_function_privilege('authenticated', 'public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid)', 'EXECUTE'),
   false,
   'authenticated no puede registrar llamadas'
 );
 
 select is(
-  has_function_privilege('service_role', 'public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer)', 'EXECUTE'),
+  has_function_privilege('service_role', 'public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid)', 'EXECUTE'),
   true,
   'service_role registra llamadas'
 );
@@ -229,18 +229,76 @@ update public.api_llamadas
 
 set local role service_role;
 
+-- Cada llamada que pasa RESERVA su lugar dentro del lock (FR-007 estricto): 3 pedidos simultáneos con límite 3 no dejan pasar un cuarto.
+select results_eq(
+  $$select permitido, restantes, reserva_id is not null from public.api_controlar_limite((select id from claves where clave = 'principal'))$$,
+  $$values (true, 2, true)$$,
+  'pasada la ventana de 60 s la llamada vuelve a permitirse, reserva su lugar y quedan 2'
+);
+
+select results_eq(
+  $$select permitido, restantes from public.api_controlar_limite((select id from claves where clave = 'principal'))$$,
+  $$values (true, 1)$$,
+  'la segunda llamada simultánea (sin registrar todavía la primera) ve la reserva de la primera'
+);
+
+select results_eq(
+  $$select permitido, restantes from public.api_controlar_limite((select id from claves where clave = 'principal'))$$,
+  $$values (true, 0)$$,
+  'la tercera pasa y deja 0'
+);
+
+select is(
+  (select permitido from public.api_controlar_limite((select id from claves where clave = 'principal'))),
+  false,
+  'la cuarta simultánea se rechaza: el corte es estricto, no por ventana'
+);
+
+-- La llamada completa su reserva (no inserta una fila nueva). Se ejecuta como dueño: `service_role` no lee `api_llamadas`.
+reset role;
+select lives_ok(
+  $$select public.api_registrar_llamada(
+    (select id from claves where clave = 'principal'),
+    'a1000000-0000-0000-0000-000000000001',
+    'GET', '/api-v1/v1/ventas', 'v1', 200, 7,
+    (select id from public.api_llamadas where clave_id = (select id from claves where clave = 'principal') and estado_http = 102 order by creada_en limit 1))$$,
+  'la llamada completa la fila que reservó'
+);
+
+reset role;
+
+select is(
+  (select count(*)::int from public.api_llamadas where clave_id = (select id from claves where clave = 'principal') and estado_http = 102),
+  2,
+  'quedan 2 reservas sin completar: la completada se actualizó en vez de duplicarse'
+);
+
+-- Los 401 con el prefijo de una clave NO cuentan contra su límite (un tercero que conoce el prefijo no la deja en 429) ni
+-- simulan su uso.
+delete from public.api_llamadas where clave_id = (select id from claves where clave = 'principal');
+update public.api_claves set ultimo_uso_en = null where id = (select id from claves where clave = 'principal');
+
+set local role service_role;
+select lives_ok(
+  $$select public.api_registrar_llamada((select id from claves where clave = 'principal'), 'a1000000-0000-0000-0000-000000000001',
+      'GET', '/api-v1/v1/productos', 'v1', 401, 1)
+    from generate_series(1, 10)$$,
+  'diez rechazos 401 con el prefijo de la clave se auditan'
+);
+reset role;
+
+select is(
+  (select ultimo_uso_en is null from public.api_claves where id = (select id from claves where clave = 'principal')),
+  true,
+  'un 401 no actualiza el último uso de la clave'
+);
+
+set local role service_role;
 select is(
   (select permitido from public.api_controlar_limite((select id from claves where clave = 'principal'))),
   true,
-  'pasada la ventana de 60 s la llamada vuelve a permitirse'
+  'diez 401 de un tercero no agotan el cupo de la clave legítima (límite 3)'
 );
-
-select is(
-  (select restantes from public.api_controlar_limite((select id from claves where clave = 'principal'))),
-  3,
-  'con la ventana vencida quedan las 3 llamadas del límite'
-);
-
 reset role;
 
 -- ============================================================================

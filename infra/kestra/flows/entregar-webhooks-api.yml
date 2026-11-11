@@ -38,6 +38,11 @@ inputs:
     type: STRING
     required: false
     description: "Eventos (total, no por tipo) y entregas por corrida (por defecto API_WEBHOOKS_LOTE)."
+# Una sola corrida a la vez: la siguiente se cancela si la anterior sigue en curso (cada minuto), así el lease de 300 s de las
+# entregas reclamadas (lote × timeout total de 10 s por destino / concurrencia) no vence mientras se entregan.
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   - id: reclamar_eventos
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -81,7 +86,7 @@ tasks:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
-    sql: select id, evento_id, suscripcion_id, intentos from private.api_reclamar_entregas(CAST(:lote AS integer), 60);
+    sql: select id, evento_id, suscripcion_id, intentos from private.api_reclamar_entregas(CAST(:lote AS integer), 300);
     parameters:
       lote: "{{ inputs.lote ?? envs.api_webhooks_lote ?? 20 }}"
   - id: entregar

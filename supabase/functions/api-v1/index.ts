@@ -36,6 +36,7 @@ Deno.serve((req) => {
         p_version: llamada.version,
         p_estado_http: llamada.estado_http,
         p_duracion_ms: llamada.duracion_ms,
+        p_reserva_id: llamada.reserva_id ?? null,
       })
       return { data: null, error }
     },

@@ -19,6 +19,8 @@ type Opciones = {
   fallo?: Error
   dns?: string[]
   token?: string | undefined
+  // La base no pudo dejar el resultado (p. ej. ENTREGA_NO_VIGENTE: el lease venció).
+  falloResolver?: boolean
 }
 
 function montar(opciones: Opciones = {}) {
@@ -35,7 +37,7 @@ function montar(opciones: Opciones = {}) {
     }),
     resolver: async (...args) => {
       llamadas.resueltos.push(args)
-      return { data: null, error: null }
+      return { data: null, error: opciones.falloResolver ? { message: 'ENTREGA_NO_VIGENTE' } : null }
     },
     resolverDns: async () => opciones.dns ?? ['203.0.113.10'],
     enviar: async (envio) => {
@@ -73,6 +75,13 @@ describe('entregar-webhook', () => {
 
     const sinId = await manejar(pedir({}), deps)
     assert.equal(sinId.status, 400)
+  })
+
+  it('si la base no puede dejar el resultado (lease vencido) responde 500 y no «completada»: Kestra se entera', async () => {
+    const { deps } = montar({ falloResolver: true })
+    const res = await manejar(pedir({ entrega_id: 'e-1' }), deps)
+    assert.equal(res.status, 500)
+    assert.equal((await res.json() as { estado?: string }).estado, undefined)
   })
 
   it('entrega el evento firmado y deja la entrega completada', async () => {

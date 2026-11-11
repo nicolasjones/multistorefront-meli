@@ -9,6 +9,7 @@
 -- Esquema: solo vistas en `public` (superficie de lectura sin datos propios; Principio VII). `anon` sin acceso.
 -- Migración aditiva. Reversión (migración posterior):
 --   drop view public.ia_consulta_ventas, public.ia_consulta_precios, public.ia_consulta_stock, public.ia_consulta_catalogo;
+--   drop function private.ia_producto_datos(uuid, uuid);
 --   drop function private.ia_categoria_ruta(uuid, uuid);
 
 -- Ruta de categoría «Padre > Hija» (o nombre de la raíz) SIN depender de la RLS de `dominio.categorias`: esa política
@@ -41,6 +42,30 @@ comment on function private.ia_categoria_ruta(uuid, uuid) is
 revoke execute on function private.ia_categoria_ruta(uuid, uuid) from public, anon;
 grant execute on function private.ia_categoria_ruta(uuid, uuid) to authenticated;
 
+-- Nombre y SKU del producto SIN depender de la RLS de `dominio.productos` (que exige la sección `productos`): el stock del
+-- asistente se rige por la sección `stock` (FR-022: «stock → stock»); un rol con Stock en lectura y Productos en «ninguno» recibía
+-- 0 filas y el asistente contestaba que no había stock. Definer acotado: solo devuelve nombre y SKU del producto de una fila
+-- de stock que la vista ya filtró por RLS, y con sesión exige que la organización sea la del usuario (como `ia_categoria_ruta`).
+create or replace function private.ia_producto_datos(p_producto_id uuid, p_organizacion_id uuid)
+returns table (nombre text, sku text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.nombre, p.sku
+    from dominio.productos p
+   where p.id = p_producto_id
+     and p.organizacion_id = p_organizacion_id
+     and ((select auth.uid()) is null or p_organizacion_id = (select private.organizacion_id()));
+$$;
+
+comment on function private.ia_producto_datos(uuid, uuid) is
+  'F-IA-01: nombre y SKU del producto para ia_consulta_stock sin depender de la sección Productos. Solo la usa la vista, con la fila de stock ya filtrada por RLS.';
+
+revoke execute on function private.ia_producto_datos(uuid, uuid) from public, anon;
+grant execute on function private.ia_producto_datos(uuid, uuid) to authenticated;
+
 -- Catálogo: producto, nombre, SKU, categoría (ruta «Padre > Hija» o nombre de la raíz) y estado.
 create or replace view public.ia_consulta_catalogo
 with (security_invoker = true) as
@@ -70,8 +95,7 @@ select
   e.cantidad - e.reservado as disponible,
   e.updated_at as actualizado_en
 from dominio.existencias_deposito e
-join dominio.productos p
-  on p.id = e.producto_id and p.organizacion_id = e.organizacion_id
+cross join lateral private.ia_producto_datos(e.producto_id, e.organizacion_id) p
 join dominio.depositos d
   on d.id = e.deposito_id and d.organizacion_id = e.organizacion_id;
 
@@ -98,7 +122,12 @@ select
   ) as actualizado_en
 from dominio.productos p;
 
--- Ventas: solo facturas confirmadas (mismo criterio que la API pública). Sin cliente ni contacto.
+-- Ventas: facturas CONFIRMADAS (con `confirmado_en`) que no están anuladas, en cualquier estado posterior (cobrado, deuda,
+-- aceptado, en proceso, armando…): una factura confirmada que pasa a «cobrado» sigue siendo una venta (mismo criterio que la
+-- API pública). Sin cliente ni contacto. Rige la RLS de `comprobantes_venta` (organización y sección `ventas` de la TIENDA ACTIVA)
+-- y además se acota POR TIENDA: la persona solo ve las facturas de las tiendas a las que accede y donde tiene `ventas`
+-- (`private.nivel_ventas_en_empresa`), no las de otra tienda aunque su nivel global sea más alto. Sin sesión (`auth.uid()` nulo:
+-- la lectura de MCP con service role, que filtra por organización dentro de `mcp_leer_fila`) no hay tienda de sesión.
 create or replace view public.ia_consulta_ventas
 with (security_invoker = true) as
 select
@@ -113,12 +142,20 @@ select
   c.confirmado_en
 from dominio.comprobantes_venta c
 where c.tipo = 'factura'
-  and c.estado = 'confirmada';
+  and c.confirmado_en is not null
+  and c.estado <> 'anulada'
+  and (
+    (select auth.uid()) is null
+    or (
+      c.empresa_id in (select private.empresas_accesibles())
+      and (select private.nivel_ventas_en_empresa(c.empresa_id)) in ('lectura', 'edicion')
+    )
+  );
 
 comment on view public.ia_consulta_catalogo is 'F-IA-01: fuente de consulta del asistente (catálogo). Solo lectura; rige la RLS de la sesión.';
 comment on view public.ia_consulta_stock is 'F-IA-01: fuente de consulta del asistente (stock por depósito). Solo lectura; rige la RLS de la sesión.';
 comment on view public.ia_consulta_precios is 'F-IA-01: fuente de consulta del asistente (precio de lista y escalas, sin costos ni IVA). Solo lectura; rige la RLS de la sesión.';
-comment on view public.ia_consulta_ventas is 'F-IA-01: fuente de consulta del asistente (facturas confirmadas, sin datos del cliente). Solo lectura; rige la RLS de la sesión.';
+comment on view public.ia_consulta_ventas is 'F-IA-01: fuente de consulta del asistente (facturas confirmadas no anuladas, sin datos del cliente). Solo lectura; rige la RLS de la sesión.';
 
 revoke all on public.ia_consulta_catalogo, public.ia_consulta_stock, public.ia_consulta_precios, public.ia_consulta_ventas
   from public, anon, authenticated;

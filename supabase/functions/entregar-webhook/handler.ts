@@ -135,6 +135,19 @@ export function firmar(cuerpo: string, secreto: string, epoch: number): string {
   return `t=${epoch},v1=${v1}`
 }
 
+/** Si la base no pudo dejar el resultado (p. ej. `ENTREGA_NO_VIGENTE`: el lease venció), Kestra tiene que enterarse: 500 en vez de «completada». */
+async function dejarResultado(
+  deps: Deps,
+  entregaId: string,
+  estado: EstadoEntrega,
+  estadoHttp: number | null,
+  error: string | null,
+): Promise<boolean> {
+  const { error: falla } = await deps.resolver(entregaId, estado, estadoHttp, error)
+  if (falla) console.error('entregar-webhook: no se pudo dejar el resultado de la entrega', falla.message)
+  return !falla
+}
+
 export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (req.method !== 'POST') {
     return respuesta({ error: 'Método no soportado, usar POST.' }, 405)
@@ -172,7 +185,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const host = hostDe(url)
   const direcciones = host ? await deps.resolverDns(host) : []
   if (!host || !destinoPermitido(direcciones)) {
-    await deps.resolver(entregaId, 'pendiente', null, 'DESTINO_NO_PERMITIDO')
+    if (!await dejarResultado(deps, entregaId, 'pendiente', null, 'DESTINO_NO_PERMITIDO')) {
+      return respuesta({ error: 'No se pudo dejar el resultado de la entrega.' }, 500)
+    }
     return respuesta({ estado: 'pendiente', error: 'El destino no se permite.' }, 200)
   }
   const ip = direcciones[0]
@@ -212,13 +227,17 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   }
 
   if (!error) {
-    await deps.resolver(entregaId, 'completada', estadoHttp, null)
+    if (!await dejarResultado(deps, entregaId, 'completada', estadoHttp, null)) {
+      return respuesta({ error: 'No se pudo dejar el resultado de la entrega.' }, 500)
+    }
     return respuesta({ estado: 'completada' }, 200)
   }
 
   // Falló: la base deja la entrega pendiente con la espera de D-6 o la
   // agota en el quinto intento.
   const mensaje = sanearError(error, secreto)
-  await deps.resolver(entregaId, 'pendiente', estadoHttp, mensaje)
+  if (!await dejarResultado(deps, entregaId, 'pendiente', estadoHttp, mensaje)) {
+    return respuesta({ error: 'No se pudo dejar el resultado de la entrega.' }, 500)
+  }
   return respuesta({ estado: 'pendiente', error: mensaje }, 200)
 }

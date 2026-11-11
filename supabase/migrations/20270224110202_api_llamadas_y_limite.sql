@@ -14,11 +14,11 @@
 -- Migración aditiva. Reversión (en una migración posterior, no en este PR):
 --   revoke execute on function public.api_validar_clave(text) from service_role;
 --   revoke execute on function public.api_controlar_limite(uuid) from service_role;
---   revoke execute on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer) from service_role;
+--   revoke execute on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid) from service_role;
 --   revoke execute on function private.purgar_api_llamadas(integer) from kestra_orquestacion, service_role;
 --   drop function public.api_validar_clave(text);
 --   drop function public.api_controlar_limite(uuid);
---   drop function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer);
+--   drop function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid);
 --   drop function private.purgar_api_llamadas(integer);
 --   drop table public.api_llamadas;
 
@@ -131,15 +131,19 @@ grant execute on function public.api_validar_clave(text) to service_role;
 -- ============================================================================
 -- public.api_controlar_limite — ventana deslizante de 60 s por clave (D-2).
 --
--- El lock por clave (`pg_advisory_xact_lock`) serializa las comprobaciones
--- concurrentes de la MISMA clave para que dos llamadas simultáneas no cuentan
--- sobre el mismo saldo. Cada llamada se audita al final (`api_registrar_
--- llamada`), así que un pico de llamadas simultáneas puede pasarse del tope
--- en la cantidad de llamadas en vuelo: el corte es por ventana, no estricto.
+-- El lock por clave (`pg_advisory_xact_lock`) serializa las comprobaciones concurrentes de la MISMA clave, y dentro del lock
+-- se RESERVA el lugar: se inserta la fila de la llamada (estado provisorio 102) y se devuelve su id. Así N pedidos simultáneos
+-- no pasan todos el control (antes la llamada se registraba recién al final y el corte «no era estricto»: FR-007). La Edge
+-- Function completa esa fila al terminar (`api_registrar_llamada` con `p_reserva_id`).
+--
+-- Cuentan en la ventana solo las llamadas AUTENTICADAS: quedan afuera los rechazos 401 (token inválido con el prefijo de una clave
+-- conocida: el prefijo es un dato visible en el panel, y 60 rechazos de un tercero dejaban a la integración legítima en 429) y los
+-- 429 (un cliente bloqueado que insiste no debe alargar su propio bloqueo).
 -- ============================================================================
 
+drop function if exists public.api_controlar_limite(uuid);
 create or replace function public.api_controlar_limite(p_clave_id uuid)
-returns table (permitido boolean, reintentar_en_seg integer, restantes integer)
+returns table (permitido boolean, reintentar_en_seg integer, restantes integer, reserva_id uuid)
 language plpgsql
 volatile
 security definer
@@ -147,16 +151,18 @@ set search_path = ''
 as $$
 declare
   v_limite integer;
+  v_organizacion uuid;
   v_usadas integer;
   v_masVieja timestamptz;
   v_espera integer;
+  v_reserva uuid;
 begin
-  select public.api_claves.limite_por_minuto into v_limite
+  select public.api_claves.limite_por_minuto, public.api_claves.organizacion_id into v_limite, v_organizacion
     from public.api_claves
    where public.api_claves.id = p_clave_id;
 
   if v_limite is null then
-    return query select false, 60, 0;
+    return query select false, 60, 0, null::uuid;
     return;
   end if;
 
@@ -166,33 +172,43 @@ begin
   select count(*)::integer, min(creada_en) into v_usadas, v_masVieja
     from public.api_llamadas
    where clave_id = p_clave_id
-     and creada_en > now() - interval '60 seconds';
+     and creada_en > now() - interval '60 seconds'
+     and estado_http not in (401, 429);
 
   if v_usadas >= v_limite then
-    -- Seconds para que salga de la ventana la llamada más vieja.
+    -- Segundos para que salga de la ventana la llamada más vieja.
     v_espera := greatest(
       1,
       ceil(extract(epoch from (v_masVieja + interval '60 seconds' - now())))::integer
     );
-    return query select false, v_espera, 0;
+    return query select false, v_espera, 0, null::uuid;
     return;
   end if;
 
-  return query select true, 0, v_limite - v_usadas;
+  -- Reserva del lugar dentro del lock (102 = en proceso): la completa `api_registrar_llamada`.
+  insert into public.api_llamadas (organizacion_id, clave_id, metodo, ruta, version, estado_http)
+  values (v_organizacion, p_clave_id, 'GET', '/reserva', 'v1', 102)
+  returning public.api_llamadas.id into v_reserva;
+
+  return query select true, 0, v_limite - v_usadas - 1, v_reserva;
 end;
 $$;
 
 comment on function public.api_controlar_limite(uuid) is
-  'F-API-01: ventana deslizante de 60 s por clave (D-2). Devuelve si la llamada pasa y en cuántos segundos reintentar.';
+  'F-API-01: ventana deslizante de 60 s por clave (D-2), estricta: reserva el lugar de la llamada dentro del lock. Cuentan solo las llamadas autenticadas (no los 401 ni los 429). Devuelve si pasa, en cuántos segundos reintentar, los restantes y la reserva.';
 
 revoke execute on function public.api_controlar_limite(uuid) from public, anon, authenticated;
 grant execute on function public.api_controlar_limite(uuid) to service_role;
 
 -- ============================================================================
 -- public.api_registrar_llamada — audita toda llamada, incluidas las
--- rechazadas (401 y 429). Actualiza `ultimo_uso_en` de la clave.
+-- rechazadas (401 y 429). Con `p_reserva_id` completa la fila reservada por el
+-- control de límite; sin él inserta una nueva. Actualiza `ultimo_uso_en` solo
+-- si la llamada estuvo autenticada (no con un 401: un tercero con el prefijo
+-- de una clave no puede simular su uso).
 -- ============================================================================
 
+drop function if exists public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer);
 create or replace function public.api_registrar_llamada(
   p_clave_id uuid,
   p_organizacion_id uuid,
@@ -200,7 +216,8 @@ create or replace function public.api_registrar_llamada(
   p_ruta text,
   p_version text,
   p_estado_http integer,
-  p_duracion_ms integer
+  p_duracion_ms integer,
+  p_reserva_id uuid default null
 )
 returns void
 language plpgsql
@@ -208,13 +225,29 @@ volatile
 security definer
 set search_path = ''
 as $$
+declare
+  v_actualizadas integer := 0;
 begin
-  insert into public.api_llamadas (organizacion_id, clave_id, metodo, ruta, version, estado_http, duracion_ms)
-  values (p_organizacion_id, p_clave_id, btrim(coalesce(p_metodo, 'GET')),
-    btrim(coalesce(p_ruta, '')), btrim(coalesce(p_version, '')),
-    coalesce(p_estado_http, 500), p_duracion_ms);
+  if p_reserva_id is not null then
+    update public.api_llamadas
+       set metodo = btrim(coalesce(p_metodo, 'GET')),
+           ruta = btrim(coalesce(p_ruta, '')),
+           version = btrim(coalesce(p_version, '')),
+           estado_http = coalesce(p_estado_http, 500),
+           duracion_ms = p_duracion_ms
+     where public.api_llamadas.id = p_reserva_id
+       and public.api_llamadas.clave_id is not distinct from p_clave_id;
+    get diagnostics v_actualizadas = row_count;
+  end if;
 
-  if p_clave_id is not null then
+  if v_actualizadas = 0 then
+    insert into public.api_llamadas (organizacion_id, clave_id, metodo, ruta, version, estado_http, duracion_ms)
+    values (p_organizacion_id, p_clave_id, btrim(coalesce(p_metodo, 'GET')),
+      btrim(coalesce(p_ruta, '')), btrim(coalesce(p_version, '')),
+      coalesce(p_estado_http, 500), p_duracion_ms);
+  end if;
+
+  if p_clave_id is not null and coalesce(p_estado_http, 500) <> 401 then
     update public.api_claves
        set ultimo_uso_en = now()
      where public.api_claves.id = p_clave_id;
@@ -222,12 +255,12 @@ begin
 end;
 $$;
 
-comment on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer) is
-  'F-API-01: audita una llamada a la API (incluidas las rechazadas). Solo service_role.';
+comment on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid) is
+  'F-API-01: audita una llamada a la API (incluidas las rechazadas); con p_reserva_id completa la fila reservada por el control de límite. Solo service_role.';
 
-revoke execute on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer)
+revoke execute on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid)
   from public, anon, authenticated;
-grant execute on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer)
+grant execute on function public.api_registrar_llamada(uuid, uuid, text, text, text, integer, integer, uuid)
   to service_role;
 
 -- ============================================================================

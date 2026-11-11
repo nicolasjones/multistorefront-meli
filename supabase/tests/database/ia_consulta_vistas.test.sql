@@ -3,7 +3,7 @@
 -- EXACTAMENTE las columnas del contrato (sin costos, márgenes ni datos del cliente).
 begin;
 
-select plan(24);
+select plan(27);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -12,12 +12,25 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000002', 'tecnico-uno@example.com'),
-  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
+  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com'),
+  ('d1000000-0000-0000-0000-000000000003', 'mostrador-uno-a@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'tecnico'),
-  ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
+  ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador'),
+  ('d1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'mostrador');
+
+-- Dos tiendas en Uno (A y B) y una en Dos. El mostrador trabaja SOLO en la tienda A: el asistente no le muestra las ventas de B.
+insert into dominio.empresas (id, organizacion_id, nombre) values
+  ('e1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Tienda A'),
+  ('e1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'Tienda B'),
+  ('e2000000-0000-0000-0000-00000000000c', '22222222-2222-2222-2222-222222222222', 'Tienda C');
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'mostrador');
+-- Un rol con Stock en lectura y Productos en «ninguno»: el asistente igual debe mostrarle el stock (FR-022: stock → stock).
+update permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'mostrador' and seccion = 'productos';
 
 insert into dominio.categorias (id, organizacion_id, nombre, padre_id) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Periféricos', null);
@@ -57,12 +70,16 @@ insert into public.clientes (id, organizacion_id, nombre, tipo) values
 
 -- Una factura confirmada, una en borrador y un presupuesto confirmado en la organización Uno; una confirmada en Dos.
 insert into dominio.comprobantes_venta
-  (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en)
+  (organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en)
 values
-  ('11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', current_date, 'confirmada', 100, 121, now()),
-  ('11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', current_date, 'borrador', 50, 60.5, null),
-  ('11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'presupuesto', '0001-00000003', current_date, 'confirmada', 70, 84.7, now()),
-  ('22222222-2222-2222-2222-222222222222', 'c6000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', current_date, 'confirmada', 999, 1208, now());
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'c5000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', current_date, 'confirmada', 100, 121, now()),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'c5000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', current_date, 'borrador', 50, 60.5, null),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'c5000000-0000-0000-0000-000000000001', 'presupuesto', '0001-00000003', current_date, 'confirmada', 70, 84.7, now()),
+  -- Confirmada de la tienda B que ya pasó a «cobrado»: sigue siendo una venta (no desaparece del asistente).
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'c5000000-0000-0000-0000-000000000001', 'factura', '0001-00000004', current_date, 'cobrado', 200, 242, now()),
+  -- Anulada: no es una venta.
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'c5000000-0000-0000-0000-000000000001', 'factura', '0001-00000005', current_date, 'anulada', 30, 36.3, now()),
+  ('22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-00000000000c', 'c6000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', current_date, 'confirmada', 999, 1208, now());
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -135,7 +152,8 @@ select is(
 );
 select is(
   (select array_agg(numero order by numero) from public.ia_consulta_ventas),
-  array['0001-00000001'], 'las ventas son solo facturas confirmadas (no borradores ni presupuestos)'
+  array['0001-00000001', '0001-00000004'],
+  'las ventas son las facturas confirmadas no anuladas (también las ya cobradas; no borradores, presupuestos ni anuladas)'
 );
 reset role;
 
@@ -152,6 +170,22 @@ select is(
 select is(
   (select private.ia_categoria_ruta('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222')),
   null, 'llamada directa con una categoría de otra organización: no la devuelve (no esquiva la RLS)'
+);
+reset role;
+
+-- Mostrador de la tienda A (Stock en lectura, Productos en «ninguno»)
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is(
+  (select array_agg(numero order by numero) from public.ia_consulta_ventas), array['0001-00000001'],
+  'el mostrador de la tienda A no ve por el asistente las ventas de la tienda B (nivel de la tienda, no el global)'
+);
+select is(
+  (select nombre from public.ia_consulta_stock where sku = 'JOY-1'), 'Joystick',
+  'con Stock en lectura y Productos en «ninguno» el asistente igual muestra el stock con su nombre (FR-022)'
+);
+select is(
+  (select count(*)::int from public.ia_consulta_catalogo), 0,
+  'y el catálogo sigue respetando la sección Productos (ninguno: sin filas)'
 );
 reset role;
 

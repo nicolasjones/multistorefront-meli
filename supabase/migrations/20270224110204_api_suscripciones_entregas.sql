@@ -394,7 +394,7 @@ comment on function private.api_fanout_evento(uuid) is
 
 create or replace function private.api_reclamar_entregas(
   p_limite integer default 20,
-  p_lease_seg integer default 60
+  p_lease_seg integer default 300
 )
 returns setof public.api_entregas
 language plpgsql
@@ -423,6 +423,9 @@ begin
   return query
   with candidatos as (
     select d.id from public.api_entregas d
+      -- Una suscripción PAUSADA conserva sus entregas pendientes y las recibe al reactivarse (no se pierden ni se entregan
+      -- mientras está pausada).
+      join public.api_suscripciones s on s.id = d.suscripcion_id and s.activa
      where d.estado = 'pendiente' and d.proximo_intento_en <= clock_timestamp()
      order by d.proximo_intento_en, d.creada_en
      for update skip locked
@@ -441,7 +444,7 @@ end;
 $$;
 
 comment on function private.api_reclamar_entregas(integer, integer) is
-  'F-API-01: reclama las entregas pendientes con lease (la usa el flow de Kestra).';
+  'F-API-01: reclama las entregas pendientes de suscripciones activas con lease (la usa el flow de Kestra). El lease (300 s por defecto) supera el tiempo de una corrida completa: lote × timeout total de 10 s por destino / concurrencia.';
 
 -- ============================================================================
 -- private.api_resolver_entrega — el resultado de una entrega.
@@ -485,7 +488,8 @@ begin
          ultimo_error_sanitizado = (select private.api_sanitizar_error(p_error)),
          reclamada_en = null, vence_en = null,
          actualizada_en = clock_timestamp()
-   where d.id = p_entrega_id and d.estado = 'reclamada';
+   -- Solo con el lease VIGENTE: un trabajador lento cuyo reclamo ya venció (y que otro pudo volver a reclamar) no resuelve la entrega.
+   where d.id = p_entrega_id and d.estado = 'reclamada' and d.vence_en > clock_timestamp();
 
   if not found then
     raise exception 'ENTREGA_NO_VIGENTE' using errcode = 'P0001';
@@ -525,7 +529,7 @@ begin
     join public.api_suscripciones s on s.id = d.suscripcion_id
     join public.cola_eventos ev on ev.id = d.evento_id
     join vault.decrypted_secrets vs on vs.id = s.secreto_vault_id
-   where d.id = p_entrega_id and d.estado = 'reclamada';
+   where d.id = p_entrega_id and d.estado = 'reclamada' and d.vence_en > clock_timestamp();
 end;
 $$;
 
@@ -604,29 +608,39 @@ declare
   v_tipo text;
   v_restantes integer := p_limite;
   v_evento record;
+  v_cupo integer;
+  v_pasada integer;
 begin
   if p_limite is null or p_limite < 1 or p_limite > 100 then
     raise exception 'LIMITE_INVALIDO' using errcode = '22023';
   end if;
 
-  foreach v_tipo in array coalesce(p_tipos, '{}'::text[]) loop
-    exit when v_restantes <= 0;
-    for v_evento in
-      select * from private.reclamar_eventos_interno(v_tipo, v_restantes, p_duracion_reclamo_seg, p_max_intentos)
-    loop
-      -- Función con parámetros OUT: la fila se arma en las variables de salida
-      -- y se devuelve con `RETURN NEXT` sin expresión (mismo patrón de
-      -- `public.confirmar_toma_inventario`).
-      evento_id := v_evento.evento_id;
-      organizacion_id := v_evento.organizacion_id;
-      tipo := v_evento.tipo;
-      clave_idempotencia := v_evento.clave_idempotencia;
-      carga := v_evento.carga;
-      intento := v_evento.intento;
-      vence_en := v_evento.vence_en;
-      return next;
-      v_restantes := v_restantes - 1;
+  -- Cupo por tipo en una primera pasada y, con lo que sobre, una segunda pasada en el mismo orden: antes se reclamaba tipo por
+  -- tipo hasta agotar el total, y 25 `stock.actualizado` pendientes dejaban afuera para siempre a las ventas y los precios.
+  v_cupo := greatest(1, p_limite / greatest(cardinality(coalesce(p_tipos, '{}'::text[])), 1));
+
+  for v_pasada in 1..2 loop
+    foreach v_tipo in array coalesce(p_tipos, '{}'::text[]) loop
       exit when v_restantes <= 0;
+      for v_evento in
+        select * from private.reclamar_eventos_interno(
+          v_tipo,
+          case when v_pasada = 1 then least(v_cupo, v_restantes) else v_restantes end,
+          p_duracion_reclamo_seg, p_max_intentos)
+      loop
+        -- Función con parámetros OUT: la fila se arma en las variables de salida
+        -- y se devuelve con `RETURN NEXT` sin expresión (mismo patrón de
+        -- `public.confirmar_toma_inventario`).
+        evento_id := v_evento.evento_id;
+        organizacion_id := v_evento.organizacion_id;
+        tipo := v_evento.tipo;
+        clave_idempotencia := v_evento.clave_idempotencia;
+        carga := v_evento.carga;
+        intento := v_evento.intento;
+        vence_en := v_evento.vence_en;
+        return next;
+        v_restantes := v_restantes - 1;
+      end loop;
     end loop;
   end loop;
 end;

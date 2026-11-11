@@ -71,10 +71,15 @@ begin
     return;
   end if;
 
-  v_bruto := convert_from(
-    decode(rpad(translate(p_cursor, '-_', '+/'), (length(p_cursor) + 3) / 4 * 4, '='), 'base64'),
-    'UTF8'
-  );
+  -- Un cursor que no es base64 ni UTF-8 válido (por ejemplo `abc` o `____`) es un cursor inválido (400), no un error interno (500).
+  begin
+    v_bruto := convert_from(
+      decode(rpad(translate(p_cursor, '-_', '+/'), (length(p_cursor) + 3) / 4 * 4, '='), 'base64'),
+      'UTF8'
+    );
+  exception when others then
+    raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+  end;
 
   if position('|' in v_bruto) = 0 then
     raise exception 'CURSOR_INVALIDO' using errcode = '22023';
@@ -122,8 +127,12 @@ begin
     if array_length(v_partes, 1) is distinct from 2 then
       raise exception 'CURSOR_INVALIDO' using errcode = '22023';
     end if;
-    v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
-    v_id := v_partes[2]::uuid;
+    begin
+      v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
+      v_id := v_partes[2]::uuid;
+    exception when others then
+      raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+    end;
   end if;
 
   with pagina as (
@@ -190,8 +199,12 @@ begin
     if array_length(v_partes, 1) is distinct from 3 then
       raise exception 'CURSOR_INVALIDO' using errcode = '22023';
     end if;
-    v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
-    v_id := v_partes[2]::uuid;
+    begin
+      v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
+      v_id := v_partes[2]::uuid;
+    exception when others then
+      raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+    end;
     v_deposito := v_partes[3]::uuid;
   end if;
 
@@ -262,24 +275,34 @@ begin
     if array_length(v_partes, 1) is distinct from 2 then
       raise exception 'CURSOR_INVALIDO' using errcode = '22023';
     end if;
-    v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
-    v_id := v_partes[2]::uuid;
+    begin
+      v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
+      v_id := v_partes[2]::uuid;
+    exception when others then
+      raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+    end;
   end if;
 
-  with pagina as (
+  -- `actualizado_en` es lo ÚLTIMO que cambió del producto: él o cualquiera de sus escalas (un cambio solo de escala no toca
+  -- `productos.updated_at` y la sincronización incremental lo perdía aunque se emitiera `precio.actualizado`). El filtro
+  -- `actualizado_desde` y el cursor usan ese mismo valor.
+  with base as (
     select p.id as producto_id, p.nombre, p.sku, p.moneda, p.precio_lista,
       max(e.precio) filter (where e.escala = 'x5') as precio_x5,
       max(e.precio) filter (where e.escala = 'x10') as precio_x10,
       max(e.precio) filter (where e.escala = 'x50') as precio_x50,
-      p.updated_at as actualizado_en
+      greatest(p.updated_at, coalesce(max(e.updated_at), p.updated_at)) as actualizado_en
       from dominio.productos p
       left join dominio.producto_precios_escala e
         on e.producto_id = p.id and e.organizacion_id = p.organizacion_id
      where p.organizacion_id = p_organizacion_id
-       and (p_actualizado_desde is null or p.updated_at >= p_actualizado_desde)
-       and (v_id is null or (p.updated_at, p.id) > (v_fecha, v_id))
      group by p.id, p.nombre, p.sku, p.moneda, p.precio_lista, p.updated_at
-     order by p.updated_at, p.id
+  ), pagina as (
+    select b.*
+      from base b
+     where (p_actualizado_desde is null or b.actualizado_en >= p_actualizado_desde)
+       and (v_id is null or (b.actualizado_en, b.producto_id) > (v_fecha, v_id))
+     order by b.actualizado_en, b.producto_id
      limit v_limite + 1
   ), recortada as (
     select * from pagina limit v_limite
@@ -333,8 +356,12 @@ begin
     if array_length(v_partes, 1) is distinct from 2 then
       raise exception 'CURSOR_INVALIDO' using errcode = '22023';
     end if;
-    v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
-    v_id := v_partes[2]::uuid;
+    begin
+      v_fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
+      v_id := v_partes[2]::uuid;
+    exception when others then
+      raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+    end;
   end if;
 
   with pagina as (
@@ -343,7 +370,10 @@ begin
       from dominio.comprobantes_venta c
      where c.organizacion_id = p_organizacion_id
        and c.tipo = 'factura'
-       and c.estado = 'confirmada'
+       -- Confirmada (con `confirmado_en`) y no anulada, en cualquier estado posterior: una factura confirmada que pasa a
+       -- cobrado, deuda, aceptado, en proceso o armando sigue siendo una venta y NO desaparece de la API.
+       and c.confirmado_en is not null
+       and c.estado <> 'anulada'
        and (p_actualizado_desde is null or c.confirmado_en >= p_actualizado_desde)
        and (v_id is null or (c.confirmado_en, c.id) > (v_fecha, v_id))
      order by c.confirmado_en, c.id
