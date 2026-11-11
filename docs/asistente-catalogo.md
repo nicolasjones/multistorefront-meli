@@ -41,3 +41,24 @@ pgTAP `ia_consulta_vistas.test.sql` (columnas exactas, `security_invoker`, dos o
 ## Reversión
 
 Migraciones aditivas. En una migración posterior: `delete from public.features where id in ('catalogo', 'stock', 'precios', 'ventas')` (borra en cascada fuentes, capacidades y habilitaciones), `drop function private.registrar_fuentes_ia_consulta()`, volver `private.mcp_leer_fila` a la definición de `20261003233000_mcp_lectura_centralizada.sql` y `drop view` de las cuatro vistas.
+
+# Cierre · Verificación global y revisión de seguridad (T021)
+
+Cierre de la épica MSF-233 (ver [`docs/api-publica.md`](./api-publica.md) para
+la verificación global completa y el detalle de la revisión de seguridad).
+Sobre el diff de F-IA-01 (migraciones `20270223110000`, `20270223110100` y
+`20270223110200`, `limites.ts` del chat y la lectura centralizada de MCP). Sin
+hallazgos críticos ni altos.
+
+- Las cuatro fuentes son **vistas de solo lectura** con `security_invoker = true`:
+  la RLS de las tablas base sigue rigiendo para el chat (por sección) y el
+  filtro de organización lo arma `private.mcp_leer_fila` dentro del SQL para el
+  MCP.
+- `anon` y `public` sin privilegios sobre las vistas; solo `authenticated` las
+  lee.
+- Las capacidades quedan con `lectura = true` y `ejecucion = false`: el asistente
+  no escribe ni ejecuta nada (`SC-006`).
+- Las vistas no exponen costos, márgenes ni datos de contacto de clientes
+  (D-7), así que ni la interacción de IA ni la ejecución MCP pueden guardar
+  datos sensibles.
+
