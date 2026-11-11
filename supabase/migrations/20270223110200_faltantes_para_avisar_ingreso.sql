@@ -13,7 +13,7 @@
 -- Regla de cobertura (spec, decisión 5): saldo = cantidad de la línea del ingreso; se recorren los faltantes
 -- abiertos del producto en la organización, sin marca ni aviso en curso (`pendiente`/`enviado`), por
 -- antigüedad (`creado_en`, `id`), bloqueados con `for update`; se marca cada faltante COMPLETO mientras entre
--- en el saldo y se corta en el primero que no entra (no se salta al siguiente).
+-- en el saldo y el que no entra se salta (se sigue con el siguiente más antiguo).
 --
 -- Seguridad: `security definer` con `search_path = ''` (marca faltantes de tiendas que quien registra el
 -- ingreso quizá no ve; no expone datos: solo escribe la marca). Sin ejecución para `authenticated`/`anon`.
@@ -60,8 +60,10 @@ begin
        order by fv.creado_en, fv.id
          for update of fv
     loop
-      -- Un faltante cuenta completo o no cuenta: el primero que no entra corta la cobertura.
-      exit when f.cantidad_faltante > v_saldo;
+      -- Un faltante cuenta completo o no cuenta: el que no entra en el saldo se salta y se sigue con el siguiente más
+      -- antiguo (así un faltante grande no bloquea a los demás del producto).
+      exit when v_saldo <= 0;
+      continue when f.cantidad_faltante > v_saldo;
       update dominio.faltantes_venta
          set para_avisar_en = now(), para_avisar_ingreso_id = new.ingreso_id
        where id = f.id;

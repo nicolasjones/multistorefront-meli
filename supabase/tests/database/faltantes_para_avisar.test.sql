@@ -1,7 +1,7 @@
 -- MSF-161 · F-VTA-27 (MSF-270, spec 20261110-100000-ventas-avisos-de-faltantes): «Para avisar» al ingresar
 -- mercadería.
 -- Cubre el disparador `marcar_faltantes_para_avisar` sobre `dominio.ingresos_mercaderia_lineas` (FR-101,
--- FR-102, FR-105: cobertura por antigüedad, corte en el primero que no entra, sin remarcar, sin tocar otras
+-- FR-102, FR-105: cobertura por antigüedad, se salta el que no entra, sin remarcar, sin tocar otras
 -- organizaciones ni productos ni resueltos, varias líneas, falla simulada que no rompe el ingreso, actividad)
 -- y `listar_faltantes` con `aviso = 'para_avisar'`, el filtro y el orden ascendente (FR-103). El ingreso se
 -- registra con la RPC real `registrar_ingreso_mercaderia`, que NO se modifica.
@@ -132,7 +132,7 @@ select pg_temp.nuevo('a3', 1, 3, 10);
 select pg_temp.nuevo('b1', 2, 4, 30);
 select pg_temp.nuevo('b2', 2, 4, 20);
 select pg_temp.nuevo('b3', 2, 4, 10);
--- Cortes: P3 [9, 2, 1] y P4 [12, 1].
+-- Saltos: P3 [9, 2, 1] y P4 [12, 1].
 select pg_temp.nuevo('c1', 3, 9, 30);
 select pg_temp.nuevo('c2', 3, 2, 20);
 select pg_temp.nuevo('c3', 3, 1, 10);
@@ -202,11 +202,11 @@ select is(pg_temp.fa('b3'), 'si', 'un segundo ingreso cubre el tercero');
 select is((select count(distinct f.para_avisar_ingreso_id)::int from dominio.faltantes_venta f join falt x on x.comprobante_id = f.comprobante_id
             where x.clave in ('b1', 'b2', 'b3')), 2, 'cada marca guarda el ingreso que la originó');
 
--- Corte en el primero que no entra.
+-- Se salta el que no entra y se sigue con el siguiente.
 select pg_temp.ingreso(3, 10);
-select is(pg_temp.fa('c1') || pg_temp.fa('c2') || pg_temp.fa('c3'), 'sinono', '[9, 2, 1] con ingreso de 10: solo el de 9 (saldo 1; el de 2 corta, aunque el de 1 entraría)');
+select is(pg_temp.fa('c1') || pg_temp.fa('c2') || pg_temp.fa('c3'), 'sinosi', '[9, 2, 1] con ingreso de 10: el de 9 y el de 1 (saldo 1; el de 2 no entra y se salta)');
 select pg_temp.ingreso(4, 10);
-select is(pg_temp.fa('d1') || pg_temp.fa('d2'), 'nono', '[12, 1] con ingreso de 10: ninguno (el más antiguo no entra y corta)');
+select is(pg_temp.fa('d1') || pg_temp.fa('d2'), 'nosi', '[12, 1] con ingreso de 10: solo el de 1 (el más antiguo no entra y se salta)');
 
 -- No remarca los ya Para avisar ni toca avisados o resueltos.
 create temp table antes (marca timestamptz);

@@ -74,12 +74,12 @@ private.marcar_faltantes_para_avisar() returns trigger
 // para cada faltante f de la organización con f.producto_id = new.producto_id, f.estado = 'abierto',
 //   f.para_avisar_en is null y sin aviso 'pendiente'/'enviado' en la cola, ordenado por (f.creado_en, f.id):
 //     si f.cantidad_faltante <= saldo -> marca (para_avisar_en = now(), para_avisar_ingreso_id = ingreso) y saldo -= f.cantidad_faltante
-//     si no -> corta (no se salta al siguiente)
+//     si no -> se salta y se sigue con el siguiente más antiguo (hasta saldo 0)
 // No escribe en faltantes_avisos ni envía nada. Una excepción interna se registra como warning y el ingreso continúa.
 // Actividad ventas.faltantes_para_avisar { producto, marcados } solo si marcó al menos uno.
 ```
 
-Ejemplos (cobertura): ingreso de 10 → faltantes `[3, 3, 3]` marcados los 3; faltantes `[4, 4, 4]` marcados los dos más antiguos; faltantes `[9, 2, 1]` marcado solo el de 9 (saldo 1; el de 2 no entra y se corta, aunque el de 1 sí entraría); faltantes `[12, 1]` no marca ninguno (el más antiguo no entra y se corta).
+Ejemplos (cobertura): ingreso de 10 → faltantes `[3, 3, 3]` marcados los 3; faltantes `[4, 4, 4]` marcados los dos más antiguos; faltantes `[9, 2, 1]` marcados el de 9 y el de 1 (saldo 1; el de 2 no entra y se salta); faltantes `[12, 1]` marcado solo el de 1 (el más antiguo no entra y se salta).
 
 ## Permisos y RLS (sin cambios)
 
