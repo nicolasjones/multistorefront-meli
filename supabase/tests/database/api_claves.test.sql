@@ -97,7 +97,8 @@ select is(
 );
 
 select is(
-  (select hash = extensions.digest(valor, 'sha256') from public.api_claves where id = (select id from claves where clave = 'principal')),
+  (select hash = extensions.digest((select valor from claves where clave = 'principal'), 'sha256')
+     from public.api_claves where id = (select id from claves where clave = 'principal')),
   true,
   'solo se persiste el hash SHA-256 del valor entregado'
 );
@@ -220,7 +221,8 @@ select is(
 );
 
 select is(
-  (select hash = extensions.digest(valor, 'sha256') from public.api_claves where id = (select id from claves where clave = 'rotada')),
+  (select hash = extensions.digest((select valor from claves where clave = 'rotada'), 'sha256')
+     from public.api_claves where id = (select id from claves where clave = 'rotada')),
   true,
   'la clave rotada también guarda solo el hash'
 );
@@ -235,6 +237,70 @@ select is(
   (select vence_en from public.api_claves where id = (select id from claves where clave = 'rotada')),
   null,
   'la clave nueva no vence'
+);
+
+-- La gracia de 24 h se otorga UNA sola vez (D-3): rotar de nuevo la misma
+-- clave no extiende la ventana.
+create temporary table gracia (
+  vence timestamptz not null
+);
+insert into gracia (vence)
+select vence_en from public.api_claves where id = (select id from claves where clave = 'principal');
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', 'f1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
+
+with rotada as (
+  select public.rotar_clave_api((select id from claves where clave = 'principal')) as c
+)
+insert into claves (clave, id, valor)
+select 'rotada-2', (c).id, (c).valor from rotada;
+
+reset role;
+
+select is(
+  (select vence_en from public.api_claves where id = (select id from claves where clave = 'principal')),
+  (select vence from gracia),
+  'rotar dos veces la misma clave no extiende la gracia de 24 h'
+);
+
+-- Una clave ya vencida no revive al rotarla: la nueva se entrega y la vieja
+-- sigue vencida (FR-002).
+insert into public.api_claves (organizacion_id, nombre, prefijo, hash, alcances, creada_por, vence_en)
+values (
+  'a1000000-0000-0000-0000-000000000001', 'Clave vencida', 'deadbeef',
+  extensions.digest('msf_deadbeef_secreto', 'sha256'), array['productos'],
+  'f1000000-0000-0000-0000-000000000001', now() - interval '1 hour'
+);
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', 'f1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
+
+with rotada as (
+  select public.rotar_clave_api((select id from public.api_claves where prefijo = 'deadbeef')) as c
+)
+insert into claves (clave, id, valor)
+select 'rotada-vencida', (c).id, (c).valor from rotada;
+
+reset role;
+
+select ok(
+  (select vence_en < now() from public.api_claves where prefijo = 'deadbeef'),
+  'rotar una clave vencida no la revive'
+);
+
+select is(
+  (select valida from public.api_validar_clave('msf_deadbeef_secreto')),
+  false,
+  'la clave vencida sigue sin validar después de rotarla'
 );
 
 -- El Administrador de otra organización no rota ni revoca.

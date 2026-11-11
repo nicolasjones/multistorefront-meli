@@ -72,9 +72,10 @@ select is(
 );
 
 select is(
-  (select count(*)::int from jsonb_array_elements(filas)
-     from private.api_leer_productos('11111111-1111-1111-1111-111111111111', null, 50, null) x
-   where filas->>'nombre' = 'Producto de B'),
+  (select count(*)::int
+     from private.api_leer_productos('11111111-1111-1111-1111-111111111111', null, 50, null) x,
+          lateral jsonb_array_elements(x.filas) as fila
+    where fila->>'nombre' = 'Producto de B'),
   0,
   'la lectura de A no trae el producto de B'
 );

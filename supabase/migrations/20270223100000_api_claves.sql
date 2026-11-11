@@ -37,6 +37,9 @@ create table if not exists public.api_claves (
   creada_por uuid not null references auth.users (id) on delete cascade,
   creada_en timestamptz not null default now(),
   vence_en timestamptz,
+  -- Momento de la primera rotación: la gracia de 24 h se otorga una sola vez
+  -- (D-3), así rotar dos veces no extiende la ventana.
+  rotada_en timestamptz,
   revocada_en timestamptz,
   ultimo_uso_en timestamptz
 );
@@ -58,7 +61,7 @@ create policy api_claves_select on public.api_claves
 
 revoke all on table public.api_claves from public, anon, authenticated;
 grant select (id, organizacion_id, nombre, prefijo, alcances, limite_por_minuto, creada_por,
-  creada_en, vence_en, revocada_en, ultimo_uso_en)
+  creada_en, vence_en, rotada_en, revocada_en, ultimo_uso_en)
   on table public.api_claves to authenticated;
 
 -- ============================================================================
@@ -132,9 +135,13 @@ begin
     raise exception 'El nombre de la clave es obligatorio' using errcode = '22023';
   end if;
 
-  select coalesce(array_agg(distinct btrim(a)), '{}'::text[]) into v_alcances
-    from unnest(coalesce(p_alcances, '{}'::text[])) as a
-   where btrim(a) <> '';
+  -- El orden pedido se conserva (es el que ve el Administrador en la pantalla)
+  -- y los repetidos se descartan.
+  select coalesce(array_agg(u.t order by u.ord), '{}'::text[]) into v_alcances
+    from (select distinct on (btrim(t)) btrim(t) as t, ord
+            from unnest(coalesce(p_alcances, '{}'::text[])) with ordinality as u(t, ord)
+           where btrim(t) <> ''
+           order by btrim(t), ord) u;
 
   if cardinality(v_alcances) = 0 then
     raise exception 'La clave necesita al menos un alcance' using errcode = '22023';
@@ -203,10 +210,15 @@ begin
     raise exception 'La clave está revocada' using errcode = '22023';
   end if;
 
-  -- La gracia de 24 h de la clave anterior (D-3).
-  update public.api_claves
-     set vence_en = now() + interval '24 hours'
-   where public.api_claves.id = p_clave_id;
+  -- La gracia de 24 h (D-3) se otorga UNA sola vez y nunca revive una clave
+  -- vencida: rotar dos veces la misma clave no extiende la ventana, y rotar
+  -- una clave ya vencida entrega la nueva sin resucitar la vieja.
+  if (v_clave.vence_en is null or v_clave.vence_en > now()) and v_clave.rotada_en is null then
+    update public.api_claves
+       set vence_en = now() + interval '24 hours',
+           rotada_en = now()
+     where public.api_claves.id = p_clave_id;
+  end if;
 
   v_prefijo := (select private.api_prefijo_aleatorio());
   v_token := 'msf_' || v_prefijo || '_' || (select private.api_secreto_aleatorio());
@@ -221,7 +233,7 @@ end;
 $$;
 
 comment on function public.rotar_clave_api(uuid) is
-  'F-API-01: rota una clave de API. La anterior vence en 24 h (D-3) y la nueva conserva nombre, alcances y límite.';
+  'F-API-01: rota una clave de API. La anterior vence en 24 h (D-3, una sola vez) y la nueva conserva nombre, alcances y límite. Una clave ya vencida no revive.';
 
 revoke execute on function public.rotar_clave_api(uuid) from public, anon;
 grant execute on function public.rotar_clave_api(uuid) to authenticated;

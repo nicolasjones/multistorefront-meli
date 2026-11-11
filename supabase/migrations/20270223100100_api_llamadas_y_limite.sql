@@ -53,6 +53,9 @@ create policy api_llamadas_select on public.api_llamadas
 revoke all on table public.api_llamadas from public, anon, authenticated;
 grant select (id, organizacion_id, clave_id, metodo, ruta, version, estado_http, duracion_ms, creada_en)
   on table public.api_llamadas to authenticated;
+-- Solo la Edge Function (service_role) inserta: la auditoría no se puede falsear
+-- desde el navegador.
+grant insert on table public.api_llamadas to service_role;
 
 -- ============================================================================
 -- public.api_validar_clave — resuelve el token a una clave.

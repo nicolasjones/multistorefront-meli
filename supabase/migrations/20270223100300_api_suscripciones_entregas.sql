@@ -24,6 +24,7 @@
 --   drop function private.api_fanout_evento(uuid);
 --   drop function private.api_reclamar_entregas(integer, integer);
 --   drop function private.api_resolver_entrega(uuid, text, integer, text, integer);
+--   drop function private.api_entrega_para_entregar(uuid);
 --   drop function private.api_url_destino_valida(text);
 --   drop function private.api_sanitizar_error(text);
 --   drop table public.api_entregas;
@@ -145,6 +146,13 @@ begin
     return false;
   end if;
 
+  -- Un host solo puede tener letras, dígitos, guiones y puntos: cualquier otra
+  -- cosa (espacios, percent-encoding, caracteres de control) no es un destino
+  -- válido.
+  if v_host !~ '^[a-z0-9.-]+$' then
+    return false;
+  end if;
+
   if v_host = 'localhost'
     or v_host like '%.localhost'
     or v_host like '%.local'
@@ -154,7 +162,15 @@ begin
     return false;
   end if;
 
-  if v_host ~ '^\d{1,3}(\.\d{1,3}){3}$' then
+  -- IPv4 literal: solo se acepta el cuádruplo punteado canónico. Las otras
+  -- notaciones ('127.1', '0177.0.0.1', '2130706433', '0x7f000001') las
+  -- resuelve el sistema a direcciones internas aunque no parezcan una IP:
+  -- se rechazan todas (FR-010).
+  if v_host ~ '^[0-9.]+$' or v_host ~ '^0[xX]' then
+    if v_host !~ '^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$' then
+      return false;
+    end if;
+
     v_ip := v_host::inet;
     if v_ip << '0.0.0.0/8'::inet
       or v_ip << '10.0.0.0/8'::inet
@@ -168,6 +184,8 @@ begin
       or v_ip >= '224.0.0.0/4'::inet then
       return false;
     end if;
+
+    return true;
   end if;
 
   return true;
@@ -224,9 +242,13 @@ begin
     raise exception 'La URL del aviso no es válida: tiene que ser https y apuntar a un destino público' using errcode = '22023';
   end if;
 
-  select coalesce(array_agg(distinct btrim(t)), '{}'::text[]) into v_tipos
-    from unnest(coalesce(p_tipos, '{}'::text[])) as t
-   where btrim(t) <> '';
+  -- El orden pedido se conserva (es el que ve el Administrador en la pantalla)
+  -- y los repetidos se descartan.
+  select coalesce(array_agg(u.t order by u.ord), '{}'::text[]) into v_tipos
+    from (select distinct on (btrim(t)) btrim(t) as t, ord
+            from unnest(coalesce(p_tipos, '{}'::text[])) with ordinality as u(t, ord)
+           where btrim(t) <> ''
+           order by btrim(t), ord) u;
 
   if cardinality(v_tipos) = 0 then
     raise exception 'La suscripción necesita al menos un tipo de evento' using errcode = '22023';
@@ -419,9 +441,10 @@ comment on function private.api_reclamar_entregas(integer, integer) is
 
 -- ============================================================================
 -- private.api_resolver_entrega — el resultado de una entrega.
--- `p_espera_seg` lo calcula la Edge Function (60 s × 2^(intentos-1), D-6).
--- El tope de 5 intentos se aplica acá como red de seguridad: una entrega
--- con 5 intentos no vuelve a quedar pendiente.
+-- La espera del reintento es 60 s × 2^(intentos-1) (D-6): si el llamador no
+-- pasa `p_espera_seg`, la calcula acá (un reintento inmediato sería un bucle
+-- caliente contra el destino). El tope de 5 intentos se aplica como red de
+-- seguridad: una entrega con 5 intentos no vuelve a quedar pendiente.
 -- ============================================================================
 
 create or replace function private.api_resolver_entrega(
@@ -449,7 +472,9 @@ begin
          end,
          proximo_intento_en = case
            when p_estado = 'pendiente' and d.intentos < 5
-             then clock_timestamp() + make_interval(secs => greatest(coalesce(p_espera_seg, 0), 0))
+             then clock_timestamp() + make_interval(secs => coalesce(
+               p_espera_seg,
+               least(60 * power(2, greatest(d.intentos - 1, 0)), 480)))
            else d.proximo_intento_en
          end,
          ultimo_estado_http = p_estado_http,
@@ -466,6 +491,45 @@ $$;
 
 comment on function private.api_resolver_entrega(uuid, text, integer, text, integer) is
   'F-API-01: resuelve una entrega (completada, pendiente con espera o agotada). La usa la Edge Function entregar-webhook.';
+
+-- ============================================================================
+-- private.api_entrega_para_entregar — lo que la Edge Function `entregar-webhook`
+-- necesita para entregar una entrega: el destino, el evento y el secreto de
+-- firma. El secreto se lee de Vault acá (el navegador nunca lo ve) y solo
+-- `service_role` puede llamarla.
+-- ============================================================================
+
+create or replace function private.api_entrega_para_entregar(p_entrega_id uuid)
+returns table (url text, evento jsonb, secreto text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  return query
+  select s.url,
+    jsonb_build_object(
+      'id', ev.id,
+      'tipo', ev.tipo,
+      'organizacion_id', ev.organizacion_id,
+      'ocurrido_en', ev.carga->>'ocurrido_en',
+      'datos', ev.carga - 'ocurrido_en'
+    ),
+    vs.decrypted_secret
+    from public.api_entregas d
+    join public.api_suscripciones s on s.id = d.suscripcion_id
+    join public.cola_eventos ev on ev.id = d.evento_id
+    join vault.decrypted_secrets vs on vs.id = s.secreto_vault_id
+   where d.id = p_entrega_id;
+end;
+$$;
+
+comment on function private.api_entrega_para_entregar(uuid) is
+  'F-API-01: devuelve el destino, el evento y el secreto de firma de una entrega. Solo service_role: el secreto nunca llega al navegador.';
+
+revoke execute on function private.api_entrega_para_entregar(uuid) from public, anon, authenticated;
+grant execute on function private.api_entrega_para_entregar(uuid) to service_role;
 
 revoke execute on function private.api_fanout_evento(uuid) from public, anon, authenticated;
 revoke execute on function private.api_reclamar_entregas(integer, integer) from public, anon, authenticated;

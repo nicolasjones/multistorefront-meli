@@ -110,6 +110,36 @@ select throws_ok(
   'la IP de metadatos del proveedor se rechaza'
 );
 
+-- Notaciones de IPv4 que el sistema resuelve a direcciones internas aunque no
+-- parezcan una IP (FR-010).
+select throws_ok(
+  $$select public.crear_suscripcion_api('https://127.1/aviso', array['stock.actualizado'])$$,
+  '22023',
+  null,
+  'una IPv4 abreviada se rechaza'
+);
+
+select throws_ok(
+  $$select public.crear_suscripcion_api('https://0177.0.0.1/aviso', array['stock.actualizado'])$$,
+  '22023',
+  null,
+  'una IPv4 con ceros a la izquierda se rechaza'
+);
+
+select throws_ok(
+  $$select public.crear_suscripcion_api('https://2130706433/aviso', array['stock.actualizado'])$$,
+  '22023',
+  null,
+  'una IPv4 en decimal se rechaza'
+);
+
+select throws_ok(
+  $$select public.crear_suscripcion_api('https://0x7f000001/aviso', array['stock.actualizado'])$$,
+  '22023',
+  null,
+  'una IPv4 en hexadecimal se rechaza'
+);
+
 select throws_ok(
   $$select public.crear_suscripcion_api('https://[::1]/aviso', array['stock.actualizado'])$$,
   '22023',
@@ -343,6 +373,30 @@ select ok(
   (select proximo_intento_en between now() + interval '55 seconds' and now() + interval '65 seconds'
      from public.api_entregas),
   'el reintento espera 60 s × 2^(intentos-1)'
+);
+
+-- El segundo fallo espera el doble: la espera crece con cada intento.
+select is(
+  (select count(*)::int from private.api_reclamar_entregas(10, 60)),
+  1,
+  'la entrega se vuelve a reclamar para el segundo intento'
+);
+
+select is(
+  (select intentos from public.api_entregas),
+  2,
+  'el segundo intento se cuenta'
+);
+
+select lives_ok(
+  $$select private.api_resolver_entrega((select id from public.api_entregas), 'pendiente', 500, 'falló otra vez')$$,
+  'el segundo intento se resuelve'
+);
+
+select ok(
+  (select proximo_intento_en between now() + interval '115 seconds' and now() + interval '125 seconds'
+     from public.api_entregas),
+  'el segundo reintento espera 120 s × 2^(intentos-1)'
 );
 
 -- Al quinto intento la entrega queda agotada.

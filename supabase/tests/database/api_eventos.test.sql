@@ -147,7 +147,8 @@ insert into dominio.comprobantes_venta (
 );
 
 select is(
-  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'),
+  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'
+     and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   0,
   'una factura en borrador no emite venta.registrada'
 );
@@ -156,19 +157,22 @@ update dominio.comprobantes_venta set estado = 'confirmada', confirmado_en = now
  where id = 'd1000000-0000-0000-0000-000000000001';
 
 select is(
-  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'),
+  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'
+     and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   1,
   'confirmar la factura emite venta.registrada'
 );
 
 select is(
-  (select carga->>'comprobante_id' from public.cola_eventos where tipo = 'venta.registrada'),
+  (select carga->>'comprobante_id' from public.cola_eventos where tipo = 'venta.registrada'
+     and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   'd1000000-0000-0000-0000-000000000001',
   'el evento lleva el comprobante'
 );
 
 select is(
-  (select carga->>'numero' from public.cola_eventos where tipo = 'venta.registrada'),
+  (select carga->>'numero' from public.cola_eventos where tipo = 'venta.registrada'
+     and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   'F-1',
   'el evento lleva el número de la factura'
 );
@@ -178,7 +182,8 @@ update dominio.comprobantes_venta set estado = 'confirmada'
  where id = 'd1000000-0000-0000-0000-000000000001';
 
 select is(
-  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'),
+  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'
+     and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   1,
   'reconfirmar la factura no duplica el evento'
 );
@@ -194,7 +199,8 @@ insert into dominio.comprobantes_venta (
 );
 
 select is(
-  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'),
+  (select count(*)::int from public.cola_eventos where tipo = 'venta.registrada'
+     and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   1,
   'un presupuesto no emite venta.registrada'
 );

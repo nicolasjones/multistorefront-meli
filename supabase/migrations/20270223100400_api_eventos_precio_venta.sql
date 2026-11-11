@@ -68,7 +68,7 @@ begin
     v_actualizado := (v_nuevo->>'updated_at')::timestamptz;
   end if;
 
-  insert into public.cola_eventos (organizacion_id, tipo, clave_idempotencia, carga)
+  insert into public.cola_eventos (organizacion_id, tipo, clave_idempotencia, carga, created_at)
   values (
     (v_nuevo->>'organizacion_id')::uuid,
     'precio.actualizado',
@@ -81,7 +81,11 @@ begin
       'precio', v_precio,
       'moneda', v_moneda,
       'ocurrido_en', clock_timestamp()
-    )
+    ),
+    -- now() es constante en la transacción: con dos cambios en la misma
+    -- transacción los dos eventos quedarían con el mismo instante y no se
+    -- podría saber cuál es el último.
+    clock_timestamp()
   )
   on conflict (organizacion_id, tipo, clave_idempotencia) do nothing;
 
@@ -132,7 +136,7 @@ begin
     return new;
   end if;
 
-  insert into public.cola_eventos (organizacion_id, tipo, clave_idempotencia, carga)
+  insert into public.cola_eventos (organizacion_id, tipo, clave_idempotencia, carga, created_at)
   values (
     (v_nuevo->>'organizacion_id')::uuid,
     'venta.registrada',
@@ -146,7 +150,10 @@ begin
       'total_con_iva', (v_nuevo->>'total_con_iva')::numeric,
       'confirmado_en', v_nuevo->>'confirmado_en',
       'ocurrido_en', clock_timestamp()
-    )
+    ),
+    -- now() es constante en la transacción: el instante real de encolado
+    -- ordena los eventos del mismo lote.
+    clock_timestamp()
   )
   on conflict (organizacion_id, tipo, clave_idempotencia) do nothing;
 
