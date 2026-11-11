@@ -6,7 +6,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Spec aprobada (piloto de spec, 2026-11-09) · **implementación en HOLD** hasta la Etapa 2 (2027-01-04) o pedido expreso de Nicolás. No se despacha Desarrollador, QA ni Code Review; ver *Estado de entrega*.
+**Status**: Spec aprobada (piloto de spec, 2026-11-09) · **implementada** (PR #825, MSF-145), por pedido expreso de Nicolás que levantó el HOLD de la Etapa 2; ver *Estado de entrega*.
 
 **Delivery scope**: `refine` (apps/web) y `supabase` (migraciones + RPC + pgTAP). Sin `kestra`, `superset` ni `workers`.
 
@@ -27,12 +27,12 @@
 - Si algo no se puede igualar: lo más cercano, sin inventar, anotando la diferencia en el PR. Si prototipo y requisitos se contradicen: requisitos para el comportamiento, prototipo para lo visual, y la contradicción queda anotada en el PR.
 - Prototipo (solo lectura): `design/pantallas/VentasTransportes.dc.html` (inventario al día en `VentasTransportes.inventory.json`). Esta épica usa **solo** la pestaña **Motos** (texto de ayuda «Mensajería propia: se rinde el efectivo cobrado y el costo del envío.») y la tarjeta «Motos sin rendir». «Contrarreembolsos», «Terminales de retiro» y el diálogo «Nueva empresa» son de otras épicas (ventas-cobros-y-conciliacion y ventas-catalogos-de-cobro-y-envio).
 
-## Estado de entrega (HOLD hasta Etapa 2)
+## Estado de entrega (implementada; el HOLD ya no rige)
 
 - **Liberación parcial para piloto (Nicolás, 2026-11-09)**: esta corrida entrega **spec/plan/tasks**; la revisión EGM corre en modo sombra (solo comenta). **No** se pasa a *Implementation In Progress* ni se despachan Desarrollador, QA ni Code Review: la implementación sigue en hold hasta la **Etapa 2 (2027-01-04)** o un pedido expreso de Nicolás.
 - **Condiciones para implementar**: liberación de la fase **y** MSF-159 integrada en `dev` (hoy en *Review In DEV*) **y** cupo libre de workers. Al liberar, revalidar `comprobantes_venta` y `formas_envio` en la base vigente antes de la primera migración.
 - **Sin migración de histórico**: no se backfillean comprobantes ni envíos existentes; `envios_moto` nace vacía.
-- Esta espera es declarada: no es una traba. No se abre gate de alcance (la spec ya está aprobada).
+- **Levantado:** Nicolás pidió la implementación (MSF-145) y se entregó en el PR #825. Lo de arriba queda como historia de la espera.
 
 ## Modelo y supuestos
 

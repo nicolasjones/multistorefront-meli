@@ -8,6 +8,7 @@ Todas las RPC: esquema `public`, `security definer`, `set search_path = ''`, `re
 - `actualizar_envio_moto(p_id uuid, p_mensajero text, p_guia text, p_costo_envio numeric, p_abono numeric, p_enviado boolean, p_actualizado_en timestamptz) returns dominio.envios_moto` — bloqueo optimista (`40001`); rechaza un envío rendido (`55000`); nunca escribe `rendido` ni `rendido_en`.
 - `comprobantes_para_envio_moto(p_empresa_id uuid default null, p_busqueda text default null) returns table (id uuid, numero text, empresa_id uuid, empresa text, fecha date, cliente text)` — facturas elegibles (forma de envío `moto`, misma empresa) sin envío registrado y de empresas accesibles.
 - `listar_envios_moto(p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 25) returns table (id uuid, comprobante_id uuid, comprobante_numero text, empresa_id uuid, empresa text, fecha date, cliente text, mensajero text, guia text, costo_envio numeric, abono numeric, enviado boolean, rendido boolean, rendido_en timestamptz, actualizado_en timestamptz, puede_editar boolean, puede_rendir boolean, filas bigint)` — más reciente primero; filtra por empresas accesibles y, si viene, por `p_empresa_id`.
+- `puedo_registrar_envios_moto(p_empresa_id uuid default null) returns boolean` — solo lectura: la misma regla que `registrar_envio_moto` (`ventas` en edición y rol Operador o Administrador en la tienda; con `null`, en alguna tienda accesible). La pantalla la usa para mostrar «Registrar envío».
 
 ## F-VTA-25
 

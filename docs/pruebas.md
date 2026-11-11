@@ -44,7 +44,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 | `e2e` | `pnpm test:e2e -- acceso-publico.e2e.ts` |
 | `db` | `pnpm test:db` |
 | `db:aditivas` | `pnpm test:db:validar-aditivas` |
-| `edge` | `pnpm test:edge:invitar-miembro && …solicitar-acceso && …crear-organizacion` |
+| `edge` | `pnpm test:edge:invitar-miembro && …invitar-cliente && …solicitar-acceso && …crear-organizacion && …cotizacion-sugerida` |
 | `ia` | `pnpm test:ia` |
 | `tooling` | `node --test scripts/*.test.mjs` |
 | `infra:config` | `pnpm infra:config` |

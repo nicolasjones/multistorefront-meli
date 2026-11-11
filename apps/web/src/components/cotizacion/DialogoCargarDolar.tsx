@@ -4,6 +4,7 @@ import { TituloDialogo } from '../base/TituloDialogo'
 import { EstadoCargaPagina, EstadoError } from '../estados/EstadosPagina'
 import { useCargarCotizacion, useConfirmarCotizacion } from '../../hooks/useCotizacion'
 import { usePrevisualizarCotizacion } from '../../hooks/usePrevisualizarCotizacion'
+import { type EstadoSugerida, useCotizacionSugerida } from '../../hooks/useCotizacionSugerida'
 import { BloqueQueVaACambiar } from './BloqueQueVaACambiar'
 import {
   type CotizacionCargada,
@@ -18,6 +19,7 @@ import {
   formatearVariacion,
   parsearCotizacion,
   soloCaracteresDeCotizacion,
+  textoDeCotizacionSugerida,
   textoAnterior,
   textoUmbralNoAlcanzado,
   variacionPorcentual,
@@ -45,6 +47,21 @@ function AlertaVariacionInusual({ confirmacionPct }: { confirmacionPct: number }
   )
 }
 
+// F-PRE-13: la cotización sugerida por la fuente pública es una AYUDA; «Usar este valor» solo completa el campo
+// (la carga y la confirmación son las de siempre). Si la fuente no responde, se carga a mano como hoy (FR-002).
+function SugerenciaDelDia({ sugerencia, onUsar }: { sugerencia: EstadoSugerida; onUsar: (valor: number) => void }) {
+  if (sugerencia.estado === 'cargando') return <Typography variant="xs">Buscando la cotización sugerida…</Typography>
+  if (sugerencia.estado === 'no_disponible') return <Typography variant="xs">No pudimos consultar la cotización sugerida. Cargá el valor a mano.</Typography>
+  const { valor, fuente, fecha } = sugerencia.sugerida
+  const actualizada = fecha ? new Date(fecha).toLocaleDateString('es-AR') : null
+  return (
+    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+      <Typography variant="xs">Sugerida: {formatearCotizacion(valor)} por USD · {fuente}{actualizada ? ` · actualizada el ${actualizada}` : ''}</Typography>
+      <Button size="small" onClick={() => onUsar(valor)}>Usar este valor</Button>
+    </Stack>
+  )
+}
+
 // Diálogo «Cargar dólar del día» (F-PRE-02 FR-006/FR-007 y F-PRE-03 FR-014/FR-015; Cotizacion.dc.html).
 // Paso 1: el valor con `$` y `por USD`, «Anterior», «Variación» y la alerta «Variación inusual»; al
 // continuar queda como cotización PENDIENTE y no cambia ningún precio. Paso 2: vista previa «Qué va a
@@ -61,6 +78,7 @@ export function DialogoCargarDolar({
   const { cargar, enviando: cargando } = useCargarCotizacion()
   const { confirmar, descartar, enviando: resolviendo } = useConfirmarCotizacion()
   const ocupado = cargando || resolviendo
+  const sugerencia = useCotizacionSugerida(abierto && !carga)
   // Sube cuando la base rechaza porque el dólar cambió mientras se revisaba: el paso 2 recalcula la vista previa.
   const [revision, setRevision] = useState(0)
 
@@ -148,6 +166,7 @@ export function DialogoCargarDolar({
                   },
                 }}
               />
+              <SugerenciaDelDia sugerencia={sugerencia} onUsar={(sugerido) => setTexto(textoDeCotizacionSugerida(sugerido))} />
               {mostrarInvalido && vigente ? <Typography variant="s">{textoAnterior(vigente, aplicada)}</Typography> : null}
               <Stack direction="row" justifyContent="space-between" role="status" aria-live="polite">
                 <Typography variant="s">Variación</Typography>

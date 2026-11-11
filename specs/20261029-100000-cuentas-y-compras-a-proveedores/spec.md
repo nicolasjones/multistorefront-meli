@@ -10,9 +10,9 @@
 
 **Created**: 2026-10-29
 
-**Status**: Completa como registro documental. La épica es un conjunto de ideas condicionadas a validar demanda y declara que «los requisitos se redactan cuando pasen a un hito». No hay requisitos de comportamiento que traducir; esta spec los registra sin inventarlos. Las preguntas abiertas quedaron decididas por Nicolás (ver *Decisiones*).
+**Status**: Completa como registro documental, más una excepción: F-CLI-19 se construyó (MSF-451, SDLC) como definición provisoria sin requisitos del cliente, con su propia spec (`specs/20261109-100000-cuenta-corriente-y-saldo-cliente/`). La épica es un conjunto de ideas condicionadas a validar demanda y declara que «los requisitos se redactan cuando pasen a un hito». No hay requisitos de comportamiento del cliente que traducir; esta spec los registra sin inventarlos. Las preguntas abiertas quedaron decididas por Nicolás (ver *Decisiones*).
 
-**Delivery scope**: ninguno por ahora. Cuando una historia pase a un hito, su alcance (`refine`, `supabase`, `workers`…) se declara en su propia spec. Esta rama solo entrega documentación (`specs/`, `docs/`).
+**Delivery scope**: esta spec no declara alcance propio: F-CLI-20, F-CLI-21 y F-PRV-09 son solo documentación (`specs/`, `docs/`). F-CLI-19 se entregó con alcance `supabase` (migración `20270222100000` y la RPC `public.cuenta_corriente_cliente`) y `refine` (hook, tarjeta «Saldo deudor» y tabla «Cuenta corriente» de la ficha), declarado en su propia spec. Cuando otra historia pase a un hito, su alcance se declara en su propia spec.
 
 **Prioridad / Hito**: P3 · Backlog · horas sin estimar · fuera de diciembre.
 
@@ -56,15 +56,18 @@
 
 ## A revisar (de la épica; decisiones abiertas, no se resuelven acá)
 
-1. **F-CLI-21 vs. F-PRE-14.** Las listas de precios mayoristas (F-PRE-14, P3) chocan con que el tipo de cliente defina la escala en P0. El documento lo deja como pregunta abierta 1: si el tipo de cliente fija la escala de precios o si la escala depende de la cantidad.
+Misma numeración que `docs/cuentas-y-compras-a-proveedores.md` (sección *Preguntas abiertas*):
+
+1. **Pregunta abierta 1 · F-CLI-21 vs. F-PRE-14.** Las listas de precios mayoristas (F-PRE-14, P3) chocan con que el tipo de cliente defina la escala en P0: si el tipo de cliente fija la escala de precios o si la escala depende de la cantidad.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27.** Tiendas online deja las cuentas en P3 (F-TDA-27); el roadmap manda hasta que se defina.
-3. **Sin pantallas ni horas.** El documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido, con aviso en cada historia.
+3. **F-CLI-19 (cuenta corriente), decidida de forma provisoria por el desarrollo:** qué estados cuentan como deuda, si las notas de crédito restan, si el saldo a favor se muestra, si el saldo es por tienda accesible o por organización y si la persona con `clientes` en lectura lo ve sin acceso a Ventas. A confirmar con el cliente.
+4. **Sin pantallas ni horas.** El documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido, con aviso en cada historia (F-CLI-19 tiene pantalla: la dibujó su propia spec).
 
 ## Requisitos funcionales
 
 Solo se registra lo que la épica da. Ningún requisito de comportamiento de negocio (cálculo de saldo, estados de la orden de compra, estructura de listas) se inventa: queda para la spec de cada historia cuando pase a un hito.
 
-- **FR-001** (F-CLI-19): La idea «Cuenta corriente y saldo del cliente» queda registrada como P3/Backlog, con su dependencia de cobros y estado Deuda de Ventas. Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-19.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -c "requisitos de comportamiento" docs/cuentas-y-compras-a-proveedores.md`): el registro documental lista F-CLI-19 como P3/Backlog/L con la dependencia de cobros y estado Deuda, sin requisitos de comportamiento; además `pnpm docs:check`.
+- **FR-001** (F-CLI-19): La idea «Cuenta corriente y saldo del cliente» queda registrada como P3/Backlog para el cliente, con su dependencia de cobros y estado Deuda de Ventas; el desarrollo la construyó como definición provisoria (MSF-451). Sin requisitos de comportamiento del cliente hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-19.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -c "requisitos de comportamiento" docs/cuentas-y-compras-a-proveedores.md`): el registro documental lista F-CLI-19 como P3/Backlog/L con la dependencia de cobros y estado Deuda y aclara que se construyó como definición provisoria, sin requisitos de comportamiento del cliente; además `pnpm docs:check`.
 - **FR-002** (F-CLI-20): La idea «Historial y favoritos en la cuenta web» queda registrada como P3/Backlog, acotada a historial y favoritos, apoyada en `cuenta-web-del-cliente`. Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-20.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -q "cuenta-web-del-cliente" docs/cuentas-y-compras-a-proveedores.md`): figura P3/Backlog/L acotada a historial y favoritos y apoyada en `cuenta-web-del-cliente`; además `pnpm docs:check`.
 - **FR-003** (F-CLI-21): La idea «Listas de precios por cliente» queda registrada como P3/Backlog, con la pregunta abierta 1 sin resolver (ver *A revisar*). Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-CLI-21.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -q "F-PRE-14" docs/cuentas-y-compras-a-proveedores.md && grep -qi "pregunta abierta 1" docs/cuentas-y-compras-a-proveedores.md`): figura P3/Backlog/L con la pregunta abierta 1 sin resolver y la relación con F-PRE-14; además `pnpm docs:check`.
 - **FR-004** (F-PRV-09): La idea «Órdenes de compra a proveedores» queda registrada como P3/Backlog, apoyada en el listado de reposición de Stock. Sin requisitos de comportamiento hasta que pase a un hito. **Verificación** (comando `grep -E "F-PRV-09.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md && grep -qi "reposici" docs/cuentas-y-compras-a-proveedores.md`): figura P3/Backlog/L apoyada en el listado de reposición de Stock; además `pnpm docs:check`.
@@ -80,7 +83,7 @@ Solo se registra lo que la épica da. Ningún requisito de comportamiento de neg
 
 ## Criterios de éxito
 
-- **SC-001**: Esta spec no agrega migraciones, tablas, RPC, rutas, pantallas ni workers: el merge no cambia comportamiento del producto (`pnpm lint`, `pnpm build`, `pnpm test` sin diferencias de comportamiento). **Verificación** (comando `git diff --name-only origin/main...HEAD | grep -vE '^(specs|docs)/' ; pnpm lint && pnpm build && pnpm test`): el diff solo toca `specs/` y `docs/` (la primera salida vacía) y lint, build y tests pasan sin cambios de comportamiento.
+- **SC-001**: Esta spec, por sí sola, no agrega migraciones, tablas, RPC, rutas, pantallas ni workers. **Excepción reconocida:** el PR #826 también entregó F-CLI-19 (MSF-451): la migración `20270222100000_cuenta_corriente_cliente.sql`, la RPC `public.cuenta_corriente_cliente`, `useCuentaCorrienteCliente`, la tarjeta «Saldo deudor» y la tabla «Cuenta corriente» en `ComprasCliente`, y el E2E `cuenta-corriente-cliente.e2e.ts`; su comportamiento se especifica y verifica en su propia spec. **Verificación** (comando `git diff --name-only origin/main...HEAD | grep -vE '^(specs|docs)/'; pnpm lint && pnpm build && pnpm test`): fuera de `specs/` y `docs/` aparecen solo los archivos de F-CLI-19 listados arriba y lint, build y tests pasan.
 - **SC-002**: Cada una de las cuatro historias figura con prioridad, talla y dependencia exactas de la épica, sin requisitos añadidos (revisión contra la tabla de arriba). **Verificación** (comando `grep -cE "F-(CLI-19|CLI-20|CLI-21|PRV-09).*P3.*L" docs/cuentas-y-compras-a-proveedores.md` = 4): las cuatro filas coinciden con la tabla de la épica; además `git diff origin/main...HEAD --stat -- specs docs` sin requisitos nuevos.
 - **SC-003**: `pnpm docs:check`, `pnpm matriz:check` y `pnpm prototipo:check` pasan. **Verificación** (comandos `pnpm docs:check`, `pnpm matriz:check` y `pnpm prototipo:check`): los tres terminan con código 0.
 
@@ -145,6 +148,6 @@ stateDiagram-v2
 
 1. **Hito:** ninguna de las cuatro historias pasa a un hito ahora; la épica se cierra solo como registro documental. Las tareas de las historias quedan abiertas a propósito (instrucción expresa de Nicolás) hasta que la demanda se valide.
 2. **F-CLI-21 (escala de precios):** sin resolver; se decide cuando la historia pase a un hito, junto con F-PRE-14.
-3. **F-CLI-19 (fuente de saldo):** se define con la spec de la historia, a partir de Ventas · cobros y conciliación.
+3. **F-CLI-19 (fuente de saldo):** la definió el SDLC en su propia spec (MSF-451), a partir de Ventas · cobros y conciliación, sin requisitos del cliente; queda provisoria y a confirmar.
 4. **F-PRV-09 (origen de la orden):** se define con la spec de la historia, a partir del listado de reposición de Stock.
 5. **F-CLI-20 (prioridad):** rige P3 (roadmap), igual que F-TDA-27.

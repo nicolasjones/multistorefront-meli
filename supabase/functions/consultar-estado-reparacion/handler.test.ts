@@ -6,7 +6,7 @@ import { LIMITE_CONSULTAS, SALTOS_PROXY_CONFIABLES, VENTANA_SEG, ipDelPedido, ma
 
 const TOKEN = 'A'.repeat(32)
 const ESTADO = {
-  codigo: 'R-0001', tienda: 'San Javucho', equipo: 'Nintendo Switch', modelo: 'Estándar',
+  anulada: false, codigo: 'R-0001', tienda: 'San Javucho', equipo: 'Nintendo Switch', modelo: 'Estándar',
   estado: { nombre: 'En reparación', descripcion: 'Estamos trabajando en tu equipo' },
   entrega_prevista: '2027-02-01',
   linea_de_tiempo: [{ estado: 'Recibido', fecha: '2027-01-20T10:00:00Z' }],

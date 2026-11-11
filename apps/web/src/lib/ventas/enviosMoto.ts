@@ -6,6 +6,7 @@ import { supabaseClient } from '../supabase'
 
 // Mismos límites que los CHECK de dominio.envios_moto: mantener alineados.
 export const MENSAJERO_MAXIMO = 100
+export const GUIA_MAXIMO = 100
 // numeric(14,2): hasta 12 dígitos enteros.
 export const IMPORTE_MAXIMO = 999_999_999_999.99
 
@@ -18,7 +19,8 @@ export type EnvioMoto = {
   empresa: string
   // `date` de la base (AAAA-MM-DD).
   fecha: string
-  // El nombre del cliente puede venir vacío: la RLS de Clientes es más restrictiva que la de Ventas.
+  // `listar_envios_moto` es `security definer`: trae el nombre del cliente de la factura aunque la persona no tenga la
+  // sección Clientes (es un dato del comprobante que ya ve en Ventas). Puede venir vacío si el comprobante no tiene cliente.
   cliente: string | null
   mensajero: string
   guia: string | null
@@ -259,3 +261,13 @@ export async function actualizarEnvioMoto(envio: Pick<EnvioMoto, 'id' | 'actuali
   if (!data) throw new Error('La base no devolvió el envío actualizado: no se puede confirmar el cambio.')
   return data as { id: string }
 }
+
+// ¿Puede la persona registrar envíos en moto en la tienda (o en alguna accesible si es `null`)? La misma regla que
+// `registrar_envio_moto` (ventas en edición y rol Operador o Administrador), resuelta por el servidor; sirve solo para
+// mostrar u ocultar «Registrar envío»: la autoridad sigue siendo la RPC de escritura.
+export async function puedoRegistrarEnviosMoto(empresaId: string | null): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('puedo_registrar_envios_moto', { p_empresa_id: empresaId })
+  if (error) throw error
+  return data === true
+}
+
