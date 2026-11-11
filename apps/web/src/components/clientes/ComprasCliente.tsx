@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Box, LinearProgress, Stack, Typography } from '@mui/material'
 import { useComprasCliente, type CompraCliente } from '../../hooks/useComprasCliente'
 import { useCuentaCorrienteCliente, type ComprobanteDeuda } from '../../hooks/useCuentaCorrienteCliente'
-import { formatearFecha, formatearPesos } from '../../lib/formatoRanking'
+import { formatearFecha, formatearPesos, formatearPesosConCentavos } from '../../lib/formatoRanking'
 import { tokens } from '../../tema/tokens'
 import { EtiquetaEstado, type VarianteEtiqueta } from '../base/EtiquetaEstado'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
@@ -39,9 +39,9 @@ const columnasCuenta: ColumnaAdaptable<ComprobanteDeuda>[] = [
   { clave: 'numero', encabezado: 'Comprobante', render: (d) => d.numero },
   { clave: 'fecha', encabezado: 'Fecha', render: (d) => formatearFecha(d.fecha) },
   { clave: 'estado', encabezado: 'Estado', render: (d) => <EtiquetaEstado texto={etiquetaEstado(d.estado)} variante={tonoEstado(d.estado)} /> },
-  { clave: 'total', encabezado: 'Total', align: 'right', render: (d) => formatearPesos(d.total_con_iva) },
-  { clave: 'cobrado', encabezado: 'Cobrado', align: 'right', render: (d) => formatearPesos(d.cobrado) },
-  { clave: 'saldo', encabezado: 'Saldo', align: 'right', render: (d) => formatearPesos(d.saldo) },
+  { clave: 'total', encabezado: 'Total', align: 'right', render: (d) => formatearPesosConCentavos(d.total_con_iva) },
+  { clave: 'cobrado', encabezado: 'Cobrado', align: 'right', render: (d) => formatearPesosConCentavos(d.cobrado) },
+  { clave: 'saldo', encabezado: 'Saldo', align: 'right', render: (d) => formatearPesosConCentavos(d.saldo) },
 ]
 
 // Sección «Compras» de la ficha del cliente (F-CLI-10): «Resumen comercial» (total
@@ -86,7 +86,7 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
                   component="p"
                   sx={cargandoCuenta || errorCuenta ? undefined : { color: colorSaldo(saldo) }}
                 >
-                  {cargandoCuenta || errorCuenta ? '—' : formatearPesos(saldo)}
+                  {cargandoCuenta || errorCuenta ? '—' : formatearPesosConCentavos(saldo)}
                 </Typography>
               </Box>
             </Stack>
@@ -107,6 +107,8 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
                 <ContenidoAdaptable
                   items={listado.filas}
                   columnas={columnas}
+                  // El número se repite entre tiendas y la fila no trae id; la lista solo se acumula al
+                  // final (carga infinita) y se reinicia entera, así que el índice es estable.
                   obtenerClave={(c, indice) => `${c.tipo}-${c.numero}-${indice}`}
                   etiquetaTabla="Últimos comprobantes del cliente"
                 />

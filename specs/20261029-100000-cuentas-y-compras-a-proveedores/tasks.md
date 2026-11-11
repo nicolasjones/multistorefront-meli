@@ -4,7 +4,7 @@
 
 **Formato**: `- [ ] T### [P] [F-xxx-nn][USy] descripción`. **[P]** = paralelizable; sin [P] = secuencial.
 
-**Delivery scope**: ninguno (solo documentación).
+**Delivery scope**: solo documentación (F-CLI-19 se entregó con su propia spec, MSF-451).
 
 > Las tareas T001–T004 solo se ejecutan cuando la historia pase a un hito; por decisión expresa de Nicolás quedan abiertas a propósito (excepción a la regla de «ninguna tarea `[ ]`», ver *Decisiones* en la spec). No hay comportamiento que implementar hoy.
 
@@ -34,7 +34,7 @@
 - [x] T011 [CIERRE] Actualizar la fila de MSF-450 en `docs/roadmap-template.md` (estado Backlog, link a la spec) al mergear el PR; paso manual con criterio. **FR-005** — Verificación: `grep -n "MSF-450" docs/roadmap-template.md`.
   Hecho: fila de MSF-450 en `docs/roadmap-template.md` (Backlog, con link a la spec).
 - [x] T012 [CIERRE] Gates: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check` verdes; confirmar que no hay cambios de comportamiento. **SC-001, SC-002, SC-003** — Verificación: `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check`.
-  Hecho en local: guards, `tsc -b`, `vite build` y Vitest de lo tocado. Desvío: `pnpm test` completo, pgTAP y E2E los valida el CI.
+  Hecho en local: guards, `tsc -b`, `vite build` y Vitest de lo tocado. Desvío: `pnpm test` completo y pgTAP los valida el CI; el E2E de F-CLI-19 **no** lo corre el CI (se corre a mano con el stack local). Además T012 no fue «sin cambios de comportamiento»: el PR incluye F-CLI-19 (ver SC-001).
 
 ---
 
