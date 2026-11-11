@@ -13,7 +13,10 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAd
 const TAMANO_TANDA = 10
 
 const etiquetaTipo: Record<string, string> = { factura: 'Factura', presupuesto: 'Presupuesto' }
-const etiquetaEstado = (estado: string) => estado.charAt(0).toUpperCase() + estado.slice(1)
+const etiquetaEstado = (estado: string) => {
+  const texto = estado.replace(/_/g, ' ')
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
 
 // Tonos del estado en esta pantalla (prototipo `ClienteFicha.dc.html`): «Deuda» en ámbar,
 // «Cobrado» en verde y «Armando» en azul; el resto, neutro.

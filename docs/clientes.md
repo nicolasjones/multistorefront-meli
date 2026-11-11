@@ -448,7 +448,7 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`); un pgTAP los fija uno por uno.
 - **Permiso:** quien tiene `clientes` en lectura ve total, cobrado y saldo aunque no acceda a Ventas (es el mismo dato
   que la sección «Compras»).
-- **Costo:** dos lecturas por factura abierta y sin paginar; son pocas por cliente. Si un cliente real acumulara
+- **Costo:** dos lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada) y sin paginar; son pocas por cliente. Si un cliente real acumulara
   cientos, se pagina con carga infinita.
 - **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
   puede cambiar): qué estados cuentan como deuda (en especial «Pendiente»), si las notas de crédito restan, si el saldo

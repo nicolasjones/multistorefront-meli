@@ -202,9 +202,9 @@ begin
       (v_org.id, 9005, 'Cliente sin compras', 'minorista')
     on conflict do nothing;
 
-    -- Estados vivos de la matriz de transiciones (borrador, confirmada, pendiente, aceptado, cobrado, en_proceso,
-    -- deuda, armando, incompleto, anulada): una factura saldada es «cobrado» y una sin cobrar, «deuda»; así la
-    -- cuenta corriente (F-CLI-19) no cuenta como deuda lo que está pagado. Los presupuestos quedan «pendiente».
+    -- Los estados son los de la matriz de transiciones (borrador, confirmada, pendiente, aceptado, cobrado,
+    -- en_proceso, deuda, armando, incompleto, anulada), no los viejos «cobrada»/«emitida»: una factura saldada es
+    -- «cobrado» y una sin cobrar, «deuda»; los presupuestos quedan «pendiente».
     insert into dominio.comprobantes_venta
       (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
     select v_org.id, c.id, d.tipo, d.numero, d.fecha, d.estado, d.sin_iva, round(d.sin_iva * 1.21, 2)
