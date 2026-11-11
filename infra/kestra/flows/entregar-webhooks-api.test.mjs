@@ -48,9 +48,9 @@ test('reparte el evento en una entrega por suscripción y confirma el evento', a
   assert.match(confirmar, /intento: "\{\{ fromJson\(parent\.taskrun\.value\)\.intento \}\}"/, 'confirma con el intento real del reclamo');
 });
 
-test('reclama las entregas pendientes con lease de 60 s', async () => {
+test('reclama las entregas pendientes con lease de 300 s', async () => {
   const reclamo = tarea(await leer(), 'reclamar_entregas');
-  assert.match(reclamo, /private\.api_reclamar_entregas\(CAST\(:lote AS integer\), 60\)/);
+  assert.match(reclamo, /private\.api_reclamar_entregas\(CAST\(:lote AS integer\), 300\)/);
   assert.match(reclamo, /fetchType: FETCH/);
 });
 
