@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -97,26 +98,67 @@ describe('HistorialList', () => {
     }
     expect(screen.getByText('B-0001')).toBeInTheDocument()
     expect(screen.getByText('Histórico')).toBeInTheDocument()
-    expect(screen.getByText('$ 64.200,5')).toBeInTheDocument()
+    expect(screen.getByText('$ 64.200,50')).toBeInTheDocument()
     expect(screen.getByText('Caja del local')).toBeInTheDocument()
   })
 
-  it('muestra el rango Desde/Hasta, el contador y «Página N»', () => {
+  it('muestra el rango Desde/Hasta, y el contador', () => {
     mocks.useHistorialVentasCobros.mockReturnValue(respuesta([venta(1), venta(2)], { total: 60, pagina: 2 }))
     abrir()
     expect(screen.getByText('Desde: 10/01/2020')).toBeInTheDocument()
     expect(screen.getByText('Hasta: 11/03/2020')).toBeInTheDocument()
     expect(screen.getByText('60 registros mostrados')).toBeInTheDocument()
-    expect(screen.getByText(/Página 2/)).toBeInTheDocument()
+    expect(screen.queryByText(/Página 2/)).not.toBeInTheDocument()
   })
 
-  it('la búsqueda y el cambio de página van al hook', () => {
+  it('la búsqueda y «Cargar más» van al hook', () => {
     mocks.useHistorialVentasCobros.mockReturnValue(respuesta([venta(1)], { total: 60 }))
     abrir()
     fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar por cliente o número' }), { target: { value: 'pérez' } })
     expect(mocks.setTexto).toHaveBeenCalledWith('pérez')
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.setPagina).toHaveBeenCalledWith(2)
+  })
+
+  it('«Cargar más» suma la tanda siguiente y cambiar de tienda reinicia desde la tanda 1', () => {
+    // El mock lleva su propia página para que «Cargar más» avance como en el hook real.
+    mocks.useHistorialVentasCobros.mockImplementation((_tipo: string, empresaId: string) => {
+      const [pagina, setPagina] = useState(1)
+      const filas = empresaId === 'e-2' ? [venta(9)] : [venta(pagina === 2 ? 2 : 1)]
+      return respuesta(filas, { total: empresaId === 'e-2' ? 1 : 2, pagina, setPagina })
+    })
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('A-0001')).toBeInTheDocument()
+    expect(screen.getByText('A-0002')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filtrar por tienda' })).getByRole('button', { name: 'Mundo JC' }))
+    expect(screen.getByText('A-0009')).toBeInTheDocument()
+    expect(screen.queryByText('A-0001')).not.toBeInTheDocument()
+  })
+
+  it('búsqueda: reinicia en la tanda 1, solo ve coincidencias y «Cargar más» pide la siguiente con el mismo texto', () => {
+    // El mock lleva su estado como el hook real: la búsqueda se aplica y vuelve a la página 1.
+    mocks.useHistorialVentasCobros.mockImplementation(() => {
+      const [pagina, setPagina] = useState(1)
+      const [textoAplicado, setTextoAplicado] = useState('')
+      const buscar = (t: string) => { setTextoAplicado(t); setPagina(1) }
+      const coincide = textoAplicado === 'pérez'
+      const filas = [venta(coincide ? 40 + pagina : pagina, { cliente_nombre: coincide ? `Pérez ${pagina}` : `Otro ${pagina}` })]
+      return respuesta(filas, { total: coincide ? 2 : 3, pagina, setPagina, textoAplicado, setTexto: buscar })
+    })
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Otro 3')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar por cliente o número' }), { target: { value: 'pérez' } })
+    expect(screen.getByText('Pérez 1')).toBeInTheDocument()
+    expect(screen.queryByText(/Otro/)).not.toBeInTheDocument()
+    expect(screen.getByText('2 registros mostrados')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Pérez 1')).toBeInTheDocument()
+    expect(screen.getByText('Pérez 2')).toBeInTheDocument()
+    expect(screen.queryByText(/Otro/)).not.toBeInTheDocument()
   })
 
   it('el filtro Tienda ofrece solo las empresas asignadas, reinicia la página y se conserva entre pestañas', () => {

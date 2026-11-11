@@ -1,6 +1,4 @@
 version: 1.0.0
-type: Dashboard
-timestamp: '2027-02-01T00:00:00.000000+00:00'
 dashboard_title: Inventario · Reposición
 description: Productos sin stock o con stock bajo, con proveedor y faltante sugerido, ordenados por severidad y con filtros de producto/SKU, categoría, estado y proveedor (F-REP-02, FR-005). Se embebe en /reportes/reposicion.
 css: ''

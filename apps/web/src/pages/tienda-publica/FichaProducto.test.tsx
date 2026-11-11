@@ -3,7 +3,9 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn(), evento: vi.fn() }))
+
+vi.mock('../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
 vi.mock('../../lib/tiendaFicha', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaFicha')>()),
@@ -13,13 +15,17 @@ vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar 
 // El cliente de Supabase shared: la ficha lee el contacto de la tienda para el botón de WhatsApp
 // (F-TDA-14). Se intercepta para no salir a la red desde el test.
 vi.mock('../../lib/supabase', () => ({
-  supabaseClient: { schema: () => ({ rpc: mocks.rpc }) },
+  supabaseClient: {
+    schema: () => ({ rpc: mocks.rpc }),
+    storage: { from: () => ({ getPublicUrl: (ruta: string) => ({ data: { publicUrl: `https://cdn.test/${ruta}` } }) }) },
+  },
 }))
 vi.mock('../../lib/tiendaPreciosCliente', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/tiendaPreciosCliente')>()),
   leerPreciosCliente: mocks.precios,
 }))
 
+import { limpiarCacheSeo } from '../../lib/tiendaSeo'
 import RutaProducto from './rutas/producto'
 
 // F-TDA-13 (SC-008): galería (selección, «Sin imagen»), ampliación (Esc, foco), datos, compatibilidad
@@ -75,6 +81,22 @@ beforeEach(() => {
   mocks.firmar.mockResolvedValue(URLS)
   mocks.rpc.mockResolvedValue({ data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null })
   mocks.precios.mockResolvedValue(null)
+})
+
+describe('Ficha de producto · evento de medición (RF-TDA-24-2)', () => {
+  it('emite vista_producto una vez al abrir la ficha, sin datos del producto', async () => {
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Joystick Pro' })
+    // El efecto que registra el evento corre después del pintado: se espera (bajo carga del CI llegaba tarde).
+    await waitFor(() => expect(mocks.evento).toHaveBeenCalledTimes(1))
+    expect(mocks.evento).toHaveBeenCalledWith('vista_producto')
+  })
+  it('una ficha inexistente no emite nada', async () => {
+    mocks.leer.mockResolvedValue(null)
+    montar()
+    await screen.findByTestId('pagina-no-encontrada')
+    expect(mocks.evento).not.toHaveBeenCalled()
+  })
 })
 
 describe('Ficha de producto · contenido (FR-054)', () => {
@@ -326,5 +348,36 @@ describe('Ficha de producto · accesibilidad (FR-056)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ampliar imagen' }))
     const dialogo = await screen.findByRole('dialog')
     expect(await violacionesAxe(dialogo)).toEqual([])
+  })
+})
+
+// MSF-149 (revisión independiente): SEO de la ficha.
+describe('Ficha de producto · SEO (MSF-149)', () => {
+  const SEO = { dominio: 'mundojc.test', nombre: 'Mundo JC', descripcion: 'Joysticks', logo_ruta: 'o/e/logo.png', indexable: true }
+  const meta = (selector: string) => document.head.querySelector(selector)?.getAttribute('content') ?? null
+
+  beforeEach(() => {
+    limpiarCacheSeo()
+    mocks.rpc.mockImplementation(async (nombre: string) => (
+      nombre === 'seo_tienda_por_dominio' ? { data: SEO, error: null } : { data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null }
+    ))
+  })
+
+  it('og:image no usa la URL firmada (vence): cae al logo público y el JSON-LD no lleva image', async () => {
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Joystick Pro' })
+    await waitFor(() => expect(meta('meta[property="og:image"]')).toBe('https://cdn.test/o/e/logo.png'))
+    expect(document.head.innerHTML).not.toContain('firmada')
+    const jsonLd = document.head.querySelector('script[type="application/ld+json"]')?.textContent ?? ''
+    expect(jsonLd).toContain('Joystick Pro')
+    expect(jsonLd).not.toContain('"image"')
+  })
+
+  it('el error de carga de la ficha se marca noindex', async () => {
+    mocks.leer.mockRejectedValue(new Error('red caída'))
+    montar()
+    expect(await screen.findByTestId('error-con-reintento')).toBeInTheDocument()
+    await waitFor(() => expect(meta('meta[name="robots"]')).toBe('noindex'))
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
   })
 })

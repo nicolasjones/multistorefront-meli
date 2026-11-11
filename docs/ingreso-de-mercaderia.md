@@ -180,3 +180,27 @@ drop table dominio.ingresos_mercaderia_lineas;
 drop table dominio.ingresos_mercaderia;
 -- restaurar private.sembrar_motivos_movimiento y borrar el motivo de anulación
 ```
+
+## Costo opcional y evolución del costo (F-PRV-07, MSF-448)
+
+- **Costo opcional por línea.** `dominio.ingresos_mercaderia_lineas.costo_unitario_usd` admite `NULL`
+  (migración `20270205110205_costo_ingreso_opcional.sql`). `registrar_ingreso_mercaderia` (misma firma)
+  acepta líneas sin costo —clave ausente o `null`— y las guarda con costo nulo, **no cero**. Con
+  `p_actualizar_costo`, una línea sin costo no toca el costo del producto. El formulario deja el campo
+  «Costo unit. USD» vacío sin error; un costo mal escrito (más de dos decimales) sigue rechazándose.
+- **Evolución del costo.** `public.historial_costos_producto(p_producto_id, p_proveedor_id default null)`
+  (`20270205110206_historial_costos_producto.sql`, `security definer`, solo lectura): una fila por línea de
+  ingreso **registrado** (no anulado) **con costo**, con proveedor, fecha, comprobante y costo, ordenada por
+  fecha. Exige lectura/edición en **Rentabilidad y Proveedores** (no depende de Stock), toma la organización de
+  la sesión y respeta las empresas accesibles. `anon` sin acceso. No crea tablas (esquema: función en `public`).
+- **UI.** En la ficha del proveedor, cada producto ofrece «Evolución del costo» (solo con ambos permisos):
+  `DialogoEvolucionCosto` muestra una serie por proveedor (todas las que vendieron el producto, para comparar)
+  con fecha, comprobante y USD; estados de carga, vacío, error y sin permiso. Empresa activa (Principio VIII):
+  no aplica, la ficha del proveedor no se filtra por la empresa de la barra superior; los datos se acotan a las
+  empresas accesibles del usuario en la base.
+- **Decisión pendiente (spec, decisión abierta 1).** Se relajó la columna existente en vez de agregar otra; falta
+  el OK de Nicolás.
+- **Reversión** (migración posterior): restaurar la versión de `registrar_ingreso_mercaderia` de `20261021180100`,
+  `drop function public.historial_costos_producto(uuid, uuid);` y
+  `alter table dominio.ingresos_mercaderia_lineas alter column costo_unitario_usd set not null;` solo si no
+  quedan filas con costo nulo.

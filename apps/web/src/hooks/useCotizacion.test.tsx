@@ -104,8 +104,32 @@ describe('useConfirmarCotizacion', () => {
     let resultado
     await act(async () => { resultado = await result.current.confirmar() })
     expect(resultado).toEqual({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 60 } })
+    // Por omisión NO manda la confirmación explícita: solo la manda quien vio y aceptó el aviso.
     expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion')
     expect(result.current.enviando).toBe(false)
+  })
+
+  it('manda p_variacion_vista solo cuando se la da (variación inusual a la vista)', async () => {
+    mocks.rpc.mockResolvedValue({ data: { id: 'c1', recalculo_aplicado: true, precios_recalculados: 1 }, error: null })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    await act(async () => { await result.current.confirmar('e1', 37.8353) })
+    expect(mocks.rpc).toHaveBeenCalledWith('confirmar_cotizacion', { p_empresa: 'e1', p_variacion_vista: 37.8353 })
+  })
+
+  it('si el dólar cambió mientras revisaba, avisa con el mensaje claro y pide revisar de nuevo; otro 22023 no', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '22023', hint: 'variacion_cambio', message: 'x' } })
+    const { result } = renderHook(() => useConfirmarCotizacion())
+    let r1
+    await act(async () => { r1 = await result.current.confirmar(null, 16) })
+    expect(r1).toEqual({ ok: false, mensaje: 'El dólar cambió mientras revisabas: revisá de nuevo.', revisar: true })
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '22023', hint: 'variacion_inusual', message: 'x' } })
+    let r2
+    await act(async () => { r2 = await result.current.confirmar() })
+    expect(r2).toMatchObject({ ok: false, revisar: true })
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '22023', hint: null, message: 'Elegí la empresa' } })
+    let r3
+    await act(async () => { r3 = await result.current.confirmar() })
+    expect(r3).toEqual({ ok: false, mensaje: 'No pudimos confirmar la cotización. Intentá de nuevo.', revisar: false })
   })
 
   it('una cotización vencida o ya confirmada da un mensaje claro', async () => {
@@ -113,7 +137,7 @@ describe('useConfirmarCotizacion', () => {
     const { result } = renderHook(() => useConfirmarCotizacion())
     let resultado
     await act(async () => { resultado = await result.current.confirmar() })
-    expect(resultado).toEqual({ ok: false, mensaje: 'La cotización cargada venció; volvé a cargarla.' })
+    expect(resultado).toEqual({ ok: false, mensaje: 'La cotización cargada venció; volvé a cargarla.', revisar: false })
     expect(console.error).toHaveBeenCalled()
   })
 

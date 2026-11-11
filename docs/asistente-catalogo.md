@@ -6,7 +6,7 @@ No agrega pantalla: usa el chat flotante existente y las pantallas de plataforma
 
 ## Qué se expone
 
-Cuatro vistas de solo lectura en `public`, con `organizacion_id` y `security_invoker = true` (migración `20270223110000_ia_consulta_vistas.sql`):
+Cuatro vistas de solo lectura en `public`, con `organizacion_id` y `security_invoker = true` (migración `20270224110000_ia_consulta_vistas.sql`):
 
 | Funcionalidad | Vista | Columnas |
 |---|---|---|
@@ -26,12 +26,12 @@ Cuatro vistas de solo lectura en `public`, con `organizacion_id` y `security_inv
 
 ## Límites
 
-- **Máximo 50 filas por consulta.** En el chat, la lectura pide una fila de más: si hay más de 50, el asistente recibe las primeras 50 y un aviso para que pida al usuario afinar la búsqueda (`supabase/functions/chat-ia-responder/limites.ts`). En MCP, `private.mcp_leer_fila` limita a 50 las vistas `ia_consulta_*`, las más recientes primero (migración `20270223110200_ia_consulta_tope_mcp.sql`).
+- **Máximo 50 filas por consulta.** En el chat, la lectura pide una fila de más: si hay más de 50, el asistente recibe las primeras 50 y un aviso para que pida al usuario afinar la búsqueda (`supabase/functions/chat-ia-responder/limites.ts`). En MCP, `private.mcp_leer_fila` limita a 50 las vistas `ia_consulta_*`, las más recientes primero (migración `20270224110200_ia_consulta_tope_mcp.sql`).
 - Rigen los límites de intentos y tiempo de la política IA aprobada (`ia_politicas`). Si falta el presupuesto del Gateway IA, no se enciende el asistente para esa organización (D-8).
 
 ## Registro y auditoría
 
-- `private.registrar_fuentes_ia_consulta()` (migración `20270223110100_ia_consulta_registro.sql`) registra de forma idempotente las cuatro funcionalidades, **una vista por funcionalidad** en `fuentes_chat_ia` y `fuentes_mcp`, y las capacidades con `lectura = true` y `ejecucion = false`. Una segunda corrida no duplica nada.
+- `private.registrar_fuentes_ia_consulta()` (migración `20270224110100_ia_consulta_registro.sql`) registra de forma idempotente las cuatro funcionalidades, **una vista por funcionalidad** en `fuentes_chat_ia` y `fuentes_mcp`, y las capacidades con `lectura = true` y `ejecucion = false`. Una segunda corrida no duplica nada.
 - Cada pregunta y respuesta queda en las interacciones de IA del template (`ia_interacciones`) y en la ejecución MCP existente; las vistas no tienen costos ni contactos, así que el detalle no los puede guardar.
 
 ## Pruebas
@@ -46,8 +46,8 @@ Migraciones aditivas. En una migración posterior: `delete from public.features 
 
 Cierre de la épica MSF-233 (ver [`docs/api-publica.md`](./api-publica.md) para
 la verificación global completa y el detalle de la revisión de seguridad).
-Sobre el diff de F-IA-01 (migraciones `20270223110000`, `20270223110100` y
-`20270223110200`, `limites.ts` del chat y la lectura centralizada de MCP). Sin
+Sobre el diff de F-IA-01 (migraciones `20270224110000`, `20270224110100` y
+`20270224110200`, `limites.ts` del chat y la lectura centralizada de MCP). Sin
 hallazgos críticos ni altos.
 
 - Las cuatro fuentes son **vistas de solo lectura** con `security_invoker = true`:

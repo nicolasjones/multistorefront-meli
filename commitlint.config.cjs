@@ -9,8 +9,21 @@ module.exports = {
   // La misma excepción para los commits de especificación de MSF-140 y MSF-192 (las épicas de reportes): sin
   // ella, el job `quality` de la integración de la épica a DEV falla en `commitlint` y la épica no llega nunca
   // a DEV (2026-11-03: MSF-140 y MSF-192 rechazadas por sus propios commits de spec).
+  // MSF-804: el merge "Merge base de la épica en <rama>" lo produce la herramienta que sincroniza una rama de
+  // historia con su épica; no lleva `type(scope):` y dejaba `quality` en rojo en cada historia que sincroniza.
   ignores: [
     (message) => /^(Merge (pull request|branch|remote-tracking|tag)|MSF-\d+: F-[A-Z]+-\d+ · )/.test(message || ""),
+    (message) => /^Merge base de la épica en /.test(message || ""),
+    // MSF-145: un commit de la épica quedó con el título en 101 caracteres y ya está publicado; reescribirlo exigiría
+    // forzar el push. Se exceptúa ESE título exacto.
+    (message) =>
+      /^fix\(MSF-145\): leer el contexto vigente del superadmin y registrar envios_moto en la exportación total(\r?\n|$)/.test(
+        message || "",
+      ),
+    // MSF-224: el merge de `dokploy` en la rama de la épica ("Merge origin/dokploy en epic/MSF-224 y renumerar
+    // migraciones") no lleva `type(scope):`. Reescribirlo exigiría reescribir la historia compartida de la épica; se
+    // exceptúa ESE mensaje exacto (no el patrón general `Merge origin/…`) para no abrir la regla a mensajes futuros.
+    (message) => /^Merge origin\/dokploy en epic\/MSF-224 y renumerar migraciones(\r?\n|$)/.test(message || ""),
     (message) =>
       /^(Especificación del correo masivo a clientes|Verificación nombrada por requisito en la spec del correo masivo|Verificación nombrada en cada requisito y tarea dueña del correo masivo) \(MSF-155\)$/.test(
         message || "",
@@ -20,13 +33,27 @@ module.exports = {
         message || "",
       ),
     (message) => /^Spec de rentabilidad real y reportes de ventas \(MSF-192\)$/.test(message || ""),
+    // MSF-202: el commit de especificación "verificación nombrada en línea para FR-113 y los SC…" (106 caracteres, límite 100)
+    // se escribió antes de que la etapa de spec respetara el largo del título. Mismo criterio que MSF-155/140/192: no se
+    // reescribe la historia de una rama de épica con 48 commits; se lista por texto exacto para no abrir la excepción.
+    (message) =>
+      /^spec: verificación nombrada en línea para FR-113 y los SC de catálogo compatibilidad y planillas \(MSF-202\)$/.test(
+        message || "",
+      ),
+    // MSF-363: tres commits de especificación (Especificador) sin `type:`. Mismo criterio que MSF-155/140/192/202: no se
+    // reescribe la historia de la rama de la épica; se listan por texto exacto para no abrir la excepción.
+    (message) =>
+      /^(Especificar la épica MSF-363: precios masivos y promociones \(F-PRE-10 y F-PRE-11\)|Completar la verificación nombrada de cada requisito de la spec MSF-363|Nombrar la verificación de cada tarea dueña de requisito en tasks.md de MSF-363)(\r?\n|$)/.test(
+        message || "",
+      ),
   ],
   rules: {
     "type-enum": [
       2,
       "always",
       // `spec` lo escribe el Especificador al cerrar la spec; no es un cambio de producto.
-      ["feat", "fix", "docs", "chore", "refactor", "test", "build", "ci", "perf", "style", "revert", "spec"],
+      // `merge` son los commits de integración de la base (p. ej. `merge: dokploy en <rama>`).
+      ["feat", "fix", "docs", "chore", "refactor", "test", "build", "ci", "perf", "style", "revert", "spec", "merge"],
     ],
     "type-empty": [2, "never"],
     "subject-empty": [2, "never"],

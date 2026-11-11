@@ -13,7 +13,10 @@ const mocks = vi.hoisted(() => ({
   useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
   refetchDetalle: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
+
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../hooks/useConsultas', () => ({
   useBandejaConsultas: mocks.useBandejaConsultas,
@@ -90,6 +93,7 @@ const ultimosFiltros = () => mocks.useBandejaConsultas.mock.calls.at(-1)![0]
 describe('ConsultaList (F-CON-01, FR-006)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes.clear()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useConsultasNuevas.mockReturnValue({ total: 3 })
     mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
@@ -153,7 +157,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     vi.useFakeTimers()
     mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()], { total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
     fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar consultas' }), { target: { value: '  ana, (pérez)  ' } })
     act(() => { vi.advanceTimersByTime(300) })
@@ -191,14 +195,56 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1' })
   })
 
-  it('pagina en el servidor y reencuadra la página al cambiar un filtro', () => {
-    mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()], { total: 60 }))
+  it('«Cargar más» suma la tanda siguiente y cambiar un filtro reinicia desde la tanda 1', () => {
+    mocks.useBandejaConsultas.mockImplementation((f: { pagina: number; estado: string | null }) =>
+      f.estado === 'resuelta' ? bandeja([consulta({ id: 'r', nombre: 'Rosa' })], { total: 1 })
+        : f.pagina === 2 ? bandeja([consulta({ id: 'b', nombre: 'Beto' })], { total: 2 })
+          : bandeja([consulta({ id: 'a', nombre: 'Alma' })], { total: 2 }))
     abrir()
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    expect(screen.queryByText(/por página/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getByText('Alma')).toBeInTheDocument()
+    expect(screen.getByText('Beto')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Resuelta' }))
-    expect(ultimosFiltros().pagina).toBe(1)
+    expect(ultimosFiltros()).toMatchObject({ estado: 'resuelta', pagina: 1 })
+    expect(screen.getByText('Rosa')).toBeInTheDocument()
+    expect(screen.queryByText('Alma')).not.toBeInTheDocument()
+    expect(screen.queryByText('Beto')).not.toBeInTheDocument()
+  })
+
+  it('búsqueda: reinicia en la tanda 1, solo ve coincidencias y «Cargar más» pide la siguiente con el mismo texto', () => {
+    vi.useFakeTimers()
+    mocks.useBandejaConsultas.mockImplementation((f: { pagina: number; texto: string }) =>
+      f.texto === 'ana'
+        ? bandeja([consulta({ id: `a${f.pagina}`, nombre: `Ana ${f.pagina}` })], { total: 2 })
+        : bandeja([consulta({ id: `t${f.pagina}`, nombre: `Todos ${f.pagina}` })], { total: 3 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Todos 3')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar consultas' }), { target: { value: 'ana' } })
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 1 })
+    expect(screen.getByText('Ana 1')).toBeInTheDocument()
+    expect(screen.queryByText(/Todos/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('2 consultas').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 2 })
+    expect(screen.getByText('Ana 1')).toBeInTheDocument()
+    expect(screen.getByText('Ana 2')).toBeInTheDocument()
+    expect(screen.queryByText(/Todos/)).not.toBeInTheDocument()
+  })
+
+  it('muestra la imagen principal solo en las consultas con producto', () => {
+    mocks.imagenes.set('prod-1', 'https://ejemplo/prod1.png')
+    mocks.useBandejaConsultas.mockReturnValue(bandeja([
+      consulta({ producto_id: 'prod-1', producto_nombre: 'Funda' }),
+      consulta({ id: 'otra', nombre: 'Carlos' }),
+    ], { total: 2 }))
+    const { container } = abrir()
+    expect(container.querySelector('img[src="https://ejemplo/prod1.png"]')).not.toBeNull()
+    expect(container.querySelectorAll('img')).toHaveLength(1)
   })
 
   it('sin consultas ni filtros muestra el vacío inicial; con filtros, «sin resultados»', () => {
@@ -250,7 +296,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('Consulta de Ana Pérez')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más', hidden: true }))
     expect(ultimosFiltros().pagina).toBe(2)
 
     estadoFiltro.empresaActivaId = 'e-2'

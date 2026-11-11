@@ -1,9 +1,8 @@
 <!--
 Sync Impact Report
-- Version change: 1.8.0 → 1.9.0 (MINOR: el Principio VI incorpora el patrón único de filtros y
-  selectores de empresa/tienda —`FiltroEmpresa` y `SelectorEmpresas`— y su control automático
-  `pnpm ui:empresas:check` en CI.)
-- Modified principles: Principle VI (controles de empresa/tienda)
+- Version change: 1.9.0 → 1.10.0 (MINOR: el Principio VI incorpora la regla de listados con carga
+  infinita y lazy loading, sin paginación, y la miniatura con zoom al pasar el mouse.)
+- Modified principles: Principle VI (listados e imágenes en listados)
 - Added sections: ninguna
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
@@ -35,8 +34,9 @@ En desarrollo Docker, cada producto usa su propio proyecto Compose:
 `multistorefront-meli-supabase-dev`,
 `multistorefront-meli-kestra-dev`,
 `multistorefront-meli-superset-dev`,
-`multistorefront-meli-playwright-dev` y
-`multistorefront-meli-runner-dev`. No existe un Compose raíz que los
+`multistorefront-meli-playwright-dev`,
+`multistorefront-meli-runner-dev` y
+`multistorefront-meli-glitchtip-dev`. No existe un Compose raíz que los
 fusione.
 
 ### V. Simplicidad operativa
@@ -64,6 +64,19 @@ de Cuentas de cobro. No se admiten variantes locales con `Chip`, `Select`,
 `Autocomplete` o listas propias; una excepción se justifica en la spec y el
 plan. `pnpm ui:empresas:check` DEBE correr en CI y fallar si reaparece una
 variante.
+
+**Listados e imágenes.** Todo listado del panel DEBE cargar por tandas desde el
+servidor a medida que la persona llega al final, con carga diferida
+(`IntersectionObserver`), sumando cada tanda a lo ya mostrado; las pantallas
+nuevas NO usan paginación numerada (`TablePagination`) y las existentes se
+migran de forma gradual. Buscar, filtrar u ordenar reinicia la lista; el total
+sigue visible; DEBE existir un «Cargar más» operable con teclado y los estados
+de carga, error con reintento y fin de lista usan los patrones compartidos. Una
+excepción (totales por página, exportaciones que dependen de la página) se
+justifica en la spec y el plan. Las miniaturas de imagen en listados conservan
+su tamaño chico y ofrecen una vista ampliada al pasar el mouse mediante el
+componente compartido `MiniaturaProducto`; no se admiten miniaturas ni zooms
+propios por pantalla.
 
 ### VII. Plataforma y dominio (esquemas)
 Cada tabla se ubica según su **naturaleza** (no toda tabla nueva va a `dominio`):
@@ -125,4 +138,4 @@ actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.9.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-23
+**Version**: 1.10.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-11-04

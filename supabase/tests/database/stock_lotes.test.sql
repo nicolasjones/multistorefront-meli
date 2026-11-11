@@ -52,7 +52,7 @@ $$;
 select is(has_function_privilege('anon', 'public.registrar_lote_stock(jsonb,uuid,text,date,uuid)', 'EXECUTE'), false, 'anon no ejecuta registrar_lote_stock');
 select is(has_function_privilege('anon', 'public.listar_lotes_stock(integer,jsonb)', 'EXECUTE'), false, 'anon no ejecuta listar_lotes_stock');
 select is(has_function_privilege('anon', 'public.listar_movimientos_lote(uuid)', 'EXECUTE'), false, 'anon no ejecuta listar_movimientos_lote');
-select is(has_function_privilege('anon', 'public.registrar_movimiento_stock(uuid,text,integer,uuid,text,date,uuid,uuid)', 'EXECUTE'), false, 'anon no ejecuta registrar_movimiento_stock');
+select is(has_function_privilege('anon', 'public.registrar_movimiento_stock(uuid,text,integer,uuid,text,date,uuid,uuid,uuid)', 'EXECUTE'), false, 'anon no ejecuta registrar_movimiento_stock');
 select is(has_function_privilege('authenticated', 'public.registrar_lote_stock(jsonb,uuid,text,date,uuid)', 'EXECUTE'), true, 'authenticated ejecuta registrar_lote_stock');
 select is(has_table_privilege('anon', 'dominio.lotes_stock', 'SELECT'), false, 'anon no lee dominio.lotes_stock');
 select is(has_table_privilege('authenticated', 'dominio.lotes_stock', 'INSERT'), false, 'authenticated no inserta directo en lotes_stock');

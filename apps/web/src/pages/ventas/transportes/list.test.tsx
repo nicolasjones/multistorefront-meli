@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Test de INTEGRACIÓN de la pantalla (listado + filtro + diálogo): se sube el timeout del archivo.
@@ -45,12 +46,15 @@ const pagina = (transportes: Transporte[], extra: Partial<{ total: number; total
   transportes, total: transportes.length, totalOrganizacion: transportes.length, ...extra,
 })
 
+// Una tanda de un solo transporte con el total del servidor.
+const pagina_ = (t: Transporte, total: number) => pagina([t], { total, totalOrganizacion: total })
+
 const ultimoPedido = () => mocks.listarTransportes.mock.calls.at(-1)![0]
 
 // El catálogo de transportes quedó bajo la sub-pestaña «Terminales de retiro» (F-VTA-14, FR-046):
 // estas pruebas son las de MSF-139 (F-VTA-04) y siguen mirando lo mismo, con un paso más.
 const abrirTerminales = async () => {
-  render(<TransporteList />)
+  render(<MemoryRouter><TransporteList /></MemoryRouter>)
   fireEvent.click(await screen.findByRole('tab', { name: 'Terminales de retiro' }))
 }
 
@@ -127,13 +131,33 @@ describe('TransporteList', () => {
     expect(screen.getByText('0 de 30 empresas de transporte')).toBeInTheDocument()
   })
 
-  it('pagina en el servidor: la página 2 se pide con pagina = 2', async () => {
-    mocks.listarTransportes.mockResolvedValue(pagina([transporte(1)], { total: 60, totalOrganizacion: 60 }))
+  it('«Cargar más» pide la tanda 2 al servidor y la suma a la ya mostrada', async () => {
+    mocks.listarTransportes.mockImplementation(async ({ pagina }: { pagina: number }) =>
+      pagina === 2 ? pagina_(transporte(26), 60) : pagina_(transporte(1), 60))
     await abrirTerminales()
     await screen.findByText('Transporte 1')
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.getByText('60 de 60 empresas de transporte')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimoPedido()).toMatchObject({ pagina: 2 }))
+    expect(await screen.findByText('Transporte 26')).toBeInTheDocument()
+    expect(screen.getByText('Transporte 1')).toBeInTheDocument()
+  })
+
+  it('cambiar el filtro de tienda reinicia desde la primera tanda', async () => {
+    mocks.listarTransportes.mockImplementation(async ({ pagina, empresaId }: { pagina: number; empresaId: string | null }) => {
+      if (empresaId) return pagina_(transporte(9), 1)
+      return pagina === 2 ? pagina_(transporte(26), 60) : pagina_(transporte(1), 60)
+    })
+    await abrirTerminales()
+    await screen.findByText('Transporte 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Transporte 26')
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    expect(await screen.findByText('Transporte 9')).toBeInTheDocument()
+    expect(screen.queryByText('Transporte 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Transporte 26')).not.toBeInTheDocument()
+    expect(ultimoPedido()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
   })
 
   it('el Administrador ve «Nueva empresa» y «Editar»; al guardar avisa «Empresa de transporte guardada» y recarga', async () => {

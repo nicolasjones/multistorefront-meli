@@ -132,9 +132,9 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
 - Variables de Kestra: `ENTREGAR_WEBHOOK_URL`, `SECRET_ENTREGAR_WEBHOOK_APIKEY`,
   `API_WEBHOOKS_LOTE` y `API_AUDITORIA_RETENCION_DIAS` (ver
   `infra/kestra/.env.example`).
-- Migraciones: `20270223110201_api_claves`, `20270223110202_api_llamadas_y_limite`,
-  `20270223110203_api_lectura`, `20270223110204_api_suscripciones_entregas` y
-  `20270223110205_api_eventos_precio_venta`. Son aditivas; cada encabezado
+- Migraciones: `20270224110201_api_claves`, `20270224110202_api_llamadas_y_limite`,
+  `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
+  `20270224110205_api_eventos_precio_venta`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
@@ -151,7 +151,7 @@ roadmap (`SC-008`, filas #25, #35, #36 y #47 de `docs/roadmap-template.md`).
 
 ## Revisión de seguridad
 
-Sobre el diff de la épica (migraciones `20270223110201`…`20270223110205`, Edge
+Sobre el diff de la épica (migraciones `20270224110201`…`20270224110205`, Edge
 Functions `api-v1` y `entregar-webhook`, flows de Kestra y la pantalla `/api`).
 Sin hallazgos críticos ni altos.
 

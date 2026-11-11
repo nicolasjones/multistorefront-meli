@@ -272,7 +272,7 @@ select is(
 );
 select is(
   (select jsonb_agg(k order by k) from (select distinct jsonb_object_keys(p) k from res, jsonb_array_elements(j -> 'productos') p where clave = 'a_def') s),
-  '["categoria_id", "destacado", "disponible", "id", "imagen", "nombre", "precio"]'::jsonb,
+  '["categoria_id", "destacado", "disponible", "id", "imagen", "nombre", "precio", "precio_anterior"]'::jsonb,
   'campos de cada producto: sin costos, existencias, proveedor ni organizacion_id'
 );
 select is(

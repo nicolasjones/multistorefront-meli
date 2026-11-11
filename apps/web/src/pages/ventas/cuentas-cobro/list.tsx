@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Alert, Box, Button, Chip, LinearProgress, Stack, TablePagination, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, Chip, LinearProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
 import { useListarCuentasCobro } from '../../../hooks/useListarCuentasCobro'
 import { usePuedeEscribir } from '../../../hooks/usePuedeEscribir'
 import { formatearCuit } from '../../../lib/cuit'
@@ -15,6 +16,7 @@ import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../
 import { EtiquetaEstado } from '../../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
@@ -70,6 +72,12 @@ export function CuentasCobroList() {
     empresaId, estado, pagina, tamano: TAMANO_PAGINA,
   })
 
+  // Carga infinita (Principio VI): se suman las tandas que entrega el hook; cambiar tienda o estado reinicia.
+  const listado = useListadoAcumulado({ items: cuentas, pagina, setPagina, total, cargando: isFetching, reinicio: { empresaId, estado } })
+  const falloTanda = isError && pagina > 1
+  // Las acciones que cambian filas (No usar, reactivar, guardar) recargan desde la primera tanda.
+  const recargarDesdeInicio = async () => { if (pagina === 1) await refetch(); else setPagina(1) }
+
   // Página fuera de rango (p. ej. se marcó «No usar» la última de la última página): vuelve a la primera.
   useEffect(() => {
     if (!isLoading && !isFetching && !isError && cuentas.length === 0 && pagina > 1) setPagina(1)
@@ -85,7 +93,7 @@ export function CuentasCobroList() {
     try {
       await cambiarEstadoCuentaCobro(cuenta.id, !cuenta.activa)
       setAviso(cuenta.activa ? 'Cuenta marcada como No usar' : 'Cuenta reactivada')
-      await refetch()
+      await recargarDesdeInicio()
     } catch (error) {
       setErrorEstado(mensajeDeError(error, 'No pudimos cambiar el estado de la cuenta. Intentá de nuevo.'))
     } finally {
@@ -141,12 +149,12 @@ export function CuentasCobroList() {
             </ToggleButtonGroup>
           </BarraHerramientas>
 
-          {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando cuentas de cobro" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
+          {isFetching && !isLoading && pagina === 1 ? <LinearProgress aria-label="Actualizando cuentas de cobro" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar las cuentas de cobro." reintentar={() => void refetch()} />
             ) : cuentas.length === 0 && pagina === 1 ? (
               hayFiltros ? (
@@ -161,7 +169,7 @@ export function CuentasCobroList() {
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={cuentas}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(cuenta) => cuenta.id}
                   etiquetaTabla="Cuentas de cobro"
@@ -187,16 +195,7 @@ export function CuentasCobroList() {
                     </Stack>
                   ) : undefined}
                 />
-                <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA}
-                  rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Cuentas por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                />
+                <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas} />
               </>
             )}
           </Box>
@@ -208,13 +207,12 @@ export function CuentasCobroList() {
           open
           cuenta={dialogo === 'nueva' ? null : dialogo}
           onCerrar={() => setDialogo(null)}
-          onRecargar={() => { setDialogo(null); void refetch() }}
+          onRecargar={() => { setDialogo(null); void recargarDesdeInicio() }}
           onGuardado={({ alta }) => {
             setDialogo(null)
             setAviso(alta ? 'Cuenta de cobro creada' : 'Cuenta de cobro guardada')
-            // La nueva aparece en el listado: vuelve al inicio con la lista vigente.
-            if (alta) setPagina(1)
-            void refetch()
+            // La nueva aparece en el listado: vuelve a la primera tanda con la lista vigente.
+            void recargarDesdeInicio()
           }}
         />
       ) : null}

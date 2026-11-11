@@ -44,7 +44,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 | `e2e` | `pnpm test:e2e -- acceso-publico.e2e.ts` |
 | `db` | `pnpm test:db` |
 | `db:aditivas` | `pnpm test:db:validar-aditivas` |
-| `edge` | `pnpm test:edge:invitar-miembro && …solicitar-acceso && …crear-organizacion` |
+| `edge` | `pnpm test:edge:invitar-miembro && …invitar-cliente && …solicitar-acceso && …crear-organizacion && …cotizacion-sugerida` |
 | `ia` | `pnpm test:ia` |
 | `tooling` | `node --test scripts/*.test.mjs` |
 | `infra:config` | `pnpm infra:config` |
@@ -66,6 +66,25 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   de 5 s queda justo y da **falsos rojos** en PRs ajenos. Se sube el timeout del
   archivo (`vi.setConfig({ testTimeout })`) y las lecturas que dependen de datos
   async usan `findBy*`.
+- **Falso rojo por `EnvironmentTeardownError`**: si todos los tests pasan pero vitest
+  sale con `Closing rpc while "onUserConsoleLog" was pending` (atribuido a
+  archivos como `RutaCatalogo.test.tsx` o `SiderPanel.test.tsx`), era una carrera
+  de cierre de workers: un `console.*` emitido justo al terminar el archivo dejaba
+  pendiente el RPC de logs. `apps/web/vite.config.ts` fija
+  `disableConsoleIntercept: true` para que la consola salga directo a la salida
+  estándar sin pasar por RPC (se pierde solo la atribución de cada línea al test).
+  Si reaparece, no relanzar sin mirar: revisar qué test escribe a consola después
+  de terminar.
+- **Falso rojo por `ReferenceError: window is not defined`**: si todos los tests pasan
+  pero vitest sale con ese error atribuido a otro archivo (p. ej.
+  `SiderPanel.test.tsx`), es un `setState` tardío de un hook cuya petición termina
+  DESPUÉS de desmontar y de cerrar jsdom. `useEmpresasAccesibles` ya invalida la
+  petición en vuelo al desmontar («última petición gana» incluye el desmontaje); un
+  hook nuevo con carga asíncrona debe hacer lo mismo y cubrirlo con un test que
+  rechace/resuelva después de `unmount()`. Un test que monta un componente con
+  lecturas reales a la red (como la insignia de consultas dentro de `SiderPanel`)
+  debe mockearlo o mockear `lib/supabase`: un `fetch` real que falla tarde produce
+  el mismo error.
 
 ## Calidad determinista (`pnpm calidad`)
 - `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,

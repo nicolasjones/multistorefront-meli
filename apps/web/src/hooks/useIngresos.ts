@@ -16,7 +16,7 @@ export type IngresoFila = {
   producto_nombre: string
   producto_sku: string | null
   cantidad: number
-  costo_unitario_usd: number | string
+  costo_unitario_usd: number | string | null
   destino: string
   empresa: string
   proveedor: string

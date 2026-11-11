@@ -27,6 +27,8 @@ export type Sugerencia = {
   id: string
   nombre: string
   precio: number | null
+  // Precio normal, solo con promoción vigente (F-PRE-11); null si no hay.
+  precioAnterior: number | null
   disponible: boolean
   imagen: string | null
   categoriaId: string | null
@@ -45,6 +47,7 @@ type FilaSugerencias = {
     id: string
     nombre: string
     precio: number | string | null
+    precio_anterior?: number | string | null
     disponible: boolean
     imagen: string | null
     categoria_id: string | null
@@ -65,6 +68,7 @@ export async function leerSugerencias(host: string, q: string): Promise<Respuest
       id: p.id,
       nombre: p.nombre,
       precio: p.precio === null ? null : Number(p.precio),
+      precioAnterior: p.precio_anterior == null ? null : Number(p.precio_anterior),
       disponible: p.disponible,
       imagen: p.imagen,
       categoriaId: p.categoria_id,

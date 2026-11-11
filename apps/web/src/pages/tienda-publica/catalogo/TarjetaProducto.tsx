@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
-import { formatearPrecioArs, type ProductoListado } from '../../../lib/tiendaListado'
+import type { ProductoListado } from '../../../lib/tiendaListado'
+import { PrecioTachado } from './PrecioTachado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 
 // Tarjeta del catálogo (F-TDA-12, FR-037): imagen o «Sin imagen», nombre, precio y disponibilidad. Toda
@@ -9,7 +10,6 @@ import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 // distingue además del texto con la imagen atenuada y el nombre en gris. Si la URL firmada vence (1 h)
 // o la imagen falla al cargar, `onError` cae a «Sin imagen» en vez de dejar el ícono roto.
 export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoListado; urlImagen?: string }) {
-  const precio = formatearPrecioArs(producto.precio)
   const sinStock = !producto.disponible
   const [fallo, setFallo] = useState<string | null>(null)
   const mostrarImagen = Boolean(urlImagen) && fallo !== urlImagen
@@ -40,7 +40,7 @@ export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoLis
       <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 600, color: sinStock ? 'text.secondary' : 'text.primary' }}>
         {producto.nombre}
       </Typography>
-      {precio ? <Typography variant="h6" component="p">{precio}</Typography> : null}
+      <PrecioTachado precio={producto.precio} precioAnterior={producto.precioAnterior} />
       <EtiquetaDisponibilidad disponible={producto.disponible} />
     </Box>
   )
