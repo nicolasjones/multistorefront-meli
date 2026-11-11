@@ -88,7 +88,15 @@ Otra organización no ve ninguno de estos cambios.
 
 *Paso 2: **Cargar cotización** está arriba a la derecha.*
 
-3. En **Dólar del día (pesos por dólar)** escribí el valor. Sirven los formatos «1490», «1490,50» o «1.490,5». Debajo ves el valor **Anterior** y la **Variación**.
+Debajo del campo puede aparecer una **cotización sugerida**: el dólar oficial del día que el sistema consulta en una fuente pública.
+
+- **Con la fuente disponible** ves, por ejemplo, «Sugerida: $ 1.405,50 por USD · DolarApi (dólar oficial, venta) · actualizada el 10/11/2026» y el botón **Usar este valor**.
+- **Usar este valor** solo completa el campo. No carga la cotización ni cambia precios: podés corregirla o escribir otro valor y seguir con los pasos de siempre.
+- **Si la fuente no responde** ves «No pudimos consultar la cotización sugerida. Cargá el valor a mano.» y la carga manual funciona igual.
+
+La sugerencia es el **dólar oficial, precio de venta**, y es la misma para todas las empresas: no cambia según la empresa activa. Se consulta cada vez que abrís el cuadro y no queda guardada.
+
+3. En **Dólar del día (pesos por dólar)** escribí el valor. Sirven los formatos «1490», «1490,50» o «1.490,5». Si usaste la sugerencia, el campo ya viene completo. Debajo ves el valor **Anterior** y la **Variación**.
 
 ![Cuadro Cargar dólar del día con el valor 1210 escrito, el valor anterior y la variación](img/precios-dolar/03-formulario-valor.png)
 
@@ -123,6 +131,12 @@ Si el dólar varió menos del umbral configurado (1 % de arranque) respecto del 
 
 **¿Qué pasa con las tiendas online?** Muestran el precio nuevo en cuanto confirmás.
 
+**¿De dónde sale la cotización sugerida?** Del dólar oficial (precio de venta) que publica una fuente pública. No es el blue ni el MEP: si necesitás otro valor, escribilo a mano.
+
+**¿La sugerencia cambia según la empresa?** No: es el mismo valor para todas las empresas. Lo que puede cambiar según la configuración es con qué valor se carga y a qué empresa aplica.
+
+**¿La sugerencia carga sola la cotización?** No. Solo completa el campo; nada cambia hasta que confirmás, igual que cuando la escribís a mano.
+
 ## Si algo no sale
 
 | Mensaje | Qué significa y qué hacer |
@@ -132,6 +146,7 @@ Si el dólar varió menos del umbral configurado (1 % de arranque) respecto del 
 | **Tu rol no puede cargar la cotización del dólar.** | Pedile al Administrador que te dé el permiso, o pedile que la cargue. |
 | **No pudimos cargar / confirmar la cotización. Intentá de nuevo.** | Falló la conexión. Probá otra vez. |
 | **No pudimos calcular qué va a cambiar.** | Usá el botón **Reintentar** del paso de vista previa. |
+| **No pudimos consultar la cotización sugerida. Cargá el valor a mano.** | La fuente pública no respondió. Escribí el valor vos; la carga funciona igual. |
 
 Ver también: [Precio propio y simulador](precios-e-iva.md#precio-propio-de-un-producto-en-una-empresa), [Precios e IVA](precios-e-iva.md) y [Productos y categorías](catalogo-productos.md).
 

@@ -711,6 +711,26 @@ sesión.
 `listar_cotizaciones` es el historial nuevo de MSF-116; no confundir con `listar_historial_cotizaciones`
 (cotizaciones importadas del panel anterior, MSF-275).
 
+### Cotización sugerida (MSF-373)
+
+Épica **MSF-373** (F-PRE-13), rama `epic/MSF-373-precios-y-dolar-cotizacion-sugerida-y-ma`, integrada en
+`dokploy` (PR #833) y pendiente de promoción a `main`. No agrega RPC ni tablas: la sugerencia del dólar es
+una **Edge Function** de lectura. Detalle completo: [Cotización sugerida y mayoristas](cotizacion-sugerida-y-mayoristas.md).
+
+**Edge Function `cotizacion-sugerida`** (`supabase/functions/cotizacion-sugerida/`, **sin contrato `openapi/`**):
+`POST /cotizacion-sugerida` con el JWT de la persona; **no recibe parámetros** (la URL de la fuente es una
+constante del servidor, así que no hay SSRF). Respuestas:
+
+| Código | Cuándo | Cuerpo |
+|---|---|---|
+| `200` | La fuente respondió y el valor es utilizable | `{ valor, fuente, fecha }` (`fecha` en ISO o `null`) |
+| `403` | Sin sesión, token inválido o sin nivel `edicion` en `cotizacion_dolar` | `{ error }`; **no consulta la fuente** |
+| `405` | Método distinto de `POST` (el preflight `OPTIONS` responde `200`) | `{ error }` |
+| `502` | Fuente caída, respuesta inválida o permiso no resoluble | `{ error }` con el mensaje que invita a cargar el valor a mano |
+
+Usa solo la clave anónima con el JWT de quien llama (manda RLS): sin `service-role`, sin secretos y sin
+escribir en la base.
+
 ### Tienda pública (MSF-147 y MSF-167)
 
 Fuente: `supabase/migrations/20261023100000`–`20261023150300` (MSF-147 y MSF-167, ramas de sus épicas).

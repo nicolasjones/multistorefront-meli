@@ -631,21 +631,21 @@
     },
     "docs/producto/precios-dolar.md": {
       "title": "Cargar la cotización del dólar",
-      "pageHash": "4922ed190a53d84b961982c814e52a1761ef439926749c5a0f1eca90c6a76631",
+      "pageHash": "c8a76562adeda71f1d88d54677c74dd64fa93a559826696a6f5a270b432e1067",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "b4fbf2c5"
+      "commit": "8766b990"
     },
     "docs/producto/precios-e-iva.md": {
       "title": "Cómo se calcula el precio final",
-      "pageHash": "528d11338c7367ad2d0aa088e66f49d79bdb59c192a2e9fe1bf917b4ec9ab112",
+      "pageHash": "0804c12e1c822850213a19404d1578423f60035feb56c5e42a2531e1e19534f2",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "514dd9e7"
     },
     "docs/producto/precios-masivos.md": {
       "title": "Actualizar precios en bloque",
@@ -1037,12 +1037,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "f98f70eddcee8cd99170565749d057c11fdd012c9be00387022ac6fd183e4a7c",
+      "pageHash": "7424b521a39412d51e64385f8d017ddb05518a1f518eeed3ee1547a8fbc63dbe",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "0282ae89"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1259,14 +1259,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "9941dc9f36cf708d839ef92c35efcedd21a20c10dc15766cfca8cf3a6ec838c4",
+      "pageHash": "697f16218d89664a1426109e2db851d7c9351844464b4b4f591af60de74c6513",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "91c40ba6",
+      "sourceAt": "0ef9cdb9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "3a93b935"
+      "commit": "0282ae89"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1458,6 +1458,22 @@
       "owner": "tecnico",
       "commit": "53cb4c30"
     },
+    "docs/tecnico/cotizacion-sugerida-y-mayoristas.md": {
+      "title": "Cotización sugerida y mayoristas (MSF-373)",
+      "pageHash": "79f5008198d6e467b103d138206d6e120b5745a13427352282a5964e8f0ccd5e",
+      "sourceHash": "4d6c58f85f7a855239a4a37932afc4b0a8e964f7a1205824b9e4590cf5388a81",
+      "sourceAt": "0ef9cdb9",
+      "sources": [
+        "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
+        "supabase/functions/cotizacion-sugerida",
+        "apps/web/src/components/cotizacion/DialogoCargarDolar.tsx",
+        "apps/web/src/hooks/useCotizacionSugerida.ts",
+        "apps/web/src/lib/cotizacion.ts",
+        "package.json"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
       "pageHash": "eeb88ce8602bb16a5cd45d06ad8f7507602dfcef09705363347f5382b9fe8af7",
@@ -1499,16 +1515,16 @@
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
-      "pageHash": "2b72482ba6c4725bfc6f0709b3f8958d7a3be504edb5c89b7d92c05345c09d6f",
+      "pageHash": "ca2bd53903ee78a784fd75f834c5618420f8e0a5c40d4a63a802a61dd262eaf9",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "aa1c55c6",
+      "sourceAt": "0ef9cdb9",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "6ac44b5c"
+      "commit": "514dd9e7"
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
