@@ -3,7 +3,7 @@
 --
 -- Esquema (Principio VII), verificado objeto por objeto:
 --   dominio.ingresos_mercaderia_lineas  dominio (existente)  se le agrega un disparador `AFTER INSERT`.
---   dominio.faltantes_venta             dominio (existente)  se marcan sus filas (`para_avisar_*`, 20270223110100).
+--   dominio.faltantes_venta             dominio (existente)  se marcan sus filas (`para_avisar_*`, 20270226110100).
 --   dominio.faltantes_avisos            dominio (existente)  solo se lee (no se escribe: no se envía nada).
 --   dominio.comprobantes_venta_lineas   dominio (existente)  solo se lee (enlace de la línea del faltante).
 --   dominio.productos                   dominio (existente)  solo se lee el nombre para la actividad.

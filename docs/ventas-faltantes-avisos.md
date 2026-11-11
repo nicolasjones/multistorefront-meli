@@ -16,7 +16,7 @@
 - **Sin correo**: el cliente sin correo no se marca y se informa «El cliente no tiene correo.».
 - **RPC** (`public`, `security definer`, `search_path = ''`, `anon` sin ejecución): `avisar_faltantes_venta(p_ids, p_mensaje, p_reavisar)` y `listar_faltantes(p_empresa_id, p_pagina, p_tamano, p_aviso)` (ahora devuelve `aviso` y `aviso_en`).
 - **Eventos**: `ventas.faltantes_avisados` en la actividad (sin correos de clientes).
-- **Reversión**: migraciones `20270223100100`, `100200` y `100300` (cada una documenta su reversión en el encabezado).
+- **Reversión**: migraciones `20270226100100`, `100200` y `100300` (cada una documenta su reversión en el encabezado).
 
 ## Para avisar (F-VTA-27)
 
@@ -25,7 +25,7 @@
 - **Qué no hace**: no envía nada (el envío es del operador con F-VTA-26), no cierra faltantes y anular el ingreso no desmarca.
 - **Robustez**: el disparador atrapa sus errores para no romper el ingreso; un fallo queda como WARNING en el log del servidor.
 - **Pantalla**: chip «Para avisar» en la columna Aviso y filtro «Todos» / «Para avisar» (del más antiguo al más nuevo).
-- **Reversión**: migraciones `20270223110100`, `110200` y `110300`.
+- **Reversión**: migraciones `20270226110100`, `110200` y `110300`.
 
 ## Pruebas
 

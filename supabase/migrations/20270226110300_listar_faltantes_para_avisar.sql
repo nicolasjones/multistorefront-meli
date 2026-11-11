@@ -1,7 +1,7 @@
 -- MSF-161 · F-VTA-27 (MSF-270, spec 20261110-100000-ventas-avisos-de-faltantes, FR-103):
 -- `public.listar_faltantes` reconoce el estado «Para avisar» y lo acepta como filtro.
 --
--- Esquema (Principio VII), verificado objeto por objeto: igual que 20270223100300 (solo lecturas de
+-- Esquema (Principio VII), verificado objeto por objeto: igual que 20270226100300 (solo lecturas de
 -- `dominio.faltantes_venta`, `dominio.faltantes_avisos`, comprobantes, empresas, productos, clientes y
 -- `public.stock_estados`). Ninguna tabla se crea ni se altera. Misma firma que F-VTA-26: `create or replace`
 -- sin `drop`.
@@ -14,7 +14,7 @@
 --     ese filtro, el orden de siempre (`desde` descendente, `id`).
 --
 -- Migración idempotente (`create or replace`). Reversión (migración posterior): restaurar el cuerpo de
--- 20270223100300 (`create or replace public.listar_faltantes(uuid, integer, integer, text)`).
+-- 20270226100300 (`create or replace public.listar_faltantes(uuid, integer, integer, text)`).
 
 create or replace function public.listar_faltantes(
   p_empresa_id uuid default null,
