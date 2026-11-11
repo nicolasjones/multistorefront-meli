@@ -132,9 +132,9 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
 - Variables de Kestra: `ENTREGAR_WEBHOOK_URL`, `SECRET_ENTREGAR_WEBHOOK_APIKEY`,
   `API_WEBHOOKS_LOTE` y `API_AUDITORIA_RETENCION_DIAS` (ver
   `infra/kestra/.env.example`).
-- Migraciones: `20270223100000_api_claves`, `20270223100100_api_llamadas_y_limite`,
-  `20270223100200_api_lectura`, `20270223100300_api_suscripciones_entregas` y
-  `20270223100400_api_eventos_precio_venta`. Son aditivas; cada encabezado
+- Migraciones: `20270223110201_api_claves`, `20270223110202_api_llamadas_y_limite`,
+  `20270223110203_api_lectura`, `20270223110204_api_suscripciones_entregas` y
+  `20270223110205_api_eventos_precio_venta`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
