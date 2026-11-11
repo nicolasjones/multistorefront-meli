@@ -25,6 +25,9 @@
 --   drop function private.api_reclamar_entregas(integer, integer);
 --   drop function private.api_resolver_entrega(uuid, text, integer, text, integer);
 --   drop function private.api_entrega_para_entregar(uuid);
+--   drop function private.api_reclamar_eventos_api(text[], integer, integer, integer);
+--   drop function public.api_entrega_para_entregar(uuid);
+--   drop function public.api_resolver_entrega(uuid, text, integer, text, integer);
 --   drop function private.api_url_destino_valida(text);
 --   drop function private.api_sanitizar_error(text);
 --   drop table public.api_entregas;
@@ -530,6 +533,84 @@ comment on function private.api_entrega_para_entregar(uuid) is
 
 revoke execute on function private.api_entrega_para_entregar(uuid) from public, anon, authenticated;
 grant execute on function private.api_entrega_para_entregar(uuid) to service_role;
+
+-- ============================================================================
+-- Envoltorios en `public`: PostgREST no expone el esquema `private`, así que
+-- la Edge Function `entregar-webhook` los llama por ahí. Solo `service_role`.
+-- ============================================================================
+
+create or replace function public.api_entrega_para_entregar(p_entrega_id uuid)
+returns table (url text, evento jsonb, secreto text)
+language sql
+security definer
+set search_path = ''
+as $$
+  select * from private.api_entrega_para_entregar(p_entrega_id);
+$$;
+
+create or replace function public.api_resolver_entrega(
+  p_entrega_id uuid,
+  p_estado text,
+  p_estado_http integer,
+  p_error text,
+  p_espera_seg integer default null
+)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  select private.api_resolver_entrega(p_entrega_id, p_estado, p_estado_http, p_error, p_espera_seg);
+$$;
+
+comment on function public.api_entrega_para_entregar(uuid) is
+  'F-API-01: destino, evento y secreto de firma de una entrega. Solo service_role.';
+
+comment on function public.api_resolver_entrega(uuid, text, integer, text, integer) is
+  'F-API-01: resuelve una entrega. Solo service_role.';
+
+revoke execute on function public.api_entrega_para_entregar(uuid) from public, anon, authenticated;
+revoke execute on function public.api_resolver_entrega(uuid, text, integer, text, integer) from public, anon, authenticated;
+grant execute on function public.api_entrega_para_entregar(uuid) to service_role;
+grant execute on function public.api_resolver_entrega(uuid, text, integer, text, integer) to service_role;
+
+-- ============================================================================
+-- private.api_reclamar_eventos_api — reclamo de los eventos que la API
+-- avisa, de los tres tipos, en una sola llamada. Envuelve
+-- `private.reclamar_eventos` (mismo lease y mismos intentos) para que el flow
+-- de Kestra no tenga que reclamar tipo por tipo.
+-- ============================================================================
+
+create or replace function private.api_reclamar_eventos_api(
+  p_tipos text[],
+  p_limite integer default 20,
+  p_duracion_reclamo_seg integer default 300,
+  p_max_intentos integer default 5
+)
+returns table (
+  evento_id uuid, organizacion_id uuid, tipo text, clave_idempotencia text,
+  carga jsonb, intento integer, vence_en timestamptz
+)
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_tipo text;
+begin
+  foreach v_tipo in array coalesce(p_tipos, '{}'::text[]) loop
+    return query
+    select * from private.reclamar_eventos(v_tipo, p_limite, p_duracion_reclamo_seg, p_max_intentos);
+  end loop;
+end;
+$$;
+
+comment on function private.api_reclamar_eventos_api(text[], integer, integer, integer) is
+  'F-API-01: reclama eventos de los tipos que la API avisa (stock, precio y venta) para repartirlos entre las suscripciones.';
+
+revoke execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) from public, anon, authenticated;
+grant execute on function private.api_reclamar_eventos_api(text[], integer, integer, integer) to kestra_orquestacion, service_role;
 
 revoke execute on function private.api_fanout_evento(uuid) from public, anon, authenticated;
 revoke execute on function private.api_reclamar_entregas(integer, integer) from public, anon, authenticated;

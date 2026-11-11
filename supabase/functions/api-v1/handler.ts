@@ -61,7 +61,7 @@ export type Llamada = {
   duracion_ms: number
 }
 
-export type Resultado<T> = Promise<{ data: T; error: { message: string } | null }>
+export type Resultado<T> = Promise<{ data: T; error: { message: string; code?: string } | null }>
 
 export type Deps = {
   /** Contrato OpenAPI que se sirve en `GET /v1/openapi.json`. */
@@ -130,6 +130,17 @@ type Resolucion = {
   clave_id: string | null
   organizacion_id: string | null
   cabeceras: Record<string, string>
+}
+
+/**
+ * El SQL de lectura rechaza un cursor que no trae la clave esperada con
+ * `CURSOR_INVALIDO` (SQLSTATE 22023). Para el llamador es un parámetro
+ * inválido, no un fallo del servidor: responde 400 (FR-004).
+ */
+function esCursorInvalido(error: { message: string; code?: string } | null): boolean {
+  if (!error) return false
+  if (error.code !== '22023') return false
+  return !/LIMITE_INVALIDO/.test(error.message)
 }
 
 async function resolver(req: Request, deps: Deps, documento: unknown): Promise<Resolucion> {
@@ -227,6 +238,9 @@ async function resolver(req: Request, deps: Deps, documento: unknown): Promise<R
     actualizadoDesde,
   )
   if (errorLectura || !lecturas?.length) {
+    if (esCursorInvalido(errorLectura)) {
+      return { ...conClave, estado: 400, cuerpo: cuerpoError('cursor_invalido'), codigo: 'cursor_invalido' }
+    }
     return { ...conClave, estado: 500, cuerpo: cuerpoError('error_interno'), codigo: 'error_interno' }
   }
 

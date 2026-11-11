@@ -1,0 +1,108 @@
+# MSF-403 · F-API-01 (FR-012, SC-003, D-6): entrega de los avisos de la API.
+#
+# Corrido cada minuto. Por cada corrida:
+#   1. Reclama los eventos que la API avisa (stock, precio y venta) con
+#      `private.api_reclamar_eventos_api` (lease de 300 s, 5 intentos). El evento
+#      queda en `reclamada` mientras se reparte: si el flow se corta, el lease
+#      vence y el evento vuelve a estar disponible.
+#   2. Reparte el evento entre las suscripciones activas de la organización
+#      (`private.api_fanout_evento`): una `api_entregas` por suscripción, con
+#      `on conflict (evento_id, suscripcion_id) do nothing`. Un evento llega a lo
+#      sumo una vez por suscripción.
+#   3. Confirma el evento (`private.resolver_evento`): el reintento del aviso
+#      vive en `api_entregas`, no en la cola de eventos.
+#   4. Reclama las entregas pendientes (`private.api_reclamar_entregas`, lease de
+#      60 s) y llama a la Edge Function `entregar-webhook`, que firma el aviso,
+#      revalida el destino por DNS (SSRF) y deja el resultado. La base calcula
+#      la espera del reintento: 5 intentos con 60 s × 2^(intentos-1) y estado
+#      final `agotada`.
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo
+# EXECUTE sobre las funciones de este flow. La Edge Function se autentica con
+# la clave de SERVICIO de Supabase (va en base64 como SECRET_ENTREGAR_WEBHOOK_APIKEY):
+# lee el secreto de firma de cada suscripción, que no puede salir hacia el
+# navegador. Nunca se escribe un secreto en este YAML.
+#
+# Variables: API_WEBHOOKS_LOTE (eventos y entregas por corrida) y
+# ENTREGAR_WEBHOOK_URL; ver infra/kestra/.env.example.
+id: entregar-webhooks-api
+namespace: platform.api
+labels:
+  capa: core
+  dominio: plataforma
+  componente: api-webhooks
+description: "Entrega los avisos de la API (stock, precio y venta) a las suscripciones de la organización."
+inputs:
+  - id: lote
+    type: STRING
+    required: false
+    description: "Eventos y entregas por corrida (por defecto API_WEBHOOKS_LOTE)."
+tasks:
+  - id: reclamar_eventos
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select * from private.api_reclamar_eventos_api(ARRAY['stock.actualizado', 'precio.actualizado', 'venta.registrada'], CAST(:lote AS integer), 300, 5);
+    parameters:
+      lote: "{{ inputs.lote ?? envs.api_webhooks_lote ?? 20 }}"
+  - id: repartir
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar_eventos.rows }}"
+    concurrencyLimit: 2
+    allowFailure: true
+    tasks:
+      - id: generar_entregas
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        url: "{{ envs.kestra_orquestacion_db_url }}"
+        username: kestra_orquestacion
+        password: "{{ envs.kestra_orquestacion_db_password }}"
+        sql: select private.api_fanout_evento(CAST(:evento_id AS uuid));
+        parameters:
+          evento_id: "{{ fromJson(parent.taskrun.value).evento_id }}"
+        retry:
+          type: constant
+          interval: PT10S
+          maxAttempts: 3
+      - id: confirmar_evento
+        type: io.kestra.plugin.jdbc.postgresql.Query
+        url: "{{ envs.kestra_orquestacion_db_url }}"
+        username: kestra_orquestacion
+        password: "{{ envs.kestra_orquestacion_db_password }}"
+        sql: select private.resolver_evento(CAST(:evento_id AS uuid), 1, 'confirmar', NULL, 300, 5);
+        parameters:
+          evento_id: "{{ fromJson(parent.taskrun.value).evento_id }}"
+  - id: reclamar_entregas
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select id, evento_id, suscripcion_id, intentos from private.api_reclamar_entregas(CAST(:lote AS integer), 60);
+    parameters:
+      lote: "{{ inputs.lote ?? envs.api_webhooks_lote ?? 20 }}"
+  - id: entregar
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar_entregas.rows }}"
+    concurrencyLimit: 2
+    allowFailure: true
+    tasks:
+      - id: entregar_aviso
+        type: io.kestra.plugin.core.http.Request
+        uri: "{{ envs.entregar_webhook_url }}"
+        method: POST
+        contentType: application/json
+        headers:
+          apikey: "{{ secret('ENTREGAR_WEBHOOK_APIKEY') }}"
+          Authorization: "Bearer {{ secret('ENTREGAR_WEBHOOK_APIKEY') }}"
+        body: '{"entrega_id": "{{ fromJson(parent.taskrun.value).id }}"}'
+        timeout: PT30S
+        retry:
+          type: constant
+          interval: PT30S
+          maxAttempts: 2
+triggers:
+  - id: cada_minuto
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"

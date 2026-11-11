@@ -1,0 +1,36 @@
+# MSF-403 · F-API-01 (FR-008, D-10): retención de la auditoría de la API.
+#
+# Borra las llamadas de `public.api_llamadas` más viejas que la retención (90
+# días por defecto). Lo dispara este flow y no `pg_cron` (en el repo no hay
+# pg_cron): la base solo borra lo vencido y la corrida es idempotente —una
+# segunda pasada sin llamadas vencidas no borra nada.
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo
+# EXECUTE sobre `private.purgar_api_llamadas`.
+#
+# Variables: API_AUDITORIA_RETENCION_DIAS; ver infra/kestra/.env.example.
+id: purgar-api-llamadas
+namespace: platform.api
+labels:
+  capa: core
+  dominio: plataforma
+  componente: api-auditoria
+description: "Purga la auditoría de llamadas de la API que venció la retención."
+inputs:
+  - id: retencion_dias
+    type: STRING
+    required: false
+    description: "Días de retención de la auditoría (por defecto API_AUDITORIA_RETENCION_DIAS)."
+tasks:
+  - id: purgar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    sql: select private.purgar_api_llamadas(CAST(:retencion AS integer));
+    parameters:
+      retencion: "{{ inputs.retencion_dias ?? envs.api_auditoria_retencion_dias ?? 90 }}"
+triggers:
+  - id: diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 4 * * *"
