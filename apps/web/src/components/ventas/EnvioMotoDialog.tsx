@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, type MutableRefObject, useEffect, useRef, useState } from 'react'
 import {
   Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControlLabel, Stack, Switch,
   TextField,
@@ -9,9 +9,11 @@ import {
   type ErroresEnvioMoto,
   type FormularioEnvioMoto,
   FORMULARIO_ENVIO_MOTO_VACIO,
+  GUIA_MAXIMO,
   MENSAJERO_MAXIMO,
   actualizarEnvioMoto,
   aFormulario,
+  codigoDeError,
   comprobantesParaEnvioMoto,
   esConflicto,
   mensajeDeErrorEnvioMoto,
@@ -38,27 +40,31 @@ const ESPERA_BUSQUEDA_MS = 300
 // prototipo (decisión abierta de detalle 1): usa los componentes del kit. La base es la autoridad;
 // acá se valida antes de viajar y se traducen sus errores.
 export function EnvioMotoDialog({ open, ...resto }: Props) {
+  // Mientras se guarda no se cierra con Escape ni con un clic afuera: el resultado se aplica igual y la persona
+  // quedaría sin ver el aviso ni el error.
+  const enVuelo = useRef(false)
   return (
-    <Dialog open={open} onClose={resto.onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-envio-moto">
+    <Dialog open={open} onClose={() => { if (!enVuelo.current) resto.onCerrar() }} fullWidth maxWidth="sm" aria-labelledby="titulo-envio-moto">
       {/* El formulario se monta al abrir: cada apertura parte de los datos vigentes. */}
-      <Formulario {...resto} />
+      <Formulario {...resto} enVuelo={enVuelo} />
     </Dialog>
   )
 }
 
-function Formulario({ envio = null, empresaId, onCerrar, onGuardado, onRecargar }: Omit<Props, 'open'>) {
+function Formulario({ envio = null, empresaId, onCerrar, onGuardado, onRecargar, enVuelo }: Omit<Props, 'open'> & { enVuelo: MutableRefObject<boolean> }) {
   const edicion = envio !== null
   const [formulario, setFormulario] = useState<FormularioEnvioMoto>(envio ? aFormulario(envio) : FORMULARIO_ENVIO_MOTO_VACIO)
   const [errores, setErrores] = useState<ErroresEnvioMoto>({})
   const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean } | null>(null)
   const [guardando, setGuardando] = useState(false)
-  const enVuelo = useRef(false)
 
   // Selector de facturas elegibles (solo alta), con espera al tipear.
   const [busqueda, setBusqueda] = useState('')
   const [opciones, setOpciones] = useState<ComprobanteParaEnvio[]>([])
   const [cargandoOpciones, setCargandoOpciones] = useState(!edicion)
   const [errorOpciones, setErrorOpciones] = useState(false)
+  // Se incrementa para volver a pedir las facturas tras un error.
+  const [reintento, setReintento] = useState(0)
   const [comprobante, setComprobante] = useState<ComprobanteParaEnvio | null>(null)
 
   useEffect(() => {
@@ -74,7 +80,7 @@ function Formulario({ envio = null, empresaId, onCerrar, onGuardado, onRecargar 
           setErrorOpciones(false)
         } catch (falla) {
           if (!vigente) return
-          console.error('No pudimos cargar las facturas para el envío.', falla)
+          console.error('No pudimos cargar las facturas para el envío.', codigoDeError(falla))
           setOpciones([])
           setErrorOpciones(true)
         }
@@ -85,7 +91,7 @@ function Formulario({ envio = null, empresaId, onCerrar, onGuardado, onRecargar 
       vigente = false
       clearTimeout(espera)
     }
-  }, [busqueda, empresaId, edicion])
+  }, [busqueda, empresaId, edicion, reintento])
 
   const cambiar = (campo: 'mensajero' | 'guia' | 'costo_envio' | 'abono') => (valor: string) => {
     setFormulario((actual) => ({ ...actual, [campo]: valor }))
@@ -165,11 +171,14 @@ function Formulario({ envio = null, empresaId, onCerrar, onGuardado, onRecargar 
                   required
                   placeholder="Buscá por número o cliente"
                   error={Boolean(errores.comprobante) || errorOpciones}
-                  helperText={errores.comprobante ?? (errorOpciones ? 'No pudimos cargar las facturas. Cerrá y volvé a abrir el diálogo.' : 'Solo facturas con forma de envío «Moto» que todavía no tienen envío.')}
+                  helperText={errores.comprobante ?? (errorOpciones ? 'No pudimos cargar las facturas. Tocá «Reintentar» para volver a pedirlas.' : 'Solo facturas con forma de envío «Moto» que todavía no tienen envío.')}
                 />
               )}
             />
           )}
+          {errorOpciones && !edicion ? (
+            <Button size="small" onClick={() => setReintento((n) => n + 1)} sx={{ alignSelf: 'flex-start' }}>Reintentar</Button>
+          ) : null}
           <TextField
             label="Mensajero"
             value={formulario.mensajero}
@@ -189,6 +198,7 @@ function Formulario({ envio = null, empresaId, onCerrar, onGuardado, onRecargar 
             helperText="Opcional."
             autoComplete="off"
             disabled={guardando}
+            slotProps={{ htmlInput: { maxLength: GUIA_MAXIMO } }}
             fullWidth
           />
           <TextField
