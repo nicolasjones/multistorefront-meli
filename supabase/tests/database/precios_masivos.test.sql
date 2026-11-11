@@ -6,7 +6,7 @@
 -- organizaciones y `anon` sin ejecución.
 begin;
 
-select plan(64);
+select plan(65);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -349,6 +349,11 @@ select lives_ok(
 -- ============================================================================
 
 reset role;
+-- Se guarda el nivel original para restaurarlo tal cual (no se asume que era «ninguno»).
+create temp table nivel_rentabilidad_original as
+select nivel from public.permisos_rol
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
+select is((select count(*) from nivel_rentabilidad_original), 1::bigint, 'la fila de permisos de rentabilidad del operador existe');
 update public.permisos_rol set nivel = 'lectura'
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
@@ -380,7 +385,7 @@ select throws_ok(
 );
 
 reset role;
-update public.permisos_rol set nivel = 'ninguno'
+update public.permisos_rol set nivel = (select nivel from nivel_rentabilidad_original)
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
 
 -- ============================================================================
