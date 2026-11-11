@@ -1,4 +1,4 @@
--- MSF-145 (Ventas motos): `dominio.envios_moto` (20270221100100) tiene `organizacion_id` y el pgTAP de completitud de
+-- MSF-145 (Ventas motos): `dominio.envios_moto` (20270222200100) tiene `organizacion_id` y el pgTAP de completitud de
 -- `exportacion_total.test.sql` exige que esté en la lista permitida o en las exclusiones. Es dato de negocio de la
 -- organización (mensajero, guía, costo, abono y rendición), así que SE EXPORTA.
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente

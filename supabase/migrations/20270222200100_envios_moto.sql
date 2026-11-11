@@ -9,7 +9,7 @@
 --                                                        La empresa del envío es la de su comprobante: no
 --                                                        se duplica en `envios_moto`.
 --   public.organizaciones          public (existente)   dueña multi-tenant.
---   public.registro_actividad      public (existente)   sin cambio: lo escriben las RPC (20270221100200).
+--   public.registro_actividad      public (existente)   sin cambio: lo escriben las RPC (20270222200200).
 --
 -- Reglas del dato:
 -- · UN envío por comprobante: `unique (organizacion_id, comprobante_id)`.
@@ -18,10 +18,10 @@
 -- · `guia` es opcional; si viene, sin espacios sobrantes.
 -- · `costo_envio` y `abono` no nulos y `>= 0` (cero es válido), en `numeric(14,2)`.
 -- · `rendido` y `rendido_en` son coherentes (check) y SOLO los escribe la RPC `rendir_envios_moto`
---   (20270221200100). Ninguna otra RPC ni escritura directa los toca. La reversión de una rendición
+--   (20270222300100). Ninguna otra RPC ni escritura directa los toca. La reversión de una rendición
 --   queda fuera de alcance.
 -- · NO se escribe por escrito ni se borra: sin política ni grant de INSERT/UPDATE/DELETE. Escriben solo las
---   RPC `security definer` (20270221100200 y 20270221200100).
+--   RPC `security definer` (20270222200200 y 20270222300100).
 -- · `updated_at` es el bloqueo optimista de `actualizar_envio_moto`: lo avanza la RPC.
 --
 -- RLS: lectura por organización, empresa accesible (la del comprobante) y sección `ventas` en lectura o
@@ -29,8 +29,8 @@
 --
 -- VERSIONES: `tasks.md` nombra `20261205…`, por debajo de la cola ya aplicada en dokploy
 -- (`20270220180000`); con ese número `supabase db push` las rechaza y el guard
--- `scripts/verificar-migraciones.mjs` las marca como REUSADAS. Se renumeraron a `20270221100100`,
--- `20270221100200` (F-VTA-24) y `20270221200100` (F-VTA-25). `tasks.md` es la spec compartida y no se edita.
+-- `scripts/verificar-migraciones.mjs` las marca como REUSADAS. Se renumeraron a `20270222200100`,
+-- `20270222200200` (F-VTA-24) y `20270222300100` (F-VTA-25). `tasks.md` es la spec compartida y no se edita.
 --
 -- Migración aditiva (tabla, función, índices y política nuevos). Reversión (en una migración posterior;
 -- no se ejecuta en este PR; exportar antes los envíos ya cargados):

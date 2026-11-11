@@ -4,10 +4,10 @@
 -- Esquema (Principio VII), verificado objeto por objeto:
 --   public.rendir_envios_moto          public (nueva RPC)   rinde uno o varios envíos (fila o lote).
 --   public.resumen_motos_sin_rendir    public (nueva RPC)   monto y cantidad de la tarjeta.
---   dominio.envios_moto                dominio (existente)  la tabla (20270221100100): esta RPC es la
+--   dominio.envios_moto                dominio (existente)  la tabla (20270222200100): esta RPC es la
 --                                                  ÚNICA que escribe `rendido` y `rendido_en`.
 --   dominio.comprobantes_venta         dominio (existente)  se lee (empresa y número del comprobante).
---   private.puede_rendir_envio_moto_en_empresa  private (existente, 20270221100200)  el permiso.
+--   private.puede_rendir_envio_moto_en_empresa  private (existente, 20270222200200)  el permiso.
 --   public.registro_actividad          public (existente)   evento por `private.registrar_actividad`.
 -- Sin tablas nuevas: esta migración no crea ni altera columnas.
 --

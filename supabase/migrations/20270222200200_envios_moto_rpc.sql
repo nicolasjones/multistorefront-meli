@@ -9,8 +9,8 @@
 --   private.puede_registrar_envio_moto_en_empresa  private (nueva)  permiso de escritura por empresa.
 --   private.puede_rendir_envio_moto_en_empresa     private (nueva)  permiso de rendición por empresa
 --                                                  (lo usa el listado; la RPC de rendición llega en
---                                                  20270221200100).
---   dominio.envios_moto                    dominio (existente)  la tabla (20270221100100).
+--                                                  20270222300100).
+--   dominio.envios_moto                    dominio (existente)  la tabla (20270222200100).
 --   dominio.comprobantes_venta             dominio (existente)  la factura: tipo, estado, empresa, forma
 --                                                  de envío (`envio_id`), número, fecha, cliente.
 --   dominio.formas_envio                   dominio (existente)  `tipo = 'moto'` define la elegibilidad.
@@ -23,7 +23,7 @@
 -- · Leer/listar: `ventas` en lectura o edición.
 -- · Registrar, editar y marcar «Enviado»: `ventas` en edición en la empresa Y rol efectivo `operador` o
 --   `administrador` en ella (o superadmin con organización activa). Sin eso, `42501`.
--- · Rendir (20270221200100): solo `administrador` (o superadmin).
+-- · Rendir (20270222300100): solo `administrador` (o superadmin).
 --
 -- Reglas de las RPC:
 -- · `security definer`, `search_path = ''`, `revoke execute … from public, anon`, `grant … to authenticated`.

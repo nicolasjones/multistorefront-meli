@@ -1,7 +1,18 @@
 {
   "pantalla": "Clientes · Ficha (tipo y cuenta web)",
   "archivo": "ClienteFicha.dc.html",
-  "tablas": [],
+  "tablas": [
+    {
+      "columnas": [
+        "Comprobante",
+        "Fecha",
+        "Estado",
+        "Total",
+        "Cobrado",
+        "Saldo"
+      ]
+    }
+  ],
   "campos": [
     "Número",
     "DNI / CUIT",
