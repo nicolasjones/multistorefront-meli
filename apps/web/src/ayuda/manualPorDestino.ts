@@ -56,4 +56,5 @@ export const SIN_PAGINA_PROPIA: readonly string[] = [
   'funcionalidades',
   'ia',
   'integraciones-oauth',
+  'api',
 ]
