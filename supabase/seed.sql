@@ -202,27 +202,30 @@ begin
       (v_org.id, 9005, 'Cliente sin compras', 'minorista')
     on conflict do nothing;
 
+    -- Estados vivos de la matriz de transiciones (borrador, confirmada, pendiente, aceptado, cobrado, en_proceso,
+    -- deuda, armando, incompleto, anulada): una factura saldada es «cobrado» y una sin cobrar, «deuda»; así la
+    -- cuenta corriente (F-CLI-19) no cuenta como deuda lo que está pagado. Los presupuestos quedan «pendiente».
     insert into dominio.comprobantes_venta
       (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
     select v_org.id, c.id, d.tipo, d.numero, d.fecha, d.estado, d.sin_iva, round(d.sin_iva * 1.21, 2)
       from (values
-        (9001, 'factura',     '0001-00009001', v_inicio + 2,                    'cobrada', 1250000.00),
+        (9001, 'factura',     '0001-00009001', v_inicio + 2,                    'cobrado', 1250000.00),
         (9001, 'factura',     '0001-00009002', v_inicio + 9,                    'deuda',    480000.00),
-        (9001, 'factura',     '0001-00009003', v_inicio - 20,                   'cobrada',  900000.00),
-        (9001, 'presupuesto', '0001-00009004', v_inicio + 5,                    'emitida',  300000.00),
-        (9002, 'factura',     '0001-00009005', v_inicio + 4,                    'cobrada',  760000.00),
-        (9002, 'factura',     '0001-00009006', v_inicio - 12,                   'cobrada',  540000.00),
+        (9001, 'factura',     '0001-00009003', v_inicio - 20,                   'cobrado',  900000.00),
+        (9001, 'presupuesto', '0001-00009004', v_inicio + 5,                    'pendiente', 300000.00),
+        (9002, 'factura',     '0001-00009005', v_inicio + 4,                    'cobrado',  760000.00),
+        (9002, 'factura',     '0001-00009006', v_inicio - 12,                   'cobrado',  540000.00),
         (9002, 'factura',     '0001-00009007', v_inicio + 6,                    'anulada',  200000.00),
-        (9003, 'factura',     '0001-00009008', v_inicio + 3,                    'cobrada',   85000.00),
-        (9003, 'factura',     '0001-00009009', v_inicio - 25,                   'cobrada',   42000.00),
-        (9004, 'factura',     '0001-00009010', v_inicio + 7,                    'emitida',  125000.00),
-        (9004, 'presupuesto', '0001-00009011', v_inicio + 8,                    'emitida',   99000.00)
+        (9003, 'factura',     '0001-00009008', v_inicio + 3,                    'cobrado',   85000.00),
+        (9003, 'factura',     '0001-00009009', v_inicio - 25,                   'cobrado',   42000.00),
+        (9004, 'factura',     '0001-00009010', v_inicio + 7,                    'deuda',    125000.00),
+        (9004, 'presupuesto', '0001-00009011', v_inicio + 8,                    'pendiente',  99000.00)
       ) as d(numero_cliente, tipo, numero, fecha, estado, sin_iva)
       join public.clientes c on c.organizacion_id = v_org.id and c.numero = d.numero_cliente;
 
     insert into dominio.comprobantes_venta
       (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
-    select v_org.id, c.id, 'factura', '0001-00009100', v_inicio + 1, 'cobrada', 310000.00, 375100.00
+    select v_org.id, c.id, 'factura', '0001-00009100', v_inicio + 1, 'cobrado', 310000.00, 375100.00
       from public.clientes c
      where c.organizacion_id = v_org.id and c.es_consumidor_final;
   end loop;
