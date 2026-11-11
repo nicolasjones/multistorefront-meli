@@ -478,3 +478,18 @@ export async function cambiarAlcanceCotizacionRpc(
   const cambio = data as { alcance: AlcanceCotizacion; precios_afectados: number | string }
   return { alcance: cambio.alcance, preciosAfectados: Number(cambio.precios_afectados) }
 }
+
+// F-PRE-13 (MSF-373): dólar del día SUGERIDO por una fuente pública. La Edge Function `cotizacion-sugerida` lo
+// consulta en el servidor (la URL de la fuente no sale del navegador) y exige sesión y edición del dólar. Es solo una
+// ayuda: nunca guarda ni cambia precios; la carga y la confirmación siguen siendo las de F-PRE-02/03.
+export type CotizacionSugerida = { valor: number; fuente: string; fecha: string | null }
+
+export const esCotizacionSugerida = (dato: unknown): dato is CotizacionSugerida => {
+  if (typeof dato !== 'object' || dato === null) return false
+  const { valor, fuente, fecha } = dato as Record<string, unknown>
+  return typeof valor === 'number' && Number.isFinite(valor) && valor > 0 && valor < MAXIMO_EXCLUSIVO
+    && typeof fuente === 'string' && (fecha === null || typeof fecha === 'string')
+}
+
+// Valor sugerido → texto del campo (coma decimal, sin separador de miles: lo que acepta `parsearCotizacion`).
+export const textoDeCotizacionSugerida = (valor: number) => String(valor).replace('.', ',')

@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
   useCargarCotizacion: vi.fn(),
   useConfirmarCotizacion: vi.fn(),
   usePrevisualizarCotizacion: vi.fn(),
+  useCotizacionSugerida: vi.fn(),
 }))
+vi.mock('../../hooks/useCotizacionSugerida', () => ({ useCotizacionSugerida: mocks.useCotizacionSugerida }))
 vi.mock('../../hooks/useCotizacion', () => ({
   useCargarCotizacion: mocks.useCargarCotizacion,
   useConfirmarCotizacion: mocks.useConfirmarCotizacion,
@@ -54,6 +56,7 @@ const preparar = () => {
   mocks.useCargarCotizacion.mockReturnValue({ cargar: mocks.cargar, enviando: false })
   mocks.useConfirmarCotizacion.mockReturnValue({ confirmar: mocks.confirmar, descartar: mocks.descartar, enviando: false })
   mocks.usePrevisualizarCotizacion.mockReturnValue(previa())
+  mocks.useCotizacionSugerida.mockReturnValue({ estado: 'no_disponible' })
 }
 
 describe('DialogoCargarDolar · paso 1 (carga)', () => {
@@ -306,5 +309,32 @@ describe('DialogoCargarDolar · paso 2 (vista previa y confirmación)', () => {
     rerender(<DialogoCargarDolar abierto vigente={VIGENTE} onCerrar={vi.fn()} onConfirmada={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Aplicar y recalcular' })).toBeDisabled()
+  })
+})
+
+describe('DialogoCargarDolar · cotización sugerida (F-PRE-13)', () => {
+  beforeEach(preparar)
+
+  it('muestra la sugerida y «Usar este valor» solo completa el campo, sin cargar nada', () => {
+    mocks.useCotizacionSugerida.mockReturnValue({ estado: 'lista', sugerida: { valor: 1405.5, fuente: 'DolarApi (dólar oficial, venta)', fecha: '2026-11-10T15:00:00.000Z' } })
+    abrir()
+    expect(screen.getByText(/Sugerida:.*por USD · DolarApi.*actualizada el/)).toBeTruthy()
+    expect((screen.getByLabelText(ETIQUETA) as HTMLInputElement).value).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: 'Usar este valor' }))
+    expect((screen.getByLabelText(ETIQUETA) as HTMLInputElement).value).toBe('1405,5')
+    expect(mocks.cargar).not.toHaveBeenCalled()
+  })
+
+  it('con la fuente caída avisa y la carga a mano sigue funcionando', async () => {
+    abrir()
+    expect(screen.getByText(/No pudimos consultar la cotización sugerida/)).toBeTruthy()
+    await irAlPaso2()
+    expect(mocks.cargar).toHaveBeenCalledWith(1490, null)
+  })
+
+  it('mientras busca avisa que está buscando', () => {
+    mocks.useCotizacionSugerida.mockReturnValue({ estado: 'cargando' })
+    abrir()
+    expect(screen.getByText(/Buscando la cotización sugerida/)).toBeTruthy()
   })
 })
