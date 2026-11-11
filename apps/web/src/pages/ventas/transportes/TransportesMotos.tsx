@@ -10,7 +10,7 @@ import { EnvioMotoDialog } from '../../../components/ventas/EnvioMotoDialog'
 import { RendicionMotosDialog } from '../../../components/ventas/RendicionMotosDialog'
 import { Tarjeta } from '../../../components/ventas/ContrarreembolsosTabla'
 import { formatearFecha, formatearImporteHistorial } from '../../../lib/formatoHistorial'
-import { codigoDeError, listarEnviosMoto, type EnvioMoto } from '../../../lib/ventas/enviosMoto'
+import { codigoDeError, listarEnviosMoto, puedoRegistrarEnviosMoto, type EnvioMoto } from '../../../lib/ventas/enviosMoto'
 import {
   esRendible,
   mensajeDeErrorRendicion,
@@ -37,7 +37,8 @@ type Props = {
   organizacionId: string | null
   // Las empresas accesibles ya se resolvieron: antes no se pide nada ni se detecta un cambio.
   listo: boolean
-  // `ventas` en edición: muestra «Registrar envío». La base exige además rol Operador/Administrador.
+  // `ventas` en edición: condición mínima para «Registrar envío». Además se le pregunta al servidor (rol Operador o
+  // Administrador en la tienda), porque Mostrador tiene `ventas` en edición y no puede registrar.
   puedeRegistrar: boolean
 }
 
@@ -46,7 +47,7 @@ const fechaCorta = (iso: string) => formatearFecha(iso.slice(0, 10)).slice(0, 5)
 
 // Pestaña «Motos» de Transportes (F-VTA-24 y F-VTA-25, FR-006, FR-007 y FR-020…FR-025): tarjeta
 // «Motos sin rendir», tabla de envíos en moto, registro/edición, rendición por fila y en lote.
-export function TransportesMotos({ empresaId, empresaActivaId, organizacionId, listo, puedeRegistrar }: Props) {
+export function TransportesMotos({ empresaId, empresaActivaId, organizacionId, listo, puedeRegistrar: nivelEdicion }: Props) {
   const clave = `${organizacionId ?? ''}:${empresaActivaId ?? ''}:${empresaId ?? ''}`
   const [pagina, setPagina] = useState(1)
   const [datos, setDatos] = useState<{ envios: EnvioMoto[]; total: number }>({ envios: [], total: 0 })
@@ -59,6 +60,9 @@ export function TransportesMotos({ empresaId, empresaActivaId, organizacionId, l
   const [revision, setRevision] = useState(0)
   const ultimaPeticion = useRef(0)
   const ultimaPeticionResumen = useRef(0)
+  // Lo que responde el servidor sobre registrar en esta tienda: hasta que responde (o si falla) no se muestra el botón.
+  const [permiteRegistrar, setPermiteRegistrar] = useState(false)
+  const puedeRegistrar = nivelEdicion && permiteRegistrar
 
   const [aviso, setAviso] = useState<Aviso | null>(null)
   const [registrando, setRegistrando] = useState(false)
@@ -107,6 +111,22 @@ export function TransportesMotos({ empresaId, empresaActivaId, organizacionId, l
       })
       .finally(() => { if (peticion === ultimaPeticionResumen.current) setCargandoResumen(false) })
   }, [empresaId, clave, revision, listo])
+
+  useEffect(() => {
+    if (!listo || !nivelEdicion) {
+      setPermiteRegistrar(false)
+      return
+    }
+    let vigente = true
+    puedoRegistrarEnviosMoto(empresaId)
+      .then((puede) => { if (vigente) setPermiteRegistrar(puede) })
+      .catch((falla) => {
+        if (!vigente) return
+        console.error('No pudimos verificar si podés registrar envíos.', codigoDeError(falla))
+        setPermiteRegistrar(false)
+      })
+    return () => { vigente = false }
+  }, [empresaId, clave, listo, nivelEdicion])
 
   const recargarDesdeInicio = () => {
     setSeleccion(new Set())

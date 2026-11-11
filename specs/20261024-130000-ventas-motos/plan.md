@@ -2,7 +2,7 @@
 
 **Branch**: `epic/MSF-145-ventas-y-despacho-ventas-motos` | **Spec**: [spec.md](./spec.md) | **Contratos**: [contracts/ventas-motos.md](./contracts/ventas-motos.md)
 
-> **HOLD de implementación**: no se despacha Desarrollador, QA ni Code Review hasta la Etapa 2 (2027-01-04) o pedido expreso de Nicolás. Esta corrida entrega spec/plan/tasks (piloto de spec). Al liberar, revalidar MSF-159 en la base vigente y que haya cupo libre. Ver *Estado de entrega* en [spec.md](./spec.md). El diseño de abajo no cambia.
+> **Implementada** (PR #825, MSF-145; levantó el HOLD de la Etapa 2 un pedido expreso de Nicolás). El diseño de abajo es el que se construyó, con las diferencias listadas en *Diferencias con la spec* del PR y en `docs/ventas-motos.md`.
 
 ## Summary
 
@@ -30,7 +30,7 @@ Registro de envíos con mensajería propia (mensajero, guía opcional, costo, ab
 
 ## Project Structure
 
-- `supabase/migrations/20261205100100_envios_moto.sql` (tabla, índice por mensajero y RLS), `supabase/migrations/20261205100200_envios_moto_rpc.sql` (registro, edición, elegibles, listado), `supabase/migrations/20261205200100_rendir_envios_moto.sql` (rendición y resumen).
+- `supabase/migrations/20270222200100_envios_moto.sql` (tabla, índice por mensajero y RLS), `supabase/migrations/20270222200200_envios_moto_rpc.sql` (registro, edición, elegibles, listado), `supabase/migrations/20270222300100_rendir_envios_moto.sql` (rendición y resumen), `20270222300200_exportacion_total_envios_moto.sql` (la tabla entra en la exportación total) y `20270223100000_envios_moto_lectura_por_empresa.sql` (RLS de lectura por tienda y `puedo_registrar_envios_moto`).
 - `supabase/tests/database/ventas_motos_registro.test.sql`, `ventas_motos_rendicion.test.sql`.
 - `apps/web/src/lib/ventas/enviosMoto.ts` (tipos y llamadas), `apps/web/src/pages/ventas/transportes/` (control segmentado y pestaña Motos), `apps/web/src/components/ventas/EnvioMotoDialog.tsx` y `RendicionMotosDialog.tsx`.
 - `docs/ventas-motos.md` (cierre).

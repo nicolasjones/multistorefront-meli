@@ -47,7 +47,7 @@ Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/lista
 
 ## Pestaña Motos (MSF-145, F-VTA-24 y F-VTA-25)
 
-Mensajería propia: registro de envíos en moto con mensajero, guía, costo y abono, y su rendición. Spec: `specs/20261024-130000-ventas-motos/` (la guía completa `docs/ventas-motos.md` llega con el cierre de la épica).
+Mensajería propia: registro de envíos en moto con mensajero, guía, costo y abono, y su rendición. Spec: `specs/20261024-130000-ventas-motos/` (guía completa en [`docs/ventas-motos.md`](./ventas-motos.md)).
 
 - Se llega con `/ventas/transportes?pestana=motos` (también `contrarreembolsos` y `terminales`; sin parámetro o con uno desconocido abre Contrarreembolsos). Va entre las otras dos, como en el prototipo.
 - **Filtro Tienda**: comparte el de Contrarreembolsos, que sigue a la empresa activa de la barra superior; «Terminales de retiro» conserva el suyo. Al cambiar la empresa activa la pestaña vuelve a la primera tanda, recarga listado y tarjeta, descarta la selección y cierra con aviso el diálogo abierto.

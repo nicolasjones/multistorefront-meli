@@ -52,7 +52,7 @@ const envio = (extra: Partial<EnvioMoto> = {}): EnvioMoto => ({
   ...extra,
 })
 
-type Estado = { envios: EnvioMoto[]; total?: number; resumen: { monto: number; entregas: number } }
+type Estado = { envios: EnvioMoto[]; total?: number; resumen: { monto: number; entregas: number }; puedeRegistrar?: boolean }
 
 // Doble de las RPC de la pantalla: cada prueba puede reescribir el `estado` que necesita.
 const rpcMotos = (estado: Estado) => vi.fn(async (nombre: string, args?: Record<string, unknown>) => {
@@ -73,6 +73,8 @@ const rpcMotos = (estado: Estado) => vi.fn(async (nombre: string, args?: Record<
     }
     case 'comprobantes_para_envio_moto':
       return { data: [{ id: 'f-9', numero: '0003-00001300', empresa_id: 'e-1', empresa: 'San Javucho', fecha: '2026-10-08', cliente: 'Cliente Nuevo' }], error: null }
+    case 'puedo_registrar_envios_moto':
+      return { data: estado.puedeRegistrar ?? true, error: null }
     case 'registrar_envio_moto':
       return { data: { id: 'm-nuevo' }, error: null }
     case 'actualizar_envio_moto':
@@ -191,9 +193,29 @@ describe('Transportes · pestaña Motos', () => {
       mocks.rpc.mockImplementation(rpcMotos({ ...ESTADO_BASE, envios: [envio(), envio({ id: 'm-2', comprobante_numero: '0003-00001241', cliente: 'Cellmax SRL', puede_editar: false })] }))
       render(pantalla())
       await screen.findByText('Kiosco La Esquina')
-      expect(screen.getByRole('button', { name: 'Registrar envío' })).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Registrar envío' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Editar 0003-00001247' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Editar 0003-00001241' })).not.toBeInTheDocument()
+    })
+
+    it('con ventas en edición pero sin poder registrar (Mostrador): no ve «Registrar envío»', async () => {
+      mocks.rpc.mockImplementation(rpcMotos({ ...ESTADO_BASE, puedeRegistrar: false }))
+      render(pantalla())
+      await screen.findByText('Kiosco La Esquina')
+      await waitFor(() => expect(llamadas('puedo_registrar_envios_moto')).toHaveLength(1))
+      expect(screen.queryByRole('button', { name: 'Registrar envío' })).not.toBeInTheDocument()
+    })
+
+    it('si el servidor no responde a la consulta de permiso, no muestra «Registrar envío»', async () => {
+      const errorado = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const base = rpcMotos(ESTADO_BASE)
+      mocks.rpc.mockImplementation(async (nombre: string, args?: Record<string, unknown>) =>
+        nombre === 'puedo_registrar_envios_moto' ? { data: null, error: { code: 'XX000', message: 'caída' } } : base(nombre, args))
+      render(pantalla())
+      await screen.findByText('Kiosco La Esquina')
+      await waitFor(() => expect(llamadas('puedo_registrar_envios_moto')).toHaveLength(1))
+      expect(screen.queryByRole('button', { name: 'Registrar envío' })).not.toBeInTheDocument()
+      errorado.mockRestore()
     })
 
     it('solo lectura: ve la lista sin «Registrar envío», «Editar», casillas ni «Rendir seleccionados»', async () => {
@@ -403,10 +425,10 @@ describe('Transportes · pestaña Motos', () => {
       const dialogo = await screen.findByRole('dialog', { name: 'Rendir entregas' })
       const valor = (etiqueta: string) => within(dialogo).getByText(etiqueta).nextElementSibling?.textContent
       expect(valor('Entregas')).toBe('2')
-      expect(valor('Efectivo cobrado')).toBe('$ 3.000,3')
-      expect(valor('Costo de envíos')).toBe('$ 700,3')
+      expect(valor('Efectivo cobrado')).toBe('$ 3.000,30')
+      expect(valor('Costo de envíos')).toBe('$ 700,30')
       // El total a rendir es el efectivo cobrado: el costo no se resta; el neto es informativo.
-      expect(valor('Total a rendir')).toBe('$ 3.000,3')
+      expect(valor('Total a rendir')).toBe('$ 3.000,30')
       expect(valor('Neto')).toBe('$ 2.300')
       expect(within(dialogo).getByText('Moto 1')).toBeInTheDocument()
       fireEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar rendición' }))

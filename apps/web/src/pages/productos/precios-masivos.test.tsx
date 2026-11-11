@@ -96,6 +96,37 @@ describe('PreciosMasivos (F-PRE-10, FR-001, FR-010)', () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith('aplicar_actualizacion_precios', expect.anything())
   })
 
+  it('la vista previa carga por tandas: 25 y «Cargar más» suma las siguientes, sin paginación', async () => {
+    const filas = Array.from({ length: 60 }, (_, i) => ({
+      fila: null, producto_id: `p-${i}`, sku: `SKU-${i}`, nombre: `Producto ${i}`, moneda: 'ARS', lista_antes: 100, lista_despues: 110,
+      costo_antes: null, costo_despues: null, actualizado: VERSION, error: null, cambia: true,
+    }))
+    mocks.rpc.mockImplementation(async (nombre: string) =>
+      nombre === 'previsualizar_actualizacion_precios'
+        ? { data: { afectados: 60, sin_cambio: 0, con_error: 0, filas }, error: null }
+        : { data: { lote_id: 'l-1', aplicados: 60, repetido: false }, error: null })
+    abrir()
+    porcentaje('10')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver vista previa' }))
+    const tabla = await screen.findByRole('table', { name: 'Vista previa de la actualización de precios' })
+    expect(within(tabla).getAllByRole('row')).toHaveLength(26)
+    expect(screen.getByText('Mostrando 25 de 60')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|Go to next page|página siguiente/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(screen.getByText('Mostrando 50 de 60')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(screen.getByText('Mostrando 60 de 60')).toBeInTheDocument())
+    expect(within(screen.getByRole('table', { name: 'Vista previa de la actualización de precios' })).getAllByRole('row')).toHaveLength(61)
+  })
+
+  it('si la base rechaza la vista previa por el tope de 5.000 productos, lo informa', async () => {
+    mocks.rpc.mockImplementation(async () => ({ data: null, error: { code: '54000', message: 'La actualización admite hasta 5.000 productos por vez; elegí una categoría' } }))
+    abrir()
+    porcentaje('10')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver vista previa' }))
+    expect(await screen.findByText('La actualización admite hasta 5.000 productos por vez; elegí una categoría')).toBeInTheDocument()
+  })
+
   it('un porcentaje inválido no permite pedir la vista previa', () => {
     abrir()
     expect(screen.getByRole('button', { name: 'Ver vista previa' })).toBeDisabled()

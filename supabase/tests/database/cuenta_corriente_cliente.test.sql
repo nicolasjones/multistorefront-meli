@@ -17,7 +17,7 @@
 -- · los niveles de la sección Clientes y la ejecutabilidad por `anon` (SC-002).
 begin;
 
-select plan(25);
+select plan(34);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -211,6 +211,105 @@ select is(
 select is(
   (select saldo_total from cuenta_corriente_cliente('c2000000-0000-0000-0000-000000000001') limit 1),
   77000::numeric, 'cada organización ve solo lo suyo');
+
+
+-- ---------------------------------------------------------------------------------------------
+-- Casos de borde (revisión final de MSF-450): centavos, cada estado vivo, tienda desactivada,
+-- persona sin tiendas y superadmin. Cada caso usa su propio cliente para no mover los totales
+-- de los casos de arriba.
+-- ---------------------------------------------------------------------------------------------
+reset role;
+
+insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+  ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Estados', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 104, 'Centavos', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 105, 'Tienda desactivada', 'minorista');
+
+insert into dominio.empresas (id, organizacion_id, nombre, activa) values
+  ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Tienda Desactivada', false);
+
+-- Los diez estados que admite la matriz de transiciones: borrador, anulada y cobrado no son deuda; los
+-- siete restantes sí (decisión provisoria de MSF-451, a confirmar con el cliente).
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
+select ('b1000000-0000-0000-0000-0000000000' || lpad(n::text, 2, '0'))::uuid,
+       '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+       'c1000000-0000-0000-0000-000000000003', 'factura', '0003-' || lpad(n::text, 8, '0'),
+       current_date - n::int, e, 100, 100
+  from unnest(array['borrador', 'confirmada', 'pendiente', 'aceptado', 'cobrado', 'en_proceso', 'deuda', 'armando', 'incompleto', 'anulada'])
+       with ordinality as t(e, n);
+
+-- Centavos: el saldo conserva los dos decimales (1.210,50 − 0,10 y 100,45 − 100,05).
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
+values
+  ('b2000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004', 'factura', '0004-00000001', current_date - 2, 'deuda', 1000, 1210.50),
+  ('b2000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004', 'factura', '0004-00000002', current_date - 1, 'confirmada', 100, 100.45);
+
+-- Tienda desactivada: su deuda no suma ni para el administrador; la de la tienda activa sí.
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
+values
+  ('b3000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005', 'factura', '0005-00000001', current_date - 2, 'deuda', 100, 100),
+  ('b3000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000005', 'factura', '0005-00000001', current_date - 1, 'deuda', 500, 500);
+
+insert into dominio.cobros_comprobante
+  (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
+values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 0.10, 'f1000000-0000-0000-0000-000000000001', 'manual', 'd1000000-0000-0000-0000-000000000001', 'Admin Uno'),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000002', 100.05, 'f1000000-0000-0000-0000-000000000001', 'manual', 'd1000000-0000-0000-0000-000000000001', 'Admin Uno');
+
+-- Una persona de la organización sin tiendas asignadas y un superadmin con la organización activa.
+insert into auth.users (id, email) values
+  ('d6000000-0000-0000-0000-000000000001', 'sin-tiendas@example.com'),
+  ('d7000000-0000-0000-0000-000000000001', 'superadmin@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
+  ('d6000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
+insert into superadmins (user_id) values ('d7000000-0000-0000-0000-000000000001');
+insert into superadmin_organizacion_activa (user_id, organizacion_id) values
+  ('d7000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+
+select results_eq(
+  $$select numero, estado from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000003') order by numero$$,
+  $$values ('0003-00000002', 'confirmada'), ('0003-00000003', 'pendiente'), ('0003-00000004', 'aceptado'),
+           ('0003-00000006', 'en_proceso'), ('0003-00000007', 'deuda'), ('0003-00000008', 'armando'),
+           ('0003-00000009', 'incompleto')$$,
+  'cuentan siete estados vivos; borrador, cobrado y anulada no son deuda');
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000003') limit 1),
+  700::numeric, 'el saldo de los siete estados vivos es 700');
+
+select results_eq(
+  $$select numero, total_con_iva, cobrado, saldo from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000004') order by numero$$,
+  $$values ('0004-00000001', 1210.50::numeric, 0.10::numeric, 1210.40::numeric),
+           ('0004-00000002', 100.45::numeric, 100.05::numeric, 0.40::numeric)$$,
+  'los centavos se conservan: 1.210,50 − 0,10 = 1.210,40 y 100,45 − 100,05 = 0,40');
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000004') limit 1),
+  1210.80::numeric, 'el saldo total suma los centavos (1.210,80)');
+
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000005') limit 1),
+  100::numeric, 'la deuda de una tienda desactivada no suma, ni para el administrador');
+select is(
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000005') where numero is not null),
+  1::bigint, 'y su comprobante no figura en la lista (el número se repite entre tiendas)');
+
+select pg_temp.como('d6000000-0000-0000-0000-000000000001');
+select results_eq(
+  $$select saldo_total, comprobantes, numero from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001')$$,
+  $$values (0::numeric, 0::bigint, null::text)$$,
+  'una persona de la organización sin tiendas asignadas ve saldo 0 y sin documentos');
+
+select pg_temp.como('d7000000-0000-0000-0000-000000000001');
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') limit 1),
+  3310::numeric, 'el superadmin con la organización activa ve la deuda de todas sus tiendas activas');
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000005') limit 1),
+  100::numeric, 'el superadmin tampoco suma la deuda de una tienda desactivada');
 
 -- Ejecutabilidad: anon no; authenticated sí.
 reset role;

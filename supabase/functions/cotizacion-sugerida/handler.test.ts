@@ -46,7 +46,7 @@ describe('cotizacion-sugerida', () => {
   })
 
   it('sin permiso de edición del dólar: 403 y no consulta la fuente', async () => {
-    for (const nivel of ['lectura', 'sin_acceso', null]) {
+    for (const nivel of ['lectura', 'ninguno', null]) {
       const { deps, consultas } = montar({ nivel })
       assert.equal((await pedir(deps)).status, 403)
       assert.equal(consultas(), 0)

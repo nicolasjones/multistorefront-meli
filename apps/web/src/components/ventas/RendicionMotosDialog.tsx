@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { type MutableRefObject, useRef, useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, Stack, Typography } from '@mui/material'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
 import type { EnvioMoto } from '../../lib/ventas/enviosMoto'
@@ -24,9 +24,11 @@ type Props = {
 // costo se muestra aparte y el neto es informativo. Con mensajeros mezclados la confirmación se
 // bloquea; la base responde igual `22023` y no rinde ninguno.
 export function RendicionMotosDialog({ open, ...resto }: Props) {
+  // Mientras se rinde no se cierra con Escape ni con un clic afuera (ver EnvioMotoDialog).
+  const enVuelo = useRef(false)
   return (
-    <Dialog open={open} onClose={resto.onCerrar} fullWidth maxWidth="xs" aria-labelledby="titulo-rendicion-motos">
-      <Contenido {...resto} />
+    <Dialog open={open} onClose={() => { if (!enVuelo.current) resto.onCerrar() }} fullWidth maxWidth="xs" aria-labelledby="titulo-rendicion-motos">
+      <Contenido {...resto} enVuelo={enVuelo} />
     </Dialog>
   )
 }
@@ -40,10 +42,9 @@ function Fila({ etiqueta, valor, enfasis = false }: { etiqueta: string; valor: s
   )
 }
 
-function Contenido({ envios, onCerrar, onRendido }: Omit<Props, 'open'>) {
+function Contenido({ envios, onCerrar, onRendido, enVuelo }: Omit<Props, 'open'> & { enVuelo: MutableRefObject<boolean> }) {
   const [rindiendo, setRindiendo] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const enVuelo = useRef(false)
   const totales = totalesDeSeleccion(envios)
   const mensajeros = mensajerosDeSeleccion(envios)
   const mezcla = mensajeros.length > 1

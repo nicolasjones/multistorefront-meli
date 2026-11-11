@@ -175,7 +175,7 @@ El administrador programa, para una empresa, un precio promocional de un product
 ### Cierre de la épica (sin historia dueña)
 
 - **FR-019**: Documentación integrada: `docs/precios.md` (sección de masivos y promociones), guía de la épica y `docs/documentacion-cambios.md` si corresponde; `pnpm docs:check` verde. **Verificación**: `pnpm docs:check` (falla si `docs/precios.md`, `docs/precios-masivos.md` o `docs/promociones-precio.md` no existen o no se enlazan).
-- **FR-020**: Revisión de seguridad: RLS en `actualizaciones_precio` y `promociones_precio`, `anon` sin ejecución sobre las RPC nuevas, la prueba de aislamiento recorre `public` + `dominio`, sin importes de costo en actividad. **Verificación**: pgTAP de aislamiento `supabase/tests/database/aislamiento_rls.test.sql` (recorre `public` + `dominio`) y `promociones_precio.test.sql`/`precios_masivos.test.sql` (`anon` sin ejecución).
+- **FR-020**: Revisión de seguridad: RLS en `actualizaciones_precio` y `promociones_precio`, `anon` sin ejecución sobre las RPC nuevas, la prueba de aislamiento recorre `public` + `dominio`, sin importes de costo en actividad. **Verificación**: pgTAP `supabase/tests/database/rls_en_toda_tabla.test.sql` (recorre `public` + `dominio`) y `promociones_precio.test.sql`/`precios_masivos.test.sql` (`anon` sin ejecución).
 - **FR-021**: `docs/roadmap-template.md`: se actualiza la fila de la épica al mergear (paso manual con criterio). **Verificación**: `git diff main -- docs/roadmap-template.md` en el PR de cierre (fila de la épica actualizada) y `pnpm docs:check`.
 - **SC-007**: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check` y `pnpm matriz:check` en verde. **Verificación**: `pnpm lint && pnpm build && pnpm test && pnpm docs:check && pnpm prototipo:check && pnpm matriz:check` en CI (todos verdes).
 
@@ -202,7 +202,7 @@ El administrador programa, para una empresa, un precio promocional de un product
 | FR-017 | pgTAP `promociones_precio.test.sql` (`precio_anterior` null sin promoción, resultado idéntico al actual sin promoción, lista blanca de campos, sin filtrar promoción de otra empresa) |
 | FR-018 | Vitest `PrecioTachado.test.tsx` (tachado solo si `precio_anterior` > `precio`, texto para lector de pantalla) y E2E `e2e/tienda-promocion.spec.ts` |
 | FR-019 | `pnpm docs:check` (falla si `docs/precios.md`, `docs/precios-masivos.md` o `docs/promociones-precio.md` no existen o no se enlazan) |
-| FR-020 | pgTAP de aislamiento `supabase/tests/database/aislamiento_rls.test.sql` (recorre `public` + `dominio`) y `promociones_precio.test.sql`/`precios_masivos.test.sql` (`anon` sin ejecución) |
+| FR-020 | pgTAP `supabase/tests/database/rls_en_toda_tabla.test.sql` (recorre `public` + `dominio`) y `promociones_precio.test.sql`/`precios_masivos.test.sql` (`anon` sin ejecución) |
 | FR-021 | `git diff main -- docs/roadmap-template.md` en el PR de cierre (fila de la épica actualizada) y `pnpm docs:check` |
 | SC-007 | `pnpm lint && pnpm build && pnpm test && pnpm docs:check && pnpm prototipo:check && pnpm matriz:check` en CI (todos verdes) |
 

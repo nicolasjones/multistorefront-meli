@@ -198,3 +198,53 @@ describe('EnvioMotoDialog · editar', () => {
     expect(await screen.findByText(/ya está rendido: es de solo lectura/)).toBeInTheDocument()
   })
 })
+
+describe('EnvioMotoDialog · robustez', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('si falla la carga de facturas ofrece «Reintentar» y vuelve a pedirlas', async () => {
+    const errorado = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let intento = 0
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'comprobantes_para_envio_moto') {
+        intento += 1
+        return intento === 1 ? { data: null, error: { code: 'XX000', message: 'detalle interno de la base' } } : { data: [ELEGIBLE], error: null }
+      }
+      return { data: [], error: null }
+    })
+    abrirAlta()
+    const reintentar = await screen.findByRole('button', { name: 'Reintentar' })
+    // En la consola queda solo el código, nunca el objeto crudo del error.
+    expect(JSON.stringify(errorado.mock.calls)).not.toContain('detalle interno de la base')
+    fireEvent.click(reintentar)
+    await waitFor(() => expect(llamadas('comprobantes_para_envio_moto')).toHaveLength(2))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument())
+    errorado.mockRestore()
+  })
+
+  it('la guía no admite más de 100 caracteres', () => {
+    mocks.rpc.mockImplementation(rpcPorDefecto())
+    abrirAlta()
+    expect(screen.getByLabelText('Guía')).toHaveAttribute('maxlength', '100')
+  })
+
+  it('mientras guarda no se cierra con Escape', async () => {
+    let resolver: (valor: unknown) => void = () => {}
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'registrar_envio_moto') return new Promise((r) => { resolver = r })
+      if (nombre === 'comprobantes_para_envio_moto') return Promise.resolve({ data: [ELEGIBLE], error: null })
+      return Promise.resolve({ data: [], error: null })
+    })
+    const { onCerrar } = abrirAlta()
+    await elegirFactura()
+    fireEvent.change(screen.getByLabelText(/Mensajero/), { target: { value: 'Moto 1' } })
+    fireEvent.click(screen.getByRole('button', { name: /Registrar/ }))
+    await waitFor(() => expect(llamadas('registrar_envio_moto')).toHaveLength(1))
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(onCerrar).not.toHaveBeenCalled()
+    resolver({ data: { id: 'm-1' }, error: null })
+  })
+})
+
