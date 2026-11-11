@@ -26,6 +26,7 @@ Tres entradas según lo que necesites:
 | Cotización del dólar: carga diaria | [cotizacion-carga-diaria.md](cotizacion-carga-diaria.md) |
 | Cotización del dólar: vista previa y recálculo | [cotizacion-recalculo.md](cotizacion-recalculo.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
+| API pública, claves y avisos firmados | [api-publica.md](api-publica.md) |
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md), [ventas-estados-comprobante.md](ventas-estados-comprobante.md) |
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |
