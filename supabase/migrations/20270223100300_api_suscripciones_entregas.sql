@@ -611,7 +611,17 @@ begin
     for v_evento in
       select * from private.reclamar_eventos(v_tipo, v_restantes, p_duracion_reclamo_seg, p_max_intentos)
     loop
-      return next v_evento;
+      -- Función con parámetros OUT: la fila se arma en las variables de salida
+      -- y se devuelve con `RETURN NEXT` sin expresión (mismo patrón de
+      -- `public.confirmar_toma_inventario`).
+      evento_id := v_evento.evento_id;
+      organizacion_id := v_evento.organizacion_id;
+      tipo := v_evento.tipo;
+      clave_idempotencia := v_evento.clave_idempotencia;
+      carga := v_evento.carga;
+      intento := v_evento.intento;
+      vence_en := v_evento.vence_en;
+      return next;
       v_restantes := v_restantes - 1;
       exit when v_restantes <= 0;
     end loop;
