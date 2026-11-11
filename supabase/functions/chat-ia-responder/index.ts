@@ -11,6 +11,7 @@
 // consulta — el aislamiento de organización vive en esa consulta (RLS),
 // no en el prompt.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { acotarFilas, TOPE_FILAS_CONSULTA } from './limites.ts'
 // Ruta relativa, no 'npm:@platform/ia': @platform/ia es "private": true,
 // nunca se publicó a npm — el specifier npm: nunca iba a resolver en
 // ningún entorno, no solo en desarrollo local. Deno compila TS nativo,
@@ -216,10 +217,13 @@ Deno.serve(async (req) => {
     const { data: puedeLeer } = await asUser.rpc('puede_chat_leer_funcionalidad', { p_feature_id: fuente.feature_id })
     if (!puedeLeer) return { error: 'FUENTE_NO_DISPONIBLE' }
 
-    let query = asUser.from(vista).select('*')
+    // Tope de filas (F-IA-01, FR-023): se pide una de más para saber si hubo recorte y avisarlo al modelo.
+    let query = asUser.from(vista).select('*').limit(TOPE_FILAS_CONSULTA + 1)
     for (const [clave, valor] of Object.entries(filtros)) query = query.eq(clave, valor)
-    const { data, error } = await query
+    const { data: filasLeidas, error } = await query
     if (error) return { error: 'ERROR_AL_LEER' }
+    const acotado = acotarFilas(filasLeidas)
+    const data = acotado.filas
     // CONTRATO.datosPermitidos es el allowlist de la ENTRADA (mensaje del
     // usuario) — no aplica acá. sanitizarDato(data, CONTRATO.datosPermitidos)
     // borraría casi todas las columnas de cualquier vista real (solo
@@ -228,7 +232,7 @@ Deno.serve(async (req) => {
     // datos puede ver el chat ya lo decide el superadmin al registrar la
     // vista en fuentes_chat_ia — no hace falta un segundo allowlist por
     // fila encima de eso.
-    return { filas: data }
+    return acotado.truncado ? { filas: data, truncado: true, aviso: acotado.aviso } : { filas: data }
   }
 
   // Propone la acción — nunca la ejecuta acá. Ejecutar de verdad es
