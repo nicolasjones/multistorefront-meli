@@ -9,6 +9,8 @@ import {
   avisoCotizacionAplicada,
   cargarCotizacionRpc,
   confirmarCotizacionRpc,
+  esCotizacionSugerida,
+  textoDeCotizacionSugerida,
   descartarCotizacionRpc,
   formatearPrecioPrevio,
   mensajeDeErrorConfirmacion,
@@ -300,5 +302,21 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     expect(textoPrecios(38)).toBe('38 precios')
     expect(formatearPrecioPrevio(29190)).toBe('$ 29.190')
     expect(formatearPrecioPrevio(null)).toBe('—')
+  })
+
+  it('esCotizacionSugerida: acepta el contrato y rechaza lo demás', () => {
+    expect(esCotizacionSugerida({ valor: 1405.5, fuente: 'DolarApi', fecha: null })).toBe(true)
+    expect(esCotizacionSugerida({ valor: 1405.5, fuente: 'DolarApi', fecha: '2026-11-11T10:00:00.000Z' })).toBe(true)
+    for (const dato of [null, undefined, 'texto', {}, { valor: '1405', fuente: 'x', fecha: null }, { valor: 0, fuente: 'x', fecha: null },
+      { valor: -1, fuente: 'x', fecha: null }, { valor: Number.NaN, fuente: 'x', fecha: null }, { valor: 1e10, fuente: 'x', fecha: null },
+      { valor: 1405, fuente: 3, fecha: null }, { valor: 1405, fuente: 'x', fecha: 5 }]) {
+      expect(esCotizacionSugerida(dato)).toBe(false)
+    }
+  })
+
+  it('textoDeCotizacionSugerida: coma decimal y sin separador de miles', () => {
+    expect(textoDeCotizacionSugerida(1405.5)).toBe('1405,5')
+    expect(textoDeCotizacionSugerida(1405)).toBe('1405')
+    expect(textoDeCotizacionSugerida(1405.57)).toBe('1405,57')
   })
 })

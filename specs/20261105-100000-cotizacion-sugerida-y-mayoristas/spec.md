@@ -11,7 +11,7 @@ Al terminar, el sistema sugiere el dólar del día desde una fuente pública y e
 ## Modelo y supuestos
 
 - **Idea futura condicionada a validar demanda** (supuesto de la épica).
-- **Bloqueada por** `dolar-y-recalculo` (MSF-116): F-PRE-13 sugiere el valor que se carga con el diálogo de F-PRE-02. Hoy MSF-116 no está en `main` (la rama `epic/MSF-116-precios-y-dolar-dolar-y-recalculo` y su spec existen; ver `specs/20261023-120000-dolar-y-recalculo/`). Condición de reanudación 2.
+- **Bloqueada por** `dolar-y-recalculo` (MSF-116): F-PRE-13 sugiere el valor que se carga con el diálogo de F-PRE-02. MSF-116 ya está en `dokploy` (diálogo «Cargar dólar del día», `specs/20261023-120000-dolar-y-recalculo/`); la condición se cumplió y F-PRE-13 se implementó sobre ese diálogo. Condición de reanudación 2.
 - F-PRE-13 y F-PRE-14 son **independientes entre sí**.
 - **Relacionada, sin bloqueo**: F-PRE-14 depende de clientes registrados y de una cuenta de cliente con acceso propio, que el relevamiento da por no definidos (existen Clientes alta y búsqueda, MSF-180, y Cuenta web del cliente, MSF-237; los links se deciden al redactar requisitos).
 - **Conflicto abierto**: F-PRE-14 (listas mayoristas, P3) choca con F-PRE-15 (escalas por tipo de cliente, P0, **ya implementada** en `TiposCliente`, spec `20261022-120000-precios-e-iva`). Hay que decidir si F-PRE-14 sigue siendo necesaria.
