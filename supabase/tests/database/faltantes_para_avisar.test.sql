@@ -230,8 +230,8 @@ select pg_temp.ingreso(6, 2, 7, 5);
 select is(pg_temp.fa('f1') || pg_temp.fa('g1'), 'sisi', 'un ingreso con dos líneas marca los faltantes de cada producto');
 
 -- Actividad: solo si marcó algo.
-select is((select count(*)::int from public.registro_actividad where tipo = 'ventas.faltantes_para_avisar'), 7,
-  'actividad ventas.faltantes_para_avisar solo cuando se marcó algo (7 de 9 ingresos)');
+select is((select count(*)::int from public.registro_actividad where tipo = 'ventas.faltantes_para_avisar'), 8,
+  'actividad ventas.faltantes_para_avisar solo cuando se marcó algo (8 de 9 ingresos)');
 select ok((select bool_and(length(detalle) <= 500 and detalle !~ '@') from public.registro_actividad where tipo = 'ventas.faltantes_para_avisar'),
   'la actividad cabe en 500 caracteres y no lleva correos');
 
@@ -271,8 +271,8 @@ select is((select aviso from public.listar_faltantes(null, 1, 100) where comprob
   'avisado', 'el avisado (cola enviado) tiene prioridad sobre Para avisar');
 select is((select aviso from public.listar_faltantes(null, 1, 100) where comprobante_id = (select comprobante_id from falt where clave = 'c2')),
   'sin_avisar', 'los no marcados siguen sin_avisar');
-select is((select count(*)::int from public.listar_faltantes(null, 1, 100, 'para_avisar')), 11,
-  'el filtro para_avisar devuelve los 11 marcados (a1-a3, b1-b3, c1, e2, f1, g1, h1)');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 100, 'para_avisar')), 13,
+  'el filtro para_avisar devuelve los 13 marcados (a1-a3, b1-b3, c1, c3, d2, e2, f1, g1, h1)');
 select ok(
   (select array_agg(l.desde order by l.desde, l.id) = array_agg(l.desde)
      from (select * from public.listar_faltantes(null, 1, 100, 'para_avisar') offset 0) l),
@@ -281,7 +281,7 @@ select ok(
   (select array_agg(l.desde order by l.desde desc, l.id) = array_agg(l.desde)
      from (select * from public.listar_faltantes(null, 1, 100) offset 0) l),
   'sin filtro el orden de siempre (más reciente primero)');
-select is((select filas from public.listar_faltantes(null, 1, 3, 'para_avisar') limit 1), 11::bigint, 'filas es el total del filtro');
+select is((select filas from public.listar_faltantes(null, 1, 3, 'para_avisar') limit 1), 13::bigint, 'filas es el total del filtro');
 select throws_ok($$select * from public.listar_faltantes(null, 1, 10, 'otro')$$, '22023', null, 'filtro inválido: 22023');
 
 -- Otra organización: ni ve los faltantes ni se le marcó nada.
