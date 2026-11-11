@@ -72,7 +72,7 @@ begin
     end loop;
   exception when others then
     -- El ingreso de mercadería nunca se rompe por esto (FR-105); el detalle queda en el log del servidor.
-    raise warning 'marcar_faltantes_para_avisar: no se pudo marcar (%): %', sqlstate, left(sqlerrm, 200);
+    raise warning 'marcar_faltantes_para_avisar: no se pudo marcar (%)', sqlstate;
     return new;
   end;
 
@@ -87,7 +87,7 @@ begin
                     v_marcados, coalesce(v_producto, 'un producto')), 500)
       );
     exception when others then
-      raise warning 'marcar_faltantes_para_avisar: no se registró la actividad (%): %', sqlstate, left(sqlerrm, 200);
+      raise warning 'marcar_faltantes_para_avisar: no se registró la actividad (%)', sqlstate;
     end;
   end if;
 

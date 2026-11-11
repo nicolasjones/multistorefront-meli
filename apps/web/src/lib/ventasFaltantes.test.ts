@@ -290,10 +290,19 @@ describe('ventasFaltantes · avisar a los clientes (F-VTA-26, FR-001…FR-005)',
       detalle: [{ id: 'f-1', resultado: 'sin_correo' }, { id: 'f-2', resultado: 'sin_correo' }],
     })
     expect(mensajeResultadoAvisoVenta(mismo, { 'f-1': 'Ana', 'f-2': 'Ana' })).toBe(
-      'Avisos enviados. El cliente no tiene correo.',
+      'Avisos enviados. El cliente no tiene correo: Ana.',
     )
     expect(mensajeResultadoAvisoVenta(mismo, { 'f-1': 'Ana', 'f-2': 'Beto' })).toBe(
-      'Avisos enviados. 2 clientes no tienen correo.',
+      'Avisos enviados. 2 clientes no tienen correo: Ana, Beto.',
+    )
+    // Muchos clientes: los primeros cinco y «y N más».
+    const siete = resultado({
+      omitidos_sin_correo: 7,
+      detalle: Array.from({ length: 7 }, (_, i) => ({ id: `f-${i}`, resultado: 'sin_correo' as const })),
+    })
+    const nombres = Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`f-${i}`, `C${i}`]))
+    expect(mensajeResultadoAvisoVenta(siete, nombres)).toBe(
+      'Avisos enviados. 7 clientes no tienen correo: C0, C1, C2, C3, C4 y 2 más.',
     )
   })
 })

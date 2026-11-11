@@ -25,6 +25,8 @@ export function sanearMensaje(valor: string | null | undefined): string | null {
     .replace(/\t/g, ' ')
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '')
+    // Sin caracteres invisibles (ancho cero, marcas y controles de dirección): no aportan texto y permiten disimular contenido.
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
     .slice(0, MENSAJE_MAX)

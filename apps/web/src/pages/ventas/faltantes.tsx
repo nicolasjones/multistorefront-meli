@@ -16,6 +16,7 @@ import {
   TEXTO_AVISO_POR_DEFECTO,
   estadoStockHoy,
   etiquetaAviso,
+  MAXIMO_AVISO_FALTANTES,
   mensajeResultadoAvisoVenta,
   unidadesDisponibles,
   unidadesFaltantes,
@@ -247,7 +248,7 @@ export function FaltantesList() {
         contexto={<ContextoOrganizacionActiva />}
         accion={
           puedeAvisar ? (
-            <Button variant="contained" disabled={cantidadElegidos === 0} onClick={abrirDialogo}>
+            <Button variant="contained" disabled={cantidadElegidos === 0 || cantidadElegidos > MAXIMO_AVISO_FALTANTES} onClick={abrirDialogo}>
               {`Avisar a los seleccionados (${cantidadElegidos})`}
             </Button>
           ) : undefined
@@ -334,6 +335,9 @@ export function FaltantesList() {
                 {puedeAvisar ? (
                   <Typography variant="xs" component="p" sx={{ mt: 1 }}>
                     {`${cantidadElegidos} ${cantidadElegidos === 1 ? 'seleccionado' : 'seleccionados'} de ${total} ${total === 1 ? 'faltante' : 'faltantes'}.`}
+                    {cantidadElegidos > MAXIMO_AVISO_FALTANTES
+                      ? ` Se avisa de a ${MAXIMO_AVISO_FALTANTES} por vez: desmarcá ${cantidadElegidos - MAXIMO_AVISO_FALTANTES} para poder enviar.`
+                      : ''}
                   </Typography>
                 ) : null}
               </>
@@ -374,7 +378,8 @@ export function FaltantesList() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar open={aviso !== null} autoHideDuration={5000} onClose={() => setAviso(null)}>
+      {/* El aviso largo (con lo omitido) y los errores quedan hasta que se cierren: se leen con calma y con lector de pantalla. */}
+      <Snackbar open={aviso !== null} autoHideDuration={aviso && aviso.severidad === 'success' && aviso.texto.length <= 40 ? 5000 : null} onClose={() => setAviso(null)}>
         <Alert severity={aviso?.severidad ?? 'success'} onClose={() => setAviso(null)}>{aviso?.texto}</Alert>
       </Snackbar>
     </Box>

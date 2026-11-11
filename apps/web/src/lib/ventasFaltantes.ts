@@ -315,11 +315,12 @@ export function mensajeResultadoAvisoVenta(
 ): string {
   const omitidos: string[] = []
   if (resultado.omitidos_sin_correo > 0) {
-    const clientes = new Set(
-      resultado.detalle.filter((d) => d.resultado === 'sin_correo').map((d) => clientePorId[d.id] ?? d.id),
-    )
-    const n = clientes.size > 0 ? clientes.size : resultado.omitidos_sin_correo
-    omitidos.push(n === 1 ? 'El cliente no tiene correo.' : `${n} clientes no tienen correo.`)
+    const ids = resultado.detalle.filter((d) => d.resultado === 'sin_correo').map((d) => d.id)
+    const nombres = [...new Set(ids.map((id) => clientePorId[id]).filter((c): c is string => Boolean(c)))]
+    const n = ids.length > 0 ? new Set(ids.map((id) => clientePorId[id] ?? id)).size : resultado.omitidos_sin_correo
+    // FR-005: con los nombres de los clientes (los primeros cinco; el resto, «y N más»).
+    const lista = nombres.length === 0 ? '' : `: ${nombres.slice(0, 5).join(', ')}${nombres.length > 5 ? ` y ${nombres.length - 5} más` : ''}`
+    omitidos.push(n === 1 ? `El cliente no tiene correo${lista}.` : `${n} clientes no tienen correo${lista}.`)
   }
   const n = resultado.omitidos_ya_avisados
   if (n > 0) omitidos.push(`${plural(n, 'faltante ya estaba avisado', 'faltantes ya estaban avisados')}.`)

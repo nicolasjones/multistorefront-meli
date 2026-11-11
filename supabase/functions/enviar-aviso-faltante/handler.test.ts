@@ -172,6 +172,7 @@ describe('enviar-aviso-faltante · mensaje editable (F-VTA-26)', () => {
   it('sanea el mensaje: sin caracteres de control, sin saltos de más y con tope de 1.000', () => {
     assert.equal(sanearMensaje('Hola\u0000 \u0007mundo\u007F'), 'Hola mundo')
     assert.equal(sanearMensaje('a\r\nb\rc'), 'a\nb\nc')
+    assert.equal(sanearMensaje('Hola\u200B \u202Emundo\uFEFF'), 'Hola mundo')
     assert.equal(sanearMensaje('a\n\n\n\n\nb'), 'a\n\nb')
     assert.equal(sanearMensaje('a\tb'), 'a b')
     assert.equal(sanearMensaje('x'.repeat(MENSAJE_MAX + 50))?.length, MENSAJE_MAX)

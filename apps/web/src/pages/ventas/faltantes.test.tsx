@@ -418,6 +418,18 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
   })
 
+  it('con más de 200 seleccionados «Avisar» queda deshabilitado y dice cuántos desmarcar', async () => {
+    const muchas = Array.from({ length: 201 }, (_, i) => fila(i + 1, 'e-1', 'San Javucho'))
+    mocks.listar.mockResolvedValue({ faltantes: muchas, total: 201 })
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    expect(boton('Avisar a los seleccionados (201)')).toBeDisabled()
+    expect(screen.getByText(/Se avisa de a 200 por vez: desmarcá 1 para poder enviar\./)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
+    expect(boton('Avisar a los seleccionados (200)')).toBeEnabled()
+  })
+
   it('con lectura no hay casillas ni botón de avisar', async () => {
     mocks.nivel.valor = 'lectura'
     abrir()
@@ -519,7 +531,20 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
     fireEvent.click(boton('Avisar a los seleccionados (1)'))
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Enviar avisos' }))
-    expect(await screen.findByText('No se enviaron avisos. El cliente no tiene correo.')).toBeInTheDocument()
+    expect(await screen.findByText('No se enviaron avisos. El cliente no tiene correo: Cliente 1.')).toBeInTheDocument()
+  })
+
+  it('si el aviso salió pero falla la recarga, lo dice y la lista muestra el error (no queda la vieja)', async () => {
+    mocks.avisar.mockResolvedValue(resultadoAviso({ encolados: 1, lineas_avisadas: 1 }))
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
+    fireEvent.click(boton('Avisar a los seleccionados (1)'))
+    mocks.listar.mockRejectedValue(new Error('red'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Enviar avisos' }))
+    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos cargar los faltantes.')).toBeInTheDocument()
+    expect(screen.queryByText('Producto 1')).not.toBeInTheDocument()
   })
 
   it('«Enviar avisos» queda deshabilitado mientras envía: un doble clic no duplica el envío', async () => {
