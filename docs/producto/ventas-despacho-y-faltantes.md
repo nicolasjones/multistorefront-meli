@@ -27,7 +27,7 @@ Si tu rol no puede avanzar el despacho, la tarjeta te lo dice: «Podés ver el e
 - **Ventas → Despacho**: el tablero con todas las facturas por armar, controlar y entregar.
 - En el detalle de cada factura confirmada (**Ventas → Comprobantes**): las tarjetas **Responsables** y **Envío y transporte**.
 - **Ventas → Faltantes**: las líneas que quedaron sin stock.
-- **Ventas → Transportes**: las empresas de transporte.
+- **Ventas → Transportes**: las empresas de transporte, los contrarreembolsos y los envíos en moto.
 
 ## La pantalla Despacho
 
@@ -151,9 +151,10 @@ Cuando llega la mercadería y se puede seguir armando, abrí la factura y hacé 
 
 ## Transportes
 
-En **Ventas → Transportes** hay dos pestañas:
+En **Ventas → Transportes** hay tres pestañas:
 
 - **Contrarreembolsos**: lo que cobran los transportes al entregar y cuándo lo rinden. Ver [Cobros y conciliación](ventas-cobros-y-conciliacion.md).
+- **Motos**: las entregas que hace la propia empresa en moto: quién las lleva, cuánto cuesta el envío y cuánto abona el cliente al recibir, y la rendición de ese efectivo. Ver [Mensajería propia](ventas-motos.md).
 - **Terminales de retiro**: el listado de empresas de transporte con **Empresa de transporte** (y su tipo: **Expreso**, **Correo** o **Moto propia**), **Terminal de retiro**, **Localidad**, **Teléfono** y **Contacto**. Si una empresa está desactivada, lleva la etiqueta «Inactiva».
 
 ![Pestaña Terminales de retiro con la lista de empresas de transporte, su terminal, localidad, teléfono y contacto](img/ventas-despacho-y-faltantes/06-transportes-terminales.png)

@@ -22,7 +22,7 @@ El menú de la izquierda agrupa las pantallas por tema. Hacé clic en el nombre 
 | **Inicio** | Tarjetas de empresas, stock, consultas y dólar, alertas con enlace y búsqueda de productos. | [Inicio, alertas y búsqueda](inicio-y-alertas.md) |
 | **Catálogo** | Productos, categorías y promociones. | [Productos](catalogo-productos.md) · [Precios por escala](precios-e-iva.md) · [Actualizar precios en bloque](precios-masivos.md) · [Promociones de precio](promociones.md) |
 | **Stock** | Existencias, movimientos, ingreso de mercadería y depósitos. | [Stock](stock-movimientos.md) · [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) |
-| **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho, venta de mostrador, cierre de caja, transportes y reportes. | [Venta de mostrador](ventas-mostrador.md) · [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Cierre de caja](ventas-cierre-caja.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Devoluciones](ventas-rma-devoluciones.md) · [Reportes de ventas](ventas-reportes.md) |
+| **Ventas** | Comprobantes, presupuestos, devoluciones, pagos, despacho, venta de mostrador, cierre de caja, transportes, envíos en moto y reportes. | [Venta de mostrador](ventas-mostrador.md) · [Comprobantes](ventas-comprobantes.md) · [Cobros](ventas-cobros-y-conciliacion.md) · [Cierre de caja](ventas-cierre-caja.md) · [Despacho](ventas-despacho-y-faltantes.md) · [Mensajería propia](ventas-motos.md) · [Devoluciones](ventas-rma-devoluciones.md) · [Reportes de ventas](ventas-reportes.md) |
 | **Servicio técnico** | Reparaciones de equipos. | [Service técnico](service-listado-items-impresion.md) |
 | **Contactos** | Clientes y proveedores. | [Clientes](clientes.md) · [Proveedores](proveedores.md) |
 | **Canales** | Consultas que llegan desde las tiendas, la libreta de contactos y las empresas (tiendas). | [Consultas](consultas.md) · [Contactos (libreta)](contactos.md) · [Tiendas online](tiendas-online.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Estados, relacionados, Google y legales](tienda-seo-legal-y-estados.md) |
@@ -49,8 +49,8 @@ Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés
 
 | Si sos… | Empezá por |
 |---|---|
-| **Administrador** | [Usuarios y roles](usuarios-y-roles.md), [Tu organización y tus empresas](organizacion-y-empresas.md) y [Precios y dólar](precios-dolar.md). |
-| **Operador** | [Productos](catalogo-productos.md), [Comprobantes](ventas-comprobantes.md) y [Clientes](clientes.md). |
+| **Administrador** | [Usuarios y roles](usuarios-y-roles.md), [Tu organización y tus empresas](organizacion-y-empresas.md), [Precios y dólar](precios-dolar.md) y [Mensajería propia](ventas-motos.md). |
+| **Operador** | [Productos](catalogo-productos.md), [Comprobantes](ventas-comprobantes.md), [Clientes](clientes.md) y [Mensajería propia](ventas-motos.md). |
 | **Mostrador** | [Venta de mostrador](ventas-mostrador.md), [Comprobantes](ventas-comprobantes.md), [Cobros](ventas-cobros-y-conciliacion.md) e [Impresión](ventas-impresion.md). |
 | **Depósito** | [Stock](stock-movimientos.md), [Ingreso de mercadería](ingreso-de-mercaderia.md) y [Despacho](ventas-despacho-y-faltantes.md). |
 | **Administración** | [Cobros y conciliación](ventas-cobros-y-conciliacion.md), [Cierre de caja](ventas-cierre-caja.md), [Proveedores](proveedores.md) y [Rentabilidad](rentabilidad.md). |

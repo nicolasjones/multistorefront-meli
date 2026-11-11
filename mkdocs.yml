@@ -121,6 +121,7 @@ nav:
           - Cobros y conciliación: producto/ventas-cobros-y-conciliacion.md
           - Cierre de caja: producto/ventas-cierre-caja.md
           - Despacho y faltantes: producto/ventas-despacho-y-faltantes.md
+          - Mensajería propia (motos): producto/ventas-motos.md
           - Devoluciones y reclamos (RMA): producto/ventas-rma-devoluciones.md
           - Imprimir factura, remito y presupuesto: producto/ventas-impresion.md
           - Historial de ventas y cobros anteriores: producto/ventas-historial-consulta.md
@@ -212,6 +213,7 @@ nav:
           - Precios especiales por cliente: tecnico/ventas-precios-especiales.md
           - Cierre de caja: tecnico/ventas-cierre-caja.md
           - Despacho y faltantes: tecnico/ventas-despacho-y-faltantes.md
+          - Envíos en moto y rendición (MSF-145): tecnico/ventas-motos.md
           - Devoluciones (RMA): tecnico/ventas-rma-devoluciones.md
           - Reportes de ventas: tecnico/ventas-reportes.md
           - Impresión: tecnico/ventas-impresion.md

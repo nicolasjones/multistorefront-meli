@@ -187,6 +187,9 @@ Solo Administración y Administrador pueden marcar cobrado. Si ya está cobrado,
 
 Las tarjetas de arriba son **Contrarreembolsos pendientes** (cuántos envíos faltan rendir y por cuánto) y **Cobrados este mes** (lo ya rendido por los transportes). Cómo cargar y editar las empresas de transporte está en [Despacho, faltantes y transportes](ventas-despacho-y-faltantes.md).
 
+Las entregas que hace la propia empresa en moto (con mensajero, costo y abono) se registran y se rinden en la
+pestaña **Motos** de la misma pantalla: ver [Mensajería propia](ventas-motos.md).
+
 ## Si algo no sale
 
 | Mensaje | Qué significa y qué hacer |

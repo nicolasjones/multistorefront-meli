@@ -2653,6 +2653,67 @@ erDiagram
 - Detalle de RPC, permisos, pruebas y reversión:
   [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).
 
+## Ventas: envíos en moto y su rendición (MSF-145)
+
+Una tabla nueva en `dominio` para los envíos con mensajería propia (motos): un envío por comprobante de venta,
+con mensajero, guía, costo de envío, abono y sus marcas de enviado y rendido. Migraciones aditivas
+`20270222200100_envios_moto.sql`, `20270222200200_envios_moto_rpc.sql`, `20270222300100_rendir_envios_moto.sql` y
+`20270222300200_exportacion_total_envios_moto.sql` en la rama de la épica
+`epic/MSF-145-ventas-y-despacho-ventas-motos`, pendiente de promoción a `main` (los números `20261205…` de
+`tasks.md` se renumeraron al integrar `dokploy`, commit `6c6f9ee9`); reversión en el encabezado de cada una y
+consolidada en [Ventas · envíos en moto y su rendición (técnico)](ventas-motos.md#reversión).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.envios_moto` | **nueva** | Un envío en moto por comprobante: `mensajero` (texto libre, obligatorio, normalizado, ≤ 100), `guia` (opcional, ≤ 100), `costo_envio` y `abono` (`numeric(14,2)`, no nulos, `>= 0`), `enviado`, `rendido`, `rendido_en`, `created_at` y `updated_at`. FK compuesta `(comprobante_id, organizacion_id)` a `dominio.comprobantes_venta`, `unique (organizacion_id, comprobante_id)`, `check` de coherencia de `rendido`/`rendido_en` e índices por `(organizacion_id, lower(mensajero))` y `(organizacion_id, rendido, created_at desc)`. Sin escritura directa ni `delete`: solo `grant select` para `authenticated`. |
+| `dominio.comprobantes_venta` | existente | Solo se referencia con FK compuesta; sin cambios de esquema. La **empresa del envío es la de su comprobante**: `envios_moto` no repite `empresa_id`. |
+| `dominio.formas_envio` | existente | Solo se lee: `tipo = 'moto'` define la elegibilidad del comprobante; sin cambios de esquema. |
+| `public.registro_actividad` | existente | Recibe `envio_moto.registrado`, `envio_moto.actualizado` y `envio_moto.rendido`; sin cambios de esquema. |
+| `private.conjuntos_exportacion_total()` | **alterada** | `create or replace` con `dominio.envios_moto` en la lista (MSF-224): es dato de negocio de la organización y se exporta. Sin tablas nuevas. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ ENVIOS_MOTO : "es dueña"
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "es dueña"
+  COMPROBANTES_VENTA ||--o| ENVIOS_MOTO : "se envía en moto"
+  FORMAS_ENVIO ||--o{ COMPROBANTES_VENTA : "define el envío"
+
+  ENVIOS_MOTO { uuid id PK
+    uuid organizacion_id FK
+    uuid comprobante_id FK "nueva: una factura, un envío"
+    text mensajero "nueva: obligatorio, normalizado, <= 100"
+    text guia "nueva: opcional, <= 100"
+    numeric costo_envio "nueva: >= 0"
+    numeric abono "nueva: >= 0, efectivo que abona al recibir"
+    boolean enviado "nueva"
+    boolean rendido "nueva: solo la RPC de rendición"
+    timestamptz rendido_en "nueva: solo la RPC de rendición"
+    timestamptz created_at "nueva"
+    timestamptz updated_at "nueva: bloqueo optimista" }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid envio_id FK "forma de envío"
+    text numero
+    date fecha
+    text estado "borrador|confirmada|anulada"
+    uuid cliente_id FK }
+  FORMAS_ENVIO { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text tipo "retiro_local|correo|expreso|moto|terminal" }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+```
+
+- **RLS de lectura** (`envios_moto_select`): organización de la sesión, empresa del comprobante dentro de
+  `private.empresas_accesibles()` y sección `ventas` en `lectura` o `edicion`. `anon` sin privilegios.
+- **`rendido` y `rendido_en` solo los escribe `public.rendir_envios_moto`**: ninguna otra RPC ni una actualización
+  directa los tocan, y la reversión de una rendición queda fuera de alcance.
+- **Sin migración de histórico:** la tabla nace vacía.
+- Detalle de RPC, permisos, pantalla, pruebas y reversión:
+  [Ventas · envíos en moto y su rendición (técnico)](ventas-motos.md).
+
 ## Ventas RMA y devoluciones (MSF-178)
 
 Devoluciones y reclamos por ítem sobre una factura vendida, con su forma de resolución, motivo y

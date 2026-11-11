@@ -362,12 +362,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "1ea58a1aad8b1c653b7416b2ed8fb88cc5ef56159823c025260a357e4e170f8d",
+      "pageHash": "4a4b94b85222578ec13659564a50409a59c0ecd9761725e6943bc5e34608cbb1",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "3a93b935"
+      "commit": "75ae10b7"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -407,12 +407,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "6347bc8d26946e87af27ae50b5db859312e7b256a249c6c3fe32c1e6bc16e7ea",
+      "pageHash": "0181bc6a5b695f5f25444656b801a917cba02600908e7e1c872c7473c6d0631a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "75ae10b7"
+      "commit": "0282ae89"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -538,12 +538,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "48b23188ce7e26e6320069f8d3f177c78fe971db99835a3a46323153c0ae9a85",
+      "pageHash": "085456b8e824719c43ad1608584036a0abfdbfc2a2287ef1cf52653258c3482c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "75ae10b7"
     },
     "docs/producto/importaciones.md": {
       "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
@@ -878,9 +878,9 @@
     },
     "docs/producto/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (MSF-139)",
-      "pageHash": "fd0227d20d6ac7b0ab5f7d5538830e7fcca32175fdcb51c32cfd14d0a316b6f7",
+      "pageHash": "4e2591a64bb0135e3fd6f6d549b5691fa72f16dd783fe9517156a799c7835e15",
       "sourceHash": "2f81c74c5933a322f5facb641b7a2e10f81e684a8f21e78175c342b9d128567b",
-      "sourceAt": "9d91048c",
+      "sourceAt": "0ef9cdb9",
       "sources": [
         "specs",
         "apps/web/src",
@@ -900,12 +900,12 @@
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
-      "pageHash": "daccf106529c55222a626bf41387334413b64f5c2eb4bed59bc5c2f4e7d41a94",
+      "pageHash": "263b8006e8fd689229e89e6ed0e91b40a1dc71f99bb031fd14767ad52dae1681",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "0282ae89"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
@@ -918,12 +918,12 @@
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
-      "pageHash": "9c04271ef23e7c2550c7939ff4598b34e38aafac2c4e2d23beb39d547e8ada2a",
+      "pageHash": "ca4d94760cd310f529b63c8805f4e18f18093b59e0ef33f62cf7bbf643ddd49b",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/ventas-historial-consulta.md": {
       "title": "Historial de ventas y cobros anteriores",
@@ -960,6 +960,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "98fbbddf"
+    },
+    "docs/producto/ventas-motos.md": {
+      "title": "Mensajería propia: registrar los envíos en moto y su rendición",
+      "pageHash": "5bb54373f8f19667b0d9c80861763ed8143b605f2e84e40dbdf148c8d45402c6",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
@@ -1037,12 +1046,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "f98f70eddcee8cd99170565749d057c11fdd012c9be00387022ac6fd183e4a7c",
+      "pageHash": "bae71581624cc3d9d0d1674a0582839687f36ace188e0b45069214cd098a3aa0",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "0282ae89"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1259,14 +1268,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "9941dc9f36cf708d839ef92c35efcedd21a20c10dc15766cfca8cf3a6ec838c4",
+      "pageHash": "4003f1b391e7393d9b323789c7db6050e07224c3bfbf55ee81baff7fa4339302",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "91c40ba6",
+      "sourceAt": "0ef9cdb9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "3a93b935"
+      "commit": "0282ae89"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1488,14 +1497,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "196168d1997d62c1652f1abc8dd4981e0f820dfff8dd10b79777de62bd55c4f0",
+      "pageHash": "ebb9e7d92290e72187a57b7d4c1e1813ed8c4ac4edd095d792395947707d5876",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5dfa2b7d",
+      "sourceAt": "0ef9cdb9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "3a93b935"
+      "commit": "75ae10b7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -2249,6 +2258,19 @@
       ],
       "owner": "tecnico",
       "commit": "98fbbddf"
+    },
+    "docs/tecnico/ventas-motos.md": {
+      "title": "Ventas · envíos en moto y su rendición (técnico, MSF-145)",
+      "pageHash": "c5e09407a9e15c68c6990e4323453c68464ff4cb09ec69590aa28468d8abd272",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "0ef9cdb9",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/ventas-precios-especiales.md": {
       "title": "Ventas · precios especiales por cliente (técnico, MSF-193)",

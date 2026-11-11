@@ -82,6 +82,10 @@ Las cuentas bancarias y billeteras son de la **organización** y se habilitan po
 Los transportes son de la **organización** y se marcan las empresas donde se usan. Se administran en
 **Ventas › Transportes** (`/ventas/transportes`).
 
+Esa pantalla tiene otras dos pestañas: **Contrarreembolsos** (lo que cobran los transportes al entregar, ver
+[Cobros y conciliación](ventas-cobros-y-conciliacion.md)) y **Motos** (las entregas que hace la propia empresa en
+moto, ver [Mensajería propia](ventas-motos.md)).
+
 - La tabla muestra **Empresa de transporte**, **Terminal de retiro**, **Localidad**, **Teléfono** y
   **Contacto**, con filtro **Tienda**, recuento («N de M empresas de transporte») y **Nueva empresa**.
 - **Nueva empresa** pide nombre, tipo (**Expreso / Correo / Moto propia**), CUIT opcional, terminal de

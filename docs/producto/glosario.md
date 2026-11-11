@@ -85,6 +85,12 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **Cuenta de cobro** | Medio o cuenta por donde se cobra: efectivo, transferencia, tarjeta, etc. |
 | **Conciliación** | Confirmar que un pago por transferencia o depósito efectivamente llegó. |
 | **Contrarreembolso** | Venta enviada que se cobra cuando el transporte entrega el paquete. |
+| **Mensajería propia (moto)** | Entrega que hace la propia empresa con una moto. Cada envío se registra con su mensajero, su costo y lo que abona el cliente al recibir. Ver [Mensajería propia](ventas-motos.md). |
+| **Mensajero** | Persona que lleva los envíos en moto. Se escribe a mano en cada envío y el sistema lo agrupa sin distinguir mayúsculas ni espacios de más. |
+| **Costo de envío** | Lo que te cuesta el envío en moto. |
+| **Abona al recibir** | Efectivo que el cliente paga al recibir el pedido. Es el monto que después se rinde al mensajero. |
+| **Rendición** | Cierre de la cuenta de un mensajero: se registra qué entregas ya te rindió y cuánto efectivo tenés que recibir. No se puede revertir. |
+| **Motos sin rendir** | Tarjeta que suma el efectivo que te deben los mensajeros y cuántas entregas falta rendir. |
 | **Transporte** | Empresa de envíos o terminal de retiro que se usa para despachar. |
 | **Despacho** | Preparar y entregar el pedido de una factura. |
 | **Faltante** | Producto de una venta que todavía no se pudo entregar por falta de stock. |

@@ -31,7 +31,7 @@ Armar facturas y presupuestos, buscar y anular comprobantes, imprimirlos, y vend
 Registrar cómo se cobra cada venta, conciliar transferencias y depósitos, controlar los contrarreembolsos y cerrar la caja del día. Guías: [Cobros y conciliación](ventas-cobros-y-conciliacion.md) · [Cierre de caja](ventas-cierre-caja.md).
 
 ## Despacho
-Preparar y entregar los pedidos, y ver qué ventas quedaron con faltantes. Guía: [Despacho y faltantes](ventas-despacho-y-faltantes.md).
+Preparar y entregar los pedidos, y ver qué ventas quedaron con faltantes. Registrar los envíos con mensajería propia en moto y cerrar la rendición del efectivo que te rinden los mensajeros. Guías: [Despacho y faltantes](ventas-despacho-y-faltantes.md) · [Mensajería propia](ventas-motos.md).
 
 ## Devoluciones
 Registrar devoluciones y reclamos (RMA) por producto. Guía: [Devoluciones](ventas-rma-devoluciones.md).

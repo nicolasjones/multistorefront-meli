@@ -37,6 +37,7 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `public.exportar_clientes(texto, tipo, archivados, despues_de, limite)` | Exportación de clientes por lotes (keyset); exige la acción `exportar` (MSF-180 · F-CLI-04) |
 | `public.escala_de_cliente(cliente_id)` | Escala de precios del cliente según su tipo: `x1` o `por_cantidad` (MSF-180 · F-CLI-03) |
 | `public.cuenta_corriente_cliente(cliente_id)` | Cuenta corriente del cliente: saldo total y los comprobantes con saldo (solo lectura) (MSF-450 · F-CLI-19) |
+| `public.listar_envios_moto(empresa, pagina, tamano)` / `public.rendir_envios_moto(ids)` | Envíos en moto de la organización y su rendición: todo o nada, idempotente y solo del Administrador (MSF-145 · F-VTA-24 y F-VTA-25) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |
 | `public.listar_historial_ventas/cobros/cotizaciones(...)` | Consulta paginada del historial |
 | `public.cambiar_estado_reparacion(p_id, p_estado_id)` | Cambia estado (idempotente); un estado que cierra va por la entrega |
@@ -566,6 +567,31 @@ Errores: `42501` sin sesión u organización, sin `despachar` o responsable no e
 inválido · `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente ·
 `40001` conflicto de edición. Contrato completo:
 [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#rpc).
+
+### Ventas: envíos en moto y rendición (MSF-145)
+
+Fuente: `supabase/migrations/20270222200100_envios_moto.sql`, `20270222200200_envios_moto_rpc.sql` y
+`20270222300100_rendir_envios_moto.sql` (rama `epic/MSF-145-ventas-y-despacho-ventas-motos`, PR #825; aún sin
+merge a `main`; los números `20261205…` de `tasks.md` se renumeraron al integrar `dokploy`, commit `6c6f9ee9`).
+Todas las RPC de `public` son `security definer` con `search_path = ''`, `revoke … from public, anon` y `grant
+execute … to authenticated`; la organización y el actor salen de la sesión y el permiso se resuelve **en la empresa
+del envío** (la de su comprobante), no en la empresa activa.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `registrar_envio_moto(p_comprobante_id uuid, p_mensajero text, p_guia text default null, p_costo_envio numeric default 0, p_abono numeric default 0, p_enviado boolean default false)` | Alta del envío en moto de una **factura** no anulada con forma de envío de tipo `moto` de la misma empresa; un envío por comprobante; `mensajero` obligatorio y normalizado; `costo_envio`/`abono >= 0`. Nunca escribe `rendido` ni `rendido_en`. Registra `envio_moto.registrado`. | `42501` sin `ventas` en edición o sin rol Operador/Administrador en la empresa · `22023` tipo de comprobante, forma de envío, mensajero vacío o importe inválido · `23505` ya tiene envío · `P0002` comprobante inexistente |
+| `actualizar_envio_moto(p_id uuid, p_mensajero text, p_guia text, p_costo_envio numeric, p_abono numeric, p_enviado boolean, p_actualizado_en timestamptz)` | Edita mensajero, guía, costo, abono y «Enviado» con **bloqueo optimista**; un envío rendido es de solo lectura. Nunca escribe `rendido` ni `rendido_en`. Registra `envio_moto.actualizado`. | `42501` sin permiso · `22023` dato inválido · `55000` el envío ya está rendido · `40001` conflicto · `P0002` inexistente |
+| `comprobantes_para_envio_moto(p_empresa_id uuid default null, p_busqueda text default null)` | Facturas elegibles sin envío registrado (forma de envío `moto`, misma empresa), con número, empresa, fecha y cliente; búsqueda por número o cliente, hasta 50 filas. | `42501` sin ver Ventas |
+| `listar_envios_moto(p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 25)` | Listado de más reciente a más antigua con `puede_editar` y `puede_rendir` por fila y `filas` con el total del filtro. | `42501` sin ver Ventas |
+| `rendir_envios_moto(p_ids uuid[])` | Rinde uno o varios envíos **enviados y no rendidos** de un **mismo mensajero** (sin distinguir mayúsculas ni espacios). Todo o nada e idempotente (los ids ya rendidos se ignoran). Escribe **solo** `rendido` y `rendido_en`. Devuelve `{ cantidad, mensajero, total_abono, total_costo, neto }`: el **total a rendir es la suma del `abono`** y el costo va aparte. Registra `envio_moto.rendido`. | `42501` sin rol Administrador en la empresa del envío · `22023` id inexistente, no enviado o mezcla de mensajeros · tope de 500 ids |
+| `resumen_motos_sin_rendir(p_empresa_id uuid default null)` | `monto` (suma del `abono` de los envíos no rendidos con abono > 0) y `entregas` (la cantidad), con filtro opcional de tienda: es la tarjeta «Motos sin rendir». | `42501` sin ver Ventas |
+
+Sin grant a `authenticated`: `private.normalizar_mensajero`, `private.puede_registrar_envio_moto_en_empresa` y
+`private.puede_rendir_envio_moto_en_empresa`.
+
+Errores: `42501` permiso · `22023` dato inválido · `23505` duplicado · `40001` conflicto de edición · `55000` envío
+rendido (solo lectura) · `P0002` inexistente. Contrato completo:
+[Ventas · envíos en moto y su rendición (técnico)](ventas-motos.md#rpc).
 
 ### Ventas RMA y devoluciones (MSF-178)
 
