@@ -44,6 +44,7 @@ const columnasCuenta: ColumnaAdaptable<ComprobanteDeuda>[] = [
   { clave: 'estado', encabezado: 'Estado', render: (d) => <EtiquetaEstado texto={etiquetaEstado(d.estado)} variante={tonoEstado(d.estado)} /> },
   { clave: 'total', encabezado: 'Total', align: 'right', render: (d) => formatearPesosConCentavos(d.total_con_iva) },
   { clave: 'cobrado', encabezado: 'Cobrado', align: 'right', render: (d) => formatearPesosConCentavos(d.cobrado) },
+  { clave: 'notas_credito', encabezado: 'Notas de crédito', align: 'right', render: (d) => formatearPesosConCentavos(d.notas_credito) },
   { clave: 'saldo', encabezado: 'Saldo', align: 'right', render: (d) => formatearPesosConCentavos(d.saldo) },
 ]
 
