@@ -17,7 +17,7 @@
 -- · los niveles de la sección Clientes y la ejecutabilidad por `anon` (SC-002).
 begin;
 
-select plan(34);
+select plan(44);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -80,13 +80,14 @@ values
   -- De otra organización: no se ve desde la primera.
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001', 'factura', '0002-00000001', current_date - 1, 'deuda', 70000, 77000);
 
--- La nota de crédito cuelga de una factura (regla de la base) y NO resta del saldo: su efecto
--- en la cuenta corriente es de MSF-195 (fuera de alcance de esta historia).
+-- La nota de crédito cuelga de una factura (regla de la base). Esta es la que genera la ANULACIÓN de la factura 06:
+-- como esa factura ya no figura en la cuenta corriente, la nota no se descuenta dos veces (los casos de notas de
+-- crédito sobre facturas abiertas están más abajo, con su propio cliente).
 insert into dominio.comprobantes_venta
   (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva,
    comprobante_origen_id, nc_tipo)
 values
-  ('a1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000008', current_date - 1, 'emitida', 300, 363, 'a1000000-0000-0000-0000-000000000001', 'devolucion_importe');
+  ('a1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000008', current_date - 1, 'emitida', 300, 363, 'a1000000-0000-0000-0000-000000000006', 'devolucion_importe');
 
 insert into dominio.cobros_comprobante
   (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
@@ -296,6 +297,81 @@ select is(
 select is(
   (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000005') where numero is not null),
   1::bigint, 'y su comprobante no figura en la lista (el número se repite entre tiendas)');
+
+-- Notas de crédito (decisión del 2026-11-11): RESTAN de la deuda de la factura de la que cuelgan.
+reset role;
+insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+  ('c1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 106, 'Notas de crédito', 'minorista');
+
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva,
+   comprobante_origen_id, nc_tipo)
+values
+  -- A: 1.000 con una nota de 300 → debe 700.
+  ('b6000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'factura', '0006-00000001', current_date - 4, 'deuda', 1000, 1000, null, null),
+  -- B: 500 con 200 cobrados y una nota de 400 → supera el total: queda en 0 y no aparece (sin saldo a favor).
+  ('b6000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'factura', '0006-00000002', current_date - 3, 'confirmada', 500, 500, null, null),
+  -- C: 800 con una nota en borrador y otra anulada → ninguna cuenta: debe 800.
+  ('b6000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'factura', '0006-00000003', current_date - 2, 'deuda', 800, 800, null, null),
+  -- D: 600 con dos notas (100 y 50) → debe 450.
+  ('b6000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'factura', '0006-00000004', current_date - 1, 'deuda', 600, 600, null, null);
+
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva,
+   comprobante_origen_id, nc_tipo)
+values
+  ('b6100000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'nota_credito', '0006-00000101', current_date, 'emitida', 300, 300, 'b6000000-0000-0000-0000-000000000001', 'devolucion_importe'),
+  ('b6100000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'nota_credito', '0006-00000102', current_date, 'emitida', 400, 400, 'b6000000-0000-0000-0000-000000000002', 'devolucion_importe'),
+  ('b6100000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'nota_credito', '0006-00000103', current_date, 'borrador', 999, 999, 'b6000000-0000-0000-0000-000000000003', 'devolucion_importe'),
+  ('b6100000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'nota_credito', '0006-00000104', current_date, 'anulada', 888, 888, 'b6000000-0000-0000-0000-000000000003', 'devolucion_importe'),
+  ('b6100000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'nota_credito', '0006-00000105', current_date, 'emitida', 100, 100, 'b6000000-0000-0000-0000-000000000004', 'descuento'),
+  ('b6100000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000006', 'nota_credito', '0006-00000106', current_date, 'emitida', 50, 50, 'b6000000-0000-0000-0000-000000000004', 'descuento');
+
+insert into dominio.cobros_comprobante
+  (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
+values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'b6000000-0000-0000-0000-000000000002', 200, 'f1000000-0000-0000-0000-000000000001', 'manual', 'd1000000-0000-0000-0000-000000000001', 'Admin Uno');
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+
+select results_eq(
+  $$select numero, total_con_iva, cobrado, notas_credito, saldo from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006') order by numero$$,
+  $$values ('0006-00000001', 1000::numeric, 0::numeric, 300::numeric, 700::numeric),
+           ('0006-00000003', 800::numeric, 0::numeric, 0::numeric, 800::numeric),
+           ('0006-00000004', 600::numeric, 0::numeric, 150::numeric, 450::numeric)$$,
+  'las notas de crédito emitidas restan de la factura; las de borrador o anuladas no cuentan');
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006') limit 1),
+  1950::numeric, 'el saldo total descuenta las notas de crédito (700 + 800 + 450)');
+select is(
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006') where numero = '0006-00000002'),
+  0::bigint, 'si cobros y notas superan el total la factura queda en 0 y no aparece (sin saldo a favor)');
+select is(
+  (select comprobantes from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006') limit 1),
+  3::bigint, 'cuenta 3 comprobantes con saldo');
+select is(
+  (select count(*) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006') where numero like '0006-001%'),
+  0::bigint, 'las notas de crédito no figuran como filas de la cuenta');
+select is(
+  (select sum(saldo) from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006')),
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000006') limit 1),
+  'el saldo total es la suma de los saldos listados también con notas de crédito (FR-004)');
+
+-- Otra tienda a la que la persona no accede: sus notas tampoco se ven ni restan en lo ajeno.
+select is(
+  (select notas_credito from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') where id = 'a1000000-0000-0000-0000-000000000001'),
+  0::numeric, 'la nota de la anulación (factura 06) no resta de otras facturas del cliente');
+select is(
+  (select saldo_total from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000001') limit 1),
+  3310::numeric, 'la nota de crédito de una factura anulada no se descuenta dos veces');
+
+-- Redondeo: el saldo sale con dos decimales.
+select is(
+  (select scale(saldo) <= 2 from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000004') limit 1),
+  true, 'el saldo tiene como mucho 2 decimales');
+select is(
+  (select scale(saldo_total) <= 2 from cuenta_corriente_cliente('c1000000-0000-0000-0000-000000000004') limit 1),
+  true, 'el saldo total tiene como mucho 2 decimales');
 
 select pg_temp.como('d6000000-0000-0000-0000-000000000001');
 select results_eq(

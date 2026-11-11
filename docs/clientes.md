@@ -436,9 +436,11 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   tiendas ajenas. No depende de la empresa activa (Principio VIII). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
 - **Base de las cifras:** el «Saldo deudor» y la cuenta corriente son **con IVA**; el «Facturado en el año» que ya
   estaba en la ficha es **sin IVA** (criterio del ranking). Cada número dice su base.
-- **Notas de crédito:** **no restan** del saldo. Su efecto en la cuenta corriente es de **MSF-195** (hoy la nota de
-  crédito no admite cobros) y esta historia no lo reasigna: queda como diferencia conocida, con seguimiento trazado
-  (Tarea `seguimiento` en It's a Plan). Tampoco hay **saldo a favor**: un cobro de más se muestra como $ 0.
+- **Notas de crédito:** **restan** de la deuda de la factura de la que cuelgan (decisión de Nicolás, 2026-11-11, migración
+  `20270227110000_cuenta_corriente_notas_de_credito.sql`): saldo = `max(total − cobrado − notas de crédito, 0)` por factura, con las
+  notas emitidas (no `borrador` ni `anulada`). La nota que genera la **anulación** de una factura no se descuenta dos veces: esa
+  factura ya no figura. La tabla suma la columna «Notas de crédito». Sigue sin haber **saldo a favor**: si cobros y notas superan
+  el total, la factura queda en $ 0 y no aparece. Los importes se redondean a 2 decimales.
 - **Tiendas sin acceso o desactivadas:** una persona sin tiendas asignadas ve saldo $ 0, y la deuda de una tienda
   desactivada no suma (ni para el administrador). La sección «Compras» de la misma ficha sigue siendo de toda la
   organización: diferencia conocida.
@@ -451,7 +453,7 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
 - **Costo:** dos lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada) y sin paginar; son pocas por cliente. Si un cliente real acumulara
   cientos, se pagina con carga infinita.
 - **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
-  puede cambiar): qué estados cuentan como deuda (en especial «Pendiente»), si las notas de crédito restan, si el saldo
+  puede cambiar): qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
   a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo.
 - **Reversión (migración posterior, aditiva):** `drop function public.cuenta_corriente_cliente(uuid);` No se destruye
   ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.

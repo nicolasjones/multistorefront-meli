@@ -23,7 +23,7 @@ const respuesta = (compras: CompraCliente[], extra: Record<string, unknown> = {}
 
 const documento = (n: number, extra: Partial<ComprobanteDeuda> = {}): ComprobanteDeuda => ({
   id: `d-${n}`, numero: `0001-0000001${n}`, fecha: '2026-10-12', estado: 'deuda',
-  total_con_iva: 1210, cobrado: 0, saldo: 1210, ...extra,
+  total_con_iva: 1210, cobrado: 0, notas_credito: 0, saldo: 1210, ...extra,
 })
 
 const respuestaCuenta = (documentos: ComprobanteDeuda[], extra: Record<string, unknown> = {}) => ({
@@ -121,14 +121,15 @@ describe('ComprasCliente', () => {
   it('muestra la cuenta corriente con los comprobantes que tienen saldo', () => {
     abrir()
     expect(screen.getByRole('heading', { name: 'Cuenta corriente' })).toBeInTheDocument()
-    for (const encabezado of ['Comprobante', 'Fecha', 'Estado', 'Total', 'Cobrado', 'Saldo']) {
+    for (const encabezado of ['Comprobante', 'Fecha', 'Estado', 'Total', 'Cobrado', 'Notas de crédito', 'Saldo']) {
       expect(tablaCuenta().getByRole('columnheader', { name: encabezado })).toBeInTheDocument()
     }
     expect(tablaCuenta().getByText('0001-00000011')).toBeInTheDocument()
     expect(tablaCuenta().getByText('12/10/2026')).toBeInTheDocument()
     expect(tablaCuenta().getByText('Deuda')).toBeInTheDocument()
     expect(tablaCuenta().getAllByText('$ 1.210')).toHaveLength(2)
-    expect(tablaCuenta().getByText('$ 0')).toBeInTheDocument()
+    // «Cobrado» y «Notas de crédito» valen 0 en este comprobante.
+    expect(tablaCuenta().getAllByText('$ 0')).toHaveLength(2)
   })
 
   it('sin comprobantes con saldo muestra el vacío y el saldo en $ 0', () => {

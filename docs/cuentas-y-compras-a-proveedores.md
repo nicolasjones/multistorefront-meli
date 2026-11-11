@@ -25,7 +25,7 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
 
 - El saldo de un comprobante es `total con IVA − cobros` (nunca negativo), tomado de `private.saldo_comprobante`.
 - Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`; los presupuestos no son deuda.
-- Las notas de crédito **no restan**, y no hay saldo a favor (un cobro de más se muestra como $ 0).
+- Las notas de crédito emitidas **restan** de la factura de la que cuelgan (decisión del 2026-11-11), y no hay saldo a favor (cobros y notas de más dejan la factura en $ 0). Importes a 2 decimales.
 - La persona ve la deuda solo de las tiendas a las que accede, y no suma la de una tienda desactivada (ni para el administrador).
 - Cuentan los siete estados vivos de la factura que no son borrador, anulada ni cobrado: `confirmada`, `pendiente`,
   `aceptado`, `en_proceso`, `deuda`, `armando` e `incompleto`. Que una factura «Pendiente» (o «Confirmada») ya sea deuda es
@@ -45,7 +45,7 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
    la escala en P0. Sin resolver.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
 3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo y a confirmar:** qué estados cuentan
-   como deuda (en particular «Pendiente» y «Confirmada»), si las notas de crédito restan (hoy no), si el saldo a favor
+   como deuda (en particular «Pendiente» y «Confirmada»), si el saldo a favor
    se muestra (hoy no: un cobro de más es $ 0), si el saldo se ve por tienda accesible (hoy sí) o por organización, y
    si la persona con `clientes` en lectura debe ver el saldo aunque no acceda a Ventas (hoy sí).
 4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido.
