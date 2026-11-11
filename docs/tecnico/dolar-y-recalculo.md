@@ -137,6 +137,10 @@ un `TRUNCATE … CASCADE` que alcance `dominio.cotizaciones`, falla; hay que res
 La pantalla y el diálogo se cargan de forma diferida. **Empresa activa: no aplica** (la cotización es de
 la organización); cambiar de empresa no altera el contenido y hay un test que lo cubre.
 
+La **sugerencia del dólar desde una fuente pública** (MSF-373, F-PRE-13) solo completa el campo del
+diálogo: no cambia este flujo ni la confirmación. Ver
+[Cotización sugerida y mayoristas](cotizacion-sugerida-y-mayoristas.md).
+
 ## Pruebas
 
 | Tipo | Archivos |

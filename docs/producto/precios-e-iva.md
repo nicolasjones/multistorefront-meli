@@ -76,6 +76,8 @@ En el formulario del producto, el bloque **Precios por escala · sin IVA** tiene
 
 El tipo de cliente se define en la ficha de cada cliente (ver [Clientes](clientes.md)). Si le cambiás el tipo, las próximas ventas usan la escala del nuevo tipo; lo ya vendido no cambia. En la tienda online, un mayorista con cuenta activa ve todas las escalas en la ficha del producto (ver [Cuenta web del cliente](cuenta-web-cliente.md)).
 
+Hoy no hay una **lista de precios mayorista** aparte: el precio del revendedor se arma con el tipo de cliente y con las escalas por cantidad de cada producto. Si el negocio necesita listas propias por revendedor, todavía no se puede.
+
 ## Ajuste de precio de cada tienda
 
 1. Entrá a **Canales → Empresas** y hacé clic en **Editar** en la tienda que querés.
