@@ -27,6 +27,8 @@ const fila = (id: string, empresa: string, total = 1) => ({
   desde: '2026-10-01T10:00:00Z',
   stock_estado: 'disponible',
   stock_disponible: 5,
+  aviso: 'sin_avisar',
+  aviso_en: null,
   filas: total,
 })
 
@@ -41,7 +43,7 @@ describe('useListarFaltantes', () => {
     mocks.rpc.mockResolvedValue({ data: [fila('1', 'San Javucho', 12)], error: null })
     const { result } = renderHook(() => useListarFaltantes({ ...base, empresaId: 'emp-1', pagina: 2 }))
     await waitFor(() => expect(result.current.isLoading).toBe(false))
-    expect(mocks.rpc).toHaveBeenCalledWith('listar_faltantes', { p_empresa_id: 'emp-1', p_pagina: 2, p_tamano: 10 })
+    expect(mocks.rpc).toHaveBeenCalledWith('listar_faltantes', { p_empresa_id: 'emp-1', p_pagina: 2, p_tamano: 10, p_aviso: null })
     expect(result.current.total).toBe(12)
     expect(result.current.faltantes).toHaveLength(1)
   })

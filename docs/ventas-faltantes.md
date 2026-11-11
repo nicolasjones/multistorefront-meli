@@ -63,7 +63,7 @@ y no dentro de `cambiar_estado_despacho` para que valga desde cualquier camino.
 **Decisión (la 3 de *Decisiones abiertas* de la spec):** la épica solo pide **registrar** el faltante. Se resuelve
 al **reanudar el armado**. El cierre automático por ingreso de mercadería que dice el prototipo («se cierra solo
 cuando se ingresa la mercadería») queda **FUERA DE ALCANCE**: se acopla al módulo Stock y a la reserva «A pedido», y
-por eso ese texto **no** se muestra en la pantalla. El aviso al cliente por faltantes es de otra historia (MSF-161).
+por eso ese texto **no** se muestra en la pantalla. El aviso al cliente y la marca «Para avisar» al ingresar mercadería los entrega MSF-161: ver [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md).
 
 ## Listado (FR-043)
 
