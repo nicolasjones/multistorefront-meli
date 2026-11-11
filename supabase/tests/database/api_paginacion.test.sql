@@ -41,5 +41,19 @@ select is((select count(distinct s)::int from paginas, unnest(skus) s), 5, 'las 
 select is((select cardinality(skus) from paginas where n = 3), 1, 'la última página trae lo que queda');
 select is((select siguiente from paginas where n = 3), null, 'la última página no trae siguiente_cursor');
 
+-- Cursor de clave triple (stock): 121 caracteres. No lleva saltos de línea y vuelve a decodificarse entero.
+select is(
+  (select position(E'\n' in private.api_codificar_cursor('2026-01-01T00:00:00Z'::timestamptz, 'b1000000-0000-0000-0000-000000000001'::uuid, 'fb9adb08-a05e-4c1e-83f7-33e797a0a094'::uuid))),
+  0, 'el cursor de clave triple no trae saltos de línea');
+select is(
+  (select p_clave from private.api_decodificar_cursor(private.api_codificar_cursor('2026-01-01T00:00:00Z'::timestamptz, 'b1000000-0000-0000-0000-000000000001'::uuid, 'fb9adb08-a05e-4c1e-83f7-33e797a0a094'::uuid))),
+  '1767225600000000|b1000000-0000-0000-0000-000000000001|fb9adb08-a05e-4c1e-83f7-33e797a0a094',
+  'el cursor de clave triple ida y vuelta conserva la clave completa');
+select is(
+  (select p_clave from private.api_decodificar_cursor(
+     regexp_replace(private.api_codificar_cursor('2026-01-01T00:00:00Z'::timestamptz, 'b1000000-0000-0000-0000-000000000001'::uuid, 'fb9adb08-a05e-4c1e-83f7-33e797a0a094'::uuid), '^(.{76})', E'\\1\n'))),
+  '1767225600000000|b1000000-0000-0000-0000-000000000001|fb9adb08-a05e-4c1e-83f7-33e797a0a094',
+  'un cursor emitido antes del arreglo (con salto de línea) sigue siendo válido');
+
 select finish();
 rollback;

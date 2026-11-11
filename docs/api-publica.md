@@ -127,6 +127,10 @@ filas; pasarlo en `?cursor=` trae la página siguiente, sin repetir filas. Hasta
 página; la regresión está cubierta en `supabase/tests/database/api_paginacion.test.sql`. Al verificar un despliegue,
 recorrer `/v1/productos?limite=2` varias páginas y comprobar que no se repiten filas.
 
+El cursor de `stock` (clave triple, 121 caracteres) salía con un salto de línea del `base64` de Postgres y su segunda página
+daba `400 cursor_invalido`; la migración `20270227120000_api_cursor_sin_saltos_de_linea` lo corrige (el decodificador también
+acepta los cursores viejos con salto). Al verificar, recorrer también `/v1/stock?limite=2`, `/v1/precios` y `/v1/ventas`.
+
 ## Auditoría y retención
 
 Toda llamada, incluidas las rechazadas, queda en `public.api_llamadas` (método,
