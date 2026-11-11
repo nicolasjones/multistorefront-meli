@@ -39,6 +39,12 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 
 `/ventas/transportes`, pestaña **Motos** (`?pestana=motos`): tarjeta «Motos sin rendir», tabla con filtro Tienda, «Registrar envío», «Editar», llave Rendido por fila y «Rendir seleccionados» con confirmación. Contrarreembolsos se conserva como pestaña por defecto.
 
+## Límites conocidos
+
+- **Paginación por desplazamiento:** el listado (`listar_envios_moto`) pide tandas de 25 con `offset`, ordenadas por fecha del comprobante y luego `created_at`. Si otra persona registra un envío entre dos tandas, puede repetirse o saltearse una fila. Con el volumen de una tienda (decenas de envíos por semana) es raro; si crece, se pasa a paginación por cursor.
+- **Costo por fila:** `listar_envios_moto` y `resumen_motos_sin_rendir` resuelven el permiso de cada fila y cuentan el total del conjunto. No pesa con los volúmenes actuales; si hiciera falta, se resuelve la lista de tiendas permitidas una sola vez.
+- **Factura anulada después:** ver arriba; decisión provisoria.
+
 ## Errores
 
 `42501` sin permiso; `P0002` el envío, la factura o la tienda no existe o no es de tu organización; `22023` dato inválido (mensajeros mezclados en una rendición, guía de más de 100 caracteres, importes fuera de rango); `23505` el comprobante ya tiene envío; `40001` otra persona lo modificó; `55000` el envío ya está rendido.

@@ -3,7 +3,7 @@
 -- `ventas` en la B, se leían por la API los envíos de B aunque las RPC devolvían 0).
 begin;
 
-select plan(12);
+select plan(16);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Org Uno');
 
@@ -35,9 +35,9 @@ insert into dominio.comprobantes_venta
   (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en, envio_id) values
   ('f1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000005', '2027-02-05', 'confirmada', 800, 800, now(), 'b1000000-0000-0000-0000-00000000000a'),
   ('f1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000006', '2027-02-06', 'confirmada', 900, 900, now(), 'b1000000-0000-0000-0000-00000000000c');
-insert into dominio.envios_moto (organizacion_id, comprobante_id, mensajero, abono) values
-  ('11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000005', 'Mensajero A', 4000),
-  ('11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000006', 'Mensajero B', 5000);
+insert into dominio.envios_moto (id, organizacion_id, comprobante_id, mensajero, abono, enviado) values
+  ('e0000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000005', 'Mensajero A', 4000, true),
+  ('e0000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000006', 'Mensajero B', 5000, true);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -79,6 +79,30 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
 select pg_temp.como('d1000000-0000-0000-0000-000000000097');
 select is(private.nivel_ventas_en_empresa('a1000000-0000-0000-0000-00000000000a'), 'edicion', 'Mostrador tiene ventas en edición');
 select is(public.puedo_registrar_envios_moto('a1000000-0000-0000-0000-00000000000a'), false, 'pero no puede registrar envíos en moto (no es Operador ni Administrador)');
+
+-- Rendir es solo del Administrador: un Operador con `ventas` en edición puede registrar pero no rendir.
+reset role;
+insert into auth.users (id, email) values ('d1000000-0000-0000-0000-000000000096', 'operador-a@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
+  ('d1000000-0000-0000-0000-000000000096', '11111111-1111-1111-1111-111111111111', 'operador', 'activo');
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000096', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'operador');
+select pg_temp.como('d1000000-0000-0000-0000-000000000096');
+select is(public.puedo_registrar_envios_moto('a1000000-0000-0000-0000-00000000000a'), true, 'el Operador puede registrar en su tienda');
+select throws_ok($$select * from public.rendir_envios_moto(array['e0000000-0000-0000-0000-00000000000a']::uuid[])$$, '42501', null,
+  'pero no puede rendir: rendir es solo del Administrador');
+select is((select rendido from dominio.envios_moto where id = 'e0000000-0000-0000-0000-00000000000a'), false,
+  'y el envío quedó sin rendir');
+
+-- Superadmin con la organización activa: puede registrar en cualquier tienda.
+reset role;
+insert into auth.users (id, email) values ('d1000000-0000-0000-0000-000000000095', 'superadmin@example.com');
+insert into superadmins (user_id) values ('d1000000-0000-0000-0000-000000000095');
+insert into superadmin_organizacion_activa (user_id, organizacion_id) values
+  ('d1000000-0000-0000-0000-000000000095', '11111111-1111-1111-1111-111111111111');
+select pg_temp.como('d1000000-0000-0000-0000-000000000095');
+select is(public.puedo_registrar_envios_moto('a1000000-0000-0000-0000-00000000000b'), true,
+  'el superadmin con la organización activa puede registrar en cualquier tienda');
 
 -- Sin sesión (anon) no se ejecuta.
 reset role;
