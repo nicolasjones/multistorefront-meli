@@ -36,7 +36,8 @@ El panel usa **PostgREST** (tablas/vistas) y **RPC** de Postgres a través de Su
 | `public.buscar_clientes(texto, tipo, archivados, pagina, tamano)` | Listado de clientes con búsqueda parcial, filtros y paginación en el servidor (MSF-180 · F-CLI-02) |
 | `public.exportar_clientes(texto, tipo, archivados, despues_de, limite)` | Exportación de clientes por lotes (keyset); exige la acción `exportar` (MSF-180 · F-CLI-04) |
 | `public.escala_de_cliente(cliente_id)` | Escala de precios del cliente según su tipo: `x1` o `por_cantidad` (MSF-180 · F-CLI-03) |
-| `public.cuenta_corriente_cliente(cliente_id)` | Cuenta corriente del cliente: saldo total y los comprobantes con saldo (solo lectura) (MSF-450 · F-CLI-19) |
+| `public.cuenta_corriente_cliente(cliente_id)` | Cuenta corriente del cliente: saldo total y los comprobantes con saldo neto de cobros y notas de crédito (solo lectura) (MSF-450 · F-CLI-19) |
+| `public.capacidades_precios()` | Banderas `promociones_precio` y `precios_masivos`, si la persona edita `productos` en todas las tiendas y su nivel por tienda; solo decide qué muestra la pantalla (MSF-363) |
 | `public.solicitar_importacion_historial(...)` | Crea la ejecución de importación |
 | `public.listar_historial_ventas/cobros/cotizaciones(...)` | Consulta paginada del historial |
 | `public.cambiar_estado_reparacion(p_id, p_estado_id)` | Cambia estado (idempotente); un estado que cierra va por la entrega |
@@ -325,12 +326,16 @@ proveedores](cuentas-y-compras-a-proveedores.md).
 
 | RPC | Devuelve / hace | Seguridad |
 |---|---|---|
-| `public.cuenta_corriente_cliente(p_cliente_id uuid) returns table (id uuid, saldo_total numeric, comprobantes bigint, numero text, fecha date, tipo text, estado text, total_con_iva numeric, cobrado numeric, saldo numeric)` | Cuenta corriente del cliente: una fila por comprobante **con saldo** (del más reciente al más antiguo), con el `id` del comprobante (el número se repite entre tiendas) y su total, cobrado y saldo. El encabezado (`saldo_total`, `comprobantes`) viaja en cada fila; sin documentos abiertos vuelve solo la fila de encabezado. El saldo lo trae `private.saldo_comprobante` (no se recalcula) y solo entran las facturas que no están en `borrador`, `anulada` ni `cobrado` | `security definer`, `search_path = ''`, `stable`; organización de `private.organizacion_id()`; exige la sección `clientes` en `lectura`/`edicion`; `private.empresas_accesibles()` acota a las tiendas de la persona; `42501` sin permiso, `22023` cliente nulo; un cliente de otra organización o inexistente devuelve saldo 0 y sin documentos; `revoke` a `public, anon`; `grant` a `authenticated` |
+| `public.cuenta_corriente_cliente(p_cliente_id uuid) returns table (id uuid, saldo_total numeric, comprobantes bigint, numero text, fecha date, tipo text, estado text, total_con_iva numeric, cobrado numeric, notas_credito numeric, saldo numeric)` | Cuenta corriente del cliente: una fila por comprobante **con saldo** (del más reciente al más antiguo), con el `id` del comprobante (el número se repite entre tiendas) y su total, cobrado, notas de crédito y saldo (`round(greatest(total − cobrado − notas_credito, 0), 2)`; no hay saldo a favor). El encabezado (`saldo_total`, `comprobantes`) viaja en cada fila; sin documentos abiertos vuelve solo la fila de encabezado. El saldo lo trae `private.saldo_comprobante` (único dueño, resta las notas de crédito desde `20270227140000`; no se recalcula) y solo entran las facturas que no están en `borrador`, `anulada` ni `cobrado` | `security definer`, `search_path = ''`, `stable`; organización de `private.organizacion_id()`; exige la sección `clientes` en `lectura`/`edicion`; `private.empresas_accesibles()` acota a las tiendas de la persona; `42501` sin permiso, `22023` cliente nulo; un cliente de otra organización o inexistente devuelve saldo 0 y sin documentos; `revoke` a `public, anon`; `grant` a `authenticated` |
 
 Además:
 
 - **Sin tablas nuevas ni alteradas**: no hay RLS que agregar; la función solo lee
   `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
+- **Efecto cruzado:** el disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`) sincroniza la
+  factura al emitir una nota de crédito (pasa a «Cobrado» si lo cobrado más las notas cubren el total y hay
+  cobros; ajusta el importe de los contrarreembolsos pendientes al saldo neto). Detalle en
+  [Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md).
 - **Las otras tres historias de la épica (F-CLI-20, F-CLI-21, F-PRV-09) no tienen RPC**: siguen en
   Backlog, sin requisitos y sin código.
 
@@ -476,13 +481,13 @@ Fuente: `supabase/migrations/20261215100000`–`20261217100200` (rama `epic/MSF-
 | RPC | Contrato | Seguridad |
 |---|---|---|
 | `registrar_cobro(comprobante_id, importe, forma_pago_id, cuenta_cobro_id, actualizado_en)` | Registra un cobro: solo factura confirmada no anulada; importe > 0, dos decimales y ≤ saldo; cuenta exigida por la forma, activa y habilitada en la empresa. Devuelve la fila. | `security definer`; exige `ventas` en edición y la acción `registrar_cobro` |
-| `saldo_comprobante(id)` | `(total, cobrado, saldo)` del comprobante. | `security invoker` |
+| `saldo_comprobante(id)` | `(total, cobrado, notas_credito, saldo)` del comprobante; el saldo es **neto**: `round(greatest(total − cobrado − notas_credito, 0), 2)` (columna `notas_credito` desde `20270227140000`). | `security invoker` |
 | `cobros_de_comprobante(comprobante_id)` | Los cobros de la factura, con el tipo de la forma de pago y el banco/titular de la cuenta. | `security invoker` |
 | `puede_registrar_cobro(empresa_id)` | `boolean`: permiso propio para mostrar el botón. No autoriza. | `security definer` |
 | `conciliar_pago(id, actualizado_en)` | Aprueba un pago **con cuenta de cobro**; idempotente, con bloqueo optimista; no toca el estado del comprobante. | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
 | `revertir_conciliacion_pago(id, actualizado_en)` | Ídem, quita la aprobación. | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
-| `listar_pagos(empresa_id, cuenta_cobro_id, solo_con_saldo, pagina, tamano)` | Página de cobros con cuenta de cobro con `filas` (total del filtro); tope 200 por página. | `security invoker` |
-| `resumen_pagos(empresa_id)` | `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)`. | `security invoker` |
+| `listar_pagos(empresa_id, cuenta_cobro_id, solo_con_saldo, pagina, tamano)` | Página de cobros con cuenta de cobro con `filas` (total del filtro); tope 200 por página. La columna `saldo` y «Solo con saldo» usan el saldo neto de notas de crédito (`20270228200000`). | `security invoker` |
+| `resumen_pagos(empresa_id)` | `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)`; `saldo_pendiente` usa el saldo neto (`20270228200100`). | `security invoker` |
 | `cuentas_cobro_mas_usadas(empresa_id, limite)` | `(id, nombre, banco, activa, usos, total_cuentas)` para la tarjeta de cuentas. | `security invoker` |
 | `puede_conciliar_pago(empresa_id)` | `boolean`: permiso propio para habilitar el interruptor. No autoriza. | `security definer` |
 | `marcar_contrarreembolso_cobrado(id, actualizado_en)` | Pasa el contrarreembolso a `cobrado` y registra el cobro del comprobante con origen `contrarreembolso`; idempotente; rechaza comprobante anulado. Devuelve la **fila de la tabla**. | `security definer`; exige `ventas` en edición y la acción `cobrar_contrarreembolso` |

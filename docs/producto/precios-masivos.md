@@ -15,11 +15,17 @@ Los importes se cargan **sin IVA**. Cuando el precio cambia, **todas las tiendas
 
 | Tarea | Quién |
 |---|---|
-| Abrir la pantalla y cambiar precios de lista | Administrador y Operador |
+| Abrir la pantalla y cambiar precios de lista | Administrador, y Operador **solo si tiene edición de Productos en todas las tiendas activas** de la organización |
 | Ver y cambiar los **costos** | Solo Administrador |
 | Entrar a la pantalla | Mostrador, Depósito, Administración, Técnico y Consulta no la ven |
 
+**Hace falta poder editar Productos en TODAS las tiendas activas de la organización.** El precio de lista y el costo son de toda la organización: un cambio mueve el precio en todas las tiendas donde se vende el producto, así que no alcanza con editar en una sola. Si editás Productos en una tienda pero en otra solo podés mirar (o no tenés acceso), el botón **Actualizar precios** aparece deshabilitado con el motivo «Para actualizar precios necesitás permiso de edición de productos en todas las tiendas.» y el sistema rechaza el pedido. Una tienda desactivada no cuenta.
+
 Si tu rol no tiene permiso de edición de productos, la pantalla no se abre: el sistema te avisa que no tenés acceso a esa sección.
+
+## Tiene que estar activada en tu entorno
+
+**Actualizar precios viene apagada de fábrica en cada entorno** (desarrollo, staging y producción por separado). Mientras esté apagada, el botón **Actualizar precios** no aparece en Productos y, si entrás a la dirección de la pantalla, solo ves el motivo: «La actualización masiva de precios está desactivada en este entorno. Pedile al equipo técnico que la active.». No la enciende un administrador desde el panel: la activa el equipo técnico en la base de cada entorno (bandera de plataforma `precios_masivos`). Ver la [página técnica](../tecnico/precios-masivos-y-promociones.md#banderas-de-plataforma-y-permiso-por-tienda).
 
 ## Dónde lo encontrás
 
@@ -98,7 +104,9 @@ Cada lote aplicado queda anotado en la [Actividad](actividad.md), con quién lo 
 | Mensaje | Qué significa y qué hacer |
 |---|---|
 | **Tu rol no puede actualizar precios** | Pedile al Administrador que lo haga o que te dé permiso de edición en Productos. |
-| **Tu rol no puede cambiar costos** | El costo se cambia solo con permiso de Rentabilidad. Sacá el costo del cambio o pedile permiso al Administrador. |
+| **Para actualizar precios necesitás permiso de edición de productos en todas las tiendas** | Editás Productos en alguna tienda, pero no en todas las activas. Pedile al Administrador que te dé edición en las que falten, o que lo haga él. |
+| **La actualización masiva de precios está desactivada en este entorno** | La función está apagada en este entorno. Pedile al equipo técnico que la active. |
+| **Tu rol no puede cambiar costos** | El costo se cambia solo con permiso de Rentabilidad **en edición**, tanto para aplicar como para ver la vista previa. Con Rentabilidad solo en lectura ves el costo en una vista previa que cambia únicamente el precio de lista. Sacá el costo del cambio o pedile permiso al Administrador. |
 | **El porcentaje tiene que ser mayor a −100 %** | Un porcentaje de −100 % o menos dejaría el precio en cero. |
 | **Ingresá el porcentaje** | El campo está vacío: escribí un número. |
 | **La actualización admite hasta 5.000 productos por vez; elegí una categoría** | El alcance es demasiado grande. Dividilo por categorías. |
