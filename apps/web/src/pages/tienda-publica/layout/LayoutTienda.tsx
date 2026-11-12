@@ -5,6 +5,7 @@ import { useCategoriasTienda, type CategoriasTienda } from '../../../hooks/useCa
 import type { TiendaPublica } from '../../../lib/tienda'
 import { AccesoCliente } from './AccesoCliente'
 import { MenuCategorias } from './MenuCategorias'
+import { ProveedorIdentidadTienda } from './IdentidadTiendaContexto'
 import { PieCategorias } from './PieCategorias'
 
 const BuscadorTienda = lazy(() => import('./BuscadorTienda'))
@@ -28,6 +29,7 @@ export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: st
   const contexto: ContextoTienda = { tienda, host, categorias }
 
   return (
+    <ProveedorIdentidadTienda host={host}>
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Box component="header" sx={{ px: 2, pt: 2, borderBottom: 1, borderColor: 'divider' }}>
         {/* Celular: marca + botón de menú arriba y buscador a todo el ancho debajo; desde `md`, en una fila. */}
@@ -59,5 +61,6 @@ export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: st
         <PieCategorias categorias={categorias.categorias} host={host} />
       </Box>
     </Box>
+    </ProveedorIdentidadTienda>
   )
 }
