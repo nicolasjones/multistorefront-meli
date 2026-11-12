@@ -17,7 +17,7 @@ export const ayudaAdministracion: AyudaPorDestino = {
     resumen:
       'Es el valor del dólar que se carga cada día para calcular los precios de los productos en USD. Ves la cotización vigente, su configuración y el historial. Cargarla requiere permiso de edición en esta sección; con permiso de lectura solo podés consultarla.',
     pasos: [
-      'Tocá «Cargar cotización» e ingresá el dólar del día. Si aparece la cotización sugerida, podés tocar «Usar este valor» para completar el campo; si no se puede consultar, cargalo a mano.',
+      'Tocá «Cargar cotización» e ingresá el dólar del día. Si aparece la cotización sugerida, usá «Usar este valor»; si no, cargalo a mano.',
       'Si tu organización trabaja por empresa, elegí primero la empresa.',
       'Revisá la cotización vigente y el historial para ver los valores anteriores.',
     ],
