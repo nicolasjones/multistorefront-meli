@@ -1,6 +1,7 @@
 import { Box, Button, InputAdornment, List, ListItem, ListItemButton, ListItemText, TextField, Typography } from '@mui/material'
 import { useState } from 'react'
 import type { CategoriaListado, FiltrosCatalogo } from '../../../lib/tiendaListado'
+import { filasPanelCategorias } from '../../../lib/tiendaCategorias'
 
 type Props = {
   categorias: CategoriaListado[]
@@ -40,13 +41,13 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
               <ListItemText primary="Todos los productos" />
             </ListItemButton>
           </ListItem>
-          {categorias.map((c) => (
+          {filasPanelCategorias(categorias, filtros.categoria).map(({ categoria: c, nivel }) => (
             <ListItem key={c.id} disablePadding>
               <ListItemButton
                 selected={filtros.categoria === c.id}
                 aria-current={filtros.categoria === c.id ? 'true' : undefined}
                 onClick={() => alElegirCategoria(c.id)}
-                sx={{ pl: c.padreId ? 3 : 2 }}
+                sx={{ pl: 2 + nivel * 2 }}
               >
                 <ListItemText primary={c.nombre} />
                 <Typography variant="body2" color="text.secondary" aria-label={`${c.productos} productos`}>{c.productos}</Typography>

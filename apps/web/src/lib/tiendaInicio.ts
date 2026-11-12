@@ -3,6 +3,7 @@ import { useFuenteTienda } from './fuenteTienda'
 import { urlsImagenesProducto } from './imagenProducto'
 import type { ProductoListado } from './tiendaListado'
 import { supabaseClient } from './supabase'
+import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-10 (MSF-399): destacados de la home con el precio final de la empresa. La visibilidad efectiva,
 // el tope de 8, el precio y la disponibilidad los resuelve la base
@@ -44,7 +45,7 @@ export async function leerInicioTienda(host: string): Promise<InicioTienda> {
   const fila = data as FilaInicio
   const destacados = fila.productos.map((p) => ({
     id: p.id,
-    nombre: p.nombre,
+    nombre: limpiarTextoPublico(p.nombre),
     precio: p.precio === null ? null : Number(p.precio),
     ...(p.precio_anterior == null ? {} : { precioAnterior: Number(p.precio_anterior) }),
     disponible: p.disponible,

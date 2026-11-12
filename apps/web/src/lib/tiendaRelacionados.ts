@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { urlsImagenesProducto } from './imagenProducto'
 import { esIdValido, type ProductoListado } from './tiendaListado'
 import { supabaseClient } from './supabase'
+import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-20 (MSF-263): productos relacionados de la ficha. Cuáles son (misma categoría, hasta 4, sin el
 // actual, destacados primero), su precio y su disponibilidad los decide la base
@@ -35,7 +36,7 @@ export async function leerRelacionados(host: string, productoId: string): Promis
   if (!data) return { productos: [], imagenes: {} }
   const productos = (data as FilaRelacionados).productos.map((p) => ({
     id: p.id,
-    nombre: p.nombre,
+    nombre: limpiarTextoPublico(p.nombre),
     precio: p.precio === null ? null : Number(p.precio),
     disponible: p.disponible,
     imagen: p.imagen,
