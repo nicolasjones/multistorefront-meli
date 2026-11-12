@@ -150,7 +150,7 @@ Las tres pantallas respetan la **empresa activa** de la barra superior (Principi
 cambiarla recargan todas sus consultas, reencuadran la paginación y descartan el filtro que ya no
 existe; el detalle además **cierra con aviso** el diálogo «Registrar cobro» que estuviera abierto.
 
-Fuera de alcance de la épica (son de MSF-135/MSF-139 u otras): la pestaña «Motos», «Exportar»,
+Fuera de alcance de la épica (son de MSF-135/MSF-139 u otras): la pestaña «Motos» (la entrega MSF-145, `docs/ventas-motos.md`), «Exportar»,
 la importación de extractos bancarios, el reverso de un cobro mal cargado, el cobro sobre
 presupuestos y los campos de despacho (Guía, Fecha de envío, Armó, Controló, Entregó).
 
