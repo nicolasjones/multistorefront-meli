@@ -143,3 +143,12 @@ Al abrir «Cargar dólar del día» el diálogo muestra «Sugerida: $ X por USD 
 - **Despliegue:** una función nueva no queda registrada en el runtime de dev hasta recrear el stack (`Function not found`); el servidor necesita salida a internet hacia `dolarapi.com`.
 - **F-PRE-14 (listas mayoristas) no se implementa:** la épica no define requisitos y choca con F-PRE-15 (escalas por tipo de cliente, ya implementada en «Tipos de cliente»). Queda en Backlog hasta decidir si sigue siendo necesaria o se redefine.
 
+- **Contrato de la función:** solo `POST` (otro método: 405); sin sesión válida o sin nivel `edicion`: 403; si no se puede verificar el permiso: 502. Respuesta correcta: `{ "valor": number, "fuente": string, "fecha": string }`. Si la fuente no responde en 5 s o devuelve un valor fuera de `0 < venta < 1.000.000`, responde 502 con «No pudimos consultar la cotización sugerida. Podés cargar el valor a mano.» o «La fuente devolvió un valor que no se puede usar. Podés cargar el valor a mano.».
+
+### Cómo probarlo
+
+1. **Prerrequisitos:** una persona con nivel `edicion` en «Cotización del dólar», la función desplegada y el servidor con salida a `dolarapi.com`.
+2. Entrá a «Cotización del dólar» y tocá «Cargar cotización»: debe aparecer «Sugerida: $ X por USD · fuente».
+3. Tocá «Usar este valor»: solo se completa el campo; no se carga nada hasta continuar y confirmar como siempre.
+4. Con una persona con lectura, o sin salida a internet, el diálogo avisa «No pudimos consultar la cotización sugerida. Cargá el valor a mano.» y la carga manual funciona igual.
+5. **Automatizado:** `pnpm test:edge:cotizacion-sugerida` (función) y `DialogoCargarDolar.test.tsx` / `useCotizacionSugerida.test.tsx` (diálogo). [MSF-373:T001-T003]

@@ -4,11 +4,11 @@
 
 ## Phase 1: F-PRE-13 · Cotización sugerida desde una fuente externa
 
-- [x] T001 [F-PRE-13][US1] Lectura de la fuente pública y entrega del valor sugerido (FR-001); ubicación y fuente según Pregunta 1. Incluye `contracts/`/`openapi/` si hay RPC o Edge Function.
+- [x] T001 [F-PRE-13/MSF-441][US1] Lectura de la fuente pública y entrega del valor sugerido (FR-001); ubicación y fuente según Pregunta 1. Incluye `contracts/`/`openapi/` si hay RPC o Edge Function.
   Hecho: Edge Function `cotizacion-sugerida` + `pnpm test:edge:cotizacion-sugerida` (9 pruebas). Desvío: sin `openapi/` (la función no es API pública; contrato en `docs/precios.md`).
-- [x] T002 [F-PRE-13][US1] Mostrar la sugerencia en el diálogo «Cargar dólar del día» y mantener la carga manual si la fuente falla (FR-001, FR-002).
+- [x] T002 [F-PRE-13/MSF-441][US1] Mostrar la sugerencia en el diálogo «Cargar dólar del día» y mantener la carga manual si la fuente falla (FR-001, FR-002).
   Hecho: `SugerenciaDelDia` en `DialogoCargarDolar` + hook `useCotizacionSugerida`. Desvío: diseño propio ausente en el prototipo (regla de fuentes 5): texto `xs` y botón de texto.
-- [x] T003 [F-PRE-13][US1] Vitest del diálogo con fuente disponible y caída, y cambio de empresa activa (SC-001).
+- [x] T003 [F-PRE-13/MSF-441][US1] Vitest del diálogo con fuente disponible y caída, y cambio de empresa activa (SC-001).
   Hecho: pruebas del diálogo y del hook. Desvío: no hay prueba de «cambio de empresa»: la sugerencia no depende de la empresa (la función no recibe empresa).
 
 **Checkpoint**: la sugerencia aparece en el diálogo y la carga manual sigue igual.
