@@ -163,20 +163,26 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `infra/kestra/.env.example`).
 - Migraciones: `20270224110201_api_claves`, `20270224110202_api_llamadas_y_limite`,
   `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
-  `20270224110205_api_eventos_precio_venta`. Son aditivas; cada encabezado
+  `20270224110205_api_eventos_precio_venta`, `20270228100000_api_menores_revision_msf233` y
+  `20270301100000_api_decisiones_abiertas_msf233`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas` y
   `api_eventos` (`pnpm test:db`).
 - **Decisiones cerradas (2026-11-12, migración `20270301100000_api_decisiones_abiertas_msf233`):**
-  - Topes por organización: **50 claves vigentes** (revocadas y vencidas no cuentan; rotar no se bloquea) y
-    **20 suscripciones**. Al superarlos la RPC responde `54000` y la pantalla lo avisa.
+  - Topes por organización: **50 claves vigentes** (revocadas y vencidas no cuentan), **20 suscripciones** y, al rotar,
+    un techo duro de **100 claves vigentes** (la clave anterior sigue vigente 24 h; sin techo, rotar en bucle crearía
+    claves sin límite). Al superarlos la RPC responde `54000` y la pantalla lo avisa (crear). La purga diaria borra las
+    claves revocadas o vencidas hace más de 90 días. Una suscripción no puede compartir secreto de Vault con otra
+    (índice único).
   - `creada_por` de claves y suscripciones es `on delete set null`: dar de baja a quien las creó no corta la integración.
     Una clave o suscripción sin creador sigue vigente hasta que alguien con permiso la revoque o elimine.
   - Borrar una suscripción por cualquier vía (también por cascada de organización) borra su secreto de Vault (trigger).
-  - `GET /v1/precios` ya no agrupa todo el catálogo en cada página: solo los productos (o escalas) tocados desde el cursor
-    o desde `actualizado_desde`. Una carga completa inicial sigue leyendo el catálogo entero.
+  - `GET /v1/precios` ya no agrupa todo el catálogo en cada página: los candidatos salen de dos ramas con índice (productos
+    y escalas tocados desde el cursor o desde `actualizado_desde`). Medido en el stack local con 50 000 productos: lectura
+    incremental ≈ 6 ms frente a ≈ 104 ms de la carga completa. La carga completa inicial sigue leyendo el catálogo entero
+    (no hay columna materializada de «último cambio»).
   - El decodificado del cursor vive en `private.api_cursor_partes`; un cursor de stock con un tercer valor que no es uuid
     es `400 cursor_invalido`.
   - Pruebas: pgTAP `api_decisiones_abiertas`.

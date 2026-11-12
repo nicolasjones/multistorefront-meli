@@ -10,6 +10,7 @@ insert into organizaciones (id, nombre) values
 
 insert into auth.users (id, email) values
   ('f3000000-0000-0000-0000-000000000001', 'admin-decisiones@example.com'),
+  ('f3000000-0000-0000-0000-000000000003', 'creador-suscripcion@example.com'),
   ('f3000000-0000-0000-0000-000000000002', 'creador-decisiones@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
@@ -53,7 +54,8 @@ select ('b3000000-0000-0000-0000-00000000000' || n)::uuid, 'a3000000-0000-0000-0
 
 -- Solo la escala del producto 1 cambia después: su `actualizado_en` pasa a ser el de la escala.
 insert into dominio.producto_precios_escala (producto_id, organizacion_id, escala, precio, updated_at)
-values ('b3000000-0000-0000-0000-000000000001', 'a3000000-0000-0000-0000-000000000001', 'x5', 90, '2027-02-01T00:00:00Z');
+values ('b3000000-0000-0000-0000-000000000001', 'a3000000-0000-0000-0000-000000000001', 'x5', 90, '2027-02-01T00:00:00Z'),
+       ('b3000000-0000-0000-0000-000000000001', 'a3000000-0000-0000-0000-000000000001', 'x10', 80, '2027-01-02T00:00:00Z');
 
 select is(
   (select array_agg(e->>'sku' order by e->>'sku')
@@ -72,6 +74,12 @@ select is(
      from private.api_leer_precios('a3000000-0000-0000-0000-000000000001', null, 100, '2027-01-15T00:00:00Z') r,
           jsonb_array_elements(r.filas) e),
   90::numeric, 'el producto filtrado trae el precio de su escala');
+
+select is(
+  (select (e->>'precio_x10')::numeric
+     from private.api_leer_precios('a3000000-0000-0000-0000-000000000001', null, 100, '2027-01-15T00:00:00Z') r,
+          jsonb_array_elements(r.filas) e),
+  80::numeric, 'el producto filtrado trae también la escala vieja, no solo la que cambió');
 
 create temp table paginas_precios (n int, skus text[], siguiente text);
 do $$
@@ -131,6 +139,34 @@ select is((select count(*)::int from vault.secrets where id = (select id from va
 delete from public.api_suscripciones where id = 'd3000000-0000-0000-0000-000000000001';
 select is((select count(*)::int from vault.secrets where id = (select id from vault_prueba)), 0, 'borrar la suscripción borra su secreto');
 
+-- Dos suscripciones: borrar una no toca el secreto de la otra, y no pueden compartir secreto.
+do $$
+declare
+  v_a uuid := vault.create_secret('secreto-a');
+  v_b uuid := vault.create_secret('secreto-b');
+begin
+  insert into public.api_suscripciones (id, organizacion_id, url, tipos, secreto_vault_id, creada_por) values
+    ('d3000000-0000-0000-0000-000000000002', 'a3000000-0000-0000-0000-000000000001', 'https://ejemplo.com/uno', array['stock.actualizado'], v_a, 'f3000000-0000-0000-0000-000000000003'),
+    ('d3000000-0000-0000-0000-000000000003', 'a3000000-0000-0000-0000-000000000001', 'https://ejemplo.com/dos', array['stock.actualizado'], v_b, 'f3000000-0000-0000-0000-000000000001');
+  create temp table vault_par as select v_a as a, v_b as b;
+end $$;
+
+select throws_ok(
+  $$insert into public.api_suscripciones (organizacion_id, url, tipos, secreto_vault_id)
+    values ('a3000000-0000-0000-0000-000000000001', 'https://ejemplo.com/tres', array['stock.actualizado'], (select b from vault_par))$$,
+  '23505', null, 'dos suscripciones no pueden compartir el mismo secreto de Vault');
+
+delete from auth.users where id = 'f3000000-0000-0000-0000-000000000003';
+select is((select count(*)::int from public.api_suscripciones where id = 'd3000000-0000-0000-0000-000000000002'), 1,
+  'eliminar a quien creó la suscripción no la borra');
+select is((select creada_por from public.api_suscripciones where id = 'd3000000-0000-0000-0000-000000000002'), null,
+  'la suscripción queda sin creador');
+
+delete from public.api_suscripciones where id = 'd3000000-0000-0000-0000-000000000002';
+select is((select count(*)::int from vault.secrets where id = (select a from vault_par)), 0, 'se borró el secreto de la suscripción eliminada');
+select is((select count(*)::int from vault.secrets where id = (select b from vault_par)), 1, 'el secreto de la otra suscripción sigue ahí');
+delete from public.api_suscripciones where id = 'd3000000-0000-0000-0000-000000000003';
+
 insert into organizaciones (id, nombre) values ('a3000000-0000-0000-0000-000000000002', 'Organización que se va');
 do $$
 declare
@@ -173,6 +209,47 @@ select throws_ok($$select * from public.crear_suscripcion_api('https://ejemplo.c
   '54000', null, 'la suscripción número 21 supera el tope');
 
 reset role;
+
+-- Las claves revocadas y las vencidas no cuentan para el tope.
+update public.api_claves set revocada_en = now() where nombre = 'Clave 1';
+update public.api_claves set vence_en = now() - interval '1 day' where nombre = 'Clave 2';
+set local role authenticated;
+select lives_ok($$select * from public.crear_clave_api('Tras revocar', array['stock'])$$, 'al revocar una clave se libera un cupo');
+select lives_ok($$select * from public.crear_clave_api('Tras vencer', array['stock'])$$, 'al vencer una clave se libera otro cupo');
+select throws_ok($$select * from public.crear_clave_api('Otra más', array['stock'])$$, '54000',
+  'La organización llegó al máximo de 50 claves vigentes: revocá alguna antes de crear otra',
+  'con 50 vigentes vuelve a rechazar, con el mensaje del tope');
+reset role;
+
+-- Rotar tiene un tope duro de 100 vigentes.
+insert into public.api_claves (organizacion_id, nombre, prefijo, hash, alcances, creada_por)
+select 'a3000000-0000-0000-0000-000000000001', 'Extra ' || n, lpad(to_hex(1000 + n), 8, '0'),
+       extensions.digest('extra-' || n, 'sha256'), array['stock'], 'f3000000-0000-0000-0000-000000000001'
+  from generate_series(1, 50) n;
+set local role authenticated;
+select throws_ok(
+  $$select * from public.rotar_clave_api('c3000000-0000-0000-0000-000000000001')$$,
+  '54000', null, 'rotar con 100 claves vigentes se rechaza');
+reset role;
+
+-- La purga borra las claves revocadas o vencidas hace más de la retención y deja las recientes.
+update public.api_claves set revocada_en = now() - interval '100 days' where nombre = 'Clave 3';
+update public.api_claves set vence_en = now() - interval '100 days' where nombre = 'Clave 4';
+select private.purgar_api_llamadas(90);
+select is((select count(*)::int from public.api_claves where nombre in ('Clave 3', 'Clave 4')), 0,
+  'la purga borra las claves revocadas o vencidas hace más de 90 días');
+select is((select count(*)::int from public.api_claves where nombre in ('Clave 1', 'Clave 2')), 2,
+  'la purga conserva las revocadas o vencidas hace poco');
+
+-- Privilegios: las funciones privadas no son ejecutables por la app; las RPC públicas conservan los suyos.
+select is(has_function_privilege('anon', 'private.api_cursor_partes(text, integer)', 'EXECUTE'), false, 'anon no ejecuta api_cursor_partes');
+select is(has_function_privilege('authenticated', 'private.api_cursor_partes(text, integer)', 'EXECUTE'), false, 'authenticated no ejecuta api_cursor_partes');
+select is(has_function_privilege('authenticated', 'private.api_borrar_secreto_suscripcion()', 'EXECUTE'), false, 'authenticated no ejecuta el trigger de Vault');
+select is(has_function_privilege('anon', 'private.api_borrar_secreto_suscripcion()', 'EXECUTE'), false, 'anon no ejecuta el trigger de Vault');
+select is(has_function_privilege('anon', 'public.rotar_clave_api(uuid)', 'EXECUTE'), false, 'anon no rota claves');
+select is(has_function_privilege('authenticated', 'public.rotar_clave_api(uuid)', 'EXECUTE'), true, 'authenticated rota claves');
+select is(has_function_privilege('anon', 'public.eliminar_suscripcion_api(uuid)', 'EXECUTE'), false, 'anon no elimina suscripciones');
+select is(has_function_privilege('authenticated', 'public.eliminar_suscripcion_api(uuid)', 'EXECUTE'), true, 'authenticated elimina suscripciones');
 
 select finish();
 rollback;

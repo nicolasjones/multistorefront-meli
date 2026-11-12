@@ -77,6 +77,7 @@ crear_clave_api(p_nombre text, p_alcances text[], p_vence_en timestamptz default
   -> table(id uuid, valor text)
 rotar_clave_api(p_clave_id uuid) -> table(id uuid, valor text)
 revocar_clave_api(p_clave_id uuid) -> void
+// Topes por organización (SQLSTATE 54000 al superarlos): 50 claves vigentes al crear, 100 al rotar, 20 suscripciones.
 crear_suscripcion_api(p_url text, p_tipos text[]) -> table(id uuid, secreto text)
 actualizar_suscripcion_api(p_id uuid, p_activa boolean) -> void
 eliminar_suscripcion_api(p_id uuid) -> void
