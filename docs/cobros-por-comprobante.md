@@ -22,6 +22,7 @@ Las cinco migraciones son **aditivas** (con reversión en el encabezado) y usan 
 | `20270114100200_registrar_cobro_interno.sql` | `private.registrar_cobro_interno`: el único camino para dejar un cobro en el libro. |
 | `20270114100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
 | `20270114100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
+| `20270227140000_saldo_comprobante_resta_notas_credito.sql` | (MSF-450, posterior) las dos `saldo_comprobante` pasan a restar las notas de crédito y devuelven la columna `notas_credito`. |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`)
 las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20270112150000`), y
@@ -60,8 +61,10 @@ desactiva más tarde, el cobro ya registrado se conserva).
 
 ## Saldo y lectura
 
-- `public.saldo_comprobante(p_id uuid) → (total, cobrado, saldo)`: total con IVA, suma de los
-  cobros y lo que falta. `security invoker` (manda la RLS de `dominio`) y además filtra por
+- `public.saldo_comprobante(p_id uuid) → (total, cobrado, notas_credito, saldo)`: total con IVA, suma de los
+  cobros, las **notas de crédito** emitidas sobre la factura y lo que falta (`total − cobrado − notas de crédito`,
+  mínimo 0, a 2 decimales; no hay saldo a favor). Cuentan las notas que cuelgan de la factura, del mismo cliente y
+  que no están en `borrador` ni `anulada` (`private.comprobante_cuenta_como_facturado`). `security invoker` (manda la RLS de `dominio`) y además filtra por
   organización y empresa accesible: otra organización recibe `P0002` («El comprobante no existe»),
   nunca datos ajenos. Sin `ventas` devuelve `42501`.
 - `public.cobros_de_comprobante(p_comprobante_id uuid)`: la lista de cobros de la factura (fecha,
@@ -75,7 +78,23 @@ desactiva más tarde, el cobro ya registrado se conserva).
 - `private.saldo_comprobante(p_id uuid)`: la cuenta interna. **Volátil** a propósito: la usa
   `private.registrar_cobro_interno` justo después de insertar el cobro y tiene que ver esa fila
   (una función `stable` usaría el snapshot de la sentencia que la llamó y vería el saldo
-  anterior). No la ejecuta `authenticated`.
+  anterior). No la ejecuta `authenticated`. Devuelve lo mismo que la pública (`total, cobrado, notas_credito,
+  saldo`) y **es el único cálculo del saldo**: de ahí leen el **tope** de `registrar_cobro` (el importe no puede
+  superar el saldo neto), el paso a **Cobrado** (saldo neto 0), el importe del **contrarreembolso** y la cuenta
+  corriente del cliente. Una nota emitida *después* de cobrar no devuelve plata: el saldo queda en 0 y el estado no
+  cambia. Hasta la migración `20270227140000` el saldo era `total − cobros` y la ficha del cliente (que sí restaba las
+  notas) y el comprobante mostraban cifras distintas.
+- **Límites conocidos del saldo neto** (decididos aparte, no se tocan acá): el saldo se recalcula al leer, pero el
+  **estado** de la factura y el importe de un contrarreembolso solo cambian cuando se registra un cobro o se abre.
+  - Una nota emitida *después* de un cobro parcial puede dejar el saldo en 0 con la factura todavía en `deuda`
+    (nadie llama al marcado de estado al emitir la nota, y `registrar_cobro` rechaza cualquier importe sobre saldo 0):
+    no figura en la cuenta corriente, pero el listado de ventas la sigue mostrando «Deuda».
+  - Un contrarreembolso ya abierto conserva su importe: si después se emite una nota, `marcar_contrarreembolso_cobrado`
+    intenta cobrar el importe viejo contra un saldo menor y falla con `P0001` (queda «Pendiente»).
+  - Si se anula una nota *después* de que la factura pasó a `cobrado`, el saldo vuelve a subir pero el estado sigue en
+    `cobrado` (la cuenta corriente la oculta; el comprobante muestra el saldo).
+- `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
+  `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 
 ## `private.registrar_cobro_interno`
 
@@ -197,7 +216,8 @@ tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
 
 ### Tarjeta «Cobros»
 
-- Totales **Cobrado** y **Saldo**, y la lista de cobros (fecha, forma de pago, cuenta de cobro,
+- Totales **Cobrado** y **Saldo** (y **Notas de crédito**, solo si la factura las tiene: el saldo ya las descuenta y la
+  persona tiene que ver por qué), y la lista de cobros (fecha, forma de pago, cuenta de cobro,
   importe y quién lo registró).
 - Estados del kit: carga (esqueletos), vacío («Todavía no hay cobros») y error con «Reintentar».
   Con la lectura en error **no** se ofrece «Registrar cobro»: el saldo es desconocido, así que el
@@ -205,7 +225,8 @@ tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
 - Botón **«Registrar cobro»**: solo con la acción `registrar_cobro` en la empresa de la factura
   y solo si el comprobante es una **factura en estado operativo** (un presupuesto, un borrador o
   una factura anulada no lo muestran: la base los rechaza y la pantalla no ofrece una acción que
-  va a fallar). Sin la acción no aparece, y queda deshabilitado cuando la factura ya no tiene saldo.
+  va a fallar). Sin la acción no aparece, y queda deshabilitado cuando la factura ya no tiene saldo (cobrada, o cubierta por lo cobrado más las notas de crédito:
+  el aviso lo dice).
 
 ### Diálogo «Registrar cobro»
 

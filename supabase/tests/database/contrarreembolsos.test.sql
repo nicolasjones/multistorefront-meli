@@ -794,6 +794,33 @@ select throws_ok(
   $$select * from public.resumen_contrarreembolsos(null)$$,
   '42501', null, 'sin Ventas no se ven los totales'
 );
+-- Notas de crédito (MSF-450): el contrarreembolso se abre por el saldo NETO de la factura, no por el total.
+-- F20: 1.000 con una nota de 300 → se abre por 700. F21: 400 cubierta entera por una nota de 400 → no hay saldo.
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
+  ('f1000000-0000-0000-0000-000000000020', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000020', '2026-12-02', 'confirmada', 1000, 1000, now()),
+  ('f1000000-0000-0000-0000-000000000021', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000021', '2026-12-02', 'confirmada', 400, 400, now());
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo) values
+  ('f1100000-0000-0000-0000-000000000020', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000120', '2026-12-03', 'emitida', 300, 300, 'f1000000-0000-0000-0000-000000000020', 'devolucion_importe'),
+  ('f1100000-0000-0000-0000-000000000021', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000121', '2026-12-03', 'emitida', 400, 400, 'f1000000-0000-0000-0000-000000000021', 'devolucion_importe');
+
+select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select private.abrir_contrarreembolso(
+      'f1000000-0000-0000-0000-000000000020', 'e1000000-0000-0000-0000-00000000000a', 'G-NC-0001')$$,
+  'una factura con nota de crédito abre su contrarreembolso');
+reset role;
+select is(
+  (select importe from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000020'),
+  700::numeric, 'el contrarreembolso es por el saldo neto (1.000 − nota de 300), no por el total');
+
+select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select private.abrir_contrarreembolso(
+      'f1000000-0000-0000-0000-000000000021', 'e1000000-0000-0000-0000-00000000000a', 'G-NC-0002')$$,
+  '22023', null, 'una factura que la nota cubre entera no tiene saldo: no hay contrarreembolso que abrir');
 reset role;
 
 select * from finish();

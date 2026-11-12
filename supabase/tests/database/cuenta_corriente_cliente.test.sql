@@ -4,8 +4,8 @@
 --
 -- Qué se comprueba:
 -- · el saldo de cada comprobante es `total − cobrado − notas de crédito` (mínimo 0): `cobrado` y el total salen de
---   `private.saldo_comprobante` (F-VTA-12) y las notas se restan acá (decisión del 2026-11-11, MSF-450); el total es la
---   suma de los abiertos (FR-002, FR-004, SC-001);
+--   `private.saldo_comprobante` (F-VTA-12), que desde 20270227140000 también resta las notas de crédito (decisión del
+--   2026-11-11, MSF-450); el total es la suma de los abiertos (FR-002, FR-004, SC-001);
 -- · cada fila trae el id del comprobante: el número se repite entre tiendas (el correlativo es
 --   por organización, empresa y tipo) y el id es lo que distingue las filas;
 -- · entran solo las facturas que no están en `borrador`, `anulada` ni `cobrado` (una cobrada sin fila
