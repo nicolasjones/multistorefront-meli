@@ -1,0 +1,479 @@
+-- F-API-01 (MSF-233): cierre de las cuatro decisiones que dejaron abiertas las revisiones QA y Código/Seguridad.
+--
+-- 1. `api_leer_precios` recorría y agrupaba TODOS los productos de la organización en cada página. Ahora solo agrupa los
+--    candidatos que pueden caer en la página (producto o alguna escala tocados desde el cursor / `actualizado_desde`),
+--    con un índice por (organización, updated_at, producto) en las escalas. La sincronización incremental pasa a costar
+--    lo que cambió; una carga completa inicial sigue leyendo el catálogo (no hay columna materializada de «último cambio»).
+-- 2. `creada_por` de claves y suscripciones ya no borra la clave o la suscripción cuando se elimina a la persona que la
+--    creó (`on delete set null`): la integración del cliente no se corta por una baja de usuario. Además, borrar una
+--    suscripción por CUALQUIER vía (también por cascada de organización o de usuario) borra su secreto de Vault.
+-- 3. Tope por organización: 50 claves vigentes y 20 suscripciones. Un administrador (o un script) no puede crear sin límite.
+-- 4. El decodificado del cursor estaba repetido en cuatro funciones: ahora vive en `private.api_cursor_partes`. De paso, un
+--    cursor de stock con un tercer valor que no es un uuid devuelve CURSOR_INVALIDO (400) en vez de un error interno.
+--
+-- Migración aditiva. Reversión (en una migración posterior): volver a las definiciones de
+-- 20270224110203_api_lectura.sql y 20270224110201/20270224110204 (crear_*), y
+--   drop trigger if exists api_suscripciones_borrar_secreto on public.api_suscripciones;
+--   drop function if exists private.api_borrar_secreto_suscripcion();
+--   drop function if exists private.api_cursor_partes(text, integer);
+--   drop index if exists dominio.producto_precios_escala_org_updated_idx;
+--   (y volver a `on delete cascade` en las dos claves foráneas `creada_por`).
+
+-- ============================================================================
+-- 4. Cursor: una sola función de decodificado.
+-- ============================================================================
+
+create or replace function private.api_cursor_partes(p_cursor text, p_partes integer)
+returns table (fecha timestamptz, id uuid, extra uuid)
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  v_clave text;
+  v_partes text[];
+begin
+  select d.p_clave into v_clave from private.api_decodificar_cursor(p_cursor) d;
+  if v_clave is null then
+    return;
+  end if;
+
+  v_partes := string_to_array(v_clave, '|');
+  if array_length(v_partes, 1) is distinct from p_partes then
+    raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+  end if;
+
+  begin
+    fecha := timestamptz 'epoch' + v_partes[1]::numeric * interval '1 microsecond';
+    id := v_partes[2]::uuid;
+    extra := case when p_partes = 3 then v_partes[3]::uuid end;
+  exception when others then
+    raise exception 'CURSOR_INVALIDO' using errcode = '22023';
+  end;
+
+  return next;
+end;
+$$;
+
+comment on function private.api_cursor_partes(text, integer) is
+  'F-API-01: decodifica el cursor de paginación (fecha, id y, si son 3 partes, un uuid extra). CURSOR_INVALIDO (22023) si no coincide.';
+
+revoke execute on function private.api_cursor_partes(text, integer) from public, anon, authenticated;
+
+create or replace function private.api_leer_productos(
+  p_organizacion_id uuid,
+  p_cursor text,
+  p_limite integer,
+  p_actualizado_desde timestamptz
+)
+returns table (filas jsonb, siguiente_cursor text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_limite integer := coalesce(p_limite, 50);
+  v_fecha timestamptz;
+  v_id uuid;
+  v_filas jsonb;
+  v_siguiente text;
+begin
+  if v_limite < 1 or v_limite > 100 then
+    raise exception 'LIMITE_INVALIDO' using errcode = '22023';
+  end if;
+
+  select c.fecha, c.id into v_fecha, v_id from private.api_cursor_partes(p_cursor, 2) c;
+
+  with pagina as (
+    select p.id, p.nombre, p.sku, p.activo, p.categoria_id,
+      (select private.ruta_categoria(p.categoria_id)) as categoria,
+      p.moneda, p.precio_lista, p.updated_at as actualizado_en
+      from dominio.productos p
+     where p.organizacion_id = p_organizacion_id
+       and (p_actualizado_desde is null or p.updated_at >= p_actualizado_desde)
+       and (v_id is null or (p.updated_at, p.id) > (v_fecha, v_id))
+     order by p.updated_at, p.id
+     limit v_limite + 1
+  ), recortada as (
+    select * from pagina limit v_limite
+  )
+  select
+    coalesce((select jsonb_agg(to_jsonb(r) order by r.actualizado_en, r.id) from recortada r), '[]'::jsonb),
+    case
+      when (select count(*) from pagina) > v_limite then
+        (select private.api_codificar_cursor(r.actualizado_en, r.id)
+           from recortada r order by r.actualizado_en desc, r.id desc limit 1)
+      else null
+    end
+  into v_filas, v_siguiente;
+
+  return query select v_filas, v_siguiente;
+end;
+$$;
+
+create or replace function private.api_leer_stock(
+  p_organizacion_id uuid,
+  p_cursor text,
+  p_limite integer,
+  p_actualizado_desde timestamptz
+)
+returns table (filas jsonb, siguiente_cursor text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_limite integer := coalesce(p_limite, 50);
+  v_fecha timestamptz;
+  v_id uuid;
+  v_deposito uuid;
+  v_filas jsonb;
+  v_siguiente text;
+begin
+  if v_limite < 1 or v_limite > 100 then
+    raise exception 'LIMITE_INVALIDO' using errcode = '22023';
+  end if;
+
+  select c.fecha, c.id, c.extra into v_fecha, v_id, v_deposito from private.api_cursor_partes(p_cursor, 3) c;
+
+  with pagina as (
+    select e.producto_id, pr.nombre, pr.sku, e.deposito_id, dep.nombre as deposito,
+      e.cantidad, e.reservado, e.cantidad - e.reservado as disponible,
+      e.updated_at as actualizado_en
+      from dominio.existencias_deposito e
+      join dominio.productos pr
+        on pr.id = e.producto_id and pr.organizacion_id = e.organizacion_id
+      join dominio.depositos dep
+        on dep.id = e.deposito_id and dep.organizacion_id = e.organizacion_id
+     where e.organizacion_id = p_organizacion_id
+       and (p_actualizado_desde is null or e.updated_at >= p_actualizado_desde)
+       and (v_id is null or (e.updated_at, e.producto_id, e.deposito_id) > (v_fecha, v_id, v_deposito))
+     order by e.updated_at, e.producto_id, e.deposito_id
+     limit v_limite + 1
+  ), recortada as (
+    select * from pagina limit v_limite
+  )
+  select
+    coalesce((select jsonb_agg(to_jsonb(r) order by r.actualizado_en, r.producto_id, r.deposito_id) from recortada r), '[]'::jsonb),
+    case
+      when (select count(*) from pagina) > v_limite then
+        (select private.api_codificar_cursor(r.actualizado_en, r.producto_id, r.deposito_id)
+           from recortada r order by r.actualizado_en desc, r.producto_id desc, r.deposito_id desc limit 1)
+      else null
+    end
+  into v_filas, v_siguiente;
+
+  return query select v_filas, v_siguiente;
+end;
+$$;
+
+create or replace function private.api_leer_ventas(
+  p_organizacion_id uuid,
+  p_cursor text,
+  p_limite integer,
+  p_actualizado_desde timestamptz
+)
+returns table (filas jsonb, siguiente_cursor text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_limite integer := coalesce(p_limite, 50);
+  v_fecha timestamptz;
+  v_id uuid;
+  v_filas jsonb;
+  v_siguiente text;
+begin
+  if v_limite < 1 or v_limite > 100 then
+    raise exception 'LIMITE_INVALIDO' using errcode = '22023';
+  end if;
+
+  select c.fecha, c.id into v_fecha, v_id from private.api_cursor_partes(p_cursor, 2) c;
+
+  with pagina as (
+    select c.id, c.numero, c.fecha, c.empresa_id, c.total_sin_iva, c.total_con_iva, c.estado,
+      c.confirmado_en
+      from dominio.comprobantes_venta c
+     where c.organizacion_id = p_organizacion_id
+       and c.tipo = 'factura'
+       -- Confirmada (con `confirmado_en`) y no anulada, en cualquier estado posterior: una factura confirmada que pasa a
+       -- cobrado, deuda, aceptado, en proceso o armando sigue siendo una venta y NO desaparece de la API.
+       and c.confirmado_en is not null
+       and c.estado <> 'anulada'
+       and (p_actualizado_desde is null or c.confirmado_en >= p_actualizado_desde)
+       and (v_id is null or (c.confirmado_en, c.id) > (v_fecha, v_id))
+     order by c.confirmado_en, c.id
+     limit v_limite + 1
+  ), recortada as (
+    select * from pagina limit v_limite
+  )
+  select
+    coalesce((select jsonb_agg(to_jsonb(r) order by r.confirmado_en, r.id) from recortada r), '[]'::jsonb),
+    case
+      when (select count(*) from pagina) > v_limite then
+        (select private.api_codificar_cursor(r.confirmado_en, r.id)
+           from recortada r order by r.confirmado_en desc, r.id desc limit 1)
+      else null
+    end
+  into v_filas, v_siguiente;
+
+  return query select v_filas, v_siguiente;
+end;
+$$;
+
+-- ============================================================================
+-- 1. Precios: solo agrupa los candidatos de la página.
+-- ============================================================================
+
+create index if not exists producto_precios_escala_org_updated_idx
+  on dominio.producto_precios_escala (organizacion_id, updated_at, producto_id);
+
+create or replace function private.api_leer_precios(
+  p_organizacion_id uuid,
+  p_cursor text,
+  p_limite integer,
+  p_actualizado_desde timestamptz
+)
+returns table (filas jsonb, siguiente_cursor text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_limite integer := coalesce(p_limite, 50);
+  v_fecha timestamptz;
+  v_id uuid;
+  v_desde timestamptz;
+  v_filas jsonb;
+  v_siguiente text;
+begin
+  if v_limite < 1 or v_limite > 100 then
+    raise exception 'LIMITE_INVALIDO' using errcode = '22023';
+  end if;
+
+  select c.fecha, c.id into v_fecha, v_id from private.api_cursor_partes(p_cursor, 2) c;
+
+  -- Cota inferior de `actualizado_en` que exigen el filtro y el cursor (`greatest` ignora los nulos). Un producto cuyo
+  -- último cambio es anterior a esa cota no puede caer en la página: ni él ni ninguna de sus escalas se tocaron desde entonces.
+  v_desde := greatest(v_fecha, p_actualizado_desde);
+
+  -- `actualizado_en` es lo ÚLTIMO que cambió del producto: él o cualquiera de sus escalas (un cambio solo de escala no toca
+  -- `productos.updated_at` y la sincronización incremental lo perdía aunque se emitiera `precio.actualizado`). El filtro
+  -- `actualizado_desde` y el cursor usan ese mismo valor.
+  with base as (
+    select p.id as producto_id, p.nombre, p.sku, p.moneda, p.precio_lista,
+      max(e.precio) filter (where e.escala = 'x5') as precio_x5,
+      max(e.precio) filter (where e.escala = 'x10') as precio_x10,
+      max(e.precio) filter (where e.escala = 'x50') as precio_x50,
+      greatest(p.updated_at, coalesce(max(e.updated_at), p.updated_at)) as actualizado_en
+      from dominio.productos p
+      left join dominio.producto_precios_escala e
+        on e.producto_id = p.id and e.organizacion_id = p.organizacion_id
+     where p.organizacion_id = p_organizacion_id
+       and (
+         v_desde is null
+         or p.updated_at >= v_desde
+         or exists (
+           select 1 from dominio.producto_precios_escala x
+            where x.organizacion_id = p.organizacion_id and x.producto_id = p.id and x.updated_at >= v_desde
+         )
+       )
+     group by p.id, p.nombre, p.sku, p.moneda, p.precio_lista, p.updated_at
+  ), pagina as (
+    select b.*
+      from base b
+     where (p_actualizado_desde is null or b.actualizado_en >= p_actualizado_desde)
+       and (v_id is null or (b.actualizado_en, b.producto_id) > (v_fecha, v_id))
+     order by b.actualizado_en, b.producto_id
+     limit v_limite + 1
+  ), recortada as (
+    select * from pagina limit v_limite
+  )
+  select
+    coalesce((select jsonb_agg(to_jsonb(r) order by r.actualizado_en, r.producto_id) from recortada r), '[]'::jsonb),
+    case
+      when (select count(*) from pagina) > v_limite then
+        (select private.api_codificar_cursor(r.actualizado_en, r.producto_id)
+           from recortada r order by r.actualizado_en desc, r.producto_id desc limit 1)
+      else null
+    end
+  into v_filas, v_siguiente;
+
+  return query select v_filas, v_siguiente;
+end;
+$$;
+
+-- ============================================================================
+-- 2. `creada_por` no borra la integración; el secreto de Vault se va con la suscripción.
+-- ============================================================================
+
+alter table public.api_claves alter column creada_por drop not null;
+alter table public.api_claves drop constraint if exists api_claves_creada_por_fkey;
+alter table public.api_claves
+  add constraint api_claves_creada_por_fkey foreign key (creada_por) references auth.users (id) on delete set null;
+
+alter table public.api_suscripciones alter column creada_por drop not null;
+alter table public.api_suscripciones drop constraint if exists api_suscripciones_creada_por_fkey;
+alter table public.api_suscripciones
+  add constraint api_suscripciones_creada_por_fkey foreign key (creada_por) references auth.users (id) on delete set null;
+
+create or replace function private.api_borrar_secreto_suscripcion()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from vault.secrets where id = old.secreto_vault_id;
+  return old;
+end;
+$$;
+
+revoke execute on function private.api_borrar_secreto_suscripcion() from public, anon, authenticated;
+
+drop trigger if exists api_suscripciones_borrar_secreto on public.api_suscripciones;
+create trigger api_suscripciones_borrar_secreto
+  after delete on public.api_suscripciones
+  for each row execute function private.api_borrar_secreto_suscripcion();
+
+-- ============================================================================
+-- 3. Tope por organización.
+-- ============================================================================
+
+create or replace function public.crear_clave_api(
+  p_nombre text,
+  p_alcances text[],
+  p_vence_en timestamptz default null
+)
+returns table (id uuid, valor text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_organizacion_id uuid := (select private.organizacion_id());
+  v_nombre text := btrim(coalesce(p_nombre, ''));
+  v_alcances text[];
+  v_prefijo text;
+  v_token text;
+  v_id uuid;
+begin
+  if v_organizacion_id is null or not (select private.puede_escribir()) then
+    raise exception 'Solo un administrador puede crear claves de API' using errcode = '42501';
+  end if;
+
+  if v_nombre = '' or length(v_nombre) > 120 then
+    raise exception 'El nombre de la clave es obligatorio' using errcode = '22023';
+  end if;
+
+  select coalesce(array_agg(u.t order by u.ord), '{}'::text[]) into v_alcances
+    from (select distinct on (btrim(t)) btrim(t) as t, ord
+            from unnest(coalesce(p_alcances, '{}'::text[])) with ordinality as u(t, ord)
+           where btrim(t) <> ''
+           order by btrim(t), ord) u;
+
+  if cardinality(v_alcances) = 0 then
+    raise exception 'La clave necesita al menos un alcance' using errcode = '22023';
+  end if;
+
+  if not (v_alcances <@ array['productos', 'stock', 'precios', 'ventas']::text[]) then
+    raise exception 'Alcance inválido' using errcode = '22023';
+  end if;
+
+  if p_vence_en is not null and p_vence_en <= now() then
+    raise exception 'El vencimiento debe ser un instante futuro' using errcode = '22023';
+  end if;
+
+  -- Tope de 50 claves vigentes por organización (revocadas y vencidas no cuentan). El candado serializa las altas de la
+  -- misma organización para que dos llamadas simultáneas no pasen el tope juntas.
+  perform pg_advisory_xact_lock(hashtextextended('api_claves:' || v_organizacion_id::text, 0));
+  if (select count(*) from public.api_claves k
+       where k.organizacion_id = v_organizacion_id
+         and k.revocada_en is null
+         and (k.vence_en is null or k.vence_en > now())) >= 50 then
+    raise exception 'La organización llegó al máximo de 50 claves vigentes: revocá alguna antes de crear otra'
+      using errcode = '54000';
+  end if;
+
+  v_prefijo := (select private.api_prefijo_aleatorio());
+  v_token := 'msf_' || v_prefijo || '_' || (select private.api_secreto_aleatorio());
+
+  insert into public.api_claves (organizacion_id, nombre, prefijo, hash, alcances, vence_en, creada_por)
+  values (v_organizacion_id, v_nombre, v_prefijo, extensions.digest(v_token, 'sha256'), v_alcances,
+    p_vence_en, (select auth.uid()))
+  returning api_claves.id into v_id;
+
+  return query select v_id, v_token;
+end;
+$$;
+
+comment on function public.crear_clave_api(text, text[], timestamptz) is
+  'F-API-01: el Administrador crea una clave de lectura de su organización (máximo 50 vigentes). Devuelve el valor una sola vez; solo queda el hash.';
+
+revoke execute on function public.crear_clave_api(text, text[], timestamptz) from public, anon;
+grant execute on function public.crear_clave_api(text, text[], timestamptz) to authenticated;
+
+create or replace function public.crear_suscripcion_api(p_url text, p_tipos text[])
+returns table (id uuid, secreto text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_organizacion_id uuid := (select private.organizacion_id());
+  v_url text := btrim(coalesce(p_url, ''));
+  v_tipos text[];
+  v_secreto text;
+  v_vault_id uuid;
+  v_id uuid;
+begin
+  if v_organizacion_id is null or not (select private.puede_escribir()) then
+    raise exception 'Solo un administrador puede crear suscripciones a avisos' using errcode = '42501';
+  end if;
+
+  if not (select private.api_url_destino_valida(v_url)) then
+    raise exception 'La URL del aviso no es válida: tiene que ser https y apuntar a un destino público' using errcode = '22023';
+  end if;
+
+  select coalesce(array_agg(u.t order by u.ord), '{}'::text[]) into v_tipos
+    from (select distinct on (btrim(t)) btrim(t) as t, ord
+            from unnest(coalesce(p_tipos, '{}'::text[])) with ordinality as u(t, ord)
+           where btrim(t) <> ''
+           order by btrim(t), ord) u;
+
+  if cardinality(v_tipos) = 0 then
+    raise exception 'La suscripción necesita al menos un tipo de evento' using errcode = '22023';
+  end if;
+
+  if not (v_tipos <@ array['stock.actualizado', 'precio.actualizado', 'venta.registrada']::text[]) then
+    raise exception 'Tipo de evento inválido' using errcode = '22023';
+  end if;
+
+  -- Tope de 20 suscripciones por organización (cada una genera una entrega por evento).
+  perform pg_advisory_xact_lock(hashtextextended('api_suscripciones:' || v_organizacion_id::text, 0));
+  if (select count(*) from public.api_suscripciones s where s.organizacion_id = v_organizacion_id) >= 20 then
+    raise exception 'La organización llegó al máximo de 20 suscripciones: eliminá alguna antes de crear otra'
+      using errcode = '54000';
+  end if;
+
+  v_secreto := encode(extensions.gen_random_bytes(32), 'hex');
+  v_vault_id := vault.create_secret(v_secreto);
+
+  insert into public.api_suscripciones (organizacion_id, url, tipos, secreto_vault_id, creada_por)
+  values (v_organizacion_id, v_url, v_tipos, v_vault_id, (select auth.uid()))
+  returning api_suscripciones.id into v_id;
+
+  return query select v_id, v_secreto;
+end;
+$$;
+
+comment on function public.crear_suscripcion_api(text, text[]) is
+  'F-API-01: crea una suscripción a avisos (máximo 20 por organización). El secreto de firma se muestra una sola vez y queda en Vault.';
+
+revoke execute on function public.crear_suscripcion_api(text, text[]) from public, anon;
+grant execute on function public.crear_suscripcion_api(text, text[]) to authenticated;

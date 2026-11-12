@@ -174,6 +174,17 @@ describe('pantalla API · claves', () => {
     expect(await screen.findByText('No pudimos crear la clave.')).toBeInTheDocument()
   })
 
+  it('avisa que se llegó al máximo de claves vigentes', async () => {
+    mocks.rpc.mockReturnValue({ single: () => Promise.resolve({ data: null, error: { code: '54000', message: 'tope' } }) })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Crear clave' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Crear clave' })
+    fireEvent.change(within(dialogo).getByLabelText(/Nombre/), { target: { value: 'Una más' } })
+    fireEvent.click(within(dialogo).getByLabelText('stock'))
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Crear' }))
+    expect(await screen.findByText('Llegaste al máximo de 50 claves vigentes. Revocá alguna antes de crear otra.')).toBeInTheDocument()
+  })
+
   it('muestra el estado vacío cuando no hay claves', async () => {
     mocks.datos = { api_claves: { data: [], error: null } }
     abrir()

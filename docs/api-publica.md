@@ -169,6 +169,17 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas` y
   `api_eventos` (`pnpm test:db`).
+- **Decisiones cerradas (2026-11-12, migración `20270301100000_api_decisiones_abiertas_msf233`):**
+  - Topes por organización: **50 claves vigentes** (revocadas y vencidas no cuentan; rotar no se bloquea) y
+    **20 suscripciones**. Al superarlos la RPC responde `54000` y la pantalla lo avisa.
+  - `creada_por` de claves y suscripciones es `on delete set null`: dar de baja a quien las creó no corta la integración.
+    Una clave o suscripción sin creador sigue vigente hasta que alguien con permiso la revoque o elimine.
+  - Borrar una suscripción por cualquier vía (también por cascada de organización) borra su secreto de Vault (trigger).
+  - `GET /v1/precios` ya no agrupa todo el catálogo en cada página: solo los productos (o escalas) tocados desde el cursor
+    o desde `actualizado_desde`. Una carga completa inicial sigue leyendo el catálogo entero.
+  - El decodificado del cursor vive en `private.api_cursor_partes`; un cursor de stock con un tercer valor que no es uuid
+    es `400 cursor_invalido`.
+  - Pruebas: pgTAP `api_decisiones_abiertas`.
 
 # Cierre · Verificación global y revisión de seguridad (T021)
 

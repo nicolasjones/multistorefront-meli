@@ -68,7 +68,11 @@ export function PanelClaves() {
       .single<{ id: string; valor: string }>()
     setGuardando(false)
     if (errorRpc || !data) {
-      setErrorCrear('No pudimos crear la clave.')
+      setErrorCrear(
+        errorRpc?.code === '54000'
+          ? 'Llegaste al máximo de 50 claves vigentes. Revocá alguna antes de crear otra.'
+          : 'No pudimos crear la clave.',
+      )
       return
     }
     cerrar()
