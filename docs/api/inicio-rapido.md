@@ -149,7 +149,11 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
 
     function firmaValida(cabecera, cuerpo, secreto = SECRETO, ahora = Date.now() / 1000) {
       // Durante la rotación de un secreto el aviso trae dos `v1`: alcanza con que una coincida.
-      const partes = String(cabecera ?? '').split(',').map((p) => p.split('='))
+      // Se parte en el PRIMER `=`: una parte sin `=` queda como clave sin valor y no rompe nada.
+      const partes = String(cabecera ?? '').split(',').map((p) => {
+        const i = p.indexOf('=')
+        return i < 0 ? [p, ''] : [p.slice(0, i), p.slice(i + 1)]
+      })
       const t = Number(partes.find(([clave]) => clave === 't')?.[1])
       const recibidas = partes.filter(([clave]) => clave === 'v1').map(([, valor]) => valor)
       if (!Number.isFinite(t) || recibidas.length === 0) return false
@@ -185,7 +189,8 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
     def firma_valida(cabecera, cuerpo, secreto=SECRETO, ahora=None):
         # Durante la rotación de un secreto el aviso trae dos `v1`: alcanza con que una coincida.
         try:
-            partes = [p.split("=", 1) for p in (cabecera or "").split(",")]
+            # `partition` siempre devuelve (clave, "=", valor): una parte sin `=` queda como clave sin valor y no rompe nada.
+            partes = [p.partition("=")[::2] for p in (cabecera or "").split(",")]
             t = int(next(valor for clave, valor in partes if clave == "t"))
         except (ValueError, StopIteration):
             return False

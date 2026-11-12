@@ -17,8 +17,9 @@
 --   revoke execute on function public.rotar_secreto_suscripcion_api(uuid) from authenticated;
 --   drop function public.rotar_secreto_suscripcion_api(uuid);
 --   drop function private.api_secreto_o_nulo(uuid);
---   volver `private.api_entrega_para_entregar` / `public.api_entrega_para_entregar` a la definición de
---   20270224110204_api_suscripciones_entregas.sql (sin `secreto_anterior`), `private.api_borrar_secreto_suscripcion` a la de
+--   `drop function` de `public.api_entrega_para_entregar(uuid)` y `private.api_entrega_para_entregar(uuid)` (el tipo de retorno
+--   cambia: `create or replace` no alcanza) y recrearlas con la definición de 20270224110204_api_suscripciones_entregas.sql
+--   (sin `secreto_anterior`) y sus grants a `service_role`, `private.api_borrar_secreto_suscripcion` a la de
 --   20270301100000_api_decisiones_abiertas_msf233.sql y `private.purgar_api_llamadas` a la de 20270302100000_api_seguimientos_msf233.sql;
 --   alter table public.api_suscripciones drop column secreto_anterior_vault_id, drop column secreto_anterior_vence_en;
 --   (antes, borrar de Vault los secretos anteriores que queden).

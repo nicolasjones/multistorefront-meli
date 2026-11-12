@@ -29,7 +29,7 @@ X-Firma: t=<epoch>,v1=<hmac-sha256-hex>
 ```
 
 - Cuerpo = evento serializado `{ id, tipo, organizacion_id, ocurrido_en, datos }`.
-- `v1` = HMAC-SHA256 de `<t>.<cuerpo>` con el secreto de la suscripción; `t` = epoch en segundos.
+- `v1` = HMAC-SHA256 de `<t>.<cuerpo>` con el secreto de la suscripción; `t` = epoch en segundos. Durante la gracia de 24 h de una rotación del secreto (MSF-839) la cabecera lleva **dos** `v1`, `t=<epoch>,v1=<nuevo>,v1=<anterior>`: el receptor acepta el aviso si alguna coincide.
 - Timeout de 10 s; no sigue redirecciones.
 - SSRF al entregar: resuelve DNS y rechaza loopback, rangos privados, link-local y metadata del proveedor. Si el destino cambia respecto de la validación al guardar, la entrega falla.
 - Respuesta `2xx` = `completada`; cualquier otro estado o error de red = reintento.

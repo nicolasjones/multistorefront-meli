@@ -154,6 +154,35 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     expect(within(secreto).getByText(/El anterior sigue valiendo 24 horas/)).toBeInTheDocument()
   })
 
+  it('el secreto rotado no queda en la pantalla después de cerrar el diálogo', async () => {
+    mocks.rpcResultado = { data: { id: 's-1', secreto: 'secreto-rotado' }, error: null }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Rotar secreto' })).getByRole('button', { name: 'Rotar' }))
+    const secreto = await screen.findByRole('dialog', { name: 'Copiá el secreto' })
+    fireEvent.click(within(secreto).getByRole('button', { name: 'Listo, ya lo copié' }))
+    await waitFor(() => expect(screen.queryByDisplayValue('secreto-rotado')).not.toBeInTheDocument())
+  })
+
+  it('rotar de nuevo con la gracia vigente advierte que el secreto actual deja de valer', async () => {
+    const vence = new Date(Date.now() + 5 * 3600 * 1000).toISOString()
+    mocks.datos = {
+      ...mocks.datos,
+      api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: vence }], error: null },
+    }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    expect(within(confirmacion).getByText(/el secreto actual, que quizá todavía no copiaste/)).toBeInTheDocument()
+  })
+
+  it('sin gracia vigente la confirmación no trae esa advertencia', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    expect(within(confirmacion).queryByText(/que quizá todavía no copiaste/)).not.toBeInTheDocument()
+  })
+
   it('cancelar la rotación no llama a la base', async () => {
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))

@@ -226,9 +226,11 @@ export function PanelSuscripciones() {
             <Typography>
               Se crea un secreto nuevo para {rotando?.url}. El anterior sigue valiendo 24 horas: durante ese tiempo cada aviso lleva las dos firmas, así podés cambiarlo en el otro sistema sin cortar el servicio.
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Si ya habías rotado hace poco, el secreto anterior de esa rotación deja de valer ahora.
-            </Typography>
+            {rotando && graciaVigente(rotando) ? (
+              <Alert severity="warning">
+                Ya rotaste el secreto hace poco y el anterior todavía vale. Si rotás de nuevo, el secreto actual, que quizá todavía no copiaste en el otro sistema, deja de valer ahora.
+              </Alert>
+            ) : null}
           </Stack>
         </DialogContent>
         <DialogActions>

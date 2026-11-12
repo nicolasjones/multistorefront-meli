@@ -108,7 +108,17 @@ t=<epoch>,v1=<nuevo>,v1=<anterior>`, y el receptor acepta el aviso si alguna fir
 cortar el servicio. Rotar de nuevo durante la gracia **reemplaza** al anterior (el de antes deja de valer ya y se borra de
 Vault); pasadas las 24 horas la purga diaria limpia el anterior de la fila y de Vault; borrar la suscripción borra los dos.
 El secreto anterior se lee con `private.api_secreto_o_nulo`: si Vault no lo puede descifrar (por ejemplo tras un restore
-en otra instancia) se ignora y el aviso lleva solo la firma nueva, sin tumbar la entrega.
+en otra instancia) se ignora y el aviso lleva solo la firma nueva, sin tumbar la entrega: el receptor que todavía use el
+secreto viejo falla con `401` sin que quede una marca en la entrega, así que ante un `401` de un receptor hay que revisar si
+la suscripción tiene la gracia vigente.
+
+**Cuidado al rotar dos veces seguidas:** si el secreto nuevo se perdió (no se copió) y se rota otra vez mientras dura la
+gracia, el secreto ORIGINAL deja de valer en ese momento y los receptores que todavía lo usan fallan; por eso la pantalla
+lo advierte. Si la respuesta de la primera rotación se perdió, conviene rotar y entregar el secreto nuevo enseguida.
+
+**Orden de despliegue:** migración → función `entregar-webhook` → web. La web nueva pide `secreto_anterior_vence_en` (si
+la migración no está, el panel de suscripciones da error) y no hay que rotar ningún secreto hasta que la función nueva esté
+desplegada (con la vieja, el aviso lleva solo la firma nueva y un receptor que todavía tenga el secreto anterior falla).
 
 ### Reintentos
 
@@ -234,7 +244,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
     (índice único).
   - `creada_por` de claves y suscripciones es `on delete set null`: dar de baja a quien las creó no corta la integración.
     Una clave o suscripción sin creador sigue vigente hasta que alguien con permiso la revoque o elimine.
-  - Borrar una suscripción por cualquier vía (también por cascada de organización) borra su secreto de Vault (trigger).
+  - Borrar una suscripción por cualquier vía (también por cascada de organización) borra su secreto de Vault y, si hay una rotación en curso, también el anterior (trigger).
   - `GET /v1/precios` ya no agrupa todo el catálogo en cada página: los candidatos salen de dos ramas con índice (productos
     y escalas tocados desde el cursor o desde `actualizado_desde`). Medido en el stack local con 50 000 productos: lectura
     incremental ≈ 6 ms frente a ≈ 104 ms de la carga completa. La carga completa inicial sigue leyendo el catálogo entero
@@ -268,12 +278,12 @@ Sin hallazgos críticos ni altos.
 - **Privilegios**: `anon` y `public` sin privilegios ni ejecución sobre las RPC
   de la API. `api_validar_clave`, `api_controlar_limite`, `api_registrar_llamada`
   y `api_leer_*` son solo `service_role`; `crear_clave_api`, `rotar_clave_api`,
-  `revocar_clave_api` y las tres de suscripción son `authenticated` y exigen
-  Administrador de la organización.
+  `revocar_clave_api` y las cuatro de suscripción (crear, pausar o reanudar, eliminar y rotar el secreto) son
+  `authenticated` y exigen Administrador de la organización.
 - **Secretos**: el hash SHA-256 de la clave no entra en el `grant select` por
   columna, así que ni el panel ni el navegador leen la credencial; el secreto de
-  firma de cada suscripción vive en Vault y `secreto_vault_id` tampoco está en
-  el `grant select`. La clave de servicio existe solo en las Edge Functions y en
+  firma de cada suscripción vive en Vault y `secreto_vault_id` y `secreto_anterior_vault_id` tampoco están en
+  el `grant select` (la fecha `secreto_anterior_vence_en` sí: la pantalla la muestra). La clave de servicio existe solo en las Edge Functions y en
   el flow de Kestra: en `apps/web` no hay ninguna referencia a
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **SSRF**: la URL del destino se valida al guardar y otra vez al entregar; la

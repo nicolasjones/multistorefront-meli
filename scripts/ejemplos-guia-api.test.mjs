@@ -34,6 +34,13 @@ const casos = [
   { nombre: 'rotación: receptor con un secreto ajeno', cabecera: firmar(CUERPO, SECRETO, AHORA, 'secreto-viejo'), cuerpo: CUERPO, ahora: AHORA, secreto: 'otro-secreto', esperado: false },
   { nombre: 'rotación: cuerpo alterado', cabecera: firmar(CUERPO, SECRETO, AHORA, 'secreto-viejo'), cuerpo: `${CUERPO} `, ahora: AHORA, esperado: false },
   { nombre: 'rotación: aviso viejo', cabecera: firmar(CUERPO, SECRETO, AHORA - 301, 'secreto-viejo'), cuerpo: CUERPO, ahora: AHORA, esperado: false },
+  // Cabeceras malformadas con una `t` y una `v1` presentes: tienen que dar `false`, nunca un error del servidor.
+  { nombre: 'una parte sin `=` después de las firmas', cabecera: `${firmar(CUERPO, SECRETO, AHORA)},basura`, cuerpo: CUERPO, ahora: AHORA, esperado: true },
+  { nombre: 'una parte sin `=` y firma ajena', cabecera: `t=${AHORA},v1=00,basura`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
+  { nombre: 'coma final', cabecera: `t=${AHORA},v1=00,`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
+  { nombre: 'parte vacía en el medio', cabecera: `t=${AHORA},,v1=00`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
+  { nombre: 't con un `=` de más', cabecera: `t=${AHORA}=basura,v1=00`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
+  { nombre: 'v1 con un `=` de más no se trunca para coincidir', cabecera: `${firmar(CUERPO, SECRETO, AHORA)}=cd`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
   { nombre: 'v1 con caracteres multibyte del mismo largo en caracteres', cabecera: `t=${AHORA},v1=${'é'.repeat(64)}`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
 ]
 
