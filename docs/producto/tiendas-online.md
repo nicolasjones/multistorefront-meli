@@ -25,19 +25,40 @@ El resto de los roles no ve la pantalla de Empresas.
 
 El visitante entra a la dirección de la tienda **sin cuenta y sin usuario**. Ve solo los datos de esa tienda: el precio final en pesos de esa empresa y si el producto está disponible. Nunca ve costos, cantidades exactas ni datos internos.
 
+### El menú de arriba
+
+Debajo del nombre de la tienda hay **una sola línea** de enlaces: **Inicio**, las **categorías
+principales** de la tienda, **Más categorías** y **Contacto**.
+
+- Las categorías principales son las que tienen más productos publicados: se muestran **hasta seis**.
+- Si hay más categorías, el enlace **Más categorías** lleva al catálogo, donde están todas.
+- Si los nombres no entran en una línea, la barra se desplaza con el mouse; no se parte en varias líneas.
+- En el celular, el menú se abre con el botón de menú y trae lo mismo.
+
+Cada tienda muestra **las suyas**: si a una tienda le ocultás una categoría, esa categoría no aparece en
+su barra, ni en su inicio, ni en su pie.
+
 ### Página de inicio
 
 - Una **barra de bienvenida** arriba, con el mensaje que elegiste.
 - Un **banner** con título, subtítulo y botón.
-- Las **categorías**, con la cantidad de productos de cada una.
+- Las **categorías principales** (hasta seis), con la cantidad de productos de cada una.
 - Los **productos destacados** (hasta 8), con foto, nombre, precio y «Disponible» o «Sin stock». Si no marcaste ninguno, ese bloque no aparece.
 - El **pie de página** con tus textos y las categorías.
 
 Si la tienda está activa pero todavía no tiene ningún producto visible, el inicio dice «Catálogo en preparación».
 
-![Página de inicio de la tienda de San Javucho con el buscador, el menú de categorías, la barra de bienvenida, el banner y las categorías con su cantidad de productos](img/tiendas-online/01-inicio-san-javucho.png)
+Las tarjetas de categoría **no muestran «0 productos»**: si una categoría se queda sin productos
+publicados, desaparece de la tienda. El número que aparece es el real: al entrar a la categoría se ven
+exactamente esos productos.
+
+![Página de inicio de la tienda de San Javucho con el buscador, la barra de categorías en una línea, la barra de bienvenida, el banner y las seis categorías con su cantidad de productos](img/tiendas-online/01-inicio-san-javucho.png)
 
 *La página de inicio de la tienda de San Javucho.*
+
+![Página de inicio de la tienda de Mundo JC, con otra identidad, otro banner y el mismo bloque de categorías con su cantidad de productos](img/tiendas-online/02-inicio-mundo-jc.png)
+
+*La misma pantalla en la tienda de Mundo JC: cada tienda con su identidad y sus categorías.*
 
 ### Catálogo y búsqueda
 
@@ -48,7 +69,12 @@ Si la tienda está activa pero todavía no tiene ningún producto visible, el in
 - Si un producto tiene una **promoción vigente**, su precio aparece con el **precio anterior tachado** al lado. Ver [Promociones de precio](promociones.md).
 - Si alguien busca demasiado seguido, la tienda le pide esperar unos segundos y sigue sola.
 
-![Catálogo de la tienda con la lista de categorías a la izquierda, el selector Ordenar por y las tarjetas de producto con precio y disponibilidad](img/tiendas-online/03-catalogo.png)
+A la izquierda está el panel **Categorías**, con la cantidad de productos de cada una. Ahí están
+todas las categorías de primer nivel de la tienda; cuando elegís una, debajo se despliegan sus
+subcategorías, con sangría. El número de una categoría **coincide con lo que se ve al entrar**: si dice
+447 productos, abajo se listan 447.
+
+![Catálogo de la tienda con el panel de categorías a la izquierda y su cantidad, el contador de productos, el selector Ordenar por y las tarjetas de producto con precio y disponibilidad](img/tiendas-online/03-catalogo.png)
 
 *El catálogo: categorías a la izquierda, orden arriba y una tarjeta por producto.*
 
@@ -60,9 +86,13 @@ Si la tienda está activa pero todavía no tiene ningún producto visible, el in
 
 Muestra la galería de fotos (hasta 4, con ampliación), el nombre, la categoría, el precio, la disponibilidad, la descripción, el SKU y, si lo cargaste, para qué es compatible. Al pie dice «Precios y disponibilidad sujetos a cambios.». Si el producto no tiene foto, se ve «Sin imagen».
 
+El **nombre se muestra limpio**: si el producto venía de una exportación de otro sistema, no le queda
+encima el texto que traía de más (por ejemplo, los signos «&ua» que veías antes). La **descripción**
+tampoco repite el nombre: si son lo mismo, se omite.
+
 Si el producto tiene una **promoción vigente** en esa tienda, el precio aparece con el **precio anterior tachado** al lado. El tachado solo se muestra cuando el precio anterior era más caro. Ver [Promociones de precio](promociones.md).
 
-![Ficha de un producto de la tienda con su nombre, precio, disponibilidad, descripción, SKU, categoría y el botón Consultar por WhatsApp](img/tiendas-online/05-ficha.png)
+![Ficha de un producto de la tienda con la galería de fotos, el nombre, el precio, la disponibilidad, el SKU, la categoría y el botón Consultar por WhatsApp](img/tiendas-online/05-ficha.png)
 
 *La ficha de un producto, con el botón **Consultar por WhatsApp**.*
 
@@ -72,27 +102,29 @@ La disponibilidad que ve el visitante es solo «Disponible» o «Sin stock», se
 
 - En la ficha aparece el botón **Consultar por WhatsApp** solo si la empresa tiene un número de WhatsApp cargado. Abre una ventana con un mensaje ya armado («Hola Mundo JC, quiero consultar por… ¿Está disponible?») que el visitante revisa antes de abrir WhatsApp.
 - La página **Contacto** muestra el WhatsApp con sus horarios y el correo de la tienda, y un formulario **Escribinos** (Nombre, Correo o WhatsApp y Mensaje). Al enviarlo, el visitante ve «¡Gracias! Recibimos tu consulta».
+- Bajo el correo dice **«Respondemos dentro de las 24 h»**.
+- Abajo está el bloque **«Retiro y envíos»**, que dice si se coordina por WhatsApp o por correo y aclara que **no hay compra online en esta versión**: el visitante consulta y coordinan.
 - Todas las consultas llegan a la bandeja de [Consultas](consultas.md) de esa empresa.
 
 ![Cuadro Consultar por WhatsApp con el mensaje ya armado y los botones Cancelar y Abrir WhatsApp](img/tiendas-online/06-whatsapp.png)
 
 *El visitante revisa el mensaje antes de abrir WhatsApp.*
 
-![Página Contacto de la tienda con el WhatsApp y sus horarios, el correo y el formulario Escribinos](img/tiendas-online/07-contacto.png)
+![Página Contacto de la tienda con el WhatsApp y sus horarios, el correo con el aviso de respuesta, el bloque Retiro y envíos y el formulario Escribinos](img/tiendas-online/07-contacto.png)
 
-*La página **Contacto**: datos de la tienda y formulario «Escribinos».*
+*La página **Contacto**: datos de la tienda, aviso de respuesta y formulario «Escribinos».*
 
 - Cada visitante puede mandar hasta 5 consultas por hora por tienda; después se le pide esperar.
 
 ### Celular, clientes con cuenta y páginas especiales
 
-- La tienda se adapta al celular: el menú se despliega con el botón de menú y los filtros se abren en un panel.
+- La tienda se adapta al celular: el menú se despliega con el botón de menú y los filtros se abren en un panel. El menú desplegado trae **Inicio**, **Contacto** y las **categorías principales** de la tienda, más **Más categorías**.
 
 ![Tienda vista en un celular, con el botón de menú, el buscador y el banner](img/tiendas-online/08-movil-inicio.png)
 
 *La tienda en un celular.*
 
-![Menú desplegado de la tienda en un celular con Inicio, Contacto y las categorías](img/tiendas-online/09-movil-menu.png)
+![Menú desplegado de la tienda en un celular con Inicio, Contacto, las categorías principales y el enlace Más categorías](img/tiendas-online/09-movil-menu.png)
 
 *El menú desplegado en el celular.*
 
@@ -166,6 +198,11 @@ En **Canales → Empresas → Editar** completá **WhatsApp**, **Correo**, **Ins
 - **Quiero destacar los productos de la temporada.** En **Catálogo visible**, tocá la estrella de hasta 8 productos y hacé clic en **Guardar**; después publicá desde **Dominio y publicación**.
 - **La tienda dice «Catálogo en preparación».** Todavía no hay ningún producto visible en esa tienda.
 - **Los precios no muestran IVA.** Es una decisión de cada tienda: ver [Precios e IVA](precios-e-iva.md).
+- **En el menú solo aparecen unas pocas categorías.** El menú muestra las **categorías principales** (las que tienen más productos) y el resto queda en **Más categorías**, que lleva al catálogo. Para cambiar cuáles son, ocultá las que no quieras en **Catálogo visible** de esa tienda.
+- **Una categoría desapareció de la tienda.** Quedó sin productos publicados en esa tienda: las categorías sin productos no se muestran. Publicá algún producto en esa categoría y vuelve a aparecer.
+- **El nombre de un producto venía con un texto raro de más (por ejemplo «&ua …»).** Ya no sale así: el nombre se limpia al guardarlo. Si seguís viendo el nombre viejo, guardá el producto otra vez para que se actualice.
+- **En la ficha el nombre me aparece dos veces.** La descripción que era igual al nombre ya no se muestra; si querés dejar una descripción, escribí una distinta.
+- **Las dos tiendas muestran las mismas categorías y los mismos números.** No es un error de la tienda: el sistema muestra los productos publicados **en esa tienda**. Si ambas publican el mismo catálogo, los números coinciden.
 
 ## Si algo no sale
 

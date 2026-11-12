@@ -39,6 +39,7 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Clientes: modelo, RPC y pantallas (técnico)](clientes.md)
 - [Tiendas online: catálogo y ficha (producto)](../producto/tiendas-online.md)
 - [Tienda pública: catálogo y ficha (técnico)](tienda-catalogo-y-ficha.md)
+- [Tienda pública: corrección de la demo frente al prototipo, MSF-825 (técnico)](tienda-demo-vs-prototipo.md)
 
 ## Precios y dólar
 - [Precios y dólar (producto)](../producto/precios-dolar.md)

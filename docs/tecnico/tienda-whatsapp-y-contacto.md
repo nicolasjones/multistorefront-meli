@@ -19,6 +19,8 @@ Depende de [MSF-147 (dominio e identidad)](tienda-dominio-e-identidad.md),
 [MSF-167 (catálogo y ficha)](tienda-catalogo-y-ficha.md) y **MSF-122** (la interfaz de entrada
 F-CON-01 que recibe las consultas: [Consultas: modelo, RPC y aviso](consultas.md)).
 Resumen de producto y límites: [Tiendas online](../producto/tiendas-online.md).
+El bloque «Retiro y envíos» y el aviso «Respondemos dentro de las 24 h» los agrega **MSF-825**: ver
+[Tienda pública: corrección de la demo frente al prototipo](tienda-demo-vs-prototipo.md).
 
 ## Alcance de entrega
 
@@ -179,6 +181,11 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 - **Datos de contacto:** `hooks/useContactoTienda.ts` + `lib/tiendaContacto.ts` leen
   `publico.contacto_por_dominio`. Los bloques «WhatsApp» (número y horarios) y «Correo» se omiten
   cuando el dato falta: sin hueco ni texto inventado.
+- **Bloques del prototipo (MSF-825, MSF-831):** `contacto/DatosContacto.tsx` suma, bajo el correo, el
+  aviso **«Respondemos dentro de las 24 h»** y el bloque **«Retiro y envíos»**, que dice «Coordinamos
+  por WhatsApp» o «Coordinamos por correo» (según si la tienda cargó WhatsApp) y «No hay compra online
+  en esta versión: consultás y coordinamos.». Si la tienda no cargó **ningún** dato de contacto, no se
+  muestra ningún bloque. El plazo de 24 h es texto fijo de la plataforma, igual que el prototipo.
 - **Formulario:** `contacto/FormularioContacto.tsx` (título «Escribinos», campos «Nombre» / «Correo o
   WhatsApp» / «Mensaje» con los placeholders del prototipo, botón «Enviar consulta» deshabilitado
   mientras envía), `lib/tiendaContacto.ts` traduce la respuesta a los estados `enviando | exito |
@@ -240,7 +247,7 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 |---|---|
 | pgTAP del contacto (40 aserciones) | `supabase/tests/database/tienda_contacto.test.sql` — lista blanca, `null` idéntico, normalización del host, validación, límite de 5 por hora y ventana de una hora, límite independiente por empresa y por visitante, idempotencia, reversión ante una falla de entrega, HTML literal, cupo «sin-ip», RLS y privilegios de `dominio.tienda_envios`, `grant update (horarios)` |
 | pgTAP de WhatsApp (35 aserciones) | `supabase/tests/database/tienda_whatsapp.test.sql` — producto visible, rechazo idéntico de oculto / inactivo / de otra empresa, límite compartido con el formulario, idempotencia, origen `whatsapp`, respuestas sin datos internos |
-| Vitest + axe | `apps/web/src/pages/tienda-publica/contacto/` (`validacion.test.ts`, `contacto.test.tsx`, `contacto.a11y.test.tsx`, `enlaces-contacto.test.tsx`, `FormularioContacto.test.tsx`), `apps/web/src/pages/tienda-publica/whatsapp/` (`BotonWhatsApp.test.tsx`, `DialogoWhatsApp.test.tsx`, `useContactoWhatsapp.test.tsx`), `apps/web/src/pages/tienda-publica/FichaWhatsapp.test.tsx`, `apps/web/src/lib/` (`tiendaContacto.test.ts`, `whatsapp.test.ts`, `registroWhatsapp.test.ts`) y `apps/web/src/pages/empresas/edit.test.tsx` (campo de horarios y cambio de empresa) |
+| Vitest + axe | `apps/web/src/pages/tienda-publica/contacto/` (`validacion.test.ts`, `contacto.test.tsx` — con los bloques «Retiro y envíos» y «Respondemos dentro de las 24 h» de MSF-825—, `contacto.a11y.test.tsx`, `enlaces-contacto.test.tsx`, `FormularioContacto.test.tsx`), `apps/web/src/pages/tienda-publica/whatsapp/` (`BotonWhatsApp.test.tsx`, `DialogoWhatsApp.test.tsx`, `useContactoWhatsapp.test.tsx`), `apps/web/src/pages/tienda-publica/FichaWhatsapp.test.tsx`, `apps/web/src/lib/` (`tiendaContacto.test.ts`, `whatsapp.test.ts`, `registroWhatsapp.test.ts`) y `apps/web/src/pages/empresas/edit.test.tsx` (campo de horarios y cambio de empresa) |
 | E2E | `apps/web/e2e/tienda-contacto.e2e.ts` (datos de cada tienda, consulta que llega a **su** bandeja, ráfaga de 6 envíos con la espera en el sexto, HTML literal) y `apps/web/e2e/tienda-whatsapp.e2e.ts` (ficha → diálogo → WhatsApp → bandeja de su empresa, y ficha sin botón para la empresa sin número) |
 
 ```bash
@@ -269,7 +276,9 @@ pnpm --filter @platform/web test:e2e tienda-whatsapp
    WhatsApp con el mensaje listo.» (FR-023).
 2. **«Respondemos dentro de las 24 h» y el bloque «Retiro y envíos / No hay compra online en esta
    versión»:** la épica no los pide (prometen un plazo y un estado de la compra que cambia con MSF-176)
-   y quedan fuera de alcance.
+   y quedan fuera de alcance. **Ya no (MSF-825, MSF-831):** la historia los pide y mandan los
+   requisitos, así que se muestran en `DatosContacto`. El plazo de 24 h es texto fijo de la plataforma:
+   si una tienda necesita otro plazo, habrá que volverlo configurable.
 3. **El prototipo de Empresas no dibuja «Horarios de atención»:** el campo se agrega por FR-014 (D2).
 4. **La bajada de «Contacto»** sale del texto del pie que la tienda ya configura (F-TDA-03 de MSF-147);
    sin texto, no se muestra.
@@ -293,6 +302,6 @@ pnpm --filter @platform/web test:e2e tienda-whatsapp
   **por debajo** de la máxima de `dokploy` (`20261212120600`): hay que devolverlas a números libres y
   mayores **antes de aplicar la épica**, si no la segunda pisa la de `solicitar_documento_presupuesto`.
   Dueño: release de la épica.
-- **Fuera de alcance:** captcha, compra y cuentas (MSF-176/237), «Productos relacionados», plazo de
-  respuesta y bloque «Retiro y envíos», y la adaptación móvil de las pantallas (MSF-191), que solo
-  aporta el enlace «Contacto» del menú móvil.
+- **Fuera de alcance:** captcha, compra y cuentas (MSF-176/237), «Productos relacionados», y la
+  adaptación móvil de las pantallas (MSF-191), que solo aporta el enlace «Contacto» del menú móvil.
+  El plazo de respuesta y el bloque «Retiro y envíos» **ya están** (MSF-825/MSF-831).

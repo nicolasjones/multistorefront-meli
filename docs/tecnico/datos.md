@@ -3110,8 +3110,8 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
 | `publico.identidad_por_dominio(host)` | Colores, tipografías y rutas de logo/banners de la tienda; sin fila, valores del tema base (MSF-147) |
 | `publico.contenido_por_dominio(host)` | Textos comerciales de la tienda; sin fila, todo vacío (MSF-147) |
 | `publico.catalogo_visible_por_dominio(host)` | Categorías visibles y productos efectivamente visibles (destacados primero) con nombre, precio, indicador de imagen y categoría (MSF-147) |
-| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, con conteo de productos efectivos (MSF-167) |
-| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado) (MSF-167) |
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, **solo las que tienen productos visibles** y con conteo que **suma las subcategorías** (MSF-167; corregido por MSF-825) |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado); filtrar por una categoría **incluye su subárbol** (MSF-167; corregido por MSF-825) |
 | `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes (MSF-167) |
 | `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles (MSF-167) |
 | `publico.redireccion_por_dominio(host)` | Dominio principal de la tienda, si el host es su «Redirigir también»; `null` para host desconocido y empresa inactiva (MSF-133) |
@@ -3120,6 +3120,13 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
   categoría visible); el precio, de `private.precio_final_publico`, y la disponibilidad, de
   `private.disponible_publico` (solo booleano).
 - `anon` ejecuta solo funciones de `publico`; las tablas conservan su RLS por organización.
+- **MSF-825** (migraciones `20270228300400`–`20270228300600`, sin cambios de esquema) reescribe
+  `publico.categorias_por_dominio` y `publico.catalogo_pagina_por_dominio` con **misma firma y mismos
+  campos**: el conteo de categorías se materializa en una pasada, solo se devuelven categorías con
+  productos visibles, el conteo suma las subcategorías y el filtro por categoría incluye su subárbol.
+  Además, `private.normalizar_producto()` (disparador de `dominio.productos`) quita el prefijo de
+  importación del nombre y de la descripción. Detalle:
+  [Tienda pública: corrección de la demo frente al prototipo](tienda-demo-vs-prototipo.md).
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
   visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y
   [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
