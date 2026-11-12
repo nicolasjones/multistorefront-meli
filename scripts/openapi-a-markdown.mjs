@@ -145,6 +145,11 @@ function seccionDeAviso(documento, nombre, { operacion }) {
 /** Página completa de la referencia, a partir del documento OpenAPI. */
 export function generarReferencia(documento) {
   const partes = [
+    '---',
+    'owner: tecnico',
+    'sources: []',
+    '---',
+    '',
     '<!-- GENERADO por scripts/openapi-a-markdown.mjs a partir de openapi/api-v1.json. No editar a mano: `pnpm openapi:escribir`. -->',
     '',
     `# Referencia de la API pública ${documento.info.version}`,

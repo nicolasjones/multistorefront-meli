@@ -1,3 +1,8 @@
+---
+owner: tecnico
+sources: []
+---
+
 <!-- GENERADO por scripts/openapi-a-markdown.mjs a partir de openapi/api-v1.json. No editar a mano: `pnpm openapi:escribir`. -->
 
 # Referencia de la API pública v1

@@ -1,3 +1,8 @@
+---
+owner: tecnico
+sources: []
+---
+
 # Empezar con la API
 
 Esta guía te lleva de cero a una integración que **trae el catálogo, se mantiene al día y recibe avisos**. Para el detalle de cada campo y de cada error, mirá la [referencia](referencia.md).
