@@ -42,6 +42,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   usuarios: 'usuarios-y-roles',
   roles: 'usuarios-y-roles',
   'migracion-datos': 'migracion-inicial-de-datos',
+  api: 'api-y-avisos',
 }
 
 /**
@@ -56,5 +57,4 @@ export const SIN_PAGINA_PROPIA: readonly string[] = [
   'funcionalidades',
   'ia',
   'integraciones-oauth',
-  'api',
 ]
