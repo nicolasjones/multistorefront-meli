@@ -7,7 +7,7 @@
 
 1. El flow `entregar-webhooks-api` reclama un evento de `public.cola_eventos` (`private.reclamar_eventos`, lease, máximo 5 intentos).
 2. `private.api_fanout_evento(evento_id)` inserta una fila en `public.api_entregas` por cada suscripción activa que incluya el tipo; `on conflict (evento_id, suscripcion_id) do nothing`.
-3. El flow resuelve el evento y reclama entregas con `private.api_reclamar_entregas` (lease de 60 s).
+3. El flow resuelve el evento y reclama entregas con `private.api_reclamar_entregas` (lease de 300 s).
 4. La Edge Function entrega cada `api_entregas` firmada y llama `private.api_resolver_entrega`.
 
 ## Solicitud de la Edge Function

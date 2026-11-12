@@ -87,7 +87,7 @@ api_validar_clave(p_token text)
   -> table(valida boolean, clave_id uuid, organizacion_id uuid, alcances text[], limite_por_minuto integer, motivo text)
 api_controlar_limite(p_clave_id uuid) -> table(permitido boolean, reintentar_en_seg integer, restantes integer)
 api_registrar_llamada(p_clave_id uuid, p_organizacion_id uuid, p_metodo text, p_ruta text,
-                      p_version text, p_estado_http integer, p_duracion_ms integer) -> void
+                      p_version text, p_estado_http integer, p_duracion_ms integer, p_reserva_id uuid default null) -> void
 
 // service_role; filtro de organización dentro del SQL
 private.api_leer_productos(p_organizacion_id uuid, p_cursor text, p_limite integer,
@@ -117,7 +117,7 @@ private.emitir_venta_registrada() -> trigger
 
 | Tipo | Origen | Cuándo |
 |---|---|---|
-| `stock.actualizado` | `dominio.movimientos_stock` (trigger existente) | Cada movimiento |
+| `stock.actualizado` | `dominio.movimientos_stock` (trigger existente) | Cada movimiento de stock de un producto y cada reserva o liberación; no los de variantes ni los traslados entre depósitos |
 | `precio.actualizado` | `dominio.productos.precio_lista/moneda` y `dominio.producto_precios_escala.precio` | Cambio real de precio/moneda |
 | `venta.registrada` | `dominio.comprobantes_venta` | Factura que pasa a `estado = 'confirmada'` |
 

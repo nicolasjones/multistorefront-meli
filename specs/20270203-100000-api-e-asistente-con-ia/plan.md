@@ -23,17 +23,23 @@
 
 ## Migraciones (aditivas; una a la vez, en serie)
 
-Timestamps reservados; cada historia trae la suya y no se encadenan entre sí. Ninguna migración queda `[ ]` sin evidencia.
+Las migraciones se renumeraron al integrar con `dokploy` (commit `13f1879a`); los nombres de esta tabla son los reales. Cada historia trae la suya y no se encadenan entre sí. Ninguna migración queda `[ ]` sin evidencia.
 
 | Orden | Archivo | Historia | Reversión |
 |---|---|---|---|
-| 1 | `20270203100000_api_claves.sql` | F-API-01 | retirar grants/RPC → políticas → índices → `api_claves` |
-| 2 | `20270203100100_api_llamadas_y_limite.sql` | F-API-01 | ídem para `api_llamadas` y `private.purgar_api_llamadas`; los grants a `service_role` |
-| 3 | `20270203100200_api_lectura.sql` | F-API-01 | `drop function private.api_leer_productos/stock/precios/ventas` |
-| 4 | `20270203100300_api_suscripciones_entregas.sql` | F-API-01 | grants/RPC → funciones de lease/fan-out → políticas → `api_entregas`, `api_suscripciones`; el secreto de Vault se borra aparte |
-| 5 | `20270203100400_api_eventos_precio_venta.sql` | F-API-01 | `drop trigger` + `drop function private.emitir_precio_actualizado/emitir_venta_registrada`; los eventos ya encolados no se borran |
-| 6 | `20270203110000_ia_consulta_vistas.sql` | F-IA-01 | `drop view public.ia_consulta_catalogo/stock/precios/ventas` |
-| 7 | `20270203110100_ia_consulta_registro.sql` | F-IA-01 | borrar las filas registradas por feature (inversa idempotente: `delete from fuentes_*` y `capacidades_*`; `features` solo si no las usa otra cosa) |
+| 1 | `20270224110000_ia_consulta_vistas.sql` | F-IA-01 | `drop view public.ia_consulta_catalogo/stock/precios/ventas` |
+| 2 | `20270224110100_ia_consulta_registro.sql` | F-IA-01 | borrar las filas registradas por feature (inversa idempotente: `delete from fuentes_*` y `capacidades_*`; `features` solo si no las usa otra cosa) |
+| 3 | `20270224110200_ia_consulta_tope_mcp.sql` | F-IA-01 | volver a la definición de `20261003233000` |
+| 4 | `20270224110201_api_claves.sql` | F-API-01 | retirar grants/RPC → políticas → índices → `api_claves` |
+| 5 | `20270224110202_api_llamadas_y_limite.sql` | F-API-01 | ídem para `api_llamadas` y `private.purgar_api_llamadas`; los grants a `service_role` |
+| 6 | `20270224110203_api_lectura.sql` | F-API-01 | `drop function private.api_leer_productos/stock/precios/ventas` (y los wrappers `public.api_leer_*`) |
+| 7 | `20270224110204_api_suscripciones_entregas.sql` | F-API-01 | grants/RPC → funciones de lease/fan-out → políticas → `api_entregas`, `api_suscripciones`; el secreto de Vault se borra aparte |
+| 8 | `20270224110205_api_eventos_precio_venta.sql` | F-API-01 | `drop trigger` + `drop function private.emitir_precio_actualizado/emitir_venta_registrada`; los eventos ya encolados no se borran |
+| 9 | `20270224110206_exportacion_total_excluye_api.sql` | F-API-01 | volver a la definición previa de la exportación total, sin las 4 filas `api_*` |
+| 10 | `20270227100000_api_decodificar_cursor_devuelve_fila.sql` | F-API-01 | volver a la definición de `20270224110203` |
+| 11 | `20270227120000_api_cursor_sin_saltos_de_linea.sql` | F-API-01 | volver a `20270224110203` y `20270227100000` |
+| 12 | `20270228100000_api_menores_revision_msf233.sql` | F-API-01 | volver a las definiciones de `20270224110201/110202/110204` y `drop` de los 3 índices keyset |
+| 13 | `20270301100000_api_decisiones_abiertas_msf233.sql` | F-API-01 | volver a las definiciones previas; `drop` del índice `api_suscripciones_secreto_vault_uidx`, del trigger `api_suscripciones_borrar_secreto` y de las funciones `private.api_borrar_secreto_suscripcion` y `private.api_cursor_partes`; el índice `producto_precios_escala_org_updated_idx`; y volver a `on delete cascade` en las dos claves foráneas `creada_por` (antes de `set not null` hay que rellenar o borrar las filas con `creada_por` nulo) |
 
 Ninguna columna ni tabla se destruye en el mismo PR que la crea. Cada RPC de `public` lleva `grant execute … to authenticated` explícito (o `service_role`) y `revoke … from public, anon`; el test que falla si `anon` ejecuta otra función de `public` debe seguir verde. `api_claves.hash` no se otorga a `authenticated`: se usa `grant select (columnas seguras)`.
 
