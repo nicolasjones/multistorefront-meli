@@ -96,6 +96,27 @@ select is(
 select is(
   (select secreto from public.api_entrega_para_entregar('c5000000-0000-0000-0000-000000000001')), (select secreto from devuelto),
   'y sigue trayendo el nuevo');
+select is(
+  (select secreto_anterior_ilegible from public.api_entrega_para_entregar('c5000000-0000-0000-0000-000000000001')), false,
+  'una gracia vencida no es un secreto ilegible: la marca es falsa');
+
+-- Marca de secreto anterior ilegible: hay gracia vigente pero Vault no lo puede leer (por ejemplo tras un restore).
+update public.api_suscripciones set secreto_anterior_vence_en = now() + interval '12 hours'
+ where id = 'd5000000-0000-0000-0000-000000000001';
+select is(
+  (select secreto_anterior_ilegible from public.api_entrega_para_entregar('c5000000-0000-0000-0000-000000000001')), false,
+  'con la gracia vigente y el anterior legible la marca es falsa');
+
+insert into vault_rot values ('anterior_guardado', (select secreto_anterior_vault_id from public.api_suscripciones where id = 'd5000000-0000-0000-0000-000000000001'));
+update public.api_suscripciones set secreto_anterior_vault_id = gen_random_uuid() where id = 'd5000000-0000-0000-0000-000000000001';
+select is(
+  (select secreto_anterior_ilegible from public.api_entrega_para_entregar('c5000000-0000-0000-0000-000000000001')), true,
+  'con la gracia vigente y un secreto anterior que Vault no tiene, la marca es verdadera');
+select is(
+  (select secreto_anterior from public.api_entrega_para_entregar('c5000000-0000-0000-0000-000000000001')), null,
+  'y el secreto anterior llega nulo, sin tumbar la entrega');
+update public.api_suscripciones set secreto_anterior_vault_id = (select id from vault_rot where clave = 'anterior_guardado')
+ where id = 'd5000000-0000-0000-0000-000000000001';
 
 -- ============================================================================
 -- Rotar durante la gracia reemplaza al anterior y lo borra de Vault

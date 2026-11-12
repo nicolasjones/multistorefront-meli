@@ -14,6 +14,7 @@
 -- secreto ilegible no tumba la entrega.
 --
 -- Migración aditiva (dos columnas nuevas con default nulo). Reversión (en una migración posterior):
+--   volver `public.reintentar_entrega_api` a la definición de 20270302100000 (sin el tope de 200 pendientes);
 --   revoke execute on function public.rotar_secreto_suscripcion_api(uuid) from authenticated;
 --   drop function public.rotar_secreto_suscripcion_api(uuid);
 --   drop function private.api_secreto_o_nulo(uuid);
@@ -159,7 +160,7 @@ drop function if exists public.api_entrega_para_entregar(uuid);
 drop function if exists private.api_entrega_para_entregar(uuid);
 
 create or replace function private.api_entrega_para_entregar(p_entrega_id uuid)
-returns table (url text, evento jsonb, secreto text, secreto_anterior text)
+returns table (url text, evento jsonb, secreto text, secreto_anterior text, secreto_anterior_ilegible boolean)
 language plpgsql
 stable
 security definer
@@ -178,7 +179,11 @@ begin
     vs.decrypted_secret,
     case when s.secreto_anterior_vence_en > clock_timestamp()
       then private.api_secreto_o_nulo(s.secreto_anterior_vault_id)
-    end
+    end,
+    -- Hay una rotación en gracia pero Vault no pudo descifrar el anterior: el aviso saldrá solo con la firma nueva y un
+    -- receptor que todavía use el secreto viejo va a fallar. La función de entrega lo deja en el log.
+    (s.secreto_anterior_vence_en > clock_timestamp()
+      and private.api_secreto_o_nulo(s.secreto_anterior_vault_id) is null)
     from public.api_entregas d
     join public.api_suscripciones s on s.id = d.suscripcion_id
     join public.cola_eventos ev on ev.id = d.evento_id
@@ -194,7 +199,7 @@ revoke execute on function private.api_entrega_para_entregar(uuid) from public, 
 grant execute on function private.api_entrega_para_entregar(uuid) to service_role;
 
 create or replace function public.api_entrega_para_entregar(p_entrega_id uuid)
-returns table (url text, evento jsonb, secreto text, secreto_anterior text)
+returns table (url text, evento jsonb, secreto text, secreto_anterior text, secreto_anterior_ilegible boolean)
 language sql
 security definer
 set search_path = ''
@@ -221,6 +226,8 @@ set search_path = ''
 as $$
 declare
   v_borradas integer;
+  v_eventos integer;
+  v_lote integer;
 begin
   if p_retencion_dias is null or p_retencion_dias < 1 or p_retencion_dias > 3650 then
     raise exception 'RETENCION_INVALIDA' using errcode = '22023';
@@ -246,19 +253,25 @@ begin
 
   -- MSF-836: eventos terminados y sin entregas vivas. `api_entregas.evento_id` es on delete cascade: las entregas terminadas
   -- del evento se borran con él; una entrega `pendiente` o `reclamada` lo protege.
-  delete from public.cola_eventos
-   where public.cola_eventos.id in (
-     select e.id
-       from public.cola_eventos e
-      where e.estado in ('completada', 'agotada')
-        and e.updated_at < now() - make_interval(days => p_retencion_dias)
-        and not exists (
-          select 1 from public.api_entregas d
-           where d.evento_id = e.id and d.estado in ('pendiente', 'reclamada')
-        )
-      order by e.updated_at
-      limit 50000
-   );
+  -- De a lotes de 50 000 y hasta 10 lotes por corrida (500 000 por día): un historial grande se drena en pocos días y la
+  -- corrida de un día normal termina en el primer lote.
+  for v_lote in 1..10 loop
+    delete from public.cola_eventos
+     where public.cola_eventos.id in (
+       select e.id
+         from public.cola_eventos e
+        where e.estado in ('completada', 'agotada')
+          and e.updated_at < now() - make_interval(days => p_retencion_dias)
+          and not exists (
+            select 1 from public.api_entregas d
+             where d.evento_id = e.id and d.estado in ('pendiente', 'reclamada')
+          )
+        order by e.updated_at
+        limit 50000
+     );
+    get diagnostics v_eventos = row_count;
+    exit when v_eventos < 50000;
+  end loop;
 
   -- MSF-839: el secreto anterior de una rotación deja de valer a las 24 h; se limpia la fila y se borra de Vault.
   with vencidas as (
@@ -281,3 +294,49 @@ $$;
 
 revoke execute on function private.purgar_api_llamadas(integer) from public, anon, authenticated;
 grant execute on function private.purgar_api_llamadas(integer) to kestra_orquestacion, service_role;
+
+-- ============================================================================
+-- Reintento manual (MSF-838) con tope: sin él, un script con la sesión de un Administrador podría devolver miles de entregas
+-- agotadas a la cola de golpe y retrasar a las demás organizaciones (la cola de entregas es una sola y global).
+-- ============================================================================
+
+create or replace function public.reintentar_entrega_api(p_entrega_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_organizacion_id uuid := (select private.organizacion_id());
+begin
+  if v_organizacion_id is null or not (select private.puede_escribir()) then
+    raise exception 'Solo un administrador puede reintentar entregas de avisos' using errcode = '42501';
+  end if;
+
+  -- Hasta 200 entregas de la organización esperando su turno a la vez: pasado eso hay que dejar que la cola se vacíe.
+  if (select count(*) from public.api_entregas d
+       where d.organizacion_id = v_organizacion_id and d.estado = 'pendiente' and d.proximo_intento_en <= now()) >= 200 then
+    raise exception 'Hay demasiadas entregas esperando para enviarse: esperá a que se vacíe la cola antes de reintentar más'
+      using errcode = '54000';
+  end if;
+
+  update public.api_entregas
+     set estado = 'pendiente',
+         intentos = 0,
+         proximo_intento_en = now(),
+         actualizada_en = now()
+   where public.api_entregas.id = p_entrega_id
+     and public.api_entregas.organizacion_id = v_organizacion_id
+     and public.api_entregas.estado = 'agotada';
+
+  if not found then
+    raise exception 'La entrega no existe o no está agotada' using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+comment on function public.reintentar_entrega_api(uuid) is
+  'MSF-838: el Administrador devuelve una entrega agotada de su organización a la cola (5 intentos de nuevo). Tope de 200 entregas de la organización esperando para enviarse.';
+
+revoke execute on function public.reintentar_entrega_api(uuid) from public, anon;
+grant execute on function public.reintentar_entrega_api(uuid) to authenticated;

@@ -1,5 +1,5 @@
 import { Alert, Box, Button, FormControlLabel, Stack, Switch, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabaseClient } from '../../lib/supabase'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
@@ -25,6 +25,11 @@ export function PanelEntregas() {
   const [aviso, setAviso] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reintentando, setReintentando] = useState<string | null>(null)
+  // Tras reintentar, la fila cambia de estado y el botón desaparece: el foco pasa al aviso para que no se pierda.
+  const avisoRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (aviso) avisoRef.current?.focus()
+  }, [aviso])
 
   // Una entrega agotada vuelve a la cola con sus 5 intentos de nuevo (MSF-838). Solo la ve y la reintenta el Administrador.
   const reintentar = async (entrega: Entrega) => {
@@ -75,7 +80,7 @@ export function PanelEntregas() {
           control={<Switch checked={soloAgotadas} onChange={(evento) => setSoloAgotadas(evento.target.checked)} />}
           label="Solo agotadas"
         />
-        {aviso ? <Alert severity="success">{aviso}</Alert> : null}
+        {aviso ? <Alert severity="success" ref={avisoRef} tabIndex={-1}>{aviso}</Alert> : null}
         {error ? <Alert severity="error">{error}</Alert> : null}
         {filas.length === 0 ? <EstadoVacio titulo="No hay entregas agotadas." /> : null}
         <ContenidoAdaptable

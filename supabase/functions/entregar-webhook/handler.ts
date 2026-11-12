@@ -39,7 +39,7 @@ export type Deps = {
   /** Clave de servicio de Supabase: la función solo la acepta a ella. */
   token: string | undefined
   /** Destino, evento y secreto de firma de la entrega. */
-  entrega: (entregaId: string) => Resultado<{ url: string; evento: unknown; secreto: string; secreto_anterior?: string | null }[] | null>
+  entrega: (entregaId: string) => Resultado<{ url: string; evento: unknown; secreto: string; secreto_anterior?: string | null; secreto_anterior_ilegible?: boolean }[] | null>
   /** Deja el resultado de la entrega (la base calcula la espera del reintento). */
   resolver: (
     entregaId: string,
@@ -233,7 +233,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return respuesta({ error: 'No se pudo leer la entrega.' }, 500)
   }
 
-  const { url, evento, secreto, secreto_anterior: secretoAnterior } = entregas[0]
+  const { url, evento, secreto, secreto_anterior: secretoAnterior, secreto_anterior_ilegible: anteriorIlegible } = entregas[0]
+  // Rotación en gracia pero Vault no pudo descifrar el anterior: el aviso sale solo con la firma nueva. Queda en el log (sin secretos).
+  if (anteriorIlegible) console.warn(`entregar-webhook: el secreto anterior de la entrega ${entregaId} no se pudo leer; el aviso lleva solo la firma nueva`)
 
   // SSRF al entregar (FR-010): el destino se resuelve y la entrega se hace
   // contra ESA IP (no se vuelve a resolver el host, así un DNS de TTL corto no

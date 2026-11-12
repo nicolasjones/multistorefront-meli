@@ -23,6 +23,7 @@ type Opciones = {
   falloResolver?: boolean
   // Secreto anterior durante la gracia de una rotación (MSF-839).
   secretoAnterior?: string | null
+  anteriorIlegible?: boolean
 }
 
 function montar(opciones: Opciones = {}) {
@@ -34,7 +35,7 @@ function montar(opciones: Opciones = {}) {
   const deps: Deps = {
     token: 'token' in opciones ? opciones.token : TOKEN,
     entrega: async () => ({
-      data: [{ url: 'https://ejemplo.com/aviso', evento: EVENTO, secreto: SECRETO, secreto_anterior: opciones.secretoAnterior ?? null }],
+      data: [{ url: 'https://ejemplo.com/aviso', evento: EVENTO, secreto: SECRETO, secreto_anterior: opciones.secretoAnterior ?? null, secreto_anterior_ilegible: opciones.anteriorIlegible ?? false }],
       error: null,
     }),
     resolver: async (...args) => {
@@ -165,6 +166,23 @@ describe('entregar-webhook', () => {
     const cuerpo = JSON.stringify(EVENTO)
     const v1 = (clave: string) => createHmac('sha256', clave).update(`${EPOCH}.${cuerpo}`).digest('hex')
     assert.equal(firma, `t=${EPOCH},v1=${v1(SECRETO)},v1=${v1('secreto-viejo')}`)
+  })
+
+  it('si Vault no pudo leer el secreto anterior, el aviso sale con una firma y queda un aviso en el log sin secretos', async () => {
+    const avisos: string[] = []
+    const original = console.warn
+    console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+    try {
+      const { deps, llamadas } = montar({ anteriorIlegible: true })
+      const res = await manejar(pedir({ entrega_id: 'e-1' }), deps)
+      assert.equal(res.status, 200)
+      assert.equal((llamadas.peticiones[0].cabeceras['X-Firma'].match(/v1=/g) ?? []).length, 1)
+    } finally {
+      console.warn = original
+    }
+    assert.equal(avisos.length, 1)
+    assert.match(avisos[0], /secreto anterior de la entrega e-1/)
+    assert.ok(!avisos[0].includes(SECRETO), 'el log no lleva secretos')
   })
 
   it('sin rotación en curso el aviso lleva una sola firma', async () => {

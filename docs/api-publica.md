@@ -116,6 +116,9 @@ la suscripción tiene la gracia vigente.
 gracia, el secreto ORIGINAL deja de valer en ese momento y los receptores que todavía lo usan fallan; por eso la pantalla
 lo advierte. Si la respuesta de la primera rotación se perdió, conviene rotar y entregar el secreto nuevo enseguida.
 
+Si Vault no puede descifrar el anterior mientras la gracia está vigente, `api_entrega_para_entregar` lo marca con
+`secreto_anterior_ilegible` y `entregar-webhook` deja una línea en su log (sin secretos).
+
 **Orden de despliegue:** migración → función `entregar-webhook` → web. La web nueva pide `secreto_anterior_vence_en` (si
 la migración no está, el panel de suscripciones da error) y no hay que rotar ningún secreto hasta que la función nueva esté
 desplegada (con la vieja, el aviso lleva solo la firma nueva y un receptor que todavía tenga el secreto anterior falla).
@@ -130,7 +133,8 @@ cada minuto y reparte hasta `API_WEBHOOKS_LOTE` eventos (total, no por tipo) y
 entregas por corrida (por defecto 20: unas 20 entregas por minuto, global; una ráfaga mayor se encola, seguimiento
 MSF-840). Una entrega `agotada` **no se reintenta sola**: el Administrador la devuelve a la cola con **Reintentar** en
 Administración → API → Entregas recientes (`public.reintentar_entrega_api`: solo una entrega agotada de su organización,
-con los 5 intentos de nuevo y el último error conservado; si la suscripción está pausada, espera a que se reanude). Lo que
+con los 5 intentos de nuevo y el último error conservado; si la suscripción está pausada, espera a que se reanude; tope de
+200 entregas de la organización esperando para enviarse a la vez, para que un script no sature la cola global). Lo que
 el destino se perdió y ya no se reintenta se recupera con una consulta incremental. Una suscripción pausada conserva sus entregas pendientes y las recibe al reanudar, pero **no**
 recibe los eventos que ocurren mientras está pausada.
 
@@ -180,8 +184,8 @@ respuestas llevan `Cache-Control: no-store` y `X-Content-Type-Options: nosniff`.
 **Retención de eventos y entregas (MSF-836):** la misma purga diaria (`purgar-api-llamadas`, con
 `API_AUDITORIA_RETENCION_DIAS`, 90 por defecto) borra también las claves revocadas o vencidas y los eventos de
 `public.cola_eventos` **terminados** (`completada` o `agotada`) más viejos que la retención y sin ninguna entrega
-`pendiente` o `reclamada`; sus entregas terminadas se van con ellos (de a 50 000 por corrida, para que el primer
-barrido de un historial grande no sea una transacción enorme). No se deja de encolar eventos de organizaciones sin
+`pendiente` o `reclamada`; sus entregas terminadas se van con ellos (de a lotes de 50 000 y hasta 10 lotes por corrida, para que el primer
+barrido de un historial grande no sea una sola transacción enorme). No se deja de encolar eventos de organizaciones sin
 suscripción: `cola_eventos` es una outbox genérica y otro consumidor futuro los necesita.
 
 **Alertas (MSF-837):** el flow `monitoreo-api-entregas` corre cada 15 minutos, consulta `private.api_entregas_salud` y
