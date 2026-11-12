@@ -40,7 +40,7 @@ Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el
 
 ## Preguntas abiertas
 
-1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) fue **cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373) porque chocaba con F-PRE-15 (escalas por tipo de cliente, ya implementada en «Tipos de cliente»). Para F-CLI-21 queda abierto solo si las listas de precios por cliente se necesitan además de las escalas por tipo; sigue en Backlog sin requisitos. La escala por **cantidad** de la línea sigue siendo de Ventas (F-VTA-06, ver [`precios.md`](./precios.md)).
+1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) fue **cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373) porque chocaba con F-PRE-15 (escalas de precio por producto, ya implementadas; Ventas aplica la escala según el tipo de cliente y la cantidad). La pantalla «Tipos de cliente» todavía no existe. Para F-CLI-21 queda abierto solo si las listas de precios por cliente se necesitan además de esas escalas; sigue en Backlog sin requisitos. La escala por **cantidad** de la línea sigue siendo de Ventas (F-VTA-06, ver [`precios.md`](./precios.md)).
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
 3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo:** sigue a confirmar qué estados cuentan
    como deuda (en particular «Pendiente» y «Confirmada»). Sin saldo a favor (confirmado en las notas): un cobro o una nota de más deja la factura en $ 0. Confirmado por Nicolás el 2026-11-12: la factura cobrada no es deuda,

@@ -124,7 +124,7 @@ organización y se habilita en N tiendas.**
 
 Contrato de lectura para Ventas y Service técnico: `x1` para minorista y `por_cantidad`
 para mayorista; nulo si el cliente no existe o no es visible (security invoker, hereda RLS).
-Regla provisoria hasta que Precios decida: si cambia, solo cambia el cuerpo de la función.
+Es un contrato de lectura que **no define el precio**: la escala de cada línea de una venta la elige Ventas (F-VTA-06, `private.escala_para_linea`: minorista x1; mayorista x1/x5/x10/x50 según la cantidad). Sigue vigente porque el tipo de cliente son dos valores fijos (minorista/mayorista); la tabla `tipos_cliente` con `escala_precio` (contrato de Precios, F-PRE-15) todavía **no existe** en la base. Cuando exista, solo cambia el cuerpo de esta función.
 Ejecutable por `authenticated`; `anon` y `public` sin acceso (FR-013).
 
 ## Reversión
