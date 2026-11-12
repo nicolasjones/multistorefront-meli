@@ -32,7 +32,7 @@ as $$
          end;
 $$;
 
-revoke execute on function private.quitar_prefijo_importacion(text) from public, anon, authenticated;
+revoke execute on function private.quitar_prefijo_importacion(text) from public, anon;
 
 create or replace function private.normalizar_producto()
 returns trigger
