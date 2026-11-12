@@ -40,6 +40,7 @@ Las migraciones se renumeraron al integrar con `dokploy` (commit `13f1879a`); lo
 | 11 | `20270227120000_api_cursor_sin_saltos_de_linea.sql` | F-API-01 | volver a `20270224110203` y `20270227100000` |
 | 12 | `20270228100000_api_menores_revision_msf233.sql` | F-API-01 | volver a las definiciones de `20270224110201/110202/110204` y `drop` de los 3 índices keyset |
 | 13 | `20270301100000_api_decisiones_abiertas_msf233.sql` | F-API-01 | volver a las definiciones previas; `drop` del índice `api_suscripciones_secreto_vault_uidx`, del trigger `api_suscripciones_borrar_secreto` y de las funciones `private.api_borrar_secreto_suscripcion` y `private.api_cursor_partes`; el índice `producto_precios_escala_org_updated_idx`; y volver a `on delete cascade` en las dos claves foráneas `creada_por` (antes de `set not null` hay que rellenar o borrar las filas con `creada_por` nulo) |
+| 14 | `20270302100000_api_seguimientos_msf233.sql` | F-API-01 | `drop` de `public.reintentar_entrega_api(uuid)`, `private.api_entregas_salud(integer, integer)` e índice `cola_eventos_terminados_idx`; volver `private.purgar_api_llamadas` a la definición de `20270301100000` |
 
 Ninguna columna ni tabla se destruye en el mismo PR que la crea. Cada RPC de `public` lleva `grant execute … to authenticated` explícito (o `service_role`) y `revoke … from public, anon`; el test que falla si `anon` ejecuta otra función de `public` debe seguir verde. `api_claves.hash` no se otorga a `authenticated`: se usa `grant select (columnas seguras)`.
 

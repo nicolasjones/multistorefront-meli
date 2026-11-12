@@ -1,7 +1,8 @@
 # MSF-403 · F-API-01 (FR-008, D-10): retención de la auditoría de la API.
 #
 # Borra las llamadas de `public.api_llamadas` más viejas que la retención (90
-# días por defecto). Lo dispara este flow y no `pg_cron` (en el repo no hay
+# días por defecto) y, desde MSF-836, también las claves revocadas o vencidas y los eventos
+# de `public.cola_eventos` ya terminados y sin entregas vivas (con sus entregas terminadas). Lo dispara este flow y no `pg_cron` (en el repo no hay
 # pg_cron): la base solo borra lo vencido y la corrida es idempotente —una
 # segunda pasada sin llamadas vencidas no borra nada.
 #
@@ -30,6 +31,17 @@ tasks:
     sql: select private.purgar_api_llamadas(CAST(:retencion AS integer));
     parameters:
       retencion: "{{ inputs.retencion_dias ?? envs.api_auditoria_retencion_dias ?? 90 }}"
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.api
+    flowId: aviso-fallo-api
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: purgar-api-llamadas
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
 triggers:
   - id: diario
     type: io.kestra.plugin.core.trigger.Schedule

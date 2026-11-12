@@ -207,7 +207,7 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
 ### Cómo se comportan los avisos
 
 - **Respondé `2xx` en menos de 10 segundos.** Hacé el trabajo pesado después, en una cola.
-- Si respondés otra cosa o no contestás, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos), con una espera mínima de 1, 2, 4 y 8 minutos entre ellos. Después el aviso queda como *agotado* y lo ves en **Entregas recientes** con su último error. Un aviso agotado **no se reintenta a mano**: recuperá lo perdido con una consulta incremental.
+- Si respondés otra cosa o no contestás, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos), con una espera mínima de 1, 2, 4 y 8 minutos entre ellos. Después el aviso queda como *agotado* y lo ves en **Entregas recientes** con su último error. Un aviso agotado no se reintenta solo: un Administrador puede devolverlo a la cola con **Reintentar** (en esa misma pantalla), y lo que ya no se reintenta se recupera con una consulta incremental.
 - La entrega es **al menos una vez**: por los reintentos, tu sistema puede recibir el mismo `id` más de una vez. Tratalo como idempotente.
 - No se garantiza el orden entre eventos distintos. Si importa, usá `ocurrido_en`.
 - La URL tiene que ser `https` y pública. No se siguen redirecciones y no se aceptan direcciones internas ni con credenciales.
