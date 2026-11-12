@@ -18,7 +18,7 @@ sistemas externos. La pantalla **API** del panel (Administración → API, ruta
 - Alcances: `productos`, `stock`, `precios`, `ventas`. Una clave puede tener uno
   o varios; si falta el alcance de la ruta responde `403 alcance_insuficiente`.
 - Rotar conserva la clave anterior **24 h** (gracia) para cambiar el cliente sin
-  cortar el servicio; la gracia nunca alarga una clave que vencía antes, y la
+  cortar el servicio; la gracia se otorga **una sola vez** (rotar de nuevo la misma clave no renueva las 24 h), nunca alarga una clave que vencía antes, y la
   clave nueva hereda el vencimiento de la original (si la original ya había
   vencido, la nueva nace sin vencimiento). Revocar la deja inutilizable en la llamada siguiente.
 - La clave se administra con `crear_clave_api`, `rotar_clave_api` y
@@ -29,7 +29,7 @@ sistemas externos. La pantalla **API** del panel (Administración → API, ruta
 
 La clave de API **no es un JWT de Supabase**, así que el gateway no puede
 validarla como tal. La Edge Function `api-v1` se despliega con
-`verify_jwt = false` (`supabase/config.toml`), y el handler autentica la clave.
+`verify_jwt = false` (`supabase/config.toml`), y el handler autentica la clave. **Verificado en dev (2026-11-12):** el camino 1 (`Authorization: Bearer msf_…` directo) funciona; el camino 2 queda para entornos cuyo gateway valide el JWT.
 Dos formas de llamar:
 
 ```http
@@ -79,13 +79,14 @@ La API avisa por `POST` a una URL `https` de la suscripción los eventos:
 
 | Tipo | Origen |
 |---|---|
-| `stock.actualizado` | cada movimiento de stock |
+| `stock.actualizado` | cada movimiento de stock de un producto y cada reserva o liberación; **no** los movimientos de variantes ni los traslados entre depósitos (para esos, barrido periódico de `/v1/stock?actualizado_desde=`) |
 | `precio.actualizado` | cambio real de precio de lista o de una escala, o de moneda |
 | `venta.registrada` | factura que pasa a `confirmada` |
 
-El cuerpo es `{ id, tipo, organizacion_id, ocurrido_en, datos }`. Se entrega a
-lo sumo **una vez por suscripción y evento** (`unique (evento_id,
-suscripcion_id)`).
+El cuerpo es `{ id, tipo, organizacion_id, ocurrido_en, datos }`. Hay **una entrega por
+suscripción y evento** (`unique (evento_id, suscripcion_id)`), pero el envío es **al menos
+una vez**: por reintentos o por un reclamo vencido el destino puede recibir el mismo `id`
+más de una vez y tiene que ignorar los repetidos.
 
 ### Firma
 
@@ -99,14 +100,22 @@ nunca llega al navegador. Para verificar: recalcular el HMAC con el cuerpo
 recibido y el mismo `t`, y comparar en tiempo constante. Rechazar un `t` viejo
 según la tolerancia del receptor.
 
+El secreto **no se puede cambiar ni volver a ver**: no existe una RPC de rotación (seguimiento MSF-839). Para
+rotarlo hoy: crear una suscripción nueva con la misma URL (se muestra su secreto), cambiarlo en el sistema receptor y
+eliminar la anterior. Mientras convivan, el receptor recibe cada evento dos veces, con el mismo `X-Evento-Id` y firmas
+distintas: tiene que ignorar el repetido.
+
 ### Reintentos
 
-La base gobierna los reintentos: **5 intentos** con espera
-`60 s × 2^(intentos-1)`; al quinto la entrega queda `agotada` (o `completada` si
+La base gobierna los reintentos: **5 intentos en total** (el original y 4 reintentos) con espera mínima
+`60 s × 2^(intentos-1)` (1, 2, 4 y 8 minutos); al quinto la entrega queda `agotada` (o `completada` si
 el destino respondió 2xx). Kestra no reintenta la llamada HTTP por su cuenta:
 cada reclamo de la entrega es un intento. El flow `entregar-webhooks-api` corre
 cada minuto y reparte hasta `API_WEBHOOKS_LOTE` eventos (total, no por tipo) y
-entregas por corrida.
+entregas por corrida (por defecto 20: unas 20 entregas por minuto, global; una ráfaga mayor se encola, seguimiento
+MSF-840). Una entrega `agotada` **no se reintenta a mano** (seguimiento MSF-838): lo perdido se recupera con una
+consulta incremental. Una suscripción pausada conserva sus entregas pendientes y las recibe al reanudar, pero **no**
+recibe los eventos que ocurren mientras está pausada.
 
 ### SSRF
 
@@ -151,6 +160,11 @@ auditando, pero hasta **600 por minuto y por organización** (o sin organizació
 el exceso no se guarda, para que una ráfaga de un tercero no llene la tabla. Las
 respuestas llevan `Cache-Control: no-store` y `X-Content-Type-Options: nosniff`.
 
+**Lo que hoy no se purga:** `public.api_entregas` y los eventos de `public.cola_eventos` crecen con el tráfico (un evento
+por movimiento de stock y por cambio de precio, tenga o no suscripción la organización) y no tienen retención todavía
+(seguimiento MSF-836). `API_AUDITORIA_RETENCION_DIAS` (90 por defecto) gobierna la purga de llamadas y la de claves
+revocadas o vencidas.
+
 ## Versionado
 
 La versión va en la ruta (`/v1/`). Los cambios aditivos no rompen `v1`; uno
@@ -162,18 +176,22 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
 
 ## Operación y reversión
 
+- **Después de desplegar** `api-v1` o `entregar-webhook`: llamar a `GET /api-v1/v1/openapi.json` y a una ruta con una
+  clave inválida (tiene que dar `401` en JSON). Si responde `404 Function not found`, hay que recrear el stack del runtime
+  de Edge (reiniciar solo el runtime no registra funciones nuevas).
 - Variables de Kestra: `ENTREGAR_WEBHOOK_URL`, `SECRET_ENTREGAR_WEBHOOK_APIKEY`,
   `API_WEBHOOKS_LOTE` y `API_AUDITORIA_RETENCION_DIAS` (ver
   `infra/kestra/.env.example`).
 - Migraciones: `20270224110201_api_claves`, `20270224110202_api_llamadas_y_limite`,
   `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
-  `20270224110205_api_eventos_precio_venta`, `20270228100000_api_menores_revision_msf233` y
-  `20270301100000_api_decisiones_abiertas_msf233`. Son aditivas; cada encabezado
+  `20270224110205_api_eventos_precio_venta`, `20270224110206_exportacion_total_excluye_api`,
+  `20270227100000_api_decodificar_cursor_devuelve_fila`, `20270227120000_api_cursor_sin_saltos_de_linea`,
+  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
-  `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas` y
-  `api_eventos` (`pnpm test:db`).
+  `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas`, `api_eventos`,
+  `api_paginacion` y `api_decisiones_abiertas` (`pnpm test:db`).
 - **Documentación para integradores (2026-11-12):** el contrato OpenAPI trae ejemplos de cada respuesta y de cada error,
   `curl` y `fetch` por operación y los tres avisos como `webhooks` (firma, reintentos y campos de `datos`);
   `scripts/openapi-a-markdown.mjs` genera de él `docs/api/referencia.md`, y `docs/api/inicio-rapido.md` es la guía
@@ -196,7 +214,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
     es `400 cursor_invalido`.
   - Pruebas: pgTAP `api_decisiones_abiertas`.
 
-# Cierre · Verificación global y revisión de seguridad (T021)
+## Evidencia de cierre (2026-11-11, PR #843) · Verificación global y revisión de seguridad (T021)
 
 Cierre de la épica MSF-233
 ([`specs/20270203-100000-api-e-asistente-con-ia`](../specs/20270203-100000-api-e-asistente-con-ia/spec.md)):
@@ -204,7 +222,7 @@ las historias MSF-403 (F-API-01) y MSF-411 (F-IA-01) quedaron implementadas y
 esto es la verificación global de la spec (`SC-007`), junto con el estado del
 roadmap (`SC-008`, filas #25, #35, #36 y #47 de `docs/roadmap-template.md`).
 
-## Revisión de seguridad
+### Revisión de seguridad (al cierre)
 
 Sobre el diff de la épica (migraciones `20270224110201`…`20270224110205`, Edge
 Functions `api-v1` y `entregar-webhook`, flows de Kestra y la pantalla `/api`).
@@ -233,7 +251,7 @@ Sin hallazgos críticos ni altos.
   entrega se conecta a la IP ya resuelta y validada, sin seguir redirecciones, y
   el error que queda guardado va saneado (sin secretos ni credenciales).
 
-## Verificación global
+### Verificación global (al cierre; los conteos de pruebas crecieron después)
 
 Comandos de la spec (`plan.md`, «Verificación»):
 
