@@ -86,7 +86,7 @@ function Contenido({ envios, onCerrar, onRendido, enVuelo }: Omit<Props, 'open'>
             <Fila etiqueta="Neto" valor={formatearImporteHistorial(totales.neto)} />
           </Stack>
           <Typography variant="xs" color="text.secondary">
-            Rendir cierra la cuenta del mensajero: no se puede revertir. El total es el efectivo cobrado; el costo de los envíos y el neto son informativos.
+            Rendir cierra la cuenta del mensajero y registra el cobro en cada factura, hasta lo que le falta cobrar: no se puede revertir. El total es el efectivo cobrado; el costo de los envíos y el neto son informativos.
           </Typography>
         </Stack>
       </DialogContent>

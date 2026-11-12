@@ -15,7 +15,7 @@ const ELEGIBLE = { id: 'f-9', numero: '0003-00001300', empresa_id: 'e-1', empres
 const envio: EnvioMoto = {
   id: 'm-1', comprobante_id: 'f-1', comprobante_numero: '0003-00001247', empresa_id: 'e-1', empresa: 'San Javucho',
   fecha: '2026-10-07', cliente: 'Kiosco La Esquina', mensajero: 'Moto 1', guia: 'M-2201', costo_envio: 3500.5, abono: 0,
-  enviado: false, rendido: false, rendido_en: null, actualizado_en: '2026-10-07T10:00:00+00:00', puede_editar: true, puede_rendir: true,
+  enviado: false, rendido: false, rendido_en: null, actualizado_en: '2026-10-07T10:00:00+00:00', puede_editar: true, puede_rendir: true, bloqueado_motivo: null,
 }
 
 const rpcPorDefecto = (extra: Record<string, unknown> = {}) => vi.fn(async (nombre: string) => {
@@ -192,10 +192,17 @@ describe('EnvioMotoDialog · editar', () => {
   })
 
   it('un envío rendido que la base rechaza (55000) se explica como solo lectura', async () => {
-    mocks.rpc.mockImplementation(rpcPorDefecto({ actualizar_envio_moto: { data: null, error: { code: '55000', message: 'x' } } }))
+    mocks.rpc.mockImplementation(rpcPorDefecto({ actualizar_envio_moto: { data: null, error: { code: '55000', message: 'El envío ya está rendido: no se puede editar' } } }))
     abrirAlta({ envio })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    expect(await screen.findByText(/ya está rendido: es de solo lectura/)).toBeInTheDocument()
+    expect(await screen.findByText(/ya está rendido: no se puede editar/)).toBeInTheDocument()
+  })
+
+  it('una factura anulada después de cargar el envío (55000) se explica con el mensaje de la base', async () => {
+    mocks.rpc.mockImplementation(rpcPorDefecto({ actualizar_envio_moto: { data: null, error: { code: '55000', message: 'La factura 0003-00001247 fue anulada: el envío en moto ya no se puede editar' } } }))
+    abrirAlta({ envio })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText(/fue anulada: el envío en moto ya no se puede editar/)).toBeInTheDocument()
   })
 })
 

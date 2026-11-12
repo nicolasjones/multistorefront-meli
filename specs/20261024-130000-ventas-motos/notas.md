@@ -12,14 +12,22 @@ Complemento de [spec.md](./spec.md). Salen de la auditoría retroactiva por role
 
 - **Contrarreembolsos por defecto.** La pantalla abre en Contrarreembolsos (orden Contrarreembolsos, Motos, Terminales); la spec original decía Terminales. Aprobada por Nicolás el 2026-11-12 («avanza con todo»)
 
+Nicolás aprobó las recomendaciones el 2026-11-12 («avanza con todo»). Además de la de Contrarreembolsos por defecto, se implementaron en el PR «fix(ventas): motos — factura anulada bloquea, borrador no elegible, rendir cobra (MSF-145)»:
+
+- **Factura anulada después** (antes pendiente 2): el envío queda bloqueado, no se edita (`55000`) ni se rinde (`55000`, todo o nada); el listado trae `puede_editar = false`, `puede_rendir = false` y `bloqueado_motivo`, y la pantalla lo muestra con la etiqueta «Factura anulada» y el motivo. No cuenta en «Motos sin rendir». Migraciones `20270228110000` y `20270228110100`.
+- **Borrador en la elegibilidad** (antes pendiente 3): solo facturas emitidas; el borrador no se ofrece en el selector ni se registra (`22023`). Los envíos ya cargados sobre un borrador siguen existiendo; rendirlos con abono mayor que 0 exige confirmar la factura (`55000`). `20270228110000`.
+- **`abono` y libro de cobros** (antes pendiente 4): rendir registra el cobro por `least(abono, saldo neto)` por `private.registrar_cobro_interno` (origen `contrarreembolso`, forma de la factura o «Contrarreembolso» de la tienda, sin cuenta) y guarda `cobro_id` en el envío; una nota de crédito posterior baja el abono de los envíos sin rendir hasta el saldo neto (puede quedar en 0) con evento `envio_moto.abono_ajustado`, sin tocar los rendidos y con `skip locked`. `20270228110100` y `20270228110200`.
+  - Una factura ya en estado Cobrado no recibe cobro al rendir (estado intacto); un borrador con abono se muestra sin poder rendirse («Confirmá la factura antes de rendir»).
+  - Revisión de seguridad (2026-11-12): permiso antes de los locks y el mismo `42501` exista o no el envío o comprobante; superadmin sin membresía avisado antes de empezar; los borradores con abono se listan todos.
+  - Límites: si se anula la nota el abono no sube de nuevo; revertir una rendición exige un contra-asiento; con una forma de pago que genera deuda la factura puede quedar en Deuda; la tienda necesita una forma de pago «Contrarreembolso» activa si la factura no tiene forma de pago; un superadmin sin membresía en la organización no puede rendir (lo exige el mecanismo de cobros).
+
+Siguen abiertos: la reversión de la rendición (punto 5, fuera de alcance; ahora además debería revertir el cobro) y los «comentarios de clientes» (punto 6).
+
 ## Pendientes de Nicolás
 
-Los puntos 4, 5 y 6 tienen su recomendación **aprobada el 2026-11-12, en implementación** (otros PRs); no están resueltos hasta que se mergeen. Los puntos 2 y 3 siguen sin decisión.
-
-2. **Factura anulada después.** Si se anula una factura con envío ya registrado, el envío sigue editable y rendible (decisión provisoria, a confirmar con el cliente).
-3. **Borrador en la elegibilidad.** Se puede registrar un envío sobre una factura en borrador (cualquiera salvo anulada); confirmar que es lo deseado.
-4. **`abono` sin vínculo con cobros** *(aprobada el 2026-11-12, en implementación)*. `envios_moto.abono` es texto libre numérico sin relación con el libro de cobros:
-   - Una nota de crédito posterior no lo ajusta: la migración `20270227150000_notas_credito_sincronizan_estado_y_contrarreembolso.sql` ajusta contrarreembolsos pero no `envios_moto.abono`.
-   - `rendir_envios_moto` no registra ningún cobro en el libro de cobros, así que tras rendir puede quedar saldo pendiente o «Deuda» en el comprobante. Decidir si rendir debe registrar el cobro.
-5. **Reversión de la rendición** *(aprobada el 2026-11-12, en implementación)*. Fuera de alcance por la decisión del 2026-11-09, que no consideró las notas de crédito; con el punto 4 conviene revisarla.
-6. **«Comentarios de clientes» del Code Review** *(aprobada el 2026-11-12, en implementación)*. No se localizaron en el repositorio ni en la spec; Nicolás debe indicar a qué se refieren.
+1. ~~**Contrarreembolsos por defecto.**~~ Aprobada el 2026-11-12 (ver arriba).
+2. ~~**Factura anulada después.**~~ Decidido el 2026-11-12 (ver arriba).
+3. ~~**Borrador en la elegibilidad.**~~ Decidido el 2026-11-12 (ver arriba).
+4. ~~**`abono` sin vínculo con cobros.**~~ Decidido el 2026-11-12 (ver arriba).
+5. **Reversión de la rendición.** Fuera de alcance por la decisión del 2026-11-09, que no consideró las notas de crédito; ahora que rendir deja un cobro en el libro, revertir tendría que deshacerlo (el libro no se borra: haría falta un contra-asiento). Sigue abierta.
+6. **«Comentarios de clientes» del Code Review.** No se localizaron en el repositorio ni en la spec; Nicolás debe indicar a qué se refieren.
