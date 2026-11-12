@@ -151,6 +151,20 @@ describe('PreciosMasivos (F-PRE-10, FR-001, FR-010)', () => {
     expect(within(tabla).queryByRole('columnheader', { name: 'Costo' })).not.toBeInTheDocument()
   })
 
+  it('con Rentabilidad en lectura (y Productos en edición) ve el costo pero no se ofrece cambiarlo', async () => {
+    niveles('edicion', 'lectura')
+    abrir()
+    fireEvent.mouseDown(screen.getByLabelText('Qué cambia'))
+    const opciones = await screen.findAllByRole('option')
+    expect(opciones.map((opcion) => opcion.textContent)).toEqual(['Precio de lista'])
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' })
+    porcentaje('10')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver vista previa' }))
+    const tabla = await screen.findByRole('table', { name: 'Vista previa de la actualización de precios' })
+    expect(within(tabla).getByRole('columnheader', { name: 'Costo' })).toBeInTheDocument()
+    expect(within(tabla).getByText('60,00 → 66,00 ARS')).toBeInTheDocument()
+  })
+
   it('con Rentabilidad en edición ofrece cambiar el costo y lo muestra en la vista previa', async () => {
     niveles('edicion', 'edicion')
     abrir()

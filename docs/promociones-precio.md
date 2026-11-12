@@ -32,6 +32,10 @@ Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan po
 - **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda. Queda como pregunta para Nicolás.
 - **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento MSF-816.
 
+## Límite de filas de PostgREST
+
+`supabase/config.toml` fija `max_rows = 1000`: PostgREST recorta cada respuesta a ese tope sin avisar, así que un `.limit(2000)` no trae más. Por eso la pantalla **Promociones** (a) lee la lista por tandas de 500 con `.range()` (orden `desde`, `id`) hasta que una vuelve corta, y (b) busca el producto del diálogo «Nueva promoción» en el servidor (`useBuscadorCatalogo`: nombre o SKU, «contiene», con espera al escribir y tope de 500 opciones con aviso si el catálogo se cortó), en vez de bajar todos los productos activos. Con ~2.900 productos se llega a cualquiera escribiendo parte del nombre o del SKU.
+
 ## Verificación
 
 pgTAP `supabase/tests/database/promociones_precio.test.sql`; Vitest `promociones.test.ts`, `promociones.test.tsx`, `PrecioTachado.test.tsx`; E2E `apps/web/e2e/tienda-promocion.e2e.ts` (ver [`e2e-app.md`](./e2e-app.md)).

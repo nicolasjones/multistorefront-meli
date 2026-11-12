@@ -92,30 +92,30 @@ export function ordenarPromociones(promociones: Promocion[]): Promocion[] {
   )
 }
 
+// PostgREST recorta cada respuesta a `max_rows` (1000 en supabase/config.toml) sin avisar: un `.limit()` mayor
+// no sirve. Se pide por tandas con `.range()` (menores a ese tope) hasta que una vuelve corta.
+export const TAMANO_TANDA_PROMOCIONES = 500
+
 // `empresaId` null = «Todas mis empresas» (todas las que la persona ve, RLS mediante).
 export async function leerPromociones(cliente: SupabaseClient, empresaId: string | null): Promise<Promocion[]> {
-  let consulta = cliente.from('promociones_precio_estado').select(COLUMNAS)
-  if (empresaId) consulta = consulta.eq('empresa_id', empresaId)
-  const { data, error } = await consulta.order('desde', { ascending: true }).limit(2000).returns<FilaEstado[]>()
-  if (error) throw error
-  return ordenarPromociones((data ?? []).map(mapearPromocion))
+  const filas: FilaEstado[] = []
+  for (let desde = 0; ; desde += TAMANO_TANDA_PROMOCIONES) {
+    let consulta = cliente.from('promociones_precio_estado').select(COLUMNAS)
+    if (empresaId) consulta = consulta.eq('empresa_id', empresaId)
+    const { data, error } = await consulta
+      .order('desde', { ascending: true })
+      .order('id', { ascending: true })
+      .range(desde, desde + TAMANO_TANDA_PROMOCIONES - 1)
+      .returns<FilaEstado[]>()
+    if (error) throw error
+    const tanda = data ?? []
+    filas.push(...tanda)
+    if (tanda.length < TAMANO_TANDA_PROMOCIONES) break
+  }
+  return ordenarPromociones(filas.map(mapearPromocion))
 }
 
 export type ProductoPromocionable = { id: string; nombre: string; sku: string | null }
-
-export async function leerProductosPromocionables(cliente: SupabaseClient): Promise<ProductoPromocionable[]> {
-  const { data, error } = await cliente
-    .schema('dominio')
-    .from('productos')
-    .select('id, nombre, sku')
-    .eq('activo', true)
-    .order('nombre', { ascending: true })
-    .order('id', { ascending: true })
-    .limit(2000)
-    .returns<ProductoPromocionable[]>()
-  if (error) throw error
-  return data ?? []
-}
 
 export type DatosPromocion = {
   // null = alta.
