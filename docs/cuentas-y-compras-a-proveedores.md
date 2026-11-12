@@ -71,7 +71,7 @@ revisión final posterior sobre lo ya mergeado (su resultado y las correcciones 
 - **Sin SQL dinámico:** el único parámetro es un `uuid`.
 - **Secretos, compose y dependencias:** sin cambios.
 - **Cobertura de pruebas, dicha con precisión:**
-  - **pgTAP** (`cuenta_corriente_cliente.test.sql`, 34 aserciones): lo corre el job `database` del CI. Cubre centavos, cada estado vivo, tienda desactivada, persona sin tiendas y superadmin.
+  - **pgTAP** (`cuenta_corriente_cliente.test.sql`, 46 aserciones): lo corre el job `database` del CI. Cubre centavos, cada estado vivo, tienda desactivada, persona sin tiendas y superadmin.
   - **Vitest** (`ComprasCliente.test.tsx`, `useCuentaCorrienteCliente.test.tsx`, `formatoRanking.test.ts`): corre en el CI.
   - **E2E** (`apps/web/e2e/cuenta-corriente-cliente.e2e.ts`): **el CI no lo corre**. El job `application` ejecuta solo
     `acceso-publico.e2e.ts` y este archivo se omite sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Se corre a mano con

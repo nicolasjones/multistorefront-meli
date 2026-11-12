@@ -68,8 +68,8 @@ export function useCuentaCorrienteCliente(clienteId: string | undefined) {
         numero: String(f.numero),
         fecha: String(f.fecha),
         estado: String(f.estado),
-        total_con_iva: Number(f.total_con_iva),
-        cobrado: Number(f.cobrado),
+        total_con_iva: Number(f.total_con_iva ?? 0),
+        cobrado: Number(f.cobrado ?? 0),
         notas_credito: Number(f.notas_credito ?? 0),
         saldo: Number(f.saldo),
       })))
