@@ -35,7 +35,7 @@ Ambas son `security definer` (justificado: `authenticated` no puede escribir `ac
 - **Conflicto**: la vista previa devuelve el `updated_at` de cada producto; aplicar bloquea cada fila (`for update`, en orden de id) y, si alguna cambió o entró al alcance desde entonces, falla con `40001` y no aplica nada. Un cambio de costo también avanza el `updated_at` del producto.
 - **Idempotencia**: la clave es única por organización (`actualizaciones_precio.clave`) y se serializa con un bloqueo asesor; repetirla devuelve el lote ya aplicado. La pantalla genera una clave nueva por cada vista previa.
 - **Alcance del porcentaje**: solo productos **activos**; una categoría incluye sus subcategorías (2 niveles). La planilla admite productos inactivos. Tope de 5.000 productos por llamada.
-- **Costo**: solo con `rentabilidad`. La vista previa lo omite sin esa sección y aplicar rechaza (`42501`) cualquier pedido que lo toque. En modo porcentaje, un producto sin costo cargado no recibe uno nuevo; en planilla sí se crea.
+- **Costo**: solo con `rentabilidad`. La vista previa lo omite sin esa sección y aplicar rechaza (`42501`) cualquier pedido que lo toque. **La vista previa también rechaza con `42501` si el cambio toca costos y `rentabilidad` no es edición** (migración `20270223200100`; antes con lectura respondía y aplicar fallaba). Con `rentabilidad` en lectura se ve el costo en una vista previa que cambia solo el precio de lista. En modo porcentaje, un producto sin costo cargado no recibe uno nuevo; en planilla sí se crea.
 - **Qué no se toca** (Decisión 2 y 5): moneda, escalas de precio (F-PRE-15), precios propios por empresa (F-PRE-08, hoy inexistentes) ni nada de Mercado Libre.
 - **Auditoría**: los disparadores existentes dejan `producto.precio_actualizado` por producto con cambio real; el lote suma `precios.actualizacion_masiva` **sin importes de costo** (la ve quien no tiene `rentabilidad`), y `actualizaciones_precio.parametros` tampoco guarda costos (en planilla solo la cantidad de filas).
 
@@ -45,7 +45,7 @@ Ambas son `security definer` (justificado: `authenticated` no puede escribir `ac
 |---|---|
 | `productos` = edición (Administrador, Operador) | abre la pantalla; puede cambiar precios de lista |
 | `rentabilidad` = edición (Administrador) | además ve y cambia costos |
-| `rentabilidad` = lectura | ve el costo en la vista previa, no lo cambia |
+| `rentabilidad` = lectura | ve el costo en una vista previa que cambia solo el precio de lista; si el cambio toca costos, la vista previa y aplicar responden `42501` |
 | `productos` = lectura o sin acceso | «No tenés acceso a esta sección» (la ruta no monta la pantalla) y las RPC responden `42501` |
 
 ## Pruebas
@@ -56,4 +56,4 @@ Ambas son `security definer` (justificado: `authenticated` no puede escribir `ac
 
 ## Reversión
 
-Migraciones aditivas `20270221100006`…`20270221100008`, cada una con su reversión en el encabezado. Orden inverso: `drop function public.aplicar_actualizacion_precios(text, jsonb, uuid)` → `drop function public.previsualizar_actualizacion_precios(text, jsonb)` y `private.calcular_actualizacion_precios(uuid, boolean, text, jsonb)` → `drop table dominio.actualizaciones_precio` (en una migración posterior, no en el PR que la crea; exportar antes los lotes). Los precios ya aplicados **no se deshacen solos**: se corrigen con otra actualización (la Actividad deja qué producto cambió).
+Migraciones aditivas `20270221100006`…`20270221100008` y la corrección `20270223200100` (reemplaza la vista previa; se revierte recreando la función de `20270221100007`), cada una con su reversión en el encabezado. Orden inverso: `drop function public.aplicar_actualizacion_precios(text, jsonb, uuid)` → `drop function public.previsualizar_actualizacion_precios(text, jsonb)` y `private.calcular_actualizacion_precios(uuid, boolean, text, jsonb)` → `drop table dominio.actualizaciones_precio` (en una migración posterior, no en el PR que la crea; exportar antes los lotes). Los precios ya aplicados **no se deshacen solos**: se corrigen con otra actualización (la Actividad deja qué producto cambió).
