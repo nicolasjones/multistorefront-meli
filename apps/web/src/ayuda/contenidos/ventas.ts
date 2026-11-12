@@ -15,7 +15,7 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-comprobantes': {
     titulo: 'Comprobantes',
     resumen:
-      'Es el listado de facturas y notas de crédito. Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo.',
+      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo.',
     pasos: [
       'Escribí el cliente o el número en el buscador.',
       'Afiná con los filtros de operador, estado, pago y envío; usá Limpiar filtros para volver atrás.',
@@ -58,7 +58,7 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-pagos': {
     titulo: 'Pagos',
     resumen:
-      'Sirve para conciliar los cobros hechos por transferencia o depósito: los comparás con el extracto del banco y los marcás como cobrados. Si te equivocás, podés revertir la conciliación. Se puede filtrar por tienda y por cuenta de cobro.',
+      'Sirve para conciliar los cobros hechos por transferencia o depósito: los comparás con el extracto del banco y los marcás como cobrados. Si te equivocás, podés revertir la conciliación. Se puede filtrar por tienda y por cuenta de cobro. El saldo de «Solo con saldo» y de «Saldo pendiente de clientes» es el total menos lo cobrado y no descuenta las notas de crédito: puede ser mayor que el del comprobante.',
     pasos: [
       'Elegí la tienda y, si querés, una cuenta de cobro.',
       'Activá «Solo con saldo» para ver solo los pagos de comprobantes que todavía tienen saldo por cobrar.',
