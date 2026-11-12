@@ -129,7 +129,7 @@
     "test:kestra:depuracion-actividad": "node --test infra/kestra/validar-depuracion-actividad.test.mjs",
     "test:kestra:depuracion-monitoreo": "node --test infra/kestra/validar-depuracion-monitoreo.test.mjs",
     "test:kestra:cierre-accesos-soporte": "node --test infra/kestra/validar-cierre-accesos-soporte.test.mjs",
-    "test:kestra:webhooks": "node --test infra/kestra/flows/entregar-webhooks-api.test.mjs infra/kestra/flows/purgar-api-llamadas.test.mjs",
+    "test:kestra:webhooks": "node --test infra/kestra/flows/entregar-webhooks-api.test.mjs infra/kestra/flows/purgar-api-llamadas.test.mjs infra/kestra/flows/monitoreo-api-entregas.test.mjs",
     "test:ia:aprovisionamiento": "node --test infra/ia/aprovisionar-proveedores.test.mjs",
     "test:tooling": "node --test scripts/operaciones.test.mjs scripts/supabase-ci.test.mjs scripts/reset-db-ci-sql.test.mjs scripts/migraciones-ventas-comprobantes.test.mjs scripts/verificar-migraciones.test.mjs",
     "test:kestra:deploy-flow": "node --test infra/kestra/desplegar-flow.test.mjs infra/kestra/sincronizar-rol-orquestacion.test.mjs",

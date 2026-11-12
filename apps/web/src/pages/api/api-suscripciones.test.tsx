@@ -158,6 +158,30 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     expect(within(tabla).queryByText('s-1')).not.toBeInTheDocument()
   })
 
+  it('una entrega agotada se puede reintentar y avisa que volvió a la cola', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('reintentar_entrega_api', { p_entrega_id: 'e-1' }))
+    expect(await screen.findByText(/Volvimos a poner en la cola el aviso para https:\/\/ejemplo\.com\/aviso/)).toBeInTheDocument()
+  })
+
+  it('solo las entregas agotadas tienen el botón Reintentar', async () => {
+    mocks.datos = {
+      ...mocks.datos,
+      api_entregas: { data: [{ ...ENTREGAS[0], estado: 'completada' }], error: null },
+    }
+    abrir()
+    await screen.findByRole('table', { name: 'Entregas de avisos' })
+    expect(screen.queryByRole('button', { name: /Reintentar el aviso/ })).not.toBeInTheDocument()
+  })
+
+  it('avisa si no se pudo reintentar la entrega', async () => {
+    mocks.rpcResultado = { data: null, error: { message: 'denied' } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
+    expect(await screen.findByText(/No pudimos reintentar la entrega/)).toBeInTheDocument()
+  })
+
   it('muestra las llamadas con su estado y su duración', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Llamadas recientes' })).toBeInTheDocument()

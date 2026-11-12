@@ -113,8 +113,10 @@ el destino respondió 2xx). Kestra no reintenta la llamada HTTP por su cuenta:
 cada reclamo de la entrega es un intento. El flow `entregar-webhooks-api` corre
 cada minuto y reparte hasta `API_WEBHOOKS_LOTE` eventos (total, no por tipo) y
 entregas por corrida (por defecto 20: unas 20 entregas por minuto, global; una ráfaga mayor se encola, seguimiento
-MSF-840). Una entrega `agotada` **no se reintenta a mano** (seguimiento MSF-838): lo perdido se recupera con una
-consulta incremental. Una suscripción pausada conserva sus entregas pendientes y las recibe al reanudar, pero **no**
+MSF-840). Una entrega `agotada` **no se reintenta sola**: el Administrador la devuelve a la cola con **Reintentar** en
+Administración → API → Entregas recientes (`public.reintentar_entrega_api`: solo una entrega agotada de su organización,
+con los 5 intentos de nuevo y el último error conservado; si la suscripción está pausada, espera a que se reanude). Lo que
+el destino se perdió y ya no se reintenta se recupera con una consulta incremental. Una suscripción pausada conserva sus entregas pendientes y las recibe al reanudar, pero **no**
 recibe los eventos que ocurren mientras está pausada.
 
 ### SSRF
@@ -160,10 +162,17 @@ auditando, pero hasta **600 por minuto y por organización** (o sin organizació
 el exceso no se guarda, para que una ráfaga de un tercero no llene la tabla. Las
 respuestas llevan `Cache-Control: no-store` y `X-Content-Type-Options: nosniff`.
 
-**Lo que hoy no se purga:** `public.api_entregas` y los eventos de `public.cola_eventos` crecen con el tráfico (un evento
-por movimiento de stock y por cambio de precio, tenga o no suscripción la organización) y no tienen retención todavía
-(seguimiento MSF-836). `API_AUDITORIA_RETENCION_DIAS` (90 por defecto) gobierna la purga de llamadas y la de claves
-revocadas o vencidas.
+**Retención de eventos y entregas (MSF-836):** la misma purga diaria (`purgar-api-llamadas`, con
+`API_AUDITORIA_RETENCION_DIAS`, 90 por defecto) borra también las claves revocadas o vencidas y los eventos de
+`public.cola_eventos` **terminados** (`completada` o `agotada`) más viejos que la retención y sin ninguna entrega
+`pendiente` o `reclamada`; sus entregas terminadas se van con ellos (de a 50 000 por corrida, para que el primer
+barrido de un historial grande no sea una transacción enorme). No se deja de encolar eventos de organizaciones sin
+suscripción: `cola_eventos` es una outbox genérica y otro consumidor futuro los necesita.
+
+**Alertas (MSF-837):** el flow `monitoreo-api-entregas` corre cada 15 minutos, consulta `private.api_entregas_salud` y
+avisa por correo a soporte (`SOPORTE_CORREO`, subflow `aviso-fallo-api`) si hay entregas agotadas en la última hora
+(desde `umbral_agotadas`, 5 por defecto), entregas pendientes atrasadas más de `atraso_min` (30) minutos o eventos de la
+API sin repartir hace más de ese tiempo. Si el chequeo mismo falla, también avisa; y la purga avisa si falla.
 
 ## Versionado
 
@@ -186,7 +195,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
   `20270224110205_api_eventos_precio_venta`, `20270224110206_exportacion_total_excluye_api`,
   `20270227100000_api_decodificar_cursor_devuelve_fila`, `20270227120000_api_cursor_sin_saltos_de_linea`,
-  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233`. Son aditivas; cada encabezado
+  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233` y `20270302100000_api_seguimientos_msf233`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
