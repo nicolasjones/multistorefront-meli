@@ -48,3 +48,11 @@ Decisiones que el desarrollo tomó de forma provisoria y que él tiene que confi
 
 - `listar_pagos` ahora excluye por estado como `resumen_pagos`: una factura anulada o en borrador con cobros muestra saldo 0 y no entra en «Solo con saldo» (el pago sigue listado). Antes aparecía con saldo > 0. Corregido en `20270228200000` y fijado por pgTAP.
 - El `cobrado` de `listar_pagos` no se filtra por `empresas_accesibles()` como en `saldo_comprobante`: no cambia resultados (el cobro es siempre de la empresa del comprobante, que la lista exige accesible). Documentado en la migración.
+
+## Documentador final (2026-11-12)
+
+Auditoría de `docs/*.md` y specs contra `origin/dokploy` (migraciones, RPC, componentes y ayuda en `apps/web/src/ayuda`). Solo documentación.
+
+- Fórmula verificada en `20270227140000`, `20270228200000` y `20270228200100`: `round(greatest(total_con_iva − cobrado − notas_credito, 0), 2)`, sin saldo a favor; estados excluidos `borrador`, `anulada` y `cobrado` (`20270227130000`).
+- `docs/clientes.md` se contradecía: una línea daba «si el saldo a favor se muestra» como pendiente y otra decía que no hay saldo a favor. Corregido: no se muestra (confirmado). Sigue pendiente solo el criterio de los estados que cuentan como deuda.
+- Verificado sin cambios: `docs/cobros-por-comprobante.md`, `docs/pagos-conciliacion.md`, `docs/ventas-cobros-y-conciliacion.md` y la ayuda de Ventas/Contactos ya reflejan el saldo neto.

@@ -124,7 +124,7 @@ organización y se habilita en N tiendas.**
 
 Contrato de lectura para Ventas y Service técnico: `x1` para minorista y `por_cantidad`
 para mayorista; nulo si el cliente no existe o no es visible (security invoker, hereda RLS).
-Regla provisoria hasta que Precios decida: si cambia, solo cambia el cuerpo de la función.
+Es un contrato de lectura que **no define el precio**: la escala de cada línea de una venta la elige Ventas (F-VTA-06, `private.escala_para_linea`: minorista x1; mayorista x1/x5/x10/x50 según la cantidad). Sigue vigente porque el tipo de cliente son dos valores fijos (minorista/mayorista); la tabla `tipos_cliente` con `escala_precio` (contrato de Precios, F-PRE-15) todavía **no existe** en la base. Cuando exista, solo cambia el cuerpo de esta función.
 Ejecutable por `authenticated`; `anon` y `public` sin acceso (FR-013).
 
 ## Reversión
@@ -461,8 +461,8 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   que la sección «Compras»).
 - **Costo:** tres lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada), dentro de `private.saldo_comprobante`: el comprobante, sus cobros y la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
   cientos, se pagina con carga infinita.
-- **Decisiones** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se puede cambiar). Confirmadas por Nicolás el 2026-11-12: la factura «Cobrada» no es deuda, el saldo respeta las tiendas accesibles (`private.empresas_accesibles()`) y el permiso de lectura de Clientes alcanza para ver el saldo. Siguen pendientes: qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
-  a favor se muestra. (Cerrado el 2026-11-11: el saldo del
+- **Decisiones** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se puede cambiar). Confirmadas por Nicolás el 2026-11-12: la factura «Cobrada» no es deuda, el saldo respeta las tiendas accesibles (`private.empresas_accesibles()`) y el permiso de lectura de Clientes alcanza para ver el saldo. Sigue pendiente qué estados cuentan como deuda (en especial «Pendiente»). El saldo a favor no se
+  muestra: está confirmado que no hay (cobros y notas de más dejan la factura en $ 0). (Cerrado el 2026-11-11: el saldo del
   comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
   mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
 - **Efecto cruzado de `20270227150000`:** el disparador escribe, además de la lectura: pasa la factura a «Cobrado» cuando

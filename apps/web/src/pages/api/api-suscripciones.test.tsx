@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   datos: {} as Record<string, { data: unknown[]; error: { message: string } | null }>,
   rpcResultado: { data: null as unknown, error: null as { message: string } | null },
   usePuedeEscribir: vi.fn(),
+  filtros: [] as [string, string, string][],
 }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -66,19 +67,25 @@ const abrir = () => render(<MemoryRouter><ApiList /></MemoryRouter>)
 describe('pantalla API · suscripciones, entregas y llamadas', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.filtros = []
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.datos = {
       api_suscripciones: { data: SUSCRIPCIONES, error: null },
       api_entregas: { data: ENTREGAS, error: null },
       api_llamadas: { data: LLAMADAS, error: null },
     }
-    mocks.from.mockImplementation((tabla: string) => ({
-      select: () => ({
+    mocks.from.mockImplementation((tabla: string) => {
+      const consulta = {
         order: () => ({
           limit: () => Promise.resolve(mocks.datos[tabla] ?? { data: [], error: null }),
         }),
-      }),
-    }))
+        eq: (columna: string, valor: string) => {
+          mocks.filtros.push([tabla, columna, valor])
+          return consulta
+        },
+      }
+      return { select: () => consulta }
+    })
     mocks.rpcResultado = { data: { id: 's-2', secreto: 'secreto-nuevo' }, error: null }
     mocks.rpc.mockImplementation(() => {
       // La RPC se usa como promesa (updates) y con `.single()` (alta): el mock sirve para las dos.
@@ -156,6 +163,54 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     const tabla = await screen.findByRole('table', { name: 'Entregas de avisos' })
     expect(await within(tabla).findByText('https://ejemplo.com/aviso')).toBeInTheDocument()
     expect(within(tabla).queryByText('s-1')).not.toBeInTheDocument()
+  })
+
+  it('una entrega agotada se puede reintentar y avisa que volvió a la cola', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('reintentar_entrega_api', { p_entrega_id: 'e-1' }))
+    expect(await screen.findByText(/Volvimos a poner en la cola el aviso para https:\/\/ejemplo\.com\/aviso/)).toBeInTheDocument()
+  })
+
+  it('«Solo agotadas» pide al servidor únicamente las agotadas', async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Entregas de avisos' })
+    expect(mocks.filtros.filter(([tabla]) => tabla === 'api_entregas')).toHaveLength(0)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Solo agotadas' }))
+    await waitFor(() => expect(mocks.filtros).toContainEqual(['api_entregas', 'estado', 'agotada']))
+  })
+
+  it('con «Solo agotadas» y sin ninguna avisa que no hay entregas agotadas', async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Entregas de avisos' })
+    mocks.datos = { ...mocks.datos, api_entregas: { data: [], error: null } }
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Solo agotadas' }))
+    expect(await screen.findByText('No hay entregas agotadas.')).toBeInTheDocument()
+  })
+
+  it('si no se puede reintentar la entrega, recarga la lista', async () => {
+    mocks.rpcResultado = { data: null, error: { message: 'denied' } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
+    await screen.findByText(/No pudimos reintentar la entrega/)
+    await waitFor(() => expect(mocks.from.mock.calls.filter(([tabla]) => tabla === 'api_entregas').length).toBeGreaterThan(1))
+  })
+
+  it('solo las entregas agotadas tienen el botón Reintentar', async () => {
+    mocks.datos = {
+      ...mocks.datos,
+      api_entregas: { data: [{ ...ENTREGAS[0], estado: 'completada' }], error: null },
+    }
+    abrir()
+    await screen.findByRole('table', { name: 'Entregas de avisos' })
+    expect(screen.queryByRole('button', { name: /Reintentar el aviso/ })).not.toBeInTheDocument()
+  })
+
+  it('avisa si no se pudo reintentar la entrega', async () => {
+    mocks.rpcResultado = { data: null, error: { message: 'denied' } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
+    expect(await screen.findByText(/No pudimos reintentar la entrega/)).toBeInTheDocument()
   })
 
   it('muestra las llamadas con su estado y su duración', async () => {

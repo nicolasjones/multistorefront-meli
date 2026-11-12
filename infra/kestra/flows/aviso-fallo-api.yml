@@ -1,0 +1,41 @@
+# MSF-837 · F-API-01: aviso por correo al equipo de soporte cuando falla una pieza de la API pública o los avisos
+# (entregas, purga, chequeo de salud). Mismo mecanismo que `aviso-fallo-copias` (SMTP por variables KESTRA_SMTP_*,
+# destinatario SOPORTE_CORREO; ver infra/kestra/.env.example), con un texto propio de la API.
+#
+# Subflow: lo invocan `monitoreo-api-entregas` y el bloque `errors:` de `purgar-api-llamadas`.
+id: aviso-fallo-api
+namespace: platform.api
+labels:
+  capa: core
+  dominio: plataforma
+  componente: api-avisos
+description: "Envía por correo SMTP al equipo de soporte el motivo de un fallo de la API pública o de sus avisos."
+inputs:
+  - id: flujo
+    type: STRING
+    description: "Id del flow que avisa (monitoreo-api-entregas, purgar-api-llamadas, ...)."
+  - id: ejecucion
+    type: STRING
+    required: false
+    description: "Id de la ejecución de Kestra, para encontrarla en la UI."
+  - id: motivo
+    type: STRING
+    description: "Qué pasó (ya resumido: sin secretos ni datos de clientes)."
+tasks:
+  # Los valores vienen de logs o de conteos: se escapan para el cuerpo HTML.
+  - id: enviar_correo
+    type: io.kestra.plugin.notifications.mail.MailSend
+    host: "{{ envs.kestra_smtp_host }}"
+    port: "{{ envs.kestra_smtp_port }}"
+    username: "{{ envs.kestra_smtp_username }}"
+    password: "{{ envs.kestra_smtp_password }}"
+    transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+    from: "{{ envs.kestra_smtp_from }}"
+    to: "{{ envs.soporte_correo }}"
+    subject: "[API] Atención: {{ inputs.flujo }}"
+    htmlTextContent: |
+      <p>El flow <strong>{{ inputs.flujo | escape }}</strong> (namespace platform.api) detectó un problema.</p>
+      <p><strong>Qué pasó:</strong> {{ inputs.motivo | escape }}</p>
+      <p>Ejecución de Kestra: {{ (inputs.ejecucion ?? 'no informada') | escape }}</p>
+      <p>Qué hacer: ver docs/api-publica.md, sección «Qué hacer ante el correo de la API» (entregas agotadas o atrasadas: revisar
+      Administración → API → Entregas recientes, que Kestra y la función entregar-webhook estén en pie, y reintentar las agotadas).</p>

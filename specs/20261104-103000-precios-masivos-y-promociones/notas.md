@@ -40,3 +40,13 @@ Nicolás aprobó las recomendaciones («avanza con todo»). Implementadas en el 
 
 - `docs/producto/` y `docs/tecnico/` viven en `main`, no en `dokploy`. **Hay que re-correr el Documentador sobre `dokploy` HEAD antes de promover** para que reflejen los permisos por tienda, la vista previa de costos y las migraciones `20270223200000`, `20270223200100`, `20270225100000`.
 - `apps/web/src/ayuda/manualPorDestino.ts:8` mapea `promociones` → `precios-e-iva`. En `main` ya existen `docs/producto/promociones.md` y `docs/producto/precios-masivos.md`, pero no se verificó que el sitio publicado las sirva. El test `manual.test.ts` solo valida el formato del nombre de página, no que exista. **No se cambió**: tras republicar el sitio de documentación, apuntar `promociones: 'promociones'`. «Actualizar precios» no es un destino del menú (es un botón de Productos), así que no tiene clave propia; si se quiere su página del manual, hace falta un destino nuevo en `destinosPanel.ts`.
+
+## Documentador final (2026-11-12)
+
+Auditoría de `docs/*.md` y specs contra `origin/dokploy` (migraciones, RPC, componentes y ayuda en `apps/web/src/ayuda`). Solo documentación.
+
+- Verificado contra `20270228300000`…`20270228300300`: banderas `promociones_precio` y `precios_masivos` apagadas por defecto (clave inexistente = apagada), `55000` apagada, permiso en todas las tiendas activas (`private.productos_edicion_en_todas_las_tiendas`).
+- `docs/precios-masivos.md`: decía que los precios propios (F-PRE-08) «hoy no existen»; existen (`dominio.precios_propios_empresa`) y la actualización masiva no los toca. Corregido; reescrita la frase de reversión que había quedado mezclada.
+- `docs/precios.md` afirmaba que ninguna migración posterior redefinía `catalogo_pagina_por_dominio`; `20270228300400` (MSF-825) la redefine, pero sigue pasando por `private.promocion_vigente` (la bandera rige). Corregido igual que `docs/promociones-precio.md`.
+- `docs/deployment.md`: nueva sección «Banderas de plataforma» con el impacto de despliegue (apagadas al llegar a cada entorno) y el `update` para encenderlas, a mano y por entorno; las menciones de `precios.md`, `promociones-precio.md` y el roadmap apuntan ahí.
+- `docs/producto/promociones.md`, `docs/producto/precios-masivos.md` y `docs/tecnico/precios-masivos-y-promociones.md` viven en `main` y no mencionan las banderas ni el permiso por tienda de los precios masivos: requieren PR a `main`.
