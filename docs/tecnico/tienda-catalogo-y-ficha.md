@@ -13,6 +13,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/spec.md` · plan y contrato
 Depende de [MSF-147 (dominio, identidad, catálogo visible)](tienda-dominio-e-identidad.md), MSF-114 (precio
 e IVA) y MSF-231 (stock). Resumen de producto y límites:
 [Tiendas online: catálogo y ficha](../producto/tiendas-online.md).
+Correcciones posteriores sobre estas funciones: [MSF-825 (demo frente al prototipo)](tienda-demo-vs-prototipo.md).
 
 ## Alcance de entrega
 
@@ -71,15 +72,15 @@ Cada una hace `revoke execute … from public` y `grant execute … to anon, aut
 
 | Función | Devuelve |
 |---|---|
-| `publico.categorias_por_dominio(host)` | `{ categorias: [{ id, nombre, padre_id, productos }] }` o `null`. Categorías visibles en el orden de Catálogo (raíces primero, luego posición); `productos` cuenta solo efectivos de esa categoría directa. |
-| `publico.catalogo_pagina_por_dominio(host, categoria = null, solo_con_stock = false, precio_max = null, orden = 'relevancia', pagina = 1)` | `{ total, pagina, tamano: 24, categorias[], productos[] }` o `null`. Cada producto: `id`, `nombre`, `precio`, `disponible`, `imagen`, `categoria_id`, `destacado`. |
+| `publico.categorias_por_dominio(host)` | `{ categorias: [{ id, nombre, padre_id, productos }] }` o `null`. Categorías visibles en el orden de Catálogo (raíces primero, luego posición); `productos` cuenta los efectivos de la categoría **y de sus subcategorías** y **las categorías sin productos visibles no se devuelven** (MSF-825). |
+| `publico.catalogo_pagina_por_dominio(host, categoria = null, solo_con_stock = false, precio_max = null, orden = 'relevancia', pagina = 1)` | `{ total, pagina, tamano: 24, categorias[], productos[] }` o `null`. Cada producto: `id`, `nombre`, `precio`, `disponible`, `imagen`, `categoria_id`, `destacado`. Filtrar por una categoría **incluye su subárbol** (MSF-825). |
 | `publico.producto_por_dominio(host, producto)` | `{ id, nombre, descripcion, sku, categoria {id, nombre}, precio, disponible, compatibilidad, imagenes [{posicion, ruta}] }` o `null`. |
 | `publico.imagen_publica(ruta)` | `true` si la ruta del bucket es una imagen de un producto efectivo de una tienda activa. |
 
 ### Catálogo: filtros, orden y normalización
 
-- **Filtros:** `categoria` (solo productos de esa categoría), `solo_con_stock` (por
-  `private.disponible_publico`) y `precio_max` (sobre el precio final).
+- **Filtros:** `categoria` (productos de esa categoría **y de sus subcategorías**, MSF-825),
+  `solo_con_stock` (por `private.disponible_publico`) y `precio_max` (sobre el precio final).
 - **Orden:** `relevancia` (destacados primero, luego nombre e id), `precio_asc` y `precio_desc`
   (desempate por nombre e id; los productos sin precio van al final).
 - **Normalización sin error:** orden desconocido → `relevancia`; página < 1 o nula → 1; `precio_max` ≤ 0
@@ -191,7 +192,7 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 
 | Qué | Archivos |
 |---|---|
-| pgTAP de categorías (aislamiento, conteos, `null`, columnas) | `supabase/tests/database/tienda_categorias_publicas.test.sql` |
+| pgTAP de categorías (aislamiento, conteos, `null`, columnas; con MSF-825, conteo con subcategorías, categorías sin productos y total del listado igual al de la tarjeta) | `supabase/tests/database/tienda_categorias_publicas.test.sql` |
 | pgTAP de disponibilidad (paridad con `productos_con_stock`, sin cantidades) | `supabase/tests/database/tienda_disponibilidad_publica.test.sql` |
 | pgTAP de catálogo (filtros, órdenes, paginación, normalización, paridad de precio, imágenes, columnas) | `supabase/tests/database/tienda_catalogo_publico.test.sql` |
 | pgTAP de ficha (campos, `null` en los cinco casos, compatibilidad opcional) | `supabase/tests/database/tienda_ficha_publica.test.sql` |
@@ -218,7 +219,7 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 | **D7** SKU público | Se muestra el SKU del producto; en blanco no aparece | Una fila de `ficha/DatosProducto.tsx` |
 | **D9** sin precio calculable | Precio `null`: sin precio, al final de los órdenes por precio y fuera del filtro de máximo | Ajustar `precio_final_publico` |
 | **D10** categorías sin slug | Rutas por id (`/categoria/:categoriaId`) | Requiere una columna en Catálogo |
-| **D11** subcategorías | Un producto se lista en su categoría directa; sin agregar hijas | Cambiar la consulta |
+| **D11** subcategorías | Un producto se lista en su categoría directa; **MSF-825** agregó el subárbol al filtro por categoría y al conteo de la tarjeta | Cambiar la consulta |
 
 ## Límites y deuda
 
@@ -226,15 +227,18 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
   el seed ni cifras. Queda trazado en **MSF-552** (seguimiento). Protocolo: build y preview con las dos
   tiendas del seed, Lighthouse móvil sobre `/catalogo` y `/producto/:id`, y medición de
   `publico.catalogo_pagina_por_dominio` con un catálogo de cientos de productos.
-- **Techo de diseño:** la RPC calcula precio y disponibilidad para todo el catálogo efectivo antes de
-  filtrar y paginar. Se asume hasta unos pocos cientos de productos visibles por tienda (cifra de diseño,
-  no medida); por encima conviene calcular el precio solo al filtrar u ordenar por precio y medir.
+- **Techo de diseño (resuelto por MSF-825):** la RPC calculaba precio y disponibilidad para todo el
+  catálogo efectivo antes de filtrar y paginar. Con el volumen real de la demo (2.204 productos por
+  tienda) eso daba 44 s y un *timeout* bajo `anon`: la función ahora calcula el precio solo para la
+  página salvo que el orden o el tope de precio lo necesiten. Ver
+  [MSF-825](tienda-demo-vs-prototipo.md#causa-raiz).
 - **URLs firmadas de una hora:** una pestaña abierta más de una hora ve «Sin imagen» hasta recargar.
 - **Sin caché** de las respuestas públicas.
 - **Fuera de alcance:** buscador e inicio (MSF-191, documentados en
   [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)), compra y cuentas
   (MSF-176/237), «Productos relacionados», «Últimas unidades · quedan N», slugs
-  de categoría y agregación de subcategorías.
+  de categoría y agregación de subcategorías (**entregada por MSF-825**: el filtro por categoría ya
+  incluye sus hijas).
 - **WhatsApp y contacto (MSF-212)** ya están entregados: el botón «Consultar por WhatsApp» de la ficha
   y la página `/contacto` están documentados en
   [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).

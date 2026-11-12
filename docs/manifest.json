@@ -887,12 +887,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "643cef4596cbd181ed3b05a784684e1a3cadd589b2c5ec712d618304ce9ad2de",
+      "pageHash": "f89f1fbbccbf773f2e0e9b421eb08dfd398e7600bb1a52c5a3ee978a05fea715",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "188fd42d"
+      "commit": "75ae10b7"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -1286,14 +1286,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "697f16218d89664a1426109e2db851d7c9351844464b4b4f591af60de74c6513",
+      "pageHash": "34ed317a1cceccd3304823130a065cce61fc4b72fec65c5539fc3de768b1c425",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "0ef9cdb9",
+      "sourceAt": "59d6ddac",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0282ae89"
+      "commit": "0682630f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1336,14 +1336,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "29143652d4e136ab4ee1a9f3d27707f708a30f8f9d29444fa7bfa02863f1a42f",
+      "pageHash": "c32dd3fb9e239b831181c711a39fabeef2bd4b9517980f1aef1ba61680431dd6",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "158ff948",
+      "sourceAt": "59d6ddac",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "98fbbddf"
+      "commit": "3a93b935"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1531,14 +1531,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "196168d1997d62c1652f1abc8dd4981e0f820dfff8dd10b79777de62bd55c4f0",
+      "pageHash": "c6af6f8dfc005ead8fd08f8795f09f1e93f3b9458a89c6d1653d02099cab96b0",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5dfa2b7d",
+      "sourceAt": "59d6ddac",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "3a93b935"
+      "commit": "75ae10b7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -2054,16 +2054,16 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "568bd5251fe2f61188af0cb8a623146be16885cf4fe74fd0543f2e0cda9f223d",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "f8cc9b3b",
+      "pageHash": "21fd2baac88ae90ca540a471e1930995bbb8c9ab446d0ddd118f117c885abd03",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "59d6ddac",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "07b71b15"
+      "commit": "06877b51"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
@@ -2078,6 +2078,19 @@
       ],
       "owner": "tecnico",
       "commit": "b5c48ebf"
+    },
+    "docs/tecnico/tienda-demo-vs-prototipo.md": {
+      "title": "Tienda pública: corrección de la demo frente al prototipo (MSF-825)",
+      "pageHash": "4af708aa686fd49179b0f83cf05b2e3dfc960dbf84c1b01dc40a524c659f3d4c",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "4e61eb67",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "4e61eb67"
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
@@ -2116,16 +2129,16 @@
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
-      "pageHash": "f3fe9522aaa9396c7594007c0701395f67fb44168f01258bcb6d01aae45af462",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "f8cc9b3b",
+      "pageHash": "677c0bd61f24c981fd34f41d89ccf997bdaa5e47d62fca09720254f5ccc3050a",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "59d6ddac",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "43372ac7"
+      "commit": "06877b51"
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
@@ -2145,16 +2158,16 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "f26dba1f066bd2bad1b4de35e7e9d14446faa20720475ebb2f17797e122132d4",
-      "sourceHash": "03c8b45cdbe314731ffeb9dfa690b510384f5f36b8a5b45b7f80fc49590f632d",
-      "sourceAt": "e06fab36",
+      "pageHash": "844699140a518012441b3ec70407df340d59b8daf25673b8fb827298955929d9",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "59d6ddac",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "06877b51"
+      "commit": "802f3367"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",

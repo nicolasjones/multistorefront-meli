@@ -69,8 +69,8 @@ MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y 
 | `publico.catalogo_visible_por_dominio(host)` | Categorías y productos efectivamente visibles (MSF-147) |
 | `public.guardar_tienda_identidad(...)` / `public.guardar_tienda_contenido(...)` | Guardado de identidad y textos de la tienda (MSF-147) |
 | `public.listar_catalogo_tienda(empresa)` / `public.guardar_catalogo_tienda(empresa, categorias, productos)` | Lectura y guardado de la visibilidad y los destacados (MSF-147) |
-| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio (menú y pie) |
-| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con filtros y orden; lista blanca de campos |
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio (menú y pie); **solo las que tienen productos** y con el conteo de sus subcategorías (MSF-825) |
+| `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con filtros y orden; filtrar por categoría incluye su subárbol (MSF-825); lista blanca de campos |
 | `publico.producto_por_dominio(host, producto)` | Ficha pública de un producto visible; misma `null` si no existe o no se publica |
 | `publico.imagen_publica(ruta)` | Booleano de respaldo de la política de lectura anónima de imágenes |
 
@@ -758,6 +758,12 @@ Los helpers `private.disponible_publico`, `private.precio_final_publico` y `priv
 `producto_por_dominio` e `imagen_publica`. Detalle de contratos, decisiones y operación:
 [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md) y
 [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md).
+
+**MSF-825 (corrección de la demo frente al prototipo):** reescribe `categorias_por_dominio` y
+`catalogo_pagina_por_dominio` con **misma firma y mismos campos** (migraciones `20270228300400`); agrega
+la helper interna `private.quitar_prefijo_importacion(text)` y el `grant execute` para el rol de la app
+(`20270228300500` y `20270228300600`). Sin cambios de esquema ni de privilegios públicos. Detalle:
+[Tienda pública: corrección de la demo frente al prototipo](tienda-demo-vs-prototipo.md).
 
 ### Dominio, publicación y versiones de la tienda (MSF-133)
 

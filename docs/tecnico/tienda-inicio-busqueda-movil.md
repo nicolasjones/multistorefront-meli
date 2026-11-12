@@ -13,6 +13,9 @@ carpeta. Épica **MSF-191** (F-TDA-10/MSF-399, F-TDA-15/MSF-413 y F-TDA-17/MSF-4
 `a2b439e`; cierre documental MSF-558 (`4f3f0b97`). Depende de [MSF-147 (dominio, identidad y catálogo
 visible)](tienda-dominio-e-identidad.md) y [MSF-167 (catálogo y ficha)](tienda-catalogo-y-ficha.md).
 Resumen de producto y límites: [Tiendas online](../producto/tiendas-online.md).
+El menú, la home y la versión móvil los corrige **MSF-825** (categorías principales, «Más categorías» y
+«Ver todas las categorías →»): ver
+[Tienda pública: corrección de la demo frente al prototipo](tienda-demo-vs-prototipo.md).
 
 ## Alcance de entrega
 
@@ -155,6 +158,11 @@ publico.destacados_por_dominio(host: string): {
 - «Catálogo en preparación» aparece solo con la tienda activa y **cero** productos visibles; reemplaza a
   «Categorías» y «Destacados». Con productos visibles y sin destacados solo se oculta «Destacados».
 - Las imágenes se firman en lote (`lib/imagenProducto.ts`); sin imagen o con error se muestra «Sin imagen».
+- **Categorías de la home (MSF-825):** `secciones/CategoriasInicio.tsx` muestra solo las **categorías
+  principales** (`categoriasPrincipales` de `lib/tiendaCategorias.ts`: las raíces visibles con más
+  productos, hasta 6 y sin nombres repetidos) con su conteo real, y agrega el enlace «Ver todas las
+  categorías →» hacia `/catalogo` cuando hay más. La base ya no devuelve categorías sin productos
+  visibles, así que no hay tarjetas con «0 productos».
 
 ## Búsqueda de productos (F-TDA-15)
 
@@ -222,7 +230,7 @@ ampliación de imagen ocupa toda la pantalla.
 
 | Pieza | Qué hace |
 |---|---|
-| `layout/MenuMovil.tsx` (carga diferida) | Botón de menú y `Drawer` con «Inicio», «Contacto» (agregado por MSF-212, D10) y la sección «Categorías» (la actual con `aria-current`). Cierra con botón, Esc, tocar afuera o navegar; foco atrapado y devuelto. |
+| `layout/MenuMovil.tsx` (carga diferida) | Botón de menú y `Drawer` con «Inicio», «Contacto» (agregado por MSF-212, D10) y la sección «Categorías» (la actual con `aria-current`). Desde MSF-825 muestra las **categorías principales** y el enlace «Más categorías» hacia `/catalogo`. Cierra con botón, Esc, tocar afuera o navegar; foco atrapado y devuelto. |
 | `catalogo/PanelFiltrosMovil.tsx` (carga diferida) | Botón «Filtrar · N», panel «Filtros» con «Limpiar», Categoría, «Solo con stock», «Precio máximo» (D5) y Ordenar; «Ver N productos» cierra sobre el resultado ya aplicado. El estado vive en la URL, igual que en escritorio. |
 | `ErrorConReintento.tsx` | «No pudimos cargar esta página.» + «Reintentar»; repite el pedido sin tocar URL ni filtros. Lo usan home, catálogo, categoría, resultados, ficha y los menús. |
 | Ficha | Una columna, «← Todos los productos», miniaturas táctiles y ampliación usable en pantalla chica; con MSF-212, botón «Consultar por WhatsApp» a ancho completo. |
