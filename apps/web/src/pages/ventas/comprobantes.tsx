@@ -21,9 +21,9 @@ import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { FiltroDesplegable } from '../../components/ventas/FiltroDesplegable'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const TEXTO_AYUDA_TIENDA = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
 
@@ -175,7 +175,7 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
             {hayFiltros ? <Button size="small" variant="text" onClick={limpiar}>Limpiar filtros</Button> : null}
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {primeraCarga || hayError ? '' : `${datos.total} ${datos.total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {cargando && !primeraCarga && pagina === 1 ? <LinearProgress aria-label="Actualizando comprobantes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

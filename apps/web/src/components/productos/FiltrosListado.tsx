@@ -5,6 +5,7 @@ import { FiltroEmpresa } from '../pagina/FiltroEmpresa'
 import { DISPONIBILIDADES, type Disponibilidad } from '../../lib/productos'
 import { opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
 import { LARGO_MAXIMO_BUSQUEDA, type GrupoCompatible, type ColumnaOrdenProducto, type DireccionOrden, type FiltroEstadoProducto } from '../../lib/productosListado'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // Filtros que llegan con otras épicas (FR-004): se ven, pero deshabilitados y con su explicación.
 const FILTROS_PENDIENTES: ReadonlyArray<{ etiqueta: string; motivo: string }> = [
@@ -178,7 +179,7 @@ export function FiltrosListado({ texto, onTexto, onBuscar, estado, onEstado, col
         >
           {direccion === 'asc' ? 'Ascendente' : 'Descendente'}
         </Button>
-        <Box component="span" role="status" aria-live="polite" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+        <Box component="span" role="status" aria-live="polite" sx={SOLO_LECTORES}>
           {`Ordenado por ${OPCIONES_ORDEN.find(({ valor }) => valor === columnaOrden)?.etiqueta ?? columnaOrden}, ${direccion === 'asc' ? 'ascendente' : 'descendente'}`}
         </Box>
       </Stack>

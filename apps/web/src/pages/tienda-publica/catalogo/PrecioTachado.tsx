@@ -1,8 +1,8 @@
 import { Box, Typography } from '@mui/material'
 import type { TypographyProps } from '@mui/material'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 // Precio vigente de la tienda con el precio anterior tachado (F-PRE-11, FR-018). El anterior solo se
 // muestra si es MAYOR que el vigente: sin promoción (o con un promocional que no baja el precio) se ve
@@ -24,11 +24,11 @@ export function PrecioTachado({
   return (
     <Box data-testid="precio-promocional" sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 1 }}>
       <Typography variant={variant} component="p" sx={{ m: 0 }}>
-        <Box component="span" sx={visuallyHidden}>Precio actual </Box>
+        <Box component="span" sx={SOLO_LECTORES}>Precio actual </Box>
         {actual}
       </Typography>
       <Typography variant="body2" color="text.secondary" component="p" sx={{ m: 0 }}>
-        <Box component="span" sx={visuallyHidden}>Precio anterior </Box>
+        <Box component="span" sx={SOLO_LECTORES}>Precio anterior </Box>
         <Box component="del" data-testid="precio-anterior">{anterior}</Box>
       </Typography>
     </Box>

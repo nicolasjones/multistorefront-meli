@@ -18,6 +18,8 @@ describe('tema: componentes de paridad', () => {
   })
 
   it('alertas (.al) con los cuatro tonos del prototipo', () => {
+    // El mensaje no es una región desplazable (axe `scrollable-region-focusable` a 320 px).
+    expect(overrides('MuiAlert').message).toMatchObject({ overflow: 'visible', minWidth: 0 })
     expect(overrides('MuiAlert').standardInfo.backgroundColor).toBe(tokens.color.alerta.info.fondo)
     expect(overrides('MuiAlert').standardWarning.backgroundColor).toBe(tokens.color.alerta.aviso.fondo)
     expect(overrides('MuiAlert').standardError.backgroundColor).toBe(tokens.color.alerta.error.fondo)

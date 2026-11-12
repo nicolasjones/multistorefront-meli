@@ -198,6 +198,9 @@ export const temaPanel = createTheme({
     MuiAlert: {
       styleOverrides: {
         root: { borderRadius: forma.radioAlerta, padding: '12px 14px', alignItems: 'flex-start', gap: 10 },
+        // MUI deja `overflow: auto` en el mensaje: a 320 px con texto largo se vuelve una región desplazable sin foco por
+        // teclado (axe `scrollable-region-focusable`). El texto envuelve en vez de desplazarse.
+        message: { minWidth: 0, overflow: 'visible', overflowWrap: 'anywhere' },
         standardInfo: alerta(color.alerta.info),
         standardWarning: alerta(color.alerta.aviso),
         standardError: alerta(color.alerta.error),

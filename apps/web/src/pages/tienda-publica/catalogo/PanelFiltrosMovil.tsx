@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { contarFiltrosActivos, type CategoriaListado, type FiltrosCatalogo, type OrdenCatalogo } from '../../../lib/tiendaListado'
 import { Ordenar } from './Ordenar'
 import { PanelFiltros } from './PanelFiltros'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 
 type Props = {
   categorias: CategoriaListado[]
@@ -20,7 +21,6 @@ type Props = {
   alLimpiar: () => void
 }
 
-const soloLector = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: utilidad de accesibilidad
 
 const ID_PANEL = 'filtros-movil'
 const ID_TITULO = 'filtros-movil-titulo'
@@ -52,7 +52,7 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
         {activos > 0 ? (
           <>
             <Box component="span" aria-hidden sx={{ ml: 0.5 }}>· {activos}</Box>
-            <Box component="span" sx={soloLector}>{activos === 1 ? ', 1 filtro activo' : `, ${activos} filtros activos`}</Box>
+            <Box component="span" sx={SOLO_LECTORES}>{activos === 1 ? ', 1 filtro activo' : `, ${activos} filtros activos`}</Box>
           </>
         ) : null}
       </Button>

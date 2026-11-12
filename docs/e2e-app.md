@@ -145,6 +145,21 @@ El test siembra su propia organización, empresas y usuarios, y los borra en un 
 entorno del Desarrollador de MSF-510 no hay Docker ni CLI de Supabase, así que esta corrida
 queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 
+### Specs que necesitan algo más que el stack mínimo
+
+- `tienda-seo` (`robots.txt` y `sitemap.xml`) pide el archivo a la Edge Function `tienda-seo` con `X-Tienda-Host`,
+  igual que hace nginx en producción (`apps/web/nginx.conf`, bloque `location ~ ^/(robots\.txt|sitemap\.xml)$`): el
+  servidor de `vite preview` no los sirve ni tiene por qué. Con la receta de arranque que excluye `edge-runtime`,
+  Kong responde 500 (`supabase_edge_runtime_<proyecto>` no resuelve): es lo ESPERADO sin las funciones servidas, no un bug del producto. Se corre con las funciones servidas:
+  `pnpm exec supabase functions serve --no-verify-jwt` en otra terminal.
+- `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375 y
+  1280 px, y axe a 320 px en esos listados, comprobantes, proveedores, presupuestos y con el menú lateral abierto.
+  Con sesión de administrador sembrada con la API admin; no deja datos.
+- Los specs de la tienda (`tienda-*`) cambian el estado de la empresa (p. ej. `tienda-seo` la desactiva un momento) y
+  comparten las dos tiendas del seed: correrlos con `--workers=1`.
+- El build de la web lee `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` (no `VITE_SUPABASE_ANON_KEY`); sin la
+  clave la tienda muestra «No pudimos cargar esta página».
+
 ## CI
 
 `validate.yml` corre los specs públicos como pasos del job de plataforma (después de

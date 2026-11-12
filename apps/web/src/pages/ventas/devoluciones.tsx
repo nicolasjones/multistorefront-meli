@@ -25,9 +25,9 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { DialogoNuevaDevolucion } from '../../components/ventas/DialogoNuevaDevolucion'
 import { DialogoResolverRma, type ModoResolucion } from '../../components/ventas/DialogoResolverRma'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const TEXTO_AYUDA_TIENDA = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
 const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: cerramos la devolución que estabas cargando. Volvé a abrirla para la nueva tienda.'
@@ -284,7 +284,7 @@ function ListadoDevoluciones({ dialogoAbierto, onDialogo, avisoCambio, onCerrarA
             </ToggleButtonGroup>
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {primeraCarga || hayError ? '' : `${datos.total} ${datos.total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {cargando && !primeraCarga && pagina === 1 ? <LinearProgress aria-label="Actualizando devoluciones" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

@@ -16,12 +16,12 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const TAMANO_PAGINA = 10
 const ESPERA_BUSQUEDA_MS = 300
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const AYUDA_FILTRO_TIENDA =
   'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
@@ -202,7 +202,7 @@ export function DespachoList() {
             ) : null}
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {isFetching && !isLoading && pagina === 1 ? <LinearProgress aria-label="Actualizando el despacho" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

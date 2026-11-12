@@ -9,12 +9,12 @@ import { formatearFechaVersion, restaurarVersion, type VersionTienda } from '../
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../../../components/estados/EstadosPagina'
 import type { PropsPestanaTienda } from '../../pestanas'
 import { EVENTO_PUBLICACION } from './Publicacion'
+import { SOLO_LECTORES } from '../../../../../components/base/solo-lectores'
 
 // F-TDA-07 (US3, FR-071…FR-077): sección «Versiones» de «Dominio y publicación». Lista las publicaciones y permite
 // cargar una anterior como borrador (no publica). Va después de «Publicación» y antes de la vista previa.
 export const orden = 25
 
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 type Aviso = { severidad: 'success' | 'info' | 'error'; texto: string }
 
@@ -97,7 +97,7 @@ function SeccionVersiones({ empresaId, alAbrirDialogo, avisoInicial }: PropsPest
                   <TableCell>Fecha</TableCell>
                   <TableCell>Por</TableCell>
                   <TableCell>Cambios</TableCell>
-                  <TableCell><Box component="span" sx={visuallyHidden}>Acciones</Box></TableCell>
+                  <TableCell><Box component="span" sx={SOLO_LECTORES}>Acciones</Box></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

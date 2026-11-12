@@ -11,6 +11,7 @@ import {
   formatearPesosPrecio,
 } from '../../lib/precios'
 import { AYUDA_IVA_EMPRESA } from '../../lib/iva'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // Producto de muestra con su neto y su final para el texto de ejemplo del interruptor (viene de la
 // vista previa del servidor; null si la muestra no trae un precio con IVA).
@@ -134,7 +135,7 @@ export function ReglaPrecioEmpresa({
             ) : (
               <>
                 <Button size="small" disabled aria-describedby="cotizacion-pendiente">Cotización →</Button>
-                <Box id="cotizacion-pendiente" component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Tu rol no tiene acceso a la cotización del dólar</Box>
+                <Box id="cotizacion-pendiente" component="span" sx={SOLO_LECTORES}>Tu rol no tiene acceso a la cotización del dólar</Box>
               </>
             )}
           </Stack>

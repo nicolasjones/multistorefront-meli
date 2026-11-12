@@ -2,6 +2,7 @@ import { Box, List, ListItem, ListItemButton, ListItemText, Typography } from '@
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { CargaInfinita } from '../pagina/CargaInfinita'
 import { detalleLegible, horaRelativa, type Notificacion } from './notificaciones'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 type ListaNotificacionesProps = {
   items: Notificacion[]
@@ -44,7 +45,7 @@ export function ListaNotificaciones({
                 primary={
                   <Typography component="span" fontWeight={sinLeer ? 700 : 400}>
                     {notificacion.tipo_nombre}
-                    {sinLeer ? <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}> (sin leer)</Box> : null}
+                    {sinLeer ? <Box component="span" sx={SOLO_LECTORES}> (sin leer)</Box> : null}
                   </Typography>
                 }
                 secondary={

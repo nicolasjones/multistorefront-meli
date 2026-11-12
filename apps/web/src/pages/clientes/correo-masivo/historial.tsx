@@ -17,11 +17,11 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/p
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { PestanasCorreoMasivo } from './pestanas'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 
 const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const columnas: ColumnaAdaptable<CampanaHistorial>[] = [
   { clave: 'fecha', encabezado: 'Fecha', render: (c) => textoFechaCampana(c.creada_en) },
@@ -91,7 +91,7 @@ export function CorreoMasivoHistorial() {
               />
             ) : null}
             <BarraHerramientas contador={isLoading || isError ? undefined : `${total} ${total === 1 ? 'campaña' : 'campañas'}`} />
-            <Box role="status" aria-live="polite" sx={visuallyHidden}>
+            <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
               {isLoading || isError ? '' : `${total} ${total === 1 ? 'campaña' : 'campañas'}`}
             </Box>
             {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando el historial" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

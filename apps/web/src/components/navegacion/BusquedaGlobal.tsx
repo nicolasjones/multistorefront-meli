@@ -6,6 +6,7 @@ import { supabaseClient } from '../../lib/supabase'
 import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { OpcionProducto } from '../base/OpcionProducto'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // F-INI-03 (MSF-374): búsqueda global de productos en la barra superior.
 // Solo productos (D-4); la visibilidad por rol la impone la RLS de la RPC, no la pantalla.
@@ -18,11 +19,6 @@ export interface ResultadoBusqueda {
 const MINIMO_CARACTERES = 2
 const ESPERA_MS = 300
 const ETIQUETA = 'Buscar producto por nombre o SKU'
-
-// En `sx`, `width: 1` es 100 % (no 1 px): la región viva ocupaba todo el ancho de la barra y desbordaba la página a 320 px.
-const SOLO_LECTORES = {
-  position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
-} as const
 
 export function BusquedaGlobal() {
   const navigate = useNavigate()
