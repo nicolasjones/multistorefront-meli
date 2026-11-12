@@ -8,7 +8,7 @@ import { guardarBorrador, obtenerBorrador, rutasSinReferencia } from './tiendaBo
 export const BUCKET_IDENTIDAD = 'tienda-identidad'
 
 // Lista cerrada de tipografías (DS-04, supuesto): la misma que valida la base.
-export const TIPOGRAFIAS = ['system-ui', 'Barlow', 'Barlow Condensed', 'Playfair Display', 'Lato', 'Sora', 'Instrument Sans'] as const
+export const TIPOGRAFIAS = ['system-ui', 'Barlow', 'Barlow Condensed', 'Playfair Display', 'Lato', 'Sora', 'Instrument Sans', 'Bricolage Grotesque', 'DM Sans'] as const
 export type Tipografia = (typeof TIPOGRAFIAS)[number]
 
 export type IdentidadTienda = {

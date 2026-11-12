@@ -4,7 +4,7 @@
 -- solo lee por función). Aislamiento entre organizaciones (SC-001).
 begin;
 
-select plan(53);
+select plan(54);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -98,6 +98,12 @@ select throws_ok(
     values ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x;}body{display:none')$$,
   '23514', null, 'una tipografía de Texto fuera de la lista se rechaza (no inyecta CSS)'
 );
+select lives_ok(
+  $$insert into dominio.tienda_identidad (empresa_id, organizacion_id, tipografia_titulos, tipografia_texto)
+    values ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Bricolage Grotesque', 'DM Sans')$$,
+  'MSF-841: las tipografías del prototipo (Bricolage Grotesque y DM Sans) entran en la lista cerrada'
+);
+delete from dominio.tienda_identidad where empresa_id = 'e1000000-0000-0000-0000-000000000002';
 select throws_ok(
   $$insert into dominio.tienda_identidad (empresa_id, organizacion_id, logo_ruta)
     values ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',

@@ -5,7 +5,7 @@
 -- FR-063/FR-059 (vista previa sin costos; precios en vivo), FR-064 (auditoría) y SC-007 (aislamiento).
 begin;
 
-select plan(58);
+select plan(59);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -88,6 +88,14 @@ select is(has_function_privilege('authenticated', 'public.publicar_tienda(uuid)'
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'publico' and c.relkind in ('r', 'p')),
   0, 'el esquema publico sigue sin tablas'
+);
+
+-- MSF-841: el validador compartido acepta las tipografías del prototipo y sigue rechazando el resto.
+select is(
+  (select private.validar_tienda_identidad('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+     pg_temp.ident('#C8102E') || '{"tipografia_titulos":"Bricolage Grotesque","tipografia_texto":"DM Sans"}'::jsonb)
+   ->> 'tipografia_titulos'),
+  'Bricolage Grotesque', 'MSF-841: el validador acepta Bricolage Grotesque y DM Sans'
 );
 
 -- ============================================================================

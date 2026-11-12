@@ -4,7 +4,7 @@ vi.mock('./supabase', () => ({ supabaseClient: {} }))
 
 import {
   contrasteBlancoSobre, esColorValido, evaluarContraste, familiasACargar, formatearContraste, normalizarColor,
-  rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
+  TIPOGRAFIAS, rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
 } from './tiendaIdentidad'
 
 const archivo = (nombre: string, tipo: string, bytes: number | string) =>
@@ -130,5 +130,12 @@ describe('tipografías (FR-024)', () => {
     expect(urlFuentes(['Barlow Condensed', 'Lato'])).toBe('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Lato:wght@400;500;600;700&display=swap')
     expect(urlFuentes(['x;}body{display:none'])).toBeNull()
     expect(urlFuentes([])).toBeNull()
+  })
+
+  it('carga las tipografías del prototipo (Bricolage Grotesque y DM Sans) por su nombre', () => {
+    expect(TIPOGRAFIAS).toContain('Bricolage Grotesque')
+    expect(TIPOGRAFIAS).toContain('DM Sans')
+    expect(familiasACargar({ tipografiaTitulos: 'Bricolage Grotesque', tipografiaTexto: 'DM Sans' })).toEqual(['Bricolage Grotesque', 'DM Sans'])
+    expect(urlFuentes(['Bricolage Grotesque', 'DM Sans'])).toBe('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap')
   })
 })
