@@ -19,8 +19,9 @@ const MINIMO_CARACTERES = 2
 const ESPERA_MS = 300
 const ETIQUETA = 'Buscar producto por nombre o SKU'
 
+// En `sx`, `width: 1` es 100 % (no 1 px): la región viva ocupaba todo el ancho de la barra y desbordaba la página a 320 px.
 const SOLO_LECTORES = {
-  position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
+  position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
 } as const
 
 export function BusquedaGlobal() {
