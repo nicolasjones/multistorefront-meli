@@ -2052,6 +2052,15 @@
       "owner": "tecnico",
       "commit": null
     },
+    "docs/tecnico/subsitio-api-publica.md": {
+      "title": "Subsitio público de la API (`/api-publica/`)",
+      "pageHash": "b54daae41df646df9d3652365586669b8172f9ead5eb9cce258473509764f097",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "tecnico",
+      "commit": "35eec5b5"
+    },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
       "pageHash": "21fd2baac88ae90ca540a471e1930995bbb8c9ab446d0ddd118f117c885abd03",
