@@ -89,6 +89,8 @@ Si la dirección no responde bien, el sistema **reintenta hasta 5 veces**, esper
 
 ## Límites
 
+Cada organización puede tener hasta **50 claves vigentes** (las revocadas y las vencidas no cuentan) y hasta **20 suscripciones**. Si llegás al máximo, la pantalla te avisa: revocá una clave o eliminá una suscripción que ya no uses y probá de nuevo. **Rotar** tiene un techo más alto, de 100 claves vigentes, porque la clave anterior sigue funcionando 24 horas. Las claves revocadas o vencidas hace más de 90 días se borran solas.
+
 Cada clave admite **60 consultas por minuto**. Si se pasa, el otro sistema recibe un aviso de «límite excedido» y tiene que esperar un momento. El rechazo también queda en **Llamadas recientes**.
 
 ## Para quien programa el otro sistema
