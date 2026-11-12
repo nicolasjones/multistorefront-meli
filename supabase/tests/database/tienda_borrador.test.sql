@@ -5,7 +5,7 @@
 -- FR-063/FR-059 (vista previa sin costos; precios en vivo), FR-064 (auditoría) y SC-007 (aislamiento).
 begin;
 
-select plan(62);
+select plan(64);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -80,7 +80,7 @@ select is(
   false, 'authenticated ya no ejecuta guardar_tienda_identidad (BREAKING)'
 );
 select is(
-  has_function_privilege('authenticated', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('authenticated', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
   false, 'authenticated ya no ejecuta guardar_tienda_contenido (BREAKING)'
 );
 select is(has_function_privilege('authenticated', 'public.guardar_catalogo_tienda(uuid, jsonb, jsonb)', 'execute'), false, 'authenticated ya no ejecuta guardar_catalogo_tienda (BREAKING)');
@@ -112,6 +112,16 @@ select throws_ok(
   $$select private.validar_tienda_identidad('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
       pg_temp.ident('#C8102E') || '{"color_barra":"negro"}'::jsonb)$$,
   '22023', 'El color de la barra superior y pie debe tener el formato #RRGGBB', 'MSF-841: color de barra inválido en el borrador'
+);
+
+-- MSF-841: eslogan del contenido.
+select is(
+  (select private.validar_tienda_contenido('{"titulo":"Hola"}'::jsonb) ->> 'eslogan'),
+  '', 'MSF-841: un borrador de contenido sin eslogan (anterior a la migración) vale vacío'
+);
+select throws_ok(
+  format($$select private.validar_tienda_contenido(jsonb_build_object('eslogan', %L))$$, repeat('a', 81)),
+  '22023', 'El eslogan no puede superar los 80 caracteres', 'MSF-841: un eslogan de más de 80 caracteres se rechaza en el borrador'
 );
 
 -- ============================================================================

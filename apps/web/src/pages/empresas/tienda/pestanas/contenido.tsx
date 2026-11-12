@@ -19,7 +19,7 @@ import { BannerContenido } from '../../../tienda-publica/secciones/BannerHome'
 import type { PropsPestanaTienda } from '../pestanas'
 
 const CLAVES_BANNER: ClaveCampoContenido[] = ['titulo', 'subtitulo', 'texto_boton']
-const CLAVES_TEXTOS: ClaveCampoContenido[] = ['bienvenida', 'pie', 'aviso_ficha', 'texto_boton_contacto']
+const CLAVES_TEXTOS: ClaveCampoContenido[] = ['eslogan', 'bienvenida', 'pie', 'aviso_ficha', 'texto_boton_contacto']
 
 function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & { inicial: ContenidoTienda }) {
   const { setWarnWhen } = useWarnAboutChange()
