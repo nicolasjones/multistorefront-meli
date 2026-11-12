@@ -592,7 +592,9 @@ describe('ProductoList', () => {
       mocks.rpc.mockResolvedValue({ data: 2, error: null })
       await marcarTodos()
       fireEvent.click(screen.getByRole('button', { name: 'Mover de categoría' }))
-      const dialogo = await screen.findByRole('dialog', { name: 'Mover de categoría' })
+      // El diálogo se monta en frío (~1 s en el runner de CI congestionado, por
+      // encima del default de 1 s de findBy); 5 s deja margen sin tapar un cuelgue.
+      const dialogo = await screen.findByRole('dialog', { name: 'Mover de categoría' }, { timeout: 5000 })
       expect(within(dialogo).getByText('Se mueven 2 productos a la categoría elegida.')).toBeInTheDocument()
       const opciones = within(dialogo).getAllByRole('button').filter((boton) => ['Joysticks', 'Cableados'].includes(boton.textContent ?? ''))
       expect(opciones).toHaveLength(2)
@@ -621,7 +623,9 @@ describe('ProductoList', () => {
       mocks.rpc.mockResolvedValue({ data: 2, error: null })
       await marcarTodos()
       fireEvent.click(screen.getByRole('button', { name: 'Cambiar empresas' }))
-      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar empresas' })
+      // El diálogo se monta en frío (~1 s en el runner de CI congestionado, por
+      // encima del default de 1 s de findBy); 5 s deja margen sin tapar un cuelgue.
+      const dialogo = await screen.findByRole('dialog', { name: 'Cambiar empresas' }, { timeout: 5000 })
       const agregar = within(dialogo).getByRole('group', { name: 'Agregar a' })
       const quitar = within(dialogo).getByRole('group', { name: 'Quitar de' })
       expect(within(dialogo).getByRole('button', { name: 'Aplicar a 2 productos' })).toBeDisabled()
