@@ -23,7 +23,7 @@ const respuesta = (compras: CompraCliente[], extra: Record<string, unknown> = {}
 
 const documento = (n: number, extra: Partial<ComprobanteDeuda> = {}): ComprobanteDeuda => ({
   id: `d-${n}`, numero: `0001-0000001${n}`, fecha: '2026-10-12', estado: 'deuda',
-  total_con_iva: 1210, cobrado: 0, saldo: 1210, ...extra,
+  total_con_iva: 1210, cobrado: 0, notas_credito: 0, saldo: 1210, ...extra,
 })
 
 const respuestaCuenta = (documentos: ComprobanteDeuda[], extra: Record<string, unknown> = {}) => ({
@@ -124,11 +124,28 @@ describe('ComprasCliente', () => {
     for (const encabezado of ['Comprobante', 'Fecha', 'Estado', 'Total', 'Cobrado', 'Saldo']) {
       expect(tablaCuenta().getByRole('columnheader', { name: encabezado })).toBeInTheDocument()
     }
+    // Sin notas de crédito en ningún comprobante, la columna no se muestra.
+    expect(tablaCuenta().queryByRole('columnheader', { name: 'Notas de crédito' })).not.toBeInTheDocument()
     expect(tablaCuenta().getByText('0001-00000011')).toBeInTheDocument()
     expect(tablaCuenta().getByText('12/10/2026')).toBeInTheDocument()
     expect(tablaCuenta().getByText('Deuda')).toBeInTheDocument()
     expect(tablaCuenta().getAllByText('$ 1.210')).toHaveLength(2)
-    expect(tablaCuenta().getByText('$ 0')).toBeInTheDocument()
+    // «Cobrado» vale 0 en este comprobante.
+    expect(tablaCuenta().getAllByText('$ 0')).toHaveLength(1)
+  })
+
+  it('si algún comprobante tiene notas de crédito, muestra la columna entre «Cobrado» y «Saldo» con su importe', () => {
+    mocks.useCuentaCorrienteCliente.mockReturnValue(respuestaCuenta([
+      documento(1, { total_con_iva: 1000, cobrado: 200, notas_credito: 363.15, saldo: 436.85 }),
+      documento(2),
+    ]))
+    abrir()
+    const encabezados = tablaCuenta().getAllByRole('columnheader').map((e) => e.textContent)
+    expect(encabezados).toEqual(['Comprobante', 'Fecha', 'Estado', 'Total', 'Cobrado', 'Notas de crédito', 'Saldo'])
+    // El importe de la nota no puede confundirse con lo cobrado (200) ni con el saldo (436,85).
+    expect(tablaCuenta().getByText('$ 363,15')).toBeInTheDocument()
+    expect(tablaCuenta().getByText('$ 436,85')).toBeInTheDocument()
+    expect(tablaCuenta().getByText('$ 200')).toBeInTheDocument()
   })
 
   it('sin comprobantes con saldo muestra el vacío y el saldo en $ 0', () => {

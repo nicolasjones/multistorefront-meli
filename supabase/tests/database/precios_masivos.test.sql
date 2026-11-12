@@ -6,7 +6,7 @@
 -- organizaciones y `anon` sin ejecución.
 begin;
 
-select plan(58);
+select plan(65);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -317,8 +317,12 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 
 select is(
   (public.previsualizar_actualizacion_precios('porcentaje',
-    '{"cambia":"ambos","alcance":"todos","porcentaje":10}'::jsonb)->'filas'->0) ? 'costo_antes',
+    '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)->'filas'->0) ? 'costo_antes',
   false, 'sin Rentabilidad la vista previa omite el costo'
+);
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"ambos","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '42501', null, 'sin Rentabilidad no se puede previsualizar un cambio que toca costos (ni «ambos»): lo mismo que aplicar'
 );
 select throws_ok(
   $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"costo","alcance":"todos","porcentaje":10}'::jsonb)$$,
@@ -339,6 +343,50 @@ select lives_ok(
       '30000000-0000-4000-8000-000000000003')$$,
   'el operador sí puede cambiar precios de lista'
 );
+
+-- ============================================================================
+-- Revisión de MSF-363: con Rentabilidad en LECTURA la vista previa exige lo mismo que aplicar
+-- ============================================================================
+
+reset role;
+-- Se guarda el nivel original para restaurarlo tal cual (no se asume que era «ninguno»).
+create temp table nivel_rentabilidad_original as
+select nivel from public.permisos_rol
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
+select is((select count(*) from nivel_rentabilidad_original), 1::bigint, 'la fila de permisos de rentabilidad del operador existe');
+update public.permisos_rol set nivel = 'lectura'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+
+select is(
+  (public.previsualizar_actualizacion_precios('porcentaje',
+    '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)->'filas'->0) ? 'costo_antes',
+  true, 'con Rentabilidad en lectura la vista previa de un cambio de precio sí muestra el costo'
+);
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"ambos","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '42501', null, 'con Rentabilidad en lectura no se previsualiza «ambos»: antes respondía y aplicar daba 42501'
+);
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('planilla', '{"filas":[{"fila":2,"sku":"MA-1","costo":1}]}'::jsonb)$$,
+  '42501', null, 'ni una planilla con costo'
+);
+select throws_ok(
+  $$select pg_temp.aplicar('porcentaje', '{"cambia":"ambos","alcance":"todos","porcentaje":10}'::jsonb,
+      '30000000-0000-4000-8000-000000000009')$$,
+  '42501', null, 'y aplicar sigue rechazándolo: vista previa y aplicar coinciden'
+);
+
+-- Tope de la planilla: 5.001 filas se rechazan (54000) antes de calcular nada.
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('planilla', jsonb_build_object('filas',
+      (select jsonb_agg(jsonb_build_object('fila', n + 1, 'sku', 'TOPE-' || n, 'precio_lista', 1)) from generate_series(1, 5001) n)))$$,
+  '54000', null, 'una planilla de 5.001 filas se rechaza: el tope es de 5.000'
+);
+
+reset role;
+update public.permisos_rol set nivel = (select nivel from nivel_rentabilidad_original)
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
 
 -- ============================================================================
 -- Consulta: solo lectura

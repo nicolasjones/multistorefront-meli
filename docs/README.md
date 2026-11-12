@@ -36,7 +36,7 @@ Tres entradas según lo que necesites:
 | Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md), [ventas-motos.md](ventas-motos.md) |
 | Ventas: cobros por comprobante y conciliación de pagos | [cobros-por-comprobante.md](cobros-por-comprobante.md), [pagos-conciliacion.md](pagos-conciliacion.md) |
 | Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
-| Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md) |
+| Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md), [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md) |
 | Ventas: venta de mostrador con lector de código de barras | [ventas-mostrador.md](ventas-mostrador.md) |
 | Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-cobro.md](service-cobro.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |

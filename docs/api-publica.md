@@ -111,6 +111,26 @@ link-local o metadata. La entrega se conecta a la **IP ya resuelta y validada**
 IP interna entre la validación y la conexión. No se siguen redirecciones. El
 error guardado está saneado (sin secreto ni credenciales).
 
+## Contrato OpenAPI y runtime de funciones
+
+`api-v1` importa `openapi.json` como módulo (`import contrato from './openapi.json' with { type: 'json' }`) y no lo lee
+con `Deno.readTextFile`: el runtime de Edge Functions empaqueta solo el código que se importa, así que un archivo leído en
+tiempo de ejecución no existe y la función cae al arrancar (`500 WORKER_ERROR`, «path not found ... openapi.json»). El
+CI no lo detecta (el handler se prueba con `node --test`), por eso tras desplegar hay que llamar a
+`GET /api-v1/v1/openapi.json`: tiene que responder 200 sin clave.
+
+## Paginación por cursor
+
+El cursor es opaco (base64url de `(actualizado_en en µs)|id`). Cada lectura devuelve `siguiente_cursor` solo si quedan
+filas; pasarlo en `?cursor=` trae la página siguiente, sin repetir filas. Hasta la migración
+`20270227100000_api_decodificar_cursor_devuelve_fila` el decodificador no devolvía fila y la API servía siempre la primera
+página; la regresión está cubierta en `supabase/tests/database/api_paginacion.test.sql`. Al verificar un despliegue,
+recorrer `/v1/productos?limite=2` varias páginas y comprobar que no se repiten filas.
+
+El cursor de `stock` (clave triple, 121 caracteres) salía con un salto de línea del `base64` de Postgres y su segunda página
+daba `400 cursor_invalido`; la migración `20270227120000_api_cursor_sin_saltos_de_linea` lo corrige (el decodificador también
+acepta los cursores viejos con salto). Al verificar, recorrer también `/v1/stock?limite=2`, `/v1/precios` y `/v1/ventas`.
+
 ## Auditoría y retención
 
 Toda llamada, incluidas las rechazadas, queda en `public.api_llamadas` (método,

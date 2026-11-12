@@ -15,7 +15,7 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-comprobantes': {
     titulo: 'Comprobantes',
     resumen:
-      'Es el listado de facturas y notas de crédito. Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo.',
+      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo.',
     pasos: [
       'Escribí el cliente o el número en el buscador.',
       'Afiná con los filtros de operador, estado, pago y envío; usá Limpiar filtros para volver atrás.',
@@ -48,17 +48,18 @@ export const ayudaVentas: AyudaPorDestino = {
   transportes: {
     titulo: 'Transportes',
     resumen:
-      'Es el catálogo de empresas de transporte y de sus terminales de retiro que usa tu organización para los envíos. También incluye la parte de contrarreembolsos. Todos los usuarios con acceso a Ventas pueden consultarlo, pero solo el Administrador puede cargar o editar.',
+      'Es el catálogo de empresas de transporte y de sus terminales de retiro que usa tu organización para los envíos. También incluye los contrarreembolsos y los envíos en moto con mensajería propia. Todos los usuarios con acceso a Ventas pueden consultarlo; solo el Administrador carga o edita transportes. En Motos, registra envíos el Operador o el Administrador y rinde el Administrador.',
     pasos: [
-      'Abrí la pestaña que necesitás: Contrarreembolsos o Terminales de retiro.',
+      'Abrí la pestaña que necesitás: Contrarreembolsos, Motos o Terminales de retiro.',
       'Filtrá por tienda para ver los transportes que usa cada una.',
       'Si sos Administrador, creá o editá un transporte desde la lista.',
+      'En Motos, Operador o Administrador tocan Registrar envío; solo el Administrador marca un envío como rendido, de a uno o en lote.',
     ],
   },
   'ventas-pagos': {
     titulo: 'Pagos',
     resumen:
-      'Sirve para conciliar los cobros hechos por transferencia o depósito: los comparás con el extracto del banco y los marcás como cobrados. Si te equivocás, podés revertir la conciliación. Se puede filtrar por tienda y por cuenta de cobro.',
+      'Sirve para conciliar los cobros hechos por transferencia o depósito: los comparás con el extracto del banco y los marcás como cobrados. Si te equivocás, podés revertir la conciliación. Se puede filtrar por tienda y por cuenta de cobro. El saldo de «Solo con saldo» y de «Saldo pendiente de clientes» es el total menos lo cobrado y no descuenta las notas de crédito: puede ser mayor que el del comprobante.',
     pasos: [
       'Elegí la tienda y, si querés, una cuenta de cobro.',
       'Activá «Solo con saldo» para ver solo los pagos de comprobantes que todavía tienen saldo por cobrar.',

@@ -60,7 +60,7 @@ Misma numeración que `docs/cuentas-y-compras-a-proveedores.md` (sección *Pregu
 
 1. **Pregunta abierta 1 · F-CLI-21 vs. F-PRE-14.** Las listas de precios mayoristas (F-PRE-14, P3) chocan con que el tipo de cliente defina la escala en P0: si el tipo de cliente fija la escala de precios o si la escala depende de la cantidad.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27.** Tiendas online deja las cuentas en P3 (F-TDA-27); el roadmap manda hasta que se defina.
-3. **F-CLI-19 (cuenta corriente), decidida de forma provisoria por el desarrollo:** qué estados cuentan como deuda, si las notas de crédito restan, si el saldo a favor se muestra, si el saldo es por tienda accesible o por organización y si la persona con `clientes` en lectura lo ve sin acceso a Ventas. A confirmar con el cliente.
+3. **F-CLI-19 (cuenta corriente), decidida de forma provisoria por el desarrollo:** qué estados cuentan como deuda, si el saldo a favor se muestra, si el saldo es por tienda accesible o por organización y si la persona con `clientes` en lectura lo ve sin acceso a Ventas. A confirmar con el cliente.
 4. **Sin pantallas ni horas.** El documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido, con aviso en cada historia (F-CLI-19 tiene pantalla: la dibujó su propia spec).
 
 ## Requisitos funcionales

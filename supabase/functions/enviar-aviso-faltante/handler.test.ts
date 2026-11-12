@@ -2,7 +2,7 @@
 // (`pnpm test:edge:enviar-aviso-faltante`); handler.ts y contenido.ts no importan nada de Deno.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { asuntoAviso, cuerpoAviso } from './contenido.ts'
+import { asuntoAviso, cuerpoAviso, MENSAJE_MAX, sanearMensaje } from './contenido.ts'
 import { MAX_INTENTOS, manejar, type Deps, type Tomado } from './handler.ts'
 
 const ID = '11111111-1111-4111-8111-111111111111'
@@ -145,6 +145,54 @@ describe('enviar-aviso-faltante · contenido', () => {
     assert.match(texto, /Hola Ana Bcc: x@y\.com,/)
     assert.match(texto, /- Funda mala \(S 1\) · 2 u\. · Comprobante A 1/)
     assert.equal(asuntoAviso().includes('\n'), false)
+  })
+})
+
+describe('enviar-aviso-faltante · mensaje editable (F-VTA-26)', () => {
+  const linea = { producto: 'Funda', sku: 'FUN-1', cantidad: 3, comprobante: 'A-0001' }
+
+  it('con mensaje, reemplaza las frases fijas y conserva el saludo y la lista de productos', () => {
+    const texto = cuerpoAviso('Ana', [{ ...linea, mensaje: 'Ya llegaron tus pedidos.\nPasá cuando quieras.' }])
+    assert.equal(
+      texto,
+      ['Hola Ana,', '', 'Ya llegaron tus pedidos.\nPasá cuando quieras.', '', '- Funda (FUN-1) · 3 u. · Comprobante A-0001', ''].join('\n'),
+    )
+    assert.equal(texto.includes('Volvió a haber stock'), false)
+    assert.equal(texto.includes('Escribinos para coordinar'), false)
+  })
+
+  it('sin mensaje (ausente, null o vacío) el correo es el de F-STK-17 sin cambios', () => {
+    const previo = cuerpoAviso('Ana', [linea])
+    assert.match(previo, /Volvió a haber stock de los productos que tenías pedidos:/)
+    assert.match(previo, /Escribinos para coordinar la entrega\./)
+    assert.equal(cuerpoAviso('Ana', [{ ...linea, mensaje: null }]), previo)
+    assert.equal(cuerpoAviso('Ana', [{ ...linea, mensaje: '  \n\u0007 ' }]), previo)
+  })
+
+  it('sanea el mensaje: sin caracteres de control, sin saltos de más y con tope de 1.000', () => {
+    assert.equal(sanearMensaje('Hola\u0000 \u0007mundo\u007F'), 'Hola mundo')
+    assert.equal(sanearMensaje('a\r\nb\rc'), 'a\nb\nc')
+    assert.equal(sanearMensaje('Hola\u200B \u202Emundo\uFEFF'), 'Hola mundo')
+    assert.equal(sanearMensaje('a\n\n\n\n\nb'), 'a\n\nb')
+    assert.equal(sanearMensaje('a\tb'), 'a b')
+    assert.equal(sanearMensaje('x'.repeat(MENSAJE_MAX + 50))?.length, MENSAJE_MAX)
+    assert.equal(sanearMensaje(undefined), null)
+    assert.equal(sanearMensaje('   '), null)
+  })
+
+  it('el mensaje sigue siendo texto plano: no se interpreta HTML ni arma cabeceras', () => {
+    const texto = cuerpoAviso('Ana', [{ ...linea, mensaje: 'Hola\r\nBcc: x@y.com\n<b>fuerte</b>' }])
+    assert.equal(texto.includes('\r'), false)
+    assert.match(texto, /<b>fuerte<\/b>/)
+    assert.equal(asuntoAviso().includes('Bcc'), false)
+  })
+
+  it('el handler pasa el mensaje de la cola al correo', async () => {
+    const { deps, enviados } = montar({ tomado: [{ ...aEnviar, lineas: [{ ...linea, mensaje: 'Texto editado' }] }] })
+    const res = await pedir(deps, { cliente_id: ID })
+    assert.deepEqual(await res.json(), { estado: 'enviado' })
+    assert.match(enviados[0].texto, /Texto editado/)
+    assert.equal(enviados[0].texto.includes('Volvió a haber stock'), false)
   })
 })
 

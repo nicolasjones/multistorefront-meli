@@ -170,3 +170,5 @@ sin fecha de confirmación, el doble clic en «Enviar avisos» y recarga con los
 avisar) y `faltantes.empresa.test.tsx` (empresa activa:
 reencuadre de la paginación, descarte de la selección, cierre del diálogo y respuesta tardía de la empresa
 anterior).
+
+Nota MSF-161: la pantalla `/ventas/faltantes` (faltantes de despacho, `dominio.faltantes_venta`) también avisa a los clientes y marca «Para avisar», reutilizando la misma cola y el mismo correo. Ver [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md).

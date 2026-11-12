@@ -12,6 +12,8 @@ export type ComprobanteDeuda = {
   estado: string
   total_con_iva: number
   cobrado: number
+  // Lo que restan las notas de crédito emitidas sobre esta factura (devoluciones, descuentos).
+  notas_credito: number
   saldo: number
 }
 
@@ -25,6 +27,7 @@ type FilaServidor = {
   estado: string | null
   total_con_iva: number | string | null
   cobrado: number | string | null
+  notas_credito: number | string | null
   saldo: number | string | null
 }
 
@@ -65,8 +68,9 @@ export function useCuentaCorrienteCliente(clienteId: string | undefined) {
         numero: String(f.numero),
         fecha: String(f.fecha),
         estado: String(f.estado),
-        total_con_iva: Number(f.total_con_iva),
-        cobrado: Number(f.cobrado),
+        total_con_iva: Number(f.total_con_iva ?? 0),
+        cobrado: Number(f.cobrado ?? 0),
+        notas_credito: Number(f.notas_credito ?? 0),
         saldo: Number(f.saldo),
       })))
     }

@@ -38,6 +38,10 @@ const columnas: ColumnaAdaptable<CompraCliente>[] = [
   { clave: 'total', encabezado: 'Total (sin IVA)', align: 'right', render: (c) => formatearPesos(c.total_sin_iva) },
 ]
 
+const columnaNotasCredito: ColumnaAdaptable<ComprobanteDeuda> = {
+  clave: 'notas_credito', encabezado: 'Notas de crédito', align: 'right', render: (d) => formatearPesosConCentavos(d.notas_credito),
+}
+
 const columnasCuenta: ColumnaAdaptable<ComprobanteDeuda>[] = [
   { clave: 'numero', encabezado: 'Comprobante', render: (d) => d.numero },
   { clave: 'fecha', encabezado: 'Fecha', render: (d) => formatearFecha(d.fecha) },
@@ -46,6 +50,14 @@ const columnasCuenta: ColumnaAdaptable<ComprobanteDeuda>[] = [
   { clave: 'cobrado', encabezado: 'Cobrado', align: 'right', render: (d) => formatearPesosConCentavos(d.cobrado) },
   { clave: 'saldo', encabezado: 'Saldo', align: 'right', render: (d) => formatearPesosConCentavos(d.saldo) },
 ]
+
+// «Notas de crédito» solo se muestra si algún comprobante las tiene: casi siempre valen $ 0 y la tabla ya es angosta en celular.
+// Va entre «Cobrado» y «Saldo».
+const columnasDeLaCuenta = (documentos: ComprobanteDeuda[]) => {
+  if (!documentos.some((d) => d.notas_credito > 0)) return columnasCuenta
+  const antesDelSaldo = columnasCuenta.length - 1
+  return [...columnasCuenta.slice(0, antesDelSaldo), columnaNotasCredito, ...columnasCuenta.slice(antesDelSaldo)]
+}
 
 // Sección «Compras» de la ficha del cliente (F-CLI-10): «Resumen comercial» (total
 // facturado del año en curso, mismo criterio y base sin IVA que el ranking) y
@@ -140,7 +152,7 @@ export function ComprasCliente({ clienteId }: { clienteId: string }) {
           ) : (
             <ContenidoAdaptable
               items={documentos}
-              columnas={columnasCuenta}
+              columnas={columnasDeLaCuenta(documentos)}
               // El id del comprobante: el número se repite entre tiendas y es lo que
               // distingue una fila de otra.
               obtenerClave={(d) => d.id}

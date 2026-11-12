@@ -23,9 +23,9 @@ El SDLC construyó F-CLI-19 (MSF-451) **sin requisitos del cliente**: la spec y 
 Está descrita en [Clientes](./clientes.md), sección «Cuenta corriente y saldo del cliente».
 Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
 
-- El saldo de un comprobante es `total con IVA − cobros` (nunca negativo), tomado de `private.saldo_comprobante`.
+- El saldo de un comprobante es `total con IVA − cobros − notas de crédito` (nunca negativo): todo sale de `private.saldo_comprobante`, que es el único cálculo (también lo usan el detalle del comprobante y el tope al cobrar).
 - Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`; los presupuestos no son deuda.
-- Las notas de crédito **no restan**, y no hay saldo a favor (un cobro de más se muestra como $ 0).
+- Las notas de crédito emitidas **restan** de la factura de la que cuelgan (decisión del 2026-11-11), y no hay saldo a favor (cobros y notas de más dejan la factura en $ 0). Importes a 2 decimales.
 - La persona ve la deuda solo de las tiendas a las que accede, y no suma la de una tienda desactivada (ni para el administrador).
 - Cuentan los siete estados vivos de la factura que no son borrador, anulada ni cobrado: `confirmada`, `pendiente`,
   `aceptado`, `en_proceso`, `deuda`, `armando` e `incompleto`. Que una factura «Pendiente» (o «Confirmada») ya sea deuda es
@@ -34,7 +34,7 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
   (`$ 220.000`); el ranking de clientes sigue en pesos enteros.
 - Con `clientes` en lectura y sin acceso a Ventas, la ficha igual muestra total, cobrado y saldo de las facturas del
   cliente: es el mismo dato de «Compras» (que ya exige solo `clientes`). A confirmar con el cliente.
-- Costo: el saldo de cada factura sale de `private.saldo_comprobante` (dos lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada) y la RPC
+- Costo: el saldo de cada factura sale de `private.saldo_comprobante` (tres lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada: el comprobante, sus cobros y sus notas de crédito) y la RPC
   devuelve todas las abiertas sin paginar. Es proporcional a las facturas abiertas de **un** cliente, que son pocas; si
   un cliente real acumulara cientos, habría que paginar con carga infinita (excepción a esa regla, justificada acá).
 
@@ -45,7 +45,7 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
    la escala en P0. Sin resolver.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
 3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo y a confirmar:** qué estados cuentan
-   como deuda (en particular «Pendiente» y «Confirmada»), si las notas de crédito restan (hoy no), si el saldo a favor
+   como deuda (en particular «Pendiente» y «Confirmada»), si el saldo a favor
    se muestra (hoy no: un cobro de más es $ 0), si el saldo se ve por tienda accesible (hoy sí) o por organización, y
    si la persona con `clientes` en lectura debe ver el saldo aunque no acceda a Ventas (hoy sí).
 4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido.
@@ -57,7 +57,7 @@ pantalla y se escribe su spec propia (con su alcance de entrega y su matriz de p
 
 ## Revisión de seguridad de la épica
 
-Lo único que la épica entrega con código es la RPC `public.cuenta_corriente_cliente` (F-CLI-19, MSF-451). Quedó
+Lo que la épica entrega con código es F-CLI-19 (MSF-451): la RPC `public.cuenta_corriente_cliente`, las dos `saldo_comprobante` (`private` y `public`, recreadas en `20270227140000`), el predicado `private.comprobante_cuenta_como_facturado` con su `grant execute` a `authenticated` y el disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`, que escribe el estado de facturas y el importe de contrarreembolsos). Quedó
 revisada por agentes independientes de QA y de Code Review + seguridad: dos rondas sobre la historia antes de mergear y una
 revisión final posterior sobre lo ya mergeado (su resultado y las correcciones están en el PR de seguimiento de MSF-450). Qué se comprobó:
 
@@ -71,7 +71,7 @@ revisión final posterior sobre lo ya mergeado (su resultado y las correcciones 
 - **Sin SQL dinámico:** el único parámetro es un `uuid`.
 - **Secretos, compose y dependencias:** sin cambios.
 - **Cobertura de pruebas, dicha con precisión:**
-  - **pgTAP** (`cuenta_corriente_cliente.test.sql`, 34 aserciones): lo corre el job `database` del CI. Cubre centavos, cada estado vivo, tienda desactivada, persona sin tiendas y superadmin.
+  - **pgTAP** (`cuenta_corriente_cliente.test.sql`, 46 aserciones): lo corre el job `database` del CI. Cubre centavos, cada estado vivo, tienda desactivada, persona sin tiendas y superadmin.
   - **Vitest** (`ComprasCliente.test.tsx`, `useCuentaCorrienteCliente.test.tsx`, `formatoRanking.test.ts`): corre en el CI.
   - **E2E** (`apps/web/e2e/cuenta-corriente-cliente.e2e.ts`): **el CI no lo corre**. El job `application` ejecuta solo
     `acceso-publico.e2e.ts` y este archivo se omite sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Se corre a mano con

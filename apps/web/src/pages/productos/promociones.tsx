@@ -11,11 +11,9 @@ import {
   formatearFechaHoraPromocion,
   formatearPesosPromocion,
   guardarPromocion,
-  leerProductosPromocionables,
   leerPromociones,
   type DatosPromocion,
   type EstadoPromocion,
-  type ProductoPromocionable,
   type Promocion,
 } from '../../lib/promociones'
 import { EtiquetaEstado, type VarianteEtiqueta } from '../../components/base/EtiquetaEstado'
@@ -53,7 +51,6 @@ export function PromocionesList() {
   const [aviso, setAviso] = useState<{ severidad: 'error' | 'warning' | 'success'; texto: string } | null>(null)
   const [edicion, setEdicion] = useState<{ promocion: Promocion | null } | null>(null)
   const [anulando, setAnulando] = useState<Promocion | null>(null)
-  const [productos, setProductos] = useState<ProductoPromocionable[]>([])
   const ultimaPeticion = useRef(0)
   const dialogoAbierto = useRef(false)
   useEffect(() => {
@@ -90,20 +87,6 @@ export function PromocionesList() {
   useEffect(() => {
     void cargar()
   }, [cargar, organizacionId])
-
-  // Los productos del diálogo se leen al abrir el alta/edición por primera vez.
-  const productosCargados = useRef(false)
-  useEffect(() => {
-    if (!edicion || productosCargados.current) return
-    productosCargados.current = true
-    leerProductosPromocionables(supabaseClient)
-      .then(setProductos)
-      .catch((error) => {
-        console.error('No pudimos cargar los productos.', error)
-        productosCargados.current = false
-        setAviso({ severidad: 'error', texto: 'No pudimos cargar los productos. Cerrá el formulario y probá de nuevo.' })
-      })
-  }, [edicion])
 
   const guardar = async (datos: DatosPromocion) => {
     await guardarPromocion(supabaseClient, datos)
@@ -216,7 +199,6 @@ export function PromocionesList() {
           promocion={edicion.promocion}
           empresaId={empresaDelDialogo.id}
           empresaNombre={empresaDelDialogo.nombre}
-          productos={productos}
           onCancelar={() => setEdicion(null)}
           onGuardar={guardar}
         />

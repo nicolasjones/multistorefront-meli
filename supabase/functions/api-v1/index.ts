@@ -6,11 +6,11 @@
 // se devuelve en una respuesta. La organización la pone siempre la clave de
 // API (el SQL de lectura la filtra dentro de la consulta).
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import contrato from './openapi.json' with { type: 'json' }
 import { manejar, type Deps, type Lectura, type Limite, type Validacion } from './handler.ts'
 
-// El contrato viaja con la función (se despliega su carpeta) y se lee una sola
-// vez: `GET /v1/openapi.json` lo sirve sin clave.
-const contrato = JSON.parse(await Deno.readTextFile(new URL('./openapi.json', import.meta.url)))
+// El contrato se importa como módulo JSON: el runtime empaqueta solo el código que se importa, así que leer el archivo
+// con `Deno.readTextFile` fallaba al arrancar (500 WORKER_ERROR en dev). `GET /v1/openapi.json` lo sirve sin clave.
 
 Deno.serve((req) => {
   const cliente = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {

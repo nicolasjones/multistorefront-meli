@@ -60,8 +60,9 @@ migración no pierde datos (los cobros y los comprobantes siguen ahí).
 
 - **El saldo y el «Facturado» usan bases distintas** (con IVA y sin IVA): puede confundir. Se
   mitiga etiquetando la base en cada número («Saldo deudor» / «Facturado en el año (sin IVA)»).
-- **Las notas de crédito no restan** del saldo (es de MSF-195): el número puede quedar alto si
-  el cliente recibió notas de crédito. Queda anotado en la spec y en el PR, con seguimiento.
+- **Las notas de crédito restan** del saldo desde el 2026-11-11 (decisión de Nicolás, MSF-450; antes no restaban y el
+  número podía quedar alto). `private.saldo_comprobante` también las resta (migración `20270227140000`): el detalle del comprobante, el tope al cobrar
+  y el contrarreembolso usan el mismo saldo neto.
 - **La cuenta corriente no pagina**: un cliente con muchísimos documentos abiertos trae todos.
   Aceptado en la *Decisión 4* de la spec; si molesta, se pagina en una historia posterior sin
   cambiar el contrato de la RPC.

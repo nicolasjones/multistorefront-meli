@@ -53,6 +53,30 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 
 pgTAP: `ventas_motos_registro.test.sql`, `ventas_motos_rendicion.test.sql` y `ventas_motos_rls_por_empresa.test.sql` (lectura directa por tienda y `puedo_registrar_envios_moto`). Vitest: `TransportesMotos.test.tsx`, `EnvioMotoDialog.test.tsx`, `RendicionMotosDialog.test.tsx` (con axe a 320/768/1440 px).
 
+## Cómo probarlo
+
+**Prerrequisitos**: una organización con al menos dos tiendas; una forma de envío de tipo `moto` en cada tienda (Ventas › Configuración › Formas de envío); una factura (borrador o confirmada, no anulada) con esa forma de envío; una persona Operador o Administrador con `ventas` en edición y otra Administrador para rendir; una persona con `ventas` solo en lectura o Consulta.
+
+**Pasos**:
+
+1. Entrá a `/ventas/transportes?pestana=motos` como Operador. Tocá **Registrar envío**, elegí la factura, escribí el mensajero, costo de envío y «Abona al recibir», marcá **Enviado** y guardá.
+2. Verificá la fila (Mensajero, costo, abono, chip «Enviado») y que la tarjeta «Motos sin rendir» suma el abono y «N entregas». Probá **Editar** y registrar de nuevo la misma factura (debe rechazarse).
+3. Con el Administrador, activá la llave **Rendido** de la fila, o tildá varias del mismo mensajero y usá **Rendir seleccionados**; revisá el diálogo de totales (efectivo cobrado, costo, neto) y confirmá.
+4. Con la persona de solo lectura, comprobá que no ve «Registrar envío», «Editar» ni la llave activa; con el Operador, que la llave Rendido está deshabilitada.
+5. Cambiá la empresa activa en la barra superior: la tabla y la tarjeta se recargan y cualquier diálogo abierto se cierra con aviso.
+
+**Resultado esperado**: el envío queda registrado y editable hasta rendirse; al rendir, la fila queda «Rendido» y de solo lectura, la tarjeta se recalcula, no se puede mezclar mensajeros en un lote y no hay forma de revertir la rendición (fuera de alcance). La tabla solo muestra las tiendas donde la persona tiene `ventas`.
+
+**Cómo automatizarlo**: la base con `pnpm test:db` (pgTAP `ventas_motos_registro`, `ventas_motos_rendicion`, `ventas_motos_rls_por_empresa`); la pantalla con `pnpm --filter @platform/web test -- TransportesMotos EnvioMotoDialog RendicionMotosDialog` (Vitest con axe); y la vista a 320/768/1440 px con `pnpm --filter @platform/web pantallas:capturar`.
+
+## Hallazgos de la revisión final
+
+La revisión final del PR #825 encontró que la lectura directa de `dominio.envios_moto` por la API usaba el nivel global de `ventas` y dejaba ver los envíos de una tienda sin permiso. Se cerró con el commit e1d50985 y la migración `20270223100000_envios_moto_lectura_por_empresa.sql` (política por tienda con `private.nivel_ventas_en_empresa`, y `puedo_registrar_envios_moto` para la pantalla), con el pgTAP `ventas_motos_rls_por_empresa.test.sql`.
+
+## Puntos a decidir
+
+`abono` es un importe sin vínculo con el libro de cobros: una nota de crédito posterior no lo ajusta y `rendir_envios_moto` no registra un cobro, por lo que el comprobante puede quedar con saldo pendiente tras rendir. Ver `specs/20261024-130000-ventas-motos/notas.md`.
+
 ## Revisión de seguridad integral
 
 Tabla con RLS por organización y por tienda (`ventas` en lectura o edición en la tienda del envío), sin escritura directa ni `delete`; `anon` sin privilegios; RPC `security definer` con `search_path` vacío, `revoke` a `public`/`anon`; actor y organización salen de la sesión; ver la revisión técnica + seguridad del PR.

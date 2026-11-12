@@ -143,14 +143,14 @@ select private.abrir_contrarreembolso(
 | Ruta | Pantalla | Historia |
 |---|---|---|
 | `/ventas/comprobantes/:id` | Detalle del comprobante: tarjeta **Cobros**, diálogo «Registrar cobro» y campo «Cuenta de cobro» (chip Sin conciliar/Conciliado + «Ir a Pagos →»). | F-VTA-12 |
-| `/ventas/pagos` | **Pagos**: tres tarjetas (Por conciliar, Conciliado, Saldo pendiente de clientes), filtro Tienda, filtro de cuentas, «Solo con saldo», tabla con el interruptor «Cobrado» y la tarjeta Cuentas de cobro. | F-VTA-13 |
+| `/ventas/pagos` | **Pagos**: tres tarjetas (Por conciliar, Conciliado, Saldo pendiente de clientes), filtro Tienda, filtro de cuentas, «Solo con saldo», tabla con el interruptor «Cobrado» y la tarjeta Cuentas de cobro. **Diferencia conocida:** «Saldo pendiente de clientes» y «Solo con saldo» calculan `total − cobros` y NO restan las notas de crédito (a diferencia del detalle del comprobante y de la cuenta corriente del cliente); seguimiento abierto. | F-VTA-13 |
 | `/ventas/transportes` | **Transportes y contrarreembolsos**: sub-pestañas «Contrarreembolsos» (tarjetas, tabla y «Marcar cobrado») y «Terminales de retiro» (la tabla de MSF-139, sin cambios). | F-VTA-14 |
 
 Las tres pantallas respetan la **empresa activa** de la barra superior (Principio VIII): al
 cambiarla recargan todas sus consultas, reencuadran la paginación y descartan el filtro que ya no
 existe; el detalle además **cierra con aviso** el diálogo «Registrar cobro» que estuviera abierto.
 
-Fuera de alcance de la épica (son de MSF-135/MSF-139 u otras): la pestaña «Motos», «Exportar»,
+Fuera de alcance de la épica (son de MSF-135/MSF-139 u otras): la pestaña «Motos» (la entrega MSF-145, `docs/ventas-motos.md`), «Exportar»,
 la importación de extractos bancarios, el reverso de un cobro mal cargado, el cobro sobre
 presupuestos y los campos de despacho (Guía, Fecha de envío, Armó, Controló, Entregó).
 
@@ -210,8 +210,9 @@ F-VTA-13 y F-VTA-14), con lectura de los pgTAP `cobros_comprobante`, `pagos_conc
   escritura directa: `revoke all … from public, anon, authenticated` y `grant select` a
   `authenticated`.
 - **`anon`**: `revoke … from public, anon` y `grant execute … to authenticated` en cada RPC
-  pública; ninguna función de `private` es ejecutable por `anon` ni por `authenticated`.
-- **Funciones internas**: `private.registrar_cobro_interno`, `private.saldo_comprobante`,
+  pública; ninguna función de `private` que registre o lea cobros es ejecutable por `anon` ni por `authenticated`
+  (las que sí lo son, como `private.comprobante_cuenta_como_facturado`, son predicados puros sin acceso a datos).
+- **Funciones internas**: `private.registrar_cobro_interno`, `private.saldo_comprobante` (resta las notas de crédito: ver `docs/cobros-por-comprobante.md`),
   `private.abrir_contrarreembolso`, `private.aplicar_conciliacion` y las de permiso por empresa
   son `security definer` con `search_path = ''` y **sin `grant`**: su permiso vive en la RPC
   pública que las envuelve (y tampoco la ejecuta `service_role`).
@@ -219,7 +220,7 @@ F-VTA-13 y F-VTA-14), con lectura de los pgTAP `cobros_comprobante`, `pagos_conc
   (no solo en la UI); el permiso es por empresa del dato y no por la empresa activa.
 - **Datos bancarios**: los eventos de actividad (`comprobante.cobro_registrado`,
   `pago.conciliado`, `pago.conciliacion_revertida`, `contrarreembolso.abierto`,
-  `contrarreembolso.cobrado`) llevan nombre de cuenta, importe y guía, **nunca** el CBU ni el CUIT
+  `contrarreembolso.importe_ajustado`, `contrarreembolso.cobrado`) llevan nombre de cuenta, importe y guía, **nunca** el CBU ni el CUIT
   completos. El pgTAP de los datos de DEV lo comprueba sobre los eventos sembrados.
 - **Service-role**: sin referencias en `apps/web/src` (la clave del servidor no llega al
   navegador).
