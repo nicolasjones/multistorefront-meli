@@ -28,8 +28,8 @@
 --   en el libro (cobrada en mostrador o anterior al libro de cobros, MSF-195).
 -- · Alcance por tienda: solo las tiendas a las que la persona accede
 --   (`private.empresas_accesibles()`, como `public.saldo_comprobante`); no ve la deuda de otras.
--- · Los presupuestos no son deuda: no entran. Las notas de crédito NO restan EN ESTA
---   VERSIÓN: desde 20270227110000 (decisión del 2026-11-11) sí restan; esa migración recrea la función.
+-- · Los presupuestos no son deuda: no entran. Las notas de crédito NO restan: su efecto en la
+--   cuenta corriente es de MSF-195 (hoy no admiten cobros) y esta historia no lo reasigna.
 -- · El saldo total es la suma de los saldos listados; la lista trae los comprobantes con saldo
 --   del más reciente al más antiguo. Si el cliente no debe nada, la función devuelve la fila de
 --   encabezado (saldo 0, 0 comprobantes) sin documentos.
