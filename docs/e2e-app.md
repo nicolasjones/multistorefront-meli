@@ -84,6 +84,20 @@ pnpm --filter @platform/web exec playwright test precios-masivos tienda-promocio
 Alcance del desborde a 320 px: este cambio corrige `BusquedaGlobal` y `MenuCuenta`; el mismo patrón `width: 1` copiado
 en otros componentes lo corrige el PR #876, no este.
 
+## Requisitos de algunos specs y guardián de escritura directa
+
+- `service_role` solo **lee** `dominio.consultas` y las tablas de solo agregar (historiales, `movimientos_stock`,
+  `lotes_stock`...). Los specs siembran esos datos por la RPC de negocio (p. ej. `publico.crear_consulta_publica` con una
+  fila en `dominio.tiendas`) y no los borran a mano: la baja de la organización cascadea. `pnpm e2e:escritura:check`
+  (y `pnpm test:e2e:escritura`, ambos en `validate.yml`) falla si un spec de `apps/web/e2e` hace INSERT/PATCH/DELETE
+  directo sobre esas tablas; leerlas está permitido y una línea se exime con `escritura-directa: ok — <motivo>`.
+- `service-seguimiento` necesita `SEGUIMIENTO_IP_SALT` en el entorno al levantar el stack (la declara `config.toml`).
+- `ventas-impresion` corre el worker real: compilá `workers/comprobantes-pdf` (`pnpm build` en ese paquete) y exportá
+  `E2E_PGPORT` con el puerto de la base local; el spec crea el rol `worker_<organización>` con los permisos del
+  aprovisionamiento y lo elimina al terminar.
+- `stock-actual-vivo` necesita Realtime (no excluirlo con `-x realtime`).
+- Los recorridos largos fijan `test.setTimeout(180_000)`; el tope por defecto (30 s) no alcanza con varios roles.
+
 ## Estado de cobertura
 
 | Recorrido | Tarea | Estado |

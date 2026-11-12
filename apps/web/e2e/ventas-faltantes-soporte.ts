@@ -25,10 +25,10 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-export async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
+export async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', prefer = 'return=representation'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
+    headers: cabeceras({ prefer, 'content-profile': esquema }),
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
@@ -120,11 +120,12 @@ export async function sembrar(prefijo: string, faltantes: FaltanteSembrado[]): P
           organizacion_id: org.id, nombre: faltante.producto, sku: `E2E-${prefijo}-${numero}-${sufijo}`, moneda: 'ARS', precio_lista: 100,
         }, 'dominio')
         datos.productos[faltante.producto] = producto.id
-        await rest('existencias', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 50, reservado: 0 }], 'dominio')
+        // El disparador `productos_crear_existencias` ya crea la fila: se actualiza con upsert.
+        await rest('existencias?on_conflict=producto_id', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 50, reservado: 0 }], 'dominio', 'return=representation,resolution=merge-duplicates')
         await rest('existencias_deposito', [{ producto_id: producto.id, deposito_id: deposito.id, organizacion_id: org.id, cantidad: 50, reservado: 0 }], 'dominio')
       }
       const [cliente] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id, numero, nombre: faltante.cliente, tipo: 'minorista', archivado_en: null, correo: faltante.correo,
+        organizacion_id: org.id, nombre: faltante.cliente, tipo: 'minorista', archivado_en: null, correo: faltante.correo,
       })
       const comprobante = await rpc<{ id: string; updated_at: string }>(token, 'crear_comprobante', {
         p_tipo: 'factura', p_empresa_id: empresa.id, p_cliente_id: cliente.id, p_canal: 'mostrador',

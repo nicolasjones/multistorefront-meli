@@ -69,6 +69,7 @@ test.describe('Rentabilidad con los tres roles (MSF-120, SC-008)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-569:T023] el Administrador edita el umbral, Administración solo lee y Operador/Consulta quedan restringidos', async ({ browser }) => {
+    test.setTimeout(180_000) // recorrido largo de varios pasos y roles: el tope por defecto (30 s) no alcanza
     const sufijo = randomUUID().slice(0, 8)
     const roles = {
       administrador: `admin-rent-${sufijo}@example.com`,

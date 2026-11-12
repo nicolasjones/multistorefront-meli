@@ -60,6 +60,7 @@ test.describe('Rentabilidad real y reportes de ventas con los tres roles (MSF-19
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-741:T041] Administrador y Administración ven los reportes y los costos; Operador y Consulta quedan restringidos', async ({ browser }, testInfo) => {
+    test.setTimeout(180_000) // recorrido largo de varios pasos y roles: el tope por defecto (30 s) no alcanza
     const sufijo = randomUUID().slice(0, 8)
     const roles = {
       administrador: `admin-rr-${sufijo}@example.com`,

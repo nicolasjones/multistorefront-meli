@@ -85,6 +85,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('asignar empresas, cambiar de empresa y ver el nivel de edición de cada una', async ({ browser }) => {
+    test.setTimeout(180_000) // recorrido largo de varios pasos y roles: el tope por defecto (30 s) no alcanza
     const sufijo = randomUUID().slice(0, 8)
     const correoAdmin = `admin-emp-${sufijo}@example.com`
     const correoPersona = `persona-emp-${sufijo}@example.com`
@@ -111,6 +112,8 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       const idAdmin = await altaUsuario(correoAdmin)
       ids.push(idAdmin)
       const idPersona = await altaUsuario(correoPersona)
+      // El listado de Usuarios muestra el nombre del perfil (sin perfil dice «Perfil sin completar», no el correo): se le da uno.
+      await rest('perfiles_usuario', { user_id: idPersona, nombre: `Persona ${sufijo}`, apellido: 'Empresas' })
       ids.push(idPersona)
       await rest('usuarios_organizacion', [
         { user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' },
@@ -123,7 +126,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       await ingresar(admin, correoAdmin)
       await admin.goto('/usuarios')
       await admin
-        .getByRole('row', { name: new RegExp(correoPersona) })
+        .getByRole('row', { name: new RegExp(`Persona ${sufijo} Empresas`) })
         .getByRole('button', { name: 'Editar' })
         .click()
       const dialogo = admin.getByRole('dialog', { name: 'Editar usuario' })

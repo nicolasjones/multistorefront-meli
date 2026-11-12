@@ -91,7 +91,6 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
 
 async function limpiar(datos: Sembrado) {
   await borrar(`registro_actividad?organizacion_id=eq.${datos.orgId}`)
-  await borrar(`movimientos_stock?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
   await borrar(`organizaciones?id=eq.${datos.orgId}`)
@@ -147,9 +146,12 @@ test.describe('Variantes, relacionados y suma de stock en la ficha (MSF-765 · c
       await expect(bloqueRelacionados(page).getByText('1 producto')).toBeVisible()
 
       // Lectura de la base: tres variantes con la suma esperada y el relacionado guardado.
-      const variantes = await leer<{ stock: number; activa: boolean }>(`v_producto_variantes?producto_id=eq.${datos.idRemera}&select=stock,activa`)
+      // La vista `v_producto_variantes` calcula el stock según la sección de quien lee (la service-role no tiene
+      // ninguna: devuelve null), por eso el stock se lee de la tabla de existencias.
+      const variantes = await leer<{ id: string; activa: boolean }>(`v_producto_variantes?producto_id=eq.${datos.idRemera}&select=id,activa`)
       expect(variantes).toHaveLength(3)
-      expect(variantes.reduce((suma, v) => suma + v.stock, 0)).toBe(15)
+      const existencias = await leer<{ cantidad: number }>(`existencias_variante?variante_id=in.(${variantes.map((v) => v.id).join(',')})&select=cantidad`, 'dominio')
+      expect(existencias.reduce((suma, e) => suma + e.cantidad, 0)).toBe(15)
       const rel = await leer<{ nombre: string }>(`v_producto_relacionados?producto_id=eq.${datos.idRemera}&select=nombre`)
       expect(rel.map((r) => r.nombre)).toEqual([`Gorra ${sufijo}`])
 

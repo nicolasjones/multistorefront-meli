@@ -61,7 +61,7 @@ async function ingresar(page: Page, correo: string) {
 }
 
 async function elegirAutocomplete(page: Page, etiqueta: string, opcion: string) {
-  await page.getByLabel(etiqueta).click()
+  await page.locator('form').getByRole('combobox', { name: etiqueta, exact: true }).click()
   await page.getByRole('option', { name: opcion }).click()
 }
 

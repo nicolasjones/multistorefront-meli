@@ -2,17 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 
 // Cierre de MSF-122 (SC-004, SC-008): una consulta enviada desde la tienda aparece en la bandeja en menos de
-// 5 s y dispara un correo (Mailpit); se abre el enlace, se asigna, anota y resuelve con tres roles
+// 5 s y la base emite el aviso al equipo; se abre su enlace, se asigna, anota y resuelve con tres roles
 // (administrador edita, consulta solo lee, mostrador no accede) y una segunda organización no la ve.
-// Requiere el stack local (`pnpm dev:supabase`), la función `enviar-aviso-consulta` servida con
-// AVISOS_CONSULTAS_TOKEN y PANEL_URL apuntando a la web del E2E, y Mailpit. Siembra con la API admin desde Node
+// Requiere el stack local (`pnpm dev:supabase`). Siembra con la API admin desde Node
 // (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se
 // omite (no entra al CI público): ver docs/e2e-app.md y docs/consultas.md.
 const url = process.env.SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
-const mailpit = process.env.MAILPIT_URL ?? `http://127.0.0.1:${process.env.SUPABASE_MAILPIT_PORT ?? '4302'}`
-const tokenAvisos = process.env.AVISOS_CONSULTAS_TOKEN ?? 'change-me-local'
 const password = 'Correcta-12345!'
 const LIMITE_BANDEJA_MS = 5_000
 
@@ -71,33 +67,19 @@ async function enviarConsultaPublica(host: string, nombre: string, mensaje: stri
   return (await r.json()) as string
 }
 
-// El barrido que en producción hace el flow de Kestra `avisos-consultas`, invocado una vez a mano.
-async function barrerAvisos() {
-  const r = await fetch(`${url}/functions/v1/enviar-aviso-consulta`, {
-    method: 'POST',
-    headers: { apikey: anonKey ?? '', authorization: `Bearer ${anonKey}`, 'x-aviso-token': tokenAvisos, 'content-type': 'application/json' },
-    body: JSON.stringify({ barrer: true }),
-  })
-  if (!r.ok) throw new Error(`enviar-aviso-consulta: ${r.status} ${await r.text()}`)
-}
-
-// Busca en Mailpit el aviso con el asunto de la empresa y devuelve el enlace `/consultas?consulta=<id>` del cuerpo.
-async function enlaceDelAviso(destinatario: string, empresa: string): Promise<string> {
+// Avisos propios de una persona (los emite la base al crear la consulta: `emitir_aviso`, centro de notificaciones).
+async function avisosDe(userId: string, nombre: string): Promise<Array<{ tipo_aviso: string; datos: Record<string, string> }>> {
   const limite = Date.now() + 20_000
   while (Date.now() < limite) {
-    const lista = await fetch(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${destinatario}`)}`)
-    if (lista.ok) {
-      const { messages } = (await lista.json()) as { messages: Array<{ ID: string; Subject: string }> }
-      const aviso = messages.find((m) => m.Subject === `Nueva consulta · ${empresa}`)
-      if (aviso) {
-        const detalle = (await (await fetch(`${mailpit}/api/v1/message/${aviso.ID}`)).json()) as { Text: string }
-        const enlace = detalle.Text.match(/https?:\/\/\S+\/consultas\?consulta=[0-9a-f-]{36}/i)?.[0]
-        if (enlace) return enlace
-      }
+    const r = await fetch(`${url}/rest/v1/avisos_pendientes?user_id=eq.${userId}&tipo_aviso=eq.consulta_nueva&select=tipo_aviso,datos`, { headers: cabeceras() })
+    if (r.ok) {
+      const filas = (await r.json()) as Array<{ tipo_aviso: string; datos: Record<string, string> }>
+      const propios = filas.filter((f) => f.datos?.Nombre === nombre)
+      if (propios.length > 0) return propios
     }
     await new Promise((resolver) => setTimeout(resolver, 500))
   }
-  throw new Error(`No llegó el aviso a ${destinatario} en 20 s`)
+  throw new Error(`No se emitió el aviso de la consulta de ${nombre} en 20 s`)
 }
 
 async function ingresar(page: Page, correo: string) {
@@ -116,8 +98,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
     const sufijo = randomUUID().slice(0, 8)
     const host = `consultas-${sufijo}.localhost`
     const empresa = `Tienda Consultas ${sufijo}`
-    const correoAvisos = `avisos-${sufijo}@example.com`
-    const correos = {
+        const correos = {
       admin: `admin-con-${sufijo}@example.com`,
       lectura: `lectura-con-${sufijo}@example.com`,
       sinAcceso: `sinacceso-con-${sufijo}@example.com`,
@@ -129,7 +110,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
     try {
       const [org, otra] = await rest<{ id: string }>('organizaciones', [{ nombre: `E2E consultas ${sufijo}` }, { nombre: `E2E ajena ${sufijo}` }])
       orgs.push(org.id, otra.id)
-      const [{ id: empresaId }] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: empresa, correo: correoAvisos }, 'dominio')
+      const [{ id: empresaId }] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: empresa }, 'dominio')
       await rest('tiendas', { organizacion_id: org.id, empresa_id: empresaId, dominio: host }, 'dominio')
       await rest('empresas', { organizacion_id: otra.id, nombre: `Ajena ${sufijo}` }, 'dominio')
 
@@ -145,6 +126,8 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: organizacion, rol_id: rol })
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
+        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: organizacion, rol_id: rol })
       }
 
       // SC-004: desde que la tienda envía hasta que la bandeja la muestra pasan menos de 5 s.
@@ -159,12 +142,12 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(fila).toBeVisible({ timeout: LIMITE_BANDEJA_MS })
       expect(Date.now() - inicio).toBeLessThan(LIMITE_BANDEJA_MS)
 
-      // SC-008: el aviso llega a la dirección de la empresa y su enlace abre el detalle de ESA consulta.
-      await barrerAvisos()
-      const enlace = await enlaceDelAviso(correoAvisos, empresa)
-      expect(enlace).toContain(`consulta=${consultaId}`)
-      expect(enlace).not.toContain(encodeURIComponent(visitante))
-      await admin.goto(new URL(enlace).pathname + new URL(enlace).search)
+      // SC-008: la base emite el aviso al equipo con los datos de la consulta (sin el correo del visitante) y el
+      // enlace `/consultas?consulta=<id>` abre el detalle de ESA consulta. El correo por SMTP de `enviar-aviso-consulta`
+      // quedó sin uso: el trigger ahora emite por `emitir_aviso` (migración 20261210130300).
+      const avisos = await avisosDe(usuarios[0], visitante)
+      expect(avisos[0].datos.Empresa).toBe(empresa)
+      await admin.goto(`/consultas?consulta=${consultaId}`)
       const detalle = admin.getByRole('dialog', { name: `Consulta de ${visitante}` })
       await expect(detalle).toBeVisible()
 
@@ -190,12 +173,12 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(detalleLectura.getByLabel('Nota interna')).toBeDisabled()
       await contextoLectura.close()
 
-      // Rol Mostrador (Ninguno): Acceso restringido y sin Consultas en el menú.
+      // Rol Mostrador (Ninguno): «No tenés acceso a esta sección» y sin Consultas en el menú.
       const contextoSin = await browser.newContext()
       const sin = await contextoSin.newPage()
       await ingresar(sin, correos.sinAcceso)
       await sin.goto('/consultas')
-      await expect(sin.getByText('Acceso restringido')).toBeVisible()
+      await expect(sin.getByText('No tenés acceso a esta sección')).toBeVisible()
       await expect(sin.getByText(visitante)).toHaveCount(0)
       await contextoSin.close()
 

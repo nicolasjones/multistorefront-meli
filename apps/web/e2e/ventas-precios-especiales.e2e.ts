@@ -81,7 +81,7 @@ test.describe('Ventas · precios especiales por cliente (MSF-340, SC-002)', () =
       await rest('depositos_empresas', { deposito_id: deposito.id, empresa_id: empresa.id, organizacion_id: org.id }, 'dominio')
 
       const [cliente] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id, numero: 1, nombre: `Cliente con descuento ${sufijo}`, tipo: 'minorista', descuento: 5,
+        organizacion_id: org.id, nombre: `Cliente con descuento ${sufijo}`, tipo: 'minorista', descuento: 5,
       })
       const [factura] = await rest<{ id: string }>(
         'comprobantes_venta',

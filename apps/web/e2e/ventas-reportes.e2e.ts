@@ -88,6 +88,7 @@ test.describe('Reportes de ventas (MSF-338, FR-010)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('roles, cambio de empresa y exportación del ranking', async ({ browser }) => {
+    test.setTimeout(180_000) // recorrido largo de varios pasos y roles: el tope por defecto (30 s) no alcanza
     const sufijo = randomUUID().slice(0, 8)
     const roles = {
       administrador: `admin-rv-${sufijo}@example.com`,
@@ -126,10 +127,12 @@ test.describe('Reportes de ventas (MSF-338, FR-010)', () => {
           'dominio',
         )
       ).map((e) => e.id)
+      // Empresa activa del Administrador: la A, para que el estado inicial sea determinista (sin esto arranca en «Todas mis empresas»).
+      await rest('usuario_empresa_activa', { user_id: ids[0], empresa_id: idA })
       // Una factura confirmada por tienda, de hoy: el ranking exportable no queda vacío.
       const [clienteA, clienteB] = await rest<{ id: string }>('clientes', [
-        { organizacion_id: org.id, numero: 1, nombre: `Cliente A ${sufijo}`, tipo: 'minorista' },
-        { organizacion_id: org.id, numero: 2, nombre: `Cliente B ${sufijo}`, tipo: 'minorista' },
+        { organizacion_id: org.id, nombre: `Cliente A ${sufijo}`, tipo: 'minorista' },
+        { organizacion_id: org.id, nombre: `Cliente B ${sufijo}`, tipo: 'minorista' },
       ])
       const hoy = new Date().toISOString().slice(0, 10)
       const base = { organizacion_id: org.id, fecha: hoy, canal: 'mostrador', tipo: 'factura', estado: 'confirmada', operador_id: ids[0] }
@@ -198,6 +201,7 @@ test.describe('Reportes de ventas (MSF-338, FR-010)', () => {
       if (orgId) {
         await borrar(`comprobantes_venta?organizacion_id=eq.${orgId}`, 'dominio')
         await borrar(`clientes?organizacion_id=eq.${orgId}`)
+        await borrar(`usuario_empresa_activa?user_id=in.(${ids.join(',')})`)
         await borrar(`empresas?organizacion_id=eq.${orgId}`, 'dominio')
         await borrar(`registro_actividad?organizacion_id=eq.${orgId}`)
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
