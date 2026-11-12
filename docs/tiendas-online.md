@@ -1089,3 +1089,46 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
 - **Verificación manual pendiente (SC-007)**: Lighthouse (categoría SEO) no corre en el repo. Pendiente: `npx lighthouse <url>
   --only-categories=seo` sobre inicio, catálogo, categoría, ficha y contacto de las dos tiendas y validación del JSON-LD de la ficha con
   el Rich Results Test; criterio de aceptación: sin fallas (D8), resultado adjunto en el PR de cierre.
+
+## Diseño del prototipo en el front público (MSF-841, tramo B)
+
+Spec: `specs/20261112-200000-tiendas-diseno-del-prototipo/` (matriz pantalla↔criterios incluida). El front público reproduce el
+diseño de `design/pantallas/MJC_*` y `SJ_*` **sin ningún valor fijo por tienda**: todo sale de la identidad, el contenido y el
+contacto de la empresa del host.
+
+- **Identidad aplicada a TODA la tienda (causa raíz de «los colores no se aplican»)**: antes solo la sección `TemaTienda` de la portada
+  leía la identidad y seteaba variables; en `/catalogo`, `/categoria`, `/producto` y `/contacto` no se aplicaba nada y en la portada los
+  botones y enlaces seguían con el azul de MUI. Ahora `layout/IdentidadTiendaContexto.tsx` (`ProveedorIdentidadTienda`, montado en
+  `LayoutTienda`) la lee **una vez por host** (`resolverIdentidadPublica`) y la reparte por: el tema MUI (`ProveedorTemaTienda`:
+  `primary`, `primary.dark`, `secondary` = acento, tipografías de títulos y texto, fondo), las variables CSS `--tienda-*` (primario,
+  primario oscuro, acento, fondo, **barra**, fuente de títulos y de texto; para portales de MUI) y el contexto (`useIdentidadTienda()`:
+  logo, banners). `theme.tienda` expone además los derivados que usa el diseño: `barra`, `textoBarra`, `superficie` (el fondo mezclado
+  con negro 4,3 %, el `--sf` del prototipo) y `fuenteTitulos`. Sin identidad legible la tienda sigue con el tema base. En la vista previa
+  del panel la identidad llega inyectada (`ProveedorFuenteTienda`) y no se tocan variables globales.
+- **Sin pedidos de más**: el layout también lee **una sola vez** el contenido (`ProveedorContenidoTienda`) y el contacto
+  (`ContextoContactoTienda`); `useContenidoPublico` y `useContactoTienda` usan el compartido si existe (barra, pie, portada y `/contacto`
+  comparten la misma lectura) y, sin layout (vista previa, tests), leen por su cuenta.
+- **Tipografías**: los títulos usan la tipografía de títulos (variantes `h1…h6` del tema) y el cuerpo la de texto. No se espera la
+  petición de identidad para pintar (la tienda arranca con el tema base neutro y pasa a la identidad al llegar); la hoja de Google Fonts
+  se pide con `display=swap` y `preconnect` a `fonts.googleapis.com` / `fonts.gstatic.com` para acortar el cambio de fuente.
+- **Barra superior** (`layout/BarraSuperior.tsx`): 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px. Izquierda: el
+  `eslogan`; sin eslogan, el mensaje de **bienvenida**. Derecha (solo desde `md`): WhatsApp (enlace `wa.me`) y correo (`mailto:`) de
+  `contacto_por_dominio`. Un dato ausente no se muestra y sin nada que mostrar no hay barra. `secciones/BarraBienvenida` ya no duplica el
+  texto: dentro del layout solo se dibuja si hay eslogan **y** una bienvenida distinta (franja primaria en la portada); en la vista previa
+  del panel (sin layout) se dibuja como antes.
+- **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (560 px desde `md`, campo de
+  44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
+  (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
+  «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`) o el nombre, eslogan,
+  el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
+  vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
+  línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda).
+- **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
+  `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
+  pudo firmar, el recuadro neutro. La vista previa del panel no trae `imagen` (`vista_previa_tienda` no la calcula): muestra el recuadro
+  neutro.
+- **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
+  «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos». No se muestra en la vista previa (no lee `publico.*`).
+- **Diferencias conocidas con el prototipo**: la franja oscura del héroe de la portada no es del layout sino de los banners configurados
+  (`BannerHome`); la tarjeta de producto y la ficha no se tocaron en este tramo; el menú de celular no tiene el logo ni el buscador como ícono.
