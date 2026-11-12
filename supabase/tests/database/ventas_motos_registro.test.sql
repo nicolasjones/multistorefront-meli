@@ -67,13 +67,13 @@ insert into dominio.formas_envio (id, organizacion_id, empresa_id, nombre, tipo)
 
 -- Comprobantes:
 --   F1 factura confirmada, moto (San Javucho)          F5 factura anulada, moto (San Javucho)
---   F2 factura en borrador, moto (San Javucho)         F6 factura confirmada, moto (Mundo JC)
+--   F2 factura confirmada, moto (San Javucho)          F6 factura confirmada, moto (Mundo JC)
 --   F3 factura confirmada, correo (San Javucho)        F7 factura de la otra organización, moto
 --   F4 presupuesto, moto (San Javucho)                 F8 factura confirmada sin forma de envío
 insert into dominio.comprobantes_venta
   (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en, envio_id) values
   ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000001', '2027-02-01', 'confirmada', 1000, 1000, now(), 'b1000000-0000-0000-0000-00000000000a'),
-  ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', '2027-02-02', 'borrador', 500, 500, null, 'b1000000-0000-0000-0000-00000000000a'),
+  ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000002', '2027-02-02', 'confirmada', 500, 500, now(), 'b1000000-0000-0000-0000-00000000000a'),
   ('f1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000003', '2027-02-03', 'confirmada', 700, 700, now(), 'b1000000-0000-0000-0000-00000000000b'),
   ('f1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'presupuesto', '0002-00000004', '2027-02-04', 'borrador', 300, 300, null, 'b1000000-0000-0000-0000-00000000000a'),
   ('f1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000005', '2027-02-05', 'anulada', 300, 300, now(), 'b1000000-0000-0000-0000-00000000000a'),
@@ -297,7 +297,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.registrar_envio_moto('f2000000-0000-0000-0000-000000000007', 'Juan')$$,
-  'P0002', null, 'un comprobante de otra organización no existe para la sesión'
+  '42501', null, 'un comprobante de otra organización no existe para la sesión'
 );
 
 -- Cero es válido en costo y abono; el mensajero se compara sin mayúsculas.
@@ -440,7 +440,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.actualizar_envio_moto('f1999999-0000-0000-0000-000000000099', 'Juan', null, 0, 0, true, now())$$,
-  'P0002', null, 'un envío inexistente no se edita'
+  '42501', null, 'un envío inexistente no se edita'
 );
 
 -- Edición válida: cambia mensajero, guía, costo, abono y Enviado.
@@ -530,7 +530,7 @@ reset role;
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.actualizar_envio_moto(current_setting('t.envio_f1')::uuid, 'Otro', null, 0, 0, true, now())$$,
-  'P0002', null, 'otra organización no ve ni edita el envío'
+  '42501', null, 'otra organización no ve ni edita el envío'
 );
 reset role;
 select set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);

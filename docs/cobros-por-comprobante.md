@@ -101,6 +101,13 @@ desactiva más tarde, el cobro ya registrado se conserva).
     el estado no retrocede a `deuda` (una factura cobrada en mostrador, anterior al libro de cobros, puede estar en
     `cobrado` sin cobros y no hay forma segura de distinguirla). El comprobante muestra el saldo pendiente; la cuenta
     corriente la oculta por su estado.
+- **Quién más usa el mecanismo (MSF-145, motos).** `public.rendir_envios_moto` (migración `20270228110100`) registra un cobro por
+  cada envío en moto que se rinde, llamando a `private.registrar_cobro_interno` con origen `contrarreembolso`, por
+  `least(abono, saldo neto)` (el tope es el saldo de `private.saldo_comprobante`), la forma de pago de la factura o la
+  «Contrarreembolso» activa de la tienda y sin cuenta de cobro. No duplica lógica: la validación del tope, el paso a Cobrado
+  o Deuda y el evento `comprobante.cobro_registrado` son los de siempre. El envío guarda el `cobro_id`. La nota de crédito
+  posterior baja el `abono` de los envíos sin rendir (`20270228110200`, mismo disparador y mismo `skip locked` que los
+  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). Detalle en `docs/ventas-motos.md`.
 - `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
   `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 

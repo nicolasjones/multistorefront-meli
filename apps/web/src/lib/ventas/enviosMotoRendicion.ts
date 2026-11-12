@@ -13,6 +13,8 @@ export type ResultadoRendicion = {
   total_abono: number
   total_costo: number
   neto: number
+  // Lo registrado en el libro de cobros (puede ser menor que `total_abono`: el cobro se topa en el saldo de la factura).
+  total_cobrado: number
 }
 
 // Lo que devuelve `public.resumen_motos_sin_rendir`: la tarjeta «Motos sin rendir».
@@ -62,8 +64,14 @@ type ErrorBase = { code?: string; message?: string } | null
 export function mensajeDeErrorRendicion(error: unknown, porDefecto: string): string {
   console.error(porDefecto, codigoDeError(error))
   const e = error as ErrorBase
-  if (e?.code === '42501') return 'Solo el Administrador puede rendir entregas. Puede que tu rol haya cambiado: recargá la página.'
+  if (e?.code === '42501') {
+    // La base distingue la falta de rol de otros motivos (p. ej. un superadmin sin membresía): se muestra su mensaje.
+    if (e.message && !/Tu rol no puede|sesión con organización/.test(e.message)) return e.message
+    return 'Solo el Administrador puede rendir entregas. Puede que tu rol haya cambiado: recargá la página.'
+  }
   if (e?.code === '40001') return 'Otra persona modificó estos envíos mientras los rendías. Recargá para ver el estado actual.'
+  // Factura anulada o en borrador: la base lo explica en castellano.
+  if (e?.code === '55000' && e.message) return e.message
   // Los mensajes de validación de la base (mezcla de mensajeros, envío sin enviar, id ajeno) están en castellano.
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto
@@ -84,6 +92,7 @@ export async function rendirEnviosMoto(ids: ReadonlyArray<string>): Promise<Resu
     total_abono: Number(r.total_abono ?? 0),
     total_costo: Number(r.total_costo ?? 0),
     neto: Number(r.neto ?? 0),
+    total_cobrado: Number(r.total_cobrado ?? 0),
   }
 }
 

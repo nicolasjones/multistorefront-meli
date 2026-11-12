@@ -54,6 +54,13 @@ insert into dominio.formas_envio (id, organizacion_id, empresa_id, nombre, tipo)
   ('b1000000-0000-0000-0000-00000000000c', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'Moto', 'moto'),
   ('b2000000-0000-0000-0000-00000000000d', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c', 'Moto', 'moto');
 
+-- Rendir registra el cobro en el libro (decisión del 2026-11-12): las facturas no traen forma de pago y el cobro usa la
+-- forma «Contrarreembolso» de la tienda.
+insert into dominio.formas_pago (id, organizacion_id, empresa_id, nombre, tipo, exige_cuenta_cobro, genera_deuda, activo) values
+  ('9a000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'Contrarreembolso', 'contrarreembolso', false, false, true),
+  ('9a000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000b', 'Contrarreembolso', 'contrarreembolso', false, false, true),
+  ('9a000000-0000-0000-0000-00000000000c', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-00000000000c', 'Contrarreembolso', 'contrarreembolso', false, false, true);
+
 -- Ocho facturas con forma de envío moto: seis en San Javucho (F1…F6), una en Mundo JC (F7) y una de la
 -- otra organización (F8).
 insert into dominio.comprobantes_venta
@@ -210,7 +217,7 @@ reset role;
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.rendir_envios_moto(array['e1000000-0000-0000-0000-000000000001']::uuid[])$$,
-  '22023', null, 'el Administrador de otra organización no rinde envíos ajenos (para él no existen)'
+  '42501', null, 'el Administrador de otra organización no rinde envíos ajenos (mismo 42501 que si no existieran)'
 );
 reset role;
 
@@ -227,15 +234,15 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.rendir_envios_moto(array['e1000000-0000-0000-0000-000000000099']::uuid[])$$,
-  '22023', null, 'un id inexistente se rechaza'
+  '42501', null, 'un id inexistente se rechaza'
 );
 select throws_ok(
   $$select public.rendir_envios_moto(array['e1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000099']::uuid[])$$,
-  '22023', null, 'un id inexistente junto a uno válido aborta todo'
+  '42501', null, 'un id inexistente junto a uno válido aborta todo'
 );
 select throws_ok(
   $$select public.rendir_envios_moto(array['e1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000008']::uuid[])$$,
-  '22023', null, 'un id de otra organización junto a uno válido aborta todo'
+  '42501', null, 'un id de otra organización junto a uno válido aborta todo'
 );
 select throws_ok(
   $$select public.rendir_envios_moto(array['e1000000-0000-0000-0000-000000000004']::uuid[])$$,

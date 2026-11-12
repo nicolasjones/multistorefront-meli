@@ -34,6 +34,8 @@ export type EnvioMoto = {
   // Permisos del llamador en la empresa del envío, resueltos por el servidor (rol y sección).
   puede_editar: boolean
   puede_rendir: boolean
+  // Motivo en castellano si el envío quedó bloqueado (factura anulada después de cargarlo); nulo si no.
+  bloqueado_motivo: string | null
 }
 
 export type PaginaEnviosMoto = {
@@ -88,7 +90,8 @@ export function mensajeDeErrorEnvioMoto(error: unknown, porDefecto: string): str
   if (e?.code === '42501') {
     return 'Tu rol no puede registrar ni editar envíos en moto en esta tienda. Puede que tu rol haya cambiado: recargá la página.'
   }
-  if (e?.code === '55000') return 'El envío ya está rendido: es de solo lectura y no se puede modificar.'
+  // El mensaje de la base distingue «ya rendido» de «factura anulada»; sin mensaje, el de solo lectura.
+  if (e?.code === '55000') return e.message || 'El envío ya está rendido: es de solo lectura y no se puede modificar.'
   if (e?.code === '23505') return 'Ese comprobante ya tiene un envío en moto registrado.'
   if (e?.code === 'P0002') return 'Ese envío no existe o no pertenece a tu organización.'
   if (e?.code === '22023' && e.message) return e.message
@@ -184,6 +187,7 @@ export async function listarEnviosMoto({ empresaId, pagina, tamano }: {
       rendido_en: envio.rendido_en ?? null,
       puede_editar: envio.puede_editar === true,
       puede_rendir: envio.puede_rendir === true,
+      bloqueado_motivo: envio.bloqueado_motivo ?? null,
     })),
     total: filas.length > 0 ? Number(filas[0].filas) : 0,
   }
