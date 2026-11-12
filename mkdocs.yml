@@ -149,6 +149,7 @@ nav:
       - Empezar con la API: api/inicio-rapido.md
       - Referencia de la API: api/referencia.md
       - Claves y avisos (administración): producto/api-y-avisos.md
+      - Asistente con IA sobre el catálogo: producto/asistente.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Panel:
@@ -196,6 +197,7 @@ nav:
           - Inicio y alertas: tecnico/inicio-y-alertas.md
       - Plataforma:
           - Notificaciones, ayuda y exportación total (MSF-224): tecnico/notificaciones-ayuda-y-exportacion-total.md
+          - "API pública: diseño y operación": tecnico/api-publica.md
           - Subsitio público de la API: tecnico/subsitio-api-publica.md
       - Catálogo y precios:
           - Alta y edición: tecnico/catalogo-alta-y-edicion.md

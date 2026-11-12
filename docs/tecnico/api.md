@@ -6,7 +6,7 @@ sources:
 
 # API y RPC
 
-MSF no expone una API REST propia: el panel usa **PostgREST** (tablas/vistas) y **RPC** de Postgres a través de Supabase.
+El panel usa **PostgREST** (tablas/vistas) y **RPC** de Postgres a través de Supabase. Además, desde MSF-233 (F-API-01) existe una **API pública de solo lectura** para sistemas externos, servida por la Edge Function `api-v1` y autenticada con claves de API por organización: ver [Empezar con la API](../api/inicio-rapido.md), la [Referencia de la API](../api/referencia.md) y [API pública: diseño y operación](api-publica.md). Las claves, las suscripciones a avisos y las entregas se administran con las RPC `crear_clave_api`, `rotar_clave_api`, `revocar_clave_api`, `crear_suscripcion_api`, `actualizar_suscripcion_api` y `eliminar_suscripcion_api` (solo Administrador de la organización).
 
 ## Contratos
 
@@ -909,7 +909,7 @@ propio de la organización dueña de la carpeta. El worker escribe con la clave 
 3. **Tests pgTAP** en `supabase/tests/database` (firman el comportamiento esperado).
 4. **Specs** en `specs/<slug>/spec.md` (requisitos y escenarios).
 
-!!! warning "Pendiente"
-    Todavía no hay un **OpenAPI** del panel (es PostgREST + RPC). Cuando se agregue, esta página debe linkearlo y el check de contratos debe validarlo.
+!!! note "OpenAPI"
+    El **panel** (PostgREST + RPC) no tiene un OpenAPI propio. La **API pública** sí: el contrato `openapi/api-v1.json` se sirve sin clave en `/v1/openapi.json`, `pnpm test:openapi` lo valida y de él se genera la [Referencia de la API](../api/referencia.md).
 
 > **service_role:** puede ejecutar las RPC y leer los esquemas `dominio`/`private` (grants explícitos). No se expone al cliente; el seed local lo usa sólo para preparar datos.

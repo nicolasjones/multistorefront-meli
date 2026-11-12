@@ -37,6 +37,8 @@ Si la clave y el alcance son correctos, la respuesta es una página:
 }
 ```
 
+Si tu servidor valida el JWT en el gateway, esa llamada responde `401` antes de llegar a la API. En ese caso mandá la clave anónima de Supabase (te la da quien administra la plataforma) en `apikey` y en `Authorization: Bearer <anónima>`, y tu clave de API en `X-API-Key: msf_…`. La clave anónima solo sirve para pasar el gateway: no autoriza ningún dato.
+
 Si no, el error trae un `codigo` estable (por ejemplo `token_invalido` o `alcance_insuficiente`): decidí por el código, no por el mensaje.
 
 ## 3. Recorrer todas las páginas
@@ -103,7 +105,7 @@ curl -s "$BASE/v1/stock?actualizado_desde=2027-03-01T00:00:00-03:00" \
 | Situación | Qué hacer |
 |---|---|
 | `429 limite_excedido` | Esperá los segundos de la cabecera `Retry-After` y reintentá. El límite es de **60 solicitudes por minuto por clave**. |
-| `401` (`token_ausente`, `token_invalido`, `clave_vencida`, `clave_revocada`) | No reintentes: revisá la clave. Si venció, un Administrador puede **rotarla** para renovarla; si se revocó, necesitás una nueva. Pasados unos 90 días de vencida o revocada la clave se borra y la respuesta pasa a ser `token_invalido`. |
+| `401` (`token_ausente`, `token_invalido`, `clave_vencida`, `clave_revocada`) | No reintentes: revisá la clave. Si venció, un Administrador puede **rotarla** para renovarla; si se revocó, necesitás una nueva. Pasados unos 90 días (valor por defecto) de vencida o revocada la clave se borra y la respuesta pasa a ser `token_invalido`. |
 | `403 alcance_insuficiente` | La clave no tiene el alcance de ese recurso. Un Administrador puede crear otra con el alcance correcto. |
 | `400` | Revisá el parámetro (`cursor_invalido`, `parametro_invalido`). |
 | `404 no_encontrado` | La ruta no existe: revisá la URL base y el recurso. |
@@ -114,7 +116,7 @@ Con 100 filas por página y 60 llamadas por minuto podés traer, como máximo, u
 
 ### Cambiar la clave sin cortar el servicio
 
-Al **rotar** una clave, la anterior sigue funcionando **hasta 24 horas** (menos, si ya iba a vencer antes). En ese margen cambiás la clave en tu sistema y recién después dejás que venza la vieja. La clave nueva conserva el nombre, los alcances, el límite y el vencimiento de la original.
+Al **rotar** una clave, la anterior sigue funcionando **hasta 24 horas** (menos, si ya iba a vencer antes). En ese margen cambiás la clave en tu sistema y recién después dejás que venza la vieja. La clave nueva conserva el nombre, los alcances, el límite y el vencimiento de la original (si la original ya había vencido, la nueva no vence). Rotar de nuevo la misma clave **no** renueva las 24 horas, y una clave revocada no se puede rotar.
 
 ## 6. Recibir avisos (webhooks)
 
@@ -205,10 +207,11 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
 ### Cómo se comportan los avisos
 
 - **Respondé `2xx` en menos de 10 segundos.** Hacé el trabajo pesado después, en una cola.
-- Si respondés otra cosa o no contestás, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos), con una espera mínima de 1, 2, 4 y 8 minutos entre ellos. Después el aviso queda como *agotado* y lo ves en **Entregas recientes** con su último error.
+- Si respondés otra cosa o no contestás, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos), con una espera mínima de 1, 2, 4 y 8 minutos entre ellos. Después el aviso queda como *agotado* y lo ves en **Entregas recientes** con su último error. Un aviso agotado **no se reintenta a mano**: recuperá lo perdido con una consulta incremental.
 - La entrega es **al menos una vez**: por los reintentos, tu sistema puede recibir el mismo `id` más de una vez. Tratalo como idempotente.
 - No se garantiza el orden entre eventos distintos. Si importa, usá `ocurrido_en`.
 - La URL tiene que ser `https` y pública. No se siguen redirecciones y no se aceptan direcciones internas ni con credenciales.
+- El secreto de firma **no se puede cambiar ni volver a ver**. Para rotarlo, creá una suscripción nueva con la misma URL (se muestra su secreto), cambialo en tu sistema y eliminá la anterior; mientras convivan recibís cada evento dos veces, con el mismo `X-Evento-Id` y firmas distintas: ignorá el repetido.
 - Podés **pausar** una suscripción sin perder su secreto, y eliminarla cuando ya no la uses. Mientras está pausada **no recibe los eventos que ocurren**: los avisos que ya estaban pendientes se entregan al reanudar, pero los demás no se recuperan, así que al reanudar ponete al día con una consulta incremental.
 
 ## 7. Buenas prácticas

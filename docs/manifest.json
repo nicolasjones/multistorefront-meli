@@ -167,12 +167,12 @@
     },
     "docs/api/inicio-rapido.md": {
       "title": "Empezar con la API",
-      "pageHash": "f28b6aad93c54d216b2400597c37a1f0fa882e38ebbacacb6f4b7946d0f4e3a2",
+      "pageHash": "6a8c4484e5310678178d4524d6ceeb0b2702d848822d720fe53438759193d157",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "tecnico",
-      "commit": "a973a866"
+      "commit": "5f4018f5"
     },
     "docs/api/referencia.md": {
       "title": "Referencia de la API pública v1",
@@ -380,12 +380,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "a64dc255fe7a388286c28f419f4c4b4512c6d8c5298aa1f036dbe05b1d4a5a7a",
+      "pageHash": "b78c6b93830ce92fd4576d54ee9c535fea0bec06d5be507c10a8f7dace9aae34",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "48447942"
+      "commit": "5f4018f5"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -407,12 +407,23 @@
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
-      "pageHash": "6a3b8c975a46735ddeb9cab083fe444f57dea9c615033198a1de0f95d3df55db",
+      "pageHash": "0afed6a5254be4a69f87fbe59baaf61f54103b4a0a8bdec07728ce74613ab65b",
+      "sourceHash": "",
+      "sourceAt": "5f4018f5",
+      "sources": [
+        "apps/web/src/pages/api"
+      ],
+      "owner": "producto",
+      "commit": "5f4018f5"
+    },
+    "docs/producto/asistente.md": {
+      "title": "Asistente con IA sobre tu catálogo",
+      "pageHash": "9bd1809dbe44dfc3ff05e5b8e9864397296f7ed483c96b187c4640d86d168655",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "48447942"
+      "commit": "5f4018f5"
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
@@ -1284,16 +1295,25 @@
       "owner": "tecnico",
       "commit": "02a011d"
     },
+    "docs/tecnico/api-publica.md": {
+      "title": "API pública: diseño y operación",
+      "pageHash": "bb58a0d1cb8259ab2cf1d971ede26c20bbfdf451d833a471c9012c1f00cdfe3c",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "tecnico",
+      "commit": "5f4018f5"
+    },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "34ed317a1cceccd3304823130a065cce61fc4b72fec65c5539fc3de768b1c425",
+      "pageHash": "05ec4de3dbb65be70ce7709d0700ea0dc26c4a01c92f9c988a2cae199dba14ee",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "59d6ddac",
+      "sourceAt": "5f4018f5",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0682630f"
+      "commit": "5f4018f5"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1531,14 +1551,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "c6af6f8dfc005ead8fd08f8795f09f1e93f3b9458a89c6d1653d02099cab96b0",
+      "pageHash": "5feb8dcf0a9f48a09821ccc947f1c21f1edf24d48cdc7342637fb637ae0374c3",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "59d6ddac",
+      "sourceAt": "5f4018f5",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "75ae10b7"
+      "commit": "5f4018f5"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
