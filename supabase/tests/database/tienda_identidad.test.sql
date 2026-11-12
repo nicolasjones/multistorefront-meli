@@ -4,7 +4,7 @@
 -- solo lee por función). Aislamiento entre organizaciones (SC-001).
 begin;
 
-select plan(54);
+select plan(59);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -48,18 +48,18 @@ select is(has_table_privilege('authenticated', 'dominio.tienda_identidad', 'inse
 select is(has_table_privilege('authenticated', 'dominio.tienda_identidad', 'update'), false, 'authenticated no actualiza directo: solo por la RPC');
 select is(has_table_privilege('authenticated', 'dominio.tienda_identidad', 'delete'), false, 'authenticated no borra directo');
 select is(
-  has_function_privilege('anon', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('anon', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text)', 'execute'),
   false,
   'anon no ejecuta public.guardar_tienda_identidad'
 );
 select is(
-  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text)', 'execute'),
   false,
   'authenticated ya no ejecuta public.guardar_tienda_identidad: solo public.publicar_tienda (F-TDA-06, FR-052)'
 );
 -- F-TDA-06 (FR-052): las RPC vivas ya no son ejecutables por authenticated (solo publicar_tienda). Para seguir
 -- probando su cuerpo se reconcede el permiso dentro de esta transacción (se revierte con el rollback del test).
-grant execute on function public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text) to authenticated;
+grant execute on function public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text) to authenticated;
 
 select is(
   has_function_privilege('anon', 'publico.identidad_por_dominio(text)', 'execute'),
@@ -97,6 +97,16 @@ select throws_ok(
   $$insert into dominio.tienda_identidad (empresa_id, organizacion_id, tipografia_texto)
     values ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'x;}body{display:none')$$,
   '23514', null, 'una tipografía de Texto fuera de la lista se rechaza (no inyecta CSS)'
+);
+select throws_ok(
+  $$insert into dominio.tienda_identidad (empresa_id, organizacion_id, color_barra)
+    values ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'negro')$$,
+  '23514', null, 'MSF-841: un color de barra que no es #RRGGBB se rechaza'
+);
+select is(
+  (select column_default from information_schema.columns
+    where table_schema = 'dominio' and table_name = 'tienda_identidad' and column_name = 'color_barra'),
+  '''#222222''::text', 'MSF-841: color_barra por defecto #222222'
 );
 select lives_ok(
   $$insert into dominio.tienda_identidad (empresa_id, organizacion_id, tipografia_titulos, tipografia_texto)
@@ -224,6 +234,11 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.guardar_tienda_identidad('e1000000-0000-0000-0000-000000000001', '#112233', '#112233', '#112233', '#FFFFFF', 'Lato', 'Lato',
+      null, null, null, 'verde')$$,
+  '22023', 'El color de la barra superior y pie debe tener el formato #RRGGBB', 'MSF-841: color de barra inválido en la RPC'
+);
+select throws_ok(
+  $$select public.guardar_tienda_identidad('e1000000-0000-0000-0000-000000000001', '#112233', '#112233', '#112233', '#FFFFFF', 'Lato', 'Lato',
       '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/logo.png')$$,
   '22023', null, 'el logo debe estar en la carpeta de la propia empresa'
 );
@@ -301,7 +316,7 @@ set local role authenticated;
 select lives_ok(
   $$select public.guardar_tienda_identidad(
       'e1000000-0000-0000-0000-000000000001', '#C8102E', '#7A0A12', '#C8102E', '#FAF7F0', 'Playfair Display', 'Lato',
-      '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/logo-1.png', null, null)$$,
+      '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/logo-1.png', null, null, ' #1a1a1a ')$$,
   'guardar con cambios (quitar banner, nuevo fondo y tipografías) funciona'
 );
 reset role;
@@ -409,6 +424,14 @@ select is(
   'la función pública devuelve la identidad guardada y normaliza el host'
 );
 select is(
+  (select color_barra from publico.identidad_por_dominio('uno-a.ejemplo.com')),
+  '#1A1A1A', 'MSF-841: la función pública devuelve el color de la barra normalizado'
+);
+select is(
+  (select color_barra from publico.identidad_por_dominio('dos-a.ejemplo.com')),
+  '#222222', 'MSF-841: sin color de barra guardado, devuelve el predeterminado'
+);
+select is(
   (select color_primario from publico.identidad_por_dominio('dos-a.ejemplo.com')),
   '#0A7D32',
   'cada dominio devuelve solo la identidad de su propia tienda'
@@ -417,7 +440,7 @@ reset role;
 
 select is(
   pg_get_function_result('publico.identidad_por_dominio(text)'::regprocedure),
-  'TABLE(color_primario text, color_primario_oscuro text, color_acento text, color_fondo text, tipografia_titulos text, tipografia_texto text, logo_ruta text, banner_ruta text, banner_movil_ruta text)',
+  'TABLE(color_primario text, color_primario_oscuro text, color_acento text, color_fondo text, color_barra text, tipografia_titulos text, tipografia_texto text, logo_ruta text, banner_ruta text, banner_movil_ruta text)',
   'lista blanca: la función pública no expone organizacion_id, empresa_id ni fechas'
 );
 

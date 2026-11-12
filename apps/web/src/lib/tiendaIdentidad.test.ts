@@ -4,7 +4,7 @@ vi.mock('./supabase', () => ({ supabaseClient: {} }))
 
 import {
   contrasteBlancoSobre, esColorValido, evaluarContraste, familiasACargar, formatearContraste, normalizarColor,
-  TIPOGRAFIAS, rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
+  IDENTIDAD_BASE, TIPOGRAFIAS, identidadDesdeFila, rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
 } from './tiendaIdentidad'
 
 const archivo = (nombre: string, tipo: string, bytes: number | string) =>
@@ -116,6 +116,22 @@ describe('validación de archivos (FR-021, FR-025, FR-026)', () => {
     const ruta = rutaArchivo('org-1', 'emp-1', 'bannerMovil', archivo('x.jpg', 'image/jpeg', 10))
     expect(ruta).toMatch(/^org-1\/emp-1\/banner-movil-[0-9a-f-]{36}\.jpg$/)
     expect(rutaArchivo('org-1', 'emp-1', 'logo', archivo('x.svg', 'image/svg+xml', 10))).toMatch(/^org-1\/emp-1\/logo-[0-9a-f-]{36}\.svg$/)
+  })
+})
+
+describe('color de la barra superior y pie (MSF-841)', () => {
+  it('el chequeo AA nombra el color evaluado y usa el mismo criterio', () => {
+    expect(evaluarContraste('#222222', 'la barra superior y pie')?.texto).toMatch(/^Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\.$/)
+    expect(evaluarContraste('#FFEB3B', 'la barra superior y pie')?.cumpleAA).toBe(false)
+  })
+
+  it('un borrador o versión anterior sin color_barra toma el color por defecto', () => {
+    const fila = {
+      color_primario: '#A3111D', color_primario_oscuro: '#7A0A12', color_acento: '#A3111D', color_fondo: '#FFFFFF',
+      tipografia_titulos: 'Sora' as const, tipografia_texto: 'Sora' as const, logo_ruta: null, banner_ruta: null, banner_movil_ruta: null,
+    }
+    expect(identidadDesdeFila(fila).colorBarra).toBe(IDENTIDAD_BASE.colorBarra)
+    expect(identidadDesdeFila({ ...fila, color_barra: '#0A0A0A' }).colorBarra).toBe('#0A0A0A')
   })
 })
 

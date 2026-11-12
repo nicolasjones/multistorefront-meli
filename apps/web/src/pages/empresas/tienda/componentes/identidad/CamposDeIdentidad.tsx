@@ -51,8 +51,8 @@ export function CampoColor({
 }
 
 // La advertencia de contraste NO bloquea el guardado (FR-023): con AA se informa; sin AA se advierte.
-export function AvisoContraste({ colorPrimario }: { colorPrimario: string }) {
-  const evaluacion = evaluarContraste(colorPrimario)
+export function AvisoContraste({ colorPrimario, sobre }: { colorPrimario: string; sobre?: string }) {
+  const evaluacion = evaluarContraste(colorPrimario, sobre)
   if (!evaluacion) return null
   return (
     <Alert severity={evaluacion.cumpleAA ? 'info' : 'warning'} role={evaluacion.cumpleAA ? 'status' : 'alert'}>

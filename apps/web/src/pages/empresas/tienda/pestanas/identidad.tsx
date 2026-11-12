@@ -33,21 +33,23 @@ const imagenesDe = (identidad: IdentidadTienda): Imagenes => ({
   bannerMovil: { ruta: identidad.bannerMovilRuta, archivo: null },
 })
 
-type Campos = Pick<IdentidadTienda, 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'tipografiaTitulos' | 'tipografiaTexto'>
+type Campos = Pick<IdentidadTienda, 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra' | 'tipografiaTitulos' | 'tipografiaTexto'>
 const camposDe = (identidad: IdentidadTienda): Campos => ({
   colorPrimario: identidad.colorPrimario,
   colorPrimarioOscuro: identidad.colorPrimarioOscuro,
   colorAcento: identidad.colorAcento,
   colorFondo: identidad.colorFondo,
+  colorBarra: identidad.colorBarra,
   tipografiaTitulos: identidad.tipografiaTitulos,
   tipografiaTexto: identidad.tipografiaTexto,
 })
 
-const COLORES: ReadonlyArray<{ clave: 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo'; etiqueta: string }> = [
+const COLORES: ReadonlyArray<{ clave: 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra'; etiqueta: string }> = [
   { clave: 'colorPrimario', etiqueta: 'Primario' },
   { clave: 'colorPrimarioOscuro', etiqueta: 'Primario oscuro' },
   { clave: 'colorAcento', etiqueta: 'Acento' },
   { clave: 'colorFondo', etiqueta: 'Fondo' },
+  { clave: 'colorBarra', etiqueta: 'Barra superior y pie' },
 ]
 
 function Tarjeta({ titulo, children }: { titulo: string; children: ReactNode }) {
@@ -69,11 +71,12 @@ function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: 
   const fondo = color(campos.colorFondo, IDENTIDAD_BASE.colorFondo)
   const oscuro = color(campos.colorPrimarioOscuro, IDENTIDAD_BASE.colorPrimarioOscuro)
   const acento = color(campos.colorAcento, IDENTIDAD_BASE.colorAcento)
+  const barra = color(campos.colorBarra, IDENTIDAD_BASE.colorBarra)
   const titulos = `"${campos.tipografiaTitulos}", system-ui, sans-serif`
   const texto = `"${campos.tipografiaTexto}", system-ui, sans-serif`
   return (
     <Card data-testid="vista-previa" variant="outlined" sx={{ overflow: 'hidden', bgcolor: fondo, fontFamily: texto }}>
-      <Box sx={{ bgcolor: oscuro, height: (tema) => tema.spacing(1.5) }} />
+      <Box data-testid="vista-previa-barra" sx={{ bgcolor: barra, height: (tema) => tema.spacing(1.5) }} />
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.25, py: 0.75, bgcolor: fondo }}>
         {logoUrl ? <Box component="img" src={logoUrl} alt="" sx={{ height: (tema) => tema.spacing(3), maxWidth: 120, objectFit: 'contain' }} /> : <Box sx={{ width: 60, height: (tema) => tema.spacing(1.5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'divider' }} />}
         <Box sx={{ width: 100, height: (tema) => tema.spacing(1.5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'action.hover' }} />
@@ -191,6 +194,7 @@ function FormularioIdentidad({
         colorPrimarioOscuro: normalizarColor(campos.colorPrimarioOscuro),
         colorAcento: normalizarColor(campos.colorAcento),
         colorFondo: normalizarColor(campos.colorFondo),
+        colorBarra: normalizarColor(campos.colorBarra),
         tipografiaTitulos: campos.tipografiaTitulos,
         tipografiaTexto: campos.tipografiaTexto,
         logoRuta: rutas.logo,
@@ -240,7 +244,10 @@ function FormularioIdentidad({
             ))}
           </Box>
           <Box sx={{ mt: 1 }}>
-            <AvisoContraste colorPrimario={campos.colorPrimario} />
+            <Stack spacing={1}>
+              <AvisoContraste colorPrimario={campos.colorPrimario} />
+              <AvisoContraste colorPrimario={campos.colorBarra} sobre="la barra superior y pie" />
+            </Stack>
           </Box>
         </Tarjeta>
         <Tarjeta titulo="Tipografía">

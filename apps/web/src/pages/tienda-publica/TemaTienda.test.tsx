@@ -20,6 +20,7 @@ const MUNDO_JC: IdentidadTienda = {
   colorPrimarioOscuro: '#7A0A12',
   colorAcento: '#C8102E',
   colorFondo: '#FFFFFF',
+  colorBarra: '#222222',
   tipografiaTitulos: 'Barlow Condensed',
   tipografiaTexto: 'Barlow',
   logoRuta: 'org-1/e-1/logo.png',

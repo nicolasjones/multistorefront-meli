@@ -16,6 +16,8 @@ export type IdentidadTienda = {
   colorPrimarioOscuro: string
   colorAcento: string
   colorFondo: string
+  // Barra superior y pie (MSF-841).
+  colorBarra: string
   tipografiaTitulos: Tipografia
   tipografiaTexto: Tipografia
   logoRuta: string | null
@@ -29,6 +31,7 @@ export const IDENTIDAD_BASE: IdentidadTienda = {
   colorPrimarioOscuro: '#000000',
   colorAcento: '#222222',
   colorFondo: '#FFFFFF',
+  colorBarra: '#222222',
   tipografiaTitulos: 'system-ui',
   tipografiaTexto: 'system-ui',
   logoRuta: null,
@@ -100,11 +103,12 @@ export const formatearContraste = (razon: number) => (Math.floor(razon * 10) / 1
 
 export type EvaluacionContraste = { razon: number; cumpleAA: boolean; texto: string }
 
-export function evaluarContraste(colorPrimario: string): EvaluacionContraste | null {
-  const razon = contrasteBlancoSobre(colorPrimario)
+// `sobre` nombra el color evaluado en el texto («el primario», «la barra superior y pie»).
+export function evaluarContraste(color: string, sobre = 'el primario'): EvaluacionContraste | null {
+  const razon = contrasteBlancoSobre(color)
   if (razon === null) return null
   const cumpleAA = razon >= CONTRASTE_MINIMO_AA
-  const base = `Contraste de texto blanco sobre el primario: ${formatearContraste(razon)}:1`
+  const base = `Contraste de texto blanco sobre ${sobre}: ${formatearContraste(razon)}:1`
   return {
     razon,
     cumpleAA,
@@ -192,6 +196,8 @@ export type FilaIdentidad = {
   color_primario_oscuro: string
   color_acento: string
   color_fondo: string
+  // Ausente en borradores y versiones anteriores a MSF-841: vale el color por defecto.
+  color_barra?: string
   tipografia_titulos: Tipografia
   tipografia_texto: Tipografia
   logo_ruta: string | null
@@ -204,6 +210,7 @@ export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
   colorPrimarioOscuro: fila.color_primario_oscuro,
   colorAcento: fila.color_acento,
   colorFondo: fila.color_fondo,
+  colorBarra: fila.color_barra ?? IDENTIDAD_BASE.colorBarra,
   tipografiaTitulos: fila.tipografia_titulos,
   tipografiaTexto: fila.tipografia_texto,
   logoRuta: fila.logo_ruta,
@@ -211,7 +218,7 @@ export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
   bannerMovilRuta: fila.banner_movil_ruta,
 })
 
-const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta'
+const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, color_barra, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta'
 
 export type IdentidadDeEmpresa = { organizacionId: string; identidad: IdentidadTienda }
 
@@ -251,6 +258,7 @@ export async function guardarIdentidad(empresaId: string, identidad: IdentidadTi
     color_primario_oscuro: identidad.colorPrimarioOscuro,
     color_acento: identidad.colorAcento,
     color_fondo: identidad.colorFondo,
+    color_barra: identidad.colorBarra,
     tipografia_titulos: identidad.tipografiaTitulos,
     tipografia_texto: identidad.tipografiaTexto,
     logo_ruta: identidad.logoRuta,

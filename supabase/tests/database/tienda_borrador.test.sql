@@ -5,7 +5,7 @@
 -- FR-063/FR-059 (vista previa sin costos; precios en vivo), FR-064 (auditoría) y SC-007 (aislamiento).
 begin;
 
-select plan(59);
+select plan(62);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -76,7 +76,7 @@ select is(has_function_privilege('anon', 'public.publicar_tienda(uuid)', 'execut
 select is(has_function_privilege('anon', 'public.vista_previa_tienda(uuid)', 'execute'), false, 'anon no ejecuta vista_previa_tienda');
 select is(has_function_privilege('anon', 'public.rutas_tienda_sin_referencia(uuid, text[])', 'execute'), false, 'anon no ejecuta rutas_tienda_sin_referencia');
 select is(
-  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text)', 'execute'),
   false, 'authenticated ya no ejecuta guardar_tienda_identidad (BREAKING)'
 );
 select is(
@@ -96,6 +96,22 @@ select is(
      pg_temp.ident('#C8102E') || '{"tipografia_titulos":"Bricolage Grotesque","tipografia_texto":"DM Sans"}'::jsonb)
    ->> 'tipografia_titulos'),
   'Bricolage Grotesque', 'MSF-841: el validador acepta Bricolage Grotesque y DM Sans'
+);
+
+-- MSF-841: color de la barra superior y pie.
+select is(
+  (select private.validar_tienda_identidad('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', pg_temp.ident('#C8102E')) ->> 'color_barra'),
+  '#222222', 'MSF-841: un borrador sin color_barra (anterior a la migración) toma el predeterminado'
+);
+select is(
+  (select private.validar_tienda_identidad('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+     pg_temp.ident('#C8102E') || '{"color_barra":" #0a0a0a "}'::jsonb) ->> 'color_barra'),
+  '#0A0A0A', 'MSF-841: el color de la barra se recorta y pasa a mayúsculas'
+);
+select throws_ok(
+  $$select private.validar_tienda_identidad('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+      pg_temp.ident('#C8102E') || '{"color_barra":"negro"}'::jsonb)$$,
+  '22023', 'El color de la barra superior y pie debe tener el formato #RRGGBB', 'MSF-841: color de barra inválido en el borrador'
 );
 
 -- ============================================================================
