@@ -5,6 +5,10 @@ autentican y de los avisos (webhooks) firmados que la plataforma entrega a
 sistemas externos. La pantalla **API** del panel (Administración → API, ruta
 `/api`) administra claves, suscripciones, entregas y llamadas recientes.
 
+> **Para quien integra la API:** [Empezar con la API](api/inicio-rapido.md) (guía paso a paso) y
+> [Referencia de la API](api/referencia.md) (generada del contrato OpenAPI: no se edita a mano, se regenera con
+> `pnpm openapi:escribir` y `pnpm test:openapi` falla si queda desactualizada).
+
 ## Claves de API
 
 - Una clave pertenece a **una organización** y la organización se deriva
@@ -170,6 +174,11 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas` y
   `api_eventos` (`pnpm test:db`).
+- **Documentación para integradores (2026-11-12):** el contrato OpenAPI trae ejemplos de cada respuesta y de cada error,
+  `curl` y `fetch` por operación y los tres avisos como `webhooks` (firma, reintentos y campos de `datos`);
+  `scripts/openapi-a-markdown.mjs` genera de él `docs/api/referencia.md`, y `docs/api/inicio-rapido.md` es la guía
+  escrita a mano (clave, primera llamada, paginación, sincronización incremental, errores y verificación de la firma;
+  el código de verificación está probado contra `firmar()` de `entregar-webhook`).
 - **Decisiones cerradas (2026-11-12, migración `20270301100000_api_decisiones_abiertas_msf233`):**
   - Topes por organización: **50 claves vigentes** (revocadas y vencidas no cuentan), **20 suscripciones** y, al rotar,
     un techo duro de **100 claves vigentes** (la clave anterior sigue vigente 24 h; sin techo, rotar en bucle crearía
