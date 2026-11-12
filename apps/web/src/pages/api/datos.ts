@@ -27,6 +27,8 @@ export type Suscripcion = {
   activa: boolean
   creada_en: string
   actualizada_en: string
+  /** Hasta cuándo vale el secreto anterior tras una rotación (gracia de 24 h); nulo si no hay rotación en curso. */
+  secreto_anterior_vence_en: string | null
 }
 
 export type Entrega = {

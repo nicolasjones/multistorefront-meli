@@ -39,7 +39,7 @@ export type Deps = {
   /** Clave de servicio de Supabase: la función solo la acepta a ella. */
   token: string | undefined
   /** Destino, evento y secreto de firma de la entrega. */
-  entrega: (entregaId: string) => Resultado<{ url: string; evento: unknown; secreto: string }[] | null>
+  entrega: (entregaId: string) => Resultado<{ url: string; evento: unknown; secreto: string; secreto_anterior?: string | null }[] | null>
   /** Deja el resultado de la entrega (la base calcula la espera del reintento). */
   resolver: (
     entregaId: string,
@@ -73,8 +73,9 @@ function tokenValido(esperado: string | undefined, recibido: string | null): boo
 }
 
 /** El error que se guarda nunca lleva el secreto ni credenciales. */
-export function sanearError(mensaje: string, secreto: string): string {
-  const sinSecreto = secreto ? mensaje.split(secreto).join('[REDACTADO]') : mensaje
+export function sanearError(mensaje: string, secreto: string, secretoAnterior?: string | null): string {
+  let sinSecreto = secreto ? mensaje.split(secreto).join('[REDACTADO]') : mensaje
+  if (secretoAnterior) sinSecreto = sinSecreto.split(secretoAnterior).join('[REDACTADO]')
   return sinSecreto.replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX)
 }
 
@@ -181,10 +182,14 @@ export function destinoPermitido(direcciones: string[]): boolean {
   return direcciones.length > 0 && direcciones.every((ip) => !esInterna(ip))
 }
 
-/** Firma del aviso: `t=<epoch>,v1=<hmac-sha256-hex>` sobre `<t>.<cuerpo>`. */
-export function firmar(cuerpo: string, secreto: string, epoch: number): string {
-  const v1 = createHmac('sha256', secreto).update(`${epoch}.${cuerpo}`).digest('hex')
-  return `t=${epoch},v1=${v1}`
+/**
+ * Firma del aviso: `t=<epoch>,v1=<hmac-sha256-hex>` sobre `<t>.<cuerpo>`. Durante la gracia de una rotación del secreto
+ * (MSF-839) lleva DOS `v1`, el del secreto nuevo y el del anterior: el receptor acepta el aviso si alguno coincide, así puede
+ * cambiar el secreto sin cortar el servicio.
+ */
+export function firmar(cuerpo: string, secreto: string, epoch: number, secretoAnterior?: string | null): string {
+  const hmac = (clave: string) => createHmac('sha256', clave).update(`${epoch}.${cuerpo}`).digest('hex')
+  return `t=${epoch},v1=${hmac(secreto)}${secretoAnterior ? `,v1=${hmac(secretoAnterior)}` : ''}`
 }
 
 /** Si la base no pudo dejar el resultado (p. ej. `ENTREGA_NO_VIGENTE`: el lease venció), Kestra tiene que enterarse: 500 en vez de «completada». */
@@ -228,7 +233,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return respuesta({ error: 'No se pudo leer la entrega.' }, 500)
   }
 
-  const { url, evento, secreto } = entregas[0]
+  const { url, evento, secreto, secreto_anterior: secretoAnterior } = entregas[0]
 
   // SSRF al entregar (FR-010): el destino se resuelve y la entrega se hace
   // contra ESA IP (no se vuelve a resolver el host, así un DNS de TTL corto no
@@ -258,7 +263,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       cabeceras: {
         'Content-Type': 'application/json',
         'X-Evento-Id': typeof eventoId === 'string' ? eventoId : entregaId,
-        'X-Firma': firmar(cuerpoEvento, secreto, epoch),
+        'X-Firma': firmar(cuerpoEvento, secreto, epoch, secretoAnterior),
       },
       cuerpo: cuerpoEvento,
       timeoutMs: TIMEOUT_ENTREGA_MS,
@@ -287,7 +292,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   // Falló: la base deja la entrega pendiente con la espera de D-6 o la
   // agota en el quinto intento.
-  const mensaje = sanearError(error, secreto)
+  const mensaje = sanearError(error, secreto, secretoAnterior)
   if (!await dejarResultado(deps, entregaId, 'pendiente', estadoHttp, mensaje)) {
     return respuesta({ error: 'No se pudo dejar el resultado de la entrega.' }, 500)
   }

@@ -32,6 +32,7 @@ const SUSCRIPCIONES = [
     activa: true,
     creada_en: '2027-01-01T00:00:00Z',
     actualizada_en: '2027-01-01T00:00:00Z',
+    secreto_anterior_vence_en: null,
   },
 ]
 
@@ -130,6 +131,57 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Eliminar https://ejemplo.com/aviso' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('eliminar_suscripcion_api', { p_id: 's-1' }))
     expect(await screen.findByText('Eliminaste la suscripción https://ejemplo.com/aviso.')).toBeInTheDocument()
+  })
+
+  it('rota el secreto después de confirmar y muestra el nuevo una sola vez con el aviso de la gracia', async () => {
+    mocks.rpcResultado = { data: { id: 's-1', secreto: 'secreto-rotado' }, error: null }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    expect(within(confirmacion).getByText(/sigue valiendo 24 horas/)).toBeInTheDocument()
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Rotar' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('rotar_secreto_suscripcion_api', { p_id: 's-1' }))
+    const secreto = await screen.findByRole('dialog', { name: 'Copiá el secreto' })
+    expect(within(secreto).getByLabelText(/Secreto de firma/)).toHaveValue('secreto-rotado')
+    expect(within(secreto).getByText(/El anterior sigue valiendo 24 horas/)).toBeInTheDocument()
+  })
+
+  it('cancelar la rotación no llama a la base', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Cancelar' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('avisa si no se pudo rotar el secreto', async () => {
+    mocks.rpcResultado = { data: null, error: { message: 'denied' } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Rotar' }))
+    expect(await screen.findByText('No pudimos rotar el secreto de la suscripción.')).toBeInTheDocument()
+  })
+
+  it('una suscripción con la gracia en curso muestra hasta cuándo vale el secreto anterior', async () => {
+    const vence = new Date(Date.now() + 5 * 3600 * 1000).toISOString()
+    mocks.datos = {
+      ...mocks.datos,
+      api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: vence }], error: null },
+    }
+    abrir()
+    expect(await screen.findByText(/Rotado: el anterior vale hasta/)).toBeInTheDocument()
+  })
+
+  it('una gracia ya vencida no se muestra', async () => {
+    mocks.datos = {
+      ...mocks.datos,
+      api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: '2020-01-01T00:00:00Z' }], error: null },
+    }
+    abrir()
+    await screen.findByText('Activa')
+    expect(screen.queryByText(/Rotado: el anterior vale hasta/)).not.toBeInTheDocument()
   })
 
   it('avisa que se llegó al máximo de suscripciones', async () => {
