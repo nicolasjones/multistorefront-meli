@@ -20,13 +20,21 @@ Cada una debería ser un script determinista en el CI (no una regla para recorda
 Decisiones y verificaciones que no están hechas. Las marcadas «aprobada el 2026-11-12, en implementación» las implementan otros PRs; hasta entonces siguen abiertas.
 
 1. **Decisión 6 · cobrar el precio promocional en POS, carrito y comprobantes** *(aprobada el 2026-11-12, en implementación: Nicolás aprobó abrir el gate)*. Hoy la tienda muestra $X con el precio anterior tachado y el local factura el precio normal (riesgo de cobrar distinto de lo mostrado). Decisión: adoptar el cálculo único `private.precio_vigente_empresa` en ventas.
-3. **Actualizar y aplicar precios masivos exigen `productos`=`edicion` global** (nivel más alto entre las tiendas), aunque el precio de lista y el costo son de la organización. ¿Debe ser por tienda, o por organización como hoy? *(aprobada el 2026-11-12, en implementación)*
-4. **Bandera de apagado**: no hay para promociones/precio tachado ni para «Actualizar precios». Hoy apagar es revertir migraciones o quitar permisos.
+3. ~~**Actualizar y aplicar precios masivos exigen `productos`=`edicion` global**~~ **Decidido el 2026-11-12 (decisión 14)**: ver «Decisiones tomadas (2026-11-12)».
+4. ~~**Bandera de apagado**~~ **Decidido el 2026-11-12 (decisión 15)**: ver «Decisiones tomadas (2026-11-12)».
 5. **E2E que nunca corrieron** (SC-003 `apps/web/e2e/precios-masivos.e2e.ts`, SC-006 `apps/web/e2e/tienda-promocion.e2e.ts`): escritos, sin Supabase local, no corren en el CI público. Las tareas T009 y T020 están marcadas hechas sin evidencia de ejecución.
 6. **Capturas con TODO** en la documentación de la épica (pantallas «Actualizar precios», «Promociones» y precio tachado): pendientes de tomar.
 7. **MSF-114 bloqueante**: falta la aprobación de despliegue DEV→STG; **verificar en ItsAPlan los gates de STG** de la épica antes de promover.
-8. **UX** *(aprobada el 2026-11-12, en implementación)*: `apps/web/src/pages/productos/promociones.tsx` (líneas ~46-47) calcula `puedeEditar` con el nivel **global** de `productos`; en una tienda donde la persona solo lee, los botones «Nueva promoción»/«Anular» aparecen y el servidor responde `42501`. Conviene calcularlo por la empresa activa (lógica: no tocado aquí).
+8. ~~**UX**: `promociones.tsx` calculaba `puedeEditar` con el nivel global~~ **Resuelto el 2026-11-12** junto con la decisión 14: ahora es por tienda (`public.capacidades_precios()`).
 9. ~~`.limit(2000)` > `max_rows` 1000~~ **Cerrado en #859** (tandas con `.range()` y búsqueda de productos por servidor).
+
+## Decisiones tomadas (2026-11-12)
+
+Nicolás aprobó las recomendaciones («avanza con todo»). Implementadas en el PR «precios masivos por tienda y bandera de apagado» (tareas T028–T031).
+
+- **Decisión 14 · precios masivos por tienda.** `previsualizar_` y `aplicar_actualizacion_precios` pasan de `productos` = edición global a edición **en la tienda** (`private.nivel_productos_en_empresa`). Interpretación: el precio de lista y el costo son de la organización y los precios por tienda se calculan al leer, así que un cambio mueve todas las tiendas donde se vende el producto y no hay un subconjunto «afectado» limpio (productos sin asignar, alcance por categoría, planilla). Se aplicó la regla más estricta razonable: edición en **todas las tiendas activas de la organización** (una sin acceso cuenta como sin edición) y al menos una (`private.productos_edicion_en_todas_las_tiendas`, migración `20270228300200`), `42501` sin distinguir «otra tienda» y comprobada antes de cualquier lock. Nicolás confirmó el endurecimiento (todas las tiendas de la organización, no solo las accesibles).
+- **Decisión 15 · bandera de apagado.** `public.banderas_plataforma` (`20270228300000`): claves `promociones_precio` y `precios_masivos`, APAGADAS por defecto, por entorno. En el repo de producto no existía un mecanismo de banderas (las de BUG-397/398 son variables de entorno del orquestador, no aplican a la base); se siguió el patrón de configuración de plataforma de `public.tienda_dns_plataforma` (carga el equipo técnico por SQL, `authenticated` solo lee). Apagada `promociones_precio`: la tienda muestra el precio normal (sin `precio_anterior`), la pantalla Promociones lo explica y guardar responde `55000` (`20270228300100`); apagada `precios_masivos`: ambas RPC responden `55000` y la UI oculta el botón. Reversión: `update public.banderas_plataforma set activa = false where clave = '…'`. **Aviso de despliegue:** al nacer apagadas, promociones y «Actualizar precios» dejan de estar disponibles hasta que se encienda la bandera de cada entorno.
+- **Pendiente 8 (UX).** `puedeEditar` de Promociones es por tienda (`20270228300300`).
 
 ## Documentación que no se tocó en este PR
 

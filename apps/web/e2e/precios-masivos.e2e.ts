@@ -38,6 +38,19 @@ async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
   return (await r.json()) as T[]
 }
 
+// MSF-363 (decisión 15): la bandera `precios_masivos` nace APAGADA; el E2E la enciende y devuelve el valor previo al terminar.
+async function fijarBandera(clave: string, activa: boolean): Promise<boolean> {
+  const ruta = `banderas_plataforma?clave=eq.${clave}`
+  const previa = (await leer<{ activa: boolean }>(`${ruta}&select=activa`))[0]?.activa ?? false
+  const r = await fetch(`${url}/rest/v1/${ruta}`, {
+    method: 'PATCH',
+    headers: cabeceras({ 'content-profile': 'public' }),
+    body: JSON.stringify({ activa }),
+  })
+  if (!r.ok) throw new Error(`bandera ${clave}: ${r.status} ${await r.text()}`)
+  return previa
+}
+
 async function altaUsuario(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/admin/users`, {
     method: 'POST',
@@ -67,7 +80,9 @@ test.describe('Actualización masiva de costos y precios (MSF-436)', () => {
     const nombre = `Joystick masivo ${sufijo}`
     let orgId: string | undefined
     let idUsuario: string | undefined
+    let banderaPrevia = false
     try {
+      banderaPrevia = await fijarBandera('precios_masivos', true)
       const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E masivos ${sufijo}` })
       orgId = org.id
       idUsuario = await altaUsuario(correo)
@@ -119,6 +134,7 @@ test.describe('Actualización masiva de costos y precios (MSF-436)', () => {
       const [costo] = await leer<{ costo: number }>(`producto_costos?producto_id=eq.${producto.id}&select=costo`, 'dominio')
       expect(Number(costo.costo)).toBe(66)
     } finally {
+      await fijarBandera('precios_masivos', banderaPrevia).catch((e: unknown) => console.warn('limpieza E2E: bandera', e))
       if (orgId) await borrar(`organizaciones?id=eq.${orgId}`)
       if (idUsuario) await borrarUsuario(idUsuario)
     }

@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   costos: vi.fn(),
   esAdmin: vi.fn(),
   precios: vi.fn(),
+  useCapacidadesPrecios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => {
@@ -43,6 +44,7 @@ vi.mock('../../lib/supabase', () => {
 vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: mocks.esAdmin(), isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
+vi.mock('../../hooks/useCapacidadesPrecios', () => ({ useCapacidadesPrecios: mocks.useCapacidadesPrecios }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
@@ -78,6 +80,7 @@ function LugarActual() {
 
 describe('ProductoList', () => {
   beforeEach(() => {
+    mocks.useCapacidadesPrecios.mockReturnValue({ capacidades: { promociones: true, preciosMasivos: true, edicionEnTodasLasTiendas: true, nivelesProductos: {} }, cargando: false, hayError: false })
     vi.clearAllMocks()
     mocks.esAdmin.mockReturnValue(false)
     mocks.useCategorias.mockReturnValue({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() })
@@ -458,6 +461,37 @@ describe('ProductoList', () => {
     abrir()
     await screen.findByText('Joystick')
     expect(screen.getByRole('link', { name: 'Actualizar precios' })).toHaveAttribute('href', '/productos/precios-masivos')
+  })
+
+  it('con la bandera de precios masivos apagada (por defecto) oculta «Actualizar precios» (MSF-363, decisión 15)', async () => {
+    mocks.useCapacidadesPrecios.mockReturnValue({ capacidades: { promociones: false, preciosMasivos: false, edicionEnTodasLasTiendas: true, nivelesProductos: {} }, cargando: false, hayError: false })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByText('Actualizar precios')).not.toBeInTheDocument()
+  })
+
+  it('mientras las capacidades cargan no ofrece «Actualizar precios» (no muestra las de la organización anterior)', async () => {
+    mocks.useCapacidadesPrecios.mockReturnValue({ capacidades: { promociones: true, preciosMasivos: true, edicionEnTodasLasTiendas: true, nivelesProductos: {} }, cargando: true, hayError: false })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByText('Actualizar precios')).not.toBeInTheDocument()
+  })
+
+  it('si la lectura de las banderas falla, no ofrece «Actualizar precios» (falla cerrado)', async () => {
+    mocks.useCapacidadesPrecios.mockReturnValue({ capacidades: { promociones: false, preciosMasivos: false, edicionEnTodasLasTiendas: false, nivelesProductos: {} }, cargando: false, hayError: true })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByText('Actualizar precios')).not.toBeInTheDocument()
+  })
+
+  it('con la bandera encendida pero sin edición en todas las tiendas deshabilita «Actualizar precios» con el motivo (decisión 14)', async () => {
+    mocks.useCapacidadesPrecios.mockReturnValue({ capacidades: { promociones: true, preciosMasivos: true, edicionEnTodasLasTiendas: false, nivelesProductos: {} }, cargando: false, hayError: false })
+    abrir()
+    await screen.findByText('Joystick')
+    expect(screen.queryByRole('link', { name: 'Actualizar precios' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Actualizar precios' })).toBeDisabled()
+    fireEvent.mouseOver(screen.getByRole('button', { name: 'Actualizar precios' }).parentElement as HTMLElement)
+    expect(await screen.findByText(/permiso de edición de productos en todas las tiendas/)).toBeInTheDocument()
   })
 
   it('un error al cambiar el estado se avisa en castellano, sin texto crudo, y no recarga', async () => {

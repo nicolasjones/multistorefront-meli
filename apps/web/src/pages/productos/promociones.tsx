@@ -3,6 +3,8 @@ import { Alert, Box, Button, Stack, Tooltip, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
+import { useCapacidadesPrecios } from '../../hooks/useCapacidadesPrecios'
+import { MOTIVO_PROMOCIONES_APAGADAS } from '../../lib/capacidadesPrecios'
 import { supabaseClient } from '../../lib/supabase'
 import {
   AVISO_ELEGIR_EMPRESA,
@@ -32,6 +34,7 @@ const VARIANTE_ESTADO: Record<EstadoPromocion, VarianteEtiqueta> = {
   anulada: 'contorno',
 }
 
+const MOTIVO_SIN_EDICION_EN_TIENDA = 'Solo podés ver las promociones de esta tienda: no tenés permiso de edición de productos en ella.'
 const AVISO_CAMBIO_EMPRESA = 'Cambiaste de empresa: cerramos el formulario para no mezclar datos de la anterior.'
 
 // Catálogo → Promociones (F-PRE-11, FR-016): precio promocional fijo (sin IVA) de un producto en una
@@ -39,10 +42,16 @@ const AVISO_CAMBIO_EMPRESA = 'Cambiaste de empresa: cerramos el formulario para 
 // con una empresa concreta lista y crea para ella; con «Todas mis empresas» lista todas (columna Empresa)
 // y el alta queda deshabilitada. Al cambiar de empresa recarga TODO, cierra los diálogos con aviso y no
 // arrastra filas de la anterior. Los estados salen de la base (por fecha, sin tarea programada); la
-// autoridad es RLS + las RPC (`productos` = edición para escribir).
+// autoridad es RLS + las RPC (`productos` = edición EN LA TIENDA de la promoción para escribir). MSF-363: con la bandera
+// `promociones_precio` apagada (por defecto) la pantalla no lista ni ofrece nada y explica el motivo; el permiso de
+// edición se calcula por tienda (`capacidades_precios`), no con el nivel global.
 export function PromocionesList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
+  const { capacidades, cargando: cargandoCapacidades, hayError: errorCapacidades } = useCapacidadesPrecios()
+  // Nivel global: decide si se ofrece algo; el de cada tienda decide si el botón funciona.
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  const puedeEditarEn = (empresaId: string | null) =>
+    puedeEditar && empresaId !== null && capacidades.nivelesProductos[empresaId] === 'edicion'
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas } = useEmpresasAccesibles()
   const { organizacionActiva } = useOrganizacionActiva()
   const organizacionId = organizacionActiva?.id ?? null
@@ -133,21 +142,25 @@ export function PromocionesList() {
 
   const accionesFila = (p: Promocion) => {
     const abierta = p.estado === 'programada' || p.estado === 'vigente'
-    if (!puedeEditar || !abierta) return null
+    if (!puedeEditarEn(p.empresaId) || !abierta) return null
     return (
       <Stack direction="row" spacing={1} justifyContent="flex-end">
-        <Button size="small" onClick={() => setEdicion({ promocion: p })} aria-label={`Editar la promoción de ${p.productoNombre}`}>Editar</Button>
+        {capacidades.promociones ? (
+          <Button size="small" onClick={() => setEdicion({ promocion: p })} aria-label={`Editar la promoción de ${p.productoNombre}`}>Editar</Button>
+        ) : null}
         <Button size="small" color="error" onClick={() => setAnulando(p)} aria-label={`Anular la promoción de ${p.productoNombre}`}>Anular</Button>
       </Stack>
     )
   }
 
   const altaDeshabilitada = todasMisEmpresas || cargandoEmpresas || !empresaActiva
-  const botonNueva = puedeEditar ? (
-    <Tooltip title={todasMisEmpresas ? AVISO_ELEGIR_EMPRESA : ''}>
+  const sinEdicionEnTienda = !todasMisEmpresas && !cargandoEmpresas && !puedeEditarEn(empresaActivaId)
+  const altaBloqueada = altaDeshabilitada || sinEdicionEnTienda
+  const botonNueva = puedeEditar && capacidades.promociones ? (
+    <Tooltip title={todasMisEmpresas ? AVISO_ELEGIR_EMPRESA : sinEdicionEnTienda ? MOTIVO_SIN_EDICION_EN_TIENDA : ''}>
       {/* El span deja que el tooltip responda aunque el botón esté deshabilitado. */}
       <span>
-        <Button variant="contained" disabled={altaDeshabilitada} onClick={() => setEdicion({ promocion: null })}>Nueva promoción</Button>
+        <Button variant="contained" disabled={altaBloqueada} onClick={() => setEdicion({ promocion: null })}>Nueva promoción</Button>
       </span>
     </Tooltip>
   ) : undefined
@@ -158,13 +171,30 @@ export function PromocionesList() {
     : empresaActiva
   const hayVigente = promociones?.some((p) => p.estado === 'vigente') ?? false
 
+  if (cargandoCapacidades) {
+    return (
+      <Box>
+        <EncabezadoPagina titulo="Promociones" contexto={<ContextoOrganizacionActiva />} />
+        <ContenedorSeccion><EstadoCargaPagina /></ContenedorSeccion>
+      </Box>
+    )
+  }
+
   return (
     <Box>
       <EncabezadoPagina titulo="Promociones" accion={botonNueva} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack spacing={2}>
+          {!capacidades.promociones ? (
+            <Alert severity={errorCapacidades ? 'warning' : 'info'}>
+              {errorCapacidades
+                ? 'No pudimos verificar si las promociones están activas. Por ahora solo podés anular.'
+                : `${MOTIVO_PROMOCIONES_APAGADAS} Mientras tanto solo podés anular las que ya tengas.`}
+            </Alert>
+          ) : null}
           {aviso ? <Alert severity={aviso.severidad} onClose={() => setAviso(null)}>{aviso.texto}</Alert> : null}
-          {todasMisEmpresas && puedeEditar ? <Alert severity="info">{AVISO_ELEGIR_EMPRESA} para crear una promoción.</Alert> : null}
+          {capacidades.promociones && sinEdicionEnTienda && puedeEditar ? <Alert severity="info">{MOTIVO_SIN_EDICION_EN_TIENDA}</Alert> : null}
+          {capacidades.promociones && todasMisEmpresas && puedeEditar ? <Alert severity="info">{AVISO_ELEGIR_EMPRESA} para crear una promoción.</Alert> : null}
           {hayError ? (
             <EstadoError descripcion="No pudimos cargar las promociones." reintentar={() => void cargar()} />
           ) : promociones === null ? (
@@ -172,7 +202,7 @@ export function PromocionesList() {
           ) : promociones.length === 0 ? (
             <EstadoVacio
               titulo="Todavía no hay promociones."
-              descripcion={puedeEditar && !altaDeshabilitada ? 'Programá la primera con «Nueva promoción».' : undefined}
+              descripcion={capacidades.promociones && puedeEditar && !altaBloqueada ? 'Programá la primera con «Nueva promoción».' : undefined}
             />
           ) : (
             <>

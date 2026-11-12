@@ -14,6 +14,8 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { useCategorias } from '../../hooks/useCategorias'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { useCapacidadesPrecios } from '../../hooks/useCapacidadesPrecios'
+import { MOTIVO_PRECIOS_MASIVOS_APAGADOS, MOTIVO_PRECIOS_MASIVOS_SIN_TIENDAS } from '../../lib/capacidadesPrecios'
 import { opcionesCategoriaProducto } from '../../lib/categorias'
 import { ErrorCsv, descargarCsv, leerCsvUtf8 } from '../../lib/migracionCsv'
 import {
@@ -41,9 +43,36 @@ function antesDespues(antes: number | null | undefined, despues: number | null |
 export function PreciosMasivos() {
   return (
     <RequiereAccesoSeccion seccion="productos" nivelMinimo="edicion">
-      <PantallaPreciosMasivos />
+      <PuertaPreciosMasivos />
     </RequiereAccesoSeccion>
   )
+}
+
+// MSF-363: con la bandera `precios_masivos` apagada (por defecto) la pantalla no ofrece nada y explica el motivo; sin
+// edición de productos en todas las tiendas tampoco. Las RPC rechazan lo mismo (55000 / 42501).
+function PuertaPreciosMasivos() {
+  const { capacidades, cargando, hayError } = useCapacidadesPrecios()
+  if (cargando) return <EstadoCargaPagina />
+  const motivo = hayError
+    ? 'No pudimos verificar si la actualización de precios está activa. Recargá la página.'
+    : !capacidades.preciosMasivos
+      ? MOTIVO_PRECIOS_MASIVOS_APAGADOS
+      : !capacidades.edicionEnTodasLasTiendas
+        ? MOTIVO_PRECIOS_MASIVOS_SIN_TIENDAS
+        : null
+  if (motivo) {
+    return (
+      <Box>
+        <EncabezadoPagina
+          titulo="Actualizar precios"
+          accion={<Button component={RouterLink} to="/productos" variant="outlined">Volver a Productos</Button>}
+          contexto={<ContextoOrganizacionActiva />}
+        />
+        <ContenedorSeccion><Alert severity={hayError ? 'warning' : 'info'}>{motivo}</Alert></ContenedorSeccion>
+      </Box>
+    )
+  }
+  return <PantallaPreciosMasivos />
 }
 
 function PantallaPreciosMasivos() {

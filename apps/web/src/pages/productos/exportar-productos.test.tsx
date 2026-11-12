@@ -14,6 +14,7 @@ vi.mock('../../lib/supabase', () => {
   return { supabaseClient: { rpc: vi.fn(), from: () => cadena, storage: { from: () => ({ createSignedUrls: vi.fn() }) } } }
 })
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: 'edicion', isLoading: false }) }))
+vi.mock('../../hooks/useCapacidadesPrecios', () => ({ useCapacidadesPrecios: () => ({ capacidades: { promociones: false, preciosMasivos: false, edicionEnTodasLasTiendas: false, nivelesProductos: {} }, cargando: false, hayError: false }) }))
 vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: mocks.useEsAdministrador }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: () => ({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))

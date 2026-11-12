@@ -124,10 +124,10 @@ export function esConflicto(error: ErrorRpc): boolean {
   return error?.code === '40001'
 }
 
-// La base ya trae el texto en castellano en 42501, 22023 y 54000; el resto es genérico.
+// La base ya trae el texto en castellano en 42501, 22023, 54000 y 55000; el resto es genérico.
 export function mensajeErrorActualizacion(error: ErrorRpc): string {
   if (esConflicto(error)) return MENSAJE_CONFLICTO
-  if (error?.code === '42501' || error?.code === '22023' || error?.code === '54000') return error.message || MENSAJE_GENERICO
+  if (error?.code === '42501' || error?.code === '22023' || error?.code === '54000' || error?.code === '55000') return error.message || MENSAJE_GENERICO
   return MENSAJE_GENERICO
 }
 

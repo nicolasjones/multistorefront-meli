@@ -1,10 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router'
-import { Alert, Box, Button, Checkbox, Chip, Snackbar, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Chip, Snackbar, Stack, Tooltip, Typography } from '@mui/material'
 import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useCategorias } from '../../hooks/useCategorias'
+import { useCapacidadesPrecios } from '../../hooks/useCapacidadesPrecios'
+import { MOTIVO_PRECIOS_MASIVOS_SIN_TIENDAS } from '../../lib/capacidadesPrecios'
 import { useSeleccionProductos } from '../../hooks/useSeleccionProductos'
 import { useCompatibles } from '../../hooks/useCompatibles'
 import { supabaseClient } from '../../lib/supabase'
@@ -175,6 +177,9 @@ const columnaEstado: ColumnaAdaptable<FilaProducto> = {
 export function ProductoList() {
   const { nivel, isLoading: verificandoPermiso } = useNivelSeccion('productos')
   const puedeEditar = !verificandoPermiso && nivel === 'edicion'
+  // MSF-363: «Actualizar precios» solo existe con la bandera `precios_masivos` encendida (apagada por defecto) y exige
+  // edición de productos en todas las tiendas accesibles; sin eso el botón queda deshabilitado con el motivo.
+  const { capacidades: capacidadesPrecios, cargando: cargandoCapacidades } = useCapacidadesPrecios()
   const navigate = useNavigate()
   const { esAdministrador } = useEsAdministrador()
   // Filtro de tienda (F-CAT-07, FR-013): sigue a la empresa activa de la barra superior y se resuelve
@@ -403,7 +408,16 @@ export function ProductoList() {
         titulo="Productos"
         accion={puedeEditar || esAdministrador ? (
           <Stack direction="row" spacing={1}>
-            {puedeEditar ? <Button component={RouterLink} to="/productos/precios-masivos" variant="outlined">Actualizar precios</Button> : null}
+            {puedeEditar && !cargandoCapacidades && capacidadesPrecios.preciosMasivos ? (
+              capacidadesPrecios.edicionEnTodasLasTiendas ? (
+                <Button component={RouterLink} to="/productos/precios-masivos" variant="outlined">Actualizar precios</Button>
+              ) : (
+                <Tooltip title={MOTIVO_PRECIOS_MASIVOS_SIN_TIENDAS}>
+                  {/* El span deja que el tooltip responda aunque el botón esté deshabilitado. */}
+                  <span><Button variant="outlined" disabled>Actualizar precios</Button></span>
+                </Tooltip>
+              )
+            ) : null}
             {esAdministrador ? <Button component={RouterLink} to="/productos/carga" variant="outlined">Importar CSV</Button> : null}
             {esAdministrador ? <Button variant="outlined" onClick={() => { setAvisoExportacion(null); setExportando(true) }}>Exportar</Button> : null}
             {puedeEditar ? <Button variant="contained" onClick={() => setProductoEnDialogo(null)}>Nuevo producto</Button> : null}
