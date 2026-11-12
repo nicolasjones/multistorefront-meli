@@ -1,5 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+// Las secciones se cargan de forma perezosa: con el runner del CI cargado, 1 s por defecto no alcanza.
+configure({ asyncUtilTimeout: 5000 })
 
 const mocks = vi.hoisted(() => ({ resolver: vi.fn(), redireccion: vi.fn(), categorias: vi.fn(), estado: vi.fn() }))
 
