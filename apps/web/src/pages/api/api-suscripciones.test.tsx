@@ -132,6 +132,17 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     expect(await screen.findByText('Eliminaste la suscripción https://ejemplo.com/aviso.')).toBeInTheDocument()
   })
 
+  it('avisa que se llegó al máximo de suscripciones', async () => {
+    mocks.rpcResultado = { data: null, error: { code: '54000', message: 'tope' } as { message: string } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva suscripción' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva suscripción' })
+    fireEvent.change(within(dialogo).getByLabelText(/URL del aviso/), { target: { value: 'https://ejemplo.com/otro' } })
+    fireEvent.click(within(dialogo).getByLabelText('precio.actualizado'))
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Crear' }))
+    expect(await screen.findByText('Llegaste al máximo de 20 suscripciones. Eliminá alguna antes de crear otra.')).toBeInTheDocument()
+  })
+
   it('muestra las entregas con su estado, sus intentos y el último error', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Entregas recientes' })).toBeInTheDocument()

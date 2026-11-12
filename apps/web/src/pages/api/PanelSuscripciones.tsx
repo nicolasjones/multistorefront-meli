@@ -44,7 +44,11 @@ export function PanelSuscripciones() {
       .single<{ id: string; secreto: string }>()
     setGuardando(false)
     if (errorRpc || !data) {
-      setError('No pudimos crear la suscripción. Revisá la URL y los eventos.')
+      setError(
+        errorRpc?.code === '54000'
+          ? 'Llegaste al máximo de 20 suscripciones. Eliminá alguna antes de crear otra.'
+          : 'No pudimos crear la suscripción. Revisá la URL y los eventos.',
+      )
       return
     }
     cerrar()
