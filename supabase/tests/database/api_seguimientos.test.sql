@@ -37,18 +37,33 @@ insert into public.cola_eventos (id, organizacion_id, tipo, clave_idempotencia, 
   -- agotado hace 100 días y sin entregas: se purga
   ('e4000000-0000-0000-0000-000000000004', 'a4000000-0000-0000-0000-000000000001', 'precio.actualizado', 'seg-4', '{}', 'agotada', now() - interval '100 days', now() - interval '100 days'),
   -- pendiente hace 100 días: se queda (todavía hay que repartirlo)
-  ('e4000000-0000-0000-0000-000000000005', 'a4000000-0000-0000-0000-000000000001', 'venta.registrada', 'seg-5', '{}', 'pendiente', now() - interval '100 days', now() - interval '100 days');
+  ('e4000000-0000-0000-0000-000000000005', 'a4000000-0000-0000-0000-000000000001', 'venta.registrada', 'seg-5', '{}', 'pendiente', now() - interval '100 days', now() - interval '100 days'),
+  -- completado hace 100 días con una entrega RECLAMADA (en vuelo): se queda
+  ('e4000000-0000-0000-0000-000000000021', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'seg-21', '{}', 'completada', now() - interval '100 days', now() - interval '100 days'),
+  -- creado hace 100 días pero tocado hace 10: la retención cuenta desde la última actualización, no desde la creación
+  ('e4000000-0000-0000-0000-000000000023', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'seg-23', '{}', 'completada', now() - interval '100 days', now() - interval '10 days'),
+  -- bordes de la retención de 90 días: 91 días se purga, 89 se queda
+  ('e4000000-0000-0000-0000-000000000024', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'seg-24', '{}', 'completada', now() - interval '91 days', now() - interval '91 days'),
+  ('e4000000-0000-0000-0000-000000000025', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'seg-25', '{}', 'completada', now() - interval '89 days', now() - interval '89 days');
+
+-- un evento RECLAMADO (en vuelo) con más de 90 días: el lease lo recupera, no se purga
+insert into public.cola_eventos (id, organizacion_id, tipo, clave_idempotencia, carga, estado, reclamada_en, vence_en, created_at, updated_at) values
+  ('e4000000-0000-0000-0000-000000000022', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'seg-22', '{}', 'reclamada', now(), now() + interval '5 minutes', now() - interval '100 days', now() - interval '100 days');
 
 insert into public.api_entregas (id, organizacion_id, evento_id, suscripcion_id, estado, intentos, creada_en, actualizada_en) values
   ('c4000000-0000-0000-0000-000000000001', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000001', 'd4000000-0000-0000-0000-000000000001', 'completada', 1, now() - interval '100 days', now() - interval '100 days'),
   ('c4000000-0000-0000-0000-000000000002', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000002', 'd4000000-0000-0000-0000-000000000001', 'pendiente', 0, now() - interval '100 days', now() - interval '100 days');
+insert into public.api_entregas (id, organizacion_id, evento_id, suscripcion_id, estado, intentos, reclamada_en, vence_en, creada_en, actualizada_en) values
+  ('c4000000-0000-0000-0000-000000000021', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000021', 'd4000000-0000-0000-0000-000000000001', 'reclamada', 1, now(), now() + interval '5 minutes', now() - interval '100 days', now() - interval '100 days');
 
 select lives_ok($$select private.purgar_api_llamadas(90)$$, 'la purga corre');
 
 select is(
   (select array_agg(id::text order by id) from public.cola_eventos where clave_idempotencia like 'seg-%'),
-  array['e4000000-0000-0000-0000-000000000002', 'e4000000-0000-0000-0000-000000000003', 'e4000000-0000-0000-0000-000000000005'],
-  'la purga borra el evento completado y el agotado viejos y deja el que tiene entrega viva, el reciente y el pendiente');
+  array['e4000000-0000-0000-0000-000000000002', 'e4000000-0000-0000-0000-000000000003', 'e4000000-0000-0000-0000-000000000005',
+        'e4000000-0000-0000-0000-000000000021', 'e4000000-0000-0000-0000-000000000022', 'e4000000-0000-0000-0000-000000000023',
+        'e4000000-0000-0000-0000-000000000025'],
+  'la purga borra los terminados viejos y deja el que tiene entrega pendiente o reclamada, el reclamado, el pendiente, el tocado hace poco y el de 89 días');
 
 select is(
   (select count(*)::int from public.api_entregas where id = 'c4000000-0000-0000-0000-000000000001'),
@@ -59,13 +74,16 @@ select is(
   1, 'la entrega pendiente sigue y protege a su evento');
 
 select lives_ok($$select private.purgar_api_llamadas(90)$$, 'una segunda pasada no falla');
-select is((select count(*)::int from public.cola_eventos where clave_idempotencia like 'seg-%'), 3, 'y no borra nada más (idempotente)');
+select is((select count(*)::int from public.cola_eventos where clave_idempotencia like 'seg-%'), 7, 'y no borra nada más (idempotente)');
 
 select throws_ok($$select private.purgar_api_llamadas(0)$$, '22023', 'RETENCION_INVALIDA', 'una retención inválida se rechaza');
 
 -- ============================================================================
 -- 837 · Salud de las entregas
 -- ============================================================================
+
+insert into public.api_suscripciones (id, organizacion_id, url, tipos, secreto_vault_id, activa) values
+  ('d4000000-0000-0000-0000-000000000002', 'a4000000-0000-0000-0000-000000000001', 'https://ejemplo.com/pausada', array['stock.actualizado'], gen_random_uuid(), false);
 
 create temporary table base_salud as select * from private.api_entregas_salud(60, 30);
 
@@ -74,21 +92,30 @@ insert into public.cola_eventos (id, organizacion_id, tipo, clave_idempotencia, 
   ('e4000000-0000-0000-0000-000000000011', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-2', '{}', 'pendiente', now() + interval '1 hour'),
   ('e4000000-0000-0000-0000-000000000012', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-3', '{}', 'completada', now() - interval '2 hours'),
   ('e4000000-0000-0000-0000-000000000013', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-4', '{}', 'completada', now()),
-  ('e4000000-0000-0000-0000-000000000014', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-5', '{}', 'completada', now());
+  ('e4000000-0000-0000-0000-000000000014', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-5', '{}', 'completada', now()),
+  ('e4000000-0000-0000-0000-000000000015', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-6', '{}', 'completada', now());
+insert into public.cola_eventos (id, organizacion_id, tipo, clave_idempotencia, carga, estado, updated_at) values
+  -- agotado hace poco (cuenta) y agotado hace 3 horas (fuera de la ventana de 60 minutos)
+  ('e4000000-0000-0000-0000-000000000016', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-7', '{}', 'agotada', now()),
+  ('e4000000-0000-0000-0000-000000000017', 'a4000000-0000-0000-0000-000000000001', 'stock.actualizado', 'salud-8', '{}', 'agotada', now() - interval '3 hours');
 
 insert into public.api_entregas (id, organizacion_id, evento_id, suscripcion_id, estado, intentos, proximo_intento_en, actualizada_en) values
   -- agotada hace poco (cuenta) y agotada hace 3 horas (no cuenta en una ventana de 60 minutos)
   ('c4000000-0000-0000-0000-000000000010', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000012', 'd4000000-0000-0000-0000-000000000001', 'agotada', 5, now() - interval '3 hours', now()),
   ('c4000000-0000-0000-0000-000000000011', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000013', 'd4000000-0000-0000-0000-000000000001', 'agotada', 5, now() - interval '3 hours', now() - interval '3 hours'),
   -- pendiente que debió enviarse hace 2 horas (atrasada) y pendiente al día
-  ('c4000000-0000-0000-0000-000000000012', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000014', 'd4000000-0000-0000-0000-000000000001', 'pendiente', 0, now() - interval '2 hours', now());
+  ('c4000000-0000-0000-0000-000000000012', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000014', 'd4000000-0000-0000-0000-000000000001', 'pendiente', 0, now() - interval '2 hours', now()),
+  -- pendiente atrasada pero de una suscripción PAUSADA: espera a propósito, no es una falla (no cuenta)
+  ('c4000000-0000-0000-0000-000000000013', 'a4000000-0000-0000-0000-000000000001', 'e4000000-0000-0000-0000-000000000015', 'd4000000-0000-0000-0000-000000000002', 'pendiente', 0, now() - interval '2 hours', now());
 
 select is((select agotadas from private.api_entregas_salud(60, 30)) - (select agotadas from base_salud), 1::bigint,
   'cuenta solo la entrega agotada dentro de la ventana');
 select is((select entregas_atrasadas from private.api_entregas_salud(60, 30)) - (select entregas_atrasadas from base_salud), 1::bigint,
-  'cuenta la entrega pendiente atrasada y no la que está al día');
+  'cuenta la entrega pendiente atrasada de una suscripción activa y no la de una pausada');
 select is((select eventos_atrasados from private.api_entregas_salud(60, 30)) - (select eventos_atrasados from base_salud), 1::bigint,
   'cuenta el evento pendiente atrasado y no el que espera su turno ni el completado');
+select is((select eventos_agotados from private.api_entregas_salud(60, 30)) - (select eventos_agotados from base_salud), 1::bigint,
+  'cuenta el evento agotado dentro de la ventana y no el de hace 3 horas');
 select throws_ok($$select * from private.api_entregas_salud(0, 30)$$, '22023', 'PARAMETRO_INVALIDO', 'una ventana inválida se rechaza');
 
 -- ============================================================================

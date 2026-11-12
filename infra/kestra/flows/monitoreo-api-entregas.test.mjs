@@ -37,7 +37,9 @@ test('los umbrales son inputs con valores por defecto', async () => {
 
 test('avisa solo si hay agotadas sobre el umbral o algo atrasado, y también si el chequeo falla', async () => {
   const flow = await leer('monitoreo-api-entregas');
-  assert.match(flow, /condition: "\{\{ \(outputs\.salud\.row\.agotadas \| number\) >= inputs\.umbral_agotadas or \(outputs\.salud\.row\.entregas_atrasadas \| number\) > 0 or \(outputs\.salud\.row\.eventos_atrasados \| number\) > 0 \}\}"/);
+  assert.match(flow, /condition: "\{\{ \(outputs\.salud\.row\.agotadas \| number\) >= inputs\.umbral_agotadas or \(outputs\.salud\.row\.entregas_atrasadas \| number\) > 0 or \(outputs\.salud\.row\.eventos_atrasados \| number\) > 0 or \(outputs\.salud\.row\.eventos_agotados \| number\) > 0 \}\}"/);
+  const aviso = flow.slice(flow.indexOf('- id: avisar_salud'), flow.indexOf('errors:'));
+  assert.match(aviso, /allowFailure: true/, 'si el correo falla no se rotula como falla del chequeo');
   assert.equal((flow.match(/flowId: aviso-fallo-api/g) ?? []).length, 2, 'avisa por el problema y por el fallo del propio chequeo');
   assert.match(flow, /^errors:$/m, 'el fallo del chequeo no pasa en silencio');
   assert.match(flow, /transmitFailed: false/, 'si el correo falla no tumba el chequeo');
@@ -59,5 +61,5 @@ test('la purga avisa si falla y su texto menciona la retención de eventos y ent
   assert.match(flow, /^errors:$/m);
   assert.match(flow, /flowId: aviso-fallo-api/);
   assert.match(flow, /flujo: purgar-api-llamadas/);
-  assert.match(await readFile('infra/kestra/flows/purgar-api-llamadas.yml', 'utf8'), /cola_eventos/);
+  assert.match(sinComentarios(await readFile('infra/kestra/flows/purgar-api-llamadas.yml', 'utf8')), /^errors:$/m, 'el aviso de fallo está en el YAML y no solo en un comentario');
 });
