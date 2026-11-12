@@ -15,7 +15,7 @@ const estiloDato = { display: 'inline-flex', alignItems: 'center', gap: '6px', c
 
 // Barra superior de la tienda (MSF-841, prototipo MJC_Home): 36 px, fondo `colorBarra` y texto blanco de 13 px;
 // a la izquierda el eslogan y a la derecha WhatsApp y correo de la tienda. Un dato ausente no se muestra y sin
-// nada que mostrar no hay barra. En celular (MJC_M_Home) es una franja de 28 px con solo el eslogan, centrado.
+// nada que mostrar no hay barra (mientras carga el contacto se reserva su altura, sin saltos de diseño). En celular (MJC_M_Home) es una franja de 28 px con solo el eslogan, centrado.
 export function BarraSuperior({ host }: { host: string }) {
   const contenido = useContenidoPublico(host)
   const contacto = useContactoTienda(host)
@@ -24,7 +24,11 @@ export function BarraSuperior({ host }: { host: string }) {
   const whatsapp = datos?.whatsapp?.trim() || null
   const digitos = normalizarNumero(whatsapp)
   const correo = datos?.correo?.trim() || null
-  if (!texto && !whatsapp && !correo) return null
+  // Mientras llega el contacto se reserva la altura de la barra (36 px / 28 px en celular) para que el encabezado no
+  // salte al aparecer; si al final no hay nada que mostrar, la reserva desaparece.
+  if (!texto && !whatsapp && !correo) {
+    return contacto.fase === 'cargando' ? <Box data-testid="barra-superior-reserva" aria-hidden sx={{ height: { xs: 28, md: 36 } }} /> : null
+  }
 
   return (
     <Box data-testid="barra-superior" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra, fontSize: { xs: 12, md: 13 }, display: { xs: texto ? 'block' : 'none', md: 'block' } })}>
@@ -38,7 +42,7 @@ export function BarraSuperior({ host }: { host: string }) {
               </Box>
             ) : null}
             {correo ? (
-              <Box component="a" href={`mailto:${correo}`} sx={estiloDato}><IconoCorreo />{correo}</Box>
+              <Box component="a" href={`mailto:${encodeURIComponent(correo)}`} sx={estiloDato}><IconoCorreo />{correo}</Box>
             ) : null}
           </Box>
         ) : null}

@@ -6,6 +6,7 @@ import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { categoriasPrincipales, type CategoriaPublica } from '../../../lib/tiendaCategorias'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { normalizarNumero } from '../../../lib/whatsapp'
+import { estiloEnlacePie, estiloTituloPie } from './estilosPie'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
 import { PieInformacion } from './PieInformacion'
 import { PieLegal } from './PieLegal'
@@ -13,8 +14,6 @@ import { PieLegal } from './PieLegal'
 // Aviso de cookies (F-TDA-22): carga diferida, no pesa en el primer pintado.
 const AvisoCookies = lazy(() => import('./AvisoCookies'))
 
-const estiloEnlace = { color: 'inherit', opacity: 0.85, display: 'inline-block', py: 0.5, overflowWrap: 'anywhere', '&:hover, &:focus-visible': { opacity: 1 } } as const
-const estiloTitulo = { fontWeight: 700, mb: 1, fontSize: 14 } as const // estilos-sueltos: ok
 
 // Pie oscuro de la tienda (F-TDA-11, FR-005; MSF-841, prototipo MJC_Home): fondo `colorBarra` y texto blanco. Trae el
 // logo (en blanco) y el eslogan, el texto del pie configurado, la columna «Categorías» (las mismas principales que el menú,
@@ -45,16 +44,16 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
             ) : (
               <Typography component="p" sx={{ fontWeight: 700, fontSize: 20, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{empresaNombre}</Typography>
             )}
-            {eslogan ? <Typography sx={{ mt: 1.5, fontSize: 14, opacity: 0.85, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{eslogan}</Typography> : null}
-            {textoPie ? <Typography data-testid="pie-tienda" sx={{ mt: 1.5, fontSize: 14, opacity: 0.85, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{textoPie}</Typography> : null}
+            {eslogan ? <Typography sx={{ mt: 1.5, fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{eslogan}</Typography> : null}
+            {textoPie ? <Typography data-testid="pie-tienda" sx={{ mt: 1.5, fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{textoPie}</Typography> : null}
           </Box>
           {categorias.length > 0 ? (
             <Box component="nav" aria-label="Categorías del pie" data-testid="pie-categorias">
-              <Typography component="h2" sx={estiloTitulo}>Categorías</Typography>
+              <Typography component="h2" sx={estiloTituloPie}>Categorías</Typography>
               <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, fontSize: 14 /* estilos-sueltos: ok */ }}>
                 {categorias.map((categoria) => (
                   <li key={categoria.id}>
-                    <Box component={EnlaceRuta} to={`/categoria/${categoria.id}`} sx={estiloEnlace}>{categoria.nombre}</Box>
+                    <Box component={EnlaceRuta} to={`/categoria/${categoria.id}`} sx={estiloEnlacePie}>{categoria.nombre}</Box>
                   </li>
                 ))}
               </Box>
@@ -62,22 +61,22 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
           ) : null}
           {host ? <PieInformacion host={host} /> : null}
           <Box component="nav" aria-label="Contacto del pie" data-testid="pie-contacto">
-            <Typography component="h2" sx={estiloTitulo}>Contacto</Typography>
+            <Typography component="h2" sx={estiloTituloPie}>Contacto</Typography>
             <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, fontSize: 14 /* estilos-sueltos: ok */ }}>
               {whatsapp ? (
                 <li>
-                  <Box component={digitos ? 'a' : 'span'} {...(digitos ? { href: `https://wa.me/${digitos}`, target: '_blank', rel: 'noopener noreferrer' } : {})} sx={estiloEnlace}>{whatsapp}</Box>
+                  <Box component={digitos ? 'a' : 'span'} {...(digitos ? { href: `https://wa.me/${digitos}`, target: '_blank', rel: 'noopener noreferrer' } : {})} sx={estiloEnlacePie}>{whatsapp}</Box>
                 </li>
               ) : null}
-              {correo ? <li><Box component="a" href={`mailto:${correo}`} sx={estiloEnlace}>{correo}</Box></li> : null}
-              <li><Box component={EnlaceRuta} to="/contacto" sx={{ ...estiloEnlace, textDecoration: 'underline' }}>Escribinos</Box></li>
+              {correo ? <li><Box component="a" href={`mailto:${encodeURIComponent(correo)}`} sx={estiloEnlacePie}>{correo}</Box></li> : null}
+              <li><Box component={EnlaceRuta} to="/contacto" sx={{ ...estiloEnlacePie, textDecoration: 'underline' }}>Escribinos</Box></li>
             </Box>
           </Box>
         </Box>
         <PieLegal host={host} />
       </Box>
       <Box sx={{ borderTop: '1px solid rgba(255,255,255,.15)' /* estilos-sueltos: ok */ }}>
-        <Typography sx={{ maxWidth: 1200, mx: 'auto', px: 2, py: '14px', fontSize: 12, opacity: 0.8, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>
+        <Typography sx={{ maxWidth: 1200, mx: 'auto', px: 2, py: '14px', fontSize: 12, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>
           © {new Date().getFullYear()} {empresaNombre}. Todos los derechos reservados.
         </Typography>
       </Box>

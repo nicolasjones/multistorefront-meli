@@ -26,8 +26,8 @@ function Item({ icono, etiqueta, valor, componente, destino }: { icono: ReactNod
 }
 
 // Bloque «Consultas por WhatsApp / Escribinos» del final de la portada (prototipo MJC_Home y SJ_Home): dos ítems con
-// ícono. WhatsApp lleva el número de la tienda; «Escribinos» lleva a `/contacto` con el correo si lo hay. Sin número
-// de WhatsApp queda solo «Escribinos». No se muestra en la vista previa del panel (no lee `publico.*`).
+// ícono. WhatsApp lleva el número de la tienda; «Escribinos» lleva a `/contacto` con el correo si lo hay. Un número que no se puede
+// llevar a dígitos se muestra como texto, sin enlace (igual que la barra y el pie). Sin número de WhatsApp queda solo «Escribinos». No se muestra en la vista previa del panel (no lee `publico.*`).
 export default function ConsultasInicio({ host }: PropsSeccionTienda) {
   const enVistaPrevia = useFuenteTienda() !== null
   const estado = useContactoTienda(host, !enVistaPrevia)
@@ -40,8 +40,8 @@ export default function ConsultasInicio({ host }: PropsSeccionTienda) {
   return (
     <Box component="section" aria-label="Consultas" data-testid="consultas-inicio" sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '8px', mt: 3 /* estilos-sueltos: ok */ })}>
       <Box sx={{ minHeight: 120, py: { xs: 3, md: 0 }, px: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'center', gap: { xs: 3, md: '120px' } /* estilos-sueltos: ok */ }}>
-        {whatsapp && digitos ? (
-          <Item componente="a" destino={{ href: `https://wa.me/${digitos}`, target: '_blank', rel: 'noopener noreferrer' }} icono={<IconoWhatsapp size={24} />} etiqueta="Consultas por WhatsApp" valor={whatsapp} />
+        {whatsapp ? (
+          <Item componente={digitos ? 'a' : 'span'} destino={digitos ? { href: `https://wa.me/${digitos}`, target: '_blank', rel: 'noopener noreferrer' } : {}} icono={<IconoWhatsapp size={24} />} etiqueta="Consultas por WhatsApp" valor={whatsapp} />
         ) : null}
         <Item componente={EnlaceRuta} destino={{ to: '/contacto' }} icono={<IconoCorreo size={24} />} etiqueta="Escribinos" valor={correo ?? 'Dejanos tu consulta'} />
       </Box>
