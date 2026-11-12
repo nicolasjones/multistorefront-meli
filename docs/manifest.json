@@ -165,6 +165,24 @@
       "owner": "tecnico",
       "commit": "4d730bd9"
     },
+    "docs/api/inicio-rapido.md": {
+      "title": "Empezar con la API",
+      "pageHash": "f28b6aad93c54d216b2400597c37a1f0fa882e38ebbacacb6f4b7946d0f4e3a2",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "tecnico",
+      "commit": "a973a866"
+    },
+    "docs/api/referencia.md": {
+      "title": "Referencia de la API pública v1",
+      "pageHash": "60db3825e34adaac4c02033b30b805ef3dc079cd1fdc0310bfca67b1d40c7ec0",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "tecnico",
+      "commit": "a973a866"
+    },
     "docs/architecture.md": {
       "title": "Arquitectura",
       "pageHash": "183cfa215fccd8bda8aae83113e2d03188e8b60e774177b59770fbda210d3190",
