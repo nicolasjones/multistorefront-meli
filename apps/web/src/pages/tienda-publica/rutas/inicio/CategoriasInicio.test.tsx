@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../../test/axe'
@@ -33,8 +33,9 @@ describe('CategoriasInicio', () => {
   it('se oculta cuando la tienda no tiene productos visibles', async () => {
     responder({ categorias_por_dominio: { data: categorias }, destacados_por_dominio: { data: { hay_productos: false, productos: [] } } })
     const { container } = montar()
-    await vi.waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('destacados_por_dominio', { host: HOST }))
-    await vi.waitFor(() => expect(container).toBeEmptyDOMElement())
+    // Se espera al desenlace (el bloque desaparece al llegar los destacados) y solo después se mira el pedido.
+    await waitFor(() => expect(container).toBeEmptyDOMElement())
+    expect(mocks.rpc).toHaveBeenCalledWith('destacados_por_dominio', { host: HOST })
   })
 
   it('un error propio se muestra en el bloque con «Reintentar»', async () => {
@@ -64,8 +65,7 @@ describe('CategoriasInicio', () => {
       destacados_por_dominio: { data: destacados },
     })
     const { container } = montar()
-    await screen.findByRole('region', { name: 'Categorías' })
-    await vi.waitFor(() => expect(container.querySelector('img')).toHaveAttribute('src', 'https://firmada.test/a.png'))
+    await waitFor(() => expect(container.querySelector('img')).toHaveAttribute('src', 'https://firmada.test/a.png'))
     expect(container.querySelectorAll('img')).toHaveLength(1)
     expect(screen.getAllByTestId('foto-categoria')).toHaveLength(3)
     // Una sola llamada para las categorías (los destacados firman las suyas aparte).

@@ -144,11 +144,11 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       const base = `http://${t.host}:${puerto}`
       await page.goto(`${base}/`)
 
-      // Menú: abre, lista «Inicio» y la categoría (sin «Contacto»), navega y se cierra.
+      // Menú: abre, lista «Inicio», «Contacto» y la categoría, navega y se cierra.
       await page.getByRole('button', { name: 'Abrir menú' }).click()
       const menu = page.getByRole('dialog', { name: 'Menú' })
       await expect(menu.getByRole('link', { name: 'Inicio' })).toBeVisible()
-      await expect(menu.getByText(/contacto/i)).toHaveCount(0)
+      await expect(menu.getByRole('link', { name: 'Contacto' })).toBeVisible()
       await page.keyboard.press('Escape')
       await expect(menu).toBeHidden()
       await expect(page.getByRole('button', { name: 'Abrir menú' })).toBeFocused()

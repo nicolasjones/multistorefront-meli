@@ -35,6 +35,14 @@ describe('ConsultasInicio', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
+  it('un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace', async () => {
+    mocks.leer.mockResolvedValue({ nombre: 'Mundo JC', whatsapp: 'consultar en el local', correo: null, horarios: null })
+    montar()
+    const bloque = await screen.findByTestId('consultas-inicio')
+    expect(within(bloque).getByText('consultar en el local')).toBeInTheDocument()
+    expect(within(bloque).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/contacto'])
+  })
+
   it('sin WhatsApp queda solo «Escribinos»', async () => {
     mocks.leer.mockResolvedValue({ nombre: 'Mundo JC', whatsapp: null, correo: null, horarios: null })
     montar()

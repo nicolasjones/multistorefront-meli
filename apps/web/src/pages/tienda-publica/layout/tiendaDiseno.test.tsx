@@ -3,6 +3,7 @@ import { useTheme } from '@mui/material'
 import { createMemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
+import { celular } from '../../../test/matchMedia'
 import { CONTENIDO_VACIO } from '../../../lib/tiendaContenido'
 import { IDENTIDAD_BASE } from '../../../lib/tiendaIdentidad'
 
@@ -71,6 +72,15 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     expect(mocks.contacto).toHaveBeenCalledTimes(1)
   })
 
+  it('las categorías se leen una sola vez por host aunque las usen el menú, el pie y el bloque de la portada', async () => {
+    const { default: CategoriasInicio } = await import('../secciones/CategoriasInicio')
+    const cargadores = { ...CARGADORES, './rutas/inicio.tsx': async () => ({ default: () => <><CategoriasInicio tienda={tienda} host={HOST} /><p>Portada</p></> }) }
+    render(<EnrutadorTienda tienda={tienda} host={HOST} cargadores={cargadores} crearRouter={(rutas) => createMemoryRouter(rutas, { initialEntries: ['/'] })} />)
+    await screen.findByText('Portada')
+    await within(await screen.findByTestId('pie-categorias')).findByRole('link', { name: 'Cargadores' })
+    expect(mocks.categorias).toHaveBeenCalledTimes(1)
+  })
+
   it('sin identidad legible la tienda sigue con el tema base y no se rompe', async () => {
     const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.identidad.mockRejectedValue(new Error('sin red'))
@@ -101,7 +111,24 @@ describe('logo y barra superior (MSF-841)', () => {
     const barra = await screen.findByTestId('barra-superior')
     expect(within(barra).getByText('Accesorios y repuestos para tu consola.')).toBeInTheDocument()
     expect(await within(barra).findByRole('link', { name: '+54 9 11 7365-2596' })).toHaveAttribute('href', 'https://wa.me/5491173652596')
-    expect(within(barra).getByRole('link', { name: 'mundojc377@gmail.com' })).toHaveAttribute('href', 'mailto:mundojc377@gmail.com')
+    expect(within(barra).getByRole('link', { name: 'mundojc377@gmail.com' })).toHaveAttribute('href', `mailto:${encodeURIComponent('mundojc377@gmail.com')}`)
+  })
+
+  it('el correo del enlace va codificado entero en el mailto (también en el pie)', async () => {
+    mocks.contacto.mockResolvedValue({ ...CONTACTO, correo: 'a@b.com?bcc=x@y.com' })
+    montar('/')
+    const barra = await screen.findByTestId('barra-superior')
+    const enlace = await within(barra).findByRole('link', { name: 'a@b.com?bcc=x@y.com' })
+    expect(enlace).toHaveAttribute('href', `mailto:${encodeURIComponent('a@b.com?bcc=x@y.com')}`)
+    const pieContacto = within(screen.getByTestId('pie-contacto'))
+    expect((await pieContacto.findByRole('link', { name: 'a@b.com?bcc=x@y.com' })).getAttribute('href')).toBe(enlace.getAttribute('href'))
+  })
+
+  it('reserva la altura de la barra mientras llega el contacto', async () => {
+    mocks.contenido.mockResolvedValue(CONTENIDO_VACIO)
+    mocks.contacto.mockReturnValue(new Promise(() => undefined))
+    montar('/')
+    expect(await screen.findByTestId('barra-superior-reserva')).toBeInTheDocument()
   })
 
   it('sin eslogan muestra la bienvenida en la barra y no la repite en la franja de la portada', async () => {
@@ -162,7 +189,7 @@ describe('pie oscuro (MSF-841)', () => {
     mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, eslogan: 'Accesorios y repuestos', pie: 'Envíos a todo el país' })
     montar('/')
     const pie = await screen.findByTestId('pie-tienda-layout')
-    expect(await within(pie).findByRole('img', { name: 'Mundo JC' })).toHaveStyle({ filter: 'brightness(0) invert(1)' })
+    expect(await within(pie).findByRole('img', { name: 'Mundo JC' })).toHaveStyle({ filter: 'brightness(0) invert(1)' }) // logo en blanco: pide PNG/SVG con fondo transparente
     expect(await within(pie).findByText('Accesorios y repuestos')).toBeInTheDocument()
     expect(within(pie).getAllByText('Envíos a todo el país')).toHaveLength(1)
     expect(screen.getAllByText('Envíos a todo el país')).toHaveLength(1)
@@ -188,6 +215,8 @@ describe('pie oscuro (MSF-841)', () => {
 
 describe.each([320, 768, 1440])('accesibilidad del layout a %i px', (ancho) => {
   it('no tiene violaciones de axe con identidad, barra y pie', async () => {
+    // El modo se fuerza con matchMedia (jsdom no calcula anchos): bajo 900 px rige el layout de celular.
+    celular(ancho < 900)
     window.innerWidth = ancho
     const { container } = montar('/')
     await screen.findByText('Portada')
