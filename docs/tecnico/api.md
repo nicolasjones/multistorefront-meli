@@ -896,6 +896,14 @@ La **descarga** del ZIP no es una RPC: el panel pide una URL firmada de 60 s del
 `exportaciones-organizacion` y la política `exportaciones_organizacion_select` deja leerla solo al administrador
 propio de la organización dueña de la carpeta. El worker escribe con la clave de servicio del servidor.
 
+## API y asistente con IA (MSF-233)
+
+Estado: **Backlog, fuera de alcance**; no hay endpoints, tablas ni spec propios todavía. La
+superficie de integración actual es PostgREST/RPC con sesión, las conexiones OAuth entrantes, el
+servidor MCP con credencial por organización y la cola interna `public.cola_eventos`. **No hay
+claves de API por organización ni webhooks salientes.** Detalle, estado por historia y guía de
+prueba: [API y asistente con IA](api-e-asistente-con-ia.md).
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).
