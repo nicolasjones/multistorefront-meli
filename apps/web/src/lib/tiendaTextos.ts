@@ -23,7 +23,7 @@ export function decodificarEntidades(texto: string): string {
 // espacio o una mayúscula/dígito/«(» pegados («&uaCONSOLA»); o «&» + espacio. «&ultra Cable» y «&Kids» no se tocan. Una entidad HTML («&amp;») no es un prefijo. Si el texto fuera solo el prefijo, se deja como está.
 export function quitarPrefijoImportacion(texto: string): string {
   if (/^&[A-Za-z0-9#]+;/.test(texto)) return texto
-  const limpio = texto.replace(/^&(?:[uUa+k]+(?:\s+|(?=[A-Z0-9(]))|\s+)/, '').trim()
+  const limpio = texto.replace(/^&(?:(?:[ua+k]+|U\+[ua+k]*)(?:\s+|(?=[A-Z0-9(]))|\s+)/, '').trim()
   return limpio === '' ? texto : limpio
 }
 

@@ -14,6 +14,9 @@ describe('quitarPrefijoImportacion (MSF-828)', () => {
     ['Cables &ua', 'Cables &ua'],
     ['&ultra Cable', '&ultra Cable'],
     ['&Kids', '&Kids'],
+    ['&USB Hub', '&USB Hub'],
+    ['&UNO Pad', '&UNO Pad'],
+    ['&U+ KIT', 'KIT'],
     ['&uaAURICULAR BT', 'AURICULAR BT'],
   ])('%s → %s', (entrada, salida) => {
     expect(quitarPrefijoImportacion(entrada)).toBe(salida)

@@ -28,7 +28,7 @@ as $$
   select case
            when p_texto is null then null
            when p_texto ~ '^&[A-Za-z0-9#]+;' then p_texto
-           else coalesce(nullif(btrim(regexp_replace(p_texto, '^&(?:[uUa+k]+(?:\s+|(?=[A-Z0-9(]))|\s+)', '')), ''), p_texto)
+           else coalesce(nullif(btrim(regexp_replace(p_texto, '^&(?:(?:[ua+k]+|U\+[ua+k]*)(?:\s+|(?=[A-Z0-9(]))|\s+)', '')), ''), p_texto)
          end;
 $$;
 
