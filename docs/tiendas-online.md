@@ -398,7 +398,11 @@ Registro del bug: `.specify/bugs/tienda-demo-categorias-y-catalogo-timeout/`.
   `20270228100100_productos_nombre_sin_prefijo_de_importacion.sql`) quita «&ua», «&u+», «&+», «&uu»… del nombre y
   de la descripción en todo alta y edición, y limpió lo ya cargado; el front público además limpia al mostrar
   (`lib/tiendaTextos.ts`: prefijo, entidades HTML comunes y espacios). Una descripción igual al nombre se omite
-  en la ficha (el nombre aparecía tres veces).
+  en la ficha (el nombre aparecía tres veces). La helper `private.quitar_prefijo_importacion` necesita
+  privilegio de ejecución para el rol de la app (el disparador corre como el rol que escribe y
+  `public.crear_producto` es `security invoker`): lo concede
+  `20270228100101_prefijo_importacion_permiso_de_ejecucion.sql` (sin él, el alta y la edición de productos
+  fallaban con «permission denied for function quitar_prefijo_importacion»).
 - **Contacto (MSF-831)**: «Respondemos dentro de las 24 h» y «Retiro y envíos»; ver `docs/tienda-contacto.md`.
 - **Ficha (MSF-829)**: ya tenía WhatsApp, galería, «Sin imagen», «Sin stock» y relacionados; lo que fallaba era
   el nombre repetido y las categorías de la barra. Pendiente de verificar en dev tras el despliegue.

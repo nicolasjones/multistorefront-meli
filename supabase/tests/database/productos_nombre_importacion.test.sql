@@ -2,7 +2,7 @@
 -- productos_normalizar lo quita del nombre y de la descripción en el alta y en la edición.
 begin;
 
-select plan(12);
+select plan(14);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 
@@ -33,6 +33,33 @@ select is((select nombre from dominio.productos where sku = 'PI-9'), '&Kids', 'u
 
 update dominio.productos set nombre = '&uu BOTÓN' where sku = 'PI-7';
 select is((select nombre from dominio.productos where sku = 'PI-7'), 'BOTÓN', 'la edición también lo quita');
+
+-- El disparador corre como el rol que escribe (`public.crear_producto` es `security invoker`): el rol de la app
+-- necesita poder ejecutar la helper del prefijo. Sin ese privilegio el alta fallaba con «permission denied
+-- for function quitar_prefijo_importacion» y ningún producto se podía crear desde el panel.
+select ok(
+  has_function_privilege('authenticated', 'private.quitar_prefijo_importacion(text)', 'EXECUTE'),
+  'el rol de la app puede ejecutar la helper del prefijo');
+
+insert into auth.users (id, email) values
+  ('d1000000-0000-0000-0000-000000000001', 'administrador@example.com');
+
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador');
+
+create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+end $$;
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+
+select is(
+  (select nombre from public.crear_producto('&ua Teclado', null, 'PI-11', '{}', 'USD', 10)),
+  'Teclado', 'el alta desde la app (rol authenticated) quita el prefijo y no falla por permiso');
+
+reset role;
 
 select * from finish();
 rollback;
