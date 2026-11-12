@@ -4,7 +4,7 @@
 -- `null` para host desconocido y empresa desactivada, lista blanca de campos y privilegios de `anon`.
 begin;
 
-select plan(15);
+select plan(17);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -32,6 +32,7 @@ insert into dominio.categorias (id, organizacion_id, nombre, padre_id, posicion)
   ('ca000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Oculta en A', null, 3),
   ('ca000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Hija de oculta', 'ca000000-0000-0000-0000-000000000003', 0),
   ('ca000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Hija de Joysticks', 'ca000000-0000-0000-0000-000000000001', 0),
+  ('ca000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'Vacía', null, 4),
   ('ca000000-0000-0000-0000-0000000000f1', '22222222-2222-2222-2222-222222222222', 'Ajena', null, 0);
 
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo, categoria_id) values
@@ -41,6 +42,7 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
   ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Joystick oculto', 'CP-4', 10, 'USD', true, 'ca000000-0000-0000-0000-000000000001'),
   ('a1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Cargador', 'CP-5', 10, 'USD', true, 'ca000000-0000-0000-0000-000000000002'),
   ('a1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'En hija de oculta', 'CP-6', 10, 'USD', true, 'ca000000-0000-0000-0000-000000000004'),
+  ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'En hija de Joysticks', 'CP-7', 10, 'USD', true, 'ca000000-0000-0000-0000-000000000005'),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto Dos', 'CP-D', 5, 'USD', true, 'ca000000-0000-0000-0000-0000000000f1');
 
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
@@ -91,13 +93,13 @@ select is(
 );
 select is(
   (select (c ->> 'productos')::int from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Joysticks'),
-  2,
-  'el conteo solo incluye productos efectivamente visibles (sin inactivo ni oculto)'
+  3,
+  'el conteo solo incluye productos efectivamente visibles (sin inactivo ni oculto) y suma las subcategorías (MSF-825)'
 );
 select is(
   (select (c ->> 'productos')::int from jsonb_array_elements(publico.categorias_por_dominio('cp-b.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Joysticks'),
-  3,
-  'el conteo de la otra tienda respeta su propia visibilidad de productos'
+  4,
+  'el conteo de la otra tienda respeta su propia visibilidad de productos (3 propios + 1 de la hija)'
 );
 select is(
   (select (c ->> 'productos')::int from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Cargadores'),
@@ -106,8 +108,18 @@ select is(
 );
 select is(
   (select (c ->> 'productos')::int from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Hija de Joysticks'),
+  1,
+  'una subcategoría cuenta sus propios productos visibles'
+);
+select is(
+  (publico.catalogo_pagina_por_dominio('cp-a.ejemplo.com', 'ca000000-0000-0000-0000-000000000001'::uuid) ->> 'total')::int,
+  (select (c ->> 'productos')::int from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Joysticks'),
+  'el listado de una categoría incluye sus subcategorías: el conteo de la tarjeta coincide con el listado (MSF-825)'
+);
+select is(
+  (select count(*)::int from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Vacía'),
   0,
-  'una categoría sin productos se lista con conteo 0'
+  'una categoría sin productos visibles no se lista (MSF-825, MSF-827)'
 );
 select is(
   (select jsonb_agg(c ->> 'nombre') from jsonb_array_elements(publico.categorias_por_dominio('cp-dos.ejemplo.com') -> 'categorias') c),
