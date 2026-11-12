@@ -18,7 +18,7 @@
 --
 -- Esquemas (Principio VII): tabla en `dominio`, lectura pública en `publico`, auxiliares en `private`.
 -- Migración aditiva en datos; las filas existentes toman ''.
--- Reversión: recrear las funciones de 20261023100200 / 20270205110100 / 20270302200000 sin `eslogan` y,
+-- Reversión: recrear las funciones de 20261023100200 / 20270205110100 / 20270303200000 sin `eslogan` y,
 -- recién entonces, `alter table dominio.tienda_contenido drop column eslogan`.
 
 alter table dominio.tienda_contenido add column if not exists eslogan text not null default '';

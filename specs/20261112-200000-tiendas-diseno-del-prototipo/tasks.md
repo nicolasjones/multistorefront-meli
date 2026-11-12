@@ -4,10 +4,10 @@ Regla: cada tarea trae su evidencia o un `Desvío:`; las que dependen del despli
 
 ## Fase 1: tramo A (datos)
 
-- [x] T001 Tipografías `Bricolage Grotesque` y `DM Sans` en la lista cerrada (migración `20270302100000_tienda_tipografias_prototipo.sql`, `TIPOGRAFIAS` en `lib/tiendaIdentidad.ts`). Evidencia: commit `acc9e49b`.
-- [x] T002 Color «Barra superior y pie» (`color_barra`, migración `20270302200000_tienda_color_barra.sql`; `colorBarra` en la identidad y en la pestaña con chequeo de contraste). Evidencia: commit `94ed436e`.
-- [x] T003 Campo `eslogan` (80 caracteres) en el contenido (migración `20270302300000_tienda_eslogan.sql` y pestaña de textos). Evidencia: commit `e4808b62`.
-- [x] T004 Foto de categoría en `publico.categorias_por_dominio` (migración `20270302400000_tienda_categorias_imagen.sql`, una sola pasada). Evidencia: commit `e6ec8bbe`; docs en `7ae9c967`.
+- [x] T001 Tipografías `Bricolage Grotesque` y `DM Sans` en la lista cerrada (migración `20270303100000_tienda_tipografias_prototipo.sql`, `TIPOGRAFIAS` en `lib/tiendaIdentidad.ts`). Evidencia: commit `acc9e49b`.
+- [x] T002 Color «Barra superior y pie» (`color_barra`, migración `20270303200000_tienda_color_barra.sql`; `colorBarra` en la identidad y en la pestaña con chequeo de contraste). Evidencia: commit `94ed436e`.
+- [x] T003 Campo `eslogan` (80 caracteres) en el contenido (migración `20270303300000_tienda_eslogan.sql` y pestaña de textos). Evidencia: commit `e4808b62`.
+- [x] T004 Foto de categoría en `publico.categorias_por_dominio` (migración `20270303400000_tienda_categorias_imagen.sql`, una sola pasada). Evidencia: commit `e6ec8bbe`; docs en `7ae9c967`.
 
 ## Fase 2: tramo B (front público)
 
@@ -25,6 +25,6 @@ Regla: cada tarea trae su evidencia o un `Desvío:`; las que dependen del despli
 ## Fase 3: documentación y validación
 
 - [x] T015 `docs/tiendas-online.md` (sección «Diseño del prototipo en el front público») y esta spec con su matriz pantalla↔criterios. Evidencia: `pnpm docs:check` y `pnpm matriz:check` en verde (se corren de nuevo al cerrar el tramo).
-- [x] T016 Validación: `tsc -b`, `oxlint src`, `vite build` y guards de `scripts/`. Evidencia: tras las correcciones de la revisión, `tsc -b`, `oxlint src` (0 errores), `vite build` y los guards de `scripts/` (docs, matriz, inventario, estilos sueltos) en verde. Desvío: `verificar-migraciones` marca la versión 20270302100000 porque `origin/dokploy` ya la tiene; se renumera al integrar con dokploy.
+- [x] T016 Validación: `tsc -b`, `oxlint src`, `vite build` y guards de `scripts/`. Evidencia: tras las correcciones de la revisión, `tsc -b`, `oxlint src` (0 errores), `vite build` y los guards de `scripts/` (docs, matriz, inventario, estilos sueltos) en verde. Desvío: `verificar-migraciones` marca la versión 20270303100000 porque `origin/dokploy` ya la tiene; se renumera al integrar con dokploy.
 - [ ] T017 Verificación visual contra el prototipo con Playwright. Pendiente: se verifica en dev tras el despliegue (no se corrió acá por falta de memoria libre en el servidor).
 - [ ] T018 Vista previa del panel muestra la foto de categoría. Pendiente: se verifica en dev tras el despliegue. Hoy no se hace: `vista_previa_tienda` no devuelve `imagen`; se tolera `null` (recuadro neutro) en lugar de otra migración; seguimiento si se quiere paridad.

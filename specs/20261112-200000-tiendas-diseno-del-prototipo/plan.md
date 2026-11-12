@@ -4,7 +4,7 @@
 
 ## Resumen técnico
 
-1. **Tramo A (datos)**: migraciones `20270302100000` a `20270302400000` (tipografías, `color_barra`, `eslogan`, `imagen` de categoría) y su pestaña en el panel.
+1. **Tramo A (datos)**: migraciones `20270303100000` a `20270303400000` (tipografías, `color_barra`, `eslogan`, `imagen` de categoría) y su pestaña en el panel.
 2. **Tramo B (front)**: la carga de la identidad sube de la sección `TemaTienda` al layout (`layout/IdentidadTiendaContexto.tsx`): un solo fetch por host, `ProveedorTemaTienda` con la identidad completa (se extendió `IdentidadTienda` de `tema/temaTienda.ts` con `colorPrimarioOscuro`, `colorAcento` y `colorBarra` opcionales y `theme.tienda` con los derivados), variables CSS y Google Fonts. El contenido y el contacto también se leen una vez y se comparten por contexto.
 3. Piezas visuales: `BarraSuperior`, encabezado con logo + «Principal», `MenuCategorias` (solo categorías), `PieCategorias` (pie oscuro), `CategoriasInicio` con foto (URL firmada con `urlsImagenesProducto`) y la sección `ConsultasInicio`.
 
