@@ -104,6 +104,7 @@ declare
   v_pagina integer := greatest(coalesce(pagina, 1), 1);
   v_max numeric := case when precio_max is null or precio_max <= 0 then null else precio_max end;
   v_solo boolean := coalesce(solo_con_stock, false);
+  v_precio_global boolean := v_orden <> 'relevancia' or v_max is not null;
   v_resultado jsonb;
 begin
   select e.id, e.organizacion_id into v_empresa, v_org
@@ -124,22 +125,23 @@ begin
   ),
   prod as (
     select x.producto_id, x.nombre, x.categoria_id, x.destacado,
-           pv.precio, pv.precio_anterior,
+           pg.precio,
            private.disponible_publico(x.producto_id) as disponible
       from private.catalogo_tienda_efectivo(v_empresa) x
-      -- Mismo cálculo que private.precio_vigente_empresa, sin la función envoltorio (que costaba ~20 ms
-      -- por producto): `offset 0` evita que el planificador repita la llamada en cada referencia.
+      -- El precio vigente (con promoción) solo se calcula para TODOS los productos cuando el filtro de precio o
+      -- el orden por precio lo necesitan; con el orden «relevancia» y sin tope de precio se calcula solo para
+      -- los 24 de la página (CTE `pagina`). Mismo cálculo y regla que private.precio_vigente_empresa, sin la
+      -- función envoltorio (≈ 20 ms por producto); `offset 0` evita que el planificador repita las llamadas.
       cross join lateral (
-        select private.precio_final_publico(x.producto_id, v_empresa) as n,
-               private.promocion_vigente(x.producto_id, v_empresa, now()) as pr
+        select case when v_precio_global then private.precio_final_publico(x.producto_id, v_empresa) end as n,
+               case when v_precio_global then private.promocion_vigente(x.producto_id, v_empresa, now()) end as pr
         offset 0
-      ) b
+      ) bg
       cross join lateral (
-        select case when b.n is null then null
-                    when b.pr is null then b.n
-                    else private.precio_con_iva_visible(x.producto_id, v_empresa, b.pr) end as precio,
-               case when b.n is null or b.pr is null then null else b.n end as precio_anterior
-      ) pv
+        select case when not v_precio_global or bg.n is null then null
+                    when bg.pr is null then bg.n
+                    else private.precio_con_iva_visible(x.producto_id, v_empresa, bg.pr) end as precio
+      ) pg
      where x.efectivo and (categoria is null or x.categoria_id in (select s.id from sub s))
   ),
   filtrado as (
@@ -157,6 +159,23 @@ begin
        case when v_orden = 'precio_desc' then f.precio end desc,
        lower(f.nombre), f.producto_id
      offset ((v_pagina - 1)::bigint * c_tamano) limit c_tamano
+  ),
+  -- Precio vigente y precio anterior de los productos de la página (misma regla que arriba).
+  pagina as (
+    select g.producto_id, g.nombre, g.categoria_id, g.destacado, g.disponible, g.precio as orden_precio,
+           pv.precio, pv.precio_anterior
+      from pagina_ord g
+      cross join lateral (
+        select private.precio_final_publico(g.producto_id, v_empresa) as n,
+               private.promocion_vigente(g.producto_id, v_empresa, now()) as pr
+        offset 0
+      ) b
+      cross join lateral (
+        select case when b.n is null then null
+                    when b.pr is null then b.n
+                    else private.precio_con_iva_visible(g.producto_id, v_empresa, b.pr) end as precio,
+               case when b.n is null or b.pr is null then null else b.n end as precio_anterior
+      ) pv
   )
   select jsonb_build_object(
            'total', (select count(*) from filtrado),
@@ -176,11 +195,11 @@ begin
                       'destacado', g.destacado
                     ) order by
                       case when v_orden = 'relevancia' then (case when g.destacado then 0 else 1 end)
-                           else (case when g.precio is null then 1 else 0 end) end,
-                      case when v_orden = 'precio_asc' then g.precio end asc,
-                      case when v_orden = 'precio_desc' then g.precio end desc,
+                           else (case when g.orden_precio is null then 1 else 0 end) end,
+                      case when v_orden = 'precio_asc' then g.orden_precio end asc,
+                      case when v_orden = 'precio_desc' then g.orden_precio end desc,
                       lower(g.nombre), g.producto_id)
-               from pagina_ord g), '[]'::jsonb)
+               from pagina g), '[]'::jsonb)
          )
     into v_resultado;
   return v_resultado;

@@ -147,7 +147,7 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
     total: fila.total,
     pagina: fila.pagina,
     tamano: fila.tamano,
-    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos })),
+    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: limpiarTextoPublico(c.nombre), padreId: c.padre_id, productos: c.productos })),
     productos: fila.productos.map((p) => ({
       id: p.id,
       nombre: limpiarTextoPublico(p.nombre),

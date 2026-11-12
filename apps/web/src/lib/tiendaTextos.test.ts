@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodificarEntidades, limpiarDescripcionPublica, limpiarTextoPublico, limpiarTextoPublicoOpcional, quitarPrefijoImportacion } from './tiendaTextos'
+import { decodificarEntidades, limpiarDescripcionPublica, limpiarTextoPublico, quitarPrefijoImportacion } from './tiendaTextos'
 
 describe('quitarPrefijoImportacion (MSF-828)', () => {
   it.each([
@@ -12,6 +12,9 @@ describe('quitarPrefijoImportacion (MSF-828)', () => {
     ['& CABLE', 'CABLE'],
     ['Joystick Pro', 'Joystick Pro'],
     ['Cables &ua', 'Cables &ua'],
+    ['&ultra Cable', '&ultra Cable'],
+    ['&Kids', '&Kids'],
+    ['&uaAURICULAR BT', 'AURICULAR BT'],
   ])('%s → %s', (entrada, salida) => {
     expect(quitarPrefijoImportacion(entrada)).toBe(salida)
   })
@@ -34,11 +37,6 @@ describe('decodificarEntidades', () => {
 describe('limpiarTextoPublico', () => {
   it('quita el prefijo, decodifica y compacta espacios', () => {
     expect(limpiarTextoPublico('&ua  CABLE   HDMI &amp; VGA ')).toBe('CABLE HDMI & VGA')
-  })
-  it('la versión opcional devuelve null con vacío o null', () => {
-    expect(limpiarTextoPublicoOpcional(null)).toBeNull()
-    expect(limpiarTextoPublicoOpcional('   ')).toBeNull()
-    expect(limpiarTextoPublicoOpcional('&ua DESCRIPCIÓN')).toBe('DESCRIPCIÓN')
   })
 })
 

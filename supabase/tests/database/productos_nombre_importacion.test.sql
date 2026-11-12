@@ -2,7 +2,7 @@
 -- productos_normalizar lo quita del nombre y de la descripción en el alta y en la edición.
 begin;
 
-select plan(9);
+select plan(11);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 
@@ -13,6 +13,8 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
   ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', '&+ COOLER PS2 70X', 'PI-4', 10, 'ARS', true, null),
   ('a1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', '&amp; Compañía', 'PI-5', 10, 'ARS', true, null),
   ('a1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', '&ua', 'PI-6', 10, 'ARS', true, null),
+  ('a1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', '&ultra Cable', 'PI-8', 10, 'ARS', true, null),
+  ('a1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', '&Kids', 'PI-9', 10, 'ARS', true, null),
   ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'Joystick Pro', 'PI-7', 10, 'ARS', true, 'Sin cambios');
 
 select is((select nombre from dominio.productos where sku = 'PI-1'), 'ADAPTADOR HDMI A DVI 24+1 (3010)', 'el alta quita «&ua » del nombre');
@@ -23,6 +25,9 @@ select is((select nombre from dominio.productos where sku = 'PI-4'), 'COOLER PS2
 select is((select nombre from dominio.productos where sku = 'PI-5'), '&amp; Compañía', 'una entidad HTML no es un prefijo y se conserva');
 select is((select nombre from dominio.productos where sku = 'PI-6'), '&ua', 'un nombre que es solo el prefijo no se vacía');
 select is((select nombre || '|' || descripcion from dominio.productos where sku = 'PI-7'), 'Joystick Pro|Sin cambios', 'un nombre normal no cambia');
+
+select is((select nombre from dominio.productos where sku = 'PI-8'), '&ultra Cable', 'un nombre real con «&» y minúsculas no se toca');
+select is((select nombre from dominio.productos where sku = 'PI-9'), '&Kids', 'un «&» pegado a una palabra no se toca');
 
 update dominio.productos set nombre = '&uu BOTÓN' where sku = 'PI-7';
 select is((select nombre from dominio.productos where sku = 'PI-7'), 'BOTÓN', 'la edición también lo quita');

@@ -380,7 +380,7 @@ Registro del bug: `.specify/bugs/tienda-demo-categorias-y-catalogo-timeout/`.
   `categorias_por_dominio` materializa el conteo (una pasada: 4 s → 30 ms en la base de prueba), **solo devuelve
   categorías con productos visibles** y `productos` **incluye las subcategorías** (la raíz «Consolas» suma sus
   hijas); `catalogo_pagina_por_dominio` calcula el precio con las mismas funciones y la misma regla que
-  `precio_vigente_empresa` pero sin la función envoltorio (15 s → ~1 s) y filtrar por una categoría **incluye su
+  `precio_vigente_empresa` pero sin la función envoltorio y solo para los 24 de la página cuando el orden y los filtros no necesitan el precio (15 s → ~0,3 s; con orden o tope de precio ~1 s) y filtrar por una categoría **incluye su
   subárbol**, de modo que el número de la tarjeta coincide con el listado al entrar. El subárbol se limita a la
   organización de la tienda (aislamiento). Reversión: reaplicar las definiciones de
   `20261023150000_tienda_categorias_publicas.sql` y `20270221100004_tienda_precio_anterior.sql`.

@@ -1,8 +1,9 @@
 -- MSF-825 (MSF-828): los nombres de producto de la demo salían con el prefijo «&ua» («&ua ADAPTADOR HDMI A
 -- DVI 24+1 (3010)»), y la descripción repetía el nombre con el mismo prefijo. Es un resto de una
 -- exportación de un sistema anterior: «&» seguido de una o más de u, U, a, k o «+» (&ua, &uu, &u+, &+,
--- &u++, &uk, &ua+…), con o sin espacio antes del nombre real («&uaCONSOLA»). En dev afectaba a 2.174 de los
--- productos.
+-- &u++, &uk, &ua+…) y luego un espacio o directamente una mayúscula, un dígito o «(» («&uaCONSOLA»); o «&»
+-- seguido de un espacio. Un nombre real que empiece con «&» y letras minúsculas («&ultra Cable») o con «&» pegado
+-- a una palabra («&Kids») NO se toca. En dev afectaba a 2.174 de los productos.
 --
 -- Corrección en el ORIGEN, en el único punto por el que pasa toda escritura de productos (la importación, el
 -- alta y la edición): el disparador `productos_normalizar` quita ese prefijo del nombre y de la descripción.
@@ -27,7 +28,7 @@ as $$
   select case
            when p_texto is null then null
            when p_texto ~ '^&[A-Za-z0-9#]+;' then p_texto
-           else coalesce(nullif(btrim(regexp_replace(p_texto, '^&[uUa+k]*\s*', '')), ''), p_texto)
+           else coalesce(nullif(btrim(regexp_replace(p_texto, '^&(?:[uUa+k]+(?:\s+|(?=[A-Z0-9(]))|\s+)', '')), ''), p_texto)
          end;
 $$;
 

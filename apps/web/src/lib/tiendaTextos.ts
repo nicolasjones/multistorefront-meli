@@ -19,11 +19,11 @@ export function decodificarEntidades(texto: string): string {
   })
 }
 
-// «&ua ADAPTADOR…» → «ADAPTADOR…»: «&» seguido de u, U, a, k o «+» (&ua, &uu, &u+, &+, &uk…), con o sin
-// espacio. Una entidad HTML («&amp;») no es un prefijo. Si el texto fuera solo el prefijo, se deja como está.
+// «&ua ADAPTADOR…» → «ADAPTADOR…»: «&» + una o más de u, U, a, k o «+» (&ua, &uu, &u+, &+, &uk…) y luego un
+// espacio o una mayúscula/dígito/«(» pegados («&uaCONSOLA»); o «&» + espacio. «&ultra Cable» y «&Kids» no se tocan. Una entidad HTML («&amp;») no es un prefijo. Si el texto fuera solo el prefijo, se deja como está.
 export function quitarPrefijoImportacion(texto: string): string {
   if (/^&[A-Za-z0-9#]+;/.test(texto)) return texto
-  const limpio = texto.replace(/^&[uUa+k]*\s*/, '').trim()
+  const limpio = texto.replace(/^&(?:[uUa+k]+(?:\s+|(?=[A-Z0-9(]))|\s+)/, '').trim()
   return limpio === '' ? texto : limpio
 }
 
@@ -31,11 +31,6 @@ export function limpiarTextoPublico(texto: string): string {
   return decodificarEntidades(quitarPrefijoImportacion(texto)).replace(/\s+/g, ' ').trim()
 }
 
-export function limpiarTextoPublicoOpcional(texto: string | null | undefined): string | null {
-  if (texto == null) return null
-  const limpio = limpiarTextoPublico(texto)
-  return limpio === '' ? null : limpio
-}
 
 // La descripción conserva los saltos de línea (la ficha los respeta): solo se quita el prefijo y se decodifica.
 export function limpiarDescripcionPublica(texto: string | null | undefined): string | null {
