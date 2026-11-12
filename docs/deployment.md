@@ -107,6 +107,12 @@ aceptada es reconectar cada sistema externo y volver a aprovisionar cada
 servidor de organización para generar sus nuevas credenciales SSH y de base.
 No se debe intentar copiar ni reconstruir claves de cifrado desde el backup.
 
+Las **suscripciones a avisos de la API pública** (`public.api_suscripciones`) también guardan su secreto de firma en
+Vault: tras un restore en otra instancia quedan con un secreto ilegible y los avisos no se pueden firmar. La salida es
+**rotar el secreto de cada suscripción** (Administración → API → Suscripciones a avisos → *Rotar secreto*, o
+`public.rotar_secreto_suscripcion_api`), que crea un secreto nuevo en el Vault de la instancia nueva, y entregárselo a
+cada cliente. El secreto ilegible que queda como «anterior» se ignora y se purga a las 24 horas.
+
 ## CI
 
 `.github/workflows/validate.yml` corre en un runner self-hosted (no en

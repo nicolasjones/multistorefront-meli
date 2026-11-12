@@ -28,6 +28,12 @@ const casos = [
   { nombre: 'cabecera ausente', cabecera: null, cuerpo: CUERPO, ahora: AHORA, esperado: false },
   { nombre: 'cabecera sin formato', cabecera: 'basura', cuerpo: CUERPO, ahora: AHORA, esperado: false },
   { nombre: 't que no es número', cabecera: 't=abc,v1=00', cuerpo: CUERPO, ahora: AHORA, esperado: false },
+  // Durante la rotación de un secreto el aviso lleva dos firmas (nueva y anterior): el receptor, con el secreto que tenga, valida.
+  { nombre: 'rotación: receptor con el secreto nuevo', cabecera: firmar(CUERPO, SECRETO, AHORA, 'secreto-viejo'), cuerpo: CUERPO, ahora: AHORA, esperado: true },
+  { nombre: 'rotación: receptor que todavía tiene el secreto anterior', cabecera: firmar(CUERPO, SECRETO, AHORA, 'secreto-viejo'), cuerpo: CUERPO, ahora: AHORA, secreto: 'secreto-viejo', esperado: true },
+  { nombre: 'rotación: receptor con un secreto ajeno', cabecera: firmar(CUERPO, SECRETO, AHORA, 'secreto-viejo'), cuerpo: CUERPO, ahora: AHORA, secreto: 'otro-secreto', esperado: false },
+  { nombre: 'rotación: cuerpo alterado', cabecera: firmar(CUERPO, SECRETO, AHORA, 'secreto-viejo'), cuerpo: `${CUERPO} `, ahora: AHORA, esperado: false },
+  { nombre: 'rotación: aviso viejo', cabecera: firmar(CUERPO, SECRETO, AHORA - 301, 'secreto-viejo'), cuerpo: CUERPO, ahora: AHORA, esperado: false },
   { nombre: 'v1 con caracteres multibyte del mismo largo en caracteres', cabecera: `t=${AHORA},v1=${'é'.repeat(64)}`, cuerpo: CUERPO, ahora: AHORA, esperado: false },
 ]
 
@@ -37,7 +43,7 @@ describe('código de verificación de firma de la guía', () => {
     assert.ok(codigo, 'no se encontró firmaValida en la guía')
     const firmaValida = new Function('crypto', 'SECRETO', 'TOLERANCIA_SEGUNDOS', `${codigo}\nreturn firmaValida`)(crypto, SECRETO, 300)
     for (const caso of casos) {
-      assert.equal(firmaValida(caso.cabecera, caso.cuerpo, SECRETO, caso.ahora), caso.esperado, caso.nombre)
+      assert.equal(firmaValida(caso.cabecera, caso.cuerpo, caso.secreto ?? SECRETO, caso.ahora), caso.esperado, caso.nombre)
     }
   })
 
@@ -51,7 +57,7 @@ describe('código de verificación de firma de la guía', () => {
       'TOLERANCIA_SEGUNDOS = 300',
       codigo,
       'casos = json.load(sys.stdin)',
-      'print(json.dumps([firma_valida(c["cabecera"], c["cuerpo"].encode(), SECRETO, c["ahora"]) for c in casos]))',
+      'print(json.dumps([firma_valida(c["cabecera"], c["cuerpo"].encode(), c.get("secreto", SECRETO.decode()).encode(), c["ahora"]) for c in casos]))',
     ].join('\n')
     const salida = spawnSync('python3', ['-I', '-c', programa], { input: JSON.stringify(casos), encoding: 'utf8' })
     assert.equal(salida.status, 0, salida.stderr)

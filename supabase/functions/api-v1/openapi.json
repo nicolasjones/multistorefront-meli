@@ -1311,7 +1311,7 @@
     "stock.actualizado": {
       "post": {
         "summary": "Cambió el stock de un producto",
-        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.\n\n**Cobertura:** el aviso se emite por cada movimiento de stock del producto y por cada reserva o liberación, pero **no** por movimientos de variantes ni por traslados entre depósitos (el total del producto no cambia, pero sí el stock de cada depósito). Si necesitás ver todo, además de los avisos hacé un barrido periódico de `/v1/stock?actualizado_desde=`.",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Mientras se rota el secreto de la suscripción (gracia de 24 horas) la cabecera trae **dos** firmas, `t=<segundos>,v1=<nueva>,v1=<anterior>`: el aviso es válido si alguna coincide. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.\n\n**Cobertura:** el aviso se emite por cada movimiento de stock del producto y por cada reserva o liberación, pero **no** por movimientos de variantes ni por traslados entre depósitos (el total del producto no cambia, pero sí el stock de cada depósito). Si necesitás ver todo, además de los avisos hacé un barrido periódico de `/v1/stock?actualizado_desde=`.",
         "operationId": "aviso_stock_actualizado",
         "tags": [
           "avisos"
@@ -1332,7 +1332,7 @@
             "name": "X-Firma",
             "in": "header",
             "required": true,
-            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`; durante una rotación de secreto lleva dos `v1` (nuevo y anterior).",
             "schema": {
               "type": "string"
             },
@@ -1379,7 +1379,7 @@
     "precio.actualizado": {
       "post": {
         "summary": "Cambió el precio de lista o de una escala",
-        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Mientras se rota el secreto de la suscripción (gracia de 24 horas) la cabecera trae **dos** firmas, `t=<segundos>,v1=<nueva>,v1=<anterior>`: el aviso es válido si alguna coincide. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
         "operationId": "aviso_precio_actualizado",
         "tags": [
           "avisos"
@@ -1400,7 +1400,7 @@
             "name": "X-Firma",
             "in": "header",
             "required": true,
-            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`; durante una rotación de secreto lleva dos `v1` (nuevo y anterior).",
             "schema": {
               "type": "string"
             },
@@ -1443,7 +1443,7 @@
     "venta.registrada": {
       "post": {
         "summary": "Una factura pasó a confirmada",
-        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Mientras se rota el secreto de la suscripción (gracia de 24 horas) la cabecera trae **dos** firmas, `t=<segundos>,v1=<nueva>,v1=<anterior>`: el aviso es válido si alguna coincide. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
         "operationId": "aviso_venta_registrada",
         "tags": [
           "avisos"
@@ -1464,7 +1464,7 @@
             "name": "X-Firma",
             "in": "header",
             "required": true,
-            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`; durante una rotación de secreto lleva dos `v1` (nuevo y anterior).",
             "schema": {
               "type": "string"
             },

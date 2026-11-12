@@ -100,10 +100,15 @@ nunca llega al navegador. Para verificar: recalcular el HMAC con el cuerpo
 recibido y el mismo `t`, y comparar en tiempo constante. Rechazar un `t` viejo
 según la tolerancia del receptor.
 
-El secreto **no se puede cambiar ni volver a ver**: no existe una RPC de rotación (seguimiento MSF-839). Para
-rotarlo hoy: crear una suscripción nueva con la misma URL (se muestra su secreto), cambiarlo en el sistema receptor y
-eliminar la anterior. Mientras convivan, el receptor recibe cada evento dos veces, con el mismo `X-Evento-Id` y firmas
-distintas: tiene que ignorar el repetido.
+El secreto **no se puede volver a ver**, pero se puede **rotar** (MSF-839): el Administrador usa **Rotar secreto** en
+Administración → API → Suscripciones a avisos (`public.rotar_secreto_suscripcion_api`), que crea un secreto nuevo en
+Vault y lo muestra una sola vez. El anterior sigue valiendo **24 horas** (`secreto_anterior_vault_id` y
+`secreto_anterior_vence_en`): durante la gracia `entregar-webhook` firma cada aviso con los DOS secretos, `X-Firma:
+t=<epoch>,v1=<nuevo>,v1=<anterior>`, y el receptor acepta el aviso si alguna firma coincide, así cambia su secreto sin
+cortar el servicio. Rotar de nuevo durante la gracia **reemplaza** al anterior (el de antes deja de valer ya y se borra de
+Vault); pasadas las 24 horas la purga diaria limpia el anterior de la fila y de Vault; borrar la suscripción borra los dos.
+El secreto anterior se lee con `private.api_secreto_o_nulo`: si Vault no lo puede descifrar (por ejemplo tras un restore
+en otra instancia) se ignora y el aviso lleva solo la firma nueva, sin tumbar la entrega.
 
 ### Reintentos
 
@@ -210,12 +215,12 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
   `20270224110205_api_eventos_precio_venta`, `20270224110206_exportacion_total_excluye_api`,
   `20270227100000_api_decodificar_cursor_devuelve_fila`, `20270227120000_api_cursor_sin_saltos_de_linea`,
-  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233` y `20270302100000_api_seguimientos_msf233`. Son aditivas; cada encabezado
+  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233` y `20270302100000_api_seguimientos_msf233` y `20270302110000_api_rotar_secreto_suscripcion_msf233`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas`, `api_eventos`,
-  `api_paginacion`, `api_decisiones_abiertas` y `api_seguimientos` (`pnpm test:db`).
+  `api_paginacion`, `api_decisiones_abiertas`, `api_seguimientos` y `api_rotar_secreto` (`pnpm test:db`).
 - **Documentación para integradores (2026-11-12):** el contrato OpenAPI trae ejemplos de cada respuesta y de cada error,
   `curl` y `fetch` por operación y los tres avisos como `webhooks` (firma, reintentos y campos de `datos`);
   `scripts/openapi-a-markdown.mjs` genera de él `docs/api/referencia.md`, y `docs/api/inicio-rapido.md` es la guía

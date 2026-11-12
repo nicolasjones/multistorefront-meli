@@ -125,6 +125,7 @@ Quien lo pida (organización con la funcionalidad activa) le pregunta al asisten
 - **FR-032**: **Topes y retención de claves y suscripciones** (agregado en #871). Cada organización puede tener hasta **50 claves vigentes** al crear (revocadas y vencidas no cuentan), **100** al rotar y **20 suscripciones**; al superarlos la RPC responde `54000` y la pantalla lo avisa. La purga diaria borra las claves revocadas o vencidas hace más de 90 días. `creada_por` es `on delete set null` (dar de baja a una persona no corta la integración) y el secreto de Vault se borra con la suscripción. **Verificación:** pgTAP `api_decisiones_abiertas.test.sql` · Vitest `api-claves.test.tsx` y `api-suscripciones.test.tsx` · `pnpm test:db`.
 - **FR-033**: **Llamadas sin clave válida** (agregado en #863): se auditan hasta 600 por minuto y por organización (o sin organización); el exceso no se guarda. **Verificación:** pgTAP `api_llamadas.test.sql`.
 - **FR-034**: **Retención de eventos y entregas, alertas y reintento manual** (MSF-836, MSF-837, MSF-838). La purga diaria borra los eventos terminados viejos sin entregas vivas (con sus entregas terminadas); un flow de salud avisa por correo a soporte si hay entregas agotadas, atrasadas o eventos sin repartir; y el Administrador devuelve una entrega agotada a la cola con **Reintentar**. **Verificación:** pgTAP `api_seguimientos.test.sql` · Vitest `api-suscripciones.test.tsx` · `pnpm test:kestra:webhooks` · `pnpm test:db`.
+- **FR-035**: **Rotación del secreto de una suscripción** (MSF-839). El Administrador rota el secreto de firma de una suscripción de su organización: el nuevo se muestra una sola vez, el anterior sigue valiendo 24 horas y durante la gracia cada aviso lleva las dos firmas (`X-Firma: t=…,v1=<nuevo>,v1=<anterior>`); rotar de nuevo reemplaza al anterior, la purga limpia el vencido y borrar la suscripción borra los dos secretos. **Verificación:** pgTAP `api_rotar_secreto.test.sql` · `handler.test.ts` de `entregar-webhook` · Vitest `api-suscripciones.test.tsx` · `scripts/ejemplos-guia-api.test.mjs` · `pnpm test:db`.
 
 ### Key Entities
 
@@ -175,6 +176,7 @@ Quien lo pida (organización con la funcionalidad activa) le pregunta al asisten
 | FR-032 | `api_decisiones_abiertas.test.sql` + `api-claves.test.tsx` + `api-suscripciones.test.tsx` | `pnpm test:db` · `pnpm --filter @platform/web test` |
 | FR-033 | `api_llamadas.test.sql` | `pnpm test:db` |
 | FR-034 | `api_seguimientos.test.sql` + `api-suscripciones.test.tsx` + `monitoreo-api-entregas.test.mjs` | `pnpm test:db` · `pnpm --filter @platform/web test` · `pnpm test:kestra:webhooks` |
+| FR-035 | `api_rotar_secreto.test.sql` + `entregar-webhook/handler.test.ts` + `api-suscripciones.test.tsx` | `pnpm test:db` · `pnpm test:edge:entregar-webhook` · `pnpm --filter @platform/web test` |
 | SC-001 | `api_aislamiento.test.sql` + `api-v1/handler.test.ts` | `pnpm test:db` |
 | SC-002 | `api-v1/handler.test.ts` | `pnpm test:edge:api-v1` |
 | SC-003 | `api_suscripciones_entregas.test.sql` + `entregar-webhook/handler.test.ts` | `pnpm test:db` |
