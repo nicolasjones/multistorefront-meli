@@ -170,13 +170,24 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
 
 - **Tabla** `dominio.tienda_identidad` (`empresa_id` PK): cuatro colores `#RRGGBB` (Primario, Primario
   oscuro, Acento, Fondo, con `check` de formato), tipografías de Títulos y Texto contra una **lista
-  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans) y
+  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans y, desde
+  MSF-841, Bricolage Grotesque y DM Sans) y
   las rutas de logo, banner principal y banner móvil. Sin fila → tema base (`#222222` / blanco /
   tipografía del sistema). Las rutas deben estar en `<organización>/<empresa>/` (check en la base).
 - **Supuesto sobre DS-04**: la épica remite la lista de tipografías a DS-04, pero el repo no la trae
   versionada; se usó el tema base más las fuentes de los dos temas de ejemplo
   (`apps/web/src/tema/temaTienda.ts`) y del prototipo. Se ajusta en una sola constante
   (`TIPOGRAFIAS` en `apps/web/src/lib/tiendaIdentidad.ts` y los `check`/RPC de la migración).
+- **MSF-841 (tramo A del rediseño de las tiendas al prototipo)**: se sumaron las tipografías
+  `Bricolage Grotesque` y `DM Sans` (migración `20270302100000_tienda_tipografias_prototipo.sql`: reemplaza
+  los `check` y `private.validar_tienda_identidad`; el front ya arma la URL de Google Fonts desde la lista) y el
+  quinto color **«Barra superior y pie»** (`color_barra`, `#RRGGBB`, por defecto `#222222`, migración
+  `20270302200000_tienda_color_barra.sql`). `color_barra` viaja en el borrador, en las versiones (un borrador o
+  una versión anterior sin la clave vale `#222222`), en `publico.identidad_por_dominio` y en la pestaña, con su
+  propio chequeo de contraste AA (mismo criterio que el primario, no bloquea). Un cambio de la barra cuenta
+  como «colores» en el resumen «N cambios sin publicar». `public.guardar_tienda_identidad` cambió de firma
+  (parámetro final `p_color_barra`, con default; se eliminó la de 10 argumentos) y `publicar_tienda`, su único
+  llamador, se recreó; sigue sin ser ejecutable por `authenticated` (F-TDA-06).
 - **Escritura**: solo `public.guardar_tienda_identidad(...)` (`security definer`, exige edición en
   Empresas, estado completo, **idempotente**: si no cambia nada no escribe ni registra evento; emite
   `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
@@ -224,7 +235,11 @@ no queda nada de la anterior).
 | `publico.contenido_por_dominio(host)` | `publico` | Lectura anónima con lista blanca de columnas. | `grant … to anon, authenticated`. |
 
 Campos (`empresa_id` es la clave): `titulo`, `subtitulo`, `texto_boton`, `boton_destino`,
-`bienvenida` (barra superior), `pie`, `aviso_ficha` y `texto_boton_contacto`. Migración aditiva;
+`bienvenida` (barra superior), `pie`, `aviso_ficha`, `texto_boton_contacto` y, desde MSF-841, `eslogan`
+(frase corta, hasta **80** caracteres, vacío por defecto; migración `20270302300000_tienda_eslogan.sql`:
+columna con check, validación en el borrador con `hint = 'eslogan'`, rótulo «eslogan» en el resumen de cambios
+sin publicar, `publico.contenido_por_dominio` lo devuelve y la pestaña lo muestra en «Textos comerciales» con
+contador). `public.guardar_tienda_contenido` cambió de firma (parámetro final `p_eslogan`, con default). Migración aditiva;
 la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
 
 ### Reglas
@@ -354,6 +369,14 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   `productos` = solo los efectivamente visibles de esa categoría. Host desconocido, inválido y empresa
   desactivada devuelven el mismo `null`. Nunca `organizacion_id` ni columnas internas.
   Reversión: `drop function publico.categorias_por_dominio(text);`.
+- **Foto de categoría (MSF-841, `20270302400000_tienda_categorias_imagen.sql`)**: cada categoría trae además
+  `imagen`: la ruta de storage (bucket `productos-imagenes`) de la imagen principal (menor `posicion`) de UN
+  producto efectivamente visible de la categoría o de sus subcategorías (el primero por nombre y, en empate,
+  por id); `null` si ninguno tiene imagen. No hay campo de configuración. Se calcula **en una sola pasada**
+  (CTE materializados `efectivos` → `img_producto` → `imagen` con `distinct on`, sobre el árbol recursivo ya
+  calculado), sin subconsultas por fila ni funciones por producto, porque la función corre bajo `anon` con
+  `statement_timeout` de 3 s (ver el bug de MSF-825 abajo). La ruta cuelga de `<organización>/<producto>/`,
+  igual que la `imagen` de los destacados; la vista previa de la gestión no la calcula (`imagen: null`).
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
   `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
