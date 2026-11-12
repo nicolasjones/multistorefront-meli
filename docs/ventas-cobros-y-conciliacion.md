@@ -210,8 +210,9 @@ F-VTA-13 y F-VTA-14), con lectura de los pgTAP `cobros_comprobante`, `pagos_conc
   escritura directa: `revoke all … from public, anon, authenticated` y `grant select` a
   `authenticated`.
 - **`anon`**: `revoke … from public, anon` y `grant execute … to authenticated` en cada RPC
-  pública; ninguna función de `private` es ejecutable por `anon` ni por `authenticated`.
-- **Funciones internas**: `private.registrar_cobro_interno`, `private.saldo_comprobante`,
+  pública; ninguna función de `private` que registre o lea cobros es ejecutable por `anon` ni por `authenticated`
+  (las que sí lo son, como `private.comprobante_cuenta_como_facturado`, son predicados puros sin acceso a datos).
+- **Funciones internas**: `private.registrar_cobro_interno`, `private.saldo_comprobante` (resta las notas de crédito: ver `docs/cobros-por-comprobante.md`),
   `private.abrir_contrarreembolso`, `private.aplicar_conciliacion` y las de permiso por empresa
   son `security definer` con `search_path = ''` y **sin `grant`**: su permiso vive en la RPC
   pública que las envuelve (y tampoco la ejecuta `service_role`).

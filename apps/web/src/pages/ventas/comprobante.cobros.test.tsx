@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   useListarCuentasCobro: vi.fn(),
   // Respuestas que la pantalla lee de las RPC de cobros.
   cobros: [] as unknown[],
-  saldo: { total: 1000, cobrado: 0, saldo: 1000 },
+  saldo: { total: 1000, cobrado: 0, saldo: 1000 } as { total: number; cobrado: number; notas_credito?: number; saldo: number },
   puedeRegistrar: true,
 }))
 
@@ -180,6 +180,13 @@ describe('llamadas a la base', () => {
       p_cuenta_cobro_id: 'c-1',
       p_actualizado_en: null,
     })
+  })
+
+  it('el saldo trae las notas de crédito como número y, si la base no las manda, valen 0', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [{ total: '1000', cobrado: '0', notas_credito: '300.50', saldo: '699.50' }], error: null })
+    mocks.rpc.mockResolvedValueOnce({ data: [{ total: 1000, cobrado: 0, notas_credito: null, saldo: 1000 }], error: null })
+    expect(await saldoComprobante('k-1')).toEqual({ total: 1000, cobrado: 0, notas_credito: 300.5, saldo: 699.5 })
+    expect(await saldoComprobante('k-1')).toEqual({ total: 1000, cobrado: 0, notas_credito: 0, saldo: 1000 })
   })
 
   it('el importe del cobro y el de la lista llegan como número', async () => {
@@ -1177,6 +1184,25 @@ describe('Detalle del comprobante · solo lectura por rol (F-VTA-12, SC-002)', (
     render(arbol('/ventas/comprobantes/k-1'))
 
     expect(await screen.findByText('No queda saldo pendiente: la factura está cobrada.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar cobro' })).toBeDisabled()
+    // Sin notas de crédito no se ofrece el dato «Notas de crédito».
+    expect(screen.queryByText('Notas de crédito')).not.toBeInTheDocument()
+  })
+
+  it('con notas de crédito muestra cuánto restan y el saldo neto; si cubren la factura, no deja cobrar', async () => {
+    mocks.saldo = { total: 1000, cobrado: 200, notas_credito: 300, saldo: 500 }
+    const { unmount } = render(arbol('/ventas/comprobantes/k-1'))
+
+    const totales = await screen.findByRole('group', { name: 'Totales de los cobros' })
+    expect(within(totales).getByText('Notas de crédito')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 300')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 500')).toBeInTheDocument()
+    expect(screen.queryByText(/No queda saldo pendiente/)).not.toBeInTheDocument()
+    unmount()
+
+    mocks.saldo = { total: 1000, cobrado: 400, notas_credito: 600, saldo: 0 }
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('No queda saldo pendiente: lo cobrado y las notas de crédito cubren la factura.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Registrar cobro' })).toBeDisabled()
   })
 })

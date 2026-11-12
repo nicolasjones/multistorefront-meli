@@ -425,10 +425,10 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre
   tiendas y el `id` es lo que identifica la fila.
   `revoke … from public, anon` y `grant execute … to authenticated`.
-- **Cómo se calcula el saldo:** el total y lo cobrado de cada comprobante los trae `private.saldo_comprobante`
-  (F-VTA-12: `total con IVA − cobros`), y **esta función le resta las notas de crédito** (ver «Notas de crédito»):
-  saldo = `max(total − cobrado − notas de crédito, 0)`. `private.saldo_comprobante` no las resta (deuda abierta: ver
-  «Decisiones pendientes»). El estado
+- **Cómo se calcula el saldo:** el total, lo cobrado, las notas de crédito y el saldo de cada comprobante los trae
+  `private.saldo_comprobante` (F-VTA-12, que desde la migración `20270227140000` resta las notas de crédito):
+  saldo = `max(total − cobrado − notas de crédito, 0)`. Es el mismo cálculo que ven el detalle del comprobante, el tope
+  al registrar un cobro y el contrarreembolso (ver `docs/cobros-por-comprobante.md`). El estado
   «Deuda» no se consulta (una factura en «Deuda» no tiene cobros y debe su total completo). Cuentan las **facturas**
   que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
   (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
@@ -461,15 +461,13 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   cientos, se pagina con carga infinita.
 - **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
   puede cambiar): qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
-  a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo. **Deuda abierta:** el saldo
-  que se ve en el detalle de un comprobante y el tope al registrar un cobro salen de `private.saldo_comprobante`, que
-  todavía no resta las notas de crédito: una factura de 1.000 con una nota de 300 muestra 700 en la ficha del cliente
-  y 1.000 en el comprobante, y deja cobrar 1.000. Está en seguimiento (decisión de diseño pendiente).
+  a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo. (Cerrado el 2026-11-11: el saldo del
+  comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
+  mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
 - **Reversión (migración posterior):** volver a la definición de `20270222100000_cuenta_corriente_cliente.sql` (sin
   notas de crédito) con `drop function` + `create`; **no** basta con `drop function`, que dejaría la pantalla sin
   cuenta corriente. No se destruye ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
-- **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (el total y lo cobrado de cada fila salen de
-  `private.saldo_comprobante`; las notas de crédito, con centavos, tienda inaccesible, nota sola mayor que el total,
+- **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (cada fila sale de `private.saldo_comprobante`; las notas de crédito, con centavos, tienda inaccesible, nota sola mayor que el total,
   factura cobrada, nota de otro cliente y mezcla emitida + anulada); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
   prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`
   (rótulo `[MSF-451:T001]`; **no corre en el CI**, se corre a mano con el stack local: ver `docs/e2e-app.md`).
