@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { configure, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
@@ -27,6 +27,9 @@ function montar() {
 }
 
 // F-TDA-16 (FR-015, SC-003): axe a 320 / 768 / 1440 px en los estados del formulario.
+// Tres pasadas de axe en un solo caso: con el runner del CI cargado superan los 15 s globales.
+configure({ asyncUtilTimeout: 5000 })
+
 describe.each([320, 768, 1440])('accesibilidad de /contacto a %i px', (ancho) => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -52,5 +55,5 @@ describe.each([320, 768, 1440])('accesibilidad de /contacto a %i px', (ancho) =>
     const gracias = await screen.findByRole('heading', { name: '¡Gracias! Recibimos tu consulta' })
     expect(gracias).toHaveFocus()
     expect(await violacionesAxe(container)).toEqual([])
-  })
+  }, 60000)
 })

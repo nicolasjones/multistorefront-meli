@@ -107,9 +107,15 @@ services:
       # {{ envs.historial_importador_imagen }}; en producción se publica por
       # digest, igual que el resto de los workers.
       ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:-local/worker-historial-importador:latest}
+      # Imagen del worker que aplica las importaciones de productos desde CSV
+      # (MSF-375); flow `importar-productos.yml`.
+      ENV_IMPORTAR_PRODUCTOS_IMAGEN: ${IMPORTAR_PRODUCTOS_IMAGEN:-local/worker-importar-productos:latest}
       # Imagen del worker de exportación diferida de comprobantes (MSF-346); flow
       # `exportar-comprobantes.yml`.
       ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:-local/worker-exportar-comprobantes:latest}
+      # Imagen del worker de la exportación total de datos (MSF-396); flow
+      # `exportar-organizacion.yml`.
+      ENV_EXPORTAR_ORGANIZACION_IMAGEN: ${EXPORTAR_ORGANIZACION_IMAGEN:-local/worker-exportar-organizacion:latest}
       # Imagen del worker que genera el PDF de factura y remito (MSF-230); la lee
       # `comprobantes-documentos.yml` vía {{ envs.comprobantes_pdf_imagen }}.
       ENV_COMPROBANTES_PDF_IMAGEN: ${COMPROBANTES_PDF_IMAGEN:-local/worker-comprobantes-pdf:latest}
@@ -153,6 +159,12 @@ services:
       ENV_ALERTAS_INICIO_URL: ${ALERTAS_INICIO_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/recalcular-alertas-inicio}
       ENV_ALERTAS_INICIO_APIKEY: ${ALERTAS_INICIO_APIKEY:-change-me-local}
       SECRET_ALERTAS_INICIO_TOKEN: ${SECRET_ALERTAS_INICIO_TOKEN:-}
+      # Monitoreo de errores de la aplicación (MSF-369, flow monitoreo-errores-aplicacion.yml). El token de lectura
+      # de GlitchTip es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_ERRORES_APP_URL: ${ERRORES_APP_URL:-}
+      ENV_ERRORES_APP_ORGANIZACION: ${ERRORES_APP_ORGANIZACION:-plataforma}
+      ENV_ERRORES_APP_PROYECTO: ${ERRORES_APP_PROYECTO:-aplicacion}
+      SECRET_ERRORES_APP_TOKEN: ${SECRET_ERRORES_APP_TOKEN:-}
       # Avisos de faltantes (MSF-405, flow avisos-faltantes.yml): mismas reglas, contra la Edge Function
       # `enviar-aviso-faltante`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
       ENV_AVISOS_FALTANTES_URL: ${AVISOS_FALTANTES_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-faltante}
@@ -161,6 +173,16 @@ services:
       # Clave de servicio de Storage con la que comprobantes-correo.yml lee el bucket privado
       # `comprobantes-documentos` (EN BASE64, como todo SECRET_*). Solo Kestra la ve.
       SECRET_COMPROBANTES_STORAGE_KEY: ${SECRET_COMPROBANTES_STORAGE_KEY:-}
+      # Avisos de la API (MSF-403, flow entregar-webhooks-api.yml): el flow llama a la Edge Function
+      # `entregar-webhook`, que lee el secreto de firma de cada suscripción. Por eso usa la clave de
+      # SERVICIO de Supabase (no la pública): va EN BASE64 como SECRET_* y solo vive en
+      # infra/kestra/.env.
+      ENV_ENTREGAR_WEBHOOK_URL: ${ENTREGAR_WEBHOOK_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/entregar-webhook}
+      SECRET_ENTREGAR_WEBHOOK_APIKEY: ${SECRET_ENTREGAR_WEBHOOK_APIKEY:-}
+      # Eventos y entregas por corrida del flow de avisos de la API.
+      ENV_API_WEBHOOKS_LOTE: ${API_WEBHOOKS_LOTE:-20}
+      # Retención (días) de la auditoría de llamadas de la API (flow purgar-api-llamadas.yml).
+      ENV_API_AUDITORIA_RETENCION_DIAS: ${API_AUDITORIA_RETENCION_DIAS:-90}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.

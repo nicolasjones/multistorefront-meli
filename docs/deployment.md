@@ -24,6 +24,8 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
+**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando.
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve
@@ -31,6 +33,16 @@ Staging valida migraciones, permisos, workflows y conexión entre componentes si
   revalida y baja el bundle nuevo en cada deploy) y los assets con hash, con cache
   inmutable de 1 año. Como el HTML referencia el hash del bundle, no hace falta invalidar
   nada a mano (evita el «no aparece la pantalla nueva» hasta un Ctrl+Shift+R).
+  También proxea `/robots.txt` y `/sitemap.xml` a la Edge Function `tienda-seo` (F-TDA-21): la
+  URL de Supabase y la clave pública se toman de los `ARG VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_PUBLISHABLE_KEY` del build de la imagen (ver `docs/tiendas-online.md`); el build falla si alguno queda vacío.
+  **Son OBLIGATORIOS**: `apps/web/Dockerfile` solo lo construye Dokploy (ningún compose ni workflow del repo lo hace; `infra/refine/compose.yaml`
+  es de desarrollo con Vite y los workflows construyen solo imágenes de workers), así que en la aplicación de Dokploy de `apps/web` y en
+  cada preview hay que definir los *build args* `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` (además de `VITE_PANEL_HOSTS`).
+  Esas rutas van con caché de nginx (5 min, clave por host) y límite de pedidos por IP + host (20 r/s, ráfaga 100) y por IP (100 r/s, ráfaga 200); como nginx queda
+  detrás de Traefik, la IP real se toma de `X-Forwarded-For` desde los rangos privados de la red del proxy. Requisito: Traefik debe pasar
+  `X-Forwarded-For` con la IP del cliente (el repo no define su `trustedIPs`/`forwardedHeaders`); con Cloudflare u otro proxy delante hay
+  que sumar sus rangos a `set_real_ip_from` y usar `real_ip_header CF-Connecting-IP`.
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.

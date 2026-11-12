@@ -1,0 +1,17 @@
+# Conexión de Superset al esquema `analitica` de la base de la app (F-REN-01, FR-008/FR-010).
+# Sin credenciales en Git: la contraseña va enmascarada (XXXXXXXXXX) y el importador la manda por
+# `passwords` desde SUPERSET_ANALITICA_DB_PASSWORD; el host se reemplaza al empaquetar con
+# SUPERSET_ANALITICA_DB_HOST. El usuario `superset_analitica` solo puede leer `analitica`.
+database_name: Rentabilidad analitica
+sqlalchemy_uri: postgresql+psycopg2://superset_analitica:XXXXXXXXXX@${SUPERSET_ANALITICA_DB_HOST}:5432/postgres
+cache_timeout: null
+expose_in_sqllab: false
+allow_run_async: false
+allow_ctas: false
+allow_cvas: false
+allow_dml: false
+allow_file_upload: false
+extra:
+  allows_virtual_table_explore: true
+uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31
+version: 1.0.0

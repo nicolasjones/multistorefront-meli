@@ -1,7 +1,9 @@
 import { lazy, Suspense, useState } from 'react'
 import { Alert, AlertTitle, Button, Snackbar } from '@mui/material'
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
+import { useConfiguracionCotizacion } from '../../hooks/useConfiguracionCotizacion'
 import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
+import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import {
   AVISO_COTIZACION_REGISTRADA,
@@ -19,7 +21,8 @@ const DialogoCargarDolar = lazy(() =>
 // Aviso «Todavía no se cargó el dólar de hoy» (F-PRE-05, FR-020; Cotizacion.dc.html). Se monta en la
 // pantalla de Cotización y en la portada (FR-021). Solo lo evalúa quien tiene `cotizacion_dolar` ≥
 // lectura (la base lo exige igual); «Cargar ahora» exige edición y abre el diálogo de F-PRE-02.
-// La cotización es de la organización, no de la empresa activa (Principio VIII: no aplica).
+// Con alcance «sistema» la cotización es de la organización; con «una por empresa» (F-PRE-06) es la de la
+// empresa activa de la barra superior (Principio VIII) y el aviso se aparta si el interruptor está apagado.
 export function AvisoCotizacion() {
   const { nivel } = useNivelSeccion('cotizacion_dolar')
   if (nivel !== 'lectura' && nivel !== 'edicion') return null
@@ -27,8 +30,12 @@ export function AvisoCotizacion() {
 }
 
 function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
-  const estado = useEstadoCotizacion()
-  const dia = useCotizacionDelDia()
+  const { configuracion } = useConfiguracionCotizacion()
+  const { empresas, empresaActivaId } = useEmpresasAccesibles()
+  const porEmpresa = configuracion?.alcance === 'empresa'
+  const empresaId = porEmpresa ? empresaActivaId : null
+  const estado = useEstadoCotizacion(empresaId)
+  const dia = useCotizacionDelDia(true, empresaId)
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [confirmacion, setConfirmacion] = useState<string | null>(null)
 
@@ -47,7 +54,13 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
   if (estado.cargando || dia.cargando || !estado.estado || !dia.delDia) return null
 
   const vigente = estado.estado.vigente
-  const sinCargar = !dia.delDia.cargadaHoy
+  // «Aviso en Inicio» apagado: no se avisa. Con alcance por empresa y «Todas mis empresas» no hay a quién cargarle.
+  const sinCargar = !dia.delDia.cargadaHoy && dia.delDia.avisoActivo
+  const puedeCargar = puedeEditar && (!porEmpresa || empresaId !== null)
+  // Alcance «una por empresa» y «Todas mis empresas»: no hay a quién cargarle el dólar; se pide elegir una empresa.
+  const pedirEmpresa = porEmpresa && empresaId === null
+  // Los precios usan la cotización APLICADA, que puede ser anterior a la última carga si esta quedó bajo el umbral.
+  const aplicada = estado.estado.aplicada ?? vigente?.valor ?? null
   const alConfirmar = (confirmada: CotizacionConfirmada) => {
     setDialogoAbierto(false)
     setConfirmacion(confirmada.recalculoAplicado ? avisoCotizacionAplicada(confirmada.preciosRecalculados) : AVISO_COTIZACION_REGISTRADA)
@@ -59,17 +72,28 @@ function AvisoCotizacionDelDia({ puedeEditar }: { puedeEditar: boolean }) {
       {sinCargar ? (
         <Alert
           severity="warning"
-          action={puedeEditar ? <Button color="inherit" variant="outlined" size="small" onClick={() => setDialogoAbierto(true)}>Cargar ahora</Button> : undefined}
+          action={puedeCargar ? <Button color="inherit" variant="outlined" size="small" onClick={() => setDialogoAbierto(true)}>Cargar ahora</Button> : undefined}
         >
           <AlertTitle>Todavía no se cargó el dólar de hoy</AlertTitle>
-          {vigente
-            ? `Los precios en dólares se siguen calculando con ${formatearCotizacion(vigente.valor)} (${subtituloVigente(vigente)}).`
-            : 'Todavía no hay una cotización vigente para calcular los precios en dólares.'}
+          {pedirEmpresa
+            ? 'La cotización es una por empresa: elegí una empresa en la barra superior para ver y cargar su dólar de hoy.'
+            : aplicada !== null
+              ? `Los precios en dólares se siguen calculando con ${formatearCotizacion(aplicada)}${vigente && vigente.valor === aplicada ? ` (${subtituloVigente(vigente)})` : ''}.`
+              : 'Todavía no hay una cotización vigente para calcular los precios en dólares.'}
         </Alert>
       ) : null}
       {dialogoAbierto ? (
         <Suspense fallback={null}>
-          <DialogoCargarDolar abierto vigente={vigente} onCerrar={() => setDialogoAbierto(false)} onConfirmada={alConfirmar} />
+          <DialogoCargarDolar
+            abierto
+            vigente={vigente}
+            aplicada={estado.estado.aplicada ?? null}
+            onCerrar={() => setDialogoAbierto(false)}
+            onConfirmada={alConfirmar}
+            empresaId={empresaId}
+            nombreEmpresa={empresas.find((e) => e.id === empresaId)?.nombre ?? null}
+            confirmacionPct={configuracion?.confirmacionPct}
+          />
         </Suspense>
       ) : null}
       <Snackbar open={confirmacion !== null} autoHideDuration={4000} onClose={() => setConfirmacion(null)}>

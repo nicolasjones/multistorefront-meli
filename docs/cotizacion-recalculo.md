@@ -39,7 +39,7 @@ Migraciones aditivas: `20261023140200_cotizacion_previsualizar.sql` y `202610231
   y IVA si la empresa lo muestra), con una muestra de 6 productos activos en USD. `security definer` solo para
   leer la regla de cada empresa (sección `empresas`) sin exigírsela a quien carga el dólar; filtra por la
   organización de la sesión.
-- `confirmar_cotizacion()` → `{ id, recalculo_aplicado, precios_recalculados }`. Exige `edicion`. **`security definer`**
+- `confirmar_cotizacion(p_empresa default null, p_variacion_vista default null)` → `{ id, recalculo_aplicado, precios_recalculados }`. Con variación inusual exige `p_variacion_vista` (±0,05 puntos de la real): `22023` con hint `variacion_inusual` o `variacion_cambio`. Exige `edicion`. **`security definer`**
   (único camino de escritura a `cotizaciones` y `cotizacion_aplicada`; excepción acotada al estilo `security invoker`).
   Una transacción: bloqueo por organización (`pg_advisory_xact_lock` + `for update` de la pendiente), historial,
   cotización aplicada (si alcanza el umbral), borrado de la pendiente y eventos. Errores: `42501` sin permiso,
@@ -55,7 +55,7 @@ Migraciones aditivas: `20261023140200_cotizacion_previsualizar.sql` y `202610231
 
 ## Pantalla
 
-El diálogo **Cargar dólar del día** tiene dos pasos. Paso 1: el valor (F-PRE-02); al continuar queda pendiente.
+El diálogo **Cargar dólar del día** tiene dos pasos. Paso 1: el valor (F-PRE-02), con la cotización sugerida y el botón «Usar este valor» (F-PRE-13, solo completa el campo); al continuar queda pendiente.
 Paso 2: variación, alerta «Variación inusual» (> 15 %) y, si alcanza el umbral, el bloque **Qué va a cambiar**
 (mosaico por empresa y tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo», pie «Redondeo al $ 10 más
 cercano.»); bajo el umbral, la alerta **Sin recálculo** y el botón **Registrar cotización**. Acciones:
@@ -83,3 +83,14 @@ Migración posterior (exportar antes `cotizacion_aplicada`): quitar las RPC `des
 `precios_usd_por_empresa` y `cotizacion_vigente`; restaurar `private.a_pesos` para que lea solo
 `dominio.cotizacion_inicial` (cuerpo de `20261022121001`); y eliminar la tabla `dominio.cotizacion_aplicada`. Los
 precios vuelven a calcularse con la cotización inicial.
+
+## Configuración y alcance (F-PRE-06, MSF-419)
+
+- **Vigente al volver a «empresa».** `private.cotizacion_vigente_para` y el «anterior» de `cargar_cotizacion` / `estado_cotizacion`
+  toman lo más reciente entre la última carga de la empresa y su valor aplicado (`cotizacion_aplicada`). Al pasar de «sistema» a
+  «empresa» cada empresa arranca con el dólar general; su historial viejo ya no pisa ese valor ni falsea el umbral o la confirmación del 15 %.
+- **Aislamiento entre organizaciones.** `private.cotizacion_config(uuid)` y `private.empresa_de_cotizacion(uuid, uuid)` son `security definer`
+  con grant a `authenticated`, pero solo operan sobre la organización de la sesión: la primera devuelve los valores del lanzamiento para una
+  ajena y la segunda falla con `42501`. Prueba: `supabase/tests/database/cotizacion_vuelta_alcance.test.sql`.
+
+`cargar_cotizacion` es `security definer` (MSF-419): llama a `private.cotizacion_vigente_para`, que no tiene grant a `authenticated`; organización, usuario y nivel de la sección `cotizacion_dolar` salen de la sesión, igual que en `previsualizar_cotizacion` y `confirmar_cotizacion`.

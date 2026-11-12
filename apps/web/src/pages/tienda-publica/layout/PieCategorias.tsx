@@ -1,11 +1,22 @@
 import { Box, Typography } from '@mui/material'
+import { lazy, Suspense } from 'react'
 import { Link as EnlaceRuta } from 'react-router'
-import type { CategoriaPublica } from '../../../lib/tiendaCategorias'
+import { categoriasPrincipales, type CategoriaPublica } from '../../../lib/tiendaCategorias'
+import { PieInformacion } from './PieInformacion'
+import { PieLegal } from './PieLegal'
+
+// Aviso de cookies (F-TDA-22): carga diferida, no pesa en el primer pintado.
+const AvisoCookies = lazy(() => import('./AvisoCookies'))
 
 // Pie de la tienda: columna «Categorías» (F-TDA-11, FR-005: las mismas categorías y enlaces que el menú; sin
-// categorías visibles no se muestra) y el enlace «Escribinos» a `/contacto` (F-TDA-16, FR-010), que está siempre.
-export function PieCategorias({ categorias }: { categorias: CategoriaPublica[] }) {
+// categorías visibles no se muestra), la columna «Información» con las páginas de contenido (F-TDA-23) y el enlace
+// «Escribinos» a `/contacto` (F-TDA-16, FR-010), que está siempre. Suma el bloque legal de la empresa (F-TDA-22,
+// FR-032) y monta el aviso de cookies (FR-033).
+export function PieCategorias({ categorias: todas, host }: { categorias: CategoriaPublica[]; host: string }) {
+  // MSF-825: las mismas categorías principales que el menú (FR-005), no las ~190 de la base.
+  const categorias = categoriasPrincipales(todas)
   return (
+    <>
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: { xs: 3, md: 8 } }}>
       {categorias.length > 0 ? (
         <Box component="nav" aria-label="Categorías del pie" data-testid="pie-categorias">
@@ -23,6 +34,7 @@ export function PieCategorias({ categorias }: { categorias: CategoriaPublica[] }
           </Box>
         </Box>
       ) : null}
+      {host ? <PieInformacion host={host} /> : null}
       <Box component="nav" aria-label="Contacto del pie" data-testid="pie-contacto">
         <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
           Contacto
@@ -32,5 +44,10 @@ export function PieCategorias({ categorias }: { categorias: CategoriaPublica[] }
         </Box>
       </Box>
     </Box>
+    <PieLegal host={host} />
+    <Suspense fallback={null}>
+      <AvisoCookies />
+    </Suspense>
+    </>
   )
 }

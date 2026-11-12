@@ -1,0 +1,1510 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "API pública de la plataforma",
+    "version": "v1",
+    "description": "API de **solo lectura** del catálogo, el stock, los precios y las ventas de la organización a la que pertenece la clave. La organización sale **siempre de la clave**: ningún parámetro la cambia.\n\n## Empezar\n\n1. En el panel, **Administración → API → Crear clave**, elegí los alcances (`productos`, `stock`, `precios`, `ventas`) y copiá la clave: se muestra una sola vez.\n2. Llamá con `Authorization: Bearer msf_<prefijo>_<secreto>` a `<URL de Supabase>/functions/v1/api-v1/v1/<recurso>`. En los ejemplos, `$BASE` es `<URL de Supabase>/functions/v1/api-v1` y `$CLAVE_API` es tu clave.\n3. Si la respuesta trae `siguiente_cursor`, pedí la página siguiente con `?cursor=<valor>`.\n\n## Sincronización incremental\n\nGuardá el instante de tu última sincronización y pedí `?actualizado_desde=<ISO-8601 con zona>`: solo llega lo que cambió desde entonces (inclusive). En precios, un cambio solo de escala (`x5`, `x10`, `x50`) cuenta como cambio del producto. En **ventas**, `actualizado_desde` filtra por la fecha de confirmación: no detecta cambios de estado ni anulaciones (ver el recurso).\n\n## Límites\n\n**60 solicitudes por minuto por clave**. Al superarlas responde `429 limite_excedido` con la cabecera `Retry-After` (segundos). Cada organización puede tener hasta 50 claves vigentes.\n\n## Errores\n\nSiempre con la forma `{ \"error\": { \"codigo\": \"...\", \"mensaje\": \"...\" } }`; decidí por `codigo`, no por `mensaje`.\n\n## Avisos\n\nAdemás de consultar, podés suscribirte desde el panel a eventos que la plataforma envía por `POST` a tu URL `https`, firmados con HMAC-SHA256. Ver «Avisos (webhooks)» más abajo.\n\n## Versionado\n\nLa versión va en la ruta (`/v1/`). Los cambios aditivos (campos nuevos) no rompen `v1`: **tu código debe ignorar los campos que no conoce**. Un cambio incompatible exige `/v2/`, y lo que se retira avisa con `Deprecation` y `Sunset` con al menos 6 meses de antelación."
+  },
+  "servers": [
+    {
+      "url": "https://{host}/functions/v1/api-v1",
+      "description": "URL pública de la plataforma (la de Supabase de tu entorno).",
+      "variables": {
+        "host": {
+          "default": "tu-servidor",
+          "description": "Host de Supabase de tu entorno; te lo informa quien administra la plataforma."
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "apiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/v1/productos": {
+      "get": {
+        "summary": "Catálogo de la organización",
+        "description": "Requiere el alcance `productos`. Máximo 100 filas por página (por defecto 50).\n\n**Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.",
+        "operationId": "listarProductos",
+        "tags": [
+          "lectura"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limite"
+          },
+          {
+            "$ref": "#/components/parameters/ActualizadoDesde"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página del catálogo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaProductos"
+                },
+                "example": {
+                  "datos": [
+                    {
+                      "id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+                      "nombre": "Control inalámbrico negro",
+                      "sku": "CTRL-0042",
+                      "activo": true,
+                      "categoria_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+                      "categoria": "Consolas > Accesorios",
+                      "moneda": "ARS",
+                      "precio_lista": 45900.0,
+                      "actualizado_en": "2027-03-02T14:05:31.482Z"
+                    }
+                  ],
+                  "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ParametroInvalido"
+          },
+          "401": {
+            "$ref": "#/components/responses/NoAutorizado",
+            "description": "Falta la clave, no es válida, o está revocada o vencida (`token_ausente`, `token_invalido`, `clave_vencida`, `clave_revocada`)."
+          },
+          "403": {
+            "$ref": "#/components/responses/AlcanceInsuficiente"
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteExcedido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "Shell",
+            "label": "curl",
+            "source": "curl -s \"$BASE/v1/productos?limite=2\" \\\n  -H \"Authorization: Bearer $CLAVE_API\""
+          },
+          {
+            "lang": "JavaScript",
+            "label": "fetch",
+            "source": "const r = await fetch(`${process.env.BASE}/v1/productos?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+          }
+        ]
+      }
+    },
+    "/v1/stock": {
+      "get": {
+        "summary": "Stock por producto y depósito",
+        "description": "Requiere el alcance `stock`. Máximo 100 filas por página (por defecto 50).\n\n**Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.",
+        "operationId": "listarStock",
+        "tags": [
+          "lectura"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limite"
+          },
+          {
+            "$ref": "#/components/parameters/ActualizadoDesde"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página del stock.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaStock"
+                },
+                "example": {
+                  "datos": [
+                    {
+                      "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+                      "nombre": "Control inalámbrico negro",
+                      "sku": "CTRL-0042",
+                      "deposito_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+                      "deposito": "Depósito central",
+                      "cantidad": 120,
+                      "reservado": 8,
+                      "disponible": 112,
+                      "actualizado_en": "2027-03-02T15:10:02.117Z"
+                    }
+                  ],
+                  "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ParametroInvalido"
+          },
+          "401": {
+            "$ref": "#/components/responses/NoAutorizado",
+            "description": "Falta la clave, no es válida, o está revocada o vencida (`token_ausente`, `token_invalido`, `clave_vencida`, `clave_revocada`)."
+          },
+          "403": {
+            "$ref": "#/components/responses/AlcanceInsuficiente"
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteExcedido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "Shell",
+            "label": "curl",
+            "source": "curl -s \"$BASE/v1/stock?limite=2\" \\\n  -H \"Authorization: Bearer $CLAVE_API\""
+          },
+          {
+            "lang": "JavaScript",
+            "label": "fetch",
+            "source": "const r = await fetch(`${process.env.BASE}/v1/stock?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+          }
+        ]
+      }
+    },
+    "/v1/precios": {
+      "get": {
+        "summary": "Precios de lista y escalas",
+        "description": "Requiere el alcance `precios`. No calcula precio final por empresa ni IVA.\n\n**Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.",
+        "operationId": "listarPrecios",
+        "tags": [
+          "lectura"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limite"
+          },
+          {
+            "$ref": "#/components/parameters/ActualizadoDesde"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página de precios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaPrecios"
+                },
+                "example": {
+                  "datos": [
+                    {
+                      "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+                      "nombre": "Control inalámbrico negro",
+                      "sku": "CTRL-0042",
+                      "moneda": "ARS",
+                      "precio_lista": 45900.0,
+                      "precio_x5": 43500.0,
+                      "precio_x10": 41800.0,
+                      "precio_x50": null,
+                      "actualizado_en": "2027-03-02T16:00:00.000Z"
+                    }
+                  ],
+                  "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ParametroInvalido"
+          },
+          "401": {
+            "$ref": "#/components/responses/NoAutorizado",
+            "description": "Falta la clave, no es válida, o está revocada o vencida (`token_ausente`, `token_invalido`, `clave_vencida`, `clave_revocada`)."
+          },
+          "403": {
+            "$ref": "#/components/responses/AlcanceInsuficiente"
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteExcedido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "Shell",
+            "label": "curl",
+            "source": "curl -s \"$BASE/v1/precios?limite=2\" \\\n  -H \"Authorization: Bearer $CLAVE_API\""
+          },
+          {
+            "lang": "JavaScript",
+            "label": "fetch",
+            "source": "const r = await fetch(`${process.env.BASE}/v1/precios?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+          }
+        ]
+      }
+    },
+    "/v1/ventas": {
+      "get": {
+        "summary": "Facturas confirmadas",
+        "description": "Requiere el alcance `ventas`. Solo facturas (`tipo = factura`) confirmadas; no expone cliente ni contacto.\n\n**Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.\n\n**Ojo con la sincronización incremental:** en este recurso `actualizado_desde` filtra por la fecha de **confirmación**, así que trae las facturas confirmadas nuevas, pero **no** avisa cuando una factura ya enviada cambia de estado (por ejemplo a cobrado) ni cuando se anula (una factura anulada deja de aparecer en la lista). Para mantener los estados al día, volvé a leer periódicamente una ventana reciente (por ejemplo los últimos 30 días) y actualizá lo que cambió.",
+        "operationId": "listarVentas",
+        "tags": [
+          "lectura"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limite"
+          },
+          {
+            "$ref": "#/components/parameters/ActualizadoDesde"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página de ventas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListaVentas"
+                },
+                "example": {
+                  "datos": [
+                    {
+                      "id": "9b1e4c77-0d3a-4f68-a2b5-6c8e1d4f7a22",
+                      "numero": "0001-00012345",
+                      "fecha": "2027-03-02",
+                      "empresa_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                      "total_sin_iva": 100000.0,
+                      "total_con_iva": 121000.0,
+                      "estado": "cobrado",
+                      "confirmado_en": "2027-03-02T17:45:09.301Z"
+                    }
+                  ],
+                  "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ParametroInvalido"
+          },
+          "401": {
+            "$ref": "#/components/responses/NoAutorizado",
+            "description": "Falta la clave, no es válida, o está revocada o vencida (`token_ausente`, `token_invalido`, `clave_vencida`, `clave_revocada`)."
+          },
+          "403": {
+            "$ref": "#/components/responses/AlcanceInsuficiente"
+          },
+          "429": {
+            "$ref": "#/components/responses/LimiteExcedido"
+          },
+          "500": {
+            "$ref": "#/components/responses/ErrorInterno"
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "Shell",
+            "label": "curl",
+            "source": "curl -s \"$BASE/v1/ventas?actualizado_desde=2027-03-01T00:00:00-03:00\" \\\n  -H \"Authorization: Bearer $CLAVE_API\""
+          },
+          {
+            "lang": "JavaScript",
+            "label": "fetch",
+            "source": "const r = await fetch(`${process.env.BASE}/v1/ventas?actualizado_desde=2027-03-01T00:00:00-03:00`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+          }
+        ]
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "summary": "Contrato de la API",
+        "description": "Se sirve sin clave: el contrato es público por definición.",
+        "operationId": "obtenerContrato",
+        "tags": [
+          "contrato"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Este documento.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Documento OpenAPI 3.1."
+                }
+              }
+            }
+          },
+          "405": {
+            "$ref": "#/components/responses/MetodoNoSoportado"
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "Shell",
+            "label": "curl",
+            "source": "curl -s \"$BASE/v1/openapi.json\""
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Clave de API de la organización (`msf_<prefijo>_<secreto>`), en `Authorization: Bearer <clave>`."
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "Alternativa cuando el gateway sigue validando `Authorization`: mandar allí la clave anónima (`apikey` + `Authorization: Bearer <anon>`) y la clave de API acá. La organización sale siempre de esta clave."
+      }
+    },
+    "parameters": {
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Cursor opaco de la página anterior. Un cursor inválido responde `400 cursor_invalido`.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+      },
+      "Limite": {
+        "name": "limite",
+        "in": "query",
+        "required": false,
+        "description": "Filas por página: de 1 a 100 (por defecto 50).",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
+        },
+        "example": 50
+      },
+      "ActualizadoDesde": {
+        "name": "actualizado_desde",
+        "in": "query",
+        "required": false,
+        "description": "ISO-8601 con zona. Trae solo lo actualizado desde ese instante (inclusive). Si la zona es un offset con `+` (por ejemplo `+03:00`), codificalo como `%2B03:00` en la URL: un `+` sin codificar llega como espacio y responde `400 parametro_invalido`.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "example": "2027-03-01T00:00:00-03:00"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "codigo",
+              "mensaje"
+            ],
+            "properties": {
+              "codigo": {
+                "type": "string",
+                "enum": [
+                  "token_ausente",
+                  "token_invalido",
+                  "clave_vencida",
+                  "clave_revocada",
+                  "alcance_insuficiente",
+                  "limite_excedido",
+                  "cursor_invalido",
+                  "parametro_invalido",
+                  "no_encontrado",
+                  "metodo_no_soportado",
+                  "error_interno"
+                ],
+                "description": "Código estable para decidir en el cliente."
+              },
+              "mensaje": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "example": {
+          "error": {
+            "codigo": "token_invalido",
+            "mensaje": "La clave de API no es válida."
+          }
+        }
+      },
+      "Producto": {
+        "type": "object",
+        "required": [
+          "id",
+          "nombre",
+          "sku",
+          "activo",
+          "moneda",
+          "precio_lista",
+          "actualizado_en",
+          "categoria_id",
+          "categoria"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador del producto."
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string",
+            "description": "Código del producto (SKU)."
+          },
+          "activo": {
+            "type": "boolean",
+            "description": "`false` si el producto está dado de baja."
+          },
+          "categoria_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "categoria": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Ruta «Padre > Hija» de la categoría."
+          },
+          "moneda": {
+            "type": "string",
+            "description": "Moneda del precio de lista (hoy `ARS` o `USD`)."
+          },
+          "precio_lista": {
+            "type": "number",
+            "description": "Precio de lista sin IVA, en `moneda`."
+          },
+          "actualizado_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Último cambio del producto."
+          }
+        },
+        "example": {
+          "id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+          "nombre": "Control inalámbrico negro",
+          "sku": "CTRL-0042",
+          "activo": true,
+          "categoria_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+          "categoria": "Consolas > Accesorios",
+          "moneda": "ARS",
+          "precio_lista": 45900.0,
+          "actualizado_en": "2027-03-02T14:05:31.482Z"
+        }
+      },
+      "Stock": {
+        "type": "object",
+        "required": [
+          "producto_id",
+          "nombre",
+          "sku",
+          "deposito_id",
+          "deposito",
+          "cantidad",
+          "reservado",
+          "disponible",
+          "actualizado_en"
+        ],
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "deposito_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deposito": {
+            "type": "string"
+          },
+          "cantidad": {
+            "type": "number",
+            "description": "Unidades físicas en el depósito."
+          },
+          "reservado": {
+            "type": "number",
+            "description": "Unidades reservadas (comprometidas)."
+          },
+          "disponible": {
+            "type": "number",
+            "description": "`cantidad - reservado`."
+          },
+          "actualizado_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Último movimiento de stock de esta pareja producto-depósito."
+          }
+        },
+        "example": {
+          "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+          "nombre": "Control inalámbrico negro",
+          "sku": "CTRL-0042",
+          "deposito_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+          "deposito": "Depósito central",
+          "cantidad": 120,
+          "reservado": 8,
+          "disponible": 112,
+          "actualizado_en": "2027-03-02T15:10:02.117Z"
+        }
+      },
+      "Precios": {
+        "type": "object",
+        "required": [
+          "producto_id",
+          "nombre",
+          "sku",
+          "moneda",
+          "precio_lista",
+          "actualizado_en",
+          "precio_x5",
+          "precio_x10",
+          "precio_x50"
+        ],
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "moneda": {
+            "type": "string",
+            "description": "Moneda de los precios (hoy `ARS` o `USD`)."
+          },
+          "precio_lista": {
+            "type": "number",
+            "description": "Precio de lista (escala x1) sin IVA."
+          },
+          "precio_x5": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Precio sin IVA por compra de 5 o más; `null` si no tiene precio cargado."
+          },
+          "precio_x10": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Ídem para 10 o más."
+          },
+          "precio_x50": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Ídem para 50 o más."
+          },
+          "actualizado_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Lo último que cambió: el producto o cualquiera de sus escalas."
+          }
+        },
+        "example": {
+          "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+          "nombre": "Control inalámbrico negro",
+          "sku": "CTRL-0042",
+          "moneda": "ARS",
+          "precio_lista": 45900.0,
+          "precio_x5": 43500.0,
+          "precio_x10": 41800.0,
+          "precio_x50": null,
+          "actualizado_en": "2027-03-02T16:00:00.000Z"
+        }
+      },
+      "Venta": {
+        "type": "object",
+        "required": [
+          "id",
+          "numero",
+          "fecha",
+          "total_sin_iva",
+          "total_con_iva",
+          "estado",
+          "confirmado_en",
+          "empresa_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numero": {
+            "type": "string",
+            "description": "Número del comprobante."
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date",
+            "description": "Fecha del comprobante (día)."
+          },
+          "empresa_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Empresa emisora, si tiene."
+          },
+          "total_sin_iva": {
+            "type": "number",
+            "description": "Total sin IVA."
+          },
+          "total_con_iva": {
+            "type": "number",
+            "description": "Total con IVA."
+          },
+          "estado": {
+            "type": "string",
+            "description": "Estado de la factura **al momento de la consulta** (confirmada, cobrado, deuda, etc.; nunca `anulada`, porque las anuladas no se listan)."
+          },
+          "confirmado_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo se confirmó. Es el criterio de orden y de `actualizado_desde`, y no cambia aunque la factura cambie de estado."
+          }
+        },
+        "example": {
+          "id": "9b1e4c77-0d3a-4f68-a2b5-6c8e1d4f7a22",
+          "numero": "0001-00012345",
+          "fecha": "2027-03-02",
+          "empresa_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+          "total_sin_iva": 100000.0,
+          "total_con_iva": 121000.0,
+          "estado": "cobrado",
+          "confirmado_en": "2027-03-02T17:45:09.301Z"
+        }
+      },
+      "ListaProductos": {
+        "type": "object",
+        "required": [
+          "datos",
+          "siguiente_cursor"
+        ],
+        "properties": {
+          "datos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Producto"
+            },
+            "description": "Filas de la página, ordenadas por `actualizado_en` y luego `id`."
+          },
+          "siguiente_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cursor para pedir la página siguiente; `null` si no quedan filas."
+          }
+        },
+        "example": {
+          "datos": [
+            {
+              "id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+              "nombre": "Control inalámbrico negro",
+              "sku": "CTRL-0042",
+              "activo": true,
+              "categoria_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+              "categoria": "Consolas > Accesorios",
+              "moneda": "ARS",
+              "precio_lista": 45900.0,
+              "actualizado_en": "2027-03-02T14:05:31.482Z"
+            }
+          ],
+          "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+        }
+      },
+      "ListaStock": {
+        "type": "object",
+        "required": [
+          "datos",
+          "siguiente_cursor"
+        ],
+        "properties": {
+          "datos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stock"
+            },
+            "description": "Filas de la página, ordenadas por `actualizado_en`, luego `producto_id` y `deposito_id`."
+          },
+          "siguiente_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cursor para pedir la página siguiente; `null` si no quedan filas."
+          }
+        },
+        "example": {
+          "datos": [
+            {
+              "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+              "nombre": "Control inalámbrico negro",
+              "sku": "CTRL-0042",
+              "deposito_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+              "deposito": "Depósito central",
+              "cantidad": 120,
+              "reservado": 8,
+              "disponible": 112,
+              "actualizado_en": "2027-03-02T15:10:02.117Z"
+            }
+          ],
+          "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+        }
+      },
+      "ListaPrecios": {
+        "type": "object",
+        "required": [
+          "datos",
+          "siguiente_cursor"
+        ],
+        "properties": {
+          "datos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Precios"
+            },
+            "description": "Filas de la página, ordenadas por `actualizado_en` y luego `producto_id`."
+          },
+          "siguiente_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cursor para pedir la página siguiente; `null` si no quedan filas."
+          }
+        },
+        "example": {
+          "datos": [
+            {
+              "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+              "nombre": "Control inalámbrico negro",
+              "sku": "CTRL-0042",
+              "moneda": "ARS",
+              "precio_lista": 45900.0,
+              "precio_x5": 43500.0,
+              "precio_x10": 41800.0,
+              "precio_x50": null,
+              "actualizado_en": "2027-03-02T16:00:00.000Z"
+            }
+          ],
+          "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+        }
+      },
+      "ListaVentas": {
+        "type": "object",
+        "required": [
+          "datos",
+          "siguiente_cursor"
+        ],
+        "properties": {
+          "datos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Venta"
+            },
+            "description": "Filas de la página, ordenadas por `confirmado_en` y luego `id`."
+          },
+          "siguiente_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cursor para pedir la página siguiente; `null` si no quedan filas."
+          }
+        },
+        "example": {
+          "datos": [
+            {
+              "id": "9b1e4c77-0d3a-4f68-a2b5-6c8e1d4f7a22",
+              "numero": "0001-00012345",
+              "fecha": "2027-03-02",
+              "empresa_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+              "total_sin_iva": 100000.0,
+              "total_con_iva": 121000.0,
+              "estado": "cobrado",
+              "confirmado_en": "2027-03-02T17:45:09.301Z"
+            }
+          ],
+          "siguiente_cursor": "MTc2NzIyNTYwMDAwMDAwMHwzZjZjMmQxZS04YTQ3LTRiNWUtOWMxMC0yYTdkNWU4YjlmMDE"
+        }
+      },
+      "EventoStock": {
+        "type": "object",
+        "description": "Cambió el stock de un producto (cada movimiento y cada reserva).",
+        "required": [
+          "id",
+          "tipo",
+          "organizacion_id",
+          "ocurrido_en",
+          "datos"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador del evento (el mismo en `X-Evento-Id`); sirve para ignorar repetidos."
+          },
+          "tipo": {
+            "type": "string",
+            "const": "stock.actualizado"
+          },
+          "organizacion_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ocurrido_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo ocurrió el cambio."
+          },
+          "datos": {
+            "type": "object",
+            "required": [
+              "organizacion_id",
+              "producto_id",
+              "tipo_movimiento",
+              "cantidad",
+              "reservado",
+              "disponible",
+              "movimiento_id",
+              "diferencia",
+              "deposito_id"
+            ],
+            "properties": {
+              "organizacion_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "producto_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "movimiento_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "Movimiento de stock que originó el evento (nulo en una reserva)."
+              },
+              "reserva_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid",
+                "description": "Solo en eventos de reserva o liberación."
+              },
+              "tipo_movimiento": {
+                "type": "string",
+                "description": "`entrada`, `salida` o `ajuste`; `reserva` o `liberacion` cuando el cambio es una reserva."
+              },
+              "cantidad": {
+                "type": "number",
+                "description": "Cantidad total del producto tras el cambio."
+              },
+              "diferencia": {
+                "type": "number",
+                "description": "Variación de la cantidad (0 en reservas)."
+              },
+              "deposito_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "reservado": {
+                "type": "number"
+              },
+              "disponible": {
+                "type": "number",
+                "description": "`cantidad - reservado`."
+              }
+            }
+          }
+        }
+      },
+      "EventoPrecio": {
+        "type": "object",
+        "description": "Cambió el precio de lista, el de una escala o la moneda de un producto.",
+        "required": [
+          "id",
+          "tipo",
+          "organizacion_id",
+          "ocurrido_en",
+          "datos"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador del evento (el mismo en `X-Evento-Id`); sirve para ignorar repetidos."
+          },
+          "tipo": {
+            "type": "string",
+            "const": "precio.actualizado"
+          },
+          "organizacion_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ocurrido_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo ocurrió el cambio."
+          },
+          "datos": {
+            "type": "object",
+            "required": [
+              "organizacion_id",
+              "producto_id",
+              "escala",
+              "precio",
+              "moneda"
+            ],
+            "properties": {
+              "organizacion_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "producto_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "escala": {
+                "type": "string",
+                "description": "`x1` (precio de lista), `x5`, `x10` o `x50`."
+              },
+              "precio": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Nuevo precio sin IVA."
+              },
+              "moneda": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Moneda del producto en los eventos de `x1` (precio de lista); nulo en las escalas."
+              }
+            }
+          }
+        }
+      },
+      "EventoVenta": {
+        "type": "object",
+        "description": "Una factura pasó a confirmada.",
+        "required": [
+          "id",
+          "tipo",
+          "organizacion_id",
+          "ocurrido_en",
+          "datos"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Identificador del evento (el mismo en `X-Evento-Id`); sirve para ignorar repetidos."
+          },
+          "tipo": {
+            "type": "string",
+            "const": "venta.registrada"
+          },
+          "organizacion_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ocurrido_en": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Cuándo ocurrió el cambio."
+          },
+          "datos": {
+            "type": "object",
+            "required": [
+              "organizacion_id",
+              "comprobante_id",
+              "numero",
+              "total_con_iva",
+              "confirmado_en",
+              "tipo",
+              "total_sin_iva"
+            ],
+            "properties": {
+              "organizacion_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "comprobante_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "numero": {
+                "type": "string"
+              },
+              "tipo": {
+                "type": "string",
+                "description": "Siempre `factura`."
+              },
+              "total_sin_iva": {
+                "type": "number"
+              },
+              "total_con_iva": {
+                "type": "number"
+              },
+              "confirmado_en": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "ParametroInvalido": {
+        "description": "Un parámetro de la consulta no es válido (cursor inválido incluido).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "cursor": {
+                "summary": "cursor_invalido",
+                "value": {
+                  "error": {
+                    "codigo": "cursor_invalido",
+                    "mensaje": "El cursor de paginación no es válido."
+                  }
+                }
+              },
+              "parametro": {
+                "summary": "parametro_invalido",
+                "value": {
+                  "error": {
+                    "codigo": "parametro_invalido",
+                    "mensaje": "Algún parámetro de la consulta no es válido."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "NoAutorizado": {
+        "description": "Falta la clave, no es válida, o está revocada o vencida.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "ausente": {
+                "summary": "token_ausente",
+                "value": {
+                  "error": {
+                    "codigo": "token_ausente",
+                    "mensaje": "Falta la cabecera Authorization con la clave de API."
+                  }
+                }
+              },
+              "invalido": {
+                "summary": "token_invalido",
+                "value": {
+                  "error": {
+                    "codigo": "token_invalido",
+                    "mensaje": "La clave de API no es válida."
+                  }
+                }
+              },
+              "vencida": {
+                "summary": "clave_vencida",
+                "value": {
+                  "error": {
+                    "codigo": "clave_vencida",
+                    "mensaje": "La clave de API venció."
+                  }
+                }
+              },
+              "revocada": {
+                "summary": "clave_revocada",
+                "value": {
+                  "error": {
+                    "codigo": "clave_revocada",
+                    "mensaje": "La clave de API está revocada."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "AlcanceInsuficiente": {
+        "description": "La clave no tiene el alcance que pide la ruta.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "alcance": {
+                "summary": "alcance_insuficiente",
+                "value": {
+                  "error": {
+                    "codigo": "alcance_insuficiente",
+                    "mensaje": "La clave de API no tiene alcance para esta ruta."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "LimiteExcedido": {
+        "description": "Se superó el límite de uso de la clave. La cabecera `Retry-After` dice en cuántos segundos reintentar.",
+        "headers": {
+          "Retry-After": {
+            "description": "Segundos a esperar antes de reintentar.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "limite": {
+                "summary": "limite_excedido",
+                "value": {
+                  "error": {
+                    "codigo": "limite_excedido",
+                    "mensaje": "Se superó el límite de uso de la clave de API."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "MetodoNoSoportado": {
+        "description": "La API es de solo lectura.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "metodo": {
+                "summary": "metodo_no_soportado",
+                "value": {
+                  "error": {
+                    "codigo": "metodo_no_soportado",
+                    "mensaje": "La API es de solo lectura."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorInterno": {
+        "description": "No se pudo completar la llamada.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "interno": {
+                "summary": "error_interno",
+                "value": {
+                  "error": {
+                    "codigo": "error_interno",
+                    "mensaje": "No se pudo completar la llamada."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-versions-retiradas": {},
+  "tags": [
+    {
+      "name": "lectura",
+      "description": "Consultas de solo lectura, paginadas por cursor. Cada una exige el alcance de su recurso."
+    },
+    {
+      "name": "contrato",
+      "description": "Este documento."
+    },
+    {
+      "name": "avisos",
+      "description": "Avisos salientes (webhooks) a tu URL `https`. Se administran desde Administración → API → Suscripciones."
+    }
+  ],
+  "webhooks": {
+    "stock.actualizado": {
+      "post": {
+        "summary": "Cambió el stock de un producto",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.\n\n**Cobertura:** el aviso se emite por cada movimiento de stock del producto y por cada reserva o liberación, pero **no** por movimientos de variantes ni por traslados entre depósitos (el total del producto no cambia, pero sí el stock de cada depósito). Si necesitás ver todo, además de los avisos hacé un barrido periódico de `/v1/stock?actualizado_desde=`.",
+        "operationId": "aviso_stock_actualizado",
+        "tags": [
+          "avisos"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-Evento-Id",
+            "in": "header",
+            "required": true,
+            "description": "Identificador del evento.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Firma",
+            "in": "header",
+            "required": true,
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoStock"
+              },
+              "example": {
+                "id": "b8d1f0a2-6c4e-4a39-8e57-3d9b2f1c6a70",
+                "tipo": "stock.actualizado",
+                "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                "ocurrido_en": "2027-03-02T14:05:31.482Z",
+                "datos": {
+                  "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                  "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+                  "movimiento_id": "1f4a7c9e-2b60-4d83-a915-6e0c3b8d2f47",
+                  "tipo_movimiento": "salida",
+                  "cantidad": 112,
+                  "diferencia": -8,
+                  "deposito_id": "c4a8e2b6-5d19-4e73-8f0a-1b3c7d9e5a44",
+                  "reservado": 8,
+                  "disponible": 104
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Aviso recibido. Cualquier `2xx` confirma la entrega."
+          },
+          "default": {
+            "description": "Cualquier otra respuesta (o un tiempo de espera agotado) cuenta como intento fallido y se reintenta."
+          }
+        }
+      }
+    },
+    "precio.actualizado": {
+      "post": {
+        "summary": "Cambió el precio de lista o de una escala",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
+        "operationId": "aviso_precio_actualizado",
+        "tags": [
+          "avisos"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-Evento-Id",
+            "in": "header",
+            "required": true,
+            "description": "Identificador del evento.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Firma",
+            "in": "header",
+            "required": true,
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoPrecio"
+              },
+              "example": {
+                "id": "d2e47a1b-93c5-4f08-b6a2-7c1e0f5d8a93",
+                "tipo": "precio.actualizado",
+                "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                "ocurrido_en": "2027-03-02T16:00:00.000Z",
+                "datos": {
+                  "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                  "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
+                  "escala": "x5",
+                  "precio": 43500.0,
+                  "moneda": null
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Aviso recibido. Cualquier `2xx` confirma la entrega."
+          },
+          "default": {
+            "description": "Cualquier otra respuesta (o un tiempo de espera agotado) cuenta como intento fallido y se reintenta."
+          }
+        }
+      }
+    },
+    "venta.registrada": {
+      "post": {
+        "summary": "Una factura pasó a confirmada",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
+        "operationId": "aviso_venta_registrada",
+        "tags": [
+          "avisos"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-Evento-Id",
+            "in": "header",
+            "required": true,
+            "description": "Identificador del evento.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Firma",
+            "in": "header",
+            "required": true,
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoVenta"
+              },
+              "example": {
+                "id": "a05c9e3f-1b7d-4c62-9e48-5f2a8d0b6c11",
+                "tipo": "venta.registrada",
+                "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                "ocurrido_en": "2027-03-02T17:45:09.301Z",
+                "datos": {
+                  "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
+                  "comprobante_id": "9b1e4c77-0d3a-4f68-a2b5-6c8e1d4f7a22",
+                  "numero": "0001-00012345",
+                  "tipo": "factura",
+                  "total_sin_iva": 100000.0,
+                  "total_con_iva": 121000.0,
+                  "confirmado_en": "2027-03-02T17:45:09.301Z"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Aviso recibido. Cualquier `2xx` confirma la entrega."
+          },
+          "default": {
+            "description": "Cualquier otra respuesta (o un tiempo de espera agotado) cuenta como intento fallido y se reintenta."
+          }
+        }
+      }
+    }
+  }
+}

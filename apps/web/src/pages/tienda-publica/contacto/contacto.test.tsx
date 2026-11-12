@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -54,6 +54,27 @@ describe('RutaContacto', () => {
     expect(within(screen.getByTestId('bloque-correo')).getByText('mundojc377@gmail.com')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Escribinos' })).toBeInTheDocument()
     expect(mocks.leer).toHaveBeenCalledWith('mundojc.localhost')
+  })
+
+  it('muestra «Retiro y envíos» y el aviso de respuesta del prototipo, según los datos de la tienda (MSF-831)', async () => {
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Contacto' })
+    expect(within(screen.getByTestId('bloque-correo')).getByText('Respondemos dentro de las 24 h')).toBeInTheDocument()
+    const retiro = screen.getByTestId('bloque-retiro-envios')
+    expect(within(retiro).getByText('Coordinamos por WhatsApp')).toBeInTheDocument()
+    expect(within(retiro).getByText('No hay compra online en esta versión: consultás y coordinamos.')).toBeInTheDocument()
+  })
+
+  it('una tienda sin WhatsApp coordina por correo y sin ningún dato no muestra el bloque (MSF-831)', async () => {
+    mocks.leer.mockResolvedValue({ nombre: 'Solo correo', whatsapp: null, correo: 'hola@tienda.com', horarios: null })
+    const { unmount } = montar()
+    await screen.findByRole('heading', { level: 1, name: 'Contacto' })
+    expect(within(screen.getByTestId('bloque-retiro-envios')).getByText('Coordinamos por correo')).toBeInTheDocument()
+    unmount()
+    mocks.leer.mockResolvedValue({ nombre: 'Sin datos', whatsapp: null, correo: null, horarios: null })
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Contacto' })
+    expect(screen.queryByTestId('bloque-retiro-envios')).not.toBeInTheDocument()
   })
 
   it('cada tienda ve SUS datos (aislamiento entre tiendas)', async () => {
@@ -114,6 +135,8 @@ describe('RutaContacto', () => {
     montar()
     const alerta = await screen.findByTestId('error-con-reintento')
     expect(alerta).toHaveTextContent('No pudimos cargar los datos de contacto.')
+    // FR-004/FR-024: la pantalla de error no se indexa.
+    await waitFor(() => expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex'))
     screen.getByRole('button', { name: 'Reintentar' }).click()
     expect(await screen.findByRole('heading', { name: 'Escribinos' })).toBeInTheDocument()
     consola.mockRestore()

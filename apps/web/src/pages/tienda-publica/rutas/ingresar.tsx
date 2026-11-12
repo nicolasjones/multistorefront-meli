@@ -3,6 +3,7 @@ import { Alert, Box, Button, Link, Stack, TextField, Typography } from '@mui/mat
 import { Link as EnlaceRuta, useNavigate } from 'react-router'
 import { ingresarCliente } from '../../../lib/tiendaCuenta'
 import { useContextoTienda } from '../layout/LayoutTienda'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 
 // Ingreso del cliente a la tienda (F-CLI-06, FR-020/FR-021): correo y contraseña. Solo entra una cuenta web
 // activa y habilitada en esta tienda; cualquier otro caso muestra el mismo mensaje genérico.
@@ -30,6 +31,7 @@ export default function RutaIngresar() {
 
   return (
     <Box sx={{ maxWidth: 420, mx: 'auto', py: 2 }}>
+      <CabeceraSeo noindex pagina="Ingresar" />
       <Stack spacing={2} component="form" onSubmit={ingresar} aria-labelledby="titulo-ingresar">
         <Typography id="titulo-ingresar" component="h1" variant="h5" sx={{ fontWeight: 700 }}>Ingresar</Typography>
         {error && <Alert severity="error">{error}</Alert>}

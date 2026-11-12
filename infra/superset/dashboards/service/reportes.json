@@ -1,0 +1,14 @@
+{
+  "comentario": "Un reporte por tablero embebido. `dashboard_slug` es el slug del dashboard importado: el importador habilita su embebido y registra el UUID de embedding que Superset genera, y registra la fila en `public.reportes`. `administrador` no se lista: tiene acceso incondicional. La asignación a cada organización la hace el superadmin, como en Rentabilidad.",
+  "reportes": [
+    {
+      "nombre": "Service técnico",
+      "dashboard_slug": "service-tecnico",
+      "seccion": "service_tecnico",
+      "rolesPorDefecto": [
+        "administracion",
+        "consulta"
+      ]
+    }
+  ]
+}

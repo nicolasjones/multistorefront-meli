@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Box, Button, Chip, LinearProgress, Stack, Tab, Tabs, Typography } from '@mui/material'
+import { useSearchParams } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
 import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
+import { useNivelSeccion } from '../../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../../hooks/useOrganizacionActiva'
 import { usePuedeEscribir } from '../../../hooks/usePuedeEscribir'
 import { listarTransportes, etiquetaTipo, type PaginaTransportes, type Transporte } from '../../../lib/ventas/transportes'
@@ -24,6 +26,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/p
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
+import { TransportesMotos } from './TransportesMotos'
 
 const TAMANO_PAGINA = 25
 // Los contrarreembolsos se piden por tandas de 10 (el tamaño por defecto de `listar_contrarreembolsos`).
@@ -35,16 +38,22 @@ const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'h
 const PAGINA_VACIA: PaginaTransportes = { transportes: [], total: 0, totalOrganizacion: 0 }
 const PAGINA_CONTRARREEMBOLSOS_VACIA: PaginaContrarreembolsos = { contrarreembolsos: [], total: 0 }
 
-// Sub-pestañas de «Transportes y contrarreembolsos» (F-VTA-14, FR-046). La de Terminales es la
-// de MSF-139 (F-VTA-04) tal cual; la de Contrarreembolsos es la nueva de US3. La ayuda de cada
-// pestaña es la del prototipo.
-type Pestana = 'contrarreembolsos' | 'terminales'
+// Sub-pestañas de «Transportes y contrarreembolsos» (F-VTA-14, FR-046; F-VTA-24, FR-001). La de
+// Terminales es la de MSF-139 (F-VTA-04) tal cual; la de Contrarreembolsos es la de F-VTA-14 (la que
+// abre por defecto) y la de Motos es la de MSF-145. Se llega a una con `?pestana=<valor>`. La ayuda
+// de cada pestaña es la del prototipo.
+type Pestana = 'contrarreembolsos' | 'motos' | 'terminales'
 
 const PESTANAS: ReadonlyArray<{ valor: Pestana; etiqueta: string; ayuda: string }> = [
   {
     valor: 'contrarreembolsos',
     etiqueta: 'Contrarreembolsos',
     ayuda: 'El transporte cobra al entregar y rinde después.',
+  },
+  {
+    valor: 'motos',
+    etiqueta: 'Motos',
+    ayuda: 'Mensajería propia: se rinde el efectivo cobrado y el costo del envío.',
   },
   {
     valor: 'terminales',
@@ -97,7 +106,18 @@ export function TransporteList() {
   const [empresaTerminales, setEmpresaTerminales] = useState<string | null>(null)
   const [paginaTerminales, setPaginaTerminales] = useState(1)
   const [paginaContrarreembolsos, setPaginaContrarreembolsos] = useState(1)
-  const [pestana, setPestana] = useState<Pestana>('contrarreembolsos')
+  // La pestaña vive en la URL (`?pestana=motos`); sin parámetro o con uno desconocido abre la de siempre.
+  const [parametros, setParametros] = useSearchParams()
+  const pestanaPedida = PESTANAS.find((p) => p.valor === parametros.get('pestana'))
+  const pestana: Pestana = pestanaPedida?.valor ?? 'contrarreembolsos'
+  const setPestana = (nueva: Pestana) => setParametros((actual) => {
+    const copia = new URLSearchParams(actual)
+    if (nueva === 'contrarreembolsos') copia.delete('pestana')
+    else copia.set('pestana', nueva)
+    return copia
+  }, { replace: true })
+  // «Registrar envío» (Motos): `ventas` en edición; la base exige además rol Operador o Administrador.
+  const { nivel: nivelVentas } = useNivelSeccion('ventas')
   const [datos, setDatos] = useState<PaginaTransportes>(PAGINA_VACIA)
   const [cargando, setCargando] = useState(true)
   const [hayError, setHayError] = useState(false)
@@ -302,7 +322,7 @@ export function TransporteList() {
       <EncabezadoPagina
         titulo="Transportes y contrarreembolsos"
         descripcion="Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales de retiro."
-        accion={botonNueva}
+        accion={pestana === 'motos' ? undefined : botonNueva}
         contexto={<ContextoOrganizacionActiva />}
       />
       <ContenedorSeccion>
@@ -312,12 +332,12 @@ export function TransporteList() {
             {tiendas.length > 0 ? (
               <FiltroEmpresa
                 empresas={tiendas}
-                valor={pestana === 'contrarreembolsos' ? empresaContrarreembolsos : empresaTerminales}
+                valor={pestana === 'terminales' ? empresaTerminales : empresaContrarreembolsos}
                 onCambiar={(nuevo) => {
-                  // Cada sub-pestaña tiene su filtro: el de contrarreembolsos sigue a la empresa
-                  // activa y el de terminales es el propio de MSF-139.
-                  if (pestana === 'contrarreembolsos') elegirEmpresaContrarreembolsos(nuevo)
-                  else setEmpresaTerminales(nuevo)
+                  // Contrarreembolsos y Motos comparten el filtro que sigue a la empresa activa;
+                  // el de terminales es el propio de MSF-139.
+                  if (pestana === 'terminales') setEmpresaTerminales(nuevo)
+                  else elegirEmpresaContrarreembolsos(nuevo)
                 }}
                 textoAyuda="Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda."
               />
@@ -377,6 +397,14 @@ export function TransporteList() {
                   onCambiarPagina={setPaginaContrarreembolsos}
                 />
               </Stack>
+            ) : pestana === 'motos' ? (
+              <TransportesMotos
+                empresaId={empresaContrarreembolsos}
+                empresaActivaId={empresaActivaId}
+                organizacionId={organizacionId}
+                listo={!cargandoEmpresasActivas}
+                puedeRegistrar={nivelVentas === 'edicion'}
+              />
             ) : (
               <Stack spacing={2}>
                 <BarraHerramientas

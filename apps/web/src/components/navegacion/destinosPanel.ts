@@ -15,6 +15,7 @@ import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
+import LocalOfferIcon from '@mui/icons-material/LocalOffer'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
@@ -31,7 +32,9 @@ import TuneIcon from '@mui/icons-material/Tune'
 import CommentIcon from '@mui/icons-material/Comment'
 import ContactsIcon from '@mui/icons-material/Contacts'
 import FileUploadIcon from '@mui/icons-material/FileUpload'
+import ImportExportIcon from '@mui/icons-material/ImportExport'
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import ApiIcon from '@mui/icons-material/Api'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
@@ -83,6 +86,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CAT-02: hasta que F-CAT-06 traiga la grilla, /productos redirige al alta (App.tsx).
       { id: 'productos', etiqueta: 'Productos', ruta: '/productos', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
       // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
+      // F-PRE-11: precios promocionales por empresa con fecha de inicio y fin (carga diferida en App.tsx).
+      { id: 'promociones', etiqueta: 'Promociones', ruta: '/productos/promociones', icono: LocalOfferIcon, audiencia: 'organizacion', seccionPermiso: 'productos' },
       { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },
@@ -129,7 +134,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
   },
   {
     // Servicio técnico: las tres pantallas del prototipo (también accesibles como
-    // pestañas dentro de cada página). Todas dependen de la funcionalidad
+    // pestañas dentro de cada página) más la de Reportes (F-SVC-23, FR-064), que
+    // embebe el tablero de Superset. Todas dependen de la funcionalidad
     // `service-tecnico` y de la sección `service_tecnico`.
     id: 'service',
     etiqueta: 'Servicio técnico',
@@ -157,6 +163,15 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
         etiqueta: 'Estados de reparación',
         ruta: '/service-tecnico/estados',
         icono: TuneIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
+      {
+        id: 'service-tecnico-reportes',
+        etiqueta: 'Reportes',
+        ruta: '/service-tecnico/reportes',
+        icono: InsightsIcon,
         audiencia: 'organizacion',
         seccionPermiso: 'service_tecnico',
         feature: 'service-tecnico',
@@ -221,11 +236,16 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
       { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
+      // F-IMP-01 (MSF-354): centro de cargas y descargas masivas; solo administradores (D-6).
+      { id: 'importaciones', etiqueta: 'Importaciones', ruta: '/importaciones', icono: ImportExportIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
       // la matriz porque no es una pantalla operativa del día a día.
       { id: 'migracion-datos', etiqueta: 'Migración de datos', ruta: '/migracion/importar/clientes', icono: FileUploadIcon, audiencia: 'administrador' },
+      // API pública de la organización (F-API-01, FR-013): claves, avisos y auditoría. Sin sección
+      // de la matriz porque no es una pantalla operativa del día a día.
+      { id: 'api', etiqueta: 'API', ruta: '/api', icono: ApiIcon, audiencia: 'administrador' },
     ],
   },
   {
@@ -242,6 +262,12 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
 ]
 
 export const DESTINOS_PANEL: DestinoPanel[] = SECCIONES_PANEL.flatMap((seccion) => seccion.destinos)
+
+// ¿La ruta del destino coincide con la ubicación actual? Criterio ÚNICO que comparten las migas de pan y la ayuda
+// (F-CFG-02, FR-022): coincidencia exacta, o prefijo para subrutas (fichas, formularios). La raíz `/` solo coincide exacta.
+export function coincideRuta(ruta: string, pathname: string): boolean {
+  return ruta === pathname || (ruta !== '/' && pathname.startsWith(ruta))
+}
 
 // Para miembro/administrador siempre visible; para superadmin, solo con
 // organización activa. 'administrador' reutiliza puede_escribir (contexto ya

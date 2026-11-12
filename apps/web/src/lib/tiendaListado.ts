@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-12 (MSF-355): página del catálogo público. El filtrado, el orden, el precio final y la
 // paginación los resuelve la base (migración 20261023150200_tienda_catalogo_publico.sql); acá solo se
@@ -42,6 +43,8 @@ export type ProductoListado = {
   id: string
   nombre: string
   precio: number | null
+  // F-PRE-11: precio normal, solo cuando hay una promoción vigente (la base devuelve null si no).
+  precioAnterior?: number | null
   disponible: boolean
   imagen: string | null
   categoriaId: string | null
@@ -111,6 +114,7 @@ export type FilaPagina = {
     id: string
     nombre: string
     precio: number | string | null
+    precio_anterior?: number | string | null
     disponible: boolean
     imagen: string | null
     categoria_id: string | null
@@ -143,11 +147,12 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
     total: fila.total,
     pagina: fila.pagina,
     tamano: fila.tamano,
-    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos })),
+    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: limpiarTextoPublico(c.nombre), padreId: c.padre_id, productos: c.productos })),
     productos: fila.productos.map((p) => ({
       id: p.id,
-      nombre: p.nombre,
+      nombre: limpiarTextoPublico(p.nombre),
       precio: p.precio === null ? null : Number(p.precio),
+      ...(p.precio_anterior == null ? {} : { precioAnterior: Number(p.precio_anterior) }),
       disponible: p.disponible,
       imagen: p.imagen,
       categoriaId: p.categoria_id,

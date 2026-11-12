@@ -466,12 +466,12 @@ select is(
 -- «Solo con saldo»: el comprobante del pago todavía debe saldo.
 select is(
   (select count(*)::int from public.listar_pagos(p_solo_con_saldo => true)),
-  5, '«Solo con saldo» deja los cinco pagos cuyo comprobante todavía debe'
+  3, '«Solo con saldo» deja los tres pagos cuyo comprobante todavía debe (no la anulada ni la borrador: MSF-450)'
 );
 select is(
   (select count(*)::int from public.listar_pagos(
     p_solo_con_saldo => true, p_empresa_id => 'a1000000-0000-0000-0000-00000000000a')),
-  4, '«Solo con saldo» y el filtro de tienda se combinan'
+  2, '«Solo con saldo» y el filtro de tienda se combinan'
 );
 
 -- Paginación en el servidor: el total del filtro viene en `filas`.

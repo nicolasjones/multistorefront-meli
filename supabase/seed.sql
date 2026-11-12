@@ -120,6 +120,35 @@ begin
   end if;
 end $$;
 
+-- F-SVC-23 (MSF-168): registra el reporte «Service técnico» cuando la migración
+-- 20270219130300_reportes_service.sql no pudo hacerlo (reset desde cero: las
+-- migraciones corren antes que este seed, sin usuarios todavía, y la fila exige
+-- `creado_por`). Los roles por defecto se cargan acá porque en el reset limpio la
+-- migración tampoco pudo insertarlos (dependen de la fila). La asignación a las
+-- organizaciones la hacen los triggers de esa migración cuando la organización
+-- habilita el módulo `service-tecnico`.
+do $$
+declare
+  v_actor uuid;
+begin
+  select user_id into v_actor from public.superadmins order by user_id limit 1;
+  if v_actor is null then
+    return;
+  end if;
+
+  if not exists (select 1 from public.reportes where nombre = 'Service técnico') then
+    insert into public.reportes (superset_dashboard_uuid, nombre, creado_por, seccion)
+    values ('service-tecnico', 'Service técnico', v_actor, 'service_tecnico');
+  end if;
+
+  insert into public.reportes_roles_default (reporte_id, rol_id)
+  select r.id, d.rol_id
+  from public.reportes r
+  cross join (values ('administracion'), ('consulta')) as d(rol_id)
+  where r.nombre = 'Service técnico'
+  on conflict (reporte_id, rol_id) do nothing;
+end $$;
+
 -- F-AUD-01 (MSF-463): eventos de ejemplo para probar la pantalla Actividad.
 -- Solo corre en local (seed.sql no se aplica a producción). Para cada
 -- organización que todavía no tenga historial inserta unos pocos eventos
@@ -173,27 +202,30 @@ begin
       (v_org.id, 9005, 'Cliente sin compras', 'minorista')
     on conflict do nothing;
 
+    -- Los estados son los de la matriz de transiciones (borrador, confirmada, pendiente, aceptado, cobrado,
+    -- en_proceso, deuda, armando, incompleto, anulada), no los viejos «cobrada»/«emitida»: una factura saldada es
+    -- «cobrado» y una sin cobrar, «deuda»; los presupuestos quedan «pendiente».
     insert into dominio.comprobantes_venta
       (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
     select v_org.id, c.id, d.tipo, d.numero, d.fecha, d.estado, d.sin_iva, round(d.sin_iva * 1.21, 2)
       from (values
-        (9001, 'factura',     '0001-00009001', v_inicio + 2,                    'cobrada', 1250000.00),
+        (9001, 'factura',     '0001-00009001', v_inicio + 2,                    'cobrado', 1250000.00),
         (9001, 'factura',     '0001-00009002', v_inicio + 9,                    'deuda',    480000.00),
-        (9001, 'factura',     '0001-00009003', v_inicio - 20,                   'cobrada',  900000.00),
-        (9001, 'presupuesto', '0001-00009004', v_inicio + 5,                    'emitida',  300000.00),
-        (9002, 'factura',     '0001-00009005', v_inicio + 4,                    'cobrada',  760000.00),
-        (9002, 'factura',     '0001-00009006', v_inicio - 12,                   'cobrada',  540000.00),
+        (9001, 'factura',     '0001-00009003', v_inicio - 20,                   'cobrado',  900000.00),
+        (9001, 'presupuesto', '0001-00009004', v_inicio + 5,                    'pendiente', 300000.00),
+        (9002, 'factura',     '0001-00009005', v_inicio + 4,                    'cobrado',  760000.00),
+        (9002, 'factura',     '0001-00009006', v_inicio - 12,                   'cobrado',  540000.00),
         (9002, 'factura',     '0001-00009007', v_inicio + 6,                    'anulada',  200000.00),
-        (9003, 'factura',     '0001-00009008', v_inicio + 3,                    'cobrada',   85000.00),
-        (9003, 'factura',     '0001-00009009', v_inicio - 25,                   'cobrada',   42000.00),
-        (9004, 'factura',     '0001-00009010', v_inicio + 7,                    'emitida',  125000.00),
-        (9004, 'presupuesto', '0001-00009011', v_inicio + 8,                    'emitida',   99000.00)
+        (9003, 'factura',     '0001-00009008', v_inicio + 3,                    'cobrado',   85000.00),
+        (9003, 'factura',     '0001-00009009', v_inicio - 25,                   'cobrado',   42000.00),
+        (9004, 'factura',     '0001-00009010', v_inicio + 7,                    'deuda',    125000.00),
+        (9004, 'presupuesto', '0001-00009011', v_inicio + 8,                    'pendiente',  99000.00)
       ) as d(numero_cliente, tipo, numero, fecha, estado, sin_iva)
       join public.clientes c on c.organizacion_id = v_org.id and c.numero = d.numero_cliente;
 
     insert into dominio.comprobantes_venta
       (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
-    select v_org.id, c.id, 'factura', '0001-00009100', v_inicio + 1, 'cobrada', 310000.00, 375100.00
+    select v_org.id, c.id, 'factura', '0001-00009100', v_inicio + 1, 'cobrado', 310000.00, 375100.00
       from public.clientes c
      where c.organizacion_id = v_org.id and c.es_consumidor_final;
   end loop;

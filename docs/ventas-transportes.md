@@ -29,7 +29,7 @@ La guía general de la épica es `docs/ventas-catalogos.md`; esta nota documenta
 ## Pantalla
 
 - Ruta `/ventas/transportes`, grupo **Ventas** del menú (icono de reparto), acceso por la sección `ventas` («Acceso restringido» sin permiso).
-- Desde F-VTA-14 (MSF-410) la pantalla se llama **«Transportes y contrarreembolsos»** y tiene dos sub-pestañas: **Contrarreembolsos** (la que abre por defecto; ver [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md)) y **Terminales de retiro**, donde vive el catálogo de esta historia sin cambios (título, filtro `Tienda`, tabla `Empresa de transporte`/`Terminal de retiro`/`Localidad`/`Teléfono`/`Contacto`, recuento, `Nueva empresa` y el diálogo con todos los campos). Fuera de alcance (despacho): motos, columna «Envíos del mes», `Exportar` y las pestañas de otras épicas (ver matriz de la spec).
+- Desde F-VTA-14 (MSF-410) la pantalla se llama **«Transportes y contrarreembolsos»** y tiene tres sub-pestañas: **Contrarreembolsos** (la que abre por defecto, decisión de Nicolás del 2026-11-12; ver [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md)), **Motos** (MSF-145, ver abajo) y **Terminales de retiro**, donde vive el catálogo de esta historia sin cambios (título, filtro `Tienda`, tabla `Empresa de transporte`/`Terminal de retiro`/`Localidad`/`Teléfono`/`Contacto`, recuento, `Nueva empresa` y el diálogo con todos los campos). Fuera de alcance (despacho): columna «Envíos del mes», `Exportar` y las pestañas de otras épicas (ver matriz de la spec).
 - La sub-pestaña «Terminales de retiro» conserva su comportamiento (filtro propio con «Todas las tiendas» por defecto, paginación de a 25 y recuento «N de M empresas de transporte»). Lo único que suma F-VTA-14 es el reencuadre por empresa activa (FR-048): al cambiar la tienda de la barra superior la pantalla recarga el catálogo y vuelve a la primera página, sin dejar filas de la tienda anterior.
 
 ## Reversión
@@ -44,3 +44,16 @@ Migraciones aditivas `20261020130000_transportes.sql` y `20261020130100_transpor
 ## Carga infinita
 
 Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Rige para las dos sub-pestañas: Terminales de retiro (de a 25; alta y edición recargan desde la primera tanda) y Contrarreembolsos (de a 10; «Marcar cobrado» recarga desde la primera tanda). El recuento «N de M empresas de transporte» no cambia. Sin miniatura: no hay productos en estas filas.
+
+## Pestaña Motos (MSF-145, F-VTA-24 y F-VTA-25)
+
+Mensajería propia: registro de envíos en moto con mensajero, guía, costo y abono, y su rendición. Spec: `specs/20261024-130000-ventas-motos/` (guía completa en [`docs/ventas-motos.md`](./ventas-motos.md)).
+
+- Se llega con `/ventas/transportes?pestana=motos` (también `contrarreembolsos` y `terminales`; sin parámetro o con uno desconocido abre Contrarreembolsos). Va entre las otras dos, como en el prototipo.
+- **Filtro Tienda**: comparte el de Contrarreembolsos, que sigue a la empresa activa de la barra superior; «Terminales de retiro» conserva el suyo. Al cambiar la empresa activa la pestaña vuelve a la primera tanda, recarga listado y tarjeta, descarta la selección y cierra con aviso el diálogo abierto.
+- **Tabla** (`TransportesMotos.tsx`): Fecha (dd/mm), Tienda, Comprobante (enlace), Cliente, Mensajero, Guía, Costo de envío, «Abona al recibir» («—» si es 0), Enviado/Por enviar y Rendido (llave `role="switch"`; solo el Administrador, solo lo enviado y sin rendir; una vez encendida no se apaga). Carga infinita de a 25.
+- **«Registrar envío» / «Editar»** (`EnvioMotoDialog`): factura elegible con búsqueda, mensajero obligatorio, importes de 0 en adelante con hasta dos decimales. Los botones salen con `ventas` en edición (y «Editar» según `puede_editar` de la fila); la base exige además rol Operador o Administrador. Un envío rendido es de solo lectura.
+- **Rendir en lote** (`RendicionMotosDialog`): casillas solo en filas enviadas y sin rendir, «seleccionar todo» y «Rendir seleccionados». El diálogo muestra entregas, efectivo cobrado, costo de envíos, total a rendir (= efectivo cobrado) y neto (informativo); con mensajeros mezclados (sin distinguir mayúsculas ni espacios) bloquea la confirmación.
+- **Tarjeta «Motos sin rendir»** (arriba de la tabla, dentro de la pestaña): suma del abono de lo no rendido con abono > 0 y «N entregas»; se recalcula al registrar, editar o rendir.
+- Datos: `apps/web/src/lib/ventas/enviosMoto.ts` y `enviosMotoRendicion.ts` (contrato de las RPC en `specs/20261024-130000-ventas-motos/contracts/ventas-motos.md`).
+- Pruebas: `TransportesMotos.test.tsx`, `EnvioMotoDialog.test.tsx` y `RendicionMotosDialog.test.tsx` (incluyen axe a 320, 768 y 1440 px).

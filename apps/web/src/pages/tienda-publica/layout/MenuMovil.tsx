@@ -4,6 +4,7 @@ import { Box, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, 
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
+import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCategorias'
 import { ErrorConReintento } from '../ErrorConReintento'
 
 const ID_PANEL = 'menu-movil'
@@ -15,6 +16,8 @@ const ID_TITULO = 'menu-movil-titulo'
 // navegar. Se muestra solo bajo `md`;
 // desde ahí rige el menú horizontal de escritorio.
 export default function MenuMovil({ categorias }: { categorias: CategoriasTienda }) {
+  // MSF-825: las categorías principales (hasta 6) y «Más categorías» hacia el catálogo, no las ~190 de la base.
+  const principales = categoriasPrincipales(categorias.categorias)
   // Se guarda la ruta en la que se abrió: navegar (también con atrás/adelante) lo cierra sin efectos.
   const { pathname } = useLocation()
   const [abiertoEn, setAbiertoEn] = useState<string | null>(null)
@@ -58,13 +61,20 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
           </List>
           <Typography component="h3" variant="overline" color="text.secondary" sx={{ display: 'block', px: 2, pt: 2 }}>Categorías</Typography>
           <List disablePadding aria-busy={categorias.fase === 'cargando'}>
-            {categorias.categorias.map((categoria) => (
+            {principales.map((categoria) => (
               <ListItem key={categoria.id} disablePadding>
                 <ListItemButton component={NavLink} to={`/categoria/${categoria.id}`} onClick={cerrar} sx={estiloEntrada}>
                   <ListItemText primary={categoria.nombre} slotProps={{ primary: { sx: { overflowWrap: 'anywhere' } } }} />
                 </ListItemButton>
               </ListItem>
             ))}
+            {hayMasCategorias(categorias.categorias, principales) ? (
+              <ListItem disablePadding>
+                <ListItemButton component={NavLink} to="/catalogo" end onClick={cerrar} sx={estiloEntrada}>
+                  <ListItemText primary="Más categorías" />
+                </ListItemButton>
+              </ListItem>
+            ) : null}
           </List>
           {categorias.fase === 'error' ? (
             <Box sx={{ p: 2 }}>
