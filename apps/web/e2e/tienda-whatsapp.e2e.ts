@@ -160,8 +160,8 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
         expect(consultas[0].nombre).toBe('Visitante de WhatsApp')
         expect(consultas[0].contacto).toBe('visitante@sin-datos.invalid')
 
-        // La bandeja de la otra empresa no recibe nada.
-        const ajenas = await leer<Consulta>(`consultas?select=id,origen,empresa_id,producto_id,nombre,contacto&empresa_id=eq.${otra.empresa}&origen=eq.whatsapp`)
+        // La bandeja de la otra empresa no recibe nada de este producto (las consultas de otras corridas no cuentan).
+        const ajenas = await leer<Consulta>(`consultas?select=id,origen,empresa_id,producto_id,nombre,contacto&empresa_id=eq.${otra.empresa}&origen=eq.whatsapp&producto_id=eq.${t.productoId}`)
         expect(ajenas).toHaveLength(0)
 
         await contexto.close()
@@ -195,7 +195,6 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
       await contexto.close()
     } finally {
       for (const t of tiendas) {
-        await borrar('consultas', `empresa_id=eq.${t.empresa}&origen=eq.whatsapp&producto_id=eq.${t.productoId}`)
         await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
         await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
         // Las categorías que crea la prueba también se borran: si no, cada corrida deja filas en la

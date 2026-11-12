@@ -25,10 +25,10 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
+async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', prefer = 'return=representation'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
+    headers: cabeceras({ prefer, 'content-profile': esquema }),
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
@@ -149,25 +149,36 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     ],
     'dominio',
   )
+  // El disparador `productos_crear_existencias` ya crea la fila de cada producto: se actualiza con upsert.
   await rest(
-    'existencias',
+    'existencias?on_conflict=producto_id',
     [
       { producto_id: sinStock.id, organizacion_id: org.id, cantidad: 0, minimo: 0 },
       { producto_id: stockBajo.id, organizacion_id: org.id, cantidad: 3, minimo: 5 },
     ],
     'dominio',
+    'return=representation,resolution=merge-duplicates',
   )
 
-  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa).
-  await rest(
-    'consultas',
-    [
-      { organizacion_id: org.id, empresa_id: empresaA.id, origen: 'formulario', nombre: 'Visitante A', contacto: 'visitante-a@example.com', mensaje: 'Consulta de la tienda A' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante B', contacto: 'visitante-b@example.com', mensaje: 'Consulta de la tienda B' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante C', contacto: 'visitante-c@example.com', mensaje: 'otra consulta de la tienda B' },
-    ],
-    'dominio',
-  )
+  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa). `service_role` solo lee
+  // `dominio.consultas`: entran como las de la tienda, por la RPC pública y el dominio de cada una.
+  const hosts = [`inicio-a-${sufijo}.localhost`, `inicio-b-${sufijo}.localhost`]
+  await rest('tiendas', [
+    { organizacion_id: org.id, empresa_id: empresaA.id, dominio: hosts[0] },
+    { organizacion_id: org.id, empresa_id: empresaB.id, dominio: hosts[1] },
+  ], 'dominio')
+  for (const [host, nombre, contacto, mensaje] of [
+    [hosts[0], 'Visitante A', 'visitante-a@example.com', 'Consulta de la tienda A'],
+    [hosts[1], 'Visitante B', 'visitante-b@example.com', 'Consulta de la tienda B'],
+    [hosts[1], 'Visitante C', 'visitante-c@example.com', 'otra consulta de la tienda B'],
+  ]) {
+    const r = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
+      method: 'POST',
+      headers: cabeceras({ 'content-profile': 'publico' }),
+      body: JSON.stringify({ host, origen: 'formulario', nombre, contacto, mensaje }),
+    })
+    if (!r.ok) throw new Error(`crear_consulta_publica: ${r.status} ${await r.text()}`)
+  }
 
   // Alertas: las calcula la base (service_role). Con esto la lista de Inicio tiene de dónde leer.
   await rpc('recalcular_alertas_inicio', { p_organizacion: org.id })
@@ -180,7 +191,7 @@ async function limpiar(datos: Sembrado) {
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
   await borrar(`usuarios_empresas?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
-  await borrar(`consultas?organizacion_id=eq.${datos.orgId}`, 'dominio')
+  await borrar(`tiendas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`alertas_inicio?organizacion_id=eq.${datos.orgId}`, 'dominio')

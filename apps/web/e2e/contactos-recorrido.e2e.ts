@@ -86,7 +86,7 @@ test.describe('Contactos · libreta, historial y anonimización (MSF-260, F-CON-
       if (!rpc.ok) throw new Error(`crear_consulta_publica: ${rpc.status} ${await rpc.text()}`)
       const consultaId = (await rpc.json()) as string
       const [{ id: clienteId }] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id, numero: 1, nombre: `Cliente ${sufijo}`, correo: `cliente-${sufijo}@example.com`, tipo: 'minorista',
+        organizacion_id: org.id, nombre: `Cliente ${sufijo}`, correo: `cliente-${sufijo}@example.com`, tipo: 'minorista',
       })
       const [{ id: comprobanteId }] = await rest<{ id: string }>('comprobantes_venta', {
         organizacion_id: org.id, empresa_id: empresaId, cliente_id: clienteId, tipo: 'factura', numero: `0001-${sufijo}`,
@@ -128,7 +128,7 @@ test.describe('Contactos · libreta, historial y anonimización (MSF-260, F-CON-
       await expect(confirmacion.getByText('Esta acción no se puede deshacer.')).toBeVisible()
       await confirmacion.getByRole('button', { name: 'Anonimizar' }).click()
       await expect(page.getByText('Este contacto fue anonimizado', { exact: false })).toBeVisible()
-      await expect(page.getByLabel('Nombre')).toBeDisabled()
+      await expect(page.getByLabel('Nombre', { exact: true })).toBeDisabled()
 
       // Desaparecen los datos personales del contacto y de la consulta; la consulta y la venta siguen.
       const [contacto] = await leer<{ nombre: string; correo: string | null; anonimizado_en: string | null }>(

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -70,8 +71,63 @@ async function borrarUsuario(id: string) {
 
 type Documento = { id: string; tipo_documento: string; estado: string; ejecucion_id: string | null }
 
-// Corre el worker real con la conexión Postgres local; devuelve la duración de la generación.
-function correrWorker(documentoId: string, ejecucionId: string): Promise<number> {
+type RolWorker = { usuario: string; clave: string }
+
+const datosPg = () => ({
+  host: process.env.E2E_PGHOST ?? '127.0.0.1',
+  port: Number(process.env.E2E_PGPORT ?? '54322'),
+  database: process.env.E2E_PGDATABASE ?? 'postgres',
+  user: process.env.E2E_PGUSER ?? 'postgres',
+  password: process.env.E2E_PGPASSWORD ?? 'postgres',
+})
+
+// El worker solo opera con el rol `worker_<organización>` de su servidor (`aprovisionar_servidor_organizacion`, que exige
+// un superadmin que `service_role` no puede sembrar): se crea con los mismos permisos desde la conexión Postgres local
+// (con el `pg` del propio worker) y se registra su servidor, de donde la base deduce la organización del rol.
+async function aprovisionarRolWorker(organizacionId: string): Promise<RolWorker> {
+  const { Client } = createRequire(resolve(process.cwd(), '../../workers/comprobantes-pdf/package.json'))('pg') as typeof import('pg')
+  const usuario = `worker_${organizacionId.replace(/-/g, '')}`
+  const clave = randomUUID()
+  const cliente = new Client(datosPg())
+  await cliente.connect()
+  try {
+    await cliente.query(`create role ${usuario} login password '${clave}'`)
+    for (const sentencia of [
+      `grant usage on schema private to ${usuario}`,
+      `grant execute on function private.organizacion_del_rol_actual() to ${usuario}`,
+      `grant execute on function private.autorizar_llamante_ciclo(uuid) to ${usuario}`,
+      `grant workers_orquestacion to ${usuario}`,
+      `grant execute on function public.iniciar_ejecucion_worker(uuid, text, text, uuid, jsonb) to ${usuario}`,
+      `grant execute on function public.cerrar_ejecucion_worker(uuid, text, text, jsonb, text, text) to ${usuario}`,
+    ]) await cliente.query(sentencia)
+    await cliente.query(
+      `insert into public.servidores_organizacion (organizacion_id, host, puerto_ssh, usuario_ssh, credencial_ssh_vault_id, rol_db, credencial_db_vault_id)
+       values ($1, 'localhost', 22, 'e2e', gen_random_uuid(), $2, gen_random_uuid())`,
+      [organizacionId, usuario],
+    )
+  } finally {
+    await cliente.end()
+  }
+  return { usuario, clave }
+}
+
+async function eliminarRolWorker(rol: RolWorker | null) {
+  if (!rol) return
+  const { Client } = createRequire(resolve(process.cwd(), '../../workers/comprobantes-pdf/package.json'))('pg') as typeof import('pg')
+  const cliente = new Client(datosPg())
+  await cliente.connect()
+  try {
+    await cliente.query(`drop owned by ${rol.usuario}`)
+    await cliente.query(`drop role if exists ${rol.usuario}`)
+  } catch (error) {
+    console.warn(`limpieza E2E: no se pudo borrar el rol ${rol.usuario}`, error)
+  } finally {
+    await cliente.end()
+  }
+}
+
+// Corre el worker real con la conexión Postgres local y el rol de la organización; devuelve la duración de la generación.
+function correrWorker(documentoId: string, ejecucionId: string, rol: RolWorker): Promise<number> {
   const entrada = resolve(process.cwd(), '../../workers/comprobantes-pdf/dist/index.js')
   const inicio = Date.now()
   return new Promise((ok, falla) => {
@@ -85,8 +141,8 @@ function correrWorker(documentoId: string, ejecucionId: string): Promise<number>
         PGHOST: process.env.E2E_PGHOST ?? '127.0.0.1',
         PGPORT: process.env.E2E_PGPORT ?? '54322',
         PGDATABASE: process.env.E2E_PGDATABASE ?? 'postgres',
-        PGUSER: process.env.E2E_PGUSER ?? 'postgres',
-        PGPASSWORD: process.env.E2E_PGPASSWORD ?? 'postgres',
+        PGUSER: rol.usuario,
+        PGPASSWORD: rol.clave,
       },
       stdio: ['ignore', 'ignore', 'pipe'],
     })
@@ -98,7 +154,7 @@ function correrWorker(documentoId: string, ejecucionId: string): Promise<number>
 }
 
 // Hace de flow `comprobantes-documentos`: atiende cada pedido `pendiente` de la organización con el worker real.
-function atenderPedidos(organizacionId: string) {
+function atenderPedidos(organizacionId: string, rol: RolWorker) {
   let activo = true
   const duraciones: Record<string, number[]> = {}
   const atendidos = new Set<string>()
@@ -112,7 +168,7 @@ function atenderPedidos(organizacionId: string) {
         for (const doc of pendientes) {
           if (atendidos.has(doc.id) || !doc.ejecucion_id) continue
           atendidos.add(doc.id)
-          const ms = await correrWorker(doc.id, doc.ejecucion_id)
+          const ms = await correrWorker(doc.id, doc.ejecucion_id, rol)
           ;(duraciones[doc.tipo_documento] ??= []).push(ms)
         }
         await new Promise((resolver) => setTimeout(resolver, 500))
@@ -147,10 +203,17 @@ async function imprimir(page: Page, documento: RegExp, aviso: string | RegExp): 
   const avisosPrevios = await page.getByText(aviso).count()
   const inicio = Date.now()
   const popup = page.waitForEvent('popup', { timeout: LIMITE_GENERACION_MS })
+  // La pestaña se abre en blanco al pedir el documento y navega a la URL firmada cuando el worker terminó (MSF-722). El PDF
+  // se baja como descarga en el Chromium sin pantalla (la URL de la pestaña queda en blanco): se espera la pedida del
+  // objeto firmado, que marca el fin de la generación (SC-009).
+  const objetoFirmado = page.context().waitForEvent('request', {
+    predicate: (pedido) => pedido.method() === 'GET' && pedido.url().includes('/storage/v1/object/sign/comprobantes-documentos/'),
+    timeout: LIMITE_GENERACION_MS,
+  })
   await dialogo.getByRole('button', { name: 'Imprimir', exact: true }).click()
   const ventana = await popup
+  await objetoFirmado
   const latencia = Date.now() - inicio
-  expect(ventana.url()).toContain('/storage/v1/object/sign/comprobantes-documentos/')
   await ventana.close()
   await expect.poll(() => page.getByText(aviso).count()).toBeGreaterThan(avisosPrevios)
   return latencia
@@ -167,6 +230,7 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
     const nombreCliente = `Cliente Impresión ${sufijo}`
     let organizacionId: string | null = null
     let usuarioId: string | null = null
+    let rolWorker: RolWorker | null = null
     const worker = { detener: async () => {}, duraciones: {} as Record<string, number[]> }
     try {
       const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E impresión ${sufijo}` })
@@ -182,7 +246,6 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
       await rest('conexiones', { organizacion_id: org.id, sistema_externo: 'comprobantes-pdf', credencial_vault_id: randomUUID() })
       const [cliente] = await rest<{ id: string }>('clientes', {
         organizacion_id: org.id,
-        numero: 1,
         nombre: nombreCliente,
         tipo: 'minorista',
         correo: correoCliente,
@@ -206,7 +269,8 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
         'dominio',
       )
 
-      const atencion = atenderPedidos(org.id)
+      rolWorker = await aprovisionarRolWorker(org.id)
+      const atencion = atenderPedidos(org.id, rolWorker)
       worker.detener = atencion.detener
       worker.duraciones = atencion.duraciones
 
@@ -267,6 +331,7 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
         try {
           if (organizacionId) await borrar(`organizaciones?id=eq.${organizacionId}`)
         } finally {
+          await eliminarRolWorker(rolWorker)
           if (usuarioId) await borrarUsuario(usuarioId)
         }
       }

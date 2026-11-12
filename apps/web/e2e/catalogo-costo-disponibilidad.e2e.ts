@@ -22,10 +22,10 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
+async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', prefer = 'return=representation'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
+    headers: cabeceras({ prefer, 'content-profile': esquema }),
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
@@ -85,14 +85,15 @@ test.describe('Catálogo: costo, disponibilidad y escaneo (MSF-179, FR-016)', ()
         { user_id: idOperador, organizacion_id: org.id, rol_id: 'operador' },
       ])
       const [p1, p2] = await rest<{ id: string }>('productos', [
-        { organizacion_id: org.id, nombre: conStock, sku: `E2E-S-${sufijo}`, precio_lista: 50, codigo_barras: codigoBarras },
-        { organizacion_id: org.id, nombre: aPedido, sku: `E2E-P-${sufijo}`, precio_lista: 40, disponibilidad_manual: 'a_pedido' },
+        { organizacion_id: org.id, nombre: conStock, sku: `E2E-S-${sufijo}`, precio_lista: 50, codigo_barras: codigoBarras, disponibilidad_manual: null },
+        { organizacion_id: org.id, nombre: aPedido, sku: `E2E-P-${sufijo}`, precio_lista: 40, codigo_barras: null, disponibilidad_manual: 'a_pedido' },
       ], 'dominio')
       await rest('producto_costos', [
         { producto_id: p1.id, organizacion_id: org.id, costo: 12.5 },
         { producto_id: p2.id, organizacion_id: org.id, costo: 7 },
       ], 'dominio')
-      await rest('existencias', { producto_id: p1.id, organizacion_id: org.id, cantidad: 4 }, 'dominio')
+      // El disparador `productos_crear_existencias` ya creó la fila: se actualiza.
+      await rest('existencias?on_conflict=producto_id', { producto_id: p1.id, organizacion_id: org.id, cantidad: 4 }, 'dominio', 'return=representation,resolution=merge-duplicates')
 
       // Administrador: columna Costo con el valor sembrado.
       const ctxAdmin = await browser.newContext()

@@ -60,6 +60,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('menú → categoría, filtros, orden, paginación y URL compartible', async ({ browser }) => {
+    test.setTimeout(180_000) // recorrido largo de varios pasos y roles: el tope por defecto (30 s) no alcanza
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t, i) => ({
       ...t,
@@ -113,7 +114,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
 
         // Menú → categoría: solo sus 3 productos, con precio y disponibilidad.
         await page.goto(`${base}/`)
-        await page.getByRole('navigation', { name: 'Categorías' }).getByRole('link', { name: t.categoria }).click()
+        await page.getByRole('banner').getByRole('navigation', { name: 'Categorías' }).getByRole('link', { name: t.categoria }).click()
         await expect(page.getByRole('heading', { level: 1, name: t.categoria })).toBeVisible()
         await expect(contador).toHaveText('3 productos')
         await expect(tarjetas).toHaveCount(3)

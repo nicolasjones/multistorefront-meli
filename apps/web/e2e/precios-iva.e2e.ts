@@ -119,11 +119,13 @@ test.describe('Precios e IVA (MSF-114, SC-009)', () => {
 
       // 1. Alta del producto en USD con costo, desde la pantalla.
       await page.goto('/productos/create')
-      await page.getByLabel('Nombre').fill(nombre)
+      // La pantalla vuelve a pintar el formulario cuando terminan de cargar los permisos: se espera a que aparezca el bloque de precios antes de escribir.
+      await expect(page.getByRole('region', { name: 'Precio y costo' })).toBeVisible()
+      await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(nombre)
       await page.getByLabel('Moneda').click()
       await page.getByRole('option', { name: /USD|Dólar/ }).click()
       await page.getByLabel('Precio de lista (sin IVA)').fill('20')
-      await page.getByLabel('Costo').fill('12')
+      await page.getByLabel('Costo', { exact: true }).fill('12')
       await expect(page.getByLabel('Precio en pesos')).toHaveValue('$ 29.300')
       await expect(page.getByText(/costo \$ 17\.580 · con dólar \$ 1\.465/)).toBeVisible()
       await expect(page.getByText('Margen estimado (escala x1):')).toContainText('40 %')

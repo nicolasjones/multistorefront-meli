@@ -34,6 +34,13 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
 
   // Organización con conexión de exportaciones (`historial-ventas`), como la deja un administrador de la plataforma.
   async function conexionExportaciones(orgId: string) {
+    // La referencia `historial-ventas` no viene en el esquema (la crea el alta del sistema): se siembra sin pisar la existente.
+    const ref = await fetch(`${url}/rest/v1/sistemas_externos?on_conflict=id`, {
+      method: 'POST',
+      headers: cabeceras({ 'content-type': 'application/json', prefer: 'resolution=ignore-duplicates' }),
+      body: JSON.stringify({ id: 'historial-ventas', descripcion: 'Historial de ventas (exportaciones de la organización)' }),
+    })
+    if (!ref.ok) throw new Error(`REST sistemas_externos: ${ref.status} ${await ref.text()}`)
     await rest('conexiones', 'POST', { organizacion_id: orgId, sistema_externo: 'historial-ventas', credencial_vault_id: randomUUID() })
   }
 
