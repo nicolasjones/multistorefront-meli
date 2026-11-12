@@ -1,4 +1,4 @@
--- MSF-825 (MSF-828): el disparador `private.normalizar_producto()` (20270228100100) llama a
+-- MSF-825 (MSF-828): el disparador `private.normalizar_producto()` (20270228300500) llama a
 -- `private.quitar_prefijo_importacion()`, que se creó sin privilegio de ejecución para el rol que escribe.
 -- El disparador NO es `security definer`: corre como el rol que inserta, y `public.crear_producto` es
 -- `security invoker`, así que el alta y la edición de productos desde la app (rol `authenticated`) fallaban con
