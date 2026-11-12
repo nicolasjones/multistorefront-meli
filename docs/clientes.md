@@ -476,7 +476,7 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   2. `20270227140000`: volver a las definiciones de `20270114100100_saldo_y_lectura_cobros.sql` (`drop function` +
      `create` de las dos `saldo_comprobante`, sin la columna `notas_credito`) y
      `revoke execute on function private.comprobante_cuenta_como_facturado(text, text) from authenticated`. Esto
-     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`.
+     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`. **Revertir `20270227140000` exige revertir también `20270228200000` y `20270228200100` (Pagos: `listar_pagos` y `resumen_pagos`) en el mismo cambio**; si no, Pagos queda neto de notas y el comprobante bruto.
   3. `20270227110000` y `20270227130000`: volver `public.cuenta_corriente_cliente` a la definición de
      `20270222100000_cuenta_corriente_cliente.sql` (sin notas de crédito) con `drop function` + `create`; **no** basta con
      `drop function`, que dejaría la pantalla sin cuenta corriente (y la ficha espera la forma de respuesta de cada
