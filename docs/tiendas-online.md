@@ -366,6 +366,43 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
 - **Pruebas**: pgTAP `tienda_categorias_publicas`, Vitest + axe (`EnrutadorTienda.test.tsx`, 320/768/1440 px) y
   E2E `e2e/tienda-categorias.e2e.ts` con las dos tiendas del seed.
 
+## Corrección de la demo frente al prototipo (MSF-825, bugs MSF-826…MSF-832)
+
+Registro del bug: `.specify/bugs/tienda-demo-categorias-y-catalogo-timeout/`.
+
+- **Causa raíz de «sin catálogo, sin categorías»**: las dos funciones públicas más usadas respondían HTTP 500
+  («canceling statement due to statement timeout», tope de 3 s de `anon`) con el volumen real de la demo
+  (2.204 productos publicados por tienda). Medido en dev: `categorias_por_dominio` tardaba 2,5–4 s (el conteo
+  se reevaluaba una vez por categoría, ~170 veces) y `catalogo_pagina_por_dominio` ~54 s (calculaba el precio de
+  TODOS los productos con `precio_vigente_empresa`, ≈ 20 ms cada uno, antes de paginar). Sin esas dos, el menú
+  quedaba sin categorías, la home sin tarjetas y `/catalogo` sin listado, contador ni «Ordenar por».
+- **Migración** `20270228100000_tienda_publica_rendimiento_y_categorias.sql` (misma firma y campos, sin tablas):
+  `categorias_por_dominio` materializa el conteo (una pasada: 4 s → 30 ms en la base de prueba), **solo devuelve
+  categorías con productos visibles** y `productos` **incluye las subcategorías** (la raíz «Consolas» suma sus
+  hijas); `catalogo_pagina_por_dominio` calcula el precio con las mismas funciones y la misma regla que
+  `precio_vigente_empresa` pero sin la función envoltorio (15 s → ~1 s) y filtrar por una categoría **incluye su
+  subárbol**, de modo que el número de la tarjeta coincide con el listado al entrar. El subárbol se limita a la
+  organización de la tienda (aislamiento). Reversión: reaplicar las definiciones de
+  `20261023150000_tienda_categorias_publicas.sql` y `20270221100004_tienda_precio_anterior.sql`.
+- **Categorías principales** (`lib/tiendaCategorias.ts`, `categoriasPrincipales`): menú de escritorio y móvil,
+  tarjetas de la home y pie muestran las raíces con productos de mayor a menor cantidad, hasta **6** (el
+  prototipo), sin nombres repetidos, más «Más categorías» / «Ver todas las categorías» hacia `/catalogo`. La
+  tienda controla qué entra ocultando categorías en su configuración (`categorias_tienda.visible`); una tienda
+  nueva sin configuración usa las de mayor cantidad. El panel del catálogo (`filasPanelCategorias`) muestra las
+  raíces y despliega, con sangría, solo la rama de la categoría elegida, en orden de árbol.
+- **Mundo JC y San Javucho (MSF-832)**: la base ya filtraba por tienda. En dev ambas publican **los mismos 2.204
+  productos** (con precios propios), por eso las categorías y los conteos coinciden: es el dato de la demo, no una
+  fuga. El aislamiento se prueba en pgTAP (`tienda_categorias_publicas`: la tienda de otra organización solo ve
+  sus categorías).
+- **Nombres sin prefijo de importación (MSF-828)**: la base (`private.normalizar_producto`, migración
+  `20270228100100_productos_nombre_sin_prefijo_de_importacion.sql`) quita «&ua», «&u+», «&+», «&uu»… del nombre y
+  de la descripción en todo alta y edición, y limpió lo ya cargado; el front público además limpia al mostrar
+  (`lib/tiendaTextos.ts`: prefijo, entidades HTML comunes y espacios). Una descripción igual al nombre se omite
+  en la ficha (el nombre aparecía tres veces).
+- **Contacto (MSF-831)**: «Respondemos dentro de las 24 h» y «Retiro y envíos»; ver `docs/tienda-contacto.md`.
+- **Ficha (MSF-829)**: ya tenía WhatsApp, galería, «Sin imagen», «Sin stock» y relacionados; lo que fallaba era
+  el nombre repetido y las categorías de la barra. Pendiente de verificar en dev tras el despliegue.
+
 ## Catálogo con filtros y orden (F-TDA-12, MSF-355, épica MSF-167)
 
 Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-030…FR-041, SC-004, SC-005, SC-006).

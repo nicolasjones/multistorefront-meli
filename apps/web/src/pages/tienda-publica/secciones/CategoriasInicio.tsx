@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCategoriasTienda } from '../../../hooks/useCategoriasTienda'
+import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCategorias'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import type { PropsSeccionTienda } from '../PaginaTienda'
 import { ErrorConReintento } from '../ErrorConReintento'
@@ -10,9 +11,12 @@ export const orden = 40
 
 const cantidad = (n: number) => (n === 1 ? '1 producto' : `${n} productos`)
 
-// Bloque «Categorías» de la home (F-TDA-10, FR-003): una tarjeta por categoría visible, en el orden de
-// Catálogo, con «N productos» (incluido «0 productos»), que enlaza a su listado. Se oculta cuando la tienda
-// no tiene productos visibles (ahí manda «Catálogo en preparación»). Un error queda en este bloque.
+// Bloque «Categorías» de la home (F-TDA-10, FR-003): una tarjeta por categoría principal de la tienda (las de
+// mayor cantidad, hasta 6, sin nombres repetidos) con «N productos» (el conteo real de productos visibles,
+// subcategorías incluidas: coincide con el listado al entrar), que enlaza a su listado. Nunca hay tarjetas
+// con 0 productos: la base no devuelve las categorías vacías (MSF-825, MSF-827). «Ver todas las categorías»
+// lleva al catálogo con el resto. Se oculta cuando la tienda no tiene productos visibles (ahí manda
+// «Catálogo en preparación»). Un error queda en este bloque.
 export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   const categorias = useCategoriasTienda(host)
   const inicio = useInicioTienda(host)
@@ -30,6 +34,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   // Si el dato de preparación falló, no se oculta el bloque: las categorías ya cargaron por su cuenta.
   if ((inicio.fase === 'lista' && !inicio.hayProductos) || categorias.categorias.length === 0) return null
 
+  const principales = categoriasPrincipales(categorias.categorias)
   return (
     <Box component="section" aria-labelledby="categorias-inicio-titulo" sx={{ mt: 4 }}>
       <Typography id="categorias-inicio-titulo" component="h2" variant="h5" sx={{ mb: 2 }}>Categorías</Typography>
@@ -37,7 +42,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
         component="ul"
         sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}
       >
-        {categorias.categorias.map((c) => (
+        {principales.map((c) => (
           <li key={c.id}>
             <Box
               component={EnlaceRuta}
@@ -54,6 +59,9 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
           </li>
         ))}
       </Box>
+      {hayMasCategorias(categorias.categorias, principales) ? (
+        <Box component={EnlaceRuta} to="/catalogo" sx={{ display: 'inline-block', mt: 2, color: 'inherit' }}>Ver todas las categorías →</Box>
+      ) : null}
     </Box>
   )
 }

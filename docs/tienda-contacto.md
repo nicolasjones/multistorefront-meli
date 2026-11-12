@@ -48,7 +48,7 @@ la migración). El código del front se revierte con `git revert -m 1` del merge
 
 1. El prototipo de **Empresas** no dibuja «Horarios de atención»; el campo se agrega por FR-014 (D2).
 2. La **bajada** de «Contacto» sale del «Texto del pie de página» que la tienda ya configura (F-TDA-03); sin texto, no se muestra.
-3. «Respondemos dentro de las 24 h» y el bloque «Retiro y envíos» del prototipo quedan fuera de alcance (ver matriz de la spec).
+3. ~~«Respondemos dentro de las 24 h» y el bloque «Retiro y envíos» del prototipo quedan fuera de alcance.~~ **Ya no (MSF-831, épica MSF-825)**: la historia los pide y mandan los requisitos. Se muestran en `DatosContacto`: «Respondemos dentro de las 24 h» bajo el correo y «Retiro y envíos» («Coordinamos por WhatsApp», o «por correo» si la tienda no cargó WhatsApp; «No hay compra online en esta versión: consultás y coordinamos.»). Sin ningún dato de contacto no se muestra ni el bloque. El plazo de 24 h es texto fijo de la plataforma, igual que el prototipo; si una tienda necesita otro plazo, habrá que volverlo configurable.
 4. El menú de escritorio suma «Contacto» al final de la lista de categorías (el prototipo lo muestra en otra barra); el menú móvil lo pone después de «Inicio».
 
 ## Verificación

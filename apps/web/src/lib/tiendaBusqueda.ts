@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import {
+import { limpiarTextoPublico } from './tiendaTextos'
   PAGINA_VACIA,
   mapearPagina,
   type FilaPagina,
@@ -66,7 +67,7 @@ export async function leerSugerencias(host: string, q: string): Promise<Respuest
     // La base ya devuelve hasta 6; el tope se repite acá como red de seguridad de la constante única.
     sugerencias: fila.productos.slice(0, TOPE_SUGERENCIAS).map((p) => ({
       id: p.id,
-      nombre: p.nombre,
+      nombre: limpiarTextoPublico(p.nombre),
       precio: p.precio === null ? null : Number(p.precio),
       precioAnterior: p.precio_anterior == null ? null : Number(p.precio_anterior),
       disponible: p.disponible,
