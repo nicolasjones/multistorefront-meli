@@ -89,7 +89,7 @@ Al crear una forma de pago completás **Nombre**, **Tipo de forma de pago**, **E
 
 ## Deuda de clientes
 
-- En cada factura, el **Saldo** de la tarjeta **Cobros** es lo que ese cliente todavía debe.
+- En cada factura, el **Saldo** de la tarjeta **Cobros** es lo que ese cliente todavía debe: lo que vale la factura **menos lo cobrado menos sus notas de crédito**, sin bajar de `$ 0` (no hay saldo a favor). Es el mismo saldo de la ficha del cliente, de Pagos y el tope al cobrar. Una factura **Cobrada** no es deuda.
 - En la **ficha del cliente** ves toda la deuda junta: el **Saldo deudor** y la **Cuenta corriente** con los comprobantes que el cliente tiene abiertos (ver [Clientes](clientes.md#el-saldo-del-cliente-y-su-cuenta-corriente)).
 - En **Ventas → Pagos**, la tarjeta **Saldo pendiente de clientes** suma lo que falta cobrar de los comprobantes con pago parcial.
 - En **Ventas → Comprobantes** podés filtrar por **Estado: Deuda** para ver las facturas que se entregaron sin cobrar.
@@ -108,7 +108,7 @@ Al crear una forma de pago completás **Nombre**, **Tipo de forma de pago**, **E
 |---|---|
 | **Por conciliar** | Importe de los pagos todavía sin aprobar y cuántos son. |
 | **Conciliado** | Importe de los pagos ya aprobados y cuántos son. |
-| **Saldo pendiente de clientes** | Lo que falta cobrar de los comprobantes con pago parcial. |
+| **Saldo pendiente de clientes** | Lo que falta cobrar de los comprobantes con pago parcial, descontadas sus notas de crédito. |
 
 ### Filtros
 
@@ -176,6 +176,8 @@ Un **contrarreembolso** es cuando el **transporte cobra al cliente al entregar**
 4. Hacé clic en **Marcar cobrado**. Aparece «Contrarreembolso cobrado · nombre del transporte» y el estado pasa a **Cobrado**.
 
 Solo Administración y Administrador pueden marcar cobrado. Si ya está cobrado, el botón queda deshabilitado.
+
+Si después de abrir el contrarreembolso se emite una **nota de crédito** sobre la factura, el importe pendiente baja solo al **saldo neto** (nunca se cobra más de lo que la factura todavía debe). Si la factura está **anulada**, el contrarreembolso queda visible pero no se puede cobrar.
 
 ![Pestaña Contrarreembolsos con el botón Marcar cobrado de la fila pendiente señalado](img/ventas-cobros-y-conciliacion/05-contrarreembolsos.png)
 

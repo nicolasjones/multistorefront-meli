@@ -66,7 +66,7 @@ exactamente esos productos.
 - **Filtros**: por categoría, **Solo con stock** y **Precio máximo** (en pesos, o «Sin límite»). El botón **Limpiar filtros** los saca.
 - **Ordenar por**: «Más relevantes» (los destacados primero), «Menor precio» o «Mayor precio».
 - **Buscar productos**: el buscador está en el encabezado de todas las pantallas. A partir de 2 letras muestra hasta 6 sugerencias con foto, nombre y precio; con Enter o con «Ver todos los resultados →» se abre el listado completo. Entiende mayúsculas, tildes y algunos errores de tipeo («cargdor» encuentra «cargador»). Si no hay coincidencias dice «No encontramos productos con ese nombre.»
-- Si un producto tiene una **promoción vigente**, su precio aparece con el **precio anterior tachado** al lado. Ver [Promociones de precio](promociones.md).
+- Si un producto tiene una **promoción vigente** (y las promociones están activadas en el entorno), su precio aparece con el **precio anterior tachado** al lado. Con las promociones apagadas, la tienda muestra siempre el precio normal. Ver [Promociones de precio](promociones.md).
 - Si alguien busca demasiado seguido, la tienda le pide esperar unos segundos y sigue sola.
 
 A la izquierda está el panel **Categorías**, con la cantidad de productos de cada una. Ahí están
@@ -90,7 +90,7 @@ El **nombre se muestra limpio**: si el producto venía de una exportación de ot
 encima el texto que traía de más (por ejemplo, los signos «&ua» que veías antes). La **descripción**
 tampoco repite el nombre: si son lo mismo, se omite.
 
-Si el producto tiene una **promoción vigente** en esa tienda, el precio aparece con el **precio anterior tachado** al lado. El tachado solo se muestra cuando el precio anterior era más caro. Ver [Promociones de precio](promociones.md).
+Si el producto tiene una **promoción vigente** en esa tienda (y las promociones están activadas en el entorno; apagadas, se ve el precio normal), el precio aparece con el **precio anterior tachado** al lado. El tachado solo se muestra cuando el precio anterior era más caro. Ver [Promociones de precio](promociones.md).
 
 ![Ficha de un producto de la tienda con la galería de fotos, el nombre, el precio, la disponibilidad, el SKU, la categoría y el botón Consultar por WhatsApp](img/tiendas-online/05-ficha.png)
 

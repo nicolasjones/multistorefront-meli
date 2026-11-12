@@ -33,7 +33,7 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | Término | Qué significa |
 |---|---|
 | **SKU** | Código propio de cada producto. |
-| **Precio por escala (escala de precio)** | Precio según la cantidad que se compra: x1, x5, x10, x50. El tipo de cliente define qué lista le toca y la cantidad define la escala. |
+| **Precio por escala (escala de precio)** | Precio según la cantidad que se compra: x1, x5, x10, x50. Un cliente minorista paga siempre el precio de lista (x1); a un mayorista, la cantidad de cada línea le define la escala (x5 desde 5 unidades, x10 desde 10, x50 desde 50). Hoy el tipo de cliente son solo esos dos valores: no hay una pantalla de «Tipos de cliente». |
 | **Cliente minorista / mayorista** | Tipo de cliente. El minorista paga el precio x1; el mayorista accede a las escalas por cantidad. |
 | **Descuento por cliente** | Porcentaje propio de un cliente que se le descuenta del precio de escala en cada venta. Lo fija el Administrador. Ver [Clientes](clientes.md#descuento-por-cliente). |
 | **Precio neto** | Precio sin IVA. |

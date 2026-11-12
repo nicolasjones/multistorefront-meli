@@ -7,7 +7,7 @@ sources: []
 
 ## Para qué sirve
 
-Acá llevás la agenda de tus clientes: sus datos de contacto, su documento, si son minoristas o mayoristas y en qué tiendas pueden comprar. El tipo de cliente define qué precio se le aplica en las ventas. También podés ver cuánto compró cada cliente, cuánto te debe ahora y quiénes son los que más facturan.
+Acá llevás la agenda de tus clientes: sus datos de contacto, su documento, si son minoristas o mayoristas y en qué tiendas pueden comprar. El tipo de cliente (minorista o mayorista) define qué escala de precio se le aplica en las ventas. También podés ver cuánto compró cada cliente, cuánto te debe ahora y quiénes son los que más facturan.
 
 ## Quién puede hacerlo
 
@@ -126,7 +126,7 @@ En la tarjeta **Resumen comercial** de la ficha hay dos números distintos, y co
 | **Facturado en el año (sin IVA)** | Lo que el cliente compró en lo que va del año. Es un número de **ventas**, no de deuda. | No |
 | **Saldo deudor** | Lo que el cliente te debe **hoy**. Es el número de la **deuda**. | Sí |
 
-Debajo, la tarjeta **Cuenta corriente** lista los comprobantes que el cliente tiene **abiertos**: **Comprobante**, **Fecha**, **Estado**, **Total**, **Cobrado** y **Saldo**, del más reciente al más antiguo.
+Debajo, la tarjeta **Cuenta corriente** lista los comprobantes que el cliente tiene **abiertos**: **Comprobante**, **Fecha**, **Estado**, **Total**, **Cobrado** y **Saldo**, del más reciente al más antiguo. Si algún comprobante tiene notas de crédito, se suma la columna **Notas de crédito**.
 
 - El **Saldo deudor** es la suma de los saldos de esa lista. Si el cliente no debe nada, ves `$ 0` y el mensaje «Este cliente no tiene comprobantes con saldo».
 - El **Saldo deudor** se pinta de **ámbar** cuando el cliente debe y de **verde** cuando no debe nada.
@@ -134,15 +134,17 @@ Debajo, la tarjeta **Cuenta corriente** lista los comprobantes que el cliente ti
 
 ### Qué entra y qué no
 
-- Entra solo lo que está en **factura** y todavía no está saldado. Una factura cobrada por completo, una factura anulada y un borrador **no** son deuda y no aparecen.
+- Entra solo lo que está en **factura** y todavía no está saldado. Una factura **Cobrada** (aunque su cobro no esté en el libro de cobros), una factura anulada y un borrador **no** son deuda y no aparecen: «cobrada» no es deuda.
 - Un **presupuesto** no es deuda: no aparece.
-- Una **nota de crédito** todavía **no descuenta** del saldo.
-- Si le pagaste de más a un cliente, **no hay saldo a favor**: el saldo queda en `$ 0`.
+- El saldo de cada factura es **lo que vale menos lo cobrado menos sus notas de crédito**, sin bajar de cero. Una nota de crédito emitida (no borrador ni anulada) **descuenta** de la factura de la que cuelga; es el mismo saldo que ves en el detalle del comprobante y el tope al cobrar.
+- Si le pagaste de más a un cliente, o las notas y los cobros superan la factura, **no hay saldo a favor**: el saldo queda en `$ 0` y la factura sale de la lista.
+- Cuentan las facturas en cualquiera de los estados vivos que no son borrador, anulada ni cobrado (confirmada, pendiente, aceptado, en proceso, deuda, armando e incompleto). Que «Pendiente» o «Confirmada» ya cuenten como deuda es una definición provisoria.
+- Los importes se ven con centavos cuando los hay (`$ 1.210,50`) y sin decimales cuando son enteros.
 - El saldo va **con IVA**; el «Facturado en el año» va **sin IVA**. Son dos números distintos y cada uno dice en qué base está.
 
 ### De qué tiendas es la deuda
 
-El saldo suma lo que el cliente debe en **las tiendas a las que tenés acceso**, no solo en la tienda de la barra superior. Si sos Administrador, ves la deuda de todas las tiendas; si tu usuario tiene asignada una sola tienda, ves solo la de esa tienda.
+El saldo suma lo que el cliente debe en **las tiendas a las que tenés acceso**, no solo en la tienda de la barra superior. Si sos Administrador, ves la deuda de todas las tiendas; si tu usuario tiene asignada una sola tienda, ves solo la de esa tienda. Una persona sin tiendas asignadas ve `$ 0`, y la deuda de una tienda desactivada no suma (ni para el Administrador). Con permiso de Clientes en lectura ves el saldo aunque no tengas acceso a Ventas.
 
 ### Si la cuenta corriente no carga
 
@@ -294,7 +296,7 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 
 **¿Por qué no coinciden con los «Últimos comprobantes»?** «Últimos comprobantes» muestra los últimos documentos del cliente, estén abiertos o no (incluye presupuestos y anuladas). El saldo solo cuenta las **facturas con saldo pendiente**.
 
-**¿Las notas de crédito descuentan del saldo?** Todavía no: la nota de crédito no se descuenta de la cuenta corriente.
+**¿Las notas de crédito descuentan del saldo?** Sí: el saldo de la factura es lo que vale menos lo cobrado menos sus notas de crédito (mínimo `$ 0`). Si la nota deja la factura en cero y la factura ya tenía cobros, pasa sola a **Cobrado**.
 
 **¿Le puedo descontar un saldo a favor?** No hay saldo a favor: si le pagaste de más, el saldo se muestra en `$ 0`.
 

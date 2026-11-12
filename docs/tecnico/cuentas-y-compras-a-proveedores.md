@@ -20,7 +20,7 @@ Resumen de producto: [Clientes](../producto/clientes.md) (ficha del cliente) y [
 |---|---|---|---|---|---|
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | **Construida** (MSF-451), con definición provisoria | Cómo Ventas maneja los cobros y el estado «Deuda» |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | Backlog, sin código | La cuenta web del cliente (MSF-237); equivale a F-CON-07 y F-TDA-27, acotados a esto |
-| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog, sin código | Relacionada con F-PRE-14 (Precios) |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog, sin código | Relacionada con F-PRE-14 (Precios), **cancelada** el 2026-11-12 |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Backlog, sin código | El ingreso de mercadería por proveedor y el listado de reposición de Stock (MSF-368) |
 
 En `specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks.md`, las tareas T002, T003 y T004 (F-CLI-20, F-CLI-21 y F-PRV-09) quedan **abiertas a propósito** por decisión del responsable: no hay requisitos que implementar. T001 (F-CLI-19) se cerró con la spec de la historia; T010–T012 (cierre: guía, roadmap y gates) están cerradas.
@@ -29,11 +29,11 @@ En `specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks.md`, las tareas 
 
 **Spec:** `specs/20261109-100000-cuenta-corriente-y-saldo-cliente/` (`spec.md`, `plan.md`, `tasks.md`) · **Rama:** `feat/story-MSF-451` (PR #817, merge `9daa892f`; el cierre de la historia quedó en `52671e91` y `ea75c62d`).
 
-La idea entró a hito sin requisitos del cliente: **la spec y las reglas las redactó el desarrollo** a partir de [Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md) (MSF-195). Queda como **definición provisoria**, a confirmar con el cliente cuando la idea vuelva a un hito.
+La idea entró a hito sin requisitos del cliente: **la spec y las reglas las redactó el desarrollo** a partir de [Ventas · cobros y conciliación](ventas-cobros-y-conciliacion.md) (MSF-195). Queda como **definición provisoria**, a confirmar con el cliente cuando la idea vuelva a un hito. Nicolás confirmó el 2026-11-12 que **la factura «Cobrada» no es deuda**, que el saldo respeta las tiendas accesibles y que quien tiene `clientes` en lectura ve el saldo aunque no acceda a Ventas; el 2026-11-11 decidió que **las notas de crédito restan**. Siguen sin confirmar qué estados cuentan como deuda (en especial «Pendiente» y «Confirmada») y si el saldo a favor se muestra (hoy no).
 
 ### Pantalla
 
-La ficha `/clientes/show/:id` suma a la tarjeta **«Resumen comercial»** el **«Saldo deudor»** (lo que el cliente debe, **con IVA**) y, debajo de «Últimos comprobantes», la tarjeta **«Cuenta corriente»**: los comprobantes con saldo pendiente (Comprobante, Fecha, Estado, Total, Cobrado y Saldo; del más reciente al más antiguo).
+La ficha `/clientes/show/:id` suma a la tarjeta **«Resumen comercial»** el **«Saldo deudor»** (lo que el cliente debe, **con IVA**) y, debajo de «Últimos comprobantes», la tarjeta **«Cuenta corriente»**: los comprobantes con saldo pendiente (Comprobante, Fecha, Estado, Total, Cobrado, Saldo y, solo si algún comprobante tiene notas de crédito, «Notas de crédito»; del más reciente al más antiguo). Los importes se ven con centavos cuando los hay.
 
 - Si el cliente no debe nada, la cuenta corriente muestra el vacío («Este cliente no tiene comprobantes con saldo.») y el saldo es `$ 0`.
 - Si la base no responde, el bloque muestra el error con **«Reintentar»** y el «Saldo deudor» queda en «—»: el error no se come el resto de la ficha.
@@ -49,18 +49,18 @@ Archivos: `apps/web/src/components/clientes/ComprasCliente.tsx` (la tarjeta y la
 
 | RPC | Devuelve / hace | Seguridad |
 |---|---|---|
-| `public.cuenta_corriente_cliente(p_cliente_id uuid) returns table (id uuid, saldo_total numeric, comprobantes bigint, numero text, fecha date, tipo text, estado text, total_con_iva numeric, cobrado numeric, saldo numeric)` | Una fila por comprobante **con saldo**, del más reciente al más antiguo. El encabezado (`saldo_total`, `comprobantes`) viaja en cada fila; sin documentos abiertos vuelve solo la fila de encabezado (saldo 0, 0 comprobantes). Cada fila trae el **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre tiendas y el `id` es lo que identifica la fila | `security definer`, `search_path = ''`, `stable`; organización de `private.organizacion_id()` (nunca de un argumento); exige la sección `clientes` en `lectura`/`edicion` (`42501`); un cliente de otra organización o inexistente devuelve saldo 0 y sin documentos (no revela si existe); `p_cliente_id` nulo → `22023`; `revoke execute … from public, anon` y `grant execute … to authenticated` |
+| `public.cuenta_corriente_cliente(p_cliente_id uuid) returns table (id uuid, saldo_total numeric, comprobantes bigint, numero text, fecha date, tipo text, estado text, total_con_iva numeric, cobrado numeric, notas_credito numeric, saldo numeric)` | Una fila por comprobante **con saldo**, del más reciente al más antiguo. El encabezado (`saldo_total`, `comprobantes`) viaja en cada fila; sin documentos abiertos vuelve solo la fila de encabezado (saldo 0, 0 comprobantes). Cada fila trae el **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre tiendas y el `id` es lo que identifica la fila | `security definer`, `search_path = ''`, `stable`; organización de `private.organizacion_id()` (nunca de un argumento); exige la sección `clientes` en `lectura`/`edicion` (`42501`); un cliente de otra organización o inexistente devuelve saldo 0 y sin documentos (no revela si existe); `p_cliente_id` nulo → `22023`; `revoke execute … from public, anon` y `grant execute … to authenticated` |
 
-Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`. **Renumerada** al integrar `dokploy` (commit `86c2c6fe`): en la rama de la historia era `20270221100000`, y ese número ya lo usaba MSF-363. El commit `cb7eebaf` borró el archivo viejo de la rama de la épica.
+Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`, recreada por `20270227110000` y `20270227130000` (columna `notas_credito` y estados de nota compartidos con el ranking) y `20270227140000` (usa `private.saldo_comprobante`). **Renumerada** al integrar `dokploy` (commit `86c2c6fe`): en la rama de la historia era `20270221100000`, y ese número ya lo usaba MSF-363. El commit `cb7eebaf` borró el archivo viejo de la rama de la épica.
 
 ### Cómo se calcula el saldo
 
-1. **El saldo no se recalcula**: lo trae `private.saldo_comprobante` (F-VTA-12, `supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql`), que es su **único dueño** (`total con IVA − Σ cobros`, nunca negativo). Si esta función recalculara el saldo habría dos reglas que pueden divergir.
-2. **El estado «Deuda» no se consulta**: una factura en «Deuda» no tiene cobros y debe su total completo; una factura «Cobrada» tiene el saldo en 0. El saldo se calcula siempre con el mismo criterio, sin mirar el estado.
-3. **Entran solo las facturas** que no están en `borrador`, `anulada` ni `cobrado`: un borrador no se debe, una anulada no le debe nada a nadie y una «Cobrada» está saldada aunque su cobro no esté en el libro (cobrada en mostrador o anterior al libro de cobros).
-4. **Los presupuestos no son deuda** y no entran. Las **notas de crédito no restan**: su efecto en la cuenta corriente es de MSF-195 (hoy la nota de crédito no admite cobros) y esta historia no lo reasigna.
+1. **El saldo no se recalcula**: lo trae `private.saldo_comprobante` (F-VTA-12, `20270114100100_saldo_y_lectura_cobros.sql`, redefinida por `20270227140000`), que es su **único dueño**: **saldo neto** = `round(greatest(total con IVA − cobrado − notas de crédito, 0), 2)`, nunca negativo y **sin saldo a favor**. Es el mismo valor del detalle del comprobante, del tope al cobrar, del contrarreembolso, de Pagos y de los envíos en moto.
+2. **El estado «Deuda» no se consulta** para calcular el saldo: se calcula siempre con el mismo criterio.
+3. **Entran solo las facturas** que no están en `borrador`, `anulada` ni `cobrado` y con saldo neto > 0: un borrador no se debe, una anulada no le debe nada a nadie y una «Cobrada» **no es deuda** aunque su cobro no esté en el libro (cobrada en mostrador o anterior al libro de cobros). Cuentan los siete estados vivos restantes (`confirmada`, `pendiente`, `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`).
+4. **Los presupuestos no son deuda** y no entran. Las **notas de crédito restan** de la factura de la que cuelgan (`comprobante_origen_id`, mismo cliente y organización; cuentan las que no están en `borrador` ni `anulada`, regla de `private.comprobante_cuenta_como_facturado`). El disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`) pasa la factura a «Cobrado» si lo cobrado más las notas la cubren y tiene cobros, y ajusta los contrarreembolsos pendientes al saldo neto.
 5. **`saldo_total` es la suma de los saldos listados** y `comprobantes`, la cantidad de ellos.
-6. **Alcance por tienda**: solo las tiendas a las que la persona accede (`private.empresas_accesibles()`, como `public.saldo_comprobante`); el administrador accede a todas. No ve deuda de tiendas ajenas.
+6. **Alcance por tienda**: solo las tiendas activas a las que la persona accede (`private.empresas_accesibles()`, como `public.saldo_comprobante`); el administrador accede a todas. No ve deuda de tiendas ajenas ni de una tienda desactivada.
 
 Índices: los que ya existen bastan (`comprobantes_venta_cliente_fecha_idx` por organización/cliente/fecha, la clave primaria de `dominio.comprobantes_venta` y `cobros_comprobante_comprobante_idx` por comprobante, que es lo que usa `private.saldo_comprobante`).
 
@@ -118,7 +118,8 @@ Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`. *
 
 ### Resultado esperado
 
-- **Given** un cliente con facturas de $1.210 totalmente cobrada, otra de $1.210 con un cobro de $400 y otra de $605 en «Deuda», **When** se lee su cuenta corriente, **Then** el saldo total es **$1.415** ($810 + $605) y hay **2** comprobantes con saldo, con su total, cobrado y saldo.
+- **Given** un cliente con facturas de $1.210 totalmente cobrada, otra de $1.210 con un cobro de $400 y otra de $605 en «Deuda», **When** se lee su cuenta corriente, **Then** el saldo total es **$1.415** ($810 + $605) y hay **2** comprobantes con saldo, con su total, cobrado, notas de crédito y saldo.
+- **Given** una factura de $1.000 con $600 cobrados y una nota de crédito de $100, **Then** el saldo es **$300**; con otra nota de $300 el saldo neto es 0, la factura pasa a «Cobrado» y sale de la lista.
 - **Given** una factura con un cobro que **supera** su total, **Then** su saldo es 0 y no aparece en la lista (no hay saldo a favor).
 - **Given** un cliente con un presupuesto, una factura anulada, una factura en borrador y una nota de crédito, **Then** ninguno aparece y no suma al saldo.
 - **Given** un cliente sin comprobantes con saldo, **Then** el saldo es 0, hay 0 comprobantes y no hay filas.
@@ -130,7 +131,7 @@ Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`. *
 
 | Recorrido | Rótulo | Prueba |
 |---|---|---|
-| Saldo por documento (cobro parcial, total, cobro que supera el total), estados que no son deuda, cliente sin deuda, cliente ajeno, alcance por tienda, sección `clientes` en `ninguno` y `anon` sin ejecución | `[MSF-451:T002]` | pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` (25 aserciones) |
+| Saldo por documento (cobro parcial, total, cobro que supera el total), estados que no son deuda, cliente sin deuda, cliente ajeno, alcance por tienda, sección `clientes` en `ninguno` y `anon` sin ejecución | `[MSF-451:T002]` | pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` (46 aserciones) |
 | Pantalla: carga, vacío, error + «Reintentar», colores del prototipo y accesibilidad a 320/768/1440 px | `[MSF-451:T003]` | Vitest `apps/web/src/components/clientes/ComprasCliente.test.tsx` y `apps/web/src/hooks/useCuentaCorrienteCliente.test.tsx` |
 | Ficha del cliente con el «Saldo deudor» y la tabla «Cuenta corriente» | `[MSF-451:T001]` | E2E `apps/web/e2e/cuenta-corriente-cliente.e2e.ts` (comprueba el saldo de $ 220.000 y los 4 comprobantes con saldo del cliente nº 9100; requiere el stack local de Supabase) |
 | Tarjeta «Cuenta corriente» en el prototipo e inventarios al día | `[MSF-451:T004]` | `pnpm prototipo:inventario && pnpm prototipo:check` |
@@ -139,7 +140,7 @@ El rótulo `[MSF-451:T001]` es el que ya usa la E2E del repo, aunque en `tasks.m
 escribe el E2E y la T001 es la migración: el desfasaje se ajusta al abrir el seguimiento. El resto de los
 rótulos propuestos sigue la numeración de `tasks.md` de la spec.
 
-**Estado de la ejecución:** la pgTAP y la E2E quedaron **escritas pero no ejecutadas** en la máquina de la épica (no hay Supabase local ahí); las valida el CI. En `tasks.md` el desvío está anotado en T002 y T005.
+**Estado de la ejecución:** la pgTAP corre en el job `database` del CI; la E2E **no la corre el CI** (se omite sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`) y se corre a mano con el stack local.
 
 ## Pruebas
 
@@ -152,7 +153,7 @@ rótulos propuestos sigue la numeración de `tasks.md` de la spec.
 
 ## Seguridad
 
-Revisada por un agente independiente (técnica + seguridad) sobre el commit final:
+Revisada por agentes independientes (QA y Código + Seguridad) sobre el commit final y de nuevo sobre las correcciones posteriores (notas de crédito, disparador de efectos, saldo neto en Pagos):
 
 - **Sin tablas nuevas**: no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
 - **`security definer` con `search_path = ''`**: todo está calificado (`public.`, `dominio.`, `private.`).
@@ -166,14 +167,14 @@ La migración es **aditiva** y lleva su reversión en el encabezado: `drop funct
 
 ## Preguntas abiertas (de la épica, sin resolver)
 
-1. **Tipo de cliente vs. cantidad (F-CLI-21 / F-PRE-14):** ¿el tipo de cliente fija la escala de precios o la escala depende de la cantidad? Chocan F-PRE-14 (listas mayoristas, P3) y que el tipo de cliente defina la escala en P0.
+1. **Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) está **cancelada** (2026-11-12). Hoy el tipo de cliente son dos valores fijos (minorista / mayorista; no existe una tabla `tipos_cliente`) y la escala de cada línea sale del tipo y la cantidad con `private.escala_para_linea`. F-CLI-21 (listas por cliente) sigue sin requisitos.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
-3. **Cuenta corriente (F-CLI-19):** qué estados cuentan como deuda, si las notas de crédito restan, si el saldo a favor se muestra y si el saldo se ve por tienda o por organización. La definición que quedó implementada es **provisoria** (la redactó el desarrollo).
+3. **Cuenta corriente (F-CLI-19):** **decidido:** las notas de crédito restan (2026-11-11), la «Cobrada» no es deuda y el saldo se ve por tienda accesible (2026-11-12). **A confirmar:** qué estados cuentan como deuda (en especial «Pendiente» y «Confirmada») y si el saldo a favor se muestra (hoy no).
 4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; las historias se cargaron igual por pedido, con aviso en cada una.
 
 ## Fuera de alcance y pendientes
 
-- **Notas de crédito restando de la cuenta corriente**: el prototipo de Ventas lo dice, pero ese efecto pertenece a **MSF-195**. Esta historia no lo reasigna; queda anotado como diferencia conocida, con seguimiento trazado (tarea `seguimiento` en It's a Plan para MSF-195).
+- **Anular una nota de crédito** después de que la factura pasó a «Cobrado» no la devuelve a «Deuda» (no hay forma segura de distinguir una cobrada en mostrador); hoy ninguna pantalla anula notas.
 - Vencimientos, límites de crédito, pago a plazo, descuentos por pronto pago y saldo a fin de mes: no existen.
 - Un estado nuevo de comprobante o una tabla propia de «movimientos de la cuenta corriente»: la cuenta corriente es una **lectura** de los documentos abiertos, no un libro propio.
 - El saldo por tienda o el detalle por tienda de la tabla: el número de comprobante puede repetirse entre tiendas y lo que distingue las filas es el `id`.
@@ -181,7 +182,7 @@ La migración es **aditiva** y lleva su reversión en el encabezado: `drop funct
 - **Diferencia conocida:** la sección «Compras» de la misma ficha es de toda la organización, mientras que la cuenta corriente suma solo las tiendas a las que la persona accede.
 - **F-CLI-20, F-CLI-21 y F-PRV-09 no tienen código**: no hay requisitos, pantallas, migraciones ni RPC. Cuando el cliente valide la demanda y asigne la historia a un hito, se redactan sus requisitos, se dibuja su pantalla y se escribe su spec propia.
 - **TODO (dueño: Documentador, tras el merge de la épica en `main`):** generar las capturas del manual para la ficha con el «Saldo deudor» y la tabla «Cuenta corriente» en `docs/producto/img/clientes/`. La herramienta de capturas del manual (`pnpm docs:capturas`, `apps/web/e2e/capturas/` y `pnpm demo:dataset`) **no existe en este repo**: lo más cercano es `pnpm --filter @platform/web pantallas:capturar`, que renderiza el prototipo y, con `PANTALLAS_APP_URL` y un `storageState` de Playwright, también las rutas de la app. Hasta entonces la página de producto describe el comportamiento **sin imágenes nuevas**: no se inventó ninguna.
-- **TODO (dueño: el responsable de la épica):** confirmar con el cliente la definición provisoria de la cuenta corriente (pregunta abierta 3) antes de tomar F-CLI-19 como cerrada.
+- **TODO (dueño: el responsable de la épica):** confirmar con el cliente qué estados cuentan como deuda («Pendiente», «Confirmada») y si el saldo a favor se muestra (pregunta abierta 3) antes de tomar F-CLI-19 como cerrada.
 
 ## Ver también
 

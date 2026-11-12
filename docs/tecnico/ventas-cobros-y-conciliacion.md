@@ -123,11 +123,11 @@ la empresa del dato** (`private.puede_*_en_empresa`), no en la empresa activa.
 | RPC | Qué hace | Seguridad |
 |---|---|---|
 | `registrar_cobro(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id uuid, p_cuenta_cobro_id uuid default null, p_actualizado_en timestamptz default null)` → `dominio.cobros_comprobante` | Registra un cobro: solo factura confirmada no anulada; importe > 0 con dos decimales y ≤ saldo; forma de pago de la misma empresa y activa; cuenta de cobro exigida por la forma, activa y habilitada para la empresa. Devuelve la fila. | `security definer`; exige `ventas` en edición y la acción `registrar_cobro` |
-| `saldo_comprobante(p_id uuid)` → `(total, cobrado, saldo)` | Total con IVA, suma de los cobros y lo que falta. `saldo = greatest(total − cobrado, 0)`. | `security invoker` |
+| `saldo_comprobante(p_id uuid)` → `(total, cobrado, notas_credito, saldo)` | Total con IVA, suma de los cobros, notas de crédito de la factura (mismo cliente y organización, que cuentan según `private.comprobante_cuenta_como_facturado`: ni borrador ni anulada) y lo que falta. **Saldo neto** `saldo = round(greatest(total − cobrado − notas_credito, 0), 2)`; no hay saldo a favor. Desde `20270227140000` (MSF-450; antes era `total − cobros`). | `security invoker` |
 | `cobros_de_comprobante(p_comprobante_id uuid)` → `(id, fecha, forma_pago, forma_pago_tipo, cuenta_cobro, cuenta_cobro_banco, cuenta_cobro_titular, importe, origen, conciliado, aprobado_por, registrado_por)` | La lista de cobros de la factura. Devuelve el **tipo** de la forma de pago y el **banco/titular** de la cuenta además del nombre: la pantalla distingue el contrarreembolso por tipo (el nombre lo edita la persona y no es un dato estable) y muestra «Banco · Titular». | `security invoker` |
 | `puede_registrar_cobro(p_empresa_id uuid)` → `boolean` | **Lectura** del permiso para la pantalla: acción `registrar_cobro` de Ventas **y** `ventas` en edición, resueltas con el rol del usuario en esa empresa. No autoriza nada: la autoridad es `registrar_cobro`. | `security definer` |
 | `private.registrar_cobro_interno(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id uuid, p_cuenta_cobro_id uuid, p_origen text, p_actor uuid)` → `uuid` | **Único camino** para dejar un cobro en el libro: valida el tope con la fila del comprobante bloqueada (`for update`), inserta el cobro y aplica Cobrado/Deuda con `private.marcar_estado_cobro_comprobante`. La usan `registrar_cobro` y `marcar_contrarreembolso_cobrado`. | `security definer`, **sin grant** |
-| `private.saldo_comprobante(p_id uuid)` | Cuenta interna del saldo. **Volátil** a propósito: `registrar_cobro_interno` la usa justo después de insertar el cobro y tiene que ver esa fila (una función `stable` usaría el snapshot de la sentencia que la llamó y vería el saldo anterior). | `security definer`, sin grant |
+| `private.saldo_comprobante(p_id uuid)` | Cuenta interna del saldo, **único dueño** del saldo neto (la usan el tope de `registrar_cobro`, el paso a Cobrado, el contrarreembolso, los envíos en moto y la cuenta corriente del cliente). Devuelve lo mismo que la pública. **Volátil** a propósito: `registrar_cobro_interno` la usa justo después de insertar el cobro y tiene que ver esa fila (una función `stable` usaría el snapshot de la sentencia que la llamó y vería el saldo anterior). | `security definer`, sin grant |
 | `private.validar_cobro_comprobante()` | Disparador de integridad del `insert`. | `security definer`, sin grant |
 | `private.puede_registrar_cobro_en_empresa(p_empresa_id uuid)` | Permiso por empresa (la del comprobante). | `security definer`, sin grant |
 
@@ -140,8 +140,8 @@ el saldo se recalcula con el bloqueo de fila sobre el comprobante.
 |---|---|---|
 | `conciliar_pago(p_id uuid, p_actualizado_en timestamptz)` → `dominio.cobros_comprobante` | Aprueba un pago **con cuenta de cobro**: guarda `aprobado_por`/`aprobado_por_nombre`/`aprobado_en`. Idempotente y con bloqueo optimista (`40001`). | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
 | `revertir_conciliacion_pago(p_id uuid, p_actualizado_en timestamptz)` → `dominio.cobros_comprobante` | Ídem, quita la aprobación. | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
-| `listar_pagos(p_empresa_id uuid default null, p_cuenta_cobro_id uuid default null, p_solo_con_saldo boolean default false, p_pagina integer default 1, p_tamano integer default 10)` → `(id, fecha, empresa_id, empresa, comprobante_id, numero, cliente, cuenta_cobro_id, cuenta_cobro, importe, aprobado_por, conciliado, saldo, actualizado_en, filas)` | Listado paginado de los cobros **con cuenta de cobro**, con filtro por empresa, por cuenta y «Solo con saldo». `filas` es el total del filtro (`count(*) over ()`). Tope de 200 por página; orden `registrado_en desc, id desc`. El saldo es el del **comprobante** (`total con IVA − todos sus cobros`), resuelto con un `left join lateral` sobre el índice `cobros_comprobante_comprobante_idx`. | `security invoker` |
-| `resumen_pagos(p_empresa_id uuid default null)` → `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)` | Totales de las tarjetas de Pagos. El **saldo pendiente** suma los saldos de los comprobantes con **pago parcial**, mirando **todos** sus cobros (no solo los que tienen cuenta: lo que el cliente debe no depende de cómo pagó) y excluyendo los comprobantes en `borrador` o `anulada`. | `security invoker` |
+| `listar_pagos(p_empresa_id uuid default null, p_cuenta_cobro_id uuid default null, p_solo_con_saldo boolean default false, p_pagina integer default 1, p_tamano integer default 10)` → `(id, fecha, empresa_id, empresa, comprobante_id, numero, cliente, cuenta_cobro_id, cuenta_cobro, importe, aprobado_por, conciliado, saldo, actualizado_en, filas)` | Listado paginado de los cobros **con cuenta de cobro**, con filtro por empresa, por cuenta y «Solo con saldo». `filas` es el total del filtro (`count(*) over ()`). Tope de 200 por página; orden `registrado_en desc, id desc`. El saldo es el **neto** del comprobante (`total con IVA − todos sus cobros − sus notas de crédito`, mínimo 0; `20270228200000`), resuelto con un `left join lateral` sobre el índice `cobros_comprobante_comprobante_idx`. | `security invoker` |
+| `resumen_pagos(p_empresa_id uuid default null)` → `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)` | Totales de las tarjetas de Pagos. El **saldo pendiente** suma los saldos de los comprobantes con **pago parcial**, mirando **todos** sus cobros (no solo los que tienen cuenta: lo que el cliente debe no depende de cómo pagó) y excluyendo los comprobantes en `borrador` o `anulada`; usa el mismo saldo neto de notas de crédito (`20270228200100`; solo incluye facturas con al menos un cobro). | `security invoker` |
 | `cuentas_cobro_mas_usadas(p_empresa_id uuid default null, p_limite integer default 8)` → `(id, nombre, banco, activa, usos, total_cuentas)` | Alimenta la tarjeta Cuentas de cobro. `usos` cuenta solo los pagos de empresas accesibles. | `security invoker` |
 | `puede_conciliar_pago(p_empresa_id uuid)` → `boolean` | Lectura del permiso por empresa para habilitar (o no) el interruptor «Cobrado». No autoriza nada. | `security definer` |
 | `private.aplicar_conciliacion(p_id uuid, p_actualizado_en timestamptz, p_conciliado boolean)` | Camino único que mueve la aprobación: las dos RPC públicas son envoltorios y no pueden divergir. | `security definer`, **sin grant** |
@@ -218,6 +218,12 @@ castellano.
 - **Cobro**: `marcar_contrarreembolso_cobrado` registra el cobro con `origen = 'contrarreembolso'` por
   `private.registrar_cobro_interno`, así que la factura pasa a **Cobrado** si el saldo llega a 0. La
   forma de pago es la de la factura y, si no tiene, la forma «Contrarreembolso» de la tienda.
+- **Saldo neto de notas de crédito** (`20270227140000` y `20270227150000`): el contrarreembolso se abre por el
+  **saldo neto**. El disparador `comprobantes_venta_nota_credito_efectos` ajusta el importe de los
+  contrarreembolsos **pendientes** al saldo neto vigente (evento `contrarreembolso.importe_ajustado`) cuando se
+  emite una nota, y pasa la factura a «Cobrado» si lo cobrado más las notas cubren el total y hay cobros. Con saldo
+  neto 0 el importe se deja como está y marcarlo cobrado falla con el mensaje de tope. Límite conocido: si se anula
+  una nota después de que la factura pasó a «Cobrado», no vuelve a «Deuda».
 - **Comprobante anulado**: el contrarreembolso queda visible y pendiente, pero **no cobrable**
   (`55000`, FR-044).
 
@@ -333,7 +339,7 @@ revierte con `git revert -m 1` de su merge; la épica entera, con el revert de s
 
 ## Fuera de alcance
 
-El botón **«Exportar»** de Pagos y de Transportes; la sub-pestaña **«Motos»** (mensajería propia);
+El botón **«Exportar»** de Pagos y de Transportes (la sub-pestaña **«Motos»**, mensajería propia, es de MSF-145 y se documenta en [Ventas en moto](ventas-motos.md));
 **vencimiento por plazo de rendición** y **comisión del transporte**; el **cobro sobre presupuestos**;
 la **importación de extractos bancarios**; el **reverso de un cobro mal cargado**; las pestañas
 **Faltantes** y **Devoluciones (RMA)**; y los campos de despacho (Guía, Fecha de envío, Armó,

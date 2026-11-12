@@ -445,12 +445,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "6347bc8d26946e87af27ae50b5db859312e7b256a249c6c3fe32c1e6bc16e7ea",
+      "pageHash": "a49f52d607429137409db18c331fd7c0218ba1e6234db4dc669925bba86d7c3a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "75ae10b7"
+      "commit": "0282ae89"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -527,12 +527,12 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "1f1a794df888fe43576e164a86e354ebbc23966ad090832ca44eb226519e247a",
+      "pageHash": "6c3b8b73fcfff8db18cb5e8153de338c9cc75158bec4e2ea6ff5474d2a648038",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "53cb4c30"
+      "commit": "0282ae89"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
@@ -576,12 +576,12 @@
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "48b23188ce7e26e6320069f8d3f177c78fe971db99835a3a46323153c0ae9a85",
+      "pageHash": "c2171ec81fa32b1c0c964b056524ca5072298aeb2d4e63c6daba5707ef3fec21",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "29bf8f31"
+      "commit": "75ae10b7"
     },
     "docs/producto/importaciones.md": {
       "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
@@ -687,21 +687,21 @@
     },
     "docs/producto/precios-masivos.md": {
       "title": "Actualizar precios en bloque",
-      "pageHash": "4283b89f12ceed89c76be5efbc63cb43267f8758785102d61f8c7277b3f77c05",
+      "pageHash": "316db29e53f216bad19493db8ab3ed91055ca5137de9e427fecaa7f28d7c12d5",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "75ae10b7"
     },
     "docs/producto/promociones.md": {
       "title": "Promociones de precio por empresa",
-      "pageHash": "8d5ed442cafb5c1751942bc8ec32e9c045e758c543380e134788871853817c02",
+      "pageHash": "4b2d177bcee6644a02fedbcbe3ee2fa42b238cc18161b5786016042724471009",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "75ae10b7"
     },
     "docs/producto/proveedores.md": {
       "title": "Proveedores",
@@ -898,12 +898,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "f89f1fbbccbf773f2e0e9b421eb08dfd398e7600bb1a52c5a3ee978a05fea715",
+      "pageHash": "581f764100a9955d7fb5635dcc78dae8d3832eb63f986d34949e99a1fc46163e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "75ae10b7"
+      "commit": "9593f63c"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -938,12 +938,12 @@
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
-      "pageHash": "daccf106529c55222a626bf41387334413b64f5c2eb4bed59bc5c2f4e7d41a94",
+      "pageHash": "49d58579376573cecddaf19c6b81818b3e2ff835996f00a29133eb0673e038ad",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "0282ae89"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
@@ -998,6 +998,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "98fbbddf"
+    },
+    "docs/producto/ventas-motos.md": {
+      "title": "Envíos en moto: registrar y rendir",
+      "pageHash": "97e2d610ec3cce95aaebbe4a8dc4f3f1eeb497655a478c40b90c1884b8139c85",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "f3ef1b96"
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
@@ -1075,12 +1084,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "7424b521a39412d51e64385f8d017ddb05518a1f518eeed3ee1547a8fbc63dbe",
+      "pageHash": "7942198d37fd40dca6cf8e865053ab314b79d802c11d7110459e572b81a77aac",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0282ae89"
+      "commit": "0682630f"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1306,9 +1315,9 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "05ec4de3dbb65be70ce7709d0700ea0dc26c4a01c92f9c988a2cae199dba14ee",
+      "pageHash": "1a05d08ef8451bdc1fb5e40d70257047322e3bef7c70df06b2d72424306ec08d",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5f4018f5",
+      "sourceAt": "394208c5",
       "sources": [
         "supabase/migrations"
       ],
@@ -1442,16 +1451,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "64bb9e9b4ee04248034c2b4540c4b64e1c67fc8d777519ac5bb8d961f9d00713",
+      "pageHash": "d10655d87f6899ebcaacf3f209c314258965528fe5be6b409fdf24867de30a6f",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "91c40ba6",
+      "sourceAt": "f3ef1b96",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "53cb4c30"
+      "commit": "f3ef1b96"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -1507,9 +1516,9 @@
     },
     "docs/tecnico/cotizacion-sugerida-y-mayoristas.md": {
       "title": "Cotización sugerida y mayoristas (MSF-373)",
-      "pageHash": "79f5008198d6e467b103d138206d6e120b5745a13427352282a5964e8f0ccd5e",
+      "pageHash": "eda16ff99b69bf5f5cec0835dfccb870cb9b8216ee0927d76f02c6fbec6c1d09",
       "sourceHash": "4d6c58f85f7a855239a4a37932afc4b0a8e964f7a1205824b9e4590cf5388a81",
-      "sourceAt": "0ef9cdb9",
+      "sourceAt": "394208c5",
       "sources": [
         "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
         "supabase/functions/cotizacion-sugerida",
@@ -1519,7 +1528,7 @@
         "package.json"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0682630f"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -1538,22 +1547,22 @@
     },
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
-      "pageHash": "977b5ad71c217f58b4563bcf942d432381c260b96725aa2e6d996a979b8891d2",
+      "pageHash": "5b645da2b27227abba00934c297c3b82dfcb555b0068ea3df798e73a73d37d15",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "91c40ba6",
+      "sourceAt": "394208c5",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0282ae89"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "5feb8dcf0a9f48a09821ccc947f1c21f1edf24d48cdc7342637fb637ae0374c3",
+      "pageHash": "253d5f81d5a9a9b0c5573754e0fb6730cf5458a4c15141fc4bb64dc140858fb0",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "5f4018f5",
+      "sourceAt": "394208c5",
       "sources": [
         "supabase/migrations"
       ],
@@ -1784,9 +1793,9 @@
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
-      "pageHash": "dfcd0fcfe396433e6f40430d8266953818059f2db1cbeb40cc57db71658129cd",
+      "pageHash": "c3712c7b6263838d53b1e8c12779f6e82b98143c75ecd0d1e93fc4d9a8b2f78c",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "9d91048c",
+      "sourceAt": "394208c5",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1797,16 +1806,16 @@
     },
     "docs/tecnico/precios-masivos-y-promociones.md": {
       "title": "Precios masivos y promociones",
-      "pageHash": "e57a8edfba963af1ee883821c077f1aeef4a35fcc664ab8f82ddf09cbba8723b",
+      "pageHash": "6e81e08aae9a4b359b29afc69d4ebee65ced3434bf3611155a6cb25b35e2408c",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "5dfa2b7d",
+      "sourceAt": "394208c5",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "75ae10b7"
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
@@ -2245,9 +2254,9 @@
     },
     "docs/tecnico/ventas-cobros-y-conciliacion.md": {
       "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
-      "pageHash": "30cd0a9ed6d0699b6ebc2deff45033a867bd133511db9f86e2c4e41e55cb340f",
+      "pageHash": "ceb4c901ec3f107c08e006e29e34e0f0689c7ff2b787963c6a2d05cd7aa791cf",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "9d91048c",
+      "sourceAt": "394208c5",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -2334,6 +2343,19 @@
       ],
       "owner": "tecnico",
       "commit": "98fbbddf"
+    },
+    "docs/tecnico/ventas-motos.md": {
+      "title": "Ventas en moto: registro y rendición de envíos (técnico, MSF-145)",
+      "pageHash": "c8d9b3bd5fb75eb26f495a174589202c9a992d679969b3f439eb2776d23f0531",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "f3ef1b96",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "f3ef1b96"
     },
     "docs/tecnico/ventas-precios-especiales.md": {
       "title": "Ventas · precios especiales por cliente (técnico, MSF-193)",

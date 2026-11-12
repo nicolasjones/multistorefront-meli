@@ -17,11 +17,21 @@ El precio promocional es un **número fijo en pesos**, cargado **sin IVA**. No s
 
 | Tarea | Quién |
 |---|---|
-| Programar, editar y anular promociones | Administrador y Operador |
-| Ver la lista de promociones | Todos los demás roles, en solo lectura |
-| Entrar a la pantalla | Todos los roles la ven |
+| Programar, editar y anular promociones | Administrador y Operador, **solo en las tiendas donde tienen edición de Productos** |
+| Ver la lista de promociones | Quien tiene Productos en lectura o edición en esa tienda, en solo lectura |
+| Entrar a la pantalla | Los roles con acceso a Productos |
 
-Sin permiso de edición, la lista se ve pero no aparecen el botón **Nueva promoción** ni los botones **Editar** y **Anular**.
+El permiso es **por tienda**: quien edita Productos en la tienda A no puede programar, editar ni anular promociones de la tienda B (aunque pueda verlas). Una tienda desactivada, o una tienda a la que no estás asignado, no muestra promociones. Sin permiso de edición en la tienda, la lista se ve pero no aparecen (o no funcionan) el botón **Nueva promoción** ni los botones **Editar** y **Anular**; si estás en una tienda donde no podés editar, la pantalla te lo explica.
+
+## Tiene que estar activada en tu entorno
+
+**Las promociones vienen apagadas de fábrica en cada entorno** (desarrollo, staging y producción por separado): las enciende el equipo técnico en la base de cada entorno (bandera de plataforma `promociones_precio`), no un administrador desde el panel. Mientras están apagadas:
+
+- la tienda online muestra **siempre el precio normal**, sin precio tachado, aunque haya promociones cargadas;
+- no se pueden **programar ni editar** promociones: la pantalla **Promociones** solo deja **anular** y muestra el aviso «Las promociones de precio están desactivadas en este entorno. Pedile al equipo técnico que las active.»;
+- las promociones que ya estaban guardadas **no se pierden**: al encenderlas, vuelven a regir las que estén dentro de su fecha.
+
+Ver la [página técnica](../tecnico/precios-masivos-y-promociones.md#banderas-de-plataforma-y-permiso-por-tienda).
 
 El Administrador puede ajustar esto en [Usuarios y roles](usuarios-y-roles.md).
 
@@ -87,7 +97,7 @@ El tachado aparece **solo cuando el precio anterior es mayor** que el promociona
 
 Si la tienda muestra los precios **con IVA**, el precio promocional y el tachado también se ven con IVA: la tienda le suma el IVA igual que a cualquier otro precio.
 
-El cliente ve la promoción **solo en la tienda online**. El carrito, las facturas, la venta de mostrador y Mercado Libre **no cobran** el precio promocional: siguen con el precio de siempre.
+El cliente ve la promoción **solo en la tienda online** y solo si las promociones están activadas en el entorno. El carrito, las facturas, la venta de mostrador y Mercado Libre **no cobran** el precio promocional: siguen con el precio de siempre (está aprobado que el carrito, los comprobantes y el mostrador lo cobren, pero todavía no está hecho).
 
 ## Cambiar de empresa mientras estás en la pantalla
 
@@ -106,7 +116,8 @@ Si cambiás la empresa de la barra superior, la pantalla se recarga entera con l
 | Mensaje | Qué significa y qué hacer |
 |---|---|
 | **Elegí una empresa en la barra superior** | Estás en «Todas mis empresas». Elegí una tienda concreta arriba para poder crear una promoción. |
-| **Tu rol no puede editar promociones.** | Pedile al Administrador que lo haga o que te dé permiso de edición en Productos. |
+| **Tu rol no puede editar promociones.** | Pedile al Administrador que lo haga o que te dé permiso de edición en Productos **en esa tienda**. |
+| **Las promociones de precio están desactivadas en este entorno** | La función está apagada. Pedile al equipo técnico que la active; mientras tanto solo podés anular. |
 | **Ya hay otra promoción de este producto en esta empresa que se solapa con esas fechas. Cambiá las fechas o anulá la otra.** | Ya hay una promoción de ese producto en esa tienda para esas fechas. |
 | **Otra persona modificó esta promoción. Recargá la lista y probá de nuevo.** | Alguien la cambió mientras la estabas editando. Recargá la lista. |
 | **La promoción ya venció: la fecha de fin tiene que ser futura.** | No se puede crear ni guardar una promoción que ya terminó. |

@@ -147,7 +147,7 @@ recargar. Si la empresa todavía no tiene regla y el cliente manda un `updated_a
 **Contrato con Clientes y proveedores:** `precio_para` **no consulta `tipos_cliente`**. Quien necesita el
 precio (Ventas, cuenta web) lee `tipos_cliente.escala_precio` (texto, p. ej. `x5` para «Mayorista») y se lo
 pasa. `escalaDeTipoCliente` (`apps/web/src/lib/escalas.ts`) hace el mapeo: sin escala = `x1`, valor inválido
-= error. Mientras la tabla no exista, el contrato se prueba con un tipo simulado
+= error. **La tabla `tipos_cliente` todavía no existe** (ni hay pantalla «Tipos de cliente» en `apps/web`): hoy el tipo de cliente son dos valores fijos (`minorista` / `mayorista`) y Ventas elige la escala de cada línea con `private.escala_para_linea` (`20261203200300_lineas_rpc.sql`). El contrato se prueba con un tipo simulado
 (`supabase/tests/database/precios_escala.test.sql`, `tipos_cliente_simulado`).
 
 ## Permisos
