@@ -262,13 +262,12 @@ FR-002, FR-003, FR-008, SC-005 y *Esquemas de datos* cuando difieran.
   no cambia.
 - **FR-014** — *Given* la factura anterior ya en «Cobrado», *When* se anula la nota, *Then* el estado sigue en «Cobrado».
 
-### Decisión para Nicolás: aprobación retroactiva
+### Decisión de Nicolás, 2026-11-12: aprobación retroactiva
 
 Las migraciones **20270227140000 y 20270227150000 cambian el comportamiento de Ventas** (tope de cobro, estado de la
 factura, importe del contrarreembolso) y se mergearon como seguimientos de una revisión, sin que esta spec ni la de
-Ventas (MSF-195) las hubieran ampliado antes. Quedan **a la espera de la aprobación retroactiva de Nicolás**; si no
-las aprueba, se revierten (ver *Reversión* en `docs/clientes.md`, que ahora incluye ambas). Otras decisiones abiertas
-están en `notas.md`.
+Ventas (MSF-195) las hubieran ampliado antes. Nicolás las **aprobó retroactivamente el 2026-11-12** («avanza con todo»); la *Reversión* de `docs/clientes.md` queda
+como referencia. Otras decisiones están en `notas.md`.
 
 ## Fuera de alcance (explícito)
 
@@ -289,13 +288,13 @@ están en `notas.md`.
   tienda de cada documento. Como el correlativo es por empresa, el número puede repetirse entre
   tiendas de la misma organización; lo que distingue las filas es el `id` del comprobante.
 
-## Decisiones (provisorias, con valor por defecto)
+## Decisiones (confirmadas por Nicolás el 2026-11-12 las de cobrada, tiendas accesibles y permiso; el resto, provisorias)
 
 1. **Base del saldo** — con IVA: es el saldo que el cliente debe (el mismo criterio de
    `private.saldo_comprobante`). El «Facturado» que ya se muestra en la ficha es sin IVA (criterio
    del ranking); son dos números distintos y cada uno dice su base en la etiqueta.
-2. **Alcance por tiendas accesibles** — las tiendas a las que la persona accede (FR-007); a diferencia de la sección «Compras», que hoy es de toda la organización (diferencia conocida, con seguimiento).
-3. **Quién ve el saldo** — cualquiera con Clientes en `lectura`/`edicion`, el mismo permiso que
+2. **Alcance por tiendas accesibles** *(confirmado por Nicolás, 2026-11-12)* — las tiendas a las que la persona accede (FR-007); a diferencia de la sección «Compras», que hoy es de toda la organización (diferencia conocida, con seguimiento).
+3. **Quién ve el saldo** *(confirmado por Nicolás, 2026-11-12)* — cualquiera con Clientes en `lectura`/`edicion`, el mismo permiso que
    la sección «Compras»: el saldo es un agregado de comprobantes que esa persona ya ve en la
    ficha, no información nueva.
 4. **Paginación** — la cuenta corriente **no** pagina: lista los documentos abiertos del cliente.

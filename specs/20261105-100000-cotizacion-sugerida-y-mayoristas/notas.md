@@ -6,7 +6,11 @@
 - commitlint limita el título del commit a 100 caracteres: un título de 101 obligó a reabrir la rama.
 - Cuando una spec parcial (NEEDS_INFO) se implementa con una decisión provisoria, hay que reescribir spec y plan en el mismo PR (acá quedaron desfasados y se corrigieron después).
 
+## Decisiones tomadas (2026-11-12)
+
+- **Fuente y valor de F-PRE-13:** DolarApi, dólar oficial (venta). Aprobada por Nicolás el 2026-11-12 («avanza con todo»)
+- **F-PRE-14 (MSF-442, listas mayoristas): CANCELADA.** Choca con F-PRE-15 (escalas por tipo de cliente), que ya está implementada en «Tipos de cliente». Aprobada por Nicolás el 2026-11-12 («avanza con todo»)
+
 ## Pendientes de Nicolás
 
-- Confirmar la fuente (DolarApi) y el valor (oficial, venta); registrar la decisión en MSF-441.
-- F-PRE-14 (MSF-442): sin requisitos; choca con F-PRE-15.
+Ninguno de esta épica.

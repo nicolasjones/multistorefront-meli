@@ -45,9 +45,9 @@ Origen: decisión de Nicolás (las notas de crédito restan) y hallazgos de las 
 - [x] T009 [F-CLI-19][US1] Qué nota cuenta sale de `private.comprobante_cuenta_como_facturado`, la misma regla que ranking y facturado neto: `20270227130000_cuenta_corriente_estados_nc_compartidos.sql`. **FR-010** — Verificación: pgTAP.
   Hecho: PR #850 (`b9fa97c9`), sin cambio de comportamiento.
 - [x] T010 [F-CLI-19][US1] `private.saldo_comprobante` y `public.saldo_comprobante` restan las notas (drop + create con `notas_credito`); tope de `registrar_cobro` y contrarreembolso por el saldo neto; `grant execute` del predicado a `authenticated`: `20270227140000_saldo_comprobante_resta_notas_credito.sql`. **FR-010, FR-011, FR-012** — Verificación: pgTAP `cuenta_corriente_cliente`, `cobros_comprobante` y `contrarreembolsos`.
-  Hecho: PR #851 (`58176e0d`, menores en `492a268b`). **Cambia el comportamiento de Ventas**; pendiente de aprobación retroactiva de Nicolás.
+  Hecho: PR #851 (`58176e0d`, menores en `492a268b`). **Cambia el comportamiento de Ventas**; aprobado retroactivamente por Nicolás el 2026-11-12.
 - [x] T011 [F-CLI-19][US1] Disparador `comprobantes_venta_nota_credito_efectos` y `private.sincronizar_efectos_nota_credito`: la factura pasa a «Cobrado» si el saldo neto llega a 0 con cobros; los contrarreembolsos pendientes se ajustan; anular una nota no reabre: `20270227150000_notas_credito_sincronizan_estado_y_contrarreembolso.sql`. **FR-012, FR-013, FR-014, FR-015** — Verificación: pgTAP.
-  Hecho: PR #852 (`82946ebe`, menores en `18fbeb46`). **Cambia el comportamiento de Ventas**; pendiente de aprobación retroactiva de Nicolás.
+  Hecho: PR #852 (`82946ebe`, menores en `18fbeb46`). **Cambia el comportamiento de Ventas**; aprobado retroactivamente por Nicolás el 2026-11-12.
 - [x] T012 [F-CLI-19][US1] Documentación y ayuda de la ampliación: `docs/clientes.md` (reversión con 140000 y 150000, «Cómo probarlo»), `docs/cobros-por-comprobante.md`, `docs/cuentas-y-compras-a-proveedores.md`, ayuda en pantalla y `notas.md` con lecciones y pendientes. **FR-009** — Verificación: `pnpm docs:check`.
   Hecho: PR de cierre de la auditoría por roles (`docs/msf-450-roles`).
 

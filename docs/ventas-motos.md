@@ -37,7 +37,7 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 
 ## Pantalla
 
-`/ventas/transportes`, pestaña **Motos** (`?pestana=motos`): tarjeta «Motos sin rendir», tabla con filtro Tienda, «Registrar envío», «Editar», llave Rendido por fila y «Rendir seleccionados» con confirmación. Contrarreembolsos se conserva como pestaña por defecto.
+`/ventas/transportes`, pestaña **Motos** (`?pestana=motos`): tarjeta «Motos sin rendir», tabla con filtro Tienda, «Registrar envío», «Editar», llave Rendido por fila y «Rendir seleccionados» con confirmación. Contrarreembolsos se conserva como pestaña por defecto (decisión confirmada por Nicolás el 2026-11-12).
 
 ## Límites conocidos
 

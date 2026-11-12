@@ -11,18 +11,21 @@ Cada una debería ser un script determinista en el CI (no una regla para recorda
 3. **Todo archivo citado en «Verificación» debe existir**: la spec nombraba `e2e/*.spec.ts` (el `testMatch` del repo es `*.e2e.ts`, en `apps/web/e2e/`) y `aislamiento_rls.test.sql` (no existe; lo cubre `rls_en_toda_tabla.test.sql`).
 4. **Ningún `.limit(n)` con `n` mayor que `max_rows` de PostgREST** (`supabase/config.toml`: `max_rows = 1000`). Hallazgo **cerrado en #859**: `leerPromociones` pide por tandas de 500 con `.range()` y el selector de productos busca por servidor (antes `.limit(2000)` y el servidor cortaba en 1000 sin avisar). Es lógica, no se corrigió en este PR de documentación: ver pendientes.
 
+## Decisiones tomadas (2026-11-12)
+
+- **Aprobación retroactiva** de las Decisiones 2, 5, 7 y 8 de la spec y de los cambios de #842: permiso por tienda, tienda desactivada sin lectura, vista previa con carga infinita. Aprobada por Nicolás el 2026-11-12 («avanza con todo»)
+
 ## Pendientes de Nicolás
 
-Decisiones y verificaciones que no están aprobadas ni hechas. Ninguna se resolvió en este PR.
+Decisiones y verificaciones que no están hechas. Las marcadas «aprobada el 2026-11-12, en implementación» las implementan otros PRs; hasta entonces siguen abiertas.
 
-1. **Decisión 6 · cobrar el precio promocional en POS, carrito y comprobantes.** Hoy la tienda muestra $X con el precio anterior tachado y el local factura el precio normal (riesgo de cobrar distinto de lo mostrado). Abrir gate: decidir si el cálculo único `private.precio_vigente_empresa` se adopta en ventas.
-2. **Aprobación retroactiva** de las Decisiones 2, 5, 7 y 8 de la spec y de los cambios de #842: permiso por tienda, tienda desactivada sin lectura, vista previa con carga infinita.
-3. **Actualizar y aplicar precios masivos exigen `productos`=`edicion` global** (nivel más alto entre las tiendas), aunque el precio de lista y el costo son de la organización. ¿Debe ser por tienda, o por organización como hoy?
+1. **Decisión 6 · cobrar el precio promocional en POS, carrito y comprobantes** *(aprobada el 2026-11-12, en implementación: Nicolás aprobó abrir el gate)*. Hoy la tienda muestra $X con el precio anterior tachado y el local factura el precio normal (riesgo de cobrar distinto de lo mostrado). Decisión: adoptar el cálculo único `private.precio_vigente_empresa` en ventas.
+3. **Actualizar y aplicar precios masivos exigen `productos`=`edicion` global** (nivel más alto entre las tiendas), aunque el precio de lista y el costo son de la organización. ¿Debe ser por tienda, o por organización como hoy? *(aprobada el 2026-11-12, en implementación)*
 4. **Bandera de apagado**: no hay para promociones/precio tachado ni para «Actualizar precios». Hoy apagar es revertir migraciones o quitar permisos.
 5. **E2E que nunca corrieron** (SC-003 `apps/web/e2e/precios-masivos.e2e.ts`, SC-006 `apps/web/e2e/tienda-promocion.e2e.ts`): escritos, sin Supabase local, no corren en el CI público. Las tareas T009 y T020 están marcadas hechas sin evidencia de ejecución.
 6. **Capturas con TODO** en la documentación de la épica (pantallas «Actualizar precios», «Promociones» y precio tachado): pendientes de tomar.
 7. **MSF-114 bloqueante**: falta la aprobación de despliegue DEV→STG; **verificar en ItsAPlan los gates de STG** de la épica antes de promover.
-8. **UX**: `apps/web/src/pages/productos/promociones.tsx` (líneas ~46-47) calcula `puedeEditar` con el nivel **global** de `productos`; en una tienda donde la persona solo lee, los botones «Nueva promoción»/«Anular» aparecen y el servidor responde `42501`. Conviene calcularlo por la empresa activa (lógica: no tocado aquí).
+8. **UX** *(aprobada el 2026-11-12, en implementación)*: `apps/web/src/pages/productos/promociones.tsx` (líneas ~46-47) calcula `puedeEditar` con el nivel **global** de `productos`; en una tienda donde la persona solo lee, los botones «Nueva promoción»/«Anular» aparecen y el servidor responde `42501`. Conviene calcularlo por la empresa activa (lógica: no tocado aquí).
 9. ~~`.limit(2000)` > `max_rows` 1000~~ **Cerrado en #859** (tandas con `.range()` y búsqueda de productos por servidor).
 
 ## Documentación que no se tocó en este PR

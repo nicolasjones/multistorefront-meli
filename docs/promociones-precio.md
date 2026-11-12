@@ -8,7 +8,7 @@ Una promoción fija un **precio promocional** (sin IVA, en pesos) para un produc
 
 ## Modelo (esquema `dominio`, Principio VII)
 
-Tabla `dominio.promociones_precio` (migración `20270221100001`): FK compuestas a empresa y producto de la misma organización, `precio_promocional > 0`, `hasta > desde`, `anulada_at`, índice `(empresa_id, producto_id, desde, hasta)`, RLS, sin política DELETE, sin privilegios para `anon`. **La lectura es por tienda** (migración `20270223200000`): la política exige la organización y `private.nivel_productos_en_empresa(empresa_id)` en `lectura` o `edicion`; una tienda desactivada o una persona sin tiendas asignadas no leen promociones (el acceso por tienda exige `private.empresas_accesibles()`, solo tiendas activas). Un disparador impide que dos promociones **no anuladas** del mismo producto y empresa se solapen (`23P01`).
+Tabla `dominio.promociones_precio` (migración `20270221100001`): FK compuestas a empresa y producto de la misma organización, `precio_promocional > 0`, `hasta > desde`, `anulada_at`, índice `(empresa_id, producto_id, desde, hasta)`, RLS, sin política DELETE, sin privilegios para `anon`. **La lectura es por tienda** (migración `20270223200000`, aprobada retroactivamente por Nicolás el 2026-11-12): la política exige la organización y `private.nivel_productos_en_empresa(empresa_id)` en `lectura` o `edicion`; una tienda desactivada o una persona sin tiendas asignadas no leen promociones (el acceso por tienda exige `private.empresas_accesibles()`, solo tiendas activas). Un disparador impide que dos promociones **no anuladas** del mismo producto y empresa se solapen (`23P01`).
 
 Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan por consulta de `desde`/`hasta` y la hora actual (Decisión 1: sin Kestra ni worker, sin ventana de precio vencido por una tarea caída). Solo `anulada` es un dato. La vista `public.promociones_precio_estado` (`security_invoker`) los expone.
 
@@ -29,7 +29,7 @@ Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan po
 
 ## Decisiones
 
-- **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Queda como pregunta abierta para Nicolás.
+- **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Nicolás aprobó el 2026-11-12 abrir el gate para que el POS, el carrito y los comprobantes cobren el precio promocional; está aprobada y en implementación en otros PRs (hasta entonces sigue vigente lo descrito).
 - **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento MSF-816.
 
 ## Límite de filas de PostgREST
