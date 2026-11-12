@@ -145,6 +145,10 @@ nav:
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
           - Migración inicial de datos: producto/migracion-inicial-de-datos.md
       - Glosario: producto/glosario.md
+  - API:
+      - Empezar con la API: api/inicio-rapido.md
+      - Referencia de la API: api/referencia.md
+      - Claves y avisos (administración): producto/api-y-avisos.md
   - Técnico:
       - Empezar: tecnico/README.md
       - Panel:
