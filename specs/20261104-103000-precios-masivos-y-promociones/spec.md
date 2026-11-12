@@ -222,12 +222,12 @@ Guía de F-PRE-11: [`docs/promociones-precio.md`](../../docs/promociones-precio.
 7. **Superficies de la tienda**: catálogo, ficha, inicio/destacados y búsqueda (sugerencias y resultados) muestran el mismo precio vigente y `precio_anterior` (migraciones `20270221100004` y `20270221100005`; un producto no sale con dos precios). Quedan fuera el precio por escala y los precios de cliente por dominio: seguimiento **MSF-816**.
 8. **Editar y anular una promoción** no figuran literalmente en la épica; se asumen como parte de «programar» (sin ellas una carga equivocada no tiene salida).
 
-## Decisiones para Nicolás (pendientes: no están aprobadas)
+## Decisiones para Nicolás
 
-Las decisiones 2, 5, 7 y 8 de arriba y los cambios de #842 se tomaron durante el desarrollo manual **sin aprobación explícita de Nicolás**; quedan como supuestos hasta que las confirme. Lista completa en [`notas.md`](./notas.md), sección «Pendientes de Nicolás»:
+Las decisiones 2, 5, 7 y 8 de arriba y los cambios de #842 se tomaron durante el desarrollo manual y **Nicolás los aprobó retroactivamente el 2026-11-12** («avanza con todo»). Siguen pendientes los puntos marcados abajo, aprobados el 2026-11-12 para su implementación en otros PRs. Lista completa en [`notas.md`](./notas.md), sección «Pendientes de Nicolás»:
 
-1. **Decisión 6** (cobrar el precio promocional en POS, carrito y comprobantes): hoy la tienda muestra $X y el local factura el precio normal. Abrir gate.
-2. Aprobación retroactiva de las Decisiones 2, 5, 7 y 8 y de los cambios de #842 (permiso por tienda, tienda desactivada, carga infinita de la vista previa).
+1. **Decisión 6** (cobrar el precio promocional en POS, carrito y comprobantes): hoy la tienda muestra $X y el local factura el precio normal. Nicolás aprobó abrir el gate el 2026-11-12; aprobada, en implementación.
+2. ~~Aprobación retroactiva de las Decisiones 2, 5, 7 y 8 y de los cambios de #842~~: **aprobada el 2026-11-12**.
 3. Actualizar y aplicar precios masivos exigen `productos`=`edicion` global: ¿debe ser por tienda?
 4. No hay bandera de apagado para promociones/precio tachado ni para «Actualizar precios».
 

@@ -461,9 +461,8 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   que la sección «Compras»).
 - **Costo:** tres lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada), dentro de `private.saldo_comprobante`: el comprobante, sus cobros y la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
   cientos, se pagina con carga infinita.
-- **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
-  puede cambiar): qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
-  a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo. (Cerrado el 2026-11-11: el saldo del
+- **Decisiones** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se puede cambiar). Confirmadas por Nicolás el 2026-11-12: la factura «Cobrada» no es deuda, el saldo respeta las tiendas accesibles (`private.empresas_accesibles()`) y el permiso de lectura de Clientes alcanza para ver el saldo. Siguen pendientes: qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
+  a favor se muestra. (Cerrado el 2026-11-11: el saldo del
   comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
   mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
 - **Efecto cruzado de `20270227150000`:** el disparador escribe, además de la lectura: pasa la factura a «Cobrado» cuando

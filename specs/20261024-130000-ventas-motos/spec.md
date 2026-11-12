@@ -242,11 +242,15 @@ La épica se hizo a mano (`desarrollo-manual`, PR #825, 2026-11-10) y `dokploy` 
 | FR-002 RLS | Lectura por organización, empresa accesible y sección `ventas` | La lectura exige `ventas` en la tienda del envío (`private.nivel_ventas_en_empresa`); `20270223100000` corrigió una política que usaba el nivel global (revisión final, commit e1d50985) |
 | Exportación total | No prevista | `20270222300200_exportacion_total_envios_moto.sql` suma `dominio.envios_moto` a `private.conjuntos_exportacion_total()` |
 
+### Decisión de Nicolás, 2026-11-12
+
+**Contrarreembolsos como pestaña por defecto** (con el orden Contrarreembolsos, Motos, Terminales): Aprobada por Nicolás el 2026-11-12 («avanza con todo»).
+
 ### Decisiones para Nicolás
 
-Estas diferencias las tomó la implementación; **no constan como aprobadas por Nicolás** y quedan a su decisión (detalle en `notas.md`):
+Estas diferencias las tomó la implementación; **no constan como aprobadas por Nicolás** y quedan a su decisión (detalle en `notas.md`). Las de los puntos 2, 4 y 5 están aprobadas el 2026-11-12 para su implementación por otros PRs y siguen en «Pendientes»; el punto 3 sigue sin decisión:
 
-1. Contrarreembolsos como pestaña por defecto (y el orden de las tres pestañas).
+1. ~~Contrarreembolsos como pestaña por defecto~~ (resuelta arriba).
 2. Elegibilidad que incluye facturas en borrador.
 3. Carga infinita por tandas de 25 en lugar de paginación por página.
 4. Título «Transportes y contrarreembolsos» y `aria-label` «Rendido · número».

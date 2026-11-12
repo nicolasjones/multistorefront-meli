@@ -21,7 +21,7 @@ cliente). F-CLI-20, F-CLI-21 y F-PRV-09 **no tienen código ni pantalla**: sigue
 
 El SDLC construyó F-CLI-19 (MSF-451) **sin requisitos del cliente**: la spec y las reglas las redactó el desarrollo.
 Está descrita en [Clientes](./clientes.md), sección «Cuenta corriente y saldo del cliente».
-Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
+Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el saldo respeta las tiendas accesibles y que la persona con `clientes` en lectura ve el saldo; lo demás queda a confirmar cuando la idea pase a un hito:
 
 - El saldo de un comprobante es `total con IVA − cobros − notas de crédito` (nunca negativo): todo sale de `private.saldo_comprobante`, que es el único cálculo (también lo usan el detalle del comprobante y el tope al cobrar).
 - Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`; los presupuestos no son deuda.
@@ -33,7 +33,7 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
 - Los importes se ven **con centavos** cuando los hay (`$ 1.210,50`, `$ 0,40`) y sin decimales cuando son enteros
   (`$ 220.000`); el ranking de clientes sigue en pesos enteros.
 - Con `clientes` en lectura y sin acceso a Ventas, la ficha igual muestra total, cobrado y saldo de las facturas del
-  cliente: es el mismo dato de «Compras» (que ya exige solo `clientes`). A confirmar con el cliente.
+  cliente: es el mismo dato de «Compras» (que ya exige solo `clientes`). Confirmado por Nicolás el 2026-11-12.
 - Costo: el saldo de cada factura sale de `private.saldo_comprobante` (tres lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada: el comprobante, sus cobros y sus notas de crédito) y la RPC
   devuelve todas las abiertas sin paginar. Es proporcional a las facturas abiertas de **un** cliente, que son pocas; si
   un cliente real acumulara cientos, habría que paginar con carga infinita (excepción a esa regla, justificada acá).
@@ -44,10 +44,10 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
    precios o la escala depende de la cantidad? Chocan F-PRE-14 (listas mayoristas, P3) y que el tipo de cliente defina
    la escala en P0. Sin resolver.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
-3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo y a confirmar:** qué estados cuentan
-   como deuda (en particular «Pendiente» y «Confirmada»), si el saldo a favor
-   se muestra (hoy no: un cobro de más es $ 0), si el saldo se ve por tienda accesible (hoy sí) o por organización, y
-   si la persona con `clientes` en lectura debe ver el saldo aunque no acceda a Ventas (hoy sí).
+3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo:** siguen a confirmar qué estados cuentan
+   como deuda (en particular «Pendiente» y «Confirmada») y si el saldo a favor se muestra (hoy no: un cobro de más es $ 0).
+   Confirmado por Nicolás el 2026-11-12: el saldo se ve por tienda accesible y la persona con `clientes` en lectura lo ve
+   aunque no acceda a Ventas.
 4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido.
 
 ## Cómo sigue una idea

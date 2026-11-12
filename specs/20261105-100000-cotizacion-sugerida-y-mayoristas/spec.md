@@ -2,7 +2,7 @@
 
 **Épica**: MSF-373 · **Spec**: `cotizacion-sugerida-y-mayoristas` · **Hito**: Backlog (a definir con el cliente) · **Prioridad**: P3 · **Horas aprox.**: a estimar al pasar a un hito (por tallas M + L ≈ 24 h)
 **Alcance de entrega**: provisional — `refine` y `supabase` para F-PRE-13; el uso de `workers`/`kestra` para leer la fuente externa **no está decidido** (Pregunta 1). F-PRE-14: sin alcance hasta resolver las Preguntas 2 y 3.
-**Estado**: **F-PRE-13 implementada con decisión provisoria (2026-11-10: DolarApi, dólar oficial venta); F-PRE-14 sin requisitos.** Texto original: SPEC PARCIAL — NEEDS_INFO. La propia épica dice «los requisitos se redactan cuando la épica pase a un hito»; Nicolás confirmó que siguen abiertos el conflicto F-PRE-14 vs. F-PRE-15, el modelo comercial mayorista, las horas y el hito. Esta spec **traduce lo que la épica sí dice** y no inventa el resto.
+**Estado**: **F-PRE-13 implementada (fuente DolarApi, dólar oficial venta: decisión confirmada por Nicolás el 2026-11-12); F-PRE-14 CANCELADA (decisión de Nicolás, 2026-11-12).** Texto original: SPEC PARCIAL — NEEDS_INFO. La propia épica dice «los requisitos se redactan cuando la épica pase a un hito»; Nicolás confirmó que siguen abiertos el conflicto F-PRE-14 vs. F-PRE-15, el modelo comercial mayorista, las horas y el hito. Esta spec **traduce lo que la épica sí dice** y no inventa el resto.
 
 ## Objetivo
 
@@ -13,8 +13,8 @@ Al terminar, el sistema sugiere el dólar del día desde una fuente pública y e
 - **Idea futura condicionada a validar demanda** (supuesto de la épica).
 - **Bloqueada por** `dolar-y-recalculo` (MSF-116): F-PRE-13 sugiere el valor que se carga con el diálogo de F-PRE-02. MSF-116 ya está en `dokploy` (diálogo «Cargar dólar del día», `specs/20261023-120000-dolar-y-recalculo/`); la condición se cumplió y F-PRE-13 se implementó sobre ese diálogo. Condición de reanudación 2.
 - F-PRE-13 y F-PRE-14 son **independientes entre sí**.
-- **Relacionada, sin bloqueo**: F-PRE-14 depende de clientes registrados y de una cuenta de cliente con acceso propio, que el relevamiento da por no definidos (existen Clientes alta y búsqueda, MSF-180, y Cuenta web del cliente, MSF-237; los links se deciden al redactar requisitos).
-- **Conflicto abierto**: F-PRE-14 (listas mayoristas, P3) choca con F-PRE-15 (escalas por tipo de cliente, P0, **ya implementada** en `TiposCliente`, spec `20261022-120000-precios-e-iva`). Hay que decidir si F-PRE-14 sigue siendo necesaria.
+- **Relacionada (histórica, F-PRE-14 cancelada)**: F-PRE-14 dependía de clientes registrados y de una cuenta de cliente con acceso propio, que el relevamiento da por no definidos (existen Clientes alta y búsqueda, MSF-180, y Cuenta web del cliente, MSF-237; los links se deciden al redactar requisitos).
+- **Conflicto resuelto (2026-11-12)**: F-PRE-14 (listas mayoristas, P3) chocaba con F-PRE-15 (escalas por tipo de cliente, P0, **ya implementada** en `TiposCliente`, spec `20261022-120000-precios-e-iva`). Nicolás decidió **cancelar F-PRE-14**.
 - El dólar sigue siendo de **carga manual con confirmación en dos pasos** (MSF-116); la sugerencia no reemplaza esa confirmación (la épica dice que sugiere «el valor que se carga con el diálogo de F-PRE-02»).
 
 ### Esquema de datos (Constitución, Principio VII)
@@ -33,7 +33,7 @@ El sistema sugiere el dólar del día tomándolo de una fuente pública; el admi
 1. **Given** MSF-116 en `main` y la fuente pública disponible, **When** el administrador abre el diálogo «Cargar dólar del día», **Then** ve el valor sugerido del día para cargarlo (FR-001).
 2. **Given** que la fuente no responde, **When** abre el diálogo, **Then** puede cargar el valor a mano como hoy; la carga manual no depende de la fuente (FR-002, consecuencia de que la sugerencia es una ayuda, no un reemplazo).
 
-### User Story 2 - Listas de precios mayoristas (F-PRE-14, P3, talla L) — SIN REQUISITOS
+### User Story 2 - Listas de precios mayoristas (F-PRE-14, P3, talla L) — CANCELADA (2026-11-12)
 
 La épica solo dice que «existe una lista de precios para revendedores». No hay pantalla dibujada, modelo comercial ni resolución del conflicto con F-PRE-15. **No se redactan escenarios** (Preguntas 2 y 3). Ver FR-003.
 
@@ -62,21 +62,21 @@ sequenceDiagram
 | Pedir/obtener/mostrar el valor sugerido | FR-001 |
 | Fuente no disponible | FR-002 |
 
-F-PRE-14 no describe flujo alguno: sin flujo hasta resolver Preguntas 2–3.
+F-PRE-14 no describe flujo alguno: cancelada (2026-11-12).
 
 ## Requirements *(mandatory)*
 
 - **FR-001** *(F-PRE-13)*: el sistema obtiene el dólar del día de una fuente pública y lo ofrece como valor sugerido en el diálogo de carga de F-PRE-02. Fuente concreta, qué valor (oficial/blue/etc.) y frecuencia: **Pregunta 1**.
 - **FR-002** *(F-PRE-13)*: si la fuente no está disponible, la carga manual de MSF-116 sigue funcionando sin cambios.
-- **FR-003** *(F-PRE-14)*: **reservado**. Sin requisitos hasta que Nicolás resuelva el conflicto con F-PRE-15 y el modelo comercial. No se implementa.
+- **FR-003** *(F-PRE-14)*: **cancelado** (decisión de Nicolás, 2026-11-12, por el conflicto con F-PRE-15). No se implementa y el número queda reservado.
 - **FR-004** *(F-PRE-13, comportamiento implementado)*: solo la persona con nivel `edicion` en `cotizacion_dolar` puede pedir la sugerencia (403 si no); método solo POST (405); si la fuente no responde en 5 s, responde con error o devuelve un valor fuera de `0 < venta < 1.000.000`, la función responde 502 con un mensaje que invita a cargar a mano.
 - **SC-001**: test del diálogo con sugerencia disponible y con fuente caída (FR-001, FR-002). La prueba de «cambio de empresa» se descartó: la sugerencia no depende de la empresa.
 
 ## Decisiones abiertas (máx. 5 — NEEDS_INFO)
 
-1. **Fuente y valor (F-PRE-13)** *(decisión provisoria tomada: DolarApi, dólar oficial venta; a confirmar)*: ¿qué fuente pública y qué tipo de dólar (oficial, blue, MEP…)? Condiciona si hace falta worker/Kestra y qué se muestra.
-2. **F-PRE-14 vs. F-PRE-15**: F-PRE-15 (escalas por tipo de cliente) ya está implementada. ¿F-PRE-14 sigue siendo necesaria o se cancela/redefine?
-3. **Modelo comercial mayorista**: si sigue, ¿qué es «revendedor» (tipo de cliente existente, cuenta propia), quién ve la lista y cómo se arma? Hoy clientes registrados y cuenta de cliente están «no definidos».
+1. **Fuente y valor (F-PRE-13)** *(RESUELTA, confirmada por Nicolás el 2026-11-12: DolarApi, dólar oficial venta)*: ¿qué fuente pública y qué tipo de dólar (oficial, blue, MEP…)? Condiciona si hace falta worker/Kestra y qué se muestra.
+2. **F-PRE-14 vs. F-PRE-15** *(RESUELTA, 2026-11-12: F-PRE-14 se cancela)*: F-PRE-15 (escalas por tipo de cliente) ya está implementada.
+3. **Modelo comercial mayorista** *(sin objeto: F-PRE-14 está cancelada)*: si siguiera, ¿qué es «revendedor» (tipo de cliente existente, cuenta propia), quién ve la lista y cómo se arma? Hoy clientes registrados y cuenta de cliente están «no definidos».
 4. **Hito y horas**: ¿en qué hito entra la épica? (M + L ≈ 24 h por talla.)
 5. **Orden con MSF-116** *(resuelta)*: se reanudó con MSF-116 ya en `dokploy` (ya se cumplió: MSF-116 está en `dokploy`).
 
@@ -89,7 +89,7 @@ La épica indica que **no hay pantalla dibujada** para ella. Se revisaron `Cotiz
 | Diálogo «Cargar dólar del día» · campo «Dólar del día (pesos por dólar)» | Host de la sugerencia; el campo es de MSF-116 | FR-001 (solo agrega la sugerencia) |
 | Cotizacion: tabla Fecha/Valor/Variación/Cargó/Precios/Mercado Libre; tabla Producto (muestra); campos Alcance, Redondeo, Umbral; botones Cargar cotización, Cargar ahora, Una para todo el sistema, Una por empresa, Guardar configuración, Cancelar | **Fuera de alcance**: son de MSF-116 / MSF-352 (la épica no los pide) | — |
 | TiposCliente: tabla, campos y botones (Nuevo tipo de cliente, Guardar tipo, Cancelar) | **Fuera de alcance**: son de F-PRE-15 (MSF-114) | — |
-| Pantalla/lista para revendedores (F-PRE-14) | **Fuera de alcance por ahora**: sin diseño ni requisitos (Preguntas 2–3) | FR-003 |
+| Pantalla/lista para revendedores (F-PRE-14) | **Fuera de alcance: F-PRE-14 cancelada** (Nicolás, 2026-11-12) | FR-003 (cancelado) |
 | Fila **Empresa activa** | No aplica: la cotización es una sola para la organización (igual que MSF-116); sin test propio: la función no recibe la empresa, así que no hay dependencia que probar (desvío de T003) | — |
 
 ## Matriz de trazabilidad Jira ↔ US ↔ FR ↔ tareas
@@ -97,5 +97,5 @@ La épica indica que **no hay pantalla dibujada** para ella. Se revisaron `Cotiz
 | Tracker | US | FR/SC | Tareas |
 |---|---|---|---|
 | F-PRE-13 (MSF-441) | US1 | FR-001, FR-002, FR-004, SC-001 | T001–T003 |
-| F-PRE-14 (MSF-442) | US2 | FR-003 (reservado) | — |
+| F-PRE-14 (MSF-442) | US2 | FR-003 (cancelado) | — |
 | Tarea de cierre (label cierre) | — | docs | T004 |
