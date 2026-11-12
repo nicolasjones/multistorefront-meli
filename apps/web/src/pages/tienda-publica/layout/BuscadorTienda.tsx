@@ -131,7 +131,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
 
   return (
     <ClickAwayListener onClickAway={() => setAbierto(false)}>
-      <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360, md: 560 }, maxWidth: '100%' }}>
+      <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360, md: '100%' }, maxWidth: { xs: '100%', md: 560 } }}>
         <Box component="form" role="search" aria-label={etiqueta} onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
           <TextField
             fullWidth

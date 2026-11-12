@@ -14,12 +14,15 @@ export const orden = 40
 // URLs firmadas de las fotos de las tarjetas (una sola llamada por bloque, como las tarjetas de producto). Mientras
 // llegan, o si una no se pudo firmar, la tarjeta muestra el recuadro neutro sin foto.
 function useImagenesCategorias(rutas: string[]): Record<string, string> {
-  const clave = rutas.join('|')
+  // La clave es el arreglo serializado (no un `join` con separador: una ruta podría contenerlo); las rutas se
+  // leen de vuelta de la clave, así el efecto depende solo de ella.
+  const clave = JSON.stringify(rutas)
   const [resuelto, setResuelto] = useState<{ clave: string; urls: Record<string, string> }>({ clave: '', urls: {} })
   useEffect(() => {
-    if (!clave) return
+    const lista = JSON.parse(clave) as string[]
+    if (lista.length === 0) return
     let cancelada = false
-    urlsImagenesProducto(clave.split('|'))
+    urlsImagenesProducto(lista)
       .then((urls) => { if (!cancelada) setResuelto({ clave, urls }) })
       .catch((error) => console.error('No se pudieron firmar las fotos de las categorías', error instanceof Error ? error.message : error))
     return () => { cancelada = true }

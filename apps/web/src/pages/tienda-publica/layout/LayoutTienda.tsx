@@ -3,7 +3,7 @@ import { lazy, Suspense } from 'react'
 import { Link as EnlaceRuta, NavLink, Outlet, useMatch, useOutletContext } from 'react-router'
 import { ContextoContactoTienda, useLeerContactoTienda } from '../../../hooks/useContactoTienda'
 import { ProveedorContenidoTienda } from '../../../hooks/useContenidoPublico'
-import { useCategoriasTienda, type CategoriasTienda } from '../../../hooks/useCategoriasTienda'
+import { ContextoCategoriasTienda, useLeerCategoriasTienda, type CategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import type { TiendaPublica } from '../../../lib/tienda'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { AccesoCliente } from './AccesoCliente'
@@ -52,8 +52,7 @@ function Marca({ tienda, enInicio }: { tienda: TiendaPublica; enInicio: boolean 
   )
 }
 
-function Cuerpo({ tienda, host }: { tienda: TiendaPublica; host: string }) {
-  const categorias = useCategoriasTienda(host)
+function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: string; categorias: CategoriasTienda }) {
   const enInicio = useMatch({ path: '/', end: true }) !== null
   const contexto: ContextoTienda = { tienda, host, categorias }
 
@@ -69,8 +68,8 @@ function Cuerpo({ tienda, host }: { tienda: TiendaPublica; host: string }) {
             <MenuMovil categorias={categorias} />
           </Suspense>
           {/* Buscador (F-TDA-15, FR-024): carga diferida, no pesa en el primer pintado. */}
-          <Box sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: '100%', md: 'auto' }, flexGrow: { md: 1 }, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
-            <Suspense fallback={<Box sx={(tema) => ({ width: { xs: '100%', md: 560 }, height: tema.spacing(5.5) })} aria-hidden />}>
+          <Box sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: '100%', md: 'auto' }, flexGrow: { md: 1 }, flexShrink: { md: 1 }, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+            <Suspense fallback={<Box sx={(tema) => ({ width: { xs: '100%', md: '100%' }, maxWidth: 560, height: tema.spacing(5.5) })} aria-hidden />}>
               <BuscadorTienda host={host} />
             </Suspense>
           </Box>
@@ -99,13 +98,16 @@ function Cuerpo({ tienda, host }: { tienda: TiendaPublica; host: string }) {
 // contacto de la tienda se leen una vez por host y llegan a todas las rutas.
 export function LayoutTienda({ tienda, host }: { tienda: TiendaPublica; host: string }) {
   const contacto = useLeerContactoTienda(host)
+  const categorias = useLeerCategoriasTienda(host)
   return (
     <ProveedorIdentidadTienda host={host}>
       <ProveedorContenidoTienda host={host}>
         <ContextoContactoTienda.Provider value={contacto}>
-          <ContextoEnLayout.Provider value>
-            <Cuerpo tienda={tienda} host={host} />
-          </ContextoEnLayout.Provider>
+          <ContextoCategoriasTienda.Provider value={categorias}>
+            <ContextoEnLayout.Provider value>
+              <Cuerpo tienda={tienda} host={host} categorias={categorias} />
+            </ContextoEnLayout.Provider>
+          </ContextoCategoriasTienda.Provider>
         </ContextoContactoTienda.Provider>
       </ProveedorContenidoTienda>
     </ProveedorIdentidadTienda>
