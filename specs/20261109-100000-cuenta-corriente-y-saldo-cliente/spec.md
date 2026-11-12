@@ -30,8 +30,8 @@ La fuente del comportamiento es **Ventas · cobros y conciliación** (épica MSF
 - Un borrador no se debe y una factura anulada no le debe nada a nadie.
 
 Lo que **no** hay en el repo y esta historia **no** inventa: vencimientos, límites de crédito,
-descuentos por pronto pago, notas de crédito restando de la cuenta corriente (es de MSF-195) ni
-ningún estado nuevo de comprobante.
+descuentos por pronto pago ni ningún estado nuevo de comprobante. (Las notas de crédito, que esta historia dejó afuera,
+ahora restan: ver la actualización en *Fuera de alcance*.)
 
 ## Regla de fuentes (de la épica)
 
@@ -59,13 +59,13 @@ ningún estado nuevo de comprobante.
   saldo 0 y sin documentos (no revela si existe); `revoke … from public, anon` y `grant execute
   … to authenticated`. **Verificación**: pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql`.
 - **FR-002** (F-CLI-19): El saldo de un comprobante DEBE ser el que devuelve
-  `private.saldo_comprobante` —su único dueño: `greatest(total_con_iva − Σ cobros, 0)`—, sin
-  recalcularlo en esta RPC. **Verificación**: pgTAP (cobro parcial, cobro
-  total, cobro que supera el total → 0) + comparación documento por documento con
+  `private.saldo_comprobante` —dueño de `greatest(total_con_iva − Σ cobros, 0)`—; la RPC le resta además las notas de
+  crédito emitidas de cada factura (`max(total − cobrado − notas, 0)`, actualización 2026-11-11). **Verificación**: pgTAP (cobro parcial, cobro
+  total, cobro que supera el total → 0) + comparación del total y lo cobrado de cada documento con
   `private.saldo_comprobante` (SC-001).
 - **FR-003** (F-CLI-19): A la cuenta corriente entran **solo facturas** que no están en
   `borrador`, `anulada` ni `cobrado` (una cobrada está saldada aunque su cobro no esté en el libro). Los presupuestos no son deuda y no entran; las notas de crédito no
-  restan (ver *Fuera de alcance*). **Verificación**: pgTAP (presupuesto, anulada, borrador y nota
+  entran como filas: restan de su factura (ver *Fuera de alcance*). **Verificación**: pgTAP (presupuesto, anulada, borrador y nota
   de crédito quedan fuera; la factura en estado `deuda` entra con su total completo).
 - **FR-004** (F-CLI-19): `saldo_total` DEBE ser la suma de los saldos de los comprobantes listados
   (y 0 si no hay ninguno); `comprobantes` DEBE ser la cantidad de comprobantes listados.
@@ -118,7 +118,7 @@ ningún estado nuevo de comprobante.
 ## Criterios de éxito
 
 - **SC-001**: la cuenta corriente de un cliente cuadra con `private.saldo_comprobante` documento
-  por documento —el pgTAP la llama y compara cada fila—, y el saldo total es la suma de los saldos
+  por documento (total y cobrado; el saldo, además, resta las notas de crédito) —el pgTAP la llama y compara cada fila—, y el saldo total es la suma de los saldos
   listados (pgTAP).
 - **SC-002**: aislamiento: otra organización no lee saldos ajenos; la sección Clientes en
   `ninguno` no lee la cuenta corriente; `anon` sin ejecución; ninguna tabla nueva sin RLS
@@ -185,7 +185,7 @@ el saldo del cliente tampoco se guarda: se calcula sumando los documentos abiert
 
 ## Fuera de alcance (explícito)
 
-- **Notas de crédito restando de la cuenta corriente.** El prototipo de Ventas lo dice («restan de
+- **Notas de crédito restando de la cuenta corriente** (*dejado afuera originalmente; hoy implementado*). **Actualización 2026-11-11 (decisión de Nicolás, MSF-450):** las notas de crédito emitidas RESTAN de la factura de la que cuelgan (`max(total − cobrado − notas, 0)`, sin saldo a favor, 2 decimales); ver `docs/clientes.md` y la migración `20270227110000`. Texto original: el prototipo de Ventas lo dice («restan de
   lo facturado y de la cuenta corriente»), pero ese efecto pertenece a **MSF-195** (la nota de
   crédito no admite cobros hoy: F-VTA-12). Esta historia no lo reasigna: la nota no resta del
   saldo y queda anotado como diferencia conocida en el PR. **Seguimiento**: tarea `seguimiento`
@@ -214,7 +214,7 @@ el saldo del cliente tampoco se guarda: se calcula sumando los documentos abiert
    ficha, no información nueva.
 4. **Paginación** — la cuenta corriente **no** pagina: lista los documentos abiertos del cliente.
    El «Facturado en el año» y los «Últimos comprobantes» de F-CLI-10 sí paginan.
-5. **Notas de crédito** — no restan (ver *Fuera de alcance*).
+5. **Notas de crédito** — restan de su factura desde el 2026-11-11 (ver *Fuera de alcance*).
 6. **Identidad de la fila** — el `id` del comprobante, no el número: el correlativo es por
    organización, empresa y tipo, así que el mismo número puede repetirse entre tiendas de la misma
    organización. La tabla no muestra la tienda (el detalle por tienda está fuera de alcance), pero

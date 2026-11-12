@@ -23,7 +23,7 @@ El SDLC construyó F-CLI-19 (MSF-451) **sin requisitos del cliente**: la spec y 
 Está descrita en [Clientes](./clientes.md), sección «Cuenta corriente y saldo del cliente».
 Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
 
-- El saldo de un comprobante es `total con IVA − cobros` (nunca negativo), tomado de `private.saldo_comprobante`.
+- El saldo de un comprobante es `total con IVA − cobros − notas de crédito` (nunca negativo): el total y lo cobrado salen de `private.saldo_comprobante` y las notas las resta la cuenta corriente.
 - Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`; los presupuestos no son deuda.
 - Las notas de crédito emitidas **restan** de la factura de la que cuelgan (decisión del 2026-11-11), y no hay saldo a favor (cobros y notas de más dejan la factura en $ 0). Importes a 2 decimales.
 - La persona ve la deuda solo de las tiendas a las que accede, y no suma la de una tienda desactivada (ni para el administrador).
@@ -34,7 +34,7 @@ Quedó así, a confirmar con el cliente cuando la idea pase a un hito:
   (`$ 220.000`); el ranking de clientes sigue en pesos enteros.
 - Con `clientes` en lectura y sin acceso a Ventas, la ficha igual muestra total, cobrado y saldo de las facturas del
   cliente: es el mismo dato de «Compras» (que ya exige solo `clientes`). A confirmar con el cliente.
-- Costo: el saldo de cada factura sale de `private.saldo_comprobante` (dos lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada) y la RPC
+- Costo: el total y lo cobrado de cada factura salen de `private.saldo_comprobante` (dos lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada, más la suma de sus notas de crédito) y la RPC
   devuelve todas las abiertas sin paginar. Es proporcional a las facturas abiertas de **un** cliente, que son pocas; si
   un cliente real acumulara cientos, habría que paginar con carga infinita (excepción a esa regla, justificada acá).
 
