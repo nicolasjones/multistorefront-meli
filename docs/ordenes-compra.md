@@ -58,7 +58,7 @@ aparte: cambiaría el contrato de `registrar_ingreso_mercaderia`.
 
 ## Reversión
 
-Migraciones aditivas `20270114130001` (tablas) y `20270114130100` (RPC). Para deshacer, en una migración
+Migraciones aditivas `20270220180001` (tablas) y `20270220180002` (RPC). Para deshacer, en una migración
 posterior: `drop function public.crear_orden_compra(...)`, `drop function
 public.cambiar_estado_orden_compra(...)`, `drop function public.productos_en_reposicion_de_proveedor(...)`,
 `drop function public.listar_ordenes_compra(...)`, `drop function public.detalle_orden_compra(...)` y

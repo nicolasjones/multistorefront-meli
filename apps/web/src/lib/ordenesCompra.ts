@@ -1,5 +1,5 @@
 // Órdenes de compra a proveedor (F-PRV-09, MSF-454). Los límites y las reglas viven en
-// las migraciones 20270114130001 y 20270114130100; acá se espejan solo para validar
+// las migraciones 20270220180001 y 20270220180002; acá se espejan solo para validar
 // antes de viajar (la autoridad es la base).
 import { fechaDeHoy } from './stock'
 
