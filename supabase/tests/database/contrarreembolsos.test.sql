@@ -860,6 +860,29 @@ select is(
   (select importe from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000022'),
   1000::numeric, 'anulada la nota, el contrarreembolso pendiente vuelve a 1.000');
 
+-- F23: dos guías pendientes de la misma factura (1.000) pasan las dos al saldo neto; repetir la misma nota no repite el evento.
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
+  ('f1000000-0000-0000-0000-000000000023', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000023', '2026-12-02', 'confirmada', 1000, 1000, now());
+select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
+select private.abrir_contrarreembolso('f1000000-0000-0000-0000-000000000023', 'e1000000-0000-0000-0000-00000000000a', 'G-NC-23A');
+select private.abrir_contrarreembolso('f1000000-0000-0000-0000-000000000023', 'e1000000-0000-0000-0000-00000000000a', 'G-NC-23B');
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo) values
+  ('f1100000-0000-0000-0000-000000000023', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000123', '2026-12-03', 'confirmada', 0, 0, 'f1000000-0000-0000-0000-000000000023', 'devolucion_importe');
+update dominio.comprobantes_venta set total_sin_iva = 250, total_con_iva = 250 where id = 'f1100000-0000-0000-0000-000000000023';
+select is(
+  (select count(*) from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000023' and importe = 750),
+  2::bigint, 'con dos guías pendientes, las dos pasan al saldo neto (1.000 − 250)');
+-- Mismo total otra vez: nada cambia, así que no hay un segundo evento.
+update dominio.comprobantes_venta set total_con_iva = 250 where id = 'f1100000-0000-0000-0000-000000000023';
+select is(
+  (select count(*) from public.registro_actividad
+    where tipo = 'contrarreembolso.importe_ajustado' and detalle like '%G-NC-23A%'),
+  1::bigint, 'repetir el mismo total no repite el evento (el importe ya coincide con el saldo)');
+
 reset role;
 
 select * from finish();

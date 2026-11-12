@@ -88,11 +88,14 @@ desactiva más tarde, el cobro ya registrado se conserva).
   `nota_credito` de `dominio.comprobantes_venta`: al insertarse, o al cambiar su estado o su total):
   - Si lo cobrado más las notas cubren el total (saldo neto 0) y la factura **tiene cobros**, pasa a **Cobrado** por
     `private.marcar_estado_cobro_comprobante` (actor `sistema`, solo si la matriz de la organización permite la
-    transición: si no, no hace nada y nunca aborta la emisión de la nota). Una factura cubierta entera por notas y
+    transición: si no, no hace nada —y la factura queda en su estado con saldo 0, porque `registrar_cobro` rechaza todo
+    importe sobre saldo 0— y la emisión de la nota no aborta). Una factura cubierta entera por notas y
     **sin cobros** queda como está: no hay plata cobrada que justifique «Cobrado».
   - Los **contrarreembolsos pendientes** de la factura pasan al saldo neto vigente (baja al emitir la nota, sube si se
-    anula) y dejan el evento `contrarreembolso.importe_ajustado`; el bloqueo optimista avanza para quien tenga la
-    pantalla abierta. El importe de un contrarreembolso es siempre mayor que 0: con saldo neto 0 se deja como está y
+    anula; hoy ninguna pantalla ni RPC anula una nota —`anular_comprobante` la rechaza—, así que esa rama solo se alcanza con SQL
+    directo) y dejan el evento `contrarreembolso.importe_ajustado`; el bloqueo optimista avanza para quien tenga la
+    pantalla abierta. Si alguien lo está marcando cobrado en ese instante, se omite (`skip locked`, para no invertir el
+    orden de bloqueos y evitar un deadlock) y su cobro se valida contra el saldo vigente. El importe de un contrarreembolso es siempre mayor que 0: con saldo neto 0 se deja como está y
     marcarlo cobrado falla con el mensaje de tope (que ya dice el saldo).
   - **Límite conocido:** si se anula una nota *después* de que la factura pasó a `cobrado`, el saldo vuelve a subir pero
     el estado no retrocede a `deuda` (una factura cobrada en mostrador, anterior al libro de cobros, puede estar en

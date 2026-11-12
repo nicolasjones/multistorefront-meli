@@ -72,7 +72,9 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   cobra al entregar no genera nada.
 - **Idempotente por (comprobante, guía)**: la misma guía devuelve el contrarreembolso ya abierto,
   sin duplicar y sin evento nuevo.
-- El **importe es el saldo** del comprobante.
+- El **importe es el saldo** del comprobante (el saldo neto: resta sus notas de crédito). Mientras el contrarreembolso
+  está `pendiente`, una nota de crédito que se emite o se anula lo **ajusta** al saldo vigente y deja el evento
+  `contrarreembolso.importe_ajustado` (ver `docs/cobros-por-comprobante.md`).
 - Deja el evento `contrarreembolso.abierto` en la misma transacción, con el actor y la tienda.
 - Toma el comprobante **con bloqueo de fila**: serializa dos aperturas de la misma guía y serializa
   contra el registro de cobros (que bloquea el mismo comprobante), así que el importe nunca se

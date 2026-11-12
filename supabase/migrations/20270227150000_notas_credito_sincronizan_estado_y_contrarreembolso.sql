@@ -25,6 +25,9 @@
 -- pasó a «Cobrado», el estado no vuelve a «Deuda» (una factura cobrada en mostrador, anterior al libro de cobros, puede
 -- estar en «Cobrado» sin cobros y no hay forma segura de distinguirla).
 --
+-- Bloqueos: la factura se toma primero (`for update`, como `emitir_nota_credito`, `registrar_cobro_interno` y
+-- `abrir_contrarreembolso`) y los contrarreembolsos con `skip locked` (ver el comentario del cursor).
+--
 -- Seguridad: funciones `private`, `security definer` con `search_path = ''`, sin execute para `public`/`anon`/`authenticated`.
 -- Esquema (Principio VII): sin tablas nuevas; escribe `dominio.comprobantes_venta` (por la función de estado) y
 -- `dominio.contrarreembolsos`.
@@ -52,7 +55,7 @@ begin
   select * into v_s from private.saldo_comprobante(p_factura_id);
 
   -- 1) Estado: lo cobrado más las notas cubren la factura → Cobrado (si la matriz de la organización lo permite).
-  if v_s.saldo = 0 and v_s.cobrado > 0 and v_f.estado <> 'cobrado'
+  if v_s.saldo = 0 and v_s.cobrado > 0 and v_f.estado <> 'cobrado' and v_f.empresa_id is not null
      and exists (
        select 1 from dominio.transiciones_estado_comprobante t
         where t.organizacion_id = v_f.organizacion_id and t.tipo = v_f.tipo
@@ -70,7 +73,10 @@ begin
          and c.organizacion_id = v_f.organizacion_id
          and c.estado = 'pendiente'
          and c.importe <> v_s.saldo
-       for update
+       -- `skip locked`: `marcar_contrarreembolso_cobrado` toma el contrarreembolso y DESPUÉS la factura; esta función ya
+       -- tiene la factura y pedir el contrarreembolso invertiría el orden (deadlock). Si alguien lo está cobrando, se
+       -- deja como está: su cobro se valida contra el saldo vigente y falla con el mensaje de tope.
+       for update skip locked
     loop
       update dominio.contrarreembolsos
          set importe = v_s.saldo,
@@ -82,7 +88,7 @@ begin
         v_f.organizacion_id,
         null,
         'contrarreembolso.importe_ajustado',
-        format('Contrarreembolso de la guía %s: importe %s → %s por una nota de crédito en la factura %s',
+        format('Contrarreembolso de la guía %s: importe %s → %s al recalcular el saldo tras una nota de crédito en la factura %s',
           v_cr.guia, v_cr.importe, v_s.saldo, v_f.numero),
         v_f.empresa_id
       );
@@ -115,6 +121,7 @@ revoke execute on function private.trg_nota_credito_efectos() from public, anon,
 comment on function private.trg_nota_credito_efectos() is
   'Disparador de notas de crédito (alta, cambio de estado o de total): sincroniza la factura de origen. Ver sincronizar_efectos_nota_credito.';
 
+drop trigger if exists comprobantes_venta_nota_credito_efectos on dominio.comprobantes_venta;
 create trigger comprobantes_venta_nota_credito_efectos
   after insert or update of estado, total_con_iva on dominio.comprobantes_venta
   for each row
