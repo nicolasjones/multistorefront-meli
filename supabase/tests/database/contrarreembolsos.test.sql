@@ -821,6 +821,45 @@ select throws_ok(
   $$select private.abrir_contrarreembolso(
       'f1000000-0000-0000-0000-000000000021', 'e1000000-0000-0000-0000-00000000000a', 'G-NC-0002')$$,
   '22023', null, 'una factura que la nota cubre entera no tiene saldo: no hay contrarreembolso que abrir');
+-- ============================================================================
+-- Una nota de crédito ajusta los contrarreembolsos pendientes (disparador de 20270227150000)
+-- ============================================================================
+-- F22: 1.000 con un contrarreembolso abierto por 1.000. Una nota de 300 lo baja a 700; anulada la nota, vuelve a 1.000.
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
+  ('f1000000-0000-0000-0000-000000000022', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000022', '2026-12-02', 'confirmada', 1000, 1000, now());
+
+select pg_temp.como_sistema('d1000000-0000-0000-0000-000000000001');
+select lives_ok(
+  $$select private.abrir_contrarreembolso(
+      'f1000000-0000-0000-0000-000000000022', 'e1000000-0000-0000-0000-00000000000a', 'G-NC-0022')$$,
+  'se abre el contrarreembolso de la factura sin notas');
+reset role;
+select is(
+  (select importe from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000022'),
+  1000::numeric, 'por el total: 1.000');
+
+select actualizado_en as ant from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000022' \gset
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo) values
+  ('f1100000-0000-0000-0000-000000000022', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000122', '2026-12-03', 'emitida', 300, 300, 'f1000000-0000-0000-0000-000000000022', 'devolucion_importe');
+select is(
+  (select importe from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000022'),
+  700::numeric, 'emitida una nota de 300, el contrarreembolso pendiente pasa a 700 (el saldo neto)');
+select ok(
+  (select actualizado_en > :'ant'::timestamptz from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000022'),
+  'y avanza el bloqueo optimista para quien tenía la pantalla abierta');
+select is(
+  (select count(*) from public.registro_actividad
+    where tipo = 'contrarreembolso.importe_ajustado' and detalle like '%G-NC-0022%'),
+  1::bigint, 'y deja el evento contrarreembolso.importe_ajustado');
+
+update dominio.comprobantes_venta set estado = 'anulada' where id = 'f1100000-0000-0000-0000-000000000022';
+select is(
+  (select importe from dominio.contrarreembolsos where comprobante_id = 'f1000000-0000-0000-0000-000000000022'),
+  1000::numeric, 'anulada la nota, el contrarreembolso pendiente vuelve a 1.000');
+
 reset role;
 
 select * from finish();
