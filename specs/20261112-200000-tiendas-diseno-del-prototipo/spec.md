@@ -33,7 +33,7 @@
 - **FR-006** Las tarjetas de categoría de la portada muestran la foto de la categoría; sin foto, el recuadro neutro. Nombre y «N productos» como antes.
 - **FR-007** Bloque «Consultas por WhatsApp / Escribinos» al final de la portada; sin WhatsApp, solo «Escribinos».
 - **FR-008** Los títulos usan la tipografía de títulos de la identidad y el cuerpo la de texto (tema MUI), con la hoja de Google Fonts pedida con `display=swap` y `preconnect`.
-- **FR-009** Rendimiento: identidad, contenido y contacto se leen una sola vez por host; la vista previa del panel no lee `publico.*` ni toca variables globales.
+- **FR-009** Rendimiento: identidad, contenido, contacto y categorías se leen una sola vez por host; la vista previa del panel no lee `publico.*` ni toca variables globales.
 - **FR-010** Accesibilidad: sin violaciones de axe en el layout con el modo celular forzado por `matchMedia` (320 px) y el de escritorio (768 y 1440 px; jsdom no calcula anchos, el modo es lo que cambia); contraste AA del texto blanco sobre la barra lo informa la pestaña Identidad (tramo A).
 
 ## Matriz pantalla↔criterios
