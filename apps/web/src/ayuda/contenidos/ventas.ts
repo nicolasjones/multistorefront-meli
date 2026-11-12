@@ -48,11 +48,12 @@ export const ayudaVentas: AyudaPorDestino = {
   transportes: {
     titulo: 'Transportes',
     resumen:
-      'Es el catálogo de empresas de transporte y de sus terminales de retiro que usa tu organización para los envíos. También incluye la parte de contrarreembolsos. Todos los usuarios con acceso a Ventas pueden consultarlo, pero solo el Administrador puede cargar o editar.',
+      'Es el catálogo de empresas de transporte y de sus terminales de retiro que usa tu organización para los envíos. También incluye los contrarreembolsos y los envíos en moto con mensajería propia. Todos los usuarios con acceso a Ventas pueden consultarlo; solo el Administrador carga o edita transportes. En Motos, registra envíos el Operador o el Administrador y rinde el Administrador.',
     pasos: [
-      'Abrí la pestaña que necesitás: Contrarreembolsos o Terminales de retiro.',
+      'Abrí la pestaña que necesitás: Contrarreembolsos, Motos o Terminales de retiro.',
       'Filtrá por tienda para ver los transportes que usa cada una.',
       'Si sos Administrador, creá o editá un transporte desde la lista.',
+      'En Motos, Operador o Administrador tocan Registrar envío; solo el Administrador marca un envío como rendido, de a uno o en lote.',
     ],
   },
   'ventas-pagos': {

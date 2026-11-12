@@ -46,6 +46,14 @@
 - [x] T020 [P] [CIERRE] Actualizar `docs/roadmap-template.md`: fila de Ventas motos (estado, enlace a la spec) (soporte de SC-008)
 - [x] T021 [CIERRE] Revisión de seguridad (`authz-security`) de la tabla y las RPC (roles, `security definer`, `search_path`, `anon`, aislamiento) y validación final: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm infra:config`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check` (dueña de SC-008)
 
+## Phase 4: Correcciones posteriores
+
+**Goal**: lo que la revisión final y la auditoría por roles encontraron después de T001–T021.
+
+- [x] T022 [CIERRE] Migración `supabase/migrations/20270222300200_exportacion_total_envios_moto.sql`: `dominio.envios_moto` entra en `private.conjuntos_exportacion_total()` (el pgTAP de completitud de `exportacion_total.test.sql` exige que toda tabla con `organizacion_id` esté en la lista o en las exclusiones). Evidencia: la migración existe y su encabezado cita la definición vigente `20270221100009`; documentada en `docs/exportacion-total.md` (soporte de SC-008)
+- [x] T023 [CIERRE] Migración `supabase/migrations/20270223100000_envios_moto_lectura_por_empresa.sql`: la política `envios_moto_select` pasa del nivel global de `ventas` a `private.nivel_ventas_en_empresa` (hallazgo de la revisión final, commit e1d50985). Evidencia: la migración existe; cubierta por T024 (soporte de FR-002 y FR-008)
+- [x] T024 [CIERRE] pgTAP `supabase/tests/database/ventas_motos_rls_por_empresa.test.sql`: lectura directa de `envios_moto` por tienda y `puedo_registrar_envios_moto`. Evidencia: el archivo existe y lo cita `docs/ventas-motos.md` (verificación de FR-002 y FR-008)
+
 ## Plan de ejecución (historias)
 
 F-VTA-25 comparte tabla y página con F-VTA-24, por eso va después. El cierre espera a las dos.
@@ -55,6 +63,7 @@ F-VTA-25 comparte tabla y página con F-VTA-24, por eso va después. El cierre e
 | F-VTA-24 | — | 1 |
 | F-VTA-25 | F-VTA-24 | 2 |
 | [Cierre] | F-VTA-24, F-VTA-25 | 3 |
+| [Correcciones posteriores] | [Cierre] | 4 |
 
 ```mermaid
 flowchart LR

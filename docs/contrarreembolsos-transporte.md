@@ -144,18 +144,19 @@ Esta historia y **F-VTA-13** agregan una acción cada una a la **misma** matriz
 
 `/ventas/transportes` pasa a llamarse **«Transportes y contrarreembolsos»**, con el subtítulo del
 prototipo («Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales
-de retiro.»), el filtro `Tienda` común y dos sub-pestañas:
+de retiro.»), el filtro `Tienda` común y tres sub-pestañas (en este orden: Contrarreembolsos, Motos y Terminales de retiro):
 
 - **Contrarreembolsos** (la que abre por defecto): ayuda «El transporte cobra al entregar y rinde
   después.». Dentro van las dos tarjetas y la tabla de los contrarreembolsos.
+- **Motos**: la agrega MSF-145 (F-VTA-24 y F-VTA-25): ayuda «Mensajería propia: se rinde el efectivo cobrado y el costo del envío.»; ver `docs/ventas-motos.md`.
 - **Terminales de retiro**: la tabla de MSF-139 (F-VTA-04) sin cambios, con su recuento,
   `Nueva empresa` y `Editar`.
 
 La pestaña del catálogo se pide recién cuando está a la vista (no se carga la tabla de transportes
 desde la pestaña de contrarreembolsos, ni al revés). Las pestañas son de MUI (`Tabs`/`Tab`), con
 `role="tab"`, `aria-selected`, `tabpanel` y etiqueta accesible; los textos son los del prototipo
-`design/pantallas/VentasTransportes.dc.html`. La pestaña «Motos» del prototipo sigue fuera de
-alcance (despacho), igual que las tarjetas de motos.
+`design/pantallas/VentasTransportes.dc.html`. La pestaña «Motos» del prototipo la entrega MSF-145
+(`docs/ventas-motos.md`).
 
 ### Las tarjetas (FR-045)
 
@@ -167,7 +168,7 @@ alcance (despacho), igual que las tarjetas de motos.
 Cada tarjeta es una región con su título (así el lector de pantalla anuncia de qué tarjeta habla
 el importe) y con el color del prototipo: aviso para lo pendiente, éxito para lo cobrado. Las
 tarjetas van dentro de la sub-pestaña «Contrarreembolsos» porque son sus totales; la tercera
-tarjeta del prototipo («Motos sin rendir») es de despacho y queda fuera de alcance.
+tarjeta del prototipo («Motos sin rendir») existe desde MSF-145 y va arriba de las pestañas (`docs/ventas-motos.md`).
 
 ### La tabla (FR-047)
 
