@@ -33,11 +33,11 @@ update public.banderas_plataforma set activa = false where clave = 'promociones_
 update public.banderas_plataforma set activa = false where clave = 'precios_masivos';
 ```
 
-Es un cambio de datos de la base: rige al instante, sin desplegar la aplicación ni reiniciar nada. Cada `update` queda con `updated_at`.
+Es un cambio de datos de la base: rige al instante, sin desplegar la aplicación ni reiniciar nada. Cada `update` queda con `updated_at`. **Impacto de despliegue:** las migraciones crean las banderas apagadas, así que al llegar a cada entorno (dev, stg, prd) la tienda deja de mostrar el precio tachado y «Actualizar precios» queda deshabilitado hasta que alguien con acceso a la base ejecute el `update`; una migración no las enciende (ver [`deployment.md`](./deployment.md), «Banderas de plataforma»).
 
 Con `promociones_precio` **apagada** (migración `20270228300100`):
 
-- `private.promocion_vigente` devuelve null: las cinco funciones públicas de la tienda (catálogo, ficha, destacados, sugerencias y búsqueda) pasan por `private.precio_vigente_empresa`, así que muestran el **precio normal** y `precio_anterior` null, idéntico a una tienda sin promociones (el orden y el filtro por precio también usan el normal).
+- `private.promocion_vigente` devuelve null: las cinco funciones públicas de la tienda (catálogo, ficha, destacados, sugerencias y búsqueda) calculan el precio con `private.precio_vigente_empresa` (y `catalogo_pagina_por_dominio`, desde `20270228300400`, directo con `private.promocion_vigente`, la misma regla), así que muestran el **precio normal** y `precio_anterior` null, idéntico a una tienda sin promociones (el orden y el filtro por precio también usan el normal).
 - `guardar_promocion_precio` responde `55000` («Las promociones de precio están desactivadas en este entorno») después del permiso global y antes de tocar datos. `anular_promocion_precio` sigue permitida (apagar no impide limpiar).
 - La pantalla **Promociones** sigue listando, en modo **solo-anular**: sin «Nueva promoción» ni «Editar», con «Anular» habilitado donde el permiso por tienda lo permite, y un aviso con el motivo (si no se pueden leer las banderas, falla cerrado: sin ninguna acción). Las promociones guardadas no se tocan: al encender la bandera vuelven a regir las que estén en su rango de fechas.
 - La vista `promociones_precio_estado` sigue mostrando el estado por fecha, pero solo la lee esa pantalla (que queda oculta).

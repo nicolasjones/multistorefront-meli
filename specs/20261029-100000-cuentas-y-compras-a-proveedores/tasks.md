@@ -22,7 +22,7 @@
 
 - [x] T001 [P] [F-CLI-19][US1] Cuando pase a un hito: redactar requisitos, pantalla (saldo en la ficha de `ClienteFicha`) y matriz de la cuenta corriente, a partir de cómo Ventas maneje cobros y estado Deuda. **FR-001** — Verificación: `grep -E "F-CLI-19.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`. Desvío: la redacción la hizo el SDLC con su propia spec (`specs/20261109-100000-cuenta-corriente-y-saldo-cliente/`, MSF-451) sin requisitos del cliente; queda como definición provisoria a confirmar.
 - [ ] T002 [P] [F-CLI-20][US2] Cuando pase a un hito: redactar requisitos de historial y favoritos sobre la cuenta web (`cuenta-web-del-cliente`), acotados a eso. **FR-002** — Verificación: `grep -E "F-CLI-20.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
-- [ ] T003 [P] [F-CLI-21][US3] Cuando pase a un hito: resolver la pregunta abierta 1 y redactar requisitos de listas de precios por cliente, coordinando con F-PRE-14. **FR-003** — Verificación: `grep -E "F-CLI-21.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+- [ ] T003 [P] [F-CLI-21][US3] Cuando pase a un hito: resolver la pregunta abierta 1 y redactar requisitos de listas de precios por cliente, (F-PRE-14 fue cancelada el 2026-11-12: nada que coordinar). **FR-003** — Verificación: `grep -E "F-CLI-21.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
 - [ ] T004 [P] [F-PRV-09][US4] Cuando pase a un hito: redactar requisitos de órdenes de compra a proveedores sobre el listado de reposición de Stock. **FR-004** — Verificación: `grep -E "F-PRV-09.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
 
 **Checkpoint**: por decisión de Nicolás, estas cuatro quedan abiertas a propósito y no se implementa código.

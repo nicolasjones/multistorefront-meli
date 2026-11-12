@@ -14,3 +14,17 @@
 ## Pendientes de Nicolás
 
 Ninguno de esta épica.
+
+## Documentador final (2026-11-12)
+
+Auditoría de `docs/*.md` y specs contra `origin/dokploy` (migraciones, RPC, componentes y ayuda en `apps/web/src/ayuda`). Solo documentación.
+
+- `docs/precios.md`: el contrato de la Edge Function decía `fecha: string`; el código devuelve `string | null` (`handler.ts`, `leerSugerencia`). Corregido y aclarado `fuente`.
+- `docs/deployment.md`: agregado que la fuente es DolarApi (`dolarapi.com`, oficial venta, 5 s, sin redirecciones) junto a la salida a internet, y la nota de «Function not found» tras crear una función nueva.
+- `docs/roadmap-template.md`: la fila de MSF-373 nombra DolarApi y su requisito de salida; F-PRE-14 sigue **Cancelada**.
+- Verificado sin cambios: mensajes del diálogo (`DialogoCargarDolar.tsx`), ayuda de «Cotización del dólar», script `test:edge:cotizacion-sugerida`.
+- `docs/producto/` y `docs/tecnico/` no existen en `dokploy` (viven en `main`): `docs/tecnico/cotizacion-sugerida-y-mayoristas.md` de `main` sigue con F-PRE-14 como abierta; hay que actualizarlo en un PR a `main`.
+
+### Revisión independiente (2026-11-12)
+
+- Corrección: el texto «F-PRE-15 ya implementada en `TiposCliente`» (spec, línea 17, y las guías) no coincide con `dokploy`: no existe la tabla `tipos_cliente` ni la pantalla; el tipo de cliente son dos valores fijos y Ventas elige la escala con `private.escala_para_linea`. Corregido en `docs/precios.md`, `docs/clientes.md` y `docs/cuentas-y-compras-a-proveedores.md`. La cancelación de F-PRE-14 es decisión de Nicolás y no se puede verificar en el código.
