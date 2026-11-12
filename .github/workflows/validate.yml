@@ -160,6 +160,12 @@ jobs:
             echo "sin EVIDENCIAS_E2E_VIEWER_URL: no se comenta."
             exit 0
           fi
+          # La imagen del runner (infra/runner/Dockerfile) no trae `gh`: el aviso es
+          # informativo y no puede dejar rojo un job cuyos tests pasaron.
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "sin gh en este runner: no se comenta."
+            exit 0
+          fi
           gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body "$(cat <<TEXTO
           ### Cobertura E2E de esta corrida
 

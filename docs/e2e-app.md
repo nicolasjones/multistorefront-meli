@@ -154,7 +154,7 @@ El componente se declara en el `spec.md`, junto a la épica de Jira:
 En cada PR, el job `application` graba los E2E públicos y deja **un solo
 comentario** (lo edita en cada push) con el link al visor, tomado de la variable
 `EVIDENCIAS_E2E_VIEWER_URL`; sin esa variable o sin los secretos del bucket no
-comenta y la corrida no falla.
+comenta y la corrida no falla. Tampoco falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): el paso lo detecta, avisa en el log y sigue.
 
 Sin esa línea la épica cae en "Sin clasificar" (no se pierde ninguna historia).
 El nombre visible de la épica sale de la línea `**Jira Epic**`: se muestra la
