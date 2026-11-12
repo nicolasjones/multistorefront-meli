@@ -11,7 +11,7 @@ vi.mock('../../lib/tienda', () => ({
   resolverRedireccion: mocks.redireccion,
   urlDeRedireccion: (principal: string) => `https://${principal}/`,
 }))
-vi.mock('../../lib/tiendaCategorias', () => ({ leerCategoriasPublicas: mocks.categorias }))
+vi.mock('../../lib/tiendaCategorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../lib/tiendaCategorias')>()), leerCategoriasPublicas: mocks.categorias }))
 
 // La medición real se prueba en layout/MedicionTienda.test.tsx: acá solo importa si el front la monta.
 vi.mock('./layout/MedicionTienda', () => ({ default: () => <div data-testid="medicion-montada" /> }))

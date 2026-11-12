@@ -5,7 +5,7 @@ import { violacionesAxe } from '../../test/axe'
 
 const mocks = vi.hoisted(() => ({ categorias: vi.fn() }))
 
-vi.mock('../../lib/tiendaCategorias', () => ({ leerCategoriasPublicas: mocks.categorias }))
+vi.mock('../../lib/tiendaCategorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../lib/tiendaCategorias')>()), leerCategoriasPublicas: mocks.categorias }))
 
 import { EnrutadorTienda, rutaDeArchivo } from './EnrutadorTienda'
 import { PaginaNoEncontrada } from './PaginaNoEncontrada'

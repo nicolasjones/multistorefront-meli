@@ -1,12 +1,12 @@
 import { supabaseClient } from './supabase'
 import {
-import { limpiarTextoPublico } from './tiendaTextos'
   PAGINA_VACIA,
   mapearPagina,
   type FilaPagina,
   type FiltrosCatalogo,
   type PaginaCatalogo,
 } from './tiendaListado'
+import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-15 (MSF-413): búsqueda de la tienda pública. La coincidencia (sin tildes ni mayúsculas, con
 // tolerancia a errores de tipeo), el precio final y el límite de pedidos los resuelve la base
