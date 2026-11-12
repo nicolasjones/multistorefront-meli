@@ -10,7 +10,7 @@ tiene requisitos de comportamiento del cliente; solo F-CLI-19 se construyó, com
 |---|---|---|---|---|---|
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | Backlog para el cliente; construida como definición provisoria y marcada **Finalizada** (`specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks/F-CLI-19.md`; ver abajo) | Cómo Ventas maneja cobros y el estado Deuda. |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | Backlog | Cuenta web del cliente (`cuenta-web-del-cliente`); equivale a F-CON-07 y F-TDA-27, acotados a esto. |
-| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog | Relacionada con F-PRE-14 (Precios), F-CLI-03 y F-CLI-07. |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog | Relacionada con F-CLI-03 y F-CLI-07; F-PRE-14 (Precios) está **cancelada** (2026-11-12, MSF-373). |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Backlog | Ingreso de mercadería por proveedor y listado de reposición de Stock. |
 
 Ninguna tiene requisitos del cliente (RF), escenarios (CA) ni horas. **F-CLI-19 sí tiene código y pantalla** (la
@@ -21,7 +21,7 @@ cliente). F-CLI-20, F-CLI-21 y F-PRV-09 **no tienen código ni pantalla**: sigue
 
 El SDLC construyó F-CLI-19 (MSF-451) **sin requisitos del cliente**: la spec y las reglas las redactó el desarrollo.
 Está descrita en [Clientes](./clientes.md), sección «Cuenta corriente y saldo del cliente».
-Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el saldo respeta las tiendas accesibles y que la persona con `clientes` en lectura ve el saldo; lo demás queda a confirmar cuando la idea pase a un hito:
+Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el saldo respeta las tiendas accesibles y que la persona con `clientes` en lectura ve el saldo; la ausencia de saldo a favor figura como confirmada en las notas de la épica (sin fecha); lo demás (los estados que cuentan como deuda) queda a confirmar cuando la idea pase a un hito:
 
 - El saldo de un comprobante es `total con IVA − cobros − notas de crédito` (nunca negativo): todo sale de `private.saldo_comprobante`, que es el único cálculo (también lo usan el detalle del comprobante y el tope al cobrar).
 - Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`; los presupuestos no son deuda.
@@ -40,14 +40,12 @@ Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el
 
 ## Preguntas abiertas
 
-1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21 / F-PRE-14):** ¿el tipo de cliente fija la escala de
-   precios o la escala depende de la cantidad? Chocan F-PRE-14 (listas mayoristas, P3) y que el tipo de cliente defina
-   la escala en P0. Sin resolver.
+1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) fue **cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373) porque chocaba con F-PRE-15 (escalas por tipo de cliente, ya implementada en «Tipos de cliente»). Para F-CLI-21 queda abierto solo si las listas de precios por cliente se necesitan además de las escalas por tipo; sigue en Backlog sin requisitos. La escala por **cantidad** de la línea sigue siendo de Ventas (F-VTA-06, ver [`precios.md`](./precios.md)).
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
-3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo:** siguen a confirmar qué estados cuentan
-   como deuda (en particular «Pendiente» y «Confirmada») y si el saldo a favor se muestra (hoy no: un cobro de más es $ 0).
-   Confirmado por Nicolás el 2026-11-12: el saldo se ve por tienda accesible y la persona con `clientes` en lectura lo ve
-   aunque no acceda a Ventas.
+3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo:** sigue a confirmar qué estados cuentan
+   como deuda (en particular «Pendiente» y «Confirmada»). Sin saldo a favor (confirmado en las notas): un cobro o una nota de más deja la factura en $ 0. Confirmado por Nicolás el 2026-11-12: la factura cobrada no es deuda,
+   el saldo se ve por tienda accesible y la persona
+   con `clientes` en lectura lo ve aunque no acceda a Ventas.
 4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido.
 
 ## Cómo sigue una idea

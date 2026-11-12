@@ -24,7 +24,19 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
-**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando.
+**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando. La fuente es DolarApi (`https://dolarapi.com/v1/dolares/oficial`, dólar oficial, precio de venta; URL fija en `supabase/functions/cotizacion-sugerida/handler.ts`), con tiempo máximo de 5 s y sin redirecciones. Una función Edge nueva no queda registrada en el runtime de dev hasta recrear el stack (`Function not found`).
+
+### Banderas de plataforma (MSF-363)
+
+La migración `20270228300000_banderas_plataforma.sql` crea `public.banderas_plataforma` con dos banderas **apagadas por defecto** en cada entorno: `promociones_precio` y `precios_masivos`. Efecto del despliegue: hasta encenderlas, la tienda pública muestra el precio normal (sin precio tachado), la pantalla Promociones queda en modo solo-anular y «Actualizar precios» no aparece. Las promociones ya guardadas no se pierden: al encender la bandera vuelven a regir las que estén en su rango de fechas.
+
+Las enciende el equipo técnico **a mano, por SQL, entorno por entorno**; **no** las enciende una migración ni el despliegue:
+
+```sql
+update public.banderas_plataforma set activa = true where clave in ('promociones_precio', 'precios_masivos');
+```
+
+Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con `activa = false`. Después de encender, verificar en la tienda del entorno (precio tachado en una promoción vigente) y en Productos (botón «Actualizar precios»). Detalle en [`promociones-precio.md`](./promociones-precio.md) y [`precios-masivos.md`](./precios-masivos.md).
 
 ## Producción
 

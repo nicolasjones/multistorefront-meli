@@ -31,3 +31,11 @@ Siguen abiertos: la reversión de la rendición (punto 5, fuera de alcance; ahor
 4. ~~**`abono` sin vínculo con cobros.**~~ Decidido el 2026-11-12 (ver arriba).
 5. **Reversión de la rendición.** Fuera de alcance por la decisión del 2026-11-09, que no consideró las notas de crédito; ahora que rendir deja un cobro en el libro, revertir tendría que deshacerlo (el libro no se borra: haría falta un contra-asiento). Sigue abierta.
 6. **«Comentarios de clientes» del Code Review.** No se localizaron en el repositorio ni en la spec; Nicolás debe indicar a qué se refieren.
+
+## Documentador final (2026-11-12)
+
+Auditoría de `docs/*.md` y specs contra `origin/dokploy` (migraciones, RPC, componentes y ayuda en `apps/web/src/ayuda`). Solo documentación.
+
+- Verificado contra `20270228110000`, `20270228110100` y `20270228110200`: anulada bloquea (`55000`), borrador no elegible en el registro (`22023`) y rendir con abono exige factura confirmada (`55000`), rendir cobra `least(abono, saldo neto)` con origen `contrarreembolso` y la nota de crédito baja el abono pendiente. `docs/ventas-motos.md` y `docs/cobros-por-comprobante.md` coinciden.
+- `docs/contrarreembolsos-transporte.md` decía que la tarjeta «Motos sin rendir» va «arriba de las pestañas»; está dentro de la pestaña Motos (`TransportesMotos.tsx`). Corregido (ya lo decía bien `docs/ventas-transportes.md`).
+- `docs/roadmap-template.md`: la fila de MSF-145 incluye las decisiones del 2026-11-12.
