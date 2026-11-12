@@ -6,7 +6,7 @@
 -- organizaciones y `anon` sin ejecución.
 begin;
 
-select plan(65);
+select plan(92);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -28,6 +28,32 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda Uno'),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda Dos'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Tienda Ajena');
+
+-- MSF-363 (decisiones 14 y 15): la bandera `precios_masivos` nace apagada; este archivo la enciende para probar el
+-- comportamiento de siempre y la apaga en su propia sección. El permiso es POR TIENDA: el operador edita en las dos tiendas;
+-- «mixto» edita en Tienda Uno y solo lee en Tienda Dos; «solo uno» solo accede a Tienda Uno.
+-- Valores sembrados por la migración, ANTES de tocar nada: apagadas de verdad (no solo el default de la columna).
+select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false, 'promociones_precio nace apagada (valor sembrado)');
+select is((select activa from public.banderas_plataforma where clave = 'precios_masivos'), false, 'precios_masivos nace apagada (valor sembrado)');
+-- Lo desconocido está apagado: clave inexistente y fila borrada.
+select is(private.bandera_activa('no_existe'), false, 'private.bandera_activa: una clave inexistente cuenta como apagada');
+delete from public.banderas_plataforma where clave = 'precios_masivos';
+select is(private.bandera_activa('precios_masivos'), false, 'private.bandera_activa: con la fila borrada cuenta como apagada');
+insert into public.banderas_plataforma (clave, activa, descripcion) values ('precios_masivos', true, 'Actualización masiva de precios');
+select is(private.bandera_activa('precios_masivos'), true, 'private.bandera_activa: encendida devuelve true');
+update public.banderas_plataforma set activa = true where clave = 'precios_masivos';
+insert into auth.users (id, email) values
+  ('d1000000-0000-0000-0000-000000000004', 'mixto@example.com'),
+  ('d1000000-0000-0000-0000-000000000005', 'solo-uno@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('d1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'operador');
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('d1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('d1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('d1000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador');
 
 insert into dominio.categorias (id, organizacion_id, nombre, padre_id) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Accesorios', null);
@@ -387,6 +413,142 @@ select throws_ok(
 reset role;
 update public.permisos_rol set nivel = (select nivel from nivel_rentabilidad_original)
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'operador' and seccion = 'rentabilidad';
+
+-- ============================================================================
+-- MSF-363 (decisión 14): permiso EN LA TIENDA, no global
+-- ============================================================================
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '42501', null, 'edición en Tienda Uno y lectura en Tienda Dos: no puede previsualizar'
+);
+select throws_ok(
+  $$select public.aplicar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10,"versiones":{}}'::jsonb,
+      '30000000-0000-4000-8000-000000000010')$$,
+  '42501', null, 'edición en Tienda Uno y lectura en Tienda Dos: no puede aplicar'
+);
+select is(
+  (public.capacidades_precios()->>'edicion_en_todas_las_tiendas')::boolean,
+  false, 'capacidades_precios: «mixto» no edita en todas las tiendas'
+);
+select is(
+  public.capacidades_precios()->'niveles_productos'->>'e1000000-0000-0000-0000-000000000002',
+  'lectura', 'capacidades_precios: nivel por tienda (lectura en Tienda Dos)'
+);
+
+-- Una tienda desactivada no cuenta (no es accesible): con Tienda Dos inactiva «mixto» edita en todas las que accede.
+reset role;
+update dominio.empresas set activa = false where id = 'e1000000-0000-0000-0000-000000000002';
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+select is(
+  (public.previsualizar_actualizacion_precios('porcentaje',
+    '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)->>'afectados')::int,
+  3, 'con Tienda Dos desactivada ya no cuenta: previsualiza'
+);
+reset role;
+update dominio.empresas set activa = true where id = 'e1000000-0000-0000-0000-000000000002';
+
+-- Accede a Tienda Uno con edición pero NO a Tienda Dos: una tienda sin acceso cuenta como sin edición (decisión 14 endurecida).
+select pg_temp.como('d1000000-0000-0000-0000-000000000005');
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '42501', null, 'edita en Tienda Uno pero no accede a Tienda Dos: 42501 (la regla cuenta todas las tiendas de la organización)'
+);
+
+-- El operador con edición en las dos tiendas sí puede (paridad previsualizar/aplicar).
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select is(
+  (public.previsualizar_actualizacion_precios('porcentaje',
+    '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)->>'afectados')::int,
+  3, 'edición en todas las tiendas: previsualiza'
+);
+
+-- Quien no accede a ninguna tienda activa no puede (aunque su rol global sea de edición).
+reset role;
+delete from usuarios_empresas where user_id = 'd1000000-0000-0000-0000-000000000005';
+select pg_temp.como('d1000000-0000-0000-0000-000000000005');
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '42501', null, 'sin ninguna tienda accesible: 42501'
+);
+
+-- ============================================================================
+-- MSF-363 (decisión 15): bandera de apagado
+-- ============================================================================
+
+reset role;
+update public.banderas_plataforma set activa = false where clave = 'precios_masivos';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '55000', 'La actualización masiva de precios está desactivada en este entorno',
+  'bandera apagada: previsualizar rechaza con mensaje claro'
+);
+select throws_ok(
+  $$select public.aplicar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10,"versiones":{}}'::jsonb,
+      '30000000-0000-4000-8000-000000000011')$$,
+  '55000', 'La actualización masiva de precios está desactivada en este entorno',
+  'bandera apagada: aplicar rechaza con mensaje claro'
+);
+select is(
+  (public.capacidades_precios()->>'precios_masivos')::boolean, false, 'capacidades_precios informa la bandera apagada'
+);
+select is(
+  (select count(*)::int from dominio.actualizaciones_precio where clave = '30000000-0000-4000-8000-000000000011'),
+  0, 'con la bandera apagada no se registró ningún lote'
+);
+
+-- Reintento de un lote ya aplicado (misma clave) con la bandera apagada: 55000 (la bandera se evalúa antes de la idempotencia).
+select throws_ok(
+  $$select public.aplicar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10,"versiones":{}}'::jsonb,
+      '20000000-0000-4000-8000-000000000001')$$,
+  '55000', null, 'bandera apagada: el reintento de un lote ya aplicado también responde 55000'
+);
+
+-- Orden del permiso: quien solo lee recibe 42501 (no 55000, que filtraría el estado de la bandera).
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select throws_ok(
+  $$select public.previsualizar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)$$,
+  '42501', null, 'bandera apagada y persona de solo lectura: previsualizar da 42501, no 55000'
+);
+select throws_ok(
+  $$select public.aplicar_actualizacion_precios('porcentaje', '{"cambia":"precio_lista","alcance":"todos","porcentaje":10,"versiones":{}}'::jsonb,
+      '30000000-0000-4000-8000-000000000012')$$,
+  '42501', null, 'bandera apagada y persona de solo lectura: aplicar da 42501, no 55000'
+);
+
+-- Privilegios de la tabla y del helper.
+select is(has_table_privilege('anon', 'public.banderas_plataforma', 'select'), false, 'anon no lee banderas_plataforma');
+select is(has_function_privilege('authenticated', 'private.bandera_activa(text)', 'execute'), false, 'authenticated no ejecuta private.bandera_activa');
+select throws_ok(
+  $$update public.banderas_plataforma set activa = true where clave = 'precios_masivos'$$,
+  '42501', null, 'un authenticated real no puede actualizar banderas_plataforma'
+);
+select throws_ok(
+  $$insert into public.banderas_plataforma (clave, activa, descripcion) values ('otra', true, 'x')$$,
+  '42501', null, 'ni insertar una bandera'
+);
+
+reset role;
+update public.banderas_plataforma set activa = true where clave = 'precios_masivos';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  (public.previsualizar_actualizacion_precios('porcentaje',
+    '{"cambia":"precio_lista","alcance":"todos","porcentaje":10}'::jsonb)->>'afectados')::int,
+  3, 'bandera encendida: vuelve a funcionar como siempre'
+);
+select is(
+  (select activa from public.banderas_plataforma where clave = 'precios_masivos'), true, 'la bandera se enciende con un update'
+);
+select is(
+  has_table_privilege('authenticated', 'public.banderas_plataforma', 'update'), false,
+  'authenticated no cambia las banderas'
+);
+
+reset role;
 
 -- ============================================================================
 -- Consulta: solo lectura

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
   useOrganizacionActiva: vi.fn(),
+  useCapacidadesPrecios: vi.fn(),
 }))
 
 vi.mock('../../lib/promociones', async (importOriginal) => {
@@ -29,6 +30,7 @@ vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: mocks.useOrganizacionActiva }))
+vi.mock('../../hooks/useCapacidadesPrecios', () => ({ useCapacidadesPrecios: mocks.useCapacidadesPrecios }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { PromocionesList } from './promociones'
@@ -65,6 +67,13 @@ const PRODUCTOS = [
   { id: 'a2', nombre: 'Beta', sku: 'PR-2' },
 ]
 
+const capacidades = (promociones: boolean, niveles: Record<string, string> = { e1: 'edicion', e2: 'edicion' }, hayError = false) =>
+  mocks.useCapacidadesPrecios.mockReturnValue({
+    capacidades: { promociones, preciosMasivos: true, edicionEnTodasLasTiendas: true, nivelesProductos: niveles },
+    cargando: false,
+    hayError,
+  })
+
 const abrir = () => render(<PromocionesList />)
 
 describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
@@ -80,6 +89,7 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e1'))
     mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o1' }, isLoading: false })
+    capacidades(true)
   })
 
   it('lista producto, precios, fechas y estado derivado de la empresa activa', async () => {
@@ -217,6 +227,53 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     await Promise.resolve()
     expect(screen.queryByText('Alfa de A')).toBeNull()
     expect(screen.getByText('Solo de B')).toBeInTheDocument()
+  })
+
+  it('con la bandera apagada (por defecto) lista en modo solo-anular y explica el motivo (MSF-363, decisión 15)', async () => {
+    capacidades(false)
+    abrir()
+    expect(await screen.findByText('Alfa de A')).toBeInTheDocument()
+    expect(screen.getByText(/promociones de precio están desactivadas en este entorno/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nueva promoción' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Editar la promoción/ })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Anular la promoción de Beta de A' })).toBeEnabled()
+  })
+
+  it('con la bandera apagada, anular sigue funcionando donde el permiso por tienda lo permite', async () => {
+    capacidades(false, { e1: 'lectura', e2: 'edicion' })
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    abrir()
+    await screen.findByText('Solo de B')
+    expect(screen.getByRole('button', { name: 'Anular la promoción de Solo de B' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Anular la promoción de Beta de A' })).toBeNull()
+  })
+
+  it('si no se pueden leer las banderas muestra la lista sin acciones de alta ni edición (falla cerrado)', async () => {
+    capacidades(false, {}, true)
+    abrir()
+    expect(await screen.findByText('Alfa de A')).toBeInTheDocument()
+    expect(screen.getByText(/No pudimos verificar si las promociones están activas/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nueva promoción' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^(Editar|Anular) la promoción/ })).toBeNull()
+  })
+
+  it('con edición en A y solo lectura en B: en B ve la lista sin acciones y «Nueva promoción» deshabilitada con motivo (decisión 14)', async () => {
+    capacidades(true, { e1: 'edicion', e2: 'lectura' })
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e2'))
+    abrir()
+    await screen.findByText('Solo de B')
+    expect(screen.getByRole('button', { name: 'Nueva promoción' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /^Anular la promoción/ })).toBeNull()
+    expect(screen.getByText(/no tenés permiso de edición de productos en ella/)).toBeInTheDocument()
+  })
+
+  it('en «Todas mis empresas» las acciones salen solo en las promociones de las tiendas donde edita', async () => {
+    capacidades(true, { e1: 'edicion', e2: 'lectura' })
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    abrir()
+    await screen.findByText('Solo de B')
+    expect(screen.getByRole('button', { name: 'Anular la promoción de Beta de A' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Anular la promoción de Solo de B' })).toBeNull()
   })
 
   it('con lectura se ve la lista sin altas ni acciones', async () => {
