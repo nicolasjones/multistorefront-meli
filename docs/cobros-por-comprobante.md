@@ -84,6 +84,15 @@ desactiva más tarde, el cobro ya registrado se conserva).
   corriente del cliente. Una nota emitida *después* de cobrar no devuelve plata: el saldo queda en 0 y el estado no
   cambia. Hasta la migración `20270227140000` el saldo era `total − cobros` y la ficha del cliente (que sí restaba las
   notas) y el comprobante mostraban cifras distintas.
+- **Límites conocidos del saldo neto** (decididos aparte, no se tocan acá): el saldo se recalcula al leer, pero el
+  **estado** de la factura y el importe de un contrarreembolso solo cambian cuando se registra un cobro o se abre.
+  - Una nota emitida *después* de un cobro parcial puede dejar el saldo en 0 con la factura todavía en `deuda`
+    (nadie llama al marcado de estado al emitir la nota, y `registrar_cobro` rechaza cualquier importe sobre saldo 0):
+    no figura en la cuenta corriente, pero el listado de ventas la sigue mostrando «Deuda».
+  - Un contrarreembolso ya abierto conserva su importe: si después se emite una nota, `marcar_contrarreembolso_cobrado`
+    intenta cobrar el importe viejo contra un saldo menor y falla con `P0001` (queda «Pendiente»).
+  - Si se anula una nota *después* de que la factura pasó a `cobrado`, el saldo vuelve a subir pero el estado sigue en
+    `cobrado` (la cuenta corriente la oculta; el comprobante muestra el saldo).
 - `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
   `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 

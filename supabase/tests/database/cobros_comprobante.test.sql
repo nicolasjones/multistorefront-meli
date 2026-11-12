@@ -1205,6 +1205,28 @@ select case
   else skip('MSF-177 sin mergear: private.marcar_estado_cobro_comprobante todavía no existe')
 end;
 
+-- Una nota emitida DESPUÉS de cobrar no devuelve plata: el saldo queda en 0, lo cobrado no cambia y el estado tampoco.
+-- F24: 1.000 ya cobrada entera (estado Cobrado) y una nota posterior de 300.
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
+  ('f1000000-0000-0000-0000-000000000024', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000024', '2026-12-02', 'cobrado', 1000, 1000, now());
+insert into dominio.cobros_comprobante
+  (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
+values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000024', 1000, 'b1000000-0000-0000-0000-00000000000b',
+        'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno');
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo) values
+  ('f1100000-0000-0000-0000-000000000025', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000125', '2026-12-03', 'emitida', 300, 300, 'f1000000-0000-0000-0000-000000000024', 'devolucion_importe');
+
+select results_eq(
+  $$select total, cobrado, notas_credito, saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000024')$$,
+  $$values (1000::numeric, 1000::numeric, 300::numeric, 0::numeric)$$,
+  'una nota posterior al cobro total: el saldo queda en 0 (sin saldo a favor) y lo cobrado no cambia');
+select is(
+  (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000024'),
+  'cobrado', 'y el estado de la factura no cambia');
+
 reset role;
 
 select * from finish();

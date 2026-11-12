@@ -117,6 +117,7 @@ begin
          and n.comprobante_origen_id = c.id
          and n.tipo = 'nota_credito'
          and n.cliente_id = c.cliente_id
+         and n.empresa_id in (select private.empresas_accesibles())
          and private.comprobante_cuenta_como_facturado(n.tipo, n.estado)
     ) nc
    where c.id = p_id
