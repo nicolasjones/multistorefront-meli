@@ -95,7 +95,8 @@ export function versionDe(ruta: string): string | null {
 function respuesta(cuerpo: unknown, estado: number, cabeceras: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(cuerpo), {
     status: estado,
-    headers: { 'Content-Type': 'application/json', ...cabeceras },
+    // Datos de una organización: nunca se cachean ni se interpretan como otro tipo.
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...cabeceras },
   })
 }
 

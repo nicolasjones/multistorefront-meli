@@ -365,5 +365,53 @@ select ok(
 
 reset role;
 
+-- ============================================================================
+-- Revisión MSF-233: tope de auditoría para llamadas sin clave válida y
+-- normalización de reservas colgadas.
+-- ============================================================================
+
+delete from public.api_llamadas where clave_id is null and organizacion_id is null;
+
+insert into public.api_llamadas (organizacion_id, clave_id, metodo, ruta, version, estado_http)
+select null, null, 'GET', '/v1/productos', 'v1', 401 from generate_series(1, 600);
+
+select public.api_registrar_llamada(null, null, 'GET', '/v1/productos', 'v1', 401, 1, null);
+
+select is(
+  (select count(*)::int from public.api_llamadas
+    where clave_id is null and organizacion_id is null and creada_en > now() - interval '1 minute'),
+  600,
+  'pasado el tope de 600 por minuto las llamadas sin clave dejan de guardarse'
+);
+
+delete from public.api_llamadas where clave_id is null and organizacion_id is null;
+
+select public.api_registrar_llamada(null, null, 'GET', '/v1/productos', 'v1', 401, 1, null);
+
+select is(
+  (select count(*)::int from public.api_llamadas where clave_id is null and organizacion_id is null),
+  1,
+  'por debajo del tope la llamada sin clave se sigue auditando (FR-008)'
+);
+
+insert into public.api_llamadas (id, organizacion_id, clave_id, metodo, ruta, version, estado_http, creada_en)
+values ('c0000000-0000-0000-0000-0000000000a1', null, null, 'GET', '/reserva', 'v1', 102, now() - interval '10 minutes'),
+       ('c0000000-0000-0000-0000-0000000000a2', null, null, 'GET', '/reserva', 'v1', 102, now());
+
+select private.purgar_api_llamadas(90);
+
+select is(
+  (select estado_http from public.api_llamadas where id = 'c0000000-0000-0000-0000-0000000000a1'),
+  500,
+  'una reserva colgada de más de 5 minutos pasa a 500'
+);
+
+select is(
+  (select estado_http from public.api_llamadas where id = 'c0000000-0000-0000-0000-0000000000a2'),
+  102,
+  'una reserva reciente no se toca'
+);
+
+
 select * from finish();
 rollback;

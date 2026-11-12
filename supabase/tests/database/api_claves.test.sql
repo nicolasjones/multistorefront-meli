@@ -382,5 +382,85 @@ select is(
   'un prefijo desconocido no resuelve organización'
 );
 
+-- ============================================================================
+-- Revisión MSF-233: la rotación hereda el vencimiento y la gracia no lo alarga;
+-- la clave anterior sigue validando durante la gracia.
+-- ============================================================================
+
+select set_config(
+  'request.jwt.claims',
+  json_build_object('sub', 'f1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text,
+  true
+);
+set local role authenticated;
+
+create temporary table rot_vence (clave text primary key, id uuid not null, valor text not null, vence timestamptz);
+grant all on rot_vence to authenticated, service_role;
+
+with creada as (
+  select public.crear_clave_api('Vence en 30 días', array['stock'], now() + interval '30 days') as c
+)
+insert into rot_vence (clave, id, valor, vence)
+select 'larga', (c).id, (c).valor, now() + interval '30 days' from creada;
+
+with creada as (
+  select public.crear_clave_api('Vence en 1 hora', array['stock'], now() + interval '1 hour') as c
+)
+insert into rot_vence (clave, id, valor, vence)
+select 'corta', (c).id, (c).valor, now() + interval '1 hour' from creada;
+
+create temporary table rot_nuevas (clave text primary key, id uuid not null, valor text not null);
+grant all on rot_nuevas to authenticated, service_role;
+
+with r as (select public.rotar_clave_api((select id from rot_vence where clave = 'larga')) as c)
+insert into rot_nuevas select 'larga', (c).id, (c).valor from r;
+with r as (select public.rotar_clave_api((select id from rot_vence where clave = 'corta')) as c)
+insert into rot_nuevas select 'corta', (c).id, (c).valor from r;
+
+reset role;
+
+select ok(
+  (select abs(extract(epoch from (n.vence_en - v.vence))) < 5
+     from public.api_claves n
+     join rot_nuevas rn on rn.id = n.id
+     join rot_vence v on v.clave = rn.clave
+    where rn.clave = 'larga'),
+  'la clave rotada hereda el vencimiento de la original (30 días)'
+);
+
+select ok(
+  (select abs(extract(epoch from (n.vence_en - v.vence))) < 5
+     from public.api_claves n
+     join rot_nuevas rn on rn.id = n.id
+     join rot_vence v on v.clave = rn.clave
+    where rn.clave = 'corta'),
+  'la clave rotada hereda el vencimiento de la original (1 hora)'
+);
+
+select ok(
+  (select a.vence_en < now() + interval '25 hours' and a.vence_en > now() + interval '23 hours'
+     from public.api_claves a join rot_vence v on v.id = a.id where v.clave = 'larga'),
+  'la clave anterior de vencimiento lejano queda con 24 h de gracia'
+);
+
+select ok(
+  (select a.vence_en <= (select vence from rot_vence where clave = 'corta') + interval '5 seconds'
+     from public.api_claves a join rot_vence v on v.id = a.id where v.clave = 'corta'),
+  'la gracia no alarga la clave anterior que vencía antes de 24 h'
+);
+
+select is(
+  (select valida from public.api_validar_clave((select valor from rot_vence where clave = 'larga'))),
+  true,
+  'la clave anterior sigue validando durante la gracia de 24 h'
+);
+
+select is(
+  (select valida from public.api_validar_clave((select valor from rot_nuevas where clave = 'larga'))),
+  true,
+  'la clave nueva valida desde el primer momento'
+);
+
+
 select * from finish();
 rollback;

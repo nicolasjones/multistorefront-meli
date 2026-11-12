@@ -90,7 +90,7 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
   it('muestra la suscripción con su URL, sus eventos y su estado', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Suscripciones a avisos' })).toBeInTheDocument()
-    expect(await screen.findByText('https://ejemplo.com/aviso')).toBeInTheDocument()
+    expect((await screen.findAllByText('https://ejemplo.com/aviso')).length).toBeGreaterThan(0)
     expect(screen.getByText('stock.actualizado')).toBeInTheDocument()
     expect(screen.getByText('Activa')).toBeInTheDocument()
   })
@@ -138,6 +138,13 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     expect(await screen.findByText('agotada')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.getByText(/El destino respondió 500/)).toBeInTheDocument()
+  })
+
+  it('las entregas muestran la URL de la suscripción como destino, no su identificador', async () => {
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Entregas de avisos' })
+    expect(await within(tabla).findByText('https://ejemplo.com/aviso')).toBeInTheDocument()
+    expect(within(tabla).queryByText('s-1')).not.toBeInTheDocument()
   })
 
   it('muestra las llamadas con su estado y su duración', async () => {
