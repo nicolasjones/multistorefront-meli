@@ -49,6 +49,7 @@ function tipoDe(esquema) {
     if (tipo === 'number') return 'número'
     if (tipo === 'integer') return 'entero'
     if (tipo === 'boolean') return 'verdadero/falso'
+    if (tipo === 'object') return 'objeto'
     if (tipo === 'null') return 'puede ser nulo'
     return tipo
   })
@@ -136,7 +137,6 @@ function seccionDeAviso(documento, nombre, { operacion }) {
   const ref = cuerpo?.schema?.$ref
   const esquema = ref ? resolver(documento, ref) : null
   const partes = [`### \`${nombre}\``, '', `**${operacion.summary}**`]
-  if (esquema?.description) partes.push('', esquema.description)
   partes.push('', '**Ejemplo del cuerpo**', '', bloque('json', json(cuerpo?.example ?? {})))
   if (esquema?.properties?.datos) partes.push('', '**Campos de `datos`**', '', tablaDeCampos(esquema.properties.datos))
   return partes.join('\n')
@@ -182,7 +182,9 @@ export function generarReferencia(documento) {
   if (avisos.length) {
     partes.push('## Avisos (webhooks)', '')
     const primero = operaciones(documento, { _: avisos[0][1] })[0]
-    const sobre = resolver(documento, primero.operacion.requestBody?.content?.['application/json']?.schema?.$ref)
+    // El sobre es igual en los tres avisos salvo `tipo`: se muestra con los tres valores posibles, no con el del primero.
+    const sobre = structuredClone(resolver(documento, primero.operacion.requestBody?.content?.['application/json']?.schema?.$ref))
+    sobre.properties.tipo = { type: 'string', enum: avisos.map(([nombre]) => nombre), description: 'Tipo de evento.' }
     partes.push(primero.operacion.description ?? '', '', '**Sobre del aviso (igual en los tres eventos)**', '', tablaDeCampos(sobre), '', '**Cabeceras que recibís**', '', tablaDeParametros(parametrosDe(documento, primero.operacion)), '')
     for (const [nombre, item] of avisos) {
       const [aviso] = operaciones(documento, { _: item })

@@ -39,7 +39,14 @@ describe('referencia de la API generada del contrato', () => {
       assert.match(pagina, new RegExp(`### \`${tipo.replace('.', '\\.')}\``))
     }
     assert.match(pagina, /X-Firma/)
-    assert.match(pagina, /reintenta hasta 5 veces/)
+    assert.match(pagina, /5 intentos en total/)
+  })
+
+  it('el sobre del aviso muestra los tres tipos de evento, no solo el del primero', () => {
+    const sobre = pagina.split('**Sobre del aviso')[1].split('**Cabeceras')[0]
+    for (const tipo of ['stock.actualizado', 'precio.actualizado', 'venta.registrada']) assert.ok(sobre.includes(tipo), tipo)
+    assert.ok(!/\| `tipo` \| `"/.test(sobre), 'tipo no puede ser una constante')
+    assert.ok(!/\| object \|/.test(pagina), 'los tipos se traducen')
   })
 
   it('los ejemplos de objetos traen todos los campos obligatorios de su esquema', () => {

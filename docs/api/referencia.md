@@ -15,7 +15,7 @@ API de **solo lectura** del catálogo, el stock, los precios y las ventas de la 
 
 ## Sincronización incremental
 
-Guardá el instante de tu última sincronización y pedí `?actualizado_desde=<ISO-8601 con zona>`: solo llega lo que cambió desde entonces (inclusive). En precios, un cambio solo de escala (`x5`, `x10`, `x50`) cuenta como cambio del producto.
+Guardá el instante de tu última sincronización y pedí `?actualizado_desde=<ISO-8601 con zona>`: solo llega lo que cambió desde entonces (inclusive). En precios, un cambio solo de escala (`x5`, `x10`, `x50`) cuenta como cambio del producto. En **ventas**, `actualizado_desde` filtra por la fecha de confirmación: no detecta cambios de estado ni anulaciones (ver el recurso).
 
 ## Límites
 
@@ -35,7 +35,7 @@ La versión va en la ruta (`/v1/`). Los cambios aditivos (campos nuevos) no romp
 
 ## Cómo se autentica
 
-- **bearerAuth** (HTTP bearer): Clave de API de la organización (`msf_<prefijo>_<secreto>`). El gateway de Supabase no valida esta cabecera como JWT: la Edge Function se despliega con `verify_jwt = false` (supabase/config.toml).
+- **bearerAuth** (HTTP bearer): Clave de API de la organización (`msf_<prefijo>_<secreto>`), en `Authorization: Bearer <clave>`.
 - **apiKeyAuth** (cabecera `X-API-Key`): Alternativa cuando el gateway sigue validando `Authorization`: mandar allí la clave anónima (`apikey` + `Authorization: Bearer <anon>`) y la clave de API acá. La organización sale siempre de esta clave.
 
 ## Recursos
@@ -100,7 +100,7 @@ Requiere el alcance `productos`. Máximo 100 filas por página (por defecto 50).
 === "fetch"
 
     ```javascript
-    const r = await fetch(`${BASE}/v1/productos?limite=2`, {
+    const r = await fetch(`${process.env.BASE}/v1/productos?limite=2`, {
       headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },
     })
     const { datos, siguiente_cursor } = await r.json()
@@ -166,7 +166,7 @@ Requiere el alcance `stock`. Máximo 100 filas por página (por defecto 50).
 === "fetch"
 
     ```javascript
-    const r = await fetch(`${BASE}/v1/stock?limite=2`, {
+    const r = await fetch(`${process.env.BASE}/v1/stock?limite=2`, {
       headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },
     })
     const { datos, siguiente_cursor } = await r.json()
@@ -232,7 +232,7 @@ Requiere el alcance `precios`. No calcula precio final por empresa ni IVA.
 === "fetch"
 
     ```javascript
-    const r = await fetch(`${BASE}/v1/precios?limite=2`, {
+    const r = await fetch(`${process.env.BASE}/v1/precios?limite=2`, {
       headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },
     })
     const { datos, siguiente_cursor } = await r.json()
@@ -245,6 +245,8 @@ Requiere el alcance `precios`. No calcula precio final por empresa ni IVA.
 Requiere el alcance `ventas`. Solo facturas (`tipo = factura`) confirmadas; no expone cliente ni contacto.
 
 **Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.
+
+**Ojo con la sincronización incremental:** en este recurso `actualizado_desde` filtra por la fecha de **confirmación**, así que trae las facturas confirmadas nuevas, pero **no** avisa cuando una factura ya enviada cambia de estado (por ejemplo a cobrado) ni cuando se anula (una factura anulada deja de aparecer en la lista). Para mantener los estados al día, volvé a leer periódicamente una ventana reciente (por ejemplo los últimos 30 días) y actualizá lo que cambió.
 
 **Parámetros**
 
@@ -297,7 +299,7 @@ Requiere el alcance `ventas`. Solo facturas (`tipo = factura`) confirmadas; no e
 === "fetch"
 
     ```javascript
-    const r = await fetch(`${BASE}/v1/ventas?actualizado_desde=2027-03-01T00:00:00-03:00`, {
+    const r = await fetch(`${process.env.BASE}/v1/ventas?actualizado_desde=2027-03-01T00:00:00-03:00`, {
       headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },
     })
     const { datos, siguiente_cursor } = await r.json()
@@ -331,9 +333,9 @@ Todos los errores tienen la forma `{ "error": { "codigo": "...", "mensaje": "...
 | `nombre` | texto | sí |  |
 | `sku` | texto | sí | Código del producto (SKU). |
 | `activo` | verdadero/falso | sí | `false` si el producto está dado de baja. |
-| `categoria_id` | texto (uuid) · puede ser nulo | no |  |
-| `categoria` | texto · puede ser nulo | no | Ruta «Padre > Hija» de la categoría. |
-| `moneda` | texto | sí | Moneda del precio de lista (por ejemplo `ARS`). |
+| `categoria_id` | texto (uuid) · puede ser nulo | sí |  |
+| `categoria` | texto · puede ser nulo | sí | Ruta «Padre > Hija» de la categoría. |
+| `moneda` | texto | sí | Moneda del precio de lista (hoy `ARS` o `USD`). |
 | `precio_lista` | número | sí | Precio de lista sin IVA, en `moneda`. |
 | `actualizado_en` | texto (date-time) | sí | Último cambio del producto. |
 
@@ -386,11 +388,11 @@ Todos los errores tienen la forma `{ "error": { "codigo": "...", "mensaje": "...
 | `producto_id` | texto (uuid) | sí |  |
 | `nombre` | texto | sí |  |
 | `sku` | texto | sí |  |
-| `moneda` | texto | sí |  |
+| `moneda` | texto | sí | Moneda de los precios (hoy `ARS` o `USD`). |
 | `precio_lista` | número | sí | Precio de lista (escala x1) sin IVA. |
-| `precio_x5` | número · puede ser nulo | no | Precio sin IVA por compra de 5 o más; `null` si no tiene precio cargado. |
-| `precio_x10` | número · puede ser nulo | no | Ídem para 10 o más. |
-| `precio_x50` | número · puede ser nulo | no | Ídem para 50 o más. |
+| `precio_x5` | número · puede ser nulo | sí | Precio sin IVA por compra de 5 o más; `null` si no tiene precio cargado. |
+| `precio_x10` | número · puede ser nulo | sí | Ídem para 10 o más. |
+| `precio_x50` | número · puede ser nulo | sí | Ídem para 50 o más. |
 | `actualizado_en` | texto (date-time) | sí | Lo último que cambió: el producto o cualquiera de sus escalas. |
 
 ```json
@@ -414,11 +416,11 @@ Todos los errores tienen la forma `{ "error": { "codigo": "...", "mensaje": "...
 | `id` | texto (uuid) | sí |  |
 | `numero` | texto | sí | Número del comprobante. |
 | `fecha` | texto (date) | sí | Fecha del comprobante (día). |
-| `empresa_id` | texto (uuid) · puede ser nulo | no | Empresa emisora, si tiene. |
+| `empresa_id` | texto (uuid) · puede ser nulo | sí | Empresa emisora, si tiene. |
 | `total_sin_iva` | número | sí | Total sin IVA. |
 | `total_con_iva` | número | sí | Total con IVA. |
-| `estado` | texto | sí | Estado actual de la factura (confirmada, cobrado, deuda, etc.; nunca `anulada`). |
-| `confirmado_en` | texto (date-time) | sí | Cuándo se confirmó. Es el criterio de orden y de `actualizado_desde`. |
+| `estado` | texto | sí | Estado de la factura **al momento de la consulta** (confirmada, cobrado, deuda, etc.; nunca `anulada`, porque las anuladas no se listan). |
+| `confirmado_en` | texto (date-time) | sí | Cuándo se confirmó. Es el criterio de orden y de `actualizado_desde`, y no cambia aunque la factura cambie de estado. |
 
 ```json
 {
@@ -435,30 +437,30 @@ Todos los errores tienen la forma `{ "error": { "codigo": "...", "mensaje": "...
 
 ## Avisos (webhooks)
 
-Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<epoch>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `"<t>.<cuerpo>"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` para confirmar. Si no, la plataforma **reintenta hasta 5 veces** con espera de `60 s × 2^(intentos-1)`; después la entrega queda `agotada`. Una entrega se hace a lo sumo una vez por suscripción y evento: usá `id` para ignorar repetidos.
+Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `"<t>.<cuerpo>"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.
+
+**Cobertura:** el aviso se emite por cada movimiento de stock del producto y por cada reserva o liberación, pero **no** por movimientos de variantes ni por traslados entre depósitos (el total del producto no cambia, pero sí el stock de cada depósito). Si necesitás ver todo, además de los avisos hacé un barrido periódico de `/v1/stock?actualizado_desde=`.
 
 **Sobre del aviso (igual en los tres eventos)**
 
 | Campo | Tipo | Siempre viene | Qué es |
 |---|---|---|---|
 | `id` | texto (uuid) | sí | Identificador del evento (el mismo en `X-Evento-Id`); sirve para ignorar repetidos. |
-| `tipo` | `"stock.actualizado"` | sí |  |
+| `tipo` | texto | sí | Tipo de evento. Valores: `stock.actualizado`, `precio.actualizado`, `venta.registrada`. |
 | `organizacion_id` | texto (uuid) | sí |  |
 | `ocurrido_en` | texto (date-time) | sí | Cuándo ocurrió el cambio. |
-| `datos` | object | sí |  |
+| `datos` | objeto | sí |  |
 
 **Cabeceras que recibís**
 
 | Nombre | Dónde | Tipo | Obligatorio | Qué es |
 |---|---|---|---|---|
 | `X-Evento-Id` | cabecera | texto (uuid) | sí | Identificador del evento. |
-| `X-Firma` | cabecera | texto | sí | `t=<epoch>,v1=<HMAC-SHA256 hex de "<t>.<cuerpo>">`. Ejemplo: `t=1772470000,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd`. |
+| `X-Firma` | cabecera | texto | sí | `t=<segundos>,v1=<HMAC-SHA256 hex de "<t>.<cuerpo>">`. Ejemplo: `t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd`. |
 
 ### `stock.actualizado`
 
 **Cambió el stock de un producto**
-
-Cambió el stock de un producto (cada movimiento y cada reserva).
 
 **Ejemplo del cuerpo**
 
@@ -488,12 +490,12 @@ Cambió el stock de un producto (cada movimiento y cada reserva).
 |---|---|---|---|
 | `organizacion_id` | texto (uuid) | sí |  |
 | `producto_id` | texto (uuid) | sí |  |
-| `movimiento_id` | texto (uuid) · puede ser nulo | no | Movimiento de stock que originó el evento (nulo en una reserva). |
+| `movimiento_id` | texto (uuid) · puede ser nulo | sí | Movimiento de stock que originó el evento (nulo en una reserva). |
 | `reserva_id` | texto (uuid) · puede ser nulo | no | Solo en eventos de reserva o liberación. |
 | `tipo_movimiento` | texto | sí | `entrada`, `salida` o `ajuste`; `reserva` o `liberacion` cuando el cambio es una reserva. |
 | `cantidad` | número | sí | Cantidad total del producto tras el cambio. |
-| `diferencia` | número | no | Variación de la cantidad (0 en reservas). |
-| `deposito_id` | texto (uuid) · puede ser nulo | no |  |
+| `diferencia` | número | sí | Variación de la cantidad (0 en reservas). |
+| `deposito_id` | texto (uuid) · puede ser nulo | sí |  |
 | `reservado` | número | sí |  |
 | `disponible` | número | sí | `cantidad - reservado`. |
 
@@ -501,16 +503,14 @@ Cambió el stock de un producto (cada movimiento y cada reserva).
 
 **Cambió el precio de lista o de una escala**
 
-Cambió el precio de lista, el de una escala o la moneda de un producto.
-
 **Ejemplo del cuerpo**
 
 ```json
 {
-  "id": "b8d1f0a2-6c4e-4a39-8e57-3d9b2f1c6a70",
+  "id": "d2e47a1b-93c5-4f08-b6a2-7c1e0f5d8a93",
   "tipo": "precio.actualizado",
   "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
-  "ocurrido_en": "2027-03-02T14:05:31.482Z",
+  "ocurrido_en": "2027-03-02T16:00:00.000Z",
   "datos": {
     "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
     "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
@@ -528,23 +528,21 @@ Cambió el precio de lista, el de una escala o la moneda de un producto.
 | `organizacion_id` | texto (uuid) | sí |  |
 | `producto_id` | texto (uuid) | sí |  |
 | `escala` | texto | sí | `x1` (precio de lista), `x5`, `x10` o `x50`. |
-| `precio` | número · puede ser nulo | no | Nuevo precio sin IVA. |
-| `moneda` | texto · puede ser nulo | no | Moneda del producto en los eventos de `x1` (precio de lista); nulo en las escalas. |
+| `precio` | número · puede ser nulo | sí | Nuevo precio sin IVA. |
+| `moneda` | texto · puede ser nulo | sí | Moneda del producto en los eventos de `x1` (precio de lista); nulo en las escalas. |
 
 ### `venta.registrada`
 
 **Una factura pasó a confirmada**
 
-Una factura pasó a confirmada.
-
 **Ejemplo del cuerpo**
 
 ```json
 {
-  "id": "b8d1f0a2-6c4e-4a39-8e57-3d9b2f1c6a70",
+  "id": "a05c9e3f-1b7d-4c62-9e48-5f2a8d0b6c11",
   "tipo": "venta.registrada",
   "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
-  "ocurrido_en": "2027-03-02T14:05:31.482Z",
+  "ocurrido_en": "2027-03-02T17:45:09.301Z",
   "datos": {
     "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
     "comprobante_id": "9b1e4c77-0d3a-4f68-a2b5-6c8e1d4f7a22",
@@ -564,7 +562,7 @@ Una factura pasó a confirmada.
 | `organizacion_id` | texto (uuid) | sí |  |
 | `comprobante_id` | texto (uuid) | sí |  |
 | `numero` | texto | sí |  |
-| `tipo` | texto | no | Siempre `factura`. |
-| `total_sin_iva` | número | no |  |
+| `tipo` | texto | sí | Siempre `factura`. |
+| `total_sin_iva` | número | sí |  |
 | `total_con_iva` | número | sí |  |
 | `confirmado_en` | texto (date-time) | sí |  |

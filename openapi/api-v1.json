@@ -3,7 +3,7 @@
   "info": {
     "title": "API pública de la plataforma",
     "version": "v1",
-    "description": "API de **solo lectura** del catálogo, el stock, los precios y las ventas de la organización a la que pertenece la clave. La organización sale **siempre de la clave**: ningún parámetro la cambia.\n\n## Empezar\n\n1. En el panel, **Administración → API → Crear clave**, elegí los alcances (`productos`, `stock`, `precios`, `ventas`) y copiá la clave: se muestra una sola vez.\n2. Llamá con `Authorization: Bearer msf_<prefijo>_<secreto>` a `<URL de Supabase>/functions/v1/api-v1/v1/<recurso>`. En los ejemplos, `$BASE` es `<URL de Supabase>/functions/v1/api-v1` y `$CLAVE_API` es tu clave.\n3. Si la respuesta trae `siguiente_cursor`, pedí la página siguiente con `?cursor=<valor>`.\n\n## Sincronización incremental\n\nGuardá el instante de tu última sincronización y pedí `?actualizado_desde=<ISO-8601 con zona>`: solo llega lo que cambió desde entonces (inclusive). En precios, un cambio solo de escala (`x5`, `x10`, `x50`) cuenta como cambio del producto.\n\n## Límites\n\n**60 solicitudes por minuto por clave**. Al superarlas responde `429 limite_excedido` con la cabecera `Retry-After` (segundos). Cada organización puede tener hasta 50 claves vigentes.\n\n## Errores\n\nSiempre con la forma `{ \"error\": { \"codigo\": \"...\", \"mensaje\": \"...\" } }`; decidí por `codigo`, no por `mensaje`.\n\n## Avisos\n\nAdemás de consultar, podés suscribirte desde el panel a eventos que la plataforma envía por `POST` a tu URL `https`, firmados con HMAC-SHA256. Ver «Avisos (webhooks)» más abajo.\n\n## Versionado\n\nLa versión va en la ruta (`/v1/`). Los cambios aditivos (campos nuevos) no rompen `v1`: **tu código debe ignorar los campos que no conoce**. Un cambio incompatible exige `/v2/`, y lo que se retira avisa con `Deprecation` y `Sunset` con al menos 6 meses de antelación."
+    "description": "API de **solo lectura** del catálogo, el stock, los precios y las ventas de la organización a la que pertenece la clave. La organización sale **siempre de la clave**: ningún parámetro la cambia.\n\n## Empezar\n\n1. En el panel, **Administración → API → Crear clave**, elegí los alcances (`productos`, `stock`, `precios`, `ventas`) y copiá la clave: se muestra una sola vez.\n2. Llamá con `Authorization: Bearer msf_<prefijo>_<secreto>` a `<URL de Supabase>/functions/v1/api-v1/v1/<recurso>`. En los ejemplos, `$BASE` es `<URL de Supabase>/functions/v1/api-v1` y `$CLAVE_API` es tu clave.\n3. Si la respuesta trae `siguiente_cursor`, pedí la página siguiente con `?cursor=<valor>`.\n\n## Sincronización incremental\n\nGuardá el instante de tu última sincronización y pedí `?actualizado_desde=<ISO-8601 con zona>`: solo llega lo que cambió desde entonces (inclusive). En precios, un cambio solo de escala (`x5`, `x10`, `x50`) cuenta como cambio del producto. En **ventas**, `actualizado_desde` filtra por la fecha de confirmación: no detecta cambios de estado ni anulaciones (ver el recurso).\n\n## Límites\n\n**60 solicitudes por minuto por clave**. Al superarlas responde `429 limite_excedido` con la cabecera `Retry-After` (segundos). Cada organización puede tener hasta 50 claves vigentes.\n\n## Errores\n\nSiempre con la forma `{ \"error\": { \"codigo\": \"...\", \"mensaje\": \"...\" } }`; decidí por `codigo`, no por `mensaje`.\n\n## Avisos\n\nAdemás de consultar, podés suscribirte desde el panel a eventos que la plataforma envía por `POST` a tu URL `https`, firmados con HMAC-SHA256. Ver «Avisos (webhooks)» más abajo.\n\n## Versionado\n\nLa versión va en la ruta (`/v1/`). Los cambios aditivos (campos nuevos) no rompen `v1`: **tu código debe ignorar los campos que no conoce**. Un cambio incompatible exige `/v2/`, y lo que se retira avisa con `Deprecation` y `Sunset` con al menos 6 meses de antelación."
   },
   "servers": [
     {
@@ -15,10 +15,6 @@
           "description": "Host de Supabase de tu entorno; te lo informa quien administra la plataforma."
         }
       }
-    },
-    {
-      "url": "/api-v1",
-      "description": "Edge Function api-v1: la ruta de la API es lo que va después del prefijo."
     }
   ],
   "security": [
@@ -102,7 +98,7 @@
           {
             "lang": "JavaScript",
             "label": "fetch",
-            "source": "const r = await fetch(`${BASE}/v1/productos?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+            "source": "const r = await fetch(`${process.env.BASE}/v1/productos?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
           }
         ]
       }
@@ -179,7 +175,7 @@
           {
             "lang": "JavaScript",
             "label": "fetch",
-            "source": "const r = await fetch(`${BASE}/v1/stock?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+            "source": "const r = await fetch(`${process.env.BASE}/v1/stock?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
           }
         ]
       }
@@ -256,7 +252,7 @@
           {
             "lang": "JavaScript",
             "label": "fetch",
-            "source": "const r = await fetch(`${BASE}/v1/precios?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+            "source": "const r = await fetch(`${process.env.BASE}/v1/precios?limite=2`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
           }
         ]
       }
@@ -264,7 +260,7 @@
     "/v1/ventas": {
       "get": {
         "summary": "Facturas confirmadas",
-        "description": "Requiere el alcance `ventas`. Solo facturas (`tipo = factura`) confirmadas; no expone cliente ni contacto.\n\n**Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.",
+        "description": "Requiere el alcance `ventas`. Solo facturas (`tipo = factura`) confirmadas; no expone cliente ni contacto.\n\n**Paginación:** pasá `siguiente_cursor` en `?cursor=` hasta que sea `null`. **Sincronización incremental:** guardá el instante de la última sincronización y pedí `?actualizado_desde=`.\n\n**Ojo con la sincronización incremental:** en este recurso `actualizado_desde` filtra por la fecha de **confirmación**, así que trae las facturas confirmadas nuevas, pero **no** avisa cuando una factura ya enviada cambia de estado (por ejemplo a cobrado) ni cuando se anula (una factura anulada deja de aparecer en la lista). Para mantener los estados al día, volvé a leer periódicamente una ventana reciente (por ejemplo los últimos 30 días) y actualizá lo que cambió.",
         "operationId": "listarVentas",
         "tags": [
           "lectura"
@@ -332,7 +328,7 @@
           {
             "lang": "JavaScript",
             "label": "fetch",
-            "source": "const r = await fetch(`${BASE}/v1/ventas?actualizado_desde=2027-03-01T00:00:00-03:00`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
+            "source": "const r = await fetch(`${process.env.BASE}/v1/ventas?actualizado_desde=2027-03-01T00:00:00-03:00`, {\n  headers: { Authorization: `Bearer ${process.env.CLAVE_API}` },\n})\nconst { datos, siguiente_cursor } = await r.json()"
           }
         ]
       }
@@ -377,7 +373,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Clave de API de la organización (`msf_<prefijo>_<secreto>`). El gateway de Supabase no valida esta cabecera como JWT: la Edge Function se despliega con `verify_jwt = false` (supabase/config.toml)."
+        "description": "Clave de API de la organización (`msf_<prefijo>_<secreto>`), en `Authorization: Bearer <clave>`."
       },
       "apiKeyAuth": {
         "type": "apiKey",
@@ -475,7 +471,9 @@
           "activo",
           "moneda",
           "precio_lista",
-          "actualizado_en"
+          "actualizado_en",
+          "categoria_id",
+          "categoria"
         ],
         "properties": {
           "id": {
@@ -510,7 +508,7 @@
           },
           "moneda": {
             "type": "string",
-            "description": "Moneda del precio de lista (por ejemplo `ARS`)."
+            "description": "Moneda del precio de lista (hoy `ARS` o `USD`)."
           },
           "precio_lista": {
             "type": "number",
@@ -603,7 +601,10 @@
           "sku",
           "moneda",
           "precio_lista",
-          "actualizado_en"
+          "actualizado_en",
+          "precio_x5",
+          "precio_x10",
+          "precio_x50"
         ],
         "properties": {
           "producto_id": {
@@ -617,7 +618,8 @@
             "type": "string"
           },
           "moneda": {
-            "type": "string"
+            "type": "string",
+            "description": "Moneda de los precios (hoy `ARS` o `USD`)."
           },
           "precio_lista": {
             "type": "number",
@@ -671,7 +673,8 @@
           "total_sin_iva",
           "total_con_iva",
           "estado",
-          "confirmado_en"
+          "confirmado_en",
+          "empresa_id"
         ],
         "properties": {
           "id": {
@@ -705,12 +708,12 @@
           },
           "estado": {
             "type": "string",
-            "description": "Estado actual de la factura (confirmada, cobrado, deuda, etc.; nunca `anulada`)."
+            "description": "Estado de la factura **al momento de la consulta** (confirmada, cobrado, deuda, etc.; nunca `anulada`, porque las anuladas no se listan)."
           },
           "confirmado_en": {
             "type": "string",
             "format": "date-time",
-            "description": "Cuándo se confirmó. Es el criterio de orden y de `actualizado_desde`."
+            "description": "Cuándo se confirmó. Es el criterio de orden y de `actualizado_desde`, y no cambia aunque la factura cambie de estado."
           }
         },
         "example": {
@@ -736,7 +739,7 @@
             "items": {
               "$ref": "#/components/schemas/Producto"
             },
-            "description": "Filas de la página, ordenadas por última actualización y luego por id."
+            "description": "Filas de la página, ordenadas por `actualizado_en` y luego `id`."
           },
           "siguiente_cursor": {
             "type": [
@@ -775,7 +778,7 @@
             "items": {
               "$ref": "#/components/schemas/Stock"
             },
-            "description": "Filas de la página, ordenadas por última actualización y luego por id."
+            "description": "Filas de la página, ordenadas por `actualizado_en`, luego `producto_id` y `deposito_id`."
           },
           "siguiente_cursor": {
             "type": [
@@ -814,7 +817,7 @@
             "items": {
               "$ref": "#/components/schemas/Precios"
             },
-            "description": "Filas de la página, ordenadas por última actualización y luego por id."
+            "description": "Filas de la página, ordenadas por `actualizado_en` y luego `producto_id`."
           },
           "siguiente_cursor": {
             "type": [
@@ -853,7 +856,7 @@
             "items": {
               "$ref": "#/components/schemas/Venta"
             },
-            "description": "Filas de la página, ordenadas por última actualización y luego por id."
+            "description": "Filas de la página, ordenadas por `confirmado_en` y luego `id`."
           },
           "siguiente_cursor": {
             "type": [
@@ -916,7 +919,10 @@
               "tipo_movimiento",
               "cantidad",
               "reservado",
-              "disponible"
+              "disponible",
+              "movimiento_id",
+              "diferencia",
+              "deposito_id"
             ],
             "properties": {
               "organizacion_id": {
@@ -1007,7 +1013,9 @@
             "required": [
               "organizacion_id",
               "producto_id",
-              "escala"
+              "escala",
+              "precio",
+              "moneda"
             ],
             "properties": {
               "organizacion_id": {
@@ -1076,7 +1084,9 @@
               "comprobante_id",
               "numero",
               "total_con_iva",
-              "confirmado_en"
+              "confirmado_en",
+              "tipo",
+              "total_sin_iva"
             ],
             "properties": {
               "organizacion_id": {
@@ -1301,7 +1311,7 @@
     "stock.actualizado": {
       "post": {
         "summary": "Cambió el stock de un producto",
-        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<epoch>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` para confirmar. Si no, la plataforma **reintenta hasta 5 veces** con espera de `60 s × 2^(intentos-1)`; después la entrega queda `agotada`. Una entrega se hace a lo sumo una vez por suscripción y evento: usá `id` para ignorar repetidos.",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.\n\n**Cobertura:** el aviso se emite por cada movimiento de stock del producto y por cada reserva o liberación, pero **no** por movimientos de variantes ni por traslados entre depósitos (el total del producto no cambia, pero sí el stock de cada depósito). Si necesitás ver todo, además de los avisos hacé un barrido periódico de `/v1/stock?actualizado_desde=`.",
         "operationId": "aviso_stock_actualizado",
         "tags": [
           "avisos"
@@ -1322,11 +1332,11 @@
             "name": "X-Firma",
             "in": "header",
             "required": true,
-            "description": "`t=<epoch>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
             "schema": {
               "type": "string"
             },
-            "example": "t=1772470000,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
+            "example": "t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
           }
         ],
         "requestBody": {
@@ -1369,7 +1379,7 @@
     "precio.actualizado": {
       "post": {
         "summary": "Cambió el precio de lista o de una escala",
-        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<epoch>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` para confirmar. Si no, la plataforma **reintenta hasta 5 veces** con espera de `60 s × 2^(intentos-1)`; después la entrega queda `agotada`. Una entrega se hace a lo sumo una vez por suscripción y evento: usá `id` para ignorar repetidos.",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
         "operationId": "aviso_precio_actualizado",
         "tags": [
           "avisos"
@@ -1390,11 +1400,11 @@
             "name": "X-Firma",
             "in": "header",
             "required": true,
-            "description": "`t=<epoch>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
             "schema": {
               "type": "string"
             },
-            "example": "t=1772470000,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
+            "example": "t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
           }
         ],
         "requestBody": {
@@ -1405,10 +1415,10 @@
                 "$ref": "#/components/schemas/EventoPrecio"
               },
               "example": {
-                "id": "b8d1f0a2-6c4e-4a39-8e57-3d9b2f1c6a70",
+                "id": "d2e47a1b-93c5-4f08-b6a2-7c1e0f5d8a93",
                 "tipo": "precio.actualizado",
                 "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
-                "ocurrido_en": "2027-03-02T14:05:31.482Z",
+                "ocurrido_en": "2027-03-02T16:00:00.000Z",
                 "datos": {
                   "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
                   "producto_id": "3f6c2d1e-8a47-4b5e-9c10-2a7d5e8b9f01",
@@ -1433,7 +1443,7 @@
     "venta.registrada": {
       "post": {
         "summary": "Una factura pasó a confirmada",
-        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<epoch>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` para confirmar. Si no, la plataforma **reintenta hasta 5 veces** con espera de `60 s × 2^(intentos-1)`; después la entrega queda `agotada`. Una entrega se hace a lo sumo una vez por suscripción y evento: usá `id` para ignorar repetidos.",
+        "description": "Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `\"<t>.<cuerpo>\"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.",
         "operationId": "aviso_venta_registrada",
         "tags": [
           "avisos"
@@ -1454,11 +1464,11 @@
             "name": "X-Firma",
             "in": "header",
             "required": true,
-            "description": "`t=<epoch>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
+            "description": "`t=<segundos>,v1=<HMAC-SHA256 hex de \"<t>.<cuerpo>\">`.",
             "schema": {
               "type": "string"
             },
-            "example": "t=1772470000,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
+            "example": "t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd"
           }
         ],
         "requestBody": {
@@ -1469,10 +1479,10 @@
                 "$ref": "#/components/schemas/EventoVenta"
               },
               "example": {
-                "id": "b8d1f0a2-6c4e-4a39-8e57-3d9b2f1c6a70",
+                "id": "a05c9e3f-1b7d-4c62-9e48-5f2a8d0b6c11",
                 "tipo": "venta.registrada",
                 "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
-                "ocurrido_en": "2027-03-02T14:05:31.482Z",
+                "ocurrido_en": "2027-03-02T17:45:09.301Z",
                 "datos": {
                   "organizacion_id": "7e2a9c3d-1f58-4b60-9d84-0a6b2c4e8f13",
                   "comprobante_id": "9b1e4c77-0d3a-4f68-a2b5-6c8e1d4f7a22",
