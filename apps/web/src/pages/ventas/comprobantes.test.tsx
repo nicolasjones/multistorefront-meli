@@ -195,7 +195,7 @@ describe('ComprobantesList (F-VTA-09, FR-001…FR-010)', () => {
     expect(screen.getByText('Pendiente', { selector: '.MuiChip-label' })).toBeInTheDocument()
     expect(screen.getByText('Aceptado', { selector: '.MuiChip-label' })).toBeInTheDocument()
     expect(screen.getAllByText('$ 1.240.800').length).toBe(1)
-    expect(screen.getByText('$ -5.000,5')).toBeInTheDocument()
+    expect(screen.getByText('$ -5.000,50')).toBeInTheDocument()
     expect(screen.getByText('2 comprobantes')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Comprobantes' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: 'Presupuestos' })).toHaveAttribute('href', '/ventas/presupuestos')

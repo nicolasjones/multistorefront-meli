@@ -8,6 +8,8 @@ El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 
 ## Modelo
 
+- Al abrir el diálogo se muestra una **cotización sugerida** (dólar oficial, venta) con «Usar este valor», que solo completa el campo (F-PRE-13, MSF-373; ver `docs/precios.md`). Si la fuente no responde, se carga a mano.
+
 - La cotización es **una por organización** (no depende de la empresa activa de la barra superior).
 - Se carga **a mano**, con edición en la sección `cotizacion_dolar` (hoy Administrador y Administración).
 - Cargar deja la cotización **pendiente**: no cambia ningún precio. Vence a las **24 h**; el

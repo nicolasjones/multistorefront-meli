@@ -55,7 +55,7 @@ Migraciones aditivas: `20261023140200_cotizacion_previsualizar.sql` y `202610231
 
 ## Pantalla
 
-El diálogo **Cargar dólar del día** tiene dos pasos. Paso 1: el valor (F-PRE-02); al continuar queda pendiente.
+El diálogo **Cargar dólar del día** tiene dos pasos. Paso 1: el valor (F-PRE-02), con la cotización sugerida y el botón «Usar este valor» (F-PRE-13, solo completa el campo); al continuar queda pendiente.
 Paso 2: variación, alerta «Variación inusual» (> 15 %) y, si alcanza el umbral, el bloque **Qué va a cambiar**
 (mosaico por empresa y tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo», pie «Redondeo al $ 10 más
 cercano.»); bajo el umbral, la alerta **Sin recálculo** y el botón **Registrar cotización**. Acciones:

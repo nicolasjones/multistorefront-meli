@@ -8,6 +8,8 @@ vi.setConfig({ testTimeout: 20000 })
 
 const mocks = vi.hoisted(() => ({
   listar: vi.fn(),
+  avisar: vi.fn(),
+  nivel: { valor: null as 'edicion' | 'lectura' | null },
   useFiltroPorEmpresaActiva: vi.fn(),
   useOrganizacionActiva: vi.fn(),
   cambiarFiltro: vi.fn(),
@@ -19,6 +21,10 @@ vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () =>
 vi.mock('../../lib/ventasFaltantes', async (original) => ({
   ...(await original<typeof import('../../lib/ventasFaltantes')>()),
   listarFaltantes: mocks.listar,
+  avisarFaltantesVenta: mocks.avisar,
+}))
+vi.mock('../../hooks/useNivelSeccion', () => ({
+  useNivelSeccion: () => ({ nivel: mocks.nivel.valor, isLoading: false, error: false }),
 }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: mocks.useOrganizacionActiva }))
@@ -27,6 +33,7 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 import { FaltantesList } from './faltantes'
 import app from '../../App.tsx?raw'
 import { celular } from '../../test/matchMedia'
+import { violacionesAxe } from '../../test/axe'
 import { DESTINOS_PANEL, SECCIONES_PANEL } from '../../components/navegacion/destinosPanel'
 
 const fila = (n: number, empresaId: string, empresa: string) => ({
@@ -45,6 +52,8 @@ const fila = (n: number, empresaId: string, empresa: string) => ({
   desde: '2026-10-01T10:00:00Z',
   stock_estado: 'disponible' as const,
   stock_disponible: 5,
+  aviso: 'sin_avisar' as 'sin_avisar' | 'avisado' | 'para_avisar',
+  aviso_en: null as string | null,
 })
 
 // Una fila con otro estado de stock, para probar la columna «Stock hoy» (FR-044).
@@ -65,6 +74,7 @@ const abrir = () => render(<MemoryRouter><FaltantesList /></MemoryRouter>)
 describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.nivel.valor = null
     empresaActivaId = null
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'org-1' }, isLoading: false })
@@ -283,6 +293,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
 describe('FaltantesList · pantalla angosta (F-VTA-18, FR-044)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.nivel.valor = null
     empresaActivaId = null
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'org-1' }, isLoading: false })
@@ -340,4 +351,355 @@ describe('ruta de Faltantes (F-VTA-18, FR-045)', () => {
     // Y es un destino del panel (aparece en el menú junto a los demás).
     expect(DESTINOS_PANEL.map((destino) => destino.id)).toContain('ventas-faltantes')
   })
+})
+
+
+// ---------------------------------------------------------------------------------------------------------
+// F-VTA-26 · Avisar a los clientes (FR-002, FR-003, FR-005) y F-VTA-27 · «Para avisar» (FR-104)
+// ---------------------------------------------------------------------------------------------------------
+
+const resultadoAviso = (cambios: Record<string, unknown> = {}) => ({
+  encolados: 2,
+  lineas_avisadas: 2,
+  omitidos_ya_avisados: 0,
+  omitidos_en_cola: 0,
+  omitidos_sin_correo: 0,
+  omitidos_sin_permiso: 0,
+  omitidos_no_abiertos: 0,
+  detalle: [],
+  ...cambios,
+})
+
+const boton = (nombre: string | RegExp) => screen.getByRole('button', { name: nombre })
+
+function prepararAvisos(nivel: 'edicion' | 'lectura' | null = 'edicion') {
+  vi.clearAllMocks()
+  mocks.nivel.valor = nivel
+  empresaActivaId = null
+  vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'org-1' }, isLoading: false })
+  mocks.useFiltroPorEmpresaActiva.mockImplementation(() => ({
+    empresas,
+    valor: empresaActivaId,
+    cambiar: mocks.cambiarFiltro,
+    empresaActivaId,
+    cargando: false,
+    hayError: false,
+  }))
+  mocks.listar.mockImplementation(async ({ empresaId, aviso }: { empresaId: string | null; aviso?: string | null }) => {
+    const filas = TODAS.filter((f) => (!empresaId || f.empresa_id === empresaId) && (!aviso || f.aviso === aviso))
+    return { faltantes: filas, total: filas.length }
+  })
+  mocks.avisar.mockResolvedValue(resultadoAviso())
+}
+
+describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-005)', () => {
+  beforeEach(() => prepararAvisos('edicion'))
+  afterEach(() => {
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
+  it('con ventas en edición ofrece casillas, «seleccionar todo», el pie y el botón deshabilitado con 0', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'Seleccionar todos' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' })).toBeInTheDocument()
+    expect(screen.getByText('0 seleccionados de 2 faltantes.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
+    expect(boton('Avisar a los seleccionados (1)')).toBeEnabled()
+    expect(screen.getByText('1 seleccionado de 2 faltantes.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    expect(boton('Avisar a los seleccionados (2)')).toBeEnabled()
+    expect(screen.getByText('2 seleccionados de 2 faltantes.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
+  })
+
+  it('con más de 200 seleccionados «Avisar» queda deshabilitado y dice cuántos desmarcar', async () => {
+    const muchas = Array.from({ length: 201 }, (_, i) => fila(i + 1, 'e-1', 'San Javucho'))
+    mocks.listar.mockResolvedValue({ faltantes: muchas, total: 201 })
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    expect(boton('Avisar a los seleccionados (201)')).toBeDisabled()
+    expect(screen.getByText(/Se avisa de a 200 por vez: desmarcá 1 para poder enviar\./)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
+    expect(boton('Avisar a los seleccionados (200)')).toBeEnabled()
+  })
+
+  it('con lectura no hay casillas ni botón de avisar', async () => {
+    mocks.nivel.valor = 'lectura'
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Avisar a los seleccionados/ })).not.toBeInTheDocument()
+    expect(screen.queryByText(/seleccionados de/)).not.toBeInTheDocument()
+  })
+
+  it('muestra la columna Aviso con «Sin avisar», «Para avisar» y «Avisado» con su fecha', async () => {
+    mocks.listar.mockResolvedValue({
+      faltantes: [
+        { ...fila(1, 'e-1', 'San Javucho'), aviso: 'sin_avisar' },
+        { ...fila(2, 'e-1', 'San Javucho'), aviso: 'para_avisar', aviso_en: '2026-10-08T12:00:00Z' },
+        { ...fila(3, 'e-1', 'San Javucho'), aviso: 'avisado', aviso_en: '2026-10-09T15:30:00Z' },
+      ],
+      total: 3,
+    })
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(screen.getAllByText('Aviso').length).toBeGreaterThan(0)
+    expect(screen.getByText('Sin avisar')).toBeInTheDocument()
+    expect(screen.getByText('Para avisar', { selector: '.MuiChip-label' })).toBeInTheDocument()
+    expect(screen.getByText('Avisado · 09/10/2026')).toBeInTheDocument()
+  })
+
+  it('el diálogo trae el texto editable, cuenta los clientes y envía el texto editado', async () => {
+    mocks.listar.mockResolvedValue({
+      faltantes: [
+        fila(1, 'e-1', 'San Javucho'),
+        { ...fila(2, 'e-1', 'San Javucho'), cliente: 'Cliente 1' },
+        fila(3, 'e-1', 'San Javucho'),
+      ],
+      total: 3,
+    })
+    abrir()
+    await screen.findByText('Producto 3')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton('Avisar a los seleccionados (3)'))
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    // Tres faltantes de dos clientes: el correo es uno por cliente.
+    expect(within(dialogo).getByText(/Se envía un correo a 2 clientes/)).toBeInTheDocument()
+    const texto = within(dialogo).getByRole('textbox', { name: 'Texto del aviso' })
+    expect(texto).toHaveValue('Volvió a haber stock de los productos que tenías pedidos:')
+    expect(within(dialogo).getByText('57 / 1000')).toBeInTheDocument()
+    // Sin avisados no se pide confirmar ningún reaviso.
+    expect(within(dialogo).queryByRole('checkbox')).not.toBeInTheDocument()
+
+    fireEvent.change(texto, { target: { value: 'Ya llegó lo que pediste' } })
+    expect(within(dialogo).getByText('23 / 1000')).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar avisos' }))
+
+    await waitFor(() =>
+      expect(mocks.avisar).toHaveBeenCalledWith(expect.arrayContaining(['f-1', 'f-2', 'f-3']), 'Ya llegó lo que pediste', false),
+    )
+    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    // La lista se recarga y la selección se descarta.
+    expect(mocks.listar.mock.calls.length).toBeGreaterThan(1)
+    expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
+  })
+
+  it('con faltantes ya avisados pide confirmar el reaviso y lo manda con la confirmación', async () => {
+    mocks.listar.mockResolvedValue({
+      faltantes: [{ ...fila(1, 'e-1', 'San Javucho'), aviso: 'avisado', aviso_en: '2026-10-09T15:30:00Z' }, fila(2, 'e-1', 'San Javucho')],
+      total: 2,
+    })
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton('Avisar a los seleccionados (2)'))
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    const reavisar = within(dialogo).getByRole('checkbox', { name: 'Volver a avisar a los 1 ya avisados' })
+    expect(reavisar).not.toBeChecked()
+    fireEvent.click(reavisar)
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar avisos' }))
+    await waitFor(() => expect(mocks.avisar).toHaveBeenCalledWith(expect.any(Array), expect.any(String), true))
+  })
+
+  it('«Cancelar» cierra el diálogo sin enviar y la selección queda', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton('Avisar a los seleccionados (2)'))
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.avisar).not.toHaveBeenCalled()
+    expect(boton('Avisar a los seleccionados (2)')).toBeEnabled()
+  })
+
+  it('avisa lo omitido y por qué, y sin correo no es un éxito: «El cliente no tiene correo»', async () => {
+    mocks.avisar.mockResolvedValue(
+      resultadoAviso({ encolados: 0, lineas_avisadas: 0, omitidos_sin_correo: 1, detalle: [{ id: 'f-1', resultado: 'sin_correo' }] }),
+    )
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
+    fireEvent.click(boton('Avisar a los seleccionados (1)'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Enviar avisos' }))
+    expect(await screen.findByText('No se enviaron avisos. El cliente no tiene correo: Cliente 1.')).toBeInTheDocument()
+  })
+
+  it('si el aviso salió pero falla la recarga, lo dice y la lista muestra el error (no queda la vieja)', async () => {
+    mocks.avisar.mockResolvedValue(resultadoAviso({ encolados: 1, lineas_avisadas: 1 }))
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Producto 1 de Cliente 1 del comprobante 0003-1' }))
+    fireEvent.click(boton('Avisar a los seleccionados (1)'))
+    mocks.listar.mockRejectedValue(new Error('red'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Enviar avisos' }))
+    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos cargar los faltantes.')).toBeInTheDocument()
+    expect(screen.queryByText('Producto 1')).not.toBeInTheDocument()
+  })
+
+  it('«Enviar avisos» queda deshabilitado mientras envía: un doble clic no duplica el envío', async () => {
+    let resolver: (v: unknown) => void = () => {}
+    mocks.avisar.mockImplementation(() => new Promise((r) => { resolver = r }))
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton('Avisar a los seleccionados (2)'))
+    const dialogo = await screen.findByRole('dialog')
+    const enviar = within(dialogo).getByRole('button', { name: 'Enviar avisos' })
+    fireEvent.click(enviar)
+    fireEvent.click(enviar)
+    expect(mocks.avisar).toHaveBeenCalledTimes(1)
+    expect(enviar).toBeDisabled()
+    expect(within(dialogo).getByRole('button', { name: 'Cancelar' })).toBeDisabled()
+    await act(async () => { resolver(resultadoAviso()) })
+    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+  })
+
+  it('si el envío falla muestra el error en castellano, no cierra el diálogo y deja reintentar', async () => {
+    mocks.avisar.mockRejectedValueOnce(new Error('Tu rol no puede avisar faltantes.'))
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton('Avisar a los seleccionados (2)'))
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar avisos' }))
+    expect(await screen.findByText('Tu rol no puede avisar faltantes.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    await waitFor(() => expect(within(dialogo).getByRole('button', { name: 'Enviar avisos' })).toBeEnabled())
+  })
+
+  it('no muestra identificadores técnicos (UUID) en la pantalla', async () => {
+    mocks.listar.mockResolvedValue({
+      faltantes: [{ ...fila(1, 'e-1', 'San Javucho'), id: '3f2c9a1e-5b7d-4c8e-9a10-2b3c4d5e6f70' }],
+      total: 1,
+    })
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(document.body.textContent).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/)
+  })
+})
+
+describe('FaltantesList · «Para avisar» (F-VTA-27, FR-104)', () => {
+  beforeEach(() => prepararAvisos('edicion'))
+
+  const conMarcados = () => {
+    const marcados = [
+      { ...fila(1, 'e-1', 'San Javucho'), aviso: 'para_avisar' as const, aviso_en: '2026-10-08T12:00:00Z' },
+      { ...fila(2, 'e-2', 'Mundo JC'), aviso: 'para_avisar' as const, aviso_en: '2026-10-09T12:00:00Z' },
+    ]
+    mocks.listar.mockImplementation(async ({ empresaId, aviso }: { empresaId: string | null; aviso?: string | null }) => {
+      const base = [...marcados, { ...fila(3, 'e-1', 'San Javucho'), aviso: 'sin_avisar' as const }]
+      const filas = base.filter((f) => (!empresaId || f.empresa_id === empresaId) && (!aviso || f.aviso === aviso))
+      return { faltantes: filas, total: filas.length }
+    })
+  }
+
+  it('el filtro «Para avisar» pide solo los marcados, con la nota informativa, y «Todos» vuelve a la lista completa', async () => {
+    conMarcados()
+    abrir()
+    await screen.findByText('Producto 3')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Para avisar' }))
+    await waitFor(() => expect(mocks.listar).toHaveBeenCalledWith({ empresaId: null, pagina: 1, tamano: 10, aviso: 'para_avisar' }))
+    expect(await screen.findByText('Producto 1')).toBeInTheDocument()
+    expect(screen.getByText('Producto 2')).toBeInTheDocument()
+    expect(screen.queryByText('Producto 3')).not.toBeInTheDocument()
+    expect(screen.getByText('2 faltantes')).toBeInTheDocument()
+    expect(screen.getByRole('note')).toHaveTextContent(/No se envía nada solo/)
+    expect(screen.getAllByText('Para avisar', { selector: '.MuiChip-label' })).toHaveLength(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
+    expect(await screen.findByText('Producto 3')).toBeInTheDocument()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
+  it('respeta el orden de la base (más antiguo primero) y la empresa activa', async () => {
+    conMarcados()
+    abrir()
+    await screen.findByText('Producto 3')
+    fireEvent.click(screen.getByRole('button', { name: 'Para avisar' }))
+    await screen.findByText('Producto 2')
+    const celdas = screen.getAllByText(/^Producto \d$/).map((e) => e.textContent)
+    expect(celdas).toEqual(['Producto 1', 'Producto 2'])
+  })
+
+  it('con el filtro «Para avisar» y una empresa activa pide solo esa tienda', async () => {
+    conMarcados()
+    empresaActivaId = 'e-2'
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Para avisar' }))
+    await waitFor(() => expect(mocks.listar).toHaveBeenCalledWith({ empresaId: 'e-2', pagina: 1, tamano: 10, aviso: 'para_avisar' }))
+    expect(await screen.findByText('Producto 2')).toBeInTheDocument()
+    expect(screen.queryByText('Producto 1')).not.toBeInTheDocument()
+  })
+
+  it('sin marcados muestra «No hay faltantes para avisar»', async () => {
+    mocks.listar.mockImplementation(async ({ aviso }: { aviso?: string | null }) =>
+      aviso ? { faltantes: [], total: 0 } : { faltantes: [TODAS[0]], total: 1 })
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Para avisar' }))
+    expect(await screen.findByText('No hay faltantes para avisar')).toBeInTheDocument()
+    expect(screen.queryByText('Sin resultados')).not.toBeInTheDocument()
+  })
+
+  it('se puede elegir y avisar desde la vista «Para avisar»', async () => {
+    conMarcados()
+    abrir()
+    await screen.findByText('Producto 3')
+    fireEvent.click(screen.getByRole('button', { name: 'Para avisar' }))
+    await screen.findByText('Producto 2')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton('Avisar a los seleccionados (2)'))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Enviar avisos' }))
+    await waitFor(() => expect(mocks.avisar).toHaveBeenCalledWith(expect.arrayContaining(['f-1', 'f-2']), expect.any(String), false))
+  })
+})
+
+// SC-001 · a11y: axe sin violaciones a 320, 768 y 1440 px (en jsdom el ancho se simula con matchMedia: tarjetas
+// por debajo de 600 px, tabla desde ahí), con el diálogo abierto y con el filtro «Para avisar».
+describe('FaltantesList · accesibilidad (F-VTA-26 y F-VTA-27, SC-001, SC-101)', () => {
+  beforeEach(() => prepararAvisos('edicion'))
+  afterEach(() => {
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
+  for (const ancho of [320, 768, 1440]) {
+    it(`sin violaciones de axe a ${ancho} px (lista, diálogo y «Para avisar»)`, async () => {
+      celular(ancho < 600)
+      mocks.listar.mockImplementation(async ({ aviso }: { aviso?: string | null }) => {
+        const filas = [
+          { ...fila(1, 'e-1', 'San Javucho'), aviso: 'para_avisar' as const, aviso_en: '2026-10-08T12:00:00Z' },
+          { ...fila(2, 'e-2', 'Mundo JC'), aviso: 'avisado' as const, aviso_en: '2026-10-09T12:00:00Z' },
+        ].filter((f) => !aviso || f.aviso === aviso)
+        return { faltantes: filas, total: filas.length }
+      })
+      abrir()
+      await screen.findByText('Producto 1')
+      expect(await violacionesAxe(document.body)).toEqual([])
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+      fireEvent.click(boton('Avisar a los seleccionados (2)'))
+      await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+      expect(await violacionesAxe(document.body)).toEqual([])
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancelar' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Para avisar' }))
+      await waitFor(() => expect(screen.queryByText('Producto 2')).not.toBeInTheDocument())
+      expect(screen.getByRole('note')).toBeInTheDocument()
+      expect(await violacionesAxe(document.body)).toEqual([])
+    })
+  }
 })

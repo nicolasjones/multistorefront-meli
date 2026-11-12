@@ -7,7 +7,7 @@
 -- `anon` y se guardan en una tabla temporal; las verificaciones corren como postgres.
 begin;
 
-select plan(90);
+select plan(97);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -20,17 +20,30 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000002', 'consulta-uno@example.com'),
-  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
+  ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com'),
+  ('d1000000-0000-0000-0000-000000000003', 'operador-mixto@example.com'),
+  ('d1000000-0000-0000-0000-000000000004', 'operador-solo-a@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta', 'activo'),
-  ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
+  ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo'),
+  ('d1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
+  ('d1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'operador', 'activo');
 
 -- E1 «Tienda A» (+10 % y precios con IVA) · E2 «Tienda B» (sin regla, sin IVA) · E3 (org 2).
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', true),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda B', true),
   ('e2000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'Tienda Dos', true);
+-- Permisos por tienda (revisión de MSF-363): consulta ve las dos tiendas; «mixto» es Operador en A y Consulta en B
+-- (productos: edición en A, lectura en B); «solo A» es Operador solo en A y no accede a B.
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('d1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('d1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('d1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta'),
+  ('d1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador');
+
 insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'promo-a.ejemplo.com'),
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'promo-b.ejemplo.com'),
@@ -368,6 +381,44 @@ select throws_ok(
 select throws_ok(
   $$update dominio.promociones_precio set precio_promocional = 1$$,
   '42501', null, 'consulta no actualiza la tabla directo'
+);
+
+-- ============================================================================
+-- Permisos por tienda (revisión de MSF-363): el nivel de `productos` es el de la tienda de la promoción
+-- ============================================================================
+
+reset role;
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select lives_ok(
+  $$select public.guardar_promocion_precio(null, 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 10, now() + interval '30 days', now() + interval '31 days', null)$$,
+  'Operador en la tienda A (productos en edición) programa una promoción de A'
+);
+select throws_ok(
+  $$select public.guardar_promocion_precio(null, 'e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 10, now() + interval '30 days', now() + interval '31 days', null)$$,
+  '42501', null, 'pero no de la tienda B, donde es Consulta (lectura): el nivel global no alcanza'
+);
+select throws_ok(
+  $$select public.anular_promocion_precio('c1000000-0000-0000-0000-00000000000b', null)$$,
+  '42501', null, 'ni anula una promoción de la tienda B'
+);
+select throws_ok(
+  $$select public.guardar_promocion_precio('c1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 10, now() + interval '30 days', now() + interval '31 days', null)$$,
+  '42501', null, 'ni edita una promoción de B diciendo que es de A: responde 42501, no 22023 (no revela de quién es)'
+);
+select is(
+  (select count(*) from dominio.promociones_precio where empresa_id = 'e1000000-0000-0000-0000-000000000002'), 1::bigint,
+  'pero sí ve las de B (lectura)'
+);
+
+reset role;
+select pg_temp.como('d1000000-0000-0000-0000-000000000004');
+select is(
+  (select count(*) from dominio.promociones_precio where empresa_id = 'e1000000-0000-0000-0000-000000000002'), 0::bigint,
+  'quien no accede a la tienda B no ve sus promociones leyendo la tabla'
+);
+select throws_ok(
+  $$select public.guardar_promocion_precio(null, 'e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', 10, now() + interval '30 days', now() + interval '31 days', null)$$,
+  '42501', null, 'ni programa una promoción de B'
 );
 
 -- ============================================================================

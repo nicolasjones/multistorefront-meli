@@ -197,7 +197,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
 - **MSF-445 (mejoras)**: entregada completa: etiqueta impresa F-CLI-17 (MSF-446) y fusión F-CLI-18 (MSF-447), ver sus secciones; costos y contactos de proveedor están en `docs/proveedores.md` y `docs/ingreso-de-mercaderia.md`. Contratos: `specs/20261029-100000-mejoras-de-clientes-y-proveedores/contracts/`.
 - **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
-- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
+- **MSF-450 (cuentas y compras a proveedores)**: entregó F-CLI-19, la cuenta corriente y el saldo del cliente (ver «Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)»); F-CLI-20, F-CLI-21 y F-PRV-09 quedan como ideas sin requisitos (`docs/cuentas-y-compras-a-proveedores.md`). La cuenta web y la invitación son de la épica MSF-237 (ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
   minorista/mayorista). La columna Cuenta web de esta entrega era un placeholder `—`;
@@ -405,6 +405,104 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 | D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
+
+## Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)
+
+- **Pantalla:** la ficha `/clientes/show/:id` suma a la tarjeta **«Resumen comercial»** el **«Saldo deudor»**
+  (lo que el cliente debe, **con IVA**) y agrega la tarjeta **«Cuenta corriente»**: los comprobantes con saldo
+  pendiente (Comprobante, Fecha, Estado, Total, Cobrado, Saldo y, solo si algún comprobante tiene notas de crédito, «Notas de crédito»; del más reciente al más antiguo). Si el cliente no
+  debe nada, la cuenta corriente muestra el vacío («Este cliente no tiene comprobantes con saldo») y el saldo es `$ 0`.
+  Si la base no responde, el bloque muestra el error con **«Reintentar»** y el «Saldo deudor» queda en «—»: el error
+  no se come el resto de la ficha. Los números de comprobante son texto: el enlace al comprobante es de Ventas.
+  El «Saldo deudor» se pinta como el prototipo —ámbar con deuda, verde cuando el cliente no debe— y la etiqueta
+  «Deuda» de la cuenta corriente va en ámbar. El saldo no depende de las compras: si la sección «Compras» falla, el
+  «Saldo deudor» se sigue viendo (el «Facturado en el año» queda en «—»).
+- **Función:** `public.cuenta_corriente_cliente(p_cliente_id uuid)` (migración
+  `20270222100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**; recreada después por `20270227110000` y
+  `20270227140000`, que le agregan la columna `notas_credito`, después de `cobrado`): `security definer`, `search_path = ''`,
+  organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra
+  organización o inexistente → saldo `0` y sin documentos (no revela si existe); el encabezado (`saldo_total`,
+  `comprobantes`) viaja en cada fila y, sin documentos abiertos, vuelve solo la fila de encabezado. Cada fila trae el
+  **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre
+  tiendas y el `id` es lo que identifica la fila. Las columnas de cada fila son `id`, `numero`, `fecha`, `tipo`,
+  `estado`, `total_con_iva`, `cobrado`, `notas_credito` y `saldo`.
+  `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Cómo se calcula el saldo:** el total, lo cobrado, las notas de crédito y el saldo de cada comprobante los trae
+  `private.saldo_comprobante` (F-VTA-12, que desde la migración `20270227140000` resta las notas de crédito):
+  saldo = `max(total − cobrado − notas de crédito, 0)`. Es el mismo cálculo que ven el detalle del comprobante, el tope
+  al registrar un cobro y el contrarreembolso (ver `docs/cobros-por-comprobante.md`). El estado
+  «Deuda» no se consulta (una factura en «Deuda» no tiene cobros y debe su total completo). Cuentan las **facturas**
+  que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
+  (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
+  suma de los saldos listados.
+- **Alcance:** es la deuda del cliente en **todas las tiendas a las que la persona accede**
+  (`private.empresas_accesibles()`, como `public.saldo_comprobante`; el administrador accede a todas): no ve deuda de
+  tiendas ajenas. No depende de la empresa activa (Principio VIII). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
+- **Base de las cifras:** el «Saldo deudor» y la cuenta corriente son **con IVA**; el «Facturado en el año» que ya
+  estaba en la ficha es **sin IVA** (criterio del ranking). Cada número dice su base.
+- **Notas de crédito:** **restan** de la deuda de la factura de la que cuelgan (decisión de Nicolás, 2026-11-11, migración
+  `20270227110000_cuenta_corriente_notas_de_credito.sql`): saldo = `max(total − cobrado − notas de crédito, 0)` por factura, con las
+  notas emitidas (no `borrador` ni `anulada`). La nota que genera la **anulación** de una factura no se descuenta dos veces: esa
+  factura ya no figura. La tabla suma la columna «Notas de crédito». Sigue sin haber **saldo a favor**: si cobros y notas superan
+  el total, la factura queda en $ 0 y no aparece: una factura de 1.000 con 800 cobrados y una nota de 400 desaparece
+  aunque el cliente, en rigor, tendría 200 a favor (ese excedente no se acredita en ningún lado). Los importes se
+  redondean a 2 decimales. Qué estados de la nota restan lo decide `private.comprobante_cuenta_como_facturado`
+  (la misma regla que el ranking y el facturado neto; hoy: ni `borrador` ni `anulada`), vía la migración
+  `20270227130000_cuenta_corriente_estados_nc_compartidos.sql`. La columna «Notas de crédito» se muestra solo si algún
+  comprobante de la lista las tiene.
+- **Tiendas sin acceso o desactivadas:** una persona sin tiendas asignadas ve saldo $ 0, y la deuda de una tienda
+  desactivada no suma (ni para el administrador). La sección «Compras» de la misma ficha sigue siendo de toda la
+  organización: diferencia conocida.
+- **Importes:** con centavos cuando los hay (`$ 1.210,50`, `$ 0,40`) y sin decimales cuando son enteros (`$ 220.000`);
+  el ranking de clientes sigue en pesos enteros.
+- **Estados:** cuentan los siete estados vivos que no son borrador, anulada ni cobrado (`confirmada`, `pendiente`,
+  `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`); un pgTAP los fija uno por uno.
+- **Permiso:** quien tiene `clientes` en lectura ve total, cobrado, notas de crédito y saldo aunque no acceda a Ventas (es el mismo dato
+  que la sección «Compras»).
+- **Costo:** tres lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada), dentro de `private.saldo_comprobante`: el comprobante, sus cobros y la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
+  cientos, se pagina con carga infinita.
+- **Decisiones** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se puede cambiar). Confirmadas por Nicolás el 2026-11-12: la factura «Cobrada» no es deuda, el saldo respeta las tiendas accesibles (`private.empresas_accesibles()`) y el permiso de lectura de Clientes alcanza para ver el saldo. Siguen pendientes: qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
+  a favor se muestra. (Cerrado el 2026-11-11: el saldo del
+  comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
+  mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
+- **Efecto cruzado de `20270227150000`:** el disparador escribe, además de la lectura: pasa la factura a «Cobrado» cuando
+  lo cobrado más las notas cubren el total (solo si hay cobros y la matriz de la organización permite la transición
+  para el actor `sistema`) y ajusta el importe de los contrarreembolsos pendientes al saldo neto. Anular una nota
+  después de «Cobrado» no devuelve la factura a «Deuda». Detalle en `docs/cobros-por-comprobante.md`.
+- **Reversión (migración posterior):** revertir la ampliación implica **cuatro** migraciones, no una, en este orden:
+  1. `20270227150000`: `drop trigger comprobantes_venta_nota_credito_efectos on dominio.comprobantes_venta; drop
+     function private.trg_nota_credito_efectos(); drop function private.sincronizar_efectos_nota_credito(uuid);`
+     (no deshace los estados ni los importes de contrarreembolso que ya escribió).
+  2. `20270227140000`: volver a las definiciones de `20270114100100_saldo_y_lectura_cobros.sql` (`drop function` +
+     `create` de las dos `saldo_comprobante`, sin la columna `notas_credito`) y
+     `revoke execute on function private.comprobante_cuenta_como_facturado(text, text) from authenticated`. Esto
+     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`.
+  3. `20270227110000` y `20270227130000`: volver `public.cuenta_corriente_cliente` a la definición de
+     `20270222100000_cuenta_corriente_cliente.sql` (sin notas de crédito) con `drop function` + `create`; **no** basta con
+     `drop function`, que dejaría la pantalla sin cuenta corriente (y la ficha espera la forma de respuesta de cada
+     versión: ajustar el hook en el mismo cambio).
+  No se destruye ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
+- **Cómo probarlo:**
+  - *Prerrequisitos:* stack local (`pnpm dev:supabase`) con el seed; una persona con Clientes en `lectura` o `edicion`;
+    un cliente con una factura confirmada de $1.000 y una tienda activa a la que la persona accede.
+  - *Pasos:* (1) abrí `/clientes/show/:id` del cliente: el «Saldo deudor» muestra $ 1.000 y la tabla «Cuenta
+    corriente» la factura con Total $ 1.000, Cobrado $ 0 y Saldo $ 1.000. (2) Registrá un cobro de $ 600 en el
+    comprobante: el saldo baja a $ 400. (3) Emití una nota de crédito de $ 100 sobre esa factura: aparece la columna «Notas
+    de crédito» y el saldo queda en $ 300; el detalle del comprobante muestra el mismo saldo. (4) Emití otra nota de
+    $ 300: el saldo neto es $ 0, la factura pasa a «Cobrado» y sale de la lista; el «Saldo deudor» queda en `$ 0`.
+  - *Resultado esperado:* los tres lugares (ficha, detalle del comprobante y tope al cobrar) coinciden con
+    `total − cobrado − notas de crédito`, nunca negativo, a 2 decimales; con la base caída el bloque muestra el error con
+    «Reintentar».
+  - *Cómo automatizarlo:* pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` (46 aserciones; corre en
+    el job `database` del CI), Vitest `ComprasCliente.test.tsx` y `useCuentaCorrienteCliente.test.tsx`, y el E2E
+    `apps/web/e2e/cuenta-corriente-cliente.e2e.ts` (`pnpm --filter @platform/web test:e2e` con el stack local; **no corre
+    en el CI**).
+- **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (cada fila sale de `private.saldo_comprobante`; las notas de crédito, con centavos, tienda inaccesible, nota sola mayor que el total,
+  factura cobrada, nota de otro cliente y mezcla emitida + anulada); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
+  prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`
+  (rótulo `[MSF-451:T001]`; **no corre en el CI**, se corre a mano con el stack local: ver `docs/e2e-app.md`).
+- **Prototipo:** la tarjeta «Cuenta corriente» la dibuja esta historia en `design/pantallas/ClienteFicha.dc.html`
+  (y su copia en `design/pantallas/ClienteFicha/`); los inventarios se regeneran con `pnpm prototipo:inventario`.
 
 ## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
 

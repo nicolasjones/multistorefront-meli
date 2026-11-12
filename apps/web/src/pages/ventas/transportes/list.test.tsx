@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Test de INTEGRACIÓN de la pantalla (listado + filtro + diálogo): se sube el timeout del archivo.
@@ -53,7 +54,7 @@ const ultimoPedido = () => mocks.listarTransportes.mock.calls.at(-1)![0]
 // El catálogo de transportes quedó bajo la sub-pestaña «Terminales de retiro» (F-VTA-14, FR-046):
 // estas pruebas son las de MSF-139 (F-VTA-04) y siguen mirando lo mismo, con un paso más.
 const abrirTerminales = async () => {
-  render(<TransporteList />)
+  render(<MemoryRouter><TransporteList /></MemoryRouter>)
   fireEvent.click(await screen.findByRole('tab', { name: 'Terminales de retiro' }))
 }
 

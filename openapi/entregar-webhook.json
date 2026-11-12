@@ -1,0 +1,161 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Entrega interna de avisos (entregar-webhook)",
+    "version": "v1",
+    "description": "Contrato interno: lo invoca el flow de Kestra `entregar-webhooks-api` con la clave de servicio de Supabase. Entrega una `api_entregas` firmada al destino de la suscripción y deja el resultado en la base (la base calcula la espera del reintento: 5 intentos, 60 s × 2^(intentos-1)). No es una API pública."
+  },
+  "servers": [
+    {
+      "url": "/entregar-webhook",
+      "description": "Edge Function entregar-webhook."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/entregar-webhook": {
+      "post": {
+        "summary": "Entrega un aviso y deja el resultado",
+        "description": "La entrega es durable: la base decide cuándo reintentar. Un destino que responde 2xx deja la entrega `completada`; un fallo la deja `pendiente` (la base la agota en el quinto intento).",
+        "operationId": "entregarWebhook",
+        "tags": [
+          "entrega"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "entrega_id"
+                ],
+                "properties": {
+                  "entrega_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Entrega a entregar (public.api_entregas)."
+                  },
+                  "evento_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Evento de la entrega (opcional: la base lo resuelve)."
+                  },
+                  "suscripcion_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Suscripción destino (opcional: la base lo resuelve)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "La entrega se intentó y su resultado quedó registrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "estado"
+                  ],
+                  "properties": {
+                    "estado": {
+                      "type": "string",
+                      "enum": [
+                        "completada",
+                        "pendiente"
+                      ]
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Motivo saneado del último fallo (sin secretos ni credenciales)."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El pedido no trae `entrega_id`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Falta la clave de servicio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Solo se acepta POST.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "No se pudo leer la entrega.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "La función no está configurada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Clave de servicio de Supabase (la del entorno, nunca una clave de cliente)."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

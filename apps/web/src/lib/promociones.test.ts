@@ -4,6 +4,7 @@ import {
   anularPromocion,
   guardarPromocion,
   leerPromociones,
+  TAMANO_TANDA_PROMOCIONES,
   mapearPromocion,
   mensajeErrorPromocion,
   ordenarPromociones,
@@ -90,10 +91,10 @@ describe('promociones · acceso a la base', () => {
       error: null,
     })
     const eq = vi.fn()
-    const consulta = { eq, order: vi.fn(), limit: vi.fn(), returns }
+    const consulta = { eq, order: vi.fn(), range: vi.fn(), returns }
     eq.mockReturnValue(consulta)
     consulta.order.mockReturnValue(consulta)
-    consulta.limit.mockReturnValue(consulta)
+    consulta.range.mockReturnValue(consulta)
     const from = vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue(consulta) })
     const cliente = { from } as never
     const lista = await leerPromociones(cliente, 'e1')
@@ -103,6 +104,40 @@ describe('promociones · acceso a la base', () => {
     eq.mockClear()
     await leerPromociones(cliente, null)
     expect(eq).not.toHaveBeenCalled()
+  })
+
+  it('pide por tandas con range hasta que una vuelve corta: no se recorta a 1000 filas', async () => {
+    const fila = (n: number) => ({
+      id: `p${n}`, empresa_id: 'e1', empresa_nombre: 'A', producto_id: 'x', producto_nombre: 'X', producto_sku: null, precio_promocional: 1,
+      desde: '2026-11-01T00:00:00Z', hasta: 'h', estado: 'vencida', precio_normal: 2, precio_vigente: 2, updated_at: 'u',
+    })
+    const tanda = (desde: number, cantidad: number) => Array.from({ length: cantidad }, (_, i) => fila(desde + i))
+    const returns = vi
+      .fn()
+      .mockResolvedValueOnce({ data: tanda(0, TAMANO_TANDA_PROMOCIONES), error: null })
+      .mockResolvedValueOnce({ data: tanda(TAMANO_TANDA_PROMOCIONES, TAMANO_TANDA_PROMOCIONES), error: null })
+      .mockResolvedValueOnce({ data: tanda(2 * TAMANO_TANDA_PROMOCIONES, 7), error: null })
+    const consulta = { eq: vi.fn(), order: vi.fn(), range: vi.fn(), returns }
+    consulta.eq.mockReturnValue(consulta)
+    consulta.order.mockReturnValue(consulta)
+    consulta.range.mockReturnValue(consulta)
+    const cliente = { from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue(consulta) }) } as never
+    const lista = await leerPromociones(cliente, null)
+    expect(lista).toHaveLength(2 * TAMANO_TANDA_PROMOCIONES + 7)
+    expect(consulta.range.mock.calls).toEqual([
+      [0, TAMANO_TANDA_PROMOCIONES - 1],
+      [TAMANO_TANDA_PROMOCIONES, 2 * TAMANO_TANDA_PROMOCIONES - 1],
+      [2 * TAMANO_TANDA_PROMOCIONES, 3 * TAMANO_TANDA_PROMOCIONES - 1],
+    ])
+    expect(TAMANO_TANDA_PROMOCIONES).toBeLessThan(1000)
+  })
+
+  it('un error de la base en una tanda se propaga', async () => {
+    const consulta = { eq: vi.fn(), order: vi.fn(), range: vi.fn(), returns: vi.fn().mockResolvedValue({ data: null, error: { code: 'x' } }) }
+    consulta.order.mockReturnValue(consulta)
+    consulta.range.mockReturnValue(consulta)
+    const cliente = { from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue(consulta) }) } as never
+    await expect(leerPromociones(cliente, null)).rejects.toMatchObject({ code: 'x' })
   })
 
   it('guardar envía la RPC con los instantes ISO y el updated_at leído', async () => {

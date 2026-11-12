@@ -18,6 +18,7 @@ Tres entradas según lo que necesites:
 | Invitaciones de usuarios | [invitar-usuarios.md](invitar-usuarios.md), [migracion-invitaciones-usuarios.md](migracion-invitaciones-usuarios.md) |
 | Migración inicial de datos (importador, conciliación, plan de corte) | [migracion-datos.md](migracion-datos.md), [migracion-inicial-de-datos.md](migracion-inicial-de-datos.md) |
 | Documentos IA (búsqueda documental: subida, versiones, permisos) | [documentos-ia.md](documentos-ia.md) |
+| Asistente con IA sobre catálogo, stock, precios y ventas (solo lectura) | [asistente-catalogo.md](asistente-catalogo.md) |
 | Empresa activa | [empresa-activa.md](empresa-activa.md) |
 | Usuarios, empresas y permisos | [usuarios-y-empresas.md](usuarios-y-empresas.md), [permisos-por-rol.md](permisos-por-rol.md) |
 | Organización: alta, administración, empresas | [alta-de-organizaciones.md](alta-de-organizaciones.md), [administracion-organizacion.md](administracion-organizacion.md), [empresas.md](empresas.md) |
@@ -26,15 +27,16 @@ Tres entradas según lo que necesites:
 | Cotización del dólar: carga diaria | [cotizacion-carga-diaria.md](cotizacion-carga-diaria.md) |
 | Cotización del dólar: vista previa y recálculo | [cotizacion-recalculo.md](cotizacion-recalculo.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
+| API pública, claves y avisos firmados | [api-publica.md](api-publica.md) |
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md), [ventas-estados-comprobante.md](ventas-estados-comprobante.md) |
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |
 | Ventas: impresión de factura y remito | [ventas-impresion.md](ventas-impresion.md) |
 | Ventas: devoluciones y reclamos (RMA) por ítem | [ventas-rma-devoluciones.md](ventas-rma-devoluciones.md) |
-| Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md) |
+| Ventas: formas de pago y envío, cuentas de cobro, transportes | [ventas-catalogos.md](ventas-catalogos.md), [cuentas-cobro.md](cuentas-cobro.md), [ventas-transportes.md](ventas-transportes.md), [ventas-motos.md](ventas-motos.md) |
 | Ventas: cobros por comprobante y conciliación de pagos | [cobros-por-comprobante.md](cobros-por-comprobante.md), [pagos-conciliacion.md](pagos-conciliacion.md) |
 | Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
-| Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md) |
+| Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md), [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md) |
 | Ventas: venta de mostrador con lector de código de barras | [ventas-mostrador.md](ventas-mostrador.md) |
 | Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-cobro.md](service-cobro.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |

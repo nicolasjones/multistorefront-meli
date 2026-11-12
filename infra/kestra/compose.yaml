@@ -173,6 +173,16 @@ services:
       # Clave de servicio de Storage con la que comprobantes-correo.yml lee el bucket privado
       # `comprobantes-documentos` (EN BASE64, como todo SECRET_*). Solo Kestra la ve.
       SECRET_COMPROBANTES_STORAGE_KEY: ${SECRET_COMPROBANTES_STORAGE_KEY:-}
+      # Avisos de la API (MSF-403, flow entregar-webhooks-api.yml): el flow llama a la Edge Function
+      # `entregar-webhook`, que lee el secreto de firma de cada suscripción. Por eso usa la clave de
+      # SERVICIO de Supabase (no la pública): va EN BASE64 como SECRET_* y solo vive en
+      # infra/kestra/.env.
+      ENV_ENTREGAR_WEBHOOK_URL: ${ENTREGAR_WEBHOOK_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/entregar-webhook}
+      SECRET_ENTREGAR_WEBHOOK_APIKEY: ${SECRET_ENTREGAR_WEBHOOK_APIKEY:-}
+      # Eventos y entregas por corrida del flow de avisos de la API.
+      ENV_API_WEBHOOKS_LOTE: ${API_WEBHOOKS_LOTE:-20}
+      # Retención (días) de la auditoría de llamadas de la API (flow purgar-api-llamadas.yml).
+      ENV_API_AUDITORIA_RETENCION_DIAS: ${API_AUDITORIA_RETENCION_DIAS:-90}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.

@@ -98,7 +98,7 @@ describe('HistorialList', () => {
     }
     expect(screen.getByText('B-0001')).toBeInTheDocument()
     expect(screen.getByText('Histórico')).toBeInTheDocument()
-    expect(screen.getByText('$ 64.200,5')).toBeInTheDocument()
+    expect(screen.getByText('$ 64.200,50')).toBeInTheDocument()
     expect(screen.getByText('Caja del local')).toBeInTheDocument()
   })
 

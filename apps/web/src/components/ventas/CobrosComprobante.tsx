@@ -90,11 +90,17 @@ export function CobrosComprobante({
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} role="group" aria-label="Totales de los cobros">
               <Dato titulo="Cobrado" valor={saldo ? formatearImporteHistorial(saldo.cobrado) : '—'} />
+              {/* Solo si la factura tiene notas de crédito: el saldo ya las descuenta y la persona tiene que ver por qué. */}
+              {saldo && saldo.notas_credito > 0 ? (
+                <Dato titulo="Notas de crédito" valor={formatearImporteHistorial(saldo.notas_credito)} />
+              ) : null}
               <Dato titulo="Saldo" valor={saldo ? formatearImporteHistorial(saldo.saldo) : '—'} />
             </Stack>
             {sinSaldo ? (
               <Typography variant="body2" color="text.secondary">
-                No queda saldo pendiente: la factura está cobrada.
+                {saldo && saldo.cobrado < saldo.total
+                  ? 'No queda saldo pendiente: lo cobrado y las notas de crédito cubren la factura.'
+                  : 'No queda saldo pendiente: la factura está cobrada.'}
               </Typography>
             ) : null}
             {cobros.length === 0 ? (

@@ -2,11 +2,12 @@ import { useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
   Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Stack,
-  TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { RequiereAccesoSeccion } from '../../components/RequiereAccesoSeccion'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -65,7 +66,8 @@ function PantallaPreciosMasivos() {
   const [parametrosVista, setParametrosVista] = useState<ParametrosPorcentaje | ParametrosPlanilla | null>(null)
   const [generando, setGenerando] = useState(false)
   const [errorVista, setErrorVista] = useState<string | null>(null)
-  const [pagina, setPagina] = useState(0)
+  // Carga infinita (Principio VI): cuántas filas de la vista previa se muestran; sube de a una tanda.
+  const [visibles, setVisibles] = useState(FILAS_POR_PAGINA)
 
   const [confirmando, setConfirmando] = useState(false)
   const [aplicando, setAplicando] = useState(false)
@@ -85,7 +87,7 @@ function PantallaPreciosMasivos() {
     setParametrosVista(null)
     setErrorVista(null)
     setErrorAplicar(null)
-    setPagina(0)
+    setVisibles(FILAS_POR_PAGINA)
   }
 
   const elegirModo = (nuevo: ModoActualizacion | null) => {
@@ -153,7 +155,7 @@ function PantallaPreciosMasivos() {
     const peso = (fila: FilaVistaPrevia) => (fila.error ? 0 : fila.cambia ? 1 : 2)
     return [...vista.filas].sort((a, b) => peso(a) - peso(b))
   }, [vista])
-  const filasPagina = filasOrdenadas.slice(pagina * FILAS_POR_PAGINA, (pagina + 1) * FILAS_POR_PAGINA)
+  const filasMostradas = filasOrdenadas.slice(0, visibles)
 
   const columnas: ColumnaAdaptable<FilaVistaPrevia>[] = [
     ...(modo === 'planilla' ? [{ clave: 'fila', encabezado: 'Fila', render: (f: FilaVistaPrevia) => f.fila ?? '—' }] : []),
@@ -295,19 +297,18 @@ function PantallaPreciosMasivos() {
               ) : (
                 <>
                   <ContenidoAdaptable
-                    items={filasPagina}
+                    items={filasMostradas}
                     columnas={columnas}
                     obtenerClave={(fila, indice) => fila.producto_id ?? `fila-${fila.fila ?? indice}-${indice}`}
                     etiquetaTabla="Vista previa de la actualización de precios"
                   />
-                  <TablePagination
-                    component="div"
-                    count={filasOrdenadas.length}
-                    page={pagina}
-                    rowsPerPage={FILAS_POR_PAGINA}
-                    rowsPerPageOptions={[FILAS_POR_PAGINA]}
-                    onPageChange={(_, nueva) => setPagina(nueva)}
-                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                  <Typography variant="body2" color="text.secondary" role="status">
+                    {`Mostrando ${filasMostradas.length} de ${filasOrdenadas.length}`}
+                  </Typography>
+                  <CargaInfinita
+                    hayMas={visibles < filasOrdenadas.length}
+                    cargando={false}
+                    onCargarMas={() => setVisibles((actual) => actual + FILAS_POR_PAGINA)}
                   />
                 </>
               )}

@@ -1,0 +1,59 @@
+# Tasks: Clientes y proveedores · Cuentas y compras a proveedores
+
+**Input**: `specs/20261029-100000-cuentas-y-compras-a-proveedores/` (spec.md, plan.md). Sin `contracts/` (no hay RPC ni endpoints).
+
+**Formato**: `- [ ] T### [P] [F-xxx-nn][USy] descripción`. **[P]** = paralelizable; sin [P] = secuencial.
+
+**Delivery scope**: solo documentación (F-CLI-19 se entregó con su propia spec, MSF-451).
+
+> Las tareas T001–T004 solo se ejecutan cuando la historia pase a un hito; por decisión expresa de Nicolás quedan abiertas a propósito (excepción a la regla de «ninguna tarea `[ ]`», ver *Decisiones* en la spec). No hay comportamiento que implementar hoy.
+
+## Matriz de trazabilidad Jira ↔ US ↔ tasks
+
+| Jira | Historia | FR / SC (dueño único) | Tasks |
+|------|----------|-----------------------|-------|
+| F-CLI-19 | US1 Cuenta corriente y saldo del cliente | FR-001 | T001 |
+| F-CLI-20 | US2 Historial y favoritos en la cuenta web | FR-002 | T002 |
+| F-CLI-21 | US3 Listas de precios por cliente | FR-003 | T003 |
+| F-PRV-09 | US4 Órdenes de compra a proveedores | FR-004 | T004 |
+| Tarea de cierre (label `cierre`) | Documentación y roadmap | FR-005, SC-001, SC-002, SC-003 | T010–T012 |
+
+## Fase 1 — Historias (cada una autosuficiente)
+
+- [x] T001 [P] [F-CLI-19][US1] Cuando pase a un hito: redactar requisitos, pantalla (saldo en la ficha de `ClienteFicha`) y matriz de la cuenta corriente, a partir de cómo Ventas maneje cobros y estado Deuda. **FR-001** — Verificación: `grep -E "F-CLI-19.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`. Desvío: la redacción la hizo el SDLC con su propia spec (`specs/20261109-100000-cuenta-corriente-y-saldo-cliente/`, MSF-451) sin requisitos del cliente; queda como definición provisoria a confirmar.
+- [ ] T002 [P] [F-CLI-20][US2] Cuando pase a un hito: redactar requisitos de historial y favoritos sobre la cuenta web (`cuenta-web-del-cliente`), acotados a eso. **FR-002** — Verificación: `grep -E "F-CLI-20.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+- [ ] T003 [P] [F-CLI-21][US3] Cuando pase a un hito: resolver la pregunta abierta 1 y redactar requisitos de listas de precios por cliente, coordinando con F-PRE-14. **FR-003** — Verificación: `grep -E "F-CLI-21.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+- [ ] T004 [P] [F-PRV-09][US4] Cuando pase a un hito: redactar requisitos de órdenes de compra a proveedores sobre el listado de reposición de Stock. **FR-004** — Verificación: `grep -E "F-PRV-09.*P3.*Backlog" docs/cuentas-y-compras-a-proveedores.md`.
+
+**Checkpoint**: por decisión de Nicolás, estas cuatro quedan abiertas a propósito y no se implementa código.
+
+## Fase 2 — Cierre (documentación y roadmap)
+
+- [x] T010 [CIERRE] Crear `docs/cuentas-y-compras-a-proveedores.md` con las cuatro ideas, prioridad, dependencias y preguntas abiertas (sin requisitos nuevos). **FR-005** — Verificación: `test -f docs/cuentas-y-compras-a-proveedores.md && pnpm docs:check`.
+  Hecho: `docs/cuentas-y-compras-a-proveedores.md` creado.
+- [x] T011 [CIERRE] Actualizar la fila de MSF-450 en `docs/roadmap-template.md` (estado Backlog, link a la spec) al mergear el PR; paso manual con criterio. **FR-005** — Verificación: `grep -n "MSF-450" docs/roadmap-template.md`.
+  Hecho: fila de MSF-450 en `docs/roadmap-template.md` (Backlog, con link a la spec).
+- [x] T012 [CIERRE] Gates: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check` verdes; confirmar que no hay cambios de comportamiento. **SC-001, SC-002, SC-003** — Verificación: `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check`.
+  Hecho en local: guards, `tsc -b`, `vite build` y Vitest de lo tocado. Desvío: `pnpm test` completo y pgTAP los valida el CI; el E2E de F-CLI-19 **no** lo corre el CI (se corre a mano con el stack local). Además T012 no fue «sin cambios de comportamiento»: el PR incluye F-CLI-19 (ver SC-001).
+
+---
+
+## Plan de ejecución (historias)
+
+| Historia | Depende de | Grupo |
+|---|---|---|
+| F-CLI-19 | — | 1 |
+| F-CLI-20 | — | 1 |
+| F-CLI-21 | — | 1 |
+| F-PRV-09 | — | 1 |
+| [Cierre] | F-CLI-19, F-CLI-20, F-CLI-21, F-PRV-09 | 2 |
+
+Las cuatro historias son independientes entre sí (no comparten archivos, tabla ni migración) y van en paralelo; la épica no declara bloqueos entre ellas. Las dependencias externas (Ventas, cuenta web, Precios, Stock) se citan en la spec y no son historias de esta épica.
+
+```mermaid
+flowchart LR
+  A[F-CLI-19] --> C[Cierre]
+  B[F-CLI-20] --> C
+  D[F-CLI-21] --> C
+  E[F-PRV-09] --> C
+```

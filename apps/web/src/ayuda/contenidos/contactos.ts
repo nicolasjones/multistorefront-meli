@@ -4,11 +4,11 @@ export const ayudaContactos: AyudaPorDestino = {
   clientes: {
     titulo: 'Clientes',
     resumen:
-      'Listado de tus clientes con su tipo (minorista o mayorista), tiendas, datos de contacto y localidad. El tipo define el precio que se aplica. Tiene vistas de Listado, Ranking por facturación y Clientes inactivos. Según tu rol podés crear, editar, importar, exportar o imprimir etiquetas.',
+      'Listado de tus clientes con su tipo (minorista o mayorista), tiendas, datos de contacto y localidad. El tipo define el precio que se aplica. Tiene vistas de Listado, Ranking por facturación y Clientes inactivos. Según tu rol podés crear, editar, importar, exportar o imprimir etiquetas. La ficha muestra el «Saldo deudor» y la «Cuenta corriente»: las facturas con saldo, que es lo facturado menos lo cobrado menos las notas de crédito, de las tiendas a las que accedés.',
     pasos: [
       'Buscá por nombre, DNI/CUIT, correo, teléfono, localidad o número.',
       'Filtrá por tipo (minorista o mayorista) o por Activos y Archivados.',
-      'Tocá «Ver ficha» para ver todos los datos de un cliente.',
+      'Tocá «Ver ficha» para ver sus datos, el «Saldo deudor» y la «Cuenta corriente».',
       'Si podés editar, tildá clientes y usá «Imprimir etiquetas» o «Enviar correo a seleccionados».',
       'Si podés editar, usá «Nuevo cliente» para cargar uno.',
     ],

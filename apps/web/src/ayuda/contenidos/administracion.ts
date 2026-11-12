@@ -17,7 +17,7 @@ export const ayudaAdministracion: AyudaPorDestino = {
     resumen:
       'Es el valor del dólar que se carga cada día para calcular los precios de los productos en USD. Ves la cotización vigente, su configuración y el historial. Cargarla requiere permiso de edición en esta sección; con permiso de lectura solo podés consultarla.',
     pasos: [
-      'Tocá «Cargar cotización» e ingresá el dólar del día.',
+      'Tocá «Cargar cotización» e ingresá el dólar del día. Si aparece la cotización sugerida, usá «Usar este valor»; si no, cargalo a mano.',
       'Si tu organización trabaja por empresa, elegí primero la empresa.',
       'Revisá la cotización vigente y el historial para ver los valores anteriores.',
     ],
@@ -85,6 +85,17 @@ export const ayudaAdministracion: AyudaPorDestino = {
       'Asociá cada columna del archivo con su campo.',
       'Revisá la vista previa: las filas con error no se importan. Si hace falta, corregí el archivo y volvé a subirlo.',
       'Pulsá «Importar…» para aplicar; el resultado se ve en pantalla y desde «Ver informe de conciliación» abrís el informe.',
+    ],
+  },
+  api: {
+    titulo: 'API',
+    resumen:
+      'Permite que otros sistemas lean datos de tu organización de forma segura, con claves que vos controlás. Desde acá creás y revocás claves, configurás avisos automáticos hacia otros sistemas y revisás las llamadas recientes. Es solo para administradores.',
+    pasos: [
+      'Pulsá «Crear clave», dale un nombre y elegí qué datos puede leer. La clave completa se muestra una sola vez: copiala.',
+      'Usá «Rotar» para cambiar una clave o «Revocar» para dejarla sin acceso al instante (pide confirmar).',
+      'En Suscripciones indicá a qué dirección avisar cuando pasa algo, y revisá en Entregas si el aviso llegó.',
+      'En Llamadas recientes ves quién consultó, cuándo y si salió bien.',
     ],
   },
 }

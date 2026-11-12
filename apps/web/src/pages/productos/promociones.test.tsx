@@ -5,7 +5,8 @@ const mocks = vi.hoisted(() => ({
   leerPromociones: vi.fn(),
   guardarPromocion: vi.fn(),
   anularPromocion: vi.fn(),
-  leerProductosPromocionables: vi.fn(),
+  buscarProductos: vi.fn(),
+  buscadorCatalogo: vi.fn(),
   useNivelSeccion: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
   useOrganizacionActiva: vi.fn(),
@@ -18,9 +19,12 @@ vi.mock('../../lib/promociones', async (importOriginal) => {
     leerPromociones: mocks.leerPromociones,
     guardarPromocion: mocks.guardarPromocion,
     anularPromocion: mocks.anularPromocion,
-    leerProductosPromocionables: mocks.leerProductosPromocionables,
   }
 })
+vi.mock('../../hooks/useBuscadorCatalogo', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../hooks/useBuscadorCatalogo')>()),
+  useBuscadorCatalogo: mocks.buscadorCatalogo,
+}))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
@@ -72,7 +76,7 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     )
     mocks.guardarPromocion.mockResolvedValue(undefined)
     mocks.anularPromocion.mockResolvedValue(undefined)
-    mocks.leerProductosPromocionables.mockResolvedValue(PRODUCTOS)
+    mocks.buscadorCatalogo.mockReturnValue({ opciones: PRODUCTOS, truncado: false, error: false, cargando: false, buscar: mocks.buscarProductos })
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e1'))
     mocks.useOrganizacionActiva.mockReturnValue({ organizacionActiva: { id: 'o1' }, isLoading: false })
@@ -127,6 +131,18 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(screen.getByText('Promoción programada.')).toBeInTheDocument()
     expect(mocks.leerPromociones.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('el selector de productos busca en el servidor al escribir y avisa si el catálogo se cortó', async () => {
+    mocks.buscadorCatalogo.mockReturnValue({ opciones: PRODUCTOS, truncado: true, error: false, cargando: false, buscar: mocks.buscarProductos })
+    abrir()
+    await screen.findByText('Alfa de A')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva promoción' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva promoción' })
+    fireEvent.change(within(dialogo).getByLabelText(/Producto/), { target: { value: 'pila' } })
+    expect(mocks.buscarProductos).toHaveBeenCalledWith('pila')
+    expect(mocks.buscadorCatalogo).toHaveBeenCalledWith(expect.objectContaining({ tabla: 'productos', columnasBusqueda: 'nombre,sku', soloActivos: true }))
+    expect(within(dialogo).getByText(/Hay más de 500 productos: escribí para buscar/)).toBeInTheDocument()
   })
 
   it('muestra el error de solape de la base sin cerrar el diálogo', async () => {

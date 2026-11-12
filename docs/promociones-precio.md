@@ -8,20 +8,20 @@ Una promoción fija un **precio promocional** (sin IVA, en pesos) para un produc
 
 ## Modelo (esquema `dominio`, Principio VII)
 
-Tabla `dominio.promociones_precio` (migración `20270221100001`): FK compuestas a empresa y producto de la misma organización, `precio_promocional > 0`, `hasta > desde`, `anulada_at`, índice `(empresa_id, producto_id, desde, hasta)`, RLS por organización, sin política DELETE, sin privilegios para `anon`. Un disparador impide que dos promociones **no anuladas** del mismo producto y empresa se solapen (`23P01`).
+Tabla `dominio.promociones_precio` (migración `20270221100001`): FK compuestas a empresa y producto de la misma organización, `precio_promocional > 0`, `hasta > desde`, `anulada_at`, índice `(empresa_id, producto_id, desde, hasta)`, RLS, sin política DELETE, sin privilegios para `anon`. **La lectura es por tienda** (migración `20270223200000`, aprobada retroactivamente por Nicolás el 2026-11-12): la política exige la organización y `private.nivel_productos_en_empresa(empresa_id)` en `lectura` o `edicion`; una tienda desactivada o una persona sin tiendas asignadas no leen promociones (el acceso por tienda exige `private.empresas_accesibles()`, solo tiendas activas). Un disparador impide que dos promociones **no anuladas** del mismo producto y empresa se solapen (`23P01`).
 
 Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan por consulta de `desde`/`hasta` y la hora actual (Decisión 1: sin Kestra ni worker, sin ventana de precio vencido por una tarea caída). Solo `anulada` es un dato. La vista `public.promociones_precio_estado` (`security_invoker`) los expone.
 
-## RPC (`public`, migración `20270221100002`)
+## RPC (`public`, migraciones `20270221100002`, `20270223200000` y `20270225100000`)
 
 - `guardar_promocion_precio(...)`: crea o edita (bloqueo optimista con `updated_at`; idempotente; no edita vencidas ni anuladas).
 - `anular_promocion_precio(id, actualizado)`: anula; repetirla no falla.
-- Ambas validan sesión, sección `productos` = edición y que empresa y producto sean de la organización. Errores: `42501`, `P0002`, `22023`, `23P01`, `40001`, `22003`. Eventos de actividad `promocion_precio.programada|actualizada|anulada`.
+- Ambas son `security definer` (con `search_path` vacío) y validan sesión, sección `productos` = edición, que empresa y producto sean de la organización y que la persona tenga `productos` en edición **en la tienda de la promoción** (`private.nivel_productos_en_empresa`; quien edita productos en la tienda A no programa ni anula promociones de la B). El permiso por tienda se comprueba antes de bloquear la promoción: sin permiso siempre responde `42501`. Errores: `42501`, `P0002`, `22023`, `23P01`, `40001`, `22003`. Eventos de actividad `promocion_precio.programada|actualizada|anulada`.
 - Permisos: `authenticated` ejecuta; `anon` y `public` revocados.
 
 ## Cálculo (migración `20270221100003`)
 
-`private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Sin promoción es idéntico a `private.precio_final_publico`.
+`private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Desvío del plan: el precio normal sale de `private.precio_final_publico` (escala x1 + regla de la empresa), no de `private.precio_neto_empresa` (`20270221100003`), de modo que sin promoción es idéntico a lo que la tienda ya mostraba.
 
 ## Contrato público (migración `20270221100004`)
 
@@ -29,8 +29,12 @@ Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan po
 
 ## Decisiones
 
-- **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda. Queda como pregunta para Nicolás.
+- **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Nicolás aprobó el 2026-11-12 abrir el gate para que el POS, el carrito y los comprobantes cobren el precio promocional; está aprobada y en implementación en otros PRs (hasta entonces sigue vigente lo descrito).
 - **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento MSF-816.
+
+## Límite de filas de PostgREST
+
+`supabase/config.toml` fija `max_rows = 1000`: PostgREST recorta cada respuesta a ese tope sin avisar, así que un `.limit(2000)` no trae más. Por eso la pantalla **Promociones** (a) lee la lista por tandas de 500 con `.range()` (orden `desde`, `id`) hasta que una vuelve corta, y (b) busca el producto del diálogo «Nueva promoción» en el servidor (`useBuscadorCatalogo`: nombre o SKU, «contiene», con espera al escribir y tope de 500 opciones con aviso si el catálogo se cortó), en vez de bajar todos los productos activos. Con ~2.900 productos se llega a cualquiera escribiendo parte del nombre o del SKU.
 
 ## Verificación
 

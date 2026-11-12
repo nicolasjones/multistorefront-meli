@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Alert, Autocomplete, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, TextField } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { avisoCatalogoTruncado, useBuscadorCatalogo } from '../../hooks/useBuscadorCatalogo'
 import {
   NOTA_PRECIO_SIN_IVA,
   aFechaHoraLocal,
@@ -17,7 +18,6 @@ type PropsFormulario = {
   promocion: Promocion | null
   empresaId: string
   empresaNombre: string
-  productos: ProductoPromocionable[]
   onCancelar: () => void
   // Rechaza con el error de la base; el diálogo queda abierto para reintentar.
   onGuardar: (datos: DatosPromocion) => Promise<void>
@@ -29,11 +29,18 @@ const etiquetaProducto = (producto: ProductoPromocionable) => (producto.sku ? `$
 // superior en el alta y la propia de la promoción al editar; el diálogo nunca ofrece elegir otra (Principio
 // VIII). El precio es fijo en pesos y se carga sin IVA. La base impide solapes y valida permisos; acá se
 // avisa antes de enviar y se muestra el error si la base lo rechaza.
-export function FormularioPromocion({ promocion, empresaId, empresaNombre, productos, onCancelar, onGuardar }: PropsFormulario) {
+export function FormularioPromocion({ promocion, empresaId, empresaNombre, onCancelar, onGuardar }: PropsFormulario) {
   const editando = promocion !== null
   const [producto, setProducto] = useState<ProductoPromocionable | null>(
-    () => (promocion ? productos.find((p) => p.id === promocion.productoId) ?? { id: promocion.productoId, nombre: promocion.productoNombre, sku: promocion.productoSku } : null),
+    () => (promocion ? { id: promocion.productoId, nombre: promocion.productoNombre, sku: promocion.productoSku } : null),
   )
+  // Búsqueda en el servidor mientras se escribe: el catálogo (miles de productos) no entra en una respuesta.
+  const [listaAbierta, setListaAbierta] = useState(false)
+  const catalogo = useBuscadorCatalogo<ProductoPromocionable>({
+    tabla: 'productos', columnas: 'id, nombre, sku', columnasBusqueda: 'nombre,sku', orden: 'nombre', soloActivos: true,
+    habilitado: listaAbierta && !editando,
+  })
+  const opcionesProducto = producto && !catalogo.opciones.some((opcion) => opcion.id === producto.id) ? [producto, ...catalogo.opciones] : catalogo.opciones
   const [precio, setPrecio] = useState(() => (promocion ? String(promocion.precioPromocional).replace('.', ',') : ''))
   const [desde, setDesde] = useState(() => (promocion ? aFechaHoraLocal(promocion.desde) : ''))
   const [hasta, setHasta] = useState(() => (promocion ? aFechaHoraLocal(promocion.hasta) : ''))
@@ -82,18 +89,28 @@ export function FormularioPromocion({ promocion, empresaId, empresaNombre, produ
             {errorServidor ? <Alert severity="error">{errorServidor}</Alert> : null}
             <TextField label="Empresa" value={empresaNombre} disabled fullWidth />
             <Autocomplete
-              options={productos}
+              options={opcionesProducto}
               value={producto}
               disabled={editando}
+              loading={catalogo.cargando}
+              loadingText="Buscando productos…"
+              filterOptions={(opciones) => opciones}
+              onOpen={() => setListaAbierta(true)}
+              onClose={() => catalogo.buscar('')}
+              onInputChange={(_evento, texto, motivo) => {
+                if (motivo === 'input') catalogo.buscar(texto)
+                else if (motivo === 'clear') catalogo.buscar('')
+              }}
               getOptionLabel={etiquetaProducto}
               isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
               onChange={(_evento, nuevo) => {
                 setProducto(nuevo)
+                catalogo.buscar('')
                 setErrores((previos) => ({ ...previos, producto: undefined }))
               }}
-              noOptionsText="No hay productos que coincidan"
+              noOptionsText={catalogo.error ? 'No pudimos buscar productos. Probá de nuevo.' : 'No hay productos activos que coincidan'}
               renderInput={(params) => (
-                <TextField {...params} label="Producto" required error={Boolean(errores.producto)} helperText={errores.producto} autoFocus={!editando} />
+                <TextField {...params} label="Producto" required error={Boolean(errores.producto) || catalogo.error} helperText={errores.producto ?? (catalogo.error ? 'No pudimos buscar productos. Probá de nuevo.' : catalogo.truncado ? avisoCatalogoTruncado('productos') : undefined)} autoFocus={!editando} />
               )}
             />
             <TextField
