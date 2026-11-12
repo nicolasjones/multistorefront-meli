@@ -24,6 +24,8 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
+**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando.
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve

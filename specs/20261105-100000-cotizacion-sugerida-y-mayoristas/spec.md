@@ -69,7 +69,8 @@ F-PRE-14 no describe flujo alguno: sin flujo hasta resolver Preguntas 2–3.
 - **FR-001** *(F-PRE-13)*: el sistema obtiene el dólar del día de una fuente pública y lo ofrece como valor sugerido en el diálogo de carga de F-PRE-02. Fuente concreta, qué valor (oficial/blue/etc.) y frecuencia: **Pregunta 1**.
 - **FR-002** *(F-PRE-13)*: si la fuente no está disponible, la carga manual de MSF-116 sigue funcionando sin cambios.
 - **FR-003** *(F-PRE-14)*: **reservado**. Sin requisitos hasta que Nicolás resuelva el conflicto con F-PRE-15 y el modelo comercial. No se implementa.
-- **SC-001**: test del diálogo con sugerencia disponible y con fuente caída (FR-001, FR-002).
+- **FR-004** *(F-PRE-13, comportamiento implementado)*: solo la persona con nivel `edicion` en `cotizacion_dolar` puede pedir la sugerencia (403 si no); método solo POST (405); si la fuente no responde en 5 s, responde con error o devuelve un valor fuera de `0 < venta < 1.000.000`, la función responde 502 con un mensaje que invita a cargar a mano.
+- **SC-001**: test del diálogo con sugerencia disponible y con fuente caída (FR-001, FR-002). La prueba de «cambio de empresa» se descartó: la sugerencia no depende de la empresa.
 
 ## Decisiones abiertas (máx. 5 — NEEDS_INFO)
 
@@ -77,7 +78,7 @@ F-PRE-14 no describe flujo alguno: sin flujo hasta resolver Preguntas 2–3.
 2. **F-PRE-14 vs. F-PRE-15**: F-PRE-15 (escalas por tipo de cliente) ya está implementada. ¿F-PRE-14 sigue siendo necesaria o se cancela/redefine?
 3. **Modelo comercial mayorista**: si sigue, ¿qué es «revendedor» (tipo de cliente existente, cuenta propia), quién ve la lista y cómo se arma? Hoy clientes registrados y cuenta de cliente están «no definidos».
 4. **Hito y horas**: ¿en qué hito entra la épica? (M + L ≈ 24 h por talla.)
-5. **Orden con MSF-116**: confirmar que se reanuda recién con MSF-116 en `main` (hoy PR #409 cerrado en rojo según el tracker).
+5. **Orden con MSF-116** *(resuelta)*: se reanudó con MSF-116 ya en `dokploy` (ya se cumplió: MSF-116 está en `dokploy`).
 
 ## Matriz pantalla↔criterios
 
@@ -89,12 +90,12 @@ La épica indica que **no hay pantalla dibujada** para ella. Se revisaron `Cotiz
 | Cotizacion: tabla Fecha/Valor/Variación/Cargó/Precios/Mercado Libre; tabla Producto (muestra); campos Alcance, Redondeo, Umbral; botones Cargar cotización, Cargar ahora, Una para todo el sistema, Una por empresa, Guardar configuración, Cancelar | **Fuera de alcance**: son de MSF-116 / MSF-352 (la épica no los pide) | — |
 | TiposCliente: tabla, campos y botones (Nuevo tipo de cliente, Guardar tipo, Cancelar) | **Fuera de alcance**: son de F-PRE-15 (MSF-114) | — |
 | Pantalla/lista para revendedores (F-PRE-14) | **Fuera de alcance por ahora**: sin diseño ni requisitos (Preguntas 2–3) | FR-003 |
-| Fila **Empresa activa** | No aplica: la cotización es una sola para la organización (igual que MSF-116); test de que cambiar de empresa no altera el diálogo | SC-001 |
+| Fila **Empresa activa** | No aplica: la cotización es una sola para la organización (igual que MSF-116); sin test propio: la función no recibe la empresa, así que no hay dependencia que probar (desvío de T003) | — |
 
 ## Matriz de trazabilidad Jira ↔ US ↔ FR ↔ tareas
 
 | Tracker | US | FR/SC | Tareas |
 |---|---|---|---|
-| F-PRE-13 | US1 | FR-001, FR-002, SC-001 | T001–T003 |
-| F-PRE-14 | US2 | FR-003 (reservado) | — |
+| F-PRE-13 (MSF-441) | US1 | FR-001, FR-002, FR-004, SC-001 | T001–T003 |
+| F-PRE-14 (MSF-442) | US2 | FR-003 (reservado) | — |
 | Tarea de cierre (label cierre) | — | docs | T004 |

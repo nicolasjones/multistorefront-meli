@@ -10,6 +10,14 @@
 - Datos: ninguna tabla nueva decidida. Si se cachea la sugerencia, sería `dominio`, con RLS por organización y migración aditiva con reversión.
 - Docs: actualizar `docs/precios.md` (Constitución, documentación obligatoria).
 
+## Módulos y archivos tocados (implementado)
+
+- `supabase/functions/cotizacion-sugerida/` (`index.ts`, `handler.ts`, pruebas): Edge Function, solo POST, exige `edicion` en `cotizacion_dolar`, lee DolarApi (oficial, venta) con tope de 5 s y sin redirecciones.
+- `apps/web/src/components/cotizacion/DialogoCargarDolar.tsx`, `apps/web/src/hooks/useCotizacionSugerida.ts`, `apps/web/src/lib/cotizacion.ts`: la sugerencia y «Usar este valor» en el diálogo.
+- `package.json` (script `test:edge:cotizacion-sugerida`), `docs/precios.md`, `docs/roadmap-template.md`.
+- **Tablas y migraciones: ninguna.** Sin `openapi/` (la función no es API pública; el contrato está en `docs/precios.md`).
+- Solape: cualquier épica que toque `DialogoCargarDolar.tsx` o la configuración del dólar (p. ej. MSF-352) va en serie con esta.
+
 ## Constitución
 
 Principio VII: sin tablas declaradas aún (re-verificar al decidir). Principio VIII: la cotización es de la organización; no depende de la empresa activa. Principio VI: usa los patrones compartidos de carga/error del diálogo.
