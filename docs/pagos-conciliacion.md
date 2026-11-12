@@ -124,7 +124,7 @@ empresa accesible y `ventas` en lectura o edición) y `revoke … from public, a
   total del filtro actual (el «de N» de la paginación de la pantalla). Orden estable: fecha
   descendente y luego id.
 - **Columnas**: Fecha, Tienda, Comprobante, Cliente, Cuenta de cobro, Importe, Aprobado por,
-  Conciliado y **Saldo del comprobante** (lo que le queda al cliente, no el total de la factura).
+  Conciliado y **Saldo del comprobante** (lo que le queda al cliente, no el total de la factura; neto de notas de crédito: `total − cobrado − notas`, mínimo 0, MSF-450 decisión 8).
 - **Aislamiento**: una tienda ajena o una cuenta de otro grupo de permisos devuelve **cero filas**,
   no un error que delate su existencia.
 
@@ -157,8 +157,8 @@ public.resumen_pagos(p_empresa_id uuid default null)
 
 - **Por conciliar** y **Conciliado**: importe y cantidad de los pagos **con cuenta de cobro** de la
   empresa elegida (o de todas las accesibles).
-- **Saldo pendiente de clientes**: la suma de los saldos de los comprobantes con **pago parcial**
-  (los que todavía deben algo). Mira **todos** los cobros del comprobante, no solo los que tienen
+- **Saldo pendiente de clientes**: la suma de los saldos netos de notas de crédito (`total − cobrado − notas`, mínimo 0) de los comprobantes con **pago parcial**
+  (los que todavía deben algo; solo entran facturas con al menos un cobro). Mira **todos** los cobros del comprobante, no solo los que tienen
   cuenta: lo que el cliente debe no depende de cómo pagó. Los comprobantes anulados o en borrador
   no cuentan: una factura anulada no le debe nada a nadie.
 
@@ -188,7 +188,7 @@ La pantalla (`apps/web/src/pages/ventas/pagos/list.tsx`) arma lo que la base ent
 
 - **Avisos**: conciliar deja «Pago conciliado · N» y revertir deja «Conciliación revertida · N»
   (N es el número del comprobante del pago).
-- **Saldo**: el saldo del comprobante del pago (lo que le queda al cliente), en tono de
+- **Saldo**: el saldo del comprobante del pago, neto de notas de crédito (lo que le queda al cliente; 0 si la factura está anulada o en borrador, y esos pagos no entran en «Solo con saldo»), en tono de
   advertencia; si no debe nada, va «—».
 - **Vacío**: «Sin pagos para mostrar / Cambiá de cuenta o desactivá el filtro de saldo.».
 - **Error**: la pantalla muestra el error de la base en castellano y un botón «Reintentar».

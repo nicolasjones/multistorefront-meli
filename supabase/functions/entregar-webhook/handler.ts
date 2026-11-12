@@ -104,14 +104,66 @@ function ipv4Privada(ip: string): boolean {
   return false
 }
 
+/**
+ * Expande una dirección IPv6 a sus 8 grupos de 16 bits (admite `::` y un sufijo
+ * IPv4 punteado). Devuelve `null` si no se puede interpretar: quien llama la trata
+ * como interna (falla cerrada).
+ */
+function expandirIpv6(ip: string): number[] | null {
+  let texto = ip.toLowerCase().split('%')[0]
+  const punteado = /(\d{1,3}(?:\.\d{1,3}){3})$/.exec(texto)
+  if (punteado) {
+    const partes = punteado[1].split('.').map(Number)
+    if (partes.some((n) => n > 255)) return null
+    const alto = ((partes[0] << 8) | partes[1]).toString(16)
+    const bajo = ((partes[2] << 8) | partes[3]).toString(16)
+    texto = `${texto.slice(0, texto.length - punteado[1].length)}${alto}:${bajo}`
+  }
+  const dobles = texto.split('::')
+  if (dobles.length > 2) return null
+  const aGrupos = (parte: string) => (parte === '' ? [] : parte.split(':'))
+  const izquierda = aGrupos(dobles[0])
+  const derecha = dobles.length === 2 ? aGrupos(dobles[1]) : []
+  let grupos: string[]
+  if (dobles.length === 2) {
+    const faltan = 8 - izquierda.length - derecha.length
+    if (faltan < 1) return null
+    grupos = [...izquierda, ...Array(faltan).fill('0'), ...derecha]
+  } else {
+    grupos = izquierda
+  }
+  if (grupos.length !== 8) return null
+  const numeros = grupos.map((g) => (/^[0-9a-f]{1,4}$/.test(g) ? parseInt(g, 16) : Number.NaN))
+  return numeros.some((n) => Number.isNaN(n)) ? null : numeros
+}
+
+function ipv4DeGrupos(alto: number, bajo: number): string {
+  return `${alto >> 8}.${alto & 255}.${bajo >> 8}.${bajo & 255}`
+}
+
 function ipv6Privada(ip: string): boolean {
-  const normal = ip.toLowerCase().split('%')[0]
-  if (normal === '::' || normal === '::1') return true
-  // ULA fc00::/7 y link-local fe80::/10.
-  if (/^f[cd]/.test(normal)) return true
-  if (/^fe[89ab]/.test(normal)) return true
-  // IPv4 mapeada: ::ffff:127.0.0.1
-  if (normal.startsWith('::ffff:')) return ipv4Privada(normal.slice('::ffff:'.length))
+  const g = expandirIpv6(ip)
+  if (g === null) return true
+  const ceros = (desde: number, hasta: number) => g.slice(desde, hasta).every((n) => n === 0)
+  // ::/96 (no especificada, loopback y «IPv4-compatible» obsoleta).
+  if (ceros(0, 6)) return true
+  // IPv4 mapeada ::ffff:a.b.c.d (en cualquier notación): vale lo que valga la IPv4.
+  if (ceros(0, 5) && g[5] === 0xffff) return ipv4Privada(ipv4DeGrupos(g[6], g[7]))
+  // NAT64 64:ff9b::/96 traduce a la IPv4 embebida; 64:ff9b:1::/48 es de uso local.
+  if (g[0] === 0x64 && g[1] === 0xff9b) {
+    if (g[2] === 1) return true
+    if (ceros(2, 6)) return ipv4Privada(ipv4DeGrupos(g[6], g[7]))
+    return true
+  }
+  // 6to4 2002::/16 lleva la IPv4 en los grupos 1 y 2.
+  if (g[0] === 0x2002) return ipv4Privada(ipv4DeGrupos(g[1], g[2]))
+  // Teredo 2001::/32 y documentación 2001:db8::/32: nunca son destinos públicos válidos.
+  if (g[0] === 0x2001 && (g[1] === 0 || g[1] === 0xdb8)) return true
+  // 100::/64 (descarte), ULA fc00::/7, link-local fe80::/10, site-local fec0::/10 y multicast ff00::/8.
+  if (g[0] === 0x100 && ceros(1, 4)) return true
+  if ((g[0] & 0xfe00) === 0xfc00) return true
+  if ((g[0] & 0xffc0) === 0xfe80 || (g[0] & 0xffc0) === 0xfec0) return true
+  if ((g[0] & 0xff00) === 0xff00) return true
   return false
 }
 

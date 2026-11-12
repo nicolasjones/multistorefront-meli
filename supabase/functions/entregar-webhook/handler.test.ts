@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 import { createHmac } from 'node:crypto'
 import { describe, it } from 'node:test'
-import { firmar, manejar, TIMEOUT_ENTREGA_MS, type Deps, type Envio } from './handler.ts'
+import { esInterna, firmar, manejar, TIMEOUT_ENTREGA_MS, type Deps, type Envio } from './handler.ts'
 
 const TOKEN = 'clave-de-servicio'
 const SECRETO = 'secreto-de-firma'
@@ -179,4 +179,24 @@ describe('entregar-webhook', () => {
       `t=${EPOCH},v1=${createHmac('sha256', SECRETO).update(`${EPOCH}.${cuerpo}`).digest('hex')}`,
     )
   })
+})
+
+describe('esInterna (SSRF)', () => {
+  const internas = [
+    '127.0.0.1', '10.1.2.3', '169.254.169.254', '100.64.0.1', '224.0.0.1',
+    '::', '::1', '0:0:0:0:0:0:0:1', '::127.0.0.1',
+    '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:a9fe:a9fe', '0:0:0:0:0:ffff:c0a8:1',
+    '64:ff9b::7f00:1', '64:ff9b::a9fe:a9fe', '64:ff9b:1::1',
+    '2002:7f00:1::1', '2002:a9fe:a9fe::', '2001:0:4136:e378:8000:63bf:3fff:fdd2', '2001:db8::1',
+    'fc00::1', 'fd12:3456::1', 'fe80::1', 'fe80::1%eth0', 'fec0::1', 'ff02::1', '100::1',
+    'no-es-una-ip::zz', '1:2:3:4:5:6:7:8:9',
+  ]
+  for (const ip of internas) {
+    it(`rechaza ${ip}`, () => assert.equal(esInterna(ip), true))
+  }
+
+  const publicas = ['8.8.8.8', '93.184.216.34', '2606:4700:4700::1111', '2001:4860:4860::8888', '::ffff:808:808', '64:ff9b::808:808', '2002:808:808::']
+  for (const ip of publicas) {
+    it(`acepta ${ip}`, () => assert.equal(esInterna(ip), false))
+  }
 })

@@ -194,7 +194,7 @@ export function TransportesMotos({ empresaId, empresaActivaId, organizacionId, l
     } else {
       setAviso({
         titulo: 'Entrega rendida',
-        descripcion: `${resultado.cantidad} ${resultado.cantidad === 1 ? 'entrega' : 'entregas'}${resultado.mensajero ? ` de ${resultado.mensajero}` : ''} · total ${formatearImporteHistorial(resultado.total_abono)}`,
+        descripcion: `${resultado.cantidad} ${resultado.cantidad === 1 ? 'entrega' : 'entregas'}${resultado.mensajero ? ` de ${resultado.mensajero}` : ''} · total ${formatearImporteHistorial(resultado.total_abono)} · cobro registrado ${formatearImporteHistorial(resultado.total_cobrado)}`,
         severidad: 'success',
       })
     }
@@ -234,9 +234,21 @@ export function TransportesMotos({ empresaId, empresaActivaId, organizacionId, l
       clave: 'comprobante',
       encabezado: 'Comprobante',
       render: (e) => (
-        <Link component={RouterLink} to={`/ventas/comprobantes/${e.comprobante_id}`} underline="hover" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-          {e.comprobante_numero}
-        </Link>
+        <Stack spacing={0.5} alignItems="flex-start">
+          <Link component={RouterLink} to={`/ventas/comprobantes/${e.comprobante_id}`} underline="hover" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {e.comprobante_numero}
+          </Link>
+          {e.bloqueado_motivo ? (
+            // Factura anulada después de cargar el envío (bloqueado) o en borrador con abono (no se puede rendir todavía):
+            // se dice por qué.
+            <>
+              {/anulada/i.test(e.bloqueado_motivo)
+                ? <EtiquetaEstado texto="Factura anulada" variante="error" />
+                : <EtiquetaEstado texto="Factura en borrador" variante="aviso" />}
+              <Typography component="span" variant="xs" color="text.secondary">{e.bloqueado_motivo}</Typography>
+            </>
+          ) : null}
+        </Stack>
       ),
     },
     { clave: 'cliente', encabezado: 'Cliente', render: (e) => <Typography component="span" sx={{ fontWeight: 600 }}>{e.cliente ?? '—'}</Typography> },

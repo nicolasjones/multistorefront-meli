@@ -197,6 +197,8 @@ export function mensajeErrorPromocion(error: unknown, porDefecto: string): strin
   switch (e.code) {
     case '42501':
       return 'Tu rol no puede editar promociones.'
+    case '55000':
+      return 'Las promociones de precio están desactivadas en este entorno.'
     case '23P01':
       return 'Ya hay otra promoción de este producto en esta empresa que se solapa con esas fechas. Cambiá las fechas o anulá la otra.'
     case '40001':

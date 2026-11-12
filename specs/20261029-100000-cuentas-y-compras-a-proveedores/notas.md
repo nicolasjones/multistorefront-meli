@@ -32,11 +32,7 @@ Decisiones que el desarrollo tomó de forma provisoria y que él tiene que confi
    ningún lado.
 6. **«Facturado» del ranking en pesos enteros vs. saldo con centavos.** Son dos presentaciones distintas (y dos bases:
    sin IVA y con IVA).
-7. **Alinear `resumen_pagos` y `listar_pagos` «Solo con saldo» (seguimiento abierto).** `resumen_pagos`
-   (`20270114110200`, CTE `saldos`, `greatest(total_con_iva − Σ cobros, 0)`) y `listar_pagos` con «Solo con saldo»
-   (`20270114110100`, `greatest(c.total_con_iva − cobrado, 0) > 0`) NO restan las notas de crédito: la tarjeta «Saldo
-   pendiente de clientes» de Pagos puede diferir de la cuenta corriente de la ficha. Seguimiento abierto en
-   Ventas (MSF-195).
+7. **Alinear `resumen_pagos` y `listar_pagos` «Solo con saldo» (RESUELTO el 2026-11-12).** Antes NO restaban las notas de crédito; la decisión 8 (tarea T013 de la spec 20261109-100000-cuenta-corriente-y-saldo-cliente, migraciones `20270228200000` y `20270228200100`) los alineó con la cuenta corriente. Ver *Decisiones tomadas (2026-11-12)* de esa spec.
 8. **Aprobación retroactiva de las migraciones `20270227140000` y `20270227150000`**, que cambian el comportamiento de
    Ventas (ver lección 2). Si no las aprueba, se revierten (`docs/clientes.md`, *Reversión*).
 9. **MSF-452, MSF-453 y MSF-454** (las ideas F-CLI-20, F-CLI-21 y F-PRV-09 de la épica) no tienen requisitos por diseño,

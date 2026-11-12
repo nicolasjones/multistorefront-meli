@@ -23,6 +23,7 @@ Las cinco migraciones son **aditivas** (con reversión en el encabezado) y usan 
 | `20270114100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
 | `20270114100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
 | `20270227140000_saldo_comprobante_resta_notas_credito.sql` | (MSF-450, posterior) las dos `saldo_comprobante` pasan a restar las notas de crédito y devuelven la columna `notas_credito`. |
+| `20270228200000_listar_pagos_saldo_neto.sql`, `20270228200100_resumen_pagos_saldo_neto.sql` | (MSF-450, decisión 8) `listar_pagos` (columna `saldo` y «Solo con saldo») y `resumen_pagos` (`saldo_pendiente`) usan el mismo saldo neto de notas de crédito que `saldo_comprobante`. Misma forma de respuesta. |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`)
 las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20270112150000`), y
@@ -101,6 +102,13 @@ desactiva más tarde, el cobro ya registrado se conserva).
     el estado no retrocede a `deuda` (una factura cobrada en mostrador, anterior al libro de cobros, puede estar en
     `cobrado` sin cobros y no hay forma segura de distinguirla). El comprobante muestra el saldo pendiente; la cuenta
     corriente la oculta por su estado.
+- **Quién más usa el mecanismo (MSF-145, motos).** `public.rendir_envios_moto` (migración `20270228110100`) registra un cobro por
+  cada envío en moto que se rinde, llamando a `private.registrar_cobro_interno` con origen `contrarreembolso`, por
+  `least(abono, saldo neto)` (el tope es el saldo de `private.saldo_comprobante`), la forma de pago de la factura o la
+  «Contrarreembolso» activa de la tienda y sin cuenta de cobro. No duplica lógica: la validación del tope, el paso a Cobrado
+  o Deuda y el evento `comprobante.cobro_registrado` son los de siempre. El envío guarda el `cobro_id`. La nota de crédito
+  posterior baja el `abono` de los envíos sin rendir (`20270228110200`, mismo disparador y mismo `skip locked` que los
+  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). Detalle en `docs/ventas-motos.md`.
 - `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
   `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 

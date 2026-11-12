@@ -7,7 +7,7 @@
 -- `anon` y se guardan en una tabla temporal; las verificaciones corren como postgres.
 begin;
 
-select plan(97);
+select plan(111);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -88,6 +88,15 @@ end $$;
 
 create temp table guardadas (clave text primary key, id uuid, actualizado timestamptz);
 grant all on guardadas to authenticated;
+
+-- MSF-363 (decisión 15): la bandera `promociones_precio` nace APAGADA; este archivo la enciende para probar el comportamiento
+-- de siempre y la apaga en la sección «Bandera de apagado» del final.
+select is(
+  (select column_default from information_schema.columns where table_schema = 'public' and table_name = 'banderas_plataforma' and column_name = 'activa'),
+  'false', 'las banderas nacen apagadas (default false)'
+);
+select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false, 'promociones_precio nace apagada (valor sembrado por la migración)');
+update public.banderas_plataforma set activa = true where clave = 'promociones_precio';
 
 -- ============================================================================
 -- FR-011 · estructura, esquema, RLS, privilegios (como postgres)
@@ -538,6 +547,81 @@ select is(has_function_privilege('anon', 'private.precio_vigente_empresa(uuid, u
 select is(has_function_privilege('authenticated', 'private.precio_vigente_empresa(uuid, uuid, timestamptz)', 'execute'), false, 'authenticated tampoco ejecuta el cálculo sin guardia');
 select is(has_table_privilege('anon', 'public.promociones_precio_estado', 'select'), false, 'anon no lee la vista de estado');
 select is(has_function_privilege('anon', 'publico.catalogo_pagina_por_dominio(text, uuid, boolean, numeric, text, integer)', 'execute'), true, 'anon sigue ejecutando el catálogo público');
+
+-- ============================================================================
+-- MSF-363 (decisión 15): bandera de apagado `promociones_precio`
+-- ============================================================================
+
+reset role;
+update public.banderas_plataforma set activa = false where clave = 'promociones_precio';
+
+-- E2/Beta tiene la promoción vigente pB (2.500 sobre 3.000): apagada, la tienda ve el precio normal sin tachado.
+select is(
+  (select precio from private.precio_vigente_empresa('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', now())),
+  3000::numeric, 'bandera apagada: el precio es el normal aunque haya promoción vigente'
+);
+select is(
+  (select precio_anterior from private.precio_vigente_empresa('a1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', now())),
+  null, 'bandera apagada: sin precio_anterior (nada de tachado)'
+);
+select is(
+  (select jsonb_build_array((p ->> 'precio')::numeric, p -> 'precio_anterior') from jsonb_array_elements(publico.catalogo_pagina_por_dominio('promo-b.ejemplo.com') -> 'productos') p where p ->> 'nombre' = 'Beta'),
+  '[3000, null]'::jsonb, 'bandera apagada: el catálogo público devuelve el precio normal y precio_anterior null'
+);
+select is(
+  (select jsonb_build_array((publico.producto_por_dominio('promo-b.ejemplo.com', 'a1000000-0000-0000-0000-000000000002') ->> 'precio')::numeric,
+                            publico.producto_por_dominio('promo-b.ejemplo.com', 'a1000000-0000-0000-0000-000000000002') -> 'precio_anterior')),
+  '[3000, null]'::jsonb, 'bandera apagada: la ficha pública devuelve el precio normal y precio_anterior null'
+);
+
+-- Lectura pública bajo el rol real `anon` (como la tienda): con la bandera apagada, precio normal y precio_anterior null.
+set local role anon;
+select is(
+  (select jsonb_build_array((p ->> 'precio')::numeric, p -> 'precio_anterior') from jsonb_array_elements(publico.catalogo_pagina_por_dominio('promo-b.ejemplo.com') -> 'productos') p where p ->> 'nombre' = 'Beta'),
+  '[3000, null]'::jsonb, 'bandera apagada, como anon: el catálogo devuelve el precio normal y precio_anterior null'
+);
+reset role;
+
+-- Orden del permiso: quien solo lee recibe 42501 (no 55000, que filtraría el estado de la bandera).
+select pg_temp.como('d1000000-0000-0000-0000-000000000002');
+select throws_ok(
+  $$select public.guardar_promocion_precio(null, 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 500,
+      now() + interval '10 days', now() + interval '11 days')$$,
+  '42501', null, 'bandera apagada y persona de solo lectura: guardar da 42501, no 55000'
+);
+reset role;
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select throws_ok(
+  $$select public.guardar_promocion_precio(null, 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 500,
+      now() + interval '10 days', now() + interval '11 days')$$,
+  '55000', 'Las promociones de precio están desactivadas en este entorno', 'bandera apagada: guardar rechaza con mensaje claro'
+);
+select is(
+  (public.anular_promocion_precio('c1000000-0000-0000-0000-00000000000b', (select updated_at from dominio.promociones_precio where id = 'c1000000-0000-0000-0000-00000000000b')) ->> 'id'),
+  'c1000000-0000-0000-0000-00000000000b', 'bandera apagada: anular sigue permitido (apagar no impide limpiar)'
+);
+select is(
+  (public.capacidades_precios() ->> 'promociones')::boolean, false, 'capacidades_precios informa la bandera de promociones apagada'
+);
+select is(
+  has_table_privilege('authenticated', 'public.banderas_plataforma', 'update'), false, 'authenticated no cambia las banderas'
+);
+
+-- Nivel por tienda para la pantalla: «mixto» edita en A y lee en B.
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is(
+  public.capacidades_precios() -> 'niveles_productos',
+  '{"e1000000-0000-0000-0000-000000000001": "edicion", "e1000000-0000-0000-0000-000000000002": "lectura"}'::jsonb,
+  'capacidades_precios: nivel de productos por tienda'
+);
+
+reset role;
+update public.banderas_plataforma set activa = true where clave = 'promociones_precio';
+select is(
+  (select precio_anterior from private.precio_vigente_empresa('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', now() + interval '2 days')),
+  1331::numeric, 'bandera encendida otra vez: rige la promoción (precio_anterior = normal)'
+);
 
 select * from finish();
 rollback;

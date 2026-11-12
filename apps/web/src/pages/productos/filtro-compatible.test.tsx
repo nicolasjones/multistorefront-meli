@@ -27,6 +27,7 @@ vi.mock('../../lib/supabase', () => {
 })
 vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/useCapacidadesPrecios', () => ({ useCapacidadesPrecios: () => ({ capacidades: { promociones: false, preciosMasivos: false, edicionEnTodasLasTiendas: false, nivelesProductos: {} }, cargando: false, hayError: false }) }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: () => ({ categorias: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltro }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))

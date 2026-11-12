@@ -7,11 +7,13 @@ const mocks = vi.hoisted(() => ({
   useNivelSeccion: vi.fn(),
   useCategorias: vi.fn(),
   descargarCsv: vi.fn(),
+  useCapacidadesPrecios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
+vi.mock('../../hooks/useCapacidadesPrecios', () => ({ useCapacidadesPrecios: mocks.useCapacidadesPrecios }))
 vi.mock('../../hooks/useIsSuperadmin', () => ({ useIsSuperadmin: () => ({ isSuperadmin: false, isLoading: false }) }))
 vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: () => ({ organizacionId: 'org-1', isLoading: false }) }))
 vi.mock('../../lib/rolActual', () => ({ resolverRolId: async () => 'consulta', etiquetaDeRol: () => 'Consulta' }))
@@ -42,6 +44,13 @@ const niveles = (productos: string, rentabilidad: string) =>
     isLoading: false,
   }))
 
+const capacidades = (cambios: Partial<{ preciosMasivos: boolean; edicionEnTodasLasTiendas: boolean }>, hayError = false) =>
+  mocks.useCapacidadesPrecios.mockReturnValue({
+    capacidades: { promociones: true, preciosMasivos: true, edicionEnTodasLasTiendas: true, nivelesProductos: {}, ...cambios },
+    cargando: false,
+    hayError,
+  })
+
 const abrir = () => render(<MemoryRouter><PreciosMasivos /></MemoryRouter>)
 
 function archivoCsv(contenido: string, nombre = 'precios.csv') {
@@ -57,6 +66,7 @@ describe('PreciosMasivos (F-PRE-10, FR-001, FR-010)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     niveles('edicion', 'ninguno')
+    capacidades({})
     mocks.useCategorias.mockReturnValue({
       categorias: [
         { id: 'cat-1', nombre: 'Accesorios', padre_id: null, posicion: 0, empresa_ids: [] },
@@ -76,6 +86,28 @@ describe('PreciosMasivos (F-PRE-10, FR-001, FR-010)', () => {
     expect(await screen.findByText('No tenés acceso a esta sección')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Ver vista previa' })).not.toBeInTheDocument()
     expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('con la bandera apagada (por defecto) explica el motivo y no ofrece la vista previa (MSF-363, decisión 15)', async () => {
+    capacidades({ preciosMasivos: false })
+    abrir()
+    expect(await screen.findByText(/actualización masiva de precios está desactivada/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ver vista previa' })).not.toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('sin edición de productos en todas las tiendas explica el motivo y no ofrece la vista previa (decisión 14)', async () => {
+    capacidades({ edicionEnTodasLasTiendas: false })
+    abrir()
+    expect(await screen.findByText(/permiso de edición de productos en todas las tiendas/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ver vista previa' })).not.toBeInTheDocument()
+  })
+
+  it('si no se pueden leer las banderas, no ofrece la función (falla cerrado)', async () => {
+    capacidades({ preciosMasivos: false }, true)
+    abrir()
+    expect(await screen.findByText(/No pudimos verificar si la actualización de precios está activa/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ver vista previa' })).not.toBeInTheDocument()
   })
 
   it('modo porcentaje: pide la vista previa con lo elegido y la muestra antes → después', async () => {

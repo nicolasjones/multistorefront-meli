@@ -49,6 +49,7 @@ const envio = (extra: Partial<EnvioMoto> = {}): EnvioMoto => ({
   actualizado_en: '2026-10-07T10:00:00+00:00',
   puede_editar: true,
   puede_rendir: true,
+  bloqueado_motivo: null,
   ...extra,
 })
 
@@ -69,7 +70,7 @@ const rpcMotos = (estado: Estado) => vi.fn(async (nombre: string, args?: Record<
       const elegidos = estado.envios.filter((e) => ids.includes(e.id))
       const total_abono = elegidos.reduce((s, e) => s + e.abono, 0)
       const total_costo = elegidos.reduce((s, e) => s + e.costo_envio, 0)
-      return { data: { cantidad: elegidos.length, mensajero: elegidos[0]?.mensajero ?? null, total_abono, total_costo, neto: total_abono - total_costo }, error: null }
+      return { data: { cantidad: elegidos.length, mensajero: elegidos[0]?.mensajero ?? null, total_abono, total_costo, neto: total_abono - total_costo, total_cobrado: Math.min(total_abono, 50000) }, error: null }
     }
     case 'comprobantes_para_envio_moto':
       return { data: [{ id: 'f-9', numero: '0003-00001300', empresa_id: 'e-1', empresa: 'San Javucho', fecha: '2026-10-08', cliente: 'Cliente Nuevo' }], error: null }
@@ -362,6 +363,8 @@ describe('Transportes · pestaña Motos', () => {
       await waitFor(() => expect(within(tarjeta).getByText('1 entrega')).toBeInTheDocument())
       fireEvent.click(screen.getByRole('switch', { name: 'Rendido · 0003-00001247' }))
       expect(await screen.findByText('Entrega rendida')).toBeInTheDocument()
+      // El aviso dice lo que quedó cobrado en el libro (se topa en el saldo de la factura).
+      expect(screen.getByText(/cobro registrado/)).toBeInTheDocument()
       expect(llamadas('rendir_envios_moto')[0][1]).toEqual({ p_ids: ['m-1'] })
       await waitFor(() => expect(within(tarjeta).getByText('0 entregas')).toBeInTheDocument())
       expect(screen.queryByText('Rendición revertida')).not.toBeInTheDocument()
@@ -387,11 +390,62 @@ describe('Transportes · pestaña Motos', () => {
     it('si la base rechaza la rendición de la fila lo dice con un mensaje claro', async () => {
       const base = rpcMotos(ESTADO_BASE)
       mocks.rpc.mockImplementation(async (nombre: string, args?: Record<string, unknown>) =>
-        nombre === 'rendir_envios_moto' ? { data: null, error: { code: '42501', message: 'x' } } : base(nombre, args))
+        nombre === 'rendir_envios_moto' ? { data: null, error: { code: '42501', message: 'Tu rol no puede rendir envíos en moto en esta tienda' } } : base(nombre, args))
       render(pantalla())
       await screen.findByText('Kiosco La Esquina')
       fireEvent.click(screen.getByRole('switch', { name: 'Rendido · 0003-00001247' }))
       expect(await screen.findByText(/Solo el Administrador puede rendir/)).toBeInTheDocument()
+    })
+
+    it('un 42501 que no es de rol (superadmin sin membresía) muestra el mensaje de la base, no el del Administrador', async () => {
+      const base = rpcMotos(ESTADO_BASE)
+      mocks.rpc.mockImplementation(async (nombre: string, args?: Record<string, unknown>) =>
+        nombre === 'rendir_envios_moto'
+          ? { data: null, error: { code: '42501', message: 'Para rendir y registrar el cobro tenés que ser miembro de la organización con acceso a la tienda de la factura' } }
+          : base(nombre, args))
+      render(pantalla())
+      await screen.findByText('Kiosco La Esquina')
+      fireEvent.click(screen.getByRole('switch', { name: 'Rendido · 0003-00001247' }))
+      expect(await screen.findByText(/tenés que ser miembro de la organización/)).toBeInTheDocument()
+      expect(screen.queryByText(/Solo el Administrador puede rendir/)).not.toBeInTheDocument()
+    })
+
+    it('una factura anulada después de cargar el envío lo muestra bloqueado, con el motivo, sin editar ni rendir', async () => {
+      const motivo = 'La factura 0003-00001247 fue anulada: el envío no se puede editar ni rendir.'
+      mocks.rpc.mockImplementation(rpcMotos({
+        ...ESTADO_BASE,
+        envios: [envio({ puede_editar: false, puede_rendir: false, bloqueado_motivo: motivo })],
+      }))
+      render(pantalla())
+      expect(await screen.findByText(motivo)).toBeInTheDocument()
+      expect(screen.getByText('Factura anulada')).toBeInTheDocument()
+      expect(screen.getByRole('switch', { name: 'Rendido · 0003-00001247' })).toBeDisabled()
+      expect(screen.queryByRole('button', { name: 'Editar 0003-00001247' })).not.toBeInTheDocument()
+    })
+
+    it('un envío sobre una factura en borrador con abono se muestra sin poder rendirse y con el motivo, pero editable', async () => {
+      mocks.rpc.mockImplementation(rpcMotos({
+        ...ESTADO_BASE,
+        envios: [envio({ puede_rendir: false, bloqueado_motivo: 'Confirmá la factura antes de rendir' })],
+      }))
+      render(pantalla())
+      expect(await screen.findByText('Confirmá la factura antes de rendir')).toBeInTheDocument()
+      expect(screen.getByText('Factura en borrador')).toBeInTheDocument()
+      expect(screen.queryByText('Factura anulada')).not.toBeInTheDocument()
+      expect(screen.getByRole('switch', { name: 'Rendido · 0003-00001247' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Editar 0003-00001247' })).toBeEnabled()
+    })
+
+    it('si la base rechaza rendir por una factura anulada (55000) muestra su mensaje', async () => {
+      const base = rpcMotos(ESTADO_BASE)
+      mocks.rpc.mockImplementation(async (nombre: string, args?: Record<string, unknown>) =>
+        nombre === 'rendir_envios_moto'
+          ? { data: null, error: { code: '55000', message: 'La factura 0003-00001247 fue anulada: su envío en moto no se puede rendir, no se rindió ninguno' } }
+          : base(nombre, args))
+      render(pantalla())
+      await screen.findByText('Kiosco La Esquina')
+      fireEvent.click(screen.getByRole('switch', { name: 'Rendido · 0003-00001247' }))
+      expect(await screen.findByText(/fue anulada: su envío en moto no se puede rendir/)).toBeInTheDocument()
     })
 
     it('las casillas solo se ofrecen en filas enviadas y sin rendir; «seleccionar todo» elige solo esas', async () => {

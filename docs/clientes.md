@@ -461,9 +461,8 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   que la sección «Compras»).
 - **Costo:** tres lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada), dentro de `private.saldo_comprobante`: el comprobante, sus cobros y la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
   cientos, se pagina con carga infinita.
-- **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
-  puede cambiar): qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
-  a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo. (Cerrado el 2026-11-11: el saldo del
+- **Decisiones** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se puede cambiar). Confirmadas por Nicolás el 2026-11-12: la factura «Cobrada» no es deuda, el saldo respeta las tiendas accesibles (`private.empresas_accesibles()`) y el permiso de lectura de Clientes alcanza para ver el saldo. Siguen pendientes: qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
+  a favor se muestra. (Cerrado el 2026-11-11: el saldo del
   comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
   mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
 - **Efecto cruzado de `20270227150000`:** el disparador escribe, además de la lectura: pasa la factura a «Cobrado» cuando
@@ -477,7 +476,7 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   2. `20270227140000`: volver a las definiciones de `20270114100100_saldo_y_lectura_cobros.sql` (`drop function` +
      `create` de las dos `saldo_comprobante`, sin la columna `notas_credito`) y
      `revoke execute on function private.comprobante_cuenta_como_facturado(text, text) from authenticated`. Esto
-     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`.
+     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`. **Revertir `20270227140000` exige revertir también `20270228200000` y `20270228200100` (Pagos: `listar_pagos` y `resumen_pagos`) en el mismo cambio**; si no, Pagos queda neto de notas y el comprobante bruto.
   3. `20270227110000` y `20270227130000`: volver `public.cuenta_corriente_cliente` a la definición de
      `20270222100000_cuenta_corriente_cliente.sql` (sin notas de crédito) con `drop function` + `create`; **no** basta con
      `drop function`, que dejaría la pantalla sin cuenta corriente (y la ficha espera la forma de respuesta de cada

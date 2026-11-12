@@ -14,7 +14,7 @@ import { RendicionMotosDialog } from './RendicionMotosDialog'
 const envio = (id: string, extra: Partial<EnvioMoto> = {}): EnvioMoto => ({
   id, comprobante_id: `f-${id}`, comprobante_numero: `0003-0000000${id}`, empresa_id: 'e-1', empresa: 'San Javucho',
   fecha: '2026-10-07', cliente: 'Cliente', mensajero: 'Moto 1', guia: null, costo_envio: 3500, abono: 10000,
-  enviado: true, rendido: false, rendido_en: null, actualizado_en: '2026-10-07T10:00:00+00:00', puede_editar: true, puede_rendir: true,
+  enviado: true, rendido: false, rendido_en: null, actualizado_en: '2026-10-07T10:00:00+00:00', puede_editar: true, puede_rendir: true, bloqueado_motivo: null,
   ...extra,
 })
 
@@ -43,16 +43,16 @@ describe('lib de rendición', () => {
   })
 
   it('rendir convierte los totales a número y no llama a la base sin ids', async () => {
-    mocks.rpc.mockResolvedValue({ data: { cantidad: '2', mensajero: 'Moto 1', total_abono: '20000.50', total_costo: '7000', neto: '13000.50' }, error: null })
+    mocks.rpc.mockResolvedValue({ data: { cantidad: '2', mensajero: 'Moto 1', total_abono: '20000.50', total_costo: '7000', neto: '13000.50', total_cobrado: '18000' }, error: null })
     const r = await rendirEnviosMoto(['1', '2'])
     expect(mocks.rpc).toHaveBeenCalledWith('rendir_envios_moto', { p_ids: ['1', '2'] })
-    expect(r).toEqual({ cantidad: 2, mensajero: 'Moto 1', total_abono: 20000.5, total_costo: 7000, neto: 13000.5 })
+    expect(r).toEqual({ cantidad: 2, mensajero: 'Moto 1', total_abono: 20000.5, total_costo: 7000, neto: 13000.5, total_cobrado: 18000 })
     await expect(rendirEnviosMoto([])).rejects.toThrow(/No hay envíos/)
   })
 
   it('todo ya rendido: cantidad 0 y mensajero nulo', async () => {
     mocks.rpc.mockResolvedValue({ data: { cantidad: 0, mensajero: null, total_abono: 0, total_costo: 0, neto: 0 }, error: null })
-    expect(await rendirEnviosMoto(['1'])).toEqual({ cantidad: 0, mensajero: null, total_abono: 0, total_costo: 0, neto: 0 })
+    expect(await rendirEnviosMoto(['1'])).toEqual({ cantidad: 0, mensajero: null, total_abono: 0, total_costo: 0, neto: 0, total_cobrado: 0 })
   })
 
   it('el resumen trae monto y entregas; sin fila, ceros', async () => {
@@ -88,7 +88,7 @@ describe('RendicionMotosDialog', () => {
   })
 
   it('confirma con los ids y entrega el resultado de la base', async () => {
-    const resultado = { cantidad: 2, mensajero: 'Moto 1', total_abono: 15000, total_costo: 4500, neto: 10500 }
+    const resultado = { cantidad: 2, mensajero: 'Moto 1', total_abono: 15000, total_costo: 4500, neto: 10500, total_cobrado: 15000 }
     mocks.rpc.mockResolvedValue({ data: resultado, error: null })
     const { onRendido } = abrir([envio('1'), envio('2', { abono: 5000, costo_envio: 1000 })])
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar rendición' }))

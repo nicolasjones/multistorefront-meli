@@ -49,17 +49,21 @@ export function PanelClaves() {
 
   const errorNombre = !nombre.trim() ? 'Ingresá un nombre.' : null
   const errorAlcances = alcances.length === 0 ? 'Elegí al menos un alcance.' : null
+  // La fecha elegida vence al FINAL de ese día en la hora local (un `new Date('2027-03-01')` sería la
+  // medianoche UTC y en Argentina vencería el día anterior a las 21:00).
+  const venceEn = vence ? new Date(`${vence}T23:59:59`) : null
+  const errorVence = venceEn && venceEn.getTime() <= Date.now() ? 'El vencimiento tiene que ser una fecha futura.' : null
 
   const crear = async () => {
     if (guardando) return
-    if (errorNombre || errorAlcances) return
+    if (errorNombre || errorAlcances || errorVence) return
     setGuardando(true)
     setErrorCrear(null)
     const { data, error: errorRpc } = await supabaseClient
       .rpc('crear_clave_api', {
         p_nombre: nombre.trim(),
         p_alcances: alcances,
-        p_vence_en: vence ? new Date(vence).toISOString() : null,
+        p_vence_en: venceEn ? venceEn.toISOString() : null,
       })
       .single<{ id: string; valor: string }>()
     setGuardando(false)
@@ -145,7 +149,12 @@ export function PanelClaves() {
             etiquetaTabla="Claves de API"
             acciones={(clave) => (
               <Stack direction="row" spacing={1}>
-                <Button size="small" aria-label={`Rotar ${clave.nombre}`} onClick={() => pedirConfirmacion('rotar', clave)}>
+                <Button
+                  size="small"
+                  aria-label={`Rotar ${clave.nombre}`}
+                  disabled={Boolean(clave.revocada_en)}
+                  onClick={() => pedirConfirmacion('rotar', clave)}
+                >
                   Rotar
                 </Button>
                 <Button
@@ -205,6 +214,8 @@ export function PanelClaves() {
                 value={vence}
                 onChange={(evento) => setVence(evento.target.value)}
                 InputLabelProps={{ shrink: true }}
+                error={Boolean(errorVence)}
+                helperText={errorVence}
               />
               {errorCrear ? <Alert severity="error">{errorCrear}</Alert> : null}
             </Stack>

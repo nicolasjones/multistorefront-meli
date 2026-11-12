@@ -20,7 +20,7 @@ Al terminar, el administrador puede subir o bajar costos y precios en bloque con
 - **Ya existe** (MSF-114, verificado en migraciones): `dominio.productos(moneda, precio_lista numeric(14,2) > 0)`, `dominio.producto_costos(costo numeric(14,2) ≥ 0, sección rentabilidad)`, `dominio.precios_empresa` (regla por empresa), `private.a_pesos`, `private.aplicar_regla_precio`, `private.precio_neto_empresa`, `private.precio_final_publico` (+ `_escala`), vistas `public.precios_empresa_neto` / `_final`, evento `producto.precio_actualizado` (disparadores sobre productos y costos) y `private.insertar_actividad`.
 - **No se guarda ningún precio en pesos** (modelo de MSF-114): el precio de lista y el costo son los únicos importes que se escriben; el neto por empresa y el final se **calculan al leer**. Por eso «recalcular `precios_empresa`» (F-PRE-10) significa que, al cambiar lista y costo, todas las empresas pasan de inmediato al valor nuevo, en la misma transacción, sin tabla derivada que quede desactualizada.
 - La promoción se superpone al **precio neto calculado por empresa** (después de la regla de la empresa, antes del IVA): el IVA y el interruptor «Precios que ve el cliente» de la empresa se aplican igual. El importe promocional es un **precio fijo en pesos, sin IVA** (la moneda de las tiendas es ARS): no se mueve con el dólar ni con una actualización masiva posterior.
-- Permisos (matriz vigente de MSF-114): el precio de lista lo edita la sección `productos`=`edicion`; el **costo** solo con `rentabilidad`=`edicion` (quien no tiene `rentabilidad` ni ve ni modifica costos). Lo usa el **Administrador**. **Ampliación posterior (#842, `20270223200000`)**: la **lectura, programación y anulación de promociones** se resuelven **por tienda** (`private.nivel_productos_en_empresa(empresa)`): hace falta `productos` en `edicion` (escribir) o `lectura`/`edicion` (leer) **en la tienda de la promoción**, no el nivel global más alto. Una tienda desactivada o una persona sin tiendas asignadas no lee promociones (el acceso por tienda exige `private.empresas_accesibles()`, que solo incluye tiendas activas). Actualizar precios masivamente sigue exigiendo `productos`=`edicion` **global** (ver *Decisiones para Nicolás*).
+- Permisos (matriz vigente de MSF-114): el precio de lista lo edita la sección `productos`=`edicion`; el **costo** solo con `rentabilidad`=`edicion` (quien no tiene `rentabilidad` ni ve ni modifica costos). Lo usa el **Administrador**. **Ampliación posterior (#842, `20270223200000`)**: la **lectura, programación y anulación de promociones** se resuelven **por tienda** (`private.nivel_productos_en_empresa(empresa)`): hace falta `productos` en `edicion` (escribir) o `lectura`/`edicion` (leer) **en la tienda de la promoción**, no el nivel global más alto. Una tienda desactivada o una persona sin tiendas asignadas no lee promociones (el acceso por tienda exige `private.empresas_accesibles()`, que solo incluye tiendas activas). Actualizar precios masivamente exigía `productos`=`edicion` **global**; desde la decisión 14 (2026-11-12, `20270228300200`) exige `productos`=`edicion` en **todas las tiendas activas de la organización** (una tienda sin acceso cuenta como sin edición) y la bandera `precios_masivos` encendida (ver *Decisiones para Nicolás*).
 - Las dos historias son **independientes entre sí** (no comparten tablas nuevas ni pantallas); comparten solo el contrato de MSF-114.
 
 ### Esquema de datos (Constitución, Principio VII)
@@ -222,14 +222,14 @@ Guía de F-PRE-11: [`docs/promociones-precio.md`](../../docs/promociones-precio.
 7. **Superficies de la tienda**: catálogo, ficha, inicio/destacados y búsqueda (sugerencias y resultados) muestran el mismo precio vigente y `precio_anterior` (migraciones `20270221100004` y `20270221100005`; un producto no sale con dos precios). Quedan fuera el precio por escala y los precios de cliente por dominio: seguimiento **MSF-816**.
 8. **Editar y anular una promoción** no figuran literalmente en la épica; se asumen como parte de «programar» (sin ellas una carga equivocada no tiene salida).
 
-## Decisiones para Nicolás (pendientes: no están aprobadas)
+## Decisiones para Nicolás
 
-Las decisiones 2, 5, 7 y 8 de arriba y los cambios de #842 se tomaron durante el desarrollo manual **sin aprobación explícita de Nicolás**; quedan como supuestos hasta que las confirme. Lista completa en [`notas.md`](./notas.md), sección «Pendientes de Nicolás»:
+Las decisiones 2, 5, 7 y 8 de arriba y los cambios de #842 se tomaron durante el desarrollo manual y **Nicolás los aprobó retroactivamente el 2026-11-12** («avanza con todo»). Siguen pendientes los puntos marcados abajo, aprobados el 2026-11-12 para su implementación en otros PRs. Lista completa en [`notas.md`](./notas.md), sección «Pendientes de Nicolás»:
 
-1. **Decisión 6** (cobrar el precio promocional en POS, carrito y comprobantes): hoy la tienda muestra $X y el local factura el precio normal. Abrir gate.
-2. Aprobación retroactiva de las Decisiones 2, 5, 7 y 8 y de los cambios de #842 (permiso por tienda, tienda desactivada, carga infinita de la vista previa).
-3. Actualizar y aplicar precios masivos exigen `productos`=`edicion` global: ¿debe ser por tienda?
-4. No hay bandera de apagado para promociones/precio tachado ni para «Actualizar precios».
+1. **Decisión 6** (cobrar el precio promocional en POS, carrito y comprobantes): hoy la tienda muestra $X y el local factura el precio normal. Nicolás aprobó abrir el gate el 2026-11-12; aprobada, en implementación.
+2. ~~Aprobación retroactiva de las Decisiones 2, 5, 7 y 8 y de los cambios de #842~~: **aprobada el 2026-11-12**.
+3. ~~Actualizar y aplicar precios masivos exigen `productos`=`edicion` global: ¿debe ser por tienda?~~ **Resuelta el 2026-11-12 (decisión 14).** Por tienda; como el precio de lista y el costo son de la organización, se exige edición en TODAS las tiendas activas de la organización (`private.productos_edicion_en_todas_las_tiendas`, `20270228300200`). Ver `notas.md`.
+4. ~~No hay bandera de apagado para promociones/precio tachado ni para «Actualizar precios».~~ **Resuelta el 2026-11-12 (decisión 15).** `public.banderas_plataforma` (`20270228300000`), claves `promociones_precio` y `precios_masivos`, apagadas por defecto. Ver `notas.md` y `docs/promociones-precio.md`.
 
 ## Ampliación e historial de cambios
 
@@ -276,4 +276,4 @@ Como no hay prototipo, la UI se arma con los componentes del template y el siste
 | MSF-436 · F-PRE-10 | US1 Actualización masiva de costos y precios | FR-001…010, SC-001…003 | T001–T010 |
 | MSF-439 · F-PRE-11 | US2 Precios promocionales por empresa | FR-011…018, SC-004…006 | T011–T021 |
 | Tarea de cierre (label `cierre`) | Docs, seguridad y roadmap | FR-019…021, SC-007 | T022–T024 |
-| Seguimiento tras la revisión por roles (#842, #845) | Permisos por tienda, vista previa de costos, carga infinita | FR-004, FR-008, FR-011, FR-013 | T025–T027 |
+| Seguimiento tras la revisión por roles (#842, #845) | Permisos por tienda, vista previa de costos, carga infinita | FR-004, FR-008, FR-011, FR-013 | T025–T031 |
