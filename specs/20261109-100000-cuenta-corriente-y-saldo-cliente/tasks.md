@@ -51,6 +51,8 @@ Origen: decisión de Nicolás (las notas de crédito restan) y hallazgos de las 
 - [x] T012 [F-CLI-19][US1] Documentación y ayuda de la ampliación: `docs/clientes.md` (reversión con 140000 y 150000, «Cómo probarlo»), `docs/cobros-por-comprobante.md`, `docs/cuentas-y-compras-a-proveedores.md`, ayuda en pantalla y `notas.md` con lecciones y pendientes. **FR-009** — Verificación: `pnpm docs:check`.
   Hecho: PR de cierre de la auditoría por roles (`docs/msf-450-roles`).
 
+- [x] T013 [F-CLI-19][US1] Pagos usa el mismo saldo neto que la cuenta corriente (decisión 8 de Nicolás, 2026-11-12): `20270228200000_listar_pagos_saldo_neto.sql` (columna `saldo` y «Solo con saldo») y `20270228200100_resumen_pagos_saldo_neto.sql` (`saldo_pendiente`), misma forma de respuesta; docs y ayuda actualizadas. **FR-010** — Verificación: pgTAP `pagos_saldo_neto.test.sql` (factura 1000, cobro 400 y nota 300 → saldo 300; nota 600 → saldo 0 y fuera de «Solo con saldo»; nota anulada/borrador no resta; aislamiento por tienda y organización; sin saldo a favor), corrida local y en el job `database` del CI.
+  Hecho: PR de `fix/pagos-saldo-neto`.
 ---
 
 ## Plan de ejecución
@@ -69,3 +71,4 @@ Origen: decisión de Nicolás (las notas de crédito restan) y hallazgos de las 
 | T010 | T009 | 4 |
 | T011 | T010 | 4 |
 | T012 | T011 | 4 |
+| T013 | T010 | 4 |

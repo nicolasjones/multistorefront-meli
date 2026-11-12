@@ -23,6 +23,7 @@ Las cinco migraciones son **aditivas** (con reversión en el encabezado) y usan 
 | `20270114100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
 | `20270114100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
 | `20270227140000_saldo_comprobante_resta_notas_credito.sql` | (MSF-450, posterior) las dos `saldo_comprobante` pasan a restar las notas de crédito y devuelven la columna `notas_credito`. |
+| `20270228200000_listar_pagos_saldo_neto.sql`, `20270228200100_resumen_pagos_saldo_neto.sql` | (MSF-450, decisión 8) `listar_pagos` (columna `saldo` y «Solo con saldo») y `resumen_pagos` (`saldo_pendiente`) usan el mismo saldo neto de notas de crédito que `saldo_comprobante`. Misma forma de respuesta. |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`)
 las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20270112150000`), y

@@ -59,7 +59,7 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-pagos': {
     titulo: 'Pagos',
     resumen:
-      'Sirve para conciliar los cobros hechos por transferencia o depósito: los comparás con el extracto del banco y los marcás como cobrados. Si te equivocás, podés revertir la conciliación. Se puede filtrar por tienda y por cuenta de cobro. El saldo de «Solo con saldo» y de «Saldo pendiente de clientes» es el total menos lo cobrado y no descuenta las notas de crédito: puede ser mayor que el del comprobante.',
+      'Sirve para conciliar los cobros hechos por transferencia o depósito: los comparás con el extracto del banco y los marcás como cobrados. Si te equivocás, podés revertir la conciliación. Se puede filtrar por tienda y por cuenta de cobro. El saldo de «Solo con saldo» y de «Saldo pendiente de clientes» es el del comprobante: total menos lo cobrado y menos las notas de crédito.',
     pasos: [
       'Elegí la tienda y, si querés, una cuenta de cobro.',
       'Activá «Solo con saldo» para ver solo los pagos de comprobantes que todavía tienen saldo por cobrar.',
