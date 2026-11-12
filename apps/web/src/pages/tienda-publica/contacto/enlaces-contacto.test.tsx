@@ -7,7 +7,7 @@ import { PieCategorias } from '../layout/PieCategorias'
 // El pie suma el bloque legal (F-TDA-22): acá no se prueba, así que no sale a la red.
 vi.mock('../../../lib/tiendaLegal', async (original) => ({ ...(await original<typeof import('../../../lib/tiendaLegal')>()), useLegalTienda: () => null }))
 
-const categorias = { fase: 'lista' as const, categorias: [{ id: 'c-1', nombre: 'Joysticks', padreId: null, productos: 3 }], reintentar: () => undefined }
+const categorias = { fase: 'lista' as const, categorias: [{ id: 'c-1', nombre: 'Joysticks', padreId: null, productos: 3, imagen: null }], reintentar: () => undefined }
 
 // F-TDA-16 (FR-010): «Contacto» del menú y «Escribinos» del pie enlazan a /contacto.
 describe('enlaces a /contacto', () => {

@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { categoriasPrincipales, CATEGORIAS_PRINCIPALES, filasPanelCategorias, hayMasCategorias, type CategoriaPublica } from './tiendaCategorias'
+import { describe, expect, it, vi } from 'vitest'
 
-const cat = (id: string, nombre: string, productos: number, padreId: string | null = null): CategoriaPublica => ({ id, nombre, productos, padreId })
+const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+vi.mock('./supabase', () => ({ supabaseClient: { schema: () => ({ rpc: mocks.rpc }) } }))
+
+import { leerCategoriasPublicas, categoriasPrincipales, CATEGORIAS_PRINCIPALES, filasPanelCategorias, hayMasCategorias, type CategoriaPublica } from './tiendaCategorias'
+
+const cat = (id: string, nombre: string, productos: number, padreId: string | null = null): CategoriaPublica => ({ id, nombre, productos, padreId, imagen: null })
 
 describe('categoriasPrincipales (MSF-825)', () => {
   it('toma las raíces de mayor a menor cantidad y corta en 6', () => {
@@ -53,5 +57,27 @@ describe('filasPanelCategorias (MSF-825, MSF-830)', () => {
   })
   it('una categoría cuyo padre no vino se muestra como raíz', () => {
     expect(filasPanelCategorias([cat('x', 'Suelta', 1, 'oculta')], 'x').map((f) => f.nivel)).toEqual([0])
+  })
+})
+
+describe('leerCategoriasPublicas · imagen (MSF-841)', () => {
+  it('lleva la ruta de la foto de la categoría y null cuando no hay (o la base aún no la devuelve)', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: {
+        categorias: [
+          { id: 'a', nombre: 'Joysticks', padre_id: null, productos: 3, imagen: 'org/prod/frente.png' },
+          { id: 'b', nombre: 'Cargadores', padre_id: null, productos: 1, imagen: null },
+          { id: 'c', nombre: 'Cables', padre_id: null, productos: 1 },
+        ],
+      },
+      error: null,
+    })
+    const categorias = await leerCategoriasPublicas('mundojc.test')
+    expect(categorias.map((c) => c.imagen)).toEqual(['org/prod/frente.png', null, null])
+  })
+
+  it('sin tienda (null) devuelve una lista vacía', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    expect(await leerCategoriasPublicas('no-existe.test')).toEqual([])
   })
 })

@@ -10,10 +10,13 @@ export type CategoriaPublica = {
   nombre: string
   padreId: string | null
   productos: number
+  // Ruta de storage (bucket productos-imagenes) de la foto de la categoría: la imagen principal de un producto
+  // visible de ella o de sus subcategorías. null si ninguno tiene imagen. Sin campo de configuración (MSF-841).
+  imagen: string | null
 }
 
 type FilaCategorias = {
-  categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number }>
+  categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number; imagen?: string | null }>
 }
 
 // publico.categorias_por_dominio es ejecutable por anon (sin sesión). Dominio desconocido o empresa
@@ -31,6 +34,7 @@ export async function leerCategoriasPublicas(host: string): Promise<CategoriaPub
     nombre: limpiarTextoPublico(c.nombre),
     padreId: c.padre_id,
     productos: c.productos,
+    imagen: c.imagen ?? null,
   }))
 }
 
