@@ -13,3 +13,5 @@ Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada*
 - [x] T019
 - [x] T020
 - [x] T021
+- [x] T025
+- [x] T027
