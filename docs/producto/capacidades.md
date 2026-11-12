@@ -60,5 +60,9 @@ Un historial de quién hizo qué y cuándo. Guía: [Actividad](actividad.md).
 ## Usuarios, roles y empresas
 Invitar personas, darles un rol, suspenderlas, ajustar los permisos de cada rol y administrar las empresas de la organización. Guías: [Usuarios y roles](usuarios-y-roles.md) · [Tu organización y tus empresas](organizacion-y-empresas.md) · [Ingresar y recuperar el acceso](acceso-y-sesion.md).
 
+## Asistente y conexión con otros sistemas
+- **Asistente sobre el catálogo:** todavía no se puede preguntar por productos, precios o stock a un asistente dentro del panel.
+- **Conexión con otros sistemas:** todavía no se puede conectar un sistema externo (por ejemplo, una tienda o un sistema contable) para que lea datos de MSF ni para que reciba avisos automáticos de cambios.
+
 ## Carga inicial de datos
 Para empezar a usar el sistema con la información del panel anterior: [Migración inicial de datos](migracion-inicial-de-datos.md).

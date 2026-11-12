@@ -416,12 +416,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "6347bc8d26946e87af27ae50b5db859312e7b256a249c6c3fe32c1e6bc16e7ea",
+      "pageHash": "69410c27c40738ce93f42bb3c9c44204a8bae9410bd39459df384daf2268720e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "75ae10b7"
+      "commit": "0282ae89"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -1046,12 +1046,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "7424b521a39412d51e64385f8d017ddb05518a1f518eeed3ee1547a8fbc63dbe",
+      "pageHash": "d61fb7a86c886360e7255dfaf2fa4d24433721f38051055bc10e7c4585dc15a6",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0282ae89"
+      "commit": "0682630f"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1266,16 +1266,37 @@
       "owner": "tecnico",
       "commit": "02a011d"
     },
+    "docs/tecnico/api-e-asistente-con-ia.md": {
+      "title": "API y asistente con IA (MSF-233)",
+      "pageHash": "2bb56204d7beaeead2b91d26f638a9aa2ea64ab2caa6ec5242e6f272d87fa8d0",
+      "sourceHash": "3aba2195f19972b9a9c25deab48076cdbbfd5e0237a3d102fd5036764392e2df",
+      "sourceAt": "26ca4e0d",
+      "sources": [
+        "specs/016-capacidad-ia-gobernada",
+        "specs/20261003-200240-gateway-ia",
+        "specs/20261005-chat-companion-mechanism",
+        "specs/20261005-170000-servidor-mcp-generico",
+        "specs/20261005-document-rag-mechanism",
+        "packages/ia",
+        "packages/mcp-server",
+        "supabase/migrations/20261003230000_mcp_servidor_ia.sql",
+        "supabase/migrations/20261003232000_mcp_credenciales_rpc.sql",
+        "supabase/migrations/20261005000000_chat_companion_mechanism.sql",
+        "supabase/migrations/20261005000001_rag_busqueda_documental.sql"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "697f16218d89664a1426109e2db851d7c9351844464b4b4f591af60de74c6513",
+      "pageHash": "8db01f04c1aaa95d6882145ca4b61163e7e5a3ab3da2bdc286c55c6df21e28bf",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "0ef9cdb9",
+      "sourceAt": "26ca4e0d",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "0282ae89"
+      "commit": "0682630f"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
