@@ -16,7 +16,7 @@ corriente»): esta spec y estas tareas son esa redacción, y las tareas de acá 
 - [x] T001 [F-CLI-19][US1] Migración aditiva `20270222100000_cuenta_corriente_cliente.sql` con `public.cuenta_corriente_cliente(p_cliente_id uuid)`: saldo total, cantidad de comprobantes y las filas de los comprobantes con saldo (total, cobrado, saldo); `security definer`, `search_path = ''`, organización de la sesión, sección `clientes`, `revoke`/`grant` correctos y reversión documentada en el encabezado. **FR-001, FR-002, FR-003, FR-004, FR-008** — Verificación: pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` + `pnpm test:db:validar-aditivas`.
   Hecho: migración renumerada a 20270222100000 tras integrar dokploy; la cobrada no es deuda y el saldo respeta las tiendas accesibles (revisión QA/Code, 2.ª ronda).
 - [x] T002 [F-CLI-19][US1] pgTAP de la cuenta corriente: saldo con cobro parcial, total y cobro que supera el total (saldo 0), presupuesto/anulada/borrador/nota de crédito fuera, factura en `deuda` con su total completo, cliente sin deuda, cliente de otra organización, sección `clientes` en `ninguno` y `anon` sin ejecución. **FR-001, FR-002, FR-003, FR-004, SC-001, SC-002** — Verificación: `pnpm test:db` (con `pnpm dev:supabase`).
-  Hecho: pgTAP de 25 aserciones (incluye usuario de una sola tienda y cobrada sin cobro). Después se amplió a 34 aserciones (centavos, cada estado vivo, tienda desactivada, persona sin tiendas y superadmin); lo valida el job `database` del CI.
+  Hecho: pgTAP de 25 aserciones (incluye usuario de una sola tienda y cobrada sin cobro). Después se amplió a 46 aserciones (centavos, cada estado vivo, tienda desactivada, persona sin tiendas, superadmin y notas de crédito); lo valida el job `database` del CI.
 
 **Checkpoint**: sin la base no hay pantalla (el saldo sale de la RPC).
 
@@ -31,10 +31,25 @@ corriente»): esta spec y estas tareas son esa redacción, y las tareas de acá 
 
 ## Fase 3 — Cierre
 
-- [x] T006 [F-CLI-19][US1] Documentación: `docs/clientes.md` describe la cuenta corriente y el «Saldo deudor» de la ficha, y por qué las notas de crédito no restan. **FR-009** — Verificación: `pnpm docs:check`.
+- [x] T006 [F-CLI-19][US1] Documentación: `docs/clientes.md` describe la cuenta corriente y el «Saldo deudor» de la ficha, y cómo restan las notas de crédito (desde el 2026-11-11, T008). **FR-009** — Verificación: `pnpm docs:check`.
   Hecho: `docs/clientes.md` actualizado; `verificar-documentacion-cambios` OK.
 - [x] T007 [F-CLI-19][US1] Gates: `pnpm lint`, `pnpm build`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check`, `pnpm docs:check` verdes; revisión de seguridad del diff (RLS, `anon`, aislamiento por organización) y del texto al usuario. **SC-004, SC-005** — Verificación: `pnpm lint && pnpm build && pnpm test && pnpm prototipo:check && pnpm matriz:check && pnpm docs:check`.
   Hecho: guards, `tsc -b`, `vite build` y Vitest en local; revisión de seguridad por agente independiente: aprobada. Desvío: `pnpm test` completo y pgTAP los valida el CI; el E2E no corre en el CI.
+
+## Fase 4 — Ampliación (2026-11-11, MSF-450)
+
+Origen: decisión de Nicolás (las notas de crédito restan) y hallazgos de las revisiones independientes. Ver *Ampliación (2026-11-11)* en `spec.md`.
+
+- [x] T008 [F-CLI-19][US1] Las notas de crédito restan de la cuenta corriente: migración `20270227110000_cuenta_corriente_notas_de_credito.sql` (recrea la RPC con la columna `notas_credito`), columna «Notas de crédito» en la ficha, pgTAP y Vitest. **FR-010** — Verificación: pgTAP `cuenta_corriente_cliente.test.sql` + Vitest `ComprasCliente.test.tsx`.
+  Hecho: PR #848 (`a568c3f8`).
+- [x] T009 [F-CLI-19][US1] Qué nota cuenta sale de `private.comprobante_cuenta_como_facturado`, la misma regla que ranking y facturado neto: `20270227130000_cuenta_corriente_estados_nc_compartidos.sql`. **FR-010** — Verificación: pgTAP.
+  Hecho: PR #850 (`b9fa97c9`), sin cambio de comportamiento.
+- [x] T010 [F-CLI-19][US1] `private.saldo_comprobante` y `public.saldo_comprobante` restan las notas (drop + create con `notas_credito`); tope de `registrar_cobro` y contrarreembolso por el saldo neto; `grant execute` del predicado a `authenticated`: `20270227140000_saldo_comprobante_resta_notas_credito.sql`. **FR-010, FR-011, FR-012** — Verificación: pgTAP `cuenta_corriente_cliente`, `cobros_comprobante` y `contrarreembolsos`.
+  Hecho: PR #851 (`58176e0d`, menores en `492a268b`). **Cambia el comportamiento de Ventas**; pendiente de aprobación retroactiva de Nicolás.
+- [x] T011 [F-CLI-19][US1] Disparador `comprobantes_venta_nota_credito_efectos` y `private.sincronizar_efectos_nota_credito`: la factura pasa a «Cobrado» si el saldo neto llega a 0 con cobros; los contrarreembolsos pendientes se ajustan; anular una nota no reabre: `20270227150000_notas_credito_sincronizan_estado_y_contrarreembolso.sql`. **FR-012, FR-013, FR-014, FR-015** — Verificación: pgTAP.
+  Hecho: PR #852 (`82946ebe`, menores en `18fbeb46`). **Cambia el comportamiento de Ventas**; pendiente de aprobación retroactiva de Nicolás.
+- [x] T012 [F-CLI-19][US1] Documentación y ayuda de la ampliación: `docs/clientes.md` (reversión con 140000 y 150000, «Cómo probarlo»), `docs/cobros-por-comprobante.md`, `docs/cuentas-y-compras-a-proveedores.md`, ayuda en pantalla y `notas.md` con lecciones y pendientes. **FR-009** — Verificación: `pnpm docs:check`.
+  Hecho: PR de cierre de la auditoría por roles (`docs/msf-450-roles`).
 
 ---
 
@@ -49,3 +64,8 @@ corriente»): esta spec y estas tareas son esa redacción, y las tareas de acá 
 | T005 | T003, T004 | 2 |
 | T006 | T003 | 3 |
 | T007 | T002, T005, T006 | 3 |
+| T008 | T001 | 4 |
+| T009 | T008 | 4 |
+| T010 | T009 | 4 |
+| T011 | T010 | 4 |
+| T012 | T011 | 4 |

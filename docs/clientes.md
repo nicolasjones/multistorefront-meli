@@ -197,7 +197,7 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
 - **MSF-445 (mejoras)**: entregada completa: etiqueta impresa F-CLI-17 (MSF-446) y fusión F-CLI-18 (MSF-447), ver sus secciones; costos y contactos de proveedor están en `docs/proveedores.md` y `docs/ingreso-de-mercaderia.md`. Contratos: `specs/20261029-100000-mejoras-de-clientes-y-proveedores/contracts/`.
 - **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
-- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá (la entrega la épica MSF-237, ver «Cuenta web del cliente» al final).
+- **MSF-450 (cuentas y compras a proveedores)**: entregó F-CLI-19, la cuenta corriente y el saldo del cliente (ver «Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)»); F-CLI-20, F-CLI-21 y F-PRV-09 quedan como ideas sin requisitos (`docs/cuentas-y-compras-a-proveedores.md`). La cuenta web y la invitación son de la épica MSF-237 (ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
   minorista/mayorista). La columna Cuenta web de esta entrega era un placeholder `—`;
@@ -418,12 +418,14 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   «Deuda» de la cuenta corriente va en ámbar. El saldo no depende de las compras: si la sección «Compras» falla, el
   «Saldo deudor» se sigue viendo (el «Facturado en el año» queda en «—»).
 - **Función:** `public.cuenta_corriente_cliente(p_cliente_id uuid)` (migración
-  `20270222100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**): `security definer`, `search_path = ''`,
+  `20270222100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**; recreada después por `20270227110000` y
+  `20270227140000`, que le agregan la columna `notas_credito`, después de `cobrado`): `security definer`, `search_path = ''`,
   organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra
   organización o inexistente → saldo `0` y sin documentos (no revela si existe); el encabezado (`saldo_total`,
   `comprobantes`) viaja en cada fila y, sin documentos abiertos, vuelve solo la fila de encabezado. Cada fila trae el
   **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre
-  tiendas y el `id` es lo que identifica la fila.
+  tiendas y el `id` es lo que identifica la fila. Las columnas de cada fila son `id`, `numero`, `fecha`, `tipo`,
+  `estado`, `total_con_iva`, `cobrado`, `notas_credito` y `saldo`.
   `revoke … from public, anon` y `grant execute … to authenticated`.
 - **Cómo se calcula el saldo:** el total, lo cobrado, las notas de crédito y el saldo de cada comprobante los trae
   `private.saldo_comprobante` (F-VTA-12, que desde la migración `20270227140000` resta las notas de crédito):
@@ -457,16 +459,45 @@ Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperaci�
   `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`); un pgTAP los fija uno por uno.
 - **Permiso:** quien tiene `clientes` en lectura ve total, cobrado, notas de crédito y saldo aunque no acceda a Ventas (es el mismo dato
   que la sección «Compras»).
-- **Costo:** dos lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada) más la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
+- **Costo:** tres lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada), dentro de `private.saldo_comprobante`: el comprobante, sus cobros y la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
   cientos, se pagina con carga infinita.
 - **Decisiones pendientes del cliente** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se
   puede cambiar): qué estados cuentan como deuda (en especial «Pendiente») y si el saldo
   a favor se muestra y si el permiso de lectura de Clientes alcanza para ver el saldo. (Cerrado el 2026-11-11: el saldo del
   comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
   mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
-- **Reversión (migración posterior):** volver a la definición de `20270222100000_cuenta_corriente_cliente.sql` (sin
-  notas de crédito) con `drop function` + `create`; **no** basta con `drop function`, que dejaría la pantalla sin
-  cuenta corriente. No se destruye ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
+- **Efecto cruzado de `20270227150000`:** el disparador escribe, además de la lectura: pasa la factura a «Cobrado» cuando
+  lo cobrado más las notas cubren el total (solo si hay cobros y la matriz de la organización permite la transición
+  para el actor `sistema`) y ajusta el importe de los contrarreembolsos pendientes al saldo neto. Anular una nota
+  después de «Cobrado» no devuelve la factura a «Deuda». Detalle en `docs/cobros-por-comprobante.md`.
+- **Reversión (migración posterior):** revertir la ampliación implica **cuatro** migraciones, no una, en este orden:
+  1. `20270227150000`: `drop trigger comprobantes_venta_nota_credito_efectos on dominio.comprobantes_venta; drop
+     function private.trg_nota_credito_efectos(); drop function private.sincronizar_efectos_nota_credito(uuid);`
+     (no deshace los estados ni los importes de contrarreembolso que ya escribió).
+  2. `20270227140000`: volver a las definiciones de `20270114100100_saldo_y_lectura_cobros.sql` (`drop function` +
+     `create` de las dos `saldo_comprobante`, sin la columna `notas_credito`) y
+     `revoke execute on function private.comprobante_cuenta_como_facturado(text, text) from authenticated`. Esto
+     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`.
+  3. `20270227110000` y `20270227130000`: volver `public.cuenta_corriente_cliente` a la definición de
+     `20270222100000_cuenta_corriente_cliente.sql` (sin notas de crédito) con `drop function` + `create`; **no** basta con
+     `drop function`, que dejaría la pantalla sin cuenta corriente (y la ficha espera la forma de respuesta de cada
+     versión: ajustar el hook en el mismo cambio).
+  No se destruye ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
+- **Cómo probarlo:**
+  - *Prerrequisitos:* stack local (`pnpm dev:supabase`) con el seed; una persona con Clientes en `lectura` o `edicion`;
+    un cliente con una factura confirmada de $1.000 y una tienda activa a la que la persona accede.
+  - *Pasos:* (1) abrí `/clientes/show/:id` del cliente: el «Saldo deudor» muestra $ 1.000 y la tabla «Cuenta
+    corriente» la factura con Total $ 1.000, Cobrado $ 0 y Saldo $ 1.000. (2) Registrá un cobro de $ 600 en el
+    comprobante: el saldo baja a $ 400. (3) Emití una nota de crédito de $ 100 sobre esa factura: aparece la columna «Notas
+    de crédito» y el saldo queda en $ 300; el detalle del comprobante muestra el mismo saldo. (4) Emití otra nota de
+    $ 300: el saldo neto es $ 0, la factura pasa a «Cobrado» y sale de la lista; el «Saldo deudor» queda en `$ 0`.
+  - *Resultado esperado:* los tres lugares (ficha, detalle del comprobante y tope al cobrar) coinciden con
+    `total − cobrado − notas de crédito`, nunca negativo, a 2 decimales; con la base caída el bloque muestra el error con
+    «Reintentar».
+  - *Cómo automatizarlo:* pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` (46 aserciones; corre en
+    el job `database` del CI), Vitest `ComprasCliente.test.tsx` y `useCuentaCorrienteCliente.test.tsx`, y el E2E
+    `apps/web/e2e/cuenta-corriente-cliente.e2e.ts` (`pnpm --filter @platform/web test:e2e` con el stack local; **no corre
+    en el CI**).
 - **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (cada fila sale de `private.saldo_comprobante`; las notas de crédito, con centavos, tienda inaccesible, nota sola mayor que el total,
   factura cobrada, nota de otro cliente y mezcla emitida + anulada); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
   prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`

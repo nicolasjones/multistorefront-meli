@@ -57,7 +57,7 @@ pantalla y se escribe su spec propia (con su alcance de entrega y su matriz de p
 
 ## Revisión de seguridad de la épica
 
-Lo único que la épica entrega con código es la RPC `public.cuenta_corriente_cliente` (F-CLI-19, MSF-451). Quedó
+Lo que la épica entrega con código es F-CLI-19 (MSF-451): la RPC `public.cuenta_corriente_cliente`, las dos `saldo_comprobante` (`private` y `public`, recreadas en `20270227140000`), el predicado `private.comprobante_cuenta_como_facturado` con su `grant execute` a `authenticated` y el disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`, que escribe el estado de facturas y el importe de contrarreembolsos). Quedó
 revisada por agentes independientes de QA y de Code Review + seguridad: dos rondas sobre la historia antes de mergear y una
 revisión final posterior sobre lo ya mergeado (su resultado y las correcciones están en el PR de seguimiento de MSF-450). Qué se comprobó:
 

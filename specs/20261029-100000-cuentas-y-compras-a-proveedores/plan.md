@@ -8,7 +8,7 @@ La épica son ideas P3 condicionadas a validar demanda, sin requisitos del clien
 
 ## Contexto técnico
 
-- Sin tablas nuevas ni alteradas (Principio VII no aplica a esta spec). F-CLI-19 agregó una migración aditiva (`20270222100000_cuenta_corriente_cliente.sql`, solo la RPC `public.cuenta_corriente_cliente`); su esquema se declara en su propia spec.
+- Sin tablas nuevas ni alteradas (Principio VII no aplica a esta spec). F-CLI-19 agregó una migración aditiva (`20270222100000_cuenta_corriente_cliente.sql`, solo la RPC `public.cuenta_corriente_cliente`). **Después** vinieron migraciones que ya no son solo la RPC: `20270227110000` y `20270227130000` (recrean la RPC con notas de crédito), `20270227140000` (recrea `private.saldo_comprobante` y `public.saldo_comprobante`, con el grant del predicado `private.comprobante_cuenta_como_facturado`; cambia el comportamiento de Ventas) y `20270227150000` (disparador que escribe el estado de las facturas y el importe de los contrarreembolsos). Sin tablas nuevas ni alteradas en ningún caso; el esquema y la ampliación se declaran en su propia spec (*Ampliación (2026-11-11)*).
 - Sin `contracts/` en esta spec: la RPC de F-CLI-19 es de lectura y su contrato vive en la spec de MSF-451.
 - UI: solo la de F-CLI-19 (tarjeta «Saldo deudor» y tabla «Cuenta corriente» en la ficha del cliente), mapeada en su spec; las otras tres historias no tienen pantalla.
 - Dependencias a reutilizar cuando pasen a un hito (no se rehacen): cuenta web (`cuentas_cliente`), cobros/conciliación de Ventas, avisos de reposición de Stock, Proveedores y productos.
