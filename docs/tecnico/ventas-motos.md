@@ -89,7 +89,7 @@ pgTAP: `ventas_motos_registro.test.sql`, `ventas_motos_rendicion.test.sql`, `ven
 
 **Resultado esperado**: el envío queda registrado y editable hasta rendirse; al rendir, la fila queda «Rendido» y de solo lectura, la tarjeta se recalcula, no se puede mezclar mensajeros en un lote y no hay forma de revertir la rendición (fuera de alcance). La tabla solo muestra las tiendas donde la persona tiene `ventas`.
 
-**Cómo automatizarlo**: la base con `pnpm test:db` (pgTAP `ventas_motos_registro`, `ventas_motos_rendicion`, `ventas_motos_rls_por_empresa`); la pantalla con `pnpm --filter @platform/web test -- TransportesMotos EnvioMotoDialog RendicionMotosDialog` (Vitest con axe); y la vista a 320/768/1440 px con `pnpm --filter @platform/web pantallas:capturar`.
+**Cómo automatizarlo**: la base con `pnpm test:db` (pgTAP `ventas_motos_registro`, `ventas_motos_rendicion`, `ventas_motos_rls_por_empresa` y `ventas_motos_decisiones`); la pantalla con `pnpm --filter @platform/web test -- TransportesMotos EnvioMotoDialog RendicionMotosDialog` (Vitest con axe); y la vista a 320/768/1440 px con `pnpm --filter @platform/web pantallas:capturar`.
 
 ## Hallazgo de la revisión final
 

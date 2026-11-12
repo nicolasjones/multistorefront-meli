@@ -353,7 +353,7 @@ suma dos capacidades sobre esta base:
 - **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (cada fila sale de `private.saldo_comprobante`; las notas de crédito, con centavos, tienda inaccesible, nota sola mayor que el total,
   factura cobrada, nota de otro cliente y mezcla emitida + anulada); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
   prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`
-  (rótulo `[MSF-451:T001]`; **no corre en el CI**, se corre a mano con el stack local: ver la guía de E2E del repositorio (`docs/e2e-app.md` (en `dokploy`) en `dokploy`)).
+  (rótulo `[MSF-451:T001]`; **no corre en el CI**, se corre a mano con el stack local: ver [E2E de la app](../e2e-app.md)).
 - **Prototipo:** la tarjeta «Cuenta corriente» la dibuja esta historia en `design/pantallas/ClienteFicha.dc.html`
   (y su copia en `design/pantallas/ClienteFicha/`); los inventarios se regeneran con `pnpm prototipo:inventario`.
 

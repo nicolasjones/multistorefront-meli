@@ -23,7 +23,7 @@ Cuando entregás con **mensajería propia (motos)**, cada envío se registra con
 
 ## Qué facturas se pueden enviar en moto
 
-- Solo **facturas confirmadas** cuya forma de envío es de tipo moto y de la misma tienda. Un presupuesto, un **borrador** o una factura **anulada** no se ofrecen; si probás registrar sobre un borrador, el sistema pide confirmarlo antes.
+- Solo **facturas emitidas** (confirmadas o en cualquier otro estado que no sea borrador ni anulada) cuya forma de envío es de tipo moto y de la misma tienda. Un presupuesto, un **borrador** o una factura **anulada** no se ofrecen; si probás registrar sobre un borrador, el sistema pide confirmarlo antes.
 - Cada factura tiene **un solo envío**: no se puede registrar dos veces.
 
 ## Registrar un envío

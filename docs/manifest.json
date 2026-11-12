@@ -1001,12 +1001,12 @@
     },
     "docs/producto/ventas-motos.md": {
       "title": "Envíos en moto: registrar y rendir",
-      "pageHash": "fc9b934cfffab09c138b4cb181123376f7ff6a53a6c7c2075454459ddcc82f4a",
+      "pageHash": "97e2d610ec3cce95aaebbe4a8dc4f3f1eeb497655a478c40b90c1884b8139c85",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "f3ef1b96"
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
@@ -1084,12 +1084,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "7424b521a39412d51e64385f8d017ddb05518a1f518eeed3ee1547a8fbc63dbe",
+      "pageHash": "7942198d37fd40dca6cf8e865053ab314b79d802c11d7110459e572b81a77aac",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0282ae89"
+      "commit": "0682630f"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1451,16 +1451,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "306f77fbde21cb132165014e873501de8efa305d0a5b47ec1b8aeaf2cc4092ff",
+      "pageHash": "d10655d87f6899ebcaacf3f209c314258965528fe5be6b409fdf24867de30a6f",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "394208c5",
+      "sourceAt": "f3ef1b96",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "0282ae89"
+      "commit": "f3ef1b96"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -2346,16 +2346,16 @@
     },
     "docs/tecnico/ventas-motos.md": {
       "title": "Ventas en moto: registro y rendición de envíos (técnico, MSF-145)",
-      "pageHash": "444aa8bc27e230d04dfd91c2c178dc9c41359f8a2983dabae31687da30b8a3e5",
+      "pageHash": "c8d9b3bd5fb75eb26f495a174589202c9a992d679969b3f439eb2776d23f0531",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "394208c5",
+      "sourceAt": "f3ef1b96",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "f3ef1b96"
     },
     "docs/tecnico/ventas-precios-especiales.md": {
       "title": "Ventas · precios especiales por cliente (técnico, MSF-193)",
