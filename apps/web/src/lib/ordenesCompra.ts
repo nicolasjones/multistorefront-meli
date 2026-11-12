@@ -8,10 +8,6 @@ export const MAXIMO_CANTIDAD = 1_000_000
 export const LARGO_MAXIMO_OBSERVACIONES = 1000
 export const LARGO_MINIMO_MOTIVO_ANULACION = 3
 export const LARGO_MAXIMO_MOTIVO_ANULACION = 500
-export const MENSAJE_ORDEN_CREADA = 'Orden de compra creada'
-export const MENSAJE_ORDEN_RECIBIDA = 'Orden marcada como recibida'
-export const MENSAJE_ORDEN_ANULADA = 'Orden anulada'
-
 export type EstadoOrdenCompra = 'emitida' | 'recibida' | 'anulada'
 
 export const ESTADOS_ORDEN: ReadonlyArray<{ valor: EstadoOrdenCompra; etiqueta: string; variante: 'info' | 'exito' | 'error' }> = [
@@ -46,10 +42,6 @@ export type ErroresOrden = {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CANTIDAD = /^\d{1,7}$/
-
-export function lineaVacia(): LineaOrden {
-  return { producto_id: '', cantidad: '1' }
-}
 
 export function formularioOrdenVacio(fecha: string = fechaDeHoy()): FormularioOrden {
   return { empresa_id: '', proveedor_id: '', fecha, observaciones: '', lineas: [] }
