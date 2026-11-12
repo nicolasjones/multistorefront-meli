@@ -1227,6 +1227,62 @@ select is(
   (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000024'),
   'cobrado', 'y el estado de la factura no cambia');
 
+-- ============================================================================
+-- Una nota de crédito sincroniza el estado de su factura (disparador de 20270227150000)
+-- ============================================================================
+-- F30: 1.000 en «confirmada» con un cobro parcial de 700; una nota POSTERIOR de 300 deja el saldo neto en 0 → Cobrado.
+-- F31: 1.000 sin cobros cubierta entera por una nota de 1.000 → no hay plata cobrada: el estado no cambia.
+-- F32: 1.000 con un cobro de 400 y una nota de 300 → saldo 300, sigue sin ser Cobrado.
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
+  ('f1000000-0000-0000-0000-000000000030', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000030', '2026-12-02', 'confirmada', 1000, 1000, now()),
+  ('f1000000-0000-0000-0000-000000000031', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000031', '2026-12-02', 'confirmada', 1000, 1000, now()),
+  ('f1000000-0000-0000-0000-000000000032', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000032', '2026-12-02', 'confirmada', 1000, 1000, now());
+insert into dominio.cobros_comprobante
+  (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre) values
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000030', 700, 'b1000000-0000-0000-0000-00000000000b', 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno'),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000032', 400, 'b1000000-0000-0000-0000-00000000000b', 'manual', 'd1000000-0000-0000-0000-000000000002', 'Mostrador Uno');
+
+-- La nota se inserta con total 0 y se completa después (así lo hace emitir_nota_credito): el disparador corre dos veces.
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo) values
+  ('f1100000-0000-0000-0000-000000000030', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000130', '2026-12-03', 'emitida', 0, 0, 'f1000000-0000-0000-0000-000000000030', 'devolucion_importe');
+select is(
+  (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000030'),
+  'confirmada', 'una nota todavía en 0 no cambia el estado de la factura');
+update dominio.comprobantes_venta set total_sin_iva = 300, total_con_iva = 300 where id = 'f1100000-0000-0000-0000-000000000030';
+select is(
+  (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000030'),
+  'cobrado', 'cobro de 700 + nota de 300 = 1.000: la factura pasa a Cobrado al completarse la nota');
+select is(
+  (select count(*) from public.registro_actividad
+    where tipo = 'comprobante.estado_cambiado' and detalle like '%0001-00000030%'),
+  1::bigint, 'y el cambio de estado deja un solo evento');
+
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo) values
+  ('f1100000-0000-0000-0000-000000000031', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000131', '2026-12-03', 'emitida', 1000, 1000, 'f1000000-0000-0000-0000-000000000031', 'devolucion_importe'),
+  ('f1100000-0000-0000-0000-000000000032', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '0001-00000132', '2026-12-03', 'emitida', 300, 300, 'f1000000-0000-0000-0000-000000000032', 'devolucion_importe');
+select is(
+  (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000031'),
+  'confirmada', 'una factura cubierta entera por notas y sin cobros no pasa a Cobrado (no hay plata cobrada)');
+select is(
+  (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000032'),
+  'confirmada', 'cobro de 400 + nota de 300: queda saldo 300 y la factura no pasa a Cobrado');
+select is(
+  (select saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000032')),
+  300::numeric, 'y su saldo neto es 300');
+
+-- Anular la nota de F30 vuelve a subir el saldo; el estado no retrocede (límite documentado).
+update dominio.comprobantes_venta set estado = 'anulada' where id = 'f1100000-0000-0000-0000-000000000030';
+select is(
+  (select saldo from private.saldo_comprobante('f1000000-0000-0000-0000-000000000030')),
+  300::numeric, 'anulada la nota, el saldo vuelve a 300');
+select is(
+  (select estado from dominio.comprobantes_venta where id = 'f1000000-0000-0000-0000-000000000030'),
+  'cobrado', 'pero el estado no retrocede solo (límite documentado)');
+
 reset role;
 
 select * from finish();

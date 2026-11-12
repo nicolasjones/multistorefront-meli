@@ -220,7 +220,7 @@ F-VTA-13 y F-VTA-14), con lectura de los pgTAP `cobros_comprobante`, `pagos_conc
   (no solo en la UI); el permiso es por empresa del dato y no por la empresa activa.
 - **Datos bancarios**: los eventos de actividad (`comprobante.cobro_registrado`,
   `pago.conciliado`, `pago.conciliacion_revertida`, `contrarreembolso.abierto`,
-  `contrarreembolso.cobrado`) llevan nombre de cuenta, importe y guía, **nunca** el CBU ni el CUIT
+  `contrarreembolso.importe_ajustado`, `contrarreembolso.cobrado`) llevan nombre de cuenta, importe y guía, **nunca** el CBU ni el CUIT
   completos. El pgTAP de los datos de DEV lo comprueba sobre los eventos sembrados.
 - **Service-role**: sin referencias en `apps/web/src` (la clave del servidor no llega al
   navegador).
