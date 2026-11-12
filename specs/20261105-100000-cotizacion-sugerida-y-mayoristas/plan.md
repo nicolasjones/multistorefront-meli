@@ -1,6 +1,6 @@
 # Plan de implementación: Precios y dólar · Cotización sugerida y mayoristas
 
-**Spec**: [spec.md](spec.md) · **Estado**: provisional (NEEDS_INFO). Solo planifica F-PRE-13; F-PRE-14 no tiene plan.
+**Spec**: [spec.md](spec.md) · **Estado**: provisional (NEEDS_INFO). Solo planifica F-PRE-13; F-PRE-14 está cancelada y no tiene plan.
 
 ## Enfoque (F-PRE-13)
 
@@ -24,4 +24,4 @@ Principio VII: sin tablas declaradas aún (re-verificar al decidir). Principio V
 
 ## F-PRE-14
 
-Sin plan hasta resolver Preguntas 2–3.
+Cancelada (decisión de Nicolás, 2026-11-12): no tendrá plan.
