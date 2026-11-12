@@ -17,6 +17,73 @@ pnpm test:e2e         # o E2E_BASE_URL=http://... para apuntar a una web ya serv
   el setup sembrará con la API admin desde Node (la service-role key nunca llega
   al navegador).
 
+## Base local creada solo con migraciones
+
+Los E2E con sesión siembran con la service-role key. Desde la migración `20270302105000`, `service_role` tiene
+USAGE sobre `dominio`, lectura y escritura sobre sus tablas operativas y
+EXECUTE sobre los helpers que usan defaults y consultas (`dominio.nombre_norm`, `private.quitar_prefijo_importacion`,
+`private.normalizar_host`, `private.documento_normalizado`, `private.nivel_seccion`, `private.normalizar_busqueda` y
+`private.clave_texto`, estos dos usados por índices por expresión; el grant de `normalizar_busqueda` ya existía y se
+repite a propósito, por si una re-creación de la función pierde su ACL): no hace falta dar grants
+a mano para sembrar, con una excepción: las tablas de solo-agregar o inalterables y `consultas` **siguen sin grant de
+escritura** (solo SELECT, y `precios_propios_historial` ni eso), así que un E2E no las siembra con un INSERT directo
+sino con la RPC `security definer` que corresponda (p. ej. `publico.crear_consulta_publica` para una consulta). `anon` y
+`authenticated` no cambian.
+
+Reglas para quien agrega objetos (las vigila el pgTAP `service_role_privilegios`): no hay privilegios por defecto,
+así que una tabla nueva de `dominio` (y sus secuencias, si las tuviera) lleva su `grant ... to service_role` en su propia migración
+(o se declara inalterable en la lista de la migración y del test); y todo helper puro que use un trigger (o que este llame), una
+columna generada, un CHECK, un índice por expresión o una vista lleva EXECUTE para `service_role` (y `authenticated` si lo usa la app).
+El guard del pgTAP solo ve nombres literales en el cuerpo de las funciones: no detecta SQL dinámico con el nombre armado
+en ejecución (p. ej. `format('select public.%I(1)', ...)`). Regla de E2E: ningún spec escribe directo en las tablas
+inalterables ni en `dominio.consultas`; se siembran por RPC.
+
+Prerrequisitos: `pnpm install --frozen-lockfile` y Docker con las imágenes de Supabase (se bajan solas en el primer
+`supabase start`, o antes con `pnpm exec supabase start` en un entorno con red).
+
+Receta para un stack propio (un `supabase start` normal falla porque PostgREST arranca antes de que existan los
+esquemas expuestos). Todos los pasos se corren desde la raíz del repo; reemplazá `PID` por tu `project_id`:
+
+1. En `supabase/config.toml` (solo en tu copia, no se commitea) poné `project_id = "PID"` y cambiá los puertos fijos
+   (`[api] port` 9300, `[db] port` 7634, `shadow_port` 7633, `[db.pooler] port` 57329, `[studio] port` 4301,
+   `[inbucket] port` 4302, `inspector_port` 8084 y `[analytics] port` 57327) a un rango libre, para no chocar con otro
+   stack. Abajo, `API` es el puerto de `[api]`.
+2. Levantá la base, migrá y sembrá:
+
+```bash
+pnpm exec supabase start --ignore-health-check -x studio,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+pnpm exec supabase migration up --local
+docker exec -i supabase_db_PID psql -U postgres -d postgres < supabase/seed.sql
+docker restart supabase_rest_PID
+```
+
+3. Compilá la web contra ese stack. Las claves salen de `pnpm exec supabase status -o env` (`ANON_KEY` y
+   `SERVICE_ROLE_KEY`). El build lee `VITE_SUPABASE_PUBLISHABLE_KEY` (no `..._ANON_KEY`: con otro nombre el build usa
+   una clave inválida y todos los ingresos fallan con «Error al iniciar sesión») y `VITE_PANEL_HOSTS`; sin
+   `VITE_PANEL_HOSTS=localhost,127.0.0.1` el panel se sirve en `mundojc.localhost` y los E2E de la tienda fallan:
+
+```bash
+VITE_SUPABASE_URL=http://127.0.0.1:API VITE_SUPABASE_PUBLISHABLE_KEY=<ANON_KEY> \
+  VITE_PANEL_HOSTS=localhost,127.0.0.1 pnpm build
+(cd apps/web && pnpm exec vite preview --port 4467 --strictPort --host 127.0.0.1) &
+```
+
+   `--strictPort` es obligatorio: sin él, si el puerto está ocupado Vite elige otro y los tests le pegan a la web de
+   otra persona. El `webServer` de Playwright expira a los 60 s, por eso se sirve aparte y se pasa `E2E_BASE_URL`.
+4. Exportá las variables y corré los specs. Sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` los tests con sesión se
+   **omiten en silencio**:
+
+```bash
+export SUPABASE_URL=http://127.0.0.1:API SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY> SUPABASE_ANON_KEY=<ANON_KEY>
+export E2E_BASE_URL=http://127.0.0.1:4467 WEB_PORT=4467
+pnpm --filter @platform/web exec playwright test precios-masivos tienda-promocion --workers=1
+```
+
+5. Para bajar todo: `pnpm exec supabase stop --no-backup` (con tu `project_id`).
+
+Alcance del desborde a 320 px: este cambio corrige `BusquedaGlobal` y `MenuCuenta`; el mismo patrón `width: 1` copiado
+en otros componentes lo corrige el PR #876, no este.
+
 ## Estado de cobertura
 
 | Recorrido | Tarea | Estado |
