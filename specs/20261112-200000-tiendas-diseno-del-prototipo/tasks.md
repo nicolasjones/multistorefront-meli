@@ -1,6 +1,6 @@
 # Tareas: Tiendas online · Diseño del prototipo
 
-Regla: ninguna tarea queda `[ ]`; cada una trae su evidencia o un `Desvío:`.
+Regla: cada tarea trae su evidencia o un `Desvío:`; las que dependen del despliegue quedan sin marcar con su nota.
 
 ## Fase 1: tramo A (datos)
 
@@ -20,11 +20,11 @@ Regla: ninguna tarea queda `[ ]`; cada una trae su evidencia o un `Desvío:`.
 - [x] T011 Bloque «Consultas por WhatsApp / Escribinos» al final de la portada. Evidencia: `rutas/inicio/ConsultasInicio.test.tsx`.
 - [x] T012 Tipografías: títulos y cuerpo por el tema MUI con la identidad. Evidencia: `TemaTienda.test.tsx` («aplica la identidad al tema MUI…»), `tema/temaTienda.test.tsx`.
 - [x] T013 Contenido y contacto leídos una vez por host y compartidos por contexto (`useContenidoPublico`, `useContactoTienda`). Evidencia: `layout/tiendaDiseno.test.tsx` («se leen una sola vez por host»).
-- [x] T014 Accesibilidad: axe a 320, 768 y 1440 px en el layout, la sección de categorías y el bloque de consultas. Evidencia: `layout/tiendaDiseno.test.tsx`, `CategoriasInicio.test.tsx`, `ConsultasInicio.test.tsx`.
+- [x] T014 Accesibilidad: axe con el modo celular (320 px) y escritorio (768 y 1440 px) forzado por `matchMedia` en el layout, la sección de categorías y el bloque de consultas. Evidencia: `layout/tiendaDiseno.test.tsx`, `CategoriasInicio.test.tsx`, `ConsultasInicio.test.tsx`.
 
 ## Fase 3: documentación y validación
 
-- [x] T015 `docs/tiendas-online.md` (sección «Diseño del prototipo en el front público») y esta spec con su matriz pantalla↔criterios. Evidencia: `pnpm docs:check` y `pnpm matriz:check` en verde (ver informe del tramo B).
-- [x] T016 Validación: `tsc -b`, `oxlint src`, `vite build` y guards de `scripts/`. Evidencia: informe del tramo B.
-- [x] T017 Verificación visual contra el prototipo con Playwright. Desvío: no se corrió; la memoria libre del servidor estaba por debajo de 1 GB; queda para la verificación en dev.
-- [x] T018 Vista previa del panel muestra la foto de categoría. Desvío: `vista_previa_tienda` no devuelve `imagen`; se tolera `null` (recuadro neutro) en lugar de otra migración; seguimiento si se quiere paridad.
+- [x] T015 `docs/tiendas-online.md` (sección «Diseño del prototipo en el front público») y esta spec con su matriz pantalla↔criterios. Evidencia: `pnpm docs:check` y `pnpm matriz:check` en verde (se corren de nuevo al cerrar el tramo).
+- [x] T016 Validación: `tsc -b`, `oxlint src`, `vite build` y guards de `scripts/`. Evidencia: tras las correcciones de la revisión, `tsc -b`, `oxlint src` (0 errores), `vite build` y los guards de `scripts/` (docs, matriz, inventario, estilos sueltos) en verde. Desvío: `verificar-migraciones` marca la versión 20270302100000 porque `origin/dokploy` ya la tiene; se renumera al integrar con dokploy.
+- [ ] T017 Verificación visual contra el prototipo con Playwright. Pendiente: se verifica en dev tras el despliegue (no se corrió acá por falta de memoria libre en el servidor).
+- [ ] T018 Vista previa del panel muestra la foto de categoría. Pendiente: se verifica en dev tras el despliegue. Hoy no se hace: `vista_previa_tienda` no devuelve `imagen`; se tolera `null` (recuadro neutro) en lugar de otra migración; seguimiento si se quiere paridad.

@@ -1105,30 +1105,35 @@ contacto de la empresa del host.
   logo, banners). `theme.tienda` expone además los derivados que usa el diseño: `barra`, `textoBarra`, `superficie` (el fondo mezclado
   con negro 4,3 %, el `--sf` del prototipo) y `fuenteTitulos`. Sin identidad legible la tienda sigue con el tema base. En la vista previa
   del panel la identidad llega inyectada (`ProveedorFuenteTienda`) y no se tocan variables globales.
-- **Sin pedidos de más**: el layout también lee **una sola vez** el contenido (`ProveedorContenidoTienda`) y el contacto
-  (`ContextoContactoTienda`); `useContenidoPublico` y `useContactoTienda` usan el compartido si existe (barra, pie, portada y `/contacto`
-  comparten la misma lectura) y, sin layout (vista previa, tests), leen por su cuenta.
+- **Destello de tema (decisión)**: no se espera la petición de identidad para pintar; la tienda arranca con el tema base neutro y pasa a
+  la identidad al llegar, así el contenido no espera un pedido más. Es un destello conocido y aceptado. Para no sumar saltos de diseño, la
+  barra superior reserva su altura (36 px / 28 px en celular) mientras llega el contacto.
+- **Sin pedidos de más**: el layout también lee **una sola vez** el contenido (`ProveedorContenidoTienda`), el contacto
+  (`ContextoContactoTienda`) y las categorías (`ContextoCategoriasTienda`); `useContenidoPublico`, `useContactoTienda` y
+  `useCategoriasTienda` usan el compartido si existe (barra, menú, pie, portada y `/contacto` comparten la misma lectura) y, sin layout
+  (vista previa, tests), leen por su cuenta.
 - **Tipografías**: los títulos usan la tipografía de títulos (variantes `h1…h6` del tema) y el cuerpo la de texto. No se espera la
   petición de identidad para pintar (la tienda arranca con el tema base neutro y pasa a la identidad al llegar); la hoja de Google Fonts
   se pide con `display=swap` y `preconnect` a `fonts.googleapis.com` / `fonts.gstatic.com` para acortar el cambio de fuente.
-- **Barra superior** (`layout/BarraSuperior.tsx`): 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px. Izquierda: el
-  `eslogan`; sin eslogan, el mensaje de **bienvenida**. Derecha (solo desde `md`): WhatsApp (enlace `wa.me`) y correo (`mailto:`) de
+- **Barra superior** (`layout/BarraSuperior.tsx`): 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px (12 px en celular). Izquierda: el
+  `eslogan`; sin eslogan, el mensaje de **bienvenida**. Derecha (solo desde `md`): WhatsApp (enlace `wa.me`) y correo (`mailto:` con el correo codificado) de
   `contacto_por_dominio`. Un dato ausente no se muestra y sin nada que mostrar no hay barra. `secciones/BarraBienvenida` ya no duplica el
   texto: dentro del layout solo se dibuja si hay eslogan **y** una bienvenida distinta (franja primaria en la portada); en la vista previa
   del panel (sin layout) se dibuja como antes.
-- **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (560 px desde `md`, campo de
-  44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
+- **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (flexible: hasta 560 px desde `md`, se encoge si falta
+  lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
   (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
   «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
-- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`) o el nombre, eslogan,
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
   el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
   vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
-  línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda).
+  línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste
+  AA sobre `colorBarra`); el texto secundario del tema se calcula para llegar a 4,5:1 sobre el fondo y sobre la superficie de las tarjetas.
 - **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
   `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
   pudo firmar, el recuadro neutro. La vista previa del panel no trae `imagen` (`vista_previa_tienda` no la calcula): muestra el recuadro
   neutro.
 - **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
-  «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos». No se muestra en la vista previa (no lee `publico.*`).
+  «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos»; un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace. No se muestra en la vista previa (no lee `publico.*`).
 - **Diferencias conocidas con el prototipo**: la franja oscura del héroe de la portada no es del layout sino de los banners configurados
-  (`BannerHome`); la tarjeta de producto y la ficha no se tocaron en este tramo; el menú de celular no tiene el logo ni el buscador como ícono.
+  (`BannerHome`); la tarjeta de producto y la ficha no se tocaron en este tramo; el menú de celular no tiene el logo ni el buscador como ícono; las categorías sin productos no se muestran (el prototipo trae «Skins y calcos, 0 productos»); en celular el encabezado pone la marca a la izquierda y el menú a la derecha (el prototipo: menú a la izquierda, logo al centro, lupa a la derecha).

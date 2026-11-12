@@ -27,14 +27,14 @@
 
 - **FR-001** La identidad (colores, tipografías, logo, color de barra) se lee una vez por host en el layout y se aplica a **todas** las rutas de la tienda: tema MUI, variables `--tienda-*` (incluida `--tienda-color-barra`) y contexto. Sin identidad legible, tema base.
 - **FR-002** El encabezado muestra el logo de la tienda a la izquierda (enlazado a la portada, con el nombre como texto alternativo); sin logo, el nombre en texto. El logo no se repite en la portada.
-- **FR-003** Barra superior de 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px: izquierda el eslogan (o, sin eslogan, la bienvenida); derecha WhatsApp y correo de la tienda (solo desde `md`). Un dato ausente no se muestra; sin nada que mostrar, no hay barra. La bienvenida no se duplica: la franja de la portada solo queda si hay eslogan y una bienvenida distinta.
+- **FR-003** Barra superior de 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px en escritorio y 12 px en celular: izquierda el eslogan (o, sin eslogan, la bienvenida); derecha WhatsApp y correo de la tienda (solo desde `md`). Un dato ausente no se muestra; sin nada que mostrar, no hay barra. La bienvenida no se duplica: la franja de la portada solo queda si hay eslogan y una bienvenida distinta.
 - **FR-004** El encabezado trae marca, buscador (campo de 44 px con botón de lupa) y «Inicio» / «Contacto»; debajo, la barra de categorías en mayúsculas, 15 px, 600, subrayado de 3 px en la activa. Máximo 6 categorías principales + «Más categorías» (MSF-825).
 - **FR-005** Pie oscuro (fondo `colorBarra`, texto blanco): logo en blanco, eslogan, texto del pie configurado, columnas Categorías, Información y Contacto (WhatsApp, correo, «Escribinos»), bloque legal y «© {año} {empresa}. Todos los derechos reservados.» con el nombre de la tienda.
 - **FR-006** Las tarjetas de categoría de la portada muestran la foto de la categoría; sin foto, el recuadro neutro. Nombre y «N productos» como antes.
 - **FR-007** Bloque «Consultas por WhatsApp / Escribinos» al final de la portada; sin WhatsApp, solo «Escribinos».
 - **FR-008** Los títulos usan la tipografía de títulos de la identidad y el cuerpo la de texto (tema MUI), con la hoja de Google Fonts pedida con `display=swap` y `preconnect`.
 - **FR-009** Rendimiento: identidad, contenido y contacto se leen una sola vez por host; la vista previa del panel no lee `publico.*` ni toca variables globales.
-- **FR-010** Accesibilidad: sin violaciones de axe a 320, 768 y 1440 px en el layout; contraste AA del texto blanco sobre la barra lo informa la pestaña Identidad (tramo A).
+- **FR-010** Accesibilidad: sin violaciones de axe en el layout con el modo celular forzado por `matchMedia` (320 px) y el de escritorio (768 y 1440 px; jsdom no calcula anchos, el modo es lo que cambia); contraste AA del texto blanco sobre la barra lo informa la pestaña Identidad (tramo A).
 
 ## Matriz pantalla↔criterios
 
@@ -61,6 +61,8 @@ Pantallas: `MJC_Home`, `MJC_Contacto`, `MJC_Catalogo`, `MJC_Producto`, `SJ_Home`
 
 ## Diferencias conocidas con el prototipo
 
+- Las categorías vacías se omiten (la base no las devuelve, MSF-825/MSF-827); el prototipo muestra «Skins y calcos, 0 productos».
+- Orden del encabezado en celular: el prototipo pone el menú a la izquierda, el logo al centro y la lupa a la derecha; lo implementado pone la marca a la izquierda y el botón de menú a la derecha.
 - El menú de celular no tiene el logo ni el buscador como ícono (se conserva el buscador a todo el ancho de MSF-825).
 - El héroe oscuro de la portada no es del layout: depende de los banners configurados.
 - La vista previa del panel no muestra la barra, el encabezado ni el pie (siguen siendo solo de la tienda pública).
