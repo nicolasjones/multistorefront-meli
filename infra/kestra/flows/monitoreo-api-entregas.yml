@@ -3,8 +3,9 @@
 # Cada 15 minutos le pregunta a la base (`private.api_entregas_salud`) tres cosas y, si alguna está mal, avisa por correo a
 # soporte (subflow `aviso-fallo-api`):
 #   · entregas AGOTADAS en la última hora (un destino que no respondió en los 5 intentos), desde `umbral_agotadas`;
-#   · entregas pendientes que debieron enviarse hace más de `atraso_min` minutos (el pipeline no avanza);
-#   · eventos de la API sin repartir hace más de `atraso_min` minutos.
+#   · entregas pendientes de suscripciones activas que debieron enviarse hace más de `atraso_min` minutos (el pipeline no avanza);
+#   · eventos de la API sin repartir hace más de `atraso_min` minutos o que no se pudieron repartir (agotados) en la ventana.
+# Las entregas de una suscripción PAUSADA no cuentan como atrasadas: esperan a propósito a que se reanude.
 # Un aviso cada 15 minutos mientras la condición dure es el recordatorio; no se avisa nada si todo está sano. La lógica de qué
 # cuenta vive en la base; el flow solo la consulta y avisa. Umbrales: son inputs, se ajustan sin cambiar código.
 # Si el propio chequeo falla (base caída, función sin permiso), el bloque `errors:` también avisa.
@@ -37,16 +38,18 @@ tasks:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH_ONE
-    sql: select agotadas, entregas_atrasadas, eventos_atrasados from private.api_entregas_salud(CAST(:ventana AS integer), CAST(:atraso AS integer));
+    sql: select agotadas, entregas_atrasadas, eventos_atrasados, eventos_agotados from private.api_entregas_salud(CAST(:ventana AS integer), CAST(:atraso AS integer));
     parameters:
       ventana: "{{ inputs.ventana_min }}"
       atraso: "{{ inputs.atraso_min }}"
   - id: hay_problema
     type: io.kestra.plugin.core.flow.If
-    condition: "{{ (outputs.salud.row.agotadas | number) >= inputs.umbral_agotadas or (outputs.salud.row.entregas_atrasadas | number) > 0 or (outputs.salud.row.eventos_atrasados | number) > 0 }}"
+    condition: "{{ (outputs.salud.row.agotadas | number) >= inputs.umbral_agotadas or (outputs.salud.row.entregas_atrasadas | number) > 0 or (outputs.salud.row.eventos_atrasados | number) > 0 or (outputs.salud.row.eventos_agotados | number) > 0 }}"
     then:
       - id: avisar_salud
         type: io.kestra.plugin.core.flow.Subflow
+        # Si el correo falla, el problema ya quedó dicho en el log: no se reintenta ni se rotula como falla del chequeo.
+        allowFailure: true
         namespace: platform.api
         flowId: aviso-fallo-api
         wait: true
@@ -54,7 +57,7 @@ tasks:
         inputs:
           flujo: monitoreo-api-entregas
           ejecucion: "{{ execution.id }}"
-          motivo: "Entregas agotadas en los últimos {{ inputs.ventana_min }} minutos: {{ outputs.salud.row.agotadas }}. Entregas atrasadas más de {{ inputs.atraso_min }} minutos: {{ outputs.salud.row.entregas_atrasadas }}. Eventos sin repartir más de {{ inputs.atraso_min }} minutos: {{ outputs.salud.row.eventos_atrasados }}."
+          motivo: "Entregas agotadas en los últimos {{ inputs.ventana_min }} minutos: {{ outputs.salud.row.agotadas }}. Entregas atrasadas más de {{ inputs.atraso_min }} minutos: {{ outputs.salud.row.entregas_atrasadas }}. Eventos sin repartir más de {{ inputs.atraso_min }} minutos: {{ outputs.salud.row.eventos_atrasados }}. Eventos que no se pudieron repartir en la ventana: {{ outputs.salud.row.eventos_agotados }}."
 errors:
   - id: avisar_fallo_del_chequeo
     type: io.kestra.plugin.core.flow.Subflow

@@ -18,7 +18,8 @@
 --   drop index if exists public.cola_eventos_terminados_idx;
 --   y volver `private.purgar_api_llamadas` a la definición de 20270301100000_api_decisiones_abiertas_msf233.sql.
 
--- Los eventos terminados se buscan por fecha: sin este índice la purga recorre toda la cola.
+-- Los eventos terminados se buscan por fecha: sin este índice la purga recorre toda la cola. (No es CONCURRENTLY porque una
+-- migración corre en una transacción: la construcción toma un lock breve sobre `cola_eventos`; aplicar en horario de baja actividad.)
 create index if not exists cola_eventos_terminados_idx
   on public.cola_eventos (updated_at)
   where estado in ('completada', 'agotada');
@@ -83,7 +84,7 @@ grant execute on function private.purgar_api_llamadas(integer) to kestra_orquest
 -- ============================================================================
 
 create or replace function private.api_entregas_salud(p_ventana_min integer default 60, p_atraso_min integer default 30)
-returns table (agotadas bigint, entregas_atrasadas bigint, eventos_atrasados bigint)
+returns table (agotadas bigint, entregas_atrasadas bigint, eventos_atrasados bigint, eventos_agotados bigint)
 language plpgsql
 stable
 security definer
@@ -100,19 +101,27 @@ begin
     -- entregas que se agotaron en la ventana (el destino no respondió en los 5 intentos)
     (select count(*) from public.api_entregas d
       where d.estado = 'agotada' and d.actualizada_en >= now() - make_interval(mins => p_ventana_min)),
-    -- entregas listas para enviarse hace más de `p_atraso_min` minutos y que nadie reclamó: el pipeline no avanza
+    -- entregas listas para enviarse hace más de `p_atraso_min` minutos y que nadie reclamó: el pipeline no avanza. Solo las de
+    -- suscripciones ACTIVAS: las de una suscripción pausada esperan a propósito a que se reanude (no son una falla).
     (select count(*) from public.api_entregas d
+       join public.api_suscripciones s on s.id = d.suscripcion_id and s.activa
       where d.estado = 'pendiente' and d.proximo_intento_en < now() - make_interval(mins => p_atraso_min)),
     -- eventos de la API sin repartir hace más de `p_atraso_min` minutos
     (select count(*) from public.cola_eventos e
       where e.estado = 'pendiente'
         and e.tipo in ('stock.actualizado', 'precio.actualizado', 'venta.registrada')
-        and e.proximo_intento_en < now() - make_interval(mins => p_atraso_min));
+        and e.proximo_intento_en < now() - make_interval(mins => p_atraso_min)),
+    -- eventos que NO se pudieron repartir (el fan-out falló todos sus intentos) en la ventana: sin esto se purgarían a los 90
+    -- días sin que nadie se entere
+    (select count(*) from public.cola_eventos e
+      where e.estado = 'agotada'
+        and e.tipo in ('stock.actualizado', 'precio.actualizado', 'venta.registrada')
+        and e.updated_at >= now() - make_interval(mins => p_ventana_min));
 end;
 $$;
 
 comment on function private.api_entregas_salud(integer, integer) is
-  'MSF-837: cuenta entregas agotadas en la ventana y entregas o eventos atrasados. Solo kestra_orquestacion y service_role: el flow entregar-webhooks-api avisa a soporte con esto.';
+  'MSF-837: cuenta entregas agotadas en la ventana, entregas (de suscripciones activas) o eventos atrasados y eventos agotados en la ventana. Solo kestra_orquestacion y service_role: el flow entregar-webhooks-api avisa a soporte con esto.';
 
 revoke execute on function private.api_entregas_salud(integer, integer) from public, anon, authenticated;
 grant execute on function private.api_entregas_salud(integer, integer) to kestra_orquestacion, service_role;

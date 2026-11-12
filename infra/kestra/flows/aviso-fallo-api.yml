@@ -37,5 +37,5 @@ tasks:
       <p>El flow <strong>{{ inputs.flujo | escape }}</strong> (namespace platform.api) detectó un problema.</p>
       <p><strong>Qué pasó:</strong> {{ inputs.motivo | escape }}</p>
       <p>Ejecución de Kestra: {{ (inputs.ejecucion ?? 'no informada') | escape }}</p>
-      <p>Qué hacer: ver docs/api-publica.md, sección «Operación y reversión» (entregas atrasadas o agotadas: revisar la
-      pantalla Administración → API → Entregas recientes y que Kestra y la función entregar-webhook estén en pie).</p>
+      <p>Qué hacer: ver docs/api-publica.md, sección «Qué hacer ante el correo de la API» (entregas agotadas o atrasadas: revisar
+      Administración → API → Entregas recientes, que Kestra y la función entregar-webhook estén en pie, y reintentar las agotadas).</p>

@@ -171,8 +171,22 @@ suscripción: `cola_eventos` es una outbox genérica y otro consumidor futuro lo
 
 **Alertas (MSF-837):** el flow `monitoreo-api-entregas` corre cada 15 minutos, consulta `private.api_entregas_salud` y
 avisa por correo a soporte (`SOPORTE_CORREO`, subflow `aviso-fallo-api`) si hay entregas agotadas en la última hora
-(desde `umbral_agotadas`, 5 por defecto), entregas pendientes atrasadas más de `atraso_min` (30) minutos o eventos de la
-API sin repartir hace más de ese tiempo. Si el chequeo mismo falla, también avisa; y la purga avisa si falla.
+(desde `umbral_agotadas`, 5 por defecto), entregas pendientes de suscripciones **activas** atrasadas más de `atraso_min`
+(30) minutos (las de una suscripción pausada esperan a propósito y no cuentan), eventos de la API sin repartir hace más de
+ese tiempo o **agotados** en la ventana (eventos que no se pudieron repartir). Mientras la condición dure manda un correo
+cada 15 minutos. Si el chequeo mismo falla, también avisa; y la purga avisa si falla. Hay que confirmar la primera
+ejecución en un Kestra real (forzar un fallo y comprobar que llega el correo).
+
+### Qué hacer ante el correo de la API
+
+1. **Entregas agotadas:** en Administración → API → Entregas recientes, activar **Solo agotadas**. Mirar el último error:
+   si el destino del cliente estuvo caído, avisarle y usar **Reintentar** en cada una (vuelven a la cola con 5 intentos);
+   si el error es de la plataforma, arreglar y reintentar.
+2. **Entregas o eventos atrasados:** el pipeline no avanza. Comprobar que Kestra esté en pie y que el flow
+   `entregar-webhooks-api` corra cada minuto, y que la función `entregar-webhook` responda (la llamada de verificación
+   de «Operación y reversión»). Un lote mayor a 20 por minuto se encola: ver MSF-840.
+3. **Eventos agotados:** el reparto del evento falló todos sus intentos; mirar el log de la ejecución del flow. Se purgan a
+   los 90 días.
 
 ## Versionado
 
@@ -189,8 +203,9 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   clave inválida (tiene que dar `401` en JSON). Si responde `404 Function not found`, hay que recrear el stack del runtime
   de Edge (reiniciar solo el runtime no registra funciones nuevas).
 - Variables de Kestra: `ENTREGAR_WEBHOOK_URL`, `SECRET_ENTREGAR_WEBHOOK_APIKEY`,
-  `API_WEBHOOKS_LOTE` y `API_AUDITORIA_RETENCION_DIAS` (ver
-  `infra/kestra/.env.example`).
+  `API_WEBHOOKS_LOTE` y `API_AUDITORIA_RETENCION_DIAS`, más las de correo de los avisos a soporte
+  (`KESTRA_SMTP_*` y `SOPORTE_CORREO`, las mismas de las copias; si `SOPORTE_CORREO` no se define en producción, las
+  alertas van a un destinatario de ejemplo y se pierden en silencio) (ver `infra/kestra/.env.example`).
 - Migraciones: `20270224110201_api_claves`, `20270224110202_api_llamadas_y_limite`,
   `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
   `20270224110205_api_eventos_precio_venta`, `20270224110206_exportacion_total_excluye_api`,
@@ -200,7 +215,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas`, `api_eventos`,
-  `api_paginacion` y `api_decisiones_abiertas` (`pnpm test:db`).
+  `api_paginacion`, `api_decisiones_abiertas` y `api_seguimientos` (`pnpm test:db`).
 - **Documentación para integradores (2026-11-12):** el contrato OpenAPI trae ejemplos de cada respuesta y de cada error,
   `curl` y `fetch` por operación y los tres avisos como `webhooks` (firma, reintentos y campos de `datos`);
   `scripts/openapi-a-markdown.mjs` genera de él `docs/api/referencia.md`, y `docs/api/inicio-rapido.md` es la guía
