@@ -105,8 +105,8 @@ test.describe('Tienda online · ficha de producto (SC-008)', () => {
             organizacion_id: t.organizacion, nombre: t.completo, sku: `E2E-F-${t.indice}-1-${sufijo}`, precio_lista: 1000, moneda: 'ARS',
             categoria_id: categoria.id, descripcion: `Descripción <b>${t.nombre}</b> ${sufijo}`, compatible_con: ['PS4', 'PS5'],
           },
-          { organizacion_id: t.organizacion, nombre: t.simple, sku: `E2E-F-${t.indice}-2-${sufijo}`, precio_lista: 2000, moneda: 'ARS', categoria_id: categoria.id },
-          { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-F-${t.indice}-3-${sufijo}`, precio_lista: 3000, moneda: 'ARS', categoria_id: categoria.id },
+          { organizacion_id: t.organizacion, nombre: t.simple, sku: `E2E-F-${t.indice}-2-${sufijo}`, precio_lista: 2000, moneda: 'ARS', categoria_id: categoria.id, descripcion: null, compatible_con: [] },
+          { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-F-${t.indice}-3-${sufijo}`, precio_lista: 3000, moneda: 'ARS', categoria_id: categoria.id, descripcion: null, compatible_con: [] },
         ])
         t.completoId = completo.id
         t.simpleId = simple.id

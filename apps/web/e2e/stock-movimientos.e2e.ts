@@ -89,7 +89,8 @@ async function registrar(page: Page, nombre: string, tipo: 'Entrada' | 'Salida' 
   await elegirMotivo(page, dialogo)
   await dialogo.getByRole('button', { name: 'Registrar', exact: true }).click()
   await expect(dialogo.getByText('Movimiento registrado')).toBeVisible()
-  await dialogo.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  // «Cerrar» está dos veces: la X del título y el botón del pie; se usa el del pie.
+  await dialogo.locator('.MuiDialogActions-root').getByRole('button', { name: 'Cerrar', exact: true }).click()
 }
 
 test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
