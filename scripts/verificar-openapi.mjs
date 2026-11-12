@@ -8,6 +8,9 @@
 //   2. COBERTURA: el documento de `api-v1` describe TODAS las rutas del handler
 //      (las de lectura y el contrato). Un endpoint sin documentar es un
 //      contrato incompleto.
+//   2b. REFERENCIA: `docs/api/referencia.md` es DERIVADA del contrato publicado
+//      (`scripts/openapi-a-markdown.mjs`): si quedó desactualizada falla, así la
+//      documentación no se separa del contrato (`--escribir` la regenera).
 //   3. ROMPIMIENTO: un cambio incompatible (una ruta que desaparece, una
 //      respuesta que se cae, un parámetro nuevo obligatorio) exige `BREAKING:`
 //      en el commit o en el PR (D-4: los cambios aditivos no rompen `v1`).
@@ -18,6 +21,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { REFERENCIA, referenciaEsperada } from './openapi-a-markdown.mjs'
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url))
 
@@ -149,9 +153,18 @@ if (esCLI) {
       writeFileSync(destino, `${readFileSync(fuente, 'utf8').trim()}\n`)
       console.log(`Escrito ${contrato.publicado}`)
     }
+    mkdirSync(dirname(join(RAIZ, REFERENCIA)), { recursive: true })
+    writeFileSync(join(RAIZ, REFERENCIA), referenciaEsperada())
+    console.log(`Escrito ${REFERENCIA}`)
   } else {
     for (const desalineado of contratosDesalineados()) {
       problemas.push(`${desalineado.publicado}: ${desalineado.motivo}`)
+    }
+
+    // Referencia: la página generada coincide con el contrato publicado.
+    const rutaReferencia = join(RAIZ, REFERENCIA)
+    if (!existsSync(rutaReferencia) || readFileSync(rutaReferencia, 'utf8') !== referenciaEsperada()) {
+      problemas.push(`${REFERENCIA}: desactualizada respecto de openapi/api-v1.json (corré \`pnpm openapi:escribir\`)`)
     }
 
     // Cobertura: el documento de `api-v1` tiene que describir todas las rutas
