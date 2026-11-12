@@ -1,5 +1,6 @@
 import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CategoriaPublica } from '../../lib/tiendaCategorias'
 
 // Las secciones se cargan de forma perezosa: con el runner del CI cargado, 1 s por defecto no alcanza.
 configure({ asyncUtilTimeout: 5000 })
@@ -14,7 +15,16 @@ vi.mock('../../lib/tienda', () => ({
   resolverRedireccion: mocks.redireccion,
   urlDeRedireccion: (principal: string) => `https://${principal}/`,
 }))
-vi.mock('../../lib/tiendaCategorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../lib/tiendaCategorias')>()), leerCategoriasPublicas: mocks.categorias }))
+// El módulo real NO se carga: `tiendaCategorias.ts` importa el cliente de Supabase a nivel de módulo y en
+// una prueba unitaria eso arrastra la librería entera y la red (el render queda en el esqueleto de carga).
+// Las funciones puras tienen su propia prueba (lib/tiendaCategorias.test.ts): acá alcanza con lo que la
+// pantalla necesita de ellas.
+vi.mock('../../lib/tiendaCategorias', () => ({
+  leerCategoriasPublicas: mocks.categorias,
+  categoriasPrincipales: (categorias: CategoriaPublica[]) => categorias,
+  hayMasCategorias: (categorias: CategoriaPublica[], principales: CategoriaPublica[]) => categorias.length > principales.length,
+  filasPanelCategorias: (categorias: CategoriaPublica[]) => categorias.map((categoria) => ({ categoria, nivel: 0 })),
+}))
 
 // La medición real se prueba en layout/MedicionTienda.test.tsx: acá solo importa si el front la monta.
 vi.mock('./layout/MedicionTienda', () => ({ default: () => <div data-testid="medicion-montada" /> }))
