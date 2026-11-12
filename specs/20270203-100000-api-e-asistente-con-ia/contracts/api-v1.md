@@ -24,7 +24,7 @@ Alcances: `productos`, `stock`, `precios`, `ventas`. Una clave puede tener uno o
 
 ## Límite de uso
 
-60 solicitudes por minuto por clave (`api_claves.limite_por_minuto`, editable por Administrador). Al superarlo: `429 limite_excedido` + `Retry-After: <segundos>`. El rechazo se registra en `api_llamadas`.
+60 solicitudes por minuto por clave (`api_claves.limite_por_minuto`, 60 por defecto; hoy no hay pantalla ni RPC para cambiarlo: se ajusta en la base). Al superarlo: `429 limite_excedido` + `Retry-After: <segundos>`. El rechazo se registra en `api_llamadas`.
 
 ## Rutas (solo lectura, `GET`)
 
@@ -55,7 +55,7 @@ precios:   { producto_id, nombre, sku, moneda, precio_lista, precio_x5, precio_x
 ventas:    { id, numero, fecha, empresa_id, total_sin_iva, total_con_iva, estado, confirmado_en }
 ```
 
-`categoria` es la ruta «Padre > Hija» (o el nombre de la raíz). `precio_x5/x10/x50` son `null` si la escala no tiene precio. `ventas` solo incluye `tipo = 'factura'` y `estado = 'confirmada'`; no expone cliente ni contacto. Ningún recurso calcula precio por empresa ni IVA.
+`categoria` es la ruta «Padre > Hija» (o el nombre de la raíz). `precio_x5/x10/x50` son `null` si la escala no tiene precio. `ventas` incluye las facturas ya confirmadas (`confirmado_en` no nulo) que no están anuladas (`estado <> 'anulada'`: sigue habiendo cobradas, con deuda, etc.); no incluye presupuestos; no expone cliente ni contacto. Ningún recurso calcula precio por empresa ni IVA.
 
 ## Errores
 
@@ -100,7 +100,7 @@ private.api_leer_ventas(p_organizacion_id uuid, p_cursor text, p_limite integer,
 
 // kestra_orquestacion / service_role
 private.api_fanout_evento(p_evento_id uuid) -> integer
-private.api_reclamar_entregas(p_limite integer default 20, p_lease_seg integer default 60)
+private.api_reclamar_entregas(p_limite integer default 20, p_lease_seg integer default 300)
   -> setof public.api_entregas
 private.api_resolver_entrega(p_entrega_id uuid, p_estado text, p_estado_http integer, p_error text) -> void
 private.purgar_api_llamadas(p_retencion_dias integer default 90) -> integer
@@ -123,3 +123,8 @@ private.emitir_venta_registrada() -> trigger
 Envoltorio en `cola_eventos`: `{ id, tipo, organizacion_id, ocurrido_en, datos }`, con clave de idempotencia `(organizacion_id, tipo, clave_idempotencia)`. La entrega, firma, reintentos y SSRF están en [`webhook-entrega.md`](./webhook-entrega.md).
 
 `BREAKING:` ninguno: todos los objetos son nuevos y `stock.actualizado` conserva su contrato.
+
+## Códigos de error adicionales
+
+- `400 parametro_invalido`: `limite` fuera de 1–100 o `actualizado_desde` sin zona horaria.
+- `405 metodo_no_soportado`: cualquier método que no sea `GET`.

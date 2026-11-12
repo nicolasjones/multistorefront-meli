@@ -13,7 +13,7 @@
 #      devolvió el reclamo: el reintento del aviso vive en `api_entregas`, no
 #      en la cola de eventos.
 #   4. Reclama las entregas pendientes (`private.api_reclamar_entregas`, lease de
-#      60 s) y llama a la Edge Function `entregar-webhook`, que firma el aviso,
+#      300 s) y llama a la Edge Function `entregar-webhook`, que firma el aviso,
 #      revalida el destino por DNS (SSRF) y deja el resultado. La base calcula
 #      la espera del reintento: 5 intentos con 60 s × 2^(intentos-1) y estado
 #      final `agotada`. El HTTP no reintenta: cada reclamo es UN intento.

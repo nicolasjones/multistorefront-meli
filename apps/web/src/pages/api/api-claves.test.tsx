@@ -90,6 +90,40 @@ describe('pantalla API · claves', () => {
     expect(within(valor).getByRole('button', { name: 'Copiar' })).toBeInTheDocument()
   })
 
+  it('el vencimiento elegido llega a la RPC como el final de ese día en la hora local', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Crear clave' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Crear clave' })
+    fireEvent.change(within(dialogo).getByLabelText(/Nombre/), { target: { value: 'Con vencimiento' } })
+    fireEvent.click(within(dialogo).getByLabelText('stock'))
+    fireEvent.change(within(dialogo).getByLabelText(/Vencimiento/), { target: { value: '2099-03-01' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Crear' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('crear_clave_api', {
+      p_nombre: 'Con vencimiento',
+      p_alcances: ['stock'],
+      p_vence_en: new Date('2099-03-01T23:59:59').toISOString(),
+    }))
+  })
+
+  it('un vencimiento de hoy o del pasado muestra un mensaje claro y no llama a la base', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Crear clave' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Crear clave' })
+    fireEvent.change(within(dialogo).getByLabelText(/Nombre/), { target: { value: 'Vencida' } })
+    fireEvent.click(within(dialogo).getByLabelText('stock'))
+    fireEvent.change(within(dialogo).getByLabelText(/Vencimiento/), { target: { value: '2020-01-01' } })
+    expect(await within(dialogo).findByText('El vencimiento tiene que ser una fecha futura.')).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Crear' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('una clave revocada no se puede rotar ni revocar de nuevo', async () => {
+    mocks.datos = { api_claves: { data: [{ ...CLAVES[0], revocada_en: '2027-01-03T00:00:00Z' }], error: null } }
+    abrir()
+    expect(await screen.findByRole('button', { name: 'Rotar Integración del cliente' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Revocar Integración del cliente' })).toBeDisabled()
+  })
+
   it('no crea la clave sin nombre ni alcances', async () => {
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Crear clave' }))

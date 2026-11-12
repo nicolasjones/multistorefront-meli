@@ -465,5 +465,18 @@ select is(
 
 reset role;
 
+select is(
+  private.api_url_destino_valida('https://localhost./aviso'),
+  false,
+  'localhost con punto final (nombre absoluto) se rechaza'
+);
+
+select is(
+  private.api_url_destino_valida('https://ejemplo.com./aviso'),
+  true,
+  'un dominio público con punto final sigue siendo válido'
+);
+
+
 select * from finish();
 rollback;

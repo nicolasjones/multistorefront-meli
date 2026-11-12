@@ -14,7 +14,9 @@ sistemas externos. La pantalla **API** del panel (Administración → API, ruta
 - Alcances: `productos`, `stock`, `precios`, `ventas`. Una clave puede tener uno
   o varios; si falta el alcance de la ruta responde `403 alcance_insuficiente`.
 - Rotar conserva la clave anterior **24 h** (gracia) para cambiar el cliente sin
-  cortar el servicio. Revocar la deja inutilizable en la llamada siguiente.
+  cortar el servicio; la gracia nunca alarga una clave que vencía antes, y la
+  clave nueva hereda el vencimiento de la original (si la original ya había
+  vencido, la nueva nace sin vencimiento). Revocar la deja inutilizable en la llamada siguiente.
 - La clave se administra con `crear_clave_api`, `rotar_clave_api` y
   `revocar_clave_api` (solo Administrador de la organización). La lectura del
   panel nunca incluye el hash.
@@ -56,7 +58,7 @@ Base: `/api-v1`.
 
 Parámetros: `cursor` (opaco, base64url de `(actualizado_en, id)`; en ventas de
 `(confirmado_en, id)`), `limite` (1–100, por defecto 50) y
-`actualizado_desde` (ISO-8601 con zona, inclusive). Un cursor inválido responde
+`actualizado_desde` (ISO-8601 con zona, inclusive; si la zona es un offset con `+`, como `+03:00`, hay que codificarlo como `%2B03:00` en la URL: un `+` sin codificar llega como espacio y responde `400 parametro_invalido`). Un cursor inválido responde
 `400 cursor_invalido`; un límite o una fecha inválidos, `400 parametro_invalido`.
 El error siempre tiene la forma:
 
@@ -136,7 +138,14 @@ acepta los cursores viejos con salto). Al verificar, recorrer también `/v1/stoc
 Toda llamada, incluidas las rechazadas, queda en `public.api_llamadas` (método,
 ruta, versión, estado HTTP, duración; nunca el token ni el cuerpo). Solo el
 Administrador la lee. El flow `purgar-api-llamadas` borra lo anterior a
-`API_AUDITORIA_RETENCION_DIAS` (90 por defecto).
+`API_AUDITORIA_RETENCION_DIAS` (90 por defecto) y pasa a 500 las reservas de
+límite (estado 102) que quedaron colgadas más de 5 minutos porque la función murió
+antes de completarlas.
+
+Las llamadas **sin clave válida** (token inventado, ruta inexistente) se siguen
+auditando, pero hasta **600 por minuto y por organización** (o sin organización):
+el exceso no se guarda, para que una ráfaga de un tercero no llene la tabla. Las
+respuestas llevan `Cache-Control: no-store` y `X-Content-Type-Options: nosniff`.
 
 ## Versionado
 

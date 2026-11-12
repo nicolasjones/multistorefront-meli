@@ -124,6 +124,15 @@ describe('api-v1', () => {
     assert.equal((await resVencida.json() as { error: { codigo: string } }).error.codigo, 'clave_vencida')
   })
 
+  it('toda respuesta lleva Cache-Control no-store y nosniff', async () => {
+    const { deps } = montar({})
+    const res = await manejar(pedir('/v1/productos'), deps)
+    assert.equal(res.headers.get('Cache-Control'), 'no-store')
+    assert.equal(res.headers.get('X-Content-Type-Options'), 'nosniff')
+    const rechazo = await manejar(pedir('/v1/productos', ''), deps)
+    assert.equal(rechazo.headers.get('Cache-Control'), 'no-store')
+  })
+
   it('una clave sin el alcance de la ruta responde 403', async () => {
     const { deps } = montar({ validacion: { alcances: ['stock'] } })
     const res = await manejar(pedir('/v1/productos'), deps)
