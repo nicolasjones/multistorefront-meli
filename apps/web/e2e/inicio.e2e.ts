@@ -33,9 +33,13 @@ async function ingresar(page: Page, correo: string) {
 // Las tarjetas de Inicio son <Card> con el título como <h2>: el contenido de cada una cuelga del mismo
 // <div> (el CardContent), así que se acota por tarjeta para no confundir textos repetidos (por ejemplo, el
 // aviso del dólar aparece en la tarjeta y también en la lista de alertas).
-// «Stock hoy» aparece dos veces desde MSF-820: el bloque del tablero (primero en el DOM) y la tarjeta de alertas de stock
-// (la que aquí se verifica, siempre la última); `.last()` evita la violación de modo estricto sin cambiar lo que se afirma.
-const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..').last()
+// «Stock hoy» aparece dos veces desde MSF-820: la tarjeta de alertas de stock (`TarjetaStock`, la que aquí se verifica, con su
+// enlace «Ver stock») y el bloque del tablero. El orden en el DOM cambió (hoy el tablero va después de las tarjetas), así que
+// no se elige por posición: se toma la que tiene el enlace «Ver stock», sin cambiar lo que se afirma.
+const tarjeta = (page: Page, titulo: string) => {
+  const portada = page.getByRole('heading', { name: titulo, exact: true }).locator('..')
+  return titulo === 'Stock hoy' ? portada.filter({ has: page.getByRole('link', { name: 'Ver stock' }) }) : portada.last()
+}
 const alertas = (page: Page) => page.getByRole('list', { name: 'Alertas' })
 
 type EmpresaSembrada = { id: string; nombre: string }
