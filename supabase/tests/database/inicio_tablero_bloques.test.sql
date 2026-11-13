@@ -10,7 +10,7 @@
 -- elements from a scalar» (que descuadraba el plan: 52 tests planned, 29 run).
 begin;
 
-select plan(52);
+select plan(58);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -55,7 +55,8 @@ insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion
 on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad;
 
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
-  ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111')
+  ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111'),
+  ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e2', '11111111-1111-1111-1111-111111111111')
 on conflict do nothing;
 
 -- Movimientos de octubre (Central): salida de 3 (10/10) y entrada de 5 (12/10) del Teclado.
@@ -151,6 +152,12 @@ select is((select count(*)::int from public.movimientos_por_producto('2026-10-01
   'la búsqueda por nombre encuentra «Mouse»');
 select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'estado', 'desc')$$,
   'ordenar por estado (por severidad) es válido');
+select is((select sku from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'estado', 'asc', 1, 1)), 'MOU-1',
+  'ordenar por estado ascendente pone primero lo «en alerta» (por severidad)');
+select is((select sku from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'estado', 'desc', 1, 1)), 'TEC-1',
+  'ordenar por estado descendente pone primero lo «normal»');
+select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'nombre', 'asc', 2147483647, 10)$$,
+  'una página enorme se acota (sin desborde de entero)');
 select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'ultimo_movimiento', 'asc', 2, 10)$$,
   'ordenar por último movimiento y pedir otra página es válido');
 select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'nombre', 'asc; drop table x')$$, '22023', null,
@@ -170,6 +177,8 @@ select is(jsonb_array_length(coalesce(public.resumen_inicio_bloques('2026-10-01'
   'con ventas y sin rentabilidad el bloque sigue siendo un arreglo con la tienda');
 select is((select (t ->> 'unidades')::int from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
   1, 'con ventas y sin rentabilidad se ven las unidades de la tienda');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', 'a1000000-0000-0000-0000-0000000000e2')), 0,
+  'una tienda de la misma organización a la que el operador no accede devuelve lista vacía (H-1)');
 select is((select jsonb_build_object('ingresos', t -> 'ingresos', 'margen_pct', t -> 'margen_pct')
    from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
   '{"ingresos": null, "margen_pct": null}'::jsonb, 'sin rentabilidad los ingresos y el margen vuelven null');
@@ -213,6 +222,12 @@ select lives_ok($$select public.aplicar_cotizacion(1500)$$, 'el administrador ap
 reset role;
 select is((select count(*)::int from dominio.cotizacion_pendiente where organizacion_id = '11111111-1111-1111-1111-111111111111'), 0,
   'tras aplicar no queda cotización pendiente');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.aplicar_cotizacion(3000)$$, '22023', null,
+  'una variación inusual sin confirmar se rechaza (exige variación vista)');
+reset role;
+select is((select count(*)::int from dominio.cotizacion_pendiente where organizacion_id = '11111111-1111-1111-1111-111111111111'), 0,
+  'si falla la confirmación se revierte también la carga: no queda pendiente huérfana');
 select ok(not has_function_privilege('anon', 'public.aplicar_cotizacion(numeric,uuid,numeric)', 'EXECUTE'), 'anon no ejecuta aplicar_cotizacion');
 
 select * from finish();
