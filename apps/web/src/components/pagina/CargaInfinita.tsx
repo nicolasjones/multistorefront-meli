@@ -79,12 +79,14 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
       setAnuncio(espera ? espera.mensaje : '')
     } else if (!hayMas) {
       const nuevos = cargados !== undefined && antes !== undefined ? cargados - antes : 0
-      setAnuncio(nuevos > 0 ? `${nuevos} productos más cargados. No hay más resultados` : 'No hay más resultados')
+      // Sin pie de fin (lista vacía de una pantalla del panel) no se anuncia el fin: sería ruido.
+      const fin = mostrarFin ? 'No hay más resultados' : ''
+      setAnuncio(nuevos > 0 ? `${nuevos} productos más cargados${fin ? `. ${fin}` : ''}` : fin)
     } else {
       const nuevos = cargados !== undefined && antes !== undefined ? cargados - antes : 0
       setAnuncio(nuevos > 0 ? `${nuevos} productos más cargados` : '')
     }
-  }, [cargando, hayError, hayMas, cargados, espera])
+  }, [cargando, hayError, hayMas, cargados, espera, mostrarFin])
 
   // Si el botón tenía el foco y desaparece porque no hay más, el foco pasa al texto de fin (no al body).
   useEffect(() => {
