@@ -4,6 +4,7 @@ import { NavLink } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import { categoriasPrincipales, cuantasEntran, hayMasCategorias } from '../../../lib/tiendaCategorias'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { ANCHO_MAXIMO_TIENDA, LINEA_SUAVE, MARGEN_LATERAL_TIENDA } from './medidas'
 
 // Barra de categorías (prototipo MJC_Home): en mayúsculas, 15 px, 600, con subrayado de 3 px en la activa (color primario).
 const estiloEnlace = {
@@ -14,7 +15,6 @@ const estiloEnlace = {
   color: 'text.primary',
   textDecoration: 'none',
   textTransform: 'uppercase',
-  fontFamily: 'var(--tienda-fuente-titulos, inherit)',
   letterSpacing: '.04em',
   fontSize: 15, // estilos-sueltos: ok
   fontWeight: 600,
@@ -71,8 +71,8 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
   if (categorias.fase === 'lista' && principales.length === 0) return null
   const mostradas = principales.slice(0, visibles)
   return (
-    <Box sx={{ display: { xs: 'none', md: 'block' }, bgcolor: 'background.paper', borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
-      <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'} sx={{ position: 'relative', maxWidth: 1200, mx: 'auto', px: 2, minHeight: 52 /* estilos-sueltos: ok */ }}>
+    <Box sx={{ display: { xs: 'none', md: 'block' }, bgcolor: 'background.paper', borderBottom: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
+      <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'} sx={{ position: 'relative', maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: MARGEN_LATERAL_TIENDA, minHeight: 52 /* estilos-sueltos: ok */ }}>
         {/* Copia invisible para medir cada entrada (no se lee ni se enfoca). Va dentro de un contenedor recortado
             (overflow:hidden, del tamaño de la barra): una lista `position:absolute` con `width:max-content` fuera de él
             ensancha el scroll horizontal de toda la página. Los anchos de los hijos se siguen midiendo igual. */}
@@ -82,7 +82,7 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
             <li><Box component="span" data-nombre="Más categorías" sx={estiloCopia} /></li>
           </Box>
         </Box>
-        <Box component="ul" ref={lista} data-testid="menu-categorias-lista" sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: hayObservador ? 'hidden' : 'auto', overflowY: 'hidden', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, alignItems: 'center' }}>
+        <Box component="ul" ref={lista} data-testid="menu-categorias-lista" sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: hayObservador ? 'hidden' : 'auto', overflowY: 'hidden', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, alignItems: 'center', minHeight: 52 /* estilos-sueltos: ok */ }}>
           {mostradas.map((categoria) => (
             <li key={categoria.id}>
               <Box component={NavLink} to={`/categoria/${categoria.id}`} sx={estiloEnlace}>{categoria.nombre}</Box>

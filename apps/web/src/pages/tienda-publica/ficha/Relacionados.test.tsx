@@ -47,7 +47,8 @@ describe('Relacionados', () => {
     const tarjetas = screen.getAllByTestId('tarjeta-producto')
     expect(tarjetas).toHaveLength(2)
     expect(tarjetas[0]).toHaveAttribute('href', '/producto/a1000000-0000-4000-8000-000000000101')
-    expect(within(tarjetas[1]).getByText('Sin stock')).toBeInTheDocument()
+    expect(within(tarjetas[1]).getByTestId('tarjeta-sin-stock')).toHaveTextContent('Sin stock')
+    expect(within(tarjetas[1]).getByTestId('etiqueta-disponibilidad')).toHaveTextContent('Sin stock')
     expect(within(tarjetas[0]).getByText('Sin imagen')).toBeInTheDocument()
   })
 
@@ -55,7 +56,8 @@ describe('Relacionados', () => {
     mocks.leer.mockResolvedValue({ productos: [producto(1)], imagenes: {} })
     montar()
     await screen.findByText('Productos relacionados')
-    const rejilla = screen.getByTestId('tarjeta-producto').parentElement as HTMLElement
+    // La tarjeta va dentro de un <li> de la grilla (<ul>).
+    const rejilla = screen.getByTestId('tarjeta-producto').parentElement?.parentElement as HTMLElement
     const reglas = Array.from(document.querySelectorAll('style')).map((s) => s.textContent).join('')
     expect(rejilla.className).toBeTruthy()
     expect(reglas).toContain('repeat(2, minmax(0, 1fr))')

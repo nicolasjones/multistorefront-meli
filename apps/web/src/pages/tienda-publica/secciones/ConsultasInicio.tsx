@@ -38,8 +38,8 @@ export default function ConsultasInicio({ host }: PropsSeccionTienda) {
   const correo = contacto?.correo?.trim() || null
 
   return (
-    <Box component="section" aria-label="Consultas" data-testid="consultas-inicio" sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '8px', mt: 3 /* estilos-sueltos: ok */ })}>
-      <Box sx={{ minHeight: 120, py: { xs: 3, md: 0 }, px: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'center', gap: { xs: 3, md: '120px' } /* estilos-sueltos: ok */ }}>
+    <Box component="section" aria-label="Consultas" data-testid="consultas-inicio" sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', mt: 3 /* estilos-sueltos: ok */, boxShadow: `0 0 0 100vmax ${tema.tienda?.superficie ?? tema.palette.action.hover}`, clipPath: 'inset(0 -100vmax)' })}>
+      <Box sx={{ minHeight: 120, py: { xs: 3, md: 0 }, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'flex-start', md: 'center' }, justifyContent: 'center', gap: { xs: 3, md: '120px' } /* estilos-sueltos: ok */ }}>
         {whatsapp ? (
           <Item componente={digitos ? 'a' : 'span'} destino={digitos ? { href: `https://wa.me/${digitos}`, target: '_blank', rel: 'noopener noreferrer' } : {}} icono={<IconoWhatsapp size={24} />} etiqueta="Consultas por WhatsApp" valor={whatsapp} />
         ) : null}
