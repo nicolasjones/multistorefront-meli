@@ -64,6 +64,18 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     await waitFor(() => expect(document.documentElement.style.getPropertyValue('--tienda-color-barra')).toBe('#2A2A2A'))
   })
 
+  it('la barra superior queda dentro del landmark banner (<header>), en celular y escritorio (axe «region», MSF-846)', async () => {
+    for (const esCelular of [true, false]) {
+      celular(esCelular)
+      const { unmount } = montar('/')
+      const barra = await screen.findByTestId('barra-superior')
+      expect(within(screen.getByRole('banner')).getByTestId('barra-superior')).toBe(barra)
+      expect(barra.closest('header')).not.toBeNull()
+      unmount()
+    }
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
   it('el contenido y el contacto se leen una sola vez por host aunque los usen la barra, el pie y la portada', async () => {
     montar('/')
     await screen.findByText('Portada')
