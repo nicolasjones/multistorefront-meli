@@ -142,16 +142,10 @@ services:
       # Router HTTP centralizado de alertas (spec 013). La URL real vive solo
       # en infra/kestra/.env; no se versiona ningun token de proveedor.
       ENV_KESTRA_ALERTAS_WEBHOOK_URL: ${KESTRA_ALERTAS_WEBHOOK_URL:-http://host.docker.internal:8098/alertas}
-      # Avisos de consultas (MSF-207, flow avisos-consultas.yml): URL de la Edge Function
-      # `enviar-aviso-consulta`, clave pública (anon) para pasar el gateway de Supabase y el
-      # token compartido con la función (secreto: solo infra/kestra/.env, nunca en Git). Como todo
+      # Resumen de reposición de stock (MSF-394, flow avisos-reposicion-stock.yml): URL de la Edge
+      # Function `enviar-resumen-reposicion`, clave pública (anon) para pasar el gateway de Supabase y
+      # el token compartido con la función (secreto: solo infra/kestra/.env, nunca en Git). Como todo
       # SECRET_*, Kestra espera el valor en base64 y `secret()` lo decodifica.
-      ENV_AVISOS_CONSULTAS_URL: ${AVISOS_CONSULTAS_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-aviso-consulta}
-      ENV_AVISOS_CONSULTAS_APIKEY: ${AVISOS_CONSULTAS_APIKEY:-change-me-local}
-      SECRET_AVISOS_CONSULTAS_TOKEN: ${SECRET_AVISOS_CONSULTAS_TOKEN:-}
-      # Resumen de reposición de stock (MSF-394, flow avisos-reposicion-stock.yml): misma mecánica que
-      # los avisos de consultas, contra la Edge Function `enviar-resumen-reposicion`. El token es un
-      # SECRET_* (base64) que solo vive en infra/kestra/.env.
       ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
       ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
       SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
