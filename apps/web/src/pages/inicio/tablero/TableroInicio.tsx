@@ -62,8 +62,10 @@ export function TableroInicio({ verVentas, verStock, verActividad = false, verRe
     async () => ({ clave, resumen: await leerResumenInicio({ desde, hasta, empresaId, depositoId }) }),
     [clave, desde, hasta, empresaId, depositoId],
   )
+  // Un rol con solo `actividad` no tiene ventas ni stock: no se consulta el resumen (solo ve «Actividad reciente»).
+  const hayResumen = verVentas || verStock
   // Con un depósito en la URL se espera a validarlo contra la lista antes de consultar (una sola lectura).
-  const lectura = useLecturaInicio(leer, { habilitado: !cargandoEmpresas && (filtros.depositoId === null || !depositos.cargando) })
+  const lectura = useLecturaInicio(leer, { habilitado: !cargandoEmpresas && hayResumen && (filtros.depositoId === null || !depositos.cargando) })
   // Mientras llegan los datos de unos filtros nuevos no se muestran los de los filtros anteriores.
   const resumen: ResumenInicio | null = lectura.datos !== null && lectura.datos.clave === clave ? lectura.datos.resumen : null
   const cargando = lectura.cargando || (!lectura.hayError && resumen === null)
@@ -88,7 +90,7 @@ export function TableroInicio({ verVentas, verStock, verActividad = false, verRe
         onDeposito={(depositoId) => setParams(parametrosConDeposito(params, depositoId), { replace: true })}
       />
 
-      {lectura.hayError ? (
+      {!hayResumen ? null : lectura.hayError ? (
         <Stack spacing={1} alignItems="flex-start" role="alert">
           <Typography>No pudimos cargar este dato</Typography>
           <Button size="small" variant="outlined" onClick={() => void lectura.recargar()}>Reintentar</Button>

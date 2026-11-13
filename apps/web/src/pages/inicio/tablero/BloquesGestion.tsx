@@ -33,12 +33,16 @@ export function BloquesGestion({ contexto, verVentas, verStock, verActividad }: 
     <Box sx={GRILLA}>
       {verVentas ? (
         <TarjetaInicio titulo="Resumen por tienda" cargando={cargandoBloques} hayError={bloques.hayError} onReintentar={() => void bloques.recargar()}>
-          {actual?.por_tienda ? <ResumenPorTienda tiendas={actual.por_tienda} /> : null}
+          {actual === null ? null : actual.por_tienda ? <ResumenPorTienda tiendas={actual.por_tienda} /> : (
+            <EstadoVacio titulo="No tenés ventas habilitadas en esta tienda" descripcion="Elegí otra tienda o pedile a quien administra tu cuenta que te habilite Ventas." />
+          )}
         </TarjetaInicio>
       ) : null}
       {verStock ? (
         <TarjetaInicio titulo="Salidas por depósito" cargando={cargandoBloques} hayError={bloques.hayError} onReintentar={() => void bloques.recargar()}>
-          {actual?.salidas_por_deposito ? <SalidasPorDeposito depositos={actual.salidas_por_deposito} /> : null}
+          {actual === null ? null : actual.salidas_por_deposito ? <SalidasPorDeposito depositos={actual.salidas_por_deposito} /> : (
+            <EstadoVacio titulo="No tenés Stock habilitado" descripcion="Pedile a quien administra tu cuenta que te habilite Stock." />
+          )}
         </TarjetaInicio>
       ) : null}
       {verActividad ? <ActividadReciente contexto={contexto} /> : null}
@@ -63,7 +67,9 @@ function ResumenPorTienda({ tiendas }: { tiendas: TiendaResumen[] }) {
               {tienda.ingresos !== null ? `Ingresos (con IVA): ${formatoPesos(tienda.ingresos)}` : null}
               {tienda.ingresos !== null && tienda.margen_pct !== null ? ' · ' : null}
               {tienda.margen_pct !== null ? `Margen estimado: ${tienda.margen_pct.toLocaleString('es-AR', { maximumFractionDigits: 1 })} %` : null}
-              {tienda.ingresos !== null && tienda.margen_pct === null ? ' · Margen estimado: sin costo cargado' : null}
+              {tienda.ingresos !== null && tienda.margen_pct === null
+                ? (tienda.unidades === 0 && tienda.ingresos === 0 ? ' · Sin ventas en el período' : ' · Margen estimado: sin costo cargado')
+                : null}
             </Typography>
           ) : null}
         </ListItem>
@@ -94,15 +100,21 @@ function SalidasPorDeposito({ depositos }: { depositos: DepositoSalidas[] }) {
 function ActividadReciente({ contexto }: { contexto: ContextoTablero }) {
   const { desde, hasta, empresaId, depositoId } = contexto
   const clave = `${desde}|${hasta}|${empresaId ?? ''}`
+  // El registro de actividad no guarda el depósito: la lectura no lo usa (ni lo repite al cambiar de depósito).
   const leer = useCallback(
-    async () => ({ clave, eventos: await leerActividadReciente({ desde, hasta, empresaId, depositoId }) }),
-    [clave, desde, hasta, empresaId, depositoId],
+    async () => ({ clave, eventos: await leerActividadReciente({ desde, hasta, empresaId, depositoId: null }) }),
+    [clave, desde, hasta, empresaId],
   )
   const lectura = useLecturaInicio(leer)
   const eventos = lectura.datos !== null && lectura.datos.clave === clave ? lectura.datos.eventos : null
   const cargando = lectura.cargando || (!lectura.hayError && eventos === null)
   return (
     <TarjetaInicio titulo="Actividad reciente" cargando={cargando} hayError={lectura.hayError} onReintentar={() => void lectura.recargar()}>
+      {depositoId !== null ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          La actividad no se filtra por depósito: se muestra la de toda la organización.
+        </Typography>
+      ) : null}
       {eventos === null ? null : eventos.length === 0 ? (
         <EstadoVacio titulo="Sin actividad en este período" descripcion="Cuando haya movimientos, cambios de precio o del dólar aparecen acá." />
       ) : (

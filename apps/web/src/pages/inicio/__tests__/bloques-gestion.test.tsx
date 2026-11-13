@@ -15,7 +15,7 @@ vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: 
 
 import { BloquesGestion } from '../tablero/BloquesGestion'
 
-const CONTEXTO = { desde: '2026-10-01', hasta: '2026-10-15', empresaId: null, depositoId: null }
+const CONTEXTO = { desde: '2026-10-01', hasta: '2026-10-15', empresaId: null as string | null, depositoId: null as string | null }
 
 const BLOQUES = {
   por_tienda: [
@@ -63,7 +63,8 @@ describe('Resumen por tienda (FR-008, CA-INI-05-3/4/9)', () => {
     const lista = await screen.findByRole('list', { name: 'Resumen por tienda' })
     expect(within(lista).getByText('Mundo JC')).toBeInTheDocument()
     expect(within(lista).getByText('0 u.')).toBeInTheDocument()
-    expect(within(lista).getByText(/sin costo cargado/)).toBeInTheDocument()
+    expect(within(lista).getByText(/Sin ventas en el período/)).toBeInTheDocument()
+    expect(within(lista).queryByText(/sin costo cargado/)).not.toBeInTheDocument()
   })
 
   it('sin permiso de rentabilidad (ingresos y margen null) no se ve ninguno de los dos', async () => {
@@ -76,6 +77,19 @@ describe('Resumen por tienda (FR-008, CA-INI-05-3/4/9)', () => {
     expect(within(lista).getByText('12 u.')).toBeInTheDocument()
     expect(within(lista).queryByText(/Ingresos/)).not.toBeInTheDocument()
     expect(within(lista).queryByText(/Margen/)).not.toBeInTheDocument()
+  })
+
+  it('una tienda con ventas pero sin costo cargado dice «sin costo cargado»', async () => {
+    mocks.bloques.mockResolvedValue({ ...BLOQUES, por_tienda: [{ empresa_id: 'e-4', nombre: 'Tienda sin costo', unidades: 5, ingresos: 1000, margen_pct: null }] })
+    abrir()
+    const lista = await screen.findByRole('list', { name: 'Resumen por tienda' })
+    expect(within(lista).getByText(/Margen estimado: sin costo cargado/)).toBeInTheDocument()
+  })
+
+  it('si la base devuelve null (sin ventas en esa tienda) muestra un vacío, no una tarjeta en blanco', async () => {
+    mocks.bloques.mockResolvedValue({ ...BLOQUES, por_tienda: null })
+    abrir()
+    expect(await screen.findByText('No tenés ventas habilitadas en esta tienda')).toBeInTheDocument()
   })
 
   it('una tienda nueva aparece sin cambios de código (los nombres salen de los datos)', async () => {
@@ -95,6 +109,12 @@ describe('Resumen por tienda (FR-008, CA-INI-05-3/4/9)', () => {
 })
 
 describe('Salidas por depósito (FR-009, CA-INI-05-5)', () => {
+  it('si la base devuelve null (sin permiso de stock) muestra un vacío, no una tarjeta en blanco', async () => {
+    mocks.bloques.mockResolvedValue({ ...BLOQUES, salidas_por_deposito: null })
+    abrir()
+    expect(await screen.findByText('No tenés Stock habilitado')).toBeInTheDocument()
+  })
+
   it('muestra las unidades que salieron de cada depósito y su stock actual', async () => {
     abrir()
     const lista = await screen.findByRole('list', { name: 'Salidas por depósito' })
@@ -122,6 +142,12 @@ describe('Actividad reciente (FR-010, CA-INI-05-6)', () => {
     expect(within(items[0]).getByRole('link', { name: /Ver en Actividad/ })).toHaveAttribute('href', '/actividad')
     expect(screen.getByRole('link', { name: 'Ver todo' })).toHaveAttribute('href', '/actividad')
     expect(screen.queryByText('Cant.')).not.toBeInTheDocument()
+  })
+
+  it('con un depósito elegido avisa que la actividad no se filtra por depósito y no lo manda a la consulta', async () => {
+    abrir({ contexto: { ...CONTEXTO, depositoId: 'd-1' } })
+    expect(await screen.findByText(/La actividad no se filtra por depósito/)).toBeInTheDocument()
+    expect(mocks.actividad).toHaveBeenCalledWith({ ...CONTEXTO, depositoId: null })
   })
 
   it('sin eventos muestra el estado vacío', async () => {

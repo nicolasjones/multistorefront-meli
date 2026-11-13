@@ -124,6 +124,21 @@ describe('tienda, depósito y vacío (CA-INI-06-6, 9, 11)', () => {
     expect(screen.queryByRole('option', { name: 'Solo Mundo JC' })).not.toBeInTheDocument()
   })
 
+  it('con una tienda elegida el LISTADO se pide acotado a esa tienda (no solo el menú de categorías)', async () => {
+    abrir({ ...CONTEXTO, empresaId: 'e-1' })
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    expect(mocks.leer.mock.calls.every((llamada) => llamada[0].empresaId === 'e-1')).toBe(true)
+  })
+
+  it('la exportación pide los lotes con la misma tienda del tablero', async () => {
+    abrir({ ...CONTEXTO, empresaId: 'e-1' })
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(mocks.descargar).toHaveBeenCalledTimes(1))
+    const lote = mocks.leer.mock.calls.find((llamada) => llamada[3] === 100)!
+    expect(lote[0]).toMatchObject({ empresaId: 'e-1' })
+  })
+
   it('cambiar el depósito del tablero recalcula el listado', async () => {
     const vista = abrir()
     await screen.findByRole('table', { name: 'Movimientos por producto' })
@@ -170,6 +185,76 @@ describe('carga infinita (CA-INI-06-10)', () => {
   })
 })
 
+describe('carga infinita: fallos, reinicio y duplicados', () => {
+  const pagina1 = Array.from({ length: 25 }, (_, i) => fila(i + 1))
+  const pagina2 = Array.from({ length: 5 }, (_, i) => fila(i + 26))
+
+  it('si falla la tanda 2, «Reintentar» vuelve a pedir la tanda 2 (no salta a la 3) y conserva lo cargado', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    let fallar = true
+    mocks.leer.mockImplementation(async (_ctx, _filtros, pagina: number) => {
+      if (pagina === 2 && fallar) { fallar = false; throw new Error('falló la tanda') }
+      return { filas: pagina === 1 ? pagina1 : pagina2, total: 30 }
+    })
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('No pudimos cargar más resultados.')).toBeInTheDocument()
+    expect(screen.getByText('Producto 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 30 de 30 productos'))
+    const paginasPedidas = mocks.leer.mock.calls.map((llamada) => llamada[2])
+    expect(paginasPedidas).not.toContain(3)
+    expect(paginasPedidas.filter((numero) => numero === 2)).toHaveLength(2)
+  })
+
+  it('cambiar un filtro después de «Cargar más» descarta lo acumulado y vuelve a la tanda 1', async () => {
+    mocks.leer.mockImplementation(async (_ctx, filtros: { vista: string }, pagina: number) =>
+      filtros.vista === 'quieto' ? { filas: [fila(99)], total: 1 } : { filas: pagina === 1 ? pagina1 : pagina2, total: 30 })
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 30 de 30 productos'))
+    fireEvent.click(screen.getByRole('button', { name: 'Quietos' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 1 de 1 producto'))
+    expect(ultimaLlamada()[2]).toBe(1)
+    expect(screen.queryByText('Producto 1')).not.toBeInTheDocument()
+  })
+
+  it('un producto repetido entre tandas (el stock cambió mientras se cargaba) se muestra una sola vez', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.leer.mockImplementation(async (_ctx, _filtros, pagina: number) => ({ filas: pagina === 1 ? pagina1 : [fila(25), ...pagina2.slice(1)], total: 30 }))
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 29 de 30 productos'))
+    expect(screen.getAllByText('Producto 25')).toHaveLength(1)
+    expect(error.mock.calls.some((llamada) => String(llamada[0]).includes('same key'))).toBe(false)
+  })
+
+  it('la última petición gana: una respuesta vieja no pisa a la nueva', async () => {
+    let resolverVieja: (valor: { filas: unknown[]; total: number }) => void = () => {}
+    mocks.leer.mockImplementation((_ctx, filtros: { vista: string }) =>
+      filtros.vista === 'alerta'
+        ? Promise.resolve({ filas: [fila(7, { nombre: 'Producto nuevo' })], total: 1 })
+        : new Promise((resolver) => { resolverVieja = resolver as typeof resolverVieja }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'En alerta' }))
+    expect(await screen.findByText('Producto nuevo')).toBeInTheDocument()
+    resolverVieja({ filas: [fila(1, { nombre: 'Producto viejo' })], total: 1 })
+    await waitFor(() => expect(screen.getByText('Producto nuevo')).toBeInTheDocument())
+    expect(screen.queryByText('Producto viejo')).not.toBeInTheDocument()
+  })
+})
+
+describe('búsqueda acotada', () => {
+  it('el campo de búsqueda no admite más de 100 caracteres (igual que la RPC)', async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    expect(screen.getByLabelText('Buscar producto o SKU')).toHaveAttribute('maxlength', '100')
+  })
+})
+
 describe('exportar (FR-015, CA-INI-06-7/8)', () => {
   it('el rol sin permiso de exportar no ve el botón', async () => {
     mocks.puedeExportar.valor = false
@@ -192,6 +277,27 @@ describe('exportar (FR-015, CA-INI-06-7/8)', () => {
     expect(nombre).toMatch(/^movimientos-por-producto-\d{4}-\d{2}-\d{2}\.csv$/)
     expect(contenido).toContain('Producto;SKU;Categoría;Stock inicial')
     expect(contenido).toContain('Producto 1;SKU-1;Periféricos;8;5;3;-2;10;5;4;2026-10-12;Normal')
+  })
+})
+
+describe('exportar: contenido', () => {
+  it('neutraliza las fórmulas (=, +, -, @) y exporta todas las filas del lote', async () => {
+    const filas = [
+      fila(1, { nombre: '=cmd|calc', sku: '+SKU', categoria: '-Cat' }),
+      fila(2, { nombre: '@sum(1)', sku: null }),
+      fila(3, { nombre: 'Normal; con "comillas"' }),
+    ]
+    mocks.leer.mockImplementation(async (_ctx, _filtros, _pagina: number, tamano: number) => ({ filas: tamano === 100 ? filas : [fila(1)], total: 3 }))
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(mocks.descargar).toHaveBeenCalledTimes(1))
+    const [contenido] = mocks.descargar.mock.calls[0] as [string, string]
+    const lineas = contenido.replace(/^﻿/, '').split('\r\n').filter((linea) => linea !== '')
+    expect(lineas).toHaveLength(4)
+    expect(lineas[1].startsWith("'=cmd|calc;'+SKU;'-Cat;")).toBe(true)
+    expect(lineas[2].startsWith("'@sum(1);;")).toBe(true)
+    expect(lineas[3].startsWith('"Normal; con ""comillas""";')).toBe(true)
   })
 })
 

@@ -11,7 +11,7 @@ vi.mock('../TarjetaStock', () => ({ TarjetaStock: () => <div>tarjeta stock</div>
 vi.mock('../TarjetaConsultas', () => ({ TarjetaConsultas: () => <div>tarjeta consultas</div> }))
 vi.mock('../TarjetaDolar', () => ({ TarjetaDolar: ({ puedeEditar }: { puedeEditar: boolean }) => <div>tarjeta dolar {puedeEditar ? 'edita' : 'lee'}</div> }))
 vi.mock('../AlertasInicio', () => ({ AlertasInicio: () => <div>alertas</div> }))
-vi.mock('../tablero/TableroInicio', () => ({ TableroInicio: ({ verVentas, verStock }: { verVentas: boolean; verStock: boolean }) => <div>tablero {verVentas ? 'ventas' : ''} {verStock ? 'stock' : ''}</div> }))
+vi.mock('../tablero/TableroInicio', () => ({ TableroInicio: ({ verVentas, verStock, verActividad }: { verVentas: boolean; verStock: boolean; verActividad?: boolean }) => <div>tablero {verVentas ? 'ventas' : ''} {verStock ? 'stock' : ''} {verActividad ? 'actividad' : ''}</div> }))
 
 import { InicioPage } from '..'
 
@@ -24,7 +24,7 @@ describe('Regla única de permisos de Inicio (FR-007)', () => {
     mocks.niveles = { stock: 'edicion', consultas: 'lectura', cotizacion_dolar: 'lectura', ventas: 'edicion' }
     montar()
     expect(screen.getByText('tarjeta stock')).toBeInTheDocument()
-    expect(screen.getByText(/^tablero\s+ventas\s+stock$/)).toBeInTheDocument()
+    expect(screen.getByText(/^tablero\s+ventas\s+stock\s*$/)).toBeInTheDocument()
     expect(screen.getByText('tarjeta consultas')).toBeInTheDocument()
     expect(screen.getByText('tarjeta dolar lee')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Nuevo comprobante' })).toBeInTheDocument()
@@ -46,10 +46,17 @@ describe('Regla única de permisos de Inicio (FR-007)', () => {
     expect(screen.queryByText(/^tablero/)).not.toBeInTheDocument()
   })
 
+  it('un rol con solo actividad ≥ lectura ve el tablero (solo «Actividad reciente»)', () => {
+    mocks.niveles = { actividad: 'lectura' }
+    montar()
+    expect(screen.getByText(/^tablero\s+actividad$/)).toBeInTheDocument()
+    expect(screen.queryByText('Tu rol todavía no tiene secciones habilitadas')).not.toBeInTheDocument()
+  })
+
   it('un rol con solo ventas ve el tablero sin stock', () => {
     mocks.niveles = { ventas: 'lectura' }
     montar()
-    expect(screen.getByText(/^tablero\s+ventas$/)).toBeInTheDocument()
+    expect(screen.getByText(/^tablero\s+ventas\s*$/)).toBeInTheDocument()
   })
 
   it('con edición en cotización la tarjeta del dólar habilita la acción', () => {

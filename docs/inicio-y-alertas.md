@@ -123,7 +123,17 @@ Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Per�
   (cada fila y «Ver todo» llevan a Actividad). No lleva depósito (el registro no lo guarda) ni columna «Cant.»
   (el registro guarda un texto de detalle, no una cantidad).
 - «Resumen por tienda» y «Salidas por depósito» salen de la **misma lectura**: si falla, fallan los dos con su
-  propio reintento; la actividad es independiente.
+  propio reintento; la actividad es independiente. **Desvío** de RF-INI-05-7 / CA-INI-05-8 (error independiente por
+  bloque): seguimiento en **MSF-850**.
+- Si la base devuelve `null` en un bloque (por ejemplo, una tienda donde el rol no tiene `ventas`), el bloque dice
+  «No tenés ventas habilitadas en esta tienda» (o «No tenés Stock habilitado») en vez de quedar en blanco. Una tienda
+  sin ventas dice «Sin ventas en el período»; «sin costo cargado» queda para una tienda con ventas sin costo guardado.
+- **Quién ve el tablero**: con `ventas` o `stock` ≥ lectura se ve todo el tablero; un rol con **solo `actividad`**
+  ≥ lectura ve únicamente «Actividad reciente» (no se consulta el resumen de ventas y stock).
+- **Actividad reciente no se filtra por depósito** (el registro no lo guarda): con un depósito elegido la tarjeta lo
+  avisa y muestra la actividad de toda la organización.
+- **Enlace «Ver»**: lleva a Actividad (`/actividad`). No hay una ruta de detalle por evento: el detalle es un
+  diálogo dentro de ese listado (F-AUD-02); por eso la fila no apunta a un detalle propio.
 
 ## Movimientos por producto (F-INI-06, MSF-822, épica MSF-824)
 
@@ -139,6 +149,15 @@ tiene `stock` ≥ lectura; la columna **Ventas** solo con `ventas` (si no, la ba
   «Mostrando N de M productos». En pantallas angostas cada fila es una tarjeta.
 - **Estado**: «En alerta» (disponible ≤ mínimo, incluye sin stock) tiene prioridad sobre «Quieto» (sin movimientos
   en el período); el resto es «Normal». Vacío «Sin movimientos para estos filtros» con «Limpiar filtros».
+  - La vista **«Quietos»** filtra por «sin movimientos en el período», así que **incluye productos con el chip «En
+    alerta»** (la alerta tiene prioridad en el chip, no en el filtro). Ordenar por «Estado» ordena por severidad
+    (alerta, quieto, normal).
+  - Con un **depósito** elegido, «alerta» compara el disponible **de ese depósito** contra el mínimo **global** del
+    producto (el mínimo no es por depósito).
+  - Con una **tienda** elegida el listado muestra **solo los productos de esa tienda** (`producto_empresa`, CA-INI-06-11:
+    para esta historia manda la historia sobre la decisión D-8 de la spec); las ventas son las de esa tienda.
+  - La paginación por offset puede **repetir un producto entre tandas** si el stock cambia mientras se carga más; la
+    pantalla lo muestra una sola vez. Búsqueda de hasta 100 caracteres.
 - **Cuadre**: en la lista, entradas, salidas y ajustes cuentan **todos** los movimientos del período (traslados,
   devoluciones y anulaciones incluidos) para que `stock inicial + entradas − salidas + ajustes = stock actual`
   cuando el período llega hasta hoy (decisión D-12). Los indicadores de «Stock hoy» excluyen traslados,

@@ -10,14 +10,14 @@
 ## F-INI-05 · MSF-821
 - [x] T006 RPC hermana `resumen_inicio_bloques` (resumen por tienda, salidas por depósito) + pgTAP. Evidencia: migración `20270305110000`, `supabase/tests/database/inicio_tablero_bloques.test.sql`; CI `database` verde sobre `8589dfb7`. Desvío: RPC hermana, no ampliación de `resumen_inicio_periodo` (la historia admite ambas).
 - [x] T007 «Actividad reciente» usa `public.listar_actividad` existente, **sin RPC nueva** (ya trae fecha, usuario, tienda y filtra por la RLS de `actividad`). Evidencia: `lib/inicioBloques.ts` (`leerActividadReciente`), `bloques-gestion.test.tsx`.
-- [x] T008 Bloques con vacío/error y permisos (ingresos y margen solo con `rentabilidad`). Evidencia: `tablero/BloquesGestion.tsx`; «Qué hacer hoy» ya existía (ahora dice «Todo al día» sin alertas). Desvío: «Resumen por tienda» y «Salidas por depósito» comparten una lectura (si falla, fallan juntos con su reintento); la actividad es independiente.
-- [x] T009 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/bloques-gestion.test.tsx` (CA-INI-05-3..9). CA-INI-05-1/2 los cubren `alertas-lista`/`alertas-demora`.
+- [x] T008 Bloques con vacío/error y permisos (ingresos y margen solo con `rentabilidad`). Evidencia: `tablero/BloquesGestion.tsx`; «Qué hacer hoy» ya existía (ahora dice «Todo al día» sin alertas). Desvío: «Resumen por tienda» y «Salidas por depósito» comparten una lectura (si falla, fallan juntos con su reintento); la actividad es independiente. Seguimiento del desvío de error independiente: MSF-850.
+- [x] T009 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/bloques-gestion.test.tsx` (CA-INI-05-3..9). CA-INI-05-1/2 los cubren `alertas-lista`/`alertas-demora`. Desvío: sin E2E (no se pudo correr Playwright con Supabase local en la sesión); seguimiento MSF-851. Revisiones: ver hallazgos corregidos en los commits fix(MSF-821).
 
 ## F-INI-06 · MSF-822
 - [x] T010 RPC `movimientos_por_producto` (12 columnas, orden/filtros en servidor) + pgTAP. Evidencia: migración `20270305120000`, `inicio_tablero_bloques.test.sql`; CI `database` verde sobre `8589dfb7`.
 - [x] T011 Tabla con carga infinita, vistas rápidas, búsqueda, categoría, orden. Evidencia: `tablero/MovimientosPorProducto.tsx`, `hooks/useMovimientosPorProducto.ts`, `lib/inicioBloques.ts`.
 - [x] T012 Exportación CSV por lotes (sin exportar para quien no puede exportar Stock). Evidencia: `useExportarCsv` + prefijo `movimientos-por-producto` en `lib/exportarCsv.ts`; test «exportar baja por lotes…».
-- [x] T013 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/movimientos-por-producto.test.tsx` (19 tests, CA-INI-06-1..11).
+- [x] T013 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/movimientos-por-producto.test.tsx` (19 tests, CA-INI-06-1..11). Desvío: sin E2E (MSF-851). Se sumaron tests de reintento de tanda, reinicio al cambiar filtros, duplicados entre tandas, tienda, tope de búsqueda y neutralización de fórmulas en el CSV.
 
 ## F-INI-07 · MSF-823
 - [x] T014 RPC `previsualizar_impacto_dolar` + pgTAP (no escribe). Evidencia: migración `20270305130000_previsualizar_impacto_dolar.sql` (valida NaN, infinito, ≤0, >4 decimales y ≥1e10 con 22023) + `aplicar_cotizacion` (`20270305140000`, carga y confirma atómico) y 13 aserciones en `supabase/tests/database/inicio_tablero_bloques.test.sql` (permiso 42501, valores inválidos, no escribe, `anon` sin ejecución). Desvío: el CI `database` sobre estos cambios queda pendiente al empujar.
@@ -27,3 +27,7 @@
 ## Cierre
 - [ ] T017 Documentación (`docs/inicio-y-alertas.md`, contratos, roadmap) y revisión de seguridad integral
 - [ ] T018 Guards, CI completo, revisiones QA y Código/Seguridad por historia, merge a `dokploy`, verificación en dev
+
+## Decisiones pendientes de Nicolás (de las revisiones de F-INI-05/06)
+- **Rentabilidad por tienda u organización**: `resumen_inicio_bloques` evalúa `rentabilidad` con el rol de la organización (como el resto del repo: precios masivos, exportar productos) y `ventas` por tienda. Un usuario con rentabilidad en la organización pero sin ella en una tienda vería ingresos y margen de esa tienda. Más estricto: `private.nivel_de_rol(org, rol_en_empresa(e), 'rentabilidad')` por tienda. Sin cambiar hoy; decidir.
+- **Margen estimado**: la implementación usa el margen real con el costo guardado en la línea (D-5); la historia dice «costo vigente». Manda la historia si Nicolás lo pide.

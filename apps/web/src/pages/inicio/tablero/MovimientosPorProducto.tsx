@@ -22,6 +22,8 @@ import { supabaseClient } from '../../../lib/supabase'
 import { useLecturaInicio } from '../useLecturaInicio'
 
 const DEMORA_BUSQUEDA_MS = 300
+// Igual que el tope de la RPC (`left(…, 100)`): no se mandan textos enormes al servidor.
+const LARGO_MAXIMO_BUSQUEDA = 100
 const TODAS = ''
 const COLOR_ESTADO: Record<EstadoMovimiento, 'error' | 'default' | 'success'> = { alerta: 'error', quieto: 'default', normal: 'success' }
 
@@ -72,6 +74,12 @@ export function MovimientosPorProducto({ contexto }: Props) {
     reinicio: { desde, hasta, empresaId, depositoId, ...filtrosEfectivos },
   })
   const falloTanda = isError && pagina > 1
+  // La paginación por offset puede repetir un producto entre tandas si el stock cambia mientras se carga más:
+  // se muestra una sola vez (la primera) para no repetir claves en la lista.
+  const filasUnicas = useMemo(() => {
+    const vistos = new Set<string>()
+    return listado.filas.filter((fila) => (vistos.has(fila.productoId) ? false : (vistos.add(fila.productoId), true)))
+  }, [listado.filas])
   // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna).
   const conVentas = filas.length === 0 || filas.some((fila) => fila.ventas !== null) || listado.filas.some((fila) => fila.ventas !== null)
 
@@ -140,7 +148,7 @@ export function MovimientosPorProducto({ contexto }: Props) {
           >
             {VISTAS_MOVIMIENTOS.map((vista) => <ToggleButton key={vista.valor} value={vista.valor}>{vista.etiqueta}</ToggleButton>)}
           </ToggleButtonGroup>
-          <TextField label="Buscar producto o SKU" type="search" size="small" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} sx={{ minWidth: { md: 240 } }} />
+          <TextField label="Buscar producto o SKU" type="search" size="small" value={busqueda} slotProps={{ htmlInput: { maxLength: LARGO_MAXIMO_BUSQUEDA } }} onChange={(evento) => setBusqueda(evento.target.value)} sx={{ minWidth: { md: 240 } }} />
           <TextField
             select label="Categoría" size="small" value={categoriaVigente ?? TODAS}
             onChange={(evento) => cambiar({ categoriaId: evento.target.value === TODAS ? null : evento.target.value })}
@@ -166,7 +174,7 @@ export function MovimientosPorProducto({ contexto }: Props) {
           <EstadoCargaPagina />
         ) : isError && !falloTanda ? (
           <EstadoError titulo="No pudimos cargar los movimientos por producto." reintentar={() => void refetch()} />
-        ) : listado.filas.length === 0 ? (
+        ) : filasUnicas.length === 0 ? (
           <EstadoVacio
             titulo="Sin movimientos para estos filtros"
             descripcion={hayFiltros ? 'Probá con otra búsqueda o cambiá los filtros.' : 'No hay productos activos para mostrar.'}
@@ -175,17 +183,17 @@ export function MovimientosPorProducto({ contexto }: Props) {
         ) : (
           <Box>
             <Typography variant="body2" color="text.secondary" role="status" sx={{ mb: 1 }}>
-              Mostrando {formatoEntero(listado.filas.length)} de {formatoEntero(total)} {total === 1 ? 'producto' : 'productos'}
+              Mostrando {formatoEntero(filasUnicas.length)} de {formatoEntero(total)} {total === 1 ? 'producto' : 'productos'}
             </Typography>
             <ContenidoAdaptable
-              items={listado.filas}
+              items={filasUnicas}
               columnas={columnas}
               obtenerClave={(fila) => fila.productoId}
               etiquetaTabla="Movimientos por producto"
               orden={{ clave: filtros.orden, direccion: filtros.direccion }}
               alOrdenar={alOrdenar}
             />
-            <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={listado.cargarMas} />
+            <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas} />
           </Box>
         )}
       </Stack>
