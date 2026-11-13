@@ -4,7 +4,7 @@
 -- vistas y búsqueda, aislamiento, vista previa que NO escribe y `anon` sin ejecución.
 begin;
 
-select plan(51);
+select plan(52);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -147,6 +147,8 @@ select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '
   'una dirección fuera de la lista blanca se rechaza');
 select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'inventada')$$, '22023', null,
   'una vista inválida se rechaza');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', 'a2000000-0000-0000-0000-0000000000e1')), 0,
+  'una tienda de otra organización devuelve una lista vacía (no revela productos asignados)');
 select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, 'd2000000-0000-0000-0000-000000000001')), 0,
   'un depósito de otra organización devuelve una lista vacía');
 select throws_ok($$select * from public.movimientos_por_producto('2025-01-01', '2026-10-31')$$, '22023', null, 'más de 366 días se rechaza');

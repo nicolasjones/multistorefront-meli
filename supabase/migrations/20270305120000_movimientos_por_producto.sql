@@ -84,6 +84,11 @@ begin
   if coalesce(p_vista, 'todos') not in ('todos', 'alerta', 'quieto') then
     raise exception 'La vista no es válida' using errcode = '22023';
   end if;
+  -- Una tienda que el usuario no puede ver no se distingue de una inexistente (lista vacía), para no revelar
+  -- qué productos tiene asignados una tienda ajena de su organización.
+  if p_empresa is not null and not (p_empresa = any (select private.empresas_accesibles())) then
+    return;
+  end if;
   if p_deposito is not null and not exists (
     select 1 from dominio.depositos d where d.id = p_deposito and d.organizacion_id = v_org
   ) then

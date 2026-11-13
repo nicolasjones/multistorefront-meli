@@ -23,7 +23,7 @@ organizaciones, ninguna permite escribir y ninguna expone costo o margen a un ro
 
 | # | Severidad | Resumen | Seguimiento |
 |---|---|---|---|
-| H-1 | Baja | `movimientos_por_producto` no cruza la tienda pedida con las tiendas accesibles al listar sus productos | Tarea `seguimiento` por crear (ver `tasks.md`) |
+| H-1 | Baja | `movimientos_por_producto` no cruza la tienda pedida con las tiendas accesibles al listar sus productos | **Corregido** en la propia épica: la RPC devuelve lista vacía si la tienda no es accesible (con pgTAP) |
 | H-2 | Baja (decisión de producto) | El KPI «Ventas (con IVA)» y el ticket promedio se gatean por `ventas`, mientras que «ingresos» por tienda exige `rentabilidad`: el control sobre los ingresos es parcial | Decisión de Nicolás; `tasks.md` |
 | H-3 | Informativa | `rentabilidad` se evalúa por organización y `ventas` por tienda | Ya está como decisión pendiente en `tasks.md` |
 | H-4 | Baja (heredado) | El permiso del dólar es compartido entre tiendas: la tienda se valida contra la organización, no contra las accesibles | Tarea `seguimiento` por crear |
@@ -172,7 +172,9 @@ agregarla. El rechazo por «el dólar cambió mientras revisabas» (`22023`, `va
 
 ## Hallazgos
 
-### H-1 · Baja · La tienda del listado de movimientos no se cruza con las accesibles
+### H-1 · Baja · La tienda del listado de movimientos no se cruza con las accesibles (CORREGIDO)
+
+> Corregido antes del merge: `movimientos_por_producto` devuelve una lista vacía si `p_empresa` no está en `private.empresas_accesibles()` (no se distingue de una tienda inexistente) y `inicio_tablero_bloques.test.sql` lo prueba. Lo que sigue describe el hallazgo original.
 
 `public.movimientos_por_producto` (migración `20270305120000`) filtra los productos de una tienda con
 `exists (select 1 from dominio.producto_empresa pe where … pe.empresa_id = $12::uuid)`, donde `$12` es `p_empresa` tal cual, **sin
