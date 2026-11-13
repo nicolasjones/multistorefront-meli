@@ -18,7 +18,7 @@ que la página le da a Nicolás.
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Test nuevo de la historia | `pnpm test:docs:pasos-manuales` | pass | 8/8. |
+| Test nuevo de la historia | `pnpm test:docs:pasos-manuales` | pass | 8/8. Además queda en el job `application` del CI (`validate.yml`), que no llama a `pnpm test` entero. |
 | Tests de documentación vecinos | `pnpm test:docs:check` · `pnpm test:docs:importaciones` | pass | 4/4 y 3/3. |
 | Documentación del cambio | `pnpm docs:check` | pass | «Documentación de cambios: OK»; «Migraciones OK» (0 migraciones nuevas). |
 | Lint | `pnpm lint` | pass | exit 0; los warnings son preexistentes de `apps/web` (no tocado). |

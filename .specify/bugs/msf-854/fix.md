@@ -21,6 +21,7 @@ procedimiento pedido ni quede sin verificar.
 | `docs/pasos-manuales-vps2.md` | added | Runbook con los cuatro pasos: publicar el sitio de docs, orden de arranque de `tailnet-forwards`, recrear el stack Edge de dev y revocar la clave de API de prueba. Cada paso con comando, respaldo previo, verificación y reversión. |
 | `scripts/tests/documentacion-pasos-manuales-vps2.test.mjs` | added | Test que fija los comandos exactos de los cuatro pasos, exige `**Verificación:**` y `**Reversión:**` en cada uno, que la página no lleve secretos y que esté indexada. |
 | `package.json` | modified | Nuevo script `test:docs:pasos-manuales`, encadenado en `pnpm test`. |
+| `.github/workflows/validate.yml` | modified | El job `application` corre `pnpm test:docs:pasos-manuales` (siempre, como los demás guards de documentación). |
 | `docs/README.md` | modified | Fila en «Funcionalidad ↔ documento» y en «Deuda trazada». |
 | `docs/operar-sistema.md` | modified | Enlace desde la página de operación (para que la página no quede huérfana). |
 
@@ -69,6 +70,10 @@ organización (panel o RPC con su token).
 
 ## Deviations from Assessment
 
+- **Se toca el CI** (`.github/workflows/validate.yml`): el assessment no lo preveía. Sin
+  ese paso el test quedaba muerto, porque el job `application` no llama a `pnpm test`
+  entero sino scripts sueltos. Es un paso nuevo en la parte que siempre corre (junto a
+  `pnpm docs:check`), sin cambios de permisos ni de disparadores.
 - El paso 1 usa `rsync -a --delete --exclude=/api-publica/` en lugar del comando de la
   historia (`rsync -a --delete`): sin la exclusión se borra el subsitio público de la API.
   Es el mismo paso, con el riesgo que la historia no contempla.
