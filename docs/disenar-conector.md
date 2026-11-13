@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Diseñar un conector de integración
 
 Guía de proceso para la primera spec que conecte un producto derivado con un

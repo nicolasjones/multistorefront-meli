@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInvalidate } from '@refinedev/core'
 import { usePermisosPanel } from '../context/PermisosPanel'
+import { avisarCambioEmpresaActiva } from '../lib/cambioEmpresaActiva'
 import { cambiarEmpresaActiva, listarEmpresasSelector, usarTodasLasEmpresas, type EmpresaSelector } from '../lib/empresaActiva'
 import { notificarEmpresaActivaCambiada } from '../lib/empresaActivaRevision'
 import { invalidarCachePermisos } from '../lib/permisos'
@@ -65,6 +66,10 @@ export function useEmpresaActiva() {
     void invalidar({ resource: 'access', invalidates: ['all'] })
     // Avisa a las pantallas con filtro por tienda (useEmpresasAccesibles).
     notificarEmpresaActivaCambiada()
+    // Datos de todas las resources: ningún listado queda con filas de la empresa anterior.
+    void invalidar({ invalidates: ['all'] })
+    // Reencuadra la pantalla abierta: remonta el contenido (paginación, selección y diálogos).
+    avisarCambioEmpresaActiva()
     await cargar()
     setCambiando(false)
     return true

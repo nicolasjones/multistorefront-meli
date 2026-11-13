@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Documentación obligatoria de cambios
 
 La documentación es parte del contrato de cada cambio. Cualquier modificación
