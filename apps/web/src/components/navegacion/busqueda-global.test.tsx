@@ -101,4 +101,13 @@ describe('BusquedaGlobal (F-INI-03)', () => {
     await act(async () => { fireEvent.keyDown(campo, { key: 'Escape' }) })
     await waitFor(() => expect(screen.queryByText('Joystick inalámbrico')).not.toBeInTheDocument())
   })
+
+  // [MSF-842] La región viva del anuncio se mide con el helper compartido `SOLO_LECTORES` (1 px).
+  // Con `width: 1` en el `sx` de MUI mide 100 % del contenedor y la barra superior desborda la página
+  // a 320 px; el guardián de estilos (`scripts/verificar-estilos-sueltos.mjs`) rechaza el `1` suelto.
+  it('[MSF-842] la región viva mide 1 px (no 100 %) para no desbordar la página', () => {
+    montar()
+    const anuncio = screen.getByRole('status')
+    expect(anuncio).toHaveStyle({ width: '1px', height: '1px' })
+  })
 })
