@@ -88,8 +88,50 @@ rama sincronizada con `dokploy` lo hereda (`quality` falla en `integracion/main-
 sin esos archivos). Además `quality` no es un check requerido: el ruleset de `dokploy` exige sólo `validacion`
 (el job único de `Validate`).
 
+## Sincronización con la base (2026-11-14)
+
+Segunda sincronización, otra vez **sin tocar el contenido del fix**: `git merge origin/dokploy` entró limpio
+(0 conflictos) y `git diff 41d132dd..HEAD -- supabase/functions/_shared/protocolo.ts
+supabase/functions/_shared/protocolo.test.ts supabase/functions/invitar-cliente
+supabase/functions/recuperar-clave-cliente docs/acceso-ingreso.md docs/clientes.md
+supabase/functions/.env.example .specify/bugs/msf-726 package.json` sale **vacío**: los archivos del alcance
+quedan byte a byte iguales que en `41d132dd`.
+
+La rama queda **al día**: `git merge-base origin/dokploy HEAD` es el propio tip de `origin/dokploy`
+(`9d843135`), o sea que el diff del PR contra la base son sólo los 16 archivos de esta historia. Por eso el job
+`web` (que corre `vitest run --changed <merge-base>`) no arrastra tests de otras historias.
+
+Verificación sobre el árbol ya sincronizado: `pnpm test:edge:protocolo` → 5/5 · `pnpm test:edge:invitar-cliente`
+→ 16/16 · `pnpm test:edge:recuperar-clave-cliente` → 10/10 · `pnpm lint` → exit 0 · `pnpm build` → exit 0 ·
+`pnpm docs:check` → OK (0 migraciones nuevas) · `pnpm --filter @platform/web exec vitest run
+src/pages/tienda-publica/ListadoProductosMovil.test.tsx` → 4/4.
+
+El test que la instrucción del 06/11 señalaba como inestable (`ListadoProductosMovil.test.tsx:60`, «2 filtros
+activos») ya está estabilizado **en la base** (commit `f6314412`, `test(MSF-846)`): pasa acá y no hay que tocarlo
+en esta rama.
+
+**Los tests vigilan la regla** (mutación y reversión, sin dejar el cambio):
+
+| Mutación | Resultado |
+|---|---|
+| Volver a la regla vieja (`kong` en el regex ⇒ `local`) | `pnpm test:edge:protocolo` → 3 fallos (entre ellos «en STG/PRD el esquema sigue siendo https») |
+| Relajar la condición (`!== 'false'` ⇒ cualquier valor habilita `http`) | `pnpm test:edge:protocolo` → 4 fallos (entre ellos «solo el valor true habilita http») |
+
+**El rojo de `quality` es de la línea base, no de esta historia.** `knip` señala
+`docs/javascripts/zoom-imagenes.js` (archivo sin usar), `scripts/armar-video-evidencia.mjs` (`@playwright/test`
+y el binario `ffmpeg`) y `scripts/publicar-videos-e2e.mjs` (binarios `tailscale`, `hostname`, `pkill`): los tres
+archivos son **idénticos a la base** (`git diff origin/dokploy HEAD -- <archivos>` vacío) y los trajo el PR #940
+(`fix/msf-161-menores-939`, mergeado el 13/11), que también entró con `quality -> failure` y `validacion ->
+success`. Es decir: el rojo se hereda de `dokploy` y lo tienen todas las ramas sincronizadas. No se arregla acá
+(rework de la base dentro de una historia de bug = ampliar alcance y duplicar el arreglo del base). El check
+requerido por el ruleset de `dokploy` es **sólo `validacion`** (job único de `Validate`), que es el que
+verdictúa el merge; `quality` es complementario.
+
 ## Recommendation
 
 - **Close the bug — verified a nivel de código** (la reproducción del assessment, en su equivalente automatizado,
   pasa y el síntoma es imposible por construcción). Antes de darlo por cerrado en el entorno: redeploy de las dos
   funciones en STG/PRD, un correo de prueba con `redirectTo` en `https://` y revisión de `GOTRUE_URI_ALLOW_LIST`.
+- **Seguimiento para la base (no es de esta historia)**: `knip` falla en `dokploy` por los tres archivos de
+  tooling señalados arriba; hay que corregirlo en la base (o marcar esos archivos en `knip.json`/`package.json`),
+  no en la rama de este bug.

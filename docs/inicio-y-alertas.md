@@ -72,6 +72,7 @@ se muestra.
   (cantidad de movimientos de tipo ajuste; el detalle muestra además las unidades que **entraron**, sin traslados,
   devoluciones de cliente ni anulaciones de factura, D-3 del tablero). El stock depende del depósito, no del período
   ni de la tienda. Definiciones exactas en [Definiciones de los indicadores](#definiciones-de-los-indicadores).
+- **Ejes del gráfico:** las etiquetas usan formato compacto desde 10.000 («38,9 M») para que no se corten cuando el stock suma decenas de millones de unidades (`formatoEjeCompacto`, `lib/inicioTablero.ts`); la tabla equivalente sigue mostrando los números completos.
 - **Gráfico «Ventas y stock en el tiempo»**: barras de unidades vendidas y línea del stock al cierre de cada
   día con doble eje (`@mui/x-charts`, colores del tema), con descripción accesible y la misma información en
   una tabla («Ver los datos como tabla»). Cada serie aparece solo si el bloque correspondiente se ve.

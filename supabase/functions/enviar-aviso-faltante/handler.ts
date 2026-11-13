@@ -10,6 +10,7 @@ import { timingSafeEqual } from 'node:crypto'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import type { CodigoError } from './codigos.ts'
+import { ConfiguracionSmtpError } from '../_shared/smtp.ts'
 import { asuntoAviso, cuerpoAviso, type LineaFaltante } from './contenido.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
@@ -179,16 +180,23 @@ const MENSAJE_ESQUEMA_FALTANTE = /could not find the function|function .* does n
 export const esErrorDeEsquemaFaltante = (error: { message: string; code?: string }) =>
   (error.code !== undefined && CODIGOS_ESQUEMA_FALTANTE.has(error.code)) || MENSAJE_ESQUEMA_FALTANTE.test(error.message)
 
-/** Valida la configuración SMTP antes de tomar nada; devuelve la respuesta de error (503, mensaje constante) o `null`. */
+/**
+ * Valida la configuración SMTP antes de tomar nada; devuelve la respuesta de error o `null`.
+ * Solo un `ConfiguracionSmtpError` es un 503 `configuracion_smtp`; cualquier otra excepción inesperada del validador es un 500
+ * genérico (`error_interno`). En ambos casos el mensaje es constante (el detalle va al log) y no se toma nada ni se gastan intentos.
+ */
 function configuracionLista(deps: Deps): Response | null {
   if (!deps.validarConfiguracion) return null
   try {
     deps.validarConfiguracion()
     return null
   } catch (falla) {
-    // El motivo exacto (qué variable) va al log; la respuesta es constante y sin secretos.
-    console.error('enviar-aviso-faltante: configuración SMTP inválida', falla instanceof Error ? falla.message : 'error')
-    return response({ error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' }, 503)
+    if (falla instanceof ConfiguracionSmtpError) {
+      console.error('enviar-aviso-faltante: configuración SMTP inválida', falla.message)
+      return response({ error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' }, 503)
+    }
+    console.error('enviar-aviso-faltante: error inesperado al validar la configuración SMTP', falla instanceof Error ? falla.name : 'error')
+    return response({ error: 'No se pudo validar la configuración del correo.', codigo: 'error_interno' }, 500)
   }
 }
 
