@@ -14,7 +14,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // El reporte JSON lo lee `pnpm e2e:omitidos:check` (job `e2e-tienda`): cuenta los tests omitidos.
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }], ['json', { outputFile: 'resultado-e2e.json' }]] : 'list',
   // 5 s por defecto; en el CI la máquina (runners self-hosted) corre cargada y fichas/listados que consultan la base
   // tardaban más que eso en el primer render (falso rojo). Es solo el tope de espera de `expect`: no alarga lo que pasa.
   expect: { timeout: process.env.CI ? 15_000 : 5_000 },

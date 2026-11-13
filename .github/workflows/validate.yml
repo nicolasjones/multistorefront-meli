@@ -82,7 +82,7 @@ jobs:
           echo "e2e=$E2E" >> "$GITHUB_OUTPUT"
       - name: Reservar carril de admisión (CI_LANES)
         id: carril
-        if: vars.CI_LANES != ''
+        if: ${{ vars.CI_LANES != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         env:
           CI_LANES: ${{ vars.CI_LANES }}
           CI_LOAD_MAX: ${{ vars.CI_LOAD_MAX }}
@@ -92,7 +92,7 @@ jobs:
   # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
   application:
     needs: changes
-    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 30
     steps:
@@ -118,6 +118,8 @@ jobs:
       - run: pnpm e2e:escritura:check
       - name: test:e2e:escritura
         run: pnpm test:e2e:escritura
+      - name: test:e2e:omitidos (guarda contra omisiones masivas del e2e)
+        run: pnpm test:e2e:omitidos
       - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
         run: pnpm ui:empresas:check
       - name: test:ui:empresas
@@ -205,7 +207,7 @@ jobs:
   # cierre de la épica (`e2e`): en una historia se valida en la épica. Ver docs/deployment.md.
   web:
     needs: changes
-    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
     # (no había test rojo). La suite completa tarda ~30 min; con 3 shards reales cada job baja a
@@ -268,11 +270,19 @@ jobs:
   # épica (`e2e`). Detalle y límites (sin Edge Runtime) en docs/e2e-app.md.
   e2e-tienda:
     needs: changes
-    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    # `CI_E2E_TIENDA=false` lo apaga (kill switch). `E2E_TIENDA_BLOQUEA` decide si bloquea: mientras no sea `true`,
+    # `continue-on-error` hace que un fallo (o no conseguir ranura) llegue como `success` a `validacion` y `liberar`,
+    # y el job se ve rojo sin frenar el merge. Se pasa a requerido poniendo la variable en `true` tras ~10 corridas
+    # verdes (seguimiento en specs/20261113-120000-ci-e2e-tienda/tasks.md). Sin PRs de forks: ver el filtro de `application`.
+    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && vars.CI_E2E_TIENDA != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
-    # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada). Como
-    # `database`, el timeout también recicla una ranura huérfana (TTL de 50 min) si el job muere sin `liberar`.
-    timeout-minutes: 40
+    continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}
+    # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
+    # esperando ranura. El TTL de la ranura (`SUPABASE_CI_LOCK_TTL_MIN`, abajo y en `database`) va por encima del timeout
+    # para que otro job no recicle esta ranura mientras el job sigue vivo; un job muerto sin `liberar` la suelta a los 75 min.
+    timeout-minutes: 55
+    env:
+      SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -290,7 +300,11 @@ jobs:
             curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
           fi
           supabase --version
+      # Espera a lo sumo 10 min por una ranura (el default de `database` es 20): sin ranura el job falla y, como no
+      # bloquea (`E2E_TIENDA_BLOQUEA`), el PR sigue; ya bloqueante, ese fallo es el costo de no oversuscribir el host.
       - name: Reservar la ranura del stack de Supabase
+        env:
+          SUPABASE_CI_LOCK_MIN: 10
         run: node scripts/supabase-ci.mjs reclamar
       - run: pnpm db:ci:preparar
       # Sin `edge-runtime` (monta el directorio de funciones del checkout, que no existe en el Docker del host:
@@ -317,17 +331,21 @@ jobs:
           eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
           URL="${API_URL/127.0.0.1/host.docker.internal}"
           echo "::add-mask::$SERVICE_ROLE_KEY"
-          codigo=000
-          for intento in $(seq 60); do
-            codigo=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL/rest/v1/" || true)
-            [ "$codigo" = "200" ] && break
-            sleep 2
-          done
-          if [ "$codigo" != "200" ]; then
-            echo "PostgREST no respondió 200 en $URL (último: $codigo)"
-            docker logs --tail 40 "supabase_rest_${SUPABASE_CI_PROJECT_ID}" || true
-            exit 1
-          fi
+          # Espera (hasta 2 min) a que cada servicio que usan los specs responda 200 por kong: PostgREST (recién
+          # reiniciado), Auth (login del panel) y Storage (imágenes de `tienda-ficha`).
+          esperar() {
+            codigo=000
+            for intento in $(seq 60); do
+              codigo=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL$2" || true)
+              [ "$codigo" = "200" ] && return 0
+              sleep 2
+            done
+            echo "$1 no respondió 200 en $URL$2 (último: $codigo)"
+            return 1
+          }
+          esperar PostgREST /rest/v1/ || { docker logs --tail 40 "supabase_rest_${SUPABASE_CI_PROJECT_ID}" || true; exit 1; }
+          esperar Auth /auth/v1/health || { docker logs --tail 40 "supabase_auth_${SUPABASE_CI_PROJECT_ID}" || true; exit 1; }
+          esperar Storage /storage/v1/status || { docker logs --tail 40 "supabase_storage_${SUPABASE_CI_PROJECT_ID}" || true; exit 1; }
           # Esquema `dominio` visible y seed aplicado: las dos tiendas de supabase/seed.sql.
           tiendas=$(curl -fsS -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "Accept-Profile: dominio" "$URL/rest/v1/tiendas?select=dominio")
           echo "tiendas sembradas: $tiendas"
@@ -366,6 +384,10 @@ jobs:
       - name: test:e2e (tienda-*)
         timeout-minutes: 30
         run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda-
+      # 18 specs se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
+      # el único omitido permitido es el de `tienda-seo` (`E2E_SIN_EDGE=1`). Lee `apps/web/resultado-e2e.json`.
+      - name: Verificar que no haya omisiones inesperadas
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
       # Mismo motivo que en `application`: Chromium huérfano si el job se cancela o agota el timeout.
       - name: Limpiar navegadores del job
         if: always()
@@ -377,15 +399,20 @@ jobs:
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() || cancelled()
         with:
           name: playwright-report-tienda
+          retention-days: 7
           path: |
             apps/web/playwright-report
             apps/web/test-results
+            apps/web/resultado-e2e.json
       # Se baja el stack (con sus volúmenes) para no dejar kong/postgrest/auth/storage de la corrida en el Docker
       # del host, y se suelta la ranura. Si el job muere sin llegar acá, el TTL de la ranura la recicla y el
-      # próximo `reclamar` + `supabase stop` del paso de arranque limpian los contenedores.
+      # próximo `reclamar` + `supabase stop` del paso de arranque limpian los contenedores. Caso marginal: una
+      # cancelación forzada del runner (o un reinicio del host) no ejecuta ni los pasos `always()`: los contenedores
+      # `ci-…` de la ranura quedan arriba y la ranura ocupada hasta el TTL de 75 min; limpiar-ci y el próximo job de
+      # esa ranura los bajan, y se pueden bajar a mano con `docker ps --filter name=supabase_ | grep ci-`.
       - name: Bajar el stack y liberar la ranura
         if: always()
         run: |
@@ -396,7 +423,7 @@ jobs:
 
   infrastructure:
     needs: changes
-    if: needs.changes.outputs.infra == 'true'
+    if: ${{ needs.changes.outputs.infra == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 20
     steps:
@@ -419,12 +446,16 @@ jobs:
 
   database:
     needs: changes
-    if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
     # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
-    # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle a los 50 min.
+    # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle al TTL. El TTL va a 75 min (igual
+    # que en `e2e-tienda`, cuyo timeout es 55): el que reclama es quien recicla, así que todos los jobs que comparten
+    # ranuras usan el mismo TTL, por encima del mayor timeout.
     timeout-minutes: 40
+    env:
+      SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
       - uses: actions/checkout@v4
         with:
@@ -464,7 +495,7 @@ jobs:
   # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
   liberar:
     needs: [changes, application, web, e2e-tienda, infrastructure, database]
-    if: ${{ always() && vars.CI_LANES != '' }}
+    if: ${{ always() && vars.CI_LANES != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
     steps:
@@ -489,7 +520,17 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Verificar que nada haya fallado
+        env:
+          EVENTO: ${{ github.event_name }}
+          REPO_ORIGEN: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
         run: |
+          # Los PRs de forks no corren en los runners self-hosted (los jobs pesados los saltean): sin esto
+          # `validacion` daría verde con todo `skipped`. Hay que re-publicar la rama dentro del repo.
+          if [ "$EVENTO" = "pull_request" ] && [ "$REPO_ORIGEN" != "$REPO" ]; then
+            echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
+            exit 1
+          fi
           if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
             echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
             exit 1

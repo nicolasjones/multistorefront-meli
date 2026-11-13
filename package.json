@@ -90,6 +90,8 @@
     "test:estilos:sueltos": "node --test scripts/verificar-estilos-sueltos.test.mjs",
     "e2e:escritura:check": "node scripts/verificar-e2e-sin-escritura-directa.mjs",
     "test:e2e:escritura": "node --test scripts/verificar-e2e-sin-escritura-directa.test.mjs",
+    "e2e:omitidos:check": "node scripts/verificar-e2e-omitidos.mjs",
+    "test:e2e:omitidos": "node --test scripts/verificar-e2e-omitidos.test.mjs",
     "ui:empresas:check": "node scripts/verificar-ui-empresas.mjs",
     "test:ui:empresas": "node --test scripts/verificar-ui-empresas.test.mjs",
     "prototipo:inventario": "node scripts/prototipo-inventario.mjs",
