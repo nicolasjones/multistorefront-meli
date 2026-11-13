@@ -52,8 +52,9 @@ const fila = (n: number, empresaId: string, empresa: string) => ({
   desde: '2026-10-01T10:00:00Z',
   stock_estado: 'disponible' as const,
   stock_disponible: 5,
-  aviso: 'sin_avisar' as 'sin_avisar' | 'avisado' | 'para_avisar',
+  aviso: 'sin_avisar' as 'sin_avisar' | 'avisado' | 'para_avisar' | 'en_cola',
   aviso_en: null as string | null,
+  aviso_error: null as string | null,
 })
 
 // Una fila con otro estado de stock, para probar la columna «Stock hoy» (FR-044).
@@ -366,6 +367,8 @@ const resultadoAviso = (cambios: Record<string, unknown> = {}) => ({
   omitidos_sin_correo: 0,
   omitidos_sin_permiso: 0,
   omitidos_no_abiertos: 0,
+  omitidos_reaviso_reciente: 0,
+  omitidos_tope_diario: 0,
   detalle: [],
   ...cambios,
 })
@@ -456,6 +459,64 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     expect(screen.getByText('Avisado · 09/10/2026')).toBeInTheDocument()
   })
 
+  it('«En cola» no es «Avisado», y un aviso fallido muestra el chip con el motivo y «Reintentar» (M-1, QA M5)', async () => {
+    mocks.listar.mockResolvedValue({
+      faltantes: [
+        { ...fila(1, 'e-1', 'San Javucho'), aviso: 'en_cola', aviso_en: '2026-10-09T15:30:00Z' },
+        { ...fila(2, 'e-1', 'San Javucho'), aviso: 'para_avisar', aviso_en: '2026-10-08T12:00:00Z', aviso_error: 'smtp_conexion' },
+      ],
+      total: 2,
+    })
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(screen.getByText('En cola', { selector: '.MuiChip-label' })).toBeInTheDocument()
+    expect(screen.queryByText(/Avisado/)).not.toBeInTheDocument()
+    expect(screen.getByText('Aviso fallido')).toBeInTheDocument()
+    expect(screen.getByText('No se pudo avisar: no se pudo conectar con el servidor de correo.')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Reintentar el aviso/ })).toHaveLength(1)
+
+    // «Reintentar» elige solo ese faltante y abre el diálogo.
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar el aviso de Producto 2 a Cliente 2' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    expect(within(dialogo).getByText(/Se envía un correo a 1 cliente /)).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar avisos' }))
+    await waitFor(() => expect(mocks.avisar).toHaveBeenCalledWith(['f-2'], 'Volvió a haber stock de los productos que tenías pedidos:', false))
+  })
+
+  it('sin permiso de edición el aviso fallido se ve pero no trae «Reintentar»', async () => {
+    prepararAvisos('lectura')
+    mocks.listar.mockResolvedValue({
+      faltantes: [{ ...fila(1, 'e-1', 'San Javucho'), aviso_error: 'otro' }],
+      total: 1,
+    })
+    abrir()
+    await screen.findByText('Aviso fallido')
+    expect(screen.queryByRole('button', { name: /Reintentar/ })).not.toBeInTheDocument()
+  })
+
+  it('al cambiar de filtro la selección se descarta: «Avisar (n)» solo cuenta lo que se ve (m-7, QA M4)', async () => {
+    mocks.listar.mockImplementation(async ({ aviso }: { aviso?: string | null }) => {
+      const filas = [
+        { ...fila(1, 'e-1', 'San Javucho'), aviso: 'sin_avisar' as const },
+        { ...fila(2, 'e-1', 'San Javucho'), aviso: 'para_avisar' as const, aviso_en: '2026-10-08T12:00:00Z' },
+      ].filter((f) => !aviso || f.aviso === aviso)
+      return { faltantes: filas, total: filas.length }
+    })
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    expect(boton('Avisar a los seleccionados (2)')).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Para avisar' }))
+    await waitFor(() => expect(screen.queryByText('Producto 1')).not.toBeInTheDocument())
+    expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
+
+    // Y al volver a «Todos» tampoco reaparece la selección anterior.
+    fireEvent.click(screen.getByRole('button', { name: 'Todos' }))
+    await screen.findByText('Producto 1')
+    expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
+  })
+
   it('el diálogo trae el texto editable, cuenta los clientes y envía el texto editado', async () => {
     mocks.listar.mockResolvedValue({
       faltantes: [
@@ -486,7 +547,7 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     await waitFor(() =>
       expect(mocks.avisar).toHaveBeenCalledWith(expect.arrayContaining(['f-1', 'f-2', 'f-3']), 'Ya llegó lo que pediste', false),
     )
-    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+    expect(await screen.findByText('Avisos en cola.')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     // La lista se recarga y la selección se descarta.
     expect(mocks.listar.mock.calls.length).toBeGreaterThan(1)
@@ -542,7 +603,7 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     fireEvent.click(boton('Avisar a los seleccionados (1)'))
     mocks.listar.mockRejectedValue(new Error('red'))
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Enviar avisos' }))
-    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+    expect(await screen.findByText('Avisos en cola.')).toBeInTheDocument()
     expect(await screen.findByText('No pudimos cargar los faltantes.')).toBeInTheDocument()
     expect(screen.queryByText('Producto 1')).not.toBeInTheDocument()
   })
@@ -562,7 +623,7 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     expect(enviar).toBeDisabled()
     expect(within(dialogo).getByRole('button', { name: 'Cancelar' })).toBeDisabled()
     await act(async () => { resolver(resultadoAviso()) })
-    expect(await screen.findByText('Avisos enviados.')).toBeInTheDocument()
+    expect(await screen.findByText('Avisos en cola.')).toBeInTheDocument()
   })
 
   it('si el envío falla muestra el error en castellano, no cierra el diálogo y deja reintentar', async () => {

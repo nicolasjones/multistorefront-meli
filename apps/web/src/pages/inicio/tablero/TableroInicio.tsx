@@ -114,7 +114,7 @@ export function TableroInicio({ verVentas, verStock, verActividad = false, verRe
       {!cargandoEmpresas && (verVentas || verStock || verActividad) ? (
         <BloquesGestion contexto={contexto} verVentas={verVentas} verStock={verStock} verActividad={verActividad} />
       ) : null}
-      {!cargandoEmpresas && verStock ? <MovimientosPorProducto contexto={contexto} /> : null}
+      {!cargandoEmpresas && verStock ? <MovimientosPorProducto contexto={contexto} verVentas={verVentas} /> : null}
     </Stack>
   )
 }
