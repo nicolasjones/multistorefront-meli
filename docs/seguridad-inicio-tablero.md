@@ -5,7 +5,7 @@ historias: filtros, indicadores y gráfico (F-INI-04, MSF-820), bloques de gesti
 producto» (F-INI-06, MSF-822) y «Cargar dólar del día» con impacto (F-INI-07, MSF-823). La guía funcional es
 [`inicio-y-alertas.md`](./inicio-y-alertas.md); acá solo va lo que importa para seguridad.
 
-- **Revisado**: rama `epic/MSF-824-inicio-tablero-completo` hasta `c18ea7de` (PR #899 a `dokploy`), 2026-11-13. El último cambio de ese tramo (`c18ea7de`) solo cambia un delimitador `$$` por `$q$` en la lista blanca de orden de `movimientos_por_producto` y no altera el análisis.
+- **Revisado**: rama `epic/MSF-824-inicio-tablero-completo` hasta `e8ef239e` (PR #899 a `dokploy`), 2026-11-13, con el CI en verde sobre ese commit (`application`, `database`, `web (1..3)`, `quality`). Posteriormente hubo una re-revisión independiente de las correcciones (sin hallazgos bloqueantes) y cambios menores de pantalla y documentación que no alteran este análisis.
 - **Código leído**: las cinco migraciones `20270305105000`…`20270305140000`, sus pgTAP (`resumen_inicio_periodo.test.sql`,
   `inicio_tablero_bloques.test.sql`), `apps/web/src/pages/inicio/`, `components/cotizacion/`, `lib/inicioTablero.ts`,
   `lib/inicioBloques.ts`, `lib/exportarCsv.ts`, los cambios de `pages/stock/list.tsx` y `pages/ventas-reportes/`, y el
@@ -51,8 +51,8 @@ Cada migración termina con `revoke execute on function … from public, anon;` 
 (`resumen_inicio_periodo(date,date,uuid,uuid)`, `resumen_inicio_bloques(date,date,uuid,uuid)`,
 `movimientos_por_producto(date,date,uuid,uuid,text,uuid,text,text,text,integer,integer)`,
 `previsualizar_impacto_dolar(numeric,uuid)` y `aplicar_cotizacion(numeric,uuid,numeric)`). Hay una aserción
-`has_function_privilege('anon', …, 'EXECUTE')` negativa por cada una (`resumen_inicio_periodo.test.sql` línea 163;
-`inicio_tablero_bloques.test.sql` líneas 169, 189 y 202) y una positiva para `authenticated` en las dos de F-INI-05/06. No
+`has_function_privilege('anon', …, 'EXECUTE')` negativa por cada una (`resumen_inicio_periodo.test.sql`, aserción «anon no ejecuta la RPC»;
+`inicio_tablero_bloques.test.sql`, las aserciones «anon no ejecuta …» de bloques y movimientos, de la vista previa del dólar y de `aplicar_cotizacion`) y una positiva para `authenticated` en las dos de F-INI-05/06. No
 verifiqué que exista un test genérico que recorra todo `public` buscando funciones ejecutables por `anon`; el que sí está en el
 repo para tablas es `privilegios_anon_endurecidos.test.sql`.
 
@@ -106,7 +106,7 @@ Con la matriz inicial (cada organización puede editarla; la autoridad es la bas
 |---|---|---|
 | `margen_pct` e `ingresos` por tienda | `rentabilidad` ≥ lectura (Administrador y Administración) | `resumen_inicio_bloques`: `case when v_rent …`; sin permiso **vuelven `null` desde la base** |
 | Costo unitario | **nadie**: ninguna de las cinco funciones lo devuelve | solo se usa adentro para calcular `margen_pct` |
-| Costo y margen en «Movimientos por producto» | **nadie**: no están entre las 14 columnas | contrato de la función |
+| Costo y margen en «Movimientos por producto» | **nadie**: no están entre las 12 columnas visibles | contrato de la función |
 | «Ventas (con IVA)», comprobantes, ticket, unidades, devoluciones | `ventas` ≥ lectura en la tienda (todos los roles salvo Técnico) | `resumen_inicio_periodo` (H-2) |
 | Stock, reservado, mínimo, entradas, salidas, ajustes | `stock` ≥ lectura (los ocho roles de fábrica) | las tres funciones de stock |
 | Columna «Ventas» del listado | `ventas` en alguna tienda accesible | `null` si no |
@@ -255,8 +255,7 @@ Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a
 
 ## Lo que no se verificó
 
-- **pgTAP, Vitest, E2E y el job `database` del CI**: no los corrí. Lo que afirmo de las pruebas es lo que **dicen** los archivos. Al momento de esta
-  revisión el CI del PR #899 acababa de arrancar sobre el HEAD vigente (el anterior había quedado con `database`, `application` y `web` sin terminar): hay que esperar su resultado.
+- **pgTAP, Vitest y E2E**: no los corrí yo en esta revisión. Lo que afirmo de las pruebas es lo que **dicen** los archivos, respaldado por el CI verde del PR #899 sobre `e8ef239e` (`database` ejecuta todo `supabase/tests/database`; el E2E necesita Supabase local y no corre en el CI).
 - **Desempeño con volumen real** (H-5) y el **`statement_timeout`** efectivo de `authenticated` en dev y producción.
 - **Los permisos efectivos de cada organización**: la tabla por rol usa la matriz de fábrica; una organización puede haberla editado.
 - **La verificación en dev** (bundle desplegado, funciones registradas): es parte de T018 y es posterior al merge.
@@ -264,8 +263,8 @@ Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a
 
 ## Pruebas que respaldan estas afirmaciones
 
-pgTAP: `supabase/tests/database/resumen_inicio_periodo.test.sql` (23 aserciones: signo de la nota de crédito, período anterior, tienda y depósito
-ajenos, serie, tope de 366 días, `anon`) e `inicio_tablero_bloques.test.sql` (51: permisos por rol, ingresos y margen `null`, lista blanca y comodines,
+pgTAP: `supabase/tests/database/resumen_inicio_periodo.test.sql` (signo de la nota de crédito, período anterior, tienda y depósito
+ajenos, serie, tope de 366 días, `anon`) e `inicio_tablero_bloques.test.sql` (más de 50 aserciones: permisos por rol, ingresos y margen `null`, lista blanca y comodines,
 dos organizaciones, vista previa sin escritura, valores inválidos, `aplicar_cotizacion` atómica, `anon`). Vitest: `tablero-filtros`, `tablero-inicio`,
 `tablero-solo-actividad`, `bloques-gestion`, `movimientos-por-producto` (incluye la neutralización de fórmulas del CSV), `DialogoCargarDolarConImpacto.test.tsx`
 y su variante `.integrado.test.tsx`.
