@@ -32,13 +32,13 @@ test.describe('Recorrido público', () => {
       page.getByLabel(/email/i).fill('demo@example.com'),
     )
     await paso(page, 'Verifica que puede pedir el enlace', async () => {
-      await expect(page.getByRole('button', { name: 'Enviar enlace de recuperacion' })).toBeEnabled()
+      await expect(page.getByRole('button', { name: 'Enviar enlace de recuperación' })).toBeEnabled()
     })
 
     await paso(page, 'Abre un enlace vencido', () => page.goto('/acceso/solicitar-recuperacion?enlace=vencido'))
     await paso(page, 'Verifica el aviso y la salida', async () => {
-      await expect(page.getByText('El enlace vencio o ya se uso')).toBeVisible()
-      await expect(page.getByRole('button', { name: 'Enviar enlace de recuperacion' })).toBeEnabled()
+      await expect(page.getByText('El enlace venció o ya se usó')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Enviar enlace de recuperación' })).toBeEnabled()
     })
 
     await paso(page, 'Vuelve al ingreso', () => page.goto('/login'))

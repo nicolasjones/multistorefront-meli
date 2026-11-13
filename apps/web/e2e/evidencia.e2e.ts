@@ -43,7 +43,7 @@ test('[MSF-119:T020] recorrido visible: acceso, recuperación y rutas protegidas
     await expect(email).toHaveValue('demo@example.com')
   })
 
-  const send = page.getByRole('button', { name: 'Enviar enlace de recuperacion' })
+  const send = page.getByRole('button', { name: 'Enviar enlace de recuperación' })
   await paso(page, 'Verifica que puede pedir el enlace', async () => {
     await mover(page, send)
     await expect(send).toBeEnabled()
@@ -51,10 +51,10 @@ test('[MSF-119:T020] recorrido visible: acceso, recuperación y rutas protegidas
 
   await page.goto('/acceso/solicitar-recuperacion?enlace=vencido')
   await paso(page, 'Abre un enlace vencido', async () => {
-    await expect(page.getByText('El enlace vencio o ya se uso')).toBeVisible()
+    await expect(page.getByText('El enlace venció o ya se usó')).toBeVisible()
     await expect(send).toBeEnabled()
   })
-  await mover(page, page.getByText('El enlace vencio o ya se uso'))
+  await mover(page, page.getByText('El enlace venció o ya se usó'))
   await page.waitForTimeout(600)
   await mover(page, send)
 
