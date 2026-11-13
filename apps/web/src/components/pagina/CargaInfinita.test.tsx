@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CargaInfinita } from './CargaInfinita'
 
@@ -53,7 +53,7 @@ describe('CargaInfinita', () => {
     const onCargarMas = vi.fn()
     const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={onCargarMas} />)
     const boton = screen.getByRole('button', { name: 'Cargar más' })
-    boton.focus()
+    act(() => boton.focus())
     fireEvent.click(boton)
     expect(onCargarMas).toHaveBeenCalledTimes(1)
     rerender(<CargaInfinita hayMas cargando onCargarMas={onCargarMas} />)
@@ -75,14 +75,15 @@ describe('CargaInfinita', () => {
   it('al llegar al final anuncia «No hay más resultados» y pasa el foco al texto de fin', () => {
     const { rerender } = render(<CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />)
     const boton = screen.getByRole('button', { name: 'Cargar más' })
-    boton.focus()
+    act(() => boton.focus())
     rerender(<CargaInfinita hayMas cargando cargados={24} onCargarMas={vi.fn()} />)
     rerender(<CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />)
     expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('No hay más resultados')
     expect(document.activeElement).toBe(screen.getByText('No hay más resultados.'))
   })
 
-  it('si el usuario pasó a otro campo, la tanda siguiente no le roba el foco', () => {
+  // Caracterización: el blur de la zona ya apaga la marca, así que pasa con o sin el guard del efecto.
+  it('(caracterización) si el usuario pasó a otro campo con el botón enfocado, la tanda siguiente no le roba el foco', () => {
     const { rerender } = render(
       <div>
         <input aria-label="Buscar" />
@@ -90,10 +91,32 @@ describe('CargaInfinita', () => {
       </div>,
     )
     const boton = screen.getByRole('button', { name: 'Cargar más' })
-    boton.focus()
+    act(() => boton.focus())
     fireEvent.click(boton)
     const campo = screen.getByLabelText('Buscar')
-    campo.focus()
+    act(() => campo.focus())
+    rerender(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(campo)
+  })
+
+  // Cubre el guard del efecto: sin foco previo en el botón la marca queda puesta (onClick) y, como el campo nunca
+  // dispara un blur de la zona, solo el guard evita el robo de foco.
+  it('clic con el foco en el body y luego el usuario pasa a otro campo durante la carga: la tanda siguiente no le roba el foco', () => {
+    const { rerender } = render(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(document.body)
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    const campo = screen.getByLabelText('Buscar')
+    act(() => campo.focus())
     rerender(
       <div>
         <input aria-label="Buscar" />
@@ -111,7 +134,7 @@ describe('CargaInfinita', () => {
       </div>,
     )
     const campo = screen.getByLabelText('Buscar')
-    campo.focus()
+    act(() => campo.focus())
     // Clic sin foco previo en el botón: la marca no debe quedar puesta.
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     rerender(
