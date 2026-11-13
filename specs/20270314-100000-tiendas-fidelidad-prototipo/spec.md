@@ -79,8 +79,8 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 | «Sin imagen» y placeholders de los campos | Tarjeta, ficha, contacto, filtros | Desvío accesible respecto del prototipo: el prototipo usa negro al 35 % / 45 % (≈ 2,4:1 sobre la superficie); la tienda usa el gris secundario del tema (≥ 4,5:1, AA) |
 | Foco de teclado en campos y casilla | Contacto, filtros | Desvío accesible: el prototipo no dibuja el estado de foco; la tienda suma borde y contorno primarios de 2 px (WCAG 2.4.7) |
 | Orden de tabulación del encabezado de celular | Todas (celular) | Menú → marca → buscador → «Ingresar». Desvío menor: «Ingresar» se ve antes que el buscador pero se tabula después (el mismo DOM sirve al escritorio, donde el orden coincide) |
-| Héroe de San Javucho (franja clara, círculo ámbar, título de 60 px) | Portada | Decisión abierta (ver arriba); solo se corrigió la accesibilidad del botón (acento de la identidad con texto de contraste calculado) |
-| «Explorar productos» / «Ver catálogo» del héroe | Portada | FR-010 (acento + texto de contraste; uppercase de MundoJC, ver decisión abierta de mayúsculas) |
+| Héroe de San Javucho (franja clara, círculo ámbar, título de 60 px) | Portada | Resuelto por configuración en MSF-848 (`estilo_heroe` = claro); en MSF-847 solo se corrigió la accesibilidad del botón |
+| «Explorar productos» / «Ver catálogo» del héroe | Portada | FR-010 (acento + texto de contraste); mayúsculas por configuración en MSF-848 (`titulos_mayusculas`) |
 | Fondo del encabezado, campos, menús y diálogos | Todas | FR-010 (papel blanco; antes crema en San Javucho) |
 | Título del héroe como `h1` | Portada | FR-010 (un único h1 por página: la marca lo cede si hay título de héroe) |
 | «Todos los productos» con total, filas de 32 px | Catálogo | FR-011 |
@@ -101,11 +101,13 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 | Pie de celular: marca, contacto y © en una columna | Celular | Diferencia conocida: se mantienen las líneas de «Información» y el bloque legal (otras funcionalidades) |
 | Datos del banner/categorías/destacados | Portada | Contenido y datos de la demo: fuera de alcance (colores de texto del tenant, gris secundario derivado de la identidad) |
 
-## Decisiones abiertas (requieren decisión de producto; no se inventó configuración)
+## Decisiones abiertas (resueltas en MSF-848: por configuración)
 
-- **Héroe de dos variantes (H-04, H-05, H-06).** El prototipo MundoJC tiene una franja oscura con título de 72 px en mayúsculas blancas y franjas inclinadas; el de San Javucho, una franja clara `#F1E9D8` con un círculo ámbar de 360 px y el título de 60 px sin mayúsculas en el color primario. Hoy solo existe la variante de MundoJC. Hay que decidir si la variante se deriva de la identidad (p. ej. por la luminancia de `colorBarra`) o si es un campo propio de la identidad. Lo que sí es implementación y se corrigió: el botón es visible y accesible con cualquier identidad y el texto de la franja se calcula según su luminancia.
-- **Mayúsculas de la barra de categorías y del botón del héroe (C-14).** MundoJC las usa (con `letter-spacing` .04em) y San Javucho no las transforma; la identidad no trae ese dato. Hoy siguen el estilo de MundoJC. Misma decisión que el héroe.
-- **Color de la franja inclinada (H-02).** El prototipo fija `#8C0004`; la app usa el primario oscuro de la identidad (`#7A0A12` en la demo).
+La regla de Nicolás es «si bien son 2 tiendas diferentes, todo es por config». Dos de las tres decisiones se resolvieron con campos de la identidad visual (spec `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`, migración `20270308100000_tienda_estilo_heroe_mayusculas.sql`); la tercera queda declarada.
+
+- **Héroe de dos variantes (H-04, H-05, H-06). Resuelta.** Campo `estilo_heroe` «Estilo del encabezado de la portada» (`oscuro` por defecto | `claro`): la variante oscura es la de MundoJC (franja oscura, título de 72 px en mayúsculas blancas, franjas inclinadas) y la clara la de San Javucho (franja con la superficie, círculo de acento de 360 px y título de 60 px sin mayúsculas en el color primario). El botón es visible y accesible con cualquier identidad en las dos.
+- **Mayúsculas de la barra de categorías y del botón del héroe (C-14). Resuelta.** Campo `titulos_mayusculas` «Títulos del menú y botones en mayúsculas» (`true` por defecto): MundoJC las usa (con `letter-spacing` .04em en la barra) y San Javucho no. Controla también el título del héroe.
+- **Color de la franja inclinada (H-02). Declarada, sin campo.** El prototipo fija `#8C0004`; la app usa el primario oscuro de la identidad (`#7A0A12` en la demo), que ya se configura en «Colores».
 
 ## Decisiones
 
