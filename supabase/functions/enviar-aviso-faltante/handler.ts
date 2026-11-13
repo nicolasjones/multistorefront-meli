@@ -15,15 +15,24 @@ const response = (body: unknown, status = 200) => new Response(JSON.stringify(bo
 
 export const MAX_INTENTOS = 5
 export const LIMITE_BARRIDO = 50
-const ERROR_MAX = 300
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Sin coma, punto y coma, comillas ni ángulos: una sola dirección (m-3).
+export const CORREO_VALIDO = /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$/
 
 type Resultado<T> = Promise<{ data: T; error: { message: string } | null }>
 
 export type EstadoAviso = 'enviado' | 'fallido' | 'nada'
 
-export type Tomado = { cliente: string | null; correo: string | null; lineas: LineaFaltante[] | null }
+export type Tomado = {
+  cliente: string | null
+  correo: string | null
+  lineas: LineaFaltante[] | null
+  /** Token de la tanda: el cierre solo toca las líneas de esta tanda (M-2). */
+  tanda?: string | null
+}
+
+/** Códigos genéricos de `ultimo_error` (m-4b): el detalle técnico va solo al log. */
+export type CodigoError = 'smtp_auth' | 'smtp_conexion' | 'smtp_timeout' | 'destinatario_invalido' | 'otro'
 
 export type Deps = {
   /** Secreto compartido con Kestra (AVISOS_FALTANTES_TOKEN); sin él la función rechaza todo. */
@@ -31,7 +40,7 @@ export type Deps = {
   datos: {
     pendientes(tope: number, limite: number): Resultado<string[] | null>
     tomar(clienteId: string, tope: number): Resultado<Tomado[] | null>
-    cerrar(clienteId: string, enviado: boolean, error: string | null, tope: number): Resultado<unknown>
+    cerrar(clienteId: string, enviado: boolean, error: string | null, tope: number, tanda: string | null): Resultado<unknown>
   }
   enviar: EnviarCorreo
 }
@@ -43,15 +52,27 @@ const tokenValido = (esperado: string | undefined, recibido: string | null) => {
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
-// El error del SMTP puede traer la dirección del destinatario (p. ej. «550 5.1.1 <ana@example.com>»).
-// Se sanean las direcciones antes de guardarlo o de escribirlo en el log: `ultimo_error` lo lee el panel
-// (cualquiera con `ventas` en la tienda) y un correo del cliente no es un dato que deba quedar ahí.
+// El error del SMTP puede traer direcciones, hosts o usuarios (p. ej. «535 Authentication failed for user smtp-prod@host»).
+// `ultimo_error` lo lee el panel (cualquiera con `ventas` en la tienda): ahí solo va un código genérico y el
+// detalle, con las direcciones saneadas, queda únicamente en el log de la función.
 const CORREO_EN_ERROR = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g
+const DETALLE_MAX = 300
+
+const textoDeError = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 const mensajeDeError = (error: unknown) =>
-  (error instanceof Error ? error.message : String(error))
-    .replace(CORREO_EN_ERROR, '[correo]')
-    .replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error de envío sin detalle'
+  textoDeError(error).replace(CORREO_EN_ERROR, '[correo]').replace(/\s+/g, ' ').trim().slice(0, DETALLE_MAX) || 'Error de envío sin detalle'
+
+/** Clasifica una falla de envío en un código genérico (nunca el texto del servidor). */
+export function codigoDeError(error: unknown): CodigoError {
+  const nombre = error instanceof Error ? error.name : ''
+  const texto = textoDeError(error)
+  if (nombre === 'TimeoutError' || /timeout|timed out|no respondió a tiempo/i.test(texto)) return 'smtp_timeout'
+  if (/\b53[05]\b|auth|credential|username|password/i.test(texto)) return 'smtp_auth'
+  if (/\b55[0-4]\b|recipient|mailbox|invalid address|user unknown/i.test(texto)) return 'destinatario_invalido'
+  if (/econn|enotfound|ehostunreach|connect|connection|socket|tls|ssl|dns|refused|reset|broken pipe/i.test(texto)) return 'smtp_conexion'
+  return 'otro'
+}
 
 /** Procesa los avisos de un cliente: toma, envía un correo y cierra. Idempotente por cliente. */
 export async function procesarCliente(clienteId: string, deps: Deps): Promise<EstadoAviso> {
@@ -61,15 +82,16 @@ export async function procesarCliente(clienteId: string, deps: Deps): Promise<Es
   if (data.length === 0 || !data[0].lineas?.length) return 'nada'
   const fila = data[0]
 
-  const cerrarFallido = async (detalle: string) => {
-    const cierre = await deps.datos.cerrar(clienteId, false, detalle, MAX_INTENTOS)
+  const tanda = fila.tanda ?? null
+  const cerrarFallido = async (codigo: CodigoError) => {
+    const cierre = await deps.datos.cerrar(clienteId, false, codigo, MAX_INTENTOS, tanda)
     if (cierre.error) console.error('enviar-aviso-faltante: no se pudo registrar el fallo', clienteId, cierre.error.message)
     return 'fallido' as const
   }
 
   // El correo del cliente lo carga una persona: se valida antes de usarlo como destinatario.
   if (!CORREO_VALIDO.test(fila.correo ?? '') || (fila.correo ?? '').length > 254) {
-    return cerrarFallido('El correo del cliente no es una dirección válida')
+    return cerrarFallido('destinatario_invalido')
   }
 
   try {
@@ -79,12 +101,12 @@ export async function procesarCliente(clienteId: string, deps: Deps): Promise<Es
       texto: cuerpoAviso(fila.cliente ?? '', fila.lineas),
     })
   } catch (falla) {
-    const detalle = mensajeDeError(falla)
-    console.error('enviar-aviso-faltante: falló el envío', clienteId, detalle)
-    return cerrarFallido(detalle)
+    const codigo = codigoDeError(falla)
+    console.error('enviar-aviso-faltante: falló el envío', clienteId, codigo, mensajeDeError(falla))
+    return cerrarFallido(codigo)
   }
 
-  const cierre = await deps.datos.cerrar(clienteId, true, null, MAX_INTENTOS)
+  const cierre = await deps.datos.cerrar(clienteId, true, null, MAX_INTENTOS, tanda)
   if (cierre.error) console.error('enviar-aviso-faltante: el correo salió pero no se pudo cerrar el aviso', clienteId, cierre.error.message)
   return 'enviado'
 }

@@ -191,8 +191,10 @@ select is((select (j ->> 'lineas_avisadas')::int from r1), 2, 'dos líneas avisa
 select is((select count(*)::int from r1, jsonb_array_elements(j -> 'detalle') d where d ->> 'resultado' = 'encolado'), 2, 'el detalle marca las dos como encolado');
 select is((select count(*)::int from dominio.faltantes_avisos where estado = 'pendiente' and mensaje = 'Ya llegaron tus productos'), 2,
   'quedan dos avisos pendientes con el texto recortado');
-select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso = 'avisado' and aviso_en is not null), 2,
-  'listar_faltantes los muestra «avisado» con fecha');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso = 'en_cola' and aviso_en is not null), 2,
+  'listar_faltantes los muestra «en_cola» con fecha (todavía no «avisado»: el correo no salió)');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso = 'avisado'), 0,
+  'ninguno figura «avisado» mientras el envío no se cierra');
 select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso = 'sin_avisar' and aviso_en is null), 3,
   'los otros tres siguen «sin_avisar»');
 select is((select count(*)::int from public.registro_actividad where tipo = 'ventas.faltantes_avisados' and detalle !~ '@'), 1,
@@ -265,13 +267,14 @@ select is((select count(*)::int from public.listar_faltantes(null, 1, 50)), 0, '
 -- ============================================================================
 
 reset role;
-update dominio.faltantes_avisos set estado = 'agotado', ultimo_error = 'x'
+update dominio.faltantes_avisos set estado = 'agotado', ultimo_error = 'otro'
  where linea_id = (select linea_id from comps where clave = 'A2');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select is(
   (select (public.avisar_faltantes_venta(array[pg_temp.fid('A2')], 'Reintento') ->> 'lineas_avisadas')::int),
   1, 'un aviso agotado se reencola sin p_reavisar');
-select is((select count(*)::int from public.listar_faltantes(null, 1, 50, 'avisado')), 4, 'filtro avisado: A1, A2, A4 y B1');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 50, 'avisado'))
+        + (select count(*)::int from public.listar_faltantes(null, 1, 50, 'en_cola')), 4, 'filtros avisado + en_cola: A1, A2, A4 y B1');
 select is((select count(*)::int from public.listar_faltantes(null, 1, 50, 'sin_avisar')), 1, 'filtro sin_avisar: solo A3');
 select throws_ok($$select * from public.listar_faltantes(null, 1, 50, 'cualquiera')$$, '22023', null, 'p_aviso inválido: 22023');
 select is(to_regprocedure('public.listar_faltantes(uuid, integer, integer)') is null, true, 'la firma vieja de tres parámetros ya no existe');
@@ -293,7 +296,7 @@ select c.linea_id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0
   join comps c on c.clave = m.clave;
 
 set local role service_role;
-create temp table t1 (cliente text, correo text, lineas jsonb);
+create temp table t1 (cliente text, correo text, lineas jsonb, tanda uuid);
 grant select, insert on t1 to public;
 insert into t1 select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5);
 select is((select count(*)::int from t1), 1, 'tomar devuelve un correo por cliente');
@@ -308,7 +311,7 @@ select is((select count(*)::int from public.tomar_aviso_faltante('c5000000-0000-
 select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', true, null, 5);
 select is(pg_temp.q($$select estado from dominio.faltantes_avisos where mensaje = 'Texto A'$$), 'enviado', 'la tanda se cierra como enviada');
 select is(pg_temp.q($$select estado from dominio.faltantes_avisos where mensaje = 'Texto B'$$), 'pendiente', 'la otra línea sigue pendiente (intentos 0)');
-create temp table t2 (cliente text, correo text, lineas jsonb);
+create temp table t2 (cliente text, correo text, lineas jsonb, tanda uuid);
 grant select, insert on t2 to public;
 insert into t2 select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5);
 select is((select lineas -> 0 ->> 'mensaje' from t2), 'Texto B', 'la segunda tanda lleva el otro texto');
@@ -320,13 +323,13 @@ update dominio.faltantes_avisos set estado = 'pendiente', intentos = 0, enviado_
 update dominio.faltantes_venta set estado = 'resuelto', resuelto_en = now()
  where id = pg_temp.fid('A2');
 set local role service_role;
-create temp table t3 (cliente text, correo text, lineas jsonb);
+create temp table t3 (cliente text, correo text, lineas jsonb, tanda uuid);
 grant select, insert on t3 to public;
 insert into t3 select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5);
 select is((select jsonb_array_length(lineas) from t3), 1, 'solo se toma el faltante todavía abierto');
 select is((select lineas -> 0 ->> 'mensaje' from t3), 'Texto A', 'el abierto es el de Texto A');
 select is(pg_temp.q($$select estado || '|' || ultimo_error from dominio.faltantes_avisos where mensaje = 'Texto B'$$),
-  'agotado|El faltante se cerró antes de enviar el aviso', 'el resuelto vuelve a «Sin avisar» con el motivo');
+  'agotado|faltante_cerrado', 'el resuelto vuelve a «Sin avisar» con el motivo');
 select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'fallo', 5);
 
 -- Sin mensaje: el aviso de F-STK-17 no cambia (mensaje nulo).
@@ -339,6 +342,117 @@ select c.linea_id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0
 set local role service_role;
 select is((select (lineas -> 0 -> 'mensaje') = 'null'::jsonb from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000003', 5)),
   true, 'sin texto editado, mensaje es null (texto por defecto)');
+
+-- ============================================================================
+-- Hallazgos de la revisión (MSF-161): token de tanda, topes, saneo, códigos de error, aviso fallido
+-- ============================================================================
+
+reset role;
+delete from dominio.faltantes_avisos;
+insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id, mensaje, created_at, updated_at)
+select c.linea_id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+       'c5000000-0000-0000-0000-000000000001', 'Texto A', now(), now()
+  from comps c where c.clave = 'A1';
+
+-- M-2: cierre tardío con la reserva vencida. La tanda 1 se toma; vence la reserva (2 min) y se toma la tanda 2;
+-- el cierre de la tanda 1 llega tarde y NO toca las líneas de la tanda 2.
+set local role service_role;
+create temp table t4 (cliente text, correo text, lineas jsonb, tanda uuid);
+create temp table t5 (cliente text, correo text, lineas jsonb, tanda uuid);
+grant select, insert on t4, t5 to public;
+insert into t4 select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5);
+select isnt((select tanda from t4), null, 'tomar devuelve el token de la tanda');
+reset role;
+update dominio.faltantes_avisos set updated_at = now() - interval '3 minutes';
+set local role service_role;
+insert into t5 select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5);
+select is((select count(*)::int from t5), 1, 'vencida la reserva, otra invocación retoma el aviso');
+select isnt((select tanda from t5), (select tanda from t4), 'y le da una tanda nueva');
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', true, null, 5, (select tanda from t4));
+select is(pg_temp.q($$select estado from dominio.faltantes_avisos$$), 'pendiente', 'el cierre tardío (tanda vieja) no cierra la tanda nueva como enviada');
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp_auth', 5, (select tanda from t4));
+select is(pg_temp.q($$select coalesce(ultimo_error, 'nulo') from dominio.faltantes_avisos$$), 'nulo', 'ni le pisa el error');
+
+-- m-4b: el error guardado es un código; lo que no es un código conocido queda como «otro» (el detalle no entra).
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, '535 Authentication failed for user smtp-prod@host', 5, (select tanda from t5));
+select is(pg_temp.q($$select ultimo_error from dominio.faltantes_avisos$$), 'otro', 'un error con detalle técnico se guarda como «otro»');
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp_auth', 5, (select tanda from t5));
+select is(pg_temp.q($$select ultimo_error from dominio.faltantes_avisos$$), 'smtp_auth', 'un código conocido se guarda tal cual');
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', true, null, 5, (select tanda from t5));
+select is(pg_temp.q($$select estado from dominio.faltantes_avisos$$), 'enviado', 'el cierre de la tanda vigente sí cierra');
+
+-- QA M1 / M-1: un aviso agotado no cambia la fila (sigue «Para avisar» si llegó mercadería) y expone el error.
+reset role;
+update dominio.faltantes_venta set para_avisar_en = now() where id = pg_temp.fid('A1');
+update dominio.faltantes_avisos set estado = 'agotado', ultimo_error = 'smtp_conexion';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is((select aviso || '|' || aviso_error from public.listar_faltantes(null, 1, 50) where id = pg_temp.fid('A1')),
+  'para_avisar|smtp_conexion', 'agotado con ingreso cubierto: sigue «Para avisar» y trae el error del aviso fallido');
+reset role;
+update dominio.faltantes_venta set para_avisar_en = null where id = pg_temp.fid('A1');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is((select aviso || '|' || aviso_error from public.listar_faltantes(null, 1, 50) where id = pg_temp.fid('A1')),
+  'sin_avisar|smtp_conexion', 'agotado sin ingreso: «Sin avisar» con el error');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso_error is not null), 1, 'solo el fallido trae aviso_error');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 50, 'en_cola')), 0, 'el filtro en_cola no incluye al agotado');
+
+-- M-3: no se reavisa un faltante enviado hace menos de 24 horas, ni con p_reavisar.
+reset role;
+update dominio.faltantes_avisos set estado = 'enviado', intentos = 1, ultimo_error = null, enviado_en = now() - interval '1 hour';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is((select (public.avisar_faltantes_venta(array[pg_temp.fid('A1')], 'Otra vez', true) ->> 'omitidos_reaviso_reciente')::int), 1,
+  'enviado hace 1 hora: no se reavisa (reaviso_reciente)');
+select is(pg_temp.q($$select estado from dominio.faltantes_avisos$$), 'enviado', 'y la cola no se toca');
+reset role;
+update dominio.faltantes_avisos set enviado_en = now() - interval '25 hours';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is((select (public.avisar_faltantes_venta(array[pg_temp.fid('A1')], 'Otra vez', true) ->> 'lineas_avisadas')::int), 1,
+  'enviado hace más de 24 horas y con p_reavisar: se reavisa');
+
+-- M-3: tope diario por organización (1.000 líneas en 24 horas). Las filas de relleno no cuelgan de líneas reales:
+-- se insertan sin los disparadores de FK solo para este test.
+reset role;
+delete from dominio.faltantes_avisos;
+set local session_replication_role = replica;
+insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id, estado, intentos, enviado_en, created_at, updated_at)
+select gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+       'c5000000-0000-0000-0000-000000000001', 'enviado', 1, now(), now(), now()
+  from generate_series(1, 1000);
+set local session_replication_role = origin;
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is((public.avisar_faltantes_venta(array[pg_temp.fid('A1')], 'Hola') ->> 'omitidos_tope_diario')::int, 1,
+  'con 1.000 avisos en las últimas 24 horas la organización no encola más (tope diario)');
+select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso <> 'sin_avisar'), 0, 'y nada quedó encolado');
+reset role;
+delete from dominio.faltantes_avisos;
+
+-- m-5: el texto se sanea en la base (controles, invisibles, saltos) y un check lo exige.
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select public.avisar_faltantes_venta(array[pg_temp.fid('A1')], E'Hola\u0007 mun​do\r\n.\r\n\r\n\r\nchau');
+select is(pg_temp.q($$select mensaje from dominio.faltantes_avisos$$), E'Hola mundo\n.\n\nchau', 'mensaje saneado por la RPC (sin controles ni invisibles, saltos normalizados)');
+reset role;
+select throws_ok(
+  format($$insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id, mensaje)
+           values (%L, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+                   'c5000000-0000-0000-0000-000000000001', E'sin sanear\u0007')$$, (select linea_id from comps where clave = 'A2')),
+  '23514', null, 'el check rechaza un mensaje sin sanear');
+select throws_ok($$update dominio.faltantes_avisos set ultimo_error = 'smtp host=x user=y'$$, '23514', null,
+  'el check rechaza un ultimo_error que no es un código');
+select is(private.sanear_mensaje_aviso(E'  \n '), null, 'un texto vacío después de sanear es null');
+select is(length(private.sanear_mensaje_aviso(repeat('x', 1500))), 1000, 'y se recorta a 1.000');
+
+-- m-6: las dos RPC comparten la regla única (la vieja también respeta «en cola»).
+select is(has_function_privilege('authenticated', 'private.encolar_aviso_faltante(uuid, uuid, uuid, uuid, text, boolean)', 'execute'), false,
+  'la regla única es interna: authenticated no la ejecuta');
+select is(has_function_privilege('service_role', 'public.cerrar_aviso_faltante(uuid, boolean, text, integer, uuid)', 'execute'), true, 'service_role cierra por tanda');
+select is(has_function_privilege('authenticated', 'public.cerrar_aviso_faltante(uuid, boolean, text, integer, uuid)', 'execute'), false, 'authenticated no cierra avisos');
+
+-- Se restaura el estado que esperan las pruebas de RLS que siguen: un aviso del cliente 3.
+delete from dominio.faltantes_avisos;
+insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id)
+select c.linea_id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+       'c5000000-0000-0000-0000-000000000003'
+  from comps c where c.clave = 'A4';
 
 -- ============================================================================
 -- RLS y anon (SC-003)

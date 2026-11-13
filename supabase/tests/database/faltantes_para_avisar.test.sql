@@ -161,7 +161,20 @@ select l.id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, disponibilidad_manual, activo) values
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto Dos Org', 'P-2O', 'ARS', 10, null, true);
 
-select is((select count(*)::int from dominio.faltantes_venta where para_avisar_en is null), 17, 'hay 17 faltantes sin marca antes de ingresar');
+-- QA M2 · aislamiento entre organizaciones: un faltante ABIERTO de la Organización Dos con el MISMO producto que
+-- ingresa la Organización Uno (P1). Las FK compuestas impiden armarlo con datos válidos; se inserta sin los
+-- disparadores de FK solo para probar que el disparador filtra por `organizacion_id` (sin ese filtro, el ingreso de
+-- Uno lo marcaría).
+set local session_replication_role = replica;
+insert into dominio.faltantes_venta
+  (id, organizacion_id, empresa_id, comprobante_id, linea_orden, producto_id, deposito_id, cantidad_faltante, estado, creado_en)
+select 'd2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-000000000001',
+       x.comprobante_id, 99, 'b1000000-0000-0000-0000-000000000001', (select principal from datos), 1, 'abierto',
+       now() - interval '1000 hours'
+  from falt x where x.clave = 'a1';
+set local session_replication_role = origin;
+
+select is((select count(*)::int from dominio.faltantes_venta where para_avisar_en is null and organizacion_id = '11111111-1111-1111-1111-111111111111'), 17, 'hay 17 faltantes sin marca antes de ingresar');
 select is((select count(*)::int from dominio.faltantes_avisos), 1, 'la cola tiene solo el aviso previo de e1');
 
 -- ============================================================================
@@ -214,12 +227,12 @@ select is(pg_temp.fa('d1') || pg_temp.fa('d2'), 'nosi', '[12, 1] con ingreso de 
 create temp table antes (marca timestamptz);
 grant select, insert on antes to public;
 reset role;
-insert into antes select f.para_avisar_en from dominio.faltantes_venta f join falt x on x.comprobante_id = f.comprobante_id where x.clave = 'a1';
+insert into antes select f.para_avisar_en from dominio.faltantes_venta f join falt x on x.comprobante_id = f.comprobante_id and f.linea_orden = 1 where x.clave = 'a1';
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.ingreso(5, 5);
 select is(pg_temp.fa('e1') || pg_temp.fa('e2') || pg_temp.fa('e3'), 'nosino', 'P5: el avisado y el resuelto no se marcan; el libre sí');
 select pg_temp.ingreso(1, 10, 5, 5);
-select is((select f.para_avisar_en from dominio.faltantes_venta f join falt x on x.comprobante_id = f.comprobante_id where x.clave = 'a1'),
+select is((select f.para_avisar_en from dominio.faltantes_venta f join falt x on x.comprobante_id = f.comprobante_id and f.linea_orden = 1 where x.clave = 'a1'),
   (select marca from antes), 'un segundo ingreso no remarca (la fecha de la marca no cambia)');
 select is(pg_temp.fa('e1') || pg_temp.fa('e3'), 'nono', 'avisado y resuelto siguen sin marca tras el segundo ingreso');
 
@@ -290,8 +303,10 @@ select throws_ok($$select * from public.listar_faltantes(null, 1, 10, 'otro')$$,
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.listar_faltantes(null, 1, 100, 'para_avisar')), 0, 'otra organización no ve los marcados');
 reset role;
-select is((select count(*)::int from dominio.faltantes_venta where organizacion_id = '22222222-2222-2222-2222-222222222222'), 0,
-  'y no tiene faltantes marcados por ingresos ajenos');
+select is((select count(*)::int from dominio.faltantes_venta where organizacion_id = '22222222-2222-2222-2222-222222222222'), 1,
+  'la Organización Dos conserva su faltante (QA M2)');
+select is((select para_avisar_en from dominio.faltantes_venta where id = 'd2000000-0000-0000-0000-000000000001'), null,
+  'y ningún ingreso de la Organización Uno (P1 incluido, con saldo de sobra) se lo marcó: el disparador filtra por organización');
 
 select * from finish();
 rollback;

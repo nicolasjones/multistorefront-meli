@@ -34,6 +34,12 @@ export function sanearMensaje(valor: string | null | undefined): string | null {
   return limpio === '' ? null : limpio
 }
 
+/**
+ * Neutraliza el dot-stuffing de SMTP (m-5): una línea que arranca con «.» (en particular una sola «.») puede
+ * cortar el DATA si la librería no la duplica. Se le antepone un espacio, así ninguna línea del cuerpo empieza con punto.
+ */
+export const neutralizarPuntos = (texto: string): string => texto.replace(/^\./gm, ' .')
+
 export function asuntoAviso(): string {
   return 'Ya tenemos stock de lo que pediste'
 }
@@ -46,8 +52,8 @@ export function cuerpoAviso(cliente: string, lineas: LineaFaltante[]): string {
   const saludo = `Hola ${lineaSegura(cliente) || 'cliente'},`
   const mensaje = sanearMensaje(lineas.find((l) => sanearMensaje(l.mensaje) !== null)?.mensaje)
   // Con texto editado (F-VTA-26) reemplaza las frases fijas; sin él, el correo es el de F-STK-17.
-  if (mensaje) return [saludo, '', mensaje, '', ...detalle, ''].join('\n')
-  return [
+  if (mensaje) return neutralizarPuntos([saludo, '', mensaje, '', ...detalle, ''].join('\n'))
+  return neutralizarPuntos([
     saludo,
     '',
     'Volvió a haber stock de los productos que tenías pedidos:',
@@ -56,5 +62,5 @@ export function cuerpoAviso(cliente: string, lineas: LineaFaltante[]): string {
     '',
     'Escribinos para coordinar la entrega.',
     '',
-  ].join('\n')
+  ].join('\n'))
 }

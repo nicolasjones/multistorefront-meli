@@ -9,8 +9,16 @@ import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 // `registrar_faltantes_despacho` (migración 20270112130200) registra los faltantes de una factura en Armando
 // y la deja Incompleta. Acá solo se nombran los tipos, se rotula el stock de hoy y se envuelven las dos RPC.
 
-/** Aviso al cliente de un faltante (F-VTA-26 y F-VTA-27): lo deriva la base de la cola de correo y de «Para avisar». */
-export type AvisoFaltante = 'sin_avisar' | 'para_avisar' | 'avisado'
+/**
+ * Aviso al cliente de un faltante (F-VTA-26 y F-VTA-27): lo deriva la base de la cola de correo y de «Para avisar».
+ * `en_cola` = el aviso espera su envío; `avisado` = el correo salió (MSF-161, QA M5).
+ */
+export type AvisoFaltante = 'sin_avisar' | 'para_avisar' | 'en_cola' | 'avisado'
+
+/** Código genérico del último fallo de un aviso (`ultimo_error` de la cola): el detalle técnico no llega a la pantalla. */
+export type CodigoErrorAviso =
+  | 'smtp_auth' | 'smtp_conexion' | 'smtp_timeout' | 'destinatario_invalido' | 'sin_correo'
+  | 'faltante_cerrado' | 'intentos_agotados' | 'otro'
 
 /** Una fila del listado de faltantes (una línea de una factura que quedó sin stock). */
 export type FaltanteVenta = {
@@ -40,8 +48,10 @@ export type FaltanteVenta = {
   stock_disponible: number | null
   /** Estado del aviso al cliente (columna «Aviso»). */
   aviso: AvisoFaltante
-  /** Fecha del aviso (`avisado`) o de la marca «Para avisar»; null si está sin avisar. */
+  /** Fecha del aviso (`avisado` o `en_cola`) o de la marca «Para avisar»; null si está sin avisar. */
   aviso_en: string | null
+  /** Código del último fallo si el aviso quedó agotado (chip «Aviso fallido»); null si no hubo fallo. */
+  aviso_error: CodigoErrorAviso | null
 }
 
 export type PaginaFaltantes = {
@@ -72,8 +82,31 @@ export function etiquetaAviso(faltante: Pick<FaltanteVenta, 'aviso' | 'aviso_en'
   if (faltante.aviso === 'avisado') {
     return { texto: faltante.aviso_en ? `Avisado · ${fechaDeAviso(faltante.aviso_en)}` : 'Avisado', variante: 'exito' }
   }
+  // El aviso está encolado: el correo sale en el próximo barrido; «Avisado» recién cuando salió.
+  if (faltante.aviso === 'en_cola') return { texto: 'En cola', variante: 'info' }
   if (faltante.aviso === 'para_avisar') return { texto: 'Para avisar', variante: 'info' }
   return { texto: 'Sin avisar', variante: 'neutral' }
+}
+
+const MOTIVO_AVISO_FALLIDO: Record<CodigoErrorAviso, string> = {
+  smtp_auth: 'el servidor de correo rechazó las credenciales',
+  smtp_conexion: 'no se pudo conectar con el servidor de correo',
+  smtp_timeout: 'el servidor de correo no respondió a tiempo',
+  destinatario_invalido: 'el correo del cliente no es una dirección válida',
+  sin_correo: 'el cliente no tiene correo',
+  faltante_cerrado: 'el faltante se cerró antes de enviar el aviso',
+  intentos_agotados: 'se agotaron los intentos de envío',
+  otro: 'no se pudo enviar el correo',
+}
+
+/**
+ * Chip «Aviso fallido» (M-1): el último intento de aviso de la fila se agotó sin enviarse. `motivo` explica en
+ * castellano el código genérico de la base (nunca un detalle técnico). Null si el aviso no falló.
+ */
+export function avisoFallido(faltante: Pick<FaltanteVenta, 'aviso_error'>): { texto: string; motivo: string; variante: VarianteEtiqueta } | null {
+  if (!faltante.aviso_error) return null
+  const motivo = MOTIVO_AVISO_FALLIDO[faltante.aviso_error] ?? MOTIVO_AVISO_FALLIDO.otro
+  return { texto: 'Aviso fallido', motivo: `No se pudo avisar: ${motivo}.`, variante: 'error' }
 }
 
 // «Stock hoy»: el estado del producto con la misma lectura de Stock que usa la pantalla de Stock
@@ -183,7 +216,7 @@ export async function listarFaltantes({
   empresaId: string | null
   pagina: number
   tamano: number
-  /** Filtro por aviso (`sin_avisar`, `avisado` o `para_avisar`); sin valor se listan todos. */
+  /** Filtro por aviso (`sin_avisar`, `para_avisar`, `en_cola` o `avisado`); sin valor se listan todos. */
   aviso?: AvisoFaltante | null
 }): Promise<PaginaFaltantes> {
   const { data, error } = await supabaseClient.rpc('listar_faltantes', {
@@ -201,6 +234,7 @@ export async function listarFaltantes({
       linea_orden: Number(faltante.linea_orden),
       aviso: faltante.aviso ?? 'sin_avisar',
       aviso_en: faltante.aviso_en ?? null,
+      aviso_error: faltante.aviso_error ?? null,
       stock_disponible:
         faltante.stock_disponible === null || faltante.stock_disponible === undefined
           ? null
@@ -253,6 +287,10 @@ export type ResultadoAvisoVenta = {
   omitidos_sin_correo: number
   omitidos_sin_permiso: number
   omitidos_no_abiertos: number
+  /** Enviados hace menos de 24 h: no se vuelven a avisar (M-3). */
+  omitidos_reaviso_reciente: number
+  /** Pasaron el tope diario de avisos de la organización (M-3). */
+  omitidos_tope_diario: number
   detalle: { id: string; resultado: string }[]
 }
 
@@ -266,10 +304,17 @@ const CONTEOS_AVISO_VENTA = [
   'omitidos_no_abiertos',
 ] as const
 
+// Los topes (M-3) son conteos opcionales: una base anterior a la migración 20270306110000 no los manda.
+const CONTEOS_OPCIONALES = ['omitidos_reaviso_reciente', 'omitidos_tope_diario'] as const
+
 function esResultadoAvisoVenta(valor: unknown): valor is ResultadoAvisoVenta {
   if (typeof valor !== 'object' || valor === null) return false
   const datos = valor as Record<string, unknown>
-  return CONTEOS_AVISO_VENTA.every((clave) => typeof datos[clave] === 'number') && Array.isArray(datos.detalle)
+  return (
+    CONTEOS_AVISO_VENTA.every((clave) => typeof datos[clave] === 'number') &&
+    CONTEOS_OPCIONALES.every((clave) => datos[clave] === undefined || typeof datos[clave] === 'number') &&
+    Array.isArray(datos.detalle)
+  )
 }
 
 /**
@@ -299,14 +344,14 @@ export async function avisarFaltantesVenta(
     throw new Error((error as ErrorDeBase)?.code === '42501' ? MENSAJE_SIN_PERMISO_AVISAR : MENSAJE_ERROR_AVISAR)
   }
   if (!esResultadoAvisoVenta(data)) throw new Error(MENSAJE_ERROR_AVISAR)
-  return data
+  return { ...data, omitidos_reaviso_reciente: data.omitidos_reaviso_reciente ?? 0, omitidos_tope_diario: data.omitidos_tope_diario ?? 0 }
 }
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`
 
 /**
- * Texto del aviso emergente: «Avisos enviados» y, si se omitió algo, qué y por qué. Si no se encoló ningún
- * correo dice «No se enviaron avisos». `clientePorId` (id del faltante → cliente) permite contar clientes
+ * Texto del aviso emergente: «Avisos en cola» (el correo sale en el próximo barrido: todavía no se envió) y, si
+ * se omitió algo, qué y por qué. Si no se encoló ningún correo dice «No se enviaron avisos». `clientePorId` (id del faltante → cliente) permite contar clientes
  * distintos sin correo en vez de faltantes.
  */
 export function mensajeResultadoAvisoVenta(
@@ -334,8 +379,16 @@ export function mensajeResultadoAvisoVenta(
         : `${p} faltantes son de tiendas donde tu rol no puede avisar.`,
     )
   }
+  const r = resultado.omitidos_reaviso_reciente
+  if (r > 0) {
+    omitidos.push(`${plural(r, 'faltante se avisó hace menos de 24 horas y no se vuelve a avisar', 'faltantes se avisaron hace menos de 24 horas y no se vuelven a avisar')}.`)
+  }
+  const t = resultado.omitidos_tope_diario
+  if (t > 0) {
+    omitidos.push(`Se alcanzó el tope diario de avisos de tu organización: ${plural(t, 'faltante queda', 'faltantes quedan')} para mañana.`)
+  }
   const a = resultado.omitidos_no_abiertos
   if (a > 0) omitidos.push(`${plural(a, 'faltante ya no está abierto', 'faltantes ya no están abiertos')}.`)
-  const base = resultado.encolados > 0 ? 'Avisos enviados.' : 'No se enviaron avisos.'
+  const base = resultado.encolados > 0 ? 'Avisos en cola.' : 'No se enviaron avisos.'
   return [base, ...omitidos].join(' ')
 }
