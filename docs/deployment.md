@@ -44,6 +44,24 @@ update public.banderas_plataforma set activa = true where clave in ('promociones
 
 Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con `activa = false`. Después de encender, verificar en la tienda del entorno (precio tachado en una promoción vigente) y en Productos (botón «Actualizar precios»). Detalle en [`promociones-precio.md`](./promociones-precio.md) y [`precios-masivos.md`](./precios-masivos.md).
 
+### Avisos de faltantes (MSF-161)
+
+Despliegue de la épica de avisos de `/ventas/faltantes` en un entorno. **Orden**: (1) migraciones (hasta `20270306130000`), (2) secretos, (3) Edge Function `enviar-aviso-faltante` y las que comparten `_shared/` (`enviar-correo-proveedor`, `enviar-resumen-reposicion`, `solicitar-acceso`), (4) flow `avisos-faltantes` de Kestra, (5) panel. Una Edge Function nueva con la base sin migrar responde 503 `base_no_migrada` sin tomar nada.
+
+Secretos por entorno (nunca en Git; plantillas en `supabase/functions/.env.example` e `infra/kestra/.env.example`):
+
+| Dónde | Variable | stg / prd |
+|---|---|---|
+| Edge Functions | `SMTP_HOST`, `SMTP_FROM`, `SMTP_USER`, `SMTP_PASS` | datos reales del relay (hoy dev usa un buzón de pruebas sin credenciales) |
+| Edge Functions | `SMTP_PORT` | `465` (vacío = 465). 587/STARTTLS **no** funciona con la librería actual |
+| Edge Functions | `SMTP_TLS` | `true` (obligatoria; con otro valor o ausente la función responde 503 `configuracion_smtp` y no envía) |
+| Edge Functions | `SMTP_PERMITIR_INSEGURO` | **no definir**: solo local/dev con buzón de pruebas |
+| Edge Functions | `SMTP_SONDEO` | opcional (`false` lo desactiva) |
+| Edge Functions | `AVISOS_FALTANTES_TOKEN` | secreto real, el mismo que Kestra |
+| Kestra | `AVISOS_FALTANTES_URL`, `AVISOS_FALTANTES_APIKEY`, `SECRET_AVISOS_FALTANTES_TOKEN` | URL alcanzable desde Kestra, clave anon, token **en base64** (decodificado = `AVISOS_FALTANTES_TOKEN`) |
+
+El flow `infra/kestra/flows/avisos-faltantes.yml` se publica con el workflow de publicación de flows (staging por push, producción por `workflow_dispatch`, ver *Publicación de flows de Kestra*). Si un entorno no tiene el secreto o el flow, los avisos quedan «En cola» sin salir. Verificación posterior: avisar un faltante de prueba y comprobar que pasa a «Avisado» y que llega un solo correo con las tildes y el «·» bien. Si se toca `_shared/correo.ts` o `_shared/smtp.ts`, correr antes `smtp-real.deno.ts` (ver `docs/ventas-faltantes-avisos.md`).
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve
