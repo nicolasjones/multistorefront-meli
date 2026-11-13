@@ -7,6 +7,7 @@ vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 import {
   avisarFaltantesVenta,
   estadoStockHoy,
+  avisoFallido,
   etiquetaAviso,
   mensajeResultadoAvisoVenta,
   TEXTO_AVISO_POR_DEFECTO,
@@ -46,6 +47,7 @@ const fila = (cambios: Partial<FaltanteVenta> = {}): FaltanteVenta => ({
   stock_disponible: 0,
   aviso: 'sin_avisar',
   aviso_en: null,
+  aviso_error: null,
   ...cambios,
 })
 
@@ -211,6 +213,28 @@ describe('ventasFaltantes · aviso en el listado (F-VTA-26, FR-008; F-VTA-27, FR
     expect(etiquetaAviso({ aviso: 'avisado', aviso_en: '2026-10-09T01:00:00Z' }).texto).toBe('Avisado · 08/10/2026')
     expect(etiquetaAviso({ aviso: 'avisado', aviso_en: null }).texto).toBe('Avisado')
   })
+
+  it('un aviso encolado dice «En cola», no «Avisado» (QA M5)', () => {
+    expect(etiquetaAviso({ aviso: 'en_cola', aviso_en: '2026-10-08T12:00:00Z' })).toEqual({ texto: 'En cola', variante: 'info' })
+  })
+
+  it('el aviso fallido trae un motivo en castellano a partir del código y nada técnico (M-1)', () => {
+    expect(avisoFallido({ aviso_error: null })).toBeNull()
+    expect(avisoFallido({ aviso_error: 'smtp_timeout' })).toEqual({
+      texto: 'Aviso fallido',
+      motivo: 'No se pudo avisar: el servidor de correo no respondió a tiempo y el correo pudo haber salido: revisalo antes de reintentar.',
+      variante: 'error',
+    })
+    expect(avisoFallido({ aviso_error: 'sin_correo' })?.motivo).toBe('No se pudo avisar: el cliente no tiene correo.')
+    // Un código que la pantalla no conoce (base más nueva) no rompe: cae en el motivo genérico.
+    expect(avisoFallido({ aviso_error: 'inventado' as never })?.motivo).toBe('No se pudo avisar: no se pudo enviar el correo.')
+  })
+
+  it('listarFaltantes conserva el error del aviso fallido', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [{ ...fila(), filas: 1, aviso: 'para_avisar', aviso_error: 'smtp_auth' }], error: null })
+    const pagina = await listarFaltantes({ empresaId: null, pagina: 1, tamano: 10 })
+    expect(pagina.faltantes[0].aviso_error).toBe('smtp_auth')
+  })
 })
 
 const resultado = (cambios: Partial<ResultadoAvisoVenta> = {}): ResultadoAvisoVenta => ({
@@ -221,6 +245,8 @@ const resultado = (cambios: Partial<ResultadoAvisoVenta> = {}): ResultadoAvisoVe
   omitidos_sin_correo: 0,
   omitidos_sin_permiso: 0,
   omitidos_no_abiertos: 0,
+  omitidos_reaviso_reciente: 0,
+  omitidos_tope_diario: 0,
   detalle: [],
   ...cambios,
 })
@@ -267,13 +293,30 @@ describe('ventasFaltantes · avisar a los clientes (F-VTA-26, FR-001…FR-005)',
   })
 
   it('arma el aviso emergente con lo omitido y por qué', () => {
-    expect(mensajeResultadoAvisoVenta(resultado())).toBe('Avisos enviados.')
+    expect(mensajeResultadoAvisoVenta(resultado())).toBe('Avisos en cola.')
     expect(mensajeResultadoAvisoVenta(resultado({ omitidos_ya_avisados: 1, omitidos_en_cola: 2 }))).toBe(
-      'Avisos enviados. 1 faltante ya estaba avisado. 2 faltantes tienen un envío en curso.',
+      'Avisos en cola. 1 faltante ya estaba avisado. 2 faltantes tienen un envío en curso.',
     )
     expect(mensajeResultadoAvisoVenta(resultado({ omitidos_sin_permiso: 1, omitidos_no_abiertos: 3 }))).toBe(
-      'Avisos enviados. 1 faltante es de una tienda donde tu rol no puede avisar. 3 faltantes ya no están abiertos.',
+      'Avisos en cola. 1 faltante es de una tienda donde tu rol no puede avisar. 3 faltantes ya no están abiertos.',
     )
+  })
+
+  it('avisa de los topes de reaviso y diario con un texto claro (M-3)', () => {
+    expect(mensajeResultadoAvisoVenta(resultado({ omitidos_reaviso_reciente: 2 }))).toBe(
+      'Avisos en cola. 2 faltantes se avisaron hace menos de 24 horas y no se vuelven a avisar.',
+    )
+    expect(mensajeResultadoAvisoVenta(resultado({ encolados: 0, omitidos_tope_diario: 3 }))).toBe(
+      'No se enviaron avisos. Se alcanzó el tope diario de avisos de tu organización: 3 faltantes pasan a la siguiente ventana de 24 horas; volvé a avisar después.',
+    )
+  })
+
+  it('una base sin los conteos de tope (anterior a la migración) sigue andando', async () => {
+    const { omitidos_reaviso_reciente: _a, omitidos_tope_diario: _b, ...viejo } = resultado()
+    mocks.rpc.mockResolvedValueOnce({ data: viejo, error: null })
+    const nuevo = await avisarFaltantesVenta(['f-1'], '', false)
+    expect(nuevo.omitidos_reaviso_reciente).toBe(0)
+    expect(nuevo.omitidos_tope_diario).toBe(0)
   })
 
   it('sin correo dice qué cliente y, si no se encoló nada, que no se envió ningún aviso', () => {
@@ -290,10 +333,10 @@ describe('ventasFaltantes · avisar a los clientes (F-VTA-26, FR-001…FR-005)',
       detalle: [{ id: 'f-1', resultado: 'sin_correo' }, { id: 'f-2', resultado: 'sin_correo' }],
     })
     expect(mensajeResultadoAvisoVenta(mismo, { 'f-1': 'Ana', 'f-2': 'Ana' })).toBe(
-      'Avisos enviados. El cliente no tiene correo: Ana.',
+      'Avisos en cola. El cliente no tiene correo: Ana.',
     )
     expect(mensajeResultadoAvisoVenta(mismo, { 'f-1': 'Ana', 'f-2': 'Beto' })).toBe(
-      'Avisos enviados. 2 clientes no tienen correo: Ana, Beto.',
+      'Avisos en cola. 2 clientes no tienen correo: Ana, Beto.',
     )
     // Muchos clientes: los primeros cinco y «y N más».
     const siete = resultado({
@@ -302,7 +345,7 @@ describe('ventasFaltantes · avisar a los clientes (F-VTA-26, FR-001…FR-005)',
     })
     const nombres = Object.fromEntries(Array.from({ length: 7 }, (_, i) => [`f-${i}`, `C${i}`]))
     expect(mensajeResultadoAvisoVenta(siete, nombres)).toBe(
-      'Avisos enviados. 7 clientes no tienen correo: C0, C1, C2, C3, C4 y 2 más.',
+      'Avisos en cola. 7 clientes no tienen correo: C0, C1, C2, C3, C4 y 2 más.',
     )
   })
 })

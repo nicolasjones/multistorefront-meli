@@ -11,25 +11,45 @@
 
 - **Quién**: `ventas` en `edicion` en la tienda del faltante. El rol Consulta es rechazado por el servidor (`42501`).
 - **Cómo**: se eligen faltantes abiertos y «Avisar a los seleccionados» abre el diálogo con el texto editable (tope 1.000 caracteres; vacío o igual al texto por defecto = texto por defecto). Sale **un correo por cliente** con todos sus productos.
-- **«Avisado» con fecha** no es un valor de `estado`: se deriva de la cola (`pendiente` o `enviado`), con la fecha `coalesce(enviado_en, created_at)`. `faltantes_venta.estado` sigue siendo `abierto | resuelto`.
+- **Estados del aviso** (no son un valor de `faltantes_venta.estado`, que sigue siendo `abierto | resuelto`): se derivan de la cola. `En cola` = aviso `pendiente` (el correo todavía no salió; fecha = `created_at`); `Avisado` = `enviado` (fecha = `enviado_en`). Antes se mostraba «Avisado» apenas se encolaba: el aviso emergente dice ahora «Avisos en cola».
+- **Aviso fallido** (revisión M-1): un aviso `agotado` no cambia la fila (sigue «Para avisar» si llegó mercadería, si no «Sin avisar»; decisión QA M1: coherente con mercadería llegada y aviso fallido) y `listar_faltantes` devuelve `aviso_error` con un **código genérico**. La pantalla muestra el chip «Aviso fallido» con el motivo y «Reintentar» (elige ese faltante y abre el diálogo).
+- **Códigos de error** (`ultimo_error`, revisión m-4b): `smtp_auth`, `smtp_conexion`, `smtp_timeout`, `destinatario_invalido`, `sin_correo`, `faltante_cerrado`, `intentos_agotados`, `otro`. El detalle técnico (host, usuario, respuesta del servidor) queda solo en el log de la función; lo no reconocido se guarda como `otro` y un check lo exige.
 - **No se avisa dos veces** sin confirmación (RF-VTA-26-2): el servidor omite los ya avisados salvo `p_reavisar = true`, que la pantalla pide con una casilla en el diálogo. Con un envío en curso nunca se reenvía.
+- **Topes** (revisión M-3, sin override): un faltante `enviado` no se vuelve a avisar antes de **24 horas** (`omitidos_reaviso_reciente`) y una organización no encola más de **1.000 líneas por día móvil** (`omitidos_tope_diario`); la pantalla lo dice en el aviso emergente. Las dos RPC de encolado (`avisar_faltantes_venta` y la de Stock `avisar_faltantes`) comparten la regla en `private.encolar_aviso_faltante` (revisión m-6).
+- **Tope diario sin carrera** (revisión del PR #915): `private.encolar_aviso_faltante` toma un `pg_advisory_xact_lock` por organización antes de leer y contar (las sesiones de una organización se serializan; las de otra no se bloquean) y cuenta con el índice `(organizacion_id, created_at)`. Cuenta líneas con aviso encolado en 24 h: reencolar un `agotado` de la misma ventana no suma cupo porque ya estaba contado y su correo no salió; reencolar un `enviado` sí suma. Las dos RPC recorren las líneas en el mismo orden (por línea): no hay deadlock entre ellas.
+- **Texto saneado también en la base** (m-5): `private.sanear_mensaje_aviso` (espejo de `sanearMensaje`) lo limpia en la RPC y un check de `faltantes_avisos.mensaje` lo exige. En el correo, ninguna línea empieza con «.» (neutraliza el dot-stuffing de SMTP).
 - **Sin correo**: el cliente sin correo no se marca y se informa «El cliente no tiene correo.».
-- **RPC** (`public`, `security definer`, `search_path = ''`, `anon` sin ejecución): `avisar_faltantes_venta(p_ids, p_mensaje, p_reavisar)` y `listar_faltantes(p_empresa_id, p_pagina, p_tamano, p_aviso)` (ahora devuelve `aviso` y `aviso_en`).
+- **RPC** (`public`, `security definer`, `search_path = ''`, `anon` sin ejecución): `avisar_faltantes_venta(p_ids, p_mensaje, p_reavisar)` y `listar_faltantes(p_empresa_id, p_pagina, p_tamano, p_aviso)` (devuelve `aviso` = `sin_avisar | para_avisar | en_cola | avisado`, `aviso_en` y `aviso_error`; `p_aviso` acepta también `en_cola`).
 - **Eventos**: `ventas.faltantes_avisados` en la actividad (sin correos de clientes).
-- **Reversión**: migraciones `20270226100100`, `100200` y `100300` (cada una documenta su reversión en el encabezado).
+- **Reversión**: migraciones `20270226100100`, `100200` y `100300`, y `20270306120000` y `20270306130000` de la revisión (cada una documenta su reversión en el encabezado; la segunda agrega el índice `faltantes_avisos_org_created_idx`).
 
 ## Para avisar (F-VTA-27)
 
 - **Ingreso confirmado**: no existe un paso de confirmación; `registrar_ingreso_mercaderia` crea el ingreso ya `registrado` y mueve el stock en la misma transacción. Un disparador `AFTER INSERT` sobre `dominio.ingresos_mercaderia_lineas` (`ingresos_mercaderia_lineas_marcar_faltantes`) marca los faltantes abiertos del producto. Otras entradas de stock (lote, toma, traslados, RMA) no marcan.
 - **Cobertura**: se recorre del faltante más antiguo con saldo igual a la cantidad ingresada; se marca cada faltante completo y el que no entra en el saldo se salta. Ejemplos: ingreso de 10 y faltantes 4 + 4 + 4 marcan los dos primeros; faltantes 9 + 2 + 1 marcan el de 9 y el de 1.
-- **Qué no hace**: no envía nada (el envío es del operador con F-VTA-26), no cierra faltantes y anular el ingreso no desmarca.
-- **Robustez**: el disparador atrapa sus errores para no romper el ingreso; un fallo queda como WARNING en el log del servidor.
+- **Qué no hace**: no envía nada (el envío es del operador con F-VTA-26), no cierra faltantes y anular el ingreso no desmarca (decisión 6 de la spec).
+- **Marcados y saldo** (decisión 5): los faltantes ya marcados no consumen saldo de un ingreso posterior; «Para avisar» es una sugerencia y el «Stock hoy» real se ve al lado.
+- **`para_avisar_en` no se limpia** al quedar el aviso `agotado` (revisión m-1, decisión): llegó mercadería y el aviso falló, así que el faltante sigue pendiente de avisar; la fila vuelve a «Para avisar» y trae además «Aviso fallido».
+- **Robustez**: el disparador atrapa sus errores para no romper el ingreso; un fallo queda como WARNING en el log del servidor. Ante `deadlock_detected` o `lock_not_available` reintenta hasta 3 veces y, si no puede, deja la actividad `ventas.faltantes_para_avisar_demorado` (los faltantes se marcan con el próximo ingreso del producto).
 - **Pantalla**: chip «Para avisar» en la columna Aviso y filtro «Todos» / «Para avisar» (del más antiguo al más nuevo).
 - **Reversión**: migraciones `20270226110100`, `110200` y `110300`.
 
+## Envío (Edge Function)
+
+- **Timeout** (M-2): el SMTP tiene tope de 30 s (`_shared/timeout.ts`), menor que la reserva de 2 minutos de la cola. Un `smtp_timeout` es SOLO el corte propio de la función durante el envío (el correo pudo salir) y es un **intento incierto**; un timeout de CONEXIÓN (no salió nada) se clasifica `smtp_conexion` y se reintenta solo (el correo pudo salir tras el corte): `cerrar_aviso_faltante` deja el aviso `agotado` en el acto, no se reenvía solo y la persona decide con «Reintentar» (el motivo avisa que el correo pudo haber salido). El barrido corta por reloj a los 60 s (antes de EMPEZAR cada cliente) y devuelve `pendientes`; el peor caso es 60 s + 30 s de timeout + 5 s de cierre + RPC, bajo el límite de 150 s de la función (hay un test de esos tiempos); Kestra lo repite cada minuto; **token de tanda**: `tomar_aviso_faltante` devuelve `tanda` y `cerrar_aviso_faltante(…, p_tanda)` cierra solo las líneas de esa tanda, así un cierre tardío no pisa una tanda nueva. La garantía sigue siendo «al menos una vez».
+- **Destinatario** (m-3): una sola dirección (`^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$`); `lineaSegura` quita además U+2028/2029, controles e invisibles (m-4).
+
+## Despliegue y límites conocidos
+
+- **Orden de despliegue: la migración ANTES que la Edge Function `enviar-aviso-faltante`.** Base nueva + función vieja funciona (`p_tanda` tiene valor por defecto). Función nueva + base sin migrar **falla cerrado ANTES de tomar nada**: una sonda llama a `cerrar_aviso_faltante` con `p_tanda` sobre un cliente inexistente; si no existe, la función responde 503 («aplicá la migración») tanto en el barrido como por cliente, sin gastar intentos ni enviar. Como defensa extra, si `tomar` no devolviera `tanda` tampoco envía. Un barrido donde TODOS los clientes fallan responde 502 (Kestra ve el error).
+- **El timeout no cancela el envío de denomailer**: el correo puede salir igual después del corte. Por eso un `smtp_timeout` deja el aviso `agotado` (intento incierto) y `enviarConLimites` (`_shared/envio.ts`) acota también el `close()` del cliente (5 s) para que un socket muerto no cuelgue la respuesta. Sigue siendo «al menos una vez».
+- **Reintento del trigger ante deadlock sin test automatizado**: un deadlock real necesita dos sesiones concurrentes bloqueándose entre sí y pgTAP corre en una sola; `lock_not_available` solo se levanta con NOWAIT o `lock_timeout` (que el trigger no usa). Queda verificado por revisión de código y por el camino de falla general (FR-105), que sí tiene pgTAP. La concurrencia real del tope diario (advisory lock) tampoco se prueba con dos sesiones: se prueba que el lock se toma y que una organización no limita a otra.
+- Un mensaje compuesto solo por caracteres de control o invisibles queda `null` y se usa el texto por defecto.
+- El saneo SQL (`private.sanear_mensaje_aviso`) y el de la función (`sanearMensaje`) comparten una tabla de casos en pgTAP y en `handler.test.ts`; la migración usa escapes `\uXXXX` (sin caracteres invisibles literales).
+
 ## Pruebas
 
-pgTAP `faltantes_avisos_venta.test.sql`, `faltantes_para_avisar.test.sql` y `faltantes.test.sql`; Vitest `faltantes.test.tsx`, `faltantes.empresa.test.tsx`, `ventasFaltantes.test.ts`, `useListarFaltantes.test.tsx`; tests de la Edge Function (`handler.test.ts`); E2E `ventas-faltantes-avisos.e2e.ts` y `ventas-faltantes-para-avisar.e2e.ts` (necesitan Supabase local).
+pgTAP `faltantes_avisos_venta.test.sql`, `faltantes_para_avisar.test.sql` y `faltantes.test.sql`; Vitest `faltantes.test.tsx`, `faltantes.empresa.test.tsx`, `ventasFaltantes.test.ts`, `useListarFaltantes.test.tsx`; tests de la Edge Function (`handler.test.ts`: tanda, códigos de error, timeout, destinatario, dot-stuffing); E2E `ventas-faltantes-avisos.e2e.ts` y `ventas-faltantes-para-avisar.e2e.ts` (necesitan Supabase local).
 
 ## Revisión de seguridad integral
 

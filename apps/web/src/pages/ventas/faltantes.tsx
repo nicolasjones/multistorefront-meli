@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel,
+  Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel, FormHelperText,
   LinearProgress, Snackbar, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
@@ -15,6 +15,7 @@ import {
   MAXIMO_MENSAJE_AVISO,
   TEXTO_AVISO_POR_DEFECTO,
   estadoStockHoy,
+  avisoFallido,
   etiquetaAviso,
   MAXIMO_AVISO_FALTANTES,
   mensajeResultadoAvisoVenta,
@@ -47,9 +48,11 @@ type OpcionesColumnas = {
   imagenes: ReadonlyMap<string, string>
   // Solo con `ventas` en edición hay casillas para elegir faltantes a avisar (FR-002).
   seleccion?: { elegidos: Readonly<Record<string, ElegidoFaltante>>; alternar: (faltante: FaltanteVenta) => void }
+  // Con `ventas` en edición, el chip «Aviso fallido» trae «Reintentar» (abre el aviso de ese faltante).
+  reintentar?: (faltante: FaltanteVenta) => void
 }
 
-const armarColumnas = ({ imagenes, seleccion }: OpcionesColumnas): ColumnaAdaptable<FaltanteVenta>[] => [
+const armarColumnas = ({ imagenes, seleccion, reintentar }: OpcionesColumnas): ColumnaAdaptable<FaltanteVenta>[] => [
   ...(seleccion
     ? [
         {
@@ -135,7 +138,27 @@ const armarColumnas = ({ imagenes, seleccion }: OpcionesColumnas): ColumnaAdapta
     encabezado: 'Aviso',
     render: (faltante) => {
       const aviso = etiquetaAviso(faltante)
-      return <EtiquetaEstado texto={aviso.texto} variante={aviso.variante} />
+      const fallido = avisoFallido(faltante)
+      return (
+        <Stack spacing={0.5} alignItems="flex-start">
+          <EtiquetaEstado texto={aviso.texto} variante={aviso.variante} />
+          {fallido ? (
+            <>
+              <EtiquetaEstado texto={fallido.texto} variante={fallido.variante} />
+              <Typography component="span" variant="caption" color="text.secondary">{fallido.motivo}</Typography>
+              {reintentar ? (
+                <Button
+                  size="small"
+                  onClick={() => reintentar(faltante)}
+                  aria-label={`Reintentar el aviso de ${faltante.producto} a ${faltante.cliente}`}
+                >
+                  Reintentar
+                </Button>
+              ) : null}
+            </>
+          ) : null}
+        </Stack>
+      )
     },
   },
 ]
@@ -165,7 +188,7 @@ export function FaltantesList() {
   const [aviso, setAviso] = useState<AvisoEmergente | null>(null)
 
   const {
-    ambito, faltantes, total, isLoading, isFetching, isError, refetch, elegidos, alternar, alternarTodos, avisar,
+    ambito, faltantes, total, isLoading, isFetching, isError, refetch, elegidos, alternar, alternarTodos, limpiar, avisar,
   } = useListarFaltantes({
     empresaId,
     pagina,
@@ -184,7 +207,19 @@ export function FaltantesList() {
   })
   const falloTanda = isError && pagina > 1
   const imagenes = useImagenesProductos(listado.filas.map((f) => f.producto_id))
-  const columnas = armarColumnas({ imagenes, seleccion: puedeAvisar ? { elegidos, alternar } : undefined })
+  // «Reintentar»: la selección pasa a ser solo ese faltante y se abre el diálogo (el texto se puede editar de nuevo).
+  const reintentarAviso = (faltante: FaltanteVenta) => {
+    limpiar()
+    alternar(faltante)
+    setMensaje(TEXTO_AVISO_POR_DEFECTO)
+    setReavisar(false)
+    setDialogo(true)
+  }
+  const columnas = armarColumnas({
+    imagenes,
+    seleccion: puedeAvisar ? { elegidos, alternar } : undefined,
+    reintentar: puedeAvisar ? reintentarAviso : undefined,
+  })
 
   const idsElegidos = Object.keys(elegidos)
   const cantidadElegidos = idsElegidos.length
@@ -351,7 +386,7 @@ export function FaltantesList() {
         <DialogContent>
           <Stack spacing={2}>
             <DialogContentText>
-              {`Se envía un correo a ${clientesElegidos} ${clientesElegidos === 1 ? 'cliente' : 'clientes'} con el detalle de los productos que volvieron a tener stock. Los faltantes avisados quedan marcados y no se vuelven a avisar.`}
+              {`Se envía un correo a ${clientesElegidos} ${clientesElegidos === 1 ? 'cliente' : 'clientes'} con el detalle de los productos que volvieron a tener stock. Los avisos quedan en cola y el correo sale en el próximo barrido; los faltantes avisados quedan marcados y no se vuelven a avisar.`}
             </DialogContentText>
             <TextField
               label="Texto del aviso"
@@ -365,10 +400,13 @@ export function FaltantesList() {
               slotProps={{ htmlInput: { maxLength: MAXIMO_MENSAJE_AVISO } }}
             />
             {yaAvisadosElegidos > 0 ? (
+              <Stack spacing={0}>
               <FormControlLabel
                 control={<Checkbox checked={reavisar} onChange={(evento) => setReavisar(evento.target.checked)} disabled={enviando} />}
                 label={`Volver a avisar a los ${yaAvisadosElegidos} ya avisados`}
               />
+              <FormHelperText>Un faltante avisado hace menos de 24 horas no se vuelve a avisar.</FormHelperText>
+              </Stack>
             ) : null}
           </Stack>
         </DialogContent>
