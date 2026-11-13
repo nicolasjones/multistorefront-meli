@@ -10,7 +10,7 @@
 -- elements from a scalar» (que descuadraba el plan: 52 tests planned, 29 run).
 begin;
 
-select plan(58);
+select plan(64);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -19,11 +19,13 @@ insert into auth.users (id, email) values
   ('e1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('e1000000-0000-0000-0000-000000000002', 'tecnico-uno@example.com'),
   ('e1000000-0000-0000-0000-000000000003', 'operador-uno@example.com'),
+  ('e1000000-0000-0000-0000-000000000004', 'mixto-uno@example.com'),
   ('e2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'tecnico', 'activo'),
   ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
+  ('e1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'administracion', 'activo'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 insert into public.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente Uno', 'mayorista');
@@ -33,7 +35,9 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a2000000-0000-0000-0000-0000000000e1', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 -- El operador accede solo a las tiendas que se le asignan (rol por tienda): San Javucho.
 insert into public.usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
-  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador');
+  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador'),
+  ('e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'mostrador'),
+  ('e1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-0000000000e2', '11111111-1111-1111-1111-111111111111', 'administracion');
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
   ('ca100000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Periféricos');
@@ -195,6 +199,25 @@ select ok(not has_function_privilege('anon', 'public.resumen_inicio_bloques(date
 select ok(has_function_privilege('authenticated', 'public.resumen_inicio_bloques(date,date,uuid,uuid)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.movimientos_por_producto(date,date,uuid,uuid,text,uuid,text,text,text,integer,integer)', 'EXECUTE'),
   'authenticated sí las ejecuta');
+
+
+-- ===== Hallazgos finales (revisión de Código y Seguridad) =====
+-- Rol de organización «administracion» (con rentabilidad) pero «mostrador» (sin rentabilidad) en San Javucho y
+-- «administracion» en Mundo JC: ingresos y margen solo en la tienda donde su rol lo permite.
+select pg_temp.como('e1000000-0000-0000-0000-000000000004');
+select is((select t -> 'ingresos' from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
+  'null'::jsonb, 'con rol sin rentabilidad en esa tienda los ingresos vuelven null aunque el rol de organización la tenga');
+select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'Mundo JC'),
+  3630::numeric, 'con rol con rentabilidad en la otra tienda sí ve sus ingresos');
+
+-- Fechas infinitas: 22023 (antes 22008 con un mensaje en inglés).
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.resumen_inicio_periodo('infinity'::date, '2026-10-31')$$, '22023', null, 'resumen_inicio_periodo rechaza fechas infinitas');
+select throws_ok($$select public.resumen_inicio_bloques('2026-10-01', 'infinity'::date)$$, '22023', null, 'resumen_inicio_bloques rechaza fechas infinitas');
+select throws_ok($$select * from public.movimientos_por_producto('-infinity'::date, '2026-10-31')$$, '22023', null, 'movimientos_por_producto rechaza fechas infinitas');
+reset role;
+select is((select count(*)::int from pg_indexes where indexname = 'movimientos_stock_org_producto_fecha_idx'), 1,
+  'existe el índice por producto y fecha que acelera el último movimiento');
 
 -- ===== F-INI-07: previsualizar_impacto_dolar =====
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
