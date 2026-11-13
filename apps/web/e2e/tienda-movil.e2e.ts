@@ -178,7 +178,9 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       await page.getByTestId('filtrar-movil').click()
       await page.getByRole('dialog', { name: 'Filtros' }).getByRole('textbox', { name: 'Precio máximo' }).fill('999999')
       await page.getByRole('dialog', { name: 'Filtros' }).getByRole('textbox', { name: 'Precio máximo' }).blur()
-      await page.keyboard.press('Escape')
+      // `press` sobre el propio diálogo (tabindex -1) lo enfoca antes de teclear: tras el `blur` el foco puede estar en
+      // `body` (o volver al panel por la trampa de foco de MUI según el momento) y un Escape global no lo cerraba siempre.
+      await page.getByRole('dialog', { name: 'Filtros' }).press('Escape')
       // Mientras el panel se cierra (transición del Drawer) la app queda `aria-hidden` y `getByRole` no ve «Reintentar»:
       // se espera el cierre en vez de depender de cuánto tarde la animación con la máquina cargada.
       await expect(page.getByRole('dialog', { name: 'Filtros' })).toBeHidden()

@@ -15,7 +15,7 @@
 
 ## F-INI-06 · MSF-822
 - [x] T010 RPC `movimientos_por_producto` (12 columnas, orden/filtros en servidor) + pgTAP. Evidencia: migración `20270305120000`, `inicio_tablero_bloques.test.sql`; CI `database` verde sobre `8589dfb7`.
-- [x] T011 Tabla con carga infinita, vistas rápidas, búsqueda, categoría, orden. Evidencia: `tablero/MovimientosPorProducto.tsx`, `hooks/useMovimientosPorProducto.ts`, `lib/inicioBloques.ts`.
+- [x] T011 Tabla con carga infinita, vistas rápidas, búsqueda, categoría, orden. Evidencia: `tablero/MovimientosPorProducto.tsx`, `hooks/useMovimientosPorProducto.ts`, `lib/inicioBloques.ts`. Nota posterior (pedido de Nicolás, 2026-11-13): se agregó la foto del producto en la columna «Producto» (miniatura de `useImagenesProductos`, una consulta por tanda; el tamaño es el del componente compartido, 40 px, no los 36 px del prototipo) y las tarjetas de Inicio pasaron ARRIBA del tablero (el listado infinito las dejaba inalcanzables).
 - [x] T012 Exportación CSV por lotes (sin exportar para quien no puede exportar Stock). Evidencia: `useExportarCsv` + prefijo `movimientos-por-producto` en `lib/exportarCsv.ts`; test «exportar baja por lotes…».
 - [x] T013 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/movimientos-por-producto.test.tsx` (19 tests, CA-INI-06-1..11). Desvío: sin E2E (MSF-851). Se sumaron tests de reintento de tanda, reinicio al cambiar filtros, duplicados entre tandas, tienda, tope de búsqueda y neutralización de fórmulas en el CSV.
 

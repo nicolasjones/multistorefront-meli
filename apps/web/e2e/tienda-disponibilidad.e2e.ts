@@ -117,7 +117,10 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
       }
     } finally {
       // Limpieza: los productos caen en cascada con sus existencias y filas de tienda.
-      for (const t of tiendas) await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+      for (const t of tiendas) {
+        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+      }
     }
   })
 })

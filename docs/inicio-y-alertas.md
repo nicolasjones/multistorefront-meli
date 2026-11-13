@@ -21,6 +21,12 @@ Ruta canónica `/` (ítem «Inicio» del menú, audiencia: todos los roles de or
 de servicios del template. Código en `apps/web/src/pages/inicio/`; lecturas en `apps/web/src/lib/inicio.ts`.
 F-INI-01 no agrega tablas ni RPC: lee objetos existentes (las RPC del tablero son de F-INI-04 a F-INI-07).
 
+**Orden de la pantalla** (de arriba abajo): «Qué hacer hoy» (alertas) → tarjetas Empresas, Stock, Consultas y Dólar
+(cada una con su permiso) → tablero de ventas y stock (filtros, indicadores, gráfico, bloques de gestión) → listado
+**«Movimientos por producto» al final**. El listado usa carga infinita y no termina nunca, así que nada que esté
+*debajo* de él se podría alcanzar: por eso las tarjetas viven **arriba** del tablero (cambio posterior al cierre de la
+épica MSF-824, a pedido de Nicolás; test en `permisos-inicio.test.tsx`).
+
 | Elemento | Fuente | Se ve con |
 |---|---|---|
 | Saludo «Buen día, <nombre>», fecha, subtítulo | `perfiles_usuario` (fila propia) | siempre |
@@ -150,8 +156,27 @@ Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Per�
 
 Al pie de Inicio, un listado de **una fila por producto activo** con 12 columnas ordenables: producto, SKU,
 categoría, stock inicial, entradas, salidas, ajustes, stock actual, mínimo, ventas, último movimiento y estado
-(`apps/web/src/pages/inicio/tablero/MovimientosPorProducto.tsx`, RPC `public.movimientos_por_producto`). Lo ve quien
-tiene `stock` ≥ lectura; la columna **Ventas** solo con `ventas` (si no, la base la devuelve `null` y no se dibuja).
+(`apps/web/src/pages/inicio/tablero/MovimientosPorProducto.tsx`, RPC `public.movimientos_por_producto`).
+
+El listado lo ve quien tiene `stock` ≥ lectura; la columna **Ventas** solo con `ventas` (si no, la base la devuelve
+`null` y no se dibuja).
+
+**Foto del producto.** Cada fila lleva la foto a la izquierda del nombre (miniatura de la imagen principal; recuadro
+vacío si no tiene; decorativa, con `alt` vacío porque el nombre está al lado). No va en el CSV.
+
+- *Desvío consciente del prototipo*: la miniatura es la del componente compartido `MiniaturaProducto` (**40 px**, el
+  tamaño del sistema de diseño; el prototipo dibuja 36 px) y **SKU y categoría son columnas separadas** (así las pide
+  la spec, FR-012) en vez de ir como segunda línea bajo el nombre.
+- *Permiso*: las imágenes salen de `dominio.producto_imagenes`, que exige `productos` ≥ lectura además de `stock`: un
+  rol con stock pero **sin** `productos` ve solo el recuadro vacío (sin error).
+- *Carga*: las imágenes se piden **una vez por tanda** con `useImagenesProductos`/`useImagenesProductosRenovables` (sin
+  N+1), en bloques de 100 ids. Un bloque que falla no tumba a los demás: sus ids se reintentan en el siguiente cambio
+  de lista (no se anotan como «sin imagen»). La miniatura usa `loading="lazy"` y `decoding="async"`.
+- *URL firmada vencida*: las URL viven 300 s. Al sumar una tanda **al final** de la lista (prefijo, mismo orden) no se
+  re-firma lo ya cargado; si la lista cambia de otra manera (filtros, orden, búsqueda, incluso un superconjunto como
+  de «En alerta» a «Todos») las vencidas se renuevan porque las filas se vuelven a montar. Si una imagen todavía no
+  cargada se pide ya vencida (scroll tardío), la miniatura avisa con `onFallo` y el hook renueva **esa** URL **una sola
+  vez por producto**; si la nueva también falla, queda el recuadro vacío (sin bucles).
 
 - **Vistas rápidas** (Todos, En alerta, Quietos), búsqueda por nombre o SKU (espera 300 ms), categoría (el menú
   muestra solo las de la tienda elegida), «Ordenar por» con dirección y orden por encabezado. **Todo se resuelve en
@@ -275,7 +300,6 @@ las tres RPC de lectura rechazan fechas infinitas con 22023; `movimientos_por_pr
 pedida, es decir offset + límite, y no para todo el listado; salvo que se ordene por esa columna); `resumen_inicio_bloques` evalúa `rentabilidad` con el rol del usuario en cada tienda; y
 `aplicar_cotizacion` toma primero el advisory lock de la organización (sin deadlock con confirmar o descartar). Detalle en
 [`seguridad-inicio-tablero.md`](./seguridad-inicio-tablero.md).
-
 
 - **Forma `null` por permiso**: `ventas` (de `resumen_inicio_periodo`), `por_tienda`, `salidas_por_deposito`, `ingresos`,
   `margen_pct` y la columna `ventas` de `movimientos_por_producto` vuelven `null` cuando el rol no tiene el permiso;

@@ -25,6 +25,7 @@ vi.mock('../../../lib/inicioBloques', async (importOriginal) => ({
 }))
 vi.mock('../../../lib/categorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/categorias')>()), leerCategorias: vi.fn().mockResolvedValue({ categorias: [], conteos: new Map() }) }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
+vi.mock('../../../hooks/useImagenesProductos', () => ({ useImagenesProductosRenovables: () => ({ imagenes: new Map<string, string>(), renovar: () => undefined }) }))
 vi.mock('../../../hooks/useFiltroPorEmpresaActiva', () => ({
   useFiltroPorEmpresaActiva: () => ({ empresas: [], valor: null, cambiar: vi.fn(), empresaActivaId: null, cargando: false, hayError: false }),
 }))

@@ -59,6 +59,26 @@ describe('Regla única de permisos de Inicio (FR-007)', () => {
     expect(screen.getByText(/^tablero\s+ventas\s*$/)).toBeInTheDocument()
   })
 
+  it('las tarjetas van ANTES del tablero: su listado crece sin fin y lo de abajo no se alcanzaría', () => {
+    mocks.niveles = { stock: 'edicion', consultas: 'lectura', cotizacion_dolar: 'lectura', ventas: 'lectura' }
+    montar()
+    const tablero = screen.getByText(/^tablero/)
+    for (const texto of ['alertas', 'tarjeta empresas', 'tarjeta stock', 'tarjeta consultas', 'tarjeta dolar lee']) {
+      const nodo = screen.getByText(texto)
+      expect(nodo.compareDocumentPosition(tablero) & Node.DOCUMENT_POSITION_FOLLOWING, `${texto} debe ir antes del tablero`).toBeTruthy()
+    }
+    // Hijos directos del grid de la pantalla: el índice de cada tarjeta es menor que el del tablero y el tablero es el último.
+    const grid = screen.getByText('alertas').parentElement!.parentElement!
+    const hijos = Array.from(grid.children)
+    const indice = (texto: string) => hijos.findIndex((hijo) => hijo.contains(screen.getByText(texto)))
+    const iTablero = hijos.findIndex((hijo) => hijo.contains(tablero))
+    expect(iTablero).toBe(hijos.length - 1)
+    for (const texto of ['alertas', 'tarjeta empresas', 'tarjeta stock', 'tarjeta consultas', 'tarjeta dolar lee']) {
+      expect(indice(texto), `${texto} es hijo directo del grid`).toBeGreaterThanOrEqual(0)
+      expect(indice(texto), `${texto} va antes del tablero`).toBeLessThan(iTablero)
+    }
+  })
+
   it('con edición en cotización la tarjeta del dólar habilita la acción', () => {
     mocks.niveles = { cotizacion_dolar: 'edicion' }
     montar()
