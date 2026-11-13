@@ -4,7 +4,7 @@
 -- vistas y búsqueda, aislamiento, vista previa que NO escribe y `anon` sin ejecución.
 begin;
 
-select plan(24);
+select plan(22);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
