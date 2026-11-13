@@ -4,6 +4,7 @@ import { NavLink } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import { categoriasPrincipales, cuantasEntran, hayMasCategorias } from '../../../lib/tiendaCategorias'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { ANCHO_MAXIMO_TIENDA, MARGEN_LATERAL_TIENDA } from './medidas'
 
 // Barra de categorías (prototipo MJC_Home): en mayúsculas, 15 px, 600, con subrayado de 3 px en la activa (color primario).
 const estiloEnlace = {
@@ -14,7 +15,6 @@ const estiloEnlace = {
   color: 'text.primary',
   textDecoration: 'none',
   textTransform: 'uppercase',
-  fontFamily: 'var(--tienda-fuente-titulos, inherit)',
   letterSpacing: '.04em',
   fontSize: 15, // estilos-sueltos: ok
   fontWeight: 600,
@@ -72,7 +72,7 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
   const mostradas = principales.slice(0, visibles)
   return (
     <Box sx={{ display: { xs: 'none', md: 'block' }, bgcolor: 'background.paper', borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
-      <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'} sx={{ position: 'relative', maxWidth: 1200, mx: 'auto', px: 2, minHeight: 52 /* estilos-sueltos: ok */ }}>
+      <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'} sx={{ position: 'relative', maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: MARGEN_LATERAL_TIENDA, minHeight: 52 /* estilos-sueltos: ok */ }}>
         {/* Copia invisible para medir cada entrada (no se lee ni se enfoca). Va dentro de un contenedor recortado
             (overflow:hidden, del tamaño de la barra): una lista `position:absolute` con `width:max-content` fuera de él
             ensancha el scroll horizontal de toda la página. Los anchos de los hijos se siguen midiendo igual. */}

@@ -129,7 +129,10 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
   const acento = COLOR_HEX.test(identidad?.colorAcento?.trim() ?? '') ? identidad!.colorAcento!.trim() : i.colorPrimario
   const barra = COLOR_HEX.test(identidad?.colorBarra?.trim() ?? '') ? identidad!.colorBarra!.trim() : COLOR_BARRA_POR_DEFECTO
   const superficie = mezclar(i.colorFondo, '#000000', 0.043)
-  const titulos = { fontFamily: pila(i.tipografiaTitulos) }
+  // Prototipo (`.sf h1,h2,h3,.fh`): los títulos van en la tipografía de títulos, en negrita y sin el interlineado ni el
+  // espaciado entre letras que trae MUI (el prototipo usa `normal` en todo salvo donde fija un interlineado propio).
+  const titulos = { fontFamily: pila(i.tipografiaTitulos), fontWeight: 700, letterSpacing: 'normal', lineHeight: 'normal' }
+  const texto = { lineHeight: 'normal' }
   return createTheme({
     palette: {
       mode: 'light',
@@ -141,6 +144,14 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
     typography: {
       fontFamily: pila(i.tipografiaTexto),
       h1: titulos, h2: titulos, h3: titulos, h4: titulos, h5: titulos, h6: titulos,
+      subtitle1: texto, subtitle2: texto, body1: texto, body2: texto, caption: texto, button: texto,
+    },
+    // Botones del prototipo: texto sin mayúsculas forzadas, negrita, radio de 8 px y sin sombra.
+    components: {
+      MuiButton: {
+        defaultProps: { disableElevation: true },
+        styleOverrides: { root: { textTransform: 'none', fontWeight: 700, borderRadius: 8 } },
+      },
     },
     tienda: { primarioOscuro, acento, barra, textoBarra: '#FFFFFF', superficie, fuenteTitulos: titulos.fontFamily },
   })

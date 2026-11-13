@@ -21,7 +21,7 @@ export default function TemaTienda({ tienda }: PropsSeccionTienda) {
   const bannerMovil = urlPublica(identidad.bannerMovilRuta)
 
   return (
-    <Box data-testid="tema-tienda" sx={{ mb: 2 }}>
+    <Box data-testid="tema-tienda" sx={{ mb: logo || banner ? 2 : 0 }}>
       {logo ? <Box component="img" src={logo} alt={`Logo de ${tienda.empresaNombre}`} sx={{ display: 'block', height: (tema) => tema.spacing(6), maxWidth: '100%', objectFit: 'contain', mb: 2 }} /> : null}
       {banner ? (
         <Box component="picture" sx={{ display: 'block' }}>

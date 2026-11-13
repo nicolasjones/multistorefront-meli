@@ -16,3 +16,19 @@ export function IconoLupa({ size = 22 }: { size?: number }) {
     </svg>
   )
 }
+
+export function IconoLocal({ size = 22 }: { size?: number }) {
+  return (
+    <svg {...base} width={size} height={size}>
+      <path d="M20 4H4v2h16zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6zm-9 4H6v-4h6z" />
+    </svg>
+  )
+}
+
+export function IconoTilde({ size = 28 }: { size?: number }) {
+  return (
+    <svg {...base} width={size} height={size}>
+      <path d="M20 12c0 4.41-3.59 8-8 8s-8-3.59-8-8 3.59-8 8-8c.76 0 1.5.11 2.2.31l1.57-1.57C14.61 2.26 13.34 2 12 2 6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10zM7.91 10.08 6.5 11.5 11 16 21 6l-1.41-1.42L11 13.17z" />
+    </svg>
+  )
+}

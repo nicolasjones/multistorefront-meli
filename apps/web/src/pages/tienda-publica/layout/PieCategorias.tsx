@@ -10,6 +10,7 @@ import { estiloEnlacePie, estiloTituloPie } from './estilosPie'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
 import { PieInformacion } from './PieInformacion'
 import { PieLegal } from './PieLegal'
+import { ANCHO_MAXIMO_TIENDA } from './medidas'
 
 // Aviso de cookies (F-TDA-22): carga diferida, no pesa en el primer pintado.
 const AvisoCookies = lazy(() => import('./AvisoCookies'))
@@ -36,7 +37,7 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
   return (
     <>
     <Box component="footer" data-testid="pie-tienda-layout" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra })}>
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, pt: 5, pb: 4 }}>
+      <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: { xs: '20px', md: 2 }, pt: { xs: '28px', md: 5 }, pb: { xs: '28px', md: 4 } /* estilos-sueltos: ok */ }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: { xs: 3, md: 6 } }}>
           <Box sx={{ maxWidth: 340, minWidth: 0 }}>
             {logo ? (
@@ -76,7 +77,7 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
         <PieLegal host={host} />
       </Box>
       <Box sx={{ borderTop: '1px solid rgba(255,255,255,.15)' /* estilos-sueltos: ok */ }}>
-        <Typography sx={{ maxWidth: 1200, mx: 'auto', px: 2, py: '14px', fontSize: 12, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>
+        <Typography sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: { xs: '20px', md: 2 }, py: '14px', fontSize: 12, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>
           © {new Date().getFullYear()} {empresaNombre}. Todos los derechos reservados.
         </Typography>
       </Box>
