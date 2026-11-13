@@ -1,10 +1,10 @@
 # Tasks: Inicio · Tablero completo (MSF-824)
 
 ## F-INI-04 · MSF-820
-- [ ] T001 RPC `resumen_inicio_periodo` + pgTAP (permisos, signo de NC, tienda, depósito)
+- [x] T001 RPC `resumen_inicio_periodo` + pgTAP (permisos, signo de NC, tienda, depósito) — migración `20270305100000` (serie de stock en una pasada sobre productos activos + índice `movimientos_stock_org_fecha_dia_idx`) y `resumen_inicio_periodo.test.sql` (23 aserciones: signo de NC, período anterior, tienda/depósito ajenos, serie, tope de 366 días). CI `database` pasó en 8589dfb7; la versión corregida (c0482a50) la valida el CI del PR #899.
 - [x] T002 Barra de filtros con estado en URL (Período, Tienda, Depósito) — `pages/inicio/tablero/{filtros.ts,FiltrosTablero.tsx}`; `tablero-filtros.test.ts` y `tablero-inicio.test.tsx` (FR-001)
 - [x] T003 Filas «Ventas del período» y «Stock hoy» con enlaces filtrados — `TableroInicio.tsx`, `Indicador.tsx`; Reportes de ventas y Stock leen `desde/hasta` y `filtro/deposito` de la URL. Desvío: ajustes de stock y los indicadores sin filtro propio enlazan sin filtrar (ver docs/inicio-y-alertas.md)
-- [x] T004 Dependencia `@mui/x-charts` (versión fija, doc, supply-chain) y gráfico «Ventas y stock en el tiempo» (claro/oscuro, axe) — `@mui/x-charts` 8.29.3 exacta (MIT), nota en docs/inicio-y-alertas.md; `GraficoVentasStock.tsx` con colores del tema. Desvío: el tema del panel es solo claro, no hay modo oscuro que verificar
+- [x] T004 Dependencia `@mui/x-charts` (versión fija, doc, supply-chain) y gráfico «Ventas y stock en el tiempo» (claro/oscuro, axe) — `@mui/x-charts` 8.29.3 exacta (MIT), nota en docs/inicio-y-alertas.md; `GraficoVentasStock.tsx` con colores del tema. Desvío: el tema del panel no tiene modo oscuro; seguimiento MSF-849. Los 10 `d3-*` transitivos se fijan con `overrides` por antigüedad (nota en docs). Desvío: el tema del panel es solo claro, no hay modo oscuro que verificar
 - [x] T005 Tests Vitest + axe 320/768/1440 — 31 tests: `tablero-filtros.test.ts` (10) y `tablero-inicio.test.tsx` (21, con axe a 320/768/1440)
 
 ## F-INI-05 · MSF-821

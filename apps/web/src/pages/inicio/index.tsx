@@ -27,6 +27,7 @@ export function InicioPage() {
   const dolar = useNivelSeccion('cotizacion_dolar').nivel
   const ventas = useNivelSeccion('ventas').nivel
   const actividad = useNivelSeccion('actividad').nivel
+  const reportes = useNivelSeccion('reportes').nivel
   const productos = useNivelSeccion('productos').nivel
   const empresas = useNivelSeccion('empresas').nivel
   // Cambió la empresa activa (barra superior): se remonta el contenido y se recarga todo (Principio VIII, FR-010).
@@ -63,7 +64,7 @@ export function InicioPage() {
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' } }}
         >
           <Box sx={{ gridColumn: '1 / -1' }}><AlertasInicio /></Box>
-          {verVentas || verStock ? <Box sx={{ gridColumn: '1 / -1' }}><TableroInicio verVentas={verVentas} verStock={verStock} verActividad={verActividad} /></Box> : null}
+          {verVentas || verStock ? <Box sx={{ gridColumn: '1 / -1' }}><TableroInicio verVentas={verVentas} verStock={verStock} verActividad={verActividad} verReportes={puedeVer(reportes)} /></Box> : null}
           <TarjetaEmpresas />
           {verStock ? <TarjetaStock /> : null}
           {verConsultas ? <TarjetaConsultas /> : null}

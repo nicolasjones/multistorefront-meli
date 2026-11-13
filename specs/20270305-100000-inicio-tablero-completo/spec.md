@@ -74,7 +74,7 @@ Sin tablas nuevas: la prueba `rls_en_toda_tabla` no cambia. Migraciones aditivas
 | D-5 | Margen estimado = margen **real** de lo vendido (costo guardado en la línea) | Margen de lista |
 | D-6 | Gráfico con **MUI X Charts** (`@mui/x-charts`), aprobado por Nicolás el 2026-11-13 | SVG propio, sin dependencia nueva |
 | D-7 | Movimientos por producto completo con carga infinita; exportación CSV | Muestra de N; .xlsx |
-| D-8 | El tablero sigue a la empresa activa (con `useFiltroPorEmpresaActiva`); períodos de la historia (hoy, 7 días, mes, rango) | Filtro independiente; 7/30/90 del prototipo |
+| D-8 | Período, tienda y depósito viajan en la URL (`?tienda=<uuid>|todas`) para compartir la vista (manda la historia, CA-INI-04-7); sin `tienda` sigue a la empresa activa y el cambio de la barra superior la descarta; períodos de la historia (hoy, 7 días, mes, rango) | Tienda fuera de la URL; 7/30/90 del prototipo |
 | D-9 | Vista previa pura `previsualizar_impacto_dolar` (lo pide la historia); sin Mercado Libre en el diálogo | Reusar solo cargar→previsualizar |
 | D-10 | «Actividad reciente» sin «Cant.»; refleja solo lo que el registro guarda hoy | Agregar columna al registro |
 | D-11 | Con `ventas` solo en algunas empresas, se suman únicamente las tiendas visibles | — |

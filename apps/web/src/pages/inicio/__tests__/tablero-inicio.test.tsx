@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
 const mocks = vi.hoisted(() => ({ leer: vi.fn(), depositos: vi.fn(), cambiarEmpresa: vi.fn(), empresa: { valor: null as string | null } }))
@@ -20,7 +20,7 @@ vi.mock('../../../lib/categorias', async (importOriginal) => ({
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
 vi.mock('../../../hooks/useFiltroPorEmpresaActiva', () => ({
   useFiltroPorEmpresaActiva: () => ({
-    empresas: [{ id: 'e-1', nombre: 'San Javucho' }, { id: 'e-2', nombre: 'Mundo JC' }],
+    empresas: [{ id: 'e1000000-0000-4000-8000-000000000001', nombre: 'San Javucho' }, { id: 'e1000000-0000-4000-8000-000000000002', nombre: 'Mundo JC' }],
     valor: mocks.empresa.valor,
     cambiar: mocks.cambiarEmpresa,
     empresaActivaId: null,
@@ -30,6 +30,9 @@ vi.mock('../../../hooks/useFiltroPorEmpresaActiva', () => ({
 }))
 
 import { TableroInicio } from '../tablero/TableroInicio'
+
+// El gráfico se baja con `import()` diferido: en jsdom la primera carga de x-charts tarda más que el segundo por defecto.
+const ESPERA_GRAFICO = { timeout: 15_000 }
 
 const DEPOSITO = 'd1000000-0000-4000-8000-000000000001'
 
@@ -52,10 +55,10 @@ function Ubicacion() {
   return <output data-testid="url">{pathname}{search}</output>
 }
 
-const abrir = (entrada = '/', props: { verVentas?: boolean; verStock?: boolean } = {}) =>
+const abrir = (entrada = '/', props: { verVentas?: boolean; verStock?: boolean; verReportes?: boolean } = {}) =>
   render(
     <MemoryRouter initialEntries={[entrada]}>
-      <TableroInicio verVentas={props.verVentas ?? true} verStock={props.verStock ?? true} />
+      <TableroInicio verVentas={props.verVentas ?? true} verStock={props.verStock ?? true} verReportes={props.verReportes ?? true} />
       <Ubicacion />
     </MemoryRouter>,
   )
@@ -110,13 +113,49 @@ describe('Tablero de Inicio · filtros (FR-001)', () => {
   })
 
   it('la tienda sale de las empresas de la organización (sin nombres fijos) y sigue a la empresa activa', async () => {
-    mocks.empresa.valor = 'e-2'
+    mocks.empresa.valor = 'e1000000-0000-4000-8000-000000000002'
     abrir()
     await screen.findByText('Ventas del período')
-    expect(mocks.leer).toHaveBeenCalledWith(expect.objectContaining({ empresaId: 'e-2' }))
+    expect(mocks.leer).toHaveBeenCalledWith(expect.objectContaining({ empresaId: 'e1000000-0000-4000-8000-000000000002' }))
     expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('elegir una tienda la refleja en la URL y consulta con ella (CA-INI-04-7)', async () => {
+    abrir()
+    await screen.findByText('Ventas del período')
     fireEvent.click(screen.getByRole('button', { name: 'San Javucho' }))
-    expect(mocks.cambiarEmpresa).toHaveBeenCalledWith('e-1')
+    await waitFor(() => expect(mocks.leer).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e1000000-0000-4000-8000-000000000001' })))
+    expect(screen.getByTestId('url')).toHaveTextContent('tienda=e1000000-0000-4000-8000-000000000001')
+  })
+
+  it('una URL compartida con tienda y depósito reproduce la misma vista en otra sesión', async () => {
+    mocks.empresa.valor = 'e1000000-0000-4000-8000-000000000001' // la empresa activa de la otra sesión es otra
+    abrir('/?periodo=hoy&tienda=e1000000-0000-4000-8000-000000000002&deposito=' + DEPOSITO)
+    await screen.findByText('Ventas del período')
+    expect(mocks.leer).toHaveBeenLastCalledWith({ desde: '2026-10-15', hasta: '2026-10-15', empresaId: 'e1000000-0000-4000-8000-000000000002', depositoId: DEPOSITO })
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('«todas» en la URL gana sobre la empresa activa, y una tienda que no es accesible se ignora', async () => {
+    mocks.empresa.valor = 'e1000000-0000-4000-8000-000000000001'
+    abrir('/?tienda=todas')
+    await screen.findByText('Ventas del período')
+    expect(mocks.leer).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: null }))
+  })
+
+  it('una tienda de la URL que no es accesible vuelve a la empresa activa', async () => {
+    mocks.empresa.valor = 'e1000000-0000-4000-8000-000000000001'
+    abrir('/?tienda=e9999999-0000-4000-8000-000000000009')
+    await screen.findByText('Ventas del período')
+    expect(mocks.leer).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e1000000-0000-4000-8000-000000000001' }))
+  })
+
+  it('un depósito de la URL que no existe cae a «Todos los depósitos» y consulta sin él', async () => {
+    abrir('/?deposito=d9999999-0000-4000-8000-000000000009')
+    await screen.findByText('Ventas del período')
+    expect(mocks.leer).toHaveBeenLastCalledWith(expect.objectContaining({ depositoId: null }))
+    expect(mocks.leer).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('combobox', { name: 'Depósito' })).toHaveTextContent('Todos los depósitos')
   })
 })
 
@@ -132,10 +171,25 @@ describe('Tablero de Inicio · indicadores (FR-002, FR-003, FR-005)', () => {
     expect(ventas.getByRole('link', { name: /Devoluciones \(con IVA\): \$\s?605, 1 unidades devueltas/ })).toBeInTheDocument()
   })
 
+  it('el ticket promedio también se compara con el del período anterior', async () => {
+    // Actual: 4235 / 2 = 2117,5. Anterior: 2117,5 / 4 = 529,38 → +300 %.
+    abrir()
+    await screen.findByText('Ventas del período')
+    expect(screen.getByRole('link', { name: /Ticket promedio \(con IVA\): \$\s?2\.118, \+300 % vs período anterior/ })).toBeInTheDocument()
+  })
+
+  it('sin la sección reportes los indicadores de ventas no enlazan (Reportes les negaría el acceso)', async () => {
+    abrir('/', { verReportes: false })
+    await screen.findByText('Ventas del período')
+    expect(screen.queryByRole('link', { name: /Ventas \(con IVA\)/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Ventas (con IVA)')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Sin stock: 3/ })).toBeInTheDocument()
+  })
+
   it('sin período anterior no inventa una variación', async () => {
     mocks.leer.mockResolvedValue({ ...RESUMEN, ventas: { ...RESUMEN.ventas, anterior_monto: 0, anterior_comprobantes: 0 } })
     abrir()
-    expect((await screen.findAllByText('Sin período anterior para comparar')).length).toBe(2)
+    expect((await screen.findAllByText('Sin período anterior para comparar')).length).toBe(3)
   })
 
   it('«Stock hoy»: unidades, reservado, disponible, sin stock, stock bajo y ajustes', async () => {
@@ -165,14 +219,18 @@ describe('Tablero de Inicio · indicadores (FR-002, FR-003, FR-005)', () => {
   })
 })
 
-describe('Tablero de Inicio · gráfico (FR-004)', () => {
+describe('Tablero de Inicio · gráfico (FR-004)', { timeout: 30_000 }, () => {
+  // La primera carga en frío de x-charts es lenta: se precarga una vez para que el `import()` diferido del tablero ya la tenga.
+  beforeAll(async () => { await import('../tablero/GraficoVentasStock') }, 120_000)
+
   it('muestra «Ventas y stock en el tiempo» con su descripción y la tabla equivalente', async () => {
     const { container } = abrir()
     await screen.findByText('Stock hoy')
     expect(screen.getByRole('heading', { name: 'Ventas y stock en el tiempo' })).toBeInTheDocument()
-    expect(container.querySelector('svg title')?.textContent).toBe('Ventas y stock en el tiempo')
+    await waitFor(() => expect(container.querySelector('svg title')?.textContent).toBe('Ventas y stock en el tiempo'), ESPERA_GRAFICO)
+    await waitFor(() => expect(container.querySelector('svg desc')).not.toBeNull(), ESPERA_GRAFICO)
     expect(container.querySelector('svg desc')?.textContent).toContain('unidades vendidas por día y stock al cierre de cada día')
-    const tabla = screen.getByRole('table', { hidden: true })
+    const tabla = await screen.findByRole('table', { hidden: true }, ESPERA_GRAFICO)
     expect(within(tabla).getAllByRole('row', { hidden: true })).toHaveLength(4)
     expect(within(tabla).getByRole('columnheader', { name: 'Stock al cierre', hidden: true })).toBeInTheDocument()
   })
@@ -180,7 +238,21 @@ describe('Tablero de Inicio · gráfico (FR-004)', () => {
   it('sin datos en el período, estado vacío', async () => {
     mocks.leer.mockResolvedValue({ ...RESUMEN, serie: [] })
     abrir()
-    expect(await screen.findByText('Sin datos en el período')).toBeInTheDocument()
+    expect(await screen.findByText('Sin datos en el período', undefined, ESPERA_GRAFICO)).toBeInTheDocument()
+  })
+
+  it('sin ventas en ningún día el gráfico queda vacío aunque haya stock (CA-INI-04-4)', async () => {
+    mocks.leer.mockResolvedValue({ ...RESUMEN, serie: RESUMEN.serie.map((p) => ({ ...p, unidades: 0 })) })
+    abrir()
+    expect(await screen.findByText('Sin datos en el período', undefined, ESPERA_GRAFICO)).toBeInTheDocument()
+  })
+
+  it('un rol que solo ve stock ve la línea de stock aunque no tenga ventas', async () => {
+    mocks.leer.mockResolvedValue({ ...RESUMEN, ventas: null, serie: RESUMEN.serie.map((p) => ({ ...p, unidades: null })) })
+    const { container } = abrir('/', { verVentas: false })
+    await screen.findByText('Stock hoy')
+    await waitFor(() => expect(container.querySelector('svg title')).not.toBeNull(), ESPERA_GRAFICO)
+    expect(screen.queryByText('Sin datos en el período')).not.toBeInTheDocument()
   })
 })
 
@@ -206,6 +278,7 @@ describe('Tablero de Inicio · permisos (FR-006)', () => {
     mocks.leer.mockResolvedValue({ ...RESUMEN, ventas: null, stock: null, serie: [] })
     abrir()
     expect(await screen.findByText('No hay datos para mostrar')).toBeInTheDocument()
+    expect(screen.getByText(/No tenés ventas ni stock habilitados para esta tienda/)).toBeInTheDocument()
   })
 
   it('sin permiso de stock ni ventas no se consultan los depósitos', async () => {
@@ -220,9 +293,20 @@ describe('Tablero de Inicio · estados', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.leer.mockRejectedValueOnce(new Error('boom'))
     abrir()
-    expect(await screen.findByText('No pudimos cargar el tablero')).toBeInTheDocument()
+    expect(await screen.findByText('No pudimos cargar este dato')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByText('Ventas del período')).toBeInTheDocument()
+  })
+
+  it('un error no persiste al cambiar los filtros: se vuelve a cargar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.leer.mockRejectedValueOnce(new Error('boom'))
+    abrir()
+    expect(await screen.findByText('No pudimos cargar este dato')).toBeInTheDocument()
+    mocks.leer.mockReturnValue(new Promise(() => undefined))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoy' }))
+    await waitFor(() => expect(screen.queryByText('No pudimos cargar este dato')).not.toBeInTheDocument())
+    expect(screen.getByRole('status', { name: 'Cargando el tablero' })).toBeInTheDocument()
   })
 
   it('mientras llegan los datos de otros filtros no se muestran los anteriores', async () => {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme } from '@mui/material'
 import {
   BarPlot, ChartsAxisHighlight, ChartsContainer, ChartsLegend, ChartsTooltip, ChartsXAxis, ChartsYAxis, LinePlot, MarkPlot,
@@ -15,21 +16,24 @@ const etiquetaDia = (dia: string) => formatoDia.format(new Date(`${dia}T00:00:00
 // bloque correspondiente se puede ver. La tabla equivalente da el mismo dato a quien no puede ver el gráfico.
 export function GraficoVentasStock({ serie, hayVentas, hayStock }: Props) {
   const tema = useTheme()
-  const hayDatos = serie.some((punto) => (hayVentas && (punto.unidades ?? 0) !== 0) || (hayStock && punto.stock !== null))
-  if (serie.length === 0 || (!hayVentas && !hayStock) || !hayDatos) {
-    return <EstadoVacio titulo="Sin datos en el período" descripcion="Cuando haya ventas o movimientos de stock en estos filtros, los vas a ver acá." />
-  }
-
-  const dias = serie.map((punto) => punto.dia)
-  const paso = Math.max(1, Math.ceil(dias.length / 10))
-  const series = [
+  // Sin ventas en ningún día el gráfico está vacío (CA-INI-04-4); un rol que solo ve stock ve la línea de stock.
+  const hayDatos = hayVentas
+    ? serie.some((punto) => (punto.unidades ?? 0) !== 0)
+    : hayStock && serie.some((punto) => punto.stock !== null)
+  const dias = useMemo(() => serie.map((punto) => punto.dia), [serie])
+  const series = useMemo(() => [
     ...(hayVentas
       ? [{ type: 'bar' as const, id: 'unidades', label: 'Unidades vendidas', data: serie.map((punto) => punto.unidades), yAxisId: 'unidades', color: tema.palette.primary.main }]
       : []),
     ...(hayStock
-      ? [{ type: 'line' as const, id: 'stock', label: 'Stock al cierre del día', data: serie.map((punto) => punto.stock), yAxisId: 'stock', color: tema.palette.warning.main, showMark: dias.length <= 31 }]
+      ? [{ type: 'line' as const, id: 'stock', label: 'Stock al cierre del día', data: serie.map((punto) => punto.stock), yAxisId: 'stock', color: tema.palette.warning.main, showMark: serie.length <= 31 }]
       : []),
-  ]
+  ], [serie, hayVentas, hayStock, tema.palette.primary.main, tema.palette.warning.main])
+  const paso = Math.max(1, Math.ceil(dias.length / 10))
+  const xAxis = useMemo(() => [{ id: 'dia', scaleType: 'band' as const, data: dias, valueFormatter: etiquetaDia, tickLabelInterval: (_valor: unknown, indice: number) => indice % paso === 0 }], [dias, paso])
+  if (serie.length === 0 || (!hayVentas && !hayStock) || !hayDatos) {
+    return <EstadoVacio titulo="Sin datos en el período" descripcion="Cuando haya ventas o movimientos de stock en estos filtros, los vas a ver acá." />
+  }
   const descripcion = `Gráfico de ${hayVentas ? 'unidades vendidas por día' : ''}${hayVentas && hayStock ? ' y ' : ''}${hayStock ? 'stock al cierre de cada día' : ''}, del ${etiquetaDia(dias[0])} al ${etiquetaDia(dias[dias.length - 1])}. Los mismos datos están en la tabla de abajo.`
 
   return (
@@ -37,7 +41,7 @@ export function GraficoVentasStock({ serie, hayVentas, hayStock }: Props) {
       <ChartsContainer
         height={300}
         series={series}
-        xAxis={[{ id: 'dia', scaleType: 'band', data: dias, valueFormatter: etiquetaDia, tickLabelInterval: (_valor: unknown, indice: number) => indice % paso === 0 }]}
+        xAxis={xAxis}
         yAxis={[
           { id: 'unidades', scaleType: 'linear', width: 48 },
           { id: 'stock', scaleType: 'linear', position: 'right', width: 56 },

@@ -43,11 +43,13 @@ ventas, stock y la serie diaria; la base devuelve `null` en el bloque que el rol
 se muestra.
 
 - **Filtros** (`apps/web/src/pages/inicio/tablero/filtros.ts`): Período (Hoy, 7 días, Este mes o Rango libre;
-  por defecto el mes en curso, calculado con el día de Buenos Aires), Tienda y Depósito. Período y depósito
-  viven en la URL (`?periodo=…&desde=…&hasta=…&deposito=<uuid>`) para compartir la vista. **La tienda no va en
-  la URL**: sigue a la empresa activa de la barra superior y se puede sobreescribir en pantalla sin
-  cambiarla (Principio VIII, decisión D-8). Un rango inválido se avisa en el campo y no se consulta; el
-  máximo es de 366 días.
+  por defecto el mes en curso, calculado con el día de Buenos Aires), Tienda y Depósito. Los tres
+  viven en la URL (`?periodo=…&desde=…&hasta=…&deposito=<uuid>&tienda=<uuid>|todas`) para compartir la vista
+  (CA-INI-04-7). Sin `tienda` el tablero sigue a la empresa activa de la barra superior; con `tienda` manda
+  la URL (si es una empresa accesible; si no, se ignora) y un cambio de la empresa activa en la barra superior
+  la descarta (Principio VIII: el cambio de arriba siempre gana). Un depósito de la URL que no existe en la
+  organización cae a «Todos los depósitos». Un rango inválido se avisa en el campo y no se consulta; el
+  máximo es de 366 días. «Todas las tiendas» deja afuera las empresas desactivadas (no son accesibles).
 - **«Ventas del período»**: ventas con IVA (rotuladas), comprobantes, ticket promedio, unidades vendidas netas
   de devoluciones y devoluciones, con la variación contra el período anterior de igual largo (sin período
   anterior no se inventa una variación). La nota de crédito resta; presupuestos y comprobantes anulados no
@@ -59,22 +61,44 @@ se muestra.
   día con doble eje (`@mui/x-charts`, colores del tema), con descripción accesible y la misma información en
   una tabla («Ver los datos como tabla»). Cada serie aparece solo si el bloque correspondiente se ve.
 - **Enlaces (FR-005)**: las ventas llevan a Reportes de ventas con el período ya elegido
-  (`/ventas/reportes?desde=…&hasta=…`); «Sin stock» y «Stock bajo» llevan a Stock ya filtrado
+  (`/ventas/reportes?desde=…&hasta=…`) **solo si el rol tiene la sección `reportes`** (muchos roles con `ventas`
+  no la tienen: sin ella el indicador no enlaza); «Sin stock» y «Stock bajo» llevan a Stock ya filtrado
   (`/stock?filtro=sin_stock|stock_bajo&deposito=<id>`). Reportes de ventas y la lista de Stock leen esos
-  parámetros al abrir. Desvío: los indicadores de stock sin filtro propio y «Ajustes de stock» llevan a la
-  pantalla sin filtrar (`/stock`, `/stock/movimientos`), y Reportes de ventas sigue a la empresa activa y no
-  tiene filtro de depósito.
-- **Estados**: carga, error con «Reintentar» y vacío; mientras llegan los datos de otros filtros no se muestran
-  los anteriores.
+  parámetros al abrir. Desvíos: (1) los indicadores de stock sin filtro propio y «Ajustes de stock» llevan a la
+  pantalla sin filtrar (`/stock`, `/stock/movimientos`); (2) Reportes de ventas sigue a la empresa activa, no
+  admite una tienda por URL ni tiene filtro de depósito, así que el enlace lleva solo el período (las cifras
+  pueden diferir si el tablero usa otra tienda); (3) con depósito, «Sin stock»/«Stock bajo» del tablero se
+  calculan por depósito y solo con productos activos, mientras la lista de Stock filtra por el estado global
+  (`stock_estados`): el número del indicador y el listado pueden no coincidir.
+- **Modo oscuro (RF-INI-04-7)**: el tema del panel no tiene esquema oscuro, así que hoy no hay modo oscuro que
+  verificar; el gráfico usa los colores del tema y lo hereda cuando exista. Desvío trazado en MSF-849.
+- **Estados**: carga, error («No pudimos cargar este dato») con «Reintentar» y vacío; mientras llegan los datos
+  de otros filtros no se muestran los anteriores ni un error previo. El ticket promedio también se compara con
+  el del período anterior. El gráfico queda vacío («Sin datos en el período») si no hubo ventas en ningún día
+  (un rol que solo ve stock ve la línea de stock) y se carga diferido (`React.lazy`) para no pesar en el
+  arranque de Inicio.
 
 ### Dependencia nueva: `@mui/x-charts` (revisión de cadena de suministro)
 
 Aprobada por Nicolás el 2026-11-13 (D-6). Se fija la versión **exacta `8.29.3`** (publicada el 2026-08-21):
 licencia **MIT** (el paquete base de gráficos; no se usa la edición Pro/Premium), mismo mantenedor y familia
 que `@mui/material` (peer `^5.15.14 || ^6 || ^7`, compatible con el MUI 6 del panel) y sin scripts de
-instalación propios. Trae como dependencias `@mui/x-internals`, `@mui/x-charts-vendor` (D3 empaquetado) y
-`@mui/x-internal-gestures`, todas del mismo mantenedor. El `pnpm-lock.yaml` deja las integridades fijadas.
-Se carga junto con la pantalla de Inicio; si pesara en el arranque se puede diferir con `lazy`.
+instalación propios. Dependencias directas: `@mui/x-internals`, `@mui/x-internal-gestures` y
+`@mui/x-charts-vendor`; esta última trae 10 paquetes `d3-*` (array, color, format, interpolate, path, scale,
+shape, time, time-format, timer; MIT o ISC), `flatqueue` y `internmap` (ISC), 11 `@types/d3-*` y `bezier-easing`
+(MIT, **de un tercero**, no del mantenedor de MUI). No hay paquetes Pro/Premium ni de licencia (`x-license`) en
+el lockfile.
+
+**Excepción de antigüedad y override.** Al incorporarlo, los 10 `d3-*` se resolvían a versiones publicadas el
+2026-11-03 (menos de 2 semanas, regla de la revisión de cadena de suministro). Se descartaron (comparación de
+`d3-array` 3.2.4→3.2.5 y `d3-color` 3.1.0→3.1.1: solo cambia el empaquetado, `src` pasa a `dist/*.mjs`, sin
+`fetch`, `child_process` ni `eval`; con provenance SLSA de GitHub Actions) y se **fijaron a la versión
+inmediata anterior** con `overrides` en `pnpm-workspace.yaml` (d3-array 3.2.4, d3-color 3.1.0, d3-format
+3.1.2, d3-interpolate 3.0.1, d3-path 3.1.0, d3-scale 4.0.2, d3-shape 3.2.0, d3-time 3.1.0, d3-time-format
+4.1.0, d3-timer 3.0.1), que cumplen los rangos de `x-charts-vendor` y tienen meses o años de antigüedad. Se
+puede quitar el bloque desde el 2026-11-17 y re-resolver el lockfile. El `pnpm-lock.yaml` deja las
+integridades fijadas y pasa la política de cadena de suministro de pnpm. El gráfico se carga con `lazy`: el
+paquete no entra en el chunk inicial de Inicio.
 
 ## Bloques de gestión (F-INI-05, MSF-821, épica MSF-824)
 

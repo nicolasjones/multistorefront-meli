@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { enlaceVentas, errorDeRango, leerFiltros, parametrosConDeposito, parametrosConPeriodo } from '../tablero/filtros'
+import { enlaceVentas, errorDeRango, leerFiltros, parametrosConDeposito, parametrosConPeriodo, parametrosConTienda } from '../tablero/filtros'
 
 const AHORA = new Date('2026-10-15T15:00:00Z')
 const DEPOSITO = 'd1000000-0000-4000-8000-000000000001'
@@ -7,7 +7,7 @@ const DEPOSITO = 'd1000000-0000-4000-8000-000000000001'
 describe('Filtros del tablero de Inicio (FR-001)', () => {
   it('por defecto: el mes en curso y todos los depósitos', () => {
     const filtros = leerFiltros(new URLSearchParams(), AHORA)
-    expect(filtros).toMatchObject({ periodo: 'este-mes', rango: { desde: '2026-10-01', hasta: '2026-10-15' }, errorRango: null, depositoId: null })
+    expect(filtros).toMatchObject({ periodo: 'este-mes', rango: { desde: '2026-10-01', hasta: '2026-10-15' }, errorRango: null, depositoId: null, tienda: null })
   })
 
   it.each([
@@ -42,6 +42,15 @@ describe('Filtros del tablero de Inicio (FR-001)', () => {
   it('el depósito solo se acepta si es un UUID', () => {
     expect(leerFiltros(new URLSearchParams({ deposito: DEPOSITO }), AHORA).depositoId).toBe(DEPOSITO)
     expect(leerFiltros(new URLSearchParams({ deposito: "1'; drop table" }), AHORA).depositoId).toBeNull()
+  })
+
+  it('la tienda se acepta solo como UUID o «todas»', () => {
+    const E = 'e1000000-0000-4000-8000-000000000001'
+    expect(leerFiltros(new URLSearchParams({ tienda: E }), AHORA).tienda).toBe(E)
+    expect(leerFiltros(new URLSearchParams({ tienda: 'todas' }), AHORA).tienda).toBe('todas')
+    expect(leerFiltros(new URLSearchParams({ tienda: "x'; --" }), AHORA).tienda).toBeNull()
+    expect(parametrosConTienda(new URLSearchParams({ periodo: 'hoy' }), E).toString()).toBe(`periodo=hoy&tienda=${E}`)
+    expect(parametrosConTienda(new URLSearchParams({ tienda: E }), null).toString()).toBe('')
   })
 
   it('se reflejan en la URL conservando lo demás', () => {
