@@ -101,6 +101,20 @@ en otros componentes lo corrige el PR #876, no este.
   terminar; no usan las del demo (no se pueden limpiar). `pnpm e2e:escritura:check`
   (y `pnpm test:e2e:escritura`, ambos en `validate.yml`) falla si un spec de `apps/web/e2e` hace INSERT/PATCH/DELETE
   directo sobre esas tablas; leerlas está permitido y una línea se exime con `escritura-directa: ok — <motivo>`.
+- **Fixture compartido (`e2e/soporte/fixtures.ts`): usalo en los specs nuevos** y no copies `async function rest/leer/borrar/...`
+  en cada archivo. Exporta `url` y `serviceKey` (con el guard «solo contra un Supabase local», que corre al importarlo: un spec
+  no repite el suyo), `cabeceras`, `rest(ruta, cuerpo, esquema = 'public', prefer = 'return=representation')` (INSERT/upsert;
+  `?on_conflict=` en la ruta y `UPSERT_FUSIONAR` como `prefer` para pisar la fila existente; con un `prefer` sin
+  `return=representation` devuelve `[]`), `leer(ruta, esquema = 'public')` (SELECT con `accept-profile`; el esquema por defecto
+  es `public`, así que las tablas de `dominio` llevan `'dominio'` explícito), `borrar(ruta, esquema = 'public')` (DELETE con
+  el filtro en la ruta; si falla avisa con `console.warn` y sigue, porque es limpieza), `altaUsuario(correo, password)` y
+  `borrarUsuario(id)` (API admin de Auth; la contraseña por defecto es `CONTRASENA_E2E`), `crearConsulta` (RPC pública) y
+  `limpiarOrganizacion`. Los nombres de los helpers no son lectores para el guardián de escritura directa, así que
+  `rest('consultas', ...)` o `borrar('movimientos_stock?...')` siguen marcándose igual que antes. Lo que NO está en el
+  fixture se queda en el spec o en su archivo de soporte porque la firma es propia de ese flujo: las llamadas RPC con el JWT de
+  una persona (`rpc`, `rpcComo`, `tokenDe`), `actualizar`/`modificar` (PATCH), `leer(consulta)` y `cabeceras` con perfil `dominio` por defecto
+  en algunas tiendas, `cuenta-web-cliente` (`rest(metodo, ruta, cuerpo)`), `importaciones-soporte.ts`, `ventas-faltantes-soporte.ts`
+  (`leer` con `dominio` por defecto, exportado a otros specs) y `ayuda`/`panel-sin-desborde` (`borrar` con la URL completa).
 - `service-seguimiento` necesita `SEGUIMIENTO_IP_SALT` en el runtime de **Edge**, no en Playwright: se exporta (o va en
   `supabase/.env`) antes de `supabase start`, porque `config.toml` lo declara en `[edge_runtime.secrets]`.
 - `ventas-impresion` corre el worker real: compilá `workers/comprobantes-pdf` (`pnpm build` en ese paquete) y exportá

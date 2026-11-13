@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-18 (MSF-332, SC-009; FR-020…FR-023): con los dos dominios del seed, un producto con stock dice
 // «Disponible», uno sin stock dice «Sin stock» (tarjeta del catálogo y ficha) y ninguna página muestra
@@ -7,14 +8,6 @@ import { expect, test } from '@playwright/test'
 // servida; siembra con la API admin desde Node (la service-role key nunca llega al navegador). Sin
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md. Dentro del test no hay
 // `test.skip` dinámicos: si la tarjeta o la ficha faltaran, el test falla.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -34,24 +27,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
@@ -68,13 +46,13 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
       for (const t of tiendas) {
         // Categoría propia: el catálogo se abre filtrado por ella, así los dos productos salen en la primera
         // tanda (de 24, ordenada por nombre) aunque la base ya tenga otros productos de la tienda.
-        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: `Cat ${t.nombre} ${sufijo}` }])
+        const [categoria] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: `Cat ${t.nombre} ${sufijo}` }], 'dominio')
         t.categoriaId = categoria.id
-        const [conStock, sinStock] = await insertar<{ id: string }>('productos', [
+        const [conStock, sinStock] = await rest<{ id: string }>('productos', [
           { organizacion_id: t.organizacion, nombre: t.conStock, sku: `E2E-D-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10, moneda: 'ARS', categoria_id: categoria.id },
           { organizacion_id: t.organizacion, nombre: t.sinStock, sku: `E2E-S-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20, moneda: 'ARS', categoria_id: categoria.id },
-        ])
-        await insertar('producto_empresa', [conStock, sinStock].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
+        ], 'dominio')
+        await rest('producto_empresa', [conStock, sinStock].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
         // La fila de existencias nace con el producto (trigger) en 0.
         await actualizar('existencias', `producto_id=eq.${conStock.id}`, { cantidad: CANTIDAD_CON_STOCK })
       }
@@ -118,8 +96,8 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
     } finally {
       // Limpieza: los productos caen en cascada con sus existencias y filas de tienda.
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })

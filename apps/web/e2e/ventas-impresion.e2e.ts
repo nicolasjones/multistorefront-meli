@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+import { altaUsuario, borrar, borrarUsuario, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-213 (SC-009, T035): factura confirmada → imprimir factura y remito → marca y reimpresión →
 // presupuesto → PDF → correo. Mide y registra la latencia de generación del PDF.
@@ -13,61 +14,11 @@ import { expect, test, type Page } from '@playwright/test'
 // en la outbox; con `E2E_CORREO_KESTRA=1` (Kestra + SMTP de prueba/Mailpit levantados) también espera el mensaje con
 // el PDF adjunto. Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI público):
 // ver docs/e2e-app.md y docs/ventas-impresion.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const mailpit = process.env.MAILPIT_URL ?? `http://127.0.0.1:${process.env.SUPABASE_MAILPIT_PORT ?? '4302'}`
 const conCorreoKestra = process.env.E2E_CORREO_KESTRA === '1'
 const password = 'Correcta-12345!'
 const LIMITE_GENERACION_MS = 90_000 // tope de espera de la pantalla (docs/ventas-impresion.md)
-
-// La service-role key escribe datos y crea usuarios con contraseña conocida: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de ventas-impresion: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function leer<T>(ruta: string, esquema = 'dominio'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrar(ruta: string) {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
 
 type Documento = { id: string; tipo_documento: string; estado: string; ejecucion_id: string | null }
 
@@ -170,7 +121,7 @@ function atenderPedidos(organizacionId: string, rol: RolWorker) {
     try {
       while (activo) {
         const pendientes = await leer<Documento>(
-          `comprobante_documentos?organizacion_id=eq.${organizacionId}&estado=eq.pendiente&select=id,tipo_documento,estado,ejecucion_id`,
+          `comprobante_documentos?organizacion_id=eq.${organizacionId}&estado=eq.pendiente&select=id,tipo_documento,estado,ejecucion_id`, 'dominio',
         )
         for (const doc of pendientes) {
           if (atendidos.has(doc.id) || !doc.ejecucion_id) continue
@@ -295,11 +246,11 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
       // Reimpresión: sin límite, reutiliza el PDF vigente y no crea otro pedido; queda registrada como reimpresión.
       await page.getByRole('button', { name: 'Imprimir remito' }).click()
       await imprimir(page, /^Remito/, 'Enviado a imprimir')
-      const documentos = await leer<Documento>(`comprobante_documentos?comprobante_id=eq.${factura.id}&select=id,tipo_documento,estado,ejecucion_id`)
+      const documentos = await leer<Documento>(`comprobante_documentos?comprobante_id=eq.${factura.id}&select=id,tipo_documento,estado,ejecucion_id`, 'dominio')
       expect(documentos.filter((d) => d.tipo_documento === 'remito')).toHaveLength(1)
       expect(documentos.every((d) => d.estado === 'generado')).toBe(true)
       const impresiones = await leer<{ tipo_documento: string; reimpresion: boolean }>(
-        `comprobante_impresiones?comprobante_id=eq.${factura.id}&select=tipo_documento,reimpresion`,
+        `comprobante_impresiones?comprobante_id=eq.${factura.id}&select=tipo_documento,reimpresion`, 'dominio',
       )
       expect(impresiones.filter((i) => i.tipo_documento === 'remito').map((i) => i.reimpresion).sort()).toEqual([false, true])
       expect(impresiones.filter((i) => i.tipo_documento === 'factura')).toHaveLength(1)
@@ -312,7 +263,7 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
 
       await page.getByRole('button', { name: 'Enviar por correo' }).click()
       await expect
-        .poll(async () => (await leer<{ estado: string; destinatario: string }>(`comprobante_envios_correo?comprobante_id=eq.${presupuesto.id}&select=estado,destinatario`))[0], {
+        .poll(async () => (await leer<{ estado: string; destinatario: string }>(`comprobante_envios_correo?comprobante_id=eq.${presupuesto.id}&select=estado,destinatario`, 'dominio'))[0], {
           timeout: 15_000,
         })
         .toMatchObject({ destinatario: correoCliente, estado: expect.stringMatching(/^(pendiente|enviado)$/) })

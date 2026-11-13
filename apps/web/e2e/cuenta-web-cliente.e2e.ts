@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { serviceKey, url } from './soporte/fixtures'
 
 // F-CLI-06 (MSF-428, SC-005 y SC-006) con las dos tiendas del seed (mundojc.localhost y sanjavucho.localhost):
 //  - invitación → definir contraseña → ingresar → «Salir» (SC-005);
@@ -9,14 +10,6 @@ import { expect, test, type Page } from '@playwright/test'
 // admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md. El enlace de definir contraseña se pide con
 // `generate_link` (admin) en lugar de leer el correo: el envío del correo lo cubre el test de la Edge Function.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de cuenta web: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001' } as const
