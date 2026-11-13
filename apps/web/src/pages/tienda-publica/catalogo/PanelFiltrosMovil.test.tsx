@@ -4,7 +4,7 @@ import { violacionesAxe } from '../../../test/axe'
 import { contarFiltrosActivos, FILTROS_INICIALES, type FiltrosCatalogo } from '../../../lib/tiendaListado'
 import PanelFiltrosMovil from './PanelFiltrosMovil'
 
-// F-TDA-17 (SC-007, FR-041/FR-048): «Filtrar·N», panel «Filtros» con Limpiar, Categoría, «Solo con stock»,
+// F-TDA-17 (SC-007, FR-041/FR-048): «Filtrar» con la píldora N, panel «Filtros» con Limpiar, Categoría, «Solo con stock»,
 // «Precio máximo» (D5) y Ordenar, «Ver N productos», foco devuelto y cantidad anunciada.
 
 const CAT_A = 'ca000000-0000-4000-8000-00000000000a'
@@ -49,10 +49,10 @@ describe('Panel de filtros móvil (FR-041, FR-048)', () => {
     expect(boton).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('con filtros activos muestra «· N» y lo anuncia a lector de pantalla', () => {
+  it('con filtros activos muestra la cantidad en una píldora y la anuncia a lector de pantalla', () => {
     montar({ soloConStock: true, precioMax: 5000 })
     const boton = screen.getByTestId('filtrar-movil')
-    expect(boton).toHaveTextContent('Filtrar· 2')
+    expect(boton).toHaveTextContent('Filtrar2')
     expect(boton).toHaveTextContent('2 filtros activos')
   })
 

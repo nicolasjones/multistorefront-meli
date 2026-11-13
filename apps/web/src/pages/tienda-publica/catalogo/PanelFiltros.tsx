@@ -1,4 +1,4 @@
-import { Box, Button, InputAdornment, List, ListItem, ListItemButton, ListItemText, TextField, Typography } from '@mui/material'
+import { Box, Button, ButtonBase, InputBase, List, ListItem, ListItemButton, ListItemText, Typography } from '@mui/material'
 import { useState } from 'react'
 import type { CategoriaListado, FiltrosCatalogo } from '../../../lib/tiendaListado'
 import { filasPanelCategorias } from '../../../lib/tiendaCategorias'
@@ -32,13 +32,13 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
   }
 
   return (
-    <Box component="aside" aria-label="Filtros del catálogo" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box component="nav" aria-label="Filtrar por categoría">
-        <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 700 }}>Categorías</Typography>
-        <List dense disablePadding>
+    <Box component="aside" aria-label="Filtros del catálogo">
+      <Box component="nav" aria-label="Filtrar por categoría" sx={estiloBloque}>
+        <Typography component="h2" variant="h6" sx={estiloTitulo}>Categorías</Typography>
+        <List disablePadding>
           <ListItem disablePadding>
-            <ListItemButton selected={filtros.categoria === null} onClick={() => alElegirCategoria(null)} aria-current={filtros.categoria === null ? 'true' : undefined}>
-              <ListItemText primary="Todos los productos" />
+            <ListItemButton selected={filtros.categoria === null} onClick={() => alElegirCategoria(null)} aria-current={filtros.categoria === null ? 'true' : undefined} sx={estiloFila}>
+              <ListItemText primary="Todos los productos" slotProps={{ primary: { sx: { fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' } } }} />
             </ListItemButton>
           </ListItem>
           {filasPanelCategorias(categorias, filtros.categoria).map(({ categoria: c, nivel }) => (
@@ -47,45 +47,69 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
                 selected={filtros.categoria === c.id}
                 aria-current={filtros.categoria === c.id ? 'true' : undefined}
                 onClick={() => alElegirCategoria(c.id)}
-                sx={{ pl: 2 + nivel * 2 }}
+                sx={{ ...estiloFila, pl: `${nivel * 16}px` }}
               >
-                <ListItemText primary={c.nombre} />
-                <Typography variant="body2" color="text.secondary" aria-label={`${c.productos} productos`}>{c.productos}</Typography>
+                <ListItemText primary={c.nombre} slotProps={{ primary: { sx: { fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' } } }} />
+                <Typography component="span" color="text.secondary" aria-label={`${c.productos} productos`} sx={{ fontSize: 'inherit', fontWeight: 400, ml: 1 }}>{c.productos}</Typography>
               </ListItemButton>
             </ListItem>
           ))}
         </List>
       </Box>
 
-      <Box component="section" aria-labelledby="filtro-disponibilidad">
-        <Typography id="filtro-disponibilidad" component="h2" variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Disponibilidad</Typography>
-        <Button
-          variant={filtros.soloConStock ? 'contained' : 'outlined'}
+      <Box component="section" aria-labelledby="filtro-disponibilidad" sx={estiloBloque}>
+        <Typography id="filtro-disponibilidad" component="h2" variant="h6" sx={estiloTitulo}>Disponibilidad</Typography>
+        {/* Casilla del prototipo (`.cbx`): botón con estado (`aria-pressed`) y un cuadro de 18 px que se llena con el primario. */}
+        <ButtonBase
           aria-pressed={filtros.soloConStock}
           onClick={() => alCambiarStock(!filtros.soloConStock)}
+          sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit' /* estilos-sueltos: ok */ }}
         >
+          <Box
+            component="span"
+            aria-hidden
+            sx={{
+              width: 18, height: 18, borderRadius: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', // estilos-sueltos: ok
+              border: '2px solid', borderColor: filtros.soloConStock ? 'primary.main' : 'rgba(0,0,0,.35)', bgcolor: filtros.soloConStock ? 'primary.main' : 'background.paper', color: 'primary.contrastText', // estilos-sueltos: ok
+            }}
+          >
+            {filtros.soloConStock ? (
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+            ) : null}
+          </Box>
           Solo con stock
-        </Button>
+        </ButtonBase>
       </Box>
 
-      <Box component="section" aria-labelledby="filtro-precio">
-        <Typography id="filtro-precio" component="h2" variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>Precio máximo</Typography>
-        <TextField
-          size="small"
-          label="Precio máximo"
+      <Box component="section" aria-labelledby="filtro-precio" sx={estiloBloque}>
+        <Typography id="filtro-precio" component="h2" variant="h6" sx={estiloTitulo}>Precio máximo</Typography>
+        {/* Campo del prototipo (`.fin`): 40 px de alto, borde de 1,5 px, radio 8, el «$» en gris y «Sin límite» de apoyo. */}
+        <InputBase
+          fullWidth
           placeholder="Sin límite"
           value={texto}
           onChange={(evento) => setEdicion(evento.target.value)}
           onBlur={aplicarPrecio}
           onKeyDown={(evento) => { if (evento.key === 'Enter') aplicarPrecio() }}
-          slotProps={{
-            input: { startAdornment: <InputAdornment position="start">$</InputAdornment> },
-            htmlInput: { inputMode: 'numeric' },
-          }}
+          startAdornment={<Box component="span" aria-hidden sx={{ color: 'text.secondary', mr: '6px' }}>$</Box>}
+          inputProps={{ 'aria-labelledby': 'filtro-precio', inputMode: 'numeric' }}
+          sx={{ height: 40, px: '12px', fontSize: 15, border: '1.5px solid rgba(0,0,0,.18)', borderRadius: '8px', bgcolor: 'background.paper' /* estilos-sueltos: ok */ }}
         />
       </Box>
 
-      {ocultarLimpiar ? null : <Button variant="text" onClick={alLimpiar} sx={{ alignSelf: 'flex-start' }}>Limpiar filtros</Button>}
+      {ocultarLimpiar ? null : (
+        <Button variant="text" onClick={alLimpiar} sx={{ display: 'block', mt: 2, p: 0, minWidth: 0, fontSize: 14, fontWeight: 600, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } /* estilos-sueltos: ok */ }}>Limpiar filtros</Button>
+      )}
     </Box>
   )
 }
+
+// Prototipo: cada bloque del panel con 18 px de aire arriba y abajo y una línea inferior; títulos de 18 px en la tipografía de títulos.
+const estiloBloque = { py: '18px', borderBottom: '1px solid rgba(0,0,0,.1)' } as const // estilos-sueltos: ok
+const estiloTitulo = { fontSize: 18, fontWeight: 700, mb: '8px' } as const // estilos-sueltos: ok
+// Fila de categoría (`.catl`): 15 px, 7 px de alto de relleno, el conteo a la derecha; la elegida en negrita y color primario.
+const estiloFila = {
+  py: '7px', px: 0, fontSize: 15, justifyContent: 'space-between', // estilos-sueltos: ok
+  '&.Mui-selected, &.Mui-selected:hover': { bgcolor: 'transparent', fontWeight: 700, color: 'primary.main' },
+  '&:hover': { bgcolor: 'transparent' },
+} as const

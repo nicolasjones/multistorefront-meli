@@ -2,7 +2,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import TuneIcon from '@mui/icons-material/Tune'
 import { Box, Button, Drawer, IconButton, Typography } from '@mui/material'
 import { useState } from 'react'
-import { contarFiltrosActivos, type CategoriaListado, type FiltrosCatalogo, type OrdenCatalogo } from '../../../lib/tiendaListado'
+import { OPCIONES_ORDEN, contarFiltrosActivos, type CategoriaListado, type FiltrosCatalogo, type OrdenCatalogo } from '../../../lib/tiendaListado'
 import { Ordenar } from './Ordenar'
 import { PanelFiltros } from './PanelFiltros'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
@@ -22,6 +22,12 @@ type Props = {
 }
 
 
+// Botón de la fila de celular: ocupa la mitad, borde de 1,5 px, radio 8, 10 px de relleno y texto en tinta a 16 px / 400.
+const estiloBotonFila = {
+  flex: 1, py: '10px', px: '10px', fontSize: 16, fontWeight: 400, color: 'text.primary', border: '1.5px solid rgba(0,0,0,.18)', borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
+  '&:hover': { border: '1.5px solid rgba(0,0,0,.18)', bgcolor: 'background.paper' }, // estilos-sueltos: ok
+} as const
+
 const ID_PANEL = 'filtros-movil'
 const ID_TITULO = 'filtros-movil-titulo'
 
@@ -38,24 +44,37 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
 
   return (
     <>
-      <Button
-        variant="outlined"
-        startIcon={<TuneIcon />}
-        aria-haspopup="dialog"
-        aria-expanded={abierto}
-        aria-controls={abierto ? ID_PANEL : undefined}
-        onClick={() => setAbierto(true)}
-        data-testid="filtrar-movil"
-        sx={{ minHeight: (tema) => tema.spacing(5.5) }}
-      >
-        Filtrar
-        {activos > 0 ? (
-          <>
-            <Box component="span" aria-hidden sx={{ ml: 0.5 }}>· {activos}</Box>
-            <Box component="span" sx={SOLO_LECTORES}>{activos === 1 ? ', 1 filtro activo' : `, ${activos} filtros activos`}</Box>
-          </>
-        ) : null}
-      </Button>
+      {/* Prototipo (`MJC_M_Catalogo`): dos botones iguales en una fila de 10 px de separación —«Filtrar» con la cantidad de filtros
+          activos en una píldora primaria, y el orden vigente con «▾»— que abren el mismo panel. */}
+      <Box sx={{ display: 'flex', gap: '10px', py: '12px' /* estilos-sueltos: ok */ }}>
+        <Button
+          variant="outlined"
+          startIcon={<TuneIcon />}
+          aria-haspopup="dialog"
+          aria-expanded={abierto}
+          aria-controls={abierto ? ID_PANEL : undefined}
+          onClick={() => setAbierto(true)}
+          data-testid="filtrar-movil"
+          sx={{ ...estiloBotonFila, '& .MuiButton-startIcon': { mr: '8px', ml: 0 } }}
+        >
+          Filtrar
+          {activos > 0 ? (
+            <>
+              <Box component="span" aria-hidden sx={{ ml: '8px', bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: '999px', fontSize: 12, px: '7px', py: '2px' /* estilos-sueltos: ok */ }}>{activos}</Box>
+              <Box component="span" sx={SOLO_LECTORES}>{activos === 1 ? ', 1 filtro activo' : `, ${activos} filtros activos`}</Box>
+            </>
+          ) : null}
+        </Button>
+        <Button
+          variant="outlined"
+          aria-haspopup="dialog"
+          onClick={() => setAbierto(true)}
+          data-testid="orden-movil"
+          sx={estiloBotonFila}
+        >
+          {OPCIONES_ORDEN.find((o) => o.valor === filtros.orden)?.etiqueta ?? ''} ▾
+        </Button>
+      </Box>
       <Drawer
         open={abierto}
         onClose={cerrar}
