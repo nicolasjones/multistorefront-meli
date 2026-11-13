@@ -42,12 +42,9 @@ RPC (`avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consult
 
 ```sql
 -- supabase/migrations/20270306110000_avisos_consulta_camino_directo.sql
-drop function if exists public.avisos_consulta_pendientes(integer, integer);
-drop function if exists public.tomar_aviso_consulta(uuid, integer);
-drop function if exists public.cerrar_aviso_consulta(uuid, boolean, text);
-drop function if exists private.correo_avisos_consulta(uuid);
-
 -- Verificación previa (revisión PR #914): la cola vieja no puede quedar con avisos sin enviar.
+-- Va antes de los drop: si el aplicador no envuelve la migración en una transacción, aborta
+-- sin haber borrado nada.
 do $$
 declare
   vivos integer;
@@ -58,8 +55,13 @@ begin
       raise exception 'MSF-853: la cola vieja tiene % aviso(s) sin enviar (pendiente/fallido); se aborta el retiro para no perderlos.', vivos;
     end if;
   end if;
-end
+end;
 $$;
+
+drop function if exists public.avisos_consulta_pendientes(integer, integer);
+drop function if exists public.tomar_aviso_consulta(uuid, integer);
+drop function if exists public.cerrar_aviso_consulta(uuid, boolean, text);
+drop function if exists private.correo_avisos_consulta(uuid);
 
 drop table if exists dominio.consultas_avisos;
 ```
@@ -137,7 +139,6 @@ if (!response.ok) throw new Error(`Kestra devolvió HTTP ${response.status}.`);
   `20270306100000` (PR #912) y el guard de migraciones exige que una migración nueva sea mayor que la máxima
   de la base. No se aplicó nunca (el PR no está mergeado), así que no se rompe la inmutabilidad de ninguna
   versión aplicada.
-
 ## Follow-ups
 
 - **MSF-853 · decisión de producto (dueño: producto)**: `dominio.consultas_configuracion` y el campo
@@ -155,4 +156,4 @@ if (!response.ok) throw new Error(`Kestra devolvió HTTP ${response.status}.`);
   PR.
 - La tabla `dominio.consultas_avisos` se borra con sus filas (histórico de avisos ya cerrados). Si algún
   entorno tuviera avisos `pendiente` o `fallido` de esa cola, la migración **aborta** en vez de perderlos
-  (verificación previa); hay que vacinarla antes de promover.
+  (verificación previa); hay que vaciar la cola antes de promover.
