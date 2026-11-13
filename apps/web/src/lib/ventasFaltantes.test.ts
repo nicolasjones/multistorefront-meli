@@ -10,6 +10,7 @@ import {
   avisoFallido,
   largoDeTexto,
   CODIGOS_ERROR_AVISO,
+  recortarPorCaracteres,
   etiquetaAviso,
   mensajeResultadoAvisoVenta,
   TEXTO_AVISO_POR_DEFECTO,
@@ -307,6 +308,13 @@ describe('ventasFaltantes · avisar a los clientes (F-VTA-26, FR-001…FR-005)',
     // 600 emojis = 1.200 unidades UTF-16 pero 600 caracteres: entra en el tope de 1.000.
     await expect(avisarFaltantesVenta(['f-1'], '😀'.repeat(600), false)).resolves.toBeTruthy()
     await expect(avisarFaltantesVenta(['f-1'], '😀'.repeat(1001), false)).rejects.toThrow('1.000 caracteres')
+  })
+
+  it('recorta por caracteres sin partir un emoji (PR #922 m-5)', () => {
+    expect(recortarPorCaracteres('hola', 10)).toBe('hola')
+    expect(recortarPorCaracteres('😀'.repeat(1200), 1000)).toBe('😀'.repeat(1000))
+    expect(largoDeTexto(recortarPorCaracteres('x'.repeat(999) + '😀😀', 1000))).toBe(1000)
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(recortarPorCaracteres('x'.repeat(999) + '😀😀', 1000))).toBe(false)
   })
 
   it('arma el aviso emergente con lo omitido y por qué', () => {

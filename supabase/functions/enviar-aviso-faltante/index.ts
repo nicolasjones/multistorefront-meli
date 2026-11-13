@@ -1,11 +1,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { enviarPorSmtp } from '../_shared/correo.ts'
 import { manejar } from './handler.ts'
-import { armarDeps } from './servidor.ts'
+import { armarDepsDesdeEntorno, opcionesClienteServicio } from './servidor.ts'
 
+const env = (clave: string) => Deno.env.get(clave)
+
+// Todo el cableado (variables, sonda, token) está en `servidor.ts`, probado con `node --test`.
 Deno.serve((req) => {
-  const cliente = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-  return manejar(req, armarDeps({ cliente, token: Deno.env.get('AVISOS_FALTANTES_TOKEN'), enviar: enviarPorSmtp }))
+  const cliente = createClient(...opcionesClienteServicio(env))
+  return manejar(req, armarDepsDesdeEntorno({ env, cliente, enviar: enviarPorSmtp }))
 })

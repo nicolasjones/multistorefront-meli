@@ -35,7 +35,7 @@ Supabase no expone una API de correo transaccional con contenido libre: solo env
 
 Cliente SMTP de Deno elegido: `denomailer` (`supabase/functions/_shared/correo.ts`). Si MSF-224 entrega un mecanismo propio, se reemplaza solo el transporte.
 
-Variables de la función (solo en `supabase/functions/.env.example`; los valores reales son secretos de la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. Los textos del correo son simples y quedan marcados en el PR (no hay diseño).
+Variables de la función (solo en `supabase/functions/.env.example`; los valores reales son secretos de la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (y `SMTP_PERMITIR_INSEGURO`, solo para un buzón de pruebas local: `SMTP_TLS` es obligatoria y `SMTP_TLS=false` falla cerrado sin ese opt-in; ver `docs/ventas-faltantes-avisos.md`). Los textos del correo son simples y quedan marcados en el PR (no hay diseño).
 
 ## Cómo verificar la salida del correo (FR-012)
 

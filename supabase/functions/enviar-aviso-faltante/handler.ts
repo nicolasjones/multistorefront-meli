@@ -80,6 +80,9 @@ const textoDeError = (error: unknown) => (error instanceof Error ? error.message
 const mensajeDeError = (error: unknown) =>
   textoDeError(error).replace(CORREO_EN_ERROR, '[correo]').replace(/\s+/g, ' ').trim().slice(0, DETALLE_MAX) || 'Error de envío sin detalle'
 
+const ERRORES_DE_RED_DENO = new Set(['NotFound', 'ConnectionRefused', 'ConnectionReset', 'ConnectionAborted', 'NotConnected', 'AddrNotAvailable', 'BrokenPipe', 'TimedOut'])
+const ERRORES_DE_RED_NODE = new Set(['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EHOSTUNREACH', 'ENETUNREACH', 'ETIMEDOUT', 'EPIPE', 'ECONNABORTED'])
+
 /**
  * Clasifica una falla de envío en un código genérico (nunca el texto del servidor).
  * - `smtp_timeout`: SOLO el corte propio durante el envío («smtp timeout», `conTimeout` sobre `send`): el DATA pudo haberse
@@ -88,20 +91,36 @@ const mensajeDeError = (error: unknown) =>
  *   red del sistema): no salió nada, es reintentable.
  * - Respuestas del servidor, por su CÓDIGO NUMÉRICO (al comienzo del mensaje o seguido del código mejorado `x.y.z`; un número
  *   suelto como «port 535» no cuenta): 4xx transitorio -> `otro` (reintentable); 530/534/535 -> `smtp_auth`; 550-554 ->
- *   `destinatario_invalido` si el texto habla del destinatario/casilla y `otro` si no (`relaying denied`, `size exceeded`, `spam`).
+ *   `destinatario_invalido` si el texto habla del destinatario/casilla y `otro` si no (`relaying denied`, `size exceeded`, `spam`,
+ *   remitente rechazado, casilla llena, lista de destinatarios demasiado grande); un 5xx de «autenticación requerida» es `smtp_auth`.
  */
 export function codigoDeError(error: unknown): CodigoError {
   const nombre = error instanceof Error ? error.name : ''
   const texto = textoDeError(error)
+  // Fallas de RED por su nombre o código (aunque el mensaje no diga nada): Deno (`NotFound` por DNS, `ConnectionRefused`, ...) y
+  // Node (`ECONNREFUSED`, ...). No salió nada: `smtp_conexion`, reintentable. `smtp_timeout` queda SOLO para el corte propio del envío.
+  const codigoRed = (error as { code?: unknown } | null)?.code
+  if (ERRORES_DE_RED_DENO.has(nombre) || (typeof codigoRed === 'string' && ERRORES_DE_RED_NODE.has(codigoRed))) return 'smtp_conexion'
+  // Configuración TLS/credenciales (nuestra, no del servidor): no es un problema de autenticación. Va ANTES de las palabras de
+  // autenticación porque el mensaje de denomailer («Don't send authentication over non secure connection») las contiene.
+  if (/not secure|non secure|insecure connection|Configuración SMTP/i.test(texto)) return 'otro'
   if (nombre === 'TimeoutError') return /^smtp conexion/i.test(texto) ? 'smtp_conexion' : /^smtp timeout/i.test(texto) ? 'smtp_timeout' : 'smtp_conexion'
   const codigo = /^\s*(?:[^:\d]{0,40}:\s*)?([2-5]\d\d)(?=[ -])|[\s:]([2-5]\d\d)[ -]\d\.\d{1,3}\.\d{1,3}\b/.exec(texto)
   const n = Number(codigo?.[1] ?? codigo?.[2] ?? 0)
   if (n >= 400 && n < 500) return 'otro'
+  // 530 «Must issue a STARTTLS first» / 530-535 de autenticación: el servidor niega el acceso por la configuración del envío
+  // (credenciales o TLS del lado nuestro), no por el correo del cliente: `smtp_auth`.
   if (n === 530 || n === 534 || n === 535) return 'smtp_auth'
-  if (n >= 550 && n <= 554) return /recipient|mailbox|user unknown|no such user|invalid address|address rejected|unknown user/i.test(texto) ? 'destinatario_invalido' : 'otro'
+  if (n >= 550 && n <= 554) {
+    // Un 5xx puede decir «autenticación requerida» (5.7.x): configuración nuestra.
+    if (/authenticat|auth required|starttls/i.test(texto)) return 'smtp_auth'
+    // Problemas del REMITENTE, de cuota o de volumen no son un correo de cliente inválido: `otro` (cada alternativa tiene su test).
+    if (/sender|quota|list too (large|long)|too many recipients/i.test(texto)) return 'otro'
+    return /recipient|user unknown|no such user|unknown user|invalid address|mailbox (unavailable|not found|does not exist|disabled)/i.test(texto) ? 'destinatario_invalido' : 'otro'
+  }
   // Sin código del servidor: por palabras.
   if (/authenticat|credential|login failed|invalid (user|password)/i.test(texto)) return 'smtp_auth'
-  if (/recipient|mailbox|user unknown|no such user|invalid address|address rejected/i.test(texto)) return 'destinatario_invalido'
+  if (/recipient|user unknown|no such user|invalid address/i.test(texto) && !/sender/i.test(texto)) return 'destinatario_invalido'
   if (/econn|enotfound|ehostunreach|etimedout|timed out|timedout|timeout|connect|connection|socket|tls|ssl|dns|refused|reset|broken pipe/i.test(texto)) return 'smtp_conexion'
   return 'otro'
 }
