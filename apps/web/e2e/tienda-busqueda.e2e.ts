@@ -59,6 +59,7 @@ test.describe('Tienda online · búsqueda de productos (SC-006)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('buscar con tilde, mayúsculas y tipeo, abrir una sugerencia y ver todos los resultados', async ({ browser }) => {
+    test.setTimeout(90_000) // tipeo con espera de sugerencias en dos tiendas
     // Un sufijo alfabético: el texto buscado es «cargdor» + el sufijo no entra en la consulta.
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t, i) => ({

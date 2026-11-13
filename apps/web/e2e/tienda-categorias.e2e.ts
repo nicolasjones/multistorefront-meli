@@ -9,6 +9,7 @@ import { expect, test } from '@playwright/test'
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md.
 const url = process.env.SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 // La service-role key escribe datos: solo contra un Supabase local.
 const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
@@ -60,10 +61,24 @@ async function borrar(tabla: string, filtro: string) {
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
+// Productos de la categoría más grande que la tienda publica hoy (0 si no tiene categorías).
+async function productosDeLaMayorCategoria(host: string): Promise<number> {
+  const r = await fetch(`${url}/rest/v1/rpc/categorias_por_dominio`, {
+    method: 'POST',
+    // La RPC es pública (la usa la tienda sin sesión): se llama con la clave anónima, que es la que tiene el permiso.
+    headers: { ...cabeceras(), apikey: anonKey ?? '', authorization: `Bearer ${anonKey}`, 'content-profile': 'publico' },
+    body: JSON.stringify({ host }),
+  })
+  if (!r.ok) throw new Error(`categorias_por_dominio: ${r.status} ${await r.text()}`)
+  const datos = (await r.json()) as { categorias?: Array<{ productos: number }> } | null
+  return Math.max(0, ...(datos?.categorias ?? []).map((c) => Number(c.productos)))
+}
+
 test.describe('Tienda online · navegación por categorías (SC-003)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('el menú de cada tienda lista solo sus categorías y la oculta o ajena da 404', async ({ browser }) => {
+  test('el menú, el pie y el panel de cada tienda listan solo sus categorías y la oculta o ajena da 404', async ({ browser }) => {
+    test.setTimeout(90_000) // siembra de productos por tienda y dos recorridos
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t) => ({
       ...t,
@@ -82,6 +97,17 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         t.propiaId = propia.id
         t.ocultaId = oculta.id
         await insertar('categorias_tienda', { empresa_id: t.empresa, categoria_id: oculta.id, organizacion_id: t.organizacion, visible: false })
+        // La tienda solo publica las categorías con al menos un producto visible, y el menú y el pie muestran las 6 con más
+        // productos (MSF-825): la propia lleva uno más que la categoría más grande que ya tenga la tienda para quedar entre
+        // ellas; la oculta lleva uno.
+        const mayor = await productosDeLaMayorCategoria(t.host)
+        const productos = await insertar<{ id: string }>('productos', [
+          ...Array.from({ length: mayor + 1 }, (_, n) => ({
+            organizacion_id: t.organizacion, nombre: `Producto propia ${n + 1} ${t.nombre} ${sufijo}`, sku: `E2E-CAT-P${n}-${t.nombre}-${sufijo}`, precio_lista: 1000, moneda: 'ARS', categoria_id: propia.id,
+          })),
+          { organizacion_id: t.organizacion, nombre: `Producto oculta ${t.nombre} ${sufijo}`, sku: `E2E-CAT-O-${t.nombre}-${sufijo}`, precio_lista: 1000, moneda: 'ARS', categoria_id: oculta.id },
+        ])
+        await insertar('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
       }
 
       for (const t of tiendas) {
@@ -90,6 +116,7 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         const page = await contexto.newPage()
         await page.goto(`http://${t.host}:${puerto}/`)
 
+        // Menú del encabezado y pie: la categoría propia entre las principales; nada de lo oculto ni de la otra tienda.
         const menu = page.getByRole('navigation', { name: 'Categorías', exact: true })
         // «Inicio» y «Contacto» van en la navegación «Principal» del encabezado; la de categorías trae solo categorías.
         await expect(page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Inicio' })).toBeVisible()
@@ -103,13 +130,22 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
           .toBe(true)
         // Y la copia de medida no agrega scroll horizontal a la página.
         await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+        // La categoría propia también está en el pie.
+        await expect(page.getByTestId('pie-categorias').getByRole('link', { name: t.propia })).toBeVisible()
         // Nada de lo oculto ni de la otra tienda, en el menú ni en el pie.
         await expect(page.getByRole('link', { name: t.oculta })).toHaveCount(0)
         await expect(page.getByRole('link', { name: otra.propia })).toHaveCount(0)
-        await expect(page.getByTestId('pie-categorias').getByRole('link', { name: t.propia })).toBeVisible()
 
-        // La categoría propia abre con migas y título; la marca deja de ser el h1.
+        // Panel «Categorías» del catálogo (sus entradas son botones): la propia sí; la oculta y la ajena no.
+        await page.goto(`http://${t.host}:${puerto}/catalogo`)
+        const panel = page.getByRole('navigation', { name: 'Filtrar por categoría' })
+        await expect(panel.getByRole('button', { name: new RegExp(t.propia) })).toBeVisible()
+        await expect(panel.getByRole('button', { name: new RegExp(t.oculta) })).toHaveCount(0)
+        await expect(panel.getByRole('button', { name: new RegExp(otra.propia) })).toHaveCount(0)
+
+        // El enlace del menú lleva a la categoría propia: abre con migas y título (la marca deja de ser el h1) y queda marcada en el menú.
         await menu.getByRole('link', { name: t.propia }).click()
+        await expect(page).toHaveURL(new RegExp(`/categoria/${t.propiaId}$`))
         await expect(page.getByRole('heading', { level: 1, name: t.propia })).toBeVisible()
         await expect(menu.getByRole('link', { name: t.propia })).toHaveAttribute('aria-current', 'page')
 
@@ -123,8 +159,9 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         await contexto.close()
       }
     } finally {
-      // Limpieza: las filas de categorias_tienda caen en cascada con la categoría.
+      // Limpieza: primero los productos; las filas de categorias_tienda caen en cascada con la categoría.
       for (const t of tiendas) {
+        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
         await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
       }
     }
