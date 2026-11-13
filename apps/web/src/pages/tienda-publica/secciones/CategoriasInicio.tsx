@@ -7,6 +7,7 @@ import { useCategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCategorias'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import type { PropsSeccionTienda } from '../PaginaTienda'
+import { useCelular } from '../useAnchoCelular'
 import { ErrorConReintento } from '../ErrorConReintento'
 
 export const orden = 40
@@ -41,14 +42,15 @@ const cantidad = (n: number) => (n === 1 ? '1 producto' : `${n} productos`)
 export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   const categorias = useCategoriasTienda(host)
   const inicio = useInicioTienda(host)
+  const movil = useCelular()
   const imagenes = useImagenesCategorias(categoriasPrincipales(categorias.categorias).flatMap((c) => (c.imagen ? [c.imagen] : [])))
 
   if (categorias.fase === 'cargando' || inicio.fase === 'cargando') {
-    return <Box component="section" aria-label="Categorías" sx={{ mt: 4 }}><EstadoCargaPagina lineas={2} /></Box>
+    return <Box component="section" aria-label="Categorías" sx={{ pt: 4 }}><EstadoCargaPagina lineas={2} /></Box>
   }
   if (categorias.fase === 'error') {
     return (
-      <Box component="section" aria-label="Categorías" sx={{ mt: 4 }}>
+      <Box component="section" aria-label="Categorías" sx={{ pt: 4 }}>
         <ErrorConReintento titulo="No pudimos cargar las categorías." alReintentar={categorias.reintentar} />
       </Box>
     )
@@ -57,12 +59,32 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   if ((inicio.fase === 'lista' && !inicio.hayProductos) || categorias.categorias.length === 0) return null
 
   const principales = categoriasPrincipales(categorias.categorias)
+  // Celular (MJC_M_Home): las categorías son una fila de píldoras (14 px/600, borde de 1,5 px y radio total) bajo la portada.
+  if (movil) {
+    return (
+      <Box component="section" aria-label="Categorías" sx={{ pt: '24px' /* estilos-sueltos: ok */ }}>
+        <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, py: '12px', display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none' /* estilos-sueltos: ok */ }}>
+          {[{ id: 'todo', nombre: 'Todo', a: '/catalogo' }, ...principales.map((c) => ({ id: c.id, nombre: c.nombre, a: `/categoria/${c.id}` }))].map((c) => (
+            <li key={c.id}>
+              <Box
+                component={EnlaceRuta}
+                to={c.a}
+                sx={{ display: 'block', flexShrink: 0, whiteSpace: 'nowrap', px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, border: '1.5px solid rgba(0,0,0,.18)', bgcolor: 'background.paper', color: 'text.primary', textDecoration: 'none' /* estilos-sueltos: ok */ }}
+              >
+                {c.nombre}
+              </Box>
+            </li>
+          ))}
+        </Box>
+      </Box>
+    )
+  }
   return (
-    <Box component="section" aria-labelledby="categorias-inicio-titulo" sx={{ mt: 4 }}>
-      <Typography id="categorias-inicio-titulo" component="h2" variant="h5" sx={{ mb: 2.5, fontSize: 32, fontWeight: 700 /* estilos-sueltos: ok */ }}>Categorías</Typography>
+    <Box component="section" aria-labelledby="categorias-inicio-titulo" sx={{ pt: '48px', pb: '8px' /* estilos-sueltos: ok */ }}>
+      <Typography id="categorias-inicio-titulo" component="h2" variant="h5" sx={{ mb: '20px', fontSize: 32 /* estilos-sueltos: ok */ }}>Categorías</Typography>
       <Box
         component="ul"
-        sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}
+        sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 186px))' }}
       >
         {principales.map((c) => {
           const foto = c.imagen ? imagenes[c.imagen] : undefined
@@ -74,8 +96,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
                 sx={(tema) => ({
                   display: 'block', p: 2, height: '100%', boxSizing: 'border-box', textAlign: 'center',
                   color: 'inherit', textDecoration: 'none', bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '8px', // estilos-sueltos: ok
-                  border: '1px solid transparent',
-                  '&:hover, &:focus-visible': { borderColor: 'text.primary' },
+                  '&:hover, &:focus-visible': { outline: '1px solid', outlineColor: 'text.primary', outlineOffset: '-1px' },
                 })}
               >
                 {/* Foto de la categoría (la de un producto suyo); sin foto, el recuadro neutro del prototipo. */}

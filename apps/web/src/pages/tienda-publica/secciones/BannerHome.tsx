@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { ENLACE_DESTINO_BOTON, type ContenidoTienda } from '../../../lib/tiendaContenido'
@@ -14,22 +14,49 @@ export function BannerContenido({ contenido, vistaPrevia = false }: { contenido:
   const subtitulo = contenido.subtitulo.trim()
   const textoBoton = contenido.texto_boton.trim()
   if (!titulo && !subtitulo && !textoBoton) return null
+  // Prototipo (`MJC_Home`/`MJC_M_Home`): franja a todo el ancho con el color de la barra (`--top`), de 440 px a escritorio; el
+  // texto va a la izquierda (título de 72 px en mayúsculas, bajada de 20 px y botón primario) y dos franjas inclinadas en
+  // el color de la marca cierran la composición. La franja llega a los bordes de la ventana sin ensanchar el contenido
+  // (sombra y recorte de 100vmax: sin scroll horizontal). Las tarjetas de producto que el prototipo apoya a la derecha
+  // dependen de datos que el banner no tiene: no se dibujan.
+  const estiloBoton = {
+    display: 'block', textAlign: 'center', mt: { xs: '20px', md: '28px' }, bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: '8px', // estilos-sueltos: ok
+    fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: { md: '.03em' }, py: '14px', px: { xs: '14px', md: '28px' }, textDecoration: 'none', // estilos-sueltos: ok
+    width: { xs: '100%', md: 'fit-content' }, '&:hover': { bgcolor: 'primary.dark' },
+  } as const
   return (
-    <Box component="section" aria-label="Banner principal" data-testid="banner-home" sx={{ px: 2, py: 4 }}>
-      {titulo ? <Typography component="h2" variant="h4">{titulo}</Typography> : null}
-      {subtitulo ? <Typography variant="body1" sx={{ mt: 1 }}>{subtitulo}</Typography> : null}
-      {textoBoton ? (
-        vistaPrevia ? (
-          // En la vista previa del panel el botón no navega: `/catalogo` saldría de la gestión.
-          <Button component="a" href="#" onClick={(e) => e.preventDefault()} variant="contained" sx={{ mt: 2 }}>
-            {textoBoton}
-          </Button>
-        ) : (
-          <Button component={EnlaceRuta} to={ENLACE_DESTINO_BOTON[contenido.boton_destino]} variant="contained" sx={{ mt: 2 }}>
-            {textoBoton}
-          </Button>
-        )
-      ) : null}
+    <Box
+      component="section"
+      aria-label="Banner principal"
+      data-testid="banner-home"
+      sx={(tema) => ({
+        position: 'relative', color: tema.tienda?.textoBarra ?? 'common.white', bgcolor: tema.tienda?.barra ?? 'grey.900',
+        // Solo en la tienda: en la vista previa del panel la franja se queda dentro de su recuadro.
+        ...(vistaPrevia ? {} : { boxShadow: `0 0 0 100vmax ${tema.tienda?.barra ?? tema.palette.grey[900]}`, clipPath: 'inset(0 -100vmax)' }), // estilos-sueltos: ok
+        minHeight: { md: 440 }, boxSizing: 'border-box', pt: { xs: '28px', md: '96px' }, pb: { xs: '28px', md: 0 }, px: { xs: '6px', md: 0 }, overflow: 'visible', // estilos-sueltos: ok
+      })}
+    >
+      <Box
+        aria-hidden
+        sx={(tema) => ({ display: { xs: 'none', md: 'block' }, position: 'absolute', right: -60, bottom: 64, width: 760, height: 14, bgcolor: tema.tienda?.primarioOscuro, transform: 'skewX(-35deg)' })} // estilos-sueltos: ok
+      />
+      <Box aria-hidden sx={{ display: { xs: 'none', md: 'block' }, position: 'absolute', right: -20, bottom: 44, width: 720, height: 6, bgcolor: 'primary.main', transform: 'skewX(-35deg)' /* estilos-sueltos: ok */ }} />
+      <Box sx={{ position: 'relative', maxWidth: { md: 560 } }}>
+        {titulo ? <Typography component="h2" variant="h1" sx={{ fontSize: { xs: 44, md: 72 }, lineHeight: 1, textTransform: 'uppercase' /* estilos-sueltos: ok */ }}>{titulo}</Typography> : null}
+        {subtitulo ? <Typography sx={{ mt: { xs: '12px', md: '20px' }, fontSize: { xs: 16, md: 20 }, lineHeight: 1.45, opacity: 0.9 /* estilos-sueltos: ok */ }}>{subtitulo}</Typography> : null}
+        {textoBoton ? (
+          vistaPrevia ? (
+            // En la vista previa del panel el botón no navega: `/catalogo` saldría de la gestión.
+            <Box component="a" href="#" onClick={(e: React.MouseEvent) => e.preventDefault()} sx={estiloBoton}>
+              {textoBoton}
+            </Box>
+          ) : (
+            <Box component={EnlaceRuta} to={ENLACE_DESTINO_BOTON[contenido.boton_destino]} sx={estiloBoton}>
+              {textoBoton}
+            </Box>
+          )
+        ) : null}
+      </Box>
     </Box>
   )
 }
