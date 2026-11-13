@@ -259,6 +259,141 @@ jobs:
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
 
+  # E2E de la TIENDA PÚBLICA (`apps/web/e2e/tienda-*.e2e.ts`, 20 specs). A diferencia de `acceso-publico` (que
+  # corre en `application` sin base), estos recorridos siembran con la service-role desde Node y la web lee de
+  # PostgREST, así que necesitan un stack de Supabase con API (auth + kong + postgrest + storage). Es un job
+  # APARTE (y no un paso de `application`) para correr en paralelo con la suite `web` y no alargar el camino
+  # crítico; reusa la RANURA del stack del CI (`scripts/supabase-ci.mjs`) igual que `database`, así que no suma
+  # puertos ni stacks de desarrollo. Mismo disparo que el e2e: sólo si el diff toca la web y NO en historias de
+  # épica (`e2e`). Detalle y límites (sin Edge Runtime) en docs/e2e-app.md.
+  e2e-tienda:
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    runs-on: [self-hosted, platform-local]
+    # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada). Como
+    # `database`, el timeout también recicla una ranura huérfana (TTL de 50 min) si el job muere sin `liberar`.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        run: |
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente en el runner -> no descargo"
+          else
+            curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
+          fi
+          supabase --version
+      - name: Reservar la ranura del stack de Supabase
+        run: node scripts/supabase-ci.mjs reclamar
+      - run: pnpm db:ci:preparar
+      # Sin `edge-runtime` (monta el directorio de funciones del checkout, que no existe en el Docker del host:
+      # docker-fuera-de-docker) ni `realtime`, `mailpit`, etc.: ningún spec de la tienda los usa salvo el caso
+      # de `robots.txt`/`sitemap.xml` de `tienda-seo`, que se omite con `E2E_SIN_EDGE=1` (su handler se prueba
+      # con `test:edge:tienda-seo` en el job `web`). Con `kong` y `postgrest`, a diferencia de `database`.
+      # `--ignore-health-check`: PostgREST arranca ANTES de que las migraciones creen `dominio` y no queda sano
+      # hasta que se las aplica, así que se lo reinicia después de `db:reset:ci`. La ranura puede venir con el
+      # stack de `database` (sin kong/postgrest): se lo baja antes para arrancar de cero.
+      - name: Levantar el stack de Supabase del CI con API
+        run: |
+          node scripts/supabase-ci.mjs puente &
+          trap "kill \$!" EXIT
+          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+      - run: pnpm db:reset:ci
+      # Las claves salen del propio stack (`supabase status -o env`), nunca de git. Dentro del contenedor del
+      # runner `127.0.0.1` es el propio contenedor: la API del stack (publicada en el Docker del host) se alcanza
+      # por `host.docker.internal`, tanto desde Node (siembra) como desde Chromium (la web del build).
+      - name: Reiniciar PostgREST, esperar la API y exponer el entorno
+        run: |
+          docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"
+          eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
+          URL="${API_URL/127.0.0.1/host.docker.internal}"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          codigo=000
+          for intento in $(seq 60); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL/rest/v1/" || true)
+            [ "$codigo" = "200" ] && break
+            sleep 2
+          done
+          if [ "$codigo" != "200" ]; then
+            echo "PostgREST no respondió 200 en $URL (último: $codigo)"
+            docker logs --tail 40 "supabase_rest_${SUPABASE_CI_PROJECT_ID}" || true
+            exit 1
+          fi
+          # Esquema `dominio` visible y seed aplicado: las dos tiendas de supabase/seed.sql.
+          tiendas=$(curl -fsS -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "Accept-Profile: dominio" "$URL/rest/v1/tiendas?select=dominio")
+          echo "tiendas sembradas: $tiendas"
+          case "$tiendas" in *mundojc.localhost*sanjavucho.localhost*|*sanjavucho.localhost*mundojc.localhost*) ;; *) echo "Faltan las tiendas del seed"; exit 1 ;; esac
+          {
+            echo "SUPABASE_URL=$URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "VITE_SUPABASE_URL=$URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "VITE_PANEL_HOSTS=localhost,127.0.0.1"
+            echo "E2E_SIN_EDGE=1"
+            echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))"
+          } >> "$GITHUB_ENV"
+      # Sólo `vite build`: el type-check (`tsc -b`) ya lo corre `pnpm build` en el job `application`.
+      # `VITE_PANEL_HOSTS`: sin él el panel se sirve en `mundojc.localhost` y las tiendas no se resuelven.
+      - name: build de la web contra el stack del CI
+        run: pnpm --filter @platform/web exec vite build
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install
+        run: |
+          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+            # El cache guarda el BINARIO, no las libs del SO: ver el paso homónimo del job `application`.
+            echo "chromium en cache -> binario + deps del SO"
+            pnpm --filter @platform/web exec playwright install chromium
+            pnpm --filter @platform/web exec playwright install-deps chromium
+          else
+            pnpm --filter @platform/web exec playwright install --with-deps chromium
+          fi
+      # Los specs de la tienda cambian el estado de las dos tiendas del seed (pausan una empresa, editan sus datos):
+      # UN worker, en serie. `--workers=1` va antes de los filtros y SIN `--` (el `--` de pnpm llega literal a
+      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma sólo los 20 specs.
+      - name: test:e2e (tienda-*)
+        timeout-minutes: 30
+        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda-
+      # Mismo motivo que en `application`: Chromium huérfano si el job se cancela o agota el timeout.
+      - name: Limpiar navegadores del job
+        if: always()
+        timeout-minutes: 2
+        run: |
+          patron='[c]hrome-headless|[c]hromium|[h]eadless_shell|/[m]s-playwright/'
+          antes=$(pgrep -fc "$patron" || true)
+          pkill -9 -f "$patron" 2>/dev/null || true
+          despues=$(pgrep -fc "$patron" || true)
+          echo "Navegadores del job: antes=$antes despues=$despues"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-tienda
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+      # Se baja el stack (con sus volúmenes) para no dejar kong/postgrest/auth/storage de la corrida en el Docker
+      # del host, y se suelta la ranura. Si el job muere sin llegar acá, el TTL de la ranura la recicla y el
+      # próximo `reclamar` + `supabase stop` del paso de arranque limpian los contenedores.
+      - name: Bajar el stack y liberar la ranura
+        if: always()
+        run: |
+          if [ -n "$SUPABASE_CI_WORKDIR" ]; then
+            supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          fi
+          node scripts/supabase-ci.mjs liberar
+
   infrastructure:
     needs: changes
     if: needs.changes.outputs.infra == 'true'
@@ -328,7 +463,7 @@ jobs:
   # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
   # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
   liberar:
-    needs: [changes, application, web, infrastructure, database]
+    needs: [changes, application, web, e2e-tienda, infrastructure, database]
     if: ${{ always() && vars.CI_LANES != '' }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
@@ -348,7 +483,7 @@ jobs:
   # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
   # falla a propósito: mientras el CI está pausado no se mergea.
   validacion:
-    needs: [changes, application, web, infrastructure, database]
+    needs: [changes, application, web, e2e-tienda, infrastructure, database]
     if: always()
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 5
@@ -364,6 +499,7 @@ jobs:
             "changes=${{ needs.changes.result }}" \
             "application=${{ needs.application.result }}" \
             "web=${{ needs.web.result }}" \
+            "e2e-tienda=${{ needs.e2e-tienda.result }}" \
             "infrastructure=${{ needs.infrastructure.result }}" \
             "database=${{ needs.database.result }}"; do
             echo "$resultado"
