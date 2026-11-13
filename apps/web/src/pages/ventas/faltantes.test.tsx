@@ -517,6 +517,43 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
   })
 
+  it('el texto del aviso se cuenta por caracteres, no se recorta al tipear y se recorta al salir del campo y al enviar (PR #926 m-3)', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton(/Avisar a los seleccionados/))
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    const texto = within(dialogo).getByRole('textbox', { name: 'Texto del aviso' }) as HTMLTextAreaElement
+    // 600 emojis son 1.200 unidades UTF-16 pero 600 caracteres: el contador los cuenta bien y el campo no tiene maxLength.
+    fireEvent.change(texto, { target: { value: '😀'.repeat(600) } })
+    expect(within(dialogo).getByText('600 / 1000')).toBeInTheDocument()
+    expect(texto).not.toHaveAttribute('maxlength')
+    expect(texto).not.toHaveAttribute('aria-invalid', 'true')
+    // Pasado el tope NO se recorta mientras se tipea (el cursor no salta ni se interfiere con la composición): el contador avisa.
+    fireEvent.change(texto, { target: { value: '😀'.repeat(1200) } })
+    expect(Array.from(texto.value)).toHaveLength(1200)
+    expect(within(dialogo).getByText('1200 / 1000')).toBeInTheDocument()
+    expect(texto).toHaveAttribute('aria-invalid', 'true')
+    // Al salir del campo se recorta a 1.000 caracteres.
+    fireEvent.blur(texto)
+    expect(Array.from(texto.value)).toHaveLength(1000)
+    expect(within(dialogo).getByText('1000 / 1000')).toBeInTheDocument()
+    expect(texto).not.toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('al enviar con el texto pasado del tope (sin haber salido del campo) se manda recortado a 1.000 caracteres (PR #926 m-3)', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton(/Avisar a los seleccionados/))
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Texto del aviso' }), { target: { value: '😀'.repeat(1200) } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Enviar avisos' }))
+    await waitFor(() => expect(mocks.avisar).toHaveBeenCalled())
+    const texto = mocks.avisar.mock.calls[0][1] as string
+    expect(Array.from(texto)).toHaveLength(1000)
+  })
+
   it('el diálogo trae el texto editable, cuenta los clientes y envía el texto editado', async () => {
     mocks.listar.mockResolvedValue({
       faltantes: [

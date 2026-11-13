@@ -277,6 +277,12 @@ export async function registrarFaltantes({
 /** Largo en CARACTERES (code points), como lo cuenta la base (`left`/`length`): un emoji cuenta uno, no dos. */
 export const largoDeTexto = (texto: string): number => Array.from(texto).length
 
+/** Recorta a `max` CARACTERES (code points), sin partir un par sustituto (emoji). */
+export const recortarPorCaracteres = (texto: string, max: number): string => {
+  const caracteres = Array.from(texto)
+  return caracteres.length <= max ? texto : caracteres.slice(0, max).join('')
+}
+
 export const MAXIMO_AVISO_FALTANTES = 200
 export const MAXIMO_MENSAJE_AVISO = 1000
 /** Texto del correo si la persona no lo cambia: es el mismo que usa la Edge Function sin mensaje. */
