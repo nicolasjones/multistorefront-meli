@@ -111,31 +111,41 @@ describe('avisarFaltantes (FR-307: la RPC encola los avisos)', () => {
   })
 })
 
+describe('mensajeResultadoAviso · tope diario (MSF-161 m-5)', () => {
+  it('dice por qué no se envió cuando la base omitió por el tope diario', () => {
+    const base = { encolados: 0, lineas_avisadas: 0, omitidos_ya_avisados: 0, omitidos_sin_stock: 0, omitidos_sin_correo: 0, omitidos_sin_permiso: 0 }
+    expect(mensajeResultadoAviso({ ...base, omitidos_tope_diario: 3 })).toBe(
+      'No se enviaron avisos. Se omitieron: 3 por el tope diario de avisos de tu organización (pasan a la siguiente ventana de 24 horas: volvé a avisar después).',
+    )
+    expect(mensajeResultadoAviso(base)).toBe('No se enviaron avisos')
+  })
+})
+
 describe('mensajeResultadoAviso (FR-306: el aviso emergente)', () => {
   const base = {
     encolados: 1, lineas_avisadas: 1, omitidos_ya_avisados: 0, omitidos_sin_stock: 0,
     omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
   }
 
-  it('sin omitidos dice solo «Avisos enviados»', () => {
-    expect(mensajeResultadoAviso(base)).toBe('Avisos enviados')
+  it('sin omitidos dice solo «Avisos en cola»', () => {
+    expect(mensajeResultadoAviso(base)).toBe('Avisos en cola')
   })
 
   it('con omitidos informa cuántos y por qué', () => {
     expect(mensajeResultadoAviso({ ...base, omitidos_sin_stock: 1, omitidos_sin_correo: 2 }))
-      .toBe('Avisos enviados. Se omitieron: 1 sin stock, 2 sin correo.')
+      .toBe('Avisos en cola. Se omitieron: 1 sin stock, 2 sin correo.')
     expect(mensajeResultadoAviso({ ...base, omitidos_ya_avisados: 3, omitidos_sin_permiso: 1 }))
-      .toBe('Avisos enviados. Se omitieron: 3 ya avisados, 1 sin permiso.')
+      .toBe('Avisos en cola. Se omitieron: 3 ya avisados, 1 sin permiso.')
   })
 
   it('con un solo omitido ya avisado lo dice en singular', () => {
     expect(mensajeResultadoAviso({ ...base, omitidos_ya_avisados: 1 }))
-      .toBe('Avisos enviados. Se omitieron: 1 ya avisado.')
+      .toBe('Avisos en cola. Se omitieron: 1 ya avisado.')
   })
 
   it('si no se encoló ningún correo no afirma que se enviaron avisos', () => {
     // Todo lo elegido se omitió (sin stock / sin correo / ya avisado / sin permiso): no salió ningún
-    // correo, así que el aviso no puede decir «Avisos enviados».
+    // correo, así que el aviso no puede decir «Avisos en cola».
     expect(mensajeResultadoAviso({ ...base, encolados: 0, lineas_avisadas: 0, omitidos_sin_stock: 2 }))
       .toBe('No se enviaron avisos. Se omitieron: 2 sin stock.')
     expect(mensajeResultadoAviso({ ...base, encolados: 0, lineas_avisadas: 0, omitidos_sin_correo: 1 }))
