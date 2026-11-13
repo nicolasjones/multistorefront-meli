@@ -80,6 +80,29 @@ test('el paso 3 respalda el entorno del runtime antes de recrear y verifica las 
   assert.ok(doc.includes('api-v1/v1/openapi.json'), 'falta la comprobación del contrato de api-v1');
 });
 
+test('el paso 3 es solo dev y advierte del corte de producción en stg y prd', () => {
+  assert.ok(doc.includes('SOLO para dev'), 'falta marcar el paso 3 como solo dev');
+  assert.ok(doc.includes('no ejecutar sin una decisión'), 'falta el no ejecutar en stg y prd sin decisión');
+  assert.ok(doc.includes('caída de producción'), 'falta la advertencia de caída de producción');
+  assert.ok(doc.includes('pg_dump'), 'falta exigir respaldo de la base');
+  assert.ok(doc.includes('--no-backup'), 'falta prohibir --no-backup');
+  assert.ok(doc.includes('umask 077'), 'falta proteger el respaldo del entorno');
+});
+
+test('la reversión del paso 1 usa rsync --delete y no recrea el directorio', () => {
+  assert.ok(doc.includes('rsync -a --delete /srv/docs-site.respaldo-AAAAMMDD/ /srv/docs-site/'), 'falta la reversión con rsync');
+  assert.doesNotMatch(doc, /rm -rf \/srv\/docs-site/, 'la reversión no debe recrear el directorio');
+});
+
+test('el paso 1 construye antes de publicar', () => {
+  assert.ok(doc.indexOf('Construir el sitio') < doc.indexOf('**Publicación**'), 'el build debe ir antes del rsync');
+});
+
+test('el paso 2 valida y reinicia el servicio para aplicar el drop-in', () => {
+  assert.ok(doc.includes('systemd-analyze verify'), 'falta validar con systemd-analyze');
+  assert.ok(doc.includes('systemctl restart tailnet-forwards'), 'falta reiniciar el servicio');
+});
+
 test('el paso 4 revoca la clave de prueba con la RPC y dice cómo se verifica', () => {
   assert.ok(doc.includes('PRUEBA-claude-2026-11-11'), 'falta el nombre de la clave');
   assert.ok(doc.includes("public.revocar_clave_api('74a567f2-d3d8-416c-bd20-084af9b6b417')"), 'falta la RPC de revocación');

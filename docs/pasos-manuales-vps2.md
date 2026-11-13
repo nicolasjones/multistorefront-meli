@@ -43,17 +43,9 @@ fecha, en el mismo VPS.
 ssh root@212.90.120.53 'cp -a /srv/docs-site /srv/docs-site.respaldo-AAAAMMDD'
 ```
 
-**Publicación:**
-
-```bash
-rsync -a --delete --exclude=/api-publica/ <worktree de main>/site/ root@212.90.120.53:/srv/docs-site/
-```
-
-El `--exclude=/api-publica/` **no es opcional**: el subsitio público de la API vive
-dentro de `/srv/docs-site/` y un `--delete` sin excluirlo lo borra (está
-documentado en `docs/tecnico/subsitio-api-publica.md`, en `main`).
-
-**Si el build está viejo, se rearma desde `main`:**
+**Construir el sitio (antes de publicar):** `site/` solo existe tras construir; si el
+build está viejo o falta, se rearma desde `main`. No publiques sin este paso, o el
+`--delete` dejaría en el VPS un build viejo.
 
 ```bash
 cd <worktree de main>
@@ -62,6 +54,16 @@ pnpm docs:wiki:site     # docker run … squidfunk/mkdocs-material:9 … 'mkdocs
 
 (`pnpm docs:wiki:site` es el atajo de
 `docker run --rm --entrypoint sh -v "$PWD:/docs" -w /docs squidfunk/mkdocs-material:9 -c "pip install -r requirements-docs.txt && mkdocs build --strict"`.)
+
+**Publicación** (solo con `site/` recién construido):
+
+```bash
+rsync -a --delete --exclude=/api-publica/ <worktree de main>/site/ root@212.90.120.53:/srv/docs-site/
+```
+
+El `--exclude=/api-publica/` **no es opcional**: el subsitio público de la API vive
+dentro de `/srv/docs-site/` y un `--delete` sin excluirlo lo borra (está
+documentado en `docs/tecnico/subsitio-api-publica.md`, en `main`).
 
 **Verificación:** (no necesita credenciales del sitio)
 
@@ -78,10 +80,14 @@ curl -sS -o /dev/null -w '%{http_code}\n' -u "$USUARIO:$CLAVE" https://docs.212-
 `200` = la página está publicada. Sin credenciales el sitio responde `401`
 (Traefik `basicAuth`): un `401` no dice nada sobre el contenido.
 
-**Reversión:** volver a copiar el respaldo (que queda en el VPS).
+**Reversión:** volver a sincronizar el respaldo (que queda en el VPS). Se usa `rsync`
+y no `rm -rf` + `cp`: `/srv/docs-site` puede ser un *bind-mount* del contenedor del
+sitio, y recrear el directorio dejaría el montaje apuntando al inode viejo (el sitio
+serviría un directorio huérfano). `rsync` no recrea el directorio y es coherente con el
+comando de publicación.
 
 ```bash
-ssh root@212.90.120.53 'rm -rf /srv/docs-site && cp -a /srv/docs-site.respaldo-AAAAMMDD /srv/docs-site'
+ssh root@212.90.120.53 'rsync -a --delete /srv/docs-site.respaldo-AAAAMMDD/ /srv/docs-site/'
 ```
 
 **Después de publicar:** el sitio se arma desde `main`, así que esta página (y
@@ -101,6 +107,15 @@ defecto (`DefaultTimeoutStartSec`) y mataría la espera antes de que levante la 
 Con 600 s hay margen; si aun así no alcanza, el servicio queda **fallido y sin tomar
 los puertos**, que es el estado seguro (las bases pueden levantar).
 
+El drop-in **no se aplica hasta reiniciar el servicio**: `daemon-reload` solo lo
+registra. El `ExecStartPre` espera **únicamente a la base de prd**; dev y stg quedan
+sin espera propia (si se quiere que esperen también, hay que agregar un
+`ExecStartPre` por cada base; por defecto no se agregan porque en la práctica las tres
+levantan juntas con Docker). Y si Docker no levanta esa base en 600 s, el servicio queda
+**fallido sin reintento** (no hay `Restart=`): hay que arrancarlo a mano con
+`systemctl restart tailnet-forwards` cuando la base ya esté arriba. Si se prefiere que
+reintente solo, se puede sumar `Restart=on-failure` y `RestartSec=30` en `[Service]`.
+
 **Comando** (en el VPS):
 
 ```bash
@@ -113,8 +128,14 @@ TimeoutStartSec=600
 [Service]
 ExecStartPre=/bin/sh -c 'until docker ps --format "{{.Names}}" | grep -qx "supabase_db_multistorefront-meli-supabase-prd"; do sleep 2; done'
 EOF
+systemd-analyze verify tailnet-forwards.service   # valida la sintaxis antes de aplicar
 systemctl daemon-reload
+systemctl restart tailnet-forwards                # aplica el drop-in; no baja las bases
 ```
+
+`systemctl restart tailnet-forwards` reinicia solo los `socat` (los reenvíos de puertos):
+**no** baja los contenedores de las bases. Hay un corte breve de las conexiones por esos
+puertos mientras el servicio rearma; hacelo en un momento tranquilo.
 
 **Verificación:**
 
@@ -125,11 +146,12 @@ systemctl cat tailnet-forwards.service | grep -A3 esperar-docker.conf
 docker ps --format '{{.Names}}' | grep supabase_db        # las bases de dev/stg/prd arriba
 ```
 
-**Reversión:** borrar el drop-in y recargar.
+**Reversión:** borrar el drop-in, recargar y reiniciar el servicio.
 
 ```bash
 rm /etc/systemd/system/tailnet-forwards.service.d/esperar-docker.conf
 systemctl daemon-reload
+systemctl restart tailnet-forwards
 ```
 
 ## Paso 3 · Recrear el stack Edge de dev
@@ -150,28 +172,41 @@ Estado medido desde la red el 2026-11-13:
 | stg | `Function not found` | `Function not found` | `Function not found` |
 | prd | `Function not found` | `Function not found` | `Function not found` |
 
-O sea: **en dev el síntoma ya no se reproduce** (el stack se recreó desde entonces);
-el mismo síntoma sigue en **stg y prd**, que no venían en el paso. Si el objetivo es
-dejar las funciones sirviendo en todos los ambientes, el recreo del stack tiene que
-hacerse también en stg y prd.
+O sea: **en dev el síntoma ya no se reproduce** (el stack se recreó desde entonces:
+`api-v1` responde su propio error de aplicación, `entregar-webhook` responde `405` y
+`cotizacion-sugerida` `200`), así que **hoy no hace falta ejecutar este paso en dev**.
+Queda escrito por si el síntoma vuelve.
+
+> **Este paso es SOLO para dev.** Para stg y prd: **no ejecutar sin una decisión
+> aparte.** `supabase stop && supabase start` baja la base y todo el stack del ambiente:
+> en prd es una **caída de producción**. Si se decide hacerlo igual en stg o prd, antes
+> de parar hay que: (1) avisar explícitamente el corte de servicio, (2) acordar una
+> ventana de mantenimiento, (3) tomar un `pg_dump` de la base o confirmar que hay un
+> respaldo reciente y restaurable, y (4) no usar nunca `supabase stop --no-backup`
+> (descarta los datos de los volúmenes).
 
 **Respaldo previo (obligatorio):** no se reemplaza un contenedor sin guardar su
-entorno.
+entorno. El archivo contiene secretos en texto plano: se crea con permisos `600` y **no
+se copia fuera del VPS**.
 
 ```bash
 docker ps --format '{{.Names}}' | grep -i edge
+umask 077
 docker inspect <contenedor del runtime Edge> \
   --format '{{range .Config.Env}}{{println .}}{{end}}' \
   > /root/entorno-edge-runtime-dev-AAAAMMDD-HHMM.env
+chmod 600 /root/entorno-edge-runtime-dev-AAAAMMDD-HHMM.env
+cp -a <workdir de dev>/supabase/.env /root/supabase-env-dev-AAAAMMDD-HHMM.respaldo   # también 600
 ```
 
-**Recreación:** el stack Edge se rehace en el *workdir* del ambiente (el patrón que
-usan `/root/supabase-stg` y `/root/supabase-prd`, ver [deployment.md](deployment.md);
-confirmá cuál es el de dev con `ls -d /root/supabase-*`):
+**Recreación (solo dev):** el stack Edge se rehace en el *workdir* del ambiente (el
+patrón que usan `/root/supabase-stg` y `/root/supabase-prd`, ver
+[deployment.md](deployment.md); confirmá cuál es el de dev con `ls -d /root/supabase-*`).
+Baja y vuelve a levantar la base de dev: hay un corte de dev mientras dura.
 
 ```bash
-cd <workdir del ambiente>
-supabase stop
+cd <workdir de dev>
+supabase stop        # sin --no-backup
 supabase start
 ```
 
@@ -188,14 +223,24 @@ Dos avisos:
 ```bash
 # api-v1: el contrato se sirve sin clave → si dice "Function not found", no está registrada
 curl -sS "https://supabase-dev.212-90-120-53.sslip.io/functions/v1/api-v1/v1/openapi.json" | head -c 60
-# las otras dos: 401 = registradas
+# las otras dos: cualquier código distinto de "Function not found" = registradas
+# (hoy en dev: entregar-webhook 405, cotizacion-sugerida 200)
 for fn in entregar-webhook cotizacion-sugerida; do
   curl -sS -o /dev/null -w "$fn %{http_code}\n" "https://supabase-dev.212-90-120-53.sslip.io/functions/v1/$fn"
 done
 ```
 
-**Reversión:** volver a levantar el stack con el entorno respaldado en el paso
-anterior (el archivo `.env` del respaldo es el que hay que volver a cargar).
+**Reversión:** restaurar el `supabase/.env` del *workdir* desde el respaldo y volver a
+levantar el stack:
+
+```bash
+cp -a /root/supabase-env-dev-AAAAMMDD-HHMM.respaldo <workdir de dev>/supabase/.env
+cd <workdir de dev> && supabase stop && supabase start
+```
+
+El `.env` de entorno del contenedor (`entorno-edge-runtime-dev-….env`) sirve de
+referencia para comprobar qué variables tenía el runtime; si hay que reinyectarlas, se
+agregan al `supabase/.env` del workdir (de ahí las toma `supabase start`).
 
 ## Paso 4 · Revocar la clave de API de prueba
 
