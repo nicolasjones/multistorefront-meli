@@ -488,6 +488,38 @@ Regla del repo («Listados: carga infinita con lazy loading, sin paginación») 
 - **`useEmpresa` sin id**: mientras la empresa activa no resolvió (`id` indefinido) el hook no consulta (antes pedía `empresas?id=eq.` y daba 400 en cada pestaña de `/empresas/:id/tienda/*`), queda `cargando` (sin parpadeo de «no encontrada») y `actualizar`/`cambiarEstado` rechazan sin llamar a la base.
 - **Vista previa fiel a la tienda**: la migración `20270306100000_tienda_vista_previa_categorias_paridad.sql` hace que `public.vista_previa_tienda` cuente las categorías como `publico.categorias_por_dominio` (total del árbol, con descendientes, sobre los productos efectivos del borrador) y omita las que quedan sin productos. El front de la vista previa ya usaba la regla de «categorías principales» de `lib/tiendaCategorias.ts` (por cantidad de productos), que ahora recibe los mismos datos que la tienda. Mismos grants y guardia (solo `authenticated`, `search_path` vacío); sin tablas nuevas (Principio VII). Reversión: una migración posterior que restituya el cuerpo de `20270305100100_tienda_vista_previa_categorias_imagen.sql`. Prueba pgTAP: `supabase/tests/database/tienda_vista_previa_categorias_paridad.test.sql` (paridad con la pública y borrador). Spec: `specs/20270313-100000-tiendas-hallazgos-qa/`.
 
+## Fidelidad con el prototipo (MSF-847)
+
+La tienda pública se llevó a las medidas del prototipo (`design/pantallas/MJC_*`, `SJ_*`; spec `specs/20270314-100000-tiendas-fidelidad-prototipo`). Se midió con Playwright y `getComputedStyle`
+a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra dev; los cambios se verificaron sobre una build local servida desde la URL de dev. Resumen (escritorio, MundoJC):
+
+| Elemento | Prototipo | Antes (dev) | Después |
+|---|---|---|---|
+| Contenido | 1200 px | 1168 px | 1200 px (`layout/medidas.ts`, máximo 1232) |
+| Tarjeta: borde / radio / relleno | 1 px `.08` / 8 / 14 | 1 px `.12` / 4 / 12 | igual al prototipo |
+| Tarjeta: imagen | cuadrada, `contain` al 86 % sobre superficie | cuadrada, `cover` (recorta) | `contain` al 86 %, sin recorte; «Sin stock» como insignia de 10 px |
+| Tarjeta: nombre | 16 px/500, interlínea 1,3, alto 42 px (2 líneas) | 16 px/600, interlínea 28 px, hasta 4 líneas | 16 px/500, 20,8 px, alto 42 px con recorte a 2 líneas |
+| Tarjeta: precio | 22 px/700, títulos, primario | 20 px/500, color de texto | 22 px/700, títulos, primario |
+| Tarjeta: disponibilidad | 13 px/500 con punto de 8 px | 14 px/600 sin punto | 13 px/500 con punto de 8 px (#2E7D32 / #6B6B6B) |
+| Tarjeta: alto total | 410 px | 369–412 px | 410 px |
+| Grilla | 4 × 282 px (24 px) portada y relacionados; 304 px en catálogo; 2 × 173 px (12 px) en celular | 5 × 168–181 px (16 px) | 4 / 3 / 2 columnas fluidas (`GrillaProductos`) |
+| Barra de categorías | Barlow 15 px/600 mayúsculas | Barlow Condensed | Barlow |
+| Migas / título del catálogo | 14 px, 18 px de aire / 44 px/700 | 16 px / 34 px/400, espaciado −1,87 px | igual al prototipo |
+| Panel de filtros | 260 px; títulos 18 px títulos; filas 15 px; casilla; campo de 40 px | 240 px; 16 px; MUI `List`, botón con mayúsculas, campo flotante | igual al prototipo |
+| Portada: héroe | 440 px a todo el ancho, título 72 px/700 mayúsculas, botón 16 px/700 de 47 px | texto de 34 px/400 y botón de 14 px | igual (sin las tarjetas del héroe: no hay datos) |
+| Portada: categorías | 186 px (16 px de separación) | 181 px con borde | 186 px; en celular, píldoras |
+| Ficha | galería 600 px, miniaturas 84 px, título y precio 44 px, botones 16 px/700 radio 8 | 568 px, 72 px, 34 px / 24 px, botones 14 px/700 mayúsculas radio 4 | igual al prototipo |
+| Contacto | columna 460 px con círculos de 44 px; tarjeta con rótulos arriba; campos de 44 px | 560 px sin íconos; campos con rótulo flotante | igual al prototipo |
+| Celular | encabezado 60 px (menú, logo centrado), menú de 300 px, h1 30 px, tarjetas de 173 px | logo a la izquierda y menú a la derecha, menú de 320 px, h1 34 px | igual (tarjetas de 175 px fluidas) |
+
+- **Tema** (`tema/temaTienda.ts`): títulos en negrita, `lineHeight`/`letterSpacing` `normal`, botones sin mayúsculas, 700 y radio 8. El color de texto y el fondo de la tienda se aplican al layout (antes los elementos sin
+  `Typography` salían con el color del panel).
+- **Grillas** (`catalogo/GrillaProductos.tsx`): `columnas={4}` en la portada y los relacionados, `columnas={3}` en el catálogo y la categoría; 2 columnas y 12 px de separación en celular, 24 px desde `md`.
+- **Diferencias conocidas** (no son del layout): colores de texto del tenant (#1A1A1A en la demo, no #1F1F1F) y gris secundario derivado con contraste AA (#6A6A6A, no #5F5F5F); «Ingresar» (F-CLI-06) y «Compartir» (F-TDA-25) no están en el prototipo; la barra de «Información» y el bloque legal del pie;
+  las tarjetas del héroe y las categorías sin productos; en celular, las migas, el bloque de consultas, los puntos de la galería (la tienda mantiene miniaturas) y el orden de «Filtrar» respecto del título; «Últimas unidades» no existe (FR-023);
+  el diálogo de WhatsApp no se midió en este tramo.
+- **Pruebas**: Vitest de la tarjeta, las grillas y las piezas compartidas, más axe a 320/768/1440; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron en este tramo.
+
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
 Migración **aditiva** `20261023150300_tienda_ficha_publica.sql`. Reversión (migración posterior): `drop function publico.producto_por_dominio(text, uuid);`.
