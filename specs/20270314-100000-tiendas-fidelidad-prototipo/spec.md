@@ -49,6 +49,29 @@ Ficha: galería de 600 px (miniaturas de 84 px con borde primario en la elegida)
 - **FR-014**: diálogo de WhatsApp como el prototipo (460 px, radio 14, círculo verde #25D366, línea de contacto, mensaje en recuadro de solo lectura, botones de 44 px) con el texto de «Abrir WhatsApp» en la tinta de la tienda (blanco sobre #25D366 es 2:1, no cumple AA).
 - **SC-001**: medidas del prototipo verificadas con Playwright sobre una build local (los números están en `docs/tiendas-online.md`, «Fidelidad con el prototipo»).
 
+## Modelo de datos (DER)
+
+Sin cambios de esquema en esta spec (sin migraciones; los campos de identidad que MSF-848 agrega después, `estilo_heroe` y `titulos_mayusculas`, están en `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`). Solo se lee la identidad que ya existe.
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tienda_identidad` | existente | sin cambios en esta spec (la identidad se lee por `publico.identidad_por_dominio`) |
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o| TIENDA_IDENTIDAD : "identidad visual"
+
+  TIENDA_IDENTIDAD {
+    uuid empresa_id PK
+    text color_primario
+    text color_barra
+  }
+
+  EMPRESAS {
+    uuid id PK
+  }
+```
+
 ## Matriz pantalla↔criterios
 
 Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_Producto`, `MJC_Contacto`, `MJC_M_Home`, `MJC_M_Catalogo`, `MJC_M_Producto`, `MJC_M_Contacto` y sus equivalentes `SJ_*` (`*.inventory.json`; las dos tiendas comparten el layout y solo cambia la identidad). No se agrega ni quita ningún elemento visible, salvo lo que se declara.

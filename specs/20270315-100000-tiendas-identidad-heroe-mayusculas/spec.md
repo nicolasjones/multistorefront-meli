@@ -44,13 +44,50 @@ Los valores de las tiendas demo **no se cambian** en este tramo (se cargan por e
 - **FR-007** Un valor fuera de la lista (dato corrupto) cae al estilo `oscuro` en el tema y en `identidadDesdeFila`; nada se inyecta como CSS.
 - **FR-008** Sin scroll horizontal ni violaciones de axe a 320, 768 y 1440 px en las dos variantes.
 
+## Modelo de datos (DER)
+
+Una sola tabla alterada, `dominio.tienda_identidad` (esquema `dominio`, Principio VII: es dominio del producto de tiendas), con dos columnas aditivas y con default; las filas existentes toman los valores por defecto. `dominio.empresas` se muestra por su FK. Sin tablas nuevas ni cambios de RLS: la lectura pública sigue por `publico.identidad_por_dominio` (lista blanca con las dos claves nuevas).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.tienda_identidad` | alterada | `+ estilo_heroe text not null default 'oscuro'` con `check (estilo_heroe in ('oscuro','claro'))`; `+ titulos_mayusculas boolean not null default true` |
+| `dominio.empresas` | existente | sin cambios |
+
+```mermaid
+erDiagram
+  EMPRESAS ||--o| TIENDA_IDENTIDAD : "identidad visual"
+
+  TIENDA_IDENTIDAD {
+    uuid empresa_id PK
+    uuid organizacion_id FK
+    text color_primario
+    text color_primario_oscuro
+    text color_acento
+    text color_fondo
+    text color_barra
+    text tipografia_titulos
+    text tipografia_texto
+    text logo_ruta
+    text banner_ruta
+    text banner_movil_ruta
+    text estilo_heroe "nueva: oscuro | claro, default oscuro"
+    boolean titulos_mayusculas "nueva: default true"
+  }
+
+  EMPRESAS {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+  }
+```
+
 ## Matriz pantalla↔criterios
 
 Prototipos: `design/pantallas/MJC_Home`, `MJC_M_Home`, `SJ_Home`, `SJ_M_Home` (y `MJC_Catalogo`, `MJC_Categoria`, `MJC_Producto`, `MJC_Contacto`, `SJ_Catalogo`, `SJ_Categoria`, `SJ_Producto`, `SJ_Contacto` para la barra de categorías) y `SJ_StoreIdentidad` (panel). Fuente de las medidas: CSS de los prototipos (`design/pantallas/SJ_Home.dc.html`, `MJC_Home.dc.html`).
 
 | Ítem del inventario / elemento visible | Pantalla | Criterio |
 |---|---|---|
-| «Explorar productos» (SJ_Home, SJ_M_Home) | Portada, estilo claro | US1.3–4, FR-006 (acento `#E9A23B` con texto `#1B2430`, 16 px/700, radio 8, `.03em` en escritorio; sin mayúsculas porque `SJ_*` no las usa) |
+| «Explorar productos» (SJ_Home, SJ_M_Home) | Portada, estilo claro | US1.3–4, FR-006 (acento `#E9A23B` con texto `#1A1A1A` en la tienda —el prototipo usa `#1B2430`, pero el color de texto no es parte de la identidad y se toma el `#1A1A1A` por defecto del tema, con contraste AA—, 16 px/700, radio 8, `.03em` en escritorio; sin mayúsculas porque `SJ_*` no las usa) |
 | «Ver catálogo» (MJC_Home, MJC_M_Home) | Portada, estilo oscuro | US1.2, US2.1 (16 px/700 en mayúsculas con `.03em` en escritorio; ya existía, ahora condicionado a `titulos_mayusculas`) |
 | Título del héroe «Elegí lo que necesitás» (SJ) / «Todo para tu consola» (MJC) | Portada | US1.2–3, US2.1 (60/36 px sin mayúsculas en SJ; 72/44 px en mayúsculas en MJC) |
 | Franja del héroe (`#F1E9D8` en SJ, `#2A2A2A` en MJC) y círculo de acento de 360 px | Portada | US1.2–3 (superficie derivada del fondo de la tienda en vez de `#F1E9D8` fijo; círculo desde 1200 px, ver «Diferencias declaradas») |
@@ -61,6 +98,7 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_M_Home`, `SJ_Home`, `SJ_M_Home` (y
 | Campos «Estilo del encabezado de la portada» y «Títulos del menú y botones en mayúsculas» | Panel · Identidad visual | US1.1, US2.1, FR-006: no existen en `SJ_StoreIdentidad`; son campos de configuración nuevos pedidos por producto, con el mismo patrón visual que Colores y Tipografía |
 | Vista previa de la identidad (miniatura) | Panel · Identidad visual | US1.5 |
 | «Vista previa» de la tienda (Dominio y publicación) | Panel | US1.5, US3 (usa la fuente de la vista previa con el tema de la identidad del borrador) |
+| Empresa activa | Panel · Identidad visual | Los dos campos son de **una** empresa (la de la gestión de tienda, `empresaId`): se leen y guardan de esa empresa y su borrador. Al cambiar de empresa la pestaña vuelve a «cargando» y el formulario se remonta con `key={empresaId}`: no queda ningún valor (ni estilo ni mayúsculas) de la empresa anterior. Test existente: `IdentidadTienda.test.tsx` («al cambiar de empresa…», `rerender` con `e-2`). La tienda pública no tiene empresa activa: se resuelve por el host |
 
 ## Diferencias declaradas con el prototipo
 
