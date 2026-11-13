@@ -35,7 +35,10 @@ const MARGEN_ANTICIPO = '400px'
 export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas, mostrarFin = true, cargados, espera = null }: CargaInfinitaProps) {
   const centinela = useRef<HTMLDivElement | null>(null)
   const fin = useRef<HTMLParagraphElement | null>(null)
+  // El foco está en «Cargar más» o en el error con «Reintentar»: al cambiar de uno al otro se devuelve (no cae al body).
   const focoEnBoton = useRef(false)
+  const zona = useRef<HTMLDivElement | null>(null)
+  const zonaError = useRef<HTMLDivElement | null>(null)
   const alCargarMas = useRef(onCargarMas)
   const cargadosAntes = useRef<number | undefined>(cargados)
   const [anuncio, setAnuncio] = useState('')
@@ -76,7 +79,8 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
     if (cargando) {
       setAnuncio('Cargando más resultados')
     } else if (hayError) {
-      setAnuncio(espera ? espera.mensaje : '')
+      // El error ya se anuncia solo (`role=alert` de EstadoError, también el aviso de espera): repetirlo acá lo leería dos veces.
+      setAnuncio('')
     } else if (!hayMas) {
       const nuevos = cargados !== undefined && antes !== undefined ? cargados - antes : 0
       // Sin pie de fin (lista vacía de una pantalla del panel) no se anuncia el fin: sería ruido.
@@ -88,13 +92,27 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
     }
   }, [cargando, hayError, hayMas, cargados, espera, mostrarFin])
 
-  // Si el botón tenía el foco y desaparece porque no hay más, el foco pasa al texto de fin (no al body).
+  // Si el control enfocado desaparece (el botón porque no hay más; «Reintentar» porque se vuelve a pedir; «Cargar más»
+  // porque la tanda falló) el foco pasa al que lo reemplaza o al texto de fin, nunca al body.
   useEffect(() => {
-    if (terminado && focoEnBoton.current) {
+    if (!focoEnBoton.current) return
+    // Solo se restaura si el foco se perdió (cayó al body) o sigue en la zona: si el usuario pasó a otro campo
+    // (o el navegador no enfocó el botón al hacer clic, como Safari/Firefox en macOS) no se le roba.
+    const actual = document.activeElement
+    const perdido = !actual || actual === document.body
+    if (!perdido && !zona.current?.contains(actual)) {
+      focoEnBoton.current = false
+      return
+    }
+    if (terminado) {
       focoEnBoton.current = false
       fin.current?.focus()
+      return
     }
-  }, [terminado])
+    const control = zona.current?.querySelector<HTMLElement>('button:not(:disabled)')
+    if (control) control.focus()
+    else if (hayError) zonaError.current?.focus()
+  }, [terminado, hayError, cargando])
 
   // La región viva (`aria-live`, sin `role=status` para no duplicar el rol de otras regiones de la página) queda montada siempre en la misma posición del árbol para que se anuncien sus cambios.
   return (
@@ -102,27 +120,42 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
       <Box aria-live="polite" aria-atomic="true" sx={OCULTO_VISUAL} data-testid="carga-infinita-anuncio">
         {anuncio}
       </Box>
-      {hayError ? <EstadoError
-          titulo={espera ? espera.mensaje : 'No pudimos cargar más resultados.'}
-          reintentar={onCargarMas}
-          reintentarDeshabilitado={esperando}
-        /> : null}
+      <Box
+        ref={zona}
+        onFocus={() => { focoEnBoton.current = true }}
+        onBlur={(e) => { if ((e.target as Element).isConnected) focoEnBoton.current = false }}
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      >
+      {hayError ? (
+        <Box ref={zonaError} tabIndex={-1} sx={{ outline: 'none' }}>
+          <EstadoError
+            titulo={espera ? espera.mensaje : 'No pudimos cargar más resultados.'}
+            reintentar={onCargarMas}
+            reintentarDeshabilitado={esperando}
+          />
+        </Box>
+      ) : null}
       {botonVisible ? (
         <Button
           variant="outlined"
+          // Cargando: el botón sigue enfocable (aria-disabled) pero se ve apagado, como un MUI deshabilitado.
+          sx={{
+            '&[aria-disabled="true"], &[aria-disabled="true"]:hover': { color: 'action.disabled', borderColor: 'action.disabledBackground', bgcolor: 'transparent', cursor: 'progress' },
+          }}
           aria-disabled={cargando || undefined}
           aria-busy={cargando || undefined}
           startIcon={cargando ? <CircularProgress size={16} /> : undefined}
-          onClick={() => {
-            focoEnBoton.current = true
+          onClick={(e) => {
+            // Safari y Firefox en macOS no enfocan el botón al hacer clic: la marca vale si el foco está en él o se perdió.
+            const actual = document.activeElement
+            focoEnBoton.current = actual === e.currentTarget || !actual || actual === document.body
             if (!cargando) onCargarMas()
           }}
-          onFocus={() => { focoEnBoton.current = true }}
-          onBlur={(e) => { if (e.currentTarget.isConnected) focoEnBoton.current = false }}
         >
           Cargar más
         </Button>
       ) : null}
+      </Box>
       {terminado && mostrarFin ? (
         <Typography ref={fin} tabIndex={-1} variant="xs" color="text.secondary" align="center" component="p" sx={{ outline: 'none' }}>
           No hay más resultados.

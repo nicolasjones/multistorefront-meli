@@ -113,7 +113,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
 
         // Menú → categoría: solo sus 3 productos, con precio y disponibilidad.
         await page.goto(`${base}/`)
-        await page.getByRole('navigation', { name: 'Categorías' }).getByRole('link', { name: t.categoria }).click()
+        await page.getByRole('navigation', { name: 'Categorías', exact: true }).getByRole('link', { name: t.categoria }).click()
         await expect(page.getByRole('heading', { level: 1, name: t.categoria })).toBeVisible()
         await expect(contador).toHaveText('3 productos')
         await expect(tarjetas).toHaveCount(3)

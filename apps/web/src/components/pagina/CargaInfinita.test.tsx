@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CargaInfinita } from './CargaInfinita'
 
@@ -53,7 +53,7 @@ describe('CargaInfinita', () => {
     const onCargarMas = vi.fn()
     const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={onCargarMas} />)
     const boton = screen.getByRole('button', { name: 'Cargar más' })
-    boton.focus()
+    act(() => boton.focus())
     fireEvent.click(boton)
     expect(onCargarMas).toHaveBeenCalledTimes(1)
     rerender(<CargaInfinita hayMas cargando onCargarMas={onCargarMas} />)
@@ -75,11 +75,75 @@ describe('CargaInfinita', () => {
   it('al llegar al final anuncia «No hay más resultados» y pasa el foco al texto de fin', () => {
     const { rerender } = render(<CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />)
     const boton = screen.getByRole('button', { name: 'Cargar más' })
-    boton.focus()
+    act(() => boton.focus())
     rerender(<CargaInfinita hayMas cargando cargados={24} onCargarMas={vi.fn()} />)
     rerender(<CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />)
     expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('No hay más resultados')
     expect(document.activeElement).toBe(screen.getByText('No hay más resultados.'))
+  })
+
+  // Caracterización: el blur de la zona ya apaga la marca, así que pasa con o sin el guard del efecto.
+  it('(caracterización) si el usuario pasó a otro campo con el botón enfocado, la tanda siguiente no le roba el foco', () => {
+    const { rerender } = render(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    act(() => boton.focus())
+    fireEvent.click(boton)
+    const campo = screen.getByLabelText('Buscar')
+    act(() => campo.focus())
+    rerender(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(campo)
+  })
+
+  // Cubre el guard del efecto: sin foco previo en el botón la marca queda puesta (onClick) y, como el campo nunca
+  // dispara un blur de la zona, solo el guard evita el robo de foco.
+  it('clic con el foco en el body y luego el usuario pasa a otro campo durante la carga: la tanda siguiente no le roba el foco', () => {
+    const { rerender } = render(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(document.body)
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    const campo = screen.getByLabelText('Buscar')
+    act(() => campo.focus())
+    rerender(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(campo)
+  })
+
+  it('si el navegador no enfocó el botón al hacer clic (Safari) y el foco está en otro campo, no se lo roba', () => {
+    const { rerender } = render(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    const campo = screen.getByLabelText('Buscar')
+    act(() => campo.focus())
+    // Clic sin foco previo en el botón: la marca no debe quedar puesta.
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    rerender(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(campo)
   })
 
   it('si falla la tanda muestra el error con «Reintentar» y no pide solo', () => {
@@ -95,6 +159,40 @@ describe('CargaInfinita', () => {
     rerender(<CargaInfinita hayMas={false} cargando={false} onCargarMas={vi.fn()} />)
     expect(observadores[0].desconectar).toHaveBeenCalled()
     expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('al pedir de nuevo desde el error el foco pasa a «Cargar más» y, si falla otra vez, vuelve a «Reintentar»', () => {
+    const onCargarMas = vi.fn()
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} hayError onCargarMas={onCargarMas} />)
+    const reintentar = screen.getByRole('button', { name: 'Reintentar' })
+    reintentar.focus()
+    fireEvent.click(reintentar)
+    rerender(<CargaInfinita hayMas cargando hayError={false} onCargarMas={onCargarMas} />)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cargar más' }))
+    rerender(<CargaInfinita hayMas cargando={false} hayError onCargarMas={onCargarMas} />)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Reintentar' }))
+  })
+
+  it('si «Reintentar» está esperando, el foco queda en el aviso y no en el body', () => {
+    const espera = { mensaje: 'Esperá unos segundos', segundos: 30 }
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={vi.fn()} />)
+    screen.getByRole('button', { name: 'Cargar más' }).focus()
+    rerender(<CargaInfinita hayMas cargando={false} hayError espera={espera} onCargarMas={vi.fn()} />)
+    expect(document.body).not.toBe(document.activeElement)
+    expect(screen.getByRole('alert').parentElement).toBe(document.activeElement)
+  })
+
+  it('el aviso de espera se anuncia una sola vez (la región viva calla y queda el role=alert)', () => {
+    render(<CargaInfinita hayMas cargando={false} hayError espera={{ mensaje: 'Esperá unos segundos', segundos: 30 }} onCargarMas={vi.fn()} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Esperá unos segundos')
+    expect(screen.getByTestId('carga-infinita-anuncio')).toBeEmptyDOMElement()
+  })
+
+  it('mientras carga «Cargar más» se ve apagado (aria-disabled con estilo) y activo cuando no carga', () => {
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Cargar más' })).not.toHaveStyle({ cursor: 'progress' })
+    rerender(<CargaInfinita hayMas cargando onCargarMas={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toHaveStyle({ cursor: 'progress' })
   })
 
   it('sin IntersectionObserver (navegador viejo) queda el botón «Cargar más»', () => {

@@ -487,6 +487,29 @@ describe('ListadoProductos · carga infinita', () => {
       expect(screen.getByRole('button', { name: 'Cargar más' })).toBeInTheDocument()
     })
 
+    it('A→B→A rápido: al volver a A no se ve ni un render con la lista vieja acumulada', async () => {
+      let resolverA2: (v: unknown) => void = () => undefined
+      let llamadasA = 0
+      mocks.leer.mockImplementation((host: string, _f: unknown, n: number) => {
+        if (host !== HOST) return new Promise(() => undefined)
+        if (n === 1) {
+          llamadasA += 1
+          return llamadasA === 1 ? Promise.resolve(tanda(1, 24, 48, 1)) : new Promise((r) => { resolverA2 = r })
+        }
+        return Promise.resolve(tanda(25, 24, 48, 2))
+      })
+      const { rerenderHost } = montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(48))
+      rerenderHost('otra.localhost')
+      rerenderHost(HOST)
+      // La primera A (48 productos acumulados) ya no vale: mientras la nueva A carga no hay tarjetas.
+      expect(tarjetas()).toHaveLength(0)
+      await act(async () => { resolverA2(tanda(1, 24, 48, 1)) })
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(24))
+    })
+
     it('tanda 2 de búsqueda con límite: aviso específico, sin firmar imágenes y «Reintentar» espera', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => undefined)
       mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) =>
