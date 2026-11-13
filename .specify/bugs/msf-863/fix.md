@@ -38,7 +38,7 @@ del texto de la columna «Criterio» (mismo patrón de las specs de 2 columnas,
 p. ej. `specs/20261028-100000-service-seguimiento-y-reportes/spec.md:358`).
 
 De paso se corrigió el motivo, que describía un estado que ya no existe: la
-spec 026 (`specs/026-e2e-en-panel-sdlc/spec.md:19`, FR-001) quitó la ruta
+spec 026 (`specs/026-e2e-en-panel-sdlc/spec.md:18`, FR-001) quitó la ruta
 `/cobertura-e2e`, sus páginas y la subida al bucket, y el visor pasó al panel
 SDLC. La fila lo dice, sin cambiar el alcance de la spec 023.
 
@@ -74,3 +74,4 @@ Ninguna. La fila se agregó dentro de la sección `## Matriz pantalla↔criterio
 ## Follow-ups
 
 - El job `quality` (knip) del PR #929 sigue en rojo por el tooling de evidencia E2E que trae de `main` sin actualizar la configuración de knip; no bloquea el merge (no está en el `needs` de `validacion`, decisión MSF-683/PR #737) y queda fuera del alcance de esta historia.
+- El gate `scripts/verificar-matriz-pantalla.mjs:21` busca sólo la palabra «empresa» (`/empresa/i`) en el cuerpo de la matriz, aunque su mensaje exige «Empresa activa» con su motivo: una matriz que mencione «empresa» de otra forma pasa el gate. Viene de `main` (no lo introduce este PR) y el tracker acotó esta historia a la fila de la spec 023, así que no se toca el gate: queda anotado para corregirlo en `main`.
