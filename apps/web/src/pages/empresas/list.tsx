@@ -10,6 +10,7 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { DialogoNuevaEmpresa } from '../../components/empresas/DialogoNuevaEmpresa'
+import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { tokens } from '../../tema/tokens'
 
@@ -103,14 +104,7 @@ export function EmpresaList() {
   }
 
   if (!puedeEscribir) {
-    return (
-      <Box>
-        {encabezado}
-        <ContenedorSeccion>
-          <EstadoError titulo="Acceso restringido" descripcion="Solo los administradores pueden ver las empresas de la organización." />
-        </ContenedorSeccion>
-      </Box>
-    )
+    return <AccesoRestringido rol="actual" seccion="Empresas" />
   }
 
   return (
