@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { Box, Paper, Popper } from '@mui/material'
 import { tokens } from '../../tema/tokens'
 
-type MiniaturaProductoProps = { alt: string; src?: string | null }
+type MiniaturaProductoProps = {
+  alt: string
+  src?: string | null
+  /** Se llama cuando la imagen no pudo cargarse (p. ej. URL firmada vencida): permite pedir una URL nueva. */
+  onFallo?: () => void
+}
 
 // Lado de la imagen ampliada al pasar el mouse (o enfocar con el teclado) sobre la miniatura.
 const LADO_ZOOM = 280
@@ -10,7 +15,7 @@ const LADO_ZOOM = 280
 // Miniatura de producto (.thumb, FR-005): 40×40, radio 8, borde #EEEDE8 y
 // fondo suave cuando no hay imagen. Presentacional: no agrega datos.
 // Con imagen, al pasar el mouse se muestra una vista ampliada flotante (no cambia el tamaño de la fila).
-export function MiniaturaProducto({ alt, src }: MiniaturaProductoProps) {
+export function MiniaturaProducto({ alt, src, onFallo }: MiniaturaProductoProps) {
   const [ancla, setAncla] = useState<HTMLElement | null>(null)
   // Imagen que no pudo cargarse (p. ej. URL firmada vencida): se muestra el recuadro vacío en vez de una imagen rota.
   const [fallida, setFallida] = useState<string | null>(null)
@@ -34,7 +39,10 @@ export function MiniaturaProducto({ alt, src }: MiniaturaProductoProps) {
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setFallida(src)}
+        onError={() => {
+          setFallida(src)
+          onFallo?.()
+        }}
         onMouseEnter={(evento: React.MouseEvent<HTMLElement>) => setAncla(evento.currentTarget)}
         onMouseLeave={() => setAncla(null)}
         sx={{ ...medidas, bgcolor: tokens.color.superficie, objectFit: 'contain', display: 'block', cursor: 'zoom-in' }}

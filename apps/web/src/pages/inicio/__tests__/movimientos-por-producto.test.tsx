@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
 // F-INI-06 (MSF-822): listado «Movimientos por producto» del tablero de Inicio.
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), categorias: vi.fn(), puedeExportar: { valor: true }, descargar: vi.fn(), imagenes: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), categorias: vi.fn(), puedeExportar: { valor: true }, descargar: vi.fn(), imagenes: vi.fn(), renovar: vi.fn() }))
 
 vi.mock('../../../lib/inicioBloques', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/inicioBloques')>()), leerMovimientosPorProducto: mocks.leer }))
 vi.mock('../../../lib/categorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/categorias')>()), leerCategorias: mocks.categorias }))
 vi.mock('../../../lib/exportarCsv', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/exportarCsv')>()), descargarCsv: mocks.descargar }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
-vi.mock('../../../hooks/useImagenesProductos', () => ({ useImagenesProductos: mocks.imagenes }))
+vi.mock('../../../hooks/useImagenesProductos', () => ({ useImagenesProductosRenovables: (ids: string[]) => ({ imagenes: mocks.imagenes(ids), renovar: mocks.renovar }) }))
 vi.mock('../../../hooks/usePuedeAccion', () => ({ usePuedeAccion: () => ({ puede: mocks.puedeExportar.valor, isLoading: false }) }))
 
 import { MovimientosPorProducto } from '../tablero/MovimientosPorProducto'
@@ -38,6 +38,7 @@ beforeEach(() => {
   mocks.descargar.mockReset()
   mocks.puedeExportar.valor = true
   mocks.imagenes.mockReset()
+  mocks.renovar.mockReset()
   mocks.imagenes.mockReturnValue(new Map())
 })
 afterEach(() => vi.restoreAllMocks())
@@ -53,6 +54,14 @@ describe('fotos de los productos', () => {
     expect(fila2.querySelector('img')).toBeNull()
     // sin foto queda el recuadro decorativo (no rompe el alineado de la fila)
     expect(fila2.querySelector('[aria-hidden="true"]')).not.toBeNull()
+  })
+
+  it('si la foto no carga (URL vencida) pide renovarla para ese producto', async () => {
+    mocks.imagenes.mockReturnValue(new Map([['p-1', 'https://img.test/vencida.png']]))
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.error(within(tabla).getByText('Producto 1').closest('tr')!.querySelector('img')!)
+    expect(mocks.renovar).toHaveBeenCalledWith('p-1')
   })
 
   it('la foto es decorativa: el nombre del producto ya está al lado (alt vacío)', async () => {

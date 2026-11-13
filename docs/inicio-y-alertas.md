@@ -156,18 +156,27 @@ Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Per�
 
 Al pie de Inicio, un listado de **una fila por producto activo** con 12 columnas ordenables: producto, SKU,
 categoría, stock inicial, entradas, salidas, ajustes, stock actual, mínimo, ventas, último movimiento y estado
-(`apps/web/src/pages/inicio/tablero/MovimientosPorProducto.tsx`, RPC `public.movimientos_por_producto`). Cada fila lleva la **foto del producto** a la izquierda del nombre (miniatura de la imagen principal; placeholder
-si no tiene; decorativa, con `alt` vacío porque el nombre está al lado). Las imágenes se piden **una vez por tanda**
-de productos con `useImagenesProductos` (no hay N+1) y la foto **no va en el CSV**.
-  - *Desvío consciente del prototipo*: la miniatura es la del componente compartido `MiniaturaProducto` (**40 px**, el
-    tamaño del sistema de diseño; el prototipo dibuja 36 px) y **SKU y categoría son columnas separadas** (así las pide
-    la spec, FR-012) en vez de ir como segunda línea bajo el nombre.
-  - *Permiso de la foto*: las imágenes salen de `dominio.producto_imagenes`, que exige `productos` ≥ lectura además de
-    `stock`: un rol con stock pero **sin** `productos` ve solo el recuadro vacío (sin error). Si una URL firmada vence
-    o no carga, la miniatura vuelve al recuadro vacío; las imágenes se piden en bloques de 100 ids, un bloque que
-    falla no tumba a los demás, y al sumar una tanda no se vuelven a firmar las URL ya cargadas (`useImagenesProductos`).
-  - La miniatura usa `loading="lazy"` y `decoding="async"` (vale para todas las pantallas que la usan). Lo ve quien
-tiene `stock` ≥ lectura; la columna **Ventas** solo con `ventas` (si no, la base la devuelve `null` y no se dibuja).
+(`apps/web/src/pages/inicio/tablero/MovimientosPorProducto.tsx`, RPC `public.movimientos_por_producto`).
+
+El listado lo ve quien tiene `stock` ≥ lectura; la columna **Ventas** solo con `ventas` (si no, la base la devuelve
+`null` y no se dibuja).
+
+**Foto del producto.** Cada fila lleva la foto a la izquierda del nombre (miniatura de la imagen principal; recuadro
+vacío si no tiene; decorativa, con `alt` vacío porque el nombre está al lado). No va en el CSV.
+
+- *Desvío consciente del prototipo*: la miniatura es la del componente compartido `MiniaturaProducto` (**40 px**, el
+  tamaño del sistema de diseño; el prototipo dibuja 36 px) y **SKU y categoría son columnas separadas** (así las pide
+  la spec, FR-012) en vez de ir como segunda línea bajo el nombre.
+- *Permiso*: las imágenes salen de `dominio.producto_imagenes`, que exige `productos` ≥ lectura además de `stock`: un
+  rol con stock pero **sin** `productos` ve solo el recuadro vacío (sin error).
+- *Carga*: las imágenes se piden **una vez por tanda** con `useImagenesProductos`/`useImagenesProductosRenovables` (sin
+  N+1), en bloques de 100 ids. Un bloque que falla no tumba a los demás: sus ids se reintentan en el siguiente cambio
+  de lista (no se anotan como «sin imagen»). La miniatura usa `loading="lazy"` y `decoding="async"`.
+- *URL firmada vencida*: las URL viven 300 s. Al sumar una tanda **al final** de la lista (prefijo, mismo orden) no se
+  re-firma lo ya cargado; si la lista cambia de otra manera (filtros, orden, búsqueda, incluso un superconjunto como
+  de «En alerta» a «Todos») las vencidas se renuevan porque las filas se vuelven a montar. Si una imagen todavía no
+  cargada se pide ya vencida (scroll tardío), la miniatura avisa con `onFallo` y el hook renueva **esa** URL **una sola
+  vez por producto**; si la nueva también falla, queda el recuadro vacío (sin bucles).
 
 - **Vistas rápidas** (Todos, En alerta, Quietos), búsqueda por nombre o SKU (espera 300 ms), categoría (el menú
   muestra solo las de la tienda elegida), «Ordenar por» con dirección y orden por encabezado. **Todo se resuelve en

@@ -7,7 +7,7 @@ import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components/estados/EstadosPagina'
 import { ExportarCsvBoton } from '../../../components/stock/ExportarCsvBoton'
-import { useImagenesProductos } from '../../../hooks/useImagenesProductos'
+import { useImagenesProductosRenovables } from '../../../hooks/useImagenesProductos'
 import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
 import { useExportarCsv } from '../../../hooks/useExportarCsv'
 import { useMovimientosPorProducto } from '../../../hooks/useMovimientosPorProducto'
@@ -83,7 +83,7 @@ export function MovimientosPorProducto({ contexto }: Props) {
     return listado.filas.filter((fila) => (vistos.has(fila.productoId) ? false : (vistos.add(fila.productoId), true)))
   }, [listado.filas])
   // Fotos: una consulta por tanda (el hook pide solo los ids que todavía no tiene) y sin romper el listado si falla.
-  const imagenes = useImagenesProductos(filasUnicas.map((fila) => fila.productoId))
+  const { imagenes, renovar } = useImagenesProductosRenovables(filasUnicas.map((fila) => fila.productoId))
   // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna). Se decide con
   // lo ya cargado: una tanda que falla (página vacía) no cambia la decisión; sin filas todavía, se muestra.
   const conVentas = listado.filas.length === 0 || listado.filas.some((fila) => fila.ventas !== null)
@@ -95,7 +95,7 @@ export function MovimientosPorProducto({ contexto }: Props) {
         render: (fila) => (
           <Stack direction="row" spacing={1} alignItems="center">
             {/* Decorativa (alt vacío): el nombre del producto está al lado. */}
-            <MiniaturaProducto alt="" src={imagenes.get(fila.productoId)} />
+            <MiniaturaProducto alt="" src={imagenes.get(fila.productoId)} onFallo={() => renovar(fila.productoId)} />
             <Typography component={RouterLink} to={`/productos/${fila.productoId}/edit`} color="primary" sx={{ fontWeight: 600 }}>{fila.nombre}</Typography>
           </Stack>
         ),
@@ -115,7 +115,7 @@ export function MovimientosPorProducto({ contexto }: Props) {
       { clave: 'estado', encabezado: 'Estado', ordenable: true, render: (fila) => <Chip size="small" color={COLOR_ESTADO[fila.estado]} label={ETIQUETA_ESTADO_MOVIMIENTO[fila.estado]} /> },
     )
     return lista
-  }, [conVentas, imagenes])
+  }, [conVentas, imagenes, renovar])
 
   // Exportación: mismos filtros que la pantalla, por lotes de la RPC (la misma consulta, sin paginar en pantalla).
   const columnasCsv = useMemo<ColumnaCsv<MovimientoProducto>[]>(() => [

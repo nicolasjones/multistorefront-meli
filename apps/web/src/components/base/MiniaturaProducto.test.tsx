@@ -1,7 +1,7 @@
 import { ThemeProvider } from '@mui/material'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { temaPanel } from '../../tema/temaPanel'
 import { tokens } from '../../tema/tokens'
 import { MiniaturaProducto } from './MiniaturaProducto'
@@ -58,5 +58,20 @@ describe('MiniaturaProducto (FR-005)', () => {
     fireEvent.error(screen.getByRole('img', { name: 'Producto' }))
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(document.querySelector('[aria-hidden="true"]')).not.toBeNull()
+  })
+
+  it('avisa con onFallo cuando la imagen no carga (para pedir una URL nueva)', () => {
+    const alFallar = vi.fn()
+    conTema(<MiniaturaProducto alt="Producto" src="https://ejemplo/vencida.png" onFallo={alFallar} />)
+    fireEvent.error(screen.getByRole('img', { name: 'Producto' }))
+    expect(alFallar).toHaveBeenCalledTimes(1)
+  })
+
+  it('al cambiar src después de un error se vuelve a mostrar la imagen', () => {
+    const { rerender } = conTema(<MiniaturaProducto alt="Producto" src="https://ejemplo/vencida.png" />)
+    fireEvent.error(screen.getByRole('img', { name: 'Producto' }))
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    rerender(<ThemeProvider theme={temaPanel}><MiniaturaProducto alt="Producto" src="https://ejemplo/renovada.png" /></ThemeProvider>)
+    expect(screen.getByRole('img', { name: 'Producto' })).toHaveAttribute('src', 'https://ejemplo/renovada.png')
   })
 })

@@ -31,21 +31,33 @@ async function consultarBloque(
   return urls
 }
 
+export type ImagenesPrincipales = {
+  /** `productoId → URL firmada` de los productos con imagen. */
+  urls: Map<string, string>
+  /** Ids de los bloques que NO se pudieron consultar: no significa «sin imagen», hay que reintentarlos. */
+  fallidos: Set<string>
+}
+
 // Los ids se parten en bloques de `TAMANO_BLOQUE_IMAGENES`. Un bloque que falla no tumba a los demás (el listado se
-// muestra igual, con placeholders en esos productos); si fallan TODOS, se propaga el primer error.
+// muestra igual, con placeholders en esos productos, y sus ids vuelven en `fallidos` para reintentarlos); si fallan
+// TODOS, se propaga el primer error.
 export async function consultarImagenesPrincipales(
   cliente: Pick<SupabaseClient, 'schema' | 'storage'>,
   productoIds: readonly string[],
-): Promise<Map<string, string>> {
+): Promise<ImagenesPrincipales> {
   const ids = [...new Set(productoIds.filter(Boolean))]
-  if (ids.length === 0) return new Map()
+  if (ids.length === 0) return { urls: new Map(), fallidos: new Set() }
   const bloques: string[][] = []
   for (let i = 0; i < ids.length; i += TAMANO_BLOQUE_IMAGENES) bloques.push(ids.slice(i, i + TAMANO_BLOQUE_IMAGENES))
   const resultados = await Promise.allSettled(bloques.map((bloque) => consultarBloque(cliente, bloque)))
-  const fallidos = resultados.filter((resultado): resultado is PromiseRejectedResult => resultado.status === 'rejected')
-  if (fallidos.length === resultados.length) throw fallidos[0].reason
-  for (const fallido of fallidos) console.error('No pudimos cargar un bloque de imágenes de productos.', fallido.reason)
+  const fallidosBloques = resultados.filter((resultado): resultado is PromiseRejectedResult => resultado.status === 'rejected')
+  if (fallidosBloques.length === resultados.length) throw fallidosBloques[0].reason
+  for (const fallido of fallidosBloques) console.error('No pudimos cargar un bloque de imágenes de productos.', fallido.reason)
   const urls = new Map<string, string>()
-  for (const resultado of resultados) if (resultado.status === 'fulfilled') for (const [id, url] of resultado.value) urls.set(id, url)
-  return urls
+  const fallidos = new Set<string>()
+  resultados.forEach((resultado, indice) => {
+    if (resultado.status === 'fulfilled') for (const [id, url] of resultado.value) urls.set(id, url)
+    else for (const id of bloques[indice]) fallidos.add(id)
+  })
+  return { urls, fallidos }
 }

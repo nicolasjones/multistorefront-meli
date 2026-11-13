@@ -15,7 +15,7 @@ const cliente = (filas: unknown[], firmadas: Array<{ path: string; signedUrl: st
 describe('consultarImagenesPrincipales', () => {
   it('sin ids no consulta', async () => {
     const { cliente: c, cadena } = cliente([], [])
-    expect((await consultarImagenesPrincipales(c, ['', ''])).size).toBe(0)
+    expect((await consultarImagenesPrincipales(c, ['', ''])).urls.size).toBe(0)
     expect(cadena.select).not.toHaveBeenCalled()
   })
 
@@ -31,7 +31,7 @@ describe('consultarImagenesPrincipales', () => {
         { path: 'o/p2/uno.png', signedUrl: 'https://firmada/p2' },
       ],
     )
-    const urls = await consultarImagenesPrincipales(c, ['p1', 'p2', 'p1', 'p3'])
+    const { urls } = await consultarImagenesPrincipales(c, ['p1', 'p2', 'p1', 'p3'])
     expect(urls.get('p1')).toBe('https://firmada/p1')
     expect(urls.get('p2')).toBe('https://firmada/p2')
     expect(urls.has('p3')).toBe(false)
@@ -56,8 +56,12 @@ describe('consultarImagenesPrincipales', () => {
     const createSignedUrls = vi.fn().mockResolvedValue({ data: [{ path: 'o/p0/uno.png', signedUrl: 'https://firmada/p0' }], error: null })
     const c = { schema: vi.fn(() => ({ from: vi.fn(() => cadena) })), storage: { from: vi.fn(() => ({ createSignedUrls })) } } as never
     const ids = Array.from({ length: 150 }, (_, i) => `p${i}`)
-    const urls = await consultarImagenesPrincipales(c, ids)
+    const { urls, fallidos } = await consultarImagenesPrincipales(c, ids)
     expect(urls.get('p0')).toBe('https://firmada/p0')
+    // los ids del bloque caído (los 50 últimos) vuelven en `fallidos` para reintentarlos; los del bloque bueno, no
+    expect(fallidos.size).toBe(50)
+    expect(fallidos.has('p120')).toBe(true)
+    expect(fallidos.has('p0')).toBe(false)
 
     const todasFallan = vi.fn().mockResolvedValue({ data: null, error: new Error('todo mal') })
     const cadena2 = { select: vi.fn().mockReturnThis(), in: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), returns: todasFallan }
