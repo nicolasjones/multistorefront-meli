@@ -14,6 +14,7 @@ import {
   type FaltanteVenta,
   MAXIMO_MENSAJE_AVISO,
   largoDeTexto,
+  recortarPorCaracteres,
   TEXTO_AVISO_POR_DEFECTO,
   estadoStockHoy,
   avisoFallido,
@@ -239,7 +240,8 @@ export function FaltantesList() {
     setEnviando(true)
     try {
       const clientePorId = Object.fromEntries(Object.entries(elegidos).map(([id, e]) => [id, e.cliente]))
-      const resultado = await avisar(mensaje, reavisar)
+      const texto = recortarPorCaracteres(mensaje, MAXIMO_MENSAJE_AVISO)
+      const resultado = await avisar(texto, reavisar)
       setDialogo(false)
       // Los avisos cambian filas de tandas anteriores: se recarga desde la primera.
       setPagina(1)
@@ -396,9 +398,12 @@ export function FaltantesList() {
               fullWidth
               value={mensaje}
               onChange={(evento) => setMensaje(evento.target.value)}
+              // No se recorta al tipear (el cursor saltaría al final y se interferiría con IME/composición): se recorta al salir del
+              // campo y al enviar; mientras tanto el contador se pone en rojo.
+              onBlur={() => setMensaje((actual) => recortarPorCaracteres(actual, MAXIMO_MENSAJE_AVISO))}
+              error={largoDeTexto(mensaje) > MAXIMO_MENSAJE_AVISO}
               disabled={enviando}
               helperText={`${largoDeTexto(mensaje)} / ${MAXIMO_MENSAJE_AVISO}`}
-              slotProps={{ htmlInput: { maxLength: MAXIMO_MENSAJE_AVISO } }}
             />
             {yaAvisadosElegidos > 0 ? (
               <Stack spacing={0}>
