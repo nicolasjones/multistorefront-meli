@@ -14,6 +14,8 @@ Depende de [MSF-147 (dominio, identidad, catálogo visible)](tienda-dominio-e-id
 e IVA) y MSF-231 (stock). Resumen de producto y límites:
 [Tiendas online: catálogo y ficha](../producto/tiendas-online.md).
 Correcciones posteriores sobre estas funciones: [MSF-825 (demo frente al prototipo)](tienda-demo-vs-prototipo.md).
+La carga por tandas del catálogo, la categoría y los resultados de búsqueda llega con **MSF-845** (ver
+[Carga infinita en los listados](#carga-infinita-en-los-listados-msf-845)).
 
 ## Alcance de entrega
 
@@ -85,9 +87,11 @@ Cada una hace `revoke execute … from public` y `grant execute … to anon, aut
   (desempate por nombre e id; los productos sin precio van al final).
 - **Normalización sin error:** orden desconocido → `relevancia`; página < 1 o nula → 1; `precio_max` ≤ 0
   o nulo → sin límite; categoría oculta o ajena → lista vacía (no error); página fuera de rango → lista
-  vacía con el `total` real. La UI, con `?pagina=` mayor a la última, redirige con `replace` a la última
-  página (`secciones-catalogo/ListadoProductos.tsx`).
-- **Tamaño de página:** constante `24` dentro de la función (D3). Para cambiarlo se toca un solo valor.
+  vacía con el `total` real. La UI **no pide** una página fuera de rango: desde MSF-845 la lista es
+  acumulativa y un `?pagina=N` viejo se ignora (ver
+  [Carga infinita en los listados](#carga-infinita-en-los-listados-msf-845)).
+- **Tamaño de página:** constante `24` dentro de la función (D3), que es también la tanda de la carga
+  infinita. Para cambiarlo se toca un solo valor.
 
 ### Precio público
 
@@ -133,7 +137,7 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 | Ruta | Pantalla | Archivos |
 |---|---|---|
 | `/` | Inicio de la tienda | `rutas/inicio.tsx` (MSF-147) |
-| `/catalogo` | «Todos los productos» con filtros, orden y paginación | `rutas/catalogo.tsx`, `secciones-catalogo/ListadoProductos.tsx` |
+| `/catalogo` | «Todos los productos» con filtros, orden y carga infinita | `rutas/catalogo.tsx`, `secciones-catalogo/ListadoProductos.tsx` |
 | `/categoria/:categoriaId` | Listado de una categoría visible | `rutas/categoria.tsx` + el mismo listado |
 | `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad (con MSF-212, botón «Consultar por WhatsApp») | `rutas/producto.tsx`, `ficha/*` |
 | cualquier otra | La misma 404 amable | `PaginaNoEncontrada.tsx` |
@@ -145,12 +149,14 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 - **Categorías:** `lib/tiendaCategorias.ts` y `hooks/useCategoriasTienda.ts` hacen una sola llamada por
   tienda; si falla, el menú queda en «Inicio» con «Reintentar».
 - **Catálogo:** componentes `catalogo/PanelFiltros.tsx`, `catalogo/Ordenar.tsx`,
-  `catalogo/TarjetaProducto.tsx`, `catalogo/Paginacion.tsx` y `catalogo/EstadoVacio.tsx`;
-  `lib/tiendaListado.ts` es el cliente de la RPC y el parser/serializador de la URL; el hook es
-  `hooks/useCatalogoPublico.ts`.
-- **URL compartible:** `categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>`
-  y `pagina=<n>`. Abrir la URL restaura el estado; cambiar un filtro u orden vuelve a la página 1; los
-  valores inválidos se ignoran. Filtrar no recarga la página.
+  `catalogo/TarjetaProducto.tsx` y `catalogo/EstadoVacio.tsx`; el pie es el componente compartido
+  `components/pagina/CargaInfinita.tsx` (desde MSF-845, ver
+  [Carga infinita en los listados](#carga-infinita-en-los-listados-msf-845)). `lib/tiendaListado.ts` es el
+  cliente de la RPC y el parser/serializador de la URL; el hook es `hooks/useCatalogoPublico.ts`.
+- **URL compartible:** `categoria`, `stock=1`, `max=<pesos>` y `orden=<relevancia|precio_asc|precio_desc>`;
+  no lleva número de tanda ni de página. Abrir la URL restaura el estado; cambiar un filtro u orden
+  reinicia la lista desde la primera tanda; los valores inválidos se ignoran y un `pagina=<n>` viejo se
+  ignora. Filtrar no recarga la página.
 - **Ficha:** `ficha/Galeria.tsx` (principal = menor posición, hasta 4 miniaturas, la elegida con
   `aria-pressed`, «Sin imagen» si no hay o si ninguna URL carga), `ficha/Ampliacion.tsx` (diálogo MUI con
   foco atrapado, cierre por botón y Esc, texto alternativo), `ficha/DatosProducto.tsx` (migas, nombre,
@@ -161,6 +167,116 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
   sugerencia y «Limpiar filtros». Las imágenes de la ficha usan `loading="lazy"`.
 - **Accesibilidad:** teclado y lector de pantalla; el estado de disponibilidad se comunica con texto, no
   solo color; se verifica a 320 / 768 / 1440 px.
+
+## Carga infinita en los listados (MSF-845)
+
+La regla de listados (Principio VI) se aplicó al listado público a pedido de Nicolás: «en todas las
+tiendas quiero lazy loading infinito». Merge `5af16204` (PR #897), commits `1120b9fe` (carga infinita) y
+`bf907222` (accesibilidad, carreras y tests de reinicio).
+
+- **Alcance:** `secciones-catalogo/ListadoProductos.tsx`, que montan `/catalogo`,
+  `/categoria/:categoriaId` y los resultados (`/catalogo?q=`). Es el único listado público paginado; el
+  menú, el inicio y los relacionados son acotados. Se eliminó `catalogo/Paginacion.tsx` y no queda
+  `Pagination` en la tienda pública.
+- **Datos:** sin cambios de esquema ni RPC. Se sigue llamando a `publico.catalogo_pagina_por_dominio` o
+  `publico.busqueda_pagina_por_dominio` con `pagina` creciente (tanda de 24). La página ya no forma parte
+  de `FiltrosCatalogo` ni de la URL (`lib/tiendaListado.ts`): `parsearFiltros` ignora `?pagina=` y
+  `serializarFiltros` no lo escribe; `leerPaginaCatalogo`/`leerPaginaBusqueda` reciben la tanda aparte.
+- **Hook:** `hooks/useCatalogoPublico.ts` guarda el acumulado por clave `(host, filtros, q, intento)`; la
+  primera tanda se pide al cambiar la clave y `cargarMas` suma la siguiente de a una, deduplicando por
+  `id`, firmando las imágenes de cada tanda y exponiendo `hayMas`, `cargandoMas`, `errorMas` y
+  `esperaMas`. Una tanda vacía con `total` mayor corta la carga (`agotado`). Un contador de generación
+  descarta respuestas tardías, incluso en el ciclo A→B→A.
+- **Pie:** `components/pagina/CargaInfinita.tsx` (`IntersectionObserver` con margen de 400 px y «Cargar
+  más» operable con teclado). El botón queda montado con `aria-busy`/`aria-disabled` mientras carga para
+  no perder el foco; una región viva `aria-live` anuncia «Cargando más resultados», «N productos más
+  cargados» y «No hay más resultados»; al terminar, el foco pasa al texto de fin. El error conserva lo
+  cargado y «Reintentar» pide la misma tanda.
+- **Reinicio:** cambiar búsqueda, filtro u orden descarta lo acumulado, vuelve a la primera tanda y lleva
+  el scroll al inicio del listado (`scrollIntoView` de la sección «Productos»). `q`, filtros y orden siguen
+  en la URL.
+- **Límite de búsquedas:** si una tanda siguiente choca con el límite de pedidos, el hook corta antes de
+  firmar imágenes y devuelve `esperaMas`; el pie muestra «Hiciste muchas búsquedas seguidas, esperá unos
+  segundos y reintentá» y «Reintentar» queda deshabilitado hasta que pase la espera.
+- **Enlaces viejos:** `?pagina=N` (incluidos `0`, negativos o `999`) se ignora, no redirige y arranca de
+  la primera tanda. El parámetro permanece en la URL hasta el siguiente cambio de filtro. La canónica y el
+  `noindex` no cambian.
+- **Límites:** sin virtualización, pensado para catálogos de pocos cientos de productos por tienda
+  (seguimiento si supera ~500); al volver desde la ficha no se conservan las tandas ya cargadas porque el
+  estado vive en el hook, no en la URL ni en una caché.
+- **Reversión:** `git revert -m 1` del merge de la épica; no hay migraciones que revertir.
+- **Verificación:** Vitest `components/pagina/CargaInfinita.test.tsx`,
+  `pages/tienda-publica/ListadoProductos.test.tsx`, `lib/tiendaListado.test.ts` y
+  `lib/tiendaBusqueda.pagina.test.ts` (incluye axe a 320/768/1440 px y los estados de carga, error y fin).
+  El E2E `apps/web/e2e/tienda-catalogo.e2e.ts` se migró de enlaces de paginación a «Cargar más», pero no
+  se corrió en el cierre (requiere stack local); quedó validado con `tsc` y lint.
+
+!!! warning "TODO · capturas del manual"
+    **Dueño:** Documentación / Tiendas online. Faltan capturas nuevas del catálogo con «Cargar más», el
+    estado de carga y el fin de lista para `docs/producto/img/tiendas-online/`. El comando `pnpm
+    docs:capturas` **no existe en este repo**; lo más cercano es `pnpm --filter @platform/web
+    pantallas:capturar` con `PANTALLAS_APP_URL` y un `storageState` de Playwright, sobre el seed de
+    `pnpm dev:supabase`. No se pudo generar en el cierre (sin stack local) y no se inventó ninguna imagen.
+
+## Cómo probarlo (MSF-845)
+
+### Prerrequisitos
+
+- **Rol:** visitante anónimo; no hace falta usuario ni sesión.
+- **Datos:** una tienda del seed con **más de 24 productos visibles** en una categoría. El E2E siembra 26
+  (`MASIVOS = 26`): 24 en la primera tanda y 2 en la segunda. Se levanta con `pnpm dev:supabase` (aplica
+  `supabase/seed.sql`) y la web servida.
+- **URL:** `http://mundojc.localhost:4300/catalogo` o `http://sanjavucho.localhost:4300/catalogo` (los
+  subdominios de `localhost` resuelven a loopback en Chromium), o el entorno DEV.
+
+### Pasos
+
+1. Entrá a una categoría desde el menú de la tienda. **Ves** la primera tanda de tarjetas, el contador
+   total («N productos») y **ningún** control de páginas numeradas.
+2. Bajá hasta el final del listado o hacé clic en **Cargar más**. **Ves** que las tarjetas siguientes se
+   suman a las anteriores y la URL **no** cambia.
+3. Tabulá hasta **Cargar más** y presioná Enter. **Ves** que se pide otra tanda y el foco no se pierde;
+   con un lector de pantalla se anuncia «Cargando más resultados» y «N productos más cargados».
+4. Llegá al final. **Ves** «No hay más resultados.» y el botón desaparece.
+5. Cambiá un filtro (por ejemplo **Solo con stock**), el orden o la búsqueda. **Ves** que la lista vuelve
+   a la primera tanda, el scroll sube al inicio del listado y la URL conserva filtro, orden y `q`.
+6. Abrí un enlace viejo con `?pagina=2`. **Ves** que se ignora: no redirige y arranca de la primera
+   tanda; el total sigue siendo el del servidor.
+7. Cortá la red o interceptá la RPC de la tanda siguiente. **Ves** «No pudimos cargar más resultados.»
+   con **Reintentar**, sin perder las tarjetas ya cargadas.
+8. Superá el límite de búsquedas (30 por minuto). **Ves** «Hiciste muchas búsquedas seguidas, esperá unos
+   segundos y reintentá» y **Reintentar** deshabilitado hasta que pase la espera.
+
+### Resultado esperado
+
+- **Given** una categoría con más productos que una tanda, **When** la persona llega al final o usa
+  «Cargar más», **Then** las tarjetas siguientes se suman a las ya mostradas, el total no cambia y la URL
+  no incorpora un número de página.
+- **Given** un listado cargado, **When** la persona busca, filtra u ordena, **Then** la lista vuelve a la
+  primera tanda, el scroll sube al inicio y el criterio nuevo queda en la URL.
+- **Given** una tanda que falla, **When** la persona la reintenta, **Then** se conserva lo cargado y se
+  vuelve a pedir esa misma tanda.
+- **Given** un enlace viejo `?pagina=N`, **When** se abre, **Then** no rompe ni redirige: arranca desde la
+  primera tanda.
+
+### Cómo automatizarlo
+
+El E2E existente `apps/web/e2e/tienda-catalogo.e2e.ts` ya recorre el menú, los filtros, el orden, la
+carga por «Cargar más»/scroll, el fin de lista y el `?pagina=N` ignorado. **No se corrió en el cierre**
+(requiere el stack local) y su título todavía no lleva rótulo. Para atarlo a la cobertura:
+
+| Recorrido | Rótulo propuesto |
+|---|---|
+| Primera tanda, scroll/«Cargar más», suma sin cambiar la URL y fin de lista | `[MSF-845:T001]` |
+| Reinicio a la primera tanda al buscar, filtrar u ordenar, con scroll al inicio | `[MSF-845:T002]` |
+| `?pagina=N` viejo ignorado y sin paginación numerada | `[MSF-845:T003]` |
+| Error de una tanda con «Reintentar» sin perder lo cargado | `[MSF-845:T004]` |
+| «Cargar más» con teclado y anuncios de la región viva | `[MSF-845:T005]` |
+| Límite de búsquedas: aviso y «Reintentar» deshabilitado hasta la espera | `[MSF-845:T006]` |
+
+La cobertura determinista de hoy es Vitest: `CargaInfinita.test.tsx`, `ListadoProductos.test.tsx`,
+`tiendaListado.test.ts` y `tiendaBusqueda.pagina.test.ts`. Los recorridos T001–T006 quedan **pendientes de
+automatizar en E2E** (dueño: Tiendas online).
 
 ## Aislamiento y seguridad
 
@@ -198,8 +314,8 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 | pgTAP de disponibilidad (paridad con `productos_con_stock`, sin cantidades) | `supabase/tests/database/tienda_disponibilidad_publica.test.sql` |
 | pgTAP de catálogo (filtros, órdenes, paginación, normalización, paridad de precio, imágenes, columnas) | `supabase/tests/database/tienda_catalogo_publico.test.sql` |
 | pgTAP de ficha (campos, `null` en los cinco casos, compatibilidad opcional) | `supabase/tests/database/tienda_ficha_publica.test.sql` |
-| Vitest + axe de layout, 404, listado, ficha y etiqueta | `apps/web/src/pages/tienda-publica/EnrutadorTienda.test.tsx`, `ListadoProductos.test.tsx`, `RutaCatalogo.test.tsx`, `FichaProducto.test.tsx`, `disponibilidad/EtiquetaDisponibilidad.test.tsx` y `lib/tiendaListado.test.ts` |
-| E2E con las dos tiendas del seed | `apps/web/e2e/tienda-categorias.e2e.ts`, `tienda-catalogo.e2e.ts`, `tienda-ficha.e2e.ts`, `tienda-disponibilidad.e2e.ts` |
+| Vitest + axe de layout, 404, listado, ficha, carga infinita y etiqueta | `apps/web/src/pages/tienda-publica/EnrutadorTienda.test.tsx`, `ListadoProductos.test.tsx`, `RutaCatalogo.test.tsx`, `FichaProducto.test.tsx`, `disponibilidad/EtiquetaDisponibilidad.test.tsx`, `lib/tiendaListado.test.ts`, `lib/tiendaBusqueda.pagina.test.ts` y `components/pagina/CargaInfinita.test.tsx` |
+| E2E con las dos tiendas del seed (la carga infinita se migró de enlaces de paginación a «Cargar más»; no se corrió en el cierre) | `apps/web/e2e/tienda-categorias.e2e.ts`, `tienda-catalogo.e2e.ts`, `tienda-ficha.e2e.ts`, `tienda-disponibilidad.e2e.ts` |
 
 ```bash
 pnpm dev:supabase
@@ -215,7 +331,7 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 |---|---|---|
 | **D1** imágenes | Bucket privado + política de `anon` acotada + URLs firmadas de una hora | `lib/imagenProducto.ts` y una migración |
 | **D2** producto en ambas tiendas | Destacados por tienda (MSF-147) y precio por empresa (MSF-114); la épica no agrega nada nuevo | Confirmación del cliente; sin cambio de código de esta épica |
-| **D3** tamaño de página | 24, constante de la función | Un solo valor |
+| **D3** tamaño de página | 24, constante de la función; es la tanda de la carga infinita (MSF-845) | Un solo valor |
 | **D4** stock reservado | Hoy «Disponible» = `existencias.cantidad > 0` | Solo `private.disponible_publico` |
 | **D6** disponibilidad manual | Se ignora `a_pedido` / `stock_entrante` | `private.disponible_publico` |
 | **D7** SKU público | Se muestra el SKU del producto; en blanco no aparece | Una fila de `ficha/DatosProducto.tsx` |
@@ -235,6 +351,10 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
   página salvo que el orden o el tope de precio lo necesiten. Ver
   [MSF-825](tienda-demo-vs-prototipo.md#causa-raiz).
 - **URLs firmadas de una hora:** una pestaña abierta más de una hora ve «Sin imagen» hasta recargar.
+- **Carga infinita sin virtualización (MSF-845):** se acumulan las tarjetas en el DOM; el diseño asume
+  pocos cientos de productos por tienda (si un catálogo supera ~500, evaluar virtualizar o conservar el
+  acumulado). Al volver desde la ficha se arranca de la primera tanda: el estado vive en el hook, no en la
+  URL ni en una caché.
 - **Sin caché** de las respuestas públicas.
 - **Fuera de alcance:** buscador e inicio (MSF-191, documentados en
   [Tienda pública: inicio, búsqueda y móvil](tienda-inicio-busqueda-movil.md)), compra y cuentas
@@ -247,7 +367,8 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 
 ## Diferencias con el prototipo
 
-- La paginación no está dibujada en el prototipo; se usa el control del kit.
+- El prototipo no dibuja paginación ni carga infinita; desde MSF-845 el pie usa el componente compartido
+  del panel («Cargar más», carga, error con «Reintentar» y fin de lista).
 - «Últimas unidades · quedan N» queda fuera porque expone el stock exacto.
 - «Consultar por WhatsApp» lo entrega **MSF-212** (con su diálogo y el mensaje armado): ver
   [Tienda pública: WhatsApp y contacto](tienda-whatsapp-y-contacto.md).

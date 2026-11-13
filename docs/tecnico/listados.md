@@ -166,6 +166,7 @@ No se agranda la miniatura para no romper el ancho de la fila.
 | «Así quedan los precios» | en Precios | `components/precios/TablaAsiQuedan.tsx` | no pagina (trae todo) | — | sí |
 | Líneas del comprobante | `/ventas/comprobantes/:id` | `components/ventas/LineasComprobante.tsx` | no pagina (trae todo) | — | sí |
 | Actividad | `/actividad` | `pages/actividad/list.tsx` | 10 | período, empresa, actor, tipo, texto | no |
+| Catálogo de la tienda pública (MSF-845) | `/catalogo`, `/categoria/:id` y `/catalogo?q=` | `pages/tienda-publica/secciones-catalogo/ListadoProductos.tsx` + `hooks/useCatalogoPublico.ts` | 24 | host, filtros, orden, `q` | no aplica |
 
 Los tamaños de tanda salen de cada capa de datos: `TAMANO_PAGINA_PRODUCTOS` (`lib/productosListado.ts`),
 `TAMANO_PAGINA_MOVIMIENTOS` (`hooks/useMovimientos.ts`), `TAMANO_PAGINA_FALTANTES` (`lib/faltantes.ts`),
@@ -176,6 +177,13 @@ Los tamaños de tanda salen de cada capa de datos: `TAMANO_PAGINA_PRODUCTOS` (`l
 `TAMANO_PAGINA_REPARACIONES_CLIENTE` (`lib/reparacionesDeCliente.ts`), `TAMANO_PAGINA_CONSULTAS`
 (`lib/consultas.ts`), `TAMANO_PAGINA_CONTACTOS` (`lib/contactos.ts`), `TAMANO_PAGINA_ACTIVIDAD`
 (`lib/actividad.ts`) y constantes locales (`TAMANO_TANDA`, `TAMANO_PAGINA`) en cada pantalla.
+
+La **tienda pública** (MSF-845, merge `5af16204`, PR #897) no usa `useListadoAcumulado`: tiene su propio
+`useCatalogoPublico` porque cada tanda sale de una RPC pública distinta (`catalogo_pagina_por_dominio` o
+`busqueda_pagina_por_dominio`) y firma las imágenes de esa tanda. Reutiliza el mismo pie
+`CargaInfinita`, reinicia al cambiar host, filtros, orden o `q`, y no escribe la tanda en la URL. Detalle
+técnico y guía de prueba en
+[Catálogo y ficha · Carga infinita](tienda-catalogo-y-ficha.md#carga-infinita-en-los-listados-msf-845).
 
 ## Datos
 
@@ -329,8 +337,9 @@ ajustan al abrir el seguimiento:
   es paginado **por cursor** (no era `TablePagination`) y **no** se migró: conserva los botones «Anterior» y
   «Siguiente» con el número de página. El «Historial de cotizaciones» de `/historial`, que sí es un listado, sí
   quedó migrado.
-- **Tienda pública** (`/catalogo`): conserva su paginación por URL (`?pagina=<n>`); la regla de la constitución
-  alcanza al panel, no a la tienda pública.
+- **Tienda pública (resuelto por MSF-845):** el catálogo, la categoría y los resultados de búsqueda
+  dejaron la paginación por URL (`?pagina=<n>`) y usan carga infinita; un `?pagina=N` viejo se ignora.
+  Ver [Catálogo y ficha · Carga infinita](tienda-catalogo-y-ficha.md#carga-infinita-en-los-listados-msf-845).
 - **Migración de `producto_id`** (rama `origin/feat/ventas-faltantes-rma-producto-id`): ver *Datos*.
 - **Capturas del manual:** las pantallas migradas todavía no tienen capturas nuevas del comportamiento de carga
   infinita ni de la miniatura. La herramienta de captura del manual (`pnpm docs:capturas`,
@@ -346,6 +355,8 @@ La épica no cambia la base, así que el camino de reversión es el del código:
 
 - Un `git revert -m 1` del merge de la épica (`19636f0c`) devuelve el panel a la paginación numerada. Como las RPC
   siguen paginando igual, **no** hace falta tocar migraciones.
+- La tienda pública (MSF-845) se revierte con `git revert -m 1` del merge `5af16204`; como no hay
+  migraciones, la base no cambia.
 - Si se revierte sólo la parte de la imagen, alcanza con volver a `MiniaturaProducto` sin `src` (la celda queda con el
   marcador vacío) o con dejar de pedir las imágenes: `useImagenesProductos` no tira abajo la pantalla si falla.
 - Si se revierte la migración `20270204100000_ventas_listados_producto_id.sql` (cuando se integre), su encabezado

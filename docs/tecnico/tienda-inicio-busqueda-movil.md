@@ -19,6 +19,8 @@ El menú, la home y la versión móvil los corrige **MSF-825** (categorías prin
 **MSF-841** suma al layout la barra superior, el logo en el encabezado, la barra de categorías con subrayado,
 el pie oscuro y las tarjetas de categoría con foto; conserva el menú móvil y el orden de MSF-825. Ver
 [Tienda pública: diseño del prototipo](tienda-diseno-del-prototipo.md).
+**MSF-845** pasa los resultados de búsqueda a carga infinita con el mismo pie compartido del catálogo: ver
+[Carga infinita en los listados](tienda-catalogo-y-ficha.md#carga-infinita-en-los-listados-msf-845).
 
 ## Alcance de entrega
 
@@ -202,7 +204,7 @@ desconocido y empresa desactivada devuelven `null`. No modifican `catalogo_pagin
   `{limitado, espera_segundos}`. Supera el límite en el pedido `limite + 1`. Purga ventanas de más de
   **10 minutos** (índice `limite_pedidos_publicos_ventana_idx`).
 - **Número:** `private.limite_busquedas_por_minuto()` = **30** (supuesto D1; Nicolás fija el definitivo).
-  Cada sugerencia y cada página de resultados cuenta uno; el texto vacío o corto no cuenta.
+  Cada sugerencia y cada tanda de resultados cuenta uno; el texto vacío o corto no cuenta.
 - **Visitante:** `private.visitante_publico(host)` es el hash `sha256` de la IP del cliente en
   `x-forwarded-for` más el host. Nunca se guarda la IP. El valor se toma
   `private.saltos_proxy_confiables()` lugares antes del último (hoy **0** = el último); si la cadena real
@@ -223,8 +225,9 @@ desconocido y empresa desactivada devuelven `null`. No modifican `catalogo_pagin
   `dangerouslySetInnerHTML`.
 - `/catalogo?q=…`: `rutas/catalogo.tsx` usa el título «Resultados para “<texto>”» y la miga «Resultados»;
   `secciones-catalogo/ListadoProductos.tsx` lee `q`, llama a `busqueda_pagina_por_dominio` y reutiliza
-  filtros, orden, paginación y tarjetas. `q` viaja primero en la URL y se conserva al cambiar un filtro,
-  orden o página; en `/categoria/:id` se ignora.
+  filtros, orden, carga infinita y tarjetas. `q` viaja primero en la URL y se conserva al cambiar un filtro
+  u orden; en `/categoria/:id` se ignora. La tanda se pide con `pagina` creciente y no va en la URL: un
+  `?pagina=N` viejo se ignora (MSF-845).
 
 ## Versión móvil (F-TDA-17)
 

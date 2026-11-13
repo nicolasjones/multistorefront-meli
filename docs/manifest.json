@@ -612,7 +612,7 @@
     },
     "docs/producto/listados.md": {
       "title": "Cómo se muestran las listas",
-      "pageHash": "96e2539b7c99c23efa5b61d0b02ed4f438e8bfefbe9e51507f53dec231993b56",
+      "pageHash": "c4870f68cf4eb82ec1fa549fe1e773035392b5f6a425238f8a4701a27a0a03b8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -898,12 +898,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "87d1049f6e0d961bdc6eb2abcebd20119e82673adb59f6b528280f8b4a9f7273",
+      "pageHash": "9d7f5852fa0a637e91ffe714d91fdbadf3c49bf5d9a09b44f19a66ced9b6a157",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f3ef1b96"
+      "commit": "4b780ed7"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -1652,9 +1652,9 @@
     },
     "docs/tecnico/listados.md": {
       "title": "Listados: carga infinita e imagen de producto (MSF-789)",
-      "pageHash": "fc4acb5dd3f3f7fe79fc32ede868c1a0459dde9a7d2871e18bb322e7228b7de5",
+      "pageHash": "98d6b6738c3d68aacf7b6b7d49c88754574290ca276c5abf9e4fdb94183da26a",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "9d91048c",
+      "sourceAt": "21e3dae7",
       "sources": [
         "apps/web/src"
       ],
@@ -2092,16 +2092,16 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "84cf78acee1e33daac7a7f8d61fce3779884a931b3312cc83cf83b5bbbf85443",
+      "pageHash": "4570e12ae060b56645fbe8653a887e17bdacdf95920fb063b5f02765a4c48281",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "7b69957a",
+      "sourceAt": "21e3dae7",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "9593f63c"
+      "commit": "4b780ed7"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
@@ -2180,16 +2180,16 @@
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
-      "pageHash": "4a1f8e1dd119240fb87d7628e3f8b1ad8f4117d8ce606802ad4e8088839a1677",
+      "pageHash": "bed2e0608262daa8f067910f33a6594d07e1ca473db89d0dfd8635f463df85da",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "7b69957a",
+      "sourceAt": "21e3dae7",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "9593f63c"
+      "commit": "4b780ed7"
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
