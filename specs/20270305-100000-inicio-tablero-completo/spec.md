@@ -15,7 +15,7 @@ Al terminar, el administrador abre Inicio y, sin entrar a Reportes, filtra por p
 - Venta = `private.comprobante_cuenta_como_facturado(tipo, estado)` con `private.signo_comprobante` (la nota de crédito resta; presupuestos y anuladas no cuentan). **No se reutiliza el cuerpo de `productos_mas_vendidos`** (suma sin signo).
 - Permisos por bloque, en la base y en la pantalla: ventas → `ventas` (por empresa activa); stock y salidas por depósito → `stock`; actividad → `actividad`; costo, valor y margen → `rentabilidad` ≥ lectura (la RPC devuelve `null`, no solo se oculta); dólar → `cotizacion_dolar` (edición solo administrador). Un bloque sin permiso no se muestra **ni se consulta** (FR-007 de la spec base).
 - Mercado Libre queda oculto mientras no exista la funcionalidad (no hay feature registrada): se omiten sus columnas, tarjetas y filas.
-- Los gráficos no tienen librería en el repo: se dibujan con **SVG propio** con tokens de `tema/tokens.ts`, texto alternativo y tabla equivalente accesible.
+- El repo no tenía librería de gráficos: se agrega **`@mui/x-charts`** (MIT, misma familia que MUI; versión fijada, documentada y con revisión de cadena de suministro). Usa los colores del tema (tokens), con texto alternativo y tabla equivalente accesible.
 - Los listados usan **carga infinita** (`CargaInfinita` + `useListadoAcumulado`), nunca paginación (CLAUDE.md, Principio VI).
 
 ### Esquema de datos (Principio VII)
@@ -72,7 +72,7 @@ Sin tablas nuevas: la prueba `rls_en_toda_tabla` no cambia. Migraciones aditivas
 | D-3 | «Entradas» = movimientos `entrada` **sin** traslados, devoluciones de cliente ni anulaciones (esas van en Devoluciones); «Ajustes» = solo `ajuste` | Contarlas todas |
 | D-4 | Costo, «Valor del stock» y margen solo con `rentabilidad` ≥ lectura (Administrador y Administración) | Todo rol con `stock` |
 | D-5 | Margen estimado = margen **real** de lo vendido (costo guardado en la línea) | Margen de lista |
-| D-6 | Gráfico con SVG propio, sin dependencia nueva | Librería de gráficos |
+| D-6 | Gráfico con **MUI X Charts** (`@mui/x-charts`), aprobado por Nicolás el 2026-11-13 | SVG propio, sin dependencia nueva |
 | D-7 | Movimientos por producto completo con carga infinita; exportación CSV | Muestra de N; .xlsx |
 | D-8 | El tablero sigue a la empresa activa (con `useFiltroPorEmpresaActiva`); períodos de la historia (hoy, 7 días, mes, rango) | Filtro independiente; 7/30/90 del prototipo |
 | D-9 | Vista previa pura `previsualizar_impacto_dolar` (lo pide la historia); sin Mercado Libre en el diálogo | Reusar solo cargar→previsualizar |
