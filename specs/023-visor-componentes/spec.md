@@ -80,7 +80,6 @@ desarrollo); la fuente de verdad es esta spec y `docs/e2e-app.md`.
 | Botón "Volver a componentes" | FR-002 (navegación) |
 | Chips "Componente: …" y clave MSF en la ficha | FR-001 |
 | Miniatura del video con botón "Ver video" | FR-004, US2-AC2, NFR-002 |
-| Empresa activa | No aplica: pantalla interna de desarrollo sobre corridas E2E; no lee ni escribe datos de empresa |
 | Checklist de ítems con estado (hecho / pendiente / ambiguo / fallido / omitido) | US2 |
 | Bloque "Ítems sin E2E" | FR-002 (progreso) |
 | Vacío con instrucciones | FR-005, US3 |
