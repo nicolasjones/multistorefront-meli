@@ -89,13 +89,15 @@ async function registrar(page: Page, nombre: string, tipo: 'Entrada' | 'Salida' 
   await elegirMotivo(page, dialogo)
   await dialogo.getByRole('button', { name: 'Registrar', exact: true }).click()
   await expect(dialogo.getByText('Movimiento registrado')).toBeVisible()
-  await dialogo.getByRole('button', { name: 'Cerrar', exact: true }).click()
+  // «Cerrar» está dos veces: la X del título y el botón del pie; se usa el del pie.
+  await dialogo.locator('.MuiDialogActions-root').getByRole('button', { name: 'Cerrar', exact: true }).click()
 }
 
 test.describe('Stock · movimientos (F-STK-02/03/06, SC-001)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('entrada 10, salida 4 y ajuste a 3 dejan stock 3 y tres filas; una salida de 5 se rechaza', async ({ browser }) => {
+    test.setTimeout(90_000) // entrada, salida, ajuste y una salida rechazada, cada uno por el diálogo: ~29 s en reposo, pegado al tope de 30 s
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-stock-${sufijo}@example.com`
     const nombre = `Producto stock ${sufijo}`

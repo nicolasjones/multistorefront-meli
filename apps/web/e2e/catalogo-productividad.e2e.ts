@@ -70,6 +70,7 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-392:T010] el Operador mueve, desactiva y asigna una empresa a 3 productos', async ({ page }) => {
+    test.setTimeout(90_000) // mueve, desactiva y asigna empresa a 3 productos con tres diálogos masivos
     const sufijo = randomUUID().slice(0, 8)
     const correo = `operador-masiva-${sufijo}@example.com`
     const nombres = [1, 2, 3].map((n) => `Masivo ${n} ${sufijo}`)
@@ -85,6 +86,8 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
       usuarios.push(idOperador)
       await rest('usuarios_organizacion', { user_id: idOperador, organizacion_id: org.id, rol_id: 'operador' })
       const [emp] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: empresa }, 'dominio')
+      // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
+      await rest('usuarios_empresas', { user_id: idOperador, empresa_id: emp.id, organizacion_id: org.id, rol_id: 'operador' })
       const [cat] = await rest<{ id: string }>('categorias', { organizacion_id: org.id, nombre: categoria }, 'dominio')
       const productos = await rest<{ id: string }>(
         'productos',

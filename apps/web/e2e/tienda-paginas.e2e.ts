@@ -53,6 +53,7 @@ test.describe('Tienda online · páginas de contenido con dos tiendas (SC-002, S
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-306:T009] oculta → visible → pie y lectura → ocultar/eliminar da 404 → cada tienda la suya', async ({ page }) => {
+    test.setTimeout(90_000) // cuatro pasos por tienda (oculta, visible, pie, baja) y dos tiendas
     const sufijo = randomUUID().slice(0, 8)
     const titulo = `Envíos ${sufijo}`
     const slug = `envios-${sufijo}`
@@ -90,8 +91,14 @@ test.describe('Tienda online · páginas de contenido con dos tiendas (SC-002, S
         for (const p of paginas) {
           await pedir('PATCH', `tienda_paginas?id=eq.${p.id}`, { visible: true })
           await page.goto(`http://${p.host}:${puerto}/`)
+          // El aviso de cookies (fijo al pie) tapa el enlace del pie al llegar a él: se decide antes de usar el pie.
+          const cookies = page.getByRole('region', { name: 'Aviso de cookies' })
           const enlace = page.getByTestId('pie-informacion').getByRole('link', { name: titulo })
           await expect(enlace).toBeVisible()
+          if ((await cookies.count()) > 0) {
+            await cookies.getByRole('button', { name: 'Rechazar' }).click()
+            await expect(cookies).toHaveCount(0)
+          }
           await enlace.click()
           await expect(page).toHaveURL(new RegExp(`/pagina/${slug}$`))
           await expect(page.getByRole('heading', { level: 1, name: titulo })).toBeVisible()

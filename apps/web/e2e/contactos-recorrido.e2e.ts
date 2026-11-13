@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
+import { crearConsulta, rest } from './soporte/fixtures'
 
 // MSF-260 · F-CON-05 (SC-001): desde una consulta se crea un contacto con consentimiento, se ve su historial,
 // se anonimiza y desaparecen sus datos personales (contacto y consulta) sin romper la consulta ni la venta.
@@ -20,16 +21,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   'content-type': 'application/json',
   ...extra,
 })
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
@@ -78,15 +69,9 @@ test.describe('Contactos · libreta, historial y anonimización (MSF-260, F-CON-
       // `service_role` no inserta directo en `dominio.consultas` (solo la RPC): se da el alta como la tienda.
       const host = `contactos-${sufijo}.localhost`
       await rest('tiendas', { organizacion_id: org.id, empresa_id: empresaId, dominio: host }, 'dominio')
-      const rpc = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
-        method: 'POST',
-        headers: cabeceras({ 'content-profile': 'publico' }),
-        body: JSON.stringify({ host, origen: 'formulario', nombre: visitante, contacto: correoVisitante, mensaje: 'Hola, ¿tienen stock?' }),
-      })
-      if (!rpc.ok) throw new Error(`crear_consulta_publica: ${rpc.status} ${await rpc.text()}`)
-      const consultaId = (await rpc.json()) as string
+      const consultaId = await crearConsulta(host, { nombre: visitante, contacto: correoVisitante })
       const [{ id: clienteId }] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id, numero: 1, nombre: `Cliente ${sufijo}`, correo: `cliente-${sufijo}@example.com`, tipo: 'minorista',
+        organizacion_id: org.id, nombre: `Cliente ${sufijo}`, correo: `cliente-${sufijo}@example.com`, tipo: 'minorista',
       })
       const [{ id: comprobanteId }] = await rest<{ id: string }>('comprobantes_venta', {
         organizacion_id: org.id, empresa_id: empresaId, cliente_id: clienteId, tipo: 'factura', numero: `0001-${sufijo}`,
@@ -128,7 +113,7 @@ test.describe('Contactos · libreta, historial y anonimización (MSF-260, F-CON-
       await expect(confirmacion.getByText('Esta acción no se puede deshacer.')).toBeVisible()
       await confirmacion.getByRole('button', { name: 'Anonimizar' }).click()
       await expect(page.getByText('Este contacto fue anonimizado', { exact: false })).toBeVisible()
-      await expect(page.getByLabel('Nombre')).toBeDisabled()
+      await expect(page.getByLabel('Nombre', { exact: true })).toBeDisabled()
 
       // Desaparecen los datos personales del contacto y de la consulta; la consulta y la venta siguen.
       const [contacto] = await leer<{ nombre: string; correo: string | null; anonimizado_en: string | null }>(

@@ -85,7 +85,7 @@ test.describe('Tienda online · página de inicio (SC-003)', () => {
         const page = await contexto.newPage()
 
         await page.goto(`${base}/`)
-        await expect(page.getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
+        await expect(page.getByRole('main').getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
         await expect(page.getByRole('heading', { level: 2, name: 'Destacados' })).toBeVisible()
 
         // Su categoría, con «N productos», y nada de la otra tienda.
