@@ -19,16 +19,16 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) val
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'tecnico', 'activo'),
   ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
--- El operador accede solo a las tiendas que se le asignan (rol por tienda): San Javucho.
-insert into public.usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
-  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador');
-
 insert into public.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente Uno', 'mayorista');
 insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
   ('a1000000-0000-0000-0000-0000000000e2', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('a2000000-0000-0000-0000-0000000000e1', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
+-- El operador accede solo a las tiendas que se le asignan (rol por tienda): San Javucho.
+insert into public.usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
+  ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador');
+
 insert into dominio.categorias (id, organizacion_id, nombre) values
   ('ca100000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Periféricos');
 insert into dominio.productos (id, organizacion_id, nombre, sku, categoria_id, precio_lista) values
