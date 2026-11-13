@@ -64,7 +64,7 @@ function tlsDesdeEntorno(valor: string | undefined): boolean {
 export function configDesdeEntorno(env: (clave: string) => string | undefined): ConfigSmtp {
   const hostname = env('SMTP_HOST')
   const from = env('SMTP_FROM')
-  if (!hostname || !from) throw new Error('Falta configurar SMTP_HOST / SMTP_FROM')
+  if (!hostname || !from) throw new ConfiguracionSmtpError('Configuración SMTP incompleta: falta SMTP_HOST / SMTP_FROM.')
   return {
     hostname,
     from,
@@ -103,6 +103,15 @@ export function opcionesDenomailer({ hostname, port, tls, usuario, clave, permit
     )
   }
   return { connection: { hostname, port, tls }, debug: { allowUnsecure: true } }
+}
+
+/**
+ * Valida la configuración SMTP del entorno SIN conectar ni enviar: variables obligatorias, `SMTP_TLS` true/false y la regla de
+ * texto plano/credenciales. Lanza `ConfiguracionSmtpError` si no es válida. Las funciones que toman trabajo de una cola la llaman
+ * ANTES de tomarlo, para que una configuración mala no gaste intentos ni marque avisos como fallidos.
+ */
+export function validarConfigSmtp(env: (clave: string) => string | undefined): void {
+  opcionesDenomailer(configDesdeEntorno(env))
 }
 
 /** Argumentos de `Deno.connect` para el sondeo. */

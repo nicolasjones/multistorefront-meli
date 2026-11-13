@@ -763,7 +763,7 @@ describe('enviar-aviso-faltante · seguimiento QA PR #922 (R2, R3)', () => {
     assert.deepEqual(sinSondeo.registro.conexion, [])
     assert.equal(sinSondeo.registro.enviados.length, 1)
     const incompleto = montarEnvio({ SMTP_HOST: 'h' })
-    await assert.rejects(incompleto.envio({ para: ['a@x.com'], asunto: 'a', texto: 'b' }), /Falta configurar SMTP_HOST/)
+    await assert.rejects(incompleto.envio({ para: ['a@x.com'], asunto: 'a', texto: 'b' }), /falta SMTP_HOST/)
   })
 
   it('R3: index.ts cablea el cliente de servicio (URL y clave en su lugar) y el token de AVISOS_FALTANTES_TOKEN con la sonda', { timeout: 10_000 }, async () => {
@@ -1039,5 +1039,57 @@ describe('enviar-aviso-faltante · texto plano solo con opt-in explícito (PR #9
     assert.match(ejemplo, /^SMTP_TLS=true$/m)
     assert.doesNotMatch(ejemplo, /^SMTP_TLS=false/m)
     assert.doesNotMatch(ejemplo, /^SMTP_PERMITIR_INSEGURO=/m)
+  })
+})
+
+describe('enviar-aviso-faltante · configuración SMTP validada antes de tomar la tanda (PR #931)', () => {
+  const invalida = () => { throw new ConfiguracionSmtpError('Configuración SMTP inválida: SMTP_TLS debe ser true o false (detalle interno).') }
+
+  it('con una configuración inválida responde 503 constante y NO toma, no cierra, no envía ni consulta pendientes (barrido y por cliente)', async () => {
+    for (const cuerpo of [{ barrer: true }, { cliente_id: ID }]) {
+      const { deps, tomas, cierres, enviados } = montar({ pendientes: [ID] })
+      let pendientes = 0
+      const original = deps.datos.pendientes
+      deps.datos.pendientes = async (tope, limite) => { pendientes += 1; return original(tope, limite) }
+      deps.validarConfiguracion = invalida
+      const res = await pedir(deps, cuerpo)
+      assert.equal(res.status, 503)
+      const json = await res.json()
+      assert.deepEqual(json, { error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' })
+      assert.equal(JSON.stringify(json).includes('SMTP_TLS'), false, 'el motivo exacto no se devuelve')
+      assert.equal(tomas.length + cierres.length + enviados.length + pendientes, 0)
+    }
+  })
+
+  it('con una configuración válida el aviso sigue su curso; sin validador (otros usos) tampoco cambia nada', async () => {
+    const { deps, enviados } = montar()
+    deps.validarConfiguracion = () => undefined
+    assert.deepEqual(await (await pedir(deps, { cliente_id: ID })).json(), { estado: 'enviado' })
+    assert.equal(enviados.length, 1)
+  })
+
+  it('el cableado real valida el entorno: SMTP_TLS inválido -> 503 sin tocar la base; SMTP_TLS=true -> sigue', async () => {
+    const llamadas: string[] = []
+    const cliente = { rpc: async (nombre: string) => { llamadas.push(nombre); return { data: nombre === 'faltantes_avisos_pendientes' ? [] : null, error: null } } }
+    const mal = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'quizas' } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+    assert.equal((await pedir(mal, { barrer: true })).status, 503)
+    assert.deepEqual(llamadas, [])
+    const sinHost = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_TLS: 'true' } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+    assert.equal((await pedir(sinHost, { barrer: true })).status, 503)
+    assert.deepEqual(llamadas, [])
+    const bien = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'true', SMTP_USER: 'u', SMTP_PASS: 'p' } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+    const res = await pedir(bien, { barrer: true })
+    assert.equal(res.status, 200)
+    assert.deepEqual(llamadas, ['cerrar_aviso_faltante', 'faltantes_avisos_pendientes'])
+  })
+
+  it('tls=false sin opt-in o con credenciales también se rechaza antes de tomar', async () => {
+    const llamadas: string[] = []
+    const cliente = { rpc: async (nombre: string) => { llamadas.push(nombre); return { data: null, error: null } } }
+    for (const extra of [{}, { SMTP_USER: 'u', SMTP_PASS: 'p', SMTP_PERMITIR_INSEGURO: 'true' }]) {
+      const deps = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'false', ...extra } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+      assert.equal((await pedir(deps, { cliente_id: ID })).status, 503)
+    }
+    assert.deepEqual(llamadas, [])
   })
 })
