@@ -10,7 +10,7 @@
 -- elements from a scalar» (que descuadraba el plan: 52 tests planned, 29 run).
 begin;
 
-select plan(64);
+select plan(73);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -20,6 +20,8 @@ insert into auth.users (id, email) values
   ('e1000000-0000-0000-0000-000000000002', 'tecnico-uno@example.com'),
   ('e1000000-0000-0000-0000-000000000003', 'operador-uno@example.com'),
   ('e1000000-0000-0000-0000-000000000004', 'mixto-uno@example.com'),
+  ('e1000000-0000-0000-0000-000000000005', 'super-activo@example.com'),
+  ('e1000000-0000-0000-0000-000000000006', 'super-sin-org@example.com'),
   ('e2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
@@ -33,6 +35,10 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
   ('a1000000-0000-0000-0000-0000000000e2', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('a2000000-0000-0000-0000-0000000000e1', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
+-- Superadmin con organización activa (05) y superadmin sin organización activa (06).
+insert into public.superadmins (user_id) values ('e1000000-0000-0000-0000-000000000005'), ('e1000000-0000-0000-0000-000000000006');
+insert into public.superadmin_organizacion_activa (user_id, organizacion_id) values ('e1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111');
+
 -- El operador accede solo a las tiendas que se le asignan (rol por tienda): San Javucho.
 insert into public.usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador'),
@@ -162,6 +168,16 @@ select is((select sku from public.movimientos_por_producto('2026-10-01', '2026-1
   'ordenar por estado descendente pone primero lo «normal»');
 select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'nombre', 'asc', 2147483647, 10)$$,
   'una página enorme se acota (sin desborde de entero)');
+select is((select ultimo_movimiento::text from public.movimientos_por_producto('2026-10-01', '2026-10-31') where sku = 'TEC-1'), '2026-10-12',
+  'el último movimiento de TEC-1 es la fecha de su movimiento más reciente (orden por defecto)');
+select is((select ultimo_movimiento::text from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'ultimo_movimiento', 'asc') where sku = 'TEC-1'), '2026-10-12',
+  'el último movimiento de TEC-1 es el mismo cuando se ordena por esa columna');
+select is((select ultimo_movimiento from public.movimientos_por_producto('2026-10-01', '2026-10-31') where sku = 'MOU-1'), null::date,
+  'un producto sin movimientos tiene último movimiento null');
+select is((select sku from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'ultimo_movimiento', 'asc', 2, 1)), 'MOU-1',
+  'orden ascendente por último movimiento: el producto sin movimientos va al final (nulls last)');
+select is((select sku from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'ultimo_movimiento', 'desc', 2, 1)), 'MOU-1',
+  'orden descendente por último movimiento: el producto sin movimientos también va al final (nulls last)');
 select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'ultimo_movimiento', 'asc', 2, 10)$$,
   'ordenar por último movimiento y pedir otra página es válido');
 select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'nombre', 'asc; drop table x')$$, '22023', null,
@@ -210,9 +226,20 @@ select is((select t -> 'ingresos' from jsonb_array_elements(coalesce(public.resu
 select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'Mundo JC'),
   3630::numeric, 'con rol con rentabilidad en la otra tienda sí ve sus ingresos');
 
--- Fechas infinitas: 22023 (antes 22008 con un mensaje en inglés).
+select is((select t -> 'margen_pct' from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
+  'null'::jsonb, 'con rol sin rentabilidad en esa tienda el margen también vuelve null');
+
+-- Superadmin: con una organización activa conserva el acceso a ingresos y margen; sin organización activa se rechaza.
+select pg_temp.como('e1000000-0000-0000-0000-000000000005');
+select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
+  605::numeric, 'el superadmin con organización activa ve los ingresos de la tienda');
+select is((select (t ->> 'margen_pct')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
+  40.0::numeric, 'el superadmin con organización activa ve el margen de la tienda');
+select pg_temp.como('e1000000-0000-0000-0000-000000000006');
+select throws_ok($$select public.resumen_inicio_bloques('2026-10-01', '2026-10-31')$$, '42501', null, 'el superadmin sin organización activa no accede');
+-- Fechas infinitas: 22023 (el código anterior daba 22008 con un mensaje en inglés cuando el límite infinito era el final).
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.resumen_inicio_periodo('infinity'::date, '2026-10-31')$$, '22023', null, 'resumen_inicio_periodo rechaza fechas infinitas');
+select throws_ok($$select public.resumen_inicio_periodo('2026-10-01', 'infinity'::date)$$, '22023', null, 'resumen_inicio_periodo rechaza fechas infinitas');
 select throws_ok($$select public.resumen_inicio_bloques('2026-10-01', 'infinity'::date)$$, '22023', null, 'resumen_inicio_bloques rechaza fechas infinitas');
 select throws_ok($$select * from public.movimientos_por_producto('-infinity'::date, '2026-10-31')$$, '22023', null, 'movimientos_por_producto rechaza fechas infinitas');
 reset role;

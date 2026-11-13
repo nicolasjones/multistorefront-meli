@@ -57,4 +57,17 @@ describe('useMovimientosPorProducto · total conservado', () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.total).toBe(30)
   })
+
+  it('al cambiar de consulta no reutiliza el total de la anterior si falla su primera tanda', async () => {
+    mocks.leer.mockImplementation(async (_ctx, f: { busqueda: string }) => {
+      if (f.busqueda === 'a') return { filas: [fila(1)], total: 30 }
+      throw new Error('la consulta nueva falla')
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { result, rerender } = renderHook(({ busqueda }) => useMovimientosPorProducto(CONTEXTO, filtros(busqueda), 1), { initialProps: { busqueda: 'a' } })
+    await waitFor(() => expect(result.current.total).toBe(30))
+    rerender({ busqueda: 'b' })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.total).toBe(0)
+  })
 })

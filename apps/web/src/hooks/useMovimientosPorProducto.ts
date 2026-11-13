@@ -16,11 +16,13 @@ export function useMovimientosPorProducto(contexto: ContextoTablero, filtros: Fi
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const { organizacionActiva } = useOrganizacionActiva()
   const ultimaPeticion = useRef(0)
-  // Último total que llegó bien: si falla una tanda siguiente se conserva (no «Mostrando 25 de 0»).
-  const ultimoTotal = useRef(0)
+  // Último total que llegó bien PARA ESTA CONSULTA: si falla una tanda siguiente se conserva (no «Mostrando 25 de 0»);
+  // al cambiar de consulta (filtros, período, organización) no se reutiliza el de la anterior.
+  const ultimoTotal = useRef<{ consulta: string; total: number } | null>(null)
   const { desde, hasta, empresaId, depositoId } = contexto
   const { busqueda, categoriaId, vista, orden, direccion } = filtros
-  const clave = JSON.stringify([organizacionActiva?.id ?? null, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion, pagina])
+  const consulta = JSON.stringify([organizacionActiva?.id ?? null, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion])
+  const clave = `${consulta}|${pagina}`
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
@@ -35,15 +37,15 @@ export function useMovimientosPorProducto(contexto: ContextoTablero, filtros: Fi
       nuevo = { clave, ...datos, error: false }
     } catch (error) {
       console.error('No pudimos cargar los movimientos por producto.', error instanceof Error ? error.message : error)
-      nuevo = { clave, filas: [], total: ultimoTotal.current, error: true }
+      nuevo = { clave, filas: [], total: ultimoTotal.current?.consulta === consulta ? ultimoTotal.current.total : 0, error: true }
     }
     // Solo la respuesta vigente actualiza el resultado y el total conservado: una respuesta vieja descartada no puede
     // dejar su total para que lo use una tanda que falle después en la consulta nueva.
     if (peticion === ultimaPeticion.current) {
-      if (!nuevo.error) ultimoTotal.current = nuevo.total
+      if (!nuevo.error) ultimoTotal.current = { consulta, total: nuevo.total }
       setResultado(nuevo)
     }
-  }, [clave, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion, pagina])
+  }, [clave, consulta, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion, pagina])
 
   useEffect(() => {
     if (habilitado) void cargar()

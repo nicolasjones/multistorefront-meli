@@ -4,8 +4,8 @@
 --  * S-1 (mayor, rendimiento): el índice `movimientos_stock_org_fecha_dia_idx (organizacion_id, fecha)` hacía que
 --    `max(fecha)` por producto recorriera todo el libro de movimientos (565 ms por producto sin movimientos con
 --    1 M de filas, medido en un Postgres efímero). Se agrega `(organizacion_id, producto_id, fecha desc)` (0,05 ms) y
---    `movimientos_por_producto` calcula `ultimo_movimiento` DESPUÉS del limit (solo para las filas de la página),
---    salvo que se ordene por esa columna.
+--    `movimientos_por_producto` calcula `ultimo_movimiento` DESPUÉS del orden y el límite, es decir hasta la página
+--    pedida (offset + límite) y no para todo el listado, salvo que se ordene por esa columna.
 --  * S-2 (menor): `aplicar_cotizacion` toma primero el advisory lock de la organización (como el resto del módulo)
 --    para evitar el deadlock 40P01 con quien confirme, descarte o cambie el alcance a la vez.
 --  * S-4 (menor): `resumen_inicio_bloques` evalúa `rentabilidad` con el rol del usuario EN CADA tienda (no solo el de
@@ -226,7 +226,9 @@ begin
   end if;
 
   v_rent := (select private.nivel_seccion('rentabilidad')) in ('lectura', 'edicion');
-  v_super := (select private.is_superadmin());
+  -- Superadmin = con la fila de organización activa, como `nivel_seccion` y `nivel_ventas_en_empresa`.
+  v_super := (select private.is_superadmin())
+    and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()));
   v_st := (select private.nivel_seccion('stock')) in ('lectura', 'edicion');
   if p_deposito is not null and not exists (
     select 1 from dominio.depositos d where d.id = p_deposito and d.organizacion_id = v_org
@@ -515,7 +517,10 @@ begin
   -- Mismo orden de locks que `confirmar_cotizacion`, `descartar_cotizacion` y el cambio de alcance: primero el
   -- advisory de la organización y recién después la fila de la pendiente. Es reentrante en la misma transacción
   -- (`confirmar_cotizacion` lo vuelve a tomar). Sin esto, dos administradores a la vez podían dar deadlock (40P01).
-  perform pg_advisory_xact_lock(hashtextextended('cotizacion:' || coalesce((select private.organizacion_id())::text, ''), 0));
+  -- Sin organización de sesión no se toma el lock (la clave sería la misma para todos): cargar_cotizacion rechaza con 42501.
+  if (select private.organizacion_id()) is not null then
+    perform pg_advisory_xact_lock(hashtextextended('cotizacion:' || (select private.organizacion_id())::text, 0));
+  end if;
   perform public.cargar_cotizacion(p_valor, p_empresa);
   return public.confirmar_cotizacion(p_empresa, p_variacion_vista);
 end;

@@ -29,12 +29,12 @@ const COLOR_ESTADO: Record<EstadoMovimiento, 'error' | 'default' | 'success'> = 
 
 type Props = { contexto: ContextoTablero; verVentas?: boolean }
 
+const claveDeFila = (fila: MovimientoProducto) => fila.productoId
+
 // «Movimientos por producto» (F-INI-06, MSF-822): una fila por producto con 12 columnas ordenables, vistas
 // rápidas, búsqueda, categoría y orden en el SERVIDOR (llega por tandas con carga infinita, nunca paginado).
 // Respeta Período, Tienda y Depósito del tablero. No muestra costo ni margen. «Exportar» baja por lotes lo mismo
 // que se ve (mismos filtros); el rol sin permiso de exportar no ve el botón.
-const claveDeFila = (fila: MovimientoProducto) => fila.productoId
-
 export function MovimientosPorProducto({ contexto, verVentas = true }: Props) {
   const [filtros, setFiltros] = useState<FiltrosMovimientos>(FILTROS_MOVIMIENTOS_INICIALES)
   const [busqueda, setBusqueda] = useState('')
@@ -82,9 +82,10 @@ export function MovimientosPorProducto({ contexto, verVentas = true }: Props) {
     const vistos = new Set<string>()
     return listado.filas.filter((fila) => (vistos.has(fila.productoId) ? false : (vistos.add(fila.productoId), true)))
   }, [listado.filas])
-  // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna). Se decide con
-  // lo ya cargado: una tanda que falla (página vacía) no cambia la decisión; sin filas todavía, se muestra.
-  // Si el rol no tiene ventas, la columna no se ofrece ni siquiera sin filas (lista vacía o error de la primera tanda).
+  // Columna «Ventas»: solo con permiso de ventas (`verVentas`, que decide también con la lista vacía o ante el error de
+  // la primera tanda). Con permiso, si ya hay filas se muestra salvo que la base devuelva null en toda la columna (rol
+  // sin ventas en ninguna de las tiendas elegidas); sin filas todavía, se muestra. Una tanda que falla (página vacía)
+  // no cambia la decisión porque se mira lo ya acumulado.
   const conVentas = verVentas && (listado.filas.length === 0 || listado.filas.some((fila) => fila.ventas !== null))
 
   const columnas = useMemo<ColumnaAdaptable<MovimientoProducto>[]>(() => {
@@ -126,13 +127,10 @@ export function MovimientosPorProducto({ contexto, verVentas = true }: Props) {
     { encabezado: 'Estado', valor: (fila) => ETIQUETA_ESTADO_MOVIMIENTO[fila.estado] },
   ], [conVentas])
   const pedirLote = useCallback(async (desdeFila: number, limite: number) => {
-    // La RPC pagina por bloques: se pide siempre en bloques de TAMANO_LOTE_EXPORTACION cuando el desplazamiento
-    // coincide con uno (así nunca se pide una página que la RPC deba acotar) y se recortan las filas de más.
-    const alineado = desdeFila % TAMANO_LOTE_EXPORTACION === 0
-    const tamano = alineado ? TAMANO_LOTE_EXPORTACION : limite
-    const pagina = Math.floor(desdeFila / tamano) + 1
-    const filas = (await leerMovimientosPorProducto({ desde, hasta, empresaId, depositoId }, filtrosEfectivos, pagina, tamano)).filas
-    return filas.slice(0, limite)
+    // `useExportarCsv` pide siempre lotes de `tamanoLote` (= `limite`) desde un múltiplo de ese tamaño: cada lote es una
+    // página exacta de la RPC y nunca se pide una página que la RPC deba acotar.
+    const pagina = Math.floor(desdeFila / limite) + 1
+    return (await leerMovimientosPorProducto({ desde, hasta, empresaId, depositoId }, filtrosEfectivos, pagina, limite)).filas
   }, [desde, hasta, empresaId, depositoId, filtrosEfectivos])
   const nombreArchivo = useCallback(() => nombreArchivoCsv('movimientos-por-producto'), [])
   const exportacion = useExportarCsv({ columnas: columnasCsv, nombreArchivo, tamanoLote: TAMANO_LOTE_EXPORTACION, pedirLote, clave: claveDeFila })
