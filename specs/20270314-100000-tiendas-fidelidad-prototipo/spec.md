@@ -41,7 +41,7 @@ Ficha: galería de 600 px (miniaturas de 84 px con borde primario en la elegida)
 - **FR-006**: portada (banner, categorías, destacados, consultas) con la US3.
 - **FR-007**: catálogo y categoría (migas, título, panel, orden, vacío, filtros de celular) con la US4.
 - **FR-008**: ficha y contacto con la US5.
-- **FR-009**: sin regresiones: Vitest de la tienda en verde, axe sin violaciones a 320/768/1440 y sin scroll horizontal.
+- **FR-009**: sin regresiones: Vitest de la tienda en verde, axe (Chromium real, con contraste) sin violaciones y `documentElement.scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas; los campos y la casilla del panel conservan un foco visible (WCAG 2.4.7).
 - **SC-001**: medidas del prototipo verificadas con Playwright sobre una build local (los números están en `docs/tiendas-online.md`, «Fidelidad con el prototipo»).
 
 ## Matriz pantalla↔criterios
@@ -71,6 +71,9 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 | «Consultar por WhatsApp», «Ver más productos» | Ficha | FR-008. «Compartir» (F-TDA-25) no está en el prototipo: va después de esos dos botones |
 | «Cancelar», «Abrir WhatsApp» (diálogo) | Ficha | Fuera de alcance: el diálogo no se midió en este tramo (seguimiento) |
 | «Enviar consulta», «Enviar otra» y campos del formulario | Contacto | FR-008 |
+| «Sin imagen» y placeholders de los campos | Tarjeta, ficha, contacto, filtros | Desvío accesible respecto del prototipo: el prototipo usa negro al 35 % / 45 % (≈ 2,4:1 sobre la superficie); la tienda usa el gris secundario del tema (≥ 4,5:1, AA) |
+| Foco de teclado en campos y casilla | Contacto, filtros | Desvío accesible: el prototipo no dibuja el estado de foco; la tienda suma borde y contorno primarios de 2 px (WCAG 2.4.7) |
+| Orden de tabulación del encabezado de celular | Todas (celular) | Menú → marca → buscador → «Ingresar». Desvío menor: «Ingresar» se ve antes que el buscador pero se tabula después (el mismo DOM sirve al escritorio, donde el orden coincide) |
 | Datos del banner/categorías/destacados | Portada | Contenido y datos de la demo: fuera de alcance (colores de texto del tenant, gris secundario derivado de la identidad) |
 
 ## Decisiones
