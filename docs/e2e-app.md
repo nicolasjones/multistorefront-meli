@@ -118,6 +118,13 @@ en otros componentes lo corrige el PR #876, no este.
   (`TarjetaStock`, la que el spec verifica, siempre la última); el helper toma `.last()` para no violar el modo estricto de
   Playwright sin cambiar lo que se afirma. Si una pantalla suma otro título repetido, acotá el locator a su región en lugar
   de encadenar más `.first()`/`.last()`.
+- Un spec no se salta solo según lo que ve en pantalla: `locator.count()` no espera y los listados llegan por una RPC
+  asíncrona, así que un `test.skip(!hayAlgo)` basado en un conteo instantáneo oculta la verificación (así `tienda-disponibilidad`
+  no comprobaba nada). Las únicas omisiones válidas son las del entorno, declaradas al inicio del `describe` o con su variable
+  (`E2E_SUPERSET`, `E2E_INVENTARIO_CORREO`, falta de `SUPABASE_URL`). `tienda-disponibilidad` siembra una categoría propia por
+  tienda y abre `/catalogo?categoria=<id>` (la lista pagina de a 24); `catalogo-productividad` espera la respuesta de
+  `v_productos_listado` con el sufijo buscado antes de marcar «Seleccionar todos», porque aplicar la búsqueda descarta la
+  selección por diseño.
 
 ## Estado de cobertura
 

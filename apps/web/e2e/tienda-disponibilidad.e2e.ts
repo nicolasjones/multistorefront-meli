@@ -5,7 +5,8 @@ import { expect, test } from '@playwright/test'
 // «Disponible», uno sin stock dice «Sin stock» (tarjeta del catálogo y ficha) y ninguna página muestra
 // la cantidad. Requiere el stack local (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web
 // servida; siembra con la API admin desde Node (la service-role key nunca llega al navegador). Sin
-// SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
+// SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md. Dentro del test no hay
+// `test.skip` dinámicos: si la tarjeta o la ficha faltaran, el test falla.
 const url = process.env.SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -61,23 +62,17 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
 
   test('«Disponible» y «Sin stock» en cada tienda, sin cantidades', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
-    const tiendas = TIENDAS.map((t) => ({
-      ...t,
-      categoria: `Cat disponibilidad ${t.nombre} ${sufijo}`,
-      categoriaId: '',
-      conStock: `Con stock ${t.nombre} ${sufijo}`,
-      sinStock: `Sin stock ${t.nombre} ${sufijo}`,
-    }))
+    const tiendas = TIENDAS.map((t) => ({ ...t, conStock: `Con stock ${t.nombre} ${sufijo}`, sinStock: `Sin stock ${t.nombre} ${sufijo}`, categoriaId: '' }))
 
     try {
       for (const t of tiendas) {
-        // Categoría propia: el catálogo carga de a 24 (carga infinita, MSF-845) y con el orden por defecto los
-        // productos sembrados podrían quedar en una tanda posterior; filtrar por categoría los deja en la primera.
-        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }])
+        // Categoría propia: el catálogo se abre filtrado por ella, así los dos productos salen en la primera
+        // tanda (de 24, ordenada por nombre) aunque la base ya tenga otros productos de la tienda.
+        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: `Cat ${t.nombre} ${sufijo}` }])
         t.categoriaId = categoria.id
         const [conStock, sinStock] = await insertar<{ id: string }>('productos', [
-          { organizacion_id: t.organizacion, nombre: t.conStock, sku: `E2E-D-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10, categoria_id: categoria.id },
-          { organizacion_id: t.organizacion, nombre: t.sinStock, sku: `E2E-S-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20, categoria_id: categoria.id },
+          { organizacion_id: t.organizacion, nombre: t.conStock, sku: `E2E-D-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10, moneda: 'ARS', categoria_id: categoria.id },
+          { organizacion_id: t.organizacion, nombre: t.sinStock, sku: `E2E-S-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20, moneda: 'ARS', categoria_id: categoria.id },
         ])
         await insertar('producto_empresa', [conStock, sinStock].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
         // La fila de existencias nace con el producto (trigger) en 0.
@@ -94,20 +89,29 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
         await expect(page.getByRole('heading', { level: 1, name: t.nombre })).toBeVisible()
         await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
 
-        // Tarjeta del catálogo (F-TDA-12) y ficha (F-TDA-13).
+        // Tarjeta del catálogo (F-TDA-12): el listado llega por una RPC, así que se espera a que aparezca la
+        // tarjeta (sin contar a ciegas ni omitir el caso si todavía no cargó: si falta, el test debe fallar).
         await page.goto(`${base}/catalogo?categoria=${t.categoriaId}`)
-        await expect(page.getByTestId('tarjeta-producto')).toHaveCount(2)
-        const tarjetaCon = page.getByRole('link', { name: new RegExp(t.conStock) })
-        const tarjetaSin = page.getByRole('link', { name: new RegExp(t.sinStock) })
+        const tarjetaCon = page.getByTestId('tarjeta-producto').filter({ hasText: t.conStock })
+        const tarjetaSin = page.getByTestId('tarjeta-producto').filter({ hasText: t.sinStock })
+        await expect(page.getByTestId('catalogo-contador')).toHaveText('2 productos')
+        await expect(tarjetaCon).toHaveCount(1)
+        await expect(tarjetaSin).toHaveCount(1)
         await expect(tarjetaCon).toContainText('Disponible')
+        await expect(tarjetaCon).not.toContainText('Sin stock')
         await expect(tarjetaSin).toContainText('Sin stock')
+        await expect(tarjetaSin).not.toContainText('Disponible')
         await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
 
+        // Ficha (F-TDA-13): la etiqueta de cada producto, sin cantidades.
         await tarjetaSin.click()
         await expect(page.getByRole('heading', { level: 1, name: t.sinStock })).toBeVisible()
-        // La etiqueta de la ficha es la primera del DOM: más abajo «Productos relacionados» (misma categoría) trae
-        // las tarjetas de los demás productos, cada una con la suya.
         await expect(page.getByTestId('etiqueta-disponibilidad').first()).toHaveText('Sin stock')
+        await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
+        await page.goBack()
+        await tarjetaCon.click()
+        await expect(page.getByRole('heading', { level: 1, name: t.conStock })).toBeVisible()
+        await expect(page.getByTestId('etiqueta-disponibilidad').first()).toHaveText('Disponible')
         await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
         await contexto.close()
       }
