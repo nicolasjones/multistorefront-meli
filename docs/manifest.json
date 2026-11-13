@@ -407,14 +407,14 @@
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
-      "pageHash": "c277ab08e1e6d1bcba747a03f73f28aba36bc92d38f08e4902ffebcf3482797c",
+      "pageHash": "23aaa058bae3fa24e7d452550c74be66b7395290b8c9d1306cc8b86c82638360",
       "sourceHash": "",
-      "sourceAt": "15bb7830",
+      "sourceAt": "5a23726b",
       "sources": [
         "apps/web/src/pages/api"
       ],
       "owner": "producto",
-      "commit": "15bb7830"
+      "commit": "5a23726b"
     },
     "docs/producto/asistente.md": {
       "title": "Asistente con IA sobre tu catálogo",
