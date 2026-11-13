@@ -69,6 +69,7 @@ test.describe('Configuración del dólar y precio propio (MSF-352, SC-012)', () 
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('cambiar el alcance con vista previa y confirmar; precio propio marcado y fijo en el simulador', async ({ browser }) => {
+    test.setTimeout(90_000) // alcance con vista previa, precio propio en la ficha y simulador de la empresa
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-dolar-${sufijo}@example.com`
     const empresa = `Tienda ${sufijo}`
@@ -102,7 +103,9 @@ test.describe('Configuración del dólar y precio propio (MSF-352, SC-012)', () 
       // 1. Alcance: de «Una para todo el sistema» a «Una por empresa», con la vista previa y la confirmación.
       await page.goto('/cotizacion')
       await expect(page.getByRole('button', { name: 'Una para todo el sistema', pressed: true })).toBeVisible()
+      // Elegir el alcance solo lo marca: la vista previa se abre al guardar la configuración.
       await page.getByRole('button', { name: 'Una por empresa' }).click()
+      await page.getByRole('button', { name: 'Guardar configuración' }).click()
       const dialogo = page.getByRole('dialog')
       await expect(dialogo).toBeVisible()
       await expect(dialogo.getByText('precios que cambian')).toBeVisible()
@@ -111,6 +114,7 @@ test.describe('Configuración del dólar y precio propio (MSF-352, SC-012)', () 
       await expect(page.getByRole('button', { name: 'Una para todo el sistema', pressed: true })).toBeVisible()
       // Confirmar sí.
       await page.getByRole('button', { name: 'Una por empresa' }).click()
+      await page.getByRole('button', { name: 'Guardar configuración' }).click()
       await page.getByRole('dialog').getByRole('button', { name: 'Cambiar alcance' }).click()
       await expect(page.getByRole('button', { name: 'Una por empresa', pressed: true })).toBeVisible()
 

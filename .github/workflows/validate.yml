@@ -114,6 +114,10 @@ jobs:
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
+      # Los E2E no escriben directo en las tablas de solo lectura para service_role (migración 20270301110000).
+      - run: pnpm e2e:escritura:check
+      - name: test:e2e:escritura
+        run: pnpm test:e2e:escritura
       - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
         run: pnpm ui:empresas:check
       - name: test:ui:empresas
