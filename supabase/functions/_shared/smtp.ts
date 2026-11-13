@@ -30,12 +30,21 @@ export function cuerpoBase64(texto: string): string {
 }
 
 const ASCII = /^[\x20-\x7e]*$/
+/** Bytes UTF-8 de cada palabra del asunto (ver `asuntoRfc2047`): 39 la primera, 45 las demás. */
+const BYTES_PRIMERA_PALABRA = 39
+const BYTES_PALABRA = 45
 
 /**
  * Asunto listo para denomailer. Los asuntos ASCII pasan igual. Los que tienen caracteres no ASCII se codifican como palabras
- * RFC 2047 (`=?UTF-8?B?…?=`, base64) de a lo sumo 45 bytes (<= 75 caracteres cada una, sin partir un carácter UTF-8) separadas por
- * un pliegue de línea. El prefijo de un espacio evita que denomailer vuelva a codificar la palabra (él lo hace con todo lo que empieza con «=?»,
- * y con su Q deja espacios literales dentro de la palabra, inválidos según RFC 2047).
+ * RFC 2047 (`=?UTF-8?B?…?=`, base64) sin partir un carácter UTF-8, separadas por un pliegue de línea. La PRIMERA palabra es de a lo
+ * sumo 39 bytes (<= 64 caracteres): con el prefijo `Subject:   ` (el de denomailer más nuestro espacio) la primera línea queda en
+ * <= 78 caracteres, el máximo recomendado por RFC 5322; las siguientes, de a lo sumo 45 bytes (<= 72 caracteres, <= 75 con el espacio).
+ * El prefijo de un espacio evita que denomailer vuelva a codificar la palabra (él lo hace con todo lo que empieza con «=?», y con su Q
+ * deja espacios literales dentro de la palabra, inválidos según RFC 2047).
+ *
+ * ATENCIÓN: ese truco del espacio depende de cómo denomailer 1.6.0 trata las palabras «=?». NO subir denomailer de 1.6.0 sin correr
+ * `supabase/functions/_shared/verificacion/smtp-real.deno.ts` (tiene que dar 18/18): los tests de node solo ven el objeto armado,
+ * no el DATA que sale por el socket, y el script de Deno NO corre en CI.
  */
 export function asuntoRfc2047(asunto: string): string {
   if (ASCII.test(asunto) && !asunto.startsWith('=?')) return asunto
@@ -44,7 +53,8 @@ export function asuntoRfc2047(asunto: string): string {
   let bytesActual = 0
   for (const caracter of asunto) {
     const bytes = codificadorTexto.encode(caracter).length
-    if (bytesActual + bytes > 45) {
+    const limite = palabras.length === 0 ? BYTES_PRIMERA_PALABRA : BYTES_PALABRA
+    if (bytesActual + bytes > limite) {
       palabras.push(actual)
       actual = ''
       bytesActual = 0
