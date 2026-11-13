@@ -137,7 +137,8 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       expect(Date.now() - inicio).toBeLessThan(LIMITE_BANDEJA_MS)
 
       // SC-008: al entrar la consulta la base emite el aviso (`emitir_aviso`, migración 20261210130300) solo a quien tiene
-      // acceso a Consultas en esa empresa, con los datos de la consulta; el correo SMTP de `enviar-aviso-consulta` quedó sin uso.
+      // acceso a Consultas en esa empresa, con los datos de la consulta; el correo SMTP de `enviar-aviso-consulta`
+      // ya no existe (MSF-853).
       const [avisoAdmin] = await avisosDe(usuarios[0], visitante)
       expect(avisoAdmin.datos).toMatchObject({
         Empresa: empresa,
@@ -197,7 +198,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await contextoAjena.close()
     } finally {
       // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas,
-      // consultas_avisos y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 202612052*).
+      // consultas y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 20261205200000).
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }
