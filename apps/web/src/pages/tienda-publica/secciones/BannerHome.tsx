@@ -18,7 +18,7 @@ export function BannerContenido({ contenido, vistaPrevia = false }: { contenido:
   const textoBoton = contenido.texto_boton.trim()
   if (!titulo && !subtitulo && !textoBoton) return null
   // Prototipo (`MJC_Home`/`MJC_M_Home`): franja a todo el ancho con el color de la barra (`--top`), de 440 px a escritorio; el
-  // texto va a la izquierda (título de 72 px en mayúsculas, bajada de 20 px y botón primario) y dos franjas inclinadas en
+  // texto va a la izquierda (título de 72 px en mayúsculas, bajada de 20 px y el botón en el acento de la identidad) y dos franjas inclinadas en
   // el color de la marca cierran la composición. La franja llega a los bordes de la ventana sin ensanchar el contenido. Las tarjetas de producto que el prototipo apoya a la derecha
   // dependen de datos que el banner no tiene: no se dibujan.
   // Botón del héroe: el acento de la identidad con el texto de mayor contraste (`tema.tienda.botonDestacado`); si el acento casi se

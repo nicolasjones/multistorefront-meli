@@ -100,8 +100,8 @@ export default function MenuMovil({ categorias, empresaNombre = '', host = '' }:
         {/* Recuadro inferior del prototipo: superficie, 20 px de relleno, 14 px con interlineado 1,8 (nombre, teléfono y correo). */}
         <Box data-testid="menu-movil-contacto" sx={(tema) => ({ mt: 'auto', p: '20px', bgcolor: tema.tienda?.superficie ?? 'action.hover', fontSize: 14, lineHeight: 1.8, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ })}>
           <Box component="b">{empresaNombre}</Box>
-          {telefono ? <><br />{telefono}</> : null}
-          {correo ? <><br />{correo}</> : null}
+          {telefono ? <><br /><Box component="a" href={`tel:${telefono.replace(/[^\d+]/g, '')}`} sx={{ color: 'inherit', textDecoration: 'none' }}>{telefono}</Box></> : null}
+          {correo ? <><br /><Box component="a" href={`mailto:${encodeURIComponent(correo)}`} sx={{ color: 'inherit', textDecoration: 'none' }}>{correo}</Box></> : null}
         </Box>
       </Drawer>
     </>

@@ -24,7 +24,9 @@ export type ColoresTienda = {
   // Texto sobre la barra y el pie (blanco o tinta, el de mayor contraste sobre `barra`).
   textoBarra: string
   // Fondo y texto de los botones destacados sobre la franja del héroe (MSF-847): el acento de la identidad con el texto de mayor
-  // contraste; si el acento casi no se distingue de la franja (contraste < 3:1) el botón toma el color del texto de la franja.
+  // contraste; si el acento casi no se distingue de la franja (contraste < 1,5:1, `UMBRAL_BOTON`) el botón toma el color del texto de la franja. Se eligió 1,5:1
+  // y no 3:1 porque con 3:1 el botón primario de Mundo JC (`#A3111D` sobre la franja `#2A2A2A`, 1,81:1) cambiaría de identidad; el texto del botón
+  // llega siempre a AA y el borde del botón no es lo único que lo identifica (WCAG 1.4.11 no se exige para un botón con texto AA).
   botonDestacado: { fondo: string; texto: string }
   // Fondo de tarjetas y bloques (prototipo: `--sf`), derivado del fondo de la tienda.
   superficie: string
@@ -36,6 +38,9 @@ declare module '@mui/material/styles' {
   interface Theme { tienda?: ColoresTienda }
   interface ThemeOptions { tienda?: ColoresTienda }
 }
+
+// Contraste mínimo entre el acento y la franja para que el botón del héroe use el acento (ver `ColoresTienda.botonDestacado`).
+export const UMBRAL_BOTON = 1.5
 
 export const COLOR_BARRA_POR_DEFECTO = '#222222'
 
@@ -139,7 +144,7 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
   const barra = COLOR_HEX.test(identidad?.colorBarra?.trim() ?? '') ? identidad!.colorBarra!.trim() : COLOR_BARRA_POR_DEFECTO
   const superficie = mezclar(i.colorFondo, '#000000', 0.043)
   const textoBarra = textoSobre(barra, ['#FFFFFF', i.colorTexto, '#000000'])
-  const fondoBoton = contraste(acento, barra) >= 1.5 ? acento : textoBarra
+  const fondoBoton = contraste(acento, barra) >= UMBRAL_BOTON ? acento : textoBarra
   const botonDestacado = { fondo: fondoBoton, texto: textoSobre(fondoBoton, ['#FFFFFF', i.colorTexto, '#000000']) }
   // Prototipo (`.sf h1,h2,h3,.fh`): los títulos van en la tipografía de títulos, en negrita y sin el interlineado ni el
   // espaciado entre letras que trae MUI (el prototipo usa `normal` en todo salvo donde fija un interlineado propio).

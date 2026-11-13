@@ -5,6 +5,7 @@ import { useInicioTienda } from '../../../lib/tiendaInicio'
 import { GrillaProductos } from '../catalogo/GrillaProductos'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
 import type { PropsSeccionTienda } from '../PaginaTienda'
+import { useCelular } from '../useAnchoCelular'
 import { useCategoriaInicio } from './categoriaInicio'
 import { ErrorConReintento } from '../ErrorConReintento'
 
@@ -16,7 +17,8 @@ export const orden = 50
 export default function DestacadosInicio({ host }: PropsSeccionTienda) {
   const inicio = useInicioTienda(host)
   // Celular: la píldora de categoría elegida en «Categorías» filtra los destacados en su lugar (prototipo `MJC_M_Home`).
-  const categoria = useCategoriaInicio()
+  const elegida = useCategoriaInicio()
+  const categoria = useCelular() ? elegida : null
 
   if (inicio.fase === 'cargando') {
     return <Box component="section" aria-label="Destacados" sx={{ pt: 4 }}><EstadoCargaPagina lineas={2} /></Box>

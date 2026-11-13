@@ -38,16 +38,17 @@ const cantidad = (n: number) => (n === 1 ? '1 producto' : `${n} productos`)
 // Bloque «Categorías» de la home (F-TDA-10, FR-003): una tarjeta por categoría principal de la tienda (las de
 // mayor cantidad, hasta 6, sin nombres repetidos) con «N productos» (el conteo real de productos visibles,
 // subcategorías incluidas: coincide con el listado al entrar), que enlaza a su listado. Nunca hay tarjetas
-// con 0 productos: la base no devuelve las categorías vacías (MSF-825, MSF-827). «Ver todas las categorías»
-// lleva al catálogo con el resto. Se oculta cuando la tienda no tiene productos visibles (ahí manda
+// con 0 productos: la base no devuelve las categorías vacías (MSF-825, MSF-827). «Más categorías» (barra del encabezado)
+// lleva al catálogo con el resto; en celular las categorías son píldoras que filtran los destacados. Se oculta cuando la tienda no tiene productos visibles (ahí manda
 // «Catálogo en preparación»). Un error queda en este bloque.
 export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   const categorias = useCategoriasTienda(host)
   const inicio = useInicioTienda(host)
   const movil = useCelular()
   const elegida = useCategoriaInicio()
-  // Al salir de la portada (o pasar a escritorio) la elección se descarta.
+  // Al salir de la portada la elección se descarta; al pasar a escritorio (sin píldoras para volver) también.
   useEffect(() => () => elegirCategoriaInicio(null), [])
+  useEffect(() => { if (!movil) elegirCategoriaInicio(null) }, [movil])
   const imagenes = useImagenesCategorias(categoriasPrincipales(categorias.categorias).flatMap((c) => (c.imagen ? [c.imagen] : [])))
 
   if (categorias.fase === 'cargando' || inicio.fase === 'cargando') {

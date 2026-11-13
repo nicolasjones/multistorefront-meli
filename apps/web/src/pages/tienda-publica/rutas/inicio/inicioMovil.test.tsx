@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../../test/axe'
@@ -43,5 +43,22 @@ describe('Portada en celular: píldoras de categoría', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Todo' }))
     expect(screen.getAllByTestId('tarjeta-producto')).toHaveLength(2)
+  })
+
+  it('al pasar a escritorio la elección se descarta: los destacados vuelven completos y el título es «Destacados»', async () => {
+    responder({ categorias_por_dominio: { data: categorias }, destacados_por_dominio: { data: destacados } })
+    const vista = montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Joysticks' }))
+    expect(screen.getAllByTestId('tarjeta-producto')).toHaveLength(1)
+    // La ventana se agranda: ya no hay píldoras para volver a «Todo».
+    celular(false)
+    vista.rerender(<MemoryRouter><main><h1>Tienda</h1><CategoriasInicio tienda={tienda} host={HOST} /><DestacadosInicio tienda={tienda} host={HOST} /></main></MemoryRouter>)
+    await waitFor(() => expect(screen.getAllByTestId('tarjeta-producto')).toHaveLength(2))
+    expect(screen.getByRole('heading', { level: 2, name: 'Destacados' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Joysticks' })).not.toBeInTheDocument()
+    // Y al volver a celular arranca otra vez en «Todo».
+    celular(true)
+    vista.rerender(<MemoryRouter><main><h1>Tienda</h1><CategoriasInicio tienda={tienda} host={HOST} /><DestacadosInicio tienda={tienda} host={HOST} /></main></MemoryRouter>)
+    expect(await screen.findByRole('button', { name: 'Todo' })).toHaveAttribute('aria-pressed', 'true')
   })
 })

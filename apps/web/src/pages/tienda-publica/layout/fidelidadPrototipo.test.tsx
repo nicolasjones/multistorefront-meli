@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
-import { contraste, crearTemaTienda } from '../../../tema/temaTienda'
+import { contraste, crearTemaTienda, UMBRAL_BOTON } from '../../../tema/temaTienda'
 import { ThemeProvider } from '@mui/material'
 import { BannerContenido } from '../secciones/BannerHome'
 import { DatosContacto } from '../contacto/DatosContacto'
@@ -48,6 +48,40 @@ describe('tema: botón del héroe y papel (MSF-847, auditoría)', () => {
     expect(contraste(botonDestacado.texto, botonDestacado.fondo)).toBeGreaterThanOrEqual(4.5)
     expect(contraste(textoBarra, barra)).toBeGreaterThanOrEqual(4.5)
   })
+  // Identidades extremas (revisión): franja blanca, negra y gris medio; acentos muy claros u oscuros con la franja contraria; y el
+  // límite del umbral (1,5:1) de un lado y del otro.
+  const base = { colorPrimario: '#2E6B3F', colorTexto: '#1A1A1A', colorFondo: '#FFFFFF' }
+  const extremas: Array<[string, { colorAcento: string; colorBarra: string }]> = [
+    ['franja blanca, acento claro', { colorBarra: '#FFFFFF', colorAcento: '#F5F5F5' }],
+    ['franja blanca, acento oscuro', { colorBarra: '#FFFFFF', colorAcento: '#111111' }],
+    ['franja negra, acento oscuro', { colorBarra: '#000000', colorAcento: '#0A0A0A' }],
+    ['franja negra, acento muy claro', { colorBarra: '#000000', colorAcento: '#FFF3C4' }],
+    ['franja gris medio, acento gris medio', { colorBarra: '#808080', colorAcento: '#858585' }],
+    ['franja gris medio, acento amarillo', { colorBarra: '#808080', colorAcento: '#FFD500' }],
+    ['franja oscura, acento muy claro', { colorBarra: '#202020', colorAcento: '#FAFAFA' }],
+    ['franja clara, acento muy oscuro', { colorBarra: '#F1E9D8', colorAcento: '#050505' }],
+  ]
+  it.each(extremas)('identidad extrema «%s»: el botón nunca se confunde con la franja y todos los textos llegan a AA', (_nombre, ids) => {
+    const { botonDestacado, barra, textoBarra } = crearTemaTienda({ ...base, ...ids }).tienda!
+    expect(contraste(botonDestacado.fondo, barra)).toBeGreaterThanOrEqual(UMBRAL_BOTON)
+    expect(contraste(botonDestacado.texto, botonDestacado.fondo)).toBeGreaterThanOrEqual(4.5)
+    expect(contraste(textoBarra, barra)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('límite del umbral: con un acento justo por encima de 1,5:1 se usa el acento; justo por debajo, el color del texto de la franja', () => {
+    const barra = '#808080'
+    const grises = Array.from({ length: 256 }, (_, n) => `#${n.toString(16).padStart(2, '0').repeat(3)}`)
+    const arriba = grises.filter((g) => contraste(g, barra) >= UMBRAL_BOTON && contraste(g, barra) < UMBRAL_BOTON + 0.02)[0]
+    const abajo = grises.filter((g) => contraste(g, barra) < UMBRAL_BOTON && contraste(g, barra) > UMBRAL_BOTON - 0.02).slice(-1)[0]
+    expect(arriba).toBeDefined()
+    expect(abajo).toBeDefined()
+    const t1 = crearTemaTienda({ ...base, colorBarra: barra, colorAcento: arriba }).tienda!
+    expect(t1.botonDestacado.fondo.toLowerCase()).toBe(arriba)
+    const t2 = crearTemaTienda({ ...base, colorBarra: barra, colorAcento: abajo }).tienda!
+    expect(t2.botonDestacado.fondo).toBe(t2.textoBarra)
+    expect(contraste(t2.botonDestacado.fondo, barra)).toBeGreaterThanOrEqual(UMBRAL_BOTON)
+  })
+
   it('San Javucho usa el acento con texto de tinta; MundoJC, su primario con texto blanco', () => {
     expect(crearTemaTienda(identidades.sanJavucho).tienda!.botonDestacado).toEqual({ fondo: '#E9A23B', texto: '#1B2430' })
     expect(crearTemaTienda(identidades.mundoJc).tienda!.botonDestacado).toEqual({ fondo: '#A3111D', texto: '#FFFFFF' })

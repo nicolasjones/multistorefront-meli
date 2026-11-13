@@ -83,6 +83,33 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     expect(getComputedStyle(screen.getByRole('banner').parentElement as HTMLElement).overflowX).toBe('clip')
   })
 
+  // MSF-847 (auditoría H-03): un único h1 en la portada. Con título de héroe lo es el héroe y la marca cede; sin título, la marca.
+  it('en la portada la marca es el h1 solo si no hay título de héroe; con título lo cede (nunca dos h1 ni ninguno)', async () => {
+    const { unmount } = montar('/')
+    await screen.findByText('Portada')
+    await waitFor(() => expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1))
+    expect(screen.getByRole('heading', { level: 1 })).toContainElement(within(screen.getByRole('banner')).getByRole('link', { name: 'Mundo JC' }))
+    unmount()
+    mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, titulo: 'Todo para tu consola' })
+    montar('/')
+    await screen.findByText('Portada')
+    await waitFor(() => expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument())
+    // La marca sigue siendo un enlace a la portada (ahora dentro de un párrafo).
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Mundo JC' }).closest('p')).not.toBeNull()
+  })
+
+  // MSF-847 (auditoría C-06): los enlaces del pie van sin subrayado; solo «Escribinos» lo lleva.
+  it('en el pie los enlaces de «Categorías» y «Contacto» no se subrayan y «Escribinos» sí', async () => {
+    montar('/')
+    const categorias = await screen.findByTestId('pie-categorias')
+    await within(categorias).findByRole('link', { name: 'Cargadores' })
+    for (const enlace of within(categorias).getAllByRole('link')) expect(getComputedStyle(enlace).textDecoration).toBe('none')
+    const contacto = screen.getByTestId('pie-contacto')
+    const correo = await within(contacto).findByRole('link', { name: 'mundojc377@gmail.com' })
+    expect(getComputedStyle(correo).textDecoration).toBe('none')
+    expect(getComputedStyle(within(contacto).getByRole('link', { name: 'Escribinos' })).textDecoration).toBe('underline')
+  })
+
   // MSF-847: la tabulación sigue el orden visual del encabezado de celular: menú, marca, buscador y, al final, «Ingresar».
   it('en celular el botón de menú va antes que la marca en el DOM (orden de tabulación = orden visual)', async () => {
     celular(true)
