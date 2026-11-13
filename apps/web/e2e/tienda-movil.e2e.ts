@@ -62,6 +62,8 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('las pantallas públicas de las dos tiendas no tienen scroll horizontal en 360…1024 px', async ({ browser }) => {
+    // Dos tiendas × cada ancho × seis pantallas y el buscador: no entra en los 30 s por defecto.
+    test.setTimeout(240_000)
     const sufijo = randomUUID().slice(0, 8)
     const datos: Record<string, { categoria: string; categoriaId: string; productoId: string; producto: string }> = {}
     try {
@@ -128,6 +130,7 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
   })
 
   test('menú y filtros operables en celular, y error de red con reintento que conserva la URL', async ({ browser }) => {
+    test.setTimeout(90_000)
     const sufijo = randomUUID().slice(0, 8)
     const t = TIENDAS[0]
     try {
@@ -144,7 +147,7 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       const base = `http://${t.host}:${puerto}`
       await page.goto(`${base}/`)
 
-      // Menú: abre, lista «Inicio», «Contacto» y la categoría, navega y se cierra.
+      // Menú: abre, lista «Inicio», «Contacto» (MSF-437, F-TDA-16) y la categoría, navega y se cierra.
       await page.getByRole('button', { name: 'Abrir menú' }).click()
       const menu = page.getByRole('dialog', { name: 'Menú' })
       await expect(menu.getByRole('link', { name: 'Inicio' })).toBeVisible()
@@ -176,6 +179,9 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       await page.getByRole('dialog', { name: 'Filtros' }).getByRole('textbox', { name: 'Precio máximo' }).fill('999999')
       await page.getByRole('dialog', { name: 'Filtros' }).getByRole('textbox', { name: 'Precio máximo' }).blur()
       await page.keyboard.press('Escape')
+      // Mientras el panel se cierra (transición del Drawer) la app queda `aria-hidden` y `getByRole` no ve «Reintentar»:
+      // se espera el cierre en vez de depender de cuánto tarde la animación con la máquina cargada.
+      await expect(page.getByRole('dialog', { name: 'Filtros' })).toBeHidden()
       await expect(page.getByTestId('error-con-reintento')).toBeVisible()
       const urlAntes = page.url()
       await page.unroute(rutaBloqueo)

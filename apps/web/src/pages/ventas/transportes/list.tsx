@@ -27,13 +27,13 @@ import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
 import { TransportesMotos } from './TransportesMotos'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 
 const TAMANO_PAGINA = 25
 // Los contrarreembolsos se piden por tandas de 10 (el tamaño por defecto de `listar_contrarreembolsos`).
 const TAMANO_PAGINA_CONTRARREEMBOLSOS = 10
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const PAGINA_VACIA: PaginaTransportes = { transportes: [], total: 0, totalOrganizacion: 0 }
 const PAGINA_CONTRARREEMBOLSOS_VACIA: PaginaContrarreembolsos = { contrarreembolsos: [], total: 0 }
@@ -373,7 +373,7 @@ export function TransporteList() {
           >
             {pestana === 'contrarreembolsos' ? (
               <Stack spacing={2}>
-                <Box role="status" aria-live="polite" sx={visuallyHidden}>
+                <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
                   {isLoadingContrarreembolsos || errorContrarreembolsos !== null
                     ? ''
                     : `${contrarreembolsos.total} ${contrarreembolsos.total === 1 ? 'contrarreembolso' : 'contrarreembolsos'}`}
@@ -410,7 +410,7 @@ export function TransporteList() {
                 <BarraHerramientas
                   contador={isLoading || hayError ? undefined : `${total} de ${totalOrganizacion} empresas de transporte`}
                 />
-                <Box role="status" aria-live="polite" sx={visuallyHidden}>
+                <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
                   {isLoading || hayError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
                 </Box>
                 {isFetching && !isLoading && paginaTerminales === 1 ? <LinearProgress aria-label="Actualizando transportes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

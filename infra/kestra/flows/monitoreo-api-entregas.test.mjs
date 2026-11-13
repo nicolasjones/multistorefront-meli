@@ -18,6 +18,7 @@ test('monitoreo-api-entregas corre cada 15 minutos en el namespace de la API', a
   assert.match(flow, /^namespace: platform\.api$/m);
   assert.match(flow, /type: io\.kestra\.plugin\.core\.trigger\.Schedule/);
   assert.match(flow, /cron: "\*\/15 \* \* \* \*"/);
+  assert.match(flow, /recoverMissedSchedules: NONE/, 'tras una caída no se disparan las corridas perdidas');
 });
 
 test('consulta la salud a la base con el rol de servicio y no cuenta nada por su cuenta', async () => {

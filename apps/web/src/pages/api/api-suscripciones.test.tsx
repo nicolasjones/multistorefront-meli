@@ -1,7 +1,7 @@
 // Pruebas de la pantalla «API» · suscripciones, entregas y llamadas (F-API-01, FR-010, FR-014):
 // se crea una suscripción con el secreto visible una sola vez, se pausa y se elimina, y las tablas de
 // entregas y llamadas muestran su estado con el error saneado. Corre con `pnpm --filter @platform/web test`.
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -33,6 +33,7 @@ const SUSCRIPCIONES = [
     activa: true,
     creada_en: '2027-01-01T00:00:00Z',
     actualizada_en: '2027-01-01T00:00:00Z',
+    secreto_anterior_vence_en: null,
   },
 ]
 
@@ -139,6 +140,120 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     expect(await screen.findByText('Eliminaste la suscripción https://ejemplo.com/aviso.')).toBeInTheDocument()
   })
 
+  it('si quien rota no tiene permiso, el mensaje lo dice', async () => {
+    mocks.rpcResultado = { data: null, error: { code: '42501', message: 'denied' } as { message: string } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Rotar secreto' })).getByRole('button', { name: 'Rotar' }))
+    expect(await screen.findByText('Solo un administrador puede rotar el secreto de una suscripción.')).toBeInTheDocument()
+  })
+
+  it('si la suscripción ya no existe, avisa y recarga la lista', async () => {
+    mocks.rpcResultado = { data: null, error: { code: 'P0002', message: 'no existe' } as { message: string } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Rotar secreto' })).getByRole('button', { name: 'Rotar' }))
+    expect(await screen.findByText('La suscripción ya no existe: actualizamos la lista.')).toBeInTheDocument()
+    await waitFor(() => expect(mocks.from.mock.calls.filter(([tabla]) => tabla === 'api_suscripciones').length).toBeGreaterThan(1))
+  })
+
+  it('la leyenda «Rotado» desaparece sola cuando termina la gracia', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    try {
+      const vence = new Date(Date.now() + 60_000).toISOString()
+      mocks.datos = {
+        ...mocks.datos,
+        api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: vence }], error: null },
+      }
+      abrir()
+      expect(await screen.findByText(/Rotado: el anterior vale hasta/)).toBeInTheDocument()
+      await act(async () => { await vi.advanceTimersByTimeAsync(120_000) })
+      expect(screen.queryByText(/Rotado: el anterior vale hasta/)).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('rota el secreto después de confirmar y muestra el nuevo una sola vez con el aviso de la gracia', async () => {
+    mocks.rpcResultado = { data: { id: 's-1', secreto: 'secreto-rotado' }, error: null }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    expect(within(confirmacion).getByText(/sigue valiendo 24 horas/)).toBeInTheDocument()
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Rotar' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('rotar_secreto_suscripcion_api', { p_id: 's-1' }))
+    const secreto = await screen.findByRole('dialog', { name: 'Copiá el secreto' })
+    expect(within(secreto).getByLabelText(/Secreto de firma/)).toHaveValue('secreto-rotado')
+    expect(within(secreto).getByText(/El anterior sigue valiendo 24 horas/)).toBeInTheDocument()
+  })
+
+  it('el secreto rotado no queda en la pantalla después de cerrar el diálogo', async () => {
+    mocks.rpcResultado = { data: { id: 's-1', secreto: 'secreto-rotado' }, error: null }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Rotar secreto' })).getByRole('button', { name: 'Rotar' }))
+    const secreto = await screen.findByRole('dialog', { name: 'Copiá el secreto' })
+    fireEvent.click(within(secreto).getByRole('button', { name: 'Listo, ya lo copié' }))
+    await waitFor(() => expect(screen.queryByDisplayValue('secreto-rotado')).not.toBeInTheDocument())
+  })
+
+  it('rotar de nuevo con la gracia vigente advierte que el secreto actual deja de valer', async () => {
+    const vence = new Date(Date.now() + 5 * 3600 * 1000).toISOString()
+    mocks.datos = {
+      ...mocks.datos,
+      api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: vence }], error: null },
+    }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    expect(within(confirmacion).getByText(/el secreto actual, que quizá todavía no copiaste/)).toBeInTheDocument()
+  })
+
+  it('sin gracia vigente la confirmación no trae esa advertencia', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    expect(within(confirmacion).queryByText(/que quizá todavía no copiaste/)).not.toBeInTheDocument()
+  })
+
+  it('cancelar la rotación no llama a la base', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Cancelar' }))
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('avisa si no se pudo rotar el secreto', async () => {
+    mocks.rpcResultado = { data: null, error: { message: 'denied' } }
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
+    const confirmacion = await screen.findByRole('dialog', { name: 'Rotar secreto' })
+    fireEvent.click(within(confirmacion).getByRole('button', { name: 'Rotar' }))
+    expect(await screen.findByText('No pudimos rotar el secreto de la suscripción.')).toBeInTheDocument()
+  })
+
+  it('una suscripción con la gracia en curso muestra hasta cuándo vale el secreto anterior', async () => {
+    const vence = new Date(Date.now() + 5 * 3600 * 1000).toISOString()
+    mocks.datos = {
+      ...mocks.datos,
+      api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: vence }], error: null },
+    }
+    abrir()
+    expect(await screen.findByText(/Rotado: el anterior vale hasta/)).toBeInTheDocument()
+  })
+
+  it('una gracia ya vencida no se muestra', async () => {
+    mocks.datos = {
+      ...mocks.datos,
+      api_suscripciones: { data: [{ ...SUSCRIPCIONES[0], secreto_anterior_vence_en: '2020-01-01T00:00:00Z' }], error: null },
+    }
+    abrir()
+    await screen.findByText('Activa')
+    expect(screen.queryByText(/Rotado: el anterior vale hasta/)).not.toBeInTheDocument()
+  })
+
   it('avisa que se llegó al máximo de suscripciones', async () => {
     mocks.rpcResultado = { data: null, error: { code: '54000', message: 'tope' } as { message: string } }
     abrir()
@@ -194,6 +309,27 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
     await screen.findByText(/No pudimos reintentar la entrega/)
     await waitFor(() => expect(mocks.from.mock.calls.filter(([tabla]) => tabla === 'api_entregas').length).toBeGreaterThan(1))
+  })
+
+  it('el doble clic en Reintentar llama una sola vez y el botón queda deshabilitado mientras reintenta', async () => {
+    let terminar: (valor: { data: null; error: null }) => void = () => {}
+    mocks.rpc.mockImplementation(() => new Promise((resolver) => { terminar = resolver }))
+    abrir()
+    const boton = await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    await waitFor(() => expect(boton).toBeDisabled())
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    terminar({ data: null, error: null })
+    await screen.findByText(/Volvimos a poner en la cola el aviso/)
+  })
+
+  it('tras reintentar con éxito recarga la lista y pasa el foco al aviso', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar el aviso a https://ejemplo.com/aviso' }))
+    const aviso = await screen.findByText(/Volvimos a poner en la cola el aviso/)
+    await waitFor(() => expect(mocks.from.mock.calls.filter(([tabla]) => tabla === 'api_entregas').length).toBeGreaterThan(1))
+    await waitFor(() => expect(aviso.closest('[role="alert"]')).toHaveFocus())
   })
 
   it('solo las entregas agotadas tienen el botón Reintentar', async () => {

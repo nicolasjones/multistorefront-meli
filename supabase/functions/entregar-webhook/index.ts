@@ -18,7 +18,7 @@ Deno.serve((req) => {
     token: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     entrega: async (entregaId) => {
       const { data, error } = await cliente.rpc('api_entrega_para_entregar', { p_entrega_id: entregaId })
-      return { data: data as { url: string; evento: unknown; secreto: string }[] | null, error }
+      return { data: data as { url: string; evento: unknown; secreto: string; secreto_anterior?: string | null; secreto_anterior_ilegible?: boolean }[] | null, error }
     },
     resolver: async (entregaId: string, estado: EstadoEntrega, estadoHttp: number | null, error: string | null) => {
       const { error: errorResolucion } = await cliente.rpc('api_resolver_entrega', {

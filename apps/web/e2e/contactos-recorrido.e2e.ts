@@ -75,10 +75,16 @@ test.describe('Contactos · libreta, historial y anonimización (MSF-260, F-CON-
       const idAdmin = await altaUsuario(correoAdmin)
       usuarios.push(idAdmin)
       await rest('usuarios_organizacion', { user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' })
-      const [{ id: consultaId }] = await rest<{ id: string }>('consultas', {
-        organizacion_id: org.id, empresa_id: empresaId, origen: 'formulario', nombre: visitante,
-        contacto: correoVisitante, mensaje: 'Hola, ¿tienen stock?',
-      }, 'dominio')
+      // `service_role` no inserta directo en `dominio.consultas` (solo la RPC): se da el alta como la tienda.
+      const host = `contactos-${sufijo}.localhost`
+      await rest('tiendas', { organizacion_id: org.id, empresa_id: empresaId, dominio: host }, 'dominio')
+      const rpc = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
+        method: 'POST',
+        headers: cabeceras({ 'content-profile': 'publico' }),
+        body: JSON.stringify({ host, origen: 'formulario', nombre: visitante, contacto: correoVisitante, mensaje: 'Hola, ¿tienen stock?' }),
+      })
+      if (!rpc.ok) throw new Error(`crear_consulta_publica: ${rpc.status} ${await rpc.text()}`)
+      const consultaId = (await rpc.json()) as string
       const [{ id: clienteId }] = await rest<{ id: string }>('clientes', {
         organizacion_id: org.id, numero: 1, nombre: `Cliente ${sufijo}`, correo: `cliente-${sufijo}@example.com`, tipo: 'minorista',
       })

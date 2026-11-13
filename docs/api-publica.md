@@ -100,10 +100,28 @@ nunca llega al navegador. Para verificar: recalcular el HMAC con el cuerpo
 recibido y el mismo `t`, y comparar en tiempo constante. Rechazar un `t` viejo
 según la tolerancia del receptor.
 
-El secreto **no se puede cambiar ni volver a ver**: no existe una RPC de rotación (seguimiento MSF-839). Para
-rotarlo hoy: crear una suscripción nueva con la misma URL (se muestra su secreto), cambiarlo en el sistema receptor y
-eliminar la anterior. Mientras convivan, el receptor recibe cada evento dos veces, con el mismo `X-Evento-Id` y firmas
-distintas: tiene que ignorar el repetido.
+El secreto **no se puede volver a ver**, pero se puede **rotar** (MSF-839): el Administrador usa **Rotar secreto** en
+Administración → API → Suscripciones a avisos (`public.rotar_secreto_suscripcion_api`), que crea un secreto nuevo en
+Vault y lo muestra una sola vez. El anterior sigue valiendo **24 horas** (`secreto_anterior_vault_id` y
+`secreto_anterior_vence_en`): durante la gracia `entregar-webhook` firma cada aviso con los DOS secretos, `X-Firma:
+t=<epoch>,v1=<nuevo>,v1=<anterior>`, y el receptor acepta el aviso si alguna firma coincide, así cambia su secreto sin
+cortar el servicio. Rotar de nuevo durante la gracia **reemplaza** al anterior (el de antes deja de valer ya y se borra de
+Vault); pasadas las 24 horas la purga diaria limpia el anterior de la fila y de Vault; borrar la suscripción borra los dos.
+El secreto anterior se lee con `private.api_secreto_o_nulo`: si Vault no lo puede descifrar (por ejemplo tras un restore
+en otra instancia) se ignora y el aviso lleva solo la firma nueva, sin tumbar la entrega: el receptor que todavía use el
+secreto viejo falla con `401` sin que quede una marca en la entrega, así que ante un `401` de un receptor hay que revisar si
+la suscripción tiene la gracia vigente.
+
+**Cuidado al rotar dos veces seguidas:** si el secreto nuevo se perdió (no se copió) y se rota otra vez mientras dura la
+gracia, el secreto ORIGINAL deja de valer en ese momento y los receptores que todavía lo usan fallan; por eso la pantalla
+lo advierte. Si la respuesta de la primera rotación se perdió, conviene rotar y entregar el secreto nuevo enseguida.
+
+Si Vault no puede descifrar el anterior mientras la gracia está vigente, `api_entrega_para_entregar` lo marca con
+`secreto_anterior_ilegible` y `entregar-webhook` deja una línea en su log (sin secretos).
+
+**Orden de despliegue:** migración → función `entregar-webhook` → web. La web nueva pide `secreto_anterior_vence_en` (si
+la migración no está, el panel de suscripciones da error) y no hay que rotar ningún secreto hasta que la función nueva esté
+desplegada (con la vieja, el aviso lleva solo la firma nueva y un receptor que todavía tenga el secreto anterior falla).
 
 ### Reintentos
 
@@ -115,7 +133,8 @@ cada minuto y reparte hasta `API_WEBHOOKS_LOTE` eventos (total, no por tipo) y
 entregas por corrida (por defecto 20: unas 20 entregas por minuto, global; una ráfaga mayor se encola, seguimiento
 MSF-840). Una entrega `agotada` **no se reintenta sola**: el Administrador la devuelve a la cola con **Reintentar** en
 Administración → API → Entregas recientes (`public.reintentar_entrega_api`: solo una entrega agotada de su organización,
-con los 5 intentos de nuevo y el último error conservado; si la suscripción está pausada, espera a que se reanude). Lo que
+con los 5 intentos de nuevo y el último error conservado; si la suscripción está pausada, espera a que se reanude; tope de
+200 entregas de la organización esperando para enviarse a la vez, para que un script no sature la cola global). Lo que
 el destino se perdió y ya no se reintenta se recupera con una consulta incremental. Una suscripción pausada conserva sus entregas pendientes y las recibe al reanudar, pero **no**
 recibe los eventos que ocurren mientras está pausada.
 
@@ -165,8 +184,8 @@ respuestas llevan `Cache-Control: no-store` y `X-Content-Type-Options: nosniff`.
 **Retención de eventos y entregas (MSF-836):** la misma purga diaria (`purgar-api-llamadas`, con
 `API_AUDITORIA_RETENCION_DIAS`, 90 por defecto) borra también las claves revocadas o vencidas y los eventos de
 `public.cola_eventos` **terminados** (`completada` o `agotada`) más viejos que la retención y sin ninguna entrega
-`pendiente` o `reclamada`; sus entregas terminadas se van con ellos (de a 50 000 por corrida, para que el primer
-barrido de un historial grande no sea una transacción enorme). No se deja de encolar eventos de organizaciones sin
+`pendiente` o `reclamada`; sus entregas terminadas se van con ellos (de a lotes de 50 000 y hasta 10 lotes por corrida, para que el primer
+barrido de un historial grande no sea una sola transacción enorme). No se deja de encolar eventos de organizaciones sin
 suscripción: `cola_eventos` es una outbox genérica y otro consumidor futuro los necesita.
 
 **Alertas (MSF-837):** el flow `monitoreo-api-entregas` corre cada 15 minutos, consulta `private.api_entregas_salud` y
@@ -210,12 +229,12 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
   `20270224110203_api_lectura`, `20270224110204_api_suscripciones_entregas` y
   `20270224110205_api_eventos_precio_venta`, `20270224110206_exportacion_total_excluye_api`,
   `20270227100000_api_decodificar_cursor_devuelve_fila`, `20270227120000_api_cursor_sin_saltos_de_linea`,
-  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233` y `20270302100000_api_seguimientos_msf233`. Son aditivas; cada encabezado
+  `20270228100000_api_menores_revision_msf233` y `20270301100000_api_decisiones_abiertas_msf233` y `20270302100000_api_seguimientos_msf233` y `20270302110000_api_rotar_secreto_suscripcion_msf233`. Son aditivas; cada encabezado
   documenta el `drop` de sus objetos para revertir.
 - Pruebas: `pnpm test:edge:api-v1`, `pnpm test:edge:entregar-webhook`,
   `pnpm test:kestra:webhooks`, `pnpm test:openapi` y los pgTAP
   `api_claves`, `api_llamadas`, `api_aislamiento`, `api_suscripciones_entregas`, `api_eventos`,
-  `api_paginacion`, `api_decisiones_abiertas` y `api_seguimientos` (`pnpm test:db`).
+  `api_paginacion`, `api_decisiones_abiertas`, `api_seguimientos` y `api_rotar_secreto` (`pnpm test:db`).
 - **Documentación para integradores (2026-11-12):** el contrato OpenAPI trae ejemplos de cada respuesta y de cada error,
   `curl` y `fetch` por operación y los tres avisos como `webhooks` (firma, reintentos y campos de `datos`);
   `scripts/openapi-a-markdown.mjs` genera de él `docs/api/referencia.md`, y `docs/api/inicio-rapido.md` es la guía
@@ -229,7 +248,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
     (índice único).
   - `creada_por` de claves y suscripciones es `on delete set null`: dar de baja a quien las creó no corta la integración.
     Una clave o suscripción sin creador sigue vigente hasta que alguien con permiso la revoque o elimine.
-  - Borrar una suscripción por cualquier vía (también por cascada de organización) borra su secreto de Vault (trigger).
+  - Borrar una suscripción por cualquier vía (también por cascada de organización) borra su secreto de Vault y, si hay una rotación en curso, también el anterior (trigger).
   - `GET /v1/precios` ya no agrupa todo el catálogo en cada página: los candidatos salen de dos ramas con índice (productos
     y escalas tocados desde el cursor o desde `actualizado_desde`). Medido en el stack local con 50 000 productos: lectura
     incremental ≈ 6 ms frente a ≈ 104 ms de la carga completa. La carga completa inicial sigue leyendo el catálogo entero
@@ -263,12 +282,12 @@ Sin hallazgos críticos ni altos.
 - **Privilegios**: `anon` y `public` sin privilegios ni ejecución sobre las RPC
   de la API. `api_validar_clave`, `api_controlar_limite`, `api_registrar_llamada`
   y `api_leer_*` son solo `service_role`; `crear_clave_api`, `rotar_clave_api`,
-  `revocar_clave_api` y las tres de suscripción son `authenticated` y exigen
-  Administrador de la organización.
+  `revocar_clave_api` y las cuatro de suscripción (crear, pausar o reanudar, eliminar y rotar el secreto) son
+  `authenticated` y exigen Administrador de la organización.
 - **Secretos**: el hash SHA-256 de la clave no entra en el `grant select` por
   columna, así que ni el panel ni el navegador leen la credencial; el secreto de
-  firma de cada suscripción vive en Vault y `secreto_vault_id` tampoco está en
-  el `grant select`. La clave de servicio existe solo en las Edge Functions y en
+  firma de cada suscripción vive en Vault y `secreto_vault_id` y `secreto_anterior_vault_id` tampoco están en
+  el `grant select` (la fecha `secreto_anterior_vence_en` sí: la pantalla la muestra). La clave de servicio existe solo en las Edge Functions y en
   el flow de Kestra: en `apps/web` no hay ninguna referencia a
   `SUPABASE_SERVICE_ROLE_KEY`.
 - **SSRF**: la URL del destino se valida al guardar y otra vez al entregar; la
