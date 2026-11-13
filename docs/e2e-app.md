@@ -171,7 +171,7 @@ en otros componentes lo corrige el PR #876, no este.
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
 | Contacto de la tienda: datos de cada tienda, consulta que llega a la bandeja de su empresa con origen formulario, ráfaga de 6 envíos (el sexto muestra la espera, la bandeja recibe 5) y HTML literal (SC-004, SC-005) | MSF-437 T013 | Escrito: `e2e/tienda-contacto.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-contacto`. Restaura los datos de las empresas del seed y limpia consultas y envíos de prueba. Guía: `docs/tienda-contacto.md` |
 | Consulta por WhatsApp desde la ficha: en las dos tiendas del seed, ficha → diálogo → «Abrir WhatsApp» (la URL de `wa.me` se verifica y la red no se toca) → la consulta llega a la bandeja de su empresa con origen whatsapp y el producto, y la empresa sin número no muestra el botón (SC-008) | MSF-433 T028 | Escrito: `e2e/tienda-whatsapp.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker ni al CLI de Supabase); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-whatsapp`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local. Guía: `docs/tienda-contacto.md` |
-| Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
+| Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); en local se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda; en el CI (`CI`) FALLA en vez de omitirse, para no dar un falso verde). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
 
 ### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
 
@@ -232,7 +232,13 @@ corren en el job aparte `e2e-tienda` (sección siguiente); el resto (`permisos-p
 
 El job `e2e-tienda` de `validate.yml` corre los 20 `apps/web/e2e/tienda-*.e2e.ts` en cada PR que toca la web, con la
 misma política que el resto del e2e: solo si `changes.web == 'true'` y `changes.e2e == 'true'` (un PR a `epic/*`, no) y
-no en borrador ni con `CI_PAUSED`. Es **requerido**: entra en `needs` de `validacion` y de `liberar`.
+no en borrador, ni con `CI_PAUSED`, ni con la variable de repo `CI_E2E_TIENDA=false` (kill switch), y no en PRs de forks (los
+jobs pesados no corren código de forks en los runners self-hosted; `validacion` falla en un PR de fork en vez de dar verde con todo
+`skipped`). Entra en `needs` de `validacion` y de `liberar`, pero **arranca NO bloqueante**: el job lleva
+`continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}`, así que mientras esa variable de repo no sea `true` un fallo (o no
+conseguir ranura) deja el job en rojo pero llega como `success` a `validacion` y el PR se puede mergear. Se pasa a **requerido**
+poniendo `E2E_TIENDA_BLOQUEA=true` tras ~10 corridas verdes seguidas en PRs a `dokploy` (seguimiento en
+`specs/20261113-120000-ci-e2e-tienda/tasks.md`, T011).
 
 Qué hace, en orden (cada paso explica su motivo en el workflow):
 
@@ -253,8 +259,17 @@ Qué hace, en orden (cada paso explica su motivo en el workflow):
 5. `vite build` (sin `tsc`: el type-check ya lo hace `pnpm build` en `application`), Chromium con el mismo cache y las mismas
    `install-deps` que `application`, y `playwright test --workers=1 e2e/tienda-` (**un worker**: los specs pausan empresas
    y editan datos de las dos tiendas del seed; el `--` de pnpm llega literal a Playwright, por eso el filtro va sin él).
-6. Siempre: limpieza de navegadores (`always()`), `supabase stop --no-backup` + `liberar` de la ranura, y si falla se sube el
-   artefacto `playwright-report-tienda` (`playwright-report` y `test-results`, con trazas).
+6. Siempre: limpieza de navegadores (`always()`), `supabase stop --no-backup` + `liberar` de la ranura, y si falla o se cancela se sube
+   el artefacto `playwright-report-tienda` (`playwright-report`, `test-results` con trazas y `resultado-e2e.json`; 7 días de retención).
+
+Ranuras y timeouts: el job espera a lo sumo 10 min por una ranura (`SUPABASE_CI_LOCK_MIN=10`; el default de `database` es 20)
+y, si no hay, falla (no bloqueante mientras `E2E_TIENDA_BLOQUEA` no sea `true`; ya bloqueante, es el costo de no oversuscribir el
+host). Su `timeout-minutes` es 55 y el TTL de las ranuras (`SUPABASE_CI_LOCK_TTL_MIN`) sube a 75 min en `e2e-tienda` **y en
+`database`**: quien reclama es quien recicla las ranuras vencidas, así que todos los jobs que las comparten deben usar el mismo TTL,
+por encima del mayor timeout. Caso marginal: una cancelación forzada del runner (o un reinicio del host) no ejecuta ni los pasos
+`always()`; los contenedores `ci-…` quedan arriba y la ranura ocupada hasta el TTL, y el próximo job de esa ranura los baja con su
+`supabase stop` inicial (o se bajan a mano). El job también espera, además de PostgREST y el seed, a `Auth` (`/auth/v1/health`) y
+`Storage` (`/storage/v1/status`) antes de seguir.
 
 Límites a propósito:
 
@@ -263,10 +278,15 @@ Límites a propósito:
   mismo motivo por el que `pg_prove` corre por `host.docker.internal`). Por eso `E2E_SIN_EDGE=1` omite el único caso que lo
   necesita, `robots.txt`/`sitemap.xml` de `tienda-seo` (su handler se cubre con `pnpm test:edge:tienda-seo` en el job `web`).
   Sigue corriéndose a mano con las funciones servidas (sección «Specs que necesitan algo más»).
-- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde: `tienda-sesion-vencimiento` falla (no se
-  omite) si el build no sirve el host como tienda, y `tienda-disponibilidad` ya no tiene `test.skip` condicionales (omitía su
-  verificación completa porque con la carga infinita el producto sembrado quedaba fuera de la primera tanda del catálogo:
-  ahora siembra una categoría propia y filtra por ella, como `tienda-catalogo`).
+- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. 18 de los 20 specs se omiten solos a
+  nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
+  corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
+  `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
+  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `application` con `pnpm test:e2e:omitidos`).
+  Además `tienda-sesion-vencimiento` falla (no se omite) en el CI si el build no sirve el host como tienda, y
+  `tienda-disponibilidad` no tiene `test.skip` dinámicos (omitía su verificación porque `locator.count()` no espera y la carga
+  infinita dejaba el producto sembrado fuera de la primera tanda; ahora siembra una categoría propia y abre `/catalogo?categoria=<id>`).
+  Solo queda su omisión de entorno al inicio del `describe`, cubierta por la guarda de arriba.
 - `playwright.config.ts` ajusta, solo con `CI`, los topes de espera porque el runner self-hosted corre cargado: `expect` 15 s
   (5 s en local; el primer render de una ficha que consulta la base superó 5 s y dio un falso rojo en `tienda-relacionados`), test
   60 s (30 s en local; los recorridos largos fijan su propio `test.setTimeout`) y arranque del `webServer` 120 s (60 s en local).
