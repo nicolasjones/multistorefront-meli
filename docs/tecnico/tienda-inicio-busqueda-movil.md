@@ -16,6 +16,9 @@ Resumen de producto y límites: [Tiendas online](../producto/tiendas-online.md).
 El menú, la home y la versión móvil los corrige **MSF-825** (categorías principales, «Más categorías» y
 «Ver todas las categorías →»): ver
 [Tienda pública: corrección de la demo frente al prototipo](tienda-demo-vs-prototipo.md).
+**MSF-841** suma al layout la barra superior, el logo en el encabezado, la barra de categorías con subrayado,
+el pie oscuro y las tarjetas de categoría con foto; conserva el menú móvil y el orden de MSF-825. Ver
+[Tienda pública: diseño del prototipo](tienda-diseno-del-prototipo.md).
 
 ## Alcance de entrega
 

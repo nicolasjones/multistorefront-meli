@@ -7,7 +7,7 @@ sources: []
 
 ## Para qué sirve
 
-Acá definís cómo se ve y qué dice la tienda online de cada empresa: el logo, los colores, las tipografías, los banners y los textos (título, subtítulo, botones, bienvenida y pie). También te contamos cómo se relaciona la tienda con su dirección web (el dominio) y dónde se publica lo que preparás.
+Acá definís cómo se ve y qué dice la tienda online de cada empresa: el logo, los colores, las tipografías, los banners y los textos (título, subtítulo, botones, eslogan, bienvenida y pie). Esa identidad se aplica a **toda** la tienda: la portada, el catálogo, las categorías, las fichas y la página de contacto. También te contamos cómo se relaciona la tienda con su dirección web (el dominio) y dónde se publica lo que preparás.
 
 ## Quién puede hacerlo
 
@@ -43,18 +43,20 @@ En la pestaña **Identidad visual** hay cuatro bloques y, a la derecha, una **Vi
 ### Logo
 
 1. En el bloque **Logo** hacé clic en **Subir** (o **Reemplazar**, si ya hay uno).
-2. Elegí un archivo **PNG o SVG** de hasta 1 MB. Conviene que tenga fondo transparente. Se usa en el encabezado, el pie y las redes.
-3. Con **Quitar** sacás el logo actual.
+2. Elegí un archivo **PNG o SVG** de hasta 1 MB. Usá un logo con **fondo transparente**: en el pie de la tienda se muestra en blanco y, si el archivo tiene fondo sólido, se ve un recuadro. Se usa en el encabezado, el pie y las redes.
+3. Con **Quitar** sacás el logo actual. Si la tienda no tiene logo, el encabezado y el pie muestran el nombre de la empresa en texto.
 
 ### Colores
 
-En el bloque **Colores** definís cuatro colores: **Primario**, **Primario oscuro**, **Acento** y **Fondo**. Cada uno se escribe con el formato **#RRGGBB**, por ejemplo #A3111D.
+En el bloque **Colores** definís cinco colores: **Primario**, **Primario oscuro**, **Acento**, **Fondo** y **Barra superior y pie**. Cada uno se escribe con el formato **#RRGGBB**, por ejemplo #A3111D.
 
-El sistema te muestra qué tan legible queda el texto blanco sobre el color primario. Si no alcanza la legibilidad recomendada, te lo advierte, pero igual podés guardar.
+El color **Barra superior y pie** pinta la franja de arriba de la tienda y el pie de página. Si no lo cambiás, se usa un gris oscuro (#222222).
+
+El sistema te muestra qué tan legible queda el texto blanco sobre el color primario y sobre el color de la barra. Si no alcanza la legibilidad recomendada, te lo advierte, pero igual podés guardar.
 
 ### Tipografía
 
-En **Tipografía** elegís una letra para los **Títulos** y otra para el **Texto**, de una lista cerrada: Del sistema, Barlow, Barlow Condensed, Playfair Display, Lato, Sora e Instrument Sans. Debajo de cada selector ves una muestra.
+En **Tipografía** elegís una letra para los **Títulos** y otra para el **Texto**, de una lista cerrada: Del sistema, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans, Bricolage Grotesque y DM Sans. Debajo de cada selector ves una muestra.
 
 ### Banner e imágenes principales
 
@@ -69,12 +71,15 @@ En el bloque **Publicación** de esta pestaña (el que lleva los botones de guar
 - **Descartar** vuelve a lo último que guardaste.
 - **Guardar** deja los cambios **sin publicar**: vas a ver «Cambios guardados en el borrador. Publicalos desde Dominio y publicación.» La tienda pública sigue mostrando lo que estaba publicado hasta que publiques; la publicación se hace en la pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)).
 
+La **Vista previa** de esta pestaña muestra el contenido de la portada. La barra superior, el encabezado, el pie y las fotos de las categorías se ven en la tienda publicada (con **Ver tienda**).
+
 ## Cambiar los textos de la tienda
 
 1. Entrá a la pestaña **Contenido**.
 2. En **Banner principal** completá **Título**, **Subtítulo** y **Texto del botón**. En **El botón lleva a** hoy solo existe la opción «Catálogo completo».
 3. En **Textos comerciales** completá:
-   - **Mensaje de bienvenida (barra superior)**: la franja de arriba de toda la tienda.
+   - **Eslogan**: una frase corta que se muestra en la barra superior y en el pie de la tienda. Es lo primero que se ve en la franja de arriba.
+   - **Mensaje de bienvenida (barra superior)**: el mensaje que se muestra en la franja de arriba cuando no cargaste un eslogan. Si cargás las dos cosas y son distintas, el eslogan va en la barra superior y la bienvenida sigue en su franja de la portada.
    - **Texto del pie de página**.
    - **Aviso en la ficha de producto**: un texto que se muestra en cada ficha.
    - **Texto del botón de contacto**.
@@ -85,7 +90,7 @@ En el bloque **Publicación** de esta pestaña (el que lleva los botones de guar
 
 *La pestaña **Contenido**: textos del banner y textos comerciales, con su vista previa.*
 
-Los largos máximos son: título y textos de botón, 120 caracteres; subtítulo, bienvenida, pie y aviso de ficha, 300 caracteres. Debajo de cada campo ves cuántos caracteres llevás. Los textos son texto simple (no se pueden poner enlaces ni formato). Si dejás un campo vacío, ese elemento directamente no se muestra en la tienda.
+Los largos máximos son: título y textos de botón, 120 caracteres; eslogan, 80 caracteres; subtítulo, bienvenida, pie y aviso de ficha, 300 caracteres. Debajo de cada campo ves cuántos caracteres llevás. Los textos son texto simple (no se pueden poner enlaces ni formato). Si dejás un campo vacío, ese elemento directamente no se muestra en la tienda.
 
 ## La dirección web (dominio)
 
@@ -101,7 +106,7 @@ El paso a paso está en [Dominio, publicación y versiones de la tienda](tienda-
 
 ## Cómo se ven las dos tiendas
 
-Cada tienda toma sus propios colores y textos. Así se ven las dos del ejemplo:
+Cada tienda toma sus propios colores, tipografías, logo, eslogan y textos. La barra superior y el pie usan el color **Barra superior y pie**, y el encabezado muestra el logo. Así se ven las dos del ejemplo:
 
 ![Inicio de la tienda de San Javucho con fondo lila, barra de bienvenida y banner](img/tienda-dominio-e-identidad/08-tienda-san-javucho-arriba.png)
 
@@ -116,7 +121,7 @@ Cada tienda toma sus propios colores y textos. Así se ven las dos del ejemplo:
 | Cosa | Dónde se hace |
 |---|---|
 | Logo, colores, tipografías y banners | Acá, en **Identidad visual** |
-| Título, subtítulo, botón, bienvenida, pie y avisos | Acá, en **Contenido** |
+| Título, subtítulo, botón, eslogan, bienvenida, pie y avisos | Acá, en **Contenido** |
 | Qué productos y categorías se ven, y cuáles se destacan | Pestaña **Catálogo visible** (ver [Tiendas online](tiendas-online.md)) |
 | Dirección web de la tienda y su verificación | Pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)) |
 | Publicar los cambios o volver a una versión anterior | Pestaña **Dominio y publicación** (ver [Dominio, publicación y versiones de la tienda](tienda-dominio-y-publicacion.md)) |
@@ -127,8 +132,9 @@ Cada tienda toma sus propios colores y textos. Así se ven las dos del ejemplo:
 ## Casos comunes
 
 - **Cambié el color y la tienda sigue igual.** Guardar deja el cambio **sin publicar**: publicá desde la pestaña **Dominio y publicación**. Si ya publicaste, recargá la tienda en el navegador.
-- **Quiero sacar la barra de bienvenida.** Dejá vacío el **Mensaje de bienvenida**, guardá y publicá.
-- **Mi logo se ve mal sobre el encabezado.** Usá un PNG o SVG con fondo transparente.
+- **Quiero sacar la barra de bienvenida.** Dejá vacío el **Mensaje de bienvenida**, guardá y publicá. Si además cargaste un **Eslogan**, la barra superior lo sigue mostrando.
+- **No sé qué color pinta la barra de arriba y el pie.** Es el color **Barra superior y pie**, el quinto del bloque **Colores**.
+- **Mi logo se ve mal sobre el encabezado o en el pie.** Usá un PNG o SVG con fondo transparente: en el pie el logo se muestra en blanco.
 
 ## Si algo no sale
 

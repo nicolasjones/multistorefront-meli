@@ -45,8 +45,8 @@ y Mermaid) está en [Datos y DER](datos.md#modelo-de-la-tienda-msf-147).
 | Tabla | Clave / reglas principales |
 |---|---|
 | `dominio.tiendas` | `id` PK; `empresa_id` **único**; `dominio` **único**, normalizado por trigger y validado con un check DNS; FK compuesta `(empresa_id, organizacion_id)` a `dominio.empresas`. |
-| `dominio.tienda_identidad` | `empresa_id` PK; cuatro colores con check `#RRGGBB`, dos tipografías de la lista cerrada de DS-04, rutas de logo/banner/banner móvil dentro de `<organizacion_id>/<empresa_id>/…`; FK compuesta a Empresas. |
-| `dominio.tienda_contenido` | `empresa_id` PK; ocho textos recortados por trigger, con límites (120/300) y `boton_destino` en lista cerrada (`catalogo`); FK compuesta a Empresas. |
+| `dominio.tienda_identidad` | `empresa_id` PK; **cinco** colores con check `#RRGGBB` (incluido `color_barra` desde MSF-841), dos tipografías de la lista cerrada de DS-04 (nueve familias desde MSF-841), rutas de logo/banner/banner móvil dentro de `<organizacion_id>/<empresa_id>/…`; FK compuesta a Empresas. |
+| `dominio.tienda_contenido` | `empresa_id` PK; **nueve** valores recortados por trigger, con límites (80/120/300) y `boton_destino` en lista cerrada (`catalogo`); `eslogan` se agrega en MSF-841; FK compuesta a Empresas. |
 | `dominio.categorias_tienda` | PK `(empresa_id, categoria_id)`; `visible` default `true`; FK compuesta a Empresas y a `dominio.categorias` (MSF-160). Sin fila = visible. |
 | `dominio.productos_tienda` | PK `(empresa_id, producto_id)`; `visible` default `true`, `destacado` default `false`; FK compuesta a Empresas y a `dominio.productos`. Sin fila = visible y no destacado. |
 | Bucket `tienda-identidad` | Lectura pública; escritura solo `authenticated` con edición en Empresas y bajo la carpeta de su organización; 3 MB y tipos PNG/SVG/JPEG/WebP. |
@@ -77,8 +77,8 @@ y Mermaid) está en [Datos y DER](datos.md#modelo-de-la-tienda-msf-147).
 | Función | Devuelve | Notas |
 |---|---|---|
 | `publico.tienda_por_dominio(host text)` | Tabla `(tienda_id uuid, empresa_nombre text, estado text)` | `estado` es `publicada` cuando hay fila; dominio desconocido o empresa inactiva devuelven **cero filas**. Nunca devuelve `organizacion_id`. |
-| `publico.identidad_por_dominio(host text)` | Tabla con los cuatro colores, las dos tipografías y las rutas de logo/banner/banner móvil | Sin fila de identidad devuelve los valores del tema base (`coalesce`). Cero filas para dominio desconocido o empresa inactiva. |
-| `publico.contenido_por_dominio(host text)` | Tabla con los ocho textos y `boton_destino` | Sin fila de contenido devuelve todo vacío (y `catalogo` como destino). Cero filas para dominio desconocido o empresa inactiva. |
+| `publico.identidad_por_dominio(host text)` | Tabla con los **cinco** colores (incluido `color_barra`), las dos tipografías y las rutas de logo/banner/banner móvil | Sin fila de identidad devuelve los valores del tema base (`coalesce`). Cero filas para dominio desconocido o empresa inactiva. |
+| `publico.contenido_por_dominio(host text)` | Tabla con los **nueve** valores (incluido `eslogan`) y `boton_destino` | Sin fila de contenido devuelve todo vacío (y `catalogo` como destino). Cero filas para dominio desconocido o empresa inactiva. |
 | `publico.catalogo_visible_por_dominio(host text)` | `jsonb` `{ categorias: [{ id, nombre, padre_id }], productos: [{ id, nombre, moneda, precio, tiene_imagen, categoria_id, destacado }] }` o `null` | Productos **efectivamente visibles** y destacados primero. No devuelve costos, stock, proveedor ni `organizacion_id`; la imagen se informa como booleano porque la ruta contiene el id de la organización. |
 
 Todas hacen `revoke execute … from public` y `grant execute … to anon, authenticated`.
@@ -87,8 +87,8 @@ Todas hacen `revoke execute … from public` y `grant execute … to anon, authe
 
 | RPC | Devuelve | Errores / reglas |
 |---|---|---|
-| `public.guardar_tienda_identidad(p_empresa_id, p_color_primario, p_color_primario_oscuro, p_color_acento, p_color_fondo, p_tipografia_titulos, p_tipografia_texto, p_logo_ruta, p_banner_ruta, p_banner_movil_ruta)` | La fila de `dominio.tienda_identidad` | `42501` sin edición en Empresas; `P0002` empresa inexistente; `22023` color/tipografía/rutas inválidas. Idempotente; bloquea la empresa para serializar guardados; emite `tienda.identidad_actualizada` solo si algo cambió. |
-| `public.guardar_tienda_contenido(p_empresa_id, p_titulo, p_subtitulo, p_texto_boton, p_boton_destino, p_bienvenida, p_pie, p_aviso_ficha, p_texto_boton_contacto)` | La fila de `dominio.tienda_contenido` | `42501` sin edición o empresa ajena; `22023` con `hint` del campo si supera el límite o el destino no está en la lista. Recorta espacios; idempotente; emite `tienda.contenido_actualizado` solo ante cambios reales. |
+| `public.guardar_tienda_identidad(p_empresa_id, p_color_primario, p_color_primario_oscuro, p_color_acento, p_color_fondo, p_tipografia_titulos, p_tipografia_texto, p_logo_ruta, p_banner_ruta, p_banner_movil_ruta, p_color_barra default null)` | La fila de `dominio.tienda_identidad` | `42501` sin edición en Empresas; `P0002` empresa inexistente; `22023` color/tipografía/rutas inválidas. Idempotente; bloquea la empresa para serializar guardados; emite `tienda.identidad_actualizada` solo si algo cambió. `p_color_barra` (MSF-841) es el quinto color; `null` = `#222222`. |
+| `public.guardar_tienda_contenido(p_empresa_id, p_titulo, p_subtitulo, p_texto_boton, p_boton_destino, p_bienvenida, p_pie, p_aviso_ficha, p_texto_boton_contacto, p_eslogan default null)` | La fila de `dominio.tienda_contenido` | `42501` sin edición o empresa ajena; `22023` con `hint` del campo si supera el límite o el destino no está en la lista. Recorta espacios; idempotente; emite `tienda.contenido_actualizado` solo ante cambios reales. `p_eslogan` (MSF-841) admite hasta 80 caracteres; `null` = vacío. |
 | `public.listar_catalogo_tienda(p_empresa uuid)` | `jsonb` `{ categorias, productos, resumen: { visibles, destacados } }` | `42501` sin lectura/edición en Empresas; `P0002` empresa inexistente. La visibilidad efectiva, el motivo y el resumen salen del servidor. |
 | `public.guardar_catalogo_tienda(p_empresa uuid, p_categorias jsonb, p_productos jsonb)` | `jsonb` `{ visibles, destacados }` | `42501` sin edición; `P0002` empresa inexistente; `22023` formato, valores vacíos, ids repetidos o elementos ajenos. Aplica solo la diferencia en una transacción, con lock asesor por empresa; emite `tienda.catalogo_actualizado` solo si hubo cambios. |
 
@@ -98,6 +98,16 @@ gestión, el resumen y la función pública. No tiene `execute` para roles de AP
 **BREAKING desde MSF-133:** las tres `guardar_*` (identidad, contenido y catálogo) **dejan de ser ejecutables
 por `authenticated`**; la firma no cambia y solo las invoca `public.publicar_tienda`. El navegador guarda en el
 borrador. Ver [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
+
+## MSF-841 (tramo A: identidad y textos del prototipo)
+
+La épica **MSF-841** (ver [Tienda pública: diseño del prototipo](tienda-diseno-del-prototipo.md)) amplía esta
+base sin crear tablas: tipografías `Bricolage Grotesque` y `DM Sans` en la lista cerrada, quinto color
+`color_barra` («Barra superior y pie»), `eslogan` de hasta 80 caracteres en el contenido y `imagen` por
+categoría en `publico.categorias_por_dominio`. Las migraciones son `20270303100000`–`20270303400000`; las
+firmas de `guardar_tienda_identidad` y `guardar_tienda_contenido` agregan un parámetro al final y eliminan la
+firma anterior. El detalle de la foto de categoría y de la aplicación de la identidad en el front está en esa
+página.
 
 ## Reglas de implementación
 
@@ -128,7 +138,7 @@ borrador. Ver [Tienda online: dominio, publicación y versiones](tienda-dominio-
 | Contenido: límites y cliente de la RPC | `apps/web/src/lib/tiendaContenido.ts` |
 | Catálogo: borrador, resumen y RPC | `apps/web/src/lib/tiendaCatalogo.ts`, `apps/web/src/hooks/useCatalogoTienda.ts` |
 | Entrada pública por `Host` | `apps/web/src/main.tsx`, `apps/web/src/lib/tienda.ts`, `pages/tienda-publica/index.tsx` |
-| Home pública y secciones | `pages/tienda-publica/PaginaTienda.tsx`; `secciones/TemaTienda.tsx` (orden 10), `BannerHome.tsx` (20), `BarraBienvenida.tsx` (10), `PieTienda.tsx` (900) |
+| Home pública y secciones | `pages/tienda-publica/PaginaTienda.tsx`; `secciones/TemaTienda.tsx` (orden 10), `BannerHome.tsx` (20), `BarraBienvenida.tsx` (10), `PieTienda.tsx` (900). Desde MSF-841 el marco común está en `layout/IdentidadTiendaContexto.tsx`, `layout/BarraSuperior.tsx`, `layout/PieCategorias.tsx`, `layout/MenuCategorias.tsx`, `secciones/CategoriasInicio.tsx` y `secciones/ConsultasInicio.tsx` (ver [Diseño del prototipo](tienda-diseno-del-prototipo.md)) |
 | «Volvemos pronto» y error con reintento | `pages/tienda-publica/VolvemosPronto.tsx`, `ErrorConReintento.tsx` |
 
 - **Empresa activa:** `GestionTienda` opera sobre la empresa activa de la barra superior. Si se entra por
@@ -174,6 +184,7 @@ borrador. Ver [Tienda online: dominio, publicación y versiones](tienda-dominio-
 | Vitest de contenido | `apps/web/src/pages/empresas/tienda/contenido.test.tsx`, `apps/web/src/lib/tiendaContenido.test.ts` |
 | Vitest de catálogo visible | `apps/web/src/pages/empresas/tienda/catalogo.test.tsx` |
 | Vitest del front público (tema y textos) | `apps/web/src/pages/tienda-publica/index.test.tsx`, `TemaTienda.test.tsx`, `PaginaTienda.test.tsx`, `seccionesContenido.test.tsx` |
+| Vitest + axe del diseño del prototipo (MSF-841) | `apps/web/src/pages/tienda-publica/layout/tiendaDiseno.test.tsx`, `rutas/inicio/CategoriasInicio.test.tsx`, `rutas/inicio/ConsultasInicio.test.tsx` |
 | E2E con los dos dominios del seed | `apps/web/e2e/tienda-dos-dominios.e2e.ts` |
 
 ```bash
