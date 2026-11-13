@@ -226,9 +226,10 @@ begin
   end if;
 
   v_rent := (select private.nivel_seccion('rentabilidad')) in ('lectura', 'edicion');
-  -- Superadmin = con la fila de organización activa, como `nivel_seccion` y `nivel_ventas_en_empresa`.
+  -- Superadmin = con un contexto de soporte VIGENTE (no vencido, FR-015): se lee la vista vigente, nunca la tabla cruda
+  -- (un guard de pgTAP lo exige), como el resto de las funciones que dependen de la organización activa.
   v_super := (select private.is_superadmin())
-    and exists (select 1 from public.superadmin_organizacion_activa a where a.user_id = (select auth.uid()));
+    and exists (select 1 from private.superadmin_contexto_vigente c where c.user_id = (select auth.uid()));
   v_st := (select private.nivel_seccion('stock')) in ('lectura', 'edicion');
   if p_deposito is not null and not exists (
     select 1 from dominio.depositos d where d.id = p_deposito and d.organizacion_id = v_org

@@ -225,7 +225,7 @@ en el bloque o rechaza con `42501`. La sección que decide cada bloque y cómo s
 | Bloque | Sección | Cómo se evalúa el nivel |
 |---|---|---|
 | Ventas del período, «Resumen por tienda» (unidades), gráfico de ventas, columna **Ventas** del listado | `ventas` ≥ lectura | **Por tienda** (`private.nivel_ventas_en_empresa`): solo suman las tiendas accesibles donde el rol tiene `ventas` (D-11). Sin ninguna, el bloque vuelve `null` |
-| Ingresos y margen estimado de «Resumen por tienda» | `rentabilidad` ≥ lectura | Rol de la organización **y rol del usuario en cada tienda** (`private.nivel_de_rol` con `rol_en_empresa`; el superadmin con organización activa conserva el acceso): en una tienda donde su rol no tiene `rentabilidad`, la base devuelve `null` en esos dos campos aunque la tenga en otra tienda (migración `20270305150000`) |
+| Ingresos y margen estimado de «Resumen por tienda» | `rentabilidad` ≥ lectura | Rol de la organización **y rol del usuario en cada tienda** (`private.nivel_de_rol` con `rol_en_empresa`; el superadmin con organización activa conserva el acceso): en una tienda donde su rol no tiene `rentabilidad`, la base devuelve `null` en esos dos campos aunque la tenga en otra tienda (migración `20270306110000`) |
 | Stock hoy, gráfico de stock, «Salidas por depósito», «Movimientos por producto» | `stock` ≥ lectura | Mejor rol del usuario entre sus tiendas (sección compartida) |
 | «Actividad reciente» | `actividad` ≥ lectura | Rol de la organización; la RLS de `registro_actividad` filtra por tienda |
 | Enlace de «Ventas» a Reportes | `reportes` ≥ lectura | Rol en la tienda activa (sección por tienda) |
@@ -268,7 +268,7 @@ errores está también en `specs/20261030-100000-inicio-y-alertas/contracts/inic
 | `previsualizar_impacto_dolar(p_valor numeric, p_empresa uuid = null)` (`20270305130000`) | F-INI-07 | `jsonb` `{ variacion_pct, recalcula, empresas[], muestra[], umbral_pct, confirmacion_pct, redondeo_pesos }`; **no escribe** | `42501` sin edición de `cotizacion_dolar`; `22023` valor nulo, ≤ 0, NaN, infinito, con más de 4 decimales o ≥ 1e10 |
 | `aplicar_cotizacion(p_valor numeric, p_empresa uuid = null, p_variacion_vista numeric = null)` (`20270305140000`) | F-INI-07 | el `jsonb` de `confirmar_cotizacion` `{ id, recalculo_aplicado, precios_recalculados }` | los de `cargar_cotizacion` (`42501`, `23514`) y `confirmar_cotizacion` (`22023` con `variacion_inusual` o `variacion_cambio`); carga y confirma en **una** transacción |
 
-**Migración de correcciones `20270305150000`** (PR #909, hallazgos de la revisión final): redefine con `create or replace` `resumen_inicio_periodo`,
+**Migración de correcciones `20270306110000`** (PR #909, hallazgos de la revisión final): redefine con `create or replace` `resumen_inicio_periodo`,
 `resumen_inicio_bloques`, `movimientos_por_producto` y `aplicar_cotizacion` (mismas firmas y mismos grants) y agrega el índice
 `movimientos_stock_org_producto_fecha_idx (organizacion_id, producto_id, fecha desc)`. Cambios de comportamiento:
 las tres RPC de lectura rechazan fechas infinitas con 22023; `movimientos_por_producto` calcula `ultimo_movimiento` después del orden y el límite (hasta la página
@@ -324,7 +324,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
 | `AlertasInicio` sigue mostrando la alerta `dolar_sin_cargar` a quien solo tiene lectura (comportamiento previo de MSF-344) | Decisión de Nicolás (CA-INI-07-7) |
-| ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270305150000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
+| ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
 ## Alertas accionables (F-INI-02, MSF-361)
