@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
 import { normalizarConsulta, urlResultados } from '../../../lib/tiendaBusqueda'
@@ -14,7 +15,6 @@ import {
 } from '../../../lib/tiendaListado'
 import { EstadoVacioCatalogo } from '../catalogo/EstadoVacio'
 import { Ordenar } from '../catalogo/Ordenar'
-import { Paginacion } from '../catalogo/Paginacion'
 import { PanelFiltros } from '../catalogo/PanelFiltros'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
 import type { PropsSeccionCatalogo } from '../seccionesCatalogo'
@@ -27,10 +27,10 @@ export const orden = 10
 // Panel de filtros de celular (F-TDA-17, FR-041/FR-047): carga diferida, solo se baja en anchos de celular.
 const PanelFiltrosMovil = lazy(() => import('../catalogo/PanelFiltrosMovil'))
 
-// Listado con filtros, orden y paginación (F-TDA-12, FR-035…FR-041). Lo montan `/catalogo`
+// Listado con filtros, orden y carga infinita (F-TDA-12, FR-035…FR-041; MSF-845). Lo montan `/catalogo`
 // (`categoriaId` nulo: la categoría va en `?categoria=`) y `/categoria/:categoriaId` (categoría fija en
 // el path). Todo el estado vive en la URL: abrir una URL copiada da el mismo resultado y cambiar un
-// filtro es navegación del lado del cliente (sin recargar la página). Con `?q=` en `/catalogo`
+// filtro reinicia desde la primera tanda y es navegación del lado del cliente (sin recargar la página). Con `?q=` en `/catalogo`
 // (F-TDA-15, FR-025) lista los resultados de la búsqueda y `q` se conserva al cambiar filtros.
 export default function ListadoProductos({ host, categoriaId }: PropsSeccionCatalogo) {
   const [params] = useSearchParams()
@@ -44,7 +44,7 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
   // Bajo `md` los filtros van en un panel (FR-041); desde `md`, en la columna lateral.
   const movil = useCelular()
 
-  // `q` va primero en la URL y se conserva en cada cambio de filtro, orden o página.
+  // `q` va primero en la URL y se conserva en cada cambio de filtro u orden.
   const consulta = (f: FiltrosCatalogo, incluirCategoria = !enCategoria) => {
     const query = new URLSearchParams()
     if (q) query.set('q', q)
@@ -63,8 +63,8 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
     }
   }
   // En `/catalogo` «Limpiar filtros» quita todo (también la categoría, como el prototipo) pero conserva
-  // la búsqueda; en la ruta de categoría el path manda y solo se limpian stock, precio, orden y página
-  // (FR-035, FR-038).
+  // la búsqueda; en la ruta de categoría el path manda y solo se limpian stock, precio y orden
+  // (FR-035, FR-038). La tanda no va en la URL: un `?pagina=N` viejo se ignora.
   const limpiar = () => {
     if (enCategoria) {
       aplicar({ ...FILTROS_INICIALES, categoria: filtros.categoria })
@@ -86,16 +86,6 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
   const ultimasCategorias = useRef<CategoriaListado[]>([])
   if (catalogo.fase === 'lista') ultimasCategorias.current = catalogo.pagina.categorias
   const categorias = ultimasCategorias.current
-
-  // Página fuera de rango (p. ej. `?pagina=999`): se lleva a la última página real en vez de mostrar
-  // «sin resultados» con un contador que no coincide.
-  const fuera = catalogo.fase === 'lista' ? catalogo.pagina : null
-  const ultimaPagina = fuera ? Math.max(1, Math.ceil(fuera.total / fuera.tamano)) : 1
-  const irAUltima = fuera !== null && fuera.total > 0 && fuera.pagina > ultimaPagina
-  useEffect(() => {
-    if (irAUltima) navegar(`${pathname}${consulta({ ...filtros, pagina: ultimaPagina })}`, { replace: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [irAUltima, ultimaPagina])
 
   return (
     <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '240px minmax(0, 1fr)' }, alignItems: 'start' }}>
@@ -165,14 +155,14 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
                 ))}
               </Box>
             )}
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-              <Paginacion
-                pagina={catalogo.pagina.pagina}
-                total={catalogo.pagina.total}
-                tamano={catalogo.pagina.tamano}
-                hrefPagina={(n) => `${pathname}${consulta({ ...filtros, pagina: n })}`}
+            {catalogo.pagina.productos.length > 0 ? (
+              <CargaInfinita
+                hayMas={catalogo.hayMas}
+                cargando={catalogo.cargandoMas}
+                hayError={catalogo.errorMas}
+                onCargarMas={catalogo.cargarMas}
               />
-            </Box>
+            ) : null}
           </>
         ) : null}
       </Box>
