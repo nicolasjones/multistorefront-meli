@@ -37,10 +37,9 @@ const estiloSubtitulo = { fontSize: 14, fontWeight: 700, fontFamily: 'inherit', 
 const estiloFilaPildoras = { display: 'flex', flexWrap: 'wrap', gap: '8px' } as const // estilos-sueltos: ok
 
 // Píldora del prototipo (`.pill`): 14 px/600, radio total, borde de 1,5 px; la elegida se rellena con el primario.
-function Pildora({ activa, alElegir, children, ...resto }: { activa: boolean; alElegir: () => void; children: React.ReactNode; 'aria-current'?: 'true' }) {
+function Pildora({ activa, alElegir, children }: { activa: boolean; alElegir: () => void; children: React.ReactNode }) {
   return (
     <ButtonBase
-      {...resto}
       aria-pressed={activa}
       onClick={alElegir}
       sx={{
@@ -96,6 +95,7 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
           aria-haspopup="dialog"
           onClick={() => setAbierto(true)}
           data-testid="orden-movil"
+          aria-label={`Ordenar por: ${etiquetaOrdenMovil(filtros.orden)}`}
           sx={estiloBotonFila}
         >
           {etiquetaOrdenMovil(filtros.orden)} ▾
@@ -121,9 +121,9 @@ export default function PanelFiltrosMovil({ categorias, filtros, total, categori
           <Box component="section" aria-labelledby="filtro-categoria-movil">
             <Typography id="filtro-categoria-movil" component="h3" sx={estiloSubtitulo}>Categoría</Typography>
             <Box sx={estiloFilaPildoras}>
-              <Pildora activa={filtros.categoria === null} alElegir={() => alElegirCategoria(null)} aria-current={filtros.categoria === null ? 'true' : undefined}>Todo</Pildora>
+              <Pildora activa={filtros.categoria === null} alElegir={() => alElegirCategoria(null)}>Todo</Pildora>
               {filasPanelCategorias(categorias, filtros.categoria).map(({ categoria: c }) => (
-                <Pildora key={c.id} activa={filtros.categoria === c.id} alElegir={() => alElegirCategoria(c.id)} aria-current={filtros.categoria === c.id ? 'true' : undefined}>{c.nombre}</Pildora>
+                <Pildora key={c.id} activa={filtros.categoria === c.id} alElegir={() => alElegirCategoria(c.id)}>{c.nombre}</Pildora>
               ))}
             </Box>
           </Box>

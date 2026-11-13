@@ -87,7 +87,7 @@ export default function DialogoWhatsApp({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* Círculo verde de WhatsApp (verde de WhatsApp del prototipo) con el glifo en blanco: es decorativo (el título nombra la acción). */}
+        {/* Círculo verde de WhatsApp del prototipo con el glifo en blanco (2:1 sobre el verde): es decorativo (`aria-hidden`; el título nombra la acción y el texto de los botones lleva el contraste AA), por eso no está sujeto a 1.4.11. */}
         <Box component="span" aria-hidden sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: COLOR_WHATSAPP, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 /* estilos-sueltos: ok */ }}>
           <IconoWhatsapp size={24} />
         </Box>
@@ -115,7 +115,7 @@ export default function DialogoWhatsApp({
       <Box sx={{ display: 'flex', gap: '10px', mt: '20px' }}>
         <Button
           onClick={onCerrar}
-          sx={{ flex: 1, height: 44, border: '2px solid rgba(0,0,0,.15)', borderRadius: '8px', bgcolor: 'background.paper', color: 'text.primary', fontSize: 16, '&:hover': { bgcolor: 'background.paper', borderColor: 'rgba(0,0,0,.3)' } /* estilos-sueltos: ok */ }}
+          sx={{ flex: 1, height: 44, border: '2px solid rgba(0,0,0,.15)', borderRadius: '8px', bgcolor: 'background.paper', color: 'text.primary', fontSize: 16, '&:hover': { bgcolor: 'background.paper', borderColor: 'rgba(0,0,0,.3)' }, '&.Mui-focusVisible, &:focus-visible': { outline: '3px solid', outlineColor: 'text.primary', outlineOffset: '2px' } /* estilos-sueltos: ok */ }}
         >
           Cancelar
         </Button>

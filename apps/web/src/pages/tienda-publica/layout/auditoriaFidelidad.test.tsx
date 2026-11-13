@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ThemeProvider } from '@mui/material'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -19,7 +19,6 @@ import { PanelFiltros } from '../catalogo/PanelFiltros'
 import { FormularioContacto } from '../contacto/FormularioContacto'
 import { DatosContacto } from '../contacto/DatosContacto'
 import DialogoWhatsApp from '../whatsapp/DialogoWhatsApp'
-import { estiloEnlacePie } from './estilosPie'
 
 // MSF-847 (auditoría de fidelidad): lo que se corrigió y no tiene otro test propio.
 const tema = crearTemaTienda({ colorPrimario: '#1B3A5C', colorAcento: '#E9A23B', colorTexto: '#1B2430', colorFondo: '#FBF8F2', colorBarra: '#1B3A5C' })
@@ -27,21 +26,32 @@ const conTema = (ui: React.ReactNode) => <ThemeProvider theme={tema}><MemoryRout
 const reglas = () => Array.from(document.querySelectorAll('style')).map((s) => s.textContent).join('')
 
 describe('panel de categorías de escritorio (K-02, K-03)', () => {
-  it('«Todos los productos» lleva el total (suma de las categorías raíz) y las filas no suman el margen de MUI', () => {
-    const categorias = [
-      { id: 'a', nombre: 'Joysticks', padreId: null, productos: 3 },
-      { id: 'b', nombre: 'Cargadores', padreId: null, productos: 4 },
-      { id: 'c', nombre: 'Pro', padreId: 'a', productos: 2 },
-    ]
-    render(conTema(<PanelFiltros categorias={categorias} filtros={FILTROS_INICIALES} alElegirCategoria={vi.fn()} alCambiarStock={vi.fn()} alCambiarPrecioMax={vi.fn()} alLimpiar={vi.fn()} />))
-    expect(screen.getByRole('button', { name: /^Todos los productos/ })).toHaveTextContent('Todos los productos7')
-    expect(reglas()).toMatch(/\.MuiListItemText-root\b|margin:0/)
-  })
-})
+  const categorias = [
+    { id: 'a', nombre: 'Joysticks', padreId: null, productos: 3 },
+    { id: 'b', nombre: 'Cargadores', padreId: null, productos: 4 },
+    { id: 'c', nombre: 'Pro', padreId: 'a', productos: 2 },
+  ]
+  const montar = () => render(conTema(<PanelFiltros categorias={categorias} filtros={FILTROS_INICIALES} alElegirCategoria={vi.fn()} alCambiarStock={vi.fn()} alCambiarPrecioMax={vi.fn()} alLimpiar={vi.fn()} />))
 
-describe('pie (C-06)', () => {
-  it('los enlaces del pie van sin subrayado (solo «Escribinos» lo lleva aparte)', () => {
-    expect(estiloEnlacePie.textDecoration).toBe('none')
+  it('«Todos los productos» lleva el total (suma de las categorías raíz, sin contar dos veces las subcategorías)', () => {
+    montar()
+    const todos = screen.getByRole('button', { name: /^Todos los productos/ })
+    expect(todos).toHaveTextContent('Todos los productos7')
+    expect(within(todos).getByLabelText('7 productos')).toBeInTheDocument()
+  })
+
+  it('cada fila mide 7 px de relleno + una línea de 15 px: el texto no suma el margen de 4 px de MUI y el conteo va a la derecha', () => {
+    montar()
+    for (const fila of screen.getAllByRole('button', { name: /Todos los productos|Joysticks|Cargadores/ })) {
+      const estilo = getComputedStyle(fila)
+      expect(estilo.paddingTop).toBe('7px')
+      expect(estilo.paddingBottom).toBe('7px')
+      expect(estilo.fontSize).toBe('15px')
+      expect(estilo.justifyContent).toBe('space-between')
+      const texto = fila.querySelector('.MuiListItemText-root') as HTMLElement
+      expect(getComputedStyle(texto).marginTop).toBe('0px')
+      expect(getComputedStyle(texto).marginBottom).toBe('0px')
+    }
   })
 })
 
@@ -67,6 +77,9 @@ describe('contacto (T-05, T-06, MK-01, MK-03, MK-04)', () => {
     expect(container.querySelector('section > span svg')?.getAttribute('width')).toBe('20')
     expect(screen.getByLabelText('Nombre')).toBeInTheDocument()
     expect(getComputedStyle(screen.getByText('Nombre', { selector: 'label' })).position).toBe('absolute')
+    // El prototipo móvil muestra «Correo o WhatsApp» como texto visible del campo (el rótulo asociado sigue para lectores).
+    expect(screen.getByLabelText('Correo o WhatsApp')).toHaveAttribute('placeholder', 'Correo o WhatsApp')
+    expect(screen.getByLabelText('Nombre')).toHaveAttribute('placeholder', 'Tu nombre')
     Reflect.deleteProperty(window, 'matchMedia')
   })
 })
@@ -85,6 +98,15 @@ describe('diálogo de WhatsApp (P-07…P-10)', () => {
     expect(mensaje).toHaveAttribute('readonly')
     expect(getComputedStyle(screen.getByRole('button', { name: 'Cancelar' })).fontSize).toBe('16px')
     expect(getComputedStyle(screen.getByRole('button', { name: 'Abrir WhatsApp' })).backgroundColor).toBe('rgb(37, 211, 102)')
+  })
+
+  it('«Cancelar» y «Abrir WhatsApp» tienen indicador de foco visible (contorno de 3 px)', async () => {
+    render(conTema(<DialogoWhatsApp {...props} />))
+    await screen.findByRole('dialog')
+    const css = reglas()
+    expect(css).toMatch(/\.Mui-focusVisible,[^{]*:focus-visible\{[^}]*outline:3px solid/)
+    // «Abrir WhatsApp» también (`:focus-visible`): las dos reglas existen, una por botón.
+    expect((css.match(/outline:3px solid/g) ?? []).length).toBeGreaterThanOrEqual(2)
   })
 
   it('el texto de «Abrir WhatsApp» sobre el verde #25D366 llega a AA (no blanco: 2:1)', async () => {

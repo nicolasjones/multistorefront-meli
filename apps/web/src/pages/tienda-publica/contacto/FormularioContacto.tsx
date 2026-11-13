@@ -35,7 +35,8 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
   autoComplete?: string
   multilinea?: boolean
   inputRef: (el: HTMLInputElement | null) => void
-  // En celular el prototipo (`MJC_M_Contacto`) solo muestra el texto de apoyo: el rótulo queda para lectores de pantalla.
+  // Bajo `md` (celular y tableta chica) el prototipo (`MJC_M_Contacto`) solo muestra el texto de apoyo: el rótulo queda para lectores de
+  // pantalla y el texto de apoyo del segundo campo es «Correo o WhatsApp» (WCAG 1.3.1/3.3.2: el rótulo sigue asociado y a la vista).
   rotuloVisible?: boolean
 }) {
   const idError = `${id}-error`
@@ -195,7 +196,7 @@ export function FormularioContacto({ host }: { host: string }) {
               id="contacto-contacto"
               rotuloVisible={!movil}
               etiqueta="Correo o WhatsApp"
-              ejemplo="Para responderte"
+              ejemplo={movil ? 'Correo o WhatsApp' : 'Para responderte'}
               valor={datos.contacto}
               alCambiar={cambiar('contacto')}
               error={errores.contacto}

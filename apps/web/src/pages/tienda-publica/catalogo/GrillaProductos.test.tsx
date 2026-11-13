@@ -35,8 +35,10 @@ describe('GrillaProductos', () => {
     const { container } = montar(4)
     expect(container.querySelector('ul')).not.toBeNull()
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
-    // Celular: 2 columnas de hasta 173 px (el prototipo deja 4 px libres a la derecha).
-    expect(reglas()).toContain('repeat(2, minmax(0, 173px))')
+    // Celular: 2 columnas fluidas (crecen entre 400 y 599 px); a 390 px son de 173 px por los 4 px libres a la derecha del prototipo.
+    expect(reglas()).toContain('repeat(2, minmax(0, 1fr))')
+    expect(reglas()).toMatch(/padding-right:4px/)
+    expect(reglas()).not.toContain('173px')
     expect(reglas()).toMatch(/gap:12px/)
   })
 
