@@ -59,5 +59,5 @@ Tres entradas según lo que necesites:
 ## Deuda trazada
 
 - **Pasos manuales de VPS2 (MSF-854)**: publicar el sitio de docs, el orden de arranque de `tailnet-forwards`, recrear el stack Edge de dev y revocar la clave de API de prueba `PRUEBA-claude-2026-11-11` los hace Nicolás (piden acceso al VPS2 y credenciales que no están en Git). El procedimiento, la verificación y la reversión de cada uno: [pasos-manuales-vps2.md](pasos-manuales-vps2.md).
-- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en Jira).
+- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en el tracker).
 - `deployment.md` todavía menciona Supabase Cloud para producción; la constitución v1.8.0 establece Supabase self-hosted sin Cloud. Corregir al documentar el ambiente de producción.

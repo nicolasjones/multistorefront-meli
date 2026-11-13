@@ -51,11 +51,16 @@ esquemas expuestos). Todos los pasos se corren desde la raíz del repo; reemplaz
 2. Levantá la base, migrá y sembrá:
 
 ```bash
-pnpm exec supabase start --ignore-health-check -x studio,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+pnpm exec supabase start --ignore-health-check -x studio,imgproxy,logflare,vector,supavisor,postgres-meta
 pnpm exec supabase migration up --local
 docker exec -i supabase_db_PID psql -U postgres -d postgres < supabase/seed.sql
 docker restart supabase_rest_PID
 ```
+
+   `edge-runtime` y `realtime` quedan arriba a propósito: `service-seguimiento`, `tienda-seo` y el caso «recuperar» de
+   `cuenta-web-cliente` usan funciones Edge, y `stock-actual-vivo` necesita Realtime. Si NO vas a correr esos specs podés
+   sumar `edge-runtime` y/o `realtime` a la lista de `-x` para un stack más liviano (y sin Edge, `tienda-seo` responde 500: es lo
+   esperado, no un bug).
 
 3. Compilá la web contra ese stack. Las claves salen de `pnpm exec supabase status -o env` (`ANON_KEY` y
    `SERVICE_ROLE_KEY`). El build lee `VITE_SUPABASE_PUBLISHABLE_KEY` (no `..._ANON_KEY`: con otro nombre el build usa
@@ -83,6 +88,29 @@ pnpm --filter @platform/web exec playwright test precios-masivos tienda-promocio
 
 Alcance del desborde a 320 px: este cambio corrige `BusquedaGlobal` y `MenuCuenta`; el mismo patrón `width: 1` copiado
 en otros componentes lo corrige el PR #876, no este.
+
+## Requisitos de algunos specs y guardián de escritura directa
+
+- `service_role` solo **lee** `dominio.consultas` y las tablas de solo agregar (historiales, `movimientos_stock`,
+  `lotes_stock`...). Los specs siembran esos datos por la RPC de negocio (p. ej. `publico.crear_consulta_publica` con una
+  fila en `dominio.tiendas`) y no los borran a mano: la baja de la organización se los lleva (salvo los ingresos de
+  mercadería, que son RESTRICT hacia productos: `limpiarOrganizacion` de `e2e/soporte/fixtures.ts` los borra antes). Los
+  specs que necesitan consultas, productos o empresas siembran una organización PROPIA por corrida y la dan de baja al
+  terminar; no usan las del demo (no se pueden limpiar). `pnpm e2e:escritura:check`
+  (y `pnpm test:e2e:escritura`, ambos en `validate.yml`) falla si un spec de `apps/web/e2e` hace INSERT/PATCH/DELETE
+  directo sobre esas tablas; leerlas está permitido y una línea se exime con `escritura-directa: ok — <motivo>`.
+- `service-seguimiento` necesita `SEGUIMIENTO_IP_SALT` en el runtime de **Edge**, no en Playwright: se exporta (o va en
+  `supabase/.env`) antes de `supabase start`, porque `config.toml` lo declara en `[edge_runtime.secrets]`.
+- `ventas-impresion` corre el worker real: compilá `workers/comprobantes-pdf` (`pnpm build` en ese paquete) y exportá
+  `E2E_PGPORT` con el puerto de la base local; el spec crea el rol `worker_<organización>` con los permisos del
+  aprovisionamiento y lo elimina al terminar.
+- `stock-actual-vivo` necesita Realtime (no excluirlo con `-x realtime`).
+- `cuenta-web-cliente` ingresa por los subdominios de la tienda y el enlace de invitación vuelve al `site_url` de
+  `supabase/config.toml` (`http://127.0.0.1:4300`, con sus `additional_redirect_urls`): la web tiene que servirse en ESE
+  puerto (`vite preview --port 4300 --strictPort`) o el caso «invitación → definir contraseña» no llega a la pantalla. El caso
+  «recuperar» además necesita Edge y el SMTP de Mailpit (`SMTP_*`) declarado para el runtime.
+- Los recorridos largos fijan `test.setTimeout` con el motivo de cada spec (30-90 s); el tope por defecto (30 s) no alcanza con
+  varios roles o con mucha siembra.
 
 ## Estado de cobertura
 
@@ -149,7 +177,7 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 
 - `tienda-seo` (`robots.txt` y `sitemap.xml`) pide el archivo a la Edge Function `tienda-seo` con `X-Tienda-Host`,
   igual que hace nginx en producción (`apps/web/nginx.conf`, bloque `location ~ ^/(robots\.txt|sitemap\.xml)$`): el
-  servidor de `vite preview` no los sirve ni tiene por qué. Con la receta de arranque que excluye `edge-runtime`,
+  servidor de `vite preview` no los sirve ni tiene por qué. Si arrancaste excluyendo `edge-runtime`,
   Kong responde 500 (`supabase_edge_runtime_<proyecto>` no resuelve): es lo ESPERADO sin las funciones servidas, no un bug del producto. Se corre con las funciones servidas:
   `pnpm exec supabase functions serve --no-verify-jwt` en otra terminal.
 - `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375 y
