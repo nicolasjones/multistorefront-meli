@@ -118,7 +118,7 @@ type FilaVistaPrevia = {
   identidad: Record<string, string | null>
   contenido: Record<string, string>
   hay_productos: boolean
-  categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number }>
+  categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number; imagen?: string | null }>
   destacados: Array<{ id: string; nombre: string; precio: number | string | null; disponible: boolean; imagen: string | null; categoria_id: string | null }>
 }
 
@@ -132,8 +132,8 @@ export async function leerVistaPrevia(empresaId: string): Promise<VistaPreviaTie
     identidad: fila.identidad,
     contenido: fila.contenido,
     hayProductos: fila.hay_productos,
-    // La vista previa no calcula la foto de categoría (null).
-    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos, imagen: null })),
+    // MSF-846: la foto de categoría (ruta del bucket) llega de la RPC; null si ninguna tiene imagen.
+    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos, imagen: c.imagen ?? null })),
     destacados: fila.destacados.map((p) => ({
       id: p.id,
       nombre: p.nombre,
