@@ -167,21 +167,21 @@
     },
     "docs/api/inicio-rapido.md": {
       "title": "Empezar con la API",
-      "pageHash": "6a8c4484e5310678178d4524d6ceeb0b2702d848822d720fe53438759193d157",
+      "pageHash": "f36def0cabc184556618e2951cae85ce8e4f25c7f91ead3679a00f1197e8e968",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "tecnico",
-      "commit": "5f4018f5"
+      "commit": "15bb7830"
     },
     "docs/api/referencia.md": {
       "title": "Referencia de la API pública v1",
-      "pageHash": "60db3825e34adaac4c02033b30b805ef3dc079cd1fdc0310bfca67b1d40c7ec0",
+      "pageHash": "86cae913eab2c97c91ded3ed6d56aab58d7ae304de3ae3c884fee0d2597c5c92",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "tecnico",
-      "commit": "a973a866"
+      "commit": "15bb7830"
     },
     "docs/architecture.md": {
       "title": "Arquitectura",
@@ -407,14 +407,14 @@
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
-      "pageHash": "0afed6a5254be4a69f87fbe59baaf61f54103b4a0a8bdec07728ce74613ab65b",
+      "pageHash": "c277ab08e1e6d1bcba747a03f73f28aba36bc92d38f08e4902ffebcf3482797c",
       "sourceHash": "",
-      "sourceAt": "5f4018f5",
+      "sourceAt": "15bb7830",
       "sources": [
         "apps/web/src/pages/api"
       ],
       "owner": "producto",
-      "commit": "5f4018f5"
+      "commit": "15bb7830"
     },
     "docs/producto/asistente.md": {
       "title": "Asistente con IA sobre tu catálogo",
@@ -1306,12 +1306,12 @@
     },
     "docs/tecnico/api-publica.md": {
       "title": "API pública: diseño y operación",
-      "pageHash": "bb58a0d1cb8259ab2cf1d971ede26c20bbfdf451d833a471c9012c1f00cdfe3c",
+      "pageHash": "6037c08ca44a0ff6f9bb3f2501bbad717b0266e6ce99b07a8af24ca1629bed57",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "tecnico",
-      "commit": "5f4018f5"
+      "commit": "15bb7830"
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
@@ -1560,14 +1560,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "253d5f81d5a9a9b0c5573754e0fb6730cf5458a4c15141fc4bb64dc140858fb0",
+      "pageHash": "f8fd53250e92301f2544348a9630b10bc4803d2500c41f9584615bd99929b3e0",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "394208c5",
+      "sourceAt": "15bb7830",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "5f4018f5"
+      "commit": "15bb7830"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",

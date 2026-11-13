@@ -79,15 +79,23 @@ Por seguridad, la dirección no puede apuntar a una computadora interna ni lleva
 
 Desde el listado podés **Pausar** una suscripción (deja de enviar avisos hasta que la **Reanudes**) o **Eliminarla**. Los avisos que ya estaban pendientes se entregan al reanudar, pero **los eventos que ocurran mientras está pausada no se envían después**: al reanudar, el otro sistema tiene que ponerse al día con una consulta.
 
-El **secreto de firma no se puede cambiar ni volver a ver**. Para cambiarlo, creá una suscripción nueva con la misma dirección (se muestra su secreto), configuralo en el otro sistema y eliminá la anterior. Mientras convivan, el otro sistema recibe cada evento dos veces, con el mismo identificador y firmas distintas: tiene que ignorar el repetido.
+El **secreto de firma no se puede volver a ver**, pero se puede **rotar** sin cortar el servicio:
+
+1. En el listado, hacé clic en **Rotar secreto** de esa suscripción y confirmá.
+2. Se abre **Copiá el secreto** con el secreto nuevo. **Es la única vez que se muestra.** Copialo y entregáselo a quien configura el otro sistema.
+3. El secreto anterior **sigue valiendo 24 horas**. Durante ese tiempo cada aviso lleva las dos firmas, y el otro sistema lo acepta con cualquiera de las dos: así puede cambiar el secreto sin perder avisos. En el listado ves hasta cuándo vale el anterior («Rotado: el anterior vale hasta…»).
+
+**Cuidado:** si el secreto nuevo se perdió y rotás otra vez mientras el anterior todavía vale, el secreto original **deja de valer en ese momento** y el otro sistema deja de recibir avisos hasta que cargue el nuevo. La pantalla te lo advierte. Si pensás que el secreto se filtró, rotalo y entregá el nuevo enseguida.
+
+Si restauraste la base en otra instancia, los secretos guardados no se pueden leer: rotá el secreto de cada suscripción.
 
 ### Qué pasa si el aviso no llega
 
-Si la dirección no responde bien, el sistema lo intenta **hasta 5 veces en total** (el envío original y 4 reintentos), esperando como mínimo 1, 2, 4 y 8 minutos entre uno y otro. Si los 5 intentos fallan, la entrega queda **agotada** y **no se vuelve a enviar sola ni se puede reintentar a mano**: el otro sistema tiene que ponerse al día con una consulta. Un mismo aviso puede llegar más de una vez, así que el otro sistema debe ignorar los repetidos.
+Si la dirección no responde bien, el sistema lo intenta **hasta 5 veces en total** (el envío original y 4 reintentos), esperando como mínimo 1, 2, 4 y 8 minutos entre uno y otro. Si los 5 intentos fallan, la entrega queda **agotada** y **no se vuelve a enviar sola**. Un Administrador la puede **reintentar a mano** desde **Entregas recientes** (ver abajo); lo que el otro sistema se perdió y no se reintenta lo recupera con una consulta. Un mismo aviso puede llegar más de una vez, así que el otro sistema debe ignorar los repetidos.
 
 ## Revisar qué pasó
 
-- **Entregas recientes**: cada aviso con su **Estado** (por ejemplo, completada o agotada), los **Intentos** y el **Último error**, con el código de respuesta si lo hubo. Si hay entregas agotadas, revisá que la dirección esté bien y que el otro sistema esté funcionando.
+- **Entregas recientes**: cada aviso con su **Estado** (por ejemplo, completada o agotada), los **Intentos** y el **Último error**, con el código de respuesta si lo hubo. Si hay entregas agotadas, revisá que la dirección esté bien y que el otro sistema esté funcionando, y después usá **Reintentar** en cada una: vuelve a la cola con sus 5 intentos. Con el interruptor **Solo agotadas** ves únicamente esas, aunque sean viejas. Si la suscripción está pausada, el aviso espera a que la reanudes. Hay un máximo de 200 avisos esperando para enviarse a la vez: si lo alcanzás, esperá a que se vacíe la cola.
 - **Llamadas recientes**: cada uso de una clave, con **Cuándo**, **Método**, **Ruta**, **Estado** y **Duración**. Un estado de 400 o más se marca como error. También quedan registrados los intentos rechazados, por ejemplo con una clave revocada. El registro **no guarda la clave ni los datos consultados**, y se borra solo a los 90 días (valor por defecto).
 
 ## Límites

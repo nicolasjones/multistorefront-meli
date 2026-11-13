@@ -24,7 +24,7 @@ Resumen técnico de la API pública de solo lectura de MSF (épica MSF-233, F-AP
 - **Límite por clave** (60 por minuto, ventana deslizante en la base con reserva de llamada) y tope de 600 por minuto para llamadas sin clave válida, solo para acotar la tabla de auditoría.
 - **Entrega al menos una vez**: la base gobierna reintentos (5 intentos en total, espera mínima 1, 2, 4 y 8 minutos) y el receptor deduplica por `id`.
 - **SSRF**: se exige `https`, sin credenciales y sin direcciones internas; se conecta a la IP ya resuelta y validada, y no se siguen redirecciones.
-- **Secretos de firma** en Vault; nunca llegan al navegador.
+- **Secretos de firma** en Vault; nunca llegan al navegador. Rotables con gracia de 24 h: durante ese tiempo cada aviso lleva dos firmas (`X-Firma: t=…,v1=<nuevo>,v1=<anterior>`).
 - **Versionado por ruta** (`/v1/`): los cambios aditivos no rompen la versión.
 
 ## Operación
@@ -36,11 +36,11 @@ Resumen técnico de la API pública de solo lectura de MSF (épica MSF-233, F-AP
 
 | Tema | Seguimiento |
 |---|---|
-| `cola_eventos` y `api_entregas` no se purgan; se encolan eventos aunque no haya suscripción | MSF-836 |
-| Sin alertas si las entregas fallan en masa | MSF-837 |
-| Sin reintento manual de entregas agotadas; el backoff total es de unos 15 minutos | MSF-838 |
-| Sin rotación del secreto de una suscripción; el restore en otra instancia deja las suscripciones sin secreto | MSF-839 |
-| Capacidad del pipeline de avisos (global, no por organización) | MSF-840 |
+| **Hecho:** la purga diaria borra los eventos terminados con más de 90 días y sin entregas vivas (se siguen encolando eventos aunque no haya suscripción: la cola es una outbox genérica) | MSF-836 |
+| **Hecho:** el flow `monitoreo-api-entregas` (cada 15 minutos) avisa por correo a soporte si hay entregas agotadas o atrasadas o eventos sin repartir; la purga también avisa si falla. Falta confirmar la primera ejecución en un Kestra real | MSF-837 |
+| **Hecho:** reintento manual de entregas agotadas por el Administrador (botón **Reintentar**, tope de 200 esperando). El backoff sigue siendo de unos 15 minutos en total | MSF-838 |
+| **Hecho:** rotación del secreto de una suscripción con gracia de 24 h y doble firma; tras un restore en otra instancia hay que rotar cada secreto | MSF-839 |
+| Capacidad del pipeline de avisos (global, no por organización): hay que medir con volumen real antes de decidir | MSF-840 |
 | Ampliar la API a escritura (prerrequisitos de arquitectura en su descripción) | MSF-835 |
 
 Límites conocidos de los datos: `stock.actualizado` no se emite por movimientos de variantes ni por traslados entre depósitos, y en ventas la consulta incremental (`actualizado_desde`) filtra por la fecha de confirmación, por lo que no ve cambios de estado ni anulaciones.
