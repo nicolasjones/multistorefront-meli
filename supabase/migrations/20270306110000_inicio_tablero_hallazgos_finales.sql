@@ -514,13 +514,16 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_org uuid := (select private.organizacion_id());
 begin
   -- Mismo orden de locks que `confirmar_cotizacion`, `descartar_cotizacion` y el cambio de alcance: primero el
   -- advisory de la organización y recién después la fila de la pendiente. Es reentrante en la misma transacción
   -- (`confirmar_cotizacion` lo vuelve a tomar). Sin esto, dos administradores a la vez podían dar deadlock (40P01).
-  -- Sin organización de sesión no se toma el lock (la clave sería la misma para todos): cargar_cotizacion rechaza con 42501.
-  if (select private.organizacion_id()) is not null then
-    perform pg_advisory_xact_lock(hashtextextended('cotizacion:' || (select private.organizacion_id())::text, 0));
+  -- El lock se toma SOLO con organización de sesión y con edición de `cotizacion_dolar` (misma clave): quien no
+  -- puede cargar el dólar no bloquea a quien sí puede; en ese caso `cargar_cotizacion` rechaza con 42501 como antes.
+  if v_org is not null and (select private.nivel_seccion('cotizacion_dolar')) = 'edicion' then
+    perform pg_advisory_xact_lock(hashtextextended('cotizacion:' || v_org::text, 0));
   end if;
   perform public.cargar_cotizacion(p_valor, p_empresa);
   return public.confirmar_cotizacion(p_empresa, p_variacion_vista);

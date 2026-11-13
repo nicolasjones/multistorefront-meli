@@ -19,14 +19,12 @@ const fila = (n: number) => ({
   productoId: `p-${n}`, nombre: `Producto ${n}`, sku: `SKU-${n}`, categoria: 'Periféricos', stockInicial: 8, entradas: 5, salidas: 3,
   ajustes: -2, stockActual: 10, minimo: 5, ventas: 4, ultimoMovimiento: '2026-10-12', estado: 'normal' as const,
 })
-// Servidor simulado: pagina por bloques como la RPC, que ACOTA la página (`least(p_pagina, 100000)`). Con el tope reducido
-// a 300 filas la cota equivalente es la página 300: un sondeo `(tope, 1)` → página 301 se acotaría a la 300 y devolvería la
-// fila 300 aunque no haya más (el bug S-3). Con el código anterior «exactamente el tope» falla por esa razón.
-const PAGINA_MAXIMA = 300
-const servidor = (filas: ReturnType<typeof fila>[]) => async (_ctx: unknown, _f: unknown, pagina: number, tamano: number) => {
-  const efectiva = Math.min(pagina, PAGINA_MAXIMA)
-  return { filas: filas.slice((efectiva - 1) * tamano, efectiva * tamano), total: filas.length }
-}
+// Servidor simulado: pagina por bloques (página × tamaño). El bug S-3 (sondeo `(tope, 1)` que la RPC acotaba a la página 100000)
+// lo cubre el test directo del hook (`hooks/useExportarCsv.test.tsx`: el lote siempre es de `tamanoLote`); aquí se comprueba el
+// comportamiento de punta a punta de la pantalla en el tope.
+const servidor = (filas: ReturnType<typeof fila>[]) => async (_ctx: unknown, _f: unknown, pagina: number, tamano: number) => ({
+  filas: filas.slice((pagina - 1) * tamano, pagina * tamano), total: filas.length,
+})
 const abrir = (verVentas = true) => render(<MemoryRouter><MovimientosPorProducto contexto={CONTEXTO} verVentas={verVentas} /></MemoryRouter>)
 const productos = (cantidad: number) => Array.from({ length: cantidad }, (_, i) => fila(i + 1))
 const exportar = async () => {

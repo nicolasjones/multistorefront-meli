@@ -56,16 +56,18 @@ describe('useExportarCsv · tope de filas', () => {
 })
 
 describe('useExportarCsv · filas repetidas entre lotes', () => {
-  it('con `clave` una fila repetida se exporta una sola vez y el desplazamiento sigue las filas pedidas', async () => {
-    const base = dataset(150)
+  it('con `clave` una fila repetida se exporta una sola vez y el desplazamiento sigue las filas PEDIDAS (no las exportadas)', async () => {
+    const base = dataset(250)
+    // El lote 2 empieza repitiendo el último producto del lote 1 (corrimiento de offset): 251 filas pedidas, 250 únicas.
     const conRepetida = [...base.slice(0, 100), base[99], ...base.slice(100)]
     const { hook, pedidos } = preparar(conRepetida, { clave: (fila) => fila.id })
     await act(async () => { await hook.result.current.exportar() })
     await waitFor(() => expect(mocks.descargar).toHaveBeenCalledTimes(1))
     const [contenido] = mocks.descargar.mock.calls[0] as [string]
     const ids = contenido.replace(/^﻿/, '').split('\r\n').filter((l) => l !== '').slice(1)
-    expect(ids).toHaveLength(150)
-    expect(new Set(ids).size).toBe(150)
-    expect(pedidos.map(([desde]) => desde)).toEqual([0, 100])
+    expect(ids).toHaveLength(250)
+    expect(new Set(ids).size).toBe(250)
+    // Tras el lote 2 hay 199 filas exportadas pero 200 pedidas: el tercer lote debe pedirse desde 200 (con `filas.length` sería 199).
+    expect(pedidos.map(([desde]) => desde)).toEqual([0, 100, 200])
   })
 })
