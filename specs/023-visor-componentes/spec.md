@@ -83,3 +83,4 @@ desarrollo); la fuente de verdad es esta spec y `docs/e2e-app.md`.
 | Checklist de ítems con estado (hecho / pendiente / ambiguo / fallido / omitido) | US2 |
 | Bloque "Ítems sin E2E" | FR-002 (progreso) |
 | Vacío con instrucciones | FR-005, US3 |
+| Fila **Empresa activa** | **No aplica**: el visor es una pantalla interna de desarrollo y su única fuente de datos es el manifiesto de cobertura E2E (`cobertura-e2e.json`, del bucket o local); no lee ni escribe datos de ninguna empresa y no muestra selector, columna ni texto de empresa, así que no hay empresa activa que respetar ni consultas que recargar al cambiarla (Principio VIII) | FR-005 (fuente de datos) |
