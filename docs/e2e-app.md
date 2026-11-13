@@ -171,7 +171,7 @@ en otros componentes lo corrige el PR #876, no este.
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
 | Contacto de la tienda: datos de cada tienda, consulta que llega a la bandeja de su empresa con origen formulario, ráfaga de 6 envíos (el sexto muestra la espera, la bandeja recibe 5) y HTML literal (SC-004, SC-005) | MSF-437 T013 | Escrito: `e2e/tienda-contacto.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-contacto`. Restaura los datos de las empresas del seed y limpia consultas y envíos de prueba. Guía: `docs/tienda-contacto.md` |
 | Consulta por WhatsApp desde la ficha: en las dos tiendas del seed, ficha → diálogo → «Abrir WhatsApp» (la URL de `wa.me` se verifica y la red no se toca) → la consulta llega a la bandeja de su empresa con origen whatsapp y el producto, y la empresa sin número no muestra el botón (SC-008) | MSF-433 T028 | Escrito: `e2e/tienda-whatsapp.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker ni al CLI de Supabase); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-whatsapp`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local. Guía: `docs/tienda-contacto.md` |
-| Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); en local se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda; en el CI (`CI`) FALLA en vez de omitirse, para no dar un falso verde). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
+| Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); en local se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda; en el job `e2e-tienda` (`E2E_TIENDA_CI=1`) FALLA en vez de omitirse, para no dar un falso verde; en `application`, cuyo build no define `VITE_PANEL_HOSTS`, y en local se omite como antes). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
 
 ### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
 
@@ -205,7 +205,7 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 ## CI
 
 `validate.yml` corre los specs públicos como pasos del job de plataforma (después de
-`pnpm build`: instala Chromium con `--with-deps` y ejecuta `pnpm test:e2e -- acceso-publico.e2e.ts`).
+`pnpm build`: instala Chromium con `--with-deps` y ejecuta `pnpm --filter @platform/web exec playwright test acceso-publico.e2e.ts`; NO `pnpm test:e2e -- acceso-publico.e2e.ts`: el `--` llega literal a Playwright, que lo toma como fin de opciones y no filtra, así que corría los 103 specs).
 El paso `build` corre si el diff tiene `code` **o** afecta a la app web (`web`): un cambio que toca
 `apps/web` sin ser código por extensión (p. ej. `apps/web/nginx.conf`) deja `code=false` pero
 `web=true`, y sin el build el e2e fallaba por `apps/web/dist` ausente.
@@ -262,6 +262,15 @@ Qué hace, en orden (cada paso explica su motivo en el workflow):
 6. Siempre: limpieza de navegadores (`always()`), `supabase stop --no-backup` + `liberar` de la ranura, y si falla o se cancela se sube
    el artefacto `playwright-report-tienda` (`playwright-report`, `test-results` con trazas y `resultado-e2e.json`; 7 días de retención).
 
+Privilegios de `service_role` en `public` (hallazgo del primer CI real): `db:reset:ci` hace `drop schema public cascade` + `create schema public`,
+lo que borra los privilegios POR DEFECTO que un Supabase da sobre `public` (ALL para `service_role` en toda tabla nueva). Una base de
+desarrollo (`supabase start` + `migration up`, como la receta de arriba) los conserva, así que `tienda-analitica`, `tienda-promocion` y
+`tienda-publicacion` pasaban en local y fallaban en el CI con `42501`. La migración `20270307100000` declara los grants mínimos
+(solo `service_role`): `usuarios_organizacion` SELECT/DELETE, `usuario_empresa_activa` SELECT/INSERT/DELETE y `banderas_plataforma`
+SELECT/UPDATE (pgTAP `service_role_grants_public_e2e`). Para reproducir el CI en local sin el job, aplicá el mismo SQL que
+`scripts/reset-db-ci.mjs` (`sqlReset()` de `scripts/reset-db-ci-sql.mjs`, luego cada migración y `seed.sql` con `psql`) en lugar de
+`migration up`; si un spec nuevo escribe una tabla de `public`, falla ahí con «GRANT ... TO service_role» y hay que declarar su grant.
+
 Ranuras y timeouts: el job espera a lo sumo 10 min por una ranura (`SUPABASE_CI_LOCK_MIN=10`; el default de `database` es 20)
 y, si no hay, falla (no bloqueante mientras `E2E_TIENDA_BLOQUEA` no sea `true`; ya bloqueante, es el costo de no oversuscribir el
 host). Su `timeout-minutes` es 55 y el TTL de las ranuras (`SUPABASE_CI_LOCK_TTL_MIN`) sube a 75 min en `e2e-tienda` **y en
@@ -283,7 +292,7 @@ Límites a propósito:
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
   corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `application` con `pnpm test:e2e:omitidos`).
-  Además `tienda-sesion-vencimiento` falla (no se omite) en el CI si el build no sirve el host como tienda, y
+  Además `tienda-sesion-vencimiento` falla (no se omite) en el job `e2e-tienda` (variable explícita `E2E_TIENDA_CI=1`, que solo setea ese job: en `application` el build no define `VITE_PANEL_HOSTS` y el spec se sigue omitiendo) si el build no sirve el host como tienda, y
   `tienda-disponibilidad` no tiene `test.skip` dinámicos (omitía su verificación porque `locator.count()` no espera y la carga
   infinita dejaba el producto sembrado fuera de la primera tanda; ahora siembra una categoría propia y abre `/catalogo?categoria=<id>`).
   Solo queda su omisión de entorno al inicio del `describe`, cubierta por la guarda de arriba.
