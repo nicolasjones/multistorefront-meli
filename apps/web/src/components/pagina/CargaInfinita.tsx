@@ -96,6 +96,14 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
   // porque la tanda falló) el foco pasa al que lo reemplaza o al texto de fin, nunca al body.
   useEffect(() => {
     if (!focoEnBoton.current) return
+    // Solo se restaura si el foco se perdió (cayó al body) o sigue en la zona: si el usuario pasó a otro campo
+    // (o el navegador no enfocó el botón al hacer clic, como Safari/Firefox en macOS) no se le roba.
+    const actual = document.activeElement
+    const perdido = !actual || actual === document.body
+    if (!perdido && !zona.current?.contains(actual)) {
+      focoEnBoton.current = false
+      return
+    }
     if (terminado) {
       focoEnBoton.current = false
       fin.current?.focus()
@@ -137,8 +145,10 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
           aria-disabled={cargando || undefined}
           aria-busy={cargando || undefined}
           startIcon={cargando ? <CircularProgress size={16} /> : undefined}
-          onClick={() => {
-            focoEnBoton.current = true
+          onClick={(e) => {
+            // Safari y Firefox en macOS no enfocan el botón al hacer clic: la marca vale si el foco está en él o se perdió.
+            const actual = document.activeElement
+            focoEnBoton.current = actual === e.currentTarget || !actual || actual === document.body
             if (!cargando) onCargarMas()
           }}
         >

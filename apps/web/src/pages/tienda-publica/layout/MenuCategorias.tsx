@@ -32,7 +32,7 @@ const estiloCopia = { ...estiloEnlace, '&::before': { content: 'attr(data-nombre
 // las 6 principales + «Más categorías» no entran; se mide el ancho real de cada entrada (en una copia oculta, para
 // no depender de lo que ya se recortó) y se muestran solo las que entran; el resto se alcanza desde «Más categorías».
 // Se vuelve a medir al cambiar el ancho de la barra o de la copia (carga de la fuente). Sin ResizeObserver
-// (navegadores viejos, tests) se muestran todas.
+// (navegadores viejos, tests) se muestran todas y la barra desplaza en horizontal.
 function useEntradasVisibles(total: number, hayMas: boolean) {
   const lista = useRef<HTMLUListElement | null>(null)
   const medida = useRef<HTMLUListElement | null>(null)
@@ -66,17 +66,23 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
   const principales = categoriasPrincipales(categorias.categorias)
   const hayMas = hayMasCategorias(categorias.categorias, principales)
   const { lista, medida, visibles } = useEntradasVisibles(principales.length, hayMas)
+  // Sin ResizeObserver no se puede medir: se muestran todas y la barra desplaza en horizontal en vez de recortar.
+  const hayObservador = typeof ResizeObserver !== 'undefined'
   if (categorias.fase === 'lista' && principales.length === 0) return null
   const mostradas = principales.slice(0, visibles)
   return (
     <Box sx={{ display: { xs: 'none', md: 'block' }, bgcolor: 'background.paper', borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
       <Box component="nav" aria-label="Categorías" aria-busy={categorias.fase === 'cargando'} sx={{ position: 'relative', maxWidth: 1200, mx: 'auto', px: 2, minHeight: 52 /* estilos-sueltos: ok */ }}>
-        {/* Copia invisible para medir cada entrada (no se lee ni se enfoca). */}
-        <Box component="ul" ref={medida} aria-hidden sx={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', display: 'flex', flexWrap: 'nowrap', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, width: 'max-content' }}>
-          {principales.map((categoria) => <li key={categoria.id}><Box component="span" data-nombre={categoria.nombre} sx={estiloCopia} /></li>)}
-          <li><Box component="span" data-nombre="Más categorías" sx={estiloCopia} /></li>
+        {/* Copia invisible para medir cada entrada (no se lee ni se enfoca). Va dentro de un contenedor recortado
+            (overflow:hidden, del tamaño de la barra): una lista `position:absolute` con `width:max-content` fuera de él
+            ensancha el scroll horizontal de toda la página. Los anchos de los hijos se siguen midiendo igual. */}
+        <Box aria-hidden sx={{ position: 'absolute', inset: 0, overflow: 'hidden', visibility: 'hidden', pointerEvents: 'none' }}>
+          <Box component="ul" ref={medida} sx={{ display: 'flex', flexWrap: 'nowrap', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, width: 'max-content' }}>
+            {principales.map((categoria) => <li key={categoria.id}><Box component="span" data-nombre={categoria.nombre} sx={estiloCopia} /></li>)}
+            <li><Box component="span" data-nombre="Más categorías" sx={estiloCopia} /></li>
+          </Box>
         </Box>
-        <Box component="ul" ref={lista} data-testid="menu-categorias-lista" sx={{ display: 'flex', flexWrap: 'nowrap', overflow: 'hidden', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, alignItems: 'center' }}>
+        <Box component="ul" ref={lista} data-testid="menu-categorias-lista" sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: hayObservador ? 'hidden' : 'auto', overflowY: 'hidden', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, alignItems: 'center' }}>
           {mostradas.map((categoria) => (
             <li key={categoria.id}>
               <Box component={NavLink} to={`/categoria/${categoria.id}`} sx={estiloEnlace}>{categoria.nombre}</Box>

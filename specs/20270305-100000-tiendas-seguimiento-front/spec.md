@@ -13,7 +13,7 @@
 ## User Scenarios & Testing
 
 ### User Story 1 - Menú de categorías en una línea sin cortes (P1)
-1. Con San Javucho a 1440 px (Bricolage Grotesque, más ancha) la barra muestra solo las categorías que entran y «Más categorías» al final; `scrollWidth <= clientWidth`.
+1. Con San Javucho a 1440 px (Bricolage Grotesque, más ancha) la barra muestra solo las categorías que entran y «Más categorías» al final; `scrollWidth <= clientWidth` en la lista y en la página (la copia de medida no agrega scroll horizontal). Se midió en Chromium sobre HTML aislado con el mismo CSS; la medición en dev se hace tras el despliegue.
 2. Mismo estilo del prototipo (mayúsculas, subrayado de la activa); al cambiar el ancho o cargar la fuente se vuelve a medir.
 
 ### User Story 2 - Carga infinita accesible y sin parpadeos (P1)
@@ -45,6 +45,8 @@ Prototipos: `design/pantallas/MJC_Home` y `SJ_Home` (`*.inventory.json`). No se 
 
 ## Decisiones y puntos dudosos
 
-- La medida se toma de una copia invisible de la barra (texto en pseudo-elemento, sin texto en el DOM accesible) para no depender de lo ya recortado; sin `ResizeObserver` se muestran todas.
+- La medida se toma de una copia invisible de la barra (texto en pseudo-elemento, sin texto en el DOM accesible) para no depender de lo ya recortado; sin `ResizeObserver` se muestran todas y la barra desplaza en horizontal (`overflow-x:auto`) en vez de recortar.
 - Las categorías no mostradas no se pierden: se alcanzan desde «Más categorías» (`/catalogo`).
 - El aviso de espera se anuncia por el `role=alert` de `EstadoError`; la región viva queda vacía en error.
+- Foco de `CargaInfinita`: solo se restaura si el foco se perdió (cayó al body) o sigue dentro del pie; si el usuario pasó a otro campo, o el navegador no enfocó el botón al hacer clic (Safari/Firefox en macOS), no se le roba.
+- Riesgo residual (no verificado con lector de pantalla): cuando «Reintentar» espera, el foco va al contenedor del aviso (`tabIndex=-1`, sin rol) que contiene el `role=alert`; algún lector podría leer el texto del aviso al enfocar el contenedor además del anuncio del `role=alert`. No hay un arreglo simple sin dejar el foco en el body, que es peor.

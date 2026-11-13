@@ -82,6 +82,47 @@ describe('CargaInfinita', () => {
     expect(document.activeElement).toBe(screen.getByText('No hay más resultados.'))
   })
 
+  it('si el usuario pasó a otro campo, la tanda siguiente no le roba el foco', () => {
+    const { rerender } = render(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    boton.focus()
+    fireEvent.click(boton)
+    const campo = screen.getByLabelText('Buscar')
+    campo.focus()
+    rerender(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(campo)
+  })
+
+  it('si el navegador no enfocó el botón al hacer clic (Safari) y el foco está en otro campo, no se lo roba', () => {
+    const { rerender } = render(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    const campo = screen.getByLabelText('Buscar')
+    campo.focus()
+    // Clic sin foco previo en el botón: la marca no debe quedar puesta.
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    rerender(
+      <div>
+        <input aria-label="Buscar" />
+        <CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />
+      </div>,
+    )
+    expect(document.activeElement).toBe(campo)
+  })
+
   it('si falla la tanda muestra el error con «Reintentar» y no pide solo', () => {
     const onCargarMas = vi.fn()
     render(<CargaInfinita hayMas cargando={false} hayError onCargarMas={onCargarMas} />)

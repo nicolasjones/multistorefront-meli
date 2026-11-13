@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
@@ -56,10 +56,27 @@ describe('MenuCategorias · una sola línea', () => {
     const { rerender } = montar(4)
     expect(enlaces()).toEqual(['Joysticks', 'Cargadores', 'Consolas', 'Auriculares'])
     ancho = 700
-    observadores.forEach((cb) => cb())
+    act(() => { observadores.forEach((cb) => cb()) })
     rerender(<MemoryRouter><MenuCategorias categorias={categorias(4)} /></MemoryRouter>)
     expect(enlaces()).toEqual(['Joysticks', 'Cargadores', 'Más categorías'])
     ancho = 1168
+  })
+
+  it('la copia de medida va oculta a lectores (aria-hidden) dentro de un contenedor recortado', () => {
+    montar(2)
+    const copia = screen.getByRole('navigation', { name: 'Categorías' }).querySelector('[data-nombre="Joysticks"]')!
+    const contenedor = copia.closest('[aria-hidden="true"]') as HTMLElement
+    expect(contenedor).not.toBeNull()
+    expect(within(screen.getByRole('navigation', { name: 'Categorías' })).queryAllByRole('list', { hidden: false })).toHaveLength(1)
+    expect(getComputedStyle(contenedor).overflow).toBe('hidden')
+    expect(getComputedStyle(contenedor).position).toBe('absolute')
+  })
+
+  it('sin ResizeObserver se muestran todas y la barra desplaza en horizontal en vez de recortar', () => {
+    vi.stubGlobal('ResizeObserver', undefined)
+    montar(6)
+    expect(enlaces()).toEqual(nombres)
+    expect(getComputedStyle(screen.getByTestId('menu-categorias-lista')).overflowX).toBe('auto')
   })
 
   it('la copia de medida no agrega texto ni enlaces al DOM accesible', () => {
