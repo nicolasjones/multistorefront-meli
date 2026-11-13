@@ -25,8 +25,22 @@ No se tocó código, migraciones, workflows ni el resto del merge de #929.
 ```diff
  | Bloque "Ítems sin E2E" | FR-002 (progreso) |
  | Vacío con instrucciones | FR-005, US3 |
-+| Fila **Empresa activa** | **No aplica** (motivo): el visor es una pantalla interna de desarrollo y su única fuente de datos es el manifiesto de cobertura E2E (`cobertura-e2e.json`, del bucket o local); no lee ni escribe datos de ninguna empresa y no muestra selector, columna ni texto de empresa, así que no hay empresa activa que respetar ni consultas que recargar al cambiarla (Principio VIII) | FR-005 (fuente de datos) |
++| Fila **Empresa activa** | **No aplica** (FR-005): MSF ya no expone el visor (`/cobertura-e2e` se quitó en la spec 026 y vive en el panel SDLC) y, cuando existió, su única fuente era el manifiesto de cobertura E2E (`cobertura-e2e.json`): nunca leyó ni escribió datos de empresa ni mostró selector, columna o texto de empresa, así que no hay empresa activa que respetar ni consultas que recargar al cambiarla (Principio VIII) |
 ```
+
+### Corrección de la revisión (segunda vuelta)
+
+La primera versión de la fila tenía **tres celdas** en una tabla de **dos**
+columnas (`| Elemento visible | Criterio |`): al renderizar, Markdown descarta
+la celda sobrante y el criterio `FR-005 (fuente de datos)` se perdía. La fila
+ahora tiene dos celdas, como las demás de la tabla, y el criterio va dentro
+del texto de la columna «Criterio» (mismo patrón de las specs de 2 columnas,
+p. ej. `specs/20261028-100000-service-seguimiento-y-reportes/spec.md:358`).
+
+De paso se corrigió el motivo, que describía un estado que ya no existe: la
+spec 026 (`specs/026-e2e-en-panel-sdlc/spec.md:19`, FR-001) quitó la ruta
+`/cobertura-e2e`, sus páginas y la subida al bucket, y el visor pasó al panel
+SDLC. La fila lo dice, sin cambiar el alcance de la spec 023.
 
 ## Tests Added or Updated
 
@@ -36,12 +50,22 @@ No se tocó código, migraciones, workflows ni el resto del merge de #929.
 ## Local Verification
 
 - `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` (antes del arreglo) → exit 1: `Fallo de spec: la matriz debe incluir «Empresa activa» … - specs/023-visor-componentes/spec.md` (mismo mensaje que el CI, run 43482415728).
-- `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` (después del arreglo) → exit 0: `Matriz pantalla↔criterios: OK (6 specs nuevas revisadas, 0 exentas)`.
+- `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` (después del arreglo) → exit 0: `Matriz pantalla↔criterios: OK (6 specs nuevas revisadas, 0 exentas).`
 - `pnpm test:matriz:pantalla` → 10/10 en verde.
-- `GITHUB_BASE_REF=dokploy pnpm docs:check` → `Documentación de cambios: OK (596 archivos comparados contra origin/dokploy).` · `Migraciones OK: 644 archivo(s), 1 nuevo(s) contra origin/dokploy.`
+- `GITHUB_BASE_REF=dokploy pnpm docs:check` → `Documentación de cambios: OK (599 archivos comparados contra origin/dokploy).` · `Migraciones OK: 644 archivo(s), 1 nuevo(s) contra origin/dokploy.`
 - `pnpm prototipo:check` → `Inventario del prototipo: OK (120 pantallas al día).`
-- `pnpm lint` → exit 0 (sólo warnings de oxlint preexistentes del PR #929).
+- `pnpm lint` → exit 0 (sólo warnings de oxlint preexistentes del PR).
 - `pnpm build` → `✓ built`.
+- Comprobación de la tabla de la matriz (2 columnas): la fila «Empresa activa»
+  tiene 2 celdas, igual que el encabezado; antes tenía 3.
+
+## CI
+
+- Run `43491976550` (rama `integracion/main-en-dokploy`, PR #929, SHA
+  `73de5501`), job `application` id `132131028268` → **success**: el paso
+  `pnpm matriz:check` pasó contra `origin/dokploy`.
+- Run `43492109016` (rama `fix/bug-MSF-863`, PR #934, mismo SHA) → `validacion`
+  **success**.
 
 ## Deviations from Assessment
 
