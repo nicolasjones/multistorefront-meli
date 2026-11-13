@@ -250,7 +250,7 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
   del botón y texto del botón de contacto ≤ 120 caracteres; subtítulo, bienvenida, pie y aviso de
   ficha ≤ 300. La base los valida (check y RPC); la pestaña avisa por campo y no guarda nada si falla.
 - **«El botón lleva a»**: lista cerrada validada en la base. Hoy solo `catalogo` («Catálogo completo», D4);
-  como el catálogo navegable es de MSF-167, el botón apunta al ancla `#catalogo`.
+  el botón lleva a `/catalogo` («Todos los productos»); en la vista previa del panel no navega. Antes apuntaba a un ancla `#catalogo` que no existe y el click no hacía nada.
 - **Vacío oculta**: un texto vacío no se muestra (barra, subtítulo, botón, pie). Sin fila, la tienda
   no muestra ningún texto opcional.
 - **Guardar** aplica de inmediato; **Descartar** vuelve al último guardado. La vista previa del banner
