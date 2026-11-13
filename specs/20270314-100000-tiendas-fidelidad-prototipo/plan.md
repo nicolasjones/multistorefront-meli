@@ -9,7 +9,7 @@
 - `layout/medidas.ts` (1232 px = 1200 + 2 × 16; margen de 14 px en celular), `layout/MigasTienda.tsx` (migas de prototipo con `nav` + `ol`), `layout/LayoutTienda.tsx` (color/fondo de la tienda, marca centrada y menú a la izquierda en celular), `MenuCategorias`, `BuscadorTienda`, `MenuMovil`, `PieCategorias`, `estilosPie`.
 - `catalogo/TarjetaProducto.tsx`, `PrecioTachado.tsx`, `disponibilidad/EtiquetaDisponibilidad.tsx`, `catalogo/GrillaProductos.tsx` (4/3/2 columnas).
 - `catalogo/PanelFiltros.tsx`, `Ordenar.tsx`, `EstadoVacio.tsx`, `PanelFiltrosMovil.tsx`, `secciones-catalogo/ListadoProductos.tsx`, `rutas/catalogo.tsx`, `rutas/categoria.tsx`.
-- `secciones/BannerHome.tsx` (franja a todo el ancho con `box-shadow`/`clip-path` de `100vmax`, sin scroll horizontal), `CategoriasInicio.tsx`, `DestacadosInicio.tsx`, `ConsultasInicio.tsx`, `TemaTienda.tsx`.
+- `secciones/BannerHome.tsx` (franja a todo el ancho: capa de 100vw con `overflow: hidden` que recorta las franjas inclinadas, más `overflow-x: clip` en el layout; sin scroll horizontal), `CategoriasInicio.tsx`, `DestacadosInicio.tsx`, `ConsultasInicio.tsx`, `TemaTienda.tsx`.
 - `ficha/DatosProducto.tsx`, `Galeria.tsx`, `Relacionados.tsx`, `whatsapp/BotonWhatsApp.tsx`, `rutas/producto.tsx`; `contacto/DatosContacto.tsx`, `FormularioContacto.tsx`, `rutas/contacto.tsx`.
 - Pruebas: Vitest (tarjeta, grillas, piezas compartidas, axe a 320/768/1440); E2E de `apps/web/e2e/tienda-*.e2e.ts` revisados (los locators siguen válidos; no se pueden correr aquí).
 - Sin migraciones. Reversión: revertir los commits.

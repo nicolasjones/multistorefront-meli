@@ -23,7 +23,7 @@
 3. Celular: menú a la izquierda y marca centrada (60 px), buscador en su propia fila, menú lateral de 300 px con «Inicio», «Categorías», las categorías y «Contacto», pie con 20 px de margen.
 
 ### User Story 3 - Portada (P1)
-Franja del banner a todo el ancho con el color de la barra (440 px; título de 72 px en mayúsculas, bajada de 20 px, botón primario y dos franjas inclinadas), «Categorías» con tarjetas de 186 px, «Destacados» con «Ver todo el catálogo →», y el bloque de consultas a todo el ancho. En celular, las categorías son píldoras y «Ver todo el catálogo» un botón con borde.
+Franja del banner a todo el ancho con el color de la barra (440 px; título de 72 px en mayúsculas, bajada de 20 px, botón en el acento de la identidad y dos franjas inclinadas), «Categorías» con tarjetas de 186 px, «Destacados» con «Ver todo el catálogo →», y el bloque de consultas a todo el ancho. En celular, las categorías son píldoras y «Ver todo el catálogo» un botón con borde.
 
 ### User Story 4 - Catálogo y categoría (P1)
 Migas «Inicio / Página» (14 px), título de 44 px/700 (30 px en celular), panel de 260 px (títulos de 18 px en la tipografía de títulos, filas de 15 px con la elegida en negrita y primario, casilla «Solo con stock», campo «Precio máximo» de 40 px, «Limpiar filtros» de texto), contador y «Ordenar por» con su menú como el prototipo, estado vacío punteado «No hay productos con esos filtros». En celular, «Filtrar» y el orden vigente en dos botones iguales.
@@ -42,7 +42,7 @@ Ficha: galería de 600 px (miniaturas de 84 px con borde primario en la elegida)
 - **FR-007**: catálogo y categoría (migas, título, panel, orden, vacío, filtros de celular) con la US4.
 - **FR-008**: ficha y contacto con la US5.
 - **FR-009**: sin regresiones: Vitest de la tienda en verde, axe (Chromium real, con contraste) sin violaciones y `documentElement.scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas; los campos y la casilla del panel conservan un foco visible (WCAG 2.4.7).
-- **FR-010** (auditoría independiente de fidelidad, 52 diferencias de implementación): el botón del héroe usa el acento de la identidad con el texto de mayor contraste (`tema.tienda.botonDestacado`) y nunca queda invisible; el «papel» del tema es blanco (encabezado, campos, menús y diálogos) y el fondo de la página el de la identidad; el título del héroe es el h1 de la portada (la marca solo lo es sin título de héroe).
+- **FR-010** (auditoría independiente de fidelidad, 52 diferencias de implementación): el botón del héroe usa el acento de la identidad con el texto de mayor contraste (`tema.tienda.botonDestacado`); si el acento se confunde con la franja (contraste < 1,5:1, `UMBRAL_BOTON`) toma el color del texto de la franja, así nunca queda invisible (se eligió 1,5:1 y no 3:1 para que el botón primario de Mundo JC sobre `#2A2A2A`, 1,81:1, no cambie); el «papel» del tema es blanco (encabezado, campos, menús y diálogos) y el fondo de la página el de la identidad; el título del héroe es el h1 de la portada (la marca solo lo es sin título de héroe).
 - **FR-011**: panel de categorías con filas de 32 px y «Todos los productos» con su total; menú de orden de 116 px sin fondo teñido; sugerencias sin la línea «Disponible» a la vista (queda para lectores) y mensaje vacío en gris; pie sin subrayado salvo «Escribinos»; tarjeta con el área de imagen de 282 px.
 - **FR-012**: celular: hoja «Filtros» con asa, categorías y orden como píldoras y botones de 16 px; menú lateral con las entradas de 47/43 px, sombra y recuadro de contacto; píldoras de la portada con «Todo» activa que filtran los destacados en su lugar; pie sin la columna de categorías; contacto con rótulos solo para lectores, sin «Retiro y envíos» y glifos de 20 px; ficha sin «Ver más productos» y disponibilidad de 15 px.
 - **FR-013**: contacto enviado conserva el título «Escribinos» (tarjeta de 376 px) y «Enviar otra» a 16 px.
@@ -74,7 +74,7 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 | «← Todos los productos» | Ficha (celular) | FR-008 |
 | Galería (imagen y miniaturas) | Ficha | FR-008. Diferencia conocida: en celular el prototipo usa puntos y una imagen a todo el ancho; la tienda mantiene miniaturas |
 | «Consultar por WhatsApp», «Ver más productos» | Ficha | FR-008. «Compartir» (F-TDA-25) no está en el prototipo: va después de esos dos botones |
-| «Cancelar», «Abrir WhatsApp» (diálogo) | Ficha | Fuera de alcance: el diálogo no se midió en este tramo (seguimiento) |
+| «Cancelar», «Abrir WhatsApp» (diálogo) | Ficha | FR-014 (medido: 460 px, radio 14, botones de 44 px de 16 px) |
 | «Enviar consulta», «Enviar otra» y campos del formulario | Contacto | FR-008 |
 | «Sin imagen» y placeholders de los campos | Tarjeta, ficha, contacto, filtros | Desvío accesible respecto del prototipo: el prototipo usa negro al 35 % / 45 % (≈ 2,4:1 sobre la superficie); la tienda usa el gris secundario del tema (≥ 4,5:1, AA) |
 | Foco de teclado en campos y casilla | Contacto, filtros | Desvío accesible: el prototipo no dibuja el estado de foco; la tienda suma borde y contorno primarios de 2 px (WCAG 2.4.7) |
@@ -91,6 +91,10 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 | «Retiro y envíos», rótulos de campos, «Ver más productos», columna de categorías del pie | Celular | FR-012 (el prototipo móvil no los dibuja: no se muestran; los rótulos quedan para lectores) |
 | Diálogo de WhatsApp (círculo, línea de contacto, recuadro del mensaje, botones) | Ficha | FR-014. Desvío accesible: texto de «Abrir WhatsApp» en tinta, no blanco |
 | Contacto enviado: título «Escribinos», «Enviar otra» 16 px | Contacto | FR-013 |
+| Píldoras de categoría de la portada (celular) | Portada | Una píldora con destacados filtra en el lugar y NO enlaza a su listado (como el prototipo); el acceso a cada categoría es el menú lateral, «Más categorías» y «Ver todo el catálogo». Con una categoría sin destacados se muestra un enlace a su listado. La elección se descarta al pasar a escritorio |
+| Filas del panel de categorías en San Javucho | Catálogo | Diferencia cosmética conocida: miden 34 px (la tipografía de texto de la identidad tiene otro interlineado `normal`) en lugar de 32 px; en MundoJC miden 32 px |
+| Grilla de celular entre 400 y 599 px | Celular | Las tarjetas crecen (2 columnas fluidas); a 390 px miden 173 px (4 px libres a la derecha, como el prototipo) |
+| Campo «Correo o WhatsApp» en celular y tableta chica (< 900 px) | Contacto | El rótulo queda solo para lectores y el texto de apoyo visible es «Correo o WhatsApp» (prototipo móvil); en escritorio «Para responderte» |
 | «Cargar más» al final del listado | Catálogo | Decisión declarada: regla del repo (carga infinita con alternativa por teclado); el prototipo no pagina |
 | Áreas táctiles del encabezado y de «← Todos los productos» (36–44 px) | Celular y escritorio | Desvío accesible declarado (el texto mide lo mismo que el prototipo) |
 | Barra de categorías con las que entran por ancho + «Más categorías» | Todas | Decisión declarada (MSF-825/MSF-846) |
