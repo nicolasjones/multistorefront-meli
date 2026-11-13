@@ -5,6 +5,7 @@ import { enviarConsultaContacto, minutosDeEspera, nuevaClaveEnvio } from '../../
 import { ErrorConReintento } from '../ErrorConReintento'
 import { IconoTilde } from '../layout/iconos'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
+import { LINEA_SUAVE } from '../layout/medidas'
 
 type Fase =
   | { fase: 'editando' }
@@ -17,10 +18,10 @@ const VACIO: DatosContacto = { nombre: '', contacto: '', mensaje: '' }
 
 // Tarjeta del formulario (prototipo): fondo blanco, borde de 1 px, radio 12 y 32 px de relleno; en celular el formulario va
 // sin tarjeta (`MJC_M_Contacto`).
-const estiloTarjeta = { bgcolor: 'background.paper', border: { xs: 0, md: '1px solid rgba(0,0,0,.08)' }, borderRadius: '12px', p: { xs: 0, md: '32px' }, minWidth: 0 } as const // estilos-sueltos: ok
+const estiloTarjeta = { bgcolor: 'background.paper', border: { xs: 0, md: LINEA_SUAVE }, borderRadius: '12px', p: { xs: 0, md: '32px' }, minWidth: 0 } as const // estilos-sueltos: ok
 
 // Campo del prototipo (`.fin`): el rótulo (14 px/600) ARRIBA del campo —no flotante—, campo de 44 px (el mensaje, de 110 px como
-// mínimo) con borde de 1,5 px, radio 8 y texto de apoyo en gris. El rótulo es un <label> asociado; el error va debajo con
+// mínimo) con borde de 1,5 px, radio 8 y texto de apoyo en el gris secundario (contraste AA) y el foco visible (borde y contorno primarios). El rótulo es un <label> asociado; el error va debajo con
 // `aria-describedby`.
 function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef }: {
   id: string
@@ -51,7 +52,8 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
         sx={{
           alignItems: multilinea ? 'flex-start' : 'center', height: multilinea ? 'auto' : 44, minHeight: multilinea ? 110 : undefined, px: '12px', py: multilinea ? '10px' : 0, // estilos-sueltos: ok
           fontSize: 15, bgcolor: 'background.paper', border: '1.5px solid', borderColor: error ? 'error.main' : 'rgba(0,0,0,.18)', borderRadius: '8px', // estilos-sueltos: ok
-          '& input::placeholder, & textarea::placeholder': { color: 'rgba(0,0,0,.45)', opacity: 1 }, // estilos-sueltos: ok
+          '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '1px' }, // estilos-sueltos: ok
+          '& input::placeholder, & textarea::placeholder': { color: 'text.secondary', opacity: 1 },
         }}
       />
       {error ? <FormHelperText id={idError} error>{error}</FormHelperText> : null}

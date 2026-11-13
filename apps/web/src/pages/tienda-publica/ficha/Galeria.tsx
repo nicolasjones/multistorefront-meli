@@ -31,7 +31,7 @@ export function Galeria({ imagenes, urls, nombre }: { imagenes: ImagenFicha[]; u
         data-testid="galeria-sin-imagen"
         sx={(tema) => ({ ...estiloMarco(tema), display: 'flex', alignItems: 'center', justifyContent: 'center' })}
       >
-        <Typography sx={{ color: 'rgba(0,0,0,.35)', fontSize: 13 /* estilos-sueltos: ok */ }}>Sin imagen</Typography>
+        <Typography sx={{ color: 'text.secondary', fontSize: 13 /* estilos-sueltos: ok */ }}>Sin imagen</Typography>
       </Box>
     )
   }

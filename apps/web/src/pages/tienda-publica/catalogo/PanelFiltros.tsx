@@ -2,6 +2,7 @@ import { Box, Button, ButtonBase, InputBase, List, ListItem, ListItemButton, Lis
 import { useState } from 'react'
 import type { CategoriaListado, FiltrosCatalogo } from '../../../lib/tiendaListado'
 import { filasPanelCategorias } from '../../../lib/tiendaCategorias'
+import { BORDE_CAMPO } from '../layout/medidas'
 
 type Props = {
   categorias: CategoriaListado[]
@@ -63,7 +64,7 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
         <ButtonBase
           aria-pressed={filtros.soloConStock}
           onClick={() => alCambiarStock(!filtros.soloConStock)}
-          sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit' /* estilos-sueltos: ok */ }}
+          sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit', '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' } /* estilos-sueltos: ok */ }}
         >
           <Box
             component="span"
@@ -93,7 +94,11 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
           onKeyDown={(evento) => { if (evento.key === 'Enter') aplicarPrecio() }}
           startAdornment={<Box component="span" aria-hidden sx={{ color: 'text.secondary', mr: '6px' }}>$</Box>}
           inputProps={{ 'aria-labelledby': 'filtro-precio', inputMode: 'numeric' }}
-          sx={{ height: 40, px: '12px', fontSize: 15, border: '1.5px solid rgba(0,0,0,.18)', borderRadius: '8px', bgcolor: 'background.paper' /* estilos-sueltos: ok */ }}
+          sx={{
+            height: 40, px: '12px', fontSize: 15, border: BORDE_CAMPO, borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
+            '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '1px' }, // estilos-sueltos: ok
+            '& input::placeholder': { color: 'text.secondary', opacity: 1 },
+          }}
         />
       </Box>
 
