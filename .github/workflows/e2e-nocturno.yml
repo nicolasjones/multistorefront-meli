@@ -1,0 +1,363 @@
+name: E2E nocturno
+
+# E2E de Playwright (apps/web/e2e, ~100 tests, ~20 min en serie) sobre `dokploy`, FUERA del camino de los PRs.
+# Decisión del gate MSF-852: los PRs ya corren los guardianes baratos (`pnpm e2e:escritura:check` y
+# `pnpm test:e2e:escritura`) y los specs públicos; la suite completa con sesión corre de noche y a pedido.
+# NO bloquea ningún PR ni merge, NO notifica y NO abre issues: si falla, el run queda en rojo y se lee el
+# resumen del run (ver docs/e2e-app.md, sección CI).
+
+on:
+  schedule:
+    # 04:00 UTC = 01:00 en Buenos Aires (ART = UTC-3 todo el año, Argentina no usa horario de verano).
+    # Ventana de baja carga: no compite con los PRs del día. GitHub sólo dispara `schedule` desde la rama por
+    # defecto (`main`): el cron empieza a correr cuando este archivo llega a `main`. El run siempre prueba `dokploy`.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'Opcional: archivo(s) de spec a correr, separados por espacio (p. ej. "tienda-seo precios-iva"). Vacío = toda la suite.'
+        required: false
+        default: ''
+        type: string
+      grep:
+        description: 'Opcional: correr solo los tests cuyo título coincida con este texto (playwright --grep).'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+# Una sola corrida a la vez (el stack y el puerto 4300 son únicos). La corrida nueva ESPERA a la que está en
+# curso en vez de cancelarla: cortar una a la mitad deja un stack a medio bajar.
+concurrency:
+  group: e2e-nocturno
+  cancel-in-progress: false
+
+env:
+  # Stack de Supabase PROPIO de este workflow. No colisiona con los de otros jobs del mismo Docker:
+  #  - desarrollo: project_id `multistorefront-meli-supabase-dev`, puertos 4301/4302/7633/7634/8084/9300/57327/57329.
+  #  - job `database` de validate.yml (scripts/supabase-ci.mjs): project_id `ci-*`, puertos 24301..53300.
+  #  - e2e público de validate.yml: WEB_PORT 4400..4499.
+  # Este usa el project_id `e2e-nocturno` y los 8 puertos PORT_BASE..PORT_BASE+7 (58300..58307).
+  E2E_NOCT_PROJECT_ID: e2e-nocturno
+  E2E_NOCT_PORT_BASE: '58300'
+  # `site_url` de supabase/config.toml apunta a 4300 y el spec cuenta-web-cliente lo exige.
+  E2E_NOCT_WEB_PORT: '4300'
+
+jobs:
+  e2e:
+    name: Playwright (suite completa, en serie)
+    runs-on: [self-hosted, platform-local]
+    timeout-minutes: 60
+    steps:
+      # El run prueba siempre `dokploy` (en `schedule` el workflow vive en `main`); un disparo manual desde otra
+      # rama prueba esa rama.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'dokploy' || github.ref }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+
+      - name: Preparar entorno del job (puertos, rutas, anfitrión del Docker)
+        run: |
+          set -euo pipefail
+          B="$E2E_NOCT_PORT_BASE"
+          WORK="${RUNNER_TEMP:-/tmp}/e2e-nocturno-$GITHUB_RUN_ID"
+          mkdir -p "$WORK"
+          # Dentro del contenedor del runner, 127.0.0.1 es el contenedor y NO el Docker del host donde viven los
+          # puertos publicados del stack de Supabase (ver docs/deployment.md, sección CI). Ahí se reenvían con un
+          # puente TCP; fuera de un contenedor (corrida local) no hace falta.
+          if [ -f /.dockerenv ]; then PUENTE=1; HOST_DOCKER=host.docker.internal; else PUENTE=0; HOST_DOCKER=127.0.0.1; fi
+          {
+            echo "E2E_WORK=$WORK"
+            echo "PORT_API=$B"
+            echo "PORT_DB=$((B + 1))"
+            echo "PORT_SHADOW=$((B + 2))"
+            echo "PORT_POOLER=$((B + 3))"
+            echo "PORT_STUDIO=$((B + 4))"
+            echo "PORT_INBUCKET=$((B + 5))"
+            echo "PORT_INSPECTOR=$((B + 6))"
+            echo "PORT_ANALYTICS=$((B + 7))"
+            echo "PUENTE=$PUENTE"
+            echo "HOST_DOCKER=$HOST_DOCKER"
+          } >> "$GITHUB_ENV"
+          echo "project_id=$E2E_NOCT_PROJECT_ID puertos=$B..$((B + 7)) web=$E2E_NOCT_WEB_PORT puente=$PUENTE host=$HOST_DOCKER"
+
+      # Un run anterior cancelado o caído pudo dejar su stack (mismo project_id, mismos puertos). Se baja SOLO lo
+      # que lleva la etiqueta de ESTE project_id; nunca el stack de desarrollo ni los `ci-*`.
+      - name: Limpiar residuos de una corrida anterior
+        run: |
+          set -uo pipefail
+          L="com.supabase.cli.project=$E2E_NOCT_PROJECT_ID"
+          ids=$(docker ps -aq --filter "label=$L" || true)
+          [ -n "$ids" ] && docker rm -f $ids >/dev/null
+          vols=$(docker volume ls -q --filter "label=$L" || true)
+          [ -n "$vols" ] && docker volume rm -f $vols >/dev/null
+          docker network rm "supabase_network_$E2E_NOCT_PROJECT_ID" >/dev/null 2>&1 || true
+          echo "residuos: contenedores=$(printf '%s' "$ids" | grep -c . || true) volúmenes=$(printf '%s' "$vols" | grep -c . || true)"
+          exit 0
+
+      - name: Verificar puertos libres (4300 de la web y los del stack)
+        run: |
+          set -uo pipefail
+          # Un puerto cuenta como ocupado si algo acepta conexiones. El 4300 se prueba en ESTE entorno (ahí corre
+          # `vite preview`); los del stack, en el anfitrión de Docker (ahí los publica Supabase).
+          ocupado() { node -e '
+            const s = require("node:net").connect({ host: process.argv[1], port: Number(process.argv[2]), timeout: 1500 });
+            s.on("connect", () => process.exit(0)); s.on("timeout", () => process.exit(1)); s.on("error", () => process.exit(1));
+          ' "$1" "$2"; }
+          falla=0
+          if ocupado 127.0.0.1 "$E2E_NOCT_WEB_PORT"; then
+            echo "::error title=Puerto $E2E_NOCT_WEB_PORT ocupado::Otro proceso escucha en 127.0.0.1:$E2E_NOCT_WEB_PORT. El spec cuenta-web-cliente exige que la web se sirva en ese puerto (site_url de supabase/config.toml) y vite se inicia con --strictPort: no se puede mover. Liberalo y relanzá el workflow."
+            falla=1
+          fi
+          for p in "$PORT_API" "$PORT_DB" "$PORT_SHADOW" "$PORT_POOLER" "$PORT_STUDIO" "$PORT_INBUCKET" "$PORT_INSPECTOR" "$PORT_ANALYTICS"; do
+            if ocupado "$HOST_DOCKER" "$p"; then
+              echo "::error title=Puerto $p ocupado::Algo ya escucha en $HOST_DOCKER:$p, dentro del rango reservado de este workflow ($E2E_NOCT_PORT_BASE..$((E2E_NOCT_PORT_BASE + 7))). Averiguá qué stack lo usa (docker ps) o cambiá E2E_NOCT_PORT_BASE."
+              falla=1
+            fi
+          done
+          [ "$falla" -eq 0 ] && echo "puertos libres"
+          exit "$falla"
+
+      - name: Configurar el stack propio (config.toml temporal, sin commitear) y SEGUIMIENTO_IP_SALT
+        run: |
+          set -euo pipefail
+          f=supabase/config.toml
+          sed -i -E "s/^project_id = \".*\"/project_id = \"$E2E_NOCT_PROJECT_ID\"/" "$f"
+          # Puertos fijos del config de desarrollo -> los propios (cada valor aparece una sola vez).
+          cambiar() { [ "$(grep -cE "^$1 = $2\$" "$f")" = 1 ] || { echo "::error::$f ya no tiene exactamente un '$1 = $2'; actualizá este paso"; exit 1; }; sed -i -E "s/^$1 = $2\$/$1 = $3/" "$f"; }
+          cambiar port 9300 "$PORT_API"
+          cambiar port 7634 "$PORT_DB"
+          cambiar shadow_port 7633 "$PORT_SHADOW"
+          cambiar port 57329 "$PORT_POOLER"
+          cambiar port 4301 "$PORT_STUDIO"
+          cambiar port 4302 "$PORT_INBUCKET"
+          cambiar inspector_port 8084 "$PORT_INSPECTOR"
+          cambiar port 57327 "$PORT_ANALYTICS"
+          grep -qx "project_id = \"$E2E_NOCT_PROJECT_ID\"" "$f"
+          # El runtime de Edge lee los secretos de supabase/.env (config.toml declara `env(SEGUIMIENTO_IP_SALT)`).
+          # Valor sólo de prueba, descartable: el stack es efímero.
+          printf 'SEGUIMIENTO_IP_SALT=%s\n' "sal-e2e-nocturno-$GITHUB_RUN_ID" > supabase/.env
+          git diff --stat -- supabase/config.toml
+
+      # Puente 127.0.0.1:<puerto> -> anfitrión de Docker, sólo dentro del contenedor del runner. Lo necesitan
+      # `supabase start`/`migration up` (base), la web y los specs (API/Kong, donde también salen las funciones Edge).
+      - name: Puente al Docker del host (sólo en el contenedor del runner)
+        if: env.PUENTE == '1'
+        run: |
+          set -euo pipefail
+          nohup node -e '
+            const net = require("node:net");
+            for (const p of process.argv.slice(1).map(Number)) {
+              net.createServer((c) => {
+                const d = net.connect(p, process.env.HOST_DOCKER);
+                c.pipe(d).pipe(c);
+                const x = () => { c.destroy(); d.destroy(); };
+                c.on("error", x); d.on("error", x);
+              }).listen(p, "127.0.0.1");
+            }
+          ' "$PORT_API" "$PORT_DB" > "$E2E_WORK/puente.log" 2>&1 &
+          echo $! > "$E2E_WORK/puente.pid"
+          sleep 1
+          kill -0 "$(cat "$E2E_WORK/puente.pid")" || { cat "$E2E_WORK/puente.log"; exit 1; }
+          echo "puente activo (pid $(cat "$E2E_WORK/puente.pid")): 127.0.0.1:$PORT_API y :$PORT_DB -> $HOST_DOCKER"
+
+      - name: Levantar Supabase (sin studio, imgproxy, logflare, vector, supavisor, postgres-meta)
+        run: |
+          set -euo pipefail
+          # edge-runtime y realtime quedan arriba a propósito (service-seguimiento, tienda-seo, «recuperar» de
+          # cuenta-web-cliente y stock-actual-vivo los usan). --ignore-health-check: PostgREST arranca antes de
+          # que existan los esquemas expuestos y su chequeo falla hasta migrar (docs/e2e-app.md).
+          pnpm exec supabase start --ignore-health-check -x studio,imgproxy,logflare,vector,supavisor,postgres-meta
+          pnpm exec supabase migration up --local
+          # El runner puede no tener psql: se siembra con el de la propia imagen de la base.
+          docker exec -i "supabase_db_$E2E_NOCT_PROJECT_ID" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/seed.sql
+          # PostgREST recarga los esquemas ya creados por las migraciones.
+          docker restart "supabase_rest_$E2E_NOCT_PROJECT_ID"
+          # Claves del stack para build y specs (no se imprimen: se enmascaran antes de exportarlas).
+          pnpm exec supabase status -o env > "$E2E_WORK/status.env"
+          ANON=$(sed -n 's/^ANON_KEY="\(.*\)"$/\1/p' "$E2E_WORK/status.env")
+          SERVICE=$(sed -n 's/^SERVICE_ROLE_KEY="\(.*\)"$/\1/p' "$E2E_WORK/status.env")
+          [ -n "$ANON" ] && [ -n "$SERVICE" ] || { echo "::error::supabase status no devolvió ANON_KEY/SERVICE_ROLE_KEY"; exit 1; }
+          echo "::add-mask::$ANON"
+          echo "::add-mask::$SERVICE"
+          {
+            echo "ANON_KEY=$ANON"
+            echo "SERVICE_ROLE_KEY=$SERVICE"
+          } >> "$GITHUB_ENV"
+
+      - name: Compilar workers/comprobantes-pdf (lo usa ventas-impresion)
+        run: pnpm --filter ./workers/comprobantes-pdf build
+
+      - name: Compilar la web contra el stack
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:${{ env.PORT_API }}
+          # PUBLISHABLE, no ANON: con otro nombre el build usa una clave inválida y todos los ingresos fallan.
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ env.ANON_KEY }}
+          # Sin esto el panel se sirve en mundojc.localhost y los E2E de la tienda fallan.
+          VITE_PANEL_HOSTS: localhost,127.0.0.1
+        run: pnpm build
+
+      - name: Servir la web (vite preview en 4300, --strictPort) y las funciones Edge
+        run: |
+          set -euo pipefail
+          (cd apps/web && nohup pnpm exec vite preview --port "$E2E_NOCT_WEB_PORT" --strictPort --host 127.0.0.1 > "$E2E_WORK/vite.log" 2>&1 & echo $! > "$E2E_WORK/vite.pid")
+          # tienda-seo (robots.txt/sitemap.xml) y «recuperar» piden funciones Edge servidas.
+          nohup pnpm exec supabase functions serve --no-verify-jwt > "$E2E_WORK/functions.log" 2>&1 &
+          echo $! > "$E2E_WORK/functions.pid"
+          for i in $(seq 60); do
+            curl -fsS -o /dev/null "http://127.0.0.1:$E2E_NOCT_WEB_PORT/" && web=1 && break
+            kill -0 "$(cat "$E2E_WORK/vite.pid")" 2>/dev/null || { echo "::error::vite preview murió"; cat "$E2E_WORK/vite.log"; exit 1; }
+            sleep 1
+          done
+          [ "${web:-0}" = 1 ] || { echo "::error::la web no respondió en 4300"; cat "$E2E_WORK/vite.log"; exit 1; }
+          # Las funciones tardan en estar listas: se sondea tienda-seo (sin host de tienda responde 4xx, no 404/5xx de «no servida»).
+          for i in $(seq 90); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "http://127.0.0.1:$PORT_API/functions/v1/tienda-seo/robots.txt" || true)
+            case "$code" in 000|404|502|503|500) ;; *) break ;; esac
+            kill -0 "$(cat "$E2E_WORK/functions.pid")" 2>/dev/null || { echo "::error::functions serve murió"; cat "$E2E_WORK/functions.log"; exit 1; }
+            sleep 2
+          done
+          echo "web 200 en $E2E_NOCT_WEB_PORT; tienda-seo responde HTTP $code"
+          case "$code" in 000|404|502|503|500) echo "::warning::las funciones Edge no respondieron a tiempo: tienda-seo/cuenta-web-cliente pueden fallar"; tail -20 "$E2E_WORK/functions.log" ;; esac
+
+      - name: Instalar Chromium de Playwright
+        run: |
+          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+            pnpm --filter @platform/web exec playwright install chromium
+            pnpm --filter @platform/web exec playwright install-deps chromium
+          else
+            pnpm --filter @platform/web exec playwright install --with-deps chromium
+          fi
+
+      - name: Playwright (en serie, 1 reintento)
+        env:
+          SUPABASE_URL: http://127.0.0.1:${{ env.PORT_API }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ env.ANON_KEY }}
+          E2E_BASE_URL: http://127.0.0.1:${{ env.E2E_NOCT_WEB_PORT }}
+          WEB_PORT: ${{ env.E2E_NOCT_WEB_PORT }}
+          E2E_PGPORT: ${{ env.PORT_DB }}
+          PLAYWRIGHT_HTML_OPEN: never
+          PLAYWRIGHT_JSON_OUTPUT_NAME: ${{ env.E2E_WORK }}/resultados.json
+          # Entradas manuales: por env (nunca interpoladas en el script) y sin banderas.
+          IN_SPEC: ${{ inputs.spec }}
+          IN_GREP: ${{ inputs.grep }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "${IN_SPEC// }" ]; then
+            read -r -a specs <<< "$IN_SPEC"
+            for s in "${specs[@]}"; do
+              case "$s" in -*) echo "::error::el input spec no puede empezar con '-': $s"; exit 2 ;; esac
+              args+=("$s")
+            done
+          fi
+          if [ -n "${IN_GREP// }" ]; then
+            case "$IN_GREP" in -*) echo "::error::el input grep no puede empezar con '-'"; exit 2 ;; esac
+            args+=(--grep "$IN_GREP")
+          fi
+          echo "args de playwright: ${args[*]:-(suite completa)}"
+          pnpm --filter @platform/web exec playwright test "${args[@]}" --workers=1 --retries=1 --reporter=list,html,json
+
+      # Resumen legible del run (aun si Playwright falló o no llegó a escribir el JSON).
+      - name: Resumen en $GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          node - <<'EOF'
+          const fs = require('node:fs')
+          const out = process.env.GITHUB_STEP_SUMMARY
+          const w = (s) => (out ? fs.appendFileSync(out, s + '\n') : console.log(s))
+          const f = `${process.env.E2E_WORK}/resultados.json`
+          w('## E2E nocturno')
+          if (!fs.existsSync(f)) { w('No hay resultados: el run falló ANTES de que Playwright terminara (levantar el stack, compilar o servir). Mirá el paso que falló en el log.'); process.exit(0) }
+          const r = JSON.parse(fs.readFileSync(f, 'utf8'))
+          const filas = []
+          const visit = (suite, archivo) => {
+            for (const s of suite.suites ?? []) visit(s, s.file ?? archivo)
+            for (const sp of suite.specs ?? []) for (const t of sp.tests ?? []) {
+              const res = t.results ?? []
+              filas.push({ archivo: sp.file ?? archivo, titulo: sp.title, estado: t.status, reintentos: Math.max(0, res.length - 1), ms: res.reduce((a, x) => a + (x.duration ?? 0), 0), error: (res.at(-1)?.error?.message ?? '').split('\n')[0].replace(/\u001b\[[0-9;]*m/g, '') })
+            }
+          }
+          for (const s of r.suites ?? []) visit(s, s.file)
+          const n = (e) => filas.filter((x) => x.estado === e).length
+          const st = r.stats ?? {}
+          w(`Commit \`${process.env.GITHUB_SHA?.slice(0, 8)}\` · duración ${Math.round((st.duration ?? 0) / 60000)} min · ${filas.length} tests`)
+          w('')
+          w('| Pasaron | Fallaron | Inestables (pasaron al reintentar) | Omitidos |')
+          w('|---|---|---|---|')
+          w(`| ${n('expected')} | ${n('unexpected')} | ${n('flaky')} | ${n('skipped')} |`)
+          const lista = (titulo, estado, extra) => {
+            const l = filas.filter((x) => x.estado === estado)
+            if (!l.length) return
+            w(''); w(`### ${titulo} (${l.length})`)
+            for (const x of l) w(`- \`${x.archivo}\` · ${x.titulo.replace(/\|/g, '\\|')}${extra ? ` — ${x.error.replace(/\|/g, '\\|').slice(0, 200)}` : ''}`)
+          }
+          lista('Fallaron', 'unexpected', true)
+          lista('Inestables', 'flaky', true)
+          const omitidos = filas.filter((x) => x.estado === 'skipped')
+          if (omitidos.length) {
+            const porArchivo = {}
+            for (const x of omitidos) porArchivo[x.archivo] = (porArchivo[x.archivo] ?? 0) + 1
+            w(''); w('### Omitidos por archivo (un spec sin SUPABASE_URL se omite en silencio: acá se ve si alguno se saltó de más)')
+            for (const [a, c] of Object.entries(porArchivo)) w(`- \`${a}\`: ${c}`)
+          }
+          w(''); w('Trazas y reporte HTML: artifact `e2e-nocturno` de este run (se conservan 7 días).')
+          EOF
+
+      - name: Subir reporte, resultados y trazas de fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-nocturno
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            ${{ env.E2E_WORK }}/resultados.json
+            ${{ env.E2E_WORK }}/vite.log
+            ${{ env.E2E_WORK }}/functions.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Siempre baja lo que levantó este run (también si falló, se canceló o venció el timeout). Mata por PID
+      # PROPIO (los archivos .pid del paso que los lanzó), nunca por patrón; el stack, por su project_id.
+      - name: Limpieza (procesos propios y stack de Supabase)
+        if: always()
+        timeout-minutes: 10
+        run: |
+          set +e
+          for n in vite functions puente; do
+            p="$E2E_WORK/$n.pid"
+            [ -f "$p" ] || continue
+            pid=$(cat "$p")
+            # También los hijos directos (pnpm -> node): primero ellos, luego el PID guardado.
+            pkill -TERM -P "$pid" 2>/dev/null
+            kill -TERM "$pid" 2>/dev/null
+            echo "PID $pid ($n) terminado"
+          done
+          sleep 2
+          for n in vite functions puente; do
+            p="$E2E_WORK/$n.pid"
+            [ -f "$p" ] || continue
+            pid=$(cat "$p"); pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null
+          done
+          # Stack: primero el camino normal; si falla (o deja algo), por etiqueta del project_id propio.
+          pnpm exec supabase stop --no-backup
+          L="com.supabase.cli.project=$E2E_NOCT_PROJECT_ID"
+          ids=$(docker ps -aq --filter "label=$L")
+          [ -n "$ids" ] && { echo "quedaban contenedores; docker rm -f"; docker rm -f $ids >/dev/null; }
+          vols=$(docker volume ls -q --filter "label=$L")
+          [ -n "$vols" ] && docker volume rm -f $vols >/dev/null
+          docker network rm "supabase_network_$E2E_NOCT_PROJECT_ID" >/dev/null 2>&1
+          rm -f supabase/.env
+          git checkout -- supabase/config.toml 2>/dev/null
+          echo "restan: contenedores=$(docker ps -aq --filter "label=$L" | grep -c .) volúmenes=$(docker volume ls -q --filter "label=$L" | grep -c .)"
+          exit 0

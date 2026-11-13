@@ -222,9 +222,47 @@ binario, se corre `playwright install-deps chromium`: el cache de `~/.cache/ms-p
 guarda el **binario**, no las libs del SO (`libglib-2.0`, etc.), y sin ellas el browser moría
 con `error while loading shared libraries` → falso rojo de e2e en PRs ajenos (2026-10-19).
 Los recorridos con
-sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
-(hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
-las tasks.md de origen.
+sesión (tabla de arriba) corren en el job nocturno (sección siguiente), no en los PRs.
+
+## E2E nocturno (`e2e-nocturno.yml`)
+
+Decisión del gate MSF-852: la suite completa de Playwright (~100 tests, ~20 min en serie) corre en CI como un job
+**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. Los PRs siguen corriendo solo los guardianes
+baratos (`pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`) y los specs públicos del job `application`. El gate
+MSF-852 queda resuelto con esta decisión. El workflow es `.github/workflows/e2e-nocturno.yml`.
+
+- **Cuándo corre:** todos los días a las 04:00 UTC (01:00 en Buenos Aires; Argentina es UTC-3 sin horario de verano) y
+  por `workflow_dispatch`. GitHub solo dispara `schedule` desde la rama por defecto (`main`): el cron empieza a correr
+  cuando el archivo llega a `main`; el run siempre prueba `dokploy`.
+- **Dispararlo a mano:** Actions > «E2E nocturno» > «Run workflow» (o `gh workflow run e2e-nocturno.yml`). Inputs
+  opcionales: `spec` (uno o más archivos, separados por espacio, p. ej. `tienda-seo precios-iva`) y `grep` (solo los tests
+  cuyo título coincida). Vacíos corre toda la suite. Un disparo manual desde otra rama prueba esa rama.
+  Ejemplo: `gh workflow run e2e-nocturno.yml -f spec="tienda-seo precios-iva"`.
+- **Qué hace:** replica la receta de arriba en el runner self-hosted: stack propio de Supabase (`project_id`
+  `e2e-nocturno`, puertos 58300-58307, sin `studio`, `imgproxy`, `logflare`, `vector`, `supavisor` ni `postgres-meta`;
+  `config.toml` se edita solo en la copia del job), `SEGUIMIENTO_IP_SALT`, migraciones, `seed.sql` por `docker exec ... psql`
+  (el runner no necesita psql), reinicio de `rest`, build de `workers/comprobantes-pdf` y de la web (con
+  `VITE_SUPABASE_PUBLISHABLE_KEY` y `VITE_PANEL_HOSTS=localhost,127.0.0.1`), `vite preview` en **4300** con `--strictPort`,
+  `supabase functions serve --no-verify-jwt` y Playwright con `--workers=1 --retries=1`.
+- **Puertos:** el 4300 es el que exige `cuenta-web-cliente` (`site_url` de `config.toml`). Si está ocupado, el paso
+  «Verificar puertos libres» falla con un mensaje claro y no se toca nada. Los 58300-58307 no se cruzan con el stack de
+  desarrollo (4301, 4302, 7633, 7634, 8084, 9300, 57327, 57329), con los stacks `ci-*` del job `database`
+  (24301-53300) ni con el `WEB_PORT` del e2e público (4400-4499). Dentro del contenedor del runner, `127.0.0.1` no es el
+  host de Docker, así que un puente TCP reenvía el puerto de la API y el de la base al Docker del host.
+- **Concurrencia y tiempo:** un solo run a la vez (`concurrency: e2e-nocturno`, el nuevo espera, no cancela) y tope de 60
+  minutos. El run no notifica a nadie ni abre issues: si falla, queda en rojo en la pestaña Actions.
+- **Cómo leer el resultado:** el resumen del run (`$GITHUB_STEP_SUMMARY`) muestra una tabla con pasaron, fallaron,
+  inestables (pasaron al reintentar) y omitidos, la lista de fallos con la primera línea del error y los omitidos por
+  archivo (un spec sin `SUPABASE_URL` se omite en silencio, así se ve si alguno se saltó de más). El artifact
+  `e2e-nocturno` (7 días) trae `playwright-report` (HTML), `test-results` (trazas de los tests que fallaron; se abren con
+  `pnpm --filter @platform/web exec playwright show-trace`), el JSON de resultados y los logs de vite y de las funciones.
+  Si el resumen dice que no hay resultados, falló antes de Playwright: el paso en rojo del log dice cuál.
+- **Limpieza:** el paso final (`always()`) mata `vite`, `functions serve` y el puente por PID propio, baja el stack con
+  `supabase stop --no-backup` y, si algo quedó, borra por la etiqueta del `project_id` propio sus contenedores, volúmenes y
+  red. Un run caído también se limpia al inicio del siguiente.
+- **Memoria:** `vite` y Chromium corren dentro del runner (tope 3 GB y 2 CPU, `infra/runner/compose.yaml`);
+  el stack de Supabase corre en el Docker del host fuera de ese tope. Si el run muere por memoria, bajar réplicas del
+  runner o subir `RUNNER_MEMORY_LIMIT`.
 
 ## E2E con sesión en CI (experimental)
 - El job **`e2e-sesion`** (en `validate.yml`, sólo al cierre `e2e`) levanta el stack **completo** de Supabase
