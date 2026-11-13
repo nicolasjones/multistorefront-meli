@@ -32,10 +32,12 @@ export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoLis
       <Box
         data-testid="tarjeta-imagen"
         sx={(tema) => ({
-          position: 'relative', aspectRatio: { xs: '171 / 159', md: '1 / 1' }, bgcolor: tema.tienda?.superficie ?? 'action.hover', // estilos-sueltos: ok
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative', aspectRatio: { xs: '171 / 159' }, bgcolor: tema.tienda?.superficie ?? 'action.hover', // estilos-sueltos: ok
+          // Escritorio: el área mide tanto como el ancho TOTAL de la tarjeta (282 px de 282; el prototipo suma el borde de 1 px).
+          '@media (min-width:900px)': { aspectRatio: 'auto', height: 0, pb: 'calc(100% + 2px)' }, // estilos-sueltos: ok
         })}
       >
+        <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {mostrarImagen ? (
           <Box component="img" src={urlImagen} alt="" loading="lazy" onError={() => setFallo(urlImagen ?? null)} sx={{ maxWidth: '86%', maxHeight: '86%', objectFit: 'contain', opacity: sinStock ? 0.45 : 1 }} />
         ) : (
@@ -51,6 +53,7 @@ export function TarjetaProducto({ producto, urlImagen }: { producto: ProductoLis
             Sin stock
           </Typography>
         ) : null}
+        </Box>
       </Box>
       <Box sx={{ p: { xs: '10px', md: '14px' } }}>
         <Typography

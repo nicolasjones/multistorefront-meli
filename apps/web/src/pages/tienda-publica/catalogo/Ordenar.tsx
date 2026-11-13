@@ -29,11 +29,12 @@ export function Ordenar({ orden, alCambiar }: { orden: OrdenCatalogo; alCambiar:
         MenuProps={{
           anchorOrigin: { vertical: 'bottom', horizontal: 'right' },
           transformOrigin: { vertical: 'top', horizontal: 'right' },
+          MenuListProps: { disablePadding: true },
           slotProps: { paper: { sx: { width: 200, mt: '4px', borderRadius: '10px', border: BORDE_PANEL, boxShadow: '0 12px 32px rgba(0,0,0,.16)' } } }, // estilos-sueltos: ok
         }}
       >
         {OPCIONES_ORDEN.map((o) => (
-          <MenuItem key={o.valor} value={o.valor} sx={{ py: '10px', px: '12px', fontSize: 15, '&.Mui-selected': { bgcolor: 'transparent', fontWeight: 700, color: 'primary.main' } /* estilos-sueltos: ok */ }}>
+          <MenuItem key={o.valor} value={o.valor} sx={{ py: '10px', px: '12px', fontSize: 15, '&.Mui-selected, &.Mui-selected:hover, &.Mui-selected.Mui-focusVisible': { bgcolor: 'transparent', fontWeight: 700, color: 'primary.main' }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } /* estilos-sueltos: ok */ }}>
             {o.etiqueta}
           </MenuItem>
         ))}

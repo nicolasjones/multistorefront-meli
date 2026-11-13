@@ -82,7 +82,7 @@ export function MenuCategorias({ categorias }: { categorias: CategoriasTienda })
             <li><Box component="span" data-nombre="Más categorías" sx={estiloCopia} /></li>
           </Box>
         </Box>
-        <Box component="ul" ref={lista} data-testid="menu-categorias-lista" sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: hayObservador ? 'hidden' : 'auto', overflowY: 'hidden', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, alignItems: 'center' }}>
+        <Box component="ul" ref={lista} data-testid="menu-categorias-lista" sx={{ display: 'flex', flexWrap: 'nowrap', overflowX: hayObservador ? 'hidden' : 'auto', overflowY: 'hidden', gap: `${GAP}px`, listStyle: 'none', m: 0, p: 0, alignItems: 'center', minHeight: 52 /* estilos-sueltos: ok */ }}>
           {mostradas.map((categoria) => (
             <li key={categoria.id}>
               <Box component={NavLink} to={`/categoria/${categoria.id}`} sx={estiloEnlace}>{categoria.nombre}</Box>

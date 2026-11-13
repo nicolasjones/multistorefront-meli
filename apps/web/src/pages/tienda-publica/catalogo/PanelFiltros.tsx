@@ -15,23 +15,71 @@ type Props = {
   ocultarLimpiar?: boolean
 }
 
-// Panel de filtros (F-TDA-12, FR-035): «Categorías» (con «Todos los productos» y conteos),
-// «Disponibilidad» · «Solo con stock», «Precio máximo» ($ / «Sin límite») y «Limpiar filtros».
-export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiarStock, alCambiarPrecioMax, alLimpiar, ocultarLimpiar = false }: Props) {
-  // El campo es texto libre mientras se escribe (`edicion`); al salir (o con Enter) se aplica y vuelve a
-  // mostrar el filtro vigente de la URL. Vacío, no numérico o ≤ 0 equivale a «Sin límite».
-  const [edicion, setEdicion] = useState<string | null>(null)
-  const texto = edicion ?? (filtros.precioMax === null ? '' : String(filtros.precioMax))
+// Casilla del prototipo (`.cbx`): botón con estado (`aria-pressed`) y un cuadro de 18 px que se llena con el primario.
+export function CasillaStock({ activo, alCambiar }: { activo: boolean; alCambiar: (soloConStock: boolean) => void }) {
+  return (
+    <ButtonBase
+      aria-pressed={activo}
+      onClick={() => alCambiar(!activo)}
+      sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit', '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' } /* estilos-sueltos: ok */ }}
+    >
+      <Box
+        component="span"
+        aria-hidden
+        sx={{
+          width: 18, height: 18, borderRadius: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', // estilos-sueltos: ok
+          border: '2px solid', borderColor: activo ? 'primary.main' : 'rgba(0,0,0,.35)', bgcolor: activo ? 'primary.main' : 'background.paper', color: 'primary.contrastText', // estilos-sueltos: ok
+        }}
+      >
+        {activo ? (
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+        ) : null}
+      </Box>
+      Solo con stock
+    </ButtonBase>
+  )
+}
 
-  const aplicarPrecio = () => {
+// Campo «Precio máximo» (prototipo `.fin`): 40 px de alto, borde de 1,5 px, radio 8, el «$» en gris y «Sin límite» de apoyo. Es texto libre
+// mientras se escribe (`edicion`); al salir (o con Enter) se aplica y vuelve a mostrar el filtro vigente de la URL. Vacío, no
+// numérico o ≤ 0 equivale a «Sin límite».
+export function CampoPrecioMax({ precioMax, alCambiar, idEtiqueta }: { precioMax: number | null; alCambiar: (precioMax: number | null) => void; idEtiqueta: string }) {
+  const [edicion, setEdicion] = useState<string | null>(null)
+  const texto = edicion ?? (precioMax === null ? '' : String(precioMax))
+
+  const aplicar = () => {
     if (edicion === null) return
     const limpio = edicion.replace(/[.\s]/g, '')
     const valor = /^[0-9]{1,9}$/.test(limpio) ? Number(limpio) : 0
     const nuevo = valor > 0 ? valor : null
     setEdicion(null)
-    if (nuevo !== filtros.precioMax) alCambiarPrecioMax(nuevo)
+    if (nuevo !== precioMax) alCambiar(nuevo)
   }
 
+  return (
+    <InputBase
+      fullWidth
+      placeholder="Sin límite"
+      value={texto}
+      onChange={(evento) => setEdicion(evento.target.value)}
+      onBlur={aplicar}
+      onKeyDown={(evento) => { if (evento.key === 'Enter') aplicar() }}
+      startAdornment={<Box component="span" aria-hidden sx={{ color: 'text.secondary', mr: '6px' }}>$</Box>}
+      inputProps={{ 'aria-labelledby': idEtiqueta, inputMode: 'numeric' }}
+      sx={{
+        height: 40, px: '12px', fontSize: 15, border: BORDE_CAMPO, borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
+        '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '1px' }, // estilos-sueltos: ok
+        '& input::placeholder': { color: 'text.secondary', opacity: 1 },
+      }}
+    />
+  )
+}
+
+// Panel de filtros (F-TDA-12, FR-035): «Categorías» (con «Todos los productos» y conteos),
+// «Disponibilidad» · «Solo con stock», «Precio máximo» ($ / «Sin límite») y «Limpiar filtros».
+export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiarStock, alCambiarPrecioMax, alLimpiar, ocultarLimpiar = false }: Props) {
+  // «Todos los productos» lleva el total del catálogo: la suma de las categorías raíz (sus conteos ya incluyen las subcategorías).
+  const total = categorias.filter((c) => c.padreId === null).reduce((suma, c) => suma + c.productos, 0)
   return (
     <Box component="aside" aria-label="Filtros del catálogo">
       <Box component="nav" aria-label="Filtrar por categoría" sx={estiloBloque}>
@@ -39,7 +87,8 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
         <List disablePadding>
           <ListItem disablePadding>
             <ListItemButton selected={filtros.categoria === null} onClick={() => alElegirCategoria(null)} aria-current={filtros.categoria === null ? 'true' : undefined} sx={estiloFila}>
-              <ListItemText primary="Todos los productos" slotProps={{ primary: { sx: { fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' } } }} />
+              <ListItemText primary="Todos los productos" sx={{ m: 0 }} slotProps={{ primary: { sx: { fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' } } }} />
+              {total > 0 ? <Typography component="span" color="text.secondary" aria-label={`${total} productos`} sx={{ fontSize: 'inherit', fontWeight: 400, ml: 1 }}>{total}</Typography> : null}
             </ListItemButton>
           </ListItem>
           {filasPanelCategorias(categorias, filtros.categoria).map(({ categoria: c, nivel }) => (
@@ -50,7 +99,7 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
                 onClick={() => alElegirCategoria(c.id)}
                 sx={{ ...estiloFila, pl: `${nivel * 16}px` }}
               >
-                <ListItemText primary={c.nombre} slotProps={{ primary: { sx: { fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' } } }} />
+                <ListItemText primary={c.nombre} sx={{ m: 0 }} slotProps={{ primary: { sx: { fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit' } } }} />
                 <Typography component="span" color="text.secondary" aria-label={`${c.productos} productos`} sx={{ fontSize: 'inherit', fontWeight: 400, ml: 1 }}>{c.productos}</Typography>
               </ListItemButton>
             </ListItem>
@@ -60,46 +109,12 @@ export function PanelFiltros({ categorias, filtros, alElegirCategoria, alCambiar
 
       <Box component="section" aria-labelledby="filtro-disponibilidad" sx={estiloBloque}>
         <Typography id="filtro-disponibilidad" component="h2" variant="h6" sx={estiloTitulo}>Disponibilidad</Typography>
-        {/* Casilla del prototipo (`.cbx`): botón con estado (`aria-pressed`) y un cuadro de 18 px que se llena con el primario. */}
-        <ButtonBase
-          aria-pressed={filtros.soloConStock}
-          onClick={() => alCambiarStock(!filtros.soloConStock)}
-          sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit', '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' } /* estilos-sueltos: ok */ }}
-        >
-          <Box
-            component="span"
-            aria-hidden
-            sx={{
-              width: 18, height: 18, borderRadius: '4px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', // estilos-sueltos: ok
-              border: '2px solid', borderColor: filtros.soloConStock ? 'primary.main' : 'rgba(0,0,0,.35)', bgcolor: filtros.soloConStock ? 'primary.main' : 'background.paper', color: 'primary.contrastText', // estilos-sueltos: ok
-            }}
-          >
-            {filtros.soloConStock ? (
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false"><path d="M5 12.5l4.5 4.5L19 7" /></svg>
-            ) : null}
-          </Box>
-          Solo con stock
-        </ButtonBase>
+        <CasillaStock activo={filtros.soloConStock} alCambiar={alCambiarStock} />
       </Box>
 
       <Box component="section" aria-labelledby="filtro-precio" sx={estiloBloque}>
         <Typography id="filtro-precio" component="h2" variant="h6" sx={estiloTitulo}>Precio máximo</Typography>
-        {/* Campo del prototipo (`.fin`): 40 px de alto, borde de 1,5 px, radio 8, el «$» en gris y «Sin límite» de apoyo. */}
-        <InputBase
-          fullWidth
-          placeholder="Sin límite"
-          value={texto}
-          onChange={(evento) => setEdicion(evento.target.value)}
-          onBlur={aplicarPrecio}
-          onKeyDown={(evento) => { if (evento.key === 'Enter') aplicarPrecio() }}
-          startAdornment={<Box component="span" aria-hidden sx={{ color: 'text.secondary', mr: '6px' }}>$</Box>}
-          inputProps={{ 'aria-labelledby': 'filtro-precio', inputMode: 'numeric' }}
-          sx={{
-            height: 40, px: '12px', fontSize: 15, border: BORDE_CAMPO, borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
-            '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '1px' }, // estilos-sueltos: ok
-            '& input::placeholder': { color: 'text.secondary', opacity: 1 },
-          }}
-        />
+        <CampoPrecioMax precioMax={filtros.precioMax} alCambiar={alCambiarPrecioMax} idEtiqueta="filtro-precio" />
       </Box>
 
       {ocultarLimpiar ? null : (

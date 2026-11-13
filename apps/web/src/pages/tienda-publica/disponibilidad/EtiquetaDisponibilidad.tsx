@@ -21,7 +21,7 @@ export default function EtiquetaDisponibilidad({ disponible, tamano = 'tarjeta' 
       data-testid="etiqueta-disponibilidad"
       data-disponible={disponible}
       sx={{
-        display: 'inline-flex', alignItems: 'center', gap: ficha ? '8px' : '6px', fontSize: ficha ? 16 : { xs: 12, md: 13 }, fontWeight: ficha ? 600 : 500, // estilos-sueltos: ok
+        display: 'inline-flex', alignItems: 'center', gap: ficha ? '8px' : '6px', fontSize: ficha ? { xs: 15, md: 16 } : { xs: 12, md: 13 }, fontWeight: ficha ? 600 : 500, // estilos-sueltos: ok
         color: disponible ? 'success.main' : COLOR_SIN_STOCK,
       }}
     >

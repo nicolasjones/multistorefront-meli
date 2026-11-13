@@ -13,6 +13,7 @@ import {
 } from '../../../lib/tiendaBusqueda'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { IconoLupa } from './iconos'
 import { BORDE_PANEL } from './medidas'
 
@@ -189,7 +190,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
               </Typography>
             ) : null}
             {estado.fase === 'lista' && sugerencias.length === 0 ? (
-              <Typography role="status" variant="body2" sx={{ p: 2 }}>No encontramos productos con ese nombre.</Typography>
+              <Typography role="status" variant="body2" color="text.secondary" sx={{ p: '14px 12px', fontSize: 14 /* estilos-sueltos: ok */ }}>No encontramos productos con ese nombre.</Typography>
             ) : null}
             {estado.fase === 'lista' && sugerencias.length > 0 ? (
               <Box component="ul" id={idLista} role="listbox" aria-label="Sugerencias de búsqueda" sx={{ listStyle: 'none', m: 0, p: 0 }}>
@@ -264,7 +265,8 @@ function OpcionSugerencia({
       </Box>
       <Box sx={{ minWidth: 0, flex: 1 }}>
         <Typography component="span" sx={{ display: 'block', fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{sugerencia.nombre}</Typography>
-        <EtiquetaDisponibilidad disponible={sugerencia.disponible} />
+        {/* El prototipo no dibuja la disponibilidad en las sugerencias: queda solo para lectores de pantalla. */}
+        <Box component="span" sx={SOLO_LECTORES}><EtiquetaDisponibilidad disponible={sugerencia.disponible} /></Box>
       </Box>
       {precio ? (
         <Box sx={{ textAlign: 'right', flexShrink: 0 }}>

@@ -59,7 +59,8 @@ describe('TarjetaProducto · fidelidad con el prototipo', () => {
     montar()
     expect(screen.getByText('Sin imagen')).toBeInTheDocument()
     expect(reglas()).toMatch(/aspect-ratio:\s*171\s*\/\s*159/)
-    expect(reglas()).toMatch(/aspect-ratio:\s*1\s*\/\s*1/)
+    // Escritorio: el área mide el ancho TOTAL de la tarjeta (282 px de 282), como el prototipo.
+    expect(reglas()).toMatch(/padding-bottom:calc\(100% \+ 2px\)/)
   })
 
   it('«Sin stock»: insignia sobre la imagen (arriba a la izquierda), imagen atenuada y etiqueta gris con punto', () => {
