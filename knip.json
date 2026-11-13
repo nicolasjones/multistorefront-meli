@@ -10,6 +10,7 @@
     "infra/ia/aprovisionar-proveedores.mjs",
     "infra/runner/entrypoint.mjs",
     "scripts/fixtures/**",
+    "scripts/demo-dataset/**",
     "supabase/functions/**",
     ".agents/**",
     ".claude/**",
