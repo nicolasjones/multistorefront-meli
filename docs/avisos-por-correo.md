@@ -64,7 +64,9 @@ Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/a
 
 ## Aviso de consulta nueva (FR-012)
 
-MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por empresa: el disparador de `dominio.consultas` ya no encola en `dominio.consultas_avisos`; emite `consulta_nueva` con la empresa de la consulta y solo llega a quienes acceden a ella. La dirección de avisos por empresa (`dominio.consultas_configuracion`) solo afecta a los avisos que quedaron encolados por el camino anterior; el alta nueva no la usa.
+MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por empresa: el disparador de `dominio.consultas` ya no encola en `dominio.consultas_avisos`; emite `consulta_nueva` con la empresa de la consulta y solo llega a quienes acceden a ella.
+
+MSF-853 (gate) eliminó el camino directo que quedó sin uso: la Edge Function `enviar-aviso-consulta`, el flow de Kestra `avisos-consultas`, la tabla `dominio.consultas_avisos` y sus tres RPC (`avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consulta`). La revisión de los E2E confirmó que por esa vía no sale correo SMTP de «nueva consulta». Como consecuencia, la dirección de avisos por empresa (`dominio.consultas_configuracion`, que edita la ficha de la empresa) ya no alimenta ningún aviso: el aviso sale solo por la cola de plataforma, según las preferencias de cada persona.
 
 ## Relación con el correo masivo a clientes
 
