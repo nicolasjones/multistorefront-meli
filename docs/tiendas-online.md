@@ -783,7 +783,7 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 
 **Relacionados manuales (MSF-846, `20270305100200_tienda_relacionados_manuales.sql`)**: si el producto tiene
 «Productos relacionados» cargados en el panel (`dominio.producto_relacionados`, F-CAT-18), la ficha muestra
-**esos primero, en su orden**, hasta 4 y solo los efectivamente visibles en esa tienda
+**esos primero, en su orden (con empate de `orden`, por id)**, hasta 4 y solo los efectivamente visibles en esa tienda
 (`private.catalogo_tienda_efectivo`: ocultos, inactivos o no asignados a la empresa se omiten); si faltan para
 llegar a 4 se completa con la regla por categoría de arriba, sin repetirlos. Un producto sin categoría con
 manuales visibles los devuelve. Mismo contrato de salida y mismos grants; los vínculos se filtran por la
@@ -947,7 +947,7 @@ Visión de conjunto de la épica; el detalle de cada historia está en las secci
 | Historia | Pieza | Esquema | Quién la ejecuta |
 |---|---|---|---|
 | F-TDA-19 (MSF-247) | `publico.estado_tienda_por_dominio(host)`: marca de la tienda **desactivada** | `publico` (función) | `anon`, `authenticated` |
-| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4 de la misma categoría | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4; primero los relacionados manuales del panel (MSF-846) y luego la regla por categoría | `publico` (función) | `anon`, `authenticated` |
 | F-TDA-21 (MSF-279) | `publico.seo_tienda_por_dominio(host)` y `publico.sitemap_por_dominio(host)` | `publico` (funciones) | `anon`, `authenticated` |
 | F-TDA-22 (MSF-289) | `publico.legal_por_dominio(host)` y la tabla `dominio.tienda_legal_enlaces` | tabla en **`dominio`** (dato del producto atado a una empresa, Principio VII), función en `publico` | tabla: solo `select` a `authenticated` con RLS por organización, sin privilegios para `anon`; función: `anon` |
 
@@ -990,7 +990,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 | # | Supuesto adoptado | Cómo cambiarlo |
 |---|---|---|
 | D1 | La marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. | Dejar de llamar a la función desde `SinTienda` y vuelve la pantalla genérica. |
-| D2 | Relacionados: hasta 4 visibles de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
+| D2 | Relacionados: hasta 4 visibles; primero los manuales del panel (MSF-846, en su orden) y luego, para completar, los de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
 | D3 | SEO básico: título, descripción, canónica, Open Graph, JSON-LD (organización y producto), `robots.txt`, `sitemap.xml` y `noindex` en páginas de estado, cuenta y búsqueda. | Fuera de alcance: campos SEO por producto, hreflang, analítica. |
 | D4 | La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender. | Otra historia (prerender o HTML desde la Edge Function). |
 | D5 | Los enlaces legales los carga el equipo técnico por SQL. | Otra historia, dentro de Empresas. |
@@ -1002,7 +1002,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 1. «Volvemos pronto» figura P0 en F-TDA-01 y P1 en F-TDA-19: la versión mínima ya estaba; esta épica agrega la identidad.
 2. El interruptor «Store activa» ya existe en el panel (F-EMP-04); acá solo se verifica su efecto en la tienda, sin rediseñar esa pantalla.
-3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano; se aplica la regla D2 y se mantienen «Sin imagen» / «Sin stock».
+3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano: desde MSF-846 van primero los relacionados manuales del panel y luego se completa con la regla D2 (misma categoría); se mantienen «Sin imagen» / «Sin stock».
 4. Aviso de cookies, SEO y bloque legal no tienen pantalla en el prototipo: se construyen con los componentes del template y los tokens de la tienda.
 
 ### Migraciones y reversión
@@ -1156,7 +1156,8 @@ contacto de la empresa del host.
   AA sobre `colorBarra`); el texto secundario del tema se calcula para llegar a 4,5:1 sobre el fondo y sobre la superficie de las tarjetas.
 - **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
   `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
-  pudo firmar, el recuadro neutro. La vista previa del panel no trae `imagen` (`vista_previa_tienda` no la calcula): muestra el recuadro
+  pudo firmar, el recuadro neutro. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa del panel
+  (`vista_previa_tienda`) también trae `imagen`, calculada sobre los productos efectivos del borrador, y el panel muestra la foto; sin foto, el recuadro
   neutro.
 - **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
   «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos»; un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace. No se muestra en la vista previa (no lee `publico.*`).

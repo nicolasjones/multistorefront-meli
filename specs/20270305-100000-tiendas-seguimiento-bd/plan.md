@@ -11,5 +11,6 @@
 
 ## Riesgos
 
-- El orden por precio sobre todas las coincidencias sigue costando ~6 ms por producto (2,5 s para 389 coincidencias en dev cargado): no es el caso común; seguimiento si hiciera falta (precio por lote).
+- El orden por precio sobre todas las coincidencias costaba ~4,7 ms por producto (2,0–2,9 s para 389 coincidencias en dev cargado): `20270305100300` pasa `precio_vigente_empresa` a plpgsql (~0,34 ms) y esas ramas bajan a ~0,3–0,45 s. Con catálogos mucho más grandes seguiría creciendo linealmente (seguimiento: precio por lote).
+- Reversión de `20270305100300`: recrear la función SQL de `20270221100003`.
 - Reversión: migración posterior que restaura los cuerpos de `20270221100005`, `20270205110100` y `20270212100003`.

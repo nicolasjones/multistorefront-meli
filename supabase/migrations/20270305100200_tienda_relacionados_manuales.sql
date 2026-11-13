@@ -3,7 +3,7 @@
 -- dominio.producto_relacionados (F-CAT-18, 20270220120100).
 --
 -- Regla nueva (mismo contrato de salida: { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }):
---   1. Primero los relacionados manuales del producto, en su orden (`orden`), hasta 4, solo los efectivamente
+--   1. Primero los relacionados manuales del producto, en su orden (`orden`, desempate por id), hasta 4, solo los efectivamente
 --      visibles en ESA tienda (private.catalogo_tienda_efectivo) y de la misma organización que la empresa.
 --   2. Si faltan para llegar a 4, se completa con la regla anterior (misma categoría, destacados primero, luego
 --      nombre e id), sin repetir los manuales ni el propio producto.
@@ -60,7 +60,7 @@ begin
         from dominio.producto_relacionados pr
         join efectivos e on e.producto_id = pr.relacionado_id
        where pr.producto_id = producto and pr.organizacion_id = v_org
-       order by pr.orden
+       order by pr.orden, pr.relacionado_id
        limit c_tope
     ),
     relleno as (
