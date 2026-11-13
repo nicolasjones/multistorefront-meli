@@ -111,6 +111,11 @@ en otros componentes lo corrige el PR #876, no este.
   «recuperar» además necesita Edge y el SMTP de Mailpit (`SMTP_*`) declarado para el runtime.
 - Los recorridos largos fijan `test.setTimeout` con el motivo de cada spec (30-90 s); el tope por defecto (30 s) no alcanza con
   varios roles o con mucha siembra.
+- `inicio` ubica cada tarjeta por su título (`tarjeta()` en `e2e/inicio.e2e.ts`). Desde MSF-820 «Stock hoy» aparece dos
+  veces en la portada del panel: el bloque del tablero (`BloqueStock`, primero en el DOM) y la tarjeta de alertas de stock
+  (`TarjetaStock`, la que el spec verifica, siempre la última); el helper toma `.last()` para no violar el modo estricto de
+  Playwright sin cambiar lo que se afirma. Si una pantalla suma otro título repetido, acotá el locator a su región en lugar
+  de encadenar más `.first()`/`.last()`.
 
 ## Estado de cobertura
 
