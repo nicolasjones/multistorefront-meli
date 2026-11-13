@@ -271,8 +271,8 @@ errores está también en `specs/20261030-100000-inicio-y-alertas/contracts/inic
 **Migración de correcciones `20270305150000`** (PR #909, hallazgos de la revisión final): redefine con `create or replace` `resumen_inicio_periodo`,
 `resumen_inicio_bloques`, `movimientos_por_producto` y `aplicar_cotizacion` (mismas firmas y mismos grants) y agrega el índice
 `movimientos_stock_org_producto_fecha_idx (organizacion_id, producto_id, fecha desc)`. Cambios de comportamiento:
-las tres RPC de lectura rechazan fechas infinitas con 22023; `movimientos_por_producto` calcula `ultimo_movimiento` después del limit (solo para las filas
-de la página, salvo que se ordene por esa columna); `resumen_inicio_bloques` evalúa `rentabilidad` con el rol del usuario en cada tienda; y
+las tres RPC de lectura rechazan fechas infinitas con 22023; `movimientos_por_producto` calcula `ultimo_movimiento` después del orden y el límite (hasta la página
+pedida, es decir offset + límite, y no para todo el listado; salvo que se ordene por esa columna); `resumen_inicio_bloques` evalúa `rentabilidad` con el rol del usuario en cada tienda; y
 `aplicar_cotizacion` toma primero el advisory lock de la organización (sin deadlock con confirmar o descartar). Detalle en
 [`seguridad-inicio-tablero.md`](./seguridad-inicio-tablero.md).
 
@@ -324,7 +324,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
 | `AlertasInicio` sigue mostrando la alerta `dolar_sin_cargar` a quien solo tiene lectura (comportamiento previo de MSF-344) | Decisión de Nicolás (CA-INI-07-7) |
-| Rentabilidad se evalúa por organización y ventas por tienda | Decisión pendiente de Nicolás (ver `tasks.md`) y H-3 de la revisión de seguridad |
+| ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270305150000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
 ## Alertas accionables (F-INI-02, MSF-361)
