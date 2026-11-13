@@ -32,7 +32,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, activo) values
   ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Teclado', 'TEC-1', 1000, true),
   ('b1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'Producto viejo', 'VIE-1', 100, false),
-  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado Dos', 'TEC-2', 1000);
+  ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado Dos', 'TEC-2', 1000, true);
 
 delete from dominio.depositos
  where por_defecto
