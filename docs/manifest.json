@@ -380,7 +380,7 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "b78c6b93830ce92fd4576d54ee9c535fea0bec06d5be507c10a8f7dace9aae34",
+      "pageHash": "dd472b04cb273939f20c787cdce655a8a0cdb3725954a0f54e174cdc6e2cc072",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -602,8 +602,8 @@
       "commit": "53cb4c30"
     },
     "docs/producto/inicio-y-alertas.md": {
-      "title": "Inicio, alertas y búsqueda de productos",
-      "pageHash": "6753a97491d5373f18c3cce86f8bb97b115be89d77881569fb856e22ade7beca",
+      "title": "Inicio: el tablero, las alertas y la búsqueda de productos",
+      "pageHash": "c0902d4d9c64b745c4ff08f40d36e0ec2120d9fbbb855a9d57ef679b5d89ee1e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1315,14 +1315,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "1a05d08ef8451bdc1fb5e40d70257047322e3bef7c70df06b2d72424306ec08d",
+      "pageHash": "cb0bddd2d386ad549ab7e651aac1632e34a139f6738b7d5c5cbc92cfe792c56c",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "394208c5",
+      "sourceAt": "d82baacc",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "5f4018f5"
+      "commit": "f3ef1b96"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1365,14 +1365,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "c32dd3fb9e239b831181c711a39fabeef2bd4b9517980f1aef1ba61680431dd6",
+      "pageHash": "b47547782db85591fb4593854fe222a5fc80548d3986792bb3a55d59459cd8bf",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "59d6ddac",
+      "sourceAt": "d82baacc",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "3a93b935"
+      "commit": "9593f63c"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1560,14 +1560,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "dea44fc2da9f132e1d94c60f13899fe3f36e203126086961847edad55da643c8",
+      "pageHash": "8e61470581f6bc9e3f22f47ff01c01feaba404c157e79da1453924069a7aa713",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "7b69957a",
+      "sourceAt": "d82baacc",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "15bb7830"
+      "commit": "4b780ed7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1637,11 +1637,24 @@
       "owner": "tecnico",
       "commit": "53cb4c30"
     },
+    "docs/tecnico/inicio-tablero.md": {
+      "title": "Inicio: tablero de ventas y stock, listado por producto y carga del dólar (MSF-824)",
+      "pageHash": "61fd3295e077b1f329356f922e530b26bf9ccc801ca131860db8aae4dc60d5a4",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "d82baacc",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/inicio-y-alertas.md": {
       "title": "Inicio y alertas: pantalla, recálculo y búsqueda global",
-      "pageHash": "d72adad5902610addcf5374766834914457da80f93220e520e72ac50f85d32ed",
+      "pageHash": "4c2f3c6dcff3cc32e27521cf15c033549982d5fb40990117b4db5b3d6ead959d",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "e75a236b",
+      "sourceAt": "d82baacc",
       "sources": [
         "specs",
         "supabase/migrations",
