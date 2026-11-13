@@ -67,6 +67,64 @@ test('versión mayor que la máxima de la base pasa limpia', () => {
   });
 });
 
+test('un archivo de migración sin nombre es error: el CLI y el cron lo ignorarían', () => {
+  conRepo(['20270115100200'], [], (dir) => {
+    writeFileSync(path.join(dir, 'supabase/migrations/20270121110303.sql'), SQL);
+    spawnSync('git', ['add', '.'], { cwd: dir });
+    const r = correr(dir);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /nombre inválido supabase\/migrations\/20270121110303\.sql/);
+  });
+});
+
+test('renombrar una migración sin nombre ya publicada (mismo contenido) no es versión reusada ni migración nueva', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'verif-migr-'));
+  const git = (...a) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
+  try {
+    git('init', '-q');
+    git('config', 'user.email', 't@t');
+    git('config', 'user.name', 't');
+    mkdirSync(path.join(dir, 'supabase/migrations'), { recursive: true });
+    writeFileSync(path.join(dir, 'supabase/migrations/20270201000000_base.sql'), SQL);
+    // Publicada sin nombre y con DDL que la revisión de idempotencia rechazaría si la tomara por nueva.
+    writeFileSync(path.join(dir, 'supabase/migrations/20270202200501.sql'), 'alter table t add column x int;\n');
+    git('add', '.');
+    git('commit', '-qm', 'base');
+    git('update-ref', 'refs/remotes/origin/dokploy', 'HEAD');
+    git('mv', 'supabase/migrations/20270202200501.sql', 'supabase/migrations/20270202200501_con_nombre.sql');
+    for (const extra of [[], ['--estricto']]) {
+      const r = correr(dir, extra, { GITHUB_BASE_REF: 'dokploy' });
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /0 nuevo\(s\)/);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('renombrar un archivo sin nombre Y cambiarle el contenido sigue siendo error (versión inmutable)', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'verif-migr-'));
+  const git = (...a) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
+  try {
+    git('init', '-q');
+    git('config', 'user.email', 't@t');
+    git('config', 'user.name', 't');
+    mkdirSync(path.join(dir, 'supabase/migrations'), { recursive: true });
+    writeFileSync(path.join(dir, 'supabase/migrations/20270202200501.sql'), SQL);
+    git('add', '.');
+    git('commit', '-qm', 'base');
+    git('update-ref', 'refs/remotes/origin/dokploy', 'HEAD');
+    git('mv', 'supabase/migrations/20270202200501.sql', 'supabase/migrations/20270202200501_con_nombre.sql');
+    writeFileSync(path.join(dir, 'supabase/migrations/20270202200501_con_nombre.sql'), 'select 2;\n');
+    git('add', '.');
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /MODIFICADA/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('versión duplicada en el árbol sigue siendo error', () => {
   conRepo(['20270101000000'], [], (dir) => {
     writeFileSync(path.join(dir, 'supabase/migrations/20270201000000_a.sql'), SQL);
