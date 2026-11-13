@@ -288,6 +288,10 @@ las tasks.md de origen.
 
 ## Cobertura por historia con video (spec 022)
 
+> **Privacidad del bucket `evidencias-e2e`**: su policy de lectura permite a cualquier usuario `authenticated`, de
+> cualquier organización, listar y leer todos los videos. Los videos de evidencia no deben contener datos reales de
+> clientes, solo siembras de prueba. En MSF no hay consumidor del visor (vive en el panel SDLC).
+
 Cada test E2E declara qué cubre en su título con `[EPICA:TASK]` (la épica es la
 clave MSF de Jira, el ítem es el Txxx del `tasks.md` de su spec):
 

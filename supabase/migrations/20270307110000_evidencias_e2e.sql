@@ -3,6 +3,10 @@
 -- Las corridas suben `<run-id>/cobertura-e2e.json` + videos `.webm` con la
 -- service-role del CI (bypassa RLS). El navegador solo lee, por URL firmada
 -- (patrón `evidencias-ejecuciones`, sin service-role en el cliente).
+-- ATENCIÓN (privacidad): la policy de lectura deja que CUALQUIER usuario `authenticated`, de cualquier
+-- organización, liste y lea TODOS los videos del bucket. Por eso los videos de evidencia no deben contener datos
+-- reales de clientes: solo siembras de prueba. En MSF no hay consumidor del visor (vive en el panel SDLC); no se
+-- sabe si el panel lee con `authenticated`, así que el comportamiento de la policy no se cambia acá.
 -- Reversión: delete from storage.buckets where id = 'evidencias-e2e';
 --   (tras vaciar el bucket; las policies caen con el bucket).
 

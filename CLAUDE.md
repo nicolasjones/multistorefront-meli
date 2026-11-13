@@ -22,6 +22,7 @@ revisa `.specify/memory/constitution.md` y los artefactos de la funcionalidad en
 - Toda spec debe declarar su alcance de entrega: `refine`, `supabase`, `kestra`, `superset` y/o `workers`.
 - Para desarrollo Docker usa los comandos `dev:<producto>`; para Refine fuera de Docker usa `dev:refine:host`.
 - Los commits siempre llevan título claro y en castellano; lo mismo para nombres de rama y slugs de specs de Spec Kit.
+- **DER en specs:** toda spec que crea, altera o referencia tablas lleva `## Modelo de datos (DER)` con **todas** las tablas del grafo afectado, una leyenda `| Tabla | Estado | Cambio |` (`nueva`/`alterada`/`existente`) y un `erDiagram` de Mermaid. Las columnas nuevas o alteradas se marcan con un comentario `"nueva: …"` / `"alterada: …"`; las existentes sin cambios no. Si no hay cambios de esquema, la sección dice "Sin cambios de esquema". Verificación: `pnpm der:check`.
 - **El prototipo manda la UI.** Las pantallas viven en `design/pantallas/*.dc.html` y son la fuente de verdad visual: no se inventa ni se "mejora" lo visible. Antes de implementar UI, corré `pnpm prototipo:inventario` (checklist determinista de tablas, campos, botones, tabs y diálogos) y mapeá cada ítem a un criterio de aceptación o declaralo fuera de alcance en la sección `## Matriz pantalla↔criterios` del `spec.md`. El CI corre `pnpm prototipo:check` (falla si un `.dc.html` no tiene su `.inventory.json` al día) y `pnpm matriz:check` (una spec nueva con UI sin matriz = inválida). Para la revisión lado a lado: `pnpm --filter @platform/web pantallas:capturar`. Detalle en `docs/prototipos.md`. Incluí en el inventario los indicadores de empresa (selector, columna, filtro o textos como el de Clientes).
 - **Empresa activa en pantallas y pop-ups.** Toda pantalla o diálogo que lea o escriba datos de empresa debe declarar en la spec cómo se comporta con la empresa activa (una empresa y, si el prototipo lo ofrece, «Todas mis empresas»): qué filtra, qué columnas muestra, qué pasa con la selección y con los diálogos abiertos al cambiarla. Al cambiar la empresa hay que invalidar y recargar **todas** las consultas de datos de la pantalla (no sólo permisos), reencuadrar paginación y descartar selecciones inválidas; un diálogo abierto se cierra con aviso o se reabre acotado, nunca guarda datos de la empresa anterior. Si la pantalla no es de empresa, escribí «Empresa activa: no aplica» y el motivo. Agregá la fila «Empresa activa» a `## Matriz pantalla↔criterios` (el CI falla si falta) y un test que cambie de empresa. Referencia: Clientes con la barra superior; se repitió en Productos, Servicios, Modelos y pop-ups (Principio VIII de la constitución).
 - **Empresas/tiendas en la UI: un solo patrón.** Los filtros de empresa de una pantalla usan `FiltroEmpresa` (píldoras `ToggleButtonGroup`: «Todas las tiendas» + una por empresa), como Cuentas de cobro. La selección múltiple de empresas en formularios y diálogos usa `SelectorEmpresas` (casillas), como «Disponible en» de Cuentas de cobro. No se agregan `Chip`, `Select` ni listas propias para elegir empresas; si falta un caso, se extiende el componente compartido y se prueba. `pnpm ui:empresas:check` corre en CI y falla si reaparece una variante.
@@ -48,6 +49,13 @@ Todo cambio de plataforma, worker, Kestra, Supabase, CI o tooling propio debe
 incluir en el mismo cambio una actualización de `specs/`, `docs/`, `AGENTS.md`,
 `CLAUDE.md` o la constitución. El workflow ejecuta `pnpm docs:check`; una
 implementación sin documentación equivalente debe fallar.
+
+- En `mkdocs.yml`, entrecomillá sólo la etiqueta del nav cuando lleve `:`
+  (`- "Stock: lotes": producto/stock.md`), nunca la entrada entera
+  (`- "Stock: lotes: producto/stock.md"`): MkDocs lee esta última como título y
+  no como página. Los links del sitio deben resolver dentro de `docs/`, aunque
+  el archivo exista en el repo. `scripts/docs-check.mjs` rechaza ambos casos;
+  las páginas de `exclude_docs` no se revisan porque se leen en GitHub.
 
 ## Uso selectivo de skills
 

@@ -116,9 +116,6 @@ jobs:
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 30
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -223,31 +220,6 @@ jobs:
         if: always() && needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/e2e-report.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo "${{ inputs.e2e_record && 'on' || 'retain' }}"
-      - name: avisar el link del visor en el PR
-        if: always() && github.event_name == 'pull_request' && needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VISOR: ${{ vars.EVIDENCIAS_E2E_VIEWER_URL }}
-        run: |
-          if [ -z "$VISOR" ]; then
-            echo "sin EVIDENCIAS_E2E_VIEWER_URL: no se comenta."
-            exit 0
-          fi
-          # La imagen del runner (infra/runner/Dockerfile) no trae `gh`: el aviso es
-          # informativo y no puede dejar rojo un job cuyos tests pasaron.
-          if ! command -v gh >/dev/null 2>&1; then
-            echo "sin gh en este runner: no se comenta."
-            exit 0
-          fi
-          gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body "$(cat <<TEXTO
-          ### Cobertura E2E de esta corrida
-
-          Mirá las historias, el checklist y los videos en **${VISOR}**.
-
-          Corrida: \`${{ github.run_id }}\` · Resultado del job: \`${{ job.status }}\`.
-          TEXTO
-          )"
-
       - name: resumen e2e (dónde ver la corrida)
         if: always()
         run: |
@@ -312,7 +284,7 @@ jobs:
       - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
         run: |
           node scripts/supabase-ci.mjs puente &
-          trap "kill \$! EXIT" 2>/dev/null || true
+          trap "kill \$!" EXIT
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
           # El puente solo reenvía la base; la API REST (kong) también vive en el
