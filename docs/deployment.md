@@ -361,6 +361,47 @@ leen del propio YAML de cada flow. Mismo gate que el resto de esta spec:
 Secrets por Environment: `KESTRA_BASIC_AUTH_USERNAME`,
 `KESTRA_BASIC_AUTH_PASSWORD`, `KESTRA_PUBLIC_URL`.
 
+### Retiro de un flow y de su Edge Function (MSF-853)
+
+Publicar no borra nada: un flow que sale del repo sigue disparando en los
+entornos donde ya estaba publicado, y si la función que llama ya no existe
+falla en cada corrida. Por eso el repo lleva la lista de flows retirados:
+
+- `infra/kestra/flows-retirados.txt`: una línea por flow, `<namespace>/<id>`
+  (los comentarios y las líneas vacías se ignoran). El mismo workflow de
+  publicación borra los de la lista en cada entorno después de publicar
+  (`infra/kestra/desplegar-flow.mjs --retirar`); borrar uno que ya no está
+  no falla (404 = «ya no estaba»). La línea se queda: es el registro de que ese
+  flow no debe volver a existir.
+- A mano, en un entorno (con `KESTRA_BASIC_AUTH_USERNAME` y
+  `KESTRA_BASIC_AUTH_PASSWORD` exportadas, o con `--username`/`--password`):
+  `pnpm kestra:deploy-flow -- --borrar --namespace <ns> --flow-id <id>
+  --kestra-url <url>`.
+
+La Edge Function que ese flow llamaba se baja **aparte y por entorno** (las
+funciones se despliegan a mano con el CLI de cada entorno; no hay CI que las
+borre):
+
+```bash
+# en el workdir del CLI del entorno (/root/supabase-stg, /root/supabase-prd)
+supabase functions delete <nombre-de-la-funcion> --project-ref <ref-del-entorno>
+supabase secrets delete <secreto-de-la-funcion> --project-ref <ref-del-entorno>  # si quedó
+```
+
+Y hay que sacar del `infra/kestra/.env` del entorno las variables que solo
+usaba ese flow, y volver a desplegar Kestra (`pnpm deploy:vps -- <entorno>`):
+`infra/kestra/compose.yaml` ya no las pasa.
+
+**Orden**: primero el flow y la función, después la migración que borra lo que
+usaban. Al revés, el flow queda llamando RPC inexistentes (502/404) y falla en
+cada corrida.
+
+Antes de aplicar una migración que borra una cola de avisos, mirá que no
+quede nada sin enviar (`select estado, count(*) from <cola> group by 1;`). Si
+quedara algo, ese aviso nunca sale: la cola que lo custodiaba es la que se
+borra. MSF-853: la migración `20270306110000` aborta sola si encuentra avisos
+`pendiente` o `fallido`; hay que resolverlos a mano y volver a aplicar.
+
 ### Migraciones cloud (staging → producción)
 
 **Hook de bloqueo de intentos (migración `20261014100000`, MSF-470) — ACTIVADO (2026-10-15):** en los
