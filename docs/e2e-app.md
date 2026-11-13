@@ -70,11 +70,13 @@ docker restart supabase_rest_PID
 ```bash
 VITE_SUPABASE_URL=http://127.0.0.1:API VITE_SUPABASE_PUBLISHABLE_KEY=<ANON_KEY> \
   VITE_PANEL_HOSTS=localhost,127.0.0.1 pnpm build
-(cd apps/web && pnpm exec vite preview --port 4467 --strictPort --host 127.0.0.1) &
+(cd apps/web && pnpm exec vite preview --port 4467 --strictPort --host 0.0.0.0) &
 ```
 
    `--strictPort` es obligatorio: sin él, si el puerto está ocupado Vite elige otro y los tests le pegan a la web de
-   otra persona. El `webServer` de Playwright expira a los 60 s, por eso se sirve aparte y se pasa `E2E_BASE_URL`.
+   otra persona. Servila en `0.0.0.0` (el default del repo), no en `--host 127.0.0.1`: los specs de la tienda entran por
+   `mundojc.localhost`/`sanjavucho.localhost` y Chromium resuelve `*.localhost` también a `::1`; atado solo a IPv4 el
+   `page.goto` termina en `net::ERR_ABORTED`. El `webServer` de Playwright expira a los 60 s, por eso se sirve aparte y se pasa `E2E_BASE_URL`.
 4. Exportá las variables y corré los specs. Sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` los tests con sesión se
    **omiten en silencio**:
 
@@ -152,7 +154,7 @@ en otros componentes lo corrige el PR #876, no este.
 | Stock completo: 2.º depósito → entrada 10 → trasladar 4 → reservar 3 → disponible 7 → descontar → cantidad 7 y reservado 0; concurrencia mixta (traslado + reserva + salida, 18 RPC en paralelo) sin sobreventa (SC-003, SC-008) | MSF-546 T032 | Escrito: `e2e/stock-depositos-reservas.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Aborta si `SUPABASE_URL` no es local. Desvío: no se corrió en el entorno del Desarrollador (sin daemon de Docker); se corre a mano con `pnpm dev:supabase` antes del merge. Detalle: `docs/stock.md` |
 | Catálogo: crear, editar, subir fotos y desactivar con Administrador y Operador; eventos en Actividad sin costo (SC-001, SC-006) | MSF-456 T025 | Desvío: pendiente de fixtures por rol (MSF-499); cubierto por pgTAP `catalogo_*` y Vitest de `pages/productos` |
 | Service técnico: alta con 2 ítems (total 5.500), estados hasta «Entregado» con «María Pérez», remito sin costos y aparición en el listado (SC-007) | MSF-538 T030 | Escrito: `e2e/service-recorrido.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local); se corre con `pnpm dev:supabase` y luego `pnpm --filter @platform/web test:e2e service-recorrido` |
-| Tienda online: con los dos dominios del seed, identidad, textos y catálogo visible de cada tienda cambian solo la propia (SC-003) | MSF-543 T038 | Escrito: `e2e/tienda-dos-dominios.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se ejecutó en el entorno del Desarrollador (sin Docker); se corre con `pnpm dev:supabase` y luego `pnpm --filter @platform/web test:e2e tienda-dos-dominios`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local |
+| Tienda online: con los dos dominios del seed, identidad, textos y catálogo visible de cada tienda cambian solo la propia (SC-003) | MSF-543 T038 | Escrito: `e2e/tienda-dos-dominios.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin Docker); se corre con `pnpm dev:supabase` y luego `pnpm --filter @platform/web test:e2e tienda-dos-dominios`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local |
 | Tienda online · dominio y publicación: con dos empresas, alta de dominio, verificación (DNS simulado con service-role desde Node), borrador, publicar, restaurar y publicar; los cambios de una no tocan la otra ni lo que ve `anon` (SC-003) | MSF-779 T024 | Escrito: `e2e/tienda-publicacion.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`; aborta si `SUPABASE_URL` no es local). Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-publicacion`. Guía: `docs/tiendas-online.md` |
 | Cuenta web del cliente: invitación → definir contraseña → ingresar → salir; suspendida / sin cuenta en la tienda / no habilitada no entran con el mismo mensaje; recuperar responde igual con y sin cuenta (SC-005, SC-006) | MSF-428 T027 | Escrito: `e2e/cuenta-web-cliente.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; el caso de recuperar además necesita `supabase functions serve` y se omite si la Edge Function no responde). Desvío: no se ejecutó en el entorno del Desarrollador (sin Supabase CLI ni Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e cuenta-web-cliente`. El enlace de definir contraseña se pide con `generate_link` (Admin API) en vez de leer el correo; siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local |
 | Tienda online: el menú de cada tienda del seed lista solo sus categorías y una categoría oculta o de la otra tienda muestra la 404 (SC-003 de MSF-167) | MSF-386 T009 | Escrito: `e2e/tienda-categorias.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`). Desvío: no se ejecutó en el entorno del Desarrollador (sin Docker); se corre con `pnpm dev:supabase` y luego `pnpm --filter @platform/web test:e2e tienda-categorias`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local |
@@ -160,8 +162,8 @@ en otros componentes lo corrige el PR #876, no este.
 | Catálogo: en la ficha del producto, el bloque «Productos relacionados» arranca vacío, busca por nombre/SKU/categoría, agrega, reordena con ↑, guarda con «Guardar cambios» y el orden guardado se vuelve a leer igual al reabrir la ficha; quitar uno lo saca de verdad (FR-014…FR-017, SC-003) | MSF-416 T008 (F-CAT-18) | Escrito: `e2e/productos-relacionados.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e productos-relacionados`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local. Guía: `docs/catalogo.md` |
 | Consultas: la tienda envía por la RPC pública → aparece en la bandeja en menos de 5 s → llega el aviso a Mailpit → el enlace abre el detalle → asignar, anotar y resolver; Lectura solo ve, Mostrador no accede y otra organización no la ve (SC-004, SC-008) | MSF-548 T026 | Escrito: `e2e/consultas-recorrido.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y la función servida, ver `docs/consultas.md` |
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
-| Contacto de la tienda: datos de cada tienda, consulta que llega a la bandeja de su empresa con origen formulario, ráfaga de 6 envíos (el sexto muestra la espera, la bandeja recibe 5) y HTML literal (SC-004, SC-005) | MSF-437 T013 | Escrito: `e2e/tienda-contacto.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-contacto`. Restaura los datos de las empresas del seed y limpia consultas y envíos de prueba. Guía: `docs/tienda-contacto.md` |
-| Consulta por WhatsApp desde la ficha: en las dos tiendas del seed, ficha → diálogo → «Abrir WhatsApp» (la URL de `wa.me` se verifica y la red no se toca) → la consulta llega a la bandeja de su empresa con origen whatsapp y el producto, y la empresa sin número no muestra el botón (SC-008) | MSF-433 T028 | Escrito: `e2e/tienda-whatsapp.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker ni al CLI de Supabase); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-whatsapp`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local. Guía: `docs/tienda-contacto.md` |
+| Contacto de la tienda: datos de cada tienda, consulta que llega a la bandeja de su empresa con origen formulario, ráfaga de 6 envíos (el sexto muestra la espera, la bandeja recibe 5) y HTML literal (SC-004, SC-005) | MSF-437 T013 | Escrito: `e2e/tienda-contacto.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-contacto`. Restaura los datos de las empresas del seed y limpia consultas y envíos de prueba. Guía: `docs/tienda-contacto.md` |
+| Consulta por WhatsApp desde la ficha: en las dos tiendas del seed, ficha → diálogo → «Abrir WhatsApp» (la URL de `wa.me` se verifica y la red no se toca) → la consulta llega a la bandeja de su empresa con origen whatsapp y el producto, y la empresa sin número no muestra el botón (SC-008) | MSF-433 T028 | Escrito: `e2e/tienda-whatsapp.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker ni al CLI de Supabase); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-whatsapp`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local. Guía: `docs/tienda-contacto.md` |
 | Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
 
 ### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
@@ -215,23 +217,62 @@ binario, se corre `playwright install-deps chromium`: el cache de `~/.cache/ms-p
 guarda el **binario**, no las libs del SO (`libglib-2.0`, etc.), y sin ellas el browser moría
 con `error while loading shared libraries` → falso rojo de e2e en PRs ajenos (2026-10-19).
 Los recorridos con
-sesión (tabla de arriba) requieren ampliar el stack de `scripts/supabase-ci.mjs`
-(hoy omite `kong,postgrest`) o un job aparte: siguen pendientes y abiertos en
-las tasks.md de origen.
+sesión (tabla de arriba) requieren un stack con API (`kong` + `postgrest`), que el de `database` omite: los de la tienda
+corren en el job aparte `e2e-tienda` (sección siguiente); el resto (`permisos-por-empresa`, `stock-*`, `service-*`,
+`ventas-*`...) siguen sin correr en el CI y abiertos en las tasks.md de origen.
 
-## E2E con sesión en CI (experimental)
-- El job **`e2e-sesion`** (en `validate.yml`, sólo al cierre `e2e`) levanta el stack **completo** de Supabase
-  (incluye `kong`/`postgrest`), corre `db:reset:ci`, expone `SUPABASE_URL`/`SERVICE_ROLE_KEY` y
-  `VITE_SUPABASE_*` al build, y ejecuta los specs con login (`permisos-por-empresa`, `stock-*`).
-- Por ahora es **no bloqueante** (`continue-on-error`): se itera hasta estabilizarlo y luego se vuelve requerido.
-- El job **`e2e-sesion`** exporta `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` al build y
-  `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` a los specs (desde `supabase status -o env`).
-- El job reinicia el stack del CI (`supabase stop/start`) para incluir **kong/postgrest**; el `database`
-  lo deja sólo con pgTAP. El stack de CI es efímero (no toca datos de STG/PRD).
+## E2E de la tienda pública en el CI (`e2e-tienda`)
 
-### Estado del E2E con sesión en CI
-- El job está **preparado** en `templates/calidad/e2e-sesion.job.yml` (kit) pero **no activo** en `validate.yml`.
-- Bloqueo: `supabase start` con **kong/postgrest** falla porque postgrest arranca **antes** de que las
-  migraciones creen el schema `dominio` (`schema "dominio" does not exist` → `/rest-admin/v1/ready`).
-- Para activarlo: iniciar sin postgrest → `db:reset:ci` (crea `dominio`) → levantar postgrest después
-  (o pre-crear el schema antes del start). Mientras tanto corre local/nightly; no se activa para no dar falsos verdes.
+El job `e2e-tienda` de `validate.yml` corre los 20 `apps/web/e2e/tienda-*.e2e.ts` en cada PR que toca la web, con la
+misma política que el resto del e2e: solo si `changes.web == 'true'` y `changes.e2e == 'true'` (un PR a `epic/*`, no) y
+no en borrador ni con `CI_PAUSED`. Es **requerido**: entra en `needs` de `validacion` y de `liberar`.
+
+Qué hace, en orden (cada paso explica su motivo en el workflow):
+
+1. Reserva una **ranura** del stack del CI (`scripts/supabase-ci.mjs reclamar`, la misma reserva que `database`, hasta 5
+   corridas del repo en paralelo; sin ranura libre espera) y `db:ci:preparar` deriva su `project_id` `ci-…` y sus puertos.
+2. Baja lo que haya en esa ranura (`supabase stop --no-backup`: puede venir con el stack de `database`, que no trae
+   `kong`/`postgrest`) y levanta `supabase start --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta`:
+   queda `db` + `auth` + `storage` + `kong` + `postgrest`. `--ignore-health-check` hace falta porque PostgREST arranca
+   antes de que las migraciones creen `dominio` y no queda sano hasta después.
+3. `pnpm db:reset:ci` aplica las migraciones y `supabase/seed.sql` (las dos tiendas `mundojc.localhost` y
+   `sanjavucho.localhost`), se **reinicia el contenedor `supabase_rest_<project_id>`** (recarga el esquema) y se espera a que
+   `/rest/v1/` responda 200 y a que `dominio.tiendas` devuelva las dos tiendas del seed; si no, el job falla ahí con el log de PostgREST.
+4. Las claves salen de `supabase status -o env` (nunca de git; la service-role se enmascara en el log). Dentro del contenedor
+   del runner `127.0.0.1` es el propio contenedor, así que `API_URL` se reescribe a **`host.docker.internal`** (publicado en el
+   Docker del host): lo usan Node (siembra) y Chromium (el build). Se exportan `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_PANEL_HOSTS=localhost,127.0.0.1`
+   y `E2E_SIN_EDGE=1`. Los specs aceptan `host.docker.internal` como Supabase local (`HOSTS_LOCALES`).
+5. `vite build` (sin `tsc`: el type-check ya lo hace `pnpm build` en `application`), Chromium con el mismo cache y las mismas
+   `install-deps` que `application`, y `playwright test --workers=1 e2e/tienda-` (**un worker**: los specs pausan empresas
+   y editan datos de las dos tiendas del seed; el `--` de pnpm llega literal a Playwright, por eso el filtro va sin él).
+6. Siempre: limpieza de navegadores (`always()`), `supabase stop --no-backup` + `liberar` de la ranura, y si falla se sube el
+   artefacto `playwright-report-tienda` (`playwright-report` y `test-results`, con trazas).
+
+Límites a propósito:
+
+- **Sin Edge Runtime.** `supabase functions serve`/`edge-runtime` monta el directorio de funciones del checkout en un
+  contenedor del Docker del host, y esa ruta solo existe dentro del contenedor del runner (docker-fuera-de-docker; el
+  mismo motivo por el que `pg_prove` corre por `host.docker.internal`). Por eso `E2E_SIN_EDGE=1` omite el único caso que lo
+  necesita, `robots.txt`/`sitemap.xml` de `tienda-seo` (su handler se cubre con `pnpm test:edge:tienda-seo` en el job `web`).
+  Sigue corriéndose a mano con las funciones servidas (sección «Specs que necesitan algo más»).
+- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde: `tienda-sesion-vencimiento` falla (no se
+  omite) si el build no sirve el host como tienda, y `tienda-disponibilidad` ya no tiene `test.skip` condicionales (omitía su
+  verificación completa porque con la carga infinita el producto sembrado quedaba fuera de la primera tanda del catálogo:
+  ahora siembra una categoría propia y filtra por ella, como `tienda-catalogo`).
+- `playwright.config.ts` ajusta, solo con `CI`, los topes de espera porque el runner self-hosted corre cargado: `expect` 15 s
+  (5 s en local; el primer render de una ficha que consulta la base superó 5 s y dio un falso rojo en `tienda-relacionados`), test
+  60 s (30 s en local; los recorridos largos fijan su propio `test.setTimeout`) y arranque del `webServer` 120 s (60 s en local).
+  Son topes de espera: no alargan lo que pasa cuando todo anda bien.
+- Los demás specs con sesión siguen sin correr en el CI; sumarlos a este job es agregar su filtro y revisar su estado
+  compartido, no rehacer el stack.
+
+## E2E con sesión en CI: antecedente (`e2e-sesion`)
+
+El job `e2e-sesion` (experimental, `continue-on-error`) se escribió y se desactivó (commit `8261188e`): levantaba el stack
+con `kong`/`postgrest` sin `--ignore-health-check` y `supabase start` fallaba porque PostgREST arranca **antes** de que las
+migraciones creen el esquema `dominio` (`schema "dominio" does not exist`). Lo reemplaza `e2e-tienda` (sección anterior),
+que resuelve ese bloqueo con `--ignore-health-check` + migrar + reiniciar `supabase_rest_<project_id>`, y alcanza la API
+por `host.docker.internal`. La plantilla del kit (`templates/calidad/e2e-sesion.job.yml`) no está en este repo.
+Para sumar otros specs con sesión (`permisos-por-empresa`, `stock-*`...) se amplía el filtro de ese job; los que usan
+Realtime (`stock-actual-vivo`), Edge o SMTP necesitan además esos servicios, que hoy el stack del CI no levanta.
