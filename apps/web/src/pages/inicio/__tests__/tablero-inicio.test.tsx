@@ -281,10 +281,11 @@ describe('Tablero de Inicio · permisos (FR-006)', () => {
     expect(screen.getByText(/No tenés ventas ni stock habilitados para esta tienda/)).toBeInTheDocument()
   })
 
-  it('sin permiso de stock ni ventas no se consultan los depósitos', async () => {
+  it('sin permiso de stock ni ventas no se consultan los depósitos ni el resumen', async () => {
     abrir('/', { verVentas: false, verStock: false })
-    await waitFor(() => expect(mocks.leer).toHaveBeenCalled())
+    await screen.findByLabelText('Tablero de ventas y stock')
     expect(mocks.depositos).not.toHaveBeenCalled()
+    expect(mocks.leer).not.toHaveBeenCalled()
   })
 })
 
