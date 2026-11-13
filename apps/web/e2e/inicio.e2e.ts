@@ -67,7 +67,9 @@ async function ingresar(page: Page, correo: string) {
 // Las tarjetas de Inicio son <Card> con el título como <h2>: el contenido de cada una cuelga del mismo
 // <div> (el CardContent), así que se acota por tarjeta para no confundir textos repetidos (por ejemplo, el
 // aviso del dólar aparece en la tarjeta y también en la lista de alertas).
-const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..')
+// «Stock hoy» aparece dos veces desde MSF-820: el bloque del tablero (primero en el DOM) y la tarjeta de alertas de stock
+// (la que aquí se verifica, siempre la última); `.last()` evita la violación de modo estricto sin cambiar lo que se afirma.
+const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..').last()
 const alertas = (page: Page) => page.getByRole('list', { name: 'Alertas' })
 
 type EmpresaSembrada = { id: string; nombre: string }
