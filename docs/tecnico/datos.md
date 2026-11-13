@@ -3953,8 +3953,8 @@ Cuatro tablas de plataforma en `public` (no son entidades de negocio del product
 | Tabla | Para qué | Notas |
 |---|---|---|
 | `api_claves` | Claves de API por organización | Solo se guarda el hash SHA-256 y un prefijo; `hash` no entra en el `grant select`. `alcances` (`productos`, `stock`, `precios`, `ventas`), `limite_por_minuto`, `vence_en`, `rotada_en`, `revocada_en`. `creada_por` es `on delete set null`. Tope: 50 vigentes al crear, 100 al rotar |
-| `api_suscripciones` | Suscripciones a avisos (webhooks) | `secreto_vault_id` apunta a Vault (único por suscripción; un trigger borra el secreto con la fila). Tope: 20 por organización |
-| `api_entregas` | Una entrega por suscripción y evento | `unique (evento_id, suscripcion_id)`; estados `pendiente`, `reclamada`, `completada`, `agotada`; 5 intentos en total |
+| `api_suscripciones` | Suscripciones a avisos (webhooks) | `secreto_vault_id` apunta a Vault (único por suscripción; un trigger borra el secreto con la fila). Rotación del secreto: `secreto_anterior_vault_id` y `secreto_anterior_vence_en` (gracia de 24 h; la referencia a Vault no se otorga al navegador, la fecha sí). Tope: 20 por organización |
+| `api_entregas` | Una entrega por suscripción y evento | `unique (evento_id, suscripcion_id)`; estados `pendiente`, `reclamada`, `completada`, `agotada`; 5 intentos en total; se purgan con su evento terminado (90 días) |
 | `api_llamadas` | Auditoría de cada llamada, también las rechazadas | Sin token ni cuerpo; retención de 90 días (`purgar_api_llamadas`) |
 
 Las lecturas usan funciones `private.api_leer_*` que filtran por organización dentro del SQL. Las vistas `ia_consulta_catalogo`, `ia_consulta_stock`, `ia_consulta_precios` e `ia_consulta_ventas` (solo lectura, `security_invoker = true`) alimentan al asistente con IA (F-IA-01); ver [el manual del asistente](../producto/asistente.md).
