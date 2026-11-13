@@ -348,8 +348,7 @@ a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las l
 `useNivelSeccion` devuelve `nivel: null` cuando cambia la clave `usuario:organización` del `PermisosPanelProvider`
 (p. ej. un superadmin entra a otra organización) o cuando el repedido de permisos falla. En ese caso
 `RequiereAccesoSeccion` y las pantallas con formulario muestran la carga o «No pudimos verificar tus permisos» y
-desmontan el formulario: lo tipeado se pierde. Se probó conservar el último nivel (`useNivelSeccionEstable`) y se
-descartó: dejaba la pantalla **abierta con el nivel de la organización anterior o con un permiso ya perdido**
+desmontan el formulario: lo tipeado se pierde. Se descartó conservar el último nivel conocido: dejaba la pantalla **abierta con el nivel de la organización anterior o con un permiso ya perdido**
 (fail-open de la UI). Mientras el nivel no se pueda confirmar para la clave vigente no se ofrece editar; el servidor
 (RLS / `private.nivel_seccion`) es la autoridad igualmente. **Seguimiento (no implementado):** reintentar sin perder el borrador: si el repedido falla con un formulario largo abierto
 se pierde lo tipeado; habría que mostrar un aviso no bloqueante con «Reintentar», guardado deshabilitado y el borrador

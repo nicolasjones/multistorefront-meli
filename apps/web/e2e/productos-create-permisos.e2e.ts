@@ -8,8 +8,8 @@ import { paso, prepararPaginaVisible } from './visible'
 //    se conserva (el nodo marcado sigue siendo el mismo). Guardia de regresión: el simple «escribir enseguida» NO
 //    reprodujo la pérdida en el stack local (ver el PR); no es una prueba que falle sin arreglo.
 // 2) Seguridad: si el repedido de permisos falla con el formulario abierto, la UI NO sigue ofreciendo guardar: falla
-//    cerrada («No pudimos verificar tus permisos»). Una versión que «conserva el último nivel» dejaba abierto el
-//    formulario con el permiso ya perdido; esta prueba falla con esa versión.
+//    cerrada («No pudimos verificar tus permisos»). La prueba protege contra conservar el nivel anterior, que dejaría
+//    abierto el formulario con el permiso ya perdido.
 // Mismo stack y siembra que `importaciones.e2e.ts`; se omite sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.
 test.describe('Alta de producto: permisos que llegan tarde o fallan', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
