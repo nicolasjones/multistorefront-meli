@@ -408,7 +408,7 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
                 </Alert>
               ) : null}
               {resumen.error > 0 ? (
-                <Box sx={{ overflowX: 'auto' }}>
+                <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Filas con error (se desplaza)">
                   <Table size="small" aria-label="Filas con error">
                     <TableHead>
                       <TableRow>
@@ -483,7 +483,7 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
               ) : null}
               <InformeConciliacion carga={informe.carga} conErrores={false} />
               {informe.errores.length > 0 ? (
-                <Box sx={{ overflowX: 'auto' }}>
+                <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Filas con error al aplicar (se desplaza)">
                   <Table size="small" aria-label="Filas con error al aplicar">
                     <TableHead>
                       <TableRow>

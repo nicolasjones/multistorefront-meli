@@ -27,7 +27,7 @@ export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD
         ))}
       </Stack>
       {previa.muestra.length > 0 ? (
-        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
+        <TableContainer tabIndex={0} role="region" aria-label="Productos de muestra con su precio de hoy y el nuevo (se desplaza)" sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small" aria-label="Productos de muestra con su precio de hoy y el nuevo">
             <TableHead>
               <TableRow>

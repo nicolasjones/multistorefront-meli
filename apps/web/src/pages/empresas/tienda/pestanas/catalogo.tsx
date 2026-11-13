@@ -151,7 +151,7 @@ export default function PestanaCatalogo({ empresaId, empresaNombre }: PropsPesta
         ) : productosFiltrados.length === 0 ? (
           <EstadoVacio titulo="Ningún producto coincide con la búsqueda." />
         ) : (
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer tabIndex={0} role="region" aria-label={`Productos de la tienda de ${empresaNombre} (se desplaza)`} component={Paper} variant="outlined">
             <Table size="small" aria-label={`Productos de la tienda de ${empresaNombre}`}>
               <TableHead>
                 <TableRow>

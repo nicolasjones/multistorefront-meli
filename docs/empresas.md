@@ -126,5 +126,11 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
   las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
+  Ojo: la cascada **solo completa si la organización no tiene ingresos de mercadería** (ni otros datos que las claves
+  foráneas `restrict` protegen, p. ej. `ingresos_mercaderia_lineas → productos` o `productos → proveedores`): en
+  esos casos `delete from public.organizaciones` falla por clave foránea. No hay ningún flujo de producto que dé de baja
+  una organización; el único camino de código es el rollback de la Edge `crear-organizacion` (organización recién
+  creada, sin datos). La limpieza de pruebas (E2E) debe borrar antes `dominio.ingresos_mercaderia?organizacion_id=eq.X`
+  (y los datos que referencien, según el caso).
 
 La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).
