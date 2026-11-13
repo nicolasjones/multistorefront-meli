@@ -65,7 +65,8 @@ services:
       # Copias de seguridad (épica MSF-457, F-OPS-01). Las leen los flows
       # respaldo-postgres, respaldo-imagenes, retencion-copias,
       # verificar-restauracion y aviso-fallo-copias vía {{ envs.respaldos_* }},
-      # {{ envs.kestra_smtp_* }} y {{ envs.soporte_correo }}. Destino: remoto
+      # {{ envs.kestra_smtp_* }} y {{ envs.soporte_correo }} (estas dos últimas las
+      # usa también aviso-fallo-api, de la API pública, MSF-837). Destino: remoto
       # rclone `respaldos`; por defecto un directorio del host montado en
       # /respaldos. Para mover las copias fuera del servidor se cambian solo
       # estas variables (docs/copias-y-restauracion.md). Los valores reales

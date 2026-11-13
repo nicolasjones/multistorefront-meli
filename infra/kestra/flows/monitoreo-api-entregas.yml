@@ -73,3 +73,5 @@ triggers:
   - id: cada_15_minutos
     type: io.kestra.plugin.core.trigger.Schedule
     cron: "*/15 * * * *"
+    # Tras una caída de Kestra no se ejecutan las corridas perdidas una por una (llegarían varios correos juntos).
+    recoverMissedSchedules: NONE

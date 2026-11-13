@@ -29,7 +29,7 @@ Todas las tablas nuevas son **plataforma / integraciones genéricas** → `publi
 | Objeto | Esquema | Historia | Justificación | RLS / acceso |
 |--------|---------|----------|---------------|--------------|
 | `api_claves` (**nueva**: `id`, `organizacion_id`, `nombre`, `prefijo` unique, `hash` bytea unique, `alcances text[]`, `limite_por_minuto` default 60, `creada_por` (nulo si se da de baja a quien la creó; `on delete set null`), `creada_en`, `vence_en` null, `revocada_en` null, `ultimo_uso_en` null) | `public` | F-API-01 | Credencial de integración genérica por organización; no es dato del negocio. | RLS por `organizacion_id = (select private.organizacion_id())` y Administrador; `grant select` solo de columnas seguras (nunca `hash`); **sin escritura directa** (solo RPC); `anon` sin privilegios; solo el hash se persiste |
-| `api_suscripciones` (**nueva**: `id`, `organizacion_id`, `url`, `tipos text[]`, `secreto_vault_id` → `vault.secrets`, `activa`, `creada_por` (nulo si se da de baja a quien la creó), `creada_en`, `actualizada_en`) | `public` | F-API-01 | Suscripción saliente genérica, complemento de `conexiones_oauth` (entrantes). | Igual que `api_claves`; el secreto de firma vive en Vault y no se lee desde la app |
+| `api_suscripciones` (**nueva**: `id`, `organizacion_id`, `url`, `tipos text[]`, `secreto_vault_id` → `vault.secrets`, `secreto_anterior_vault_id` y `secreto_anterior_vence_en` (rotación del secreto, MSF-839), `activa`, `creada_por` (nulo si se da de baja a quien la creó), `creada_en`, `actualizada_en`) | `public` | F-API-01 | Suscripción saliente genérica, complemento de `conexiones_oauth` (entrantes). | Igual que `api_claves`; el secreto de firma vive en Vault y no se lee desde la app |
 | `api_entregas` (**nueva**: `id`, `organizacion_id`, `evento_id` → `cola_eventos`, `suscripcion_id` → `api_suscripciones`, `estado`, `intentos`, `proximo_intento_en`, `reclamada_en`, `vence_en`, `ultimo_estado_http`, `ultimo_error_sanitizado`, `creada_en`, `actualizada_en`; `unique (evento_id, suscripcion_id)`) | `public` | F-API-01 | Outbox por destinatario, mismo patrón que `cola_eventos`/`despachos_ejecucion`. | select solo Administrador de la organización; escritura solo por funciones `private` (`security definer`) ejecutables por `kestra_orquestacion`/`service_role` |
 | `api_llamadas` (**nueva**: `id`, `organizacion_id` null, `clave_id` null, `metodo`, `ruta`, `version`, `estado_http`, `duracion_ms`, `creada_en`) | `public` | F-API-01 | Auditoría de uso de la API; sin cuerpos ni la clave. `organizacion_id`/`clave_id` nulos solo si el token no permite resolver la organización (prefijo desconocido). | select solo Administrador; inserta solo la Edge Function (`service_role`); retención 90 días |
 | Funciones `private.api_leer_productos/stock/precios/ventas(p_organizacion_id, p_cursor, p_limite, p_actualizado_desde)` | `private` | F-API-01 | Lectura con el filtro de organización armado **dentro** del SQL (patrón `mcp_leer_fila`); ahí vive el aislamiento, no en TypeScript. | `security definer`, `set search_path = ''`; ejecutables solo por `service_role` |
@@ -125,6 +125,7 @@ Quien lo pida (organización con la funcionalidad activa) le pregunta al asisten
 - **FR-032**: **Topes y retención de claves y suscripciones** (agregado en #871). Cada organización puede tener hasta **50 claves vigentes** al crear (revocadas y vencidas no cuentan), **100** al rotar y **20 suscripciones**; al superarlos la RPC responde `54000` y la pantalla lo avisa. La purga diaria borra las claves revocadas o vencidas hace más de 90 días. `creada_por` es `on delete set null` (dar de baja a una persona no corta la integración) y el secreto de Vault se borra con la suscripción. **Verificación:** pgTAP `api_decisiones_abiertas.test.sql` · Vitest `api-claves.test.tsx` y `api-suscripciones.test.tsx` · `pnpm test:db`.
 - **FR-033**: **Llamadas sin clave válida** (agregado en #863): se auditan hasta 600 por minuto y por organización (o sin organización); el exceso no se guarda. **Verificación:** pgTAP `api_llamadas.test.sql`.
 - **FR-034**: **Retención de eventos y entregas, alertas y reintento manual** (MSF-836, MSF-837, MSF-838). La purga diaria borra los eventos terminados viejos sin entregas vivas (con sus entregas terminadas); un flow de salud avisa por correo a soporte si hay entregas agotadas, atrasadas o eventos sin repartir; y el Administrador devuelve una entrega agotada a la cola con **Reintentar**. **Verificación:** pgTAP `api_seguimientos.test.sql` · Vitest `api-suscripciones.test.tsx` · `pnpm test:kestra:webhooks` · `pnpm test:db`.
+- **FR-035**: **Rotación del secreto de una suscripción** (MSF-839). El Administrador rota el secreto de firma de una suscripción de su organización: el nuevo se muestra una sola vez, el anterior sigue valiendo 24 horas y durante la gracia cada aviso lleva las dos firmas (`X-Firma: t=…,v1=<nuevo>,v1=<anterior>`); rotar de nuevo reemplaza al anterior, la purga limpia el vencido y borrar la suscripción borra los dos secretos. **Verificación:** pgTAP `api_rotar_secreto.test.sql` · `handler.test.ts` de `entregar-webhook` · Vitest `api-suscripciones.test.tsx` · `scripts/ejemplos-guia-api.test.mjs` · `pnpm test:db`.
 
 ### Key Entities
 
@@ -175,6 +176,7 @@ Quien lo pida (organización con la funcionalidad activa) le pregunta al asisten
 | FR-032 | `api_decisiones_abiertas.test.sql` + `api-claves.test.tsx` + `api-suscripciones.test.tsx` | `pnpm test:db` · `pnpm --filter @platform/web test` |
 | FR-033 | `api_llamadas.test.sql` | `pnpm test:db` |
 | FR-034 | `api_seguimientos.test.sql` + `api-suscripciones.test.tsx` + `monitoreo-api-entregas.test.mjs` | `pnpm test:db` · `pnpm --filter @platform/web test` · `pnpm test:kestra:webhooks` |
+| FR-035 | `api_rotar_secreto.test.sql` + `entregar-webhook/handler.test.ts` + `api-suscripciones.test.tsx` | `pnpm test:db` · `pnpm test:edge:entregar-webhook` · `pnpm --filter @platform/web test` |
 | SC-001 | `api_aislamiento.test.sql` + `api-v1/handler.test.ts` | `pnpm test:db` |
 | SC-002 | `api-v1/handler.test.ts` | `pnpm test:edge:api-v1` |
 | SC-003 | `api_suscripciones_entregas.test.sql` + `entregar-webhook/handler.test.ts` | `pnpm test:db` |
@@ -310,12 +312,14 @@ Dueños: funcionalidad y rol (FR-022), aislamiento (FR-021), límites (FR-023), 
 | Tabla de suscripciones: `URL`, `Eventos`, `Estado` | API | FR-010, FR-014 |
 | Botón `Nueva suscripción` y diálogo (URL https, eventos; secreto visible una vez) | API | FR-014 |
 | Acciones `Pausar`/`Reanudar` y `Eliminar` | API | FR-014 |
+| Acción `Rotar secreto`, su diálogo de confirmación y la columna `Secreto de firma` | API | FR-035 |
+| Acción `Reintentar` en las entregas agotadas y el interruptor `Solo agotadas` | API | FR-034 |
 | Tabla de entregas recientes: `Evento`, `Destino`, `Estado`, `Intentos`, `Último error` | API | FR-014 |
 | Tabla de llamadas recientes: `Cuándo`, `Método`, `Ruta`, `Estado`, `Duración` | API | FR-014 |
 | Estados de carga, vacío, error y éxito | API | FR-013 |
 | Nuevas funcionalidades de consulta (catálogo, stock, precios, ventas) en las pantallas existentes de capacidades de chat y MCP | `ia/capacidades-chat`, `ia/capacidades-mcp` | FR-020, FR-025 (sin pantalla nueva) |
 | Chat flotante | Template | Fuera de alcance: ya existe; F-IA-01 solo registra capacidades (FR-025) |
-| Filtros por empresa, Superset, exportaciones, reintento manual de entregas agotadas, acciones del asistente, OAuth de clientes | — | Fuera de alcance: la épica no los pide |
+| Filtros por empresa, Superset, exportaciones, acciones del asistente, OAuth de clientes | — | Fuera de alcance: la épica no los pide |
 | Empresa activa | API / capacidades | **No aplica**: claves, suscripciones y capacidades son **por organización**, no por empresa (D-1, Principio VIII). La pantalla no lee ni escribe datos de una empresa concreta; la API expone datos de la organización completa. Test: cambiar de empresa en la barra superior **no** altera ni recarga la pantalla «API» (Vitest `empresa-activa-api.test.tsx`, T010). |
 
 ## Fuera de alcance (notas, no tareas)
@@ -323,7 +327,7 @@ Dueños: funcionalidad y rol (FR-022), aislamiento (FR-021), límites (FR-023), 
 - Acciones del asistente: las cuatro fuentes son `lectura = true`, `ejecucion = false`; no se habilitan RPC de ejecución (FR-020, SC-006).
 - OAuth para clientes de la API: la épica usa claves `Bearer`; OAuth de clientes queda para otra spec.
 - Exportaciones de datos y filtros por empresa en la API o el asistente: no los pide la épica.
-- Reintento manual de entregas agotadas desde la pantalla: se muestra el estado `agotada`, pero el reintento manual queda para otra spec.
+- Reintento manual de entregas agotadas: se agregó después del cierre (MSF-838, FR-034). Reintento automático por fuera de los 5 intentos y rotación automática de secretos siguen fuera de alcance.
 - Dashboards de Superset: no aplica; el alcance de entrega no incluye `superset`.
 - Precio final por empresa, IVA y conversión de moneda: el asistente y la API exponen `precio_lista` y `moneda`; el cálculo final queda en Precios.
 - Presupuestos y notas de crédito en `/v1/ventas` y en `venta.registrada`: solo facturas confirmadas.

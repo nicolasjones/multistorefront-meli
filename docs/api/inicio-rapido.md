@@ -132,7 +132,7 @@ Los avisos **no reemplazan** a la consulta: si tu sistema estuvo caído, o quer�
 
 Al crear la suscripción se muestra **una sola vez** el *secreto de firma*. Guardalo: lo usás para comprobar que el aviso viene de la plataforma y no de un tercero.
 
-La plataforma hace un `POST` a tu URL con el cuerpo del evento y dos cabeceras: `X-Evento-Id` y `X-Firma` (`t=<segundos>,v1=<firma>`). La firma es el **HMAC-SHA256 en hexadecimal** de `"<t>.<cuerpo>"`, con el secreto como clave.
+La plataforma hace un `POST` a tu URL con el cuerpo del evento y dos cabeceras: `X-Evento-Id` y `X-Firma` (`t=<segundos>,v1=<firma>`). La firma es el **HMAC-SHA256 en hexadecimal** de `"<t>.<cuerpo>"`, con el secreto como clave. Mientras se rota un secreto (ver abajo), la cabecera trae **dos** `v1`, `t=<segundos>,v1=<nueva>,v1=<anterior>`: el aviso es válido si alguna coincide.
 
 ### Verificar la firma
 
@@ -148,17 +148,21 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
     const TOLERANCIA_SEGUNDOS = 300
 
     function firmaValida(cabecera, cuerpo, secreto = SECRETO, ahora = Date.now() / 1000) {
-      const partes = Object.fromEntries(String(cabecera ?? '').split(',').map((p) => p.split('=')))
-      const t = Number(partes.t)
-      if (!Number.isFinite(t) || typeof partes.v1 !== 'string') return false
-      const esperada = crypto.createHmac('sha256', secreto).update(`${t}.${cuerpo}`).digest('hex')
-      const recibida = Buffer.from(partes.v1, 'utf8')
-      const calculada = Buffer.from(esperada, 'utf8')
-      return (
-        recibida.length === calculada.length &&
-        crypto.timingSafeEqual(recibida, calculada) &&
-        Math.abs(ahora - t) <= TOLERANCIA_SEGUNDOS
-      )
+      // Durante la rotación de un secreto el aviso trae dos `v1`: alcanza con que una coincida.
+      // Se parte en el PRIMER `=`: una parte sin `=` queda como clave sin valor y no rompe nada.
+      const partes = String(cabecera ?? '').split(',').map((p) => {
+        const i = p.indexOf('=')
+        return i < 0 ? [p, ''] : [p.slice(0, i), p.slice(i + 1)]
+      })
+      const t = Number(partes.find(([clave]) => clave === 't')?.[1])
+      const recibidas = partes.filter(([clave]) => clave === 'v1').map(([, valor]) => valor)
+      if (!Number.isFinite(t) || recibidas.length === 0) return false
+      const esperada = Buffer.from(crypto.createHmac('sha256', secreto).update(`${t}.${cuerpo}`).digest('hex'), 'utf8')
+      const coincide = recibidas.some((v1) => {
+        const recibida = Buffer.from(String(v1), 'utf8')
+        return recibida.length === esperada.length && crypto.timingSafeEqual(recibida, esperada)
+      })
+      return coincide && Math.abs(ahora - t) <= TOLERANCIA_SEGUNDOS
     }
 
     const app = express()
@@ -183,14 +187,17 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
     TOLERANCIA_SEGUNDOS = 300
 
     def firma_valida(cabecera, cuerpo, secreto=SECRETO, ahora=None):
+        # Durante la rotación de un secreto el aviso trae dos `v1`: alcanza con que una coincida.
         try:
-            partes = dict(p.split("=", 1) for p in (cabecera or "").split(","))
-            t = int(partes["t"])
-            recibida = partes["v1"].encode()
-        except (KeyError, ValueError):
+            # `partition` siempre devuelve (clave, "=", valor): una parte sin `=` queda como clave sin valor y no rompe nada.
+            partes = [p.partition("=")[::2] for p in (cabecera or "").split(",")]
+            t = int(next(valor for clave, valor in partes if clave == "t"))
+        except (ValueError, StopIteration):
             return False
+        recibidas = [valor.encode() for clave, valor in partes if clave == "v1" and valor]
         esperada = hmac.new(secreto, f"{t}.".encode() + cuerpo, hashlib.sha256).hexdigest().encode()
-        return hmac.compare_digest(recibida, esperada) and abs((ahora or time.time()) - t) <= TOLERANCIA_SEGUNDOS
+        coincide = any(hmac.compare_digest(recibida, esperada) for recibida in recibidas)
+        return coincide and abs((ahora or time.time()) - t) <= TOLERANCIA_SEGUNDOS
 
     app = Flask(__name__)
 
@@ -211,7 +218,7 @@ Calculá la firma con el **cuerpo exacto que recibiste** (antes de convertirlo a
 - La entrega es **al menos una vez**: por los reintentos, tu sistema puede recibir el mismo `id` más de una vez. Tratalo como idempotente.
 - No se garantiza el orden entre eventos distintos. Si importa, usá `ocurrido_en`.
 - La URL tiene que ser `https` y pública. No se siguen redirecciones y no se aceptan direcciones internas ni con credenciales.
-- El secreto de firma **no se puede cambiar ni volver a ver**. Para rotarlo, creá una suscripción nueva con la misma URL (se muestra su secreto), cambialo en tu sistema y eliminá la anterior; mientras convivan recibís cada evento dos veces, con el mismo `X-Evento-Id` y firmas distintas: ignorá el repetido.
+- El secreto de firma **no se puede volver a ver**, pero se puede **rotar**: en Administración → API → Suscripciones a avisos, **Rotar secreto** muestra el secreto nuevo una sola vez y el anterior **sigue valiendo 24 horas**. Durante ese tiempo cada aviso lleva las dos firmas (ver arriba), así cambiás el secreto en tu sistema sin cortar el servicio. Si rotás otra vez antes de que termine la gracia, el anterior deja de valer ya.
 - Podés **pausar** una suscripción sin perder su secreto, y eliminarla cuando ya no la uses. Mientras está pausada **no recibe los eventos que ocurren**: los avisos que ya estaban pendientes se entregan al reanudar, pero los demás no se recuperan, así que al reanudar ponete al día con una consulta incremental.
 
 ## 7. Buenas prácticas

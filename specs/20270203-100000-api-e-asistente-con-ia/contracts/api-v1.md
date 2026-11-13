@@ -81,6 +81,7 @@ revocar_clave_api(p_clave_id uuid) -> void
 crear_suscripcion_api(p_url text, p_tipos text[]) -> table(id uuid, secreto text)
 actualizar_suscripcion_api(p_id uuid, p_activa boolean) -> void
 eliminar_suscripcion_api(p_id uuid) -> void
+rotar_secreto_suscripcion_api(p_id uuid) -> table(id uuid, secreto text)  -- MSF-839: el anterior vale 24 h; los avisos llevan las dos firmas
 
 // service_role (Edge Function api-v1)
 api_validar_clave(p_token text)
