@@ -12,6 +12,7 @@ import { TarjetaConsultas } from './TarjetaConsultas'
 import { TarjetaDolar } from './TarjetaDolar'
 import { TarjetaEmpresas } from './TarjetaEmpresas'
 import { TarjetaStock } from './TarjetaStock'
+import { TableroInicio } from './tablero/TableroInicio'
 import { useNombrePerfil } from './useNombrePerfil'
 
 // Inicio (F-INI-01, MSF-344): reemplaza la portada de servicios del template en `/`. Consultas en vivo por
@@ -46,7 +47,8 @@ export function InicioPage() {
   const verStock = puedeVer(stock)
   const verConsultas = puedeVer(consultas)
   const verDolar = puedeVer(dolar)
-  const sinNada = !verStock && !verConsultas && !verDolar && !puedeVer(empresas) && !puedeEditar(ventas) && !puedeEditar(productos)
+  const verVentas = puedeVer(ventas)
+  const sinNada = !verStock && !verVentas && !verConsultas && !verDolar && !puedeVer(empresas) && !puedeEditar(ventas) && !puedeEditar(productos)
 
   return (
     <Box component="main">
@@ -59,6 +61,7 @@ export function InicioPage() {
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' } }}
         >
           <Box sx={{ gridColumn: '1 / -1' }}><AlertasInicio /></Box>
+          {verVentas || verStock ? <Box sx={{ gridColumn: '1 / -1' }}><TableroInicio verVentas={verVentas} verStock={verStock} /></Box> : null}
           <TarjetaEmpresas />
           {verStock ? <TarjetaStock /> : null}
           {verConsultas ? <TarjetaConsultas /> : null}
