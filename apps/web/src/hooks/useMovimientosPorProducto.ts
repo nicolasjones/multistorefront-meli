@@ -32,13 +32,17 @@ export function useMovimientosPorProducto(contexto: ContextoTablero, filtros: Fi
         pagina,
         TAMANO_PAGINA_MOVIMIENTOS,
       )
-      ultimoTotal.current = datos.total
       nuevo = { clave, ...datos, error: false }
     } catch (error) {
       console.error('No pudimos cargar los movimientos por producto.', error instanceof Error ? error.message : error)
       nuevo = { clave, filas: [], total: ultimoTotal.current, error: true }
     }
-    if (peticion === ultimaPeticion.current) setResultado(nuevo)
+    // Solo la respuesta vigente actualiza el resultado y el total conservado: una respuesta vieja descartada no puede
+    // dejar su total para que lo use una tanda que falle después en la consulta nueva.
+    if (peticion === ultimaPeticion.current) {
+      if (!nuevo.error) ultimoTotal.current = nuevo.total
+      setResultado(nuevo)
+    }
   }, [clave, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion, pagina])
 
   useEffect(() => {

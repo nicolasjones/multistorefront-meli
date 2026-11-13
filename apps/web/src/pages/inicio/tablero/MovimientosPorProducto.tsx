@@ -27,13 +27,15 @@ const LARGO_MAXIMO_BUSQUEDA = 100
 const TODAS = ''
 const COLOR_ESTADO: Record<EstadoMovimiento, 'error' | 'default' | 'success'> = { alerta: 'error', quieto: 'default', normal: 'success' }
 
-type Props = { contexto: ContextoTablero }
+type Props = { contexto: ContextoTablero; verVentas?: boolean }
 
 // «Movimientos por producto» (F-INI-06, MSF-822): una fila por producto con 12 columnas ordenables, vistas
 // rápidas, búsqueda, categoría y orden en el SERVIDOR (llega por tandas con carga infinita, nunca paginado).
 // Respeta Período, Tienda y Depósito del tablero. No muestra costo ni margen. «Exportar» baja por lotes lo mismo
 // que se ve (mismos filtros); el rol sin permiso de exportar no ve el botón.
-export function MovimientosPorProducto({ contexto }: Props) {
+const claveDeFila = (fila: MovimientoProducto) => fila.productoId
+
+export function MovimientosPorProducto({ contexto, verVentas = true }: Props) {
   const [filtros, setFiltros] = useState<FiltrosMovimientos>(FILTROS_MOVIMIENTOS_INICIALES)
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(1)
@@ -82,7 +84,8 @@ export function MovimientosPorProducto({ contexto }: Props) {
   }, [listado.filas])
   // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna). Se decide con
   // lo ya cargado: una tanda que falla (página vacía) no cambia la decisión; sin filas todavía, se muestra.
-  const conVentas = listado.filas.length === 0 || listado.filas.some((fila) => fila.ventas !== null)
+  // Si el rol no tiene ventas, la columna no se ofrece ni siquiera sin filas (lista vacía o error de la primera tanda).
+  const conVentas = verVentas && (listado.filas.length === 0 || listado.filas.some((fila) => fila.ventas !== null))
 
   const columnas = useMemo<ColumnaAdaptable<MovimientoProducto>[]>(() => {
     const lista: ColumnaAdaptable<MovimientoProducto>[] = [
@@ -123,11 +126,16 @@ export function MovimientosPorProducto({ contexto }: Props) {
     { encabezado: 'Estado', valor: (fila) => ETIQUETA_ESTADO_MOVIMIENTO[fila.estado] },
   ], [conVentas])
   const pedirLote = useCallback(async (desdeFila: number, limite: number) => {
-    const pagina = Math.floor(desdeFila / limite) + 1
-    return (await leerMovimientosPorProducto({ desde, hasta, empresaId, depositoId }, filtrosEfectivos, pagina, limite)).filas
+    // La RPC pagina por bloques: se pide siempre en bloques de TAMANO_LOTE_EXPORTACION cuando el desplazamiento
+    // coincide con uno (así nunca se pide una página que la RPC deba acotar) y se recortan las filas de más.
+    const alineado = desdeFila % TAMANO_LOTE_EXPORTACION === 0
+    const tamano = alineado ? TAMANO_LOTE_EXPORTACION : limite
+    const pagina = Math.floor(desdeFila / tamano) + 1
+    const filas = (await leerMovimientosPorProducto({ desde, hasta, empresaId, depositoId }, filtrosEfectivos, pagina, tamano)).filas
+    return filas.slice(0, limite)
   }, [desde, hasta, empresaId, depositoId, filtrosEfectivos])
   const nombreArchivo = useCallback(() => nombreArchivoCsv('movimientos-por-producto'), [])
-  const exportacion = useExportarCsv({ columnas: columnasCsv, nombreArchivo, tamanoLote: TAMANO_LOTE_EXPORTACION, pedirLote })
+  const exportacion = useExportarCsv({ columnas: columnasCsv, nombreArchivo, tamanoLote: TAMANO_LOTE_EXPORTACION, pedirLote, clave: claveDeFila })
 
   const hayFiltros = filtros.busqueda !== '' || categoriaVigente !== null || filtros.vista !== 'todos'
   const alOrdenar = (clave: string) => {
