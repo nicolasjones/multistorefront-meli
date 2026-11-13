@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { schema: () => ({ rpc: mocks.rpc }) } }))
 
-import { leerCategoriasPublicas, categoriasPrincipales, CATEGORIAS_PRINCIPALES, filasPanelCategorias, hayMasCategorias, type CategoriaPublica } from './tiendaCategorias'
+import { leerCategoriasPublicas, categoriasPrincipales, CATEGORIAS_PRINCIPALES, cuantasEntran, filasPanelCategorias, hayMasCategorias, type CategoriaPublica } from './tiendaCategorias'
 
 const cat = (id: string, nombre: string, productos: number, padreId: string | null = null): CategoriaPublica => ({ id, nombre, productos, padreId, imagen: null })
 
@@ -79,5 +79,29 @@ describe('leerCategoriasPublicas · imagen (MSF-841)', () => {
   it('sin tienda (null) devuelve una lista vacía', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     expect(await leerCategoriasPublicas('no-existe.test')).toEqual([])
+  })
+})
+
+describe('cuantasEntran (MSF-846)', () => {
+  // 6 entradas de 150 px, «Más categorías» de 160 px y separación de 28 px.
+  const anchos = [150, 150, 150, 150, 150, 150]
+  it('entran todas cuando alcanza el ancho y no hay más categorías', () => {
+    expect(cuantasEntran(anchos, 160, 28, 6 * 150 + 5 * 28, false)).toBe(6)
+  })
+  it('reserva el lugar de «Más categorías» si hay más en el catálogo', () => {
+    expect(cuantasEntran(anchos, 160, 28, 6 * 150 + 5 * 28, true)).toBe(4)
+  })
+  it('muestra menos categorías y nunca corta la última (San Javucho a 1440 px: 1168 px)', () => {
+    const anchosAncho = [190, 170, 210, 180, 200, 175]
+    const n = cuantasEntran(anchosAncho, 190, 28, 1168, true)
+    const usado = anchosAncho.slice(0, n).reduce((a, b) => a + b, 0) + 28 * n + 190
+    expect(n).toBeLessThan(6)
+    expect(usado).toBeLessThanOrEqual(1168)
+    expect(cuantasEntran(anchosAncho, 190, 28, 1168 + 220, true)).toBeGreaterThan(n)
+  })
+  it('sin lugar para ninguna deja solo «Más categorías»; sin medidas muestra todas', () => {
+    expect(cuantasEntran(anchos, 160, 28, 200, true)).toBe(0)
+    expect(cuantasEntran(anchos.map(() => 0), 0, 28, 1000, true)).toBe(6)
+    expect(cuantasEntran([], 160, 28, 1000, true)).toBe(0)
   })
 })
