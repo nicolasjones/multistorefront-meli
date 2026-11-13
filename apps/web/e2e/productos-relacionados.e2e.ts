@@ -30,7 +30,7 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
   const correo = `admin-relacionados-${sufijo}@example.com`
   const idUsuario = await altaUsuario(correo)
   await rest('usuarios_organizacion', [{ user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' }])
-  const [consola, vidrio, funda] = await rest<{ id: string }>(
+  const [consola] = await rest<{ id: string }>(
     'productos',
     [
       { organizacion_id: org.id, nombre: `Consola ${sufijo}`, sku: `E2E-RL-C-${sufijo}`, moneda: 'ARS', precio_lista: 18455 },

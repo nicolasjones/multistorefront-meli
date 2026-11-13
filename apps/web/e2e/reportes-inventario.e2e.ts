@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Page } from './fixture'
+import type { Page } from '@playwright/test'
+import { expect, test } from './fixture'
 import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-140 (T014, FR-010, SC-004, SC-005): reportes de inventario por rol (sección `stock`) y

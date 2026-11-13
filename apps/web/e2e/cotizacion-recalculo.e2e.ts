@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-116 (T031, SC-009): cargar el dólar, ver la vista previa por empresa, confirmar y
 // comprobar los precios; y una carga bajo el umbral (1 %) que se registra sin recalcular. Requiere
@@ -14,15 +14,6 @@ import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, url } 
 //   1005   → variación 0,5 % < 1 % → se registra, los precios siguen en A $ 20.000 · B $ 22.000
 
 const password = 'Correcta-12345!'
-
-async function modificar(ruta: string, cuerpo: unknown, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'PATCH',
-    headers: cabeceras({ 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-}
 
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
