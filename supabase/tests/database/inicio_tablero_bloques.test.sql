@@ -4,7 +4,7 @@
 -- vistas y búsqueda, aislamiento, vista previa que NO escribe y `anon` sin ejecución.
 begin;
 
-select plan(22);
+select plan(30);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -128,7 +128,16 @@ select is((select ventas from public.movimientos_por_producto('2026-10-01', '202
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select is((select (public.previsualizar_impacto_dolar(1500) ->> 'recalcula')::boolean), true, 'sin cotización aplicada siempre recalcula');
 select throws_ok($$select public.previsualizar_impacto_dolar(0)$$, '22023', null, 'valor cero se rechaza');
+select throws_ok($$select public.previsualizar_impacto_dolar('NaN'::numeric)$$, '22023', null, 'NaN se rechaza');
+select throws_ok($$select public.previsualizar_impacto_dolar('Infinity'::numeric)$$, '22023', null, 'infinito se rechaza');
+select throws_ok($$select public.previsualizar_impacto_dolar(1e10)$$, '22023', null, 'un valor de 1e10 o más se rechaza');
+select throws_ok($$select public.previsualizar_impacto_dolar(1.00001)$$, '22023', null, 'más de 4 decimales se rechaza');
+select throws_ok($$select public.previsualizar_impacto_dolar(null)$$, '22023', null, 'valor nulo se rechaza');
+select is((public.previsualizar_impacto_dolar(1500.5) ->> 'confirmacion_pct') is not null, true, 'un valor válido con decimales se acepta');
+select pg_temp.como('e1000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.previsualizar_impacto_dolar(1500)$$, '42501', null, 'sin edición de cotizacion_dolar se rechaza (42501)');
 reset role;
+select ok(not has_function_privilege('anon', 'public.previsualizar_impacto_dolar(numeric,uuid)', 'EXECUTE'), 'anon no ejecuta la vista previa del dólar');
 select is((select count(*)::int from dominio.cotizacion_pendiente where organizacion_id = '11111111-1111-1111-1111-111111111111'), 0,
   'la vista previa no escribe la cotización pendiente');
 

@@ -7,7 +7,7 @@
 -- `private.cotizacion_para`, `private.precios_usd_por_empresa` y `private.precio_visible_con_cotizacion`
 -- (la misma lógica que la confirmación, para que lo que se ve sea lo que se aplica).
 -- Aislamiento: `SECURITY DEFINER` con la autorización adentro (sección `cotizacion_dolar` = edición, como
--- `previsualizar_cotizacion`); valor ≤ 0 o nulo = 22023; `anon` no ejecuta. No escribe nada.
+-- `previsualizar_cotizacion`); valor nulo, ≤ 0, NaN, infinito, con más de 4 decimales o ≥ 1e10 = 22023; `anon` no ejecuta. No escribe nada.
 --
 -- Migración aditiva. Reversión: drop function public.previsualizar_impacto_dolar(numeric,uuid);
 
@@ -34,7 +34,10 @@ begin
   select * into v_config from private.cotizacion_config(v_organizacion);
   v_empresa := private.empresa_de_cotizacion(v_organizacion, p_empresa);
 
-  if p_valor is null or p_valor <= 0 then
+  -- Mismo criterio que `cargar_cotizacion` (lo que la vista previa acepta es lo que luego se puede cargar):
+  -- mayor a cero, sin NaN ni infinito, hasta 4 decimales y menor a 1e10 (evita números gigantes en la respuesta).
+  if p_valor is null or p_valor::text in ('NaN', 'Infinity', '-Infinity') or p_valor <= 0
+     or p_valor <> round(p_valor, 4) or p_valor >= 10000000000 then
     raise exception 'El valor del dólar no es válido' using errcode = '22023';
   end if;
 
