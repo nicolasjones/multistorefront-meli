@@ -118,6 +118,29 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
   drop function private.copiar_configuracion_empresa(uuid, uuid); drop index dominio.empresas_organizacion_nombre_uq;`.
   Las empresas creadas no se pierden al revertir. Deshacer el PR: `git revert -m 1 <merge>`.
 
+## Baja de una organización con ingresos de mercadería (MSF-844)
+
+Migración: `supabase/migrations/20270304100001_baja_organizacion_con_ingresos_de_mercaderia.sql`.
+Prueba: `supabase/tests/database/baja_organizacion_con_ingresos.test.sql`.
+
+- **Qué hace**: `delete from public.organizaciones` borra en cascada todo lo de la organización, pero
+  hay claves foráneas `restrict` entre tablas que se borran en esa misma cascada (ingresos → empresas,
+  ingresos → proveedores, líneas → productos, líneas → movimientos, productos → proveedores,
+  contactos → proveedores): Postgres las comprueba en cada paso de la cascada y la baja fallaba. Las
+  claves `restrict` no admiten diferirse, así que la migración las recrea como
+  `no action deferrable initially deferred`: la comprobación pasa al COMMIT, cuando la cascada ya terminó.
+- **Alcance acotado**: sólo se diferen las claves cuya tabla **origen** está en el alcance de esta baja
+  (`dominio.proveedores_contactos`, `dominio.productos`, `dominio.ingresos_mercaderia`,
+  `dominio.ingresos_mercaderia_lineas`) y cuya tabla **destino** también se borra en la cascada de la
+  organización: 8 claves en total. Las de ventas, motos, cotizaciones y stock se siguen comprobando en
+  la sentencia (la prueba pgTAP lo verifica). `dominio.movimientos_stock` queda fuera a propósito:
+  diferir sus claves deja eventos pendientes y `truncate dominio.movimientos_stock` pasaría a fallar.
+- **Qué NO cambia**: borrar UN registro que otro usa (un producto de un ingreso, un proveedor con
+  productos) sigue prohibido; el error es el mismo (23503) pero llega al confirmar la transacción.
+- **Reversión**: `alter table … alter constraint … not deferrable` (y recrear con `on delete restrict`
+  las que eran `restrict`); la lista exacta de claves está en el encabezado de la migración. Con la
+  reversión, la baja con ingresos vuelve a fallar por clave foránea.
+
 ## Límites conocidos
 
 - Sin E2E automatizado: el repo no tiene suite Playwright de la app (solo `infra/playwright`);
@@ -125,12 +148,12 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
   con nota de desvío). La capacidad «E2E en CI» está en el roadmap del template (#7); la deuda de la suite de la app está trazada en **MSF-499**.
 - El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
   las empresas de su organización.
-- Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
-  Ojo: la cascada **solo completa si la organización no tiene ingresos de mercadería** (ni otros datos que las claves
-  foráneas `restrict` protegen, p. ej. `ingresos_mercaderia_lineas → productos` o `productos → proveedores`): en
-  esos casos `delete from public.organizaciones` falla por clave foránea. No hay ningún flujo de producto que dé de baja
-  una organización; el único camino de código es el rollback de la Edge `crear-organizacion` (organización recién
-  creada, sin datos). La limpieza de pruebas (E2E) debe borrar antes `dominio.ingresos_mercaderia?organizacion_id=eq.X`
+- Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33). La baja **completa
+  con ingresos de mercadería, productos con proveedor y contactos de proveedor** (ver la sección anterior);
+  con otros datos que las claves foráneas `restrict` protegen (p. ej. `dominio.reparaciones → dominio.empresas`)
+  la baja sigue fallando por clave foránea. No hay ningún flujo de producto que dé de baja una organización;
+  el único camino de código es el rollback de la Edge `crear-organizacion` (organización recién creada, sin
+  datos). La limpieza de pruebas (E2E) debe borrar antes `dominio.ingresos_mercaderia?organizacion_id=eq.X`
   (y los datos que referencien, según el caso).
 
 La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).
