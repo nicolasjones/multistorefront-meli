@@ -517,6 +517,24 @@ describe('FaltantesList · avisar a los clientes (F-VTA-26, FR-002, FR-003, FR-0
     expect(boton('Avisar a los seleccionados (0)')).toBeDisabled()
   })
 
+  it('el texto del aviso se cuenta y se recorta por caracteres, no por unidades UTF-16 (PR #922 m-5)', async () => {
+    abrir()
+    await screen.findByText('Producto 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar todos' }))
+    fireEvent.click(boton(/Avisar a los seleccionados/))
+    const dialogo = await screen.findByRole('dialog', { name: 'Avisar a los clientes' })
+    const texto = within(dialogo).getByRole('textbox', { name: 'Texto del aviso' })
+    // 600 emojis son 1.200 unidades UTF-16: con el maxLength nativo (UTF-16) se cortaban a 500; ahora entran los 600.
+    fireEvent.change(texto, { target: { value: '😀'.repeat(600) } })
+    expect(within(dialogo).getByText('600 / 1000')).toBeInTheDocument()
+    expect(Array.from((texto as HTMLTextAreaElement).value)).toHaveLength(600)
+    // Pasado el tope se recorta a 1.000 caracteres.
+    fireEvent.change(texto, { target: { value: '😀'.repeat(1200) } })
+    expect(within(dialogo).getByText('1000 / 1000')).toBeInTheDocument()
+    expect(Array.from((texto as HTMLTextAreaElement).value)).toHaveLength(1000)
+    expect(texto).not.toHaveAttribute('maxlength')
+  })
+
   it('el diálogo trae el texto editable, cuenta los clientes y envía el texto editado', async () => {
     mocks.listar.mockResolvedValue({
       faltantes: [

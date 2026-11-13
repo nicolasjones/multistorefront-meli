@@ -14,6 +14,7 @@ import {
   type FaltanteVenta,
   MAXIMO_MENSAJE_AVISO,
   largoDeTexto,
+  recortarPorCaracteres,
   TEXTO_AVISO_POR_DEFECTO,
   estadoStockHoy,
   avisoFallido,
@@ -395,10 +396,9 @@ export function FaltantesList() {
               minRows={3}
               fullWidth
               value={mensaje}
-              onChange={(evento) => setMensaje(evento.target.value)}
+              onChange={(evento) => setMensaje(recortarPorCaracteres(evento.target.value, MAXIMO_MENSAJE_AVISO))}
               disabled={enviando}
               helperText={`${largoDeTexto(mensaje)} / ${MAXIMO_MENSAJE_AVISO}`}
-              slotProps={{ htmlInput: { maxLength: MAXIMO_MENSAJE_AVISO } }}
             />
             {yaAvisadosElegidos > 0 ? (
               <Stack spacing={0}>

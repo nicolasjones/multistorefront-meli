@@ -11,11 +11,33 @@ export const TIMEOUT_SMTP_MS = 30_000
 /** Tope del cierre del cliente: con un socket muerto `close()` podría no volver y colgar la respuesta de la función. */
 export const TIMEOUT_CIERRE_MS = 5_000
 
+/** Socket mínimo del sondeo (`Deno.Conn` lo cumple). */
+export type Conexion = { close(): void }
+
+/**
+ * Sondeo TCP: abre la conexión y la cierra. Si la señal se aborta antes de que `abrir` resuelva (la fase de conexión venció), el
+ * socket que llegue después se CIERRA igual: no queda abierto hasta el fin de la invocación (`Deno.connect` no se puede abortar).
+ */
+export async function sondearConexion(abrir: () => Promise<Conexion>, senal: AbortSignal): Promise<void> {
+  const apertura = abrir()
+  const cerrarTarde = () => { apertura.then((c) => c.close(), () => undefined) }
+  if (senal.aborted) cerrarTarde()
+  else senal.addEventListener('abort', cerrarTarde, { once: true })
+  const conexion = await apertura
+  // Si la fase ya venció, `cerrarTarde` cierra este mismo socket: no se cierra dos veces.
+  if (senal.aborted) return
+  senal.removeEventListener('abort', cerrarTarde)
+  conexion.close()
+}
+
 /**
  * Envía en dos fases con límites propios:
  * 1. conexión (`conectar`, opcional): alcanzar el servidor. Si se vence falla con «smtp conexion timeout» (`TimeoutError`):
  *    todavía no se envió nada, así que `codigoDeError` lo trata como `smtp_conexion` (reintentable).
  * 2. envío (`send`, `timeoutMs`): falla con «smtp timeout» (`TimeoutError`): el DATA pudo haberse enviado, intento INCIERTO.
+ * Límite conocido: un cuelgue del handshake TLS, del banner o de AUTH DESPUÉS de que el sondeo TCP pasó vence en la fase de envío y
+ * da `smtp_timeout` (incierto, sin reintento) aunque el DATA no haya salido: es conservador (nunca duplica) porque desde afuera no se
+ * distingue ese cuelgue de uno durante el DATA.
  * El cliente se cierra siempre con su propio tope: un `close()` colgado no demora ni cambia el resultado.
  */
 export async function enviarConLimites<M>(
@@ -26,11 +48,14 @@ export async function enviarConLimites<M>(
     cierreMs = TIMEOUT_CIERRE_MS,
     conexionMs = TIMEOUT_CONEXION_MS,
     conectar,
-  }: { timeoutMs?: number; cierreMs?: number; conexionMs?: number; conectar?: () => Promise<unknown> } = {},
+  }: { timeoutMs?: number; cierreMs?: number; conexionMs?: number; conectar?: (senal: AbortSignal) => Promise<unknown> } = {},
 ): Promise<void> {
+  const control = new AbortController()
   try {
     if (conectar) {
-      await conTimeout(Promise.resolve().then(conectar), conexionMs, 'smtp conexion timeout: no se pudo alcanzar el servidor a tiempo')
+      // Al vencer la conexión se aborta la señal: quien abrió el socket lo cierra cuando llegue (ver `sondearConexion`).
+      await conTimeout(Promise.resolve().then(() => conectar(control.signal)), conexionMs, 'smtp conexion timeout: no se pudo alcanzar el servidor a tiempo')
+        .catch((error) => { control.abort(); throw error })
     }
     await conTimeout(cliente.send(mensaje), timeoutMs)
   } finally {
