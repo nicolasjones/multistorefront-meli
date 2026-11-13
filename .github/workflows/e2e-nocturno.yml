@@ -8,10 +8,11 @@ name: E2E nocturno
 
 on:
   schedule:
-    # 04:00 UTC = 01:00 en Buenos Aires (ART = UTC-3 todo el año, Argentina no usa horario de verano).
+    # 05:00 UTC = 02:00 en Buenos Aires (ART = UTC-3 todo el año, Argentina no usa horario de verano).
+    # Se evita las 04:17 UTC, hora del ci-janitor (`limpiar-ci`, cada 6 h), que también limpia ranuras vencidas.
     # Ventana de baja carga: no compite con los PRs del día. GitHub sólo dispara `schedule` desde la rama por
     # defecto (`main`): el cron empieza a correr cuando este archivo llega a `main`. El run siempre prueba `dokploy`.
-    - cron: '0 4 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
     inputs:
       spec:
@@ -48,8 +49,18 @@ env:
 jobs:
   e2e:
     name: Playwright (suite completa, en serie)
+    # Kill switch sin PR: `CI_PAUSED=true` (el mismo de validate.yml) o `CI_E2E_NOCTURNO=false` (variables de repo) apagan el job.
+    if: ${{ vars.CI_PAUSED != 'true' && vars.CI_E2E_NOCTURNO != 'false' }}
     runs-on: [self-hosted, platform-local]
-    timeout-minutes: 60
+    # TIMEOUT Y TTL DE LAS RANURAS. El que reclama una ranura es quien recicla las vencidas (mtime del lock > TTL), no el
+    # dueño, y `liberar` no valida dueño. En dokploy el job `database` no fija `SUPABASE_CI_LOCK_TTL_MIN` y el default de
+    # scripts/supabase-ci.mjs es 50 min: si este job retuviera la ranura más de 50 min, un `database` podría reciclar una
+    # ranura VIVA (dos stacks con el mismo project_id y puertos, `docker rm -f` y `liberar` cruzados). Por eso el job dura
+    # como mucho 45 min contados desde que reclama (el lock nace al reclamar, así que la espera de 5 min no cuenta) y el peor
+    # caso total, espera + corrida, queda en 50. Medido: setup ~6 min + suite ~21 min = ~27 min, holgado. Cuando #923 esté
+    # mergeado (TTL 75 min en `e2e-tienda` y `database`) se puede subir a 60. Además `limpiar-ci` (ci-janitor, TTL 90 min en
+    # scripts/limpiar-ci.mjs) limpia las ranuras vencidas.
+    timeout-minutes: 45
     steps:
       # El run prueba siempre `dokploy` (en `schedule` el workflow vive en `main`); un disparo manual desde otra
       # rama prueba esa rama.
@@ -96,10 +107,10 @@ jobs:
           fi
           echo "puerto $E2E_NOCT_WEB_PORT libre"
 
-      # Espera a lo sumo 15 min por una ranura (de noche casi siempre hay libre). Sin ranura el run falla con ese mensaje.
+      # Espera a lo sumo 5 min por una ranura (ver TIMEOUT Y TTL arriba) (de noche casi siempre hay libre). Sin ranura el run falla con ese mensaje.
       - name: Reservar la ranura del stack de Supabase
         env:
-          SUPABASE_CI_LOCK_MIN: 15
+          SUPABASE_CI_LOCK_MIN: 5
         run: node scripts/supabase-ci.mjs reclamar
       # `SEGUIMIENTO_IP_SALT` va en supabase/.env ANTES de preparar (la copia del workdir lo lleva): config.toml lo
       # declara en `[edge_runtime.secrets]`. Sin Edge en este stack sólo hace falta si alguien lo sirve a mano.
@@ -184,7 +195,10 @@ jobs:
       - name: Servir la web (vite preview en 4300, --strictPort)
         run: |
           set -euo pipefail
-          (cd apps/web && nohup pnpm exec vite preview --port "$E2E_NOCT_WEB_PORT" --strictPort --host 0.0.0.0 > "$E2E_WORK/vite.log" 2>&1 & echo $! > "$E2E_WORK/vite.pid")
+          # `setsid`: vite y su `node` nieto (pnpm exec) quedan en su propio grupo de procesos y la limpieza mata el GRUPO
+          # entero; si no, un nieto vivo bloquearía el 4300 la noche siguiente (el contenedor del runner persiste).
+          setsid nohup pnpm --dir apps/web exec vite preview --port "$E2E_NOCT_WEB_PORT" --strictPort --host 0.0.0.0 > "$E2E_WORK/vite.log" 2>&1 &
+          echo $! > "$E2E_WORK/vite.pid"
           for i in $(seq 60); do
             curl -fsS -o /dev/null "http://127.0.0.1:$E2E_NOCT_WEB_PORT/" && web=1 && break
             kill -0 "$(cat "$E2E_WORK/vite.pid")" 2>/dev/null || { echo "::error::vite preview murió"; cat "$E2E_WORK/vite.log"; exit 1; }
@@ -284,6 +298,13 @@ jobs:
           w(''); w('Trazas y reporte HTML: artifact `e2e-nocturno` de este run (se conservan 7 días).')
           EOF
 
+      # Todo dentro del workspace (`e2e-out/`): con rutas fuera de él (RUNNER_TEMP) el ancestro común sería `/` y el
+      # artifact guardaría rutas absolutas largas. `playwright-report` y `test-results` quedan en sus carpetas y no se pisan.
+      - name: Reunir resultados y logs en e2e-out/
+        if: always()
+        run: |
+          mkdir -p e2e-out
+          cp "$E2E_WORK/resultados.json" "$E2E_WORK/vite.log" e2e-out/ 2>/dev/null || true
       - name: Subir reporte, resultados y trazas de fallos
         if: always()
         uses: actions/upload-artifact@v4
@@ -292,8 +313,7 @@ jobs:
           path: |
             apps/web/playwright-report
             apps/web/test-results
-            ${{ env.E2E_WORK }}/resultados.json
-            ${{ env.E2E_WORK }}/vite.log
+            e2e-out
           if-no-files-found: ignore
           retention-days: 7
 
@@ -309,15 +329,16 @@ jobs:
             p="$E2E_WORK/$n.pid"
             [ -f "$p" ] || continue
             pid=$(cat "$p")
-            pkill -TERM -P "$pid" 2>/dev/null   # hijos directos (pnpm -> node)
-            kill -TERM "$pid" 2>/dev/null
+            # vite va en su propio grupo (setsid): se mata el grupo entero; el puente (node directo) es un solo PID.
+            if [ "$n" = vite ]; then kill -TERM -- "-$pid" 2>/dev/null; else kill -TERM "$pid" 2>/dev/null; fi
             echo "PID $pid ($n) terminado"
           done
           sleep 2
           for n in vite puente; do
             p="$E2E_WORK/$n.pid"
             [ -f "$p" ] || continue
-            pid=$(cat "$p"); pkill -KILL -P "$pid" 2>/dev/null; kill -KILL "$pid" 2>/dev/null
+            pid=$(cat "$p")
+            if [ "$n" = vite ]; then kill -KILL -- "-$pid" 2>/dev/null; else kill -KILL "$pid" 2>/dev/null; fi
           done
           if [ -n "$SUPABASE_CI_WORKDIR" ]; then
             supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup
@@ -330,5 +351,6 @@ jobs:
             echo "restan: contenedores=$(docker ps -aq --filter "label=$L" | grep -c .) volúmenes=$(docker volume ls -q --filter "label=$L" | grep -c .)"
           fi
           rm -f supabase/.env
+          # `liberar` no valida dueño: libera la ranura de este run (SUPABASE_CI_RANURA) y nada más.
           node scripts/supabase-ci.mjs liberar
           exit 0
