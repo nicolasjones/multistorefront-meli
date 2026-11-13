@@ -141,7 +141,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       // SC-008: el aviso de la consulta queda encolado para la persona de la organización (lo manda el flow
       // `enviar-avisos`) y el detalle de ESA consulta se abre desde el panel.
       const avisos = await leer<{ user_id: string; datos: Record<string, string> }>(
-        'avisos_pendientes?select=user_id,datos&tipo_aviso=eq.consulta_nueva',
+        `avisos_pendientes?select=user_id,datos&tipo_aviso=eq.consulta_nueva&user_id=eq.${idAdmin}`,
       )
       expect(avisos).toHaveLength(1)
       expect(avisos[0].user_id).toBe(idAdmin)
