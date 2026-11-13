@@ -25,8 +25,9 @@ export const DESTINOS_BOTON: ReadonlyArray<{ valor: DestinoBoton; etiqueta: stri
   { valor: 'catalogo', etiqueta: 'Catálogo completo' },
 ]
 
-// El catálogo navegable es de MSF-167: hasta entonces el botón apunta al ancla de la sección de productos.
-export const ENLACE_DESTINO_BOTON: Record<DestinoBoton, string> = { catalogo: '#catalogo' }
+// El botón de la portada lleva a «Todos los productos» (`/catalogo`, F-TDA-12). Antes apuntaba a un ancla
+// `#catalogo` que ninguna sección define, así que el click no hacía nada.
+export const ENLACE_DESTINO_BOTON: Record<DestinoBoton, string> = { catalogo: '/catalogo' }
 
 export const CAMPOS_CONTENIDO: ReadonlyArray<{
   clave: ClaveCampoContenido

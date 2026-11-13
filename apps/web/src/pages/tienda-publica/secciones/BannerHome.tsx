@@ -1,4 +1,5 @@
 import { Box, Button, Typography } from '@mui/material'
+import { Link as EnlaceRuta } from 'react-router'
 import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { ENLACE_DESTINO_BOTON, type ContenidoTienda } from '../../../lib/tiendaContenido'
 import type { PropsSeccionTienda } from '../PaginaTienda'
@@ -8,7 +9,7 @@ export const orden = 20
 // Banner principal de la home, también usado por la vista previa de la gestión (FR-037): un
 // mismo componente, así lo que se previsualiza es lo que se publica. Texto plano (React lo
 // escapa); cada elemento vacío se oculta y, sin ninguno, no se muestra el banner (FR-034).
-export function BannerContenido({ contenido }: { contenido: Pick<ContenidoTienda, 'titulo' | 'subtitulo' | 'texto_boton' | 'boton_destino'> }) {
+export function BannerContenido({ contenido, vistaPrevia = false }: { contenido: Pick<ContenidoTienda, 'titulo' | 'subtitulo' | 'texto_boton' | 'boton_destino'>; vistaPrevia?: boolean }) {
   const titulo = contenido.titulo.trim()
   const subtitulo = contenido.subtitulo.trim()
   const textoBoton = contenido.texto_boton.trim()
@@ -18,9 +19,16 @@ export function BannerContenido({ contenido }: { contenido: Pick<ContenidoTienda
       {titulo ? <Typography component="h2" variant="h4">{titulo}</Typography> : null}
       {subtitulo ? <Typography variant="body1" sx={{ mt: 1 }}>{subtitulo}</Typography> : null}
       {textoBoton ? (
-        <Button component="a" href={ENLACE_DESTINO_BOTON[contenido.boton_destino]} variant="contained" sx={{ mt: 2 }}>
-          {textoBoton}
-        </Button>
+        vistaPrevia ? (
+          // En la vista previa del panel el botón no navega: `/catalogo` saldría de la gestión.
+          <Button component="a" href="#" onClick={(e) => e.preventDefault()} variant="contained" sx={{ mt: 2 }}>
+            {textoBoton}
+          </Button>
+        ) : (
+          <Button component={EnlaceRuta} to={ENLACE_DESTINO_BOTON[contenido.boton_destino]} variant="contained" sx={{ mt: 2 }}>
+            {textoBoton}
+          </Button>
+        )
       ) : null}
     </Box>
   )

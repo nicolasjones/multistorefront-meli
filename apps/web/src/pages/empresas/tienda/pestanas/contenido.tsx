@@ -134,7 +134,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
         <Stack spacing={2} role="group" aria-labelledby="contenido-vista-previa">
           <Typography id="contenido-vista-previa" component="h2" variant="h6">Vista previa</Typography>
           <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, minHeight: 120 /* estilos-sueltos: ok: altura mínima de la vista previa del banner */ }} data-testid="vista-previa-banner">
-            <BannerContenido contenido={valores} />
+            <BannerContenido contenido={valores} vistaPrevia />
             {!valores.titulo.trim() && !valores.subtitulo.trim() && !valores.texto_boton.trim() ? (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
                 El banner no se muestra mientras el título, el subtítulo y el texto del botón estén vacíos.
