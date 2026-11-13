@@ -4,7 +4,7 @@
 -- null sin permiso (rol sin `ventas`) y `anon` sin ejecución.
 begin;
 
-select plan(14);
+select plan(23);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -29,8 +29,9 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-0000000000e2', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('a2000000-0000-0000-0000-0000000000e1', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
-insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista) values
-  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Teclado', 'TEC-1', 1000),
+insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, activo) values
+  ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Teclado', 'TEC-1', 1000, true),
+  ('b1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'Producto viejo', 'VIE-1', 100, false),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado Dos', 'TEC-2', 1000);
 
 delete from dominio.depositos
@@ -43,8 +44,20 @@ insert into dominio.depositos (id, organizacion_id, nombre, por_defecto) values
 
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, minimo) values
   ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 5),
+  ('b1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 0, 0),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 99, 0)
 on conflict (producto_id) do update set cantidad = excluded.cantidad, minimo = excluded.minimo;
+
+-- Movimientos de octubre (Central). Teclado (activo): salida de 3 el 10/10 y entrada de 5 el 12/10.
+-- «Producto viejo» (inactivo) tiene +100 el 20/10: NO debe correr la serie ni el stock de hoy.
+insert into dominio.motivos_movimiento (id, organizacion_id, nombre) values
+  ('a0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Motivo de prueba');
+insert into dominio.movimientos_stock
+  (organizacion_id, producto_id, tipo, cantidad, diferencia, saldo, motivo_id, fecha, deposito_id)
+values
+  ('11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000001', 'salida', 3, -3, 7, 'a0000000-0000-0000-0000-000000000001', '2026-10-10', 'd1000000-0000-0000-0000-000000000001'),
+  ('11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000001', 'entrada', 5, 5, 12, 'a0000000-0000-0000-0000-000000000001', '2026-10-12', 'd1000000-0000-0000-0000-000000000001'),
+  ('11111111-1111-1111-1111-111111111111', 'b1000000-0000-0000-0000-000000000009', 'entrada', 100, 100, 100, 'a0000000-0000-0000-0000-000000000001', '2026-10-20', 'd1000000-0000-0000-0000-000000000001');
 
 -- Octubre 2026 (período) y septiembre (anterior). Organización Uno:
 --   F1 factura San Javucho 05/10  Teclado ×2 Central   1.000 + 210 = 1.210
@@ -115,6 +128,26 @@ select is(jsonb_array_length(public.resumen_inicio_periodo('2026-10-01', '2026-1
   'la serie trae un punto por día del período');
 select throws_ok($$select public.resumen_inicio_periodo('2026-10-31', '2026-10-01')$$, '22023', null,
   'un rango invertido se rechaza');
+
+
+-- Serie de stock (stock de hoy = 10, solo productos activos): al cierre del 09/10 = 10 − (−3 + 5) = 8; del 11/10 = 10 − 5 = 5; del 31/10 = 10.
+select is((select (e ->> 'stock')::int from jsonb_array_elements(public.resumen_inicio_periodo('2026-10-01', '2026-10-31') -> 'serie') e where e ->> 'dia' = '2026-10-09'), 8,
+  'serie de stock: cierre del 09/10 (descuenta lo movido después)');
+select is((select (e ->> 'stock')::int from jsonb_array_elements(public.resumen_inicio_periodo('2026-10-01', '2026-10-31') -> 'serie') e where e ->> 'dia' = '2026-10-11'), 5,
+  'serie de stock: cierre del 11/10');
+select is((select (e ->> 'stock')::int from jsonb_array_elements(public.resumen_inicio_periodo('2026-10-01', '2026-10-31') -> 'serie') e where e ->> 'dia' = '2026-10-31'), 10,
+  'serie de stock: el último día coincide con el stock de hoy aunque un producto inactivo tenga movimientos');
+select is((public.resumen_inicio_periodo('2026-10-01', '2026-10-31') -> 'stock' ->> 'entradas_unidades')::int, 5,
+  'entradas del período: solo productos activos y motivo común (la entrada de 100 del producto inactivo no cuenta)');
+select is((public.resumen_inicio_periodo('2026-10-01', '2026-10-31') -> 'ventas' ->> 'anterior_comprobantes')::int, 1,
+  'comprobantes del período anterior');
+select is(public.resumen_inicio_periodo('2026-10-01', '2026-10-31', null, 'd2000000-0000-0000-0000-000000000001') -> 'ventas', 'null'::jsonb,
+  'un depósito de otra organización apaga ventas');
+select is(public.resumen_inicio_periodo('2026-10-01', '2026-10-31', null, 'd2000000-0000-0000-0000-000000000001') -> 'stock', 'null'::jsonb,
+  'un depósito de otra organización apaga stock');
+select is(public.resumen_inicio_periodo('2026-10-01', '2026-10-31', 'a2000000-0000-0000-0000-0000000000e1') -> 'ventas', 'null'::jsonb,
+  'una tienda de otra organización no devuelve ventas');
+select throws_ok($$select public.resumen_inicio_periodo('2025-01-01', '2026-10-31')$$, '22023', null, 'más de 366 días se rechaza');
 
 -- El técnico no tiene `ventas`: el bloque de ventas vuelve null; sí ve stock.
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');

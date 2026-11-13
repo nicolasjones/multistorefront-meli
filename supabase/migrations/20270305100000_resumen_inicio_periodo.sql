@@ -20,6 +20,12 @@
 -- el alcance (devuelven ceros).
 --
 -- Migración aditiva. Reversión: drop function public.resumen_inicio_periodo(date,date,uuid,uuid);
+--   drop index if exists dominio.movimientos_stock_org_fecha_dia_idx;
+
+-- Índice para las lecturas por fecha de Inicio (aditivo; reversión: drop index dominio.movimientos_stock_org_fecha_dia_idx).
+create index if not exists movimientos_stock_org_fecha_dia_idx
+  on dominio.movimientos_stock (organizacion_id, fecha)
+  include (diferencia, deposito_id, producto_id, tipo);
 
 create or replace function public.resumen_inicio_periodo(
   p_desde date,
@@ -150,21 +156,31 @@ begin
         'ajustes', count(*) filter (where m.tipo = 'ajuste'),
         'entradas_unidades', coalesce(sum(m.cantidad) filter (
           where m.tipo = 'entrada' and m.traslado_id is null
-            and mo.nombre not in ('Devolución de cliente', 'Anulación de factura')), 0))
+            and lower(btrim(mo.nombre)) not in ('devolución de cliente', 'anulación de factura')), 0))
         from dominio.movimientos_stock m
         join dominio.motivos_movimiento mo on mo.id = m.motivo_id and mo.organizacion_id = m.organizacion_id
+        join dominio.productos pa on pa.id = m.producto_id and pa.organizacion_id = m.organizacion_id and pa.activo
        where m.organizacion_id = v_org and m.fecha between p_desde and p_hasta
          and (p_deposito is null or m.deposito_id = p_deposito));
   end if;
 
   if v_ve or v_st then
+    -- Una sola pasada sobre los movimientos de PRODUCTOS ACTIVOS (los mismos que suman el stock de hoy) desde el
+    -- inicio del período, agrupados por día: el stock al cierre de un día es el de hoy menos lo movido DESPUÉS.
+    -- Usa el índice (organizacion_id, fecha) de esta migración; el costo es de los días del rango, no de todo el
+    -- historial por cada día.
+    with mv as (
+      select m.fecha, sum(m.diferencia) as dif
+        from dominio.movimientos_stock m
+        join dominio.productos p on p.id = m.producto_id and p.organizacion_id = m.organizacion_id
+       where v_st and m.organizacion_id = v_org and m.fecha > p_desde and p.activo
+         and (p_deposito is null or m.deposito_id = p_deposito)
+       group by m.fecha
+    )
     select coalesce(jsonb_agg(jsonb_build_object(
              'dia', d.dia,
              'unidades', case when v_ve then coalesce(u.unidades, 0) end,
-             'stock', case when v_st then v_stock_hoy - coalesce(
-               (select sum(m.diferencia) from dominio.movimientos_stock m
-                 where m.organizacion_id = v_org and m.fecha > d.dia
-                   and (p_deposito is null or m.deposito_id = p_deposito)), 0) end
+             'stock', case when v_st then v_stock_hoy - coalesce((select sum(mv.dif) from mv where mv.fecha > d.dia), 0) end
            ) order by d.dia), '[]'::jsonb)
       into v_serie
       from generate_series(p_desde::timestamp, p_hasta::timestamp, interval '1 day') as g(ts)
