@@ -27,9 +27,14 @@ ejecución. Ningún paso de esta página se puede correr desde el CI.
 
 **Qué:** el sitio de documentación (`https://docs.212-90-120-53.sslip.io`) se
 publica aparte del repo, copiando el resultado del build al VPS. Al 2026-11-09 el
-publicado era del 2026-11-01 y le faltaban `contactos`, `importaciones`,
-`inicio-y-alertas` y `ventas-mostrador` (404) — de ahí el paso pendiente. Ver
-[ayuda-en-panel.md](ayuda-en-panel.md).
+publicado era del 2026-11-01 y le faltaban las páginas `producto/contactos/`,
+`producto/importaciones/`, `producto/inicio-y-alertas/` y `producto/ventas-mostrador/`
+(404) — de ahí el paso pendiente. Esas cuatro ya están en `main` (el build desde
+`main` las trae e incluye #886), así que basta reconstruir y republicar.
+
+> Esta página se arma desde `main`, que es una rama distinta de `dokploy`: por eso no
+> enlaza páginas que solo existen en `dokploy`. Un enlace a un archivo que no esté
+> en `main` hace fallar `mkdocs build --strict` y el sitio no se publica.
 
 **Respaldo previo:** copiar el sitio publicado a un directorio de respaldo con
 fecha, en el mismo VPS.
@@ -91,6 +96,11 @@ de que Docker levantara los contenedores. El arreglo es un *drop-in* de systemd 
 hace que el servicio arranque **después** de Docker y espere a que la base de
 producción esté en pie.
 
+El drop-in sube también `TimeoutStartSec`: systemd corta el arranque a los 90 s por
+defecto (`DefaultTimeoutStartSec`) y mataría la espera antes de que levante la base.
+Con 600 s hay margen; si aun así no alcanza, el servicio queda **fallido y sin tomar
+los puertos**, que es el estado seguro (las bases pueden levantar).
+
 **Comando** (en el VPS):
 
 ```bash
@@ -98,6 +108,7 @@ install -d /etc/systemd/system/tailnet-forwards.service.d
 cat >/etc/systemd/system/tailnet-forwards.service.d/esperar-docker.conf <<'EOF'
 [Unit]
 After=docker.service
+TimeoutStartSec=600
 
 [Service]
 ExecStartPre=/bin/sh -c 'until docker ps --format "{{.Names}}" | grep -qx "supabase_db_multistorefront-meli-supabase-prd"; do sleep 2; done'
@@ -109,6 +120,7 @@ systemctl daemon-reload
 
 ```bash
 systemctl show tailnet-forwards.service -p After          # debe listar docker.service
+systemctl show tailnet-forwards.service -p TimeoutStartUSec   # 10min (600 s)
 systemctl cat tailnet-forwards.service | grep -A3 esperar-docker.conf
 docker ps --format '{{.Names}}' | grep supabase_db        # las bases de dev/stg/prd arriba
 ```
@@ -153,13 +165,23 @@ docker inspect <contenedor del runtime Edge> \
   > /root/entorno-edge-runtime-dev-AAAAMMDD-HHMM.env
 ```
 
-**Recreación:** con el entorno respaldado, recrear el stack Edge del ambiente con el
-procedimiento del ambiente (el que se usa para desplegar ese ambiente). Lo que el
-repo **no** puede fijar es ese comando: el stack de cada ambiente se levanta en el
-VPS2 (Dokploy o el workdir del CLI de Supabase, el mismo patrón que
-`/root/supabase-stg` y `/root/supabase-prd` que se citan en
-[deployment.md](deployment.md)); confirmá cuál es el de dev con `ls -d /root/supabase-*`
-antes de tocar nada.
+**Recreación:** el stack Edge se rehace en el *workdir* del ambiente (el patrón que
+usan `/root/supabase-stg` y `/root/supabase-prd`, ver [deployment.md](deployment.md);
+confirmá cuál es el de dev con `ls -d /root/supabase-*`):
+
+```bash
+cd <workdir del ambiente>
+supabase stop
+supabase start
+```
+
+Dos avisos:
+
+- **No alcanza con reiniciar el runtime**: reiniciar el contenedor del runtime no
+  registra funciones nuevas; hay que rehacer el stack.
+- El *workdir* tiene que conservar su `supabase/.env`: de ahí salen los secretos que
+  usa el runtime; sin ellos las funciones que los necesitan arrancan sin secreto y
+  fallan con `500`.
 
 **Verificación:** (por ambiente; en dev, hoy, ya da lo esperado)
 
