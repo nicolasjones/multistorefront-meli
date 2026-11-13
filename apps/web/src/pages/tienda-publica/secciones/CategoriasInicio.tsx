@@ -9,6 +9,7 @@ import { useInicioTienda } from '../../../lib/tiendaInicio'
 import type { PropsSeccionTienda } from '../PaginaTienda'
 import { useCelular } from '../useAnchoCelular'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { BORDE_CAMPO } from '../layout/medidas'
 
 export const orden = 40
 
@@ -69,7 +70,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
               <Box
                 component={EnlaceRuta}
                 to={c.a}
-                sx={{ display: 'block', flexShrink: 0, whiteSpace: 'nowrap', px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, border: '1.5px solid rgba(0,0,0,.18)', bgcolor: 'background.paper', color: 'text.primary', textDecoration: 'none' /* estilos-sueltos: ok */ }}
+                sx={{ display: 'block', flexShrink: 0, whiteSpace: 'nowrap', px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, border: BORDE_CAMPO, bgcolor: 'background.paper', color: 'text.primary', textDecoration: 'none' /* estilos-sueltos: ok */ }}
               >
                 {c.nombre}
               </Box>

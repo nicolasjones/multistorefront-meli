@@ -21,13 +21,13 @@ export default function RutaContacto() {
   const contenido = useContenidoPublico(host)
 
   if (contactoId) return <PaginaNoEncontrada />
-  if (contacto.fase === 'cargando') return <EstadoCargaPagina />
+  if (contacto.fase === 'cargando') return <Box sx={{ py: 2 }}><EstadoCargaPagina /></Box>
   if (contacto.fase === 'error') {
     return (
-      <>
+      <Box sx={{ py: 2 }}>
         <CabeceraSeo noindex pagina="No pudimos cargar los datos de contacto" />
         <ErrorConReintento titulo="No pudimos cargar los datos de contacto." alReintentar={contacto.reintentar} />
-      </>
+      </Box>
     )
   }
   if (contacto.fase === 'no-encontrada') return <PaginaNoEncontrada />

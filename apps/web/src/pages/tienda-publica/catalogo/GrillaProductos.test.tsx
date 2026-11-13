@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
+import { celular } from '../../../test/matchMedia'
 import { GrillaProductos } from './GrillaProductos'
 import { TarjetaProducto } from './TarjetaProducto'
 
@@ -49,9 +50,12 @@ describe('GrillaProductos', () => {
     expect(reglas()).toMatch(/@media \(min-width:600px\)\{[^}]*repeat\(3, minmax\(0, 1fr\)\)/)
   })
 
-  it.each([[320], [768], [1440]])('sin violaciones de axe a %s px (con un sin stock, un sin imagen y un sin precio)', async (ancho) => {
-    window.innerWidth = ancho
-    const { container } = montar(ancho >= 1440 ? 4 : 3)
+  // jsdom no evalúa `@media`: esto comprueba la estructura (lista, tarjetas con h3, sin violaciones de axe) en el modo celular y en el
+  // de escritorio forzados con matchMedia; las medidas por ancho (320/768/1440) se miden en Chromium (ver la spec, T008).
+  it.each([['celular', true], ['escritorio', false]])('sin violaciones de axe en modo %s (con un sin stock, un sin imagen y un sin precio)', async (_modo, esCelular) => {
+    celular(esCelular)
+    const { container } = montar(esCelular ? 3 : 4)
     expect(await violacionesAxe(container)).toEqual([])
+    Reflect.deleteProperty(window, 'matchMedia')
   })
 })

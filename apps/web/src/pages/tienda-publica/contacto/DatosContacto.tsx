@@ -2,13 +2,14 @@ import { Box, Typography } from '@mui/material'
 import type { ContactoTienda } from '../../../lib/tiendaContacto'
 import { IconoCorreo, IconoLocal } from '../layout/iconos'
 import { IconoWhatsapp } from '../whatsapp/IconoWhatsapp'
+import { LINEA_SUAVE } from '../layout/medidas'
 
 // Bloque de contacto del prototipo (`MJC_Contacto`): círculo de 44 px en el color primario con el glifo en blanco a la
 // izquierda; a su lado el rótulo (13 px, gris), el dato (18 px/600) y la nota (14 px, gris). Cada bloque lleva una línea
 // inferior y 16 px de aire arriba y abajo. El rótulo es el encabezado del bloque (h2) para los lectores de pantalla.
 function Bloque({ titulo, icono, children, testId }: { titulo: string; icono: React.ReactNode; children: React.ReactNode; testId: string }) {
   return (
-    <Box component="section" aria-label={titulo} data-testid={testId} sx={{ display: 'flex', gap: '14px', alignItems: 'flex-start', py: '16px', borderBottom: '1px solid rgba(0,0,0,.08)', minWidth: 0 /* estilos-sueltos: ok */ }}>
+    <Box component="section" aria-label={titulo} data-testid={testId} sx={{ display: 'flex', gap: '14px', alignItems: 'flex-start', py: '16px', borderBottom: LINEA_SUAVE, minWidth: 0 /* estilos-sueltos: ok */ }}>
       <Box component="span" aria-hidden sx={{ width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 }, borderRadius: '50%', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 /* estilos-sueltos: ok */ }}>{icono}</Box>
       <Box sx={{ minWidth: 0 }}>
         <Typography component="h2" color="text.secondary" sx={{ fontSize: 13, fontWeight: 400, fontFamily: 'inherit' /* estilos-sueltos: ok */ }}>{titulo}</Typography>

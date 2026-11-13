@@ -14,13 +14,13 @@ export default function RutaCategoria({ modulos }: { modulos?: Record<string, Mo
   const { tienda, host, categorias } = useContextoTienda()
   const { categoriaId } = useParams()
 
-  if (categorias.fase === 'cargando') return <EstadoCargaPagina />
+  if (categorias.fase === 'cargando') return <Box sx={{ py: 2 }}><EstadoCargaPagina /></Box>
   if (categorias.fase === 'error') {
     return (
-      <>
+      <Box sx={{ py: 2 }}>
         <CabeceraSeo noindex pagina="No pudimos cargar la categoría" />
         <ErrorConReintento titulo="No pudimos cargar la categoría." alReintentar={categorias.reintentar} />
-      </>
+      </Box>
     )
   }
   const categoria = categoriaId ? categorias.categorias.find((c) => c.id === categoriaId) : undefined

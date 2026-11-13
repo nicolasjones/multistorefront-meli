@@ -6,11 +6,12 @@ import { PrecioTachado } from '../catalogo/PrecioTachado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { BotonWhatsApp } from '../whatsapp/BotonWhatsApp'
 import { BotonCompartir } from './BotonCompartir'
+import { LINEA_SUAVE } from '../layout/medidas'
 
 // Fila de dato del prototipo: rótulo en gris a la izquierda, valor a la derecha (500) y una línea inferior; 15 px.
 function Dato({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: '10px', borderBottom: '1px solid rgba(0,0,0,.08)', fontSize: 15 /* estilos-sueltos: ok */ }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, py: '10px', borderBottom: LINEA_SUAVE, fontSize: 15 /* estilos-sueltos: ok */ }}>
       <Typography component="dt" color="text.secondary" sx={{ fontSize: 'inherit' }}>{rotulo}</Typography>
       <Typography component="dd" sx={{ m: 0, minWidth: 0, overflowWrap: 'anywhere', textAlign: 'right', fontSize: 'inherit', fontWeight: 500 }}>{children}</Typography>
     </Box>

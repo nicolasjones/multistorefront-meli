@@ -6,6 +6,7 @@ import { OPCIONES_ORDEN, contarFiltrosActivos, type CategoriaListado, type Filtr
 import { Ordenar } from './Ordenar'
 import { PanelFiltros } from './PanelFiltros'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
+import { BORDE_CAMPO } from '../layout/medidas'
 
 type Props = {
   categorias: CategoriaListado[]
@@ -24,8 +25,8 @@ type Props = {
 
 // Botón de la fila de celular: ocupa la mitad, borde de 1,5 px, radio 8, 10 px de relleno y texto en tinta a 16 px / 400.
 const estiloBotonFila = {
-  flex: 1, py: '10px', px: '10px', fontSize: 16, fontWeight: 400, color: 'text.primary', border: '1.5px solid rgba(0,0,0,.18)', borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
-  '&:hover': { border: '1.5px solid rgba(0,0,0,.18)', bgcolor: 'background.paper' }, // estilos-sueltos: ok
+  flex: 1, py: '10px', px: '10px', fontSize: 16, fontWeight: 400, color: 'text.primary', border: BORDE_CAMPO, borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
+  '&:hover': { border: BORDE_CAMPO, bgcolor: 'background.paper' }, // estilos-sueltos: ok
 } as const
 
 const ID_PANEL = 'filtros-movil'

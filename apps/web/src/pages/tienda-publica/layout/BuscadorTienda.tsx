@@ -14,6 +14,7 @@ import {
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { IconoLupa } from './iconos'
+import { BORDE_PANEL } from './medidas'
 
 type Estado =
   | { fase: 'reposo' }
@@ -169,7 +170,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
             sx={{
               // Prototipo (`.sug`): radio 10, borde de 1 px y sombra suave, pegado al campo.
               position: 'absolute', zIndex: 10, left: 0, right: 0, mt: 0.5, bgcolor: 'background.paper',
-              border: '1px solid rgba(0,0,0,.12)', borderRadius: '10px', boxShadow: '0 12px 32px rgba(0,0,0,.16)', // estilos-sueltos: ok
+              border: BORDE_PANEL, borderRadius: '10px', boxShadow: '0 12px 32px rgba(0,0,0,.16)', // estilos-sueltos: ok
               maxHeight: '70vh', overflowY: 'auto',
             }}
           >

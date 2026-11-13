@@ -9,6 +9,7 @@ import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCate
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { ErrorConReintento } from '../ErrorConReintento'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
+import { LINEA_SUAVE } from './medidas'
 
 const ID_PANEL = 'menu-movil'
 const ID_TITULO = 'menu-movil-titulo'
@@ -48,7 +49,7 @@ export default function MenuMovil({ categorias, empresaNombre = '' }: { categori
       >
         {/* Prototipo (`MJC_M_Home`, menú): cabecera con el logo (34 px) y la X a la derecha, 16 px de relleno y línea inferior; el
             título «Menú» queda solo para lectores de pantalla (nombre del diálogo). */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
           <Typography id={ID_TITULO} component="h2" sx={logo ? SOLO_LECTORES : { fontWeight: 700 }}>Menú</Typography>
           {logo ? <Box component="img" src={logo} alt={empresaNombre} sx={{ display: 'block', height: 34, width: 'auto', maxWidth: '70%', objectFit: 'contain' /* estilos-sueltos: ok */ }} /> : null}
           <IconButton aria-label="Cerrar menú" onClick={cerrar} sx={{ ml: 'auto', width: 48, height: (tema) => tema.spacing(6) }}><CloseIcon /></IconButton>
@@ -78,7 +79,7 @@ export default function MenuMovil({ categorias, empresaNombre = '' }: { categori
               </ListItem>
             ) : null}
           </List>
-          <List disablePadding sx={{ mt: 1, borderTop: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
+          <List disablePadding sx={{ mt: 1, borderTop: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
             <ListItem disablePadding>
               <ListItemButton component={NavLink} to="/contacto" onClick={cerrar} sx={estiloEntradaPrincipal}>
                 <ListItemText primary="Contacto" slotProps={{ primary: { sx: estiloTexto } }} />

@@ -35,14 +35,14 @@ export default function RutaProducto() {
   }, [idFichaAbierta])
 
   if (!productoId) return <PaginaNoEncontrada />
-  if (ficha.fase === 'cargando') return <EstadoCargaPagina />
+  if (ficha.fase === 'cargando') return <Box sx={{ py: 2 }}><EstadoCargaPagina /></Box>
   if (ficha.fase === 'error') {
     return (
-      <>
+      <Box sx={{ py: 2 }}>
         {/* FR-004/FR-024: una pantalla de error no se indexa. */}
         <CabeceraSeo noindex pagina="No pudimos cargar el producto" />
         <ErrorConReintento titulo="No pudimos cargar el producto." alReintentar={ficha.reintentar} />
-      </>
+      </Box>
     )
   }
   if (ficha.fase === 'no-encontrada') return <PaginaNoEncontrada />
