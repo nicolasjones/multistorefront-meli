@@ -76,7 +76,7 @@ select is(has_function_privilege('anon', 'public.publicar_tienda(uuid)', 'execut
 select is(has_function_privilege('anon', 'public.vista_previa_tienda(uuid)', 'execute'), false, 'anon no ejecuta vista_previa_tienda');
 select is(has_function_privilege('anon', 'public.rutas_tienda_sin_referencia(uuid, text[])', 'execute'), false, 'anon no ejecuta rutas_tienda_sin_referencia');
 select is(
-  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text,text,boolean)', 'execute'),
   false, 'authenticated ya no ejecuta guardar_tienda_identidad (BREAKING)'
 );
 select is(
