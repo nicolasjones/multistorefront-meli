@@ -165,7 +165,6 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
 }
 
 export async function limpiar(datos: Sembrado) {
-  await borrar(`registro_actividad?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
   await borrar(`procesos_masivos?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)

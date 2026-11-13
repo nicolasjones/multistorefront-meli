@@ -104,6 +104,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-576:T032] reparación de dos ítems: comprobante, cobro en Ventas, aviso por correo y pestaña del cliente', async ({ browser }) => {
+    test.setTimeout(90_000) // reparación de dos ítems, comprobante, cobro y aviso en una corrida
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-recorrido-${sufijo}@example.com`
     const correoCliente = `cliente-${sufijo}@example.com`
@@ -117,9 +118,10 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
       await rest('features', { id: 'service-tecnico', nombre: 'Service técnico', descripcion: 'E2E' }, 'public', 'resolution=ignore-duplicates')
       await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
+      // `avisar_cliente_reparacion` encola por la conexión activa del generador de comprobantes (la misma de Ventas): sin ella responde «sin_conexion».
+      await rest('conexiones', { organizacion_id: org.id, sistema_externo: 'comprobantes-pdf', credencial_vault_id: randomUUID() })
       const [cliente] = await rest<{ id: string }>('clientes', {
         organizacion_id: org.id,
-        numero: 1,
         nombre: `Cliente ${sufijo}`,
         tipo: 'minorista',
         correo: correoCliente,
@@ -137,7 +139,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
         ['Cambio de pantalla', 'mano_obra', 1500.5],
         ['Pantalla de repuesto', 'repuesto', 8200],
       ] as const) {
-        await rpcComo(correo, 'agregar_item_reparacion', { p_reparacion_id: reparacionId, p_tipo: tipo, p_descripcion: descripcion, p_cantidad: 1, p_precio: precio })
+        await rpcComo(correo, 'agregar_item_reparacion', { p_reparacion_id: reparacionId, p_tipo: tipo, p_descripcion: descripcion, p_producto_id: null, p_cantidad: 1, p_precio: precio })
       }
 
       const contexto = await browser.newContext()
@@ -168,7 +170,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       const avisos = page.getByRole('region', { name: 'Avisos al cliente' })
       await expect(avisos.getByText(correoCliente)).toBeVisible()
       await expect
-        .poll(async () => (await leer<{ estado: string }>(`reparacion_avisos?reparacion_id=eq.${reparacionId}&select=estado`))[0]?.estado, { timeout: 15_000 })
+        .poll(async () => (await leer<{ estado_envio: string }>(`reparacion_avisos?reparacion_id=eq.${reparacionId}&select=estado_envio`))[0]?.estado_envio, { timeout: 15_000 })
         .toMatch(/^(pendiente|enviado)$/)
       const ordenes = await leer<{ clave: string }>(`capacidades_ejecucion?organizacion_id=eq.${org.id}&clave=like.enviar-aviso-reparacion-*&select=clave`, 'public')
       expect(ordenes.length).toBeGreaterThan(0)
