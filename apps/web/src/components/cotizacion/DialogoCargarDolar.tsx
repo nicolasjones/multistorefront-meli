@@ -38,7 +38,7 @@ type Props = {
   confirmacionPct?: number
 }
 
-function AlertaVariacionInusual({ confirmacionPct }: { confirmacionPct: number }) {
+export function AlertaVariacionInusual({ confirmacionPct }: { confirmacionPct: number }) {
   return (
     <Alert severity="warning">
       <Typography component="p" fontWeight={600}>Variación inusual</Typography>

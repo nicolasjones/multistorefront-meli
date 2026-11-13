@@ -76,6 +76,17 @@ instalación propios. Trae como dependencias `@mui/x-internals`, `@mui/x-charts-
 `@mui/x-internal-gestures`, todas del mismo mantenedor. El `pnpm-lock.yaml` deja las integridades fijadas.
 Se carga junto con la pantalla de Inicio; si pesara en el arranque se puede diferir con `lazy`.
 
+## Cargar dólar del día desde Inicio (F-INI-07, MSF-823, épica MSF-824)
+
+La tarjeta «Dólar» muestra el aviso «Todavía no se cargó el dólar de hoy» con **Cargar ahora** solo a quien tiene **edición** en «Cotización del dólar» (el operador no ve ni el aviso ni el botón). El botón abre `DialogoCargarDolarConImpacto`:
+
+- **Vista previa antes de guardar.** Mientras se escribe el valor (con una espera corta de 400 ms) se pide `public.previsualizar_impacto_dolar(valor, empresa)`, una RPC de **solo lectura**: no deja una cotización pendiente. Cancelar o cerrar no guarda nada. El diálogo de Cotización (`DialogoCargarDolar`) mantiene su flujo de siempre (cargar → vista previa → confirmar) y no cambia.
+- **Qué se ve.** La cotización vigente, la variación contra ella (chip), una tarjeta de impacto por cada tienda activa de la organización (sin nombres fijos: una tienda nueva suma su tarjeta) y la tabla de muestra con precio de hoy y nuevo. Sin Mercado Libre.
+- **Umbrales** (los configurados en la base): menos del umbral (1 %) solo registra y lo informa; más de la variación inusual (15 %) advierte y exige tildar «Revisé el valor…» antes de aplicar.
+- **Guardar.** Recién al confirmar se carga y se confirma con las RPC de siempre (fecha y usuario quedan en el historial); si la base rechaza, se descarta lo cargado. El aviso se actualiza sin recargar la página y muestra el resultado («Cotización aplicada · N precios recalculados» o «registrada»).
+- **Una por empresa.** Con ese alcance la carga es de la empresa activa de la barra superior; en «Todas mis empresas» el botón queda deshabilitado hasta elegir una.
+- **Valores inválidos.** El campo solo admite dígitos, punto y coma (no hay signo negativo); cero o vacío no piden vista previa y no dejan guardar.
+
 ## Alertas accionables (F-INI-02, MSF-361)
 
 Tarjeta «Qué hacer hoy» en Inicio (`pages/inicio/AlertasInicio.tsx`, ancho completo). Muestra las alertas

@@ -21,8 +21,8 @@
 
 ## F-INI-07 · MSF-823
 - [ ] T014 RPC `previsualizar_impacto_dolar` + pgTAP (no escribe)
-- [ ] T015 Montar `DialogoCargarDolar` en Inicio con empresa activa y vista previa
-- [ ] T016 Tests Vitest (umbrales 1 % y 15 %, cancelar, valor inválido, operador sin botón)
+- [x] T015 Montar el diálogo del dólar en Inicio con empresa activa y vista previa pura (`DialogoCargarDolarConImpacto`, hook `usePrevisualizarImpactoDolar`; `TarjetaDolar` lo abre desde «Cargar ahora», solo con edición). Evidencia: `components/cotizacion/DialogoCargarDolarConImpacto.tsx`, `pages/inicio/TarjetaDolar.tsx`. Desvío: no hay un acceso directo de dólar en `AccesosDirectos` (la spec base fija tres); el acceso es el aviso y su botón.
+- [x] T016 Tests Vitest (umbrales 1 % y 15 %, cancelar, valor inválido, operador sin botón). Evidencia: 20 tests del diálogo (con axe a 320/768/1440), 8 de la tarjeta y 4 del hook; la pantalla Cotización sigue verde (suites de `components/cotizacion` y `pages/cotizacion`).
 
 ## Cierre
 - [ ] T017 Documentación (`docs/inicio-y-alertas.md`, contratos, roadmap) y revisión de seguridad integral

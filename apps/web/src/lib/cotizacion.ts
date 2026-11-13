@@ -285,10 +285,7 @@ export function mensajeDeErrorConfirmacion(error: { code?: string; hint?: string
   }
 }
 
-export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empresaId?: string | null): Promise<Previsualizacion> {
-  const { data, error } = await llamar(cliente, 'previsualizar_cotizacion', conEmpresa(empresaId))
-  if (error) throw error
-  const previa = data as PrevisualizacionRpc
+function aPrevisualizacion(previa: PrevisualizacionRpc): Previsualizacion {
   return {
     variacionPct: aNumeroONulo(previa.variacion_pct),
     recalcula: previa.recalcula,
@@ -298,6 +295,20 @@ export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empres
     empresas: previa.empresas.map((e) => ({ empresaId: e.empresa_id, nombre: e.nombre, precios: Number(e.precios) })),
     muestra: previa.muestra.map(aMuestraPrecio),
   }
+}
+
+export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empresaId?: string | null): Promise<Previsualizacion> {
+  const { data, error } = await llamar(cliente, 'previsualizar_cotizacion', conEmpresa(empresaId))
+  if (error) throw error
+  return aPrevisualizacion(data as PrevisualizacionRpc)
+}
+
+// F-INI-07: vista previa de SOLO LECTURA de un valor de dólar (`previsualizar_impacto_dolar`): no exige ni escribe
+// la cotización pendiente, así que cancelar no deja nada guardado. Misma forma que la vista previa de la pendiente.
+export async function previsualizarImpactoDolarRpc(cliente: SupabaseClient, valor: number, empresaId?: string | null): Promise<Previsualizacion> {
+  const { data, error } = await llamar(cliente, 'previsualizar_impacto_dolar', { p_valor: valor, ...conEmpresa(empresaId) })
+  if (error) throw error
+  return aPrevisualizacion(data as PrevisualizacionRpc)
 }
 
 // `variacionVista`: la variación (%) del aviso de variación inusual que el usuario tenía a la vista al apretar «Aplicar»; la base
