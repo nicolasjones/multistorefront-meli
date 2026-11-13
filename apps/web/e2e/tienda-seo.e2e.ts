@@ -142,6 +142,8 @@ test.describe('Tienda online · SEO y posicionamiento básico (F-TDA-21)', () =>
 
   test('[MSF-279:T068] [F-TDA-21#FR-023] robots.txt y sitemap.xml de cada tienda y de una pausada', async () => {
     test.skip(!anonKey, 'Requiere SUPABASE_ANON_KEY para llamar a la Edge Function.')
+    // El stack del CI no levanta Edge Runtime (docs/e2e-app.md): el handler se prueba con `pnpm test:edge:tienda-seo`.
+    test.skip(process.env.E2E_SIN_EDGE === '1', 'Sin Edge Runtime en este stack (E2E_SIN_EDGE=1): robots.txt y sitemap.xml no se sirven.')
     const [a, b] = datos
     const robotsA = await pedirArchivo('robots.txt', a.host)
     expect(robotsA.estado).toBe(200)

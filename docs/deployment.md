@@ -560,6 +560,22 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
   **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
   dominante, ver `reports/ci-serie.md` del orquestador).
+- **E2E de la tienda pública** (job `e2e-tienda`): corre los 20 `apps/web/e2e/tienda-*.e2e.ts` con **el mismo disparo que
+  el e2e** (`web == 'true'` y `e2e == 'true'`: un PR a `epic/*` no lo corre; sí un PR a `dokploy` o un push), en paralelo con
+  `application` y `web`. Arranca **no bloqueante** (`continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}`: el fallo
+  llega como `success` a `validacion`/`liberar`) y se pasa a requerido poniendo `E2E_TIENDA_BLOQUEA=true` tras ~10 corridas verdes;
+  `CI_E2E_TIENDA=false` lo apaga. Necesita API de Supabase (auth + kong +
+  postgrest + storage), que `database` no levanta (`-x kong,postgrest`), así que arma su propio stack en una **ranura** del CI
+  (`scripts/supabase-ci.mjs reclamar`/`liberar`, la misma reserva que `database`: hasta 5 en paralelo, sin tocar los stacks
+  de desarrollo), lo baja con `supabase stop --no-backup` al terminar y lo alcanza por `host.docker.internal`. Sin Edge
+  Runtime (docker-fuera-de-docker no puede montar `supabase/functions`): `E2E_SIN_EDGE=1` omite `robots.txt`/`sitemap.xml`
+  de `tienda-seo`; una guarda (`pnpm e2e:omitidos:check`) falla si hay más de un test omitido. Espera a lo sumo 10 min una ranura,
+  su timeout es 55 min y el TTL de ranuras es 75 min en este job y en `database` (el que reclama recicla las vencidas). Tiempo agregado: corre en paralelo, así que el camino crítico sólo crece si dura más que el job `web`
+  (estimado 15-20 min: stack 2-3, migraciones 1-2, specs ~10-15 con `--workers=1`). **PRs de forks**: los jobs que corren código
+  del PR en el runner self-hosted (`application`, `web`, `e2e-tienda`, `infrastructure`, `database`, y el carril/`liberar`) se saltean si
+  `head.repo.full_name != github.repository`, y `validacion` falla para ese PR en vez de dar verde con todo `skipped`;
+  `merge_group` y `push` no se ven afectados. Detalle, límites y receta local en
+  `docs/e2e-app.md` (sección «E2E de la tienda pública en el CI»).
 - **Supabase CLI**: en `database` se reusa el binario `supabase` del runner si ya está en la versión esperada
   (evita el `curl | tar` en cada corrida); si no, se descarga.
 - **Cache de Playwright**: los browsers (`~/.cache/ms-playwright`) se cachean (clave por `pnpm-lock.yaml`); el
