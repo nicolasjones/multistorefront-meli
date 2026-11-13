@@ -103,7 +103,7 @@ begin
     when 'minimo' then 'r.minimo'
     when 'ventas' then 'r.ventas'
     when 'ultimo_movimiento' then 'r.ultimo_movimiento'
-    when 'estado' then $$case r.estado when 'alerta' then 0 when 'quieto' then 1 else 2 end$$
+    when 'estado' then $q$case r.estado when 'alerta' then 0 when 'quieto' then 1 else 2 end$q$
     else null
   end;
   if v_orden is null then
