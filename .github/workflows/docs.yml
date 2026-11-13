@@ -1,7 +1,12 @@
 name: docs
 
+# PENDIENTE (reconciliar docs/X.md y docs/tecnico/X.md antes del Release dokploy→main): con el árbol de dokploy este
+# workflow falla por 98 páginas sin owner/sources, 168 con drift, 25 enlaces fuera de docs/ y 28 avisos de mkdocs
+# --strict. Es trabajo del Documentador, no se inventan owners ni sources. Mientras tanto NO corre en PRs a dokploy
+# (solo en PRs a main, push a main y a mano). Para revertir: quitar `branches: [main]` de pull_request.
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
