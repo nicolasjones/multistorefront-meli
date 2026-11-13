@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar tooling Node/TypeScript en un producto derivado
 
 La Spec 020 reemplaza tooling operativo propio por programas Node ESM. No crea

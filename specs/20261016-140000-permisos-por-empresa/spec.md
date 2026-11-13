@@ -2,6 +2,8 @@
 
 **Feature Branch**: `epic/MSF-121-acceso-organizacion-y-permisos-permisos-`
 
+**Componente**: Acceso
+
 **Jira Epic**: MSF-121 — Acceso, organización y permisos · Permisos por empresa (spec `permisos-por-empresa`)
 
 **Created**: 2026-10-16
@@ -14,7 +16,7 @@
 
 **Dependencias**:
 - Bloqueada por: MSF-125 (Usuarios y roles: `roles_organizacion`, `permisos_rol`, `private.nivel_seccion` de F-ROL-01; diálogos Invitar y Editar usuario de F-USR-01/02) y MSF-138 (Empresas: tabla `dominio.empresas`). Ambas ya están en `main`.
-- Bloquea a: MSF-139, MSF-275, MSF-156 y MSF-182 (permisos por empresa en Ventas, Inicio y Service técnico).
+- Bloquea a: MSF-139, MSF-156 y MSF-182 (reglas por empresa en Ventas, Inicio y Service técnico) y a MSF-275 (historial de Ventas: consume el nivel de acceso a la sección Ventas en su RLS).
 - Entre historias: F-ROL-04 bloquea a F-ROL-06 y F-ROL-07.
 - Relacionada, sin bloqueo: F-EMP-05 (MSF-138, enlace «Cambiar a» que no cambia la empresa activa) y F-AUD-01 (eventos de actividad).
 
@@ -134,7 +136,7 @@ Toda tabla nueva con RLS por organización; `anon` sin privilegios; la prueba de
 ## Fuera de alcance
 
 - Matriz de permisos editable (MSF-125, F-ROL-02).
-- Reglas por empresa en las tablas de Ventas, Consultas, Reportes, Inicio y Service técnico (MSF-139, MSF-275, MSF-156, MSF-182).
+- Reglas por empresa en las tablas de Ventas, Consultas, Reportes, Inicio y Service técnico (MSF-139, MSF-156, MSF-182). El historial de Ventas (MSF-275) no define reglas: solo consume el nivel de acceso resultante.
 - Un usuario en varias organizaciones.
 - Cambiar el enlace de F-EMP-05.
 - Administrador limitado a una tienda.
