@@ -68,12 +68,12 @@ Este comportamiento está en la mayoría de las listas del sistema:
 | **Clientes** | [Clientes](clientes.md) · [Ranking de clientes](ranking-de-clientes.md) · [Ranking avanzado](ranking-avanzado-de-clientes.md) · [Correo masivo](correo-masivo-a-clientes.md) |
 | **Service técnico** | [Reparaciones, ítems e impresión](service-listado-items-impresion.md) · [Repuestos y stock](service-repuestos-y-stock.md) |
 | **Tiendas y consultas** | [Consultas](consultas.md) · [Contactos](contactos.md) |
+| **Tienda online** | [Catálogo, categorías y búsqueda de la tienda](tiendas-online.md#catálogo-y-búsqueda) |
 | **Administración** | [Actividad](actividad.md) · [Precios y dólar](precios-dolar.md) · [Precios, escalas e IVA](precios-e-iva.md) |
 
 ## Las listas que son distintas
 
-- La **tienda online** (la que ven tus clientes) sigue con su paginación propia: se puede compartir un enlace a una
-  página concreta del catálogo. El panel es el que cambió.
+- La **tienda online** (la que ven tus clientes) **también carga por tandas**: el catálogo, cada categoría y los resultados de búsqueda suman productos al llegar al final o al pulsar **Cargar más**, con el total a la vista. Ya no tiene páginas numeradas: un enlace viejo a una página concreta del catálogo abre el listado desde el principio. Ver [Las tiendas online de tu negocio](tiendas-online.md#catálogo-y-búsqueda).
 - El **historial de cargas del dólar** (Administración → Cotización del dólar) conserva los botones **Anterior** y
   **Siguiente**: se recorre carga por carga, hacia atrás y hacia adelante.
 - El **historial de lotes** (Stock › Lotes e inventario) conserva su botón **«Ver más»**: pide los lotes anteriores

@@ -66,9 +66,13 @@ exactamente esos productos.
 
 ### Catálogo y búsqueda
 
-- **Todos los productos**: el listado completo, de a 24 por página, con el total de resultados.
+- **Todos los productos**: el listado completo, con el total de resultados a la vista. Los productos se cargan por tandas: al abrir ves los primeros y, cuando llegás al final, se suman los siguientes sin cambiar la dirección de la página. Si preferís no bajar, al pie está el botón **Cargar más** (también se usa con el teclado: tabulá hasta el botón y presioná Enter).
+- Mientras llegan los siguientes se ve «Cargando más resultados». Si una tanda no se puede cargar, se conserva lo que ya estabas viendo y aparece «No pudimos cargar más resultados.» con **Reintentar**. Cuando no queda ninguno más, dice «No hay más resultados.».
+- **No hay páginas numeradas**: si alguien guardó un enlace viejo a una página concreta del catálogo, se abre desde el principio.
 - **Filtros**: por categoría, **Solo con stock** y **Precio máximo** (en pesos, o «Sin límite»). El botón **Limpiar filtros** los saca.
 - **Ordenar por**: «Más relevantes» (los destacados primero), «Menor precio» o «Mayor precio».
+- Al buscar, cambiar un filtro u ordenar, el listado **vuelve a empezar desde la primera tanda**; la búsqueda, los filtros y el orden quedan guardados en el enlace, así que podés compartirlo.
+- Si entrás a la ficha de un producto y volvés, el catálogo arranca de nuevo desde la primera tanda: no se conservan las tandas que ya habías cargado.
 - **Buscar productos**: el buscador está en el encabezado de todas las pantallas. A partir de 2 letras muestra hasta 6 sugerencias con foto, nombre y precio; con Enter o con «Ver todos los resultados →» se abre el listado completo. Entiende mayúsculas, tildes y algunos errores de tipeo («cargdor» encuentra «cargador»). Si no hay coincidencias dice «No encontramos productos con ese nombre.»
 - Si un producto tiene una **promoción vigente** (y las promociones están activadas en el entorno), su precio aparece con el **precio anterior tachado** al lado. Con las promociones apagadas, la tienda muestra siempre el precio normal. Ver [Promociones de precio](promociones.md).
 - Si alguien busca demasiado seguido, la tienda le pide esperar unos segundos y sigue sola.
@@ -213,6 +217,7 @@ En **Canales → Empresas → Editar** completá **WhatsApp**, **Correo**, **Ins
 | Mensaje | Qué significa y qué hacer |
 |---|---|
 | **No pudimos cargar el catálogo de esta tienda.** | Usá **Reintentar**. |
+| **No pudimos cargar más resultados.** | Se cortó la carga de la tanda siguiente. Lo que ya veías no se pierde: usá **Reintentar** para pedirla de nuevo. |
 | **No tenés empresas para gestionar.** / **No tenés acceso a esta empresa** | Tu usuario no tiene esa empresa. Pedile al Administrador que la asigne. |
 | **¿Cambiar de empresa?** | Aparece si cambiás de tienda con cambios sin guardar: **Seguir acá** los conserva y **Cambiar igual** los descarta. |
 | **No se cambió el estado.** | No se pudo pausar o reactivar. Probá de nuevo con el botón **Reintentar**. |
