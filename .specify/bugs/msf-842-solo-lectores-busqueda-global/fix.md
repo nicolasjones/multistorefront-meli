@@ -23,6 +23,8 @@ local y los artefactos del camino de bug.
 | File | Change | Notes |
 |------|--------|-------|
 | `apps/web/src/components/navegacion/busqueda-global.test.tsx` | modified | Test de regresión: la región viva del anuncio (`role="status"`) se mide en `1px`, no en `100 %`. |
+| `apps/web/e2e/busqueda-global-desborde.e2e.ts` | added | E2E de evidencia: la región viva mide 1 px en el navegador real y la barra superior no desborda la página a 320 px (rótulo `[MSF-842:BUG]`). |
+| `docs/e2e-app.md` | modified | El E2E nuevo entra en la tabla de cobertura y en la lista de specs que necesitan el stack local. |
 | `apps/web/src/components/navegacion/BusquedaGlobal.tsx` | sin cambios en este PR | El componente ya importa el helper compartido desde la base (`31deb59c`): ver «Rebase sobre la base actual». |
 | `.specify/bugs/msf-842-solo-lectores-busqueda-global/` | added | Artefactos del camino de bug (assessment, fix, test). |
 
@@ -58,6 +60,7 @@ el hunk de código: el archivo queda con un único import (verificado con `tsc -
 ## Tests Added or Updated
 
 - `apps/web/src/components/navegacion/busqueda-global.test.tsx::[MSF-842] la región viva mide 1 px (no 100 %) para no desbordar la página` — con la constante local el `sx` resuelve `width: 100 %` (el test falla); con el helper compartido resuelve `1px`.
+- `apps/web/e2e/busqueda-global-desborde.e2e.ts::[MSF-842:BUG] la región viva del anuncio mide 1 px y la página no desborda a 320 px` — en el navegador real: toda región viva de la barra superior mide 1 px y el documento no gana scroll horizontal a 320 px.
 
 ## Local Verification
 
@@ -76,6 +79,9 @@ el hunk de código: el archivo queda con un único import (verificado con `tsc -
   - `pnpm build` (`tsc -b && vite build`) → exit 0.
   - `pnpm ui:empresas:check`, `pnpm matriz:check`, `pnpm prototipo:check` → OK en las tres.
   - `pnpm docs:check` → OK (este `fix.md` documenta el cambio).
+  - `npx playwright test --list e2e/busqueda-global-desborde.e2e.ts` → 1 test recolectado con el
+    rótulo `[MSF-842:BUG]`; la corrida local se omite (sin stack de Supabase: no hay Docker en este
+    entorno), igual que los E2E con sesión del repo.
 - Manual checks: ninguno; el guardián y el test de regresión reproducen el defecto.
 
 ## Deviations from Assessment

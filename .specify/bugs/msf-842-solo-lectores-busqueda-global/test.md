@@ -30,6 +30,7 @@ import de `SOLO_LECTORES` duplicado (ver «Rebase sobre la base actual» en ./fi
 | Guardián (test del script) | `pnpm test:estilos:sueltos` | pass | 9 pass, 0 fail |
 | Lint / type-check | `pnpm lint` y `pnpm build` (`tsc -b && vite build`) | pass | lint exit 0 (warnings preexistentes); build exit 0 |
 | Guardas de CI | `pnpm ui:empresas:check`, `pnpm matriz:check`, `pnpm prototipo:check` | pass | OK en las tres |
+| E2E de evidencia | `npx playwright test --list e2e/busqueda-global-desborde.e2e.ts` | pass | 1 test recolectado con el rótulo `[MSF-842:BUG]`; la corrida local se omite (este entorno no tiene Docker para el stack de Supabase), como los demás E2E con sesión |
 | Documentación | `pnpm docs:check` | pass | con este `fix.md`/`test.md` el cambio ya tiene documentación |
 
 ## Output Excerpts
@@ -63,9 +64,11 @@ $ pnpm --filter @platform/web exec vitest run src/components/navegacion/
 
 ## Residual Risks
 
-- La verificación local no incluye el e2e de Playwright ni los jobs con base de datos
-  (`database`): el fix es de estilo/CSS y no toca datos, permisos ni RLS. El CI corre el
-  resto.
+- La verificación local no incluye el e2e de Playwright con sesión ni los jobs con base de datos
+  (`database`): el fix es de estilo/CSS y no toca datos, permisos ni RLS. El E2E
+  `e2e/busqueda-global-desborde.e2e.ts` está escrito y recolectado, pero su corrida necesita el
+  stack local de Supabase (este entorno no tiene acceso al daemon de Docker); lo corre el job
+  `application` del CI o el runner self-hosted.
 - El fix depende del helper `apps/web/src/components/base/solo-lectores.ts`, que existe en
   la rama `fix/ui-hallazgos-e2e` (PR #876). Si ese PR se cerrara sin integrarse, el helper
   no estaría y este fix no compilaría.
