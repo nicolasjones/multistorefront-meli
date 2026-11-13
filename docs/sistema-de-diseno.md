@@ -100,13 +100,22 @@ remapeando `h1..h6`, para no cambiar el significado de las variantes estándar.
 
 ### Guardián de valores sueltos (FR-015/FR-016)
 
-`pnpm estilos:check` (`scripts/verificar-estilos-sueltos.mjs`) falla si
-`apps/web/src/pages/**` usa colores hex/rgba/hsl o `borderRadius`/`height`/
-`minHeight`/`fontSize` con valores literales. Corre en el gate liviano de
+`pnpm estilos:check` (`scripts/verificar-estilos-sueltos.mjs`) recorre
+`apps/web/src/**` y falla si:
+
+- `apps/web/src/pages/**` usa colores hex/rgba/hsl o `borderRadius`/`height`/
+  `minHeight`/`fontSize` con valores literales;
+- CUALQUIER archivo de `apps/web/src` (pages, components, lib, tema…) escribe
+  `width|height|minWidth|minHeight|maxWidth|maxHeight: 1`. En `sx` de MUI un `1`
+  suelto es 100 % del contenedor, no 1 px (un texto «solo para lectores» así
+  ensanchaba la página a 320 px). Para ese texto usá `SOLO_LECTORES`
+  (`components/base/solo-lectores.ts`) o `'1px'`. Esta regla NO admite el
+  comentario de supresión y solo exime la definición del helper y los tests. Corre en el gate liviano de
 `.github/workflows/validate.yml` (job `application`) junto a `docs:check` y
 `lint`.
 
-Quedan exentos (allow-list) por ser los dueños de los valores:
+Para las reglas de color y dimensión (las de `pages/`) quedan exentos
+(allow-list) por ser los dueños de los valores:
 
 - `apps/web/src/tema/**` (tokens y tema),
 - `apps/web/src/components/base/**` y `apps/web/src/components/pagina/**`,
@@ -114,8 +123,7 @@ Quedan exentos (allow-list) por ser los dueños de los valores:
 
 Una línea puede acogerse a la excepción con el comentario
 `estilos-sueltos: ok: <motivo>` cuando el valor no es del sistema de diseño
-(p. ej. `height: 1` de una utilidad de accesibilidad que oculta visualmente sin
-quitar del lector).
+(p. ej. una medida de un tercero). No aplica a la regla de `width|height: 1`.
 
 ## Paridad de pantallas (`paridad-pantallas`)
 

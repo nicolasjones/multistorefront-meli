@@ -28,6 +28,7 @@ import { formatearARS } from '../../lib/serviceTecnico'
 import { MarcaStockItem } from './MarcaStockItem'
 import { mensajeDeErrorItem, quitarItem } from '../../lib/reparacionItems'
 import type { ItemReparacion, Reparacion } from '../../lib/reparaciones'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 type Props = {
   reparacion: Reparacion
@@ -47,15 +48,6 @@ export const AYUDA_REPUESTOS = 'Productos del catálogo. Se descuentan del depó
 export const AVISO_DEVOLUCION = 'Las unidades vuelven al depósito del que se descontaron.'
 
 const CELDA_NUMERO = { textAlign: 'right', whiteSpace: 'nowrap' } as const
-
-const SOLO_LECTORES = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-} as const
 
 type TablaProps = {
   titulo: string

@@ -16,10 +16,10 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { CrearContactoDialog } from '../consultas/CrearContactoDialog'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const ESPERA_BUSQUEDA_MS = 300
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const textoConteo = (total: number) => `${total} ${total === 1 ? 'contacto' : 'contactos'}`
 
@@ -141,7 +141,7 @@ export function ContactoList() {
             size="small"
             sx={{ width: 320, maxWidth: '100%' }}
           />
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>{isLoading || isError ? '' : textoConteo(total)}</Box>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>{isLoading || isError ? '' : textoConteo(total)}</Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando contactos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>

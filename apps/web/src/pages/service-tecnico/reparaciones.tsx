@@ -37,10 +37,10 @@ import {
   type ReparacionListada,
 } from '../../lib/reparacionesListado'
 import { formatearARS } from '../../lib/serviceTecnico'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 
@@ -190,7 +190,7 @@ export function ServicioReparaciones() {
             {puedeExportar ? <ExportarCsvBoton {...exportacion} /> : null}
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando reparaciones" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

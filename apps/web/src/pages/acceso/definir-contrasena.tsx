@@ -5,8 +5,8 @@ import { closeOtherSessions, supabaseClient, type PasswordFlowOrigin } from '../
 import { passwordPolicyDescription, passwordRules, validatePassword } from '../../lib/passwordPolicy'
 import { nombreDeRol } from '../../lib/rolesUsuarios'
 import { MarcoAcceso } from '../../components/pagina/MarcoAcceso'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: utilidad de accesibilidad (ocultar visualmente manteniendo lectura)
 
 type LinkState = 'checking' | 'ready' | 'invalid'
 type InvitacionVigente = { rol_id: string; vencida: boolean }
@@ -163,7 +163,7 @@ export function DefinirContrasenaPage() {
             )
           })}
         </List>
-        <Typography role="status" aria-live="polite" sx={visuallyHidden}>
+        <Typography role="status" aria-live="polite" sx={SOLO_LECTORES}>
           {missingRules.length === 0
             ? 'La contraseña cumple todas las reglas.'
             : `Faltan ${missingRules.length} de ${passwordRules.length} reglas.`}

@@ -19,7 +19,10 @@ export default function AvisoCookies() {
         left: 0,
         right: 0,
         bottom: 0,
-        zIndex: (tema) => tema.zIndex.snackbar,
+        // ESTRICTAMENTE debajo de los paneles laterales (menú y filtros del celular son `Drawer` temporales de MUI, con
+        // `zIndex.drawer`): en el celular el aviso fijo tapaba sus botones de abajo («Ver N productos») y no se podían tocar.
+        // Con un panel abierto el resto de la página (aviso incluido) queda inerte. No depende del orden del DOM.
+        zIndex: (tema) => tema.zIndex.drawer - 1,
         bgcolor: 'background.paper',
         borderTop: 1,
         borderColor: 'divider',

@@ -19,6 +19,7 @@ import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 // Reporte de productos más vendidos (F-STK-18, MSF-414). No hay pantalla dibujada en el
 // prototipo: las columnas, el período y el filtro salen de FR-402…FR-407 (ver la spec de la
@@ -36,7 +37,6 @@ import { tokens } from '../../tema/tokens'
 const ANCHO_CAMPO_FECHA = 170
 const formatoUnidades = new Intl.NumberFormat('es-AR')
 // Región viva para el lector de pantalla: anuncia el total sin mostrarlo dos veces.
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 export function MasVendidosStock() {
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoTiendas, hayError: errorTiendas } = useFiltroPorEmpresaActiva()
@@ -187,7 +187,7 @@ export function MasVendidosStock() {
           ) : null}
 
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando el reporte" /> : null}
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {isLoading || isError ? '' : `${total} ${total === 1 ? 'producto' : 'productos'} más vendidos`}
           </Box>
           {contenido()}

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { AppBar, Box, Toolbar, Typography } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
 import { useLocation } from 'react-router'
@@ -5,6 +6,7 @@ import { BusquedaGlobal } from './BusquedaGlobal'
 import { CampanitaNotificaciones } from './CampanitaNotificaciones'
 import { MenuCuenta } from './MenuCuenta'
 import { PanelAyuda } from './PanelAyuda'
+import { etiquetarHamburguesa } from './etiquetasRefine'
 import { SelectorEmpresa } from './SelectorEmpresa'
 import { SelectorEmpresaActiva } from './SelectorEmpresaActiva'
 import { coincideRuta, SECCIONES_PANEL } from './destinosPanel'
@@ -37,6 +39,10 @@ function MigasPanel() {
 // colapsar/expandir el sider), solo que a la derecha va MenuCuenta en vez
 // del nombre/avatar genérico de useGetIdentity.
 export function EncabezadoPanel() {
+  // Se repite cada vez que el encabezado se monta (también tras un remontaje del layout).
+  useEffect(() => {
+    etiquetarHamburguesa()
+  }, [])
   return (
     <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.bordeSuave}` }}>
       <Toolbar sx={{ gap: 2, flexWrap: 'wrap', minHeight: { xs: 56, sm: tokens.forma.altoHeader } }}>

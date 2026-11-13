@@ -28,6 +28,9 @@ const TIENDAS = [
   { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho', ga4: 'G-SANJAVU1', pixel: '222222222' },
 ] as const
 
+// Plazo explícito de las esperas de medición: con la máquina cargada los 5 s por defecto no alcanzan.
+const PLAZO_MEDICION = 30_000
+
 const CLAVE_CONSENTIMIENTO = 'tienda:consentimiento-cookies'
 
 const cabeceras = (extra: Record<string, string> = {}) => ({
@@ -64,15 +67,30 @@ const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(pr
 // Intercepta los pedidos a los dominios de medición: los registra y los responde vacíos (no salen a internet).
 async function interceptarMedicion(page: Page): Promise<string[]> {
   const pedidos: string[] = []
-  await page.route(/googletagmanager\.com|connect\.facebook\.net/, (ruta) => {
+  // Scripts (gtag/js, fbevents.js) y también los envíos de datos (g/collect, facebook.com/tr, doubleclick).
+  await page.route(/googletagmanager\.com|google-analytics\.com|doubleclick\.net|connect\.facebook\.net|facebook\.com\/tr/, (ruta) => {
     pedidos.push(ruta.request().url())
     return ruta.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
   })
+  // Este spec mide analítica, no la bandeja de consultas: las dos RPC públicas que crearían consultas (WhatsApp y
+  // formulario de contacto) se responden «ok» sin llegar a la base. Así no quedan consultas que apunten a los productos
+  // sembrados (FK sin cascada) y no hace falta borrarlas (service_role no puede escribir en `consultas`).
+  await page.route(/\/rest\/v1\/rpc\/(registrar_consulta_whatsapp|enviar_consulta_contacto)/, (ruta) =>
+    ruta.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ estado: 'ok' }) }),
+  )
   return pedidos
 }
 
+// Decisión INICIAL de la persona. Solo se siembra si todavía no hay una: el script corre en cada carga completa y, si
+// pisara la decisión guardada, una recarga posterior a revocar (la tienda recarga para soltar los scripts de Google y
+// Meta) volvería a «aceptadas» y reanudaría la medición, cosa que en un navegador real no pasa.
 const decidir = (page: Page, valor: 'aceptadas' | 'rechazadas') =>
-  page.addInitScript(([clave, v]) => window.localStorage.setItem(clave, v), [CLAVE_CONSENTIMIENTO, valor] as const)
+  page.addInitScript(
+    ([clave, v]) => {
+      if (window.localStorage.getItem(clave) === null) window.localStorage.setItem(clave, v)
+    },
+    [CLAVE_CONSENTIMIENTO, valor] as const,
+  )
 
 // Alta de un usuario administrador del panel (auth admin API) y de su pertenencia a la organización del seed.
 async function altaAdministrador(correo: string, organizacion: string): Promise<string> {
@@ -113,14 +131,14 @@ const eventosDe = async (page: Page, nombre: string) => (await capaDeDatos(page)
 // Recorre la tienda como visitante: ficha (vista_producto), búsqueda y clic en WhatsApp.
 async function recorrer(contexto: BrowserContext, page: Page, base: string, producto: { id: string; nombre: string }) {
   await page.goto(`${base}/producto/${producto.id}`)
-  await expect(page.getByRole('heading', { level: 1, name: producto.nombre })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: producto.nombre })).toBeVisible({ timeout: PLAZO_MEDICION })
   await page.getByRole('combobox', { name: 'Buscar productos' }).fill('joystick')
   await page.getByRole('combobox', { name: 'Buscar productos' }).press('Enter')
   await expect(page).toHaveURL(/\/catalogo\?q=joystick/)
   // La capa de datos se reinicia con cada carga completa de página: el evento de búsqueda se lee ANTES de volver a la ficha.
   const busquedas = await eventosDe(page, 'busqueda')
   await page.goto(`${base}/producto/${producto.id}`)
-  await expect(page.getByRole('heading', { level: 1, name: producto.nombre })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: producto.nombre })).toBeVisible({ timeout: PLAZO_MEDICION })
   await pulsarAbrirWhatsapp(contexto, page)
   return { busquedas }
 }
@@ -132,6 +150,7 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-315:T028] consentimiento, IDs por tienda, aceptación tardía, visitas, contacto y tienda desactivada', async ({ browser }) => {
+    test.setTimeout(240_000)
     const sufijo = randomUUID().slice(0, 8)
     const productos = new Map<string, { id: string; nombre: string }>()
     let usuarioPanel: string | null = null
@@ -163,7 +182,7 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         let page = await contexto.newPage()
         let pedidos = await interceptarMedicion(page)
         await page.goto(`${base}/`)
-        await expect(page.getByRole('region', { name: 'Aviso de cookies' })).toBeVisible()
+        await expect(page.getByRole('region', { name: 'Aviso de cookies' })).toBeVisible({ timeout: PLAZO_MEDICION })
         await page.waitForLoadState('networkidle')
         expect(pedidos, `sin decisión en ${t.host}`).toEqual([])
         // Sin decisión tampoco se mide al recorrer la tienda: ni pedidos ni eventos en la capa de datos.
@@ -193,39 +212,72 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         pedidos = await interceptarMedicion(page)
         await decidir(page, 'aceptadas')
         await page.goto(`${base}/`)
-        await expect.poll(() => pedidos.some((p) => p.includes(`id=${t.ga4}`))).toBe(true)
-        await expect.poll(() => pedidos.some((p) => p.includes('fbevents.js'))).toBe(true)
+        await expect.poll(() => pedidos.some((p) => p.includes(`id=${t.ga4}`)), { timeout: PLAZO_MEDICION }).toBe(true)
+        await expect.poll(() => pedidos.some((p) => p.includes('fbevents.js')), { timeout: PLAZO_MEDICION }).toBe(true)
         expect(pedidos.some((p) => p.includes(otra.ga4)), `${t.host} no carga el ID de ${otra.nombre}`).toBe(false)
-        await expect.poll(async () => (await capaDeDatos(page)).filter((e) => e[0] === 'event' && e[1] === 'page_view').length).toBe(1)
+        await expect.poll(async () => (await capaDeDatos(page)).filter((e) => e[0] === 'event' && e[1] === 'page_view').length, { timeout: PLAZO_MEDICION }).toBe(1)
 
         await page.goto(`${base}/contacto`)
-        await expect.poll(async () => (await capaDeDatos(page)).filter((e) => e[0] === 'event' && e[1] === 'page_view').length).toBeGreaterThanOrEqual(1)
+        await expect.poll(async () => (await capaDeDatos(page)).filter((e) => e[0] === 'event' && e[1] === 'page_view').length, { timeout: PLAZO_MEDICION }).toBeGreaterThanOrEqual(1)
 
         // 4) Envío de contacto confirmado → evento `envio_contacto` (solo el nombre, sin datos del visitante).
         await page.getByLabel(/^Nombre/).fill(`E2E analítica ${sufijo}`)
         await page.getByLabel(/^Correo o WhatsApp/).fill('visitante@ejemplo.com')
         await page.getByLabel(/^Mensaje/).fill(`Consulta de analítica ${sufijo}`)
         await page.getByRole('button', { name: 'Enviar consulta' }).click()
-        await expect(page.getByRole('heading', { name: '¡Gracias! Recibimos tu consulta' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: '¡Gracias! Recibimos tu consulta' })).toBeVisible({ timeout: PLAZO_MEDICION })
         const eventos = (await capaDeDatos(page)).filter((e) => e[0] === 'event' && e[1] === 'envio_contacto')
         expect(eventos).toEqual([['event', 'envio_contacto']])
 
         // 4b) Eventos de la tienda (RF-TDA-24-2): vista de producto, búsqueda y clic en WhatsApp, solo con su nombre.
         const { busquedas } = await recorrer(contexto, page, base, productos.get(t.host)!)
-        expect(await eventosDe(page, 'vista_producto')).toEqual([['event', 'vista_producto']])
+        // La ficha puede resolver antes que los IDs de medición: el evento espera su turno y sale al cargarse (se sondea).
+        await expect.poll(() => eventosDe(page, 'vista_producto'), { timeout: PLAZO_MEDICION }).toEqual([['event', 'vista_producto']])
         expect(busquedas).toEqual([['event', 'busqueda']])
-        expect(await eventosDe(page, 'clic_whatsapp')).toEqual([['event', 'clic_whatsapp']])
+        await expect.poll(() => eventosDe(page, 'clic_whatsapp'), { timeout: PLAZO_MEDICION }).toEqual([['event', 'clic_whatsapp']])
 
-        // 4c) Acepta y luego revoca con la página abierta: no se emite ningún evento más.
+        // 4c) Acepta y luego revoca con la página abierta: se apaga todo y no sale ningún pedido ni evento más.
+        // Huellas que dejan Google y Meta: cookies y almacenamiento propios del navegador; la revocación debe borrarlas.
+        await page.evaluate((ga4) => {
+          document.cookie = '_ga=GA1.1.111.222; path=/'
+          document.cookie = `_ga_${ga4.slice(2)}=GS1.1.111; path=/`
+          document.cookie = '_fbp=fb.1.111.222; path=/'
+          window.localStorage.setItem('_ga', 'GA1.1.111.222')
+          window.localStorage.setItem('_fbp', 'fb.1.111.222')
+        }, t.ga4)
         const antes = await contarEventos(page)
+        const pedidosAntes = pedidos.length // ANTES de revocar: todo lo que se pida desde acá es posterior a la decisión
         await page.evaluate((clave) => {
           window.localStorage.setItem(clave, 'rechazadas')
           window.dispatchEvent(new CustomEvent('tienda:consentimiento-cookies', { detail: 'rechazadas' }))
         }, CLAVE_CONSENTIMIENTO)
+        // Las globales de medición desaparecen: sea porque se quitaron o porque la página se recargó (sin capa de datos).
+        // Si la página se recarga justo en medio de la lectura, el contexto se destruye: se reintenta en vez de fallar.
+        const leer = async <T>(lectura: () => T | Promise<T>): Promise<T | 'navegando'> => {
+          try {
+            return await page.evaluate(lectura)
+          } catch (error) {
+            if (String(error).includes('Execution context was destroyed')) return 'navegando'
+            throw error
+          }
+        }
+        await expect
+          .poll(() => leer(() => [typeof (window as unknown as { dataLayer?: unknown }).dataLayer, typeof (window as unknown as { gtag?: unknown }).gtag, typeof (window as unknown as { fbq?: unknown }).fbq]), { timeout: PLAZO_MEDICION })
+          .toEqual(['undefined', 'undefined', 'undefined'])
+        await expect
+          .poll(() => leer(() => ({ cookies: document.cookie, ga: window.localStorage.getItem('_ga'), fbp: window.localStorage.getItem('_fbp') })), { timeout: PLAZO_MEDICION })
+          .toEqual({ cookies: '', ga: null, fbp: null })
         await pulsarAbrirWhatsapp(contexto, page)
         await page.getByRole('combobox', { name: 'Buscar productos' }).fill('otra cosa')
         await page.getByRole('combobox', { name: 'Buscar productos' }).press('Enter')
-        expect(await contarEventos(page), 'tras revocar no se emite ningún evento más').toBe(antes)
+        await expect(page).toHaveURL(/\/catalogo\?q=otra\+cosa/)
+        await page.waitForLoadState('networkidle')
+        // La página pudo recargarse para soltar los scripts de terceros (capa de datos vacía): ningún evento nuevo, ningún
+        // pedido a Google/Meta (scripts ni envíos) y la decisión sigue vigente.
+        expect(await contarEventos(page), 'tras revocar no se emite ningún evento más').toBeLessThanOrEqual(antes)
+        expect(await eventosDe(page, 'busqueda'), 'la búsqueda posterior a revocar no se mide').toEqual([])
+        expect(pedidos.length, 'tras revocar no se pide nada a Google ni a Meta').toBe(pedidosAntes)
+        expect(await page.evaluate((clave) => window.localStorage.getItem(clave), CLAVE_CONSENTIMIENTO)).toBe('rechazadas')
         await contexto.close()
 
         // 5) Aceptación tardía: sin decisión no hay pedidos; al aceptar en el aviso, se cargan en ese momento.
@@ -236,7 +288,7 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         await page.waitForLoadState('networkidle')
         expect(pedidos).toEqual([])
         await page.getByRole('region', { name: 'Aviso de cookies' }).getByRole('button', { name: 'Aceptar' }).click()
-        await expect.poll(() => pedidos.some((p) => p.includes(`id=${t.ga4}`))).toBe(true)
+        await expect.poll(() => pedidos.some((p) => p.includes(`id=${t.ga4}`)), { timeout: PLAZO_MEDICION }).toBe(true)
         await contexto.close()
       }
 
@@ -245,6 +297,13 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         const t = TIENDAS[1]
         const correo = `admin-analitica-${sufijo}@example.com`
         usuarioPanel = await altaAdministrador(correo, t.organizacion)
+        // La vista previa es de una sola empresa: la persona ya tiene elegida la suya (empresa activa).
+        const activa = await fetch(`${url}/rest/v1/usuario_empresa_activa`, {
+          method: 'POST',
+          headers: { apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json', prefer: 'return=minimal' },
+          body: JSON.stringify({ user_id: usuarioPanel, empresa_id: t.empresa }),
+        })
+        if (!activa.ok) throw new Error(`empresa activa de ${correo}: ${activa.status} ${await activa.text()}`)
         const contexto = await browser.newContext()
         const page = await contexto.newPage()
         const pedidos = await interceptarMedicion(page)
@@ -255,8 +314,8 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         await page.getByRole('button', { name: 'Ingresar' }).click()
         await expect(page).not.toHaveURL(/\/login/)
         await page.goto(`/empresas/${t.empresa}/tienda/vista-previa`)
-        await expect(page.getByRole('heading', { name: 'Vista previa de la tienda' })).toBeVisible()
-        await expect(page.getByTestId('vista-previa-tienda')).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Vista previa de la tienda' })).toBeVisible({ timeout: PLAZO_MEDICION })
+        await expect(page.getByTestId('vista-previa-tienda')).toBeVisible({ timeout: PLAZO_MEDICION })
         await page.waitForLoadState('networkidle')
         expect(pedidos, 'la vista previa del panel no carga ningún script de medición').toEqual([])
         expect(await capaDeDatos(page)).toEqual([])
@@ -272,7 +331,7 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         const pedidos = await interceptarMedicion(page)
         await decidir(page, 'aceptadas')
         await page.goto(`http://${desactivada.host}:${puerto}/`)
-        await expect(page.getByRole('heading', { name: 'Volvemos pronto' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Volvemos pronto' })).toBeVisible({ timeout: PLAZO_MEDICION })
         await page.waitForLoadState('networkidle')
         expect(pedidos, 'una tienda desactivada no carga ningún script').toEqual([])
         await contexto.close()
@@ -281,10 +340,12 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
       }
     } finally {
       if (usuarioPanel) {
-        await fetch(`${url}/rest/v1/usuarios_organizacion?user_id=eq.${usuarioPanel}`, {
-          method: 'DELETE',
-          headers: { apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}` },
-        })
+        for (const tabla of ['usuario_empresa_activa', 'usuarios_organizacion']) {
+          await fetch(`${url}/rest/v1/${tabla}?user_id=eq.${usuarioPanel}`, {
+            method: 'DELETE',
+            headers: { apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}` },
+          })
+        }
         await bajaUsuario(usuarioPanel)
       }
       for (const p of productos.values()) {
@@ -295,6 +356,9 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         await borrar('tienda_analitica', `empresa_id=eq.${t.empresa}`)
         await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
       }
+      // Sin huérfanos: ningún producto sembrado por esta corrida (nombre con su sufijo) debe quedar en la base.
+      const restantes = await fetch(`${url}/rest/v1/productos?select=id&nombre=like.*${sufijo}*`, { headers: cabeceras() })
+      expect.soft(restantes.ok ? ((await restantes.json()) as unknown[]).length : -1, 'la limpieza no deja productos huérfanos').toBe(0)
     }
   })
 })
