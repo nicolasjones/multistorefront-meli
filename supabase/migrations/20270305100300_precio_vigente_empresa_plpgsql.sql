@@ -9,7 +9,7 @@
 --   precio          = null si el precio normal no es calculable; el normal si no hay promoción vigente;
 --                     el promocional con alícuota e interruptor de IVA si la hay.
 --   precio_anterior = precio normal solo con promoción vigente; si no, null.
--- La usan también publico.sugerencias_por_dominio, publico.catalogo_pagina_por_dominio (y la ficha/destacados/home)
+-- La usan también publico.sugerencias_busqueda_por_dominio, la ficha (producto_por_dominio), destacados/home y la búsqueda (catalogo_pagina_por_dominio NO la llama: calcula el precio directo)
 -- además de la búsqueda; ninguna cambia su contrato: solo baja el costo por producto.
 --
 -- Migración aditiva (create or replace; sin tablas). Reversión (migración posterior): recrear la función SQL de

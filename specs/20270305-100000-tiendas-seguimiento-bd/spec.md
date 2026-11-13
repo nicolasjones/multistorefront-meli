@@ -1,12 +1,12 @@
 # Feature Specification: Tiendas · Seguimiento MSF-846, parte A (base de datos)
 
 **Seguimiento**: MSF-846 · **Spec**: `tiendas-seguimiento-bd` · **Prioridad**: P1 (búsqueda con timeout)
-**Alcance de entrega**: `supabase` (tres migraciones, solo funciones) y `refine` (un cambio mínimo en el panel).
+**Alcance de entrega**: `supabase` (cuatro migraciones, solo funciones) y `refine` (un cambio mínimo en el panel).
 **Fuente**: hallazgos de la verificación en dev de las tiendas públicas. Esta spec **traduce**; no agrega alcance de negocio.
 
 ## Modelo y supuestos
 
-- **Esquemas (Principio VII)**: no se crea ni altera ninguna tabla ni índice. Las tres funciones ya existen: dos en `publico` (lectura anónima, `publico` sigue sin tablas) y una en `public` (RPC del panel).
+- **Esquemas (Principio VII)**: no se crea ni altera ninguna tabla ni índice. Las cuatro funciones ya existen: dos en `publico` (lectura anónima, `publico` sigue sin tablas) una en `public` (RPC del panel) y una en `private` (`precio_vigente_empresa`, no expuesta).
 - Migraciones aditivas e idempotentes (`create or replace`), `security definer`, `search_path` vacío y grants iguales a los vigentes. Reversión de cada una en su encabezado.
 
 ## User Scenarios & Testing
@@ -31,7 +31,7 @@ Migración `20270305100200_tienda_relacionados_manuales.sql`.
 
 - **FR-001**: búsqueda: coincidencias materializadas una vez; precio solo donde filtro u orden lo exigen y para la página (US1).
 - **FR-002**: `vista_previa_tienda` devuelve `imagen` por categoría (US2).
-- **FR-004**: `private.precio_vigente_empresa` en plpgsql: misma firma, columnas, nulls y grants; mismo precio y `precio_anterior` con y sin promoción vigente (US1). También la usan `sugerencias_por_dominio` y `catalogo_pagina_por_dominio`, sin cambio de contrato.
+- **FR-004**: `private.precio_vigente_empresa` en plpgsql: misma firma, columnas, nulls y grants; mismo precio y `precio_anterior` con y sin promoción vigente (US1). También la usan `sugerencias_busqueda_por_dominio`, la ficha (`producto_por_dominio`) y destacados/portada (`catalogo_pagina_por_dominio` no la llama), sin cambio de contrato.
 - **FR-003**: `relacionados_por_dominio` prioriza manuales visibles y completa por categoría (US3).
 - **SC-001**: pgTAP actualizado (`tienda_relacionados.test.sql`, nuevo `tienda_busqueda_rapida.test.sql`, `tienda_vista_previa_categorias_imagen.test.sql`) y Vitest `tiendaBorrador.vistaPrevia.test.ts`.
 
