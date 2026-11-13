@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Migración: invitaciones de usuarios
 
 Registro de la corrección de la migración de invitaciones (tarea **P-20** del orquestador SDLC).

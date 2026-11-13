@@ -46,7 +46,8 @@ export function BotonWhatsApp({ host, empresa, producto, productoId, precio = nu
         variant="contained"
         onClick={() => { setAviso(false); setAbierto(true) }}
         startIcon={<IconoWhatsapp />}
-        sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, borderRadius: (tema) => `${tema.shape.borderRadius}px`, width: '100%' }}
+        // Prototipo (`MJC_Producto`): 16 px/700, relleno de 14×26 (15 px en celular), radio 8 y 10 px entre el glifo y el texto.
+        sx={{ fontSize: 16, py: { xs: '15px', md: '14px' }, px: '26px', width: '100%', '& .MuiButton-startIcon': { mr: '10px', ml: 0 } /* estilos-sueltos: ok */ }}
       >
         Consultar por WhatsApp
       </Button>

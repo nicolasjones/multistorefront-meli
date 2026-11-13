@@ -4,6 +4,7 @@ import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { normalizarNumero } from '../../../lib/whatsapp'
 import { IconoWhatsapp } from '../whatsapp/IconoWhatsapp'
 import { IconoCorreo } from './iconos'
+import { ANCHO_MAXIMO_TIENDA, MARGEN_LATERAL_TIENDA } from './medidas'
 
 // Texto de la franja izquierda: el eslogan; sin eslogan, el mensaje de bienvenida (MSF-841). Si hay los dos y
 // difieren, el eslogan va acá y la bienvenida sigue en su franja de la portada (`secciones/BarraBienvenida`).
@@ -32,7 +33,7 @@ export function BarraSuperior({ host }: { host: string }) {
 
   return (
     <Box data-testid="barra-superior" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra, fontSize: { xs: 12, md: 13 }, display: { xs: texto ? 'block' : 'none', md: 'block' } })}>
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, height: { xs: 28, md: 36 }, display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'space-between' }, gap: 2 }}>
+      <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: MARGEN_LATERAL_TIENDA, height: { xs: 28, md: 36 }, display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'space-between' }, gap: 2 }}>
         {texto ? <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{texto}</Box> : <span />}
         {whatsapp || correo ? (
           <Box component="span" sx={{ display: { xs: 'none', md: 'inline-flex' }, alignItems: 'center', gap: '20px', flexShrink: 0 }}>
