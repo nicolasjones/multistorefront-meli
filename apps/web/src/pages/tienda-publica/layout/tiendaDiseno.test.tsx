@@ -76,6 +76,23 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     Reflect.deleteProperty(window, 'matchMedia')
   })
 
+  // MSF-847: la capa de 100vw del héroe y sus franjas inclinadas no pueden ensanchar la página.
+  it('el layout recorta el desborde horizontal (overflow-x: clip)', async () => {
+    montar('/')
+    await screen.findByText('Portada')
+    expect(getComputedStyle(screen.getByRole('banner').parentElement as HTMLElement).overflowX).toBe('clip')
+  })
+
+  // MSF-847: la tabulación sigue el orden visual del encabezado de celular: menú, marca, buscador y, al final, «Ingresar».
+  it('en celular el botón de menú va antes que la marca en el DOM (orden de tabulación = orden visual)', async () => {
+    celular(true)
+    montar('/')
+    const menu = await screen.findByRole('button', { name: 'Abrir menú' })
+    const marca = within(screen.getByRole('banner')).getByRole('link', { name: 'Mundo JC' })
+    expect(menu.compareDocumentPosition(marca) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
   it('el contenido y el contacto se leen una sola vez por host aunque los usen la barra, el pie y la portada', async () => {
     montar('/')
     await screen.findByText('Portada')

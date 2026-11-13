@@ -49,8 +49,12 @@ describe('BannerContenido', () => {
   it('franja con el color de la barra, título de 72 px en mayúsculas y botón primario de 16 px (como MJC_Home)', () => {
     render(conTema(<BannerContenido contenido={{ titulo: 'Todo para tu consola', subtitulo: 'Cargadores y más', texto_boton: 'Ver catálogo', boton_destino: 'catalogo' }} />))
     const banner = screen.getByTestId('banner-home')
-    expect(getComputedStyle(banner).backgroundColor).toBe('rgb(42, 42, 42)')
-    expect(getComputedStyle(banner).clipPath).toContain('inset(0 -100vmax)')
+    // La franja a todo el ancho es una capa propia (100vw, recortada) que lleva el color de la barra y las franjas inclinadas.
+    const capa = within(banner).getByTestId('banner-capa')
+    expect(getComputedStyle(capa).backgroundColor).toBe('rgb(42, 42, 42)')
+    expect(getComputedStyle(capa).width).toBe(`${window.innerWidth}px`) // jsdom resuelve 100vw a la ventana
+    expect(getComputedStyle(capa).overflow).toBe('hidden')
+    expect(capa.children).toHaveLength(2)
     expect(screen.getByRole('heading', { level: 2, name: 'Todo para tu consola' })).toBeInTheDocument()
     expect(reglas()).toMatch(/@media \(min-width:900px\)\{[^}]*font-size:72px/)
     expect(screen.getByRole('link', { name: 'Ver catálogo' })).toHaveAttribute('href', '/catalogo')
@@ -58,7 +62,7 @@ describe('BannerContenido', () => {
 
   it('en la vista previa del panel la franja no se extiende fuera de su recuadro', () => {
     render(conTema(<BannerContenido vistaPrevia contenido={{ titulo: 'Hola', subtitulo: '', texto_boton: '', boton_destino: 'catalogo' }} />))
-    expect(getComputedStyle(screen.getByTestId('banner-home')).clipPath).not.toContain('100vmax')
+    expect(screen.queryByTestId('banner-capa')).not.toBeInTheDocument()
   })
 })
 

@@ -9,10 +9,10 @@ import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { AccesoCliente } from './AccesoCliente'
 import { BarraSuperior } from './BarraSuperior'
 import { ContextoEnLayout } from './enLayout'
-import { ANCHO_MAXIMO_TIENDA, MARGEN_LATERAL_TIENDA } from './medidas'
 import { ProveedorIdentidadTienda, useIdentidadTienda } from './IdentidadTiendaContexto'
 import { MenuCategorias } from './MenuCategorias'
 import { PieCategorias } from './PieCategorias'
+import { ANCHO_MAXIMO_TIENDA, LINEA_SUAVE, MARGEN_LATERAL_TIENDA } from './medidas'
 
 const BuscadorTienda = lazy(() => import('./BuscadorTienda'))
 const MenuMovil = lazy(() => import('./MenuMovil'))
@@ -58,20 +58,21 @@ function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: str
   const contexto: ContextoTienda = { tienda, host, categorias }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'text.primary', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'text.primary', bgcolor: 'background.default', overflowX: 'clip' /* la franja del héroe y el bloque de consultas llegan al borde de la ventana sin ensanchar la página */ }}>
       {/* La barra superior va dentro del <header> (landmark banner): sin esto queda fuera de todo landmark (axe «region»). */}
-      <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
+      <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
         <BarraSuperior host={host} />
         {/* Celular: marca + botón de menú arriba y buscador a todo el ancho debajo; desde `md`, en una fila. */}
         <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: MARGEN_LATERAL_TIENDA, pt: 0, minHeight: { xs: 60, md: 84 }, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 2, rowGap: 0, pb: 0 /* estilos-sueltos: ok */ }}>
-          <Marca tienda={tienda} enInicio={enInicio} />
           {/* Menú de celular (F-TDA-17, FR-040): carga diferida; el hueco evita el salto de diseño. En celular va a la IZQUIERDA y
-              la marca centrada (prototipo `MJC_M_Home`); el orden visual lo fija `order`, el del DOM no cambia. */}
+              la marca centrada (prototipo `MJC_M_Home`); el menú va primero también en el DOM (la tabulación sigue el orden
+              visual: menú, marca, buscador, «Ingresar»; solo «Ingresar» se ve antes que el buscador). */}
           <Box sx={{ order: 0, display: { xs: 'block', md: 'none' } }}>
             <Suspense fallback={<Box sx={{ width: 48, height: (tema) => tema.spacing(6) }} aria-hidden />}>
               <MenuMovil categorias={categorias} empresaNombre={tienda.empresaNombre} />
             </Suspense>
           </Box>
+          <Marca tienda={tienda} enInicio={enInicio} />
           {/* Buscador (F-TDA-15, FR-024): carga diferida, no pesa en el primer pintado. En celular, en su propia fila de 12 px de aire. */}
           <Box sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: '100%', md: 'auto' }, flexGrow: { md: 1 }, flexShrink: { md: 1 }, display: 'flex', justifyContent: 'center', minWidth: 0, py: { xs: '12px', md: 0 } /* estilos-sueltos: ok */ }}>
             <Suspense fallback={<Box sx={(tema) => ({ width: { xs: '100%', md: '100%' }, maxWidth: 560, height: tema.spacing(5.5) })} aria-hidden />}>
