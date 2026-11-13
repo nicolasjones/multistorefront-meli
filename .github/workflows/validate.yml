@@ -131,6 +131,10 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
+      # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
+      - name: test:docs:pasos-manuales
+        run: pnpm test:docs:pasos-manuales
       # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
