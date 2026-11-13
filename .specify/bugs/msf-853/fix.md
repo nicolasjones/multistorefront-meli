@@ -26,7 +26,7 @@ RPC (`avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consult
 | `package.json` | modified | Fuera `test:edge:enviar-aviso-consulta` y `test:kestra:avisos-consultas` (y sus llamadas en `test` y `test:web`). |
 | `supabase/tests/database/consultas_aviso.test.sql` | modified | Queda la dirección de avisos por empresa (FR-009) y suma el gate: el camino directo no existe y el camino vigente sigue. |
 | `supabase/tests/database/avisos_consulta_nueva.test.sql` | modified | La aserción del camino directo pasa de «la tabla está vacía» a «la tabla no existe». |
-| `apps/web/e2e/consultas-recorrido.e2e.ts` | modified | Sin función ni Mailpit: comprueba que el aviso quedó encolado en `public.avisos_pendientes` para la persona de la organización. |
+| `apps/web/e2e/consultas-recorrido.e2e.ts` | modified | La base (PR #907, ya mergeada en `dokploy`) había pasado el E2E al camino vigente; este cambio solo actualiza los dos comentarios que nombraban la tabla y la función retiradas. |
 | `apps/web/src/pages/empresas/CorreoAvisosConsultas.tsx` | modified | El texto al usuario ya no promete que la dirección «completa el envío de los avisos encolados». |
 | `apps/web/src/pages/empresas/CorreoAvisosConsultas.test.tsx` | modified | Assert del texto actualizado. |
 | `docs/consultas.md`, `docs/avisos-por-correo.md` | modified | Describen solo el camino vigente y el retiro del anterior (con su reversión). |
@@ -82,6 +82,11 @@ drop table if exists dominio.consultas_avisos;
 - La definición de `private.exclusiones_exportacion_total()` se copió de `20270224110206` (la última
   definición vigente) sin la fila de la tabla: el assessment lo mencionaba como riesgo y resultó obligatorio,
   no opcional, por el assert «toda exclusión nombra una tabla que existe» de `exportacion_total.test.sql`.
+- El E2E de consultas **ya estaba** en el camino vigente: la base (`dokploy`, PR #907 «fix(e2e): actualizar
+  specs envejecidos») lo había reescrito con la fixture compartida `crearConsulta` y la lectura de
+  `public.avisos_pendientes`. Como la rama quedó atrás de la base, el merge trajo ese archivo y el cambio de
+  MSF-853 sobre él se limita a los dos comentarios que nombraban la tabla y la función retiradas. No se
+  reescribió el E2E de la base: ya cubría lo que pedía la historia.
 
 ## Follow-ups
 

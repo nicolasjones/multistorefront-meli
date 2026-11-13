@@ -23,8 +23,9 @@ pudieron ejecutar en este entorno: necesitan el stack local de Supabase y acá n
 | New / updated tests (web) | `pnpm --filter @platform/web exec vitest run src/pages/empresas/CorreoAvisosConsultas.test.tsx` | pass | 10/10 (`Test Files 1 passed`, `Tests 10 passed`). |
 | New / updated tests (flows) | `node --test infra/kestra/validar-*.test.mjs` | pass | 73/73 tras borrar el test del flow retirado. |
 | pgTAP (nuevo y actualizado) | `pnpm test:db` | not-run | Requiere el stack local (`pnpm dev:supabase`); este entorno no da permisos de docker. Lo corre el CI. |
-| E2E de consultas | `pnpm --filter @platform/web test:e2e consultas-recorrido` | not-run | Misma razón (stack local). Se verificó que el test se collected y que el archivo type-checka. |
+| E2E de consultas | `pnpm --filter @platform/web test:e2e consultas-recorrido` | not-run | Misma razón (stack local). El recorrido del camino vigente ya venía de la base (PR #907) y este cambio solo ajusta dos comentarios. Se verificó que el test se collected y que el archivo type-checka. |
 | Colección y tipos del E2E | `pnpm exec playwright test --list consultas-recorrido` + `tsc --ignoreConfig --noEmit --strict …` | pass | 1 test listado; 0 errores de tipos. |
+| Escritura directa en los E2E (base) | `pnpm e2e:escritura:check` · `pnpm test:e2e:escritura` | pass | «ningún spec escribe directo en tablas de solo lectura para service_role»; 16/16. |
 | Lint / build | `pnpm lint` · `pnpm build` | pass | Lint: 0 errores (solo warnings preexistentes de oxlint). Build: ok. |
 | Documentación y migraciones | `GITHUB_BASE_REF=dokploy pnpm docs:check` | pass | `Documentación de cambios: OK (21 archivos…)` y `Migraciones OK: 639 archivo(s), 1 nuevo(s)`. |
 | Compose de Kestra | `pnpm infra:config:kestra` | pass | `docker compose config --quiet` sin errores. |
