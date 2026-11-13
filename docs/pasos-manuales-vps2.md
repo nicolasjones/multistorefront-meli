@@ -181,7 +181,7 @@ Dos avisos:
   registra funciones nuevas; hay que rehacer el stack.
 - El *workdir* tiene que conservar su `supabase/.env`: de ahí salen los secretos que
   usa el runtime; sin ellos las funciones que los necesitan arrancan sin secreto y
-  fallan con `500`.
+  fallan (500 o 503, según la función).
 
 **Verificación:** (por ambiente; en dev, hoy, ya da lo esperado)
 
