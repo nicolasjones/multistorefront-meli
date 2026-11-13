@@ -51,7 +51,7 @@ borrar la tabla `dominio.consultas_avisos`, sus tres RPC y `private.correo_aviso
 - Quitar también `dominio.consultas_configuracion` y el campo de la ficha de la empresa: fuera del alcance de esta historia (el tracker nombra la función y la tabla); queda como seguimiento.
 
 **Files likely to change**:
-- `supabase/migrations/20270305140001_avisos_consulta_camino_directo.sql` (nueva)
+- `supabase/migrations/20270306110000_avisos_consulta_camino_directo.sql` (nueva)
 - `supabase/functions/enviar-aviso-consulta/` (borrada)
 - `infra/kestra/flows/avisos-consultas.yml`, `infra/kestra/validar-avisos-consultas.test.mjs` (borrados)
 - `infra/kestra/compose.yaml`, `infra/kestra/.env.example`, `supabase/functions/.env.example`, `.env.example`, `package.json`

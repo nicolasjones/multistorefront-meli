@@ -1,7 +1,8 @@
 # Consultas: bandeja y aviso (MSF-122)
 
 Cada consulta que un visitante envía desde una tienda queda registrada en el panel, el equipo la atiende
-desde una bandeja y la empresa recibe un correo de aviso con un enlace a la consulta. Spec:
+desde una bandeja y el aviso de la consulta nueva sale por correo a las personas de la organización,
+según sus preferencias («Avisos por correo», sin enlace a la consulta). Spec:
 [`specs/20261023-120000-consultas-bandeja-y-aviso`](../specs/20261023-120000-consultas-bandeja-y-aviso/spec.md)
 (contrato en `contracts/consultas.md`).
 
@@ -102,6 +103,12 @@ Textos frecuentes **por empresa** que arman el texto inicial de `Responder por�
 > MSF-562 el alta ya no encolaba ahí y la revisión de los E2E confirmó que no sale correo SMTP de «nueva
 > consulta» por esa vía. El aviso vigente es el de plataforma (abajo) y la dirección de avisos por empresa
 > (`consultas_configuracion`) ya no alimenta ningún aviso: la ficha de la empresa lo advierte.
+>
+> El retiro también tiene que llegar a los entornos: el flow publicado se borra con
+> `infra/kestra/flows-retirados.txt` (lo hace el CI de publicación) y la Edge Function desplegada y sus
+> secretos se bajan con el runbook de [`deployment.md`](./deployment.md) («Retiro de un flow y de su Edge
+> Function»). Antes de aplicar la migración hay que confirmar que la cola vieja no quedó con avisos sin
+> enviar: la migración aborta sola si encuentra alguno.
 
 El aviso de consulta nueva sale por la cola de plataforma ([`avisos-por-correo.md`](./avisos-por-correo.md)):
 
@@ -133,7 +140,7 @@ No se guarda ningún secreto en Git y la service-role key nunca llega al navegad
 
 ## Revisión de seguridad (FR-015)
 
-Hecha sobre las migraciones `20261205100000`…`20261205200200` y `20270305140001` (MSF-853):
+Hecha sobre las migraciones `20261205100000`…`20261205200200` y `20270306110000` (MSF-853):
 
 - **RLS en las 2 tablas**: `enable row level security` y política `select` por organización, empresa
   accesible y nivel de sección; sin políticas de escritura (alta solo por la RPC pública, cambios solo por RPC

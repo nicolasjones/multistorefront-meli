@@ -152,7 +152,8 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       // No lo reciben ni Mostrador (sin acceso a Consultas) ni la persona de OTRA organización.
       expect(await avisosSinEspera(usuarios[2], visitante)).toHaveLength(0)
       expect(await avisosSinEspera(usuarios[3], visitante)).toHaveLength(0)
-      // El enlace del aviso, `/consultas?consulta=<id>`, abre el detalle de ESA consulta.
+      // El detalle se abre desde el panel por la ruta `/consultas?consulta=<id>`: el aviso no lleva
+      // enlace (es una fila de `public.avisos_pendientes`).
       await admin.goto(`/consultas?consulta=${consultaId}`)
       const detalle = admin.getByRole('dialog', { name: `Consulta de ${visitante}` })
       await expect(detalle).toBeVisible()
@@ -188,7 +189,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(sin.getByText(visitante)).toHaveCount(0)
       await contextoSin.close()
 
-      // Otra organización: ni la bandeja ni el enlace del correo revelan la consulta.
+      // Otra organización: ni la bandeja ni la ruta del detalle revelan la consulta.
       const contextoAjena = await browser.newContext()
       const ajena = await contextoAjena.newPage()
       await ingresar(ajena, correos.ajena)
@@ -197,8 +198,9 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(ajena.getByRole('dialog', { name: `Consulta de ${visitante}` })).toHaveCount(0)
       await contextoAjena.close()
     } finally {
-      // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas,
-      // consultas y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 20261205200000).
+      // Borrar la organización arrastra por `on delete cascade` dominio.empresas, dominio.tiendas,
+      // dominio.consultas y dominio.consultas_configuracion (ver las migraciones 20261013120000,
+      // 20261023100000 y 20261205200000).
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }
