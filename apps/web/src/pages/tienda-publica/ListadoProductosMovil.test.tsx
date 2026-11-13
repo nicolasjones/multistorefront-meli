@@ -69,7 +69,8 @@ describe('Catálogo en celular (FR-041)', () => {
     expect(screen.getByTestId('ubicacion')).toHaveTextContent('/catalogo?stock=1')
     fireEvent.click(within(panel).getByRole('button', { name: 'Limpiar' }))
     expect(screen.getByTestId('ubicacion')).toHaveTextContent(/^\/catalogo$/)
-    fireEvent.click(within(panel).getByRole('button', { name: 'Ver 2 productos' }))
+    // Al volver a la consulta sin filtros la lista se vuelve a pedir (ya no se reutiliza lo acumulado de A): el botón aparece al llegar.
+    fireEvent.click(await within(panel).findByRole('button', { name: 'Ver 2 productos' }))
     await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 

@@ -376,7 +376,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   (CTE materializados `efectivos` → `img_producto` → `imagen` con `distinct on`, sobre el árbol recursivo ya
   calculado), sin subconsultas por fila ni funciones por producto, porque la función corre bajo `anon` con
   `statement_timeout` de 3 s (ver el bug de MSF-825 abajo). La ruta cuelga de `<organización>/<producto>/`,
-  igual que la `imagen` de los destacados; la vista previa de la gestión no la calcula (`imagen: null`).
+  igual que la `imagen` de los destacados. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa de la gestión (`public.vista_previa_tienda`) también la devuelve, con la misma regla sobre los productos efectivos del borrador, y el panel muestra la foto de categoría.
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
   `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
@@ -455,11 +455,31 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 - **Precio público**: regla de la empresa (`a_pesos` → `aplicar_regla_precio`) y, **según el interruptor «Precios que ve el cliente»** de la empresa, `aplicar_iva` (con IVA = `precio_para(...).final`; sin IVA = `precio_para(...).neto`). Resuelve la alícuota inline (la propia del producto o la de su categoría) porque `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva. Sin precio calculable (USD sin cotización) el precio es `null`: la tarjeta no muestra precio, queda al final de los órdenes por precio y no pasa el filtro de precio máximo (D9).
 - **Costo y techo esperado**: la RPC es pública y calcula `precio_final_publico` y `disponible_publico` para todo el catálogo efectivo de la tienda antes de filtrar y paginar, y lee las categorías en cada página. El diseño asume **hasta unos pocos cientos de productos visibles por tienda** (cifra de diseño, no medida); por encima conviene calcular el precio solo al filtrar u ordenar por precio y medir con un benchmark. Seguimiento de rendimiento fuera de esta historia: no hay catálogo real que lo justifique todavía.
 - **`publico.imagen_publica` es invocable directo** por `anon` y `authenticated`: permite confirmar si una ruta de storage es imagen pública, algo que esas rutas ya permiten leer; riesgo bajo aceptado (anotado en el comentario de la función).
-- **Página fuera de rango en la UI**: con `?pagina=` mayor a la última, el listado redirige (reemplazando el historial) a la última página; la RPC sigue devolviendo lista vacía con el `total` real.
+- **`?pagina=` en la UI (MSF-845)**: el listado ya no pagina; los enlaces viejos con `?pagina=N` (también `0`, negativos o `999`) se ignoran sin redirigir y arrancan de la primera tanda. La RPC sigue devolviendo lista vacía con el `total` real para una página fuera de rango, y la UI ya no la pide.
 - **Imágenes (D1, supuesto)**: el bucket `productos-imagenes` sigue privado. `anon` lee solo las imágenes que `private.imagen_publica` acepta (producto activo, no oculto, categoría visible, en una tienda activa). Como un `<img>` no manda cabeceras, `lib/imagenProducto.ts` pide **URLs firmadas** de una hora con la clave pública, en una sola llamada por página; se piden al cargar, así que en una pestaña abierta más de una hora vencen y la tarjeta cae a «Sin imagen» (`onError`) hasta recargar. Si D1 se resuelve distinto (URL pública o firmada por el servidor), cambia solo ese archivo y la política. La ruta (`<organización>/<producto>/<archivo>`) viaja en `imagen`: el id de organización no es un secreto (es un UUID sin valor de acceso) y el contrato de la épica la define así.
-- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, paginación con enlaces reales, estado vacío), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
-- **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; abrir la URL restaura el estado; cambiar un filtro u orden vuelve a la página 1; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
-- **Diferencias con el prototipo** (anotadas para el PR): la paginación no está dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, estado vacío; el pie del listado es `CargaInfinita`, ver «Carga infinita en los listados»), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
+- **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, y `orden=<relevancia|precio_asc|precio_desc>` (sin número de página desde MSF-845); abrir la URL restaura el estado; cambiar un filtro u orden reinicia la lista desde la primera tanda; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
+- **Diferencias con el prototipo** (anotadas para el PR): el prototipo no dibuja paginación ni carga infinita (desde MSF-845 el listado usa carga infinita); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
+
+## Carga infinita en los listados (MSF-845)
+
+Regla del repo («Listados: carga infinita con lazy loading, sin paginación») aplicada a la tienda pública a pedido de Nicolás: «en todas las tiendas quiero lazy loading infinito».
+
+- **Alcance**: el único listado público paginado era el de productos (`secciones-catalogo/ListadoProductos.tsx`), que montan `/catalogo`, `/categoria/:categoriaId` y los resultados de búsqueda (`/catalogo?q=`). Se eliminó `catalogo/Paginacion.tsx` y no queda ningún `Pagination` en la tienda pública.
+- **Cómo carga**: `hooks/useCatalogoPublico.ts` pide la primera tanda al cambiar host, filtros, orden o `q` y expone `cargarMas`, `hayMas`, `cargandoMas` y `errorMas`; cada tanda es una llamada a la misma RPC (`catalogo_pagina_por_dominio` o `busqueda_pagina_por_dominio`, de a 24) con `pagina` creciente, más un firmado en lote de las imágenes de esa tanda. Se suman a lo ya mostrado sin repetir productos. Una tanda vacía con total mayor corta la carga (no se pide sin fin). **Sin cambios de base ni migraciones.**
+- **Pie de lista**: el componente compartido del panel `components/pagina/CargaInfinita` (`IntersectionObserver` con margen de 400 px, «Cargar más» operable con teclado y única vía sin `IntersectionObserver`, estado «Cargando más resultados», error «No pudimos cargar más resultados.» con «Reintentar» que conserva lo ya cargado, y «No hay más resultados.» al terminar). El contador total («N productos») sigue arriba.
+- **Reinicio**: buscar, filtrar, ordenar o cambiar de categoría vuelve a la primera tanda y descarta lo acumulado; `q` y los filtros siguen en la URL, que no cambia al cargar más.
+- **Accesibilidad y reinicio**: el botón «Cargar más» sigue montado (`aria-busy`) mientras carga para no perder el foco, una región viva (`aria-live`) anuncia «Cargando más resultados», «N productos más cargados» y «No hay más resultados», y al cambiar filtro, orden o búsqueda el scroll vuelve al inicio del listado. Si una tanda siguiente de búsqueda choca con el límite de pedidos se avisa «Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá» y «Reintentar» queda deshabilitado hasta que pase la espera. Limitación: al volver desde la ficha no se conservan las tandas ya cargadas; sin virtualización (diseño pensado para pocos cientos de productos; seguimiento si un catálogo supera ~500).
+- **Enlaces viejos `?pagina=N`**: se ignoran (no rompen, no redirigen) y se arranca de la primera tanda; no se reconstruye la página N porque la carga infinita no tiene un «punto de entrada» equivalente y sería traer N tandas de golpe. Al cambiar un filtro el parámetro desaparece de la URL.
+- **SEO**: sin cambios. Canónica (`/catalogo`, `/categoria/<id>`) y `noindex` de búsqueda y errores como estaban; las URLs de listado nunca llevaron `pagina` en la canónica.
+- **Elementos nuevos visibles**: solo los de la regla del repo («Cargar más», estados de carga/error/fin); ni el prototipo ni sus inventarios (`MJC_Catalogo`, `SJ_*`) dibujan paginación ni carga infinita. Detalle en `specs/20270304-100000-tiendas-carga-infinita/spec.md`.
+- **No verificado en navegador**: los E2E `tienda-catalogo.e2e.ts` se actualizaron pero no se corrieron al implementar (requieren el stack local).
+
+## Seguimiento del front: menú y carga infinita (MSF-846, parte B)
+
+- **Menú de categorías**: la barra del encabezado (`layout/MenuCategorias.tsx`) mide el ancho real de cada entrada (copia invisible, con el texto en un pseudo-elemento) y la lista visible con `ResizeObserver`, y muestra solo las categorías principales que entran (`cuantasEntran` en `lib/tiendaCategorias.ts`), reservando el lugar de «Más categorías» (`/catalogo`) para el resto. Así, con una tipografía ancha (San Javucho a 1440 px, Bricolage Grotesque) no desborda ni corta la última entrada; vuelve a medir al cambiar el ancho o cargar la fuente. Mismo estilo del prototipo (mayúsculas, subrayado de la activa). La copia de medida va en un contenedor recortado (`overflow:hidden`) para no agregar scroll horizontal a la página. Sin `ResizeObserver` se muestran todas y la barra desplaza en horizontal.
+- **Carga infinita** (`components/pagina/CargaInfinita`, compartida con el panel): el foco pasa de «Reintentar» a «Cargar más» (y de vuelta si falla otra vez, o al aviso si «Reintentar» espera) en vez de caer al body (solo si el foco se perdió: no se le roba a quien pasó a otro campo); el aviso de espera por límite de búsquedas se anuncia una sola vez (`role=alert`, con la región viva vacía en error); «Cargar más» se ve apagado (`aria-disabled`) mientras carga; y `useCatalogoPublico` descarta lo acumulado en el mismo render en que cambia la clave, así A→B→A no muestra la lista vieja.
+- **E2E**: `tienda-*.e2e.ts` ajustados al DOM actual (navegación «Categorías» exacta frente a «Categorías del pie»; headings de la home dentro de `<main>`; bloque de consultas; no desborde de la barra). No se corrieron (requieren el stack local). Spec: `specs/20270305-100000-tiendas-seguimiento-front/`.
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
@@ -495,7 +515,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (T070–T073; SC-010…SC
 | Ruta | Qué muestra | Historia |
 |---|---|---|
 | `/` | Inicio de la tienda | épica anterior |
-| `/catalogo` | «Todos los productos» con filtros, orden y paginación | F-TDA-12 |
+| `/catalogo` | «Todos los productos» con filtros, orden y carga infinita | F-TDA-12 |
 | `/categoria/:categoriaId` | Listado de una categoría visible (migas «Inicio / Categoría») | F-TDA-11 + F-TDA-12 |
 | `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad | F-TDA-13 |
 | cualquier otra | La misma 404 (inexistente, oculta, ajena o id inválido) | F-TDA-11 |
@@ -513,7 +533,7 @@ Helpers `private.*` sin `execute` para la API: `disponible_publico` (F-TDA-18) y
 
 ### Filtros y URL
 
-`categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro vuelve a la página 1.
+`categoria`, `stock=1`, `max=<pesos>`, y `orden=<relevancia|precio_asc|precio_desc>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro reinicia la lista desde la primera tanda (un `pagina=<n>` viejo se ignora).
 
 ### Disponibilidad
 
@@ -530,7 +550,7 @@ Solo el booleano «Disponible» / «Sin stock» (`cantidad > 0`), nunca cantidad
 
 ### Contradicciones con el prototipo (para el PR)
 
-Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
+La carga infinita («Cargar más») no está dibujada en el prototipo (se usa el componente compartido del panel); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
 
 ### Rendimiento en celular (T071, SC-010)
 
@@ -767,6 +787,14 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 (`/producto/:productoId`) aparece «Productos relacionados»: hasta **4** productos efectivamente visibles de la
 **misma categoría**, sin el actual, destacados primero y luego por nombre (D2 de la spec).
 
+**Relacionados manuales (MSF-846, `20270305100200_tienda_relacionados_manuales.sql`)**: si el producto tiene
+«Productos relacionados» cargados en el panel (`dominio.producto_relacionados`, F-CAT-18), la ficha muestra
+**esos primero, en su orden (con empate de `orden`, por id)**, hasta 4 y solo los efectivamente visibles en esa tienda
+(`private.catalogo_tienda_efectivo`: ocultos, inactivos o no asignados a la empresa se omiten); si faltan para
+llegar a 4 se completa con la regla por categoría de arriba, sin repetirlos. Un producto sin categoría con
+manuales visibles los devuelve. Mismo contrato de salida y mismos grants; los vínculos se filtran por la
+organización de la tienda. Reversión: restaurar el cuerpo de `20270212100003_tienda_relacionados.sql`.
+
 | Capa | Dónde |
 |---|---|
 | Base | `supabase/migrations/20270212100003_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
@@ -925,7 +953,7 @@ Visión de conjunto de la épica; el detalle de cada historia está en las secci
 | Historia | Pieza | Esquema | Quién la ejecuta |
 |---|---|---|---|
 | F-TDA-19 (MSF-247) | `publico.estado_tienda_por_dominio(host)`: marca de la tienda **desactivada** | `publico` (función) | `anon`, `authenticated` |
-| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4 de la misma categoría | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4; primero los relacionados manuales del panel (MSF-846) y luego la regla por categoría | `publico` (función) | `anon`, `authenticated` |
 | F-TDA-21 (MSF-279) | `publico.seo_tienda_por_dominio(host)` y `publico.sitemap_por_dominio(host)` | `publico` (funciones) | `anon`, `authenticated` |
 | F-TDA-22 (MSF-289) | `publico.legal_por_dominio(host)` y la tabla `dominio.tienda_legal_enlaces` | tabla en **`dominio`** (dato del producto atado a una empresa, Principio VII), función en `publico` | tabla: solo `select` a `authenticated` con RLS por organización, sin privilegios para `anon`; función: `anon` |
 
@@ -968,7 +996,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 | # | Supuesto adoptado | Cómo cambiarlo |
 |---|---|---|
 | D1 | La marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. | Dejar de llamar a la función desde `SinTienda` y vuelve la pantalla genérica. |
-| D2 | Relacionados: hasta 4 visibles de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
+| D2 | Relacionados: hasta 4 visibles; primero los manuales del panel (MSF-846, en su orden) y luego, para completar, los de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
 | D3 | SEO básico: título, descripción, canónica, Open Graph, JSON-LD (organización y producto), `robots.txt`, `sitemap.xml` y `noindex` en páginas de estado, cuenta y búsqueda. | Fuera de alcance: campos SEO por producto, hreflang, analítica. |
 | D4 | La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender. | Otra historia (prerender o HTML desde la Edge Function). |
 | D5 | Los enlaces legales los carga el equipo técnico por SQL. | Otra historia, dentro de Empresas. |
@@ -980,7 +1008,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 1. «Volvemos pronto» figura P0 en F-TDA-01 y P1 en F-TDA-19: la versión mínima ya estaba; esta épica agrega la identidad.
 2. El interruptor «Store activa» ya existe en el panel (F-EMP-04); acá solo se verifica su efecto en la tienda, sin rediseñar esa pantalla.
-3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano; se aplica la regla D2 y se mantienen «Sin imagen» / «Sin stock».
+3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano: desde MSF-846 van primero los relacionados manuales del panel y luego se completa con la regla D2 (misma categoría); se mantienen «Sin imagen» / «Sin stock».
 4. Aviso de cookies, SEO y bloque legal no tienen pantalla en el prototipo: se construyen con los componentes del template y los tokens de la tienda.
 
 ### Migraciones y reversión
@@ -1106,6 +1134,8 @@ contacto de la empresa del host.
   logo, banners). `theme.tienda` expone además los derivados que usa el diseño: `barra`, `textoBarra`, `superficie` (el fondo mezclado
   con negro 4,3 %, el `--sf` del prototipo) y `fuenteTitulos`. Sin identidad legible la tienda sigue con el tema base. En la vista previa
   del panel la identidad llega inyectada (`ProveedorFuenteTienda`) y no se tocan variables globales.
+  Además el `body` toma la tipografía de texto (`--tienda-fuente-texto`) y los enlaces del menú de categorías la de títulos: sin esto, lo que
+  no es tipografía de MUI (los enlaces del menú) salía en la serif por defecto del navegador.
 - **Destello de tema (decisión)**: no se espera la petición de identidad para pintar; la tienda arranca con el tema base neutro y pasa a
   la identidad al llegar, así el contenido no espera un pedido más. Es un destello conocido y aceptado. Para no sumar saltos de diseño, la
   barra superior reserva su altura (36 px / 28 px en celular) mientras llega el contacto.
@@ -1132,7 +1162,8 @@ contacto de la empresa del host.
   AA sobre `colorBarra`); el texto secundario del tema se calcula para llegar a 4,5:1 sobre el fondo y sobre la superficie de las tarjetas.
 - **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
   `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
-  pudo firmar, el recuadro neutro. La vista previa del panel no trae `imagen` (`vista_previa_tienda` no la calcula): muestra el recuadro
+  pudo firmar, el recuadro neutro. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa del panel
+  (`vista_previa_tienda`) también trae `imagen`, calculada sobre los productos efectivos del borrador, y el panel muestra la foto; sin foto, el recuadro
   neutro.
 - **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
   «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos»; un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace. No se muestra en la vista previa (no lee `publico.*`).

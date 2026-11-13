@@ -71,7 +71,7 @@ export function InformeConciliacion({ carga, conErrores = true }: { carga: strin
         </Alert>
       )}
       <Typography variant="body2" color="text.secondary">Archivo: {informe.archivo}</Typography>
-      <Box sx={{ overflowX: 'auto' }}>
+      <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Detalle de la conciliación (se desplaza)">
         <Table size="small" aria-label="Detalle de la conciliación">
           <TableHead>
             <TableRow>
@@ -90,7 +90,7 @@ export function InformeConciliacion({ carga, conErrores = true }: { carga: strin
         </Table>
       </Box>
       {conErrores && informe.errores.length > 0 ? (
-        <Box sx={{ overflowX: 'auto' }}>
+        <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Errores de la conciliación (se desplaza)">
           {informe.conError > informe.errores.length ? (
             <Typography variant="body2" color="text.secondary" role="status">
               Mostrando {informe.errores.length} de {informe.conError} filas con error.

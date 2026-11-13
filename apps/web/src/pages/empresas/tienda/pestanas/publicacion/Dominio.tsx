@@ -172,7 +172,7 @@ function Formulario({ empresaId, dominio, alCambiarDominio, recargar }: {
 
           {verificando ? <Alert severity="info" role="alert">Verificando registros DNS…</Alert> : null}
 
-          <TableContainer sx={{ overflowX: 'auto' }}>
+          <TableContainer tabIndex={0} role="region" aria-label="Registros DNS a cargar (se desplaza)" sx={{ overflowX: 'auto' }}>
             <Table size="small" aria-label="Registros DNS a cargar">
               <TableHead>
                 <TableRow>

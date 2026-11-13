@@ -85,8 +85,12 @@ test.describe('Tienda online · página de inicio (SC-003)', () => {
         const page = await contexto.newPage()
 
         await page.goto(`${base}/`)
-        await expect(page.getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
-        await expect(page.getByRole('heading', { level: 2, name: 'Destacados' })).toBeVisible()
+        // Dentro de <main>: el pie también tiene un h2 «Categorías» (y «Contacto») y chocaría con el locator.
+        const principal = page.getByRole('main')
+        await expect(principal.getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
+        await expect(principal.getByRole('heading', { level: 2, name: 'Destacados' })).toBeVisible()
+        // Bloque de consultas del final de la portada: «Escribinos» (siempre) lleva a /contacto.
+        await expect(page.getByTestId('consultas-inicio').getByRole('link', { name: /Escribinos/ })).toBeVisible()
 
         // Su categoría, con «N productos», y nada de la otra tienda.
         await expect(page.getByRole('region', { name: 'Categorías' }).getByRole('link', { name: new RegExp(t.categoria) })).toContainText('2 productos')

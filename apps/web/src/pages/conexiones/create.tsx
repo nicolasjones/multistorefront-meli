@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { Create } from '@refinedev/mui'
+import { BotonVolver } from '../../components/pagina/BotonVolver'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
@@ -30,7 +31,7 @@ export function ConexionCreate() {
     navigate('/conexiones')
   }
 
-  return <Create title="Crear conexión" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}><Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}><Stack spacing={2}>
+  return <Create goBack={<BotonVolver />} title="Crear conexión" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}><Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}><Stack spacing={2}>
     {error && <Alert severity="error">{error}</Alert>}
     <Typography variant="body2" color="text.secondary">La credencial se cifra en Vault al enviarla. No se conserva en esta pantalla después del envío.</Typography>
     <TextField label="Sistema externo" value={sistemaExterno} onChange={(event) => setSistemaExterno(event.target.value)} required fullWidth />

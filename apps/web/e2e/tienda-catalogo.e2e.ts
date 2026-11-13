@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
 
 // F-TDA-12 (MSF-355, SC-006 de la épica MSF-167): con los dos dominios del seed (mundojc.localhost y
-// sanjavucho.localhost) el menú lleva a la categoría; los filtros, el orden y la paginación cambian el
+// sanjavucho.localhost) el menú lleva a la categoría; los filtros, el orden y la carga infinita cambian el
 // listado sin recargar y la URL copiada da el mismo resultado al reabrirla. Requiere el stack local
 // (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra con la API admin desde
 // Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
@@ -54,12 +54,12 @@ async function borrar(tabla: string, filtro: string) {
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
-const MASIVOS = 26 // 24 en la primera página y 2 en la segunda
+const MASIVOS = 26 // 24 en la primera tanda y 2 en la segunda
 
 test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('menú → categoría, filtros, orden, paginación y URL compartible', async ({ browser }) => {
+  test('menú → categoría, filtros, orden, carga infinita y URL compartible', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t, i) => ({
       ...t,
@@ -113,7 +113,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
 
         // Menú → categoría: solo sus 3 productos, con precio y disponibilidad.
         await page.goto(`${base}/`)
-        await page.getByRole('navigation', { name: 'Categorías' }).getByRole('link', { name: t.categoria }).click()
+        await page.getByRole('navigation', { name: 'Categorías', exact: true }).getByRole('link', { name: t.categoria }).click()
         await expect(page.getByRole('heading', { level: 1, name: t.categoria })).toBeVisible()
         await expect(contador).toHaveText('3 productos')
         await expect(tarjetas).toHaveCount(3)
@@ -155,19 +155,44 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
         await expect(otraPagina.getByRole('combobox', { name: 'Ordenar por' })).toHaveText('Mayor precio')
         await otroContexto.close()
 
-        // Paginación de a 24 en el catálogo general filtrado por la categoría masiva.
+        // Carga infinita de a 24 en el catálogo general filtrado por la categoría masiva (MSF-845).
         await page.goto(`${base}/catalogo?categoria=${t.masivaId}`)
         await expect(contador).toHaveText(`${MASIVOS} productos`)
-        await expect(tarjetas).toHaveCount(24)
-        await page.getByRole('navigation', { name: 'Paginación del catálogo' }).getByRole('link', { name: 'Ir a la página 2' }).click()
-        await expect(page).toHaveURL(/pagina=2/)
-        await expect(tarjetas).toHaveCount(MASIVOS - 24)
-        await expect(tarjetas.first()).toContainText(`${t.masiva} 25`)
-        const paginaDos = page.url()
-        await page.goto(paginaDos)
-        await expect(tarjetas).toHaveCount(MASIVOS - 24)
+        // Primera tanda de 24; la segunda puede llegar sola si el pie ya está dentro del margen del observador.
+        await expect(tarjetas.first()).toBeVisible()
+        expect(await tarjetas.count()).toBeGreaterThanOrEqual(24)
+        await expect(page.getByRole('navigation', { name: 'Paginación del catálogo' })).toHaveCount(0)
+        // El scroll hasta el final o «Cargar más» suman la tanda siguiente sin cambiar la URL. El centinela del
+        // componente es el propio botón (margen de 400 px), así que la tanda puede cargarse sola o con el click:
+        // se llega al final de verdad y se acepta cualquiera de las dos vías (sin depender de la carrera).
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+        await expect
+          .poll(
+            async () => {
+              if (await tarjetas.count() >= MASIVOS) return MASIVOS
+              const boton = page.getByRole('button', { name: 'Cargar más' })
+              if (await boton.isVisible().catch(() => false)) await boton.click({ timeout: 1000 }).catch(() => undefined)
+              await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+              return tarjetas.count()
+            },
+            { timeout: 20_000 },
+          )
+          .toBe(MASIVOS)
+        await expect(tarjetas).toHaveCount(MASIVOS)
+        await expect(page.getByText('No hay más resultados.')).toBeVisible()
+        await expect(page).not.toHaveURL(/pagina=/)
 
-        // Cambiar un filtro vuelve a la página 1.
+        // Un enlace viejo con ?pagina=N no rompe: se ignora y arranca de la primera tanda. La tanda 2 puede
+        // cargarse sola, así que no se afirma «exactamente 24» (carrera): se afirma lo estable, que la URL de
+        // la primera tanda no redirige, el listado se muestra y el total sigue siendo el del servidor.
+        await page.goto(`${base}/catalogo?categoria=${t.masivaId}&pagina=2`)
+        await expect(contador).toHaveText(`${MASIVOS} productos`)
+        await expect(tarjetas.first()).toBeVisible()
+        expect(await tarjetas.count()).toBeGreaterThanOrEqual(24)
+        expect(await tarjetas.count()).toBeLessThanOrEqual(MASIVOS)
+        await expect(page.getByRole('navigation', { name: 'Paginación del catálogo' })).toHaveCount(0)
+
+        // Cambiar un filtro reinicia la lista desde el principio.
         await page.getByRole('button', { name: 'Solo con stock' }).click()
         await expect(page).not.toHaveURL(/pagina=/)
 
