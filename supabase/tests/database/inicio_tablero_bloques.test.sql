@@ -4,7 +4,7 @@
 -- vistas y búsqueda, aislamiento, vista previa que NO escribe y `anon` sin ejecución.
 begin;
 
-select plan(30);
+select plan(46);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -12,10 +12,12 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('e1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('e1000000-0000-0000-0000-000000000002', 'tecnico-uno@example.com'),
+  ('e1000000-0000-0000-0000-000000000003', 'operador-uno@example.com'),
   ('e2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'tecnico', 'activo'),
+  ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'operador', 'activo'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 insert into public.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente Uno', 'mayorista');
@@ -41,6 +43,10 @@ insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion
   ('b1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10),
   ('b1000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 3)
 on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad;
+
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
+  ('b1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111')
+on conflict do nothing;
 
 -- Movimientos de octubre (Central): salida de 3 (10/10) y entrada de 5 (12/10) del Teclado.
 insert into dominio.motivos_movimiento (id, organizacion_id, nombre) values
@@ -123,6 +129,49 @@ select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select is((select ventas from public.movimientos_por_producto('2026-10-01', '2026-10-31') where sku = 'TEC-1'), null::bigint,
   'sin permiso de ventas la columna ventas vuelve null');
+
+
+-- ===== Revisiones: tienda, búsqueda, lista blanca, aislamiento, permisos =====
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', 'a1000000-0000-0000-0000-0000000000e1')), 1,
+  'con tienda elegida el listado muestra solo los productos de esa tienda (CA-INI-06-11)');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, '%')), 0,
+  'buscar «%» no es un comodín: no devuelve todo');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, 'ou')), 1,
+  'la búsqueda por nombre encuentra «Mouse»');
+select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'estado', 'desc')$$,
+  'ordenar por estado (por severidad) es válido');
+select lives_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'ultimo_movimiento', 'asc', 2, 10)$$,
+  'ordenar por último movimiento y pedir otra página es válido');
+select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'todos', 'nombre', 'asc; drop table x')$$, '22023', null,
+  'una dirección fuera de la lista blanca se rechaza');
+select throws_ok($$select * from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, null, null, null, 'inventada')$$, '22023', null,
+  'una vista inválida se rechaza');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31', null, 'd2000000-0000-0000-0000-000000000001')), 0,
+  'un depósito de otra organización devuelve una lista vacía');
+select throws_ok($$select * from public.movimientos_por_producto('2025-01-01', '2026-10-31')$$, '22023', null, 'más de 366 días se rechaza');
+
+-- Operador: tiene `ventas` pero no `rentabilidad`: ve unidades, no ingresos ni margen.
+select pg_temp.como('e1000000-0000-0000-0000-000000000003');
+select is((select (t ->> 'unidades')::int from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+  1, 'con ventas y sin rentabilidad se ven las unidades de la tienda');
+select is((select t -> 'ingresos' from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+  'null'::jsonb, 'los ingresos vuelven null sin rentabilidad');
+select is((select t -> 'margen_pct' from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+  'null'::jsonb, 'el margen vuelve null sin rentabilidad');
+
+-- Otra organización: no ve nada de la Uno.
+select pg_temp.como('e2000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31')), 0, 'la organización Dos no ve productos de la Uno');
+select is(jsonb_array_length(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda'), 1, 'la organización Dos solo ve su tienda');
+
+reset role;
+select ok(not has_function_privilege('anon', 'public.resumen_inicio_bloques(date,date,uuid,uuid)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.movimientos_por_producto(date,date,uuid,uuid,text,uuid,text,text,text,integer,integer)', 'EXECUTE'),
+  'anon no ejecuta las RPC de bloques ni de movimientos por producto');
+select ok(has_function_privilege('authenticated', 'public.resumen_inicio_bloques(date,date,uuid,uuid)', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.movimientos_por_producto(date,date,uuid,uuid,text,uuid,text,text,text,integer,integer)', 'EXECUTE'),
+  'authenticated sí las ejecuta');
 
 -- ===== F-INI-07: previsualizar_impacto_dolar =====
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');

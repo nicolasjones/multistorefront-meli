@@ -15,6 +15,11 @@
 --  * Con p_deposito todo se mide sobre ese depósito (stock, movimientos y ventas).
 --  * ventas = unidades netas de devoluciones (la nota de crédito resta) de las tiendas con `ventas` ≥
 --    lectura (y p_empresa si viene); null si el usuario no tiene `ventas` en ninguna.
+--  * Con p_empresa el LISTADO muestra solo los productos de esa tienda (`dominio.producto_empresa`, CA-INI-06-11:
+--    manda la historia sobre la decisión D-8 de la spec) y las ventas son las de esa tienda; sin tienda, todos.
+--  * Rendimiento: el agregado de movimientos se acota al período en adelante (índice
+--    (organizacion_id, fecha)) y a los productos filtrados; el último movimiento sale de una subconsulta
+--    por producto. Búsqueda ≤ 100 caracteres y página ≤ 100000. El estado ordena por severidad.
 --  * estado: «alerta» (disponible ≤ mínimo, incluye sin stock) > «quieto» (sin movimientos en el período) >
 --    «normal». Vistas: todos | alerta | quieto.
 --  * NO expone costo ni margen (no están entre las 12 columnas).
@@ -64,8 +69,8 @@ declare
   v_orden text;
   v_dir text;
   v_tamano integer := least(greatest(coalesce(p_tamano, 25), 1), 100);
-  v_pagina integer := greatest(coalesce(p_pagina, 1), 1);
-  v_busqueda text := nullif(btrim(coalesce(p_busqueda, '')), '');
+  v_pagina integer := least(greatest(coalesce(p_pagina, 1), 1), 100000);
+  v_busqueda text := nullif(left(btrim(coalesce(p_busqueda, '')), 100), '');
 begin
   if v_org is null or (select private.nivel_seccion('stock')) not in ('lectura', 'edicion') then
     raise exception 'Tu rol no puede ver los movimientos de stock' using errcode = '42501';
@@ -98,7 +103,7 @@ begin
     when 'minimo' then 'r.minimo'
     when 'ventas' then 'r.ventas'
     when 'ultimo_movimiento' then 'r.ultimo_movimiento'
-    when 'estado' then 'r.estado'
+    when 'estado' then $$case r.estado when 'alerta' then 0 when 'quieto' then 1 else 2 end$$
     else null
   end;
   if v_orden is null then
@@ -133,19 +138,24 @@ begin
                on ed.producto_id = p.id and ed.organizacion_id = p.organizacion_id and ed.deposito_id = $4::uuid
        where p.organizacion_id = $1 and p.activo
          and ($6::uuid is null or p.categoria_id = $6::uuid)
+         and ($12::uuid is null or exists (
+               select 1 from dominio.producto_empresa pe
+                where pe.producto_id = p.id and pe.organizacion_id = p.organizacion_id and pe.empresa_id = $12::uuid))
          and ($5::text is null or p.nombre ilike '%%' || replace(replace(replace($5::text, '\', '\\'), '%%', '\%%'), '_', '\_') || '%%'
               or p.sku ilike '%%' || replace(replace(replace($5::text, '\', '\\'), '%%', '\%%'), '_', '\_') || '%%')
     ),
     mov as (
       select m.producto_id,
-             coalesce(sum(m.cantidad) filter (where m.tipo = 'entrada' and m.fecha between $2 and $3), 0)::bigint as entradas,
+             coalesce(sum(m.diferencia) filter (where m.tipo = 'entrada' and m.fecha between $2 and $3), 0)::bigint as entradas,
              coalesce(sum(- m.diferencia) filter (where m.tipo = 'salida' and m.fecha between $2 and $3), 0)::bigint as salidas,
              coalesce(sum(m.diferencia) filter (where m.tipo = 'ajuste' and m.fecha between $2 and $3), 0)::bigint as ajustes,
              coalesce(sum(m.diferencia) filter (where m.fecha >= $2), 0)::bigint as desde_inicio,
              count(*) filter (where m.fecha between $2 and $3) as en_periodo,
-             max(m.fecha) as ultimo
+             count(*) as total_mov
         from dominio.movimientos_stock m
-       where m.organizacion_id = $1 and ($4::uuid is null or m.deposito_id = $4::uuid)
+       where m.organizacion_id = $1 and m.fecha >= $2
+         and ($4::uuid is null or m.deposito_id = $4::uuid)
+         and m.producto_id in (select b0.producto_id from base b0)
        group by m.producto_id
     ),
     vta as (
@@ -164,7 +174,9 @@ begin
              coalesce(mo.entradas, 0) as entradas, coalesce(mo.salidas, 0) as salidas, coalesce(mo.ajustes, 0) as ajustes,
              b.stock_actual, b.minimo,
              case when $7::boolean then coalesce(vt.ventas, 0) end as ventas,
-             mo.ultimo as ultimo_movimiento,
+             (select max(m2.fecha) from dominio.movimientos_stock m2
+               where m2.organizacion_id = $1 and m2.producto_id = b.producto_id
+                 and ($4::uuid is null or m2.deposito_id = $4::uuid)) as ultimo_movimiento,
              case when b.stock_actual - b.reservado <= b.minimo then 'alerta'
                   when coalesce(mo.en_periodo, 0) = 0 then 'quieto'
                   else 'normal' end as estado,
@@ -186,7 +198,7 @@ begin
      limit $10 offset $11
   $q$, v_orden, v_dir)
   using v_org, p_desde, p_hasta, p_deposito, v_busqueda, p_categoria, v_con_ventas, v_empresas,
-        coalesce(p_vista, 'todos'), v_tamano, (v_pagina - 1) * v_tamano;
+        coalesce(p_vista, 'todos'), v_tamano, (v_pagina - 1) * v_tamano, p_empresa;
 end;
 $$;
 
