@@ -61,13 +61,23 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
 
   test('«Disponible» y «Sin stock» en cada tienda, sin cantidades', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
-    const tiendas = TIENDAS.map((t) => ({ ...t, conStock: `Con stock ${t.nombre} ${sufijo}`, sinStock: `Sin stock ${t.nombre} ${sufijo}` }))
+    const tiendas = TIENDAS.map((t) => ({
+      ...t,
+      categoria: `Cat disponibilidad ${t.nombre} ${sufijo}`,
+      categoriaId: '',
+      conStock: `Con stock ${t.nombre} ${sufijo}`,
+      sinStock: `Sin stock ${t.nombre} ${sufijo}`,
+    }))
 
     try {
       for (const t of tiendas) {
+        // Categoría propia: el catálogo carga de a 24 (carga infinita, MSF-845) y con el orden por defecto los
+        // productos sembrados podrían quedar en una tanda posterior; filtrar por categoría los deja en la primera.
+        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }])
+        t.categoriaId = categoria.id
         const [conStock, sinStock] = await insertar<{ id: string }>('productos', [
-          { organizacion_id: t.organizacion, nombre: t.conStock, sku: `E2E-D-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10 },
-          { organizacion_id: t.organizacion, nombre: t.sinStock, sku: `E2E-S-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20 },
+          { organizacion_id: t.organizacion, nombre: t.conStock, sku: `E2E-D-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10, categoria_id: categoria.id },
+          { organizacion_id: t.organizacion, nombre: t.sinStock, sku: `E2E-S-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20, categoria_id: categoria.id },
         ])
         await insertar('producto_empresa', [conStock, sinStock].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
         // La fila de existencias nace con el producto (trigger) en 0.
@@ -84,11 +94,9 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
         await expect(page.getByRole('heading', { level: 1, name: t.nombre })).toBeVisible()
         await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
 
-        // Tarjeta (F-TDA-12) y ficha (F-TDA-13): se activan cuando esas rutas existen en la épica.
-        await page.goto(`${base}/catalogo`)
-        const hayCatalogo = (await page.getByText(t.conStock).count()) > 0
-        test.skip(!hayCatalogo, 'La tarjeta del catálogo (F-TDA-12) y la ficha (F-TDA-13) aún no están en esta rama.')
-
+        // Tarjeta del catálogo (F-TDA-12) y ficha (F-TDA-13).
+        await page.goto(`${base}/catalogo?categoria=${t.categoriaId}`)
+        await expect(page.getByTestId('tarjeta-producto')).toHaveCount(2)
         const tarjetaCon = page.getByRole('link', { name: new RegExp(t.conStock) })
         const tarjetaSin = page.getByRole('link', { name: new RegExp(t.sinStock) })
         await expect(tarjetaCon).toContainText('Disponible')
@@ -96,17 +104,19 @@ test.describe('Tienda online · disponibilidad visible (SC-009)', () => {
         await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
 
         await tarjetaSin.click()
-        // La ficha es de F-TDA-13: hasta que esa ruta exista en la rama, la tarjeta lleva a la 404 amable.
-        const hayFicha = (await page.getByTestId('pagina-no-encontrada').count()) === 0
-        test.skip(!hayFicha, 'La ficha del producto (F-TDA-13) aún no está en esta rama.')
         await expect(page.getByRole('heading', { level: 1, name: t.sinStock })).toBeVisible()
-        await expect(page.getByTestId('etiqueta-disponibilidad')).toHaveText('Sin stock')
+        // La etiqueta de la ficha es la primera del DOM: más abajo «Productos relacionados» (misma categoría) trae
+        // las tarjetas de los demás productos, cada una con la suya.
+        await expect(page.getByTestId('etiqueta-disponibilidad').first()).toHaveText('Sin stock')
         await expect(page.locator('body')).not.toContainText(String(CANTIDAD_CON_STOCK))
         await contexto.close()
       }
     } finally {
       // Limpieza: los productos caen en cascada con sus existencias y filas de tienda.
-      for (const t of tiendas) await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+      for (const t of tiendas) {
+        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+      }
     }
   })
 })

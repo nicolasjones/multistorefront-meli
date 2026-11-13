@@ -34,9 +34,12 @@ test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer 
   await page.goto(`http://${HOST_TIENDA}:${puerto}/`)
 
   // El panel (sin sesión) manda a `/login` al cargar; la tienda no. Si aparece `/login`, este host
-  // no se está sirviendo como tienda y el caso no aplica.
+  // no se está sirviendo como tienda y el caso no aplica. En el CI (`CI`) NO se omite: el job arma el build con
+  // `VITE_PANEL_HOSTS`, y si faltara tiene que fallar en vez de dar un falso verde.
   await page.waitForTimeout(1000)
-  test.skip(/\/login$/.test(new URL(page.url()).pathname), 'Este host no se sirve como tienda (falta VITE_PANEL_HOSTS en el build): el caso no aplica.')
+  const sirveComoPanel = /\/login$/.test(new URL(page.url()).pathname)
+  if (process.env.CI) expect(sirveComoPanel, 'El build no define VITE_PANEL_HOSTS: el host no se sirve como tienda').toBe(false)
+  test.skip(sirveComoPanel, 'Este host no se sirve como tienda (falta VITE_PANEL_HOSTS en el build): el caso no aplica.')
 
   // El primer clic del visitante que vuelve al día siguiente.
   await page.mouse.click(4, 4)
