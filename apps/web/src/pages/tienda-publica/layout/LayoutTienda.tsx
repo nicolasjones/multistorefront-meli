@@ -58,8 +58,9 @@ function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: str
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <BarraSuperior host={host} />
+      {/* La barra superior va dentro del <header> (landmark banner): sin esto queda fuera de todo landmark (axe «region»). */}
       <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
+        <BarraSuperior host={host} />
         {/* Celular: marca + botón de menú arriba y buscador a todo el ancho debajo; desde `md`, en una fila. */}
         <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, pt: { xs: 1, md: 0 }, minHeight: { md: 84 }, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, pb: { xs: 1.5, md: 0 } }}>
           <Marca tienda={tienda} enInicio={enInicio} />

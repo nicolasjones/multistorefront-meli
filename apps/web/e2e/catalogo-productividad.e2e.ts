@@ -98,7 +98,13 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
 
       await ingresar(page, correo)
       await page.goto('/productos')
+      // La búsqueda se aplica tras una pausa de tipeo y, al cambiar el contexto de la lista, la selección se
+      // descarta a propósito. Como la organización solo tiene estos 3 productos, las filas ya se ven ANTES de que
+      // la búsqueda se aplique: marcar entonces se pierde y `check()` falla («did not change its state»). Se
+      // espera la consulta que ya lleva el texto buscado (el contexto ya cambió) y recién ahí se marca.
+      const busquedaAplicada = page.waitForResponse((r) => r.url().includes('/v_productos_listado') && r.url().includes(sufijo) && r.ok())
       await page.getByLabel('Buscar por nombre, SKU o código de barras').fill(sufijo)
+      await busquedaAplicada
       for (const nombre of nombres) await expect(page.getByRole('row', { name: new RegExp(nombre) })).toBeVisible()
       await page.getByRole('checkbox', { name: 'Seleccionar todos' }).check()
       await expect(page.getByText('3 seleccionados')).toBeVisible()
