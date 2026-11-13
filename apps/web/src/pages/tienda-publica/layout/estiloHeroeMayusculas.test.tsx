@@ -5,8 +5,8 @@ import { ThemeProvider } from '@mui/material'
 import { violacionesAxe } from '../../../test/axe'
 import { celular } from '../../../test/matchMedia'
 import { contraste, crearTemaTienda, UMBRAL_BOTON } from '../../../tema/temaTienda'
-import { MenuCategorias } from '../layout/MenuCategorias'
-import { BannerContenido } from './BannerHome'
+import { BannerContenido } from '../secciones/BannerHome'
+import { MenuCategorias } from './MenuCategorias'
 
 // MSF-848: estilo del encabezado de la portada (oscuro | claro) y mayúsculas de títulos y botones, por identidad.
 const MJC = { colorPrimario: '#A3111D', colorPrimarioOscuro: '#7A0A12', colorAcento: '#A3111D', colorBarra: '#2A2A2A', colorTexto: '#1F1F1F', colorFondo: '#FFFFFF' }

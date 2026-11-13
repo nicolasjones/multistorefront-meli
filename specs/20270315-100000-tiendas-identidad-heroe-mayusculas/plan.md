@@ -10,6 +10,6 @@
 - **Tema** (`tema/temaTienda.ts`): `ESTILOS_HEROE`, `ColoresTienda.heroe` (`estilo`, `fondo`, `texto`, `circulo`) y `titulosMayusculas`; `botonDestacado` se calcula contra la franja del héroe (en el estilo oscuro es la franja de la barra, igual que antes).
 - **Panel**: `pestanas/identidad.tsx` (tarjeta «Portada y menú», vista previa) y `componentes/identidad/CamposDeIdentidad.tsx` (`SelectorEstiloHeroe`, `InterruptorMayusculas`).
 - **Front público**: `secciones/BannerHome.tsx` (variante clara con círculo, mayúsculas del título y del botón) y `layout/MenuCategorias.tsx` (mayúsculas y `letter-spacing` de la barra).
-- **Pruebas**: pgTAP `tienda_identidad_estilo_heroe.test.sql` (nuevo; se corrió a mano en dev dentro de `begin … rollback`) y los tests existentes con la firma nueva; Vitest (`tema`, `secciones/estiloHeroeMayusculas.test.tsx`, `lib/tiendaIdentidad.test.ts`, `IdentidadTienda.test.tsx`, axe a 320/768/1440).
+- **Pruebas**: pgTAP `tienda_identidad_estilo_heroe.test.sql` (nuevo; se corrió a mano en dev dentro de `begin … rollback`) y los tests existentes con la firma nueva; Vitest (`tema`, `layout/estiloHeroeMayusculas.test.tsx`, `lib/tiendaIdentidad.test.ts`, `IdentidadTienda.test.tsx`, axe a 320/768/1440).
 - **Documentación**: `docs/tiendas-online.md` y la spec de MSF-847 (decisiones resueltas).
 - Reversión: ver el encabezado de la migración; revertir los commits del front.
