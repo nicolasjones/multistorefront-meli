@@ -376,7 +376,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   (CTE materializados `efectivos` → `img_producto` → `imagen` con `distinct on`, sobre el árbol recursivo ya
   calculado), sin subconsultas por fila ni funciones por producto, porque la función corre bajo `anon` con
   `statement_timeout` de 3 s (ver el bug de MSF-825 abajo). La ruta cuelga de `<organización>/<producto>/`,
-  igual que la `imagen` de los destacados; la vista previa de la gestión no la calcula (`imagen: null`).
+  igual que la `imagen` de los destacados. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa de la gestión (`public.vista_previa_tienda`) también la devuelve, con la misma regla sobre los productos efectivos del borrador, y el panel muestra la foto de categoría.
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
   `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
@@ -780,6 +780,14 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 Épica MSF-149 (spec `20270125-100000-tienda-seo-legal-y-estados`). Debajo de los datos de la ficha
 (`/producto/:productoId`) aparece «Productos relacionados»: hasta **4** productos efectivamente visibles de la
 **misma categoría**, sin el actual, destacados primero y luego por nombre (D2 de la spec).
+
+**Relacionados manuales (MSF-846, `20270305100200_tienda_relacionados_manuales.sql`)**: si el producto tiene
+«Productos relacionados» cargados en el panel (`dominio.producto_relacionados`, F-CAT-18), la ficha muestra
+**esos primero, en su orden**, hasta 4 y solo los efectivamente visibles en esa tienda
+(`private.catalogo_tienda_efectivo`: ocultos, inactivos o no asignados a la empresa se omiten); si faltan para
+llegar a 4 se completa con la regla por categoría de arriba, sin repetirlos. Un producto sin categoría con
+manuales visibles los devuelve. Mismo contrato de salida y mismos grants; los vínculos se filtran por la
+organización de la tienda. Reversión: restaurar el cuerpo de `20270212100003_tienda_relacionados.sql`.
 
 | Capa | Dónde |
 |---|---|
