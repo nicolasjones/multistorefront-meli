@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar el Ciclo de Ejecuciones en un producto derivado
 
 Guía de proceso para traer la capacidad de la spec 016 a un producto que ya
