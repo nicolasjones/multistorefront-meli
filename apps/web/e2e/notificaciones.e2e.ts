@@ -72,15 +72,25 @@ test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
 
       await paso(page, 'Abre un aviso y queda leído', async () => {
         await clic(page, page.getByText(`Nombre: Ana ${sufijo}`))
+        // Con la lista abierta (modal) la campanita queda fuera del árbol accesible: se cuentan los avisos sin leer de la lista.
+        await expect(page.getByRole('button', { name: /^Consulta nueva \(sin leer\)/ })).toHaveCount(2)
+        await expect(page.getByRole('button', { name: new RegExp(`^Consulta nueva Nombre: Ana ${sufijo}`) })).toBeVisible()
+        // Y el contador de la campanita, ya sin el modal, baja de 3 a 2.
+        await page.keyboard.press('Escape')
+        await expect(page.getByRole('dialog', { name: 'Notificaciones' })).toBeHidden()
         await expect(page.getByRole('button', { name: 'Notificaciones, 2 sin leer' })).toBeVisible()
+        await clic(page, page.getByRole('button', { name: 'Notificaciones, 2 sin leer' }))
+        await expect(page.getByRole('dialog', { name: 'Notificaciones' })).toBeVisible()
       })
 
       await paso(page, 'Marca todas como leídas', async () => {
         await clic(page, page.getByRole('button', { name: 'Marcar todas como leídas' }))
         await expect(page.getByRole('button', { name: 'Marcar todas como leídas' })).toBeDisabled()
-        await expect(page.getByRole('button', { name: 'Notificaciones', exact: true })).toBeVisible()
+        await expect(page.getByRole('button', { name: /\(sin leer\)/ })).toHaveCount(0)
         await page.keyboard.press('Escape')
         await expect(page.getByRole('dialog', { name: 'Notificaciones' })).toBeHidden()
+        // Cerrada la lista, la campanita vuelve sin contador.
+        await expect(page.getByRole('button', { name: 'Notificaciones', exact: true })).toBeVisible()
       })
 
       await paso(sesionOtra.page, 'Otra persona no ve avisos ajenos', async () => {
@@ -88,7 +98,8 @@ test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
         await ingresar(sesionOtra.page, correos.otra)
         await clic(sesionOtra.page, sesionOtra.page.getByRole('button', { name: 'Notificaciones', exact: true }))
         await expect(sesionOtra.page.getByText('No tenés notificaciones.')).toBeVisible()
-        await expect(sesionOtra.page.getByText(sufijo)).toHaveCount(0)
+        // El sufijo solo no sirve: también está en el nombre de la organización y en el correo, que la pantalla muestra.
+        await expect(sesionOtra.page.getByText(new RegExp(`Nombre: (Ana|Beto|Cami) ${sufijo}`))).toHaveCount(0)
       })
     } finally {
       await cerrarContextoGrabado(sesion.contexto, sesion.page, testInfo)

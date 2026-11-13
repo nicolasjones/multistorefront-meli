@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { limpiarOrganizacion, rest } from './soporte/fixtures'
 
-// F-TDA-14 (MSF-433, SC-008 de la épica MSF-212): con los dos dominios del seed (mundojc.localhost y
-// sanjavucho.localhost) la ficha muestra el botón «Consultar por WhatsApp», el diálogo arma el mensaje
+// F-TDA-14 (MSF-433, SC-008 de la épica MSF-212): con dos tiendas propias de la corrida (cada una con su dominio) la ficha muestra el botón «Consultar por WhatsApp», el diálogo arma el mensaje
 // con el producto y el precio, «Abrir WhatsApp» abre `wa.me` en una pestaña nueva (la URL se verifica y
 // la red no se toca) y la consulta llega a la bandeja de Consultas y ventas de SU empresa con origen
 // «whatsapp» y el producto; una empresa sin número no muestra el botón. Requiere el stack local
@@ -17,12 +17,6 @@ const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
 if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
   throw new Error(`E2E de WhatsApp: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
 }
-
-// Ids fijos de supabase/seed.sql (MSF-241).
-const TIENDAS = [
-  { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
-  { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
-] as const
 
 const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
@@ -52,11 +46,6 @@ async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
@@ -94,27 +83,34 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
 
   test('ficha → diálogo → WhatsApp → bandeja de su empresa, y ficha sin botón si no hay número', async ({ browser }) => {
     const sufijo = randomUUID().slice(0, 8)
-    const originales = await leer<{ id: string; whatsapp: string | null }>(
-      `empresas?select=id,whatsapp&id=in.(${TIENDAS.map((t) => t.empresa).join(',')})`,
-    )
-    const tiendas = TIENDAS.map((t, i) => ({
-      ...t,
-      indice: i,
-      // Solo dígitos: el número que se ve es el que tiene la empresa.
-      whatsapp: `+54 9 11 5550-00${i}${i}`,
-      digitos: `+54 9 11 5550-00${i}${i}`.replace(/\D/g, ''),
-      producto: `Producto WhatsApp ${t.nombre} ${sufijo}`,
-      sku: `E2E-WA-${i}-${sufijo}`,
-      categoria: `Cat WhatsApp ${t.nombre} ${sufijo}`,
-      productoId: '',
-    }))
+    const orgs: string[] = []
+    // Organización, empresa y tienda PROPIAS por corrida (no las del demo, que no se pueden limpiar): la baja de la organización
+    // se lleva consultas, productos y categorías.
+    const tiendas: Array<{
+      host: string; organizacion: string; empresa: string; nombre: string; indice: number; whatsapp: string; digitos: string
+      producto: string; sku: string; categoria: string; productoId: string
+    }> = []
+    for (const i of [0, 1]) {
+      const nombre = `Tienda WhatsApp ${i} ${sufijo}`
+      const whatsapp = `+54 9 11 5550-00${i}${i}`
+      const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E WhatsApp ${i} ${sufijo}` })
+      orgs.push(org.id)
+      const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre, whatsapp }, 'dominio')
+      const host = `wa-${i}-${sufijo}.localhost`
+      await rest('tiendas', { organizacion_id: org.id, empresa_id: empresa.id, dominio: host }, 'dominio')
+      tiendas.push({
+        host, organizacion: org.id, empresa: empresa.id, nombre, indice: i, whatsapp,
+        // Solo dígitos: el número que se ve es el que tiene la empresa.
+        digitos: whatsapp.replace(/\D/g, ''),
+        producto: `Producto WhatsApp ${nombre}`,
+        sku: `E2E-WA-${i}-${sufijo}`,
+        categoria: `Cat WhatsApp ${nombre}`,
+        productoId: '',
+      })
+    }
 
     try {
       for (const t of tiendas) {
-        // El cupo es por visitante y empresa: se parte de cero para no depender de corridas anteriores.
-        await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
-        await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: t.whatsapp })
-
         const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }])
         const [producto] = await insertar<{ id: string }>('productos', [
           { organizacion_id: t.organizacion, nombre: t.producto, sku: t.sku, precio_lista: 1000, moneda: 'ARS', categoria_id: categoria.id },
@@ -160,8 +156,8 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
         expect(consultas[0].nombre).toBe('Visitante de WhatsApp')
         expect(consultas[0].contacto).toBe('visitante@sin-datos.invalid')
 
-        // La bandeja de la otra empresa no recibe nada.
-        const ajenas = await leer<Consulta>(`consultas?select=id,origen,empresa_id,producto_id,nombre,contacto&empresa_id=eq.${otra.empresa}&origen=eq.whatsapp`)
+        // La bandeja de la otra empresa no recibe nada de ESTE producto (la otra ya consultó el suyo en su vuelta).
+        const ajenas = await leer<Consulta>(`consultas?select=id,origen,empresa_id,producto_id,nombre,contacto&empresa_id=eq.${otra.empresa}&origen=eq.whatsapp&producto_id=eq.${t.productoId}`)
         expect(ajenas).toHaveLength(0)
 
         await contexto.close()
@@ -194,16 +190,7 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
       await expect(page.getByRole('link', { name: 'Ver más productos' })).toBeVisible()
       await contexto.close()
     } finally {
-      for (const t of tiendas) {
-        await borrar('consultas', `empresa_id=eq.${t.empresa}&origen=eq.whatsapp&producto_id=eq.${t.productoId}`)
-        await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
-        // Las categorías que crea la prueba también se borran: si no, cada corrida deja filas en la
-        // base local (misma limpieza que `tienda-catalogo.e2e.ts`).
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
-        const original = originales.find((o) => o.id === t.empresa)
-        if (original) await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: original.whatsapp })
-      }
+      for (const org of orgs) await limpiarOrganizacion(org)
     }
   })
 })
