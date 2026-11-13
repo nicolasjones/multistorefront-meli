@@ -2,10 +2,10 @@
 
 ## F-INI-04 · MSF-820
 - [ ] T001 RPC `resumen_inicio_periodo` + pgTAP (permisos, signo de NC, tienda, depósito)
-- [ ] T002 Barra de filtros con estado en URL (Período, Tienda, Depósito)
-- [ ] T003 Filas «Ventas del período» y «Stock hoy» con enlaces filtrados
-- [ ] T004 Dependencia `@mui/x-charts` (versión fija, doc, supply-chain) y gráfico «Ventas y stock en el tiempo» (claro/oscuro, axe)
-- [ ] T005 Tests Vitest + axe 320/768/1440
+- [x] T002 Barra de filtros con estado en URL (Período, Tienda, Depósito) — `pages/inicio/tablero/{filtros.ts,FiltrosTablero.tsx}`; `tablero-filtros.test.ts` y `tablero-inicio.test.tsx` (FR-001)
+- [x] T003 Filas «Ventas del período» y «Stock hoy» con enlaces filtrados — `TableroInicio.tsx`, `Indicador.tsx`; Reportes de ventas y Stock leen `desde/hasta` y `filtro/deposito` de la URL. Desvío: ajustes de stock y los indicadores sin filtro propio enlazan sin filtrar (ver docs/inicio-y-alertas.md)
+- [x] T004 Dependencia `@mui/x-charts` (versión fija, doc, supply-chain) y gráfico «Ventas y stock en el tiempo» (claro/oscuro, axe) — `@mui/x-charts` 8.29.3 exacta (MIT), nota en docs/inicio-y-alertas.md; `GraficoVentasStock.tsx` con colores del tema. Desvío: el tema del panel es solo claro, no hay modo oscuro que verificar
+- [x] T005 Tests Vitest + axe 320/768/1440 — 31 tests: `tablero-filtros.test.ts` (10) y `tablero-inicio.test.tsx` (21, con axe a 320/768/1440)
 
 ## F-INI-05 · MSF-821
 - [ ] T006 Ampliar la RPC (resumen por tienda, salidas por depósito) + pgTAP
