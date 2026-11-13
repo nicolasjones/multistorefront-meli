@@ -58,6 +58,11 @@ export type Deps = {
    * Se llama ANTES de tomar nada: con una base sin migrar no se gastan intentos ni se envía.
    */
   sonda?: () => Resultado<unknown>
+  /**
+   * Validación de la configuración SMTP (opcional): lanza `ConfiguracionSmtpError` si no es válida. Se llama UNA vez antes de tomar
+   * nada: una configuración mala no gasta intentos ni marca avisos como fallidos (responde 503 y los avisos quedan como estaban).
+   */
+  validarConfiguracion?: () => void
   /** Reloj en ms (inyectable para probar el corte del barrido). */
   ahora?: () => number
 }
@@ -174,6 +179,19 @@ const MENSAJE_ESQUEMA_FALTANTE = /could not find the function|function .* does n
 export const esErrorDeEsquemaFaltante = (error: { message: string; code?: string }) =>
   (error.code !== undefined && CODIGOS_ESQUEMA_FALTANTE.has(error.code)) || MENSAJE_ESQUEMA_FALTANTE.test(error.message)
 
+/** Valida la configuración SMTP antes de tomar nada; devuelve la respuesta de error (503, mensaje constante) o `null`. */
+function configuracionLista(deps: Deps): Response | null {
+  if (!deps.validarConfiguracion) return null
+  try {
+    deps.validarConfiguracion()
+    return null
+  } catch (falla) {
+    // El motivo exacto (qué variable) va al log; la respuesta es constante y sin secretos.
+    console.error('enviar-aviso-faltante: configuración SMTP inválida', falla instanceof Error ? falla.message : 'error')
+    return response({ error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' }, 503)
+  }
+}
+
 /**
  * Verifica el esquema antes de tomar nada; devuelve la respuesta de error o `null` si está todo bien.
  * Distingue «la base no está migrada» (503, hay que aplicar la migración) de «no se pudo consultar la base» (502: caída, red o
@@ -203,6 +221,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const body = await req.json().catch(() => null) as { cliente_id?: unknown; barrer?: unknown } | null
 
   if (body?.barrer === true) {
+    const sinConfig = configuracionLista(deps)
+    if (sinConfig) return sinConfig
     const sinEsquema = await esquemaListo(deps)
     if (sinEsquema) return sinEsquema
     const { data: ids, error } = await deps.datos.pendientes(MAX_INTENTOS, LIMITE_BARRIDO)
@@ -234,6 +254,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   }
 
   if (typeof body?.cliente_id !== 'string' || !UUID.test(body.cliente_id)) return response({ error: 'Falta el cliente.' }, 400)
+  const sinConfig = configuracionLista(deps)
+  if (sinConfig) return sinConfig
   const sinEsquema = await esquemaListo(deps)
   if (sinEsquema) return sinEsquema
   try {
