@@ -520,6 +520,32 @@ a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra
   el diálogo de WhatsApp no se midió en este tramo.
 - **Desvíos accesibles respecto del prototipo**: «Sin imagen» y los placeholders usan el gris secundario del tema (≥ 4,5:1; el prototipo usa negro al 35 %/45 %, ≈ 2,4:1); los campos de contacto y filtros y la casilla «Solo con stock» dibujan un foco visible (borde y contorno primarios de 2 px).
 - **Sin scroll horizontal**: la franja del héroe es una capa de 100vw con las franjas inclinadas recortadas y el layout lleva `overflow-x: clip`; se midió `scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas y el E2E `tienda-inicio.e2e.ts` lo vigila en la portada a 900/1024/1280.
+- **Auditoría independiente de fidelidad (52 diferencias de implementación, corregidas)**. Medido en Chromium sobre la build local servida desde dev:
+
+  | Fila | Prototipo | Antes | Después |
+  |---|---|---|---|
+  | H-07 San Javucho: botón del héroe | acento `#E9A23B`, texto tinta | primario sobre franja primaria (1:1, invisible) | `#E9A23B` con texto de la tinta (`tema.tienda.botonDestacado`) |
+  | C-12/C-13/P-12 San Javucho: encabezado, campos, menús, diálogo | blanco | crema `#FBF8F2` | blanco (`background.paper`); el fondo de la página sigue siendo el de la identidad |
+  | H-03/MH-04: título del héroe | `h1` | `h2` (portada sin `h1`) | `h1` (la marca lo cede si hay título); un solo `h1` por página |
+  | K-02/K-03: filas del panel / «Todos los productos» | 32 px / con total | 40 px / sin total | 32 px / «2204» |
+  | K-07/K-08: menú de orden | 200×116, sin fondo | 200×132, fondo teñido | 200×116, sin fondo |
+  | K-09/K-11: sugerencias | sin «Disponible»; vacío en gris 14 px, relleno 14/12 | línea «Disponible» a la vista; vacío en tinta | «Disponible» solo para lectores; vacío en gris `#6A6A6A`, relleno 14/12 |
+  | C-06: pie | enlaces sin subrayado (solo «Escribinos») | todos subrayados | sin subrayado salvo «Escribinos» |
+  | C-04: barra de categorías | y = 122,5 | y = 121 | centrada en 52 px |
+  | H-11: «Ver todas las categorías →» | ausente | presente | quitado |
+  | H-12: área de imagen de la tarjeta | 282 px de alto | 280 px | 282 px (tarjeta de 410 px) |
+  | T-05/T-06: contacto enviado | título «Escribinos», tarjeta de 376 px, «Enviar otra» 16 px | sin título, 329 px, 14 px | conservado, 376 px, 16 px |
+  | P-03/MP-04: disponibilidad en la ficha | y = 437,4; 15 px en celular | y = 438,9; 16 px | y = 437; 15 px en celular |
+  | P-07…P-10: diálogo de WhatsApp | 460 px, radio 14, círculo `#25D366`, recuadro gris, botones de 44 px | 444 px, radio 4, sin círculo, campo MUI | 460 px, radio 14, círculo, línea de contacto, recuadro de solo lectura, botones de 44 px de 16 px |
+  | MM-02/MM-04: menú lateral | entradas 47/43 px, recuadro de contacto | 55/51 px, sin recuadro | 47/43 px, recuadro de 116 px con nombre, teléfono y correo |
+  | MF-01…MF-08: hoja «Filtros» | asa, píldoras, subtítulos de 14 px, botones de 16 px | lista de filas, `Select`, títulos de 18 px, botones de 14 px | igual al prototipo (conserva «Precio máximo» y el cierre de 36 px) |
+  | MH-05: píldoras de la portada | «Todo» activa; filtran en el lugar | enlaces, ninguna activa | botones con `aria-pressed`; filtran los destacados |
+  | MH-07: grilla de celular | tarjetas de 173 px | 175 px | hasta 173 px |
+  | MK-01/MK-03/MK-04: contacto en celular | círculos de 40 px, sin «Retiro y envíos», sin rótulos arriba | 44 px, con las tres filas y rótulos | 40 px, dos filas, rótulos solo para lectores |
+  | MP-06: «Ver más productos» en celular | ausente | presente | solo escritorio |
+
+- **Decisiones abiertas** (sin configuración inventada): héroe de dos variantes (la franja clara de San Javucho), mayúsculas de la barra de categorías y del botón del héroe, color de la franja inclinada. Detalle en la spec.
+- **Desvíos accesibles declarados**: áreas táctiles de 36–44 px en el encabezado y «← Todos los productos»; botón de cierre de la hoja de filtros; «Abrir WhatsApp» con texto en tinta; foco visible; «Cargar más» (regla del repo).
 - **Pruebas**: Vitest de la tarjeta, las grillas (la parte por ancho se lee en el texto de la hoja: jsdom no evalúa `@media`) y las piezas compartidas, más axe real de Chromium sobre una build local; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron localmente (los valida el CI).
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)

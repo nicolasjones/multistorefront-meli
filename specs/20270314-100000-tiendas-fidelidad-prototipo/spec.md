@@ -42,6 +42,11 @@ Ficha: galería de 600 px (miniaturas de 84 px con borde primario en la elegida)
 - **FR-007**: catálogo y categoría (migas, título, panel, orden, vacío, filtros de celular) con la US4.
 - **FR-008**: ficha y contacto con la US5.
 - **FR-009**: sin regresiones: Vitest de la tienda en verde, axe (Chromium real, con contraste) sin violaciones y `documentElement.scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas; los campos y la casilla del panel conservan un foco visible (WCAG 2.4.7).
+- **FR-010** (auditoría independiente de fidelidad, 52 diferencias de implementación): el botón del héroe usa el acento de la identidad con el texto de mayor contraste (`tema.tienda.botonDestacado`) y nunca queda invisible; el «papel» del tema es blanco (encabezado, campos, menús y diálogos) y el fondo de la página el de la identidad; el título del héroe es el h1 de la portada (la marca solo lo es sin título de héroe).
+- **FR-011**: panel de categorías con filas de 32 px y «Todos los productos» con su total; menú de orden de 116 px sin fondo teñido; sugerencias sin la línea «Disponible» a la vista (queda para lectores) y mensaje vacío en gris; pie sin subrayado salvo «Escribinos»; tarjeta con el área de imagen de 282 px.
+- **FR-012**: celular: hoja «Filtros» con asa, categorías y orden como píldoras y botones de 16 px; menú lateral con las entradas de 47/43 px, sombra y recuadro de contacto; píldoras de la portada con «Todo» activa que filtran los destacados en su lugar; pie sin la columna de categorías; contacto con rótulos solo para lectores, sin «Retiro y envíos» y glifos de 20 px; ficha sin «Ver más productos» y disponibilidad de 15 px.
+- **FR-013**: contacto enviado conserva el título «Escribinos» (tarjeta de 376 px) y «Enviar otra» a 16 px.
+- **FR-014**: diálogo de WhatsApp como el prototipo (460 px, radio 14, círculo verde #25D366, línea de contacto, mensaje en recuadro de solo lectura, botones de 44 px) con el texto de «Abrir WhatsApp» en la tinta de la tienda (blanco sobre #25D366 es 2:1, no cumple AA).
 - **SC-001**: medidas del prototipo verificadas con Playwright sobre una build local (los números están en `docs/tiendas-online.md`, «Fidelidad con el prototipo»).
 
 ## Matriz pantalla↔criterios
@@ -74,7 +79,29 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 | «Sin imagen» y placeholders de los campos | Tarjeta, ficha, contacto, filtros | Desvío accesible respecto del prototipo: el prototipo usa negro al 35 % / 45 % (≈ 2,4:1 sobre la superficie); la tienda usa el gris secundario del tema (≥ 4,5:1, AA) |
 | Foco de teclado en campos y casilla | Contacto, filtros | Desvío accesible: el prototipo no dibuja el estado de foco; la tienda suma borde y contorno primarios de 2 px (WCAG 2.4.7) |
 | Orden de tabulación del encabezado de celular | Todas (celular) | Menú → marca → buscador → «Ingresar». Desvío menor: «Ingresar» se ve antes que el buscador pero se tabula después (el mismo DOM sirve al escritorio, donde el orden coincide) |
+| Héroe de San Javucho (franja clara, círculo ámbar, título de 60 px) | Portada | Decisión abierta (ver arriba); solo se corrigió la accesibilidad del botón (acento de la identidad con texto de contraste calculado) |
+| «Explorar productos» / «Ver catálogo» del héroe | Portada | FR-010 (acento + texto de contraste; uppercase de MundoJC, ver decisión abierta de mayúsculas) |
+| Fondo del encabezado, campos, menús y diálogos | Todas | FR-010 (papel blanco; antes crema en San Javucho) |
+| Título del héroe como `h1` | Portada | FR-010 (un único h1 por página: la marca lo cede si hay título de héroe) |
+| «Todos los productos» con total, filas de 32 px | Catálogo | FR-011 |
+| Menú de «Ordenar por» (116 px, sin fondo teñido) y sugerencias | Catálogo, búsqueda | FR-011 |
+| Hoja «Filtros» (asa, píldoras, botones de 16 px) | Catálogo (celular) | FR-012. Desvíos: «Precio máximo» se conserva (el prototipo móvil no lo trae pero el filtro existe) y la hoja suma un botón de cierre de 36 px (accesibilidad) |
+| Menú lateral con contacto, entradas 47/43 px | Todas (celular) | FR-012. «Inicio» activo se marca solo con negrita (sin fondo) |
+| Píldoras de la portada (Todo activa, filtran en el lugar) | Portada (celular) | FR-012. Si la categoría no tiene destacados, un enlace lleva a su listado |
+| «Retiro y envíos», rótulos de campos, «Ver más productos», columna de categorías del pie | Celular | FR-012 (el prototipo móvil no los dibuja: no se muestran; los rótulos quedan para lectores) |
+| Diálogo de WhatsApp (círculo, línea de contacto, recuadro del mensaje, botones) | Ficha | FR-014. Desvío accesible: texto de «Abrir WhatsApp» en tinta, no blanco |
+| Contacto enviado: título «Escribinos», «Enviar otra» 16 px | Contacto | FR-013 |
+| «Cargar más» al final del listado | Catálogo | Decisión declarada: regla del repo (carga infinita con alternativa por teclado); el prototipo no pagina |
+| Áreas táctiles del encabezado y de «← Todos los productos» (36–44 px) | Celular y escritorio | Desvío accesible declarado (el texto mide lo mismo que el prototipo) |
+| Barra de categorías con las que entran por ancho + «Más categorías» | Todas | Decisión declarada (MSF-825/MSF-846) |
+| Pie de celular: marca, contacto y © en una columna | Celular | Diferencia conocida: se mantienen las líneas de «Información» y el bloque legal (otras funcionalidades) |
 | Datos del banner/categorías/destacados | Portada | Contenido y datos de la demo: fuera de alcance (colores de texto del tenant, gris secundario derivado de la identidad) |
+
+## Decisiones abiertas (requieren decisión de producto; no se inventó configuración)
+
+- **Héroe de dos variantes (H-04, H-05, H-06).** El prototipo MundoJC tiene una franja oscura con título de 72 px en mayúsculas blancas y franjas inclinadas; el de San Javucho, una franja clara `#F1E9D8` con un círculo ámbar de 360 px y el título de 60 px sin mayúsculas en el color primario. Hoy solo existe la variante de MundoJC. Hay que decidir si la variante se deriva de la identidad (p. ej. por la luminancia de `colorBarra`) o si es un campo propio de la identidad. Lo que sí es implementación y se corrigió: el botón es visible y accesible con cualquier identidad y el texto de la franja se calcula según su luminancia.
+- **Mayúsculas de la barra de categorías y del botón del héroe (C-14).** MundoJC las usa (con `letter-spacing` .04em) y San Javucho no las transforma; la identidad no trae ese dato. Hoy siguen el estilo de MundoJC. Misma decisión que el héroe.
+- **Color de la franja inclinada (H-02).** El prototipo fija `#8C0004`; la app usa el primario oscuro de la identidad (`#7A0A12` en la demo).
 
 ## Decisiones
 
