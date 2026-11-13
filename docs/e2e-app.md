@@ -242,3 +242,61 @@ las tasks.md de origen.
   migraciones creen el schema `dominio` (`schema "dominio" does not exist` → `/rest-admin/v1/ready`).
 - Para activarlo: iniciar sin postgrest → `db:reset:ci` (crea `dominio`) → levantar postgrest después
   (o pre-crear el schema antes del start). Mientras tanto corre local/nightly; no se activa para no dar falsos verdes.
+
+## E2E nocturno (`e2e-nocturno.yml`)
+
+Decisión del gate MSF-852: la suite completa de Playwright (~100 tests, ~20 min en serie) corre en CI como un job
+**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. El gate MSF-852 queda resuelto con esta decisión.
+El workflow es `.github/workflows/e2e-nocturno.yml`.
+
+**Cómo se reparten los E2E en el CI** (las filas de `e2e-tienda` valen cuando #923 esté mergeado)
+
+| Dónde | Qué corre | Bloquea |
+|---|---|---|
+| Cada PR (`validate.yml`, job `application`) | Guardianes baratos `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, y los specs públicos sin base (`acceso-publico`) | Sí |
+| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`; llega con el PR #923, todavía no mergeado) | Solo los E2E de la tienda pública (`tienda-*`) | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
+| Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
+
+El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
+`host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
+
+- **Cuándo corre:** todos los días a las 05:00 UTC (02:00 en Buenos Aires; Argentina es UTC-3 sin horario de verano) y
+  por `workflow_dispatch`. GitHub solo dispara `schedule` desde la rama por defecto (`main`): el cron empieza a correr
+  cuando el archivo llega a `main`; el run siempre prueba `dokploy`.
+- **Dispararlo a mano:** Actions > «E2E nocturno» > «Run workflow», o `gh workflow run e2e-nocturno.yml`. Inputs opcionales:
+  `spec` (uno o más archivos, separados por espacio, p. ej. `tienda-seo precios-iva`) y `grep` (solo los tests cuyo título
+  coincida). Vacíos corre toda la suite. Un disparo manual desde otra rama prueba esa rama. Ejemplo:
+  `gh workflow run e2e-nocturno.yml -f spec="precios-iva stock-movimientos"`.
+- **Qué hace, en orden:** reserva una ranura del stack del CI (hasta 5 min de espera) y `db:ci:preparar` deriva su `project_id`
+  `ci-*` y sus puertos (se edita una copia en `.supabase-ci/`, nunca `supabase/config.toml`); `SEGUIMIENTO_IP_SALT` va en
+  `supabase/.env`; levanta `supabase start --ignore-health-check` con `kong`, `postgrest`, `auth`, `storage` y `realtime`
+  (sin `studio`, `mailpit`, `imgproxy`, `logflare`, `vector`, `edge-runtime`, `supavisor` ni `postgres-meta`); `supabase migration up --local` aplica las migraciones y `seed.sql` se carga con `docker exec ... psql` (no `db:reset:ci`: recrea el esquema `public` y
+  se pierden los privilegios por defecto de `service_role`, con lo que los specs que siembran en `public` fallan con «permission denied»); reinicia `supabase_rest_<project_id>` y espera a PostgREST, Auth, Storage y a las dos tiendas
+  del seed; compila `workers/comprobantes-pdf` y la web (`VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_PANEL_HOSTS=localhost,127.0.0.1`);
+  sirve la web con `vite preview --port 4300 --strictPort --host 0.0.0.0` y corre Playwright con `--workers=1 --retries=1`.
+- **Puerto 4300:** lo exige `cuenta-web-cliente` (`site_url` de `supabase/config.toml`). Si está ocupado, el paso «Verificar que el
+  puerto de la web (4300) esté libre» falla con un mensaje claro antes de levantar nada. La web corre dentro del contenedor del
+  runner, donde el 4300 es propio.
+- **Concurrencia y tiempo:** un solo run a la vez (`concurrency: e2e-nocturno`; el nuevo espera, no cancela) y tope de 45 minutos (ver abajo).
+  No notifica a nadie ni abre issues.
+- **Qué NO cubre:** sin Edge Runtime (el runner es docker-fuera-de-docker y `edge-runtime`/`functions serve` montan el directorio
+  del checkout, que no existe en el Docker del host), por eso `E2E_SIN_EDGE=1`: `tienda-seo` (robots.txt y sitemap.xml), el caso
+  «recuperar» de `cuenta-web-cliente` (excluido con `--grep-invert`: sin Edge falla siempre) y lo que dependa de funciones Edge o de Mailpit se omiten o fallan en el nocturno; siguen
+  corriéndose a mano con las funciones servidas (ver «Specs que necesitan algo más que el stack mínimo»).
+- **Cómo leer el resultado:** el resumen del run (`$GITHUB_STEP_SUMMARY`) trae una tabla con pasaron, fallaron, inestables (pasaron
+  al reintentar) y omitidos, la lista de fallos con la primera línea del error y los omitidos por archivo. Si se omitió más de la
+  mitad de los tests (por ejemplo, el stack sin `SUPABASE_URL`), el paso falla: un verde con todo omitido no vale. El artifact
+  `e2e-nocturno` (7 días) trae `playwright-report` (HTML), `test-results` (trazas de los fallos; se abren con
+  `pnpm --filter @platform/web exec playwright show-trace <traza.zip>`), el JSON de resultados y el log de vite. Si el resumen dice
+  que no hay resultados, falló antes de Playwright: el paso en rojo del log dice cuál.
+- **Limpieza:** el paso final (`always()`) mata `vite` y el puente por PID propio, baja el stack con `supabase stop --no-backup`, si
+  algo quedó borra por la etiqueta del `project_id` de la ranura sus contenedores, volúmenes y red, y libera la ranura.
+- **Memoria:** `vite` y Chromium corren dentro del runner (tope 3 GB y 2 CPU, `infra/runner/compose.yaml`); el stack corre en el
+  Docker del host fuera de ese tope. Si el run muere por memoria, bajar réplicas del runner o subir `RUNNER_MEMORY_LIMIT`.
+- **Apagarlo sin PR:** variable de repo `CI_E2E_NOCTURNO=false` (o `CI_PAUSED=true`, el kill switch de `validate.yml`): el job se
+  saltea. Por ejemplo, `gh variable set CI_E2E_NOCTURNO --body false` y `gh variable delete CI_E2E_NOCTURNO` para volver a encenderlo.
+- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas, y hoy `database` usa el TTL por
+  defecto de `supabase-ci.mjs` (50 min). Si el nocturno retuviera la ranura más tiempo, un `database` podría reciclar una ranura
+  viva. Por eso el job dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La
+  suite entra holgada (setup ~6 min + ~21 min). Con #923 mergeado el TTL pasa a 75 min y el timeout se puede subir. La hora 05:00 UTC
+  evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`, TTL 90 min), que también limpia ranuras vencidas.
