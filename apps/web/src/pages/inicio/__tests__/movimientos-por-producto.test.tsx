@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 
 // F-INI-06 (MSF-822): listado «Movimientos por producto» del tablero de Inicio.
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), categorias: vi.fn(), puedeExportar: { valor: true }, descargar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), categorias: vi.fn(), puedeExportar: { valor: true }, descargar: vi.fn(), imagenes: vi.fn(), renovar: vi.fn() }))
 
 vi.mock('../../../lib/inicioBloques', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/inicioBloques')>()), leerMovimientosPorProducto: mocks.leer }))
 vi.mock('../../../lib/categorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/categorias')>()), leerCategorias: mocks.categorias }))
 vi.mock('../../../lib/exportarCsv', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/exportarCsv')>()), descargarCsv: mocks.descargar }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
+vi.mock('../../../hooks/useImagenesProductos', () => ({ useImagenesProductosRenovables: (ids: string[]) => ({ imagenes: mocks.imagenes(ids), renovar: mocks.renovar }) }))
 vi.mock('../../../hooks/usePuedeAccion', () => ({ usePuedeAccion: () => ({ puede: mocks.puedeExportar.valor, isLoading: false }) }))
 
 import { MovimientosPorProducto } from '../tablero/MovimientosPorProducto'
@@ -36,8 +37,56 @@ beforeEach(() => {
   mocks.categorias.mockResolvedValue({ categorias: CATEGORIAS, conteos: new Map() })
   mocks.descargar.mockReset()
   mocks.puedeExportar.valor = true
+  mocks.imagenes.mockReset()
+  mocks.renovar.mockReset()
+  mocks.imagenes.mockReturnValue(new Map())
 })
 afterEach(() => vi.restoreAllMocks())
+
+describe('fotos de los productos', () => {
+  it('muestra la foto cuando hay imagen y un placeholder cuando no hay', async () => {
+    mocks.imagenes.mockReturnValue(new Map([['p-1', 'https://img.test/p1.png']]))
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Movimientos por producto' })
+    const fila1 = within(tabla).getByText('Producto 1').closest('tr')!
+    const fila2 = within(tabla).getByText('Producto 2').closest('tr')!
+    expect(fila1.querySelector('img')).toHaveAttribute('src', 'https://img.test/p1.png')
+    expect(fila2.querySelector('img')).toBeNull()
+    // sin foto queda el recuadro decorativo (no rompe el alineado de la fila)
+    expect(fila2.querySelector('[aria-hidden="true"]')).not.toBeNull()
+  })
+
+  it('si la foto no carga (URL vencida) pide renovarla para ese producto', async () => {
+    mocks.imagenes.mockReturnValue(new Map([['p-1', 'https://img.test/vencida.png']]))
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.error(within(tabla).getByText('Producto 1').closest('tr')!.querySelector('img')!)
+    expect(mocks.renovar).toHaveBeenCalledWith('p-1')
+  })
+
+  it('la foto es decorativa: el nombre del producto ya está al lado (alt vacío)', async () => {
+    mocks.imagenes.mockReturnValue(new Map([['p-1', 'https://img.test/p1.png']]))
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Movimientos por producto' })
+    expect(within(tabla).getByText('Producto 1').closest('tr')!.querySelector('img')).toHaveAttribute('alt', '')
+  })
+
+  it('pide las imágenes de TODAS las filas visibles en una sola llamada del hook (sin N+1)', async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    const llamadas = mocks.imagenes.mock.calls.map((c) => c[0] as string[])
+    expect(llamadas[llamadas.length - 1]).toEqual(['p-1', 'p-2'])
+  })
+
+  it('la exportación CSV no incluye la foto', async () => {
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(screen.getByRole('button', { name: /exportar/i }))
+    await waitFor(() => expect(mocks.descargar).toHaveBeenCalled())
+    const csv = String(mocks.descargar.mock.calls[0][0] ?? '')
+    expect(csv).not.toMatch(/img\.test|Foto|Imagen/i)
+  })
+})
 
 describe('listado (FR-012, CA-INI-06-1)', () => {
   it('muestra una fila por producto con las 12 columnas', async () => {
@@ -182,6 +231,23 @@ describe('carga infinita (CA-INI-06-10)', () => {
     expect(ultimaLlamada()[1]).toMatchObject({ orden: 'salidas', direccion: 'asc' })
     await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 30 de 30 productos'))
     expect(screen.queryByRole('button', { name: /Anterior|Siguiente/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('fotos con «Cargar más»', () => {
+  it('después de «Cargar más» pide las imágenes de las DOS tandas, sin ids repetidos', async () => {
+    const t1 = Array.from({ length: 25 }, (_, i) => fila(i + 1))
+    const t2 = Array.from({ length: 5 }, (_, i) => fila(i + 26))
+    mocks.leer.mockImplementation(async (_ctx, _filtros, pagina: number) => ({ filas: pagina === 1 ? t1 : t2, total: 30 }))
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 30 de 30 productos'))
+    const ultima = mocks.imagenes.mock.calls[mocks.imagenes.mock.calls.length - 1][0] as string[]
+    expect(ultima).toHaveLength(30)
+    expect(new Set(ultima).size).toBe(30)
+    expect(ultima).toContain('p-1')
+    expect(ultima).toContain('p-30')
   })
 })
 

@@ -43,7 +43,7 @@
     "test:edge:crear-organizacion": "node --test supabase/functions/crear-organizacion/handler.test.ts",
     "test:edge:cotizacion-sugerida": "node --test supabase/functions/cotizacion-sugerida/handler.test.ts",
     "test:edge:enviar-correo-proveedor": "node --test supabase/functions/enviar-correo-proveedor/handler.test.ts",
-    "test:edge:enviar-aviso-faltante": "node --test supabase/functions/enviar-aviso-faltante/handler.test.ts",
+    "test:edge:enviar-aviso-faltante": "node --test --test-timeout=20000 supabase/functions/enviar-aviso-faltante/handler.test.ts",
     "test:edge:enviar-resumen-reposicion": "node --test supabase/functions/enviar-resumen-reposicion/handler.test.ts",
     "test:edge:recalcular-alertas-inicio": "node --test supabase/functions/recalcular-alertas-inicio/handler.test.ts",
     "test:edge:emitir-acceso-reporte": "node --test supabase/functions/emitir-acceso-reporte/handler.test.ts",
