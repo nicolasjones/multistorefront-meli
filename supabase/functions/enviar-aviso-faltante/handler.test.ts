@@ -2,13 +2,24 @@
 // (`pnpm test:edge:enviar-aviso-faltante`); handler.ts y contenido.ts no importan nada de Deno.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { asuntoAviso, cuerpoAviso, MENSAJE_MAX, sanearMensaje } from './contenido.ts'
-import { MAX_INTENTOS, manejar, type Deps, type Tomado } from './handler.ts'
+import { asuntoAviso, cuerpoAviso, MENSAJE_MAX, neutralizarPuntos, sanearMensaje } from './contenido.ts'
+import { CORREO_VALIDO, MAX_INTENTOS, esErrorDeEsquemaFaltante, PRESUPUESTO_BARRIDO_MS, codigoDeError, manejar, type Deps, type Tomado } from './handler.ts'
+import { lineaSegura } from '../_shared/texto.ts'
+import { conTimeout } from '../_shared/timeout.ts'
+import { enviarConLimites, TIMEOUT_CIERRE_MS, TIMEOUT_CONEXION_MS, TIMEOUT_SMTP_MS } from '../_shared/envio.ts'
+import { crearDatos } from './datos.ts'
+import { armarDeps } from './servidor.ts'
+import { armarEnvio } from '../_shared/smtp.ts'
+import { CODIGOS_ERROR_BASE } from './codigos.ts'
+import { readFileSync } from 'node:fs'
 
 const ID = '11111111-1111-4111-8111-111111111111'
 const TOKEN = 'secreto-de-prueba'
 
+const TANDA = '33333333-3333-4333-8333-333333333333'
+
 const aEnviar: Tomado = {
+  tanda: TANDA,
   cliente: 'Ana Pérez',
   correo: 'ana@example.com',
   lineas: [
@@ -29,7 +40,7 @@ type Opciones = {
 
 function montar(opciones: Opciones = {}) {
   const enviados: { para: string[]; asunto: string; texto: string }[] = []
-  const cierres: { id: string; enviado: boolean; error: string | null; tope: number }[] = []
+  const cierres: { id: string; enviado: boolean; error: string | null; tope: number; tanda: string | null }[] = []
   const tomas: { id: string; tope: number }[] = []
   const deps: Deps = {
     token: 'token' in opciones ? opciones.token : TOKEN,
@@ -41,8 +52,8 @@ function montar(opciones: Opciones = {}) {
         tomas.push({ id, tope })
         return opciones.tomarError ? { data: null, error: { message: 'boom' } } : { data: opciones.tomado ?? [aEnviar], error: null }
       },
-      cerrar: async (id, enviado, error, tope) => {
-        cierres.push({ id, enviado, error, tope })
+      cerrar: async (id, enviado, error, tope, tanda) => {
+        cierres.push({ id, enviado, error, tope, tanda })
         return { data: null, error: opciones.cerrarError ? { message: 'boom' } : null }
       },
     },
@@ -73,7 +84,7 @@ describe('enviar-aviso-faltante · envío', () => {
     assert.match(enviados[0].texto, /Ana Pérez/)
     assert.match(enviados[0].texto, /Funda \(FUN-1\) · 3 u\. · Comprobante A-0001/)
     assert.match(enviados[0].texto, /Cable · 1 u\. · Comprobante A-0002/)
-    assert.deepEqual(cierres, [{ id: ID, enviado: true, error: null, tope: MAX_INTENTOS }])
+    assert.deepEqual(cierres, [{ id: ID, enviado: true, error: null, tope: MAX_INTENTOS, tanda: TANDA }])
   })
 
   it('el destinatario sale de la base, nunca del pedido', async () => {
@@ -82,27 +93,32 @@ describe('enviar-aviso-faltante · envío', () => {
     assert.deepEqual(enviados[0].para, ['ana@example.com'])
   })
 
-  it('un fallo de SMTP queda como fallido con el error útil y no lanza', async () => {
+  it('un fallo de SMTP queda como fallido con un código genérico y no lanza', async () => {
     const { deps, cierres } = montar({ falloSmtp: 'connect ECONNREFUSED 127.0.0.1:1025' })
     const res = await pedir(deps, { cliente_id: ID })
     assert.equal(res.status, 200)
     assert.deepEqual(await res.json(), { estado: 'fallido' })
-    assert.deepEqual(cierres, [{ id: ID, enviado: false, error: 'connect ECONNREFUSED 127.0.0.1:1025', tope: MAX_INTENTOS }])
+    assert.deepEqual(cierres, [{ id: ID, enviado: false, error: 'smtp_conexion', tope: MAX_INTENTOS, tanda: TANDA }])
   })
 
-  it('el error guardado se acorta y queda en una sola línea', async () => {
-    const { deps, cierres } = montar({ falloSmtp: `línea 1\r\nlínea 2 ${'x'.repeat(1000)}` })
+  it('el cierre lleva el token de la tanda tomada (M-2)', async () => {
+    const { deps, cierres } = montar()
     await pedir(deps, { cliente_id: ID })
-    assert.equal(cierres[0].error?.includes('\n'), false)
-    assert.ok((cierres[0].error?.length ?? 0) <= 300)
+    assert.equal(cierres[0].tanda, TANDA)
   })
 
-  it('el error guardado no lleva el correo del cliente (dato personal)', async () => {
-    const { deps, cierres } = montar({ falloSmtp: '550 5.1.1 <ana@example.com>: Recipient address rejected' })
-    await pedir(deps, { cliente_id: ID })
-    assert.equal(cierres[0].error?.includes('ana@example.com'), false)
-    assert.match(cierres[0].error ?? '', /\[correo\]/)
-    assert.match(cierres[0].error ?? '', /Recipient address rejected/)
+  it('el error guardado es solo un código: nunca host, usuario ni correo (m-4b)', async () => {
+    const casos: [string, string][] = [
+      ['535 Authentication failed for user smtp-prod@mail.interno.net', 'smtp_auth'],
+      ['550 5.1.1 <ana@example.com>: Recipient address rejected', 'destinatario_invalido'],
+      ['getaddrinfo ENOTFOUND mail.interno.net', 'smtp_conexion'],
+      [`algo raro\r\n${'x'.repeat(1000)}`, 'otro'],
+    ]
+    for (const [falla, codigo] of casos) {
+      const { deps, cierres } = montar({ falloSmtp: falla })
+      await pedir(deps, { cliente_id: ID })
+      assert.equal(cierres[0].error, codigo, falla)
+    }
   })
 
   it('pide a la base el tope de intentos, que es quien corta los reintentos', async () => {
@@ -123,7 +139,7 @@ describe('enviar-aviso-faltante · envío', () => {
     assert.equal(enviados.length, 0)
     assert.equal(cierres.length, 1)
     assert.equal(cierres[0].enviado, false)
-    assert.match(cierres[0].error ?? '', /no es una dirección válida/)
+    assert.equal(cierres[0].error, 'destinatario_invalido')
   })
 
   it('si la base no responde devuelve 502 sin enviar', async () => {
@@ -251,5 +267,367 @@ describe('enviar-aviso-faltante · entrada', () => {
     const { deps } = montar()
     assert.equal((await pedir(deps, undefined, TOKEN, 'GET')).status, 405)
     assert.equal((await pedir(deps, undefined, TOKEN, 'OPTIONS')).status, 200)
+  })
+})
+
+describe('enviar-aviso-faltante · destinatario y saneo (m-3, m-4)', () => {
+  it('el correo del destinatario es una sola dirección', () => {
+    for (const bueno of ['ana@example.com', 'a.b+c@sub.example.com.ar']) assert.equal(CORREO_VALIDO.test(bueno), true, bueno)
+    for (const malo of ['a@x.com\u0001z.w', 'a\u007F@x.com', 'a@x.com,b@y.com', 'a@x.com;b@y.com', 'Ana <a@x.com>', '"a"@x.com', 'a@x', 'a b@x.com', 'a@x.com\r\nBcc: z@w.com']) {
+      assert.equal(CORREO_VALIDO.test(malo), false, malo)
+    }
+  })
+
+  it('un destinatario con coma no se envía: cierra como fallido', async () => {
+    const { deps, enviados, cierres } = montar({ tomado: [{ ...aEnviar, correo: 'a@x.com,b@y.com' }] })
+    assert.deepEqual(await (await pedir(deps, { cliente_id: ID })).json(), { estado: 'fallido' })
+    assert.equal(enviados.length, 0)
+    assert.equal(cierres[0].error, 'destinatario_invalido')
+  })
+
+  it('lineaSegura quita saltos, U+2028/2029, controles e invisibles', () => {
+    assert.equal(lineaSegura('a\r\nb\u2028c\u2029d\u0007e\u0085f\u202Eg\u200Bh'), 'a b c d e f g h')
+    assert.equal(lineaSegura('  hola  '), 'hola')
+  })
+
+  it('codigoDeError clasifica sin devolver el texto del servidor', () => {
+    assert.equal(codigoDeError(new DOMException('smtp timeout: x', 'TimeoutError')), 'smtp_timeout')
+    assert.equal(codigoDeError(new Error('Connection refused')), 'smtp_conexion')
+    assert.equal(codigoDeError('cualquier cosa'), 'otro')
+  })
+})
+
+describe('enviar-aviso-faltante · dot-stuffing (m-5)', () => {
+  it('ninguna línea del correo empieza con punto aunque el texto editado lo intente', () => {
+    const texto = cuerpoAviso('Ana', [{ producto: 'Funda', sku: null, cantidad: 1, comprobante: 'A-1', mensaje: 'hola\n.\nMAIL FROM:<x>' }])
+    assert.equal(texto.split('\n').some((linea) => linea.startsWith('.')), false)
+    assert.equal(texto.split('\n').includes('.'), false)
+    assert.match(texto, /MAIL FROM:<x>/)
+    assert.equal(neutralizarPuntos('a\n.b\n..c'), 'a\n .b\n ..c')
+  })
+})
+
+describe('_shared/timeout · tope del envío SMTP (M-2)', () => {
+  it('corta un envío colgado con TimeoutError', async () => {
+    const colgado = new Promise<void>(() => undefined)
+    await assert.rejects(conTimeout(colgado, 20), (error: Error) => error.name === 'TimeoutError' && /smtp timeout/.test(error.message))
+  })
+
+  it('deja pasar el resultado y el error de un envío que responde a tiempo', async () => {
+    assert.equal(await conTimeout(Promise.resolve('ok'), 1000), 'ok')
+    await assert.rejects(conTimeout(Promise.reject(new Error('boom')), 1000), /boom/)
+  })
+})
+
+describe('enviar-aviso-faltante · revisión PR #915', () => {
+  it('lineaSegura no parte nombres con ZWNJ/ZWJ pero sigue quitando los invisibles de dirección', () => {
+    assert.equal(lineaSegura('می\u200Cخواهم'), 'می\u200Cخواهم')
+    assert.equal(lineaSegura('👨\u200D👩'), '👨\u200D👩')
+    assert.equal(lineaSegura('a\u200Bb\u202Ec'), 'a b c')
+  })
+
+  it('sanearMensaje recorta igual que la base: solo espacio y salto de línea (no NBSP)', () => {
+    assert.equal(sanearMensaje('\u00A0hola\u00A0'), '\u00A0hola\u00A0')
+    assert.equal(sanearMensaje(' \n hola \n '), 'hola')
+    assert.equal(sanearMensaje(`${'x'.repeat(MENSAJE_MAX - 1)} y`), 'x'.repeat(MENSAJE_MAX - 1))
+  })
+
+  it('un timeout de SMTP se informa como smtp_timeout (el cierre lo trata como intento incierto)', async () => {
+    const { deps, cierres } = montar()
+    deps.enviar = async () => { throw new DOMException('smtp timeout: el servidor no respondió a tiempo', 'TimeoutError') }
+    await pedir(deps, { cliente_id: ID })
+    assert.equal(cierres[0].error, 'smtp_timeout')
+  })
+
+  it('el barrido corta por reloj: no empieza otro cliente si gastó el presupuesto y dice cuántos quedan', async () => {
+    const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333']
+    const { deps, enviados } = montar({ pendientes: ids })
+    let t = 0
+    deps.ahora = () => t
+    const enviar = deps.enviar
+    deps.enviar = async (mensaje) => { t += PRESUPUESTO_BARRIDO_MS; await enviar(mensaje) }
+    const res = await (await pedir(deps, { barrer: true })).json()
+    assert.deepEqual(res, { procesados: 1, resultados: { enviado: 1 }, errores: 0, pendientes: 2 })
+    assert.equal(enviados.length, 1)
+  })
+})
+
+describe('_shared/envio · cableado del timeout y del cierre (revisión QA PR #915 m2)', () => {
+  const nunca = () => new Promise<void>(() => undefined)
+
+  it('un envío que no resuelve falla con TimeoutError y cierra el cliente', async () => {
+    let cerrado = 0
+    const cliente = { send: nunca, close: async () => { cerrado += 1 } }
+    await assert.rejects(enviarConLimites(cliente, 'x', { timeoutMs: 20, cierreMs: 50 }), (e: Error) => e.name === 'TimeoutError')
+    assert.equal(cerrado, 1)
+  })
+
+  it('el close() colgado no cuelga la respuesta ni cambia el resultado', async () => {
+    const cliente = { send: async () => undefined, close: nunca }
+    const inicio = Date.now()
+    await enviarConLimites(cliente, 'x', { timeoutMs: 1000, cierreMs: 30 })
+    assert.ok(Date.now() - inicio < 500)
+  })
+
+  it('un close() colgado tampoco tapa el timeout del envío', async () => {
+    const cliente = { send: nunca, close: nunca }
+    await assert.rejects(enviarConLimites(cliente, 'x', { timeoutMs: 20, cierreMs: 30 }), (e: Error) => e.name === 'TimeoutError')
+  })
+
+  it('el error del envío se propaga y un close() que falla se ignora', async () => {
+    const cliente = { send: async () => { throw new Error('boom') }, close: async () => { throw new Error('cierre') } }
+    await assert.rejects(enviarConLimites(cliente, 'x'), /boom/)
+  })
+
+  it('un timeout llega al handler como smtp_timeout (el envío colgado cierra el aviso como intento incierto)', async () => {
+    const { deps, cierres } = montar()
+    deps.enviar = (mensaje) => enviarConLimites({ send: nunca, close: async () => undefined }, mensaje, { timeoutMs: 20, cierreMs: 20 })
+    await pedir(deps, { cliente_id: ID })
+    assert.equal(cierres[0].error, 'smtp_timeout')
+    assert.equal(cierres[0].tanda, TANDA)
+  })
+
+  it('con una base sin migrar (sin token de tanda) no envía: falla cerrado con 502', async () => {
+    const { deps, enviados, cierres } = montar({ tomado: [{ ...aEnviar, tanda: undefined }] })
+    assert.equal((await pedir(deps, { cliente_id: ID })).status, 502)
+    assert.equal(enviados.length + cierres.length, 0)
+  })
+})
+
+describe('paridad de saneo con private.sanear_mensaje_aviso (SQL, QA PR #915 m6)', () => {
+  // Misma tabla en supabase/tests/database/faltantes_avisos_venta.test.sql: si se cambia una, se cambia la otra.
+  const casos: [string, string | null][] = [
+    ['Hola\u0007 mundo', 'Hola mundo'],
+    ['a\u0001b\u001Fc\u007Fd\u009Fe', 'abcde'],
+    ['x\u0085y', 'x\ny'],
+    ['a\u200Bb\u200Cc\u200Dd\u200Ee\u200Ff', 'abcdef'],
+    ['x\u202Ay\u202Bz\u202Cw\u202Dv\u202Eu', 'xyzwvu'],
+    ['p\u2060q\u2061r\u2064s\u2066t\u2069u\uFEFFv', 'pqrstuv'],
+    ['l1\u2028l2\u2029l3', 'l1\nl2\nl3'],
+    ['a\r\nb\rc', 'a\nb\nc'],
+    ['a\tb', 'a b'],
+    ['a\n\n\n\n\nb', 'a\n\nb'],
+    ['  \n hola \n  ', 'hola'],
+    ['\u00A0hola\u00A0', '\u00A0hola\u00A0'],
+    ['\u0007\u200B \n', null],
+    ['', null],
+  ]
+  for (const [entrada, esperado] of casos) {
+    it(`sanearMensaje(${JSON.stringify(entrada)}) = ${JSON.stringify(esperado)}`, () => {
+      assert.equal(sanearMensaje(entrada), esperado)
+    })
+  }
+})
+
+describe('enviar-aviso-faltante · revisión PR #918', () => {
+  it('un timeout de CONEXIÓN no es incierto (no salió nada: smtp_conexion, reintentable); solo el corte propio lo es', () => {
+    assert.equal(codigoDeError(new Error('connection timed out (ETIMEDOUT) connecting to smtp:587')), 'smtp_conexion')
+    assert.equal(codigoDeError(new Error('Operation timed out (os error 110)')), 'smtp_conexion')
+    assert.equal(codigoDeError(new DOMException('smtp timeout: el servidor no respondió a tiempo', 'TimeoutError')), 'smtp_timeout')
+  })
+
+  it('clasifica los rechazos del SMTP sin confundirlos', () => {
+    assert.equal(codigoDeError(new Error('554 Message rejected: spam')), 'otro')
+    assert.equal(codigoDeError(new Error('550 Relaying denied, not authorized')), 'otro')
+    assert.equal(codigoDeError(new Error('550 5.1.1 Recipient address rejected: User unknown')), 'destinatario_invalido')
+    assert.equal(codigoDeError(new Error('535 5.7.8 Authentication failed')), 'smtp_auth')
+    assert.equal(codigoDeError(new Error('530 Authentication required')), 'smtp_auth')
+  })
+
+  it('CORREO_VALIDO rechaza los invisibles y bidi que lineaSegura convertiría en espacio', () => {
+    for (const c of ['​', '‎', '‏', '‪', '‮', '⁠', '⁤', '⁦', '⁩', ' ', '﻿']) {
+      assert.equal(CORREO_VALIDO.test(`a@x${c}e.com`), false, JSON.stringify(c))
+    }
+    assert.equal(CORREO_VALIDO.test('ana@example.com'), true)
+  })
+
+  it('sin la migración la sonda corta antes de tomar: 503, no se gastan intentos ni se envía (barrido e individual)', async () => {
+    for (const cuerpo of [{ barrer: true }, { cliente_id: ID }]) {
+      const { deps, enviados, tomas, cierres } = montar({ pendientes: [ID] })
+      deps.sonda = async () => ({ data: null, error: { message: 'function cerrar_aviso_faltante(...) does not exist' } })
+      const res = await pedir(deps, cuerpo)
+      assert.equal(res.status, 503)
+      assert.match((await res.json()).error, /migración/)
+      assert.equal(enviados.length + tomas.length + cierres.length, 0)
+    }
+  })
+
+  it('con la migración la sonda pasa y el aviso sigue su curso', async () => {
+    const { deps, enviados } = montar()
+    deps.sonda = async () => ({ data: null, error: null })
+    assert.deepEqual(await (await pedir(deps, { cliente_id: ID })).json(), { estado: 'enviado' })
+    assert.equal(enviados.length, 1)
+  })
+
+  it('un barrido donde TODOS fallan devuelve 502 (Kestra ve el error); si alguno sale, 200', async () => {
+    const { deps } = montar({ pendientes: [ID], tomado: [{ ...aEnviar, tanda: undefined }] })
+    const res = await pedir(deps, { barrer: true })
+    assert.equal(res.status, 502)
+    assert.equal((await res.json()).errores, 1)
+    const otro = '22222222-2222-4222-8222-222222222222'
+    const mixto = montar({ pendientes: [ID, otro] })
+    let n = 0
+    const tomar = mixto.deps.datos.tomar
+    mixto.deps.datos.tomar = async (id, tope) => (n++ === 0 ? { data: null, error: { message: 'boom' } } : tomar(id, tope))
+    assert.equal((await pedir(mixto.deps, { barrer: true })).status, 200)
+  })
+
+  it('los tiempos caben bajo el límite de la función (150 s) y bajo la reserva de la cola (2 min)', () => {
+    assert.ok(TIMEOUT_CONEXION_MS + TIMEOUT_SMTP_MS + TIMEOUT_CIERRE_MS < 120_000, 'conexión + envío + cierre tienen que terminar antes de que venza la reserva de 2 minutos')
+    assert.ok(PRESUPUESTO_BARRIDO_MS + TIMEOUT_CONEXION_MS + TIMEOUT_SMTP_MS + TIMEOUT_CIERRE_MS + 10_000 <= 150_000, 'el peor caso de un barrido (cliente iniciado justo antes del corte) entra en el límite')
+  })
+
+  it('el adaptador pasa la tanda a cerrar y a la sonda (cableado de index.ts)', async () => {
+    const llamadas: { nombre: string; args: Record<string, unknown> }[] = []
+    const { datos, sonda } = crearDatos({ rpc: async (nombre, args) => { llamadas.push({ nombre, args }); return { data: null, error: null } } })
+    await datos.cerrar(ID, true, null, 5, TANDA)
+    await datos.tomar(ID, 5)
+    await datos.pendientes(5, 50)
+    await sonda()
+    assert.deepEqual(llamadas[0], { nombre: 'cerrar_aviso_faltante', args: { p_cliente: ID, p_enviado: true, p_error: null, p_tope: 5, p_tanda: TANDA } })
+    assert.deepEqual(llamadas.slice(1, 3).map((l) => l.nombre), ['tomar_aviso_faltante', 'faltantes_avisos_pendientes'])
+    assert.equal(llamadas[3].nombre, 'cerrar_aviso_faltante')
+    assert.ok('p_tanda' in llamadas[3].args)
+  })
+
+  it('el recorte a 1.000 es por caracteres y no deja un par sustituto suelto (como left() de la base)', () => {
+    const texto = sanearMensaje('x'.repeat(MENSAJE_MAX - 1) + '😀😀')
+    assert.equal(Array.from(texto ?? '').length, MENSAJE_MAX)
+    assert.equal(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(texto ?? ''), false)
+  })
+})
+
+describe('enviar-aviso-faltante · revisión PR #920', () => {
+  it('clasifica por código numérico del servidor, no por un número suelto', () => {
+    const casos: [string, string][] = [
+      ['535 5.7.8 Authentication failed', 'smtp_auth'],
+      ['530 5.7.0 Authentication required', 'smtp_auth'],
+      ['bad response on command port 535', 'otro'],
+      ['connection refused on port 535', 'smtp_conexion'],
+      ['550 5.7.1 Relaying denied', 'otro'],
+      ['550 5.1.1 Recipient address rejected: User unknown', 'destinatario_invalido'],
+      ['Bad response: 550 5.1.1 User unknown', 'destinatario_invalido'],
+      ['450 4.2.0 Mailbox busy, try later', 'otro'],
+      ['554 5.7.1 Message rejected: spam', 'otro'],
+      ['552 5.3.4 Message size exceeds limit', 'otro'],
+      ['421 4.4.2 timeout waiting for client input', 'otro'],
+    ]
+    for (const [texto, esperado] of casos) assert.equal(codigoDeError(new Error(texto)), esperado, texto)
+  })
+
+  it('separa la fase de conexión del envío: conexión vencida = smtp_conexion (no salió nada); envío vencido = smtp_timeout', async () => {
+    const nunca = () => new Promise<void>(() => undefined)
+    let enviado = 0
+    const cliente = { send: async () => { enviado += 1 }, close: async () => undefined }
+    const falla = await enviarConLimites(cliente, 'x', { conectar: nunca, conexionMs: 20, cierreMs: 20 }).catch((e: Error) => e)
+    assert.ok(falla instanceof Error)
+    assert.equal(codigoDeError(falla), 'smtp_conexion')
+    assert.equal(enviado, 0)
+
+    const colgado = { send: nunca, close: async () => undefined }
+    const falla2 = await enviarConLimites(colgado, 'x', { conectar: async () => undefined, conexionMs: 50, timeoutMs: 20, cierreMs: 20 }).catch((e: Error) => e)
+    assert.equal(codigoDeError(falla2), 'smtp_timeout')
+  })
+
+  it('una conexión vencida llega al handler como smtp_conexion (el aviso sigue reintentable)', async () => {
+    const { deps, cierres } = montar()
+    deps.enviar = (mensaje) => enviarConLimites({ send: async () => undefined, close: async () => undefined }, mensaje, { conectar: () => new Promise(() => undefined), conexionMs: 20, cierreMs: 20 })
+    await pedir(deps, { cliente_id: ID })
+    assert.equal(cierres[0].error, 'smtp_conexion')
+  })
+})
+
+describe('enviar-aviso-faltante · cableado y diagnóstico (QA PR #920)', () => {
+  it('la sonda distingue «base no migrada» (503) de una caída o falta de permisos (502, sin decir «no migrada»)', async () => {
+    const casos: [{ message: string; code?: string }, number, string][] = [
+      [{ message: 'Could not find the function public.cerrar_aviso_faltante(p_tanda) in the schema cache', code: 'PGRST202' }, 503, 'base_no_migrada'],
+      [{ message: 'function public.cerrar_aviso_faltante(uuid, boolean, text, integer, uuid) does not exist', code: '42883' }, 503, 'base_no_migrada'],
+      [{ message: 'FetchError: connect ECONNREFUSED 10.0.0.5:54321 (host interno)' }, 502, 'base_no_disponible'],
+      [{ message: 'permission denied for function cerrar_aviso_faltante', code: '42501' }, 502, 'base_no_disponible'],
+      [{ message: 'JWT expired', code: 'PGRST301' }, 502, 'base_no_disponible'],
+    ]
+    for (const [error, estado, codigo] of casos) {
+      const { deps, tomas } = montar({ pendientes: [ID] })
+      deps.sonda = async () => ({ data: null, error })
+      const res = await pedir(deps, { barrer: true })
+      const cuerpo = await res.json()
+      assert.equal(res.status, estado, error.message)
+      assert.equal(cuerpo.codigo, codigo)
+      assert.equal(JSON.stringify(cuerpo).includes('10.0.0.5'), false, 'la respuesta no filtra el detalle')
+      if (estado === 502) assert.doesNotMatch(cuerpo.error, /migra/i)
+      assert.equal(tomas.length, 0)
+    }
+    assert.equal(esErrorDeEsquemaFaltante({ message: 'x', code: '42703' }), true)
+    assert.equal(esErrorDeEsquemaFaltante({ message: 'timeout' }), false)
+  })
+
+  it('armarDeps cablea la sonda (sin ella una base sin migrar gastaría intentos): el cableado real de index.ts', async () => {
+    const llamadas: string[] = []
+    const deps = armarDeps({
+      cliente: { rpc: async (nombre) => { llamadas.push(nombre); return { data: null, error: null } } },
+      token: TOKEN,
+      enviar: async () => undefined,
+    })
+    assert.equal(typeof deps.sonda, 'function')
+    assert.equal(deps.token, TOKEN)
+    await deps.sonda?.()
+    assert.deepEqual(llamadas, ['cerrar_aviso_faltante'])
+    // Y el handler la usa antes de tomar: con una sonda que falla, `tomar` no se llama.
+    const dep2 = armarDeps({
+      cliente: { rpc: async (nombre) => { llamadas.push(nombre); return { data: null, error: { message: 'does not exist', code: '42883' } } } },
+      token: TOKEN,
+      enviar: async () => undefined,
+    })
+    llamadas.length = 0
+    const res = await pedir(dep2, { barrer: true })
+    assert.equal(res.status, 503)
+    assert.deepEqual(llamadas, ['cerrar_aviso_faltante'])
+  })
+
+  it('el envío SMTP pasa SIEMPRE por enviarConLimites: un send colgado vence por timeout y la conexión se sondea antes', async () => {
+    const nunca = () => new Promise<void>(() => undefined)
+    const eventos: string[] = []
+    const envio = armarEnvio({
+      config: { hostname: 'smtp.interno', from: 'avisos@x.com', port: 587, tls: false },
+      crearCliente: () => ({ send: () => { eventos.push('send'); return nunca() }, close: async () => { eventos.push('close') } }),
+      conectar: async (host, port) => { eventos.push(`conectar:${host}:${port}`) },
+      limites: { timeoutMs: 20, cierreMs: 20, conexionMs: 50 },
+    })
+    const falla = await envio({ para: ['a@x.com'], asunto: 'Hola\r\nBcc: z@w.com', texto: 'hola' }).catch((e: Error) => e)
+    assert.ok(falla instanceof Error)
+    assert.equal(codigoDeError(falla), 'smtp_timeout')
+    assert.deepEqual(eventos, ['conectar:smtp.interno:587', 'send', 'close'])
+  })
+
+  it('el envío arma el mensaje saneado y, si no se puede conectar, no llama a send', async () => {
+    const enviados: unknown[] = []
+    const ok = armarEnvio({
+      config: { hostname: 'h', from: 'avisos@x.com', port: 25, tls: false },
+      crearCliente: () => ({ send: async (m) => { enviados.push(m) }, close: async () => undefined }),
+      conectar: async () => undefined,
+    })
+    await ok({ para: ['a@x.com'], asunto: 'Hola\r\nBcc: z@w.com', texto: 'cuerpo' })
+    assert.deepEqual(enviados, [{ from: 'avisos@x.com', to: ['a@x.com'], subject: 'Hola Bcc: z@w.com', content: 'cuerpo' }])
+
+    let send = 0
+    const sinRed = armarEnvio({
+      config: { hostname: 'h', from: 'avisos@x.com', port: 25, tls: false },
+      crearCliente: () => ({ send: async () => { send += 1 }, close: async () => undefined }),
+      conectar: async () => { throw new Error('connect ECONNREFUSED') },
+    })
+    const e = await sinRed({ para: ['a@x.com'], asunto: 'a', texto: 'b' }).catch((x: Error) => x)
+    assert.equal(codigoDeError(e), 'smtp_conexion')
+    assert.equal(send, 0)
+  })
+
+  it('la lista de códigos de ultimo_error de la función es EXACTAMENTE la del check de la migración', () => {
+    const sql = readFileSync(new URL('../../migrations/20270306120000_faltantes_avisos_hallazgos_revision.sql', import.meta.url), 'utf8')
+    const bloque = /ultimo_error is null or ultimo_error in \(([^)]*)\)/.exec(sql)?.[1] ?? ''
+    const enSql = [...bloque.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()
+    assert.deepEqual(enSql, [...CODIGOS_ERROR_BASE].sort())
+    // `cerrar_aviso_faltante` acepta los mismos (salvo `otro`, el valor por defecto de lo desconocido).
+    const cerrar = readFileSync(new URL('../../migrations/20270306130000_faltantes_avisos_revision_pr915.sql', import.meta.url), 'utf8')
+    const enCerrar = [...(/when p_error in \(([^)]*)\)/.exec(cerrar)?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()
+    assert.deepEqual(enCerrar, CODIGOS_ERROR_BASE.filter((c) => c !== 'otro').sort())
   })
 })
