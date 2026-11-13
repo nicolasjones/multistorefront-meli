@@ -143,11 +143,15 @@ Cuando llega la mercadería y se puede seguir armando, abrí la factura y hacé 
 
 ### La pantalla Faltantes
 
-**Ventas → Faltantes** («Líneas vendidas o pedidas sin stock») muestra **Tienda**, **Cliente**, **Producto**, **Pedido**, **Comprobante**, **Desde** y **Stock hoy**, para saber qué reponer.
+**Ventas → Faltantes** («Líneas vendidas o pedidas sin stock») muestra **Tienda**, **Cliente**, **Producto**, **Pedido**, **Comprobante**, **Desde**, **Stock hoy** y **Aviso**, para saber qué reponer y a quién hay que avisarle.
 
 ![Pantalla Faltantes con una línea sin stock, su cliente, producto, cantidad pedida, comprobante y stock actual](img/ventas-despacho-y-faltantes/05-faltantes.png)
 
 *Ventas → Faltantes: lo que quedó sin stock y cuánto hay hoy de cada producto.*
+
+La columna **Aviso** dice si a ese cliente ya se le avisó (**Avisado**, con la fecha), si el pedido ya se puede cubrir
+(**Para avisar**) o si todavía no se le avisó (**Sin avisar**). Para avisarle a los clientes, ver
+[Avisar a los clientes cuando vuelve a haber stock](ventas-avisos-de-faltantes.md).
 
 ## Transportes
 
