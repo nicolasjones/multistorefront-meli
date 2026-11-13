@@ -8,10 +8,11 @@ vi.mock('../../../hooks/useConfiguracionCotizacion', () => ({ useConfiguracionCo
 vi.mock('../../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.empresas }))
 // El diálogo real se prueba en su propio archivo: acá se verifica cuándo y con qué datos se monta.
 vi.mock('../../../components/cotizacion/DialogoCargarDolarConImpacto', () => ({
-  DialogoCargarDolarConImpacto: (props: { empresaId: string | null; nombreEmpresa: string | null; confirmacionPct?: number; onConfirmada: (c: unknown) => void; onCerrar: () => void }) => (
+  DialogoCargarDolarConImpacto: (props: { empresaId: string | null; nombreEmpresa: string | null; confirmacionPct?: number; yaCargadaHoy?: boolean; onConfirmada: (c: unknown) => void; onCerrar: () => void }) => (
     <div role="dialog" aria-label="Cargar dólar del día">
       <span>empresa:{props.empresaId ?? 'ninguna'}</span>
       <span>pct:{props.confirmacionPct}</span>
+      <span>ya:{String(props.yaCargadaHoy)}</span>
       <button onClick={() => props.onConfirmada({ id: 'c1', recalculoAplicado: true, preciosRecalculados: 60 })}>confirmar</button>
       <button onClick={() => props.onConfirmada({ id: 'c2', recalculoAplicado: false, preciosRecalculados: 0 })}>registrar</button>
       <button onClick={props.onCerrar}>cerrar</button>
@@ -93,5 +94,36 @@ describe('Tarjeta de dólar (FR-006, F-INI-07)', () => {
     montar(true, SIN_CARGAR, 'empresa', null)
     expect(screen.getByText(/Elegí una empresa en la barra superior/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cargar ahora' })).toBeDisabled()
+  })
+
+  it('cargado hoy: el administrador puede «Corregir cotización» y el diálogo sabe que ya se cargó hoy', async () => {
+    montar(true, { cargadaHoy: true, cargadaEn: '2026-10-23T13:00:00Z', cargadaPor: 'Admin', valor: 1490 })
+    expect(screen.queryByRole('button', { name: 'Cargar ahora' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Corregir cotización' }))
+    expect(await screen.findByText('ya:true')).toBeInTheDocument()
+  })
+
+  it('cargado hoy: quien no edita (operador) no ve «Corregir cotización»', () => {
+    montar(false, { cargadaHoy: true, cargadaEn: '2026-10-23T13:00:00Z', cargadaPor: 'Admin', valor: 1490 })
+    expect(screen.queryByRole('button', { name: 'Corregir cotización' })).not.toBeInTheDocument()
+  })
+
+  it('al confirmar, el foco pasa al aviso de éxito (el botón «Cargar ahora» desaparece)', async () => {
+    montar(true, SIN_CARGAR)
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar ahora' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'confirmar' }))
+    const aviso = screen.getByText('Cotización aplicada · 60 precios recalculados').closest('[role="status"]') as HTMLElement
+    expect(aviso).toHaveFocus()
+  })
+
+  it('si cambia la empresa activa con el diálogo abierto, se cierra sin guardar y lo avisa', async () => {
+    const { rerender } = montar(true, SIN_CARGAR, 'empresa', 'e1')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar ahora' }))
+    expect(await screen.findByText('empresa:e1')).toBeInTheDocument()
+    mocks.empresas.mockReturnValue({ empresas: [{ id: 'e1', nombre: 'Mundo JC' }, { id: 'e2', nombre: 'San Javucho' }], empresaActivaId: 'e2', isLoading: false, isError: false })
+    rerender(<TarjetaDolar puedeEditar />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText('Cambiaste de empresa: el diálogo de carga se cerró sin guardar.')).toBeInTheDocument()
+    expect(mocks.recargarEstado).not.toHaveBeenCalled()
   })
 })

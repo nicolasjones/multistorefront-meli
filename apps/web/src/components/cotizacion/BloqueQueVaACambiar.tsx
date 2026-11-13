@@ -21,11 +21,12 @@ export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD
         {previa.empresas.map((empresa) => (
           <Box key={empresa.empresaId} sx={{ flex: '1 1 140px', bgcolor: 'action.hover', borderRadius: 2, px: 1.75, py: 1.5 }}>
             <Typography variant="xs">{empresa.nombre}</Typography>
-            <Typography variant="t3" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>{textoPrecios(empresa.precios)}</Typography>
+            <Typography variant="t3" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>{empresa.precios === 0 ? 'Sin cambios' : textoPrecios(empresa.precios)}</Typography>
             <Typography variant="xs">{leyendaPrecios}</Typography>
           </Box>
         ))}
       </Stack>
+      {previa.muestra.length === 0 ? <Typography variant="s">No hay precios en dólares para mostrar.</Typography> : null}
       {previa.muestra.length > 0 ? (
         <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small" aria-label="Productos de muestra con su precio de hoy y el nuevo">

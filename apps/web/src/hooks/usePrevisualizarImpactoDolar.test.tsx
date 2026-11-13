@@ -55,4 +55,42 @@ describe('usePrevisualizarImpactoDolar (F-INI-07)', () => {
     await act(async () => { result.current.recargar(); await vi.advanceTimersByTimeAsync(0) })
     expect(result.current.previa).toEqual(PREVIA)
   })
+
+  it('respuestas desordenadas: la última petición gana (A resuelve después de B)', async () => {
+    let resolverA: (valor: unknown) => void = () => undefined
+    const previaB = { ...PREVIA, variacionPct: 7 }
+    mocks.rpc
+      .mockReturnValueOnce(new Promise((resolve) => { resolverA = resolve }))
+      .mockResolvedValueOnce(previaB)
+    const { result, rerender } = renderHook(({ v }) => usePrevisualizarImpactoDolar(v), { initialProps: { v: 1500 as number | null } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    rerender({ v: 1600 })
+    await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    expect(result.current.previa).toEqual(previaB)
+    // La respuesta vieja (A) llega tarde y no pisa a la nueva.
+    await act(async () => { resolverA(PREVIA); await vi.advanceTimersByTimeAsync(0) })
+    expect(result.current.previa).toEqual(previaB)
+  })
+
+  it('al desmontar, una respuesta en vuelo ya no actualiza nada', async () => {
+    let resolver: (valor: unknown) => void = () => undefined
+    mocks.rpc.mockReturnValueOnce(new Promise((resolve) => { resolver = resolve }))
+    const errores = vi.spyOn(console, 'error')
+    const { unmount } = renderHook(() => usePrevisualizarImpactoDolar(1500))
+    await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    unmount()
+    await act(async () => { resolver(PREVIA); await vi.advanceTimersByTimeAsync(0) })
+    expect(errores).not.toHaveBeenCalled()
+  })
+
+  it('conserva el último impacto como `anterior` mientras llega el del valor nuevo (sin habilitar guardar)', async () => {
+    const { result, rerender } = renderHook(({ v }) => usePrevisualizarImpactoDolar(v), { initialProps: { v: 1500 as number | null } })
+    await act(async () => { await vi.advanceTimersByTimeAsync(500) })
+    rerender({ v: 1600 })
+    expect(result.current.previa).toBeNull()
+    expect(result.current.anterior).toEqual(PREVIA)
+    expect(result.current.cargando).toBe(true)
+    rerender({ v: null })
+    expect(result.current.anterior).toBeNull()
+  })
 })

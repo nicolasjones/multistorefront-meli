@@ -1,24 +1,23 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { Alert, Button, Dialog, DialogActions, DialogContent, InputAdornment, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Button, Dialog, DialogActions, DialogContent, Stack, Typography } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { EstadoCargaPagina, EstadoError } from '../estados/EstadosPagina'
 import { useCargarCotizacion, useConfirmarCotizacion } from '../../hooks/useCotizacion'
 import { usePrevisualizarCotizacion } from '../../hooks/usePrevisualizarCotizacion'
 import { type EstadoSugerida, useCotizacionSugerida } from '../../hooks/useCotizacionSugerida'
+import { AlertaVariacionInusual } from './AlertaVariacionInusual'
 import { BloqueQueVaACambiar } from './BloqueQueVaACambiar'
+import { CampoDolar } from './CampoDolar'
 import {
   type CotizacionCargada,
   type CotizacionConfirmada,
   type CotizacionVigente,
-  MENSAJE_VALOR_INVALIDO,
   UMBRAL_RECALCULO_PCT,
   UMBRAL_VARIACION_INUSUAL_PCT,
   esVariacionInusual,
-  formatearPorcentaje,
   formatearCotizacion,
   formatearVariacion,
   parsearCotizacion,
-  soloCaracteresDeCotizacion,
   textoDeCotizacionSugerida,
   textoAnterior,
   textoUmbralNoAlcanzado,
@@ -38,14 +37,8 @@ type Props = {
   confirmacionPct?: number
 }
 
-export function AlertaVariacionInusual({ confirmacionPct }: { confirmacionPct: number }) {
-  return (
-    <Alert severity="warning">
-      <Typography component="p" fontWeight={600}>Variación inusual</Typography>
-      La variación supera el {formatearPorcentaje(confirmacionPct)} %. Revisá que el valor sea correcto antes de aplicarlo.
-    </Alert>
-  )
-}
+// Se re-exporta por compatibilidad: ahora vive en su propio archivo (lo comparte el diálogo de Inicio sin arrastrar este).
+export { AlertaVariacionInusual }
 
 // F-PRE-13: la cotización sugerida por la fuente pública es una AYUDA; «Usar este valor» solo completa el campo
 // (la carga y la confirmación son las de siempre). Si la fuente no responde, se carga a mano como hoy (FR-002).
@@ -151,20 +144,11 @@ export function DialogoCargarDolar({
             <Stack spacing={2} sx={{ pt: 1 }}>
               {nombreEmpresa ? <Typography variant="s">Cotización de {nombreEmpresa}</Typography> : null}
               {error ? <Alert severity="error">{error}</Alert> : null}
-              <TextField
-                label="Dólar del día (pesos por dólar)"
-                value={texto}
-                onChange={(evento) => setTexto(soloCaracteresDeCotizacion(evento.target.value))}
-                error={mostrarInvalido}
-                helperText={mostrarInvalido ? MENSAJE_VALOR_INVALIDO : (vigente ? textoAnterior(vigente, aplicada) : undefined)}
-                autoFocus
-                slotProps={{
-                  htmlInput: { inputMode: 'decimal', autoComplete: 'off' },
-                  input: {
-                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                    endAdornment: <InputAdornment position="end">por USD</InputAdornment>,
-                  },
-                }}
+              <CampoDolar
+                texto={texto}
+                onCambiar={setTexto}
+                invalido={mostrarInvalido}
+                ayuda={vigente ? textoAnterior(vigente, aplicada) : undefined}
               />
               <SugerenciaDelDia sugerencia={sugerencia} onUsar={(sugerido) => setTexto(textoDeCotizacionSugerida(sugerido))} />
               {mostrarInvalido && vigente ? <Typography variant="s">{textoAnterior(vigente, aplicada)}</Typography> : null}

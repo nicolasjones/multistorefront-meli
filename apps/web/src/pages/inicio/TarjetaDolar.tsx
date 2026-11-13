@@ -1,5 +1,6 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Alert, AlertTitle, Button, Stack, Typography } from '@mui/material'
+import { LimiteDialogoDolar } from '../../components/cotizacion/LimiteDialogoDolar'
 import { useConfiguracionCotizacion } from '../../hooks/useConfiguracionCotizacion'
 import { useEstadoCotizacion } from '../../hooks/useCotizacion'
 import { useCotizacionDelDia } from '../../hooks/useCotizacionDelDia'
@@ -22,7 +23,8 @@ const DialogoCargarDolarConImpacto = lazy(() =>
 // (`cotizacion_del_dia`; una carga pendiente cuenta como no cargada), el aviso «Todavía no se cargó el dólar de
 // hoy» con «Cargar ahora», que abre el diálogo con el impacto por tienda ANTES de guardar. Aviso y botón son solo
 // para quien puede editar la cotización (el operador no ve ninguno, CA-INI-07-7). Con alcance «una por empresa» la
-// carga es de la empresa activa: en «Todas mis empresas» hay que elegir una antes (como en Cotización).
+// carga es de la empresa activa: en «Todas mis empresas» hay que elegir una antes (como en Cotización). Una vez
+// cargado hoy, el administrador puede «Corregir cotización» (el mismo diálogo, que indica que reemplaza la de hoy).
 export function TarjetaDolar({ puedeEditar }: { puedeEditar: boolean }) {
   const config = useConfiguracionCotizacion(true)
   // La carga es de la empresa activa de la barra superior (en «Todas mis empresas» no hay una elegida).
@@ -37,6 +39,11 @@ export function TarjetaDolar({ puedeEditar }: { puedeEditar: boolean }) {
   // El diálogo guarda la empresa con la que se abrió: si la activa cambia, se cierra sin guardar.
   const [dialogoPara, setDialogoPara] = useState<{ empresaId: string | null } | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  // Al confirmar, el botón «Cargar ahora» desaparece: el foco pasa al aviso de éxito (no se pierde en el <body>).
+  const avisoRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (aviso) avisoRef.current?.focus()
+  }, [aviso])
   if (dialogoPara && dialogoPara.empresaId !== empresaId) {
     setDialogoPara(null)
     setAviso('Cambiaste de empresa: el diálogo de carga se cerró sin guardar.')
@@ -57,6 +64,7 @@ export function TarjetaDolar({ puedeEditar }: { puedeEditar: boolean }) {
   }
   const vigente = estado.estado?.vigente ?? null
   const sinCargarHoy = dia.delDia !== null && !dia.delDia.cargadaHoy
+  const cargadaHoy = dia.delDia !== null && dia.delDia.cargadaHoy
   return (
     <TarjetaInicio
       titulo="Dólar"
@@ -73,7 +81,7 @@ export function TarjetaDolar({ puedeEditar }: { puedeEditar: boolean }) {
         ) : (
           <Typography>Todavía no hay una cotización vigente.</Typography>
         )}
-        {aviso ? <Alert severity="success" sx={{ width: '100%' }} onClose={() => setAviso(null)}>{aviso}</Alert> : null}
+        {aviso ? <Alert ref={avisoRef} tabIndex={-1} role="status" severity="success" sx={{ width: '100%' }} onClose={() => setAviso(null)}>{aviso}</Alert> : null}
         {puedeEditar && sinCargarHoy ? (
           <Alert
             severity="warning"
@@ -88,9 +96,15 @@ export function TarjetaDolar({ puedeEditar }: { puedeEditar: boolean }) {
             {sinEmpresaElegida ? 'Elegí una empresa en la barra superior para cargar su dólar.' : null}
           </Alert>
         ) : null}
+        {puedeEditar && cargadaHoy ? (
+          <Button variant="text" size="small" disabled={sinEmpresaElegida} onClick={() => setDialogoPara({ empresaId })}>
+            Corregir cotización
+          </Button>
+        ) : null}
       </Stack>
       {dialogoPara ? (
-        <Suspense fallback={null}>
+        <LimiteDialogoDolar onCerrar={() => setDialogoPara(null)}>
+        <Suspense fallback={<Typography variant="s" role="status" aria-live="polite">Abriendo la carga del dólar…</Typography>}>
           <DialogoCargarDolarConImpacto
             abierto
             vigente={vigente}
@@ -100,8 +114,10 @@ export function TarjetaDolar({ puedeEditar }: { puedeEditar: boolean }) {
             empresaId={empresaId}
             nombreEmpresa={nombreEmpresa}
             confirmacionPct={config.configuracion?.confirmacionPct}
+            yaCargadaHoy={cargadaHoy}
           />
         </Suspense>
+        </LimiteDialogoDolar>
       ) : null}
     </TarjetaInicio>
   )
