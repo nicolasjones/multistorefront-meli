@@ -120,7 +120,9 @@ en otros componentes lo corrige el PR #876, no este.
   fixture se queda en el spec o en su archivo de soporte porque la firma es propia de ese flujo: las llamadas RPC con el JWT de
   una persona (`rpc`, `rpcComo`, `tokenDe`), `actualizar`/`modificar` (PATCH), `leer(consulta)` y `cabeceras` con perfil `dominio` por defecto
   en algunas tiendas, `cuenta-web-cliente` (`rest(metodo, ruta, cuerpo)`), `importaciones-soporte.ts`, `ventas-faltantes-soporte.ts`
-  (`leer` con `dominio` por defecto, exportado a otros specs) y `ayuda`/`panel-sin-desborde` (`borrar` con la URL completa).
+  (`leer` con `dominio` por defecto, exportado a otros specs) y `ayuda`/`panel-sin-desborde` (`borrar` con la URL completa). `e2e/semillas.ts` (los helpers compartidos de `stock-historias`,
+  `exportacion-total`...) re-exporta los del fixture y conserva `password`, `ingresar` y `tokenDe`. Siguen con sus copias, a la espera de
+  que se mergee el PR que los modifica, `ordenes-compra` (#869) y `service-cobro-avisos` (#691).
 - `service-seguimiento` necesita `SEGUIMIENTO_IP_SALT` en el runtime de **Edge**, no en Playwright: se exporta (o va en
   `supabase/.env`) antes de `supabase start`, porque `config.toml` lo declara en `[edge_runtime.secrets]`.
 - `ventas-impresion` corre el worker real: compilá `workers/comprobantes-pdf` (`pnpm build` en ese paquete) y exportá
@@ -134,10 +136,10 @@ en otros componentes lo corrige el PR #876, no este.
 - Los recorridos largos fijan `test.setTimeout` con el motivo de cada spec (30-90 s); el tope por defecto (30 s) no alcanza con
   varios roles o con mucha siembra.
 - `inicio` ubica cada tarjeta por su título (`tarjeta()` en `e2e/inicio.e2e.ts`). Desde MSF-820 «Stock hoy» aparece dos
-  veces en la portada del panel: el bloque del tablero (`BloqueStock`, primero en el DOM) y la tarjeta de alertas de stock
-  (`TarjetaStock`, la que el spec verifica, siempre la última); el helper toma `.last()` para no violar el modo estricto de
-  Playwright sin cambiar lo que se afirma. Si una pantalla suma otro título repetido, acotá el locator a su región en lugar
-  de encadenar más `.first()`/`.last()`.
+  veces en la portada del panel: la tarjeta de alertas de stock (`TarjetaStock`, la que el spec verifica, con su enlace «Ver
+  stock») y el bloque del tablero (`TableroInicio`). No se elige por posición en el DOM (el orden cambió y un `.last()` pasó a
+  apuntar al tablero): el helper toma la que contiene el enlace «Ver stock». Si una pantalla suma otro título repetido, acotá
+  el locator a su región o a un elemento propio de la tarjeta en lugar de encadenar `.first()`/`.last()`.
 - Un spec no se salta solo según lo que ve en pantalla: `locator.count()` no espera y los listados llegan por una RPC
   asíncrona, así que un `test.skip(!hayAlgo)` basado en un conteo instantáneo oculta la verificación (así `tienda-disponibilidad`
   no comprobaba nada). Las únicas omisiones válidas son las del entorno, declaradas al inicio del `describe` o con su variable
