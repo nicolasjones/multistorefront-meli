@@ -89,6 +89,9 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Service técnico: cobro, avisos y ficha del cliente (técnico)](service-cobro-y-avisos.md)
 
 ## Inicio, reportes y rentabilidad
+- [Inicio: tablero, alertas y búsqueda (producto)](../producto/inicio-y-alertas.md)
+- [Inicio y alertas: pantalla, recálculo y búsqueda global (técnico)](inicio-y-alertas.md)
+- [Inicio: tablero de ventas y stock, listado por producto y carga del dólar (técnico)](inicio-tablero.md)
 - [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
 - [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)
 

@@ -11,6 +11,8 @@ sources:
 **Épica:** MSF-156 · **Spec:** `specs/20261030-100000-inicio-y-alertas/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/inicio-y-alertas.md`) · **Rama:** `epic/MSF-156-inicio-rentabilidad-y-reportes-inicio-y-` · **Historias:** F-INI-01 (MSF-344, PR #521), F-INI-02 (MSF-361, PR #523), F-INI-03 (MSF-374, PR #520), E2E de cierre (MSF-578, PR #561).
 
 > Detalle de implementación, tablas de origen y variables: `docs/inicio-y-alertas.md` y `docs/busqueda-global.md` (viven en `dokploy` y llegan a `main` con la promoción; este documento no los duplica, resume lo que hay que saber para operar y probar). Producto: [Inicio, alertas y búsqueda](../producto/inicio-y-alertas.md).
+>
+> **Tablero de Inicio (MSF-824):** esta página cubre la pantalla base de la épica MSF-156. La ampliación de la misma pantalla —filtros, indicadores de ventas y stock, gráfico, bloques de gestión, listado «Movimientos por producto» y la carga del dólar con impacto— está en [Inicio: tablero de ventas y stock, listado por producto y carga del dólar (MSF-824)](inicio-tablero.md).
 
 ## Decisiones
 
@@ -72,8 +74,8 @@ Variables (solo ejemplos en `.env.example`): `ALERTAS_INICIO_URL`, `ALERTAS_INIC
 |---|---|
 | Tarjetas y alertas de Mercado Libre / precios en revisión | Fuera de alcance: se programan con las épicas de Mercado Libre. |
 | Alerta `margen_negativo` | Se activa cuando exista la vista de rentabilidad (MSF-120). |
-| Gráficos de ventas en Inicio | Fuera de alcance (F-REP-05). |
-| Capturas del manual de usuario | TODO (dueño: Documentador): no hay guion en `apps/web/e2e/capturas/` para Inicio ni la búsqueda; generarlo y correr `pnpm docs:capturas`. |
+| Gráficos de ventas en Inicio | Entregados por la épica **MSF-824** (gráfico «Ventas y stock en el tiempo»): ver [Inicio · tablero (MSF-824)](inicio-tablero.md). |
+| Capturas del manual de usuario | TODO (dueño: Documentador / equipo de diseño): el manual de Inicio ya documenta el tablero de MSF-824, pero faltan las capturas; `pnpm docs:capturas` no existe en este repo y el código de MSF-824 todavía no está en `main`. Ver [Inicio · tablero (MSF-824)](inicio-tablero.md#desvíos-y-pendientes). |
 | Documentos `docs/inicio-y-alertas.md` y `docs/busqueda-global.md` | Ya están en `dokploy`; llegan a `main` con la próxima promoción. Enlazarlos al nav entonces. |
 
 ## Reversión

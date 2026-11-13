@@ -3965,3 +3965,134 @@ Cuatro tablas de plataforma en `public` (no son entidades de negocio del product
 
 Las lecturas usan funciones `private.api_leer_*` que filtran por organización dentro del SQL. Las vistas `ia_consulta_catalogo`, `ia_consulta_stock`, `ia_consulta_precios` e `ia_consulta_ventas` (solo lectura, `security_invoker = true`) alimentan al asistente con IA (F-IA-01); ver [el manual del asistente](../producto/asistente.md).
 
+## Inicio: tablero de ventas y stock (MSF-824)
+
+Épica **MSF-824** (spec `20270305-100000-inicio-tablero-completo`), rama `epic/MSF-824-inicio-tablero-completo`
+(PR #899 a `dokploy`, aún sin promover a `main`). **Sin cambios de esquema**: no crea tablas ni altera
+columnas. Agrega **cinco RPC** en `public` (superficie de ejecución, sin datos propios) y **un índice** sobre
+`dominio.movimientos_stock`. Migraciones aditivas `20270305105000_resumen_inicio_periodo.sql` a
+`20270305140000_aplicar_cotizacion.sql`; la reversión de cada una está en el encabezado de la migración
+(`drop function` de la RPC y `drop index` del índice). Detalle de contratos, permisos y prueba:
+[Inicio · tablero (MSF-824)](inicio-tablero.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.movimientos_stock` | existente | Solo se lee (`fecha`, `diferencia`, `deposito_id`, `producto_id`, `tipo`). La épica le crea el índice `dominio.movimientos_stock_org_fecha_dia_idx (organizacion_id, fecha) include (diferencia, deposito_id, producto_id, tipo)`: el índice previo es por `creado_en`, no por `fecha`. Sin cambios de columnas. |
+| `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `total_con_iva`); el signo y el predicado los aplica `private.comprobante_cuenta_como_facturado` y `private.signo_comprobante`. Sin cambios de columnas. |
+| `dominio.comprobantes_venta_lineas` | existente | Solo se lee (`comprobante_id`, `producto_id`, `deposito_id`, `cantidad`, `subtotal_sin_iva`, `iva`). Sin cambios de columnas. |
+| `dominio.existencias` | existente | Solo se lee (`cantidad`, `reservado`, `minimo`) del stock único por producto. Sin cambios de columnas. |
+| `dominio.existencias_deposito` | existente | Solo se lee (`cantidad`, `reservado`) por producto y depósito. Sin cambios de columnas. |
+| `dominio.productos` | existente | Solo se lee (`id`, `nombre`, `sku`, `categoria_id`, `activo`); el listado trae solo productos activos. Sin cambios de columnas. |
+| `dominio.categorias` | existente | Solo se lee (`id`, `nombre`) para la columna «Categoría». Sin cambios de columnas. |
+| `dominio.producto_empresa` | existente | Solo se lee: con tienda elegida, el listado trae solo los productos de esa tienda. Sin cambios de columnas. |
+| `dominio.depositos` | existente | Solo se lee (`id`, `nombre`, `activo`) para el filtro y las salidas por depósito. Sin cambios de columnas. |
+| `dominio.empresas` | existente | Solo se lee (`id`, `nombre`, `activa`) para el filtro de tienda y el resumen por tienda. Sin cambios de columnas. |
+| `dominio.motivos_movimiento` | existente | Solo se lee (`nombre`) para excluir traslados, devoluciones de cliente y anulaciones de factura de las «entradas» (D-3). Sin cambios de columnas. |
+| `dominio.precios_propios_empresa` | existente | Solo se lee (precios en USD por empresa) para la vista previa del impacto del dólar. Sin cambios de columnas. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ EMPRESAS : "define"
+  ORGANIZACIONES ||--o{ DEPOSITOS : "define"
+  ORGANIZACIONES ||--o{ PRODUCTOS : "define"
+  ORGANIZACIONES ||--o{ EXISTENCIAS : "es dueña"
+  ORGANIZACIONES ||--o{ EXISTENCIAS_DEPOSITO : "es dueña"
+  ORGANIZACIONES ||--o{ MOVIMIENTOS_STOCK : "es dueña"
+  ORGANIZACIONES ||--o{ COMPROBANTES_VENTA : "emite"
+  ORGANIZACIONES ||--o{ PRECIOS_PROPIOS_EMPRESA : "define"
+  EMPRESAS ||--o{ PRODUCTO_EMPRESA : "vende"
+  PRODUCTOS ||--o{ PRODUCTO_EMPRESA : "se vende en"
+  PRODUCTOS ||--o| EXISTENCIAS : "tiene stock"
+  PRODUCTOS ||--o{ EXISTENCIAS_DEPOSITO : "stock"
+  PRODUCTOS ||--o{ MOVIMIENTOS_STOCK : "movimiento"
+  PRODUCTOS ||--o{ PRECIOS_PROPIOS_EMPRESA : "precio propio"
+  DEPOSITOS ||--o{ EXISTENCIAS_DEPOSITO : "guarda"
+  DEPOSITOS ||--o{ MOVIMIENTOS_STOCK : "deposito"
+  EXISTENCIAS ||--o{ MOVIMIENTOS_STOCK : "registra"
+  MOTIVOS_MOVIMIENTO ||--o{ MOVIMIENTOS_STOCK : "explica"
+  CATEGORIAS ||--o{ PRODUCTOS : "clasifica"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "vende"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "detalla"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  EMPRESAS ||--o{ PRECIOS_PROPIOS_EMPRESA : "precio propio"
+
+  ORGANIZACIONES { uuid id PK
+                   text nombre }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre
+             bool activa }
+  DEPOSITOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre
+              boolean activo }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              uuid categoria_id FK
+              text nombre
+              text sku
+              text moneda
+              numeric precio_lista
+              bool activo }
+  CATEGORIAS { uuid id PK
+               uuid organizacion_id FK
+               uuid padre_id FK
+               text nombre }
+  PRODUCTO_EMPRESA { uuid producto_id PK
+                     uuid empresa_id PK
+                     uuid organizacion_id FK }
+  EXISTENCIAS { uuid producto_id PK
+                uuid organizacion_id FK
+                int cantidad
+                int reservado
+                int minimo }
+  EXISTENCIAS_DEPOSITO { uuid producto_id PK FK
+                         uuid deposito_id PK FK
+                         uuid organizacion_id FK
+                         int cantidad
+                         int reservado }
+  MOVIMIENTOS_STOCK { uuid id PK
+                      uuid organizacion_id FK
+                      uuid producto_id FK
+                      uuid deposito_id FK
+                      text tipo
+                      int diferencia
+                      uuid motivo_id FK
+                      date fecha }
+  MOTIVOS_MOVIMIENTO { uuid id PK
+                       uuid organizacion_id FK
+                       text nombre
+                       text[] aplica_a }
+  COMPROBANTES_VENTA { uuid id PK
+                       uuid organizacion_id FK
+                       uuid empresa_id FK
+                       text tipo
+                       text estado
+                       date fecha
+                       numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                              uuid comprobante_id FK
+                              uuid producto_id FK
+                              uuid deposito_id FK
+                              numeric cantidad
+                              numeric subtotal_sin_iva
+                              numeric iva }
+  PRECIOS_PROPIOS_EMPRESA { uuid producto_id PK FK
+                             uuid empresa_id PK FK
+                             uuid organizacion_id FK
+                             text moneda
+                             numeric importe }
+```
+
+- **La épica no agrega entidades al grafo**: no hay tablas nuevas, así que no hay un ERD propio; el grafo de
+  ventas es el de
+  **[ERD interactivo (Archify)](../diagrams/msf-177-erd.html)** (documento de venta, líneas, clientes y
+  stock) y el de stock el de [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
+- **Las cinco RPC son `security definer`**: saltean la RLS de las tablas que leen, así que la autorización
+  va escrita adentro (organización de la sesión, `private.empresas_accesibles()` y el nivel de sección). El
+  permiso se **filtra en la base**, no solo en la pantalla: los bloques sin permiso vuelven `null`.
+- **Reversión**: `drop function` de las cinco RPC y `drop index dominio.movimientos_stock_org_fecha_dia_idx`
+  (sin datos que conservar).
+
+

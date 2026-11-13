@@ -907,6 +907,27 @@ La **descarga** del ZIP no es una RPC: el panel pide una URL firmada de 60 s del
 `exportaciones-organizacion` y la política `exportaciones_organizacion_select` deja leerla solo al administrador
 propio de la organización dueña de la carpeta. El worker escribe con la clave de servicio del servidor.
 
+### Inicio: tablero de ventas y stock (MSF-824)
+
+Fuente: `supabase/migrations/20270305105000`–`20270305140000` (rama `epic/MSF-824-inicio-tablero-completo`,
+PR #899 a `dokploy`; aún no en `main`). Las cinco RPC son `security definer` con `set search_path = ''`,
+`revoke execute … from public, anon` y `grant execute … to authenticated`; **no crean tablas**: la
+autorización va adentro (organización de la sesión y `private.empresas_accesibles()`). Contratos, definiciones
+de los indicadores y guía de prueba: [Inicio · tablero (MSF-824)](inicio-tablero.md).
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `public.resumen_inicio_periodo(p_desde date, p_hasta date, p_empresa uuid default null, p_deposito uuid default null)` | `jsonb` `{ desde, hasta, anterior_desde, anterior_hasta, ventas \| null, stock \| null, serie[] }`: ventas del período con IVA (la nota de crédito resta, con `private.comprobante_cuenta_como_facturado` y `private.signo_comprobante`), stock del momento y serie diaria de unidades vendidas y stock al cierre. `ventas` vuelve `null` sin `ventas` ≥ lectura; `stock` vuelve `null` sin `stock` ≥ lectura | `42501` sin organización · `22023` rango inválido o de más de 366 días |
+| `public.resumen_inicio_bloques(p_desde, p_hasta, p_empresa default null, p_deposito default null)` | `jsonb` `{ por_tienda \| null, salidas_por_deposito \| null }`: una fila por tienda con unidades, ingresos (con IVA) y margen estimado, y las salidas por depósito con su stock actual. `ingresos` y `margen_pct` vuelven `null` sin `rentabilidad` ≥ lectura | igual que la anterior |
+| `public.movimientos_por_producto(p_desde, p_hasta, p_empresa, p_deposito, p_busqueda, p_categoria, p_vista, p_orden, p_direccion, p_pagina, p_tamano)` | Tabla de 14 columnas (`producto_id`, las 12 del listado y `total`): stock inicial, entradas, salidas, ajustes, stock actual, mínimo, ventas, último movimiento y estado. Búsqueda, categoría, vista rápida y orden se resuelven en el servidor, con **lista blanca** para el orden y la dirección | `42501` sin `stock` ≥ lectura · `22023` rango, vista, orden o dirección inválidos |
+| `public.previsualizar_impacto_dolar(p_valor numeric, p_empresa uuid default null)` | `jsonb` `{ variacion_pct, recalcula, empresas[], muestra[], umbral_pct, confirmacion_pct, redondeo_pesos }`: el impacto del valor **sin escribir** (no deja cotización pendiente). Reusa `private.precios_usd_por_empresa` y `private.precio_visible_con_cotizacion` | `42501` sin **edición** en `cotizacion_dolar` · `22023` valor nulo, ≤ 0, NaN, infinito, con más de 4 decimales o ≥ 1e10 |
+| `public.aplicar_cotizacion(p_valor numeric, p_empresa uuid default null, p_variacion_vista numeric default null)` | Carga **y** confirma el dólar en una sola transacción (delega en `cargar_cotizacion` y `confirmar_cotizacion`): si la confirmación falla, no queda cotización pendiente. Devuelve el `jsonb` de `confirmar_cotizacion` | los de `cargar_cotizacion` (`42501`, `23514`) y `confirmar_cotizacion` (`22023` con `hint` `variacion_inusual` o `variacion_cambio`) |
+
+Topes: `movimientos_por_producto` acota `p_tamano` a 1–100, `p_pagina` a 1–100000 y la búsqueda a 100
+caracteres. Índice nuevo: `dominio.movimientos_stock_org_fecha_dia_idx (organizacion_id, fecha) include
+(diferencia, deposito_id, producto_id, tipo)` en `20270305105000` (el índice previo de esa tabla es por
+`creado_en`). «Actividad reciente» no usa RPC nueva: lee `public.listar_actividad`.
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).
