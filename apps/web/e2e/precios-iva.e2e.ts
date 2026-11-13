@@ -88,6 +88,7 @@ test.describe('Precios e IVA (MSF-114, SC-009)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('producto en USD con costo: precio en dos empresas con reglas distintas, interruptor de IVA y margen', async ({ browser }) => {
+    test.setTimeout(90_000) // alta del producto en USD, precio en dos empresas con reglas distintas, interruptor de IVA y margen: ~29 s en reposo, pegado al tope de 30 s
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-precios-${sufijo}@example.com`
     const nombre = `Producto USD ${sufijo}`
@@ -119,11 +120,13 @@ test.describe('Precios e IVA (MSF-114, SC-009)', () => {
 
       // 1. Alta del producto en USD con costo, desde la pantalla.
       await page.goto('/productos/create')
-      await page.getByLabel('Nombre').fill(nombre)
+      // La pantalla vuelve a pintar el formulario cuando terminan de cargar los permisos: se espera a que aparezca el bloque de precios antes de escribir.
+      await expect(page.getByRole('region', { name: 'Precio y costo' })).toBeVisible()
+      await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(nombre)
       await page.getByLabel('Moneda').click()
       await page.getByRole('option', { name: /USD|Dólar/ }).click()
       await page.getByLabel('Precio de lista (sin IVA)').fill('20')
-      await page.getByLabel('Costo').fill('12')
+      await page.getByLabel('Costo', { exact: true }).fill('12')
       await expect(page.getByLabel('Precio en pesos')).toHaveValue('$ 29.300')
       await expect(page.getByText(/costo \$ 17\.580 · con dólar \$ 1\.465/)).toBeVisible()
       await expect(page.getByText('Margen estimado (escala x1):')).toContainText('40 %')

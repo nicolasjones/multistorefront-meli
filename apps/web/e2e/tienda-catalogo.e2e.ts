@@ -60,6 +60,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('menú → categoría, filtros, orden, carga infinita y URL compartible', async ({ browser }) => {
+    test.setTimeout(90_000) // siembra de productos masivos y filtros, orden y carga infinita en dos tiendas
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t, i) => ({
       ...t,

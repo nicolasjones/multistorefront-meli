@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
+import { UPSERT_FUSIONAR, crearConsulta, rest } from './soporte/fixtures'
 
 // Cierre de MSF-156 (MSF-578 · T024 · SC-001, SC-002, SC-003): la pantalla de Inicio con los tres roles y
 // con el cambio de empresa activa de la barra superior.
@@ -24,16 +25,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   'content-type': 'application/json',
   ...extra,
 })
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   const r = await fetch(`${url}/rest/v1/rpc/${funcion}`, {
@@ -149,25 +140,31 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     ],
     'dominio',
   )
+  // El disparador `productos_crear_existencias` ya crea la fila de cada producto: se actualiza con upsert.
   await rest(
-    'existencias',
+    'existencias?on_conflict=producto_id',
     [
       { producto_id: sinStock.id, organizacion_id: org.id, cantidad: 0, minimo: 0 },
       { producto_id: stockBajo.id, organizacion_id: org.id, cantidad: 3, minimo: 5 },
     ],
     'dominio',
+    UPSERT_FUSIONAR,
   )
 
-  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa).
-  await rest(
-    'consultas',
-    [
-      { organizacion_id: org.id, empresa_id: empresaA.id, origen: 'formulario', nombre: 'Visitante A', contacto: 'visitante-a@example.com', mensaje: 'Consulta de la tienda A' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante B', contacto: 'visitante-b@example.com', mensaje: 'Consulta de la tienda B' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante C', contacto: 'visitante-c@example.com', mensaje: 'otra consulta de la tienda B' },
-    ],
-    'dominio',
-  )
+  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa). `service_role` solo lee
+  // `dominio.consultas`: entran como las de la tienda, por la RPC pública y el dominio de cada una.
+  const hosts = [`inicio-a-${sufijo}.localhost`, `inicio-b-${sufijo}.localhost`]
+  await rest('tiendas', [
+    { organizacion_id: org.id, empresa_id: empresaA.id, dominio: hosts[0] },
+    { organizacion_id: org.id, empresa_id: empresaB.id, dominio: hosts[1] },
+  ], 'dominio')
+  for (const [host, nombre, contacto, mensaje] of [
+    [hosts[0], 'Visitante A', 'visitante-a@example.com', 'Consulta de la tienda A'],
+    [hosts[1], 'Visitante B', 'visitante-b@example.com', 'Consulta de la tienda B'],
+    [hosts[1], 'Visitante C', 'visitante-c@example.com', 'otra consulta de la tienda B'],
+  ]) {
+    await crearConsulta(host, { nombre, contacto, mensaje })
+  }
 
   // Alertas: las calcula la base (service_role). Con esto la lista de Inicio tiene de dónde leer.
   await rpc('recalcular_alertas_inicio', { p_organizacion: org.id })
@@ -176,11 +173,10 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
 }
 
 async function limpiar(datos: Sembrado) {
-  await borrar(`registro_actividad?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
   await borrar(`usuarios_empresas?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
-  await borrar(`consultas?organizacion_id=eq.${datos.orgId}`, 'dominio')
+  await borrar(`tiendas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`alertas_inicio?organizacion_id=eq.${datos.orgId}`, 'dominio')
