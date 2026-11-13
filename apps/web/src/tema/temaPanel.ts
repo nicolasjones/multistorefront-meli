@@ -248,6 +248,13 @@ export const temaPanel = createTheme({
         root: { minHeight: 0, gap: 4, borderBottom: `1px solid ${color.bordeSuave}` },
       },
     },
+    // La ayuda bajo un campo deshabilitado sigue siendo información que hay que leer («Elegí un proveedor…»):
+    // con el gris de «deshabilitado» (3,2:1) no llega al 4,5:1 de WCAG AA; se la deja en el secundario.
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: { '&.Mui-disabled': { color: color.textoSecundario } },
+      },
+    },
     MuiTab: {
       styleOverrides: {
         root: {

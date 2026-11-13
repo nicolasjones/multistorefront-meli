@@ -342,3 +342,26 @@ Las pantallas solo-Administrador (`/stock/motivos`, Listas configurables) muestr
 (`useNombreRolActual`, misma consulta que `RequiereAccesoSeccion`, vía `lib/rolActual.ts`). Si no se puede
 resolver, el texto genérico es «actual». Pendiente de decisión de negocio: la matriz otorga `edicion`/`lectura`
 a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las limita al Administrador.
+
+## Permisos que se vuelven a pedir con un formulario abierto (decisión: falla cerrada)
+
+`useNivelSeccion` devuelve `nivel: null` cuando cambia la clave `usuario:organización` del `PermisosPanelProvider`
+(p. ej. un superadmin entra a otra organización) o cuando el repedido de permisos falla. En ese caso
+`RequiereAccesoSeccion` y las pantallas con formulario muestran la carga o «No pudimos verificar tus permisos» y
+desmontan el formulario: lo tipeado se pierde. Se descartó conservar el último nivel conocido: dejaba la pantalla **abierta con el nivel de la organización anterior o con un permiso ya perdido**
+(fail-open de la UI). Mientras el nivel no se pueda confirmar para la clave vigente no se ofrece editar; el servidor
+(RLS / `private.nivel_seccion`) es la autoridad igualmente. **Seguimiento (no implementado):** reintentar sin perder el borrador: si el repedido falla con un formulario largo abierto
+se pierde lo tipeado; habría que mostrar un aviso no bloqueante con «Reintentar», guardado deshabilitado y el borrador
+conservado. Cubierto por `e2e/productos-create-permisos.e2e.ts` y por
+`RequiereAccesoSeccion.test.tsx`. El reporte original («escribir enseguida en Nombre deja el campo vacío») no se
+reprodujo con un administrador normal: `RequiereAccesoSeccion` espera a la organización y a los permisos antes de
+montar el formulario, que se monta una sola vez (medido con carga lenta y con permisos y contexto demorados).
+
+## Accesibilidad (hallazgos de la revisión E2E)
+
+- `BotonVolver` (`components/pagina/BotonVolver.tsx`) reemplaza la flecha sin nombre que `@refinedev/mui` pone en
+  `Create`/`Edit`/`Show` (se pasa como `goBack`); `EditButton hideText` lleva `aria-label`.
+- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; no `ContenidoAdaptable`, que pasa a tarjetas en pantallas chicas) lleva `tabIndex={0}`, `role="region"` y un nombre
+  (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
+  «Precio y comisión por canal» en Rentabilidad.
+- La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).

@@ -68,7 +68,7 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
   const imagenes = useImagenesProductos(conSku ? items.map((item) => item.producto_id) : [])
   const columnas = 4 + (conDeposito ? 1 : 0) + (puedeEditar ? 1 : 0)
   return (
-    <TableContainer>
+    <TableContainer tabIndex={0} role="region" aria-label={`${titulo} (se desplaza)`}>
       <Table size="small" aria-label={titulo}>
         <TableHead>
           <TableRow>

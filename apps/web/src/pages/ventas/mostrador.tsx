@@ -237,7 +237,7 @@ export function VentaMostrador() {
           <EstadoVacio titulo="Todavía no hay productos" descripcion="Escaneá un código de barras para empezar la venta." />
         ) : (
           <>
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer tabIndex={0} role="region" aria-label="Productos de la venta (se desplaza)" component={Paper} variant="outlined">
               <Table size="small" aria-label="Productos de la venta">
                 <TableHead>
                   <TableRow>

@@ -77,7 +77,7 @@ export function HistorialLotes({ revision }: Props) {
       ) : null}
 
       {lotes !== null && lotes.length > 0 ? (
-        <Box sx={{ overflowX: 'auto' }}>
+        <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Historial de lotes (se desplaza)">
           <Table size="small" aria-label="Historial de lotes">
             <TableHead>
               <TableRow>

@@ -89,7 +89,7 @@ function SeccionVersiones({ empresaId, alAbrirDialogo, avisoInicial }: PropsPest
         ) : null}
 
         {versiones && versiones.length > 0 ? (
-          <TableContainer sx={{ overflowX: 'auto' }}>
+          <TableContainer tabIndex={0} role="region" aria-label="Versiones publicadas (se desplaza)" sx={{ overflowX: 'auto' }}>
             <Table size="small" aria-label="Versiones publicadas">
               <TableHead>
                 <TableRow>

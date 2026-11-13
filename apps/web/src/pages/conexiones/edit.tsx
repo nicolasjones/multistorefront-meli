@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { Edit } from '@refinedev/mui'
+import { BotonVolver } from '../../components/pagina/BotonVolver'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
@@ -22,7 +23,7 @@ export function ConexionEdit() {
     if (rpcError) { setError(rpcError.message); return }
     navigate('/conexiones')
   }
-  return <Edit title="Rotar credencial" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}><Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}><Stack spacing={2}>
+  return <Edit goBack={<BotonVolver />} title="Rotar credencial" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}><Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}><Stack spacing={2}>
     {error && <Alert severity="error">{error}</Alert>}
     <Typography variant="body2" color="text.secondary">La credencial actual no se muestra ni se recupera para edición. Ingresá la nueva para rotarla en Vault.</Typography>
     <TextField label="Nueva credencial" value={nuevaCredencial} onChange={(event) => setNuevaCredencial(event.target.value)} type="password" required fullWidth multiline minRows={3} />
