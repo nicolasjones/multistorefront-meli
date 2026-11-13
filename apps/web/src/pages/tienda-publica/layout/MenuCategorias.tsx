@@ -13,6 +13,7 @@ const estiloEnlace = {
   color: 'text.primary',
   textDecoration: 'none',
   textTransform: 'uppercase',
+  fontFamily: 'var(--tienda-fuente-titulos, inherit)',
   letterSpacing: '.04em',
   fontSize: 15, // estilos-sueltos: ok
   fontWeight: 600,

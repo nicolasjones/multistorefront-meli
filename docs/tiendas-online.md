@@ -1106,6 +1106,8 @@ contacto de la empresa del host.
   logo, banners). `theme.tienda` expone además los derivados que usa el diseño: `barra`, `textoBarra`, `superficie` (el fondo mezclado
   con negro 4,3 %, el `--sf` del prototipo) y `fuenteTitulos`. Sin identidad legible la tienda sigue con el tema base. En la vista previa
   del panel la identidad llega inyectada (`ProveedorFuenteTienda`) y no se tocan variables globales.
+  Además el `body` toma la tipografía de texto (`--tienda-fuente-texto`) y los enlaces del menú de categorías la de títulos: sin esto, lo que
+  no es tipografía de MUI (los enlaces del menú) salía en la serif por defecto del navegador.
 - **Destello de tema (decisión)**: no se espera la petición de identidad para pintar; la tienda arranca con el tema base neutro y pasa a
   la identidad al llegar, así el contenido no espera un pedido más. Es un destello conocido y aceptado. Para no sumar saltos de diseño, la
   barra superior reserva su altura (36 px / 28 px en celular) mientras llega el contacto.
