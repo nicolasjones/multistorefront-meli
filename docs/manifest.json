@@ -916,12 +916,12 @@
     },
     "docs/producto/ventas-avisos-de-faltantes.md": {
       "title": "Avisar a los clientes cuando vuelve a haber stock",
-      "pageHash": "7eecb9e431e3d51971630ede1cd1e13a399eced0d1a40ea4248b1443642b8b07",
+      "pageHash": "999837b6f0afeb886f1c3978eb32d026acb4e3f8f1cd1c0e34dc5272ba344b1f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "9dc6f30d"
     },
     "docs/producto/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (MSF-139)",
@@ -2262,16 +2262,16 @@
     },
     "docs/tecnico/ventas-avisos-de-faltantes.md": {
       "title": "Ventas · avisos de faltantes (técnico, MSF-161)",
-      "pageHash": "d0e784a9605815198cb53a60c1096a75cfcf139a7304c98133975a2b17537a3e",
+      "pageHash": "aaba0a7d59d2bf133a32094b10d28dc3b884e46f192122414b1a88adc9ff5bf9",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "55f4b030",
+      "sourceAt": "54ea7b1b",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "9dc6f30d"
     },
     "docs/tecnico/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (técnico, MSF-139)",

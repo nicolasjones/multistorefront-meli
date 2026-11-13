@@ -12,10 +12,10 @@ sources:
 `specs/20261110-100000-ventas-avisos-de-faltantes/` (`spec.md`, `plan.md`, `tasks.md`,
 `contracts/ventas-avisos-de-faltantes.md`). Rama
 `epic/MSF-161-ventas-y-despacho-ventas-avisos-de-falta`, PR #834 a `dokploy`, merge commit `adf01e76`
-(2026-11-11). Historias: **F-VTA-26** (MSF-257, avisar a clientes con faltantes) y **F-VTA-27** (MSF-270,
+(2026-11-11), más las rondas de revisión #911, #922, #931, #936 y #939 (estado final: `dokploy` d78b2518, 2026-11-13). Historias: **F-VTA-26** (MSF-257, avisar a clientes con faltantes) y **F-VTA-27** (MSF-270,
 «Para avisar» al ingresar mercadería).
 
-> **Estado:** implementada y mergeada en `dokploy`; todavía **no está en `main`** (esta rama sale de `main`).
+> **Estado:** implementada y mergeada en `dokploy`, con E2E real en dev sobre #922 y #931 (#936 y #939 solo con revisión independiente y script Deno local); todavía **no está en `main`** el código (esta documentación sí). Las decisiones D-1, D-4, D-5 y D-6 tienen el OK de Nicolás («avanza con todo»).
 > Explicación de producto: [Ventas · avisos de faltantes (producto)](../producto/ventas-avisos-de-faltantes.md).
 > Base: [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md) (MSF-135) y
 > [Stock · carga inicial, exportación y avisos (técnico)](stock-carga-exportacion-y-avisos.md) (F-STK-17).
@@ -63,12 +63,12 @@ F-VTA-27 se construyen sobre `dominio.faltantes_venta` y `/ventas/faltantes`**. 
 
 | # | Decisión | Dónde se ve |
 |---|---|---|
-| D-1 | **«Avisado» no es un valor de `estado`.** La épica suponía `estado ∈ {abierto, avisado, resuelto}` + `avisado_at`; el código real tiene `estado ∈ {abierto, resuelto}` con `check ((estado = 'abierto') = (resuelto_en is null))` y un índice único parcial `where estado = 'abierto'`. Agregar `avisado` obligaría a reescribir las cuatro piezas y a romper el índice. Se representa con **dos marcas ortogonales al ciclo de vida**: `avisado` ⇔ hay fila en `dominio.faltantes_avisos` de esa línea en `pendiente`/`enviado` (fecha `coalesce(enviado_en, created_at)`); `para_avisar` ⇔ `faltantes_venta.para_avisar_en is not null` y no está avisado; `sin_avisar` ⇔ ninguna de las dos. **OK pendiente de Nicolás.** | `listar_faltantes` (`aviso`, `aviso_en`) |
+| D-1 | **«Avisado» no es un valor de `estado`.** La épica suponía `estado ∈ {abierto, avisado, resuelto}` + `avisado_at`; el código real tiene `estado ∈ {abierto, resuelto}` con `check ((estado = 'abierto') = (resuelto_en is null))` y un índice único parcial `where estado = 'abierto'`. Agregar `avisado` obligaría a reescribir las cuatro piezas y a romper el índice. Se representa con **dos marcas ortogonales al ciclo de vida**: `avisado` ⇔ hay fila en `dominio.faltantes_avisos` de esa línea en `pendiente`/`enviado` (fecha `coalesce(enviado_en, created_at)`); `para_avisar` ⇔ `faltantes_venta.para_avisar_en is not null` y no está avisado; `sin_avisar` ⇔ ninguna de las dos. | `listar_faltantes` (`aviso`, `aviso_en`) |
 | D-2 | **Reavisar con confirmación (RF-VTA-26-2).** El servidor no reavisa una línea ya avisada salvo `p_reavisar = true` (resultado `ya_avisado`); la pantalla pide la confirmación explícita («Volver a avisar a los N ya avisados»). Al reavisar, la fila de la cola se reinicia (`pendiente`, `intentos = 0`, `created_at = now()`). El rastro de cada aviso queda en `registro_actividad`. Una línea con un envío en curso (`pendiente`) **nunca** se reavisa (resultado `en_cola`). | `avisar_faltantes_venta`, diálogo |
 | D-3 | **Texto editable (RF-VTA-26-1).** El diálogo precarga un texto por defecto y la persona lo edita; viaja a la RPC como `p_mensaje` y se guarda en `faltantes_avisos.mensaje` (≤ 1.000). El correo es **texto plano**: `Hola <cliente>,` + el texto editable + la lista de productos. Se sanea en el servidor (sin caracteres de control ni HTML). Sin `mensaje`, el correo es el de F-STK-17 sin cambios. | `contenido.ts`, columna `mensaje` |
-| D-4 | **«Ingreso de mercadería confirmado» en el código real.** No existe un paso de confirmación: `dominio.ingresos_mercaderia.estado ∈ {registrado, anulado}` y `public.registrar_ingreso_mercaderia` crea la cabecera `registrado`, mueve el stock y crea la fila en `dominio.ingresos_mercaderia_lineas` **en la misma transacción**. «Confirmar el ingreso» = registrarlo, y el enganche es un disparador `AFTER INSERT` sobre `ingresos_mercaderia_lineas`: no se redefine la RPC grande de Stock y se atomiza la marca con el ingreso. Las demás entradas de stock (carga en lote, toma de inventario, traslados, devoluciones de nota de crédito, RMA) **no** marcan. **OK pendiente.** | `private.marcar_faltantes_para_avisar` |
-| D-5 | **Cobertura por antigüedad «hasta agotar la cantidad» (RF-VTA-27-2, CA-VTA-27-2).** Para cada línea del ingreso (producto + cantidad), entre los faltantes **abiertos** de ese producto en toda la organización (el stock es único: no se distingue tienda ni depósito) que aún no están ni «Para avisar» ni «Avisados», se recorren del **más antiguo** al más nuevo (`creado_en`, `id`) con un saldo inicial igual a la cantidad ingresada; se marca cada faltante **completo** mientras su `cantidad_faltante` entre en el saldo y el que **no entra se salta** (un faltante grande no bloquea a los demás del producto; QA 2026-11-10). Ejemplo: ingreso 10, faltantes 4 (hace 3 días), 4 (2 días), 4 (1 día) → se marcan los dos primeros; el tercero espera el próximo ingreso. Solo cuenta la cantidad **del ingreso**, no el stock que ya hubiera. **OK pendiente (cobertura de faltantes completos vs. parcial).** | disparador de ingresos |
-| D-6 | **Anular el ingreso no desmarca.** «Para avisar» es una sugerencia para el operador (no envía nada); la pantalla muestra el «Stock hoy» real al lado. **OK pendiente.** | disparador de ingresos |
+| D-4 | **«Ingreso de mercadería confirmado» en el código real.** No existe un paso de confirmación: `dominio.ingresos_mercaderia.estado ∈ {registrado, anulado}` y `public.registrar_ingreso_mercaderia` crea la cabecera `registrado`, mueve el stock y crea la fila en `dominio.ingresos_mercaderia_lineas` **en la misma transacción**. «Confirmar el ingreso» = registrarlo, y el enganche es un disparador `AFTER INSERT` sobre `ingresos_mercaderia_lineas`: no se redefine la RPC grande de Stock y se atomiza la marca con el ingreso. Las demás entradas de stock (carga en lote, toma de inventario, traslados, devoluciones de nota de crédito, RMA) **no** marcan. | `private.marcar_faltantes_para_avisar` |
+| D-5 | **Cobertura por antigüedad «hasta agotar la cantidad» (RF-VTA-27-2, CA-VTA-27-2).** Para cada línea del ingreso (producto + cantidad), entre los faltantes **abiertos** de ese producto en toda la organización (el stock es único: no se distingue tienda ni depósito) que aún no están ni «Para avisar» ni «Avisados», se recorren del **más antiguo** al más nuevo (`creado_en`, `id`) con un saldo inicial igual a la cantidad ingresada; se marca cada faltante **completo** mientras su `cantidad_faltante` entre en el saldo y el que **no entra se salta** (un faltante grande no bloquea a los demás del producto; QA 2026-11-10). Ejemplo: ingreso 10, faltantes 4 (hace 3 días), 4 (2 días), 4 (1 día) → se marcan los dos primeros; el tercero espera el próximo ingreso. Solo cuenta la cantidad **del ingreso**, no el stock que ya hubiera. | disparador de ingresos |
+| D-6 | **Anular el ingreso no desmarca.** «Para avisar» es una sugerencia para el operador (no envía nada); la pantalla muestra el «Stock hoy» real al lado. | disparador de ingresos |
 | D-7 | **No se exige stock disponible para avisar a mano.** A diferencia de F-STK-17 (`omitidos_sin_stock`), la historia no lo pide: el operador puede estar avisando algo ya recibido y se avisa lo que el operador elige. | `avisar_faltantes_venta` |
 | D-8 | **Línea compartida con F-STK-17.** Si una misma línea fuera a la vez «A pedido» con reserva (F-STK-17) y faltante de despacho (F-VTA-18), comparte **una sola fila de cola**: avisar desde cualquiera de las dos pantallas la deja «Avisada» en ambas (no se manda dos veces). No requiere código extra. | `dominio.faltantes_avisos` |
 | D-9 | **El envío ya no depende de MSF-189.** El SMTP de F-CON-03 y la Edge Function de F-STK-17 ya están en `dokploy`: MSF-189 deja de ser bloqueante de F-VTA-26. | flow `avisos-faltantes` |
@@ -87,6 +87,8 @@ Todas **aditivas** e idempotentes, con la reversión escrita en el encabezado de
 | `20270226110100_faltantes_para_avisar_columnas.sql` | `dominio.faltantes_venta`: columnas `para_avisar_en timestamptz` y `para_avisar_ingreso_id uuid` (FK a `dominio.ingresos_mercaderia (id)`, `on delete set null`), índice parcial `faltantes_venta_cobertura_idx` e índice de la FK (FR-101, FR-102). |
 | `20270226110200_faltantes_para_avisar_ingreso.sql` | Función **nueva** `private.marcar_faltantes_para_avisar()` (`security definer`, `search_path = ''`) y disparador `ingresos_mercaderia_lineas_marcar_faltantes` (`AFTER INSERT FOR EACH ROW` sobre `dominio.ingresos_mercaderia_lineas`) (FR-101, FR-102, FR-105). |
 | `20270226110300_listar_faltantes_para_avisar.sql` | `create or replace public.listar_faltantes(uuid, integer, integer, text)`: reconoce `aviso = 'para_avisar'`, acepta `p_aviso = 'para_avisar'` y, con ese filtro, ordena del más antiguo al más nuevo (FR-103). |
+| `20270306120000_faltantes_avisos_hallazgos_revision.sql` | Revisión de Código/Seguridad y QA: columna `tanda` y checks de `mensaje` (saneado) y `ultimo_error` (códigos), `private.sanear_mensaje_aviso`, `private.encolar_aviso_faltante` (regla única de encolado: reaviso mínimo 24 h y tope de 1.000 líneas por organización por día móvil, usada por `avisar_faltantes_venta` y `avisar_faltantes`), `tomar_aviso_faltante` devuelve `tanda`, `cerrar_aviso_faltante(…, p_tanda)`, `listar_faltantes` suma `aviso_error` y los estados `en_cola`/`avisado`, el disparador reintenta ante deadlock. |
+| `20270306130000_faltantes_avisos_revision_pr915.sql` | `pg_advisory_xact_lock` por organización en el encolado, índice `faltantes_avisos_org_created_idx (organizacion_id, created_at)`, `smtp_timeout` deja el aviso `agotado` (intento incierto), orden de bloqueo común (por línea) en `tomar`, `cerrar` y las dos RPC de encolado. |
 
 `registrar_ingreso_mercaderia`, `registrar_faltantes_despacho` y `avisar_faltantes` (F-STK-17) **no se tocan**.
 
@@ -112,21 +114,28 @@ No se crea ninguna tabla: se **alteran** dos de `dominio` y se **leen** varias m
 
 | Marca | De dónde sale | Fecha (`aviso_en`) | Se cae cuando |
 |---|---|---|---|
-| **Avisado** | Fila en `dominio.faltantes_avisos` de la línea con estado `pendiente` o `enviado` | `coalesce(enviado_en, created_at)` | El envío se agota (`agotado`) → vuelve a «Sin avisar» con el error registrado |
-| **Para avisar** | `faltantes_venta.para_avisar_en is not null` y sin aviso en curso | `para_avisar_en` | El faltante se resuelve (reanudar el armado) |
+| **En cola** | Fila en `faltantes_avisos` de la línea con estado `pendiente` | `created_at` | Sale el correo (pasa a Avisado) o se agotan los intentos |
+| **Avisado** | Fila con estado `enviado` | `enviado_en` | Se vuelve a avisar (mínimo 24 h después) |
+| **Aviso fallido** | Fila `agotado`: no cambia `aviso`; `listar_faltantes` devuelve `aviso_error` (código genérico) | — | «Reintentar» lo reencola |
+| **Para avisar** | `faltantes_venta.para_avisar_en is not null` y sin aviso en cola ni enviado; **no se limpia** si el aviso queda `agotado` (llegó mercadería y falló el aviso) | `para_avisar_en` | El faltante se resuelve (reanudar el armado) |
 | **Sin avisar** | Ninguna de las dos | `null` | — |
 
 ```mermaid
 stateDiagram-v2
     [*] --> SinAvisar: faltante abierto (F-VTA-18)
     SinAvisar --> ParaAvisar: ingreso de mercadería lo cubre (F-VTA-27)
-    ParaAvisar --> Avisado: el operador envía el aviso (F-VTA-26)
-    SinAvisar --> Avisado: el operador envía el aviso (F-VTA-26)
-    Avisado --> Avisado: reavisar con confirmación (RF-VTA-26-2)
-    Avisado --> SinAvisar: se agotan los intentos de envío
+    ParaAvisar --> EnCola: el operador envía el aviso (F-VTA-26)
+    SinAvisar --> EnCola: el operador envía el aviso (F-VTA-26)
+    EnCola --> Avisado: sale el correo
+    EnCola --> AvisoFallido: intentos agotados o smtp_timeout
+    AvisoFallido --> EnCola: Reintentar
+    AvisoFallido --> ParaAvisar: había ingreso (la marca no se limpia)
+    AvisoFallido --> SinAvisar: sin ingreso
+    Avisado --> EnCola: reavisar con confirmación, pasadas 24 h
     SinAvisar --> [*]: faltante resuelto
     ParaAvisar --> [*]: faltante resuelto
     Avisado --> [*]: faltante resuelto
+    EnCola --> [*]: faltante resuelto (no se manda)
 ```
 
 Nada de F-VTA-27 envía correos: solo marca.
@@ -152,7 +161,8 @@ parámetros siguen resolviendo.
 | Cliente con correo válido | `encolado`: se inserta o se reinicia la fila de la cola (`pendiente`, `intentos = 0`, `ultimo_error` y `enviado_en` nulos, `created_at = updated_at = now()`, `mensaje` nuevo) |
 | Cliente **sin** correo | `sin_correo`: **se omite sin marcar** (FR-005) |
 | Ya avisado y `p_reavisar = false` | `ya_avisado` (no se vuelve a avisar) |
-| Ya avisado y `p_reavisar = true` | `encolado`: la fila de la cola se reinicia |
+| Ya avisado y `p_reavisar = true` | `encolado`: la fila de la cola se reinicia, salvo si se envió hace menos de 24 h (`reaviso_reciente`, sin override) |
+| La organización ya encoló 1.000 líneas en el día móvil | `tope_diario`: pasa a la siguiente ventana; reencolar un `agotado` ya contado no suma cupo |
 | Con un envío en curso (`pendiente`) | `en_cola`: **nunca** se reenvía |
 | Faltante de una tienda donde no hay `ventas` en `edicion` (pero sí en `lectura`) | `sin_permiso` |
 | Faltante inexistente, de otra organización, ya resuelto o de una tienda que ni se puede leer | `no_abierto`: **la misma respuesta para todos**, no delata que el faltante existe |
@@ -175,7 +185,7 @@ de enviar el aviso» (FR-007).
 - `supabase/functions/enviar-aviso-faltante/contenido.ts`: `LineaFaltante` suma `mensaje?: string | null`; el cuerpo
   usa el mensaje saneado en lugar de las frases fijas (la lista de productos siempre se incluye). Sin `mensaje`, el
   correo es el de F-STK-17 sin cambios. Asunto: «Ya tenemos stock de lo que pediste». Saneamiento: sin caracteres de
-  control salvo `\n`, a lo sumo dos saltos seguidos, máximo 1.000.
+  control salvo `\n`, a lo sumo dos saltos seguidos, máximo 1.000. Desde la revisión, el saneo también ocurre en la base (`private.sanear_mensaje_aviso`, exigido por un CHECK) y el cuerpo viaja en **base64** con asunto RFC 2047 (`armarCorreoSmtp`, `_shared/smtp.ts`).
 
 ### Disparador de «Para avisar» (F-VTA-27)
 
@@ -201,7 +211,7 @@ Ejemplos de cobertura (de los contratos de la spec): ingreso de 10 → faltantes
 
 | Archivo | Qué aporta |
 |---|---|
-| `lib/ventasFaltantes.ts` | Tipo `AvisoFaltante` (`sin_avisar` \| `para_avisar` \| `avisado`), campos `aviso`/`aviso_en` en `FaltanteVenta`, `etiquetaAviso()` (chip «Sin avisar» / «Para avisar» / «Avisado · dd/mm/aaaa»), `fechaDeAviso()`, `TEXTO_AVISO_POR_DEFECTO` («Volvió a haber stock de los productos que tenías pedidos:»), `MAXIMO_AVISO_FALTANTES` (200), `MAXIMO_MENSAJE_AVISO` (1.000), `avisarFaltantesVenta(ids, mensaje, reavisar)`, `mensajeResultadoAvisoVenta(resultado, clientePorId)` y el envoltorio de `listar_faltantes` con el parámetro `aviso`. |
+| `lib/ventasFaltantes.ts` | Tipo `AvisoFaltante` (`sin_avisar` \| `para_avisar` \| `en_cola` \| `avisado`; más `aviso_error` para el chip «Aviso fallido» con «Reintentar»), campos `aviso`/`aviso_en` en `FaltanteVenta`, `etiquetaAviso()` (chip «Sin avisar» / «Para avisar» / «Avisado · dd/mm/aaaa»), `fechaDeAviso()`, `TEXTO_AVISO_POR_DEFECTO` («Volvió a haber stock de los productos que tenías pedidos:»), `MAXIMO_AVISO_FALTANTES` (200), `MAXIMO_MENSAJE_AVISO` (1.000), `avisarFaltantesVenta(ids, mensaje, reavisar)`, `mensajeResultadoAvisoVenta(resultado, clientePorId)` y el envoltorio de `listar_faltantes` con el parámetro `aviso`. |
 | `hooks/useListarFaltantes.ts` | Lectura atada a su **ámbito** (organización + tienda) y a su filtro de aviso; **selección** atada al ámbito (`alternar`, `alternarTodos`, `limpiar`) y `avisar()` que descarta la selección y recarga con los filtros vigentes. |
 | `pages/ventas/faltantes.tsx` | Columna de casillas (solo con `ventas` en `edicion`), columna **Aviso**, botón «Avisar a los seleccionados (N)», pie «N seleccionados de M faltantes», filtro **Todos · Para avisar** con el orden por antigüedad, diálogo «Avisar a los clientes» (texto editable con contador, casilla «Volver a avisar a los N ya avisados», **Cancelar** / **Enviar avisos**) y el aviso emergente «Avisos enviados» con lo omitido y por qué. |
 
@@ -245,12 +255,12 @@ Detalle de la matriz: [Permisos por rol](../permisos-por-rol.md).
 ### Prerrequisitos
 
 - Stack local (`pnpm dev:supabase`) con el panel servido (`pnpm dev:refine:host`), o **DEV**.
-- Migraciones `20270226100100`–`20270226110300` aplicadas (vienen con la promoción de `dokploy`).
+- Migraciones `20270226100100`–`20270306130000` aplicadas (vienen con la promoción de `dokploy`).
 - Una organización con **dos empresas** y al menos un **depósito**, con facturas confirmadas **Incompleto** (para
   tener faltantes de despacho) y usuarios con rol **Administrador** (ventas en edición) y **Consulta**.
 - Clientes **con correo** y al menos uno **sin correo**.
 - El correo saliente llega a un SMTP de pruebas: los secretos `SMTP_*` y `AVISOS_FALTANTES_TOKEN` tienen que estar
-  declarados en `supabase/config.toml` (ver el PR #911, abierto al cierre de esta documentación); sin ellos la Edge
+  declarados en `supabase/config.toml` (PR #911, ya en `dokploy`); sin ellos la Edge
   Function `enviar-aviso-faltante` responde 503.
 
 ### Pasos a mano
@@ -333,6 +343,16 @@ pnpm --filter @platform/web test:e2e ventas-faltantes
 Los dos E2E necesitan el stack local de Supabase (`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`): se saltan si no
 está. El soporte de siembra es `apps/web/e2e/ventas-faltantes-soporte.ts`.
 
+## Revisiones posteriores y operación del correo (#922 a #939)
+
+- **Entorno de la Edge Function** (secretos, nunca en Git; `supabase/functions/.env.example`): `SMTP_HOST` y `SMTP_FROM` obligatorias; `SMTP_PORT` (vacío = 465; inválido = error de configuración); `SMTP_TLS` obligatoria `true|false`; `SMTP_TLS=false` solo con `SMTP_PERMITIR_INSEGURO=true` **y** sin `SMTP_USER`/`SMTP_PASS` (solo local/dev con buzón de pruebas, nunca stg/prd); `SMTP_SONDEO=false` desactiva el sondeo TCP previo; `AVISOS_FALTANTES_TOKEN` compartido con Kestra (`SECRET_AVISOS_FALTANTES_TOKEN`, en base64). En stg/prd: `SMTP_TLS=true`, puerto 465, con credenciales. 587/STARTTLS **no** funciona con denomailer 1.6.0 («Bad resource ID»).
+- **Respuestas constantes** de `enviar-aviso-faltante`: `503 configuracion_smtp` (configuración inválida; no toma nada ni gasta intentos), `503 base_no_migrada`, `502 base_no_disponible`, `502` si un barrido falla entero, `500 error_interno`. El barrido corta por reloj a los 60 s.
+- **Tiempos**: conexión 10 s (con sondeo), envío 30 s, cierre 5 s; reserva de la cola 2 min; tope de intentos 5. Un `smtp_timeout` es un intento incierto: queda `agotado` y no se reenvía solo.
+- **Códigos de `ultimo_error`** (fijados por un CHECK, un test de node y uno de Vitest): `smtp_auth`, `smtp_conexion`, `smtp_timeout`, `destinatario_invalido`, `sin_correo`, `faltante_cerrado`, `intentos_agotados`, `otro`. El detalle (host, usuario, respuesta) va solo al log.
+- **Orden de despliegue**: migraciones antes que la Edge Function. Los pasos por entorno están en `docs/deployment.md` › *Avisos de faltantes*.
+- **Verificación manual al tocar `_shared/{correo,smtp}.ts`** (la comparten `enviar-correo-proveedor`, `enviar-resumen-reposicion` y `solicitar-acceso`): `deno run --allow-net=127.0.0.1 supabase/functions/_shared/verificacion/smtp-real.deno.ts` (18 casos; no corre en CI). Antes del arreglo de #939 fallaban 9 de 18.
+- **Concurrencia sin prueba automática**: el reintento del disparador ante deadlock y el advisory lock del tope diario se verifican por revisión de código; pgTAP corre en una sola sesión.
+
 ## Revisión de seguridad del cierre (T021, SC-900)
 
 - **`anon`**: ninguna RPC nueva es ejecutable por `anon` (`revoke execute … from public, anon` +
@@ -354,10 +374,12 @@ está. El soporte de siembra es `apps/web/e2e/ventas-faltantes-soporte.ts`.
 
 | Tema | Estado / dueño |
 |---|---|
-| Decisiones D-1, D-4, D-5 y D-6 («Avisado» derivado de la cola en lugar de `estado`, qué es «ingreso confirmado», cobertura de faltantes completos con corte en el primero que no entra, y que anular el ingreso no desmarca) | **OK pendiente de Nicolás** (marcadas en la spec y en las decisiones de arriba) |
+| Decisiones D-1, D-4, D-5 y D-6 («Avisado» derivado de la cola en lugar de `estado`, qué es «ingreso confirmado», cobertura de faltantes completos con corte en el primero que no entra, y que anular el ingreso no desmarca) | **Aprobadas por Nicolás** («avanza con todo»); QA M3 pide que producto confirme que «Para avisar» no consume saldo de ingresos posteriores |
 | **Capturas del manual de usuario** | TODO (dueño: Documentador / equipo de diseño): no se pudieron generar con `pnpm docs:capturas` (la herramienta no existe en este repo) y el código de la épica todavía no está en `main`. Cuando exista, guardar las capturas en `docs/producto/img/ventas-avisos-de-faltantes/`: la pantalla de Faltantes con la columna **Aviso** y las casillas, el diálogo **Avisar a los clientes** con el texto editable y la casilla de reaviso, el aviso «Avisos enviados», y la vista **Para avisar** con el filtro y el aviso informativo. |
-| El PR #911 (`fix/msf-161-secretos-correo-edge`) declara en `supabase/config.toml` los secretos de correo y avisos del runtime de dev (`SMTP_*`, `PANEL_URL`, `AVISOS_*`); estaba **abierto** al cierre de esta documentación: sin esas declaraciones la Edge Function `enviar-aviso-faltante` responde 503 en el stack local y en dev | **MSF-161** (PR #911) |
-| La fecha del aviso puede diferir hasta ~1 minuto de la del envío: mientras el correo está en cola, `aviso_en` es la fecha de encolado | Comportamiento documentado (decisión de la spec) |
+| El PR #911 (`fix/msf-161-secretos-correo-edge`) declara en `supabase/config.toml` los secretos de correo y avisos del runtime de dev (`SMTP_*`, `PANEL_URL`, `AVISOS_*`); fue mergeado a `dokploy` el 2026-11-13: sin esas declaraciones la Edge Function `enviar-aviso-faltante` responde 503 en el stack local y en dev | Resuelto en #911; falta replicar los secretos reales en stg/prd (ver `docs/deployment.md` en `dokploy`) |
+| «Avisado» muestra la fecha de envío; mientras el correo espera (hasta ~1 minuto) el estado es «En cola» con la fecha de encolado | Comportamiento documentado (QA M5) |
+| El prototipo no dibuja «En cola», «Aviso fallido» ni «Reintentar» | Pendiente de Nicolás (confirmar el prototipo) |
+| Entrega real contra un SMTP de stg/prd, render en clientes de correo y E2E en dev de #936/#939 | No verificado |
 | El historial de los avisos no está en la tabla: al reavisar, la fila de la cola se reinicia y el rastro queda en la actividad | Comportamiento documentado (decisión de la spec) |
 | El disparador de ingresos corre sobre una tabla de Stock: un fallo se aísla con un bloque de excepción, pero un error silenciado necesita monitoreo en el log del servidor | Monitoreo en dev |
 
