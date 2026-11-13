@@ -40,6 +40,21 @@ describe('useEmpresa', () => {
     mocks.lectura.mockResolvedValue({ data: base, error: null })
   })
 
+  it('sin id no consulta ni reporta «no encontrada»; al resolver el id consulta una vez', async () => {
+    const { result, rerender } = renderHook(({ id }: { id: string | undefined }) => useEmpresa(id), { initialProps: { id: undefined as string | undefined } })
+    await new Promise((r) => setTimeout(r, 20))
+    expect(mocks.lectura).not.toHaveBeenCalled()
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.noEncontrada).toBe(false)
+    await expect(result.current.actualizar(datos)).rejects.toThrow(/todavía no se cargó/)
+    await expect(result.current.cambiarEstado(false)).rejects.toThrow(/todavía no se cargó/)
+    expect(mocks.update).not.toHaveBeenCalled()
+
+    rerender({ id: 'e-1' })
+    await waitFor(() => expect(result.current.empresa).not.toBeNull())
+    expect(mocks.lectura).toHaveBeenCalledTimes(1)
+  })
+
   it('cambiarEstado filtra por id y por el estado previo, y actualiza la empresa', async () => {
     mocks.escritura.mockResolvedValue({ data: { ...base, activa: false }, error: null })
     const { result } = renderHook(() => useEmpresa('e-1'))
