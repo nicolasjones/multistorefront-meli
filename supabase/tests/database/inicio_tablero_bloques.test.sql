@@ -4,7 +4,7 @@
 -- vistas y búsqueda, aislamiento, vista previa que NO escribe y `anon` sin ejecución.
 begin;
 
-select plan(46);
+select plan(51);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -189,6 +189,17 @@ reset role;
 select ok(not has_function_privilege('anon', 'public.previsualizar_impacto_dolar(numeric,uuid)', 'EXECUTE'), 'anon no ejecuta la vista previa del dólar');
 select is((select count(*)::int from dominio.cotizacion_pendiente where organizacion_id = '11111111-1111-1111-1111-111111111111'), 0,
   'la vista previa no escribe la cotización pendiente');
+
+-- ===== F-INI-07: aplicar_cotizacion (carga + confirma, atómica) =====
+select pg_temp.como('e1000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.aplicar_cotizacion(1500)$$, '42501', null, 'sin edición de cotizacion_dolar no se puede aplicar el dólar');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.aplicar_cotizacion(0)$$, '23514', null, 'un valor inválido se rechaza');
+select lives_ok($$select public.aplicar_cotizacion(1500)$$, 'el administrador aplica el dólar');
+reset role;
+select is((select count(*)::int from dominio.cotizacion_pendiente where organizacion_id = '11111111-1111-1111-1111-111111111111'), 0,
+  'tras aplicar no queda cotización pendiente');
+select ok(not has_function_privilege('anon', 'public.aplicar_cotizacion(numeric,uuid,numeric)', 'EXECUTE'), 'anon no ejecuta aplicar_cotizacion');
 
 select * from finish();
 rollback;
