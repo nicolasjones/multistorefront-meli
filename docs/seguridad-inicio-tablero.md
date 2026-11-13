@@ -5,7 +5,7 @@ historias: filtros, indicadores y gráfico (F-INI-04, MSF-820), bloques de gesti
 producto» (F-INI-06, MSF-822) y «Cargar dólar del día» con impacto (F-INI-07, MSF-823). La guía funcional es
 [`inicio-y-alertas.md`](./inicio-y-alertas.md); acá solo va lo que importa para seguridad.
 
-- **Revisado**: rama `epic/MSF-824-inicio-tablero-completo` en `9f4b4250` (PR #899 a `dokploy`), 2026-11-13.
+- **Revisado**: rama `epic/MSF-824-inicio-tablero-completo` hasta `c18ea7de` (PR #899 a `dokploy`), 2026-11-13. El último cambio de ese tramo (`c18ea7de`) solo cambia un delimitador `$$` por `$q$` en la lista blanca de orden de `movimientos_por_producto` y no altera el análisis.
 - **Código leído**: las cinco migraciones `20270305105000`…`20270305140000`, sus pgTAP (`resumen_inicio_periodo.test.sql`,
   `inicio_tablero_bloques.test.sql`), `apps/web/src/pages/inicio/`, `components/cotizacion/`, `lib/inicioTablero.ts`,
   `lib/inicioBloques.ts`, `lib/exportarCsv.ts`, los cambios de `pages/stock/list.tsx` y `pages/ventas-reportes/`, y el
@@ -254,7 +254,7 @@ Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a
 ## Lo que no se verificó
 
 - **pgTAP, Vitest, E2E y el job `database` del CI**: no los corrí. Lo que afirmo de las pruebas es lo que **dicen** los archivos. Al momento de esta
-  revisión el CI del PR #899 sobre `9f4b4250` tenía `changes` y `quality` en verde y `application`, `web (1..3)` y `database` sin terminar.
+  revisión el CI del PR #899 acababa de arrancar sobre el HEAD vigente (el anterior había quedado con `database`, `application` y `web` sin terminar): hay que esperar su resultado.
 - **Desempeño con volumen real** (H-5) y el **`statement_timeout`** efectivo de `authenticated` en dev y producción.
 - **Los permisos efectivos de cada organización**: la tabla por rol usa la matriz de fábrica; una organización puede haberla editado.
 - **La verificación en dev** (bundle desplegado, funciones registradas): es parte de T018 y es posterior al merge.
