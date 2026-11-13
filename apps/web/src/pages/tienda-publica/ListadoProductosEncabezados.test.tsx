@@ -19,7 +19,7 @@ import ListadoProductos from './secciones-catalogo/ListadoProductos'
 import { celular } from '../../test/matchMedia'
 
 // MSF-846 (hallazgo QA 1): las tarjetas usan h3; el listado antepone un h2 oculto visualmente para que axe no reporte
-// «heading-order» (h1 → h3) en celular (390 px) ni en escritorio (1440 px). Fuera de `secciones-catalogo/` (glob).
+// «heading-order» (h1 → h3) en celular (390 px); en escritorio (1440 px) el orden ya lo cubren los h2 del panel de filtros, así que ese caso es de caracterización. Fuera de `secciones-catalogo/` (glob).
 
 const CAT_A = 'ca000000-0000-4000-8000-00000000000a'
 const pagina = {

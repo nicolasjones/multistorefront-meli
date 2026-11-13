@@ -1,7 +1,7 @@
 import { Box, Typography } from '@mui/material'
-import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
