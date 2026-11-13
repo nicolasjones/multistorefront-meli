@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
@@ -158,6 +159,10 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
             {catalogo.pagina.productos.length === 0 ? (
               <EstadoVacioCatalogo alLimpiar={limpiar} />
             ) : (
+              <>
+              {/* Encabezado solo para lectores de pantalla: las tarjetas usan h3 y sin un h2 previo (en celular el panel de
+                  filtros está cerrado) el orden de encabezados saltaba de h1 a h3 (axe «heading-order»). */}
+              <Typography component="h2" sx={SOLO_LECTORES}>{q ? 'Resultados' : 'Productos'}</Typography>
               <Box
                 component="ul"
                 sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(auto-fill, minmax(160px, 1fr))' } }}
@@ -168,6 +173,7 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
                   </li>
                 ))}
               </Box>
+              </>
             )}
             {catalogo.pagina.productos.length > 0 ? (
               <CargaInfinita
