@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
 const mocks = vi.hoisted(() => ({ leer: vi.fn(), buscar: vi.fn(), firmar: vi.fn() }))
@@ -17,8 +17,8 @@ vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar 
 
 import ListadoProductos from './secciones-catalogo/ListadoProductos'
 
-// F-TDA-12 (SC-005): restauración desde la URL, vuelta a página 1, valores inválidos ignorados, estado
-// vacío, tarjeta «Sin imagen», paginación, ordenar y filtrar. Vive fuera de `secciones-catalogo/`
+// F-TDA-12 (SC-005): restauración desde la URL, reinicio de la lista al cambiar filtros, valores inválidos ignorados, estado
+// vacío, tarjeta «Sin imagen», carga infinita (MSF-845), ordenar y filtrar. Vive fuera de `secciones-catalogo/`
 // porque esa carpeta se carga con import.meta.glob.
 
 const tienda = { tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' }
@@ -67,17 +67,39 @@ function montar(entrada: string, categoriaId: string | null = null, host = HOST)
 
 const ubicacion = () => screen.getByTestId('ubicacion').textContent
 
+// IntersectionObserver de mentira: permite «llegar al final» a mano.
+type Observador = { callback: IntersectionObserverCallback; activo: boolean }
+let observadores: Observador[] = []
+const llegarAlFinal = () => {
+  const vivo = observadores.filter((o) => o.activo).at(-1)
+  vivo?.callback([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  observadores = []
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      private readonly o: Observador
+      constructor(callback: IntersectionObserverCallback) {
+        this.o = { callback, activo: true }
+        observadores.push(this.o)
+      }
+      observe() {}
+      disconnect() { this.o.activo = false }
+    },
+  )
   mocks.leer.mockResolvedValue(pagina())
   mocks.firmar.mockResolvedValue({ 'org/p-1/a.png': 'https://firmada.test/a.png' })
 })
+afterEach(() => vi.unstubAllGlobals())
 
 describe('ListadoProductos · URL', () => {
-  it('restaura filtros, orden y página desde la URL', async () => {
+  it('restaura filtros y orden desde la URL e ignora un ?pagina= viejo', async () => {
     montar(`/catalogo?categoria=${CAT_A}&stock=1&max=5000&orden=precio_asc&pagina=2`)
     await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.leer).toHaveBeenCalledWith(HOST, { categoria: CAT_A, soloConStock: true, precioMax: 5000, orden: 'precio_asc', pagina: 2 })
+    expect(mocks.leer).toHaveBeenCalledWith(HOST, { categoria: CAT_A, soloConStock: true, precioMax: 5000, orden: 'precio_asc' }, 1)
     expect(screen.getByRole('button', { name: 'Solo con stock' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('textbox', { name: 'Precio máximo' })).toHaveValue('5000')
     expect(screen.getByRole('combobox', { name: 'Ordenar por' })).toHaveTextContent('Menor precio')
@@ -86,15 +108,15 @@ describe('ListadoProductos · URL', () => {
   it('ignora valores inválidos y pide la lista inicial', async () => {
     montar('/catalogo?categoria=xx&stock=quizas&max=-3&orden=raro&pagina=0')
     await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.leer).toHaveBeenCalledWith(HOST, { categoria: null, soloConStock: false, precioMax: null, orden: 'relevancia', pagina: 1 })
+    expect(mocks.leer).toHaveBeenCalledWith(HOST, { categoria: null, soloConStock: false, precioMax: null, orden: 'relevancia' }, 1)
   })
 
-  it('cambiar un filtro vuelve a la página 1 y actualiza la URL', async () => {
+  it('cambiar un filtro reinicia desde la primera tanda y actualiza la URL', async () => {
     montar('/catalogo?pagina=3')
     await screen.findAllByTestId('tarjeta-producto')
     fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
     expect(ubicacion()).toBe('/catalogo?stock=1')
-    await vi.waitFor(() => expect(mocks.leer).toHaveBeenLastCalledWith(HOST, expect.objectContaining({ soloConStock: true, pagina: 1 })))
+    await vi.waitFor(() => expect(mocks.leer).toHaveBeenLastCalledWith(HOST, expect.objectContaining({ soloConStock: true }), 1))
   })
 
   it('el precio máximo se aplica al salir del campo; vacío o inválido es «Sin límite»', async () => {
@@ -110,14 +132,6 @@ describe('ListadoProductos · URL', () => {
     expect(campo).toHaveValue('')
   })
 
-  it('página fuera de rango: redirige a la última página real', async () => {
-    mocks.leer.mockImplementation((_h: string, f: { pagina: number }) =>
-      Promise.resolve(f.pagina > 1 ? pagina({ total: 30, pagina: f.pagina, productos: [] }) : pagina({ total: 30 })),
-    )
-    montar('/catalogo?pagina=999')
-    await vi.waitFor(() => expect(ubicacion()).toBe('/catalogo?pagina=2'))
-  })
-
   it('conserva las categorías del panel mientras recarga', async () => {
     montar('/catalogo')
     await screen.findAllByTestId('tarjeta-producto')
@@ -127,7 +141,7 @@ describe('ListadoProductos · URL', () => {
     expect(screen.getByText('Joysticks')).toBeInTheDocument()
   })
 
-  it('ordenar cambia la URL y vuelve a la página 1', async () => {
+  it('ordenar cambia la URL y reinicia desde la primera tanda', async () => {
     montar('/catalogo?pagina=2')
     await screen.findAllByTestId('tarjeta-producto')
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Ordenar por' }))
@@ -161,7 +175,7 @@ describe('ListadoProductos · categorías', () => {
   it('en /categoria/:id la categoría va fija en el path y se pide al servidor', async () => {
     montar(`/categoria/${CAT_A}?orden=precio_asc`, CAT_A)
     await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.leer).toHaveBeenCalledWith(HOST, expect.objectContaining({ categoria: CAT_A, orden: 'precio_asc' }))
+    expect(mocks.leer).toHaveBeenCalledWith(HOST, expect.objectContaining({ categoria: CAT_A, orden: 'precio_asc' }), 1)
     const panel = screen.getByRole('navigation', { name: 'Filtrar por categoría' })
     expect(within(panel).getByRole('button', { name: /Joysticks/ })).toHaveAttribute('aria-current', 'true')
     fireEvent.click(within(panel).getByRole('button', { name: /Cargadores/ }))
@@ -221,23 +235,311 @@ describe('ListadoProductos · resultados', () => {
     expect(screen.getByTestId('catalogo-contador')).toHaveTextContent(/^1 producto$/)
   })
 
-  it('pagina de a 24 con enlaces que conservan los filtros', async () => {
-    mocks.leer.mockResolvedValue(pagina({ total: 50, pagina: 2 }))
-    montar('/catalogo?stock=1&pagina=2')
-    await screen.findAllByTestId('tarjeta-producto')
-    const nav = screen.getByRole('navigation', { name: 'Paginación del catálogo' })
-    expect(within(nav).getByRole('link', { name: 'Página 2, página actual' })).toHaveAttribute('href', '/catalogo?stock=1&pagina=2')
-    expect(within(nav).getByRole('link', { name: 'Ir a la página 3' })).toHaveAttribute('href', '/catalogo?stock=1&pagina=3')
-    expect(within(nav).getByRole('link', { name: 'Ir a la página 1' })).toHaveAttribute('href', '/catalogo?stock=1')
-    expect(within(nav).queryByRole('link', { name: 'Ir a la página 4' })).not.toBeInTheDocument()
-    fireEvent.click(within(nav).getByRole('link', { name: 'Ir a la página 3' }))
-    expect(ubicacion()).toBe('/catalogo?stock=1&pagina=3')
-  })
-
-  it('con una sola página no dibuja la paginación', async () => {
+  it('ya no dibuja paginación numerada', async () => {
+    mocks.leer.mockResolvedValue(pagina({ total: 50 }))
     montar('/catalogo')
     await screen.findAllByTestId('tarjeta-producto')
-    expect(screen.queryByRole('navigation', { name: 'Paginación del catálogo' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: /Paginación/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /página/i })).not.toBeInTheDocument()
+  })
+})
+
+// MSF-845: carga infinita (IntersectionObserver + «Cargar más» por teclado, carga/error/fin, reinicio).
+describe('ListadoProductos · carga infinita', () => {
+  const prod = (n: number) => ({ id: `m-${n}`, nombre: `Masivo ${n}`, precio: 100 + n, disponible: true, imagen: null, categoriaId: CAT_A, destacado: false })
+  const tanda = (desde: number, cantidad: number, total: number, numero: number) =>
+    pagina({ total, pagina: numero, productos: Array.from({ length: cantidad }, (_, i) => prod(desde + i)) })
+  const tarjetas = () => screen.queryAllByTestId('tarjeta-producto')
+
+  it('arranca con la primera tanda, contador total y sin fin de lista mientras falta', async () => {
+    mocks.leer.mockResolvedValue(tanda(1, 24, 30, 1))
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    expect(tarjetas()).toHaveLength(24)
+    expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('30 productos')
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toBeInTheDocument()
+    expect(screen.queryByText('No hay más resultados.')).not.toBeInTheDocument()
+  })
+
+  it('al llegar al final suma la tanda siguiente a lo ya mostrado y avisa el fin de lista', async () => {
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      Promise.resolve(n === 1 ? tanda(1, 24, 30, 1) : tanda(25, 6, 30, 2)),
+    )
+    montar('/catalogo?stock=1')
+    await screen.findAllByTestId('tarjeta-producto')
+    llegarAlFinal()
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+    expect(mocks.leer).toHaveBeenLastCalledWith(HOST, expect.objectContaining({ soloConStock: true }), 2)
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('30 productos')
+    // La URL no cambia al cargar más.
+    expect(ubicacion()).toBe('/catalogo?stock=1')
+  })
+
+  it('«Cargar más» por teclado trae la tanda siguiente y muestra el estado de carga', async () => {
+    let resolver: (v: unknown) => void = () => undefined
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      n === 1 ? Promise.resolve(tanda(1, 24, 48, 1)) : new Promise((r) => { resolver = r }),
+    )
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    boton.focus()
+    expect(boton).toHaveFocus()
+    fireEvent.click(boton) // Enter/Espacio sobre un <button> disparan click.
+    await vi.waitFor(() => expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('Cargando más resultados'))
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toHaveAttribute('aria-busy', 'true')
+    // El foco no cae al body mientras carga.
+    expect(boton).toHaveFocus()
+    // Una segunda petición mientras carga no se duplica.
+    llegarAlFinal()
+    expect(mocks.leer).toHaveBeenCalledTimes(2)
+    resolver(tanda(25, 24, 48, 2))
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(48))
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('si falla una tanda conserva lo cargado, avisa y permite reintentar', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      n === 1 ? Promise.resolve(tanda(1, 24, 30, 1)) : Promise.reject(new Error('boom')),
+    )
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar más resultados.')
+    expect(tarjetas()).toHaveLength(24)
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) => Promise.resolve(tanda(25, 6, 30, n)))
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('cambiar el filtro o el orden reinicia desde el principio y descarta lo acumulado', async () => {
+    mocks.leer.mockImplementation((_h: string, f: { soloConStock: boolean; orden: string }, n: number) =>
+      Promise.resolve(f.soloConStock || f.orden !== 'relevancia' ? tanda(100, 3, 3, n) : n === 1 ? tanda(1, 24, 30, 1) : tanda(25, 6, 30, 2)),
+    )
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    llegarAlFinal()
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+    fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
+    await vi.waitFor(() => expect(mocks.leer).toHaveBeenLastCalledWith(HOST, expect.objectContaining({ soloConStock: true }), 1))
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(3))
+    expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('3 productos')
+    expect(screen.queryByText('Masivo 1')).not.toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Ordenar por' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Mayor precio' }))
+    await vi.waitFor(() => expect(mocks.leer).toHaveBeenLastCalledWith(HOST, expect.objectContaining({ orden: 'precio_desc' }), 1))
+  })
+
+  it('un producto repetido entre tandas no se duplica', async () => {
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      Promise.resolve(n === 1 ? tanda(1, 24, 30, 1) : tanda(24, 7, 30, 2)),
+    )
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    llegarAlFinal()
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+  })
+
+  it('una tanda vacía con total mayor corta la carga en vez de pedir sin fin', async () => {
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      Promise.resolve(n === 1 ? tanda(1, 24, 40, 1) : tanda(1, 0, 40, 2)),
+    )
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    llegarAlFinal()
+    await screen.findByText('No hay más resultados.')
+    expect(mocks.leer).toHaveBeenCalledTimes(2)
+  })
+
+  it('con la búsqueda (q) carga más desde la búsqueda y conserva q', async () => {
+    mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) =>
+      Promise.resolve(n === 1 ? tanda(1, 24, 30, 1) : tanda(25, 6, 30, 2)),
+    )
+    montar('/catalogo?q=masivo')
+    await screen.findAllByTestId('tarjeta-producto')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+    expect(mocks.buscar).toHaveBeenLastCalledWith(HOST, 'masivo', expect.anything(), 2)
+    expect(mocks.leer).not.toHaveBeenCalled()
+    expect(ubicacion()).toBe('/catalogo?q=masivo')
+  })
+
+  it('en /categoria/:id carga más con la categoría fija', async () => {
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      Promise.resolve(n === 1 ? tanda(1, 24, 30, 1) : tanda(25, 6, 30, 2)),
+    )
+    montar(`/categoria/${CAT_A}`, CAT_A)
+    await screen.findAllByTestId('tarjeta-producto')
+    llegarAlFinal()
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+    expect(mocks.leer).toHaveBeenLastCalledWith(HOST, expect.objectContaining({ categoria: CAT_A }), 2)
+  })
+
+  it('sin IntersectionObserver «Cargar más» sigue funcionando', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined)
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      Promise.resolve(n === 1 ? tanda(1, 24, 30, 1) : tanda(25, 6, 30, 2)),
+    )
+    montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+  })
+
+  describe('respuestas tardías y reinicios', () => {
+    // Deja la tanda 2 colgada para resolverla a mano cuando la consulta ya cambió.
+    function colgarTanda2(nombre: (n: number) => ReturnType<typeof tanda>) {
+      const pendientes: Array<(v: unknown) => void> = []
+      mocks.leer.mockImplementation((_host: string, f: { soloConStock: boolean }, n: number) =>
+        n === 1
+          ? Promise.resolve(f.soloConStock ? tanda(500, 3, 3, 1) : nombre(1))
+          : new Promise((r) => { pendientes.push(r) }),
+      )
+      return pendientes
+    }
+
+    it('cambiar de filtro con «Cargar más» en vuelo: la respuesta tardía no se cuela', async () => {
+      const pendientes = colgarTanda2(() => tanda(1, 24, 48, 1))
+      montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(3))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(tarjetas()).toHaveLength(3)
+      expect(screen.queryByText('Masivo 30')).not.toBeInTheDocument()
+      expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('3 productos')
+    })
+
+    it('cambiar la búsqueda (q) con «Cargar más» en vuelo: la respuesta tardía no se cuela', async () => {
+      const pendientes: Array<(v: unknown) => void> = []
+      mocks.buscar.mockImplementation((_h: string, q: string, _f: unknown, n: number) =>
+        n === 1 ? Promise.resolve(q === 'uno' ? tanda(1, 24, 48, 1) : tanda(700, 2, 2, 1)) : new Promise((r) => { pendientes.push(r) }),
+      )
+      function CambiarQ() {
+        const navegar = useNavigate()
+        return <button type="button" onClick={() => navegar('/catalogo?q=dos')}>ir a dos</button>
+      }
+      render(
+        <MemoryRouter initialEntries={['/catalogo?q=uno']}>
+          <Routes>
+            <Route path="*" element={<><ListadoProductos tienda={tienda} host={HOST} categoriaId={null} /><CambiarQ /></>} />
+          </Routes>
+        </MemoryRouter>,
+      )
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      fireEvent.click(screen.getByRole('button', { name: 'ir a dos' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(2))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(tarjetas()).toHaveLength(2)
+    })
+
+    it('cambiar de host con «Cargar más» en vuelo: la respuesta tardía no se cuela', async () => {
+      const pendientes = colgarTanda2(() => tanda(1, 24, 48, 1))
+      const { rerenderHost } = montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      mocks.leer.mockImplementation(() => Promise.resolve(tanda(900, 2, 2, 1)))
+      rerenderHost('otra.localhost')
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(2))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(tarjetas()).toHaveLength(2)
+    })
+
+    it('A→B→A con «Cargar más» de la primera A en vuelo: esa respuesta tardía se descarta', async () => {
+      const pendientes: Array<(v: unknown) => void> = []
+      mocks.leer.mockImplementation((host: string, _f: unknown, n: number) =>
+        n === 1
+          ? Promise.resolve(host === HOST ? tanda(1, 24, 48, 1) : tanda(900, 2, 2, 1))
+          : new Promise((r) => { pendientes.push(r) }),
+      )
+      const { rerenderHost } = montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      rerenderHost('otra.localhost')
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(2))
+      rerenderHost(HOST)
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(24))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      // Sigue en la primera tanda de A: la respuesta vieja de A no sumó filas.
+      expect(tarjetas()).toHaveLength(24)
+      expect(screen.getByRole('button', { name: 'Cargar más' })).toBeInTheDocument()
+    })
+
+    it('tanda 2 de búsqueda con límite: aviso específico, sin firmar imágenes y «Reintentar» espera', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) =>
+        Promise.resolve(n === 1 ? tanda(1, 24, 48, 1) : pagina({ productos: [], total: 48, pagina: 2, esperaSegundos: 1 })),
+      )
+      montar('/catalogo?q=masivo')
+      await screen.findAllByTestId('tarjeta-producto')
+      const firmadosAntes = mocks.firmar.mock.calls.length
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      const alerta = await screen.findByRole('alert')
+      expect(alerta).toHaveTextContent('Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá')
+      expect(mocks.firmar.mock.calls.length).toBe(firmadosAntes)
+      expect(tarjetas()).toHaveLength(24)
+      expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDisabled()
+      mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) => Promise.resolve(tanda(25, 24, 48, n)))
+      await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled(), { timeout: 3000 })
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(48))
+    })
+
+    it('al cambiar filtro, orden o búsqueda vuelve al inicio del listado y no al montar', async () => {
+      const scroll = vi.fn()
+      Element.prototype.scrollIntoView = scroll
+      try {
+        mocks.leer.mockResolvedValue(tanda(1, 24, 24, 1))
+        montar('/catalogo')
+        await screen.findAllByTestId('tarjeta-producto')
+        expect(scroll).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
+        await vi.waitFor(() => expect(scroll).toHaveBeenCalledTimes(1))
+        expect(scroll).toHaveBeenCalledWith({ block: 'start' })
+      } finally {
+        // jsdom no define scrollIntoView: se quita el mock para no filtrarlo a otros tests.
+        delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+      }
+    })
+  })
+
+  it('sin violaciones de axe con «Cargar más», con error de tanda y con fin de lista', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) =>
+      n === 1 ? Promise.resolve(tanda(1, 24, 30, 1)) : Promise.reject(new Error('boom')),
+    )
+    const { container } = montar('/catalogo')
+    await screen.findAllByTestId('tarjeta-producto')
+    expect(await violacionesAxe(container)).toEqual([])
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByRole('alert')
+    expect(await violacionesAxe(container)).toEqual([])
+    mocks.leer.mockImplementation((_h: string, _f: unknown, n: number) => Promise.resolve(tanda(25, 6, 30, n)))
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await screen.findByText('No hay más resultados.')
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })
 
@@ -250,7 +552,7 @@ describe('ListadoProductos · estados', () => {
     rerenderHost('sanjavucho.localhost')
     expect(screen.queryByTestId('tarjeta-producto')).not.toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
-    expect(mocks.leer).toHaveBeenLastCalledWith('sanjavucho.localhost', expect.anything())
+    expect(mocks.leer).toHaveBeenLastCalledWith('sanjavucho.localhost', expect.anything(), 1)
   })
 
   it('avisa si falla y permite reintentar', async () => {
@@ -289,14 +591,14 @@ describe('ListadoProductos · búsqueda (q)', () => {
   it('con q lee la búsqueda (no el catálogo) con los filtros de la URL', async () => {
     montar(`/catalogo?q=cargador&categoria=${CAT_A}&stock=1&orden=precio_asc&pagina=2`)
     await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).toHaveBeenCalledWith(HOST, 'cargador', { categoria: CAT_A, soloConStock: true, precioMax: null, orden: 'precio_asc', pagina: 2 })
+    expect(mocks.buscar).toHaveBeenCalledWith(HOST, 'cargador', { categoria: CAT_A, soloConStock: true, precioMax: null, orden: 'precio_asc' }, 1)
     expect(mocks.leer).not.toHaveBeenCalled()
   })
 
   it('q inválida se normaliza: espacios colapsados y recortada a 100; vacía es el catálogo común', async () => {
     montar(`/catalogo?q=${encodeURIComponent('  carga   dor  ')}`)
     await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).toHaveBeenCalledWith(HOST, 'carga dor', expect.anything())
+    expect(mocks.buscar).toHaveBeenCalledWith(HOST, 'carga dor', expect.anything(), 1)
   })
 
   it('q vacía lee el catálogo común', async () => {
@@ -322,7 +624,7 @@ describe('ListadoProductos · búsqueda (q)', () => {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Ordenar por' }))
     fireEvent.click(screen.getByRole('option', { name: 'Mayor precio' }))
     expect(ubicacion()).toBe('/catalogo?q=cargador&stock=1&orden=precio_desc')
-    await vi.waitFor(() => expect(mocks.buscar).toHaveBeenLastCalledWith(HOST, 'cargador', expect.objectContaining({ orden: 'precio_desc' })))
+    await vi.waitFor(() => expect(mocks.buscar).toHaveBeenLastCalledWith(HOST, 'cargador', expect.objectContaining({ orden: 'precio_desc' }), 1))
   })
 
   it('elegir una categoría desde el panel conserva q', async () => {
@@ -344,7 +646,7 @@ describe('ListadoProductos · búsqueda (q)', () => {
     const q = '<script>alert(1)</script> & "x"'
     montar(`/catalogo?q=${encodeURIComponent(q)}`)
     await screen.findAllByTestId('tarjeta-producto')
-    expect(mocks.buscar).toHaveBeenCalledWith(HOST, q, expect.anything())
+    expect(mocks.buscar).toHaveBeenCalledWith(HOST, q, expect.anything(), 1)
     fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
     expect(new URLSearchParams(ubicacion()?.split('?')[1]).get('q')).toBe(q)
   })
@@ -373,14 +675,6 @@ describe('ListadoProductos · búsqueda (q)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar los productos.')
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findAllByTestId('tarjeta-producto')).toHaveLength(2)
-  })
-
-  it('la paginación de los resultados conserva q', async () => {
-    mocks.buscar.mockResolvedValue(pagina({ total: 50 }))
-    montar('/catalogo?q=cargador')
-    await screen.findAllByTestId('tarjeta-producto')
-    const siguiente = screen.getAllByRole('link').find((a) => a.getAttribute('href')?.includes('pagina=2'))
-    expect(siguiente?.getAttribute('href')).toBe('/catalogo?q=cargador&pagina=2')
   })
 
   it('sin violaciones de axe con resultados y con el aviso de espera', async () => {

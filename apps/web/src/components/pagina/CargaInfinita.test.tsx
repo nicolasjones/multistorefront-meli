@@ -45,7 +45,41 @@ describe('CargaInfinita', () => {
   it('mientras carga no observa ni pide de nuevo y muestra el estado de carga', () => {
     render(<CargaInfinita hayMas cargando onCargarMas={vi.fn()} />)
     expect(observadores).toHaveLength(0)
-    expect(screen.getByRole('status', { name: 'Cargando más resultados' })).toBeInTheDocument()
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('Cargando más resultados')
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('mientras carga el botón sigue montado, conserva el foco y no pide de nuevo al activarlo', () => {
+    const onCargarMas = vi.fn()
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={onCargarMas} />)
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    boton.focus()
+    fireEvent.click(boton)
+    expect(onCargarMas).toHaveBeenCalledTimes(1)
+    rerender(<CargaInfinita hayMas cargando onCargarMas={onCargarMas} />)
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toBe(boton)
+    expect(document.activeElement).toBe(boton)
+    fireEvent.click(boton)
+    expect(onCargarMas).toHaveBeenCalledTimes(1)
+  })
+
+  it('anuncia en una región viva cuántos productos se sumaron', () => {
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />)
+    rerender(<CargaInfinita hayMas cargando cargados={24} onCargarMas={vi.fn()} />)
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('Cargando más resultados')
+    rerender(<CargaInfinita hayMas cargando={false} cargados={48} onCargarMas={vi.fn()} />)
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('24 productos más cargados')
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveAttribute('aria-live', 'polite')
+  })
+
+  it('al llegar al final anuncia «No hay más resultados» y pasa el foco al texto de fin', () => {
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} cargados={24} onCargarMas={vi.fn()} />)
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    boton.focus()
+    rerender(<CargaInfinita hayMas cargando cargados={24} onCargarMas={vi.fn()} />)
+    rerender(<CargaInfinita hayMas={false} cargando={false} cargados={30} onCargarMas={vi.fn()} />)
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('No hay más resultados')
+    expect(document.activeElement).toBe(screen.getByText('No hay más resultados.'))
   })
 
   it('si falla la tanda muestra el error con «Reintentar» y no pide solo', () => {
