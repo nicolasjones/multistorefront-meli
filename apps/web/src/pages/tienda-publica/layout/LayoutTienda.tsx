@@ -2,7 +2,7 @@ import { Box, Typography } from '@mui/material'
 import { lazy, Suspense } from 'react'
 import { Link as EnlaceRuta, NavLink, Outlet, useMatch, useOutletContext } from 'react-router'
 import { ContextoContactoTienda, useLeerContactoTienda } from '../../../hooks/useContactoTienda'
-import { ProveedorContenidoTienda } from '../../../hooks/useContenidoPublico'
+import { ProveedorContenidoTienda, useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { ContextoCategoriasTienda, useLeerCategoriasTienda, type CategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import type { TiendaPublica } from '../../../lib/tienda'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
@@ -54,7 +54,9 @@ function Marca({ tienda, enInicio }: { tienda: TiendaPublica; enInicio: boolean 
 }
 
 function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: string; categorias: CategoriasTienda }) {
-  const enInicio = useMatch({ path: '/', end: true }) !== null
+  // El h1 de la portada es el título del héroe (prototipo); sin título de héroe lo conserva la marca (un solo h1 por página).
+  const tituloHeroe = useContenidoPublico(host)?.titulo.trim()
+  const enInicio = useMatch({ path: '/', end: true }) !== null && !tituloHeroe
   const contexto: ContextoTienda = { tienda, host, categorias }
 
   return (
@@ -69,7 +71,7 @@ function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: str
               visual: menú, marca, buscador, «Ingresar»; solo «Ingresar» se ve antes que el buscador). */}
           <Box sx={{ order: 0, display: { xs: 'block', md: 'none' } }}>
             <Suspense fallback={<Box sx={{ width: 48, height: (tema) => tema.spacing(6) }} aria-hidden />}>
-              <MenuMovil categorias={categorias} empresaNombre={tienda.empresaNombre} />
+              <MenuMovil categorias={categorias} empresaNombre={tienda.empresaNombre} host={host} />
             </Suspense>
           </Box>
           <Marca tienda={tienda} enInicio={enInicio} />

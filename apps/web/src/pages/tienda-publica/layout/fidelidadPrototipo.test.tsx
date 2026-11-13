@@ -2,11 +2,12 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
-import { crearTemaTienda } from '../../../tema/temaTienda'
+import { contraste, crearTemaTienda } from '../../../tema/temaTienda'
 import { ThemeProvider } from '@mui/material'
 import { BannerContenido } from '../secciones/BannerHome'
 import { DatosContacto } from '../contacto/DatosContacto'
 import { EstadoVacioCatalogo } from '../catalogo/EstadoVacio'
+import { ContextoEnLayout } from './enLayout'
 import { ANCHO_MAXIMO_TIENDA } from './medidas'
 import { MigasTienda } from './MigasTienda'
 
@@ -29,6 +30,39 @@ describe('tema de la tienda', () => {
     expect(tema.typography.body1.lineHeight).toBe('normal')
     const boton = tema.components?.MuiButton?.styleOverrides?.root as Record<string, unknown>
     expect(boton).toMatchObject({ textTransform: 'none', fontWeight: 700, borderRadius: 8 })
+  })
+})
+
+describe('tema: botón del héroe y papel (MSF-847, auditoría)', () => {
+  const identidades = {
+    mundoJc: { colorPrimario: '#A3111D', colorAcento: '#A3111D', colorBarra: '#2A2A2A', colorTexto: '#1F1F1F', colorFondo: '#FFFFFF' },
+    sanJavucho: { colorPrimario: '#1B3A5C', colorAcento: '#E9A23B', colorBarra: '#1B3A5C', colorTexto: '#1B2430', colorFondo: '#FBF8F2' },
+    // Acento casi igual a la franja: el botón no puede quedar invisible (antes: primario sobre primario, 1:1).
+    acentoIgualALaFranja: { colorPrimario: '#1B3A5C', colorAcento: '#1B3A5C', colorBarra: '#1B3A5C', colorTexto: '#1B2430', colorFondo: '#FBF8F2' },
+    franjaClara: { colorPrimario: '#2E6B3F', colorAcento: '#2E6B3F', colorBarra: '#F1E9D8', colorTexto: '#22281F', colorFondo: '#FAF7F0' },
+  }
+  it.each(Object.entries(identidades))('«%s»: el botón se distingue de la franja (≥ 1,5:1; antes 1:1), el texto del botón y el de la franja llegan a AA', (_nombre, identidad) => {
+    const t = crearTemaTienda(identidad)
+    const { botonDestacado, barra, textoBarra } = t.tienda!
+    expect(contraste(botonDestacado.fondo, barra)).toBeGreaterThanOrEqual(1.5)
+    expect(contraste(botonDestacado.texto, botonDestacado.fondo)).toBeGreaterThanOrEqual(4.5)
+    expect(contraste(textoBarra, barra)).toBeGreaterThanOrEqual(4.5)
+  })
+  it('San Javucho usa el acento con texto de tinta; MundoJC, su primario con texto blanco', () => {
+    expect(crearTemaTienda(identidades.sanJavucho).tienda!.botonDestacado).toEqual({ fondo: '#E9A23B', texto: '#1B2430' })
+    expect(crearTemaTienda(identidades.mundoJc).tienda!.botonDestacado).toEqual({ fondo: '#A3111D', texto: '#FFFFFF' })
+  })
+  it('el papel (encabezado, campos, menús, diálogos) es blanco aunque el fondo de la tienda sea crema', () => {
+    const t = crearTemaTienda(identidades.sanJavucho)
+    expect(t.palette.background.paper).toBe('#FFFFFF')
+    expect(t.palette.background.default).toBe('#FBF8F2')
+  })
+  it('el botón del banner usa esos colores (San Javucho: acento sobre la franja azul)', () => {
+    const t = crearTemaTienda(identidades.sanJavucho)
+    render(<ThemeProvider theme={t}><MemoryRouter><BannerContenido contenido={{ titulo: 'Hola', subtitulo: '', texto_boton: 'Explorar productos', boton_destino: 'catalogo' }} /></MemoryRouter></ThemeProvider>)
+    const boton = screen.getByRole('link', { name: 'Explorar productos' })
+    expect(getComputedStyle(boton).backgroundColor).toBe('rgb(233, 162, 59)')
+    expect(getComputedStyle(boton).color).toBe('rgb(27, 36, 48)')
   })
 })
 
@@ -55,9 +89,15 @@ describe('BannerContenido', () => {
     expect(getComputedStyle(capa).width).toBe(`${window.innerWidth}px`) // jsdom resuelve 100vw a la ventana
     expect(getComputedStyle(capa).overflow).toBe('hidden')
     expect(capa.children).toHaveLength(2)
+    // Fuera del layout (vista previa, secciones sueltas) el título es h2; dentro del layout es el h1 de la portada (prototipo).
     expect(screen.getByRole('heading', { level: 2, name: 'Todo para tu consola' })).toBeInTheDocument()
     expect(reglas()).toMatch(/@media \(min-width:900px\)\{[^}]*font-size:72px/)
     expect(screen.getByRole('link', { name: 'Ver catálogo' })).toHaveAttribute('href', '/catalogo')
+  })
+
+  it('dentro del layout de la tienda el título del héroe es el h1 de la portada', () => {
+    render(conTema(<ContextoEnLayout.Provider value><BannerContenido contenido={{ titulo: 'Hola', subtitulo: '', texto_boton: '', boton_destino: 'catalogo' }} /></ContextoEnLayout.Provider>))
+    expect(screen.getByRole('heading', { level: 1, name: 'Hola' })).toBeInTheDocument()
   })
 
   it('en la vista previa del panel la franja no se extiende fuera de su recuadro', () => {

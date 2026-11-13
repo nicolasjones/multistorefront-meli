@@ -21,8 +21,11 @@ export type ColoresTienda = {
   primarioOscuro: string
   acento: string
   barra: string
-  // Texto sobre la barra y el pie.
+  // Texto sobre la barra y el pie (blanco o tinta, el de mayor contraste sobre `barra`).
   textoBarra: string
+  // Fondo y texto de los botones destacados sobre la franja del héroe (MSF-847): el acento de la identidad con el texto de mayor
+  // contraste; si el acento casi no se distingue de la franja (contraste < 3:1) el botón toma el color del texto de la franja.
+  botonDestacado: { fondo: string; texto: string }
   // Fondo de tarjetas y bloques (prototipo: `--sf`), derivado del fondo de la tienda.
   superficie: string
   // Tipografía de títulos (prototipo: `.fh`) para precios y nombres que no son un encabezado.
@@ -98,6 +101,12 @@ function luminancia(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
+// El mejor de `candidatos` (el primero que llega a 4,5:1, o el de mayor contraste) para escribir sobre `fondo`.
+export function textoSobre(fondo: string, candidatos: string[]): string {
+  const ok = candidatos.find((c) => contraste(c, fondo) >= 4.5)
+  return ok ?? candidatos.reduce((mejor, c) => (contraste(c, fondo) > contraste(mejor, fondo) ? c : mejor))
+}
+
 export function contraste(a: string, b: string): number {
   const [x, y] = [luminancia(a), luminancia(b)].sort((m, n) => n - m)
   return (x + 0.05) / (y + 0.05)
@@ -129,6 +138,9 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
   const acento = COLOR_HEX.test(identidad?.colorAcento?.trim() ?? '') ? identidad!.colorAcento!.trim() : i.colorPrimario
   const barra = COLOR_HEX.test(identidad?.colorBarra?.trim() ?? '') ? identidad!.colorBarra!.trim() : COLOR_BARRA_POR_DEFECTO
   const superficie = mezclar(i.colorFondo, '#000000', 0.043)
+  const textoBarra = textoSobre(barra, ['#FFFFFF', i.colorTexto, '#000000'])
+  const fondoBoton = contraste(acento, barra) >= 1.5 ? acento : textoBarra
+  const botonDestacado = { fondo: fondoBoton, texto: textoSobre(fondoBoton, ['#FFFFFF', i.colorTexto, '#000000']) }
   // Prototipo (`.sf h1,h2,h3,.fh`): los títulos van en la tipografía de títulos, en negrita y sin el interlineado ni el
   // espaciado entre letras que trae MUI (el prototipo usa `normal` en todo salvo donde fija un interlineado propio).
   const titulos = { fontFamily: pila(i.tipografiaTitulos), fontWeight: 700, letterSpacing: 'normal', lineHeight: 'normal' }
@@ -139,7 +151,8 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
       primary: { main: i.colorPrimario, dark: primarioOscuro },
       secondary: { main: acento },
       text: { primary: i.colorTexto, secondary: textoSecundario(i.colorTexto, i.colorFondo, superficie) },
-      background: { default: i.colorFondo, paper: i.colorFondo },
+      // El «papel» (encabezado, campos, menús, diálogos) es blanco como en el prototipo; el fondo de la página es el de la identidad.
+      background: { default: i.colorFondo, paper: '#FFFFFF' },
     },
     typography: {
       fontFamily: pila(i.tipografiaTexto),
@@ -153,6 +166,6 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
         styleOverrides: { root: { textTransform: 'none', fontWeight: 700, borderRadius: 8 } },
       },
     },
-    tienda: { primarioOscuro, acento, barra, textoBarra: '#FFFFFF', superficie, fuenteTitulos: titulos.fontFamily },
+    tienda: { primarioOscuro, acento, barra, textoBarra, botonDestacado, superficie, fuenteTitulos: titulos.fontFamily },
   })
 }

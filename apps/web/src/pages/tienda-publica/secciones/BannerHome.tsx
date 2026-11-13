@@ -1,8 +1,9 @@
-import { Box, Typography } from '@mui/material'
+import { Box, Typography, type Theme } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { ENLACE_DESTINO_BOTON, type ContenidoTienda } from '../../../lib/tiendaContenido'
 import type { PropsSeccionTienda } from '../PaginaTienda'
+import { useEnLayout } from '../layout/enLayout'
 
 export const orden = 20
 
@@ -10,6 +11,8 @@ export const orden = 20
 // mismo componente, así lo que se previsualiza es lo que se publica. Texto plano (React lo
 // escapa); cada elemento vacío se oculta y, sin ninguno, no se muestra el banner (FR-034).
 export function BannerContenido({ contenido, vistaPrevia = false }: { contenido: Pick<ContenidoTienda, 'titulo' | 'subtitulo' | 'texto_boton' | 'boton_destino'>; vistaPrevia?: boolean }) {
+  // Dentro del layout de la tienda el título del héroe es el h1 de la portada (la marca del encabezado deja de serlo).
+  const enLayout = useEnLayout()
   const titulo = contenido.titulo.trim()
   const subtitulo = contenido.subtitulo.trim()
   const textoBoton = contenido.texto_boton.trim()
@@ -18,11 +21,14 @@ export function BannerContenido({ contenido, vistaPrevia = false }: { contenido:
   // texto va a la izquierda (título de 72 px en mayúsculas, bajada de 20 px y botón primario) y dos franjas inclinadas en
   // el color de la marca cierran la composición. La franja llega a los bordes de la ventana sin ensanchar el contenido. Las tarjetas de producto que el prototipo apoya a la derecha
   // dependen de datos que el banner no tiene: no se dibujan.
-  const estiloBoton = {
-    display: 'block', textAlign: 'center', mt: { xs: '20px', md: '28px' }, bgcolor: 'primary.main', color: 'primary.contrastText', borderRadius: '8px', // estilos-sueltos: ok
+  // Botón del héroe: el acento de la identidad con el texto de mayor contraste (`tema.tienda.botonDestacado`); si el acento casi se
+  // confunde con la franja toma el color del texto de la franja. Nunca queda invisible con una identidad clara u oscura.
+  const estiloBoton = (tema: Theme) => ({
+    display: 'block', textAlign: 'center', mt: { xs: '20px', md: '28px' }, bgcolor: tema.tienda?.botonDestacado.fondo ?? tema.palette.primary.main, color: tema.tienda?.botonDestacado.texto ?? tema.palette.primary.contrastText, borderRadius: '8px', // estilos-sueltos: ok
     fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: { md: '.03em' }, py: '14px', px: { xs: '14px', md: '28px' }, textDecoration: 'none', // estilos-sueltos: ok
-    width: { xs: '100%', md: 'fit-content' }, '&:hover': { bgcolor: 'primary.dark' },
-  } as const
+    width: { xs: '100%', md: 'fit-content' }, '&:hover': { opacity: 0.9 },
+    '&:focus-visible': { outline: '3px solid', outlineColor: tema.tienda?.textoBarra ?? 'common.white', outlineOffset: '2px' }, // estilos-sueltos: ok
+  }) as const
   return (
     <Box
       component="section"
@@ -50,7 +56,7 @@ export function BannerContenido({ contenido, vistaPrevia = false }: { contenido:
         </Box>
       )}
       <Box sx={{ position: 'relative', maxWidth: { md: 560 } }}>
-        {titulo ? <Typography component="h2" variant="h1" sx={{ fontSize: { xs: 44, md: 72 }, lineHeight: 1, textTransform: 'uppercase' /* estilos-sueltos: ok */ }}>{titulo}</Typography> : null}
+        {titulo ? <Typography component={enLayout && !vistaPrevia ? 'h1' : 'h2'} variant="h1" sx={{ fontSize: { xs: 44, md: 72 }, lineHeight: 1, textTransform: 'uppercase' /* estilos-sueltos: ok */ }}>{titulo}</Typography> : null}
         {subtitulo ? <Typography sx={{ mt: { xs: '12px', md: '20px' }, fontSize: { xs: 16, md: 20 }, lineHeight: 1.45, opacity: 0.9 /* estilos-sueltos: ok */ }}>{subtitulo}</Typography> : null}
         {textoBoton ? (
           vistaPrevia ? (
