@@ -95,6 +95,9 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         await expect(page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Inicio' })).toBeVisible()
         await expect(menu.getByRole('link', { name: 'Inicio' })).toHaveCount(0)
         await expect(menu.getByRole('link', { name: t.propia })).toBeVisible()
+        // La barra no se desborda ni corta la última entrada (MSF-846), sea cual sea la tipografía de la tienda.
+        const desborde = await page.getByTestId('menu-categorias-lista').evaluate((el) => el.scrollWidth - el.clientWidth)
+        expect(desborde).toBeLessThanOrEqual(0)
         // Nada de lo oculto ni de la otra tienda, en el menú ni en el pie.
         await expect(page.getByRole('link', { name: t.oculta })).toHaveCount(0)
         await expect(page.getByRole('link', { name: otra.propia })).toHaveCount(0)
