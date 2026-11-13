@@ -10,6 +10,7 @@ vi.mock('../../../lib/inicioBloques', async (importOriginal) => ({ ...(await imp
 vi.mock('../../../lib/categorias', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/categorias')>()), leerCategorias: mocks.categorias }))
 vi.mock('../../../lib/exportarCsv', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/exportarCsv')>()), TOPE_FILAS_EXPORTACION: 300, descargarCsv: mocks.descargar }))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
+vi.mock('../../../hooks/useImagenesProductos', () => ({ useImagenesProductosRenovables: () => ({ imagenes: new Map<string, string>(), renovar: () => undefined }) }))
 vi.mock('../../../hooks/usePuedeAccion', () => ({ usePuedeAccion: () => ({ puede: true, isLoading: false }) }))
 
 import { MovimientosPorProducto } from '../tablero/MovimientosPorProducto'

@@ -301,7 +301,6 @@ pedida, es decir offset + límite, y no para todo el listado; salvo que se orden
 `aplicar_cotizacion` toma primero el advisory lock de la organización (sin deadlock con confirmar o descartar). Detalle en
 [`seguridad-inicio-tablero.md`](./seguridad-inicio-tablero.md).
 
-
 - **Forma `null` por permiso**: `ventas` (de `resumen_inicio_periodo`), `por_tienda`, `salidas_por_deposito`, `ingresos`,
   `margen_pct` y la columna `ventas` de `movimientos_por_producto` vuelven `null` cuando el rol no tiene el permiso;
   la pantalla distingue «sin permiso» de «cero».
