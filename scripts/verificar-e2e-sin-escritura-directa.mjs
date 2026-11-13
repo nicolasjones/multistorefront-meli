@@ -18,11 +18,15 @@
 //   5. la URL de la ruta REST guardada en una variable (`const ruta = `${url}/rest/v1/consultas``) y usada después en un
 //      `fetch(ruta, { method: 'POST' })` o `request.post(ruta)`; el SQL de `pg` partido en varios renglones.
 // Leer (GET, `leer(...)`, `.select`) esas tablas está permitido. Un renglón puede eximirse con el comentario
-// `escritura-directa: ok — <motivo>` (mismo renglón o el anterior); sin motivo no vale.
+// `escritura-directa: ok — <motivo>` (mismo renglón o el anterior); sin motivo no vale. Cuando la ruta está en una
+// variable, el comentario va junto a la llamada `fetch(...)` / `request.post(...)` y no junto a la línea que define la
+// variable: la exención se evalúa donde se hace la petición.
 //
 // Evasiones que NO detecta (es un análisis por texto, no de tipos): una base constante con la tabla al final
 // (`${base}/consultas`), la tabla armada por concatenación (`'consul' + 'tas'`), el nombre dentro de un objeto
-// (`T.consultas`) o interpolado (`${tabla}?id=eq.1`). Defensa en profundidad: el grant real de la migración
+// (`T.consultas`) o interpolado (`${tabla}?id=eq.1`), la ruta asignada a una variable ya declarada
+// (`let r; r = `${url}/rest/v1/consultas``) y un `fetch(` cuya variable de ruta queda en otro renglón que la
+// apertura (`fetch(\n ruta,\n { method: 'POST' }\n)`). Defensa en profundidad: el grant real de la migración
 // 20270302105000 las atrapa al correr la suite (403 de PostgREST), así que este guardián es la red barata de CI y no la única.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
