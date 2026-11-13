@@ -163,8 +163,8 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
         await contexto.close()
       }
 
-      // A 320 px el botón de WhatsApp ocupa el ancho completo de la fila de acciones (como
-      // «Ver más productos» y como el prototipo móvil): el ancho lo lleva el elemento que la fila
+      // A 320 px el botón de WhatsApp ocupa el ancho completo de la fila de acciones (como el prototipo móvil, donde «Ver más productos»
+      // no se dibuja): el ancho lo lleva el elemento que la fila
       // acomoda, no el botón — un `width: 100%` dentro de un contenedor de ancho automático se
       // resuelve como `auto` y el botón quedaría más angosto.
       const celula = tiendas[0]
