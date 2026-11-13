@@ -64,13 +64,14 @@ export default function RutaProducto() {
         ]}
       />
       {/* Celular (F-TDA-17, FR-042): enlace de vuelta arriba; las migas son de escritorio. */}
-      <Link component={EnlaceRuta} to="/catalogo" underline="hover" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center', minHeight: (tema) => tema.spacing(5.5), mb: 1, color: 'inherit' }}>
+      <Link component={EnlaceRuta} to="/catalogo" underline="none" sx={{ display: { xs: 'inline-flex', md: 'none' }, alignItems: 'center', minHeight: (tema) => tema.spacing(5.5), py: '10px', fontSize: 13, color: 'text.secondary' /* estilos-sueltos: ok */ }}>
         ← Todos los productos
       </Link>
       <Box sx={{ display: { xs: 'none', md: 'block' } }}><Migas nombre={datos.nombre} /></Box>
-      <Box sx={{ display: 'grid', gap: { xs: 2, md: 4 }, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
+      {/* Prototipo: galería de 600 px a la izquierda, 56 px de separación y 8 px de aire arriba y 56 px abajo (celular: sin separación). */}
+      <Box sx={{ display: 'grid', gap: { xs: 0, md: '56px' }, pt: { md: '8px' }, pb: { xs: '28px', md: '56px' }, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: '600px minmax(0, 1fr)' } /* estilos-sueltos: ok */ }}>
         <Galeria key={datos.id} imagenes={datos.imagenes} urls={urls} nombre={datos.nombre} />
-        <Box>
+        <Box sx={{ pt: { xs: '4px', md: 0 }, px: { xs: '4px', md: 0 } /* estilos-sueltos: ok */ }}>
           <DatosProducto ficha={datos} host={host} empresa={tienda.empresaNombre} />
           {preciosCliente ? <PreciosCliente precios={preciosCliente} /> : null}
           <Compatibilidad compatibilidad={datos.compatibilidad} />

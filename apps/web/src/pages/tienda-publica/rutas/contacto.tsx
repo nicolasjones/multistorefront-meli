@@ -1,11 +1,12 @@
-import { Box, Breadcrumbs, Typography } from '@mui/material'
-import { Link as EnlaceRuta, useParams } from 'react-router'
+import { Box, Typography } from '@mui/material'
+import { useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useContactoTienda } from '../../../hooks/useContactoTienda'
 import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { DatosContacto } from '../contacto/DatosContacto'
 import { FormularioContacto } from '../contacto/FormularioContacto'
 import { useContextoTienda } from '../layout/LayoutTienda'
+import { MigasTienda } from '../layout/MigasTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { ErrorConReintento } from '../ErrorConReintento'
 import { CabeceraSeo } from '../seo/CabeceraSeo'
@@ -35,15 +36,17 @@ export default function RutaContacto() {
   return (
     <Box>
       <CabeceraSeo host={host} pagina="Contacto" ruta="/contacto" />
-      <Breadcrumbs aria-label="Migas de pan" sx={{ mb: 2 }}>
-        <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit' }}>Inicio</Box>
-        <Typography color="text.primary" aria-current="page">Contacto</Typography>
-      </Breadcrumbs>
-      <Typography component="h1" variant="h4" sx={{ typography: { xs: 'h5', md: 'h4' } }}>Contacto</Typography>
-      {bajada ? <Typography color="text.secondary" sx={{ mb: 2, overflowWrap: 'anywhere' }}>{bajada}</Typography> : null}
-      <Box sx={{ display: 'grid', gap: { xs: 3, md: 6 }, mt: 2, gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 1fr) minmax(0, 1fr)' } }}>
-        <DatosContacto contacto={contacto.contacto} />
-        <FormularioContacto host={host} />
+      <MigasTienda items={[{ texto: 'Inicio', a: '/' }, { texto: 'Contacto' }]} />
+      {/* Prototipo (`MJC_Contacto`): columna de datos de 460 px, 64 px de separación y 8 px de aire arriba, 64 px abajo. */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: '24px', md: '64px' }, pt: '8px', pb: { xs: '24px', md: '64px' } /* estilos-sueltos: ok */ }}>
+        <Box sx={{ width: { md: 460 }, flexShrink: 0, minWidth: 0 }}>
+          <Typography component="h1" variant="h4" sx={{ fontSize: { xs: 30, md: 44 } /* estilos-sueltos: ok */ }}>Contacto</Typography>
+          {bajada ? <Typography color="text.secondary" sx={{ fontSize: 17, m: '10px 0 8px', overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{bajada}</Typography> : null}
+          <DatosContacto contacto={contacto.contacto} />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <FormularioContacto host={host} />
+        </Box>
       </Box>
     </Box>
   )

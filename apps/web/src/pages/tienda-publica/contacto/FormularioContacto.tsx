@@ -1,8 +1,9 @@
-import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, FormHelperText, InputBase, Stack, Typography } from '@mui/material'
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { enviarConsultaContacto, minutosDeEspera, nuevaClaveEnvio } from '../../../lib/tiendaContacto'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { IconoTilde } from '../layout/iconos'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
 
 type Fase =
@@ -13,6 +14,50 @@ type Fase =
   | { fase: 'falla' }
 
 const VACIO: DatosContacto = { nombre: '', contacto: '', mensaje: '' }
+
+// Tarjeta del formulario (prototipo): fondo blanco, borde de 1 px, radio 12 y 32 px de relleno; en celular el formulario va
+// sin tarjeta (`MJC_M_Contacto`).
+const estiloTarjeta = { bgcolor: 'background.paper', border: { xs: 0, md: '1px solid rgba(0,0,0,.08)' }, borderRadius: '12px', p: { xs: 0, md: '32px' }, minWidth: 0 } as const // estilos-sueltos: ok
+
+// Campo del prototipo (`.fin`): el rótulo (14 px/600) ARRIBA del campo —no flotante—, campo de 44 px (el mensaje, de 110 px como
+// mínimo) con borde de 1,5 px, radio 8 y texto de apoyo en gris. El rótulo es un <label> asociado; el error va debajo con
+// `aria-describedby`.
+function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef }: {
+  id: string
+  etiqueta: string
+  ejemplo: string
+  valor: string
+  alCambiar: (evento: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
+  error?: string
+  autoComplete?: string
+  multilinea?: boolean
+  inputRef: (el: HTMLInputElement | null) => void
+}) {
+  const idError = `${id}-error`
+  return (
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Typography component="label" htmlFor={id} sx={{ display: 'block', fontSize: 14, fontWeight: 600, mb: '6px' /* estilos-sueltos: ok */ }}>{etiqueta}</Typography>
+      <InputBase
+        id={id}
+        fullWidth
+        multiline={multilinea}
+        minRows={multilinea ? 4 : undefined}
+        placeholder={ejemplo}
+        value={valor}
+        onChange={alCambiar}
+        error={Boolean(error)}
+        inputRef={inputRef}
+        inputProps={{ 'aria-required': true, 'aria-invalid': Boolean(error), 'aria-describedby': error ? idError : undefined, autoComplete }}
+        sx={{
+          alignItems: multilinea ? 'flex-start' : 'center', height: multilinea ? 'auto' : 44, minHeight: multilinea ? 110 : undefined, px: '12px', py: multilinea ? '10px' : 0, // estilos-sueltos: ok
+          fontSize: 15, bgcolor: 'background.paper', border: '1.5px solid', borderColor: error ? 'error.main' : 'rgba(0,0,0,.18)', borderRadius: '8px', // estilos-sueltos: ok
+          '& input::placeholder, & textarea::placeholder': { color: 'rgba(0,0,0,.45)', opacity: 1 }, // estilos-sueltos: ok
+        }}
+      />
+      {error ? <FormHelperText id={idError} error>{error}</FormHelperText> : null}
+    </Box>
+  )
+}
 
 // Formulario «Escribinos» (F-TDA-16, FR-011…FR-013, FR-015). Valida en el cliente (espejo del servidor), envía
 // con una `clave_envio` por intento y conserva lo escrito ante límite o error. Foco al primer error y al
@@ -92,22 +137,27 @@ export function FormularioContacto({ host }: { host: string }) {
 
   if (estado.fase === 'exito') {
     return (
-      <Box component="section" aria-labelledby="contacto-gracias" data-testid="contacto-exito" sx={{ py: 2 }}>
-        <Typography id="contacto-gracias" component="h2" variant="h6" tabIndex={-1} ref={gracias} sx={{ fontWeight: 700, outline: 'none' }}>
-          ¡Gracias! Recibimos tu consulta
-        </Typography>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>Te respondemos por el medio que dejaste.</Typography>
-        <Button variant="outlined" onClick={enviarOtra} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Enviar otra</Button>
+      <Box component="section" aria-labelledby="contacto-gracias" data-testid="contacto-exito" sx={estiloTarjeta}>
+        <Box sx={{ py: '40px', px: '24px', textAlign: 'center', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: '12px' /* estilos-sueltos: ok */ }}>
+          <Box component="span" aria-hidden sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#E1F3E7', color: '#146B35', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' /* estilos-sueltos: ok */ }}>
+            <IconoTilde size={28} />
+          </Box>
+          <Typography id="contacto-gracias" component="h2" variant="h6" tabIndex={-1} ref={gracias} sx={{ fontSize: 24, mt: '14px', outline: 'none' /* estilos-sueltos: ok */ }}>
+            ¡Gracias! Recibimos tu consulta
+          </Typography>
+          <Typography color="text.secondary" sx={{ mt: '6px' }}>Te respondemos por el medio que dejaste.</Typography>
+          <Button variant="outlined" onClick={enviarOtra} sx={{ mt: 2, px: '18px', py: '10px', border: '2px solid', borderColor: 'primary.main', '&:hover': { border: '2px solid', borderColor: 'primary.main' } /* estilos-sueltos: ok */ }}>Enviar otra</Button>
+        </Box>
       </Box>
     )
   }
 
   const enviando = estado.fase === 'enviando'
   return (
-    <Box component="section" aria-labelledby="contacto-escribinos">
-      <Typography id="contacto-escribinos" component="h2" variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Escribinos</Typography>
+    <Box component="section" aria-labelledby="contacto-escribinos" sx={estiloTarjeta}>
+      <Typography id="contacto-escribinos" component="h2" variant="h6" sx={{ fontSize: { xs: 22, md: 24 }, mb: '16px' /* estilos-sueltos: ok */ }}>Escribinos</Typography>
       <Box component="form" noValidate onSubmit={(evento) => void enviar(evento)}>
-        <Stack spacing={2}>
+        <Stack spacing="14px">
           {estado.fase === 'espera' ? (
             <Alert severity="warning" data-testid="contacto-espera">
               Hiciste varias consultas seguidas. Probá de nuevo en {minutosDeEspera(estado.esperaSegundos)} {minutosDeEspera(estado.esperaSegundos) === 1 ? 'minuto' : 'minutos'}.
@@ -120,49 +170,40 @@ export function FormularioContacto({ host }: { host: string }) {
               alReintentar={() => void enviar()}
             />
           ) : null}
-          <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
-            <TextField
-              label="Nombre"
-              placeholder="Tu nombre"
-              value={datos.nombre}
-              onChange={cambiar('nombre')}
-              error={Boolean(errores.nombre)}
-              helperText={errores.nombre}
-              required
-              fullWidth
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: '14px' }}>
+            <Campo
+              id="contacto-nombre"
+              etiqueta="Nombre"
+              ejemplo="Tu nombre"
+              valor={datos.nombre}
+              alCambiar={cambiar('nombre')}
+              error={errores.nombre}
               autoComplete="name"
-              inputRef={(el: HTMLInputElement | null) => { campos.current.nombre = el }}
+              inputRef={(el) => { campos.current.nombre = el }}
             />
-            <TextField
-              label="Correo o WhatsApp"
-              placeholder="Para responderte"
-              value={datos.contacto}
-              onChange={cambiar('contacto')}
-              error={Boolean(errores.contacto)}
-              helperText={errores.contacto}
-              required
-              fullWidth
-              inputRef={(el: HTMLInputElement | null) => { campos.current.contacto = el }}
+            <Campo
+              id="contacto-contacto"
+              etiqueta="Correo o WhatsApp"
+              ejemplo="Para responderte"
+              valor={datos.contacto}
+              alCambiar={cambiar('contacto')}
+              error={errores.contacto}
+              inputRef={(el) => { campos.current.contacto = el }}
             />
           </Box>
-          <TextField
-            label="Mensaje"
-            placeholder="Contanos qué producto te interesa"
-            value={datos.mensaje}
-            onChange={cambiar('mensaje')}
-            error={Boolean(errores.mensaje)}
-            helperText={errores.mensaje}
-            required
-            fullWidth
-            multiline
-            minRows={4}
-            inputRef={(el: HTMLInputElement | null) => { campos.current.mensaje = el }}
+          <Campo
+            id="contacto-mensaje"
+            etiqueta="Mensaje"
+            ejemplo="Contanos qué producto te interesa"
+            valor={datos.mensaje}
+            alCambiar={cambiar('mensaje')}
+            error={errores.mensaje}
+            multilinea
+            inputRef={(el) => { campos.current.mensaje = el }}
           />
-          <Box>
-            <Button type="submit" variant="contained" disabled={enviando} sx={{ minHeight: (tema) => tema.spacing(5.5), width: { xs: '100%', sm: 'auto' } }}>
-              {enviando ? 'Enviando…' : 'Enviar consulta'}
-            </Button>
-          </Box>
+          <Button type="submit" variant="contained" disabled={enviando} sx={{ height: 48, fontSize: 16, width: '100%' /* estilos-sueltos: ok */ }}>
+            {enviando ? 'Enviando…' : 'Enviar consulta'}
+          </Button>
         </Stack>
       </Box>
     </Box>
