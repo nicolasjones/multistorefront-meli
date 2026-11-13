@@ -25,12 +25,14 @@ El resto de los roles no ve la pantalla de Empresas.
 
 El visitante entra a la dirección de la tienda **sin cuenta y sin usuario**. Ve solo los datos de esa tienda: el precio final en pesos de esa empresa y si el producto está disponible. Nunca ve costos, cantidades exactas ni datos internos.
 
-### El menú de arriba
+### La barra superior y el encabezado
 
-Debajo del nombre de la tienda hay **una sola línea** de enlaces: **Inicio**, las **categorías
-principales** de la tienda, **Más categorías** y **Contacto**.
+Arriba de todo hay una **barra oscura** con el **eslogan** de la tienda (o, si no cargaste uno, el mensaje de bienvenida) y, a la derecha, el **WhatsApp** y el **correo** de la tienda. En el celular la barra muestra solo el eslogan. Si no hay ningún dato para mostrar, la barra no aparece.
+
+Debajo está el **encabezado**: el **logo** de la tienda a la izquierda (si no hay logo, el nombre en texto), el **buscador** y los enlaces **Inicio** y **Contacto**. Debajo, en **una sola línea**, van las **categorías principales** de la tienda y **Más categorías**.
 
 - Las categorías principales son las que tienen más productos publicados: se muestran **hasta seis**.
+- La categoría en la que estás aparece **subrayada**.
 - Si hay más categorías, el enlace **Más categorías** lleva al catálogo, donde están todas.
 - Si los nombres no entran en una línea, la barra se desplaza con el mouse; no se parte en varias líneas.
 - En el celular, el menú se abre con el botón de menú y trae lo mismo.
@@ -40,11 +42,13 @@ su barra, ni en su inicio, ni en su pie.
 
 ### Página de inicio
 
-- Una **barra de bienvenida** arriba, con el mensaje que elegiste.
+- La **barra superior** con el eslogan, el WhatsApp y el correo.
+- El **encabezado** con el logo, el buscador y las categorías.
 - Un **banner** con título, subtítulo y botón.
-- Las **categorías principales** (hasta seis), con la cantidad de productos de cada una.
+- Las **categorías principales** (hasta seis), cada una con una **foto** tomada de un producto de esa categoría y la cantidad de productos. Si la categoría no tiene fotos, se ve un recuadro neutro.
 - Los **productos destacados** (hasta 8), con foto, nombre, precio y «Disponible» o «Sin stock». Si no marcaste ninguno, ese bloque no aparece.
-- El **pie de página** con tus textos y las categorías.
+- Un bloque de **«Consultas por WhatsApp / Escribinos»** al final: el WhatsApp de la tienda y el enlace para escribir. Sin WhatsApp, queda solo **Escribinos**.
+- El **pie oscuro** con el logo, el eslogan, tu texto del pie, las categorías, los datos de contacto, el bloque legal y «© año empresa. Todos los derechos reservados.».
 
 Si la tienda está activa pero todavía no tiene ningún producto visible, el inicio dice «Catálogo en preparación».
 
@@ -118,7 +122,7 @@ La disponibilidad que ve el visitante es solo «Disponible» o «Sin stock», se
 
 ### Celular, clientes con cuenta y páginas especiales
 
-- La tienda se adapta al celular: el menú se despliega con el botón de menú y los filtros se abren en un panel. El menú desplegado trae **Inicio**, **Contacto** y las **categorías principales** de la tienda, más **Más categorías**.
+- La tienda se adapta al celular: la barra superior se achica y muestra solo el eslogan (o la bienvenida), el encabezado conserva el logo y el buscador, y el menú se despliega con el botón de menú. Los filtros se abren en un panel. El menú desplegado trae **Inicio**, **Contacto** y las **categorías principales** de la tienda, más **Más categorías**.
 
 ![Tienda vista en un celular, con el botón de menú, el buscador y el banner](img/tiendas-online/08-movil-inicio.png)
 

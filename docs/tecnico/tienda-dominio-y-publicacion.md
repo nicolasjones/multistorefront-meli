@@ -81,7 +81,7 @@ Cuatro tablas nuevas y una alterada. El DER completo (con leyenda y Mermaid) est
 
 | RPC | Devuelve | Errores / reglas |
 |---|---|---|
-| `public.guardar_borrador_tienda(empresa uuid, area text, datos jsonb)` | — | `area` ∈ `identidad`\|`contenido`\|`catalogo`. Valida con **las mismas reglas** que las RPC vivas (colores `#RRGGBB`, tipografías de la lista cerrada, longitudes 120/300, destino del botón, visibilidad), extraídas a `private.validar_tienda_*`. Un valor inválido no se guarda. |
+| `public.guardar_borrador_tienda(empresa uuid, area text, datos jsonb)` | — | `area` ∈ `identidad`\|`contenido`\|`catalogo`. Valida con **las mismas reglas** que las RPC vivas (colores `#RRGGBB`, tipografías de la lista cerrada, longitudes 120/300/80, destino del botón, visibilidad), extraídas a `private.validar_tienda_*`. Un valor inválido no se guarda. |
 | `public.obtener_borrador_tienda(empresa uuid)` | `{ hay_borrador, identidad, contenido, catalogo, cambios: { total, resumen, detalle[] }, version_vigente, en_linea }` | El **resumen de cambios se calcula en el servidor** por áreas y campos tocados. `version_vigente` trae `{ numero, publicada_at, publicada_por }`. |
 | `public.descartar_borrador_tienda(empresa uuid)` | — | Borra el borrador. Evento `tienda.borrador_descartado`. |
 | `public.publicar_tienda(empresa uuid)` | `{ version }` (`null` si no había borrador) | **Transaccional**: bloquea la empresa, aplica cada área del borrador con las RPC vivas, crea la versión siguiente con su instantánea y resumen y borra el borrador. **Idempotente**: sin borrador no crea versión. Evento `tienda.publicada`. |
@@ -91,10 +91,14 @@ Cuatro tablas nuevas y una alterada. El DER completo (con leyenda y Mermaid) est
 - **BREAKING (FR-052).** `public.guardar_tienda_identidad`, `public.guardar_tienda_contenido` y
   `public.guardar_catalogo_tienda` **dejan de ser ejecutables por `authenticated`**; la firma no cambia y
   solo las invoca `public.publicar_tienda` (`security definer`). Así todo cambio visible pasa por una versión.
+  **MSF-841** agrega `p_color_barra text default null` a `guardar_tienda_identidad` y `p_eslogan text default null`
+  a `guardar_tienda_contenido`, al final y sin cambiar la regla de ejecución (ver
+  [Diseño del prototipo](tienda-diseno-del-prototipo.md)).
 - **El resumen de cambios lo arma la base** (`private.detalle_cambios_tienda` y `private.resumen_cambios_tienda`)
   con etiquetas legibles: `colores`, `tipografías`, `logo`, `banner`, `banner móvil`, `texto del banner`,
-  `botón del banner`, `mensaje de bienvenida`, `pie de página`, `aviso de la ficha`, `botón de contacto`,
-  `N categorías`, `N productos visibles` y `N destacados`. El número del aviso («N cambios sin publicar») cuenta
+  `botón del banner`, `mensaje de bienvenida`, `eslogan`, `pie de página`, `aviso de la ficha`,
+  `botón de contacto`, `N categorías`, `N productos visibles` y `N destacados`. El color de la barra
+  (`color_barra`) cuenta dentro de `colores`. El número del aviso («N cambios sin publicar») cuenta
   esas etiquetas, no los campos individuales: el texto lo arma `textoAvisoCambios` en
   `apps/web/src/lib/tiendaBorrador.ts`.
 - La versión 1 «Configuración inicial» de las tiendas ya existentes la crea la migración de F-TDA-06 (backfill

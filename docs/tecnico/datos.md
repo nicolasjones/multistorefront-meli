@@ -219,8 +219,8 @@ No hay borrador ni versiones: cada cambio se aplica al guardar.
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `dominio.tiendas` | **nueva** | Una tienda por empresa (`empresa_id` único) con `dominio` único y normalizado; FK compuesta a `dominio.empresas`. |
-| `dominio.tienda_identidad` | **nueva** | Identidad visual por `empresa_id` (PK): cuatro colores `#RRGGBB`, dos tipografías de la lista cerrada de DS-04 y rutas de logo/banner/banner móvil. |
-| `dominio.tienda_contenido` | **nueva** | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. |
+| `dominio.tienda_identidad` | **nueva** (alterada por MSF-841) | Identidad visual por `empresa_id` (PK): cinco colores `#RRGGBB` (el quinto, `color_barra`, es de MSF-841), dos tipografías de la lista cerrada de DS-04 (nueve familias desde MSF-841) y rutas de logo/banner/banner móvil. |
+| `dominio.tienda_contenido` | **nueva** (alterada por MSF-841) | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. MSF-841 agrega `eslogan` (máx. 80). |
 | `dominio.categorias_tienda` | **nueva** | Visibilidad de categorías por `(empresa_id, categoria_id)`; sin fila = visible. |
 | `dominio.productos_tienda` | **nueva** | Visibilidad y destacado por `(empresa_id, producto_id)`; sin fila = visible y no destacado. |
 | `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. (Alta de empresas, MSF-475: gana el índice único `empresas_organizacion_nombre_uq (organizacion_id, lower(btrim(nombre)))`, ver `supabase/migrations/20261015110000_alta_de_empresas.sql`.) |
@@ -251,6 +251,7 @@ erDiagram
     text color_primario_oscuro "#RRGGBB"
     text color_acento "#RRGGBB"
     text color_fondo "#RRGGBB"
+    text color_barra "nueva: #RRGGBB (MSF-841)"
     text tipografia_titulos "lista cerrada"
     text tipografia_texto "lista cerrada"
     text logo_ruta
@@ -267,6 +268,7 @@ erDiagram
     text pie "máx. 300"
     text aviso_ficha "máx. 300"
     text texto_boton_contacto "máx. 120"
+    text eslogan "nueva: máx. 80 (MSF-841)"
     timestamptz updated_at }
   CATEGORIAS_TIENDA { uuid empresa_id PK
     uuid categoria_id PK
@@ -3110,7 +3112,7 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
 | `publico.identidad_por_dominio(host)` | Colores, tipografías y rutas de logo/banners de la tienda; sin fila, valores del tema base (MSF-147) |
 | `publico.contenido_por_dominio(host)` | Textos comerciales de la tienda; sin fila, todo vacío (MSF-147) |
 | `publico.catalogo_visible_por_dominio(host)` | Categorías visibles y productos efectivamente visibles (destacados primero) con nombre, precio, indicador de imagen y categoría (MSF-147) |
-| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, **solo las que tienen productos visibles** y con conteo que **suma las subcategorías** (MSF-167; corregido por MSF-825) |
+| `publico.categorias_por_dominio(host)` | Categorías visibles de la tienda del dominio, **solo las que tienen productos visibles**, con conteo que **suma las subcategorías** (MSF-167; corregido por MSF-825) y `imagen` con la ruta de un producto visible de la categoría o sus subcategorías (MSF-841) |
 | `publico.catalogo_pagina_por_dominio(host, categoria, solo_con_stock, precio_max, orden, pagina)` | Página de 24 productos con lista blanca (precio final, disponible, imagen, categoría y destacado); filtrar por una categoría **incluye su subárbol** (MSF-167; corregido por MSF-825) |
 | `publico.producto_por_dominio(host, producto)` | Ficha con nombre, descripción, SKU, categoría, precio, disponibilidad, compatibilidad e imágenes (MSF-167) |
 | `publico.imagen_publica(ruta)` | Booleano que respalda la política de lectura anónima de imágenes de productos visibles (MSF-167) |
@@ -3127,6 +3129,10 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
   Además, `private.normalizar_producto()` (disparador de `dominio.productos`) quita el prefijo de
   importación del nombre y de la descripción. Detalle:
   [Tienda pública: corrección de la demo frente al prototipo](tienda-demo-vs-prototipo.md).
+- **MSF-841** (migraciones `20270303100000`–`20270303400000`) agrega `color_barra` a
+  `dominio.tienda_identidad`, `eslogan` a `dominio.tienda_contenido` y `imagen` a la salida de
+  `publico.categorias_por_dominio`; no crea tablas. Detalle:
+  [Tienda pública: diseño del prototipo](tienda-diseno-del-prototipo.md).
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
   visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y
   [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).

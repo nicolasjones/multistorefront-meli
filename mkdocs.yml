@@ -247,6 +247,7 @@ nav:
       - Tienda pública:
           - Catálogo y ficha: tecnico/tienda-catalogo-y-ficha.md
           - Demo frente al prototipo (MSF-825): tecnico/tienda-demo-vs-prototipo.md
+          - Diseño del prototipo (MSF-841): tecnico/tienda-diseno-del-prototipo.md
           - Inicio, búsqueda y móvil: tecnico/tienda-inicio-busqueda-movil.md
           - WhatsApp y contacto: tecnico/tienda-whatsapp-y-contacto.md
           - Dominio, identidad y catálogo visible: tecnico/tienda-dominio-e-identidad.md

@@ -208,7 +208,9 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
   sigue con su WhatsApp abierto. El doble clic sobre «Abrir WhatsApp» no registra dos veces.
 - **Enlaces:** «Contacto» en el menú de escritorio (`layout/MenuCategorias.tsx`) y en el **menú móvil**
   (`layout/MenuMovil.tsx`), y «Escribinos» en el pie (`layout/PieCategorias.tsx`) apuntan a
-  `/contacto`.
+  `/contacto`. Desde MSF-841 el WhatsApp y el correo también se muestran en la barra superior
+  (`layout/BarraSuperior.tsx`) y en el bloque «Consultas por WhatsApp / Escribinos» al final de la portada
+  (`secciones/ConsultasInicio.tsx`); ver [Diseño del prototipo](tienda-diseno-del-prototipo.md).
 - **Empresas:** `apps/web/src/pages/empresas/edit.tsx` suma el campo «Horarios de atención» (≤ 200,
   el mismo tope que el check de la base), con la ayuda «Se muestran en la página de Contacto de la
   tienda». Opera sobre la **empresa activa**, como el resto del formulario.

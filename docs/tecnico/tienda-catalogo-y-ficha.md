@@ -72,7 +72,7 @@ Cada una hace `revoke execute … from public` y `grant execute … to anon, aut
 
 | Función | Devuelve |
 |---|---|
-| `publico.categorias_por_dominio(host)` | `{ categorias: [{ id, nombre, padre_id, productos }] }` o `null`. Categorías visibles en el orden de Catálogo (raíces primero, luego posición); `productos` cuenta los efectivos de la categoría **y de sus subcategorías** y **las categorías sin productos visibles no se devuelven** (MSF-825). |
+| `publico.categorias_por_dominio(host)` | `{ categorias: [{ id, nombre, padre_id, productos, imagen }] }` o `null`. Categorías visibles en el orden de Catálogo (raíces primero, luego posición); `productos` cuenta los efectivos de la categoría **y de sus subcategorías** y **las categorías sin productos visibles no se devuelven** (MSF-825). `imagen` es la ruta del bucket de la imagen principal de un producto visible de la categoría o de sus subcategorías, o `null` (MSF-841). |
 | `publico.catalogo_pagina_por_dominio(host, categoria = null, solo_con_stock = false, precio_max = null, orden = 'relevancia', pagina = 1)` | `{ total, pagina, tamano: 24, categorias[], productos[] }` o `null`. Cada producto: `id`, `nombre`, `precio`, `disponible`, `imagen`, `categoria_id`, `destacado`. Filtrar por una categoría **incluye su subárbol** (MSF-825). |
 | `publico.producto_por_dominio(host, producto)` | `{ id, nombre, descripcion, sku, categoria {id, nombre}, precio, disponible, compatibilidad, imagenes [{posicion, ruta}] }` o `null`. |
 | `publico.imagen_publica(ruta)` | `true` si la ruta del bucket es una imagen de un producto efectivo de una tienda activa. |
@@ -139,7 +139,9 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 | cualquier otra | La misma 404 amable | `PaginaNoEncontrada.tsx` |
 
 - **Layout:** `layout/LayoutTienda.tsx` pone la marca, el menú de categorías y la columna «Categorías» del
-  pie; comparte `{ tienda, host, categorias }` por el outlet (`useContextoTienda`).
+  pie; comparte `{ tienda, host, categorias }` por el outlet (`useContextoTienda`). Desde MSF-841 el layout
+  también monta la identidad, la barra superior y el pie oscuro del prototipo (ver
+  [Diseño del prototipo](tienda-diseno-del-prototipo.md)).
 - **Categorías:** `lib/tiendaCategorias.ts` y `hooks/useCategoriasTienda.ts` hacen una sola llamada por
   tienda; si falla, el menú queda en «Inicio» con «Reintentar».
 - **Catálogo:** componentes `catalogo/PanelFiltros.tsx`, `catalogo/Ordenar.tsx`,
