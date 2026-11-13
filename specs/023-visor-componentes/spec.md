@@ -84,3 +84,4 @@ desarrollo); la fuente de verdad es esta spec y `docs/e2e-app.md`.
 | Checklist de ítems con estado (hecho / pendiente / ambiguo / fallido / omitido) | US2 |
 | Bloque "Ítems sin E2E" | FR-002 (progreso) |
 | Vacío con instrucciones | FR-005, US3 |
+| Fila **Empresa activa** | **No aplica** (FR-005): MSF ya no expone el visor (`/cobertura-e2e` se quitó en la spec 026 y vive en el panel SDLC) y, cuando existió, su única fuente era el manifiesto de cobertura E2E (`cobertura-e2e.json`): nunca leyó ni escribió datos de empresa ni mostró selector, columna o texto de empresa, así que no hay empresa activa que respetar ni consultas que recargar al cambiarla (Principio VIII) |
