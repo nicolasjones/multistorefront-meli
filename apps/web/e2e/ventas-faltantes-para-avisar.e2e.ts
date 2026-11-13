@@ -28,9 +28,9 @@ test.describe('Ventas · «Para avisar» al ingresar mercadería (MSF-270, F-VTA
         await page.goto('/stock/ingresos')
         await page.getByLabel('Compra a nombre de').click()
         await clic(page, page.getByRole('option', { name: datos!.empresa }))
-        await page.getByLabel('Proveedor').click()
+        await page.locator('form').getByLabel('Proveedor').click()
         await clic(page, page.getByRole('option', { name: datos!.proveedor }))
-        await page.getByLabel('Producto 1').click()
+        await page.locator('form').getByRole('combobox', { name: 'Producto 1', exact: true }).click()
         await clic(page, page.getByRole('option', { name: producto }))
         await escribir(page, page.getByLabel('Cantidad').first(), '10')
         await escribir(page, page.getByLabel('Costo unit. USD').first(), '10')
@@ -40,15 +40,15 @@ test.describe('Ventas · «Para avisar» al ingresar mercadería (MSF-270, F-VTA
 
       await paso(page, 'Los 3 faltantes aparecen en «Para avisar»', async () => {
         await page.goto('/ventas/faltantes')
-        await expect(page.getByText('3 faltantes')).toBeVisible()
+        await expect(page.getByText('3 faltantes', { exact: true })).toBeVisible()
         await clic(page, page.getByRole('button', { name: 'Para avisar' }))
         await expect(page.getByRole('note')).toBeVisible()
-        await expect(page.getByText('3 faltantes')).toBeVisible()
+        await expect(page.getByText('3 faltantes', { exact: true })).toBeVisible()
         await expect(page.getByText('Para avisar', { exact: true })).toHaveCount(4) // el botón del filtro y 3 chips
       })
 
       await paso(page, 'No se envió ningún aviso', async () => {
-        const avisos = await leer<{ id: string }>(`faltantes_avisos?select=id&organizacion_id=eq.${datos!.orgId}`)
+        const avisos = await leer<{ linea_id: string }>(`faltantes_avisos?select=linea_id&organizacion_id=eq.${datos!.orgId}`)
         expect(avisos).toHaveLength(0)
       })
 
@@ -58,7 +58,7 @@ test.describe('Ventas · «Para avisar» al ingresar mercadería (MSF-270, F-VTA
           await page.goto('/ventas/faltantes')
           await clic(page, page.getByRole('button', { name: 'Para avisar' }))
           await expect(page.getByRole('note')).toBeVisible()
-          expect(await desborde(page)).toBeLessThanOrEqual(1)
+          expect(await desborde(page), `desborde horizontal a ${ancho} px`).toBeLessThanOrEqual(1)
           expect(await violacionesAxe(page)).toEqual([])
         })
       }

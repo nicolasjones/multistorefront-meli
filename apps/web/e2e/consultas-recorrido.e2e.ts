@@ -1,15 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { crearConsulta } from './soporte/fixtures'
 
 // Cierre de MSF-122 (SC-004, SC-008): una consulta enviada desde la tienda aparece en la bandeja en menos de
-// 5 s y encola el aviso para el equipo; se abre el detalle, se asigna, anota y resuelve con tres roles
+// 5 s y la base emite el aviso al equipo; se abre su enlace, se asigna, anota y resuelve con tres roles
 // (administrador edita, consulta solo lee, mostrador no accede) y una segunda organización no la ve.
-// Requiere el stack local (`pnpm dev:supabase`). Desde MSF-853 el aviso sale por la cola de plataforma
-// (`private.emitir_aviso` → `public.avisos_pendientes`) y lo manda el flow `enviar-avisos` de Kestra; el
-// camino directo (tabla `dominio.consultas_avisos` y función `enviar-aviso-consulta`) ya no existe, así que
-// este recorrido no necesita Mailpit.
-// Siembra con la API admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
-// SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI público): ver docs/e2e-app.md y docs/consultas.md.
+// Requiere el stack local (`pnpm dev:supabase`). Siembra con la API admin desde Node
+// (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se
+// omite (no entra al CI público): ver docs/e2e-app.md y docs/consultas.md.
 const url = process.env.SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const password = 'Correcta-12345!'
@@ -38,14 +36,6 @@ async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promi
   return (await r.json()) as T[]
 }
 
-// Lectura con la service-role key (nunca al navegador): la cola de avisos de plataforma no tiene RLS para
-// `authenticated`, pero el rol de servicio la lee (privilegios del propietario).
-async function leer<T>(ruta: string): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras() })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
 async function altaUsuario(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/admin/users`, {
     method: 'POST',
@@ -66,16 +56,24 @@ async function borrarUsuario(id: string) {
   if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
-// `crear_consulta_publica` ya no es pública (saltearía el anti-spam): la tienda entra por `enviar_consulta_contacto`
-// y este E2E, que no prueba el límite, da el alta con service-role contra el Supabase local.
-async function enviarConsultaPublica(host: string, nombre: string, mensaje: string): Promise<string> {
-  const r = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
-    method: 'POST',
-    headers: cabeceras({ 'content-profile': 'publico' }),
-    body: JSON.stringify({ host, origen: 'formulario', nombre, contacto: 'visitante@example.com', mensaje }),
-  })
-  if (!r.ok) throw new Error(`crear_consulta_publica: ${r.status} ${await r.text()}`)
-  return (await r.json()) as string
+type AvisoConsulta = { tipo_aviso: string; datos: Record<string, string> }
+
+// Avisos de nueva consulta de una persona para el visitante dado (los emite la base al crear la consulta).
+async function avisosSinEspera(userId: string, nombre: string): Promise<AvisoConsulta[]> {
+  const r = await fetch(`${url}/rest/v1/avisos_pendientes?user_id=eq.${userId}&tipo_aviso=eq.consulta_nueva&select=tipo_aviso,datos`, { headers: cabeceras() })
+  if (!r.ok) throw new Error(`avisos_pendientes: ${r.status} ${await r.text()}`)
+  return ((await r.json()) as AvisoConsulta[]).filter((aviso) => aviso.datos?.Nombre === nombre)
+}
+
+// Espera (hasta 20 s) a que el aviso de ese visitante llegue a la persona.
+async function avisosDe(userId: string, nombre: string): Promise<AvisoConsulta[]> {
+  const limite = Date.now() + 20_000
+  while (Date.now() < limite) {
+    const propios = await avisosSinEspera(userId, nombre)
+    if (propios.length > 0) return propios
+    await new Promise((resolver) => setTimeout(resolver, 500))
+  }
+  throw new Error(`No se emitió el aviso de la consulta de ${nombre} en 20 s`)
 }
 
 async function ingresar(page: Page, correo: string) {
@@ -89,8 +87,8 @@ async function ingresar(page: Page, correo: string) {
 test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004, SC-008)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('envío público, bandeja en menos de 5 s, aviso encolado, atención por rol y aislamiento entre organizaciones', async ({ browser }) => {
-    test.setTimeout(120_000)
+  test('envío público, bandeja en menos de 5 s, aviso a quien corresponde, atención por rol y aislamiento entre organizaciones', async ({ browser }) => {
+    test.setTimeout(120_000) // dos sesiones, tres roles y la espera de la bandeja
     const sufijo = randomUUID().slice(0, 8)
     const host = `consultas-${sufijo}.localhost`
     const empresa = `Tienda Consultas ${sufijo}`
@@ -118,12 +116,12 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
         [correos.sinAcceso, org.id, 'mostrador'],
         [correos.ajena, otra.id, 'administrador'],
       ]
-      let idAdmin = ''
       for (const [correo, organizacion, rol] of asignaciones) {
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: organizacion, rol_id: rol })
-        if (correo === correos.admin) idAdmin = id
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
+        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: organizacion, rol_id: rol })
       }
 
       // SC-004: desde que la tienda envía hasta que la bandeja la muestra pasan menos de 5 s.
@@ -132,21 +130,28 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await ingresar(admin, correos.admin)
       await admin.goto('/consultas')
       const inicio = Date.now()
-      const consultaId = await enviarConsultaPublica(host, visitante, 'Hola, ¿tienen stock?')
+      const consultaId = await crearConsulta(host, { nombre: visitante, contacto: 'visitante@example.com' })
       await admin.reload()
       const fila = admin.getByRole('row', { name: new RegExp(visitante) })
       await expect(fila).toBeVisible({ timeout: LIMITE_BANDEJA_MS })
       expect(Date.now() - inicio).toBeLessThan(LIMITE_BANDEJA_MS)
 
-      // SC-008: el aviso de la consulta queda encolado para la persona de la organización (lo manda el flow
-      // `enviar-avisos`) y el detalle de ESA consulta se abre desde el panel.
-      const avisos = await leer<{ user_id: string; datos: Record<string, string> }>(
-        `avisos_pendientes?select=user_id,datos&tipo_aviso=eq.consulta_nueva&user_id=eq.${idAdmin}`,
-      )
-      expect(avisos).toHaveLength(1)
-      expect(avisos[0].user_id).toBe(idAdmin)
-      expect(avisos[0].datos.Nombre).toBe(visitante)
-      expect(avisos[0].datos.Empresa).toBe(empresa)
+      // SC-008: al entrar la consulta la base emite el aviso (`emitir_aviso`, migración 20261210130300) solo a quien tiene
+      // acceso a Consultas en esa empresa, con los datos de la consulta; el correo SMTP de `enviar-aviso-consulta` quedó sin uso.
+      const [avisoAdmin] = await avisosDe(usuarios[0], visitante)
+      expect(avisoAdmin.datos).toMatchObject({
+        Empresa: empresa,
+        Origen: 'Formulario de contacto',
+        Nombre: visitante,
+        Contacto: 'visitante@example.com',
+        Mensaje: 'Hola, ¿tienen stock?',
+      })
+      const [avisoLectura] = await avisosDe(usuarios[1], visitante) // el rol Consulta también ve la sección
+      expect(avisoLectura.datos.Nombre).toBe(visitante)
+      // No lo reciben ni Mostrador (sin acceso a Consultas) ni la persona de OTRA organización.
+      expect(await avisosSinEspera(usuarios[2], visitante)).toHaveLength(0)
+      expect(await avisosSinEspera(usuarios[3], visitante)).toHaveLength(0)
+      // El enlace del aviso, `/consultas?consulta=<id>`, abre el detalle de ESA consulta.
       await admin.goto(`/consultas?consulta=${consultaId}`)
       const detalle = admin.getByRole('dialog', { name: `Consulta de ${visitante}` })
       await expect(detalle).toBeVisible()
@@ -173,16 +178,16 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(detalleLectura.getByLabel('Nota interna')).toBeDisabled()
       await contextoLectura.close()
 
-      // Rol Mostrador (Ninguno): Acceso restringido y sin Consultas en el menú.
+      // Rol Mostrador (Ninguno): «No tenés acceso a esta sección» y sin Consultas en el menú.
       const contextoSin = await browser.newContext()
       const sin = await contextoSin.newPage()
       await ingresar(sin, correos.sinAcceso)
       await sin.goto('/consultas')
-      await expect(sin.getByText('Acceso restringido')).toBeVisible()
+      await expect(sin.getByText('No tenés acceso a esta sección')).toBeVisible()
       await expect(sin.getByText(visitante)).toHaveCount(0)
       await contextoSin.close()
 
-      // Otra organización: ni la bandeja ni el detalle revelan la consulta.
+      // Otra organización: ni la bandeja ni el enlace del correo revelan la consulta.
       const contextoAjena = await browser.newContext()
       const ajena = await contextoAjena.newPage()
       await ingresar(ajena, correos.ajena)
@@ -191,8 +196,8 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       await expect(ajena.getByRole('dialog', { name: `Consulta de ${visitante}` })).toHaveCount(0)
       await contextoAjena.close()
     } finally {
-      // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas y
-      // consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 20261205200000).
+      // Borrar la organización arrastra por `on delete cascade` dominio.empresas, tiendas, consultas,
+      // consultas_avisos y consultas_configuracion (ver las migraciones 20261013120000, 20261023100000 y 202612052*).
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }
