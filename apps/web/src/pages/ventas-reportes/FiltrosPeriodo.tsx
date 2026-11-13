@@ -21,7 +21,11 @@ export function FiltrosPeriodo({ rango, onCambiar }: Props) {
   // El período vive acá: el padre solo recibe el rango válido que se aplica (el tablero lo consulta).
   const [desde, setDesde] = useState(rango.desde)
   const [hasta, setHasta] = useState(rango.hasta)
-  const [atajo, setAtajo] = useState<AtajoRango | null>(ATAJO_RANGO_INICIAL)
+  // Solo se marca un atajo si el rango inicial es exactamente el suyo (un rango que viene de Inicio no marca ninguno).
+  const [atajo, setAtajo] = useState<AtajoRango | null>(() => {
+    const inicial = rangoPorAtajo(ATAJO_RANGO_INICIAL)
+    return inicial.desde === rango.desde && inicial.hasta === rango.hasta ? ATAJO_RANGO_INICIAL : null
+  })
 
   const error = useMemo(() => {
     if (desde === '' || hasta === '') return 'Indicá las dos fechas.'

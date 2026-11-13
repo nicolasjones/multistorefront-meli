@@ -11,6 +11,7 @@ vi.mock('../TarjetaStock', () => ({ TarjetaStock: () => <div>tarjeta stock</div>
 vi.mock('../TarjetaConsultas', () => ({ TarjetaConsultas: () => <div>tarjeta consultas</div> }))
 vi.mock('../TarjetaDolar', () => ({ TarjetaDolar: ({ puedeEditar }: { puedeEditar: boolean }) => <div>tarjeta dolar {puedeEditar ? 'edita' : 'lee'}</div> }))
 vi.mock('../AlertasInicio', () => ({ AlertasInicio: () => <div>alertas</div> }))
+vi.mock('../tablero/TableroInicio', () => ({ TableroInicio: ({ verVentas, verStock }: { verVentas: boolean; verStock: boolean }) => <div>tablero {verVentas ? 'ventas' : ''} {verStock ? 'stock' : ''}</div> }))
 vi.mock('../AccesosDirectos', () => ({ AccesosDirectos: () => <div>accesos</div> }))
 
 import { InicioPage } from '..'

@@ -23,7 +23,6 @@ import {
   leerEstadoCotizacion,
   mensajeDeErrorCotizacion,
   parsearCotizacion,
-  soloCaracteresDeCotizacion,
   subtituloCargadaHoy,
   subtituloVigente,
   textoAnterior,
@@ -52,12 +51,6 @@ describe('parsearCotizacion', () => {
   it('rechaza lo que la base no soporta (≥ 10.000.000.000)', () => {
     expect(parsearCotizacion('10000000000')).toBeNull()
     expect(parsearCotizacion('9999999999')).toBe(9999999999)
-  })
-})
-
-describe('soloCaracteresDeCotizacion', () => {
-  it('deja dígitos, punto y coma', () => {
-    expect(soloCaracteresDeCotizacion('$ 1a490,5-0 USD')).toBe('1490,50')
   })
 })
 

@@ -210,3 +210,7 @@ pidiendo «la página N». Contador, filtros, orden y exportaciones (que usan lo
 | Toma de inventario | no pagina (carga la categoría completa, con tope) | sí |
 
 `HistorialLotes` («Ver más» por cursor) y el detalle de movimientos de un lote (solo nombre y SKU) quedan como estaban.
+
+## Enlaces desde Inicio (MSF-820)
+
+La lista de Stock lee `?filtro=sin_stock|stock_bajo` y `?deposito=<uuid>` al abrir (valores fuera de esa lista se ignoran y un depósito inexistente o inactivo vuelve a «todos»), para que los indicadores del tablero de Inicio lleven al listado ya filtrado. Detalle y diferencias de cálculo entre el indicador y la lista en [`inicio-y-alertas.md`](./inicio-y-alertas.md).

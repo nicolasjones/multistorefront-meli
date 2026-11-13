@@ -94,7 +94,7 @@ const FILAS = [
   { producto_id: 'p-3', nombre: 'Mouse', sku: 'MOU-1', cantidad: 2, reservado: 0, disponible: 2, minimo: 2, estado: 'stock_bajo', ultimo_movimiento_en: '2026-10-11T12:00:00Z' },
 ]
 
-const abrir = () => render(<MemoryRouter><StockList /></MemoryRouter>)
+const abrir = (ruta = '/stock') => render(<MemoryRouter initialEntries={[ruta]}><StockList /></MemoryRouter>)
 
 const llamadasDe = (nombre: string) => mocks.llamadas.filter(([n]) => n === nombre).map(([, ...args]) => args)
 
@@ -193,6 +193,17 @@ describe('StockList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ver solo alertas' }))
     await waitFor(() => expect(llamadasDe('in')).toContainEqual(['estado', ['sin_stock', 'stock_bajo']]))
     expect(await screen.findByRole('button', { name: 'Ver todos' })).toBeInTheDocument()
+  })
+
+  it('abre ya filtrado cuando Inicio enlaza con ?filtro=sin_stock (F-INI-04, FR-005)', async () => {
+    abrir('/stock?filtro=sin_stock')
+    await waitFor(() => expect(llamadasDe('eq')).toContainEqual(['estado', 'sin_stock']))
+  })
+
+  it('un depósito de la URL que no existe vuelve a «Todos los depósitos»', async () => {
+    abrir('/stock?deposito=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+    await screen.findByText('Joystick')
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Depósito de mercadería' })).toHaveTextContent('Todos los depósitos'))
   })
 
   it('sin alertas no muestra el resumen', async () => {

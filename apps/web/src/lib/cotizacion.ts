@@ -88,8 +88,9 @@ export function parsearCotizacion(texto: string): number | null {
   return Number.isFinite(valor) && valor > 0 && valor < MAXIMO_EXCLUSIVO ? valor : null
 }
 
-// El campo solo admite dígitos, punto y coma (como el prototipo).
-export const soloCaracteresDeCotizacion = (texto: string) => texto.replace(/[^0-9.,]/g, '')
+// Campo del dólar de los diálogos: igual, pero conserva el «-»: un negativo NO se corrige en silencio a un valor
+// positivo (CA-INI-07-8), `parsearCotizacion` lo rechaza y el campo muestra el mensaje de formato inválido.
+export const caracteresDelCampoDolar = (texto: string) => texto.replace(/[^0-9.,-]/g, '')
 
 // Variación porcentual del valor nuevo contra el anterior; null si no hay anterior.
 export function variacionPorcentual(nuevo: number, anterior: number | null): number | null {
@@ -285,10 +286,7 @@ export function mensajeDeErrorConfirmacion(error: { code?: string; hint?: string
   }
 }
 
-export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empresaId?: string | null): Promise<Previsualizacion> {
-  const { data, error } = await llamar(cliente, 'previsualizar_cotizacion', conEmpresa(empresaId))
-  if (error) throw error
-  const previa = data as PrevisualizacionRpc
+function aPrevisualizacion(previa: PrevisualizacionRpc): Previsualizacion {
   return {
     variacionPct: aNumeroONulo(previa.variacion_pct),
     recalcula: previa.recalcula,
@@ -298,6 +296,20 @@ export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empres
     empresas: previa.empresas.map((e) => ({ empresaId: e.empresa_id, nombre: e.nombre, precios: Number(e.precios) })),
     muestra: previa.muestra.map(aMuestraPrecio),
   }
+}
+
+export async function previsualizarCotizacionRpc(cliente: SupabaseClient, empresaId?: string | null): Promise<Previsualizacion> {
+  const { data, error } = await llamar(cliente, 'previsualizar_cotizacion', conEmpresa(empresaId))
+  if (error) throw error
+  return aPrevisualizacion(data as PrevisualizacionRpc)
+}
+
+// F-INI-07: vista previa de SOLO LECTURA de un valor de dólar (`previsualizar_impacto_dolar`): no exige ni escribe
+// la cotización pendiente, así que cancelar no deja nada guardado. Misma forma que la vista previa de la pendiente.
+export async function previsualizarImpactoDolarRpc(cliente: SupabaseClient, valor: number, empresaId?: string | null): Promise<Previsualizacion> {
+  const { data, error } = await llamar(cliente, 'previsualizar_impacto_dolar', { p_valor: valor, ...conEmpresa(empresaId) })
+  if (error) throw error
+  return aPrevisualizacion(data as PrevisualizacionRpc)
 }
 
 // `variacionVista`: la variación (%) del aviso de variación inusual que el usuario tenía a la vista al apretar «Aplicar»; la base
@@ -318,6 +330,35 @@ export async function confirmarCotizacionRpc(
     recalculoAplicado: confirmada.recalculo_aplicado,
     preciosRecalculados: Number(confirmada.precios_recalculados),
   }
+}
+
+// Carga Y confirma el dólar en una sola transacción (`aplicar_cotizacion`, F-INI-07): no deja pendiente huérfana
+// si la confirmación falla. Mismos parámetros y errores que `cargar_cotizacion` + `confirmar_cotizacion`.
+export async function aplicarCotizacionRpc(
+  cliente: SupabaseClient,
+  valor: number,
+  empresaId?: string | null,
+  variacionVista: number | null = null,
+): Promise<CotizacionConfirmada> {
+  const { data, error } = await llamar(cliente, 'aplicar_cotizacion', {
+    p_valor: valor,
+    ...conEmpresa(empresaId),
+    ...(variacionVista !== null ? { p_variacion_vista: variacionVista } : {}),
+  })
+  if (error) throw error
+  const confirmada = data as ConfirmadaRpc
+  return {
+    id: confirmada.id,
+    recalculoAplicado: confirmada.recalculo_aplicado,
+    preciosRecalculados: Number(confirmada.precios_recalculados),
+  }
+}
+
+// Mensaje claro al aplicar: los errores de carga (permiso, valor) y los de confirmación (variación, vencida).
+export function mensajeDeErrorAplicacion(error: { code?: string; hint?: string | null } | null | undefined): string {
+  if (error?.code === '23514' || error?.code === '22003') return MENSAJE_VALOR_INVALIDO
+  if (error?.code === '42501') return 'Tu rol no puede cargar la cotización del dólar.'
+  return mensajeDeErrorConfirmacion(error)
 }
 
 export async function descartarCotizacionRpc(cliente: SupabaseClient, empresaId?: string | null): Promise<void> {
