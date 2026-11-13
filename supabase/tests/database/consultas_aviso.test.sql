@@ -8,7 +8,7 @@
 -- «service_role», igual que PostgREST.
 begin;
 
-select plan(28);
+select plan(29);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -66,6 +66,14 @@ select ok(
   exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
            where n.nspname = 'private' and p.proname = 'encolar_aviso_consulta'),
   'private.encolar_aviso_consulta() sigue: emite por private.emitir_aviso'
+);
+-- La lista de exclusiones se copia de 20270224110206 tal cual, menos la fila de la tabla borrada: el
+-- motivo de una fila ajena a la historia no puede cambiar (MSF-853).
+select is(
+  (select x.motivo from private.exclusiones_exportacion_total() x
+    where x.esquema = 'public' and x.tabla = 'migracion_cargas'),
+  'dato derivado o registro de proceso (no es dato de negocio)',
+  'la exclusión de public.migracion_cargas conserva su motivo'
 );
 
 -- ============================================================================

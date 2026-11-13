@@ -25,6 +25,22 @@
 -- La lista de exclusiones de la exportación total nombraba la tabla borrada: se redefine sin ella (la
 -- prueba de completitud exige que toda exclusión nombre una tabla que existe).
 --
+-- Verificación previa (obligatoria): antes de borrar la tabla se comprueba que no quede ningún aviso
+-- sin enviar. Si quedara uno en 'pendiente' o 'fallido', ese correo nunca sale (nadie barre la cola
+-- vieja: su único consumidor, el flow `avisos-consultas`, se retira en este mismo cambio), así que
+-- la migración ABORTA y avisa en vez de perderlo. Para ver la cola antes de aplicar:
+--   select estado, count(*) from dominio.consultas_avisos group by 1;
+-- Los avisos 'enviado' y 'sin_destinatario' son histórico: no bloquean el retiro.
+-- Si la migración aborta, esos avisos hay que resolverlos a mano (revisar con el equipo: el aviso
+-- nuevo sale por la cola de plataforma) y volver a aplicar; no se borran solos.
+--
+-- Retiro en los entornos (no lo hace esta migración): el flow `platform.consultas/avisos-consultas`
+-- ya publicado en cada Kestra sigue disparando aunque su RPC ya no existan (una ejecución fallida por
+-- minuto) y la Edge Function `enviar-aviso-consulta` desplegada queda viva con su secreto. Por eso el
+-- repo borra el flow retirado (`infra/kestra/flows-retirados.txt` + `desplegar-flow.mjs --retirar`) y
+-- el runbook de `docs/deployment.md` da los pasos para bajar la función y sus secretos, entorno por
+-- entorno. El orden importa: primero el flow y la función, después esta migración.
+--
 -- Reversión (migración posterior):
 --   1. recrear `dominio.consultas_avisos` y las tres RPC con el cuerpo de `20261205200100` y
 --      `20261205200200`, y `private.correo_avisos_consulta(uuid)` con el de `20261205200000`;
@@ -38,6 +54,23 @@ drop function if exists public.avisos_consulta_pendientes(integer, integer);
 drop function if exists public.tomar_aviso_consulta(uuid, integer);
 drop function if exists public.cerrar_aviso_consulta(uuid, boolean, text);
 drop function if exists private.correo_avisos_consulta(uuid);
+
+-- Verificación previa: si la cola vieja tuviera avisos sin enviar, aborta (ver el encabezado).
+do $$
+declare
+  vivos integer;
+begin
+  if to_regclass('dominio.consultas_avisos') is not null then
+    select count(*) into vivos
+    from dominio.consultas_avisos
+    where estado in ('pendiente', 'fallido');
+    if vivos > 0 then
+      raise exception 'MSF-853: la cola vieja tiene % aviso(s) sin enviar (pendiente/fallido); se aborta el retiro para no perderlos.', vivos;
+    end if;
+  end if;
+end;
+$$;
+
 drop table if exists dominio.consultas_avisos;
 
 -- Misma definición que 20270224110206, sin la fila de la tabla borrada.
@@ -84,7 +117,7 @@ as $$
     ('public', 'excepciones_flow_generico', 'registro operativo o configuración de plataforma'),
     ('public', 'fragmentos_indexados', 'dato derivado o registro de proceso (no es dato de negocio)'),
     ('public', 'invitaciones_organizacion', 'credenciales, conexiones o accesos de plataforma'),
-    ('public', 'migracion_cargas', 'registro operativo o configuración de plataforma'),
+    ('public', 'migracion_cargas', 'dato derivado o registro de proceso (no es dato de negocio)'),
     ('public', 'organizaciones_features', 'registro operativo o configuración de plataforma'),
     ('public', 'procesos_masivos', 'registro operativo o configuración de plataforma'),
     ('public', 'procesos_masivos_errores', 'registro operativo o configuración de plataforma'),
