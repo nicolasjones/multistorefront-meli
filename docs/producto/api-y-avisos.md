@@ -43,11 +43,17 @@ Una clave con el alcance **stock** no puede leer ventas, y así con cada área. 
 5. Si querés que deje de funcionar sola, completá **Vencimiento (opcional)**.
 6. Hacé clic en **Crear**.
 
+![Diálogo «Crear clave» con el nombre «Tablero del contador», los alcances productos y stock marcados y el vencimiento opcional vacío](img/api-y-avisos/01-crear-clave.png)
+
 Se abre **Copiá la clave** con el valor completo. **Es la única vez que se muestra**: después el sistema solo guarda una huella y no puede mostrártela de nuevo. Copiala con el botón **Copiar**, guardala en un lugar seguro y hacé clic en **Listo, ya la copié**.
+
+![Diálogo «Copiá la clave» con el valor de la clave oculto, el aviso de que se muestra una sola vez y los botones Copiar y «Listo, ya la copié»](img/api-y-avisos/02-copiar-clave.png)
 
 Si la perdés, no se recupera: rotala (ver abajo) o creá otra. Si sospechás que alguien más la tiene, **revocala** en lugar de rotarla: la anterior seguiría funcionando 24 horas.
 
 En el listado ves de cada clave su **Nombre**, el **Prefijo** (las primeras letras, para reconocerla), los **Alcances**, el **Estado** (Activa, Vencida o Revocada), el **Último uso** y cuándo **Vence**.
+
+![Bloque Claves con una clave activa: nombre, prefijo, alcances productos y stock, estado Activa, último uso, vencimiento y las acciones Rotar y Revocar](img/api-y-avisos/03-lista-de-claves.png)
 
 ## Cambiar una clave: rotar y revocar
 
@@ -55,6 +61,12 @@ En el listado ves de cada clave su **Nombre**, el **Prefijo** (las primeras letr
 - **Revocar**: la clave **deja de funcionar en la llamada siguiente** y no se puede deshacer. Usalo si sospechás que alguien más la tiene.
 
 Los dos piden confirmación antes de actuar.
+
+![Confirmación «Rotar clave»: explica que la clave anterior sigue funcionando 24 horas](img/api-y-avisos/04-rotar-clave.png)
+
+![Confirmación «Revocar clave»: avisa que la clave deja de funcionar en la llamada siguiente y que no se puede deshacer](img/api-y-avisos/05-revocar-clave.png)
+
+![Bloque Claves con dos claves en estado Revocada: sus acciones Rotar y Revocar quedan deshabilitadas](img/api-y-avisos/06-claves-revocadas.png)
 
 ## Avisos cuando algo cambia
 
@@ -73,7 +85,13 @@ Para crear una suscripción:
 3. Marcá los **Eventos** que querés recibir (al menos uno).
 4. Hacé clic en **Crear**.
 
+![Diálogo «Nueva suscripción» con la URL del aviso y los eventos stock.actualizado y precio.actualizado marcados](img/api-y-avisos/07-nueva-suscripcion.png)
+
 Se abre **Copiá el secreto** con el **Secreto de firma**. Es la única vez que se muestra. El sistema que recibe los avisos lo usa para comprobar que el aviso viene de acá y no de otro lado. Copialo y entregáselo a quien configura el otro sistema.
+
+![Diálogo «Copiá el secreto» con el secreto de firma oculto y el aviso de que se muestra una sola vez](img/api-y-avisos/08-copiar-secreto.png)
+
+![Bloque Suscripciones a avisos con una suscripción activa, sus eventos, la columna Secreto de firma y las acciones Pausar, Rotar secreto y Eliminar](img/api-y-avisos/09-lista-de-suscripciones.png)
 
 Por seguridad, la dirección no puede apuntar a una computadora interna ni llevar usuario y contraseña. Si no cumple, no se puede crear.
 
@@ -84,6 +102,10 @@ El **secreto de firma no se puede volver a ver**, pero se puede **rotar** sin co
 1. En el listado, hacé clic en **Rotar secreto** de esa suscripción y confirmá.
 2. Se abre **Copiá el secreto** con el secreto nuevo. **Es la única vez que se muestra.** Copialo y entregáselo a quien configura el otro sistema.
 3. El secreto anterior **sigue valiendo 24 horas**. Durante ese tiempo cada aviso lleva las dos firmas, y el otro sistema lo acepta con cualquiera de las dos: así puede cambiar el secreto sin perder avisos. En el listado ves hasta cuándo vale el anterior («Rotado: el anterior vale hasta…»).
+
+![Confirmación «Rotar secreto»: se crea un secreto nuevo y el anterior sigue valiendo 24 horas con las dos firmas en cada aviso](img/api-y-avisos/10-rotar-secreto.png)
+
+![Suscripción con la rotación en curso: la columna Secreto de firma indica hasta cuándo vale el secreto anterior](img/api-y-avisos/11-secreto-rotado-en-la-lista.png)
 
 **Cuidado:** si el secreto nuevo se perdió y rotás otra vez mientras el anterior todavía vale, el secreto original **deja de valer en ese momento** y el otro sistema deja de recibir avisos hasta que cargue el nuevo. La pantalla te lo advierte. Si pensás que el secreto se filtró, rotalo y entregá el nuevo enseguida.
 
@@ -97,6 +119,8 @@ Si la dirección no responde bien, el sistema lo intenta **hasta 5 veces en tota
 
 - **Entregas recientes**: cada aviso con su **Estado** (por ejemplo, completada o agotada), los **Intentos** y el **Último error**, con el código de respuesta si lo hubo. Si hay entregas agotadas, revisá que la dirección esté bien y que el otro sistema esté funcionando, y después usá **Reintentar** en cada una: vuelve a la cola con sus 5 intentos. Con el interruptor **Solo agotadas** ves únicamente esas, aunque sean viejas. Si la suscripción está pausada, el aviso espera a que la reanudes. Hay un máximo de 200 avisos esperando para enviarse a la vez: si lo alcanzás, esperá a que se vacíe la cola.
 - **Llamadas recientes**: cada uso de una clave, con **Cuándo**, **Método**, **Ruta**, **Estado** y **Duración**. Un estado de 400 o más se marca como error. También quedan registrados los intentos rechazados, por ejemplo con una clave revocada. El registro **no guarda la clave ni los datos consultados**, y se borra solo a los 90 días (valor por defecto).
+
+![Bloque Llamadas recientes: cuándo, método, ruta, estado (200 correcto, 401 clave inválida, 429 límite excedido) y duración de cada uso de una clave](img/api-y-avisos/12-llamadas-recientes.png)
 
 ## Límites
 
