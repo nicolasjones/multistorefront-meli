@@ -38,6 +38,9 @@ export function aplicarVariables(identidad: IdentidadTienda): () => void {
   raiz.style.setProperty('--tienda-fuente-texto', `"${identidad.tipografiaTexto}", system-ui, sans-serif`)
   const fondoAnterior = cuerpo.style.backgroundColor
   cuerpo.style.backgroundColor = identidad.colorFondo
+  // El texto fuera de la tipografía de MUI (enlaces del menú, etc.) hereda del body: sin esto salía en la serif del navegador.
+  const fuenteAnterior = cuerpo.style.fontFamily
+  cuerpo.style.fontFamily = 'var(--tienda-fuente-texto)'
 
   const url = urlFuentes(familiasACargar(identidad))
   const agregados: HTMLLinkElement[] = []
@@ -64,6 +67,7 @@ export function aplicarVariables(identidad: IdentidadTienda): () => void {
       raiz.style.removeProperty(variable)
     }
     cuerpo.style.backgroundColor = fondoAnterior
+    cuerpo.style.fontFamily = fuenteAnterior
     agregados.forEach((enlace) => enlace.remove())
   }
 }
