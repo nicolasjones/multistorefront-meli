@@ -3,6 +3,16 @@
 Corre dentro de `pnpm docs:check`. Controla versiones únicas, inmutables y nuevas, y la
 idempotencia del DDL de las migraciones **nuevas** respecto de `origin/dokploy`.
 
+## Nombre del archivo
+
+Todo archivo de `supabase/migrations/` tiene que llamarse `<versión>_<nombre>.sql`. El CLI de Supabase y el cron que aplica
+las migraciones en dev, staging y producción (`migrar-supabase-vps.sh`) **ignoran** un archivo sin nombre
+(`20270202200501.sql`), mientras que el CI aplica todos los `.sql`: la migración pasa las pruebas pero nunca llega a la base.
+Así quedaron sin aplicar en dev las tres migraciones de seguridad MSF-724 del chat de IA, hasta que se las renombró
+(`20270202200501_…`, `…502_…`, `…503_…`). La guarda rechaza cualquier archivo con nombre inválido (`nombre inválido …`).
+Renombrar una migración sin nombre ya publicada, **sin cambiar su contenido**, no cuenta como versión reusada ni como
+migración nueva (tampoco se le revisa la idempotencia); si además se cambia el contenido, sigue siendo `MODIFICADA`.
+
 ## Reglas de idempotencia del DDL
 
 Todas las reglas se evalúan por **sentencia completa** (hasta `;`), no línea por línea: por eso
