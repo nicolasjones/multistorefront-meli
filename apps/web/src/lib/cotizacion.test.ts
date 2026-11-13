@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  caracteresDelCampoDolar,
   AVISO_COTIZACION_REGISTRADA,
   MENSAJE_COTIZACION_VENCIDA,
   MENSAJE_VARIACION_SIN_CONFIRMAR,
@@ -311,5 +312,28 @@ describe('F-PRE-03 · vista previa, confirmación y descarte', () => {
     expect(textoDeCotizacionSugerida(1405.5)).toBe('1405,5')
     expect(textoDeCotizacionSugerida(1405)).toBe('1405')
     expect(textoDeCotizacionSugerida(1405.57)).toBe('1405,57')
+  })
+})
+
+describe('caracteresDelCampoDolar', () => {
+  it('deja dígitos, coma decimal, punto de miles y el signo menos', () => {
+    expect(caracteresDelCampoDolar('1.490,50')).toBe('1.490,50')
+    expect(caracteresDelCampoDolar('-1490')).toBe('-1490')
+  })
+
+  it('descarta letras, espacios, símbolos y notación científica', () => {
+    expect(caracteresDelCampoDolar('$ 1490 USD')).toBe('1490')
+    expect(caracteresDelCampoDolar('1e5')).toBe('15')
+    expect(caracteresDelCampoDolar('abc')).toBe('')
+  })
+
+  it('no recorta decimales: los 4 decimales se validan al parsear, no al tipear', () => {
+    expect(caracteresDelCampoDolar('1490,1234')).toBe('1490,1234')
+    expect(parsearCotizacion('1490,1234')).toBe(1490.1234)
+    expect(parsearCotizacion('1490,12345')).toBeNull()
+  })
+
+  it('un negativo llega al parser y se rechaza (no se corrige en silencio a positivo)', () => {
+    expect(parsearCotizacion(caracteresDelCampoDolar('-1490'))).toBeNull()
   })
 })
