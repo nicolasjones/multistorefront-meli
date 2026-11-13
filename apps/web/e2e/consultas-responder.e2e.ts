@@ -94,6 +94,8 @@ test.describe('Consultas · responder desde el panel (MSF-244, F-CON-04)', () =>
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: org.id, rol_id: rol })
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
+        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: org.id, rol_id: rol })
       }
       const idWa = await enviarConsultaPublica(host, 'whatsapp', visitanteWa, '+54 9 11 5555-1234')
       const idMail = await enviarConsultaPublica(host, 'formulario', visitanteMail, 'visitante@example.com')
@@ -120,7 +122,8 @@ test.describe('Consultas · responder desde el panel (MSF-244, F-CON-04)', () =>
       const detalleMail = admin.getByRole('dialog', { name: `Consulta de ${visitanteMail}` })
       await detalleMail.getByRole('button', { name: 'Responder por correo' }).click()
       await expect(admin.getByText(`Consulta En curso a tu nombre · ${visitanteMail}`)).toBeVisible()
-      expect((await abiertos())[1]).toMatch(/^mailto:visitante%40example\.com\?subject=/)
+      // `goto` recarga la página y el script de captura vuelve a empezar: la apertura del correo es la primera de esta carga.
+      expect((await abiertos())[0]).toMatch(/^mailto:visitante%40example\.com\?subject=/)
 
       // Quedó En curso con responsable (se relee el detalle desde la base).
       await admin.goto(`/consultas?consulta=${idWa}`)

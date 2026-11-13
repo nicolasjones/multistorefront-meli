@@ -82,6 +82,12 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         t.propiaId = propia.id
         t.ocultaId = oculta.id
         await insertar('categorias_tienda', { empresa_id: t.empresa, categoria_id: oculta.id, organizacion_id: t.organizacion, visible: false })
+        // La tienda solo publica las categorías con al menos un producto visible: cada una lleva uno.
+        const productos = await insertar<{ id: string }>('productos', [
+          { organizacion_id: t.organizacion, nombre: `Producto propia ${t.nombre} ${sufijo}`, sku: `E2E-CAT-P-${t.nombre}-${sufijo}`, precio_lista: 1000, moneda: 'ARS', categoria_id: propia.id },
+          { organizacion_id: t.organizacion, nombre: `Producto oculta ${t.nombre} ${sufijo}`, sku: `E2E-CAT-O-${t.nombre}-${sufijo}`, precio_lista: 1000, moneda: 'ARS', categoria_id: oculta.id },
+        ])
+        await insertar('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
       }
 
       for (const t of tiendas) {
@@ -90,18 +96,20 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         const page = await contexto.newPage()
         await page.goto(`http://${t.host}:${puerto}/`)
 
-        const menu = page.getByRole('navigation', { name: 'Categorías' })
+        const menu = page.getByRole('banner').getByRole('navigation', { name: 'Categorías' })
         await expect(menu.getByRole('link', { name: 'Inicio' })).toBeVisible()
-        await expect(menu.getByRole('link', { name: t.propia })).toBeVisible()
+        // MSF-825: el menú y el pie muestran solo las principales (las de más productos, hasta 6): una categoría recién
+        // creada y sin productos se ve en el panel «Categorías» del catálogo, que lista todas las visibles de la tienda.
+        await page.goto(`http://${t.host}:${puerto}/catalogo`)
+        const panel = page.getByRole('navigation', { name: 'Filtrar por categoría' })
+        await expect(panel.getByRole('button', { name: new RegExp(t.propia) })).toBeVisible()
         // Nada de lo oculto ni de la otra tienda, en el menú ni en el pie.
         await expect(page.getByRole('link', { name: t.oculta })).toHaveCount(0)
         await expect(page.getByRole('link', { name: otra.propia })).toHaveCount(0)
-        await expect(page.getByTestId('pie-categorias').getByRole('link', { name: t.propia })).toBeVisible()
 
         // La categoría propia abre con migas y título; la marca deja de ser el h1.
-        await menu.getByRole('link', { name: t.propia }).click()
+        await page.goto(`http://${t.host}:${puerto}/categoria/${t.propiaId}`)
         await expect(page.getByRole('heading', { level: 1, name: t.propia })).toBeVisible()
-        await expect(menu.getByRole('link', { name: t.propia })).toHaveAttribute('aria-current', 'page')
 
         // Oculta, de la otra tienda e inexistente: la misma 404 amable.
         for (const id of [t.ocultaId, otra.propiaId, randomUUID()]) {
@@ -113,8 +121,9 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         await contexto.close()
       }
     } finally {
-      // Limpieza: las filas de categorias_tienda caen en cascada con la categoría.
+      // Limpieza: primero los productos; las filas de categorias_tienda caen en cascada con la categoría.
       for (const t of tiendas) {
+        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
         await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
       }
     }

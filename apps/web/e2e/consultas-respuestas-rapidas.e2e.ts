@@ -93,6 +93,8 @@ test.describe('Consultas · respuestas rápidas (MSF-274, F-CON-06)', () => {
       const idUsuario = await altaUsuario(correo)
       usuarios.push(idUsuario)
       await rest('usuarios_organizacion', { user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' })
+      // Las respuestas rápidas son de la empresa activa: sin una elegida arranca en «Todas mis empresas» y el diálogo pide elegir tienda.
+      await rest('usuario_empresa_activa', { user_id: idUsuario, empresa_id: empresaId })
       const idConsulta = await enviarConsultaPublica(host, 'formulario', visitante, 'visitante@example.com')
 
       // `window.open` se captura para no salir al cliente de correo real.
@@ -124,6 +126,7 @@ test.describe('Consultas · respuestas rápidas (MSF-274, F-CON-06)', () => {
       expect(abierto).toMatch(/^mailto:visitante%40example\.com\?subject=/)
       expect(decodeURIComponent(abierto)).toContain(`body=Hola ${visitante}, gracias por escribir a ${tienda}.`)
     } finally {
+      for (const id of usuarios) await borrar(`usuario_empresa_activa?user_id=eq.${id}`)
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }

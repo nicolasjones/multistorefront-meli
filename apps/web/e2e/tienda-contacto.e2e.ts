@@ -135,7 +135,6 @@ test.describe('Tienda online · contacto con formulario (SC-004, SC-005)', () =>
       }
     } finally {
       for (const t of tiendas) {
-        await borrar('consultas', `empresa_id=eq.${t.empresa}&nombre=like.${encodeURIComponent(`${t.visitante} *`)}`)
         await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
         const original = originales.find((o) => o.id === t.empresa)
         if (original) await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: original.whatsapp, correo: original.correo, horarios: original.horarios })

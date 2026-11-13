@@ -105,7 +105,7 @@ test.describe('Service técnico · cobro con comprobante de Ventas (F-SVC-13, MS
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
       await rest('features', { id: 'service-tecnico', nombre: 'Service técnico', descripcion: 'E2E' }, 'public', 'resolution=ignore-duplicates')
       await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
-      const [cliente] = await rest<{ id: string }>('clientes', { organizacion_id: org.id, numero: 1, nombre: `Cliente ${sufijo}`, tipo: 'minorista' })
+      const [cliente] = await rest<{ id: string }>('clientes', { organizacion_id: org.id, nombre: `Cliente ${sufijo}`, tipo: 'minorista' })
       const modelos = await leer<{ id: string }>('modelos_equipo?organizacion_id=eq.' + org.id + '&select=id&limit=1')
       const modelo = modelos[0]
       if (!modelo) throw new Error('La organización no tiene modelos de equipo sembrados.')
@@ -121,6 +121,7 @@ test.describe('Service técnico · cobro con comprobante de Ventas (F-SVC-13, MS
         p_reparacion_id: reparacionId,
         p_tipo: 'mano_obra',
         p_descripcion: 'Cambio de pantalla',
+        p_producto_id: null,
         p_cantidad: 2,
         p_precio: 1500.5,
       })
