@@ -1204,4 +1204,12 @@ describe('cuerpo y asunto del correo: codificación sin corrupción (bug de deno
       assert.equal(decodificado, asunto)
     }
   })
+
+  it('la primera línea de cabecera del asunto codificado mide a lo sumo 78 caracteres (RFC 5322) y las siguientes también', () => {
+    for (const asunto of ['Ya tenemos stock de lo que pediste · ñandú', 'Ñ'.repeat(80), '😀'.repeat(40), `Pedido ${'á'.repeat(100)} 👨‍👩‍👧 fin`, 'é'.repeat(300)]) {
+      // `Subject: ` (lo escribe denomailer) + el asunto, que ya trae su espacio inicial: «Subject:   » antes de la primera palabra.
+      const lineas = `Subject: ${asuntoRfc2047(asunto)}`.split('\r\n')
+      for (const linea of lineas) assert.ok(linea.length <= 78, `línea de ${linea.length}`)
+    }
+  })
 })
