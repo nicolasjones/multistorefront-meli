@@ -20,7 +20,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   'cuentas-cobro': 'ventas-catalogos',
   'ventas-reportes': 'ventas-reportes',
   'ventas-despacho': 'ventas-despacho-y-faltantes',
-  'ventas-faltantes': 'ventas-despacho-y-faltantes',
+  'ventas-faltantes': 'ventas-avisos-de-faltantes',
   historial: 'ventas-historial-consulta',
   'service-tecnico-reparaciones': 'service-listado-items-impresion',
   'service-tecnico-modelos': 'service-alta-estados-y-permisos',
