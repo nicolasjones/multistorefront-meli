@@ -97,6 +97,40 @@ describe('CargaInfinita', () => {
     expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
   })
 
+  it('al pedir de nuevo desde el error el foco pasa a «Cargar más» y, si falla otra vez, vuelve a «Reintentar»', () => {
+    const onCargarMas = vi.fn()
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} hayError onCargarMas={onCargarMas} />)
+    const reintentar = screen.getByRole('button', { name: 'Reintentar' })
+    reintentar.focus()
+    fireEvent.click(reintentar)
+    rerender(<CargaInfinita hayMas cargando hayError={false} onCargarMas={onCargarMas} />)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cargar más' }))
+    rerender(<CargaInfinita hayMas cargando={false} hayError onCargarMas={onCargarMas} />)
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Reintentar' }))
+  })
+
+  it('si «Reintentar» está esperando, el foco queda en el aviso y no en el body', () => {
+    const espera = { mensaje: 'Esperá unos segundos', segundos: 30 }
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={vi.fn()} />)
+    screen.getByRole('button', { name: 'Cargar más' }).focus()
+    rerender(<CargaInfinita hayMas cargando={false} hayError espera={espera} onCargarMas={vi.fn()} />)
+    expect(document.body).not.toBe(document.activeElement)
+    expect(screen.getByRole('alert').parentElement).toBe(document.activeElement)
+  })
+
+  it('el aviso de espera se anuncia una sola vez (la región viva calla y queda el role=alert)', () => {
+    render(<CargaInfinita hayMas cargando={false} hayError espera={{ mensaje: 'Esperá unos segundos', segundos: 30 }} onCargarMas={vi.fn()} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Esperá unos segundos')
+    expect(screen.getByTestId('carga-infinita-anuncio')).toBeEmptyDOMElement()
+  })
+
+  it('mientras carga «Cargar más» se ve apagado (aria-disabled con estilo) y activo cuando no carga', () => {
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} onCargarMas={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Cargar más' })).not.toHaveStyle({ cursor: 'progress' })
+    rerender(<CargaInfinita hayMas cargando onCargarMas={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toHaveStyle({ cursor: 'progress' })
+  })
+
   it('sin IntersectionObserver (navegador viejo) queda el botón «Cargar más»', () => {
     vi.unstubAllGlobals()
     render(<CargaInfinita hayMas cargando={false} onCargarMas={vi.fn()} />)

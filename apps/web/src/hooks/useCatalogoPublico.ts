@@ -44,6 +44,13 @@ export function useCatalogoPublico(host: string, filtros: FiltrosCatalogo, q: st
   const [intento, setIntento] = useState(0)
   const [acumulado, setAcumulado] = useState<Acumulado | null>(null)
   const clave = useMemo(() => JSON.stringify([host, filtros, q, intento]), [host, filtros, q, intento])
+  // Al cambiar la clave (incluso A→B→A) lo acumulado deja de valer ya en este render: sin esto, al volver a A se
+  // vería un instante la lista vieja de A, que tiene la misma clave. Es el patrón de «ajustar estado al cambiar una entrada».
+  const [claveVista, setClaveVista] = useState(clave)
+  if (claveVista !== clave) {
+    setClaveVista(clave)
+    setAcumulado(null)
+  }
   // Se actualizan en efectos (no durante el render). `generacion` identifica la consulta vigente: sube cada vez
   // que arranca una primera tanda, así una respuesta tardía de una consulta anterior (incluso A→B→A, con la
   // misma clave) no se cuela.
