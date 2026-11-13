@@ -5,7 +5,7 @@ historias: filtros, indicadores y gráfico (F-INI-04, MSF-820), bloques de gesti
 producto» (F-INI-06, MSF-822) y «Cargar dólar del día» con impacto (F-INI-07, MSF-823). La guía funcional es
 [`inicio-y-alertas.md`](./inicio-y-alertas.md); acá solo va lo que importa para seguridad.
 
-- **Revisado**: rama `epic/MSF-824-inicio-tablero-completo` hasta `e8ef239e` (PR #899 a `dokploy`), 2026-11-13, con el CI en verde sobre ese commit (`application`, `database`, `web (1..3)`, `quality`). Posteriormente hubo una re-revisión independiente de las correcciones (sin hallazgos bloqueantes) y cambios menores de pantalla y documentación que no alteran este análisis.
+- **Revisado**: rama `epic/MSF-824-inicio-tablero-completo` hasta el HEAD final `712e83ed` (PR #899 a `dokploy`, mergeado como `6477bba4`), 2026-11-13, con el CI en verde sobre ese commit (`application`, `database` con pgTAP, `web (1..3)`, `quality`). Hubo una re-revisión independiente de las correcciones (sin hallazgos bloqueantes) y una **revisión final de Código+Seguridad** del delta y de la épica completa, cuyos hallazgos (S-1 a S-5, más lo que movió H-3 y H-5) se resuelven en el PR #909 con la migración `20270306110000`.
 - **Código leído**: las cinco migraciones `20270305105000`…`20270305140000`, sus pgTAP (`resumen_inicio_periodo.test.sql`,
   `inicio_tablero_bloques.test.sql`), `apps/web/src/pages/inicio/`, `components/cotizacion/`, `lib/inicioTablero.ts`,
   `lib/inicioBloques.ts`, `lib/exportarCsv.ts`, los cambios de `pages/stock/list.tsx` y `pages/ventas-reportes/`, y el
@@ -18,18 +18,23 @@ producto» (F-INI-06, MSF-822) y «Cargar dólar del día» con impacto (F-INI-0
 
 ## Resultado
 
-**Sin hallazgos Altos ni Medios.** Siete observaciones de severidad Baja o Informativa; ninguna es una fuga entre
+**Sin hallazgos Altos.** Diez observaciones: una de severidad **Media** (H-5, rendimiento; ya corregida) y nueve Baja o Informativa (H-1 a H-4, H-6, H-7, S-2, S-3 y S-5); ninguna es una fuga entre
 organizaciones, ninguna permite escribir y ninguna expone costo o margen a un rol sin `rentabilidad`.
 
 | # | Severidad | Resumen | Seguimiento |
 |---|---|---|---|
 | H-1 | Baja | `movimientos_por_producto` no cruza la tienda pedida con las tiendas accesibles al listar sus productos | **Corregido** en la propia épica: la RPC devuelve lista vacía si la tienda no es accesible (con pgTAP) |
 | H-2 | Baja (decisión de producto) | El KPI «Ventas (con IVA)» y el ticket promedio se gatean por `ventas`, mientras que «ingresos» por tienda exige `rentabilidad`: el control sobre los ingresos es parcial | Decisión de Nicolás; `tasks.md` |
-| H-3 | Informativa | `rentabilidad` se evalúa por organización y `ventas` por tienda | Ya está como decisión pendiente en `tasks.md` |
+| H-3 | Baja | `rentabilidad` se evaluaba por organización y `ventas` por tienda | **Corregido** (PR #909, `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda |
 | H-4 | Baja (heredado) | El permiso del dólar es compartido entre tiendas: la tienda se valida contra la organización, no contra las accesibles | Tarea `seguimiento` por crear |
-| H-5 | Informativa | Costo de `movimientos_por_producto` y de su exportación sin medir con volumen real; no hay límite por usuario; el índice nuevo se crea sin `concurrently` | Medir en dev; `tasks.md` |
+| H-5 | Media (rendimiento) | El índice `(organizacion_id, fecha)` de la épica hacía que `max(fecha)` por producto recorriera todo el libro: 565 ms por producto sin movimientos con 1 M de filas (medición de la revisión independiente de Código+Seguridad (informe del 2026-11-13), en un Postgres 16 efímero con datos sintéticos; no es dev ni producción) | **Corregido** (PR #909, `20270306110000`): índice por `(organizacion_id, producto_id, fecha desc)` y último movimiento calculado después del orden y el límite; sigue sin límite por usuario ni `statement_timeout` versionado |
+| S-2 | Baja | `aplicar_cotizacion` tomaba los locks en orden inverso al resto del módulo (fila de la pendiente y luego el advisory): deadlock 40P01 reproducido en un Postgres efímero por la revisión independiente de Código+Seguridad (informe del 2026-11-13, datos sintéticos) | **Corregido** (PR #909): toma primero el advisory lock de la organización |
+| S-3 | Informativa | La exportación avisaba «truncado» con exactamente 100.000 filas y no deduplicaba productos entre lotes | **Corregido** (PR #909, pantalla: lotes siempre de 100, truncado solo si llega una fila más allá del tope, deduplicación por producto) |
+| S-5 | Informativa | Fechas infinitas daban 22008 con un mensaje en inglés | **Corregido** (PR #909): 22023 en las tres RPC |
 | H-6 | Informativa | El permiso `exportar` es un control de interfaz: los datos los autoriza `stock` ≥ lectura | Documentado; sin acción |
 | H-7 | Informativa (ajena a la épica) | `pnpm audit --prod` marca 30 avisos preexistentes; ninguno en la cadena de `@mui/x-charts` | Tarea `seguimiento` por crear |
+
+**Escala de severidad** de este documento: Alta, Media, Baja, Informativa. Las revisiones finales de Código+Seguridad usaron «Mayor» y «Menor»; equivalen a Media y Baja. **Equivalencias con los códigos de esos informes:** S-1 = H-5 (rendimiento del último movimiento), S-4 = H-3 (rentabilidad por tienda); S-2, S-3 y S-5 son hallazgos nuevos de esa revisión (locks de `aplicar_cotizacion`, exportación en el tope, fechas infinitas); D-1 (carrera del total conservado en el listado) es un defecto de pantalla sin código H.
 
 Los «seguimientos por crear» no tienen clave de tracker todavía: están anotados en `tasks.md` para que el flujo los abra como
 Tarea `seguimiento` (no se crearon desde esta rama).
@@ -90,10 +95,10 @@ dan `22023`, la búsqueda `'%'` devuelve 0 filas y la vista inventada da `22023`
 - **Organización**: sale de `private.organizacion_id()` (la sesión), nunca de un argumento; todas las lecturas filtran
   `organizacion_id = v_org` y los `join` repiten la organización en ambos lados. Un depósito que no es de la organización se
   trata como inexistente (bloques `null`, listas vacías o cero filas, sin error: no es un oráculo). pgTAP con dos organizaciones:
-  «la organización Dos no ve productos de la Uno» y «solo ve su tienda» (`inicio_tablero_bloques.test.sql` líneas 165–166), depósito
-  ajeno → 0 filas (línea 150) y depósito/empresa ajenos → `null` (`resumen_inicio_periodo.test.sql` líneas 144–148).
+  «la organización Dos no ve productos de la Uno» y «solo ve su tienda» (`inicio_tablero_bloques.test.sql`), depósito
+  de otra organización → 0 filas, y depósito/tienda ajenos → `null` en ventas y stock (`resumen_inicio_periodo.test.sql`: «un depósito de otra organización apaga ventas y stock» y «una tienda de otra organización no devuelve ventas»).
 - **Tienda**: las ventas se suman solo de `empresas_accesibles()` donde `private.nivel_ventas_en_empresa(e.id)` es lectura o
-  edición, y `resumen_inicio_bloques` además exige `e.activa`; una tienda no accesible o sin `ventas` no amplía nada (pgTAP: línea 148).
+  edición, y `resumen_inicio_bloques` además exige `e.activa`; una tienda no accesible o sin `ventas` no amplía nada (pgTAP: «una tienda de otra organización no devuelve ventas» y, en el listado, «una tienda de la misma organización a la que el operador no accede devuelve lista vacía»).
   La excepción es el filtro de **productos** del listado (H-1).
 - **Superadmin**: `nivel_seccion` equivale a edición para un superadmin con organización activa, así que ve todo lo de **esa**
   organización; es el comportamiento del repo, no de esta épica.
@@ -104,7 +109,7 @@ Con la matriz inicial (cada organización puede editarla; la autoridad es la bas
 
 | Dato | Quién lo recibe | Dónde se decide |
 |---|---|---|
-| `margen_pct` e `ingresos` por tienda | `rentabilidad` ≥ lectura (Administrador y Administración) | `resumen_inicio_bloques`: `case when v_rent …`; sin permiso **vuelven `null` desde la base** |
+| `margen_pct` e `ingresos` por tienda | `rentabilidad` ≥ lectura **en esa tienda** (Administrador y Administración; el superadmin con organización activa) | `resumen_inicio_bloques`: nivel de la organización **y** `private.nivel_de_rol(org, private.rol_en_empresa(tienda), 'rentabilidad')` por tienda (migración `20270306110000`); sin permiso **vuelven `null` desde la base** |
 | Costo unitario | **nadie**: ninguna de las cinco funciones lo devuelve | solo se usa adentro para calcular `margen_pct` |
 | Costo y margen en «Movimientos por producto» | **nadie**: no están entre las 12 columnas visibles | contrato de la función |
 | «Ventas (con IVA)», comprobantes, ticket, unidades, devoluciones | `ventas` ≥ lectura en la tienda (todos los roles salvo Técnico) | `resumen_inicio_periodo` (H-2) |
@@ -114,8 +119,8 @@ Con la matriz inicial (cada organización puede editarla; la autoridad es la bas
 
 El costo guardado en `comprobantes_venta_lineas.costo_unitario` está fuera del `select` por columna de `authenticated`
 (`docs/rentabilidad.md`); estas funciones lo leen como definer **solo** para un porcentaje, y solo para quien tiene `rentabilidad`.
-El detalle de qué ve cada rol está en [`inicio-y-alertas.md`](./inicio-y-alertas.md#quién-ve-qué-por-bloque-y-por-rol). pgTAP cubre
-`ingresos` y `margen_pct` en `null` sin `rentabilidad` (líneas 156–160) y la columna `ventas` en `null` sin `ventas` (línea 130).
+El detalle de qué ve cada rol está en [`inicio-y-alertas.md`](./inicio-y-alertas.md#quién-ve-qué-por-bloque-y-por-rol). pgTAP (`inicio_tablero_bloques.test.sql`) cubre
+`ingresos` y `margen_pct` en `null` sin `rentabilidad` (rol del operador y rol «mixto»: mostrador en una tienda y administración en otra), el acceso del superadmin con y sin organización activa, y la columna `ventas` en `null` sin `ventas`.
 
 ### Denegación de servicio: topes e índice
 
@@ -197,7 +202,9 @@ esos roles, así que no se abre un dato nuevo; lo que queda es un control parcia
 «Ventas (con IVA)», ticket y devoluciones exigen `reportes` o `rentabilidad` (como el enlace a Reportes) o si «ingresos» por tienda pasa a
 `ventas`. Mientras tanto, la guía lo dice (sección «Quién ve qué»).
 
-### H-3 · Informativa · `rentabilidad` por organización, `ventas` por tienda
+### H-3 · Baja · `rentabilidad` por organización, `ventas` por tienda (CORREGIDO)
+
+> **Corregido** en el PR #909 (migración `20270306110000`): `resumen_inicio_bloques` evalúa `rentabilidad` con el rol del usuario **en cada tienda** (`private.nivel_de_rol(org, private.rol_en_empresa(tienda), 'rentabilidad')`) además del nivel de la organización; el superadmin con organización activa conserva el acceso. `inicio_tablero_bloques.test.sql` prueba un usuario con rol de organización «administracion» que es «mostrador» en una tienda (ingresos `null`) y «administracion» en otra (ve sus ingresos). Lo que sigue describe el hallazgo original.
 
 `resumen_inicio_bloques` evalúa `rentabilidad` con `private.nivel_seccion('rentabilidad')`, que es el rol de la **organización** (la sección no es
 «por tienda» ni «compartida»), y `ventas` por tienda con `nivel_ventas_en_empresa`. Una persona con `rentabilidad` en la organización pero sin
@@ -215,7 +222,9 @@ regresión: es el comportamiento de las funciones de F-PRE ya mergeadas, que las
 con su cantidad de precios en USD y una muestra de hasta 6 productos con su precio (datos de catálogo de la organización, no de costo). Recomendación: decidir
 si el dólar por tienda debe exigir la tienda accesible y aplicarlo a las cuatro funciones de una vez.
 
-### H-5 · Informativa · Costo sin medir, sin límite por usuario e índice sin `concurrently`
+### H-5 · Media (rendimiento) · Costo del último movimiento, sin límite por usuario e índice sin `concurrently` (CORREGIDO lo medido)
+
+> **Corregido** en el PR #909 (migración `20270306110000`): el índice de la épica `(organizacion_id, fecha)` empeoraba el `max(fecha)` por producto (el planner lo recorría entero filtrando por producto: **565 ms por producto sin movimientos con 1.000.000 de movimientos** contra 0,05–0,09 ms con el índice por producto; fuente: medición de la revisión independiente de Código+Seguridad (informe del 2026-11-13), en un Postgres 16 efímero con datos sintéticos; no es dev ni producción). Se agrega `movimientos_stock_org_producto_fecha_idx (organizacion_id, producto_id, fecha desc)` y `movimientos_por_producto` calcula `ultimo_movimiento` **después del orden y el límite** (hasta la página pedida, es decir offset + límite, y no para todo el listado), salvo que se ordene por esa columna. Sigue abierto: no hay límite por usuario ni `statement_timeout` versionado, y el índice no se crea `concurrently`. Lo que sigue describe el hallazgo original.
 
 - **`movimientos_por_producto`** arma el listado completo, calcula `count(*) over ()` y recién entonces corta la página. El **último movimiento** es una
   subconsulta por producto (`max(fecha)` sobre `movimientos_stock` del producto) y el índice por producto de esa tabla es por `creado_en`, no por `fecha`, así que no sirve para ese `max`; por
@@ -231,6 +240,18 @@ si el dólar por tienda debe exigir la tienda accesible y aplicarlo a las cuatro
   desplegar fuera de un horario de movimientos intensos.
 Recomendación: medir los tres listados con un volumen realista en dev; si hace falta, un índice por `(organizacion_id, producto_id, fecha)` y/o un
 `statement_timeout` para `authenticated`.
+
+### S-2 · Baja · `aplicar_cotizacion` invertía el orden de locks (CORREGIDO)
+
+`aplicar_cotizacion` delega en `cargar_cotizacion` (toma el lock de la fila de la pendiente) y después en `confirmar_cotizacion` (pide `pg_advisory_xact_lock('cotizacion:'||org)`), mientras que `confirmar_cotizacion`, `descartar_cotizacion` y el cambio de alcance toman primero el advisory y luego la fila. Antes de la épica eran dos transacciones separadas, así que no había inversión. Escenario: el administrador B dejó una pendiente cargada desde Cotización; el administrador A aplica desde Inicio (pisa la pendiente y tiene la fila) mientras B confirma o descarta (tiene el advisory y pide la fila): Postgres aborta uno con `40P01` (reproducido por la revisión independiente de Código+Seguridad en un Postgres efímero con datos sintéticos). **Corrección** (PR #909, `20270306110000`): `aplicar_cotizacion` toma como primera línea el advisory lock de la organización (solo si hay organización de sesión y el usuario tiene edición de `cotizacion_dolar`: sin ellas no se comparte una clave global ni quien no puede cargar el dólar bloquea a quien sí puede, y `cargar_cotizacion` rechaza con 42501 como antes); es reentrante en la misma transacción. Anotado además que `aplicar_cotizacion` **reemplaza una cotización pendiente ajena** cargada desde Cotización, de acuerdo con el texto «Ya se cargó hoy: esto reemplaza la cotización».
+
+### S-5 · Informativa · Fechas infinitas (CORREGIDO)
+
+`p_desde`/`p_hasta` con `infinity` o `-infinity` rompían `(p_hasta - p_desde)` con SQLSTATE 22008 y un mensaje en inglés, antes del chequeo de 366 días. Inofensivo (sin costo, escritura ni fuga; el front valida con regex), pero inconsistente: ahora las tres RPC validan `isfinite()` y devuelven 22023 (PR #909, `20270306110000`, con pgTAP).
+
+### S-3 · Informativa · Exportación en el tope de filas (CORREGIDO)
+
+`useExportarCsv` sondeaba el tope con `pedirLote(100000, 1)`; en «Movimientos por producto» eso era la página 100001 de tamaño 1, que la RPC acota a 100000 y devuelve la fila 100.000 aunque no hubiera más: con exactamente 100.000 filas avisaba «se exportaron las primeras 100.000» en falso. Además la paginación por desplazamiento sobre datos que cambian podía repetir un producto entre lotes. **Corrección** (PR #909): el hook pide siempre lotes de `tamanoLote`, solo marca truncado cuando llega una fila más allá del tope y deduplica por producto; probado con el tope reducido a 300 filas. Sin impacto de seguridad: cosmético y de consistencia.
 
 ### H-6 · Informativa · `exportar` es control de interfaz
 
@@ -249,16 +270,15 @@ decida las actualizaciones o los `overrides`.
 ## Riesgo residual
 
 Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a) decisiones de producto sobre quién ve los ingresos totales (H-2) y el dólar por tienda
-(H-4), (b) una validación de tienda que falta en un listado (H-1) y (c) un costo de consulta que hay que medir con datos reales antes de que crezca el libro de movimientos
-(H-5). Ninguno bloquea el merge. Los seguimientos están en `specs/20270305-100000-inicio-tablero-completo/tasks.md`; los de la épica de producto siguen siendo **MSF-849**
+(H-4) y (b) la ausencia de un límite por usuario y de un `statement_timeout` versionado (H-5, lo restante). La validación de tienda del listado (H-1), el margen por tienda (H-3), el costo del último movimiento (H-5), el orden de locks (S-2) y las fechas infinitas (S-5) quedaron corregidos en el PR #909. Ninguno bloquea el merge. Los seguimientos están en `specs/20270305-100000-inicio-tablero-completo/tasks.md`; los de la épica de producto siguen siendo **MSF-849**
 (modo oscuro), **MSF-850** (error independiente por bloque) y **MSF-851** (E2E de bloques, listado y dólar).
 
 ## Lo que no se verificó
 
-- **pgTAP, Vitest y E2E**: no los corrí yo en esta revisión. Lo que afirmo de las pruebas es lo que **dicen** los archivos, respaldado por el CI verde del PR #899 sobre `e8ef239e` (`database` ejecuta todo `supabase/tests/database`; el E2E necesita Supabase local y no corre en el CI).
-- **Desempeño con volumen real** (H-5) y el **`statement_timeout`** efectivo de `authenticated` en dev y producción.
+- **pgTAP, Vitest y E2E**: no los corrí yo en esta revisión. Lo que afirmo de las pruebas es lo que **dicen** los archivos, respaldado por el CI verde del PR #899 sobre el HEAD final `712e83ed` (`database` ejecuta todo `supabase/tests/database`; el E2E necesita Supabase local y no corre en el CI).
+- **Desempeño con volumen real en dev** (H-5): la medición de 565 ms contra 0,05 ms es sintética (medición de la revisión independiente de Código+Seguridad (informe del 2026-11-13), en un Postgres 16 efímero con datos sintéticos; no es dev ni producción); en dev, con 2.286 productos, una página de 100 filas respondió en 0,10 s (fuente: comentario «Registro de verificación en dev · MSF-824 (2026-11-13)» del issue MSF-824 (plan.agenmatica.com/MSF-824)). El **`statement_timeout`** efectivo de `authenticated` en dev y producción tampoco se verificó.
 - **Los permisos efectivos de cada organización**: la tabla por rol usa la matriz de fábrica; una organización puede haberla editado.
-- **La verificación en dev** (bundle desplegado, funciones registradas): es parte de T018 y es posterior al merge.
+- **La verificación en dev** sí se hizo el 2026-11-13 (bundle desplegado, migraciones aplicadas, 39/39 pruebas de las RPC con una sesión real de administrador; fuente: comentario «Registro de verificación en dev · MSF-824 (2026-11-13)» del issue MSF-824 (plan.agenmatica.com/MSF-824)); no hay una sesión de otros roles en dev.
 - **El manual de usuario de Inicio con capturas**: vive en la rama `main`; no se revisó ni se tocó.
 
 ## Pruebas que respaldan estas afirmaciones
