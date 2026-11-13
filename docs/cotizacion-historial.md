@@ -17,7 +17,7 @@ importación, seed ni worker que actualice o borre filas.
 **Efecto en operación:** como el trigger es `ENABLE ALWAYS`, corre también con
 `session_replication_role = replica`. Un `pg_restore` de datos sobre una tabla ya poblada o un
 `TRUNCATE ... CASCADE` que la alcance ahora falla: restaurar sobre una base vacía (los `INSERT` no se
-bloquean). Borrar una organización sigue funcionando (cascada permitida).
+bloquean). El historial no impide el borrado en cascada de una organización (ver `docs/empresas.md` para las condiciones de esa baja).
 
 ## Consulta (FR-017)
 

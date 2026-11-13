@@ -1,5 +1,5 @@
 import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, FormControlLabel, FormGroup, Stack, TextField, Typography } from '@mui/material'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabaseClient } from '../../lib/supabase'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
@@ -7,7 +7,11 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { TIPOS_EVENTO, useApiTabla, type Suscripcion } from './datos'
 
-const COLUMNAS = 'id, url, tipos, activa, creada_en, actualizada_en'
+const COLUMNAS = 'id, url, tipos, activa, creada_en, actualizada_en, secreto_anterior_vence_en'
+
+/** La gracia de una rotación sigue en curso si el secreto anterior todavía vale. */
+const graciaVigente = (suscripcion: Suscripcion, ahora: number) =>
+  suscripcion.secreto_anterior_vence_en !== null && new Date(suscripcion.secreto_anterior_vence_en).getTime() > ahora
 
 /** Suscripciones a avisos salientes (FR-010, FR-014). */
 export function PanelSuscripciones() {
@@ -16,6 +20,14 @@ export function PanelSuscripciones() {
   const [url, setUrl] = useState('')
   const [tipos, setTipos] = useState<string[]>([])
   const [secreto, setSecreto] = useState<string | null>(null)
+  const [secretoRotado, setSecretoRotado] = useState(false)
+  const [rotando, setRotando] = useState<Suscripcion | null>(null)
+  // Reloj de la pantalla: la leyenda «Rotado: el anterior vale hasta…» desaparece sola cuando termina la gracia.
+  const [ahora, setAhora] = useState(() => Date.now())
+  useEffect(() => {
+    const reloj = setInterval(() => setAhora(Date.now()), 30_000)
+    return () => clearInterval(reloj)
+  }, [])
   const [aviso, setAviso] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -52,6 +64,33 @@ export function PanelSuscripciones() {
       return
     }
     cerrar()
+    setSecretoRotado(false)
+    setSecreto(data.secreto)
+    recargar()
+  }
+
+  // Rotar el secreto de firma (MSF-839): el nuevo se muestra una sola vez y el anterior sigue valiendo 24 horas.
+  const rotar = async () => {
+    if (!rotando || guardando) return
+    setGuardando(true)
+    const { data, error: errorRpc } = await supabaseClient
+      .rpc('rotar_secreto_suscripcion_api', { p_id: rotando.id })
+      .single<{ id: string; secreto: string }>()
+    setGuardando(false)
+    if (errorRpc || !data) {
+      setRotando(null)
+      if (errorRpc?.code === '42501') {
+        setError('Solo un administrador puede rotar el secreto de una suscripción.')
+      } else if (errorRpc?.code === 'P0002') {
+        setError('La suscripción ya no existe: actualizamos la lista.')
+        recargar()
+      } else {
+        setError('No pudimos rotar el secreto de la suscripción.')
+      }
+      return
+    }
+    setRotando(null)
+    setSecretoRotado(true)
     setSecreto(data.secreto)
     recargar()
   }
@@ -95,6 +134,14 @@ export function PanelSuscripciones() {
         />
       ),
     },
+    {
+      clave: 'secreto',
+      encabezado: 'Secreto de firma',
+      render: (suscripcion) =>
+        graciaVigente(suscripcion, ahora)
+          ? `Rotado: el anterior vale hasta ${new Date(suscripcion.secreto_anterior_vence_en as string).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}`
+          : '—',
+    },
   ]
 
   return (
@@ -125,6 +172,9 @@ export function PanelSuscripciones() {
                   onClick={() => void alternar(suscripcion)}
                 >
                   {suscripcion.activa ? 'Pausar' : 'Reanudar'}
+                </Button>
+                <Button size="small" aria-label={`Rotar secreto de ${suscripcion.url}`} onClick={() => { setError(null); setAviso(null); setRotando(suscripcion) }}>
+                  Rotar secreto
                 </Button>
                 <Button size="small" color="inherit" aria-label={`Eliminar ${suscripcion.url}`} onClick={() => void eliminar(suscripcion)}>
                   Eliminar
@@ -182,12 +232,35 @@ export function PanelSuscripciones() {
         </Box>
       </Dialog>
 
+      <Dialog open={rotando !== null} onClose={() => { if (!guardando) setRotando(null) }} fullWidth maxWidth="xs" aria-labelledby="titulo-rotar-secreto">
+        <TituloDialogo id="titulo-rotar-secreto" onCerrar={() => { if (!guardando) setRotando(null) }}>Rotar secreto</TituloDialogo>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography>
+              Se crea un secreto nuevo para {rotando?.url}. El anterior sigue valiendo 24 horas: durante ese tiempo cada aviso lleva las dos firmas, así podés cambiarlo en el otro sistema sin cortar el servicio.
+            </Typography>
+            {rotando && graciaVigente(rotando, ahora) ? (
+              <Alert severity="warning">
+                Ya rotaste el secreto hace poco y el anterior todavía vale. Si rotás de nuevo, el secreto actual, que quizá todavía no copiaste en el otro sistema, deja de valer ahora.
+              </Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRotando(null)} disabled={guardando}>Cancelar</Button>
+          <Button variant="contained" onClick={() => void rotar()} disabled={guardando}>
+            {guardando ? 'Rotando…' : 'Rotar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={secreto !== null} onClose={() => setSecreto(null)} fullWidth maxWidth="sm" aria-labelledby="titulo-secreto">
         <TituloDialogo id="titulo-secreto" onCerrar={() => setSecreto(null)}>Copiá el secreto</TituloDialogo>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Alert severity="warning">
               El secreto firma los avisos: es la única vez que se muestra.
+              {secretoRotado ? ' El anterior sigue valiendo 24 horas: cambialo en el otro sistema antes de que venza.' : ''}
             </Alert>
             <TextField label="Secreto de firma" value={secreto ?? ''} InputProps={{ readOnly: true }} fullWidth />
           </Stack>

@@ -88,6 +88,8 @@ test.describe('Exportar la actividad (F-AUD-03)', () => {
       await page.goto('/actividad')
       await page.getByLabel('Buscar en la actividad').fill(marca)
       await expect(page.getByText(`Creó ${marca} uno`)).toBeVisible()
+      // La búsqueda se aplica con demora: se espera a que la lista ya no traiga la fila ajena antes de exportar.
+      await expect(page.getByText('Otra cosa sin la marca')).toHaveCount(0)
 
       const descarga = page.waitForEvent('download')
       await page.getByRole('button', { name: 'Exportar' }).click()
@@ -104,7 +106,6 @@ test.describe('Exportar la actividad (F-AUD-03)', () => {
       expect(filas.length).toBeGreaterThanOrEqual(3)
     } finally {
       if (orgId) {
-        await borrar(`registro_actividad?organizacion_id=eq.${orgId}`)
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
         await borrar(`organizaciones?id=eq.${orgId}`)
       }
@@ -154,7 +155,6 @@ test.describe('Exportar la actividad (F-AUD-03)', () => {
       expect(descargo).toBe(false)
     } finally {
       if (orgId) {
-        await borrar(`registro_actividad?organizacion_id=eq.${orgId}`)
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
         await borrar(`organizaciones?id=eq.${orgId}`)
       }

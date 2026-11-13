@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
+import { UPSERT_FUSIONAR, crearConsulta, rest } from './soporte/fixtures'
 
 // Cierre de MSF-156 (MSF-578 · T024 · SC-001, SC-002, SC-003): la pantalla de Inicio con los tres roles y
 // con el cambio de empresa activa de la barra superior.
@@ -24,16 +25,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   'content-type': 'application/json',
   ...extra,
 })
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   const r = await fetch(`${url}/rest/v1/rpc/${funcion}`, {
@@ -76,7 +67,9 @@ async function ingresar(page: Page, correo: string) {
 // Las tarjetas de Inicio son <Card> con el título como <h2>: el contenido de cada una cuelga del mismo
 // <div> (el CardContent), así que se acota por tarjeta para no confundir textos repetidos (por ejemplo, el
 // aviso del dólar aparece en la tarjeta y también en la lista de alertas).
-const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..')
+// «Stock hoy» aparece dos veces desde MSF-820: el bloque del tablero (primero en el DOM) y la tarjeta de alertas de stock
+// (la que aquí se verifica, siempre la última); `.last()` evita la violación de modo estricto sin cambiar lo que se afirma.
+const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..').last()
 const alertas = (page: Page) => page.getByRole('list', { name: 'Alertas' })
 
 type EmpresaSembrada = { id: string; nombre: string }
@@ -149,25 +142,31 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     ],
     'dominio',
   )
+  // El disparador `productos_crear_existencias` ya crea la fila de cada producto: se actualiza con upsert.
   await rest(
-    'existencias',
+    'existencias?on_conflict=producto_id',
     [
       { producto_id: sinStock.id, organizacion_id: org.id, cantidad: 0, minimo: 0 },
       { producto_id: stockBajo.id, organizacion_id: org.id, cantidad: 3, minimo: 5 },
     ],
     'dominio',
+    UPSERT_FUSIONAR,
   )
 
-  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa).
-  await rest(
-    'consultas',
-    [
-      { organizacion_id: org.id, empresa_id: empresaA.id, origen: 'formulario', nombre: 'Visitante A', contacto: 'visitante-a@example.com', mensaje: 'Consulta de la tienda A' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante B', contacto: 'visitante-b@example.com', mensaje: 'Consulta de la tienda B' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante C', contacto: 'visitante-c@example.com', mensaje: 'otra consulta de la tienda B' },
-    ],
-    'dominio',
-  )
+  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa). `service_role` solo lee
+  // `dominio.consultas`: entran como las de la tienda, por la RPC pública y el dominio de cada una.
+  const hosts = [`inicio-a-${sufijo}.localhost`, `inicio-b-${sufijo}.localhost`]
+  await rest('tiendas', [
+    { organizacion_id: org.id, empresa_id: empresaA.id, dominio: hosts[0] },
+    { organizacion_id: org.id, empresa_id: empresaB.id, dominio: hosts[1] },
+  ], 'dominio')
+  for (const [host, nombre, contacto, mensaje] of [
+    [hosts[0], 'Visitante A', 'visitante-a@example.com', 'Consulta de la tienda A'],
+    [hosts[1], 'Visitante B', 'visitante-b@example.com', 'Consulta de la tienda B'],
+    [hosts[1], 'Visitante C', 'visitante-c@example.com', 'otra consulta de la tienda B'],
+  ]) {
+    await crearConsulta(host, { nombre, contacto, mensaje })
+  }
 
   // Alertas: las calcula la base (service_role). Con esto la lista de Inicio tiene de dónde leer.
   await rpc('recalcular_alertas_inicio', { p_organizacion: org.id })
@@ -176,11 +175,10 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
 }
 
 async function limpiar(datos: Sembrado) {
-  await borrar(`registro_actividad?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
   await borrar(`usuarios_empresas?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
-  await borrar(`consultas?organizacion_id=eq.${datos.orgId}`, 'dominio')
+  await borrar(`tiendas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`alertas_inicio?organizacion_id=eq.${datos.orgId}`, 'dominio')
@@ -229,8 +227,18 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(admin.page.getByRole('link', { name: 'Nuevo comprobante' })).toBeVisible()
           await expect(admin.page.getByRole('link', { name: 'Registrar movimiento' })).toBeVisible()
           await expect(admin.page.getByRole('link', { name: 'Nuevo producto' })).toBeVisible()
-          await expect(tarjeta(admin.page, 'Dólar').getByRole('link', { name: 'Cargar ahora' })).toBeVisible()
+          await expect(tarjeta(admin.page, 'Dólar').getByRole('button', { name: 'Cargar ahora' })).toBeVisible()
           await expect(tarjeta(admin.page, 'Tus empresas').getByRole('link', { name: 'Ver empresas' })).toBeVisible()
+        })
+        await paso(admin.page, 'Abre «Cargar dólar del día», ve el impacto antes de guardar y cancela sin guardar nada (F-INI-07)', async () => {
+          await tarjeta(admin.page, 'Dólar').getByRole('button', { name: 'Cargar ahora' }).click()
+          const dialogo = admin.page.getByRole('dialog', { name: 'Cargar dólar del día' })
+          await expect(dialogo).toBeVisible()
+          await dialogo.getByLabel('Dólar del día (pesos por dólar)').fill('1500')
+          await expect(dialogo.getByRole('button', { name: /Aplicar y recalcular|Registrar cotización/ })).toBeEnabled()
+          await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+          await expect(dialogo).toHaveCount(0)
+          await expect(alertas(admin.page).getByText('Todavía no se cargó el dólar de hoy')).toBeVisible()
         })
         await rotulo(admin.page, 'El Administrador ve las tres tarjetas, las alertas y sus accesos')
       } finally {
@@ -253,7 +261,7 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(consulta.page.getByRole('link', { name: 'Nuevo comprobante' })).toHaveCount(0)
           await expect(consulta.page.getByRole('link', { name: 'Registrar movimiento' })).toHaveCount(0)
           await expect(consulta.page.getByRole('link', { name: 'Nuevo producto' })).toHaveCount(0)
-          await expect(tarjeta(consulta.page, 'Dólar').getByRole('link', { name: 'Cargar ahora' })).toHaveCount(0)
+          await expect(tarjeta(consulta.page, 'Dólar').getByRole('button', { name: 'Cargar ahora' })).toHaveCount(0)
           await expect(tarjeta(consulta.page, 'Tus empresas').getByRole('link', { name: 'Ver empresas' })).toHaveCount(0)
         })
         await rotulo(consulta.page, 'Consulta lee las tarjetas, pero no tiene acciones')

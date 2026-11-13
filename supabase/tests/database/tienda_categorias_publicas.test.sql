@@ -4,7 +4,7 @@
 -- `null` para host desconocido y empresa desactivada, lista blanca de campos y privilegios de `anon`.
 begin;
 
-select plan(17);
+select plan(23);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -53,6 +53,18 @@ select p.id, e.id, '11111111-1111-1111-1111-111111111111'
 
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
 values ('b2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
+
+-- MSF-841: fotos de producto. «En hija de Joysticks» tiene dos (la principal es la de posición 1); «Joystick
+-- inactivo» y «Joystick oculto» (oculto en la tienda A) también, pero no deben elegirse.
+insert into dominio.producto_imagenes (producto_id, organizacion_id, posicion, ruta) values
+  ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 2,
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000007/segunda.png'),
+  ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 1,
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000007/frente.png'),
+  ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 1,
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000003/inactivo.png'),
+  ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 1,
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000004/oculto.png');
 
 -- Tienda A: oculta «Oculta en A» (y por tanto «Hija de oculta») y un producto de Joysticks.
 insert into dominio.categorias_tienda (empresa_id, categoria_id, organizacion_id, visible) values
@@ -128,7 +140,7 @@ select is(
 );
 select is(
   (select jsonb_agg(k order by k) from (select distinct jsonb_object_keys(c) k from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c) s),
-  '["id", "nombre", "padre_id", "productos"]'::jsonb,
+  '["id", "imagen", "nombre", "padre_id", "productos"]'::jsonb,
   'lista blanca de campos: sin organizacion_id ni columnas internas'
 );
 select is(
@@ -136,9 +148,26 @@ select is(
   '["categorias"]'::jsonb,
   'la respuesta solo trae «categorias»'
 );
+-- La ruta de `imagen` cuelga de <organizacion>/<producto>/ (igual que la `imagen` de los destacados): se
+-- excluye de esta comprobación, que busca el id de la organización en cualquier otro campo.
 select ok(
-  position('11111111-1111-1111-1111-111111111111' in publico.categorias_por_dominio('cp-a.ejemplo.com')::text) = 0,
-  'la respuesta no filtra el id de la organización'
+  position('11111111-1111-1111-1111-111111111111' in (select jsonb_agg(c - 'imagen') from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c)::text) = 0,
+  'la respuesta no filtra el id de la organización (fuera de la ruta de la imagen)'
+);
+select is(
+  (select c ->> 'imagen' from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Joysticks'),
+  '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000007/frente.png',
+  'MSF-841: la foto de una raíz es la imagen principal (posición 1) de un producto visible de sus subcategorías; no usa la de un producto inactivo ni oculto'
+);
+select is(
+  (select c ->> 'imagen' from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Hija de Joysticks'),
+  '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000007/frente.png',
+  'MSF-841: la subcategoría usa la imagen principal de su propio producto'
+);
+select is(
+  (select c -> 'imagen' from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Cargadores'),
+  'null'::jsonb,
+  'MSF-841: una categoría cuyos productos no tienen imagen devuelve imagen null'
 );
 select is(publico.categorias_por_dominio('no-existe.ejemplo.com'), null, 'un dominio desconocido devuelve null');
 select is(
@@ -150,6 +179,45 @@ select is(
   publico.categorias_por_dominio('  CP-A.Ejemplo.com.:443'),
   publico.categorias_por_dominio('cp-a.ejemplo.com'),
   'el host se normaliza (mayúsculas, espacios, punto final y puerto)'
+);
+
+-- MSF-841: la foto solo sale de productos efectivamente visibles de ESA tienda.
+reset role;
+insert into dominio.categorias (id, organizacion_id, nombre, padre_id, posicion) values
+  ('ca000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'Foto oculta en A', null, 10),
+  ('ca000000-0000-0000-0000-0000000000a2', '11111111-1111-1111-1111-111111111111', 'Foto inactiva', null, 11);
+insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo, categoria_id) values
+  ('a1000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'Solo oculto en A', 'CP-A1', 10, 'USD', true, 'ca000000-0000-0000-0000-0000000000a1'),
+  ('a1000000-0000-0000-0000-0000000000a2', '11111111-1111-1111-1111-111111111111', 'Inactivo con foto', 'CP-A2', 10, 'USD', false, 'ca000000-0000-0000-0000-0000000000a2'),
+  ('a1000000-0000-0000-0000-0000000000a3', '11111111-1111-1111-1111-111111111111', 'Activo sin foto', 'CP-A3', 10, 'USD', true, 'ca000000-0000-0000-0000-0000000000a2');
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
+select p.id, e.id, '11111111-1111-1111-1111-111111111111'
+  from dominio.productos p
+  cross join (values ('e1000000-0000-0000-0000-000000000001'::uuid), ('e1000000-0000-0000-0000-000000000002'::uuid)) e(id)
+ where p.id in ('a1000000-0000-0000-0000-0000000000a1', 'a1000000-0000-0000-0000-0000000000a2', 'a1000000-0000-0000-0000-0000000000a3');
+insert into dominio.producto_imagenes (producto_id, organizacion_id, posicion, ruta) values
+  ('a1000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 1,
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-0000000000a1/solo.png'),
+  ('a1000000-0000-0000-0000-0000000000a2', '11111111-1111-1111-1111-111111111111', 1,
+   '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-0000000000a2/inactivo.png');
+insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible) values
+  ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', false);
+set local role anon;
+
+select is(
+  (select count(*)::int from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Foto oculta en A'),
+  0,
+  'MSF-841: en la tienda A, una categoría cuyo único producto está oculto no se lista (ni su foto)'
+);
+select is(
+  (select c ->> 'imagen' from jsonb_array_elements(publico.categorias_por_dominio('cp-b.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Foto oculta en A'),
+  '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-0000000000a1/solo.png',
+  'MSF-841: en la tienda B el mismo producto sí es visible y aporta su foto'
+);
+select is(
+  (select c -> 'imagen' from jsonb_array_elements(publico.categorias_por_dominio('cp-a.ejemplo.com') -> 'categorias') c where c ->> 'nombre' = 'Foto inactiva'),
+  'null'::jsonb,
+  'MSF-841: la foto de un producto inactivo no se usa (la categoría sigue con imagen null)'
 );
 
 select * from finish();

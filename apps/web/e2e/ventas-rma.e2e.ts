@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
+import { rest, UPSERT_FUSIONAR } from './soporte/fixtures'
 
 // Evidencia de MSF-288 (F-VTA-28, US1, SC-002) y de MSF-304 (F-VTA-29: filtro por forma y avance de estado): factura confirmada → «Nueva devolución» → RMA registrado con su
 // número y su ítem → aparece en el listado. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra
@@ -23,16 +24,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   'content-type': 'application/json',
   ...extra,
 })
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function leer<T>(ruta: string, esquema = 'dominio'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
@@ -110,12 +101,13 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda RMA ${sufijo}`, activa: true }, 'dominio')
       await rest('depositos_empresas', [{ deposito_id: deposito.id, empresa_id: empresa.id, organizacion_id: org.id }], 'dominio')
       const [cliente] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id, numero: 1, nombre: nombreCliente, tipo: 'minorista', archivado_en: null,
+        organizacion_id: org.id, nombre: nombreCliente, tipo: 'minorista', archivado_en: null,
       })
       const [producto] = await rest<{ id: string }>('productos', {
         organizacion_id: org.id, nombre: nombreProducto, sku: `E2E-RMA-${sufijo}`, moneda: 'ARS', precio_lista: 100,
       }, 'dominio')
-      await rest('existencias', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio')
+      // El disparador `productos_crear_existencias` ya creó la fila: se actualiza con upsert.
+      await rest('existencias?on_conflict=producto_id', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio', UPSERT_FUSIONAR)
       await rest('existencias_deposito', [{ producto_id: producto.id, deposito_id: deposito.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio')
 
       // Factura confirmada con una línea de 2 unidades: el RMA se registra sobre ella.
@@ -141,7 +133,8 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
         })
 
         await paso(page, 'Abre «Nueva devolución»', async () => {
-          await clic(page, page.getByRole('button', { name: 'Nueva devolución' }))
+          // Sin devoluciones el botón está en el encabezado y en el aviso de lista vacía: se usa el del aviso.
+          await clic(page, page.getByRole('alert').filter({ hasText: 'Sin devoluciones' }).getByRole('button', { name: 'Nueva devolución' }))
           await expect(page.getByRole('dialog', { name: 'Nueva devolución' })).toBeVisible()
         })
 
@@ -151,7 +144,7 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
           await clic(page, page.getByRole('option', { name: new RegExp(comprobante.numero) }))
         })
         await paso(page, 'Elige el ítem a devolver', async () => {
-          await clic(page, dialogo.getByLabel('Ítem'))
+          await clic(page, dialogo.getByRole('combobox', { name: 'Ítem' }))
           await clic(page, page.getByRole('option', { name: new RegExp(nombreProducto) }))
         })
         await paso(page, 'Completa forma, motivo y observaciones', async () => {
@@ -207,12 +200,13 @@ test.describe('Devoluciones (RMA): formas y seguimiento (MSF-304, F-VTA-29)', ()
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda Seg ${sufijo}`, activa: true }, 'dominio')
       await rest('depositos_empresas', [{ deposito_id: deposito.id, empresa_id: empresa.id, organizacion_id: org.id }], 'dominio')
       const [cliente] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id, numero: 1, nombre: `Cliente Seg ${sufijo}`, tipo: 'minorista', archivado_en: null,
+        organizacion_id: org.id, nombre: `Cliente Seg ${sufijo}`, tipo: 'minorista', archivado_en: null,
       })
       const [producto] = await rest<{ id: string }>('productos', {
         organizacion_id: org.id, nombre: nombreProducto, sku: `E2E-SEG-${sufijo}`, moneda: 'ARS', precio_lista: 100,
       }, 'dominio')
-      await rest('existencias', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio')
+      // El disparador `productos_crear_existencias` ya creó la fila: se actualiza con upsert.
+      await rest('existencias?on_conflict=producto_id', [{ producto_id: producto.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio', UPSERT_FUSIONAR)
       await rest('existencias_deposito', [{ producto_id: producto.id, deposito_id: deposito.id, organizacion_id: org.id, cantidad: 5, reservado: 0 }], 'dominio')
 
       const token = await tokenDe(correo)

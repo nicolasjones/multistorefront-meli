@@ -24,10 +24,13 @@ Tres entradas según lo que necesites:
 | Organización: alta, administración, empresas | [alta-de-organizaciones.md](alta-de-organizaciones.md), [administracion-organizacion.md](administracion-organizacion.md), [empresas.md](empresas.md) |
 | Aislamiento por organización | [aislamiento-por-organizacion.md](aislamiento-por-organizacion.md) |
 | Actividad e historial | [actividad.md](actividad.md) |
+| Inicio: tablero de ventas y stock, alertas, búsqueda global y carga del dólar (épicas MSF-156 y MSF-824) | [inicio-y-alertas.md](inicio-y-alertas.md), [busqueda-global.md](busqueda-global.md) |
+| Revisión de seguridad del tablero de Inicio (MSF-824) | [seguridad-inicio-tablero.md](seguridad-inicio-tablero.md) |
 | Cotización del dólar: carga diaria | [cotizacion-carga-diaria.md](cotizacion-carga-diaria.md) |
 | Cotización del dólar: vista previa y recálculo | [cotizacion-recalculo.md](cotizacion-recalculo.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |
 | API pública, claves y avisos firmados | [api-publica.md](api-publica.md) |
+| Guía y referencia de la API para integradores | [api/inicio-rapido.md](api/inicio-rapido.md) · [api/referencia.md](api/referencia.md) |
 | Ventas: comprobantes (factura, presupuesto, stock) | [ventas-comprobantes.md](ventas-comprobantes.md), [ventas-estados-comprobante.md](ventas-estados-comprobante.md) |
 | Ventas: listado y exportación de comprobantes | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
 | Ventas: listado, estados y anulación (guía de la épica MSF-177) | [ventas-listado-estados.md](ventas-listado-estados.md) |
@@ -41,6 +44,7 @@ Tres entradas según lo que necesites:
 | Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-cobro.md](service-cobro.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
+| Pasos manuales de infraestructura en VPS2 (publicar el sitio de docs, orden de arranque de `tailnet-forwards`, stack Edge de dev, revocar la clave de API de prueba) | [pasos-manuales-vps2.md](pasos-manuales-vps2.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
 | Superset | [operar-superset.md](operar-superset.md) |
 | Workers | [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md) |
@@ -54,5 +58,6 @@ Tres entradas según lo que necesites:
 
 ## Deuda trazada
 
-- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en Jira).
+- **Pasos manuales de VPS2 (MSF-854)**: publicar el sitio de docs, el orden de arranque de `tailnet-forwards`, recrear el stack Edge de dev y revocar la clave de API de prueba `PRUEBA-claude-2026-11-11` los hace Nicolás (piden acceso al VPS2 y credenciales que no están en Git). El procedimiento, la verificación y la reversión de cada uno: [pasos-manuales-vps2.md](pasos-manuales-vps2.md).
+- **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en el tracker).
 - `deployment.md` todavía menciona Supabase Cloud para producción; la constitución v1.8.0 establece Supabase self-hosted sin Cloud. Corregir al documentar el ambiente de producción.

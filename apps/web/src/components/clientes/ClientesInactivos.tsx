@@ -10,12 +10,12 @@ import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 const TAMANO_TANDA = 25
 const DIAS_POR_DEFECTO = 90
 const ATAJOS_DIAS = [30, 60, 90, 180] as const
 const ANCHO_CAMPO_DIAS = 190
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
@@ -124,7 +124,7 @@ export function ClientesInactivos({ empresaId = null }: { empresaId?: string | n
         />
       </BarraHerramientas>
 
-      <Box role="status" aria-live="polite" sx={visuallyHidden}>
+      <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
         {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes inactivos" /> : null}

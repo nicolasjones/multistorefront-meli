@@ -74,7 +74,11 @@ select is((select datos ->> 'Nombre' from public.avisos_pendientes), 'Ana Pérez
 select is((select datos ->> 'Origen' from public.avisos_pendientes), 'Formulario de contacto', 'el aviso lleva el origen legible');
 select is((select datos ->> 'Mensaje' from public.avisos_pendientes), 'Hola', 'el aviso lleva el mensaje');
 select is((select datos ->> 'Producto' from public.avisos_pendientes), 'Remera', 'el aviso lleva el nombre del producto');
-select is((select count(*)::int from dominio.consultas_avisos), 0, 'ya no se encola por el camino directo');
+select ok(
+  not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+               where n.nspname = 'dominio' and c.relname = 'consultas_avisos'),
+  'la cola del camino directo ya no existe (MSF-853): el aviso sale solo por la cola de plataforma'
+);
 
 -- Agrupación: una segunda consulta dentro de la ventana suma al mismo grupo.
 insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, contacto) values

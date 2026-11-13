@@ -62,7 +62,7 @@ describe('columna «Información» del pie (FR-007, SC-002)', () => {
     mocks.leerEnlaces.mockResolvedValue([{ titulo: 'Envíos', slug: 'envios' }])
     render(
       <MemoryRouter>
-        <PieCategorias categorias={[]} host="mundojc.localhost" />
+        <PieCategorias empresaNombre="Mundo JC" categorias={[]} host="mundojc.localhost" />
       </MemoryRouter>,
     )
 

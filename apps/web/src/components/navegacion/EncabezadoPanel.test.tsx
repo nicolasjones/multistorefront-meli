@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -46,8 +46,12 @@ describe('EncabezadoPanel', () => {
 
     render(<MemoryRouter><EncabezadoPanel /></MemoryRouter>)
 
-    expect(screen.getByRole('button', { name: 'open drawer' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Abrir el menú lateral' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /persona@example.com/ })).toBeInTheDocument()
+    // Si el encabezado se remonta, la etiqueta se vuelve a poner (no queda en inglés).
+    cleanup()
+    render(<MemoryRouter><EncabezadoPanel /></MemoryRouter>)
+    expect(screen.getByRole('button', { name: 'Abrir el menú lateral' })).toBeInTheDocument()
   })
 
   it('no revienta si todavía no hay identidad resuelta', () => {
@@ -55,7 +59,7 @@ describe('EncabezadoPanel', () => {
 
     render(<MemoryRouter><EncabezadoPanel /></MemoryRouter>)
 
-    expect(screen.getByRole('button', { name: 'open drawer' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Abrir el menú lateral' })).toBeInTheDocument()
   })
   it('muestra el botón «Ayuda» junto a la campanita de notificaciones (FR-020)', async () => {
     useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })

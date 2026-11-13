@@ -15,7 +15,7 @@ export function ComoSeCalcula({ empresas }: { empresas: readonly Pick<Empresa, '
           <Typography component="p" fontWeight={600}>Margen = Precio − Costo − Comisión</Typography>
           <Typography component="p" variant="b" sx={{ mt: 0.5 }}>Margen % = Margen ÷ Precio</Typography>
         </Box>
-        <TableContainer sx={{ mt: 1.5 }}>
+        <TableContainer sx={{ mt: 1.5 }} tabIndex={0} role="region" aria-label="Precio y comisión por canal (se desplaza)">
           <Table size="small" aria-label="Precio y comisión por canal">
             <TableHead>
               <TableRow>

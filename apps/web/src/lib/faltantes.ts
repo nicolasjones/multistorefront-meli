@@ -38,6 +38,8 @@ export type ResultadoAviso = {
   omitidos_sin_stock: number
   omitidos_sin_correo: number
   omitidos_sin_permiso: number
+  /** Pasaron el tope diario de avisos de la organización (MSF-161); la base lo manda solo si hubo. */
+  omitidos_tope_diario?: number
 }
 
 const COLUMNAS =
@@ -88,7 +90,7 @@ export async function avisarFaltantes(lineas: string[]): Promise<ResultadoAviso>
 }
 
 /**
- * Texto del aviso emergente: «Avisos enviados» más, si corresponde, lo que se omitió y por qué.
+ * Texto del aviso emergente: «Avisos en cola» (el correo sale en el próximo barrido) más, si corresponde, lo que se omitió y por qué.
  * Si la base no encoló NINGÚN correo, el texto no puede afirmar que se enviaron: dice que no se
  * envió ninguno y explica por qué (sin stock, sin correo, ya avisado o sin permiso).
  */
@@ -100,6 +102,8 @@ export function mensajeResultadoAviso(resultado: ResultadoAviso): string {
     omitidos.push(`${resultado.omitidos_ya_avisados} ${resultado.omitidos_ya_avisados === 1 ? 'ya avisado' : 'ya avisados'}`)
   }
   if (resultado.omitidos_sin_permiso > 0) omitidos.push(`${resultado.omitidos_sin_permiso} sin permiso`)
+  const tope = resultado.omitidos_tope_diario ?? 0
+  if (tope > 0) omitidos.push(`${tope} por el tope diario de avisos de tu organización (pasan a la siguiente ventana de 24 horas: volvé a avisar después)`)
   const detalle = omitidos.length > 0 ? `. Se omitieron: ${omitidos.join(', ')}.` : ''
-  return resultado.encolados > 0 ? `Avisos enviados${detalle}` : `No se enviaron avisos${detalle}`
+  return resultado.encolados > 0 ? `Avisos en cola${detalle}` : `No se enviaron avisos${detalle}`
 }

@@ -96,7 +96,7 @@ async function organizacionConReparacionEntregada(sufijo: string) {
   await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
   await rest('features', { id: 'service-tecnico', nombre: 'Service técnico', descripcion: 'E2E' }, 'public', 'resolution=ignore-duplicates')
   await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
-  const [cliente] = await rest<{ id: string }>('clientes', { organizacion_id: org.id, numero: 1, nombre: `Cliente garantia ${sufijo}`, tipo: 'minorista' })
+  const [cliente] = await rest<{ id: string }>('clientes', { organizacion_id: org.id, nombre: `Cliente garantia ${sufijo}`, tipo: 'minorista' })
   const [modelo] = await leer<{ id: string }>(`modelos_equipo?organizacion_id=eq.${org.id}&select=id&limit=1`, 'dominio')
   const [cierra] = await leer<{ id: string }>(
     `estados_reparacion?organizacion_id=eq.${org.id}&cierra=eq.true&activo=eq.true&select=id&limit=1`,

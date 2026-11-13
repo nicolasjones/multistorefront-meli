@@ -196,6 +196,48 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       expect(fbq).toHaveBeenCalledWith('consent', 'revoke')
       expect(hayMedicionCargada()).toBe(false)
     })
+    it('revocar con un diálogo abierto (sin recarga): ni búsqueda, ni WhatsApp, ni contacto, ni vista, ni visita llegan a Google ni a Meta, y se borran huellas y globales', () => {
+      cargarMedicion(IDS)
+      const fbq = conPixel()
+      const capaViva = (window as unknown as { dataLayer: ArrayLike<unknown>[] }).dataLayer
+      const recargar = vi.spyOn(accionesPagina, 'recargar').mockImplementation(() => undefined)
+      const dialogo = document.createElement('div')
+      dialogo.setAttribute('role', 'dialog') // con un diálogo abierto no es seguro recargar: la página sigue viva
+      document.body.appendChild(dialogo)
+      document.cookie = '_ga=GA1.1.1.2; path=/'
+      document.cookie = '_ga_ABC123=GS1.1.1; path=/'
+      document.cookie = '_fbp=fb.1.1.2; path=/'
+      window.localStorage.setItem('_ga', 'x')
+      window.localStorage.setItem('_fbp', 'y')
+      const eventosAntes = capaViva.map((x) => Array.from(x)).filter((e) => e[0] === 'event').length
+      const llamadasAntes = fbq.mock.calls.length
+
+      guardarConsentimiento('rechazadas')
+      for (const nombre of ['busqueda', 'clic_whatsapp', 'envio_contacto', 'vista_producto'] as const) registrarEventoTienda(nombre)
+      registrarVisita('/catalogo?q=otra+cosa')
+
+      expect(capaViva.map((x) => Array.from(x)).filter((e) => e[0] === 'event')).toHaveLength(eventosAntes)
+      expect(fbq.mock.calls.slice(llamadasAntes).filter((llamada) => String(llamada[0]).startsWith('track'))).toEqual([])
+      expect(hayMedicionCargada()).toBe(false)
+      expect(recargar).not.toHaveBeenCalled()
+      expect(document.cookie).not.toMatch(/_ga|_fbp/)
+      expect(window.localStorage.getItem('_ga')).toBeNull()
+      expect(window.localStorage.getItem('_fbp')).toBeNull()
+      const w = window as unknown as Record<string, unknown>
+      expect([w.dataLayer, w.gtag, w.fbq]).toEqual([undefined, undefined, undefined])
+      dialogo.remove()
+    })
+    it('una recarga posterior a revocar no reanuda la medición mientras la decisión guardada sea «rechazadas»', () => {
+      cargarMedicion(IDS)
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      reiniciarMedicionParaPruebas() // equivale a la página nueva tras la recarga
+      cargarMedicion(IDS)
+      registrarEventoTienda('busqueda')
+      expect(hayMedicionCargada()).toBe(false)
+      expect(scripts()).toHaveLength(0)
+      expect((window as unknown as { dataLayer?: unknown[] }).dataLayer).toBeUndefined()
+    })
     it('si vuelve a aceptar se reactiva sin duplicar scripts', () => {
       cargarMedicion(IDS)
       conPixel()
@@ -218,6 +260,27 @@ describe('analiticaTienda (F-TDA-24, FR-012, FR-014…FR-016)', () => {
       expect(fbq).toHaveBeenCalledWith('init', '987654321', {})
       expect(fbq).toHaveBeenCalledWith('trackSingleCustom', '987654321', 'vista_producto')
       expect(fbq).not.toHaveBeenCalledWith('trackSingleCustom', '123456789', 'vista_producto')
+    })
+    it('un evento en espera sobrevive a un retiro mientras llegan los IDs (con consentimiento), y se descarta si se revoca', () => {
+      registrarEventoTienda('vista_producto')
+      retirarMedicion() // lo que hace MedicionTienda antes de conocer los IDs
+      cargarMedicion({ ga4_id: 'G-ABC123', meta_pixel_id: null })
+      expect(capa()).toContainEqual(['event', 'vista_producto'])
+
+      reiniciarMedicionParaPruebas()
+      registrarEventoTienda('busqueda')
+      guardarConsentimiento('rechazadas')
+      retirarMedicion()
+      guardarConsentimiento('aceptadas')
+      cargarMedicion({ ga4_id: 'G-ABC123', meta_pixel_id: null })
+      expect(capa()).not.toContainEqual(['event', 'busqueda'])
+    })
+    it('un evento en espera NO se emite si el visitante revoca y vuelve a aceptar antes de que lleguen los IDs (sin retirar la medición)', () => {
+      registrarEventoTienda('vista_producto') // con consentimiento, aún sin IDs: queda en espera
+      guardarConsentimiento('rechazadas')
+      guardarConsentimiento('aceptadas')
+      cargarMedicion({ ga4_id: 'G-ABC123', meta_pixel_id: null })
+      expect(capa()).not.toContainEqual(['event', 'vista_producto'])
     })
     it('un evento que llega antes de cargar la medición espera y se emite al cargarla (sin datos extra)', () => {
       registrarEventoTienda('vista_producto')

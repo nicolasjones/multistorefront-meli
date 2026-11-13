@@ -29,6 +29,7 @@ const MUNDO_JC: IdentidadTienda = {
   colorPrimarioOscuro: '#7A0A12',
   colorAcento: '#A3111D',
   colorFondo: '#FFFFFF',
+  colorBarra: '#1A1A1A',
   tipografiaTitulos: 'Barlow Condensed',
   tipografiaTexto: 'Barlow',
   logoRuta: 'org-1/e-1/logo-viejo.png',
@@ -62,6 +63,7 @@ describe('Identidad visual · carga y estado inicial', () => {
     expect(screen.getByLabelText('Primario oscuro')).toHaveValue('#7A0A12')
     expect(screen.getByLabelText('Acento')).toHaveValue('#A3111D')
     expect(screen.getByLabelText('Fondo')).toHaveValue('#FFFFFF')
+    expect(screen.getByLabelText('Barra superior y pie')).toHaveValue('#1A1A1A')
     expect(screen.getByText('Logo actual de Mundo JC.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Reemplazar logo/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Quitar logo/ })).toBeInTheDocument()
@@ -102,6 +104,23 @@ describe('Identidad visual · colores y contraste (FR-022, FR-023)', () => {
     fireEvent.change(screen.getByLabelText('Primario'), { target: { value: '#FFEB3B' } })
     expect(screen.getByText(/No cumple AA/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
+  })
+
+  it('el color de la barra superior y pie tiene su propio chequeo de contraste AA que no bloquea guardar (MSF-841)', async () => {
+    await abrir()
+    expect(screen.getByText(/Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\./)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: '#FFEB3B' } })
+    expect(screen.getByText(/sobre la barra superior y pie: \d+,\d:1\. No cumple AA/)).toBeInTheDocument()
+    expect(screen.getByTestId('vista-previa-barra')).toHaveStyle({ backgroundColor: '#FFEB3B' })
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
+  })
+
+  it('un color de barra inválido bloquea Guardar con el mismo error de formato (MSF-841)', async () => {
+    await abrir()
+    fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: 'negro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Revisá los colores marcados: usá el formato #RRGGBB.')).toBeInTheDocument()
+    expect(mocks.guardar).not.toHaveBeenCalled()
   })
 
   it('un color inválido muestra el error del campo y Guardar no llama a la base', async () => {
@@ -193,6 +212,7 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
 
     elegir('logo', archivo('nuevo.png', 'image/png'))
     fireEvent.change(screen.getByLabelText('Primario'), { target: { value: '#c8102e' } })
+    fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: '#0a0a0a' } })
     await screen.findByText('Hay cambios sin guardar.')
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
@@ -200,7 +220,7 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
     expect(mocks.subir).toHaveBeenCalledTimes(1)
     const rutaNueva = mocks.subir.mock.calls[0][0] as string
     expect(rutaNueva).toMatch(/^org-1\/e-1\/logo-[0-9a-f-]{36}\.png$/)
-    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ colorPrimario: '#C8102E', logoRuta: rutaNueva, bannerRuta: 'org-1/e-1/banner-viejo.png' }))
+    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ colorPrimario: '#C8102E', colorBarra: '#0A0A0A', logoRuta: rutaNueva, bannerRuta: 'org-1/e-1/banner-viejo.png' }))
     expect(mocks.borrar).toHaveBeenCalledWith(['org-1/e-1/logo-viejo.png'], 'e-1')
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
   })

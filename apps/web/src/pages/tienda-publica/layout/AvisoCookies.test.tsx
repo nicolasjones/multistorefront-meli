@@ -1,3 +1,4 @@
+import { createTheme } from '@mui/material'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { violacionesAxe } from '../../../test/axe'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -17,6 +18,13 @@ describe('AvisoCookies (FR-033)', () => {
     expect(screen.getByRole('button', { name: 'Rechazar' })).toBeInTheDocument()
     expect(document.body).toHaveFocus()
     expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  it('queda por debajo de los paneles laterales (Drawer): en el celular no tapa sus botones de abajo', () => {
+    render(<AvisoCookies />)
+    const aviso = screen.getByRole('region', { name: 'Aviso de cookies' })
+    // Menú y filtros del celular son `Drawer` temporales (`zIndex.drawer`); el aviso queda estrictamente debajo.
+    expect(Number(getComputedStyle(aviso).zIndex)).toBeLessThan(createTheme().zIndex.drawer)
   })
 
   it('avisa que se mide con Google Analytics y Meta y que no se envían datos personales', () => {

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  aplicarCotizacionRpc,
   cargarCotizacionRpc,
   confirmarCotizacionRpc,
   descartarCotizacionRpc,
   leerEstadoCotizacion,
+  mensajeDeErrorAplicacion,
   mensajeDeErrorCotizacion,
   mensajeDeErrorConfirmacion,
   requiereRevisarDeNuevo,
@@ -112,4 +114,25 @@ export function useConfirmarCotizacion() {
   }, [])
 
   return { confirmar, descartar, enviando }
+}
+
+// Aplica el dólar (carga + confirma) en UNA transacción (F-INI-07, `aplicar_cotizacion`): o queda aplicado o no se
+// escribe nada. `revisar` como en `confirmar`: la variación real ya no es la que el usuario vio.
+export function useAplicarCotizacion() {
+  const [enviando, setEnviando] = useState(false)
+
+  const aplicar = useCallback(async (valor: number, empresaId?: string | null, variacionVista: number | null = null): Promise<ResultadoConfirmacion> => {
+    setEnviando(true)
+    try {
+      return { ok: true, confirmada: await aplicarCotizacionRpc(supabaseClient, valor, empresaId, variacionVista) }
+    } catch (error) {
+      console.error('No pudimos aplicar la cotización.', error)
+      const e = error as { code?: string; hint?: string | null }
+      return { ok: false, mensaje: mensajeDeErrorAplicacion(e), revisar: requiereRevisarDeNuevo(e) }
+    } finally {
+      setEnviando(false)
+    }
+  }, [])
+
+  return { aplicar, enviando }
 }

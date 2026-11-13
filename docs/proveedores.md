@@ -9,7 +9,7 @@ MSF-367). Permisos: `docs/permisos-por-rol.md`; eventos: `docs/actividad.md`; ca
 El prototipo muestra y esta épica **no** entrega: condiciones de compra, «Compra para», «Enviar correo a proveedor»,
 importar/exportar proveedores, N.º correlativo, Último ingreso y Costo en la ficha (MSF-219/MSF-179), código de
 barras y varios proveedores por producto. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
-seguimiento en Jira (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
+seguimiento en el tracker (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
 importar/exportar MSF-526, N.º correlativo MSF-527, Último ingreso y Costo MSF-528, código de barras MSF-529 y
 varios proveedores por producto MSF-530.
 

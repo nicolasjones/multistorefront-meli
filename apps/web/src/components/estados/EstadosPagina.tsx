@@ -19,10 +19,10 @@ export function EstadoExito({ titulo, descripcion, accion }: EstadoInformativoPr
   return <EstadoInformativo severidad="success" titulo={titulo} descripcion={descripcion} accion={accion} />
 }
 
-type EstadoErrorProps = Omit<EstadoInformativoProps, 'titulo'> & { titulo?: string; reintentar?: () => void; etiquetaReintentar?: string }
+type EstadoErrorProps = Omit<EstadoInformativoProps, 'titulo'> & { titulo?: string; reintentar?: () => void; etiquetaReintentar?: string; reintentarDeshabilitado?: boolean }
 
-export function EstadoError({ titulo = 'No pudimos cargar esta información.', descripcion, reintentar, etiquetaReintentar = 'Reintentar' }: EstadoErrorProps) {
-  return <EstadoInformativo severidad="error" titulo={titulo} descripcion={descripcion} accion={reintentar ? <Button color="inherit" onClick={reintentar}>{etiquetaReintentar}</Button> : undefined} />
+export function EstadoError({ titulo = 'No pudimos cargar esta información.', descripcion, reintentar, etiquetaReintentar = 'Reintentar', reintentarDeshabilitado = false }: EstadoErrorProps) {
+  return <EstadoInformativo severidad="error" titulo={titulo} descripcion={descripcion} accion={reintentar ? <Button color="inherit" disabled={reintentarDeshabilitado} onClick={reintentar}>{etiquetaReintentar}</Button> : undefined} />
 }
 
 function EstadoInformativo({ severidad, titulo, descripcion, accion }: EstadoInformativoProps & { severidad: 'error' | 'info' | 'success' }) {

@@ -12,6 +12,20 @@ packages:
 # protocolo de conexión remota.
 overrides:
   playwright-core: "1.61.0"
+  # MSF-820 (@mui/x-charts): los 10 d3-* transitivos de @mui/x-charts-vendor tienen una versión publicada el
+  # 2026-11-03 (menos de 2 semanas de antigüedad al incorporarse). Se fijan a la versión inmediata anterior, que
+  # cumple el rango de x-charts-vendor y tiene meses (o años) de antigüedad. Se puede quitar este bloque cuando
+  # esas versiones superen las 2 semanas (desde 2026-11-17) y se re-resuelva el lockfile.
+  d3-array: "3.2.4"
+  d3-color: "3.1.0"
+  d3-format: "3.1.2"
+  d3-interpolate: "3.0.1"
+  d3-path: "3.1.0"
+  d3-scale: "4.0.2"
+  d3-shape: "3.2.0"
+  d3-time: "3.1.0"
+  d3-time-format: "4.1.0"
+  d3-timer: "3.0.1"
 
 onlyBuiltDependencies:
   - esbuild

@@ -33,7 +33,7 @@
 |---|---|---|---|---|
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | Depende de cómo Ventas maneje cobros y el estado Deuda. |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | Se apoya en la cuenta web (`cuenta-web-del-cliente`, MSF-237). |
-| F-CLI-21 | Listas de precios por cliente | P3 | L | Se relaciona con F-PRE-14 de Precios. |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | Se relacionaba con F-PRE-14 de Precios, **cancelada** el 2026-11-12 (MSF-373). |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Se apoya en el listado de reposición de Stock. |
 
 **Bloqueada por**: sin bloqueos declarados; se acuerdan con el cliente cuando una historia pase a un hito. **Bloquea a**: ninguna épica.
@@ -46,7 +46,7 @@
 | Ventas · cobros y conciliación (`specs/20261024-150000-ventas-cobros-y-conciliacion`, `docs/ventas-cobros-y-conciliacion.md`) | Presente; es la referencia de cómo Ventas maneja cobros (insumo de F-CLI-19). |
 | Stock · avisos de reposición (`docs/stock-avisos-reposicion.md`) | Presente; es la referencia del «listado de reposición» (insumo de F-PRV-09). |
 | Proveedores y productos / ingreso de mercadería (`docs/proveedores.md`) | Presente; no contiene órdenes de compra. |
-| F-PRE-14 (listas de precios mayoristas, Precios, P3) | No presente en el repo; sin spec. |
+| F-PRE-14 (listas de precios mayoristas, Precios, P3) | **Cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373, spec `20261105-100000-cotizacion-sugerida-y-mayoristas`): chocaba con F-PRE-15 (escalas por tipo de cliente). No se implementa. |
 
 ## Supuestos (de la épica)
 
@@ -58,7 +58,7 @@
 
 Misma numeración que `docs/cuentas-y-compras-a-proveedores.md` (sección *Preguntas abiertas*):
 
-1. **Pregunta abierta 1 · F-CLI-21 vs. F-PRE-14.** Las listas de precios mayoristas (F-PRE-14, P3) chocan con que el tipo de cliente defina la escala en P0: si el tipo de cliente fija la escala de precios o si la escala depende de la cantidad.
+1. **Pregunta abierta 1 · F-CLI-21 vs. F-PRE-14** *(F-PRE-14 cancelada el 2026-11-12; el texto siguiente es el original)*. Las listas de precios mayoristas (F-PRE-14, P3) chocaban con que el tipo de cliente defina la escala en P0: si el tipo de cliente fija la escala de precios o si la escala depende de la cantidad.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27.** Tiendas online deja las cuentas en P3 (F-TDA-27); el roadmap manda hasta que se defina.
 3. **F-CLI-19 (cuenta corriente), decidida de forma provisoria por el desarrollo:** qué estados cuentan como deuda, si el saldo a favor se muestra, si el saldo es por tienda accesible o por organización y si la persona con `clientes` en lectura lo ve sin acceso a Ventas. A confirmar con el cliente.
 4. **Sin pantallas ni horas.** El documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido, con aviso en cada historia (F-CLI-19 tiene pantalla: la dibujó su propia spec).
@@ -140,14 +140,14 @@ stateDiagram-v2
 ## Fuera de alcance (explícito)
 
 - Todo comportamiento de negocio de las cuatro historias (saldo, historial, favoritos, listas de precios, órdenes de compra): sin requisitos hasta pasar a un hito.
-- Resolver la pregunta abierta 1 (tipo de cliente vs. cantidad) y el conflicto con F-PRE-14 / F-TDA-27.
+- Resolver la pregunta abierta 1 (tipo de cliente vs. cantidad) y el conflicto con F-TDA-27 (F-PRE-14 fue cancelada el 2026-11-12).
 - Dibujar pantallas nuevas.
 - Migraciones, RPC, workers, Kestra y Superset.
 
 ## Decisiones (respuestas de Nicolás: «decidí vos»)
 
 1. **Hito:** ninguna de las cuatro historias pasa a un hito ahora; la épica se cierra solo como registro documental. Las tareas de las historias quedan abiertas a propósito (instrucción expresa de Nicolás) hasta que la demanda se valide.
-2. **F-CLI-21 (escala de precios):** sin resolver; se decide cuando la historia pase a un hito, junto con F-PRE-14.
+2. **F-CLI-21 (escala de precios):** sin resolver; se decide cuando la historia pase a un hito (F-PRE-14 fue cancelada el 2026-11-12, ya no hay que coordinarla).
 3. **F-CLI-19 (fuente de saldo):** la definió el SDLC en su propia spec (MSF-451), a partir de Ventas · cobros y conciliación, sin requisitos del cliente; queda provisoria y a confirmar.
 4. **F-PRV-09 (origen de la orden):** se define con la spec de la historia, a partir del listado de reposición de Stock.
 5. **F-CLI-20 (prioridad):** rige P3 (roadmap), igual que F-TDA-27.

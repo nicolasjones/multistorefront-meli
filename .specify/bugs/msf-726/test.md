@@ -70,6 +70,24 @@ Migraciones OK: 618 archivo(s), 0 nuevo(s) contra origin/dokploy.
 - El valor real de `SUPABASE_URL` en STG/PRD (`http://kong:8000`) está confirmado por el tracker con `docker inspect`;
   el test lo reproduce como dato de entrada.
 
+## Sincronización con la base (2026-11-13)
+
+La rama se sincronizó con `origin/dokploy` en un commit de merge **sin tocar el código del fix**: los archivos del
+alcance (`supabase/functions/_shared/protocolo.ts`, `protocolo.test.ts`, `invitar-cliente/*` y
+`recuperar-clave-cliente/*`) quedan byte a byte iguales que en `fe43fb50`. El único conflicto fue `package.json`
+(scripts `test:edge:*` de la base contra el `test:edge:protocolo` de esta historia): se resolvió tomando los
+scripts de la base y re-agregando `test:edge:protocolo` a `test:web`.
+
+Verificación sobre el árbol ya sincronizado: `pnpm test:edge:protocolo` → 5/5 · `pnpm test:edge:invitar-cliente`
+→ 16/16 · `pnpm test:edge:recuperar-clave-cliente` → 10/10 · `pnpm lint` → exit 0 · `pnpm build` → exit 0 ·
+`pnpm docs:check` → OK.
+
+El rojo de `quality` (knip: `docs/javascripts/zoom-imagenes.js`, `scripts/armar-video-evidencia.mjs` y
+`scripts/publicar-videos-e2e.mjs`) **no es de esta historia**: los tres archivos los trajo la base y cualquier
+rama sincronizada con `dokploy` lo hereda (`quality` falla en `integracion/main-en-dokploy` y pasa en las ramas
+sin esos archivos). Además `quality` no es un check requerido: el ruleset de `dokploy` exige sólo `validacion`
+(el job único de `Validate`).
+
 ## Recommendation
 
 - **Close the bug — verified a nivel de código** (la reproducción del assessment, en su equivalente automatizado,

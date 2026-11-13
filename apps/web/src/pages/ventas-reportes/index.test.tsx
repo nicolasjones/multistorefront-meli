@@ -96,6 +96,7 @@ const montar = ({
   conteo = 5,
   cargandoConteo = false,
   conSeccion = true,
+  ruta = '/',
 }: {
   nivel?: string
   reportes?: unknown[]
@@ -103,6 +104,7 @@ const montar = ({
   conteo?: number | null
   cargandoConteo?: boolean
   conSeccion?: boolean
+  ruta?: string
 } = {}) => {
   mocks.useReportesAsignados.mockReturnValue({ reportes, isLoading: cargandoReportes })
   // Se resuelve en cada llamada: así el cambio de empresa activa se ve en la respuesta.
@@ -117,7 +119,7 @@ const montar = ({
   mocks.useIsSuperadmin.mockReturnValue({ isSuperadmin: false, isLoading: false })
   mocks.useOrganizacionDeTrabajo.mockReturnValue({ organizacionId: 'org-1', isLoading: false })
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       {conSeccion ? (
         <RequiereAccesoSeccion seccion="reportes"><ReportesVentas /></RequiereAccesoSeccion>
       ) : (
@@ -315,6 +317,19 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(rison).toContain('NATIVE_FILTER-empresa')
     expect(rison).toContain('col:empresa_nombre,op:IN')
     expect(rison).toContain("'San Javucho'")
+  })
+
+  it('abre con el período que Inicio le pasa por la URL (F-INI-04, FR-005)', async () => {
+    montar({ ruta: '/?desde=2026-09-01&hasta=2026-09-30' })
+    await esperarTiendas()
+    expect(mocks.propsReporte.current?.urlParams?.native_filters ?? '').toContain('2026-09-01 : 2026-09-30')
+    expect(screen.getByLabelText('Desde')).toHaveValue('2026-09-01')
+  })
+
+  it('un período inválido en la URL vuelve al mes en curso', async () => {
+    montar({ ruta: '/?desde=2026-09-30&hasta=2026-09-01' })
+    await esperarTiendas()
+    expect(mocks.propsReporte.current?.urlParams?.native_filters ?? '').not.toContain('2026-09-30 : 2026-09-01')
   })
 
   it('sin la sección `reportes` ve acceso restringido y no monta el tablero', async () => {

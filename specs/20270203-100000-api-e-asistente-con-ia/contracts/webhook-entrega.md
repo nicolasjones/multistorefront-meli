@@ -7,7 +7,7 @@
 
 1. El flow `entregar-webhooks-api` reclama un evento de `public.cola_eventos` (`private.reclamar_eventos`, lease, máximo 5 intentos).
 2. `private.api_fanout_evento(evento_id)` inserta una fila en `public.api_entregas` por cada suscripción activa que incluya el tipo; `on conflict (evento_id, suscripcion_id) do nothing`.
-3. El flow resuelve el evento y reclama entregas con `private.api_reclamar_entregas` (lease de 60 s).
+3. El flow resuelve el evento y reclama entregas con `private.api_reclamar_entregas` (lease de 300 s).
 4. La Edge Function entrega cada `api_entregas` firmada y llama `private.api_resolver_entrega`.
 
 ## Solicitud de la Edge Function
@@ -29,7 +29,7 @@ X-Firma: t=<epoch>,v1=<hmac-sha256-hex>
 ```
 
 - Cuerpo = evento serializado `{ id, tipo, organizacion_id, ocurrido_en, datos }`.
-- `v1` = HMAC-SHA256 de `<t>.<cuerpo>` con el secreto de la suscripción; `t` = epoch en segundos.
+- `v1` = HMAC-SHA256 de `<t>.<cuerpo>` con el secreto de la suscripción; `t` = epoch en segundos. Durante la gracia de 24 h de una rotación del secreto (MSF-839) la cabecera lleva **dos** `v1`, `t=<epoch>,v1=<nuevo>,v1=<anterior>`: el receptor acepta el aviso si alguna coincide.
 - Timeout de 10 s; no sigue redirecciones.
 - SSRF al entregar: resuelve DNS y rechaza loopback, rangos privados, link-local y metadata del proveedor. Si el destino cambia respecto de la validación al guardar, la entrega falla.
 - Respuesta `2xx` = `completada`; cualquier otro estado o error de red = reintento.

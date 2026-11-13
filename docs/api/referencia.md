@@ -442,7 +442,7 @@ Todos los errores tienen la forma `{ "error": { "codigo": "...", "mensaje": "...
 
 ## Avisos (webhooks)
 
-Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `"<t>.<cuerpo>"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.
+Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, donde `v1` es el HMAC-SHA256 en hexadecimal de `"<t>.<cuerpo>"` con el secreto de la suscripción (se muestra una sola vez al crearla). **Verificá la firma** recalculándola con el cuerpo recibido tal cual y comparando en tiempo constante, y rechazá un `t` viejo. Mientras se rota el secreto de la suscripción (gracia de 24 horas) la cabecera trae **dos** firmas, `t=<segundos>,v1=<nueva>,v1=<anterior>`: el aviso es válido si alguna coincide. Respondé `2xx` en menos de 10 segundos para confirmar. Si no, la plataforma reintenta: son **5 intentos en total** (el original y 4 reintentos) con una espera mínima de 1, 2, 4 y 8 minutos entre intentos; después la entrega queda `agotada`. La entrega es **al menos una vez**: por reintentos puede llegar repetida, así que usá `id` para ignorar los que ya procesaste. Una suscripción pausada no recibe los eventos que ocurren mientras está pausada.
 
 **Cobertura:** el aviso se emite por cada movimiento de stock del producto y por cada reserva o liberación, pero **no** por movimientos de variantes ni por traslados entre depósitos (el total del producto no cambia, pero sí el stock de cada depósito). Si necesitás ver todo, además de los avisos hacé un barrido periódico de `/v1/stock?actualizado_desde=`.
 
@@ -461,7 +461,7 @@ Cabeceras: `X-Evento-Id` (id del evento) y `X-Firma: t=<segundos>,v1=<hex>`, don
 | Nombre | Dónde | Tipo | Obligatorio | Qué es |
 |---|---|---|---|---|
 | `X-Evento-Id` | cabecera | texto (uuid) | sí | Identificador del evento. |
-| `X-Firma` | cabecera | texto | sí | `t=<segundos>,v1=<HMAC-SHA256 hex de "<t>.<cuerpo>">`. Ejemplo: `t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd`. |
+| `X-Firma` | cabecera | texto | sí | `t=<segundos>,v1=<HMAC-SHA256 hex de "<t>.<cuerpo>">`; durante una rotación de secreto lleva dos `v1` (nuevo y anterior). Ejemplo: `t=1803996332,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd`. |
 
 ### `stock.actualizado`
 

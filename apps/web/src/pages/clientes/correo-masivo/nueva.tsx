@@ -19,12 +19,12 @@ import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 
 const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 // Lo que el listado de Clientes entrega al pulsar «Enviar correo a seleccionados (N)»: los marcados y la
 // empresa activa con la que se marcaron. Si la empresa activa cambia, esa selección ya no vale (Principio VIII).
@@ -218,7 +218,7 @@ export function CorreoMasivoNueva() {
                 <Typography variant="s">{textoExcluidos(resumen.sin_correo, resumen.no_aceptan)}</Typography>
               )}
             </Box>
-            <Box role="status" aria-live="polite" sx={visuallyHidden}>
+            <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
               {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
             </Box>
             {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando destinatarios" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

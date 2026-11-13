@@ -60,7 +60,7 @@ test.describe('Ayuda dentro del panel (MSF-385)', () => {
       for (const { ruta, titulo } of PANTALLAS) {
         await paso(page, `«Ayuda» en ${ruta} abre el texto de ${titulo}`, async () => {
           await page.goto(ruta)
-          const boton = page.getByRole('button', { name: 'Ayuda' })
+          const boton = page.getByRole('button', { name: 'Ayuda', exact: true })
           await clic(page, boton)
           const dialogo = page.getByRole('dialog', { name: titulo })
           await expect(dialogo).toBeVisible()
@@ -79,7 +79,7 @@ test.describe('Ayuda dentro del panel (MSF-385)', () => {
         await paso(page, `«Ayuda» a ${ancho} px`, async () => {
           await page.setViewportSize({ width: ancho, height: 900 })
           await page.goto('/categorias')
-          const boton = page.getByRole('button', { name: 'Ayuda' })
+          const boton = page.getByRole('button', { name: 'Ayuda', exact: true })
           await expect(boton).toBeVisible()
           const cajaBoton = await boton.boundingBox()
           expect(cajaBoton, 'el botón tiene caja').not.toBeNull()

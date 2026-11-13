@@ -2,34 +2,21 @@
 // de correo transaccional con contenido libre: solo manda los correos de Auth por su SMTP. Se usa ese
 // mismo SMTP (Mailpit en local, el relay de GOTRUE_SMTP_* en el servidor self-hosted) con las
 // credenciales en variables de entorno de la función. Nunca llegan al navegador.
+// Todo el cableado (variables, límites, sondeo) vive en `smtp.ts` y `envio.ts`, probados con `node --test`; acá solo van los
+// constructores reales de Deno.
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
+import { armarEnvioDesdeEntorno, type EnviarCorreo, type MensajeCorreo } from './smtp.ts'
 import { lineaSegura } from './texto.ts'
 
-export type MensajeCorreo = { para: string[]; asunto: string; texto: string }
-export type EnviarCorreo = (mensaje: MensajeCorreo) => Promise<void>
+export type { EnviarCorreo, MensajeCorreo }
 
 // `lineaSegura` vive en texto.ts (sin dependencias de Deno, probable con node --test); se reexporta.
 export { lineaSegura }
 
 /** @public */
-export const enviarPorSmtp: EnviarCorreo = async ({ para, asunto, texto }) => {
-  const hostname = Deno.env.get('SMTP_HOST')
-  const from = Deno.env.get('SMTP_FROM')
-  if (!hostname || !from) throw new Error('Falta configurar SMTP_HOST / SMTP_FROM')
-  const usuario = Deno.env.get('SMTP_USER')
-  const clave = Deno.env.get('SMTP_PASS')
-  const cliente = new SMTPClient({
-    connection: {
-      hostname,
-      port: Number(Deno.env.get('SMTP_PORT') ?? '587'),
-      // Mailpit local no usa TLS; el relay del servidor sí (SMTP_TLS=true).
-      tls: Deno.env.get('SMTP_TLS') === 'true',
-      ...(usuario && clave ? { auth: { username: usuario, password: clave } } : {}),
-    },
-  })
-  try {
-    await cliente.send({ from, to: para.map(lineaSegura), subject: lineaSegura(asunto), content: texto })
-  } finally {
-    await cliente.close().catch(() => undefined)
-  }
-}
+export const enviarPorSmtp: EnviarCorreo = armarEnvioDesdeEntorno({
+  env: (clave) => Deno.env.get(clave),
+  // denomailer conecta dentro de `send`: el sondeo TCP aparte separa «no se pudo alcanzar el servidor» (no salió nada).
+  crearCliente: (opciones) => new SMTPClient(opciones),
+  abrirConexion: (opciones) => Deno.connect(opciones),
+})

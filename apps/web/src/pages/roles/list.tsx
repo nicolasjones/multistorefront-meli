@@ -310,7 +310,7 @@ export function RolesPermisos() {
 
           <Box component="section" aria-label="Permisos por sección">
             <Typography variant="t3" component="h2" sx={{ mb: 1 }}>Acceso por sección</Typography>
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer tabIndex={0} role="region" aria-label="Matriz de permisos por sección (se desplaza)" component={Paper} variant="outlined">
               <Table size="small" aria-label="Matriz de permisos por sección">
                 <TableHead>
                   <TableRow>
@@ -362,7 +362,7 @@ export function RolesPermisos() {
                 <ToggleButton key={accion.clave} value={accion.clave}>{accion.etiqueta}</ToggleButton>
               ))}
             </ToggleButtonGroup>
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer tabIndex={0} role="region" aria-label="Matriz de permisos por acción (se desplaza)" component={Paper} variant="outlined">
               <Table size="small" aria-label="Matriz de permisos por acción">
                 <TableHead>
                   <TableRow>

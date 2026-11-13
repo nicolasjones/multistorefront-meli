@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { ThemeProvider, createTheme, useTheme } from '@mui/material'
 import { describe, expect, it } from 'vitest'
 import { ProveedorTemaTienda } from './ProveedorTemaTienda'
-import { IDENTIDADES_EJEMPLO, IDENTIDAD_TIENDA_POR_DEFECTO, crearTemaTienda } from './temaTienda'
+import { IDENTIDADES_EJEMPLO, IDENTIDAD_TIENDA_POR_DEFECTO, contraste, crearTemaTienda } from './temaTienda'
 
 function Sonda({ id }: { id: string }) {
   const t = useTheme()
@@ -10,6 +10,15 @@ function Sonda({ id }: { id: string }) {
 }
 
 describe('tema de tienda por empresa', () => {
+  it('el texto secundario cumple AA (4,5:1) sobre el fondo y sobre la superficie, también con textos claros o fondos oscuros', () => {
+    for (const identidad of [IDENTIDADES_EJEMPLO.mundoJc, IDENTIDADES_EJEMPLO.sanJavucho, { colorTexto: '#555555', colorFondo: '#FFFFFF' }, { colorTexto: '#EEEEEE', colorFondo: '#111111' }]) {
+      const t = crearTemaTienda(identidad)
+      const secundario = t.palette.text.secondary
+      expect(contraste(secundario, t.palette.background.default)).toBeGreaterThanOrEqual(4.5)
+      expect(contraste(secundario, t.tienda!.superficie)).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
   it('Mundo JC usa Barlow Condensed en títulos y Barlow en texto', () => {
     const t = crearTemaTienda(IDENTIDADES_EJEMPLO.mundoJc)
     expect(t.typography.h1.fontFamily).toContain('Barlow Condensed')

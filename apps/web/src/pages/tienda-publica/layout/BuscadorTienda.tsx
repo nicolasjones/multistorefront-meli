@@ -13,6 +13,9 @@ import {
 } from '../../../lib/tiendaBusqueda'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
+import { IconoLupa } from './iconos'
+import { BORDE_PANEL } from './medidas'
 
 type Estado =
   | { fase: 'reposo' }
@@ -130,7 +133,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
 
   return (
     <ClickAwayListener onClickAway={() => setAbierto(false)}>
-      <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360 }, maxWidth: '100%' }}>
+      <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360, md: '100%' }, maxWidth: { xs: '100%', md: 560 } }}>
         <Box component="form" role="search" aria-label={etiqueta} onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
           <TextField
             fullWidth
@@ -140,7 +143,16 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
             onChange={(evento) => { setTexto(evento.target.value); setAbierto(true); setActivo(-1) }}
             onFocus={() => setAbierto(true)}
             onKeyDown={alTeclear}
+            // Prototipo: campo de 44 px, borde de 1,5 px, radio 8 y botón cuadrado con la lupa en el color primario.
+            sx={{ '& .MuiOutlinedInput-root': { height: 44, borderRadius: '8px', pr: 0, overflow: 'hidden', bgcolor: 'background.paper', fontSize: 15, '& fieldset': { borderWidth: '1.5px', borderColor: 'rgba(0,0,0,.18)' }, '& .MuiOutlinedInput-input': { py: 0, pl: '14px', height: '100%', boxSizing: 'border-box' } } /* estilos-sueltos: ok */ }}
             slotProps={{
+              input: {
+                endAdornment: (
+                  <Box component="button" type="submit" aria-label="Buscar" sx={{ width: 44, height: 44, flexShrink: 0, border: 0, p: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' /* estilos-sueltos: ok */ }}>
+                    <IconoLupa />
+                  </Box>
+                ),
+              },
               htmlInput: {
                 role: 'combobox',
                 'aria-label': 'Buscar productos',
@@ -157,8 +169,9 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
         {mostrarPanel && estado.fase !== 'reposo' ? (
           <Box
             sx={{
+              // Prototipo (`.sug`): radio 10, borde de 1 px y sombra suave, pegado al campo.
               position: 'absolute', zIndex: 10, left: 0, right: 0, mt: 0.5, bgcolor: 'background.paper',
-              border: 1, borderColor: 'divider', borderRadius: (tema) => `${tema.shape.borderRadius}px`, boxShadow: 3,
+              border: BORDE_PANEL, borderRadius: '10px', boxShadow: '0 12px 32px rgba(0,0,0,.16)', // estilos-sueltos: ok
               maxHeight: '70vh', overflowY: 'auto',
             }}
           >
@@ -177,7 +190,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
               </Typography>
             ) : null}
             {estado.fase === 'lista' && sugerencias.length === 0 ? (
-              <Typography role="status" variant="body2" sx={{ p: 2 }}>No encontramos productos con ese nombre.</Typography>
+              <Typography role="status" variant="body2" color="text.secondary" sx={{ p: '14px 12px', fontSize: 14 /* estilos-sueltos: ok */ }}>No encontramos productos con ese nombre.</Typography>
             ) : null}
             {estado.fase === 'lista' && sugerencias.length > 0 ? (
               <Box component="ul" id={idLista} role="listbox" aria-label="Sugerencias de búsqueda" sx={{ listStyle: 'none', m: 0, p: 0 }}>
@@ -198,7 +211,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
                   aria-selected={activo === sugerencias.length}
                   onMouseDown={(evento) => evento.preventDefault()}
                   onClick={irAResultados}
-                  sx={{ ...estiloOpcion(activo === sugerencias.length), fontWeight: 600, borderTop: 1, borderColor: 'divider' }}
+                  sx={(tema) => ({ ...estiloOpcion(activo === sugerencias.length), display: 'block', fontSize: 13, fontWeight: 600, color: tema.palette.primary.main, borderBottom: 0 /* estilos-sueltos: ok */ })}
                 >
                   Ver todos los resultados →
                 </Box>
@@ -212,7 +225,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
 }
 
 const estiloOpcion = (activa: boolean) => ({
-  display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1, cursor: 'pointer',
+  display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: '10px', cursor: 'pointer', fontSize: 14, borderBottom: '1px solid rgba(0,0,0,.06)', // estilos-sueltos: ok
   bgcolor: activa ? 'action.selected' : 'transparent',
   '&:hover': { bgcolor: 'action.hover' },
 })
@@ -238,27 +251,29 @@ function OpcionSugerencia({
       sx={estiloOpcion(activa)}
     >
       <Box
-        sx={(tema) => ({
-          width: tema.spacing(6), height: tema.spacing(6), flexShrink: 0, bgcolor: 'action.hover',
-          borderRadius: `${tema.shape.borderRadius}px`, overflow: 'hidden',
+        sx={{
+          width: 36, height: 36, flexShrink: 0, // estilos-sueltos: ok
+          overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-        })}
+        }}
       >
         {mostrarImagen ? (
-          <Box component="img" src={urlImagen} alt="" loading="lazy" onError={() => setFallo(urlImagen ?? null)} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <Box component="img" src={urlImagen} alt="" loading="lazy" onError={() => setFallo(urlImagen ?? null)} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         ) : (
           <Typography variant="caption" color="text.secondary" align="center">Sin imagen</Typography>
         )}
       </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{sugerencia.nombre}</Typography>
-        <Typography variant="body2" component="span">
-          {precio ? `${precio} ` : ''}
-          {precio && anterior ? <Box component="del" data-testid="precio-anterior" sx={{ color: 'text.secondary' }}>{anterior}</Box> : null}
-          {precio ? ' · ' : ''}
-          <EtiquetaDisponibilidad disponible={sugerencia.disponible} />
-        </Typography>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography component="span" sx={{ display: 'block', fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{sugerencia.nombre}</Typography>
+        {/* El prototipo no dibuja la disponibilidad en las sugerencias: queda solo para lectores de pantalla. */}
+        <Box component="span" sx={SOLO_LECTORES}><EtiquetaDisponibilidad disponible={sugerencia.disponible} /></Box>
       </Box>
+      {precio ? (
+        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+          <Typography component="span" sx={{ display: 'block', color: 'primary.main', fontWeight: 700 }}>{precio}</Typography>
+          {anterior ? <Box component="del" data-testid="precio-anterior" sx={{ color: 'text.secondary', fontSize: 12 /* estilos-sueltos: ok */ }}>{anterior}</Box> : null}
+        </Box>
+      ) : null}
     </Box>
   )
 }

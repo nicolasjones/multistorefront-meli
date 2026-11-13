@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { limpiarOrganizacion } from './soporte/fixtures'
 
 // Cierre de MSF-219 (T019, SC-001…003): ingreso de dos productos con costo →
 // stock sube → historial → anular → stock vuelve y el ingreso queda anulado.
@@ -61,7 +62,7 @@ async function ingresar(page: Page, correo: string) {
 }
 
 async function elegirAutocomplete(page: Page, etiqueta: string, opcion: string) {
-  await page.getByLabel(etiqueta).click()
+  await page.locator('form').getByRole('combobox', { name: etiqueta, exact: true }).click()
   await page.getByRole('option', { name: opcion }).click()
 }
 
@@ -69,6 +70,7 @@ test.describe('Ingreso de mercadería por proveedor (MSF-219, SC-001…003)', ()
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('registra dos productos con costo, los lista y anula el ingreso', async ({ browser }) => {
+    test.setTimeout(90_000) // dos productos con costo, ingreso, historial y anulación con verificación de stock
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-ingresos-${sufijo}@example.com`
     const empresa = `Tienda E2E ${sufijo}`
@@ -134,10 +136,11 @@ test.describe('Ingreso de mercadería por proveedor (MSF-219, SC-001…003)', ()
 
       await contexto.close()
     } finally {
-      // Limpieza: el Supabase local no acumula organizaciones ni usuarios sembrados.
+      // Limpieza: la baja de la organización no cascadea a los ingresos de mercadería (RESTRICT hacia productos), por eso
+      // `limpiarOrganizacion` los borra antes.
       if (orgId) {
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
-        await borrar(`organizaciones?id=eq.${orgId}`)
+        await limpiarOrganizacion(orgId)
       }
       if (idUsuario) await borrarUsuario(idUsuario)
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Collapse, Divider, List, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material'
+import { Box, Collapse, Divider, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { ThemedSider } from '@refinedev/mui'
 import { Link, useLocation } from 'react-router'
@@ -12,6 +12,7 @@ import { FUNCIONALIDAD_SERVICE_TECNICO } from '../service/RequiereServiceTecnico
 import { tokens } from '../../tema/tokens'
 import { destinoVisible, SECCIONES_PANEL, type DestinoPanel, type SeccionPanel } from './destinosPanel'
 import { TituloPanel } from './TituloPanel'
+import { etiquetarBotonContraer } from './etiquetasRefine'
 
 // Sección abierta por defecto (acordeón): Contactos es la más usada desde
 // que Clientes y Proveedores viven ahí; Canales, Administración y Plataforma
@@ -118,12 +119,23 @@ function SeccionDeMenu({
       <Collapse in={contenidoVisible} unmountOnExit>
         <List disablePadding>
           {seccion.destinos.map((destino) => (
-            <ItemDestino key={destino.id} destino={destino} collapsed={collapsed} activo={rutaActual === destino.ruta} />
+            // Cada destino va en su `<li>`: una lista solo admite `<li>` como hijos directos (axe: `list`).
+            <ListItem key={destino.id} disablePadding>
+              <ItemDestino destino={destino} collapsed={collapsed} activo={rutaActual === destino.ruta} />
+            </ListItem>
           ))}
         </List>
       </Collapse>
     </Box>
   )
+}
+
+// No dibuja nada: el botón aparece al expandir el sider (cambia `collapsed`) y vive fuera de este render.
+function EtiquetaBotonContraer({ collapsed }: { collapsed: boolean }) {
+  useEffect(() => {
+    etiquetarBotonContraer()
+  }, [collapsed])
+  return null
 }
 
 export function SiderPanel() {
@@ -162,19 +174,26 @@ export function SiderPanel() {
       Title={TituloPanel}
       render={({ collapsed }) => {
         if (isLoading || !contexto) {
-          return null
+          return (
+            <Box component="li" sx={{ listStyle: 'none' }}>
+              <EtiquetaBotonContraer collapsed={collapsed} />
+            </Box>
+          )
         }
 
         if (permisosPanel?.error && !(contexto.es_superadmin && !contexto.organizacion_id)) {
-          return collapsed ? null : (
-            <Box sx={{ p: 1 }}>
-              <EstadoError titulo="No pudimos verificar tus permisos." reintentar={permisosPanel.recargar} />
+          return (
+            <Box component="li" sx={{ listStyle: 'none', p: collapsed ? 0 : 1 }}>
+              <EtiquetaBotonContraer collapsed={collapsed} />
+              {collapsed ? null : <EstadoError titulo="No pudimos verificar tus permisos." reintentar={permisosPanel.recargar} />}
             </Box>
           )
         }
 
         return (
-          <Box sx={{ bgcolor: sider.fondo, minHeight: '100%', py: 0.5 }}>
+          // `ThemedSider` envuelve lo que devuelve este render en un `<ul>`: la raíz es un `<li>` para que la lista sea válida.
+          <Box component="li" sx={{ listStyle: 'none', bgcolor: sider.fondo, minHeight: '100%', py: 0.5 }}>
+            <EtiquetaBotonContraer collapsed={collapsed} />
             {SECCIONES_PANEL.map((seccion) => {
               const destinosVisibles = seccion.destinos.filter((destino) => destinoVisible(destino, contexto, permisosPanel?.permisos, funcionalidades))
               if (destinosVisibles.length === 0) {

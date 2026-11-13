@@ -3,7 +3,7 @@
 -- FR-035 (RPC: permisos, idempotencia, evento) y FR-036 (función pública, `anon`).
 begin;
 
-select plan(39);
+select plan(42);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -57,18 +57,18 @@ select is(
   'anon ejecuta publico.contenido_por_dominio'
 );
 select is(
-  has_function_privilege('anon', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('anon', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
   false,
   'anon no ejecuta public.guardar_tienda_contenido'
 );
 select is(
-  has_function_privilege('authenticated', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('authenticated', 'public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text,text)', 'execute'),
   false,
   'authenticated ya no ejecuta public.guardar_tienda_contenido: solo public.publicar_tienda (F-TDA-06, FR-052)'
 );
 -- F-TDA-06 (FR-052): las RPC vivas ya no son ejecutables por authenticated (solo publicar_tienda). Para seguir
 -- probando su cuerpo se reconcede el permiso dentro de esta transacción (se revierte con el rollback del test).
-grant execute on function public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text) to authenticated;
+grant execute on function public.guardar_tienda_contenido(uuid,text,text,text,text,text,text,text,text,text) to authenticated;
 
 
 -- ============================================================================
@@ -107,7 +107,7 @@ select lives_ok(
   $$select public.guardar_tienda_contenido(
       'e1000000-0000-0000-0000-000000000001',
       '  Todo para tu consola  ', 'Envíos a todo el país', 'Ver catálogo', 'catalogo',
-      'Envío gratis desde $50.000', '© Uno A', 'Los precios incluyen IVA', 'Consultanos')$$,
+      'Envío gratis desde $50.000', '© Uno A', 'Los precios incluyen IVA', 'Consultanos', '  Todo para jugar  ')$$,
   'el administrador guarda el contenido de su empresa'
 );
 select is(
@@ -119,6 +119,11 @@ select is(
   (select count(*)::int from dominio.tienda_contenido),
   1,
   'el administrador ve el contenido de su organización'
+);
+select is(
+  (select eslogan from dominio.tienda_contenido where empresa_id = 'e1000000-0000-0000-0000-000000000001'),
+  'Todo para jugar',
+  'MSF-841: el eslogan se guarda recortado'
 );
 
 -- Texto con HTML: se guarda tal cual (texto plano); el front lo escapa (Vitest T027).
@@ -153,7 +158,7 @@ select lives_ok(
   $$select public.guardar_tienda_contenido(
       'e1000000-0000-0000-0000-000000000001',
       'Todo para tu consola', 'Envíos a todo el país', 'Ver catálogo', 'catalogo',
-      'Envío gratis desde $50.000', '© Uno A', 'Los precios incluyen IVA', 'Consultanos')$$,
+      'Envío gratis desde $50.000', '© Uno A', 'Los precios incluyen IVA', 'Consultanos', 'Todo para jugar')$$,
   'guardar dos veces lo mismo no falla'
 );
 select is(
@@ -173,7 +178,7 @@ select lives_ok(
   $$select public.guardar_tienda_contenido(
       'e1000000-0000-0000-0000-000000000001',
       'Todo para tu consola', 'Nuevo subtítulo', 'Ver catálogo', 'catalogo',
-      'Envío gratis desde $50.000', '© Uno A', 'Los precios incluyen IVA', 'Consultanos')$$,
+      'Envío gratis desde $50.000', '© Uno A', 'Los precios incluyen IVA', 'Consultanos', 'Todo para jugar')$$,
   'un cambio real se guarda'
 );
 select is(
@@ -193,6 +198,11 @@ select throws_ok(
   format($$select public.guardar_tienda_contenido('e1000000-0000-0000-0000-000000000001', '', '', '', 'catalogo', '', %L, '', '')$$, repeat('a', 301)),
   '22023', 'El texto del pie no puede superar los 300 caracteres',
   'un pie de 301 caracteres se rechaza'
+);
+select throws_ok(
+  format($$select public.guardar_tienda_contenido('e1000000-0000-0000-0000-000000000001', '', '', '', 'catalogo', '', '', '', '', %L)$$, repeat('a', 81)),
+  '22023', 'El eslogan no puede superar los 80 caracteres',
+  'MSF-841: un eslogan de 81 caracteres se rechaza'
 );
 select throws_ok(
   $$select public.guardar_tienda_contenido('e1000000-0000-0000-0000-000000000001', '', '', '', 'https://malo.example', '', '', '', '')$$,
@@ -267,6 +277,11 @@ reset role;
 -- Función pública: lo guardado por una empresa no cambia a la otra (US3.4, FR-036)
 -- ============================================================================
 
+select is(
+  (select eslogan from publico.contenido_por_dominio('contenido-uno-a.ejemplo.com')),
+  'Todo para jugar',
+  'MSF-841: la función pública devuelve el eslogan'
+);
 select is(
   (select subtitulo from publico.contenido_por_dominio('contenido-uno-a.ejemplo.com')),
   'Nuevo subtítulo',

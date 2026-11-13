@@ -81,13 +81,15 @@ revocar_clave_api(p_clave_id uuid) -> void
 crear_suscripcion_api(p_url text, p_tipos text[]) -> table(id uuid, secreto text)
 actualizar_suscripcion_api(p_id uuid, p_activa boolean) -> void
 eliminar_suscripcion_api(p_id uuid) -> void
+rotar_secreto_suscripcion_api(p_id uuid) -> table(id uuid, secreto text)  -- MSF-839: el anterior vale 24 h; los avisos llevan las dos firmas
 
 // service_role (Edge Function api-v1)
 api_validar_clave(p_token text)
   -> table(valida boolean, clave_id uuid, organizacion_id uuid, alcances text[], limite_por_minuto integer, motivo text)
+reintentar_entrega_api(p_entrega_id uuid) -> void  -- MSF-838: Administrador; solo una entrega agotada de su organización
 api_controlar_limite(p_clave_id uuid) -> table(permitido boolean, reintentar_en_seg integer, restantes integer)
 api_registrar_llamada(p_clave_id uuid, p_organizacion_id uuid, p_metodo text, p_ruta text,
-                      p_version text, p_estado_http integer, p_duracion_ms integer) -> void
+                      p_version text, p_estado_http integer, p_duracion_ms integer, p_reserva_id uuid default null) -> void
 
 // service_role; filtro de organización dentro del SQL
 private.api_leer_productos(p_organizacion_id uuid, p_cursor text, p_limite integer,
@@ -104,6 +106,8 @@ private.api_fanout_evento(p_evento_id uuid) -> integer
 private.api_reclamar_entregas(p_limite integer default 20, p_lease_seg integer default 300)
   -> setof public.api_entregas
 private.api_resolver_entrega(p_entrega_id uuid, p_estado text, p_estado_http integer, p_error text) -> void
+private.api_entregas_salud(p_ventana_min integer default 60, p_atraso_min integer default 30)
+  -> table(agotadas bigint, entregas_atrasadas bigint, eventos_atrasados bigint, eventos_agotados bigint)  -- MSF-837, solo Kestra
 private.purgar_api_llamadas(p_retencion_dias integer default 90) -> integer
 
 // disparadores
@@ -117,7 +121,7 @@ private.emitir_venta_registrada() -> trigger
 
 | Tipo | Origen | Cuándo |
 |---|---|---|
-| `stock.actualizado` | `dominio.movimientos_stock` (trigger existente) | Cada movimiento |
+| `stock.actualizado` | `dominio.movimientos_stock` (trigger existente) | Cada movimiento de stock de un producto y cada reserva o liberación; no los de variantes ni los traslados entre depósitos |
 | `precio.actualizado` | `dominio.productos.precio_lista/moneda` y `dominio.producto_precios_escala.precio` | Cambio real de precio/moneda |
 | `venta.registrada` | `dominio.comprobantes_venta` | Factura que pasa a `estado = 'confirmada'` |
 

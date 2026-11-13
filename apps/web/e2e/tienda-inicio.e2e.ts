@@ -85,8 +85,12 @@ test.describe('Tienda online · página de inicio (SC-003)', () => {
         const page = await contexto.newPage()
 
         await page.goto(`${base}/`)
-        await expect(page.getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
-        await expect(page.getByRole('heading', { level: 2, name: 'Destacados' })).toBeVisible()
+        // Dentro de <main>: el pie también tiene un h2 «Categorías» (y «Contacto») y chocaría con el locator.
+        const principal = page.getByRole('main')
+        await expect(principal.getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
+        await expect(principal.getByRole('heading', { level: 2, name: 'Destacados' })).toBeVisible()
+        // Bloque de consultas del final de la portada: «Escribinos» (siempre) lleva a /contacto.
+        await expect(page.getByTestId('consultas-inicio').getByRole('link', { name: /Escribinos/ })).toBeVisible()
 
         // Su categoría, con «N productos», y nada de la otra tienda.
         await expect(page.getByRole('region', { name: 'Categorías' }).getByRole('link', { name: new RegExp(t.categoria) })).toContainText('2 productos')
@@ -96,6 +100,17 @@ test.describe('Tienda online · página de inicio (SC-003)', () => {
         await expect(page.getByRole('link', { name: new RegExp(t.destacado) })).toContainText(enPesos(t.precio))
         await expect(page.getByText(t.comun)).toHaveCount(0)
         await expect(page.getByText(otra.destacado)).toHaveCount(0)
+
+        // MSF-847: la portada (héroe a todo el ancho, franjas inclinadas y bloque de consultas) no tiene scroll horizontal entre
+        // 900 y 1280 px, donde el contenido de 1200 px y el borde de la ventana están más cerca.
+        for (const ancho of [900, 1024, 1280]) {
+          await page.setViewportSize({ width: ancho, height: 900 })
+          await page.evaluate(() => document.fonts.ready)
+          await expect
+            .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), { message: `${t.host} a ${ancho} px: la portada no debe tener scroll horizontal` })
+            .toBeLessThanOrEqual(0)
+        }
+        await page.setViewportSize({ width: 1440, height: 900 })
 
         // «Ver todo el catálogo →» lleva a /catalogo.
         await page.getByRole('link', { name: 'Ver todo el catálogo →' }).click()

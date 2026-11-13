@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { rest, UPSERT_FUSIONAR } from './soporte/fixtures'
 
 // F-STK-01 (MSF-268, SC-004): dos sesiones de la misma organización. La A abre `/stock`; la B
 // registra una salida que deja el producto con stock bajo → la A ve cantidad, estado y resumen de
@@ -24,13 +25,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
+async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
+  if (!r.ok) throw new Error(`REST GET ${ruta}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
 }
 
@@ -82,6 +79,7 @@ test.describe('Stock actual en vivo (F-STK-01, SC-004)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('la sesión A ve sin recargar la salida que registra la sesión B', async ({ browser }) => {
+    test.setTimeout(90_000) // dos sesiones y la espera de la actualización en vivo (hasta 15 s)
     const sufijo = randomUUID().slice(0, 8)
     const correoA = `vivo-a-${sufijo}@example.com`
     const correoB = `vivo-b-${sufijo}@example.com`
@@ -104,6 +102,9 @@ test.describe('Stock actual en vivo (F-STK-01, SC-004)', () => {
         'dominio',
       )
       await actualizar(`existencias?producto_id=eq.${producto.id}`, { cantidad: 5, minimo: 3 }, 'dominio')
+      // El stock se descuenta del depósito: las 5 unidades van al depósito principal que la organización ya trae.
+      const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&select=id&limit=1`, 'dominio')
+      await rest('existencias_deposito?on_conflict=producto_id,deposito_id', { producto_id: producto.id, deposito_id: deposito.id, organizacion_id: org.id, cantidad: 5 }, 'dominio', UPSERT_FUSIONAR)
 
       const contextoA = await browser.newContext()
       const contextoB = await browser.newContext()

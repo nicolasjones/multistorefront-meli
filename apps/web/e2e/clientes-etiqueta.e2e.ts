@@ -50,8 +50,8 @@ test.describe('Clientes · etiqueta impresa (MSF-446, F-CLI-17)', () => {
       userId = await altaUsuario(correo)
       await insertar('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
       const [conDireccion, sinDireccion] = await insertar<{ id: string }>('clientes', [
-        { organizacion_id: org.id, numero: 1, nombre: `Con calle ${sufijo}`, tipo: 'minorista', direccion: 'Av. Siempre Viva 742', localidad: 'Rosario', provincia: 'Santa Fe', codigo_postal: '2000', telefono: '341 555 0101', expreso_preferido: 'Vía Cargo' },
-        { organizacion_id: org.id, numero: 2, nombre: `Sin calle ${sufijo}`, tipo: 'minorista' },
+        { organizacion_id: org.id, nombre: `Con calle ${sufijo}`, tipo: 'minorista', direccion: 'Av. Siempre Viva 742', localidad: 'Rosario', provincia: 'Santa Fe', codigo_postal: '2000', telefono: '341 555 0101', expreso_preferido: 'Vía Cargo' },
+        { organizacion_id: org.id, nombre: `Sin calle ${sufijo}`, tipo: 'minorista', direccion: null, localidad: null, provincia: null, codigo_postal: null, telefono: null, expreso_preferido: null },
       ])
 
       await ingresar(page, correo)

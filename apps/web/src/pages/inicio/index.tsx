@@ -12,6 +12,7 @@ import { TarjetaConsultas } from './TarjetaConsultas'
 import { TarjetaDolar } from './TarjetaDolar'
 import { TarjetaEmpresas } from './TarjetaEmpresas'
 import { TarjetaStock } from './TarjetaStock'
+import { TableroInicio } from './tablero/TableroInicio'
 import { useNombrePerfil } from './useNombrePerfil'
 
 // Inicio (F-INI-01, MSF-344): reemplaza la portada de servicios del template en `/`. Consultas en vivo por
@@ -25,6 +26,8 @@ export function InicioPage() {
   const consultas = useNivelSeccion('consultas').nivel
   const dolar = useNivelSeccion('cotizacion_dolar').nivel
   const ventas = useNivelSeccion('ventas').nivel
+  const actividad = useNivelSeccion('actividad').nivel
+  const reportes = useNivelSeccion('reportes').nivel
   const productos = useNivelSeccion('productos').nivel
   const empresas = useNivelSeccion('empresas').nivel
   // Cambió la empresa activa (barra superior): se remonta el contenido y se recarga todo (Principio VIII, FR-010).
@@ -46,7 +49,9 @@ export function InicioPage() {
   const verStock = puedeVer(stock)
   const verConsultas = puedeVer(consultas)
   const verDolar = puedeVer(dolar)
-  const sinNada = !verStock && !verConsultas && !verDolar && !puedeVer(empresas) && !puedeEditar(ventas) && !puedeEditar(productos)
+  const verVentas = puedeVer(ventas)
+  const verActividad = puedeVer(actividad)
+  const sinNada = !verStock && !verVentas && !verActividad && !verConsultas && !verDolar && !puedeVer(empresas) && !puedeEditar(ventas) && !puedeEditar(productos)
 
   return (
     <Box component="main">
@@ -63,6 +68,8 @@ export function InicioPage() {
           {verStock ? <TarjetaStock /> : null}
           {verConsultas ? <TarjetaConsultas /> : null}
           {verDolar ? <TarjetaDolar puedeEditar={puedeEditar(dolar)} /> : null}
+          {/* El tablero va ÚLTIMO: su listado «Movimientos por producto» crece con la carga infinita y nada que esté debajo se alcanzaría. */}
+          {verVentas || verStock || verActividad ? <Box sx={{ gridColumn: '1 / -1' }}><TableroInicio verVentas={verVentas} verStock={verStock} verActividad={verActividad} verReportes={puedeVer(reportes)} /></Box> : null}
         </Box>
       )}
     </Box>

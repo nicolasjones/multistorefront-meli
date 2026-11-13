@@ -21,6 +21,9 @@ type Opciones = {
   token?: string | undefined
   // La base no pudo dejar el resultado (p. ej. ENTREGA_NO_VIGENTE: el lease venció).
   falloResolver?: boolean
+  // Secreto anterior durante la gracia de una rotación (MSF-839).
+  secretoAnterior?: string | null
+  anteriorIlegible?: boolean
 }
 
 function montar(opciones: Opciones = {}) {
@@ -32,7 +35,7 @@ function montar(opciones: Opciones = {}) {
   const deps: Deps = {
     token: 'token' in opciones ? opciones.token : TOKEN,
     entrega: async () => ({
-      data: [{ url: 'https://ejemplo.com/aviso', evento: EVENTO, secreto: SECRETO }],
+      data: [{ url: 'https://ejemplo.com/aviso', evento: EVENTO, secreto: SECRETO, secreto_anterior: opciones.secretoAnterior ?? null, secreto_anterior_ilegible: opciones.anteriorIlegible ?? false }],
       error: null,
     }),
     resolver: async (...args) => {
@@ -149,6 +152,45 @@ describe('entregar-webhook', () => {
     assert.match(error, /REDACTADO/)
   })
 
+  it('durante la gracia de una rotación el error tampoco lleva el secreto anterior', async () => {
+    const { deps, llamadas } = montar({ secretoAnterior: 'secreto-viejo', fallo: new Error(`falló con ${SECRETO} y con secreto-viejo adentro`) })
+    await manejar(pedir({ entrega_id: 'e-1' }), deps)
+    const [, , , error] = llamadas.resueltos[0] as [string, string, number, string]
+    assert.ok(!error.includes(SECRETO) && !error.includes('secreto-viejo'), 'ninguno de los dos secretos se guarda')
+  })
+
+  it('durante la gracia de una rotación el aviso lleva dos firmas: la del secreto nuevo y la del anterior', async () => {
+    const { deps, llamadas } = montar({ secretoAnterior: 'secreto-viejo' })
+    await manejar(pedir({ entrega_id: 'e-1' }), deps)
+    const firma = llamadas.peticiones[0].cabeceras['X-Firma']
+    const cuerpo = JSON.stringify(EVENTO)
+    const v1 = (clave: string) => createHmac('sha256', clave).update(`${EPOCH}.${cuerpo}`).digest('hex')
+    assert.equal(firma, `t=${EPOCH},v1=${v1(SECRETO)},v1=${v1('secreto-viejo')}`)
+  })
+
+  it('si Vault no pudo leer el secreto anterior, el aviso sale con una firma y queda un aviso en el log sin secretos', async () => {
+    const avisos: string[] = []
+    const original = console.warn
+    console.warn = (...args: unknown[]) => { avisos.push(args.join(' ')) }
+    try {
+      const { deps, llamadas } = montar({ anteriorIlegible: true })
+      const res = await manejar(pedir({ entrega_id: 'e-1' }), deps)
+      assert.equal(res.status, 200)
+      assert.equal((llamadas.peticiones[0].cabeceras['X-Firma'].match(/v1=/g) ?? []).length, 1)
+    } finally {
+      console.warn = original
+    }
+    assert.equal(avisos.length, 1)
+    assert.match(avisos[0], /secreto anterior de la entrega e-1/)
+    assert.ok(!avisos[0].includes(SECRETO), 'el log no lleva secretos')
+  })
+
+  it('sin rotación en curso el aviso lleva una sola firma', async () => {
+    const { deps, llamadas } = montar()
+    await manejar(pedir({ entrega_id: 'e-1' }), deps)
+    assert.equal((llamadas.peticiones[0].cabeceras['X-Firma'].match(/v1=/g) ?? []).length, 1)
+  })
+
   it('un destino que resuelve a la red interna no recibe el aviso (SSRF)', async () => {
     const { deps, llamadas } = montar({ dns: ['127.0.0.1'] })
     const res = await manejar(pedir({ entrega_id: 'e-1' }), deps)
@@ -178,6 +220,24 @@ describe('entregar-webhook', () => {
       firmar(cuerpo, SECRETO, EPOCH),
       `t=${EPOCH},v1=${createHmac('sha256', SECRETO).update(`${EPOCH}.${cuerpo}`).digest('hex')}`,
     )
+  })
+})
+
+describe('firmar con secreto anterior', () => {
+  it('agrega la firma del secreto anterior después de la del nuevo y las dos se verifican por separado', () => {
+    const cuerpo = JSON.stringify(EVENTO)
+    const firma = firmar(cuerpo, SECRETO, EPOCH, 'secreto-viejo')
+    const partes = firma.split(',')
+    assert.equal(partes[0], `t=${EPOCH}`)
+    assert.equal(partes.length, 3)
+    assert.equal(partes[1], `v1=${createHmac('sha256', SECRETO).update(`${EPOCH}.${cuerpo}`).digest('hex')}`)
+    assert.equal(partes[2], `v1=${createHmac('sha256', 'secreto-viejo').update(`${EPOCH}.${cuerpo}`).digest('hex')}`)
+  })
+
+  it('un secreto anterior vacío o nulo no agrega nada', () => {
+    const cuerpo = JSON.stringify(EVENTO)
+    assert.equal(firmar(cuerpo, SECRETO, EPOCH, null), firmar(cuerpo, SECRETO, EPOCH))
+    assert.equal(firmar(cuerpo, SECRETO, EPOCH, ''), firmar(cuerpo, SECRETO, EPOCH))
   })
 })
 

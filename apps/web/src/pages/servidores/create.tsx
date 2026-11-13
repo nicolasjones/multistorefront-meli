@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Create } from '@refinedev/mui'
+import { BotonVolver } from '../../components/pagina/BotonVolver'
 import { useIsSuperadmin } from '../../hooks/useIsSuperadmin'
 import { supabaseClient } from '../../lib/supabase'
 
@@ -81,7 +82,7 @@ export function ServidorCreate() {
 
   if (passwordRol) {
     return (
-      <Create title="Servidor aprovisionado" saveButtonProps={{ style: { display: 'none' } }}>
+      <Create goBack={<BotonVolver />} title="Servidor aprovisionado" saveButtonProps={{ style: { display: 'none' } }}>
         <Box sx={{ maxWidth: 480 }}>
           <Stack spacing={2}>
             <Alert severity="warning">
@@ -104,7 +105,7 @@ export function ServidorCreate() {
   }
 
   return (
-    <Create title="Crear servidor de organización" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}>
+    <Create goBack={<BotonVolver />} title="Crear servidor de organización" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}>
       <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}>
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}

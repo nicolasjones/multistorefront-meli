@@ -20,6 +20,7 @@ import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 type Pestana = TipoConsultaHistorial | 'cotizaciones'
 
@@ -31,7 +32,6 @@ const PESTANAS: ReadonlyArray<{ valor: Pestana; etiqueta: string }> = [
 
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const TONO_ESTADO: Readonly<Record<string, VarianteEtiqueta>> = {
   Cobrado: 'exito',
@@ -191,7 +191,7 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
         {hasta ? <Chip variant="outlined" label={`Hasta: ${formatearFecha(hasta)}`} /> : null}
       </BarraHerramientas>
 
-      <Box role="status" aria-live="polite" sx={visuallyHidden}>
+      <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
         {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label={`Actualizando ${nombre}`} sx={{ height: ALTO_BARRA_CARGA }} /> : null}

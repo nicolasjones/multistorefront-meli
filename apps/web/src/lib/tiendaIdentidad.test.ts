@@ -4,7 +4,7 @@ vi.mock('./supabase', () => ({ supabaseClient: {} }))
 
 import {
   contrasteBlancoSobre, esColorValido, evaluarContraste, familiasACargar, formatearContraste, normalizarColor,
-  rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
+  IDENTIDAD_BASE, TIPOGRAFIAS, identidadDesdeFila, rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
 } from './tiendaIdentidad'
 
 const archivo = (nombre: string, tipo: string, bytes: number | string) =>
@@ -119,6 +119,22 @@ describe('validación de archivos (FR-021, FR-025, FR-026)', () => {
   })
 })
 
+describe('color de la barra superior y pie (MSF-841)', () => {
+  it('el chequeo AA nombra el color evaluado y usa el mismo criterio', () => {
+    expect(evaluarContraste('#222222', 'la barra superior y pie')?.texto).toMatch(/^Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\.$/)
+    expect(evaluarContraste('#FFEB3B', 'la barra superior y pie')?.cumpleAA).toBe(false)
+  })
+
+  it('un borrador o versión anterior sin color_barra toma el color por defecto', () => {
+    const fila = {
+      color_primario: '#A3111D', color_primario_oscuro: '#7A0A12', color_acento: '#A3111D', color_fondo: '#FFFFFF',
+      tipografia_titulos: 'Sora' as const, tipografia_texto: 'Sora' as const, logo_ruta: null, banner_ruta: null, banner_movil_ruta: null,
+    }
+    expect(identidadDesdeFila(fila).colorBarra).toBe(IDENTIDAD_BASE.colorBarra)
+    expect(identidadDesdeFila({ ...fila, color_barra: '#0A0A0A' }).colorBarra).toBe('#0A0A0A')
+  })
+})
+
 describe('tipografías (FR-024)', () => {
   it('carga solo las familias de la lista cerrada y omite la del sistema', () => {
     expect(familiasACargar({ tipografiaTitulos: 'Barlow Condensed', tipografiaTexto: 'Barlow' })).toEqual(['Barlow Condensed', 'Barlow'])
@@ -130,5 +146,12 @@ describe('tipografías (FR-024)', () => {
     expect(urlFuentes(['Barlow Condensed', 'Lato'])).toBe('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Lato:wght@400;500;600;700&display=swap')
     expect(urlFuentes(['x;}body{display:none'])).toBeNull()
     expect(urlFuentes([])).toBeNull()
+  })
+
+  it('carga las tipografías del prototipo (Bricolage Grotesque y DM Sans) por su nombre', () => {
+    expect(TIPOGRAFIAS).toContain('Bricolage Grotesque')
+    expect(TIPOGRAFIAS).toContain('DM Sans')
+    expect(familiasACargar({ tipografiaTitulos: 'Bricolage Grotesque', tipografiaTexto: 'DM Sans' })).toEqual(['Bricolage Grotesque', 'DM Sans'])
+    expect(urlFuentes(['Bricolage Grotesque', 'DM Sans'])).toBe('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap')
   })
 })

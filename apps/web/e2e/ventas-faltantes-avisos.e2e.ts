@@ -66,7 +66,8 @@ test.describe('Ventas · avisos de faltantes (MSF-257, F-VTA-26)', () => {
       await clic(page, page.getByRole('checkbox', { name: /Seleccionar Funda Sincorreo/ }))
       await clic(page, page.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
       await clic(page, page.getByRole('dialog', { name: 'Avisar a los clientes' }).getByRole('button', { name: 'Enviar avisos' }))
-      await expect(page.getByText('No se enviaron avisos. El cliente no tiene correo.')).toBeVisible()
+      // El aviso nombra al cliente sin correo (FR-005).
+      await expect(page.getByText('No se enviaron avisos. El cliente no tiene correo: Carla Sincorreo.')).toBeVisible()
       await expect(page.getByText('Sin avisar')).toBeVisible()
       await expect(page.getByText(/Avisado/)).toHaveCount(0)
     } finally {
@@ -92,7 +93,7 @@ test.describe('Ventas · avisos de faltantes (MSF-257, F-VTA-26)', () => {
           await page.setViewportSize({ width: ancho, height: 900 })
           await page.goto('/ventas/faltantes')
           await expect(page.getByText('Teclado A11y')).toBeVisible()
-          expect(await desborde(page)).toBeLessThanOrEqual(1)
+          expect(await desborde(page), `desborde horizontal a ${ancho} px`).toBeLessThanOrEqual(1)
           expect(await violacionesAxe(page)).toEqual([])
         })
       }

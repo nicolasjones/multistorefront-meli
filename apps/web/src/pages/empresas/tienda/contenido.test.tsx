@@ -35,6 +35,7 @@ describe('pestaña Contenido (FR-031…FR-037, SC-013)', () => {
     expect(await screen.findByLabelText('Título')).toHaveValue('Todo para tu consola')
     for (const etiqueta of [
       'Subtítulo',
+      'Eslogan',
       'Texto del botón',
       'Mensaje de bienvenida (barra superior)',
       'Texto del pie de página',
@@ -46,6 +47,24 @@ describe('pestaña Contenido (FR-031…FR-037, SC-013)', () => {
     expect(screen.getByRole('combobox', { name: 'El botón lleva a' })).toHaveTextContent('Catálogo completo')
     expect(screen.getByText('20/120')).toBeInTheDocument()
     expect(mocks.leer).toHaveBeenCalledWith('e-1')
+  })
+
+  it('el eslogan tiene contador de 80 y se guarda con el resto (MSF-841)', async () => {
+    mocks.guardar.mockImplementation(async (_empresaId: string, valores: typeof guardado) => valores)
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Eslogan'), { target: { value: 'Todo para jugar' } })
+    expect(screen.getByText('15/80')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await screen.findByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')
+    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ eslogan: 'Todo para jugar' }))
+  })
+
+  it('un eslogan de más de 80 caracteres marca el campo y no guarda', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('Eslogan'), { target: { value: 'e'.repeat(81) } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Eslogan no puede superar los 80 caracteres.')).toBeInTheDocument()
+    expect(mocks.guardar).not.toHaveBeenCalled()
   })
 
   it('el contador cuenta puntos de código: un emoji suma 1, no 2', async () => {

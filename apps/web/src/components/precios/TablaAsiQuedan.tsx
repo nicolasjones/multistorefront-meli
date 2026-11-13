@@ -3,6 +3,7 @@ import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { type FilaPrevia, formatearPesosPrecio } from '../../lib/precios'
 import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 type Props = {
   nombreEmpresa: string
@@ -19,7 +20,6 @@ type Props = {
 }
 
 // Texto solo para lectores de pantalla (encabezado de la columna de la marca).
-const SOLO_LECTORES = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const SIN_PRECIO = 'Sin precio: falta cargar la cotización'
 const SIN_IVA_DEFINIDO = 'Sin precio con IVA: el producto no tiene una alícuota ni una categoría con IVA'

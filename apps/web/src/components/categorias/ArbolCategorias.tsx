@@ -11,6 +11,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import type { NodoCategoria } from '../../lib/categorias'
 import { type Alicuota, formatearAlicuota } from '../../lib/iva'
 import { tokens } from '../../tema/tokens'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 type EmpresaVisible = { id: string; nombre: string }
 
@@ -31,7 +32,6 @@ type Props = {
   onSoltar: (arrastradoId: string, destinoId: string) => void
 }
 
-const SOLO_LECTORES = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const
 const LINEA = `1px solid ${tokens.color.borde}`
 
 const textoSubcategorias = (cantidad: number) => `${cantidad} ${cantidad === 1 ? 'subcategoría' : 'subcategorías'}`

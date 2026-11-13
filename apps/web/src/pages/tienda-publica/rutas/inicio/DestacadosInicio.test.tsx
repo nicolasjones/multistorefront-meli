@@ -40,7 +40,7 @@ describe('DestacadosInicio', () => {
     montar()
     const tarjetas = await screen.findAllByTestId('tarjeta-producto')
     expect(within(tarjetas[1]).getByText('<b>Cable</b>')).toBeInTheDocument()
-    expect(within(tarjetas[1]).getByText('Sin stock')).toBeInTheDocument()
+    expect(within(tarjetas[1]).getByTestId('tarjeta-sin-stock')).toHaveTextContent('Sin stock')
     expect(within(tarjetas[1]).getByText('Sin imagen')).toBeInTheDocument()
     expect(tarjetas[1].textContent).not.toContain('$')
   })

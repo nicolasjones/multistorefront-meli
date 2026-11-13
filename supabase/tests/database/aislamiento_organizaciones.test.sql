@@ -55,7 +55,7 @@ select is(
 );
 
 select is(
-  (select nombre from clientes limit 1), 'Cliente de la Uno',
+  (select nombre from clientes order by nombre limit 1), 'Cliente de la Uno',
   'admin de la organización 1 ve el cliente correcto (no el de la organización 2)'
 );
 
@@ -93,7 +93,7 @@ select is(
 );
 
 select is(
-  (select nombre from clientes limit 1), 'Cliente de la Uno',
+  (select nombre from clientes order by nombre limit 1), 'Cliente de la Uno',
   'miembro de la organización 1 ve el cliente correcto (no el de la organización 2)'
 );
 
@@ -116,7 +116,7 @@ select is(
 );
 
 select is(
-  (select nombre from clientes limit 1), 'Cliente de la Dos',
+  (select nombre from clientes order by nombre limit 1), 'Cliente de la Dos',
   'admin de la organización 2 ve el cliente correcto (no el de la organización 1)'
 );
 

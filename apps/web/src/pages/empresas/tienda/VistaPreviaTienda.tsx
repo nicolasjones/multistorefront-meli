@@ -62,14 +62,7 @@ function VistaPrevia({ empresaId }: { empresaId: string }) {
       <Alert severity="info" role="status">Así se ve la tienda con los cambios sin publicar. Los enlaces no navegan en la vista previa.</Alert>
       {!carga.enLinea ? <Alert severity="warning" role="status">La empresa está desactivada: los visitantes ven «Volvemos pronto».</Alert> : null}
       <ProveedorFuenteTienda value={fuente}>
-        <ProveedorTemaTienda
-          identidad={{
-            tipografiaTitulos: fuente.identidad.tipografiaTitulos,
-            tipografiaTexto: fuente.identidad.tipografiaTexto,
-            colorPrimario: fuente.identidad.colorPrimario,
-            colorFondo: fuente.identidad.colorFondo,
-          }}
-        >
+        <ProveedorTemaTienda identidad={fuente.identidad}>
           <Box
             data-testid="vista-previa-tienda"
             // Los enlaces de las secciones públicas llevan a rutas de la tienda, que no existen en el panel.

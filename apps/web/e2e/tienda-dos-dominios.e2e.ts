@@ -98,7 +98,15 @@ test.describe('Tienda online · dos dominios (SC-003)', () => {
         await expect(page.getByRole('heading', { level: 1, name: t.nombre })).toBeVisible()
         await expect(page.getByText(t.bienvenida)).toBeVisible()
         await expect(page.getByText(t.pie)).toBeVisible()
-        await expect(page.getByText(t.visible)).toBeVisible()
+        // El inicio ya no lista productos sueltos (solo categorías y destacados): el catálogo visible se comprueba con la búsqueda.
+        const buscador = page.getByRole('combobox', { name: 'Buscar productos' })
+        await buscador.fill(t.visible)
+        await expect(page.getByRole('option', { name: new RegExp(t.visible) })).toBeVisible()
+        await buscador.fill(t.oculto)
+        // La búsqueda tolera errores: puede sugerir el visible, pero nunca el oculto.
+        await expect(page.getByRole('listbox').or(page.getByText('No encontramos productos con ese nombre.'))).toBeVisible()
+        await expect(page.getByRole('option', { name: new RegExp(t.oculto) })).toHaveCount(0)
+        await buscador.fill('')
         // Identidad: el color primario de la propia tienda queda como variable de tema.
         await expect
           .poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--tienda-color-primario')))

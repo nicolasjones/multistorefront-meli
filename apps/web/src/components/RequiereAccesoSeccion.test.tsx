@@ -67,6 +67,23 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
   })
 
+  // Falla cerrada: si el repedido de permisos falla con la sección ya abierta, no se sigue ofreciendo con el último nivel.
+  it('si los permisos se vuelven a pedir y fallan, desmonta la sección y avisa (no conserva el último nivel)', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false, error: false })
+    const arbol = () => (
+      <MemoryRouter>
+        <RequiereAccesoSeccion seccion="clientes"><input aria-label="Nombre" /></RequiereAccesoSeccion>
+      </MemoryRouter>
+    )
+    const vista = render(arbol())
+    expect(screen.getByLabelText('Nombre')).toBeInTheDocument()
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false, error: true, recargar: vi.fn() })
+    vista.rerender(arbol())
+    expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument()
+    expect(screen.getByText('No pudimos verificar tus permisos.')).toBeInTheDocument()
+  })
+
   // F-VTA-31 (FR-005): una pantalla que escribe (la venta de mostrador) exige edición en la sección.
   it('con nivel mínimo «edicion» no abre la sección a quien solo tiene lectura', async () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
 import type { Page } from '@playwright/test'
+import { crearConsulta } from './soporte/fixtures'
 
 // MSF-274 · F-CON-06 (SC-002, parte E2E): se crea una respuesta rápida con variables desde Consultas y se usa al
 // responder una consulta: el texto inicial que se abre en el correo es el esperado, con las variables resueltas.
@@ -53,18 +54,6 @@ async function borrarUsuario(id: string) {
   if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
-// `crear_consulta_publica` ya no es pública (saltearía el anti-spam): la tienda entra por `enviar_consulta_contacto`
-// y este E2E, que no prueba el límite, da el alta con service-role contra el Supabase local.
-async function enviarConsultaPublica(host: string, origen: 'formulario' | 'whatsapp', nombre: string, contacto: string): Promise<string> {
-  const r = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
-    method: 'POST',
-    headers: cabeceras({ 'content-profile': 'publico' }),
-    body: JSON.stringify({ host, origen, nombre, contacto, mensaje: origen === 'formulario' ? 'Hola, ¿tienen stock?' : null }),
-  })
-  if (!r.ok) throw new Error(`crear_consulta_publica: ${r.status} ${await r.text()}`)
-  return (await r.json()) as string
-}
-
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await page.getByLabel('Correo').fill(correo)
@@ -93,7 +82,9 @@ test.describe('Consultas · respuestas rápidas (MSF-274, F-CON-06)', () => {
       const idUsuario = await altaUsuario(correo)
       usuarios.push(idUsuario)
       await rest('usuarios_organizacion', { user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' })
-      const idConsulta = await enviarConsultaPublica(host, 'formulario', visitante, 'visitante@example.com')
+      // Las respuestas rápidas son de la empresa activa: sin una elegida arranca en «Todas mis empresas» y el diálogo pide elegir tienda.
+      await rest('usuario_empresa_activa', { user_id: idUsuario, empresa_id: empresaId })
+      const idConsulta = await crearConsulta(host, { nombre: visitante, contacto: 'visitante@example.com' })
 
       // `window.open` se captura para no salir al cliente de correo real.
       await page.addInitScript(() => {
@@ -124,6 +115,7 @@ test.describe('Consultas · respuestas rápidas (MSF-274, F-CON-06)', () => {
       expect(abierto).toMatch(/^mailto:visitante%40example\.com\?subject=/)
       expect(decodeURIComponent(abierto)).toContain(`body=Hola ${visitante}, gracias por escribir a ${tienda}.`)
     } finally {
+      for (const id of usuarios) await borrar(`usuario_empresa_activa?user_id=eq.${id}`)
       for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
       for (const id of usuarios) await borrarUsuario(id)
     }

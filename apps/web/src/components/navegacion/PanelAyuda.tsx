@@ -6,6 +6,7 @@ import { useLocation } from 'react-router'
 import { urlManual } from '../../ayuda/manual'
 import { MANUAL_POR_DESTINO } from '../../ayuda/manualPorDestino'
 import { resolverAyuda, TEXTO_SIN_AYUDA } from '../../ayuda/resolverAyuda'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // F-CFG-02 (MSF-385): botón «Ayuda» de la barra superior y panel lateral con la explicación breve de la pantalla actual.
 // La ayuda es contenido estático del repo: abrirla no consulta datos ni depende de la empresa activa (FR-027).
@@ -58,7 +59,7 @@ export function PanelAyuda() {
           >
             {paginaManual ? 'Ver el manual completo de esta pantalla' : 'Abrir el manual'}
             <OpenInNewIcon fontSize="inherit" aria-hidden />
-            <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
+            <Box component="span" sx={SOLO_LECTORES}>
               (se abre en una pestaña nueva)
             </Box>
           </Link>

@@ -48,7 +48,7 @@ export function DetalleActividadDialog({ eventoId, onCerrar }: Props) {
             {campos.length === 0 ? (
               <Typography color="text.secondary">Este evento no tiene valores registrados.</Typography>
             ) : (
-              <TableContainer>
+              <TableContainer tabIndex={0} role="region" aria-label="Valores del cambio (se desplaza)">
                 <Table size="small" aria-label="Valores del cambio">
                   <TableHead>
                     <TableRow>

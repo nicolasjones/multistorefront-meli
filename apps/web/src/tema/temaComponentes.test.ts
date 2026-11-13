@@ -17,7 +17,13 @@ describe('tema: componentes de paridad', () => {
     expect(overrides('MuiSwitch').track.backgroundColor).toBe(tokens.color.control.switchApagado)
   })
 
+  it('la ayuda de un campo deshabilitado conserva el color secundario (contraste AA)', () => {
+    expect((overrides('MuiFormHelperText').root['&.Mui-disabled'] as Record<string, unknown>).color).toBe(tokens.color.textoSecundario)
+  })
+
   it('alertas (.al) con los cuatro tonos del prototipo', () => {
+    // El mensaje no es una región desplazable (axe `scrollable-region-focusable` a 320 px).
+    expect(overrides('MuiAlert').message).toMatchObject({ overflow: 'visible', minWidth: 0 })
     expect(overrides('MuiAlert').standardInfo.backgroundColor).toBe(tokens.color.alerta.info.fondo)
     expect(overrides('MuiAlert').standardWarning.backgroundColor).toBe(tokens.color.alerta.aviso.fondo)
     expect(overrides('MuiAlert').standardError.backgroundColor).toBe(tokens.color.alerta.error.fondo)

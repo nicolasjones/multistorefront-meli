@@ -351,7 +351,7 @@ export function LineasComprobante({
           {MENSAJE_SIN_PERMISO_PRECIO}
         </Typography>
       ) : null}
-      <Box sx={{ overflowX: 'auto' }}>
+      <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Líneas del comprobante (se desplaza)">
         <Box
           role="table"
           aria-label="Líneas del comprobante"

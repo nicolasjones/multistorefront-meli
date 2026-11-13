@@ -1,4 +1,4 @@
-import { consentimientoActual } from './consentimientoCookies'
+import { consentimientoActual, EVENTO_CONSENTIMIENTO } from './consentimientoCookies'
 import { supabaseClient } from './supabase'
 
 // F-TDA-24 (MSF-315, FR-012, FR-014…FR-016): medición de la tienda pública. Consulta los IDs de la tienda por su
@@ -397,7 +397,9 @@ export function retirarMedicion(): void {
   try {
     apagarGa4()
     apagarPixel()
-    pendientes.length = 0
+    // Sin consentimiento los eventos en espera se descartan. Con consentimiento vigente se conservan: `MedicionTienda` llama
+    // a `retirarMedicion` mientras aún no llegan los IDs de la tienda, y la ficha puede resolver antes que ellos.
+    if (!consentimientoAceptado()) pendientes.length = 0
     if (enVuelo > 0) scriptsEnMemoria = true
     if (scriptsEnMemoria && !recargarSiSeguro()) armarReintento()
   } catch {
@@ -453,6 +455,17 @@ export function registrarVisita(ruta: string): void {
 }
 
 const pendientes: EventoTienda[] = []
+
+// Un evento en espera lo registró alguien que había aceptado: si la decisión deja de ser «aceptadas» (revocó, o la borró en
+// otra pestaña) se descarta EN ESE MOMENTO. No basta con vaciarla al retirar la medición: sin IDs cargados nadie la retira,
+// y una re-aceptación posterior emitiría un evento anterior a la revocación.
+function descartarPendientesSiNoHayConsentimiento(): void {
+  if (!consentimientoAceptado()) pendientes.length = 0
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener(EVENTO_CONSENTIMIENTO, descartarPendientesSiNoHayConsentimiento)
+  window.addEventListener('storage', descartarPendientesSiNoHayConsentimiento)
+}
 
 function emitir(nombre: EventoTienda): void {
   const w = ventana()

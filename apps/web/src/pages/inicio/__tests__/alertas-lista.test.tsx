@@ -51,14 +51,14 @@ describe('Lista de alertas de Inicio (FR-025, FR-026)', () => {
   it('pide las alertas de la empresa activa de la barra superior', async () => {
     mocks.alertas.mockResolvedValue([])
     render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
-    await screen.findByText('Sin alertas')
+    await screen.findByText('Todo al día')
     expect(mocks.alertas).toHaveBeenCalledWith('e1')
   })
 
-  it('sin alertas muestra el estado vacío compartido «Sin alertas»', async () => {
+  it('sin alertas muestra el estado vacío compartido «Todo al día»', async () => {
     mocks.alertas.mockResolvedValue([])
     render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
-    expect(await screen.findByText('Sin alertas')).toBeInTheDocument()
+    expect(await screen.findByText('Todo al día')).toBeInTheDocument()
     expect(screen.queryByRole('list', { name: 'Alertas' })).not.toBeInTheDocument()
   })
 

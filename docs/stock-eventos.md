@@ -90,7 +90,9 @@ código, para que el futuro consumidor lo trate igual. Decisión aprobada por Ni
 
 Un flow de Kestra o un worker llamará a `reclamar_eventos('stock.actualizado', n, lease)`, enviará el stock a Mercado
 Libre y resolverá cada evento con `confirmar`, `liberar` (falla transitoria) o `agotar` (falla definitiva). Los
-eventos de `agotada` se revisan a mano. Nada de eso existe todavía.
+eventos de `agotada` se revisan a mano: desde MSF-837 el flow `monitoreo-api-entregas` avisa a soporte si hay eventos de la API
+agotados, y desde MSF-836 la purga diaria borra los eventos terminados (`completada` o `agotada`) con más de 90 días y sin entregas
+vivas. Nada de eso existe todavía para un consumidor distinto de la API.
 
 ## Reversión
 

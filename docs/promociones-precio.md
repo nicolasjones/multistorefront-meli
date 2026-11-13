@@ -33,11 +33,11 @@ update public.banderas_plataforma set activa = false where clave = 'promociones_
 update public.banderas_plataforma set activa = false where clave = 'precios_masivos';
 ```
 
-Es un cambio de datos de la base: rige al instante, sin desplegar la aplicación ni reiniciar nada. Cada `update` queda con `updated_at`.
+Es un cambio de datos de la base: rige al instante, sin desplegar la aplicación ni reiniciar nada. Cada `update` queda con `updated_at`. **Impacto de despliegue:** las migraciones crean las banderas apagadas, así que al llegar a cada entorno (dev, stg, prd) la tienda deja de mostrar el precio tachado y «Actualizar precios» queda deshabilitado hasta que alguien con acceso a la base ejecute el `update`; una migración no las enciende (ver [`deployment.md`](./deployment.md), «Banderas de plataforma»).
 
 Con `promociones_precio` **apagada** (migración `20270228300100`):
 
-- `private.promocion_vigente` devuelve null: las cinco funciones públicas de la tienda (catálogo, ficha, destacados, sugerencias y búsqueda) pasan por `private.precio_vigente_empresa`, así que muestran el **precio normal** y `precio_anterior` null, idéntico a una tienda sin promociones (el orden y el filtro por precio también usan el normal).
+- `private.promocion_vigente` devuelve null: las cinco funciones públicas de la tienda (catálogo, ficha, destacados, sugerencias y búsqueda) calculan el precio con `private.precio_vigente_empresa` (y `catalogo_pagina_por_dominio`, desde `20270228300400`, directo con `private.promocion_vigente`, la misma regla), así que muestran el **precio normal** y `precio_anterior` null, idéntico a una tienda sin promociones (el orden y el filtro por precio también usan el normal).
 - `guardar_promocion_precio` responde `55000` («Las promociones de precio están desactivadas en este entorno») después del permiso global y antes de tocar datos. `anular_promocion_precio` sigue permitida (apagar no impide limpiar).
 - La pantalla **Promociones** sigue listando, en modo **solo-anular**: sin «Nueva promoción» ni «Editar», con «Anular» habilitado donde el permiso por tienda lo permite, y un aviso con el motivo (si no se pueden leer las banderas, falla cerrado: sin ninguna acción). Las promociones guardadas no se tocan: al encender la bandera vuelven a regir las que estén en su rango de fechas.
 - La vista `promociones_precio_estado` sigue mostrando el estado por fecha, pero solo la lee esa pantalla (que queda oculta).
@@ -54,7 +54,7 @@ Con `promociones_precio` **apagada** (migración `20270228300100`):
 
 - **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Nicolás aprobó el 2026-11-12 abrir el gate para que el POS, el carrito y los comprobantes cobren el precio promocional; está aprobada y en implementación en otros PRs (hasta entonces sigue vigente lo descrito).
 - **Decisión 15 (aprobada 2026-11-12)**: bandera de apagado, apagada por defecto (ver arriba). Es un cambio de comportamiento respecto de lo desplegado hasta ahora: para que la tienda siga mostrando promociones hay que **encender** `promociones_precio`.
-- **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento MSF-816.
+- **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento S1 de la spec `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md` (ID de tracker a asignar; MSF-816 es la épica del POS, no este seguimiento).
 
 ## Límite de filas de PostgREST
 

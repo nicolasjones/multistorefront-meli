@@ -242,6 +242,30 @@ select is(
 );
 select is((select count(*)::int from dominio.faltantes_avisos), 2, 'sigue habiendo una sola fila por línea');
 
+-- La RPC de Stock respeta el tope diario de la organización y lo informa (revisión PR #918 m3): con 1.000 avisos recientes
+-- una línea nueva no se encola y sale en omitidos_tope_diario.
+reset role;
+delete from dominio.faltantes_avisos where linea_id = (select id from lin where clave = 'F2');
+set local session_replication_role = replica;
+insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id, estado, intentos, enviado_en, created_at, updated_at)
+select gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+       'c5000000-0000-0000-0000-000000000001', 'enviado', 1, now(), now(), now()
+  from generate_series(1, 999);
+set local session_replication_role = origin;
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(
+  (select public.avisar_faltantes(pg_temp.lineas('F2'))::jsonb),
+  '{"encolados": 0, "lineas_avisadas": 0, "omitidos_sin_stock": 0, "omitidos_sin_correo": 0, "omitidos_ya_avisados": 0, "omitidos_sin_permiso": 0, "omitidos_tope_diario": 1}'::jsonb,
+  'con el tope diario alcanzado (F1 + 999 de relleno = 1.000) la RPC de Stock no encola y informa omitidos_tope_diario'
+);
+reset role;
+delete from dominio.faltantes_avisos where cliente_id = 'c5000000-0000-0000-0000-000000000001' and linea_id not in (select id from lin);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(
+  (select (public.avisar_faltantes(pg_temp.lineas('F2'))::jsonb ->> 'lineas_avisadas')::int), 1,
+  'sin el tope, la misma línea se encola y restaura el estado que siguen esperando las pruebas'
+);
+
 select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select is(
   (select public.avisar_faltantes(pg_temp.lineas('F3'))::jsonb),
@@ -291,10 +315,10 @@ select is(
   'mientras dura la reserva el barrido no vuelve a listarlo'
 );
 
-select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp caído', 5);
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp_conexion', 5);
 select is(
   pg_temp.q($$select string_agg(estado || ':' || ultimo_error, ',') from dominio.faltantes_avisos$$),
-  'pendiente:smtp caído,pendiente:smtp caído', 'un envío fallido bajo el tope queda pendiente con el error útil'
+  'pendiente:smtp_conexion,pendiente:smtp_conexion', 'un envío fallido bajo el tope queda pendiente con el error útil'
 );
 
 -- Vence la reserva: el reintento retoma las mismas líneas y suma otro intento.
@@ -338,10 +362,10 @@ select is(
   (select jsonb_array_length(lineas) from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5)),
   1, 'el último intento todavía se toma (5 de 5)'
 );
-select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'fallo final', 5);
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'fallo final con detalle', 5);
 select is(
   pg_temp.q($$select row(estado, intentos, ultimo_error)::text from dominio.faltantes_avisos where linea_id = (select id from lin where clave = 'F5')$$),
-  '(agotado,5,"fallo final")', 'agotado el tope queda «agotado» con el error registrado'
+  '(agotado,5,otro)', 'agotado el tope queda «agotado» y el error se guarda como código genérico (el detalle no entra)'
 );
 select is((select cardinality(public.faltantes_avisos_pendientes(5, 50))), 0, 'una línea agotada ya no se reintenta sola');
 
@@ -395,7 +419,7 @@ select is(
 );
 select is(
   pg_temp.q($$select estado || ':' || ultimo_error from dominio.faltantes_avisos where linea_id = (select id from lin where clave = 'F6')$$),
-  'agotado:El faltante se cerró antes de enviar el aviso',
+  'agotado:faltante_cerrado',
   'la línea vuelve a «Sin avisar» con el motivo registrado'
 );
 select is(
@@ -477,13 +501,13 @@ grant select on foto to public;
 
 reset role;
 set local role service_role;
-select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp caído', 5);
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp_conexion', 5);
 select is(
   pg_temp.q($$select string_agg(a.estado || ':' || coalesce(a.ultimo_error, ''), ',' order by l.clave)
                from dominio.faltantes_avisos a
                join lin l on l.id = a.linea_id
               where a.cliente_id = 'c5000000-0000-0000-0000-000000000001' and a.estado = 'pendiente'$$),
-  'pendiente:smtp caído,pendiente:smtp caído,pendiente:smtp caído',
+  'pendiente:smtp_conexion,pendiente:smtp_conexion,pendiente:smtp_conexion',
   'un envío fallido deja las tres líneas pendientes con el error útil'
 );
 

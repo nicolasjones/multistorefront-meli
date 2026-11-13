@@ -19,7 +19,7 @@ import { BannerContenido } from '../../../tienda-publica/secciones/BannerHome'
 import type { PropsPestanaTienda } from '../pestanas'
 
 const CLAVES_BANNER: ClaveCampoContenido[] = ['titulo', 'subtitulo', 'texto_boton']
-const CLAVES_TEXTOS: ClaveCampoContenido[] = ['bienvenida', 'pie', 'aviso_ficha', 'texto_boton_contacto']
+const CLAVES_TEXTOS: ClaveCampoContenido[] = ['eslogan', 'bienvenida', 'pie', 'aviso_ficha', 'texto_boton_contacto']
 
 function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & { inicial: ContenidoTienda }) {
   const { setWarnWhen } = useWarnAboutChange()
@@ -134,7 +134,7 @@ function Formulario({ empresaId, empresaNombre, inicial }: PropsPestanaTienda & 
         <Stack spacing={2} role="group" aria-labelledby="contenido-vista-previa">
           <Typography id="contenido-vista-previa" component="h2" variant="h6">Vista previa</Typography>
           <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, minHeight: 120 /* estilos-sueltos: ok: altura mínima de la vista previa del banner */ }} data-testid="vista-previa-banner">
-            <BannerContenido contenido={valores} />
+            <BannerContenido contenido={valores} vistaPrevia />
             {!valores.titulo.trim() && !valores.subtitulo.trim() && !valores.texto_boton.trim() ? (
               <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
                 El banner no se muestra mientras el título, el subtítulo y el texto del botón estén vacíos.

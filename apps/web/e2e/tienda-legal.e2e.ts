@@ -112,7 +112,7 @@ test.describe('Tienda online · información legal y cookies (SC-010)', () => {
       const contexto = await browser.newContext()
       const page = await contexto.newPage()
       await page.goto(`http://${vacia.host}:${puerto}/`)
-      await expect(page.getByRole('link', { name: 'Escribinos' })).toBeVisible()
+      await expect(page.getByTestId('pie-contacto').getByRole('link', { name: 'Escribinos' })).toBeVisible()
       await expect(page.getByRole('region', { name: 'Información legal' })).toHaveCount(0)
       await contexto.close()
     } finally {

@@ -27,6 +27,8 @@ export type Suscripcion = {
   activa: boolean
   creada_en: string
   actualizada_en: string
+  /** Hasta cuándo vale el secreto anterior tras una rotación (gracia de 24 h); nulo si no hay rotación en curso. */
+  secreto_anterior_vence_en: string | null
 }
 
 export type Entrega = {
@@ -59,15 +61,15 @@ export const TIPOS_EVENTO = ['stock.actualizado', 'precio.actualizado', 'venta.r
  * Lee una tabla de la API. `columnas` va explícito porque los permisos son por
  * columna: pedir `*` sería un error de permisos.
  */
-export function useApiTabla<T>(tabla: string, columnas: string, orden: string) {
+export function useApiTabla<T>(tabla: string, columnas: string, orden: string, soloEstado?: string) {
   const [estado, setEstado] = useState<{ filas: T[] | null; hayError: boolean }>({ filas: null, hayError: false })
   const [carga, setCarga] = useState(0)
 
   useEffect(() => {
     let cancelado = false
-    supabaseClient
-      .from(tabla)
-      .select(columnas)
+    const consulta = supabaseClient.from(tabla).select(columnas)
+    // `soloEstado` filtra en el servidor: sin esto las agotadas salen de las últimas 50 en minutos.
+    ;(soloEstado ? consulta.eq('estado', soloEstado) : consulta)
       .order(orden, { ascending: false })
       .limit(50)
       .then(({ data, error }) => {
@@ -81,7 +83,7 @@ export function useApiTabla<T>(tabla: string, columnas: string, orden: string) {
     return () => {
       cancelado = true
     }
-  }, [tabla, columnas, orden, carga])
+  }, [tabla, columnas, orden, soloEstado, carga])
 
   const recargar = useCallback(() => setCarga((valor) => valor + 1), [])
 

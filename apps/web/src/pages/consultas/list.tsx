@@ -32,11 +32,11 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const ESPERA_BUSQUEDA_MS = 300
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const textoConteo = (total: number) => `${total} ${total === 1 ? 'consulta' : 'consultas'}`
@@ -266,7 +266,7 @@ export function ConsultaList() {
             />
           </Stack>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {isLoading || (isError && !falloTanda) ? '' : textoConteo(total)}
           </Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando consultas" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

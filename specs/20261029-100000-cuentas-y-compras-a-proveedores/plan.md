@@ -31,4 +31,4 @@ La épica son ideas P3 condicionadas a validar demanda, sin requisitos del clien
 ## Riesgos
 
 - Que se interprete esta spec como autorización para construir: no lo es; cada historia necesita su spec con requisitos.
-- Choque F-CLI-21 / F-PRE-14 sin resolver; F-PRE-14 no existe en el repo.
+- F-PRE-14 fue cancelada el 2026-11-12 (chocaba con F-PRE-15); para F-CLI-21 queda abierto solo si hacen falta listas por cliente además de las escalas por tipo.

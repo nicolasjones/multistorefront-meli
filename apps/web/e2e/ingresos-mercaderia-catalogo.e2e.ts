@@ -92,7 +92,7 @@ test.describe('Catálogo de productos del ingreso de mercadería (MSF-693)', () 
       await expect(page).not.toHaveURL(/\/login/)
 
       await page.goto('/stock/ingresos')
-      const campo = page.getByLabel('Producto 1')
+      const campo = page.locator('form').getByRole('combobox', { name: 'Producto 1', exact: true })
       await campo.click()
 
       // La pantalla avisa que el catálogo se cortó.

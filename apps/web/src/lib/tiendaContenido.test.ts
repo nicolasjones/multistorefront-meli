@@ -14,6 +14,7 @@ vi.mock('./supabase', () => ({
 
 import {
   CONTENIDO_VACIO,
+  aContenido,
   ErrorGuardadoContenido,
   contenidoIgual,
   guardarContenido,
@@ -38,8 +39,13 @@ describe('validarContenido (FR-032, FR-033)', () => {
     ['pie', 301, 'Texto del pie de página no puede superar los 300 caracteres.'],
     ['aviso_ficha', 301, 'Aviso en la ficha de producto no puede superar los 300 caracteres.'],
     ['texto_boton_contacto', 121, 'Texto del botón de contacto no puede superar los 120 caracteres.'],
+    ['eslogan', 81, 'Eslogan no puede superar los 80 caracteres.'],
   ])('marca %s cuando pasa el límite (%i caracteres)', (clave, largo, mensaje) => {
     expect(validarContenido({ ...CONTENIDO_VACIO, [clave]: 'a'.repeat(largo) })).toEqual({ [clave]: mensaje })
+  })
+
+  it('el eslogan acepta justo 80 caracteres (MSF-841)', () => {
+    expect(validarContenido({ ...CONTENIDO_VACIO, eslogan: 'e'.repeat(80) })).toEqual({})
   })
 
   it('no cuenta los espacios de los extremos (la base los recorta)', () => {
@@ -60,6 +66,14 @@ describe('largoContenido', () => {
   it('cuenta puntos de código y recorta los extremos', () => {
     expect(largoContenido('  😀😀 ')).toBe(2)
     expect(largoContenido('😀'.repeat(100))).toBe(100)
+  })
+})
+
+describe('aContenido · eslogan (MSF-841)', () => {
+  it('una fila o borrador sin eslogan (anterior a la migración) lo deja vacío', () => {
+    expect(aContenido({ titulo: 'Hola' }).eslogan).toBe('')
+    expect(aContenido({ eslogan: 'Todo para jugar' }).eslogan).toBe('Todo para jugar')
+    expect(aContenido(null).eslogan).toBe('')
   })
 })
 

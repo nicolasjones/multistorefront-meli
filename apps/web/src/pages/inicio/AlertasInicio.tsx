@@ -52,7 +52,7 @@ export function AlertasInicio() {
             </Alert>
           ) : null}
           {datos.alertas.length === 0 ? (
-            demorado && datos.ultimoCalculo === null ? null : <EstadoVacio titulo="Sin alertas" descripcion="No hay nada pendiente por resolver." />
+            demorado && datos.ultimoCalculo === null ? null : <EstadoVacio titulo="Todo al día" descripcion="No hay nada pendiente por resolver." />
           ) : (
             <List disablePadding aria-label="Alertas">
               {datos.alertas.map((alerta) => {

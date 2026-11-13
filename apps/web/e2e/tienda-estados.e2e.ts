@@ -97,7 +97,9 @@ test.describe('Tienda online · estados especiales (F-TDA-19)', () => {
         await activar(t.empresa, true)
         await page.goto(direccion(t.host))
         await expect(page.getByRole('heading', { level: 1, name: t.nombre })).toBeVisible()
-        await expect(page.getByText(`Estados ${t.nombre} ${sufijo}`)).toBeVisible()
+        // El inicio ya no lista productos sueltos: el producto de la tienda se encuentra con la búsqueda.
+        await page.getByRole('banner').getByRole('combobox', { name: 'Buscar productos' }).fill(`Estados ${t.nombre} ${sufijo}`)
+        await expect(page.getByRole('option', { name: new RegExp(`Estados ${t.nombre} ${sufijo}`) })).toBeVisible()
       } finally {
         await activar(t.empresa, true)
       }

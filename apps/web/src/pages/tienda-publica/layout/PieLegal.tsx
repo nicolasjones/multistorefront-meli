@@ -13,7 +13,7 @@ export function BloqueLegal({ legal }: { legal: LegalTienda | null }) {
   const identidad = [legal.razonSocial, cuit ? `CUIT ${cuit}` : null].filter((parte): parte is string => parte !== null).join(' · ')
 
   return (
-    <Box component="section" aria-label="Información legal" data-testid="pie-legal" sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+    <Box component="section" aria-label="Información legal" data-testid="pie-legal" sx={{ mt: 3, pt: 2, borderTop: '1px solid rgba(255,255,255,.15)' /* estilos-sueltos: ok */ }}>
       {identidad ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{identidad}</Typography> : null}
       {legal.direccion ? <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{legal.direccion}</Typography> : null}
       {legal.enlaces.length > 0 ? (

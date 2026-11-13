@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { rest, UPSERT_FUSIONAR } from './soporte/fixtures'
 
 // Cierre de MSF-179 (T022, FR-016, SC-005): recorrido Administrador vs Operador del
 // catálogo: costo (solo con acceso a Rentabilidad), disponibilidad y escaneo de código de barras.
@@ -21,16 +22,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   'content-type': 'application/json',
   ...extra,
 })
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function altaUsuario(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/admin/users`, {
@@ -85,14 +76,15 @@ test.describe('Catálogo: costo, disponibilidad y escaneo (MSF-179, FR-016)', ()
         { user_id: idOperador, organizacion_id: org.id, rol_id: 'operador' },
       ])
       const [p1, p2] = await rest<{ id: string }>('productos', [
-        { organizacion_id: org.id, nombre: conStock, sku: `E2E-S-${sufijo}`, precio_lista: 50, codigo_barras: codigoBarras },
-        { organizacion_id: org.id, nombre: aPedido, sku: `E2E-P-${sufijo}`, precio_lista: 40, disponibilidad_manual: 'a_pedido' },
+        { organizacion_id: org.id, nombre: conStock, sku: `E2E-S-${sufijo}`, precio_lista: 50, codigo_barras: codigoBarras, disponibilidad_manual: null },
+        { organizacion_id: org.id, nombre: aPedido, sku: `E2E-P-${sufijo}`, precio_lista: 40, codigo_barras: null, disponibilidad_manual: 'a_pedido' },
       ], 'dominio')
       await rest('producto_costos', [
         { producto_id: p1.id, organizacion_id: org.id, costo: 12.5 },
         { producto_id: p2.id, organizacion_id: org.id, costo: 7 },
       ], 'dominio')
-      await rest('existencias', { producto_id: p1.id, organizacion_id: org.id, cantidad: 4 }, 'dominio')
+      // El disparador `productos_crear_existencias` ya creó la fila: se actualiza.
+      await rest('existencias?on_conflict=producto_id', { producto_id: p1.id, organizacion_id: org.id, cantidad: 4 }, 'dominio', UPSERT_FUSIONAR)
 
       // Administrador: columna Costo con el valor sembrado.
       const ctxAdmin = await browser.newContext()

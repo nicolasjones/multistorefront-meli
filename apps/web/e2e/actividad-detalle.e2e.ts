@@ -101,7 +101,6 @@ test.describe('Detalle de la actividad (F-AUD-02)', () => {
       await expect(tablaBaja.getByText('—')).toHaveCount(2)
     } finally {
       if (orgId) {
-        await borrar(`registro_actividad?organizacion_id=eq.${orgId}`)
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
         await borrar(`organizaciones?id=eq.${orgId}`)
       }

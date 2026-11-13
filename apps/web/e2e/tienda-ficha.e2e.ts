@@ -80,6 +80,7 @@ test.describe('Tienda online · ficha de producto (SC-008)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('galería, ampliación, precio de la empresa y 404 de producto oculto o de otra tienda', async ({ browser }) => {
+    test.setTimeout(90_000) // siembra de dos tiendas con imágenes y la ficha de cada una: ~26 s en reposo; bajo carga «Ampliar imagen» superó los 30 s
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t, i) => ({
       ...t,
@@ -105,8 +106,8 @@ test.describe('Tienda online · ficha de producto (SC-008)', () => {
             organizacion_id: t.organizacion, nombre: t.completo, sku: `E2E-F-${t.indice}-1-${sufijo}`, precio_lista: 1000, moneda: 'ARS',
             categoria_id: categoria.id, descripcion: `Descripción <b>${t.nombre}</b> ${sufijo}`, compatible_con: ['PS4', 'PS5'],
           },
-          { organizacion_id: t.organizacion, nombre: t.simple, sku: `E2E-F-${t.indice}-2-${sufijo}`, precio_lista: 2000, moneda: 'ARS', categoria_id: categoria.id },
-          { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-F-${t.indice}-3-${sufijo}`, precio_lista: 3000, moneda: 'ARS', categoria_id: categoria.id },
+          { organizacion_id: t.organizacion, nombre: t.simple, sku: `E2E-F-${t.indice}-2-${sufijo}`, precio_lista: 2000, moneda: 'ARS', categoria_id: categoria.id, descripcion: null, compatible_con: [] },
+          { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-F-${t.indice}-3-${sufijo}`, precio_lista: 3000, moneda: 'ARS', categoria_id: categoria.id, descripcion: null, compatible_con: [] },
         ])
         t.completoId = completo.id
         t.simpleId = simple.id

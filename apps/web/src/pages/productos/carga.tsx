@@ -325,7 +325,7 @@ export function ProductoCarga() {
                     <Chip size="small" color="warning" label={`${contarPorEstado(validadas, 'aviso')} con aviso`} />
                     <Chip size="small" color="error" label={`${contarPorEstado(validadas, 'error')} con error`} />
                   </Stack>
-                  <Box sx={{ overflowX: 'auto' }}>
+                  <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Vista previa de la carga (se desplaza)">
                     <Table size="small">
                       <TableHead>
                         <TableRow>

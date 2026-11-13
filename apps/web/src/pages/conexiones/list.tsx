@@ -62,7 +62,7 @@ export function ConexionList() {
             columnas={columnas}
             obtenerClave={(conexion) => conexion.id}
             etiquetaTabla="Conexiones"
-            acciones={(conexion) => <EditButton hideText recordItemId={conexion.id} />}
+            acciones={(conexion) => <EditButton hideText recordItemId={conexion.id} aria-label={`Editar la conexión con ${conexion.sistema_externo}`} />}
           />
         )}
       </ContenedorSeccion>

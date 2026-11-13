@@ -168,7 +168,7 @@ desde la pestaña de contrarreembolsos, ni al revés). Las pestañas son de MUI 
 Cada tarjeta es una región con su título (así el lector de pantalla anuncia de qué tarjeta habla
 el importe) y con el color del prototipo: aviso para lo pendiente, éxito para lo cobrado. Las
 tarjetas van dentro de la sub-pestaña «Contrarreembolsos» porque son sus totales; la tercera
-tarjeta del prototipo («Motos sin rendir») existe desde MSF-145 y va arriba de las pestañas (`docs/ventas-motos.md`).
+tarjeta del prototipo («Motos sin rendir») existe desde MSF-145 y va dentro de la pestaña «Motos», arriba de su tabla (`TransportesMotos.tsx`, `docs/ventas-motos.md`).
 
 ### La tabla (FR-047)
 

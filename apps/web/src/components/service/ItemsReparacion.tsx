@@ -28,6 +28,7 @@ import { formatearARS } from '../../lib/serviceTecnico'
 import { MarcaStockItem } from './MarcaStockItem'
 import { mensajeDeErrorItem, quitarItem } from '../../lib/reparacionItems'
 import type { ItemReparacion, Reparacion } from '../../lib/reparaciones'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 type Props = {
   reparacion: Reparacion
@@ -48,15 +49,6 @@ export const AVISO_DEVOLUCION = 'Las unidades vuelven al depósito del que se de
 
 const CELDA_NUMERO = { textAlign: 'right', whiteSpace: 'nowrap' } as const
 
-const SOLO_LECTORES = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-} as const
-
 type TablaProps = {
   titulo: string
   columnaConcepto: string
@@ -76,7 +68,7 @@ function TablaItems({ titulo, columnaConcepto, items, vacio, etiquetaSubtotal, s
   const imagenes = useImagenesProductos(conSku ? items.map((item) => item.producto_id) : [])
   const columnas = 4 + (conDeposito ? 1 : 0) + (puedeEditar ? 1 : 0)
   return (
-    <TableContainer>
+    <TableContainer tabIndex={0} role="region" aria-label={`${titulo} (se desplaza)`}>
       <Table size="small" aria-label={titulo}>
         <TableHead>
           <TableRow>

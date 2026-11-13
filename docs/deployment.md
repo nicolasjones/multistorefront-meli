@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Entornos y despliegue
 
 ## Desarrollo
@@ -24,7 +30,19 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
-**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando.
+**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando. La fuente es DolarApi (`https://dolarapi.com/v1/dolares/oficial`, dólar oficial, precio de venta; URL fija en `supabase/functions/cotizacion-sugerida/handler.ts`), con tiempo máximo de 5 s y sin redirecciones. Una función Edge nueva no queda registrada en el runtime de dev hasta recrear el stack (`Function not found`).
+
+### Banderas de plataforma (MSF-363)
+
+La migración `20270228300000_banderas_plataforma.sql` crea `public.banderas_plataforma` con dos banderas **apagadas por defecto** en cada entorno: `promociones_precio` y `precios_masivos`. Efecto del despliegue: hasta encenderlas, la tienda pública muestra el precio normal (sin precio tachado), la pantalla Promociones queda en modo solo-anular y «Actualizar precios» no aparece. Las promociones ya guardadas no se pierden: al encender la bandera vuelven a regir las que estén en su rango de fechas.
+
+Las enciende el equipo técnico **a mano, por SQL, entorno por entorno**; **no** las enciende una migración ni el despliegue:
+
+```sql
+update public.banderas_plataforma set activa = true where clave in ('promociones_precio', 'precios_masivos');
+```
+
+Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con `activa = false`. Después de encender, verificar en la tienda del entorno (precio tachado en una promoción vigente) y en Productos (botón «Actualizar precios»). Detalle en [`promociones-precio.md`](./promociones-precio.md) y [`precios-masivos.md`](./precios-masivos.md).
 
 ## Producción
 
@@ -106,6 +124,12 @@ las credenciales cifradas de Vault no son recuperables. La respuesta operativa
 aceptada es reconectar cada sistema externo y volver a aprovisionar cada
 servidor de organización para generar sus nuevas credenciales SSH y de base.
 No se debe intentar copiar ni reconstruir claves de cifrado desde el backup.
+
+Las **suscripciones a avisos de la API pública** (`public.api_suscripciones`) también guardan su secreto de firma en
+Vault: tras un restore en otra instancia quedan con un secreto ilegible y los avisos no se pueden firmar. La salida es
+**rotar el secreto de cada suscripción** (Administración → API → Suscripciones a avisos → *Rotar secreto*, o
+`public.rotar_secreto_suscripcion_api`), que crea un secreto nuevo en el Vault de la instancia nueva, y entregárselo a
+cada cliente. El secreto ilegible que queda como «anterior» se ignora y se purga a las 24 horas.
 
 ## CI
 
@@ -343,13 +367,95 @@ leen del propio YAML de cada flow. Mismo gate que el resto de esta spec:
 Secrets por Environment: `KESTRA_BASIC_AUTH_USERNAME`,
 `KESTRA_BASIC_AUTH_PASSWORD`, `KESTRA_PUBLIC_URL`.
 
+### Retiro de un flow y de su Edge Function (MSF-853)
+
+Publicar no borra nada: un flow que sale del repo sigue disparando en los
+entornos donde ya estaba publicado, y si la función que llama ya no existe
+falla en cada corrida. Por eso el repo lleva la lista de flows retirados:
+
+- `infra/kestra/flows-retirados.txt`: una línea por flow, `<namespace>/<id>`
+  (los comentarios y las líneas vacías se ignoran). El mismo workflow de
+  publicación borra los de la lista en cada entorno después de publicar
+  (`infra/kestra/desplegar-flow.mjs --retirar`); borrar uno que ya no está
+  no falla (404 = «ya no estaba»). La línea se queda: es el registro de que ese
+  flow no debe volver a existir.
+- A mano, en un entorno (con `KESTRA_BASIC_AUTH_USERNAME` y
+  `KESTRA_BASIC_AUTH_PASSWORD` exportadas, o con `--username`/`--password`):
+  `pnpm kestra:deploy-flow -- --borrar --namespace <ns> --flow-id <id>
+  --kestra-url <url>`.
+
+La Edge Function que ese flow llamaba se baja **aparte y por entorno** (las
+funciones se despliegan a mano con el CLI de cada entorno; no hay CI que las
+borre):
+
+```bash
+# en el workdir del CLI del entorno (/root/supabase-stg, /root/supabase-prd)
+supabase functions delete <nombre-de-la-funcion> --project-ref <ref-del-entorno>
+supabase secrets delete <secreto-de-la-funcion> --project-ref <ref-del-entorno>  # si quedó
+```
+
+Y hay que sacar del `infra/kestra/.env` del entorno las variables que solo
+usaba ese flow, y volver a desplegar Kestra (`pnpm deploy:vps -- <entorno>`):
+`infra/kestra/compose.yaml` ya no las pasa.
+
+**Orden**: primero el flow y la función, después la migración que borra lo que
+usaban. Al revés, el flow queda llamando RPC inexistentes (502/404) y falla en
+cada corrida.
+
+**Obligatorio en dev, stg y prd, ANTES de que la migración llegue al entorno.**
+La migración (`20270306140000`, MSF-853) borra las tres RPC que el flow
+`platform.consultas/avisos-consultas` llama cada minuto. Cuándo llega a cada
+entorno:
+
+- **dev**: el cron de migraciones aplica `supabase/migrations/**` apenas se
+  mergea a `dokploy`. `--retirar` solo corre en `main` vía
+  `publicar-flows-kestra.yml`, así que **nada retira el flow de dev**: hay que
+  hacerlo a mano antes del merge a `dokploy` (ver abajo).
+- **stg**: el flow se retira cuando el push a `main` corre
+  `publicar-flows-kestra.yml`, y las migraciones cloud corren en el mismo push
+  (`migraciones-cloud.yml`): no hay orden garantizado entre ambos workflows.
+  Retiralo a mano antes de mergear a `main`.
+- **prd**: ídem, con el flow retirado a mano (o el paso de producción de
+  `publicar-flows-kestra.yml`) antes de disparar el job de producción de
+  `migraciones-cloud.yml`.
+
+Retiro a mano del flow (sin secretos en el comando; las credenciales van por
+entorno desde el `infra/kestra/.env` del VPS del entorno):
+
+```bash
+# dev (Kestra local del VPS1 en 127.0.0.1:9082; en stg/prd, la KESTRA_PUBLIC_URL del entorno)
+export KESTRA_BASIC_AUTH_USERNAME=... KESTRA_BASIC_AUTH_PASSWORD=...   # leerlas de infra/kestra/.env, no pegarlas en el historial
+pnpm kestra:deploy-flow -- --borrar --namespace platform.consultas --flow-id avisos-consultas \
+  --kestra-url http://127.0.0.1:9082
+# equivalente, con el manifiesto del repo:
+node infra/kestra/desplegar-flow.mjs --retirar --manifiesto infra/kestra/flows-retirados.txt \
+  --kestra-url http://127.0.0.1:9082
+```
+
+Es idempotente (404 = «ya no estaba»). La Edge Function `enviar-aviso-consulta`
+se baja aparte con el CLI del entorno (ver arriba); en dev, al no haber CI que
+la borre, queda registrada pero ya nadie la llama.
+
+**Si no se hace**: la migración se aplica igual (no depende del flow) y el
+entorno queda funcionando, pero el flow viejo sigue publicado y dispara cada
+minuto contra RPC inexistentes: una ejecución fallida por minuto en Kestra
+(ruido de alertas, sin pérdida de datos, porque el alta de consultas ya no
+encola en esa cola) hasta que se retire. Es reversible: retirar el flow en
+cualquier momento corta el ruido.
+
+Antes de aplicar una migración que borra una cola de avisos, mirá que no
+quede nada sin enviar (`select estado, count(*) from <cola> group by 1;`). Si
+quedara algo, ese aviso nunca sale: la cola que lo custodiaba es la que se
+borra. MSF-853: la migración `20270306140000` aborta sola si encuentra avisos
+`pendiente` o `fallido`; hay que resolverlos a mano y volver a aplicar.
+
 ### Migraciones cloud (staging → producción)
 
 **Hook de bloqueo de intentos (migración `20261014100000`, MSF-470) — ACTIVADO (2026-10-15):** en los
 entornos self-hosted (STG y PROD, VPS2) el hook no se activa por migración: se habilita en la config de
 GoTrue del entorno (`GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED=true` y
 `GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI=pg-functions://postgres/public/verificar_intento_acceso`) y se
-verifica con el checklist de `docs/acceso-ingreso.md` («Activación por entorno»). **Verificado en STG y PROD**
+verifica con el checklist de `docs/tecnico/acceso.md` («Activación por entorno (checklist)»). **Verificado en STG y PROD**
 (5 intentos fallidos + 6.º correcto → «Demasiados intentos…»). Persistido en el `supabase/config.toml` del
 workdir del Supabase CLI de cada entorno (`/root/supabase-stg`, `/root/supabase-prd`).
 
@@ -460,6 +566,22 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
   **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
   dominante, ver `reports/ci-serie.md` del orquestador).
+- **E2E de la tienda pública** (job `e2e-tienda`): corre los 20 `apps/web/e2e/tienda-*.e2e.ts` con **el mismo disparo que
+  el e2e** (`web == 'true'` y `e2e == 'true'`: un PR a `epic/*` no lo corre; sí un PR a `dokploy` o un push), en paralelo con
+  `application` y `web`. Arranca **no bloqueante** (`continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}`: el fallo
+  llega como `success` a `validacion`/`liberar`) y se pasa a requerido poniendo `E2E_TIENDA_BLOQUEA=true` tras ~10 corridas verdes;
+  `CI_E2E_TIENDA=false` lo apaga. Necesita API de Supabase (auth + kong +
+  postgrest + storage), que `database` no levanta (`-x kong,postgrest`), así que arma su propio stack en una **ranura** del CI
+  (`scripts/supabase-ci.mjs reclamar`/`liberar`, la misma reserva que `database`: hasta 5 en paralelo, sin tocar los stacks
+  de desarrollo), lo baja con `supabase stop --no-backup` al terminar y lo alcanza por `host.docker.internal`. Sin Edge
+  Runtime (docker-fuera-de-docker no puede montar `supabase/functions`): `E2E_SIN_EDGE=1` omite `robots.txt`/`sitemap.xml`
+  de `tienda-seo`; una guarda (`pnpm e2e:omitidos:check`) falla si hay más de un test omitido. Espera a lo sumo 10 min una ranura,
+  su timeout es 55 min y el TTL de ranuras es 75 min en este job y en `database` (el que reclama recicla las vencidas). Tiempo agregado: corre en paralelo, así que el camino crítico sólo crece si dura más que el job `web`
+  (estimado 15-20 min: stack 2-3, migraciones 1-2, specs ~10-15 con `--workers=1`). **PRs de forks**: los jobs que corren código
+  del PR en el runner self-hosted (`application`, `web`, `e2e-tienda`, `infrastructure`, `database`, y el carril/`liberar`) se saltean si
+  `head.repo.full_name != github.repository`, y `validacion` falla para ese PR en vez de dar verde con todo `skipped`;
+  `merge_group` y `push` no se ven afectados. Detalle, límites y receta local en
+  `docs/e2e-app.md` (sección «E2E de la tienda pública en el CI»).
 - **Supabase CLI**: en `database` se reusa el binario `supabase` del runner si ya está en la versión esperada
   (evita el `curl | tar` en cada corrida); si no, se descarga.
 - **Cache de Playwright**: los browsers (`~/.cache/ms-playwright`) se cachean (clave por `pnpm-lock.yaml`); el

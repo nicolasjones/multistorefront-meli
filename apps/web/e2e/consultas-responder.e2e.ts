@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { crearConsulta } from './soporte/fixtures'
 
 // MSF-244 · F-CON-04 (SC-004, parte E2E): «Responder por…» desde el detalle de una consulta. Una consulta de
 // WhatsApp y una de correo abren el enlace correcto (wa.me / mailto, con el texto inicial), quedan En curso con
@@ -53,18 +54,6 @@ async function borrarUsuario(id: string) {
   if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
-// `crear_consulta_publica` ya no es pública (saltearía el anti-spam): la tienda entra por `enviar_consulta_contacto`
-// y este E2E, que no prueba el límite, da el alta con service-role contra el Supabase local.
-async function enviarConsultaPublica(host: string, origen: 'formulario' | 'whatsapp', nombre: string, contacto: string): Promise<string> {
-  const r = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
-    method: 'POST',
-    headers: cabeceras({ 'content-profile': 'publico' }),
-    body: JSON.stringify({ host, origen, nombre, contacto, mensaje: origen === 'formulario' ? 'Hola, ¿tienen stock?' : null }),
-  })
-  if (!r.ok) throw new Error(`crear_consulta_publica: ${r.status} ${await r.text()}`)
-  return (await r.json()) as string
-}
-
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await page.getByLabel('Correo').fill(correo)
@@ -94,9 +83,11 @@ test.describe('Consultas · responder desde el panel (MSF-244, F-CON-04)', () =>
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: org.id, rol_id: rol })
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
+        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: org.id, rol_id: rol })
       }
-      const idWa = await enviarConsultaPublica(host, 'whatsapp', visitanteWa, '+54 9 11 5555-1234')
-      const idMail = await enviarConsultaPublica(host, 'formulario', visitanteMail, 'visitante@example.com')
+      const idWa = await crearConsulta(host, { origen: 'whatsapp', nombre: visitanteWa, contacto: '+54 9 11 5555-1234', mensaje: null })
+      const idMail = await crearConsulta(host, { nombre: visitanteMail, contacto: 'visitante@example.com' })
 
       // Administrador (consultas = edición): el enlace se abre en pestaña nueva y la consulta queda En curso.
       const contextoAdmin = await browser.newContext()
@@ -120,7 +111,8 @@ test.describe('Consultas · responder desde el panel (MSF-244, F-CON-04)', () =>
       const detalleMail = admin.getByRole('dialog', { name: `Consulta de ${visitanteMail}` })
       await detalleMail.getByRole('button', { name: 'Responder por correo' }).click()
       await expect(admin.getByText(`Consulta En curso a tu nombre · ${visitanteMail}`)).toBeVisible()
-      expect((await abiertos())[1]).toMatch(/^mailto:visitante%40example\.com\?subject=/)
+      // `goto` recarga la página y el script de captura vuelve a empezar: la apertura del correo es la primera de esta carga.
+      expect((await abiertos())[0]).toMatch(/^mailto:visitante%40example\.com\?subject=/)
 
       // Quedó En curso con responsable (se relee el detalle desde la base).
       await admin.goto(`/consultas?consulta=${idWa}`)

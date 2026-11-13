@@ -43,12 +43,12 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const TAMANO_PAGINA = 25
 const ESPERA_BUSQUEDA_MS = 300
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const PAGINA_VACIA: PaginaPresupuestos = { presupuestos: [], total: 0 }
 const TEXTO_AYUDA_TIENDA = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
@@ -372,7 +372,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
             </ToggleButtonGroup>
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {primeraCarga || hayError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {cargando && !primeraCarga && pagina === 1 ? <LinearProgress aria-label="Actualizando presupuestos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

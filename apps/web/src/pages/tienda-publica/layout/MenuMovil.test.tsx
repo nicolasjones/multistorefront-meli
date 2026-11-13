@@ -12,7 +12,7 @@ const CAT_A = 'ca000000-0000-4000-8000-00000000000a'
 const CAT_B = 'ca000000-0000-4000-8000-00000000000b'
 const lista = (extra: Record<string, unknown> = {}): CategoriasTienda => ({
   fase: 'lista' as const,
-  categorias: [{ id: CAT_A, nombre: 'Joysticks', padreId: null, productos: 3 }, { id: CAT_B, nombre: 'Cargadores', padreId: null, productos: 1 }],
+  categorias: [{ id: CAT_A, nombre: 'Joysticks', padreId: null, productos: 3, imagen: null }, { id: CAT_B, nombre: 'Cargadores', padreId: null, productos: 1, imagen: null }],
   reintentar: () => undefined,
   ...extra,
 })

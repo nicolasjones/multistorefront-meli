@@ -99,7 +99,7 @@ export function IaCapacidadesMcp() {
       ) : funcionalidades.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay funcionalidades en el catálogo" descripcion="Las funcionalidades se registran desde su propia migración." />
       ) : (
-        <TableContainer component={Paper} variant="outlined" sx={{ mb: 4 }}>
+        <TableContainer tabIndex={0} role="region" aria-label="Capacidades por funcionalidad (se desplaza)" component={Paper} variant="outlined" sx={{ mb: 4 }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -154,7 +154,7 @@ export function IaCapacidadesMcp() {
       {credenciales.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay credenciales generadas" />
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer tabIndex={0} role="region" aria-label="Credenciales MCP (se desplaza)" component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
               <TableRow>

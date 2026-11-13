@@ -99,7 +99,7 @@ export function ImagenTienda({
         <Stack spacing={1}>
           <Typography id={idAyuda} variant="body2" color="text.secondary">
             {clave === 'logo'
-              ? 'PNG o SVG con fondo transparente. Se usa en el encabezado, el pie y las redes.'
+              ? 'Usá PNG o SVG con fondo transparente. Se usa en el encabezado, en las redes y, en blanco, en el pie oscuro: un fondo sólido se vería como un recuadro blanco.'
               : `${reglas.formatos}. Medidas sugeridas: ${reglas.medidas} px.`}
             {` Hasta ${reglas.maxEtiqueta}.`}
           </Typography>

@@ -78,3 +78,7 @@ Migración posterior (exportar antes los datos): quitar las dos RPC, el disparad
 `cotizacion_pendiente_vencimiento` y la función `private.fijar_vencimiento_cotizacion`, y las tablas
 `dominio.cotizaciones` y `dominio.cotizacion_pendiente`. Quitar también la ruta, el ítem de menú y el
 recurso `cotizacion` de `SECCION_POR_RECURSO`.
+
+## Carga desde Inicio (MSF-823)
+
+La tarjeta «Dólar» de Inicio abre un diálogo propio con el impacto por tienda antes de guardar (`public.previsualizar_impacto_dolar`, solo lectura) y guarda con `public.aplicar_cotizacion`, que carga y confirma en una sola transacción con las mismas validaciones y permisos que `cargar_cotizacion` y `confirmar_cotizacion`. El diálogo de esta pantalla conserva su flujo (cargar → vista previa → confirmar), pero comparte con el de Inicio el campo del valor: un negativo ya no se descarta en silencio y muestra el mensaje de formato. Ver [`inicio-y-alertas.md`](./inicio-y-alertas.md).

@@ -170,13 +170,24 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
 
 - **Tabla** `dominio.tienda_identidad` (`empresa_id` PK): cuatro colores `#RRGGBB` (Primario, Primario
   oscuro, Acento, Fondo, con `check` de formato), tipografías de Títulos y Texto contra una **lista
-  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans) y
+  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans y, desde
+  MSF-841, Bricolage Grotesque y DM Sans) y
   las rutas de logo, banner principal y banner móvil. Sin fila → tema base (`#222222` / blanco /
   tipografía del sistema). Las rutas deben estar en `<organización>/<empresa>/` (check en la base).
 - **Supuesto sobre DS-04**: la épica remite la lista de tipografías a DS-04, pero el repo no la trae
   versionada; se usó el tema base más las fuentes de los dos temas de ejemplo
   (`apps/web/src/tema/temaTienda.ts`) y del prototipo. Se ajusta en una sola constante
   (`TIPOGRAFIAS` en `apps/web/src/lib/tiendaIdentidad.ts` y los `check`/RPC de la migración).
+- **MSF-841 (tramo A del rediseño de las tiendas al prototipo)**: se sumaron las tipografías
+  `Bricolage Grotesque` y `DM Sans` (migración `20270303100000_tienda_tipografias_prototipo.sql`: reemplaza
+  los `check` y `private.validar_tienda_identidad`; el front ya arma la URL de Google Fonts desde la lista) y el
+  quinto color **«Barra superior y pie»** (`color_barra`, `#RRGGBB`, por defecto `#222222`, migración
+  `20270303200000_tienda_color_barra.sql`). `color_barra` viaja en el borrador, en las versiones (un borrador o
+  una versión anterior sin la clave vale `#222222`), en `publico.identidad_por_dominio` y en la pestaña, con su
+  propio chequeo de contraste AA (mismo criterio que el primario, no bloquea). Un cambio de la barra cuenta
+  como «colores» en el resumen «N cambios sin publicar». `public.guardar_tienda_identidad` cambió de firma
+  (parámetro final `p_color_barra`, con default; se eliminó la de 10 argumentos) y `publicar_tienda`, su único
+  llamador, se recreó; sigue sin ser ejecutable por `authenticated` (F-TDA-06).
 - **Escritura**: solo `public.guardar_tienda_identidad(...)` (`security definer`, exige edición en
   Empresas, estado completo, **idempotente**: si no cambia nada no escribe ni registra evento; emite
   `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
@@ -224,7 +235,11 @@ no queda nada de la anterior).
 | `publico.contenido_por_dominio(host)` | `publico` | Lectura anónima con lista blanca de columnas. | `grant … to anon, authenticated`. |
 
 Campos (`empresa_id` es la clave): `titulo`, `subtitulo`, `texto_boton`, `boton_destino`,
-`bienvenida` (barra superior), `pie`, `aviso_ficha` y `texto_boton_contacto`. Migración aditiva;
+`bienvenida` (barra superior), `pie`, `aviso_ficha`, `texto_boton_contacto` y, desde MSF-841, `eslogan`
+(frase corta, hasta **80** caracteres, vacío por defecto; migración `20270303300000_tienda_eslogan.sql`:
+columna con check, validación en el borrador con `hint = 'eslogan'`, rótulo «eslogan» en el resumen de cambios
+sin publicar, `publico.contenido_por_dominio` lo devuelve y la pestaña lo muestra en «Textos comerciales» con
+contador). `public.guardar_tienda_contenido` cambió de firma (parámetro final `p_eslogan`, con default). Migración aditiva;
 la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
 
 ### Reglas
@@ -235,7 +250,7 @@ la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
   del botón y texto del botón de contacto ≤ 120 caracteres; subtítulo, bienvenida, pie y aviso de
   ficha ≤ 300. La base los valida (check y RPC); la pestaña avisa por campo y no guarda nada si falla.
 - **«El botón lleva a»**: lista cerrada validada en la base. Hoy solo `catalogo` («Catálogo completo», D4);
-  como el catálogo navegable es de MSF-167, el botón apunta al ancla `#catalogo`.
+  el botón lleva a `/catalogo` («Todos los productos»); en la vista previa del panel no navega. Antes apuntaba a un ancla `#catalogo` que no existe y el click no hacía nada.
 - **Vacío oculta**: un texto vacío no se muestra (barra, subtítulo, botón, pie). Sin fila, la tienda
   no muestra ningún texto opcional.
 - **Guardar** aplica de inmediato; **Descartar** vuelve al último guardado. La vista previa del banner
@@ -354,6 +369,14 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   `productos` = solo los efectivamente visibles de esa categoría. Host desconocido, inválido y empresa
   desactivada devuelven el mismo `null`. Nunca `organizacion_id` ni columnas internas.
   Reversión: `drop function publico.categorias_por_dominio(text);`.
+- **Foto de categoría (MSF-841, `20270303400000_tienda_categorias_imagen.sql`)**: cada categoría trae además
+  `imagen`: la ruta de storage (bucket `productos-imagenes`) de la imagen principal (menor `posicion`) de UN
+  producto efectivamente visible de la categoría o de sus subcategorías (el primero por nombre y, en empate,
+  por id); `null` si ninguno tiene imagen. No hay campo de configuración. Se calcula **en una sola pasada**
+  (CTE materializados `efectivos` → `img_producto` → `imagen` con `distinct on`, sobre el árbol recursivo ya
+  calculado), sin subconsultas por fila ni funciones por producto, porque la función corre bajo `anon` con
+  `statement_timeout` de 3 s (ver el bug de MSF-825 abajo). La ruta cuelga de `<organización>/<producto>/`,
+  igual que la `imagen` de los destacados. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa de la gestión (`public.vista_previa_tienda`) también la devuelve, con la misma regla sobre los productos efectivos del borrador, y el panel muestra la foto de categoría.
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
   `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
@@ -432,11 +455,98 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 - **Precio público**: regla de la empresa (`a_pesos` → `aplicar_regla_precio`) y, **según el interruptor «Precios que ve el cliente»** de la empresa, `aplicar_iva` (con IVA = `precio_para(...).final`; sin IVA = `precio_para(...).neto`). Resuelve la alícuota inline (la propia del producto o la de su categoría) porque `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva. Sin precio calculable (USD sin cotización) el precio es `null`: la tarjeta no muestra precio, queda al final de los órdenes por precio y no pasa el filtro de precio máximo (D9).
 - **Costo y techo esperado**: la RPC es pública y calcula `precio_final_publico` y `disponible_publico` para todo el catálogo efectivo de la tienda antes de filtrar y paginar, y lee las categorías en cada página. El diseño asume **hasta unos pocos cientos de productos visibles por tienda** (cifra de diseño, no medida); por encima conviene calcular el precio solo al filtrar u ordenar por precio y medir con un benchmark. Seguimiento de rendimiento fuera de esta historia: no hay catálogo real que lo justifique todavía.
 - **`publico.imagen_publica` es invocable directo** por `anon` y `authenticated`: permite confirmar si una ruta de storage es imagen pública, algo que esas rutas ya permiten leer; riesgo bajo aceptado (anotado en el comentario de la función).
-- **Página fuera de rango en la UI**: con `?pagina=` mayor a la última, el listado redirige (reemplazando el historial) a la última página; la RPC sigue devolviendo lista vacía con el `total` real.
+- **`?pagina=` en la UI (MSF-845)**: el listado ya no pagina; los enlaces viejos con `?pagina=N` (también `0`, negativos o `999`) se ignoran sin redirigir y arrancan de la primera tanda. La RPC sigue devolviendo lista vacía con el `total` real para una página fuera de rango, y la UI ya no la pide.
 - **Imágenes (D1, supuesto)**: el bucket `productos-imagenes` sigue privado. `anon` lee solo las imágenes que `private.imagen_publica` acepta (producto activo, no oculto, categoría visible, en una tienda activa). Como un `<img>` no manda cabeceras, `lib/imagenProducto.ts` pide **URLs firmadas** de una hora con la clave pública, en una sola llamada por página; se piden al cargar, así que en una pestaña abierta más de una hora vencen y la tarjeta cae a «Sin imagen» (`onError`) hasta recargar. Si D1 se resuelve distinto (URL pública o firmada por el servidor), cambia solo ese archivo y la política. La ruta (`<organización>/<producto>/<archivo>`) viaja en `imagen`: el id de organización no es un secreto (es un UUID sin valor de acceso) y el contrato de la épica la define así.
-- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, paginación con enlaces reales, estado vacío), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
-- **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; abrir la URL restaura el estado; cambiar un filtro u orden vuelve a la página 1; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
-- **Diferencias con el prototipo** (anotadas para el PR): la paginación no está dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, estado vacío; el pie del listado es `CargaInfinita`, ver «Carga infinita en los listados»), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
+- **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, y `orden=<relevancia|precio_asc|precio_desc>` (sin número de página desde MSF-845); abrir la URL restaura el estado; cambiar un filtro u orden reinicia la lista desde la primera tanda; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
+- **Diferencias con el prototipo** (anotadas para el PR): el prototipo no dibuja paginación ni carga infinita (desde MSF-845 el listado usa carga infinita); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
+
+## Carga infinita en los listados (MSF-845)
+
+Regla del repo («Listados: carga infinita con lazy loading, sin paginación») aplicada a la tienda pública a pedido de Nicolás: «en todas las tiendas quiero lazy loading infinito».
+
+- **Alcance**: el único listado público paginado era el de productos (`secciones-catalogo/ListadoProductos.tsx`), que montan `/catalogo`, `/categoria/:categoriaId` y los resultados de búsqueda (`/catalogo?q=`). Se eliminó `catalogo/Paginacion.tsx` y no queda ningún `Pagination` en la tienda pública.
+- **Cómo carga**: `hooks/useCatalogoPublico.ts` pide la primera tanda al cambiar host, filtros, orden o `q` y expone `cargarMas`, `hayMas`, `cargandoMas` y `errorMas`; cada tanda es una llamada a la misma RPC (`catalogo_pagina_por_dominio` o `busqueda_pagina_por_dominio`, de a 24) con `pagina` creciente, más un firmado en lote de las imágenes de esa tanda. Se suman a lo ya mostrado sin repetir productos. Una tanda vacía con total mayor corta la carga (no se pide sin fin). **Sin cambios de base ni migraciones.**
+- **Pie de lista**: el componente compartido del panel `components/pagina/CargaInfinita` (`IntersectionObserver` con margen de 400 px, «Cargar más» operable con teclado y única vía sin `IntersectionObserver`, estado «Cargando más resultados», error «No pudimos cargar más resultados.» con «Reintentar» que conserva lo ya cargado, y «No hay más resultados.» al terminar). El contador total («N productos») sigue arriba.
+- **Reinicio**: buscar, filtrar, ordenar o cambiar de categoría vuelve a la primera tanda y descarta lo acumulado; `q` y los filtros siguen en la URL, que no cambia al cargar más.
+- **Accesibilidad y reinicio**: el botón «Cargar más» sigue montado (`aria-busy`) mientras carga para no perder el foco, una región viva (`aria-live`) anuncia «Cargando más resultados», «N productos más cargados» y «No hay más resultados», y al cambiar filtro, orden o búsqueda el scroll vuelve al inicio del listado. Si una tanda siguiente de búsqueda choca con el límite de pedidos se avisa «Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá» y «Reintentar» queda deshabilitado hasta que pase la espera. Limitación: al volver desde la ficha no se conservan las tandas ya cargadas; sin virtualización (diseño pensado para pocos cientos de productos; seguimiento si un catálogo supera ~500).
+- **Enlaces viejos `?pagina=N`**: se ignoran (no rompen, no redirigen) y se arranca de la primera tanda; no se reconstruye la página N porque la carga infinita no tiene un «punto de entrada» equivalente y sería traer N tandas de golpe. Al cambiar un filtro el parámetro desaparece de la URL.
+- **SEO**: sin cambios. Canónica (`/catalogo`, `/categoria/<id>`) y `noindex` de búsqueda y errores como estaban; las URLs de listado nunca llevaron `pagina` en la canónica.
+- **Elementos nuevos visibles**: solo los de la regla del repo («Cargar más», estados de carga/error/fin); ni el prototipo ni sus inventarios (`MJC_Catalogo`, `SJ_*`) dibujan paginación ni carga infinita. Detalle en `specs/20270304-100000-tiendas-carga-infinita/spec.md`.
+- **No verificado en navegador**: los E2E `tienda-catalogo.e2e.ts` se actualizaron pero no se corrieron al implementar (requieren el stack local).
+
+## Seguimiento del front: menú y carga infinita (MSF-846, parte B)
+
+- **Menú de categorías**: la barra del encabezado (`layout/MenuCategorias.tsx`) mide el ancho real de cada entrada (copia invisible, con el texto en un pseudo-elemento) y la lista visible con `ResizeObserver`, y muestra solo las categorías principales que entran (`cuantasEntran` en `lib/tiendaCategorias.ts`), reservando el lugar de «Más categorías» (`/catalogo`) para el resto. Así, con una tipografía ancha (San Javucho a 1440 px, Bricolage Grotesque) no desborda ni corta la última entrada; vuelve a medir al cambiar el ancho o cargar la fuente. Mismo estilo del prototipo (mayúsculas, subrayado de la activa). La copia de medida va en un contenedor recortado (`overflow:hidden`) para no agregar scroll horizontal a la página. Sin `ResizeObserver` se muestran todas y la barra desplaza en horizontal.
+- **Carga infinita** (`components/pagina/CargaInfinita`, compartida con el panel): el foco pasa de «Reintentar» a «Cargar más» (y de vuelta si falla otra vez, o al aviso si «Reintentar» espera) en vez de caer al body (solo si el foco se perdió: no se le roba a quien pasó a otro campo); el aviso de espera por límite de búsquedas se anuncia una sola vez (`role=alert`, con la región viva vacía en error); «Cargar más» se ve apagado (`aria-disabled`) mientras carga; y `useCatalogoPublico` descarta lo acumulado en el mismo render en que cambia la clave, así A→B→A no muestra la lista vieja.
+- **E2E**: `tienda-*.e2e.ts` ajustados al DOM actual (navegación «Categorías» exacta frente a «Categorías del pie»; headings de la home dentro de `<main>`; bloque de consultas; no desborde de la barra). No se corrieron (requieren el stack local). Spec: `specs/20270305-100000-tiendas-seguimiento-front/`.
+
+## Hallazgos de la pasada de pruebas en dev (MSF-846, parte C)
+
+- **Encabezados del listado (axe `heading-order`)**: las tarjetas de producto usan `h3`; el listado del catálogo, la categoría y los resultados de búsqueda (`secciones-catalogo/ListadoProductos.tsx`) antepone un `h2` solo para lectores de pantalla («Productos», o «Resultados» con `?q=`), así en celular (donde el panel de filtros está cerrado) ya no se salta de `h1` a `h3`. No cambia lo visible.
+- **Barra superior (axe `region`)**: `layout/BarraSuperior` va ahora dentro del `<header>` (landmark banner) de `LayoutTienda`, con lo que el eslogan y el contacto dejan de quedar fuera de todo landmark. Mismo aspecto.
+- **`useEmpresa` sin id**: mientras la empresa activa no resolvió (`id` indefinido) el hook no consulta (antes pedía `empresas?id=eq.` y daba 400 en cada pestaña de `/empresas/:id/tienda/*`), queda `cargando` (sin parpadeo de «no encontrada») y `actualizar`/`cambiarEstado` rechazan sin llamar a la base.
+- **Vista previa fiel a la tienda**: la migración `20270306100000_tienda_vista_previa_categorias_paridad.sql` hace que `public.vista_previa_tienda` cuente las categorías como `publico.categorias_por_dominio` (total del árbol, con descendientes, sobre los productos efectivos del borrador) y omita las que quedan sin productos. El front de la vista previa ya usaba la regla de «categorías principales» de `lib/tiendaCategorias.ts` (por cantidad de productos), que ahora recibe los mismos datos que la tienda. Mismos grants y guardia (solo `authenticated`, `search_path` vacío); sin tablas nuevas (Principio VII). Reversión: una migración posterior que restituya el cuerpo de `20270305100100_tienda_vista_previa_categorias_imagen.sql`. Prueba pgTAP: `supabase/tests/database/tienda_vista_previa_categorias_paridad.test.sql` (paridad con la pública y borrador). Spec: `specs/20270313-100000-tiendas-hallazgos-qa/`.
+
+## Fidelidad con el prototipo (MSF-847)
+
+La tienda pública se llevó a las medidas del prototipo (`design/pantallas/MJC_*`, `SJ_*`; spec `specs/20270314-100000-tiendas-fidelidad-prototipo`). Se midió con Playwright y `getComputedStyle`
+a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra dev; los cambios se verificaron sobre una build local servida desde la URL de dev. Resumen (escritorio, MundoJC):
+
+| Elemento | Prototipo | Antes (dev) | Después |
+|---|---|---|---|
+| Contenido | 1200 px | 1168 px | 1200 px (`layout/medidas.ts`, máximo 1232) |
+| Tarjeta: borde / radio / relleno | 1 px `.08` / 8 / 14 | 1 px `.12` / 4 / 12 | igual al prototipo |
+| Tarjeta: imagen | cuadrada, `contain` al 86 % sobre superficie | cuadrada, `cover` (recorta) | `contain` al 86 %, sin recorte; «Sin stock» como insignia de 10 px |
+| Tarjeta: nombre | 16 px/500, interlínea 1,3, alto 42 px (2 líneas) | 16 px/600, interlínea 28 px, hasta 4 líneas | 16 px/500, 20,8 px, alto 42 px con recorte a 2 líneas |
+| Tarjeta: precio | 22 px/700, títulos, primario | 20 px/500, color de texto | 22 px/700, títulos, primario |
+| Tarjeta: disponibilidad | 13 px/500 con punto de 8 px | 14 px/600 sin punto | 13 px/500 con punto de 8 px (#2E7D32 / #6B6B6B) |
+| Tarjeta: alto total | 410 px | 369–412 px | 410 px |
+| Grilla | 4 × 282 px (24 px) portada y relacionados; 304 px en catálogo; 2 × 173 px (12 px) en celular | 5 × 168–181 px (16 px) | 4 / 3 / 2 columnas fluidas (`GrillaProductos`) |
+| Barra de categorías | Barlow 15 px/600 mayúsculas | Barlow Condensed | Barlow |
+| Migas / título del catálogo | 14 px, 18 px de aire / 44 px/700 | 16 px / 34 px/400, espaciado −1,87 px | igual al prototipo |
+| Panel de filtros | 260 px; títulos 18 px títulos; filas 15 px; casilla; campo de 40 px | 240 px; 16 px; MUI `List`, botón con mayúsculas, campo flotante | igual al prototipo |
+| Portada: héroe | 440 px a todo el ancho, título 72 px/700 mayúsculas, botón 16 px/700 de 47 px | texto de 34 px/400 y botón de 14 px | igual (sin las tarjetas del héroe: no hay datos) |
+| Portada: categorías | 186 px (16 px de separación) | 181 px con borde | 186 px; en celular, píldoras |
+| Ficha | galería 600 px, miniaturas 84 px, título y precio 44 px, botones 16 px/700 radio 8 | 568 px, 72 px, 34 px / 24 px, botones 14 px/700 mayúsculas radio 4 | igual al prototipo |
+| Contacto | columna 460 px con círculos de 44 px; tarjeta con rótulos arriba; campos de 44 px | 560 px sin íconos; campos con rótulo flotante | igual al prototipo |
+| Celular | encabezado 60 px (menú, logo centrado), menú de 300 px, h1 30 px, tarjetas de 173 px | logo a la izquierda y menú a la derecha, menú de 320 px, h1 34 px | igual (tarjetas de 175 px fluidas) |
+
+- **Tema** (`tema/temaTienda.ts`): títulos en negrita, `lineHeight`/`letterSpacing` `normal`, botones sin mayúsculas, 700 y radio 8. El color de texto y el fondo de la tienda se aplican al layout (antes los elementos sin
+  `Typography` salían con el color del panel).
+- **Grillas** (`catalogo/GrillaProductos.tsx`): `columnas={4}` en la portada y los relacionados, `columnas={3}` en el catálogo y la categoría; 2 columnas y 12 px de separación en celular, 24 px desde `md`.
+- **Diferencias conocidas** (no son del layout): colores de texto del tenant (#1A1A1A en la demo, no #1F1F1F) y gris secundario derivado con contraste AA (#6A6A6A, no #5F5F5F); «Ingresar» (F-CLI-06) y «Compartir» (F-TDA-25) no están en el prototipo; la barra de «Información» y el bloque legal del pie;
+  las tarjetas del héroe y las categorías sin productos; en celular, las migas, el bloque de consultas, los puntos de la galería (la tienda mantiene miniaturas) y el orden de «Filtrar» respecto del título; «Últimas unidades» no existe (FR-023);
+  el diálogo de WhatsApp se llevó al prototipo en la auditoría (ver abajo).
+- **Desvíos accesibles respecto del prototipo**: «Sin imagen» y los placeholders usan el gris secundario del tema (≥ 4,5:1; el prototipo usa negro al 35 %/45 %, ≈ 2,4:1); los campos de contacto y filtros y la casilla «Solo con stock» dibujan un foco visible (borde y contorno primarios de 2 px).
+- **Sin scroll horizontal**: la franja del héroe es una capa de 100vw con las franjas inclinadas recortadas y el layout lleva `overflow-x: clip`; se midió `scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas y el E2E `tienda-inicio.e2e.ts` lo vigila en la portada a 900/1024/1280.
+- **Auditoría independiente de fidelidad (52 diferencias de implementación, corregidas)**. Medido en Chromium sobre la build local servida desde dev:
+
+  | Fila | Prototipo | Antes | Después |
+  |---|---|---|---|
+  | H-07 San Javucho: botón del héroe | acento `#E9A23B`, texto tinta | primario sobre franja primaria (1:1, invisible) | `#E9A23B` con texto de la tinta (`tema.tienda.botonDestacado`) |
+  | C-12/C-13/P-12 San Javucho: encabezado, campos, menús, diálogo | blanco | crema `#FBF8F2` | blanco (`background.paper`); el fondo de la página sigue siendo el de la identidad |
+  | H-03/MH-04: título del héroe | `h1` | `h2` (portada sin `h1`) | `h1` (la marca lo cede si hay título); un solo `h1` por página |
+  | K-02/K-03: filas del panel / «Todos los productos» | 32 px / con total | 40 px / sin total | 32 px / «2204» |
+  | K-07/K-08: menú de orden | 200×116, sin fondo | 200×132, fondo teñido | 200×116, sin fondo |
+  | K-09/K-11: sugerencias | sin «Disponible»; vacío en gris 14 px, relleno 14/12 | línea «Disponible» a la vista; vacío en tinta | «Disponible» solo para lectores; vacío en gris `#6A6A6A`, relleno 14/12 |
+  | C-06: pie | enlaces sin subrayado (solo «Escribinos») | todos subrayados | sin subrayado salvo «Escribinos» |
+  | C-04: barra de categorías | y = 122,5 | y = 121 | centrada en 52 px |
+  | H-11: «Ver todas las categorías →» | ausente | presente | quitado |
+  | H-12: área de imagen de la tarjeta | 282 px de alto | 280 px | 282 px (tarjeta de 410 px) |
+  | T-05/T-06: contacto enviado | título «Escribinos», tarjeta de 376 px, «Enviar otra» 16 px | sin título, 329 px, 14 px | conservado, 376 px, 16 px |
+  | P-03/MP-04: disponibilidad en la ficha | y = 437,4; 15 px en celular | y = 438,9; 16 px | y = 437; 15 px en celular |
+  | P-07…P-10: diálogo de WhatsApp | 460 px, radio 14, círculo `#25D366`, recuadro gris, botones de 44 px | 444 px, radio 4, sin círculo, campo MUI | 460 px, radio 14, círculo, línea de contacto, recuadro de solo lectura, botones de 44 px de 16 px |
+  | MM-02/MM-04: menú lateral | entradas 47/43 px, recuadro de contacto | 55/51 px, sin recuadro | 47/43 px, recuadro de 116 px con nombre, teléfono y correo |
+  | MF-01…MF-08: hoja «Filtros» | asa, píldoras, subtítulos de 14 px, botones de 16 px | lista de filas, `Select`, títulos de 18 px, botones de 14 px | igual al prototipo (conserva «Precio máximo» y el cierre de 36 px) |
+  | MH-05: píldoras de la portada | «Todo» activa; filtran en el lugar | enlaces, ninguna activa | botones con `aria-pressed`; filtran los destacados |
+  | MH-07: grilla de celular | tarjetas de 173 px | 175 px | hasta 173 px |
+  | MK-01/MK-03/MK-04: contacto en celular | círculos de 40 px, sin «Retiro y envíos», sin rótulos arriba | 44 px, con las tres filas y rótulos | 40 px, dos filas, rótulos solo para lectores |
+  | MP-06: «Ver más productos» en celular | ausente | presente | solo escritorio |
+
+- **Decisiones abiertas** (sin configuración inventada): héroe de dos variantes (la franja clara de San Javucho), mayúsculas de la barra de categorías y del botón del héroe, color de la franja inclinada. Detalle en la spec.
+- **Desvíos accesibles declarados**: áreas táctiles de 36–44 px en el encabezado y «← Todos los productos»; botón de cierre de la hoja de filtros; «Abrir WhatsApp» con texto en tinta; foco visible; «Cargar más» (regla del repo).
+- **Pruebas**: Vitest de la tarjeta, las grillas (la parte por ancho se lee en el texto de la hoja: jsdom no evalúa `@media`) y las piezas compartidas, más axe real de Chromium sobre una build local; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron localmente (los valida el CI).
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
@@ -472,7 +582,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (T070–T073; SC-010…SC
 | Ruta | Qué muestra | Historia |
 |---|---|---|
 | `/` | Inicio de la tienda | épica anterior |
-| `/catalogo` | «Todos los productos» con filtros, orden y paginación | F-TDA-12 |
+| `/catalogo` | «Todos los productos» con filtros, orden y carga infinita | F-TDA-12 |
 | `/categoria/:categoriaId` | Listado de una categoría visible (migas «Inicio / Categoría») | F-TDA-11 + F-TDA-12 |
 | `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad | F-TDA-13 |
 | cualquier otra | La misma 404 (inexistente, oculta, ajena o id inválido) | F-TDA-11 |
@@ -490,7 +600,7 @@ Helpers `private.*` sin `execute` para la API: `disponible_publico` (F-TDA-18) y
 
 ### Filtros y URL
 
-`categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro vuelve a la página 1.
+`categoria`, `stock=1`, `max=<pesos>`, y `orden=<relevancia|precio_asc|precio_desc>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro reinicia la lista desde la primera tanda (un `pagina=<n>` viejo se ignora).
 
 ### Disponibilidad
 
@@ -507,7 +617,7 @@ Solo el booleano «Disponible» / «Sin stock» (`cantidad > 0`), nunca cantidad
 
 ### Contradicciones con el prototipo (para el PR)
 
-Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
+La carga infinita («Cargar más») no está dibujada en el prototipo (se usa el componente compartido del panel); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
 
 ### Rendimiento en celular (T071, SC-010)
 
@@ -744,6 +854,14 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 (`/producto/:productoId`) aparece «Productos relacionados»: hasta **4** productos efectivamente visibles de la
 **misma categoría**, sin el actual, destacados primero y luego por nombre (D2 de la spec).
 
+**Relacionados manuales (MSF-846, `20270305100200_tienda_relacionados_manuales.sql`)**: si el producto tiene
+«Productos relacionados» cargados en el panel (`dominio.producto_relacionados`, F-CAT-18), la ficha muestra
+**esos primero, en su orden (con empate de `orden`, por id)**, hasta 4 y solo los efectivamente visibles en esa tienda
+(`private.catalogo_tienda_efectivo`: ocultos, inactivos o no asignados a la empresa se omiten); si faltan para
+llegar a 4 se completa con la regla por categoría de arriba, sin repetirlos. Un producto sin categoría con
+manuales visibles los devuelve. Mismo contrato de salida y mismos grants; los vínculos se filtran por la
+organización de la tienda. Reversión: restaurar el cuerpo de `20270212100003_tienda_relacionados.sql`.
+
 | Capa | Dónde |
 |---|---|
 | Base | `supabase/migrations/20270212100003_tienda_relacionados.sql`: `publico.relacionados_por_dominio(host, producto)` (`jsonb { productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }`; sin tablas nuevas). `null` idéntico para host desconocido, empresa desactivada y producto inexistente, oculto, inactivo o de otra tienda; producto sin categoría o sin compañeros → `{ productos: [] }`. Nunca costos, existencias ni `organizacion_id`. Reversión: `drop function publico.relacionados_por_dominio(text, uuid);` |
@@ -761,6 +879,7 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-030…FR-034, SC-0
 - **`publico.legal_por_dominio(host)`**: `{ razon_social, cuit, direccion, enlaces: [{ titulo, url }] }` por `orden`; lista blanca; `null` idéntico para host desconocido o empresa desactivada. Ejecutable por `anon`.
 - **Front**: `layout/PieLegal.tsx` (montado desde `PieCategorias`): «<Razón social> · CUIT XX-XXXXXXXX-X», dirección y enlaces en pestaña nueva con `rel="noopener noreferrer"`; datos ausentes se omiten y sin datos el bloque no aparece. `layout/AvisoCookies.tsx` (carga diferida): «Aceptar» / «Rechazar», sin bloquear ni robar el foco.
 - **Contrato de consentimiento para F-TDA-24** (`lib/consentimientoCookies.ts`): `leerConsentimiento()` (`'aceptadas' | 'rechazadas' | null`; `null` equivale a rechazadas), `guardarConsentimiento(valor)`, `useConsentimientoCookies()` y el evento de ventana `tienda:consentimiento-cookies` (`detail` = decisión). Persiste en `localStorage`; si está bloqueado el aviso reaparece en la próxima visita y nada se rompe.
+- **Capa del aviso**: `AvisoCookies` es una barra fija abajo con `z-index` `drawer - 1` (1199), estrictamente por debajo de los paneles laterales del celular (menú y filtros son `Drawer` temporales de MUI, `zIndex.drawer` = 1200; el diálogo de WhatsApp es un `Dialog`, `zIndex.modal` = 1300). Con el nivel anterior (`snackbar`, 1400) tapaba el botón «Ver N productos» del panel de filtros y no se podía tocar mientras no hubiera decisión.
 - **Reversión** (migración posterior, no en el PR que la crea): `drop function publico.legal_por_dominio(text); drop table dominio.tienda_legal_enlaces;`.
 
 ## Borrador, vista previa y publicación (F-TDA-06, MSF-216)
@@ -901,7 +1020,7 @@ Visión de conjunto de la épica; el detalle de cada historia está en las secci
 | Historia | Pieza | Esquema | Quién la ejecuta |
 |---|---|---|---|
 | F-TDA-19 (MSF-247) | `publico.estado_tienda_por_dominio(host)`: marca de la tienda **desactivada** | `publico` (función) | `anon`, `authenticated` |
-| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4 de la misma categoría | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4; primero los relacionados manuales del panel (MSF-846) y luego la regla por categoría | `publico` (función) | `anon`, `authenticated` |
 | F-TDA-21 (MSF-279) | `publico.seo_tienda_por_dominio(host)` y `publico.sitemap_por_dominio(host)` | `publico` (funciones) | `anon`, `authenticated` |
 | F-TDA-22 (MSF-289) | `publico.legal_por_dominio(host)` y la tabla `dominio.tienda_legal_enlaces` | tabla en **`dominio`** (dato del producto atado a una empresa, Principio VII), función en `publico` | tabla: solo `select` a `authenticated` con RLS por organización, sin privilegios para `anon`; función: `anon` |
 
@@ -944,7 +1063,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 | # | Supuesto adoptado | Cómo cambiarlo |
 |---|---|---|
 | D1 | La marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. | Dejar de llamar a la función desde `SinTienda` y vuelve la pantalla genérica. |
-| D2 | Relacionados: hasta 4 visibles de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
+| D2 | Relacionados: hasta 4 visibles; primero los manuales del panel (MSF-846, en su orden) y luego, para completar, los de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
 | D3 | SEO básico: título, descripción, canónica, Open Graph, JSON-LD (organización y producto), `robots.txt`, `sitemap.xml` y `noindex` en páginas de estado, cuenta y búsqueda. | Fuera de alcance: campos SEO por producto, hreflang, analítica. |
 | D4 | La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender. | Otra historia (prerender o HTML desde la Edge Function). |
 | D5 | Los enlaces legales los carga el equipo técnico por SQL. | Otra historia, dentro de Empresas. |
@@ -956,7 +1075,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 1. «Volvemos pronto» figura P0 en F-TDA-01 y P1 en F-TDA-19: la versión mínima ya estaba; esta épica agrega la identidad.
 2. El interruptor «Store activa» ya existe en el panel (F-EMP-04); acá solo se verifica su efecto en la tienda, sin rediseñar esa pantalla.
-3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano; se aplica la regla D2 y se mantienen «Sin imagen» / «Sin stock».
+3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano: desde MSF-846 van primero los relacionados manuales del panel y luego se completa con la regla D2 (misma categoría); se mantienen «Sin imagen» / «Sin stock».
 4. Aviso de cookies, SEO y bloque legal no tienen pantalla en el prototipo: se construyen con los componentes del template y los tokens de la tienda.
 
 ### Migraciones y reversión
@@ -1066,3 +1185,54 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
 - **Verificación manual pendiente (SC-007)**: Lighthouse (categoría SEO) no corre en el repo. Pendiente: `npx lighthouse <url>
   --only-categories=seo` sobre inicio, catálogo, categoría, ficha y contacto de las dos tiendas y validación del JSON-LD de la ficha con
   el Rich Results Test; criterio de aceptación: sin fallas (D8), resultado adjunto en el PR de cierre.
+
+## Diseño del prototipo en el front público (MSF-841, tramo B)
+
+Spec: `specs/20261112-200000-tiendas-diseno-del-prototipo/` (matriz pantalla↔criterios incluida). El front público reproduce el
+diseño de `design/pantallas/MJC_*` y `SJ_*` **sin ningún valor fijo por tienda**: todo sale de la identidad, el contenido y el
+contacto de la empresa del host.
+
+- **Identidad aplicada a TODA la tienda (causa raíz de «los colores no se aplican»)**: antes solo la sección `TemaTienda` de la portada
+  leía la identidad y seteaba variables; en `/catalogo`, `/categoria`, `/producto` y `/contacto` no se aplicaba nada y en la portada los
+  botones y enlaces seguían con el azul de MUI. Ahora `layout/IdentidadTiendaContexto.tsx` (`ProveedorIdentidadTienda`, montado en
+  `LayoutTienda`) la lee **una vez por host** (`resolverIdentidadPublica`) y la reparte por: el tema MUI (`ProveedorTemaTienda`:
+  `primary`, `primary.dark`, `secondary` = acento, tipografías de títulos y texto, fondo), las variables CSS `--tienda-*` (primario,
+  primario oscuro, acento, fondo, **barra**, fuente de títulos y de texto; para portales de MUI) y el contexto (`useIdentidadTienda()`:
+  logo, banners). `theme.tienda` expone además los derivados que usa el diseño: `barra`, `textoBarra`, `superficie` (el fondo mezclado
+  con negro 4,3 %, el `--sf` del prototipo) y `fuenteTitulos`. Sin identidad legible la tienda sigue con el tema base. En la vista previa
+  del panel la identidad llega inyectada (`ProveedorFuenteTienda`) y no se tocan variables globales.
+  Además el `body` toma la tipografía de texto (`--tienda-fuente-texto`) y los enlaces del menú de categorías la de títulos: sin esto, lo que
+  no es tipografía de MUI (los enlaces del menú) salía en la serif por defecto del navegador.
+- **Destello de tema (decisión)**: no se espera la petición de identidad para pintar; la tienda arranca con el tema base neutro y pasa a
+  la identidad al llegar, así el contenido no espera un pedido más. Es un destello conocido y aceptado. Para no sumar saltos de diseño, la
+  barra superior reserva su altura (36 px / 28 px en celular) mientras llega el contacto.
+- **Sin pedidos de más**: el layout también lee **una sola vez** el contenido (`ProveedorContenidoTienda`), el contacto
+  (`ContextoContactoTienda`) y las categorías (`ContextoCategoriasTienda`); `useContenidoPublico`, `useContactoTienda` y
+  `useCategoriasTienda` usan el compartido si existe (barra, menú, pie, portada y `/contacto` comparten la misma lectura) y, sin layout
+  (vista previa, tests), leen por su cuenta.
+- **Tipografías**: los títulos usan la tipografía de títulos (variantes `h1…h6` del tema) y el cuerpo la de texto. No se espera la
+  petición de identidad para pintar (la tienda arranca con el tema base neutro y pasa a la identidad al llegar); la hoja de Google Fonts
+  se pide con `display=swap` y `preconnect` a `fonts.googleapis.com` / `fonts.gstatic.com` para acortar el cambio de fuente.
+- **Barra superior** (`layout/BarraSuperior.tsx`): 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px (12 px en celular). Izquierda: el
+  `eslogan`; sin eslogan, el mensaje de **bienvenida**. Derecha (solo desde `md`): WhatsApp (enlace `wa.me`) y correo (`mailto:` con el correo codificado) de
+  `contacto_por_dominio`. Un dato ausente no se muestra y sin nada que mostrar no hay barra. `secciones/BarraBienvenida` ya no duplica el
+  texto: dentro del layout solo se dibuja si hay eslogan **y** una bienvenida distinta (franja primaria en la portada); en la vista previa
+  del panel (sin layout) se dibuja como antes.
+- **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (flexible: hasta 560 px desde `md`, se encoge si falta
+  lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
+  (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
+  «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
+  el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
+  vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
+  línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste
+  AA sobre `colorBarra`); el texto secundario del tema se calcula para llegar a 4,5:1 sobre el fondo y sobre la superficie de las tarjetas.
+- **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
+  `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
+  pudo firmar, el recuadro neutro. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa del panel
+  (`vista_previa_tienda`) también trae `imagen`, calculada sobre los productos efectivos del borrador, y el panel muestra la foto; sin foto, el recuadro
+  neutro.
+- **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
+  «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos»; un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace. No se muestra en la vista previa (no lee `publico.*`).
+- **Diferencias conocidas con el prototipo**: la franja oscura del héroe de la portada no es del layout sino de los banners configurados
+  (`BannerHome`); la tarjeta de producto y la ficha no se tocaron en este tramo; el menú de celular no tiene el logo ni el buscador como ícono; las categorías sin productos no se muestran (el prototipo trae «Skins y calcos, 0 productos»); en celular el encabezado pone la marca a la izquierda y el menú a la derecha (el prototipo: menú a la izquierda, logo al centro, lupa a la derecha).

@@ -22,6 +22,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 // El popup de alta/edición trae el formulario completo: se descarga solo al abrirlo.
 const DialogoCliente = lazy(() => import('../../components/clientes/DialogoCliente').then((modulo) => ({ default: modulo.DialogoCliente })))
@@ -39,7 +40,6 @@ const ESPERA_BUSQUEDA_MS = 300
 const TAMANO_TANDA = 25
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
@@ -193,7 +193,7 @@ export function ClienteList() {
   return (
     <Box>
       <EncabezadoPagina titulo="Clientes" descripcion="Cada tipo define el precio que se aplica." accion={puedeEditar || puedeExportar || puedeMigrar ? (
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           {puedeMigrar ? <ImportarClientes /> : null}
           {puedeExportar ? <ExportarClientes filtros={{ texto: textoAplicado, tipo, archivados, empresaId, conCuentaWeb }} total={total} /> : null}
           {puedeEditar ? (
@@ -221,7 +221,7 @@ export function ClienteList() {
           </Box>
         ) : null}
         {puedeVerRanking ? (
-          <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" sx={{ mb: 2 }}>
+          <Tabs value={solapa} onChange={(_, valor: Solapa) => setSolapa(valor)} aria-label="Vistas de clientes" variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile sx={{ mb: 2 }}>
             <Tab value="listado" label="Listado" id="solapa-clientes-listado" aria-controls="panel-clientes" />
             <Tab value="ranking" label="Ranking por facturación" id="solapa-clientes-ranking" aria-controls="panel-clientes" />
             <Tab value="inactivos" label="Clientes inactivos" id="solapa-clientes-inactivos" aria-controls="panel-clientes" />
@@ -299,7 +299,7 @@ export function ClienteList() {
             ) : null}
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}

@@ -18,6 +18,9 @@ export const MENSAJE_MAX = 1000
  * Texto plano del mensaje editable: sin caracteres de control salvo el salto de línea, a lo sumo dos saltos
  * seguidos, recortado y de hasta 1.000 caracteres. Vacío después de sanear = null (texto por defecto).
  */
+// Solo espacio y salto de línea en los extremos: es EXACTAMENTE lo que recorta `private.sanear_mensaje_aviso` en la base (no `trim()`, que también quita NBSP y espacios Unicode).
+const ESPACIOS_EXTREMOS = /^[ \n]+|[ \n]+$/g
+
 export function sanearMensaje(valor: string | null | undefined): string | null {
   if (typeof valor !== 'string') return null
   const limpio = valor
@@ -28,11 +31,17 @@ export function sanearMensaje(valor: string | null | undefined): string | null {
     // Sin caracteres invisibles (ancho cero, marcas y controles de dirección): no aportan texto y permiten disimular contenido.
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, '')
     .replace(/\n{3,}/g, '\n\n')
-    .trim()
-    .slice(0, MENSAJE_MAX)
-    .trim()
-  return limpio === '' ? null : limpio
+    .replace(ESPACIOS_EXTREMOS, '')
+  // Por caracteres (code points), como `left()` de la base: `slice` cortaría a mitad de un par sustituto (emoji).
+  const recortado = Array.from(limpio).slice(0, MENSAJE_MAX).join('').replace(ESPACIOS_EXTREMOS, '')
+  return recortado === '' ? null : recortado
 }
+
+/**
+ * Neutraliza el dot-stuffing de SMTP (m-5): una línea que arranca con «.» (en particular una sola «.») puede
+ * cortar el DATA si la librería no la duplica. Se le antepone un espacio, así ninguna línea del cuerpo empieza con punto.
+ */
+export const neutralizarPuntos = (texto: string): string => texto.replace(/^\./gm, ' .')
 
 export function asuntoAviso(): string {
   return 'Ya tenemos stock de lo que pediste'
@@ -46,8 +55,8 @@ export function cuerpoAviso(cliente: string, lineas: LineaFaltante[]): string {
   const saludo = `Hola ${lineaSegura(cliente) || 'cliente'},`
   const mensaje = sanearMensaje(lineas.find((l) => sanearMensaje(l.mensaje) !== null)?.mensaje)
   // Con texto editado (F-VTA-26) reemplaza las frases fijas; sin él, el correo es el de F-STK-17.
-  if (mensaje) return [saludo, '', mensaje, '', ...detalle, ''].join('\n')
-  return [
+  if (mensaje) return neutralizarPuntos([saludo, '', mensaje, '', ...detalle, ''].join('\n'))
+  return neutralizarPuntos([
     saludo,
     '',
     'Volvió a haber stock de los productos que tenías pedidos:',
@@ -56,5 +65,5 @@ export function cuerpoAviso(cliente: string, lineas: LineaFaltante[]): string {
     '',
     'Escribinos para coordinar la entrega.',
     '',
-  ].join('\n')
+  ].join('\n'))
 }

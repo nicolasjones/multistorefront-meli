@@ -26,6 +26,7 @@ vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermi
 type RenderProp = (props: { collapsed: boolean; items: never[]; logout: null }) => ReactNode
 vi.mock('@refinedev/mui', () => ({ ThemedSider: ({ render }: { render: RenderProp }) => render({ collapsed: false, items: [], logout: null }) }))
 
+import { etiquetarBotonContraer, etiquetarHamburguesa } from './etiquetasRefine'
 import { SiderPanel } from './SiderPanel'
 
 function renderSiderEn(ruta: string) {
@@ -266,5 +267,22 @@ describe('SiderPanel', () => {
     renderSider()
 
     expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
+  })
+})
+
+describe('etiquetarBotonContraer (a11y del botón de ThemedSider)', () => {
+  it('le da nombre accesible al botón con la flecha izquierda y no toca otros botones ni los que ya tienen nombre', () => {
+    document.body.innerHTML = `
+      <button id="a"><svg data-testid="ChevronLeftIcon"></svg></button>
+      <button id="b" aria-label="Cerrar"><svg data-testid="ChevronLeftIcon"></svg></button>
+      <button id="c"><svg data-testid="MenuIcon"></svg></button>
+      <button id="d" aria-label="open drawer"></button>`
+    etiquetarBotonContraer()
+    etiquetarHamburguesa()
+    expect(document.getElementById('a')).toHaveAttribute('aria-label', 'Contraer el menú lateral')
+    expect(document.getElementById('b')).toHaveAttribute('aria-label', 'Cerrar')
+    expect(document.getElementById('c')).not.toHaveAttribute('aria-label')
+    expect(document.getElementById('d')).toHaveAttribute('aria-label', 'Abrir el menú lateral')
+    document.body.innerHTML = ''
   })
 })

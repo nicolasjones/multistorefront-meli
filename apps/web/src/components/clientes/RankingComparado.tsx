@@ -8,10 +8,10 @@ import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 const TAMANO_TANDA = 25
 const SIN_PORCENTAJE = '—'
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
@@ -68,7 +68,7 @@ export function RankingComparado({ aplicado, comparacion, tipo, incluirConsumido
 
   return (
     <>
-      <Box role="status" aria-live="polite" sx={visuallyHidden}>
+      <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
         {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando comparación" /> : null}

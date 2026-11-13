@@ -150,7 +150,7 @@ export function TomaInventario() {
               <EstadoVacio titulo="Esta categoría no tiene productos" descripcion="Elegí otra categoría para hacer la toma." />
             ) : (
               <>
-                <TableContainer>
+                <TableContainer tabIndex={0} role="region" aria-label="Productos de la toma de inventario (se desplaza)">
                   <Table size="small" aria-label="Productos de la toma de inventario">
                     <TableHead>
                       <TableRow>
@@ -228,7 +228,7 @@ function ResultadoToma({ resultado, onNueva }: { resultado: Resultado; onNueva: 
           : `Se generaron ${ajustes.length} ${ajustes.length === 1 ? 'ajuste' : 'ajustes'}. Los ves también en Movimientos.`}
       />
       {ajustes.length > 0 && (
-        <TableContainer>
+        <TableContainer tabIndex={0} role="region" aria-label="Ajustes generados por la toma (se desplaza)">
           <Table size="small" aria-label="Ajustes generados por la toma">
             <TableHead>
               <TableRow>

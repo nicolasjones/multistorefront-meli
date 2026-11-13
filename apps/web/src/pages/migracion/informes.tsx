@@ -80,7 +80,7 @@ export function MigracionInformes() {
             descripcion="Cuando importes un archivo, su informe de conciliación aparece acá."
           />
         ) : (
-          <Box sx={{ overflowX: 'auto' }}>
+          <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Cargas de migración (se desplaza)">
             <Table size="small" aria-label="Cargas de migración">
               <TableHead>
                 <TableRow>

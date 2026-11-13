@@ -70,6 +70,7 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-392:T010] el Operador mueve, desactiva y asigna una empresa a 3 productos', async ({ page }) => {
+    test.setTimeout(90_000) // mueve, desactiva y asigna empresa a 3 productos con tres diálogos masivos
     const sufijo = randomUUID().slice(0, 8)
     const correo = `operador-masiva-${sufijo}@example.com`
     const nombres = [1, 2, 3].map((n) => `Masivo ${n} ${sufijo}`)
@@ -85,6 +86,8 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
       usuarios.push(idOperador)
       await rest('usuarios_organizacion', { user_id: idOperador, organizacion_id: org.id, rol_id: 'operador' })
       const [emp] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: empresa }, 'dominio')
+      // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
+      await rest('usuarios_empresas', { user_id: idOperador, empresa_id: emp.id, organizacion_id: org.id, rol_id: 'operador' })
       const [cat] = await rest<{ id: string }>('categorias', { organizacion_id: org.id, nombre: categoria }, 'dominio')
       const productos = await rest<{ id: string }>(
         'productos',
@@ -95,7 +98,13 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
 
       await ingresar(page, correo)
       await page.goto('/productos')
+      // La búsqueda se aplica tras una pausa de tipeo y, al cambiar el contexto de la lista, la selección se
+      // descarta a propósito. Como la organización solo tiene estos 3 productos, las filas ya se ven ANTES de que
+      // la búsqueda se aplique: marcar entonces se pierde y `check()` falla («did not change its state»). Se
+      // espera la consulta que ya lleva el texto buscado (el contexto ya cambió) y recién ahí se marca.
+      const busquedaAplicada = page.waitForResponse((r) => r.url().includes('/v_productos_listado') && r.url().includes(sufijo) && r.ok())
       await page.getByLabel('Buscar por nombre, SKU o código de barras').fill(sufijo)
+      await busquedaAplicada
       for (const nombre of nombres) await expect(page.getByRole('row', { name: new RegExp(nombre) })).toBeVisible()
       await page.getByRole('checkbox', { name: 'Seleccionar todos' }).check()
       await expect(page.getByText('3 seleccionados')).toBeVisible()

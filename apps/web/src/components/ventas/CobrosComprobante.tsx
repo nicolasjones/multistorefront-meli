@@ -143,7 +143,7 @@ function Dato({ titulo, valor }: { titulo: string; valor: string }) {
 
 function ListaCobros({ cobros }: { cobros: Cobro[] }) {
   return (
-    <Box sx={{ overflowX: 'auto' }}>
+    <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Cobros del comprobante (se desplaza)">
       <Box role="table" aria-label="Cobros del comprobante" sx={{ minWidth: ANCHO_MINIMO }}>
         <Box
           role="row"

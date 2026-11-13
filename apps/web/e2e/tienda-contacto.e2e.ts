@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { limpiarOrganizacion, rest } from './soporte/fixtures'
 
-// F-TDA-16 (MSF-437, SC-004 y SC-005 de la épica MSF-212): con los dos dominios del seed (mundojc.localhost y
-// sanjavucho.localhost) la página /contacto muestra los datos de SU tienda, una consulta enviada llega a la
+// F-TDA-16 (MSF-437, SC-004 y SC-005 de la épica MSF-212): con dos tiendas propias de la corrida (cada una con su dominio) la página /contacto muestra los datos de SU tienda, una consulta enviada llega a la
 // bandeja de Consultas y ventas de SU empresa con origen «formulario», una ráfaga de 6 envíos muestra la espera
 // en el sexto y la bandeja recibe 5, y el HTML escrito queda literal. Requiere el stack local
 // (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra y lee la bandeja con la API
@@ -17,12 +17,6 @@ if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
   throw new Error(`E2E de contacto: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
 }
 
-// Ids fijos de supabase/seed.sql (MSF-241).
-const TIENDAS = [
-  { host: 'mundojc.localhost', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
-  { host: 'sanjavucho.localhost', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
-] as const
-
 const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
   authorization: `Bearer ${serviceKey}`,
@@ -36,16 +30,6 @@ async function leer<T>(consulta: string): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${consulta}`, { headers: cabeceras() })
   if (!r.ok) throw new Error(`REST GET ${consulta}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
-}
-
-async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
@@ -64,23 +48,26 @@ test.describe('Tienda online · contacto con formulario (SC-004, SC-005)', () =>
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('datos de cada tienda, consulta que llega a SU bandeja, ráfaga de 6 y HTML literal', async ({ browser }) => {
+    test.setTimeout(90_000) // envíos y ráfaga de 6 por tienda, en dos tiendas
     const sufijo = randomUUID().slice(0, 8)
-    const originales = await leer<{ id: string; whatsapp: string | null; correo: string | null; horarios: string | null }>(
-      `empresas?select=id,whatsapp,correo,horarios&id=in.(${TIENDAS.map((t) => t.empresa).join(',')})`,
-    )
-    const tiendas = TIENDAS.map((t, i) => ({
-      ...t,
-      whatsapp: `+54 9 11 5550-00${i}${i}`,
-      correo: `contacto-${i}-${sufijo}@ejemplo.com`,
-      horarios: `Horario ${t.nombre} ${sufijo}`,
-      visitante: `E2E contacto ${t.nombre} ${sufijo}`,
-    }))
-
+    // Organización, empresa y tienda PROPIAS por corrida (no las del demo, que no se pueden limpiar): la baja de la
+    // organización se lleva las consultas, y cada empresa nace con sus datos de contacto.
+    const orgs: string[] = []
+    const tiendas: Array<{ host: string; empresa: string; nombre: string; whatsapp: string; correo: string; horarios: string; visitante: string }> = []
     try {
-      for (const t of tiendas) {
-        // El cupo es por visitante y empresa: se parte de cero para no depender de corridas anteriores.
-        await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
-        await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: t.whatsapp, correo: t.correo, horarios: t.horarios })
+      for (const i of [0, 1]) {
+        const nombre = `Tienda Contacto ${i} ${sufijo}`
+        const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E contacto ${i} ${sufijo}` })
+        orgs.push(org.id)
+        const datos = {
+          whatsapp: `+54 9 11 5550-00${i}${i}`,
+          correo: `contacto-${i}-${sufijo}@ejemplo.com`,
+          horarios: `Horario ${nombre}`,
+        }
+        const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre, ...datos }, 'dominio')
+        const host = `contacto-${i}-${sufijo}.localhost`
+        await rest('tiendas', { organizacion_id: org.id, empresa_id: empresa.id, dominio: host }, 'dominio')
+        tiendas.push({ host, empresa: empresa.id, nombre, ...datos, visitante: `E2E contacto ${nombre}` })
       }
 
       for (const t of tiendas) {
@@ -134,12 +121,7 @@ test.describe('Tienda online · contacto con formulario (SC-004, SC-005)', () =>
         await contexto.close()
       }
     } finally {
-      for (const t of tiendas) {
-        await borrar('consultas', `empresa_id=eq.${t.empresa}&nombre=like.${encodeURIComponent(`${t.visitante} *`)}`)
-        await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
-        const original = originales.find((o) => o.id === t.empresa)
-        if (original) await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: original.whatsapp, correo: original.correo, horarios: original.horarios })
-      }
+      for (const org of orgs) await limpiarOrganizacion(org)
     }
   })
 })
