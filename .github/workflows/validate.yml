@@ -447,6 +447,10 @@ jobs:
       - run: pnpm infra:config
       - name: tests de control de CI (carriles, estado, janitor)
         run: pnpm test:ci
+      # Publicación y retiro de flows de Kestra (MSF-853): el script que publica y el que borra
+      # los flows retirados (infra/kestra/flows-retirados.txt).
+      - name: test:kestra:deploy-flow
+        run: pnpm test:kestra:deploy-flow
       # Verificación de la fuga de AGE-1311: falla si algún runner acumula más
       # navegadores huérfanos que el umbral. No mata nada; el janitor limpia.
       - name: Navegadores huérfanos de los runners

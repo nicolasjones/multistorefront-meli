@@ -367,6 +367,88 @@ leen del propio YAML de cada flow. Mismo gate que el resto de esta spec:
 Secrets por Environment: `KESTRA_BASIC_AUTH_USERNAME`,
 `KESTRA_BASIC_AUTH_PASSWORD`, `KESTRA_PUBLIC_URL`.
 
+### Retiro de un flow y de su Edge Function (MSF-853)
+
+Publicar no borra nada: un flow que sale del repo sigue disparando en los
+entornos donde ya estaba publicado, y si la función que llama ya no existe
+falla en cada corrida. Por eso el repo lleva la lista de flows retirados:
+
+- `infra/kestra/flows-retirados.txt`: una línea por flow, `<namespace>/<id>`
+  (los comentarios y las líneas vacías se ignoran). El mismo workflow de
+  publicación borra los de la lista en cada entorno después de publicar
+  (`infra/kestra/desplegar-flow.mjs --retirar`); borrar uno que ya no está
+  no falla (404 = «ya no estaba»). La línea se queda: es el registro de que ese
+  flow no debe volver a existir.
+- A mano, en un entorno (con `KESTRA_BASIC_AUTH_USERNAME` y
+  `KESTRA_BASIC_AUTH_PASSWORD` exportadas, o con `--username`/`--password`):
+  `pnpm kestra:deploy-flow -- --borrar --namespace <ns> --flow-id <id>
+  --kestra-url <url>`.
+
+La Edge Function que ese flow llamaba se baja **aparte y por entorno** (las
+funciones se despliegan a mano con el CLI de cada entorno; no hay CI que las
+borre):
+
+```bash
+# en el workdir del CLI del entorno (/root/supabase-stg, /root/supabase-prd)
+supabase functions delete <nombre-de-la-funcion> --project-ref <ref-del-entorno>
+supabase secrets delete <secreto-de-la-funcion> --project-ref <ref-del-entorno>  # si quedó
+```
+
+Y hay que sacar del `infra/kestra/.env` del entorno las variables que solo
+usaba ese flow, y volver a desplegar Kestra (`pnpm deploy:vps -- <entorno>`):
+`infra/kestra/compose.yaml` ya no las pasa.
+
+**Orden**: primero el flow y la función, después la migración que borra lo que
+usaban. Al revés, el flow queda llamando RPC inexistentes (502/404) y falla en
+cada corrida.
+
+**Obligatorio en dev, stg y prd, ANTES de que la migración llegue al entorno.**
+La migración (`20270306140000`, MSF-853) borra las tres RPC que el flow
+`platform.consultas/avisos-consultas` llama cada minuto. Cuándo llega a cada
+entorno:
+
+- **dev**: el cron de migraciones aplica `supabase/migrations/**` apenas se
+  mergea a `dokploy`. `--retirar` solo corre en `main` vía
+  `publicar-flows-kestra.yml`, así que **nada retira el flow de dev**: hay que
+  hacerlo a mano antes del merge a `dokploy` (ver abajo).
+- **stg**: el flow se retira cuando el push a `main` corre
+  `publicar-flows-kestra.yml`, y las migraciones cloud corren en el mismo push
+  (`migraciones-cloud.yml`): no hay orden garantizado entre ambos workflows.
+  Retiralo a mano antes de mergear a `main`.
+- **prd**: ídem, con el flow retirado a mano (o el paso de producción de
+  `publicar-flows-kestra.yml`) antes de disparar el job de producción de
+  `migraciones-cloud.yml`.
+
+Retiro a mano del flow (sin secretos en el comando; las credenciales van por
+entorno desde el `infra/kestra/.env` del VPS del entorno):
+
+```bash
+# dev (Kestra local del VPS1 en 127.0.0.1:9082; en stg/prd, la KESTRA_PUBLIC_URL del entorno)
+export KESTRA_BASIC_AUTH_USERNAME=... KESTRA_BASIC_AUTH_PASSWORD=...   # leerlas de infra/kestra/.env, no pegarlas en el historial
+pnpm kestra:deploy-flow -- --borrar --namespace platform.consultas --flow-id avisos-consultas \
+  --kestra-url http://127.0.0.1:9082
+# equivalente, con el manifiesto del repo:
+node infra/kestra/desplegar-flow.mjs --retirar --manifiesto infra/kestra/flows-retirados.txt \
+  --kestra-url http://127.0.0.1:9082
+```
+
+Es idempotente (404 = «ya no estaba»). La Edge Function `enviar-aviso-consulta`
+se baja aparte con el CLI del entorno (ver arriba); en dev, al no haber CI que
+la borre, queda registrada pero ya nadie la llama.
+
+**Si no se hace**: la migración se aplica igual (no depende del flow) y el
+entorno queda funcionando, pero el flow viejo sigue publicado y dispara cada
+minuto contra RPC inexistentes: una ejecución fallida por minuto en Kestra
+(ruido de alertas, sin pérdida de datos, porque el alta de consultas ya no
+encola en esa cola) hasta que se retire. Es reversible: retirar el flow en
+cualquier momento corta el ruido.
+
+Antes de aplicar una migración que borra una cola de avisos, mirá que no
+quede nada sin enviar (`select estado, count(*) from <cola> group by 1;`). Si
+quedara algo, ese aviso nunca sale: la cola que lo custodiaba es la que se
+borra. MSF-853: la migración `20270306140000` aborta sola si encuentra avisos
+`pendiente` o `fallido`; hay que resolverlos a mano y volver a aplicar.
+
 ### Migraciones cloud (staging → producción)
 
 **Hook de bloqueo de intentos (migración `20261014100000`, MSF-470) — ACTIVADO (2026-10-15):** en los
