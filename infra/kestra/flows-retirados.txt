@@ -1,0 +1,12 @@
+# Flows de Kestra que se retiraron del repo y hay que borrar de cada entorno.
+#
+# Formato: una línea por flow, `<namespace>/<id>`. Los comentarios (líneas que empiezan con #) y las
+# líneas vacías se ignoran. Lo lee `infra/kestra/desplegar-flow.mjs --retirar`, que lo ejecuta el CI
+# de publicación (`.github/workflows/publicar-flows-kestra.yml`) en cada entorno: borrar un flow que ya
+# no está no falla (404 = «ya no estaba»).
+#
+# La línea se queda después de borrar el flow: es el registro de que ese flow no debe volver a existir.
+#
+# MSF-853: el camino directo del aviso de consulta quedó sin uso (el aviso sale por la cola de
+# plataforma, `public.avisos_pendientes`). Ver docs/consultas.md y docs/deployment.md.
+platform.consultas/avisos-consultas
