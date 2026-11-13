@@ -48,7 +48,8 @@ de su organización recibe un correo. La persona no necesita avisarle por otro m
    reintento vuelve a intentar el aviso sin duplicar el registro.
 5. Repetir la solicitud el mismo día muestra la misma confirmación y **no** genera otro registro ni otro
    correo.
-Variables de la función (solo en `supabase/functions/.env.example`; los valores reales son secretos de la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (y `SMTP_PERMITIR_INSEGURO`, solo para un buzón de pruebas local: `SMTP_TLS` es obligatoria y `SMTP_TLS=false` falla cerrado sin ese opt-in; ver `docs/ventas-faltantes-avisos.md`). Los textos del correo son simples y quedan marcados en el PR (no hay diseño).
+
+Variables de la función (solo en `supabase/functions/.env.example`; los valores reales son secretos de la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` (y `SMTP_PERMITIR_INSEGURO`, solo para un buzón de pruebas local: `SMTP_TLS` es obligatoria y `SMTP_TLS=false` falla cerrado sin ese opt-in; ver `docs/ventas-faltantes-avisos.md`; 587/STARTTLS no funciona con denomailer 1.6.0: usar 465 con `SMTP_TLS=true`). Los textos del correo son simples y quedan marcados en el PR (no hay diseño).
 
 ## Reglas de negocio
 
