@@ -110,10 +110,12 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-faltantes': {
     titulo: 'Faltantes',
     resumen:
-      'Lista, de solo lectura, los productos de ventas que no se pudieron despachar por falta de stock y siguen abiertos. Por defecto se ven todas las tiendas; si elegís una empresa en la barra superior, se filtra por esa tienda.',
+      'Lista los productos de ventas que no se pudieron despachar por falta de stock y siguen abiertos, con el estado del aviso al cliente: Sin avisar, Para avisar (ingresó mercadería), En cola (el correo todavía no salió) y Avisado (con la fecha de envío). Si un aviso falló aparece «Aviso fallido» con el motivo. Por defecto se ven todas las tiendas; si elegís una empresa en la barra superior, se filtra por esa tienda.',
     pasos: [
       'Elegí una empresa en la barra superior para ver solo su tienda.',
-      'Revisá qué productos faltan y a qué venta corresponden.',
+      'Revisá qué productos faltan; el filtro «Para avisar» muestra los que ya recibieron mercadería.',
+      'Con permiso de edición, marcá faltantes y usá «Avisar a los seleccionados»: sale un correo por cliente y queda «En cola».',
+      'Si un aviso falló, usá «Reintentar». No se reavisa lo avisado hace menos de 24 horas y hay un tope diario.',
     ],
   },
   historial: {

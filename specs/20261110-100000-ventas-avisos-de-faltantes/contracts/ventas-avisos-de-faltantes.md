@@ -86,3 +86,10 @@ Ejemplos (cobertura): ingreso de 10 → faltantes `[3, 3, 3]` marcados los 3; fa
 - `dominio.faltantes_venta` y `dominio.faltantes_avisos`: lectura por organización y `ventas` en lectura/edición en la tienda; sin `insert`/`update`/`delete` para `authenticated`; `anon` sin privilegios. Las columnas nuevas heredan la política de su tabla.
 - `avisar_faltantes_venta`: `ventas` en `edicion` (global y por tienda); Consulta solo lee.
 - El disparador de ingresos es `security definer` (marca faltantes de tiendas que quien registra el ingreso quizá no ve); no expone datos: solo escribe la marca.
+
+### Revisión MSF-161 (migración `20270306110000`)
+
+- `avisar_faltantes_venta` devuelve además `omitidos_reaviso_reciente` (enviado hace menos de 24 h, sin override) y `omitidos_tope_diario` (1.000 líneas por organización por día móvil); `detalle[].resultado` suma `reaviso_reciente` y `tope_diario`. Usa `private.encolar_aviso_faltante`, la misma regla que `avisar_faltantes`.
+- `listar_faltantes` devuelve `aviso: 'sin_avisar' | 'para_avisar' | 'en_cola' | 'avisado'` (`en_cola` = pendiente; `avisado` = enviado) y `aviso_error` (código genérico del último fallo si el aviso quedó `agotado`); `p_aviso` acepta también `'en_cola'`. Un aviso agotado no cambia `aviso`.
+- `tomar_aviso_faltante` devuelve además `tanda uuid`; `cerrar_aviso_faltante(p_cliente, p_enviado, p_error, p_tope, p_tanda default null)` cierra solo las líneas de esa tanda. `p_error` es un código (`smtp_auth`, `smtp_conexion`, `smtp_timeout`, `destinatario_invalido`, `sin_correo`, `faltante_cerrado`, `intentos_agotados`, `otro`); cualquier otro valor se guarda como `otro`.
+- `faltantes_avisos.mensaje` queda saneado (`private.sanear_mensaje_aviso`) y la base lo exige por check.

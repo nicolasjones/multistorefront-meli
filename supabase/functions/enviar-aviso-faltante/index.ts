@@ -17,9 +17,9 @@ Deno.serve((req) => {
       const { data, error } = await cliente.rpc('tomar_aviso_faltante', { p_cliente: clienteId, p_tope: tope })
       return { data: data as Tomado[] | null, error }
     },
-    cerrar: async (clienteId, enviado, mensaje, tope) => {
+    cerrar: async (clienteId, enviado, codigo, tope, tanda) => {
       const { data, error } = await cliente.rpc('cerrar_aviso_faltante', {
-        p_cliente: clienteId, p_enviado: enviado, p_error: mensaje, p_tope: tope,
+        p_cliente: clienteId, p_enviado: enviado, p_error: codigo, p_tope: tope, p_tanda: tanda,
       })
       return { data, error }
     },

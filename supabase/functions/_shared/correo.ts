@@ -4,9 +4,13 @@
 // credenciales en variables de entorno de la función. Nunca llegan al navegador.
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 import { lineaSegura } from './texto.ts'
+import { enviarConLimites, TIMEOUT_SMTP_MS } from './envio.ts'
 
 export type MensajeCorreo = { para: string[]; asunto: string; texto: string }
 export type EnviarCorreo = (mensaje: MensajeCorreo) => Promise<void>
+
+/** Tope de un envío SMTP (M-2): menor que la reserva de 2 minutos de la cola de avisos de faltantes (ver `envio.ts`). */
+export { TIMEOUT_SMTP_MS }
 
 // `lineaSegura` vive en texto.ts (sin dependencias de Deno, probable con node --test); se reexporta.
 export { lineaSegura }
@@ -27,9 +31,5 @@ export const enviarPorSmtp: EnviarCorreo = async ({ para, asunto, texto }) => {
       ...(usuario && clave ? { auth: { username: usuario, password: clave } } : {}),
     },
   })
-  try {
-    await cliente.send({ from, to: para.map(lineaSegura), subject: lineaSegura(asunto), content: texto })
-  } finally {
-    await cliente.close().catch(() => undefined)
-  }
+  await enviarConLimites(cliente, { from, to: para.map(lineaSegura), subject: lineaSegura(asunto), content: texto })
 }
