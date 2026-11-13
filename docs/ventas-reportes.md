@@ -140,3 +140,7 @@ facturación negativa para clientes con solo notas de crédito, «último compra
 épica (12 h contra la suma nominal de 16 h) y prioridad en el roadmap de diciembre. Además hay que
 **verificar en un Superset real** que los filtros nativos lleguen preseleccionados y que la barra de
 participación se pinte (no hay Superset en desarrollo).
+
+## Enlace desde Inicio (MSF-820)
+
+Reportes de ventas lee `?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` al abrir y, si el rango no es válido, usa el atajo inicial. Inicio enlaza con ese período **solo a quien tiene la sección `reportes`**; Reportes sigue a la empresa activa y no admite tienda ni depósito por URL. Ver [`inicio-y-alertas.md`](./inicio-y-alertas.md).
