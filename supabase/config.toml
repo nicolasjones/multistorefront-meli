@@ -447,6 +447,19 @@ SUPERSET_PUBLIC_URL = "env(SUPERSET_PUBLIC_URL)"
 SUPERSET_GUEST_TOKEN_USERNAME = "env(SUPERSET_GUEST_TOKEN_USERNAME)"
 SUPERSET_GUEST_TOKEN_PASSWORD = "env(SUPERSET_GUEST_TOKEN_PASSWORD)"
 SEGUIMIENTO_IP_SALT = "env(SEGUIMIENTO_IP_SALT)"
+# Correo saliente y avisos (MSF-161/MSF-405, MSF-207, MSF-394, MSF-361): sin estas declaraciones el runtime de dev arranca sin
+# SMTP ni tokens y `enviar-aviso-faltante` (y sus hermanas) responden 503 «no configurada». Los valores salen de `supabase/.env`.
+SMTP_HOST = "env(SMTP_HOST)"
+SMTP_PORT = "env(SMTP_PORT)"
+SMTP_TLS = "env(SMTP_TLS)"
+SMTP_USER = "env(SMTP_USER)"
+SMTP_PASS = "env(SMTP_PASS)"
+SMTP_FROM = "env(SMTP_FROM)"
+PANEL_URL = "env(PANEL_URL)"
+AVISOS_FALTANTES_TOKEN = "env(AVISOS_FALTANTES_TOKEN)"
+AVISOS_CONSULTAS_TOKEN = "env(AVISOS_CONSULTAS_TOKEN)"
+AVISOS_REPOSICION_TOKEN = "env(AVISOS_REPOSICION_TOKEN)"
+ALERTAS_INICIO_TOKEN = "env(ALERTAS_INICIO_TOKEN)"
 
 # consultar-estado-reparacion (F-SVC-22, MSF-157, docs/service-seguimiento.md): la página pública
 # `/seguimiento/:token` consulta el estado SIN sesión; la función valida el token y usa la service-role
