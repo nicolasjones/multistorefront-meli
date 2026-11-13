@@ -9,7 +9,9 @@ import { listarDepositosActivos } from '../../../lib/depositos'
 import {
   formatoEntero, formatoPesos, formatoVariacion, leerResumenInicio, variacionPorcentual, type ResumenInicio,
 } from '../../../lib/inicioTablero'
+import { BloquesGestion } from './BloquesGestion'
 import { GraficoVentasStock } from './GraficoVentasStock'
+import { MovimientosPorProducto } from './MovimientosPorProducto'
 import { Indicador } from './Indicador'
 import { FiltrosTablero } from './FiltrosTablero'
 import { enlaceVentas, leerFiltros, parametrosConDeposito, parametrosConPeriodo } from './filtros'
@@ -21,12 +23,12 @@ const tendenciaDe = (variacion: number | null) => (variacion === null ? null : v
 const detalleVariacion = (variacion: number | null) =>
   variacion === null ? 'Sin período anterior para comparar' : `${formatoVariacion(variacion)} vs período anterior`
 
-type Props = { verVentas: boolean; verStock: boolean }
+type Props = { verVentas: boolean; verStock: boolean; verActividad?: boolean }
 
 // Tablero de Inicio (F-INI-04, MSF-820): filtros Período / Tienda / Depósito, «Ventas del período», «Stock hoy» y
 // el gráfico «Ventas y stock en el tiempo». Una sola lectura (`resumen_inicio_periodo`); la base devuelve null en
 // el bloque que el rol no puede ver, y ese bloque ni se muestra. El padre lo monta solo con ventas o stock ≥ lectura.
-export function TableroInicio({ verVentas, verStock }: Props) {
+export function TableroInicio({ verVentas, verStock, verActividad = false }: Props) {
   const [params, setParams] = useSearchParams()
   const filtros = useMemo(() => leerFiltros(params), [params])
   const { empresas, valor: empresaId, cambiar: elegirEmpresa, cargando: cargandoEmpresas, hayError: errorEmpresas } = useFiltroPorEmpresaActiva()
@@ -43,6 +45,7 @@ export function TableroInicio({ verVentas, verStock }: Props) {
   // Mientras llegan los datos de unos filtros nuevos no se muestran los de los filtros anteriores.
   const resumen: ResumenInicio | null = lectura.datos !== null && lectura.datos.clave === clave ? lectura.datos.resumen : null
   const cargando = lectura.cargando || (!lectura.hayError && resumen === null)
+  const contexto = useMemo(() => ({ desde, hasta, empresaId, depositoId: filtros.depositoId }), [desde, hasta, empresaId, filtros.depositoId])
 
   return (
     <Stack spacing={2} component="section" aria-label="Tablero de ventas y stock">
@@ -81,6 +84,11 @@ export function TableroInicio({ verVentas, verStock }: Props) {
           </TarjetaBase>
         </>
       ) : null}
+
+      {!cargandoEmpresas && (verVentas || verStock || verActividad) ? (
+        <BloquesGestion contexto={contexto} verVentas={verVentas} verStock={verStock} verActividad={verActividad} />
+      ) : null}
+      {!cargandoEmpresas && verStock ? <MovimientosPorProducto contexto={contexto} /> : null}
     </Stack>
   )
 }

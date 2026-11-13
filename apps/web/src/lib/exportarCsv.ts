@@ -32,7 +32,7 @@ export function armarCsv<T>(columnas: readonly ColumnaCsv<T>[], filas: readonly 
 }
 
 // `stock-actual-2026-10-25.csv`: la fecha es la de hoy en la zona de la organización (FR-105).
-export function nombreArchivoCsv(prefijo: 'stock-actual' | 'movimientos-stock' | 'actividad' | 'reparaciones', ahora: Date = new Date()): string {
+export function nombreArchivoCsv(prefijo: 'stock-actual' | 'movimientos-stock' | 'movimientos-por-producto' | 'actividad' | 'reparaciones', ahora: Date = new Date()): string {
   return `${prefijo}-${hoyEnOrganizacion(ahora)}.csv`
 }
 

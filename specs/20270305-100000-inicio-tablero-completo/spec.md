@@ -78,6 +78,7 @@ Sin tablas nuevas: la prueba `rls_en_toda_tabla` no cambia. Migraciones aditivas
 | D-9 | Vista previa pura `previsualizar_impacto_dolar` (lo pide la historia); sin Mercado Libre en el diálogo | Reusar solo cargar→previsualizar |
 | D-10 | «Actividad reciente» sin «Cant.»; refleja solo lo que el registro guarda hoy | Agregar columna al registro |
 | D-11 | Con `ventas` solo en algunas empresas, se suman únicamente las tiendas visibles | — |
+| D-12 | En la LISTA «Movimientos por producto», entradas, salidas y ajustes cuentan **todos** los movimientos del período (traslados, devoluciones y anulaciones) para que cuadre el stock inicial; los indicadores de «Stock hoy» usan D-3 | Excluir traslados y devoluciones también en la lista |
 
 ## Matriz pantalla↔criterios
 

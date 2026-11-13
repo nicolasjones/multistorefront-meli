@@ -8,16 +8,16 @@
 - [x] T005 Tests Vitest + axe 320/768/1440 — 31 tests: `tablero-filtros.test.ts` (10) y `tablero-inicio.test.tsx` (21, con axe a 320/768/1440)
 
 ## F-INI-05 · MSF-821
-- [ ] T006 Ampliar la RPC (resumen por tienda, salidas por depósito) + pgTAP
-- [ ] T007 RPC `actividad_reciente_inicio` + pgTAP
-- [ ] T008 Cuatro bloques con vacío/error independientes y permisos (margen solo con `rentabilidad`)
-- [ ] T009 Tests Vitest + axe
+- [x] T006 RPC hermana `resumen_inicio_bloques` (resumen por tienda, salidas por depósito) + pgTAP. Evidencia: migración `20270305110000`, `supabase/tests/database/inicio_tablero_bloques.test.sql`; CI `database` verde sobre `8589dfb7`. Desvío: RPC hermana, no ampliación de `resumen_inicio_periodo` (la historia admite ambas).
+- [x] T007 «Actividad reciente» usa `public.listar_actividad` existente, **sin RPC nueva** (ya trae fecha, usuario, tienda y filtra por la RLS de `actividad`). Evidencia: `lib/inicioBloques.ts` (`leerActividadReciente`), `bloques-gestion.test.tsx`.
+- [x] T008 Bloques con vacío/error y permisos (ingresos y margen solo con `rentabilidad`). Evidencia: `tablero/BloquesGestion.tsx`; «Qué hacer hoy» ya existía (ahora dice «Todo al día» sin alertas). Desvío: «Resumen por tienda» y «Salidas por depósito» comparten una lectura (si falla, fallan juntos con su reintento); la actividad es independiente.
+- [x] T009 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/bloques-gestion.test.tsx` (CA-INI-05-3..9). CA-INI-05-1/2 los cubren `alertas-lista`/`alertas-demora`.
 
 ## F-INI-06 · MSF-822
-- [ ] T010 RPC `movimientos_por_producto` (12 columnas, orden/filtros en servidor) + pgTAP
-- [ ] T011 Tabla con carga infinita, vistas rápidas, búsqueda, categoría, orden
-- [ ] T012 Exportación CSV por lotes (sin exportar para Consulta)
-- [ ] T013 Tests Vitest + axe
+- [x] T010 RPC `movimientos_por_producto` (12 columnas, orden/filtros en servidor) + pgTAP. Evidencia: migración `20270305120000`, `inicio_tablero_bloques.test.sql`; CI `database` verde sobre `8589dfb7`.
+- [x] T011 Tabla con carga infinita, vistas rápidas, búsqueda, categoría, orden. Evidencia: `tablero/MovimientosPorProducto.tsx`, `hooks/useMovimientosPorProducto.ts`, `lib/inicioBloques.ts`.
+- [x] T012 Exportación CSV por lotes (sin exportar para quien no puede exportar Stock). Evidencia: `useExportarCsv` + prefijo `movimientos-por-producto` en `lib/exportarCsv.ts`; test «exportar baja por lotes…».
+- [x] T013 Tests Vitest + axe (320/768/1440). Evidencia: `__tests__/movimientos-por-producto.test.tsx` (19 tests, CA-INI-06-1..11).
 
 ## F-INI-07 · MSF-823
 - [ ] T014 RPC `previsualizar_impacto_dolar` + pgTAP (no escribe)

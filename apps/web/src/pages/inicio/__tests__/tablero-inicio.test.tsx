@@ -7,6 +7,16 @@ const mocks = vi.hoisted(() => ({ leer: vi.fn(), depositos: vi.fn(), cambiarEmpr
 
 vi.mock('../../../lib/inicioTablero', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/inicioTablero')>()), leerResumenInicio: mocks.leer }))
 vi.mock('../../../lib/depositos', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../../lib/depositos')>()), listarDepositosActivos: mocks.depositos }))
+vi.mock('../../../lib/inicioBloques', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/inicioBloques')>()),
+  leerBloquesInicio: vi.fn().mockResolvedValue({ por_tienda: [], salidas_por_deposito: [] }),
+  leerActividadReciente: vi.fn().mockResolvedValue([]),
+  leerMovimientosPorProducto: vi.fn().mockResolvedValue({ filas: [], total: 0 }),
+}))
+vi.mock('../../../lib/categorias', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../lib/categorias')>()),
+  leerCategorias: vi.fn().mockResolvedValue({ categorias: [], conteos: new Map() }),
+}))
 vi.mock('../../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'org-1' } }) }))
 vi.mock('../../../hooks/useFiltroPorEmpresaActiva', () => ({
   useFiltroPorEmpresaActiva: () => ({

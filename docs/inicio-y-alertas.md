@@ -76,6 +76,53 @@ instalación propios. Trae como dependencias `@mui/x-internals`, `@mui/x-charts-
 `@mui/x-internal-gestures`, todas del mismo mantenedor. El `pnpm-lock.yaml` deja las integridades fijadas.
 Se carga junto con la pantalla de Inicio; si pesara en el arranque se puede diferir con `lazy`.
 
+## Bloques de gestión (F-INI-05, MSF-821, épica MSF-824)
+
+Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Período, Tienda y Depósito
+(`apps/web/src/pages/inicio/tablero/BloquesGestion.tsx`). Cada uno tiene carga, vacío y error con
+**reintento propio**; un bloque sin permiso ni se muestra ni se consulta.
+
+| Bloque | Fuente | Quién lo ve |
+|---|---|---|
+| «Qué hacer hoy» | `alertas_inicio_visibles` (MSF-361, ya existente: ordenado por urgencia, con enlace; sin alertas dice «Todo al día») | cada alerta, según su sección de origen |
+| «Resumen por tienda» | RPC `public.resumen_inicio_bloques` | `ventas` ≥ lectura; **ingresos y margen estimado solo con `rentabilidad` ≥ lectura** (la base los devuelve `null`) |
+| «Salidas por depósito» | `public.resumen_inicio_bloques` | `stock` ≥ lectura |
+| «Actividad reciente» | `public.listar_actividad` (sin RPC nueva) | `actividad` ≥ lectura |
+
+- **Una fila por tienda activa**, sin nombres fijos: una tienda nueva aparece sola; una sin ventas queda con ceros.
+  Unidades netas de devoluciones; ingresos **con IVA**. Mercado Libre no se muestra (no hay funcionalidad activa).
+- **Margen estimado** = margen real de lo vendido con el costo guardado en cada línea al confirmar; las ventas sin
+  costo guardado quedan fuera («sin costo cargado»). Es una estimación: el costo es el de la confirmación.
+- **Salidas por depósito**: unidades de movimientos de tipo salida del período, sin traslados, y el stock actual de
+  cada depósito activo.
+- **Actividad reciente**: los últimos 10 eventos del período y de la tienda elegida, con fecha, usuario y enlace
+  (cada fila y «Ver todo» llevan a Actividad). No lleva depósito (el registro no lo guarda) ni columna «Cant.»
+  (el registro guarda un texto de detalle, no una cantidad).
+- «Resumen por tienda» y «Salidas por depósito» salen de la **misma lectura**: si falla, fallan los dos con su
+  propio reintento; la actividad es independiente.
+
+## Movimientos por producto (F-INI-06, MSF-822, épica MSF-824)
+
+Al pie de Inicio, un listado de **una fila por producto activo** con 12 columnas ordenables: producto, SKU,
+categoría, stock inicial, entradas, salidas, ajustes, stock actual, mínimo, ventas, último movimiento y estado
+(`apps/web/src/pages/inicio/tablero/MovimientosPorProducto.tsx`, RPC `public.movimientos_por_producto`). Lo ve quien
+tiene `stock` ≥ lectura; la columna **Ventas** solo con `ventas` (si no, la base la devuelve `null` y no se dibuja).
+
+- **Vistas rápidas** (Todos, En alerta, Quietos), búsqueda por nombre o SKU (espera 300 ms), categoría (el menú
+  muestra solo las de la tienda elegida), «Ordenar por» con dirección y orden por encabezado. **Todo se resuelve en
+  el servidor**; el orden va por lista blanca, nunca como texto libre.
+- **Carga infinita** (`CargaInfinita` + `useListadoAcumulado`): tandas de 25 que conservan filtros y orden; muestra
+  «Mostrando N de M productos». En pantallas angostas cada fila es una tarjeta.
+- **Estado**: «En alerta» (disponible ≤ mínimo, incluye sin stock) tiene prioridad sobre «Quieto» (sin movimientos
+  en el período); el resto es «Normal». Vacío «Sin movimientos para estos filtros» con «Limpiar filtros».
+- **Cuadre**: en la lista, entradas, salidas y ajustes cuentan **todos** los movimientos del período (traslados,
+  devoluciones y anulaciones incluidos) para que `stock inicial + entradas − salidas + ajustes = stock actual`
+  cuando el período llega hasta hoy (decisión D-12). Los indicadores de «Stock hoy» excluyen traslados,
+  devoluciones y anulaciones de las entradas (D-3); por eso los dos números pueden diferir.
+- **Exportar** baja a CSV por lotes de 100 lo mismo que se ve (mismos filtros), con tope de filas; el botón solo lo
+  ve quien puede exportar Stock. El archivo es `movimientos-por-producto-AAAA-MM-DD.csv`.
+- **No expone costo ni margen**: ninguna de las 12 columnas los trae.
+
 ## Cargar dólar del día desde Inicio (F-INI-07, MSF-823, épica MSF-824)
 
 La tarjeta «Dólar» muestra el aviso «Todavía no se cargó el dólar de hoy» con **Cargar ahora** solo a quien tiene **edición** en «Cotización del dólar» (el operador no ve ni el aviso ni el botón). El botón abre `DialogoCargarDolarConImpacto`:
@@ -166,8 +213,8 @@ Campo en la barra superior (`EncabezadoPanel` → `BusquedaGlobal`), visible en 
 pgTAP `supabase/tests/database/alertas_inicio.test.sql` y `supabase/tests/database/busqueda_global.test.sql`;
 Vitest de Inicio (`inicio`, `accesos-directos`, `tarjeta-empresas`, `tarjeta-stock`, `tarjeta-consultas`,
 `tarjeta-dolar`, `permisos-inicio`, `estados-inicio`, `feature-ml`, `empresa-activa-inicio`,
-`navegacion-inicio`, `alertas-lista`, `alertas-demora`, `tablero-inicio`, `tablero-filtros`) y de la búsqueda (`busqueda-global`);
-`supabase/tests/database/resumen_inicio_periodo.test.sql` (tablero);
+`navegacion-inicio`, `alertas-lista`, `alertas-demora`, `tablero-inicio`, `tablero-filtros`, `bloques-gestion`, `movimientos-por-producto`) y de la búsqueda (`busqueda-global`);
+`supabase/tests/database/resumen_inicio_periodo.test.sql` (tablero) y `inicio_tablero_bloques.test.sql` (bloques, movimientos por producto y vista previa del dólar);
 `pnpm test:edge:recalcular-alertas-inicio`; `pnpm test:kestra:alertas-inicio`.
 
 E2E de cierre (MSF-578 · T024): `apps/web/e2e/inicio.e2e.ts` — Administrador, Consulta y Mostrador con sus
