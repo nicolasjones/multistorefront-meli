@@ -41,7 +41,7 @@ describe('RutaCatalogo', () => {
     const migas = screen.getByRole('navigation', { name: 'Migas de pan' })
     expect(migas).toHaveTextContent('Inicio')
     expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/')
-    expect(screen.getByText('Todos los productos', { selector: 'p' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Todos los productos', { selector: '[aria-current="page"]' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByTestId('listado')).toHaveTextContent('mundojc.localhost|null')
   })
 
@@ -49,7 +49,7 @@ describe('RutaCatalogo', () => {
   it('con q: título «Resultados para “…”» y migas «Inicio / Resultados»', () => {
     montar('/catalogo?q=cargdor')
     expect(screen.getByRole('heading', { level: 1, name: 'Resultados para “cargdor”' })).toBeInTheDocument()
-    expect(screen.getByText('Resultados', { selector: 'p' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Resultados', { selector: '[aria-current="page"]' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Inicio' })).toHaveAttribute('href', '/')
     expect(screen.queryByText('Todos los productos')).not.toBeInTheDocument()
   })

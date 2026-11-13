@@ -101,6 +101,17 @@ test.describe('Tienda online · página de inicio (SC-003)', () => {
         await expect(page.getByText(t.comun)).toHaveCount(0)
         await expect(page.getByText(otra.destacado)).toHaveCount(0)
 
+        // MSF-847: la portada (héroe a todo el ancho, franjas inclinadas y bloque de consultas) no tiene scroll horizontal entre
+        // 900 y 1280 px, donde el contenido de 1200 px y el borde de la ventana están más cerca.
+        for (const ancho of [900, 1024, 1280]) {
+          await page.setViewportSize({ width: ancho, height: 900 })
+          await page.evaluate(() => document.fonts.ready)
+          await expect
+            .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), { message: `${t.host} a ${ancho} px: la portada no debe tener scroll horizontal` })
+            .toBeLessThanOrEqual(0)
+        }
+        await page.setViewportSize({ width: 1440, height: 900 })
+
         // «Ver todo el catálogo →» lleva a /catalogo.
         await page.getByRole('link', { name: 'Ver todo el catálogo →' }).click()
         await expect(page).toHaveURL(/\/catalogo$/)
