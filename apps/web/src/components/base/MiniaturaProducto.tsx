@@ -12,6 +12,8 @@ const LADO_ZOOM = 280
 // Con imagen, al pasar el mouse se muestra una vista ampliada flotante (no cambia el tamaño de la fila).
 export function MiniaturaProducto({ alt, src }: MiniaturaProductoProps) {
   const [ancla, setAncla] = useState<HTMLElement | null>(null)
+  // Imagen que no pudo cargarse (p. ej. URL firmada vencida): se muestra el recuadro vacío en vez de una imagen rota.
+  const [fallida, setFallida] = useState<string | null>(null)
   const medidas = {
     width: tokens.forma.ladoMiniatura,
     height: tokens.forma.ladoMiniatura,
@@ -20,7 +22,7 @@ export function MiniaturaProducto({ alt, src }: MiniaturaProductoProps) {
     flexShrink: 0,
   } as const
 
-  if (!src) {
+  if (!src || fallida === src) {
     return <Box aria-hidden="true" sx={{ ...medidas, bgcolor: tokens.color.fondo }} />
   }
 
@@ -30,6 +32,9 @@ export function MiniaturaProducto({ alt, src }: MiniaturaProductoProps) {
         component="img"
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFallida(src)}
         onMouseEnter={(evento: React.MouseEvent<HTMLElement>) => setAncla(evento.currentTarget)}
         onMouseLeave={() => setAncla(null)}
         sx={{ ...medidas, bgcolor: tokens.color.superficie, objectFit: 'contain', display: 'block', cursor: 'zoom-in' }}

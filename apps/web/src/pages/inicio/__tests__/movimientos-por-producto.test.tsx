@@ -225,6 +225,23 @@ describe('carga infinita (CA-INI-06-10)', () => {
   })
 })
 
+describe('fotos con «Cargar más»', () => {
+  it('después de «Cargar más» pide las imágenes de las DOS tandas, sin ids repetidos', async () => {
+    const t1 = Array.from({ length: 25 }, (_, i) => fila(i + 1))
+    const t2 = Array.from({ length: 5 }, (_, i) => fila(i + 26))
+    mocks.leer.mockImplementation(async (_ctx, _filtros, pagina: number) => ({ filas: pagina === 1 ? t1 : t2, total: 30 }))
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 30 de 30 productos'))
+    const ultima = mocks.imagenes.mock.calls[mocks.imagenes.mock.calls.length - 1][0] as string[]
+    expect(ultima).toHaveLength(30)
+    expect(new Set(ultima).size).toBe(30)
+    expect(ultima).toContain('p-1')
+    expect(ultima).toContain('p-30')
+  })
+})
+
 describe('carga infinita: fallos, reinicio y duplicados', () => {
   const pagina1 = Array.from({ length: 25 }, (_, i) => fila(i + 1))
   const pagina2 = Array.from({ length: 5 }, (_, i) => fila(i + 26))

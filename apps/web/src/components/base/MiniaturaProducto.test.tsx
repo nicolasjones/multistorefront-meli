@@ -45,4 +45,18 @@ describe('MiniaturaProducto (FR-005)', () => {
     fireEvent.mouseEnter(marcador)
     expect(document.querySelectorAll('img')).toHaveLength(0)
   })
+
+  it('la imagen se carga de forma diferida y asíncrona (listados largos)', () => {
+    conTema(<MiniaturaProducto alt="Producto" src="https://ejemplo/imagen.png" />)
+    const imagen = screen.getByRole('img', { name: 'Producto' })
+    expect(imagen).toHaveAttribute('loading', 'lazy')
+    expect(imagen).toHaveAttribute('decoding', 'async')
+  })
+
+  it('si la imagen no carga (URL firmada vencida) queda el recuadro vacío y no una imagen rota', () => {
+    conTema(<MiniaturaProducto alt="Producto" src="https://ejemplo/vencida.png" />)
+    fireEvent.error(screen.getByRole('img', { name: 'Producto' }))
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(document.querySelector('[aria-hidden="true"]')).not.toBeNull()
+  })
 })
