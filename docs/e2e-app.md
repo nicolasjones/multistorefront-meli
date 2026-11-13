@@ -51,11 +51,16 @@ esquemas expuestos). Todos los pasos se corren desde la raíz del repo; reemplaz
 2. Levantá la base, migrá y sembrá:
 
 ```bash
-pnpm exec supabase start --ignore-health-check -x studio,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+pnpm exec supabase start --ignore-health-check -x studio,imgproxy,logflare,vector,supavisor,postgres-meta
 pnpm exec supabase migration up --local
 docker exec -i supabase_db_PID psql -U postgres -d postgres < supabase/seed.sql
 docker restart supabase_rest_PID
 ```
+
+   `edge-runtime` y `realtime` quedan arriba a propósito: `service-seguimiento`, `tienda-seo` y el caso «recuperar» de
+   `cuenta-web-cliente` usan funciones Edge, y `stock-actual-vivo` necesita Realtime. Si NO vas a correr esos specs podés
+   sumar `edge-runtime` y/o `realtime` a la lista de `-x` para un stack más liviano (y sin Edge, `tienda-seo` responde 500: es lo
+   esperado, no un bug).
 
 3. Compilá la web contra ese stack. Las claves salen de `pnpm exec supabase status -o env` (`ANON_KEY` y
    `SERVICE_ROLE_KEY`). El build lee `VITE_SUPABASE_PUBLISHABLE_KEY` (no `..._ANON_KEY`: con otro nombre el build usa
@@ -100,7 +105,12 @@ en otros componentes lo corrige el PR #876, no este.
   `E2E_PGPORT` con el puerto de la base local; el spec crea el rol `worker_<organización>` con los permisos del
   aprovisionamiento y lo elimina al terminar.
 - `stock-actual-vivo` necesita Realtime (no excluirlo con `-x realtime`).
-- Los recorridos largos fijan `test.setTimeout(180_000)`; el tope por defecto (30 s) no alcanza con varios roles.
+- `cuenta-web-cliente` ingresa por los subdominios de la tienda y el enlace de invitación vuelve al `site_url` de
+  `supabase/config.toml` (`http://127.0.0.1:4300`, con sus `additional_redirect_urls`): la web tiene que servirse en ESE
+  puerto (`vite preview --port 4300 --strictPort`) o el caso «invitación → definir contraseña» no llega a la pantalla. El caso
+  «recuperar» además necesita Edge y el SMTP de Mailpit (`SMTP_*`) declarado para el runtime.
+- Los recorridos largos fijan `test.setTimeout` con el motivo de cada spec (30-90 s); el tope por defecto (30 s) no alcanza con
+  varios roles o con mucha siembra.
 
 ## Estado de cobertura
 
@@ -167,7 +177,7 @@ queda como paso previo al merge (T024/T026), no como evidencia ya obtenida.
 
 - `tienda-seo` (`robots.txt` y `sitemap.xml`) pide el archivo a la Edge Function `tienda-seo` con `X-Tienda-Host`,
   igual que hace nginx en producción (`apps/web/nginx.conf`, bloque `location ~ ^/(robots\.txt|sitemap\.xml)$`): el
-  servidor de `vite preview` no los sirve ni tiene por qué. Con la receta de arranque que excluye `edge-runtime`,
+  servidor de `vite preview` no los sirve ni tiene por qué. Si arrancaste excluyendo `edge-runtime`,
   Kong responde 500 (`supabase_edge_runtime_<proyecto>` no resuelve): es lo ESPERADO sin las funciones servidas, no un bug del producto. Se corre con las funciones servidas:
   `pnpm exec supabase functions serve --no-verify-jwt` en otra terminal.
 - `e2e/panel-sin-desborde.e2e.ts`: `/productos`, `/clientes` y `/consultas` sin scroll horizontal de la página a 320, 375 y

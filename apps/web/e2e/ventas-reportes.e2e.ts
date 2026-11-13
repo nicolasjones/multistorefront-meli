@@ -204,7 +204,6 @@ test.describe('Reportes de ventas (MSF-338, FR-010)', () => {
       // Limpieza: el Supabase local no acumula organizaciones ni usuarios sembrados.
       if (orgId) {
         await borrar(`comprobantes_venta?organizacion_id=eq.${orgId}`, 'dominio')
-        await borrar(`clientes?organizacion_id=eq.${orgId}`)
         await borrar(`usuario_empresa_activa?user_id=in.(${ids.join(',')})`)
         await borrar(`empresas?organizacion_id=eq.${orgId}`, 'dominio')
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)

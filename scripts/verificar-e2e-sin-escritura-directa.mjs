@@ -14,9 +14,16 @@
 //      con o sin prefijo `dominio.`;
 //   2. `fetch(...)` / `request.post|patch|put|delete(...)` con POST/PATCH/PUT/DELETE a `/rest/v1/<tabla>`;
 //   3. SQL directo (`pg`): `insert into | update | delete from [dominio.]<tabla>`;
-//   4. el nombre de la tabla guardado en una variable o arreglo y un helper de escritura llamado con una variable.
+//   4. el nombre de la tabla guardado en una variable o arreglo y un helper de escritura llamado con una variable;
+//   5. la URL de la ruta REST guardada en una variable (`const ruta = `${url}/rest/v1/consultas``) y usada después en un
+//      `fetch(ruta, { method: 'POST' })` o `request.post(ruta)`; el SQL de `pg` partido en varios renglones.
 // Leer (GET, `leer(...)`, `.select`) esas tablas está permitido. Un renglón puede eximirse con el comentario
 // `escritura-directa: ok — <motivo>` (mismo renglón o el anterior); sin motivo no vale.
+//
+// Evasiones que NO detecta (es un análisis por texto, no de tipos): una base constante con la tabla al final
+// (`${base}/consultas`), la tabla armada por concatenación (`'consul' + 'tas'`), el nombre dentro de un objeto
+// (`T.consultas`) o interpolado (`${tabla}?id=eq.1`). Defensa en profundidad: el grant real de la migración
+// 20270302105000 las atrapa al correr la suite (403 de PostgREST), así que este guardián es la red barata de CI y no la única.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
@@ -114,6 +121,27 @@ export function analizar(contenido) {
       if (!LLAMADA_CON_TABLA.test(linea)) literalesSueltos.push(i)
     }
     if (LLAMADA_CON_VARIABLE.test(linea) && !/function\s/.test(linea)) hayLlamadaConVariable = true
+  })
+
+  // 3b. SQL partido en renglones (`insert into\n  dominio.consultas`): se busca sobre el contenido completo.
+  for (const m of contenido.matchAll(new RegExp(SQL_DIRECTO.source, 'gi'))) {
+    const i = contenido.slice(0, m.index).split('\n').length - 1
+    if (!COMENTARIO.test(lineas[i])) marcar(i, 'SQL directo de escritura sobre una tabla de solo lectura para service_role')
+  }
+  // 5. URL de la ruta REST guardada en una variable y usada luego en una petición de escritura.
+  lineas.forEach((linea, i) => {
+    const asignada = new RegExp(`(?:const|let|var)\\s+([A-Za-z_]\\w*)\\s*=.*${RUTA_REST.source}`).exec(linea)
+    if (!asignada || COMENTARIO.test(linea)) return
+    const nombre = asignada[1]
+    lineas.forEach((otra, j) => {
+      if (j === i || COMENTARIO.test(otra)) return
+      const llamada = new RegExp(`(?:\\bfetch\\(|\\.(?:post|patch|put|delete|fetch)\\s*\\()\\s*${nombre}\\b`).test(otra)
+      if (!llamada) return
+      const texto = llamadaDesde(lineas, j)
+      if (/\bfetch\(|\.fetch\(/.test(otra) ? METODO_ESCRITURA.test(texto) : PETICION_PLAYWRIGHT.test(otra)) {
+        marcar(j, 'petición de escritura a una URL guardada en una variable que apunta a una tabla de solo lectura para service_role')
+      }
+    })
   })
 
   if (hayLlamadaConVariable) {

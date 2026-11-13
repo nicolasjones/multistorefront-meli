@@ -88,6 +88,7 @@ test.describe('Precios e IVA (MSF-114, SC-009)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('producto en USD con costo: precio en dos empresas con reglas distintas, interruptor de IVA y margen', async ({ browser }) => {
+    test.setTimeout(90_000) // alta del producto en USD, precio en dos empresas con reglas distintas, interruptor de IVA y margen: ~29 s en reposo, pegado al tope de 30 s
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-precios-${sufijo}@example.com`
     const nombre = `Producto USD ${sufijo}`

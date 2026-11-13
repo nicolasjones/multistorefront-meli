@@ -133,8 +133,9 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         await expect(panel.getByRole('button', { name: new RegExp(t.oculta) })).toHaveCount(0)
         await expect(panel.getByRole('button', { name: new RegExp(otra.propia) })).toHaveCount(0)
 
-        // La categoría propia abre con migas y título (la marca deja de ser el h1) y queda marcada en el menú.
-        await page.goto(`http://${t.host}:${puerto}/categoria/${t.propiaId}`)
+        // El enlace del menú lleva a la categoría propia: abre con migas y título (la marca deja de ser el h1) y queda marcada en el menú.
+        await menu.getByRole('link', { name: t.propia }).click()
+        await expect(page).toHaveURL(new RegExp(`/categoria/${t.propiaId}$`))
         await expect(page.getByRole('heading', { level: 1, name: t.propia })).toBeVisible()
         await expect(menu.getByRole('link', { name: t.propia })).toHaveAttribute('aria-current', 'page')
 

@@ -59,7 +59,7 @@ test.describe('Ventas · precios especiales por cliente (MSF-340, SC-002)', () =
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-340:T013] [F-VTA-32#1] cliente con 5 % agrega una línea y el precio es la escala menos 5 %', async ({ page }) => {
-    test.setTimeout(90_000) // cliente con descuento, línea y precio por escala
+    test.setTimeout(45_000) // ~8 s en reposo; 45 s da margen con el stack cargado (a 30 s falló bajo carga)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-dto-${sufijo}@example.com`
     let organizacionId: string | null = null

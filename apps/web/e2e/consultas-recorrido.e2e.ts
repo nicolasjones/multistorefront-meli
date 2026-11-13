@@ -92,7 +92,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
     const sufijo = randomUUID().slice(0, 8)
     const host = `consultas-${sufijo}.localhost`
     const empresa = `Tienda Consultas ${sufijo}`
-        const correos = {
+    const correos = {
       admin: `admin-con-${sufijo}@example.com`,
       lectura: `lectura-con-${sufijo}@example.com`,
       sinAcceso: `sinacceso-con-${sufijo}@example.com`,

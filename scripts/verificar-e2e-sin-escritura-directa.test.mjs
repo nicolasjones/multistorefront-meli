@@ -49,6 +49,27 @@ test('detecta SQL directo por pg, con o sin prefijo', () => {
   assert.equal(hallazgos("await cliente.query('select * from dominio.consultas')"), 0)
 })
 
+test('detecta el SQL de pg partido en varios renglones', () => {
+  assert.equal(hallazgos("await cliente.query(`insert into\n  dominio.consultas (nombre)\n  values ('x')`)"), 1)
+  assert.equal(hallazgos("await cliente.query(`delete\n  from movimientos_stock`)"), 1)
+  assert.equal(hallazgos("await cliente.query(`select *\n  from dominio.consultas`)"), 0)
+})
+
+test('detecta la URL de la tabla guardada en una variable y usada en una petición de escritura', () => {
+  assert.equal(hallazgos("const ruta = `${url}/rest/v1/consultas`\nawait fetch(ruta, { method: 'POST', body })"), 1)
+  assert.equal(hallazgos("const ruta = `${url}/rest/v1/movimientos_stock?id=eq.1`\nconst r = await fetch(ruta, {\n  method: 'DELETE',\n})"), 1)
+  assert.equal(hallazgos("const ruta = `${url}/rest/v1/consultas`\nawait request.post(ruta, { data })"), 1)
+  // La misma variable solo para leer no se marca.
+  assert.equal(hallazgos("const ruta = `${url}/rest/v1/consultas?select=id`\nawait fetch(ruta, { headers })"), 0)
+  assert.equal(hallazgos("const ruta = `${url}/rest/v1/consultas?select=id`\nawait request.get(ruta)"), 0)
+})
+
+test('las evasiones residuales documentadas no se detectan (las atrapa el grant real al correr la suite)', () => {
+  assert.equal(hallazgos("const base = `${url}/rest/v1`\nawait fetch(`${base}/consultas`, { method: 'POST' })"), 0)
+  assert.equal(hallazgos("await rest('consul' + 'tas', cuerpo)"), 0)
+  assert.equal(hallazgos("await borrar(`${tabla}?id=eq.1`)"), 0)
+})
+
 test('detecta el nombre de la tabla en una variable o arreglo usado por un helper de escritura', () => {
   assert.equal(hallazgos("const t = 'consultas'\nawait rest(t, cuerpo, 'dominio')"), 1)
   assert.equal(hallazgos("for (const tabla of ['movimientos_stock', 'productos']) {\n  await borrar(tabla, filtro)\n}"), 1)

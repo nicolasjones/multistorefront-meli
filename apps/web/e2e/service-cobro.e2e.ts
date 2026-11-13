@@ -92,7 +92,7 @@ test.describe('Service técnico · cobro con comprobante de Ventas (F-SVC-13, MS
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-418:T010] genera el comprobante desde la reparación y lo muestra con su origen en Ventas', async ({ browser }) => {
-    test.setTimeout(90_000) // genera el comprobante desde la reparación y lo abre en Ventas
+    test.setTimeout(45_000) // ~11 s en reposo; 45 s da margen con el stack cargado (a 30 s falló bajo carga)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-cobro-${sufijo}@example.com`
     let orgId: string | undefined
