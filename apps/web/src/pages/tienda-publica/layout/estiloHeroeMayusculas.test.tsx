@@ -34,18 +34,26 @@ describe('tema: estilo del encabezado y mayúsculas', () => {
     expect(t.heroe).toMatchObject({ estilo: 'claro', fondo: t.superficie, texto: '#1B3A5C', circulo: '#E9A23B' })
     expect(t.titulosMayusculas).toBe(false)
   })
+  it('la miniatura del panel y la tienda derivan la franja clara del mismo tema (no se desvían)', () => {
+    const t = crearTemaTienda({ ...SJ, estiloHeroe: 'claro' }).tienda!
+    expect(t.heroe.fondo).toBe(t.superficie)
+    expect(contraste(t.heroe.texto, t.heroe.fondo)).toBeGreaterThanOrEqual(4.5)
+  })
   it('un valor fuera de la lista cae al estilo oscuro (nada inyectable)', () => {
     const t = crearTemaTienda({ ...SJ, estiloHeroe: 'verde' as never }).tienda!
     expect(t.heroe.estilo).toBe('oscuro')
   })
   // Identidades extremas del estilo claro: el texto de la franja llega a AA y el botón nunca se confunde con ella.
+  // La identidad de producción nunca trae `colorTexto` (no es parte de la identidad): se prueba sin él, con el texto por defecto del tema.
+  const SJ_SIN_TEXTO = { colorPrimario: SJ.colorPrimario, colorPrimarioOscuro: SJ.colorPrimarioOscuro, colorAcento: SJ.colorAcento, colorBarra: SJ.colorBarra, colorFondo: SJ.colorFondo }
   const extremas: Array<[string, Parameters<typeof crearTemaTienda>[0]]> = [
-    ['primario muy claro', { ...SJ, colorPrimario: '#F5F5F5', colorAcento: '#F5F5F5' }],
-    ['primario negro, acento negro', { ...SJ, colorPrimario: '#000000', colorAcento: '#000000' }],
-    ['fondo blanco, acento blanco', { ...SJ, colorFondo: '#FFFFFF', colorAcento: '#FFFFFF' }],
-    ['fondo negro, primario oscuro', { ...SJ, colorFondo: '#000000', colorPrimario: '#101010', colorTexto: '#FFFFFF', colorAcento: '#050505' }],
-    ['fondo gris medio, acento gris medio', { ...SJ, colorFondo: '#808080', colorAcento: '#858585', colorPrimario: '#7A7A7A' }],
-    ['acento igual a la superficie', { ...SJ, colorAcento: '#F0EDE8' }],
+    ['primario muy claro', { ...SJ_SIN_TEXTO, colorPrimario: '#F5F5F5', colorAcento: '#F5F5F5' }],
+    ['primario negro, acento negro', { ...SJ_SIN_TEXTO, colorPrimario: '#000000', colorAcento: '#000000' }],
+    ['fondo blanco, acento blanco', { ...SJ_SIN_TEXTO, colorFondo: '#FFFFFF', colorAcento: '#FFFFFF' }],
+    ['fondo negro, primario oscuro', { ...SJ_SIN_TEXTO, colorFondo: '#000000', colorPrimario: '#101010', colorAcento: '#050505' }],
+    ['fondo azul muy oscuro (#0B1B3A), primario azul', { ...SJ_SIN_TEXTO, colorFondo: '#0B1B3A', colorPrimario: '#1B3A5C', colorAcento: '#E9A23B' }],
+    ['fondo gris medio, acento gris medio', { ...SJ_SIN_TEXTO, colorFondo: '#808080', colorAcento: '#858585', colorPrimario: '#7A7A7A' }],
+    ['acento igual a la superficie', { ...SJ_SIN_TEXTO, colorAcento: '#F0EDE8' }],
   ]
   it.each(extremas)('estilo claro, identidad extrema «%s»: texto de la franja y del botón a AA y botón distinto de la franja', (_n, identidad) => {
     const { heroe, botonDestacado } = crearTemaTienda({ ...identidad, estiloHeroe: 'claro' }).tienda!
@@ -105,6 +113,10 @@ describe('héroe: variante clara (SJ_Home / SJ_M_Home)', () => {
     expect(getComputedStyle(boton).backgroundColor).toBe('rgb(233, 162, 59)')
     expect(getComputedStyle(boton).color).toBe('rgb(27, 36, 48)')
     expect(getComputedStyle(boton).textTransform).toBe('none')
+  })
+  it('en la tienda real (la identidad no trae colorTexto) el texto del botón sobre el acento es el #1A1A1A por defecto del tema', () => {
+    montar({ colorPrimario: SJ.colorPrimario, colorPrimarioOscuro: SJ.colorPrimarioOscuro, colorAcento: SJ.colorAcento, colorBarra: SJ.colorBarra, colorFondo: SJ.colorFondo, estiloHeroe: 'claro' }, <BannerContenido contenido={CONTENIDO} />)
+    expect(getComputedStyle(screen.getByRole('link', { name: CONTENIDO.texto_boton })).color).toBe('rgb(26, 26, 26)')
   })
   it('con mayúsculas activas la variante clara también las aplica (son campos independientes)', () => {
     montar({ ...claro, titulosMayusculas: true }, <BannerContenido contenido={CONTENIDO} />)

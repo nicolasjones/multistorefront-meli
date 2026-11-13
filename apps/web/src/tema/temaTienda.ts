@@ -103,7 +103,7 @@ function valido<K extends 'tipografiaTitulos' | 'tipografiaTexto' | 'colorPrimar
 }
 
 // Mezcla `color` con `con` (0 = color, 1 = con). Ambos #RGB/#RRGGBB ya validados.
-export function mezclar(color: string, con: string, parte: number): string {
+function mezclar(color: string, con: string, parte: number): string {
   const canales = (hex: string) => {
     const h = hex.length === 4 ? [...hex.slice(1)].map((c) => c + c).join('') : hex.slice(1)
     return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16))
@@ -163,7 +163,7 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
   const estilo: EstiloHeroe = identidad?.estiloHeroe === 'claro' ? 'claro' : ESTILO_HEROE_POR_DEFECTO
   const titulosMayusculas = identidad?.titulosMayusculas !== false
   const heroe = estilo === 'claro'
-    ? { estilo, fondo: superficie, texto: textoSobre(superficie, [i.colorPrimario, i.colorTexto, '#000000']), circulo: acento }
+    ? { estilo, fondo: superficie, texto: textoSobre(superficie, [i.colorPrimario, i.colorTexto, '#000000', '#FFFFFF']), circulo: acento }
     : { estilo, fondo: barra, texto: textoBarra, circulo: null }
   const fondoBoton = contraste(acento, heroe.fondo) >= UMBRAL_BOTON ? acento : heroe.texto
   const botonDestacado = { fondo: fondoBoton, texto: textoSobre(fondoBoton, ['#FFFFFF', i.colorTexto, '#000000']) }

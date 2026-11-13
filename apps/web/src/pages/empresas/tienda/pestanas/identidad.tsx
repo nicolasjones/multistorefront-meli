@@ -6,7 +6,7 @@ import {
   subirImagen, urlPublica, type ClaveImagen, type IdentidadDeEmpresa, type IdentidadTienda,
 } from '../../../../lib/tiendaIdentidad'
 import { tokens } from '../../../../tema/tokens'
-import { contraste, mezclar, textoSobre, UMBRAL_BOTON } from '../../../../tema/temaTienda'
+import { crearTemaTienda } from '../../../../tema/temaTienda'
 import { EstadoCargaPagina, EstadoError } from '../../../../components/estados/EstadosPagina'
 import { ImagenTienda, useUrlLocal, type EstadoImagen } from '../componentes/imagen-tienda/ImagenTienda'
 import {
@@ -75,15 +75,17 @@ function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: 
   const oscuro = color(campos.colorPrimarioOscuro, IDENTIDAD_BASE.colorPrimarioOscuro)
   const acento = color(campos.colorAcento, IDENTIDAD_BASE.colorAcento)
   const barra = color(campos.colorBarra, IDENTIDAD_BASE.colorBarra)
-  // MSF-848: la miniatura sigue el estilo del encabezado (claro: superficie y primario; oscuro: franja oscura) y las mayúsculas.
+  // MSF-848: la miniatura sigue el estilo del encabezado y las mayúsculas. Los colores de la variante clara salen del MISMO tema que
+  // usa la tienda (`crearTemaTienda`): una sola derivación, así la miniatura no se desvía de lo que se publica.
   const claro = campos.estiloHeroe === 'claro'
   const mayusculas = campos.titulosMayusculas ? 'uppercase' : 'none'
-  const superficie = mezclar(fondo, '#000000', 0.043) // estilos-sueltos: ok
-  const textoClaro = textoSobre(superficie, [primario, '#1A1A1A', '#000000']) // estilos-sueltos: ok
-  const fondoBanner = claro ? superficie : oscuro
-  const textoBanner = claro ? textoClaro : '#FFFFFF' // estilos-sueltos: ok
-  const fondoBoton = claro ? (contraste(acento, superficie) >= UMBRAL_BOTON ? acento : textoClaro) : primario
-  const textoBoton = claro ? textoSobre(fondoBoton, ['#FFFFFF', '#1A1A1A', '#000000']) : '#FFFFFF' // estilos-sueltos: ok
+  const { heroe, botonDestacado } = crearTemaTienda({
+    colorPrimario: primario, colorPrimarioOscuro: oscuro, colorAcento: acento, colorFondo: fondo, colorBarra: barra, estiloHeroe: campos.estiloHeroe,
+  }).tienda!
+  const fondoBanner = claro ? heroe.fondo : oscuro
+  const textoBanner = claro ? heroe.texto : '#FFFFFF' // estilos-sueltos: ok
+  const fondoBoton = claro ? botonDestacado.fondo : primario
+  const textoBoton = claro ? botonDestacado.texto : '#FFFFFF' // estilos-sueltos: ok
   const titulos = `"${campos.tipografiaTitulos}", system-ui, sans-serif`
   const texto = `"${campos.tipografiaTexto}", system-ui, sans-serif`
   return (
