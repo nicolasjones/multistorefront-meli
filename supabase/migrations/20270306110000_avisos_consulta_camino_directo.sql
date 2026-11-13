@@ -50,12 +50,9 @@
 --   4. solo si además se quiere volver al envío directo, restaurar el cuerpo de
 --      `private.encolar_aviso_consulta()` de `20261205200100` (eso apaga el camino vigente).
 
-drop function if exists public.avisos_consulta_pendientes(integer, integer);
-drop function if exists public.tomar_aviso_consulta(uuid, integer);
-drop function if exists public.cerrar_aviso_consulta(uuid, boolean, text);
-drop function if exists private.correo_avisos_consulta(uuid);
-
 -- Verificación previa: si la cola vieja tuviera avisos sin enviar, aborta (ver el encabezado).
+-- Va PRIMERO, antes de borrar nada: si el aplicador no envuelve la migración en una transacción,
+-- que aborte sin haber dropped nada (la cola sigue viva y se puede revisar).
 do $$
 declare
   vivos integer;
@@ -70,6 +67,11 @@ begin
   end if;
 end;
 $$;
+
+drop function if exists public.avisos_consulta_pendientes(integer, integer);
+drop function if exists public.tomar_aviso_consulta(uuid, integer);
+drop function if exists public.cerrar_aviso_consulta(uuid, boolean, text);
+drop function if exists private.correo_avisos_consulta(uuid);
 
 drop table if exists dominio.consultas_avisos;
 
