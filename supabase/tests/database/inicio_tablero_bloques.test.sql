@@ -2,6 +2,12 @@
 -- `previsualizar_impacto_dolar`. Cubre permisos por rol (costo/margen null sin rentabilidad, bloque null sin
 -- permiso), cuentas (nota de crédito resta, margen real solo con costo guardado), lista blanca de orden,
 -- vistas y búsqueda, aislamiento, vista previa que NO escribe y `anon` sin ejecución.
+--
+-- `por_tienda` vuelve `null` SOLO si el rol no tiene `ventas` en ninguna tienda del filtro: con `ventas` y
+-- sin `rentabilidad` sigue siendo un arreglo con la fila de la tienda y `ingresos`/`margen_pct` en null.
+-- Por eso los dos bloques se extraen SIEMPRE como arreglo (`coalesce(..., '[]'::jsonb)`): si la base los
+-- devolviera `null`, la aserción falla con su mensaje en vez de cortar el archivo con «cannot extract
+-- elements from a scalar» (que descuadraba el plan: 52 tests planned, 29 run).
 begin;
 
 select plan(52);
@@ -94,19 +100,19 @@ end $$;
 
 -- ===== F-INI-05: resumen_inicio_bloques =====
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
-select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
   605::numeric, 'ingresos de San Javucho: factura − nota de crédito (con IVA)');
-select is((select (t ->> 'unidades')::int from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+select is((select (t ->> 'unidades')::int from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
   1, 'unidades de San Javucho netas de devoluciones');
-select is((select (t ->> 'margen_pct')::numeric from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+select is((select (t ->> 'margen_pct')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
   40.0::numeric, 'margen real de San Javucho: (1000−600 − (500−300)) / (1000−500) = 40 %');
-select is((select t -> 'margen_pct' from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'Mundo JC'),
+select is((select t -> 'margen_pct' from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'Mundo JC'),
   'null'::jsonb, 'sin costo guardado no hay margen (no se inventa costo)');
-select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31', null, 'd1000000-0000-0000-0000-000000000002') -> 'por_tienda') t where t ->> 'nombre' = 'Mundo JC'),
+select is((select (t ->> 'ingresos')::numeric from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31', null, 'd1000000-0000-0000-0000-000000000002') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'Mundo JC'),
   3630::numeric, 'con depósito, los ingresos salen de sus líneas');
-select is((select (t ->> 'salidas')::int from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'salidas_por_deposito') t where t ->> 'nombre' = 'Central'),
+select is((select (t ->> 'salidas')::int from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'salidas_por_deposito', '[]'::jsonb)) t where t ->> 'nombre' = 'Central'),
   3, 'salidas del depósito Central en el período');
-select is((select (t ->> 'stock_actual')::int from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'salidas_por_deposito') t where t ->> 'nombre' = 'Central'),
+select is((select (t ->> 'stock_actual')::int from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'salidas_por_deposito', '[]'::jsonb)) t where t ->> 'nombre' = 'Central'),
   13, 'stock actual del depósito Central');
 
 -- El técnico ve stock pero no ventas ni rentabilidad: por_tienda null, depósitos sí.
@@ -157,19 +163,21 @@ select is((select count(*)::int from public.movimientos_por_producto('2026-10-01
   'un depósito de otra organización devuelve una lista vacía');
 select throws_ok($$select * from public.movimientos_por_producto('2025-01-01', '2026-10-31')$$, '22023', null, 'más de 366 días se rechaza');
 
--- Operador: tiene `ventas` pero no `rentabilidad`: ve unidades, no ingresos ni margen.
+-- Operador: tiene `ventas` pero no `rentabilidad`: el bloque NO desaparece (la tienda sigue en el
+-- arreglo) y los ingresos y el margen vienen null.
 select pg_temp.como('e1000000-0000-0000-0000-000000000003');
-select is((select (t ->> 'unidades')::int from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
+select is(jsonb_array_length(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)), 1,
+  'con ventas y sin rentabilidad el bloque sigue siendo un arreglo con la tienda');
+select is((select (t ->> 'unidades')::int from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
   1, 'con ventas y sin rentabilidad se ven las unidades de la tienda');
-select is((select t -> 'ingresos' from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
-  'null'::jsonb, 'los ingresos vuelven null sin rentabilidad');
-select is((select t -> 'margen_pct' from jsonb_array_elements(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda') t where t ->> 'nombre' = 'San Javucho'),
-  'null'::jsonb, 'el margen vuelve null sin rentabilidad');
+select is((select jsonb_build_object('ingresos', t -> 'ingresos', 'margen_pct', t -> 'margen_pct')
+   from jsonb_array_elements(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)) t where t ->> 'nombre' = 'San Javucho'),
+  '{"ingresos": null, "margen_pct": null}'::jsonb, 'sin rentabilidad los ingresos y el margen vuelven null');
 
 -- Otra organización: no ve nada de la Uno.
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.movimientos_por_producto('2026-10-01', '2026-10-31')), 0, 'la organización Dos no ve productos de la Uno');
-select is(jsonb_array_length(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda'), 1, 'la organización Dos solo ve su tienda');
+select is(jsonb_array_length(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)), 1, 'la organización Dos solo ve su tienda');
 
 reset role;
 select ok(not has_function_privilege('anon', 'public.resumen_inicio_bloques(date,date,uuid,uuid)', 'EXECUTE')

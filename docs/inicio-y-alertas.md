@@ -270,6 +270,10 @@ errores está también en `specs/20261030-100000-inicio-y-alertas/contracts/inic
 - **Forma `null` por permiso**: `ventas` (de `resumen_inicio_periodo`), `por_tienda`, `salidas_por_deposito`, `ingresos`,
   `margen_pct` y la columna `ventas` de `movimientos_por_producto` vuelven `null` cuando el rol no tiene el permiso;
   la pantalla distingue «sin permiso» de «cero».
+- **`por_tienda` solo es `null` sin `ventas`**: con `ventas` (aunque sea en una sola tienda) y sin `rentabilidad` el bloque
+  sigue siendo un arreglo con la fila de la tienda y solo `ingresos` y `margen_pct` vienen `null`; la tienda no desaparece.
+  Con el filtro de tienda, el `null` corresponde al filtro aplicado (la tienda elegida sin `ventas`), no a la organización
+  entera. Lo fija el pgTAP `supabase/tests/database/inicio_tablero_bloques.test.sql`.
 - **Filtros ajenos**: un depósito que no es de la organización devuelve bloques `null`, listas vacías o cero filas (sin error); una
   tienda no accesible no amplía el alcance de las **ventas** (ver H-1 de la revisión de seguridad para el listado).
 - **Topes**: período de hasta **366 días**; `movimientos_por_producto` acota `p_tamano` a 1–100, `p_pagina` a 1–100000 y
