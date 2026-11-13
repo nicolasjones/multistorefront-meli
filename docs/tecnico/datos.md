@@ -2655,6 +2655,106 @@ erDiagram
 - Detalle de RPC, permisos, pruebas y reversión:
   [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md).
 
+## Ventas: avisos de faltantes (MSF-161)
+
+Aviso al cliente con un faltante de despacho cuando vuelve a haber mercadería: a mano (F-VTA-26) o con la marca
+«Para avisar» que deja el ingreso de mercadería (F-VTA-27). **Ninguna tabla nueva**: se **alteran** dos de `dominio`
+—`faltantes_avisos` (el texto del aviso) y `faltantes_venta` (la marca «Para avisar»)— y se **leen** las demás.
+Migraciones `20270226100100` … `20270226110300` (aditivas; reversión en el encabezado de cada una y consolidada en
+[Ventas · avisos de faltantes (técnico)](ventas-avisos-de-faltantes.md#reversion)).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.faltantes_avisos` | **alterada** | Columna nueva `mensaje text` (`check (mensaje is null or length(mensaje) <= 1000)`): el texto que la persona editó en el diálogo «Avisar a los clientes»; nulo = texto por defecto de F-STK-17. La cola (una fila por línea, `estado` `pendiente`/`enviado`/`agotado`) es la que define el estado «Avisado». |
+| `dominio.faltantes_venta` | **alterada** | Columnas nuevas `para_avisar_en timestamptz` (momento de la marca) y `para_avisar_ingreso_id uuid` (FK a `dominio.ingresos_mercaderia (id)`, `on delete set null`); índice parcial `faltantes_venta_cobertura_idx (organizacion_id, producto_id, creado_en, id) where estado = 'abierto' and para_avisar_en is null` e índice de la FK `faltantes_venta_para_avisar_ingreso_idx`. |
+| `dominio.ingresos_mercaderia_lineas` | existente | Sin cambio de esquema: se le agrega el disparador `ingresos_mercaderia_lineas_marcar_faltantes` (`AFTER INSERT FOR EACH ROW`). |
+| `dominio.ingresos_mercaderia` | existente | Sin cambio: solo se referencia (FK de `para_avisar_ingreso_id`). |
+| `dominio.comprobantes_venta_lineas` | existente | Sin cambio: solo se lee (enlace `linea_id` ↔ `(comprobante_id, linea_orden)` del faltante, y lectura de la cola). |
+| `public.clientes` | existente | Sin cambio: solo se lee el **correo** del cliente (si no tiene, el faltante no se marca). |
+| `public.registro_actividad` | existente | Sin cambio: auditoría transversal de `private.registrar_actividad` (`ventas.faltantes_avisados`, `ventas.faltantes_para_avisar`). |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ FALTANTES_VENTA : "registra"
+  EMPRESAS ||--o{ FALTANTES_VENTA : "de la tienda"
+  COMPROBANTES_VENTA ||--o{ FALTANTES_VENTA : "tiene"
+  COMPROBANTES_VENTA_LINEAS ||--o{ FALTANTES_VENTA : "falta la linea"
+  PRODUCTOS ||--o{ FALTANTES_VENTA : "faltó"
+  COMPROBANTES_VENTA_LINEAS ||--o{ FALTANTES_AVISOS : "se avisa"
+  CLIENTES ||--o{ FALTANTES_AVISOS : "recibe el aviso"
+  EMPRESAS ||--o{ FALTANTES_AVISOS : "de la tienda"
+  INGRESOS_MERCADERIA ||--o{ FALTANTES_VENTA : "cubre el faltante"
+  INGRESOS_MERCADERIA ||--o{ INGRESOS_MERCADERIA_LINEAS : "detalla"
+  PRODUCTOS ||--o{ INGRESOS_MERCADERIA_LINEAS : "ingresa"
+
+  FALTANTES_VENTA { uuid id PK
+                     uuid organizacion_id FK
+                     uuid empresa_id FK
+                     uuid comprobante_id FK
+                     integer linea_orden "unique abierto por linea"
+                     uuid producto_id FK
+                     integer cantidad_faltante "> 0"
+                     text estado "abierto|resuelto"
+                     timestamptz creado_en "antiguedad de la cobertura"
+                     timestamptz para_avisar_en "alterada: momento de la marca"
+                     uuid para_avisar_ingreso_id FK "alterada: ingreso que la origino" }
+  FALTANTES_AVISOS { uuid linea_id PK
+                     uuid organizacion_id FK
+                     uuid empresa_id FK
+                     uuid cliente_id FK
+                     text estado "pendiente|enviado|agotado"
+                     integer intentos
+                     text ultimo_error
+                     timestamptz enviado_en
+                     text mensaje "alterada: texto editable (<= 1000)"
+                     timestamptz created_at }
+  INGRESOS_MERCADERIA { uuid id PK
+                         uuid organizacion_id FK
+                         uuid empresa_id FK
+                         text estado "registrado|anulado" }
+  INGRESOS_MERCADERIA_LINEAS { uuid id PK
+                               uuid organizacion_id FK
+                               uuid ingreso_id FK
+                               uuid producto_id FK
+                               integer cantidad "saldo de la cobertura" }
+  COMPROBANTES_VENTA { uuid id PK
+                        uuid organizacion_id FK
+                        uuid cliente_id FK
+                        uuid empresa_id FK
+                        text tipo "factura|presupuesto|nota_credito"
+                        text numero }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+                              uuid organizacion_id FK
+                              uuid comprobante_id FK
+                              integer orden
+                              uuid producto_id FK
+                              integer cantidad }
+  CLIENTES { uuid id PK
+             uuid organizacion_id FK
+             text nombre
+             text correo "si esta vacio, no se avisa" }
+  PRODUCTOS { uuid id PK
+              uuid organizacion_id FK
+              text nombre }
+  EMPRESAS { uuid id PK
+             uuid organizacion_id FK
+             text nombre }
+  ORGANIZACIONES { uuid id PK }
+```
+
+- **«Avisado» y «Para avisar» no son estados**: son dos marcas ortogonales al ciclo de vida, derivadas en el
+  listado (`aviso`, `aviso_en`). «Avisado» ⇔ hay fila en `dominio.faltantes_avisos` de esa línea con estado
+  `pendiente` o `enviado` (fecha `coalesce(enviado_en, created_at)`); «Para avisar» ⇔
+  `faltantes_venta.para_avisar_en is not null` y sin aviso en curso (fecha `para_avisar_en`). El `estado` de
+  `faltantes_venta` sigue siendo `abierto`/`resuelto`.
+- `dominio.faltantes_venta` y `dominio.faltantes_avisos` **no se escriben desde el navegador**: sin `insert`,
+  `update` ni `delete` para `authenticated`; las escriben la RPC `security definer` `avisar_faltantes_venta` y el
+  disparador `private.marcar_faltantes_para_avisar` (ambos con `search_path = ''`).
+- La marca «Para avisar» es una **sugerencia**, no una reserva: no descuenta stock, no cierra el faltante y
+  **anular el ingreso no la desmarca**.
+- Detalle de RPC, permisos, pruebas y reversión:
+  [Ventas · avisos de faltantes (técnico)](ventas-avisos-de-faltantes.md).
+
 ## Ventas RMA y devoluciones (MSF-178)
 
 Devoluciones y reclamos por ítem sobre una factura vendida, con su forma de resolución, motivo y

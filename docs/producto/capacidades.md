@@ -33,6 +33,9 @@ Registrar cómo se cobra cada venta, conciliar transferencias y depósitos, cont
 ## Despacho
 Preparar y entregar los pedidos, y ver qué ventas quedaron con faltantes. Guía: [Despacho y faltantes](ventas-despacho-y-faltantes.md).
 
+## Avisos de faltantes
+Ver qué pedidos ya se pueden cubrir porque volvió a haber mercadería, y avisarle al cliente por correo. Guía: [Avisos de faltantes](ventas-avisos-de-faltantes.md).
+
 ## Devoluciones
 Registrar devoluciones y reclamos (RMA) por producto. Guía: [Devoluciones](ventas-rma-devoluciones.md).
 

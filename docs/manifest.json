@@ -380,12 +380,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "dd472b04cb273939f20c787cdce655a8a0cdb3725954a0f54e174cdc6e2cc072",
+      "pageHash": "4be36313653ee2a2cf156d0f10f0f2a630011a422c8d3da5411e7f9a776bfacb",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5f4018f5"
+      "commit": "120002d7"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -445,12 +445,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "a49f52d607429137409db18c331fd7c0218ba1e6234db4dc669925bba86d7c3a",
+      "pageHash": "a034ceae02e0eebf557650a5973619220f4d423dd4d28bdd0c1334a60499b142",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0282ae89"
+      "commit": "f3ef1b96"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -594,7 +594,7 @@
     },
     "docs/producto/ingreso-de-mercaderia.md": {
       "title": "Registrar un ingreso de mercadería",
-      "pageHash": "10effca92834f96b890d6ae13c2b8e18e49dff304ba335b59e23ba6fb8c72e1e",
+      "pageHash": "9bbfd3b7a54fa511d081e657f552e66a0614ddaffb9efcd0f8d93b18ea9f0952",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -914,6 +914,15 @@
       "owner": "producto",
       "commit": null
     },
+    "docs/producto/ventas-avisos-de-faltantes.md": {
+      "title": "Avisar a los clientes cuando vuelve a haber stock",
+      "pageHash": "7eecb9e431e3d51971630ede1cd1e13a399eced0d1a40ea4248b1443642b8b07",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (MSF-139)",
       "pageHash": "fd0227d20d6ac7b0ab5f7d5538830e7fcca32175fdcb51c32cfd14d0a316b6f7",
@@ -956,12 +965,12 @@
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
-      "pageHash": "9c04271ef23e7c2550c7939ff4598b34e38aafac2c4e2d23beb39d547e8ada2a",
+      "pageHash": "2d1ccb90d4cd01d680f77d1e690e7c4b685f4047525dbcaacc5e0bbd18784745",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/ventas-historial-consulta.md": {
       "title": "Historial de ventas y cobros anteriores",
@@ -1315,14 +1324,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "cb0bddd2d386ad549ab7e651aac1632e34a139f6738b7d5c5cbc92cfe792c56c",
+      "pageHash": "157d432e28e6b2e58df237147047fe6bffc31ac1999f9a112bcd0aefa1a0aa26",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d82baacc",
+      "sourceAt": "55f4b030",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "f3ef1b96"
+      "commit": "120002d7"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -1560,14 +1569,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "8e61470581f6bc9e3f22f47ff01c01feaba404c157e79da1453924069a7aa713",
+      "pageHash": "bc385de86761fdd13efe5561def1d200003b600ce239739e0e2548ae9bd43e88",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d82baacc",
+      "sourceAt": "55f4b030",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4b780ed7"
+      "commit": "120002d7"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -2251,6 +2260,19 @@
       "owner": "tecnico",
       "commit": "6ad293f4"
     },
+    "docs/tecnico/ventas-avisos-de-faltantes.md": {
+      "title": "Ventas · avisos de faltantes (técnico, MSF-161)",
+      "pageHash": "d0e784a9605815198cb53a60c1096a75cfcf139a7304c98133975a2b17537a3e",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "55f4b030",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (técnico, MSF-139)",
       "pageHash": "4dcf565037a56698855c673183f9609c8802eee4839c8688754105902c4c1a03",
@@ -2306,9 +2328,9 @@
     },
     "docs/tecnico/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
-      "pageHash": "28ba8d07950db4d5c2af489ffed27bc83adfa1fe2450baa56266dc06de538bdc",
+      "pageHash": "1458b58e31de735b5559669fd4f85178573079fe4ba83f636ab6ed8527a00a9c",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "9d91048c",
+      "sourceAt": "55f4b030",
       "sources": [
         "specs",
         "supabase/migrations",

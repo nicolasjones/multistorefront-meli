@@ -215,6 +215,11 @@ entera sin aplicar (todo o nada).
   `producto_id`, que `listar_faltantes` todavía **no** devuelve: lo agrega la migración
   `20270204100000_ventas_listados_producto_id.sql`, que está en la rama
   `origin/feat/ventas-faltantes-rma-producto-id` y todavía no está integrada.
+- **Aviso al cliente (MSF-161):** la columna **Aviso** de la pantalla, la selección de faltantes, el diálogo
+  «Avisar a los clientes» y la marca «Para avisar» llegan con la épica
+  [Ventas · avisos de faltantes](ventas-avisos-de-faltantes.md): amplían `listar_faltantes` (firma nueva con
+  `p_aviso`, más `aviso` y `aviso_en`) y agregan `dominio.faltantes_venta.para_avisar_en`. El cierre automático del
+  faltante por ingreso de mercadería sigue **fuera de alcance**: lo que hay es la marca «Para avisar».
 
 ### Listado del tablero (FR-030)
 
@@ -441,6 +446,8 @@ hubo entregas, corregir el stock desde Stock (la entrega ya descontó las reserv
 
 - **[Ventas · despacho y faltantes (producto)](../producto/ventas-despacho-y-faltantes.md)** — qué resuelve, para
   quién y cómo se prueba.
+- **[Ventas · avisos de faltantes (técnico)](ventas-avisos-de-faltantes.md)** — el aviso al cliente con un faltante
+  de despacho y la marca «Para avisar» (MSF-161).
 - **[Ventas · comprobantes (técnico)](ventas-comprobantes.md)** — la factura, su numeración y la confirmación.
 - **[Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md)** — el estado documental
   y la anulación.

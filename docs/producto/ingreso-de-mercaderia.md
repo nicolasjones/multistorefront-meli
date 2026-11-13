@@ -38,6 +38,10 @@ Cuando llega mercadería de un proveedor, la registrás acá y el stock sube en 
 
 **Limpiar** vacía el formulario sin tocar lo que ya registraste.
 
+Cuando el ingreso incluye un producto que tenía pedidos esperando mercadería, esos pedidos quedan marcados
+**Para avisar** en **Ventas → Faltantes**: el sistema te los señala para que le avises al cliente, pero no manda
+ningún correo por su cuenta. Ver [Avisar a los clientes cuando vuelve a haber stock](ventas-avisos-de-faltantes.md).
+
 ![Formulario Nuevo ingreso con tres productos cargados, con su cantidad y su costo unitario en dólares](img/ingreso-de-mercaderia/03-formulario-varias-lineas.png)
 
 *Un ingreso con tres productos: cada línea lleva su cantidad y su costo. Abajo ves el total de unidades.*

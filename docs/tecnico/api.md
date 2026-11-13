@@ -558,7 +558,7 @@ del comprobante**, no en la empresa activa.
 | `guardar_envio_comprobante(p_id uuid, p_transporte_id uuid, p_guia text, p_fecha_envio date, p_actualizado_en timestamptz)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada; el transporte tiene que estar activo y usarse en la empresa del comprobante; registra `despacho.envio_guardado`. | `42501` sin `despachar` ni `ventas` en edición · `22023` transporte no válido o guía de más de 100 caracteres · `55000` no es factura confirmada o ya entregada · `40001` conflicto |
 | `obtener_envio_comprobante(p_id uuid)` | Transporte, guía, fecha de envío y `updated_at`. Es la **única** lectura del envío: las tres columnas no tienen privilegio de lectura para `authenticated`. | `42501` sin Ventas en la empresa del comprobante · `P0002` inexistente |
 | `registrar_faltantes_despacho(p_id uuid, p_faltantes jsonb, p_actualizado_en timestamptz)` | Registra los faltantes de una factura en `armando` o `incompleto` (cantidad entre 1 y lo pedido por línea, un faltante abierto por línea) y la deja en `incompleto`, todo o nada; registra `despacho.faltante_registrado`. | `42501` sin `despachar` · `22023` cantidad o línea inválida · `55000` la factura no está en Armando ni en Incompleto · `P0002` inexistente · `40001` conflicto |
-| `listar_faltantes(p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10)` | Faltantes **abiertos** de las empresas accesibles, con cliente, producto, SKU, cantidad, comprobante, fecha del pedido, «desde» y el stock de hoy; `filas` con el total del filtro. | `42501` sin sesión con organización |
+| `listar_faltantes(p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10)` | Faltantes **abiertos** de las empresas accesibles, con cliente, producto, SKU, cantidad, comprobante, fecha del pedido, «desde» y el stock de hoy; `filas` con el total del filtro. **Reemplazada por MSF-161** (gana `p_aviso`, `aviso` y `aviso_en`): ver [Ventas avisos de faltantes (MSF-161)](#ventas-avisos-de-faltantes-msf-161). | `42501` sin sesión con organización |
 | `listar_despacho(p_busqueda text default null, p_estado text default null, p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10)` | Tablero: facturas confirmadas no anuladas con estado, responsables, transporte y guía; `conteos` por estado (sin el filtro de estado) y `filas` con el total. | `42501` sin sesión con organización · `22023` estado desconocido |
 
 Sin grant a `authenticated`: `private.descontar_reservas_entrega`, `private.etiqueta_estado_despacho`,
@@ -571,6 +571,25 @@ Errores: `42501` sin sesión u organización, sin `despachar` o responsable no e
 inválido · `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente ·
 `40001` conflicto de edición. Contrato completo:
 [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#rpc).
+
+### Ventas avisos de faltantes (MSF-161)
+
+Fuente: `supabase/migrations/20270226100100`–`20270226110300` (rama `epic/MSF-161-ventas-y-despacho-ventas-avisos-de-falta`,
+PR #834 a `dokploy`, merge `adf01e76`; aún sin merge a `main`). Las RPC de `public` son `security definer` con
+`search_path = ''`, `revoke … from public, anon` y `grant execute … to authenticated`; la organización y el actor
+salen de la sesión y el permiso se resuelve **en la empresa del faltante**, no en la empresa activa.
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `avisar_faltantes_venta(p_ids uuid[], p_mensaje text default null, p_reavisar boolean default false)` | Encola el aviso de los faltantes elegidos (una fila de cola por línea, **un correo por cliente**) con el texto editable (≤ 1.000 caracteres; vacío = texto por defecto). Exige `ventas` en `edicion` global y por tienda. Omite y cuenta: ya avisados (salvo `p_reavisar`), en cola, cliente **sin correo** (sin marcar) y de tiendas sin `edicion`; responde `no_abierto` (igual que uno inexistente o de otra organización) para lo que no es un faltante abierto visible. Devuelve `encolados`, `lineas_avisadas`, `omitidos_ya_avisados`, `omitidos_en_cola`, `omitidos_sin_correo`, `omitidos_sin_permiso`, `omitidos_no_abiertos` y el `detalle` por faltante. Registra `ventas.faltantes_avisados` (sin correos). | `42501` sin sesión u organización o sin `ventas` en `edicion` · `22023` lista vacía o de más de 200 ids, o `p_mensaje` de más de 1.000 caracteres |
+| `listar_faltantes(p_empresa_id uuid default null, p_pagina integer default 1, p_tamano integer default 10, p_aviso text default null)` | Reemplaza a la de MSF-135 (mismo nombre, firma nueva: se hace `drop` de `(uuid, integer, integer)`; las llamadas por nombre con tres parámetros siguen resolviendo). Faltantes **abiertos** de las empresas donde la persona tiene Ventas al menos en lectura, con cliente, producto, SKU, cantidad, comprobante, fecha del pedido, «desde», stock de hoy y **`aviso`** (`sin_avisar` \| `para_avisar` \| `avisado`) con **`aviso_en`**; `filas` con el total del filtro. `p_aviso` ∈ {`null`, `sin_avisar`, `avisado`, `para_avisar`}; con `para_avisar` el orden es del más antiguo al más nuevo. Tope de 200 por página. | `42501` sin sesión con organización · `22023` filtro de aviso desconocido |
+
+Cambios sobre F-STK-17, **mismas firmas** (no son RPC de la app): `private.faltante_abierta(uuid)` reconoce también
+el faltante de venta abierto; `public.tomar_aviso_faltante(uuid, integer)` (solo `service_role`) suma `mensaje` a cada
+línea de la tanda y usa la cantidad faltante cuando hay faltante de venta abierto; y el disparador nuevo
+`private.marcar_faltantes_para_avisar()` (`AFTER INSERT` sobre `dominio.ingresos_mercaderia_lineas`, sin grant) marca
+«Para avisar» sin enviar nada. Contrato completo:
+[Ventas · avisos de faltantes (técnico)](ventas-avisos-de-faltantes.md#rpc).
 
 ### Ventas RMA y devoluciones (MSF-178)
 
