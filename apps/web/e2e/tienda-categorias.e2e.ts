@@ -90,8 +90,10 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
         const page = await contexto.newPage()
         await page.goto(`http://${t.host}:${puerto}/`)
 
-        const menu = page.getByRole('navigation', { name: 'Categorías' })
-        await expect(menu.getByRole('link', { name: 'Inicio' })).toBeVisible()
+        const menu = page.getByRole('navigation', { name: 'Categorías', exact: true })
+        // «Inicio» y «Contacto» van en la navegación «Principal» del encabezado; la de categorías trae solo categorías.
+        await expect(page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Inicio' })).toBeVisible()
+        await expect(menu.getByRole('link', { name: 'Inicio' })).toHaveCount(0)
         await expect(menu.getByRole('link', { name: t.propia })).toBeVisible()
         // Nada de lo oculto ni de la otra tienda, en el menú ni en el pie.
         await expect(page.getByRole('link', { name: t.oculta })).toHaveCount(0)

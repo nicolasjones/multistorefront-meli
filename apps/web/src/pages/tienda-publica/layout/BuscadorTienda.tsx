@@ -13,6 +13,7 @@ import {
 } from '../../../lib/tiendaBusqueda'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
+import { IconoLupa } from './iconos'
 
 type Estado =
   | { fase: 'reposo' }
@@ -130,7 +131,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
 
   return (
     <ClickAwayListener onClickAway={() => setAbierto(false)}>
-      <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360 }, maxWidth: '100%' }}>
+      <Box sx={{ position: 'relative', width: { xs: '100%', sm: 360, md: '100%' }, maxWidth: { xs: '100%', md: 560 } }}>
         <Box component="form" role="search" aria-label={etiqueta} onSubmit={(evento) => { evento.preventDefault(); irAResultados() }}>
           <TextField
             fullWidth
@@ -140,7 +141,16 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
             onChange={(evento) => { setTexto(evento.target.value); setAbierto(true); setActivo(-1) }}
             onFocus={() => setAbierto(true)}
             onKeyDown={alTeclear}
+            // Prototipo: campo de 44 px, borde de 1,5 px, radio 8 y botón cuadrado con la lupa en el color primario.
+            sx={{ '& .MuiOutlinedInput-root': { height: 44, borderRadius: '8px', pr: 0, overflow: 'hidden', bgcolor: 'background.paper', '& fieldset': { borderWidth: '1.5px', borderColor: 'rgba(0,0,0,.18)' } } /* estilos-sueltos: ok */ }}
             slotProps={{
+              input: {
+                endAdornment: (
+                  <Box component="button" type="submit" aria-label="Buscar" sx={{ width: 44, height: 44, flexShrink: 0, border: 0, p: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' /* estilos-sueltos: ok */ }}>
+                    <IconoLupa />
+                  </Box>
+                ),
+              },
               htmlInput: {
                 role: 'combobox',
                 'aria-label': 'Buscar productos',

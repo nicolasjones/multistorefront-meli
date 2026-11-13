@@ -170,13 +170,24 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
 
 - **Tabla** `dominio.tienda_identidad` (`empresa_id` PK): cuatro colores `#RRGGBB` (Primario, Primario
   oscuro, Acento, Fondo, con `check` de formato), tipografías de Títulos y Texto contra una **lista
-  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans) y
+  cerrada** (`system-ui`, Barlow, Barlow Condensed, Playfair Display, Lato, Sora, Instrument Sans y, desde
+  MSF-841, Bricolage Grotesque y DM Sans) y
   las rutas de logo, banner principal y banner móvil. Sin fila → tema base (`#222222` / blanco /
   tipografía del sistema). Las rutas deben estar en `<organización>/<empresa>/` (check en la base).
 - **Supuesto sobre DS-04**: la épica remite la lista de tipografías a DS-04, pero el repo no la trae
   versionada; se usó el tema base más las fuentes de los dos temas de ejemplo
   (`apps/web/src/tema/temaTienda.ts`) y del prototipo. Se ajusta en una sola constante
   (`TIPOGRAFIAS` en `apps/web/src/lib/tiendaIdentidad.ts` y los `check`/RPC de la migración).
+- **MSF-841 (tramo A del rediseño de las tiendas al prototipo)**: se sumaron las tipografías
+  `Bricolage Grotesque` y `DM Sans` (migración `20270303100000_tienda_tipografias_prototipo.sql`: reemplaza
+  los `check` y `private.validar_tienda_identidad`; el front ya arma la URL de Google Fonts desde la lista) y el
+  quinto color **«Barra superior y pie»** (`color_barra`, `#RRGGBB`, por defecto `#222222`, migración
+  `20270303200000_tienda_color_barra.sql`). `color_barra` viaja en el borrador, en las versiones (un borrador o
+  una versión anterior sin la clave vale `#222222`), en `publico.identidad_por_dominio` y en la pestaña, con su
+  propio chequeo de contraste AA (mismo criterio que el primario, no bloquea). Un cambio de la barra cuenta
+  como «colores» en el resumen «N cambios sin publicar». `public.guardar_tienda_identidad` cambió de firma
+  (parámetro final `p_color_barra`, con default; se eliminó la de 10 argumentos) y `publicar_tienda`, su único
+  llamador, se recreó; sigue sin ser ejecutable por `authenticated` (F-TDA-06).
 - **Escritura**: solo `public.guardar_tienda_identidad(...)` (`security definer`, exige edición en
   Empresas, estado completo, **idempotente**: si no cambia nada no escribe ni registra evento; emite
   `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
@@ -224,7 +235,11 @@ no queda nada de la anterior).
 | `publico.contenido_por_dominio(host)` | `publico` | Lectura anónima con lista blanca de columnas. | `grant … to anon, authenticated`. |
 
 Campos (`empresa_id` es la clave): `titulo`, `subtitulo`, `texto_boton`, `boton_destino`,
-`bienvenida` (barra superior), `pie`, `aviso_ficha` y `texto_boton_contacto`. Migración aditiva;
+`bienvenida` (barra superior), `pie`, `aviso_ficha`, `texto_boton_contacto` y, desde MSF-841, `eslogan`
+(frase corta, hasta **80** caracteres, vacío por defecto; migración `20270303300000_tienda_eslogan.sql`:
+columna con check, validación en el borrador con `hint = 'eslogan'`, rótulo «eslogan» en el resumen de cambios
+sin publicar, `publico.contenido_por_dominio` lo devuelve y la pestaña lo muestra en «Textos comerciales» con
+contador). `public.guardar_tienda_contenido` cambió de firma (parámetro final `p_eslogan`, con default). Migración aditiva;
 la reversión está en el encabezado de `20261023100200_tienda_contenido.sql`.
 
 ### Reglas
@@ -354,6 +369,14 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   `productos` = solo los efectivamente visibles de esa categoría. Host desconocido, inválido y empresa
   desactivada devuelven el mismo `null`. Nunca `organizacion_id` ni columnas internas.
   Reversión: `drop function publico.categorias_por_dominio(text);`.
+- **Foto de categoría (MSF-841, `20270303400000_tienda_categorias_imagen.sql`)**: cada categoría trae además
+  `imagen`: la ruta de storage (bucket `productos-imagenes`) de la imagen principal (menor `posicion`) de UN
+  producto efectivamente visible de la categoría o de sus subcategorías (el primero por nombre y, en empate,
+  por id); `null` si ninguno tiene imagen. No hay campo de configuración. Se calcula **en una sola pasada**
+  (CTE materializados `efectivos` → `img_producto` → `imagen` con `distinct on`, sobre el árbol recursivo ya
+  calculado), sin subconsultas por fila ni funciones por producto, porque la función corre bajo `anon` con
+  `statement_timeout` de 3 s (ver el bug de MSF-825 abajo). La ruta cuelga de `<organización>/<producto>/`,
+  igual que la `imagen` de los destacados; la vista previa de la gestión no la calcula (`imagen: null`).
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
   `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
@@ -1067,3 +1090,51 @@ Spec: `specs/20270125-100000-tienda-seo-legal-y-estados/` (FR-020…FR-025, SC-0
 - **Verificación manual pendiente (SC-007)**: Lighthouse (categoría SEO) no corre en el repo. Pendiente: `npx lighthouse <url>
   --only-categories=seo` sobre inicio, catálogo, categoría, ficha y contacto de las dos tiendas y validación del JSON-LD de la ficha con
   el Rich Results Test; criterio de aceptación: sin fallas (D8), resultado adjunto en el PR de cierre.
+
+## Diseño del prototipo en el front público (MSF-841, tramo B)
+
+Spec: `specs/20261112-200000-tiendas-diseno-del-prototipo/` (matriz pantalla↔criterios incluida). El front público reproduce el
+diseño de `design/pantallas/MJC_*` y `SJ_*` **sin ningún valor fijo por tienda**: todo sale de la identidad, el contenido y el
+contacto de la empresa del host.
+
+- **Identidad aplicada a TODA la tienda (causa raíz de «los colores no se aplican»)**: antes solo la sección `TemaTienda` de la portada
+  leía la identidad y seteaba variables; en `/catalogo`, `/categoria`, `/producto` y `/contacto` no se aplicaba nada y en la portada los
+  botones y enlaces seguían con el azul de MUI. Ahora `layout/IdentidadTiendaContexto.tsx` (`ProveedorIdentidadTienda`, montado en
+  `LayoutTienda`) la lee **una vez por host** (`resolverIdentidadPublica`) y la reparte por: el tema MUI (`ProveedorTemaTienda`:
+  `primary`, `primary.dark`, `secondary` = acento, tipografías de títulos y texto, fondo), las variables CSS `--tienda-*` (primario,
+  primario oscuro, acento, fondo, **barra**, fuente de títulos y de texto; para portales de MUI) y el contexto (`useIdentidadTienda()`:
+  logo, banners). `theme.tienda` expone además los derivados que usa el diseño: `barra`, `textoBarra`, `superficie` (el fondo mezclado
+  con negro 4,3 %, el `--sf` del prototipo) y `fuenteTitulos`. Sin identidad legible la tienda sigue con el tema base. En la vista previa
+  del panel la identidad llega inyectada (`ProveedorFuenteTienda`) y no se tocan variables globales.
+- **Destello de tema (decisión)**: no se espera la petición de identidad para pintar; la tienda arranca con el tema base neutro y pasa a
+  la identidad al llegar, así el contenido no espera un pedido más. Es un destello conocido y aceptado. Para no sumar saltos de diseño, la
+  barra superior reserva su altura (36 px / 28 px en celular) mientras llega el contacto.
+- **Sin pedidos de más**: el layout también lee **una sola vez** el contenido (`ProveedorContenidoTienda`), el contacto
+  (`ContextoContactoTienda`) y las categorías (`ContextoCategoriasTienda`); `useContenidoPublico`, `useContactoTienda` y
+  `useCategoriasTienda` usan el compartido si existe (barra, menú, pie, portada y `/contacto` comparten la misma lectura) y, sin layout
+  (vista previa, tests), leen por su cuenta.
+- **Tipografías**: los títulos usan la tipografía de títulos (variantes `h1…h6` del tema) y el cuerpo la de texto. No se espera la
+  petición de identidad para pintar (la tienda arranca con el tema base neutro y pasa a la identidad al llegar); la hoja de Google Fonts
+  se pide con `display=swap` y `preconnect` a `fonts.googleapis.com` / `fonts.gstatic.com` para acortar el cambio de fuente.
+- **Barra superior** (`layout/BarraSuperior.tsx`): 36 px (28 px en celular), fondo `colorBarra`, texto blanco de 13 px (12 px en celular). Izquierda: el
+  `eslogan`; sin eslogan, el mensaje de **bienvenida**. Derecha (solo desde `md`): WhatsApp (enlace `wa.me`) y correo (`mailto:` con el correo codificado) de
+  `contacto_por_dominio`. Un dato ausente no se muestra y sin nada que mostrar no hay barra. `secciones/BarraBienvenida` ya no duplica el
+  texto: dentro del layout solo se dibuja si hay eslogan **y** una bienvenida distinta (franja primaria en la portada); en la vista previa
+  del panel (sin layout) se dibuja como antes.
+- **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (flexible: hasta 560 px desde `md`, se encoge si falta
+  lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
+  (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
+  «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
+  el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
+  vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
+  línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste
+  AA sobre `colorBarra`); el texto secundario del tema se calcula para llegar a 4,5:1 sobre el fondo y sobre la superficie de las tarjetas.
+- **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
+  `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
+  pudo firmar, el recuadro neutro. La vista previa del panel no trae `imagen` (`vista_previa_tienda` no la calcula): muestra el recuadro
+  neutro.
+- **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
+  «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos»; un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace. No se muestra en la vista previa (no lee `publico.*`).
+- **Diferencias conocidas con el prototipo**: la franja oscura del héroe de la portada no es del layout sino de los banners configurados
+  (`BannerHome`); la tarjeta de producto y la ficha no se tocaron en este tramo; el menú de celular no tiene el logo ni el buscador como ícono; las categorías sin productos no se muestran (el prototipo trae «Skins y calcos, 0 productos»); en celular el encabezado pone la marca a la izquierda y el menú a la derecha (el prototipo: menú a la izquierda, logo al centro, lupa a la derecha).

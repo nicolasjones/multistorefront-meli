@@ -80,7 +80,7 @@ test.describe('Tienda online · páginas de contenido con dos tiendas (SC-002, S
         for (const p of paginas) {
           await pedir('PATCH', `tienda_paginas?id=eq.${p.id}`, { visible: false })
           await page.goto(`http://${p.host}:${puerto}/`)
-          await expect(page.getByRole('link', { name: 'Escribinos' })).toBeVisible()
+          await expect(page.getByTestId('pie-contacto').getByRole('link', { name: 'Escribinos' })).toBeVisible()
           await expect(page.getByRole('link', { name: titulo })).toHaveCount(0)
           await page.goto(`http://${p.host}:${puerto}/pagina/${slug}`)
           await expect(page.getByTestId('pagina-no-encontrada')).toBeVisible()

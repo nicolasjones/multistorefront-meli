@@ -14,6 +14,7 @@ export type ClaveCampoContenido =
   | 'pie'
   | 'aviso_ficha'
   | 'texto_boton_contacto'
+  | 'eslogan'
 
 export type DestinoBoton = 'catalogo'
 
@@ -36,6 +37,7 @@ export const CAMPOS_CONTENIDO: ReadonlyArray<{
   { clave: 'titulo', etiqueta: 'Título', limite: 120 },
   { clave: 'subtitulo', etiqueta: 'Subtítulo', limite: 300, multilinea: true },
   { clave: 'texto_boton', etiqueta: 'Texto del botón', limite: 120 },
+  { clave: 'eslogan', etiqueta: 'Eslogan', limite: 80 },
   { clave: 'bienvenida', etiqueta: 'Mensaje de bienvenida (barra superior)', limite: 300 },
   { clave: 'pie', etiqueta: 'Texto del pie de página', limite: 300 },
   { clave: 'aviso_ficha', etiqueta: 'Aviso en la ficha de producto', limite: 300 },
@@ -51,6 +53,7 @@ export const CONTENIDO_VACIO: ContenidoTienda = {
   pie: '',
   aviso_ficha: '',
   texto_boton_contacto: '',
+  eslogan: '',
 }
 
 export type ErroresContenido = Partial<Record<ClaveCampoContenido | 'boton_destino', string>>
@@ -96,10 +99,12 @@ export function aContenido(fila: FilaContenido | null | undefined): ContenidoTie
     pie: fila?.pie ?? '',
     aviso_ficha: fila?.aviso_ficha ?? '',
     texto_boton_contacto: fila?.texto_boton_contacto ?? '',
+    // Ausente en borradores y versiones anteriores a MSF-841.
+    eslogan: fila?.eslogan ?? '',
   }
 }
 
-const COLUMNAS = 'titulo, subtitulo, texto_boton, boton_destino, bienvenida, pie, aviso_ficha, texto_boton_contacto'
+const COLUMNAS = 'titulo, subtitulo, texto_boton, boton_destino, bienvenida, pie, aviso_ficha, texto_boton_contacto, eslogan'
 
 // Contenido de la empresa para la gestión: el borrador si existe para esta área (F-TDA-06, FR-051), si no el
 // publicado. RLS de dominio.tienda_contenido: solo la organización de la sesión. Sin fila = todo vacío (la
