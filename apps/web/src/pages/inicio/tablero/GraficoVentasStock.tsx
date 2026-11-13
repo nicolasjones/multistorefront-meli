@@ -4,7 +4,7 @@ import {
   BarPlot, ChartsAxisHighlight, ChartsContainer, ChartsLegend, ChartsTooltip, ChartsXAxis, ChartsYAxis, LinePlot, MarkPlot,
 } from '@mui/x-charts'
 import { EstadoVacio } from '../../../components/estados/EstadosPagina'
-import { formatoEjeCompacto, formatoEntero, type PuntoSerie } from '../../../lib/inicioTablero'
+import { formatoEntero, type PuntoSerie } from '../../../lib/inicioTablero'
 
 type Props = { serie: ReadonlyArray<PuntoSerie>; hayVentas: boolean; hayStock: boolean }
 
@@ -43,8 +43,8 @@ export function GraficoVentasStock({ serie, hayVentas, hayStock }: Props) {
         series={series}
         xAxis={xAxis}
         yAxis={[
-          { id: 'unidades', scaleType: 'linear', width: 48, valueFormatter: formatoEjeCompacto },
-          { id: 'stock', scaleType: 'linear', position: 'right', width: 64, valueFormatter: formatoEjeCompacto },
+          { id: 'unidades', scaleType: 'linear', width: 60, valueFormatter: formatoEntero },
+          { id: 'stock', scaleType: 'linear', position: 'right', width: 96, valueFormatter: formatoEntero },
         ]}
         title="Ventas y stock en el tiempo"
         desc={descripcion}
