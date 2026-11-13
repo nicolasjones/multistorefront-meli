@@ -16,6 +16,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = fileURLToPath(new URL("..", import.meta.url));
 export const SECCION_MATRIZ = /^##\s+Matriz pantalla/im;
+// La empresa activa (constitución, Principio VIII): la matriz debe decir qué
+// pasa con ella, o declarar «no aplica» y por qué. No es prosa opcional.
+export const MENCION_EMPRESA = /empresa/i;
 export const MENCIONA_UI = /apps\/web\/src\/(pages|components)\b|design\/pantallas\b/;
 export const ARCHIVO_EXENTAS = "scripts/matriz-pantalla-exentas.txt";
 
@@ -29,6 +32,15 @@ export function specsExentas(archivo = path.join(RAIZ, ARCHIVO_EXENTAS)) {
       .map((linea) => linea.replace(/#.*/, "").trim())
       .filter(Boolean),
   );
+}
+
+// La matriz existe pero no dice nada de la empresa activa.
+export function motivoSpecSinEmpresa(specMd) {
+  if (!fs.existsSync(specMd)) return null;
+  const contenido = fs.readFileSync(specMd, "utf8");
+  if (!MENCIONA_UI.test(contenido) || !SECCION_MATRIZ.test(contenido)) return null;
+  const cuerpo = (contenido.split(SECCION_MATRIZ)[1] ?? "").split(/\n##\s/)[0];
+  return MENCION_EMPRESA.test(cuerpo) ? null : specMd;
 }
 
 // Revisa el spec.md de un directorio: devuelve el motivo si falta la matriz, o null si está bien.
@@ -73,9 +85,16 @@ if (esCLI) {
   const exentas = specsExentas();
   const aRevisar = specsNuevas.filter((p) => !exentas.has(path.relative(RAIZ, path.dirname(p))));
   const faltantes = aRevisar.map(motivoSpecSinMatriz).filter(Boolean);
-  if (faltantes.length) {
-    console.error("Fallo de spec: una spec nueva con UI debe traer `## Matriz pantalla↔criterios`.");
-    console.error(faltantes.map((p) => ` - ${path.relative(RAIZ, p)}`).join("\n"));
+  const sinEmpresa = aRevisar.filter((p) => !faltantes.includes(p) && motivoSpecSinEmpresa(p));
+  if (faltantes.length || sinEmpresa.length) {
+    if (faltantes.length) {
+      console.error("Fallo de spec: una spec nueva con UI debe traer `## Matriz pantalla↔criterios`.");
+      console.error(faltantes.map((p) => ` - ${path.relative(RAIZ, p)}`).join("\n"));
+    }
+    if (sinEmpresa.length) {
+      console.error("Fallo de spec: la matriz debe incluir «Empresa activa» (o «Empresa activa: no aplica» y el motivo).");
+      console.error(sinEmpresa.map((p) => ` - ${path.relative(RAIZ, p)}`).join("\n"));
+    }
     process.exit(1);
   }
   console.log(`Matriz pantalla↔criterios: OK (${aRevisar.length} specs nuevas revisadas, ${specsNuevas.length - aRevisar.length} exentas).`);

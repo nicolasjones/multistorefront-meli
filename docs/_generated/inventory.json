@@ -1,0 +1,1109 @@
+{
+  "rutas": [
+    "/acceso-restringido/AccesoRestringido",
+    "/acceso/definir-contrasena",
+    "/acceso/solicitar-recuperacion",
+    "/actividad/list",
+    "/analitica/administrar",
+    "/analitica/list",
+    "/analitica/permisos",
+    "/api/PanelClaves",
+    "/api/PanelEntregas",
+    "/api/PanelLlamadas",
+    "/api/PanelSuscripciones",
+    "/api/list",
+    "/baja-correo",
+    "/categorias/list",
+    "/clientes/correo-masivo/detalle",
+    "/clientes/correo-masivo/historial",
+    "/clientes/correo-masivo/nueva",
+    "/clientes/correo-masivo/pestanas",
+    "/clientes/correo-masivo/vista-previa",
+    "/clientes/create",
+    "/clientes/edit",
+    "/clientes/list",
+    "/clientes/show",
+    "/conexiones-oauth/list",
+    "/conexiones/create",
+    "/conexiones/edit",
+    "/conexiones/list",
+    "/configuracion/PanelEstadosConsulta",
+    "/configuracion/listas",
+    "/consultas/ContactoConsulta",
+    "/consultas/CrearContactoDialog",
+    "/consultas/InteresWhatsappDialog",
+    "/consultas/RespuestasRapidasDialog",
+    "/consultas/list",
+    "/contactos/AnonimizarContactoDialog",
+    "/contactos/VincularComprobanteDialog",
+    "/contactos/ficha",
+    "/contactos/list",
+    "/cotizacion",
+    "/cuenta/avisos",
+    "/cuenta/cambiar-contrasena",
+    "/cuenta/cambiar-correo",
+    "/cuenta/perfil",
+    "/ejecuciones/list",
+    "/ejecuciones/show",
+    "/empresas/CorreoAvisosConsultas",
+    "/empresas/PestanasEmpresa",
+    "/empresas/edit",
+    "/empresas/list",
+    "/empresas/precios",
+    "/empresas/tienda/EncabezadoTienda",
+    "/empresas/tienda/GestionTienda",
+    "/empresas/tienda/VistaPreviaTienda",
+    "/empresas/tienda/componentes/identidad/CamposDeIdentidad",
+    "/empresas/tienda/componentes/imagen-tienda/ImagenTienda",
+    "/empresas/tienda/pestanas/analitica",
+    "/empresas/tienda/pestanas/catalogo",
+    "/empresas/tienda/pestanas/contenido",
+    "/empresas/tienda/pestanas/identidad",
+    "/empresas/tienda/pestanas/paginas",
+    "/empresas/tienda/pestanas/publicacion",
+    "/empresas/tienda/pestanas/publicacion/Dominio",
+    "/empresas/tienda/pestanas/publicacion/Publicacion",
+    "/empresas/tienda/pestanas/publicacion/Versiones",
+    "/empresas/tienda/pestanas/publicacion/VistaPrevia",
+    "/features/administrar",
+    "/historial/CotizacionesTab",
+    "/historial/importar",
+    "/historial/list",
+    "/ia/capacidades-chat",
+    "/ia/capacidades-mcp",
+    "/ia/chat",
+    "/ia/contratos",
+    "/ia/documentos",
+    "/ia/interacciones",
+    "/ia/list",
+    "/ia/modelos",
+    "/ia/politicas",
+    "/ia/proveedores",
+    "/importaciones/CancelarProceso",
+    "/importaciones/DetalleImportacion",
+    "/importaciones/ExportacionTotal",
+    "/importaciones/list",
+    "/importaciones/soporteTest",
+    "/inicio",
+    "/inicio/AccesosDirectos",
+    "/inicio/AlertasInicio",
+    "/inicio/TarjetaConsultas",
+    "/inicio/TarjetaDolar",
+    "/inicio/TarjetaEmpresas",
+    "/inicio/TarjetaInicio",
+    "/inicio/TarjetaStock",
+    "/inicio/tablero/BloquesGestion",
+    "/inicio/tablero/FiltrosTablero",
+    "/inicio/tablero/GraficoVentasStock",
+    "/inicio/tablero/Indicador",
+    "/inicio/tablero/MovimientosPorProducto",
+    "/inicio/tablero/TableroInicio",
+    "/integraciones-oauth/administrar",
+    "/login",
+    "/migracion/AsistenteImportacion",
+    "/migracion/InformeConciliacion",
+    "/migracion/importar",
+    "/migracion/informes",
+    "/no-encontrada/PaginaNoEncontrada",
+    "/organizacion/edit",
+    "/organizaciones/create",
+    "/organizaciones/list",
+    "/productos/carga",
+    "/productos/create",
+    "/productos/edit",
+    "/productos/list",
+    "/productos/precios-masivos",
+    "/productos/promociones",
+    "/proveedores/list",
+    "/proveedores/show",
+    "/rentabilidad",
+    "/rentabilidad/ComoSeCalcula",
+    "/rentabilidad/Comparativo",
+    "/rentabilidad/CostosAdicionales",
+    "/rentabilidad/DialogoCostoAdicional",
+    "/rentabilidad/DialogoUmbral",
+    "/rentabilidad/Historia",
+    "/rentabilidad/PorProducto",
+    "/rentabilidad/VentasReales",
+    "/reportes/ProductosYStock",
+    "/reportes/Reposicion",
+    "/reportes/TableroInventario",
+    "/roles/list",
+    "/seguimiento",
+    "/service-tecnico/estados",
+    "/service-tecnico/modelos",
+    "/service-tecnico/orden-ingreso",
+    "/service-tecnico/remito-entrega",
+    "/service-tecnico/reparacion",
+    "/service-tecnico/reparaciones",
+    "/service-tecnico/reportes",
+    "/servidores/create",
+    "/servidores/list",
+    "/stock/DepositoDialog",
+    "/stock/EditarMinimoDialog",
+    "/stock/NuevoMovimientoDialog",
+    "/stock/PestanasStock",
+    "/stock/TrasladarDialog",
+    "/stock/depositos",
+    "/stock/excel",
+    "/stock/faltantes",
+    "/stock/ingresos",
+    "/stock/list",
+    "/stock/lote",
+    "/stock/mas-vendidos",
+    "/stock/motivos",
+    "/stock/movimientos",
+    "/stock/toma-inventario",
+    "/tienda-publica",
+    "/tienda-publica/EnrutadorTienda",
+    "/tienda-publica/ErrorConReintento",
+    "/tienda-publica/PaginaNoEncontrada",
+    "/tienda-publica/PaginaTienda",
+    "/tienda-publica/PantallaError",
+    "/tienda-publica/VolvemosPronto",
+    "/tienda-publica/catalogo/EstadoVacio",
+    "/tienda-publica/catalogo/Ordenar",
+    "/tienda-publica/catalogo/PanelFiltros",
+    "/tienda-publica/catalogo/PanelFiltrosMovil",
+    "/tienda-publica/catalogo/PrecioTachado",
+    "/tienda-publica/catalogo/TarjetaProducto",
+    "/tienda-publica/contacto/DatosContacto",
+    "/tienda-publica/contacto/FormularioContacto",
+    "/tienda-publica/disponibilidad/EtiquetaDisponibilidad",
+    "/tienda-publica/ficha/Ampliacion",
+    "/tienda-publica/ficha/BotonCompartir",
+    "/tienda-publica/ficha/Compatibilidad",
+    "/tienda-publica/ficha/DatosProducto",
+    "/tienda-publica/ficha/Galeria",
+    "/tienda-publica/ficha/PreciosCliente",
+    "/tienda-publica/ficha/Relacionados",
+    "/tienda-publica/layout/AccesoCliente",
+    "/tienda-publica/layout/AvisoCookies",
+    "/tienda-publica/layout/BarraSuperior",
+    "/tienda-publica/layout/BuscadorTienda",
+    "/tienda-publica/layout/IdentidadTiendaContexto",
+    "/tienda-publica/layout/LayoutTienda",
+    "/tienda-publica/layout/MedicionTienda",
+    "/tienda-publica/layout/MenuCategorias",
+    "/tienda-publica/layout/MenuMovil",
+    "/tienda-publica/layout/PieCategorias",
+    "/tienda-publica/layout/PieInformacion",
+    "/tienda-publica/layout/PieLegal",
+    "/tienda-publica/layout/iconos",
+    "/tienda-publica/rutas/catalogo",
+    "/tienda-publica/rutas/categoria",
+    "/tienda-publica/rutas/contacto",
+    "/tienda-publica/rutas/definir-contrasena",
+    "/tienda-publica/rutas/ingresar",
+    "/tienda-publica/rutas/inicio",
+    "/tienda-publica/rutas/pagina",
+    "/tienda-publica/rutas/producto",
+    "/tienda-publica/rutas/recuperar-contrasena",
+    "/tienda-publica/secciones-catalogo/ListadoProductos",
+    "/tienda-publica/secciones/BannerHome",
+    "/tienda-publica/secciones/BarraBienvenida",
+    "/tienda-publica/secciones/CategoriasInicio",
+    "/tienda-publica/secciones/ConsultasInicio",
+    "/tienda-publica/secciones/DestacadosInicio",
+    "/tienda-publica/secciones/EstadoPreparacion",
+    "/tienda-publica/secciones/PieTienda",
+    "/tienda-publica/secciones/TemaTienda",
+    "/tienda-publica/seo/CabeceraSeo",
+    "/tienda-publica/whatsapp/BotonWhatsApp",
+    "/tienda-publica/whatsapp/DialogoWhatsApp",
+    "/tienda-publica/whatsapp/IconoWhatsapp",
+    "/usuarios/create",
+    "/usuarios/list",
+    "/ventas-reportes",
+    "/ventas-reportes/ExportarRankingVentas",
+    "/ventas-reportes/FiltrosPeriodo",
+    "/ventas-reportes/MasConsultados",
+    "/ventas-reportes/MasVendidos",
+    "/ventas-reportes/RankingClientes",
+    "/ventas-reportes/TableroReporte",
+    "/ventas-reportes/VentasPeriodoCanal",
+    "/ventas/comprobante",
+    "/ventas/comprobantes",
+    "/ventas/configuracion",
+    "/ventas/configuracion/FormasEnvioTab",
+    "/ventas/configuracion/FormasPagoTab",
+    "/ventas/cuentas-cobro/list",
+    "/ventas/despacho",
+    "/ventas/devoluciones",
+    "/ventas/faltantes",
+    "/ventas/mostrador",
+    "/ventas/pagos/list",
+    "/ventas/presupuestos",
+    "/ventas/transportes/TransportesMotos",
+    "/ventas/transportes/list"
+  ],
+  "tablas": [
+    "acciones_chat_ia",
+    "acciones_mcp",
+    "adopciones_template",
+    "alertas",
+    "capacidades_chat_ia",
+    "capacidades_ejecucion",
+    "capacidades_mcp",
+    "clientes",
+    "clientes_identificadores_externos",
+    "conexiones",
+    "conexiones_mcp",
+    "conexiones_oauth",
+    "conversaciones_chat_ia",
+    "credenciales_mcp",
+    "documentos",
+    "dominio.actualizaciones_precio",
+    "dominio.alertas_inicio",
+    "dominio.alertas_inicio_calculos",
+    "dominio.alicuotas_iva",
+    "dominio.archivo_ingresos_mercaderia",
+    "dominio.campana_correo_destinatarios",
+    "dominio.campanas_correo",
+    "dominio.cargas_iniciales_stock",
+    "dominio.categorias",
+    "dominio.categorias_empresa",
+    "dominio.categorias_tienda",
+    "dominio.cobros_comprobante",
+    "dominio.comprobante_documentos",
+    "dominio.comprobante_envios_correo",
+    "dominio.comprobante_impresiones",
+    "dominio.comprobantes_venta",
+    "dominio.comprobantes_venta_lineas",
+    "dominio.comprobantes_venta_numeracion",
+    "dominio.consultas",
+    "dominio.consultas_avisos",
+    "dominio.consultas_configuracion",
+    "dominio.contactos",
+    "dominio.contrarreembolsos",
+    "dominio.correo_masivo_pruebas",
+    "dominio.costos_adicionales_canal",
+    "dominio.cotizacion_aplicada",
+    "dominio.cotizacion_configuracion",
+    "dominio.cotizacion_inicial",
+    "dominio.cotizacion_pendiente",
+    "dominio.cotizaciones",
+    "dominio.cuentas_cobro",
+    "dominio.cuentas_cobro_empresas",
+    "dominio.depositos",
+    "dominio.depositos_empresas",
+    "dominio.empresas",
+    "dominio.envios_moto",
+    "dominio.estados_consulta",
+    "dominio.estados_reparacion",
+    "dominio.existencias",
+    "dominio.existencias_deposito",
+    "dominio.existencias_variante",
+    "dominio.faltantes_avisos",
+    "dominio.faltantes_venta",
+    "dominio.formas_envio",
+    "dominio.formas_pago",
+    "dominio.historial_cobros",
+    "dominio.historial_comprobantes",
+    "dominio.historial_cotizaciones_dolar",
+    "dominio.importaciones_productos",
+    "dominio.importaciones_productos_filas",
+    "dominio.ingresos_mercaderia",
+    "dominio.ingresos_mercaderia_lineas",
+    "dominio.intereses_whatsapp",
+    "dominio.lotes_stock",
+    "dominio.modelos_equipo",
+    "dominio.motivos_movimiento",
+    "dominio.movimientos_stock",
+    "dominio.precios_empresa",
+    "dominio.precios_propios_empresa",
+    "dominio.precios_propios_historial",
+    "dominio.producto_costos",
+    "dominio.producto_costos_historial",
+    "dominio.producto_empresa",
+    "dominio.producto_imagenes",
+    "dominio.producto_precios_escala",
+    "dominio.producto_relacionados",
+    "dominio.producto_variantes",
+    "dominio.productos",
+    "dominio.productos_tienda",
+    "dominio.promociones_precio",
+    "dominio.proveedores",
+    "dominio.proveedores_contactos",
+    "dominio.proveedores_empresas",
+    "dominio.rentabilidad_config",
+    "dominio.reparacion_adjuntos",
+    "dominio.reparacion_avisos",
+    "dominio.reparacion_enlaces_consulta",
+    "dominio.reparacion_historial",
+    "dominio.reparacion_items",
+    "dominio.reparaciones",
+    "dominio.reservas_stock",
+    "dominio.respuestas_rapidas",
+    "dominio.rma",
+    "dominio.rma_items",
+    "dominio.stock_alertas_avisadas",
+    "dominio.stock_avisos_reposicion",
+    "dominio.tienda_analitica",
+    "dominio.tienda_borrador",
+    "dominio.tienda_contenido",
+    "dominio.tienda_envios",
+    "dominio.tienda_identidad",
+    "dominio.tienda_legal_enlaces",
+    "dominio.tienda_paginas",
+    "dominio.tienda_registros_dns",
+    "dominio.tienda_versiones",
+    "dominio.tiendas",
+    "dominio.transiciones_estado_comprobante",
+    "dominio.transportes",
+    "dominio.transportes_empresas",
+    "ejecuciones_chat_ia",
+    "ejecuciones_mcp",
+    "ejecuciones_worker",
+    "eventos_conexion_oauth",
+    "eventos_features",
+    "eventos_membresia",
+    "eventos_reportes",
+    "excepciones_flow_generico",
+    "features",
+    "fragmentos_indexados",
+    "fuentes_chat_ia",
+    "fuentes_mcp",
+    "integraciones_oauth",
+    "mensajes_chat_ia",
+    "organizaciones",
+    "organizaciones_features",
+    "private.exportaciones_actividad",
+    "programacion_ejecucion",
+    "public.alertas_monitoreo",
+    "public.api_claves",
+    "public.api_entregas",
+    "public.api_llamadas",
+    "public.api_suscripciones",
+    "public.avisos_pendientes",
+    "public.banderas_plataforma",
+    "public.capacidades_proveedores",
+    "public.clientes_empresas",
+    "public.cola_eventos",
+    "public.consultas_publicas_intentos",
+    "public.cuentas_cliente",
+    "public.despachos_ejecucion",
+    "public.eventos_monitoreo",
+    "public.eventos_proveedor_capacidad",
+    "public.eventos_seguridad_usuario",
+    "public.ia_contratos_consumidor",
+    "public.ia_credenciales_proveedor",
+    "public.ia_eventos_interaccion",
+    "public.ia_interacciones",
+    "public.ia_modelos_descubiertos",
+    "public.ia_perfiles_modelo",
+    "public.ia_politicas",
+    "public.ia_proveedores",
+    "public.intentos_acceso",
+    "public.invitaciones_organizacion",
+    "public.limite_pedidos_publicos",
+    "public.migracion_cargas",
+    "public.migracion_filas",
+    "public.perfiles_usuario",
+    "public.permisos_rol",
+    "public.permisos_rol_accion",
+    "public.preferencias_aviso",
+    "public.procesos_masivos",
+    "public.procesos_masivos_errores",
+    "public.procesos_masivos_errores_claves",
+    "public.proveedor_capacidad_cliente",
+    "public.proveedor_capacidad_organizacion",
+    "public.registro_actividad",
+    "public.respaldos_imagenes",
+    "public.solicitudes_acceso",
+    "public.tienda_dns_plataforma",
+    "public.tipos_aviso",
+    "public.tipos_evento_actividad",
+    "public.usuario_empresa_activa",
+    "public.usuarios_empresas",
+    "public.verificaciones_restauracion",
+    "reportes",
+    "reportes_organizaciones",
+    "reportes_organizaciones_roles",
+    "reportes_roles_default",
+    "respaldos",
+    "roles_organizacion",
+    "servidores_organizacion",
+    "sistemas_externos",
+    "superadmin_entradas",
+    "superadmin_organizacion_activa",
+    "superadmins",
+    "usuarios_organizacion",
+    "versiones_documento"
+  ],
+  "variables": [
+    "COMPROBANTES_PDF_IMAGEN",
+    "ERRORES_AMBIENTE",
+    "ERRORES_DSN",
+    "EVIDENCIA_DIR_HOST",
+    "EVIDENCIA_RETENCION_DIAS",
+    "EVIDENCIA_VISUAL",
+    "EXPORTAR_COMPROBANTES_IMAGEN",
+    "EXPORTAR_ORGANIZACION_IMAGEN",
+    "GH_RUNNER_PAT",
+    "GLITCHTIP_DB_PASSWORD",
+    "GLITCHTIP_PORT",
+    "GLITCHTIP_SECRET_KEY",
+    "HISTORIAL_IMPORTADOR_IMAGEN",
+    "IA_PROVEEDOR_CLAVE",
+    "IA_PROVEEDOR_CODIGO",
+    "IA_PROVEEDOR_CREDENCIAL",
+    "IMPORTAR_PRODUCTOS_IMAGEN",
+    "KESTRA_ALERTAS_WEBHOOK_URL",
+    "KESTRA_BACKUPS_DB_PASSWORD",
+    "KESTRA_BACKUPS_DB_URL",
+    "KESTRA_BACKUPS_PGDUMP_URL",
+    "KESTRA_BASIC_AUTH_PASSWORD",
+    "KESTRA_BASIC_AUTH_USERNAME",
+    "KESTRA_DB_PASSWORD",
+    "KESTRA_ORQUESTACION_CONCURRENCIA",
+    "KESTRA_ORQUESTACION_DB_PASSWORD",
+    "KESTRA_ORQUESTACION_DB_URL",
+    "KESTRA_PORT",
+    "KESTRA_PUBLIC_URL",
+    "KESTRA_SMTP_FROM",
+    "KESTRA_SMTP_HOST",
+    "KESTRA_SMTP_PASSWORD",
+    "KESTRA_SMTP_PORT",
+    "KESTRA_SMTP_TRANSPORTE",
+    "KESTRA_SMTP_USERNAME",
+    "MCP_SERVER_PORT",
+    "NANGO_DASHBOARD_PASSWORD",
+    "NANGO_DASHBOARD_USERNAME",
+    "NANGO_DB_PASSWORD",
+    "NANGO_ENCRYPTION_KEY",
+    "NANGO_PORT",
+    "NANGO_PUBLIC_SERVER_URL",
+    "NANGO_SECRET_KEY_DEV",
+    "NANGO_SERVER_URL",
+    "PLAYWRIGHT_PORT",
+    "REFINE_ORIGIN",
+    "RESPALDOS_DIR_HOST",
+    "RESPALDOS_RCLONE_ACCESS_KEY_ID",
+    "RESPALDOS_RCLONE_ENDPOINT",
+    "RESPALDOS_RCLONE_HOST",
+    "RESPALDOS_RCLONE_PASS",
+    "RESPALDOS_RCLONE_PROVIDER",
+    "RESPALDOS_RCLONE_REGION",
+    "RESPALDOS_RCLONE_SECRET_ACCESS_KEY",
+    "RESPALDOS_RCLONE_TIPO",
+    "RESPALDOS_RCLONE_USER",
+    "RESPALDOS_RETENCION_DIARIAS",
+    "RESPALDOS_RETENCION_MENSUALES",
+    "RESPALDOS_RUTA",
+    "RESPALDOS_STORAGE_ACCESS_KEY_ID",
+    "RESPALDOS_STORAGE_ENDPOINT",
+    "RESPALDOS_STORAGE_REGION",
+    "RESPALDOS_STORAGE_SECRET_ACCESS_KEY",
+    "RESPALDOS_VERIFICAR_TABLAS",
+    "RUNNER_CPU_LIMIT",
+    "RUNNER_MEMORY_LIMIT",
+    "RUNNER_PNPM_NETWORK_CONCURRENCY",
+    "RUNNER_PNPM_STORE_VOLUME",
+    "RUNNER_REPLICAS",
+    "SECRET_ORQUESTACION_SSH_PRIVATE_KEY",
+    "SOPORTE_CORREO",
+    "SUPABASE_ANALYTICS_PORT",
+    "SUPABASE_API_PORT",
+    "SUPABASE_API_SCHEMAS",
+    "SUPABASE_DB_PORT",
+    "SUPABASE_DB_SHADOW_PORT",
+    "SUPABASE_DB_URL",
+    "SUPABASE_DOCKER_NETWORK",
+    "SUPABASE_EDGE_INSPECTOR_PORT",
+    "SUPABASE_MAILPIT_PORT",
+    "SUPABASE_POOLER_PORT",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_STUDIO_PORT",
+    "SUPABASE_URL",
+    "SUPERSET_ADMIN_EMAIL",
+    "SUPERSET_ADMIN_PASSWORD",
+    "SUPERSET_ADMIN_USERNAME",
+    "SUPERSET_ANALITICA_DB_HOST",
+    "SUPERSET_ANALITICA_DB_PASSWORD",
+    "SUPERSET_DB_PASSWORD",
+    "SUPERSET_GUEST_TOKEN_JWT_SECRET",
+    "SUPERSET_GUEST_TOKEN_PASSWORD",
+    "SUPERSET_GUEST_TOKEN_USERNAME",
+    "SUPERSET_PASSWORD",
+    "SUPERSET_PORT",
+    "SUPERSET_REPORTE_CREADO_POR",
+    "SUPERSET_SECRET_KEY",
+    "SUPERSET_URL",
+    "SUPERSET_USERNAME",
+    "VITE_ERRORES_AMBIENTE",
+    "VITE_ERRORES_DSN",
+    "VPS_DEPLOY_ENV",
+    "VPS_SSH_HOST",
+    "VPS_SSH_PRIVATE_KEY",
+    "VPS_SSH_USER",
+    "WEB_PORT"
+  ],
+  "specs": [
+    {
+      "slug": "001-separacion-local-por-producto",
+      "titulo": "Feature Specification: Separación local por producto"
+    },
+    {
+      "slug": "002-plantilla-generica",
+      "titulo": "Feature Specification: Plantilla genérica de producto de automatización"
+    },
+    {
+      "slug": "003-fundacion-multitenant",
+      "titulo": "Feature Specification: Fundación multi-tenant"
+    },
+    {
+      "slug": "004-contexto-organizacion-activa",
+      "titulo": "Feature Specification: Contexto de organización activa del superadmin"
+    },
+    {
+      "slug": "005-gestion-miembros",
+      "titulo": "Feature Specification: Gestión de miembros de organización"
+    },
+    {
+      "slug": "006-autogestion-contrasena",
+      "titulo": "Feature Specification: Autogestión de contraseña"
+    },
+    {
+      "slug": "007-analitica-embebida",
+      "titulo": "Feature Specification: Analítica embebida por organización"
+    },
+    {
+      "slug": "008-perfil-usuario",
+      "titulo": "Feature Specification: Gestión del perfil personal"
+    },
+    {
+      "slug": "009-panel-de-funcionalidades",
+      "titulo": "Feature Specification: Panel de funcionalidades por organización"
+    },
+    {
+      "slug": "010-nombre-miembros-organizacion",
+      "titulo": "Feature Specification: Nombre visible entre miembros de una organización"
+    },
+    {
+      "slug": "011-backups-postgres",
+      "titulo": "Feature Specification: Backups automáticos de la base de datos"
+    },
+    {
+      "slug": "012-workers-conector-node-kestra",
+      "titulo": "Feature Specification: Convención de Workers de Integración (Node + Kestra)"
+    },
+    {
+      "slug": "013-orquestacion-multi-organizacion",
+      "titulo": "Feature Specification: Orquestación de Workers Multi-Organización"
+    },
+    {
+      "slug": "014-blindaje-secretos-kestra",
+      "titulo": "Feature Specification: Blindaje de secretos en la orquestación"
+    },
+    {
+      "slug": "015-puertos-configurables",
+      "titulo": "Feature Specification: Puertos de Desarrollo Local Configurables"
+    },
+    {
+      "slug": "016-capacidad-ia-gobernada",
+      "titulo": "Feature Specification: Capacidad de IA gobernada"
+    },
+    {
+      "slug": "016-ciclo-ejecuciones-workers",
+      "titulo": "Feature Specification: Ciclo de Ejecuciones de Workers"
+    },
+    {
+      "slug": "017-blindaje-imagenes-workers",
+      "titulo": "Blindaje y publicación de imágenes de workers"
+    },
+    {
+      "slug": "018-kit-panel-operable",
+      "titulo": "Feature Specification: Kit de panel operable"
+    },
+    {
+      "slug": "019-outbox-ejecuciones",
+      "titulo": "Especificación: Despacho confiable de ejecuciones"
+    },
+    {
+      "slug": "020-tooling-typescript",
+      "titulo": "Especificación: Tooling TypeScript sin Shell propio"
+    },
+    {
+      "slug": "021-documentacion-obligatoria",
+      "titulo": "Especificación: Documentación obligatoria de cambios"
+    },
+    {
+      "slug": "022-visor-cobertura-e2e-historias",
+      "titulo": "Feature Specification: Visor de cobertura E2E por historia con video"
+    },
+    {
+      "slug": "023-visor-componentes",
+      "titulo": "Feature Specification: Visor por componente, épica e historia"
+    },
+    {
+      "slug": "024-aviso-e2e-en-pr",
+      "titulo": "Feature Specification: Aviso de cobertura E2E en el PR"
+    },
+    {
+      "slug": "025-correr-desde-visor",
+      "titulo": "Feature Specification: Correr un recorrido desde el visor"
+    },
+    {
+      "slug": "026-e2e-en-panel-sdlc",
+      "titulo": "Feature Specification: la cobertura E2E se ve en el panel SDLC"
+    },
+    {
+      "slug": "029-empresa-activa-refresco",
+      "titulo": "Feature Specification: reencuadrar la pantalla al cambiar de empresa"
+    },
+    {
+      "slug": "20260924-221340-publicacion-segura-flows",
+      "titulo": "Feature Specification: Publicación segura de flows"
+    },
+    {
+      "slug": "20260924-233045-sincronizacion-capacidades",
+      "titulo": "Feature Specification: Sincronización de capacidades derivadas"
+    },
+    {
+      "slug": "20260925-133820-observabilidad-workers-navegador",
+      "titulo": "Feature Specification: Observabilidad de plataforma para workers de navegador"
+    },
+    {
+      "slug": "20260925-221701-optimizar-runners-locales",
+      "titulo": "Feature Specification: Runners locales que no saturan la red ni la memoria"
+    },
+    {
+      "slug": "20260930-135541-mapeo-identificadores-clientes",
+      "titulo": "Feature Specification: Mapeo de identificadores externos de clientes"
+    },
+    {
+      "slug": "20260930-153545-conexiones-oauth-nango",
+      "titulo": "Especificación: Conexiones OAuth de plataforma vía Nango"
+    },
+    {
+      "slug": "20260930-165358-catalogo-sistemas-externos",
+      "titulo": "Feature Specification: Catálogo real para sistema_externo en conexiones"
+    },
+    {
+      "slug": "20261003-105444-cicd-staging-produccion",
+      "titulo": "Feature Specification: CI/CD staging → producción para migraciones, VPS, flows y dashboards"
+    },
+    {
+      "slug": "20261003-150125-fallback-navegacion-ia",
+      "titulo": "Feature Specification: Fallback de navegación asistido por IA"
+    },
+    {
+      "slug": "20261003-161758-contexto-permisos-ia",
+      "titulo": "Feature Specification: Contexto y permisos de organización para IA"
+    },
+    {
+      "slug": "20261003-164825-herramientas-ia-esquemas",
+      "titulo": "Feature Specification: Validación real de esquemas de entrada y salida para herramientas de IA"
+    },
+    {
+      "slug": "20261003-172145-trazas-costos-evaluaciones-ia",
+      "titulo": "Feature Specification: Costo estimado y arnés de evaluación para IA"
+    },
+    {
+      "slug": "20261003-173044-aprobacion-humana-ia",
+      "titulo": "Feature Specification: Aprobación humana antes de completar una interacción de IA"
+    },
+    {
+      "slug": "20261003-182325-ui-ia-aprobacion-pendiente",
+      "titulo": "Feature Specification: UI reutilizable de estado/aprobación de IA y corrección de esperando_aprobacion en la base"
+    },
+    {
+      "slug": "20261003-200240-gateway-ia",
+      "titulo": "Feature Specification: Invocación real de proveedor en la capacidad de IA gobernada"
+    },
+    {
+      "slug": "20261003-204520-saneamiento-contenido-ia",
+      "titulo": "Feature Specification: Saneamiento de contenido no confiable para IA"
+    },
+    {
+      "slug": "20261005-120000-proveedor-elegible-por-capacidad",
+      "titulo": "Feature Specification: Proveedor elegible por capacidad"
+    },
+    {
+      "slug": "20261005-140934-promover-todo-produccion",
+      "titulo": "Feature Specification: Promover todo a producción (botón único)"
+    },
+    {
+      "slug": "20261005-170000-servidor-mcp-generico",
+      "titulo": "Feature Specification: Servidor MCP genérico"
+    },
+    {
+      "slug": "20261005-chat-companion-mechanism",
+      "titulo": "Feature Specification: Chat companion genérico"
+    },
+    {
+      "slug": "20261005-document-rag-mechanism",
+      "titulo": "Búsqueda documental genérica con IA (RAG)"
+    },
+    {
+      "slug": "20261007-171745-disparo-programado-ciclo-ejecuciones",
+      "titulo": "Feature Specification: Disparo programado en el ciclo de ejecuciones"
+    },
+    {
+      "slug": "20261012-120000-validacion-dev-gate",
+      "titulo": "Feature Specification: Nota de validación del flujo con gate DEV"
+    },
+    {
+      "slug": "20261012-130000-sistema-de-diseno",
+      "titulo": "Feature Specification: Plataforma · Sistema de diseño"
+    },
+    {
+      "slug": "20261012-130000-validacion-e2e3-deploy-dev",
+      "titulo": "Feature Specification: Nota de validación del flujo con deploy real a DEV"
+    },
+    {
+      "slug": "20261012-140000-acceso-y-organizacion",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Acceso y organización"
+    },
+    {
+      "slug": "20261012-140000-empresas",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Empresas"
+    },
+    {
+      "slug": "20261013-120000-usuarios-y-roles",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Usuarios y roles"
+    },
+    {
+      "slug": "20261014-140000-administracion-de-usuarios-y-organizacion",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Administración de usuarios y organización"
+    },
+    {
+      "slug": "20261014-150000-endpoint-ping-borrar",
+      "titulo": "Feature Specification: Endpoint /ping (BORRAR)"
+    },
+    {
+      "slug": "20261015-100000-alta-de-empresas",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Alta de empresas"
+    },
+    {
+      "slug": "20261016-120000-actividad-y-ambientes",
+      "titulo": "Feature Specification: Plataforma · Actividad y ambientes"
+    },
+    {
+      "slug": "20261016-130000-clientes-alta-y-busqueda",
+      "titulo": "Feature Specification: Clientes y proveedores · Clientes alta y búsqueda"
+    },
+    {
+      "slug": "20261016-130000-organizaciones-nuevas",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Organizaciones nuevas"
+    },
+    {
+      "slug": "20261016-130000-perfil-y-permisos-avanzados",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Perfil y permisos avanzados"
+    },
+    {
+      "slug": "20261016-140000-permisos-por-empresa",
+      "titulo": "Feature Specification: Acceso, organización y permisos · Permisos por empresa"
+    },
+    {
+      "slug": "20261017-120000-catalogo-alta-y-edicion",
+      "titulo": "Feature Specification: Catálogo · Catálogo alta y edición"
+    },
+    {
+      "slug": "20261017-120000-stock-movimientos",
+      "titulo": "Feature Specification: Stock · Stock movimientos"
+    },
+    {
+      "slug": "20261017-150000-paridad-visual-prototipo",
+      "titulo": "Feature Specification: Plataforma · Paridad visual con el prototipo"
+    },
+    {
+      "slug": "20261017-193000-paridad-pantallas",
+      "titulo": "Feature Specification: Plataforma · Paridad de pantallas con el prototipo"
+    },
+    {
+      "slug": "20261018-000000-vigilancia-prototipo",
+      "titulo": "Spec: Vigilancia del prototipo (fidelidad mecánica, no de palabra)"
+    },
+    {
+      "slug": "20261018-070000-clientes-empresas",
+      "titulo": "Feature Specification: Clientes · habilitados en empresas (tiendas)"
+    },
+    {
+      "slug": "20261018-100000-ranking-de-clientes",
+      "titulo": "Feature Specification: Clientes y proveedores · Ranking de clientes"
+    },
+    {
+      "slug": "20261018-120000-operacion-copias-y-documentacion",
+      "titulo": "Feature Specification: Plataforma · Operación, copias y documentación"
+    },
+    {
+      "slug": "20261018-170000-empresas-accesibles-y-filtro",
+      "titulo": "Feature Specification: Empresas accesibles en el selector y en el filtro de Clientes"
+    },
+    {
+      "slug": "20261018-180000-stock-unico-y-alertas",
+      "titulo": "Feature Specification: Stock · Stock único y alertas"
+    },
+    {
+      "slug": "20261018-190000-proveedores-y-productos",
+      "titulo": "Feature Specification: Clientes y proveedores · Proveedores y productos"
+    },
+    {
+      "slug": "20261018-210000-control-ci-concurrencia",
+      "titulo": "Feature Specification: Control de concurrencia del CI (que no se vaya al diablo)"
+    },
+    {
+      "slug": "20261018-220000-seleccion-determinista-pruebas",
+      "titulo": "Feature Specification: Selección determinista de pruebas"
+    },
+    {
+      "slug": "20261020-100000-service-alta-estados-y-permisos",
+      "titulo": "Feature Specification: Service técnico · Service alta, estados y permisos"
+    },
+    {
+      "slug": "20261020-100000-ventas-catalogos-de-cobro-y-envio",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas catálogos de cobro y envío"
+    },
+    {
+      "slug": "20261020-100000-ventas-historial-de-consulta",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas historial de consulta"
+    },
+    {
+      "slug": "20261020-120000-catalogo-listado-y-categorias",
+      "titulo": "Feature Specification: Catálogo · Catálogo listado y categorías"
+    },
+    {
+      "slug": "20261021-183246-ingreso-de-mercaderia-por-proveedor",
+      "titulo": "Feature Specification: Clientes y proveedores · Ingreso de mercadería por proveedor"
+    },
+    {
+      "slug": "20261022-084830-tienda-dominio-e-identidad",
+      "titulo": "Feature Specification: Tiendas online · Tienda dominio e identidad"
+    },
+    {
+      "slug": "20261022-100000-service-listado-items-e-impresion",
+      "titulo": "Feature Specification: Service técnico · Service listado, ítems e impresión"
+    },
+    {
+      "slug": "20261022-120000-catalogo-costo-y-disponibilidad",
+      "titulo": "Feature Specification: Catálogo · Catálogo costo y disponibilidad"
+    },
+    {
+      "slug": "20261022-120000-precios-e-iva",
+      "titulo": "Feature Specification: Precios y dólar · Precios e IVA"
+    },
+    {
+      "slug": "20261022-180000-stock-depositos-y-reservas",
+      "titulo": "Feature Specification: Stock · Stock depósitos y reservas"
+    },
+    {
+      "slug": "20261023-100000-ventas-comprobantes",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas comprobantes"
+    },
+    {
+      "slug": "20261023-120000-consultas-bandeja-y-aviso",
+      "titulo": "Feature Specification: Consultas y ventas · Consultas bandeja y aviso"
+    },
+    {
+      "slug": "20261023-120000-dolar-y-recalculo",
+      "titulo": "Feature Specification: Precios y dólar · Dólar y recálculo"
+    },
+    {
+      "slug": "20261023-120000-migracion-inicial-de-datos",
+      "titulo": "Feature Specification: Clientes y proveedores · Migración inicial de datos"
+    },
+    {
+      "slug": "20261023-120000-tienda-catalogo-y-ficha",
+      "titulo": "Feature Specification: Tiendas online · Tienda catálogo y ficha"
+    },
+    {
+      "slug": "20261023-170000-rentabilidad-margen",
+      "titulo": "Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad margen"
+    },
+    {
+      "slug": "20261024-051500-cuenta-web-del-cliente",
+      "titulo": "Feature Specification: Clientes y proveedores · Cuenta web del cliente"
+    },
+    {
+      "slug": "20261024-100000-ventas-impresion",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas impresión"
+    },
+    {
+      "slug": "20261024-120000-avisos-y-listas-configurables",
+      "titulo": "Feature Specification: Plataforma · Avisos y listas configurables"
+    },
+    {
+      "slug": "20261024-120000-stock-lotes-e-inventario",
+      "titulo": "Feature Specification: Stock · Stock lotes e inventario"
+    },
+    {
+      "slug": "20261024-120000-tienda-inicio-busqueda-movil",
+      "titulo": "Feature Specification: Tiendas online · Tienda inicio búsqueda móvil"
+    },
+    {
+      "slug": "20261024-130000-rentabilidad-comparativos-e-historia",
+      "titulo": "Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad comparativos e historia"
+    },
+    {
+      "slug": "20261024-130000-stock-carga-exportacion-y-avisos",
+      "titulo": "Feature Specification: Stock · Stock carga, exportación y avisos"
+    },
+    {
+      "slug": "20261024-130000-ventas-despacho-y-faltantes",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas despacho y faltantes"
+    },
+    {
+      "slug": "20261024-130000-ventas-listado-estados-y-anulacion",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas listado, estados y anulación"
+    },
+    {
+      "slug": "20261024-130000-ventas-motos",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas motos"
+    },
+    {
+      "slug": "20261024-140000-consultas-seguimiento-y-whatsapp",
+      "titulo": "Feature Specification: Consultas y ventas · Consultas seguimiento y whatsapp"
+    },
+    {
+      "slug": "20261024-150000-ventas-cobros-y-conciliacion",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas cobros y conciliación"
+    },
+    {
+      "slug": "20261027-100000-ventas-mejoras",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas mejoras"
+    },
+    {
+      "slug": "20261027-100000-ventas-rma-devoluciones",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas RMA y devoluciones"
+    },
+    {
+      "slug": "20261028-100000-correo-masivo-a-clientes",
+      "titulo": "Feature Specification: Clientes y proveedores · Correo masivo a clientes"
+    },
+    {
+      "slug": "20261028-100000-ranking-avanzado-de-clientes",
+      "titulo": "Feature Specification: Clientes y proveedores · Ranking avanzado de clientes"
+    },
+    {
+      "slug": "20261028-100000-service-cobro-y-avisos",
+      "titulo": "Feature Specification: Service técnico · Service cobro y avisos"
+    },
+    {
+      "slug": "20261028-100000-service-repuestos-y-stock",
+      "titulo": "Feature Specification: Service técnico · Service repuestos y stock"
+    },
+    {
+      "slug": "20261028-100000-service-seguimiento-y-reportes",
+      "titulo": "Feature Specification: Service técnico · Service seguimiento y reportes"
+    },
+    {
+      "slug": "20261029-100000-cuentas-y-compras-a-proveedores",
+      "titulo": "Feature Specification: Clientes y proveedores · Cuentas y compras a proveedores"
+    },
+    {
+      "slug": "20261029-100000-mejoras-de-clientes-y-proveedores",
+      "titulo": "Feature Specification: Clientes y proveedores · Mejoras de clientes y proveedores"
+    },
+    {
+      "slug": "20261029-120000-contactos-y-respuestas-rapidas",
+      "titulo": "Feature Specification: Consultas y ventas · Contactos y respuestas rápidas"
+    },
+    {
+      "slug": "20261030-100000-inicio-y-alertas",
+      "titulo": "Feature Specification: Inicio, rentabilidad y reportes · Inicio y alertas"
+    },
+    {
+      "slug": "20261102-100000-auditoria-avanzada-y-soporte",
+      "titulo": "Feature Specification: Plataforma · Auditoría avanzada y soporte"
+    },
+    {
+      "slug": "20261102-220000-importaciones-y-monitoreo",
+      "titulo": "Feature Specification: Plataforma · Importaciones y monitoreo"
+    },
+    {
+      "slug": "20261103-100000-catalogo-productividad",
+      "titulo": "Feature Specification: Catálogo · Catálogo productividad"
+    },
+    {
+      "slug": "20261104-103000-precios-masivos-y-promociones",
+      "titulo": "Feature Specification: Precios y dólar · Precios masivos y promociones"
+    },
+    {
+      "slug": "20261105-100000-cotizacion-sugerida-y-mayoristas",
+      "titulo": "Feature Specification: Precios y dólar · Cotización sugerida y mayoristas"
+    },
+    {
+      "slug": "20261109-100000-cuenta-corriente-y-saldo-cliente",
+      "titulo": "Feature Specification: Clientes y proveedores · Cuenta corriente y saldo del cliente"
+    },
+    {
+      "slug": "20261110-100000-ventas-avisos-de-faltantes",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas avisos de faltantes"
+    },
+    {
+      "slug": "20261112-200000-tiendas-diseno-del-prototipo",
+      "titulo": "Feature Specification: Tiendas online · Diseño del prototipo"
+    },
+    {
+      "slug": "20261202-100000-tienda-whatsapp-y-contacto",
+      "titulo": "Feature Specification: Tiendas online · Tienda WhatsApp y contacto"
+    },
+    {
+      "slug": "20270104-100000-ventas-reportes-basicos",
+      "titulo": "Feature Specification: Ventas y despacho · Ventas reportes básicos"
+    },
+    {
+      "slug": "20270105-100000-configuracion-dolar-y-precio-propio",
+      "titulo": "Feature Specification: Precios y dólar · Configuración dólar y precio propio"
+    },
+    {
+      "slug": "20270125-100000-catalogo-compatibilidad-y-planillas",
+      "titulo": "Feature Specification: Catálogo · Catálogo compatibilidad y planillas"
+    },
+    {
+      "slug": "20270125-100000-catalogo-variantes",
+      "titulo": "Feature Specification: Catálogo · Catálogo variantes"
+    },
+    {
+      "slug": "20270125-100000-tienda-dominio-y-publicacion",
+      "titulo": "Feature Specification: Tiendas online · Tienda dominio y publicación"
+    },
+    {
+      "slug": "20270125-100000-tienda-seo-legal-y-estados",
+      "titulo": "Feature Specification: Tiendas online · Tienda SEO, legal y estados"
+    },
+    {
+      "slug": "20270201-100000-rentabilidad-real-y-reportes-de-ventas",
+      "titulo": "Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad real y reportes de ventas"
+    },
+    {
+      "slug": "20270201-100000-reportes-de-inventario-y-exportacion",
+      "titulo": "Feature Specification: Inicio, rentabilidad y reportes · Reportes de inventario y exportación"
+    },
+    {
+      "slug": "20270203-100000-api-e-asistente-con-ia",
+      "titulo": "Feature Specification: Plataforma · API e asistente con IA"
+    },
+    {
+      "slug": "20270210-100000-tienda-contenido-y-analitica",
+      "titulo": "Feature Specification: Tiendas online · Tienda contenido y analítica"
+    },
+    {
+      "slug": "20270215-100000-notificaciones-ayuda-y-exportacion-total",
+      "titulo": "Feature Specification: Plataforma · Notificaciones, ayuda y exportación total"
+    },
+    {
+      "slug": "20270304-100000-tiendas-carga-infinita",
+      "titulo": "Feature Specification: Tiendas públicas · Carga infinita en los listados"
+    },
+    {
+      "slug": "20270305-100000-inicio-tablero-completo",
+      "titulo": "Feature Specification: Inicio · Tablero completo (ventas, stock, listado y dólar)"
+    },
+    {
+      "slug": "20270305-100000-tiendas-seguimiento-bd",
+      "titulo": "Feature Specification: Tiendas · Seguimiento MSF-846, parte A (base de datos)"
+    },
+    {
+      "slug": "20270305-100000-tiendas-seguimiento-front",
+      "titulo": "Feature Specification: Tiendas públicas · Seguimiento del front (MSF-846, parte B)"
+    },
+    {
+      "slug": "20270313-100000-tiendas-hallazgos-qa",
+      "titulo": "Feature Specification: Tiendas · Hallazgos de la pasada de pruebas en dev (MSF-846, parte C)"
+    }
+  ],
+  "paginas": 313
+}

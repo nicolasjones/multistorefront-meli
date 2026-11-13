@@ -1,0 +1,292 @@
+{
+  "config": {
+    "argv": [
+      "/usr/bin/node",
+      "/w/apps/web/node_modules/@playwright/test/cli.js",
+      "test",
+      "apps/web/e2e/acceso-publico.e2e.ts",
+      "--reporter=list,json"
+    ],
+    "configFile": "/w/apps/web/playwright.config.ts",
+    "rootDir": "/w/apps/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/w/apps/web/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/w/apps/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.0",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "acceso-publico.e2e.ts",
+      "file": "acceso-publico.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Acceso público",
+          "file": "acceso-publico.e2e.ts",
+          "line": 7,
+          "column": 6,
+          "specs": [
+            {
+              "title": "[MSF-119:T020] una ruta protegida sin sesión lleva al ingreso",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 16281,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-27T21:39:35.929Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/acceso-publico.e2e.ts-Acce-337c6-sin-sesión-lleva-al-ingreso-chromium/attachments/video-4dda308ae1a202a85ed06974a8e0684118cccaf0.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d35207ec544daa18b83f-8550c61748320dcb57ca",
+              "file": "acceso-publico.e2e.ts",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "[MSF-119:T020] la pantalla Actividad sin sesión lleva al ingreso (F-AUD-01)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 16099,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-27T21:39:36.050Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/acceso-publico.e2e.ts-Acce-3d0c0--lleva-al-ingreso-F-AUD-01--chromium/attachments/video-2f3c67570c5bcee95c470eff460098564a853606.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d35207ec544daa18b83f-e61171b25de6c7d37b47",
+              "file": "acceso-publico.e2e.ts",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "[MSF-119:T020] el ingreso ofrece el camino a la recuperación",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 18955,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-27T21:39:35.945Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/acceso-publico.e2e.ts-Acce-3f8f3-el-camino-a-la-recuperación-chromium/attachments/video-b2e21284ddb0ac9390527efce1f71210b0ace3ed.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d35207ec544daa18b83f-b3089148e3e2f3401cda",
+              "file": "acceso-publico.e2e.ts",
+              "line": 28,
+              "column": 3
+            },
+            {
+              "title": "[MSF-119:T020] un enlace vencido avisa y permite pedir uno nuevo",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 15863,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-27T21:39:35.921Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/acceso-publico.e2e.ts-Acce-78e7a-a-y-permite-pedir-uno-nuevo-chromium/attachments/video-c14f92bb3ccd57ecfd177ae94eb15bc6febc7e3d.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d35207ec544daa18b83f-f4caa7ac6f36f05a94e8",
+              "file": "acceso-publico.e2e.ts",
+              "line": 39,
+              "column": 3
+            },
+            {
+              "title": "[MSF-119:T020] el ingreso no tiene registro propio",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 11696,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-27T21:39:54.472Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/w/apps/web/test-results/acceso-publico.e2e.ts-Acce-a433c-so-no-tiene-registro-propio-chromium/attachments/video-838f215d5b9a875dae38cf679540054d0e75e1ca.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d35207ec544daa18b83f-c03bfcae8f8a5e02d7af",
+              "file": "acceso-publico.e2e.ts",
+              "line": 47,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-27T21:39:34.199Z",
+    "duration": 32499.190000000002,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

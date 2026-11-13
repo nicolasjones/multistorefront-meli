@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Registrar una funcionalidad desde una migración
 
 `public.registrar_feature`/`public.habilitar_feature` (spec 009, panel de

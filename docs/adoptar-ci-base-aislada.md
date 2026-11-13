@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar la base de datos del CI aislada
 
 Capacidad `isolated-ci-database` de `template-capabilities.json`. Hace que el

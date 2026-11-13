@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # CI self-hosted y almacenamiento
 
 Los jobs principales usan runners self-hosted. No se configura `cache: pnpm`

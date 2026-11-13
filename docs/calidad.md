@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Calidad determinista (F1)
 
 Checks que **no dependen del criterio** de una persona/agente. El objetivo es doble:

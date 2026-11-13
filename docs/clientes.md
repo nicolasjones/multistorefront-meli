@@ -1,70 +1,73 @@
-# Clientes
+---
+owner: producto
+sources:
+  - specs
+  - apps/web/src
+---
 
-Guía de `public.clientes` (épica MSF-180, spec `specs/20261016-130000-clientes-alta-y-busqueda/`).
-La tabla vive en `public` por excepción documentada en la spec (Principio VII): es preexistente, está
-expuesta y `clientes_identificadores_externos` y los tests de aislamiento dependen de ella; moverla a
-`dominio` no es aditivo. El traslado queda trazado como seguimiento (ver «Deuda trazada»).
+# Clientes (MSF-180)
 
-## Modelo
+**Épica:** MSF-180 — Clientes y proveedores · Clientes alta y búsqueda.
+**Historias:** F-CLI-01 (MSF-262), F-CLI-02 (MSF-282), F-CLI-03 (MSF-301), F-CLI-04 (MSF-318).
+**Spec:** `specs/20261016-130000-clientes-alta-y-busqueda/`.
+**Construcción interna:** [Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
 
-- Ficha: `numero` (correlativo por organización, asignado bajo advisory lock; nadie lo fija), `nombre`
-  (obligatorio, recortado, **no** único), `documento` (DNI/CUIT, único por organización tras normalizar:
-  `clientes_org_documento_uq`; el error `23505` se muestra en el campo), `correo`, `telefono`, `celular`,
-  `direccion`, `codigo_postal`, `localidad`, `provincia`, `tipo`, `es_consumidor_final`, `archivado_en`
-  (archivar/restaurar; **no existe «Eliminar»**) y `updated_at`.
-- Migraciones aditivas, en orden: `20261016130000_clientes_ficha_y_numeracion`,
-  `20261016130200_clientes_rls_por_seccion_y_actividad`, `20261016130300_clientes_tipo_y_consumidor_final`,
-  `20261016140000_clientes_buscar`, `20261016150000_clientes_exportar`.
-- Actividad: archivar, restaurar, crear y editar registran `cliente.*` en `registro_actividad` (solo con
-  sesión) y **sin datos de contacto** en el detalle.
+El equipo puede dar de alta, editar, buscar y exportar los clientes de la organización, cada uno con
+su tipo minorista o mayorista, y existe el **Consumidor final** para el mostrador, listos para que
+Ventas los use.
 
-## Permisos (FR-004, FR-013)
+## Qué resuelve
 
-| Quién | Qué puede |
-| --- | --- |
-| Administrador, Administración, Operador, Mostrador (`edicion`) | Listar, ver, crear, editar, archivar y restaurar |
-| Consulta (`lectura`) | Listar y ver |
-| Depósito (`ninguno` en la matriz vigente) | Nada: ni siquiera lee filas por la API |
-| Acción `exportar` (Administrador, Operador y Administración por defecto) | Además, exportar a Excel |
+- Antes el panel solo traía el esqueleto de clientes del panel anterior: sin datos de contacto, sin
+  búsqueda, sin tipos y sin forma de darlos de baja.
+- Ahora hay una **ficha de cliente** de la organización con nombre o razón social, DNI/CUIT, correo,
+  teléfono, celular, dirección, código postal, localidad y provincia, y un **número correlativo** por
+  organización que se lo asigna el sistema (nadie lo escribe a mano).
+- El listado **busca y pagina en el servidor**: con miles de clientes no hay que traerlos todos para
+  filtrar en el navegador.
+- Cada cliente tiene **tipo** (minorista o mayorista), que es lo que después define la escala de precio
+  en Ventas.
+- Cada organización tiene un **Consumidor final**: el cliente de mostrador, para vender en el local sin
+  cargar un cliente cada vez.
+- El cliente **se archiva, no se borra**: deja de verse en el listado pero conserva sus datos y sus
+  comprobantes, y se puede restaurar.
+- Los clientes que coincidan con la búsqueda se **exportan a una planilla de Excel**.
 
-El RLS se evalúa por organización **y** por sección (`private.nivel_seccion('clientes')`); la UI oculta
-botones pero la base es la que manda. `anon` no ejecuta ninguna RPC de clientes ni tiene privilegios sobre
-la tabla (`docs/acceso-ingreso.md`). Detalle por rol: `docs/permisos-por-rol.md`.
+## Para quién
 
-## Búsqueda y listado (FR-006, FR-007)
+| Persona | Qué puede hacer |
+|---|---|
+| **Administrador/a, Administración, Operador y Mostrador** (`edicion` en Clientes) | Ver el listado, dar de alta, editar, archivar y restaurar clientes; **imprimir las etiquetas** de los clientes marcados del listado |
+| **Consulta** (`lectura` en Clientes) | Ver el listado y la ficha; no cambia nada, ni desde la pantalla ni llamando directo a la base. **Puede imprimir la etiqueta** de un cliente |
+| **Miembro** (`lectura` en Clientes) | Igual que Consulta |
+| **Depósito** (`ninguno` en la matriz vigente) | No ve la sección ni recibe filas de clientes por la API |
+| **Administrador/a** | Además, **fusionar dos fichas** del mismo cliente (la base lo exige: ningún otro rol puede) |
+| **Con la acción `exportar`** (Administrador, Administración y Operador por defecto) | Además, descargar los clientes a Excel |
 
-`public.buscar_clientes(p_texto, p_tipo, p_archivados, p_pagina, p_tamano)` es `security invoker` (hereda RLS).
-Busca de forma parcial e insensible a mayúsculas (`lower`; **no** ignora tildes) en nombre, documento, correo, teléfono, localidad
-y número (índice GIN trigram `clientes_busqueda_trgm_idx`, con la misma expresión; la migración `20261016160000_clientes_habilitar_pg_trgm.sql` habilita `pg_trgm` en `extensions` y crea el índice si faltaba y **aborta con error si el índice no queda creado**, para que no haya un salto silencioso); escapa `\`, `%` y `_` del texto; filtra por tipo y por activos/archivados; pagina en el servidor
-(tope de 100 por página) y devuelve el total. La pantalla espera ≈300 ms antes de buscar.
+La matriz de roles y el detalle de permisos están en [Permisos por rol](permisos-por-rol.md).
 
-## Tipo de cliente (FR-008)
+!!! note "La base manda, no la pantalla"
+    Ocultar un botón es comodidad, no autorización: las políticas de `public.clientes` vuelven a
+    comprobar organización y nivel de sección en cada lectura y escritura.
 
-`clientes.tipo` es `minorista` (por defecto) o `mayorista`, con restricción en base y sin
-valores nulos. Los tipos no se crean ni se borran. Quien edita Clientes puede elegirlo en
-el alta y cambiarlo después, desde el selector «Tipo de cliente» del formulario compartido
-(`FormularioCliente`, alta y edición): muestra qué significa cada tipo y, al cambiarlo en la
-edición, avisa que las próximas ventas usarán la escala del nuevo tipo (lo ya vendido no cambia).
+## La ficha del cliente
 
-## Consumidor final (FR-009)
+| Campo | Qué es |
+|---|---|
+| **Número** | Correlativo de la organización. Lo asigna el sistema; no se edita. |
+| **Nombre o razón social** | Obligatorio. Se guarda recortado. **No** es único: dos clientes con el mismo nombre pueden coexistir. |
+| **DNI/CUIT** | Opcional. **Único por organización** (se comparan solo letras y dígitos: sin puntos, guiones ni espacios) e incluye los archivados, para que restaurar nunca choque. Repetirlo se rechaza en el campo. |
+| **Correo, teléfono, celular** | Contacto. |
+| **Dirección, código postal, localidad, provincia** | Domicilio. |
+| **Tipo** | Minorista o Mayorista. Obligatorio; Minorista por defecto. |
+| **Estado** | Activo o Archivado. |
 
-Cada organización tiene exactamente **un** cliente «Consumidor final» (`es_consumidor_final`),
-minorista, para vender en el mostrador sin cargar un cliente cada vez.
+Desde **MSF-232** la ficha tiene dos pestañas: **«Datos»** (lo de siempre, sin cambios) y **«Reparaciones»**, que
+lista las reparaciones del cliente (número, tienda, equipo, estado, ingreso, entrega y total), paginadas y filtradas
+por la empresa activa. La pestaña solo aparece con acceso a Service técnico. Detalle: [Service técnico: cobro,
+avisos y ficha del cliente](producto/service-cobro-y-avisos.md).
 
-- Las organizaciones existentes lo reciben por backfill de la migración
-  `20261016130300_clientes_tipo_y_consumidor_final.sql`; las nuevas, por el disparador
-  `organizaciones_crear_consumidor_final`.
-- Unicidad por organización: índice único parcial `clientes_consumidor_final_uq`.
-- **Inmutable en la base**: el disparador `clientes_proteger_consumidor_final` rechaza editarlo,
-  archivarlo, cambiarle el tipo o borrarlo, también para `postgres`/`service_role`. El borrado
-  solo se permite en cascada al borrar la organización. Nadie puede marcar a otro cliente
-  como Consumidor final (la columna no se concede a `authenticated`).
-- En la interfaz (ficha y edición) no se ofrece «Editar» ni «Archivar», y no existe «Eliminar».
-- Es un cliente más para las consultas: **aparece en el listado y en las exportaciones**. Búsqueda
-  (F-CLI-02) y exportación (F-CLI-04) deben tratarlo explícitamente (mostrarlo marcado como cliente
-  de mostrador o excluirlo según corresponda), no ignorarlo.
-- Numeración: recibe el siguiente número de su organización. Es el **1** solo en organizaciones
-  nuevas; en las existentes el backfill le asigna el siguiente libre.
+## Alta y edición
 
 ## Relación con empresas / tiendas (F-CLI-05)
 
@@ -127,10 +130,23 @@ para mayorista; nulo si el cliente no existe o no es visible (security invoker, 
 Es un contrato de lectura que **no define el precio**: la escala de cada línea de una venta la elige Ventas (F-VTA-06, `private.escala_para_linea`: minorista x1; mayorista x1/x5/x10/x50 según la cantidad). Sigue vigente porque el tipo de cliente son dos valores fijos (minorista/mayorista); la tabla `tipos_cliente` con `escala_precio` (contrato de Precios, F-PRE-15) todavía **no existe** en la base. Cuando exista, solo cambia el cuerpo de esta función.
 Ejecutable por `authenticated`; `anon` y `public` sin acceso (FR-013).
 
-## Reversión
+- Columnas: Cliente (nombre, N.º y DNI/CUIT), Tipo, Contacto (correo y teléfono), Localidad, más
+  Expreso preferido y las columnas «Tiendas» y «Cuenta web», que hoy se muestran como «—» porque esas
+  capacidades son de la cuenta web del cliente (MSF-237).
+- El buscador espera ≈300 ms antes de consultar (no busca en cada tecla) y filtra por coincidencia
+  parcial, sin distinguir mayúsculas, sobre **nombre, DNI/CUIT, correo, teléfono, localidad y número**.
+- Filtros combinables: **Todos / Minorista / Mayorista** y **Activos / Archivados** (Activos por
+  defecto).
+- La paginación es del servidor (25 por página) y muestra el total; cambiar de página conserva la
+  búsqueda y los filtros.
+- Estados vacíos con salida: si hay filtros y no hay coincidencias, «No encontramos clientes con esos
+  criterios» con la sugerencia de probar otro texto o quitar un filtro; si no hay ningún cliente
+  cargado, «Todavía no hay clientes cargados.» y el botón «Nuevo cliente» queda a mano (si hay
+  permiso). Un error de carga muestra el estado compartido con «Reintentar».
+- En pantallas angostas (320 px) el listado pasa a tarjetas; funciona con teclado y lector de pantalla
+  y no muestra identificadores técnicos.
 
-Ver el encabezado de la migración: es aditiva y su reversión (funciones, disparadores, índice,
-restricciones y grants) va en una migración posterior; las columnas no se borran en el mismo PR.
+## Archivar y restaurar
 
 Para el filtro por tienda (F-CLI-11, `20261018150000_clientes_filtro_por_tienda.sql`): en una
 migración posterior, `drop function public.buscar_clientes(text, text, boolean, integer, integer, uuid)`,
@@ -149,13 +165,18 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
 - T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y sin el btree `clientes_organizacion_id_idx` dentro de la transacción de prueba, para que el resultado no dependa del empate de costos (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
   Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
 
-## Pruebas
+- El tipo se elige entre **Minorista** y **Mayorista**, con una explicación breve de cada uno.
+- Hoy el tipo define la **escala de precios** que Ventas y Service técnico van a leer: minorista
+  `x1` (siempre precio de lista), mayorista `por_cantidad` (escala según la cantidad).
+- Al cambiar el tipo de un cliente existente, el panel avisa que «Al cambiar el tipo, las próximas
+  ventas usarán la escala de precios del nuevo tipo. Lo ya vendido no cambia», y el cambio queda
+  registrado en Actividad.
+- La regla de la escala es **provisoria**: la define Precios más adelante. Si cambia, no cambia la
+  forma de usarla.
 
-pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql` y `clientes_plan_indices.test.sql` (planes de índice, T019); Vitest
-`apps/web/src/pages/clientes/show.test.tsx`, `edit.test.tsx` y
-`apps/web/src/components/clientes/FormularioCliente.test.tsx` (selector de tipo). El aislamiento
-(`aislamiento_organizaciones.test.sql`) cuenta todas las filas, Consumidor final incluido, para que
-una fuga de RLS sobre él sea detectable.
+!!! warning "No se crean tipos"
+    Los tipos son fijos (minorista y mayorista) y no se pueden crear ni borrar. La pantalla «Tipos de
+    cliente» del prototipo, con descuento adicional y condición de pago, **no** se construyó.
 
 ## Exportación a Excel (F-CLI-04, MSF-318)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`private.puede_accion('clientes','exportar')`;
@@ -181,10 +202,16 @@ una fuga de RLS sobre él sea detectable.
 - **Pruebas:** pgTAP `clientes_busqueda_exportacion.test.sql` (permiso, keyset, tope de lote, aislamiento);
   Vitest `lib/exportarClientes.test.ts`, `components/clientes/ExportarClientes.test.tsx` y `pages/clientes/list.test.tsx`.
 
-## Fidelidad al prototipo (Clientes · Listado, `design/pantallas/Clientes.dc.html`)
+- Cada organización tiene **exactamente un** cliente «Consumidor final», de tipo minorista, creado
+  automáticamente. Sirve para vender en el mostrador sin cargar un cliente cada vez.
+- No se puede editar, archivar ni cambiarle el tipo: la base lo rechaza aunque alguien la llame
+  directo.
+- Aparece en el listado y en las exportaciones como un cliente más; la ficha lo marca como **«Cliente
+  de mostrador»**.
+- En organizaciones nuevas es el cliente N.º 1; en las que ya tenían clientes, toma el siguiente
+  número libre.
 
-Mapeo del inventario (51 ítems) contra épicas — la pantalla se construye por partes, cada épica
-dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
+## Exportar clientes
 
 - **MSF-180 (hecho)**: tabla base (Nº, nombre, DNI/CUIT, tipo, localidad), búsqueda/filtros/paginación
   en servidor, ficha con archivo/eliminar lógico, alta/edición, exportar a Excel.

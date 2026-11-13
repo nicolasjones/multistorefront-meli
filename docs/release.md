@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Release automático (F4)
 
 A partir de los **commits conventional** en `main`, **release-please** mantiene un **PR de release** que:
