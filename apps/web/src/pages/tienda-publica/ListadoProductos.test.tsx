@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
@@ -288,7 +288,10 @@ describe('ListadoProductos · carga infinita', () => {
     boton.focus()
     expect(boton).toHaveFocus()
     fireEvent.click(boton) // Enter/Espacio sobre un <button> disparan click.
-    expect(await screen.findByRole('status', { name: 'Cargando más resultados' })).toBeInTheDocument()
+    await vi.waitFor(() => expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('Cargando más resultados'))
+    expect(screen.getByRole('button', { name: 'Cargar más' })).toHaveAttribute('aria-busy', 'true')
+    // El foco no cae al body mientras carga.
+    expect(boton).toHaveFocus()
     // Una segunda petición mientras carga no se duplica.
     llegarAlFinal()
     expect(mocks.leer).toHaveBeenCalledTimes(2)
@@ -385,6 +388,141 @@ describe('ListadoProductos · carga infinita', () => {
     await screen.findAllByTestId('tarjeta-producto')
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await vi.waitFor(() => expect(tarjetas()).toHaveLength(30))
+  })
+
+  describe('respuestas tardías y reinicios', () => {
+    // Deja la tanda 2 colgada para resolverla a mano cuando la consulta ya cambió.
+    function colgarTanda2(nombre: (n: number) => ReturnType<typeof tanda>) {
+      const pendientes: Array<(v: unknown) => void> = []
+      mocks.leer.mockImplementation((_host: string, f: { soloConStock: boolean }, n: number) =>
+        n === 1
+          ? Promise.resolve(f.soloConStock ? tanda(500, 3, 3, 1) : nombre(1))
+          : new Promise((r) => { pendientes.push(r) }),
+      )
+      return pendientes
+    }
+
+    it('cambiar de filtro con «Cargar más» en vuelo: la respuesta tardía no se cuela', async () => {
+      const pendientes = colgarTanda2(() => tanda(1, 24, 48, 1))
+      montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(3))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(tarjetas()).toHaveLength(3)
+      expect(screen.queryByText('Masivo 30')).not.toBeInTheDocument()
+      expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('3 productos')
+    })
+
+    it('cambiar la búsqueda (q) con «Cargar más» en vuelo: la respuesta tardía no se cuela', async () => {
+      const pendientes: Array<(v: unknown) => void> = []
+      mocks.buscar.mockImplementation((_h: string, q: string, _f: unknown, n: number) =>
+        n === 1 ? Promise.resolve(q === 'uno' ? tanda(1, 24, 48, 1) : tanda(700, 2, 2, 1)) : new Promise((r) => { pendientes.push(r) }),
+      )
+      function CambiarQ() {
+        const navegar = useNavigate()
+        return <button type="button" onClick={() => navegar('/catalogo?q=dos')}>ir a dos</button>
+      }
+      render(
+        <MemoryRouter initialEntries={['/catalogo?q=uno']}>
+          <Routes>
+            <Route path="*" element={<><ListadoProductos tienda={tienda} host={HOST} categoriaId={null} /><CambiarQ /></>} />
+          </Routes>
+        </MemoryRouter>,
+      )
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      fireEvent.click(screen.getByRole('button', { name: 'ir a dos' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(2))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(tarjetas()).toHaveLength(2)
+    })
+
+    it('cambiar de host con «Cargar más» en vuelo: la respuesta tardía no se cuela', async () => {
+      const pendientes = colgarTanda2(() => tanda(1, 24, 48, 1))
+      const { rerenderHost } = montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      mocks.leer.mockImplementation(() => Promise.resolve(tanda(900, 2, 2, 1)))
+      rerenderHost('otra.localhost')
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(2))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      expect(tarjetas()).toHaveLength(2)
+    })
+
+    it('A→B→A con «Cargar más» de la primera A en vuelo: esa respuesta tardía se descarta', async () => {
+      const pendientes: Array<(v: unknown) => void> = []
+      mocks.leer.mockImplementation((host: string, _f: unknown, n: number) =>
+        n === 1
+          ? Promise.resolve(host === HOST ? tanda(1, 24, 48, 1) : tanda(900, 2, 2, 1))
+          : new Promise((r) => { pendientes.push(r) }),
+      )
+      const { rerenderHost } = montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(pendientes).toHaveLength(1))
+      rerenderHost('otra.localhost')
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(2))
+      rerenderHost(HOST)
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(24))
+      await act(async () => {
+        pendientes[0](tanda(25, 24, 48, 2))
+        await new Promise((r) => setTimeout(r, 20))
+      })
+      // Sigue en la primera tanda de A: la respuesta vieja de A no sumó filas.
+      expect(tarjetas()).toHaveLength(24)
+      expect(screen.getByRole('button', { name: 'Cargar más' })).toBeInTheDocument()
+    })
+
+    it('tanda 2 de búsqueda con límite: aviso específico, sin firmar imágenes y «Reintentar» espera', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) =>
+        Promise.resolve(n === 1 ? tanda(1, 24, 48, 1) : pagina({ productos: [], total: 48, pagina: 2, esperaSegundos: 1 })),
+      )
+      montar('/catalogo?q=masivo')
+      await screen.findAllByTestId('tarjeta-producto')
+      const firmadosAntes = mocks.firmar.mock.calls.length
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      const alerta = await screen.findByRole('alert')
+      expect(alerta).toHaveTextContent('Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá')
+      expect(mocks.firmar.mock.calls.length).toBe(firmadosAntes)
+      expect(tarjetas()).toHaveLength(24)
+      expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDisabled()
+      mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) => Promise.resolve(tanda(25, 24, 48, n)))
+      await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled(), { timeout: 3000 })
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(48))
+    })
+
+    it('al cambiar filtro, orden o búsqueda vuelve al inicio del listado y no al montar', async () => {
+      const scroll = vi.fn()
+      Element.prototype.scrollIntoView = scroll
+      try {
+        mocks.leer.mockResolvedValue(tanda(1, 24, 24, 1))
+        montar('/catalogo')
+        await screen.findAllByTestId('tarjeta-producto')
+        expect(scroll).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Solo con stock' }))
+        await vi.waitFor(() => expect(scroll).toHaveBeenCalledTimes(1))
+        expect(scroll).toHaveBeenCalledWith({ block: 'start' })
+      } finally {
+        // jsdom no define scrollIntoView: se quita el mock para no filtrarlo a otros tests.
+        delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+      }
+    })
   })
 
   it('sin violaciones de axe con «Cargar más», con error de tanda y con fin de lista', async () => {

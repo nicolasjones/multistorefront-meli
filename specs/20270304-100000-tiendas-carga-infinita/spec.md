@@ -57,4 +57,9 @@ Prototipos: `design/pantallas/MJC_Catalogo`, `MJC_Categoria`, `SJ_Catalogo`, `SJ
 
 - `?pagina=N` se ignora (ver Modelo). Alternativa descartada: cargar hasta la página N.
 - Un `?pagina=` viejo permanece en la URL hasta el siguiente cambio de filtro (no se reescribe la URL para no provocar una navegación extra).
-- Los E2E se actualizaron pero no se corrieron (requieren el stack local).
+- Los E2E se actualizaron pero no se corrieron (requieren el stack local); esperan el conteo final aceptando tanto la auto-carga por scroll como el botón, sin depender de la carrera con el observador.
+- **Limitación**: al volver desde la ficha de un producto no se conservan las tandas ya cargadas; el listado arranca de la primera tanda (el estado vive en el hook, no en la URL ni en un caché).
+- **Techo de diseño**: sin virtualización; se asume un catálogo de pocos cientos de productos por tienda. Seguimiento: si algún catálogo supera ~500 productos, evaluar virtualizar o conservar el acumulado.
+- Cambiar filtro, orden o búsqueda lleva el scroll al inicio del listado (`scrollIntoView` de la sección «Productos»).
+- Accesibilidad de `CargaInfinita`: el botón sigue montado (`aria-disabled`/`aria-busy`) mientras carga, el foco pasa al texto de fin cuando el botón desaparece, y una región viva (`aria-live`) anuncia «Cargando más resultados», «N productos más cargados» y «No hay más resultados».
+- Límite de búsquedas en una tanda siguiente (FR-027): aviso «Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá» con «Reintentar» deshabilitado hasta pasados los segundos; no se firman imágenes de esa respuesta.

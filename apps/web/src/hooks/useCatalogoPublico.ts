@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { urlsImagenesProducto } from '../lib/imagenProducto'
 import { leerPaginaBusqueda } from '../lib/tiendaBusqueda'
 import { leerPaginaCatalogo, type FiltrosCatalogo, type PaginaCatalogo } from '../lib/tiendaListado'
@@ -18,16 +18,23 @@ export type CatalogoPublico = EstadoCatalogoPublico & {
   hayMas: boolean
   cargandoMas: boolean
   errorMas: boolean
+  // Límite de búsquedas en una tanda siguiente (FR-027): aviso y segundos antes de poder reintentar; `null` si no aplica.
+  esperaMas: EsperaMas | null
 }
+
+export type EsperaMas = { mensaje: string; segundos: number }
 
 type Acumulado = {
   clave: string
   estado: Exclude<EstadoCatalogoPublico, { fase: 'cargando' }>
   cargandoMas: boolean
   errorMas: boolean
+  esperaMas?: EsperaMas
   // La última tanda no trajo nada nuevo aunque el total diga que falta: se corta para no pedir sin fin.
   agotado?: boolean
 }
+
+const MENSAJE_LIMITE = 'Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá'
 
 // Catálogo público con carga infinita (F-TDA-12, FR-040/FR-041; MSF-845). La primera tanda se pide al
 // cambiar host, filtros, orden o `q` (reinicio desde el principio: nunca se mezclan resultados de otra
@@ -36,12 +43,16 @@ type Acumulado = {
 export function useCatalogoPublico(host: string, filtros: FiltrosCatalogo, q: string | null = null): CatalogoPublico {
   const [intento, setIntento] = useState(0)
   const [acumulado, setAcumulado] = useState<Acumulado | null>(null)
-  const clave = JSON.stringify([host, filtros, q, intento])
-  const claveActual = useRef(clave)
-  claveActual.current = clave
+  const clave = useMemo(() => JSON.stringify([host, filtros, q, intento]), [host, filtros, q, intento])
+  // Se actualizan en efectos (no durante el render). `generacion` identifica la consulta vigente: sube cada vez
+  // que arranca una primera tanda, así una respuesta tardía de una consulta anterior (incluso A→B→A, con la
+  // misma clave) no se cuela.
+  const generacion = useRef(0)
   const ultimo = useRef<Acumulado | null>(null)
-  ultimo.current = acumulado
   const enCurso = useRef(false)
+  useEffect(() => {
+    ultimo.current = acumulado
+  }, [acumulado])
 
   const leer = useCallback(
     (pagina: number) => (q ? leerPaginaBusqueda(host, q, filtros, pagina) : leerPaginaCatalogo(host, filtros, pagina)),
@@ -52,6 +63,7 @@ export function useCatalogoPublico(host: string, filtros: FiltrosCatalogo, q: st
 
   useEffect(() => {
     let cancelada = false
+    generacion.current += 1
     enCurso.current = false
     leer(1)
       .then(async (pagina) => {
@@ -69,20 +81,32 @@ export function useCatalogoPublico(host: string, filtros: FiltrosCatalogo, q: st
 
   const cargarMas = useCallback(() => {
     const actual = ultimo.current
-    if (!actual || actual.clave !== claveActual.current || actual.estado.fase !== 'lista' || enCurso.current) return
+    if (!actual || actual.estado.fase !== 'lista' || enCurso.current) return
     const { pagina, imagenes } = actual.estado
     enCurso.current = true
     const claveDePedido = actual.clave
-    setAcumulado({ ...actual, cargandoMas: true, errorMas: false })
+    const miGeneracion = generacion.current
+    const vigente = () => generacion.current === miGeneracion
+    setAcumulado({ ...actual, cargandoMas: true, errorMas: false, esperaMas: undefined })
     leer(pagina.pagina + 1)
       .then(async (tanda) => {
+        if (!vigente()) return
+        // Una tanda con `esperaSegundos` es el límite de búsquedas (FR-027): se corta antes de firmar imágenes.
+        if (tanda.esperaSegundos !== undefined) {
+          setAcumulado({
+            clave: claveDePedido,
+            estado: { fase: 'lista', pagina, imagenes },
+            cargandoMas: false,
+            errorMas: true,
+            esperaMas: { mensaje: MENSAJE_LIMITE, segundos: tanda.esperaSegundos },
+          })
+          return
+        }
         const nuevas = await urlsImagenesProducto(tanda.productos.flatMap((p) => (p.imagen ? [p.imagen] : [])))
-        if (claveActual.current !== claveDePedido) return
+        if (!vigente()) return
         const vistos = new Set(pagina.productos.map((p) => p.id))
         // Un producto puede correrse de tanda si el catálogo cambia entre dos pedidos: no se repite.
         const productos = [...pagina.productos, ...tanda.productos.filter((p) => !vistos.has(p.id))]
-        // Una tanda con `esperaSegundos` es el límite de búsquedas (FR-027): se trata como fallo reintentable.
-        if (tanda.esperaSegundos !== undefined) throw new Error('límite de búsquedas')
         setAcumulado({
           clave: claveDePedido,
           estado: { fase: 'lista', pagina: { ...pagina, ...tanda, categorias: pagina.categorias, productos }, imagenes: { ...imagenes, ...nuevas } },
@@ -93,20 +117,20 @@ export function useCatalogoPublico(host: string, filtros: FiltrosCatalogo, q: st
       })
       .catch((error) => {
         console.error('No se pudo cargar más productos de la tienda', error instanceof Error ? error.message : error)
-        if (claveActual.current === claveDePedido) setAcumulado({ clave: claveDePedido, estado: { fase: 'lista', pagina, imagenes }, cargandoMas: false, errorMas: true })
+        if (vigente()) setAcumulado({ clave: claveDePedido, estado: { fase: 'lista', pagina, imagenes }, cargandoMas: false, errorMas: true })
       })
       .finally(() => {
-        if (claveActual.current === claveDePedido) enCurso.current = false
+        if (vigente()) enCurso.current = false
       })
   }, [leer])
 
   const reintentar = useCallback(() => setIntento((actual) => actual + 1), [])
 
   if (!acumulado || acumulado.clave !== clave) {
-    return { fase: 'cargando', reintentar, cargarMas, hayMas: false, cargandoMas: false, errorMas: false }
+    return { fase: 'cargando', reintentar, cargarMas, hayMas: false, cargandoMas: false, errorMas: false, esperaMas: null }
   }
-  const { estado, cargandoMas, errorMas, agotado } = acumulado
+  const { estado, cargandoMas, errorMas, agotado, esperaMas = null } = acumulado
   const hayMas =
     estado.fase === 'lista' && !agotado && estado.pagina.esperaSegundos === undefined && estado.pagina.productos.length < estado.pagina.total
-  return { ...estado, reintentar, cargarMas, hayMas, cargandoMas, errorMas }
+  return { ...estado, reintentar, cargarMas, hayMas, cargandoMas, errorMas, esperaMas }
 }

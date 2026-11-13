@@ -457,9 +457,9 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 - **`publico.imagen_publica` es invocable directo** por `anon` y `authenticated`: permite confirmar si una ruta de storage es imagen pública, algo que esas rutas ya permiten leer; riesgo bajo aceptado (anotado en el comentario de la función).
 - **`?pagina=` en la UI (MSF-845)**: el listado ya no pagina; los enlaces viejos con `?pagina=N` (también `0`, negativos o `999`) se ignoran sin redirigir y arrancan de la primera tanda. La RPC sigue devolviendo lista vacía con el `total` real para una página fuera de rango, y la UI ya no la pide.
 - **Imágenes (D1, supuesto)**: el bucket `productos-imagenes` sigue privado. `anon` lee solo las imágenes que `private.imagen_publica` acepta (producto activo, no oculto, categoría visible, en una tienda activa). Como un `<img>` no manda cabeceras, `lib/imagenProducto.ts` pide **URLs firmadas** de una hora con la clave pública, en una sola llamada por página; se piden al cargar, así que en una pestaña abierta más de una hora vencen y la tarjeta cae a «Sin imagen» (`onError`) hasta recargar. Si D1 se resuelve distinto (URL pública o firmada por el servidor), cambia solo ese archivo y la política. La ruta (`<organización>/<producto>/<archivo>`) viaja en `imagen`: el id de organización no es un secreto (es un UUID sin valor de acceso) y el contrato de la épica la define así.
-- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, paginación con enlaces reales, estado vacío; la paginación con enlaces fue reemplazada por `CargaInfinita`, ver «Carga infinita en los listados»), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
+- **Front** (`apps/web/src/pages/tienda-publica/`): `rutas/catalogo.tsx` (`/catalogo`: título «Todos los productos», migas y el listado), `secciones-catalogo/ListadoProductos.tsx` (también montado por `/categoria/:categoriaId` con la categoría fija del path), componentes en `catalogo/` (panel de filtros, «Ordenar por», tarjeta, estado vacío; el pie del listado es `CargaInfinita`, ver «Carga infinita en los listados»), `lib/tiendaListado.ts` (cliente de la RPC y parser/serializador de la URL) y el hook `hooks/useCatalogoPublico.ts`.
 - **URL compartible**: `categoria`, `stock=1`, `max=<pesos>`, y `orden=<relevancia|precio_asc|precio_desc>` (sin número de página desde MSF-845); abrir la URL restaura el estado; cambiar un filtro u orden reinicia la lista desde la primera tanda; los valores inválidos se ignoran. Filtrar no recarga la página (navegación del lado del cliente).
-- **Diferencias con el prototipo** (anotadas para el PR): la paginación no está dibujada en el prototipo (desde MSF-845 se reemplazó por carga infinita); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
+- **Diferencias con el prototipo** (anotadas para el PR): el prototipo no dibuja paginación ni carga infinita (desde MSF-845 el listado usa carga infinita); «Últimas unidades · quedan N» queda fuera (expone stock exacto); el buscador del encabezado es de MSF-191.
 
 ## Carga infinita en los listados (MSF-845)
 
@@ -469,6 +469,7 @@ Regla del repo («Listados: carga infinita con lazy loading, sin paginación») 
 - **Cómo carga**: `hooks/useCatalogoPublico.ts` pide la primera tanda al cambiar host, filtros, orden o `q` y expone `cargarMas`, `hayMas`, `cargandoMas` y `errorMas`; cada tanda es una llamada a la misma RPC (`catalogo_pagina_por_dominio` o `busqueda_pagina_por_dominio`, de a 24) con `pagina` creciente, más un firmado en lote de las imágenes de esa tanda. Se suman a lo ya mostrado sin repetir productos. Una tanda vacía con total mayor corta la carga (no se pide sin fin). **Sin cambios de base ni migraciones.**
 - **Pie de lista**: el componente compartido del panel `components/pagina/CargaInfinita` (`IntersectionObserver` con margen de 400 px, «Cargar más» operable con teclado y única vía sin `IntersectionObserver`, estado «Cargando más resultados», error «No pudimos cargar más resultados.» con «Reintentar» que conserva lo ya cargado, y «No hay más resultados.» al terminar). El contador total («N productos») sigue arriba.
 - **Reinicio**: buscar, filtrar, ordenar o cambiar de categoría vuelve a la primera tanda y descarta lo acumulado; `q` y los filtros siguen en la URL, que no cambia al cargar más.
+- **Accesibilidad y reinicio**: el botón «Cargar más» sigue montado (`aria-busy`) mientras carga para no perder el foco, una región viva (`aria-live`) anuncia «Cargando más resultados», «N productos más cargados» y «No hay más resultados», y al cambiar filtro, orden o búsqueda el scroll vuelve al inicio del listado. Si una tanda siguiente de búsqueda choca con el límite de pedidos se avisa «Hiciste muchas búsquedas seguidas, esperá unos segundos y reintentá» y «Reintentar» queda deshabilitado hasta que pase la espera. Limitación: al volver desde la ficha no se conservan las tandas ya cargadas; sin virtualización (diseño pensado para pocos cientos de productos; seguimiento si un catálogo supera ~500).
 - **Enlaces viejos `?pagina=N`**: se ignoran (no rompen, no redirigen) y se arranca de la primera tanda; no se reconstruye la página N porque la carga infinita no tiene un «punto de entrada» equivalente y sería traer N tandas de golpe. Al cambiar un filtro el parámetro desaparece de la URL.
 - **SEO**: sin cambios. Canónica (`/catalogo`, `/categoria/<id>`) y `noindex` de búsqueda y errores como estaban; las URLs de listado nunca llevaron `pagina` en la canónica.
 - **Elementos nuevos visibles**: solo los de la regla del repo («Cargar más», estados de carga/error/fin); ni el prototipo ni sus inventarios (`MJC_Catalogo`, `SJ_*`) dibujan paginación ni carga infinita. Detalle en `specs/20270304-100000-tiendas-carga-infinita/spec.md`.
@@ -508,7 +509,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (T070–T073; SC-010…SC
 | Ruta | Qué muestra | Historia |
 |---|---|---|
 | `/` | Inicio de la tienda | épica anterior |
-| `/catalogo` | «Todos los productos» con filtros, orden y paginación | F-TDA-12 |
+| `/catalogo` | «Todos los productos» con filtros, orden y carga infinita | F-TDA-12 |
 | `/categoria/:categoriaId` | Listado de una categoría visible (migas «Inicio / Categoría») | F-TDA-11 + F-TDA-12 |
 | `/producto/:productoId` | Ficha con galería, precio, disponibilidad y compatibilidad | F-TDA-13 |
 | cualquier otra | La misma 404 (inexistente, oculta, ajena o id inválido) | F-TDA-11 |
@@ -526,7 +527,7 @@ Helpers `private.*` sin `execute` para la API: `disponible_publico` (F-TDA-18) y
 
 ### Filtros y URL
 
-`categoria`, `stock=1`, `max=<pesos>`, `orden=<relevancia|precio_asc|precio_desc>` y `pagina=<n>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro vuelve a la página 1.
+`categoria`, `stock=1`, `max=<pesos>`, y `orden=<relevancia|precio_asc|precio_desc>`; la URL es compartible, los valores inválidos se ignoran y cambiar un filtro reinicia la lista desde la primera tanda (un `pagina=<n>` viejo se ignora).
 
 ### Disponibilidad
 
@@ -543,7 +544,7 @@ Solo el booleano «Disponible» / «Sin stock» (`cantidad > 0`), nunca cantidad
 
 ### Contradicciones con el prototipo (para el PR)
 
-Paginación no dibujada en el prototipo (se usa el control del kit); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
+La carga infinita («Cargar más») no está dibujada en el prototipo (se usa el componente compartido del panel); «Últimas unidades · quedan N» queda fuera (expondría stock exacto); «Productos relacionados» de la ficha queda fuera de alcance (el botón «Consultar por WhatsApp» llega con MSF-212, F-TDA-14); el buscador del encabezado es de MSF-191. Precios que ven los clientes: [`precios.md`](./precios.md).
 
 ### Rendimiento en celular (T071, SC-010)
 

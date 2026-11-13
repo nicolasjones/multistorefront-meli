@@ -1,5 +1,5 @@
 import { Box, Typography } from '@mui/material'
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
@@ -36,7 +36,8 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
   const [params] = useSearchParams()
   const { pathname } = useLocation()
   const navegar = useNavigate()
-  const filtros = parsearFiltros(params, categoriaId)
+  // Memoizado: `params` solo cambia con la URL, así el hook no recalcula su clave en cada render.
+  const filtros = useMemo(() => parsearFiltros(params, categoriaId), [params, categoriaId])
   const enCategoria = categoriaId !== null
   // `q` solo rige en `/catalogo`; vacía o con solo espacios es el catálogo común (FR-025).
   const q = enCategoria ? null : normalizarConsulta(params.get('q')) || null
@@ -82,6 +83,19 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
     return () => clearTimeout(temporizador)
   }, [espera, reintentar])
 
+  // Al reiniciar la lista por un cambio de filtro, orden o búsqueda se vuelve al inicio del listado: si no, el
+  // scroll queda en la posición de la lista larga anterior. No corre al montar. Al volver desde la ficha no se
+  // conservan las tandas ya cargadas (arranca de la primera).
+  const seccion = useRef<HTMLElement | null>(null)
+  const consultaAnterior = useRef<string | null>(null)
+  const claveConsulta = JSON.stringify([filtros, q])
+  useEffect(() => {
+    if (consultaAnterior.current !== null && consultaAnterior.current !== claveConsulta) {
+      seccion.current?.scrollIntoView?.({ block: 'start' })
+    }
+    consultaAnterior.current = claveConsulta
+  }, [claveConsulta])
+
   // Las últimas categorías leídas se conservan mientras carga, para que el panel no parpadee.
   const ultimasCategorias = useRef<CategoriaListado[]>([])
   if (catalogo.fase === 'lista') ultimasCategorias.current = catalogo.pagina.categorias
@@ -117,7 +131,7 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
           </Box>
         </Suspense>
       ) : null}
-      <Box component="section" aria-label="Productos">
+      <Box component="section" aria-label="Productos" ref={seccion} sx={{ scrollMarginTop: 16 }}>
         {catalogo.fase === 'cargando' ? <EstadoCargaPagina lineas={4} /> : null}
         {catalogo.fase === 'error' ? (
           <>
@@ -161,6 +175,8 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
                 cargando={catalogo.cargandoMas}
                 hayError={catalogo.errorMas}
                 onCargarMas={catalogo.cargarMas}
+                cargados={catalogo.pagina.productos.length}
+                espera={catalogo.esperaMas}
               />
             ) : null}
           </>

@@ -158,17 +158,39 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
         // Carga infinita de a 24 en el catálogo general filtrado por la categoría masiva (MSF-845).
         await page.goto(`${base}/catalogo?categoria=${t.masivaId}`)
         await expect(contador).toHaveText(`${MASIVOS} productos`)
-        await expect(tarjetas).toHaveCount(24)
+        // Primera tanda de 24; la segunda puede llegar sola si el pie ya está dentro del margen del observador.
+        await expect(tarjetas.first()).toBeVisible()
+        expect(await tarjetas.count()).toBeGreaterThanOrEqual(24)
         await expect(page.getByRole('navigation', { name: 'Paginación del catálogo' })).toHaveCount(0)
-        // «Cargar más» (o el scroll hasta el final) suma la tanda siguiente sin cambiar la URL.
-        await page.getByRole('button', { name: 'Cargar más' }).click()
+        // El scroll hasta el final o «Cargar más» suman la tanda siguiente sin cambiar la URL. El centinela del
+        // componente es el propio botón (margen de 400 px), así que la tanda puede cargarse sola o con el click:
+        // se llega al final de verdad y se acepta cualquiera de las dos vías (sin depender de la carrera).
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+        await expect
+          .poll(
+            async () => {
+              if (await tarjetas.count() >= MASIVOS) return MASIVOS
+              const boton = page.getByRole('button', { name: 'Cargar más' })
+              if (await boton.isVisible().catch(() => false)) await boton.click({ timeout: 1000 }).catch(() => undefined)
+              await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+              return tarjetas.count()
+            },
+            { timeout: 20_000 },
+          )
+          .toBe(MASIVOS)
         await expect(tarjetas).toHaveCount(MASIVOS)
         await expect(page.getByText('No hay más resultados.')).toBeVisible()
         await expect(page).not.toHaveURL(/pagina=/)
 
-        // Un enlace viejo con ?pagina=N no rompe: se ignora y arranca de la primera tanda.
+        // Un enlace viejo con ?pagina=N no rompe: se ignora y arranca de la primera tanda. La tanda 2 puede
+        // cargarse sola, así que no se afirma «exactamente 24» (carrera): se afirma lo estable, que la URL de
+        // la primera tanda no redirige, el listado se muestra y el total sigue siendo el del servidor.
         await page.goto(`${base}/catalogo?categoria=${t.masivaId}&pagina=2`)
-        await expect(tarjetas).toHaveCount(24)
+        await expect(contador).toHaveText(`${MASIVOS} productos`)
+        await expect(tarjetas.first()).toBeVisible()
+        expect(await tarjetas.count()).toBeGreaterThanOrEqual(24)
+        expect(await tarjetas.count()).toBeLessThanOrEqual(MASIVOS)
+        await expect(page.getByRole('navigation', { name: 'Paginación del catálogo' })).toHaveCount(0)
 
         // Cambiar un filtro reinicia la lista desde el principio.
         await page.getByRole('button', { name: 'Solo con stock' }).click()
