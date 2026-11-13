@@ -16,6 +16,8 @@ export function useMovimientosPorProducto(contexto: ContextoTablero, filtros: Fi
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const { organizacionActiva } = useOrganizacionActiva()
   const ultimaPeticion = useRef(0)
+  // Último total que llegó bien: si falla una tanda siguiente se conserva (no «Mostrando 25 de 0»).
+  const ultimoTotal = useRef(0)
   const { desde, hasta, empresaId, depositoId } = contexto
   const { busqueda, categoriaId, vista, orden, direccion } = filtros
   const clave = JSON.stringify([organizacionActiva?.id ?? null, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion, pagina])
@@ -30,10 +32,11 @@ export function useMovimientosPorProducto(contexto: ContextoTablero, filtros: Fi
         pagina,
         TAMANO_PAGINA_MOVIMIENTOS,
       )
+      ultimoTotal.current = datos.total
       nuevo = { clave, ...datos, error: false }
     } catch (error) {
       console.error('No pudimos cargar los movimientos por producto.', error instanceof Error ? error.message : error)
-      nuevo = { clave, filas: [], total: 0, error: true }
+      nuevo = { clave, filas: [], total: ultimoTotal.current, error: true }
     }
     if (peticion === ultimaPeticion.current) setResultado(nuevo)
   }, [clave, desde, hasta, empresaId, depositoId, busqueda, categoriaId, vista, orden, direccion, pagina])

@@ -37,9 +37,6 @@ type Props = {
   confirmacionPct?: number
 }
 
-// Se re-exporta por compatibilidad: ahora vive en su propio archivo (lo comparte el diálogo de Inicio sin arrastrar este).
-export { AlertaVariacionInusual }
-
 // F-PRE-13: la cotización sugerida por la fuente pública es una AYUDA; «Usar este valor» solo completa el campo
 // (la carga y la confirmación son las de siempre). Si la fuente no responde, se carga a mano como hoy (FR-002).
 function SugerenciaDelDia({ sugerencia, onUsar }: { sugerencia: EstadoSugerida; onUsar: (valor: number) => void }) {

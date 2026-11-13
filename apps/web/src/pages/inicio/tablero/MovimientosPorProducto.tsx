@@ -80,8 +80,9 @@ export function MovimientosPorProducto({ contexto }: Props) {
     const vistos = new Set<string>()
     return listado.filas.filter((fila) => (vistos.has(fila.productoId) ? false : (vistos.add(fila.productoId), true)))
   }, [listado.filas])
-  // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna).
-  const conVentas = filas.length === 0 || filas.some((fila) => fila.ventas !== null) || listado.filas.some((fila) => fila.ventas !== null)
+  // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna). Se decide con
+  // lo ya cargado: una tanda que falla (página vacía) no cambia la decisión; sin filas todavía, se muestra.
+  const conVentas = listado.filas.length === 0 || listado.filas.some((fila) => fila.ventas !== null)
 
   const columnas = useMemo<ColumnaAdaptable<MovimientoProducto>[]>(() => {
     const lista: ColumnaAdaptable<MovimientoProducto>[] = [

@@ -189,6 +189,33 @@ describe('carga infinita: fallos, reinicio y duplicados', () => {
   const pagina1 = Array.from({ length: 25 }, (_, i) => fila(i + 1))
   const pagina2 = Array.from({ length: 5 }, (_, i) => fila(i + 26))
 
+  it('si falla la tanda 2 el contador conserva el total (no dice «de 0»)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.leer.mockImplementation(async (_ctx, _filtros, pagina: number) => {
+      if (pagina === 2) throw new Error('falló la tanda')
+      return { filas: pagina1, total: 30 }
+    })
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('No pudimos cargar más resultados.')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '' })).toHaveTextContent('Mostrando 25 de 30 productos')
+  })
+
+  it('si falla la tanda 2 y el rol no tiene ventas, la columna «Ventas» no aparece', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.leer.mockImplementation(async (_ctx, _filtros, pagina: number) => {
+      if (pagina === 2) throw new Error('falló la tanda')
+      return { filas: pagina1.map((f) => ({ ...f, ventas: null })), total: 30 }
+    })
+    abrir()
+    await screen.findByRole('table', { name: 'Movimientos por producto' })
+    expect(screen.queryByRole('columnheader', { name: /Ventas/ })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('No pudimos cargar más resultados.')).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /Ventas/ })).not.toBeInTheDocument()
+  })
+
   it('si falla la tanda 2, «Reintentar» vuelve a pedir la tanda 2 (no salta a la 3) y conserva lo cargado', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     let fallar = true

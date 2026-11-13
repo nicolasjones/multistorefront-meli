@@ -88,9 +88,6 @@ export function parsearCotizacion(texto: string): number | null {
   return Number.isFinite(valor) && valor > 0 && valor < MAXIMO_EXCLUSIVO ? valor : null
 }
 
-// El campo solo admite dígitos, punto y coma (como el prototipo).
-export const soloCaracteresDeCotizacion = (texto: string) => texto.replace(/[^0-9.,]/g, '')
-
 // Campo del dólar de los diálogos: igual, pero conserva el «-»: un negativo NO se corrige en silencio a un valor
 // positivo (CA-INI-07-8), `parsearCotizacion` lo rechaza y el campo muestra el mensaje de formato inválido.
 export const caracteresDelCampoDolar = (texto: string) => texto.replace(/[^0-9.,-]/g, '')
