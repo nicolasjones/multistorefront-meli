@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Box, Button, Chip, MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { MiniaturaProducto } from '../../../components/base/MiniaturaProducto'
 import { TarjetaBase } from '../../../components/base/TarjetaBase'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components/estados/EstadosPagina'
 import { ExportarCsvBoton } from '../../../components/stock/ExportarCsvBoton'
+import { useImagenesProductos } from '../../../hooks/useImagenesProductos'
 import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
 import { useExportarCsv } from '../../../hooks/useExportarCsv'
 import { useMovimientosPorProducto } from '../../../hooks/useMovimientosPorProducto'
@@ -80,6 +82,8 @@ export function MovimientosPorProducto({ contexto }: Props) {
     const vistos = new Set<string>()
     return listado.filas.filter((fila) => (vistos.has(fila.productoId) ? false : (vistos.add(fila.productoId), true)))
   }, [listado.filas])
+  // Fotos: una consulta por tanda (el hook pide solo los ids que todavía no tiene) y sin romper el listado si falla.
+  const imagenes = useImagenesProductos(filasUnicas.map((fila) => fila.productoId))
   // Sin la columna «Ventas» cuando el rol no tiene ventas (la base devuelve null en toda la columna). Se decide con
   // lo ya cargado: una tanda que falla (página vacía) no cambia la decisión; sin filas todavía, se muestra.
   const conVentas = listado.filas.length === 0 || listado.filas.some((fila) => fila.ventas !== null)
@@ -88,7 +92,13 @@ export function MovimientosPorProducto({ contexto }: Props) {
     const lista: ColumnaAdaptable<MovimientoProducto>[] = [
       {
         clave: 'nombre', encabezado: 'Producto', ordenable: true,
-        render: (fila) => <Typography component={RouterLink} to={`/productos/${fila.productoId}/edit`} color="primary" sx={{ fontWeight: 600 }}>{fila.nombre}</Typography>,
+        render: (fila) => (
+          <Stack direction="row" spacing={1} alignItems="center">
+            {/* Decorativa (alt vacío): el nombre del producto está al lado. */}
+            <MiniaturaProducto alt="" src={imagenes.get(fila.productoId)} />
+            <Typography component={RouterLink} to={`/productos/${fila.productoId}/edit`} color="primary" sx={{ fontWeight: 600 }}>{fila.nombre}</Typography>
+          </Stack>
+        ),
       },
       { clave: 'sku', encabezado: 'SKU', ordenable: true, render: (fila) => fila.sku ?? '—' },
       { clave: 'categoria', encabezado: 'Categoría', ordenable: true, render: (fila) => fila.categoria },
@@ -105,7 +115,7 @@ export function MovimientosPorProducto({ contexto }: Props) {
       { clave: 'estado', encabezado: 'Estado', ordenable: true, render: (fila) => <Chip size="small" color={COLOR_ESTADO[fila.estado]} label={ETIQUETA_ESTADO_MOVIMIENTO[fila.estado]} /> },
     )
     return lista
-  }, [conVentas])
+  }, [conVentas, imagenes])
 
   // Exportación: mismos filtros que la pantalla, por lotes de la RPC (la misma consulta, sin paginar en pantalla).
   const columnasCsv = useMemo<ColumnaCsv<MovimientoProducto>[]>(() => [

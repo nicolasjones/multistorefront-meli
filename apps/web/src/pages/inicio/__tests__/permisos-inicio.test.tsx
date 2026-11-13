@@ -59,6 +59,19 @@ describe('Regla única de permisos de Inicio (FR-007)', () => {
     expect(screen.getByText(/^tablero\s+ventas\s*$/)).toBeInTheDocument()
   })
 
+  it('las tarjetas van ANTES del tablero: su listado crece sin fin y lo de abajo no se alcanzaría', () => {
+    mocks.niveles = { stock: 'edicion', consultas: 'lectura', cotizacion_dolar: 'lectura', ventas: 'lectura' }
+    montar()
+    const tablero = screen.getByText(/^tablero/)
+    for (const texto of ['alertas', 'tarjeta empresas', 'tarjeta stock', 'tarjeta consultas', 'tarjeta dolar lee']) {
+      const nodo = screen.getByText(texto)
+      expect(nodo.compareDocumentPosition(tablero) & Node.DOCUMENT_POSITION_FOLLOWING, `${texto} debe ir antes del tablero`).toBeTruthy()
+    }
+    // y el tablero es lo último del contenido de la pantalla
+    const principal = screen.getByRole('main')
+    expect(principal.lastElementChild?.contains(tablero) || principal.lastElementChild?.lastElementChild?.contains(tablero)).toBe(true)
+  })
+
   it('con edición en cotización la tarjeta del dólar habilita la acción', () => {
     mocks.niveles = { cotizacion_dolar: 'edicion' }
     montar()

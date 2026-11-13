@@ -64,11 +64,12 @@ export function InicioPage() {
           sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' } }}
         >
           <Box sx={{ gridColumn: '1 / -1' }}><AlertasInicio /></Box>
-          {verVentas || verStock || verActividad ? <Box sx={{ gridColumn: '1 / -1' }}><TableroInicio verVentas={verVentas} verStock={verStock} verActividad={verActividad} verReportes={puedeVer(reportes)} /></Box> : null}
           <TarjetaEmpresas />
           {verStock ? <TarjetaStock /> : null}
           {verConsultas ? <TarjetaConsultas /> : null}
           {verDolar ? <TarjetaDolar puedeEditar={puedeEditar(dolar)} /> : null}
+          {/* El tablero va ÚLTIMO: su listado «Movimientos por producto» crece con la carga infinita y nada que esté debajo se alcanzaría. */}
+          {verVentas || verStock || verActividad ? <Box sx={{ gridColumn: '1 / -1' }}><TableroInicio verVentas={verVentas} verStock={verStock} verActividad={verActividad} verReportes={puedeVer(reportes)} /></Box> : null}
         </Box>
       )}
     </Box>
