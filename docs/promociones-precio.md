@@ -54,7 +54,7 @@ Con `promociones_precio` **apagada** (migración `20270228300100`):
 
 - **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Nicolás aprobó el 2026-11-12 abrir el gate para que el POS, el carrito y los comprobantes cobren el precio promocional; está aprobada y en implementación en otros PRs (hasta entonces sigue vigente lo descrito).
 - **Decisión 15 (aprobada 2026-11-12)**: bandera de apagado, apagada por defecto (ver arriba). Es un cambio de comportamiento respecto de lo desplegado hasta ahora: para que la tienda siga mostrando promociones hay que **encender** `promociones_precio`.
-- **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento MSF-816.
+- **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento S1 de la spec `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md` (ID de tracker a asignar; MSF-816 es la épica del POS, no este seguimiento).
 
 ## Límite de filas de PostgREST
 

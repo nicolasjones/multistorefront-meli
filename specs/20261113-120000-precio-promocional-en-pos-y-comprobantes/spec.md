@@ -1,9 +1,9 @@
 # Feature Specification: Precios y dólar · Precio promocional en el mostrador (POS) y en los comprobantes
 
-**Épica**: MSF-816 «adopción del precio promocional en POS y comprobantes» · **Spec**: `precio-promocional-en-pos-y-comprobantes` · **Gate**: MSF-834 (decisión de Nicolás, 2026-11-13: **SÍ se cobra** el precio promocional; se implementa como épica aparte) · **Prioridad**: P2 · **Horas aprox.**: 28 (F-1 8, F-2 8, F-3 6, F-4 4, cierre 2)
+**Épica**: MSF-816 «adopción del precio promocional en POS y comprobantes» · **Spec**: `precio-promocional-en-pos-y-comprobantes` · **Gate**: MSF-834 (decisión de Nicolás, 2026-11-13: **SÍ se cobra** el precio promocional; se implementa como épica aparte) · **Prioridad**: P2 · **Horas aprox.**: 40 (F-1 10, F-2 9, F-3 12, F-4 6, cierre 3; las dos RPC grandes, la guarda con su función auxiliar y los tres pgTAP densos pesan más que en la primera estimación)
 **Alcance de entrega**: `refine` y `supabase`. Sin `kestra`, `superset` ni `workers` (ver «Impactos»: los tableros de Superset leen los importes ya guardados en las líneas y el PDF de comprobantes no cambia).
-**Historias hijas**: se crean en el tracker al aprobar esta spec (F-1 a F-4, sección «Fases»). **Estado**: spec lista, sin código.
-**Fuente**: Decisión 6 de la spec `specs/20261104-103000-precios-masivos-y-promociones/spec.md` (MSF-363), `docs/promociones-precio.md`, `docs/precios.md`, `docs/ventas-comprobantes.md`, `docs/ventas-mostrador.md` y el código de `supabase/migrations` y `apps/web/src` relevado el 2026-11-13 (sección «Hallazgos»). Esta spec **traduce una decisión ya tomada** y propone reglas donde el código no las define; lo que no está decidido figura como **DECISIÓN ABIERTA** con recomendación.
+**Historias hijas**: se crean en el tracker al aprobar esta spec (F-1 a F-4, sección «Fases»). **Estado**: spec lista, sin código; revisada y corregida el 2026-11-13 tras la revisión independiente del PR #933.
+**Fuente**: Decisión 6 de la spec `specs/20261104-103000-precios-masivos-y-promociones/spec.md` (MSF-363), `docs/promociones-precio.md`, `docs/precios.md`, `docs/ventas-comprobantes.md`, `docs/ventas-mostrador.md` y el código de `supabase/migrations` y `apps/web/src` relevado el 2026-11-13 (sección «Hallazgos»). Esta spec **traduce una decisión ya tomada**. Las reglas que el código no definía quedaron **decididas por Nicolás el 2026-11-13, por delegación** (sección «Decisiones tomadas»); no quedan decisiones abiertas.
 
 ## Objetivo
 
@@ -19,7 +19,7 @@ Al terminar, lo que el cliente ve en la tienda pública durante una promoción v
 
 1. **Caminos que calculan precio de línea con `precio_para`** (los únicos, `grep` de `supabase/migrations`): `guardar_lineas_comprobante` (alta y edición de factura y presupuesto, y cada escaneo del mostrador) y `copiar_presupuesto` (`20261204150100`). Los otros usos de `precio_para` son docs, tests y su propia definición. **No existe carrito ni checkout en la tienda pública** (la decisión 6 de MSF-363 lo nombraba, pero el repo solo tiene catálogo y ficha): no hay otro camino de precio que adoptar. Mercado Libre no cobra por este camino (fuera de alcance, ya declarado en MSF-363).
 2. **`confirmar_comprobante` (`20270216400000`) no reprecia**: cobra lo que quedó guardado en el último guardado de líneas. Un borrador abierto horas puede quedar con una promoción vencida o sin una recién iniciada. Es el hueco que más afecta al cobro (FR-009).
-3. **`copiar_presupuesto` no aplica el descuento del cliente** (usa `round(neto, 2)` sin descuento y no copia `descuento_pct`), a diferencia de `guardar_lineas_comprobante`. Es un defecto previo e independiente de esta épica; se registra como seguimiento (Decisión 9) y se **conserva** su comportamiento con la bandera apagada.
+3. **`copiar_presupuesto` no aplica el descuento del cliente** (usa `round(neto, 2)` sin descuento y no copia `descuento_pct`), a diferencia de `guardar_lineas_comprobante`. Es un defecto previo e independiente de esta épica; se registra como seguimiento (Decisión tomada 9) y se **conserva** su comportamiento con la bandera apagada.
 4. **El mostrador reprecia todas las líneas en cada escaneo** (`guardar_lineas_comprobante` borra y recrea las líneas no `sin_stock`; solo conserva los precios manuales): una promoción que empieza o vence con la venta abierta se refleja en el siguiente escaneo.
 5. **Notas de crédito y RMA ya devuelven al precio cobrado**: `emitir_nota_credito` copia `precio_unitario` y `subtotal_sin_iva` de la línea original y un disparador `BEFORE INSERT` (`copiar_costo_linea_nota`, `20270202201006`) copia el costo. Con el snapshot en la línea esto es automático (FR-011); solo hay que copiar también las columnas nuevas.
 6. **El IVA y los totales salen de las líneas**: `subtotal = round(unitario × cantidad, 2)`, `iva = round(subtotal × alícuota / 100, 2)`. La promoción es un neto fijo sin IVA, así que entra por el mismo cálculo. La tienda con «Precios con IVA» redondea al **peso entero** (`private.aplicar_iva`), el mostrador a **centavos**: la diferencia ya existe hoy con el precio normal (< $1 por unidad) y no es de esta épica.
@@ -35,9 +35,9 @@ Al terminar, lo que el cliente ve en la tienda pública durante una promoción v
 - La promoción es **por empresa (tienda)** y el comprobante tiene **una** `empresa_id`: la función usa la del comprobante, **no** la empresa activa de la barra superior (Principio VIII).
 - Se **conservan** las acciones actuales de precio: `precio_manual` exige `editar_precio` (`private.puede_editar_precio_en_empresa`).
 
-### Regla de precedencia (DECISIÓN ABIERTA 1)
+### Regla de precedencia (Decisión tomada 1 · Nicolás, 2026-11-13, por delegación)
 
-Entran cuatro precios posibles para una línea. **Recomendación: «gana el más bajo, sin acumular».**
+Entran cuatro precios posibles para una línea. **Regla: «gana el más bajo, sin acumular».**
 
 1. `precio_manual` (con permiso): manda siempre; la promoción no interviene.
 2. Si no, **precio normal de la línea** = el que hoy calcula el servidor: escala por tipo de cliente y cantidad (`x1/x5/x10/x50`; una escala cargada manda sobre el precio propio), o el precio propio de la empresa en `x1`, o la lista con la regla de la empresa; **menos el descuento del cliente** (F-VTA-32), `round(neto × (1 − d/100), 2)`.
@@ -59,7 +59,7 @@ Ejemplos (producto con lista $1.000 sin IVA, escala `x10` = $800, promoción vig
 | Precio manual 700 | — | 900 | **700** | el manual manda |
 | Promoción de la tienda B, venta en la tienda A | 1.000 | (no aplica) | **1.000** | la promoción es por tienda |
 
-Garantía que da la regla: **el local nunca cobra más que el precio visible en la tienda** para ese producto, esa tienda y ese momento (salvo que el precio normal sea mayor y la promoción no esté vigente). Alternativas: (A) la promoción **reemplaza siempre** el precio normal (paridad exacta con la tienda, pero un mayorista de 10 unidades pagaría $900 en vez de $800: castiga al mejor cliente); (C) la promoción **se acumula** con el descuento del cliente (promoción $900 − 15 % = $765: puede dejar el precio bajo el costo, y la tienda no lo hace). Se recomienda B («el más bajo») por no cobrar nunca más que lo visible y no apilar descuentos.
+Garantía que da la regla, **acotada al neto por unidad sin interruptor de IVA**: para ese producto, tienda e instante, el neto unitario que cobra el local nunca es mayor que el precio visible en la tienda (salvo que el precio normal sea mayor y la promoción no esté vigente). **Con «Precios con IVA» no hay garantía a nivel de importe**: la tienda redondea **por unidad** al peso entero (`private.aplicar_iva`) y el local redondea el **subtotal de la línea** a centavos (ejemplo: promoción 900,40 × 10 con IVA 21 %: local 10.894,84 contra tienda 1.089 × 10 = 10.890). La diferencia ya existe hoy con el precio normal y no es de esta épica; FR-020 la acota por unidad (< $1). `precio_referencia` (el tachado) es el precio normal **del cliente** (con su escala y su descuento), no el de la tienda pública. Se descartaron la promoción que reemplaza siempre (castigaría al mejor cliente: un mayorista de 10 unidades pagaría $900 en vez de $800) y la que se acumula con el descuento (podría dejar el precio bajo el costo).
 
 ## Esquema de datos (Constitución, Principio VII)
 
@@ -67,8 +67,8 @@ No hay tablas nuevas. Se **altera** una tabla existente de dominio y se agrega l
 
 | Objeto | Esquema | Cambio | Justificación | RLS / acceso |
 |---|---|---|---|---|
-| `comprobantes_venta_lineas` (existente) | `dominio` | **+2 columnas aditivas**: `precio_referencia numeric(14,2)` y `promocion_id uuid` (FK a `promociones_precio`, `on delete restrict`); `check` de que ambas van juntas | Dato de negocio del documento emitido (qué se cobró y contra qué precio). **No** va a `public`. | RLS vigente (organización + sección `ventas`); sin políticas nuevas; `anon` sin privilegios; las escribe solo la RPC |
-| `promociones_precio` (existente, MSF-363) | `dominio` | sin cambios | — | RLS por tienda vigente |
+| `comprobantes_venta_lineas` (existente) | `dominio` | **+2 columnas aditivas**: `precio_referencia numeric(14,2)` y `promocion_id uuid` (FK compuesta a `promociones_precio`, `no action`); `check` de que ambas van juntas | Dato de negocio del documento emitido (qué se cobró y contra qué precio). **No** va a `public`. | RLS vigente (organización + sección `ventas`); sin políticas nuevas; `anon` sin privilegios; las escribe solo la RPC |
+| `promociones_precio` (existente, MSF-363) | `dominio` | **alterada**: `+ unique (id, organizacion_id)` (hoy solo tiene `PK(id)` y la FK compuesta de la línea lo exige; aditiva e idempotente) | Soporte de la FK compuesta de la línea | RLS por tienda vigente, sin cambios |
 | `private.promocion_vigente_fila`, `private.precio_linea_venta` (**nuevas**) | `private` | cálculo | Lógica sin datos | `security definer`/`invoker` según el contrato; sin `execute` para `anon` |
 | `private.copiar_costo_linea_nota` (existente) | `private` | se amplía para copiar las columnas nuevas a las notas de crédito | El snapshot viaja con la devolución | Sin acceso para `anon`/`authenticated` |
 | `public.guardar_lineas_comprobante`, `public.obtener_comprobante`, `public.confirmar_comprobante`, `public.copiar_presupuesto` (existentes) | `public` | cuerpo nuevo, **misma firma** (la lectura suma claves al JSON) | Superficie expuesta; no almacenan datos | `grant … to authenticated` y `revoke … from public, anon`, sin cambios |
@@ -79,8 +79,8 @@ Una tabla alterada (`comprobantes_venta_lineas`, +2 columnas) y una referenciada
 
 | Tabla | Estado | Cambio |
 |---|---|---|
-| `dominio.comprobantes_venta_lineas` | existente | `+ precio_referencia numeric(14,2) null`, `+ promocion_id uuid null` (FK compuesta `(promocion_id, organizacion_id)`), `check ((precio_referencia is null) = (promocion_id is null))` y `precio_referencia >= precio_unitario` |
-| `dominio.promociones_precio` | existente | sin cambios (se la referencia) |
+| `dominio.comprobantes_venta_lineas` | existente | `+ precio_referencia numeric(14,2) null`, `+ promocion_id uuid null` (FK compuesta `(promocion_id, organizacion_id)` con `no action`, como las FK de la línea a productos y depósitos), `check ((precio_referencia is null) = (promocion_id is null))` y `precio_referencia >= precio_unitario` |
+| `dominio.promociones_precio` | existente, **alterada** | `+ unique (id, organizacion_id)` (`promociones_precio_id_organizacion_uk`), necesaria para la FK compuesta; no cambia datos ni RLS |
 | `dominio.comprobantes_venta` | existente | sin cambios |
 
 ```mermaid
@@ -88,7 +88,7 @@ erDiagram
   COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "comprobante"
   EMPRESAS ||--o{ PROMOCIONES_PRECIO : "tienda"
   PRODUCTOS ||--o{ PROMOCIONES_PRECIO : "producto"
-  PROMOCIONES_PRECIO |o..o{ COMPROBANTES_VENTA_LINEAS : "trazabilidad (on delete restrict)"
+  PROMOCIONES_PRECIO |o..o{ COMPROBANTES_VENTA_LINEAS : "trazabilidad (no action)"
 
   COMPROBANTES_VENTA_LINEAS {
     uuid id PK
@@ -101,7 +101,7 @@ erDiagram
     text escala
     bool precio_manual
     numeric descuento_pct "0 si ganó la promoción"
-    numeric precio_referencia "NUEVA: precio normal sin promoción; null sin promoción"
+    numeric precio_referencia "NUEVA: precio normal DEL CLIENTE (con su descuento) sin promoción; null sin promoción"
     uuid promocion_id FK "NUEVA: promoción aplicada; null sin promoción"
   }
   PROMOCIONES_PRECIO {
@@ -116,7 +116,7 @@ erDiagram
   }
 ```
 
-**Reversión (migración posterior, nunca en el PR que las crea):** exportar antes las dos columnas si ya hay datos; `alter table dominio.comprobantes_venta_lineas drop constraint …, drop column promocion_id, drop column precio_referencia`; restaurar los cuerpos anteriores de las cuatro RPC y de `copiar_costo_linea_nota` (cada migración nombra la versión a restaurar). **Reversión operativa inmediata, sin migrar:** apagar `promociones_precio` (la función deja de ver promociones y todo vuelve al precio normal).
+**Reversión (migración posterior, nunca en el PR que las crea):** exportar antes las dos columnas si ya hay datos; `alter table dominio.comprobantes_venta_lineas drop constraint …, drop column promocion_id, drop column precio_referencia`; después `alter table dominio.promociones_precio drop constraint promociones_precio_id_organizacion_uk`; restaurar los cuerpos anteriores de las cuatro RPC y de `copiar_costo_linea_nota` (cada migración nombra la versión a restaurar). **Reversión operativa inmediata, sin migrar:** apagar `promociones_precio` (la función deja de ver promociones y todo vuelve al precio normal).
 
 ## Flujos
 
@@ -191,7 +191,7 @@ sequenceDiagram
 
 1. **Dado** un borrador con una línea en promoción que **venció** antes de cobrar, **cuando** el cajero pulsa «Cobrar», **entonces** la confirmación se rechaza sin mover stock ni cobros, la pantalla avisa «Los precios cambiaron», re-guarda las líneas y pide cobrar de nuevo con el total nuevo. **Verificación**: pgTAP (rechazo, nada cambia) + Vitest + E2E.
 2. **Dado** un borrador **sin** promoción cuando empieza una promoción, **entonces** se rechaza igual y reprecia (el cliente nunca paga más de lo visible).
-3. **Dado** un presupuesto `pendiente` con una línea en promoción, **cuando** se acepta después de que venció la promoción, **entonces** conserva el precio presupuestado hasta su `valido_hasta` (Decisión 4). **Verificación**: pgTAP.
+3. **Dado** un presupuesto `pendiente` con una línea en promoción, **cuando** se acepta después de que venció la promoción, **entonces** conserva el precio presupuestado hasta su `valido_hasta` (Decisión tomada 4). **Verificación**: pgTAP.
 4. **Dado** «Copiar» presupuesto, **entonces** las líneas se repreciaron con la misma función (con la promoción de hoy) salvo precio manual. **Verificación**: pgTAP.
 5. **Dado** una nota de crédito (total o parcial) sobre una factura con promoción, **entonces** devuelve el precio cobrado (no el normal) y la línea de la nota hereda `precio_referencia` y `promocion_id`; el saldo neto (`private.saldo_comprobante`) cuadra. **Verificación**: pgTAP (`comprobante_nota_credito`-style).
 6. **Dado** la bandera apagada, **entonces** confirmar nunca rechaza por precios (la guarda solo compara el efecto de promociones). **Verificación**: pgTAP.
@@ -206,54 +206,54 @@ sequenceDiagram
 
 ### F-1 · Función de precio en el servidor y snapshot
 
-- **FR-001**: Existe **una sola** función de precio de línea de venta, `private.precio_linea_venta(producto, empresa, tipo_cliente, cantidad, descuento, ahora, aplicar_descuento)`, que envuelve `private.precio_para` + `private.escala_para_linea` y es la única que usan `guardar_lineas_comprobante` y `copiar_presupuesto`. `precio_para` no se modifica. **Verificación**: pgTAP (las dos RPC y la función dan el mismo importe para el mismo caso).
+- **FR-001**: Existe **una sola** función de precio de línea de venta, `private.precio_linea_venta(producto, empresa, tipo_cliente, cantidad, descuento, ahora, aplicar_descuento)`, que envuelve `private.precio_para` + `private.escala_para_linea` y es la única que usan `guardar_lineas_comprobante` y `copiar_presupuesto`. `precio_para` no se modifica. `precio_linea_venta` es `security invoker` (hereda la compuerta de `precio_para`) con `revoke execute … from public, anon`; la ejecutan las RPC `security definer` en nombre del dueño de la función, sin `grant` a `authenticated`. **Verificación**: pgTAP (las dos RPC y la función dan el mismo importe para el mismo caso).
 - **FR-002**: La promoción vigente es la **no anulada** de la **tienda del comprobante** con `desde <= now() < hasta`, solo si `private.bandera_activa('promociones_precio')`. El instante es el del servidor; el parámetro `p_ahora` existe solo para probar. **Verificación**: pgTAP (bordes de `desde`/`hasta`, anulada, otra tienda, bandera).
-- **FR-003**: Precedencia (Decisión 1, recomendación «gana el más bajo, sin acumular»): `least(precio normal con descuento, promoción)`; si gana la promoción, `descuento_pct = 0`; una promoción mayor o igual al normal se ignora. **Verificación**: pgTAP, una aserción por fila de la tabla de ejemplos.
+- **FR-003**: Precedencia (Decisión tomada 1: «gana el más bajo, sin acumular»): `least(precio normal con descuento, promoción)`; si gana la promoción, `descuento_pct = 0`; una promoción mayor o igual al normal se ignora. **Verificación**: pgTAP, una aserción por fila de la tabla de ejemplos.
 - **FR-004**: `precio_manual` manda siempre: la línea no lleva referencia ni promoción y exige `editar_precio` como hoy. **Verificación**: pgTAP.
 - **FR-005**: Con la bandera apagada el resultado es **idéntico** al actual en todas las columnas de línea y en los totales, y `precio_referencia`/`promocion_id` son nulos. **Verificación**: pgTAP (baseline contra la expresión legada `coalesce(manual, round(neto * (1 - d/100), 2))`).
 - **FR-006**: Cada línea guarda el **snapshot**: `precio_unitario` (cobrado), `precio_referencia` (normal sin promoción) y `promocion_id` (trazabilidad), solo cuando ganó la promoción. **Verificación**: pgTAP.
-- **FR-007**: Los comprobantes ya emitidos **no cambian nunca**: ninguna promoción nueva, editada, anulada o vencida modifica sus líneas; la migración no escribe filas existentes (las columnas nuevas quedan nulas); `guardar_lineas_comprobante` sigue rechazando comprobantes cerrados (`55000`). **Verificación**: pgTAP (editar/anular/vencer la promoción tras confirmar; las filas previas a la migración intactas).
+- **FR-007**: Los comprobantes ya emitidos **no cambian nunca**: ninguna promoción nueva, editada, anulada o vencida modifica sus líneas; la migración no escribe filas existentes (las columnas nuevas quedan nulas); la baja de una organización con una línea promocional funciona (la FK es `no action`); `guardar_lineas_comprobante` sigue rechazando comprobantes cerrados (`55000`). **Verificación**: pgTAP (editar/anular/vencer la promoción tras confirmar; las filas previas a la migración intactas).
 
 ### F-3 · Ciclo de vida: borrador, presupuesto, confirmación, devoluciones
 
-- **FR-008**: En borrador y presupuesto `pendiente` el precio se **recalcula en cada guardado** de líneas (como hoy). Un presupuesto `aceptado` o `pendiente` **conserva** el precio guardado hasta su `valido_hasta` (Decisión 4); `aceptar_presupuesto` no reprecia. **Verificación**: pgTAP.
-- **FR-009**: `confirmar_comprobante` compara, por cada línea no manual y no `sin_stock`, la promoción que aplicaría **ahora** con la guardada; si el efecto difiere (otra promoción, una nueva, una vencida o un precio promocional editado) rechaza con `40001` y `hint = 'precios_cambiaron'` **antes** de tocar stock, costo o estado, y la transacción no deja rastro (Decisión 3). Con la bandera apagada la guarda no actúa. **Verificación**: pgTAP (rechazo sin efectos; confirmación normal; bandera apagada).
+- **FR-008**: En borrador y presupuesto `pendiente` el precio se **recalcula entero en cada guardado** de líneas (como hoy). «Conserva el precio» (Decisión tomada 4) significa: un presupuesto `pendiente` o `aceptado` mantiene el precio guardado **mientras no se edite** y hasta su `valido_hasta`; si se vuelve a guardar sus líneas, se reprecia con la promoción de ese momento. `aceptar_presupuesto` no reprecia. **Verificación**: pgTAP.
+- **FR-009**: `confirmar_comprobante` compara, por cada línea no manual y no `sin_stock`, la promoción que aplicaría **ahora** con la guardada; si el efecto difiere (otra promoción, una nueva, una vencida o un precio promocional editado) rechaza con `40001` y `hint = 'precios_cambiaron'` **antes** de tocar stock, costo o estado, y la transacción no deja rastro (Decisión tomada 3). La guarda **empieza con `if not private.bandera_activa('promociones_precio') then return`**: con la bandera apagada no actúa, también sobre borradores guardados con la bandera encendida (conservan su `promocion_id` y su precio promocional hasta el próximo guardado); al volver a encenderla, cada borrador abierto con promoción se rechaza **una vez** y se reprecia. Una línea cuyo precio no se puede calcular hoy (`precio_para` sin fila o `neto` nulo: producto desactivado, cotización quitada, permiso perdido) se **omite** de la guarda (no la rechaza); la comparación del precio promocional usa tolerancia de `0.005`. El instante es `clock_timestamp()` tomado **después** del `for update`. Refuerzo en el cliente: la confirmación del mostrador cobra con `ventaVigente.total_con_iva` del estado del cliente, que tras el re-guardado ya es el total nuevo. **Verificación**: pgTAP (rechazo sin efectos; confirmación normal; bandera apagada con borrador promocional; reencendido; línea omitida).
 - **FR-010**: `copiar_presupuesto` reprecia con `private.precio_linea_venta` (sin descuento del cliente, **igual que hoy**, hallazgo 3) y respeta el precio manual. **Verificación**: pgTAP.
-- **FR-011**: Las notas de crédito (y por lo tanto las devoluciones RMA que las usan) devuelven **al precio cobrado**; el disparador `copiar_costo_linea_nota` copia también `precio_referencia` y `promocion_id` de la línea original. **Verificación**: pgTAP (nota total y parcial; saldo neto y cobros).
+- **FR-011**: Las notas de crédito (y por lo tanto las devoluciones RMA que las usan) devuelven **al precio cobrado**; el disparador `copiar_costo_linea_nota` copia también `precio_referencia` y `promocion_id` de la línea original, **fuera** de su gate propio (`if new.costo_unitario is null and new.cotizacion is null`, que hoy solo decide el costo) o con su propio gate. El disparador solo actúa en notas de tipo `devolucion_productos`; las notas `devolucion_importe` y `descuento` no tienen líneas, y `emitir_nota_credito` copia `precio_unitario` de la línea original. **Verificación**: pgTAP (nota total y parcial; saldo neto y cobros).
 - **FR-012**: IVA, redondeo y saldos **no cambian de fórmula**: `subtotal = round(unitario × cantidad, 2)`, `iva = round(subtotal × alícuota / 100, 2)`, totales y `private.saldo_comprobante` salen de las líneas. Cobros, contrarreembolsos de motos (abono, `least(abono, saldo neto)`) y rendiciones usan el total confirmado (ya con promoción). **Verificación**: pgTAP (alícuota 21 % y exento; saldo y abono sobre una factura promocional).
 
 ### Permisos y tienda
 
-- **FR-013**: Quien edita ventas en la tienda (`nivel_ventas_en_empresa = 'edicion'`) cobra la promoción **sin** necesitar `productos`: el acceso a la promoción es `security definer`, acotado a (producto, empresa) de la propia consulta, con `set search_path = ''`, sin `execute` para `anon`, y solo se evalúa cuando `precio_para` devolvió fila (producto y empresa visibles para quien llama). No se agrega ninguna lectura nueva de la tabla. **Verificación**: pgTAP (operador solo `ventas` cobra la promoción; consulta/lectura no escribe; `anon` sin ejecución; otra organización sin efecto).
+- **FR-013**: Consistencia y acotación del acceso a la promoción. `guardar_lineas_comprobante` es `security definer` y ya no depende de la RLS de `promociones_precio`; aun así `private.promocion_vigente_fila` es `security definer` con `set search_path = ''`, **filtra por `organizacion_id`** además de producto y empresa (la `promocion_vigente` de la tienda hoy filtra solo por producto y empresa), y se evalúa solo cuando `precio_para` devolvió fila. `revoke execute … from public, anon, authenticated` explícito. Quien edita ventas en la tienda (`nivel_ventas_en_empresa = 'edicion'`) cobra la promoción sin necesitar `productos`. No se agrega ninguna lectura nueva de la tabla. **Verificación**: pgTAP (operador solo `ventas` cobra la promoción; consulta/lectura no escribe; `anon` y `authenticated` sin ejecución directa; otra organización sin efecto; las claves `precio_referencia`/`promocion_id` dentro de `p_lineas` se ignoran; `authenticated` no puede insertar ni actualizar líneas).
 - **FR-014**: La promoción aplicada es la de la `empresa_id` **del comprobante**, nunca la empresa activa de la barra superior; «Todas mis empresas» no habilita crear ventas de mostrador (como hoy) y un comprobante de la tienda B abierto con A activa muestra los precios de B. **Verificación**: pgTAP (A vs B) y Vitest (`comprobante.test.tsx`).
 
 ### F-2 · Pantallas
 
-- **FR-015**: `public.obtener_comprobante` devuelve en cada línea `precio_referencia` y `promocion_id` (aditivo, sin claves existentes cambiadas). **Verificación**: pgTAP.
-- **FR-016**: En el comprobante (`pages/ventas/comprobante.tsx` + `components/ventas/LineasComprobante.tsx`) una línea con promoción muestra el precio cobrado, el precio de referencia **tachado** y la leyenda «Promoción», accesible para lector de pantalla (texto, no solo tachado visual); el rótulo de escala no cambia. **Verificación**: Vitest `LineasComprobante.test.tsx` (con axe a 320/768/1440 px).
-- **FR-017**: En el mostrador (`pages/ventas/mostrador.tsx`) la tabla de líneas muestra lo mismo; los totales no cambian de estructura. **Verificación**: Vitest `mostrador.test.tsx` y E2E `apps/web/e2e/ventas-mostrador.e2e.ts`.
-- **FR-018**: Ante `40001`/`precios_cambiaron` al cobrar, el mostrador y el comprobante re-guardan las líneas (mismas cantidades, mismos precios manuales), muestran «Los precios cambiaron: revisá el total y cobrá de nuevo» y **no** reintentan el cobro solos. **Verificación**: Vitest + E2E.
-- **FR-019**: **Edición manual de precio**: sin cambios. Solo quien tiene `editar_precio` puede fijar un precio manual (también sobre un producto en promoción); la línea queda `precio_manual = true` sin referencia y el guardado deja el evento existente `comprobante.editado`. No se agrega un permiso nuevo ni un registro extra (Decisión 5). **Verificación**: pgTAP (sin permiso `42501`; con permiso manda sobre la promoción).
+- **FR-015**: `public.obtener_comprobante` devuelve en cada línea `precio_referencia` (number|null) y **no** `promocion_id` (un rol de ventas sin `productos` no debe recibir el identificador de una promoción que no puede leer; el indicador de «en promoción» es `precio_referencia` no nulo) (aditivo, sin claves existentes cambiadas). **Verificación**: pgTAP.
+- **FR-016**: En el comprobante (`pages/ventas/comprobante.tsx` + `components/ventas/LineasComprobante.tsx`) una línea con promoción muestra el precio cobrado, el precio de referencia **tachado** y la leyenda «Promoción», accesible para lector de pantalla (texto, no solo tachado visual); cuando gana la promoción el rótulo de escala (`x10`) **se omite** y el rótulo pasa a «promoción» (el descuento tampoco se muestra, porque no se aplicó); sin promoción el rótulo no cambia. El tachado es el precio normal **del cliente** (con su escala y su descuento): la ayuda lo dice así. **Verificación**: Vitest `LineasComprobante.test.tsx` (con axe a 320/768/1440 px).
+- **FR-017**: En el mostrador (`pages/ventas/mostrador.tsx`) la tabla de líneas muestra lo mismo; los totales no cambian de estructura. Como cada escaneo reprecia **todas** las líneas (borrado y alta), si entre dos escaneos una promoción vence o empieza y el precio de alguna línea cambia, el mostrador compara los precios antes y después del guardado y muestra el mismo aviso «Los precios cambiaron: revisá el total» (informativo, no bloquea el siguiente escaneo). **Verificación**: Vitest `mostrador.test.tsx` y E2E `apps/web/e2e/ventas-mostrador.e2e.ts`.
+- **FR-018**: Ante `40001`/`precios_cambiaron` al cobrar, el mostrador y el comprobante (el diálogo de confirmación es `apps/web/src/components/ventas/ConfirmarFacturaDialog.tsx`, que usa `mensajeDeConfirmacion`; `comprobante.tsx` lo abre) re-guardan las líneas (mismas cantidades, mismos precios manuales), muestran «Los precios cambiaron: revisá el total y cobrá de nuevo» y **no** reintentan el cobro solos. **Verificación**: Vitest + E2E.
+- **FR-019**: **Edición manual de precio**: sin cambios. Solo quien tiene `editar_precio` puede fijar un precio manual (también sobre un producto en promoción); la línea queda `precio_manual = true` sin referencia y el guardado deja el evento existente `comprobante.editado`. No se agrega un permiso nuevo ni un registro extra (Decisión tomada 5). **Verificación**: pgTAP (sin permiso `42501`; con permiso manda sobre la promoción).
 
 ### F-4 · Consistencia, reportes, API y documentación
 
-- **FR-020**: Con la bandera encendida, para producto/tienda/instante iguales, minorista, cantidad 1, sin descuento y sin interruptor de IVA, el neto unitario del local es **igual** al `precio` de `private.precio_vigente_empresa` de la tienda (test de paridad). Con «Precios con IVA» la diferencia está acotada a < $1 por el redondeo al peso de la tienda (hallazgo 6). **Verificación**: pgTAP.
-- **FR-021**: Reportes y exportaciones no cambian de contrato: ventas y rentabilidad realizada leen `subtotal_sin_iva`/`precio_unitario` y `costo_unitario` de la línea (precio cobrado); la exportación total incorpora las columnas nuevas por catálogo; la API pública `/v1/ventas` y `/v1/precios` no cambian (OpenAPI sin diff). El margen «actual» por producto/canal (`analitica.margen_producto_canal`) sigue con el precio normal (Decisión 8). **Verificación**: `pnpm test:openapi` sin diff; pgTAP de rentabilidad y exportación.
+- **FR-020**: Con la bandera encendida, para producto/tienda/instante iguales, minorista, cantidad 1, sin descuento y sin interruptor de IVA, el neto unitario del local es **igual** al `precio` de `private.precio_vigente_empresa` de la tienda (test de paridad). Con «Precios con IVA» la diferencia **por unidad** está acotada a < $1 por el redondeo al peso de la tienda (hallazgo 6); el límite es por unidad, no por línea. El test **excluye** las promociones mayores o iguales al normal (la tienda las muestra y el local las ignora: seguimiento S5) y los productos no publicados en la tienda de la empresa (`precio_final_publico` es null sin `producto_empresa`). **Verificación**: pgTAP.
+- **FR-021**: Reportes y exportaciones no cambian de contrato: ventas y rentabilidad realizada leen `subtotal_sin_iva`/`precio_unitario` y `costo_unitario` de la línea (precio cobrado); la exportación total incorpora las columnas nuevas por catálogo; la API pública `/v1/ventas` y `/v1/precios` no cambian (OpenAPI sin diff). El margen «actual» por producto/canal (`analitica.margen_producto_canal`) sigue con el precio normal (Decisión tomada 8). **Verificación**: `pnpm test:openapi` sin diff; pgTAP de rentabilidad y exportación.
 - **FR-022**: Documentación y ayuda al día: `docs/ventas-comprobantes.md`, `docs/ventas-mostrador.md`, `docs/promociones-precio.md` (Decisión 6 pasa de «aprobada» a «implementada», banderas y orden de encendido), `docs/precios.md`, `docs/deployment.md` (gate de encendido) y la ayuda contextual de Ventas. **Verificación**: `pnpm docs:check` y `ayuda-cobertura.test.ts`.
 - **FR-023**: Migraciones **aditivas**, con versión mayor que la última de `dokploy` y de los PRs abiertos, y reversión documentada en el encabezado de cada una. **Verificación**: `pnpm docs:check` (guard de migraciones) y revisión de PR.
-- **FR-024**: Rendimiento: `guardar_lineas_comprobante` (hasta 200 líneas) suma **una** búsqueda indexada por línea (índice `(empresa_id, producto_id, desde, hasta)` de MSF-363); sin promociones no suma costo medible. **Verificación**: pgTAP/medición en dev con 200 líneas (< 1,5× el tiempo actual).
+- **FR-024**: Rendimiento: `guardar_lineas_comprobante` y `confirmar_comprobante` con 200 líneas suman **una** búsqueda indexada por línea (índice `(empresa_id, producto_id, desde, hasta)` de MSF-363). Línea base: la misma carga de 200 líneas con la bandera **apagada** contra la **encendida** con una promoción en cada producto; el tiempo con la bandera encendida debe ser < 1,5× el de la apagada, en las dos RPC. **Verificación**: medición en dev con 200 líneas (pgTAP/medición) para ambas RPC.
 
 ## Success Criteria
 
 - **SC-001**: Para cada fila de la tabla de precedencia, el importe cobrado coincide (pgTAP, FR-003).
 - **SC-002**: Con la bandera apagada, la suite existente de comprobantes y precios pasa sin cambios y los nuevos tests de equivalencia pasan (FR-005).
 - **SC-003**: Ninguna operación sobre promociones altera un comprobante confirmado (FR-007).
-- **SC-004**: En el E2E de mostrador contra el build, un producto en promoción se cobra al precio promocional y el total del comprobante y del cobro coinciden.
+- **SC-004**: En el E2E de mostrador contra el build, un producto en promoción se cobra al precio promocional y el total del comprobante y del cobro coinciden. **Depende de ejecución local**: los E2E no corren en el CI público (solo en el job nocturno `e2e-nocturno.yml`); el E2E fija y restaura la bandera `promociones_precio` y se corre con `--workers=1` porque comparte la bandera global y el seed con los specs de la tienda.
 - **SC-005**: `pnpm lint`, `pnpm build`, `pnpm test` (con Supabase local), `pnpm docs:check`, `pnpm matriz:check` y `pnpm prototipo:check` verdes.
 
 ## Matriz pantalla↔criterios
 
-Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `design/pantallas/VentasComprobante.dc.html` (detalle y líneas del comprobante), `VentasComprobantes.dc.html` (listado), `VentasPresupuestos.dc.html`. **El mostrador (`/ventas/mostrador`) no tiene prototipo propio** (no existe `Mostrador*.dc.html`): reutiliza la tabla de líneas del comprobante. **Ningún prototipo dibuja el precio de referencia tachado ni la leyenda «Promoción»**: son los dos únicos elementos visibles nuevos, se declaran acá y requieren aprobar (Decisión 7) y sumar al prototipo antes de implementar F-2.
+Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `design/pantallas/VentasComprobante.dc.html` (detalle y líneas del comprobante), `VentasComprobantes.dc.html` (listado), `VentasPresupuestos.dc.html`. **El mostrador (`/ventas/mostrador`) no tiene prototipo propio** (no existe `Mostrador*.dc.html`): reutiliza la tabla de líneas del comprobante. **Ningún prototipo dibuja el precio de referencia tachado, la leyenda «Promoción» ni el aviso «Los precios cambiaron»**: son los tres únicos elementos visibles nuevos, se declaran acá y la **primera tarea de F-2 (T007) es sumarlos al prototipo** `VentasComprobante.dc.html`, sin depender de otra aprobación (Decisión tomada 7).
 
 | Ítem del prototipo / elemento | Pantalla | Dueño |
 |---|---|---|
@@ -264,7 +264,7 @@ Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `de
 | «Agregar producto», «Guardar cambios» | Comprobante | FR-016 y FR-018 (re-guardado ante precios cambiados); el botón no cambia |
 | «Copiar» | Comprobante / Presupuestos | FR-010 (comportamiento servidor; el botón no cambia) |
 | «Nota de crédito», «Emitir nota de crédito» | Comprobante | FR-011 (comportamiento servidor; el diálogo no cambia) |
-| «Imprimir», «Imprimir remito», «Enviar por correo» | Comprobante | **Fuera de alcance**: el PDF no cambia (Decisión 6) |
+| «Imprimir», «Imprimir remito», «Enviar por correo» | Comprobante | **Fuera de alcance**: el PDF no cambia (Decisión tomada 6) |
 | «Agregar flete», «Local», «Principal», «Ir a Pagos →», «Cancelar», «Comprobantes» | Comprobante | **Fuera de alcance**: sin cambios |
 | Diálogos «Imprimir comprobante», «Nota de crédito» | Comprobante | **Fuera de alcance**: sin cambios visibles |
 | Aviso «Los precios cambiaron…» (no dibujado) | Mostrador / Comprobante | FR-018 (componente de aviso compartido del panel) |
@@ -281,43 +281,51 @@ Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `de
 | Notas de crédito, RMA | Devuelven el precio cobrado de la línea; heredan referencia y promoción | Solo copia de 2 columnas (FR-011) |
 | Saldos y cobros | `private.saldo_comprobante`, cobros y tope por saldo neto salen del total confirmado | No |
 | Contrarreembolsos de motos | `abono` es un dato del envío; rendir cobra `least(abono, saldo neto)`; un borrador reprecio antes de confirmar no queda inconsistente porque rendir con abono exige confirmar | No |
-| Reportes de ventas / rentabilidad | Leen precio, subtotal y costo de la línea: reflejan lo cobrado. «Margen actual» por producto y canal sigue con el precio normal (Decisión 8) | No |
+| Reportes de ventas / rentabilidad | Leen precio, subtotal y costo de la línea: reflejan lo cobrado. «Margen actual» por producto y canal sigue con el precio normal (Decisión tomada 8) | No |
 | Exportaciones | La exportación total toma las columnas por catálogo: incluye las nuevas sola; CSV de comprobantes sin cambios | Verificar (FR-021) |
 | API pública | `/v1/ventas` expone totales de facturas confirmadas; `/v1/precios` lista y escalas: sin cambios | No (OpenAPI sin diff) |
 | Superset | Tableros leen líneas/totales guardados | No |
-| Tienda pública | No se toca (salvo, si se aprueba la Decisión 2, ignorar promociones ≥ precio normal) | Condicional |
-| PDF / impresión | Muestra el precio cobrado de cada línea | No (Decisión 6) |
+| Webhook `venta.registrada`, `api_leer_ventas` y vistas de consulta de IA (`20270224110000`) | El trigger `private.emitir_venta_registrada` y las lecturas de ventas y de IA leen totales e importes de la factura confirmada (ya con promoción); no exponen `precio_referencia` ni `promocion_id` | No (verificar en T021) |
+| Tienda pública | No se toca. Una promoción ≥ precio normal se sigue mostrando en la tienda y el local la ignora (seguimiento S5) | No |
+| Precio bajo el costo | La promoción no se valida contra el costo (ni `guardar_promocion_precio` ni esta épica); la rentabilidad realizada lo muestra (seguimiento S3) | No |
+| PDF / impresión | Muestra el precio cobrado de cada línea | No (Decisión tomada 6) |
 | Mercado Libre, carrito | Fuera de alcance (el carrito no existe) | No |
 
 ## Riesgos y despliegue
 
-- **R1 · Cobrar distinto de lo mostrado** si la bandera se enciende antes de que el local esté listo: **no encender `promociones_precio` en producción hasta que esta épica esté en dev y verificada**. Hoy la bandera está apagada en producción y así sigue. El orden de encendido por entorno (dev → stg → prd) y la verificación de cada uno van en `docs/deployment.md` (FR-022).
+- **R1 · Cobrar distinto de lo mostrado** si la bandera se enciende antes de que el local esté listo: **no encender `promociones_precio` en producción hasta que esta épica esté en dev y verificada**. Hoy la bandera está apagada en producción y así sigue. **Estado previo a F-1 (tarea T000)**: en dev está **encendida desde 2026-11-13**, de modo que al desplegar F-1 en dev los precios del local **cambian** (es lo esperable: ese entorno ya muestra promociones en la tienda); stg se verifica antes. El estado real de la bandera en dev y stg se comprueba antes de empezar. El orden de encendido por entorno (dev → stg → prd) y la verificación de cada uno van en `docs/deployment.md` (FR-022).
 - **R2 · Estado intermedio entre fases**: F-1 sola no cambia nada visible (columnas nulas, bandera apagada); F-2 y F-3 se despliegan antes de encender. La bandera es el único interruptor.
 - **R3 · Precio que cambia durante la venta** (promoción que vence con el carro abierto): cubierto por FR-009 y FR-018; el cajero ve el cambio antes de cobrar.
+- **R3b · Bandera apagada y reencendida con borradores abiertos**: apagada, los borradores conservan su precio promocional hasta el próximo guardado (la guarda no actúa); al encender, cada borrador abierto se rechaza una vez y se reprecia. Es un seguimiento operativo (S6) y está cubierto por pgTAP.
+- **R3c · Reloj**: `now()` es el inicio de la transacción; `guardar_lineas_comprobante` y `confirmar_comprobante` usan `clock_timestamp()` tomado **después** del `for update` (el parámetro `p_ahora` se mantiene solo para las pruebas).
+- **R3d · RLS por tienda en líneas**: el PR #570 (MSF-656) cambia la política de `comprobantes_venta_lineas` a por empresas accesibles; esta spec hereda la política vigente al mergear, no una propia.
+- **R3e · Baja de organización**: la FK de la línea a la promoción es `no action` (como las demás de la línea) para no romper la baja (ver #902/MSF-844 y `docs/e2e-app.md`); pgTAP cubre la baja con una línea promocional.
 - **R4 · Regresión de precios normales**: `precio_para` no se toca y el baseline de FR-005 compara columna por columna.
 - **R5 · Reescritura de RPC grandes** (`guardar_lineas_comprobante`, `confirmar_comprobante`): se toma el cuerpo vigente de la última migración, se cambia solo lo necesario y se corre la suite de comprobantes existente (`ventas_comprobantes_lineas`, `ventas_mostrador`, `comprobante_*`, `cobros_comprobante`) sin modificarla.
-- **R6 · Descuento y copiar presupuesto** (hallazgo 3): se conserva el comportamiento actual; el defecto se traza (Decisión 9).
+- **R6 · Descuento y copiar presupuesto** (hallazgo 3): se conserva el comportamiento actual; el defecto se traza (Decisión tomada 9).
 - **Reversión**: apagar la bandera (inmediata, sin migrar) o `git revert -m 1` del PR; las columnas nuevas quedan nulas e inofensivas.
 
-## Decisiones abiertas para Nicolás (con recomendación)
+## Decisiones tomadas (Nicolás, 2026-11-13, por delegación)
 
-1. **Precedencia entre promoción, escala, precio propio y descuento del cliente.** Recomendación: **gana el más bajo, sin acumular** (tabla de ejemplos). Alternativas: la promoción reemplaza siempre; la promoción se acumula con el descuento.
-2. **Promoción mayor o igual al precio normal.** El local ya la ignora (`least`). La tienda hoy la muestra igual. Recomendación: **alinear la tienda** (que `precio_vigente_empresa` también la ignore, y que `guardar_promocion_precio` avise al cargarla). Alternativa: dejarlo como seguimiento.
-3. **Confirmar con precios desactualizados.** Recomendación: **rechazar y repreciar con aviso** (nunca se cobra una cifra que el cliente no vio). Alternativa: repreciar en silencio dentro de la confirmación.
-4. **Presupuestos.** Recomendación: el presupuesto **conserva el precio presupuestado hasta su `valido_hasta`**, aunque la promoción termine (es una oferta comercial hecha). Alternativa: repreciar al aceptar.
-5. **Edición manual de precio.** Recomendación: sin cambios (`editar_precio`, sin permiso ni traza nuevos). Alternativa: exigir un motivo cuando el manual se aparta de una promoción vigente.
-6. **PDF e impresión.** Recomendación: sin cambios (muestra el precio cobrado). Alternativa: mostrar «Precio de lista» tachado en el documento (toca el worker de PDF).
-7. **Elementos visuales nuevos** (referencia tachada y leyenda «Promoción», aviso «Los precios cambiaron») no están en el prototipo. Recomendación: aprobarlos y **sumarlos al prototipo** antes de F-2.
-8. **Margen «actual»** de Rentabilidad con el precio normal (no el promocional); la rentabilidad realizada sí refleja lo cobrado. Recomendación: así, y mostrar ventas con promoción como seguimiento.
-9. **Descuento del cliente en `copiar_presupuesto`** (hallazgo 3). Recomendación: **seguimiento aparte** (S2), para no cambiar el comportamiento con la bandera apagada.
-10. **Leyenda.** La promoción no tiene nombre. Recomendación: leyenda fija «Promoción» (sin agregar un campo nombre).
+1. **Precedencia entre promoción, escala, precio propio y descuento del cliente**: gana el más bajo, sin acumular (tabla de ejemplos).
+2. **Promoción mayor o igual al precio normal**: el local la ignora (`least`). La tienda queda como está en esta épica; alinearla es el seguimiento S5.
+3. **Confirmar con precios desactualizados**: se rechaza y se reprecia con aviso (nunca se cobra una cifra que el cliente no vio).
+4. **Presupuestos**: conservan el precio presupuestado hasta su `valido_hasta` mientras no se edite (editar y guardar reprecia entero).
+5. **Edición manual de precio**: sin cambios (`editar_precio`, sin permiso ni traza nuevos).
+6. **PDF e impresión**: sin cambios (muestra el precio cobrado).
+7. **Elementos visuales nuevos** (referencia tachada, leyenda «Promoción», aviso «Los precios cambiaron»): se suman al prototipo `design/pantallas/VentasComprobante.dc.html` como primera tarea de F-2, sin depender de otra aprobación.
+8. **Margen «actual»** de Rentabilidad con el precio normal; la rentabilidad realizada refleja lo cobrado.
+9. **Descuento del cliente en `copiar_presupuesto`**: seguimiento aparte (S2), para no cambiar el comportamiento con la bandera apagada.
+10. **Leyenda**: fija «Promoción» (la promoción no tiene nombre).
 
 ## Seguimientos (se trazan en el tracker al aprobar; no bloquean la épica)
 
-- **S1**: la tienda con sesión de cliente (`precios_cliente_por_dominio`) no aplica promociones (hallazgo 7; Decisión 7 de MSF-363).
+- **S1**: la tienda con sesión de cliente (`precios_cliente_por_dominio`) no aplica promociones (hallazgo 7; Decisión 7 de MSF-363). **MSF-816 es esta épica, no ese seguimiento**: S1 se difiere con un ID nuevo que se asigna al trazarlo; las referencias «seguimiento MSF-816» de `docs/promociones-precio.md` y de la spec y el plan de MSF-363 se corrigen en T023.
 - **S2**: `copiar_presupuesto` no aplica el descuento del cliente (hallazgo 3).
 - **S3**: indicador «ventas con promoción» en reportes y Superset (hoy el dato queda en la línea).
-- **S4**: PDF con precio de lista tachado (solo si se elige la alternativa de la Decisión 6).
+- **S4**: PDF con precio de lista tachado (solo si se decide cambiar la Decisión 6).
+- **S5**: `private.precio_vigente_empresa` ignora la promoción ≥ precio normal y `guardar_promocion_precio` avisa al cargarla.
+- **S6**: bandera apagada y reencendida con borradores abiertos: procedimiento operativo y aviso a los cajeros.
 
 ## Fuera de alcance
 

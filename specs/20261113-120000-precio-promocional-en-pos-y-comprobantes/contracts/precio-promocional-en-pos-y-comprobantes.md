@@ -2,7 +2,9 @@
 
 **Spec**: [../spec.md](../spec.md) · **Plan**: [../plan.md](../plan.md). Ninguna RPC nueva de `public`: se cambia el comportamiento de cuatro existentes (misma firma) y se agregan funciones `private`.
 
-## `private.precio_linea_venta` (nueva, sin acceso para `anon`)
+## `private.precio_linea_venta` (nueva)
+
+`security invoker` (hereda la compuerta de `precio_para`); `revoke execute … from public, anon, authenticated`: solo la ejecutan las RPC `security definer` (`guardar_lineas_comprobante`, `copiar_presupuesto`, `private.lineas_con_promocion_desactualizada`). La promoción la lee `private.promocion_vigente_fila` (`security definer`, `search_path = ''`, filtra por `organizacion_id`, mismo `revoke`).
 
 | Entrada | Tipo | Notas |
 |---|---|---|
@@ -10,7 +12,7 @@
 | `p_tipo_cliente` | text | `clientes.tipo` (`minorista` / `mayorista`) |
 | `p_cantidad` | integer | define la escala con `private.escala_para_linea` |
 | `p_descuento` | numeric | `clientes.descuento` (%); se ignora si `p_aplicar_descuento` es false o si gana la promoción |
-| `p_ahora` | timestamptz | `now()`; solo se cambia en pruebas |
+| `p_ahora` | timestamptz | las RPC pasan `clock_timestamp()` tomado después del `for update`; el valor por defecto `now()` y el parámetro sirven para pruebas |
 | `p_aplicar_descuento` | boolean | `false` en `copiar_presupuesto` (conserva el comportamiento actual) |
 
 | Salida | Significado |
@@ -28,9 +30,9 @@ Regla: `neto_unitario = least(round(neto_escala × (1 − d/100), 2), promoción
 
 | RPC | Cambio | Errores nuevos |
 |---|---|---|
-| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | precio por `precio_linea_venta`; la línea guarda `precio_referencia` y `promocion_id` | ninguno |
-| `obtener_comprobante(p_id)` | cada línea suma `precio_referencia` (number\|null) y `promocion_id` (uuid\|null) | ninguno |
-| `confirmar_comprobante(p_id)` | guarda de precios desactualizados antes de mover stock | `40001` con `hint = 'precios_cambiaron'`; sin efectos |
+| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | precio por `precio_linea_venta`; la línea guarda `precio_referencia` y `promocion_id`; las claves `precio_referencia`/`promocion_id` dentro de `p_lineas` se ignoran | ninguno |
+| `obtener_comprobante(p_id)` | cada línea suma `precio_referencia` (number\|null); **no** expone `promocion_id` (un rol de ventas sin `productos` no debe recibir un identificador de promoción que no puede leer) | ninguno |
+| `confirmar_comprobante(p_id)` | guarda de precios desactualizados antes de mover stock; no actúa con la bandera apagada y omite las líneas sin precio calculable | `40001` con `hint = 'precios_cambiaron'`; sin efectos |
 | `copiar_presupuesto(p_id)` | precio por `precio_linea_venta` sin descuento; guarda las dos columnas | ninguno |
 
 Grants sin cambios (`authenticated`; `revoke … from public, anon`). El contrato de la API pública (`/v1/ventas`, `/v1/precios`) **no cambia**.
