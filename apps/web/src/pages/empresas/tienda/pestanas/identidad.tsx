@@ -6,10 +6,11 @@ import {
   subirImagen, urlPublica, type ClaveImagen, type IdentidadDeEmpresa, type IdentidadTienda,
 } from '../../../../lib/tiendaIdentidad'
 import { tokens } from '../../../../tema/tokens'
+import { contraste, mezclar, textoSobre, UMBRAL_BOTON } from '../../../../tema/temaTienda'
 import { EstadoCargaPagina, EstadoError } from '../../../../components/estados/EstadosPagina'
 import { ImagenTienda, useUrlLocal, type EstadoImagen } from '../componentes/imagen-tienda/ImagenTienda'
 import {
-  AvisoContraste, CampoColor, MuestraTipografia, SelectorTipografia, useFuentes,
+  AvisoContraste, CampoColor, InterruptorMayusculas, MuestraTipografia, SelectorEstiloHeroe, SelectorTipografia, useFuentes,
 } from '../componentes/identidad/CamposDeIdentidad'
 import type { PropsPestanaTienda } from '../pestanas'
 
@@ -33,7 +34,7 @@ const imagenesDe = (identidad: IdentidadTienda): Imagenes => ({
   bannerMovil: { ruta: identidad.bannerMovilRuta, archivo: null },
 })
 
-type Campos = Pick<IdentidadTienda, 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra' | 'tipografiaTitulos' | 'tipografiaTexto'>
+type Campos = Pick<IdentidadTienda, 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra' | 'tipografiaTitulos' | 'tipografiaTexto' | 'estiloHeroe' | 'titulosMayusculas'>
 const camposDe = (identidad: IdentidadTienda): Campos => ({
   colorPrimario: identidad.colorPrimario,
   colorPrimarioOscuro: identidad.colorPrimarioOscuro,
@@ -42,6 +43,8 @@ const camposDe = (identidad: IdentidadTienda): Campos => ({
   colorBarra: identidad.colorBarra,
   tipografiaTitulos: identidad.tipografiaTitulos,
   tipografiaTexto: identidad.tipografiaTexto,
+  estiloHeroe: identidad.estiloHeroe,
+  titulosMayusculas: identidad.titulosMayusculas,
 })
 
 const COLORES: ReadonlyArray<{ clave: 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra'; etiqueta: string }> = [
@@ -72,6 +75,15 @@ function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: 
   const oscuro = color(campos.colorPrimarioOscuro, IDENTIDAD_BASE.colorPrimarioOscuro)
   const acento = color(campos.colorAcento, IDENTIDAD_BASE.colorAcento)
   const barra = color(campos.colorBarra, IDENTIDAD_BASE.colorBarra)
+  // MSF-848: la miniatura sigue el estilo del encabezado (claro: superficie y primario; oscuro: franja oscura) y las mayúsculas.
+  const claro = campos.estiloHeroe === 'claro'
+  const mayusculas = campos.titulosMayusculas ? 'uppercase' : 'none'
+  const superficie = mezclar(fondo, '#000000', 0.043) // estilos-sueltos: ok
+  const textoClaro = textoSobre(superficie, [primario, '#1A1A1A', '#000000']) // estilos-sueltos: ok
+  const fondoBanner = claro ? superficie : oscuro
+  const textoBanner = claro ? textoClaro : '#FFFFFF' // estilos-sueltos: ok
+  const fondoBoton = claro ? (contraste(acento, superficie) >= UMBRAL_BOTON ? acento : textoClaro) : primario
+  const textoBoton = claro ? textoSobre(fondoBoton, ['#FFFFFF', '#1A1A1A', '#000000']) : '#FFFFFF' // estilos-sueltos: ok
   const titulos = `"${campos.tipografiaTitulos}", system-ui, sans-serif`
   const texto = `"${campos.tipografiaTexto}", system-ui, sans-serif`
   return (
@@ -84,18 +96,18 @@ function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: 
       <Box
         data-testid="vista-previa-banner"
         sx={{
-          color: 'common.white',
+          color: textoBanner,
           px: 1.5,
           py: 2,
           minHeight: (tema) => tema.spacing(8.75),
-          bgcolor: oscuro,
+          bgcolor: fondoBanner,
           backgroundImage: bannerUrl ? `url("${bannerUrl}")` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        <Typography component="div" sx={{ fontFamily: titulos, fontSize: tokens.tipografia.escala.b.tamano, fontWeight: 700, lineHeight: 1.1, maxWidth: 170 }}>Todo para tu consola</Typography>
-        <Box component="span" sx={{ display: 'inline-block', mt: 1, bgcolor: primario, color: 'common.white', fontSize: tokens.tipografia.escala.xs.tamano, fontWeight: 700, px: 1, py: 0.5, borderRadius: (tema) => tema.shape.borderRadius }}>Ver catálogo</Box>
+        <Typography component="div" sx={{ fontFamily: titulos, fontSize: tokens.tipografia.escala.b.tamano, fontWeight: 700, lineHeight: 1.1, maxWidth: 170, textTransform: mayusculas }}>Todo para tu consola</Typography>
+        <Box component="span" data-testid="vista-previa-boton" sx={{ display: 'inline-block', mt: 1, bgcolor: fondoBoton, color: textoBoton, textTransform: mayusculas, fontSize: tokens.tipografia.escala.xs.tamano, fontWeight: 700, px: 1, py: 0.5, borderRadius: (tema) => tema.shape.borderRadius }}>Ver catálogo</Box>
       </Box>
       <Box sx={{ display: 'flex', gap: 0.75, p: 1.25 }}>
         {[1, 2, 3].map((n) => (
@@ -124,7 +136,8 @@ function FormularioIdentidad({
 
   const hayCambios = useMemo(() => {
     const igualesCampos = (Object.keys(campos) as Array<keyof Campos>).every((clave) => {
-      const nuevo = clave.startsWith('color') ? normalizarColor(campos[clave]) : campos[clave]
+      const valor = campos[clave]
+      const nuevo = typeof valor === 'string' && clave.startsWith('color') ? normalizarColor(valor) : valor
       return nuevo === guardado[clave]
     })
     const igualesImagenes = CLAVES_IMAGEN.every((clave) => imagenes[clave].archivo === null && imagenes[clave].ruta === guardado[RUTA_DE[clave]])
@@ -197,6 +210,8 @@ function FormularioIdentidad({
         colorBarra: normalizarColor(campos.colorBarra),
         tipografiaTitulos: campos.tipografiaTitulos,
         tipografiaTexto: campos.tipografiaTexto,
+        estiloHeroe: campos.estiloHeroe,
+        titulosMayusculas: campos.titulosMayusculas,
         logoRuta: rutas.logo,
         bannerRuta: rutas.banner,
         bannerMovilRuta: rutas.bannerMovil,
@@ -256,6 +271,12 @@ function FormularioIdentidad({
             <SelectorTipografia etiqueta="Texto" valor={campos.tipografiaTexto} onChange={(valor) => cambiarCampo('tipografiaTexto', valor)} />
           </Stack>
           <MuestraTipografia titulos={campos.tipografiaTitulos} texto={campos.tipografiaTexto} />
+        </Tarjeta>
+        <Tarjeta titulo="Portada y menú">
+          <Stack spacing={2}>
+            <SelectorEstiloHeroe valor={campos.estiloHeroe} onChange={(valor) => cambiarCampo('estiloHeroe', valor)} />
+            <InterruptorMayusculas valor={campos.titulosMayusculas} onChange={(valor) => cambiarCampo('titulosMayusculas', valor)} />
+          </Stack>
         </Tarjeta>
         <Tarjeta titulo="Banner e imágenes principales">
           <Stack spacing={2.5}>

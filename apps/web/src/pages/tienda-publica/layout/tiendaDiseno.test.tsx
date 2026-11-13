@@ -281,3 +281,29 @@ describe.each([320, 768, 1440])('accesibilidad del layout a %i px', (ancho) => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 })
+
+// MSF-848: la identidad llega al layout completo; las mayúsculas del menú y el estilo del héroe salen de ella.
+describe('estilo del encabezado y mayúsculas desde la identidad (MSF-848)', () => {
+  it('con «sin mayúsculas» la barra de categorías no transforma el texto; con la identidad por defecto va en mayúsculas', async () => {
+    celular(false)
+    mocks.identidad.mockResolvedValue({ ...IDENTIDAD, estiloHeroe: 'claro', titulosMayusculas: false })
+    const { unmount } = montar('/')
+    await waitFor(() => expect(document.documentElement.style.getPropertyValue('--tienda-color-barra')).toBe('#2A2A2A'))
+    await waitFor(() => expect(getComputedStyle(screen.getAllByRole('link', { name: 'Cargadores' })[0]).textTransform).toBe('none'))
+    unmount()
+    mocks.identidad.mockResolvedValue(IDENTIDAD)
+    montar('/')
+    await waitFor(() => expect(getComputedStyle(screen.getAllByRole('link', { name: 'Cargadores' })[0]).textTransform).toBe('uppercase'))
+  })
+
+  it.each([320, 768, 1440])('sin violaciones de axe a %i px con el estilo claro y sin mayúsculas', async (ancho) => {
+    celular(ancho < 900)
+    window.innerWidth = ancho
+    mocks.identidad.mockResolvedValue({ ...IDENTIDAD, estiloHeroe: 'claro', titulosMayusculas: false })
+    const { container } = montar('/')
+    await screen.findByText('Portada')
+    await screen.findAllByRole('link', { name: 'Cargadores' })
+    await within(screen.getByTestId('pie-contacto')).findByRole('link', { name: 'mundojc377@gmail.com' })
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+})
