@@ -423,7 +423,21 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select is((public.avisar_faltantes_venta(array[pg_temp.fid('A1')], 'Hola') ->> 'omitidos_tope_diario')::int, 1,
   'con 1.000 avisos en las últimas 24 horas la organización no encola más (tope diario)');
 select is((select count(*)::int from public.listar_faltantes(null, 1, 50) where aviso <> 'sin_avisar'), 0, 'y nada quedó encolado');
+-- El bloqueo por organización se toma en cada encolado (revisión PR #915, M-1): sin él el tope se excede por carrera.
+select ok((select count(*) from pg_locks where locktype = 'advisory' and pid = pg_backend_pid()) >= 1,
+  'el encolado tomó el bloqueo advisory de la organización');
 reset role;
+-- El tope de una organización no limita a otra: la Organización Dos (sin avisos) encola aunque Uno esté en el tope.
+set local session_replication_role = replica;
+select is(private.encolar_aviso_faltante(gen_random_uuid(), '22222222-2222-2222-2222-222222222222',
+  'a2000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000001', null, false), 'encolado',
+  'la otra organización no queda bloqueada por el tope de la primera');
+set local session_replication_role = origin;
+select is(private.encolar_aviso_faltante((select linea_id from comps where clave = 'A1'), '11111111-1111-1111-1111-111111111111',
+  'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000001', null, false), 'tope_diario',
+  'y la primera sigue en el tope');
+select ok(exists (select 1 from pg_indexes where schemaname = 'dominio' and tablename = 'faltantes_avisos'
+                   and indexname = 'faltantes_avisos_org_created_idx'), 'el conteo del tope tiene su índice (organizacion_id, created_at)');
 delete from dominio.faltantes_avisos;
 
 -- m-5: el texto se sanea en la base (controles, invisibles, saltos) y un check lo exige.
@@ -447,6 +461,37 @@ select is(has_function_privilege('authenticated', 'private.encolar_aviso_faltant
 select is(has_function_privilege('service_role', 'public.cerrar_aviso_faltante(uuid, boolean, text, integer, uuid)', 'execute'), true, 'service_role cierra por tanda');
 select is(has_function_privilege('authenticated', 'public.cerrar_aviso_faltante(uuid, boolean, text, integer, uuid)', 'execute'), false, 'authenticated no cierra avisos');
 
+-- Revisión PR #915, M-2: un smtp_timeout es un intento incierto: queda agotado en el acto (no se reenvía solo).
+reset role;
+delete from dominio.faltantes_avisos;
+insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id, mensaje)
+select c.linea_id, '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
+       'c5000000-0000-0000-0000-000000000001', null
+  from comps c where c.clave = 'A1';
+set local role service_role;
+create temp table t6 (cliente text, correo text, lineas jsonb, tanda uuid);
+grant select, insert on t6 to public;
+insert into t6 select * from public.tomar_aviso_faltante('c5000000-0000-0000-0000-000000000001', 5);
+select public.cerrar_aviso_faltante('c5000000-0000-0000-0000-000000000001', false, 'smtp_timeout', 5, (select tanda from t6));
+select is(pg_temp.q($$select estado || '|' || intentos || '|' || ultimo_error from dominio.faltantes_avisos$$), 'agotado|1|smtp_timeout',
+  'tras un timeout el aviso queda agotado en el intento 1: no se reintenta solo');
+select is((select cardinality(public.faltantes_avisos_pendientes(5, 50))), 0, 'y el barrido no lo vuelve a tomar');
+
+-- Revisión PR #915: grants de la cola y del saneo.
+select is(has_function_privilege('anon', 'public.tomar_aviso_faltante(uuid, integer)', 'execute'), false, 'anon no ejecuta tomar_aviso_faltante');
+select is(has_function_privilege('authenticated', 'public.tomar_aviso_faltante(uuid, integer)', 'execute'), false, 'authenticated no ejecuta tomar_aviso_faltante');
+select is(has_function_privilege('service_role', 'public.tomar_aviso_faltante(uuid, integer)', 'execute'), true, 'service_role ejecuta tomar_aviso_faltante');
+select is(has_function_privilege('anon', 'public.cerrar_aviso_faltante(uuid, boolean, text, integer, uuid)', 'execute'), false, 'anon no ejecuta cerrar_aviso_faltante');
+select is(has_function_privilege('anon', 'private.sanear_mensaje_aviso(text)', 'execute'), false, 'anon no ejecuta sanear_mensaje_aviso');
+select is(has_function_privilege('authenticated', 'private.sanear_mensaje_aviso(text)', 'execute'), false, 'authenticated no ejecuta sanear_mensaje_aviso');
+select is(has_function_privilege('anon', 'private.encolar_aviso_faltante(uuid, uuid, uuid, uuid, text, boolean)', 'execute'), false, 'anon no ejecuta la regla única de encolado');
+select is(has_function_privilege('anon', 'public.avisar_faltantes_venta(uuid[], text, boolean)', 'execute'), false, 'anon no ejecuta avisar_faltantes_venta');
+select is(has_function_privilege('anon', 'public.avisar_faltantes(uuid[])', 'execute'), false, 'anon no ejecuta avisar_faltantes');
+select is((select count(*)::int from pg_constraint where conrelid = 'dominio.faltantes_avisos'::regclass
+            and conname in ('faltantes_avisos_mensaje_saneado_chk', 'faltantes_avisos_ultimo_error_codigo_chk') and convalidated), 2,
+  'los dos checks están validados');
+
+reset role;
 -- Se restaura el estado que esperan las pruebas de RLS que siguen: un aviso del cliente 3.
 delete from dominio.faltantes_avisos;
 insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id)

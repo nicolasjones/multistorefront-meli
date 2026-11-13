@@ -38,6 +38,8 @@ export type ResultadoAviso = {
   omitidos_sin_stock: number
   omitidos_sin_correo: number
   omitidos_sin_permiso: number
+  /** Pasaron el tope diario de avisos de la organización (MSF-161); la base lo manda solo si hubo. */
+  omitidos_tope_diario?: number
 }
 
 const COLUMNAS =
@@ -100,6 +102,8 @@ export function mensajeResultadoAviso(resultado: ResultadoAviso): string {
     omitidos.push(`${resultado.omitidos_ya_avisados} ${resultado.omitidos_ya_avisados === 1 ? 'ya avisado' : 'ya avisados'}`)
   }
   if (resultado.omitidos_sin_permiso > 0) omitidos.push(`${resultado.omitidos_sin_permiso} sin permiso`)
+  const tope = resultado.omitidos_tope_diario ?? 0
+  if (tope > 0) omitidos.push(`${tope} por el tope diario de avisos de tu organización (quedan para mañana)`)
   const detalle = omitidos.length > 0 ? `. Se omitieron: ${omitidos.join(', ')}.` : ''
   return resultado.encolados > 0 ? `Avisos enviados${detalle}` : `No se enviaron avisos${detalle}`
 }

@@ -91,7 +91,7 @@ export function etiquetaAviso(faltante: Pick<FaltanteVenta, 'aviso' | 'aviso_en'
 const MOTIVO_AVISO_FALLIDO: Record<CodigoErrorAviso, string> = {
   smtp_auth: 'el servidor de correo rechazó las credenciales',
   smtp_conexion: 'no se pudo conectar con el servidor de correo',
-  smtp_timeout: 'el servidor de correo no respondió a tiempo',
+  smtp_timeout: 'el servidor de correo no respondió a tiempo y el correo pudo haber salido: revisalo antes de reintentar',
   destinatario_invalido: 'el correo del cliente no es una dirección válida',
   sin_correo: 'el cliente no tiene correo',
   faltante_cerrado: 'el faltante se cerró antes de enviar el aviso',

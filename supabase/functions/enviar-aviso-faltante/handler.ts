@@ -15,9 +15,12 @@ const response = (body: unknown, status = 200) => new Response(JSON.stringify(bo
 
 export const MAX_INTENTOS = 5
 export const LIMITE_BARRIDO = 50
+/** Presupuesto de reloj de un barrido: con 30 s de timeout por correo, 50 clientes podrían pasar el límite de la función. Lo que queda lo toma el barrido siguiente (Kestra repite cada minuto). */
+export const PRESUPUESTO_BARRIDO_MS = 90_000
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // Sin coma, punto y coma, comillas ni ángulos: una sola dirección (m-3).
-export const CORREO_VALIDO = /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$/
+// Tampoco controles (U+0000-001F, U+007F-009F): `lineaSegura` los volvería un espacio dentro de `to`.
+export const CORREO_VALIDO = /^[^\s@,;<>"\u0000-\u001F\u007F-\u009F]+@[^\s@,;<>"\u0000-\u001F\u007F-\u009F]+\.[^\s@,;<>"\u0000-\u001F\u007F-\u009F]+$/
 
 type Resultado<T> = Promise<{ data: T; error: { message: string } | null }>
 
@@ -43,6 +46,8 @@ export type Deps = {
     cerrar(clienteId: string, enviado: boolean, error: string | null, tope: number, tanda: string | null): Resultado<unknown>
   }
   enviar: EnviarCorreo
+  /** Reloj en ms (inyectable para probar el corte del barrido). */
+  ahora?: () => number
 }
 
 const tokenValido = (esperado: string | undefined, recibido: string | null) => {
@@ -130,7 +135,13 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     }
     const resultados: Partial<Record<EstadoAviso, number>> = {}
     let errores = 0
+    let procesados = 0
+    const ahora = deps.ahora ?? Date.now
+    const inicio = ahora()
     for (const id of ids ?? []) {
+      // Corta por reloj: no se empieza otro cliente si ya se gastó el presupuesto del barrido.
+      if (ahora() - inicio >= PRESUPUESTO_BARRIDO_MS) break
+      procesados += 1
       try {
         const estado = await procesarCliente(id, deps)
         resultados[estado] = (resultados[estado] ?? 0) + 1
@@ -139,7 +150,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         console.error('enviar-aviso-faltante: aviso con error', id, mensajeDeError(falla))
       }
     }
-    return response({ procesados: (ids ?? []).length, resultados, errores })
+    return response({ procesados, resultados, errores, ...(procesados < (ids ?? []).length ? { pendientes: (ids ?? []).length - procesados } : {}) })
   }
 
   if (typeof body?.cliente_id !== 'string' || !UUID.test(body.cliente_id)) return response({ error: 'Falta el cliente.' }, 400)

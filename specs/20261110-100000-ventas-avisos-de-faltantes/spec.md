@@ -268,3 +268,4 @@ Rutas: pgTAP en `supabase/tests/database/`, Vitest junto a la pantalla en `apps/
 - **Selección (m-7, QA M4)**: se descarta al cambiar de filtro de aviso, así «Avisar (n)» y el envío solo cuentan lo que se ve.
 - **Trigger (m-2)**: reintenta ante deadlock/lock_not_available y deja una actividad segura si no puede; nunca bloquea el ingreso.
 - **Prototipo**: `design/pantallas/VentasFaltantes.dc.html` no dibuja los chips «En cola» y «Aviso fallido» ni «Reintentar»; son un agregado pedido por la revisión (M-1) que reutiliza `EtiquetaEstado` y los botones del sistema, y queda para confirmar con el prototipo.
+- **Revisión del PR #915** (migración `20270306120000`): tope diario con bloqueo por organización e índice; `smtp_timeout` = intento incierto (queda `agotado`, sin reenvío automático); orden de bloqueo común a las dos RPC; la pantalla de Stock informa el tope diario; el barrido de la Edge Function corta por reloj.

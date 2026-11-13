@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { asuntoAviso, cuerpoAviso, MENSAJE_MAX, neutralizarPuntos, sanearMensaje } from './contenido.ts'
-import { CORREO_VALIDO, MAX_INTENTOS, codigoDeError, manejar, type Deps, type Tomado } from './handler.ts'
+import { CORREO_VALIDO, MAX_INTENTOS, PRESUPUESTO_BARRIDO_MS, codigoDeError, manejar, type Deps, type Tomado } from './handler.ts'
 import { lineaSegura } from '../_shared/texto.ts'
 import { conTimeout } from '../_shared/timeout.ts'
 
@@ -268,7 +268,7 @@ describe('enviar-aviso-faltante · entrada', () => {
 describe('enviar-aviso-faltante · destinatario y saneo (m-3, m-4)', () => {
   it('el correo del destinatario es una sola dirección', () => {
     for (const bueno of ['ana@example.com', 'a.b+c@sub.example.com.ar']) assert.equal(CORREO_VALIDO.test(bueno), true, bueno)
-    for (const malo of ['a@x.com,b@y.com', 'a@x.com;b@y.com', 'Ana <a@x.com>', '"a"@x.com', 'a@x', 'a b@x.com', 'a@x.com\r\nBcc: z@w.com']) {
+    for (const malo of ['a@x.com\u0001z.w', 'a\u007F@x.com', 'a@x.com,b@y.com', 'a@x.com;b@y.com', 'Ana <a@x.com>', '"a"@x.com', 'a@x', 'a b@x.com', 'a@x.com\r\nBcc: z@w.com']) {
       assert.equal(CORREO_VALIDO.test(malo), false, malo)
     }
   })
@@ -311,5 +311,37 @@ describe('_shared/timeout · tope del envío SMTP (M-2)', () => {
   it('deja pasar el resultado y el error de un envío que responde a tiempo', async () => {
     assert.equal(await conTimeout(Promise.resolve('ok'), 1000), 'ok')
     await assert.rejects(conTimeout(Promise.reject(new Error('boom')), 1000), /boom/)
+  })
+})
+
+describe('enviar-aviso-faltante · revisión PR #915', () => {
+  it('lineaSegura no parte nombres con ZWNJ/ZWJ pero sigue quitando los invisibles de dirección', () => {
+    assert.equal(lineaSegura('می\u200Cخواهم'), 'می\u200Cخواهم')
+    assert.equal(lineaSegura('👨\u200D👩'), '👨\u200D👩')
+    assert.equal(lineaSegura('a\u200Bb\u202Ec'), 'a b c')
+  })
+
+  it('sanearMensaje recorta igual que la base: solo espacio y salto de línea (no NBSP)', () => {
+    assert.equal(sanearMensaje('\u00A0hola\u00A0'), '\u00A0hola\u00A0')
+    assert.equal(sanearMensaje(' \n hola \n '), 'hola')
+    assert.equal(sanearMensaje(`${'x'.repeat(MENSAJE_MAX - 1)} y`), 'x'.repeat(MENSAJE_MAX - 1))
+  })
+
+  it('un timeout de SMTP se informa como smtp_timeout (el cierre lo trata como intento incierto)', async () => {
+    const { deps, cierres } = montar({ falloSmtp: 'smtp timeout: el servidor no respondió a tiempo' })
+    await pedir(deps, { cliente_id: ID })
+    assert.equal(cierres[0].error, 'smtp_timeout')
+  })
+
+  it('el barrido corta por reloj: no empieza otro cliente si gastó el presupuesto y dice cuántos quedan', async () => {
+    const ids = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333']
+    const { deps, enviados } = montar({ pendientes: ids })
+    let t = 0
+    deps.ahora = () => t
+    const enviar = deps.enviar
+    deps.enviar = async (mensaje) => { t += PRESUPUESTO_BARRIDO_MS; await enviar(mensaje) }
+    const res = await (await pedir(deps, { barrer: true })).json()
+    assert.deepEqual(res, { procesados: 1, resultados: { enviado: 1 }, errores: 0, pendientes: 2 })
+    assert.equal(enviados.length, 1)
   })
 })

@@ -222,7 +222,7 @@ describe('ventasFaltantes · aviso en el listado (F-VTA-26, FR-008; F-VTA-27, FR
     expect(avisoFallido({ aviso_error: null })).toBeNull()
     expect(avisoFallido({ aviso_error: 'smtp_timeout' })).toEqual({
       texto: 'Aviso fallido',
-      motivo: 'No se pudo avisar: el servidor de correo no respondió a tiempo.',
+      motivo: 'No se pudo avisar: el servidor de correo no respondió a tiempo y el correo pudo haber salido: revisalo antes de reintentar.',
       variante: 'error',
     })
     expect(avisoFallido({ aviso_error: 'sin_correo' })?.motivo).toBe('No se pudo avisar: el cliente no tiene correo.')

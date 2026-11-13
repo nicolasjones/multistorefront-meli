@@ -18,6 +18,9 @@ export const MENSAJE_MAX = 1000
  * Texto plano del mensaje editable: sin caracteres de control salvo el salto de línea, a lo sumo dos saltos
  * seguidos, recortado y de hasta 1.000 caracteres. Vacío después de sanear = null (texto por defecto).
  */
+// Solo espacio y salto de línea en los extremos: es EXACTAMENTE lo que recorta `private.sanear_mensaje_aviso` en la base (no `trim()`, que también quita NBSP y espacios Unicode).
+const ESPACIOS_EXTREMOS = /^[ \n]+|[ \n]+$/g
+
 export function sanearMensaje(valor: string | null | undefined): string | null {
   if (typeof valor !== 'string') return null
   const limpio = valor
@@ -28,9 +31,9 @@ export function sanearMensaje(valor: string | null | undefined): string | null {
     // Sin caracteres invisibles (ancho cero, marcas y controles de dirección): no aportan texto y permiten disimular contenido.
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, '')
     .replace(/\n{3,}/g, '\n\n')
-    .trim()
+    .replace(ESPACIOS_EXTREMOS, '')
     .slice(0, MENSAJE_MAX)
-    .trim()
+    .replace(ESPACIOS_EXTREMOS, '')
   return limpio === '' ? null : limpio
 }
 
