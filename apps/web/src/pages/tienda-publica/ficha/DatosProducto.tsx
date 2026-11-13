@@ -2,6 +2,7 @@ import { Box, Button, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import type { FichaProducto } from '../../../lib/tiendaFicha'
 import { MigasTienda } from '../layout/MigasTienda'
+import { useCelular } from '../useAnchoCelular'
 import { PrecioTachado } from '../catalogo/PrecioTachado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { BotonWhatsApp } from '../whatsapp/BotonWhatsApp'
@@ -25,12 +26,13 @@ export function Migas({ nombre }: { nombre: string }) {
 }
 
 export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; host: string; empresa: string }) {
+  const movil = useCelular()
   return (
     <Box>
       {ficha.categoria ? <Typography color="text.secondary" sx={{ fontSize: { xs: 13, md: 14 }, mb: { xs: 0, md: '8px' } /* estilos-sueltos: ok */ }}>{ficha.categoria.nombre}</Typography> : null}
       <Typography component="h1" variant="h4" sx={{ fontSize: { xs: 30, md: 44 }, lineHeight: { xs: 1.1, md: 1.05 }, mt: { xs: '4px', md: 0 }, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{ficha.nombre}</Typography>
       <Box sx={{ mt: { xs: '14px', md: '20px' } }}><PrecioTachado precio={ficha.precio} precioAnterior={ficha.precioAnterior} tamano={{ xs: 34, md: 44 }} /></Box>
-      <Box sx={{ mt: { xs: '8px', md: '12px' }, fontSize: { xs: 15, md: 16 } }}><EtiquetaDisponibilidad disponible={ficha.disponible} tamano="ficha" /></Box>
+      <Box sx={{ mt: { xs: '8px', md: '12px' }, display: 'flex' }}><EtiquetaDisponibilidad disponible={ficha.disponible} tamano="ficha" /></Box>
       {ficha.descripcion ? <Typography sx={{ mt: { xs: '16px', md: '24px' }, fontSize: { xs: 16, md: 17 }, lineHeight: 1.6, whiteSpace: 'pre-line' /* estilos-sueltos: ok */ }}>{ficha.descripcion}</Typography> : null}
       <Box component="dl" aria-label="Datos del producto" sx={{ m: 0, mt: '24px' }}>
         {ficha.sku ? <Dato rotulo="SKU">{ficha.sku}</Dato> : null}
@@ -48,6 +50,8 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
           productoId={ficha.id}
           precio={ficha.precio}
         />
+        {/* «Ver más productos» no está en el prototipo móvil (`MJC_M_Producto`): solo escritorio. */}
+        {movil ? null : (
         <Button
           component={EnlaceRuta}
           to="/catalogo"
@@ -56,6 +60,7 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
         >
           Ver más productos
         </Button>
+        )}
         {/* «Compartir» (F-TDA-25) no está en el prototipo: va después de los dos botones del prototipo, que quedan juntos. */}
         <BotonCompartir productoId={ficha.id} nombre={ficha.nombre} />
       </Box>

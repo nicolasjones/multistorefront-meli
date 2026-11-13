@@ -4,6 +4,8 @@ import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { enviarConsultaContacto, minutosDeEspera, nuevaClaveEnvio } from '../../../lib/tiendaContacto'
 import { ErrorConReintento } from '../ErrorConReintento'
 import { IconoTilde } from '../layout/iconos'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
+import { useCelular } from '../useAnchoCelular'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
 import { LINEA_SUAVE } from '../layout/medidas'
 
@@ -23,7 +25,7 @@ const estiloTarjeta = { bgcolor: 'background.paper', border: { xs: 0, md: LINEA_
 // Campo del prototipo (`.fin`): el rótulo (14 px/600) ARRIBA del campo —no flotante—, campo de 44 px (el mensaje, de 110 px como
 // mínimo) con borde de 1,5 px, radio 8 y texto de apoyo en el gris secundario (contraste AA) y el foco visible (borde y contorno primarios). El rótulo es un <label> asociado; el error va debajo con
 // `aria-describedby`.
-function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef }: {
+function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef, rotuloVisible = true }: {
   id: string
   etiqueta: string
   ejemplo: string
@@ -33,11 +35,13 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
   autoComplete?: string
   multilinea?: boolean
   inputRef: (el: HTMLInputElement | null) => void
+  // En celular el prototipo (`MJC_M_Contacto`) solo muestra el texto de apoyo: el rótulo queda para lectores de pantalla.
+  rotuloVisible?: boolean
 }) {
   const idError = `${id}-error`
   return (
     <Box sx={{ flex: 1, minWidth: 0 }}>
-      <Typography component="label" htmlFor={id} sx={{ display: 'block', fontSize: 14, fontWeight: 600, mb: '6px' /* estilos-sueltos: ok */ }}>{etiqueta}</Typography>
+      <Typography component="label" htmlFor={id} sx={rotuloVisible ? { display: 'block', fontSize: 14, fontWeight: 600, mb: '6px' /* estilos-sueltos: ok */ } : SOLO_LECTORES}>{etiqueta}</Typography>
       <InputBase
         id={id}
         fullWidth
@@ -65,6 +69,7 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
 // con una `clave_envio` por intento y conserva lo escrito ante límite o error. Foco al primer error y al
 // mensaje de éxito; los errores se asocian a su campo con aria-describedby (MUI lo hace con el helperText).
 export function FormularioContacto({ host }: { host: string }) {
+  const movil = useCelular()
   const [datos, setDatos] = useState<DatosContacto>(VACIO)
   const [errores, setErrores] = useState<ErroresContacto>({})
   const [estado, setEstado] = useState<Fase>({ fase: 'editando' })
@@ -140,6 +145,8 @@ export function FormularioContacto({ host }: { host: string }) {
   if (estado.fase === 'exito') {
     return (
       <Box component="section" aria-labelledby="contacto-gracias" data-testid="contacto-exito" sx={estiloTarjeta}>
+        {/* Prototipo: el título «Escribinos» se conserva sobre el recuadro de éxito. */}
+        <Typography component="p" variant="h6" aria-hidden sx={{ fontSize: { xs: 22, md: 24 }, mb: '16px' /* estilos-sueltos: ok */ }}>Escribinos</Typography>
         <Box sx={{ py: '40px', px: '24px', textAlign: 'center', border: '1.5px solid rgba(0,0,0,.1)', borderRadius: '12px' /* estilos-sueltos: ok */ }}>
           <Box component="span" aria-hidden sx={{ width: 56, height: 56, borderRadius: '50%', bgcolor: '#E1F3E7', color: '#146B35', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' /* estilos-sueltos: ok */ }}>
             <IconoTilde size={28} />
@@ -148,7 +155,7 @@ export function FormularioContacto({ host }: { host: string }) {
             ¡Gracias! Recibimos tu consulta
           </Typography>
           <Typography color="text.secondary" sx={{ mt: '6px' }}>Te respondemos por el medio que dejaste.</Typography>
-          <Button variant="outlined" onClick={enviarOtra} sx={{ mt: 2, px: '18px', py: '10px', border: '2px solid', borderColor: 'primary.main', '&:hover': { border: '2px solid', borderColor: 'primary.main' } /* estilos-sueltos: ok */ }}>Enviar otra</Button>
+          <Button variant="outlined" onClick={enviarOtra} sx={{ mt: 2, px: '18px', py: '10px', fontSize: 16, border: '2px solid', borderColor: 'primary.main', '&:hover': { border: '2px solid', borderColor: 'primary.main' } /* estilos-sueltos: ok */ }}>Enviar otra</Button>
         </Box>
       </Box>
     )
@@ -175,6 +182,7 @@ export function FormularioContacto({ host }: { host: string }) {
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: '14px' }}>
             <Campo
               id="contacto-nombre"
+              rotuloVisible={!movil}
               etiqueta="Nombre"
               ejemplo="Tu nombre"
               valor={datos.nombre}
@@ -185,6 +193,7 @@ export function FormularioContacto({ host }: { host: string }) {
             />
             <Campo
               id="contacto-contacto"
+              rotuloVisible={!movil}
               etiqueta="Correo o WhatsApp"
               ejemplo="Para responderte"
               valor={datos.contacto}
@@ -195,6 +204,7 @@ export function FormularioContacto({ host }: { host: string }) {
           </Box>
           <Campo
             id="contacto-mensaje"
+            rotuloVisible={!movil}
             etiqueta="Mensaje"
             ejemplo="Contanos qué producto te interesa"
             valor={datos.mensaje}

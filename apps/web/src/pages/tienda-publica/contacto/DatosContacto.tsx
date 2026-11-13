@@ -2,6 +2,7 @@ import { Box, Typography } from '@mui/material'
 import type { ContactoTienda } from '../../../lib/tiendaContacto'
 import { IconoCorreo, IconoLocal } from '../layout/iconos'
 import { IconoWhatsapp } from '../whatsapp/IconoWhatsapp'
+import { useCelular } from '../useAnchoCelular'
 import { LINEA_SUAVE } from '../layout/medidas'
 
 // Bloque de contacto del prototipo (`MJC_Contacto`): círculo de 44 px en el color primario con el glifo en blanco a la
@@ -27,25 +28,30 @@ const estiloNota = { fontSize: 14, mt: '2px', overflowWrap: 'anywhere' } as cons
 // inventado): «Retiro y envíos» dice por qué medio se coordina según los datos que la tienda cargó. Todo texto
 // va como nodo de React: se escapa solo.
 export function DatosContacto({ contacto }: { contacto: ContactoTienda }) {
+  const movil = useCelular()
   if (!contacto.whatsapp && !contacto.correo) return null
+  const glifo = movil ? 20 : 22
   return (
     <Box data-testid="datos-contacto">
       {contacto.whatsapp ? (
-        <Bloque titulo="WhatsApp" icono={<IconoWhatsapp size={22} />} testId="bloque-whatsapp">
+        <Bloque titulo="WhatsApp" icono={<IconoWhatsapp size={glifo} />} testId="bloque-whatsapp">
           <Typography sx={estiloDato}>{contacto.whatsapp}</Typography>
           {contacto.horarios ? <Typography color="text.secondary" sx={estiloNota}>{contacto.horarios}</Typography> : null}
         </Bloque>
       ) : null}
       {contacto.correo ? (
-        <Bloque titulo="Correo" icono={<IconoCorreo size={22} />} testId="bloque-correo">
+        <Bloque titulo="Correo" icono={<IconoCorreo size={glifo} />} testId="bloque-correo">
           <Typography sx={estiloDato}>{contacto.correo}</Typography>
           <Typography color="text.secondary" sx={estiloNota}>Respondemos dentro de las 24 h</Typography>
         </Bloque>
       ) : null}
-      <Bloque titulo="Retiro y envíos" icono={<IconoLocal />} testId="bloque-retiro-envios">
-        <Typography sx={estiloDato}>{contacto.whatsapp ? 'Coordinamos por WhatsApp' : 'Coordinamos por correo'}</Typography>
-        <Typography color="text.secondary" sx={estiloNota}>No hay compra online en esta versión: consultás y coordinamos.</Typography>
-      </Bloque>
+      {/* El prototipo móvil (`MJC_M_Contacto`) muestra solo WhatsApp y Correo. */}
+      {movil ? null : (
+        <Bloque titulo="Retiro y envíos" icono={<IconoLocal />} testId="bloque-retiro-envios">
+          <Typography sx={estiloDato}>{contacto.whatsapp ? 'Coordinamos por WhatsApp' : 'Coordinamos por correo'}</Typography>
+          <Typography color="text.secondary" sx={estiloNota}>No hay compra online en esta versión: consultás y coordinamos.</Typography>
+        </Bloque>
+      )}
     </Box>
   )
 }

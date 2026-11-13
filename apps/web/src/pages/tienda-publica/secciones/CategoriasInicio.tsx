@@ -1,15 +1,16 @@
-import { Box, Typography } from '@mui/material'
+import { Box, ButtonBase, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import { Link as EnlaceRuta } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
 import { useCategoriasTienda } from '../../../hooks/useCategoriasTienda'
-import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCategorias'
+import { categoriasPrincipales } from '../../../lib/tiendaCategorias'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import type { PropsSeccionTienda } from '../PaginaTienda'
 import { useCelular } from '../useAnchoCelular'
-import { ErrorConReintento } from '../ErrorConReintento'
 import { BORDE_CAMPO } from '../layout/medidas'
+import { elegirCategoriaInicio, useCategoriaInicio } from './categoriaInicio'
+import { ErrorConReintento } from '../ErrorConReintento'
 
 export const orden = 40
 
@@ -44,6 +45,9 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   const categorias = useCategoriasTienda(host)
   const inicio = useInicioTienda(host)
   const movil = useCelular()
+  const elegida = useCategoriaInicio()
+  // Al salir de la portada (o pasar a escritorio) la elección se descarta.
+  useEffect(() => () => elegirCategoriaInicio(null), [])
   const imagenes = useImagenesCategorias(categoriasPrincipales(categorias.categorias).flatMap((c) => (c.imagen ? [c.imagen] : [])))
 
   if (categorias.fase === 'cargando' || inicio.fase === 'cargando') {
@@ -60,22 +64,40 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
   if ((inicio.fase === 'lista' && !inicio.hayProductos) || categorias.categorias.length === 0) return null
 
   const principales = categoriasPrincipales(categorias.categorias)
-  // Celular (MJC_M_Home): las categorías son una fila de píldoras (14 px/600, borde de 1,5 px y radio total) bajo la portada.
+  // Celular (MJC_M_Home): las categorías son una fila de píldoras (14 px/600, borde de 1,5 px y radio total) que filtran los destacados
+  // en su lugar; «Todo» arranca activa. Son botones con estado (`aria-pressed`); el camino a cada categoría sigue en el menú, en
+  // «Más categorías» y en el enlace de «Destacados» cuando la categoría elegida no tiene destacados.
   if (movil) {
+    const descendientes = (id: string) => {
+      const ids = new Set<string>([id])
+      let creciendo = true
+      while (creciendo) {
+        creciendo = false
+        for (const c of categorias.categorias) if (c.padreId && ids.has(c.padreId) && !ids.has(c.id)) { ids.add(c.id); creciendo = true }
+      }
+      return ids
+    }
     return (
       <Box component="section" aria-label="Categorías" sx={{ pt: '24px' /* estilos-sueltos: ok */ }}>
         <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, py: '12px', display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none' /* estilos-sueltos: ok */ }}>
-          {[{ id: 'todo', nombre: 'Todo', a: '/catalogo' }, ...principales.map((c) => ({ id: c.id, nombre: c.nombre, a: `/categoria/${c.id}` }))].map((c) => (
-            <li key={c.id}>
-              <Box
-                component={EnlaceRuta}
-                to={c.a}
-                sx={{ display: 'block', flexShrink: 0, whiteSpace: 'nowrap', px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, border: BORDE_CAMPO, bgcolor: 'background.paper', color: 'text.primary', textDecoration: 'none' /* estilos-sueltos: ok */ }}
-              >
-                {c.nombre}
-              </Box>
-            </li>
-          ))}
+          {[{ id: 'todo', nombre: 'Todo' }, ...principales.map((c) => ({ id: c.id, nombre: c.nombre }))].map((c) => {
+            const activa = c.id === 'todo' ? elegida === null : elegida?.id === c.id
+            return (
+              <li key={c.id}>
+                <ButtonBase
+                  aria-pressed={activa}
+                  onClick={() => elegirCategoriaInicio(c.id === 'todo' ? null : { id: c.id, nombre: c.nombre, ids: descendientes(c.id) })}
+                  sx={{
+                    flexShrink: 0, whiteSpace: 'nowrap', px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', // estilos-sueltos: ok
+                    border: BORDE_CAMPO, borderColor: activa ? 'primary.main' : undefined, bgcolor: activa ? 'primary.main' : 'background.paper', color: activa ? 'primary.contrastText' : 'text.primary',
+                    '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' }, // estilos-sueltos: ok
+                  }}
+                >
+                  {c.nombre}
+                </ButtonBase>
+              </li>
+            )
+          })}
         </Box>
       </Box>
     )
@@ -111,9 +133,6 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
           )
         })}
       </Box>
-      {hayMasCategorias(categorias.categorias, principales) ? (
-        <Box component={EnlaceRuta} to="/catalogo" sx={{ display: 'inline-block', mt: 2, color: 'inherit' }}>Ver todas las categorías →</Box>
-      ) : null}
     </Box>
   )
 }

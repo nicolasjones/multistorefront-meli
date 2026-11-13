@@ -60,7 +60,7 @@ describe('Relacionados', () => {
     const rejilla = screen.getByTestId('tarjeta-producto').parentElement?.parentElement as HTMLElement
     const reglas = Array.from(document.querySelectorAll('style')).map((s) => s.textContent).join('')
     expect(rejilla.className).toBeTruthy()
-    expect(reglas).toContain('repeat(2, minmax(0, 1fr))')
+    expect(reglas).toContain('repeat(2, minmax(0, 173px))')
     // 4 columnas desde `sm` (600 px): a 768 px ya son 4, no 2 (FR-012).
     expect(reglas).toMatch(/@media \(min-width:600px\)\{[^}]*\{[^}]*repeat\(4, minmax\(0, 1fr\)\)/)
     expect(reglas).not.toMatch(/min-width:900px[^}]*\{[^}]*repeat\(4/)

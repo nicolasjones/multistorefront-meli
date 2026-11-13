@@ -6,6 +6,7 @@ import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { categoriasPrincipales, type CategoriaPublica } from '../../../lib/tiendaCategorias'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { normalizarNumero } from '../../../lib/whatsapp'
+import { useCelular } from '../useAnchoCelular'
 import { estiloEnlacePie, estiloTituloPie } from './estilosPie'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
 import { PieInformacion } from './PieInformacion'
@@ -24,6 +25,7 @@ const AvisoCookies = lazy(() => import('./AvisoCookies'))
 export function PieCategorias({ categorias: todas, host, empresaNombre }: { categorias: CategoriaPublica[]; host: string; empresaNombre: string }) {
   // MSF-825: las mismas categorías principales que el menú (FR-005), no las ~190 de la base.
   const categorias = categoriasPrincipales(todas)
+  const movil = useCelular()
   const logo = urlPublica(useIdentidadTienda()?.logoRuta ?? null)
   const contenido = useContenidoPublico(host)
   const contactoEstado = useContactoTienda(host)
@@ -48,7 +50,8 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
             {eslogan ? <Typography sx={{ mt: 1.5, fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{eslogan}</Typography> : null}
             {textoPie ? <Typography data-testid="pie-tienda" sx={{ mt: 1.5, fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{textoPie}</Typography> : null}
           </Box>
-          {categorias.length > 0 ? (
+          {/* Celular (`MJC_M_Home`): el pie no trae la columna de categorías (están en el menú). */}
+          {categorias.length > 0 && !movil ? (
             <Box component="nav" aria-label="Categorías del pie" data-testid="pie-categorias">
               <Typography component="h2" sx={estiloTituloPie}>Categorías</Typography>
               <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, fontSize: 14 /* estilos-sueltos: ok */ }}>

@@ -12,7 +12,7 @@ export function GrillaProductos({ columnas, children, ...resto }: { columnas: 3 
       {...resto}
       sx={{
         listStyle: 'none', m: 0, p: 0, display: 'grid', gap: { xs: '12px', md: '24px' }, // estilos-sueltos: ok
-        gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: `repeat(${columnas}, minmax(0, 1fr))` },
+        justifyContent: { xs: 'start', sm: 'stretch' }, gridTemplateColumns: { xs: 'repeat(2, minmax(0, 173px))', sm: `repeat(${columnas}, minmax(0, 1fr))` },
       }}
     >
       {children}
