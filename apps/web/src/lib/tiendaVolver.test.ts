@@ -18,7 +18,7 @@ describe('rutaVolverSegura', () => {
     ['mismo protocolo (//)', '//evil.example'],
     ['barra invertida', '/\\evil.example'],
     ['barra con barra invertida adentro', '/ok\\evil'],
-    ['javascript:', 'java' + 'script:alert(1)'],
+    ['esquema javascript', 'java' + 'script:alert(1)'],
     ['dos puntos adentro', '/ruta:rara'],
     ['salto de línea', '/mi-cuenta\n//evil.example'],
     ['tabulación', '/\t/evil.example'],
