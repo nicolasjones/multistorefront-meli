@@ -1,8 +1,8 @@
 import { supabaseClient } from './supabase'
 import { hoyEnArgentina } from './reparaciones'
 import { crearComprobante, obtenerComprobante, mensajeDeErrorComprobante, type Comprobante } from './ventas'
-import { aEntradas, conProductoAgregado, guardarLineasComprobante, type EntradaLinea } from './ventasLineas'
-import { mensajeDeConfirmacion } from './ventasConfirmacion'
+import { aEntradas, conProductoAgregado, guardarLineasComprobante, lineaEnPromocion, type EntradaLinea } from './ventasLineas'
+import { esPreciosCambiaron, mensajeDeConfirmacion } from './ventasConfirmacion'
 import { mensajeDeErrorCobro } from './ventas/cobros'
 
 // Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329). Reutiliza el comprobante, las líneas y
@@ -81,6 +81,32 @@ export async function agregarProductoAVenta(
   await guardarLineasComprobante(actual.id, conProducto, actual.updated_at)
   return obtenerComprobante(actual.id)
 }
+
+// Compara la venta antes y después de un escaneo (FR-017). Cada guardado reprecia TODAS las líneas, así que si entre dos
+// escaneos una promoción venció o empezó, el precio de alguna línea ya cargada cambia. Se compara cada línea previa con
+// la misma (producto + depósito): distinto precio cobrado, salvo en el producto recién escaneado (su cantidad cambió y la
+// escala puede mover el precio), donde solo cuenta si pasó a (o dejó de estar en) promoción.
+export function huboCambioDePrecios(antes: Comprobante | null, despues: Comprobante, productoEscaneadoId: string): boolean {
+  if (!antes) return false
+  return antes.lineas.some((previa) => {
+    if (previa.sin_stock || !previa.producto_id) return false
+    const actual = despues.lineas.find(
+      (linea) => linea.producto_id === previa.producto_id && linea.deposito_id === previa.deposito_id,
+    )
+    if (!actual) return false
+    if (previa.producto_id === productoEscaneadoId) return lineaEnPromocion(previa) !== lineaEnPromocion(actual)
+    return previa.precio_unitario !== actual.precio_unitario
+  })
+}
+
+// Tras un `precios_cambiaron` al cobrar (FR-018): la base ya rechazó sin efectos. Se vuelven a guardar las MISMAS líneas
+// (cantidades y precios manuales; la base reprecia el resto) y se relee la venta: el total nuevo es el que se cobra.
+export async function repreciarVenta(venta: Comprobante): Promise<Comprobante> {
+  await guardarLineasComprobante(venta.id, aEntradas(venta.lineas), venta.updated_at)
+  return obtenerComprobante(venta.id)
+}
+
+export { esPreciosCambiaron }
 
 export function mensajeDeEscaneo(error: unknown): string {
   const e = error as { code?: string; hint?: string; message?: string } | null

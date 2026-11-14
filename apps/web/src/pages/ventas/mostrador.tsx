@@ -7,17 +7,20 @@ import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
 import type { Comprobante } from '../../lib/ventas'
-import { rotuloEscalaLinea } from '../../lib/ventasLineas'
+import { MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, rotuloEscalaLinea } from '../../lib/ventasLineas'
 import { etiquetaCuentaCobro } from '../../lib/ventas/cuentasCobro'
 import { puedeRegistrarCobro, registrarCobro } from '../../lib/ventas/cobros'
 import { confirmarComprobante } from '../../lib/ventasConfirmacion'
 import { listarFormasPago, type FormaPago } from '../../lib/ventas/formasPago'
 import {
   MENSAJE_PRODUCTO_NO_ENCONTRADO, MENSAJE_SIN_CONSUMIDOR_FINAL, agregarProductoAVenta, buscarProductoPorCodigoBarras,
-  esEan13, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo, mensajeDescarteVenta, obtenerConsumidorFinal,
+  esEan13, esPreciosCambiaron, huboCambioDePrecios, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo,
+  mensajeDescarteVenta, obtenerConsumidorFinal, repreciarVenta,
   MENSAJE_CODIGO_INVALIDO,
 } from '../../lib/ventasMostrador'
 import { LectorCodigoBarras } from '../../components/ventas/LectorCodigoBarras'
+import { AvisoPreciosCambiaron } from '../../components/ventas/AvisoPreciosCambiaron'
+import { PrecioLineaPromocion } from '../../components/ventas/PrecioLineaPromocion'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -38,6 +41,8 @@ export function VentaMostrador() {
   const [errorVenta, setErrorVenta] = useState<string | null>(null)
   const [errorFormas, setErrorFormas] = useState<string | null>(null)
   const [avisoDescarte, setAvisoDescarte] = useState<string | null>(null)
+  // Aviso informativo de precios (FR-017/FR-018): una promoción venció o empezó entre escaneos, o la base rechazó el cobro.
+  const [avisoPrecios, setAvisoPrecios] = useState<string | null>(null)
   const [cobrada, setCobrada] = useState<{ numero: string; total: number } | null>(null)
   const [cobrando, setCobrando] = useState(false)
   const [confirmadaId, setConfirmadaId] = useState<string | null>(null)
@@ -122,8 +127,10 @@ export function VentaMostrador() {
       }
       const actual = ventaRef.current
       const base = actual && actual.empresa_id === empresa ? actual : null
+      if (!base) setAvisoPrecios(null)
       const actualizada = await agregarProductoAVenta(base, empresa, cliente, producto.producto_id)
       if (empresaVigente.current === empresa) {
+        if (huboCambioDePrecios(base, actualizada, producto.producto_id)) setAvisoPrecios(MENSAJE_PRECIOS_CAMBIARON)
         setVenta(actualizada)
         setAvisoDescarte(null)
       } else {
@@ -161,6 +168,7 @@ export function VentaMostrador() {
     if (!ventaVigente || cobrando) return
     setCobrando(true)
     setErrorVenta(null)
+    setAvisoPrecios(null)
     let fase: 'confirmar' | 'cobrar' = 'confirmar'
     try {
       // Si el cobro falló tras confirmar, el reintento no vuelve a confirmar ni duplica la venta.
@@ -177,7 +185,18 @@ export function VentaMostrador() {
       setCobrada({ numero: ventaVigente.numero, total: ventaVigente.total_con_iva })
       setVenta(null)
       setConfirmadaId(null)
+      setAvisoPrecios(null)
     } catch (error) {
+      if (fase === 'confirmar' && esPreciosCambiaron(error)) {
+        // La base rechazó sin efectos: se re-guardan las mismas líneas, se muestra el total nuevo y NO se reintenta el cobro.
+        try {
+          setVenta(await repreciarVenta(ventaVigente))
+          setAvisoPrecios(MENSAJE_PRECIOS_CAMBIARON_COBRO)
+        } catch (falla) {
+          setErrorVenta(mensajeDeEscaneo(falla))
+        }
+        return
+      }
       setErrorVenta(fase === 'confirmar' ? mensajeDeConfirmarVenta(error) : mensajeDeCobroVenta(error))
     } finally {
       setCobrando(false)
@@ -226,6 +245,7 @@ export function VentaMostrador() {
             {descarte}
           </Alert>
         )}
+        {ventaVigente && avisoPrecios && <AvisoPreciosCambiaron mensaje={avisoPrecios} />}
         {cobrada && (
           <Alert severity="success" role="status" onClose={() => setCobrada(null)}>
             Venta cobrada · {cobrada.numero} · {formatearImporteHistorial(cobrada.total)}
@@ -257,7 +277,11 @@ export function VentaMostrador() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">{linea.cantidad}</TableCell>
-                      <TableCell align="right">{formatearImporteHistorial(linea.precio_unitario)}</TableCell>
+                      <TableCell align="right">
+                        <PrecioLineaPromocion linea={linea} formatear={formatearImporteHistorial}>
+                          {formatearImporteHistorial(linea.precio_unitario)}
+                        </PrecioLineaPromocion>
+                      </TableCell>
                       <TableCell align="right">{formatearImporteHistorial(linea.subtotal_sin_iva)}</TableCell>
                     </TableRow>
                   ))}

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EntradaLinea, LineaComprobante } from '../../lib/ventasLineas'
+import { violacionesAxe } from '../../test/axe'
 import { LineasComprobante } from './LineasComprobante'
 
 const mocks = vi.hoisted(() => ({ imagenes: vi.fn() }))
@@ -175,5 +176,77 @@ describe('LineasComprobante · recálculo al cambiar cantidad, depósito o preci
     montar([])
     expect(screen.getByText('Todavía no agregaste productos. Usá «Agregar producto» para empezar.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Agregar producto' })).toBeInTheDocument()
+  })
+})
+
+describe('LineasComprobante · precio promocional (F-2, FR-016)', () => {
+  const enPromocion = () => linea({ cantidad: 1, precio_unitario: 900, precio_referencia: 1000, escala: 'x1', descuento_pct: 0, subtotal_sin_iva: 900 })
+
+  it('muestra el cobrado, la referencia tachada, la leyenda «Promoción» y el rótulo «promoción» sin escala', () => {
+    montar([enPromocion()], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda).toHaveTextContent('$ 900')
+    const tachado = celda.querySelector('s')
+    expect(tachado).not.toBeNull()
+    expect(tachado).toHaveTextContent('$ 1.000')
+    expect(within(celda).getByText('Promoción')).toBeInTheDocument()
+    expect(within(celda).getByText('promoción')).toBeInTheDocument()
+    expect(celda).not.toHaveTextContent('escala x1')
+    expect(celda).not.toHaveTextContent('% de descuento')
+  })
+
+  it('anuncia «Precio anterior» y «Precio promocional» como texto, no solo con el tachado', () => {
+    montar([enPromocion()], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda).toHaveTextContent('Precio anterior: $ 1.000')
+    expect(celda).toHaveTextContent('Precio promocional: $ 900')
+  })
+
+  it('con permiso para editar el precio el campo sigue siendo el mismo y la referencia se muestra aparte', () => {
+    montar([enPromocion()], { puedeEditarPrecio: true })
+    expect(screen.getByRole('textbox', { name: 'Precio sin IVA de Joystick' })).toHaveValue('900')
+    expect(screen.getAllByRole('cell')[4].querySelector('s')).toHaveTextContent('$ 1.000')
+  })
+
+  it('sin promoción no hay tachado, leyenda ni textos de lector: la celda es la de siempre', () => {
+    montar([linea({ precio_referencia: null })], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda.querySelector('s')).toBeNull()
+    expect(celda).not.toHaveTextContent('Promoción')
+    expect(celda).not.toHaveTextContent('Precio anterior')
+    expect(celda).not.toHaveTextContent('Precio promocional')
+    expect(celda).toHaveTextContent('$ 800')
+    expect(celda).toHaveTextContent('escala x10')
+  })
+
+  it('un precio manual no muestra tachado ni leyenda, aunque llegue una referencia', () => {
+    montar([linea({ precio_manual: true, precio_referencia: 1000 })], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda.querySelector('s')).toBeNull()
+    expect(celda).not.toHaveTextContent('Promoción')
+    expect(celda).toHaveTextContent('precio manual')
+  })
+
+  it('no expone ningún identificador de promoción en el DOM', () => {
+    montar([{ ...enPromocion(), promocion_id: 'prom-secreta' } as LineaComprobante], { puedeEditarPrecio: false })
+    expect(document.body.innerHTML).not.toContain('prom-secreta')
+  })
+
+  it.each([320, 768, 1440])('no tiene violaciones de accesibilidad a %i px', async (ancho) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
+    const { container } = render(
+      <LineasComprobante
+        lineas={[enPromocion(), linea({ id: 'l-2', producto_id: 'p-2', descripcion: 'Cable' })]}
+        totales={{ subtotal: 1700, iva: 357, total: 2057 }}
+        depositos={DEPOSITOS}
+        editable
+        puedeEditarPrecio
+        ocupado={false}
+        onCambiar={vi.fn()}
+        onQuitar={vi.fn()}
+        onAgregar={vi.fn()}
+      />,
+    )
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })
