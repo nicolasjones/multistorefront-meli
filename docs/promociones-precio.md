@@ -61,7 +61,7 @@ Encender `promociones_precio` enciende **a la vez** la tienda y el cobro en el l
 
 Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambia. Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md). Pantallas (F-2) y guarda de confirmar (F-3): ver `ventas-mostrador.md` y la sección de guarda de `ventas-comprobantes.md`. Pruebas de F-4: `ventas_precio_promocional_paridad.test.sql` y `ventas_precio_promocional_reportes.test.sql`.
 
-## Tienda con sesión de cliente (S1 = MSF-932, migración `20270323100200`)
+## Tienda con sesión de cliente (S1 = MSF-932, migración `20270326100200`)
 
 `publico.precios_cliente_por_dominio` (precio por escala del cliente con cuenta activa: minorista x1, mayorista x1/x5/x10/x50) **aplica las promociones** con la misma regla del local y de la lista de pedido (`private.precio_referencia_pedido`): **gana el más bajo, sin acumular**. Antes no las miraba: un mayorista con cantidad 1-4 veía en la tienda su precio x1 sin promoción y en el local pagaba la promoción. Esto reemplaza la nota de la Decisión 7 sobre S1.
 
