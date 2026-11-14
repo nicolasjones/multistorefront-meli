@@ -108,7 +108,7 @@ describe('validarPedido (espejo de enviar_lista_pedido)', () => {
   })
 
   it('M-4: los caracteres invisibles (U+061C, U+200B a U+200D, U+2060, U+FEFF) se rechazan en nombre, contacto y nota, igual que en el servidor', () => {
-    for (const invisible of ['\u061c', '\u200b', '\u200c', '\u200d', '\u2060', '\ufeff']) {
+    for (const invisible of ['\u00ad', '\u061c', '\u180e', '\u200b', '\u200c', '\u200d', '\u2060', '\u2061', '\u2062', '\u2063', '\u2064', '\ufeff']) {
       expect(validarPedido({ ...bien, nota: `hola${invisible}chau` }, false).nota).toBe(MENSAJE_CARACTERES)
       expect(validarPedido({ ...bien, nombre: `Ana${invisible}Pérez` }, false).nombre).toBe(MENSAJE_CARACTERES)
     }

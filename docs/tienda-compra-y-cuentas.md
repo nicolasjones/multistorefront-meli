@@ -409,6 +409,16 @@ Es el **único** lugar que arma las líneas: la cotización y la creación lo us
 - **I-4 (sin vencimiento automático)**: el presupuesto nace sin validez (D-13, D-21), nunca vence solo y el operador no puede anularlo: **10 abiertos bloquean a la cuenta hasta que el operador acepte o convierta alguno** (el cliente ve «Ya tenés presupuestos abiertos…»). Es una decisión de negocio; la validez por defecto es MSF-943.
 - **I-5 (retención y supresión)**: las consultas, los ítems de pedido, los presupuestos de la tienda y sus notas **no se purgan solos** y no hay supresión por titular automática: **MSF-944**. Mientras tanto se borra a mano (ver `docs/consultas.md`).
 
+### PR de cierre: hallazgos de la revisión de seguridad integral (H-2 a H-6)
+
+Detalle y estado de cada hallazgo en [`seguridad-tienda-compra-y-cuentas.md`](./seguridad-tienda-compra-y-cuentas.md). Lo que cambia para quien opera o desarrolla:
+
+- **Baja de una cuenta o fusión de clientes (H-2)**: el presupuesto pedido desde la tienda **conserva** su vínculo (rótulo «Tienda online (cliente)», «Nota del cliente») aunque se borre la cuenta; la fusión de clientes repunta los presupuestos y las consultas de pedido del cliente descartado al conservado.
+- **Cupo de llamadas en «Mi cuenta» (H-3)**: las cinco RPC de la historia A aceptan 120 llamadas por minuto y cuenta; superado responden `limite` y la pantalla muestra su error con reintento. El uso normal (una llamada por ficha, tandas de 20) queda muy por debajo.
+- **El cupo sobrevive a un error (H-4)** en la lista de pedido y en el envío, como en el presupuesto. Un `statement_timeout` (57014) no lo atrapa `when others`: la llamada falla entera y no gasta cupo (ver la guía de seguridad).
+- **Caracteres invisibles (H-6)**: además de los de control, separadores y marcas de dirección, se rechazan U+00AD, U+061C, U+180E y los invisibles U+200B a U+200D, U+2060 a U+2064 y U+FEFF, en el nombre, el contacto y la nota de la lista de pedido, en la nota del presupuesto y en el front (mismo conjunto).
+- **Medición de rendimiento**: `scripts/medir-tienda-favoritos.sql` solo corre con `-v BASE_DESCARTABLE=si` y en una base con 5 organizaciones o menos (guard de entorno).
+
 ### Cómo apagarlo
 
 Con la bandera `tienda_pedidos` apagada las dos RPC responden `sin_acceso` sin tocar datos y la tienda no dibuja «Pedir presupuesto». Los presupuestos ya creados son comprobantes de Ventas: **no se borran** (y un presupuesto no se anula: el operador los acepta, los convierte o los deja pendientes).

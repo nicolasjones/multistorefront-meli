@@ -111,6 +111,10 @@ Funciones nuevas del esquema `publico` (superficie de la tienda; `publico` sigue
 
 ---
 
+### Cierre: cupo de llamadas en las RPC de «Mi cuenta» (H-3) y vínculo persistente (H-2)
+
+Las cinco RPC de la historia A (`cambiar_favorito_por_dominio`, `mis_favoritos_por_dominio`, `favoritos_entre_por_dominio`, `mis_compras_por_dominio`, `mi_compra_por_dominio`) toman, tras resolver la cuenta y antes de cualquier lectura, un cupo de 120 llamadas por minuto y cuenta y pueden responder `{estado: "limite", espera_segundos}` (la pantalla lo muestra como su error con reintento). `favoritos_entre_por_dominio` pasa a `volatile`. `dominio.presupuestos_tienda.cuenta_cliente_id` admite nulo y su FK es `on delete set null`: la baja de la cuenta no borra el vínculo del presupuesto.
+
 ### Lectura del panel (B2)
 
 El origen «tienda» de un presupuesto se deriva del **vínculo real** `dominio.presupuestos_tienda` (no del canal ni del operador nulo): `public.listar_presupuestos`, `private.comprobantes_consulta` (listado y CSV de Ventas) y `public.obtener_comprobante` rotulan el operador «Tienda online (cliente)» y este último suma la clave `de_tienda` (boolean). La «Nota del cliente» se lee de `dominio.presupuestos_tienda.nota` (RLS por organización, empresa accesible y `ventas`).
