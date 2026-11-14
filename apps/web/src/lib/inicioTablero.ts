@@ -64,7 +64,3 @@ export const formatoPesos = (valor: number) => pesos.format(valor)
 export const formatoEntero = (valor: number) => enteros.format(valor)
 export const formatoVariacion = (valor: number) => `${porcentaje.format(valor)} %`
 
-// Etiqueta corta para los ejes del gráfico: con decenas de millones de unidades en stock el número completo no entra
-// en el ancho del eje y se corta («38,…»). Hasta 9.999 se ve entero; desde 10.000, compacto («38,9 M»).
-const compacto = new Intl.NumberFormat('es-AR', { notation: 'compact', maximumFractionDigits: 1 })
-export const formatoEjeCompacto = (valor: number | null) => (valor === null ? '' : Math.abs(valor) < 10_000 ? enteros.format(valor) : compacto.format(valor))

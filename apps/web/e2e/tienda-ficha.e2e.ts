@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-13 (MSF-372, SC-008 de la épica MSF-167): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) la ficha muestra galería y ampliación, el precio de la empresa y la 404 de un
@@ -7,14 +8,6 @@ import { expect, test } from '@playwright/test'
 // `supabase/seed.sql`) y la web servida; siembra con la API admin desde Node (la service-role key nunca
 // llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI
 // público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -34,24 +27,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 async function subirImagen(ruta: string) {
@@ -97,31 +75,31 @@ test.describe('Tienda online · ficha de producto (SC-008)', () => {
 
     try {
       for (const t of tiendas) {
-        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }])
+        const [categoria] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }], 'dominio')
         // Completo $ 1.000 (con stock, 3 imágenes, SKU, descripción con HTML y compatibilidad) · Simple $ 2.000
         // (sin stock, sin imágenes ni compatibilidad) · Oculto (la tienda lo oculta). Sin regla de empresa ni
         // interruptor de IVA, el precio público es el de lista.
-        const [completo, simple, oculto] = await insertar<{ id: string }>('productos', [
+        const [completo, simple, oculto] = await rest<{ id: string }>('productos', [
           {
             organizacion_id: t.organizacion, nombre: t.completo, sku: `E2E-F-${t.indice}-1-${sufijo}`, precio_lista: 1000, moneda: 'ARS',
             categoria_id: categoria.id, descripcion: `Descripción <b>${t.nombre}</b> ${sufijo}`, compatible_con: ['PS4', 'PS5'],
           },
           { organizacion_id: t.organizacion, nombre: t.simple, sku: `E2E-F-${t.indice}-2-${sufijo}`, precio_lista: 2000, moneda: 'ARS', categoria_id: categoria.id, descripcion: null, compatible_con: [] },
           { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-F-${t.indice}-3-${sufijo}`, precio_lista: 3000, moneda: 'ARS', categoria_id: categoria.id, descripcion: null, compatible_con: [] },
-        ])
+        ], 'dominio')
         t.completoId = completo.id
         t.simpleId = simple.id
         t.ocultoId = oculto.id
-        await insertar('producto_empresa', [completo, simple, oculto].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
-        await insertar('productos_tienda', { empresa_id: t.empresa, producto_id: oculto.id, organizacion_id: t.organizacion, visible: false })
+        await rest('producto_empresa', [completo, simple, oculto].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
+        await rest('productos_tienda', { empresa_id: t.empresa, producto_id: oculto.id, organizacion_id: t.organizacion, visible: false }, 'dominio')
         // La fila de existencias nace con el producto (trigger) en 0.
         await actualizar('existencias', `producto_id=eq.${completo.id}`, { cantidad: 5 })
 
         t.rutas = [1, 2, 3].map((n) => `${t.organizacion}/${completo.id}/imagen-${n}.png`)
         for (const ruta of t.rutas) await subirImagen(ruta)
-        await insertar('producto_imagenes', t.rutas.map((ruta, n) => ({
+        await rest('producto_imagenes', t.rutas.map((ruta, n) => ({
           producto_id: completo.id, organizacion_id: t.organizacion, posicion: n + 1, ruta,
-        })))
+        })), 'dominio')
       }
 
       for (const t of tiendas) {
@@ -198,8 +176,8 @@ test.describe('Tienda online · ficha de producto (SC-008)', () => {
       // Limpieza: los productos caen en cascada con sus existencias, imágenes y filas de tienda.
       await borrarImagenes(tiendas.flatMap((t) => t.rutas))
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })

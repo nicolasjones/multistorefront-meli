@@ -2,34 +2,11 @@ import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { ingresar, serviceKey, url, violacionesAxe } from './importaciones-soporte'
 import { clic, paso, prepararPaginaVisible } from './visible'
+import { altaUsuario, cabeceras, rest } from './soporte/fixtures'
 
 // F-NOT-02 (MSF-378 · T010 · SC-002): la campanita muestra el punto y la lista de avisos propios, un aviso
 // abierto queda leído, «Marcar todas» apaga el punto y otra persona no ve avisos ajenos. Siembra con la
 // API admin desde Node (la service-role key nunca llega al navegador); solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de notificaciones: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const password = 'Correcta-12345!'
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'POST', headers: cabeceras({ prefer: 'return=representation' }), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ email: correo, password, email_confirm: true }) })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
 
 test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
