@@ -28,6 +28,15 @@ Los motivos son **la misma tabla** que edita `/stock/motivos`: el editor (`Panel
   del orden. Reordenar y borrar están fuera de alcance. El `orden` se calcula como `max(orden)+1` sin bloqueo: dos altas simultáneas pueden repetir `orden`; es
   cosmético (no hay reordenamiento ni se usa como clave) y se aceptó a propósito.
 
+- **Estados de sistema** (migración `20270325200000`, columna `es_sistema`): un estado que el flujo de la
+  consulta necesita (p. ej. el de la acción «Cerrar») no se desactiva, renombra ni borra. La guarda está en la
+  base (trigger `estados_consulta_proteger_sistema`, error `23514` con mensaje en castellano que la pantalla
+  muestra tal cual) y en la UI (botones deshabilitados con la explicación «Es un estado de sistema: lo
+  necesita el cierre de las consultas…»). Solo una migración marca un estado como de sistema (la app no puede
+  crearlo ni quitarle la marca). **Hoy no hay ninguno marcado**: las consultas siguen con sus tres estados
+  fijos (Nueva, En curso, Resuelta) y la lista no se siembra; el primer estado de sistema lo marca la
+  migración de la funcionalidad que lo use. Pruebas: `listas_configurables.test.sql` y `listas.test.tsx`.
+
 ## Empresa activa
 
 No aplica: las listas son de la organización, no de una empresa. Un test de la pantalla verifica que

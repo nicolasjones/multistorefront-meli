@@ -17,6 +17,7 @@ vi.mock('../service/ClienteSelector', () => ({
   ),
 }))
 
+import { violacionesAxe } from '../../test/axe'
 import { DialogoFusionarClientes } from './DialogoFusionarClientes'
 
 const actual = { id: 'c-1', numero: 101, nombre: 'Alfa' }
@@ -72,10 +73,42 @@ describe('DialogoFusionarClientes (F-CLI-18, FR-013, SC-006)', () => {
     expect(screen.getByText('Cuenta web que se mantiene')).toBeInTheDocument()
     expect(confirmar()).toBeDisabled()
     fireEvent.click(screen.getByRole('radio', { name: 'La de Alfa duplicado' }))
+    // Paso de confirmación: dice qué se conserva y qué se da de baja, y exige marcar la casilla.
+    expect(screen.getByText(/se da de baja y/)).toHaveTextContent('Alfa')
+    expect(confirmar()).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox', { name: /Entiendo que la cuenta web de Alfa se da de baja para siempre/ }))
     expect(confirmar()).toBeEnabled()
     fireEvent.click(confirmar())
     await waitFor(() => expect(onFusionado).toHaveBeenCalledWith('c-1'))
     expect(mocks.fusionarClientes).toHaveBeenCalledWith('c-1', 'c-2', 'c-2')
+  })
+
+  it('cambiar la cuenta web elegida desmarca la confirmación y vuelve a pedirla', async () => {
+    mocks.vistaPreviaFusion.mockResolvedValue(previa(1, 1))
+    abrir()
+    await elegirOtro()
+    fireEvent.click(screen.getByRole('radio', { name: 'La de Alfa duplicado' }))
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(confirmar()).toBeEnabled()
+    fireEvent.click(screen.getByRole('radio', { name: 'La de Alfa' }))
+    expect(screen.getByRole('checkbox')).not.toBeChecked()
+    expect(confirmar()).toBeDisabled()
+    expect(screen.getByText(/La cuenta web de/)).toHaveTextContent('Alfa duplicado')
+  })
+
+  it('sin dos cuentas web activas no hay nada que dar de baja ni casilla de confirmación', async () => {
+    abrir()
+    await elegirOtro()
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(confirmar()).toBeEnabled()
+  })
+
+  it('el paso de confirmación de la baja de la cuenta web no tiene violaciones de accesibilidad', async () => {
+    mocks.vistaPreviaFusion.mockResolvedValue(previa(1, 1))
+    abrir()
+    await elegirOtro()
+    fireEvent.click(screen.getByRole('radio', { name: 'La de Alfa duplicado' }))
+    expect(await violacionesAxe(document.body)).toEqual([])
   })
 
   it('rechaza elegir el mismo cliente', () => {

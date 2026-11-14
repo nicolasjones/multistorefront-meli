@@ -6,7 +6,7 @@
 -- como "authenticated".
 begin;
 
-select plan(31);
+select plan(38);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -163,6 +163,49 @@ select is(
   (select count(*)::int from dominio.motivos_movimiento where nombre = 'Motivo de prueba'),
   1,
   'no existe una copia de la lista de motivos: es la misma tabla'
+);
+
+-- ============================================================================
+-- Estados de sistema (20270325200000): no se desactivan, renombran ni borran
+-- ============================================================================
+
+reset role;
+insert into dominio.estados_consulta (id, organizacion_id, nombre, es_sistema, orden) values
+  ('d1000000-0000-0000-0000-0000000000a1', '11111111-1111-1111-1111-111111111111', 'Cerrada', true, 90);
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000011');
+
+select throws_ok(
+  $$select public.cambiar_estado_estado_consulta('d1000000-0000-0000-0000-0000000000a1', false)$$,
+  '23514', 'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede desactivar',
+  'un estado de sistema no se desactiva'
+);
+select throws_ok(
+  $$select public.renombrar_estado_consulta('d1000000-0000-0000-0000-0000000000a1', 'Terminada')$$,
+  '23514', 'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede renombrar',
+  'un estado de sistema no se renombra'
+);
+select throws_ok(
+  $$update dominio.estados_consulta set es_sistema = false where id = 'd1000000-0000-0000-0000-0000000000a1'$$,
+  '23514', null, 'un administrador no le quita la marca de sistema'
+);
+select throws_ok(
+  $$insert into dominio.estados_consulta (organizacion_id, nombre, es_sistema) values ('11111111-1111-1111-1111-111111111111', 'Falso sistema', true)$$,
+  '23514', null, 'un administrador no crea estados de sistema'
+);
+select lives_ok(
+  $$select public.cambiar_estado_estado_consulta('d1000000-0000-0000-0000-0000000000a1', true)$$,
+  'reafirmar activo en un estado de sistema es válido'
+);
+
+reset role;
+select throws_ok(
+  $$delete from dominio.estados_consulta where id = 'd1000000-0000-0000-0000-0000000000a1'$$,
+  '23514', null, 'un estado de sistema no se borra ni como dueño de la tabla'
+);
+select is(
+  (select activo from dominio.estados_consulta where id = 'd1000000-0000-0000-0000-0000000000a1'),
+  true, 'el estado de sistema sigue activo'
 );
 
 select * from finish();
