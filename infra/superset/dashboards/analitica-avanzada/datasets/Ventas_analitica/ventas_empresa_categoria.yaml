@@ -1,0 +1,176 @@
+# Dataset sobre la vista `analitica.ventas_empresa_categoria` (F-REP-07, spec
+# 20261114-100000-analitica-avanzada-y-resumen-por-correo, contrato contracts/tableros-analiticos.md).
+#
+# Grano de la vista: una fila por empresa × categoría × producto × fecha. El TABLERO suma y cruza (tienda × categoría,
+# período × categoría, producto × tienda); los filtros nativos (rango de fechas, empresa y categoría) se aplican sobre la
+# fila de la vista y recién después se agrega.
+#
+# `organizacion_id` y `empresa_id` son las columnas sobre las que el guest token fuerza la cláusula `rls`
+# (`emitir-acceso-reporte`, `reportes.filtro_empresa = true`). La vista NO tiene costo, margen ni datos de clientes.
+table_name: ventas_empresa_categoria
+main_dttm_col: fecha
+description: 'Ventas por tienda, categoría y producto (F-REP-07): unidades y facturado neto con IVA por empresa, categoría, producto y fecha.'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 312a8321-4afc-5edc-96bc-a7becee93996
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: unidades_total
+  verbose_name: Unidades
+  metric_type: null
+  expression: SUM(unidades)
+  description: 'Unidades vendidas en el período: la nota de crédito resta.'
+  d3format: ',d'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: facturado_total
+  verbose_name: Facturado
+  metric_type: null
+  expression: SUM(facturado)
+  description: 'Facturado neto con IVA en el período (el mismo número que el listado de comprobantes): la nota de crédito resta.'
+  d3format: ',.2f'
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Empresa de la venta; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Empresa
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre de la tienda; es la columna del filtro nativo de empresa.'
+  python_date_format: null
+  extra: {}
+- column_name: categoria
+  verbose_name: Categoría
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Categoría del producto («Sin categoría» si no tiene); es la columna del filtro nativo de categoría.'
+  python_date_format: null
+  extra: {}
+- column_name: producto_id
+  verbose_name: Producto (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: producto_nombre
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre del producto; el tablero agrupa por nombre + SKU.'
+  python_date_format: null
+  extra: {}
+- column_name: sku
+  verbose_name: SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'SKU del producto, único por organización.'
+  python_date_format: null
+  extra: {}
+- column_name: fecha
+  verbose_name: Fecha
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Fecha del comprobante; es la columna del filtro nativo de rango de fechas.'
+  python_date_format: '%Y-%m-%d'
+  extra: {}
+- column_name: unidades
+  verbose_name: Unidades (por fila)
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Unidades de la fila; el tablero las suma.'
+  python_date_format: null
+  extra: {}
+- column_name: facturado
+  verbose_name: Facturado (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Facturado de la fila, con IVA; el tablero lo suma.'
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 638bb2f5-2df0-48f8-bef2-533f8ec3c569
