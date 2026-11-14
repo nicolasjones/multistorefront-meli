@@ -371,16 +371,47 @@ a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las l
 ## Permisos que se vuelven a pedir con un formulario abierto (decisión: falla cerrada)
 
 `useNivelSeccion` devuelve `nivel: null` cuando cambia la clave `usuario:organización` del `PermisosPanelProvider`
-(p. ej. un superadmin entra a otra organización) o cuando el repedido de permisos falla. En ese caso
-`RequiereAccesoSeccion` y las pantallas con formulario muestran la carga o «No pudimos verificar tus permisos» y
-desmontan el formulario: lo tipeado se pierde. Se descartó conservar el último nivel conocido: dejaba la pantalla **abierta con el nivel de la organización anterior o con un permiso ya perdido**
-(fail-open de la UI). Mientras el nivel no se pueda confirmar para la clave vigente no se ofrece editar; el servidor
-(RLS / `private.nivel_seccion`) es la autoridad igualmente. **Seguimiento (no implementado):** reintentar sin perder el borrador: si el repedido falla con un formulario largo abierto
-se pierde lo tipeado; habría que mostrar un aviso no bloqueante con «Reintentar», guardado deshabilitado y el borrador
-conservado. Cubierto por `e2e/productos-create-permisos.e2e.ts` y por
-`RequiereAccesoSeccion.test.tsx`. El reporte original («escribir enseguida en Nombre deja el campo vacío») no se
-reprodujo con un administrador normal: `RequiereAccesoSeccion` espera a la organización y a los permisos antes de
-montar el formulario, que se monta una sola vez (medido con carga lenta y con permisos y contexto demorados).
+(p. ej. un superadmin entra a otra organización) o cuando el repedido de permisos falla. Se descartó conservar el
+último nivel conocido como nivel vigente: dejaba la pantalla **abierta con el nivel de la organización anterior o con un
+permiso ya perdido** (fail-open de la UI). Mientras el nivel no se pueda confirmar para la clave vigente no se ofrece
+editar ni guardar; el servidor (RLS / `private.nivel_seccion`) es la autoridad igualmente.
+
+**Qué pasa ahora (MSF-855)**: `RequiereAccesoSeccion` distingue dos casos según la clave `usuario:organización`.
+
+| Situación | Qué ve la persona | Borrador |
+| --- | --- | --- |
+| **Misma clave** con la que se abrió la sección y **falla el repedido** (red caída, error transitorio) | Los hijos siguen **montados pero inertes** (`fieldset disabled` + `inert`, y los eventos de edición y envío se cortan en captura, también los de diálogos que MUI saca a un portal). Arriba, un aviso **no bloqueante** en una región viva (`aria-live`) que ya existía: «No pudimos verificar tus permisos» con «Reintentar» (alcanzable con el teclado, sin robar el foco). El guardado y las teclas/Enter del formulario no tienen efecto. | Se **conserva** (se ve, solo lectura). |
+| **La clave cambió** (otro usuario u otra organización, p. ej. un superadmin que entra a otra organización), o la sección nunca llegó a abrirse | Como antes: carga y, si el pedido falla, «No pudimos verificar tus permisos» sin formulario. | Se **descarta**: los hijos se desmontan (y el árbol lleva `key` por clave, así que ni sin pasar por la carga se arrastra). Nunca se ve ni se guarda el borrador de la organización anterior. |
+
+Nota: cambiar la empresa activa vuelve a pedir los permisos y remonta la pantalla a propósito (no arrastra datos de la empresa anterior); el aviso con borrador aplica a lo que la persona escribe después, mientras el repedido está en vuelo y falla.
+
+Mientras la zona está inerte también se cortan, en captura, el ratón (`mouseup`, clic auxiliar), el puntero, el
+arrastre (`dragstart/enter/over/drop`), el táctil y las teclas de impresión; no hay atajos globales de teclado en las
+pantallas. **Salida para quien ya tenía un diálogo abierto**: un diálogo o menú de MUI que estaba abierto en un portal
+cuando falló el repedido atrapa el foco y tapa el aviso; `Escape` dentro del portal sí pasa (cierra, no guarda), y
+`Tab` nunca se cancela. Una `RequiereAccesoSeccion` anidada solo se mantiene abierta si su propio último nivel
+confirmado cumple el mínimo. Al confirmar el acceso, si el foco estaba en «Reintentar» pasa a la región viva, que anuncia
+«Acceso confirmado» (el foco no se pierde en `<body>`). Riesgo residual del último nivel confirmado: un `edicion` viejo
+solo se entrega a los hijos de la sección, que están inertes; aun si alguien lo forzara, el servidor lo rechaza porque
+la autorización real es RLS (`private.nivel_seccion`) y no depende de lo que la UI crea.
+
+«Reintentar» vuelve a pedir `permisos_actuales` (un pedido por clic; mientras verifica el botón queda `aria-disabled`).
+**No hay reintentos automáticos ni polling**: un error persistente deja la zona inerte hasta que la persona reintente.
+Si el reintento confirma `edicion` se habilita el formulario con lo tipeado intacto (mismo nodo); si confirma `lectura`
+o `ninguno`, el nivel real manda como siempre (el formulario ve el nivel nuevo y no envía; sin acceso a la sección se
+muestra «Sección no disponible para tu rol»).
+
+**Por qué sigue siendo falla cerrada**: el último nivel confirmado se entrega solo a los hijos de esa misma sección,
+con `sinConfirmar: true`, únicamente cuando la clave coincide con la de apertura y el repedido falló
+(`BorradorConservadoContext`), para que el formulario no se desmonte; cualquier consumidor fuera de esa zona (menú,
+tarjetas, otras pantallas) sigue recibiendo `nivel: null`. La zona está inerte, así que ese nivel no ofrece ninguna
+acción hasta que se confirme. El superadmin no cambia: opera como administrador y su pantalla no se bloquea.
+
+Cubierto por `RequiereAccesoSeccion.borrador.test.tsx` (provider y hook reales), `RequiereAccesoSeccion.test.tsx`,
+`e2e/productos-create-permisos.e2e.ts` y `e2e/permisos-borrador.e2e.ts`. El reporte original («escribir enseguida en
+Nombre deja el campo vacío») no se reprodujo con un administrador normal: `RequiereAccesoSeccion` espera a la
+organización y a los permisos antes de montar el formulario, que se monta una sola vez (medido con carga lenta y con
+permisos y contexto demorados).
 
 ## Accesibilidad (hallazgos de la revisión E2E)
 
