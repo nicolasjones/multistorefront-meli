@@ -1,9 +1,24 @@
 import { Box, Button, Dialog, InputBase, Typography } from '@mui/material'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { nuevaClaveEnvioWhatsapp, registrarConsultaWhatsapp } from '../../../lib/registroWhatsapp'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { textoSobre } from '../../../tema/temaTienda'
 import { IconoWhatsapp } from './IconoWhatsapp'
+
+// Parte el mensaje en [antes, producto (negrita), después]. El producto va tras «consultar por » (ver `armarMensaje`): se busca esa aparición y
+// no la primera, porque el nombre de la empresa (que va antes) podría contener el del producto; sin ese tramo, la última aparición.
+function partesMensaje(mensaje: string, producto?: string): Array<{ texto: string; negrita: boolean }> {
+  const nombre = producto?.trim()
+  const marca = nombre ? mensaje.indexOf(`consultar por ${nombre}`) : -1
+  const i = !nombre ? -1 : marca >= 0 ? marca + 'consultar por '.length : mensaje.lastIndexOf(nombre)
+  if (!nombre || i < 0) return [{ texto: mensaje, negrita: false }]
+  return [
+    { texto: mensaje.slice(0, i), negrita: false },
+    { texto: nombre, negrita: true },
+    { texto: mensaje.slice(i + nombre.length), negrita: false },
+  ].filter((parte) => parte.texto !== '')
+}
 
 // Verde de WhatsApp del prototipo (marca de terceros, no de la identidad de la tienda).
 const COLOR_WHATSAPP = '#25D366' // estilos-sueltos: ok
@@ -20,6 +35,8 @@ export type PropsDialogoWhatsApp = {
   numero: string
   // Mensaje armado que se muestra y se envía.
   mensaje: string
+  // Nombre del producto dentro del mensaje: se resalta en negrita en la vista (solo visual; lo que se envía no cambia).
+  producto?: string
   // Enlace `wa.me` ya codificado.
   url: string
   // Cierra el diálogo sin efectos.
@@ -38,6 +55,7 @@ export default function DialogoWhatsApp({
   empresa,
   numero,
   mensaje,
+  producto,
   url,
   onCerrar,
   onAviso,
@@ -47,12 +65,23 @@ export default function DialogoWhatsApp({
   // consultas; un doble clic sobre «Abrir WhatsApp» no puede registrar la misma apertura dos veces.
   const clave = useRef('')
   const registrando = useRef(false)
+  const [copiado, setCopiado] = useState('')
 
   useEffect(() => {
     if (!abierto) return
     clave.current = nuevaClaveEnvioWhatsapp()
     registrando.current = false
+    setCopiado('')
   }, [abierto])
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(mensaje)
+      setCopiado('Mensaje copiado')
+    } catch {
+      setCopiado('No se pudo copiar: seleccioná el texto a mano')
+    }
+  }
 
   const abrir = () => {
     if (registrando.current) return
@@ -104,14 +133,29 @@ export default function DialogoWhatsApp({
       <Typography component="label" htmlFor="mensaje-whatsapp" color="text.secondary" sx={{ display: 'block', fontSize: 13, m: '20px 0 6px' /* estilos-sueltos: ok */ }}>
         Mensaje que se va a enviar
       </Typography>
+      {/* Vista del mensaje (prototipo: el producto en negrita). El campo de solo lectura de abajo lleva el mismo texto para lectores de
+          pantalla y pruebas; la vista es `aria-hidden` para que no se lea dos veces y el texto se puede seleccionar y copiar. */}
+      <Box
+        aria-hidden
+        data-testid="mensaje-whatsapp-vista"
+        sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '10px', p: '14px', fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', userSelect: 'text' /* estilos-sueltos: ok */ })}
+      >
+        {partesMensaje(mensaje, producto).map((parte, i) => (parte.negrita ? <Box key={i} component="b">{parte.texto}</Box> : <span key={i}>{parte.texto}</span>))}
+      </Box>
+      {/* Campo de solo lectura para lectores de pantalla (oculto con el recorte estándar, acotado a 1 px de alto). No es parada de Tab: el
+          teclado accede al texto con «Copiar mensaje». */}
       <InputBase
         id="mensaje-whatsapp"
         value={mensaje}
         multiline
-        fullWidth
         readOnly
-        sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '10px', p: '14px', fontSize: 15, lineHeight: 1.5, alignItems: 'flex-start' /* estilos-sueltos: ok */ })}
+        inputProps={{ tabIndex: -1 }}
+        sx={{ ...SOLO_LECTORES, clipPath: 'inset(50%)', m: '-1px', p: 0, border: 0, '& textarea': { height: '1px !important', p: 0 } }}
       />
+      <Button onClick={() => void copiar()} sx={{ display: 'block', mt: '6px', p: 0, minWidth: 0, fontSize: 13, fontWeight: 600, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } /* estilos-sueltos: ok */ }}>
+        Copiar mensaje
+      </Button>
+      <Typography role="status" aria-live="polite" sx={copiado ? { fontSize: 13, color: 'text.secondary', mt: '2px' /* estilos-sueltos: ok */ } : SOLO_LECTORES}>{copiado}</Typography>
       <Box sx={{ display: 'flex', gap: '10px', mt: '20px' }}>
         <Button
           onClick={onCerrar}

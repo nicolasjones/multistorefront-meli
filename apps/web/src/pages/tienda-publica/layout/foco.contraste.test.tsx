@@ -21,7 +21,7 @@ const reglas = () => Array.from(document.querySelectorAll('style')).map((s) => s
 
 // jsdom no calcula `outline-*` en getComputedStyle: se comprueba que el campo recibe la clase de foco de MUI y que la hoja que
 // emotion inyectó trae el contorno sólido de 2 px en el color primario para esa clase.
-const regla = (clase: string) => new RegExp(`\\.${clase}\\{[^}]*outline-style:solid;[^}]*outline-width:2px;[^}]*outline-color:#a3111d`, 'i')
+const regla = (clase: string) => new RegExp(`\\.${clase}\\{[^}]*outline-style:solid;[^}]*outline-width:2px;[^}]*outline-color:var\\(--tienda-color-foco, currentColor\\)`, 'i')
 
 describe('foco visible', () => {
   it.each(['Nombre', 'Correo o WhatsApp', 'Mensaje'])('el campo «%s» del formulario de contacto cambia borde y contorno al enfocarse', (rotulo) => {

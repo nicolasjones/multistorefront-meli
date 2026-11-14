@@ -9,3 +9,7 @@ export const MARGEN_LATERAL_TIENDA = { xs: '14px', md: 2 } as const // estilos-s
 export const LINEA_SUAVE = '1px solid rgba(0,0,0,.08)' // estilos-sueltos: ok
 export const BORDE_CAMPO = '1.5px solid rgba(0,0,0,.18)' // estilos-sueltos: ok
 export const BORDE_PANEL = '1px solid rgba(0,0,0,.12)' // estilos-sueltos: ok
+
+// Color del contorno de foco de la tienda: lo calcula `FocoVisible` (primario con contraste ≥ 3:1 sobre el fondo, ver `colorFoco`) y lo
+// publica como variable CSS; sin `FocoVisible` (un componente suelto) cae al color del texto.
+export const COLOR_FOCO = 'var(--tienda-color-foco, currentColor)'
