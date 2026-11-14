@@ -120,6 +120,8 @@ describe('generarQr (FR-040)', () => {
     expect(() => generarQr(tilde)).toThrow(QrDemasiadoLargo)
     expect(generarQr('á'.repeat(106)).version).toBe(10) // 212 bytes
     expect(bytesUtf8('añ€😀')).toEqual([...new TextEncoder().encode('añ€😀')])
+    expect(bytesUtf8('\u{20000}')).toEqual([0xf0, 0xa0, 0x80, 0x80]) // U+20000: el primer punto de 4 bytes con bits altos en uso
+    expect(bytesUtf8('\u{10FFFF}a\u{1F600}')).toEqual([...new TextEncoder().encode('\u{10FFFF}a\u{1F600}')])
     expect(bytesUtf8('\ud800x\udc00')).toEqual([...new TextEncoder().encode('\ud800x\udc00')]) // sustitutos sueltos → U+FFFD
   })
 

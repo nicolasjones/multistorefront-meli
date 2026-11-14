@@ -292,7 +292,7 @@ corren en el job aparte `e2e-tienda` (sección siguiente); el resto (`permisos-p
 
 ## E2E de la tienda pública en el CI (`e2e-tienda`)
 
-El job `e2e-tienda` de `validate.yml` corre los 20 `apps/web/e2e/tienda-*.e2e.ts` en cada PR que toca la web, con la
+El job `e2e-tienda` de `validate.yml` corre todos los `apps/web/e2e/tienda-*.e2e.ts` **y `apps/web/e2e/service-etiqueta-qr.e2e.ts`** (F-SVC-32, MSF-190: es el único E2E de Service que corre en el CI; el filtro de Playwright del paso es `e2e/tienda- e2e/service-etiqueta-qr`) en cada PR que toca la web, con la
 misma política que el resto del e2e: solo si `changes.web == 'true'` y `changes.e2e == 'true'` (un PR a `epic/*`, no) y
 no en borrador, ni con `CI_PAUSED`, ni con la variable de repo `CI_E2E_TIENDA=false` (kill switch), y no en PRs de forks (los
 jobs pesados no corren código de forks en los runners self-hosted; `validacion` falla en un PR de fork en vez de dar verde con todo
@@ -349,7 +349,7 @@ Límites a propósito:
   mismo motivo por el que `pg_prove` corre por `host.docker.internal`). Por eso `E2E_SIN_EDGE=1` omite el único caso que lo
   necesita, `robots.txt`/`sitemap.xml` de `tienda-seo` (su handler se cubre con `pnpm test:edge:tienda-seo` en el job `web`).
   Sigue corriéndose a mano con las funciones servidas (sección «Specs que necesitan algo más»).
-- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. 18 de los 20 specs se omiten solos a
+- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. Casi todos los specs de este job se omiten solos a
   nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no

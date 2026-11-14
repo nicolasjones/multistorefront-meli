@@ -9,7 +9,9 @@ import { ZONA_QUIETA } from './qr/svg'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 // Origen `http(s)://host[:puerto]` con host en ASCII (el navegador ya entrega el punycode), sin credenciales, ruta
 // (salvo una barra final), query ni fragmento.
-const ORIGEN = /^https?:\/\/[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:\d{1,5})?\/?$/i
+// El host es un nombre (`panel.example`, `mundojc.localhost`) o una dirección IPv6 entre corchetes (`[::1]`), como la
+// entrega `window.location.origin`.
+const ORIGEN = /^https?:\/\/([a-z0-9]([a-z0-9.-]*[a-z0-9])?|\[[0-9a-f:]{2,39}\])(:\d{1,5})?\/?$/i
 
 export const RUTA_REPARACION = '/service-tecnico/reparaciones'
 
@@ -19,9 +21,11 @@ export function urlEtiquetaReparacion(origen: string, id: string): string {
   return `${origen.replace(/\/$/, '')}${RUTA_REPARACION}/${id}`
 }
 
-// Entorno de prueba (FR-049): el QR apuntaría a una dirección que otros equipos no alcanzan.
+// Entorno de prueba (FR-049): el QR apuntaría a una dirección que otros equipos no alcanzan: `localhost`, cualquier
+// `*.localhost`, `127.0.0.1` y el loopback IPv6 (`::1`, con o sin corchetes).
 export function esEntornoDePrueba(nombreDeHost: string): boolean {
-  return nombreDeHost === 'localhost' || nombreDeHost === '127.0.0.1'
+  const host = nombreDeHost.toLowerCase()
+  return host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '::1' || host === '[::1]'
 }
 
 export type ClaveTamano = 'chica' | 'mediana' | 'grande' | 'personalizada'
@@ -111,7 +115,7 @@ export function disposicionDe(ancho: number, alto: number): Disposicion {
 
 export const MARGEN_MM = 1.5
 // El QR nunca ocupa más del 60 % de la dimensión que comparte con el texto.
-const FRACCION_MAXIMA_QR = 0.6
+export const FRACCION_MAXIMA_QR = 0.6
 export const MODULO_MINIMO_MM = 0.4
 
 // Lado, en mm, del mayor cuadrado donde entra el QR (con su zona quieta) dejando un margen de 1,5 mm y lugar al texto.

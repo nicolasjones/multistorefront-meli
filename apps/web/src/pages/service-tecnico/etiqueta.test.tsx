@@ -56,6 +56,7 @@ const abrir = (id = ID) =>
       <Routes>
         <Route path="/service-tecnico/reparaciones/:id/etiqueta" element={<ServicioEtiqueta />} />
         <Route path="/service-tecnico/reparaciones/:id" element={<div>Detalle de la reparación</div>} />
+        <Route path="/service-tecnico/reparaciones" element={<div>Listado de reparaciones</div>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -148,6 +149,29 @@ describe('Etiqueta de la reparación · entorno y dirección (FR-047, FR-049)', 
     stubOrigen('http://127.0.0.1:4300')
     abrir()
     expect((await screen.findAllByText(/entorno de prueba/)).length).toBeGreaterThan(0)
+  })
+
+  it('avisa del entorno de prueba también en *.localhost y en ::1, y el QR lleva esa dirección (FR-049)', async () => {
+    stubOrigen('http://mundojc.localhost:4300')
+    const subdominio = abrir()
+    expect(await screen.findByText(/entorno de prueba/)).toBeInTheDocument()
+    expect(decodificarDelDom(subdominio.container)).toBe(`http://mundojc.localhost:4300/service-tecnico/reparaciones/${ID}`)
+    subdominio.unmount()
+    vi.unstubAllGlobals()
+
+    stubOrigen('http://[::1]:4300')
+    const ipv6 = abrir()
+    expect(await screen.findByText(/entorno de prueba/)).toBeInTheDocument()
+    expect(decodificarDelDom(ipv6.container)).toBe(`http://[::1]:4300/service-tecnico/reparaciones/${ID}`)
+    ipv6.unmount()
+    vi.unstubAllGlobals()
+
+    // Una IPv6 que no es loopback arma el QR sin aviso de entorno de prueba.
+    stubOrigen('http://[2001:db8::1]')
+    const otra = abrir()
+    await screen.findByRole('img', { name: 'Código QR de la reparación R-0238' })
+    expect(screen.queryByText(/entorno de prueba/)).toBeNull()
+    expect(decodificarDelDom(otra.container)).toBe(`http://[2001:db8::1]/service-tecnico/reparaciones/${ID}`)
   })
 
   it('una dirección de panel demasiado larga muestra el error, no dibuja el QR y deshabilita «Imprimir»', async () => {
@@ -303,9 +327,19 @@ describe('Etiqueta de la reparación · estados', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true')
     expect(await screen.findByText('No pudimos cargar la reparación.')).toBeInTheDocument()
     expect(screen.getByText('Esa reparación ya no existe. Volvé al listado.')).toBeInTheDocument()
+    // El mensaje manda al listado: hay un enlace para hacerlo.
+    expect(screen.getByRole('link', { name: 'Volver al listado' })).toHaveAttribute('href', '/service-tecnico/reparaciones')
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
     expect(await screen.findByRole('heading', { name: 'Etiqueta de la reparación R-0238' })).toBeInTheDocument()
     expect(mocks.obtenerReparacion).toHaveBeenCalledTimes(2)
+  })
+
+  it('«Volver al listado» del error lleva al listado de reparaciones', async () => {
+    mocks.obtenerReparacion.mockRejectedValue({ code: 'P0002' })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.click(await screen.findByRole('link', { name: 'Volver al listado' }))
+    expect(await screen.findByText('Listado de reparaciones')).toBeInTheDocument()
   })
 
   it('una reparación anulada no se imprime y ofrece volver', async () => {
@@ -344,6 +378,27 @@ describe('Etiqueta de la reparación · estados', () => {
     expect(await screen.findByText('Sección no disponible para tu rol')).toBeInTheDocument()
     expect(mocks.obtenerReparacion).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Imprimir' })).toBeNull()
+  })
+})
+
+describe('Etiqueta de la reparación · empresa activa (Principio VIII)', () => {
+  it('no depende de la empresa activa: muestra la tienda de la reparación y pide sus datos por el id', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, empresa_id: 'e-2', empresa: 'Mundo JC' })
+    mocks.obtenerDatosTienda.mockResolvedValue({ ...TIENDA, nombre: 'Mundo JC' })
+    const { container } = abrir()
+    await screen.findByRole('heading', { name: 'Etiqueta de la reparación R-0238' })
+    expect(mocks.obtenerReparacion).toHaveBeenCalledWith(ID)
+    expect(mocks.obtenerDatosTienda).toHaveBeenCalledWith('e-2')
+    expect(copias(container)[0].textContent).toContain('Mundo JC')
+  })
+
+  it('una reparación de otra empresa a la que no se tiene acceso responde lo mismo que una inexistente, sin etiqueta', async () => {
+    mocks.obtenerReparacion.mockRejectedValue({ code: 'P0002' })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { container } = abrir()
+    expect(await screen.findByText('Esa reparación ya no existe. Volvé al listado.')).toBeInTheDocument()
+    expect(container.querySelector('svg[role="img"]')).toBeNull()
+    expect(mocks.obtenerDatosTienda).not.toHaveBeenCalled()
   })
 })
 

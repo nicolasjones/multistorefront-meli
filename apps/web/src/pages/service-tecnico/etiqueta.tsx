@@ -64,7 +64,16 @@ export function ServicioEtiqueta() {
 
   if (cargando) return <EstadoCargaPagina />
   if (error || !datos) {
-    return <EstadoError titulo="No pudimos cargar la reparación." descripcion={error ?? undefined} reintentar={reintentar} />
+    return (
+      <Stack spacing={1.5} sx={{ alignItems: 'flex-start' }}>
+        <Box sx={{ width: '100%' }}>
+          <EstadoError titulo="No pudimos cargar la reparación." descripcion={error ?? undefined} reintentar={reintentar} />
+        </Box>
+        <Link component={RouterLink} to="/service-tecnico/reparaciones" underline="hover">
+          Volver al listado
+        </Link>
+      </Stack>
+    )
   }
   if (datos.reparacion.anulada_en !== null) {
     return (

@@ -40,7 +40,8 @@ Spec: `specs/20270323-100000-service-ideas-futuras-v2/` (F-SVC-32, MSF-190, épi
 - El tamaño y las medidas personalizadas se guardan en **este navegador** (`localStorage['msf.service.etiqueta']`; es una preferencia del puesto de trabajo, D-19). El acceso va en `try/catch` y un valor inválido, corrupto o extremo cae al predeterminado o se recorta a los rangos.
 - **Disposición**: horizontal (QR a la izquierda) si el ancho es al menos 1,25 veces el alto; si no, vertical. El QR ocupa el mayor cuadrado que entra con 1,5 mm de margen (sin pasar del 60 % de la dimensión que comparte con el texto) y lleva zona quieta de 4 módulos, negro sobre blanco y `shape-rendering="crispEdges"`.
 - **Módulo mínimo**: si cada módulo midiera menos de **0,4 mm** se avisa «Con este tamaño el código QR queda demasiado chico para leerse. Probá con una etiqueta más grande.» y «Imprimir» queda deshabilitado. Si la dirección no entra en la versión 10 del generador (213 bytes): «La dirección del panel es demasiado larga para el código QR.» (nunca se trunca).
-- En `localhost` o `127.0.0.1` se avisa que el QR apunta a esa dirección y no va a funcionar en otros equipos.
+- En `localhost`, cualquier `*.localhost`, `127.0.0.1` o `::1` se avisa que el QR apunta a esa dirección y no va a funcionar en otros equipos. El origen puede ser un nombre o una IPv6 entre corchetes (`http://[::1]:4300`).
+- **Navegadores**: verificado en **Chrome y Edge** (Chromium), que respetan `@page { size }` y salen del tamaño de la etiqueta (el E2E lo comprueba con el PDF de Chromium). **Firefox y Safari** pueden ignorar el tamaño de página del CSS o aplicar sus propios márgenes: no se probaron; en ellos hay que elegir a mano el tamaño de papel de la etiqueta en el cuadro de impresión (y escala 100 %, sin márgenes) y probar con una etiqueta antes de imprimir una tanda.
 - **Impresión recomendada**: en el diálogo del navegador, impresora de etiquetas, **escala 100 %** y márgenes **«Ninguno»**. Se imprime con el diálogo del navegador (cualquier impresora con driver, térmica o láser); no hay ZPL ni ESC/POS directos (D-20).
 - Lo marcado `.no-imprimir` (título, controles, avisos, menú y barra superior) se oculta al imprimir.
 
@@ -65,7 +66,7 @@ La URL del QR lleva el dominio **con el que estaba abierto el panel al imprimir*
 2. **Ida y vuelta** (`qr.test.ts` con `qr.lector.test-util.ts`): un lector escrito solo para tests lee formato y máscara de la matriz, deshace la máscara, recorre el zigzag, desentrelaza, comprueba que los **síndromes de Reed-Solomon de cada bloque sean cero** y reconstruye el texto; 200 textos con semilla fija (1 a 213 bytes, ASCII y UTF-8, las diez versiones), las diez versiones con las 8 máscaras, y falla si se invierte un módulo de datos, de formato o de versión. El lector no está en el bundle.
 3. **Escaneo real** con decodificadores independientes (ver el PR): `zbarimg`, OpenCV y zxing-cpp sobre PNG rasterizados desde el mismo `<path>` que se imprime. **Escaneo con un celular real: no verificado** (queda para la revisión QA con una impresora).
 
-Nota de la elección de máscara: el texto de ISO/IEC 18004 puntúa N4 con pasos de 5 % (`floor`); la referencia `qrcode` redondea con `ceil` y por eso, en casos de borde (entre 50 y 55 % de módulos oscuros), puede elegir otra máscara válida. El generador propio sigue el texto del estándar; cualquiera de las máscaras produce un símbolo legible y la prueba de ida y vuelta lo comprueba.
+Nota de la elección de máscara: en una de las 25 matrices doradas la referencia `qrcode` elige otra máscara válida que la del generador propio (su N4 redondea con `ceil`; el texto de ISO/IEC 18004 usa `floor`). La elección propia sigue el estándar y la revisión independiente la verificó además contra zxing en 3424 casos. Cualquiera de las máscaras produce un símbolo legible y la prueba de ida y vuelta lo comprueba.
 
 ### Criterio de abandono (D-18)
 
@@ -73,7 +74,7 @@ Si los vectores dorados, la ida y vuelta o el escaneo real dejaran de cerrar, se
 
 ## E2E
 
-`apps/web/e2e/service-etiqueta-qr.e2e.ts` abre la etiqueta de una reparación real, decodifica el QR desde el `<path>` del DOM y comprueba que es **exactamente** la ruta de la reparación, que la etiqueta no muestra datos personales y que, abierto sin sesión, el QR pasa por el ingreso y vuelve. Corre en el job `e2e-tienda` del CI (se agregó a su filtro; `e2e:omitidos:check --max=1`).
+`apps/web/e2e/service-etiqueta-qr.e2e.ts` (único E2E de Service que corre en el CI) abre la etiqueta de una reparación real, decodifica el QR desde el `<path>` del DOM y comprueba que es **exactamente** la ruta de la reparación, que la etiqueta no muestra datos personales y que, abierto sin sesión, el QR pasa por el ingreso y vuelve. Corre en el job `e2e-tienda` del CI (se agregó a su filtro `e2e/tienda- e2e/service-etiqueta-qr`; ese job corre en todo PR a `dokploy` que toque la web y, con `E2E_TIENDA_BLOQUEA=true`, es requerido); `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1` falla si el spec se omite.
 
 ## Reversión
 

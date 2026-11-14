@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   CLAVE_PREFERENCIA, MARGEN_MM, PREFERENCIA_PREDETERMINADA, TAMANOS_ETIQUETA, altoValido, anchoValido, copiasValidas, disposicionDe,
   distribucionDeEtiqueta, esEntornoDePrueba, etiquetaDemasiadoChica, guardarPreferencia, ladoDelQrMm, leerPreferencia, medidasDeTamano,
-  mmPorModulo, textosDeEtiqueta, urlEtiquetaReparacion,
+  mmPorModulo, textosDeEtiqueta, urlEtiquetaReparacion, FRACCION_MAXIMA_QR,
 } from './etiquetaReparacion'
 import { QrDemasiadoLargo, generarQr } from './qr/qr'
 
@@ -13,6 +13,9 @@ describe('urlEtiquetaReparacion (FR-042, amenazas 3.1 y 3.3)', () => {
     expect(urlEtiquetaReparacion('https://panel.msf.example', ID)).toBe(`https://panel.msf.example/service-tecnico/reparaciones/${ID}`)
     expect(urlEtiquetaReparacion('http://localhost:4300', ID)).toBe(`http://localhost:4300/service-tecnico/reparaciones/${ID}`)
     expect(urlEtiquetaReparacion('https://panel.msf.example/', ID)).toBe(`https://panel.msf.example/service-tecnico/reparaciones/${ID}`) // sin la barra final
+    expect(urlEtiquetaReparacion('http://mundojc.localhost:4300', ID)).toBe(`http://mundojc.localhost:4300/service-tecnico/reparaciones/${ID}`)
+    expect(urlEtiquetaReparacion('http://[::1]:4300', ID)).toBe(`http://[::1]:4300/service-tecnico/reparaciones/${ID}`)
+    expect(urlEtiquetaReparacion('https://[2001:db8::1]/', ID)).toBe(`https://[2001:db8::1]/service-tecnico/reparaciones/${ID}`)
     expect(urlEtiquetaReparacion('HTTPS://Panel.Example', ID.toUpperCase())).toBe(`HTTPS://Panel.Example/service-tecnico/reparaciones/${ID.toUpperCase()}`)
   })
 
@@ -25,6 +28,13 @@ describe('urlEtiquetaReparacion (FR-042, amenazas 3.1 y 3.3)', () => {
     'https://panel.example/?x=1',
     'https://panel.example#fragmento',
     'https://panel.example:99999999',
+    'http://[::1',
+    'http://::1',
+    'http://[::1]x',
+    'http://[zz::1]',
+    'http://[]',
+    'http://[::1]/ruta',
+    'http://usuario@[::1]',
     'ftp://panel.example',
     ['java', 'script:alert(1)'].join(''),
     '//panel.example',
@@ -61,7 +71,7 @@ describe('urlEtiquetaReparacion (FR-042, amenazas 3.1 y 3.3)', () => {
 })
 
 describe('entorno de prueba (FR-049)', () => {
-  it.each([['localhost', true], ['127.0.0.1', true], ['panel.example', false], ['localhost.example.com', false]])('%s → %s', (host, esperado) => {
+  it.each([['localhost', true], ['127.0.0.1', true], ['mundojc.localhost', true], ['sanjavucho.localhost', true], ['[::1]', true], ['::1', true], ['LOCALHOST', true], ['panel.example', false], ['localhost.example.com', false], ['[2001:db8::1]', false], ['notlocalhost', false]])('%s → %s', (host, esperado) => {
     expect(esEntornoDePrueba(host)).toBe(esperado)
   })
 })
@@ -121,6 +131,16 @@ describe('módulo mínimo de 0,4 mm (FR-047)', () => {
     expect(disposicionDe(50, 40)).toBe('horizontal') // 50 = 1,25 × 40
     expect(disposicionDe(49, 40)).toBe('vertical')
     expect(disposicionDe(40, 40)).toBe('vertical')
+  })
+
+  it('el QR nunca ocupa más del 60 % de la dimensión que comparte con el texto', () => {
+    expect(FRACCION_MAXIMA_QR).toBe(0.6)
+    // Horizontal 100 × 80: el alto dejaría 77 mm, pero manda el 60 % del ancho libre (97 mm).
+    expect(ladoDelQrMm(100, 80)).toBeCloseTo(97 * 0.6, 10)
+    // Vertical 40 × 40: el ancho dejaría 37 mm, pero manda el 60 % del alto libre.
+    expect(ladoDelQrMm(40, 40)).toBeCloseTo(37 * 0.6, 10)
+    // Con poco ancho o poco alto manda el margen, no la fracción.
+    expect(ladoDelQrMm(50, 30)).toBe(27)
   })
 
   it('el QR ocupa el mayor cuadrado que entra con 1,5 mm de margen', () => {

@@ -201,6 +201,8 @@ Cuando hay muchos equipos en los estantes, buscar por número lleva tiempo. Con 
 4. Tocá **Imprimir**. En el cuadro de impresión del navegador elegí tu impresora de etiquetas, dejá la **escala en 100 %** y los **márgenes en «Ninguno»**.
 5. Pegá la etiqueta en el equipo.
 
+Usá **Chrome o Edge** para imprimir etiquetas: respetan el tamaño que elegiste. En Firefox o Safari el navegador puede ignorar el tamaño de la etiqueta; si pasa, elegí a mano el tamaño de papel de tu etiqueta en el cuadro de impresión y probá con una antes de imprimir varias.
+
 La etiqueta muestra el código de la reparación en letra grande (por ejemplo «R-0238»), la tienda, el equipo y la fecha de ingreso. **No lleva el nombre ni el teléfono del cliente, ni la falla, ni el número de serie, ni importes**: cualquiera que vea la etiqueta no accede a datos personales. Para abrir la reparación al escanear hay que **tener sesión en el panel** y permiso en Servicio técnico; si no tenés sesión, el sistema te pide iniciarla y después te lleva a la reparación.
 
 Avisos que te puede mostrar la pantalla:
