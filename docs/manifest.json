@@ -939,16 +939,16 @@
     },
     "docs/pasos-manuales-vps2.md": {
       "title": "Pasos manuales de infraestructura en VPS2 (MSF-854)",
-      "pageHash": "d2cbc094822ef93c5b02f623aacddc8d060d54a6c39c1909c23600336b3786a3",
+      "pageHash": "878f573b57e022a2783a6acfac4a2889f64d7f7f5cb7a6a078de39a9cce28560",
       "sourceHash": "e4bf2bc6a3f481997a70962875db7ba04dfcb1bb6d4762d1df7bed9851057956",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "scripts/docs-api-publica.sh",
         "apps/web/src/pages/api/PanelClaves.tsx",
         "supabase/migrations/20270224110201_api_claves.sql"
       ],
       "owner": "operacion",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -1776,12 +1776,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "9fc94fb5e3e3de16ad6ba58168181fb97bb970824dfb38ec30f80c6eb896a542",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "8d576114"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
