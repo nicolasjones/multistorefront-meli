@@ -104,7 +104,7 @@ if (esCLI) {
     .map((p) => path.join(RAIZ, p));
   const exentas = specsExentas();
   const exentasEmpresa = specsExentasEmpresa();
-  const aRevisar = specsNuevas.filter((p) => !exentas.has(path.relative(RAIZ, path.dirname(p))));
+  const aRevisar = specsNuevas.filter((p) => !exentas.has(claveSpec(p)));
   const faltantes = aRevisar.map(motivoSpecSinMatriz).filter(Boolean);
   const sinEmpresa = aRevisar.filter((p) => !faltantes.includes(p) && motivoSpecSinEmpresa(p, exentasEmpresa));
   if (faltantes.length || sinEmpresa.length) {
