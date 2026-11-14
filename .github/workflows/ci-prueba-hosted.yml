@@ -115,7 +115,7 @@ jobs:
         run: pnpm --filter @platform/web exec playwright install --with-deps chromium
       - name: test:e2e (tienda-*)
         timeout-minutes: 30
-        run: pnpm --filter @platform/web exec playwright test --workers=2 e2e/tienda-
+        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda-
       - name: Verificar que no haya omisiones inesperadas
         run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
       - uses: actions/upload-artifact@v4
