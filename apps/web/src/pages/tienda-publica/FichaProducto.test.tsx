@@ -3,7 +3,7 @@ import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn(), evento: vi.fn() }))
+const mocks = vi.hoisted(() => ({ leer: vi.fn(), firmar: vi.fn(), rpc: vi.fn(), precios: vi.fn(), evento: vi.fn(), getSession: vi.fn(), onAuthStateChange: vi.fn() }))
 
 vi.mock('../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
@@ -17,6 +17,7 @@ vi.mock('../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     schema: () => ({ rpc: mocks.rpc }),
+    auth: { getSession: mocks.getSession, onAuthStateChange: mocks.onAuthStateChange },
     storage: { from: () => ({ getPublicUrl: (ruta: string) => ({ data: { publicUrl: `https://cdn.test/${ruta}` } }) }) },
   },
 }))
@@ -25,6 +26,7 @@ vi.mock('../../lib/tiendaPreciosCliente', async (importOriginal) => ({
   leerPreciosCliente: mocks.precios,
 }))
 
+import { reiniciarCapacidadesTienda } from '../../lib/tiendaCapacidades'
 import { limpiarCacheSeo } from '../../lib/tiendaSeo'
 import RutaProducto from './rutas/producto'
 
@@ -77,6 +79,9 @@ function montar(entrada = `/producto/${ID}`) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  reiniciarCapacidadesTienda()
+  mocks.getSession.mockResolvedValue({ data: { session: null }, error: null })
+  mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
   mocks.leer.mockResolvedValue(ficha())
   mocks.firmar.mockResolvedValue(URLS)
   mocks.rpc.mockResolvedValue({ data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null })
@@ -379,5 +384,49 @@ describe('Ficha de producto · SEO (MSF-149)', () => {
     expect(await screen.findByTestId('error-con-reintento')).toBeInTheDocument()
     await waitFor(() => expect(meta('meta[name="robots"]')).toBe('noindex'))
     expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
+  })
+})
+
+// F-CLI-20 (P-2): «Guardar en favoritos» solo con la función encendida; con sesión activa va después de los botones de la fila.
+describe('Ficha de producto · «Guardar en favoritos» (F-CLI-20, P-2)', () => {
+  const rpcsDe = (pedidos: boolean) => mocks.rpc.mockImplementation(async (nombre: string) => {
+    if (nombre === 'capacidades_tienda_por_dominio') return { data: { estado: 'ok', pedidos }, error: null }
+    if (nombre === 'acceso_cliente_por_dominio') return { data: { estado: 'activa', tipo: 'minorista' }, error: null }
+    if (nombre === 'favoritos_entre_por_dominio') return { data: { estado: 'ok', favoritos: [] }, error: null }
+    return { data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null }
+  })
+
+  it('con la función encendida y sesión activa va en el orden de tabulación de P-2: WhatsApp, Ver más productos, Compartir, Guardar', async () => {
+    rpcsDe(true)
+    mocks.getSession.mockResolvedValue({ data: { session: { access_token: 't' } }, error: null })
+    montar()
+    const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })
+    const enOrden = [
+      await screen.findByRole('button', { name: /WhatsApp/ }),
+      screen.getByRole('link', { name: 'Ver más productos' }),
+      screen.getByRole('button', { name: /Compartir/ }),
+      guardar,
+    ]
+    for (let i = 0; i < enOrden.length - 1; i += 1) {
+      expect(enOrden[i].compareDocumentPosition(enOrden[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING, `${i}`).toBeTruthy()
+    }
+  })
+
+  it('con la función apagada no existe, aunque haya sesión', async () => {
+    rpcsDe(false)
+    mocks.getSession.mockResolvedValue({ data: { session: { access_token: 't' } }, error: null })
+    montar()
+    await screen.findByRole('heading', { level: 1, name: 'Joystick Pro' })
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('capacidades_tienda_por_dominio', expect.anything()))
+    await new Promise((resolver) => setTimeout(resolver, 20))
+    expect(screen.queryByRole('button', { name: /favoritos/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /favoritos/i })).not.toBeInTheDocument()
+  })
+
+  it('sin sesión (función encendida) ofrece el enlace a «Ingresar» con la ficha de vuelta', async () => {
+    rpcsDe(true)
+    montar()
+    const enlace = await screen.findByRole('link', { name: 'Guardar en favoritos' })
+    expect(enlace).toHaveAttribute('href', `/ingresar?volver=${encodeURIComponent(`/producto/${ID}`)}`)
   })
 })

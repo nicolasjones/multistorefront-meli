@@ -53,7 +53,7 @@ Funciones nuevas del esquema `publico` (superficie de la tienda; `publico` sigue
 ### `publico.mis_favoritos_por_dominio(host text, desde_creado timestamptz default null, desde_id uuid default null, limite integer default 20) → jsonb`
 
 - **Quién**: `authenticated`. `stable`.
-- **Salida**: `{ "estado":"ok", "total": n, "filas": [ { "producto_id", "nombre", "sku", "imagen", "disponible": bool, "precio_final": numeric|null, "escala": "x1|x5|x10|x50" } ], "siguiente": {...}|null }`. Solo productos visibles hoy en la tienda; `total` cuenta solo esos. `precio_final` es el mismo que ve la cuenta en la ficha (`private.precio_final_publico_escala` con la escala **x1** para minorista, y la escala del tipo para mayorista a cantidad 1). **Sin cantidades de stock** (solo `disponible`).
+- **Salida**: `{ "estado":"ok", "total": n, "filas": [ { "producto_id", "nombre", "sku", "imagen", "disponible": bool, "precio_final": numeric|null, "escala": "x1|x5|x10|x50" } ], "siguiente": {"creado", "id"}|null }` (`creado` y `id` se devuelven tal cual en `desde_creado` y `desde_id`). Solo productos visibles hoy en la tienda; `total` cuenta solo esos. `precio_final` es el mismo que ve la cuenta en la ficha (`private.precio_final_publico_escala` con la escala **x1** para minorista, y la escala del tipo para mayorista a cantidad 1). **Sin cantidades de stock** (solo `disponible`).
 - Orden `creado_en desc, id desc`; límite 1–50.
 
 ### `publico.favoritos_entre_por_dominio(host text, productos uuid[]) → jsonb`
