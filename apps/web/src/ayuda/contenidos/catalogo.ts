@@ -19,7 +19,8 @@ export const ayudaCatalogo: AyudaPorDestino = {
       'Acá programás precios promocionales por empresa con fecha de inicio y fin. Mientras dura la promoción, la tienda muestra el precio promocional con el precio anterior tachado; al vencer vuelve sola al precio normal. Con permiso de edición en la tienda podés crear, editar y anular sus promociones. Si están desactivadas en tu entorno, la pantalla lo avisa, solo deja anular y la tienda muestra el precio normal.',
     pasos: [
       'Elegí una empresa en la barra superior: con «Todas mis empresas» ves todas, pero para crear una tenés que elegir una.',
-      'Pulsá «Nueva promoción», elegí el producto, el precio promocional y las fechas de inicio y fin. El precio promocional tiene que ser menor al precio normal de la tienda: si no lo es, se guarda con un aviso y no se aplica (ni en la tienda ni en el mostrador) hasta que lo corrijas.',
+      'Pulsá «Nueva promoción», elegí el producto, el precio promocional y las fechas de inicio y fin.',
+      'El precio promocional tiene que ser menor al normal: si no, se guarda con un aviso y no se aplica en la tienda ni en el mostrador.',
       'Revisá el estado de cada promoción: programada, vigente, vencida o anulada.',
       'Pulsá «Anular» si una promoción ya no corresponde; no hace falta esperar a que venza.',
     ],
