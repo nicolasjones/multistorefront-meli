@@ -46,6 +46,10 @@ Con `promociones_precio` **apagada** (migración `20270228300100`):
 
 `private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Desvío del plan: el precio normal sale de `private.precio_final_publico` (escala x1 + regla de la empresa), no de `private.precio_neto_empresa` (`20270221100003`), de modo que sin promoción es idéntico a lo que la tienda ya mostraba.
 
+## Cobro en el mostrador y los comprobantes (MSF-816 · F-1, migraciones `20270310100000` a `20270310100300`)
+
+Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambia. Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md). Pantallas y guarda de confirmar: fases F-2 y F-3 de la épica.
+
 ## Contrato público (migración `20270221100004`)
 
 `publico.catalogo_pagina_por_dominio` y `publico.producto_por_dominio` suman la clave `precio_anterior` (null sin promoción vigente) y `precio` sale del cálculo con promoción. Aditivo, misma lista blanca. El orden y el filtro por precio del catálogo usan el precio vigente. En la web, `PrecioTachado` tacha el anterior solo si es mayor que el vigente y lo dice también al lector de pantalla («Precio anterior», «Precio actual»).

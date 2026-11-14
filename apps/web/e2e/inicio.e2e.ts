@@ -2,29 +2,15 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
-import { UPSERT_FUSIONAR, crearConsulta, rest } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, altaUsuario, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-156 (MSF-578 · T024 · SC-001, SC-002, SC-003): la pantalla de Inicio con los tres roles y
 // con el cambio de empresa activa de la barra superior.
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la
 // service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite
 // (no entra al CI público). Ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de inicio: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
 
 async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   const r = await fetch(`${url}/rest/v1/rpc/${funcion}`, {
@@ -34,26 +20,6 @@ async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   })
   if (!r.ok) throw new Error(`RPC ${funcion}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
 async function ingresar(page: Page, correo: string) {
@@ -67,9 +33,13 @@ async function ingresar(page: Page, correo: string) {
 // Las tarjetas de Inicio son <Card> con el título como <h2>: el contenido de cada una cuelga del mismo
 // <div> (el CardContent), así que se acota por tarjeta para no confundir textos repetidos (por ejemplo, el
 // aviso del dólar aparece en la tarjeta y también en la lista de alertas).
-// «Stock hoy» aparece dos veces desde MSF-820: el bloque del tablero (primero en el DOM) y la tarjeta de alertas de stock
-// (la que aquí se verifica, siempre la última); `.last()` evita la violación de modo estricto sin cambiar lo que se afirma.
-const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..').last()
+// «Stock hoy» aparece dos veces desde MSF-820: la tarjeta de alertas de stock (`TarjetaStock`, la que aquí se verifica, con su
+// enlace «Ver stock») y el bloque del tablero. El orden en el DOM cambió (hoy el tablero va después de las tarjetas), así que
+// no se elige por posición: se toma la que tiene el enlace «Ver stock», sin cambiar lo que se afirma.
+const tarjeta = (page: Page, titulo: string) => {
+  const portada = page.getByRole('heading', { name: titulo, exact: true }).locator('..')
+  return titulo === 'Stock hoy' ? portada.filter({ has: page.getByRole('link', { name: 'Ver stock' }) }) : portada.last()
+}
 const alertas = (page: Page) => page.getByRole('list', { name: 'Alertas' })
 
 type EmpresaSembrada = { id: string; nombre: string }
@@ -280,9 +250,9 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(tarjeta(mostrador.page, 'Dólar')).toBeVisible()
           await expect(mostrador.page.getByRole('heading', { name: 'Consultas nuevas', exact: true })).toHaveCount(0)
         })
-        await paso(mostrador.page, 'Tampoco ve la alerta de consultas', async () => {
+        await paso(mostrador.page, 'Tampoco ve la alerta de consultas ni la del dólar (solo lectura, CA-INI-07-7)', async () => {
           await expect(alertas(mostrador.page).getByText('1 consulta nueva sin atender')).toHaveCount(0)
-          await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toBeVisible()
+          await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toHaveCount(0)
         })
         await rotulo(mostrador.page, 'Sin permiso en Consultas: no ve su tarjeta ni su alerta')
       } finally {

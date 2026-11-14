@@ -65,3 +65,9 @@ F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 er
 F4 release/preview/flags · F5 mutation/a11y/perf.
 
 > MSF-687: `knip`, `jscpd`, `dependency-cruiser` y `@commitlint/cli` corren con `pnpm dlx` a versión fija en `scripts/calidad.mjs`; al subirlas, cambiar ahí la versión.
+
+> `knip.json` declara a propósito lo que knip no puede inferir de los scripts de evidencia de E2E y del sitio de docs que
+> vinieron de `main` en la integración (PR #929): `docs/javascripts/zoom-imagenes.js` lo carga MkDocs por `extra_javascript`
+> (no por un `import`); `@playwright/test` lo importa `scripts/armar-video-evidencia.mjs` desde el workspace web; y
+> `ffmpeg`, `tailscale`, `hostname` y `pkill` son herramientas del sistema que usan `scripts/armar-video-evidencia.mjs` y
+> `scripts/publicar-videos-e2e.mjs`. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.

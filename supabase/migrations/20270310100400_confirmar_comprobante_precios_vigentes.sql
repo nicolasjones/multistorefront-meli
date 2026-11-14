@@ -1,37 +1,37 @@
--- MSF-816 (gate MSF-834 · MSF-363 decisión 6): no se cobra una cifra que el cliente no vio.
+-- MSF-816 / F-3 (spec 20261113-120000-precio-promocional-en-pos-y-comprobantes, FR-009, T014): guarda de precios
+-- desactualizados en la confirmación de facturas.
 --
--- Qué cambia (aditivo, misma firma de la RPC, mismos permisos):
---   * `private.lineas_con_promocion_desactualizada(comprobante, ahora)` cuenta las líneas cuyo precio ya no
---     es el que guardó el último guardado de líneas: la promoción que aplicaría AHORA es otra (venció, empezó
---     o se anuló) o la misma promoción cambió de precio. Es `security definer` con `search_path = ''` (lee la
---     promoción sin depender del permiso `productos`) y no se le deja ejecutar a `public`, `anon` ni
---     `authenticated`.
---   * `public.confirmar_comprobante` llama a esa guarda DESPUÉS del bloqueo del comprobante y ANTES de tocar
---     costo, stock, reservas o estado: si hay una línea desactualizada, rechaza con `40001` y
---     `hint = 'precios_cambiaron'` y la transacción no deja rastro (FR-009).
+-- Qué hace:
+--   · `private.lineas_con_promocion_desactualizada(comprobante, ahora)`: cuenta las líneas del comprobante cuya
+--     promoción cobrada ya no es la vigente. Por línea (no manual, no `sin_stock`) mira la promoción vigente ahora de la
+--     tienda del comprobante (`private.promocion_vigente_fila`, búsqueda indexada); es CANDIDATA si esa promoción no es
+--     la guardada (`promocion_id` distinto: vencida, nueva o sustituida, aun con el mismo precio) o si es la misma con
+--     un precio que difiere del `precio_unitario` guardado en más de 0.005. Solo las candidatas se recalculan con
+--     `private.precio_linea_venta` (mismo tipo de cliente, descuento y cantidad que `guardar_lineas_comprobante`) y se
+--     cuentan si el `promocion_id` o el precio calculados difieren de lo guardado. NO recalcula el precio normal de una
+--     línea cuya promoción guardada sigue vigente al mismo precio (FR-024: `precio_para` cuesta ≈8,5 ms por llamada):
+--     un cambio del precio normal —lista, escala, cotización o descuento del cliente— que deje a la promoción sin ganar
+--     NO se rechaza y se cobra la promoción mostrada (decisión explícita, seguimiento S7). Omite las líneas con
+--     precio manual, las `sin_stock` y las candidatas sin precio calculable (producto en dólares sin cotización,
+--     permiso perdido). Con la bandera `promociones_precio` apagada devuelve 0 (no actúa ni sobre líneas guardadas con
+--     la bandera encendida). `security definer`, `search_path = ''`, sin grant a ningún rol (la ejecuta la RPC).
+--   · `public.confirmar_comprobante`: el cuerpo es el VIGENTE de 20270216400000 (misma firma, grants, mensajes,
+--     motivos, stock, costos e idempotencia); solo se suma la guarda, después del bloqueo `for update`, de los chequeos
+--     de permiso/estado/idempotencia y de la comprobación de líneas, y ANTES de tocar costos, stock o estado:
+--     `40001` con `hint = 'precios_cambiaron'`. El instante es `clock_timestamp()` tomado tras el `for update`. Con la
+--     bandera apagada el comportamiento es idéntico al anterior. Una factura ya `confirmada` vuelve antes de la guarda.
 --
--- Con la bandera `promociones_precio` APAGADA la guarda no actúa: ni siquiera sobre borradores guardados con la
--- bandera encendida (conservan su precio promocional hasta el próximo guardado; al volver a encenderla, cada
--- borrador abierto con promoción se rechaza una vez y se reprecia — seguimiento operativo S6).
+-- Esquema (Principio VII): sin objetos de datos nuevos; solo lógica en `private` y la RPC en `public`. Lee
+-- `dominio.comprobantes_venta_lineas`, `dominio.comprobantes_venta` y `public.clientes`.
 --
--- Lo que NO cambia: el bloqueo optimista, la idempotencia (una factura `confirmada` sale antes de la guarda),
--- el motivo de movimiento, el costo y la cotización por línea, la salida de stock y las reservas, el evento
--- `comprobante.confirmado` y el mensaje de faltante de stock.
---
--- Una línea cuyo precio no se puede calcular hoy (producto desactivado, cotización quitada, permiso perdido)
--- se OMITE de la guarda: no se rechaza la factura por una línea que no se puede repreciar.
--- No se comparan precios de lista: un cambio de lista entre el guardado y la confirmación sigue sin rechazarse,
--- igual que hoy.
---
--- Esquema (Principio VII): sin tablas nuevas ni objetos en `public`; la función auxiliar vive en `private` (no
--- almacena datos). Migración aditiva (`create or replace`, mismas firmas y grants).
--- Reversión (migración posterior): restaurar `public.confirmar_comprobante` con su definición de
--- 20270216400000 y
---   drop function private.lineas_con_promocion_desactualizada(uuid, timestamptz);
--- o, sin migrar, apagar la bandera `promociones_precio`.
+-- Migración aditiva (función nueva y `create or replace` de la RPC). Idempotente.
+-- Reversión (migración posterior): restituir `public.confirmar_comprobante` con su definición de 20270216400000 y
+-- `drop function private.lineas_con_promocion_desactualizada(uuid, timestamptz);`
 
--- Líneas cuyo precio de línea ya no es el guardado. Empieza por la bandera: apagada, no cuenta ninguna.
-create or replace function private.lineas_con_promocion_desactualizada(p_comprobante uuid, p_ahora timestamptz default now())
+create or replace function private.lineas_con_promocion_desactualizada(
+  p_comprobante uuid,
+  p_ahora timestamptz default now()
+)
 returns integer
 language plpgsql
 stable
@@ -39,61 +39,63 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_org uuid := (select private.organizacion_id());
-  v_c dominio.comprobantes_venta;
+  v_c record;
   v_tipo_cliente text;
   v_descuento numeric := 0;
-  v_linea record;
-  v_precio record;
-  v_desactualizadas integer := 0;
+  v_n integer;
 begin
-  if not (select private.bandera_activa('promociones_precio')) then
+  if not private.bandera_activa('promociones_precio') then
     return 0;
   end if;
 
-  select * into v_c
+  select c.organizacion_id, c.empresa_id, c.cliente_id into v_c
     from dominio.comprobantes_venta c
-   where c.id = p_comprobante and c.organizacion_id = v_org;
-  if not found then
+   where c.id = p_comprobante;
+  if not found or v_c.empresa_id is null then
     return 0;
   end if;
 
-  -- Tipo de cliente y descuento: los de la ficha del cliente (como en `guardar_lineas_comprobante`).
+  -- Mismo origen del tipo y del descuento que `guardar_lineas_comprobante`.
   select cl.tipo, coalesce(cl.descuento, 0) into v_tipo_cliente, v_descuento
     from public.clientes cl
-   where cl.id = v_c.cliente_id and cl.organizacion_id = v_org;
+   where cl.id = v_c.cliente_id and cl.organizacion_id = v_c.organizacion_id;
+  v_descuento := coalesce(v_descuento, 0);
 
-  for v_linea in
-    select l.producto_id, l.cantidad, l.precio_unitario, l.promocion_id, l.precio_manual, l.sin_stock
+  -- FR-024: `precio_para` (escala, propio, lista, cotización) cuesta mucho más que una búsqueda indexada. Primero se
+  -- mira, por línea, solo la promoción vigente (`promocion_vigente_fila`, índice de MSF-363); únicamente las líneas
+  -- candidatas (la promoción vigente no es la guardada, o es la misma con otro precio) pasan por el cálculo completo
+  -- `precio_linea_venta`, que decide con la misma regla del guardado. Una línea sin promoción guardada ni vigente, o
+  -- con la misma promoción al mismo precio, no se recalcula: un cambio solo del precio normal no se rechaza (la guarda
+  -- mira promociones, igual que hoy no se rechazan los cambios de lista). Un `cross join lateral` sin fila (precio no
+  -- calculable) omite la línea, y `neto_unitario` nulo también.
+  with candidatas as materialized (
+    select l.producto_id, l.cantidad, l.promocion_id, l.precio_unitario
       from dominio.comprobantes_venta_lineas l
-     where l.comprobante_id = p_comprobante and l.organizacion_id = v_org
-  loop
-    if v_linea.precio_manual or v_linea.sin_stock or v_linea.producto_id is null then
-      continue;
-    end if;
-
-    select * into v_precio
-      from private.precio_linea_venta(v_linea.producto_id, v_c.empresa_id, v_tipo_cliente, v_linea.cantidad, v_descuento, p_ahora);
-    if not found or v_precio.neto_unitario is null then
-      -- El precio no se puede calcular hoy: la línea se omite (no se rechaza la factura).
-      continue;
-    end if;
-
-    if v_precio.promocion_id is distinct from v_linea.promocion_id
-       or (v_precio.promocion_id is not null and v_linea.promocion_id is not null
-           and abs(v_precio.neto_unitario - v_linea.precio_unitario) > 0.005) then
-      v_desactualizadas := v_desactualizadas + 1;
-    end if;
-  end loop;
-
-  return v_desactualizadas;
+      left join lateral private.promocion_vigente_fila(l.producto_id, v_c.empresa_id, p_ahora) f on true
+     where l.comprobante_id = p_comprobante
+       and l.organizacion_id = v_c.organizacion_id
+       and not l.precio_manual
+       and not l.sin_stock
+       and l.producto_id is not null
+       and (f.promocion_id is distinct from l.promocion_id
+            or (f.promocion_id is not null and abs(f.precio - l.precio_unitario) > 0.005))
+  )
+  select count(*)::int into v_n
+    from candidatas c
+   cross join lateral private.precio_linea_venta(
+           c.producto_id, v_c.empresa_id, v_tipo_cliente, c.cantidad, v_descuento, p_ahora) p
+   where p.neto_unitario is not null
+     and (p.promocion_id is distinct from c.promocion_id
+          or (p.promocion_id is not null and abs(p.neto_unitario - c.precio_unitario) > 0.005));
+  return v_n;
 end;
 $$;
 
-revoke execute on function private.lineas_con_promocion_desactualizada(uuid, timestamptz) from public, anon, authenticated;
+revoke execute on function private.lineas_con_promocion_desactualizada(uuid, timestamptz)
+  from public, anon, authenticated, service_role;
 
 comment on function private.lineas_con_promocion_desactualizada(uuid, timestamptz) is
-  'MSF-816: cantidad de líneas del comprobante cuyo precio ya no es el guardado (la promoción cambió de efecto). Con la bandera promociones_precio apagada devuelve 0.';
+  'MSF-816: cuenta las líneas de un comprobante cuya promoción (o precio promocional) ya no es la que se cobraría ahora. Omite precio manual, sin_stock y líneas sin precio calculable; con la bandera promociones_precio apagada devuelve 0. La usa confirmar_comprobante.';
 
 create or replace function public.confirmar_comprobante(p_id uuid)
 returns dominio.comprobantes_venta
@@ -115,7 +117,6 @@ declare
   v_lineas_stock integer := 0;
   v_procesadas integer := 0;
   v_ahora timestamptz;
-  v_desactualizadas integer;
 begin
   if v_org is null or v_actor is null then
     raise exception 'Necesitás una sesión con organización para confirmar comprobantes' using errcode = '42501';
@@ -129,9 +130,6 @@ begin
   if not found or v_c.empresa_id is null then
     raise exception 'El comprobante no existe' using errcode = 'P0002';
   end if;
-
-  -- Instante de la promoción vigente, tomado DESPUÉS del bloqueo (R3c de la spec).
-  v_ahora := clock_timestamp();
   if (select private.nivel_ventas_en_empresa(v_c.empresa_id)) <> 'edicion' then
     raise exception 'Tu rol no puede confirmar comprobantes de esta tienda' using errcode = '42501';
   end if;
@@ -154,11 +152,11 @@ begin
     raise exception 'La factura no tiene productos: agregá al menos uno para confirmarla' using errcode = '22023';
   end if;
 
-  -- MSF-816 (FR-009): si el efecto de una promoción cambió desde el último guardado (venció, empezó o se editó),
-  -- no se cobra una cifra que el cliente no vio: se rechaza ANTES de mover costo, stock o estado, y la
-  -- transacción no deja rastro. Con la bandera `promociones_precio` apagada la guarda no actúa.
-  v_desactualizadas := (select private.lineas_con_promocion_desactualizada(v_c.id, v_ahora));
-  if v_desactualizadas > 0 then
+  -- MSF-816 (FR-009): guarda de precios desactualizados. El instante se toma DESPUÉS del `for update` y la guarda corre
+  -- antes de tocar costos, stock o estado: el rechazo no deja rastro. Con la bandera `promociones_precio` apagada no
+  -- actúa (la función auxiliar devuelve 0). Los mensajes y el `hint` son contrato con la UI (F-2).
+  v_ahora := clock_timestamp();
+  if (select private.lineas_con_promocion_desactualizada(v_c.id, v_ahora)) > 0 then
     raise exception 'Los precios de la venta cambiaron (promoción vencida o nueva): revisá el total'
       using errcode = '40001', hint = 'precios_cambiaron';
   end if;
@@ -274,4 +272,5 @@ revoke execute on function public.confirmar_comprobante(uuid) from public, anon;
 grant execute on function public.confirmar_comprobante(uuid) to authenticated;
 
 comment on function public.confirmar_comprobante(uuid) is
-  'Confirma una factura en borrador (F-VTA-07, MSF-816): rechaza con 40001 (hint precios_cambiaron) si una promoción cambió desde el último guardado, sin mover nada; guarda costo y cotización por línea (F-REN-09) y saltea las líneas sin stock (F-SVC-13). Contrato en docs/ventas-comprobantes.md.';
+  'Confirma una factura en borrador (F-VTA-07): guarda costo y cotización por línea (F-REN-09) y saltea las líneas sin stock (F-SVC-13: ni salida ni reserva). Salida de stock por línea y depósito, reserva de líneas «A pedido», todo o nada e idempotente. Exige ventas en edición en la empresa del comprobante. MSF-816: rechaza con 40001/precios_cambiaron (sin efectos) si una promoción cobrada venció, cambió o hay una nueva más baja. Contrato en docs/ventas-comprobantes.md.';
+

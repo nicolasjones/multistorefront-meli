@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { UPSERT_FUSIONAR, borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de la épica MSF-147 (T038, SC-003): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) la identidad, los textos y el catálogo visible de cada tienda cambian solo
@@ -7,14 +8,6 @@ import { expect, test } from '@playwright/test'
 // servida; siembra la identidad, el contenido y los productos con la API admin desde Node (la
 // service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -38,31 +31,6 @@ const TIENDAS = [
   },
 ] as const
 
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  'content-profile': 'dominio',
-  'accept-profile': 'dominio',
-  ...extra,
-})
-
-async function insertar<T>(tabla: string, cuerpo: unknown, upsert?: string): Promise<T[]> {
-  const consulta = upsert ? `?on_conflict=${upsert}` : ''
-  const r = await fetch(`${url}/rest/v1/${tabla}${consulta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: `return=representation${upsert ? ',resolution=merge-duplicates' : ''}` }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
-}
-
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
@@ -79,14 +47,14 @@ test.describe('Tienda online · dos dominios (SC-003)', () => {
 
     try {
       for (const t of tiendas) {
-        await insertar('tienda_identidad', { empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color }, 'empresa_id')
-        await insertar('tienda_contenido', { empresa_id: t.empresa, organizacion_id: t.organizacion, bienvenida: t.bienvenida, pie: t.pie }, 'empresa_id')
-        const [visible, oculto] = await insertar<{ id: string }>('productos', [
+        await rest('tienda_identidad?on_conflict=empresa_id', { empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color }, 'dominio', UPSERT_FUSIONAR)
+        await rest('tienda_contenido?on_conflict=empresa_id', { empresa_id: t.empresa, organizacion_id: t.organizacion, bienvenida: t.bienvenida, pie: t.pie }, 'dominio', UPSERT_FUSIONAR)
+        const [visible, oculto] = await rest<{ id: string }>('productos', [
           { organizacion_id: t.organizacion, nombre: t.visible, sku: `E2E-V-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10 },
           { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-O-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20 },
-        ])
-        await insertar('producto_empresa', [visible, oculto].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
-        await insertar('productos_tienda', { empresa_id: t.empresa, producto_id: oculto.id, organizacion_id: t.organizacion, visible: false })
+        ], 'dominio')
+        await rest('producto_empresa', [visible, oculto].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
+        await rest('productos_tienda', { empresa_id: t.empresa, producto_id: oculto.id, organizacion_id: t.organizacion, visible: false }, 'dominio')
       }
 
       for (const t of tiendas) {
@@ -123,7 +91,42 @@ test.describe('Tienda online · dos dominios (SC-003)', () => {
       // Limpieza: los productos caen en cascada con sus filas de tienda; identidad y contenido
       // vuelven al estado del seed (sin fila).
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+        await borrar(`tienda_identidad?empresa_id=eq.${t.empresa}`, 'dominio')
+        await borrar(`tienda_contenido?empresa_id=eq.${t.empresa}`, 'dominio')
+      }
+    }
+  })
+
+  // MSF-848: el estilo del encabezado y las mayúsculas son configuración de la identidad, no de la tienda: cada
+  // dominio muestra el suyo (MundoJC oscuro y con mayúsculas; San Javucho claro y sin ellas).
+  test('el estilo del encabezado y las mayúsculas salen de la identidad de cada tienda', async ({ browser }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    const config = [
+      { ...TIENDAS[0], estilo: 'oscuro', mayusculas: true, transformacion: 'uppercase' },
+      { ...TIENDAS[1], estilo: 'claro', mayusculas: false, transformacion: 'none' },
+    ]
+    try {
+      for (const t of config) {
+        await rest('tienda_identidad?on_conflict=empresa_id', {
+          empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color, estilo_heroe: t.estilo, titulos_mayusculas: t.mayusculas,
+        }, 'dominio', UPSERT_FUSIONAR)
+        await rest('tienda_contenido?on_conflict=empresa_id', {
+          empresa_id: t.empresa, organizacion_id: t.organizacion, titulo: `Héroe ${t.nombre} ${sufijo}`, texto_boton: 'Ver catálogo', boton_destino: 'catalogo',
+        }, 'dominio', UPSERT_FUSIONAR)
+      }
+      for (const t of config) {
+        const contexto = await browser.newContext()
+        const page = await contexto.newPage()
+        await page.goto(`http://${t.host}:${puerto}/`)
+        const banner = page.getByTestId('banner-home')
+        await expect(banner).toHaveAttribute('data-estilo', t.estilo)
+        await expect(page.getByRole('heading', { level: 1, name: `Héroe ${t.nombre} ${sufijo}` })).toHaveCSS('text-transform', t.transformacion)
+        await expect(banner.getByRole('link', { name: 'Ver catálogo' })).toHaveCSS('text-transform', t.transformacion)
+        await contexto.close()
+      }
+    } finally {
+      for (const t of config) {
         await borrar('tienda_identidad', `empresa_id=eq.${t.empresa}`)
         await borrar('tienda_contenido', `empresa_id=eq.${t.empresa}`)
       }

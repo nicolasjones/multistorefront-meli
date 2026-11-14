@@ -1,33 +1,27 @@
--- MSF-816 (gate MSF-834 · MSF-363 decisión 6): el mostrador y los comprobantes cobran el precio promocional.
+-- MSF-816 / F-1 (spec 20261113-120000-precio-promocional-en-pos-y-comprobantes, FR-004, FR-005, FR-006, FR-015):
+-- `guardar_lineas_comprobante` cobra con la función única de precio y guarda el snapshot; `obtener_comprobante`
+-- expone `precio_referencia`.
 --
--- Qué cambia (aditivo, misma firma de las RPC, mismos permisos):
---   * `public.guardar_lineas_comprobante` calcula el precio de cada línea con `private.precio_linea_venta`
---     (la función única de la spec): el precio normal con descuento del cliente o, si hay promoción vigente de
---     la TIENDA del comprobante, el más bajo de los dos (sin acumular). Cuando gana la promoción, la línea
---     guarda el snapshot: `precio_referencia` (el precio normal del cliente: el «tachado») y `promocion_id`;
---     el descuento aplicado pasa a 0 (no se acumuló). Con precio manual no hay promoción ni referencia: el
---     manual manda (FR-004). Con la bandera `promociones_precio` apagada el resultado es IDÉNTICO al de hoy
---     en todas las columnas y en los totales (FR-005).
---   * `public.obtener_comprobante` suma `precio_referencia` por línea (aditivo). NO expone `promocion_id`: un
---     rol de ventas sin permiso `productos` no debe recibir el identificador de una promoción que no puede
---     leer; el indicador de «en promoción» es `precio_referencia` no nulo (FR-015).
+-- Esquema (Principio VII): sin tablas nuevas. Escriben/leen `dominio.comprobantes_venta_lineas` (dominio) con las
+-- columnas `precio_referencia` y `promocion_id` de 20270310100000; las funciones viven en `public` (superficie
+-- expuesta) y no almacenan datos.
 --
--- El instante de la promoción es `clock_timestamp()` tomado DESPUÉS del `for update` del comprobante (R3c): en
--- cada escaneo del mostrador el precio se recalcula (por eso una promoción que vence o empieza con la venta
--- abierta se refleja en el siguiente escaneo).
+-- Cambios sobre los cuerpos VIGENTES (misma firma, `security definer`, `search_path = ''`, mismos grants):
+--   · `public.guardar_lineas_comprobante` (cuerpo de 20270201200129, con `descuento_pct` y `sin_stock`):
+--       - el precio sale de `private.precio_linea_venta` (reemplaza `precio_para` + `round(neto × (1 − d/100), 2)`):
+--         con la bandera `promociones_precio` APAGADA da exactamente lo mismo que antes;
+--       - el instante es `clock_timestamp()` tomado DESPUÉS del `for update` del comprobante;
+--       - la línea guarda `precio_referencia` y `promocion_id` solo si ganó la promoción; con precio manual van
+--         nulos y `descuento_pct = 0` (manual manda siempre); si ganó la promoción `descuento_pct = 0`
+--         (el descuento no se aplicó);
+--       - las claves `precio_referencia`/`promocion_id` dentro de `p_lineas` se IGNORAN (la RPC solo lee
+--         `producto_id`, `cantidad`, `deposito_id` y `precio_manual`).
+--   · `public.obtener_comprobante` (cuerpo de 20270201200132): cada línea suma `precio_referencia`; NO expone
+--     `promocion_id` (un rol de ventas sin `productos` no debe recibir el id de una promoción que no puede leer).
 --
--- Lo que NO cambia: los permisos, el bloqueo optimista (`p_actualizado_en`), el tope de 200 líneas, el
--- depósito, las líneas `sin_stock` de Service, la fórmula del IVA (`subtotal = round(unitario × cantidad, 2)`,
--- `iva = round(subtotal × alícuota / 100, 2)`), el evento `comprobante.editado` y la reprecia de las líneas sin
--- precio manual. Las claves `precio_referencia` y `promocion_id` del payload se ignoran: el precio lo pone la
--- base (FR-013).
---
--- Esquema (Principio VII): sin tablas nuevas ni en `public`; las columnas nuevas (de la migración
--- `20270310100000`) son del dominio `dominio` y las escribe solo esta RPC `security definer`.
---
--- Migración aditiva (`create or replace`, mismas firmas y grants). Reversión (migración posterior): restaurar
--- los cuerpos de `public.guardar_lineas_comprobante` (20270201200129) y `public.obtener_comprobante`
--- (20270201200132), o apagar la bandera `promociones_precio` (reversión operativa inmediata, sin migrar).
+-- Migración aditiva. Pasa `node scripts/verificar-migraciones.mjs --estricto` y el guard de DDL.
+-- Reversión (migración posterior): restaurar `public.guardar_lineas_comprobante` de 20270201200129 y
+-- `public.obtener_comprobante` de 20270201200132.
 
 create or replace function public.guardar_lineas_comprobante(
   p_id uuid,
@@ -82,6 +76,9 @@ begin
   if not found or v_c.empresa_id is null then
     raise exception 'El comprobante no existe' using errcode = 'P0002';
   end if;
+  -- MSF-816 (FR-002, R3c): el instante del precio se toma DESPUÉS del bloqueo del comprobante (no el `now()` del
+  -- inicio de la transacción): una promoción que vence mientras se esperaba el bloqueo no se cobra.
+  v_ahora := clock_timestamp();
   if (select private.nivel_ventas_en_empresa(v_c.empresa_id)) <> 'edicion' then
     raise exception 'Tu rol no puede editar comprobantes de esta tienda' using errcode = '42501';
   end if;
@@ -92,9 +89,6 @@ begin
   if p_actualizado_en is distinct from v_c.updated_at then
     raise exception 'Otra persona modificó este comprobante. Recargalo para ver los cambios' using errcode = '40001';
   end if;
-
-  -- Instante de la promoción vigente, tomado DESPUÉS del bloqueo (R3c de la spec).
-  v_ahora := clock_timestamp();
 
   -- F-VTA-32 (MSF-340): el descuento sale de la ficha del cliente en el servidor, nunca del payload.
   select cl.tipo, coalesce(cl.descuento, 0) into v_tipo_cliente, v_descuento
@@ -192,8 +186,9 @@ begin
       end if;
     end if;
 
-    -- Precio, escala e IVA (FR-014, FR-015, MSF-816): los calcula el servidor.
-    -- Con promoción vigente de la tienda, cobra el más bajo (normal con descuento o promoción, sin acumular).
+    -- Precio, escala e IVA (FR-014, FR-015): los calcula el servidor con la función única de precio de línea
+    -- (MSF-816): escala/propio/lista con el descuento del cliente, o la promoción vigente de la tienda del
+    -- comprobante si es menor (sin acumular). El precio manual manda siempre y no lleva referencia.
     select * into v_precio
       from private.precio_linea_venta(v_producto.id, v_c.empresa_id, v_tipo_cliente, v_cantidad, v_descuento, v_ahora);
     if not found then
@@ -221,8 +216,8 @@ begin
       v_precio.escala_usada, v_manual is not null, v_precio.alicuota_id, v_porcentaje, v_deposito,
       v_producto.disponibilidad_manual is not distinct from 'a_pedido', v_subtotal, v_iva,
       case when v_manual is null then v_precio.descuento_aplicado else 0 end,
-      case when v_manual is null then v_precio.precio_referencia else null end,
-      case when v_manual is null then v_precio.promocion_id else null end
+      case when v_manual is null then v_precio.precio_referencia end,
+      case when v_manual is null then v_precio.promocion_id end
     );
 
     v_total_sin := v_total_sin + v_subtotal;
@@ -253,7 +248,7 @@ revoke execute on function public.guardar_lineas_comprobante(uuid, jsonb, timest
 grant execute on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) to authenticated;
 
 comment on function public.guardar_lineas_comprobante(uuid, jsonb, timestamptz) is
-  'Reemplaza las líneas del comprobante y las precia en el servidor (F-VTA-06, MSF-816): con promoción vigente de la tienda cobra el más bajo entre el precio normal con descuento y el promocional, y guarda el snapshot (precio_referencia, promocion_id). Contrato en docs/ventas-comprobantes.md.';
+  'Reemplaza las líneas de catálogo de un comprobante editable en una transacción y recalcula subtotal, IVA y total (F-VTA-06). Precio y escala los calcula private.precio_linea_venta (promoción vigente de la tienda si es menor, MSF-816); precio_manual exige editar_precio. Contrato en docs/ventas-comprobantes.md.';
 
 create or replace function public.obtener_comprobante(p_id uuid)
 returns jsonb
@@ -362,4 +357,4 @@ revoke execute on function public.obtener_comprobante(uuid) from public, anon;
 grant execute on function public.obtener_comprobante(uuid) to authenticated;
 
 comment on function public.obtener_comprobante(uuid) is
-  'Datos del comprobante con sus líneas (F-VTA-06, MSF-816): cada línea suma precio_referencia (el precio normal del cliente cuando ganó la promoción; null si no). No expone promocion_id. Contrato en docs/ventas-comprobantes.md.';
+  'F-SVC-13: además de los datos del comprobante, expone el origen (origen_tipo, origen_id, origen_numero «R-000N») y la marca sin_stock de cada línea. MSF-816: cada línea suma precio_referencia (null sin promoción; no expone promocion_id). Cambio aditivo.';

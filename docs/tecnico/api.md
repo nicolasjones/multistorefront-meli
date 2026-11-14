@@ -770,10 +770,10 @@ Los helpers `private.disponible_publico`, `private.precio_final_publico` y `priv
 | RPC / función | Devuelve / hace | Seguridad |
 |---|---|---|
 | `publico.tienda_por_dominio(host)` | `(tienda_id, empresa_nombre, estado)`; cero filas si no existe o la empresa está inactiva | `security definer`; `anon` y `authenticated` |
-| `publico.identidad_por_dominio(host)` | Colores, tipografías y rutas de logo/banners; tema base si no hay fila | `security definer`; `anon` y `authenticated` |
+| `publico.identidad_por_dominio(host)` | Colores (incluido `color_barra`), tipografías, rutas de logo/banners, `estilo_heroe` y `titulos_mayusculas` (MSF-848); tema base si no hay fila | `security definer`; `anon` y `authenticated` |
 | `publico.contenido_por_dominio(host)` | Ocho textos comerciales y `boton_destino`; vacío si no hay fila | `security definer`; `anon` y `authenticated` |
 | `publico.catalogo_visible_por_dominio(host)` | Categorías y productos efectivamente visibles, destacados primero; `null` si el dominio no existe o la empresa está inactiva | `security definer`; `anon` y `authenticated` |
-| `public.guardar_tienda_identidad(...)` | Guarda el estado completo de la identidad; idempotente | `security definer`; edición en Empresas; `42501`, `P0002`, `22023` |
+| `public.guardar_tienda_identidad(...)` | Guarda el estado completo de la identidad (con `p_color_barra`, `p_estilo_heroe` y `p_titulos_mayusculas` al final, con default); idempotente; solo la llama `publicar_tienda` | `security definer`; edición en Empresas; `42501`, `P0002`, `22023` |
 | `public.guardar_tienda_contenido(...)` | Guarda los textos con recorte y límites; idempotente | `security definer`; edición en Empresas; `42501`, `22023` con `hint` del campo |
 | `public.listar_catalogo_tienda(empresa)` | Categorías con conteo, productos con visibilidad efectiva y motivo, y resumen `{visibles, destacados}` | `security definer`; `lectura` en Empresas; `42501`, `P0002` |
 | `public.guardar_catalogo_tienda(empresa, categorias, productos)` | Aplica la diferencia en una transacción y devuelve el resumen | `security definer`; edición en Empresas; `42501`, `P0002`, `22023` |

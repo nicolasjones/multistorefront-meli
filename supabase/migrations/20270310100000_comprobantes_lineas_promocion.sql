@@ -1,72 +1,81 @@
--- MSF-816 (gate MSF-834 · MSF-363 decisión 6): el precio promocional, fijado en la línea del comprobante.
+-- MSF-816 / F-1 (spec 20261113-120000-precio-promocional-en-pos-y-comprobantes, FR-006, FR-007, FR-023):
+-- snapshot del precio promocional en la línea del comprobante.
 --
--- Qué cambia (aditivo, no toca filas existentes):
---   * `dominio.comprobantes_venta_lineas` suma dos columnas: `precio_referencia` (el precio normal DEL CLIENTE,
---     con su escala y su descuento, sin promoción: el «tachado») y `promocion_id` (la promoción que se aplicó).
---     El importe cobrado sigue siendo `precio_unitario`: ahora es el precio promocional cuando la promoción
---     gana. Las dos columnas van juntas o no van (check) y la referencia nunca es menor que lo cobrado.
---   * `dominio.promociones_precio` suma el `unique (id, organizacion_id)` que exige la FK compuesta de la línea.
+-- Qué hace (solo esquema; no escribe ninguna fila existente):
+--   · `dominio.promociones_precio`: `unique (id, organizacion_id)` (`promociones_precio_id_organizacion_uk`),
+--     soporte de la FK compuesta de la línea (hoy la tabla solo tiene `PK(id)`).
+--   · `dominio.comprobantes_venta_lineas`: dos columnas aditivas y nulables.
+--       - `precio_referencia numeric(14,2)`: el precio normal DEL CLIENTE (con su escala y su descuento) sin
+--         promoción; solo se guarda cuando la promoción ganó. Es el «tachado».
+--       - `promocion_id uuid`: la promoción aplicada (trazabilidad). FK compuesta `(promocion_id,
+--         organizacion_id)` con `no action`, como las FK de la línea a productos y depósitos: `restrict` rompería
+--         la baja de una organización (ver #902/MSF-844 y docs/e2e-app.md). Con `no action` la comprobación va
+--         al final de la sentencia y la cascada de la organización se lleva ambas tablas.
+--       - `check` de que las dos van juntas (ambas nulas o ambas con valor) y de que `precio_referencia >=
+--         precio_unitario` (la promoción solo gana si es MENOR que el normal).
+--     Índice parcial por `promocion_id` (soporta la FK y la búsqueda de líneas de una promoción).
 --
--- Esquema (Principio VII): se ALTERAN dos tablas del esquema `dominio` (dato de negocio: qué se cobró y contra
--- qué precio). No hay tablas nuevas ni objetos en `public`. La RLS vigente de `comprobantes_venta_lineas`
--- (organización + sección `ventas`) y de `promociones_precio` (organización + permiso por tienda) no cambia:
--- las columnas nuevas las escribe solo la RPC `guardar_lineas_comprobante` (`security definer`), como las demás.
+-- Esquema (Constitución, Principio VII): `dominio.comprobantes_venta_lineas` y `dominio.promociones_precio` ya
+-- son dominio del producto (qué se cobró y contra qué precio); no se crea ninguna tabla y NADA va a `public`.
+-- RLS vigente de la línea (organización + sección `ventas`); `anon` sin privilegios; las escribe solo la RPC
+-- `guardar_lineas_comprobante` (`authenticated` solo tiene `select`). Sin políticas nuevas.
 --
--- La FK es `no action` (como las de la línea a productos y depósitos) para no romper la baja de una
--- organización con una línea promocional (ver #902/MSF-844 y docs/e2e-app.md).
+-- Idempotente (guard de migraciones): `add column if not exists`, `drop constraint if exists` + `add
+-- constraint`, `create index if not exists`. El orden respeta las dependencias: primero se suelta la FK de la
+-- línea (depende del unique), después el unique, y se recrean en el orden inverso. Pasa
+-- `node scripts/verificar-migraciones.mjs --estricto` y el guard de DDL (`pnpm docs:check`).
 --
--- Migración aditiva e idempotente (guard de migraciones: el aplicador puede detenerse y reintentar).
--- Reversión (migración posterior, NUNCA en el mismo PR): exportar antes las dos columnas si ya hay datos y luego
+-- Reversión (migración POSTERIOR, nunca en el PR que las crea; exportar antes las dos columnas si ya hay datos):
 --   alter table dominio.comprobantes_venta_lineas
---     drop constraint comprobantes_venta_lineas_promocion_fk,
---     drop constraint comprobantes_venta_lineas_promocion_check,
---     drop column promocion_id,
---     drop column precio_referencia,
---     drop index comprobantes_venta_lineas_promocion_idx;
---   alter table dominio.promociones_precio drop constraint promociones_precio_id_organizacion_uk;
--- Reversión operativa inmediata, sin migrar: apagar la bandera `promociones_precio` (el local vuelve al precio
--- normal); las líneas ya emitidas conservan su precio.
+--     drop constraint if exists comprobantes_venta_lineas_promocion_fk,
+--     drop constraint if exists comprobantes_venta_lineas_promocion_juntas_chk,
+--     drop constraint if exists comprobantes_venta_lineas_precio_referencia_chk,
+--     drop column if exists promocion_id,
+--     drop column if exists precio_referencia;
+--   alter table dominio.promociones_precio drop constraint if exists promociones_precio_id_organizacion_uk;
+--   y restaurar los cuerpos anteriores de las cuatro RPC y de `private.copiar_costo_linea_nota` (cada migración
+--   que las cambia nombra la versión a restaurar). Reversión operativa inmediata, SIN migrar: apagar la bandera
+--   `promociones_precio` (la función de precio deja de ver promociones y todo vuelve al precio normal).
 
--- La FK compuesta de la línea necesita un `unique (id, organizacion_id)` en la promoción (hoy solo hay `PK(id)`).
+-- 1. La FK de la línea depende del unique: se suelta primero para que la migración se pueda repetir.
+alter table dominio.comprobantes_venta_lineas
+  drop constraint if exists comprobantes_venta_lineas_promocion_fk;
+
 alter table dominio.promociones_precio
   drop constraint if exists promociones_precio_id_organizacion_uk;
 alter table dominio.promociones_precio
   add constraint promociones_precio_id_organizacion_uk unique (id, organizacion_id);
 
-comment on constraint promociones_precio_id_organizacion_uk on dominio.promociones_precio is
-  'MSF-816: habilita la FK compuesta de la línea del comprobante a la promoción (trazabilidad del precio cobrado).';
-
--- Snapshot del precio en la línea: qué se cobró y contra qué precio.
+-- 2. Columnas del snapshot (nulas para todo lo emitido hasta hoy).
 alter table dominio.comprobantes_venta_lineas
   add column if not exists precio_referencia numeric(14, 2);
 alter table dominio.comprobantes_venta_lineas
   add column if not exists promocion_id uuid;
 
-comment on column dominio.comprobantes_venta_lineas.precio_referencia is
-  'MSF-816: precio normal del cliente (con su escala y su descuento) sin promoción, cuando la promoción ganó. Es el precio de referencia que se muestra tachado; null si la línea no está en promoción.';
-comment on column dominio.comprobantes_venta_lineas.promocion_id is
-  'MSF-816: promoción que se aplicó a la línea (trazabilidad). null si la línea no está en promoción.';
+alter table dominio.comprobantes_venta_lineas
+  drop constraint if exists comprobantes_venta_lineas_promocion_juntas_chk;
+alter table dominio.comprobantes_venta_lineas
+  add constraint comprobantes_venta_lineas_promocion_juntas_chk
+  check ((precio_referencia is null) = (promocion_id is null));
 
 alter table dominio.comprobantes_venta_lineas
-  drop constraint if exists comprobantes_venta_lineas_promocion_fk;
+  drop constraint if exists comprobantes_venta_lineas_precio_referencia_chk;
+alter table dominio.comprobantes_venta_lineas
+  add constraint comprobantes_venta_lineas_precio_referencia_chk
+  check (precio_referencia is null or precio_referencia >= precio_unitario);
+
 alter table dominio.comprobantes_venta_lineas
   add constraint comprobantes_venta_lineas_promocion_fk
   foreign key (promocion_id, organizacion_id)
   references dominio.promociones_precio (id, organizacion_id) on delete no action;
 
-alter table dominio.comprobantes_venta_lineas
-  drop constraint if exists comprobantes_venta_lineas_promocion_check;
-alter table dominio.comprobantes_venta_lineas
-  add constraint comprobantes_venta_lineas_promocion_check
-  check (
-    (precio_referencia is null) = (promocion_id is null)
-    and (precio_referencia is null or precio_referencia >= precio_unitario)
-  );
-
-comment on constraint comprobantes_venta_lineas_promocion_check on dominio.comprobantes_venta_lineas is
-  'MSF-816: la referencia y la promoción van juntas, y la referencia no puede ser menor que el precio cobrado.';
-
--- Índice parcial por promoción: la baja de una organización y las consultas por promoción no arrastran las líneas sin promoción.
 create index if not exists comprobantes_venta_lineas_promocion_idx
   on dominio.comprobantes_venta_lineas (promocion_id)
   where promocion_id is not null;
+
+comment on column dominio.comprobantes_venta_lineas.precio_referencia is
+  'MSF-816: precio normal del cliente (con su escala y su descuento) sin promoción; solo si ganó la promoción (el «tachado»). Null sin promoción. Snapshot: no se recalcula nunca.';
+comment on column dominio.comprobantes_venta_lineas.promocion_id is
+  'MSF-816: promoción de precio aplicada a la línea (trazabilidad; FK compuesta no action). Null sin promoción. No se expone al cliente web.';
+comment on constraint promociones_precio_id_organizacion_uk on dominio.promociones_precio is
+  'MSF-816: soporte de la FK compuesta de comprobantes_venta_lineas.promocion_id; no cambia datos ni RLS.';

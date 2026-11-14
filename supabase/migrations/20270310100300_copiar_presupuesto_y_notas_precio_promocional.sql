@@ -1,19 +1,27 @@
--- MSF-816 (gate MSF-834 · MSF-363 decisión 6): copiar un presupuesto reprecia con la promoción vigente.
+-- MSF-816 / F-1 (spec 20261113-120000-precio-promocional-en-pos-y-comprobantes, FR-010, FR-011):
+-- `copiar_presupuesto` reprecia con la función única y las notas de crédito heredan el snapshot.
 --
--- Qué cambia (aditivo, misma firma de la RPC, mismos permisos):
---   * `public.copiar_presupuesto` reprecia cada línea con `private.precio_linea_venta` (con la promoción
---     vigente de la tienda del presupuesto) y guarda el snapshot (`precio_referencia`, `promocion_id`). El precio
---     manual se conserva (quien lo fijó tenía `editar_precio`; quien copia no lo reprecia). Sin descuento del
---     cliente, igual que hoy (hallazgo 3 de la spec: defecto previo con su seguimiento).
---   * `private.copiar_costo_linea_nota` copia además el snapshot del precio a las líneas de las notas de crédito
---     de devolución: la nota devuelve al precio cobrado, con su referencia y su promoción (FR-011).
+-- Esquema (Principio VII): sin tablas nuevas; escribe `dominio.comprobantes_venta`/`..._lineas` (dominio) y,
+-- por `private.registrar_actividad`, `public.registro_actividad`. Las columnas `precio_referencia` y
+-- `promocion_id` son las de 20270310100000.
 --
--- Lo que NO cambia: el permiso (editar en la tienda del original), la empresa, el cliente, la validez, el
--- depósito, el producto inactivo (falla nombrándolo), el evento `presupuesto.copiado` y la fórmula del IVA.
+-- Cambios sobre los cuerpos VIGENTES:
+--   · `public.copiar_presupuesto` (cuerpo de 20261204150100; misma firma, `security definer`, grants intactos):
+--     el precio sale de `private.precio_linea_venta` SIN el descuento del cliente (`p_aplicar_descuento = false`,
+--     igual que hoy: hallazgo 3 de la spec, seguimiento S2) y con la promoción vigente de la tienda; el precio
+--     manual se conserva tal cual (sin referencia); la línea guarda `precio_referencia`/`promocion_id` solo si ganó
+--     la promoción. El instante es `clock_timestamp()` tomado después del bloqueo `for share` del original. Con
+--     la bandera `promociones_precio` apagada el resultado es idéntico al de hoy.
+--   · `private.copiar_costo_linea_nota` (cuerpo de 20270202201006; el disparador `comprobantes_venta_lineas_costo_nota`
+--     no se toca): además del costo, la línea de una nota de `devolucion_productos` hereda `precio_referencia` y
+--     `promocion_id` de la línea original (misma factura, mismo `orden`). Se copian FUERA del gate propio del costo
+--     (`new.costo_unitario is null and new.cotizacion is null`) y con su propio gate (solo si la fila nueva las
+--     trae nulas). `emitir_nota_credito` no se reescribe: ya copia `precio_unitario` de la línea cobrada, así que
+--     la devolución es al precio cobrado y el `check precio_referencia >= precio_unitario` se mantiene.
 --
--- Esquema (Principio VII): sin tablas nuevas ni objetos en `public`. Migración aditiva (`create or replace`,
--- mismas firmas y grants). Reversión (migración posterior): restaurar `public.copiar_presupuesto` con su
--- definición de 20261204150100 y `private.copiar_costo_linea_nota` con la de 20270202201006.
+-- Migración aditiva. Pasa `node scripts/verificar-migraciones.mjs --estricto` y el guard de DDL.
+-- Reversión (migración posterior): restaurar `public.copiar_presupuesto` de 20261204150100 y
+-- `private.copiar_costo_linea_nota` de 20270202201006.
 
 create or replace function public.copiar_presupuesto(p_id uuid)
 returns dominio.comprobantes_venta
@@ -35,6 +43,7 @@ declare
   v_precio record;
   v_deposito uuid;
   v_unitario numeric;
+  v_ahora timestamptz;
   v_porcentaje numeric;
   v_subtotal numeric;
   v_iva numeric;
@@ -55,6 +64,8 @@ begin
   if not found or v_o.empresa_id is null then
     raise exception 'El presupuesto no existe' using errcode = 'P0002';
   end if;
+  -- MSF-816 (FR-002, R3c): el instante del precio se toma después del bloqueo del original.
+  v_ahora := clock_timestamp();
   if (select private.nivel_ventas_en_empresa(v_o.empresa_id)) <> 'edicion' then
     raise exception 'Tu rol no puede copiar presupuestos de esta tienda' using errcode = '42501';
   end if;
@@ -117,10 +128,10 @@ begin
       raise exception 'La tienda no tiene un depósito desde el cual vender' using errcode = '22023', hint = 'deposito_id';
     end if;
 
-    -- MSF-816: reprecia con la función única (con la promoción vigente de la tienda). Sin descuento del cliente,
-    -- igual que hoy (hallazgo 3 de la spec: es un defecto previo, con su seguimiento).
+    -- MSF-816 (FR-010): misma función de precio que `guardar_lineas_comprobante`, SIN el descuento del cliente
+    -- (igual que hoy, hallazgo 3 de la spec: seguimiento S2) y con la promoción vigente de la tienda.
     select * into v_precio
-      from private.precio_linea_venta(v_producto.id, v_o.empresa_id, v_tipo_cliente, v_linea.cantidad, 0, clock_timestamp(), false);
+      from private.precio_linea_venta(v_producto.id, v_o.empresa_id, v_tipo_cliente, v_linea.cantidad, 0, v_ahora, false);
     if not found then
       raise exception 'No pudimos calcular el precio de «%»', v_linea.descripcion using errcode = '22023', hint = 'producto_id';
     end if;
@@ -169,11 +180,9 @@ revoke execute on function public.copiar_presupuesto(uuid) from public, anon;
 grant execute on function public.copiar_presupuesto(uuid) to authenticated;
 
 comment on function public.copiar_presupuesto(uuid) is
-  'Crea un presupuesto pendiente nuevo con las líneas del original (repreciadas salvo manual; MSF-816); el original no cambia (F-VTA-08, FR-051). Contrato en docs/ventas-comprobantes.md.';
+  'Crea un presupuesto pendiente nuevo con las líneas del original (precios recalculados con private.precio_linea_venta, sin descuento del cliente, salvo manual); el original no cambia (F-VTA-08, FR-051; MSF-816). Contrato en docs/ventas-comprobantes.md.';
 
--- La nota de crédito devuelve al PRECIO COBRADO: con el snapshot (MSF-816) también hereda la referencia y la
--- promoción de la línea original. Las dos columnas nuevas se copian FUERA del gate del costo (que solo decide
--- el costo) y con su propio gate: solo si la fila nueva las trae nulas. Solo notas de devolución de productos.
+-- Copia del costo y del snapshot de precio a las líneas de una nota de crédito de devolución.
 create or replace function private.copiar_costo_linea_nota()
 returns trigger
 language plpgsql
@@ -189,7 +198,7 @@ begin
      where n.id = new.comprobante_id and n.organizacion_id = new.organizacion_id
        and n.tipo = 'nota_credito' and n.nc_tipo = 'devolucion_productos';
   end if;
-
+  -- MSF-816 (FR-011): el snapshot de la promoción viaja con la devolución (gate propio, fuera del del costo).
   if new.precio_referencia is null and new.promocion_id is null then
     select o.precio_referencia, o.promocion_id into new.precio_referencia, new.promocion_id
       from dominio.comprobantes_venta n
@@ -203,6 +212,3 @@ end;
 $$;
 
 revoke execute on function private.copiar_costo_linea_nota() from public, anon, authenticated;
-
-comment on function private.copiar_costo_linea_nota() is
-  'MSF-816: la línea de una nota de crédito de devolución hereda el costo y el snapshot del precio (precio_referencia, promocion_id) de la línea original.';

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
+import { UPSERT_FUSIONAR, borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-19 (MSF-247, épica MSF-149): estados especiales de la tienda con los dos dominios del seed
 // (mundojc.localhost y sanjavucho.localhost). Requiere el stack local (`pnpm dev:supabase`, que aplica
@@ -7,14 +8,6 @@ import { expect, test } from './fixture'
 // al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI público):
 // ver docs/e2e-app.md. «Store activa» se apaga con el mismo campo (`dominio.empresas.activa`) que el botón
 // «Pausar tienda» de Empresas (F-EMP-04).
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de estados de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -33,25 +26,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function insertar<T>(tabla: string, cuerpo: unknown, upsert?: string): Promise<T[]> {
-  const consulta = upsert ? `?on_conflict=${upsert}` : ''
-  const r = await fetch(`${url}/rest/v1/${tabla}${consulta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: `return=representation${upsert ? ',resolution=merge-duplicates' : ''}` }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 const activar = (empresa: string, activa: boolean) => actualizar('empresas', `id=eq.${empresa}`, { activa })
@@ -67,17 +44,17 @@ test.describe('Tienda online · estados especiales (F-TDA-19)', () => {
 
   test.beforeAll(async () => {
     for (const t of TIENDAS) {
-      await insertar('tienda_identidad', { empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.host.startsWith('mundo') ? '#AA1111' : '#1111AA' }, 'empresa_id')
-      const [producto] = await insertar<{ id: string }>('productos', { organizacion_id: t.organizacion, nombre: `Estados ${t.nombre} ${sufijo}`, sku: `E2E-EST-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10 })
-      await insertar('producto_empresa', { producto_id: producto.id, empresa_id: t.empresa, organizacion_id: t.organizacion })
+      await rest('tienda_identidad?on_conflict=empresa_id', { empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.host.startsWith('mundo') ? '#AA1111' : '#1111AA' }, 'dominio', UPSERT_FUSIONAR)
+      const [producto] = await rest<{ id: string }>('productos', { organizacion_id: t.organizacion, nombre: `Estados ${t.nombre} ${sufijo}`, sku: `E2E-EST-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10 }, 'dominio')
+      await rest('producto_empresa', { producto_id: producto.id, empresa_id: t.empresa, organizacion_id: t.organizacion }, 'dominio')
     }
   })
 
   test.afterAll(async () => {
     for (const t of TIENDAS) {
       await activar(t.empresa, true)
-      await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
-      await borrar('tienda_identidad', `empresa_id=eq.${t.empresa}`)
+      await borrar(`productos?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+      await borrar(`tienda_identidad?empresa_id=eq.${t.empresa}`, 'dominio')
     }
   })
 

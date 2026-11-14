@@ -188,6 +188,28 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
   como «colores» en el resumen «N cambios sin publicar». `public.guardar_tienda_identidad` cambió de firma
   (parámetro final `p_color_barra`, con default; se eliminó la de 10 argumentos) y `publicar_tienda`, su único
   llamador, se recreó; sigue sin ser ejecutable por `authenticated` (F-TDA-06).
+- **MSF-848 (estilo del encabezado y mayúsculas, por configuración)**: dos campos más de la identidad
+  (migración `20270311100000_tienda_estilo_heroe_mayusculas.sql`, mismo patrón que `color_barra`; spec en
+  `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`). Regla de producto: las diferencias entre tiendas
+  no se programan por tienda, se configuran.
+  - **`estilo_heroe`** «Estilo del encabezado de la portada», lista cerrada `oscuro | claro` (por defecto `oscuro`).
+    *Oscuro* (MundoJC): franja del color de la barra, título de 72 px en mayúsculas blancas, dos franjas inclinadas
+    (primario oscuro y primario) y héroe de 440 px. *Claro* (San Javucho, `SJ_Home`/`SJ_M_Home`): franja con el color
+    de superficie, título de 60 px (36 px en celular) en el color primario y círculo de 360 px del color de acento
+    (desde 1200 px). El botón del héroe usa el acento con el texto de mayor contraste y, si el acento casi no se
+    distingue de la franja (< 1,5:1), el color del texto de la franja: es visible con cualquier identidad.
+  - **`titulos_mayusculas`** «Títulos del menú y botones en mayúsculas», booleano (por defecto `true`): controla
+    `text-transform: uppercase` (y el `letter-spacing: .04em`) de la barra de categorías y el `text-transform` del
+    título y del botón del héroe (MundoJC sí, San Javucho no). El `.03em` del botón es del prototipo en las dos tiendas.
+  - Los dos viajan en el borrador, en las versiones (clave ausente = `oscuro` / `true`, sin «cambio» fantasma), en
+    `publico.identidad_por_dominio` y en la pestaña «Identidad visual» (tarjeta «Portada y menú» y vista previa). El
+    resumen de cambios los nombra «estilo del encabezado» y «mayúsculas de los títulos». `public.guardar_tienda_identidad`
+    cambió de firma (parámetros finales `p_estilo_heroe` y `p_titulos_mayusculas`, con default; se eliminó la de 11
+    argumentos) y `publicar_tienda` se recreó; sigue sin ser ejecutable por `authenticated`. Se leen en el front por el
+    tema (`theme.tienda.heroe`, `theme.tienda.titulosMayusculas`), sin variables CSS.
+  - El color de la franja inclinada no tiene campo: es el primario oscuro de la identidad (decisión declarada).
+  - Reversión: recrear las funciones de 20270303200000 / 20270303300000 sin los campos y, recién entonces,
+    `alter table dominio.tienda_identidad drop column titulos_mayusculas, drop column estilo_heroe`.
 - **Escritura**: solo `public.guardar_tienda_identidad(...)` (`security definer`, exige edición en
   Empresas, estado completo, **idempotente**: si no cambia nada no escribe ni registra evento; emite
   `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
@@ -506,7 +528,7 @@ a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra
 | Barra de categorías | Barlow 15 px/600 mayúsculas | Barlow Condensed | Barlow |
 | Migas / título del catálogo | 14 px, 18 px de aire / 44 px/700 | 16 px / 34 px/400, espaciado −1,87 px | igual al prototipo |
 | Panel de filtros | 260 px; títulos 18 px títulos; filas 15 px; casilla; campo de 40 px | 240 px; 16 px; MUI `List`, botón con mayúsculas, campo flotante | igual al prototipo |
-| Portada: héroe | 440 px a todo el ancho, título 72 px/700 mayúsculas, botón 16 px/700 de 47 px | texto de 34 px/400 y botón de 14 px | igual (sin las tarjetas del héroe: no hay datos) |
+| Portada: héroe | 440 px a todo el ancho, título 72 px/700 mayúsculas (estilo oscuro; el claro, 60 px sin mayúsculas, MSF-848), botón 16 px/700 de 47 px | texto de 34 px/400 y botón de 14 px | igual (sin las tarjetas del héroe: no hay datos) |
 | Portada: categorías | 186 px (16 px de separación) | 181 px con borde | 186 px; en celular, píldoras |
 | Ficha | galería 600 px, miniaturas 84 px, título y precio 44 px, botones 16 px/700 radio 8 | 568 px, 72 px, 34 px / 24 px, botones 14 px/700 mayúsculas radio 4 | igual al prototipo |
 | Contacto | columna 460 px con círculos de 44 px; tarjeta con rótulos arriba; campos de 44 px | 560 px sin íconos; campos con rótulo flotante | igual al prototipo |
@@ -544,9 +566,24 @@ a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra
   | MK-01/MK-03/MK-04: contacto en celular | círculos de 40 px, sin «Retiro y envíos», sin rótulos arriba | 44 px, con las tres filas y rótulos | 40 px, dos filas, rótulos solo para lectores |
   | MP-06: «Ver más productos» en celular | ausente | presente | solo escritorio |
 
-- **Decisiones abiertas** (sin configuración inventada): héroe de dos variantes (la franja clara de San Javucho), mayúsculas de la barra de categorías y del botón del héroe, color de la franja inclinada. Detalle en la spec.
+- **Decisiones de MSF-847 resueltas en MSF-848**: el héroe de dos variantes (la franja clara de San Javucho) y las mayúsculas de la barra de categorías y del botón del héroe se configuran en la identidad visual (`estilo_heroe`, `titulos_mayusculas`; ver «MSF-848» en la sección de identidad). El color de la franja inclinada sigue siendo el primario oscuro de la identidad (declarado, sin campo).
 - **Desvíos accesibles declarados**: áreas táctiles de 36–44 px en el encabezado y «← Todos los productos»; botón de cierre de la hoja de filtros; «Abrir WhatsApp» con texto en tinta; foco visible; «Cargar más» (regla del repo).
 - **Pruebas**: Vitest de la tarjeta, las grillas (la parte por ancho se lee en el texto de la hoja: jsdom no evalúa `@media`) y las piezas compartidas, más axe real de Chromium sobre una build local; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron localmente (los valida el CI).
+
+## Hallazgos de la re-auditoría de fidelidad (MSF-849)
+
+Spec `specs/20270316-100000-tiendas-hallazgos-reauditoria`. Medido en Chromium sobre una build local servida desde dev (escritorio 1440 y celular 390):
+
+| Fila | Prototipo | Antes | Después |
+|---|---|---|---|
+| N-01 logo del pie (MundoJC) | marca sobre recuadro blanco redondeado | `filter: brightness(0) invert(1)`: bloque blanco sólido de 103×44 sin marca | recuadro blanco de 100×44 (radio 8) con la imagen de 84×36 a color, sin filtro |
+| N-02 mensaje del diálogo de WhatsApp | producto en negrita | texto plano | producto en `<b>` en la vista (`aria-hidden`) y el `textarea` de solo lectura con el texto completo; lo que se envía no cambia |
+| MM-03 «Inicio» actual del menú móvil | 600 | 700 | 600 (`aria-current` lo anuncia) |
+| MH-10 enlaces del pie móvil | 12 px | 14 px | 14 px: desvío accesible declarado |
+| Foco de «Ingresar», «Limpiar filtros», «Ordenar por» | sin definir | onda tenue de MUI (el selector de orden, sin nada) | contorno de 2 px primario a 2 px (`layout/FocoVisible.tsx`), `solid 2px rgb(163,17,29)` en los tres con Tab real; sin contorno al tocar con el mouse |
+
+El foco unificado cubre enlaces, botones y selectores de la tienda, también los estados de carga, error y «Volvemos pronto» (`FocoVisible` se monta en el layout y en la raíz de la tienda). El color sale de `colorFoco`: el primario si llega a 3:1 contra el fondo de la página y el blanco del encabezado; si no, el color del texto, negro, blanco o un gris medio. La lupa del buscador lleva el contorno hacia adentro (el campo recorta lo que sobresale) y sobre la barra superior y el pie (`data-foco="oscuro"`) toma el color del texto. Los campos de texto usan el borde primario de MUI al enfocarse. El diálogo de WhatsApp suma «Copiar mensaje» para dar acceso por teclado al texto.
+El logo de la pestaña Identidad ya no pide fondo transparente: debe tener colores visibles sobre fondo blanco (un logo blanco o muy claro no se vería en el recuadro del pie).
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
@@ -1220,9 +1257,9 @@ contacto de la empresa del host.
   del panel (sin layout) se dibuja como antes.
 - **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (flexible: hasta 560 px desde `md`, se encoge si falta
   lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
-  (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
+  (`layout/MenuCategorias`) 15 px, 600, subrayado de 3 px en la activa (primario); en mayúsculas con `.04em` salvo que la identidad apague «Títulos del menú y botones en mayúsculas» (MSF-848). Conserva el tope de 6 principales +
   «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
-- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo con sus colores sobre un recuadro blanco redondeado de 44 px de alto (MSF-849; sirve con fondo transparente u opaco; antes se invertía a blanco y un PNG de fondo opaco quedaba como un bloque sólido sin marca) o el nombre, eslogan,
   el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
   vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
   línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste

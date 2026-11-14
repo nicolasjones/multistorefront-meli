@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-11 (MSF-386, SC-003 de la épica MSF-167): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) el menú de cada tienda lista solo sus categorías y una categoría oculta o de
@@ -7,15 +8,8 @@ import { expect, test } from '@playwright/test'
 // servida; siembra las categorías con la API admin desde Node (la
 // service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
+const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -41,22 +35,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   'accept-profile': 'dominio',
   ...extra,
 })
-
-async function insertar<T>(tabla: string, cuerpo: unknown, upsert?: string): Promise<T[]> {
-  const consulta = upsert ? `?on_conflict=${upsert}` : ''
-  const r = await fetch(`${url}/rest/v1/${tabla}${consulta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: `return=representation${upsert ? ',resolution=merge-duplicates' : ''}` }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
-}
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
@@ -90,24 +68,24 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
 
     try {
       for (const t of tiendas) {
-        const [propia, oculta] = await insertar<{ id: string }>('categorias', [
+        const [propia, oculta] = await rest<{ id: string }>('categorias', [
           { organizacion_id: t.organizacion, nombre: t.propia },
           { organizacion_id: t.organizacion, nombre: t.oculta },
-        ])
+        ], 'dominio')
         t.propiaId = propia.id
         t.ocultaId = oculta.id
-        await insertar('categorias_tienda', { empresa_id: t.empresa, categoria_id: oculta.id, organizacion_id: t.organizacion, visible: false })
+        await rest('categorias_tienda', { empresa_id: t.empresa, categoria_id: oculta.id, organizacion_id: t.organizacion, visible: false }, 'dominio')
         // La tienda solo publica las categorías con al menos un producto visible, y el menú y el pie muestran las 6 con más
         // productos (MSF-825): la propia lleva uno más que la categoría más grande que ya tenga la tienda para quedar entre
         // ellas; la oculta lleva uno.
         const mayor = await productosDeLaMayorCategoria(t.host)
-        const productos = await insertar<{ id: string }>('productos', [
+        const productos = await rest<{ id: string }>('productos', [
           ...Array.from({ length: mayor + 1 }, (_, n) => ({
             organizacion_id: t.organizacion, nombre: `Producto propia ${n + 1} ${t.nombre} ${sufijo}`, sku: `E2E-CAT-P${n}-${t.nombre}-${sufijo}`, precio_lista: 1000, moneda: 'ARS', categoria_id: propia.id,
           })),
           { organizacion_id: t.organizacion, nombre: `Producto oculta ${t.nombre} ${sufijo}`, sku: `E2E-CAT-O-${t.nombre}-${sufijo}`, precio_lista: 1000, moneda: 'ARS', categoria_id: oculta.id },
-        ])
-        await insertar('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
+        ], 'dominio')
+        await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
       }
 
       for (const t of tiendas) {
@@ -161,8 +139,8 @@ test.describe('Tienda online · navegación por categorías (SC-003)', () => {
     } finally {
       // Limpieza: primero los productos; las filas de categorias_tienda caen en cascada con la categoría.
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })

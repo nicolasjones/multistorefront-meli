@@ -65,7 +65,7 @@ Sin tablas nuevas: la prueba `rls_en_toda_tabla` no cambia. Migraciones aditivas
 - **FR-019** Tarjeta de impacto por cada tienda activa y vista previa con precio actual y nuevo, **sin guardar** (RPC `previsualizar_impacto_dolar`).
 - **FR-020** Al confirmar guarda con fecha y usuario (`aplicar_cotizacion`, atómica) y actualiza el aviso sin recargar; cancelar o valor inválido no guarda nada.
 
-## Decisiones tomadas (a confirmar por Nicolás)
+## Decisiones confirmadas (Nicolás delegó todas las decisiones el 2026-11-14)
 
 | # | Decisión | Alternativa |
 |---|---|---|
@@ -73,7 +73,7 @@ Sin tablas nuevas: la prueba `rls_en_toda_tabla` no cambia. Migraciones aditivas
 | D-2 | Ingresos **con IVA** (`total_con_iva`), rotulado; devoluciones = notas de crédito de las tres clases | Neto sin IVA |
 | D-3 | «Entradas» = movimientos `entrada` **sin** traslados, devoluciones de cliente ni anulaciones (esas van en Devoluciones); «Ajustes» = solo `ajuste` | Contarlas todas |
 | D-4 | Costo, «Valor del stock» y margen solo con `rentabilidad` ≥ lectura (Administrador y Administración) | Todo rol con `stock` |
-| D-5 | Margen estimado = margen **real** de lo vendido (costo guardado en la línea) | Margen de lista |
+| D-5 | Margen estimado = margen **real** de lo vendido (costo guardado en la línea), rotulado «estimado». La historia decía «costo vigente»: se decide el real porque es el único dato histórico fiable (**desvío consciente**, documentado) | Margen de lista / costo vigente |
 | D-6 | Gráfico con **MUI X Charts** (`@mui/x-charts`), aprobado por Nicolás el 2026-11-13 | SVG propio, sin dependencia nueva |
 | D-7 | Movimientos por producto completo con carga infinita; exportación CSV | Muestra de N; .xlsx |
 | D-8 | Período, tienda y depósito viajan en la URL (`?tienda=<uuid>|todas`) para compartir la vista (manda la historia, CA-INI-04-7); sin `tienda` sigue a la empresa activa y el cambio de la barra superior la descarta; períodos de la historia (hoy, 7 días, mes, rango) | Tienda fuera de la URL; 7/30/90 del prototipo |

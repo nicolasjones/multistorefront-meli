@@ -32,7 +32,7 @@ export function BarraSuperior({ host }: { host: string }) {
   }
 
   return (
-    <Box data-testid="barra-superior" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra, fontSize: { xs: 12, md: 13 }, display: { xs: texto ? 'block' : 'none', md: 'block' } })}>
+    <Box data-testid="barra-superior" data-foco="oscuro" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra, fontSize: { xs: 12, md: 13 }, display: { xs: texto ? 'block' : 'none', md: 'block' } })}>
       <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: MARGEN_LATERAL_TIENDA, height: { xs: 28, md: 36 }, display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', md: 'space-between' }, gap: 2 }}>
         {texto ? <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{texto}</Box> : <span />}
         {whatsapp || correo ? (

@@ -6,7 +6,7 @@ import { OPCIONES_ORDEN, contarFiltrosActivos, type CategoriaListado, type Filtr
 import { filasPanelCategorias } from '../../../lib/tiendaCategorias'
 import { CampoPrecioMax, CasillaStock } from './PanelFiltros'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
-import { BORDE_CAMPO } from '../layout/medidas'
+import { BORDE_CAMPO, COLOR_FOCO } from '../layout/medidas'
 
 type Props = {
   categorias: CategoriaListado[]
@@ -45,7 +45,7 @@ function Pildora({ activa, alElegir, children }: { activa: boolean; alElegir: ()
       sx={{
         px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', flexShrink: 0, // estilos-sueltos: ok
         border: BORDE_CAMPO, bgcolor: activa ? 'primary.main' : 'background.paper', color: activa ? 'primary.contrastText' : 'text.primary', borderColor: activa ? 'primary.main' : undefined,
-        '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' }, // estilos-sueltos: ok
+        '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: COLOR_FOCO, outlineOffset: '2px' }, // estilos-sueltos: ok
       }}
     >
       {children}
