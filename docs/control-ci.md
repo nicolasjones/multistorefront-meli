@@ -280,3 +280,12 @@ gh api repos/nicolasjones/multistorefront-meli/actions/runners \
 
 Un runner `offline` **con** `busy=true` es un job huérfano: ese PR está
 esperando un CI que no va a llegar.
+
+## Prueba de runners hosted (gratis en repo público)
+
+Los jobs pesados esperan en cola porque VPS2 (12 núcleos, carga ~40) está saturada: la espera medida en un run completo
+fue de 1 a 2 horas por job, y la ejecución real de `database` unos 22 minutos. Como el repositorio es público, los runners
+estándar de GitHub (`ubuntu-latest`) no tienen costo ni tope de minutos. El workflow
+`.github/workflows/ci-prueba-hosted.yml` (no requerido, solo en la rama `ci/runners-hosted-prueba`) corre `database` ahí para
+medir el tiempo real antes de mover jobs de `validate.yml`. Los scripts asumen un runner dentro de Docker
+(`host.docker.internal`, `SUPABASE_CI_LOCK_DIR`, `pg_prove`); el workflow de prueba los adapta.
