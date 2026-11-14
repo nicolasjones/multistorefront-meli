@@ -32,7 +32,7 @@ Otras notas no destinadas al gate: (a) el prompt del Documentador pide la clave 
 
 Decisiones y verificaciones no hechas:
 
-1. **Prototipo `design/pantallas/VentasFaltantes.dc.html`**: no dibuja «En cola», «Aviso fallido» ni «Reintentar» (agregado de la revisión M-1) ni el filtro «En cola». «El prototipo manda la UI»: confirmar que se agregan al prototipo (y regenerar `VentasFaltantes.inventory.json`) o pedir que se quiten.
+1. ~~**Prototipo `design/pantallas/VentasFaltantes.dc.html`**~~ **Resuelto (2026-11-14)**: decisión tomada por Claude por delegación de Nicolás: el prototipo refleja lo implementado (chips «En cola» y «Aviso fallido» con motivo, «Reintentar» y «Avisos en cola.»; inventario regenerado). El filtro «En cola» sigue solo en la RPC.
 2. **Despliegue a STG y PROD** (lo hace Nicolás): secretos reales `SMTP_HOST/PORT=465/TLS=true/USER/PASS/FROM` y `AVISOS_FALTANTES_TOKEN` en Edge Functions, `AVISOS_FALTANTES_URL/APIKEY/SECRET_AVISOS_FALTANTES_TOKEN` (base64) en Kestra, y publicar el flow `avisos-faltantes`. Detalle y orden en `docs/deployment.md` › *Avisos de faltantes*. Hasta entonces los avisos quedan «En cola» sin salir.
 3. **Proveedor SMTP y puerto**: con denomailer 1.6.0 solo funciona TLS implícito (465). Si el proveedor solo ofrece 587/STARTTLS hay que reemplazar la librería (p. ej. `npm:nodemailer` con `requireTLS`); es una decisión de alcance.
 4. **Reintentar un `smtp_timeout` sin límite de 24 h ni tope diario** (el correo pudo haber salido; es la única vía de duplicado por acción humana): confirmar que se acepta.
@@ -56,7 +56,7 @@ Estado al 2026-11-13, todo en `origin/dokploy` d78b2518.
 - [ ] Flow `avisos-faltantes` publicado en stg (por push) y prd (por `workflow_dispatch`).
 - [ ] Verificación posterior en stg: un faltante de prueba pasa «En cola» → «Avisado» y llega un solo correo con tildes y «·» correctos.
 - [ ] Manual de usuario y técnico en `main` actualizados (PR a `main` de esta tarea) y sitio de documentación republicado.
-- [ ] Decisión sobre el prototipo (Pendientes 1).
+- [x] Decisión sobre el prototipo (Pendientes 1): resuelta el 2026-11-14.
 
 ## No verificado
 
