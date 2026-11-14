@@ -19,8 +19,6 @@ export function useEmpresasAccesibles() {
   // para que la pantalla la siga (F-ROL-06).
   const revision = useSyncExternalStore(suscribirEmpresaActiva, revisionEmpresaActiva, revisionEmpresaActiva)
   const ultimaPeticion = useRef(0)
-  // Evita `setState` si la carga termina con el componente ya desmontado.
-  const montado = useRef(false)
 
   // «Última petición gana»: si cambia la organización activa (superadmin) y hay
   // dos cargas en vuelo, la respuesta vieja se descarta.
@@ -32,30 +30,34 @@ export function useEmpresasAccesibles() {
     setCargando(true)
     try {
       const lista = await listarEmpresasSelector()
-      if (!montado.current || peticion !== ultimaPeticion.current) return
+      if (peticion !== ultimaPeticion.current) return
       setEmpresas(lista)
       setHayError(false)
     } catch (error) {
-      if (!montado.current || peticion !== ultimaPeticion.current) return
+      if (peticion !== ultimaPeticion.current) return
       console.error('No se pudieron cargar las empresas accesibles', error instanceof Error ? error.message : error)
       setEmpresas([])
       setHayError(true)
     }
-    if (montado.current) setCargando(false)
+    setCargando(false)
     // organizacionId y revision solo disparan la recarga; la organización y la
     // activa las resuelve la base.
   }, [organizacionId, revision])
 
   useEffect(() => {
-    montado.current = true
-    return () => {
-      montado.current = false
-    }
-  }, [])
-
-  useEffect(() => {
     void cargar()
   }, [cargar])
+
+  // Al desmontar, cualquier petición en vuelo queda invalidada («última petición gana»): su respuesta,
+  // sea éxito o error, se descarta sin tocar el estado ni escribir a consola. Sin esto, una petición que
+  // falla después del desmontaje (típico en tests, con el entorno ya cerrado) hacía `setState` tarde y
+  // terminaba en `ReferenceError: window is not defined` aunque todos los tests pasaran.
+  useEffect(() => {
+    const peticiones = ultimaPeticion
+    return () => {
+      peticiones.current += 1
+    }
+  }, [])
 
   const empresaActivaId = empresas.find((empresa) => empresa.esActiva)?.id ?? null
   return { empresas, empresaActivaId, isLoading: cargando, isError: hayError, refetch: cargar }
