@@ -32,11 +32,15 @@ Ver `scripts/prototipo-inventario.mjs --help` (uso) y `scripts/prototipo-inventa
   prototipo (`design/pantallas`). Tests: `pnpm test:matriz:pantalla`. Las specs
   con UI anteriores a la vigilancia quedan en `scripts/matriz-pantalla-exentas.txt`
   (deuda explícita; no se agregan líneas sin motivo).
-- **Empresa activa en la matriz**: la misma sección debe incluir «Empresa
+- **Empresa activa en la matriz**: la misma sección debe incluir la fila «Empresa
   activa» (qué filtra, qué pasa al cambiarla) o «Empresa activa: no aplica» con
   el motivo. Sin esa fila, `pnpm matriz:check` falla. Es el Principio VIII de la
   constitución: nació de la regresión de Clientes con la barra superior, que se
-  repitió en Productos, Servicios, Modelos y pop-ups.
+  repitió en Productos, Servicios, Modelos y pop-ups. El gate mira la fila, no
+  la palabra: una matriz que sólo menciona «empresa» de otra forma también
+  falla. Las specs con UI escritas antes de ese principio quedan en
+  `scripts/matriz-pantalla-empresa-exentas.txt` (deuda explícita; se borra de
+  ahí la línea de la spec que ya declara la fila).
 - **Sin valores sueltos**: `pnpm estilos:check` (ya en CI) prohíbe colores y
   dimensiones literales en `apps/web/src/pages/**`: obliga a tokens/tema.
 - **Tokens anclados al prototipo**: `apps/web/src/tema/tokens.test.ts` fija los

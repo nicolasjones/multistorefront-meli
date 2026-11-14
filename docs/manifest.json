@@ -11,9 +11,9 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "25d8081207fcb5d22ec3d0e5585d61aa18b80f0edac199ace8e7d469fb1f6c24",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "61adc0f690706111da8ed37449d8d0d77f710c05fc3164d5bf10f92f8355eb1e",
+      "sourceHash": "80a40d9309b9f097daba3e9780cbce10946841d066ea62035324f8b7337a4795",
+      "sourceAt": "92a276f4",
       "sources": [
         "specs"
       ],
@@ -370,15 +370,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "1da699048e6b8392fa3ad6749800a057d62c25faf1b7ddc4b663369012cbeac6",
-      "sourceHash": "5a8131269c90f7e92a945480b256a7335250eda36d6ff4a5f07f5e777b4cebb5",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "77d4f1c27c79dce5c5ac727a10729ad69fbebe16e7ee4b1568419c871d2ec2aa",
+      "sourceHash": "70570acd4378a65496d088aee839c07beb99f9bb480e30c7a236359e5e124148",
+      "sourceAt": "c7860a7c",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -611,14 +611,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "d0fdc1882ffc3e602ac84473de141f3c42f2b7a703c8da070a8d722df1106290",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8bcd6dd4c23fa22337462aa3f52fbe60dacb6b5578093868fdb41fc1264bb3fd",
+      "sourceHash": "8984763d880f3efb9833be6c5fbda22523bf1857994f914c742726bb2003f037",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
@@ -939,16 +939,16 @@
     },
     "docs/pasos-manuales-vps2.md": {
       "title": "Pasos manuales de infraestructura en VPS2 (MSF-854)",
-      "pageHash": "d2cbc094822ef93c5b02f623aacddc8d060d54a6c39c1909c23600336b3786a3",
+      "pageHash": "878f573b57e022a2783a6acfac4a2889f64d7f7f5cb7a6a078de39a9cce28560",
       "sourceHash": "e4bf2bc6a3f481997a70962875db7ba04dfcb1bb6d4762d1df7bed9851057956",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "scripts/docs-api-publica.sh",
         "apps/web/src/pages/api/PanelClaves.tsx",
         "supabase/migrations/20270224110201_api_claves.sql"
       ],
       "owner": "operacion",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -1681,9 +1681,9 @@
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
-      "pageHash": "7001139652b6b46f548155aadcc209e243d2e34a7a22185547ac7ce050015c52",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "17151bd1f3025ac1bd44751717d9f73f136b10858fbd95fe00747f8094105ef9",
+      "sourceHash": "5e3829c33e9a2e1f69dd26a775fdc4311a30ae1c791e5a0946a3b9962b0aac5f",
+      "sourceAt": "1ce44c55",
       "sources": [
         "specs"
       ],
@@ -2802,7 +2802,7 @@
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
       "pageHash": "14d007c79d5520a25272a7b0d7cf74f0fdabad4c9acdfa6b8151e01e195954e0",
-      "sourceHash": "5d6933fc652fb4cb697a0da6c428cadb980ff4dcbe05c3005fdebbc67ea9fd08",
+      "sourceHash": "78c69968fd6acff43cb9666c51cb3a5f87c77cbb9262d4e08f69a29e1461c25d",
       "sourceAt": "a6f780be",
       "sources": [
         "package.json",
