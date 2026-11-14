@@ -3,7 +3,7 @@
 -- desactivada (tienda pausada) = el mismo error, solo las claves del contrato y anon sin acceso a la tabla de banderas.
 begin;
 
-select plan(17);
+select plan(18);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 
@@ -91,7 +91,8 @@ select is(
 -- ============================================================================
 -- Solo estas funciones de `publico` son ejecutables por anon. Una función nueva de la tienda que sume superficie pública tiene que
 -- sumarse acá a propósito (esta prueba falla si aparece una más o si falta una); la épica agrega de a una por historia:
--- `capacidades_tienda_por_dominio` (esta), y luego `lista_pedido_por_dominio` y `enviar_lista_pedido` (B1).
+-- `capacidades_tienda_por_dominio` (T001) y, DELIBERADAMENTE, `lista_pedido_por_dominio` y `enviar_lista_pedido` (historia B1: las dos
+-- funciones de VISITANTE de la lista de pedido; las de cuenta de A y de B2 siguen sin `execute` para `anon`).
 select is(
   (select array_agg(p.oid::regprocedure::text order by p.oid::regprocedure::text)
      from pg_proc p
@@ -107,10 +108,12 @@ select is(
     'publico.contenido_por_dominio(text)',
     'publico.destacados_por_dominio(text)',
     'publico.enviar_consulta_contacto(text,text,text,text,uuid)',
+    'publico.enviar_lista_pedido(text,text,text,text,jsonb,uuid)',
     'publico.estado_tienda_por_dominio(text)',
     'publico.identidad_por_dominio(text)',
     'publico.imagen_publica(text)',
     'publico.legal_por_dominio(text)',
+    'publico.lista_pedido_por_dominio(text,jsonb)',
     'publico.pagina_por_dominio(text,text)',
     'publico.paginas_por_dominio(text)',
     'publico.producto_por_dominio(text,uuid)',
@@ -131,6 +134,12 @@ select is(
       and p.proname in ('mis_compras_por_dominio', 'mi_compra_por_dominio', 'cambiar_favorito_por_dominio',
                         'mis_favoritos_por_dominio', 'favoritos_entre_por_dominio')),
   '[5, 0]'::jsonb, 'existen las 5 RPC de cuenta de la historia A y ninguna es ejecutable por anon');
+select is(
+  (select jsonb_build_array(count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'execute')))
+     from pg_proc p
+    where p.pronamespace = 'publico'::regnamespace
+      and p.proname in ('lista_pedido_por_dominio', 'enviar_lista_pedido')),
+  '[2, 2]'::jsonb, 'las 2 funciones de VISITANTE de B1 (lista y envío de la lista de pedido) existen y son ejecutables por anon A PROPÓSITO');
 select is(
   (select jsonb_build_array(count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'execute')
                                                           or has_function_privilege('authenticated', p.oid, 'execute')))
