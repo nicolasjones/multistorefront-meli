@@ -3,9 +3,15 @@ import test from 'node:test';
 import {
   CONTENEDOR_DEV,
   ErrorEntorno,
+  SQL_MARCADOR_DEV,
   comandoPara,
+  ejecutarProceso,
+  entornoLimpio,
   esHostDev,
+  leerArgumentos,
+  motivoUrlAmbigua,
   principal,
+  redactar,
   resolverDestino,
   sqlPara,
 } from './tienda-pedidos-dev.mjs';
@@ -53,7 +59,7 @@ test('rechaza un destino que no es dev aunque se pase --entorno dev', () => {
 test('rechaza una SUPABASE_DB_URL que no se puede leer', () => {
   assert.throws(
     () => resolverDestino({ entorno: 'dev', env: { SUPABASE_DB_URL: 'esto no es una url' } }),
-    /no es una URL de conexión válida/,
+    /no es una URL postgres/,
   );
 });
 
@@ -92,11 +98,13 @@ test('la contraseña de la URL viaja por PGPASSWORD y no por argv', () => {
   assert.deepEqual(docker.args.slice(0, 3), ['exec', '-i', CONTENEDOR_DEV]);
 });
 
-function ejecutorFalso({ contenedor = true, respuesta = 't\n', codigo = 0, error = '' } = {}) {
+// Ejecutor falso: responde por el contenido del SQL (marcador de dev o acción) y registra cada llamada.
+function ejecutorFalso({ contenedor = true, respuesta = 't\n', marcador = 'true\n', codigo = 0, error = '' } = {}) {
   const llamadas = [];
   const ejecutar = async (comando, args, opciones = {}) => {
     llamadas.push({ comando, args, ...opciones });
     if (comando === 'docker' && args[0] === 'inspect') return { codigo: contenedor ? 0 : 1, salida: '', error: '' };
+    if (opciones.input === SQL_MARCADOR_DEV) return { codigo, salida: marcador, error };
     return { codigo, salida: respuesta, error };
   };
   return { ejecutar, llamadas };
@@ -154,12 +162,96 @@ test('si la bandera no existe (migración sin aplicar) no inventa nada', async (
   await assert.rejects(() => principal(['encender', '--entorno', 'dev'], {}, { ejecutar, out: () => {} }), /no existe en la base de dev/);
 });
 
-test('un error de la base se informa sin filtrar la contraseña', async () => {
-  const { ejecutar } = ejecutorFalso({ codigo: 2, error: 'connection to server failed' });
+test('un error de la base se informa sin filtrar la URL ni la contraseña (usa el entorno inyectado)', async () => {
+  const env = { SUPABASE_DB_URL: URL_DEV };
+  const { ejecutar } = ejecutorFalso({ codigo: 2, error: `connection to ${URL_DEV} failed: password authentication failed for secreta` });
   await assert.rejects(
-    () => principal(['estado', '--entorno', 'dev'], { SUPABASE_DB_URL: URL_DEV }, { ejecutar, out: () => {} }),
-    (e) => /No pude hablar con la base de dev/.test(e.message) && !e.message.includes('secreta'),
+    () => principal(['estado', '--entorno', 'dev'], env, { ejecutar, out: () => {} }),
+    (e) => /No pude hablar con la base de dev/.test(e.message) && !e.message.includes('secreta') && !e.message.includes(URL_DEV) && e.message.includes('[REDACTADO]'),
   );
+});
+
+test('redactar enmascara con el entorno recibido, no con process.env', () => {
+  assert.equal(redactar('falló con secreta', { SUPABASE_DB_URL: URL_DEV }), 'falló con [REDACTADO]');
+  assert.equal(redactar(`url ${URL_DEV}`, { SUPABASE_DB_URL: URL_DEV }), 'url [REDACTADO]');
+  assert.equal(redactar('hola', {}), 'hola');
+});
+
+test('los argumentos se leen en cualquier orden y se rechazan los desconocidos', () => {
+  assert.deepEqual(leerArgumentos(['--entorno', 'dev', 'encender']), { accion: 'encender', entorno: 'dev' });
+  assert.deepEqual(leerArgumentos(['encender', '--entorno', 'dev']), { accion: 'encender', entorno: 'dev' });
+  assert.deepEqual(leerArgumentos(['estado', '--entorno=dev']), { accion: 'estado', entorno: 'dev' });
+  assert.deepEqual(leerArgumentos(['encender']), { accion: 'encender', entorno: undefined });
+  assert.throws(() => leerArgumentos(['encender', '--force']), /no existe/);
+  assert.throws(() => leerArgumentos(['encender', 'apagar']), /Sobra el argumento/);
+});
+
+test('--entorno dev antes de la acción también funciona', async () => {
+  const { ejecutar } = ejecutorFalso({ respuesta: 't\n' });
+  assert.equal(await principal(['--entorno', 'dev', 'encender'], {}, { ejecutar, out: () => {} }), true);
+});
+
+test('variantes de bypass de la URL: varios hosts, query que pisa el host, porcentajes y arrobas', () => {
+  const malas = [
+    'postgres://postgres:x@supabase-dev.a.com,prod.interno:5432/postgres',
+    'postgres://postgres:x@supabase-dev.a.com:5432,prod.interno:5432/postgres',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?host=prod.interno',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?sslmode=require&hostaddr=10.0.0.5',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?service=prod',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?servicefile=/tmp/x',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?%68ost=prod.interno',
+    'postgres://postgres:x@supabase-dev.a.com?host=prod.interno',
+    'postgres://postgres:x@supabase%2Ddev.prod.com/postgres',
+    'postgres://postgres:x@supabase-dev.a.com@prod.interno/postgres',
+    'postgres://postgres:x@supabase-dev.a.com%2cprod.interno/postgres',
+  ];
+  for (const url of malas) {
+    assert.ok(motivoUrlAmbigua(url), `debería ser ambigua: ${url}`);
+    assert.throws(
+      () => resolverDestino({ entorno: 'dev', env: { SUPABASE_DB_URL: url, TIENDA_PEDIDOS_DEV_DB_HOSTS: 'supabase-dev.a.com' } }),
+      (e) => e instanceof ErrorEntorno && /ambigua/.test(e.message),
+      url,
+    );
+  }
+  assert.equal(motivoUrlAmbigua('postgres://postgres:x@supabase-dev.a.com:5432/postgres?sslmode=require'), null);
+  assert.equal(motivoUrlAmbigua(URL_DEV), null);
+});
+
+test('las variables de libpq que cambian el destino no llegan al proceso hijo', async () => {
+  const limpio = entornoLimpio({ PGHOST: 'prod', PGHOSTADDR: '10.0.0.1', PGSERVICE: 's', PGSERVICEFILE: '/f', PGPASSFILE: '/p', PATH: '/bin', OTRA: '1' }, { PGPASSWORD: 'x', PGHOST: 'tambien-prod' });
+  for (const k of ['PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE']) assert.equal(k in limpio, false, k);
+  assert.equal(limpio.PGPASSWORD, 'x');
+  assert.equal(limpio.OTRA, '1');
+
+  // Comprobación real con un proceso hijo: ve PGPASSWORD pero no PGHOST.
+  const anterior = { host: process.env.PGHOST, svc: process.env.PGSERVICE };
+  process.env.PGHOST = 'prod.interno';
+  process.env.PGSERVICE = 'prod';
+  try {
+    const r = await ejecutarProceso(process.execPath, ['-e', 'console.log(JSON.stringify([process.env.PGHOST ?? null, process.env.PGSERVICE ?? null, process.env.PGPASSWORD ?? null]))'], { env: { PGPASSWORD: 'p' } });
+    assert.deepEqual(JSON.parse(r.salida), [null, null, 'p']);
+  } finally {
+    if (anterior.host === undefined) delete process.env.PGHOST; else process.env.PGHOST = anterior.host;
+    if (anterior.svc === undefined) delete process.env.PGSERVICE; else process.env.PGSERVICE = anterior.svc;
+  }
+});
+
+test('con URL, comprueba por positivo que la base es dev antes de tocar nada', async () => {
+  const ok = ejecutorFalso({ respuesta: 't\n', marcador: 'true\n' });
+  assert.equal(await principal(['encender', '--entorno', 'dev'], { SUPABASE_DB_URL: URL_DEV }, { ejecutar: ok.ejecutar, out: () => {} }), true);
+  assert.equal(ok.llamadas[0].input, SQL_MARCADOR_DEV, 'la primera consulta es el marcador de solo lectura');
+  assert.match(ok.llamadas[1].input, /set activa = true/);
+
+  // Un host que «parece» dev pero cuya base no se identifica como dev: se niega y no escribe.
+  const falso = ejecutorFalso({ respuesta: 't\n', marcador: 'false\n' });
+  await assert.rejects(
+    () => principal(['encender', '--entorno', 'dev'], { SUPABASE_DB_URL: URL_DEV }, { ejecutar: falso.ejecutar, out: () => {} }),
+    /no se identifica como dev/,
+  );
+  assert.equal(falso.llamadas.filter((l) => /update/.test(l.input ?? '')).length, 0);
+
+  // El marcador es de solo lectura.
+  assert.doesNotMatch(SQL_MARCADOR_DEV, /update|insert|delete|alter|drop/i);
 });
 
 test('una acción desconocida o ausente muestra el uso', async () => {

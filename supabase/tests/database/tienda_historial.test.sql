@@ -11,7 +11,7 @@
 --     cliente, cuenta, empresa ni organización.
 begin;
 
-select plan(69);
+select plan(85);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -21,6 +21,9 @@ insert into auth.users (id, email) values
   ('f3000000-0000-0000-0000-000000000001', 'mayorista@example.com'),
   ('f3000000-0000-0000-0000-000000000002', 'minorista@example.com'),
   ('f3000000-0000-0000-0000-000000000003', 'suspendida@example.com'),
+  ('f3000000-0000-0000-0000-000000000004', 'sin-compras@example.com'),
+  ('f3000000-0000-0000-0000-000000000005', 'muchas@example.com'),
+  ('f3000000-0000-0000-0000-000000000006', 'empates@example.com'),
   ('f3000000-0000-0000-0000-000000000007', 'panel-uno@example.com'),
   ('f3000000-0000-0000-0000-000000000008', 'panel-dos@example.com'),
   ('f3000000-0000-0000-0000-000000000009', 'cliente-dos@example.com');
@@ -41,18 +44,27 @@ insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 920, 'Mayorista', 'my@example.com', 'mayorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 921, 'Minorista', 'mn@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 922, 'Suspendida', 'su@example.com', 'mayorista'),
+  ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 923, 'Sin compras', 'sc@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 924, 'Muchas compras', 'mc@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 925, 'Empates de fecha', 'em@example.com', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 920, 'Cliente Dos', 'c2@example.com', 'minorista');
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values
   ('c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),
   ('c1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('c1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
+  ('c1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
+  ('c1000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
+  ('c1000000-0000-0000-0000-000000000006', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('c2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
 insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values
   ('ca000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000001', 'activa'),
   ('ca000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', 'f3000000-0000-0000-0000-000000000001', 'activa'),
   ('ca000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000002', 'activa'),
   ('ca000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000003', 'suspendida'),
+  ('ca000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000004', 'activa'),
+  ('ca000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000005', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000005', 'activa'),
+  ('ca000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000006', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000006', 'activa'),
   ('ca000000-0000-0000-0000-000000000008', '22222222-2222-2222-2222-222222222222', 'c2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-000000000009', 'activa');
 
 update public.banderas_plataforma set activa = true where clave = 'tienda_pedidos';
@@ -90,6 +102,21 @@ insert into dominio.comprobantes_venta
 values
   ('d1000000-0000-0000-0000-000000000031', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'nota_credito', '00000031', private.hoy_argentina() - 1, 'confirmada', 100, 121, 'mostrador', 'd1000000-0000-0000-0000-000000000001', 'devolucion_importe', 'Devolución parcial');
 
+-- 60 facturas de un cliente (para el tope de 50 por llamada).
+insert into dominio.comprobantes_venta
+  (organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, canal)
+select '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005',
+       'factura', 'M' || lpad(n::text, 7, '0'), private.hoy_argentina() - n, 'cobrado', 100, 121, 'mostrador'
+  from generate_series(1, 60) n;
+
+-- Nueve facturas del MISMO día dadas de alta en orden mezclado: el desempate por id desc no puede depender del orden físico.
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, canal)
+select ('d6000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+       'c1000000-0000-0000-0000-000000000006', 'factura', 'T' || n, private.hoy_argentina() - 30, 'cobrado', 10 * n, 12 * n, 'mostrador'
+  from generate_series(1, 9) n
+ order by (n * 4) % 9, n;
+
 -- Líneas del presupuesto 11 y de la factura 1, con TODO lo interno (costo, descuento, precio manual) que no debe salir.
 insert into dominio.comprobantes_venta_lineas
   (organizacion_id, comprobante_id, orden, descripcion, codigo, cantidad, precio_unitario, escala, precio_manual,
@@ -97,7 +124,8 @@ insert into dominio.comprobantes_venta_lineas
 values
   ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000011', 2, 'Segundo producto', 'SKU-2', 1, 40, 'x1', true, 21, true, 40, 8.4, 15, true, 12.5, 1200),
   ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000011', 1, 'Primer producto', 'SKU-1', 3, 20, 'x1', false, 21, false, 60, 12.6, 10, true, 7.25, null),
-  ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000001', 1, 'Producto de la factura', null, 2, 500, 'x5', false, 21, false, 1000, 210, 0, true, 300, null);
+  ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000001', 1, 'Producto de la factura', null, 2, 500, 'x5', false, 21, false, 1000, 210, 0, true, 300, null),
+  ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000031', 1, 'Devolución de la factura', 'SKU-NC', 1, 100, 'x1', false, 21, false, 100, 21, 0, true, null, null);
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -195,6 +223,28 @@ select pg_temp.como('f3000000-0000-0000-0000-000000000009');
 insert into res values
   ('dos_en_uno', publico.mis_compras_por_dominio('his-a.ejemplo.com')),
   ('dos_en_suya', publico.mis_compras_por_dominio('his-x.ejemplo.com'));
+select pg_temp.como('f3000000-0000-0000-0000-000000000001');
+insert into res values ('lim1_a', publico.mis_compras_por_dominio('his-a.ejemplo.com', null, null, 1));
+insert into res
+select 'lim1_b', publico.mis_compras_por_dominio('his-a.ejemplo.com', (v -> 'siguiente' ->> 'fecha')::date, (v -> 'siguiente' ->> 'id')::uuid, 1)
+  from res where k = 'lim1_a';
+select pg_temp.como('f3000000-0000-0000-0000-000000000006');
+insert into res values ('emp_p1', publico.mis_compras_por_dominio('his-a.ejemplo.com', null, null, 3));
+insert into res
+select 'emp_p2', publico.mis_compras_por_dominio('his-a.ejemplo.com', (v -> 'siguiente' ->> 'fecha')::date, (v -> 'siguiente' ->> 'id')::uuid, 3)
+  from res where k = 'emp_p1';
+insert into res
+select 'emp_p3', publico.mis_compras_por_dominio('his-a.ejemplo.com', (v -> 'siguiente' ->> 'fecha')::date, (v -> 'siguiente' ->> 'id')::uuid, 3)
+  from res where k = 'emp_p2';
+select pg_temp.como('f3000000-0000-0000-0000-000000000004');
+insert into res values
+  ('cero_lista', publico.mis_compras_por_dominio('his-a.ejemplo.com')),
+  ('cero_detalle', publico.mi_compra_por_dominio('his-a.ejemplo.com', 'd1000000-0000-0000-0000-000000000011'));
+select pg_temp.como('f3000000-0000-0000-0000-000000000005');
+insert into res values
+  ('mucho_enorme', publico.mis_compras_por_dominio('his-a.ejemplo.com', null, null, 100000)),
+  ('mucho_51', publico.mis_compras_por_dominio('his-a.ejemplo.com', null, null, 51)),
+  ('mucho_50', publico.mis_compras_por_dominio('his-a.ejemplo.com', null, null, 50));
 select pg_temp.como('f3000000-0000-0000-0000-000000000002');
 insert into res values
   ('host_desconocido', publico.mis_compras_por_dominio('desconocido.ejemplo.com')),
@@ -295,6 +345,45 @@ select is((select v ->> 'total' from res where k = 'cursor_futuro'), '14', 'el t
 select is((select jsonb_array_length(v -> 'filas') from res where k = 'cursor_a_medias'), 14, 'un cursor a medias (solo la fecha) se ignora');
 
 -- ============================================================================
+-- Tope de 50 por llamada, desempate por id y listas vacías
+-- ============================================================================
+select is((select jsonb_array_length(v -> 'filas') from res where k = 'mucho_enorme'), 50, 'con 60 comprobantes, un límite enorme devuelve a lo sumo 50');
+select is((select jsonb_array_length(v -> 'filas') from res where k = 'mucho_51'), 50, 'un límite de 51 también se acota a 50');
+select is((select jsonb_array_length(v -> 'filas') from res where k = 'mucho_50'), 50, 'un límite de 50 devuelve 50');
+select isnt((select v -> 'siguiente' from res where k = 'mucho_enorme'), 'null'::jsonb, 'quedan 10: hay siguiente');
+select is((select v ->> 'total' from res where k = 'mucho_enorme'), '60', 'el total cuenta los 60');
+select is(
+  (select f ->> 'numero' from res r, jsonb_array_elements(r.v -> 'filas') f where r.k = 'lim1_a'),
+  '00000031', 'dos comprobantes con la misma fecha, límite 1: primero el de id mayor');
+select is(
+  (select f ->> 'numero' from res r, jsonb_array_elements(r.v -> 'filas') f where r.k = 'lim1_b'),
+  '00000017', 'y el siguiente, por el cursor (fecha, id), es el de id menor de la misma fecha: sin repetir ni saltear');
+select is(
+  (select jsonb_agg(f ->> 'numero' order by k.k, ord)
+     from res k, jsonb_array_elements(k.v -> 'filas') with ordinality t(f, ord) where k.k in ('emp_p1', 'emp_p2', 'emp_p3')),
+  '["T9", "T8", "T7", "T6", "T5", "T4", "T3", "T2", "T1"]'::jsonb,
+  'nueve comprobantes del mismo día, paginados de a 3: orden id desc estricto, sin repetir ni saltear');
+select is((select v -> 'siguiente' from res where k = 'emp_p3'), 'null'::jsonb, 'la última página de los empates no tiene siguiente');
+select is((select v from res where k = 'cero_lista'), '{"estado":"ok","total":0,"filas":[],"siguiente":null}'::jsonb, 'cliente sin comprobantes: lista vacía, total 0 y sin siguiente');
+select is((select v from res where k = 'cero_detalle'), '{"estado":"no_encontrada"}'::jsonb, 'cliente sin comprobantes pidiendo uno ajeno: no_encontrada');
+
+-- Trampa UTC vs ART: el «vencido» y todo «hoy» usan el día de Buenos Aires, nunca current_date ni now()::date.
+select ok(
+  (select p.prosrc ~ 'hoy_argentina' and p.prosrc !~* '(current_date|now\(\)|current_timestamp|localtimestamp)'
+     from pg_proc p where p.oid = 'private.estado_publico_comprobante(text, text, date)'::regprocedure),
+  'estado_publico_comprobante deriva el vencido con private.hoy_argentina(), no con current_date ni now()');
+select ok(
+  (select p.prosrc !~* '(current_date|now\(\)|current_timestamp)'
+     from pg_proc p where p.oid = 'publico.mis_compras_por_dominio(text, date, uuid, integer)'::regprocedure)
+  and (select p.prosrc !~* '(current_date|now\(\)|current_timestamp)'
+     from pg_proc p where p.oid = 'publico.mi_compra_por_dominio(text, uuid)'::regprocedure),
+  'las RPC del historial no usan la fecha del servidor (UTC)');
+select ok(
+  (select p.prosrc ~ 'least\(greatest\(coalesce\(limite, 20\), 1\), 50\)'
+     from pg_proc p where p.oid = 'publico.mis_compras_por_dominio(text, date, uuid, integer)'::regprocedure),
+  'el límite se acota con least(greatest(…, 1), 50)');
+
+-- ============================================================================
 -- Detalle: lista blanca exacta por claves (FR-005, escenario A-5, amenaza 3.2)
 -- ============================================================================
 select is((select v ->> 'estado' from res where k = 'det_presupuesto'), 'ok', 'el detalle de un comprobante propio responde ok');
@@ -320,6 +409,14 @@ select is(
 select is((select v ->> 'tipo' from res where k = 'det_factura'), 'compra', 'una factura es una compra');
 select is((select v -> 'valido_hasta' from res where k = 'det_factura'), 'null'::jsonb, 'una factura no tiene fecha de validez');
 select is((select v ->> 'estado_publico' from res where k = 'det_vencido'), 'vencido', 'el detalle también deriva el vencido');
+select is(
+  (select l from res r, jsonb_array_elements(r.v -> 'lineas') l where r.k = 'det_nc'),
+  '{"cantidad": 1, "codigo": "SKU-NC", "descripcion": "Devolución de la factura", "subtotal": -100.00, "precio_unitario": 100.00}'::jsonb,
+  'nota de crédito: el subtotal de la línea va negado y el precio unitario positivo');
+select is(
+  (select sum((l ->> 'subtotal')::numeric) from res r, jsonb_array_elements(r.v -> 'lineas') l where r.k = 'det_nc'),
+  (select (v ->> 'total_sin_iva')::numeric from res where k = 'det_nc'),
+  'las líneas de la nota de crédito suman el total sin IVA con signo');
 select is(
   (select jsonb_build_array(v -> 'tipo', v -> 'total_sin_iva', v -> 'iva', v -> 'total_con_iva') from res where k = 'det_nc'),
   jsonb_build_array('nota_credito', -100.00, -21.00, -121.00), 'la nota de crédito va con signo negativo en el detalle');

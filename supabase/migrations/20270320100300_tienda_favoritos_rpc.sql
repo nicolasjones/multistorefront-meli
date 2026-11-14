@@ -34,6 +34,8 @@ declare
   c_tope constant integer := 200;
   v_cuenta record;
   v_total integer;
+  v_visible boolean;
+  v_existe boolean;
 begin
   if not private.bandera_activa('tienda_pedidos') then
     return jsonb_build_object('estado', 'sin_acceso');
@@ -63,25 +65,31 @@ begin
   end if;
 
   -- Guardar: el producto debe ser efectivamente visible en ESTA tienda (inexistente, inactivo, oculto o de otra tienda u
-  -- organización responden igual: no_encontrado).
-  if not exists (
-    select 1
+  -- organización responden igual: no_encontrado). Una sola evaluación del catálogo efectivo (la misma regla que la ficha y que
+  -- `precios_cliente_por_dominio`, sin duplicarla) sirve para la visibilidad y para contar el tope.
+  --
+  -- El tope de 200 cuenta SOLO los favoritos de productos visibles hoy: uno que se ocultó no se lista ni se cuenta (FR-008), así
+  -- que tampoco ocupa lugar. Las filas igual están acotadas (solo se puede guardar lo visible).
+  with visibles as materialized (
+    select x.producto_id
       from private.catalogo_tienda_efectivo(v_cuenta.empresa_id) x
-     where x.producto_id = producto_id and x.efectivo
-  ) then
+     where x.efectivo
+  )
+  select exists (select 1 from visibles v where v.producto_id = producto_id),
+         exists (select 1 from dominio.favoritos_cliente f
+                  where f.cuenta_cliente_id = v_cuenta.cuenta_cliente_id and f.producto_id = producto_id),
+         (select count(*)::integer
+            from dominio.favoritos_cliente f
+            join visibles v on v.producto_id = f.producto_id
+           where f.cuenta_cliente_id = v_cuenta.cuenta_cliente_id)
+    into v_visible, v_existe, v_total;
+
+  if not v_visible then
     return jsonb_build_object('estado', 'no_encontrado');
   end if;
-
-  if exists (
-    select 1 from dominio.favoritos_cliente f
-     where f.cuenta_cliente_id = v_cuenta.cuenta_cliente_id and f.producto_id = producto_id
-  ) then
+  if v_existe then
     return jsonb_build_object('estado', 'ok', 'favorito', true);
   end if;
-
-  select count(*)::integer into v_total
-    from dominio.favoritos_cliente f
-   where f.cuenta_cliente_id = v_cuenta.cuenta_cliente_id;
   if v_total >= c_tope then
     return jsonb_build_object('estado', 'limite_favoritos');
   end if;
@@ -102,7 +110,7 @@ revoke execute on function publico.cambiar_favorito_por_dominio(text, uuid, bool
 grant execute on function publico.cambiar_favorito_por_dominio(text, uuid, boolean) to authenticated;
 
 comment on function publico.cambiar_favorito_por_dominio(text, uuid, boolean) is
-  'MSF-176 (FR-007, FR-009): guarda o quita un favorito de la cuenta activa en la tienda del host. Idempotente; tope 200 por cuenta con lock (el 201 → limite_favoritos sin guardar); guardar exige producto visible en la tienda (si no, no_encontrado). {estado: ok|limite_favoritos|no_encontrado|sin_acceso|error, favorito?}.';
+  'MSF-176 (FR-007, FR-009): guarda o quita un favorito de la cuenta activa en la tienda del host. Idempotente; tope 200 por cuenta con lock, contando solo favoritos de productos visibles (el 201 → limite_favoritos sin guardar); guardar exige producto visible en la tienda (si no, no_encontrado). {estado: ok|limite_favoritos|no_encontrado|sin_acceso|error, favorito?}.';
 
 -- ============================================================================
 -- «Favoritos»: lista con carga infinita

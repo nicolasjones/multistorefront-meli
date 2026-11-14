@@ -10,7 +10,8 @@
 --
 -- Qué ve el cliente (D-10): TODOS sus comprobantes de ESA tienda, de cualquier canal (mostrador, teléfono o tienda online),
 -- sin borradores, con estado público simplificado (nunca los estados de cobro ni de despacho), total con IVA y, en el detalle,
--- las líneas (descripción, código, cantidad, precio unitario, subtotal). Lista blanca de campos probada por claves: nunca
+-- las líneas (descripción, código, cantidad, precio unitario, subtotal). En una nota de crédito el `subtotal` de cada línea va
+-- NEGADO (y el `precio_unitario` positivo) para que las líneas sumen el total con signo. Lista blanca de campos probada por claves: nunca
 -- costos, márgenes, descuento, precio manual, depósito, operador, notas, cliente, organización, forma de pago, envío ni cobros.
 --
 -- Estado público (FR-004). Presupuesto: `pendiente` (con valido_hasta ≥ hoy o nulo) → pendiente; con valido_hasta < hoy
@@ -190,7 +191,7 @@ begin
              'codigo', l.codigo,
              'cantidad', l.cantidad,
              'precio_unitario', l.precio_unitario,
-             'subtotal', l.subtotal_sin_iva
+             'subtotal', v_signo * l.subtotal_sin_iva
            ) order by l.orden), '[]'::jsonb)
     into v_lineas
     from dominio.comprobantes_venta_lineas l
@@ -218,4 +219,4 @@ revoke execute on function publico.mi_compra_por_dominio(text, uuid) from public
 grant execute on function publico.mi_compra_por_dominio(text, uuid) to authenticated;
 
 comment on function publico.mi_compra_por_dominio(text, uuid) is
-  'MSF-176 (FR-005, FR-006): detalle de un comprobante del cliente de la cuenta activa en la tienda del host. Lista blanca: numero, fecha, tipo, estado_publico, valido_hasta, total_sin_iva, iva, total_con_iva, lineas[descripcion, codigo, cantidad, precio_unitario, subtotal]. Otro cliente/tienda/organización, borrador o id inexistente → no_encontrada idéntica (IDOR). Totales negativos en notas de crédito.';
+  'MSF-176 (FR-005, FR-006): detalle de un comprobante del cliente de la cuenta activa en la tienda del host. Lista blanca: numero, fecha, tipo, estado_publico, valido_hasta, total_sin_iva, iva, total_con_iva, lineas[descripcion, codigo, cantidad, precio_unitario, subtotal]. Otro cliente/tienda/organización, borrador o id inexistente → no_encontrada idéntica (IDOR). Totales y subtotales de línea negativos en notas de crédito (precio_unitario positivo).';

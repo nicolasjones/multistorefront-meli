@@ -10,7 +10,7 @@
 --   * Grants: `anon` sin execute; `authenticated` con execute; `security definer` con `search_path = ''`.
 begin;
 
-select plan(84);
+select plan(111);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -208,6 +208,15 @@ select is((select v from res where k = 'otra_organizacion'), '{"estado":"sin_acc
 select is((select v from res where k = 'sin_sesion'), '{"estado":"sin_acceso"}'::jsonb, 'sin sesión: sin_acceso');
 select is((select count(*)::int from dominio.favoritos_cliente), 0, 'ninguna llamada sin acceso escribió nada');
 
+-- Cuenta sin ningún favorito: lista vacía, total 0 y sin siguiente (no es un error).
+select pg_temp.como('f2000000-0000-0000-0000-000000000002');
+insert into res values
+  ('cero_fav', publico.mis_favoritos_por_dominio('fav-a.ejemplo.com')),
+  ('cero_entre', publico.favoritos_entre_por_dominio('fav-a.ejemplo.com', array['a1000000-0000-0000-0000-000000000001']::uuid[]));
+reset role;
+select is((select v from res where k = 'cero_fav'), '{"estado":"ok","total":0,"filas":[],"siguiente":null}'::jsonb, 'sin favoritos: lista vacía, total 0 y sin siguiente');
+select is((select v from res where k = 'cero_entre'), '{"estado":"ok","favoritos":[]}'::jsonb, 'sin favoritos: favoritos_entre devuelve lista vacía');
+
 -- ============================================================================
 -- Alternar: idempotente; quitar sin error; producto oculto, inactivo, ajeno o inexistente = no_encontrado (A-8)
 -- ============================================================================
@@ -300,6 +309,41 @@ select is(
   'precio_final es el de la ficha (private.precio_final_publico_escala, escala x1)');
 select is((select v ->> 'total' from res where k = 'may_a'), '1', 'total cuenta sus favoritos visibles');
 select is((select v -> 'siguiente' from res where k = 'may_a'), 'null'::jsonb, 'sin más filas: siguiente nulo');
+
+-- ============================================================================
+-- Mismo producto en tres cuentas (dos personas y la misma persona en dos tiendas): quitarlo de una no toca a las otras (FR-010)
+-- ============================================================================
+select pg_temp.como('f2000000-0000-0000-0000-000000000002');
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', true);
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+select publico.cambiar_favorito_por_dominio('fav-b.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', true);
+select pg_temp.como('f2000000-0000-0000-0000-000000000002');
+insert into res values ('trio_u2_quita', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', false));
+reset role;
+select is((select v from res where k = 'trio_u2_quita'), '{"estado":"ok","favorito":false}'::jsonb, 'una cuenta quita el producto: ok');
+select is(
+  (select count(*)::int from dominio.favoritos_cliente where producto_id = 'a1000000-0000-0000-0000-000000000001' and cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000003'),
+  0, 'la cuenta que lo quitó ya no lo tiene');
+select is(
+  (select array_agg(cuenta_cliente_id::text order by cuenta_cliente_id) from dominio.favoritos_cliente where producto_id = 'a1000000-0000-0000-0000-000000000001'),
+  array['ca000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000002'],
+  'las otras dos cuentas (la misma persona en A y en B) conservan el favorito: quitar no cruza cuentas ni tiendas');
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values
+  ('trio_u1_a', publico.favoritos_entre_por_dominio('fav-a.ejemplo.com', array['a1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002']::uuid[])),
+  ('trio_u1_b', publico.favoritos_entre_por_dominio('fav-b.ejemplo.com', array['a1000000-0000-0000-0000-000000000001']::uuid[]));
+select pg_temp.como('f2000000-0000-0000-0000-000000000002');
+insert into res values ('trio_u2_a', publico.favoritos_entre_por_dominio('fav-a.ejemplo.com', array['a1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002']::uuid[]));
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values ('trio_u1_quita_b', publico.cambiar_favorito_por_dominio('fav-b.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', false));
+insert into res values ('trio_u1_a_tras', publico.favoritos_entre_por_dominio('fav-a.ejemplo.com', array['a1000000-0000-0000-0000-000000000001']::uuid[]));
+insert into res values ('trio_u1_b_tras', publico.favoritos_entre_por_dominio('fav-b.ejemplo.com', array['a1000000-0000-0000-0000-000000000001']::uuid[]));
+reset role;
+select is((select v -> 'favoritos' from res where k = 'trio_u1_a'), '["a1000000-0000-0000-0000-000000000001"]'::jsonb, 'favoritos_entre de quien lo conserva en A: lo sigue viendo');
+select is((select v -> 'favoritos' from res where k = 'trio_u1_b'), '["a1000000-0000-0000-0000-000000000001"]'::jsonb, 'favoritos_entre de la misma persona en B: lo sigue viendo');
+select is((select v -> 'favoritos' from res where k = 'trio_u2_a'), '["a1000000-0000-0000-0000-000000000002"]'::jsonb, 'favoritos_entre de quien lo quitó: ya no lo ve (solo le queda el otro)');
+select is((select v -> 'favoritos' from res where k = 'trio_u1_a_tras'), '["a1000000-0000-0000-0000-000000000001"]'::jsonb, 'quitarlo en B no lo quita en A (misma persona, otra tienda)');
+select is((select v -> 'favoritos' from res where k = 'trio_u1_b_tras'), '[]'::jsonb, 'y en B ya no está');
 
 -- ============================================================================
 -- Un favorito cuyo producto deja de ser visible no se lista ni se cuenta; vuelve al publicarse (A-9)
@@ -400,6 +444,41 @@ select is((select v from res where k = 'entre_51'), '{"estado":"invalido","campo
 select is((select v from res where k = 'entre_nulo'), '{"estado":"ok","favoritos":[]}'::jsonb, 'sin ids: lista vacía');
 
 -- ============================================================================
+-- El tope de 200 cuenta SOLO los favoritos de productos visibles (un favorito oculto no se lista ni ocupa lugar) y quitar nunca exige visibilidad
+-- ============================================================================
+-- La cuenta minorista tiene 200 favoritos visibles (masivos 2 a 201). Se ocultan 50 de ellos: quedan 150 visibles y 200 filas.
+insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible)
+select 'e1000000-0000-0000-0000-000000000001', ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111', false
+  from generate_series(2, 51) n
+on conflict (empresa_id, producto_id) do update set visible = false;
+select pg_temp.como('f2000000-0000-0000-0000-000000000002');
+insert into res values ('tope_visibles', publico.mis_favoritos_por_dominio('fav-a.ejemplo.com', null, null, 1));
+insert into res values ('tope_guardar_151', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', true));
+insert into res values ('tope_lista_151', publico.mis_favoritos_por_dominio('fav-a.ejemplo.com', null, null, 1));
+insert into res values ('quitar_oculto', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000002', false));
+insert into res values ('quitar_oculto_otra_vez', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000002', false));
+insert into res values ('guardar_oculto', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000002', true));
+reset role;
+select is((select v ->> 'total' from res where k = 'tope_visibles'), '150', 'con 50 favoritos ocultos, el total cuenta solo los 150 visibles');
+select is((select v from res where k = 'tope_guardar_151'), '{"estado":"ok","favorito":true}'::jsonb, '150 visibles + 50 ocultos permite guardar el 151 (los ocultos no ocupan el tope)');
+select is((select v ->> 'total' from res where k = 'tope_lista_151'), '151', 'el total pasa a 151');
+select is(
+  (select count(*)::int from dominio.favoritos_cliente f
+    where f.cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000003'
+      and f.producto_id between 'b1000000-0000-0000-0000-000000000003' and 'b1000000-0000-0000-0000-000000000051'),
+  49, 'los otros 49 favoritos ocultos no se borran (solo se ocultan)');
+select is((select v from res where k = 'quitar_oculto'), '{"estado":"ok","favorito":false}'::jsonb, 'quitar un favorito cuyo producto está oculto: ok');
+select is((select v from res where k = 'quitar_oculto_otra_vez'), '{"estado":"ok","favorito":false}'::jsonb, 'quitarlo otra vez: ok, sin error');
+select is(
+  (select count(*)::int from dominio.favoritos_cliente
+    where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000003' and producto_id = 'b1000000-0000-0000-0000-000000000002'),
+  0, 'la fila del favorito oculto se borró de verdad');
+select is(
+  (select count(*)::int from dominio.favoritos_cliente where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000003'),
+  200, 'se liberó el lugar: 200 filas');
+select is((select v from res where k = 'guardar_oculto'), '{"estado":"no_encontrado"}'::jsonb, 'guardar un producto oculto sigue siendo no_encontrado');
+
+-- ============================================================================
 -- Suspensión inmediata y baja de «Habilitado en»
 -- ============================================================================
 update cuentas_cliente set estado = 'suspendida' where id = 'ca000000-0000-0000-0000-000000000001';
@@ -426,6 +505,75 @@ select is(
   (select count(*)::int from dominio.favoritos_cliente where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000001'),
   1, 'con la bandera apagada no se escribió nada (el favorito previo sigue y no se agregó el nuevo)');
 update public.banderas_plataforma set activa = true where clave = 'tienda_pedidos';
+
+-- ============================================================================
+-- Orden «nuevos primero» y cursor compuesto (creado, id): empates, y un alta y una baja entre página y página
+-- ============================================================================
+-- El mayorista (cuenta de A) suma 6 favoritos a su P1; se fijan fechas distintas con empates para probar el desempate por id.
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000100', true);
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000101', true);
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000102', true);
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000103', true);
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000104', true);
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000105', true);
+reset role;
+update dominio.favoritos_cliente set creado_en = timestamptz '2030-01-01 00:00:00+00' + case producto_id
+    when 'a1000000-0000-0000-0000-000000000001' then interval '-1 hour'
+    when 'b1000000-0000-0000-0000-000000000100' then interval '0' when 'b1000000-0000-0000-0000-000000000101' then interval '0'
+    when 'b1000000-0000-0000-0000-000000000102' then interval '1 hour' when 'b1000000-0000-0000-0000-000000000103' then interval '1 hour'
+    when 'b1000000-0000-0000-0000-000000000104' then interval '2 hours' when 'b1000000-0000-0000-0000-000000000105' then interval '3 hours' end
+ where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000001';
+create temp table orden_ref as
+  select row_number() over (order by creado_en desc, id desc) as n, producto_id, creado_en, id
+    from dominio.favoritos_cliente where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000001';
+grant select on orden_ref to public;
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values ('ord_p1', publico.mis_favoritos_por_dominio('fav-a.ejemplo.com', null, null, 3));
+reset role;
+select is((select count(*)::int from orden_ref), 7, 'el mayorista tiene 7 favoritos con fechas fijadas (con dos empates)');
+select is(
+  (select jsonb_agg(f ->> 'producto_id' order by ord) from res r, jsonb_array_elements(r.v -> 'filas') with ordinality t(f, ord) where r.k = 'ord_p1'),
+  (select jsonb_agg(producto_id order by n) from orden_ref where n <= 3),
+  'primera página: los 3 más nuevos, con el empate resuelto por id desc');
+select is(
+  (select v -> 'siguiente' from res where k = 'ord_p1'),
+  (select jsonb_build_object('creado', creado_en, 'id', id) from orden_ref where n = 3),
+  'siguiente = {creado, id} de la última fila de la página');
+
+-- Entre una página y la siguiente: se agrega un favorito (el más nuevo) y se quita otro que todavía no se había mostrado.
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'b1000000-0000-0000-0000-000000000106', true);
+select publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', (select producto_id from orden_ref where n = 6), false);
+reset role;
+update dominio.favoritos_cliente set creado_en = timestamptz '2030-01-01 10:00:00+00'
+ where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000001' and producto_id = 'b1000000-0000-0000-0000-000000000106';
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res
+select 'ord_p2', publico.mis_favoritos_por_dominio('fav-a.ejemplo.com', (v -> 'siguiente' ->> 'creado')::timestamptz, (v -> 'siguiente' ->> 'id')::uuid, 3)
+  from res where k = 'ord_p1';
+insert into res values ('ord_total', publico.mis_favoritos_por_dominio('fav-a.ejemplo.com', null, null, 50));
+reset role;
+select is(
+  (select jsonb_agg(f ->> 'producto_id' order by ord) from res r, jsonb_array_elements(r.v -> 'filas') with ordinality t(f, ord) where r.k = 'ord_p2'),
+  (select jsonb_agg(producto_id order by n) from orden_ref where n in (4, 5, 7)),
+  'segunda página: sigue donde quedó el cursor, sin la baja y sin saltear nada');
+select is(
+  (select count(*)::int from (
+     select f ->> 'producto_id' p from res r, jsonb_array_elements(r.v -> 'filas') f where r.k in ('ord_p1', 'ord_p2')
+     group by 1 having count(*) > 1) d),
+  0, 'ninguna fila se repite entre las dos páginas');
+select is(
+  (select count(*)::int from res r, jsonb_array_elements(r.v -> 'filas') f
+    where r.k = 'ord_p2' and f ->> 'producto_id' = 'b1000000-0000-0000-0000-000000000106'),
+  0, 'el favorito agregado entre páginas (el más nuevo) no aparece en la segunda: queda antes del cursor');
+select is((select v -> 'siguiente' from res where k = 'ord_p2'), 'null'::jsonb, 'la segunda página era la última');
+select is(
+  (select jsonb_agg(f ->> 'producto_id' order by ord) from res r, jsonb_array_elements(r.v -> 'filas') with ordinality t(f, ord) where r.k = 'ord_total'),
+  (select jsonb_agg(p order by ord) from (
+     select 'b1000000-0000-0000-0000-000000000106'::text as p, 0 as ord
+     union all select producto_id::text, n from orden_ref where n <> 6) q),
+  'la lista completa de nuevo: el alta primero y la baja ausente');
 
 -- ============================================================================
 -- La tabla no se alcanza por la API aunque se sepa su nombre

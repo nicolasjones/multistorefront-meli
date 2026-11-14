@@ -21,14 +21,28 @@
 //      (`supabase_db_multistorefront-meli-supabase-dev`, el mismo nombre que usa el cron de migraciones del VPS), se usa
 //      `docker exec` contra ese contenedor: es dev por construcción.
 //   3. Si ninguna de las dos aplica, se niega.
+//
+// Defensas contra un destino que no es dev disfrazado de dev:
+//   * la URL se rechaza si su autoridad (lo que va entre `://` y la primera `/`) tiene `?`, `,`, `%` o más de una `@` (libpq acepta
+//     varios hosts separados por coma, decodifica porcentajes y deja que `?host=` / `hostaddr=` / `service=` pisen el host), o si
+//     trae esos parámetros en la query;
+//   * del entorno del proceso hijo se borran PGHOST, PGHOSTADDR, PGSERVICE y PGSERVICEFILE (y PGPASSFILE), para que no cambien el
+//     destino que ya se validó;
+//   * con SUPABASE_DB_URL, antes de tocar nada se comprueba POR POSITIVO, con una consulta de solo lectura, que la base es la de dev
+//     (existe la organización de demostración «… (demo)» que solo carga el entorno dev); si no, se niega.
 
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { redactError, separarContrasena } from './operaciones.mjs';
+import { separarContrasena } from './operaciones.mjs';
 
 export const CLAVE_BANDERA = 'tienda_pedidos';
 export const CONTENEDOR_DEV = 'supabase_db_multistorefront-meli-supabase-dev';
 export const ACCIONES = ['encender', 'apagar', 'estado'];
+// Variables de libpq que cambian el destino o la autenticación de psql: se quitan del entorno hijo.
+export const VARIABLES_PG_PELIGROSAS = ['PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGSYSCONFDIR'];
+const PARAMETROS_URL_PELIGROSOS = ['host', 'hostaddr', 'service', 'servicefile', 'passfile'];
+// Marcador POSITIVO de dev: la organización de demostración que carga el dataset demo solo en dev (no se escribe nada).
+export const SQL_MARCADOR_DEV = "select exists (select 1 from public.organizaciones where nombre like '%(demo)')::text;\n";
 
 const ETIQUETAS_NO_DEV = new Set(['stg', 'stag', 'staging', 'prd', 'prod', 'production', 'produccion']);
 const DOMINIOS_NUBE = [/(^|\.)supabase\.(co|com|io)$/i, /(^|\.)pooler\.supabase\.com$/i];
@@ -49,12 +63,72 @@ export function esHostDev(host) {
   return etiquetas.includes('dev') && !etiquetas.some((e) => ETIQUETAS_NO_DEV.has(e));
 }
 
+// Autoridad de una URL de conexión: lo que va entre `://` y la primera `/` (o el final), sin la query.
+function autoridadDeUrl(url) {
+  const m = /^[a-z][a-z0-9+.-]*:\/\/([^/]*)/i.exec(url);
+  return m ? m[1] : null;
+}
+
 function hostDeUrl(url) {
   try {
     return new URL(url).hostname;
   } catch {
     return null;
   }
+}
+
+// Motivo por el que la URL puede apuntar a otro host que el que se ve, o null si es segura de leer.
+export function motivoUrlAmbigua(url) {
+  const autoridad = autoridadDeUrl(url);
+  if (autoridad === null) return 'no es una URL postgres://usuario@host/base';
+  if (/[?,%]/.test(autoridad)) return 'la autoridad tiene «?», «,» o «%» (varios hosts o porcentajes que libpq interpreta distinto)';
+  if ((autoridad.match(/@/g) ?? []).length > 1) return 'la autoridad tiene más de una «@»';
+  const consulta = url.includes('?') ? url.slice(url.indexOf('?') + 1).split('#')[0] : '';
+  for (const par of consulta.split('&').filter(Boolean)) {
+    let clave = par.split('=')[0];
+    try { clave = decodeURIComponent(clave); } catch { /* clave ilegible: se compara cruda */ }
+    if (PARAMETROS_URL_PELIGROSOS.includes(clave.toLowerCase())) return `la query trae el parámetro «${clave}», que cambia el destino`;
+  }
+  return null;
+}
+
+// Enmascara la URL de conexión y su contraseña en un texto, usando el entorno INYECTADO (no process.env).
+export function redactar(texto, env = {}) {
+  const url = (env.SUPABASE_DB_URL ?? '').trim();
+  let contrasena = '';
+  try { contrasena = decodeURIComponent(new URL(url).password); } catch { /* sin contraseña legible */ }
+  return [url, contrasena, env.PGPASSWORD]
+    .filter((v) => typeof v === 'string' && v.length > 0)
+    .reduce((t, v) => t.replaceAll(v, '[REDACTADO]'), String(texto));
+}
+
+// Entorno del proceso hijo sin las variables de libpq que podrían cambiar el destino ya validado.
+export function entornoLimpio(base = process.env, extra = {}) {
+  const env = { ...base, ...extra };
+  for (const k of VARIABLES_PG_PELIGROSAS) delete env[k];
+  return env;
+}
+
+// Lee los argumentos en cualquier orden: una acción y `--entorno <valor>` (o `--entorno=<valor>`).
+export function leerArgumentos(argv) {
+  let accion;
+  let entorno;
+  for (let i = 0; i < argv.length; i += 1) {
+    const a = argv[i];
+    if (a === '--entorno') {
+      const v = argv[i + 1];
+      if (v && !v.startsWith('--')) { entorno = v; i += 1; }
+    } else if (a.startsWith('--entorno=')) {
+      entorno = a.slice('--entorno='.length);
+    } else if (a.startsWith('--')) {
+      throw new ErrorEntorno(`La opción «${a}» no existe.\n${USO}`);
+    } else if (accion === undefined) {
+      accion = a;
+    } else {
+      throw new ErrorEntorno(`Sobra el argumento «${a}»: se pide una sola acción.\n${USO}`);
+    }
+  }
+  return { accion, entorno };
 }
 
 // Decide a qué base conectarse o se niega con un mensaje en castellano. No toca la red.
@@ -68,6 +142,10 @@ export function resolverDestino({ entorno, env = {}, contenedorDevExiste = false
 
   const url = (env.SUPABASE_DB_URL ?? '').trim();
   if (url) {
+    const ambigua = motivoUrlAmbigua(url);
+    if (ambigua) {
+      throw new ErrorEntorno(`Me niego a operar: SUPABASE_DB_URL es ambigua (${ambigua}), así que no puedo comprobar que sea la de dev.`);
+    }
     const host = hostDeUrl(url);
     if (!host) {
       throw new ErrorEntorno('Me niego a operar: SUPABASE_DB_URL no es una URL de conexión válida, así que no puedo comprobar que sea la de dev.');
@@ -118,7 +196,7 @@ export function comandoPara(destino) {
 
 export function ejecutarProceso(comando, args, { input, env = {} } = {}) {
   return new Promise((resolve, reject) => {
-    const hijo = spawn(comando, args, { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    const hijo = spawn(comando, args, { env: entornoLimpio(process.env, env), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     let salida = '';
     let error = '';
     hijo.stdout.on('data', (d) => { salida += d; });
@@ -142,9 +220,7 @@ async function contenedorDevExiste(ejecutar) {
 export async function principal(argv, env = process.env, deps = {}) {
   const ejecutar = deps.ejecutar ?? ejecutarProceso;
   const out = deps.out ?? ((m) => console.log(m));
-  const accion = argv.find((a) => !a.startsWith('--'));
-  const i = argv.indexOf('--entorno');
-  const entorno = i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : undefined;
+  const { accion, entorno } = leerArgumentos(argv);
 
   if (!ACCIONES.includes(accion)) {
     throw new ErrorEntorno(`Falta la acción (encender, apagar o estado).\n${USO}`);
@@ -156,11 +232,26 @@ export async function principal(argv, env = process.env, deps = {}) {
     contenedorDevExiste: env.SUPABASE_DB_URL?.trim() ? false : await contenedorDevExiste(ejecutar),
   });
   const { comando, args, env: envProceso } = comandoPara(destino);
-  const r = await ejecutar(comando, args, { input: sqlPara(accion), env: envProceso });
-  if (r.codigo !== 0) {
-    throw new ErrorEntorno(`No pude hablar con la base de dev (${comando} terminó con código ${r.codigo}): ${redactError(new Error(r.error.trim() || 'sin detalle'))}`);
+  const correr = async (sql) => {
+    const r = await ejecutar(comando, args, { input: sql, env: envProceso });
+    if (r.codigo !== 0) {
+      throw new ErrorEntorno(`No pude hablar con la base de dev (${comando} terminó con código ${r.codigo}): ${redactar(r.error.trim() || 'sin detalle', env)}`);
+    }
+    return r.salida.trim().split('\n')[0]?.trim();
+  };
+
+  // Por URL, antes de tocar nada: la base tiene que DECLARARSE dev (consulta de solo lectura), no solo llamarse así.
+  if (destino.modo === 'url') {
+    const marcador = await correr(SQL_MARCADOR_DEV);
+    if (marcador !== 'true') {
+      throw new ErrorEntorno(
+        'Me niego a operar: la base a la que apunta SUPABASE_DB_URL no se identifica como dev '
+        + '(no tiene la organización de demostración «… (demo)» que solo carga el entorno dev). No cambié nada.',
+      );
+    }
   }
-  const valor = r.salida.trim().split('\n')[0]?.trim();
+
+  const valor = await correr(sqlPara(accion));
   if (valor !== 't' && valor !== 'f') {
     throw new ErrorEntorno(
       `La bandera ${CLAVE_BANDERA} no existe en la base de dev: ¿se aplicó la migración 20270320100000_tienda_capacidad.sql? `
@@ -174,7 +265,7 @@ export async function principal(argv, env = process.env, deps = {}) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   principal(process.argv.slice(2)).catch((error) => {
-    console.error(error instanceof ErrorEntorno ? error.message : redactError(error));
+    console.error(error instanceof ErrorEntorno ? error.message : redactar(error instanceof Error ? error.message : error, process.env));
     process.exitCode = 1;
   });
 }
