@@ -127,12 +127,12 @@ describe('leerMiCompra', () => {
 })
 
 describe('leerMisFavoritos', () => {
-  it('acomoda la fila y el cursor (acepta `creado_en` o `creado`)', async () => {
+  it('acomoda la fila y el cursor `{creado, id}`', async () => {
     mocks.rpc.mockResolvedValue({
       data: {
         estado: 'ok', total: 1,
         filas: [{ producto_id: ID, nombre: 'Joystick', sku: 'JOY-1', imagen: 'org/a.png', disponible: true, precio_final: '2500', escala: 'x10' }],
-        siguiente: { creado_en: '2026-11-12T10:00:00Z', id: ID },
+        siguiente: { creado: '2026-11-12T10:00:00Z', id: ID },
       },
       error: null,
     })
@@ -142,6 +142,19 @@ describe('leerMisFavoritos', () => {
     expect(pagina.siguiente).toEqual({ creado: '2026-11-12T10:00:00Z', id: ID })
     await leerMisFavoritos(HOST, pagina.siguiente)
     expect(mocks.rpc).toHaveBeenLastCalledWith('mis_favoritos_por_dominio', { host: HOST, desde_creado: '2026-11-12T10:00:00Z', desde_id: ID, limite: 20 })
+  })
+
+  it('un cursor con otra clave (`creado_en`) no se acepta: no hay rama muerta', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', total: 2, filas: [], siguiente: { creado_en: '2026-11-12T10:00:00Z', id: ID } }, error: null })
+    expect((await leerMisFavoritos(HOST)).siguiente).toBeNull()
+  })
+
+  it('una fila con un id que no es uuid se descarta (arma el enlace a la ficha)', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { estado: 'ok', total: 2, filas: [{ producto_id: '../../x', nombre: 'Malo', disponible: true, precio_final: 1, escala: 'x1' }, { producto_id: ID, nombre: 'Bueno', disponible: true, precio_final: 1, escala: 'x1' }], siguiente: null },
+      error: null,
+    })
+    expect((await leerMisFavoritos(HOST)).filas.map((f) => f.nombre)).toEqual(['Bueno'])
   })
 
   it('sin precio: precioFinal es null (la pantalla dice «Precio a confirmar»)', async () => {

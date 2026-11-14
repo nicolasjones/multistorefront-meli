@@ -107,14 +107,25 @@ describe('HistorialMiCuenta · Compras y presupuestos (FR-003, FR-004, P-3)', ()
     rpcs({ mis_compras_por_dominio: (a) => (a.desde_id ? PAGINA_2 : PAGINA_1) })
     montar()
     await screen.findByRole('table')
-    expect(screen.queryByText('Llegaste al final de tus compras y presupuestos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Llegaste al final de tus compras y presupuestos', { selector: 'p' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(await screen.findByText('Nº 00000010')).toBeInTheDocument()
     expect(screen.getByText('-$ 500,00')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenLastCalledWith('mis_compras_por_dominio', { host: HOST, desde_fecha: '2026-11-10', desde_id: ID_2, limite: 20 })
     expect(screen.getAllByRole('row')).toHaveLength(4)
-    expect(screen.getByText('Llegaste al final de tus compras y presupuestos')).toBeInTheDocument()
+    expect(screen.getByText('Llegaste al final de tus compras y presupuestos', { selector: 'p' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+  })
+
+  it('tras la última tanda el foco va al texto de fin de lista (no se pierde al desaparecer «Cargar más»)', async () => {
+    rpcs({ mis_compras_por_dominio: (a) => (a.desde_id ? PAGINA_2 : PAGINA_1) })
+    montar()
+    await screen.findByRole('table')
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    act(() => boton.focus())
+    fireEvent.click(boton)
+    const fin = await screen.findByText('Llegaste al final de tus compras y presupuestos', { selector: 'p' })
+    await waitFor(() => expect(fin).toHaveFocus())
   })
 
   it('«Cargar más» es operable con teclado (es un botón enfocable)', async () => {
@@ -356,15 +367,48 @@ describe('FavoritosMiCuenta (FR-008, FR-009, P-3)', () => {
     rpcs({
       mis_favoritos_por_dominio: (a) => (a.desde_id
         ? { estado: 'ok', total: 2, filas: [PAGINA.filas[1]], siguiente: null }
-        : { estado: 'ok', total: 2, filas: [PAGINA.filas[0]], siguiente: { creado_en: '2026-11-12T10:00:00Z', id: P_1 } }),
+        : { estado: 'ok', total: 2, filas: [PAGINA.filas[0]], siguiente: { creado: '2026-11-12T10:00:00Z', id: P_1 } }),
     })
     montar()
     await screen.findByRole('list', { name: 'Favoritos' })
-    expect(screen.queryByText('Llegaste al final de tus favoritos')).not.toBeInTheDocument()
+    expect(screen.queryByText('Llegaste al final de tus favoritos', { selector: 'p' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(await screen.findByRole('link', { name: 'Cargador rápido' })).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenLastCalledWith('mis_favoritos_por_dominio', { host: HOST, desde_creado: '2026-11-12T10:00:00Z', desde_id: P_1, limite: 20 })
-    expect(screen.getByText('Llegaste al final de tus favoritos')).toBeInTheDocument()
+    expect(screen.getByText('Llegaste al final de tus favoritos', { selector: 'p' })).toBeInTheDocument()
+  })
+
+  it('tras la última tanda el foco va al texto «Llegaste al final de tus favoritos»', async () => {
+    rpcs({
+      mis_favoritos_por_dominio: (a) => (a.desde_id
+        ? { estado: 'ok', total: 2, filas: [PAGINA.filas[1]], siguiente: null }
+        : { estado: 'ok', total: 2, filas: [PAGINA.filas[0]], siguiente: { creado: '2026-11-12T10:00:00Z', id: P_1 } }),
+    })
+    montar()
+    await screen.findByRole('list', { name: 'Favoritos' })
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    act(() => boton.focus())
+    fireEvent.click(boton)
+    const fin = await screen.findByText('Llegaste al final de tus favoritos', { selector: 'p' })
+    await waitFor(() => expect(fin).toHaveFocus())
+  })
+
+  it('un sin_acceso al quitar un favorito avisa a la pantalla (que muestra «Tu cuenta no está activa en esta tienda») y no saca la tarjeta', async () => {
+    const alSinAcceso = vi.fn()
+    rpcs({ mis_favoritos_por_dominio: PAGINA, cambiar_favorito_por_dominio: { estado: 'sin_acceso' } })
+    montar(alSinAcceso)
+    await screen.findByRole('list', { name: 'Favoritos' })
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Joystick Pro de favoritos' }))
+    await waitFor(() => expect(alSinAcceso).toHaveBeenCalledTimes(1))
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+  })
+
+  it('el enlace a la ficha codifica el id y una fila con un id raro ni se muestra', async () => {
+    rpcs({ mis_favoritos_por_dominio: { estado: 'ok', total: 2, filas: [favorito(P_1, 'Joystick Pro'), favorito('../../x?y=1', 'Raro')], siguiente: null } })
+    montar()
+    await screen.findByRole('list', { name: 'Favoritos' })
+    expect(screen.queryByText('Raro')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Joystick Pro' })).toHaveAttribute('href', `/producto/${P_1}`)
   })
 
   it('vacío, error con reintento y sin_acceso', async () => {

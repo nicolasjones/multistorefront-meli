@@ -82,6 +82,23 @@ describe('CargaInfinita', () => {
     expect(document.activeElement).toBe(screen.getByText('No hay más resultados.'))
   })
 
+  it('con `textoFin` propio, ese texto recibe el foco al terminar y se anuncia (sin repetir el genérico)', () => {
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} textoFin="Llegaste al final de tus favoritos" onCargarMas={vi.fn()} />)
+    const boton = screen.getByRole('button', { name: 'Cargar más' })
+    act(() => boton.focus())
+    rerender(<CargaInfinita hayMas cargando textoFin="Llegaste al final de tus favoritos" onCargarMas={vi.fn()} />)
+    rerender(<CargaInfinita hayMas={false} cargando={false} textoFin="Llegaste al final de tus favoritos" onCargarMas={vi.fn()} />)
+    const fin = screen.getByText('Llegaste al final de tus favoritos', { selector: 'p' })
+    expect(document.activeElement).toBe(fin)
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('Llegaste al final de tus favoritos')
+    expect(screen.queryByText('No hay más resultados.')).not.toBeInTheDocument()
+  })
+
+  it('sin `textoFin` el texto de fin sigue siendo «No hay más resultados.» (los demás consumidores no cambian)', () => {
+    render(<CargaInfinita hayMas={false} cargando={false} onCargarMas={vi.fn()} />)
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
   // Caracterización: el blur de la zona ya apaga la marca, así que pasa con o sin el guard del efecto.
   it('(caracterización) si el usuario pasó a otro campo con el botón enfocado, la tanda siguiente no le roba el foco', () => {
     const { rerender } = render(

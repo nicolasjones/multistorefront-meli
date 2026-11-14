@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ANCHOS_TIENDA, fijarAncho } from '../../../test/ancho'
@@ -21,6 +21,9 @@ vi.mock('../../../lib/supabase', () => ({ supabaseClient: { auth: { onAuthStateC
 
 import { BotonFavorito } from './BotonFavorito'
 
+let oyentes: Array<(evento: string) => void> = []
+const avisarAuth = (evento: string) => oyentes.forEach((oyente) => oyente(evento))
+
 const HOST = 'mundojc.localhost'
 const ID = 'a1000000-0000-4000-8000-000000000001'
 
@@ -37,7 +40,11 @@ beforeEach(() => {
   vi.clearAllMocks()
   fijarAncho(1440)
   mocks.schema.mockReturnValue({ rpc: mocks.rpc })
-  mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
+  oyentes = []
+  mocks.onAuthStateChange.mockImplementation((callback: (evento: string) => void) => {
+    oyentes.push(callback)
+    return { data: { subscription: { unsubscribe: vi.fn() } } }
+  })
   mocks.leerCapacidadesTienda.mockResolvedValue({ pedidos: true })
   mocks.sesionActivaEnTienda.mockResolvedValue({ estado: 'activa', tipo: 'minorista' })
   rpcs({ favoritos_entre_por_dominio: { estado: 'ok', favoritos: [] } })
@@ -128,6 +135,44 @@ describe('BotonFavorito · ficha del producto (P-2)', () => {
     fireEvent.click(guardar)
     expect(await screen.findByRole('alert')).toHaveTextContent('Tu cuenta no está activa en esta tienda')
     expect(screen.getByRole('button', { name: 'Guardar en favoritos' })).toBeDisabled()
+  })
+
+  it('hasta `md` (320 y 768 px) el botón va a ancho completo y desde escritorio no', async () => {
+    for (const [ancho, completo] of [[320, true], [768, true], [1440, false]] as const) {
+      fijarAncho(ancho)
+      const { unmount } = montar()
+      const boton = await screen.findByRole('button', { name: 'Guardar en favoritos' })
+      if (completo) expect(boton).toHaveClass('MuiButton-fullWidth')
+      else expect(boton).not.toHaveClass('MuiButton-fullWidth')
+      unmount()
+    }
+  })
+
+  it('si se cierra la sesión y entra otra persona, no se le muestran los favoritos de la anterior', async () => {
+    rpcs({ favoritos_entre_por_dominio: { estado: 'ok', favoritos: [ID] } })
+    montar()
+    expect(await screen.findByRole('button', { name: 'Quitar de favoritos' })).toBeInTheDocument()
+
+    mocks.sesionActivaEnTienda.mockResolvedValue(null)
+    act(() => avisarAuth('SIGNED_OUT'))
+    expect(await screen.findByRole('link', { name: 'Guardar en favoritos' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Quitar de favoritos' })).not.toBeInTheDocument()
+
+    mocks.sesionActivaEnTienda.mockResolvedValue({ estado: 'activa', tipo: 'minorista' })
+    rpcs({ favoritos_entre_por_dominio: { estado: 'ok', favoritos: [] } })
+    act(() => avisarAuth('SIGNED_IN'))
+    const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })
+    expect(guardar).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('un cambio directo de persona (ingreso sin pasar por «sin sesión») vuelve a leer los favoritos', async () => {
+    rpcs({ favoritos_entre_por_dominio: { estado: 'ok', favoritos: [ID] } })
+    montar()
+    expect(await screen.findByRole('button', { name: 'Quitar de favoritos' })).toBeInTheDocument()
+    rpcs({ favoritos_entre_por_dominio: { estado: 'ok', favoritos: [] } })
+    act(() => avisarAuth('SIGNED_IN'))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar en favoritos' })).toHaveAttribute('aria-pressed', 'false'))
+    expect(mocks.rpc.mock.calls.filter(([f]) => f === 'favoritos_entre_por_dominio')).toHaveLength(2)
   })
 
   it.each(ANCHOS_TIENDA)('no tiene violaciones de accesibilidad a %i px (con y sin sesión)', async (ancho) => {

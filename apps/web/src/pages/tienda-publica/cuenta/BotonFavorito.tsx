@@ -3,9 +3,10 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import { Box, Button, Typography } from '@mui/material'
 import { useState } from 'react'
 import { Link as EnlaceRuta, useLocation } from 'react-router'
+import { useCelular } from '../useAnchoCelular'
 import { useCapacidadesTienda } from '../../../hooks/useCapacidadesTienda'
 import { useFavoritosEntre } from '../../../hooks/useFavoritosEntre'
-import { useSesionCliente } from '../../../hooks/useSesionCliente'
+import { useSesionClienteDetallada } from '../../../hooks/useSesionCliente'
 import { cambiarFavorito, esSinAcceso } from '../../../lib/tiendaCuentaDatos'
 import { enlaceIngresarConVolver } from '../../../lib/tiendaVolver'
 import { AvisoTienda } from './AvisoTienda'
@@ -23,9 +24,11 @@ export function BotonFavorito({ host, productoId, nombre }: { host: string; prod
   const capacidades = useCapacidadesTienda(host)
   const encendida = capacidades.fase === 'lista' && capacidades.pedidos
   // Con la función apagada ni siquiera se consulta la sesión: la ficha no hace llamadas de más.
-  const sesion = useSesionCliente(host, encendida)
+  const { estado: sesion, version: versionSesion } = useSesionClienteDetallada(host, encendida)
   const ubicacion = useLocation()
-  const favoritos = useFavoritosEntre(host, [productoId], encendida && sesion === 'activa')
+  // P-2: a ancho completo hasta `md` (celular y tableta); desde escritorio, a la izquierda y del tamaño del texto.
+  const anchoCompleto = useCelular()
+  const favoritos = useFavoritosEntre(host, [productoId], encendida && sesion === 'activa', versionSesion)
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState<AvisoCuenta | null>(null)
   const [cuentaInactiva, setCuentaInactiva] = useState(false)
@@ -35,11 +38,12 @@ export function BotonFavorito({ host, productoId, nombre }: { host: string; prod
 
   if (sesion === 'sin_sesion') {
     return (
-      <Box sx={{ mt: '12px', display: 'flex', flexDirection: 'column', alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
+      <Box sx={{ mt: '12px', display: 'flex', flexDirection: 'column', alignItems: anchoCompleto ? 'stretch' : 'flex-start' }}>
         <Button
           component={EnlaceRuta}
           to={enlaceIngresarConVolver(`${ubicacion.pathname}${ubicacion.search}`)}
           variant="text"
+          fullWidth={anchoCompleto}
           startIcon={<FavoriteBorderIcon />}
           sx={{ minHeight: (tema) => tema.spacing(5.5) }}
         >
@@ -79,9 +83,10 @@ export function BotonFavorito({ host, productoId, nombre }: { host: string; prod
   }
 
   return (
-    <Box sx={{ mt: '12px', display: 'flex', flexDirection: 'column', alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
+    <Box sx={{ mt: '12px', display: 'flex', flexDirection: 'column', alignItems: anchoCompleto ? 'stretch' : 'flex-start' }}>
       <Button
         variant="text"
+        fullWidth={anchoCompleto}
         aria-pressed={esFavorito}
         disabled={inactiva || favoritos.fase === 'cargando'}
         aria-busy={guardando || undefined}

@@ -77,6 +77,8 @@ describe('RutaIngresar (FR-020, FR-021)', () => {
     ['/\\evil.example', 'barra invertida'],
     ['java' + 'script:alert(1)', 'esquema javascript'],
     ['evil.example', 'sin barra inicial'],
+    ['/..//evil.example', 'dot-segments'],
+    ['/%5Cevil.example', 'barra invertida codificada'],
   ])('con `?volver=%s` (%s) lo ignora y va a la portada', async (volver) => {
     mocks.ingresarCliente.mockResolvedValue({ ok: true, tipo: 'minorista' })
     montar(`/ingresar?volver=${encodeURIComponent(volver)}`)

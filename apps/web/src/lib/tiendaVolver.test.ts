@@ -26,6 +26,15 @@ describe('rutaVolverSegura', () => {
     ['vacío', ''],
     ['solo ingresar (bucle)', '/ingresar'],
     ['ingresar con consulta', '/ingresar?volver=/mi-cuenta'],
+    ['segmento de puntos que se normaliza a //', '/..//evil.example'],
+    ['segmento de un punto que se normaliza a //', '/.//evil.example'],
+    ['punto-punto adentro', '/mi-cuenta/../../x'],
+    ['punto-punto al final', '/mi-cuenta/..'],
+    ['puntos codificados', '/%2e%2e//evil.example'],
+    ['barra invertida codificada', '/%5Cevil.example'],
+    ['barra invertida codificada en minúsculas', '/%5cevil.example'],
+    ['barra codificada', '/%2Fevil.example'],
+    ['// en el medio', '/mi-cuenta//x'],
     ['demasiado largo', `/${'a'.repeat(600)}`],
   ])('rechaza %s', (_motivo, ruta) => {
     expect(rutaVolverSegura(ruta)).toBeNull()

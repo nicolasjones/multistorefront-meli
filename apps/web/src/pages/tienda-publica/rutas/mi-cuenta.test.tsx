@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Outlet, Route, Routes, useLocation } from 'react-router'
+import { MemoryRouter, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ANCHOS_TIENDA, fijarAncho } from '../../../test/ancho'
 import { violacionesAxe } from '../../../test/axe'
@@ -53,7 +53,13 @@ function rpcs(respuestas: Record<string, Respuesta>) {
 
 function Ubicacion() {
   const ubicacion = useLocation()
-  return <p data-testid="ubicacion">{ubicacion.pathname}{ubicacion.search}</p>
+  const navigate = useNavigate()
+  return (
+    <>
+      <p data-testid="ubicacion">{ubicacion.pathname}{ubicacion.search}</p>
+      <button type="button" onClick={() => navigate(-1)}>Atrás (prueba)</button>
+    </>
+  )
 }
 
 function montar(entrada = '/mi-cuenta') {
@@ -155,6 +161,67 @@ describe('/mi-cuenta (P-3)', () => {
     montar()
     expect(await screen.findByTestId('pagina-no-encontrada')).toBeInTheDocument()
     expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  // FR-014 / A-11: sin la función encendida, un anónimo NO va a «Ingresar» (no se revela que la función existe).
+  it('un anónimo con la función apagada ve la 404 y no va a «Ingresar»', async () => {
+    mocks.sesionActivaEnTienda.mockResolvedValue(null)
+    mocks.leerCapacidadesTienda.mockResolvedValue({ pedidos: false })
+    montar()
+    expect(await screen.findByTestId('pagina-no-encontrada')).toBeInTheDocument()
+    expect(screen.queryByText('Pantalla de ingreso')).not.toBeInTheDocument()
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/mi-cuenta')
+  })
+
+  it('un anónimo con las capacidades todavía pendientes ve la carga: no redirige hasta saber que la función está encendida', async () => {
+    mocks.sesionActivaEnTienda.mockResolvedValue(null)
+    mocks.leerCapacidadesTienda.mockReturnValue(new Promise(() => undefined))
+    montar()
+    expect(await screen.findByRole('status', { name: 'Cargando tu cuenta' })).toBeInTheDocument()
+    await waitFor(() => expect(mocks.sesionActivaEnTienda).toHaveBeenCalled())
+    await new Promise((resolver) => setTimeout(resolver, 20))
+    expect(screen.queryByText('Pantalla de ingreso')).not.toBeInTheDocument()
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/mi-cuenta')
+  })
+
+  it('un anónimo con un error al leer las capacidades ve el error con reintento y no se lo manda a «Ingresar»', async () => {
+    mocks.sesionActivaEnTienda.mockResolvedValue(null)
+    mocks.leerCapacidadesTienda.mockRejectedValue(new Error('red'))
+    montar()
+    expect(await screen.findByText('No pudimos cargar esta página.')).toBeInTheDocument()
+    expect(screen.queryByText('Pantalla de ingreso')).not.toBeInTheDocument()
+  })
+
+  // «Atrás» tras cerrar el detalle no lo vuelve a abrir.
+  it('abierto desde la lista, «Cerrar» vuelve a la entrada anterior y «atrás» no reabre el detalle', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('link', { name: /Ver el detalle de presupuesto Nº 00000012/ }))
+    const dialogo = await screen.findByRole('dialog', { name: /Presupuesto Nº 00000012/ })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/mi-cuenta')
+    expect(screen.getByTestId('ubicacion')).not.toHaveTextContent('compra=')
+    fireEvent.click(screen.getByRole('button', { name: 'Atrás (prueba)' }))
+    await new Promise((resolver) => setTimeout(resolver, 20))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('abierto por un enlace directo, «Cerrar» reemplaza la entrada y «atrás» no reabre el detalle', async () => {
+    montar(`/mi-cuenta?seccion=compras&compra=${ID_1}`)
+    const dialogo = await screen.findByRole('dialog', { name: /Presupuesto Nº 00000012/ })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Atrás (prueba)' }))
+    await new Promise((resolver) => setTimeout(resolver, 20))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('un sin_acceso al quitar un favorito reemplaza todo por «Tu cuenta no está activa en esta tienda»', async () => {
+    rpcs({ mis_compras_por_dominio: COMPRAS, mis_favoritos_por_dominio: FAVORITOS, cambiar_favorito_por_dominio: { estado: 'sin_acceso' } })
+    montar('/mi-cuenta?seccion=favoritos')
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitar Joystick Pro de favoritos' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Tu cuenta no está activa en esta tienda' })).toBeInTheDocument()
+    expect(screen.queryByText('Joystick Pro')).not.toBeInTheDocument()
   })
 
   it('`/mi-cuenta/<algo>` no existe', async () => {

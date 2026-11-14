@@ -54,6 +54,10 @@ export default function RutaMiCuenta() {
     return <Box sx={{ py: 2 }}><CabeceraSeo noindex pagina="Mi cuenta" /><ErrorConReintento titulo="No pudimos cargar esta página." alReintentar={capacidades.reintentar} /></Box>
   }
   if (capacidades.fase === 'lista' && !capacidades.pedidos) return <PaginaNoEncontrada />
+  // Sin la función encendida nadie va a «Ingresar» (un anónimo ve la 404, FR-014): mientras no se sabe, solo carga.
+  if (capacidades.fase === 'cargando') {
+    return <Box sx={{ py: 2 }}><CabeceraSeo noindex pagina="Mi cuenta" /><EstadoCargaPagina etiqueta="Cargando tu cuenta" /></Box>
+  }
   if (sesion.estado === 'sin_sesion') {
     return <Navigate to={enlaceIngresarConVolver(`${ubicacion.pathname}${ubicacion.search}`)} replace />
   }
@@ -67,7 +71,12 @@ export default function RutaMiCuenta() {
   const irASeccion = (nueva: Seccion) => {
     setParams({ seccion: nueva })
   }
-  const cerrarDetalle = () => setParams({ seccion: 'compras' })
+  // Abierto desde la lista (entrada nueva en el historial): cerrar vuelve a esa entrada y «atrás» no reabre el detalle.
+  // Abierto por un enlace directo (sin esa marca): se reemplaza la entrada.
+  const cerrarDetalle = () => {
+    if ((ubicacion.state as { desdeLista?: boolean } | null)?.desdeLista) navigate(-1)
+    else setParams({ seccion: 'compras' }, { replace: true })
+  }
   const salir = () => {
     setSaliendo(true)
     void salirCliente().finally(() => navigate('/'))

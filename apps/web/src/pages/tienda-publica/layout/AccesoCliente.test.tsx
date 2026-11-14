@@ -97,6 +97,20 @@ describe('AccesoCliente · «Mi cuenta» (P-1)', () => {
     expect(await screen.findByRole('button', { name: 'Salir' })).toBeInTheDocument()
   })
 
+  it('el encabezado y el menú juntos consultan la sesión UNA sola vez', async () => {
+    fijarAncho(320)
+    render(
+      <MemoryRouter>
+        <AccesoCliente host={HOST} />
+        <Routes><Route path="*" element={<MenuMovil categorias={categorias} host={HOST} />} /></Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByRole('link', { name: 'Mi cuenta' })).toBeInTheDocument()
+    abrirMenu()
+    await screen.findByRole('list', { name: 'Tu cuenta' })
+    expect(mocks.sesionActivaEnTienda).toHaveBeenCalledTimes(1)
+  })
+
   it.each(ANCHOS_TIENDA)('no tiene violaciones de accesibilidad a %i px', async (ancho) => {
     fijarAncho(ancho)
     const { container } = montarAcceso()

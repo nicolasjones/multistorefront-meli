@@ -19,6 +19,8 @@ import { useCelular } from '../useAnchoCelular'
 import { EstadoComprobante } from './EstadoComprobante'
 import { VacioMiCuenta } from './VacioMiCuenta'
 
+// Marca que el detalle se abrió desde la lista: la pantalla lo cierra con «atrás» en vez de dejar una entrada de más.
+const ESTADO_DESDE_LISTA = { desdeLista: true }
 const textoContador = (n: number) => `${n} ${n === 1 ? 'comprobante' : 'comprobantes'}`
 
 // «Compras y presupuestos» de «Mi cuenta» (F-CLI-20, FR-003/FR-004, P-3): los comprobantes de ESTE cliente en ESTA tienda,
@@ -52,6 +54,7 @@ export function HistorialMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
               <Link
                 component={EnlaceRuta}
                 to={enlaceCompra(fila.id)}
+                state={ESTADO_DESDE_LISTA}
                 underline="none"
                 color="inherit"
                 sx={{ display: 'block', border: LINEA_SUAVE, borderRadius: '8px', p: 2, minHeight: (tema) => tema.spacing(5.5), '&:hover, &:focus-visible': { bgcolor: 'action.hover' } /* estilos-sueltos: ok */ }}
@@ -82,12 +85,13 @@ export function HistorialMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
             </TableHead>
             <TableBody>
               {listado.filas.map((fila) => (
-                <TableRow key={fila.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(enlaceCompra(fila.id))}>
+                <TableRow key={fila.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(enlaceCompra(fila.id), { state: ESTADO_DESDE_LISTA })}>
                   <TableCell>{formatearFechaCuenta(fila.fecha)}</TableCell>
                   <TableCell>
                     <Link
                       component={EnlaceRuta}
                       to={enlaceCompra(fila.id)}
+                      state={ESTADO_DESDE_LISTA}
                       aria-label={`Ver el detalle de ${ETIQUETA_TIPO[fila.tipo].toLowerCase()} ${formatearNumeroComprobante(fila.numero)} del ${formatearFechaCuenta(fila.fecha)}`}
                       onClick={(evento) => evento.stopPropagation()}
                     >
@@ -103,10 +107,7 @@ export function HistorialMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           </Table>
         </TableContainer>
       )}
-      <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={listado.errorMas} onCargarMas={listado.cargarMas} mostrarFin={false} />
-      {!listado.hayMas && !listado.errorMas ? (
-        <Typography component="p" color="text.secondary" align="center" sx={{ pb: 2 }}>Llegaste al final de tus compras y presupuestos</Typography>
-      ) : null}
+      <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={listado.errorMas} onCargarMas={listado.cargarMas} textoFin="Llegaste al final de tus compras y presupuestos" />
     </Box>
   )
 }

@@ -97,7 +97,7 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
             <Box component="li" key={favorito.productoId} sx={{ display: 'flex', gap: 2, border: LINEA_SUAVE, borderRadius: '8px', p: 2, minWidth: 0 /* estilos-sueltos: ok */ }}>
               <MiniaturaProducto alt={favorito.nombre} src={favorito.imagenUrl} />
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Link component={EnlaceRuta} to={`/producto/${favorito.productoId}`} color="inherit" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{favorito.nombre}</Link>
+                <Link component={EnlaceRuta} to={`/producto/${encodeURIComponent(favorito.productoId)}`} color="inherit" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{favorito.nombre}</Link>
                 <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 1.5 }}>
                   <EtiquetaDisponibilidad disponible={favorito.disponible} />
                   <Typography component="span" sx={{ fontWeight: 600 }}>{precio ?? 'Precio a confirmar'}</Typography>
@@ -120,8 +120,7 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           )
         })}
       </Box>
-      <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} mostrarFin={false} />
-      {!hayMas && !errorMas ? <Typography component="p" color="text.secondary" align="center" sx={{ pb: 2 }}>Llegaste al final de tus favoritos</Typography> : null}
+      <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} textoFin="Llegaste al final de tus favoritos" />
       <AvisoTienda aviso={aviso} alCerrar={() => setAviso(null)} />
     </Box>
   )

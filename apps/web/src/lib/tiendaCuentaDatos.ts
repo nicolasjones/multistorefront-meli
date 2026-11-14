@@ -110,10 +110,10 @@ async function llamar(funcion: string, argumentos: Record<string, unknown>): Pro
 
 function filaCompra(cruda: unknown): CompraResumen | null {
   const fila = comoObjeto(cruda)
-  if (!fila || typeof fila.id !== 'string') return null
+  if (!fila || !esIdValido(fila.id as string)) return null
   const tipo = comoTipo(fila.tipo)
   return {
-    id: fila.id,
+    id: fila.id as string,
     numero: String(fila.numero ?? ''),
     fecha: typeof fila.fecha === 'string' ? fila.fecha.slice(0, 10) : '',
     tipo,
@@ -136,7 +136,7 @@ export async function leerMisCompras(host: string, cursor: CursorCompras | null 
   return {
     total: comoNumero(respuesta.total),
     filas,
-    siguiente: siguiente && typeof siguiente.fecha === 'string' && typeof siguiente.id === 'string' ? { fecha: siguiente.fecha.slice(0, 10), id: siguiente.id } : null,
+    siguiente: siguiente && typeof siguiente.fecha === 'string' && esIdValido(siguiente.id as string) ? { fecha: siguiente.fecha.slice(0, 10), id: siguiente.id as string } : null,
   }
 }
 
@@ -174,9 +174,10 @@ export async function leerMiCompra(host: string, comprobanteId: string): Promise
 
 function filaFavorito(cruda: unknown): FavoritoCuenta | null {
   const fila = comoObjeto(cruda)
-  if (!fila || typeof fila.producto_id !== 'string') return null
+  // Un id que no es uuid no llega a la pantalla (arma el enlace a la ficha): se descarta la fila.
+  if (!fila || !esIdValido(fila.producto_id as string)) return null
   return {
-    productoId: fila.producto_id,
+    productoId: fila.producto_id as string,
     nombre: limpiarTextoPublico(String(fila.nombre ?? '')),
     sku: comoTextoOpcional(fila.sku),
     imagen: comoTextoOpcional(fila.imagen),
@@ -197,12 +198,12 @@ export async function leerMisFavoritos(host: string, cursor: CursorFavoritos | n
   if (respuesta.estado !== 'ok') throw new ErrorCuentaTienda('error')
   const filas = (Array.isArray(respuesta.filas) ? respuesta.filas : []).flatMap((cruda) => filaFavorito(cruda) ?? [])
   const siguiente = comoObjeto(respuesta.siguiente)
-  // El contrato nombra los parámetros `desde_creado` y `desde_id`; la clave del cursor devuelto puede llegar como `creado_en` o `creado`.
-  const creado = siguiente ? (siguiente.creado_en ?? siguiente.creado) : null
+  // `siguiente` = `{creado, id}` (contrato de `mis_favoritos_por_dominio`); se devuelve tal cual en `desde_creado` y `desde_id`.
+  const creado = siguiente ? siguiente.creado : null
   return {
     total: comoNumero(respuesta.total),
     filas,
-    siguiente: siguiente && typeof creado === 'string' && typeof siguiente.id === 'string' ? { creado, id: siguiente.id } : null,
+    siguiente: siguiente && typeof creado === 'string' && esIdValido(siguiente.id as string) ? { creado, id: siguiente.id as string } : null,
   }
 }
 

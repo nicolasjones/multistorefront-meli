@@ -3,7 +3,8 @@ import { esSinAcceso, leerFavoritosEntre } from '../lib/tiendaCuentaDatos'
 
 // Qué productos de una pantalla son favoritos de la cuenta (F-CLI-20, FR-007): UNA llamada por pantalla
 // (`favoritos_entre_por_dominio`, hasta 50 ids), no una por tarjeta ni por botón. `activo = false` (sin sesión o con la
-// función apagada) no llama. `marcar` refleja un cambio ya confirmado por el servidor sin volver a pedir.
+// función apagada) no llama y descarta lo que hubiera. `sesion` (el contador de ingresos y salidas) entra en la clave:
+// si se va una persona y entra otra, lo de la anterior no se muestra. `marcar` refleja un cambio ya confirmado por el servidor sin volver a pedir.
 export type FavoritosEntre = {
   fase: 'cargando' | 'lista' | 'error' | 'sin_acceso'
   esFavorito: (productoId: string) => boolean
@@ -12,9 +13,11 @@ export type FavoritosEntre = {
 
 type Resultado = { clave: string; fase: 'lista' | 'error' | 'sin_acceso'; ids: ReadonlySet<string> }
 
-export function useFavoritosEntre(host: string, productos: readonly string[], activo: boolean): FavoritosEntre {
-  const clave = JSON.stringify([host, activo, [...productos].sort()])
+export function useFavoritosEntre(host: string, productos: readonly string[], activo: boolean, sesion = 0): FavoritosEntre {
+  const clave = JSON.stringify([host, activo, sesion, [...productos].sort()])
   const [resultado, setResultado] = useState<Resultado | null>(null)
+  // Al dejar de estar activo (cierre de sesión, función apagada) no queda nada de la persona anterior.
+  if (!activo && resultado !== null) setResultado(null)
 
   useEffect(() => {
     if (!activo) return
