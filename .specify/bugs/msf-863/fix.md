@@ -330,6 +330,14 @@ Verificado en local contra el árbol mergeado (`49b80e3f`):
   `validacion` id `132329653954` **success** (6s). Estado del PR tras el push:
   `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN` (ya no `CONFLICTING` ni
   `DIRTY`).
+- Run `43563026763` (rama `fix/bug-MSF-863`, SHA `bfc2ee11`, ya re-sincronizada
+  con `dokploy` en `49b80e3f`) → `application` id `132351939952` **success**
+  (2m58s), `changes` **success** (26s), `infrastructure` **success** (58s),
+  `liberar` **success** (18s) y `validacion` id `132352833740` **success**
+  (5s): el único check requerido de `dokploy` quedó en verde. `quality`
+  (run `43563026836`) **success** (1m10s). Estado del PR tras el push:
+  `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN` (ya no `CONFLICTING` ni
+  `DIRTY`).
 
 ## Deviations from Assessment
 

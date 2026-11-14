@@ -140,6 +140,8 @@ contra el árbol mergeado:
 | Resto de los pasos del job `application` (sin base ni navegador) | `test:docs:pasos-manuales` · `test:db:guard-migraciones` · `estilos:check` · `test:estilos:sueltos` · `e2e:escritura:check` · `test:e2e:escritura` · `test:e2e:omitidos` · `ui:empresas:check` · `test:ui:empresas` · `prototipo:check` · `test:prototipo:inventario` | pass | Todos exit 0 |
 | Lint / build | `pnpm lint` · `pnpm build` | pass | Exit 0 (warnings preexistentes) · `✓ built` |
 | Calidad determinista | `pnpm calidad` | partial | oxlint / **knip** / jscpd / dependency-cruiser / syncpack **ok**; gitleaks no corrió (sin Docker en este entorno: «permission denied … /var/run/docker.sock») |
+| CI (HEAD `bfc2ee11`) | run `43563026763` | pass | `application` id `132351939952` **success** (2m58s) · `changes` **success** (26s) · `infrastructure` **success** (58s) · `liberar` **success** (18s) · `validacion` id `132352833740` **success** (5s) · `quality` (run `43563026836`) **success** (1m10s) |
+| Estado final del PR (HEAD `bfc2ee11`) | `gh pr view 934 --json mergeable,mergeStateStatus` | pass | `MERGEABLE` / `CLEAN` (ya no `CONFLICTING` ni `DIRTY`) |
 
 ## Output Excerpts
 
