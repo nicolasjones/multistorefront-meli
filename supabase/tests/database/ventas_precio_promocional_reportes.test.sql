@@ -212,10 +212,13 @@ select is((select count(*)::int
              from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', 0, 100)) f
             where f->>'precio_referencia' = '1000.00' and f->>'precio_unitario' = '800.00' and f->>'promocion_id' is not null), 2,
   'las filas exportadas traen la línea promocional (factura y su nota de crédito heredera) con precio 800, referencia 1000 y su promoción');
+select is(jsonb_array_length(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', 0, 100)), 4,
+  'la exportación de líneas trae exactamente las 4 líneas de la organización del test (V1, su nota, V2 y V3), no las de otras organizaciones');
 select is((select count(*)::int
              from jsonb_array_elements(private.filas_exportacion_total(pg_temp.ejecucion(), 'dominio', 'comprobantes_venta_lineas', 0, 100)) f
-            where f ? 'precio_referencia' and f ? 'promocion_id'), (select count(*)::int from dominio.comprobantes_venta_lineas),
-  'toda fila exportada de línea tiene las dos claves nuevas (null en las sin promoción)');
+            where f ? 'precio_referencia' and f ? 'promocion_id'
+              and f->>'organizacion_id' = '11111111-1111-1111-1111-111111111111'), 4,
+  'las 4 filas exportadas de línea tienen las dos claves nuevas (null en las sin promoción)');
 
 -- ============================================================================
 -- Webhook venta.registrada: forma y valores
@@ -245,6 +248,15 @@ select is((select (f->>'total_sin_iva')::numeric from private.api_leer_ventas('1
                   jsonb_array_elements(a.filas) f where f->>'id' = pg_temp.id_de('V1')::text), 2400::numeric,
   'api_leer_ventas informa el total cobrado de la factura promocional');
 
+-- API pública /v1/precios (private.api_leer_precios): forma exacta, sin promoción ni referencia.
+select is((select array(select jsonb_object_keys(filas->0) order by 1)
+             from private.api_leer_precios('11111111-1111-1111-1111-111111111111', null, 50, null)),
+  array['actualizado_en', 'moneda', 'nombre', 'precio_lista', 'precio_x10', 'precio_x5', 'precio_x50', 'producto_id', 'sku'],
+  'api_leer_precios conserva exactamente sus claves (sin promoción ni referencia)');
+select is((select (f->>'precio_lista')::numeric from private.api_leer_precios('11111111-1111-1111-1111-111111111111', null, 50, null) a,
+                  jsonb_array_elements(a.filas) f where f->>'sku' = 'JOY-1'), 1000::numeric,
+  'api_leer_precios informa el precio de lista del joystick (1000), no el promocional');
+
 -- ============================================================================
 -- Vistas de consulta de IA (20270224110000)
 -- ============================================================================
@@ -253,6 +265,18 @@ select is((select array_agg(column_name::text order by ordinal_position) from in
             where table_schema = 'public' and table_name = 'ia_consulta_ventas'),
   array['organizacion_id', 'comprobante_id', 'numero', 'fecha', 'empresa_id', 'total_sin_iva', 'total_con_iva', 'estado', 'confirmado_en'],
   'ia_consulta_ventas conserva sus columnas exactas');
+select is((select array_agg(column_name::text order by ordinal_position) from information_schema.columns
+            where table_schema = 'public' and table_name = 'ia_consulta_catalogo'),
+  array['organizacion_id', 'producto_id', 'nombre', 'sku', 'categoria_id', 'categoria', 'activo', 'actualizado_en'],
+  'ia_consulta_catalogo conserva sus columnas exactas');
+select is((select array_agg(column_name::text order by ordinal_position) from information_schema.columns
+            where table_schema = 'public' and table_name = 'ia_consulta_stock'),
+  array['organizacion_id', 'producto_id', 'nombre', 'sku', 'deposito_id', 'deposito', 'cantidad', 'reservado', 'disponible', 'actualizado_en'],
+  'ia_consulta_stock conserva sus columnas exactas');
+select is((select array_agg(column_name::text order by ordinal_position) from information_schema.columns
+            where table_schema = 'public' and table_name = 'ia_consulta_precios'),
+  array['organizacion_id', 'producto_id', 'nombre', 'sku', 'moneda', 'precio_lista', 'precio_x5', 'precio_x10', 'precio_x50', 'actualizado_en'],
+  'ia_consulta_precios conserva sus columnas exactas (sin promoción, referencia ni costo)');
 select is((select count(*)::int from information_schema.columns
             where table_schema = 'public' and table_name like 'ia\_consulta\_%'
               and (column_name ilike '%promo%' or column_name ilike '%referencia%' or column_name ilike '%costo%')), 0,

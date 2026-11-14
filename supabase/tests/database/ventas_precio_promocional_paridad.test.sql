@@ -142,9 +142,16 @@ select c.n, c.empresa, c.ahora, c.etiqueta,
        local.neto_unitario as l_neto, local.precio_referencia as l_ref, local.promocion_id as l_promo,
        local.alicuota_porcentaje as alic, coalesce(local.alicuota_exenta, false) as exenta,
        (r.mostrar_con_iva) as con_iva,
-       -- Excluidos: promoción >= normal (la tienda la muestra y el local la ignora: S5) y producto no publicado.
-       (c.n = 8 or c.n = 9) as excl_promo_mayor,
-       (c.n = 10 and c.empresa = 'a1000000-0000-0000-0000-000000000001') as excl_no_publicado
+       -- Excluidos POR DATO: promoción vigente >= precio normal (la tienda la muestra y el local la ignora: S5) y
+       -- producto no publicado en la tienda (sin producto_empresa).
+       exists (select 1 from dominio.promociones_precio x
+                where x.producto_id = ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid
+                  and x.empresa_id = c.empresa and x.anulada_at is null and x.desde <= c.ahora and c.ahora < x.hasta
+                  and x.precio_promocional >= (select pp.neto from private.precio_para(
+                        ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa, 'x1') pp)) as excl_promo_mayor,
+       not exists (select 1 from dominio.producto_empresa pe
+                    where pe.producto_id = ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid
+                      and pe.empresa_id = c.empresa) as excl_no_publicado
   from casos c
   cross join lateral private.precio_vigente_empresa(
          ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa, c.ahora) tienda
@@ -228,14 +235,31 @@ select is((select l_neto from cmp where n = 12 and empresa = 'a1000000-0000-0000
 
 select is((select count(*)::int from cmp where empresa = 'a1000000-0000-0000-0000-000000000002' and con_iva), (select count(*)::int from cmp where empresa = 'a1000000-0000-0000-0000-000000000002'),
   'la tienda B muestra precios con IVA en toda la grilla (fixture)');
+select cmp_ok((select count(*) from cmp where empresa = 'a1000000-0000-0000-0000-000000000002'
+                  and not excl_promo_mayor and not excl_no_publicado and l_neto is not null and t_precio is not null)::int, '>=', 50,
+  'tienda B: al menos 50 combinaciones comparadas con precio en AMBOS lados');
+select is((select count(*)::int from cmp where empresa = 'a1000000-0000-0000-0000-000000000002'
+              and not excl_promo_mayor and not excl_no_publicado and (l_neto is null or t_precio is null)), 0,
+  'tienda B: ningún caso comparado tiene precio nulo en el local ni en la tienda');
 select is((select count(*)::int from cmp
             where empresa = 'a1000000-0000-0000-0000-000000000002' and con_iva
               and not excl_promo_mayor and not excl_no_publicado
-              and abs(case when exenta then l_neto else l_neto * (1 + coalesce(alic, 0) / 100) end - t_precio) >= 1), 0,
+              and not (abs(case when exenta then l_neto else l_neto * (1 + coalesce(alic, 0) / 100) end - t_precio) < 1)), 0,
   'tienda B (con IVA): |neto × (1 + alícuota) − precio de la tienda| < $1 por unidad en todos los casos comparados');
 select cmp_ok((select max(abs(case when exenta then l_neto else l_neto * (1 + coalesce(alic, 0) / 100) end - t_precio))
-                 from cmp where empresa = 'a1000000-0000-0000-0000-000000000002' and not excl_promo_mayor and not excl_no_publicado), '<=', 0.5::numeric,
+                 from cmp where empresa = 'a1000000-0000-0000-0000-000000000002' and not excl_promo_mayor and not excl_no_publicado
+                  and l_neto is not null and t_precio is not null), '<=', 0.5::numeric,
   'tienda B: la diferencia máxima observada es la del redondeo al peso (<= 0,50)');
+-- La referencia (el tachado) también se compara en B: nula o no nula en ambos lados y, con IVA, a menos de $1.
+select is((select count(*)::int from cmp
+            where empresa = 'a1000000-0000-0000-0000-000000000002'
+              and not excl_promo_mayor and not excl_no_publicado
+              and ((l_ref is null) is distinct from (t_anterior is null)
+                   or (l_ref is not null and not (abs(case when exenta then l_ref else l_ref * (1 + coalesce(alic, 0) / 100) end - t_anterior) < 1)))), 0,
+  'tienda B: la referencia del local coincide con el precio_anterior de la tienda (con IVA, a menos de $1)');
+select cmp_ok((select count(*) from cmp where empresa = 'a1000000-0000-0000-0000-000000000002'
+                  and not excl_promo_mayor and not excl_no_publicado and l_ref is not null and t_anterior is not null)::int, '>=', 10,
+  'tienda B: al menos 10 combinaciones comparan una referencia real (no nula) en ambos lados');
 select cmp_ok((select count(*) from cmp where empresa = 'a1000000-0000-0000-0000-000000000002'
                   and not excl_promo_mayor and not excl_no_publicado and l_promo is not null
                   and abs(l_neto * (1 + alic / 100) - t_precio) > 0)::int, '>=', 1,
@@ -282,18 +306,33 @@ select is((select t_precio is not null from cmp where n = 10 and empresa = 'a100
 
 update public.banderas_plataforma set activa = false where clave = 'promociones_precio';
 
+-- Lado local: sin promoción ni referencia y con el neto normal (A: igual al de la tienda; B: con IVA, a menos de $1).
+select is((select count(*)::int
+             from cmp c
+             cross join lateral private.precio_linea_venta(
+                    ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa, 'minorista', 1, 0, c.ahora, true) l
+            where not c.excl_no_publicado
+              and (l.promocion_id is not null or l.precio_referencia is not null or l.neto_unitario is null)), 0,
+  'bandera apagada: el local no aplica ninguna promoción ni referencia en ningún caso (tiendas A y B)');
+-- Lado tienda: sin precio anterior y con el precio normal (precio_final_publico), en A y en B.
 select is((select count(*)::int
              from cmp c
              cross join lateral private.precio_vigente_empresa(
                     ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa, c.ahora) t
-             left join lateral private.precio_linea_venta(
-                    ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa, 'minorista', 1, 0, c.ahora, true) l on true
-            where c.empresa = 'a1000000-0000-0000-0000-000000000001'
-              and not c.excl_no_publicado
-              and (l.promocion_id is not null or l.precio_referencia is not null
-                   or l.neto_unitario is distinct from private.precio_final_publico(
+            where not c.excl_no_publicado
+              and (t.precio_anterior is not null
+                   or t.precio is distinct from private.precio_final_publico(
                         ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa))), 0,
-  'bandera apagada: el local no aplica ninguna promoción y su neto es el precio normal de la tienda (tienda A, sin IVA)');
+  'bandera apagada: la tienda tampoco muestra promoción (sin precio anterior y con el precio normal), tiendas A y B');
+select is((select count(*)::int
+             from cmp c
+             cross join lateral private.precio_linea_venta(
+                    ('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa, 'minorista', 1, 0, c.ahora, true) l
+            where not c.excl_no_publicado
+              and not (abs(case when l.alicuota_exenta or c.empresa = 'a1000000-0000-0000-0000-000000000001' then l.neto_unitario
+                               else l.neto_unitario * (1 + coalesce(l.alicuota_porcentaje, 0) / 100) end
+                           - private.precio_final_publico(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid, c.empresa)) < 1)), 0,
+  'bandera apagada: el neto del local coincide con el precio normal de la tienda (A exacto, B con IVA a menos de $1)');
 
 select * from finish();
 rollback;
