@@ -11,7 +11,7 @@
 --     cliente, cuenta, empresa ni organización.
 begin;
 
-select plan(85);
+select plan(88);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -368,20 +368,41 @@ select is((select v from res where k = 'cero_lista'), '{"estado":"ok","total":0,
 select is((select v from res where k = 'cero_detalle'), '{"estado":"no_encontrada"}'::jsonb, 'cliente sin comprobantes pidiendo uno ajeno: no_encontrada');
 
 -- Trampa UTC vs ART: el «vencido» y todo «hoy» usan el día de Buenos Aires, nunca current_date ni now()::date.
+-- (1) Comportamiento en el borde del día: «hoy en ART» y «mañana en ART» siguen pendientes; «ayer en ART» está vencido. Si la prueba
+-- corre entre las 21:00 y las 24:00 de Argentina (el día UTC ya es el siguiente), esta aserción distingue una implementación en UTC.
+select is(
+  (select jsonb_build_array(
+            private.estado_publico_comprobante('presupuesto', 'pendiente', private.hoy_argentina()),
+            private.estado_publico_comprobante('presupuesto', 'pendiente', private.hoy_argentina() + 1),
+            private.estado_publico_comprobante('presupuesto', 'pendiente', private.hoy_argentina() - 1),
+            private.estado_publico_comprobante('presupuesto', 'pendiente', null))),
+  '["pendiente", "pendiente", "vencido", "pendiente"]'::jsonb,
+  'borde del día en Buenos Aires: hoy y mañana pendientes, ayer vencido, sin fecha pendiente');
+select is(
+  private.estado_publico_comprobante('presupuesto', 'pendiente', (now() at time zone 'America/Argentina/Buenos_Aires')::date),
+  'pendiente', 'vence hoy según el reloj de Buenos Aires: todavía pendiente');
+select is(
+  private.estado_publico_comprobante('presupuesto', 'pendiente', (now() at time zone 'America/Argentina/Buenos_Aires')::date - 1),
+  'vencido', 'venció ayer según el reloj de Buenos Aires: vencido (aunque en UTC fuera hoy)');
+-- (2) El código no usa la fecha del servidor: se mira el texto SIN comentarios (un comentario que nombre current_date no rompe ni salva nada).
+create function pg_temp.sin_comentarios(p_src text) returns text language sql immutable as $$
+  select regexp_replace(regexp_replace(p_src, '/\*.*?\*/', '', 'gs'), '--[^\n]*', '', 'g');
+$$;
 select ok(
-  (select p.prosrc ~ 'hoy_argentina' and p.prosrc !~* '(current_date|now\(\)|current_timestamp|localtimestamp)'
+  (select pg_temp.sin_comentarios(p.prosrc) ~ 'hoy_argentina'
+      and pg_temp.sin_comentarios(p.prosrc) !~* '(current_date|now\s*\(\s*\)|current_timestamp|localtimestamp|statement_timestamp|clock_timestamp)'
      from pg_proc p where p.oid = 'private.estado_publico_comprobante(text, text, date)'::regprocedure),
-  'estado_publico_comprobante deriva el vencido con private.hoy_argentina(), no con current_date ni now()');
+  'estado_publico_comprobante deriva el vencido con private.hoy_argentina(), no con la fecha del servidor');
 select ok(
-  (select p.prosrc !~* '(current_date|now\(\)|current_timestamp)'
+  (select pg_temp.sin_comentarios(p.prosrc) !~* '(current_date|now\s*\(\s*\)|current_timestamp|localtimestamp|statement_timestamp|clock_timestamp)'
      from pg_proc p where p.oid = 'publico.mis_compras_por_dominio(text, date, uuid, integer)'::regprocedure)
-  and (select p.prosrc !~* '(current_date|now\(\)|current_timestamp)'
+  and (select pg_temp.sin_comentarios(p.prosrc) !~* '(current_date|now\s*\(\s*\)|current_timestamp|localtimestamp|statement_timestamp|clock_timestamp)'
      from pg_proc p where p.oid = 'publico.mi_compra_por_dominio(text, uuid)'::regprocedure),
   'las RPC del historial no usan la fecha del servidor (UTC)');
 select ok(
-  (select p.prosrc ~ 'least\(greatest\(coalesce\(limite, 20\), 1\), 50\)'
+  (select pg_temp.sin_comentarios(p.prosrc) ~ 'least\(\s*greatest\(\s*coalesce\(\s*limite\s*,\s*20\s*\)\s*,\s*1\s*\)\s*,\s*50\s*\)'
      from pg_proc p where p.oid = 'publico.mis_compras_por_dominio(text, date, uuid, integer)'::regprocedure),
-  'el límite se acota con least(greatest(…, 1), 50)');
+  'el límite se acota con least(greatest(…, 1), 50) (además del caso de comportamiento con 60 comprobantes)');
 
 -- ============================================================================
 -- Detalle: lista blanca exacta por claves (FR-005, escenario A-5, amenaza 3.2)

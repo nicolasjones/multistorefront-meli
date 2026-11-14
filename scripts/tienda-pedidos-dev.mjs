@@ -24,12 +24,17 @@
 //
 // Defensas contra un destino que no es dev disfrazado de dev:
 //   * la URL se rechaza si su autoridad (lo que va entre `://` y la primera `/`) tiene `?`, `,`, `%` o más de una `@` (libpq acepta
-//     varios hosts separados por coma, decodifica porcentajes y deja que `?host=` / `hostaddr=` / `service=` pisen el host), o si
-//     trae esos parámetros en la query;
-//   * del entorno del proceso hijo se borran PGHOST, PGHOSTADDR, PGSERVICE y PGSERVICEFILE (y PGPASSFILE), para que no cambien el
-//     destino que ya se validó;
-//   * con SUPABASE_DB_URL, antes de tocar nada se comprueba POR POSITIVO, con una consulta de solo lectura, que la base es la de dev
-//     (existe la organización de demostración «… (demo)» que solo carga el entorno dev); si no, se niega.
+//     varios hosts separados por coma y decodifica porcentajes); y de la query solo se aceptan, por LISTA BLANCA, `sslmode`
+//     (require, verify-ca, verify-full o prefer) y `connect_timeout` (un entero): `host`, `hostaddr`, `service`, `port`, `dbname`,
+//     `options`, etc. pisarían el destino ya validado;
+//   * del entorno del proceso hijo se borran PGHOST, PGHOSTADDR, PGSERVICE, PGSERVICEFILE, PGPASSFILE, PGPORT, PGDATABASE, PGUSER,
+//     PGOPTIONS, PGSSLMODE, PGTARGETSESSIONATTRS y PGSYSCONFDIR (libpq) y DOCKER_HOST y DOCKER_CONTEXT (docker), para que nada del
+//     entorno cambie el destino que ya se validó;
+//   * en AMBOS modos (URL y contenedor), antes de tocar nada se comprueba POR POSITIVO, con una consulta de solo lectura, que la base
+//     es la de dev: existe una organización de demostración con id fijo del seed (`supabase/seed.sql`) y nombre «… (demo)». El id
+//     fijo por defecto es el de «Mundo JC (demo)» (`0f5eed00-0000-4000-8000-000000000001`) o el de «San Javucho (demo)»
+//     (`…0002`); si la organización demo de dev tiene otro id, se declara a propósito en TIENDA_PEDIDOS_DEV_ORG_IDS (uuids
+//     separados por coma). No hace falta escribir nada en dev; si no hay ninguna, el script se niega.
 
 import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -39,12 +44,32 @@ export const CLAVE_BANDERA = 'tienda_pedidos';
 export const CONTENEDOR_DEV = 'supabase_db_multistorefront-meli-supabase-dev';
 export const ACCIONES = ['encender', 'apagar', 'estado'];
 // Variables de libpq que cambian el destino o la autenticación de psql: se quitan del entorno hijo.
-export const VARIABLES_PG_PELIGROSAS = ['PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGSYSCONFDIR'];
-const PARAMETROS_URL_PELIGROSOS = ['host', 'hostaddr', 'service', 'servicefile', 'passfile'];
-// Marcador POSITIVO de dev: la organización de demostración que carga el dataset demo solo en dev (no se escribe nada).
-export const SQL_MARCADOR_DEV = "select exists (select 1 from public.organizaciones where nombre like '%(demo)')::text;\n";
+export const VARIABLES_PG_PELIGROSAS = [
+  'PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGOPTIONS',
+  'PGSSLMODE', 'PGTARGETSESSIONATTRS', 'PGSYSCONFDIR', 'DOCKER_HOST', 'DOCKER_CONTEXT',
+];
+// Parámetros de la query de la URL que se aceptan (lista blanca) y sus valores válidos.
+const PARAMETROS_URL_PERMITIDOS = {
+  sslmode: (v) => ['require', 'verify-ca', 'verify-full', 'prefer'].includes(v),
+  connect_timeout: (v) => /^\d{1,3}$/.test(v),
+};
+// Organizaciones de demostración con id fijo del seed (supabase/seed.sql). Marcador POSITIVO de dev, sin escribir nada.
+export const ORGS_DEMO_SEED = ['0f5eed00-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000002'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const ETIQUETAS_NO_DEV = new Set(['stg', 'stag', 'staging', 'prd', 'prod', 'production', 'produccion']);
+// SQL del marcador de dev: solo lectura; los ids se validan como uuid antes de interpolarse.
+export function sqlMarcadorDev(env = {}) {
+  const extra = (env.TIENDA_PEDIDOS_DEV_ORG_IDS ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  for (const id of extra) {
+    if (!UUID.test(id)) throw new ErrorEntorno(`TIENDA_PEDIDOS_DEV_ORG_IDS tiene un valor que no es un uuid: «${id.slice(0, 40)}».`);
+  }
+  const ids = [...new Set([...ORGS_DEMO_SEED, ...extra].map((x) => x.toLowerCase()))];
+  return `select exists (select 1 from public.organizaciones where id = any (array[${ids.map((i) => `'${i}'`).join(', ')}]::uuid[]) and nombre like '%(demo)')::text;\n`;
+}
+
+const ETIQUETAS_NO_DEV = new Set([
+  'stg', 'stag', 'stage', 'staging', 'qa', 'uat', 'test', 'pre', 'preprod', 'prod', 'prd', 'production', 'produccion',
+]);
 const DOMINIOS_NUBE = [/(^|\.)supabase\.(co|com|io)$/i, /(^|\.)pooler\.supabase\.com$/i];
 
 export class ErrorEntorno extends Error {}
@@ -85,9 +110,13 @@ export function motivoUrlAmbigua(url) {
   if ((autoridad.match(/@/g) ?? []).length > 1) return 'la autoridad tiene más de una «@»';
   const consulta = url.includes('?') ? url.slice(url.indexOf('?') + 1).split('#')[0] : '';
   for (const par of consulta.split('&').filter(Boolean)) {
-    let clave = par.split('=')[0];
-    try { clave = decodeURIComponent(clave); } catch { /* clave ilegible: se compara cruda */ }
-    if (PARAMETROS_URL_PELIGROSOS.includes(clave.toLowerCase())) return `la query trae el parámetro «${clave}», que cambia el destino`;
+    const i = par.indexOf('=');
+    let clave = i < 0 ? par : par.slice(0, i);
+    let valor = i < 0 ? '' : par.slice(i + 1);
+    try { clave = decodeURIComponent(clave); valor = decodeURIComponent(valor); } catch { return 'la query tiene un parámetro con codificación ilegible'; }
+    const valida = PARAMETROS_URL_PERMITIDOS[clave.toLowerCase()];
+    if (!valida) return `la query trae el parámetro «${clave}», que no está en la lista permitida (solo sslmode y connect_timeout)`;
+    if (!valida(valor)) return `el parámetro «${clave}» tiene un valor no permitido`;
   }
   return null;
 }
@@ -240,15 +269,14 @@ export async function principal(argv, env = process.env, deps = {}) {
     return r.salida.trim().split('\n')[0]?.trim();
   };
 
-  // Por URL, antes de tocar nada: la base tiene que DECLARARSE dev (consulta de solo lectura), no solo llamarse así.
-  if (destino.modo === 'url') {
-    const marcador = await correr(SQL_MARCADOR_DEV);
-    if (marcador !== 'true') {
-      throw new ErrorEntorno(
-        'Me niego a operar: la base a la que apunta SUPABASE_DB_URL no se identifica como dev '
-        + '(no tiene la organización de demostración «… (demo)» que solo carga el entorno dev). No cambié nada.',
-      );
-    }
+  // Antes de tocar nada, en URL y en contenedor: la base tiene que DECLARARSE dev (consulta de solo lectura), no solo llamarse así.
+  const marcador = await correr(sqlMarcadorDev(env));
+  if (marcador !== 'true') {
+    throw new ErrorEntorno(
+      `Me niego a operar: la base (${destino.modo === 'url' ? 'SUPABASE_DB_URL' : destino.contenedor}) no se identifica como dev: `
+      + 'no tiene una organización de demostración «… (demo)» con el id fijo del seed ni con los de TIENDA_PEDIDOS_DEV_ORG_IDS. '
+      + 'No cambié nada.',
+    );
   }
 
   const valor = await correr(sqlPara(accion));

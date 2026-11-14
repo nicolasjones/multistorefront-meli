@@ -148,9 +148,6 @@ select is(
       and p.proname in ('cambiar_favorito_por_dominio', 'mis_favoritos_por_dominio', 'favoritos_entre_por_dominio')
       and (p.proargnames && array['cliente_id', 'cuenta_id', 'cuenta_cliente_id', 'empresa_id', 'organizacion_id'])),
   0, 'ninguna recibe cliente, cuenta, empresa ni organización: todo sale de la sesión');
-select ok(
-  (select p.prosrc ~ 'pg_advisory_xact_lock' from pg_proc p where p.oid = 'publico.cambiar_favorito_por_dominio(text, uuid, boolean)'::regprocedure),
-  'el alta toma un lock por cuenta (el tope no se supera en paralelo)');
 
 -- FK compuestas: una fila no puede apuntar a otra organización ni a otra tienda que la de su cuenta.
 select throws_ok(
@@ -165,6 +162,19 @@ select throws_ok(
   $$insert into dominio.favoritos_cliente (organizacion_id, empresa_id, cuenta_cliente_id, producto_id)
     values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000005')$$,
   '23503', null, 'una fila no puede apuntar a un producto de otra organización');
+
+-- ============================================================================
+-- El alta toma un lock por cuenta (el tope no se supera en paralelo): se prueba el comportamiento, no el texto
+-- ============================================================================
+-- La siembra de la prueba ya tomó otros locks de transacción: se compara contra la cantidad previa (un lock más, el de la cuenta).
+insert into res values ('locks_antes', to_jsonb((select count(*)::int from pg_locks where locktype = 'advisory' and pid = pg_backend_pid())));
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values ('lock_guardar', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', true));
+insert into res values ('locks_despues', to_jsonb((select count(*)::int from pg_locks where locktype = 'advisory' and pid = pg_backend_pid())));
+insert into res values ('lock_quitar', publico.cambiar_favorito_por_dominio('fav-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', false));
+reset role;
+select is((select (v::int) from res where k = 'locks_despues') - (select (v::int) from res where k = 'locks_antes'), 1,
+  'guardar toma exactamente un lock advisory más (el de la cuenta)');
 
 -- ============================================================================
 -- Sin acceso: idéntico para todos los casos (FR-002, FR-011; escenario A-10)

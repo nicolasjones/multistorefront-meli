@@ -125,18 +125,19 @@ select is(
   ]) f),
   'la lista de funciones de publico ejecutables por anon es exactamente la esperada');
 select is(
-  (select count(*)::int from pg_proc p
+  (select jsonb_build_array(count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'execute')))
+     from pg_proc p
     where p.pronamespace = 'publico'::regnamespace
       and p.proname in ('mis_compras_por_dominio', 'mi_compra_por_dominio', 'cambiar_favorito_por_dominio',
-                        'mis_favoritos_por_dominio', 'favoritos_entre_por_dominio')
-      and has_function_privilege('anon', p.oid, 'execute')),
-  0, 'ninguna RPC de cuenta de la historia A es ejecutable por anon');
+                        'mis_favoritos_por_dominio', 'favoritos_entre_por_dominio')),
+  '[5, 0]'::jsonb, 'existen las 5 RPC de cuenta de la historia A y ninguna es ejecutable por anon');
 select is(
-  (select count(*)::int from pg_proc p
-    where p.pronamespace = 'private' ::regnamespace
-      and p.proname in ('cuenta_de_tienda', 'estado_publico_comprobante')
-      and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))),
-  0, 'los helpers private de la historia A no son ejecutables por la API');
+  (select jsonb_build_array(count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'execute')
+                                                          or has_function_privilege('authenticated', p.oid, 'execute')))
+     from pg_proc p
+    where p.pronamespace = 'private'::regnamespace
+      and p.proname in ('cuenta_de_tienda', 'estado_publico_comprobante')),
+  '[2, 0]'::jsonb, 'existen los 2 helpers private de la historia A y ninguno es ejecutable por la API');
 
 select * from finish();
 rollback;

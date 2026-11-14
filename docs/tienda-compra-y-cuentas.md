@@ -34,13 +34,11 @@ El script (`scripts/tienda-pedidos-dev.mjs`, también `pnpm tienda:pedidos:dev �
 mensaje en castellano) si no recibe `--entorno dev` o si no puede demostrar que la conexión es la de dev:
 
 - con `SUPABASE_DB_URL` (la variable de `scripts/migrar-supabase-cloud.mjs`), el host tiene que tener una etiqueta `dev`
-  (p. ej. `supabase-dev.212-90-120-53.sslip.io`) y ninguna de stg/staging/prd/prod/production ni ser de la nube de Supabase; un túnel
+  (p. ej. `supabase-dev.212-90-120-53.sslip.io`) y ninguna de stg/stage/staging/qa/uat/test/pre/preprod/prod/prd/production ni ser de la nube de Supabase; un túnel
   a la base de dev se declara a propósito en `TIENDA_PEDIDOS_DEV_DB_HOSTS` (hosts separados por coma). La contraseña viaja por
   `PGPASSWORD`, no por argv, y requiere `psql`. Defensas contra un destino disfrazado: se rechaza la URL si su autoridad tiene `?`, `,`,
-  `%` o más de una `@` o si la query trae `host`, `hostaddr`, `service`, `servicefile` o `passfile`; del entorno del proceso hijo se
-  borran `PGHOST`, `PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE` y `PGPASSFILE`; y **antes de tocar nada** se comprueba por positivo, con una
-  consulta de solo lectura, que la base se identifica como dev (existe la organización de demostración «… (demo)» que solo carga el
-  entorno dev; si el dataset demo se borró de dev, el script se niega y hay que usar el contenedor). Los argumentos se aceptan en cualquier orden
+  `%` o más de una `@` o si la query trae algo fuera de la lista permitida (solo `sslmode` con require/verify-ca/verify-full/prefer y `connect_timeout` numérico); del entorno del proceso hijo se
+  borran `PGHOST`, `PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE`, `PGPASSFILE`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGOPTIONS`, `PGSSLMODE`, `PGTARGETSESSIONATTRS`, `PGSYSCONFDIR`, `DOCKER_HOST` y `DOCKER_CONTEXT`; y **antes de tocar nada, también en modo contenedor**, se comprueba por positivo, con una consulta de solo lectura, que la base se identifica como dev: existe una organización de demostración con el **id fijo del seed** (`supabase/seed.sql`: `0f5eed00-0000-4000-8000-000000000001` «Mundo JC (demo)» o `…0002` «San Javucho (demo)») y nombre «… (demo)». Si la organización demo de dev tiene otro id, se declara a propósito en `TIENDA_PEDIDOS_DEV_ORG_IDS` (uuids separados por coma); no hace falta escribir nada en dev, y si no hay ninguna el script se niega. Los argumentos se aceptan en cualquier orden
   (`--entorno dev encender` o `encender --entorno dev`);
 - sin `SUPABASE_DB_URL`, usa `docker exec` contra el contenedor `supabase_db_multistorefront-meli-supabase-dev` (el mismo nombre que usa el cron
   de migraciones del VPS), que es dev por construcción;
@@ -132,8 +130,8 @@ ni se cuenta, pero **no se borra** y reaparece al volver a publicarse. Muestra s
 - **Quitar** un favorito (`favorito = false`) no exige que el producto siga visible: siempre responde `ok` y solo toca filas de su propia cuenta; `no_encontrado` aplica solo al guardar.
 - `siguiente` de `mis_favoritos_por_dominio` es `{creado, id}` (el `id` es el de la fila de favorito) y se devuelve tal cual en `desde_creado` y `desde_id`.
 - Con host desconocido, empresa desactivada o tienda pausada las RPC de cuenta responden `sin_acceso` (igual que cualquier falta de cuenta), no `error`.
-- Notas de crédito: totales y subtotales de línea negativos (precio unitario positivo).
-- **Rendimiento de guardar un favorito**: una sola evaluación de `private.catalogo_tienda_efectivo` por llamada (visibilidad y conteo del tope). Medido: ~12 ms con 2.000 productos y ~35–50 ms con 10.000 en una tienda; límite aceptado ~10.000 productos visibles por tienda (ver el contrato).
+- Notas de crédito: totales y subtotales de línea negativos (precio unitario positivo); las líneas suman el total con signo solo en las notas por **devolución de productos** (las de importe o descuento no tienen líneas).
+- **Rendimiento de guardar un favorito**: una sola evaluación de `private.catalogo_tienda_efectivo` por llamada (visibilidad y conteo del tope). Medición local con `scripts/medir-tienda-favoritos.sql` (estimación, no SLA): ~12 ms con 2.000 productos y ~35–50 ms con 10.000 en una tienda; límite aceptado ~10.000 productos visibles por tienda (ver el contrato). El total visible puede superar 200 si se republican productos ocultos; las filas están acotadas por la cantidad de productos de la tienda.
 
 ### Pruebas (pgTAP)
 

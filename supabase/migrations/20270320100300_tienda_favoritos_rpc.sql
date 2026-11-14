@@ -69,7 +69,8 @@ begin
   -- `precios_cliente_por_dominio`, sin duplicarla) sirve para la visibilidad y para contar el tope.
   --
   -- El tope de 200 cuenta SOLO los favoritos de productos visibles hoy: uno que se ocultó no se lista ni se cuenta (FR-008), así
-  -- que tampoco ocupa lugar. Las filas igual están acotadas (solo se puede guardar lo visible).
+  -- que tampoco ocupa lugar. Las filas están acotadas por la cantidad de productos de la tienda (única cuenta + producto); el total
+  -- visible puede superar 200 si se vuelven a publicar productos que estaban ocultos.
   with visibles as materialized (
     select x.producto_id
       from private.catalogo_tienda_efectivo(v_cuenta.empresa_id) x

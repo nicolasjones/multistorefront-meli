@@ -3,7 +3,8 @@ import test from 'node:test';
 import {
   CONTENEDOR_DEV,
   ErrorEntorno,
-  SQL_MARCADOR_DEV,
+  ORGS_DEMO_SEED,
+  VARIABLES_PG_PELIGROSAS,
   comandoPara,
   ejecutarProceso,
   entornoLimpio,
@@ -13,6 +14,7 @@ import {
   principal,
   redactar,
   resolverDestino,
+  sqlMarcadorDev,
   sqlPara,
 } from './tienda-pedidos-dev.mjs';
 
@@ -24,6 +26,10 @@ test('esHostDev: solo hosts con etiqueta dev y sin etiquetas de otro entorno ni 
   assert.equal(esHostDev('supabase-stg.212-90-120-53.sslip.io'), false);
   assert.equal(esHostDev('supabase-prd.212-90-120-53.sslip.io'), false);
   assert.equal(esHostDev('dev-prod.ejemplo.com'), false);
+  for (const e of ['stage', 'staging', 'qa', 'uat', 'test', 'pre', 'preprod', 'prod', 'prd', 'production']) {
+    assert.equal(esHostDev(`dev.${e}.ejemplo.com`), false, e);
+    assert.equal(esHostDev(`supabase-dev-${e}.ejemplo.com`), false, e);
+  }
   assert.equal(esHostDev('db.abcdefgh.supabase.co'), false);
   assert.equal(esHostDev('dev.pooler.supabase.com'), false);
   assert.equal(esHostDev('localhost'), false);
@@ -104,7 +110,7 @@ function ejecutorFalso({ contenedor = true, respuesta = 't\n', marcador = 'true\
   const ejecutar = async (comando, args, opciones = {}) => {
     llamadas.push({ comando, args, ...opciones });
     if (comando === 'docker' && args[0] === 'inspect') return { codigo: contenedor ? 0 : 1, salida: '', error: '' };
-    if (opciones.input === SQL_MARCADOR_DEV) return { codigo, salida: marcador, error };
+    if (/from public\.organizaciones/.test(opciones.input ?? '')) return { codigo, salida: marcador, error };
     return { codigo, salida: respuesta, error };
   };
   return { ejecutar, llamadas };
@@ -115,7 +121,7 @@ test('encender en dev (contenedor) envía el update por stdin y avisa en castell
   const mensajes = [];
   const encendida = await principal(['encender', '--entorno', 'dev'], {}, { ejecutar, out: (m) => mensajes.push(m) });
   assert.equal(encendida, true);
-  const sql = llamadas.find((l) => l.args?.includes('psql'));
+  const sql = llamadas.filter((l) => l.args?.includes('psql')).at(-1);
   assert.match(sql.input, /set activa = true where clave = 'tienda_pedidos'/);
   assert.ok(!sql.args.join(' ').includes('tienda_pedidos'), 'el SQL no viaja por argv');
   assert.match(mensajes[0], /ENCENDIDA/);
@@ -132,7 +138,7 @@ test('apagar y estado informan el valor real', async () => {
 });
 
 function sqlDe(llamadas) {
-  return llamadas.find((l) => l.input)?.input ?? '';
+  return llamadas.filter((l) => l.input && !/from public\.organizaciones/.test(l.input)).at(-1)?.input ?? '';
 }
 
 test('sin --entorno dev no ejecuta nada', async () => {
@@ -204,6 +210,14 @@ test('variantes de bypass de la URL: varios hosts, query que pisa el host, porce
     'postgres://postgres:x@supabase%2Ddev.prod.com/postgres',
     'postgres://postgres:x@supabase-dev.a.com@prod.interno/postgres',
     'postgres://postgres:x@supabase-dev.a.com%2cprod.interno/postgres',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?port=5433',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?dbname=prod',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?options=-c%20search_path%3Dx',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?sslmode=disable',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?sslmode=require&user=otro',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?connect_timeout=abc',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?target_session_attrs=any',
+    'postgres://postgres:x@supabase-dev.a.com/postgres?sslmode',
   ];
   for (const url of malas) {
     assert.ok(motivoUrlAmbigua(url), `debería ser ambigua: ${url}`);
@@ -214,44 +228,69 @@ test('variantes de bypass de la URL: varios hosts, query que pisa el host, porce
     );
   }
   assert.equal(motivoUrlAmbigua('postgres://postgres:x@supabase-dev.a.com:5432/postgres?sslmode=require'), null);
+  assert.equal(motivoUrlAmbigua('postgres://postgres:x@supabase-dev.a.com:5432/postgres?sslmode=verify-full&connect_timeout=10'), null);
   assert.equal(motivoUrlAmbigua(URL_DEV), null);
 });
 
 test('las variables de libpq que cambian el destino no llegan al proceso hijo', async () => {
-  const limpio = entornoLimpio({ PGHOST: 'prod', PGHOSTADDR: '10.0.0.1', PGSERVICE: 's', PGSERVICEFILE: '/f', PGPASSFILE: '/p', PATH: '/bin', OTRA: '1' }, { PGPASSWORD: 'x', PGHOST: 'tambien-prod' });
-  for (const k of ['PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE']) assert.equal(k in limpio, false, k);
+  const sucio = { PATH: '/bin', OTRA: '1' };
+  for (const k of VARIABLES_PG_PELIGROSAS) sucio[k] = 'x';
+  const limpio = entornoLimpio(sucio, { PGPASSWORD: 'x', PGHOST: 'tambien-prod' });
+  for (const k of ['PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGOPTIONS',
+    'PGSSLMODE', 'PGTARGETSESSIONATTRS', 'PGSYSCONFDIR', 'DOCKER_HOST', 'DOCKER_CONTEXT']) {
+    assert.ok(VARIABLES_PG_PELIGROSAS.includes(k), `la lista incluye ${k}`);
+    assert.equal(k in limpio, false, k);
+  }
   assert.equal(limpio.PGPASSWORD, 'x');
   assert.equal(limpio.OTRA, '1');
 
   // Comprobación real con un proceso hijo: ve PGPASSWORD pero no PGHOST.
-  const anterior = { host: process.env.PGHOST, svc: process.env.PGSERVICE };
-  process.env.PGHOST = 'prod.interno';
-  process.env.PGSERVICE = 'prod';
+  const claves = ['PGHOST', 'PGSERVICE', 'PGPORT', 'DOCKER_HOST', 'PGSYSCONFDIR'];
+  const anterior = Object.fromEntries(claves.map((k) => [k, process.env[k]]));
+  Object.assign(process.env, { PGHOST: 'prod.interno', PGSERVICE: 'prod', PGPORT: '1', DOCKER_HOST: 'tcp://prod:2375', PGSYSCONFDIR: '/x' });
   try {
-    const r = await ejecutarProceso(process.execPath, ['-e', 'console.log(JSON.stringify([process.env.PGHOST ?? null, process.env.PGSERVICE ?? null, process.env.PGPASSWORD ?? null]))'], { env: { PGPASSWORD: 'p' } });
-    assert.deepEqual(JSON.parse(r.salida), [null, null, 'p']);
+    const r = await ejecutarProceso(process.execPath, ['-e', 'console.log(JSON.stringify(["PGHOST", "PGSERVICE", "PGPORT", "DOCKER_HOST", "PGSYSCONFDIR", "PGPASSWORD"].map((k) => process.env[k] ?? null)))'], { env: { PGPASSWORD: 'p' } });
+    assert.deepEqual(JSON.parse(r.salida), [null, null, null, null, null, 'p']);
   } finally {
-    if (anterior.host === undefined) delete process.env.PGHOST; else process.env.PGHOST = anterior.host;
-    if (anterior.svc === undefined) delete process.env.PGSERVICE; else process.env.PGSERVICE = anterior.svc;
+    for (const k of claves) {
+      if (anterior[k] === undefined) delete process.env[k]; else process.env[k] = anterior[k];
+    }
   }
 });
 
-test('con URL, comprueba por positivo que la base es dev antes de tocar nada', async () => {
+test('comprueba por positivo que la base es dev antes de tocar nada, por URL y por contenedor', async () => {
   const ok = ejecutorFalso({ respuesta: 't\n', marcador: 'true\n' });
   assert.equal(await principal(['encender', '--entorno', 'dev'], { SUPABASE_DB_URL: URL_DEV }, { ejecutar: ok.ejecutar, out: () => {} }), true);
-  assert.equal(ok.llamadas[0].input, SQL_MARCADOR_DEV, 'la primera consulta es el marcador de solo lectura');
+  assert.match(ok.llamadas[0].input, /from public\.organizaciones/, 'la primera consulta es el marcador de solo lectura');
   assert.match(ok.llamadas[1].input, /set activa = true/);
 
-  // Un host que «parece» dev pero cuya base no se identifica como dev: se niega y no escribe.
-  const falso = ejecutorFalso({ respuesta: 't\n', marcador: 'false\n' });
-  await assert.rejects(
-    () => principal(['encender', '--entorno', 'dev'], { SUPABASE_DB_URL: URL_DEV }, { ejecutar: falso.ejecutar, out: () => {} }),
-    /no se identifica como dev/,
-  );
-  assert.equal(falso.llamadas.filter((l) => /update/.test(l.input ?? '')).length, 0);
+  // También en modo contenedor.
+  const cont = ejecutorFalso({ respuesta: 't\n', marcador: 'true\n' });
+  assert.equal(await principal(['encender', '--entorno', 'dev'], {}, { ejecutar: cont.ejecutar, out: () => {} }), true);
+  const psql = cont.llamadas.filter((l) => l.args?.includes('psql'));
+  assert.match(psql[0].input, /from public\.organizaciones/);
+  assert.match(psql[1].input, /set activa = true/);
 
-  // El marcador es de solo lectura.
-  assert.doesNotMatch(SQL_MARCADOR_DEV, /update|insert|delete|alter|drop/i);
+  // Una base que no se identifica como dev: se niega en ambos modos y no escribe.
+  for (const env of [{ SUPABASE_DB_URL: URL_DEV }, {}]) {
+    const falso = ejecutorFalso({ respuesta: 't\n', marcador: 'false\n' });
+    await assert.rejects(
+      () => principal(['encender', '--entorno', 'dev'], env, { ejecutar: falso.ejecutar, out: () => {} }),
+      /no se identifica como dev/,
+    );
+    assert.equal(falso.llamadas.filter((l) => /update/.test(l.input ?? '')).length, 0);
+  }
+});
+
+test('el marcador exige el id fijo del seed Y el nombre; los ids extra se validan como uuid', () => {
+  const sql = sqlMarcadorDev({});
+  for (const id of ORGS_DEMO_SEED) assert.ok(sql.includes(`'${id}'`));
+  assert.match(sql, /id = any \(array\[/);
+  assert.match(sql, /nombre like '%\(demo\)'/);
+  assert.doesNotMatch(sql, /update|insert|delete|alter|drop|truncate/i);
+  const extra = '11111111-2222-3333-4444-555555555555';
+  assert.ok(sqlMarcadorDev({ TIENDA_PEDIDOS_DEV_ORG_IDS: ` ${extra.toUpperCase()} ` }).includes(`'${extra}'`));
+  assert.throws(() => sqlMarcadorDev({ TIENDA_PEDIDOS_DEV_ORG_IDS: "x'); drop table public.organizaciones; --" }), /no es un uuid/);
 });
 
 test('una acción desconocida o ausente muestra el uso', async () => {
