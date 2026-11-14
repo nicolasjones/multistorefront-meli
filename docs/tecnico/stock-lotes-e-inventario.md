@@ -6,6 +6,8 @@ sources:
 
 # Stock · lotes e inventario (MSF-131)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../stock-lotes-e-inventario.md).
+
 Contratos, datos y operación de la épica MSF-131 (F-STK-10 · MSF-407 y F-STK-11 · MSF-415). El detalle de producto
 (qué resuelve, para quién y límites) está en [Stock · lotes e inventario](../producto/stock-lotes-e-inventario.md).
 

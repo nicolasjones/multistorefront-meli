@@ -1,6 +1,19 @@
+---
+owner: datos
+sources:
+  - specs/20261023-170000-rentabilidad-margen
+  - specs/20261024-130000-rentabilidad-comparativos-e-historia
+  - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
+  - infra/superset/dashboards/rentabilidad
+  - apps/web/src/pages/rentabilidad
+  - supabase/tests/database
+---
+
 # Rentabilidad (margen por producto y canal)
 
-Épica MSF-120 · spec [`rentabilidad-margen`](../specs/20261023-170000-rentabilidad-margen/spec.md) ·
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/rentabilidad.md) · [guía de uso](producto/rentabilidad.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
+Épica MSF-120 · spec `rentabilidad-margen` (`specs/20261023-170000-rentabilidad-margen/spec.md`) ·
 historias F-REN-01 (MSF-204), F-REN-02 (MSF-221) y F-REN-03 (MSF-242) · cierre MSF-553.
 Alcance de entrega: `refine`, `supabase` y `superset` (sin `kestra` ni `workers`: el cálculo es SQL y
 el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirmar con el cliente**.
@@ -85,7 +98,7 @@ como negativo aunque en otra sea bajo. Ponderar por stock o ventas reales queda 
 
 Esquema `analitica`: **solo vistas** (sin tablas) y dos funciones de apoyo `security definer`. Cada vista
 expone `organizacion_id`: es la columna por la que el guest token filtra (`rls`). Contrato completo en
-[`contracts/analitica-margen.md`](../specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md).
+`contracts/analitica-margen.md` (`specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md`).
 
 | Objeto | Qué es | Consumidores |
 | --- | --- | --- |
@@ -117,7 +130,7 @@ convertido —igual que el costo— con la cotización más cercana a cada fecha
 dólar (solo con un cambio de costo); uno en USD sí. Sin costo registrado hasta la fecha, sin neto positivo o sin
 ninguna cotización (solo en productos en USD), esa fecha no tiene fila. Los importes del historial solo los ve quien tiene `rentabilidad`
 (la tabla tiene RLS por organización y sección; las vistas y funciones son solo del rol `superset_analitica`).
-Contrato: [`contracts/analitica-comparativos-historia.md`](../specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md).
+Contrato: `contracts/analitica-comparativos-historia.md` (`specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md`).
 Reversión (migración posterior): `drop view analitica.margen_historico_producto_canal;`, las dos funciones,
 `drop trigger producto_costos_historial on dominio.producto_costos;`, `drop function private.registrar_costo_historial();`
 y `drop table dominio.producto_costos_historial;` (exportar antes), más borrar la fila de `reportes`.

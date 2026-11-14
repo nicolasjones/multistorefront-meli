@@ -7,6 +7,8 @@ sources:
 
 # Consultas: modelo, RPC y aviso
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../consultas.md).
+
 **Épicas:** MSF-122 (bandeja y aviso) · **MSF-130** (interés por WhatsApp y respuesta desde el panel).
 **Specs:** `20261023-120000-consultas-bandeja-y-aviso` (rama
 `epic/MSF-122-consultas-y-ventas-consultas-bandeja-y-a`, pendiente de merge a `main` en este repositorio) y
@@ -447,7 +449,7 @@ El envío nuevo usa las variables de `infra/kestra/.env.example`: `KESTRA_SMTP_H
 `KESTRA_SMTP_TRANSPORTE`, `KESTRA_SMTP_USERNAME`, `KESTRA_SMTP_PASSWORD`, `KESTRA_SMTP_FROM`,
 `KESTRA_ORQUESTACION_DB_URL` y `KESTRA_ORQUESTACION_DB_PASSWORD`. Sin secretos en Git. Qué proveedor y
 dominio (SPF/DKIM) es una decisión operativa todavía abierta. Detalle:
-[Avisos y listas](avisos-y-listas.md#operación).
+[Avisos y listas](avisos-y-listas.md#operacion).
 
 Quedan solo para el camino anterior (drenaje de `dominio.consultas_avisos`):
 
@@ -460,7 +462,7 @@ Quedan solo para el camino anterior (drenaje de `dominio.consultas_avisos`):
 
 Para reprocesar el camino anterior a mano, invocá la función con `{"barrer": true}` y el header
 `x-aviso-token`, o dejá que el flow `avisos-consultas` corra en el minuto siguiente. La cola nueva
-(`public.avisos_pendientes`) se opera como se describe en [Avisos y listas](avisos-y-listas.md#operación).
+(`public.avisos_pendientes`) se opera como se describe en [Avisos y listas](avisos-y-listas.md#operacion).
 
 ## Retención
 
@@ -472,7 +474,7 @@ de vencimiento: cada toque queda para siempre hasta que se defina la retención.
 
 Los **contactos** (MSF-144) guardan datos personales y tampoco tienen expiración automática: el plazo de
 conservación sigue sin definir y la baja es manual por **Anonimizar**. Ver
-[Contactos y respuestas rápidas](contactos.md#decisiones-abiertas-y-límites).
+[Contactos y respuestas rápidas](contactos.md#decisiones-abiertas-y-limites).
 
 ## Reversión
 
