@@ -3,7 +3,7 @@ import { supabaseClient } from './supabase'
 // Enlace de seguimiento para el cliente (F-SVC-22, FR-046). La base es la autoridad: la RPC
 // `obtener_enlace_consulta` exige `edicion` y devuelve siempre el mismo token de la reparación.
 
-type ErrorDeBase = { code?: string } | null | undefined
+type ErrorDeBase = { code?: string; message?: string } | null | undefined
 
 export function urlEnlaceSeguimiento(origen: string, token: string): string {
   return `${origen.replace(/\/+$/, '')}/seguimiento/${encodeURIComponent(token)}`
@@ -13,12 +13,22 @@ export function mensajeDeErrorEnlace(error: unknown, porDefecto: string): string
   console.error(porDefecto, error)
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'No tenés permiso para generar el enlace: puede que tu rol no tenga edición en Service técnico o que no tengas acceso a la tienda. Recargá la página.'
+  if (e?.message?.startsWith('DEMASIADAS_REGENERACIONES')) return 'Regeneraste el enlace demasiadas veces en la última hora. Probá de nuevo en unos minutos.'
   if (e?.code === 'P0002') return 'Esa reparación ya no existe o no tenés acceso a su tienda. Volvé al listado.'
   return porDefecto
 }
 
 export async function obtenerEnlaceConsulta(reparacionId: string): Promise<string> {
   const { data, error } = await supabaseClient.rpc('obtener_enlace_consulta', { p_reparacion: reparacionId })
+  if (error) throw error
+  const token = (data as { token?: unknown } | null)?.token
+  if (typeof token !== 'string' || token === '') throw new Error('La respuesta no trae el token del enlace')
+  return token
+}
+
+// «Regenerar enlace»: token nuevo; el anterior deja de funcionar (RPC `regenerar_enlace_consulta`).
+export async function regenerarEnlaceConsulta(reparacionId: string): Promise<string> {
+  const { data, error } = await supabaseClient.rpc('regenerar_enlace_consulta', { p_reparacion: reparacionId })
   if (error) throw error
   const token = (data as { token?: unknown } | null)?.token
   if (typeof token !== 'string' || token === '') throw new Error('La respuesta no trae el token del enlace')
