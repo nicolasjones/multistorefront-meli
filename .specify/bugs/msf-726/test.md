@@ -152,6 +152,35 @@ el script lo corre por Docker y en este entorno no hay acceso al socket (`docker
 marca «hallazgos» por un problema de permisos del sandbox, no por un secreto. Con el **binario nativo** —el mismo
 que usa el job `quality` (`gitleaks_8.30.1_linux_x64`)— el resultado es `no leaks found` (exit 0).
 
+## Cuarta sincronización con la base (2026-11-14)
+
+Cuarta sincronización, **otra vez sin tocar el contenido del fix**: `git merge --no-ff origin/dokploy` entró limpio
+(0 conflictos) sobre la base `0c749324` («Merge pull request #941 … MSF-848 tiendas identidad héroe mayúsculas»).
+La rama queda **al día**: `git rev-list --left-right --count origin/dokploy...HEAD` → `0	17` y
+`git merge-base origin/dokploy HEAD` es el propio tip de la base (antes estaba 28 commits atrás).
+
+`git diff a0df8eb7..HEAD -- supabase/functions/_shared/protocolo.ts supabase/functions/_shared/protocolo.test.ts
+supabase/functions/invitar-cliente supabase/functions/recuperar-clave-cliente supabase/functions/.env.example
+docs/acceso-ingreso.md docs/clientes.md package.json .specify/bugs/msf-726` sale **vacío** (0 líneas): los archivos
+del alcance quedan byte a byte iguales que en el commit aprobado. El diff del PR contra la base sigue siendo de
+**15 archivos**, los de esta historia.
+
+Verificación sobre el árbol ya sincronizado: `pnpm test:edge:protocolo` → 5/5 · `pnpm test:edge:invitar-cliente`
+→ 16/16 · `pnpm test:edge:recuperar-clave-cliente` → 10/10 · `pnpm lint` → exit 0 · `pnpm build` → exit 0 ·
+`pnpm docs:check` → OK (651 migraciones, 0 nuevas contra `origin/dokploy`) · `pnpm calidad:code` → oxlint, knip,
+jscpd, dependency-cruiser y syncpack **ok** (`gitleaks` quedó sin correr: en este entorno no hay acceso al socket de
+Docker; el job `quality` del CI lo corre con el binario nativo y da verde).
+
+**El job `database` (pgTAP) ya corrió y dio verde.** El check que faltaba en las rondas anteriores no estaba
+pendiente por código: los runs de `Validate` morían *sin ejecutar un solo job* (cola de runners self-hosted), así que
+GitHub nunca registraba el check. Con la base sincronizada, el run sobre el commit anterior (`a0df8eb7`) dejó **todos
+los checks en verde**, `database` incluido (run `43544350521`: `application`, `database`, `web (1)`, `web (2)`,
+`web (3)`, `e2e-tienda`, `quality`, `changes`, `validacion`).
+
+**Los tests siguen vigilando la regla** (mutación y reversión sobre el árbol sincronizado, sin dejar el cambio):
+volver a la regla vieja (`kong` en el regex ⇒ `local`) → `pnpm test:edge:protocolo` → **3 fallos**; relajar la
+condición (`!== 'false'` ⇒ cualquier valor habilita `http`) → **4 fallos**. Con el archivo restaurado, 5/5.
+
 ## Recommendation
 
 - **Close the bug — verified a nivel de código** (la reproducción del assessment, en su equivalente automatizado,
@@ -159,3 +188,5 @@ que usa el job `quality` (`gitleaks_8.30.1_linux_x64`)— el resultado es `no le
   funciones en STG/PRD, un correo de prueba con `redirectTo` en `https://` y revisión de `GOTRUE_URI_ALLOW_LIST`.
 - **La deuda de `knip` en la base ya está cerrada** (commit `d345eeb1`): no queda nada que corregir en `dokploy`
   por esta historia.
+- **No queda nada pendiente en el código**: la rama está al día con la base, el CI da verde (incluido `database`) y el
+  contenido del fix sigue byte a byte igual al aprobado tres veces.
