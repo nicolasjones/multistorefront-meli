@@ -44,9 +44,7 @@ jobs:
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          # Sin `puente`: ese reenvío existe para los runners dentro de Docker; acá el Docker es el de la VM y el puerto de la base ya queda en 127.0.0.1.
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci
