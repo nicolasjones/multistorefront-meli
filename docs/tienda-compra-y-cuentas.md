@@ -362,7 +362,7 @@ quien tiene la sección `consultas` ≥ lectura en esa empresa y no se borra sol
 
 ### Dos diferencias, dichas con todas las letras
 
-- `precio_para` pasa de `security invoker` a **`security definer`** (necesita llamar al cálculo, que `authenticated` no ejecuta). El aislamiento que antes daba la RLS de las tablas lo da ahora `precio_sesion_alcanza`. Los llamadores de producción ya eran `security definer` (sin RLS) y `private` no está expuesto por la API. `precio_linea_venta` sigue `security invoker` y sin `execute` para `authenticated`.
+- `precio_para` pasa de `security invoker` a **`security definer`** (necesita llamar al cálculo, que `authenticated` no ejecuta). El aislamiento que antes daba la RLS de las tablas lo da ahora `precio_sesion_alcanza`. **Pierde el requisito de sección de esa RLS** (`productos` y `empresas` en lectura/edición): la compuerta que queda es la documentada por F-VTA-06, `empresas` o `ventas`. Sin ruta real: `private` no está expuesto y los llamadores son `security definer` sin RLS. El pgTAP lo nombra («diferencia deliberada 1»). Seguimiento: retirar `execute` de `authenticated` en `precio_para` permitiría volver a `security invoker`, pero obliga a reescribir pgTAP vigentes que lo llaman como `authenticated`.
 - Producto o empresa de **otra organización** respecto de la sesión: antes, llamado sin RLS, devolvía el neto sin alícuota ni precio propio (el mismo fallo silencioso); ahora devuelve vacío. Ningún llamador real lo usa; el pgTAP lo fija.
 
 ### Pruebas

@@ -17,7 +17,7 @@
 -- definer`); el bloque C usa los roles `authenticated` y `anon` de verdad.
 begin;
 
-select plan(118);
+select plan(127);
 
 -- ============================================================================
 -- Copias LITERALES de las funciones originales (para comparar). No se tocan: si cambia la fórmula de producción, este test avisa.
@@ -504,13 +504,13 @@ select set_config('request.jwt.claims',
 -- (como lo hacen las funciones `security definer` de producción), devolvía el neto SIN alícuota y SIN precio propio (el fallo
 -- silencioso); el envoltorio devuelve vacío.
 select is((select count(*)::int from pg_temp.precio_para_original('b2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'x1')), 1,
-  'diferencia deliberada (antes): la original, sin RLS, devolvía fila para producto y empresa de otra organización');
+  'diferencia deliberada 2 (antes): la original, sin RLS, devolvía fila para producto y empresa de otra organización');
 select is((select alicuota_porcentaje from pg_temp.precio_para_original('b2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'x1')),
-  null::numeric, 'diferencia deliberada (antes): y sin alícuota (el fallo silencioso)');
+  null::numeric, 'diferencia deliberada 2 (antes): y sin alícuota (el fallo silencioso)');
 select is((select count(*)::int from private.precio_para('b2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'x1')), 0,
-  'diferencia deliberada (ahora): el envoltorio devuelve vacío para otra organización');
+  'diferencia deliberada 2 (ahora): el envoltorio devuelve vacío para otra organización');
 select is((select count(*)::int from private.precio_linea_venta('b2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'minorista', 1)), 0,
-  'diferencia deliberada (ahora): el envoltorio de línea devuelve vacío para otra organización');
+  'diferencia deliberada 2 (ahora): el envoltorio de línea devuelve vacío para otra organización');
 select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 'x1')), 0,
   'producto propio con empresa de otra organización = vacío');
 
@@ -544,6 +544,12 @@ reset role;
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 1,
   'vendedor (solo ventas): la compuerta de precio_para lo deja pasar');
+-- DIFERENCIA DELIBERADA 1 (S1 de la revisión T052): precio_para (security definer) PIERDE el requisito de sección de la RLS vieja
+-- (productos y empresas en lectura/edición). Este vendedor tiene productos y empresas en «ninguno»: la RLS vieja le habría ocultado
+-- el producto; ahora obtiene el precio CON la regla de la tienda A (+12,345 % redondeado a 10 = 1.120), como ya lo obtiene a través de
+-- guardar_lineas_comprobante.
+select is((select neto from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 1120::numeric,
+  'diferencia deliberada 1: precio_para ya no exige productos ni empresas en lectura (la RLS vieja sí): con solo ventas devuelve el precio con la regla de la tienda');
 reset role;
 select is((select count(*)::int from private.precio_linea_venta('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'minorista', 1)), 1,
   'vendedor: la compuerta de precio_linea_venta (invocada como dueño, como hacen las RPC) lo deja pasar');
@@ -557,6 +563,50 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 0,
   'administrador de la organización 2: producto y empresa de la organización 1 = vacío');
 reset role;
+
+-- T1 (revisión T052): la compuerta acepta lectura o edición en CUALQUIERA de las dos secciones, y solo en esas. Un usuario con solo
+-- `ventas = lectura`, otro con solo `empresas = lectura`, otro con solo `empresas = edicion` y uno sin ninguna. (Matan los mutantes
+-- `in ('edicion')`, quitar la rama de empresas y quitar la rama de ventas.) El rol `consulta` arranca con ambas en «ninguno».
+update public.permisos_rol set nivel = 'lectura'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'ventas';
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 1,
+  'compuerta: solo ventas = lectura (sin empresas) deja pasar');
+reset role;
+select is((select count(*)::int from private.precio_linea_venta('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'minorista', 1)), 1,
+  'compuerta de la línea: solo ventas = lectura deja pasar');
+update public.permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'ventas';
+update public.permisos_rol set nivel = 'lectura'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'empresas';
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 1,
+  'compuerta: solo empresas = lectura (sin ventas) deja pasar');
+reset role;
+select is((select count(*)::int from private.precio_linea_venta('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'minorista', 1)), 1,
+  'compuerta de la línea: solo empresas = lectura deja pasar');
+update public.permisos_rol set nivel = 'edicion'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'empresas';
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 1,
+  'compuerta: solo empresas = edicion (sin ventas) deja pasar');
+reset role;
+update public.permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'empresas';
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x1')), 0,
+  'compuerta: ni ventas ni empresas (las dos en «ninguno»): vacío');
+reset role;
+
+-- T3 (revisión T052): la escala inexistente se rechaza (22023) ANTES que la compuerta: también para quien no tiene permiso y para el cliente web.
+select pg_temp.como('d1000000-0000-0000-0000-000000000003');
+select throws_ok($$select * from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x7')$$,
+  '22023', 'La escala x7 no existe: usá x1, x5, x10 o x50', 'escala inexistente = 22023 también para un usuario SIN permiso (se valida antes de la compuerta)');
+reset role;
+select set_config('request.jwt.claims',
+  json_build_object('sub', 'd9000000-0000-0000-0000-000000000009', 'role', 'authenticated')::text, true);
+select throws_ok($$select * from private.precio_para('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-00000000000a', 'x7')$$,
+  '22023', 'La escala x7 no existe: usá x1, x5, x10 o x50', 'escala inexistente = 22023 también para el cliente web (sin membresía)');
 
 -- Sin sesión alguna (sin claims, como postgres): vacío.
 select set_config('request.jwt.claims', '', true);

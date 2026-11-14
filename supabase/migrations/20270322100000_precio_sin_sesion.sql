@@ -31,9 +31,18 @@
 --   * `private.precio_linea_venta`: pasa a ser un ENVOLTORIO que sigue siendo `security invoker`, sin `execute` para `authenticated`
 --     (lo prueban los pgTAP vigentes): `precio_sesion_alcanza` y delega en `precio_linea_venta_calculo`.
 --
--- Única diferencia deliberada (caso degenerado, sin llamador real): un producto o una empresa de OTRA organización respecto de la
--- sesión. Antes, llamado desde una función `security definer` (sin RLS), devolvía el neto SIN alícuota y SIN precio propio (el mismo
--- fallo silencioso); ahora devuelve vacío, como ya devolvía con la RLS de una sesión directa. Los pgTAP lo fijan.
+-- DOS diferencias deliberadas, ambas sin ruta real (`private` no está expuesto por la API y todo llamador de producción es una función
+-- `security definer`, que ya corría sin RLS):
+--   1. `precio_para` (ahora `security definer`) PIERDE el requisito de sección que imponía la RLS de las tablas que leía como invocador:
+--      `productos` en lectura/edición (productos, escalas y precios propios) y `empresas` en lectura/edición (regla de precio de la
+--      tienda). La compuerta documentada por F-VTA-06 es «`empresas` o `ventas`», y esa es la que queda (`precio_sesion_alcanza`): un
+--      usuario de panel con solo `ventas` ahora obtiene el precio con la regla de la tienda, como ya lo obtenía a través de
+--      `guardar_lineas_comprobante`. El pgTAP la nombra («diferencia deliberada 1»).
+--   2. Producto o empresa de OTRA organización respecto de la sesión. Antes, llamado desde una función `security definer` (sin RLS),
+--      devolvía el neto SIN alícuota y SIN precio propio (el mismo fallo silencioso); ahora devuelve vacío, como ya devolvía con la RLS
+--      de una sesión directa. El pgTAP lo nombra («diferencia deliberada 2»).
+-- Seguimiento (tasks.md): retirar `execute` de `authenticated` en `precio_para` permitiría volver a `security invoker` y borrar la
+-- diferencia 1, pero obliga a reescribir pgTAP vigentes que lo llaman como `authenticated` (precios_escala, precios_cliente, ...).
 --
 -- Esquemas (Principio VII, re-verificado): no se crea ni altera ninguna tabla; lógica de cálculo sin datos, todo en `private`.
 -- Migración aditiva (`create or replace`, mismas firmas). Coordinación: ninguna rama abierta redefine estas funciones.
@@ -225,7 +234,8 @@ begin
     raise exception 'La escala % no existe: usá x1, x5, x10 o x50', coalesce(p_escala, '(vacía)')
       using errcode = '22023';
   end if;
-  if not (select private.precio_sesion_alcanza(p_producto, p_empresa)) then
+  -- Falla cerrada: solo un `true` explícito deja pasar (un nulo cierra).
+  if (select private.precio_sesion_alcanza(p_producto, p_empresa)) is not true then
     return;
   end if;
 
@@ -266,7 +276,8 @@ security invoker
 set search_path = ''
 as $$
 begin
-  if not (select private.precio_sesion_alcanza(p_producto, p_empresa)) then
+  -- Falla cerrada: solo un `true` explícito deja pasar (un nulo cierra).
+  if (select private.precio_sesion_alcanza(p_producto, p_empresa)) is not true then
     return;
   end if;
 

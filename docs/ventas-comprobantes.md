@@ -35,8 +35,9 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
 - **Stock**: `Disp.` = existencias del depósito − reservado; `Res.` = reservado (FR-017). Si la cantidad
   supera el disponible se muestra el aviso de faltante, que **no impide guardar el borrador** (FR-018). Los
   productos «A pedido» muestran «A pedido · no descuenta stock» y no tienen disponible.
-- El **precio y la escala** (x1/x5/x10/x50) los calcula la base con `private.precio_para` (envoltorio con la compuerta de sesión de
-  `private.precio_para_calculo`, MSF-176 B2) según el tipo de
+- El **precio y la escala** (x1/x5/x10/x50) los calcula la base con `private.precio_linea_venta` (MSF-816: la función única de
+  precio de línea, que usan `guardar_lineas_comprobante` y `copiar_presupuesto`; envoltorio con la compuerta de sesión de
+  `private.precio_linea_venta_calculo`, MSF-176 B2, que a su vez usa `private.precio_para_calculo`) según el tipo de
   cliente y la cantidad de la línea (FR-014): minorista siempre x1; mayorista x1 (1-4), x5 (5-9), x10
   (10-49) y x50 (50 o más). Cambiar cantidad, depósito o cliente reenvía las líneas y se relee el
   comprobante. La regla de escala vive solo en `private.escala_para_linea` (*Decisiones abiertas* 8).
