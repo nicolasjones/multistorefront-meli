@@ -17,7 +17,6 @@ import { useCelular } from '../useAnchoCelular'
 export const TITULO_PRESUPUESTO = 'Tu presupuesto'
 export const LEYENDA_PRESUPUESTO =
   'Es un presupuesto, no una compra: no reserva stock ni se cobra nada. El precio puede ser menor que el de referencia de la lista porque incluye tu descuento y las promociones vigentes.'
-export const TEXTO_CUENTA_INACTIVA_PRESUPUESTO = 'Tu cuenta no está activa en esta tienda.'
 export const TEXTO_ERROR_PRESUPUESTO = 'No pudimos pedir tu presupuesto. Tu lista sigue acá: probá de nuevo.'
 export const TEXTO_LIMITE_CUENTA = 'Ya tenés presupuestos abiertos. Esperá nuestra respuesta para pedir otro.'
 export const TEXTO_REVISAR_PRESUPUESTO = 'Revisá tu lista: hay productos que no se pueden pedir en un presupuesto.'
