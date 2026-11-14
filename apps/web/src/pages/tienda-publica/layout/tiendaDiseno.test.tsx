@@ -127,9 +127,10 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     await screen.findByText('Portada')
     const css = () => Array.from(document.querySelectorAll('style')).map((st) => st.textContent).join('')
     // La identidad llega después del primer pintado: se espera al color primario de la tienda.
-    await waitFor(() => expect(css()).toMatch(/html a:focus-visible,[^{]*\{outline:2px solid #C8102E;outline-offset:2px/i))
-    expect(css()).toMatch(/html a:focus-visible,html button:focus-visible,html \[role=\\?"button\\?"\]:focus-visible,html \[role=\\?"combobox\\?"\]:focus-visible\{/)
-    expect(css()).toMatch(/html footer a:focus-visible,html \[data-testid=\\?"barra-superior\\?"\] a:focus-visible\{outline-color:currentColor/)
+    await waitFor(() => expect(css()).toMatch(/--tienda-color-foco:#C8102E/i))
+    expect(css()).toMatch(/html a:focus-visible,[^{]*\{outline:2px solid var\(--tienda-color-foco\);outline-offset:2px/)
+    expect(css()).toMatch(/html \[role=\\?"combobox\\?"\]:not\(input\):focus-visible/)
+    expect(css()).toMatch(/html \[data-foco=\\?"oscuro\\?"\] a:focus-visible\{outline-color:currentColor/)
   })
 
   // MSF-847: la tabulación sigue el orden visual del encabezado de celular: menú, marca, buscador y, al final, «Ingresar».

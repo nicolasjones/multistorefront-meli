@@ -101,6 +101,19 @@ test.describe('Tienda online · página de inicio (SC-003)', () => {
         await expect(page.getByText(t.comun)).toHaveCount(0)
         await expect(page.getByText(otra.destacado)).toHaveCount(0)
 
+        // MSF-849: foco de teclado visible (Tab real) en la lupa del buscador y en una categoría de la barra: contorno sólido de 2 px
+        // y, en la lupa (dentro de un campo con `overflow: hidden`), hacia adentro para que no se recorte. Sin ningún control enfocable
+        // con el contorno recortado a mano: se mide el estilo calculado del elemento enfocado.
+        const campoBusqueda = page.getByRole('combobox', { name: 'Buscar productos' })
+        await campoBusqueda.focus()
+        await page.keyboard.press('Tab')
+        const lupa = page.getByRole('button', { name: 'Buscar', exact: true })
+        await expect(lupa).toBeFocused()
+        await expect.poll(() => lupa.evaluate((el) => { const s = getComputedStyle(el); return `${s.outlineStyle} ${s.outlineWidth} ${Number.parseFloat(s.outlineOffset) <= 0}` })).toBe('solid 2px true')
+        // El campo de texto no suma un segundo anillo (solo cambia su borde).
+        await campoBusqueda.focus()
+        expect(await campoBusqueda.evaluate((el) => getComputedStyle(el).outlineStyle)).not.toBe('solid')
+
         // MSF-847: la portada (héroe a todo el ancho, franjas inclinadas y bloque de consultas) no tiene scroll horizontal entre
         // 900 y 1280 px, donde el contenido de 1200 px y el borde de la ventana están más cerca.
         for (const ancho of [900, 1024, 1280]) {

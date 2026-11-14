@@ -38,7 +38,7 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
 
   return (
     <>
-    <Box component="footer" data-testid="pie-tienda-layout" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra })}>
+    <Box component="footer" data-testid="pie-tienda-layout" data-foco="oscuro" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra })}>
       <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: { xs: '20px', md: 2 }, pt: { xs: '28px', md: 5 }, pb: { xs: '28px', md: 4 } /* estilos-sueltos: ok */ }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: { xs: 3, md: 6 } }}>
           <Box sx={{ maxWidth: 340, minWidth: 0 }}>
