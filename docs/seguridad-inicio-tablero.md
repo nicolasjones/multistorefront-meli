@@ -24,7 +24,7 @@ organizaciones, ninguna permite escribir y ninguna expone costo o margen a un ro
 | # | Severidad | Resumen | Seguimiento |
 |---|---|---|---|
 | H-1 | Baja | `movimientos_por_producto` no cruza la tienda pedida con las tiendas accesibles al listar sus productos | **Corregido** en la propia épica: la RPC devuelve lista vacía si la tienda no es accesible (con pgTAP) |
-| H-2 | Baja (decisión de producto) | El KPI «Ventas (con IVA)» y el ticket promedio se gatean por `ventas`, mientras que «ingresos» por tienda exige `rentabilidad`: el control sobre los ingresos es parcial | Decisión de Nicolás; `tasks.md` |
+| H-2 | Baja (decisión de producto) | El KPI «Ventas (con IVA)» y el ticket promedio se gatean por `ventas`, mientras que «ingresos» por tienda exige `rentabilidad`: el control sobre los ingresos es parcial | **Decidido** (Nicolás delegó todo el 2026-11-14): se mantiene el criterio actual (`ventas` para el KPI; `rentabilidad` para ingresos y margen por tienda); no se cambia |
 | H-3 | Baja | `rentabilidad` se evaluaba por organización y `ventas` por tienda | **Corregido** (PR #909, `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda |
 | H-4 | Baja (heredado) | El permiso del dólar es compartido entre tiendas: la tienda se valida contra la organización, no contra las accesibles | Tarea `seguimiento` por crear |
 | H-5 | Media (rendimiento) | El índice `(organizacion_id, fecha)` de la épica hacía que `max(fecha)` por producto recorriera todo el libro: 565 ms por producto sin movimientos con 1 M de filas (medición de la revisión independiente de Código+Seguridad (informe del 2026-11-13), en un Postgres 16 efímero con datos sintéticos; no es dev ni producción) | **Corregido** (PR #909, `20270306110000`): índice por `(organizacion_id, producto_id, fecha desc)` y último movimiento calculado después del orden y el límite; sigue sin límite por usuario ni `statement_timeout` versionado |
@@ -210,7 +210,7 @@ esos roles, así que no se abre un dato nuevo; lo que queda es un control parcia
 «por tienda» ni «compartida»), y `ventas` por tienda con `nivel_ventas_en_empresa`. Una persona con `rentabilidad` en la organización pero sin
 `ventas` en una tienda no ve esa tienda (no entra a `v_empresas`), así que no hay filtración; y una con `ventas` en una tienda y `rentabilidad`
 de organización ve ingresos y margen de esa tienda aunque su rol **en esa tienda** no sea el que tiene `rentabilidad`. Es el criterio del resto del
-repo (precios masivos, exportar productos) y ya está como **decisión pendiente de Nicolás** en `tasks.md`.
+repo (precios masivos, exportar productos) y quedó **resuelta e implementada** en el PR #909 (ver arriba); Nicolás la confirmó el 2026-11-14.
 
 ### H-4 · Baja (heredado) · El dólar se valida contra la organización, no contra las tiendas accesibles
 
@@ -269,8 +269,7 @@ decida las actualizaciones o los `overrides`.
 
 ## Riesgo residual
 
-Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a) decisiones de producto sobre quién ve los ingresos totales (H-2) y el dólar por tienda
-(H-4) y (b) la ausencia de un límite por usuario y de un `statement_timeout` versionado (H-5, lo restante). La validación de tienda del listado (H-1), el margen por tienda (H-3), el costo del último movimiento (H-5), el orden de locks (S-2) y las fechas infinitas (S-5) quedaron corregidos en el PR #909. Ninguno bloquea el merge. Los seguimientos están en `specs/20270305-100000-inicio-tablero-completo/tasks.md`; los de la épica de producto siguen siendo **MSF-849**
+Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a) el permiso del dólar por tienda (H-4, heredado de `cargar_cotizacion`, seguimiento) y la decisión sobre quién ve los ingresos totales (H-2), ya tomada: se mantiene y (b) la ausencia de un límite por usuario y de un `statement_timeout` versionado (H-5, lo restante). La validación de tienda del listado (H-1), el margen por tienda (H-3), el costo del último movimiento (H-5), el orden de locks (S-2) y las fechas infinitas (S-5) quedaron corregidos en el PR #909. Ninguno bloquea el merge. Los seguimientos están en `specs/20270305-100000-inicio-tablero-completo/tasks.md`; los de la épica de producto siguen siendo **MSF-849**
 (modo oscuro), **MSF-850** (error independiente por bloque) y **MSF-851** (E2E de bloques, listado y dólar).
 
 ## Lo que no se verificó

@@ -29,7 +29,7 @@ export type VersionVigente = { numero: number; publicadaAt: string; publicadaPor
 export type BorradorTienda = {
   hayBorrador: boolean
   // Valor completo de cada área tal como lo guarda la base (columnas en snake_case); null = sin cambios.
-  identidad: Record<string, string | null> | null
+  identidad: Record<string, string | boolean | null> | null
   contenido: Record<string, string> | null
   catalogo: DatosCatalogoBorrador | null
   cambios: CambiosBorrador
@@ -40,7 +40,7 @@ export type BorradorTienda = {
 
 type FilaBorrador = {
   hay_borrador: boolean
-  identidad: Record<string, string | null> | null
+  identidad: Record<string, string | boolean | null> | null
   contenido: Record<string, string> | null
   catalogo: DatosCatalogoBorrador | null
   cambios: CambiosBorrador
@@ -105,7 +105,7 @@ export async function rutasSinReferencia(empresaId: string, rutas: string[]): Pr
 export type VistaPreviaTienda = {
   empresaNombre: string
   enLinea: boolean
-  identidad: Record<string, string | null>
+  identidad: Record<string, string | boolean | null>
   contenido: Record<string, string>
   hayProductos: boolean
   categorias: Array<{ id: string; nombre: string; padreId: string | null; productos: number; imagen: string | null }>
@@ -115,7 +115,7 @@ export type VistaPreviaTienda = {
 type FilaVistaPrevia = {
   empresa_nombre: string
   en_linea: boolean
-  identidad: Record<string, string | null>
+  identidad: Record<string, string | boolean | null>
   contenido: Record<string, string>
   hay_productos: boolean
   categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number; imagen?: string | null }>

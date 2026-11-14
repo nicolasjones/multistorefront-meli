@@ -93,11 +93,13 @@ Cuatro tablas nuevas y una alterada. El DER completo (con leyenda y Mermaid) est
   solo las invoca `public.publicar_tienda` (`security definer`). Así todo cambio visible pasa por una versión.
   **MSF-841** agrega `p_color_barra text default null` a `guardar_tienda_identidad` y `p_eslogan text default null`
   a `guardar_tienda_contenido`, al final y sin cambiar la regla de ejecución (ver
-  [Diseño del prototipo](tienda-diseno-del-prototipo.md)).
+  [Diseño del prototipo](tienda-diseno-del-prototipo.md)). **MSF-848** agrega `p_estilo_heroe text default null` y
+  `p_titulos_mayusculas boolean default null` a `guardar_tienda_identidad` (al final; sin cambiar la regla de
+  ejecución) y recrea `publicar_tienda`.
 - **El resumen de cambios lo arma la base** (`private.detalle_cambios_tienda` y `private.resumen_cambios_tienda`)
   con etiquetas legibles: `colores`, `tipografías`, `logo`, `banner`, `banner móvil`, `texto del banner`,
   `botón del banner`, `mensaje de bienvenida`, `eslogan`, `pie de página`, `aviso de la ficha`,
-  `botón de contacto`, `N categorías`, `N productos visibles` y `N destacados`. El color de la barra
+  `botón de contacto`, `estilo del encabezado`, `mayúsculas de los títulos` (MSF-848), `N categorías`, `N productos visibles` y `N destacados`. El color de la barra
   (`color_barra`) cuenta dentro de `colores`. El número del aviso («N cambios sin publicar») cuenta
   esas etiquetas, no los campos individuales: el texto lo arma `textoAvisoCambios` en
   `apps/web/src/lib/tiendaBorrador.ts`.

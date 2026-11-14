@@ -219,7 +219,7 @@ No hay borrador ni versiones: cada cambio se aplica al guardar.
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `dominio.tiendas` | **nueva** | Una tienda por empresa (`empresa_id` único) con `dominio` único y normalizado; FK compuesta a `dominio.empresas`. |
-| `dominio.tienda_identidad` | **nueva** (alterada por MSF-841) | Identidad visual por `empresa_id` (PK): cinco colores `#RRGGBB` (el quinto, `color_barra`, es de MSF-841), dos tipografías de la lista cerrada de DS-04 (nueve familias desde MSF-841) y rutas de logo/banner/banner móvil. |
+| `dominio.tienda_identidad` | **nueva** (alterada por MSF-841) | Identidad visual por `empresa_id` (PK): cinco colores `#RRGGBB` (el quinto, `color_barra`, es de MSF-841), dos tipografías de la lista cerrada de DS-04 (nueve familias desde MSF-841) y rutas de logo/banner/banner móvil, `estilo_heroe` (`oscuro` | `claro`) y `titulos_mayusculas` (MSF-848). |
 | `dominio.tienda_contenido` | **nueva** (alterada por MSF-841) | Textos comerciales por `empresa_id` (PK), recortados, con límites y destino del botón en lista cerrada. MSF-841 agrega `eslogan` (máx. 80). |
 | `dominio.categorias_tienda` | **nueva** | Visibilidad de categorías por `(empresa_id, categoria_id)`; sin fila = visible. |
 | `dominio.productos_tienda` | **nueva** | Visibilidad y destacado por `(empresa_id, producto_id)`; sin fila = visible y no destacado. |
@@ -257,6 +257,8 @@ erDiagram
     text logo_ruta
     text banner_ruta
     text banner_movil_ruta
+    text estilo_heroe "nueva: oscuro o claro (MSF-848)"
+    boolean titulos_mayusculas "nueva: default true (MSF-848)"
     timestamptz updated_at }
   TIENDA_CONTENIDO { uuid empresa_id PK
     uuid organizacion_id FK
@@ -3233,6 +3235,8 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
   `dominio.tienda_identidad`, `eslogan` a `dominio.tienda_contenido` y `imagen` a la salida de
   `publico.categorias_por_dominio`; no crea tablas. Detalle:
   [Tienda pública: diseño del prototipo](tienda-diseno-del-prototipo.md).
+- **MSF-848** (migración `20270311100000`) agrega `estilo_heroe` y `titulos_mayusculas` a `dominio.tienda_identidad`;
+  no crea tablas. Detalle: [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
   visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y
   [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).

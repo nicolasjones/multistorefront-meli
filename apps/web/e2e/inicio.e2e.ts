@@ -250,9 +250,9 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(tarjeta(mostrador.page, 'Dólar')).toBeVisible()
           await expect(mostrador.page.getByRole('heading', { name: 'Consultas nuevas', exact: true })).toHaveCount(0)
         })
-        await paso(mostrador.page, 'Tampoco ve la alerta de consultas', async () => {
+        await paso(mostrador.page, 'Tampoco ve la alerta de consultas ni la del dólar (solo lectura, CA-INI-07-7)', async () => {
           await expect(alertas(mostrador.page).getByText('1 consulta nueva sin atender')).toHaveCount(0)
-          await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toBeVisible()
+          await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toHaveCount(0)
         })
         await rotulo(mostrador.page, 'Sin permiso en Consultas: no ve su tarjeta ni su alerta')
       } finally {
