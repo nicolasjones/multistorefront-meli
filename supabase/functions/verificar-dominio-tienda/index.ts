@@ -9,7 +9,8 @@ import { comprobarTls as comprobarTlsConCierre } from './tls.ts'
 // `tls.ts`, que se prueba sin Deno; acá solo se cablean `Deno.connect` y `Deno.startTls`.
 const comprobarTls = (host: string, ipPlataforma: string): Promise<Certificado> =>
   comprobarTlsConCierre(host, ipPlataforma, {
-    conectar: (ip) => Deno.connect({ hostname: ip, port: 443 }),
+    // La señal cancela la conexión si sigue pendiente cuando vencen los 5 s: el socket no queda colgado.
+    conectar: (ip, senal) => Deno.connect({ hostname: ip, port: 443, signal: senal }),
     iniciarTls: (tcp, nombre) => Deno.startTls(tcp as Deno.Conn, { hostname: nombre }),
   })
 

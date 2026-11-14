@@ -1329,7 +1329,9 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
   y la Edge Function devuelve **503** `plataforma_no_configurada` sin consultar DNS ni abrir conexiones (el panel muestra «La plataforma todavía no tiene configurada su IP pública para verificar dominios. Avisá a soporte.»); `obtener_dominio_tienda` no muestra el
   registro A.
 - **Socket colgado**: la comprobación TLS (`supabase/functions/verificar-dominio-tienda/tls.ts`) cierra siempre la conexión TCP/TLS: al terminar,
-  al vencer los 5 s y también si la conexión llega después del vencimiento. Test: `tls.test.ts` (`pnpm test:edge:verificar-dominio-tienda`).
+  al vencer los 5 s y también si la conexión llega después del vencimiento. La conexión que seguía **pendiente** de conectar se cancela al
+  vencer (se le pasa una señal de cancelación a `Deno.connect`), así que no queda esperando a que la promesa resuelva. Test: `tls.test.ts`
+  (`pnpm test:edge:verificar-dominio-tienda`).
 - Reversión: `drop constraint tienda_dns_plataforma_ip_publica`, reponer las dos RPC de `20270205110000` y `drop function private.ip_publica_valida(text)`.
 
 ### Visitante de los envíos con HMAC y lectura por sección (MSF-945, hallazgo H-1 de T070)
