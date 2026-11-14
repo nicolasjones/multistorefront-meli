@@ -1,6 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-repuestos-y-stock
+  - apps/web/src/lib/reparacionItems.ts
+  - design/pantallas
+---
+
 # Repuesto pendiente de stock (F-SVC-12)
 
-Historia F-SVC-12 de la épica MSF-217 ([spec](../specs/20261028-100000-service-repuestos-y-stock/spec.md), FR-030…FR-033).
+Historia F-SVC-12 de la épica MSF-217 (`specs/20261028-100000-service-repuestos-y-stock/spec.md`, FR-030…FR-033).
 Complementa [service-repuestos-stock.md](./service-repuestos-stock.md): cuando falta stock, el repuesto se puede cargar igual
 y queda **pendiente de stock**, sin descontar nada.
 

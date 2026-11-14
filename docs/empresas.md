@@ -6,6 +6,8 @@ sources:
 
 # Empresas: datos generales y estado de la tienda
 
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/empresas.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
 Spec: `specs/20261012-140000-empresas/` (épica MSF-138, F-EMP-01/02/04/05).
 Migraciones: `supabase/migrations/20261013120000_empresas.sql` y
 `20261013130001_empresas_updated_at.sql`.

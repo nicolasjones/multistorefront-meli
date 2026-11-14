@@ -5,6 +5,8 @@ sources: []
 
 # Consultas de las tiendas online
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../consultas.md).
+
 ## Para qué sirve
 
 Cuando alguien te escribe desde la tienda online, el mensaje llega acá. La bandeja de Consultas junta todo en un solo lugar para que el equipo sepa qué consultas llegaron, quién se está ocupando y cuáles ya se resolvieron.

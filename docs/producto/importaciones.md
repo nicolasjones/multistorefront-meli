@@ -5,6 +5,8 @@ sources: []
 
 # Importaciones y exportaciones: seguir las cargas y descargas masivas
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../importaciones.md).
+
 ## Para qué sirve
 
 Cuando alguien carga o descarga muchos datos de una vez (productos, stock, publicaciones de una tienda o el historial de ventas), el trabajo puede tardar y algunas filas pueden fallar. **Importaciones** reúne todos esos trabajos en un solo lugar para que puedas ver:

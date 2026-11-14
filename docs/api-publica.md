@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20270203-100000-api-e-asistente-con-ia
+  - scripts/openapi-a-markdown.mjs
+  - supabase/migrations/20270224110201_api_claves.sql
+  - supabase/migrations/20270224110202_api_llamadas_y_limite.sql
+  - supabase/migrations/20270224110203_api_lectura.sql
+  - supabase/migrations/20270224110204_api_suscripciones_entregas.sql
+  - supabase/migrations/20270224110205_api_eventos_precio_venta.sql
+  - supabase/migrations/20270224110206_exportacion_total_excluye_api.sql
+---
+
 # API pública y avisos hacia otros sistemas (F-API-01)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/api-publica.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la API de solo lectura de la organización, de las claves que la
 autentican y de los avisos (webhooks) firmados que la plataforma entrega a
@@ -260,7 +275,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
 ## Evidencia de cierre (2026-11-11, PR #843) · Verificación global y revisión de seguridad (T021)
 
 Cierre de la épica MSF-233
-([`specs/20270203-100000-api-e-asistente-con-ia`](../specs/20270203-100000-api-e-asistente-con-ia/spec.md)):
+(`specs/20270203-100000-api-e-asistente-con-ia/spec.md`):
 las historias MSF-403 (F-API-01) y MSF-411 (F-IA-01) quedaron implementadas y
 esto es la verificación global de la spec (`SC-007`), junto con el estado del
 roadmap (`SC-008`, filas #25, #35, #36 y #47 de `docs/roadmap-template.md`).

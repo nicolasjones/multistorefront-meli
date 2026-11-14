@@ -1,3 +1,15 @@
+---
+owner: tecnico
+sources:
+  - specs/20261020-100000-service-alta-estados-y-permisos
+  - specs/20261022-100000-service-listado-items-e-impresion
+  - specs/20261028-100000-service-cobro-y-avisos
+  - specs/20261028-100000-service-seguimiento-y-reportes
+  - design/pantallas/ServicioModelos.dc.html
+  - supabase/migrations/20261020100700_service_funcionalidad.sql
+  - supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql
+---
+
 # Service técnico
 
 Épica MSF-182 · spec en `specs/20261020-100000-service-alta-estados-y-permisos/`. Este documento crece con cada

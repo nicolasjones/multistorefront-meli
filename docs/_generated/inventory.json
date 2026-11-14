@@ -162,6 +162,7 @@
     "/tienda-publica/PantallaError",
     "/tienda-publica/VolvemosPronto",
     "/tienda-publica/catalogo/EstadoVacio",
+    "/tienda-publica/catalogo/GrillaProductos",
     "/tienda-publica/catalogo/Ordenar",
     "/tienda-publica/catalogo/PanelFiltros",
     "/tienda-publica/catalogo/PanelFiltrosMovil",
@@ -169,6 +170,13 @@
     "/tienda-publica/catalogo/TarjetaProducto",
     "/tienda-publica/contacto/DatosContacto",
     "/tienda-publica/contacto/FormularioContacto",
+    "/tienda-publica/cuenta/AvisoTienda",
+    "/tienda-publica/cuenta/BotonFavorito",
+    "/tienda-publica/cuenta/DetalleCompra",
+    "/tienda-publica/cuenta/EstadoComprobante",
+    "/tienda-publica/cuenta/FavoritosMiCuenta",
+    "/tienda-publica/cuenta/HistorialMiCuenta",
+    "/tienda-publica/cuenta/VacioMiCuenta",
     "/tienda-publica/disponibilidad/EtiquetaDisponibilidad",
     "/tienda-publica/ficha/Ampliacion",
     "/tienda-publica/ficha/BotonCompartir",
@@ -181,21 +189,32 @@
     "/tienda-publica/layout/AvisoCookies",
     "/tienda-publica/layout/BarraSuperior",
     "/tienda-publica/layout/BuscadorTienda",
+    "/tienda-publica/layout/FocoVisible",
     "/tienda-publica/layout/IdentidadTiendaContexto",
     "/tienda-publica/layout/LayoutTienda",
     "/tienda-publica/layout/MedicionTienda",
     "/tienda-publica/layout/MenuCategorias",
     "/tienda-publica/layout/MenuMovil",
+    "/tienda-publica/layout/MigasTienda",
     "/tienda-publica/layout/PieCategorias",
     "/tienda-publica/layout/PieInformacion",
     "/tienda-publica/layout/PieLegal",
     "/tienda-publica/layout/iconos",
+    "/tienda-publica/lista/BotonAgregarALista",
+    "/tienda-publica/lista/ConfirmacionPedido",
+    "/tienda-publica/lista/DialogoPresupuesto",
+    "/tienda-publica/lista/FormularioPedido",
+    "/tienda-publica/lista/IndicadorLista",
+    "/tienda-publica/lista/LineaLista",
+    "/tienda-publica/lista/PantallaLista",
     "/tienda-publica/rutas/catalogo",
     "/tienda-publica/rutas/categoria",
     "/tienda-publica/rutas/contacto",
     "/tienda-publica/rutas/definir-contrasena",
     "/tienda-publica/rutas/ingresar",
     "/tienda-publica/rutas/inicio",
+    "/tienda-publica/rutas/lista",
+    "/tienda-publica/rutas/mi-cuenta",
     "/tienda-publica/rutas/pagina",
     "/tienda-publica/rutas/producto",
     "/tienda-publica/rutas/recuperar-contrasena",
@@ -271,6 +290,7 @@
     "dominio.comprobantes_venta",
     "dominio.comprobantes_venta_lineas",
     "dominio.comprobantes_venta_numeracion",
+    "dominio.consulta_items",
     "dominio.consultas",
     "dominio.consultas_avisos",
     "dominio.consultas_configuracion",
@@ -296,6 +316,7 @@
     "dominio.existencias_variante",
     "dominio.faltantes_avisos",
     "dominio.faltantes_venta",
+    "dominio.favoritos_cliente",
     "dominio.formas_envio",
     "dominio.formas_pago",
     "dominio.historial_cobros",
@@ -313,6 +334,7 @@
     "dominio.precios_empresa",
     "dominio.precios_propios_empresa",
     "dominio.precios_propios_historial",
+    "dominio.presupuestos_tienda",
     "dominio.producto_costos",
     "dominio.producto_costos_historial",
     "dominio.producto_empresa",
@@ -929,6 +951,10 @@
       "titulo": "Feature Specification: Stock · Stock lotes e inventario"
     },
     {
+      "slug": "20261024-120000-tienda-compra-y-cuentas",
+      "titulo": "Feature Specification: Tiendas online · Tienda compra y cuentas"
+    },
+    {
       "slug": "20261024-120000-tienda-inicio-busqueda-movil",
       "titulo": "Feature Specification: Tiendas online · Tienda inicio búsqueda móvil"
     },
@@ -1037,6 +1063,14 @@
       "titulo": "Feature Specification: Tiendas online · Diseño del prototipo"
     },
     {
+      "slug": "20261113-120000-ci-e2e-tienda",
+      "titulo": "Feature Specification: CI · E2E de la tienda pública (`e2e-tienda`)"
+    },
+    {
+      "slug": "20261113-120000-precio-promocional-en-pos-y-comprobantes",
+      "titulo": "Feature Specification: Precios y dólar · Precio promocional en el mostrador (POS) y en los comprobantes"
+    },
+    {
       "slug": "20261202-100000-tienda-whatsapp-y-contacto",
       "titulo": "Feature Specification: Tiendas online · Tienda WhatsApp y contacto"
     },
@@ -1101,9 +1135,25 @@
       "titulo": "Feature Specification: Tiendas públicas · Seguimiento del front (MSF-846, parte B)"
     },
     {
+      "slug": "20270306-100000-tienda-compra-y-cuentas",
+      "titulo": "Feature Specification: Tiendas online · Tienda compra y cuentas (lista de pedido, presupuesto y «Mi cuenta»)"
+    },
+    {
       "slug": "20270313-100000-tiendas-hallazgos-qa",
       "titulo": "Feature Specification: Tiendas · Hallazgos de la pasada de pruebas en dev (MSF-846, parte C)"
+    },
+    {
+      "slug": "20270314-100000-tiendas-fidelidad-prototipo",
+      "titulo": "Feature Specification: Tiendas públicas · Fidelidad con el prototipo (MSF-847)"
+    },
+    {
+      "slug": "20270315-100000-tiendas-identidad-heroe-mayusculas",
+      "titulo": "Feature Specification: Tiendas · Estilo del encabezado y mayúsculas por identidad (MSF-848)"
+    },
+    {
+      "slug": "20270316-100000-tiendas-hallazgos-reauditoria",
+      "titulo": "Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)"
     }
   ],
-  "paginas": 314
+  "paginas": 316
 }
