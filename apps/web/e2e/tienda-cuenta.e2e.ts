@@ -269,6 +269,7 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     const antes = await tabla.getByRole('row').count()
     const ms = Date.now() - inicio
     test.info().annotations.push({ type: 'rendimiento', description: `primera tanda de 200 comprobantes visible en ${ms} ms` })
+    console.log(`[MSF-452:T022] rendimiento: primera tanda de 200 comprobantes visible en ${ms} ms tras ingresar`)
     // SC-001 pide menos de 3 s; el runner del CI va cargado, así que el tope del test es holgado y la medición queda anotada.
     expect(ms).toBeLessThan(10_000)
     await expect(page.getByText('200 comprobantes', { exact: true })).toBeVisible()

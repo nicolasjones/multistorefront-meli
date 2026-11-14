@@ -217,9 +217,7 @@ persona no sobreviva al cambio: `useFavoritosEntre` lo toma como parte de su cla
   costo, margen, descuento ni operador llega a la pantalla. `cuenta/favoritosSoloEnLaTienda.test.ts` vigila que el panel
   no mencione favoritos (ficha e historial del cliente) ni llame a sus RPC; el aislamiento del lado del servidor (los favoritos no tienen
   privilegios de API) lo prueba el pgTAP de la historia del SQL.
-- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; se omite si la base no tiene todavía las RPC de la épica, y **mientras el SQL de la épica no esté en la rama esas omisiones hacen fallar `e2e:omitidos:check --max=1`**: el spec no corre de verdad hasta que aterrice el SQL, y esa primera corrida real hay que mirarla): ingresar
-  con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda
-  no entra en la otra; 200 comprobantes por tandas de 20.
+- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; corrió de verdad con el SQL de #955 en la base del CI: los cuatro casos pasan): ingresar con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda no entra en la otra; 200 comprobantes por tandas de 20. En el stack del CI `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`, así que el spec da de alta los clientes y suspende la cuenta **como una persona del panel** (administrador de la organización del seed, con su sesión y RLS) y solo usa la service-role para vincular la cuenta web. Se omite si la base no tiene las RPC de la épica.
 
 ## Seguridad: qué no hace A
 
