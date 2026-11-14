@@ -700,23 +700,29 @@ scripts/e2e-evidencia.sh publicar                 # sólo manifiesto + MP4 + pub
 ## E2E nocturno (`e2e-nocturno.yml`)
 
 Decisión del gate MSF-852: la suite completa de Playwright (~100 tests, ~20 min en serie) corre en CI como un job
-**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. El gate MSF-852 queda resuelto con esta decisión.
-El workflow es `.github/workflows/e2e-nocturno.yml`.
+**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. La decisión está implementada en
+`.github/workflows/e2e-nocturno.yml`; para que el cron y el disparo manual existan, el archivo tiene que estar en la
+rama por defecto (`main`), como se explica abajo.
 
-**Cómo se reparten los E2E en el CI** (las filas de `e2e-tienda` valen cuando #923 esté mergeado)
+**Cómo se reparten los E2E en el CI**
 
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
-| Cada PR (`validate.yml`, job `application`) | Guardianes baratos `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, y los specs públicos sin base (`acceso-publico`) | Sí |
-| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`; llega con el PR #923, todavía no mergeado) | Solo los E2E de la tienda pública (`tienda-*`) | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
+| Cada PR (`validate.yml`, job `application`) | Guardianes baratos `pnpm e2e:escritura:check`, `pnpm test:e2e:escritura`, `pnpm e2e:omitidos:check`, `pnpm test:e2e:omitidos`, `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno`, y los specs públicos sin base (`acceso-publico`) | Sí |
+| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
 
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
 `host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
 
+- **Dónde tiene que vivir el archivo:** GitHub dispara `schedule` y resuelve `workflow_dispatch`/la API de Actions
+  sólo en la rama por defecto (`main`). Mientras `e2e-nocturno.yml` viva únicamente en `dokploy`, el cron no arranca y
+  `gh workflow run e2e-nocturno.yml --ref dokploy` responde `404`; no es un bug del job. El aterrizaje en `main` va
+  como PR propio del workflow (carve-out de la integración `dokploy`→`main`, MSF-858) o con esa integración. Una vez
+  en `main`, cada corrida hace `checkout` de `dokploy` (o de la rama del disparo manual), así que ejecuta el código y
+  la suite de esa rama.
 - **Cuándo corre:** todos los días a las 05:00 UTC (02:00 en Buenos Aires; Argentina es UTC-3 sin horario de verano) y
-  por `workflow_dispatch`. GitHub solo dispara `schedule` desde la rama por defecto (`main`): el cron empieza a correr
-  cuando el archivo llega a `main`; el run siempre prueba `dokploy`.
+  por `workflow_dispatch`. El run siempre prueba `dokploy` cuando lo dispara el cron.
 - **Dispararlo a mano:** Actions > «E2E nocturno» > «Run workflow», o `gh workflow run e2e-nocturno.yml`. Inputs opcionales:
   `spec` (uno o más archivos, separados por espacio, p. ej. `tienda-seo precios-iva`) y `grep` (solo los tests cuyo título
   coincida). Vacíos corre toda la suite. Un disparo manual desde otra rama prueba esa rama. Ejemplo:
@@ -749,8 +755,8 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   Docker del host fuera de ese tope. Si el run muere por memoria, bajar réplicas del runner o subir `RUNNER_MEMORY_LIMIT`.
 - **Apagarlo sin PR:** variable de repo `CI_E2E_NOCTURNO=false` (o `CI_PAUSED=true`, el kill switch de `validate.yml`): el job se
   saltea. Por ejemplo, `gh variable set CI_E2E_NOCTURNO --body false` y `gh variable delete CI_E2E_NOCTURNO` para volver a encenderlo.
-- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas, y hoy `database` usa el TTL por
-  defecto de `supabase-ci.mjs` (50 min). Si el nocturno retuviera la ranura más tiempo, un `database` podría reciclar una ranura
-  viva. Por eso el job dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La
-  suite entra holgada (setup ~6 min + ~21 min). Con #923 mergeado el TTL pasa a 75 min y el timeout se puede subir. La hora 05:00 UTC
-  evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`, TTL 90 min), que también limpia ranuras vencidas.
+- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas. `e2e-tienda`,
+  `database` y este workflow fijan `SUPABASE_CI_LOCK_TTL_MIN=75`, por encima del timeout del job. Por eso el nocturno
+  dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La suite entra
+  holgada (setup ~6 min + ~21 min). La hora 05:00 UTC evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`,
+  TTL 90 min), que también limpia ranuras vencidas.

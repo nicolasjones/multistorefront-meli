@@ -148,6 +148,11 @@ jobs:
         run: pnpm test:e2e:escritura
       - name: test:e2e:omitidos (guarda contra omisiones masivas del e2e)
         run: pnpm test:e2e:omitidos
+      # Decisión MSF-852: la suite corre en un job nocturno sobre dokploy y no bloquea PRs. La guarda detecta
+      # si el workflow o su contrato desaparecen sin que nadie lo note (el E2E no puede volver a podrirse en silencio).
+      - run: pnpm e2e:nocturno:check
+      - name: test:e2e:nocturno
+        run: pnpm test:e2e:nocturno
       - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
         run: pnpm ui:empresas:check
       - name: test:ui:empresas
