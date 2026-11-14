@@ -611,14 +611,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "d0fdc1882ffc3e602ac84473de141f3c42f2b7a703c8da070a8d722df1106290",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8bcd6dd4c23fa22337462aa3f52fbe60dacb6b5578093868fdb41fc1264bb3fd",
+      "sourceHash": "8984763d880f3efb9833be6c5fbda22523bf1857994f914c742726bb2003f037",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
@@ -1776,12 +1776,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "9fc94fb5e3e3de16ad6ba58168181fb97bb970824dfb38ec30f80c6eb896a542",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "8d576114"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
