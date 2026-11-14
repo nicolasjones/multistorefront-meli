@@ -202,6 +202,8 @@ igual que `useCatalogoPublico`; `useListadoAcumulado` acumula por número de pá
 `CargaInfinita` con su prop `textoFin` (el foco va a ese texto al terminar). Los importes de comprobantes llevan centavos
 (`formatearImporteArs`).
 
+**Imágenes.** `lib/imagenProducto.ts` firma las miniaturas con un cliente **sin sesión** (`supabaseSinSesion`, rol `anon`): en `storage.objects` de `productos-imagenes` la política de `authenticated` exige ser miembro del panel y la de lectura pública es solo para `anon`, así que un cliente de la tienda con sesión no podría firmar. La vista previa del panel sigue firmando con la sesión de quien edita. Si una miniatura falla al cargar (la URL dura 1 h) se pide una URL nueva, una sola vez.
+
 **Sesión compartida.** El encabezado, el menú y la ficha preguntan lo mismo en la misma página: `hooks/useSesionCliente.ts` hace UNA
 consulta por host mientras haya algún uso montado (comparte la promesa y el resultado; un aviso de Auth la descarta). `useSesionCliente`
 conserva su contrato; `useSesionClienteDetallada` suma `falla`, `reintentar` y `version` (cuenta ingresos y salidas, para que lo de una
@@ -217,7 +219,7 @@ persona no sobreviva al cambio: `useFavoritosEntre` lo toma como parte de su cla
   costo, margen, descuento ni operador llega a la pantalla. `cuenta/favoritosSoloEnLaTienda.test.ts` vigila que el panel
   no mencione favoritos (ficha e historial del cliente) ni llame a sus RPC; el aislamiento del lado del servidor (los favoritos no tienen
   privilegios de API) lo prueba el pgTAP de la historia del SQL.
-- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; corrió de verdad con el SQL de #955 en la base del CI: los cuatro casos pasan): ingresar con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda no entra en la otra; 200 comprobantes por tandas de 20. En el stack del CI `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`, así que el spec da de alta los clientes y suspende la cuenta **como una persona del panel** (administrador de la organización del seed, con su sesión y RLS) y solo usa la service-role para vincular la cuenta web. Se omite si la base no tiene las RPC de la épica.
+- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; corrió de verdad con el SQL de #955 en la base del CI: los cuatro casos pasan): ingresar con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda no entra en la otra; 200 comprobantes por tandas de 20. En el stack del CI `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`, así que el spec da de alta los clientes y suspende la cuenta **como una persona del panel** (administrador de la organización del seed, con su sesión y RLS) y solo usa la service-role para vincular la cuenta web. Se omite si la base no tiene las RPC de la épica. La bandera `tienda_pedidos` es **global**: el spec la enciende en `beforeAll` y la restaura en `afterAll`; si el proceso muere entre medio, en una base local queda **encendida** (apagarla con `scripts/tienda-pedidos-dev.mjs apagar --entorno dev` o un `update` sobre `public.banderas_plataforma`).
 
 ## Seguridad: qué no hace A
 
@@ -228,5 +230,4 @@ persona no sobreviva al cambio: `useFavoritosEntre` lo toma como parte de su cla
 
 ## Pendiente de las otras historias
 
-B1 (lista de pedido) y B2 (presupuesto desde la tienda) tienen su sección cuando se implementen. «Mi lista» del menú móvil enlaza a `/lista`, que construye B1,
-y «Agregar a la lista» de «Favoritos» se dibuja cuando exista esa lista (T039).
+B1 (lista de pedido) y B2 (presupuesto desde la tienda) tienen su sección cuando se implementen. «Mi lista» (menú móvil) y «Agregar a la lista» (Favoritos) no se dibujan hasta que exista la lista de pedido: B1 (T039/T040) pone `LISTA_DE_PEDIDO_DISPONIBLE` en `true` junto con la ruta `/lista`.
