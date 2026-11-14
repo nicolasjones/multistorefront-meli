@@ -603,12 +603,14 @@
     },
     "docs/producto/inicio-y-alertas.md": {
       "title": "Inicio: el tablero, las alertas y la búsqueda de productos",
-      "pageHash": "c0902d4d9c64b745c4ff08f40d36e0ec2120d9fbbb855a9d57ef679b5d89ee1e",
+      "pageHash": "cb85221ea3eded1f922262db1c78a950a35d2622d6d0a06b47f9b1466bdf31ad",
       "sourceHash": "",
-      "sourceAt": null,
-      "sources": [],
+      "sourceAt": "d793fcea",
+      "sources": [
+        "apps/web/src/pages/inicio"
+      ],
       "owner": "producto",
-      "commit": "4b311c19"
+      "commit": "d793fcea"
     },
     "docs/producto/listados.md": {
       "title": "Cómo se muestran las listas",
