@@ -35,6 +35,7 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Producto`, `MJC_M_
 
 | Ítem de la re-auditoría | Pantalla | Criterio |
 |---|---|---|
+| Empresa activa: no aplica | Todas | La tienda pública se resuelve por dominio y no usa el selector de empresa activa del panel |
 | N-01 logo del pie | Todas | FR-001. Desvío respecto del prototipo (que invierte el logo con `filter`): con un PNG de fondo opaco —el caso real de la demo— la inversión deja un bloque blanco; el recuadro blanco sirve con cualquier logo |
 | N-02 producto en negrita en el mensaje | Ficha (diálogo) | FR-002 |
 | MM-03 «Inicio» actual en 600 | Todas (celular) | FR-003 |
