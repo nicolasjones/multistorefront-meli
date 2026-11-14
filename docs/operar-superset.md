@@ -294,8 +294,17 @@ analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PA
 
 Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <entorno>`, igual que
-Rentabilidad y Ventas. El directorio trae dos tableros: «Productos y stock» (MSF-297) y «Reposición» (MSF-311, slug
+Rentabilidad y Ventas. El directorio trae tres tableros: «Productos y stock» (MSF-297, con costos: el reporte exige la acción `ver_costos` vía `accion_requerida` en `reportes.json`), «Productos y stock (cantidades)» (sin costo ni valor, para quien no la tiene) y «Reposición» (MSF-311, slug
 `inventario-reposicion`, vista `analitica.inventario_reposicion`). Guía: [`reportes-inventario.md`](./reportes-inventario.md).
+
+### Aislamiento de datasets entre tableros
+
+El rol Guest es único y recibe `datasource_access` sobre todos los datasets embebidos. Para que el token de un tablero no
+lea el dataset de otro, `reportes.json` puede declarar `datasets_vedados` (nombres de dataset): `emitir-acceso-reporte` agrega
+al token una regla `rls` por dataset (`1 = 0`). Hoy: el tablero «Productos y stock (cantidades)» veda
+`inventario_productos_stock` (costos). Verificación contra un Superset real: `pnpm test:superset:aislamiento-tokens` (ver la
+cabecera de `scripts/verificar-aislamiento-tokens-superset.mjs` para las variables). La cuenta de servicio del token necesita
+`can_read Dataset` y `all_datasource_access` (`crear_cuenta_servicio_guest_token.py`).
 
 ## Exportar reportes a CSV
 

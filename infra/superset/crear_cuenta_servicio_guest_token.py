@@ -48,6 +48,19 @@ permiso = security_manager.add_permission_view_menu("can_grant_guest_token", "Se
 if permiso not in role.permissions:
     security_manager.add_permission_role(role, permiso)
 
+# Aislamiento entre tableros (reportes.datasets_vedados): el rol Guest es uno solo y ve todos los datasets
+# embebidos, así que `emitir-acceso-reporte` agrega al token una regla `rls` por dataset vedado (`1 = 0`) y
+# para eso resuelve el id del dataset por nombre con `GET /api/v1/dataset/`. La lista de datasets de Superset
+# se filtra por `datasource_access` del usuario: sin estos dos permisos la búsqueda vuelve vacía y la función NO
+# emite el token del tablero con vedados (falla cerrado, 503). La cuenta ya podía pedir tokens con cualquier
+# cláusula `rls`, así que `all_datasource_access` no le suma alcance real; sus credenciales son solo de servidor.
+for permiso_existente, vista in (("can_read", "Dataset"), ("all_datasource_access", "all_datasource_access")):
+    permiso_vista = security_manager.find_permission_view_menu(permiso_existente, vista)
+    if permiso_vista is None:
+        raise RuntimeError(f"Superset no registra el permiso {permiso_existente} sobre {vista}")
+    if permiso_vista not in role.permissions:
+        security_manager.add_permission_role(role, permiso_vista)
+
 usuario = security_manager.find_user(username=username)
 if usuario is None:
     security_manager.add_user(

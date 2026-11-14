@@ -47,6 +47,13 @@ export function validarReportes(manifiesto) {
     if (reporte.seccion !== undefined && reporte.seccion !== null && String(reporte.seccion).trim() === '') {
       throw new Error(`El reporte ${reporte.nombre} tiene una sección vacía.`);
     }
+    if (reporte.accion_requerida !== undefined && reporte.accion_requerida !== null && String(reporte.accion_requerida).trim() === '') {
+      throw new Error(`El reporte ${reporte.nombre} tiene una acción requerida vacía.`);
+    }
+    if (reporte.datasets_vedados !== undefined
+      && (!Array.isArray(reporte.datasets_vedados) || !reporte.datasets_vedados.every((n) => /^[a-z0-9_]+$/.test(n)))) {
+      throw new Error(`El reporte ${reporte.nombre} tiene "datasets_vedados" y debe ser un arreglo de nombres de dataset (a-z, 0-9, _).`);
+    }
     if (reporte.filtro_empresa !== undefined && typeof reporte.filtro_empresa !== 'boolean') {
       throw new Error(`El reporte ${reporte.nombre} tiene "filtro_empresa" y debe ser booleano.`);
     }
@@ -197,6 +204,12 @@ export async function registrarReportes({ reportes, fetch, config }) {
       superset_dashboard_uuid: reporte.dashboard_uuid,
       nombre: reporte.nombre,
       seccion: reporte.seccion ?? null,
+      // Solo se envían cuando el tablero los declara: así el importador no depende de columnas que existen
+      // únicamente tras la migración 20270325300000 (orden: migración primero) y no pisa lo de otros tableros.
+      // `accion_requerida`: acción de la matriz (p. ej. `ver_costos`) que el reporte exige además de la sección.
+      // `datasets_vedados`: datasets de Superset que el token de este reporte no puede leer (rls 1 = 0).
+      ...(reporte.accion_requerida != null ? { accion_requerida: reporte.accion_requerida } : {}),
+      ...(Array.isArray(reporte.datasets_vedados) ? { datasets_vedados: reporte.datasets_vedados } : {}),
       // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente = `false`.
       filtro_empresa: reporte.filtro_empresa === true,
     };

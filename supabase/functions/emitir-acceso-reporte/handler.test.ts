@@ -22,6 +22,8 @@ type Opciones = {
   dashboard?: string | null
   supersetLogin?: boolean
   supersetToken?: boolean
+  vedados?: string[]
+  datasets?: { id: number; table_name: string }[] | 'falla'
 }
 
 function montar(opciones: Opciones = {}) {
@@ -50,7 +52,7 @@ function montar(opciones: Opciones = {}) {
     },
     reporte: async () => {
       if (opciones.reporteFalla) throw new Error('columna filtro_empresa no existe')
-      return dashboard ? { dashboardUuid: dashboard, filtroEmpresa } : null
+      return dashboard ? { dashboardUuid: dashboard, filtroEmpresa, datasetsVedados: opciones.vedados ?? [] } : null
     },
     config: {
       supersetUrl: 'http://superset',
@@ -62,6 +64,10 @@ function montar(opciones: Opciones = {}) {
       llamadas.superset.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null })
       if (url.endsWith('/login')) {
         return Response.json({ access_token: 'acceso' }, { status: opciones.supersetLogin === false ? 500 : 200 })
+      }
+      if (url.includes('/api/v1/dataset/')) {
+        if (opciones.datasets === 'falla') return Response.json({}, { status: 403 })
+        return Response.json({ result: opciones.datasets ?? [{ id: 7, table_name: 'inventario_productos_stock' }] })
       }
       return Response.json({ token: 'guest-jwt' }, { status: opciones.supersetToken === false ? 500 : 200 })
     }) as typeof fetch,
@@ -84,6 +90,39 @@ const clausulaEmitida = (llamadas: { superset: { url: string; body: unknown }[] 
 }
 
 describe('emitir-acceso-reporte', () => {
+  it('datasets vedados: el token agrega una regla rls 1 = 0 sobre el dataset con costos (rol Guest compartido)', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false, vedados: ['inventario_productos_stock'] })
+    const res = await manejar(pedir(), deps)
+    assert.equal(res.status, 200)
+    const emision = llamadas.superset.find((l) => l.url.endsWith('/guest_token/'))
+    assert.deepEqual((emision?.body as { rls: unknown }).rls, [
+      { clause: `organizacion_id = '${ORG_A}'` },
+      { dataset: 7, clause: '1 = 0' },
+    ])
+    assert.ok(decodeURIComponent(llamadas.superset.find((l) => l.url.includes('/api/v1/dataset/'))!.url).includes('value:inventario_productos_stock'))
+  })
+
+  it('datasets vedados: si no se resuelve el dataset (inexistente o sin permiso) NO emite token (503, falla cerrado)', async () => {
+    for (const datasets of [[], 'falla'] as const) {
+      const { deps, llamadas } = montar({ filtroEmpresa: false, vedados: ['inventario_productos_stock'], datasets })
+      const res = await manejar(pedir(), deps)
+      assert.equal(res.status, 503)
+      assert.equal(llamadas.superset.some((l) => l.url.endsWith('/guest_token/')), false)
+    }
+  })
+
+  it('datasets vedados: un nombre que no es un identificador simple se rechaza sin consultar Superset', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false, vedados: ["x'),(col:id"] })
+    assert.equal((await manejar(pedir(), deps)).status, 503)
+    assert.equal(llamadas.superset.some((l) => l.url.includes('/api/v1/dataset/')), false)
+  })
+
+  it('sin datasets vedados no consulta datasets y la cláusula sigue siendo única', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false })
+    assert.equal((await manejar(pedir(), deps)).status, 200)
+    assert.equal(llamadas.superset.some((l) => l.url.includes('/api/v1/dataset/')), false)
+  })
+
   it('403 sin emitir token cuando el usuario no tiene la sección del reporte (la RPC devuelve null)', async () => {
     const { deps, llamadas } = montar({ organizacion: null })
     const res = await manejar(pedir(), deps)

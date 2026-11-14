@@ -850,7 +850,7 @@ test('los YAML versionados de Inventario son coherentes: filtros nativos, valor 
   const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
 
   const archivosDataset = await readdir(path.join(raiz, 'datasets', 'Inventario_analitica'));
-  assert.deepEqual(archivosDataset.sort(), ['inventario_productos_stock.yaml', 'inventario_reposicion.yaml']);
+  assert.deepEqual(archivosDataset.sort(), ['inventario_productos_stock.yaml', 'inventario_productos_stock_cantidades.yaml', 'inventario_reposicion.yaml']);
   const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_productos_stock.yaml');
   assert.match(dataset, /^schema: analitica$/m, 'lee solo del esquema analitica');
   assert.match(dataset, /^table_name: inventario_productos_stock$/m);
@@ -874,11 +874,48 @@ test('los YAML versionados de Inventario son coherentes: filtros nativos, valor 
   }
 
   const { reportes } = JSON.parse(await leer('reportes.json'));
-  assert.deepEqual(reportes.map((r) => r.dashboard_slug), ['inventario-productos-stock', 'inventario-reposicion']);
+  assert.deepEqual(
+    reportes.map((r) => r.dashboard_slug),
+    ['inventario-productos-stock', 'inventario-productos-stock-cantidades', 'inventario-reposicion'],
+  );
   for (const reporte of reportes) {
     assert.equal(reporte.seccion, 'stock');
     assert.equal(reporte.filtro_empresa, false);
     assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
+  }
+  // Solo el tablero con costos exige la acción `ver_costos`; el de cantidades y el de reposición no.
+  assert.deepEqual(
+    reportes.filter((r) => r.accion_requerida).map((r) => [r.dashboard_slug, r.accion_requerida]),
+    [['inventario-productos-stock', 'ver_costos']],
+  );
+  // El token del tablero de cantidades no puede leer el dataset con costos (rol Guest compartido).
+  assert.deepEqual(
+    reportes.filter((r) => r.datasets_vedados).map((r) => [r.dashboard_slug, r.datasets_vedados]),
+    [['inventario-productos-stock-cantidades', ['inventario_productos_stock']]],
+  );
+});
+
+// Decisión de Nicolás (Decisión abierta 3 de MSF-140): el rol sin `ver_costos` ve solo cantidades. El dataset, el
+// gráfico y el tablero de cantidades NO pueden nombrar costo ni valor: lo que no está en la vista no se muestra ni se exporta.
+test('los YAML de Productos y stock (cantidades) no exponen costos ni valor', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/inventario');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_productos_stock_cantidades.yaml');
+  const tabla = await leer('charts', 'Productos_y_stock_cantidades_1.yaml');
+  const tablero = await leer('dashboards', 'Productos_y_stock_cantidades_1.yaml');
+  assert.match(dataset, /^table_name: inventario_productos_stock_cantidades$/m);
+  assert.match(dataset, /^- column_name: organizacion_id$/m, 'expone organizacion_id para el rls del guest token');
+  assert.equal(campo(tabla, 'dataset_uuid'), campo(dataset, 'uuid'));
+  assert.ok(tablero.includes(campo(tabla, 'uuid')), 'el tablero incluye la tabla');
+  assert.equal(campo(tablero, 'slug'), 'inventario-productos-stock-cantidades');
+  const columnasDataset = [...dataset.matchAll(/^- column_name: (\w+)$/gm)].map((m) => m[1]);
+  assert.deepEqual(columnasDataset, ['organizacion_id', 'producto_id', 'producto_nombre', 'sku', 'categoria', 'cantidad', 'minimo', 'estado', 'estado_texto']);
+  assert.doesNotMatch(dataset, /^- metric_name: valor_total$/m);
+  for (const [nombre, texto] of [['dataset', dataset.split('\n').filter((l) => !l.startsWith('#') && !l.startsWith('description:')).join('\n')], ['gráfico', tabla.split('\n').filter((l) => !l.startsWith('description:')).join('\n')], ['tablero', tablero.split('\n').filter((l) => !l.startsWith('description:')).join('\n')]]) {
+    assert.doesNotMatch(texto, /costo|valor_|valor_total|"valor"/i, `el ${nombre} de cantidades no menciona costo ni valor`);
   }
 });
 
@@ -954,9 +991,9 @@ test('el directorio versionado de inventario se importa y registra el reporte co
 
   const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
   assert.equal(estadoFalso.imports, 1);
-  assert.equal(primera.registrados.length, 2);
+  assert.equal(primera.registrados.length, 3);
   const filas = [...estadoFalso.reportes.values()];
-  assert.deepEqual(filas.map((f) => f.nombre).sort(), ['Inventario · Productos y stock', 'Inventario · Reposición']);
+  assert.deepEqual(filas.map((f) => f.nombre).sort(), ['Inventario · Productos y stock', 'Inventario · Productos y stock (cantidades)', 'Inventario · Reposición']);
   for (const fila of filas) {
     assert.equal(fila.seccion, 'stock', 'el reporte sigue la sección de sus datos');
     assert.equal(fila.filtro_empresa, false);
@@ -969,7 +1006,11 @@ test('el directorio versionado de inventario se importa y registra el reporte co
   assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
 
   await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
-  assert.equal(estadoFalso.reportes.size, 2, 'reimportar no duplica los reportes');
+  assert.equal(estadoFalso.reportes.size, 3, 'reimportar no duplica los reportes');
+  assert.equal(filas.find((f) => f.nombre === 'Inventario · Productos y stock').accion_requerida, 'ver_costos', 'el tablero con costos exige ver_costos');
+  assert.equal(filas.find((f) => f.nombre === 'Inventario · Productos y stock (cantidades)').accion_requerida, undefined, 'no se envía si no se declara');
+  assert.deepEqual(filas.find((f) => f.nombre === 'Inventario · Productos y stock (cantidades)').datasets_vedados, ['inventario_productos_stock']);
+  assert.equal('accion_requerida' in filas.find((f) => f.nombre === 'Inventario · Reposición'), false, 'los demás tableros no envían columnas nuevas');
 });
 
 // El import de Superset exige la cookie de sesión que llega con el token CSRF; sin ella redirige al login y un

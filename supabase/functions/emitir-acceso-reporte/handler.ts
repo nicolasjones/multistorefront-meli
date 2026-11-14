@@ -32,7 +32,12 @@ export type Deps = {
    * entorno), la dependencia LANZA el error: el handler lo traduce a 503 `analitica_no_disponible`
    * (fallo del servicio), no a 403 «No autorizado» (que parecería falta de permisos).
    */
-  reporte: (jwt: string, reporteId: string) => Promise<{ dashboardUuid: string; filtroEmpresa: boolean } | null>
+  reporte: (jwt: string, reporteId: string) => Promise<{
+    dashboardUuid: string
+    filtroEmpresa: boolean
+    /** Nombres de dataset (`table_name`) que el token no puede leer (`reportes.datasets_vedados`). */
+    datasetsVedados?: readonly string[]
+  } | null>
   config: {
     supersetUrl: string
     supersetPublicUrl: string
@@ -69,6 +74,38 @@ export function clausulaRls(
   const porEmpresa =
     validas.length > 0 ? `empresa_id IN (${validas.map((empresa) => `'${empresa}'`).join(', ')})` : 'false'
   return `organizacion_id = '${organizacionId}' AND ${porEmpresa}`
+}
+
+const NOMBRE_DATASET = /^[a-z0-9_]+$/
+
+/**
+ * El rol Guest de Superset es uno solo y tiene `datasource_access` sobre TODOS los datasets embebidos:
+ * un token de un tablero podría pedir por `/api/v1/chart/data` el dataset de otro. Para los datasets
+ * vedados del reporte (p. ej. el que trae costos, para el tablero «(cantidades)») se resuelve su id y se
+ * agrega una regla `rls` por dataset que no deja pasar ninguna fila (`1 = 0`). Devuelve `null` si no se
+ * puede resolver algún nombre: el handler NO emite token (falla cerrado).
+ */
+export async function reglasDatasetsVedados(
+  nombres: readonly string[],
+  superset: { url: string; accessToken: string; fetch: typeof fetch; signal: () => AbortSignal },
+): Promise<{ dataset: number; clause: string }[] | null> {
+  const reglas: { dataset: number; clause: string }[] = []
+  for (const nombre of nombres) {
+    if (!NOMBRE_DATASET.test(nombre)) return null
+    const q = `(columns:!(id,table_name),filters:!((col:table_name,opr:eq,value:${nombre})),page_size:100)`
+    const res = await superset.fetch(`${superset.url}/api/v1/dataset/?q=${encodeURIComponent(q)}`, {
+      signal: superset.signal(),
+      headers: { Authorization: `Bearer ${superset.accessToken}` },
+    })
+    if (!res.ok) return null
+    const { result } = (await res.json()) as { result?: { id?: unknown; table_name?: unknown }[] }
+    const ids = (result ?? [])
+      .filter((fila) => fila.table_name === nombre && Number.isInteger(fila.id))
+      .map((fila) => fila.id as number)
+    if (ids.length === 0) return null
+    for (const dataset of ids) reglas.push({ dataset, clause: '1 = 0' })
+  }
+  return reglas
 }
 
 function jsonResponse(body: unknown, status: number) {
@@ -116,7 +153,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // 20270116110200 no corrió), es un fallo del servicio y NO una decisión de autorización: se
   // responde 503 para que quede diagnosticable. Antes el error se silenciaba y TODOS los
   // tableros —incluidos los de Rentabilidad, que sí funcionaban— respondían 403 «No autorizado».
-  let reporte: { dashboardUuid: string; filtroEmpresa: boolean } | null
+  let reporte: Awaited<ReturnType<Deps['reporte']>>
   try {
     reporte = await deps.reporte(jwt, reporteId)
   } catch {
@@ -125,7 +162,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (!reporte?.dashboardUuid) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
-  const { dashboardUuid, filtroEmpresa } = reporte
+  const { dashboardUuid, filtroEmpresa, datasetsVedados = [] } = reporte
 
   // Las empresas accesibles acotan el token a las tiendas que el usuario puede ver (FR-004), pero
   // solo para los tableros que lo declaran (`reportes.filtro_empresa`): la cláusula `rls` se aplica
@@ -165,13 +202,24 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     }
     const { access_token: accessToken } = await loginRes.json()
 
+    const vedados = await reglasDatasetsVedados(datasetsVedados, {
+      url: supersetUrl,
+      accessToken,
+      fetch: deps.fetch,
+      signal: timeout,
+    })
+    if (!vedados) {
+      // No se pudo resolver un dataset vedado: emitir el token sin esa regla dejaría leerlo (falla abierto).
+      return jsonResponse({ error: 'analitica_no_disponible' }, 503)
+    }
+
     const guestTokenRes = await deps.fetch(`${supersetUrl}/api/v1/security/guest_token/`, {
       method: 'POST',
       signal: timeout(),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({
         resources: [{ type: 'dashboard', id: dashboardUuid }],
-        rls: [{ clause }],
+        rls: [{ clause }, ...vedados],
         user: { username: 'guest' },
       }),
     })
