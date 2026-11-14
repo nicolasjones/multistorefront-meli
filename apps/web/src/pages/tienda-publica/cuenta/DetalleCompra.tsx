@@ -6,6 +6,7 @@ import {
   esSinAcceso,
   ETIQUETA_TIPO,
   formatearFechaCuenta,
+  formatearCantidad,
   formatearImporteArs,
   formatearNumeroComprobante,
   leerMiCompra,
@@ -108,7 +109,7 @@ function Cuerpo({ detalle, celular }: { detalle: Detalle; celular: boolean }) {
                 <Box sx={{ minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{linea.descripcion}</Typography>
                   {linea.codigo ? <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */, overflowWrap: 'anywhere' }}>Cód. {linea.codigo}</Typography> : null}
-                  <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>{linea.cantidad} × {formatearImporteArs(linea.precioUnitario)}</Typography>
+                  <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>{formatearCantidad(linea.cantidad)} × {formatearImporteArs(linea.precioUnitario)}</Typography>
                 </Box>
                 <Typography sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{formatearImporteArs(linea.subtotal)}</Typography>
               </Box>
@@ -131,7 +132,7 @@ function Cuerpo({ detalle, celular }: { detalle: Detalle; celular: boolean }) {
                   <TableRow key={`${indice}-${linea.descripcion}`}>
                     <TableCell sx={{ overflowWrap: 'anywhere' }}>{linea.descripcion}</TableCell>
                     <TableCell sx={{ overflowWrap: 'anywhere' }}>{linea.codigo ?? <Box component="span" sx={SOLO_LECTORES}>Sin código</Box>}</TableCell>
-                    <TableCell align="right">{linea.cantidad}</TableCell>
+                    <TableCell align="right">{formatearCantidad(linea.cantidad)}</TableCell>
                     <TableCell align="right">{formatearImporteArs(linea.precioUnitario)}</TableCell>
                     <TableCell align="right">{formatearImporteArs(linea.subtotal)}</TableCell>
                   </TableRow>

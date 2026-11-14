@@ -76,9 +76,12 @@ export const TOPE_POR_LLAMADA = 50
 type Cruda = Record<string, unknown>
 
 const comoObjeto = (valor: unknown): Cruda | null => (valor !== null && typeof valor === 'object' && !Array.isArray(valor) ? (valor as Cruda) : null)
+// Un importe o una cantidad que falta o no es numérico NO se vuelve 0: sería una cifra inventada. La respuesta entera se
+// trata como inválida (error con reintento) en vez de mostrar «$ 0,00» donde el servidor no dijo nada.
 const comoNumero = (valor: unknown): number => {
-  const numero = typeof valor === 'number' ? valor : typeof valor === 'string' ? Number(valor) : Number.NaN
-  return Number.isFinite(numero) ? numero : 0
+  const numero = typeof valor === 'number' ? valor : typeof valor === 'string' && valor.trim() !== '' ? Number(valor) : Number.NaN
+  if (!Number.isFinite(numero)) throw new ErrorCuentaTienda('error')
+  return numero
 }
 const comoTextoOpcional = (valor: unknown): string | null => (typeof valor === 'string' && valor.trim() !== '' ? valor : null)
 
@@ -182,7 +185,8 @@ function filaFavorito(cruda: unknown): FavoritoCuenta | null {
     sku: comoTextoOpcional(fila.sku),
     imagen: comoTextoOpcional(fila.imagen),
     disponible: fila.disponible === true,
-    precioFinal: fila.precio_final === null || fila.precio_final === undefined ? null : comoNumero(fila.precio_final),
+    // `precio_final` nulo es «sin precio» (el contrato lo permite); un valor presente que no es número invalida la respuesta.
+    precioFinal: fila.precio_final === null ? null : comoNumero(fila.precio_final),
     escala: ESCALAS.includes(fila.escala as EscalaCuenta) ? (fila.escala as EscalaCuenta) : 'x1',
   }
 }
@@ -238,6 +242,11 @@ export function formatearImporteArs(importe: number): string {
   const [entero, decimales] = Math.abs(importe).toFixed(2).split('.')
   const miles = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   return `${importe < 0 && Math.abs(importe) >= 0.005 ? '-' : ''}$ ${miles},${decimales}`
+}
+
+// Cantidad de una línea con coma decimal (es-AR): «1,5», no «1.5»; las enteras quedan como están.
+export function formatearCantidad(cantidad: number): string {
+  return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 3 }).format(cantidad)
 }
 
 // «12/11/2026» desde «2026-11-12» sin pasar por `Date`.

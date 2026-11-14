@@ -128,6 +128,15 @@ describe('HistorialMiCuenta · Compras y presupuestos (FR-003, FR-004, P-3)', ()
     await waitFor(() => expect(fin).toHaveFocus())
   })
 
+  it('anuncia cuántos comprobantes se sumaron al cargar más', async () => {
+    rpcs({ mis_compras_por_dominio: (a) => (a.desde_id ? PAGINA_2 : PAGINA_1) })
+    montar()
+    await screen.findByRole('table')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByText('Nº 00000010')
+    await waitFor(() => expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('1 comprobantes más cargados'))
+  })
+
   it('«Cargar más» es operable con teclado (es un botón enfocable)', async () => {
     rpcs({ mis_compras_por_dominio: PAGINA_1 })
     montar()
@@ -231,6 +240,23 @@ describe('DetalleCompra (FR-005, FR-006, P-3)', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('mi_compra_por_dominio', { host: HOST, comprobante_id: ID_1 })
   })
 
+  it('las cantidades llevan coma decimal (es-AR): 1,5 y no 1.5', async () => {
+    rpcs({ mi_compra_por_dominio: { ...DETALLE, lineas: [{ ...DETALLE.lineas[0], cantidad: 1.5 }] } })
+    montar()
+    const dialogo = await screen.findByRole('dialog')
+    expect(await within(dialogo).findByText('1,5')).toBeInTheDocument()
+    expect(within(dialogo).queryByText('1.5')).not.toBeInTheDocument()
+  })
+
+  it('una respuesta con un importe o una cantidad ausente no se muestra como 0: error con reintento', async () => {
+    const sinTotal: Record<string, unknown> = { ...DETALLE }
+    delete sinTotal.total_con_iva
+    rpcs({ mi_compra_por_dominio: sinTotal })
+    montar()
+    expect(await screen.findByText('No pudimos cargar el comprobante.')).toBeInTheDocument()
+    expect(screen.queryByText('$ 0,00')).not.toBeInTheDocument()
+  })
+
   it('celular: una tarjeta por línea con «Cód.», cantidad × precio y subtotal', async () => {
     fijarAncho(320)
     rpcs({ mi_compra_por_dominio: DETALLE })
@@ -316,11 +342,50 @@ describe('FavoritosMiCuenta (FR-008, FR-009, P-3)', () => {
     expect(within(items[0]).getByRole('link', { name: 'Joystick Pro' })).toHaveAttribute('href', `/producto/${P_1}`)
     expect(within(items[0]).getByText('Disponible')).toBeInTheDocument()
     expect(within(items[0]).getByText('$ 2.500')).toBeInTheDocument()
-    expect(within(items[0]).getByRole('img', { name: 'Joystick Pro' })).toHaveAttribute('src', 'https://firmada/a.png')
+    // La miniatura es decorativa (alt vacío): el nombre ya está en el enlace de al lado.
+    const miniatura = items[0].querySelector('img') as HTMLImageElement
+    expect(miniatura).toHaveAttribute('src', 'https://firmada/a.png')
+    expect(miniatura).toHaveAttribute('alt', '')
+    expect(within(items[0]).queryByRole('img', { name: 'Joystick Pro' })).not.toBeInTheDocument()
+    expect(within(items[0]).getByText('Precio por escala x1')).toBeInTheDocument()
     expect(within(items[1]).getByText('Sin stock')).toBeInTheDocument()
     expect(within(items[1]).getByText('Precio a confirmar')).toBeInTheDocument()
     expect(screen.getByText('2 favoritos')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('mis_favoritos_por_dominio', { host: HOST, desde_creado: null, desde_id: null, limite: 20 })
+  })
+
+  it('si la miniatura falla al cargar (la URL firmada dura 1 h) pide una URL nueva, una sola vez, y la muestra', async () => {
+    mocks.firmar
+      .mockResolvedValueOnce({ [`org/${P_1}.png`]: 'https://firmada/vieja.png' })
+      .mockResolvedValueOnce({ [`org/${P_1}.png`]: 'https://firmada/nueva.png' })
+    rpcs({ mis_favoritos_por_dominio: { ...PAGINA, total: 1, filas: [PAGINA.filas[0]] } })
+    montar()
+    const lista = await screen.findByRole('list', { name: 'Favoritos' })
+    const img = lista.querySelector('img') as HTMLImageElement
+    expect(img).toHaveAttribute('src', 'https://firmada/vieja.png')
+    fireEvent.error(img)
+    await waitFor(() => expect((lista.querySelector('img') as HTMLImageElement)).toHaveAttribute('src', 'https://firmada/nueva.png'))
+    // Si la nueva también falla no se insiste (un solo intento por imagen).
+    fireEvent.error(lista.querySelector('img') as HTMLImageElement)
+    expect(mocks.firmar).toHaveBeenCalledTimes(2)
+  })
+
+  it('con precio muestra «Precio por escala xN» con la escala de la cuenta', async () => {
+    rpcs({ mis_favoritos_por_dominio: { ...PAGINA, total: 1, filas: [favorito(P_1, 'Joystick Pro', { escala: 'x5' })] } })
+    montar()
+    expect(await screen.findByText('Precio por escala x5')).toBeInTheDocument()
+    expect(screen.queryByText(/^Escala/)).not.toBeInTheDocument()
+  })
+
+  it('una fila sin precio no muestra la escala y un precio que no es número invalida la respuesta (error con reintento)', async () => {
+    rpcs({ mis_favoritos_por_dominio: { ...PAGINA, total: 1, filas: [PAGINA.filas[1]] } })
+    const uno = montar()
+    await screen.findByText('Precio a confirmar')
+    expect(screen.queryByText(/Precio por escala/)).not.toBeInTheDocument()
+    uno.unmount()
+    rpcs({ mis_favoritos_por_dominio: { ...PAGINA, total: 1, filas: [favorito(P_1, 'Joystick Pro', { precio_final: 'abc' })] } })
+    montar()
+    expect(await screen.findByText('No pudimos cargar tus favoritos.')).toBeInTheDocument()
   })
 
   it('no dibuja «Agregar a la lista» (la lista de pedido es de otra historia)', async () => {

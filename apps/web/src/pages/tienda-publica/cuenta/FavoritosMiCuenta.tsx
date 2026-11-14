@@ -1,5 +1,5 @@
 import { Box, Button, Link, Typography } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as EnlaceRuta } from 'react-router'
 import { MiniaturaProducto } from '../../../components/base/MiniaturaProducto'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
@@ -27,6 +27,16 @@ const textoContador = (n: number) => `${n} ${n === 1 ? 'favorito' : 'favoritos'}
 export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAcceso: () => void }) {
   const [aviso, setAviso] = useState<AvisoCuenta | null>(null)
   const [quitando, setQuitando] = useState<string | null>(null)
+  // URLs firmadas renovadas (duran 1 h): si una miniatura falla al cargar se pide una nueva, una sola vez por imagen.
+  const [renovadas, setRenovadas] = useState<Record<string, string>>({})
+  const renovando = useRef(new Set<string>())
+  const renovarImagen = useCallback((ruta: string) => {
+    if (renovando.current.has(ruta)) return
+    renovando.current.add(ruta)
+    void urlsImagenesProducto([ruta]).then((urls) => {
+      if (urls[ruta]) setRenovadas((previas) => ({ ...previas, [ruta]: urls[ruta] }))
+    })
+  }, [])
   const listado = useListadoPorCursor<FavoritoVista, CursorFavoritos>({
     clave: host,
     leer: async (cursor) => {
@@ -95,13 +105,14 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           const precio = formatearPrecioArs(favorito.precioFinal)
           return (
             <Box component="li" key={favorito.productoId} sx={{ display: 'flex', gap: 2, border: LINEA_SUAVE, borderRadius: '8px', p: 2, minWidth: 0 /* estilos-sueltos: ok */ }}>
-              <MiniaturaProducto alt={favorito.nombre} src={favorito.imagenUrl} />
+              {/* Decorativa (alt vacío): el nombre ya está al lado, en el enlace; repetirlo lo leería dos veces. */}
+              <MiniaturaProducto alt="" src={(favorito.imagen ? renovadas[favorito.imagen] : undefined) ?? favorito.imagenUrl} onFallo={favorito.imagen ? () => renovarImagen(favorito.imagen as string) : undefined} />
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Link component={EnlaceRuta} to={`/producto/${encodeURIComponent(favorito.productoId)}`} color="inherit" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{favorito.nombre}</Link>
                 <Box sx={{ mt: 0.5, display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 1.5 }}>
                   <EtiquetaDisponibilidad disponible={favorito.disponible} />
                   <Typography component="span" sx={{ fontWeight: 600 }}>{precio ?? 'Precio a confirmar'}</Typography>
-                  {precio && favorito.escala !== 'x1' ? <Typography component="span" color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>Escala {favorito.escala}</Typography> : null}
+                  {precio ? <Typography component="span" color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>Precio por escala {favorito.escala}</Typography> : null}
                 </Box>
                 <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   <Button
@@ -120,7 +131,7 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           )
         })}
       </Box>
-      <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} textoFin="Llegaste al final de tus favoritos" />
+      <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} textoFin="Llegaste al final de tus favoritos" sustantivo="favoritos" cargados={filas.length} />
       <AvisoTienda aviso={aviso} alCerrar={() => setAviso(null)} />
     </Box>
   )

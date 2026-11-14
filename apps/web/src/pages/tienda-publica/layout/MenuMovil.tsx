@@ -10,6 +10,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCategorias'
 import { salirCliente } from '../../../lib/tiendaCuenta'
+import { LISTA_DE_PEDIDO_DISPONIBLE } from '../../../lib/tiendaCapacidades'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { ErrorConReintento } from '../ErrorConReintento'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
@@ -23,7 +24,7 @@ const ID_TITULO = 'menu-movil-titulo'
 // atrapa el foco, lo devuelve al botón al cerrar y cierra con Esc o al tocar afuera; además se cierra al
 // navegar. Se muestra solo bajo `md`;
 // desde ahí rige el menú horizontal de escritorio. F-CLI-20 (P-1): con cuenta activa y la función encendida suma, al final y
-// separados por una línea suave, «Mi cuenta», «Mi lista» y «Salir» (en celular el «Salir» del encabezado pasa acá).
+// separados por una línea suave, «Mi cuenta» y «Salir» («Mi lista» cuando exista la lista de pedido, B1) (en celular el «Salir» del encabezado pasa acá).
 export default function MenuMovil({ categorias, empresaNombre = '', host = '' }: { categorias: CategoriasTienda; empresaNombre?: string; host?: string }) {
   const contactoEstado = useContactoTienda(host, host !== '')
   const contacto = contactoEstado.fase === 'lista' ? contactoEstado.contacto : null
@@ -116,11 +117,14 @@ export default function MenuMovil({ categorias, empresaNombre = '', host = '' }:
                   <ListItemText sx={{ m: 0 }} primary="Mi cuenta" slotProps={{ primary: { sx: estiloTexto } }} />
                 </ListItemButton>
               </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton component={NavLink} to="/lista" onClick={cerrar} sx={estiloEntradaPrincipal}>
-                  <ListItemText sx={{ m: 0 }} primary="Mi lista" slotProps={{ primary: { sx: estiloTexto } }} />
-                </ListItemButton>
-              </ListItem>
+              {/* «Mi lista» solo cuando exista la lista de pedido (B1): hasta entonces `/lista` daría la 404. */}
+              {LISTA_DE_PEDIDO_DISPONIBLE ? (
+                <ListItem disablePadding>
+                  <ListItemButton component={NavLink} to="/lista" onClick={cerrar} sx={estiloEntradaPrincipal}>
+                    <ListItemText sx={{ m: 0 }} primary="Mi lista" slotProps={{ primary: { sx: estiloTexto } }} />
+                  </ListItemButton>
+                </ListItem>
+              ) : null}
               <ListItem disablePadding>
                 <ListItemButton disabled={saliendo} onClick={salir} sx={estiloEntradaPrincipal}>
                   <ListItemText sx={{ m: 0 }} primary="Salir" slotProps={{ primary: { sx: estiloTexto } }} />

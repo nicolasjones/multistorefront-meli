@@ -4,6 +4,10 @@ import { supabaseClient } from './supabase'
 // `tienda_pedidos` vive en `public.banderas_plataforma`, que `anon` no puede leer: el front solo conoce un booleano por
 // `publico.capacidades_tienda_por_dominio(host)`. El servidor impone la bandera en cada RPC; esto solo decide qué se dibuja.
 
+// ¿Existe ya la lista de pedido (historia B1, T039)? Mientras no exista, nada de la tienda enlaza a `/lista` ni ofrece
+// «Agregar a la lista» (daría la 404). La historia B1 lo pone en `true` junto con la ruta `/lista`.
+export const LISTA_DE_PEDIDO_DISPONIBLE = false
+
 export type CapacidadesTienda = { pedidos: boolean }
 
 type RespuestaCapacidades = { estado?: string; pedidos?: boolean } | null

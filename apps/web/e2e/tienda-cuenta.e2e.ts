@@ -17,6 +17,9 @@ const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-800
 const SAN = { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002' } as const
 type Tienda = typeof MUNDO | typeof SAN
 
+// PNG de 1×1 para el producto con imagen (mismo que `tienda-ficha.e2e.ts`).
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+
 const CLAVE = 'Clave-Segura-123!'
 const GENERICO = 'Correo o contraseña incorrectos.'
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
@@ -127,6 +130,7 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
   let sufijo = ''
   let productoId = ''
   let productoNombre = ''
+  let rutaImagen = ''
   let cliente: Sembrado
   let numeros: { factura: string; vencido: string; ajeno: string }
 
@@ -140,6 +144,14 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     const [producto] = await rest<{ id: string }>('productos', { organizacion_id: MUNDO.organizacion, nombre: productoNombre, sku: `E2E-FAV-${sufijo}`, precio_lista: 1000, moneda: 'ARS' }, 'dominio')
     productoId = producto.id
     await rest('producto_empresa', { producto_id: productoId, empresa_id: MUNDO.empresa, organizacion_id: MUNDO.organizacion }, 'dominio')
+    // El producto TIENE imagen: la miniatura de Favoritos se firma con un cliente sin sesión (un cliente de la tienda es
+    // `authenticated` y la política de lectura de ese rol sobre el bucket exige ser del panel).
+    rutaImagen = `${MUNDO.organizacion}/${productoId}/imagen-1.png`
+    const subida = await fetch(`${url}/storage/v1/object/productos-imagenes/${rutaImagen}`, {
+      method: 'POST', headers: { apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}`, 'content-type': 'image/png' }, body: PNG,
+    })
+    if (!subida.ok) throw new Error(`Storage ${rutaImagen}: ${subida.status} ${await subida.text()}`)
+    await rest('producto_imagenes', { producto_id: productoId, organizacion_id: MUNDO.organizacion, posicion: 1, ruta: rutaImagen }, 'dominio')
 
     panel = await sembrarPersonaPanel(MUNDO.organizacion)
     cliente = await sembrarCliente(MUNDO, 'principal')
@@ -165,6 +177,11 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     if (panel) {
       await borrar(`usuarios_organizacion?user_id=eq.${panel.userId}`)
       await fetch(`${url}/auth/v1/admin/users/${panel.userId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
+    }
+    if (rutaImagen) {
+      await fetch(`${url}/storage/v1/object/productos-imagenes`, {
+        method: 'DELETE', headers: { apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json' }, body: JSON.stringify({ prefixes: [rutaImagen] }),
+      }).catch(() => undefined)
     }
     if (productoId) {
       await borrar(`producto_empresa?producto_id=eq.${productoId}`, 'dominio')
@@ -224,6 +241,10 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     await page.goto(`${origen(MUNDO)}/mi-cuenta?seccion=favoritos`)
     await expect(page.getByRole('link', { name: productoNombre })).toBeVisible()
     await expect(page.getByText('1 favorito', { exact: true })).toBeVisible()
+    // La miniatura carga de verdad: URL firmada de Storage que responde y se decodifica (no queda el recuadro vacío).
+    const miniatura = page.getByRole('list', { name: 'Favoritos' }).locator('img').first()
+    await expect(miniatura).toHaveAttribute('src', /\/storage\/v1\/object\/sign\/productos-imagenes\//)
+    await expect.poll(() => miniatura.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
     await page.getByRole('button', { name: `Quitar ${productoNombre} de favoritos` }).click()
     await expect(page.getByRole('status').filter({ hasText: `Quitamos «${productoNombre}» de tus favoritos` })).toBeVisible()
     await expect(page.getByText('Todavía no guardaste favoritos')).toBeVisible()

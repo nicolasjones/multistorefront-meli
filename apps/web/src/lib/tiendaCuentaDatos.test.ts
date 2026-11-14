@@ -7,6 +7,7 @@ import {
   cambiarFavorito,
   ErrorCuentaTienda,
   esSinAcceso,
+  formatearCantidad,
   formatearFechaCuenta,
   formatearImporteArs,
   formatearNumeroComprobante,
@@ -203,7 +204,34 @@ describe('leerFavoritosEntre', () => {
   })
 })
 
+describe('importes y cantidades ausentes', () => {
+  it('un total o una cantidad ausente o no numérica no se vuelve 0: la respuesta es inválida (error genérico)', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', total: 1, filas: [{ id: ID, numero: '1', fecha: '2026-11-12', tipo: 'compra', estado_publico: 'confirmada' }], siguiente: null }, error: null })
+    await expect(leerMisCompras(HOST)).rejects.toBeInstanceOf(ErrorCuentaTienda)
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', total: 'x', filas: [], siguiente: null }, error: null })
+    await expect(leerMisCompras(HOST)).rejects.toBeInstanceOf(ErrorCuentaTienda)
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', numero: '1', fecha: '2026-11-12', tipo: 'compra', total_sin_iva: 1, iva: 0, total_con_iva: 1, lineas: [{ descripcion: 'X', codigo: null, precio_unitario: 1, subtotal: 1 }] }, error: null })
+    await expect(leerMiCompra(HOST, ID)).rejects.toBeInstanceOf(ErrorCuentaTienda)
+  })
+
+  it('un 0 explícito sí es un importe válido', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', total: 1, filas: [{ id: ID, numero: '1', fecha: '2026-11-12', tipo: 'compra', estado_publico: 'confirmada', total_con_iva: 0 }], siguiente: null }, error: null })
+    expect((await leerMisCompras(HOST)).filas[0].totalConIva).toBe(0)
+  })
+
+  it('un precio_final ausente (no nulo) en favoritos invalida la respuesta; nulo es «sin precio»', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', total: 1, filas: [{ producto_id: ID, nombre: 'X', disponible: true, escala: 'x1' }], siguiente: null }, error: null })
+    await expect(leerMisFavoritos(HOST)).rejects.toBeInstanceOf(ErrorCuentaTienda)
+  })
+})
+
 describe('formatos', () => {
+  it('cantidades con coma decimal es-AR', () => {
+    expect(formatearCantidad(1.5)).toBe('1,5')
+    expect(formatearCantidad(2)).toBe('2')
+    expect(formatearCantidad(0.125)).toBe('0,125')
+    expect(formatearCantidad(12345)).toBe('12.345')
+  })
   it('importes con centavos y signo', () => {
     expect(formatearImporteArs(12500)).toBe('$ 12.500,00')
     expect(formatearImporteArs(85000.5)).toBe('$ 85.000,50')

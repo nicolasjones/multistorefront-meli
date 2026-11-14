@@ -107,7 +107,7 @@ export function HistorialMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           </Table>
         </TableContainer>
       )}
-      <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={listado.errorMas} onCargarMas={listado.cargarMas} textoFin="Llegaste al final de tus compras y presupuestos" />
+      <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={listado.errorMas} onCargarMas={listado.cargarMas} textoFin="Llegaste al final de tus compras y presupuestos" sustantivo="comprobantes" cargados={listado.filas.length} />
     </Box>
   )
 }

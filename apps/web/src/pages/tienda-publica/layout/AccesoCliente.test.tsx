@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   salirCliente: vi.fn(),
   leerCapacidadesTienda: vi.fn(),
   onAuthStateChange: vi.fn(),
+  listaDisponible: false,
 }))
 
 vi.mock('../../../lib/tiendaCuenta', async (original) => ({
@@ -17,7 +18,10 @@ vi.mock('../../../lib/tiendaCuenta', async (original) => ({
   sesionActivaEnTienda: mocks.sesionActivaEnTienda,
   salirCliente: mocks.salirCliente,
 }))
-vi.mock('../../../lib/tiendaCapacidades', () => ({ leerCapacidadesTienda: mocks.leerCapacidadesTienda }))
+vi.mock('../../../lib/tiendaCapacidades', () => ({
+  leerCapacidadesTienda: mocks.leerCapacidadesTienda,
+  get LISTA_DE_PEDIDO_DISPONIBLE() { return mocks.listaDisponible },
+}))
 vi.mock('../../../lib/supabase', () => ({ supabaseClient: { auth: { onAuthStateChange: mocks.onAuthStateChange } } }))
 
 import { AccesoCliente } from './AccesoCliente'
@@ -28,6 +32,7 @@ const categorias: CategoriasTienda = { fase: 'lista', categorias: [], reintentar
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.listaDisponible = false
   fijarAncho(1440)
   mocks.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } })
   mocks.salirCliente.mockResolvedValue(undefined)
@@ -130,16 +135,25 @@ function montarMenu() {
 }
 const abrirMenu = () => fireEvent.click(screen.getByRole('button', { name: 'Abrir menú', hidden: true }))
 
-describe('MenuMovil · «Mi cuenta», «Mi lista» y «Salir» (P-1)', () => {
-  it('con cuenta activa y la función encendida suma las tres entradas al final del menú', async () => {
+describe('MenuMovil · «Mi cuenta» y «Salir» (P-1; «Mi lista» cuando exista B1)', () => {
+  it('con cuenta activa y la función encendida suma «Mi cuenta» y «Salir» al final del menú, sin «Mi lista» (no existe hasta B1)', async () => {
     fijarAncho(320)
     montarMenu()
     abrirMenu()
     const panel = await screen.findByRole('dialog', { name: 'Menú' })
     const cuenta = await within(panel).findByRole('list', { name: 'Tu cuenta' })
     expect(within(cuenta).getByRole('link', { name: 'Mi cuenta' })).toHaveAttribute('href', '/mi-cuenta')
-    expect(within(cuenta).getByRole('link', { name: 'Mi lista' })).toHaveAttribute('href', '/lista')
+    expect(within(cuenta).queryByRole('link', { name: 'Mi lista' })).not.toBeInTheDocument()
     expect(within(cuenta).getByRole('button', { name: 'Salir' })).toBeInTheDocument()
+  })
+
+  it('cuando exista la lista de pedido (B1) suma «Mi lista» entre las dos', async () => {
+    mocks.listaDisponible = true
+    fijarAncho(320)
+    montarMenu()
+    abrirMenu()
+    const cuenta = await screen.findByRole('list', { name: 'Tu cuenta' })
+    expect(within(cuenta).getByRole('link', { name: 'Mi lista' })).toHaveAttribute('href', '/lista')
   })
 
   it('«Salir» del menú cierra la sesión y cierra el menú', async () => {
@@ -155,7 +169,7 @@ describe('MenuMovil · «Mi cuenta», «Mi lista» y «Salir» (P-1)', () => {
   it.each([
     ['sin sesión', () => mocks.sesionActivaEnTienda.mockResolvedValue(null)],
     ['con la función apagada', () => mocks.leerCapacidadesTienda.mockResolvedValue({ pedidos: false })],
-  ])('%s no suma ninguna de las tres entradas', async (_caso, preparar) => {
+  ])('%s no suma ninguna entrada de cuenta', async (_caso, preparar) => {
     preparar()
     fijarAncho(320)
     montarMenu()
@@ -175,7 +189,7 @@ describe('MenuMovil · «Mi cuenta», «Mi lista» y «Salir» (P-1)', () => {
     expect(mocks.leerCapacidadesTienda).not.toHaveBeenCalled()
   })
 
-  it.each([320, 768])('el menú con las tres entradas no tiene violaciones de accesibilidad a %i px', async (ancho) => {
+  it.each([320, 768])('el menú con las entradas de cuenta no tiene violaciones de accesibilidad a %i px', async (ancho) => {
     fijarAncho(ancho)
     montarMenu()
     abrirMenu()

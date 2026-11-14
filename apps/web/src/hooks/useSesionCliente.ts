@@ -59,7 +59,8 @@ export function useSesionClienteDetallada(host: string, activo = true): SesionCl
         .catch((error) => {
           console.error('No se pudo verificar la sesión del cliente', error instanceof Error ? error.message : error)
           if (cancelada) return
-          setEstado('desconocida')
+          // Un fallo transitorio al volver a evaluar NO borra lo que ya se sabía (no desmonta listas ni pantallas): solo
+          // marca `falla`. Si todavía no se sabía nada, `estado` sigue en `desconocida`.
           setFalla(true)
         })
     }
@@ -68,6 +69,8 @@ export function useSesionClienteDetallada(host: string, activo = true): SesionCl
     evaluar()
     // Diferido a otro turno: no se llama a Supabase desde dentro del callback de Auth (puede bloquear el cliente).
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((evento) => {
+      // INITIAL_SESSION lo emite supabase-js al suscribirse: la evaluación inicial ya la hizo este mismo efecto.
+      if (evento === 'INITIAL_SESSION') return
       if (evento === 'SIGNED_IN' || evento === 'SIGNED_OUT') setVersion((actual) => actual + 1)
       entrada.promesa = null
       setTimeout(() => { if (!cancelada) evaluar() }, 0)

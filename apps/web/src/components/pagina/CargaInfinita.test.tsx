@@ -94,6 +94,13 @@ describe('CargaInfinita', () => {
     expect(screen.queryByText('No hay más resultados.')).not.toBeInTheDocument()
   })
 
+  it('el anuncio dice cuántas filas se sumaron con el sustantivo de la pantalla', () => {
+    const { rerender } = render(<CargaInfinita hayMas cargando={false} cargados={20} sustantivo="favoritos" onCargarMas={vi.fn()} />)
+    rerender(<CargaInfinita hayMas cargando cargados={20} sustantivo="favoritos" onCargarMas={vi.fn()} />)
+    rerender(<CargaInfinita hayMas cargando={false} cargados={40} sustantivo="favoritos" onCargarMas={vi.fn()} />)
+    expect(screen.getByTestId('carga-infinita-anuncio')).toHaveTextContent('20 favoritos más cargados')
+  })
+
   it('sin `textoFin` el texto de fin sigue siendo «No hay más resultados.» (los demás consumidores no cambian)', () => {
     render(<CargaInfinita hayMas={false} cargando={false} onCargarMas={vi.fn()} />)
     expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()

@@ -86,6 +86,28 @@ describe('useSesionCliente · sesión compartida por host', () => {
     expect(a.result.current.version).toBe(inicial + 2)
   })
 
+  it('INITIAL_SESSION (lo emite supabase-js al suscribirse) no dispara otra consulta', async () => {
+    const a = renderHook(() => useSesionClienteDetallada(HOST))
+    await waitFor(() => expect(a.result.current.estado).toBe('activa'))
+    act(() => avisarAuth('INITIAL_SESSION'))
+    await new Promise((resolver) => setTimeout(resolver, 20))
+    expect(mocks.sesionActivaEnTienda).toHaveBeenCalledTimes(1)
+    expect(a.result.current.version).toBe(0)
+  })
+
+  it('un fallo transitorio al volver a evaluar conserva el último estado conocido y solo marca `falla`', async () => {
+    const a = renderHook(() => useSesionClienteDetallada(HOST))
+    await waitFor(() => expect(a.result.current.estado).toBe('activa'))
+    mocks.sesionActivaEnTienda.mockRejectedValueOnce(new Error('red'))
+    act(() => avisarAuth('TOKEN_REFRESHED'))
+    await waitFor(() => expect(a.result.current.falla).toBe(true))
+    expect(a.result.current.estado).toBe('activa')
+    mocks.sesionActivaEnTienda.mockResolvedValue(null)
+    act(() => avisarAuth('SIGNED_OUT'))
+    await waitFor(() => expect(a.result.current.estado).toBe('sin_sesion'))
+    expect(a.result.current.falla).toBe(false)
+  })
+
   it('una falla no se guarda: `falla` y reintentar vuelve a preguntar', async () => {
     mocks.sesionActivaEnTienda.mockRejectedValueOnce(new Error('red'))
     const a = renderHook(() => useSesionClienteDetallada(HOST))
