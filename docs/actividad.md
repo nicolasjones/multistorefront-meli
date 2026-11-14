@@ -374,7 +374,7 @@ perform private.registrar_cambio_actividad(
 
 ### Depuración por retención
 
-`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
+La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11-14), no un supuesto. `private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
 `sistema.depurada` («Sistema», sin actor) por organización con la cantidad y es idempotente. Solo la ejecutan
 `workers_orquestacion` y `kestra_orquestacion` (el rol con el que corre Kestra). La dispara el flow
 `infra/kestra/flows/depuracion-actividad.yml` (todos los días a las 04:00; si la función falla, la ejecución queda en

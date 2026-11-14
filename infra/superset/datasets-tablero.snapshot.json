@@ -1,0 +1,18 @@
+{
+  "comentario": "Allowlist de datasets de cada tablero tal como la deriva infra/superset/datasets-tablero.mjs desde los YAML versionados. Un test falla si la derivación cambia sin actualizar este archivo (y la semilla de la migración 20270325300000, bloque 4a). Si cambiás un tablero o dataset, regenerá con: node infra/superset/datasets-tablero.mjs",
+  "tableros": {
+    "Inventario · Productos y stock": ["inventario_productos_stock"],
+    "Inventario · Productos y stock (cantidades)": ["inventario_productos_stock_cantidades"],
+    "Inventario · Reposición": ["inventario_reposicion"],
+    "Rentabilidad · Comparativo": ["margen_comparativo_producto"],
+    "Rentabilidad · Historia": ["margen_historico_producto_canal"],
+    "Rentabilidad · Por producto": ["margen_producto_canal"],
+    "Rentabilidad · Resumen": ["margen_producto_canal", "rentabilidad_consolidado", "rentabilidad_resumen_empresa"],
+    "Rentabilidad · Ventas reales": ["rentabilidad_ventas_real"],
+    "Reportes · Productos más consultados": ["consultas_producto_mas_consultado"],
+    "Reportes · Ventas por período y canal": ["ventas_periodo_canal"],
+    "Service técnico": ["service_reparaciones"],
+    "Ventas · Más vendidos": ["ventas_producto_mas_vendido"],
+    "Ventas · Ranking de clientes": ["ventas_ranking_clientes"]
+  }
+}
