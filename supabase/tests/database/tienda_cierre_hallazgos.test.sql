@@ -6,7 +6,7 @@
 --   H-6  U+00AD, U+180E y U+2061 a U+2064 (además de lo anterior) se rechazan en las notas y los nombres de B1 y B2.
 begin;
 
-select plan(50);
+select plan(55);
 
 -- ============================================================================
 -- Fixture
@@ -246,6 +246,15 @@ select pg_temp.como('f5000000-0000-0000-0000-000000000001', '10.4.0.3');
 insert into res values ('normal', publico.crear_presupuesto_tienda('cierre-a.ejemplo.com', pg_temp.items('a5000000-0000-0000-0000-000000000001', '1'), E'Entregar mañana, por favor 🙂\nGracias', gen_random_uuid()));
 reset role;
 select is(pg_temp.fila('normal') ->> 'estado', 'ok', 'H-6: una nota normal (tildes, emoji, salto de línea) sigue siendo válida');
+
+-- ============================================================================
+-- H-2 (efecto sobre las bajas): borrar el usuario de Auth conserva el vínculo; la baja de la ORGANIZACIÓN sigue funcionando con presupuestos
+-- ============================================================================
+select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cliente_id is not null), 1, 'bajas: antes de borrar al usuario, la cuenta conservada tiene un vínculo con cuenta');
+select lives_ok($$delete from auth.users where id = 'f5000000-0000-0000-0000-000000000001'$$, 'bajas: borrar el usuario de Auth (que borra su cuenta web) no falla');
+select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cliente_id is null), 3, 'bajas: y los vínculos de sus presupuestos siguen existiendo, sin cuenta (los tres: el suelto, el del descartado y el nuevo)');
+select lives_ok($$delete from organizaciones where id = '11111111-1111-1111-1111-111111111111'$$, 'bajas: la baja de la organización con presupuestos de la tienda NO se bloquea (las FK de cliente y comprobante son cascade)');
+select is((select count(*)::int from dominio.presupuestos_tienda), 0, 'bajas: y no queda ningún vínculo');
 
 select * from finish();
 rollback;
