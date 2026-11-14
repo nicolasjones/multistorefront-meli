@@ -1,4 +1,5 @@
 import { expect, test } from './fixture'
+import { serviceKey, url } from './soporte/fixtures'
 
 // F-CLI-19 (MSF-451, FR-005, SC-003): la ficha del cliente muestra el «Saldo deudor» y la
 // «Cuenta corriente» con los comprobantes que tienen saldo.
@@ -7,14 +8,6 @@ import { expect, test } from './fixture'
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md. `service_role` no tiene permiso
 // sobre `public.clientes`: la service-role key solo hace de `apikey` del gateway y el identificador del
 // cliente de ejemplo se lee con la sesión de la persona de ejemplo (RLS), sin que la clave llegue al navegador.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key lee datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de cuenta corriente: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // El cliente de ejemplo del seed (`supabase/seed.sql`): número 9100, con facturas en las dos
 // tiendas, cobros parciales, uno total y una sin cobrar.

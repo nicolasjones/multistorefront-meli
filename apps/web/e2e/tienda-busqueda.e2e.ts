@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-15 (MSF-413, SC-006 de la épica MSF-191): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost, ancho de escritorio) el buscador del encabezado encuentra los productos de SU
@@ -8,14 +9,6 @@ import { expect, test } from '@playwright/test'
 // aparecen productos de la otra tienda. Requiere el stack local (`pnpm dev:supabase`, que aplica
 // `supabase/seed.sql`) y la web servida; siembra con la API admin desde Node (la service-role key nunca
 // llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -32,24 +25,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
@@ -73,14 +51,14 @@ test.describe('Tienda online · búsqueda de productos (SC-006)', () => {
 
     try {
       for (const t of tiendas) {
-        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }])
+        const [categoria] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }], 'dominio')
         // Cargador $ 1.500 (3 en stock) y Cable $ 800 (sin stock). Sin regla de empresa ni IVA, el precio
         // público es el de lista.
-        const productos = await insertar<{ id: string; nombre: string }>('productos', [
+        const productos = await rest<{ id: string; nombre: string }>('productos', [
           { organizacion_id: t.organizacion, nombre: t.cargador, sku: `E2E-B-${t.indice}-C-${sufijo}`, precio_lista: 1500, moneda: 'ARS', categoria_id: categoria.id },
           { organizacion_id: t.organizacion, nombre: t.cable, sku: `E2E-B-${t.indice}-K-${sufijo}`, precio_lista: 800, moneda: 'ARS', categoria_id: categoria.id },
-        ])
-        await insertar('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
+        ], 'dominio')
+        await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
         t.cargadorId = productos.find((p) => p.nombre === t.cargador)!.id
         await actualizar('existencias', `producto_id=eq.${t.cargadorId}`, { cantidad: 3 })
       }
@@ -154,8 +132,8 @@ test.describe('Tienda online · búsqueda de productos (SC-006)', () => {
     } finally {
       // Limpieza: los productos caen en cascada con sus existencias y filas de tienda.
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
+import { serviceKey, url } from './soporte/fixtures'
 
 // [MSF-306:T009] F-TDA-23 (SC-002, SC-003 de la épica MSF-164): con los dos dominios del seed
 // (mundojc.localhost y sanjavucho.localhost), una página de contenido nace oculta (no está en el pie y su
@@ -9,14 +10,6 @@ import { expect, test } from './fixture'
 // nunca llega al navegador); el alta/edición/borrado desde el panel (diálogo, validación, confirmación) lo
 // cubre `paginas.test.tsx`. Se verifica a 320 / 768 / 1440 px. Requiere el stack local (`pnpm dev:supabase`,
 // que aplica `supabase/seed.sql`) y la web servida; sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY se omite.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de páginas: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [

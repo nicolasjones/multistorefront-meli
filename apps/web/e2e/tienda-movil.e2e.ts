@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-17 (MSF-421, SC-008 de la épica MSF-191): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) la home, el catálogo, la categoría, los resultados, la ficha, la 404 y «Volvemos
@@ -7,44 +8,12 @@ import { expect, test, type Page } from '@playwright/test'
 // de celular se operan; y un fallo de red muestra el error con «Reintentar». Requiere el stack local
 // (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la service-role key nunca
 // llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
   { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
   { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
 ] as const
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  'content-profile': 'dominio',
-  'accept-profile': 'dominio',
-  ...extra,
-})
-
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
-}
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
@@ -70,13 +39,13 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       for (const t of TIENDAS) {
         const categoria = `Cat movil ${t.nombre} ${sufijo}`
         const producto = `Producto movil ${t.nombre} con un nombre bastante largo para probar el corte ${sufijo}`
-        const [cat] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: categoria }])
-        const [prod] = await insertar<{ id: string }>('productos', [{
+        const [cat] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: categoria }], 'dominio')
+        const [prod] = await rest<{ id: string }>('productos', [{
           organizacion_id: t.organizacion, nombre: producto, sku: `E2E-M-${sufijo}-${t.host.slice(0, 3)}`,
           precio_lista: 12345, moneda: 'ARS', categoria_id: cat.id,
-        }])
-        await insertar('producto_empresa', [{ producto_id: prod.id, empresa_id: t.empresa, organizacion_id: t.organizacion }])
-        await insertar('productos_tienda', [{ empresa_id: t.empresa, producto_id: prod.id, organizacion_id: t.organizacion, visible: true, destacado: true }])
+        }], 'dominio')
+        await rest('producto_empresa', [{ producto_id: prod.id, empresa_id: t.empresa, organizacion_id: t.organizacion }], 'dominio')
+        await rest('productos_tienda', [{ empresa_id: t.empresa, producto_id: prod.id, organizacion_id: t.organizacion, visible: true, destacado: true }], 'dominio')
         datos[t.host] = { categoria, categoriaId: cat.id, productoId: prod.id, producto }
       }
 
@@ -123,8 +92,8 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       }
     } finally {
       for (const t of TIENDAS) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}*`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}*`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })
@@ -135,12 +104,12 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
     const t = TIENDAS[0]
     try {
       const categoria = `Cat filtros ${sufijo}`
-      const [cat] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: categoria }])
-      const productos = await insertar<{ id: string }>('productos', ['A', 'B'].map((n) => ({
+      const [cat] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: categoria }], 'dominio')
+      const productos = await rest<{ id: string }>('productos', ['A', 'B'].map((n) => ({
         organizacion_id: t.organizacion, nombre: `Filtro ${n} ${sufijo}`, sku: `E2E-MF-${n}-${sufijo}`,
         precio_lista: 1000, moneda: 'ARS', categoria_id: cat.id,
-      })))
-      await insertar('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
+      })), 'dominio')
+      await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
 
       const contexto = await browser.newContext({ viewport: { width: CELULAR, height: 800 }, hasTouch: true, isMobile: true })
       const page = await contexto.newPage()
@@ -193,8 +162,8 @@ test.describe('Tienda online · versión móvil (SC-008)', () => {
       expect(page.url()).toBe(urlAntes)
       await contexto.close()
     } finally {
-      await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
-      await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+      await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+      await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
     }
   })
 })
