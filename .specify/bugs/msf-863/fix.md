@@ -9,6 +9,8 @@
 
 Se completó la matriz `## Matriz pantalla↔criterios` de `specs/023-visor-componentes/spec.md` con la fila «Empresa activa», declarada como **no aplica** con su motivo: el visor de componentes es una pantalla interna de desarrollo que sólo lee el manifiesto de cobertura E2E, sin datos de empresa. Con eso el gate `pnpm matriz:check` del job `application` deja de fallar y el PR #929 puede mergearse a `dokploy`.
 
+La historia siguió con la devolución del Revisor (se endureció el gate para que exija la **fila** «Empresa activa» y se le agregó su test de rechazo, y se corrigió la evidencia del informe) y con cinco re-sincronizaciones de la rama con `dokploy` (la última en `49b80e3f`), para que el PR #934 quedara mergeable.
+
 ## Changes
 
 | File | Change | Notes |
@@ -242,6 +244,69 @@ Verificado en local contra el árbol mergeado (`352dc359`):
 
 No se crean migraciones en esta historia (el arreglo es una fila de texto en una
 spec y el gate que la verifica), así que no aplica la versión `20270311100001_`.
+
+### Séptima vuelta: re-sync con `dokploy` (`49b80e3f`) y recomprobación de los tres hallazgos
+
+El CTO devolvió el PR #934 porque `gh pr view 934` reportaba `mergeable:
+CONFLICTING` / `mergeStateStatus: DIRTY` desde el 2026-11-13T20:59Z. Al
+revisar el estado real: el PR estaba `MERGEABLE`/`CLEAN` en GitHub pero la
+rama quedaba **10 commits atrás** de `origin/dokploy` (`a1017fff`: PRs #957,
+#958 y #959, precio promocional F-4), o sea la base había avanzado otra vez y
+el PR podía volver a quedar `CONFLICTING`/`DIRTY` al mergear.
+
+Se mergeó `origin/dokploy` sobre la rama **sin conflictos** (commit
+`49b80e3f`, `Merge remote-tracking branch 'origin/dokploy' into
+fix/bug-MSF-863`): `git merge-tree --write-tree HEAD origin/dokploy` → exit 0
+y **ningún archivo de esta historia** está tocado por la base
+(`comm -12` de los dos diffs → vacío). Tras el merge la rama quedó 0 commits
+atrás y 14 adelante, y el diff contra la base son los mismos 6 archivos de la
+historia:
+
+```
+$ git diff --stat origin/dokploy...HEAD
+ .specify/bugs/msf-863/fix.md                | 219 +++++++++++++++++++-
+ .specify/bugs/msf-863/test.md               | 110 +++++++-
+ docs/prototipos.md                          |   8 +-
+ scripts/matriz-pantalla-empresa-exentas.txt |  31 ++++
+ scripts/verificar-matriz-pantalla.mjs       |  39 +++--
+ scripts/verificar-matriz-pantalla.test.mjs  |  32 ++++-
+ 6 files changed, 414 insertions(+), 25 deletions(-)
+```
+
+Los tres hallazgos de la devolución (SHA revisado `f5d48cc9`) se recomprobaron
+**contra el árbol mergeado**, sin volver a tocar lo ya hecho:
+
+| Hallazgo | Estado | Evidencia (archivo:línea + commit) |
+|---|---|---|
+| 1. `fix.md` afirmaba un estado de `knip` inexistente (Media) | Resuelto | No queda la afirmación: `grep -n "sigue en rojo\|no existen" .specify/bugs/msf-863/{fix,test}.md` sólo la devuelve dentro de la **quinta vuelta**, que la cita y la refuta (`fix.md:148-161`). En `test.md:25` y `test.md:87` dice «knip da 0 hallazgos». Comprobado: `git cat-file -e origin/dokploy:<archivo>` → los 3 archivos existen; `git merge-base --is-ancestor d345eeb1 origin/dokploy` → exit 0; `knip.json:6-7,22,25` declara los 6; `pnpm calidad` → `knip (código muerto): ok`. Commit `3f9e3094`. |
+| 2. El gate matcheaba `/empresa/i` y no exigía la fila (Media) | Resuelto | `scripts/verificar-matriz-pantalla.mjs:23` → `export const MENCION_EMPRESA = /empresa\s+activa/i;` · test de rechazo en `scripts/verificar-matriz-pantalla.test.mjs:59`. Commit `f7affd2a`. |
+| 3. La fila «Estado del PR» de `test.md:32` no era evidencia (Baja) | Resuelto | `test.md:32` trae el comando real (`gh pr view 934 --json mergeable,mergeStateStatus`) y su salida real (`CONFLICTING`/`DIRTY` antes del sync; `MERGEABLE`/`BLOCKED` después). Commit `3f9e3094`. |
+
+**Prueba de mutación del hallazgo 2** (repetida en esta vuelta): con el regex
+viejo `/empresa/i` el caso «rechaza una matriz que sólo menciona «empresa»…»
+**falla** (`actual: null`, `expected: <spec.md>`); con `/empresa\s+activa/i`
+pasa 14/14. El cambio de prueba se revirtió (`git diff` vacío).
+
+**La lista de exentas sigue cerrada** (no deja specs huérfanas): el conjunto
+de specs del repo con UI y sin la fila «Empresa activa» es **exactamente** el
+de `scripts/matriz-pantalla-empresa-exentas.txt` (18 specs): no queda ninguna
+spec sin exención que el gate pueda rechazar, ni ninguna exención que ya tenga
+la fila.
+
+Verificado en local contra el árbol mergeado (`49b80e3f`):
+
+| Paso | Resultado |
+|---|---|
+| `pnpm test:matriz:pantalla` | 14/14 |
+| `GITHUB_BASE_REF=dokploy pnpm matriz:check` | OK (0 specs nuevas revisadas, 0 exentas) |
+| `GITHUB_BASE_REF=dokploy pnpm docs:check` | `Documentación de cambios: OK (6 archivos comparados contra origin/dokploy)` · `Migraciones OK: 651 archivo(s), 0 nuevo(s)` |
+| `pnpm prototipo:check` · `pnpm test:prototipo:inventario` | OK (120 pantallas al día) · OK |
+| `pnpm test:docs:pasos-manuales` · `test:db:guard-migraciones` · `estilos:check` · `test:estilos:sueltos` | OK |
+| `pnpm e2e:escritura:check` · `test:e2e:escritura` · `test:e2e:omitidos` | OK |
+| `pnpm ui:empresas:check` · `test:ui:empresas` | OK |
+| `pnpm lint` | exit 0 (sólo warnings de oxlint preexistentes) |
+| `pnpm build` | `✓ built` |
+| `pnpm calidad` | oxlint / **knip** / jscpd / dependency-cruiser / syncpack **ok**; gitleaks no corrió (sin Docker en este entorno: «permission denied … /var/run/docker.sock») |
 
 ## CI
 
