@@ -433,6 +433,14 @@ Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); e
 
 Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
 
+## «Mi cuenta» de la cuenta web (F-CLI-20, MSF-452 · épica MSF-176)
+
+La cuenta web activa de una tienda ahora tiene **«Mi cuenta»** en esa tienda: sus compras y presupuestos (cualquier canal, sin borradores, con estado público
+simplificado y total con IVA) y sus **favoritos**, siempre **por tienda**. El panel no cambia: la ficha del cliente y su historial siguen igual y **quien opera el
+panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja de «Habilitado en» rigen en la próxima llamada. Detrás de la bandera de plataforma
+`tienda_pedidos` (apagada por defecto; solo se enciende en dev). Modelo, contratos, permisos y cómo encenderla en
+[`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md).
+
 ## Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)
 
 - **Pantalla:** la ficha `/clientes/show/:id` suma a la tarjeta **«Resumen comercial»** el **«Saldo deudor»**
