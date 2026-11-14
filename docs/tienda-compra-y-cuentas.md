@@ -175,15 +175,16 @@ ser visible no se lista (el servidor lo omite; no se borra y vuelve si se republ
 dibuja**: lo suma la historia B1 (T039), que es la que crea la lista.
 
 **Redirecciones y errores de acceso.** Sin sesión, o con una cuenta que no está activa y habilitada en esa tienda,
-`/mi-cuenta` redirige a `/ingresar?volver=<ruta y pestaña>` **sin decir el motivo** (el servidor no lo distingue). Si la cuenta se
+`/mi-cuenta` redirige a `/ingresar?volver=<ruta y pestaña>` **sin decir el motivo** (el servidor no lo distingue), y **solo** cuando ya se sabe que la función está encendida: con las capacidades pendientes muestra la carga, con la función apagada un anónimo ve la 404 (FR-014) y con un error al leerlas, el error con reintento. Si la cuenta se
 suspende o se da de baja con la pantalla abierta, el **primer** error de acceso reemplaza todo el contenido por «Tu cuenta no está
 activa en esta tienda» (con «Ir a Contacto» y «Salir») y no deja ningún dato anterior en pantalla (FR-011).
 
 ### Front: `?volver=` sin redirección abierta
 
 `rutas/ingresar.tsx` acepta `?volver=` **solo** con rutas internas (`lib/tiendaVolver.ts`, `rutaVolverSegura`): empieza con `/`, no
-con `//` ni `/\`, no contiene `:` (esquemas) ni `\`, ni caracteres de control o espacios; y la propia `/ingresar` no es destino.
-Cualquier otro valor se ignora y se vuelve a la portada, como antes.
+con `//` ni `/\`, no contiene `:` (esquemas) ni `\`, ni caracteres de control o espacios, ni `//` en ningún lado, ni segmentos `.` o
+`..` (un navegador normaliza `/..//x` a `//x`), ni `%5C`, `%2F` o `%2E`; y la propia `/ingresar` no es destino. Cualquier otro valor se
+ignora y se vuelve a la portada, como antes.
 
 ### Front: capa de datos
 
@@ -193,19 +194,26 @@ empresa: eso lo decide el servidor con `private.cuenta_de_tienda(host)`. Acomoda
 campos (lo que el contrato no nombra no llega a la pantalla) y traduce los errores a un `ErrorCuentaTienda` con código
 `sin_acceso` (la UI lo trata como «cuenta no activa») o `error`, con mensajes en castellano y sin texto de Postgres. Los
 listados usan `hooks/useListadoPorCursor.ts`: carga infinita por cursor `(fecha, id)` / `(creado, id)` (el cursor solo ordena),
-igual que `useCatalogoPublico`; `useListadoAcumulado` acumula por número de página y no sirve con un cursor.
+igual que `useCatalogoPublico`; `useListadoAcumulado` acumula por número de página y no sirve con un cursor. El fin de lista lo dice
+`CargaInfinita` con su prop `textoFin` (el foco va a ese texto al terminar). Los importes de comprobantes llevan centavos
+(`formatearImporteArs`).
+
+**Sesión compartida.** El encabezado, el menú y la ficha preguntan lo mismo en la misma página: `hooks/useSesionCliente.ts` hace UNA
+consulta por host mientras haya algún uso montado (comparte la promesa y el resultado; un aviso de Auth la descarta). `useSesionCliente`
+conserva su contrato; `useSesionClienteDetallada` suma `falla`, `reintentar` y `version` (cuenta ingresos y salidas, para que lo de una
+persona no sobreviva al cambio: `useFavoritosEntre` lo toma como parte de su clave y se vacía al dejar de estar activo).
 
 ### Front: pruebas (Vitest, axe y E2E)
 
 - **Vitest + axe** a 320, 768 y 1440 px (`test/ancho.ts` fija el ancho de `matchMedia`): `lib/tiendaCapacidades.test.ts`,
   `lib/tiendaCuentaDatos.test.ts`, `lib/tiendaVolver.test.ts`, `hooks/useListadoPorCursor.test.tsx`,
   `pages/tienda-publica/layout/AccesoCliente.test.tsx`, `rutas/ingresar.test.tsx`, `rutas/mi-cuenta.test.tsx`,
-  `cuenta/BotonFavorito.test.tsx` y `cuenta/MiCuentaPantallas.test.tsx`. Cubren cada estado (cargando, vacío, error, error al pedir más,
+  `cuenta/BotonFavorito.test.tsx`, `cuenta/MiCuentaPantallas.test.tsx`, `hooks/useSesionCliente.test.tsx`, `hooks/useFavoritosEntre.test.tsx` y `hooks/useCapacidadesTienda.test.tsx`. Cubren cada estado (cargando, vacío, error, error al pedir más,
   fin de lista, sin acceso, función apagada), el aislamiento por tienda (cambiar de host descarta lo anterior) y que ninguna clave de
   costo, margen, descuento ni operador llega a la pantalla. `cuenta/favoritosSoloEnLaTienda.test.ts` vigila que el panel
   no mencione favoritos (ficha e historial del cliente) ni llame a sus RPC; el aislamiento del lado del servidor (los favoritos no tienen
   privilegios de API) lo prueba el pgTAP de la historia del SQL.
-- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; se omite si la base no tiene todavía las RPC de la épica): ingresar
+- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; se omite si la base no tiene todavía las RPC de la épica, y **mientras el SQL de la épica no esté en la rama esas omisiones hacen fallar `e2e:omitidos:check --max=1`**: el spec no corre de verdad hasta que aterrice el SQL, y esa primera corrida real hay que mirarla): ingresar
   con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda
   no entra en la otra; 200 comprobantes por tandas de 20.
 
