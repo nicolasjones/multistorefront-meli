@@ -3,7 +3,7 @@
 -- desactivada (tienda pausada) = el mismo error, solo las claves del contrato y anon sin acceso a la tabla de banderas.
 begin;
 
-select plan(18);
+select plan(20);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 
@@ -147,6 +147,22 @@ select is(
     where p.pronamespace = 'private'::regnamespace
       and p.proname in ('cuenta_de_tienda', 'estado_publico_comprobante')),
   '[2, 0]'::jsonb, 'existen los 2 helpers private de la historia A y ninguno es ejecutable por la API');
+
+select is(
+  (select jsonb_build_array(count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'execute')),
+                            count(*) filter (where has_function_privilege('authenticated', p.oid, 'execute')))
+     from pg_proc p
+    where p.pronamespace = 'publico'::regnamespace
+      and p.proname in ('cotizar_presupuesto_tienda', 'crear_presupuesto_tienda')),
+  '[2, 0, 2]'::jsonb, 'las 2 RPC de B2 (cotizar y crear el presupuesto) existen, son ejecutables por authenticated y NINGUNA por anon: la lista cerrada de anon no cambia');
+select is(
+  (select jsonb_build_array(count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'execute')
+                                                          or has_function_privilege('authenticated', p.oid, 'execute')
+                                                          or has_function_privilege('service_role', p.oid, 'execute')))
+     from pg_proc p
+    where p.pronamespace = 'private'::regnamespace
+      and p.proname in ('motor_presupuesto_tienda', 'siguiente_numero_comprobante_org', 'precio_para_calculo', 'precio_linea_venta_calculo', 'precio_sesion_alcanza')),
+  '[5, 0]'::jsonb, 'existen los 5 helpers private de B2 (motor, numeración con organización explícita y el cálculo de precio sin sesión) y ninguno es ejecutable por la API');
 
 select * from finish();
 rollback;
