@@ -159,10 +159,16 @@ se limpian de saltos de línea antes de ir a las cabeceras.
 - **Local:** inicia sesión como una persona sin acceso, invoca la función real y consulta la API de Mailpit
   (`MAILPIT_URL`) hasta encontrar el mensaje.
 - **Servidor:** sin `MAILPIT_URL`; el administrador de la organización de prueba debe tener como correo
-  `CORREO_PRUEBA` y se confirma a mano que el mensaje llegó a esa casilla. Requiere `AUTH_URL`,
-  `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD` y, opcionalmente, `SECCION`.
+  `CORREO_PRUEBA` (obligatoria en ese modo) y se confirma a mano que el mensaje llegó a esa casilla.
+  Requiere `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD` y, opcionalmente, `SECCION`.
+- **Códigos de salida:** `0` verificado (el mensaje llegó a Mailpit), `1` la corrida no produjo un aviso
+  nuevo (flujo idempotente por día: el pedido ya estaba notificado), `2` falta una variable de entorno y
+  `3` el aviso salió del flujo pero la entrega queda pendiente de confirmación manual. En el servidor el
+  guion **nunca** devuelve `0`: no puede dar un verde falso por una entrega que nadie comprobó.
 - La entregabilidad (SPF/DKIM del remitente) es infraestructura; si el relay del servidor no está
-  configurado, se documenta el hallazgo y se traza como seguimiento.
+  configurado, se documenta el hallazgo y se traza como seguimiento. Hoy esa corrida **no se ejecutó**:
+  está registrada (en «pendiente») en [Verificación de salida del correo](../verificacion-salida-correo.md)
+  y trazada como **MSF-532**.
 
 ## Pantallas
 
