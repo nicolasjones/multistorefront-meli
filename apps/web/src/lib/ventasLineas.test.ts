@@ -13,6 +13,7 @@ import {
   disponibleParaVenta,
   guardarLineasComprobante,
   hayFaltante,
+  lineaEnPromocion,
   mensajeFaltante,
   parsearCantidadLinea,
   parsearPrecioLinea,
@@ -130,6 +131,46 @@ describe('ventasLineas · entradas y edición', () => {
     expect(normalizada.subtotal_sin_iva).toBe(2401.5)
     expect(normalizada.iva).toBe(504.32)
     expect(aLineas(null)).toEqual([])
+  })
+})
+
+describe('ventasLineas · precio promocional (F-2, FR-015/FR-016)', () => {
+  it('una línea con precio_referencia numérico está en promoción y su rótulo es «promoción», sin escala ni descuento', () => {
+    const enPromocion = linea({ precio_unitario: 900, precio_referencia: 1000, escala: 'x1', descuento_pct: 0 })
+    expect(lineaEnPromocion(enPromocion)).toBe(true)
+    expect(rotuloEscalaLinea(enPromocion)).toBe('promoción')
+    // Aunque llegara un descuento, la promoción no lo muestra (no se aplicó).
+    expect(rotuloEscalaLinea({ ...enPromocion, descuento_pct: 5 })).toBe('promoción')
+  })
+
+  it('sin referencia (null o ausente) no hay promoción y el rótulo no cambia', () => {
+    expect(lineaEnPromocion(linea({ precio_referencia: null }))).toBe(false)
+    expect(lineaEnPromocion(linea())).toBe(false)
+    expect(rotuloEscalaLinea(linea({ precio_referencia: null }))).toBe('escala x10')
+    expect(rotuloEscalaLinea(linea({ precio_referencia: null, descuento_pct: 5 }))).toBe('escala x10 · 5 % de descuento')
+  })
+
+  it('el precio manual y las líneas sin_stock nunca se muestran en promoción', () => {
+    expect(lineaEnPromocion(linea({ precio_manual: true, precio_referencia: 1000 }))).toBe(false)
+    expect(rotuloEscalaLinea(linea({ precio_manual: true, precio_referencia: 1000 }))).toBe('precio manual')
+    expect(lineaEnPromocion(linea({ sin_stock: true, precio_referencia: 1000 }))).toBe(false)
+  })
+
+  it('mapea precio_referencia a número (o null) y descarta promocion_id si llegara', () => {
+    const [con, sin, ausente] = aLineas([
+      { id: 'a', precio_unitario: '900', precio_referencia: '1000.00', promocion_id: 'prom-1' },
+      { id: 'b', precio_unitario: '900', precio_referencia: null },
+      { id: 'c', precio_unitario: '900' },
+    ])
+    expect(con.precio_referencia).toBe(1000)
+    expect(sin.precio_referencia).toBeNull()
+    expect(ausente.precio_referencia).toBeNull()
+    expect(con).not.toHaveProperty('promocion_id')
+  })
+
+  it('al reenviar las líneas no se manda la referencia ni la promoción (el servidor las ignora y recalcula)', () => {
+    const [enviada] = aEntradas([linea({ precio_unitario: 900, precio_referencia: 1000 })])
+    expect(enviada).toEqual({ producto_id: 'p-1', cantidad: 10, deposito_id: 'd-1', precio_manual: null })
   })
 })
 

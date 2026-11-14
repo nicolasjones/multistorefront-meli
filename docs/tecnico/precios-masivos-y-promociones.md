@@ -208,15 +208,15 @@ Los precios ya aplicados **no se deshacen solos**: se corrigen con otra actualiz
 
 ## Fuera de alcance y pendientes
 
-- **Carrito, comprobantes, POS y Mercado Libre no cobran el precio promocional** (Decisión 6 de la spec): solo se muestra en la tienda. Nicolás aprobó el 2026-11-12 que el carrito, los comprobantes y el POS lo cobren, pero **no hay migración ni código de eso en `dokploy`** (los cálculos de `private.precio_vigente_empresa` solo los usan las funciones públicas de la tienda): hasta que llegue, el riesgo de cobrar distinto de lo mostrado sigue vigente.
-- **El precio por escala y los precios de cliente por dominio no se adoptan** (Decisión 7): siguen usando el precio sin promoción. Seguimiento **MSF-816**.
+- **Decisión 6 implementada (MSF-816, 2026-11-14):** el mostrador (POS) y los comprobantes **cobran el precio promocional** de la tienda del comprobante (`private.precio_linea_venta`, gana el más bajo sin acumular; el precio manual manda), con la bandera `promociones_precio`. Mercado Libre, el carrito y el checkout (no existen) siguen fuera. Detalle, comportamiento conocido y seguimientos S1…S7 (MSF-932…MSF-938): `docs/ventas-comprobantes.md`.
+- **El precio por escala y los precios de cliente por dominio no se adoptan** (Decisión 7): siguen usando el precio sin promoción. Seguimiento **S1 = MSF-932** (MSF-816 es la épica del POS).
 - **Las escalas de precio (F-PRE-15) no se actualizan** con la masiva: subir el precio de lista puede dejar el precio de una escala (x5, x10, x50) por debajo del precio de lista nuevo (Decisión 5). Actualizarlas es otra historia.
 - **Los precios propios por empresa (F-PRE-08, MSF-352) quedan excluidos** de la actualización masiva cuando existen (Decisión 2); la promoción sí se superpone al neto que ya incluye el precio propio.
 - **Las promociones de Mercado Libre** se gestionan en Mercado Libre; el sistema solo las detecta (F-MLS-07, Etapa 2). Nada de eso está aquí.
 - **El plan de F-PRE-10 no usa el Centro de importaciones** (F-IMP-01, Etapa 2): reutiliza `lib/migracionCsv.ts` en el navegador (Decisión 3). Si F-IMP-01 llega después, puede reemplazar solo la carga del archivo; la RPC no cambia.
 - **E2E sin ejecutar**: `precios-masivos.e2e.ts` y `tienda-promocion.e2e.ts` quedaron escritos pero no corridos en la máquina de la épica (sin Supabase local). Los valida el CI.
 - **TODO (dueño: Documentador, tras el merge de la épica):** generar las capturas del manual con `pnpm docs:capturas` para la pantalla **Actualizar precios** (los dos modos, la vista previa y el cuadro de confirmación), para la pantalla **Promociones** (lista, formulario y anulación) y para una ficha de la tienda con el precio anterior tachado. La herramienta de capturas del manual (`pnpm docs:capturas`, `apps/web/e2e/capturas/` y `pnpm demo:dataset`) **no existe en este repo**: lo más cercano es `pnpm --filter @platform/web pantallas:capturar`, que renderiza el prototipo y, con `PANTALLAS_APP_URL` y un `storageState` de Playwright, también las rutas de la app. Hasta entonces las páginas de producto describen el comportamiento **sin imágenes nuevas**: no se inventó ninguna.
-- **Pendiente de implementación:** que el carrito, los comprobantes y la venta de mostrador cobren el precio promocional (aprobado el 2026-11-12, Decisión 6; sin código todavía en `dokploy`).
+- **Implementado:** el cobro del precio promocional en el mostrador y los comprobantes (MSF-816, Decisión 6). El carrito y el checkout no existen todavía.
 - **Límite de filas de PostgREST:** `supabase/config.toml` fija `max_rows = 1000` y recorta cada respuesta sin avisar. Por eso la pantalla **Promociones** lee la lista por tandas de 500 con `.range()` y busca el producto del diálogo en el servidor (nombre o SKU) en vez de bajar todos los activos.
 
 ## Decisiones de la spec
@@ -228,8 +228,8 @@ Los precios ya aplicados **no se deshacen solos**: se corrigen con otra actualiz
 | 3 | **Planilla: lector CSV existente, no el Centro de importaciones** (F-IMP-01 está en Etapa 2). |
 | 4 | **Alcance del porcentaje:** «todos los activos» o «una categoría» (con sus subcategorías). Otros filtros (proveedor, marca) quedan fuera. |
 | 5 | **Escalas de precio:** la masiva no las cambia. |
-| 6 | **Ventas y pedidos:** el precio promocional se muestra en la tienda; que el carrito, los comprobantes y el POS cobren el promocional fue aprobado el 2026-11-12 pero aún no está implementado. |
-| 7 | **Superficies de la tienda:** catálogo, ficha, inicio/destacados y búsqueda muestran el mismo precio vigente y `precio_anterior`. Quedan fuera el precio por escala y los precios de cliente por dominio (seguimiento MSF-816). |
+| 6 | **Ventas y pedidos:** el precio promocional se muestra en la tienda y, desde MSF-816, lo cobran el mostrador y los comprobantes (implementada el 2026-11-14); el carrito y el checkout no existen. |
+| 7 | **Superficies de la tienda:** catálogo, ficha, inicio/destacados y búsqueda muestran el mismo precio vigente y `precio_anterior`. Quedan fuera el precio por escala y los precios de cliente por dominio (seguimiento S1 = MSF-932). |
 | 9 | **Permiso por tienda (aprobada 2026-11-12):** las promociones se leen y escriben por tienda; los precios masivos exigen edición en todas las tiendas activas (decisión 14). |
 | 10 | **Banderas de apagado (aprobada 2026-11-12, decisión 15):** `promociones_precio` y `precios_masivos`, apagadas por defecto y encendidas por SQL en cada entorno. |
 | 8 | **Editar y anular una promoción** no figuran literalmente en la épica; se asumen como parte de «programar» (sin ellas una carga equivocada no tiene salida). |
