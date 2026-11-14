@@ -11,9 +11,9 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "25d8081207fcb5d22ec3d0e5585d61aa18b80f0edac199ace8e7d469fb1f6c24",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "61adc0f690706111da8ed37449d8d0d77f710c05fc3164d5bf10f92f8355eb1e",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
@@ -35,25 +35,25 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "a2e742bfd25170c4defc3c869cf0c61e66b1802dd44fc0b3d995678e7200d9da",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "008b3b09935d57a036ea510840db7485f6f9e0f75e56ecf818d20ba2cc2f61f0",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "8451da59"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
-      "pageHash": "ab9e733935419421bf24eb004c6337e953919a8533f811a7d7f53a57769e9d7b",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "eef42b8775da898dc705bf91ed99d885acba0bf5ddc6ddf48b353f2d427b6581",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "8451da59"
     },
     "docs/adoptar-blindaje-imagenes-workers.md": {
       "title": "Adoptar el blindaje de imágenes de workers en un producto derivado",
@@ -187,6 +187,19 @@
       "owner": "tecnico",
       "commit": "8e340f95"
     },
+    "docs/analitica-avanzada.md": {
+      "title": "Analítica avanzada: galería de tableros (F-REP-07)",
+      "pageHash": "b8e462449c05bfec4ab0327c57c0e7a6a0d480a9ea5fc66a311eaea3a3d5c3ef",
+      "sourceHash": "2149a1d22571bc97b90101a264216783aba392574dc8f6334e5fa69b79d61fd0",
+      "sourceAt": "00d5672c",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "e2ad6a41"
+    },
     "docs/api-publica.md": {
       "title": "API pública y avisos hacia otros sistemas (F-API-01)",
       "pageHash": "7a3857ebd17d214ad27fc9f802878f4ecb2427d5436d983fe1dd81fcbac4b477",
@@ -252,9 +265,9 @@
     },
     "docs/avisos-por-correo.md": {
       "title": "Avisos por correo configurables",
-      "pageHash": "d5ab7ddbe3f2d695d9ad21810cf8226ca4e00ac7a0c0b1fc582cff1bfb496122",
+      "pageHash": "6de976bc1e8d0d148800b7ca9361ce0b8a827322533213e5744ba88bd5480c94",
       "sourceHash": "9f78e8a8dbacd9d31446df538515989f149e4076ff07a7ad48ace388381312af",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "infra/kestra/flows/enviar-avisos.yml",
@@ -266,7 +279,7 @@
         "supabase/migrations/20261210120500_avisos_reclamar.sql"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "8451da59"
     },
     "docs/ayuda-en-panel.md": {
       "title": "Ayuda dentro del panel (MSF-385 · F-CFG-02)",
@@ -370,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "1da699048e6b8392fa3ad6749800a057d62c25faf1b7ddc4b663369012cbeac6",
-      "sourceHash": "5a8131269c90f7e92a945480b256a7335250eda36d6ff4a5f07f5e777b4cebb5",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "77d4f1c27c79dce5c5ac727a10729ad69fbebe16e7ee4b1568419c871d2ec2aa",
+      "sourceHash": "333c7ec98a051cdf31e81cc2c787c4d80fff7730e513a42f11ab2f83ee950a63",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -611,14 +624,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "d0fdc1882ffc3e602ac84473de141f3c42f2b7a703c8da070a8d722df1106290",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8bcd6dd4c23fa22337462aa3f52fbe60dacb6b5578093868fdb41fc1264bb3fd",
+      "sourceHash": "8984763d880f3efb9833be6c5fbda22523bf1857994f914c742726bb2003f037",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
@@ -910,14 +923,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "2b54813176b0a743a3c9b7763ea561b605d755005ea0fe5c5e8000461847fae1",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "9a61fe8d5b07cf2137fd8e43373aaeb91b43b71c84e83402c8ac2c6d3f5c0569",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "df0c092f"
+      "commit": "8451da59"
     },
     "docs/pagos-conciliacion.md": {
       "title": "Ventas · Pagos (conciliación) (F-VTA-13)",
@@ -939,16 +952,16 @@
     },
     "docs/pasos-manuales-vps2.md": {
       "title": "Pasos manuales de infraestructura en VPS2 (MSF-854)",
-      "pageHash": "d2cbc094822ef93c5b02f623aacddc8d060d54a6c39c1909c23600336b3786a3",
+      "pageHash": "878f573b57e022a2783a6acfac4a2889f64d7f7f5cb7a6a078de39a9cce28560",
       "sourceHash": "e4bf2bc6a3f481997a70962875db7ba04dfcb1bb6d4762d1df7bed9851057956",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "scripts/docs-api-publica.sh",
         "apps/web/src/pages/api/PanelClaves.tsx",
         "supabase/migrations/20270224110201_api_claves.sql"
       ],
       "owner": "operacion",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
@@ -1001,12 +1014,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "4be36313653ee2a2cf156d0f10f0f2a630011a422c8d3da5411e7f9a776bfacb",
+      "pageHash": "2882dfd55a9fb7831fd3d60b2b826657e575958a162ac0d02501ecdb06f46a51",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "9dc6f30d"
+      "commit": "8451da59"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1481,6 +1494,15 @@
       "owner": "producto",
       "commit": "53cb4c30"
     },
+    "docs/producto/tableros-analiticos.md": {
+      "title": "Tableros analíticos y resumen semanal",
+      "pageHash": "446507f49a99c2468f2fdf077903709eda03f63ab7168df672e4d49c3650bd7f",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "e2ad6a41"
+    },
     "docs/producto/tienda-contenido-y-analitica.md": {
       "title": "Páginas propias, medición de visitas y botón Compartir",
       "pageHash": "1e21b2e4f4d5a4519e1760d1f5660df8f178ff2decff564eed464a0fb4433a3b",
@@ -1681,9 +1703,9 @@
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
-      "pageHash": "7001139652b6b46f548155aadcc209e243d2e34a7a22185547ac7ce050015c52",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "17151bd1f3025ac1bd44751717d9f73f136b10858fbd95fe00747f8094105ef9",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
@@ -1774,14 +1796,40 @@
       "owner": "datos",
       "commit": "ebf4bf4d"
     },
+    "docs/resumen-semanal-correo.md": {
+      "title": "Resumen semanal por correo (F-REP-08)",
+      "pageHash": "25417e8b22a7a7cf15a1717206ac731bb152264ce04e21a012b15d08f5b64d50",
+      "sourceHash": "2149a1d22571bc97b90101a264216783aba392574dc8f6334e5fa69b79d61fd0",
+      "sourceAt": "00d5672c",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "e2ad6a41"
+    },
+    "docs/revision-seguridad-analitica-avanzada.md": {
+      "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
+      "pageHash": "3b8fb9862d430e46cd1fa4db0bf1b613e3df63f2ffdb59be73d7aa88574e172e",
+      "sourceHash": "2149a1d22571bc97b90101a264216783aba392574dc8f6334e5fa69b79d61fd0",
+      "sourceAt": "00d5672c",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "e2ad6a41"
+    },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "870c4163f210beccbcf56069d207cfdf9eac2d5258d94320ecc87657b70659b8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "8451da59"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
