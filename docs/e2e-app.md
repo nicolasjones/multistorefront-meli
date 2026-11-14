@@ -708,12 +708,19 @@ rama por defecto (`main`), como se explica abajo.
 
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
-| Cada PR (`validate.yml`, job `application`) | Guardianes baratos `pnpm e2e:escritura:check`, `pnpm test:e2e:escritura`, `pnpm e2e:omitidos:check`, `pnpm test:e2e:omitidos`, `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno`, y los specs públicos sin base (`acceso-publico`) | Sí |
-| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
+| Cada PR (`validate.yml`, job `application`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
+| Cada PR que toca la web (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`) | Sí |
+| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
 
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
 `host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
+
+- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `application`, en cada PR) falla si el workflow deja de cumplir el
+  contrato: el cron, el disparo manual, el kill switch del job (`vars.CI_PAUSED` y `vars.CI_E2E_NOCTURNO`), los permisos de
+  solo lectura, el checkout de `dokploy`, Playwright en serie, el stack real de Supabase con sus migraciones, la guarda contra
+  omisiones masivas del resumen, o la aparición de `pull_request`/`pull_request_target`. Cada marca tiene su test de mutación
+  (`pnpm test:e2e:nocturno`).
 
 - **Dónde tiene que vivir el archivo:** GitHub dispara `schedule` y resuelve `workflow_dispatch`/la API de Actions
   sólo en la rama por defecto (`main`). Mientras `e2e-nocturno.yml` viva únicamente en `dokploy`, el cron no arranca y

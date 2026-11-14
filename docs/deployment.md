@@ -310,7 +310,7 @@ borraba en cada PR, también en los PR del producto que copió el workflow (ver
   réplicas del runner. Si no hay ranura libre (hasta 5; `SUPABASE_CI_RANURAS`), el
   job **espera** (`SUPABASE_CI_LOCK_MIN`, 20 min) en vez de que lo cancelen; al
   terminar (siempre), `liberar` la suelta. Un lock huérfano (job que murió sin
-  liberar) se recicla a los `SUPABASE_CI_LOCK_TTL_MIN` (50 min; el job tiene
+  liberar) se recicla a los `SUPABASE_CI_LOCK_TTL_MIN` (75 min; el job tiene
   `timeout-minutes: 40`).
 - El stack del CI **se mantiene entre corridas** (por ranura) para que el arranque
   sea rápido. No guarda datos de nadie: cada corrida lo resetea. Como

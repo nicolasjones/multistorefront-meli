@@ -52,6 +52,27 @@ test('falla si el job pasa a bloquear PRs', (t) => {
   fallaYCambio(t, { workflow: mutado }, 'pull_request');
 });
 
+test('falla si el job puede dispararse con pull_request_target', (t) => {
+  const mutado = workflow.replace(/^on:\s*$/m, 'on:\n  pull_request_target:');
+  assert.notEqual(mutado, workflow);
+  fallaYCambio(t, { workflow: mutado }, 'pull_request_target');
+});
+
+test('falla si el kill switch del job se invierte (el job no correría nunca)', (t) => {
+  const mutado = workflow.replace("vars.CI_E2E_NOCTURNO != 'false'", "vars.CI_E2E_NOCTURNO == 'false'");
+  assert.notEqual(mutado, workflow);
+  fallaYCambio(t, { workflow: mutado }, 'kill switch');
+});
+
+test('falla si el job pierde la condición del kill switch', (t) => {
+  const mutado = workflow.replace(
+    /^(\s*)if: \$\{\{ vars\.CI_PAUSED != 'true' && vars\.CI_E2E_NOCTURNO != 'false' \}\}$/m,
+    '$1if: false',
+  );
+  assert.notEqual(mutado, workflow);
+  fallaYCambio(t, { workflow: mutado }, 'kill switch');
+});
+
 test('falla si los permisos dejan de ser de solo lectura', (t) => {
   const mutado = workflow.replace(/^( {2}contents:) read$/m, '$1 write');
   assert.notEqual(mutado, workflow);
@@ -77,6 +98,12 @@ test('falla si el job deja de levantar la base real o migrarla', (t) => {
   const sinMigrar = workflow.replace(/^(\s*)supabase migration up\b/m, '$1echo sin migrar');
   assert.notEqual(sinMigrar, workflow);
   fallaYCambio(t, { workflow: sinMigrar }, 'supabase migration up');
+});
+
+test('falla si desaparece la guarda contra omisiones masivas del resumen', (t) => {
+  const mutado = workflow.replace('omitidos.length * 2 > filas.length', 'false');
+  assert.notEqual(mutado, workflow);
+  fallaYCambio(t, { workflow: mutado }, 'guarda contra omisiones masivas');
 });
 
 test('falla si la documentación deja de describir el nocturno', (t) => {

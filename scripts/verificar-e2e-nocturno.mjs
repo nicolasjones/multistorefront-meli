@@ -21,6 +21,10 @@ const marcas = [
   { nombre: 'Playwright en serie', patron: /playwright test[\s\S]*--workers=1/ },
   { nombre: 'stack real de Supabase', patron: /^\s*supabase start\b/m },
   { nombre: 'migraciones aplicadas', patron: /^\s*supabase migration up\b/m },
+  // Kill switch del job: sin esta condición el job queda apagado (o apagado siempre) sin que nadie lo note.
+  { nombre: 'kill switch del job', patron: /^\s*if:\s*\$\{\{\s*vars\.CI_PAUSED != 'true' && vars\.CI_E2E_NOCTURNO != 'false'\s*\}\}\s*$/m },
+  // Guarda contra omisiones masivas: sin ella el run queda verde con toda la suite omitida.
+  { nombre: 'guarda contra omisiones masivas', patron: /omitidos\.length\s*\*\s*2\s*>\s*filas\.length/ },
 ];
 
 export function verificarContrato(raiz = RAIZ) {
@@ -38,7 +42,9 @@ export function verificarContrato(raiz = RAIZ) {
     return { ok: false, errores: [`falta ${DOC}`] };
   }
 
-  if (/^\s{2}pull_request:/m.test(workflow)) errores.push('el job nocturno no debe dispararse en pull_request (no bloquea PRs)');
+  if (/^\s{2}pull_request(?:_target)?:/m.test(workflow)) {
+    errores.push('el job nocturno no debe dispararse en pull_request ni pull_request_target (no bloquea PRs)');
+  }
   for (const { nombre, patron } of marcas) {
     if (!patron.test(workflow)) errores.push(`el workflow no cumple «${nombre}»`);
   }
