@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-tienda-inicio-busqueda-movil
+  - apps/web/src/pages/tienda-publica
+  - supabase/migrations/20261203110000_tienda_busqueda_base.sql
+  - supabase/migrations/20261203110100_tienda_busqueda_sugerencias.sql
+  - supabase/migrations/20261203110200_tienda_busqueda_resultados.sql
+  - supabase/migrations/20270221100005_tienda_precio_anterior_home_busqueda.sql
+  - supabase/migrations/20270305100000_tienda_busqueda_pagina_rapida.sql
+  - supabase/migrations/20270305100300_precio_vigente_empresa_plpgsql.sql
+---
+
 # Búsqueda de productos de la tienda online (F-TDA-15)
 
 Historia F-TDA-15 (MSF-413) de la épica MSF-191. Spec: `specs/20261024-120000-tienda-inicio-busqueda-movil/`

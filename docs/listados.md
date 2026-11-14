@@ -1,4 +1,12 @@
+---
+owner: tecnico
+sources:
+  - apps/web/src/components/base/MiniaturaProducto.tsx
+---
+
 # Listados: carga infinita e imagen de producto
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/listados.md) · [guía de uso](producto/listados.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Regla de la constitución (Principio VI, 1.10.0): los listados del panel **no usan paginación numerada**. Cargan por
 tandas desde el servidor al llegar al final del scroll y suman cada tanda a lo ya mostrado. Los listados que

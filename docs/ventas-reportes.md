@@ -1,10 +1,21 @@
+---
+owner: datos
+sources:
+  - specs/20270104-100000-ventas-reportes-basicos
+  - infra/superset/dashboards/consultas-reportes
+  - infra/superset/dashboards/ventas-periodo-canal
+  - infra/superset/dashboards/ventas-reportes
+---
+
 # Ventas · Reportes (épica MSF-338)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-reportes.md) · [guía de uso](producto/ventas-reportes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la pantalla **Reportes de ventas** (`/ventas/reportes`, sección `reportes`): «Más vendidos»
 (F-VTA-22, MSF-347) y «Ranking de clientes» con exportación a Excel (F-VTA-23, MSF-358). Spec:
-[`specs/20270104-100000-ventas-reportes-basicos/`](../specs/20270104-100000-ventas-reportes-basicos/spec.md) ·
+`specs/20270104-100000-ventas-reportes-basicos/` (`specs/20270104-100000-ventas-reportes-basicos/spec.md`) ·
 contrato de las vistas:
-[`contracts/analitica-ventas-reportes.md`](../specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md) ·
+`contracts/analitica-ventas-reportes.md` (`specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`) ·
 operación de los tableros: [`operar-superset.md`](./operar-superset.md).
 
 ## Qué cuenta como venta (cálculo y predicado)

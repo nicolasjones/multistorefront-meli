@@ -1,9 +1,17 @@
+---
+owner: datos
+sources:
+  - specs/20270201-100000-reportes-de-inventario-y-exportacion
+  - infra/superset/dashboards/inventario
+  - infra/superset/superset_config.py
+---
+
 # Reportes de inventario (épica MSF-140)
 
 Guía del menú **Reportes** y de los tableros de inventario. Spec:
-[`specs/20270201-100000-reportes-de-inventario-y-exportacion/`](../specs/20270201-100000-reportes-de-inventario-y-exportacion/spec.md) ·
+`specs/20270201-100000-reportes-de-inventario-y-exportacion/` (`specs/20270201-100000-reportes-de-inventario-y-exportacion/spec.md`) ·
 contrato de las vistas:
-[`contracts/analitica-inventario.md`](../specs/20270201-100000-reportes-de-inventario-y-exportacion/contracts/analitica-inventario.md) ·
+`contracts/analitica-inventario.md` (`specs/20270201-100000-reportes-de-inventario-y-exportacion/contracts/analitica-inventario.md`) ·
 operación de los tableros: [`operar-superset.md`](./operar-superset.md).
 
 ## Productos y stock (F-REP-01, MSF-297)

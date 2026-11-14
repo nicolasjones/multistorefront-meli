@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-ventas-motos
+  - supabase/migrations/20270222200100_envios_moto.sql
+  - supabase/migrations/20270222200200_envios_moto_rpc.sql
+  - supabase/migrations/20270222300100_rendir_envios_moto.sql
+  - supabase/migrations/20270222300200_exportacion_total_envios_moto.sql
+  - supabase/migrations/20270223100000_envios_moto_lectura_por_empresa.sql
+  - supabase/migrations/20270228110000_envios_moto_factura_anulada_y_borrador.sql
+  - supabase/migrations/20270228110100_rendir_envios_moto_registra_cobro.sql
+---
+
 # Ventas · Motos: registro y rendición de envíos (F-VTA-24 y F-VTA-25)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-motos.md) · [guía de uso](producto/ventas-motos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Épica MSF-145 (spec `specs/20261024-130000-ventas-motos/`). Los envíos con mensajería propia (motos) se registran con mensajero, guía, costo de envío y abono, y se rinden por fila o en lote.
 

@@ -1,8 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261005-document-rag-mechanism
+  - apps/web/src/lib/documentosIa.ts
+  - supabase/migrations/20261005000001_rag_busqueda_documental.sql
+---
+
 # Documentos IA (búsqueda documental)
 
 Pantalla **IA › Documentos** (`/ia/documentos`): la organización sube documentos propios y les
 pregunta en lenguaje natural; la respuesta cita el documento de origen. Spec:
-[`specs/20261005-document-rag-mechanism/`](../specs/20261005-document-rag-mechanism/spec.md).
+`specs/20261005-document-rag-mechanism/` (`specs/20261005-document-rag-mechanism/spec.md`).
 El bucket, los permisos y la indexación están en la migración
 `20261005000001_rag_busqueda_documental.sql`.
 

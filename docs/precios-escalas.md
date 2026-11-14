@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - apps/web/src/lib/escalas.ts
+  - apps/web/src/lib/tiendaPreciosCliente.ts
+---
+
 # Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)
 
 - **Esquema** (Principio VII): `dominio.producto_precios_escala` es un dato de negocio del producto → `dominio`. La RPC `public.guardar_precios_escala` es superficie de ejecución en `public` y no guarda datos; `private.precio_para` es una función de cálculo en `private`. Migraciones aditivas `20261022150000` y `20261022150100`; la reversión está en el encabezado de cada una.

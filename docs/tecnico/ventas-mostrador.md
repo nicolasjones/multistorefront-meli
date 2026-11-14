@@ -8,6 +8,8 @@ sources:
 
 # Ventas · venta de mostrador (técnico, MSF-193)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-mostrador.md).
+
 Implementación de la épica **MSF-193** (*Ventas y despacho · Ventas mejoras*, spec
 `specs/20261027-100000-ventas-mejoras`), historia **F-VTA-31** (Jira **MSF-329**): la **venta de
 mostrador con lector de código de barras**. La vista de producto está en

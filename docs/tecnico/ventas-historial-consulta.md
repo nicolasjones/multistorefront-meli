@@ -106,7 +106,7 @@ Claves naturales (idempotencia al reimportar, `on conflict do nothing`):
 `(organizacion_id, empresa_id, numero)` en comprobantes; `(organizacion_id, empresa_id, fecha desc, id)` y
 `(organizacion_id, empresa_id, comprobante_numero)` en cobros.
 
-El modelo completo y el DER están en [Datos y DER](datos.md#historial-de-ventas-importado-msf-275).
+El modelo completo y el DER están en [Datos y DER](datos.md).
 
 ## RLS, permisos y bucket
 
@@ -315,7 +315,7 @@ Revisión manual de lo entregado en F-VTA-37/38/39, con las lentes `authz-securi
   `importar.test.ts`).
 - `pnpm infra:config` valida el Compose de Kestra, no la sintaxis del flow.
 - **No hay E2E de esta épica**: los rótulos `[MSF-275:T0xx]` previstos están en
-  [Ventas · historial de consulta (producto)](../producto/ventas-historial-consulta.md#cómo-automatizarlo).
+  [Ventas · historial de consulta (producto)](../producto/ventas-historial-consulta.md).
 
 ## Reversión
 
@@ -353,7 +353,7 @@ tablas.
 
 - **[Ventas · historial de consulta (producto)](../producto/ventas-historial-consulta.md)** — qué resuelve, para
   quién y cómo se prueba a mano.
-- **[Datos y DER](datos.md#historial-de-ventas-importado-msf-275)** — el modelo y el ERD.
-- **[API y RPC](api.md#historial-de-ventas-msf-275)** — el contrato de las funciones.
-- **[Flujos](flujos.md#importación-del-historial-msf-275)** — el flujo de datos y los estados de la ejecución.
+- **[Datos y DER](datos.md)** — el modelo y el ERD.
+- **[API y RPC](api.md)** — el contrato de las funciones.
+- **[Flujos](flujos.md#importacion-del-historial-msf-275)** — el flujo de datos y los estados de la ejecución.
 - **[Dólar y recálculo](dolar-y-recalculo.md)** — la cotización **vigente** (no es el historial).

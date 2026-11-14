@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-cobro-y-avisos
+  - apps/web/src/lib/reparacionesDeCliente.ts
+---
+
 # Service técnico · Reparaciones en la ficha del cliente (F-SVC-15, MSF-429)
 
 Épica MSF-232, spec `specs/20261028-100000-service-cobro-y-avisos` (FR-040…FR-047).

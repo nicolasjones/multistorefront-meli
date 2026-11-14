@@ -8,6 +8,8 @@ sources:
 
 # Ventas · devoluciones (RMA), técnico (MSF-178)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-rma-devoluciones.md).
+
 Contratos, datos y operación de la épica MSF-178: F-VTA-28 (alta de RMA por ítem, MSF-288), F-VTA-29
 (formas de resolución y seguimiento, MSF-304) y F-VTA-30 (RMA con nota de crédito y stock, MSF-320). Spec:
 `specs/20261027-100000-ventas-rma-devoluciones/`. Rama:

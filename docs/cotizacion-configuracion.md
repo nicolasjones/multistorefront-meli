@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs/20270105-100000-configuracion-dolar-y-precio-propio
+---
+
 # Configuración de la cotización (F-PRE-06)
 
 Historia F-PRE-06 (MSF-419) de la épica MSF-352 (`specs/20270105-100000-configuracion-dolar-y-precio-propio/`).

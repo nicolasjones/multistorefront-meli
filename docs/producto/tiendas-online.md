@@ -5,6 +5,8 @@ sources: []
 
 # Las tiendas online de tu negocio
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../tiendas-online.md).
+
 ## Para qué sirve
 
 Cada empresa del negocio (por ejemplo, San Javucho y Mundo JC) tiene su propia tienda online, con su dirección web, su aspecto y sus precios. Esta guía te cuenta qué ve la gente cuando entra a una tienda y qué podés manejar vos desde el sistema: qué productos y categorías se publican, cuáles se destacan y cómo pausar la tienda.

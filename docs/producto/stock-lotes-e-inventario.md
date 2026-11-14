@@ -5,6 +5,8 @@ sources: []
 
 # Cargar mercadería en lote y hacer la toma de inventario
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../stock-lotes-e-inventario.md).
+
 ## Para qué sirve
 
 - **Carga en lote**: registrás de una sola vez un remito completo, con varios productos, bajo un mismo número de lote.

@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261113-120000-precio-promocional-en-pos-y-comprobantes
+  - apps/web/src/lib/ventas.ts
+  - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
+  - supabase/migrations/20261203100100_comprobantes_cabecera.sql
+  - supabase/migrations/20261203100200_comprobantes_numeracion.sql
+  - supabase/migrations/20261203100400_comprobantes_rpc.sql
+  - supabase/migrations/20261203200100_comprobantes_lineas.sql
+  - supabase/migrations/20261203200200_accion_editar_precio.sql
+---
+
 # Ventas · Comprobantes
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-comprobantes.md) · [guía de uso](producto/ventas-comprobantes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-273) y sus **líneas**
 (F-VTA-06, MSF-295), su **confirmación** con descuento y reserva de stock (F-VTA-07, MSF-317) y los
