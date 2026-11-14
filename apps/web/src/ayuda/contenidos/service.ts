@@ -7,9 +7,9 @@ export const ayudaService: AyudaPorDestino = {
       'Lista de los equipos que ingresan al taller, con su cliente, técnico, estado, fecha de entrega y total. Podés filtrar por período de entrega, por número de serie y por técnico, y entrar al detalle de cada reparación. Se muestran las reparaciones de la empresa activa.',
     pasos: [
       'Elegí el período (Hoy, Semana o Mes) para ver las entregas previstas.',
-      'Buscá por número de serie si querés ubicar un equipo puntual.',
-      'Filtrá por técnico para ver solo sus reparaciones.',
+      'Buscá por número de serie o filtrá por técnico para ubicar un equipo puntual.',
       'Tocá el código de una reparación para abrir su detalle.',
+      'Cómo imprimir la etiqueta con QR: en el detalle tocá «Imprimir etiqueta», elegí el tamaño e imprimí.',
       'Si podés editar, usá «Nueva reparación» para cargar un equipo que ingresa.',
     ],
   },

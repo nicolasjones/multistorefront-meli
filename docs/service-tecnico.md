@@ -5,6 +5,7 @@ sources:
   - specs/20261022-100000-service-listado-items-e-impresion
   - specs/20261028-100000-service-cobro-y-avisos
   - specs/20261028-100000-service-seguimiento-y-reportes
+  - specs/20270323-100000-service-ideas-futuras-v2
   - design/pantallas/ServicioModelos.dc.html
   - supabase/migrations/20261020100700_service_funcionalidad.sql
   - supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql
@@ -309,3 +310,7 @@ Antes de integrar la épica a `dokploy` se hicieron dos revisiones independiente
 **Aceptado a propósito** (decisiones de la spec o de producto, se cambian si el cliente lo pide): el token del enlace se guarda en claro, no vence ni se revoca (*Decisiones abiertas* 4); el tablero compara todas las tiendas de la organización (decisión 6); un reingreso por garantía deja dos eventos de actividad (`reparacion.creada` y `reparacion.reingreso_garantia`).
 
 **No se pudo verificar** (lo valida el CI o hay que hacerlo en STG): los pgTAP y los E2E con sesión; la concurrencia real de la numeración y del tope de 20 (el pgTAP es secuencial y solo comprueba el `for update`); el comportamiento de Traefik/Kong/Storage/Superset en STG/PROD; la revisión visual a 320/768/1440 px (FR-010, manual con `pnpm --filter @platform/web pantallas:capturar`).
+
+## Ideas futuras (épica MSF-118)
+
+Spec: `specs/20270323-100000-service-ideas-futuras-v2/`. Se implementa historia por historia (F-SVC-32, F-SVC-30, F-SVC-31). Guías: [Etiqueta con código QR](service-etiqueta-qr.md) (F-SVC-32, MSF-190: etiqueta imprimible con QR a la reparación, generador de QR propio y su verificación; sin migraciones ni dependencias).

@@ -588,7 +588,7 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
   **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
   dominante, ver `reports/ci-serie.md` del orquestador).
-- **E2E de la tienda pública** (job `e2e-tienda`): corre los 20 `apps/web/e2e/tienda-*.e2e.ts` con **el mismo disparo que
+- **E2E de la tienda pública** (job `e2e-tienda`): corre todos los `apps/web/e2e/tienda-*.e2e.ts` y `service-etiqueta-qr.e2e.ts` (F-SVC-32) con **el mismo disparo que
   el e2e** (`web == 'true'` y `e2e == 'true'`: un PR a `epic/*` no lo corre; sí un PR a `dokploy` o un push), en paralelo con
   `application` y `web`. Arranca **no bloqueante** (`continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}`: el fallo
   llega como `success` a `validacion`/`liberar`) y se pasa a requerido poniendo `E2E_TIENDA_BLOQUEA=true` tras ~10 corridas verdes;
