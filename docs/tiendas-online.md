@@ -560,8 +560,8 @@ Spec `specs/20270316-100000-tiendas-hallazgos-reauditoria`. Medido en Chromium s
 | MH-10 enlaces del pie móvil | 12 px | 14 px | 14 px: desvío accesible declarado |
 | Foco de «Ingresar», «Limpiar filtros», «Ordenar por» | sin definir | onda tenue de MUI (el selector de orden, sin nada) | contorno de 2 px primario a 2 px (`layout/FocoVisible.tsx`), `solid 2px rgb(163,17,29)` en los tres con Tab real; sin contorno al tocar con el mouse |
 
-El foco unificado cubre enlaces, botones y selectores de toda la tienda (sobre la barra superior y el pie oscuros toma el color del texto); un recorrido con Tab por portada, catálogo, ficha y contacto (1440) y portada, catálogo y ficha (390) no dejó ningún control sin indicador. Los campos de texto usan el borde primario de MUI al enfocarse.
-El logo de la pestaña Identidad ya no pide fondo transparente.
+El foco unificado cubre enlaces, botones y selectores de la tienda, también los estados de carga, error y «Volvemos pronto» (`FocoVisible` se monta en el layout y en la raíz de la tienda). El color sale de `colorFoco`: el primario si llega a 3:1 contra el fondo de la página y el blanco del encabezado; si no, el color del texto, negro, blanco o un gris medio. La lupa del buscador lleva el contorno hacia adentro (el campo recorta lo que sobresale) y sobre la barra superior y el pie (`data-foco="oscuro"`) toma el color del texto. Los campos de texto usan el borde primario de MUI al enfocarse. El diálogo de WhatsApp suma «Copiar mensaje» para dar acceso por teclado al texto.
+El logo de la pestaña Identidad ya no pide fondo transparente: debe tener colores visibles sobre fondo blanco (un logo blanco o muy claro no se vería en el recuadro del pie).
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 

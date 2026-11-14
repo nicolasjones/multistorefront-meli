@@ -19,14 +19,15 @@ El logo se dibuja con sus colores sobre un recuadro blanco redondeado de 44 px d
 En el diálogo de WhatsApp el nombre del producto va en negrita (solo en la vista; el campo de solo lectura y el texto que se envía no cambian). «Inicio» y «Contacto» del menú de celular van en 600 también cuando son la página actual.
 
 ### User Story 3 - Foco visible único (P1)
-Enlaces, botones y selectores (incluidos «Ingresar», «Limpiar filtros» y «Ordenar por») muestran con `:focus-visible` un contorno de 2 px del color primario a 2 px del control; sobre la barra superior y el pie oscuros toma el color del texto.
+Enlaces, botones y selectores (incluidos «Ingresar», «Limpiar filtros», «Ordenar por» y la lupa del buscador) muestran con `:focus-visible` un contorno de 2 px a 2 px del control, del color primario si llega a 3:1 contra el fondo y el blanco del encabezado (si no, texto, negro, blanco o gris medio: `colorFoco`); en la lupa va hacia adentro (no se recorta) y sobre la barra superior y el pie (`data-foco="oscuro"`) toma el color del texto. El campo de texto del buscador no suma un segundo anillo. Alcance: la tienda pública completa, también los estados fuera del layout (carga, error, «Volvemos pronto»), con el tema base; los campos de texto de `/ingresar` y del formulario usan el borde primario de MUI.
 
 ## Requirements
 
 - **FR-001**: `layout/PieCategorias.tsx` dibuja el logo sin filtro sobre un recuadro blanco con radio 8 (`data-testid="pie-logo"`); la ayuda de `ImagenTienda` y `docs/tiendas-online.md` lo reflejan.
 - **FR-002**: `whatsapp/DialogoWhatsApp.tsx` muestra el producto en `<b>` dentro de una vista `aria-hidden` y conserva el `textarea` de solo lectura (etiqueta «Mensaje que se va a enviar», `tabindex=-1`) con el texto completo.
 - **FR-003**: `layout/MenuMovil.tsx`: «Inicio» y «Contacto» en 600 con `aria-current`.
-- **FR-004**: `layout/FocoVisible.tsx` (estilos globales de la tienda) con el contorno de foco; los controles que ya traen el suyo (campos, casilla, píldoras, héroe, diálogo) lo conservan.
+- **FR-004**: `layout/FocoVisible.tsx` (estilos globales, montado en `LayoutTienda` y en la raíz `TiendaPublicaApp`) con el contorno de foco y la variable `--tienda-color-foco` (`layout/colorFoco.ts`); los controles con contorno propio (campos, casilla, píldoras, héroe, diálogo) lo conservan y usan la misma variable. La tarjeta de categoría de la portada ya no sobrescribe el foco (solo el hover).
+- **FR-005**: el diálogo de WhatsApp ofrece «Copiar mensaje» (acceso por teclado al texto; el campo de solo lectura queda oculto con el recorte estándar y fuera del orden de Tab) y resalta el producto tras «consultar por»; la ayuda del campo «Logo» y las guías avisan que un logo blanco o muy claro no se ve en el recuadro blanco del pie.
 - **SC-001**: Vitest en verde, axe real a 390 y 1440 px sin violaciones y medición de las filas en Chromium.
 
 ## Matriz pantalla↔criterios
@@ -36,8 +37,9 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Producto`, `MJC_M_
 | Ítem de la re-auditoría | Pantalla | Criterio |
 |---|---|---|
 | Empresa activa: no aplica | Todas | La tienda pública se resuelve por dominio y no usa el selector de empresa activa del panel |
-| N-01 logo del pie | Todas | FR-001. Desvío respecto del prototipo (que invierte el logo con `filter`): con un PNG de fondo opaco —el caso real de la demo— la inversión deja un bloque blanco; el recuadro blanco sirve con cualquier logo |
-| N-02 producto en negrita en el mensaje | Ficha (diálogo) | FR-002 |
+| N-01 logo del pie | Todas | FR-001 y FR-005 (aviso de logos claros). Desvío respecto del prototipo (que invierte el logo con `filter`): con un PNG de fondo opaco —el caso real de la demo— la inversión deja un bloque blanco; el recuadro blanco sirve con cualquier logo |
+| N-02 producto en negrita en el mensaje | Ficha (diálogo) | FR-002. Desvío accesible: se suma «Copiar mensaje» (el prototipo no lo trae) para que el teclado acceda al texto |
+| Lupa «Buscar» del encabezado con foco visible | Todas | FR-004 (contorno hacia adentro, sin recorte) |
 | MM-03 «Inicio» actual en 600 | Todas (celular) | FR-003 |
 | MH-10 enlaces del pie móvil de 12 px | Todas (celular) | Desvío accesible: se mantienen 14 px (12 px baja del mínimo razonable de lectura en celular) |
 | Foco de «Ingresar», «Limpiar filtros», «Ordenar por» y demás controles | Todas | FR-004 (el prototipo no define foco; WCAG 2.4.7) |
