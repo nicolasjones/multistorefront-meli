@@ -1,25 +1,17 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { clasificarFalloTls, manejar, type Certificado, type Deps } from './handler.ts'
+import { manejar, type Certificado, type Deps } from './handler.ts'
+import { comprobarTls as comprobarTlsConCierre } from './tls.ts'
 
 // Adaptador explícito: cada acceso real se envuelve para cumplir `Deps`. La service-role vive solo acá
 // (servidor) y solo ejecuta `registrar_verificacion_dns`.
-const TIEMPO_TLS_MS = 5000
 
-// Conecta a la IP de la plataforma (guardada en la base) y valida el certificado contra el dominio:
-// no se vuelve a resolver el nombre, así un DNS que cambie entre consultas no desvía la conexión.
-async function comprobarTls(host: string, ipPlataforma: string): Promise<Certificado> {
-  const temporizador = AbortSignal.timeout(TIEMPO_TLS_MS)
-  try {
-    const conexion = await Promise.race([
-      Deno.connect({ hostname: ipPlataforma, port: 443 }).then((tcp) => Deno.startTls(tcp, { hostname: host })),
-      new Promise<never>((_, rechazar) => temporizador.addEventListener('abort', () => rechazar(new Error('timeout')))),
-    ])
-    conexion.close()
-    return 'activo'
-  } catch (e) {
-    return clasificarFalloTls(e instanceof Error ? `${e.name} ${e.message}` : String(e))
-  }
-}
+// La conexión a la IP de la plataforma y el cierre de todo `Conn` (también el que vence por timeout) viven en
+// `tls.ts`, que se prueba sin Deno; acá solo se cablean `Deno.connect` y `Deno.startTls`.
+const comprobarTls = (host: string, ipPlataforma: string): Promise<Certificado> =>
+  comprobarTlsConCierre(host, ipPlataforma, {
+    conectar: (ip) => Deno.connect({ hostname: ip, port: 443 }),
+    iniciarTls: (tcp, nombre) => Deno.startTls(tcp as Deno.Conn, { hostname: nombre }),
+  })
 
 // Sin registros (NXDOMAIN / sin datos) → []; cualquier otro fallo propaga y la función responde 502.
 async function resolver(host: string, tipo: 'A' | 'CNAME' | 'TXT'): Promise<string[]> {

@@ -57,7 +57,8 @@
           "403": { "$ref": "#/components/responses/Error", "description": "sin_permiso: sin edición en Empresas o empresa de otra organización." },
           "405": { "$ref": "#/components/responses/Error", "description": "solicitud_invalida: método distinto de POST." },
           "429": { "$ref": "#/components/responses/Error", "description": "demasiado_pronto: otra verificación hace menos de 10 s; no se consultó DNS." },
-          "502": { "$ref": "#/components/responses/Error", "description": "dns_no_disponible: falló la consulta DNS; no se cambió ningún estado guardado." }
+          "502": { "$ref": "#/components/responses/Error", "description": "dns_no_disponible: falló la consulta DNS; no se cambió ningún estado guardado." },
+          "503": { "$ref": "#/components/responses/Error", "description": "plataforma_no_configurada: la IP pública cargada en tienda_dns_plataforma no es una IPv4 pública (loopback, red privada, etc.); no se consultó DNS ni se abrió ninguna conexión. Lo corrige el equipo técnico." }
         }
       }
     }
