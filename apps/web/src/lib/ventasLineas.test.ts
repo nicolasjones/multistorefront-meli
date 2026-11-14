@@ -13,6 +13,7 @@ import {
   disponibleParaVenta,
   guardarLineasComprobante,
   hayFaltante,
+  lineaEnPromocion,
   mensajeFaltante,
   parsearCantidadLinea,
   parsearPrecioLinea,
@@ -80,6 +81,31 @@ describe('ventasLineas · disponible y faltante (FR-017, FR-018)', () => {
     expect(rotuloEscalaLinea(linea({ descuento_pct: 5 }))).toBe('escala x10 · 5 % de descuento')
     expect(rotuloEscalaLinea(linea({ descuento_pct: 0 }))).toBe('escala x10')
     expect(rotuloEscalaLinea(linea({ descuento_pct: 5, precio_manual: true }))).toBe('precio manual')
+  })
+})
+
+describe('ventasLineas · precio promocional (MSF-816, FR-015/FR-016)', () => {
+  it('la línea está en promoción cuando la base devolvió el precio de referencia', () => {
+    expect(lineaEnPromocion(linea({ precio_referencia: 1000 }))).toBe(true)
+    expect(lineaEnPromocion(linea({ precio_referencia: null }))).toBe(false)
+    expect(lineaEnPromocion(linea())).toBe(false)
+  })
+
+  it('con promoción el rótulo del precio omite la escala y el descuento', () => {
+    expect(rotuloEscalaLinea(linea({ precio_referencia: 1000 }))).toBe('Promoción')
+    expect(rotuloEscalaLinea(linea({ precio_referencia: 1000, descuento_pct: 15 }))).toBe('Promoción')
+    expect(rotuloEscalaLinea(linea({ precio_referencia: 1000, escala: 'x50' }))).toBe('Promoción')
+  })
+
+  it('un precio manual no lleva leyenda de promoción aunque la base devuelva una referencia', () => {
+    expect(rotuloEscalaLinea(linea({ precio_manual: true, precio_referencia: 1000 }))).toBe('precio manual')
+  })
+
+  it('normaliza el precio de referencia que llega de la base', () => {
+    const [normalizada] = aLineas([{ id: 'l-1', cantidad: 1, precio_unitario: '800', precio_referencia: '1000.50' }])
+    expect(normalizada.precio_referencia).toBe(1000.5)
+    const [sinPromocion] = aLineas([{ id: 'l-1', cantidad: 1, precio_unitario: '800' }])
+    expect(sinPromocion.precio_referencia).toBeNull()
   })
 })
 

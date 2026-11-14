@@ -27,8 +27,17 @@ const comprobante = (cambios: Partial<Comprobante> = {}): Comprobante => ({
 const abrir = (c: Comprobante = comprobante()) => {
   const onCerrar = vi.fn()
   const onConfirmado = vi.fn()
-  render(<ConfirmarFacturaDialog open comprobante={c} onCerrar={onCerrar} onConfirmado={onConfirmado} />)
-  return { onCerrar, onConfirmado }
+  const onRepreciado = vi.fn()
+  render(
+    <ConfirmarFacturaDialog
+      open
+      comprobante={c}
+      onCerrar={onCerrar}
+      onConfirmado={onConfirmado}
+      onRepreciado={onRepreciado}
+    />,
+  )
+  return { onCerrar, onConfirmado, onRepreciado }
 }
 
 beforeEach(() => {
@@ -90,6 +99,30 @@ describe('ConfirmarFacturaDialog (F-VTA-07)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
     expect(onCerrar).toHaveBeenCalled()
     expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('MSF-816 (FR-018): si cambiaron los precios, reprecia, avisa y no reintenta la confirmación', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'confirmar_comprobante') {
+        return { data: null, error: { code: '40001', hint: 'precios_cambiaron', message: 'Los precios de la venta cambiaron' } }
+      }
+      if (nombre === 'guardar_lineas_comprobante') return { data: null, error: null }
+      return { data: comprobante({ lineas: [linea({ precio_unitario: 800, precio_referencia: 1000 })] }), error: null }
+    })
+    const { onConfirmado, onRepreciado } = abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(await screen.findByText(/Los precios cambiaron: revisá el total y cobrá de nuevo/)).toBeInTheDocument()
+    // Se re-guardan las líneas con las mismas cantidades y los mismos precios manuales.
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_lineas_comprobante', {
+      p_id: 'k-1',
+      p_lineas: [{ producto_id: 'p-1', cantidad: 3, deposito_id: 'd-1', precio_manual: null }],
+      p_actualizado_en: '2026-10-24T10:00:00Z',
+    })
+    expect(onRepreciado).toHaveBeenCalledTimes(1)
+    // El cobro no se reintenta solo: la persona vuelve a confirmar.
+    expect(onConfirmado).not.toHaveBeenCalled()
+    expect(mocks.rpc.mock.calls.filter(([nombre]) => nombre === 'confirmar_comprobante')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeEnabled()
   })
 })
 
