@@ -9,6 +9,7 @@ import { AccesoRestringido } from '../pages/acceso-restringido/AccesoRestringido
 import { BorradorConservadoContext } from '../context/BorradorConservado'
 import { AvisoPermisosSinConfirmar } from './permisos/AvisoPermisosSinConfirmar'
 import { ZonaInerte } from './permisos/ZonaInerte'
+import { SOLO_LECTORES } from './base/solo-lectores'
 
 function etiquetaSeccion(seccion: string): string {
   return DESTINOS_PANEL.find((destino) => destino.seccionPermiso === seccion)?.etiqueta ?? seccion
@@ -119,7 +120,7 @@ export function RequiereAccesoSeccion({
           style={{ outline: 'none' }}
         >
           {conservaBorrador ? <AvisoPermisosSinConfirmar reintentar={recargar} verificando={cargandoNivel} /> : null}
-          {!conservaBorrador && accesoConfirmado ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Acceso confirmado. Ya podés editar.</span> : null}
+          {!conservaBorrador && accesoConfirmado ? <span style={SOLO_LECTORES}>Acceso confirmado. Ya podés editar.</span> : null}
         </div>
         <BorradorConservadoContext.Provider value={valorConservado}>
           <ZonaInerte key={typeof clave === 'string' ? clave : 'sin-clave'} bloqueada={conservaBorrador}>{children}</ZonaInerte>
