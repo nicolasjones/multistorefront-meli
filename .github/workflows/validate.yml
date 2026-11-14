@@ -527,10 +527,11 @@ jobs:
           fi
       # Los specs de la tienda cambian el estado de las dos tiendas del seed (pausan una empresa, editan sus datos):
       # UN worker, en serie. `--workers=1` va antes de los filtros y SIN `--` (el `--` de pnpm llega literal a
-      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma sólo los 20 specs.
-      - name: test:e2e (tienda-*)
+      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma sólo los 20 specs; se suma
+      # `e2e/service-etiqueta-qr` (F-SVC-32, MSF-190): los E2E de Service se omiten solos sin `SUPABASE_URL` y acá corre de verdad.
+      - name: test:e2e (tienda-* y service-etiqueta-qr)
         timeout-minutes: 30
-        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda-
+        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda- e2e/service-etiqueta-qr
       # 18 specs se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
       # el único omitido permitido es el de `tienda-seo` (`E2E_SIN_EDGE=1`). Lee `apps/web/resultado-e2e.json`.
       - name: Verificar que no haya omisiones inesperadas

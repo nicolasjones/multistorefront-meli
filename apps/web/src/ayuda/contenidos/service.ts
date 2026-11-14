@@ -9,7 +9,7 @@ export const ayudaService: AyudaPorDestino = {
       'Elegí el período (Hoy, Semana o Mes) para ver las entregas previstas.',
       'Buscá por número de serie si querés ubicar un equipo puntual.',
       'Filtrá por técnico para ver solo sus reparaciones.',
-      'Tocá el código de una reparación para abrir su detalle.',
+      'Tocá el código de una reparación para abrir su detalle; ahí podés imprimir una etiqueta con código QR para el equipo.',
       'Si podés editar, usá «Nueva reparación» para cargar un equipo que ingresa.',
     ],
   },

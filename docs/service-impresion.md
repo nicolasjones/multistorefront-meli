@@ -37,3 +37,7 @@ Se abren desde el detalle de la reparación con «Imprimir orden» (siempre) e �
 - **Documento no fiscal**; los importes son **sin IVA** (ARS).
 - El **texto de condiciones** es provisorio («pendiente de confirmar»): decisión abierta 3 de la spec.
 - **CUIT y domicilio fiscal** no existen hoy en `dominio.empresas`: no se imprimen ni se inventan.
+
+## Etiqueta con código QR (F-SVC-32)
+
+Además de los documentos A4, la reparación se puede imprimir como una **etiqueta chica con código QR** para pegar en el equipo (ruta `/service-tecnico/reparaciones/:id/etiqueta`, botón «Imprimir etiqueta» junto a «Imprimir orden»). Usa la misma idea (`window.print`, `.no-imprimir`) pero con un `@page` del tamaño de la etiqueta y sin márgenes. No lleva datos personales ni el token público de seguimiento. Detalle, tamaños, generador de QR y su verificación: [Etiqueta con código QR](service-etiqueta-qr.md).
