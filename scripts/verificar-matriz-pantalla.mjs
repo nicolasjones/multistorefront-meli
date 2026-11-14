@@ -16,14 +16,20 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const RAIZ = fileURLToPath(new URL("..", import.meta.url));
 export const SECCION_MATRIZ = /^##\s+Matriz pantalla/im;
-// La empresa activa (constitución, Principio VIII): la matriz debe decir qué
-// pasa con ella, o declarar «no aplica» y por qué. No es prosa opcional.
-export const MENCION_EMPRESA = /empresa/i;
+// La empresa activa (constitución, Principio VIII): la matriz debe declarar la
+// fila «Empresa activa» (o «Empresa activa: no aplica» y el motivo). No
+// alcanza con que la matriz mencione «empresa» de otra forma: la constitución
+// pide la fila, no la palabra.
+export const MENCION_EMPRESA = /empresa\s+activa/i;
 export const MENCIONA_UI = /apps\/web\/src\/(pages|components)\b|design\/pantallas\b/;
 export const ARCHIVO_EXENTAS = "scripts/matriz-pantalla-exentas.txt";
+// Specs con UI escritas antes del Principio VIII (constitución 1.9.0): su
+// matriz mapea lo visible pero no declara la fila «Empresa activa». Se
+// exceptúan SÓLO de ese requisito (no del de la matriz) para no reescribir
+// historial ya mergeado.
+export const ARCHIVO_EMPRESA_EXENTAS = "scripts/matriz-pantalla-empresa-exentas.txt";
 
-// Specs previas a la vigilancia: se exceptúan para no reescribir historial.
-export function specsExentas(archivo = path.join(RAIZ, ARCHIVO_EXENTAS)) {
+function leerLista(archivo) {
   if (!fs.existsSync(archivo)) return new Set();
   return new Set(
     fs
@@ -34,11 +40,25 @@ export function specsExentas(archivo = path.join(RAIZ, ARCHIVO_EXENTAS)) {
   );
 }
 
-// La matriz existe pero no dice nada de la empresa activa.
-export function motivoSpecSinEmpresa(specMd) {
+// Specs previas a la vigilancia: se exceptúan para no reescribir historial.
+export function specsExentas(archivo = path.join(RAIZ, ARCHIVO_EXENTAS)) {
+  return leerLista(archivo);
+}
+
+// Specs previas al Principio VIII: se exceptúan de exigir la fila «Empresa activa».
+export function specsExentasEmpresa(archivo = path.join(RAIZ, ARCHIVO_EMPRESA_EXENTAS)) {
+  return leerLista(archivo);
+}
+
+// Clave de una spec en las listas de exentas: «specs/<directorio>».
+export const claveSpec = (specMd) => path.relative(RAIZ, path.dirname(specMd));
+
+// La matriz existe pero no declara la empresa activa.
+export function motivoSpecSinEmpresa(specMd, exentas = new Set()) {
   if (!fs.existsSync(specMd)) return null;
   const contenido = fs.readFileSync(specMd, "utf8");
   if (!MENCIONA_UI.test(contenido) || !SECCION_MATRIZ.test(contenido)) return null;
+  if (exentas.has(claveSpec(specMd))) return null;
   const cuerpo = (contenido.split(SECCION_MATRIZ)[1] ?? "").split(/\n##\s/)[0];
   return MENCION_EMPRESA.test(cuerpo) ? null : specMd;
 }
@@ -83,9 +103,10 @@ if (esCLI) {
     .filter((p) => /^specs\/[^/]+\/spec\.md$/.test(p))
     .map((p) => path.join(RAIZ, p));
   const exentas = specsExentas();
+  const exentasEmpresa = specsExentasEmpresa();
   const aRevisar = specsNuevas.filter((p) => !exentas.has(path.relative(RAIZ, path.dirname(p))));
   const faltantes = aRevisar.map(motivoSpecSinMatriz).filter(Boolean);
-  const sinEmpresa = aRevisar.filter((p) => !faltantes.includes(p) && motivoSpecSinEmpresa(p));
+  const sinEmpresa = aRevisar.filter((p) => !faltantes.includes(p) && motivoSpecSinEmpresa(p, exentasEmpresa));
   if (faltantes.length || sinEmpresa.length) {
     if (faltantes.length) {
       console.error("Fallo de spec: una spec nueva con UI debe traer `## Matriz pantalla↔criterios`.");
