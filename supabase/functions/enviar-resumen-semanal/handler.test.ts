@@ -14,7 +14,7 @@ import {
   periodoTexto,
   type ContenidoResumen,
 } from './contenido.ts'
-import { MAX_INTENTOS, manejar, mensajeDeError, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
+import { MAX_CUERPO_BYTES, MAX_INTENTOS, manejar, mensajeDeError, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
 
 const ORG = '11111111-1111-4111-8111-111111111111'
 const RESUMEN = '22222222-2222-4222-8222-222222222222'
@@ -265,6 +265,31 @@ describe('manejar (autenticación y barrido)', () => {
     const res = await manejar(pedido({ organizacion_id: ORG, para: ['intruso@example.com'], destinatarios: ['intruso@example.com'] }), deps)
     assert.equal(res.status, 200)
     assert.deepEqual(enviados[0].para, ['ana@example.com', 'beto@example.com'])
+  })
+})
+
+describe('tope del cuerpo del pedido', () => {
+  it('rechaza con 413 un cuerpo de más de 64 KB sin procesar nada, por el largo declarado o por lo leído', async () => {
+    const { deps, generaciones } = montar({ organizaciones: [ORG], generado: [generado()] })
+    const grande = { barrer: true, relleno: 'x'.repeat(MAX_CUERPO_BYTES + 1) }
+    const porLargoReal = await manejar(pedido(grande), deps)
+    assert.equal(porLargoReal.status, 413)
+    const declarado = await manejar(pedido({ barrer: true }, { 'x-aviso-token': TOKEN, 'content-length': String(MAX_CUERPO_BYTES + 1) }), deps)
+    assert.equal(declarado.status, 413)
+    assert.equal(generaciones.length, 0)
+  })
+
+  it('un cuerpo dentro del tope sigue funcionando y uno que no es JSON se trata como pedido sin organización', async () => {
+    const { deps } = montar({ organizaciones: [], generado: [] })
+    assert.equal((await manejar(pedido({ barrer: true, relleno: 'x'.repeat(1000) }), deps)).status, 200)
+    const roto = new Request('http://localhost/x', { method: 'POST', headers: { 'x-aviso-token': TOKEN }, body: '{no es json' })
+    assert.equal((await manejar(roto, deps)).status, 400)
+  })
+
+  it('sin token no lee el cuerpo: responde 403 (no 401, igual que enviar-resumen-reposicion)', async () => {
+    const { deps } = montar()
+    const res = await manejar(pedido({ barrer: true, relleno: 'x'.repeat(MAX_CUERPO_BYTES + 1) }, {}), deps)
+    assert.equal(res.status, 403)
   })
 })
 

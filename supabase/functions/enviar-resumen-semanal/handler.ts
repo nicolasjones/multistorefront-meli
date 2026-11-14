@@ -13,6 +13,8 @@ const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 export const MAX_INTENTOS = 5
+/** Tope del cuerpo del pedido: solo lleva `{"barrer": true}` o un UUID, así que 64 KB sobra. */
+export const MAX_CUERPO_BYTES = 64 * 1024
 const ERROR_MAX = 300
 // A la base solo va un texto genérico; el detalle SMTP queda en los registros de la función.
 const ERROR_ENVIO_GENERICO = 'Falló el envío del correo; el detalle está en los registros de la función'
@@ -108,6 +110,37 @@ export async function procesarOrganizacion(organizacion: string, deps: Deps): Pr
   return 'enviado'
 }
 
+/** Lee el cuerpo como JSON sin pasar de `max` bytes (devuelve `'demasiado_grande'` si lo excede y `null` si no es JSON). */
+async function leerJsonAcotado(req: Request, max: number): Promise<unknown | null | 'demasiado_grande'> {
+  const declarado = Number(req.headers.get('content-length'))
+  if (Number.isFinite(declarado) && declarado > max) return 'demasiado_grande'
+  if (!req.body) return null
+  const lector = req.body.getReader()
+  const partes: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) break
+    total += value.byteLength
+    if (total > max) {
+      await lector.cancel().catch(() => undefined)
+      return 'demasiado_grande'
+    }
+    partes.push(value)
+  }
+  const bytes = new Uint8Array(total)
+  let desplazamiento = 0
+  for (const parte of partes) {
+    bytes.set(parte, desplazamiento)
+    desplazamiento += parte.byteLength
+  }
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes))
+  } catch {
+    return null
+  }
+}
+
 export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
@@ -121,7 +154,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return response({ error: 'La función no está configurada.' }, 503)
   }
 
-  const body = await req.json().catch(() => null) as { organizacion_id?: unknown; barrer?: unknown } | null
+  const leido = await leerJsonAcotado(req, MAX_CUERPO_BYTES)
+  if (leido === 'demasiado_grande') return response({ error: 'El pedido es demasiado grande.' }, 413)
+  const body = leido as { organizacion_id?: unknown; barrer?: unknown } | null
 
   if (body?.barrer === true) {
     const { data: ids, error } = await deps.datos.organizaciones()

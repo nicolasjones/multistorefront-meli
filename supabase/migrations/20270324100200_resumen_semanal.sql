@@ -39,7 +39,12 @@
 --     reenvía (se prefiere un duplicado a perder el resumen); queda registrado.
 --   * Destinatarios: miembros ACTIVOS con rol `administrador`, con correo y con la preferencia `resumen_semanal`
 --     encendida (sin fila = encendida: es la baja personal de /cuenta/avisos).
---   * Pausa por organización: sin fila = activo. Pausar cancela los resúmenes pendientes (`pausado`).
+--   * Pausa por organización: sin fila = activo. Pausar cancela los resúmenes que todavía no salieron (`pausado`); uno que
+--     ya está en vuelo (reservado hace menos de 2 minutos) se deja terminar, y si su correo salió aunque la pausa lo haya
+--     alcanzado (reserva vencida), `cerrar_resumen_semanal` lo registra como `enviado` (no como `pausado`).
+--   * Un resumen sin enviar de una semana anterior (pendiente, fallido o sin destinatario) se cierra como `vencido` en el
+--     próximo barrido de esa organización: un resumen atrasado no se manda nunca.
+--   * Los «días del faltante más antiguo» se cuentan con la fecha de Buenos Aires (no la del servidor).
 --
 -- Migración aditiva e idempotente. Reversión (migración posterior; antes desactivar el flow `resumen-semanal`):
 --   drop function if exists public.estado_resumen_semanal();
@@ -77,7 +82,7 @@ create table if not exists public.resumen_semanal_envios (
   semana_desde date not null,
   semana_hasta date not null,
   estado text not null default 'pendiente'
-    check (estado in ('pendiente', 'enviado', 'fallido', 'sin_destinatario', 'pausado')),
+    check (estado in ('pendiente', 'enviado', 'fallido', 'sin_destinatario', 'pausado', 'vencido')),
   intentos integer not null default 0 check (intentos >= 0),
   ultimo_error text check (ultimo_error is null or length(ultimo_error) <= 500),
   -- Foto del resumen (agregados de la organización) tal como se envió.
@@ -239,7 +244,7 @@ begin
     select jsonb_build_object(
              'pendientes', count(*),
              'unidades', coalesce(sum(f.cantidad_faltante), 0),
-             'dias_mas_antiguo', (current_date - min(f.creado_en)::date)
+             'dias_mas_antiguo', ((now() at time zone 'America/Argentina/Buenos_Aires')::date - (min(f.creado_en) at time zone 'America/Argentina/Buenos_Aires')::date)
            )
       into v_parte
       from dominio.faltantes_venta f
@@ -305,12 +310,23 @@ begin
    where e.organizacion_id = p_organizacion and e.estado = 'pendiente'
      and e.intentos >= v_tope and e.updated_at <= now() - interval '2 minutes';
 
-  -- Pausado: lo que estaba por salir no sale (los enviados no se tocan).
+  -- Un resumen sin enviar de una semana anterior ya no se manda nunca: queda `vencido` (los enviados no se tocan y uno
+  -- reservado hace menos de 2 minutos está en vuelo: se lo deja cerrar).
+  update public.resumen_semanal_envios e
+     set estado = 'vencido', updated_at = now()
+   where e.organizacion_id = p_organizacion
+     and e.semana_desde < v_desde
+     and e.estado in ('pendiente', 'fallido', 'sin_destinatario')
+     and not (e.estado = 'pendiente' and e.updated_at > now() - interval '2 minutes');
+
+  -- Pausado: lo que estaba por salir no sale (los enviados no se tocan). Uno en vuelo (reservado hace menos de 2 minutos)
+  -- se deja terminar: si su correo sale, `cerrar_resumen_semanal` lo registra igual.
   if not v_activo then
     update public.resumen_semanal_envios e
        set estado = 'pausado', updated_at = now()
      where e.organizacion_id = p_organizacion
-       and (e.estado in ('pendiente', 'sin_destinatario') or (e.estado = 'fallido' and e.intentos < v_tope));
+       and (e.estado in ('pendiente', 'sin_destinatario') or (e.estado = 'fallido' and e.intentos < v_tope))
+       and not (e.estado = 'pendiente' and e.intentos > 0 and e.updated_at > now() - interval '2 minutes');
     return;
   end if;
 
@@ -439,7 +455,8 @@ as $$
   select * from private.generar_resumen_semanal_en(p_organizacion, p_tope, now());
 $$;
 
--- Cierra un resumen tomado. Solo actúa sobre uno `pendiente`: un cierre repetido no pisa un `enviado`.
+-- Cierra un resumen tomado. El fallo solo actúa sobre uno `pendiente`; el éxito también sobre uno `pausado` (la pausa llegó con el
+-- correo ya en camino). Un cierre repetido no pisa un `enviado`.
 create or replace function public.cerrar_resumen_semanal(p_resumen uuid, p_enviado boolean, p_error text default null)
 returns text
 language plpgsql
@@ -449,9 +466,10 @@ set search_path = ''
 as $$
 begin
   if p_enviado then
+    -- `pausado` también: si la pausa llegó con el correo ya en camino, el envío salió y tiene que quedar registrado.
     update public.resumen_semanal_envios e
        set estado = 'enviado', enviado_en = now(), ultimo_error = null, updated_at = now()
-     where e.id = p_resumen and e.estado = 'pendiente';
+     where e.id = p_resumen and e.estado in ('pendiente', 'pausado');
     if found then
       return 'enviado';
     end if;

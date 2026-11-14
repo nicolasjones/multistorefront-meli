@@ -8,7 +8,7 @@
 -- «service_role», igual que PostgREST. Las fechas del barrido son fijas (lunes 2027-03-22, hora de Buenos Aires).
 begin;
 
-select plan(81);
+select plan(97);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -78,12 +78,13 @@ update dominio.existencias set cantidad = 0, minimo = 5 where producto_id = 'b10
 update dominio.existencias set cantidad = 2, minimo = 5 where producto_id = 'b1000000-0000-0000-0000-000000000002';
 update dominio.existencias set cantidad = 10, minimo = 5 where producto_id = 'b2000000-0000-0000-0000-000000000001';
 
--- Faltante abierto en Uno (hace 3 días).
+-- Faltante abierto en Uno (hace 3 días calendario de Buenos Aires, a media jornada: estable a cualquier hora del día).
 insert into dominio.faltantes_venta
   (organizacion_id, empresa_id, comprobante_id, linea_orden, producto_id, deposito_id, cantidad_faltante, creado_en)
 values
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'a1000000-0000-0000-0000-000000000002', 1,
-   'b1000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000001', 2, now() - interval '3 days');
+   'b1000000-0000-0000-0000-000000000002', 'd1000000-0000-0000-0000-000000000001', 2,
+   (((now() at time zone 'America/Argentina/Buenos_Aires')::date - 3) + time '12:00') at time zone 'America/Argentina/Buenos_Aires');
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -317,8 +318,16 @@ select is(
 
 -- Pausa: lo pendiente deja de salir y no nace un resumen nuevo.
 insert into public.resumen_semanal_config (organizacion_id, activo) values ('33333333-3333-3333-3333-333333333333', false);
+-- Primero en vuelo (reservado hace menos de 2 minutos): la pausa lo deja terminar; recién con la reserva vencida queda pausado.
 select is((select count(*)::int from private.generar_resumen_semanal_en('33333333-3333-3333-3333-333333333333', 5, timestamptz '2027-03-22 09:30:00-03')), 0, 'pausado: no sale');
+select is((select estado from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'pendiente', 'uno en vuelo (reservado hace menos de 2 minutos) no se pausa: se deja terminar');
+update public.resumen_semanal_envios set updated_at = now() - interval '3 minutes' where organizacion_id = '33333333-3333-3333-3333-333333333333';
+select is((select count(*)::int from private.generar_resumen_semanal_en('33333333-3333-3333-3333-333333333333', 5, timestamptz '2027-03-22 09:31:00-03')), 0, 'pausado con la reserva vencida: no sale');
 select is((select estado from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'pausado', 'y lo que estaba pendiente queda pausado');
+-- Si el correo ya había salido cuando llegó la pausa, el cierre exitoso lo registra como enviado; un fallo no lo toca.
+select is(public.cerrar_resumen_semanal((select id from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), false, 'x'), null, 'un fallo no pisa un resumen pausado');
+select is(public.cerrar_resumen_semanal((select id from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), true), 'enviado', 'si el correo salió igual, el cierre exitoso de un resumen pausado lo registra como enviado');
+select ok((select enviado_en is not null from public.resumen_semanal_envios where organizacion_id = '33333333-3333-3333-3333-333333333333'), 'con su fecha de envío');
 
 -- ============================================================================
 -- Configuración por administradores, con evento en Actividad (RF-REP-08-6)
@@ -362,6 +371,76 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.configurar_resumen_semanal(false)$$, '42501', null, 'un rol que no es administrador no puede pausarlo');
 select throws_ok($$select * from public.estado_resumen_semanal()$$, '42501', null, 'ni ver su estado');
 reset role;
+
+-- ============================================================================
+-- Bordes de la ventana (martes 23:59:59 nace; miércoles 00:00 no), semana vencida y fecha de Buenos Aires
+-- ============================================================================
+
+insert into organizaciones (id, nombre) values
+  ('44444444-4444-4444-4444-444444444444', 'Organización Cuatro'),
+  ('55555555-5555-5555-5555-555555555555', 'Organización Cinco');
+insert into auth.users (id, email) values
+  ('f4000000-0000-0000-0000-000000000001', 'admin-cuatro@example.com'),
+  ('f5000000-0000-0000-0000-000000000001', 'admin-cinco@example.com');
+insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
+  ('f4000000-0000-0000-0000-000000000001', '44444444-4444-4444-4444-444444444444', 'administrador', 'activo'),
+  ('f5000000-0000-0000-0000-000000000001', '55555555-5555-5555-5555-555555555555', 'administrador', 'activo');
+
+select is(
+  (select count(*)::int from private.generar_resumen_semanal_en('44444444-4444-4444-4444-444444444444', 5, timestamptz '2027-03-24 00:00:00-03')),
+  0, 'el miércoles a las 00:00 (Buenos Aires) ya no nace un resumen'
+);
+select is((select count(*)::int from public.resumen_semanal_envios where organizacion_id = '44444444-4444-4444-4444-444444444444'), 0, 'y no queda ningún registro');
+select is(
+  private.organizaciones_con_resumen_semanal_pendiente_en(timestamptz '2027-03-24 00:00:00-03', 5) @> array['44444444-4444-4444-4444-444444444444']::uuid[],
+  false, 'el miércoles a las 00:00 el barrido tampoco la incluye'
+);
+select is(
+  (select count(*)::int from private.generar_resumen_semanal_en('44444444-4444-4444-4444-444444444444', 5, timestamptz '2027-03-23 23:59:59-03')),
+  1, 'el martes a las 23:59:59 todavía nace'
+);
+select is(
+  (select semana_desde from public.resumen_semanal_envios where organizacion_id = '44444444-4444-4444-4444-444444444444'),
+  date '2027-03-15', 'y cubre la misma semana que terminó el domingo anterior'
+);
+
+-- Un resumen sin enviar de una semana anterior queda vencido en el próximo barrido de esa organización.
+insert into public.resumen_semanal_envios (organizacion_id, semana_desde, semana_hasta, estado, intentos, ultimo_error, updated_at) values
+  ('55555555-5555-5555-5555-555555555555', date '2027-03-01', date '2027-03-07', 'fallido', 2, 'x', now() - interval '1 day'),
+  ('55555555-5555-5555-5555-555555555555', date '2027-03-08', date '2027-03-14', 'pendiente', 1, null, now() - interval '1 day');
+select is(
+  (select count(*)::int from private.generar_resumen_semanal_en('55555555-5555-5555-5555-555555555555', 5, timestamptz '2027-03-22 08:00:00-03')),
+  1, 'el barrido genera el resumen de la semana vigente'
+);
+select is(
+  (select count(*)::int from public.resumen_semanal_envios where organizacion_id = '55555555-5555-5555-5555-555555555555' and estado = 'vencido'),
+  2, 'y las semanas anteriores sin enviar quedan vencidas (nunca se mandan atrasadas)'
+);
+select is(
+  (select count(*)::int from public.resumen_semanal_envios where organizacion_id = '55555555-5555-5555-5555-555555555555' and estado = 'pendiente' and semana_desde = date '2027-03-15'),
+  1, 'el de la semana vigente es el único pendiente'
+);
+select is(
+  (select count(*)::int from private.generar_resumen_semanal_en('55555555-5555-5555-5555-555555555555', 5, timestamptz '2027-03-22 08:30:00-03')),
+  0, 'y los vencidos no se retoman'
+);
+
+-- «Días del faltante más antiguo»: con la fecha de Buenos Aires. Un faltante creado ayer a las 23:30 de Buenos Aires
+-- (ya es «hoy» en UTC a partir de las 21:00) tiene 1 día de antigüedad a cualquier hora en que corra el test.
+update dominio.faltantes_venta
+   set creado_en = (((now() at time zone 'America/Argentina/Buenos_Aires')::date - 1) + time '23:30') at time zone 'America/Argentina/Buenos_Aires'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (private.armar_resumen_semanal('11111111-1111-1111-1111-111111111111', date '2027-03-15', date '2027-03-21') #>> '{faltantes,dias_mas_antiguo}')::int,
+  1, 'los días del faltante más antiguo se cuentan con la fecha de Buenos Aires'
+);
+update dominio.faltantes_venta
+   set creado_en = (((now() at time zone 'America/Argentina/Buenos_Aires')::date) + time '00:30') at time zone 'America/Argentina/Buenos_Aires'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111';
+select is(
+  (private.armar_resumen_semanal('11111111-1111-1111-1111-111111111111', date '2027-03-15', date '2027-03-21') #>> '{faltantes,dias_mas_antiguo}')::int,
+  0, 'un faltante de hoy (Buenos Aires) tiene 0 días'
+);
 
 -- ============================================================================
 -- Baja personal desde «Avisos por correo» (RF-REP-08-6): el tipo se ofrece solo a quien tiene la sección

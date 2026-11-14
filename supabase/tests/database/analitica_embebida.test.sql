@@ -621,7 +621,7 @@ select is(
 select entrar_a_organizacion('b3333333-3333-3333-3333-333333333333', 'prueba de soporte');
 
 select is(
-  (select count(*)::int from public.reportes_visibles_para_mi()),
+  (select count(*)::int from public.reportes_visibles_para_mi() where nombre not like 'Analítica · %'),
   0,
   'con Z activa (sin nada asignado), reportes_visibles_para_mi() no ofrece el reporte — antes el superadmin lo veía igual (bug real)'
 );
@@ -629,7 +629,7 @@ select is(
 select entrar_a_organizacion('b1111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
-  (select count(*)::int from public.reportes_visibles_para_mi()),
+  (select count(*)::int from public.reportes_visibles_para_mi() where nombre not like 'Analítica · %'),
   1,
   'con X activa (sí asignado), reportes_visibles_para_mi() lo vuelve a ofrecer'
 );
