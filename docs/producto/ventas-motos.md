@@ -5,6 +5,8 @@ sources: []
 
 # Envíos en moto: registrar y rendir
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-motos.md).
+
 ## Para qué sirve
 
 Cuando entregás con **mensajería propia (motos)**, cada envío se registra con quién lo lleva (el **mensajero**), la **guía** si la hay, el **costo de envío** y lo que el cliente **abona al recibir**. Después, cuando el mensajero te devuelve la plata, **rendís** esas entregas, una por una o en lote. Al rendir, el dinero queda cobrado en la factura.

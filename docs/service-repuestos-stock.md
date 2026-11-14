@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-repuestos-y-stock
+---
+
 # Service técnico · Repuestos que descuentan stock (F-SVC-10)
 
 Historia **MSF-390**, épica **MSF-217** · spec en `specs/20261028-100000-service-repuestos-y-stock/`

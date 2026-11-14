@@ -1,9 +1,22 @@
+---
+owner: tecnico
+sources:
+  - specs/20261023-120000-consultas-bandeja-y-aviso
+  - specs/20261024-140000-consultas-seguimiento-y-whatsapp
+  - infra/kestra/flows-retirados.txt
+  - apps/web/src/lib/responderConsulta.ts
+  - apps/web/src/lib/respuestasRapidas.ts
+  - apps/web/src/lib/textoInicialConsulta.ts
+---
+
 # Consultas: bandeja y aviso (MSF-122)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/consultas.md) · [guía de uso](producto/consultas.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Cada consulta que un visitante envía desde una tienda queda registrada en el panel, el equipo la atiende
 desde una bandeja y el aviso de la consulta nueva sale por correo a las personas de la organización,
 según sus preferencias («Avisos por correo», sin enlace a la consulta). Spec:
-[`specs/20261023-120000-consultas-bandeja-y-aviso`](../specs/20261023-120000-consultas-bandeja-y-aviso/spec.md)
+`specs/20261023-120000-consultas-bandeja-y-aviso/spec.md`
 (contrato en `contracts/consultas.md`).
 
 La bandeja es **solo un registro**: la respuesta al visitante se da fuera del sistema (correo o WhatsApp) y el
@@ -85,7 +98,7 @@ de la consulta siguen; hay que borrarlos aparte. La baja de la organización se 
 ## Interés por WhatsApp (F-CON-02, MSF-226)
 
 Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada producto. Spec:
-[`specs/20261024-140000-consultas-seguimiento-y-whatsapp`](../specs/20261024-140000-consultas-seguimiento-y-whatsapp/spec.md)
+`specs/20261024-140000-consultas-seguimiento-y-whatsapp/spec.md`
 (contrato en `contracts/consultas-seguimiento.md`).
 
 - **Sin datos personales**: `dominio.intereses_whatsapp` guarda solo `organizacion_id`, `empresa_id`, `producto_id` y `created_at`. No hay nombre, teléfono, correo, IP ni mensaje; cada fila es un toque.

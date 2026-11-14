@@ -1,3 +1,11 @@
+---
+owner: plataforma
+sources:
+  - specs/20261102-100000-auditoria-avanzada-y-soporte
+  - infra/kestra/flows/cierre-accesos-soporte.yml
+  - supabase/migrations/20270207100003_acceso_soporte_auditado.sql
+---
+
 # Acceso de soporte auditado (F-OPS-04)
 
 Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US3, FR-014…FR-018). Migración:

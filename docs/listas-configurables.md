@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - apps/web/src/pages/stock/motivos.tsx
+---
+
 # Listas configurables
 
 Pantalla de administración `/configuracion/listas` (menú Administración → «Listas configurables», solo

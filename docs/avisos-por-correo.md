@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - infra/kestra/flows/enviar-avisos.yml
+  - supabase/migrations/20261210120000_avisos_catalogo.sql
+  - supabase/migrations/20261210120100_avisos_preferencias.sql
+  - supabase/migrations/20261210120200_avisos_listar_preferencias.sql
+  - supabase/migrations/20261210120300_avisos_cola.sql
+  - supabase/migrations/20261210120400_avisos_agrupacion.sql
+  - supabase/migrations/20261210120500_avisos_reclamar.sql
+---
+
 # Avisos por correo configurables
 
 Épica MSF-189 · historia F-NOT-01 (MSF-319). Spec: `specs/20261024-120000-avisos-y-listas-configurables/`.

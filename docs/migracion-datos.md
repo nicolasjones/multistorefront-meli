@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - supabase/migrations/20261201110000_proveedores_id_externo.sql
+---
+
 # Migración inicial de datos
 
 Importador de datos del panel actual hacia la base del producto (épica MSF-142).

@@ -1,3 +1,13 @@
+---
+owner: tecnico
+sources:
+  - specs/20270125-100000-catalogo-compatibilidad-y-planillas
+  - workers/CONTRATO.md
+  - workers/importar-productos
+  - supabase/migrations/20270206100001_catalogo_importaciones.sql
+  - supabase/migrations/20270217200000_importacion_productos_robustez.sql
+---
+
 # Catálogo · Importación de productos desde CSV (F-CAT-10)
 
 Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US2, FR-101…FR-113). Pantalla

@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261018-170000-empresas-accesibles-y-filtro
+  - specs/20261018-190000-proveedores-y-productos
+  - apps/web/src/components/proveedores/ProveedorFormDialog.tsx
+  - apps/web/src/lib/cuit.ts
+  - apps/web/src/pages/proveedores/list.tsx
+  - apps/web/src/pages/proveedores/show.tsx
+  - supabase/migrations/20261018190001_proveedores_tabla.sql
+  - supabase/migrations/20261018190100_proveedores_rpc.sql
+---
+
 # Proveedores
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/proveedores.md) · [guía de uso](producto/proveedores.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Cubre el alta y edición con CUIT
 (F-PRV-01, MSF-336), el listado y la búsqueda (F-PRV-02, MSF-351) y la relación con los productos (F-PRV-03,

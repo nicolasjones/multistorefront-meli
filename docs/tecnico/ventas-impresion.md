@@ -7,6 +7,8 @@ sources:
 
 # Ventas impresión: datos, worker y flujos (MSF-213)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-impresion.md).
+
 Épica MSF-213 (F-VTA-19/20/21, cierre MSF-565). Spec: `specs/20261024-100000-ventas-impresion/`
 (`spec.md`, `plan.md`, `tasks.md`, `contracts/ventas-impresion.md`). Mergeada por la PR #380 (commit
 `58452852`); documento de la épica: `docs/ventas-impresion.md` en ese commit. Producto:

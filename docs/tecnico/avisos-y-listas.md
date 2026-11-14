@@ -74,7 +74,7 @@ erDiagram
 
 La relación con `dominio.consultas` es **solo por lógica** en esta entrega: `consultas.estado` sigue siendo
 texto con `nueva|en_curso|resuelta` y `estados_consulta` todavía no tiene FK ni alimenta la bandeja (ver
-[Límites](#límites-y-deuda)). El diagrama completo y el detalle de las tablas existentes están en
+[Límites](#limites-y-deuda)). El diagrama completo y el detalle de las tablas existentes están en
 [Datos y DER](datos.md#avisos-y-listas-configurables-msf-189).
 
 ## Permisos y RLS

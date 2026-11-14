@@ -1,7 +1,13 @@
+---
+owner: operacion
+sources:
+  - specs/20261018-120000-operacion-copias-y-documentacion
+---
+
 # Simulacro de restauración (cierre de MSF-457)
 
 Spec `specs/20261018-120000-operacion-copias-y-documentacion` · FR-011 · SC-002.
-Procedimiento de restauración: [copias-y-restauracion.md](copias-y-restauracion.md#procedimiento-guiado-de-restauración).
+Procedimiento de restauración: [copias-y-restauracion.md](copias-y-restauracion.md#procedimiento-guiado-de-restauracion).
 
 ## Estado
 

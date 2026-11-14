@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/pages/ventas/pagos/list.tsx
+  - supabase/migrations/20270114100300_registrar_cobro.sql
+  - supabase/migrations/20270114110000_conciliar_pago.sql
+  - supabase/migrations/20270114110100_listar_pagos.sql
+  - supabase/migrations/20270114110200_resumen_pagos.sql
+  - supabase/migrations/20270114110300_puede_conciliar_pago_lectura.sql
+---
+
 # Ventas · Pagos (conciliación) (F-VTA-13)
 
 Conciliación de los **pagos por transferencia o depósito**: ver los cobros que tienen cuenta de
