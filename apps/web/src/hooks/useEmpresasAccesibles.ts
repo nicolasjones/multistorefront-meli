@@ -19,6 +19,8 @@ export function useEmpresasAccesibles() {
   // para que la pantalla la siga (F-ROL-06).
   const revision = useSyncExternalStore(suscribirEmpresaActiva, revisionEmpresaActiva, revisionEmpresaActiva)
   const ultimaPeticion = useRef(0)
+  // Evita `setState` si la carga termina con el componente ya desmontado.
+  const montado = useRef(false)
 
   // «Última petición gana»: si cambia la organización activa (superadmin) y hay
   // dos cargas en vuelo, la respuesta vieja se descarta.
@@ -30,19 +32,26 @@ export function useEmpresasAccesibles() {
     setCargando(true)
     try {
       const lista = await listarEmpresasSelector()
-      if (peticion !== ultimaPeticion.current) return
+      if (!montado.current || peticion !== ultimaPeticion.current) return
       setEmpresas(lista)
       setHayError(false)
     } catch (error) {
-      if (peticion !== ultimaPeticion.current) return
+      if (!montado.current || peticion !== ultimaPeticion.current) return
       console.error('No se pudieron cargar las empresas accesibles', error instanceof Error ? error.message : error)
       setEmpresas([])
       setHayError(true)
     }
-    setCargando(false)
+    if (montado.current) setCargando(false)
     // organizacionId y revision solo disparan la recarga; la organización y la
     // activa las resuelve la base.
   }, [organizacionId, revision])
+
+  useEffect(() => {
+    montado.current = true
+    return () => {
+      montado.current = false
+    }
+  }, [])
 
   useEffect(() => {
     void cargar()
