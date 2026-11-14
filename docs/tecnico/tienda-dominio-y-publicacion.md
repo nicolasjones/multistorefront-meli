@@ -105,7 +105,8 @@ Cuatro tablas nuevas y una alterada. El DER completo (con leyenda y Mermaid) est
   `apps/web/src/lib/tiendaBorrador.ts`.
 - La versión 1 «Configuración inicial» de las tiendas ya existentes la crea la migración de F-TDA-06 (backfill
   aditivo, no hay script de arranque).
-- Los archivos del bucket `tienda-identidad` referenciados por el borrador o por alguna versión **no se borran**.
+- Los archivos del bucket `tienda-identidad` referenciados por la identidad publicada, el borrador o alguna versión **no se borran**: desde MSF-796 lo
+  impone la política de borrado de `storage.objects` en la base (`private.ruta_identidad_referenciada`); `rutas_tienda_sin_referencia` es solo el filtro previo.
 
 ### Versiones (F-TDA-07)
 
@@ -127,6 +128,7 @@ POST /verificar-dominio-tienda   { "empresa_id": "<uuid>" }   Authorization: Bea
 400 { error: "solicitud_invalida" | "sin_dominio" }
 401 { error: "no_autenticado" }   403 { error: "sin_permiso" }
 429 { error: "demasiado_pronto" }  502 { error: "dns_no_disponible" }
+503 { error: "plataforma_no_configurada" }   (la IP de tienda_dns_plataforma no es pública; MSF-797)
 ```
 
 - Autentica con el JWT de la persona y llama `public.preparar_verificacion_tienda` (permiso + límite de 10 s).
@@ -195,7 +197,8 @@ nunca valores): `tienda.dominio_configurado` (ya existía; también al guardar e
 ## Operación
 
 - **DNS por entorno.** `public.tienda_dns_plataforma` es la fila única que dice a dónde debe apuntar cualquier
-  tienda. La migración siembra valores de documentación; el equipo técnico carga los reales por SQL:
+  tienda. La migración siembra valores de documentación; el equipo técnico carga los reales por SQL. La IP debe ser **IPv4 pública**
+  (CHECK `tienda_dns_plataforma_ip_publica`, MSF-797; se admiten los rangos de documentación TEST-NET-2/3 del seed):
 
   ```sql
   update public.tienda_dns_plataforma
@@ -353,13 +356,12 @@ El E2E se omite sin el stack local (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
 
 - **Certificado sin proveedor confirmado (D1).** Mientras no se sepa quién emite el SSL, el estado del
   certificado es el que deduce la comprobación TLS; si el proveedor no emite todavía, queda «pendiente».
-- **`public.tienda_dns_plataforma.ip_publica` solo valida el formato** (admite loopback, privadas u octetos
-  > 255). La carga el equipo técnico por SQL. Trazado como **MSF-797**.
-- **El timeout de 5 s de la comprobación TLS no cierra el socket colgado** (acotado por el límite de una
-  verificación cada 10 s). Trazado como **MSF-797**.
-- **La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión
-  restaurable todavía referencia**; `public.rutas_tienda_sin_referencia` es solo el filtro del servidor y la
-  limpieza del cliente es un consejo. Trazado como **MSF-796**.
+- **Resuelto (MSF-797):** `public.tienda_dns_plataforma.ip_publica` tiene un CHECK (`private.ip_publica_valida`) contra rangos no públicos
+  y octetos fuera de 0–255; se admiten TEST-NET-2/3 porque el seed las usa. `preparar_verificacion_tienda` responde `plataforma_no_configurada`
+  (la Edge Function, 503) si la fila no es pública. La carga sigue siendo del equipo técnico por SQL.
+- **Resuelto (MSF-797):** la comprobación TLS (`tls.ts`) cierra siempre la conexión, también la que llega tras el timeout de 5 s.
+- **Resuelto (MSF-796):** la política de borrado del bucket `tienda-identidad` no deja borrar un objeto referenciado por la identidad
+  publicada, el borrador o alguna versión.
 - **Bucket de lectura pública:** los logos y banners de un borrador o de una versión vieja son legibles por
   quien conozca la ruta (lleva UUID, no adivinable). Aceptado y documentado: no son confidenciales a nivel de
   almacenamiento.
