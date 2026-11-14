@@ -12,6 +12,11 @@ type CargaInfinitaProps = {
   onCargarMas: () => void
   // Texto de fin de lista; sin filas mostradas no se dibuja.
   mostrarFin?: boolean
+  // Texto de fin de lista propio de la pantalla (p. ej. «Llegaste al final de tus favoritos»); sin él, «No hay más resultados.».
+  // Es el que recibe el foco al terminar la lista y el que anuncia la región viva.
+  textoFin?: string
+  // Qué son las filas, para el anuncio «N … más cargados» («productos» por defecto; p. ej. «favoritos»).
+  sustantivo?: string
   // Filas mostradas hasta ahora: permite anunciar «N productos más cargados» (sin esto, un aviso genérico).
   cargados?: number
   // La tanda falló por un límite de pedidos: se explica la espera y «Reintentar» queda deshabilitado hasta que
@@ -24,6 +29,8 @@ const OCULTO_VISUAL = {
   border: 0, clip: 'rect(0 0 0 0)', height: '1px', margin: '-1px', overflow: 'hidden', padding: 0, position: 'absolute', whiteSpace: 'nowrap', width: '1px',
 } as const
 
+const TEXTO_FIN = 'No hay más resultados.'
+
 // Margen para pedir la tanda siguiente un poco antes de llegar al final del scroll.
 const MARGEN_ANTICIPO = '400px'
 
@@ -32,7 +39,7 @@ const MARGEN_ANTICIPO = '400px'
 // teclado (y la única vía donde no hay `IntersectionObserver`). Accesibilidad: el botón sigue montado
 // (`aria-disabled`/`aria-busy`) mientras carga para que el foco no caiga al body; al terminar la lista el foco
 // pasa al texto de fin; y una región viva siempre presente anuncia el progreso con texto.
-export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas, mostrarFin = true, cargados, espera = null }: CargaInfinitaProps) {
+export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas, mostrarFin = true, textoFin = TEXTO_FIN, sustantivo = 'productos', cargados, espera = null }: CargaInfinitaProps) {
   const centinela = useRef<HTMLDivElement | null>(null)
   const fin = useRef<HTMLParagraphElement | null>(null)
   // El foco está en «Cargar más» o en el error con «Reintentar»: al cambiar de uno al otro se devuelve (no cae al body).
@@ -84,13 +91,13 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
     } else if (!hayMas) {
       const nuevos = cargados !== undefined && antes !== undefined ? cargados - antes : 0
       // Sin pie de fin (lista vacía de una pantalla del panel) no se anuncia el fin: sería ruido.
-      const fin = mostrarFin ? 'No hay más resultados' : ''
-      setAnuncio(nuevos > 0 ? `${nuevos} productos más cargados${fin ? `. ${fin}` : ''}` : fin)
+      const fin = mostrarFin ? textoFin.replace(/\.$/, '') : ''
+      setAnuncio(nuevos > 0 ? `${nuevos} ${sustantivo} más cargados${fin ? `. ${fin}` : ''}` : fin)
     } else {
       const nuevos = cargados !== undefined && antes !== undefined ? cargados - antes : 0
-      setAnuncio(nuevos > 0 ? `${nuevos} productos más cargados` : '')
+      setAnuncio(nuevos > 0 ? `${nuevos} ${sustantivo} más cargados` : '')
     }
-  }, [cargando, hayError, hayMas, cargados, espera, mostrarFin])
+  }, [cargando, hayError, hayMas, cargados, espera, mostrarFin, textoFin, sustantivo])
 
   // Si el control enfocado desaparece (el botón porque no hay más; «Reintentar» porque se vuelve a pedir; «Cargar más»
   // porque la tanda falló) el foco pasa al que lo reemplaza o al texto de fin, nunca al body.
@@ -158,7 +165,7 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
       </Box>
       {terminado && mostrarFin ? (
         <Typography ref={fin} tabIndex={-1} variant="xs" color="text.secondary" align="center" component="p" sx={{ outline: 'none' }}>
-          No hay más resultados.
+          {textoFin}
         </Typography>
       ) : null}
     </Box>

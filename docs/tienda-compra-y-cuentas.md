@@ -142,6 +142,85 @@ ni se cuenta, pero **no se borra** y reaparece al volver a publicarse. Muestra s
 | `supabase/tests/database/tienda_favoritos.test.sql` | alternar idempotente, tope 200, producto oculto/inactivo/ajeno/inexistente idénticos, aislamiento entre cuentas y entre tiendas del mismo cliente, oculto no se lista y reaparece, cursor forjado, orden «nuevos primero» con empates y un alta y una baja entre páginas, quitar el mismo producto en tres cuentas sin cruzarlas, tope contando solo visibles, quitar con el producto oculto, lista vacía, `favoritos_entre` ≤ 50, bandera apagada, tabla sin privilegios de API, FK compuestas, `anon` sin `execute`, `search_path` vacío |
 | `supabase/tests/database/tienda_historial.test.sql` | solo lo del cliente y la tienda, sin borradores, notas de crédito negativas, estado público, vencido por Buenos Aires, IDOR idéntico a inexistente, lista blanca exacta por claves, cursor y límite (tope de 50 con más de 50 comprobantes, desempate por id con límite 1), lista vacía, nota de crédito con líneas negativas, el «hoy» de Buenos Aires (sin `current_date` ni `now()`), suspensión inmediata, bandera apagada |
 
+### Front de A (`apps/web`)
+
+**Qué es.** El cliente con cuenta web **activa** entra a `/mi-cuenta` y ve sus compras y presupuestos de esa tienda y sus favoritos; guarda favoritos desde la ficha. Favoritos e historial son por tienda (D-2); el operador del panel no los ve (D-11). Las llamadas van contra el contrato de las RPC `publico.*` de arriba.
+
+### Front: capacidades y bandera
+
+- Con `tienda_pedidos` **apagada** la tienda no muestra «Mi cuenta», «Mi lista»
+  ni «Guardar en favoritos», y `/mi-cuenta` responde la página «no encontrada». El servidor lo impone en cada RPC; el front solo lo
+  refleja.
+- El front público no puede leer la bandera (`public.banderas_plataforma` no es legible por `anon`): la conoce por
+  `publico.capacidades_tienda_por_dominio(host)` (D-27), que devuelve solo `{estado, pedidos}`.
+  `lib/tiendaCapacidades.ts` hace **una llamada por host** (la comparten encabezado, menú, ficha y rutas) y
+  `hooks/useCapacidadesTienda.ts` la expone como `cargando | error | lista`. Mientras no responde, o si falla, **no se dibuja nada
+  de la épica** (ni deja un hueco reservado).
+- Cómo encenderla: ver «Encender y apagar en dev» arriba (`scripts/tienda-pedidos-dev.mjs`, solo dev, D-24).
+
+### Front: pantallas (spec «Pantallas y textos»)
+
+| Pantalla | Dónde vive | Comportamiento |
+|---|---|---|
+| **P-1** Encabezado | `layout/AccesoCliente.tsx`, `layout/MenuMovil.tsx` | Con cuenta activa y la función encendida suma «Mi cuenta» (a `/mi-cuenta`) junto a «Salir». Sin sesión sigue «Ingresar». En celular y tableta (bajo `md`) el «Salir» pasa al menú ☰, que suma «Mi cuenta», «Mi lista» y «Salir» al final (con la función apagada, «Salir» queda en el encabezado como siempre). «Mi lista» enlaza a `/lista`, que construye la historia B1. |
+| **P-2** Ficha | `cuenta/BotonFavorito.tsx` en `ficha/DatosProducto.tsx` | «Guardar en favoritos» / «Quitar de favoritos» (`aria-pressed`) debajo de los botones, último en la tabulación. El estado de todos los productos de la pantalla sale de **una sola** llamada (`favoritos_entre_por_dominio`, `hooks/useFavoritosEntre.ts`). Sin sesión es un enlace a `/ingresar?volver=<ficha>` con «Ingresá para guardar tus favoritos». Avisos en `Snackbar` (`aria-live` polite para confirmar, assertive para errores). |
+| **P-3** `/mi-cuenta` | `rutas/mi-cuenta.tsx` y `cuenta/*` | Pestañas «Compras y presupuestos» y «Favoritos» (`?seccion=compras\|favoritos`); el detalle de un comprobante viaja en `?compra=<id>`. Una pestaña ya visitada queda cargada hasta salir de la página. |
+
+**Compras y presupuestos** (`cuenta/HistorialMiCuenta.tsx`, `cuenta/DetalleCompra.tsx`): tabla de cinco columnas desde `md` y
+tarjetas debajo; tandas de 20 con carga infinita («Cargar más» operable con teclado); contador total; **estado público** con
+`Chip` (texto y color: Pendiente, Aceptado, Vencido, Anulado, Confirmada, Anulada, Nota de crédito); total **con IVA**. Nunca se
+muestran cobro ni despacho (D-10). El detalle es un `Dialog` (a pantalla completa bajo `md`) con la lista blanca del contrato:
+descripción, código, cantidad, precio unitario, subtotal y totales. Un comprobante ajeno o inexistente muestra lo mismo: «No
+encontramos ese comprobante».
+
+**Favoritos** (`cuenta/FavoritosMiCuenta.tsx`): miniatura con zoom (`MiniaturaProducto`), nombre (enlace a la ficha),
+disponibilidad, precio según la cuenta (o «Precio a confirmar») y «Quitar» con «Deshacer». Un favorito cuyo producto dejó de
+ser visible no se lista (el servidor lo omite; no se borra y vuelve si se republica). «Agregar a la lista» **todavía no se
+dibuja**: lo suma la historia B1 (T039), que es la que crea la lista.
+
+**Redirecciones y errores de acceso.** Sin sesión, o con una cuenta que no está activa y habilitada en esa tienda,
+`/mi-cuenta` redirige a `/ingresar?volver=<ruta y pestaña>` **sin decir el motivo** (el servidor no lo distingue), y **solo** cuando ya se sabe que la función está encendida: con las capacidades pendientes muestra la carga, con la función apagada un anónimo ve la 404 (FR-014) y con un error al leerlas, el error con reintento. Si la cuenta se
+suspende o se da de baja con la pantalla abierta, el **primer** error de acceso reemplaza todo el contenido por «Tu cuenta no está
+activa en esta tienda» (con «Ir a Contacto» y «Salir») y no deja ningún dato anterior en pantalla (FR-011).
+
+### Front: `?volver=` sin redirección abierta
+
+`rutas/ingresar.tsx` acepta `?volver=` **solo** con rutas internas (`lib/tiendaVolver.ts`, `rutaVolverSegura`): empieza con `/`, no
+con `//` ni `/\`, no contiene `:` (esquemas) ni `\`, ni caracteres de control o espacios, ni `//` en ningún lado, ni segmentos `.` o
+`..` (un navegador normaliza `/..//x` a `//x`), ni `%5C`, `%2F` o `%2E`; y la propia `/ingresar` no es destino. Cualquier otro valor se
+ignora y se vuelve a la portada, como antes.
+
+### Front: capa de datos
+
+`lib/tiendaCuentaDatos.ts` llama a las cinco RPC de la historia (`mis_compras_por_dominio`, `mi_compra_por_dominio`,
+`mis_favoritos_por_dominio`, `cambiar_favorito_por_dominio`, `favoritos_entre_por_dominio`). Ninguna manda cliente, cuenta ni
+empresa: eso lo decide el servidor con `private.cuenta_de_tienda(host)`. Acomoda cada respuesta con una **lista blanca** de
+campos (lo que el contrato no nombra no llega a la pantalla) y traduce los errores a un `ErrorCuentaTienda` con código
+`sin_acceso` (la UI lo trata como «cuenta no activa») o `error`, con mensajes en castellano y sin texto de Postgres. Los
+listados usan `hooks/useListadoPorCursor.ts`: carga infinita por cursor `(fecha, id)` / `(creado, id)` (el cursor solo ordena),
+igual que `useCatalogoPublico`; `useListadoAcumulado` acumula por número de página y no sirve con un cursor. El fin de lista lo dice
+`CargaInfinita` con su prop `textoFin` (el foco va a ese texto al terminar). Los importes de comprobantes llevan centavos
+(`formatearImporteArs`).
+
+**Imágenes.** `lib/imagenProducto.ts` firma las miniaturas con un cliente **sin sesión** (`supabaseSinSesion`, rol `anon`): en `storage.objects` de `productos-imagenes` la política de `authenticated` exige ser miembro del panel y la de lectura pública es solo para `anon`, así que un cliente de la tienda con sesión no podría firmar. La vista previa del panel sigue firmando con la sesión de quien edita. Si una miniatura falla al cargar (la URL dura 1 h) se pide una URL nueva, una sola vez.
+
+**Sesión compartida.** El encabezado, el menú y la ficha preguntan lo mismo en la misma página: `hooks/useSesionCliente.ts` hace UNA
+consulta por host mientras haya algún uso montado (comparte la promesa y el resultado; un aviso de Auth la descarta). `useSesionCliente`
+conserva su contrato; `useSesionClienteDetallada` suma `falla`, `reintentar` y `version` (cuenta ingresos y salidas, para que lo de una
+persona no sobreviva al cambio: `useFavoritosEntre` lo toma como parte de su clave y se vacía al dejar de estar activo).
+
+### Front: pruebas (Vitest, axe y E2E)
+
+- **Vitest + axe** a 320, 768 y 1440 px (`test/ancho.ts` fija el ancho de `matchMedia`): `lib/tiendaCapacidades.test.ts`,
+  `lib/tiendaCuentaDatos.test.ts`, `lib/tiendaVolver.test.ts`, `hooks/useListadoPorCursor.test.tsx`,
+  `pages/tienda-publica/layout/AccesoCliente.test.tsx`, `rutas/ingresar.test.tsx`, `rutas/mi-cuenta.test.tsx`,
+  `cuenta/BotonFavorito.test.tsx`, `cuenta/MiCuentaPantallas.test.tsx`, `hooks/useSesionCliente.test.tsx`, `hooks/useFavoritosEntre.test.tsx` y `hooks/useCapacidadesTienda.test.tsx`. Cubren cada estado (cargando, vacío, error, error al pedir más,
+  fin de lista, sin acceso, función apagada), el aislamiento por tienda (cambiar de host descarta lo anterior) y que ninguna clave de
+  costo, margen, descuento ni operador llega a la pantalla. `cuenta/favoritosSoloEnLaTienda.test.ts` vigila que el panel
+  no mencione favoritos (ficha e historial del cliente) ni llame a sus RPC; el aislamiento del lado del servidor (los favoritos no tienen
+  privilegios de API) lo prueba el pgTAP de la historia del SQL.
+- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; corrió de verdad con el SQL de #955 en la base del CI: los cuatro casos pasan): ingresar con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda no entra en la otra; 200 comprobantes por tandas de 20. En el stack del CI `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`, así que el spec da de alta los clientes y suspende la cuenta **como una persona del panel** (administrador de la organización del seed, con su sesión y RLS) y solo usa la service-role para vincular la cuenta web. Se omite si la base no tiene las RPC de la épica. La bandera `tienda_pedidos` es **global**: el spec la enciende en `beforeAll` y la restaura en `afterAll`; si el proceso muere entre medio, en una base local queda **encendida** (apagarla con `scripts/tienda-pedidos-dev.mjs apagar --entorno dev` o un `update` sobre `public.banderas_plataforma`).
+
 ## Seguridad: qué no hace A
 
 - No recibe identidades del llamador (cliente, cuenta, empresa, organización): el cursor y los ids solo ordenan o buscan dentro de lo propio.
@@ -151,5 +230,4 @@ ni se cuenta, pero **no se borra** y reaparece al volver a publicarse. Muestra s
 
 ## Pendiente de las otras historias
 
-B1 (lista de pedido) y B2 (presupuesto desde la tienda) tienen su sección cuando se implementen; el front de A (`/mi-cuenta`, favoritos en la ficha, «Mi cuenta» en
-el encabezado) se documenta aquí cuando se entregue.
+B1 (lista de pedido) y B2 (presupuesto desde la tienda) tienen su sección cuando se implementen. «Mi lista» (menú móvil) y «Agregar a la lista» (Favoritos) no se dibujan hasta que exista la lista de pedido: B1 (T039/T040) pone `LISTA_DE_PEDIDO_DISPONIBLE` en `true` junto con la ruta `/lista`.
