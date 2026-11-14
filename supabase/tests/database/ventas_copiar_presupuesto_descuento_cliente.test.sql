@@ -208,6 +208,22 @@ select pg_temp.como('f9000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('o_cruzado')), '22023', null,
   'un presupuesto con un cliente de otra organización no se copia (el descuento de la org 2 no se filtra a la org 1)');
 
+-- Producto exento de IVA (hallazgo de la revisión R125: un mutante que ignoraba `alicuota_exenta` en la copia sobrevivía):
+-- la copia no suma IVA y coincide con el original del mostrador.
+reset role;
+insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo, alicuota_iva_id)
+select 'b9000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'Producto exento', 'S2-6', 'ARS', 1000,
+       'c1900000-0000-0000-0000-000000000001', null, true, a.id
+  from dominio.alicuotas_iva a where a.organizacion_id = '11111111-1111-1111-1111-111111111111' and a.exento limit 1;
+select pg_temp.como('f9000000-0000-0000-0000-000000000001');
+select pg_temp.original('o_ex', 'a9000000-0000-0000-0000-000000000001', 'c9000000-0000-0000-0000-000000000003', jsonb_build_array(pg_temp.l(6, 2)));
+select pg_temp.copiar('k_ex', 'o_ex');
+select is(pg_temp.totales('k_ex'), pg_temp.totales('o_ex'), 'producto exento: la copia tiene los mismos totales que el original del mostrador');
+select is(split_part(pg_temp.totales('k_ex'), '|', 1), split_part(pg_temp.totales('k_ex'), '|', 2),
+  'producto exento: la copia no suma IVA (total con IVA igual al total sin IVA)');
+select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('k_ex') and iva = 0 and alicuota_porcentaje = 0 and descuento_pct = 15), 1,
+  'producto exento con cliente 15 %: línea con iva 0, alícuota 0 y descuento_pct 15');
+
 -- Organización 2: descuento 20 % sobre lista 500 = 400, igual a la promoción 400: la promoción no gana (no es menor).
 select pg_temp.como('f9200000-0000-0000-0000-000000000001');
 select pg_temp.original('o_dos', 'a9200000-0000-0000-0000-000000000001', 'c9200000-0000-0000-0000-000000000001',
