@@ -110,6 +110,28 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     expect(getComputedStyle(within(contacto).getByRole('link', { name: 'Escribinos' })).textDecoration).toBe('underline')
   })
 
+  // MSF-849 (N-01): el logo del pie va con sus colores sobre un recuadro blanco redondeado (un PNG de fondo opaco invertido era un bloque blanco).
+  it('el logo del pie se dibuja sobre un recuadro blanco redondeado, sin invertirlo', async () => {
+    montar('/')
+    const caja = await screen.findByTestId('pie-logo')
+    expect(getComputedStyle(caja).backgroundColor).toBe('rgb(255, 255, 255)')
+    expect(getComputedStyle(caja).borderRadius).toBe('8px')
+    const logo = within(caja).getByRole('img', { name: 'Mundo JC' })
+    expect(getComputedStyle(logo).height).toBe('36px')
+    expect(getComputedStyle(logo).filter).not.toContain('invert')
+  })
+
+  // MSF-849: indicador de foco único (enlaces, botones y selectores de la tienda): contorno primario de 2 px en `:focus-visible`.
+  it('la tienda define un contorno de foco visible del color primario para enlaces, botones y selectores', async () => {
+    montar('/')
+    await screen.findByText('Portada')
+    const css = () => Array.from(document.querySelectorAll('style')).map((st) => st.textContent).join('')
+    // La identidad llega después del primer pintado: se espera al color primario de la tienda.
+    await waitFor(() => expect(css()).toMatch(/html a:focus-visible,[^{]*\{outline:2px solid #C8102E;outline-offset:2px/i))
+    expect(css()).toMatch(/html a:focus-visible,html button:focus-visible,html \[role=\\?"button\\?"\]:focus-visible,html \[role=\\?"combobox\\?"\]:focus-visible\{/)
+    expect(css()).toMatch(/html footer a:focus-visible,html \[data-testid=\\?"barra-superior\\?"\] a:focus-visible\{outline-color:currentColor/)
+  })
+
   // MSF-847: la tabulación sigue el orden visual del encabezado de celular: menú, marca, buscador y, al final, «Ingresar».
   it('en celular el botón de menú va antes que la marca en el DOM (orden de tabulación = orden visual)', async () => {
     celular(true)
@@ -245,7 +267,7 @@ describe('pie oscuro (MSF-841)', () => {
     mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, eslogan: 'Accesorios y repuestos', pie: 'Envíos a todo el país' })
     montar('/')
     const pie = await screen.findByTestId('pie-tienda-layout')
-    expect(await within(pie).findByRole('img', { name: 'Mundo JC' })).toHaveStyle({ filter: 'brightness(0) invert(1)' }) // logo en blanco: pide PNG/SVG con fondo transparente
+    expect(await within(pie).findByRole('img', { name: 'Mundo JC' })).not.toHaveStyle({ filter: 'brightness(0) invert(1)' }) // el logo va con sus colores sobre un recuadro blanco (vale con fondo opaco)
     expect(await within(pie).findByText('Accesorios y repuestos')).toBeInTheDocument()
     expect(within(pie).getAllByText('Envíos a todo el país')).toHaveLength(1)
     expect(screen.getAllByText('Envíos a todo el país')).toHaveLength(1)

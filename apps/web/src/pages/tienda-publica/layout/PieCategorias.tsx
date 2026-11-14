@@ -43,7 +43,11 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
         <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: { xs: 3, md: 6 } }}>
           <Box sx={{ maxWidth: 340, minWidth: 0 }}>
             {logo ? (
-              <Box component="img" src={logo} alt={empresaNombre} sx={{ display: 'block', height: 44, width: 'auto', maxWidth: '100%', filter: 'brightness(0) invert(1)' /* estilos-sueltos: ok */ }} />
+              // El logo va con sus colores sobre un recuadro blanco redondeado (de 44 px de alto en total, como el logo del prototipo): vale
+              // para cualquier logo (transparente u opaco); invertirlo a blanco dejaba un bloque sólido cuando el PNG tenía fondo.
+              <Box data-testid="pie-logo" sx={{ display: 'inline-flex', maxWidth: '100%', bgcolor: '#FFFFFF', borderRadius: '8px', px: '8px', py: '4px', boxSizing: 'border-box' /* estilos-sueltos: ok */ }}>
+                <Box component="img" src={logo} alt={empresaNombre} sx={{ display: 'block', height: 36, width: 'auto', maxWidth: '100%', objectFit: 'contain' /* estilos-sueltos: ok */ }} />
+              </Box>
             ) : (
               <Typography component="p" sx={{ fontWeight: 700, fontSize: 20, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{empresaNombre}</Typography>
             )}
