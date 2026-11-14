@@ -16,6 +16,7 @@ const ESTADO_ULTIMO: Record<string, string> = {
   pendiente: 'se está enviando',
   sin_destinatario: 'no había administradores con correo para recibirlo',
   pausado: 'estaba pausado',
+  vencido: 'no llegó a enviarse a tiempo y se descartó',
 }
 
 export function textoProximoEnvio(iso: string): string {

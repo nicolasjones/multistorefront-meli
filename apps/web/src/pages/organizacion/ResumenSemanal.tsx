@@ -15,18 +15,22 @@ export function ResumenSemanalOrganizacion() {
   const [guardando, setGuardando] = useState(false)
   const [errorCambio, setErrorCambio] = useState(false)
 
-  const cargar = useCallback(async () => {
-    setCarga({ tipo: 'cargando' })
+  // `silencioso`: refresco tras un cambio. No pasa por «cargando» (eso desmontaría el interruptor y le sacaría el foco al
+  // teclado): se actualiza el estado en el lugar y, si el refresco falla, se conserva lo que ya se veía.
+  const cargar = useCallback(async (silencioso = false) => {
+    if (!silencioso) setCarga({ tipo: 'cargando' })
     try {
       const { data, error } = await supabaseClient.rpc('estado_resumen_semanal')
       const fila = Array.isArray(data) ? (data[0] as EstadoResumen | undefined) : undefined
       if (error || !fila) {
-        setCarga({ tipo: 'error' })
+        if (!silencioso) setCarga({ tipo: 'error' })
+        else setErrorCambio(true)
         return
       }
       setCarga({ tipo: 'listo', estado: fila })
     } catch {
-      setCarga({ tipo: 'error' })
+      if (!silencioso) setCarga({ tipo: 'error' })
+      else setErrorCambio(true)
     }
   }, [])
 
@@ -44,7 +48,7 @@ export function ResumenSemanalOrganizacion() {
         setErrorCambio(true)
         return
       }
-      await cargar()
+      await cargar(true)
     } catch {
       setErrorCambio(true)
     } finally {
@@ -69,7 +73,8 @@ export function ResumenSemanalOrganizacion() {
             control={(
               <Switch
                 checked={carga.estado.activo}
-                disabled={guardando}
+                // Sin `disabled` mientras guarda: un control con el foco que se deshabilita lo pierde (`cambiar` ya ignora el doble clic).
+                slotProps={{ input: { 'aria-busy': guardando } }}
                 onChange={(event) => void cambiar(event.target.checked)}
               />
             )}

@@ -45,6 +45,23 @@ describe('Resumen semanal por correo en Mi organización (F-REP-08)', () => {
     expect(screen.getByText('No se envía ningún resumen hasta que lo reactives.')).toBeInTheDocument()
   })
 
+  it('al cambiar el interruptor conserva el control y el foco (refresco silencioso, sin pasar por «cargando»)', async () => {
+    render(<ResumenSemanalOrganizacion />)
+    const interruptor = await screen.findByRole('checkbox', { name: 'Resumen semanal activo' })
+    interruptor.focus()
+    expect(interruptor).toHaveFocus()
+    rpc.mockImplementation(async (nombre: string) => (
+      nombre === 'estado_resumen_semanal' ? { data: [estado({ activo: false })], error: null } : { data: false, error: null }
+    ))
+    fireEvent.click(interruptor)
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Resumen semanal pausado' })).not.toBeChecked())
+    // Sigue siendo el mismo nodo (no se desmontó) y conserva el foco; nunca apareció el estado de carga.
+    const despues = screen.getByRole('checkbox', { name: 'Resumen semanal pausado' })
+    expect(despues).toBe(interruptor)
+    expect(despues).toHaveFocus()
+    expect(screen.queryByRole('status', { name: 'Cargando el resumen semanal' })).not.toBeInTheDocument()
+  })
+
   it('si la base rechaza el cambio lo dice y no cambia el estado', async () => {
     render(<ResumenSemanalOrganizacion />)
     const interruptor = await screen.findByRole('checkbox', { name: 'Resumen semanal activo' })
