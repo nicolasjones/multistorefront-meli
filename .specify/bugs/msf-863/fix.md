@@ -98,6 +98,30 @@ corridos en local contra el árbol mergeado (`24d73b49`):
 | `pnpm test:edge:enviar-aviso-faltante` (lo que trae el merge de `dokploy`) | 126/126 |
 | `pnpm calidad` | oxlint / jscpd / dependency-cruiser / syncpack **ok**; gitleaks sin Docker en este entorno; knip con 6 hallazgos **preexistentes de `main`** (ver Follow-ups) |
 
+### Cuarta vuelta: re-sync con `dokploy` (`fbd3d565`)
+
+`dokploy` volvió a avanzar (43 commits, hasta `fbd3d565`, con el PR #929 ya
+mergeado) y el PR #934 volvió a quedar `CONFLICTING` / `DIRTY`. Se mergeó
+`origin/dokploy` sobre la rama sin conflictos (commit `858b85b1`, `Merge
+remote-tracking branch 'origin/dokploy' into fix/bug-MSF-863`). Tras el merge,
+la rama sólo difiere de `origin/dokploy` en estos dos informes: la fila
+«Empresa activa» de la spec 023 ya está en `dokploy` por el PR #929, así que no
+se duplica ni se re-toca la spec. No se crean migraciones.
+
+Verificado en local contra `origin/dokploy` (`fbd3d565`):
+
+| Paso | Resultado |
+|---|---|
+| `GITHUB_BASE_REF=dokploy pnpm matriz:check` | OK (0 specs nuevas revisadas) |
+| `GITHUB_BASE_REF=dokploy pnpm docs:check` | OK · `Migraciones OK: 649 archivo(s), 0 nuevo(s)` |
+| `pnpm prototipo:check` | OK (120 pantallas al día) |
+| `pnpm test:matriz:pantalla` | 10/10 |
+| `pnpm estilos:check` · `pnpm lint` | OK (warnings preexistentes) |
+
+Estado del PR tras el push (`858b85b1`): `mergeable: MERGEABLE`,
+`mergeStateStatus: BLOCKED` (ya no `CONFLICTING`/`DIRTY`); `BLOCKED` sólo por el
+check requerido `validacion` mientras corre en el runner self-hosted. El job
+`quality` pasó (1m22s).
 
 ## CI
 

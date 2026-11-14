@@ -1,14 +1,14 @@
 # Bug Verification: fila «Empresa activa» en la matriz de la spec 023
 
 - **Slug**: msf-863
-- **Tested**: 2026-11-13
+- **Tested**: 2026-11-14
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified
 
 ## Summary
 
-El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz de `specs/023-visor-componentes/spec.md`, el gate `pnpm matriz:check` pasa contra la base real del PR (`origin/dokploy`) con el mismo mensaje que daba el CI. Se reprodujo el fallo antes del arreglo (exit 1, mismo texto que el log del run 43482415728) y se comprobó que pasa después (exit 0). No hubo regresiones en los chequeos que el job `application` corre. En la tercera vuelta la rama se sincronizó con `dokploy` (merge `24d73b49`, único conflicto resuelto con el mismo contenido de la rama de integración) para dejar el PR #934 mergeable, y se volvieron a correr los 14 pasos del job `application` que no dependen de la base ni del navegador: todos en verde.
+El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz de `specs/023-visor-componentes/spec.md`, el gate `pnpm matriz:check` pasa contra la base real del PR (`origin/dokploy`) con el mismo mensaje que daba el CI. Se reprodujo el fallo antes del arreglo (exit 1, mismo texto que el log del run 43482415728) y se comprobó que pasa después (exit 0). No hubo regresiones en los chequeos que el job `application` corre. En la tercera vuelta la rama se sincronizó con `dokploy` (merge `24d73b49`, único conflicto resuelto con el mismo contenido de la rama de integración) para dejar el PR #934 mergeable, y se volvieron a correr los 14 pasos del job `application` que no dependen de la base ni del navegador: todos en verde. En la cuarta vuelta `dokploy` volvió a avanzar a `fbd3d565` y el PR regresó a `CONFLICTING`; se re-sincronizó sin conflictos (`858b85b1`) y quedó `MERGEABLE` (sólo `BLOCKED` por `validacion` en curso), con los gates locales en verde.
 
 ## Checks Performed
 
@@ -38,6 +38,25 @@ El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz
 | Tests de lo que trae el merge | `pnpm test:edge:enviar-aviso-faltante` | pass | 126/126 (configuración SMTP de PR #930/#931, traída por `dokploy`) |
 | Migraciones | `ls supabase/migrations | tail` | pass | `20270307110000_evidencias_e2e.sql` es la mayor; por encima de `20270307100000_service_role_grants_tablas_public_e2e.sql` (PR #923) |
 | Calidad determinista | `pnpm calidad` | partial | oxlint/jscpd/dependency-cruiser/syncpack **ok**; gitleaks sin Docker; knip con 6 hallazgos preexistentes de `main` (fuera de alcance) |
+
+### Cuarta vuelta: verificación tras el re-sync con `dokploy` (commit `858b85b1`)
+
+`origin/dokploy` avanzó a `fbd3d565` (43 commits, PR #929 ya mergeado) y el PR
+#934 volvió a `CONFLICTING` / `DIRTY`. Se mergeó `origin/dokploy` sobre la rama
+sin conflictos (`858b85b1`). Tras el merge sólo difieren de la base estos dos
+informes del bug: la fila «Empresa activa» de la spec 023 ya vive en `dokploy`
+por el PR #929.
+
+| Check | Command / Action | Result | Notes |
+|-------|------------------|--------|-------|
+| Merge de la base | `git merge origin/dokploy` | pass | Sin conflictos → `858b85b1`; `git diff --stat origin/dokploy..HEAD` = sólo `.specify/bugs/msf-863/{fix,test}.md` |
+| Estado del PR | `gh pr view 934 --json mergeable,mergeStateStatus` | pass | `MERGEABLE` / `BLOCKED` (ya no `CONFLICTING`/`DIRTY`); `BLOCKED` por `validacion` en curso |
+| Gate de la regla | `GITHUB_BASE_REF=dokploy pnpm matriz:check` | pass | OK (0 specs nuevas revisadas; la spec 023 ya está en la base) |
+| Docs + migraciones | `GITHUB_BASE_REF=dokploy pnpm docs:check` | pass | `Migraciones OK: 649 archivo(s), 0 nuevo(s)` |
+| Prototipo | `pnpm prototipo:check` | pass | 120 pantallas al día |
+| Tests de la regla | `pnpm test:matriz:pantalla` | pass | 10/10 |
+| Estilos / lint | `pnpm estilos:check` · `pnpm lint` | pass | Exit 0 (warnings preexistentes) |
+| Job `quality` (CI) | `gh pr checks 934` | pass | 1m22s sobre `858b85b1` |
 
 ## Output Excerpts
 
