@@ -1,5 +1,6 @@
 import { Box, Skeleton, Typography } from '@mui/material'
 import { useRelacionados } from '../../../lib/tiendaRelacionados'
+import { GrillaProductos } from '../catalogo/GrillaProductos'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
 
 // «Productos relacionados» de la ficha (F-TDA-20, FR-011/FR-012): hasta 4 de la misma categoría, en 4
@@ -9,24 +10,26 @@ export default function Relacionados({ host, productoId }: { host: string; produ
   const estado = useRelacionados(host, productoId)
   if (estado.fase === 'vacia' || estado.fase === 'error') return null
 
-  const columnas = { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(4, minmax(0, 1fr))' }
   if (estado.fase === 'cargando') {
     return (
-      <Box data-testid="relacionados-cargando" aria-hidden sx={{ mt: 6, display: 'grid', gap: 2, gridTemplateColumns: columnas }}>
-        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} variant="rounded" height={160} />)}
-      </Box>
+      <GrillaProductos columnas={4} data-testid="relacionados-cargando" aria-hidden>
+        {Array.from({ length: 4 }, (_, i) => <li key={i}><Skeleton variant="rounded" height={160} /></li>)}
+      </GrillaProductos>
     )
   }
+  // Prototipo: título de 32 px (24 px en celular) con 20 px (14 px) de aire y 56 px (24 px) de cierre.
   return (
-    <Box component="section" aria-labelledby="titulo-relacionados" sx={{ mt: 6 }}>
-      <Typography id="titulo-relacionados" component="h2" variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+    <Box component="section" aria-labelledby="titulo-relacionados" sx={{ pt: { xs: '24px', md: 0 }, pb: { xs: '24px', md: '56px' } /* estilos-sueltos: ok */ }}>
+      <Typography id="titulo-relacionados" component="h2" variant="h5" sx={{ fontSize: { xs: 24, md: 32 }, mb: { xs: '14px', md: '20px' } /* estilos-sueltos: ok */ }}>
         Productos relacionados
       </Typography>
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: columnas }}>
+      <GrillaProductos columnas={4}>
         {estado.productos.map((producto) => (
-          <TarjetaProducto key={producto.id} producto={producto} urlImagen={producto.imagen ? estado.imagenes[producto.imagen] : undefined} />
+          <li key={producto.id}>
+            <TarjetaProducto producto={producto} urlImagen={producto.imagen ? estado.imagenes[producto.imagen] : undefined} />
+          </li>
         ))}
-      </Box>
+      </GrillaProductos>
     </Box>
   )
 }

@@ -1,0 +1,64 @@
+# Subsitio PÚBLICO de la API (guía + referencia) para quien integra. Se publica en /api-publica/ del sitio de docs sin
+# credenciales; el resto del sitio (documentación técnica y de operación) sigue detrás del acceso con contraseña.
+# Se construye con `scripts/docs-api-publica.sh` (arma `docs-api-publica/` con solo estas dos páginas (la guía es la portada)). Sin repo_url,
+# sin enlaces al resto del sitio y con su propio buscador: nada de la documentación interna entra acá.
+site_name: MSF · API pública
+site_description: Guía y referencia de la API pública de MSF para quien integra otros sistemas
+site_url: https://docs.212-90-120-53.sslip.io/api-publica/
+copyright: MSF · multistorefront
+docs_dir: docs-api-publica
+site_dir: site-api-publica
+use_directory_urls: true
+
+theme:
+  name: material
+  language: es
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    logo: material/storefront-outline
+  features:
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+
+extra_css:
+  - stylesheets/msf.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search:
+      lang: es
+
+nav:
+  - Empezar con la API: index.md
+  - Referencia de la API: referencia.md

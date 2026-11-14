@@ -9,7 +9,7 @@ import { conTimeout } from '../_shared/timeout.ts'
 import { enviarConLimites, sondearConexion, TIMEOUT_CIERRE_MS, TIMEOUT_CONEXION_MS, TIMEOUT_SMTP_MS } from '../_shared/envio.ts'
 import { crearDatos } from './datos.ts'
 import { armarDeps, armarDepsDesdeEntorno, opcionesClienteServicio } from './servidor.ts'
-import { armarEnvio, armarEnvioDesdeEntorno, ConfiguracionSmtpError, opcionesDenomailer } from '../_shared/smtp.ts'
+import { armarEnvio, armarEnvioDesdeEntorno, ConfiguracionSmtpError, configDesdeEntorno, opcionesDenomailer, validarConfigSmtp, armarCorreoSmtp, asuntoRfc2047, cuerpoBase64 } from '../_shared/smtp.ts'
 import { CODIGOS_ERROR_BASE } from './codigos.ts'
 import { readFileSync } from 'node:fs'
 
@@ -607,7 +607,7 @@ describe('enviar-aviso-faltante · cableado y diagnóstico (QA PR #920)', () => 
       conectar: async () => undefined,
     })
     await ok({ para: ['a@x.com'], asunto: 'Hola\r\nBcc: z@w.com', texto: 'cuerpo' })
-    assert.deepEqual(enviados, [{ from: 'avisos@x.com', to: ['a@x.com'], subject: 'Hola Bcc: z@w.com', content: 'cuerpo' }])
+    assert.deepEqual(enviados, [{ from: 'avisos@x.com', to: ['a@x.com'], subject: 'Hola Bcc: z@w.com', mimeContent: [{ mimeType: 'text/plain; charset="utf-8"', content: 'Y3VlcnBv', transferEncoding: 'base64' }] }])
 
     let send = 0
     const sinRed = armarEnvio({
@@ -751,19 +751,19 @@ describe('enviar-aviso-faltante · seguimiento QA PR #922 (R2, R3)', () => {
     assert.deepEqual(registro.cliente, [{ connection: { hostname: 'smtp.interno', port: 2525, tls: true, auth: { username: 'u', password: 'p' } } }])
     assert.deepEqual(registro.conexion, [{ hostname: 'smtp.interno', port: 2525 }])
     assert.equal(typeof (registro.conexion[0] as { port: unknown }).port, 'number')
-    assert.deepEqual(registro.enviados, [{ from: 'avisos@x.com', to: ['a@x.com'], subject: 'a', content: 'b' }])
+    assert.deepEqual(registro.enviados, [{ from: 'avisos@x.com', to: ['a@x.com'], subject: 'a', mimeContent: [{ mimeType: 'text/plain; charset="utf-8"', content: 'Yg==', transferEncoding: 'base64' }] }])
   })
 
   it('R3: sin credenciales no hay auth; con SMTP_SONDEO=false no se sondea; sin SMTP_HOST/FROM falla claro', { timeout: 10_000 }, async () => {
     const sinAuth = montarEnvio({ SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'false', SMTP_PERMITIR_INSEGURO: 'true' })
     await sinAuth.envio({ para: ['a@x.com'], asunto: 'a', texto: 'b' })
-    assert.deepEqual(sinAuth.registro.cliente, [{ connection: { hostname: 'h', port: 587, tls: false }, debug: { allowUnsecure: true } }])
+    assert.deepEqual(sinAuth.registro.cliente, [{ connection: { hostname: 'h', port: 465, tls: false }, debug: { allowUnsecure: true } }])
     const sinSondeo = montarEnvio({ ...ENV, SMTP_SONDEO: 'false' })
     await sinSondeo.envio({ para: ['a@x.com'], asunto: 'a', texto: 'b' })
     assert.deepEqual(sinSondeo.registro.conexion, [])
     assert.equal(sinSondeo.registro.enviados.length, 1)
     const incompleto = montarEnvio({ SMTP_HOST: 'h' })
-    await assert.rejects(incompleto.envio({ para: ['a@x.com'], asunto: 'a', texto: 'b' }), /Falta configurar SMTP_HOST/)
+    await assert.rejects(incompleto.envio({ para: ['a@x.com'], asunto: 'a', texto: 'b' }), (e: Error) => e instanceof ConfiguracionSmtpError && /falta SMTP_HOST/.test(e.message))
   })
 
   it('R3: index.ts cablea el cliente de servicio (URL y clave en su lugar) y el token de AVISOS_FALTANTES_TOKEN con la sonda', { timeout: 10_000 }, async () => {
@@ -1039,5 +1039,177 @@ describe('enviar-aviso-faltante · texto plano solo con opt-in explícito (PR #9
     assert.match(ejemplo, /^SMTP_TLS=true$/m)
     assert.doesNotMatch(ejemplo, /^SMTP_TLS=false/m)
     assert.doesNotMatch(ejemplo, /^SMTP_PERMITIR_INSEGURO=/m)
+  })
+})
+
+describe('enviar-aviso-faltante · configuración SMTP validada antes de tomar la tanda', () => {
+  const invalida = () => { throw new ConfiguracionSmtpError('Configuración SMTP inválida: SMTP_TLS debe ser true o false (detalle interno).') }
+
+  it('con una configuración inválida responde 503 constante y NO toma, no cierra, no envía ni consulta pendientes (barrido y por cliente)', async () => {
+    for (const cuerpo of [{ barrer: true }, { cliente_id: ID }]) {
+      const { deps, tomas, cierres, enviados } = montar({ pendientes: [ID] })
+      let pendientes = 0
+      const original = deps.datos.pendientes
+      deps.datos.pendientes = async (tope, limite) => { pendientes += 1; return original(tope, limite) }
+      deps.validarConfiguracion = invalida
+      const res = await pedir(deps, cuerpo)
+      assert.equal(res.status, 503)
+      const json = await res.json()
+      assert.deepEqual(json, { error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' })
+      assert.equal(JSON.stringify(json).includes('SMTP_TLS'), false, 'el motivo exacto no se devuelve')
+      assert.equal(tomas.length + cierres.length + enviados.length + pendientes, 0)
+    }
+  })
+
+  it('con una configuración válida el aviso sigue su curso; sin validador (otros usos) tampoco cambia nada', async () => {
+    const { deps, enviados } = montar()
+    deps.validarConfiguracion = () => undefined
+    assert.deepEqual(await (await pedir(deps, { cliente_id: ID })).json(), { estado: 'enviado' })
+    assert.equal(enviados.length, 1)
+  })
+
+  it('el cableado real valida el entorno: SMTP_TLS inválido -> 503 sin tocar la base; SMTP_TLS=true -> sigue', async () => {
+    const llamadas: string[] = []
+    const cliente = { rpc: async (nombre: string) => { llamadas.push(nombre); return { data: nombre === 'faltantes_avisos_pendientes' ? [] : null, error: null } } }
+    const mal = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'quizas' } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+    assert.equal((await pedir(mal, { barrer: true })).status, 503)
+    assert.deepEqual(llamadas, [])
+    const sinHost = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_TLS: 'true' } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+    assert.equal((await pedir(sinHost, { barrer: true })).status, 503)
+    assert.deepEqual(llamadas, [])
+    const bien = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'true', SMTP_USER: 'u', SMTP_PASS: 'p' } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+    const res = await pedir(bien, { barrer: true })
+    assert.equal(res.status, 200)
+    assert.deepEqual(llamadas, ['cerrar_aviso_faltante', 'faltantes_avisos_pendientes'])
+  })
+
+  it('tls=false sin opt-in o con credenciales también se rechaza antes de tomar', async () => {
+    const llamadas: string[] = []
+    const cliente = { rpc: async (nombre: string) => { llamadas.push(nombre); return { data: null, error: null } } }
+    for (const extra of [{}, { SMTP_USER: 'u', SMTP_PASS: 'p', SMTP_PERMITIR_INSEGURO: 'true' }]) {
+      const deps = armarDepsDesdeEntorno({ env: (k) => ({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'false', ...extra } as Record<string, string>)[k], cliente, enviar: async () => undefined })
+      assert.equal((await pedir(deps, { cliente_id: ID })).status, 503)
+    }
+    assert.deepEqual(llamadas, [])
+  })
+})
+
+describe('enviar-aviso-faltante · errores de configuración tipados y puerto SMTP (revisión PR #936)', () => {
+  const entorno = (extra: Record<string, string | undefined>) => (k: string) => ({ SMTP_HOST: 'h', SMTP_FROM: 'f@x.com', SMTP_TLS: 'true', ...extra } as Record<string, string | undefined>)[k]
+
+  it('m1: la falta de SMTP_HOST o SMTP_FROM es un ConfiguracionSmtpError (no un Error común)', () => {
+    for (const falta of [{ SMTP_HOST: undefined }, { SMTP_FROM: undefined }, { SMTP_HOST: '' }, { SMTP_FROM: '' }]) {
+      assert.throws(() => validarConfigSmtp(entorno(falta)), (e: Error) => e instanceof ConfiguracionSmtpError && /SMTP_HOST \/ SMTP_FROM/.test(e.message), JSON.stringify(falta))
+    }
+    assert.doesNotThrow(() => validarConfigSmtp(entorno({})))
+  })
+
+  it('m1: solo un ConfiguracionSmtpError es 503 configuracion_smtp; otro error inesperado es 500 genérico, sin tomar ni gastar intentos', async () => {
+    const { deps, tomas, cierres, enviados } = montar({ pendientes: [ID] })
+    deps.validarConfiguracion = () => { throw new TypeError('detalle interno: boom') }
+    for (const cuerpo of [{ barrer: true }, { cliente_id: ID }]) {
+      const res = await pedir(deps, cuerpo)
+      assert.equal(res.status, 500)
+      const json = await res.json()
+      assert.deepEqual(json, { error: 'No se pudo validar la configuración del correo.', codigo: 'error_interno' })
+      assert.equal(JSON.stringify(json).includes('boom'), false)
+    }
+    assert.equal(tomas.length + cierres.length + enviados.length, 0)
+    deps.validarConfiguracion = () => { throw new ConfiguracionSmtpError('Configuración SMTP inválida: x') }
+    assert.equal((await pedir(deps, { cliente_id: ID })).status, 503)
+  })
+
+  it('m2: sin SMTP_PORT el puerto por defecto es 465 (TLS implícito), también con valor vacío', () => {
+    for (const puerto of [undefined, '', '  ']) {
+      const opciones = opcionesDenomailer(configDesdeEntorno(entorno({ SMTP_PORT: puerto })))
+      assert.equal(opciones.connection.port, 465, JSON.stringify(puerto))
+    }
+    assert.equal(configDesdeEntorno(entorno({ SMTP_PORT: ' 2525 ' })).port, 2525)
+  })
+
+  it('m2: un SMTP_PORT inválido (NaN, 0, negativo, decimal, > 65535, con texto) es ConfiguracionSmtpError', () => {
+    for (const puerto of ['abc', '0', '-1', '1.5', '65536', '99999', '25x', '1e3', '0x19']) {
+      assert.throws(() => validarConfigSmtp(entorno({ SMTP_PORT: puerto })), (e: Error) => e instanceof ConfiguracionSmtpError && /SMTP_PORT/.test(e.message), puerto)
+    }
+    for (const puerto of ['1', '25', '465', '587', '65535']) assert.doesNotThrow(() => validarConfigSmtp(entorno({ SMTP_PORT: puerto })), puerto)
+  })
+
+  it('m2: un puerto inválido corta antes de tomar la tanda (503) y no conecta ni envía', async () => {
+    const llamadas: string[] = []
+    const cliente = { rpc: async (nombre: string) => { llamadas.push(nombre); return { data: null, error: null } } }
+    const deps = armarDepsDesdeEntorno({ env: entorno({ AVISOS_FALTANTES_TOKEN: TOKEN, SMTP_PORT: 'abc' }), cliente, enviar: async () => undefined })
+    assert.equal((await pedir(deps, { barrer: true })).status, 503)
+    assert.deepEqual(llamadas, [])
+  })
+})
+
+describe('cuerpo y asunto del correo: codificación sin corrupción (bug de denomailer 1.6.0 con quoted-printable)', () => {
+  const decodificar = (base64: string) => Buffer.from(base64.replace(/\s+/g, ''), 'base64').toString('utf8')
+  const casos: string[] = [
+    ...Array.from({ length: 12 }, (_, i) => `- Funda de silicona (PRUEBA-MSF161-P1) ${'a'.repeat(i)} · 3 u. · Comprobante A-0001\n- ${'x'.repeat(60)} ñandú é á ü ${'a'.repeat(i)} · 1 u.`),
+    'Hola Cliente Ñandú,\n\nHola, volvió el stock.\n\nPasá por la tienda.\n',
+    `Listo 😀😀😀 ${'x'.repeat(60)} 👨‍👩‍👧 ${'x'.repeat(60)} ✅ fin`,
+    'hola\n.\nMAIL FROM:<x@y.com>\n..dos puntos\nfin',
+    'ñ'.repeat(200),
+    Array.from({ length: 30 }, (_, i) => `línea ${i} ` + 'é·'.repeat(25)).join('\n'),
+    '',
+    'solo ASCII',
+    '\r\nCRLF\rCR\nLF',
+  ]
+
+  it('el cuerpo en base64 vuelve idéntico (byte a byte, con CRLF) para cortes dentro de «·», ñ, é, emojis y líneas de solo «.»', () => {
+    for (const texto of casos) {
+      const codificado = cuerpoBase64(texto)
+      assert.equal(decodificar(codificado), texto.replace(/\r\n|\r|\n/g, '\r\n'), JSON.stringify(texto.slice(0, 40)))
+    }
+  })
+
+  it('las líneas del cuerpo miden a lo sumo 76 caracteres, van separadas por CRLF, no empiezan con «.» y solo usan el alfabeto base64', () => {
+    for (const texto of casos) {
+      const codificado = cuerpoBase64(texto)
+      for (const linea of codificado.split('\r\n')) {
+        assert.ok(linea.length <= 76, `línea de ${linea.length}`)
+        assert.equal(linea.startsWith('.'), false)
+        assert.match(linea, /^[A-Za-z0-9+/=]*$/)
+      }
+      assert.equal(codificado.includes('\n') && !codificado.includes('\r\n'), false)
+      assert.equal(/(?<!\r)\n/.test(codificado), false, 'sin LF sueltos')
+    }
+  })
+
+  it('el mensaje usa mimeContent en base64 (no `content`, que denomailer pasaría por su quoted-printable defectuoso)', () => {
+    const correo = armarCorreoSmtp({ from: 'avisos@x.com', para: ['a@x.com\r\nBcc: z@w.com'], asunto: 'Hola', texto: 'Pasá · 3 u.' })
+    assert.equal('content' in correo, false)
+    assert.deepEqual(correo.to, ['a@x.com Bcc: z@w.com'])
+    assert.equal(correo.mimeContent.length, 1)
+    assert.equal(correo.mimeContent[0].transferEncoding, 'base64')
+    assert.equal(correo.mimeContent[0].mimeType, 'text/plain; charset="utf-8"')
+    assert.equal(decodificar(correo.mimeContent[0].content), 'Pasá · 3 u.')
+  })
+
+  it('el asunto ASCII pasa igual; el no ASCII va en palabras RFC 2047 base64 de a lo sumo 75 caracteres, sin partir un carácter, y decodifica igual', () => {
+    assert.equal(asuntoRfc2047('Ya tenemos stock de lo que pediste'), 'Ya tenemos stock de lo que pediste')
+    for (const asunto of ['Ya tenemos stock de lo que pediste · ñandú', 'Ñ'.repeat(80), '😀'.repeat(40), `Pedido ${'á'.repeat(100)} 👨‍👩‍👧 fin`, '=?utf-8?Q?ya codificado?=']) {
+      const codificado = asuntoRfc2047(asunto)
+      assert.equal(codificado.startsWith(' '), true, 'el espacio inicial evita que denomailer lo recodifique')
+      const palabras = codificado.trim().split('\r\n ')
+      const decodificado = palabras.map((palabra) => {
+        assert.ok(palabra.length <= 75, `palabra de ${palabra.length}`)
+        const m = /^=\?UTF-8\?B\?([A-Za-z0-9+/=]+)\?=$/.exec(palabra)
+        assert.ok(m, palabra)
+        const texto = Buffer.from(m[1], 'base64').toString('utf8')
+        assert.equal(texto.includes('�'), false, 'sin caracteres partidos')
+        return texto
+      }).join('')
+      assert.equal(decodificado, asunto)
+    }
+  })
+
+  it('la primera línea de cabecera del asunto codificado mide a lo sumo 78 caracteres (RFC 5322) y las siguientes también', () => {
+    for (const asunto of ['Ya tenemos stock de lo que pediste · ñandú', 'Ñ'.repeat(80), '😀'.repeat(40), `Pedido ${'á'.repeat(100)} 👨‍👩‍👧 fin`, 'é'.repeat(300)]) {
+      // `Subject: ` (lo escribe denomailer) + el asunto, que ya trae su espacio inicial: «Subject:   » antes de la primera palabra.
+      const lineas = `Subject: ${asuntoRfc2047(asunto)}`.split('\r\n')
+      for (const linea of lineas) assert.ok(linea.length <= 78, `línea de ${linea.length}`)
+    }
   })
 })

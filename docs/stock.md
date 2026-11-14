@@ -1,10 +1,45 @@
-# Stock · movimientos, historial, mínimo y sin negativos (épica MSF-136)
+---
+owner: producto
+sources:
+  - specs
+---
 
-Spec: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre F-STK-02 (MSF-153): existencias,
-registro de movimientos y motivos. El mínimo y los estados (F-STK-05), la prevención de negativos (F-STK-06) y el
-historial inmodificable (F-STK-03) tienen su sección más abajo.
+# Stock · movimientos, alertas e historial (MSF-136 y MSF-231)
+
+Spec de base: `specs/20261017-120000-stock-movimientos/` (épica MSF-136). Esta guía cubre F-STK-02 (MSF-153):
+existencias, registro de movimientos y motivos. El mínimo y los estados (F-STK-05), la prevención de negativos
+(F-STK-06) y el historial inmodificable (F-STK-03) tienen su sección más abajo. La épica MSF-231 (stock único y
+alertas) tiene su [guía de producto](producto/stock-unico-y-alertas.md) y su
+[guía técnica](tecnico/stock-unico-y-alertas.md); acá queda el resumen y los enlaces.
 
 Recorrido E2E de cierre (SC-001): `apps/web/e2e/stock-movimientos.e2e.ts` (ver `docs/e2e-app.md`).
+
+## Qué resuelve
+
+Que el equipo pueda registrar entradas, salidas y ajustes de cualquier producto, definir su mínimo, consultar el
+historial completo e inmodificable y confiar en que el stock nunca queda en negativo. El stock es **único por
+organización** y compartido entre empresas.
+
+## Para quién
+
+| Persona | Qué hace |
+|---------|----------|
+| **Operador/a con edición en Stock** | Registra movimientos, edita el mínimo y ve el historial y las alertas |
+| **Consulta o cualquier rol sin edición** | Ve cantidades, estados, mínimo e historial en solo lectura; no registra ni edita |
+| **Administrador/a** | Además, edita los motivos de movimiento (alta, renombre, tipos y activar/desactivar) |
+
+## Límites
+
+- No hay stock por empresa: una sola cantidad por producto, compartida entre empresas y canales. Los **depósitos**
+  (F-STK-14), los **traslados** (F-STK-15) y las **reservas de productos a pedido** (F-STK-16) llegan con MSF-292
+  (ver abajo); los **lotes y la toma de inventario** son de MSF-131; la **carga inicial por planilla**, la
+  **exportación a CSV** y los **avisos de reposición** son de MSF-368 (ver más abajo).
+- Los movimientos **no se editan ni se borran**; una corrección es un movimiento nuevo (ajuste).
+- La fecha no puede ser futura y el responsable lo pone el servidor.
+- El historial muestra el producto aunque no se tenga acceso a Catálogo («Producto no disponible»).
+
+Los contratos técnicos (tablas, RPC, RLS, inmutabilidad, pruebas y reversión) están en
+[Stock · movimientos, historial y estados](tecnico/stock-movimientos.md).
 
 ## Modelo (esquema `dominio`, Principio VII)
 
@@ -46,7 +81,19 @@ recibe ningún privilegio.
   muestra el stock resultante antes de confirmar, el responsable, deshabilita el doble envío y confirma «Movimiento
   registrado».
 - `/stock/motivos` (Administrador): alta, renombre, tipos a los que aplica y activar/desactivar. Operador y Consulta no
-  ven el acceso ni la pantalla.
+  ven el acceso ni la pantalla. Desde MSF-189 la misma lista se edita en **Administración → Listas
+  configurables** (`/configuracion/listas`); los cambios se ven en ambos lugares.
+
+## Ingreso de mercadería por proveedor (MSF-219)
+
+La tercera pestaña de Stock, **Ingreso de mercadería** (`/stock/ingresos`), registra la mercadería que llega de
+un proveedor. No calcula stock: por cada línea llama a `public.registrar_movimiento_stock` con tipo `entrada` y
+el motivo «Compra a proveedor»; la cabecera, las líneas, los movimientos, el costo opcional y el evento son
+atómicos. La anulación crea una `salida` por línea con el motivo «Anulación de ingreso de mercadería» y, si no
+alcanza el stock, no anula nada. El ingreso **no elige depósito**: entra al depósito por defecto. Con MSF-292 la
+anulación devuelve la mercadería al depósito donde entró (no al por defecto de ese momento). Detalle:
+[Ingreso de mercadería por proveedor](producto/ingreso-de-mercaderia.md) y
+[modelo, RPC y flujos](tecnico/ingreso-de-mercaderia.md).
 
 ## Stock mínimo y estados (F-STK-05, MSF-194)
 
@@ -64,6 +111,9 @@ Migración `20261017160000_stock_minimo_y_estados.sql` (aditiva, sin tablas nuev
   | `sin_stock` | `cantidad = 0` (aunque el mínimo sea 0) |
   | `stock_bajo` | `0 < cantidad <= minimo` |
   | `disponible` | `cantidad > minimo` (con mínimo 0, cualquier cantidad > 0) |
+
+  Con MSF-292 el estado se calcula sobre el **disponible** (`cantidad − reservado`) en lugar de la cantidad; con
+  `reservado = 0` el resultado es idéntico (ver «Depósitos, traslados y reservas» más abajo).
 
 - `/stock` lee de `stock_estados`: columnas mínimo, estado y último movimiento; búsqueda por nombre o SKU (el texto se
   sanea antes de armar el filtro); filtro por estado; aviso «N productos sin stock y M con stock bajo» con «Ver solo
@@ -119,6 +169,9 @@ encabezado de cada migración.
 
 pgTAP `supabase/tests/database/stock_movimientos.test.sql` (roles, aislamiento, escritura directa, motivos, actividad,
 `anon`), `stock_minimo_estados.test.sql` (F-STK-05: estados en los bordes, permisos, evento, aislamiento) y `stock_sin_negativos.test.sql` (F-STK-06); Vitest en `apps/web/src/lib/stock.test.ts` y `apps/web/src/pages/stock/*.test.tsx`.
+MSF-231 suma pgTAP `stock_cola_eventos.test.sql` y `stock_realtime.test.sql`, Vitest
+`useExistenciasRealtime.test.tsx` y `pages/stock/list.test.tsx`, y los E2E `stock-concurrencia.e2e.ts` y
+`stock-actual-vivo.e2e.ts` (requieren Supabase local; no corren en el CI público).
 
 ## Historial de movimientos (F-STK-03)
 

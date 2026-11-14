@@ -76,6 +76,73 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     Reflect.deleteProperty(window, 'matchMedia')
   })
 
+  // MSF-847: la capa de 100vw del héroe y sus franjas inclinadas no pueden ensanchar la página.
+  it('el layout recorta el desborde horizontal (overflow-x: clip)', async () => {
+    montar('/')
+    await screen.findByText('Portada')
+    expect(getComputedStyle(screen.getByRole('banner').parentElement as HTMLElement).overflowX).toBe('clip')
+  })
+
+  // MSF-847 (auditoría H-03): un único h1 en la portada. Con título de héroe lo es el héroe y la marca cede; sin título, la marca.
+  it('en la portada la marca es el h1 solo si no hay título de héroe; con título lo cede (nunca dos h1 ni ninguno)', async () => {
+    const { unmount } = montar('/')
+    await screen.findByText('Portada')
+    await waitFor(() => expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1))
+    expect(screen.getByRole('heading', { level: 1 })).toContainElement(within(screen.getByRole('banner')).getByRole('link', { name: 'Mundo JC' }))
+    unmount()
+    mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, titulo: 'Todo para tu consola' })
+    montar('/')
+    await screen.findByText('Portada')
+    await waitFor(() => expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument())
+    // La marca sigue siendo un enlace a la portada (ahora dentro de un párrafo).
+    expect(within(screen.getByRole('banner')).getByRole('link', { name: 'Mundo JC' }).closest('p')).not.toBeNull()
+  })
+
+  // MSF-847 (auditoría C-06): los enlaces del pie van sin subrayado; solo «Escribinos» lo lleva.
+  it('en el pie los enlaces de «Categorías» y «Contacto» no se subrayan y «Escribinos» sí', async () => {
+    montar('/')
+    const categorias = await screen.findByTestId('pie-categorias')
+    await within(categorias).findByRole('link', { name: 'Cargadores' })
+    for (const enlace of within(categorias).getAllByRole('link')) expect(getComputedStyle(enlace).textDecoration).toBe('none')
+    const contacto = screen.getByTestId('pie-contacto')
+    const correo = await within(contacto).findByRole('link', { name: 'mundojc377@gmail.com' })
+    expect(getComputedStyle(correo).textDecoration).toBe('none')
+    expect(getComputedStyle(within(contacto).getByRole('link', { name: 'Escribinos' })).textDecoration).toBe('underline')
+  })
+
+  // MSF-849 (N-01): el logo del pie va con sus colores sobre un recuadro blanco redondeado (un PNG de fondo opaco invertido era un bloque blanco).
+  it('el logo del pie se dibuja sobre un recuadro blanco redondeado, sin invertirlo', async () => {
+    montar('/')
+    const caja = await screen.findByTestId('pie-logo')
+    expect(getComputedStyle(caja).backgroundColor).toBe('rgb(255, 255, 255)')
+    expect(getComputedStyle(caja).borderRadius).toBe('8px')
+    const logo = within(caja).getByRole('img', { name: 'Mundo JC' })
+    expect(getComputedStyle(logo).height).toBe('36px')
+    expect(getComputedStyle(logo).filter).not.toContain('invert')
+  })
+
+  // MSF-849: indicador de foco único (enlaces, botones y selectores de la tienda): contorno primario de 2 px en `:focus-visible`.
+  it('la tienda define un contorno de foco visible del color primario para enlaces, botones y selectores', async () => {
+    montar('/')
+    await screen.findByText('Portada')
+    const css = () => Array.from(document.querySelectorAll('style')).map((st) => st.textContent).join('')
+    // La identidad llega después del primer pintado: se espera al color primario de la tienda.
+    await waitFor(() => expect(css()).toMatch(/--tienda-color-foco:#C8102E/i))
+    expect(css()).toMatch(/html a:focus-visible,[^{]*\{outline:2px solid var\(--tienda-color-foco\);outline-offset:2px/)
+    expect(css()).toMatch(/html \[role=\\?"combobox\\?"\]:not\(input\):focus-visible/)
+    expect(css()).toMatch(/html \[data-foco=\\?"oscuro\\?"\] a:focus-visible\{outline-color:currentColor/)
+  })
+
+  // MSF-847: la tabulación sigue el orden visual del encabezado de celular: menú, marca, buscador y, al final, «Ingresar».
+  it('en celular el botón de menú va antes que la marca en el DOM (orden de tabulación = orden visual)', async () => {
+    celular(true)
+    montar('/')
+    const menu = await screen.findByRole('button', { name: 'Abrir menú' })
+    const marca = within(screen.getByRole('banner')).getByRole('link', { name: 'Mundo JC' })
+    expect(menu.compareDocumentPosition(marca) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    Reflect.deleteProperty(window, 'matchMedia')
+  })
+
   it('el contenido y el contacto se leen una sola vez por host aunque los usen la barra, el pie y la portada', async () => {
     montar('/')
     await screen.findByText('Portada')
@@ -201,7 +268,7 @@ describe('pie oscuro (MSF-841)', () => {
     mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, eslogan: 'Accesorios y repuestos', pie: 'Envíos a todo el país' })
     montar('/')
     const pie = await screen.findByTestId('pie-tienda-layout')
-    expect(await within(pie).findByRole('img', { name: 'Mundo JC' })).toHaveStyle({ filter: 'brightness(0) invert(1)' }) // logo en blanco: pide PNG/SVG con fondo transparente
+    expect(await within(pie).findByRole('img', { name: 'Mundo JC' })).not.toHaveStyle({ filter: 'brightness(0) invert(1)' }) // el logo va con sus colores sobre un recuadro blanco (vale con fondo opaco)
     expect(await within(pie).findByText('Accesorios y repuestos')).toBeInTheDocument()
     expect(within(pie).getAllByText('Envíos a todo el país')).toHaveLength(1)
     expect(screen.getAllByText('Envíos a todo el país')).toHaveLength(1)

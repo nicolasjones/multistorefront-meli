@@ -488,6 +488,81 @@ Regla del repo («Listados: carga infinita con lazy loading, sin paginación») 
 - **`useEmpresa` sin id**: mientras la empresa activa no resolvió (`id` indefinido) el hook no consulta (antes pedía `empresas?id=eq.` y daba 400 en cada pestaña de `/empresas/:id/tienda/*`), queda `cargando` (sin parpadeo de «no encontrada») y `actualizar`/`cambiarEstado` rechazan sin llamar a la base.
 - **Vista previa fiel a la tienda**: la migración `20270306100000_tienda_vista_previa_categorias_paridad.sql` hace que `public.vista_previa_tienda` cuente las categorías como `publico.categorias_por_dominio` (total del árbol, con descendientes, sobre los productos efectivos del borrador) y omita las que quedan sin productos. El front de la vista previa ya usaba la regla de «categorías principales» de `lib/tiendaCategorias.ts` (por cantidad de productos), que ahora recibe los mismos datos que la tienda. Mismos grants y guardia (solo `authenticated`, `search_path` vacío); sin tablas nuevas (Principio VII). Reversión: una migración posterior que restituya el cuerpo de `20270305100100_tienda_vista_previa_categorias_imagen.sql`. Prueba pgTAP: `supabase/tests/database/tienda_vista_previa_categorias_paridad.test.sql` (paridad con la pública y borrador). Spec: `specs/20270313-100000-tiendas-hallazgos-qa/`.
 
+## Fidelidad con el prototipo (MSF-847)
+
+La tienda pública se llevó a las medidas del prototipo (`design/pantallas/MJC_*`, `SJ_*`; spec `specs/20270314-100000-tiendas-fidelidad-prototipo`). Se midió con Playwright y `getComputedStyle`
+a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra dev; los cambios se verificaron sobre una build local servida desde la URL de dev. Resumen (escritorio, MundoJC):
+
+| Elemento | Prototipo | Antes (dev) | Después |
+|---|---|---|---|
+| Contenido | 1200 px | 1168 px | 1200 px (`layout/medidas.ts`, máximo 1232) |
+| Tarjeta: borde / radio / relleno | 1 px `.08` / 8 / 14 | 1 px `.12` / 4 / 12 | igual al prototipo |
+| Tarjeta: imagen | cuadrada, `contain` al 86 % sobre superficie | cuadrada, `cover` (recorta) | `contain` al 86 %, sin recorte; «Sin stock» como insignia de 10 px |
+| Tarjeta: nombre | 16 px/500, interlínea 1,3, alto 42 px (2 líneas) | 16 px/600, interlínea 28 px, hasta 4 líneas | 16 px/500, 20,8 px, alto 42 px con recorte a 2 líneas |
+| Tarjeta: precio | 22 px/700, títulos, primario | 20 px/500, color de texto | 22 px/700, títulos, primario |
+| Tarjeta: disponibilidad | 13 px/500 con punto de 8 px | 14 px/600 sin punto | 13 px/500 con punto de 8 px (#2E7D32 / #6B6B6B) |
+| Tarjeta: alto total | 410 px | 369–412 px | 410 px |
+| Grilla | 4 × 282 px (24 px) portada y relacionados; 304 px en catálogo; 2 × 173 px (12 px) en celular | 5 × 168–181 px (16 px) | 4 / 3 / 2 columnas fluidas (`GrillaProductos`) |
+| Barra de categorías | Barlow 15 px/600 mayúsculas | Barlow Condensed | Barlow |
+| Migas / título del catálogo | 14 px, 18 px de aire / 44 px/700 | 16 px / 34 px/400, espaciado −1,87 px | igual al prototipo |
+| Panel de filtros | 260 px; títulos 18 px títulos; filas 15 px; casilla; campo de 40 px | 240 px; 16 px; MUI `List`, botón con mayúsculas, campo flotante | igual al prototipo |
+| Portada: héroe | 440 px a todo el ancho, título 72 px/700 mayúsculas, botón 16 px/700 de 47 px | texto de 34 px/400 y botón de 14 px | igual (sin las tarjetas del héroe: no hay datos) |
+| Portada: categorías | 186 px (16 px de separación) | 181 px con borde | 186 px; en celular, píldoras |
+| Ficha | galería 600 px, miniaturas 84 px, título y precio 44 px, botones 16 px/700 radio 8 | 568 px, 72 px, 34 px / 24 px, botones 14 px/700 mayúsculas radio 4 | igual al prototipo |
+| Contacto | columna 460 px con círculos de 44 px; tarjeta con rótulos arriba; campos de 44 px | 560 px sin íconos; campos con rótulo flotante | igual al prototipo |
+| Celular | encabezado 60 px (menú, logo centrado), menú de 300 px, h1 30 px, tarjetas de 173 px | logo a la izquierda y menú a la derecha, menú de 320 px, h1 34 px | igual (tarjetas de 175 px fluidas) |
+
+- **Tema** (`tema/temaTienda.ts`): títulos en negrita, `lineHeight`/`letterSpacing` `normal`, botones sin mayúsculas, 700 y radio 8. El color de texto y el fondo de la tienda se aplican al layout (antes los elementos sin
+  `Typography` salían con el color del panel).
+- **Grillas** (`catalogo/GrillaProductos.tsx`): `columnas={4}` en la portada y los relacionados, `columnas={3}` en el catálogo y la categoría; 2 columnas y 12 px de separación en celular, 24 px desde `md`.
+- **Diferencias conocidas** (no son del layout): colores de texto del tenant (#1A1A1A en la demo, no #1F1F1F) y gris secundario derivado con contraste AA (#6A6A6A, no #5F5F5F); «Ingresar» (F-CLI-06) y «Compartir» (F-TDA-25) no están en el prototipo; la barra de «Información» y el bloque legal del pie;
+  las tarjetas del héroe y las categorías sin productos; en celular, las migas, el bloque de consultas, los puntos de la galería (la tienda mantiene miniaturas) y el orden de «Filtrar» respecto del título; «Últimas unidades» no existe (FR-023);
+  el diálogo de WhatsApp se llevó al prototipo en la auditoría (ver abajo).
+- **Desvíos accesibles respecto del prototipo**: «Sin imagen» y los placeholders usan el gris secundario del tema (≥ 4,5:1; el prototipo usa negro al 35 %/45 %, ≈ 2,4:1); los campos de contacto y filtros y la casilla «Solo con stock» dibujan un foco visible (borde y contorno primarios de 2 px).
+- **Sin scroll horizontal**: la franja del héroe es una capa de 100vw con las franjas inclinadas recortadas y el layout lleva `overflow-x: clip`; se midió `scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas y el E2E `tienda-inicio.e2e.ts` lo vigila en la portada a 900/1024/1280.
+- **Auditoría independiente de fidelidad (52 diferencias de implementación, corregidas)**. Medido en Chromium sobre la build local servida desde dev:
+
+  | Fila | Prototipo | Antes | Después |
+  |---|---|---|---|
+  | H-07 San Javucho: botón del héroe | acento `#E9A23B`, texto tinta | primario sobre franja primaria (1:1, invisible) | `#E9A23B` con texto de la tinta (`tema.tienda.botonDestacado`) |
+  | C-12/C-13/P-12 San Javucho: encabezado, campos, menús, diálogo | blanco | crema `#FBF8F2` | blanco (`background.paper`); el fondo de la página sigue siendo el de la identidad |
+  | H-03/MH-04: título del héroe | `h1` | `h2` (portada sin `h1`) | `h1` (la marca lo cede si hay título); un solo `h1` por página |
+  | K-02/K-03: filas del panel / «Todos los productos» | 32 px / con total | 40 px / sin total | 32 px / «2204» |
+  | K-07/K-08: menú de orden | 200×116, sin fondo | 200×132, fondo teñido | 200×116, sin fondo |
+  | K-09/K-11: sugerencias | sin «Disponible»; vacío en gris 14 px, relleno 14/12 | línea «Disponible» a la vista; vacío en tinta | «Disponible» solo para lectores; vacío en gris `#6A6A6A`, relleno 14/12 |
+  | C-06: pie | enlaces sin subrayado (solo «Escribinos») | todos subrayados | sin subrayado salvo «Escribinos» |
+  | C-04: barra de categorías | y = 122,5 | y = 121 | centrada en 52 px |
+  | H-11: «Ver todas las categorías →» | ausente | presente | quitado |
+  | H-12: área de imagen de la tarjeta | 282 px de alto | 280 px | 282 px (tarjeta de 410 px) |
+  | T-05/T-06: contacto enviado | título «Escribinos», tarjeta de 376 px, «Enviar otra» 16 px | sin título, 329 px, 14 px | conservado, 376 px, 16 px |
+  | P-03/MP-04: disponibilidad en la ficha | y = 437,4; 15 px en celular | y = 438,9; 16 px | y = 437; 15 px en celular |
+  | P-07…P-10: diálogo de WhatsApp | 460 px, radio 14, círculo `#25D366`, recuadro gris, botones de 44 px | 444 px, radio 4, sin círculo, campo MUI | 460 px, radio 14, círculo, línea de contacto, recuadro de solo lectura, botones de 44 px de 16 px |
+  | MM-02/MM-04: menú lateral | entradas 47/43 px, recuadro de contacto | 55/51 px, sin recuadro | 47/43 px, recuadro de 116 px con nombre, teléfono y correo |
+  | MF-01…MF-08: hoja «Filtros» | asa, píldoras, subtítulos de 14 px, botones de 16 px | lista de filas, `Select`, títulos de 18 px, botones de 14 px | igual al prototipo (conserva «Precio máximo» y el cierre de 36 px) |
+  | MH-05: píldoras de la portada | «Todo» activa; filtran en el lugar | enlaces, ninguna activa | botones con `aria-pressed`; filtran los destacados |
+  | MH-07: grilla de celular | tarjetas de 173 px | 175 px | hasta 173 px |
+  | MK-01/MK-03/MK-04: contacto en celular | círculos de 40 px, sin «Retiro y envíos», sin rótulos arriba | 44 px, con las tres filas y rótulos | 40 px, dos filas, rótulos solo para lectores |
+  | MP-06: «Ver más productos» en celular | ausente | presente | solo escritorio |
+
+- **Decisiones abiertas** (sin configuración inventada): héroe de dos variantes (la franja clara de San Javucho), mayúsculas de la barra de categorías y del botón del héroe, color de la franja inclinada. Detalle en la spec.
+- **Desvíos accesibles declarados**: áreas táctiles de 36–44 px en el encabezado y «← Todos los productos»; botón de cierre de la hoja de filtros; «Abrir WhatsApp» con texto en tinta; foco visible; «Cargar más» (regla del repo).
+- **Pruebas**: Vitest de la tarjeta, las grillas (la parte por ancho se lee en el texto de la hoja: jsdom no evalúa `@media`) y las piezas compartidas, más axe real de Chromium sobre una build local; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron localmente (los valida el CI).
+
+## Hallazgos de la re-auditoría de fidelidad (MSF-849)
+
+Spec `specs/20270316-100000-tiendas-hallazgos-reauditoria`. Medido en Chromium sobre una build local servida desde dev (escritorio 1440 y celular 390):
+
+| Fila | Prototipo | Antes | Después |
+|---|---|---|---|
+| N-01 logo del pie (MundoJC) | marca sobre recuadro blanco redondeado | `filter: brightness(0) invert(1)`: bloque blanco sólido de 103×44 sin marca | recuadro blanco de 100×44 (radio 8) con la imagen de 84×36 a color, sin filtro |
+| N-02 mensaje del diálogo de WhatsApp | producto en negrita | texto plano | producto en `<b>` en la vista (`aria-hidden`) y el `textarea` de solo lectura con el texto completo; lo que se envía no cambia |
+| MM-03 «Inicio» actual del menú móvil | 600 | 700 | 600 (`aria-current` lo anuncia) |
+| MH-10 enlaces del pie móvil | 12 px | 14 px | 14 px: desvío accesible declarado |
+| Foco de «Ingresar», «Limpiar filtros», «Ordenar por» | sin definir | onda tenue de MUI (el selector de orden, sin nada) | contorno de 2 px primario a 2 px (`layout/FocoVisible.tsx`), `solid 2px rgb(163,17,29)` en los tres con Tab real; sin contorno al tocar con el mouse |
+
+El foco unificado cubre enlaces, botones y selectores de la tienda, también los estados de carga, error y «Volvemos pronto» (`FocoVisible` se monta en el layout y en la raíz de la tienda). El color sale de `colorFoco`: el primario si llega a 3:1 contra el fondo de la página y el blanco del encabezado; si no, el color del texto, negro, blanco o un gris medio. La lupa del buscador lleva el contorno hacia adentro (el campo recorta lo que sobresale) y sobre la barra superior y el pie (`data-foco="oscuro"`) toma el color del texto. Los campos de texto usan el borde primario de MUI al enfocarse. El diálogo de WhatsApp suma «Copiar mensaje» para dar acceso por teclado al texto.
+El logo de la pestaña Identidad ya no pide fondo transparente: debe tener colores visibles sobre fondo blanco (un logo blanco o muy claro no se vería en el recuadro del pie).
+
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
 Migración **aditiva** `20261023150300_tienda_ficha_publica.sql`. Reversión (migración posterior): `drop function publico.producto_por_dominio(text, uuid);`.
@@ -1162,7 +1237,7 @@ contacto de la empresa del host.
   lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
   (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
   «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
-- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo con sus colores sobre un recuadro blanco redondeado de 44 px de alto (MSF-849; sirve con fondo transparente u opaco; antes se invertía a blanco y un PNG de fondo opaco quedaba como un bloque sólido sin marca) o el nombre, eslogan,
   el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
   vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
   línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste

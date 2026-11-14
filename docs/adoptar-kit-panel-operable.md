@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar el kit de panel operable en un producto derivado
 
 Guía de proceso para traer la capacidad de la spec 018 a un producto que ya

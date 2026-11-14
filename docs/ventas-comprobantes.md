@@ -302,6 +302,15 @@ cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de lín
 «escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
 «Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
 
+## Precio promocional en el servidor (MSF-816 · F-1)
+
+`private.precio_linea_venta` es la **única** función de precio de línea: envuelve `private.precio_para` y `private.escala_para_linea` (sin modificarlos) y aplica **«gana el más bajo, sin acumular»** entre el precio normal de la línea (escala o precio propio o lista, **menos** el descuento del cliente) y la promoción vigente de la **tienda del comprobante** (`desde <= instante < hasta`, no anulada, solo con la bandera `promociones_precio` encendida). Una promoción mayor o igual al normal se ignora; si gana la promoción, la línea guarda `precio_referencia` (el precio normal del cliente, el «tachado»), `promocion_id` y `descuento_pct = 0`. El `precio_manual` manda siempre y no lleva referencia. La promoción la lee `private.promocion_vigente_fila` (`security definer`, filtra por organización, tienda y producto; sin `execute` para `anon`/`authenticated`).
+
+- `guardar_lineas_comprobante` y `copiar_presupuesto` (esta última sin el descuento del cliente, igual que antes) usan la función con `clock_timestamp()` tomado después del bloqueo del comprobante. Las claves `precio_referencia`/`promocion_id` dentro de `p_lineas` se ignoran.
+- `obtener_comprobante` devuelve `precio_referencia` por línea (`null` sin promoción) y **no** `promocion_id`.
+- El importe y la referencia quedan **fijados en la línea**: anular, editar o vencer la promoción después no altera un comprobante emitido. Las notas de crédito devuelven al precio cobrado y heredan las dos columnas (`private.copiar_costo_linea_nota`).
+- Con la bandera apagada el resultado es idéntico al anterior (baseline pgTAP columna por columna). Migraciones `20270310100000` a `20270310100300` (reversión en cada encabezado); pgTAP `ventas_precio_promocional.test.sql`. La guarda de `confirmar_comprobante` y las pantallas son las fases F-3 y F-2 de la spec `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/`.
+
 ## Costo y cotización por línea (F-REN-09)
 
 `confirmar_comprobante` guarda en cada línea `costo_unitario` (costo en pesos por unidad) y `cotizacion` (dólar vigente) al confirmar, una sola vez: reconfirmar o cambiar el costo después no los mueve. Las notas de crédito copian el costo de la línea original. Detalle y vista `analitica.rentabilidad_ventas_real` en `docs/rentabilidad.md`. Con el alcance de la cotización en «Una por empresa» (F-PRE-06) la cotización y el costo salen de la cotización de la empresa del comprobante (o de la general si la empresa no tiene una propia), igual que el precio de la línea.

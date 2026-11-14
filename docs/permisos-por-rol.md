@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Permisos por rol: contrato `nivel_seccion` / `puede_accion`
 
 Spec: `specs/20261013-120000-usuarios-y-roles/` (F-ROL-01, MSF-258, épica MSF-125).
@@ -13,7 +19,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -67,18 +73,36 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   niegan todo con `ninguno`, permiten `list`/`show` con `lectura` y el resto con `edicion`.
   **Cada épica agrega su recurso a `SECCION_POR_RECURSO` y su destino con `seccionPermiso`.**
 
+## Ventas: catálogos de cobro y envío (MSF-139)
+
+Las seis tablas de la épica (formas de pago, formas de envío, cuentas de cobro y transportes, con sus
+relaciones por empresa) usan este contrato:
+
+- **Lectura:** `private.nivel_seccion('ventas')` en `lectura` o `edicion`. Las formas de pago y de
+  envío, además, exigen que `empresa_id` esté en `private.empresas_accesibles()`; cuentas y
+  transportes son de la organización y se leen completos (con sus empresas habilitadas).
+- **Escritura:** solo `private.es_administrador_de(organizacion_id)`, en la política RLS y con rechazo
+  `42501` en cada RPC. Un rol con `edicion` en Ventas que no es Administrador lee pero no escribe.
+- **Sin DELETE:** los catálogos se desactivan (`activo`/`activa`). `transportes_empresas` admite DELETE
+  del Administrador porque su RPC reemplaza el conjunto de empresas.
+- Las cuentas de cobro registran `cuenta_cobro.*` en `registro_actividad` sin CBU ni CUIT. Detalle:
+  [Ventas · catálogos (técnico)](tecnico/ventas-catalogos.md) y
+  [Permisos por empresa](tecnico/permisos-por-empresa.md).
+
 ## Compatibilidad y límites
 
-- `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
-  comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
+- `private.puede_escribir()` no cambia: las tablas que todavía no migraron a este contrato conservan su
+  comportamiento (pgTAP de regresión incluido). `clientes` ya migró (ver abajo).
 - **`clientes` migró a este contrato (F-CLI-01, MSF-262):** sus políticas usan
   `nivel_seccion('clientes')` (`select` con `lectura`/`edicion`; `insert`/`update` con `edicion`; sin
   DELETE) y `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` (`lib/permisos.ts`) quedó vacío. Operador, Mostrador y
   Administración editan; Consulta lee; Depósito (`ninguno` en la matriz vigente) ni lee filas por la API.
   Queda cerrado el riesgo aceptado de lectura REST con `ninguno`. Migraciones
   `20261016130000_clientes_ficha_y_numeracion` y `20261016130200_clientes_rls_por_seccion_y_actividad`;
-  `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
-  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
+  `numero`, `es_consumidor_final` y `organizacion_id` fuera de lo que el llamador fija (grants por
+  columna); `archivado_en` sí se puede escribir (es el archivar/restaurar).
+  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver
+  [Clientes (producto)](clientes.md) y [Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
   Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
   Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
   (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
@@ -183,7 +207,8 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
-- Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`) son una
+- Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
+  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
   **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
@@ -211,8 +236,8 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 - **No dibujado en `Roles.dc.html`** (marcado en el PR): la edición de acciones (FR-006) y el diálogo
   de «Restablecer valores iniciales» (FR-015) son propuestas de diseño, a confirmar con el cliente.
 - Tope: un guardado acepta hasta 200 niveles y 400 acciones (la matriz tiene 6×16 y 6×16×3); más se rechaza con `22023`.
-- Auditoría (F-AUD-01, entregada): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). El valor previo y nuevo de cada celda no se guarda. Ver `docs/actividad.md`.
-- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 deja quién y cuándo guardó, no el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
+- Auditoría (F-AUD-01 y F-AUD-02, entregadas): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). Ahora guardan también el valor previo y el nuevo de cada celda modificada (hasta 8 KB; si hay más cambios, el resto se resume en «… otros cambios»), consultables en el detalle del evento. Ver [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md).
+- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría deja quién y cuándo guardó y, para los cambios de matriz, el valor previo y nuevo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
 - El contador de usuarios por rol filtra por la organización activa (la policy también deja ver las propias membresías en otras organizaciones).
 - Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 
@@ -250,7 +275,7 @@ funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
 
 ## Rol por empresa (MSF-185 · F-ROL-04, épica MSF-121)
 
-Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión).
+Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión). Construcción interna: [Permisos por empresa](tecnico/permisos-por-empresa.md).
 Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 
 - Esquemas (Principio VII): `usuarios_empresas(user_id, empresa_id, organizacion_id, rol_id)` y `usuario_empresa_activa(user_id, empresa_id)` viven en `public` (acceso transversal); `dominio.empresas` solo se referencia. Ambas con RLS, sin privilegios para `anon` y sin escritura directa: la escritura llega por las RPC de F-ROL-06 (empresa activa) y F-ROL-07 (asignaciones).

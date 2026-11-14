@@ -6,10 +6,12 @@ import { useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { categoriasPrincipales, type CategoriaPublica } from '../../../lib/tiendaCategorias'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { normalizarNumero } from '../../../lib/whatsapp'
+import { useCelular } from '../useAnchoCelular'
 import { estiloEnlacePie, estiloTituloPie } from './estilosPie'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
 import { PieInformacion } from './PieInformacion'
 import { PieLegal } from './PieLegal'
+import { ANCHO_MAXIMO_TIENDA } from './medidas'
 
 // Aviso de cookies (F-TDA-22): carga diferida, no pesa en el primer pintado.
 const AvisoCookies = lazy(() => import('./AvisoCookies'))
@@ -23,6 +25,7 @@ const AvisoCookies = lazy(() => import('./AvisoCookies'))
 export function PieCategorias({ categorias: todas, host, empresaNombre }: { categorias: CategoriaPublica[]; host: string; empresaNombre: string }) {
   // MSF-825: las mismas categorías principales que el menú (FR-005), no las ~190 de la base.
   const categorias = categoriasPrincipales(todas)
+  const movil = useCelular()
   const logo = urlPublica(useIdentidadTienda()?.logoRuta ?? null)
   const contenido = useContenidoPublico(host)
   const contactoEstado = useContactoTienda(host)
@@ -35,19 +38,24 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
 
   return (
     <>
-    <Box component="footer" data-testid="pie-tienda-layout" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra })}>
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, pt: 5, pb: 4 }}>
+    <Box component="footer" data-testid="pie-tienda-layout" data-foco="oscuro" sx={(tema) => ({ bgcolor: tema.tienda?.barra, color: tema.tienda?.textoBarra })}>
+      <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: { xs: '20px', md: 2 }, pt: { xs: '28px', md: 5 }, pb: { xs: '28px', md: 4 } /* estilos-sueltos: ok */ }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: { xs: 3, md: 6 } }}>
           <Box sx={{ maxWidth: 340, minWidth: 0 }}>
             {logo ? (
-              <Box component="img" src={logo} alt={empresaNombre} sx={{ display: 'block', height: 44, width: 'auto', maxWidth: '100%', filter: 'brightness(0) invert(1)' /* estilos-sueltos: ok */ }} />
+              // El logo va con sus colores sobre un recuadro blanco redondeado (de 44 px de alto en total, como el logo del prototipo): vale
+              // para cualquier logo (transparente u opaco); invertirlo a blanco dejaba un bloque sólido cuando el PNG tenía fondo.
+              <Box data-testid="pie-logo" sx={{ display: 'inline-flex', maxWidth: '100%', bgcolor: '#FFFFFF', borderRadius: '8px', px: '8px', py: '4px', boxSizing: 'border-box' /* estilos-sueltos: ok */ }}>
+                <Box component="img" src={logo} alt={empresaNombre} sx={{ display: 'block', height: 36, width: 'auto', maxWidth: '100%', objectFit: 'contain' /* estilos-sueltos: ok */ }} />
+              </Box>
             ) : (
               <Typography component="p" sx={{ fontWeight: 700, fontSize: 20, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{empresaNombre}</Typography>
             )}
             {eslogan ? <Typography sx={{ mt: 1.5, fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{eslogan}</Typography> : null}
             {textoPie ? <Typography data-testid="pie-tienda" sx={{ mt: 1.5, fontSize: 14, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>{textoPie}</Typography> : null}
           </Box>
-          {categorias.length > 0 ? (
+          {/* Celular (`MJC_M_Home`): el pie no trae la columna de categorías (están en el menú). */}
+          {categorias.length > 0 && !movil ? (
             <Box component="nav" aria-label="Categorías del pie" data-testid="pie-categorias">
               <Typography component="h2" sx={estiloTituloPie}>Categorías</Typography>
               <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, fontSize: 14 /* estilos-sueltos: ok */ }}>
@@ -76,7 +84,7 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
         <PieLegal host={host} />
       </Box>
       <Box sx={{ borderTop: '1px solid rgba(255,255,255,.15)' /* estilos-sueltos: ok */ }}>
-        <Typography sx={{ maxWidth: 1200, mx: 'auto', px: 2, py: '14px', fontSize: 12, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>
+        <Typography sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: { xs: '20px', md: 2 }, py: '14px', fontSize: 12, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ }}>
           © {new Date().getFullYear()} {empresaNombre}. Todos los derechos reservados.
         </Typography>
       </Box>

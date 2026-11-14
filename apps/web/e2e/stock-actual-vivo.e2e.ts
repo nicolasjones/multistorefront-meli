@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Locator, type Page } from '@playwright/test'
-import { rest, UPSERT_FUSIONAR } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-STK-01 (MSF-268, SC-004): dos sesiones de la misma organización. La A abre `/stock`; la B
 // registra una salida que deja el producto con stock bajo → la A ve cantidad, estado y resumen de
@@ -8,28 +8,8 @@ import { rest, UPSERT_FUSIONAR } from './soporte/fixtures'
 // stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la
 // service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de stock en vivo: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`REST GET ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 // Fixture de cantidad y mínimo: la app solo escribe por RPC, la siembra lo hace con service-role.
 async function actualizar(ruta: string, cuerpo: unknown, esquema: string) {
@@ -39,29 +19,6 @@ async function actualizar(ruta: string, cuerpo: unknown, esquema: string) {
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST PATCH ${ruta}: ${r.status} ${await r.text()}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'DELETE',
-    headers: cabeceras({ 'content-profile': esquema }),
-  })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
 async function ingresar(page: Page, correo: string) {

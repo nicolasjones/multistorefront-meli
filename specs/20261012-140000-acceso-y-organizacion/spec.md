@@ -2,6 +2,8 @@
 
 **Feature Branch**: `epic/MSF-119-acceso-organizacion-y-permisos-acceso-y-`
 
+**Componente**: Acceso
+
 **Jira Epic**: MSF-119 — Acceso, organización y permisos · Acceso y organización (spec `acceso-y-organizacion`)
 
 **Created**: 2026-10-12

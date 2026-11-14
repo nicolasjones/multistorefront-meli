@@ -2,16 +2,18 @@ import { Box, Typography } from '@mui/material'
 import { lazy, Suspense } from 'react'
 import { Link as EnlaceRuta, NavLink, Outlet, useMatch, useOutletContext } from 'react-router'
 import { ContextoContactoTienda, useLeerContactoTienda } from '../../../hooks/useContactoTienda'
-import { ProveedorContenidoTienda } from '../../../hooks/useContenidoPublico'
+import { ProveedorContenidoTienda, useContenidoPublico } from '../../../hooks/useContenidoPublico'
 import { ContextoCategoriasTienda, useLeerCategoriasTienda, type CategoriasTienda } from '../../../hooks/useCategoriasTienda'
 import type { TiendaPublica } from '../../../lib/tienda'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { AccesoCliente } from './AccesoCliente'
 import { BarraSuperior } from './BarraSuperior'
 import { ContextoEnLayout } from './enLayout'
+import { FocoVisible } from './FocoVisible'
 import { ProveedorIdentidadTienda, useIdentidadTienda } from './IdentidadTiendaContexto'
 import { MenuCategorias } from './MenuCategorias'
 import { PieCategorias } from './PieCategorias'
+import { ANCHO_MAXIMO_TIENDA, LINEA_SUAVE, MARGEN_LATERAL_TIENDA } from './medidas'
 
 const BuscadorTienda = lazy(() => import('./BuscadorTienda'))
 const MenuMovil = lazy(() => import('./MenuMovil'))
@@ -42,8 +44,8 @@ const estiloEnlacePrincipal = {
 function Marca({ tienda, enInicio }: { tienda: TiendaPublica; enInicio: boolean }) {
   const logo = urlPublica(useIdentidadTienda()?.logoRuta ?? null)
   return (
-    <Typography component={enInicio ? 'h1' : 'p'} variant="h5" sx={{ fontWeight: 700, flex: { xs: 1, md: '0 0 auto' }, minWidth: 0, overflowWrap: 'anywhere' }}>
-      <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit', textDecoration: 'none', display: 'inline-block', py: 1 }}>
+    <Typography component={enInicio ? 'h1' : 'p'} variant="h5" sx={{ fontWeight: 700, lineHeight: 0, m: 0, order: { xs: 1, md: 0 }, flex: { xs: 1, md: '0 0 auto' }, minWidth: 0, overflowWrap: 'anywhere', display: 'flex', justifyContent: { xs: 'center', md: 'flex-start' } }}>
+      <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit', textDecoration: 'none', display: 'flex', lineHeight: 'normal', py: { xs: '10px', md: 1 } /* estilos-sueltos: ok */ }}>
         {logo ? (
           <Box component="img" src={logo} alt={tienda.empresaNombre} sx={{ display: 'block', height: { xs: 40, md: 52 }, width: 'auto', maxWidth: '100%', objectFit: 'contain' }} />
         ) : tienda.empresaNombre}
@@ -53,23 +55,30 @@ function Marca({ tienda, enInicio }: { tienda: TiendaPublica; enInicio: boolean 
 }
 
 function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: string; categorias: CategoriasTienda }) {
-  const enInicio = useMatch({ path: '/', end: true }) !== null
+  // El h1 de la portada es el título del héroe (prototipo); sin título de héroe lo conserva la marca (un solo h1 por página).
+  const tituloHeroe = useContenidoPublico(host)?.titulo.trim()
+  const enInicio = useMatch({ path: '/', end: true }) !== null && !tituloHeroe
   const contexto: ContextoTienda = { tienda, host, categorias }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'text.primary', bgcolor: 'background.default', overflowX: 'clip' /* la franja del héroe y el bloque de consultas llegan al borde de la ventana sin ensanchar la página */ }}>
+      <FocoVisible />
       {/* La barra superior va dentro del <header> (landmark banner): sin esto queda fuera de todo landmark (axe «region»). */}
-      <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: '1px solid rgba(0,0,0,.08)' /* estilos-sueltos: ok */ }}>
+      <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
         <BarraSuperior host={host} />
         {/* Celular: marca + botón de menú arriba y buscador a todo el ancho debajo; desde `md`, en una fila. */}
-        <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, pt: { xs: 1, md: 0 }, minHeight: { md: 84 }, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, pb: { xs: 1.5, md: 0 } }}>
+        <Box sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, mx: 'auto', px: MARGEN_LATERAL_TIENDA, pt: 0, minHeight: { xs: 60, md: 84 }, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 2, rowGap: 0, pb: 0 /* estilos-sueltos: ok */ }}>
+          {/* Menú de celular (F-TDA-17, FR-040): carga diferida; el hueco evita el salto de diseño. En celular va a la IZQUIERDA y
+              la marca centrada (prototipo `MJC_M_Home`); el menú va primero también en el DOM (la tabulación sigue el orden
+              visual: menú, marca, buscador, «Ingresar»; solo «Ingresar» se ve antes que el buscador). */}
+          <Box sx={{ order: 0, display: { xs: 'block', md: 'none' } }}>
+            <Suspense fallback={<Box sx={{ width: 48, height: (tema) => tema.spacing(6) }} aria-hidden />}>
+              <MenuMovil categorias={categorias} empresaNombre={tienda.empresaNombre} host={host} />
+            </Suspense>
+          </Box>
           <Marca tienda={tienda} enInicio={enInicio} />
-          {/* Menú de celular (F-TDA-17, FR-040): carga diferida; el hueco evita el salto de diseño. */}
-          <Suspense fallback={<Box sx={{ display: { xs: 'block', md: 'none' }, width: 48, height: (tema) => tema.spacing(6) }} aria-hidden />}>
-            <MenuMovil categorias={categorias} />
-          </Suspense>
-          {/* Buscador (F-TDA-15, FR-024): carga diferida, no pesa en el primer pintado. */}
-          <Box sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: '100%', md: 'auto' }, flexGrow: { md: 1 }, flexShrink: { md: 1 }, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+          {/* Buscador (F-TDA-15, FR-024): carga diferida, no pesa en el primer pintado. En celular, en su propia fila de 12 px de aire. */}
+          <Box sx={{ order: { xs: 3, md: 0 }, flexBasis: { xs: '100%', md: 'auto' }, flexGrow: { md: 1 }, flexShrink: { md: 1 }, display: 'flex', justifyContent: 'center', minWidth: 0, py: { xs: '12px', md: 0 } /* estilos-sueltos: ok */ }}>
             <Suspense fallback={<Box sx={(tema) => ({ width: { xs: '100%', md: '100%' }, maxWidth: 560, height: tema.spacing(5.5) })} aria-hidden />}>
               <BuscadorTienda host={host} />
             </Suspense>
@@ -78,14 +87,16 @@ function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: str
             <Box component={NavLink} to="/" end sx={estiloEnlacePrincipal}>Inicio</Box>
             <Box component={NavLink} to="/contacto" sx={estiloEnlacePrincipal}>Contacto</Box>
           </Box>
-          <AccesoCliente host={host} />
+          <Box sx={{ order: { xs: 2, md: 0 }, display: 'flex' }}>
+            <AccesoCliente host={host} />
+          </Box>
         </Box>
       </Box>
       <MenuCategorias categorias={categorias} />
       <Suspense fallback={null}>
         <MedicionTienda host={host} />
       </Suspense>
-      <Box component="main" sx={{ maxWidth: 1200, width: '100%', mx: 'auto', boxSizing: 'border-box', px: 2, py: 2, flex: 1 }}>
+      <Box component="main" sx={{ maxWidth: ANCHO_MAXIMO_TIENDA, width: '100%', mx: 'auto', boxSizing: 'border-box', px: MARGEN_LATERAL_TIENDA, py: 0, flex: 1 }}>
         <Outlet context={contexto} />
       </Box>
       <PieCategorias categorias={categorias.categorias} host={host} empresaNombre={tienda.empresaNombre} />

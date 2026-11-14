@@ -10,6 +10,7 @@ import { timingSafeEqual } from 'node:crypto'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import type { CodigoError } from './codigos.ts'
+import { ConfiguracionSmtpError } from '../_shared/smtp.ts'
 import { asuntoAviso, cuerpoAviso, type LineaFaltante } from './contenido.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
@@ -58,6 +59,11 @@ export type Deps = {
    * Se llama ANTES de tomar nada: con una base sin migrar no se gastan intentos ni se envía.
    */
   sonda?: () => Resultado<unknown>
+  /**
+   * Validación de la configuración SMTP (opcional): lanza `ConfiguracionSmtpError` si no es válida. Se llama UNA vez antes de tomar
+   * nada: una configuración mala no gasta intentos ni marca avisos como fallidos (responde 503 y los avisos quedan como estaban).
+   */
+  validarConfiguracion?: () => void
   /** Reloj en ms (inyectable para probar el corte del barrido). */
   ahora?: () => number
 }
@@ -175,6 +181,26 @@ export const esErrorDeEsquemaFaltante = (error: { message: string; code?: string
   (error.code !== undefined && CODIGOS_ESQUEMA_FALTANTE.has(error.code)) || MENSAJE_ESQUEMA_FALTANTE.test(error.message)
 
 /**
+ * Valida la configuración SMTP antes de tomar nada; devuelve la respuesta de error o `null`.
+ * Solo un `ConfiguracionSmtpError` es un 503 `configuracion_smtp`; cualquier otra excepción inesperada del validador es un 500
+ * genérico (`error_interno`). En ambos casos el mensaje es constante (el detalle va al log) y no se toma nada ni se gastan intentos.
+ */
+function configuracionLista(deps: Deps): Response | null {
+  if (!deps.validarConfiguracion) return null
+  try {
+    deps.validarConfiguracion()
+    return null
+  } catch (falla) {
+    if (falla instanceof ConfiguracionSmtpError) {
+      console.error('enviar-aviso-faltante: configuración SMTP inválida', falla.message)
+      return response({ error: 'La configuración del correo no es válida.', codigo: 'configuracion_smtp' }, 503)
+    }
+    console.error('enviar-aviso-faltante: error inesperado al validar la configuración SMTP', falla instanceof Error ? falla.name : 'error')
+    return response({ error: 'No se pudo validar la configuración del correo.', codigo: 'error_interno' }, 500)
+  }
+}
+
+/**
  * Verifica el esquema antes de tomar nada; devuelve la respuesta de error o `null` si está todo bien.
  * Distingue «la base no está migrada» (503, hay que aplicar la migración) de «no se pudo consultar la base» (502: caída, red o
  * permisos): ante una caída NO se dice «no migrada». Los mensajes son constantes: el detalle va solo al log.
@@ -203,6 +229,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const body = await req.json().catch(() => null) as { cliente_id?: unknown; barrer?: unknown } | null
 
   if (body?.barrer === true) {
+    const sinConfig = configuracionLista(deps)
+    if (sinConfig) return sinConfig
     const sinEsquema = await esquemaListo(deps)
     if (sinEsquema) return sinEsquema
     const { data: ids, error } = await deps.datos.pendientes(MAX_INTENTOS, LIMITE_BARRIDO)
@@ -234,6 +262,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   }
 
   if (typeof body?.cliente_id !== 'string' || !UUID.test(body.cliente_id)) return response({ error: 'Falta el cliente.' }, 400)
+  const sinConfig = configuracionLista(deps)
+  if (sinConfig) return sinConfig
   const sinEsquema = await esquemaListo(deps)
   if (sinEsquema) return sinEsquema
   try {
