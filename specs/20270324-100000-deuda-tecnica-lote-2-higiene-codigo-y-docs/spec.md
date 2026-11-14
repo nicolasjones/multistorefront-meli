@@ -53,7 +53,18 @@
 
 ## Modelo de datos (DER)
 
-Sin cambios de esquema.
+Sin cambios de esquema (sin migraciones; no se lee ni se escribe ninguna tabla).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.empresas` | existente | sin cambios; se cita solo para completar el diagrama |
+
+```mermaid
+erDiagram
+  EMPRESAS {
+    uuid id PK
+  }
+```
 
 ## Reversión
 
