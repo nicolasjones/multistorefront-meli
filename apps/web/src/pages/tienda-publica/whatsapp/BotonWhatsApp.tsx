@@ -62,6 +62,7 @@ export function BotonWhatsApp({ host, empresa, producto, productoId, precio = nu
           empresa={nombreEmpresa}
           numero={contacto.contacto.numero}
           mensaje={mensaje}
+          producto={producto}
           url={url}
           onCerrar={() => setAbierto(false)}
           onAviso={() => setAviso(true)}

@@ -100,6 +100,22 @@ describe('diálogo de WhatsApp (P-07…P-10)', () => {
     expect(getComputedStyle(screen.getByRole('button', { name: 'Abrir WhatsApp' })).backgroundColor).toBe('rgb(37, 211, 102)')
   })
 
+  // MSF-849 (N-02): el producto va en negrita en la vista del mensaje; el campo de solo lectura y lo que se envía no cambian.
+  it('el nombre del producto va en negrita en la vista del mensaje y el texto completo sigue en el campo de solo lectura', async () => {
+    const mensaje = 'Hola MundoJC, quiero consultar por Case OLED Zelda ($ 50.625). ¿Está disponible?'
+    render(conTema(<DialogoWhatsApp {...props} mensaje={mensaje} producto="Case OLED Zelda" />))
+    const vista = await screen.findByTestId('mensaje-whatsapp-vista')
+    expect(vista).toHaveAttribute('aria-hidden', 'true')
+    expect(vista.querySelector('b')).toHaveTextContent('Case OLED Zelda')
+    expect(vista.textContent).toBe(mensaje)
+    const campo = screen.getByLabelText('Mensaje que se va a enviar')
+    expect(campo).toHaveValue(mensaje)
+    expect(campo).toHaveAttribute('tabindex', '-1')
+    // Sin el nombre dentro del mensaje (o sin la prop) no hay negrita ni se rompe.
+    render(conTema(<DialogoWhatsApp {...props} mensaje="Sin producto" producto="Otro" />))
+    expect((await screen.findAllByTestId('mensaje-whatsapp-vista'))[1].querySelector('b')).toBeNull()
+  })
+
   it('«Cancelar» y «Abrir WhatsApp» tienen indicador de foco visible (contorno de 3 px)', async () => {
     render(conTema(<DialogoWhatsApp {...props} />))
     await screen.findByRole('dialog')

@@ -116,6 +116,6 @@ const estiloEntrada: SxProps<Theme> = {
   '&[aria-current="page"]': { fontWeight: 700 },
 }
 const estiloEntradaPrincipal: SxProps<Theme> = {
+  // «Inicio» y «Contacto» van en 600 también cuando son la página actual (prototipo: sin estado activo); `aria-current` lo anuncia.
   py: '14px', px: '20px', fontWeight: 600, // estilos-sueltos: ok
-  '&[aria-current="page"]': { fontWeight: 700 },
 }

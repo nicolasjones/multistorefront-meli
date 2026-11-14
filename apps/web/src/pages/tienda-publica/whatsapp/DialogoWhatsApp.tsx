@@ -2,8 +2,21 @@ import { Box, Button, Dialog, InputBase, Typography } from '@mui/material'
 import { useEffect, useRef } from 'react'
 import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { nuevaClaveEnvioWhatsapp, registrarConsultaWhatsapp } from '../../../lib/registroWhatsapp'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { textoSobre } from '../../../tema/temaTienda'
 import { IconoWhatsapp } from './IconoWhatsapp'
+
+// Parte el mensaje en [antes, producto (negrita), después] por la primera aparición del nombre del producto.
+function partesMensaje(mensaje: string, producto?: string): Array<{ texto: string; negrita: boolean }> {
+  const nombre = producto?.trim()
+  const i = nombre ? mensaje.indexOf(nombre) : -1
+  if (!nombre || i < 0) return [{ texto: mensaje, negrita: false }]
+  return [
+    { texto: mensaje.slice(0, i), negrita: false },
+    { texto: nombre, negrita: true },
+    { texto: mensaje.slice(i + nombre.length), negrita: false },
+  ].filter((parte) => parte.texto !== '')
+}
 
 // Verde de WhatsApp del prototipo (marca de terceros, no de la identidad de la tienda).
 const COLOR_WHATSAPP = '#25D366' // estilos-sueltos: ok
@@ -20,6 +33,8 @@ export type PropsDialogoWhatsApp = {
   numero: string
   // Mensaje armado que se muestra y se envía.
   mensaje: string
+  // Nombre del producto dentro del mensaje: se resalta en negrita en la vista (solo visual; lo que se envía no cambia).
+  producto?: string
   // Enlace `wa.me` ya codificado.
   url: string
   // Cierra el diálogo sin efectos.
@@ -38,6 +53,7 @@ export default function DialogoWhatsApp({
   empresa,
   numero,
   mensaje,
+  producto,
   url,
   onCerrar,
   onAviso,
@@ -104,14 +120,16 @@ export default function DialogoWhatsApp({
       <Typography component="label" htmlFor="mensaje-whatsapp" color="text.secondary" sx={{ display: 'block', fontSize: 13, m: '20px 0 6px' /* estilos-sueltos: ok */ }}>
         Mensaje que se va a enviar
       </Typography>
-      <InputBase
-        id="mensaje-whatsapp"
-        value={mensaje}
-        multiline
-        fullWidth
-        readOnly
-        sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '10px', p: '14px', fontSize: 15, lineHeight: 1.5, alignItems: 'flex-start' /* estilos-sueltos: ok */ })}
-      />
+      {/* Vista del mensaje (prototipo: el producto en negrita). El campo de solo lectura de abajo lleva el mismo texto para lectores de
+          pantalla y pruebas; la vista es `aria-hidden` para que no se lea dos veces y el texto se puede seleccionar y copiar. */}
+      <Box
+        aria-hidden
+        data-testid="mensaje-whatsapp-vista"
+        sx={(tema) => ({ bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '10px', p: '14px', fontSize: 15, lineHeight: 1.5, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap', userSelect: 'text' /* estilos-sueltos: ok */ })}
+      >
+        {partesMensaje(mensaje, producto).map((parte, i) => (parte.negrita ? <Box key={i} component="b">{parte.texto}</Box> : <span key={i}>{parte.texto}</span>))}
+      </Box>
+      <InputBase id="mensaje-whatsapp" value={mensaje} multiline readOnly inputProps={{ tabIndex: -1 }} sx={SOLO_LECTORES} />
       <Box sx={{ display: 'flex', gap: '10px', mt: '20px' }}>
         <Button
           onClick={onCerrar}
