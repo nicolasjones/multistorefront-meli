@@ -8,7 +8,7 @@ import { categoriasPrincipales } from '../../../lib/tiendaCategorias'
 import { useInicioTienda } from '../../../lib/tiendaInicio'
 import type { PropsSeccionTienda } from '../PaginaTienda'
 import { useCelular } from '../useAnchoCelular'
-import { BORDE_CAMPO } from '../layout/medidas'
+import { BORDE_CAMPO, COLOR_FOCO } from '../layout/medidas'
 import { elegirCategoriaInicio, useCategoriaInicio } from './categoriaInicio'
 import { ErrorConReintento } from '../ErrorConReintento'
 
@@ -91,7 +91,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
                   sx={{
                     flexShrink: 0, whiteSpace: 'nowrap', px: '14px', py: '8px', borderRadius: '999px', fontSize: 14, fontWeight: 600, fontFamily: 'inherit', // estilos-sueltos: ok
                     border: BORDE_CAMPO, borderColor: activa ? 'primary.main' : undefined, bgcolor: activa ? 'primary.main' : 'background.paper', color: activa ? 'primary.contrastText' : 'text.primary',
-                    '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' }, // estilos-sueltos: ok
+                    '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: COLOR_FOCO, outlineOffset: '2px' }, // estilos-sueltos: ok
                   }}
                 >
                   {c.nombre}
@@ -120,7 +120,7 @@ export default function CategoriasInicio({ host }: PropsSeccionTienda) {
                 sx={(tema) => ({
                   display: 'block', p: 2, height: '100%', boxSizing: 'border-box', textAlign: 'center',
                   color: 'inherit', textDecoration: 'none', bgcolor: tema.tienda?.superficie ?? 'action.hover', borderRadius: '8px', // estilos-sueltos: ok
-                  '&:hover, &:focus-visible': { outline: '1px solid', outlineColor: 'text.primary', outlineOffset: '-1px' },
+                  '&:hover': { outline: '1px solid', outlineColor: 'text.primary', outlineOffset: '-1px' }, // el foco de teclado usa el contorno unificado (FocoVisible)
                 })}
               >
                 {/* Foto de la categoría (la de un producto suyo); sin foto, el recuadro neutro del prototipo. */}

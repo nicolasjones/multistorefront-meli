@@ -195,7 +195,9 @@ Inventario: `design/pantallas/VentasFaltantes.inventory.json` (correr `pnpm prot
 | Pie «N seleccionados de M faltantes» | texto | FR-002 |
 | Botón «Avisar a los seleccionados (·)» | botón | FR-002 |
 | Diálogo «Avisar a los clientes» (texto de ayuda, «Cancelar», «Enviar avisos») + **texto editable** | diálogo | FR-002, FR-001 (el texto editable y la confirmación para reavisar no están dibujados: se construyen con los componentes del template) |
-| Aviso emergente «Avisos enviados» | snackbar | FR-002 |
+| Aviso emergente «Avisos en cola.» (antes «Avisos enviados»: el correo sale en el próximo barrido) | snackbar | FR-002 |
+| Chip «En cola» en la columna Aviso | chip | FR-002, FR-008, FR-104 (estados del aviso; «Avisado · fecha» solo cuando el correo salió) |
+| Chip «Aviso fallido» con su motivo y botón «Reintentar» | chip y botón | Reintento de avisos agotados (revisión M-1; mismo flujo del diálogo «Avisar a los clientes», FR-002/FR-003) |
 | Mensaje «El cliente no tiene correo» | texto | FR-005 (no dibujado) |
 | Confirmación «Volver a avisar a los N ya avisados» | casilla | FR-003 (no dibujada) |
 | Estado «Para avisar» y filtro «Para avisar» / orden por antigüedad | chip y filtro | FR-103, FR-104 (no dibujados) |
@@ -273,7 +275,7 @@ Rutas: pgTAP en `supabase/tests/database/`, Vitest junto a la pantalla en `apps/
 - **Una sola regla de encolado (m-6)**: `avisar_faltantes_venta` y `avisar_faltantes` usan `private.encolar_aviso_faltante`.
 - **Selección (m-7, QA M4)**: se descarta al cambiar de filtro de aviso, así «Avisar (n)» y el envío solo cuentan lo que se ve.
 - **Trigger (m-2)**: reintenta ante deadlock/lock_not_available y deja una actividad segura si no puede; nunca bloquea el ingreso.
-- **Prototipo**: `design/pantallas/VentasFaltantes.dc.html` no dibuja los chips «En cola» y «Aviso fallido» ni «Reintentar»; son un agregado pedido por la revisión (M-1) que reutiliza `EtiquetaEstado` y los botones del sistema, y queda para confirmar con el prototipo.
+- **Prototipo**: `design/pantallas/VentasFaltantes.dc.html` dibuja desde 2026-11-14 los chips «En cola» y «Aviso fallido» (con motivo) y «Reintentar», y el aviso «Avisos en cola.»; el filtro «En cola» sigue solo en la RPC.
 - **Revisión del PR #915** (migración `20270306130000`): tope diario con bloqueo por organización e índice; `smtp_timeout` = intento incierto (queda `agotado`, sin reenvío automático); orden de bloqueo común a las dos RPC; la pantalla de Stock informa el tope diario; el barrido de la Edge Function corta por reloj.
 - **Revisión del PR #918**: `service_role` ejecuta `private.sanear_mensaje_aviso` (la evalúa el CHECK); sonda de esquema antes de tomar y 502 si un barrido falla entero; timeout de conexión ≠ timeout de envío; reencolar un `agotado` ya contado no se frena por el tope; `tomar` bloquea en orden de línea; `ultimo_error` vacío heredado pasa a NULL; recorte por caracteres; textos «pasa a la siguiente ventana de 24 horas».
 - **Revisión del PR #920**: el cierre bloquea en orden de línea; el envío separa conexión (reintentable) de envío (incierto); errores por código numérico del servidor; el filtro `en_cola` queda solo en la RPC (el prototipo no lo ofrece); reencolar un `smtp_timeout` es sin límite de 24 h (decisión consciente); el contador de la UI cuenta caracteres.
