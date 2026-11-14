@@ -230,6 +230,158 @@ describe('RequiereAccesoSeccion: reintentar sin perder el borrador (MSF-855)', (
     expect(screen.getByRole('note')).toBeInTheDocument()
   })
 
+  it('eventos de ratón, puntero, arrastre y teclas de impresión tampoco llegan a los hijos (ni a los del portal)', async () => {
+    const alcanzados: string[] = []
+    function Sensible() {
+      return (
+        <div>
+          <input aria-label="Nombre" />
+          <button
+            type="button"
+            onMouseUp={() => alcanzados.push('mouseup')}
+            onPointerUp={() => alcanzados.push('pointerup')}
+            onDragStart={() => alcanzados.push('dragstart')}
+            onDragOver={() => alcanzados.push('dragover')}
+            onKeyPress={() => alcanzados.push('keypress')}
+            onAuxClick={() => alcanzados.push('auxclick')}
+            onTouchEnd={() => alcanzados.push('touchend')}
+          >
+            Accion
+          </button>
+          {createPortal(
+            <button type="button" onMouseUp={() => alcanzados.push('portal-mouseup')} onKeyPress={() => alcanzados.push('portal-keypress')}>
+              Accion portal
+            </button>,
+            document.body,
+          )}
+        </div>
+      )
+    }
+    await abrirYFallar(<Sensible />)
+    for (const nombre of ['Accion', 'Accion portal']) {
+      const boton = screen.getByRole('button', { name: nombre })
+      fireEvent.mouseUp(boton)
+      fireEvent.pointerUp(boton)
+      fireEvent.dragStart(boton)
+      fireEvent.dragOver(boton)
+      fireEvent.keyPress(boton, { key: 'Enter', charCode: 13 })
+      fireEvent(boton, new MouseEvent('auxclick', { bubbles: true, cancelable: true }))
+      fireEvent.touchEnd(boton)
+    }
+    expect(alcanzados).toEqual([])
+  })
+
+  it('Escape dentro de un diálogo en portal pasa (se puede CERRAR y llegar a «Reintentar»), pero nada se guarda', async () => {
+    const cerrar = vi.fn()
+    const enter = vi.fn()
+    function ConDialogo() {
+      return (
+        <div>
+          <input aria-label="Nombre" onKeyDown={() => enter('zona')} />
+          {createPortal(
+            <div role="dialog" onKeyDown={(evento) => { if (evento.key === 'Escape') cerrar() }}>
+              <button type="button" onClick={() => guardar('desde-dialogo')} onKeyDown={(evento) => { if (evento.key === 'Enter') enter('portal') }}>Guardar dialogo</button>
+            </div>,
+            document.body,
+          )}
+        </div>
+      )
+    }
+    const { campo } = await abrirYFallar(<ConDialogo />)
+    const boton = screen.getByRole('button', { name: 'Guardar dialogo' })
+    fireEvent.keyDown(boton, { key: 'Enter' })
+    fireEvent.click(boton)
+    fireEvent.keyDown(campo, { key: 'Escape' })
+    expect(enter).not.toHaveBeenCalled()
+    expect(guardar).not.toHaveBeenCalled()
+    expect(cerrar).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(boton, { key: 'Escape' })
+    expect(cerrar).toHaveBeenCalledTimes(1)
+  })
+
+  it('una sección anidada sin nivel suficiente no se abre por el solo hecho de que la exterior conserve su borrador', async () => {
+    function Anidada() {
+      return (
+        <RequiereAccesoSeccion seccion="stock" nivelMinimo="edicion">
+          <input aria-label="Dato de stock" />
+        </RequiereAccesoSeccion>
+      )
+    }
+    mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('edicion'), fila('lectura', 'stock')])
+    render(
+      <MemoryRouter>
+        <PermisosPanelProvider>
+          <Recargador />
+          <RequiereAccesoSeccion seccion="ventas"><input aria-label="Nombre" /><Anidada /></RequiereAccesoSeccion>
+        </PermisosPanelProvider>
+      </MemoryRouter>,
+    )
+    await screen.findByLabelText('Nombre')
+    expect(screen.queryByLabelText('Dato de stock')).not.toBeInTheDocument()
+    mocks.obtenerPermisosActuales.mockRejectedValueOnce(new Error('red caída'))
+    fireEvent.click(screen.getByRole('button', { name: 'recargar-externo' }))
+    await screen.findByRole('note')
+    expect(screen.getByLabelText('Nombre')).toBeDisabled()
+    expect(screen.queryByLabelText('Dato de stock')).not.toBeInTheDocument()
+  })
+
+  it('al confirmar el acceso desde «Reintentar» el foco no se pierde: pasa a la región viva que lo anuncia', async () => {
+    await abrirYFallar()
+    const reintentar = screen.getByRole('button', { name: 'Reintentar' })
+    reintentar.focus()
+    expect(reintentar).toHaveFocus()
+    mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('edicion')])
+    fireEvent.click(reintentar)
+    await waitFor(() => expect(screen.queryByRole('note')).not.toBeInTheDocument())
+    const region = document.querySelector('[aria-live="polite"]') as HTMLElement
+    expect(region).toHaveFocus()
+    expect(region).toHaveTextContent('Acceso confirmado')
+    expect(document.body).not.toHaveFocus()
+  })
+
+  it('doble clic rápido en «Reintentar»: un solo pedido (aria-disabled mientras verifica)', async () => {
+    await abrirYFallar()
+    mocks.obtenerPermisosActuales.mockReturnValueOnce(new Promise<PermisoSeccion[]>(() => {}))
+    const boton = screen.getByRole('button', { name: 'Reintentar' })
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    fireEvent.click(boton)
+    expect(mocks.obtenerPermisosActuales).toHaveBeenCalledTimes(3)
+    expect(boton).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('dos reintentos en vuelo: la respuesta vieja que llega tarde no pisa a la nueva (no resucita un nivel perdido)', async () => {
+    await abrirYFallar()
+    let resolverViejo: (permisos: PermisoSeccion[]) => void = () => {}
+    let resolverNuevo: (permisos: PermisoSeccion[]) => void = () => {}
+    mocks.obtenerPermisosActuales.mockReturnValueOnce(new Promise<PermisoSeccion[]>((aceptar) => { resolverViejo = aceptar }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    mocks.obtenerPermisosActuales.mockReturnValueOnce(new Promise<PermisoSeccion[]>((aceptar) => { resolverNuevo = aceptar }))
+    fireEvent.click(screen.getByRole('button', { name: 'recargar-externo' }))
+    await act(async () => { resolverNuevo([fila('ninguno')]) })
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
+    await act(async () => { resolverViejo([fila('edicion')]) })
+    expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Sección no disponible para tu rol')
+  })
+
+  it('una respuesta vieja de la clave anterior no pisa a la nueva (el reintento en vuelo se cancela al cambiar de clave)', async () => {
+    await abrirYFallar()
+    let resolverViejo: (permisos: PermisoSeccion[]) => void = () => {}
+    mocks.obtenerPermisosActuales.mockReturnValueOnce(new Promise<PermisoSeccion[]>((aceptar) => { resolverViejo = aceptar }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    mocks.obtenerPermisosActuales.mockReturnValueOnce(new Promise<PermisoSeccion[]>(() => {}))
+    organizacion('o2')
+    mocks.useGetIdentity.mockReturnValue({ data: { id: 'u1' } })
+    // misma identidad, otra organización: la respuesta vieja (edicion de o1) llega tarde.
+    // El árbol se vuelve a renderizar por el cambio de contexto.
+    fireEvent.click(screen.getByRole('button', { name: 'recargar-externo' }))
+    await act(async () => { resolverViejo([fila('edicion')]) })
+    expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Joystick inalámbrico')).not.toBeInTheDocument()
+  })
+
   describe('si la clave usuario:organización CAMBIÓ no se conserva ni se ve el borrador', () => {
     it('otra organización (con carga demorada): se desmonta y no aparece el borrador anterior', async () => {
       mocks.obtenerPermisosActuales.mockResolvedValueOnce([fila('edicion')])

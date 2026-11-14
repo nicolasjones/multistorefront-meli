@@ -385,6 +385,16 @@ editar ni guardar; el servidor (RLS / `private.nivel_seccion`) es la autoridad i
 
 Nota: cambiar la empresa activa vuelve a pedir los permisos y remonta la pantalla a propósito (no arrastra datos de la empresa anterior); el aviso con borrador aplica a lo que la persona escribe después, mientras el repedido está en vuelo y falla.
 
+Mientras la zona está inerte también se cortan, en captura, el ratón (`mouseup`, clic auxiliar), el puntero, el
+arrastre (`dragstart/enter/over/drop`), el táctil y las teclas de impresión; no hay atajos globales de teclado en las
+pantallas. **Salida para quien ya tenía un diálogo abierto**: un diálogo o menú de MUI que estaba abierto en un portal
+cuando falló el repedido atrapa el foco y tapa el aviso; `Escape` dentro del portal sí pasa (cierra, no guarda), y
+`Tab` nunca se cancela. Una `RequiereAccesoSeccion` anidada solo se mantiene abierta si su propio último nivel
+confirmado cumple el mínimo. Al confirmar el acceso, si el foco estaba en «Reintentar» pasa a la región viva, que anuncia
+«Acceso confirmado» (el foco no se pierde en `<body>`). Riesgo residual del último nivel confirmado: un `edicion` viejo
+solo se entrega a los hijos de la sección, que están inertes; aun si alguien lo forzara, el servidor lo rechaza porque
+la autorización real es RLS (`private.nivel_seccion`) y no depende de lo que la UI crea.
+
 «Reintentar» vuelve a pedir `permisos_actuales` (un pedido por clic; mientras verifica el botón queda `aria-disabled`).
 **No hay reintentos automáticos ni polling**: un error persistente deja la zona inerte hasta que la persona reintente.
 Si el reintento confirma `edicion` se habilita el formulario con lo tipeado intacto (mismo nodo); si confirma `lectura`

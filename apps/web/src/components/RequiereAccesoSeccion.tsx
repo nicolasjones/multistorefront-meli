@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useIsSuperadmin } from '../hooks/useIsSuperadmin'
 import { useOrganizacionDeTrabajo } from '../hooks/useOrganizacionDeTrabajo'
 import { useNivelSeccion } from '../hooks/useNivelSeccion'
@@ -62,6 +62,22 @@ export function RequiereAccesoSeccion({
     setClaveAbierta(claveSiguiente)
   }
 
+  // Accesibilidad: si la persona estaba en «Reintentar» y el aviso desaparece (se confirmó el acceso) el foco se
+  // perdería en <body>. Se lleva a la región viva (tabIndex -1), que anuncia que el acceso se confirmó.
+  const regionViva = useRef<HTMLDivElement>(null)
+  const focoEnAviso = useRef(false)
+  const [huboAviso, setHuboAviso] = useState(false)
+  // Ajuste durante el render: «hubo aviso» mientras se conserva el borrador; se olvida si la sección deja de estar abierta.
+  if (conservaBorrador && !huboAviso) setHuboAviso(true)
+  if (!conservaBorrador && huboAviso && claveSiguiente === null) setHuboAviso(false)
+  const accesoConfirmado = huboAviso && !conservaBorrador
+  useLayoutEffect(() => {
+    if (accesoConfirmado && focoEnAviso.current && (document.activeElement === document.body || document.activeElement === null)) {
+      regionViva.current?.focus()
+    }
+    if (!conservaBorrador) focoEnAviso.current = false
+  }, [accesoConfirmado, conservaBorrador])
+
   useEffect(() => {
     if (!denegado) {
       return
@@ -75,8 +91,10 @@ export function RequiereAccesoSeccion({
     return () => { cancelada = true }
   }, [denegado, organizacionId])
 
-  if (sinConfirmar) {
+  if (sinConfirmar && cumple) {
     // Dentro de una zona que ya conserva su borrador (otra RequiereAccesoSeccion anidada): la zona exterior bloquea y avisa.
+    // Solo si el último nivel confirmado de ESTA sección cumple el mínimo: una sección anidada que no estaba abierta
+    // (sin nivel suficiente) sigue denegada, no se abre por el simple hecho de que la exterior conserva su borrador.
     return <>{children}</>
   }
   if (!conservaBorrador && !cargando && errorPermisos && isSuperadmin === false) {
@@ -91,8 +109,17 @@ export function RequiereAccesoSeccion({
     // del aviso para que los lectores de pantalla lo anuncien sin mover el foco. `key` por clave: otra clave remonta.
     return (
       <>
-        <div aria-live="polite" aria-atomic="true">
+        <div
+          ref={regionViva}
+          tabIndex={-1}
+          aria-live="polite"
+          aria-atomic="true"
+          onFocusCapture={() => { focoEnAviso.current = true }}
+          onBlurCapture={(evento) => { if (evento.relatedTarget) focoEnAviso.current = false }}
+          style={{ outline: 'none' }}
+        >
           {conservaBorrador ? <AvisoPermisosSinConfirmar reintentar={recargar} verificando={cargandoNivel} /> : null}
+          {!conservaBorrador && accesoConfirmado ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Acceso confirmado. Ya podés editar.</span> : null}
         </div>
         <BorradorConservadoContext.Provider value={valorConservado}>
           <ZonaInerte key={typeof clave === 'string' ? clave : 'sin-clave'} bloqueada={conservaBorrador}>{children}</ZonaInerte>

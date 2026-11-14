@@ -5,8 +5,14 @@ const detener = (evento: SyntheticEvent) => {
   evento.preventDefault()
   evento.stopPropagation()
 }
+// Los eventos táctiles de React son pasivos: no admiten preventDefault, solo se cortan.
+const soloCortar = (evento: SyntheticEvent) => evento.stopPropagation()
 // Tab no se cancela: con `inert` el foco ya sale de la zona y bloquearlo atraparía el teclado donde `inert` no exista.
+// Escape: un diálogo/menú de MUI que ya estaba abierto en un portal cuando falló el repedido deja la persona atrapada
+// (foco atrapado, aviso tapado por el telón). Escape en el portal pasa para que pueda CERRARlo; cerrar no guarda nada.
+// Dentro del DOM de la zona (inerte) Escape sigue cortado.
 const detenerTecla = (evento: KeyboardEvent) => {
+  if (evento.key === 'Escape' && evento.target instanceof Node && !evento.currentTarget.contains(evento.target)) return
   if (evento.key !== 'Tab') evento.preventDefault()
   evento.stopPropagation()
 }
@@ -32,6 +38,16 @@ export function ZonaInerte({ bloqueada, children }: { bloqueada: boolean; childr
         onPasteCapture: detener,
         onCutCapture: detener,
         onDropCapture: detener,
+        onDragStartCapture: detener,
+        onDragEnterCapture: detener,
+        onDragOverCapture: detener,
+        onMouseUpCapture: detener,
+        onPointerUpCapture: detener,
+        onTouchStartCapture: soloCortar,
+        onTouchEndCapture: soloCortar,
+        onAuxClickCapture: detener,
+        onCompositionEndCapture: detener,
+        onKeyPressCapture: detener,
         onKeyDownCapture: detenerTecla,
         onKeyUpCapture: detenerTecla,
       } as Record<string, unknown>)
