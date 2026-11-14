@@ -20,7 +20,7 @@ Cuatro historias secuenciales por dependencia (F-1 → F-2 y F-3 en paralelo →
 | `public.copiar_presupuesto(uuid)` | `20261204150100_copiar_presupuesto.sql` | usa `private.precio_linea_venta` (sin descuento, igual que hoy) |
 | `private.copiar_costo_linea_nota()` + disparador `comprobantes_venta_lineas_costo_nota` | `20270202201006_confirmar_comprobante_costo_cotizacion.sql` | copia también `precio_referencia` y `promocion_id` |
 | `private.precio_para(uuid, uuid, text)` | `20270213200002_precio_propio_tienda_y_lineas.sql` | **no se toca** |
-| `private.promocion_vigente(...)`, `private.precio_vigente_empresa(...)` | `20270228300100` / `20270305100300` | **no se tocan** (la tienda sigue igual; alinearla es el seguimiento S5) |
+| `private.promocion_vigente(...)`, `private.precio_vigente_empresa(...)` | `20270228300100` / `20270305100300` | **no se tocan** en esta épica (la tienda sigue igual; alinearla fue el seguimiento S5 = MSF-936, `20270326100000`) |
 
 ## Revisión de la Constitución
 

@@ -143,6 +143,26 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     expect(mocks.leerPromociones.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
+  it('«Nueva promoción» con un precio no menor al normal: guarda y muestra el aviso en vez del éxito simple (MSF-936)', async () => {
+    mocks.guardarPromocion.mockResolvedValue({ aviso: 'AVISO-NO-MENOR' })
+    abrir()
+    await screen.findByText('Alfa de A')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva promoción' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva promoción' })
+    fireEvent.change(within(dialogo).getByLabelText(/Producto/), { target: { value: 'Alfa' } })
+    fireEvent.keyDown(within(dialogo).getByLabelText(/Producto/), { key: 'ArrowDown' })
+    fireEvent.click(await screen.findByRole('option', { name: /Alfa · PR-1/ }))
+    fireEvent.change(within(dialogo).getByLabelText(/Precio promocional/), { target: { value: '5000' } })
+    fireEvent.change(within(dialogo).getByLabelText(/Desde/), { target: { value: '2030-11-10T09:00' } })
+    fireEvent.change(within(dialogo).getByLabelText(/Hasta/), { target: { value: '2030-11-12T09:00' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const alerta = screen.getByText(/Promoción programada\. AVISO-NO-MENOR/)
+    expect(alerta.closest('[role="alert"]')).toHaveClass('MuiAlert-standardWarning')
+    expect(screen.queryByText('Promoción programada.')).toBeNull()
+  })
+
   it('el selector de productos busca en el servidor al escribir y avisa si el catálogo se cortó', async () => {
     mocks.buscadorCatalogo.mockReturnValue({ opciones: PRODUCTOS, truncado: true, error: false, cargando: false, buscar: mocks.buscarProductos })
     abrir()

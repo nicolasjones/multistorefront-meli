@@ -165,13 +165,21 @@ export function validarPromocion(
   return errores
 }
 
-// Devuelve la promoción guardada. Lanza el error de la base (usar `mensajeErrorPromocion`).
-export async function guardarPromocion(cliente: SupabaseClient, datos: DatosPromocion): Promise<void> {
+// MSF-936: la RPC guarda igual una promoción cuyo precio no es menor al precio normal de la tienda y lo avisa con
+// `aviso_codigo`; esa promoción no se aplica (ni en la tienda ni en el local) mientras no baje el precio.
+export const CODIGO_AVISO_NO_MENOR = 'promocion_no_menor_al_normal'
+export const AVISO_PROMOCION_NO_MENOR =
+  'El precio promocional no es menor al precio normal de la tienda: se guardó, pero no se aplicará mientras no lo baje.'
+
+export type ResultadoGuardarPromocion = { aviso: string | null }
+
+// Guarda la promoción y devuelve el aviso de la base, si hubo. Lanza el error de la base (usar `mensajeErrorPromocion`).
+export async function guardarPromocion(cliente: SupabaseClient, datos: DatosPromocion): Promise<ResultadoGuardarPromocion> {
   const precio = parsearImporte(datos.precioTexto)
   const desde = parsearFechaHora(datos.desdeTexto)
   const hasta = parsearFechaHora(datos.hastaTexto)
   if (precio === null || !desde || !hasta) throw new Error('Los datos de la promoción no son válidos')
-  const { error } = await cliente.rpc('guardar_promocion_precio', {
+  const { data, error } = await cliente.rpc('guardar_promocion_precio', {
     p_id: datos.id,
     p_empresa: datos.empresaId,
     p_producto: datos.productoId,
@@ -181,6 +189,8 @@ export async function guardarPromocion(cliente: SupabaseClient, datos: DatosProm
     p_actualizado: datos.actualizadoEn,
   })
   if (error) throw error
+  const codigo = (data as { aviso_codigo?: unknown } | null)?.aviso_codigo
+  return { aviso: codigo === CODIGO_AVISO_NO_MENOR ? AVISO_PROMOCION_NO_MENOR : null }
 }
 
 export async function anularPromocion(cliente: SupabaseClient, promocion: Pick<Promocion, 'id' | 'actualizadoEn'>): Promise<void> {
