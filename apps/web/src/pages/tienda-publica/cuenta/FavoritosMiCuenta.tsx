@@ -1,16 +1,19 @@
 import { Box, Button, Link, Typography } from '@mui/material'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link as EnlaceRuta } from 'react-router'
+import { Link as EnlaceRuta, useNavigate } from 'react-router'
 import { MiniaturaProducto } from '../../../components/base/MiniaturaProducto'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
+import { useListaPedido } from '../../../hooks/useListaPedido'
 import { useListadoPorCursor } from '../../../hooks/useListadoPorCursor'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
+import { LISTA_DE_PEDIDO_DISPONIBLE } from '../../../lib/tiendaCapacidades'
 import { cambiarFavorito, esSinAcceso, leerMisFavoritos, type CursorFavoritos, type FavoritoCuenta } from '../../../lib/tiendaCuentaDatos'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import { ErrorConReintento } from '../ErrorConReintento'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
 import { LINEA_SUAVE } from '../layout/medidas'
+import { TEXTO_TOPE_LINEAS, TEXTO_TOPE_UNIDADES } from '../lista/BotonAgregarALista'
 import { AvisoTienda } from './AvisoTienda'
 import { crearAviso, type AvisoCuenta } from './aviso'
 import { VacioMiCuenta } from './VacioMiCuenta'
@@ -22,10 +25,12 @@ const textoContador = (n: number) => `${n} ${n === 1 ? 'favorito' : 'favoritos'}
 // «Favoritos» de «Mi cuenta» (F-CLI-20, FR-008/FR-009, P-3): los productos que la cuenta guardó en ESTA tienda, el último guardado
 // primero, por tandas de 20 con carga infinita. Cada tarjeta: miniatura (con zoom), nombre (enlace a la ficha), disponibilidad,
 // precio según la cuenta («Precio a confirmar» sin precio) y «Quitar» con «Deshacer». Un favorito cuyo producto dejó de ser visible
-// no se lista (el servidor lo omite: no se borra y vuelve si se republica). «Agregar a la lista» no se dibuja todavía: lo suma la
-// historia de la lista de pedido (B1, T039), que es la que crea la lista.
+// no se lista (el servidor lo omite: no se borra y vuelve si se republica). «Agregar a la lista» se dibuja desde que existe la lista de pedido
+// (B1, T039, `LISTA_DE_PEDIDO_DISPONIBLE`).
 export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAcceso: () => void }) {
   const [aviso, setAviso] = useState<AvisoCuenta | null>(null)
+  const lista = useListaPedido(host)
+  const navigate = useNavigate()
   const [quitando, setQuitando] = useState<string | null>(null)
   // URLs firmadas renovadas (duran 1 h): si una miniatura falla al cargar se pide una nueva, una sola vez por imagen.
   const [renovadas, setRenovadas] = useState<Record<string, string>>({})
@@ -55,6 +60,13 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
   }, [fase, filas.length, hayMas, cargandoMas, errorMas, cargarMas])
 
   const publicar = (mensaje: string, error = false, accion?: AvisoCuenta['accion']) => setAviso(crearAviso(mensaje, error, accion))
+
+  // «Agregar a la lista» (MSF-176, B1, T039): suma 1 unidad a la lista de pedido de esta tienda, con los mismos avisos que la ficha.
+  const agregarALaLista = (favorito: FavoritoVista) => {
+    const resultado = lista.agregar(favorito.productoId)
+    if (resultado.estado === 'ok') publicar(`Agregamos «${favorito.nombre}» a tu lista`, false, { etiqueta: 'Ver lista', alElegir: () => navigate('/lista') })
+    else publicar(resultado.estado === 'tope_unidades' ? TEXTO_TOPE_UNIDADES : TEXTO_TOPE_LINEAS, true)
+  }
 
   const quitar = async (favorito: FavoritoVista) => {
     if (quitando) return
@@ -115,6 +127,17 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
                   {precio ? <Typography component="span" color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>Precio por escala {favorito.escala}</Typography> : null}
                 </Box>
                 <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {LISTA_DE_PEDIDO_DISPONIBLE ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      aria-label={`Agregar ${favorito.nombre} a la lista`}
+                      onClick={() => agregarALaLista(favorito)}
+                      sx={{ minHeight: (tema) => tema.spacing(5.5), width: { xs: '100%', sm: 'auto' } }}
+                    >
+                      Agregar a la lista
+                    </Button>
+                  ) : null}
                   <Button
                     size="small"
                     variant="outlined"

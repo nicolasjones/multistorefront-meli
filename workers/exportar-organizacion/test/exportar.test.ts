@@ -262,6 +262,13 @@ describe('CSV', () => {
     expect(celda(-5.25)).toBe('-5.25');
   });
 
+  // MSF-176 (B1, T042, amenaza 1.5): el nombre, la nota y la descripción de un ítem de un pedido de la tienda los escribe cualquier visitante.
+  it('un pedido de la tienda con fórmulas de CSV (nombre, nota o ítem) sale como texto, nunca como fórmula', () => {
+    for (const valor of ['=HYPERLINK("http://malo.example","clic")', "+cmd|'/c calc'!A0", '@SUM(A1)', '-2+3', '\t=1+1']) {
+      expect(celdaTexto(valor).replace(/^"/, '').startsWith("'")).toBe(true);
+    }
+  });
+
   it('serializa null, booleanos y JSON', () => {
     expect(celda(null)).toBe('');
     expect(celda(true)).toBe('true');

@@ -19,11 +19,12 @@ export const COLOR_ESTADO_CONSULTA: Readonly<Record<EstadoConsulta, 'primary' | 
   resuelta: 'success',
 }
 
-export type OrigenConsulta = 'formulario' | 'whatsapp'
+export type OrigenConsulta = 'formulario' | 'whatsapp' | 'pedido'
 
 export const ETIQUETA_ORIGEN_CONSULTA: Readonly<Record<OrigenConsulta, string>> = {
   formulario: 'Formulario',
   whatsapp: 'WhatsApp',
+  pedido: 'Pedido',
 }
 
 export const NOTA_MAXIMA = 2000
@@ -49,10 +50,16 @@ export type Consulta = {
   updated_at: string
   /** Contacto de la libreta vinculado (F-CON-05); null si no tiene. */
   contacto_id?: string | null
+  /** MSF-176 (B1): cliente de la cuenta web que envió el pedido (la fija el servidor); null en consultas de visitantes. */
+  cliente_id?: string | null
+  /** Cantidad de ítems de un pedido (0 si la consulta no es un pedido). */
+  items_cantidad?: number
+  cliente_numero?: number | null
+  cliente_nombre?: string | null
 }
 
 export const COLUMNAS_CONSULTA =
-  'id, empresa_id, empresa_nombre, origen, nombre, contacto, mensaje, producto_id, producto_nombre, estado, responsable_id, responsable_nombre, nota_interna, created_at, updated_at, contacto_id'
+  'id, empresa_id, empresa_nombre, origen, nombre, contacto, mensaje, producto_id, producto_nombre, estado, responsable_id, responsable_nombre, nota_interna, created_at, updated_at, contacto_id, cliente_id, items_cantidad, cliente_numero, cliente_nombre'
 
 export type Responsable = { user_id: string; nombre: string }
 
@@ -70,6 +77,51 @@ export type FiltrosConsultas = {
 
 export function nombreProducto(consulta: Pick<Consulta, 'producto_nombre'>): string {
   return consulta.producto_nombre ?? SIN_PRODUCTO
+}
+
+// Columna «Producto» de la bandeja (MSF-176, B1, P-6): un pedido no tiene UN producto, tiene varios: «Pedido de n productos» («1 producto»).
+export function textoProductoConsulta(consulta: Pick<Consulta, 'origen' | 'producto_nombre' | 'items_cantidad'>): string {
+  if (consulta.origen !== 'pedido') return nombreProducto(consulta)
+  const n = consulta.items_cantidad ?? 0
+  return `Pedido de ${n} ${n === 1 ? 'producto' : 'productos'}`
+}
+
+// Una línea de un pedido (`public.consulta_items_bandeja`, MSF-176 B1). Todo es texto de la tienda: se muestra como texto, nunca como HTML.
+export type ItemConsulta = {
+  orden: number
+  producto_id: string | null
+  descripcion: string
+  sku: string | null
+  cantidad: number
+  /** Precio unitario de REFERENCIA calculado por el servidor al enviar (no firme); null si el producto no tenía precio. */
+  precio_referencia: number | null
+}
+
+const COLUMNAS_ITEM = 'orden, producto_id, descripcion, sku, cantidad, precio_referencia'
+
+// Ítems del pedido de una consulta, en el orden de la lista. La RLS de las líneas es la de la consulta: sin acceso, la lista viene vacía.
+export async function listarItemsConsulta(consultaId: string): Promise<ItemConsulta[]> {
+  const { data, error } = await supabaseClient
+    .from('consulta_items_bandeja')
+    .select(COLUMNAS_ITEM)
+    .eq('consulta_id', consultaId)
+    .order('orden', { ascending: true })
+  if (error) throw aError(error)
+  return ((data ?? []) as Array<Record<string, unknown>>).map((fila) => ({
+    orden: Number(fila.orden),
+    producto_id: typeof fila.producto_id === 'string' ? fila.producto_id : null,
+    descripcion: String(fila.descripcion ?? ''),
+    sku: typeof fila.sku === 'string' && fila.sku !== '' ? fila.sku : null,
+    cantidad: Number(fila.cantidad),
+    precio_referencia: fila.precio_referencia === null || fila.precio_referencia === undefined ? null : Number(fila.precio_referencia),
+  }))
+}
+
+// Total de referencia del pedido: suma de precio de referencia × cantidad de las líneas que lo tienen (null si ninguna).
+export function totalReferenciaPedido(items: readonly ItemConsulta[]): number | null {
+  const conPrecio = items.filter((item) => item.precio_referencia !== null && Number.isFinite(item.precio_referencia))
+  if (conPrecio.length === 0) return null
+  return Math.round(conPrecio.reduce((suma, item) => suma + (item.precio_referencia ?? 0) * item.cantidad, 0) * 100) / 100
 }
 
 // El texto viaja dentro de un filtro `or=(…)` de PostgREST: las comas, paréntesis y comillas

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), schema: vi.fn(), firmar: vi.fn()
 vi.mock('../../../lib/supabase', () => ({ supabaseClient: { schema: mocks.schema } }))
 vi.mock('../../../lib/imagenProducto', () => ({ urlsImagenesProducto: mocks.firmar }))
 
+import { leerLista, reiniciarListaPedido } from '../../../lib/listaPedido'
 import { DetalleCompra } from './DetalleCompra'
 import { FavoritosMiCuenta } from './FavoritosMiCuenta'
 import { HistorialMiCuenta } from './HistorialMiCuenta'
@@ -388,11 +389,20 @@ describe('FavoritosMiCuenta (FR-008, FR-009, P-3)', () => {
     expect(await screen.findByText('No pudimos cargar tus favoritos.')).toBeInTheDocument()
   })
 
-  it('no dibuja «Agregar a la lista» (la lista de pedido es de otra historia)', async () => {
+  it('«Agregar a la lista» (B1, T039) suma 1 unidad a la lista del navegador de esta tienda y avisa con «Ver lista»', async () => {
+    window.localStorage.clear()
+    reiniciarListaPedido()
     rpcs({ mis_favoritos_por_dominio: PAGINA })
     montar()
     await screen.findByRole('list', { name: 'Favoritos' })
-    expect(screen.queryByRole('button', { name: /Agregar a la lista/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Joystick Pro a la lista' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Agregamos «Joystick Pro» a tu lista')
+    expect(screen.getByRole('button', { name: 'Ver lista' })).toBeInTheDocument()
+    expect(leerLista(HOST)).toEqual([{ productoId: P_1, cantidad: 1 }])
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Joystick Pro a la lista' }))
+    expect(leerLista(HOST)).toEqual([{ productoId: P_1, cantidad: 2 }])
+    // No llama a ninguna RPC de pedido: la lista vive en el navegador.
+    expect(mocks.rpc.mock.calls.some(([funcion]) => String(funcion).includes('pedido'))).toBe(false)
   })
 
   it('«Quitar» saca el favorito, baja el contador y «Deshacer» lo vuelve a su lugar', async () => {

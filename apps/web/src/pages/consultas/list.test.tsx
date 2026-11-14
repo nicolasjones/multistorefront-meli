@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   useResponsablesConsultas: vi.fn(),
   useNivelSeccion: vi.fn(),
   useRespuestasRapidas: vi.fn(),
+  useItemsConsulta: vi.fn(),
   useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
   refetchDetalle: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('../../hooks/useConsultas', () => ({
   useResponsablesConsultas: mocks.useResponsablesConsultas,
 }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks.useRespuestasRapidas }))
+vi.mock('../../hooks/useItemsConsulta', () => ({ useItemsConsulta: mocks.useItemsConsulta }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -98,6 +100,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     mocks.useConsultasNuevas.mockReturnValue({ total: 3 })
     mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
     mocks.useRespuestasRapidas.mockReturnValue({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'lista', items: [], reintentar: vi.fn() })
     mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()]))
     mocks.useConsulta.mockImplementation((id: string | null) => detalle(id === ID_CONSULTA ? consulta() : null))
     estadoFiltro.empresaActivaId = null
@@ -320,5 +323,72 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     rerender(<MemoryRouter initialEntries={['/consultas']}><ConsultaList /></MemoryRouter>)
     expect(screen.queryByText('Respuestas rápidas · San Javucho')).not.toBeInTheDocument()
     expect(screen.getByText(/Cambió la empresa activa: se cerró «Respuestas rápidas»/)).toBeInTheDocument()
+  })
+})
+
+// MSF-176 · B1 · P-6: consultas de origen pedido.
+describe('ConsultaList · pedidos de la tienda (B1, P-6)', () => {
+  const ID_PEDIDO = 'c1000000-0000-0000-0000-0000000000b1'
+  const pedido = (extra: Partial<Consulta> = {}) => consulta({
+    id: ID_PEDIDO, origen: 'pedido', nombre: 'Bruno Gómez', contacto: 'bruno@example.com', mensaje: null, items_cantidad: 3,
+    cliente_id: null, cliente_numero: null, cliente_nombre: null, ...extra,
+  })
+  const ITEMS = [
+    { orden: 1, producto_id: 'p-1', descripcion: 'Joystick Pro', sku: 'JOY-1', cantidad: 2, precio_referencia: 2500 },
+    { orden: 2, producto_id: null, descripcion: 'Cable USB', sku: null, cantidad: 1, precio_referencia: null },
+  ]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.imagenes.clear()
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.useConsultasNuevas.mockReturnValue({ total: 1 })
+    mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
+    mocks.useRespuestasRapidas.mockReturnValue({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'lista', items: ITEMS, reintentar: vi.fn() })
+    mocks.useBandejaConsultas.mockReturnValue(bandeja([pedido(), pedido({ id: 'c1000000-0000-0000-0000-0000000000b2', items_cantidad: 1 })]))
+    mocks.useConsulta.mockImplementation((id: string | null) => detalle(id === ID_PEDIDO ? pedido() : null))
+    estadoFiltro.empresaActivaId = null
+    estadoFiltro.cargando = false
+    estadoFiltro.hayError = false
+    mocks.useFiltroPorEmpresaActiva.mockImplementation(() => {
+      const [sobrescritura, setSobrescritura] = useState<{ base: string | null; valor: string | null } | null>(null)
+      const valor = sobrescritura && sobrescritura.base === estadoFiltro.empresaActivaId ? sobrescritura.valor : estadoFiltro.empresaActivaId
+      return { empresas, valor, cambiar: (id: string | null) => setSobrescritura({ base: estadoFiltro.empresaActivaId, valor: id }), empresaActivaId: estadoFiltro.empresaActivaId, cargando: estadoFiltro.cargando, hayError: estadoFiltro.hayError }
+    })
+  })
+
+  afterEach(() => vi.useRealTimers())
+
+  it('la bandeja muestra el origen «Pedido» y «Pedido de n productos» (singular «1 producto») en la columna Producto', () => {
+    abrir()
+    const filas = screen.getAllByRole('row').slice(1)
+    expect(within(filas[0]).getByText('Pedido')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('Pedido de 3 productos')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Pedido de 1 producto')).toBeInTheDocument()
+  })
+
+  it('el detalle de un pedido lista los ítems (bloque «Pedido»), la «Nota de la persona» y no muestra «Producto de interés»', () => {
+    abrir(`/consultas?consulta=${ID_PEDIDO}`)
+    expect(screen.getByText('Consulta de Bruno Gómez')).toBeInTheDocument()
+    expect(screen.getByTestId('bloque-pedido')).toBeInTheDocument()
+    expect(screen.getByText('Joystick Pro')).toBeInTheDocument()
+    expect(screen.getByText('Sin nota')).toBeInTheDocument()
+    expect(screen.getByText('Nota de la persona')).toBeInTheDocument()
+    expect(screen.queryByText('Producto de interés')).not.toBeInTheDocument()
+    expect(mocks.useItemsConsulta).toHaveBeenCalledWith(ID_PEDIDO)
+  })
+
+  it('cambiar la empresa activa con un pedido abierto cierra el diálogo y recarga la lista entera (Principio VIII)', () => {
+    vi.useFakeTimers()
+    const { rerender } = render(<MemoryRouter initialEntries={[`/consultas?consulta=${ID_PEDIDO}`]}><ConsultaList /></MemoryRouter>)
+    expect(screen.getByText('Consulta de Bruno Gómez')).toBeInTheDocument()
+    expect(screen.getByTestId('bloque-pedido')).toBeInTheDocument()
+
+    estadoFiltro.empresaActivaId = 'e-2'
+    rerender(<MemoryRouter initialEntries={[`/consultas?consulta=${ID_PEDIDO}`]}><ConsultaList /></MemoryRouter>)
+    expect(screen.queryByText('Consulta de Bruno Gómez')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bloque-pedido')).not.toBeInTheDocument()
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
   })
 })

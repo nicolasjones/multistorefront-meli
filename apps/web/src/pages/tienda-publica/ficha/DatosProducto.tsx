@@ -2,6 +2,7 @@ import { Box, Button, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import type { FichaProducto } from '../../../lib/tiendaFicha'
 import { BotonFavorito } from '../cuenta/BotonFavorito'
+import { BotonAgregarALista, LineaListaFicha } from '../lista/BotonAgregarALista'
 import { MigasTienda } from '../layout/MigasTienda'
 import { useCelular } from '../useAnchoCelular'
 import { PrecioTachado } from '../catalogo/PrecioTachado'
@@ -51,6 +52,8 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
           productoId={ficha.id}
           precio={ficha.precio}
         />
+        {/* «Agregar a la lista» (MSF-176, B1, P-2): segundo en la tabulación, solo con la función encendida; no mueve los botones del prototipo. */}
+        <BotonAgregarALista host={host} productoId={ficha.id} nombre={ficha.nombre} />
         {/* «Ver más productos» no está en el prototipo móvil (`MJC_M_Producto`): solo escritorio. */}
         {movil ? null : (
         <Button
@@ -67,6 +70,8 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
       </Box>
       {/* «Guardar en favoritos» (F-CLI-20, P-2): debajo de los botones y último en la tabulación; solo con la función encendida. */}
       <BotonFavorito host={host} productoId={ficha.id} nombre={ficha.nombre} />
+      {/* «Sin stock hoy…» y «Ya tenés n en tu lista · Ver lista» (B1, P-2). */}
+      <LineaListaFicha host={host} productoId={ficha.id} disponible={ficha.disponible} />
       <Typography color="text.secondary" sx={{ mt: '14px', fontSize: 13 /* estilos-sueltos: ok */ }}>Precios y disponibilidad sujetos a cambios.</Typography>
     </Box>
   )

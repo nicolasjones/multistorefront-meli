@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({ from: vi.fn(), select: vi.fn(), eq: vi.fn(), order: vi.fn() }))
+vi.mock('./supabase', () => ({ supabaseClient: { from: mocks.from } }))
+
 import {
   ErrorConsulta,
+  ETIQUETA_ORIGEN_CONSULTA,
+  listarItemsConsulta,
+  textoProductoConsulta,
+  totalReferenciaPedido,
   esConflicto,
   formatearCuando,
   limitesDeFecha,
@@ -71,5 +79,56 @@ describe('nombreProducto (FR-004: «Sin producto»)', () => {
   it('cae al texto del prototipo cuando la consulta no tiene producto', () => {
     expect(nombreProducto({ producto_nombre: null })).toBe('Sin producto')
     expect(nombreProducto({ producto_nombre: 'Funda' })).toBe('Funda')
+  })
+})
+
+describe('pedidos de la tienda (MSF-176, B1, P-6)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.from.mockReturnValue({ select: mocks.select })
+    mocks.select.mockReturnValue({ eq: mocks.eq })
+    mocks.eq.mockReturnValue({ order: mocks.order })
+  })
+
+  it('el origen pedido se rotula «Pedido»', () => {
+    expect(ETIQUETA_ORIGEN_CONSULTA.pedido).toBe('Pedido')
+  })
+
+  it('columna Producto: «Pedido de n productos» («1 producto»); las demás consultas conservan su producto', () => {
+    expect(textoProductoConsulta({ origen: 'pedido', producto_nombre: null, items_cantidad: 3 })).toBe('Pedido de 3 productos')
+    expect(textoProductoConsulta({ origen: 'pedido', producto_nombre: null, items_cantidad: 1 })).toBe('Pedido de 1 producto')
+    expect(textoProductoConsulta({ origen: 'pedido', producto_nombre: null })).toBe('Pedido de 0 productos')
+    expect(textoProductoConsulta({ origen: 'formulario', producto_nombre: 'Funda', items_cantidad: 0 })).toBe('Funda')
+    expect(textoProductoConsulta({ origen: 'whatsapp', producto_nombre: null })).toBe('Sin producto')
+  })
+
+  it('lee los ítems de la vista del panel, en orden, y acomoda los tipos (texto crudo, nada de HTML interpretado)', async () => {
+    mocks.order.mockResolvedValue({
+      data: [
+        { orden: 1, producto_id: 'p-1', descripcion: '<script>alert(1)</script>', sku: 'S-1', cantidad: 2, precio_referencia: '2500.5' },
+        { orden: 2, producto_id: null, descripcion: 'Cable', sku: '', cantidad: 1, precio_referencia: null },
+      ],
+      error: null,
+    })
+    const items = await listarItemsConsulta('c-1')
+    expect(mocks.from).toHaveBeenCalledWith('consulta_items_bandeja')
+    expect(mocks.eq).toHaveBeenCalledWith('consulta_id', 'c-1')
+    expect(mocks.order).toHaveBeenCalledWith('orden', { ascending: true })
+    expect(items).toEqual([
+      { orden: 1, producto_id: 'p-1', descripcion: '<script>alert(1)</script>', sku: 'S-1', cantidad: 2, precio_referencia: 2500.5 },
+      { orden: 2, producto_id: null, descripcion: 'Cable', sku: null, cantidad: 1, precio_referencia: null },
+    ])
+  })
+
+  it('un error de la base se traduce a ErrorConsulta', async () => {
+    mocks.order.mockResolvedValue({ data: null, error: { message: 'boom', code: '42501' } })
+    await expect(listarItemsConsulta('c-1')).rejects.toBeInstanceOf(ErrorConsulta)
+  })
+
+  it('total de referencia: suma de precio × cantidad de las líneas con precio; null si ninguna lo tiene', () => {
+    const item = (cantidad: number, precio: number | null) => ({ orden: 1, producto_id: null, descripcion: 'x', sku: null, cantidad, precio_referencia: precio })
+    expect(totalReferenciaPedido([item(2, 2500), item(1, null), item(3, 100.5)])).toBe(5301.5)
+    expect(totalReferenciaPedido([item(1, null)])).toBeNull()
+    expect(totalReferenciaPedido([])).toBeNull()
   })
 })
