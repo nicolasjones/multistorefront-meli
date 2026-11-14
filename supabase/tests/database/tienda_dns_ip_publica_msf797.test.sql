@@ -4,7 +4,8 @@
 -- no es pública (preparar_verificacion_tienda falla sin gastar el límite; obtener_dominio_tienda no muestra el A).
 begin;
 
-select plan(32);
+select plan(33);
+select ok(has_function_privilege('service_role', 'private.ip_publica_valida(text)', 'execute'), 'service_role ejecuta ip_publica_valida (la evalúa el CHECK de tienda_dns_plataforma)');
 
 -- ============================================================================
 -- Fixture (como postgres)
