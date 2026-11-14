@@ -14,7 +14,7 @@ sources: []
 | Rol | Qué puede hacer |
 |---|---|
 | **Administrador** | Ver la galería y abrir los tableros; pausar el resumen semanal de la organización; recibir el resumen |
-| **Otros roles** | No ven «Tableros analíticos» en el menú; si entran por la dirección ven «Acceso restringido» |
+| **Otros roles** | No ven «Tableros analíticos» en el menú; si entran por la dirección ven «Acceso restringido» (el tablero, además, pide la sección que le corresponde) |
 
 No armás ni editás tableros: cada uno trae sus propios filtros y cruces. Solo ves los datos de tu organización y de las tiendas a las que tenés acceso.
 

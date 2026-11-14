@@ -13,7 +13,8 @@ Cada ejecución hace `POST` a `{{ envs.resumen_semanal_url }}` con `{"barrer": t
 
 - `POST {"barrer": true}` → procesa las organizaciones de `organizaciones_con_resumen_semanal_pendiente()`; responde `200 {procesadas, resultados, errores}` o `502` si hubo errores o resúmenes fallidos (Kestra marca la ejecución).
 - `POST {"organizacion_id": "<uuid>"}` → procesa una (operador).
-- Errores: `403` token ausente o distinto, `503` sin `RESUMEN_SEMANAL_TOKEN` o sin `PANEL_URL`, `405` método, `400` organización inválida.
+- Errores: `403` token ausente o distinto (no `401`: paridad con `enviar-resumen-reposicion`), `413` cuerpo de más de 64 KB (se lee con tope, después de validar el token), `503` sin `RESUMEN_SEMANAL_TOKEN` o sin `PANEL_URL`, `405` método, `400` organización inválida.
+- Todos los administradores de la organización van juntos en un único mensaje («Para»); no se excluyen baneados ni correos sin confirmar (mismo criterio que el resumen de reposición).
 - Los destinatarios nunca vienen del pedido.
 - Variables de la función: `RESUMEN_SEMANAL_TOKEN`, `PANEL_URL`, `SMTP_*`. Variables de Kestra: `RESUMEN_SEMANAL_URL`, `RESUMEN_SEMANAL_APIKEY`, `SECRET_RESUMEN_SEMANAL_TOKEN` (base64).
 
@@ -31,7 +32,7 @@ Internas (`private`, sin acceso de la app): `armar_resumen_semanal`, `generar_re
 
 ## Estados de `resumen_semanal_envios`
 
-`pendiente` (reservado 2 min) → `enviado` | `fallido` (reintentable hasta 5 intentos) · `sin_destinatario` (se reevalúa en la ventana) · `pausado`. Único por `(organizacion_id, semana_desde)`.
+`pendiente` (reservado 2 min) → `enviado` | `fallido` (reintentable hasta 5 intentos) · `sin_destinatario` (se reevalúa en la ventana) · `pausado` (la pausa no toca uno en vuelo; si su correo salió, `cerrar(true)` lo pasa a `enviado`) · `vencido` (sin enviar de una semana anterior; nunca se manda atrasado). Único por `(organizacion_id, semana_desde)`.
 
 ## Contenido (`contenido jsonb`)
 

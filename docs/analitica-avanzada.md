@@ -38,6 +38,10 @@ El administrador **elige entre tableros ya armados** y versionados en el repo, c
 
 La galería muestra la **intersección** entre este catálogo y los reportes que la organización tiene asignados y la persona puede ver (`reportes_visibles_para_mi()`): un reporte asignado que no está descrito en el catálogo no se ofrece, y un tablero del catálogo sin asignar tampoco.
 
+## «Solo administradores»: qué es y qué no
+
+Es el control de la **pantalla**: el destino del menú y la ruta usan `usePuedeEscribir` (administrador) y quien llega por URL sin serlo ve «Acceso restringido» sin que la pantalla pida ningún token. El **servidor** no exige el rol sino la **sección** del tablero (`reportes` o `rentabilidad`), como con todos los demás reportes embebidos: `emitir-acceso-reporte` no cambió. Quien tuviera la sección y el reporte asignado podría pedir el token por fuera de la pantalla; ese token sigue acotado a su organización y a sus empresas accesibles. Exigir el rol en el servidor sería una historia aparte (cambia el contrato de la spec 007 para todos los reportes).
+
 ## Aislamiento por organización y por tienda
 
 1. La pantalla pide el token a `emitir-acceso-reporte` **como el usuario** (`resolver_organizacion_reporte` decide si hay acceso, incluida la sección del tablero).
@@ -46,6 +50,14 @@ La galería muestra la **intersección** entre este catálogo y los reportes que
 4. Los filtros de período y tienda que la pantalla preselecciona (`native_filters` de `urlParamsReportes`) **no son seguridad**: un filtro manipulado en la URL solo reduce lo que ya es visible.
 
 Empresa activa (Principio VIII): la tienda del filtro sigue a la barra superior; al cambiarla el tablero se vuelve a montar y pide un token nuevo.
+
+## Acoplamiento por el prefijo «Analítica · »
+
+La migración `20270324100100` asigna a **todas** las organizaciones cualquier reporte cuyo nombre empiece con «Analítica · » (disparadores en `public.reportes`, `public.organizaciones` y `public.reportes_roles_default`). Registrar un reporte solo puede el superadmin (o el importador, del lado del servidor con la clave de servicio); asignar es solo visibilidad y el token sigue filtrando por organización y empresa. Un reporte que no deba ser global **no debe llevar ese prefijo**.
+
+## Lo que NO se validó contra sistemas reales (MSF-949)
+
+Los YAML se validaron de forma estructural y contra un Superset simulado; no se importaron ni se vieron renderizados en un Superset real. Seguimiento: **MSF-949**.
 
 ## Alta de un tablero nuevo
 

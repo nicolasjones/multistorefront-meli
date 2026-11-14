@@ -96,7 +96,7 @@ erDiagram
     uuid organizacion_id FK "nueva: unique con semana_desde"
     date semana_desde "nueva: lunes"
     date semana_hasta "nueva: domingo"
-    text estado "nueva: pendiente enviado fallido sin_destinatario pausado"
+    text estado "nueva: pendiente enviado fallido sin_destinatario pausado vencido"
     integer intentos "nueva"
     text ultimo_error "nueva: sin host ni correo"
     jsonb contenido "nueva: agregados congelados"
@@ -188,7 +188,7 @@ Como administrador quiero **elegir entre tableros ya armados** y acotarlos por p
 - **CA-REP-07-5** — **Dado** el tablero «Analítica · Margen real por tienda, categoría y producto», **cuando** se lo abre, **entonces** muestra vendido, costo y margen real por tienda × categoría, período × tienda y producto × tienda (primero lo que más pierde), y exige la sección `rentabilidad`.
 - **CA-REP-07-6** — **Dado** que se registra un tablero «Analítica · …» o se crea una organización nueva, **entonces** el tablero queda asignado a **todas** las organizaciones con sus roles por defecto; el superadmin puede desasignarlo.
 - **CA-REP-07-7** — **Dado** dos organizaciones A y B, **cuando** A abre un tablero, **entonces** el token lleva `organizacion_id = '<A>'` (y las empresas accesibles de quien mira) y no aparece ninguna fila de B ni de una tienda ajena.
-- **CA-REP-07-8** — **Dado** un usuario que no es administrador, **cuando** llega a la pantalla por URL, **entonces** ve «Acceso restringido» y no se pide ningún token; si el token responde 403 (sin la sección del tablero) se muestra el mismo acceso restringido.
+- **CA-REP-07-8** — **Dado** un usuario que no es administrador, **cuando** llega a la pantalla por URL, **entonces** ve «Acceso restringido» y la pantalla no pide ningún token; si el token responde 403 (sin la sección del tablero) se muestra el mismo acceso restringido. *Alcance real de «solo administradores»*: es el control de la **pantalla** (`usePuedeEscribir` y el destino del menú); el **servidor** exige la sección del tablero (`reportes` o `rentabilidad`), no el rol, igual que con todos los demás reportes embebidos. Quien tiene la sección y el reporte asignado podría pedir el token por fuera de la pantalla; ese token sigue acotado a su organización y a sus empresas accesibles, así que no hay fuga de aislamiento ni de datos de otra tienda (ver «Desvíos»).
 - **CA-REP-07-9** — **Dado** que Superset no responde, **entonces** ve el error «No pudimos cargar el tablero…» con **Reintentar**, sin detalle técnico (patrón de la spec 007); sin tableros asignados ve el estado vacío.
 
 ### Historia 2 — Resumen semanal por correo (F-REP-08, P3)
@@ -202,8 +202,9 @@ Como administrador quiero recibir cada lunes por correo un resumen de la semana,
 - **CA-REP-08-3** — **Dado** que existen las fuentes de ventas, margen, stock y faltantes, **entonces** el correo trae las cuatro secciones; **dado** que una fuente no existe (p. ej. sin la vista de ventas), **entonces** esa sección se omite y el resumen sale igual; sin stock en alerta ni faltantes abiertos esas dos secciones no aparecen y el correo lo dice en una línea.
 - **CA-REP-08-4** — **Dado** que el barrido corre varias veces (cada 15 minutos) o se reintenta, **entonces** no se duplica: hay un único registro por organización y semana, y uno `enviado` no se reenvía.
 - **CA-REP-08-5** — **Dado** que el SMTP falla, **entonces** el resumen queda `fallido` con un motivo útil sin host, IP ni correo, el barrido siguiente lo reintenta con **el mismo contenido** hasta el tope de intentos, y la ejecución de Kestra se marca con error.
-- **CA-REP-08-6** — **Dado** un administrador en «Mi organización», **cuando** pausa el resumen, **entonces** no se genera ni se envía ninguno (lo pendiente queda `pausado`), el cambio queda en **Actividad** y un rol que no es administrador no puede verlo ni cambiarlo; al reanudarlo vuelve a salir el lunes siguiente. Cada persona puede además darse de baja en «Avisos por correo».
+- **CA-REP-08-6** — **Dado** un administrador en «Mi organización», **cuando** pausa el resumen, **entonces** no se genera ni se envía ninguno (lo pendiente queda `pausado`; uno ya en vuelo, reservado hace menos de 2 minutos, se deja terminar, y si su correo salió igual el cierre exitoso lo registra como `enviado`), el cambio queda en **Actividad** y un rol que no es administrador no puede verlo ni cambiarlo; al reanudarlo vuelve a salir el lunes siguiente. Cada persona puede además darse de baja en «Avisos por correo».
 - **CA-REP-08-7** — **Dado** dos organizaciones, **entonces** cada correo contiene solo agregados de **su** organización (totales, conteos, nombres de producto en alerta) y nunca datos de clientes, comprobantes individuales ni correos.
+- **CA-REP-08-9** — **Dado** una semana anterior con un resumen sin enviar (pendiente, fallido o sin destinatario), **cuando** el barrido de esa organización corre en una semana posterior, **entonces** ese resumen queda `vencido` y nunca se manda atrasado.
 - **CA-REP-08-8** — **Dado** un correo recibido, **entonces** está en castellano (fechas y pesos de Argentina), es texto plano (sin HTML que escapar) y trae el enlace al panel, a los tableros, a la pausa (Mi organización) y a la baja personal (Avisos por correo).
 
 ### Casos borde
@@ -213,6 +214,10 @@ Como administrador quiero recibir cada lunes por correo un resumen de la semana,
 - Kestra caído el lunes: el barrido del martes todavía genera el resumen (ventana lunes 08:00 a martes); pasado el martes ya no se genera uno atrasado.
 - El correo salió pero la base no pudo cerrar el resumen: el reintento lo reenvía (al menos una vez; se prefiere un duplicado a perder el resumen) y queda en los registros.
 - Superadmin sin organización activa: no administra el resumen de ninguna.
+- El lunes a las 08:00 y el martes hasta las 23:59:59 (Buenos Aires) el resumen nace; desde el miércoles a las 00:00 ya no (pgTAP de los bordes).
+- Una pausa que llega con el correo ya en camino: el envío queda registrado como `enviado` (no se pierde la constancia).
+- Una persona suspendida no recibe el resumen, pero **no** se excluye a quien está baneado ni a quien tiene el correo sin confirmar (mismo criterio que el resumen de reposición): se consideran destinatarios válidos mientras sean administradores activos con correo.
+- Todos los administradores de la organización van **juntos** en un único mensaje (campo «Para»): cada uno ve las direcciones de los demás administradores de su propia organización. Es un solo envío por organización y semana; no hay un correo por persona.
 
 ## Requirements *(mandatory)*
 
@@ -225,16 +230,16 @@ Como administrador quiero recibir cada lunes por correo un resumen de la semana,
 - **RF-REP-07-5**: DEBE existir el tablero versionado en YAML «Analítica · Margen real por tienda, categoría y producto» sobre `analitica.margen_real_categoria`, con los filtros anteriores más «estado del margen», registrado con la sección `rentabilidad`.
 - **RF-REP-07-6**: Los dos tableros DEBEN quedar registrados en `public.reportes` (importador idempotente de `infra/superset/dashboards/analitica-avanzada/reportes.json`, `filtro_empresa = true`) y asignados a todas las organizaciones, actuales y nuevas (migración `20270324100100`); el despliegue DEBE importarlos.
 - **RF-REP-07-7**: El aislamiento por organización y por empresa DEBE resolverse en el servidor (guest token con `rls`); las vistas exponen `organizacion_id`, `empresa_id` y `empresa_nombre`, no tienen privilegios para `anon` ni `authenticated` y solo las lee el rol `superset_analitica`.
-- **RF-REP-07-8**: La galería DEBE estar disponible solo para administradores; sin acceso muestra «Acceso restringido» sin pedir token, y el 403 del token muestra lo mismo. Si Superset no responde, muestra el error con «Reintentar» y sin detalle técnico.
+- **RF-REP-07-8**: La galería DEBE estar disponible solo para administradores **en la pantalla** (el servidor exige la sección de cada tablero, no el rol: ver CA-REP-07-8); sin acceso muestra «Acceso restringido» sin pedir token, y el 403 del token muestra lo mismo. Si Superset no responde, muestra el error con «Reintentar» y sin detalle técnico.
 - **RF-REP-07-9**: La pantalla DEBE usar los patrones compartidos de carga, vacío y error, y funcionar con teclado y a 320/768/1440 px (Principio VI).
 
 ### F-REP-08 — Resumen programado por correo
 
 - **RF-REP-08-1**: El sistema DEBE enviar el resumen semanal los **lunes a las 08:00 (America/Argentina/Buenos_Aires)**, cubriendo la semana lunes–domingo que terminó. La generación solo ocurre dentro de la ventana lunes 08:00 – martes; un barrido cada 15 minutos reintenta lo pendiente.
 - **RF-REP-08-2**: Los destinatarios DEBEN ser los miembros **activos** con rol `administrador`, con correo y con la preferencia `resumen_semanal` encendida (sin fila = encendida); los resuelve la base, nunca el pedido.
-- **RF-REP-08-3**: El resumen DEBE incluir ventas de la semana (con comparación contra la anterior y por tienda), margen real y productos con margen bajo o negativo, stock en alerta (sin stock y stock bajo) y faltantes pendientes; la sección cuya fuente no existe se omite sin error.
+- **RF-REP-08-3**: El resumen DEBE incluir (los días del faltante más antiguo se cuentan con la fecha de Buenos Aires) ventas de la semana (con comparación contra la anterior y por tienda), margen real y productos con margen bajo o negativo, stock en alerta (sin stock y stock bajo) y faltantes pendientes; la sección cuya fuente no existe se omite sin error.
 - **RF-REP-08-4**: El envío DEBE ser idempotente por organización y semana (`unique (organizacion_id, semana_desde)`) y auditable: estado, intentos, timestamps y error útil (Principio III).
-- **RF-REP-08-5**: Un fallo de SMTP DEBE dejar el resumen `fallido` con un motivo fijo, reintentarse con el contenido congelado hasta un tope de 5 intentos, y marcar la ejecución de Kestra con error; un resumen `enviado` nunca se reenvía.
+- **RF-REP-08-5**: Un fallo de SMTP DEBE dejar el resumen `fallido` con un motivo fijo, reintentarse con el contenido congelado hasta un tope de 5 intentos, y marcar la ejecución de Kestra con error; un resumen `enviado` nunca se reenvía, y uno sin enviar de una semana anterior queda `vencido` (nunca se manda atrasado). La función responde `403` (no 401) sin el token compartido, `413` a un cuerpo de más de 64 KB y `503` sin configuración.
 - **RF-REP-08-6**: Cada organización PUEDE pausar el resumen desde «Mi organización» (solo administradores; cambio real → evento `resumen_semanal.pausado|reanudado` en Actividad); cada persona puede darse de baja en «Avisos por correo».
 - **RF-REP-08-7**: Cada correo DEBE contener solo agregados de la organización del destinatario, sin datos de clientes.
 - **RF-REP-08-8**: El correo DEBE estar en castellano, en texto plano, con enlaces al panel, a los tableros, a la pausa y a la baja.
@@ -325,6 +330,12 @@ Pasos: S, H → RF-REP-08-1; R, P → RF-REP-08-4, RF-REP-08-6; G → RF-REP-08-
 
 - [`contracts/tableros-analiticos.md`](./contracts/tableros-analiticos.md): vistas `analitica.*`, tableros, catálogo y registro.
 - [`contracts/resumen-semanal.md`](./contracts/resumen-semanal.md): RPC, Edge Function, flow, contenido y estados.
+
+## Desvíos y límites declarados
+
+- **Rol vs sección en el servidor (F-REP-07)**: la galería es «solo administradores» en la UI, pero `emitir-acceso-reporte` no cambió y exige la **sección** del tablero. Se dejó así a propósito: cambiarlo tocaría el contrato de la spec 007 y de todos los reportes; no hay fuga porque el token sigue acotado por organización y empresa. Si se quisiera exigir el rol en el servidor, es una historia aparte.
+- **Acoplamiento por prefijo «Analítica · »**: la migración `20270324100100` asigna a **todas** las organizaciones cualquier reporte cuyo nombre empiece con «Analítica · ». Registrar un reporte (`public.reportes`) solo puede el superadmin (o el importador con la clave de servicio en el servidor), y la asignación solo da visibilidad: el token sigue filtrando por organización y empresa. Un reporte con ese prefijo que no deba ser global no debe llamarse así.
+- **No validado contra sistemas reales** (seguimiento **MSF-949**): Kestra real (el cron con zona horaria y el secreto en base64), SMTP real, Superset real (importación y render de los 6 gráficos) y el recorrido del resumen de punta a punta. Solo hay pruebas estáticas del flow, handlers con mocks, un Superset simulado y pgTAP. Además, **la Edge Function `enviar-resumen-semanal` no queda registrada en el runtime de dev hasta recrear el stack** (una función nueva responde «Function not found» hasta entonces; no alcanza con reiniciar el runtime): hay que recrearlo antes de probarla ahí.
 
 ## Fuera de alcance
 

@@ -24,13 +24,15 @@ La generación solo ocurre **de lunes 08:00 a martes** (hora de Buenos Aires) y 
 
 ### Estados
 
-`pendiente` (reservado 2 minutos para que dos barridos no manden lo mismo) → `enviado` o `fallido` (se reintenta con el **mismo contenido**) · `sin_destinatario` (no había administradores con correo; se reevalúa dentro de la ventana) · `pausado` (la organización lo pausó).
+`pendiente` (reservado 2 minutos para que dos barridos no manden lo mismo) → `enviado` o `fallido` (se reintenta con el **mismo contenido**) · `sin_destinatario` (no había administradores con correo; se reevalúa dentro de la ventana) · `pausado` (la organización lo pausó antes de que saliera) · `vencido` (quedó sin enviar de una semana anterior: se cierra en el próximo barrido de la organización y nunca se manda atrasado).
+
+Una pausa **no toca** un resumen en vuelo (reservado hace menos de 2 minutos). Si la pausa lo alcanza con la reserva vencida y el correo salió igual, `cerrar_resumen_semanal(…, true)` lo registra como `enviado` (queda constancia); un cierre con fallo no pisa un `pausado`.
 
 Garantía de entrega: **al menos una vez**. Si el correo salió pero la base no pudo cerrar el resumen, el reintento lo reenvía (se prefiere un duplicado a perder el resumen) y queda en los registros de la función.
 
 ## Destinatarios
 
-Miembros **activos** con rol `administrador`, con correo y con la preferencia `resumen_semanal` encendida (sin fila = encendida). Un solo correo con todos los destinatarios en «Para». La función **nunca** toma destinatarios del pedido.
+Miembros **activos** con rol `administrador`, con correo y con la preferencia `resumen_semanal` encendida (sin fila = encendida). Un solo correo con todos los destinatarios en «Para»: **todos los administradores de la misma organización van juntos en un único mensaje y cada uno ve las direcciones de los demás** (no hay un correo por persona). No se excluye a usuarios baneados ni con el correo sin confirmar: es el mismo criterio que el resumen de reposición, y alcanza con ser administrador activo con correo. La función **nunca** toma destinatarios del pedido, rechaza con `403` (no `401`) un pedido sin el token y con `413` un cuerpo de más de 64 KB.
 
 ## Contenido
 
@@ -39,7 +41,7 @@ Miembros **activos** con rol `administrador`, con correo y con la preferencia `r
 | Ventas | `analitica.ventas_periodo_canal` (MSF-192) | Si la vista existe: facturado con IVA, contra la semana anterior, comprobantes, unidades y las 5 tiendas que más facturaron; sin ventas dice «No hubo ventas en la semana» |
 | Margen y rentabilidad | `analitica.rentabilidad_ventas_real` y `analitica.margen_producto_canal` (MSF-120) | Si la vista existe: margen real de lo vendido y productos con margen bajo o negativo hoy |
 | Stock en alerta | `public.stock_estados` (MSF-231/140) | Si existe y hay productos activos sin stock o bajo el mínimo (hasta 5 nombres) |
-| Faltantes pendientes | `dominio.faltantes_venta` (MSF-161) | Si existe y hay faltantes abiertos (cantidad, unidades y días del más antiguo) |
+| Faltantes pendientes | `dominio.faltantes_venta` (MSF-161) | Si existe y hay faltantes abiertos (cantidad, unidades y días del más antiguo, contados con la fecha de Buenos Aires) |
 
 Las secciones cuya fuente no existe se omiten sin error. Solo hay **agregados** de la organización: ni clientes, ni comprobantes individuales, ni correos. El correo es texto plano en castellano de Argentina, con enlaces al panel, a los tableros, a la pausa (Mi organización) y a la baja personal (Avisos por correo).
 
@@ -65,6 +67,10 @@ Ningún valor real está en Git (solo `.env.example`).
 - Un resumen `fallido` conserva un motivo fijo y sin datos de conexión; el detalle del SMTP está en los registros de la función.
 - Reenviar a mano una organización: `POST {"organizacion_id": "<uuid>"}` a la función con el token (solo dentro de la ventana y si no está `enviado`).
 - Despliegue: migraciones `20270324*` → secretos de la función → Edge Function `enviar-resumen-semanal` → variables y flow `resumen-semanal` de Kestra. Una función nueva con la base sin migrar falla en el barrido (502) sin enviar nada.
+
+## Lo que NO se validó contra sistemas reales (MSF-949)
+
+Se probó con pgTAP, handlers con mocks y el contrato estático del flow, pero **no** en un Kestra real (el cron con `timezone` y el secreto en base64), **ni con un SMTP real**, ni el recorrido de punta a punta. Además, **la Edge Function `enviar-resumen-semanal` no queda registrada en el runtime de dev hasta recrear el stack** (una función nueva responde «Function not found»; reiniciar solo el runtime no alcanza). Seguimiento: **MSF-949**.
 
 ## Reversión
 

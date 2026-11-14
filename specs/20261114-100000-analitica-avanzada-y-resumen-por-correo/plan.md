@@ -46,5 +46,8 @@ Los contratos están en `contracts/`. Las Edge Functions de esta spec no se llam
 | Correo duplicado por entrega «al menos una vez» | `unique (organizacion_id, semana_desde)`, reserva de 2 minutos, cierre solo desde `pendiente`; el duplicado posible (correo salió, cierre falló) queda registrado |
 | Correo con datos sensibles de clientes | El contenido son agregados; test que busca nombres de cliente y correos en el resumen |
 | Ventana de Kestra caído | Generación hasta el martes; después no se genera un resumen atrasado (decisión documentada) |
-| YAML de tableros sin importar en un Superset real | Prueba estructural y de importación con un Superset simulado; la importación real queda como seguimiento (ver `tasks.md`, T003) |
+| YAML de tableros sin importar en un Superset real; flow sin ejecutar en un Kestra real; sin SMTP real; Edge Function sin registrar en dev | Pruebas estructurales, un Superset simulado, handlers con mocks y pgTAP; la validación contra sistemas reales y el recorrido de punta a punta quedan en **MSF-949**. Una función nueva en dev responde «Function not found» hasta recrear el stack (no basta reiniciar el runtime) |
+| «Solo administradores» es de la UI; el servidor exige la sección del tablero | Declarado como desvío en la spec; el token sigue acotado por organización y empresa; no se cambió `emitir-acceso-reporte` |
+| Cualquier reporte «Analítica · …» se asigna a todas las organizaciones | Solo el superadmin (o el importador, server-side) registra reportes; asignar es solo visibilidad; el token filtra por organización |
+| Resumen pausado con el correo ya en camino | Un resumen en vuelo se deja terminar y `cerrar_resumen_semanal` acepta el éxito sobre `pausado`; uno de una semana anterior sin enviar queda `vencido` |
 | Otra migración redefine `exclusiones_exportacion_total` | La mía va en `20270324*` (después); revisar al integrar |

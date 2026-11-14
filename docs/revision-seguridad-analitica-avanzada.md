@@ -35,7 +35,7 @@ Sin hallazgos críticos ni altos abiertos. Dos observaciones de bajo riesgo docu
 
 ## 3. `security definer` y `search_path`
 
-Las 13 funciones nuevas (10 del resumen, 3 disparadores) son `security definer` con `set search_path = ''` y referencias calificadas; un pgTAP lo verifica por catálogo (`proconfig`). La organización de las RPC de la app sale de la sesión (`private.organizacion_id()`), nunca de un parámetro; la del barrido llega por argumento porque quien llama es `service_role`.
+Las 12 funciones nuevas (9 del resumen —5 en `public` y 4 en `private`— y 3 disparadores) son `security definer` con `set search_path = ''` y referencias calificadas; un pgTAP lo verifica por catálogo (`proconfig`). La organización de las RPC de la app sale de la sesión (`private.organizacion_id()`), nunca de un parámetro; la del barrido llega por argumento porque quien llama es `service_role`.
 
 ## 4. Secretos
 
@@ -51,8 +51,8 @@ Las 13 funciones nuevas (10 del resumen, 3 disparadores) son `security definer` 
 - El guest token lo emite el servidor con la organización que resuelve `resolver_organizacion_reporte` **como el usuario** (nunca la que mande el cliente) y, por `filtro_empresa = true`, solo las empresas accesibles; sin empresas resolubles no hay token (falla cerrada). La Edge Function no cambió.
 - Las vistas nuevas exponen `organizacion_id` y `empresa_id` en cada fila; pgTAP prueba que ninguna fila de una organización trae la empresa de otra.
 - Los filtros que preselecciona la pantalla (`native_filters`) se arman con constantes y el nombre de la tienda escapado en rison; **no son un control de acceso**: manipularlos solo reduce lo visible.
-- El tablero de margen exige la sección `rentabilidad` (`resolver_organizacion_reporte` devuelve null sin ella → 403 → «Acceso restringido»); la galería, además, es solo para administradores (el servidor vuelve a exigir la sección de cada tablero).
-- La asignación automática a todas las organizaciones no da acceso a datos ajenos: asignar es visibilidad del reporte, el acceso a las filas lo decide el token.
+- El tablero de margen exige la sección `rentabilidad` (`resolver_organizacion_reporte` devuelve null sin ella → 403 → «Acceso restringido»). **La galería es «solo administradores» únicamente en la pantalla** (`usePuedeEscribir`); el servidor exige la **sección** del tablero, no el rol, igual que con todos los demás reportes. Quien tiene la sección y el reporte asignado podría pedir el token por fuera de la pantalla, pero ese token sigue acotado a su organización y a sus empresas accesibles: no hay fuga de aislamiento ni escalada. Desvío declarado; exigir el rol en el servidor cambiaría el contrato de la spec 007.
+- La asignación automática a todas las organizaciones no da acceso a datos ajenos: asignar es visibilidad del reporte, el acceso a las filas lo decide el token. **Acoplamiento por prefijo**: cualquier reporte registrado con el nombre «Analítica · …» se asigna a todas las organizaciones; registrar reportes solo puede el superadmin (o el importador server-side con la clave de servicio), así que el riesgo es de nombre, no de acceso.
 
 ## 6. Contenido del correo
 
@@ -64,5 +64,8 @@ Pausar y reanudar dejan evento en `registro_actividad` (actor, organización, ho
 
 ## Riesgos residuales
 
+0. **Cuerpo del pedido acotado**: la función lee el cuerpo con un tope de 64 KB y solo después de validar el token (`413` si se pasa; `403` sin token).
 1. **Entrega «al menos una vez»**: si el correo sale y la base no cierra el resumen, el reintento puede duplicarlo; queda en los registros. Aceptado (igual que MSF-394/405).
-2. **YAML de tableros no importados en un Superset real** desde esta sesión: la estructura y la importación se validaron contra un Superset simulado; falta recorrerlos en dev/staging (seguimiento).
+2. **Nada se validó contra sistemas reales** (MSF-949): ni Superset (importación y render), ni Kestra (cron con zona horaria y secreto base64), ni SMTP, ni el recorrido de punta a punta; la Edge Function nueva no se registra en dev hasta recrear el stack.
+3. **Destinatarios**: no se excluye a baneados ni a correos sin confirmar (mismo criterio que el resumen de reposición) y los administradores de una organización comparten un único mensaje, así que se ven las direcciones entre sí.
+4. **Una pausa con el correo ya en camino**: el resumen se deja terminar y, si salió, queda `enviado`; los de semanas anteriores sin enviar se cierran como `vencido`.
