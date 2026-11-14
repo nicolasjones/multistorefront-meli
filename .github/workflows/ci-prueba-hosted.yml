@@ -15,9 +15,6 @@ jobs:
   database-hosted:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    env:
-      # Los scripts asumen un runner dentro de Docker: acá el Docker es el de la propia VM.
-      SUPABASE_CI_LOCK_DIR: ${{ runner.temp }}/ci-locks
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,8 +30,10 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.116.0
-      - name: pg_prove y host.docker.internal
+      - name: pg_prove, host.docker.internal y directorio de locks
         run: |
+          # Los scripts asumen un runner dentro de Docker: acá el Docker es el de la propia VM.
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
           echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
