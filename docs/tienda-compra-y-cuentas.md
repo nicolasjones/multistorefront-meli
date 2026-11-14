@@ -344,6 +344,31 @@ quien tiene la sección `consultas` ≥ lectura en esa empresa y no se borra sol
 - Un reintento de una clave ya registrada responde `ok` **antes** de revalidar la visibilidad de los productos (la repetición no depende de que sigan visibles).
 - El asunto del correo no cambia (sigue siendo el del tipo de aviso): ya no lleva datos del visitante.
 
+## B2 · Presupuesto desde la tienda (MSF-176): etapa 1, precio sin sesión de panel
+
+**Estado**: solo la etapa 1 (T050 y T051) está implementada; el presupuesto en sí (T053 en adelante) se construye **después** de la revisión independiente T052.
+
+### Qué cambia (migración `20270322100000_precio_sin_sesion.sql`, D-17)
+
+`private.precio_para` y `private.precio_linea_venta` (MSF-816) exigían una sesión de panel y dos piezas internas fallaban **en silencio** sin ella (IVA 0 por `alicuota_producto` y precio propio ignorado por `precio_propio_empresa`). La migración **extrae el cálculo** a tres funciones nuevas de `private`, **sin `execute` para `public`, `anon`, `authenticated` ni `service_role`**:
+
+| Función | Qué es |
+|---|---|
+| `private.precio_para_calculo(producto, empresa, escala)` | La lógica de `precio_para` sin compuerta de sesión. `security definer`, `search_path = ''`. Acotada por la organización **de la empresa** (no por `organizacion_id()`); alícuota por join y precio propio con `neto_precio_propio`. |
+| `private.precio_linea_venta_calculo(...)` | La lógica de `precio_linea_venta` («gana el más bajo, sin acumular») sobre aquélla. Misma firma y columnas. **La llamará la tienda** con el tipo y el descuento del cliente de la cuenta. |
+| `private.precio_sesion_alcanza(producto, empresa)` | La compuerta y el aislamiento de la sesión de panel, en un solo lugar: `empresas` o `ventas` en lectura/edición y producto y empresa de la organización de la sesión. |
+
+`precio_para` y `precio_linea_venta` quedan como **envoltorios** (misma firma, columnas y grants): validan la escala, preguntan a `precio_sesion_alcanza` y delegan. El resultado para el panel es el mismo (lo prueban los pgTAP vigentes y `precio_sin_sesion.test.sql`, que compara contra una copia literal de las funciones originales en más de 4.700 combinaciones).
+
+### Dos diferencias, dichas con todas las letras
+
+- `precio_para` pasa de `security invoker` a **`security definer`** (necesita llamar al cálculo, que `authenticated` no ejecuta). El aislamiento que antes daba la RLS de las tablas lo da ahora `precio_sesion_alcanza`. Los llamadores de producción ya eran `security definer` (sin RLS) y `private` no está expuesto por la API. `precio_linea_venta` sigue `security invoker` y sin `execute` para `authenticated`.
+- Producto o empresa de **otra organización** respecto de la sesión: antes, llamado sin RLS, devolvía el neto sin alícuota ni precio propio (el mismo fallo silencioso); ahora devuelve vacío. Ningún llamador real lo usa; el pgTAP lo fija.
+
+### Pruebas
+
+`supabase/tests/database/precio_sin_sesion.test.sql` (118 aserciones): paridad con la copia literal de las originales (escalas, tipos, cantidades, descuentos, reglas de tienda, monedas, precio propio, alícuotas 21 %/10,5 %/exenta/ninguna, promociones que ganan/empatan/pierden/vencidas/futuras/anuladas, bandera apagada y sin precio); el cliente web da el mismo resultado con IVA y precio propio correctos (falla si se revierte la extracción); compuerta y aislamiento de los envoltorios con roles reales; superficie (ni `anon` ni `authenticated` ni `service_role` ejecutan lo nuevo; la lista de funciones ejecutables por `authenticated` no crece).
+
 ## Seguridad: qué no hace A
 
 - No recibe identidades del llamador (cliente, cuenta, empresa, organización): el cursor y los ids solo ordenan o buscan dentro de lo propio.
