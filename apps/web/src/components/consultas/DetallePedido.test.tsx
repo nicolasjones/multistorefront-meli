@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ANCHOS_TIENDA, fijarAncho } from '../../test/ancho'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ useItemsConsulta: vi.fn(), reintentar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ useItemsConsulta: vi.fn(), reintentar: vi.fn(), nivelClientes: 'ninguno' as string | null }))
 
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: () => ({ responsables: [], isLoading: false, isError: false }) }))
 vi.mock('../../hooks/useItemsConsulta', () => ({ useItemsConsulta: mocks.useItemsConsulta }))
+vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: mocks.nivelClientes, isLoading: false, error: false }) }))
 vi.mock('../../pages/consultas/ContactoConsulta', () => ({ ContactoConsulta: () => null }))
 
 import type { Consulta, ItemConsulta } from '../../lib/consultas'
@@ -34,6 +35,7 @@ const montar = (consultaPedido = pedido()) => render(
 beforeEach(() => {
   vi.clearAllMocks()
   fijarAncho(1440)
+  mocks.nivelClientes = 'ninguno'
   mocks.useItemsConsulta.mockReturnValue(lista())
 })
 
@@ -42,7 +44,7 @@ describe('DetalleConsulta · pedido (P-6)', () => {
   it('muestra el bloque «Pedido» con los ítems, «referencia», el total de referencia y la nota aclaratoria', () => {
     montar()
     const bloque = screen.getByTestId('bloque-pedido')
-    for (const encabezado of ['Producto', 'SKU', 'Cantidad', 'Precio de referencia', 'Subtotal']) {
+    for (const encabezado of ['Producto', 'SKU', 'Cantidad', 'Precio de referencia', 'Subtotal de referencia']) {
       expect(within(bloque).getByRole('columnheader', { name: encabezado })).toBeInTheDocument()
     }
     const filas = within(bloque).getAllByRole('row').slice(1)
@@ -73,6 +75,36 @@ describe('DetalleConsulta · pedido (P-6)', () => {
     unmount()
     montar()
     expect(screen.queryByText('Cliente')).not.toBeInTheDocument()
+  })
+
+  // H-4: «Cliente» es un enlace a su ficha solo con acceso a Clientes.
+  it('H-4: con acceso a Clientes «Nº n · nombre» es un enlace a su ficha; sin acceso, texto plano', () => {
+    mocks.nivelClientes = 'lectura'
+    const { unmount } = montar(pedido({ cliente_id: 'c-1', cliente_numero: 910, cliente_nombre: 'Mayorista Cuenta' }))
+    expect(screen.getByRole('link', { name: 'Nº 910 · Mayorista Cuenta' })).toHaveAttribute('href', '/clientes/show/c-1')
+    unmount()
+    mocks.nivelClientes = 'ninguno'
+    montar(pedido({ cliente_id: 'c-1', cliente_numero: 910, cliente_nombre: 'Mayorista Cuenta' }))
+    expect(screen.getByText('Nº 910 · Mayorista Cuenta')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Mayorista Cuenta/ })).not.toBeInTheDocument()
+  })
+
+  // H-2: «Responder» espera a los ítems de un pedido.
+  it('H-2: «Responder por correo» está deshabilitado mientras los ítems cargan o fallan y se habilita al cargarlos', () => {
+    const abrir = vi.spyOn(window, 'open').mockReturnValue(null)
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'cargando', items: [], reintentar: mocks.reintentar })
+    const { unmount } = montar()
+    expect(screen.getByRole('button', { name: 'Responder por correo' })).toBeDisabled()
+    unmount()
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'error', items: [], reintentar: mocks.reintentar })
+    const conError = montar()
+    expect(screen.getByRole('button', { name: 'Responder por correo' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Responder por correo' }))
+    expect(abrir).not.toHaveBeenCalled()
+    conError.unmount()
+    mocks.useItemsConsulta.mockReturnValue(lista())
+    montar()
+    expect(screen.getByRole('button', { name: 'Responder por correo' })).toBeEnabled()
   })
 
   it('estado de carga: «Cargando los productos del pedido»', () => {

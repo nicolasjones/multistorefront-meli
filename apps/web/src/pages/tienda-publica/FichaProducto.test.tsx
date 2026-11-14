@@ -396,13 +396,14 @@ describe('Ficha de producto · «Guardar en favoritos» (F-CLI-20, P-2)', () => 
     return { data: { nombre: 'Mundo JC', whatsapp: '+54 9 11 7365-2596' }, error: null }
   })
 
-  it('con la función encendida y sesión activa va en el orden de tabulación de P-2: WhatsApp, Ver más productos, Compartir, Guardar', async () => {
+  it('con la función encendida y sesión activa va en el orden de tabulación de P-2: WhatsApp, Agregar a la lista, Ver más productos, Compartir, Guardar', async () => {
     rpcsDe(true)
     mocks.getSession.mockResolvedValue({ data: { session: { access_token: 't' } }, error: null })
     montar()
     const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })
     const enOrden = [
       await screen.findByRole('button', { name: /WhatsApp/ }),
+      screen.getByRole('button', { name: 'Agregar a la lista' }),
       screen.getByRole('link', { name: 'Ver más productos' }),
       screen.getByRole('button', { name: /Compartir/ }),
       guardar,

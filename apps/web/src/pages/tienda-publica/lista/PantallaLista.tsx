@@ -43,6 +43,7 @@ const textoProductos = (n: number) => `${n} ${n === 1 ? 'producto' : 'productos'
 type AvisoEnvio =
   | { tipo: 'espera'; segundos: number; hasta: number }
   | { tipo: 'falla' }
+  | { tipo: 'revision' }
   | { tipo: 'items' }
   | { tipo: 'cuenta_inactiva' }
 
@@ -162,7 +163,12 @@ export function PantallaLista({ host }: { host: string }) {
     setDatos((actuales) => ({ ...actuales, [campo]: valor }))
     setErrores((actuales) => ({ ...actuales, [campo]: undefined }))
     // Otro texto es otro envío: no reutiliza la clave de un intento anterior.
-    if (aviso?.tipo === 'falla' || aviso?.tipo === 'espera') setAviso(null)
+    if (aviso?.tipo === 'falla' || aviso?.tipo === 'espera' || aviso?.tipo === 'revision') setAviso(null)
+  }
+  // Al salir de un campo se valida ese campo (el error aparece y se corrige sin esperar al envío).
+  const salirDeCampo = (campo: CampoPedido) => {
+    const error = validarPedido(datos, conCuenta)[campo]
+    setErrores((actuales) => ({ ...actuales, [campo]: error }))
   }
   const enfocarPrimero = (e: ErroresPedido) => {
     const primero = ORDEN_CAMPOS_PEDIDO.find((campo) => e[campo])
@@ -183,8 +189,8 @@ export function PantallaLista({ host }: { host: string }) {
       try {
         fresca = await revalidarLista(host, lista.lineas)
       } catch (error) {
-        if (error instanceof ErrorListaPedido && error.codigo === 'limite') setAviso({ tipo: 'espera', segundos: error.esperaSegundos, hasta: Date.now() + error.esperaSegundos * 1000 })
-        else setAviso({ tipo: 'falla' })
+        // Si la que falla es la REVISIÓN de la lista (también por exceso de lecturas) el texto es el de la revisión, no el de «varios envíos seguidos».
+        setAviso({ tipo: 'revision' })
         return
       }
       setRevision({ fase: 'lista', datos: fresca })
@@ -310,6 +316,11 @@ export function PantallaLista({ host }: { host: string }) {
                 {TEXTO_ERROR_ENVIO}
               </Alert>
             ) : null}
+            {aviso?.tipo === 'revision' ? (
+              <Alert severity="error" sx={{ mb: 2, alignItems: 'center' }} action={<Button color="inherit" onClick={() => { void enviar() }} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Reintentar</Button>}>
+                No pudimos revisar tu lista. Revisá tu conexión y probá de nuevo.
+              </Alert>
+            ) : null}
             {aviso?.tipo === 'items' ? <Alert severity="warning" sx={{ mb: 2 }}>{TEXTO_REVISAR_LISTA}</Alert> : null}
             {aviso?.tipo === 'cuenta_inactiva' ? <Alert severity="warning" sx={{ mb: 2 }}>{TEXTO_CUENTA_INACTIVA_LISTA}</Alert> : null}
             <FormularioPedido
@@ -320,6 +331,7 @@ export function PantallaLista({ host }: { host: string }) {
               enviando={enviando}
               enviarDeshabilitado={revision.fase !== 'lista' || visibles.length === 0 || esperando}
               alCambiar={cambiarDato}
+              alSalir={salirDeCampo}
               alEnviar={() => { void enviar() }}
               refs={(campo, el) => { campos.current[campo] = el }}
             />

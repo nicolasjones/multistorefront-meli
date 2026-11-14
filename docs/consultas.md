@@ -63,7 +63,7 @@ Desde la tienda, un visitante puede enviar una **lista de pedido** (productos y 
 
 - **Alta**: solo por `publico.enviar_lista_pedido` (límite de 5 envíos por hora por visitante, compartido con el formulario y WhatsApp; idempotente por clave). Crea **una** consulta
   (`origen = 'pedido'`, `mensaje` = la nota, opcional) y sus `dominio.consulta_items` en una transacción. Con cuenta web activa la consulta lleva el `cliente_id` del cliente y los datos de su ficha.
-- **Bandeja**: el origen «Pedido» y «Pedido de n productos» en la columna Producto. **Detalle**: bloque «Pedido» (Producto · SKU · Cantidad · Precio de **referencia** · Subtotal y el total de referencia; los precios
+- **Bandeja**: el origen «Pedido» y «Pedido de n productos» en la columna Producto. **Detalle**: bloque «Pedido» (Producto · SKU · Cantidad · Precio de **referencia** · Subtotal de referencia y el total de referencia; los precios
   los calculó el servidor al enviar, tal como los vio la persona, y **no son firmes**), «Nota de la persona» y, con cuenta activa, el cliente (Nº y nombre). Todo se muestra como texto, nunca como HTML.
   «Responder» arma el texto inicial con los ítems y los enlaces `mailto:`/`wa.me` van codificados.
 - **Aviso por correo**: el mismo aviso de consulta nueva (cola de plataforma, respeta preferencias y agrupación); para un pedido suma el resumen de los ítems (hasta 10 líneas y «y N más»). El asunto no

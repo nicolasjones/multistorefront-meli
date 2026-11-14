@@ -7,7 +7,7 @@ import { EstadoError } from '../estados/EstadosPagina'
 const importe = (valor: number | null) => (valor === null ? 'Sin precio' : formatearImporteArs(valor))
 const subtotal = (item: ItemConsulta) => (item.precio_referencia === null ? null : Math.round(item.precio_referencia * item.cantidad * 100) / 100)
 
-// Bloque «Pedido» del detalle de una consulta de origen pedido (MSF-176, B1, FR-031, P-6): tabla Producto · SKU · Cantidad · Precio de referencia · Subtotal (en celular, una tarjeta por línea),
+// Bloque «Pedido» del detalle de una consulta de origen pedido (MSF-176, B1, FR-031, P-6): tabla Producto · SKU · Cantidad · Precio de referencia · Subtotal de referencia (en celular, una tarjeta por línea),
 // el total de referencia y la nota «Precios de referencia calculados al enviar…». Cada precio lleva el rótulo «referencia», nunca «precio» a secas. Todo es TEXTO de la tienda (React lo escapa:
 // un `<script>` en una descripción se ve literal). Estados: cargando (esqueleto), error con «Reintentar» y sin ítems.
 export function BloquePedido({ items }: { items: ItemsConsulta }) {
@@ -53,7 +53,7 @@ export function BloquePedido({ items }: { items: ItemsConsulta }) {
                     <TableCell>SKU</TableCell>
                     <TableCell align="right">Cantidad</TableCell>
                     <TableCell align="right">Precio de referencia</TableCell>
-                    <TableCell align="right">Subtotal</TableCell>
+                    <TableCell align="right">Subtotal de referencia</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

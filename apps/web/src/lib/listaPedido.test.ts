@@ -143,6 +143,31 @@ describe('lista de pedido del navegador (B1, FR-020, FR-022)', () => {
     expect(leerLista(HOST)).toEqual([])
   })
 
+  it('H-1: si solo FALLA la escritura (cuota llena) pero la lectura anda, la lista sigue en memoria, no se pierde nada y se avisa', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('cuota', 'QuotaExceededError') })
+    expect(agregarALista(HOST, id(1), 2)).toEqual({ estado: 'ok', cantidad: 2 })
+    expect(almacenamientoBloqueado()).toBe(true)
+    // Releer (como hace useSyncExternalStore en cada render) NO borra lo agregado ni apaga el aviso.
+    expect(leerLista(HOST)).toEqual([{ productoId: id(1), cantidad: 2 }])
+    expect(leerLista(HOST)).toEqual([{ productoId: id(1), cantidad: 2 }])
+    expect(almacenamientoBloqueado()).toBe(true)
+    expect(agregarALista(HOST, id(2))).toEqual({ estado: 'ok', cantidad: 1 })
+    expect(leerLista(HOST).map((linea) => linea.productoId)).toEqual([id(1), id(2)])
+    quitarDeLista(HOST, id(1))
+    expect(leerLista(HOST).map((linea) => linea.productoId)).toEqual([id(2)])
+  })
+
+  it('H-1: cuando una escritura vuelve a salir bien, el almacenamiento recupera la verdad y el aviso se apaga', () => {
+    const espia = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('cuota', 'QuotaExceededError') })
+    agregarALista(HOST, id(1))
+    expect(almacenamientoBloqueado()).toBe(true)
+    espia.mockRestore()
+    agregarALista(HOST, id(2))
+    expect(almacenamientoBloqueado()).toBe(false)
+    expect(leerLista(HOST).map((linea) => linea.productoId)).toEqual([id(1), id(2)])
+    expect(window.localStorage.getItem(`msf.lista-pedido.v1:${HOST}`)).toContain(id(2))
+  })
+
   it('normalizarLineas suma repetidos con tope y respeta las 50 líneas', () => {
     expect(normalizarLineas([{ p: id(1), c: 9000 }, { p: id(1), c: 9000 }, { p: id(1).toUpperCase(), c: 1 }])).toEqual([{ productoId: id(1), cantidad: 9999 }])
     expect(normalizarLineas(Array.from({ length: 60 }, (_, n) => ({ p: id(n + 1), c: 1 })))).toHaveLength(MAX_LINEAS_LISTA)

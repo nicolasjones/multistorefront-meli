@@ -9,7 +9,7 @@
 -- `validar_items_pedido(p_items jsonb) → jsonb`
 --   Devuelve `[{"producto_id": "<uuid en minúsculas>", "cantidad": n}, …]` normalizado, o NULL si la entrada es inválida. NUNCA lanza
 --   un error de Postgres: no hay ningún cast sin una comprobación previa por expresión regular.
---   Reglas (contrato «Entrada de ítems»): `jsonb_typeof = 'array'`; entre 1 y 50 elementos; texto de a lo sumo 8.000 caracteres
+--   Reglas (contrato «Entrada de ítems»): `jsonb_typeof = 'array'`; entre 1 y 50 elementos; tamaño de a lo sumo 8.000 bytes (`pg_column_size`)
 --   (se mira antes de recorrer); cada elemento un objeto con `producto_id` (texto con la forma de uuid) y `cantidad` (número entero
 --   o texto, de 1 a 4 dígitos, mayor que cero); los repetidos se SUMAN con tope 9.999 y conservan el orden de la primera aparición;
 --   TODA otra clave se ignora (`precio`, `descuento`, `escala`, `deposito_id`, `cliente_id`, …).
@@ -47,7 +47,8 @@ begin
   if v_cuenta < 1 or v_cuenta > c_max_lineas then
     return null;
   end if;
-  if length(p_items::text) > c_max_texto then
+  -- Tamaño binario del jsonb (`pg_column_size`): no materializa el texto de una entrada enorme solo para medirla.
+  if pg_column_size(p_items) > c_max_texto then
     return null;
   end if;
 
@@ -86,7 +87,7 @@ end;
 $$;
 
 comment on function private.validar_items_pedido(jsonb) is
-  'MSF-176 (B1, amenaza 1.3): valida y normaliza la lista de ítems (1 a 50 objetos {producto_id uuid, cantidad 1..9999}, texto <= 8000, repetidos sumados con tope 9999, claves ajenas ignoradas). Devuelve [{producto_id, cantidad}] o NULL si es inválida; nunca lanza un error de Postgres. Sin acceso de API.';
+  'MSF-176 (B1, amenaza 1.3): valida y normaliza la lista de ítems (1 a 50 objetos {producto_id uuid, cantidad 1..9999}, tamaño <= 8000 bytes, repetidos sumados con tope 9999, claves ajenas ignoradas). Devuelve [{producto_id, cantidad}] o NULL si es inválida; nunca lanza un error de Postgres. Sin acceso de API.';
 
 revoke execute on function private.validar_items_pedido(jsonb) from public, anon, authenticated;
 

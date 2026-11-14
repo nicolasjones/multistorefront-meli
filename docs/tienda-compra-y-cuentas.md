@@ -275,13 +275,20 @@ Todo está detrás de la bandera `tienda_pedidos` (apagada por defecto, encendid
 
 ### Límites y antispam
 
-- **Envío**: 5 por hora por visitante y empresa (compartido con el formulario de contacto y WhatsApp; falla cerrada sin IP; el visitante es un **hash**, la IP nunca se guarda), idempotencia por
-  `clave_envio` y poda a 24 h (todo ya existente: `private.registrar_envio_tienda`). Si la entrega falla se revierte también el registro del envío: **no se gasta cupo**.
+- **Envío**: 5 por hora por visitante y empresa (compartido con el formulario de contacto, WhatsApp **y los pedidos**: es UN solo cupo por (empresa, hash de IP); falla cerrada sin IP; el visitante es un **hash**, la IP nunca se guarda), idempotencia por
+  `clave_envio` y poda a 24 h (todo ya existente: `private.registrar_envio_tienda`). Si la entrega falla se revierte también el registro del envío: **no se gasta cupo**. **No hay un tope global por empresa**: quien cambia de IP
+  tiene un cupo nuevo; es un riesgo aceptado igual que en el formulario de contacto (amenaza 1.1) y lo acota la bandera apagada, el aviso agrupado y el costo mínimo de cada consulta.
+- **Llamadas a `enviar_lista_pedido`** (S1, revisión de seguridad): además del cupo de envíos, cada llamada consume un **cupo de llamadas** propio (`private.registrar_pedido_publico('envio|' + visitante)`, 20 por minuto y visitante) **antes**
+  de validar y de evaluar el catálogo efectivo; así también cuentan las llamadas `invalido` (uuids al azar, campos vacíos) y no se puede saturar la base con pedidos inválidos. Responde `limite` con `espera_segundos`.
+- **Datos de la ficha** (S2): con cuenta activa, nombre y contacto de la ficha del cliente pasan por las mismas reglas que los de un visitante (sin caracteres de control, separadores ni marcas de dirección; se usa el primero de correo,
+  teléfono y celular con formato válido; si no queda ninguno, `error` genérico). **Datos raros del catálogo** (S3): un precio de referencia fuera de rango (>= 10^12 o negativo) se guarda `null` («precio a confirmar») y un nombre en blanco usa
+  «Producto sin nombre»: nunca abortan el envío.
 - **Lectura** (amenaza 1.9, decisión de T033): `lista_pedido_por_dominio` aplica el limitador de pedidos públicos de la búsqueda (`private.registrar_pedido_publico`) con **su propio cupo**
   (`lista|` + visitante, 30 por minuto): quien lo supera recibe `{estado: limite}`. Por eso la función es `volatile` (escribe el contador). Además está acotada a 50 productos por llamada.
-  `statement_timeout`: no se fija a nivel de función; rige el de los roles de API de Supabase (`anon` 3 s, `authenticated` 8 s). Medición (pgTAP, 50 líneas, Postgres 17 local sin carga): ver el log del
+  `statement_timeout`: no se fija a nivel de función; rige el de los roles de API de la imagen de Supabase (`anon` 3 s, `authenticated` 8 s, `authenticator` 8 s), que el pgTAP `tienda_lista_pedido` comprueba (S5; no lo pone una migración del repo:
+  si el Postgres self-hosted no usara esa imagen habría que fijarlo con `alter role … set statement_timeout`). Medición (pgTAP, 50 líneas, Postgres 17 local sin carga): ver el log del
   pgTAP `tienda_lista_pedido` (`rendimiento: lista_pedido_por_dominio con 50 líneas tardó … ms`).
-- **Topes**: 50 líneas, 9.999 unidades por producto, nota ≤ 500 (D-9, D-23; constantes en la validación).
+- **Topes**: 50 líneas, 9.999 unidades por producto, nota ≤ 500 (D-9, D-23; constantes en la validación). El tamaño de la lista se mide con `pg_column_size` (8.000 bytes), sin materializar el texto.
 
 ### Aviso por correo a Consultas
 
@@ -293,7 +300,7 @@ emitir se registra solo con `sqlstate` y no frena el alta.
 ### Lo que ve el operador (panel · Consultas)
 
 - **Bandeja**: el origen «Pedido» y, en la columna Producto, **«Pedido de n productos»** («1 producto»).
-- **Detalle** (diálogo `md`, pantalla completa en celular): bloque **«Pedido»** con una tabla Producto · SKU · Cantidad · Precio de referencia · Subtotal (en celular, una tarjeta por línea), «Total de
+- **Detalle** (diálogo `md`, pantalla completa en celular): bloque **«Pedido»** con una tabla Producto · SKU · Cantidad · Precio de referencia · Subtotal de referencia (en celular, una tarjeta por línea), «Total de
   referencia» y la nota «Precios de referencia calculados al enviar, tal como los vio la persona en la tienda. Confirmalos al responder.»; «Mensaje» pasa a **«Nota de la persona»** («Sin nota» si no hay);
   con cuenta activa, la fila **«Cliente»** (Nº y nombre). Todo se muestra **como texto** (nunca HTML). Estados: cargando, error con «Reintentar» y sin ítems.
 - **«Responder por correo/WhatsApp»**: el texto inicial lista los ítems (`• 2 × Joystick Pro (JOY-1)`) y los enlaces `mailto:`/`wa.me` van **codificados** (`lib/textoInicialConsulta.ts`).
@@ -302,18 +309,19 @@ emitir se registra solo con `sqlstate` y no frena el alta.
 ### Front de B1 (`apps/web`)
 
 - `lib/listaPedido.ts` + `hooks/useListaPedido.ts`: la lista vive **en el navegador, por tienda** (`localStorage` con `try/catch` y respaldo en memoria; solo `producto_id` y `cantidad`, **nunca precios**; tope 50
-  líneas y 9.999 unidades; sincronía entre pestañas por el evento `storage` y al volver el foco). Con el almacenamiento bloqueado la lista dura mientras la página esté abierta y `/lista` lo avisa.
+  líneas y 9.999 unidades; sincronía entre pestañas por el evento `storage` y al volver el foco). Con el almacenamiento bloqueado, o si solo falla la escritura (cuota llena: `setItem` lanza pero `getItem` anda), la lista dura mientras la página esté abierta y `/lista` lo avisa; mientras la última escritura de un host falló, la memoria es la verdad (releer no borra lo agregado).
 - `lib/tiendaPedido.ts`: llamadas a las dos RPC, validación espejo del servidor y traducción de estados (nunca detalles técnicos).
 - Ficha: **«Agregar a la lista»** (`lista/BotonAgregarALista.tsx`; cada clic suma 1; avisos de tope; el producto sin stock también se agrega) y la línea «Ya tenés n en tu lista · Ver lista» (n = unidades de **este** producto).
   Encabezado: **«Mi lista (n)»** (`lista/IndicadorLista.tsx`; n = productos distintos). Menú móvil: «Mi lista» con cuenta activa. «Mi cuenta › Favoritos»: «Agregar a la lista».
+- Detalle de un pedido en el panel: «Responder por correo/WhatsApp» queda **deshabilitado mientras los ítems cargan o fallan** (el texto inicial los lista); «Cliente» es un enlace a `/clientes/show/:id` solo si la persona tiene acceso a Clientes (texto plano si no).
 - Ruta **`/lista`** (`rutas/lista.tsx`, `lista/PantallaLista.tsx`, `LineaLista.tsx`, `FormularioPedido.tsx`, `ConfirmacionPedido.tsx`): revalida al abrirla, al cambiar la lista (con una espera de 500 ms) y **antes de enviar**; los
   productos no disponibles van a una sección aparte y se sacan al enviar; una sola petición en vuelo; `clave_envio` por contenido (se reutiliza en los reintentos); ante cualquier error **la lista se conserva**; `limite` avisa en minutos y
-  habilita el botón al cumplirse la espera; la confirmación dice «Recibimos tu pedido… No se cobró nada.» y vacía la lista. Con la bandeja apagada es la 404 de la tienda.
+  habilita el botón al cumplirse la espera (si el que da `limite` es la revisión previa al envío, el aviso es «No pudimos revisar tu lista.»); cada campo se valida también **al salir** de él, con `maxLength` igual al del servidor (nombre 100, contacto 120); la confirmación dice «Recibimos tu pedido… No se cobró nada.» y vacía la lista. Con la bandeja apagada es la 404 de la tienda.
 - `LISTA_DE_PEDIDO_DISPONIBLE = true` en `lib/tiendaCapacidades.ts`: aparecen «Mi lista» (menú móvil) y «Agregar a la lista» (Favoritos); cada control se dibuja solo con la función encendida.
 
 ### Retención de los datos (D-20)
 
-**No hay purga automática** de consultas ni de ítems de pedido en esta épica: no se inventa un plazo legal. Se guarda lo mínimo (nombre, contacto, nota e ítems; sin dirección, DNI ni CUIT; la IP nunca), lo ve solo
+**No hay purga automática** de consultas ni de ítems de pedido en esta épica: no se inventa un plazo legal, y **la supresión por titular** (que un visitante pida borrar sus datos) tampoco existe como función: queda como seguimiento (T072). Se guarda lo mínimo (nombre, contacto, nota e ítems; sin dirección, DNI ni CUIT; la IP nunca), lo ve solo
 quien tiene la sección `consultas` ≥ lectura en esa empresa y no se borra solo. Cómo borrar a mano y el seguimiento trazado: [`consultas.md`](./consultas.md#pedidos-de-la-tienda-b1-msf-176).
 
 ### Pruebas de B1
@@ -332,6 +340,7 @@ quien tiene la sección `consultas` ≥ lectura en esa empresa y no se borra sol
 - `lista_pedido_por_dominio` es `volatile` y puede responder `limite` (la spec la daba `stable`, sin cupo): se aplicó el limitador de la búsqueda (amenaza 1.9, T033).
 - `consultas_bandeja` suma además `cliente_numero` y `cliente_nombre` (la spec pedía `cliente_id` e `items_cantidad`): el detalle muestra «Nº n · nombre» sin exigir acceso a Clientes.
 - El aviso para un pedido lo emite `crear_consulta_pedido` (no el disparador) porque los ítems se insertan después de la consulta.
+- `enviar_lista_pedido` suma un cupo de **llamadas** (20 por minuto y visitante) antes del catálogo y puede responder `limite` también por eso (revisión de seguridad S1).
 - Un reintento de una clave ya registrada responde `ok` **antes** de revalidar la visibilidad de los productos (la repetición no depende de que sigan visibles).
 - El asunto del correo no cambia (sigue siendo el del tipo de aviso): ya no lleva datos del visitante.
 

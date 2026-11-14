@@ -21,6 +21,7 @@ import { avisoRespuestaRegistrada, enlaceRespuesta, registrarRespuesta } from '.
 import { ContactoConsulta } from '../../pages/consultas/ContactoConsulta'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { BloquePedido } from './BloquePedido'
+import { ClientePedido } from './ClientePedido'
 import { EstadoError } from '../estados/EstadosPagina'
 
 type Props = {
@@ -76,6 +77,8 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
   const respuestaRapida = respuestasRapidas.find((r) => r.id === respuestaRapidaId) ?? null
   // Un pedido (B1): los ítems alimentan el bloque «Pedido» y el texto inicial de «Responder».
   const respuesta = enlaceRespuesta(consulta, respuestaRapida, items?.fase === 'lista' ? items.items : null)
+  // H-2: en un pedido, «Responder» espera a que carguen los ítems (el texto inicial los lista); con la carga fallida se reintenta antes de responder.
+  const itemsPendientes = items !== null && items.fase !== 'lista'
   // La persona asignada puede haber dejado de ser elegible: se la sigue mostrando para no perderla de vista.
   const opcionesResponsable = responsables.some((r) => r.user_id === consulta.responsable_id) || !consulta.responsable_id
     ? responsables
@@ -142,7 +145,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
   // El enlace se abre en el mismo gesto del clic (para que no lo bloquee el navegador) y recién después
   // se registra. El panel no envía nada: la persona manda el mensaje desde WhatsApp o su correo.
   const responder = () => {
-    if (!respuesta || !puedeEditar || enVuelo.current) return
+    if (!respuesta || !puedeEditar || itemsPendientes || enVuelo.current) return
     window.open(respuesta.href, '_blank', 'noopener,noreferrer')
     void registrar()
   }
@@ -180,12 +183,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
           {items ? (
             <>
               {consulta.cliente_id ? (
-                <Box>
-                  <Typography variant="xs">Cliente</Typography>
-                  <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
-                    Nº {consulta.cliente_numero ?? '—'} · {consulta.cliente_nombre ?? 'Cliente'}
-                  </Typography>
-                </Box>
+                <ClientePedido clienteId={consulta.cliente_id} numero={consulta.cliente_numero} nombre={consulta.cliente_nombre} />
               ) : null}
               <BloquePedido items={items} />
             </>
@@ -272,9 +270,9 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
       <DialogActions>
         <Button onClick={onCerrar} disabled={guardando}>Cerrar</Button>
         {respuesta ? (
-          <Tooltip title={puedeEditar ? '' : 'Necesitás permiso de edición'}>
+          <Tooltip title={!puedeEditar ? 'Necesitás permiso de edición' : itemsPendientes ? 'Esperá a que carguen los productos del pedido' : ''}>
             <span>
-              <Button type="button" variant="outlined" onClick={responder} disabled={!puedeEditar || guardando}>
+              <Button type="button" variant="outlined" onClick={responder} disabled={!puedeEditar || guardando || itemsPendientes}>
                 Responder por {respuesta.via}
               </Button>
             </span>

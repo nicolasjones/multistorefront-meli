@@ -10,14 +10,15 @@
 --   * `anon` y `authenticated`; `security definer`, `search_path = ''`, SIN SQL dinámico; `revoke … from public, anon` y `grant …
 --     to anon, authenticated` explícitos (superficie pública DELIBERADA: se suma a la lista cerrada de `anon` del pgTAP).
 --   * Orden: empresa por host (desconocido, desactivada y pausada responden `error` idéntico, ANTES de validar nada) → bandera
---     `tienda_pedidos` (apagada: `error`, sin tocar datos) → entradas (`invalido` con `campos`, nunca el valor) → reintento de una
+--     `tienda_pedidos` (apagada: `error`, sin tocar datos) → CUPO DE LLAMADAS (`private.registrar_pedido_publico('envio|…')`, 20 por minuto y
+--     visitante; cuentan también las llamadas `invalido`, y va antes de evaluar el catálogo: amenaza 1.1) → entradas (`invalido` con `campos`, nunca el valor) → reintento de una
 --     clave ya registrada (`ok` sin crear nada: la repetición no depende de que los productos sigan visibles) → cada producto debe
 --     ser visible en ESTA tienda (si alguno no lo es se rechaza la lista entera con `invalido` + `campos = ['items']` +
 --     `no_disponibles`) → una sola sub-transacción con un único manejador: `private.registrar_envio_tienda(empresa, 'pedido', clave)`
 --     (`limite` → `{estado: limite, espera_segundos}`; `repetido` → `ok` sin crear; `nuevo` → `private.crear_consulta_pedido`).
 --     Si la entrega falla se revierte también el registro del envío (no se gasta cupo).
 --   * Con cuenta activa (`private.cuenta_de_tienda`): `nombre` y `contacto` recibidos SE IGNORAN; se usan los de la ficha del cliente
---     (nombre y correo; D-25) y la consulta guarda `cliente_id`. Sin cuenta: `nombre` (1–100) y `contacto` (correo, o teléfono de 8 a
+--     (nombre y correo; D-25, pasados por las mismas reglas que un visitante) y la consulta guarda `cliente_id`. Sin cuenta: `nombre` (1–100) y `contacto` (correo, o teléfono de 8 a
 --     15 dígitos) pasan por `private.validar_contacto_tienda`; `nota` opcional <= 500.
 --   * Texto libre: se recorta; se rechazan caracteres de control (en la nota se acepta el salto de línea; `\r\n` se normaliza a `\n`),
 --     separadores de línea Unicode y marcas de dirección de texto (U+202A-202E, U+2066-2069, U+200E/F); se guarda TAL CUAL como texto
@@ -29,6 +30,16 @@
 -- Migración aditiva. Reversión (migración posterior; no se ejecuta en el mismo PR):
 --   drop function if exists publico.enviar_lista_pedido(text, text, text, text, jsonb, uuid);
 --   drop function if exists private.crear_consulta_pedido(uuid, text, text, text, uuid, jsonb, text);
+--   drop function if exists private.limite_llamadas_envio_por_minuto();
+
+create or replace function private.limite_llamadas_envio_por_minuto()
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$ select 20; $$;
+
+revoke execute on function private.limite_llamadas_envio_por_minuto() from public, anon, authenticated;
 
 create or replace function private.crear_consulta_pedido(
   p_empresa uuid,
@@ -63,8 +74,10 @@ begin
 
   insert into dominio.consulta_items (organizacion_id, empresa_id, consulta_id, orden, producto_id, descripcion, sku, cantidad, precio_referencia)
   select v_org, p_empresa, v_id, e.ord::integer, pr.id,
-         left(pr.nombre, 300), left(nullif(btrim(pr.sku), ''), 100), (e.valor ->> 'cantidad')::integer,
-         p.precio
+         -- Respaldos para que un dato raro del catálogo no aborte el envío: descripción en blanco → texto genérico; un precio fuera de rango
+         -- (>= 10^12 o negativo) → null («precio a confirmar»), igual que un producto sin precio.
+         left(coalesce(nullif(btrim(pr.nombre), ''), 'Producto sin nombre'), 300), left(nullif(btrim(pr.sku), ''), 100), (e.valor ->> 'cantidad')::integer,
+         case when p.precio is null or p.precio < 0 or p.precio >= 1000000000000 then null else p.precio end
     from jsonb_array_elements(p_items) with ordinality as e(valor, ord)
     join dominio.productos pr on pr.id = (e.valor ->> 'producto_id')::uuid and pr.organizacion_id = v_org
     cross join lateral private.precio_referencia_pedido(pr.id, p_empresa, p_tipo, (e.valor ->> 'cantidad')::integer) p;
@@ -114,6 +127,8 @@ declare
   v_campos text[] := '{}';
   v_pendientes jsonb;
   v_registro jsonb;
+  v_candidato text;
+  v_limite jsonb;
 begin
   select e.id into v_empresa
     from dominio.tiendas ti
@@ -123,19 +138,38 @@ begin
     return jsonb_build_object('estado', 'error');
   end if;
 
+  -- Cupo de LLAMADAS (S1, amenaza 1.1): se consume ANTES de validar ni de evaluar el catálogo, así también cuentan las llamadas `invalido` (uuids bien
+  -- formados al azar con una clave nueva por pedido): sin esto un atacante pagaba la evaluación del catálogo efectivo sin límite. Cupo propio
+  -- (`envio|` + visitante, por minuto); es independiente del cupo de 5 ENVÍOS por hora, que sigue siendo `registrar_envio_tienda`.
+  v_limite := private.registrar_pedido_publico('envio|' || private.visitante_publico(host), private.limite_llamadas_envio_por_minuto());
+  if (v_limite ->> 'limitado')::boolean then
+    return jsonb_build_object('estado', 'limite', 'espera_segundos', (v_limite ->> 'espera_segundos')::integer);
+  end if;
+
   -- Con cuenta activa y habilitada en ESTA tienda: sus datos y su cliente. Cualquier otro caso es un visitante.
   select * into v_cuenta from private.cuenta_de_tienda(host);
 
   v_nota := nullif(btrim(replace(coalesce(nota, ''), E'\r\n', E'\n')), '');
   if v_cuenta.cuenta_cliente_id is not null then
-    select c.nombre, coalesce(nullif(btrim(c.correo), ''), nullif(btrim(c.telefono), ''), nullif(btrim(c.celular), '')) as contacto
+    select c.nombre, c.correo, c.telefono, c.celular
       into v_cliente
       from public.clientes c
      where c.id = v_cuenta.cliente_id and c.organizacion_id = v_cuenta.organizacion_id;
-    v_nombre := left(btrim(coalesce(v_cliente.nombre, '')), 120);
-    v_contacto := left(coalesce(v_cliente.contacto, ''), 200);
-    -- Una ficha sin nombre o sin ningún contacto no se puede responder: error genérico (la cuenta web exige correo, D-25).
-    if v_nombre = '' or v_contacto = '' then
+    -- Los datos de la ficha pasan por las MISMAS reglas que los de un visitante (S2): del nombre se sacan los caracteres de control, separadores
+    -- de línea y marcas de dirección; como contacto se usa el primero de correo, teléfono y celular con formato válido y sin esos caracteres.
+    v_nombre := btrim(regexp_replace(regexp_replace(coalesce(v_cliente.nombre, ''), c_prohibidos_linea, ' ', 'g'), '[[:space:]]+', ' ', 'g'));
+    v_nombre := left(v_nombre, 100);
+    v_contacto := null;
+    foreach v_candidato in array array[v_cliente.correo, v_cliente.telefono, v_cliente.celular] loop
+      v_candidato := btrim(coalesce(v_candidato, ''));
+      if v_candidato <> '' and v_candidato !~ c_prohibidos_linea
+         and not ('contacto' = any (private.validar_contacto_tienda('x', v_candidato, 'x'))) then
+        v_contacto := v_candidato;
+        exit;
+      end if;
+    end loop;
+    -- Una ficha sin nombre o sin ningún contacto válido no se puede responder: error genérico (la cuenta web exige correo, D-25).
+    if v_nombre = '' or v_contacto is null then
       return jsonb_build_object('estado', 'error');
     end if;
   else

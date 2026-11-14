@@ -8,6 +8,7 @@ import { esContactoValido } from '../pages/tienda-publica/contacto/validacion'
 // La lista que se manda lleva SOLO `producto_id` y `cantidad`; nunca precios.
 
 export const MAX_NOMBRE_PEDIDO = 100
+export const MAX_CONTACTO_PEDIDO = 120
 export const MAX_NOTA_PEDIDO = 500
 
 export type EscalaPedido = 'x1' | 'x5' | 'x10' | 'x50'
@@ -137,7 +138,7 @@ export function validarPedido(datos: DatosPedido, conCuenta: boolean): ErroresPe
     if (nombre === '') errores.nombre = MENSAJES_PEDIDO.nombre
     else if (nombre.length > MAX_NOMBRE_PEDIDO) errores.nombre = `El nombre admite hasta ${MAX_NOMBRE_PEDIDO} caracteres.`
     else if (PROHIBIDOS_LINEA.test(nombre)) errores.nombre = MENSAJE_CARACTERES
-    if (contacto === '' || contacto.length > 120 || !esContactoValido(contacto)) errores.contacto = MENSAJES_PEDIDO.contacto
+    if (contacto === '' || contacto.length > MAX_CONTACTO_PEDIDO || !esContactoValido(contacto)) errores.contacto = MENSAJES_PEDIDO.contacto
     else if (PROHIBIDOS_LINEA.test(contacto)) errores.contacto = MENSAJE_CARACTERES
   }
   const nota = datos.nota.replace(/\r\n/g, '\n').trim()

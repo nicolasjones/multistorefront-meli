@@ -13,7 +13,7 @@
 --   * Aviso por correo del pedido (resumen de ítems) y vistas del panel.
 begin;
 
-select plan(210);
+select plan(229);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -832,6 +832,112 @@ delete from dominio.productos where id = 'a1000000-0000-0000-0000-000000000007';
 select is(
   (select jsonb_build_array(producto_id, descripcion, sku) from dominio.consulta_items where sku = 'SKU-SST' limit 1),
   jsonb_build_array(null, 'Sin stock', 'SKU-SST'), 'si el producto se borra, la línea conserva su descripción y SKU y su producto_id queda en null');
+
+-- ============================================================================
+-- S1 · cupo de LLAMADAS de enviar_lista_pedido: cuentan también las inválidas y va antes del catálogo (amenaza 1.1)
+-- ============================================================================
+select pg_temp.ip('10.10.0.1');
+set local role anon;
+insert into res values
+  ('s1_ids_al_azar', (select jsonb_agg(publico.enviar_lista_pedido('lista-a.ejemplo.com', 'Sara', 'sara@example.com', null,
+     ('[{"producto_id":"' || gen_random_uuid() || '","cantidad":1}]')::jsonb, gen_random_uuid()) order by g) from generate_series(1, 25) g));
+select pg_temp.ip('10.10.0.2');
+insert into res values
+  ('s1_campos_invalidos', (select jsonb_agg(publico.enviar_lista_pedido('lista-a.ejemplo.com', '', '', null,
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000001","cantidad":1}]', gen_random_uuid()) order by g) from generate_series(1, 25) g));
+select pg_temp.ip('10.10.0.3');
+insert into res values
+  ('s1_otro_visitante', publico.enviar_lista_pedido('lista-a.ejemplo.com', 'Tito', 'tito@example.com', null,
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000002","cantidad":1}]', gen_random_uuid()));
+reset role;
+select is(
+  (select count(*)::int from jsonb_array_elements((select v from res where k = 's1_ids_al_azar')) with ordinality t(e, n) where n <= 20 and e ->> 'estado' = 'invalido'),
+  20, 'S1: las primeras 20 llamadas con uuids al azar responden invalido (no_disponibles)');
+select is(
+  (select count(*)::int from jsonb_array_elements((select v from res where k = 's1_ids_al_azar')) with ordinality t(e, n) where n > 20 and e ->> 'estado' = 'limite'),
+  5, 'S1: desde la 21 del minuto, las llamadas inválidas terminan en limite (antes de evaluar el catálogo)');
+select ok(
+  (select bool_and((e ->> 'espera_segundos')::int between 1 and 60) from jsonb_array_elements((select v from res where k = 's1_ids_al_azar')) t(e) where e ->> 'estado' = 'limite'),
+  'S1: limite trae espera_segundos de 1 a 60');
+select is(
+  (select count(*)::int from jsonb_array_elements((select v from res where k = 's1_campos_invalidos')) with ordinality t(e, n)
+    where (n <= 20 and e ->> 'estado' = 'invalido') or (n > 20 and e ->> 'estado' = 'limite')),
+  25, 'S1: también cuentan las llamadas con campos inválidos (20 invalido y luego limite)');
+select is((select v ->> 'estado' from res where k = 's1_otro_visitante'), 'ok', 'S1: otro visitante (otra IP) no se ve afectado y su pedido legítimo sale');
+select pg_temp.ip('10.10.0.1');
+select is(
+  (select count(*)::int from dominio.tienda_envios where visitante = private.visitante_hash('e1000000-0000-0000-0000-000000000001')), 0,
+  'S1: las 25 llamadas inválidas (la IP 10.10.0.1) no gastaron cupo de envíos: solo cuentan en el cupo de llamadas');
+
+-- ============================================================================
+-- S2 · con cuenta activa, nombre y contacto de la ficha pasan por las mismas reglas que los de un visitante
+-- ============================================================================
+update clientes set nombre = 'Ana' || chr(1) || chr(8238) || '   Pérez', correo = 'no-es-un-correo', telefono = '+54 9 11 5555-1234', celular = null
+ where id = 'c1000000-0000-0000-0000-000000000001';
+select pg_temp.ip('10.10.0.4');
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values
+  ('s2_sucia', publico.enviar_lista_pedido('lista-a.ejemplo.com', '', '', 'S2 ficha sucia',
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000002","cantidad":1}]', gen_random_uuid()));
+reset role;
+select is((select v ->> 'estado' from res where k = 's2_sucia'), 'ok', 'S2: la ficha con caracteres raros se puede enviar');
+select is((select nombre from dominio.consultas where mensaje = 'S2 ficha sucia'), 'Ana Pérez', 'S2: del nombre de la ficha se sacan los caracteres de control y bidi');
+select is((select contacto from dominio.consultas where mensaje = 'S2 ficha sucia'), '+54 9 11 5555-1234', 'S2: un correo inválido se saltea y se usa el teléfono válido');
+update clientes set correo = 'x' || chr(7) || '@example.com', telefono = '123', celular = null where id = 'c1000000-0000-0000-0000-000000000001';
+select pg_temp.ip('10.10.0.5');
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values
+  ('s2_sin_contacto', publico.enviar_lista_pedido('lista-a.ejemplo.com', '', '', 'S2 sin contacto válido',
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000002","cantidad":1}]', gen_random_uuid()));
+reset role;
+select is((select v from res where k = 's2_sin_contacto'), '{"estado":"error"}'::jsonb, 'S2: sin ningún contacto válido en la ficha, error genérico (no se guarda basura)');
+update clientes set nombre = chr(1) || chr(8238), correo = 'ok@example.com' where id = 'c1000000-0000-0000-0000-000000000001';
+select pg_temp.ip('10.10.0.6');
+select pg_temp.como('f2000000-0000-0000-0000-000000000001');
+insert into res values
+  ('s2_sin_nombre', publico.enviar_lista_pedido('lista-a.ejemplo.com', '', '', 'S2 sin nombre válido',
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000002","cantidad":1}]', gen_random_uuid()));
+reset role;
+select is((select v from res where k = 's2_sin_nombre'), '{"estado":"error"}'::jsonb, 'S2: un nombre que queda vacío tras sacar los caracteres prohibidos da error genérico');
+select is((select count(*)::int from dominio.consultas where mensaje in ('S2 sin contacto válido', 'S2 sin nombre válido')), 0, 'S2: ninguno de los dos creó una consulta');
+
+-- ============================================================================
+-- S3 · un dato raro del catálogo (precio fuera de rango, nombre en blanco) no aborta el envío
+-- ============================================================================
+insert into dominio.cotizacion_inicial (organizacion_id, valor) values ('11111111-1111-1111-1111-111111111111', 1200) on conflict do nothing;
+insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo) values
+  ('a1000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 'Dólar gigante', 'SKU-GIG', 900000000000, 'USD', true);
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
+  ('a1000000-0000-0000-0000-000000000010', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
+select ok((select precio >= 1000000000000 from private.precio_referencia_pedido('a1000000-0000-0000-0000-000000000010', 'e1000000-0000-0000-0000-000000000001', null, 1)),
+  'S3 (precondición): el precio de referencia del producto supera el rango de la tabla (10^12)');
+select pg_temp.ip('10.10.0.7');
+set local role anon;
+insert into res values
+  ('s3_precio', publico.enviar_lista_pedido('lista-a.ejemplo.com', 'Pía', 'pia@example.com', null,
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000010","cantidad":1}]', gen_random_uuid()));
+reset role;
+select is((select v from res where k = 's3_precio'), '{"estado":"ok"}'::jsonb, 'S3: un precio fuera de rango no aborta el envío');
+select is((select precio_referencia from dominio.consulta_items i join dominio.consultas c on c.id = i.consulta_id where c.nombre = 'Pía'), null,
+  'S3: el precio fuera de rango se guarda como null («precio a confirmar»)');
+alter table dominio.productos drop constraint productos_nombre_check;
+alter table dominio.productos disable trigger user;
+update dominio.productos set nombre = '   ' where id = 'a1000000-0000-0000-0000-000000000010';
+select pg_temp.ip('10.10.0.8');
+set local role anon;
+insert into res values
+  ('s3_nombre', publico.enviar_lista_pedido('lista-a.ejemplo.com', 'Quique', 'quique@example.com', null,
+     '[{"producto_id":"a1000000-0000-0000-0000-000000000010","cantidad":1}]', gen_random_uuid()));
+reset role;
+select is((select v from res where k = 's3_nombre'), '{"estado":"ok"}'::jsonb, 'S3: un nombre de producto en blanco no aborta el envío');
+select is((select descripcion from dominio.consulta_items i join dominio.consultas c on c.id = i.consulta_id where c.nombre = 'Quique'), 'Producto sin nombre',
+  'S3: la descripción en blanco usa un respaldo');
+
+-- ============================================================================
+-- S5 · statement_timeout de los roles de API (acota el costo de lo público)
+-- ============================================================================
+select ok((select rolconfig @> array['statement_timeout=3s'] from pg_roles where rolname = 'anon'), 'S5: anon trae statement_timeout = 3 s');
+select ok((select rolconfig @> array['statement_timeout=8s'] from pg_roles where rolname = 'authenticated'), 'S5: authenticated trae statement_timeout = 8 s');
 
 select * from finish();
 rollback;

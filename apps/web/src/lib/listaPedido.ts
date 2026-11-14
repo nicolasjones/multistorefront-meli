@@ -26,6 +26,9 @@ const enMemoria = new Map<string, readonly LineaPedido[]>()
 const instantaneas = new Map<string, { texto: string; lineas: readonly LineaPedido[] }>()
 const oyentes = new Map<string, Set<() => void>>()
 let bloqueado = false
+// Hosts cuya ÚLTIMA escritura falló (cuota llena, bloqueo parcial: `setItem` lanza aunque `getItem` ande): para ellos la memoria es la verdad hasta que una
+// escritura salga bien; si se releyera el almacenamiento (que quedó atrás) el producto recién agregado desaparecería sin aviso.
+const escrituraFallida = new Set<string>()
 let escuchandoVentana = false
 
 const clave = (host: string) => `${PREFIJO}${host}`
@@ -67,16 +70,19 @@ function escribirAlmacenamiento(host: string, lineas: readonly LineaPedido[]): v
     if (lineas.length === 0) window.localStorage.removeItem(clave(host))
     else window.localStorage.setItem(clave(host), serializar(lineas))
     bloqueado = false
+    escrituraFallida.delete(host)
   } catch {
-    // Cuota llena o almacenamiento bloqueado: queda el respaldo en memoria.
+    // Cuota llena o almacenamiento bloqueado: queda el respaldo en memoria (que pasa a ser la verdad de este host) y se avisa.
     bloqueado = true
+    escrituraFallida.add(host)
   }
 }
 
 // La lista del host. La referencia devuelta es la misma mientras el contenido no cambie.
 export function leerLista(host: string): readonly LineaPedido[] {
   if (host === '') return SIN_LINEAS
-  const texto = leerAlmacenamiento(host)
+  // Escritura fallida: la memoria es la verdad y `bloqueado` no se toca (se sigue avisando).
+  const texto = escrituraFallida.has(host) ? undefined : leerAlmacenamiento(host)
   let lineas: readonly LineaPedido[]
   if (texto === undefined) {
     // Bloqueado: la memoria es la verdad.
@@ -153,7 +159,7 @@ export function quitarVariosDeLista(host: string, productoIds: readonly string[]
 
 // ¿El navegador no deja guardar la lista? (la lista sigue funcionando en memoria mientras la página esté abierta).
 export function almacenamientoBloqueado(): boolean {
-  return bloqueado
+  return bloqueado || escrituraFallida.size > 0
 }
 
 function alCambiarVentana(evento: Event): void {
@@ -188,5 +194,6 @@ export function nombreAccesibleLista(productos: number): string {
 export function reiniciarListaPedido(): void {
   enMemoria.clear()
   instantaneas.clear()
+  escrituraFallida.clear()
   bloqueado = false
 }

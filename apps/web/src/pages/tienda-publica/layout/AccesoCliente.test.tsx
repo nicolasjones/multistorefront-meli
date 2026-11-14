@@ -24,6 +24,7 @@ vi.mock('../../../lib/tiendaCapacidades', () => ({
 }))
 vi.mock('../../../lib/supabase', () => ({ supabaseClient: { auth: { onAuthStateChange: mocks.onAuthStateChange } } }))
 
+import { IndicadorLista } from '../lista/IndicadorLista'
 import { AccesoCliente } from './AccesoCliente'
 import MenuMovil from './MenuMovil'
 
@@ -196,5 +197,28 @@ describe('MenuMovil · «Mi cuenta» y «Salir» (P-1; «Mi lista» cuando exist
     const panel = await screen.findByRole('dialog', { name: 'Menú' })
     await within(panel).findByRole('list', { name: 'Tu cuenta' })
     expect(await violacionesAxe(panel)).toEqual([])
+  })
+})
+
+// H-5 (P-1): orden de tabulación del encabezado, con el mismo orden de montaje que `LayoutTienda` (indicador y luego el acceso).
+describe('Encabezado · orden de tabulación de P-1', () => {
+  const enOrden = (elementos: HTMLElement[]) => {
+    for (let i = 0; i < elementos.length - 1; i += 1) {
+      expect(elementos[i].compareDocumentPosition(elementos[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING, `posición ${i}`).toBeTruthy()
+    }
+  }
+  const montarEncabezado = () => render(<MemoryRouter><IndicadorLista host={HOST} /><AccesoCliente host={HOST} /></MemoryRouter>)
+
+  it('con cuenta activa: «Mi lista», «Mi cuenta» y «Salir»', async () => {
+    mocks.listaDisponible = true
+    montarEncabezado()
+    enOrden([await screen.findByTestId('indicador-lista'), await screen.findByRole('link', { name: 'Mi cuenta' }), await screen.findByRole('button', { name: 'Salir' })])
+  })
+
+  it('sin sesión: «Mi lista» y «Ingresar»', async () => {
+    mocks.listaDisponible = true
+    mocks.sesionActivaEnTienda.mockResolvedValue(null)
+    montarEncabezado()
+    enOrden([await screen.findByTestId('indicador-lista'), await screen.findByRole('link', { name: 'Ingresar' })])
   })
 })

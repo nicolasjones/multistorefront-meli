@@ -1,12 +1,12 @@
 import { Box, Button, FormHelperText, Link, Stack, TextField, Typography } from '@mui/material'
 import type { ChangeEvent, FormEvent } from 'react'
-import { MAX_NOTA_PEDIDO, type CampoPedido, type DatosPedido, type ErroresPedido } from '../../../lib/tiendaPedido'
+import { MAX_CONTACTO_PEDIDO, MAX_NOMBRE_PEDIDO, MAX_NOTA_PEDIDO, type CampoPedido, type DatosPedido, type ErroresPedido } from '../../../lib/tiendaPedido'
 import { useLegalTienda } from '../../../lib/tiendaLegal'
 
 // Formulario del pedido (MSF-176, B1, FR-025/FR-026, P-4). Visitante: «Nombre» (obligatorio, 1 a 100), «Correo o teléfono» (obligatorio) y «Nota (opcional)» (hasta 500, con contador),
 // más el aviso «Usaremos estos datos solo para responderte.» con el enlace «Política de privacidad» si la tienda lo tiene (el mismo enlace legal del pie). Con cuenta activa no se pide nada:
 // «Vamos a usar los datos de tu cuenta.» y queda la nota. El error de cada campo va debajo, asociado con `aria-describedby`; el foco va al primero con error (lo hace quien lo monta con `refs`).
-export function FormularioPedido({ host, conCuenta, datos, errores, enviando, enviarDeshabilitado, alCambiar, alEnviar, refs }: {
+export function FormularioPedido({ host, conCuenta, datos, errores, enviando, enviarDeshabilitado, alCambiar, alSalir, alEnviar, refs }: {
   host: string
   conCuenta: boolean
   datos: DatosPedido
@@ -15,6 +15,8 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
   // El envío espera la revalidación, el tiempo de espera de `limite` o que la lista tenga productos.
   enviarDeshabilitado: boolean
   alCambiar: (campo: CampoPedido, valor: string) => void
+  // Al salir de un campo se valida ese campo (P-4: «se validan al enviar y al salir de cada campo»).
+  alSalir: (campo: CampoPedido) => void
   alEnviar: () => void
   refs: (campo: CampoPedido, el: HTMLInputElement | HTMLTextAreaElement | null) => void
 }) {
@@ -39,10 +41,11 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
               fullWidth
               value={datos.nombre}
               onChange={cambiar('nombre')}
+              onBlur={() => alSalir('nombre')}
               error={Boolean(errores.nombre)}
               helperText={errores.nombre}
               inputRef={(el: HTMLInputElement | null) => refs('nombre', el)}
-              slotProps={{ htmlInput: { autoComplete: 'name', maxLength: 200 } }}
+              slotProps={{ htmlInput: { autoComplete: 'name', maxLength: MAX_NOMBRE_PEDIDO } }}
               sx={{ '& .MuiInputBase-root': { minHeight: (tema) => tema.spacing(5.5) } }}
             />
             <TextField
@@ -51,10 +54,11 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
               fullWidth
               value={datos.contacto}
               onChange={cambiar('contacto')}
+              onBlur={() => alSalir('contacto')}
               error={Boolean(errores.contacto)}
               helperText={errores.contacto}
               inputRef={(el: HTMLInputElement | null) => refs('contacto', el)}
-              slotProps={{ htmlInput: { maxLength: 200 } }}
+              slotProps={{ htmlInput: { maxLength: MAX_CONTACTO_PEDIDO } }}
               sx={{ '& .MuiInputBase-root': { minHeight: (tema) => tema.spacing(5.5) } }}
             />
           </>
@@ -67,6 +71,7 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
             minRows={3}
             value={datos.nota}
             onChange={cambiar('nota')}
+            onBlur={() => alSalir('nota')}
             error={Boolean(errores.nota)}
             helperText={errores.nota}
             inputRef={(el: HTMLTextAreaElement | null) => refs('nota', el)}

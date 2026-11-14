@@ -394,6 +394,65 @@ describe('/lista · enviar el pedido (FR-025 a FR-029, P-4)', () => {
   })
 })
 
+describe('/lista · validación al salir de cada campo, límites y avisos (QA H-1, H-3)', () => {
+  it('H-3: al salir de Nombre, Contacto y Nota se valida ese campo sin esperar al envío', async () => {
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    const nombre = screen.getByLabelText(/^Nombre/)
+    fireEvent.focus(nombre)
+    fireEvent.blur(nombre)
+    expect(await screen.findByText('Ingresá tu nombre.')).toBeInTheDocument()
+    fireEvent.change(nombre, { target: { value: 'Ana' } })
+    expect(screen.queryByText('Ingresá tu nombre.')).not.toBeInTheDocument()
+    const contacto = screen.getByLabelText(/^Correo o teléfono/)
+    fireEvent.change(contacto, { target: { value: 'esto no es un contacto' } })
+    fireEvent.blur(contacto)
+    expect(await screen.findByText('Ingresá un correo o un teléfono válido (de 8 a 15 números).')).toBeInTheDocument()
+    const nota = screen.getByLabelText(/^Nota/)
+    fireEvent.change(nota, { target: { value: 'x'.repeat(501) } })
+    fireEvent.blur(nota)
+    expect(await screen.findByText('La nota admite hasta 500 caracteres.')).toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.some(([funcion]) => funcion === 'enviar_lista_pedido')).toBe(false)
+  })
+
+  it('los campos no admiten más caracteres que el servidor: nombre 100 y contacto 120', async () => {
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    expect(screen.getByLabelText(/^Nombre/)).toHaveAttribute('maxlength', '100')
+    expect(screen.getByLabelText(/^Correo o teléfono/)).toHaveAttribute('maxlength', '120')
+  })
+
+  it('si la REVISIÓN previa al envío da «límite», avisa «No pudimos revisar tu lista.» (no «varios envíos seguidos») y conserva la lista', async () => {
+    let revalidaciones = 0
+    rpcs({
+      lista_pedido_por_dominio: () => { revalidaciones += 1; return revalidaciones === 1 ? respuestaLista([linea(P1, { cantidad: 2 }), linea(P2)]) : { estado: 'limite', espera_segundos: 30 } },
+      enviar_lista_pedido: { estado: 'ok' },
+    })
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    llenarVisitante()
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar pedido' }))
+    expect(await screen.findByText(/No pudimos revisar tu lista\./)).toBeInTheDocument()
+    expect(screen.queryByText(/varios envíos seguidos/)).not.toBeInTheDocument()
+    expect(leerLista(HOST)).toHaveLength(2)
+    expect(mocks.rpc.mock.calls.some(([funcion]) => funcion === 'enviar_lista_pedido')).toBe(false)
+  })
+
+  it('H-1: si solo FALLA la escritura del almacenamiento (cuota llena) la lista no se pierde y /lista avisa (FR-022, B1-10)', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('cuota', 'QuotaExceededError') })
+    reiniciarListaPedido()
+    agregarALista(HOST, P1, 2)
+    agregarALista(HOST, P2)
+    rpcs({ lista_pedido_por_dominio: respuestaLista([linea(P1, { cantidad: 2 }), linea(P2)]) })
+    montar()
+    expect(await screen.findAllByTestId('linea-lista')).toHaveLength(2)
+    expect(screen.getByText('Tu navegador no nos deja guardar la lista: se conserva mientras no cierres esta página.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Sumar una unidad de Producto 2' }))
+    expect(leerLista(HOST).find((l) => l.productoId === P2)?.cantidad).toBe(2)
+    expect(screen.getAllByTestId('linea-lista')).toHaveLength(2)
+  })
+})
+
 describe('/lista · con cuenta activa (FR-026)', () => {
   const conCuenta = (lineas: unknown[]) => respuestaLista(lineas, { con_cuenta: true, tipo: 'mayorista' })
 
