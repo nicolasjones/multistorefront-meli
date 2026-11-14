@@ -1,15 +1,17 @@
 import { Box, Button, Dialog, InputBase, Typography } from '@mui/material'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { registrarEventoTienda } from '../../../lib/analiticaTienda'
 import { nuevaClaveEnvioWhatsapp, registrarConsultaWhatsapp } from '../../../lib/registroWhatsapp'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { textoSobre } from '../../../tema/temaTienda'
 import { IconoWhatsapp } from './IconoWhatsapp'
 
-// Parte el mensaje en [antes, producto (negrita), después] por la primera aparición del nombre del producto.
+// Parte el mensaje en [antes, producto (negrita), después]. El producto va tras «consultar por » (ver `armarMensaje`): se busca esa aparición y
+// no la primera, porque el nombre de la empresa (que va antes) podría contener el del producto; sin ese tramo, la última aparición.
 function partesMensaje(mensaje: string, producto?: string): Array<{ texto: string; negrita: boolean }> {
   const nombre = producto?.trim()
-  const i = nombre ? mensaje.indexOf(nombre) : -1
+  const marca = nombre ? mensaje.indexOf(`consultar por ${nombre}`) : -1
+  const i = !nombre ? -1 : marca >= 0 ? marca + 'consultar por '.length : mensaje.lastIndexOf(nombre)
   if (!nombre || i < 0) return [{ texto: mensaje, negrita: false }]
   return [
     { texto: mensaje.slice(0, i), negrita: false },
@@ -63,12 +65,23 @@ export default function DialogoWhatsApp({
   // consultas; un doble clic sobre «Abrir WhatsApp» no puede registrar la misma apertura dos veces.
   const clave = useRef('')
   const registrando = useRef(false)
+  const [copiado, setCopiado] = useState('')
 
   useEffect(() => {
     if (!abierto) return
     clave.current = nuevaClaveEnvioWhatsapp()
     registrando.current = false
+    setCopiado('')
   }, [abierto])
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(mensaje)
+      setCopiado('Mensaje copiado')
+    } catch {
+      setCopiado('No se pudo copiar: seleccioná el texto a mano')
+    }
+  }
 
   const abrir = () => {
     if (registrando.current) return
@@ -129,7 +142,20 @@ export default function DialogoWhatsApp({
       >
         {partesMensaje(mensaje, producto).map((parte, i) => (parte.negrita ? <Box key={i} component="b">{parte.texto}</Box> : <span key={i}>{parte.texto}</span>))}
       </Box>
-      <InputBase id="mensaje-whatsapp" value={mensaje} multiline readOnly inputProps={{ tabIndex: -1 }} sx={SOLO_LECTORES} />
+      {/* Campo de solo lectura para lectores de pantalla (oculto con el recorte estándar, acotado a 1 px de alto). No es parada de Tab: el
+          teclado accede al texto con «Copiar mensaje». */}
+      <InputBase
+        id="mensaje-whatsapp"
+        value={mensaje}
+        multiline
+        readOnly
+        inputProps={{ tabIndex: -1 }}
+        sx={{ ...SOLO_LECTORES, clipPath: 'inset(50%)', m: '-1px', p: 0, border: 0, '& textarea': { height: '1px !important', p: 0 } }}
+      />
+      <Button onClick={() => void copiar()} sx={{ display: 'block', mt: '6px', p: 0, minWidth: 0, fontSize: 13, fontWeight: 600, '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' } /* estilos-sueltos: ok */ }}>
+        Copiar mensaje
+      </Button>
+      <Typography role="status" aria-live="polite" sx={copiado ? { fontSize: 13, color: 'text.secondary', mt: '2px' /* estilos-sueltos: ok */ } : SOLO_LECTORES}>{copiado}</Typography>
       <Box sx={{ display: 'flex', gap: '10px', mt: '20px' }}>
         <Button
           onClick={onCerrar}

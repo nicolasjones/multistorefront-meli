@@ -116,6 +116,33 @@ describe('diálogo de WhatsApp (P-07…P-10)', () => {
     expect((await screen.findAllByTestId('mensaje-whatsapp-vista'))[1].querySelector('b')).toBeNull()
   })
 
+  // MSF-849 (revisión): se resalta la aparición del producto tras «consultar por» aunque el nombre de la empresa lo contenga.
+  it('resalta el producto tras «consultar por», no la primera aparición del nombre (que puede estar en el de la empresa)', async () => {
+    const mensaje = 'Hola Case OLED Zelda Store, quiero consultar por Case OLED Zelda ($ 50.625). ¿Está disponible?'
+    render(conTema(<DialogoWhatsApp {...props} empresa="Case OLED Zelda Store" mensaje={mensaje} producto="Case OLED Zelda" />))
+    const vista = await screen.findByTestId('mensaje-whatsapp-vista')
+    const negrita = vista.querySelector('b') as HTMLElement
+    expect(negrita).toHaveTextContent('Case OLED Zelda')
+    expect(negrita.previousSibling?.textContent?.endsWith('consultar por ')).toBe(true)
+    expect(vista.textContent).toBe(mensaje)
+  })
+
+  // MSF-849 (revisión): el campo oculto ya no es parada de Tab; el teclado accede al texto con «Copiar mensaje».
+  it('«Copiar mensaje» copia el texto completo y lo anuncia; el campo oculto mide 1 px de alto', async () => {
+    const escribir = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: escribir }, configurable: true })
+    render(conTema(<DialogoWhatsApp {...props} producto="Case" />))
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar mensaje' }))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Mensaje copiado'))
+    expect(escribir).toHaveBeenCalledWith(props.mensaje)
+    expect(reglas()).toMatch(/textarea\{[^}]*height:1px ?!important/)
+    expect(reglas()).toMatch(/clip-path:inset\(50%\)/)
+    escribir.mockRejectedValueOnce(new Error('denegado'))
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar mensaje' }))
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('No se pudo copiar'))
+  })
+
   it('«Cancelar» y «Abrir WhatsApp» tienen indicador de foco visible (contorno de 3 px)', async () => {
     render(conTema(<DialogoWhatsApp {...props} />))
     await screen.findByRole('dialog')
