@@ -68,6 +68,18 @@ La respuesta pública es una lista blanca de 8 claves: `codigo`, `tienda`, `equi
     debe abrir un contador propio (el aviso del log lo delata). Si aparece el aviso, ajustá `SEGUIMIENTO_SALTOS_PROXY`
     al número real de proxies de confianza (secreto de la función, sin redeploy).
 
+## Regenerar enlace
+
+En el diálogo «Enlace de seguimiento» (solo con `edicion` en `service_tecnico`), el botón **«Regenerar enlace»** pide
+confirmación («El enlace anterior dejará de funcionar…»). Al confirmar, la RPC `public.regenerar_enlace_consulta(reparacion)`
+(`security definer`, `search_path = ''`, `authenticated` sí / `anon` no; mismos controles que `obtener_enlace_consulta`: `edicion`,
+misma organización, tienda accesible, `P0002` uniforme) reemplaza el token de la fila única de la reparación por uno nuevo
+de 192 bits: el anterior deja de resolver (la consulta pública responde 404 uniforme). Si la reparación no tenía enlace, lo crea.
+Registra la actividad `reparacion.enlace_regenerado` («Regeneró el enlace de seguimiento de R-0001», nunca el token).
+**Tope de frecuencia**: 10 regeneraciones por persona por hora (se cuenta con la actividad ya registrada; la 11.ª responde `P0001` `DEMASIADAS_REGENERACIONES` y la pantalla avisa «Regeneraste el enlace demasiadas veces…»). Es un freno contra rotaciones en bucle, no un control de seguridad. Un doble clic dispara una sola regeneración (el botón se deshabilita mientras corre) y «Reintentar» tras un fallo vuelve a pedir la regeneración, no la lectura del enlace. El límite de 30 consultas por 10 minutos por IP no cambia. Migración `20270325100000`; pruebas:
+`service_regenerar_enlace_y_reportes_empresa.test.sql` y `EnlaceSeguimientoDialog.test.tsx`. El prototipo no dibuja este
+diálogo (ver spec, *Decisiones abiertas* 1): no hay inventario que actualizar.
+
 ## Acceso sin sesión
 
 **Cabeceras de la página**: `apps/web/nginx.conf` agrega `X-Robots-Tag: noindex, nofollow` y `Referrer-Policy: no-referrer` solo a las rutas `/seguimiento/…` (mediante `map` sobre `$request_uri`; en el resto de la tienda y del panel no salen). Se probó con nginx real (`nginx -t` y `curl -I`). El `<meta robots>` de la página queda como segunda capa.
@@ -94,9 +106,9 @@ La página pública llama a la función con la clave pública (anon) para pasar 
 
 ## Riesgos conocidos
 
-- **Sin revocación ni vencimiento** (*Decisiones abiertas* 4 de la spec): un enlace filtrado sigue válido. Mitigan:
-  192 bits de entropía, lista blanca mínima sin datos personales, límite por IP, `no-store` y `noindex`.
-  Confirmar si hace falta «Regenerar enlace».
+- **Sin vencimiento** (*Decisiones abiertas* 4 de la spec): un enlace filtrado sigue válido hasta que alguien lo
+  **regenere** (ver «Regenerar enlace»). Mitigan: 192 bits de entropía, lista blanca mínima sin datos personales,
+  límite por IP, `no-store` y `noindex`.
 - Quien tenga el enlace ve el estado de **esa** reparación (código, tienda, equipo, fechas).
 - El límite por IP depende de la cadena de `x-forwarded-for` del proxy (ver «IP») y **la topología no está
   confirmada**: si la cadena no tiene la forma esperada el contador es compartido (una sola persona podría dejar
