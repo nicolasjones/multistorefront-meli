@@ -257,8 +257,14 @@ spec y el gate que la verifica), así que no aplica la versión `20270311100001_
 - Run `43555100540` (rama `fix/bug-MSF-863`, SHA `8ff20a6c`, ya re-sincronizada
   con `dokploy`) → job `application` id `132326139042` **success** (2m22s) y
   `validacion` id `132326772942` **success** (6s): el único check requerido de
-  `dokploy` quedó en verde. `quality` también en **success** (1m11s). Estado
-  del PR tras el push: `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+  `dokploy` quedó en verde. `quality` también en **success** (1m11s).
+- Run `43555567254` (rama `fix/bug-MSF-863`, SHA `e9ac4ab2`, el HEAD de la
+  rama) → `application` id `132328746875` **success** (3m6s), `quality` id
+  `132327530628` **success** (1m16s), `changes` **success** (20s),
+  `infrastructure` **success** (1m8s), `liberar` **success** (11s) y
+  `validacion` id `132329653954` **success** (6s). Estado del PR tras el push:
+  `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN` (ya no `CONFLICTING` ni
+  `DIRTY`).
 
 ## Deviations from Assessment
 

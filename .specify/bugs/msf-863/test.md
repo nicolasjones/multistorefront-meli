@@ -109,6 +109,7 @@ lo hecho:
 | CI (PR #934) | run `43555100540`, job `application` id `132326139042` | pass | `application` **success** (2m22s) sobre el SHA `8ff20a6c`: el paso `pnpm matriz:check` pasó contra `origin/dokploy` ya re-sincronizada |
 | CI (check requerido) | run `43555100540`, job `validacion` id `132326772942` | pass | `validacion` **success** (6s): único check requerido de `dokploy`, en verde |
 | CI (job `quality`) | run `43555100540`, job `quality` id `132326060620` | pass | **success** (1m11s) |
+| CI (HEAD `e9ac4ab2`) | run `43555567254` | pass | `application` **success** (3m6s) · `quality` **success** (1m16s) · `changes` **success** (20s) · `infrastructure` **success** (1m8s) · `liberar` **success** (11s) · `validacion` id `132329653954` **success** (6s) |
 | Estado final del PR | `gh pr view 934 --json mergeable,mergeStateStatus` | pass | `MERGEABLE` / `CLEAN` (ya no `CONFLICTING` ni `DIRTY`) |
 
 ## Output Excerpts
