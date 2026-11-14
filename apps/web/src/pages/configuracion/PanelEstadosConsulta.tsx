@@ -50,7 +50,12 @@ export function PanelEstadosConsulta() {
     {
       clave: 'estado',
       encabezado: 'Situación',
-      render: (estado) => <EtiquetaEstado texto={estado.activo ? 'Activo' : 'Inactivo'} variante={estado.activo ? 'exito' : 'neutral'} />,
+      render: (estado) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <EtiquetaEstado texto={estado.activo ? 'Activo' : 'Inactivo'} variante={estado.activo ? 'exito' : 'neutral'} />
+          {estado.es_sistema ? <EtiquetaEstado texto="De sistema" variante="neutral" /> : null}
+        </Stack>
+      ),
     },
   ]
 
@@ -73,22 +78,39 @@ export function PanelEstadosConsulta() {
             columnas={columnas}
             obtenerClave={(estado) => estado.id}
             etiquetaTabla="Estados de consulta"
-            acciones={(estado) => (
-              <Stack direction="row" spacing={1}>
-                <Button size="small" aria-label={`Renombrar ${estado.nombre}`} onClick={() => setEdicion({ id: estado.id, nombre: estado.nombre })}>
-                  Renombrar
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color={estado.activo ? 'inherit' : 'primary'}
-                  aria-label={`${estado.activo ? 'Desactivar' : 'Activar'} ${estado.nombre}`}
-                  onClick={() => void alternarActivo(estado)}
-                >
-                  {estado.activo ? 'Desactivar' : 'Activar'}
-                </Button>
-              </Stack>
-            )}
+            acciones={(estado) => {
+              const sistema = estado.es_sistema === true
+              const idAyuda = `ayuda-sistema-${estado.id}`
+              return (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Button
+                    size="small"
+                    aria-label={`Renombrar ${estado.nombre}`}
+                    disabled={sistema}
+                    aria-describedby={sistema ? idAyuda : undefined}
+                    onClick={() => setEdicion({ id: estado.id, nombre: estado.nombre })}
+                  >
+                    Renombrar
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color={estado.activo ? 'inherit' : 'primary'}
+                    aria-label={`${estado.activo ? 'Desactivar' : 'Activar'} ${estado.nombre}`}
+                    disabled={sistema && estado.activo}
+                    aria-describedby={sistema ? idAyuda : undefined}
+                    onClick={() => void alternarActivo(estado)}
+                  >
+                    {estado.activo ? 'Desactivar' : 'Activar'}
+                  </Button>
+                  {sistema ? (
+                    <Typography id={idAyuda} variant="caption" color="text.secondary">
+                      Es un estado de sistema: lo necesita el cierre de las consultas y no se puede desactivar ni renombrar.
+                    </Typography>
+                  ) : null}
+                </Stack>
+              )
+            }}
           />
         )}
       </Stack>

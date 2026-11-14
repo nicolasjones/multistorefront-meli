@@ -94,6 +94,13 @@ Los eventos de membresía los escribe un trigger `after insert` en la misma tran
 Para mostrar un tipo nuevo con nombre propio, sumarlo a `ETIQUETA_TIPO_ACTIVIDAD` en `lib/actividad.ts`;
 sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manual»).
 
+## Alta de empresas
+
+- `empresa.creada` (no sensible): lo registra `public.crear_empresa` en la misma transacción del alta
+  (migración `20270325200100`), con la empresa y el actor. Detalle sin UUID: «Creó la empresa «X»» o, si copió
+  la configuración de otra, «… copiando la configuración de «Y»». Si el alta se rechaza, no queda evento.
+  Prueba: `alta_de_empresas.test.sql`.
+
 ## Eventos de Acceso
 
 - `usuario.agregado`, `usuario.rol_cambiado`, `usuario.removido`, `usuario.suspendido`,

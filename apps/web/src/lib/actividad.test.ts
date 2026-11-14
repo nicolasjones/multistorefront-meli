@@ -44,6 +44,7 @@ describe('«Quién» del evento (MSF-176, B2, FR-060)', () => {
 describe('etiqueta del tipo', () => {
   it('traduce los tipos conocidos', () => {
     expect(etiquetaTipoActividad('usuario.rol_cambiado')).toBe('Cambio de rol')
+    expect(etiquetaTipoActividad('empresa.creada')).toBe('Empresa creada')
   })
 
   it('un tipo nuevo de otro componente se muestra legible', () => {

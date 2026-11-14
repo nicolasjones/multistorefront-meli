@@ -31,6 +31,7 @@ vi.mock('../acceso-restringido/AccesoRestringido', () => ({
   AccesoRestringido: ({ seccion }: { seccion: string }) => <p>Sin acceso a {seccion}</p>,
 }))
 
+import { violacionesAxe } from '../../test/axe'
 import { ListasConfigurables } from './listas'
 
 const MOTIVOS = [{ id: 'm-1', nombre: 'Compra a proveedor', aplica_a: ['entrada'], activo: true }]
@@ -155,5 +156,44 @@ describe('ListasConfigurables', () => {
     }
     fireEvent.click(within(seccionEstados()).getByRole('button', { name: 'Nuevo estado' }))
     expect(await screen.findByRole('dialog', { name: 'Nuevo estado' })).toBeInTheDocument()
+  })
+
+  it('un estado de sistema no se desactiva ni se renombra y explica por qué', async () => {
+    mocks.listarEstados.mockResolvedValue({
+      data: [...ESTADOS, { id: 'e-3', nombre: 'Cerrada', activo: true, orden: 3, es_sistema: true }],
+      error: null,
+    })
+    abrir()
+    await within(seccionEstados()).findByText('Cerrada')
+    expect(screen.getByRole('button', { name: 'Desactivar Cerrada' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Renombrar Cerrada' })).toBeDisabled()
+    expect(screen.getByText('De sistema')).toBeInTheDocument()
+    expect(screen.getByText(/lo necesita el cierre de las consultas/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Desactivar Cerrada' })).toHaveAccessibleDescription(/no se puede desactivar ni renombrar/)
+    expect(await violacionesAxe(document.body)).toEqual([])
+    // Los demás estados siguen editables.
+    expect(screen.getByRole('button', { name: 'Desactivar Nueva' })).toBeEnabled()
+  })
+
+  it('si la base rechaza tocar un estado de sistema, muestra su mensaje claro', async () => {
+    const mensaje = 'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede desactivar'
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '23514', message: mensaje } })
+    abrir()
+    await within(seccionEstados()).findByText('Nueva')
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar Nueva' }))
+    expect(await screen.findByText(mensaje)).toBeInTheDocument()
+  })
+
+  it.each([
+    'No se puede cambiar si un estado es de sistema',
+    'Un estado de sistema solo se crea por migración',
+    'El estado «Cerrada» es de sistema: lo necesita el cierre de las consultas y no se puede borrar',
+  ])('muestra el mensaje de la guarda de sistema «%s» y no el de nombre vacío', async (mensaje) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '23514', message: mensaje } })
+    abrir()
+    await within(seccionEstados()).findByText('Nueva')
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar Nueva' }))
+    expect(await screen.findByText(mensaje)).toBeInTheDocument()
+    expect(screen.queryByText('El nombre no puede estar vacío.')).not.toBeInTheDocument()
   })
 })

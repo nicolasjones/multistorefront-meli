@@ -4,7 +4,7 @@
 -- request.jwt.claims.
 begin;
 
-select plan(31);
+select plan(37);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -51,6 +51,31 @@ select is(
   true, 'la empresa nueva nace con el estado por defecto'
 );
 select lives_ok($$select public.crear_empresa('Tienda Sur')$$, 'el administrador crea una empresa sin origen');
+
+-- Actividad `empresa.creada` (20270325200100): misma transacción, detalle sin UUID, no sensible.
+select is(
+  (select count(*)::int from public.registro_actividad where tipo = 'empresa.creada' and detalle = 'Creó la empresa «Tienda Sur»'
+     and actor_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = (select id from dominio.empresas where nombre = 'Tienda Sur')),
+  1, 'crear una empresa registra empresa.creada con actor y empresa'
+);
+select is(
+  (select detalle from public.registro_actividad where tipo = 'empresa.creada' and detalle like '%Tienda Oeste%'),
+  'Creó la empresa «Tienda Oeste» copiando la configuración de «Mundo JC»',
+  'el detalle nombra la empresa de origen, sin UUID'
+);
+select is(
+  (select bool_and(detalle !~ '[0-9a-f]{8}-[0-9a-f]{4}-') from public.registro_actividad where tipo = 'empresa.creada'),
+  true, 'ningún detalle de empresa.creada muestra UUID'
+);
+select is(
+  (select sensible from public.tipos_evento_actividad where tipo = 'empresa.creada'),
+  false, 'empresa.creada está en el catálogo y no es sensible'
+);
+select throws_ok($$select public.crear_empresa('Tienda Sur')$$, '23505', null, 'un alta rechazada no deja evento');
+select is(
+  (select count(*)::int from public.registro_actividad where tipo = 'empresa.creada' and detalle = 'Creó la empresa «Tienda Sur»'),
+  1, 'el alta rechazada no duplicó el evento'
+);
 select lives_ok(
   $$select public.crear_empresa('Tienda Pausada', 'e1000000-0000-0000-0000-000000000001')$$,
   'se puede copiar de cualquier empresa de la organización'

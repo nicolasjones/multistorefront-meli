@@ -43,6 +43,7 @@ export const FILTROS_ACTIVIDAD_INICIALES: FiltrosActividad = {
 // Etiqueta visible de cada tipo conocido (entidad.accion). Un tipo que aún no
 // figure acá (lo agrega otro componente) se muestra legible igual.
 export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
+  'empresa.creada': 'Empresa creada',
   'empresa.actualizada': 'Empresa actualizada',
   'empresa.pausada': 'Empresa pausada',
   'empresa.reactivada': 'Empresa reactivada',

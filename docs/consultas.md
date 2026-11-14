@@ -28,7 +28,7 @@ Tiendas online (MSF-212).
 
 Tres estados fijos: **Nueva**, **En curso** y **Resuelta** («En curso» es la propuesta de la spec, Decisión
 abierta 1). Todo cambio es manual: asignar o anotar no cambia el estado. Se puede volver de cualquiera a
-cualquiera (reabrir). Los estados editables son F-CFG-01, fuera de alcance.
+cualquiera (reabrir). La lista editable de estados es F-CFG-01 ([`listas-configurables.md`](./listas-configurables.md)): un estado marcado «de sistema» no se puede desactivar, renombrar ni borrar.
 
 ## Permisos
 
