@@ -136,6 +136,9 @@ jobs:
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
+      # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
+      - name: test:tienda:pedidos-dev
+        run: pnpm test:tienda:pedidos-dev
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
