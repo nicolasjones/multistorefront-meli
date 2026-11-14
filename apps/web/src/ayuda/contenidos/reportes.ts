@@ -21,4 +21,15 @@ export const ayudaReportes: AyudaPorDestino = {
       'Fijate en el faltante sugerido de cada producto.',
     ],
   },
+  'reportes-tableros': {
+    titulo: 'Tableros analíticos',
+    resumen:
+      'Una galería de tableros ya armados para cruzar tus ventas, tus tiendas, tus categorías y tu margen. Elegís uno, lo ves dentro del panel y lo acotás por período y por tienda: la tienda de la barra superior queda preseleccionada. No armás ni editás tableros: cada uno trae sus propios filtros y cruces. Solo ves los datos de tu organización y de las tiendas a las que tenés acceso. El margen y el costo aparecen solo en el tablero de margen real.',
+    pasos: [
+      'Mirá qué cruces y filtros trae cada tablero y tocá «Abrir tablero» en el que te sirva.',
+      'Elegí el período y la tienda; el tablero se actualiza con tu elección.',
+      'Usá los filtros propios del tablero (categoría, estado, agrupar por día, semana o mes) para afinar el análisis.',
+      'Volvé a la galería con «Volver a los tableros» para abrir otro.',
+    ],
+  },
 }
