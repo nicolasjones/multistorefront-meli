@@ -695,7 +695,7 @@ Spec: `specs/20261024-051500-cuenta-web-del-cliente/`. La tienda suma el acceso 
 | Función `publico.*` | Quién la ejecuta | Devuelve | Historia |
 |---|---|---|---|
 | `acceso_cliente_por_dominio(host)` | `authenticated` | estado (`activa` · `suspendida` · `sin_cuenta` · `no_habilitado`) y tipo si es activa; `null` si el host no resuelve o la empresa está desactivada | F-CLI-05 |
-| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto; `null` sin cuenta activa habilitada | F-CLI-07 |
+| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto, con la promoción vigente si baja la escala (`precio_anterior`, MSF-932); `null` sin cuenta activa habilitada | F-CLI-07 |
 
 `anon` no ejecuta ninguna de las dos: el visitante ve exactamente el precio público de siempre. Ninguna devuelve `organizacion_id`, costos, margen ni existencias. Detalle del precio: [`precios-escalas.md`](./precios-escalas.md).
 

@@ -369,6 +369,7 @@ Lo que sigue está **decidido y probado**; no son defectos ocultos. Cada punto t
 | S7 | Recalcular el precio completo en la guarda de confirmar | MSF-938 |
 
 - **El PDF no cambia (S4):** el comprobante en PDF muestra el precio cobrado, sin el precio de lista tachado.
+- **Tienda con sesión de cliente (S1 = MSF-932, hecho):** `publico.precios_cliente_por_dominio` aplica la promoción por escala (gana el más bajo, sin acumular; bandera apagada idéntica); un mayorista ve en la tienda lo que paga en el local (paridad probada con `private.precio_linea_venta`). Detalle en `promociones-precio.md`.
 - **Bandera con borradores abiertos (S6):** con la bandera apagada la guarda no actúa y los borradores con promoción conservan su precio hasta el próximo guardado; al reencender, cada borrador abierto con promoción cambiada se rechaza una vez (`precios_cambiaron`) y se reprecia. Avisar a los cajeros al apagar o encender.
 
 ## Costo y cotización por línea (F-REN-09)
