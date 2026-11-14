@@ -114,7 +114,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     ['-5', 'Ingresá un precio válido: solo números, hasta 12 enteros y 2 decimales.'],
     ['abc', 'Ingresá un precio válido: solo números, hasta 12 enteros y 2 decimales.'],
     ['10,123', 'Ingresá un precio válido: solo números, hasta 12 enteros y 2 decimales.'],
-  ])('[MSF-423:T028] validación: «%s» muestra un mensaje claro y no guarda', async (texto, mensaje) => {
+  ])('validación: «%s» muestra un mensaje claro y no guarda', async (texto, mensaje) => {
     montar({ empresaIds: ['emp-1'] })
     const campo = await screen.findByLabelText('Precio propio (San Javucho)')
     // Un cambio de vacío a vacío no habilita Guardar: se escribe algo y se vuelve al texto de prueba.

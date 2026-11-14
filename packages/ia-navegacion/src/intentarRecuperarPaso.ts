@@ -1,7 +1,6 @@
 import {
   type PoliticaActiva,
   type ContratoConsumidor,
-  type InteraccionEnCurso,
   prepararInvocacion,
   iniciarInteraccion,
   iniciarInvocacion,

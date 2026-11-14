@@ -6,9 +6,10 @@
 
 Tres commits independientes, revertibles por separado. Esquema (Principio VII): no aplica, no hay tablas.
 
-- **MSF-777**: script de una sola vez (no versionado) que quita `MSF-<n>[:T<m>]` del primer literal de los `describe/it/test` y limpia puntuación; edición manual de los seis comentarios «Etapa 2»; nuevo `apps/web/src/higieneReferenciasInternas.test.ts` que recorre `apps/web/src` y vigila títulos y «Etapa N».
+- **MSF-777**: script de una sola vez (no versionado) que quita `MSF-<n>[:T<m>]` del primer literal de los `describe/it/test` y limpia puntuación; edición manual de los seis comentarios «Etapa 2»; nuevo `apps/web/src/higieneReferenciasInternas.test.ts` con un analizador por archivo (`titulosConTicket`, probado con casos sintéticos) que vigila títulos y «Etapa N».
 - **MSF-753**: mover el `describe` de «log sin PII» dentro del bloque con `afterEach(vi.restoreAllMocks)`.
-- **MSF-745**: quitar el import `sanitizarDato` y la función `abrirInvocacion`.
+- **MSF-745**: quitar el import `sanitizarDato`, la función `abrirInvocacion` y el tipo `InteraccionEnCurso` sin uso.
+- **MSF-950**: `docs-manifest.mjs` usa `ultimoCommit(key)` (`git log -1 --no-merges`) para `sourceAt` y `commit`, y calcula `sourceHash` con el alcance de `sourceAt`; `scripts/docs-manifest.test.mjs` (repositorio temporal con HEAD distintos y un merge) y `pnpm test:docs:manifest` en la cadena `test`; se regenera `docs/manifest.json`.
 
 ## Validación
 
