@@ -705,16 +705,20 @@ select pg_temp.guardar('map3', (select lineas from lineas200)); select pg_temp.g
 select pg_temp.guardar('map5', (select lineas from lineas200)); select pg_temp.guardar('map6', (select lineas from lineas200));
 select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('map1') and promocion_id is not null), 0,
   'FR-024: con la bandera apagada ninguna de las 200 líneas lleva promoción');
--- Apagada: confirmar con la bandera apagada (la guarda no actúa).
-select pg_temp.medir('map1', false, false);
-select pg_temp.medir('map2', false, true); select pg_temp.medir('map3', false, true); select pg_temp.medir('map4', false, true);
-select pg_temp.medir('map5', false, true); select pg_temp.medir('map6', false, true);
--- Encendida: la guarda hace una búsqueda indexada por línea.
-select pg_temp.bandera(true);
-select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select pg_temp.medir('mpe1', true, false);
-select pg_temp.medir('mpe2', true, true); select pg_temp.medir('mpe3', true, true); select pg_temp.medir('mpe4', true, true);
-select pg_temp.medir('mpe5', true, true); select pg_temp.medir('mpe6', true, true);
+-- Se alternan una apagada y una encendida (el ruido de la máquina pega a las dos por igual); la primera de cada una
+-- es de calentamiento y no cuenta. Encendida: la guarda hace una búsqueda indexada por línea.
+select pg_temp.bandera(false); select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('map1', false, false);
+select pg_temp.bandera(true);  select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('mpe1', true, false);
+select pg_temp.bandera(false); select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('map2', false, true);
+select pg_temp.bandera(true);  select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('mpe2', true, true);
+select pg_temp.bandera(false); select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('map3', false, true);
+select pg_temp.bandera(true);  select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('mpe3', true, true);
+select pg_temp.bandera(false); select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('map4', false, true);
+select pg_temp.bandera(true);  select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('mpe4', true, true);
+select pg_temp.bandera(false); select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('map5', false, true);
+select pg_temp.bandera(true);  select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('mpe5', true, true);
+select pg_temp.bandera(false); select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('map6', false, true);
+select pg_temp.bandera(true);  select pg_temp.como('f1000000-0000-0000-0000-000000000002'); select pg_temp.medir('mpe6', true, true);
 select is((select count(*)::int from comps c join dominio.comprobantes_venta v on v.id = c.id where (c.clave like 'mpe%' or c.clave like 'map%') and v.estado = 'confirmada'), 12,
   'FR-024: las 12 facturas de 200 líneas quedaron confirmadas');
 select diag(format('FR-024: confirmar 200 líneas, mediana de 5 corridas: apagada = %s ms, encendida = %s ms, razón = %s',
