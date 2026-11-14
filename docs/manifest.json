@@ -22,27 +22,27 @@
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
-      "pageHash": "c2c64f5fa255b3a7af2fb87cf372708922ab7ba4563e22e2bf27d8dd080622e7",
-      "sourceHash": "a6066eb1b2f9cfaa3b3e946ace4b296fd536bdec8bc425d7a3aea1b26355d7d4",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "a771fdb47a0aa6db00cf34062a2a008b6fa6e57b8adeaf3c112edcb7556f5196",
+      "sourceHash": "d862d1988a374de61b5c1c1137871ccb1c115363e94524f66df6fd2e28d4e69c",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
         "infra/kestra/flows/cierre-accesos-soporte.yml",
         "supabase/migrations/20270207100003_acceso_soporte_auditado.sql"
       ],
       "owner": "plataforma",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "a2e742bfd25170c4defc3c869cf0c61e66b1802dd44fc0b3d995678e7200d9da",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "6ca4808ca07636e7e1a3906824301556051c1f1d0c5b2a1911bd226690cef612",
+      "sourceHash": "496eb1b48f6de63cdb87effdbca2e63003700f7fe370e23ecfcf2c206e65f1f9",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -910,9 +910,9 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "2b54813176b0a743a3c9b7763ea561b605d755005ea0fe5c5e8000461847fae1",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "f930ffae8f7bd21e7548c6f902c000cd358a1a446660e887d1a0630bad01aaf3",
+      "sourceHash": "496eb1b48f6de63cdb87effdbca2e63003700f7fe370e23ecfcf2c206e65f1f9",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
@@ -952,9 +952,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "873e918cca9091fde10810e089fd8bb08647577529d858a87a6485675b564f7d",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "d8136b7cf8d4ec004d109c13d0aa1084c8de042c334efbed4a4a5775a14d079e",
+      "sourceHash": "496eb1b48f6de63cdb87effdbca2e63003700f7fe370e23ecfcf2c206e65f1f9",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
@@ -1019,12 +1019,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "f45799b68326b18d0ad04bb8b5d9bf2babf7853833a3335fb83b6f75381d2e71",
+      "pageHash": "3e54bec3228801ed45edaef034ec31483b7ba221ab89547248bbea627781a47f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -1763,25 +1763,25 @@
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
-      "pageHash": "4ef0306de94870ddb923578ad4368c90ce3ebbb0798515b8938de6757bb5e90a",
-      "sourceHash": "3fc93c67268c69aa2a02931f668dc159df9452c92fcf251c6388317604bf2f90",
-      "sourceAt": "e4d0c619",
+      "pageHash": "1c048b554ea25c7fddbc094702549ad85201a8b3b8414aa4eb4cd94338612939",
+      "sourceHash": "344c30d7ed9e2764869b34a431a6991c06cbb960f6ecae47b2fa30d282bc7bcc",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs/20270201-100000-reportes-de-inventario-y-exportacion",
         "infra/superset/dashboards/inventario",
         "infra/superset/superset_config.py"
       ],
       "owner": "datos",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "9fc94fb5e3e3de16ad6ba58168181fb97bb970824dfb38ec30f80c6eb896a542",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "8d576114"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2414,9 +2414,9 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "3e0999f2608c4177dca411c4ac36c37bdc2f18600e43dff3f31d585e49146269",
-      "sourceHash": "599915a3515f4e3485454188d071ad663aadfce2e7558b2243df59151fbcd527",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "7ff3dd2a28fd5a55f29723cbcacb8719f3001c06525cd311bbf49da85719a231",
+      "sourceHash": "876a5b47ae43cdebcb462eaec82f826cbfae85bc4796a0db74b625534952b81f",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs",
         "supabase/migrations",

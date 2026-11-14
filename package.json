@@ -117,6 +117,7 @@
     "test:workers:idempotency": "node scripts/validar-idempotencia-workers.mjs",
     "test:workers:audit": "node scripts/validar-auditoria-workers.mjs",
     "test:superset:embebido": "node scripts/verificar-superset-embebido.mjs",
+    "test:superset:aislamiento-tokens": "node scripts/verificar-aislamiento-tokens-superset.mjs",
     "test:superset:config": "python3 infra/superset/superset_config.test.py",
     "test:runner:selfheal": "node --test infra/runner/restaurar-bin.test.mjs",
     "superset:importar-dashboards": "node infra/superset/importar-dashboards.mjs",

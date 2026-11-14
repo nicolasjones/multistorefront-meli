@@ -1,0 +1,12 @@
+version: 1.0.0
+slice_name: Productos y stock (cantidades)
+description: 'Tabla de productos activos con cantidad, mínimo y estado, sin costo ni valor. Se descarga en CSV tal como se filtró.'
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "raw", "all_columns": ["producto_nombre", "sku", "categoria", "cantidad", "minimo", "estado_texto"], "order_by_cols": ["[\"producto_nombre\", true]"], "row_limit": 10000, "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 42a2ea23-22fa-411d-aeef-d83f8a42e38a
+version: 1.0.0
+dataset_uuid: 3c1312d9-0c5b-4679-9c64-dfaa6a75a131
