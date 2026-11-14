@@ -1,8 +1,12 @@
 {
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": [
+    "graphify",
     "pg_prove",
-    "graphify"
+    "ffmpeg",
+    "hostname",
+    "pkill",
+    "tailscale"
   ],
   "ignore": [
     "apps/web/src/test/renderPanel.tsx",
@@ -14,6 +18,10 @@
     ".agents/**",
     ".claude/**",
     ".opencode/**",
-    ".dependency-cruiser.cjs"
+    ".dependency-cruiser.cjs",
+    "docs/javascripts/zoom-imagenes.js"
+  ],
+  "ignoreDependencies": [
+    "@playwright/test"
   ]
 }

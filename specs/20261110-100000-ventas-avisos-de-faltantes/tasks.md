@@ -66,6 +66,10 @@
 - [x] T024 [CIERRE] Hallazgos de las revisiones del PR #918 (grant a service_role de `sanear_mensaje_aviso`, sonda de esquema, clasificación de errores, tests discriminantes del lock y de la ventana, textos y recorte): ver commit del PR
 - [x] T025 [CIERRE] Hallazgos de la revisión del PR #920 (orden de bloqueo en `cerrar`, fases conexión/envío, clasificación por código, pgTAP del lock con clave firmada, checks sin recrear, contador en code points): ver commit del PR
 
+- [x] T026 [CIERRE] Hallazgos de la revisión del PR #922 y rondas #926/#930 (cerrados, superados por #931): grant de `sanear_mensaje_aviso` a `service_role`, sonda de esquema, 502 de barrido fallido, timeouts separados, ver commit de #922
+- [x] T027 [CIERRE] Texto plano del SMTP solo con opt-in (`SMTP_TLS` obligatoria, `SMTP_PERMITIR_INSEGURO`, sin credenciales sin TLS) y cierre de menores de #931; validación de configuración antes de tomar (#936); correo en base64 y puerto tipado (#939). Ver commits de #931, #936 y #939
+- [x] T028 [CIERRE] Roles retroactivos (Especificador, CTO, Documentador, Release): spec, plan, contrato, `notas.md`, guía técnica, `docs/deployment.md`, roadmap y manual (PR de esta tarea). Desvío: la verificación en STG/PROD no se hizo; queda en *Pendientes de Nicolás* de `notas.md` (no hay seguimiento trazado en el tracker: no verificado)
+
 **Dependencias**: T020 y T021 tras las Fases 1 y 2.
 
 **Checkpoint**: todas las tareas `[x]` (o con `Desvío:` + seguimiento trazado); PR de cierre verde con todos los checks.
