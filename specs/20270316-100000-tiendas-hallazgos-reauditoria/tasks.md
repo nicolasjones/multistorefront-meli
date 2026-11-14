@@ -1,0 +1,11 @@
+# Tasks: Tiendas · Hallazgos de la re-auditoría (MSF-849)
+
+**Spec**: [`spec.md`](./spec.md)
+
+- [x] T001 Logo del pie a color sobre recuadro blanco (FR-001). Evidencia: `layout/tiendaDiseno.test.tsx` («el logo del pie se dibuja sobre un recuadro blanco redondeado, sin invertirlo»); medido en MundoJC a 1440 y 390 px: recuadro de 100×44, fondo blanco, radio 8, imagen de 84×36 sin filtro. Ayuda del campo «Logo» (`ImagenTienda.tsx`) y `docs/tiendas-online.md` actualizadas.
+- [x] T002 Producto en negrita en el diálogo de WhatsApp (FR-002). Evidencia: `layout/auditoriaFidelidad.test.tsx` (negrita en la vista `aria-hidden`, `textarea` con el texto completo y `tabindex=-1`, caso sin coincidencia); medido en Chromium: `<b>` de peso 700 y campo con el mensaje original.
+- [x] T003 «Inicio»/«Contacto» del menú de celular en 600 (FR-003). Evidencia: `layout/MenuMovil.test.tsx`; medido: `aria-current="page"` y `font-weight: 600`.
+- [x] T004 Foco visible único (FR-004). Evidencia: `layout/tiendaDiseno.test.tsx` (reglas globales con el color primario y el color del texto en el pie y la barra superior); medido con Tab real: «Ingresar», «Limpiar filtros» y «Ordenar por» con `solid 2px rgb(163,17,29)`; recorrido con Tab por 8 pantallas sin controles sin contorno (los campos de «Ingresar» usan el borde primario de MUI).
+- [x] T005 Desvíos accesibles y decisiones ya declaradas (MH-10, MH-01/MM-07, C-05, MP-01, N-03, K-05, MF-06, C-03, H-02, H-07). Evidencia: matriz de `spec.md`. Desvío: H-02 y H-07 (héroe y mayúsculas) son de MSF-848 y no se tocan acá.
+- [x] T006 Documentación `docs/tiendas-online.md`. Evidencia: sección «Hallazgos de la re-auditoría de fidelidad (MSF-849)» y la línea del pie; `DOCUMENTATION_CHECK_BASE=origin/dokploy node scripts/verificar-documentacion-cambios.mjs` en OK.
+- [x] T007 Validación final: `tsc -b`, `oxlint src` (0 errores), `vite build`, guards (migraciones, documentación, matriz, DER, inventario, estilos sueltos), Vitest de `pages/tienda-publica` y de la pestaña de identidad, y axe real de Chromium a 390 y 1440 px (MundoJC y San Javucho) sin violaciones. Desvío: los E2E de `apps/web/e2e/tienda-*.e2e.ts` no se corrieron localmente (los valida el CI); `/ingresar` se probó con Tab real, no con axe.
