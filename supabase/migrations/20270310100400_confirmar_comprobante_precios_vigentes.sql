@@ -2,16 +2,19 @@
 -- desactualizados en la confirmación de facturas.
 --
 -- Qué hace:
---   · `private.lineas_con_promocion_desactualizada(comprobante, ahora)`: cuenta las líneas del comprobante cuyo
---     precio cobrado ya no coincide con lo que se cobraría AHORA. Una línea es desactualizada si la promoción que
---     calcula `private.precio_linea_venta` (mismo tipo de cliente, descuento y cantidad que `guardar_lineas_comprobante`)
---     `is distinct from` la guardada (`promocion_id`: vencida, nueva o distinta, aun con el mismo precio), o si ambas
---     existen y el neto difiere del `precio_unitario` guardado en más de 0.005 (precio promocional editado). Omite las
---     líneas con precio manual, las `sin_stock` y las que hoy no tienen precio calculable (producto en dólares sin
---     cotización, permiso perdido). Para cumplir FR-024 solo recalcula el precio completo de las líneas candidatas
---     (promoción vigente distinta de la guardada, o la misma con otro precio): un cambio solo del precio normal no
---     se rechaza. Con la bandera `promociones_precio` apagada devuelve 0 (no actúa ni sobre líneas guardadas con la
---     bandera encendida). `security definer`, `search_path = ''`, sin grant a ningún rol (la ejecuta la RPC como dueña).
+--   · `private.lineas_con_promocion_desactualizada(comprobante, ahora)`: cuenta las líneas del comprobante cuya
+--     promoción cobrada ya no es la vigente. Por línea (no manual, no `sin_stock`) mira la promoción vigente ahora de la
+--     tienda del comprobante (`private.promocion_vigente_fila`, búsqueda indexada); es CANDIDATA si esa promoción no es
+--     la guardada (`promocion_id` distinto: vencida, nueva o sustituida, aun con el mismo precio) o si es la misma con
+--     un precio que difiere del `precio_unitario` guardado en más de 0.005. Solo las candidatas se recalculan con
+--     `private.precio_linea_venta` (mismo tipo de cliente, descuento y cantidad que `guardar_lineas_comprobante`) y se
+--     cuentan si el `promocion_id` o el precio calculados difieren de lo guardado. NO recalcula el precio normal de una
+--     línea cuya promoción guardada sigue vigente al mismo precio (FR-024: `precio_para` cuesta ≈8,5 ms por llamada):
+--     un cambio del precio normal —lista, escala, cotización o descuento del cliente— que deje a la promoción sin ganar
+--     NO se rechaza y se cobra la promoción mostrada (decisión explícita, seguimiento S7). Omite las líneas con
+--     precio manual, las `sin_stock` y las candidatas sin precio calculable (producto en dólares sin cotización,
+--     permiso perdido). Con la bandera `promociones_precio` apagada devuelve 0 (no actúa ni sobre líneas guardadas con
+--     la bandera encendida). `security definer`, `search_path = ''`, sin grant a ningún rol (la ejecuta la RPC).
 --   · `public.confirmar_comprobante`: el cuerpo es el VIGENTE de 20270216400000 (misma firma, grants, mensajes,
 --     motivos, stock, costos e idempotencia); solo se suma la guarda, después del bloqueo `for update`, de los chequeos
 --     de permiso/estado/idempotencia y de la comprobación de líneas, y ANTES de tocar costos, stock o estado:
