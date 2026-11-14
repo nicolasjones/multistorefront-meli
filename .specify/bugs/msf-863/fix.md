@@ -14,6 +14,10 @@ Se completó la matriz `## Matriz pantalla↔criterios` de `specs/023-visor-comp
 | File | Change | Notes |
 |------|--------|-------|
 | `specs/023-visor-componentes/spec.md` | modified | Una fila nueva en `## Matriz pantalla↔criterios`: «Fila **Empresa activa**» con el motivo del «no aplica» |
+| `scripts/verificar-matriz-pantalla.mjs` | modified | El gate exige la **fila** «Empresa activa», no la palabra «empresa» |
+| `scripts/verificar-matriz-pantalla.test.mjs` | test | Test de rechazo (matriz que sólo menciona «empresa») y tests de la exención |
+| `scripts/matriz-pantalla-empresa-exentas.txt` | added | Specs con UI anteriores al Principio VIII: se exceptúan sólo de la fila «Empresa activa» |
+| `docs/prototipos.md` | modified | Documenta la regla endurecida y la lista de exentas |
 | `.specify/bugs/msf-863/assessment.md` | added | Evaluación del bug (síntoma, reproducción, causa, remediación) |
 | `.specify/bugs/msf-863/fix.md` | added | Este informe |
 | `.specify/bugs/msf-863/test.md` | added | Verificación del arreglo |
@@ -65,14 +69,26 @@ guard de migraciones no lo bloquea.
 
 ## Tests Added or Updated
 
-- No se agregó ningún test: la regla ya está cubierta por `scripts/verificar-matriz-pantalla.test.mjs` («acepta «no aplica» con motivo» y «acepta la fila de empresa activa»), que no depende del contenido de la spec 023.
-- La verificación de esta historia es el propio gate (`pnpm matriz:check`), que se ejecutó contra la base real del PR (`origin/dokploy`) antes y después del arreglo.
+- `scripts/verificar-matriz-pantalla.test.mjs` — se agregan cuatro pruebas:
+  - «rechaza una matriz que sólo menciona «empresa» sin declarar la empresa
+    activa» (el test de rechazo que faltaba: con el regex viejo falla);
+  - «exime a las specs anteriores al Principio VIII de exigir la fila de
+    empresa activa»;
+  - «lee la lista de specs exentas de empresa ignorando comentarios» y «la
+    lista de exentas de empresa apunta a specs que existen» (la lista no se
+    pudre).
+- Las pruebas que ya existían («pide la empresa activa en la matriz», «acepta
+  «no aplica» con motivo», «acepta la fila de empresa activa») siguen en verde:
+  la fila de la spec 023 no depende del contenido de la spec 023.
+- La verificación de esta historia es el propio gate (`pnpm matriz:check`), que
+  se ejecutó contra la base real del PR (`origin/dokploy`) antes y después del
+  arreglo.
 
 ## Local Verification
 
 - `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` (antes del arreglo) → exit 1: `Fallo de spec: la matriz debe incluir «Empresa activa» … - specs/023-visor-componentes/spec.md` (mismo mensaje que el CI, run 43482415728).
 - `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` (después del arreglo) → exit 0: `Matriz pantalla↔criterios: OK (6 specs nuevas revisadas, 0 exentas).`
-- `pnpm test:matriz:pantalla` → 10/10 en verde.
+- `pnpm test:matriz:pantalla` → 10/10 en verde (en esa vuelta; tras la quinta vuelta son 14/14).
 - `GITHUB_BASE_REF=dokploy pnpm docs:check` → `Documentación de cambios: OK (599 archivos comparados contra origin/dokploy).` · `Migraciones OK: 644 archivo(s), 1 nuevo(s) contra origin/dokploy.`
 - `pnpm prototipo:check` → `Inventario del prototipo: OK (120 pantallas al día).`
 - `pnpm lint` → exit 0 (sólo warnings de oxlint preexistentes del PR).
@@ -96,7 +112,7 @@ corridos en local contra el árbol mergeado (`24d73b49`):
 | `pnpm lint` | exit 0 (warnings preexistentes) |
 | `pnpm build` | `✓ built` |
 | `pnpm test:edge:enviar-aviso-faltante` (lo que trae el merge de `dokploy`) | 126/126 |
-| `pnpm calidad` | oxlint / jscpd / dependency-cruiser / syncpack **ok**; gitleaks sin Docker en este entorno; knip con 6 hallazgos **preexistentes de `main`** (ver Follow-ups) |
+| `pnpm calidad` | oxlint / jscpd / dependency-cruiser / syncpack **ok**; gitleaks sin Docker en este entorno; knip con 6 hallazgos **en esa vuelta** (los resolvió `d345eeb1` en `dokploy`; ver quinta vuelta) |
 
 ### Cuarta vuelta: re-sync con `dokploy` (`fbd3d565`)
 
@@ -123,6 +139,71 @@ Estado del PR tras el push (`858b85b1`): `mergeable: MERGEABLE`,
 check requerido `validacion` mientras corre en el runner self-hosted. El job
 `quality` pasó (1m22s).
 
+### Quinta vuelta: devolución del Revisor (PR #934, SHA `f5d48cc9`)
+
+El Revisor pidió cambios sobre tres puntos de este informe (no sobre el código de
+la fila de la spec 023, que ya está en `dokploy` por el PR #929). Se atendieron
+los tres:
+
+**1. El follow-up de `knip` describía un estado que no existe (severidad Media).**
+Decía que los 6 hallazgos de `knip` «existen en `origin/main` y **no** en
+`origin/dokploy`» y que `quality` «sigue en rojo». Es falso, y el propio informe
+se contradecía más arriba («Estado del PR tras el push (`858b85b1`)»: «El job
+`quality` pasó (1m22s)»). Verificado:
+
+| Qué se afirmaba | Qué es cierto | Evidencia |
+|---|---|---|
+| Los 3 archivos «no existen» en `origin/dokploy` | Los 3 existen en `origin/dokploy` | `git cat-file -e origin/dokploy:<archivo>` → 3/3 existen (`docs/javascripts/zoom-imagenes.js`, `scripts/armar-video-evidencia.mjs`, `scripts/publicar-videos-e2e.mjs`) |
+| `knip.json` no declara esos 6 | `knip.json` **ya** los declara | `knip.json` lista `docs/javascripts/zoom-imagenes.js` (ignore), `@playwright/test` (ignoreDependencies) y los binarios `ffmpeg`, `hostname`, `pkill`, `tailscale`: commit `d345eeb1` («chore(calidad): declarar en knip lo que traen los scripts de main»), que es ancestro de `origin/dokploy` (`git merge-base --is-ancestor d345eeb1 origin/dokploy` → 0) |
+| `quality` «sigue en rojo» | `quality` **pasó** | `gh pr checks 934` → `quality pass 1m6s` (run `43547159355`) y `pnpm calidad` local → `knip (código muerto): ok`, 0 hallazgos |
+
+Con eso el follow-up se borró: no hay nada que seguir ni que planificar sobre un
+estado inexistente.
+
+**2. El gate no exigía la fila «Empresa activa» (severidad Media).**
+`scripts/verificar-matriz-pantalla.mjs` matcheaba `/empresa/i` (línea 21): una
+spec nueva con UI cuya matriz mencionara «empresa» en cualquier frase pasaba
+el gate, aunque su mensaje y la constitución (Principio VIII) exigen la **fila**
+«Empresa activa». El follow-up lo derivaba a `main` sin dueño (requisito
+huérfano). Ahora se corrige acá:
+
+- El gate matchea `/empresa\s+activa/i`: tiene que estar la fila, no la palabra.
+- Se agrega el **test de rechazo**: una matriz que sólo menciona «empresa»
+  («La pantalla filtra por la empresa de la barra superior») es rechazada. Con el
+  regex viejo ese test **falla** (`motivoSpecSinEmpresa` devolvía `null`), así
+  que vigila la regla.
+- Las specs con UI escritas **antes** del Principio VIII (constitución 1.9.0),
+  cuya matriz mapea lo visible pero nunca declaró esa fila, se exceptúan en
+  `scripts/matriz-pantalla-empresa-exentas.txt` (18 specs, todas ya mergeadas
+  en `dokploy`). Es el mismo criterio de deuda explícita que usa
+  `scripts/matriz-pantalla-exentas.txt` para la matriz, y evita romper los 14
+  PRs de épica abiertos contra `main`, que vuelven a sumar esas specs y que el
+  gate estricto rechazaba (10 de ellas por PR): verificado en un worktree
+  temporal con `origin/epic/MSF-140-inicio-rentabilidad-y-reportes-reportes-`
+  → con el regex estricto exit 1 y 10 specs listadas; con la lista de exentas
+  exit 0 («47 specs nuevas revisadas»).
+- El requisito de «Empresa activa: no aplica» **con su motivo** no se automatiza
+  (es prosa): lo revisa el Revisor. El gate sólo verifica que la fila exista.
+
+**3. La fila «Estado del PR» de `test.md:32` (severidad Baja).** Decía `pass`
+con evidencia «ver el run del CI en vivo», que no es una evidencia: se cambió
+por el estado real del comando (`gh pr view 934 --json mergeable,mergeStateStatus`
+→ `MERGEABLE` / `BLOCKED`), con la evidencia real en la fila siguiente.
+
+Verificado en local:
+
+| Paso | Resultado |
+|---|---|
+| `pnpm test:matriz:pantalla` | 14/14 (antes 10/10: +4 pruebas) |
+| Test de rechazo con el regex viejo (`/empresa/i`) | **falla** (`motivoSpecSinEmpresa` devolvió `null`): el test vigila la regla |
+| `GITHUB_BASE_REF=dokploy pnpm matriz:check` | OK (0 specs nuevas revisadas) |
+| Gate contra `origin/main` con el epic MSF-140 (worktree temporal) | exit 1 con 10 specs **antes** de la lista de exentas; exit 0 («47 specs nuevas revisadas») después |
+| Gate contra `origin/main` con una spec nueva de prueba | exit 1: `Fallo de spec: la matriz debe incluir «Empresa activa»…` (sin la fila) / exit 0 (con la fila) |
+| `pnpm calidad` | oxlint / knip / jscpd / dependency-cruiser / syncpack **ok**; gitleaks sin Docker en este entorno («permission denied … /var/run/docker.sock») |
+| `pnpm lint` · `pnpm build` | exit 0 · `✓ built` |
+| `GITHUB_BASE_REF=dokploy pnpm docs:check` | OK (documentación de cambios + migraciones) |
+| `pnpm prototipo:check` | OK (120 pantallas al día) |
+
 ## CI
 
 - Run `43491976550` (rama `integracion/main-en-dokploy`, PR #929, SHA
@@ -137,10 +218,17 @@ check requerido `validacion` mientras corre en el runner self-hosted. El job
 
 ## Deviations from Assessment
 
-Ninguna. La fila se agregó dentro de la sección `## Matriz pantalla↔criterios` y con las dos columnas de la tabla existente.
+- La fila se agregó dentro de la sección `## Matriz pantalla↔criterios` y con las dos columnas de la tabla existente.
+- En la quinta vuelta se tocó `scripts/verificar-matriz-pantalla.mjs`, que el
+  assessment marcaba como «no se toca: es la regla nueva de `main`». La razón
+  es que el Revisor pidió el regex corregido **con su test de rechazo en esta
+  historia** (o, en su defecto, un seguimiento con dueño): derivarlo a `main`
+  sin dueño dejaba el requisito huérfano. El cambio se limita a exigir la fila
+  «Empresa activa» y a exceptuar de ese requisito a las specs anteriores al
+  Principio VIII (18, todas ya mergeadas), para no romper los PRs de épica
+  abiertos contra `main`.
 
 ## Follow-ups
 
-- El job `quality` (knip) del PR #929 sigue en rojo por el tooling de evidencia E2E que trae de `main` sin actualizar la configuración de knip; no bloquea el merge (no está en el `needs` de `validacion`, decisión MSF-683/PR #737) y queda fuera del alcance de esta historia. Los 6 hallazgos (1 archivo sin usar, 1 dependencia y 4 binarios sin listar) apuntan a `docs/javascripts/zoom-imagenes.js`, `scripts/armar-video-evidencia.mjs` y `scripts/publicar-videos-e2e.mjs`, que existen en `origin/main` y **no** en `origin/dokploy`: los trae el propio merge main→dokploy del PR #929, no este cambio. Ajustar `knip.json` acá además divergería del PR #929, así que no se tocó.
 - `.opencode/commands/speckit.agent-context.update.md` (y el resto de `.specify/extensions/agent-context/*`) **no** se revierten: son contenido de `main` que el PR #929 trae a `dokploy` (commit `962debf1`, `chore(integracion): traer main a dokploy antes del Release`). Revertirlos en esta rama abriría un diff de reversión contra la integración que se mergearía después; no son un cambio de esta historia.
-- El gate `scripts/verificar-matriz-pantalla.mjs:21` busca sólo la palabra «empresa» (`/empresa/i`) en el cuerpo de la matriz, aunque su mensaje exige «Empresa activa» con su motivo: una matriz que mencione «empresa» de otra forma pasa el gate. Viene de `main` (no lo introduce este PR) y el tracker acotó esta historia a la fila de la spec 023, así que no se toca el gate: queda anotado para corregirlo en `main`.
+- Sin otros seguimientos: el `knip` de los PR de integración está declarado en `knip.json` desde `d345eeb1` y el job `quality` pasa; el gate de la matriz quedó corregido en esta historia (con su test de rechazo), así que no queda ningún requisito derivado a `main` sin dueño.
