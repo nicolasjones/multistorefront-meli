@@ -1,7 +1,10 @@
 name: docs
 
 on:
+  # Solo PR hacia main: con fuentes de directorio entero (specs, apps/web/src) el drift salta en cualquier
+  # PR a dokploy. El manifest se rebasea una vez, en el PR del Release (docs/documentacion-cambios.md).
   pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:

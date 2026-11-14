@@ -52,3 +52,12 @@ migraciones) que las versiones reorganizadas no siempre repiten. Los enlaces a `
 `docs/` se escriben como ruta entre comillas invertidas, no como enlace Markdown, porque el sitio
 solo publica `docs/` (`mkdocs build --strict` aborta con enlaces que salen del árbol). Las anclas
 `#...` de MkDocs van sin tildes (`#reversion`, no `#reversión`).
+
+## Control del wiki en `dokploy` y en el Release
+
+`docs.yml` corre solo en PR hacia `main` y en push a `main`. Muchas páginas declaran como fuente un
+directorio entero (`specs`, `supabase/migrations`, `apps/web/src`), así que el control de drift
+(`node scripts/docs-drift.mjs`) salta con cualquier PR a `dokploy`. Antes del Release (MSF-858): revisar
+las páginas que lista el drift y regenerar con `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`
+en el PR `dokploy` → `main`. Acotar las fuentes de cada página a su spec o archivo concreto permitiría
+volver a correr el control en cada PR.
