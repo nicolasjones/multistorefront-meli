@@ -11,9 +11,16 @@ type ValorPermisosPanel = {
   error: boolean
   // Vuelve a pedir los permisos (p. ej. tras cambiar de empresa activa, F-ROL-06).
   recargar: () => void
+  // Clave `usuario:organización` vigente (null sin sesión). Sirve para saber si un fallo del repedido es de la
+  // MISMA clave con la que se abrió una pantalla (MSF-855).
+  clave: string | null
+  // Últimos permisos CONFIRMADOS y la clave para la que lo fueron. Nunca se usan como nivel vigente: solo los lee
+  // `useNivelSeccion` dentro de una pantalla que conservó su borrador (misma clave, falla del repedido).
+  ultimosConfirmados: { clave: string; permisos: PermisoSeccion[] } | null
 }
 
 const PermisosPanelReact = createContext<ValorPermisosPanel | null>(null)
+
 
 // Va dentro de ContextoPanelProvider: vuelve a pedir los permisos al cambiar
 // de usuario o de organización activa (superadmin que entra/sale).
@@ -26,6 +33,7 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
   const { contexto } = useContextoPanel()
   const organizacionId = contexto?.organizacion_id ?? null
   const [estado, setEstado] = useState<{ clave: string; permisos: PermisoSeccion[] | null } | null>(null)
+  const [confirmado, setConfirmado] = useState<{ clave: string; permisos: PermisoSeccion[] } | null>(null)
   const [version, setVersion] = useState(0)
   const [recargando, setRecargando] = useState(false)
   const recargar = useCallback(() => {
@@ -41,7 +49,11 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
     }
     let cancelada = false
     obtenerPermisosActuales()
-      .then((permisos) => !cancelada && setEstado({ clave, permisos }))
+      .then((permisos) => {
+        if (cancelada) return
+        setEstado({ clave, permisos })
+        setConfirmado({ clave, permisos })
+      })
       .catch((error: unknown) => {
         // Con traza: un fallo sin log es indiagnosticable. No se guarda [] (sería
         // «sin acceso en nada»): el estado queda en error y se puede reintentar.
@@ -64,8 +76,10 @@ export function PermisosPanelProvider({ children }: { children: ReactNode }) {
       isLoading: identidadPendiente || Boolean(clave && !actual) || recargando,
       error: Boolean(actual && actual.permisos === null),
       recargar,
+      clave,
+      ultimosConfirmados: confirmado,
     }),
-    [actual, clave, identidadPendiente, recargando, recargar],
+    [actual, clave, confirmado, identidadPendiente, recargando, recargar],
   )
 
   return <PermisosPanelReact.Provider value={value}>{children}</PermisosPanelReact.Provider>
