@@ -17,7 +17,7 @@ Cuatro historias secuenciales por dependencia (F-1 → F-2 y F-3 en paralelo →
 | `public.guardar_lineas_comprobante(uuid, jsonb, timestamptz)` | `20270201200129_lineas_sin_stock.sql` (con `descuento_pct` de `20270201200103`) | calcula con `private.precio_linea_venta` y guarda `precio_referencia`/`promocion_id`; `descuento_pct = 0` si ganó la promoción |
 | `public.obtener_comprobante(uuid)` | `20270201200132_obtener_comprobante_origen.sql` | cada línea suma `precio_referencia` (no expone `promocion_id`) |
 | `public.confirmar_comprobante(uuid)` | `20270216400000_confirmar_comprobante_cotizacion_por_empresa.sql` | guarda de precios desactualizados al principio |
-| `public.copiar_presupuesto(uuid)` | `20261204150100_copiar_presupuesto.sql` | usa `private.precio_linea_venta` (sin descuento, igual que hoy en esta épica; con el descuento del cliente desde S2 = MSF-933, `20270323100100`) |
+| `public.copiar_presupuesto(uuid)` | `20261204150100_copiar_presupuesto.sql` | usa `private.precio_linea_venta` (sin descuento, igual que hoy en esta épica; con el descuento del cliente desde S2 = MSF-933, `20270326100100`) |
 | `private.copiar_costo_linea_nota()` + disparador `comprobantes_venta_lineas_costo_nota` | `20270202201006_confirmar_comprobante_costo_cotizacion.sql` | copia también `precio_referencia` y `promocion_id` |
 | `private.precio_para(uuid, uuid, text)` | `20270213200002_precio_propio_tienda_y_lineas.sql` | **no se toca** |
 | `private.promocion_vigente(...)`, `private.precio_vigente_empresa(...)` | `20270228300100` / `20270305100300` | **no se tocan** (la tienda sigue igual; alinearla es el seguimiento S5) |
