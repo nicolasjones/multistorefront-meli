@@ -23,7 +23,7 @@ Al terminar, lo que el cliente ve en la tienda pública durante una promoción v
 4. **El mostrador reprecia todas las líneas en cada escaneo** (`guardar_lineas_comprobante` borra y recrea las líneas no `sin_stock`; solo conserva los precios manuales): una promoción que empieza o vence con la venta abierta se refleja en el siguiente escaneo.
 5. **Notas de crédito y RMA ya devuelven al precio cobrado**: `emitir_nota_credito` copia `precio_unitario` y `subtotal_sin_iva` de la línea original y un disparador `BEFORE INSERT` (`copiar_costo_linea_nota`, `20270202201006`) copia el costo. Con el snapshot en la línea esto es automático (FR-011); solo hay que copiar también las columnas nuevas.
 6. **El IVA y los totales salen de las líneas**: `subtotal = round(unitario × cantidad, 2)`, `iva = round(subtotal × alícuota / 100, 2)`. La promoción es un neto fijo sin IVA, así que entra por el mismo cálculo. La tienda con «Precios con IVA» redondea al **peso entero** (`private.aplicar_iva`), el mostrador a **centavos**: la diferencia ya existe hoy con el precio normal (< $1 por unidad) y no es de esta épica.
-7. **La tienda con sesión de cliente** (`publico.precios_cliente_por_dominio`, escalas `x1…x50`) **no aplica promociones** (Decisión 7 de MSF-363: seguimiento). Un mayorista con cantidad 1-4 ve en la tienda su precio `x1` sin promoción y en el local pagaría la promoción (más barato): no perjudica al cliente, pero es una asimetría a cerrar en el seguimiento de la tienda (S1).
+7. **La tienda con sesión de cliente** (`publico.precios_cliente_por_dominio`, escalas `x1…x50`) **no aplica promociones** (Decisión 7 de MSF-363: seguimiento). Un mayorista con cantidad 1-4 ve en la tienda su precio `x1` sin promoción y en el local pagaría la promoción (más barato): no perjudica al cliente, pero es una asimetría a cerrar en el seguimiento de la tienda (S1; cerrada por MSF-932, migración `20270326100200`).
 8. **Reparaciones (Service)** generan facturas con precios propios del presupuesto de reparación (`generar_comprobante_reparacion`, líneas `sin_stock`): no usan `precio_para` ni se tocan.
 9. `precio_para` es `security invoker` y su compuerta pide `empresas` o `ventas` (lectura/edición); `promociones_precio` solo la lee `productos` **por tienda** (RLS). Una persona de ventas sin `productos` no podría leer la promoción desde la función de venta: hace falta un acceso `security definer` acotado (FR-013).
 
@@ -286,7 +286,7 @@ Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `de
 | API pública | `/v1/ventas` expone totales de facturas confirmadas; `/v1/precios` lista y escalas: sin cambios | No (OpenAPI sin diff) |
 | Superset | Tableros leen líneas/totales guardados | No |
 | Webhook `venta.registrada`, `api_leer_ventas` y vistas de consulta de IA (`20270224110000`) | El trigger `private.emitir_venta_registrada` y las lecturas de ventas y de IA leen totales e importes de la factura confirmada (ya con promoción); no exponen `precio_referencia` ni `promocion_id` | No (verificar en T021) |
-| Tienda pública | No se toca. Una promoción ≥ precio normal se sigue mostrando en la tienda y el local la ignora (seguimiento S5) | No |
+| Tienda pública | No se toca. Una promoción ≥ precio normal se mostraba en la tienda y el local la ignoraba (seguimiento S5, cerrado por MSF-936: la tienda ahora también la ignora) | No |
 | Precio bajo el costo | La promoción no se valida contra el costo (ni `guardar_promocion_precio` ni esta épica); la rentabilidad realizada lo muestra (seguimiento S3) | No |
 | PDF / impresión | Muestra el precio cobrado de cada línea | No (Decisión tomada 6) |
 | Mercado Libre, carrito | Fuera de alcance (el carrito no existe) | No |
@@ -308,7 +308,7 @@ Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `de
 ## Decisiones tomadas (Nicolás, 2026-11-13, por delegación)
 
 1. **Precedencia entre promoción, escala, precio propio y descuento del cliente**: gana el más bajo, sin acumular (tabla de ejemplos).
-2. **Promoción mayor o igual al precio normal**: el local la ignora (`least`). La tienda queda como está en esta épica; alinearla es el seguimiento S5.
+2. **Promoción mayor o igual al precio normal**: el local la ignora (`least`). La tienda quedó como estaba en esta épica; alinearla fue el seguimiento S5 (MSF-936, hecho).
 3. **Confirmar con precios desactualizados**: se rechaza y se reprecia con aviso (nunca se cobra una cifra que el cliente no vio).
 4. **Presupuestos**: conservan el precio presupuestado hasta su `valido_hasta` mientras no se edite (editar y guardar reprecia entero).
 5. **Edición manual de precio**: sin cambios (`editar_precio`, sin permiso ni traza nuevos).
@@ -320,11 +320,11 @@ Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `de
 
 ## Seguimientos (se trazan en el tracker al aprobar; no bloquean la épica)
 
-- **S1**: la tienda con sesión de cliente (`precios_cliente_por_dominio`) no aplica promociones (hallazgo 7; Decisión 7 de MSF-363). **MSF-816 es esta épica, no ese seguimiento**: S1 se difiere con un ID nuevo que se asigna al trazarlo; las referencias «seguimiento MSF-816» de `docs/promociones-precio.md` y de la spec y el plan de MSF-363 se corrigen en T023.
-- **S2**: `copiar_presupuesto` no aplica el descuento del cliente (hallazgo 3).
+- **S1** (hecho, MSF-932, migración `20270326100200`): la tienda con sesión de cliente (`precios_cliente_por_dominio`) no aplicaba promociones (hallazgo 7; Decisión 7 de MSF-363). **MSF-816 es esta épica, no ese seguimiento**: S1 se difirió con un ID nuevo que se asigna al trazarlo; las referencias «seguimiento MSF-816» de `docs/promociones-precio.md` y de la spec y el plan de MSF-363 se corrigen en T023.
+- **S2** (hecho, MSF-933): `copiar_presupuesto` no aplicaba el descuento del cliente (hallazgo 3); ahora lo aplica (migración `20270326100100`).
 - **S3**: indicador «ventas con promoción» en reportes y Superset (hoy el dato queda en la línea).
 - **S4**: PDF con precio de lista tachado (solo si se decide cambiar la Decisión 6).
-- **S5**: `private.precio_vigente_empresa` ignora la promoción ≥ precio normal y `guardar_promocion_precio` avisa al cargarla.
+- **S5** (hecho, MSF-936): `private.precio_vigente_empresa` ignora la promoción ≥ precio normal y `guardar_promocion_precio` avisa al cargarla.
 - **S6**: bandera apagada y reencendida con borradores abiertos: procedimiento operativo y aviso a los cajeros.
 - **S7**: abaratar `private.precio_para` (≈8,5 ms por llamada) o volverlo set-based para poder recalcular el precio completo en la guarda de `confirmar_comprobante` y cerrar el hueco de FR-009 (una baja del precio normal por debajo de la promoción mostrada no se rechaza). Al cerrarlo, el test «S7 (decisión)» de `ventas_precio_promocional_ciclo.test.sql` debe cambiar a rechazo `40001`. Sin ID de MSF-816.
 

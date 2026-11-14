@@ -36,6 +36,27 @@ describe('leerPreciosCliente', () => {
     expect(precios?.escalas.map((e) => e.final)).toEqual([1210, 1089, 968, null])
   })
 
+  it('mapea precio_anterior (MSF-932) a precioAnterior; sin la clave queda null', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: {
+        tipo: 'mayorista',
+        precios: [{
+          producto_id: ID,
+          escalas: [
+            { escala: 'x1', desde: 1, hasta: 4, final: '850', precio_anterior: '1000' },
+            { escala: 'x5', desde: 5, hasta: 9, final: 800 },
+          ],
+        }],
+      },
+      error: null,
+    })
+    const precios = await leerPreciosCliente('mundojc.localhost', ID)
+    expect(precios?.escalas).toEqual([
+      { escala: 'x1', desde: 1, hasta: 4, final: 850, precioAnterior: 1000 },
+      { escala: 'x5', desde: 5, hasta: 9, final: 800, precioAnterior: null },
+    ])
+  })
+
   it('sin sesión (visitante) devuelve null sin llamar a la base', async () => {
     mocks.getSession.mockResolvedValue({ data: { session: null } })
     expect(await leerPreciosCliente('mundojc.localhost', ID)).toBeNull()
@@ -69,7 +90,7 @@ describe('leerPreciosCliente', () => {
     const segunda = await leerPreciosCliente('mundojc.localhost', ID)
     expect(mocks.rpc).toHaveBeenCalledTimes(2)
     expect(primera?.escalas).toHaveLength(4)
-    expect(segunda).toEqual({ tipo: 'minorista', escalas: [{ escala: 'x1', desde: 1, hasta: 4, final: 1210 }] })
+    expect(segunda).toEqual({ tipo: 'minorista', escalas: [{ escala: 'x1', desde: 1, hasta: 4, final: 1210, precioAnterior: null }] })
   })
 })
 

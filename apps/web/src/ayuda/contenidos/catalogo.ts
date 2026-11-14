@@ -20,6 +20,7 @@ export const ayudaCatalogo: AyudaPorDestino = {
     pasos: [
       'Elegí una empresa en la barra superior: con «Todas mis empresas» ves todas, pero para crear una tenés que elegir una.',
       'Pulsá «Nueva promoción», elegí el producto, el precio promocional y las fechas de inicio y fin.',
+      'El precio promocional tiene que ser menor al normal: si no, se guarda con un aviso y no se aplica en la tienda ni en el mostrador.',
       'Revisá el estado de cada promoción: programada, vigente, vencida o anulada.',
       'Pulsá «Anular» si una promoción ya no corresponde; no hace falta esperar a que venza.',
     ],
