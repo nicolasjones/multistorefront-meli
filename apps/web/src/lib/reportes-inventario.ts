@@ -8,8 +8,14 @@ export const SECCION_INVENTARIO = 'stock'
 // Nombre con el que el importador registra el tablero (infra/superset/dashboards/inventario/reportes.json).
 export const NOMBRE_REPORTE_PRODUCTOS_STOCK = 'Inventario · Productos y stock'
 
+// Versión SIN costos ni valor del mismo reporte: la ve quien no tiene la acción `ver_costos` (p. ej. Consulta).
+// La base decide cuál le corresponde: `reportes_visibles_para_mi` no lista el tablero con costos a quien no la
+// tiene y `resolver_organizacion_reporte` no emite su token (403).
+export const NOMBRE_REPORTE_PRODUCTOS_STOCK_CANTIDADES = 'Inventario · Productos y stock (cantidades)'
+
 export const TITULO_PRODUCTOS_STOCK = 'Productos y stock'
 export const SUBTITULO_PRODUCTOS_STOCK = 'Cantidad, costo y valor de cada producto, y el valor total del inventario.'
+export const SUBTITULO_PRODUCTOS_STOCK_CANTIDADES = 'Cantidad y estado de cada producto.'
 
 export const NOMBRE_REPORTE_REPOSICION = 'Inventario · Reposición'
 

@@ -38,10 +38,20 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
 - Esquema (Principio VII): solo una **vista** en `analitica` (sin tablas nuevas); `select` solo para
   `superset_analitica`, sin acceso para `anon`/`authenticated`. El alta del reporte en `public.reportes`
   es plataforma.
-- **Costos visibles (Decisión abierta 3 de la spec)**: la vista corre con privilegios del dueño, así que
-  quien abre el tablero ve costo y valor aunque `producto_costos` sea de la sección `rentabilidad`.
-  Provisional: todo rol con acceso a Stock los ve. Si la respuesta es «solo cantidades», se separa el
-  valor en un segundo tablero con `seccion = 'rentabilidad'`.
+- **Costos y valor solo con `ver_costos` (Decisión abierta 3, RESUELTA el 2026-11-14)**: el rol Consulta, y
+  cualquier rol sin la acción `ver_costos` en Stock (la misma de la matriz de permisos que oculta costos en el
+  resto del producto; por defecto Administrador y Administración), ve **solo cantidades**. Se hace en la base y
+  en la UI, no con CSS:
+  - Hay dos tableros: «Inventario · Productos y stock» (con costo y valor, `reportes.accion_requerida = 'ver_costos'`)
+    e «Inventario · Productos y stock (cantidades)» (slug `inventario-productos-stock-cantidades`, vista
+    `analitica.inventario_productos_stock_cantidades`, que **no trae** costo ni valor ni lee `producto_costos`).
+  - `resolver_organizacion_reporte` no emite el token del tablero con costos a quien no tiene `ver_costos`
+    (403) y `reportes_visibles_para_mi` no lo lista (ambas usan `private.cumple_accion_reporte`, que respeta la
+    matriz por rol de cada organización y falla cerrado).
+  - La pantalla `/reportes/inventario` monta el tablero con costos si la base se lo lista y, si no, el de
+    cantidades: las columnas y tarjetas de costo no existen para ese rol, y tampoco en la descarga CSV.
+  - Antes del primer import de dashboards tras el despliegue, un rol sin `ver_costos` ve «todavía no está
+    disponible» (falla segura). Reposición nunca expuso costos.
 - Empresa activa (Principio VIII): no aplica, el inventario es por organización.
 
 ### Operación y reversión
@@ -49,7 +59,7 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
 - El tablero se importa con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <staging|production>`
   (lo hace el workflow de despliegue del VPS, idempotente).
 - Reversión: `drop view analitica.inventario_productos_stock;` (migración
-  `20270202201200`), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
+  `20270202201200`; la exigencia por acción y la vista de cantidades son de `20270325300000`, ver su cabecera), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
   guardan datos.
 
 ## Reposición (F-REP-02, MSF-311)
@@ -100,7 +110,7 @@ Verificada con `supabase/tests/database/reportes_inventario_superficie.test.sql`
 | `authenticated` | Sin `USAGE` ni `SELECT` en `analitica`; no hay RPC ni Edge Function nuevas |
 | Rol `superset_analitica` | Solo `SELECT` en las vistas; no es superusuario ni salta RLS; no lee `producto_costos` directamente |
 | Aislamiento | Cada fila lleva `organizacion_id`; el guest token fuerza la cláusula `rls` |
-| Costos en `analitica` vs. RLS de `producto_costos` | La vista corre con los privilegios del dueño: quien tiene la sección `stock` ve costo y valor en Productos y stock aunque no tenga `rentabilidad`. Es la Decisión abierta 3 (provisional); Reposición no expone costos |
+| Costos en `analitica` vs. RLS de `producto_costos` | La vista con costos corre con los privilegios del dueño, por eso su tablero exige además `ver_costos` (token y lista); quien no la tiene abre la vista de cantidades, que no trae costos. Reposición no expone costos |
 | Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` verde |
 
 ## Pruebas E2E (T014)
@@ -117,5 +127,5 @@ Todo es aditivo y sin datos propios: ver la reversión de cada vista arriba y, p
 
 ## Preguntas abiertas
 
-Decisión 3 (¿los roles con `stock` ven costos y valor?) y Decisión 4 (faltante sugerido = mínimo − cantidad)
-siguen provisionales hasta que Nicolás las confirme.
+Decisión 3 resuelta (solo cantidades sin `ver_costos`, ver arriba). Decisión 4 (faltante sugerido = mínimo − cantidad)
+sigue provisional hasta que Nicolás la confirme.

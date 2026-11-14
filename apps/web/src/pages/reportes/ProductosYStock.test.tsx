@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { violacionesAxe } from '../../test/axe'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -42,6 +43,7 @@ import { SECCION_INVENTARIO } from '../../lib/reportes-inventario'
 import { ProductosYStock } from './ProductosYStock'
 
 const REPORTE = { id: 'rep-stock', nombre: 'Inventario · Productos y stock' }
+const REPORTE_CANTIDADES = { id: 'rep-cant', nombre: 'Inventario · Productos y stock (cantidades)' }
 
 // La pantalla tal como la monta App.tsx: envuelta en RequiereAccesoSeccion (`stock`).
 const montar = ({
@@ -71,6 +73,26 @@ describe('ProductosYStock (F-REP-01)', () => {
     expect(screen.getByRole('heading', { name: 'Productos y stock' })).toBeTruthy()
     expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-stock')
     expect(mocks.montajes).toHaveBeenCalledWith('rep-stock')
+  })
+
+  it('con ver_costos (la base lista el tablero con costos) monta el tablero con costos y su subtítulo', () => {
+    montar({ reportes: [REPORTE, REPORTE_CANTIDADES] })
+    expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-stock')
+    expect(screen.getByText(/costo y valor de cada producto/)).toBeTruthy()
+  })
+
+  it('sin ver_costos (Consulta) monta SOLO el tablero de cantidades: sin costos ni valor en pantalla', () => {
+    montar({ reportes: [REPORTE_CANTIDADES] })
+    expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-cant')
+    expect(mocks.montajes).toHaveBeenCalledWith('rep-cant')
+    expect(mocks.montajes).not.toHaveBeenCalledWith('rep-stock')
+    expect(screen.getByText('Cantidad y estado de cada producto.')).toBeTruthy()
+    expect(screen.queryByText(/costo|valor/i)).toBeNull()
+  })
+
+  it('la versión de solo cantidades no tiene violaciones de accesibilidad (axe)', async () => {
+    const { container } = montar({ reportes: [REPORTE_CANTIDADES] })
+    expect(await violacionesAxe(container)).toEqual([])
   })
 
   it('[MSF-297:T004] muestra el estado de carga mientras llegan los reportes', () => {

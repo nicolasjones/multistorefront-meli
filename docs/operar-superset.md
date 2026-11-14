@@ -294,7 +294,7 @@ analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PA
 
 Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <entorno>`, igual que
-Rentabilidad y Ventas. El directorio trae dos tableros: «Productos y stock» (MSF-297) y «Reposición» (MSF-311, slug
+Rentabilidad y Ventas. El directorio trae tres tableros: «Productos y stock» (MSF-297, con costos: el reporte exige la acción `ver_costos` vía `accion_requerida` en `reportes.json`), «Productos y stock (cantidades)» (sin costo ni valor, para quien no la tiene) y «Reposición» (MSF-311, slug
 `inventario-reposicion`, vista `analitica.inventario_reposicion`). Guía: [`reportes-inventario.md`](./reportes-inventario.md).
 
 ## Exportar reportes a CSV

@@ -61,7 +61,7 @@ Revisión de `20270207100001`, `20270207100002`, `20270207100003` y `20270210110
   `registro_actividad` conserva su RLS por organización y sección. Nadie escribe por API directa.
 - **Inalterabilidad**: triggers `before update/delete` y `before truncate` rechazan con `42501`, y se revocó
   `update, delete, truncate` a `public`, `anon`, `authenticated` (y a `service_role` si existe). La **única** vía de borrado es
-  `private.depurar_registro_actividad` (retención de 24 meses), que solo ejecutan `workers_orquestacion` y `kestra_orquestacion`.
+  `private.depurar_registro_actividad` (retención de 24 meses, decisión confirmada el 2026-11-14), que solo ejecutan `workers_orquestacion` y `kestra_orquestacion`.
 - **`anon`**: sin ejecución en ninguna RPC nueva (`obtener_detalle_actividad`, `exportar_actividad`, `entrar_a_organizacion(uuid, text)`,
   `salir_de_organizacion`); las funciones `private.*` no las ejecuta `authenticated`.
 - **Acceso de soporte**: motivo obligatorio (≤ 500 caracteres), vencimiento de 4 horas (`vence_en`) y una organización a la vez;
