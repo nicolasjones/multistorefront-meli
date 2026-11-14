@@ -20,7 +20,7 @@ const graficos = {
   importe: leer('charts', 'Importe_por_mes_y_tienda_4.yaml'),
 }
 const reportes = JSON.parse(leer('reportes.json')) as {
-  reportes: { nombre: string; dashboard_slug: string; seccion: string; rolesPorDefecto: string[] }[]
+  reportes: { nombre: string; dashboard_slug: string; seccion: string; filtro_empresa?: boolean; rolesPorDefecto: string[] }[]
 }
 const uuidDe = (yaml: string) => /^uuid: (.+)$/m.exec(yaml)![1]
 
@@ -30,6 +30,12 @@ describe('tablero «Service técnico» (YAML versionado)', () => {
     expect(reportes.reportes[0]).toMatchObject({ nombre: NOMBRE_REPORTE_SERVICE, seccion: 'service_tecnico', dashboard_slug: 'service-tecnico' })
     expect(reportes.reportes[0].rolesPorDefecto).not.toContain('administrador')
     expect(dashboard).toContain('slug: service-tecnico')
+  })
+
+  it('el reporte declara filtro_empresa: el token se acota a las tiendas accesibles de quien mira', () => {
+    expect(reportes.reportes[0].filtro_empresa).toBe(true)
+    expect(datasetReparaciones).toContain('empresa_id')
+    expect(datasetItems).toContain('empresa_id')
   })
 
   it('tiene los cuatro indicadores de la spec y todos están en el dashboard', () => {

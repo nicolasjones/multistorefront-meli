@@ -1,12 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ obtener: vi.fn() }))
+const mocks = vi.hoisted(() => ({ obtener: vi.fn(), regenerar: vi.fn() }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/enlaceConsulta', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/enlaceConsulta')>()),
   obtenerEnlaceConsulta: mocks.obtener,
+  regenerarEnlaceConsulta: mocks.regenerar,
 }))
 
 import { urlEnlaceSeguimiento } from '../../lib/enlaceConsulta'
@@ -66,5 +67,40 @@ describe('EnlaceSeguimientoDialog (FR-046)', () => {
     await screen.findByDisplayValue(URL_ESPERADA)
     fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace' }))
     await waitFor(() => expect(screen.getByText(/copialo a mano/)).toBeInTheDocument())
+  })
+
+  it('«Regenerar enlace» pide confirmación y muestra el enlace nuevo', async () => {
+    const NUEVO = 'Nuevo_t-' + 'y'.repeat(24)
+    mocks.obtener.mockResolvedValue(TOKEN)
+    mocks.regenerar.mockResolvedValue(NUEVO)
+    montar()
+    await screen.findByDisplayValue(URL_ESPERADA)
+    fireEvent.click(screen.getByRole('button', { name: 'Regenerar enlace' }))
+    expect(mocks.regenerar).not.toHaveBeenCalled()
+    expect(screen.getByText(/El enlace anterior dejará de funcionar/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, regenerar' }))
+    expect(await screen.findByDisplayValue(`${window.location.origin}/seguimiento/${NUEVO}`)).toBeInTheDocument()
+    expect(mocks.regenerar).toHaveBeenCalledWith('r-1')
+    expect(screen.getByText(/dejó de funcionar/)).toBeInTheDocument()
+  })
+
+  it('cancelar la confirmación no regenera', async () => {
+    mocks.obtener.mockResolvedValue(TOKEN)
+    montar()
+    await screen.findByDisplayValue(URL_ESPERADA)
+    fireEvent.click(screen.getByRole('button', { name: 'Regenerar enlace' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(mocks.regenerar).not.toHaveBeenCalled()
+    expect(screen.getByDisplayValue(URL_ESPERADA)).toBeInTheDocument()
+  })
+
+  it('si regenerar falla, avisa y conserva el enlace vigente en pantalla', async () => {
+    mocks.obtener.mockResolvedValue(TOKEN)
+    mocks.regenerar.mockRejectedValue({ code: '42501' })
+    montar()
+    await screen.findByDisplayValue(URL_ESPERADA)
+    fireEvent.click(screen.getByRole('button', { name: 'Regenerar enlace' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, regenerar' }))
+    expect(await screen.findByText(/No tenés permiso/)).toBeInTheDocument()
   })
 })

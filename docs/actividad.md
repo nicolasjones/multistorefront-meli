@@ -209,6 +209,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código
   visible («Generó el enlace de seguimiento de R-0001»), nunca el token ni ids; el evento lleva la tienda de la
   reparación. Lo cubre el pgTAP `service_enlace_consulta`. Ver `docs/service-seguimiento.md`.
+- `reparacion.enlace_regenerado` (Service técnico): lo registra la RPC `regenerar_enlace_consulta` cada vez que se
+  regenera el enlace de seguimiento (el token anterior deja de funcionar). El detalle nombra el código visible, nunca
+  el token; el evento lleva la tienda de la reparación. Lo cubre el pgTAP `service_regenerar_enlace_y_reportes_empresa`.
+  Ver `docs/service-seguimiento.md`.
 - `reparacion.comprobante_generado` (F-SVC-13, Service técnico): lo registra `private.registrar_actividad` en la
   misma transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
   idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código

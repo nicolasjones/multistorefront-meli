@@ -24,3 +24,12 @@ export async function obtenerEnlaceConsulta(reparacionId: string): Promise<strin
   if (typeof token !== 'string' || token === '') throw new Error('La respuesta no trae el token del enlace')
   return token
 }
+
+// «Regenerar enlace»: token nuevo; el anterior deja de funcionar (RPC `regenerar_enlace_consulta`).
+export async function regenerarEnlaceConsulta(reparacionId: string): Promise<string> {
+  const { data, error } = await supabaseClient.rpc('regenerar_enlace_consulta', { p_reparacion: reparacionId })
+  if (error) throw error
+  const token = (data as { token?: unknown } | null)?.token
+  if (typeof token !== 'string' || token === '') throw new Error('La respuesta no trae el token del enlace')
+  return token
+}

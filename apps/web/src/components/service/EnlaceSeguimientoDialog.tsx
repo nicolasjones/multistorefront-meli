@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, Stack, TextField, Typography } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
-import { mensajeDeErrorEnlace, obtenerEnlaceConsulta, urlEnlaceSeguimiento } from '../../lib/enlaceConsulta'
+import { mensajeDeErrorEnlace, obtenerEnlaceConsulta, regenerarEnlaceConsulta, urlEnlaceSeguimiento } from '../../lib/enlaceConsulta'
 
 type Props = {
   abierto: boolean
@@ -18,6 +18,8 @@ export function EnlaceSeguimientoDialog({ abierto, reparacionId, codigo, onCerra
   const [error, setError] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [errorCopia, setErrorCopia] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+  const [regenerado, setRegenerado] = useState(false)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -36,8 +38,26 @@ export function EnlaceSeguimientoDialog({ abierto, reparacionId, codigo, onCerra
     if (!abierto) return
     setCopiado(false)
     setErrorCopia(false)
+    setConfirmando(false)
+    setRegenerado(false)
     void cargar()
   }, [abierto, cargar])
+
+  const regenerar = async () => {
+    setCargando(true)
+    setError(null)
+    try {
+      setUrl(urlEnlaceSeguimiento(window.location.origin, await regenerarEnlaceConsulta(reparacionId)))
+      setRegenerado(true)
+      setCopiado(false)
+      setConfirmando(false)
+    } catch (falla) {
+      setError(mensajeDeErrorEnlace(falla, 'No pudimos regenerar el enlace de seguimiento.'))
+      setConfirmando(false)
+    } finally {
+      setCargando(false)
+    }
+  }
 
   const copiar = async () => {
     if (!url) return
@@ -73,12 +93,27 @@ export function EnlaceSeguimientoDialog({ abierto, reparacionId, codigo, onCerra
               slotProps={{ input: { readOnly: true } }}
             />
           ) : null}
+          {regenerado ? <Alert severity="success">Enlace regenerado: el anterior dejó de funcionar.</Alert> : null}
+          {confirmando ? (
+            <Alert
+              severity="warning"
+              action={
+                <>
+                  <Button color="inherit" size="small" onClick={() => setConfirmando(false)}>Cancelar</Button>
+                  <Button color="inherit" size="small" onClick={() => void regenerar()}>Sí, regenerar</Button>
+                </>
+              }
+            >
+              ¿Regenerar el enlace? El enlace anterior dejará de funcionar y tendrás que mandarle el nuevo al cliente.
+            </Alert>
+          ) : null}
           {copiado ? <Alert severity="success">Enlace copiado</Alert> : null}
           {errorCopia ? <Alert severity="warning">No pudimos copiarlo automáticamente: seleccionalo y copialo a mano.</Alert> : null}
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCerrar}>Cerrar</Button>
+        <Button color="warning" onClick={() => setConfirmando(true)} disabled={!url || cargando || confirmando}>Regenerar enlace</Button>
         <Button variant="contained" onClick={() => void copiar()} disabled={!url || cargando}>Copiar enlace</Button>
       </DialogActions>
     </Dialog>
