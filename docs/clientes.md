@@ -605,3 +605,7 @@ selección no cambian. Si falla una tanda posterior se conserva lo cargado y el 
 - Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
   «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
 - Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.
+
+## «Mi cuenta» en la tienda (F-CLI-20, MSF-452 · épica MSF-176)
+
+La cuenta web ahora tiene una pantalla propia en la tienda: `/mi-cuenta`, con las compras y presupuestos del cliente **en esa tienda** y sus favoritos. Detrás de la bandera `tienda_pedidos` (apagada por defecto). Detalle, pantallas y permisos en `docs/tienda-compra-y-cuentas.md`. Los favoritos son privados del cliente: la ficha del cliente del panel no los muestra (D-11).
