@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ANCHOS_TIENDA, fijarAncho } from '../../../test/ancho'
 import { violacionesAxe } from '../../../test/axe'
 
@@ -10,7 +11,7 @@ vi.mock('../../../lib/tiendaPedido', async (importar) => ({
   crearPresupuesto: mocks.crearPresupuesto,
 }))
 
-import { DialogoPresupuesto, LEYENDA_PRESUPUESTO } from './DialogoPresupuesto'
+import { DialogoPresupuesto, LEYENDA_PRESUPUESTO, TEXTO_NOTA_PRESUPUESTO } from './DialogoPresupuesto'
 
 const A = 'a1000000-0000-4000-8000-000000000001'
 const B = 'a1000000-0000-4000-8000-000000000002'
@@ -98,9 +99,9 @@ describe('DialogoPresupuesto', () => {
   it.each([
     [{ estado: 'sin_precio', productoId: B }, 'No pudimos calcular el precio de «Auricular». Quitalo de la lista o enviá el pedido sin presupuesto.'],
     [{ estado: 'no_disponible', productoId: A }, '«Joystick» ya no está disponible. Quitalo para continuar.'],
-    [{ estado: 'espera', esperaSegundos: 125 }, 'Hiciste varios envíos seguidos. Probá de nuevo en 3 minutos.'],
     [{ estado: 'limite_cuenta' }, 'Ya tenés presupuestos abiertos. Esperá nuestra respuesta para pedir otro.'],
     [{ estado: 'invalido', campos: ['items'] }, 'Revisá tu lista: hay productos que no se pueden pedir en un presupuesto.'],
+    [{ estado: 'invalido', campos: ['nota'] }, TEXTO_NOTA_PRESUPUESTO],
   ])('al confirmar, %j muestra el texto exacto y conserva la lista', async (respuesta, texto) => {
     mocks.crearPresupuesto.mockResolvedValue(respuesta)
     montar()
@@ -160,6 +161,91 @@ describe('DialogoPresupuesto', () => {
     expect(document.querySelector('img[src="x"]')).toBeNull()
   })
 
+  it('invalido en clave_envio muestra el error genérico con «Reintentar» (no el mensaje de la lista ni el de la nota)', async () => {
+    mocks.crearPresupuesto.mockResolvedValue({ estado: 'invalido', campos: ['clave_envio'] })
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    const aviso = await screen.findByTestId('resultado-presupuesto')
+    expect(aviso.textContent).toContain('No pudimos pedir tu presupuesto. Tu lista sigue acá: probá de nuevo.')
+    expect(aviso.textContent).not.toContain('Revisá tu lista')
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('invalido en nota muestra el mensaje de la nota (no el de items) y no ofrece reintentar el mismo envío', async () => {
+    mocks.crearPresupuesto.mockResolvedValue({ estado: 'invalido', campos: ['nota'] })
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    const aviso = await screen.findByTestId('resultado-presupuesto')
+    expect(aviso.textContent).toContain('La nota admite hasta 500 caracteres.')
+    expect(aviso.textContent).not.toContain('Revisá tu lista')
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+  })
+
+  describe('límite al confirmar (Q7): el botón queda deshabilitado hasta cumplirse la espera', () => {
+    afterEach(() => { vi.useRealTimers() })
+
+    it('deshabilita «Confirmar presupuesto», muestra el tiempo que falta y lo habilita (sin el aviso) al cumplirse', async () => {
+      mocks.crearPresupuesto.mockResolvedValue({ estado: 'espera', esperaSegundos: 61 })
+      montar()
+      const confirmar = await screen.findByRole('button', { name: 'Confirmar presupuesto' })
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      fireEvent.click(confirmar)
+      expect((await screen.findByTestId('resultado-presupuesto')).textContent).toContain('Hiciste varios envíos seguidos. Probá de nuevo en 2 minutos.')
+      expect(screen.getByRole('button', { name: 'Confirmar presupuesto' })).toBeDisabled()
+      await act(async () => { vi.advanceTimersByTime(30_000) })
+      expect(screen.getByRole('button', { name: 'Confirmar presupuesto' })).toBeDisabled()
+      expect(screen.getByTestId('resultado-presupuesto').textContent).toContain('Probá de nuevo en 1 minuto.')
+      await act(async () => { vi.advanceTimersByTime(32_000) })
+      expect(screen.queryByTestId('resultado-presupuesto')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Confirmar presupuesto' })).toBeEnabled()
+    })
+  })
+
+  it('el límite al COTIZAR ofrece «Reintentar» (que vuelve a cotizar) y no deja confirmar', async () => {
+    mocks.cotizarPresupuesto.mockResolvedValueOnce({ estado: 'espera', esperaSegundos: 30 }).mockResolvedValueOnce(cotizacion())
+    montar()
+    expect(await screen.findByText('Hiciste varios envíos seguidos. Probá de nuevo en 1 minuto.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Confirmar presupuesto' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByText('Joystick')).toBeInTheDocument()
+    expect(mocks.cotizarPresupuesto).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('button', { name: 'Confirmar presupuesto' })).toBeEnabled()
+  })
+
+  // Q8: foco y teclado.
+  function ConDisparador() {
+    const [abierto, setAbierto] = useState(false)
+    return (
+      <>
+        <button type="button" onClick={() => setAbierto(true)}>Pedir presupuesto</button>
+        {abierto ? <DialogoPresupuesto host={HOST} lineas={LINEAS} nota="" claveEnvio={CLAVE} nombres={NOMBRES} alCerrar={() => setAbierto(false)} alConfirmado={alConfirmado} alSinAcceso={alSinAcceso} /> : null}
+      </>
+    )
+  }
+
+  it('al abrir lleva el foco al título; Esc cierra y el foco vuelve al botón que lo abrió', async () => {
+    render(<ConDisparador />)
+    const disparador = screen.getByRole('button', { name: 'Pedir presupuesto' })
+    disparador.focus()
+    fireEvent.click(disparador)
+    const titulo = await screen.findByRole('heading', { name: 'Tu presupuesto' })
+    await waitFor(() => expect(titulo).toHaveFocus())
+    await screen.findByText('Joystick')
+    fireEvent.keyDown(titulo, { key: 'Escape', code: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(disparador).toHaveFocus())
+  })
+
+  it('mientras confirma, Esc no cierra el diálogo (no se pierde la respuesta)', async () => {
+    mocks.crearPresupuesto.mockReturnValue(new Promise(() => undefined))
+    render(<ConDisparador />)
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    await screen.findByRole('button', { name: 'Confirmando…' })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' })
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   describe.each(ANCHOS_TIENDA)('a %i px', (ancho) => {
     it('sin violaciones de axe (cotizado y con productos que no se pueden pedir)', async () => {
       fijarAncho(ancho)
@@ -171,6 +257,35 @@ describe('DialogoPresupuesto', () => {
       const segundo = montar()
       await screen.findByText('«Joystick» ya no está disponible. Quitalo para continuar.')
       expect(await violacionesAxe(segundo.baseElement)).toEqual([])
+    })
+  })
+
+  describe.each(ANCHOS_TIENDA)('estados de carga, error y espera a %i px', (ancho) => {
+    it('cargando, error de cotización y espera: sin violaciones de axe', async () => {
+      fijarAncho(ancho)
+      mocks.cotizarPresupuesto.mockReturnValueOnce(new Promise(() => undefined))
+      const cargando = montar()
+      expect(screen.getByRole('status', { name: 'Calculando tu presupuesto' })).toBeInTheDocument()
+      expect(await violacionesAxe(cargando.baseElement)).toEqual([])
+      cargando.unmount()
+
+      mocks.cotizarPresupuesto.mockResolvedValueOnce({ estado: 'falla' })
+      const error = montar()
+      await screen.findByText('No pudimos calcular tu presupuesto.')
+      expect(await violacionesAxe(error.baseElement)).toEqual([])
+      error.unmount()
+
+      mocks.cotizarPresupuesto.mockResolvedValueOnce({ estado: 'espera', esperaSegundos: 30 })
+      const espera = montar()
+      await screen.findByText('Hiciste varios envíos seguidos. Probá de nuevo en 1 minuto.')
+      expect(await violacionesAxe(espera.baseElement)).toEqual([])
+      espera.unmount()
+
+      mocks.crearPresupuesto.mockResolvedValue({ estado: 'espera', esperaSegundos: 61 })
+      const confirmando = montar()
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+      await screen.findByTestId('resultado-presupuesto')
+      expect(await violacionesAxe(confirmando.baseElement)).toEqual([])
     })
   })
 })

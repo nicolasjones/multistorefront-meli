@@ -107,6 +107,18 @@ describe('validarPedido (espejo de enviar_lista_pedido)', () => {
     expect(validarPedido({ ...bien, nota: 'hola\u0007' }, false).nota).toBe(MENSAJE_CARACTERES)
   })
 
+  it('M-4: los caracteres invisibles (U+061C, U+200B a U+200D, U+2060, U+FEFF) se rechazan en nombre, contacto y nota, igual que en el servidor', () => {
+    for (const invisible of ['\u061c', '\u200b', '\u200c', '\u200d', '\u2060', '\ufeff']) {
+      expect(validarPedido({ ...bien, nota: `hola${invisible}chau` }, false).nota).toBe(MENSAJE_CARACTERES)
+      expect(validarPedido({ ...bien, nombre: `Ana${invisible}Pérez` }, false).nombre).toBe(MENSAJE_CARACTERES)
+    }
+    expect(validarPedido({ ...bien, nota: 'hola\u200e' }, false).nota).toBe(MENSAJE_CARACTERES)
+  })
+
+  it('M-4: una nota solo de espacios y saltos de línea es «sin nota» (válida)', () => {
+    expect(validarPedido({ ...bien, nota: ' \n\r\n \t ' }, false)).toEqual({})
+  })
+
   it('con cuenta activa no se validan nombre ni contacto; la nota sí', () => {
     expect(validarPedido({ nombre: '', contacto: '', nota: '' }, true)).toEqual({})
     expect(validarPedido({ nombre: '', contacto: '', nota: 'x'.repeat(501) }, true)).toEqual({ nota: MENSAJES_PEDIDO.nota })

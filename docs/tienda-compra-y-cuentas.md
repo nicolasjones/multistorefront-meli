@@ -352,7 +352,7 @@ Un cliente con **cuenta activa** pide, desde su lista de pedido, un **presupuest
 
 ### Etapa 1 · precio sin sesión de panel (T050 y T051)
 
-### Qué cambia (migración `20270322100000_precio_sin_sesion.sql`, D-17)
+#### Qué cambia (migración `20270322100000_precio_sin_sesion.sql`, D-17)
 
 `private.precio_para` y `private.precio_linea_venta` (MSF-816) exigían una sesión de panel y dos piezas internas fallaban **en silencio** sin ella (IVA 0 por `alicuota_producto` y precio propio ignorado por `precio_propio_empresa`). La migración **extrae el cálculo** a tres funciones nuevas de `private`, **sin `execute` para `public`, `anon`, `authenticated` ni `service_role`**:
 
@@ -364,14 +364,14 @@ Un cliente con **cuenta activa** pide, desde su lista de pedido, un **presupuest
 
 `precio_para` y `precio_linea_venta` quedan como **envoltorios** (misma firma, columnas y grants): validan la escala, preguntan a `precio_sesion_alcanza` y delegan. El resultado para el panel es el mismo (lo prueban los pgTAP vigentes y `precio_sin_sesion.test.sql`, que compara contra una copia literal de las funciones originales en más de 4.700 combinaciones).
 
-### Dos diferencias, dichas con todas las letras
+#### Dos diferencias, dichas con todas las letras
 
 - `precio_para` pasa de `security invoker` a **`security definer`** (necesita llamar al cálculo, que `authenticated` no ejecuta). El aislamiento que antes daba la RLS de las tablas lo da ahora `precio_sesion_alcanza`. **Pierde el requisito de sección de esa RLS** (`productos` y `empresas` en lectura/edición): la compuerta que queda es la documentada por F-VTA-06, `empresas` o `ventas`. Sin ruta real: `private` no está expuesto y los llamadores son `security definer` sin RLS. El pgTAP lo nombra («diferencia deliberada 1»). Seguimiento: retirar `execute` de `authenticated` en `precio_para` permitiría volver a `security invoker`, pero obliga a reescribir pgTAP vigentes que lo llaman como `authenticated`.
 - Producto o empresa de **otra organización** respecto de la sesión: antes, llamado sin RLS, devolvía el neto sin alícuota ni precio propio (el mismo fallo silencioso); ahora devuelve vacío. Ningún llamador real lo usa; el pgTAP lo fija.
 
-### Pruebas
+#### Pruebas
 
-`supabase/tests/database/precio_sin_sesion.test.sql` (118 aserciones): paridad con la copia literal de las originales (escalas, tipos, cantidades, descuentos, reglas de tienda, monedas, precio propio, alícuotas 21 %/10,5 %/exenta/ninguna, promociones que ganan/empatan/pierden/vencidas/futuras/anuladas, bandera apagada y sin precio); el cliente web da el mismo resultado con IVA y precio propio correctos (falla si se revierte la extracción); compuerta y aislamiento de los envoltorios con roles reales; superficie (ni `anon` ni `authenticated` ni `service_role` ejecutan lo nuevo; la lista de funciones ejecutables por `authenticated` no crece).
+`supabase/tests/database/precio_sin_sesion.test.sql` (127 aserciones): paridad con la copia literal de las originales (escalas, tipos, cantidades, descuentos, reglas de tienda, monedas, precio propio, alícuotas 21 %/10,5 %/exenta/ninguna, promociones que ganan/empatan/pierden/vencidas/futuras/anuladas, bandera apagada y sin precio); el cliente web da el mismo resultado con IVA y precio propio correctos (falla si se revierte la extracción); compuerta y aislamiento de los envoltorios con roles reales; superficie (ni `anon` ni `authenticated` ni `service_role` ejecutan lo nuevo; la lista de funciones ejecutables por `authenticated` no crece).
 
 ### Contratos (`publico`, solo `authenticated`; `anon` no tiene `execute`)
 
@@ -386,26 +386,36 @@ Es el **único** lugar que arma las líneas: la cotización y la creación lo us
 
 ### Lo que se escribe y lo que no
 
-`dominio.presupuestos_tienda` (nueva, `dominio`; RLS por organización, empresa accesible y `ventas`; `select` solo para `authenticated`; sin escritura por la API; únicas `(cuenta, clave_envio)` y `(comprobante)`), el comprobante con **todas** las columnas que arma el panel (paridad de columnas en el pgTAP), las líneas y el evento `presupuesto.creado_desde_tienda` (actor nulo; número, tienda y cliente Nº y nombre, sin correo ni teléfono). **No** llama a funciones de stock, reservas, cobros ni contrarreembolsos: el pgTAP cuenta las filas antes y después. `private.siguiente_numero_comprobante_org` numera con la organización explícita (el mismo `insert … on conflict` atómico que el panel).
+`dominio.presupuestos_tienda` (nueva, `dominio`; RLS por organización, empresa accesible y `ventas`; `select` solo para `authenticated`; sin escritura por la API; únicas `(cuenta, clave_envio)` y `(comprobante)`), el comprobante con **todas** las columnas que arma el panel (paridad de columnas en el pgTAP), las líneas y el evento `presupuesto.creado_desde_tienda` (actor nulo; el texto lleva número, **tienda**, cliente Nº y nombre, sin correo ni teléfono: «Presupuesto 00000012 pedido desde la tienda Tienda A por el cliente Nº 910 · Ana»; desvío de la spec, que no nombraba la tienda y es útil con varias tiendas). **No** llama a funciones de stock, reservas, cobros ni contrarreembolsos: el pgTAP cuenta las filas antes y después. `private.siguiente_numero_comprobante_org` numera con la organización explícita (el mismo `insert … on conflict` atómico que el panel).
 
 ### Lo que ve el operador
 
-- **Ventas › Presupuestos**: «Pendiente», la columna Operador dice «Tienda online (cliente)» (migración `listar_presupuestos_origen_tienda`; antes «Usuario sin nombre»).
-- **Ficha del comprobante**: chip «Creado desde la tienda por el cliente», Operador «Tienda online (cliente)» y la «Nota del cliente» (texto literal). Se edita, acepta, copia y anula con los flujos de siempre.
+- **Ventas › Presupuestos** (y el CSV de comprobantes y presupuestos): «Pendiente», la columna Operador dice «Tienda online (cliente)» (antes «Usuario sin nombre»). El origen se deriva del **vínculo real** (`dominio.presupuestos_tienda`), no del canal ni de un operador nulo: cambiar el canal no pierde la etiqueta y un presupuesto de panel con canal `tienda_online` y operador borrado **no** se rotula como de la tienda (`listar_presupuestos`, `private.comprobantes_consulta` y `obtener_comprobante`, migraciones `…100500` y `…100600`).
+- **Ficha del comprobante**: chip «Creado desde la tienda por el cliente», Operador «Tienda online (cliente)» y la «Nota del cliente» (texto literal). Se modifica, acepta y copia con los flujos de siempre. **Un presupuesto no se anula** (el flujo vigente solo anula facturas confirmadas): queda `pendiente` hasta que el operador lo acepta o lo convierte; el pgTAP lo fija igual para uno de la tienda que para uno de panel.
 - **Actividad**: el evento se rotula «Tienda online» en «Quién» (lista, detalle y exportación); los demás eventos sin actor siguen diciendo «Sistema».
-- Aviso al equipo por presupuesto nuevo, «Crear presupuesto desde la consulta», filtro por canal y validez por defecto: **fuera** (D-12, D-14, D-21, D-22), con seguimiento (T063).
+- Aviso al equipo por presupuesto nuevo, «Crear presupuesto desde la consulta», filtro por canal y validez por defecto: **fuera** (D-12, D-14, D-21, D-22), con seguimientos trazados en el tracker: **MSF-940** (aviso al equipo por presupuesto nuevo), **MSF-941** (crear presupuesto desde una consulta de pedido), **MSF-942** (filtro por canal en Presupuestos), **MSF-943** (validez por defecto) y **MSF-944** (retención y supresión de consultas, ítems de pedido y presupuestos de la tienda).
 
 ### Front (`apps/web`)
 
 `lib/tiendaPedido.ts` (`cotizarPresupuesto`, `crearPresupuesto` y sus traductores de estado; solo `producto_id` y `cantidad`, nunca precios), `pages/tienda-publica/lista/DialogoPresupuesto.tsx` («Tu presupuesto»: cotización del servidor, productos que no se pueden pedir listados por nombre, una sola petición en vuelo, «Reintentar» con la **misma** clave), «Pedir presupuesto» en `FormularioPedido` (solo con cuenta activa; «Enviar pedido» pasa a secundario) y la confirmación en `ConfirmacionPedido` (con «Ver en Mi cuenta» y el aviso si el total cambió). Panel: `lib/actividad.ts` (`quienDelEvento`), `pages/ventas/comprobante.tsx` y `presupuestos.tsx`.
 
+### Revisión independiente: correcciones (M-1 a M-4) y decisiones (I-1 a I-5)
+
+- **M-3 (cupo que sobrevive a un error)**: cotizar y crear toman el cupo de llamadas **antes** de un bloque propio con su manejador de excepciones; un error revierte solo ese bloque y el contador no se deshace (pgTAP: con el motor roto, las llamadas gastan cupo y la undécima del minuto es `limite`).
+- **M-4 (nota)**: se recorta con espacios, tabuladores y saltos de línea (una nota solo de saltos de línea es «sin nota» y el `CHECK` de la tabla es coherente) y se rechazan además U+061C y los ceros de ancho (U+200B a U+200D, U+2060, U+FEFF), con el **mismo conjunto** en `crear_presupuesto_tienda`, `enviar_lista_pedido` (migración `…100700`) y el front (`tiendaPedido.ts`).
+- **I-1 (cupo por IP compartido)**: el cupo de **5 por hora por IP y tienda** lo comparten el formulario de contacto, WhatsApp, la lista de pedido y el presupuesto (todos pasan por `registrar_envio_tienda`). Se evaluó un cupo propio por origen `presupuesto`: no es barato sin aflojar la protección conjunta (obligaría a cambiar `registrar_envio_tienda`, ya en `dokploy`, y a permitir hasta 5 envíos por cada origen desde la misma IP), así que **se deja compartido y documentado**. Quien sí tiene tope propio es la **cuenta**: 5 por día y 10 abiertos, más el cupo de llamadas por minuto.
+- **I-2 (costo del catálogo efectivo)**: medido con un catálogo de **5.000 productos** en una tienda (stack local de Postgres 17): `private.catalogo_tienda_efectivo` tarda **7 a 12 ms**; el motor completo (catálogo efectivo + precio de cada línea) tarda **14 ms con 1 línea y 43 a 48 ms con 50 líneas**. El cupo de llamadas por cuenta (10 y 20 por minuto) acota el costo máximo por cuenta a unos 2 s de CPU por minuto en el peor caso.
+- **I-3 (idempotencia)**: repetir una `clave_envio` devuelve el presupuesto **ya creado** con su total **actual** (si el operador lo modificó entre tanto, el total que ve el cliente en el reintento es el vigente, no el original) y no crea otro.
+- **I-4 (sin vencimiento automático)**: el presupuesto nace sin validez (D-13, D-21), nunca vence solo y el operador no puede anularlo: **10 abiertos bloquean a la cuenta hasta que el operador acepte o convierta alguno** (el cliente ve «Ya tenés presupuestos abiertos…»). Es una decisión de negocio; la validez por defecto es MSF-943.
+- **I-5 (retención y supresión)**: las consultas, los ítems de pedido, los presupuestos de la tienda y sus notas **no se purgan solos** y no hay supresión por titular automática: **MSF-944**. Mientras tanto se borra a mano (ver `docs/consultas.md`).
+
 ### Cómo apagarlo
 
-Con la bandera `tienda_pedidos` apagada las dos RPC responden `sin_acceso` sin tocar datos y la tienda no dibuja «Pedir presupuesto». Los presupuestos ya creados son comprobantes de Ventas: se **anulan** con el flujo normal, no se borran.
+Con la bandera `tienda_pedidos` apagada las dos RPC responden `sin_acceso` sin tocar datos y la tienda no dibuja «Pedir presupuesto». Los presupuestos ya creados son comprobantes de Ventas: **no se borran** (y un presupuesto no se anula: el operador los acepta, los convierte o los deja pendientes).
 
 ### Pruebas de B2
 
-- pgTAP `tienda_presupuesto_cliente.test.sql` (153 aserciones, adversarial: dos organizaciones, tres tiendas, cuentas de todos los estados): IDOR, `sin_acceso` idéntico, claves ajenas ignoradas, **paridad con el panel en todas las columnas**, `sin_precio`, cero efectos de stock y cobros, topes (5 por día, 10 abiertos, 50 líneas, cantidad 10.000, 20 entradas hostiles), cupo de llamadas, idempotencia, error a mitad sin saltos de numeración, actividad sin correo y superficie de `anon` (la lista cerrada no cambia: `tienda_capacidades.test.sql`).
+- pgTAP `tienda_presupuesto_cliente.test.sql` (182 aserciones, adversarial: dos organizaciones, tres tiendas, cuentas de todos los estados): IDOR, `sin_acceso` idéntico, claves ajenas ignoradas, **paridad con el panel en todas las columnas**, `sin_precio`, cero efectos de stock y cobros, topes (5 por día, 10 abiertos, 50 líneas, cantidad 10.000, 20 entradas hostiles), cupo de llamadas, idempotencia, error a mitad sin saltos de numeración, actividad sin correo y superficie de `anon` (la lista cerrada no cambia: `tienda_capacidades.test.sql`).
 - Vitest con axe a 320, 768 y 1440 px: `DialogoPresupuesto`, `ConfirmacionPedido`, los traductores y los rótulos del panel.
 - E2E `tienda-presupuesto.e2e.ts` (job `e2e-tienda`): el mayorista pide, el operador lo acepta; el sexto del día; **dos llamadas simultáneas con 4 creados crean una** (el lock con sesiones de verdad); misma clave = mismo número; sin cuenta, otra tienda, anónimo y bandera apagada.
 

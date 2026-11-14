@@ -15,7 +15,7 @@ Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia M
   Carga diferida: la pantalla se descarga al entrar.
 - Listado del más reciente al más antiguo: **Cuándo** (hora de `America/Argentina/Buenos_Aires`),
   **Tipo**, **Tienda** («Compartido» si el evento no es de una empresa), **Detalle** y **Quién**
-  («Sistema» si no hay actor). Nunca se muestran identificadores técnicos.
+  («Sistema» si no hay actor; «Tienda online» en el evento `presupuesto.creado_desde_tienda`, que pide un cliente desde la tienda y no tiene actor de panel). Nunca se muestran identificadores técnicos.
 - Filtros combinables: período (hoy / 7 / 30 días / todo), tienda, usuario y tipo; búsqueda
   «Buscar en la actividad» (sin distinguir mayúsculas ni tildes; `%` y `_` son literales); paginación
   en servidor («1–10 de N»).

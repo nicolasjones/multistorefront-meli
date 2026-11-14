@@ -279,8 +279,8 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(screen.getByText('Aceptado')).toBeInTheDocument()
   })
 
-  // MSF-176 · B2 · P-7 (FR-061): un presupuesto pedido por un cliente desde la tienda no tiene operador y tiene canal `tienda_online`.
-  const DE_LA_TIENDA = { ...COMPROBANTE, tipo: 'presupuesto' as const, numero: '00000012', estado: 'pendiente', canal: 'tienda_online' as const, operador_id: null, operador: 'Usuario sin nombre' }
+  // MSF-176 · B2 · P-7 (FR-061, M-1): el origen «tienda» lo decide la base por el vínculo real (`de_tienda`), no por el canal ni por un operador nulo.
+  const DE_LA_TIENDA = { ...COMPROBANTE, tipo: 'presupuesto' as const, numero: '00000012', estado: 'pendiente', canal: 'tienda_online' as const, operador_id: null, operador: 'Tienda online (cliente)', de_tienda: true }
 
   it('un presupuesto creado desde la tienda se rotula «Creado desde la tienda por el cliente», con operador «Tienda online (cliente)» y la nota de la persona como texto', async () => {
     mocks.obtenerComprobante.mockResolvedValue(DE_LA_TIENDA)
@@ -295,14 +295,21 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(mocks.obtenerNotaDePresupuestoDeTienda).toHaveBeenCalledWith('k-1')
   })
 
-  it('sin nota no aparece el campo «Nota del cliente»; un presupuesto con operador o de otro canal no lleva el rótulo ni lee la nota', async () => {
+  it('el rótulo sale del vínculo (de_tienda), no del canal: con el canal cambiado a mostrador se mantiene', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...DE_LA_TIENDA, canal: 'mostrador' as const })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('Creado desde la tienda por el cliente')).toBeInTheDocument()
+    expect(screen.getByLabelText('Operador')).toHaveValue('Tienda online (cliente)')
+  })
+
+  it('sin nota no aparece el campo «Nota del cliente»; un presupuesto de panel (aunque tenga canal tienda_online y operador nulo) no lleva el rótulo ni lee la nota', async () => {
     mocks.obtenerComprobante.mockResolvedValue(DE_LA_TIENDA)
     const { unmount } = render(arbol('/ventas/comprobantes/k-1'))
     expect(await screen.findByText('Creado desde la tienda por el cliente')).toBeInTheDocument()
     expect(screen.queryByLabelText('Nota del cliente')).not.toBeInTheDocument()
     unmount()
     mocks.obtenerNotaDePresupuestoDeTienda.mockClear()
-    for (const otro of [{ operador_id: 'u-1', operador: 'Lucía Gómez' }, { canal: 'mostrador' as const }]) {
+    for (const otro of [{ operador_id: 'u-1', operador: 'Lucía Gómez', de_tienda: false }, { operador_id: null, operador: 'Usuario sin nombre', de_tienda: false }, { operador: 'Usuario sin nombre', de_tienda: undefined }]) {
       mocks.obtenerComprobante.mockResolvedValue({ ...DE_LA_TIENDA, ...otro })
       const { unmount: cerrar } = render(arbol('/ventas/comprobantes/k-1'))
       expect(await screen.findByRole('heading', { name: 'Presupuesto 00000012' })).toBeInTheDocument()

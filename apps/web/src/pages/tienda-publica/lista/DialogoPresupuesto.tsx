@@ -7,6 +7,7 @@ import { formatearCantidad, formatearImporteArs } from '../../../lib/tiendaCuent
 import {
   cotizarPresupuesto,
   crearPresupuesto,
+  MENSAJES_PEDIDO,
   type Cotizacion,
   type ResultadoPresupuesto,
 } from '../../../lib/tiendaPedido'
@@ -19,6 +20,7 @@ export const LEYENDA_PRESUPUESTO =
   'Es un presupuesto, no una compra: no reserva stock ni se cobra nada. El precio puede ser menor que el de referencia de la lista porque incluye tu descuento y las promociones vigentes.'
 export const TEXTO_ERROR_PRESUPUESTO = 'No pudimos pedir tu presupuesto. Tu lista sigue acá: probá de nuevo.'
 export const TEXTO_LIMITE_CUENTA = 'Ya tenés presupuestos abiertos. Esperá nuestra respuesta para pedir otro.'
+export const TEXTO_NOTA_PRESUPUESTO = `${MENSAJES_PEDIDO.nota} Y no puede llevar caracteres que no podemos aceptar.`
 export const TEXTO_REVISAR_PRESUPUESTO = 'Revisá tu lista: hay productos que no se pueden pedir en un presupuesto.'
 const ID_TITULO = 'dialogo-presupuesto-titulo'
 
@@ -53,6 +55,9 @@ export function DialogoPresupuesto({ host, lineas, nota, claveEnvio, nombres, al
   const [intento, setIntento] = useState(0)
   const [confirmando, setConfirmando] = useState(false)
   const [resultado, setResultado] = useState<Exclude<ResultadoPresupuesto, { estado: 'exito' }> | null>(null)
+  // `limite` al confirmar: el botón queda deshabilitado hasta cumplirse la espera (con el tiempo que falta a la vista) y recién ahí se puede reintentar.
+  const [bloqueadoHasta, setBloqueadoHasta] = useState<number | null>(null)
+  const [ahora, setAhora] = useState(() => Date.now())
   const enVuelo = useRef(false)
   const titulo = useRef<HTMLHeadingElement | null>(null)
   const firmaLineas = JSON.stringify(lineas)
@@ -75,9 +80,20 @@ export function DialogoPresupuesto({ host, lineas, nota, claveEnvio, nombres, al
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host, firmaLineas, intento])
 
+  useEffect(() => {
+    if (bloqueadoHasta === null) return
+    const temporizador = setInterval(() => {
+      const hoy = Date.now()
+      setAhora(hoy)
+      if (hoy >= bloqueadoHasta) { setBloqueadoHasta(null); setResultado(null) }
+    }, 1000)
+    return () => clearInterval(temporizador)
+  }, [bloqueadoHasta])
+  const segundosRestantes = bloqueadoHasta === null ? 0 : Math.max(1, Math.ceil((bloqueadoHasta - ahora) / 1000))
+
   const nombreDe = useCallback((id: string | null) => (id ? nombres.get(id) ?? sinNombre : sinNombre), [nombres])
   const cotizacion = estado.fase === 'cotizado' ? estado.cotizacion : null
-  const bloqueada = cotizacion ? cotizacion.noDisponibles.length > 0 || cotizacion.sinPrecio.length > 0 || cotizacion.lineas.length === 0 : true
+  const bloqueada = (cotizacion ? cotizacion.noDisponibles.length > 0 || cotizacion.sinPrecio.length > 0 || cotizacion.lineas.length === 0 : true) || bloqueadoHasta !== null
 
   const confirmar = async () => {
     if (enVuelo.current || !cotizacion || bloqueada) return
@@ -94,6 +110,11 @@ export function DialogoPresupuesto({ host, lineas, nota, claveEnvio, nombres, al
         alSinAcceso()
         return
       }
+      if (r.estado === 'espera') {
+        const hasta = Date.now() + r.esperaSegundos * 1000
+        setAhora(Date.now())
+        setBloqueadoHasta(hasta)
+      }
       setResultado(r)
     } finally {
       enVuelo.current = false
@@ -105,9 +126,10 @@ export function DialogoPresupuesto({ host, lineas, nota, claveEnvio, nombres, al
     switch (r.estado) {
       case 'sin_precio': return `No pudimos calcular el precio de «${nombreDe(r.productoId)}». Quitalo de la lista o enviá el pedido sin presupuesto.`
       case 'no_disponible': return `«${nombreDe(r.productoId)}» ya no está disponible. Quitalo para continuar.`
-      case 'espera': { const m = minutosDeEspera(r.esperaSegundos); return `Hiciste varios envíos seguidos. Probá de nuevo en ${m} ${m === 1 ? 'minuto' : 'minutos'}.` }
+      case 'espera': { const m = minutosDeEspera(bloqueadoHasta === null ? r.esperaSegundos : segundosRestantes); return `Hiciste varios envíos seguidos. Probá de nuevo en ${m} ${m === 1 ? 'minuto' : 'minutos'}.` }
       case 'limite_cuenta': return TEXTO_LIMITE_CUENTA
-      case 'invalido': return TEXTO_REVISAR_PRESUPUESTO
+      // Cada campo con su mensaje: la nota no es «Revisá tu lista».
+      case 'invalido': return r.campos.includes('items') ? TEXTO_REVISAR_PRESUPUESTO : r.campos.includes('nota') ? TEXTO_NOTA_PRESUPUESTO : TEXTO_ERROR_PRESUPUESTO
       default: return TEXTO_ERROR_PRESUPUESTO
     }
   }
@@ -120,7 +142,7 @@ export function DialogoPresupuesto({ host, lineas, nota, claveEnvio, nombres, al
         {estado.fase === 'falla' ? <ErrorConReintento titulo="No pudimos calcular tu presupuesto." descripcion="Revisá tu conexión y probá de nuevo." alReintentar={() => setIntento((n) => n + 1)} /> : null}
         {estado.fase === 'invalido' ? <Alert severity="warning">{TEXTO_REVISAR_PRESUPUESTO}</Alert> : null}
         {estado.fase === 'espera' ? (
-          <Alert severity="warning">
+          <Alert severity="warning" sx={{ alignItems: 'center' }} action={<Button color="inherit" onClick={() => setIntento((n) => n + 1)} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Reintentar</Button>}>
             {(() => { const m = minutosDeEspera(estado.segundos); return `Hiciste varios envíos seguidos. Probá de nuevo en ${m} ${m === 1 ? 'minuto' : 'minutos'}.` })()}
           </Alert>
         ) : null}
@@ -146,10 +168,10 @@ export function DialogoPresupuesto({ host, lineas, nota, claveEnvio, nombres, al
         ) : null}
         {resultado ? (
           <Alert
-            severity={resultado.estado === 'falla' ? 'error' : 'warning'}
+            severity={resultado.estado === 'falla' || (resultado.estado === 'invalido' && !resultado.campos.includes('items') && !resultado.campos.includes('nota')) ? 'error' : 'warning'}
             role="alert"
             sx={{ mt: 2, alignItems: 'center' }}
-            action={resultado.estado === 'falla' ? <Button color="inherit" onClick={() => { void confirmar() }} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Reintentar</Button> : undefined}
+            action={resultado.estado === 'falla' || (resultado.estado === 'invalido' && !resultado.campos.includes('items') && !resultado.campos.includes('nota')) ? <Button color="inherit" onClick={() => { void confirmar() }} sx={{ minHeight: (tema) => tema.spacing(5.5) }}>Reintentar</Button> : undefined}
             data-testid="resultado-presupuesto"
           >
             {mensajeResultado(resultado)}

@@ -26,6 +26,8 @@ Tres entradas según lo que necesites:
 | Actividad e historial | [actividad.md](actividad.md) |
 | Inicio: tablero de ventas y stock, alertas, búsqueda global y carga del dólar (épicas MSF-156 y MSF-824) | [inicio-y-alertas.md](inicio-y-alertas.md), [busqueda-global.md](busqueda-global.md) |
 | Revisión de seguridad del tablero de Inicio (MSF-824) | [seguridad-inicio-tablero.md](seguridad-inicio-tablero.md) |
+| Tienda: «Mi cuenta», lista de pedido y presupuesto desde la tienda (épica MSF-176) | [tienda-compra-y-cuentas.md](tienda-compra-y-cuentas.md) |
+| Revisión de seguridad de la tienda: compra y cuentas (MSF-176) | [seguridad-tienda-compra-y-cuentas.md](seguridad-tienda-compra-y-cuentas.md) |
 | Cotización del dólar: carga diaria | [cotizacion-carga-diaria.md](cotizacion-carga-diaria.md) |
 | Cotización del dólar: vista previa y recálculo | [cotizacion-recalculo.md](cotizacion-recalculo.md) |
 | Clientes, catálogo, stock | [clientes.md](clientes.md), [catalogo.md](catalogo.md), [stock.md](stock.md) |

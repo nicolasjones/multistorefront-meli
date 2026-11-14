@@ -1,8 +1,9 @@
 -- MSF-176 · Tienda compra y cuentas, historia B2 (presupuesto desde la tienda), T058. FR-061; spec «Pantallas y textos» P-7.
 --
--- `public.listar_presupuestos` (misma firma, mismas columnas y mismos grants) muestra «Tienda online (cliente)» en la columna Operador cuando el presupuesto NO tiene
--- operador y su canal es `tienda_online` (todo presupuesto creado por `publico.crear_presupuesto_tienda`): hoy diría «Usuario sin nombre». Un presupuesto sin operador de
--- OTRO canal, o con operador, no cambia. Sin columna ni filtro nuevo (el filtro por canal queda como seguimiento).
+-- `public.listar_presupuestos` (misma firma, mismas columnas y mismos grants) muestra «Tienda online (cliente)» en la columna Operador cuando el presupuesto tiene el VÍNCULO
+-- real con la cuenta que lo pidió (`dominio.presupuestos_tienda`, que solo escribe `publico.crear_presupuesto_tienda`): hoy diría «Usuario sin nombre». Se deriva del vínculo y
+-- no de `canal = 'tienda_online'` + `operador_id` nulo (M-1 de la revisión): cambiar el canal no pierde la etiqueta y un presupuesto de panel con canal tienda_online y
+-- operador borrado NO se rotula como de la tienda. Sin columna ni filtro nuevo (el filtro por canal queda como seguimiento: MSF-942).
 --
 -- Esquema (Principio VII): sin tablas; función de lectura sobre las mismas tablas de `20261204150200`. Migración aditiva.
 -- Reversión (migración posterior): restaurar la función al cuerpo de `20261204150200_listar_presupuestos.sql`.
@@ -62,7 +63,8 @@ begin
   base as (
     select c.id, c.numero, c.numero_entero, c.empresa_id, v.nombre as empresa, c.fecha,
            cl.nombre as cliente,
-           case when c.operador_id is null and c.canal = 'tienda_online' then 'Tienda online (cliente)'
+           case when exists (select 1 from dominio.presupuestos_tienda pt where pt.comprobante_id = c.id and pt.organizacion_id = c.organizacion_id)
+                then 'Tienda online (cliente)'
                 else coalesce(nullif(btrim(concat_ws(' ', p.nombre, p.apellido)), ''), 'Usuario sin nombre') end as operador,
            c.valido_hasta,
            case when c.estado = 'pendiente' and c.valido_hasta is not null and c.valido_hasta < v_hoy

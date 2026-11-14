@@ -36,7 +36,6 @@ import {
   validarComprobante,
   esPresupuestoDeTienda,
   ETIQUETA_CREADO_DESDE_TIENDA,
-  OPERADOR_TIENDA_ONLINE,
   MENSAJE_CONFLICTO_COMPROBANTE,
   type CanalVenta,
   type ClienteComprobante,
@@ -888,7 +887,7 @@ export function ComprobanteVenta() {
                   <TextField
                     label="Operador"
                     fullWidth
-                    value={deLaTienda ? OPERADOR_TIENDA_ONLINE : comprobante?.operador ?? 'Vos'}
+                    value={comprobante?.operador ?? 'Vos'}
                     helperText={esNuevo ? 'Se registra con tu usuario al guardar.' : undefined}
                     slotProps={{ input: { readOnly: true } }}
                   />

@@ -152,6 +152,8 @@ Al confirmar, la factura pasa a **Pendiente** y entra al circuito de cobro y de 
 
 En **Ventas → Presupuestos** ves todos los presupuestos con **Comprobante**, **Tienda**, **Fecha**, **Cliente**, **Operador**, **Válido hasta**, **Estado** y **Total**. Podés buscar por cliente o número y filtrar por estado.
 
+**Presupuestos pedidos desde la tienda.** Cuando un cliente con cuenta pide un presupuesto desde la tienda, aparece acá como cualquier otro: **Pendiente**, con la columna **Operador** en **Tienda online (cliente)** (no tiene operador). Al abrirlo ves el rótulo **Creado desde la tienda por el cliente**, el campo **Operador** con ese mismo texto y, si el cliente la escribió, la **Nota del cliente**. Lo podés modificar, aceptar o copiar con los flujos de siempre; la tienda no lo toca después de crearlo. Un presupuesto nunca se anula (ni este ni los demás): queda pendiente hasta que lo aceptás o lo convertís, y mientras el cliente tenga 10 abiertos no puede pedir otro.
+
 | Estado | Qué significa |
 |---|---|
 | **Pendiente** | Todavía no lo aceptó el cliente. |

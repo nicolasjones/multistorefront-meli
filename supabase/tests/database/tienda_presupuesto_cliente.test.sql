@@ -15,7 +15,7 @@
 --   sin tocar datos; (n) el evento de actividad (actor nulo, número y cliente, sin correo ni teléfono).
 begin;
 
-select plan(153);
+select plan(182);
 
 -- ============================================================================
 -- Fixture
@@ -789,6 +789,99 @@ select is((select l.operador from public.listar_presupuestos(null, null, null, 1
 reset role;
 
 -- ============================================================================
+-- Q10: el operador modifica, copia, acepta y anula un presupuesto SIN operador_id con los flujos de siempre
+-- ============================================================================
+create temp table ids as
+select (select comprobante_id from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000010') as tienda,
+       (select comprobante_id from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000030') as tienda2,
+       (select comprobante_id from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000020') as tienda3,
+       (pg_temp.fila('panel_cab') ->> 'id')::uuid as panel;
+grant all on ids to public;
+select pg_temp.como('f3000000-0000-0000-0000-000000000007', '10.55.0.1');
+select is((select operador_id from dominio.comprobantes_venta where id = (select tienda from ids)), null::uuid, 'Q10: el presupuesto de la tienda no tiene operador');
+-- Modificar: reemplazar las líneas (con el bloqueo optimista del comprobante).
+select lives_ok($$select public.guardar_lineas_comprobante((select tienda from ids),
+    jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000002', 'cantidad', 2)),
+    (select updated_at from dominio.comprobantes_venta where id = (select tienda from ids)))$$,
+  'Q10: el operador MODIFICA las líneas de un presupuesto de la tienda (operador_id nulo)');
+select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = (select tienda from ids)), 1, 'Q10: modificar dejó la línea nueva');
+select is((select operador_id from dominio.comprobantes_venta where id = (select tienda from ids)), null::uuid, 'Q10: modificar no le asigna operador (sigue siendo de la tienda)');
+-- Copiar: crea un presupuesto pendiente nuevo con las líneas, a nombre del operador que copia y SIN vínculo de la tienda.
+select lives_ok($$select public.copiar_presupuesto((select tienda2 from ids))$$, 'Q10: el operador COPIA un presupuesto de la tienda');
+select is((select count(*)::int from dominio.comprobantes_venta c where c.tipo = 'presupuesto' and c.operador_id = 'f3000000-0000-0000-0000-000000000007'
+             and c.id <> (select panel from ids) and not exists (select 1 from dominio.presupuestos_tienda pt where pt.comprobante_id = c.id)), 1,
+  'Q10: la copia es del operador (con su id) y no tiene vínculo de la tienda');
+-- Aceptar.
+select lives_ok($$select public.aceptar_presupuesto((select tienda2 from ids))$$, 'Q10: el operador ACEPTA un presupuesto de la tienda');
+select is((select estado from dominio.comprobantes_venta where id = (select tienda2 from ids)), 'aceptado', 'Q10: queda aceptado');
+-- «Anular»: el flujo vigente NO anula presupuestos (solo facturas confirmadas): se comporta IGUAL con un presupuesto sin operador que con uno de panel.
+create temp table anular_res (k text primary key, v text);
+grant all on anular_res to public;
+do $$
+declare v_c uuid; v_k text; v_r text;
+begin
+  for v_k, v_c in select 'tienda', (select tienda3 from ids) union all select 'panel', (select panel from ids) loop
+    begin
+      perform public.anular_comprobante(v_c, 'prueba', (select updated_at from dominio.comprobantes_venta where id = v_c));
+      v_r := 'ok';
+    exception when others then
+      v_r := sqlstate;
+    end;
+    insert into anular_res values (v_k, v_r);
+  end loop;
+end $$;
+select is((select v from anular_res where k = 'tienda'), (select v from anular_res where k = 'panel'),
+  'Q10: anular un presupuesto de la tienda (operador nulo) da el MISMO resultado que anular uno de panel');
+select is((select v from anular_res where k = 'tienda'), '22023', 'Q10: y es el rechazo vigente («Un presupuesto no se anula»): un presupuesto nunca se anula, ni de la tienda ni de panel');
+reset role;
+
+-- ============================================================================
+-- M-1 y M-2: el origen «Tienda online» sale del VÍNCULO real, no de canal + operador nulo
+-- ============================================================================
+update dominio.comprobantes_venta set canal = 'mostrador' where id = (select tienda from ids);
+update dominio.comprobantes_venta set canal = 'tienda_online', operador_id = null where id = (select panel from ids);
+select pg_temp.como('f3000000-0000-0000-0000-000000000007', '10.55.0.2');
+select is((select operador from public.listar_presupuestos(null, null, null, 1, 200) where id = (select tienda from ids)), 'Tienda online (cliente)',
+  'M-1: cambiar el canal a mostrador NO pierde la etiqueta «Tienda online (cliente)» en Presupuestos');
+select is((select operador from public.listar_presupuestos(null, null, null, 1, 200) where id = (select panel from ids)), 'Usuario sin nombre',
+  'M-1: un presupuesto de panel con canal tienda_online y operador borrado NO se rotula como de la tienda');
+select is(public.obtener_comprobante((select tienda from ids)) ->> 'de_tienda', 'true', 'M-1: obtener_comprobante marca de_tienda del presupuesto con vínculo (aunque su canal sea mostrador)');
+select is(public.obtener_comprobante((select tienda from ids)) ->> 'operador', 'Tienda online (cliente)', 'M-1: y su operador es «Tienda online (cliente)»');
+select is(public.obtener_comprobante((select panel from ids)) ->> 'de_tienda', 'false', 'M-1: el de panel con canal tienda_online sin operador NO es de_tienda');
+select is(public.obtener_comprobante((select panel from ids)) ->> 'operador', 'Usuario sin nombre', 'M-1: y su operador no se rotula como de la tienda');
+reset role;
+-- M-2: la consulta común de Comprobantes (listado y CSV de comprobantes y presupuestos) aplica la misma regla.
+select is((select c.operador from private.comprobantes_consulta('11111111-1111-1111-1111-111111111111', array['e1000000-0000-0000-0000-000000000001']::uuid[], array['presupuesto'],
+            null, null, null, null, null, null, 200, 0) c where c.id = (select tienda from ids)), 'Tienda online (cliente)', 'M-2: comprobantes_consulta (CSV y listados) rotula el origen por el vínculo');
+select is((select c.operador from private.comprobantes_consulta('11111111-1111-1111-1111-111111111111', array['e1000000-0000-0000-0000-000000000001']::uuid[], array['presupuesto'],
+            null, null, null, null, null, null, 200, 0) c where c.id = (select panel from ids)), 'Usuario sin nombre', 'M-2: y no rotula el de panel con canal tienda_online sin operador');
+
+-- ============================================================================
+-- M-4: la nota (recorte con saltos de línea y caracteres invisibles bloqueados)
+-- ============================================================================
+delete from public.limite_pedidos_publicos;
+select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.60.0.1');
+insert into res values ('nota_saltos', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), E'\n\n \t\r\n', 'c0000000-0000-0000-0000-0000000005a1'));
+insert into res values ('nota_061c', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), E'hola\u061cchau', 'c0000000-0000-0000-0000-0000000005a2'));
+insert into res values ('nota_200b', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), E'hola\u200bchau', 'c0000000-0000-0000-0000-0000000005a3'));
+insert into res values ('nota_200d', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), E'hola\u200dchau', 'c0000000-0000-0000-0000-0000000005a4'));
+insert into res values ('nota_2060', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), E'hola\u2060chau', 'c0000000-0000-0000-0000-0000000005a5'));
+insert into res values ('nota_feff', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), E'\ufeffhola', 'c0000000-0000-0000-0000-0000000005a6'));
+reset role;
+select is(pg_temp.fila('nota_saltos') ->> 'estado', 'ok', 'M-4: una nota solo de saltos de línea y espacios es «sin nota»: el presupuesto se crea');
+select is((select nota from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-0000000005a1'), null::text, 'M-4: y no guarda una nota vacía (el CHECK es coherente)');
+select is((select count(*)::int from res where k in ('nota_061c', 'nota_200b', 'nota_200d', 'nota_2060', 'nota_feff') and v = '{"estado":"invalido","campos":["nota"]}'::jsonb), 5,
+  'M-4: U+061C, U+200B, U+200D, U+2060 y U+FEFF en la nota se rechazan (invalido nota)');
+-- El MISMO conjunto en la lista de pedido (B1, `enviar_lista_pedido`, migración 20270322100700).
+select pg_temp.anonimo('10.80.0.1');
+insert into res values ('b1_200b', publico.enviar_lista_pedido('pres-a.ejemplo.com', 'Ana', 'ana@example.com', E'a\u200bb', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), 'c0000000-0000-0000-0000-0000000007a1'));
+reset role;
+select is(pg_temp.fila('b1_200b'), '{"estado":"invalido","campos":["nota"]}'::jsonb, 'M-4: la lista de pedido (B1) rechaza también los caracteres invisibles en la nota (mismo conjunto que B2 y el front)');
+select throws_ok($$insert into dominio.presupuestos_tienda (organizacion_id, empresa_id, cuenta_cliente_id, cliente_id, comprobante_id, clave_envio, nota)
+  values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', (select tienda from ids), gen_random_uuid(), E'\n \t')$$,
+  '23514', null, 'M-4: el CHECK de la tabla rechaza una nota solo de saltos de línea');
+
+-- ============================================================================
 -- (l) Ninguna respuesta lleva texto de Postgres ni datos internos
 -- ============================================================================
 select is((select count(*)::int from res where k !~ '^panel_(cab|lineas)$' and v::text ~* '(sqlstate|sqlerrm|violates|constraint|relation "|column "|duplicate key|syntax error|permission denied|row-level|pg_catalog|dominio\.|public\.|publico\.|private\.)'), 0,
@@ -798,6 +891,33 @@ select is((select count(*)::int from res where k !~ '^panel_(cab|lineas)$' and n
   '(l) todos los estados pertenecen a la lista cerrada del contrato');
 select is((select count(*)::int from res where k !~ '^panel_(cab|lineas)$' and v::text ~* '(organizacion_id|empresa_id|cliente_id|cuenta_cliente_id|comprobante_id|alicuota_id|promocion_id|precio_referencia|descuento_pct|operador)'), 0,
   '(l) ninguna respuesta filtra identificadores internos, referencias, promociones ni descuentos');
+
+-- ============================================================================
+-- M-3: el cupo de llamadas SOBREVIVE a una excepción (no se revierte con el bloque que falla)
+-- ============================================================================
+-- Se reemplaza el motor por uno que falla (dentro de esta transacción, que se deshace al final) y se cuenta el contador de la cuenta antes y después.
+create or replace function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
+returns table (orden integer, producto_id uuid, estado text, descripcion text, codigo text, cantidad integer, precio_unitario numeric, escala text, alicuota_id uuid,
+  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean)
+language plpgsql security definer set search_path = '' as $$
+begin
+  raise exception 'falla provocada del motor';
+end $$;
+delete from public.limite_pedidos_publicos;
+select pg_temp.como('f3000000-0000-0000-0000-000000000002', '10.70.0.1');
+insert into res values ('m3_cotizar_1', publico.cotizar_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000001', '1')));
+insert into res values ('m3_crear_1', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000001', '1'), null, 'c0000000-0000-0000-0000-0000000006a1'));
+reset role;
+select is(pg_temp.fila('m3_cotizar_1'), '{"estado":"error"}'::jsonb, 'M-3: cotizar con el motor roto responde error genérico');
+select is(pg_temp.fila('m3_crear_1'), '{"estado":"error"}'::jsonb, 'M-3: crear con el motor roto responde error genérico');
+select is((select pedidos from public.limite_pedidos_publicos where visitante = 'cotizacion|ca000000-0000-0000-0000-000000000003'), 1, 'M-3: la cotización fallida GASTÓ cupo de llamadas (el contador no se revirtió)');
+select is((select pedidos from public.limite_pedidos_publicos where visitante = 'presupuesto|ca000000-0000-0000-0000-000000000003'), 1, 'M-3: la creación fallida GASTÓ cupo de llamadas (el contador no se revirtió)');
+-- Y por lo tanto el abuso por la vía del error también tiene límite: 11 llamadas con el motor roto en el minuto, la 11 es `limite`.
+select pg_temp.como('f3000000-0000-0000-0000-000000000002', '10.70.0.2');
+insert into res select 'm3_rep_' || lpad(n::text, 2, '0'), publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000001', '1'), null, gen_random_uuid()) from generate_series(1, 10) n;
+reset role;
+select is((select count(*)::int from res where k ~ '^m3_rep_' and v ->> 'estado' = 'error'), 9, 'M-3: con el motor roto las primeras llamadas del minuto dan error...');
+select is((select count(*)::int from res where k ~ '^m3_rep_' and v ->> 'estado' = 'limite'), 1, 'M-3: ...y a la undécima llamada del minuto (contando la de arriba) responde limite: el cupo sobrevivió a las excepciones');
 
 select * from finish();
 rollback;

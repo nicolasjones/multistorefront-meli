@@ -95,6 +95,9 @@ begin
     return jsonb_build_object('estado', 'limite', 'espera_segundos', (v_limite ->> 'espera_segundos')::integer);
   end if;
 
+  -- Todo lo que sigue va en un bloque propio con su manejador: una excepción revierte SOLO este bloque y el cupo de llamadas (arriba) sobrevive (M-3 de la revisión): si no, un
+  -- error provocable devolvería `error` sin gastar el cupo y el abuso por esa vía no tendría límite.
+  begin
   v_items := private.validar_items_pedido(items);
   if v_items is null then
     return jsonb_build_object('estado', 'invalido', 'campos', jsonb_build_array('items'));
@@ -133,7 +136,12 @@ begin
     'no_disponibles', v_no_disponibles,
     'sin_precio', v_sin_precio
   );
+  exception when others then
+    raise warning 'cotizar_presupuesto_tienda falló: %', sqlstate;
+    return jsonb_build_object('estado', 'error');
+  end;
 exception when others then
+  -- Solo llegan acá los fallos de la bandera, la cuenta o el cupo (antes del bloque de arriba).
   raise warning 'cotizar_presupuesto_tienda falló: %', sqlstate;
   return jsonb_build_object('estado', 'error');
 end;
@@ -158,8 +166,9 @@ as $$
 #variable_conflict use_variable
 declare
   -- Caracteres que se rechazan en la nota: de control (salvo el salto de línea), separadores de línea Unicode y marcas de dirección del texto.
-  c_prohibidos_nota constant text := '[\u0001-\u0009\u000b-\u001f\u007f-\u009f  ‎‏‪-‮⁦-⁩]';
-  c_prohibidos_linea constant text := '[\u0001-\u001f\u007f-\u009f  ‎‏‪-‮⁦-⁩]';
+  -- (M-4: se suman U+061C y los ceros de ancho U+200B a U+200D, U+2060 y U+FEFF; el mismo conjunto que el front, `tiendaPedido.ts`.)
+  c_prohibidos_nota constant text := '[\u0001-\u0009\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]';
+  c_prohibidos_linea constant text := '[\u0001-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]';
   v_cuenta record;
   v_limite jsonb;
   v_nota text;
@@ -194,8 +203,11 @@ begin
     return jsonb_build_object('estado', 'limite', 'espera_segundos', (v_limite ->> 'espera_segundos')::integer);
   end if;
 
-  -- Entradas: solo `items`, `nota` y `clave_envio`. Ninguna otra clave del jsonb se lee.
-  v_nota := nullif(btrim(replace(coalesce(nota, ''), E'\r\n', E'\n')), '');
+  -- Todo lo que sigue va en un bloque propio con su manejador (M-3 de la revisión): una excepción revierte SOLO este bloque y el cupo de llamadas (arriba) sobrevive.
+  begin
+  -- Entradas: solo `items`, `nota` y `clave_envio`. Ninguna otra clave del jsonb se lee. La nota se recorta con espacios, tabuladores y saltos de línea (una nota solo de
+  -- saltos de línea es «sin nota», no una nota vacía guardada: coherente con el CHECK de la tabla).
+  v_nota := nullif(btrim(replace(coalesce(nota, ''), E'\r\n', E'\n'), E' \t\n\r'), '');
   if v_nota is not null and (length(v_nota) > 500 or v_nota ~ c_prohibidos_nota) then
     v_campos := array_append(v_campos, 'nota');
   end if;
@@ -330,7 +342,12 @@ begin
     raise warning 'crear_presupuesto_tienda falló: %', sqlstate;
     return jsonb_build_object('estado', 'error');
   end;
+  exception when others then
+    raise warning 'crear_presupuesto_tienda falló: %', sqlstate;
+    return jsonb_build_object('estado', 'error');
+  end;
 exception when others then
+  -- Solo llegan acá los fallos de la bandera, la cuenta o el cupo (antes del bloque de arriba).
   raise warning 'crear_presupuesto_tienda falló: %', sqlstate;
   return jsonb_build_object('estado', 'error');
 end;

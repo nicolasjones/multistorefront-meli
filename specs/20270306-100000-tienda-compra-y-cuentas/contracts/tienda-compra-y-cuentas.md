@@ -111,6 +111,12 @@ Funciones nuevas del esquema `publico` (superficie de la tienda; `publico` sigue
 
 ---
 
+### Lectura del panel (B2)
+
+El origen «tienda» de un presupuesto se deriva del **vínculo real** `dominio.presupuestos_tienda` (no del canal ni del operador nulo): `public.listar_presupuestos`, `private.comprobantes_consulta` (listado y CSV de Ventas) y `public.obtener_comprobante` rotulan el operador «Tienda online (cliente)» y este último suma la clave `de_tienda` (boolean). La «Nota del cliente» se lee de `dominio.presupuestos_tienda.nota` (RLS por organización, empresa accesible y `ventas`).
+
+---
+
 ## Matriz de permisos y privilegios (probada con pgTAP)
 
 | Objeto | `anon` | `authenticated` | `service_role` |
@@ -127,7 +133,7 @@ Funciones nuevas del esquema `publico` (superficie de la tienda; `publico` sigue
 
 | Tipo | Cuándo | Detalle (sin correo ni contacto) |
 |---|---|---|
-| `presupuesto.creado_desde_tienda` | B2, misma transacción que el alta | `Presupuesto <número> pedido desde la tienda <nombre> por el cliente Nº <n> · <nombre>` (empresa = la de la tienda; actor nulo, rotulado «Tienda online» en Actividad) |
+| `presupuesto.creado_desde_tienda` | B2, misma transacción que el alta | `Presupuesto <número> pedido desde la tienda <nombre de la tienda> por el cliente Nº <n> · <nombre del cliente>` (empresa = la de la tienda; actor nulo, rotulado «Tienda online» en Actividad) |
 
 ## Líneas del presupuesto: columnas que completa B2 (inventario verificado contra `20270310100200_lineas_precio_promocional.sql`)
 

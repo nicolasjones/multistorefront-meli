@@ -35,7 +35,8 @@ create table if not exists dominio.presupuestos_tienda (
   clave_envio uuid not null,
   nota text,
   creado_en timestamptz not null default now(),
-  constraint presupuestos_tienda_nota_ck check (nota is null or (btrim(nota) <> '' and length(nota) <= 500)),
+  -- Coherente con el recorte de la RPC: espacios, tabuladores y saltos de línea (una nota solo de saltos de línea no se guarda).
+  constraint presupuestos_tienda_nota_ck check (nota is null or (btrim(nota, E' \t\n\r') <> '' and length(nota) <= 500)),
   constraint presupuestos_tienda_clave_uq unique (cuenta_cliente_id, clave_envio),
   constraint presupuestos_tienda_comprobante_uq unique (comprobante_id),
   constraint presupuestos_tienda_comprobante_fk
