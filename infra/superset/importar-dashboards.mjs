@@ -16,6 +16,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { argumentValue, redactError } from '../../scripts/operaciones.mjs';
 import { conexionesDelDirectorio, empaquetarDashboards } from './empaquetar-dashboards.mjs';
+import { datasetsPermitidos } from './datasets-tablero.mjs';
 
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -46,6 +47,13 @@ export function validarReportes(manifiesto) {
     }
     if (reporte.seccion !== undefined && reporte.seccion !== null && String(reporte.seccion).trim() === '') {
       throw new Error(`El reporte ${reporte.nombre} tiene una sección vacía.`);
+    }
+    if (reporte.accion_requerida !== undefined && reporte.accion_requerida !== null && String(reporte.accion_requerida).trim() === '') {
+      throw new Error(`El reporte ${reporte.nombre} tiene una acción requerida vacía.`);
+    }
+    if (reporte.datasets_permitidos_extra !== undefined
+      && (!Array.isArray(reporte.datasets_permitidos_extra) || !reporte.datasets_permitidos_extra.every((n) => /^[a-z0-9_]+$/.test(n)))) {
+      throw new Error(`El reporte ${reporte.nombre} tiene "datasets_permitidos_extra" y debe ser un arreglo de nombres de dataset (a-z, 0-9, _).`);
     }
     if (reporte.filtro_empresa !== undefined && typeof reporte.filtro_empresa !== 'boolean') {
       throw new Error(`El reporte ${reporte.nombre} tiene "filtro_empresa" y debe ser booleano.`);
@@ -197,6 +205,13 @@ export async function registrarReportes({ reportes, fetch, config }) {
       superset_dashboard_uuid: reporte.dashboard_uuid,
       nombre: reporte.nombre,
       seccion: reporte.seccion ?? null,
+      // `accion_requerida`: acción de la matriz (p. ej. `ver_costos`) que el reporte exige además de la sección. Se envía
+      // siempre (null si no se declara) para que quitarla de reportes.json también la quite de la base.
+      accion_requerida: reporte.accion_requerida ?? null,
+      // `datasets_permitidos`: allowlist de datasets del tablero (se deriva de los YAML + `datasets_permitidos_extra`).
+      // El token del tablero queda vedado, por regla rls `1 = 0`, para todo dataset de Superset que no esté acá.
+      // Sin allowlist calculable (paquete .zip sin directorio) no se toca la que ya tiene la base.
+      ...(Array.isArray(reporte.datasets_permitidos) ? { datasets_permitidos: reporte.datasets_permitidos } : {}),
       // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente = `false`.
       filtro_empresa: reporte.filtro_empresa === true,
     };
@@ -293,6 +308,12 @@ export async function ejecutar({ args, fetch = globalThis.fetch, env = process.e
 
   if (!manifiesto) return { registrados: [] };
   const reportes = validarReportes(manifiesto);
+  if (directorio) {
+    // Allowlist de datasets de cada tablero, derivada de los YAML versionados (ver datasets-tablero.mjs).
+    for (const reporte of reportes) reporte.datasets_permitidos = await datasetsPermitidos(directorio, reporte);
+  } else {
+    console.warn('Sin --directorio no se puede derivar la allowlist de datasets (datasets_permitidos): se conserva la que ya tiene cada reporte.');
+  }
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPERSET_REPORTE_CREADO_POR) {
     console.warn('reportes.json presente, pero faltan SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY o SUPERSET_REPORTE_CREADO_POR: no se registraron reportes.');
     return { registrados: [] };
