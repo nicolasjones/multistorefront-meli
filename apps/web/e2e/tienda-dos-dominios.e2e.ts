@@ -97,4 +97,39 @@ test.describe('Tienda online · dos dominios (SC-003)', () => {
       }
     }
   })
+
+  // MSF-848: el estilo del encabezado y las mayúsculas son configuración de la identidad, no de la tienda: cada
+  // dominio muestra el suyo (MundoJC oscuro y con mayúsculas; San Javucho claro y sin ellas).
+  test('el estilo del encabezado y las mayúsculas salen de la identidad de cada tienda', async ({ browser }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    const config = [
+      { ...TIENDAS[0], estilo: 'oscuro', mayusculas: true, transformacion: 'uppercase' },
+      { ...TIENDAS[1], estilo: 'claro', mayusculas: false, transformacion: 'none' },
+    ]
+    try {
+      for (const t of config) {
+        await rest('tienda_identidad?on_conflict=empresa_id', {
+          empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color, estilo_heroe: t.estilo, titulos_mayusculas: t.mayusculas,
+        }, 'dominio', UPSERT_FUSIONAR)
+        await rest('tienda_contenido?on_conflict=empresa_id', {
+          empresa_id: t.empresa, organizacion_id: t.organizacion, titulo: `Héroe ${t.nombre} ${sufijo}`, texto_boton: 'Ver catálogo', boton_destino: 'catalogo',
+        }, 'dominio', UPSERT_FUSIONAR)
+      }
+      for (const t of config) {
+        const contexto = await browser.newContext()
+        const page = await contexto.newPage()
+        await page.goto(`http://${t.host}:${puerto}/`)
+        const banner = page.getByTestId('banner-home')
+        await expect(banner).toHaveAttribute('data-estilo', t.estilo)
+        await expect(page.getByRole('heading', { level: 1, name: `Héroe ${t.nombre} ${sufijo}` })).toHaveCSS('text-transform', t.transformacion)
+        await expect(banner.getByRole('link', { name: 'Ver catálogo' })).toHaveCSS('text-transform', t.transformacion)
+        await contexto.close()
+      }
+    } finally {
+      for (const t of config) {
+        await borrar('tienda_identidad', `empresa_id=eq.${t.empresa}`)
+        await borrar('tienda_contenido', `empresa_id=eq.${t.empresa}`)
+      }
+    }
+  })
 })

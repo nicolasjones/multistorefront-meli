@@ -1,4 +1,4 @@
-import { Box } from '@mui/material'
+import { Box, type Theme } from '@mui/material'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
@@ -6,7 +6,8 @@ import { categoriasPrincipales, cuantasEntran, hayMasCategorias } from '../../..
 import { ErrorConReintento } from '../ErrorConReintento'
 import { ANCHO_MAXIMO_TIENDA, LINEA_SUAVE, MARGEN_LATERAL_TIENDA } from './medidas'
 
-// Barra de categorías (prototipo MJC_Home): en mayúsculas, 15 px, 600, con subrayado de 3 px en la activa (color primario).
+// Barra de categorías (prototipo MJC_Home): 15 px, 600, con subrayado de 3 px en la activa (color primario). Las mayúsculas y su
+// espaciado de .04em (MJC_Home sí, SJ_Home no) salen de la identidad (`titulosMayusculas`, MSF-848; por defecto sí).
 const estiloEnlace = {
   display: 'inline-block',
   whiteSpace: 'nowrap',
@@ -14,8 +15,8 @@ const estiloEnlace = {
   px: '4px',
   color: 'text.primary',
   textDecoration: 'none',
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
+  textTransform: (tema: Theme) => (tema.tienda?.titulosMayusculas ?? true ? 'uppercase' : 'none'),
+  letterSpacing: (tema: Theme) => (tema.tienda?.titulosMayusculas ?? true ? '.04em' : 'normal'),
   fontSize: 15, // estilos-sueltos: ok
   fontWeight: 600,
   borderBottom: 3,
