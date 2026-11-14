@@ -131,6 +131,7 @@
     "/roles/list",
     "/seguimiento",
     "/service-tecnico/estados",
+    "/service-tecnico/etiqueta",
     "/service-tecnico/modelos",
     "/service-tecnico/orden-ingreso",
     "/service-tecnico/remito-entrega",
@@ -1153,7 +1154,11 @@
     {
       "slug": "20270316-100000-tiendas-hallazgos-reauditoria",
       "titulo": "Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)"
+    },
+    {
+      "slug": "20270323-100000-service-ideas-futuras-v2",
+      "titulo": "Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)"
     }
   ],
-  "paginas": 316
+  "paginas": 317
 }

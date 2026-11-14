@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **255**
+- Rutas del panel: **256**
 - Tablas en migraciones: **195**
 - Variables de entorno: **106**
-- Specs: **148**
-- Páginas de documentación: **316**
+- Specs: **149**
+- Páginas de documentación: **317**
 
 ## Rutas del panel
 
@@ -141,6 +141,7 @@
 - `/roles/list`
 - `/seguimiento`
 - `/service-tecnico/estados`
+- `/service-tecnico/etiqueta`
 - `/service-tecnico/modelos`
 - `/service-tecnico/orden-ingreso`
 - `/service-tecnico/remito-entrega`
@@ -723,3 +724,4 @@
 - `20270314-100000-tiendas-fidelidad-prototipo` — Feature Specification: Tiendas públicas · Fidelidad con el prototipo (MSF-847)
 - `20270315-100000-tiendas-identidad-heroe-mayusculas` — Feature Specification: Tiendas · Estilo del encabezado y mayúsculas por identidad (MSF-848)
 - `20270316-100000-tiendas-hallazgos-reauditoria` — Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)
+- `20270323-100000-service-ideas-futuras-v2` — Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)

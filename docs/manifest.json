@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "ee00e08e9d9a43bd6bdfb50b0d5e77fcff41a81dd1157d4a8c5d630868b2dd6c",
+      "pageHash": "9c4a74a28bfd57f96e58d7f9a8ab0148eed51fa0115bfd4edf09c4d85425b03e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "1e7d6587"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -589,14 +589,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "8b146ab47e8f717f1119e823be801d7c29316bba890b2ef5478fa120cd6f3d0d",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "6505e08e18821384e06c26ab75793510ff715bb4281b0bcfcf6ccd394d996a7f",
+      "sourceHash": "44acab3c9e7ca4f5173fbcf8bde634e3a537dd3bd5daeec0f5432932ce60d0d2",
+      "sourceAt": "ff1c96d4",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "2b8f7624"
+      "commit": "ff1c96d4"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -646,14 +646,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "9e4b9a93c9d9b6c45db74cd463ce72b4067976e4c147c56452307341a9213dcf",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "91c586ca5c6c8e5a1c70554eded0d48d411fa738dab0b773b3b8d0145e7c12d2",
+      "sourceHash": "44acab3c9e7ca4f5173fbcf8bde634e3a537dd3bd5daeec0f5432932ce60d0d2",
+      "sourceAt": "ff1c96d4",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "59f4f40a"
+      "commit": "ff1c96d4"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -1394,12 +1394,12 @@
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
-      "pageHash": "031642e53f136251b2088a270cdb101b44d04970af463829e191339165037154",
+      "pageHash": "478788ae7d1ad7d4bddaa9c372da02c61a43c8b30082efcf77ddcc0e1d48fd7c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "53cb4c30"
+      "commit": "ff1c96d4"
     },
     "docs/producto/service-repuestos-y-stock.md": {
       "title": "Service técnico: repuestos, stock y costos",
@@ -1776,12 +1776,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "cafc8722024372013b11c81b2a197e0aca7eaa23a3714d0f70a9d3b614b4d98c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "1e7d6587"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -1857,6 +1857,21 @@
       "owner": "tecnico",
       "commit": "ebf4bf4d"
     },
+    "docs/service-etiqueta-qr.md": {
+      "title": "Service técnico · Etiqueta con código QR del equipo",
+      "pageHash": "85d90f368eb1a4e434bed29943c5f79b3df4fac81dc61dcf27676d1b27eb22fb",
+      "sourceHash": "6cd4196d024ac4e4becab8a84289672503e7b3b5f0d50fbb129a851e2b871a7b",
+      "sourceAt": "ff1c96d4",
+      "sources": [
+        "specs/20270323-100000-service-ideas-futuras-v2",
+        "apps/web/src/lib/qr",
+        "apps/web/src/lib/etiquetaReparacion.ts",
+        "apps/web/src/components/service/EtiquetaReparacion.tsx",
+        "apps/web/src/pages/service-tecnico/etiqueta.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": "ff1c96d4"
+    },
     "docs/service-garantia.md": {
       "title": "Service técnico · Reingreso por garantía (F-SVC-21)",
       "pageHash": "1d3ee34604fcceb56d129ceb0c1eef2a109f28116949cd8464227e44102d9d67",
@@ -1870,14 +1885,14 @@
     },
     "docs/service-impresion.md": {
       "title": "Service técnico · Impresión de orden de ingreso y remito de entrega",
-      "pageHash": "c7e70c3f09f63884009845cec5e8cbd35a8de4d159ebb35da2ff5f503dc360e7",
+      "pageHash": "9ce730edfd0b8698a709a309774f5753d5a96e18ae613777c08db1b042000758",
       "sourceHash": "e2b9a4cc8fc5feef3aa01c6792cb0963e8712b23fe0378f56b55dceef703367e",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "ff1c96d4",
       "sources": [
         "specs/20261022-100000-service-listado-items-e-impresion"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "ff1c96d4"
     },
     "docs/service-items.md": {
       "title": "Service técnico · Ítems y costos de la reparación (F-SVC-06)",
@@ -1976,20 +1991,21 @@
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "cfab6f03ffe97a5c6fa1503ac562e6e024dd390cd993f90f6555168736c18240",
-      "sourceHash": "69f4c9b8330f4719532ea09a382c65c7dbc207f33d8d4741786b7e780f12baf3",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "48317c67c2d5f1926f819c900bdc8a4ea7047ac1de2015078bd3a6e1d923730e",
+      "sourceHash": "bc89acf43c5df4b3098c63e583a181c595ab8a53049df78a8cd30334a287e148",
+      "sourceAt": "ff1c96d4",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
         "specs/20261028-100000-service-cobro-y-avisos",
         "specs/20261028-100000-service-seguimiento-y-reportes",
+        "specs/20270323-100000-service-ideas-futuras-v2",
         "design/pantallas/ServicioModelos.dc.html",
         "supabase/migrations/20261020100700_service_funcionalidad.sql",
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "1e7d6587"
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",
