@@ -27,7 +27,7 @@ const comprobante = (cambios: Partial<Comprobante> = {}): Comprobante => ({
 const abrir = (c: Comprobante = comprobante()) => {
   const onCerrar = vi.fn()
   const onConfirmado = vi.fn()
-  render(<ConfirmarFacturaDialog open comprobante={c} onCerrar={onCerrar} onConfirmado={onConfirmado} />)
+  render(<ConfirmarFacturaDialog open comprobante={c} onCerrar={onCerrar} onConfirmado={onConfirmado} onPreciosCambiaron={vi.fn().mockResolvedValue(true)} />)
   return { onCerrar, onConfirmado }
 }
 
@@ -100,5 +100,77 @@ describe('puedeConfirmarFactura', () => {
     expect(puedeConfirmarFactura(comprobante({ estado: 'confirmada', editable: false }))).toBe(false)
     expect(puedeConfirmarFactura(comprobante({ lineas: [] }))).toBe(false)
     expect(puedeConfirmarFactura(comprobante({ puede_editar: false }))).toBe(false)
+  })
+})
+
+describe('ConfirmarFacturaDialog · precios cambiaron (F-2, FR-018)', () => {
+  const PRECIOS = { data: null, error: { code: '40001', hint: 'precios_cambiaron', message: 'Los precios cambiaron' } }
+
+  it('ante precios_cambiaron re-guarda las líneas, avisa con el total nuevo y NO reintenta la confirmación', async () => {
+    mocks.rpc.mockResolvedValue(PRECIOS)
+    const onPreciosCambiaron = vi.fn().mockResolvedValue(true)
+    const onConfirmado = vi.fn()
+    const { rerender } = render(
+      <ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={onConfirmado} onPreciosCambiaron={onPreciosCambiaron} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(onPreciosCambiaron).toHaveBeenCalledTimes(1))
+    // La pantalla recarga el comprobante con el total nuevo.
+    rerender(
+      <ConfirmarFacturaDialog open comprobante={comprobante({ total_con_iva: 3000 })} onCerrar={vi.fn()} onConfirmado={onConfirmado} onPreciosCambiaron={onPreciosCambiaron} />,
+    )
+    const aviso = await screen.findByRole('status')
+    expect(aviso).toHaveTextContent('Los precios cambiaron: revisá el total y confirmá de nuevo')
+    expect(aviso).not.toHaveTextContent('cobrá')
+    expect(aviso).toHaveTextContent('$ 3.000')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(onConfirmado).not.toHaveBeenCalled()
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeEnabled()
+  })
+
+  it('un 40001 de conflicto de edición (sin hint) sigue siendo un error y no reprecia', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'Otra persona modificó este comprobante' } })
+    const onPreciosCambiaron = vi.fn()
+    render(<ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={onPreciosCambiaron} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(onPreciosCambiaron).not.toHaveBeenCalled()
+    expect(screen.getByTestId('aviso-precios')).toBeEmptyDOMElement()
+  })
+
+  it('si el re-guardado FALLA no muestra el aviso con el total viejo: muestra un error', async () => {
+    mocks.rpc.mockResolvedValue(PRECIOS)
+    const onPreciosCambiaron = vi.fn().mockResolvedValue(false)
+    render(<ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={onPreciosCambiaron} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos actualizar los precios')
+    expect(screen.queryByText(/Total ahora/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('aviso-precios')).toBeEmptyDOMElement()
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeEnabled()
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+  })
+
+  it('si el re-guardado lanza, tampoco muestra el aviso', async () => {
+    mocks.rpc.mockResolvedValue(PRECIOS)
+    render(<ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={vi.fn().mockRejectedValue(new Error('x'))} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos actualizar los precios')
+    expect(screen.queryByText(/Total ahora/)).not.toBeInTheDocument()
+  })
+
+  it('el aviso va en una región viva que ya estaba en el DOM antes de aparecer, sin robar el foco', async () => {
+    mocks.rpc.mockResolvedValue(PRECIOS)
+    render(<ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={vi.fn().mockResolvedValue(true)} />)
+    const region = screen.getByTestId('aviso-precios')
+    expect(region).toHaveAttribute('role', 'status')
+    expect(region).toHaveAttribute('aria-live', 'polite')
+    expect(region).toBeEmptyDOMElement()
+    const boton = screen.getByRole('button', { name: 'Confirmar' })
+    boton.focus()
+    fireEvent.click(boton)
+    await waitFor(() => expect(region).toHaveTextContent('confirmá de nuevo'))
+    expect(screen.getByTestId('aviso-precios')).toBe(region)
+    expect(document.activeElement).toBe(boton)
   })
 })
