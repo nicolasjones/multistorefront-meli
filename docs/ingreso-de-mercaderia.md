@@ -6,8 +6,6 @@ sources:
 
 # Ingreso de mercadería por proveedor
 
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ingreso-de-mercaderia.md) · [guía de uso](producto/ingreso-de-mercaderia.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
-
 Épica MSF-219. Al terminar, el depósito registra la mercadería que llega de cada
 proveedor, el stock del depósito único sube de forma atómica y queda un historial
 con fecha, producto, cantidad, operador y proveedor.

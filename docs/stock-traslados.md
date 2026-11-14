@@ -1,13 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261022-180000-stock-depositos-y-reservas
-  - supabase/migrations/20261023120300_stock_evento_deposito.sql
-  - supabase/migrations/20261023120400_stock_lecturas_deposito.sql
-  - supabase/migrations/20261023130000_stock_traslado.sql
-  - supabase/migrations/20261023130400_stock_motivo_traslado_reservado.sql
----
-
 # Stock · Traslado entre depósitos (F-STK-15, MSF-353)
 
 Spec: `specs/20261022-180000-stock-depositos-y-reservas/` (épica MSF-292). Esta guía cubre F-STK-15: trasladar

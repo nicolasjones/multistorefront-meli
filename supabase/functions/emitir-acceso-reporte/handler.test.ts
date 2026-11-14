@@ -22,7 +22,18 @@ type Opciones = {
   dashboard?: string | null
   supersetLogin?: boolean
   supersetToken?: boolean
+  permitidos?: string[]
+  /** Datasets de Superset (se devuelven paginados de a `porPagina`); 'falla' = el listado responde 403. */
+  datasets?: { id: number; table_name: string }[] | 'falla'
+  porPagina?: number
 }
+
+const DATASETS = [
+  { id: 1, table_name: 'inventario_reposicion' },
+  { id: 7, table_name: 'inventario_productos_stock' },
+  { id: 8, table_name: 'inventario_productos_stock_cantidades' },
+  { id: 9, table_name: 'margen_producto_canal' },
+]
 
 function montar(opciones: Opciones = {}) {
   const {
@@ -50,7 +61,7 @@ function montar(opciones: Opciones = {}) {
     },
     reporte: async () => {
       if (opciones.reporteFalla) throw new Error('columna filtro_empresa no existe')
-      return dashboard ? { dashboardUuid: dashboard, filtroEmpresa } : null
+      return dashboard ? { dashboardUuid: dashboard, filtroEmpresa, datasetsPermitidos: opciones.permitidos ?? ['inventario_reposicion'] } : null
     },
     config: {
       supersetUrl: 'http://superset',
@@ -62,6 +73,14 @@ function montar(opciones: Opciones = {}) {
       llamadas.superset.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null })
       if (url.endsWith('/login')) {
         return Response.json({ access_token: 'acceso' }, { status: opciones.supersetLogin === false ? 500 : 200 })
+      }
+      if (url.includes('/api/v1/dataset/')) {
+        if (opciones.datasets === 'falla') return Response.json({}, { status: 403 })
+        const todos = opciones.datasets ?? DATASETS
+        const q = decodeURIComponent(url.split('?q=')[1])
+        const pagina = Number(q.match(/page:(\d+)/)?.[1] ?? 0)
+        const tamano = opciones.porPagina ?? 100
+        return Response.json({ count: todos.length, result: todos.slice(pagina * tamano, (pagina + 1) * tamano) })
       }
       return Response.json({ token: 'guest-jwt' }, { status: opciones.supersetToken === false ? 500 : 200 })
     }) as typeof fetch,
@@ -78,12 +97,79 @@ const pedir = (cuerpo: unknown = { reporte_id: 'rep-1' }, encabezados: Record<st
 
 const clausulaEmitida = (llamadas: { superset: { url: string; body: unknown }[] }) => {
   const emision = llamadas.superset.find((l) => l.url.endsWith('/guest_token/'))
-  const rls = (emision?.body as { rls: { clause: string }[] }).rls
-  assert.equal(rls.length, 1, 'la cláusula rls es un único texto SQL')
+  const rls = (emision?.body as { rls: { clause: string; dataset?: number }[] }).rls
+  // La primera regla es la cláusula global (organización/empresas); las demás son vedas por dataset ajeno (1 = 0).
+  assert.equal(rls[0].dataset, undefined, 'la cláusula global no apunta a un dataset')
+  assert.ok(rls.slice(1).every((r) => typeof r.dataset === 'number' && r.clause === '1 = 0'))
   return rls[0].clause
 }
 
 describe('emitir-acceso-reporte', () => {
+  const reglasEmitidas = (llamadas: { superset: { url: string; body: unknown }[] }) =>
+    (llamadas.superset.find((l) => l.url.endsWith('/guest_token/'))?.body as { rls: unknown[] }).rls
+
+  it('allowlist: el tablero lee su dataset y el token veda con rls 1 = 0 todo dataset ajeno (costos, rentabilidad, otros)', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false, permitidos: ['inventario_reposicion'] })
+    const res = await manejar(pedir(), deps)
+    assert.equal(res.status, 200)
+    assert.deepEqual(reglasEmitidas(llamadas), [
+      { clause: `organizacion_id = '${ORG_A}'` },
+      { dataset: 7, clause: '1 = 0' },
+      { dataset: 8, clause: '1 = 0' },
+      { dataset: 9, clause: '1 = 0' },
+    ])
+  })
+
+  it('allowlist: un tablero con varios datasets propios los deja todos sin regla', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false, permitidos: ['inventario_reposicion', 'margen_producto_canal'] })
+    assert.equal((await manejar(pedir(), deps)).status, 200)
+    assert.deepEqual(
+      (reglasEmitidas(llamadas) as { dataset?: number }[]).map((r) => r.dataset).filter(Boolean),
+      [7, 8],
+    )
+  })
+
+  it('allowlist: dataset duplicado por nombre — todos los ids del nombre propio quedan permitidos; los demás vedados', async () => {
+    const datasets = [...DATASETS, { id: 20, table_name: 'inventario_reposicion' }, { id: 21, table_name: 'margen_producto_canal' }]
+    const { deps, llamadas } = montar({ filtroEmpresa: false, permitidos: ['inventario_reposicion'], datasets })
+    assert.equal((await manejar(pedir(), deps)).status, 200)
+    assert.deepEqual(
+      (reglasEmitidas(llamadas) as { dataset?: number }[]).map((r) => r.dataset).filter(Boolean),
+      [7, 8, 9, 21],
+    )
+  })
+
+  it('allowlist: pagina el listado de Superset (de a 2) y veda también los datasets de las páginas siguientes', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false, permitidos: ['inventario_reposicion'], porPagina: 2 })
+    assert.equal((await manejar(pedir(), deps)).status, 200)
+    assert.equal(llamadas.superset.filter((l) => l.url.includes('/api/v1/dataset/')).length, 2)
+    assert.deepEqual((reglasEmitidas(llamadas) as { dataset?: number }[]).map((r) => r.dataset).filter(Boolean), [7, 8, 9])
+  })
+
+  it('falla cerrado (503, sin token): no se puede listar los datasets de Superset', async () => {
+    const { deps, llamadas } = montar({ filtroEmpresa: false, datasets: 'falla' })
+    assert.equal((await manejar(pedir(), deps)).status, 503)
+    assert.equal(llamadas.superset.some((l) => l.url.endsWith('/guest_token/')), false)
+  })
+
+  it('falla cerrado (503, sin token): el tablero no tiene allowlist (nunca reimportado) o sus datasets no existen en Superset', async () => {
+    for (const permitidos of [[], ['dataset_que_no_existe']]) {
+      const { deps, llamadas } = montar({ filtroEmpresa: false, permitidos })
+      assert.equal((await manejar(pedir(), deps)).status, 503)
+      assert.equal(llamadas.superset.some((l) => l.url.endsWith('/guest_token/')), false)
+    }
+  })
+
+  it('falla cerrado (503): un listado inconsistente (el total no coincide con lo recibido) no emite token', async () => {
+    const { deps } = montar({ filtroEmpresa: false })
+    const original = deps.fetch
+    deps.fetch = (async (url: string, init?: RequestInit) =>
+      String(url).includes('/api/v1/dataset/')
+        ? Response.json({ count: 50, result: [{ id: 1, table_name: 'inventario_reposicion' }] })
+        : original(url, init)) as typeof fetch
+    assert.equal((await manejar(pedir(), deps)).status, 503)
+  })
+
   it('403 sin emitir token cuando el usuario no tiene la sección del reporte (la RPC devuelve null)', async () => {
     const { deps, llamadas } = montar({ organizacion: null })
     const res = await manejar(pedir(), deps)

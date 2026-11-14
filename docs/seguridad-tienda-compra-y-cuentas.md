@@ -1,9 +1,3 @@
----
-owner: plataforma
-sources:
-  - specs/20270306-100000-tienda-compra-y-cuentas
----
-
 # Revisión de seguridad · Tienda: compra y cuentas (MSF-176)
 
 Registro de las revisiones de seguridad de la épica **MSF-176** (spec `specs/20270306-100000-tienda-compra-y-cuentas/`). La guía funcional es [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md); acá solo va lo que importa para seguridad. La revisión de seguridad **integral** de las tres historias (tarea T070 de `tasks.md`) la hace una sesión que no implementó y se agrega a este documento antes del cierre de la épica.
@@ -35,7 +29,7 @@ Registro de las revisiones de seguridad de la épica **MSF-176** (spec `specs/20
 - **M-2**: la misma regla en Ventas › Comprobantes y su CSV (`private.comprobantes_consulta`) y en `obtener_comprobante.operador`.
 - **M-3**: el cupo de llamadas sobrevive a una excepción (se toma antes del bloque con el manejador).
 - **M-4**: recorte de la nota con espacios, tabuladores y saltos de línea; mismo conjunto de caracteres bloqueados (U+061C, U+200B a U+200D, U+2060, U+FEFF y los anteriores) en B1, B2 y el front (migración `…100700`).
-- **I-1 a I-5**: documentadas en [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md#revision-independiente-correcciones-m-1-a-m-4-y-decisiones-i-1-a-i-5): cupo por IP compartido, costo medido del catálogo efectivo (5.000 productos: 7 a 12 ms; motor de 50 líneas 43 a 48 ms), idempotencia con total actual, 10 abiertos sin vencimiento automático y retención y supresión (MSF-944).
+- **I-1 a I-5**: documentadas en [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md#revisión-independiente-correcciones-m-1-a-m-4-y-decisiones-i-1-a-i-5): cupo por IP compartido, costo medido del catálogo efectivo (5.000 productos: 7 a 12 ms; motor de 50 líneas 43 a 48 ms), idempotencia con total actual, 10 abiertos sin vencimiento automático y retención y supresión (MSF-944).
 
 ### Seguimientos
 

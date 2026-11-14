@@ -8,8 +8,6 @@ sources:
 
 # Dólar y recálculo: modelo, RPC y operación
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../dolar-y-recalculo.md).
-
 **Épica:** MSF-116 · **Spec:** `specs/20261023-120000-dolar-y-recalculo/` (plan y contrato en la misma
 carpeta) · **Rama:** `epic/MSF-116-precios-y-dolar-dolar-y-recalculo`, merge `872f09a` (PR #304),
 **pendiente de merge a `main`** al escribir esta página.
@@ -28,7 +26,7 @@ esa fila de forma atómica. El vencimiento de la cotización pendiente (24 h) se
 ## Modelo de datos (Principio VII)
 
 Todo es dato de negocio → esquema `dominio`; las RPC viven en `public` y no almacenan datos. Ver el
-[DER en Datos y DER](datos.md#precios-y-dolar-msf-116).
+[DER en Datos y DER](datos.md#precios-y-dólar-msf-116).
 
 | Objeto | Esquema | Naturaleza y acceso |
 |---|---|---|

@@ -1,12 +1,4 @@
----
-owner: tecnico
-sources:
-  - specs/20261029-100000-cuentas-y-compras-a-proveedores
----
-
 # Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)
-
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/cuentas-y-compras-a-proveedores.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Ideas condicionadas a validar demanda: cuenta corriente de clientes y compras a proveedores. La épica declara que
 **los requisitos se redactan cuando cada historia pase a un hito**; todas son P3 y quedan fuera de diciembre. Ninguna

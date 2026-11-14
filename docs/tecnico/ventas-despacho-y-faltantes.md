@@ -383,7 +383,7 @@ Cada transición queda en `public.registro_actividad`:
     «Faltantes» y su sección.
 - **E2E:** **no hay ninguno de esta épica**. Queda pendiente de automatizar; los rótulos previstos son
   `[MSF-135:T011]`, `[MSF-135:T019]`, `[MSF-135:T026]` y `[MSF-135:T037]` (ver
-  [Cómo probarlo](../producto/ventas-despacho-y-faltantes.md)).
+  [Cómo probarlo](../producto/ventas-despacho-y-faltantes.md#como-automatizarlo)).
 
 ## Revisión de seguridad del cierre (T039, SC-010)
 

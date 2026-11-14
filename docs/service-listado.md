@@ -1,11 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261022-100000-service-listado-items-e-impresion
-  - supabase/migrations/20261022110100_reparaciones_listado_indices.sql
-  - supabase/migrations/20261022110200_reparaciones_listar.sql
----
-
 # Service técnico · Listado de reparaciones con filtros por período (F-SVC-04)
 
 Historia **MSF-342**, épica **MSF-199** · spec en `specs/20261022-100000-service-listado-items-e-impresion/`.

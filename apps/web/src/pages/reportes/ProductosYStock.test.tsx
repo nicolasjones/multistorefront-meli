@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { violacionesAxe } from '../../test/axe'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -38,10 +39,11 @@ vi.mock('../../components/ReporteEmbebido', async () => {
 
 import { RequiereAccesoSeccion } from '../../components/RequiereAccesoSeccion'
 import { DESTINOS_PANEL } from '../../components/navegacion/destinosPanel'
-import { SECCION_INVENTARIO } from '../../lib/reportes-inventario'
+import { SECCION_INVENTARIO, tableroProductosStock } from '../../lib/reportes-inventario'
 import { ProductosYStock } from './ProductosYStock'
 
 const REPORTE = { id: 'rep-stock', nombre: 'Inventario · Productos y stock' }
+const REPORTE_CANTIDADES = { id: 'rep-cant', nombre: 'Inventario · Productos y stock (cantidades)' }
 
 // La pantalla tal como la monta App.tsx: envuelta en RequiereAccesoSeccion (`stock`).
 const montar = ({
@@ -71,6 +73,44 @@ describe('ProductosYStock (F-REP-01)', () => {
     expect(screen.getByRole('heading', { name: 'Productos y stock' })).toBeTruthy()
     expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-stock')
     expect(mocks.montajes).toHaveBeenCalledWith('rep-stock')
+  })
+
+  it('con ver_costos (la base lista el tablero con costos) monta el tablero con costos y su subtítulo', () => {
+    montar({ reportes: [REPORTE, REPORTE_CANTIDADES] })
+    expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-stock')
+    expect(screen.getByText(/costo y valor de cada producto/)).toBeTruthy()
+  })
+
+  it('sin ver_costos (Consulta) monta SOLO el tablero de cantidades: sin costos ni valor en pantalla', () => {
+    montar({ reportes: [REPORTE_CANTIDADES] })
+    expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-cant')
+    expect(mocks.montajes).toHaveBeenCalledWith('rep-cant')
+    expect(mocks.montajes).not.toHaveBeenCalledWith('rep-stock')
+    expect(screen.getByText('Cantidad y estado de cada producto.')).toBeTruthy()
+    expect(screen.queryByText(/costo|valor/i)).toBeNull()
+  })
+
+  it('si la base no lista ni el tablero con costos ni el de cantidades avisa que no está disponible (nunca elige otro)', () => {
+    montar({ reportes: [{ id: 'rep-otro', nombre: 'Inventario · Reposición' }] })
+    expect(screen.getByText(/«Productos y stock» todavía no está disponible|todavía no está disponible para tu organización/)).toBeTruthy()
+    expect(screen.queryByTestId('tablero')).toBeNull()
+    expect(mocks.montajes).not.toHaveBeenCalled()
+  })
+
+  it('pide la lista de reportes una sola vez por render (no la duplica la pantalla y el tablero)', () => {
+    montar({ reportes: [REPORTE_CANTIDADES] })
+    expect(mocks.useReportesAsignados).toHaveBeenCalledTimes(1)
+  })
+
+  it('el tablero con costos solo se elige si la base lo lista, aunque también liste el de cantidades', () => {
+    expect(tableroProductosStock([REPORTE_CANTIDADES]).conCostos).toBe(false)
+    expect(tableroProductosStock([]).nombre).toBe('Inventario · Productos y stock (cantidades)')
+    expect(tableroProductosStock([REPORTE, REPORTE_CANTIDADES])).toEqual({ nombre: 'Inventario · Productos y stock', conCostos: true })
+  })
+
+  it('la versión de solo cantidades no tiene violaciones de accesibilidad (axe)', async () => {
+    const { container } = montar({ reportes: [REPORTE_CANTIDADES] })
+    expect(await violacionesAxe(container)).toEqual([])
   })
 
   it('[MSF-297:T004] muestra el estado de carga mientras llegan los reportes', () => {

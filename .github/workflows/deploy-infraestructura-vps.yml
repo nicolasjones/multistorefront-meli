@@ -127,6 +127,20 @@ jobs:
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno staging
+      - name: Re-ejecutar superset-init de staging DESPUÉS de importar los dashboards
+        # `deploy:vps` ya corrió superset-init, pero ANTES del importador: un dataset nuevo (p. ej. el de
+        # «Inventario · Productos y stock (cantidades)») todavía no existía y el rol Guest no recibía su
+        # `datasource_access` ni el embebido su allow_domain_list hasta otra corrida. Es idempotente y solo aditivo.
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}
+          SUPERSET_URL: ${{ secrets.SUPERSET_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPERSET_URL:-}" ]; then
+            echo "::warning::SUPERSET_URL no configurado en el Environment; se omite superset-init posterior a la importación."
+            exit 0
+          fi
+          docker compose --project-name platform-staging-superset --project-directory infra/superset --env-file .env.staging -f infra/superset/compose.yaml -f infra/superset/compose.vps.yaml run --rm superset-init
       - name: Limpiar credenciales transitorias
         if: always()
         run: |
@@ -199,6 +213,20 @@ jobs:
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno production
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno production
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno production
+      - name: Re-ejecutar superset-init de producción DESPUÉS de importar los dashboards
+        # `deploy:vps` ya corrió superset-init, pero ANTES del importador: un dataset nuevo (p. ej. el de
+        # «Inventario · Productos y stock (cantidades)») todavía no existía y el rol Guest no recibía su
+        # `datasource_access` ni el embebido su allow_domain_list hasta otra corrida. Es idempotente y solo aditivo.
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}
+          SUPERSET_URL: ${{ secrets.SUPERSET_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPERSET_URL:-}" ]; then
+            echo "::warning::SUPERSET_URL no configurado en el Environment; se omite superset-init posterior a la importación."
+            exit 0
+          fi
+          docker compose --project-name platform-production-superset --project-directory infra/superset --env-file .env.production -f infra/superset/compose.yaml -f infra/superset/compose.vps.yaml run --rm superset-init
       - name: Limpiar credenciales transitorias
         if: always()
         run: |

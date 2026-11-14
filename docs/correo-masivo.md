@@ -1,10 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261028-100000-correo-masivo-a-clientes
-  - infra/kestra/flows/correo-masivo.yml
----
-
 # Correo masivo a clientes (MSF-155)
 
 Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con cada historia de la épica; hoy cubre

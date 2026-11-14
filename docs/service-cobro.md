@@ -1,10 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261028-100000-service-cobro-y-avisos
-  - supabase/migrations/20261203200300_lineas_rpc.sql
----
-
 # Service técnico · Cobro con comprobante de Ventas
 
 F-SVC-13 (MSF-418) · épica MSF-232 · spec `specs/20261028-100000-service-cobro-y-avisos/`.

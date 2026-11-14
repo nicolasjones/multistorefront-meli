@@ -1,12 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
-  - specs/20261024-130000-ventas-motos
-  - apps/web/src/lib/ventas/enviosMoto.ts
-  - apps/web/src/lib/ventas/transportes.ts
----
-
 # Ventas · Transportes y terminales de retiro (F-VTA-04)
 
 Historia MSF-251 de la épica MSF-139 (spec `specs/20261020-100000-ventas-catalogos-de-cobro-y-envio/`, FR-016…FR-019, SC-007/SC-008).

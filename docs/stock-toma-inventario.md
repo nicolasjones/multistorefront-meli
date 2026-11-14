@@ -1,12 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-120000-stock-lotes-e-inventario
-  - supabase/migrations/20261017140000_stock_existencias_y_movimientos.sql
-  - supabase/migrations/20261202130000_stock_motivo_toma_inventario.sql
-  - supabase/migrations/20261202130100_stock_confirmar_toma.sql
----
-
 # Stock · Toma de inventario (F-STK-11, MSF-415)
 
 Spec: `specs/20261024-120000-stock-lotes-e-inventario/` (épica MSF-131, FR-101…FR-106, SC-003). Permite contar

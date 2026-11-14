@@ -1,16 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261022-180000-stock-depositos-y-reservas
-  - apps/web/src/lib/depositos.ts
-  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
-  - supabase/migrations/20261023120000_depositos_tablas.sql
-  - supabase/migrations/20261023120100_depositos_gestion.sql
-  - supabase/migrations/20261023120200_stock_movimiento_deposito.sql
-  - supabase/migrations/20261023120300_stock_evento_deposito.sql
-  - supabase/migrations/20261023120400_stock_lecturas_deposito.sql
----
-
 # Stock · Depósitos y existencias por depósito (F-STK-14, MSF-316)
 
 Spec: `specs/20261022-180000-stock-depositos-y-reservas/` (épica MSF-292). Esta guía cubre F-STK-14: el

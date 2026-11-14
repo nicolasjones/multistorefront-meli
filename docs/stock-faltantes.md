@@ -1,15 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-130000-stock-carga-exportacion-y-avisos
-  - infra/kestra
-  - scripts/verificar-migraciones.mjs
-  - design/pantallas/VentasFaltantes.dc.html
-  - supabase/migrations/20261213100200_faltantes_avisos.sql
-  - supabase/migrations/20261213100300_faltantes_listado.sql
-  - supabase/migrations/20261213100400_avisar_faltantes.sql
----
-
 # Stock · Faltantes con aviso de reposición (F-STK-17)
 
 Pestaña **Faltantes** de Stock (`/stock/faltantes`): las líneas «A pedido» de facturas confirmadas que

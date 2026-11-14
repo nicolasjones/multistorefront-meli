@@ -1,16 +1,3 @@
----
-owner: producto
-sources:
-  - infra/docs
-  - apps/web/Dockerfile
-  - apps/web/src/ayuda/contenidos
-  - apps/web/src/ayuda/manual.ts
-  - apps/web/src/ayuda/manualPorDestino.ts
-  - apps/web/src/ayuda/resolverAyuda.ts
-  - apps/web/src/ayuda/tipos.ts
-  - apps/web/src/components/navegacion/destinosPanel.ts
----
-
 # Ayuda dentro del panel (MSF-385 · F-CFG-02)
 
 El botón **Ayuda** (icono de signo de pregunta) de la barra superior, a la derecha de la campanita de notificaciones, abre un

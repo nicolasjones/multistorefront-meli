@@ -1,19 +1,4 @@
----
-owner: tecnico
-sources:
-  - specs/20270105-100000-configuracion-dolar-y-precio-propio
-  - apps/web/src
-  - supabase/migrations/20270213100001_cotizacion_configuracion.sql
-  - supabase/migrations/20270213100002_cotizacion_alcance_empresa.sql
-  - supabase/migrations/20270213100003_cotizacion_cambio_alcance.sql
-  - supabase/migrations/20270213100004_cotizacion_usa_configuracion.sql
-  - supabase/migrations/20270213100005_precios_propios_empresa.sql
-  - supabase/migrations/20270213100006_precios_propios_calculo.sql
----
-
 # Configuración del dólar y precio propio (épica MSF-352)
-
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/configuracion-dolar-y-precio-propio.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20270105-100000-configuracion-dolar-y-precio-propio/`. Alcance de entrega: `refine` y `supabase`. Tres historias sobre la cotización del dólar y los precios por empresa:
 

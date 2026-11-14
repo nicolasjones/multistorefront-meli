@@ -5,8 +5,6 @@ sources: []
 
 # Contactos: la libreta de personas
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../contactos.md).
-
 ## Para qué sirve
 
 La libreta de **Contactos** guarda a las personas que te consultan o te compran, separadas por tienda. Así sabés a quién le hablás, qué consultó y qué compró, sin cargar dos veces a la misma persona y con el consentimiento para guardar sus datos.

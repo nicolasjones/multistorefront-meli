@@ -5,8 +5,6 @@ sources: []
 
 # Clientes
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../clientes.md).
-
 ## Para qué sirve
 
 Acá llevás la agenda de tus clientes: sus datos de contacto, su documento, si son minoristas o mayoristas y en qué tiendas pueden comprar. El tipo de cliente (minorista o mayorista) define qué escala de precio se le aplica en las ventas. También podés ver cuánto compró cada cliente, cuánto te debe ahora y quiénes son los que más facturan.

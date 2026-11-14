@@ -5,8 +5,6 @@ sources: []
 
 # Inicio: el tablero, las alertas y la búsqueda de productos
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../inicio-y-alertas.md).
-
 ## Para qué sirve
 
 Inicio es la primera pantalla que ves al entrar. En pocos segundos te muestra lo que tu rol puede resolver hoy: el estado de tus empresas, el stock, las consultas nuevas y el dólar, junto con una lista de alertas que te llevan directo a la pantalla donde se arreglan. Debajo, un **tablero** con las ventas y el stock del período que elegiste, un resumen de cómo rinde cada tienda, de qué depósito salió la mercadería, los últimos movimientos que hizo el equipo y un listado de movimientos por producto. Además, desde cualquier pantalla podés buscar un producto con el campo de búsqueda de la barra superior.

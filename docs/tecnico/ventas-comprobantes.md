@@ -8,8 +8,6 @@ sources:
 
 # Ventas · comprobantes (técnico, MSF-159)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-comprobantes.md).
-
 Implementación de la épica **MSF-159** (spec `20261023-100000-ventas-comprobantes`): cabecera de factura y
 presupuesto (**F-VTA-05**, MSF-273), líneas (**F-VTA-06**, MSF-295), confirmación con stock (**F-VTA-07**,
 MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en

@@ -1,14 +1,4 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-150000-ventas-cobros-y-conciliacion
-  - apps/web/src
-  - supabase/migrations/20270114130000_reconciliar_acciones_cobros_despacho.sql
----
-
 # Ventas · Cobros y conciliación (épica MSF-195)
-
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-cobros-y-conciliacion.md) · [guía de uso](producto/ventas-cobros-y-conciliacion.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la épica: los **cobros** de una factura (parciales o totales), la **conciliación** de los
 pagos que tienen cuenta de cobro y los **contrarreembolsos** que cobran los transportes al

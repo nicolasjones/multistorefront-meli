@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **255**
-- Tablas en migraciones: **195**
+- Rutas del panel: **236**
+- Tablas en migraciones: **192**
 - Variables de entorno: **106**
-- Specs: **148**
-- Páginas de documentación: **316**
+- Specs: **141**
+- Páginas de documentación: **314**
 
 ## Rutas del panel
 
@@ -172,7 +172,6 @@
 - `/tienda-publica/PantallaError`
 - `/tienda-publica/VolvemosPronto`
 - `/tienda-publica/catalogo/EstadoVacio`
-- `/tienda-publica/catalogo/GrillaProductos`
 - `/tienda-publica/catalogo/Ordenar`
 - `/tienda-publica/catalogo/PanelFiltros`
 - `/tienda-publica/catalogo/PanelFiltrosMovil`
@@ -180,13 +179,6 @@
 - `/tienda-publica/catalogo/TarjetaProducto`
 - `/tienda-publica/contacto/DatosContacto`
 - `/tienda-publica/contacto/FormularioContacto`
-- `/tienda-publica/cuenta/AvisoTienda`
-- `/tienda-publica/cuenta/BotonFavorito`
-- `/tienda-publica/cuenta/DetalleCompra`
-- `/tienda-publica/cuenta/EstadoComprobante`
-- `/tienda-publica/cuenta/FavoritosMiCuenta`
-- `/tienda-publica/cuenta/HistorialMiCuenta`
-- `/tienda-publica/cuenta/VacioMiCuenta`
 - `/tienda-publica/disponibilidad/EtiquetaDisponibilidad`
 - `/tienda-publica/ficha/Ampliacion`
 - `/tienda-publica/ficha/BotonCompartir`
@@ -199,32 +191,21 @@
 - `/tienda-publica/layout/AvisoCookies`
 - `/tienda-publica/layout/BarraSuperior`
 - `/tienda-publica/layout/BuscadorTienda`
-- `/tienda-publica/layout/FocoVisible`
 - `/tienda-publica/layout/IdentidadTiendaContexto`
 - `/tienda-publica/layout/LayoutTienda`
 - `/tienda-publica/layout/MedicionTienda`
 - `/tienda-publica/layout/MenuCategorias`
 - `/tienda-publica/layout/MenuMovil`
-- `/tienda-publica/layout/MigasTienda`
 - `/tienda-publica/layout/PieCategorias`
 - `/tienda-publica/layout/PieInformacion`
 - `/tienda-publica/layout/PieLegal`
 - `/tienda-publica/layout/iconos`
-- `/tienda-publica/lista/BotonAgregarALista`
-- `/tienda-publica/lista/ConfirmacionPedido`
-- `/tienda-publica/lista/DialogoPresupuesto`
-- `/tienda-publica/lista/FormularioPedido`
-- `/tienda-publica/lista/IndicadorLista`
-- `/tienda-publica/lista/LineaLista`
-- `/tienda-publica/lista/PantallaLista`
 - `/tienda-publica/rutas/catalogo`
 - `/tienda-publica/rutas/categoria`
 - `/tienda-publica/rutas/contacto`
 - `/tienda-publica/rutas/definir-contrasena`
 - `/tienda-publica/rutas/ingresar`
 - `/tienda-publica/rutas/inicio`
-- `/tienda-publica/rutas/lista`
-- `/tienda-publica/rutas/mi-cuenta`
 - `/tienda-publica/rutas/pagina`
 - `/tienda-publica/rutas/producto`
 - `/tienda-publica/rutas/recuperar-contrasena`
@@ -301,7 +282,6 @@
 - `dominio.comprobantes_venta`
 - `dominio.comprobantes_venta_lineas`
 - `dominio.comprobantes_venta_numeracion`
-- `dominio.consulta_items`
 - `dominio.consultas`
 - `dominio.consultas_avisos`
 - `dominio.consultas_configuracion`
@@ -327,7 +307,6 @@
 - `dominio.existencias_variante`
 - `dominio.faltantes_avisos`
 - `dominio.faltantes_venta`
-- `dominio.favoritos_cliente`
 - `dominio.formas_envio`
 - `dominio.formas_pago`
 - `dominio.historial_cobros`
@@ -345,7 +324,6 @@
 - `dominio.precios_empresa`
 - `dominio.precios_propios_empresa`
 - `dominio.precios_propios_historial`
-- `dominio.presupuestos_tienda`
 - `dominio.producto_costos`
 - `dominio.producto_costos_historial`
 - `dominio.producto_empresa`
@@ -672,7 +650,6 @@
 - `20261024-100000-ventas-impresion` — Feature Specification: Ventas y despacho · Ventas impresión
 - `20261024-120000-avisos-y-listas-configurables` — Feature Specification: Plataforma · Avisos y listas configurables
 - `20261024-120000-stock-lotes-e-inventario` — Feature Specification: Stock · Stock lotes e inventario
-- `20261024-120000-tienda-compra-y-cuentas` — Feature Specification: Tiendas online · Tienda compra y cuentas
 - `20261024-120000-tienda-inicio-busqueda-movil` — Feature Specification: Tiendas online · Tienda inicio búsqueda móvil
 - `20261024-130000-rentabilidad-comparativos-e-historia` — Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad comparativos e historia
 - `20261024-130000-stock-carga-exportacion-y-avisos` — Feature Specification: Stock · Stock carga, exportación y avisos
@@ -700,8 +677,6 @@
 - `20261109-100000-cuenta-corriente-y-saldo-cliente` — Feature Specification: Clientes y proveedores · Cuenta corriente y saldo del cliente
 - `20261110-100000-ventas-avisos-de-faltantes` — Feature Specification: Ventas y despacho · Ventas avisos de faltantes
 - `20261112-200000-tiendas-diseno-del-prototipo` — Feature Specification: Tiendas online · Diseño del prototipo
-- `20261113-120000-ci-e2e-tienda` — Feature Specification: CI · E2E de la tienda pública (`e2e-tienda`)
-- `20261113-120000-precio-promocional-en-pos-y-comprobantes` — Feature Specification: Precios y dólar · Precio promocional en el mostrador (POS) y en los comprobantes
 - `20261202-100000-tienda-whatsapp-y-contacto` — Feature Specification: Tiendas online · Tienda WhatsApp y contacto
 - `20270104-100000-ventas-reportes-basicos` — Feature Specification: Ventas y despacho · Ventas reportes básicos
 - `20270105-100000-configuracion-dolar-y-precio-propio` — Feature Specification: Precios y dólar · Configuración dólar y precio propio
@@ -718,8 +693,4 @@
 - `20270305-100000-inicio-tablero-completo` — Feature Specification: Inicio · Tablero completo (ventas, stock, listado y dólar)
 - `20270305-100000-tiendas-seguimiento-bd` — Feature Specification: Tiendas · Seguimiento MSF-846, parte A (base de datos)
 - `20270305-100000-tiendas-seguimiento-front` — Feature Specification: Tiendas públicas · Seguimiento del front (MSF-846, parte B)
-- `20270306-100000-tienda-compra-y-cuentas` — Feature Specification: Tiendas online · Tienda compra y cuentas (lista de pedido, presupuesto y «Mi cuenta»)
 - `20270313-100000-tiendas-hallazgos-qa` — Feature Specification: Tiendas · Hallazgos de la pasada de pruebas en dev (MSF-846, parte C)
-- `20270314-100000-tiendas-fidelidad-prototipo` — Feature Specification: Tiendas públicas · Fidelidad con el prototipo (MSF-847)
-- `20270315-100000-tiendas-identidad-heroe-mayusculas` — Feature Specification: Tiendas · Estilo del encabezado y mayúsculas por identidad (MSF-848)
-- `20270316-100000-tiendas-hallazgos-reauditoria` — Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)

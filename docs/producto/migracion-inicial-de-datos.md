@@ -5,8 +5,6 @@ sources: []
 
 # Migración inicial de datos
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../migracion-inicial-de-datos.md).
-
 ## Para qué sirve
 
 Es la herramienta para traer al sistema los datos que tenías en el sistema anterior, a partir de planillas: **clientes**, **proveedores**, los **vínculos entre cada producto y su proveedor** y el **historial de ingresos de mercadería**. Se usa al arrancar, una sola vez por tipo de dato, aunque podés repetirla si necesitás corregir algo.

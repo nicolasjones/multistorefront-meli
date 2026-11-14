@@ -5,8 +5,6 @@ sources: []
 
 # Imprimir facturas, remitos y presupuestos
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-impresion.md).
-
 ## Para qué sirve
 
 Desde Ventas generás en PDF la **factura**, el **remito** y el **presupuesto** para entregárselos al cliente o para el armado del pedido. Cada impresión queda marcada con fecha y hora, y se puede volver a imprimir las veces que haga falta.

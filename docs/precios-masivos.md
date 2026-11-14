@@ -1,14 +1,6 @@
----
-owner: tecnico
-sources:
-  - specs/20261104-103000-precios-masivos-y-promociones
----
-
 # Actualización masiva de costos y precios (F-PRE-10 · MSF-436)
 
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/precios-masivos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
-
-Historia de la épica MSF-363 (spec `precios-masivos-y-promociones` (`specs/20261104-103000-precios-masivos-y-promociones/spec.md`)). El administrador sube o baja costos y precios de lista en bloque: ve primero cómo quedan (vista previa) y recién al confirmar se aplican. Los importes van **sin IVA**. Contexto del modelo de precios: [`precios.md`](./precios.md).
+Historia de la épica MSF-363 (spec [`precios-masivos-y-promociones`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md)). El administrador sube o baja costos y precios de lista en bloque: ve primero cómo quedan (vista previa) y recién al confirmar se aplican. Los importes van **sin IVA**. Contexto del modelo de precios: [`precios.md`](./precios.md).
 
 ## Qué hace
 

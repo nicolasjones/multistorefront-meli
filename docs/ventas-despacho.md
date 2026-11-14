@@ -1,16 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-130000-ventas-despacho-y-faltantes
-  - apps/web/src/components/ventas/EnvioTransporte.tsx
-  - apps/web/src/lib/ventasDespacho.ts
-  - apps/web/src/lib/ventasEnvio.ts
-  - design/pantallas
-  - supabase/migrations/20270112100400_despacho_responsables.sql
-  - supabase/migrations/20270112100500_despacho_cambiar_estado.sql
-  - supabase/migrations/20270112100600_despacho_responsables_acceso_ventas.sql
----
-
 # Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)
 
 Historias F-VTA-15 (MSF-152) y F-VTA-16 (MSF-166) de la épica MSF-135. Spec:
@@ -168,7 +155,7 @@ microsegundos y la base responde siempre `40001` (conflicto).
 ### Dónde se carga (FR-023)
 
 El bloque **«Envío y transporte»** del comprobante es la pantalla de esos datos (se detalla en
-«[Bloque «Envío y transporte»](#bloque-envio-y-transporte-fr-023)»): el selector de transporte lleva el rótulo de
+«[Bloque «Envío y transporte»](#bloque-envío-y-transporte-fr-023)»): el selector de transporte lleva el rótulo de
 la forma de envío («Transporte / expreso», «Correo» o «Mensajería propia»), con «Retiro en local» avisa que el
 cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelta lo elegido y se relee el envío.
 

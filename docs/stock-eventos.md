@@ -1,15 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261018-180000-stock-unico-y-alertas
-  - supabase/migrations/20261018180000_stock_cola_eventos.sql
-  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
-  - supabase/migrations/20261018180200_cola_eventos_reclamo.sql
-  - supabase/migrations/20261018180300_cola_eventos_correcciones.sql
-  - supabase/migrations/20261018180400_cola_eventos_interno.sql
-  - supabase/migrations/20261018180500_cola_eventos_interno_revoke_service_role.sql
----
-
 # Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)
 
 Spec: `specs/20261018-180000-stock-unico-y-alertas/` (épica MSF-231). Esta guía es el contrato contra el que se

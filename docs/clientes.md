@@ -7,8 +7,6 @@ sources:
 
 # Clientes (MSF-180)
 
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/clientes.md) · [guía de uso](producto/clientes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
-
 **Épica:** MSF-180 — Clientes y proveedores · Clientes alta y búsqueda.
 **Historias:** F-CLI-01 (MSF-262), F-CLI-02 (MSF-282), F-CLI-03 (MSF-301), F-CLI-04 (MSF-318).
 **Spec:** `specs/20261016-130000-clientes-alta-y-busqueda/`.

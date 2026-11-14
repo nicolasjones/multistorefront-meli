@@ -1,11 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261023-120000-dolar-y-recalculo
-  - supabase/migrations/20261023140200_cotizacion_previsualizar.sql
-  - supabase/migrations/20261023140300_cotizacion_confirmar_recalculo.sql
----
-
 # Vista previa de impacto y recálculo de la cotización (F-PRE-03)
 
 Historia F-PRE-03 (MSF-267) de la épica MSF-116 (`specs/20261023-120000-dolar-y-recalculo/`).

@@ -1,16 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20270215-100000-notificaciones-ayuda-y-exportacion-total
-  - infra/kestra/compose.yaml
-  - infra/kestra/flows/exportar-organizacion.yml
-  - workers/exportar-organizacion
-  - supabase/migrations/20270217300006_exportacion_total_solo_admin_propio.sql
-  - supabase/migrations/20270217300007_exportacion_total_conjuntos_nuevos.sql
-  - supabase/migrations/20270218500700_exportacion_total_precios_propios_historial.sql
-  - supabase/migrations/20270219170000_exportacion_total_reparaciones_service.sql
----
-
 # Exportar todos los datos (F-OPS-06, MSF-396)
 
 Bloque **«Exportar todos los datos»** en `/importaciones`. Un administrador de la organización pide un ZIP con una planilla CSV por cada tipo de dato de **toda la organización** (todas las tiendas). Spec: `specs/20270215-100000-notificaciones-ayuda-y-exportacion-total/` (FR-030…FR-041, SC-004…SC-006).

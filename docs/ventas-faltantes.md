@@ -1,14 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-130000-ventas-despacho-y-faltantes
-  - apps/web/src/lib/ventasFaltantes.ts
-  - design/pantallas/VentasComprobante.dc.html
-  - design/pantallas/VentasFaltantes.dc.html
-  - supabase/migrations/20270112130100_faltantes_tabla.sql
-  - supabase/migrations/20270112130200_faltantes_registrar.sql
----
-
 # Ventas · Faltantes: registro de lo que no se pudo despachar (F-VTA-18)
 
 Historia F-VTA-18 de la épica MSF-135 (MSF-201). Spec:

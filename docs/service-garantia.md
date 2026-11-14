@@ -1,9 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261028-100000-service-seguimiento-y-reportes
----
-
 # Service técnico · Reingreso por garantía (F-SVC-21)
 
 Historia **MSF-146**, épica **MSF-124** · spec en `specs/20261028-100000-service-seguimiento-y-reportes/`

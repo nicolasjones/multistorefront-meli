@@ -1,13 +1,6 @@
----
-owner: tecnico
-sources:
-  - specs/20261104-103000-precios-masivos-y-promociones
-  - specs/20261113-120000-precio-promocional-en-pos-y-comprobantes
----
-
 # Promociones de precio por empresa (F-PRE-11, MSF-439)
 
-Guía de la historia F-PRE-11 de la épica MSF-363. Requisitos: `specs/20261104-103000-precios-masivos-y-promociones/spec.md` (FR-011 a FR-018, SC-004 a SC-006).
+Guía de la historia F-PRE-11 de la épica MSF-363. Requisitos: [`spec.md`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md) (FR-011 a FR-018, SC-004 a SC-006).
 
 ## Qué hace
 

@@ -167,7 +167,7 @@ La columna `descuento` la agrega la épica **MSF-193** (*Ventas y despacho · Ve
 `specs/20261027-100000-ventas-mejoras`), historia **F-VTA-32** (Jira **MSF-340**). Migración
 `20270201200102_clientes_descuento.sql`, en la rama `epic/MSF-193-ventas-mejoras` y `dokploy`, pendiente
 de merge a `main`; reversión en el encabezado de la migración y en
-[Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversion).
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversión).
 
 | Objeto | Estado | Cambio |
 |---|---|---|

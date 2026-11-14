@@ -1,10 +1,3 @@
----
-owner: operacion
-sources:
-  - infra/kestra/flows
-  - workers/CONTRATO.md
----
-
 # Operar el sistema
 
 Para el equipo técnico que mantiene los ambientes en marcha. Entregar el sistema a un

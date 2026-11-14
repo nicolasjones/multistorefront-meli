@@ -5,8 +5,6 @@ sources: []
 
 # Registrar cobros y controlar los pagos
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-cobros-y-conciliacion.md).
-
 ## Para qué sirve
 
 Acá registrás lo que el cliente paga por una factura (de una vez o en partes), controlás cuánto te debe, concilias las transferencias contra el banco y seguís el dinero que cobran los transportes al entregar (contrarreembolsos).

@@ -23,18 +23,6 @@ Nicolás aprobó las recomendaciones el 2026-11-12 («avanza con todo»). Ademá
 
 Siguen abiertos: la reversión de la rendición (punto 5, fuera de alcance; ahora además debería revertir el cobro) y los «comentarios de clientes» (punto 6).
 
-## Decisiones delegadas (2026-11-14)
-
-Nicolás delegó la decisión de los pendientes de MSF-145 (numeración de `decisiones-abiertas` 3 a 6). Se contrastó cada una con `origin/dokploy` (PR #825 más `8ced3c10`, migraciones `20270228110000`, `20270228110100` y `20270228110200`, pgTAP `ventas_motos_decisiones.test.sql`) y **no hubo nada que cambiar en código**: ya estaban implementadas desde el 2026-11-12.
-
-- **Decisión 3, Contrarreembolsos por defecto: confirmada.** Sin cambios.
-- **Decisión 4, factura anulada después: resuelta.** No se edita ni se rinde (`55000`, todo o nada); el listado trae `puede_rendir = false` y `bloqueado_motivo`, y la pantalla muestra «Factura anulada» con el motivo. Un envío ya rendido no se deshace: su cobro queda en el libro (ver reversión abajo).
-- **Decisión 5, borradores: resuelta.** No son elegibles en el selector ni en el registro (`22023`); rendir un envío con abono sobre un borrador exige confirmar la factura (`55000`).
-- **Decisión 6, `abono` y cobros: resuelta.** Modelo mínimo: `envios_moto.abono` es lo que el mensajero debe rendir; al rendir se registra un cobro en el libro por `least(abono, saldo neto)` y se guarda `cobro_id` en el envío (el vínculo). La nota de crédito posterior solo baja el `abono` de los envíos **sin rendir** hasta el saldo neto; los rendidos no se tocan porque su cobro ya está en el libro. Así no hay doble conteo: el saldo neto ya descuenta cobros y notas, y el abono pendiente nunca lo supera.
-- **Reversión de rendición: no existe y no se crea.** Sigue fuera de alcance (punto 5): exigiría un contra-asiento en el libro y las decisiones delegadas no la piden. Por eso no hay caso pgTAP de reversión.
-
-Casos pgTAP que respaldan lo anterior (`ventas_motos_decisiones.test.sql`): rendir crea el cobro con tope en el saldo neto; anular después bloquea editar y rendir; nota de crédito parcial baja el abono pendiente y no toca el rendido; una nota anulada no dispara un segundo evento.
-
 ## Pendientes de Nicolás
 
 1. ~~**Contrarreembolsos por defecto.**~~ Aprobada el 2026-11-12 (ver arriba).

@@ -1,13 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261022-180000-stock-depositos-y-reservas
-  - supabase/migrations/20261022120900_catalogo_disponibilidad.sql
-  - supabase/migrations/20261023130100_stock_reservas.sql
-  - supabase/migrations/20261023130200_disponibilidad_con_reservas.sql
-  - supabase/migrations/20261023130300_stock_evento_reserva.sql
----
-
 # Stock · Reserva y descuento de productos a pedido (F-STK-16, MSF-337)
 
 Spec: `specs/20261022-180000-stock-depositos-y-reservas/` (épica MSF-292). Esta guía es el contrato de las tres

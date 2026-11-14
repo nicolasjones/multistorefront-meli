@@ -6,8 +6,6 @@ sources:
 
 # Listados: carga infinita e imagen de producto (MSF-789)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../listados.md).
-
 **Épica:** MSF-789 — Listados con carga infinita (lazy loading) e imagen de producto en todas las pantallas.
 **Historias:** piezas compartidas · Ventas · Stock · Clientes y contactos · Resto (proveedores, consultas, historial,
 service técnico y precios).

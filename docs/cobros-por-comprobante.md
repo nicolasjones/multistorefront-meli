@@ -1,16 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-150000-ventas-cobros-y-conciliacion
-  - scripts/verificar-migraciones.mjs
-  - apps/web/src/components/ventas/CobrosComprobante.tsx
-  - apps/web/src/lib/ventas/cobros.ts
-  - apps/web/src/pages/ventas/comprobante.tsx
-  - supabase/migrations/20261212100800_estado_cobro_comprobante.sql
-  - supabase/migrations/20270114100000_cobros_comprobante.sql
-  - supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql
----
-
 # Ventas · Cobros por comprobante (F-VTA-12)
 
 Cobros **parciales o totales** de una factura: cuánto se cobró, cuánto falta y en qué estado de

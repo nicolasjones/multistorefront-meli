@@ -1,12 +1,3 @@
----
-owner: plataforma
-sources:
-  - infra/runner
-  - scripts/ci-lane.mjs
-  - scripts/estado-ci.mjs
-  - scripts/limpiar-ci.mjs
----
-
 # Control de concurrencia del CI
 
 Cómo evitar que, con muchos PRs en paralelo, el CI (y la máquina) se vaya al

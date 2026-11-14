@@ -8,8 +8,6 @@ sources:
 
 # Ventas · reportes (técnico, MSF-338, MSF-192)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-reportes.md).
-
 Implementación de la épica **MSF-338** (spec `20270104-100000-ventas-reportes-basicos`): **F-VTA-22**
 «Productos más vendidos» (MSF-347) y **F-VTA-23** «Ranking de clientes con exportación» (MSF-358), más el
 cierre (MSF-568: docs, revisión de seguridad, pgTAP de superficie y E2E). La **MSF-192** suma dos pestañas:

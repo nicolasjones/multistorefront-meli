@@ -1,11 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
-  - apps/web/src/lib/ventas/cbu.ts
-  - design/pantallas/CuentasCobro.dc.html
----
-
 # Cuentas de cobro (F-VTA-03 · MSF-240)
 
 Cuentas bancarias y billeteras de la **organización** donde se cobran las ventas por transferencia o

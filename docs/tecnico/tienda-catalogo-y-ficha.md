@@ -54,7 +54,7 @@ Tablas existentes que participan del grafo de lectura: `dominio.tiendas`, `domin
 `dominio.productos_tienda`, `dominio.producto_imagenes`, `dominio.existencias`,
 `dominio.precios_empresa`, `dominio.producto_precios_escala` y `dominio.alicuotas_iva`.
 No hay ERD nuevo porque no hay cambio de esquema; el modelo del catálogo está en
-[Datos y DER](datos.md#modelo-del-catalogo-msf-160) y su [ERD interactivo](../diagrams/msf-160-erd.html).
+[Datos y DER](datos.md#modelo-del-catálogo-msf-160) y su [ERD interactivo](../diagrams/msf-160-erd.html).
 
 ### Visibilidad efectiva
 

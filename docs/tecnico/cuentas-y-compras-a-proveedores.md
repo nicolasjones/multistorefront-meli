@@ -8,8 +8,6 @@ sources:
 
 # Cuentas y compras a proveedores (MSF-450)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../cuentas-y-compras-a-proveedores.md).
-
 **Épica:** MSF-450 — Clientes y proveedores · Cuentas y compras a proveedores · **Spec:** `specs/20261029-100000-cuentas-y-compras-a-proveedores/` (`spec.md`, `plan.md`, `tasks.md`) · **Rama:** `epic/MSF-450-clientes-y-proveedores-cuentas-y-compras` (PR #829, abierto; la épica está integrada en `dokploy` por el PR #826, merge `a559fbf0`; en `main` llega con la próxima promoción — las citas de este documento salen de `dokploy`) · **Alcance de entrega de la épica:** ninguno (solo documentación); la historia que sí se construyó declara `refine` y `supabase`.
 
 La épica registra **cuatro ideas condicionadas a validar demanda**, todas P3 y en Backlog, con la regla explícita de que «los requisitos se redactan cuando cada historia pase a un hito». De las cuatro, **solo una llegó a un hito y se construyó**: F-CLI-19 (MSF-451), «Cuenta corriente y saldo del cliente». Las otras tres siguen **sin código** y no tienen requisitos de comportamiento: inventarlos sería decidir por el cliente lo que todavía no pidió.

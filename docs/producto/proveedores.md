@@ -5,8 +5,6 @@ sources: []
 
 # Proveedores
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../proveedores.md).
-
 ## Para qué sirve
 
 Guardás los datos de las empresas a las que les comprás: razón social, CUIT y contacto. Cada producto puede tener asignado el proveedor que lo abastece y el código con que ese proveedor lo conoce. Los proveedores se usan al [registrar un ingreso de mercadería](ingreso-de-mercaderia.md).

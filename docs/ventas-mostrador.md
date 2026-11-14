@@ -1,15 +1,4 @@
----
-owner: tecnico
-sources:
-  - specs/20261027-100000-ventas-mejoras
-  - supabase/migrations/20270114100000_cobros_comprobante.sql
-  - supabase/migrations/20270114100300_registrar_cobro.sql
-  - supabase/migrations/20270202200400_mostrador_buscar_producto.sql
----
-
 # Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329)
-
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-mostrador.md) · [guía de uso](producto/ventas-mostrador.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20261027-100000-ventas-mejoras/` (FR-001…FR-005, SC-001). Épica MSF-193.
 

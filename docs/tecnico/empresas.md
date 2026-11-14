@@ -1,10 +1,8 @@
 ---
 owner: tecnico
 sources:
-  - specs/20261012-140000-empresas
-  - specs/20261015-100000-alta-de-empresas
-  - supabase/migrations/20261013120000_empresas.sql
-  - supabase/migrations/20261015110000_alta_de_empresas.sql
+  - specs
+  - code
 ---
 
 # Empresas: construcción interna (MSF-138)
@@ -15,7 +13,7 @@ de cada empresa, en [Dominio, identidad y catálogo visible](tienda-dominio-e-id
 
 ## Datos
 
-Tablas, columnas y políticas de RLS en detalle: [Empresas — Esquema y RLS](../empresas.md).
+Tablas, columnas y políticas de RLS en detalle: [Empresas — Esquema y RLS](../empresas.md#esquema-y-rls-constitución-principio-vii).
 En el gráfico del DER: `dominio.empresas` (`docs/tecnico/datos.md`), padre de `dominio.tiendas`
 (FK compuesta por MSF-147) y referenciada por productos, clientes, comprobantes y reparaciones.
 
@@ -28,7 +26,7 @@ Migraciones aditivas:
 | `supabase/migrations/20261015110000_alta_de_empresas.sql` | RPC `public.crear_empresa` e índice único de nombre por organización (épica de alta MSF-475, historia F-EMP-03 / MSF-277; nota «Alta de empresas» en la guía de producto). Errores de la RPC: `42501`, `22023`, `23505`; sin tablas nuevas, aditiva. |
 
 Reversión (migración posterior, nunca en el mismo PR): `drop trigger empresas_updated_at`,
-`drop function private.tocar_updated_at()`, `drop table dominio.empresas` — ver [Reversión](../empresas.md#reversion).
+`drop function private.tocar_updated_at()`, `drop table dominio.empresas` — ver [Reversión](../empresas.md#reversión).
 
 ## Frontend (`apps/web`)
 
@@ -41,7 +39,7 @@ Reversión (migración posterior, nunca en el mismo PR): `drop trigger empresas_
 
 El selector de empresa de la barra superior (F-EMP-05) cambia la empresa **por ruta**; la empresa
 activa persistida de *Permisos por empresa* (F-ROL-06) es otro selector y sus diferencias están en
-[Empresa activa](../empresa-activa.md#limite-con-f-emp-05).
+[Empresa activa](../empresa-activa.md#límite-con-f-emp-05).
 
 ## Pruebas
 

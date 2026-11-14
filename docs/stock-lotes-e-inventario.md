@@ -1,12 +1,4 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-120000-stock-lotes-e-inventario
----
-
 # Stock · Lotes e inventario (épica MSF-131)
-
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/stock-lotes-e-inventario.md) · [guía de uso](producto/stock-lotes-e-inventario.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20261024-120000-stock-lotes-e-inventario/`. Reúne las dos historias de la épica; el detalle técnico
 de cada una vive en su guía.

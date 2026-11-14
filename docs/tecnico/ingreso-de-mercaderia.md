@@ -6,8 +6,6 @@ sources:
 
 # Ingreso de mercadería: modelo, RPC y flujos (MSF-219)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ingreso-de-mercaderia.md).
-
 **Épica:** MSF-219 · **Historias:** F-PRV-04 (MSF-383), F-PRV-05 (MSF-393) y F-PRV-06 (MSF-404).
 **Spec:** `specs/20261021-183246-ingreso-de-mercaderia-por-proveedor/`.
 **Alcance de entrega:** `refine` (`apps/web`) y `supabase` (migraciones, RPC y pgTAP). Sin `kestra`,

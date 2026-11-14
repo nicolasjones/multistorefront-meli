@@ -13,7 +13,6 @@ Cada una debería ser un script determinista en el CI (no una regla para recorda
 
 ## Decisiones tomadas (2026-11-12)
 
-- **Decisión 13 (2026-11-14, por delegación de Nicolás): aprobación retroactiva ratificada.** Las decisiones 14 (precios masivos por tienda) y 15 (banderas `promociones_precio` y `precios_masivos`, apagadas por defecto; cómo encenderlas en `docs/deployment.md`, «Banderas de plataforma») ya estaban implementadas en `dokploy` (migraciones `20270228300000`…`20270228300300`); no hubo código nuevo. La decisión 12 (precio promocional en POS) la trabaja el PR #954 (MSF-834): no se toca acá y no hay solape (#954 no modifica specs ni migraciones de esta épica).
 - **Aprobación retroactiva** de las Decisiones 2, 5, 7 y 8 de la spec y de los cambios de #842: permiso por tienda, tienda desactivada sin lectura, vista previa con carga infinita. Aprobada por Nicolás el 2026-11-12 («avanza con todo»)
 
 ## Pendientes de Nicolás

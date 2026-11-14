@@ -1,12 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20270125-100000-catalogo-compatibilidad-y-planillas
-  - design/pantallas/Productos.dc.html
-  - supabase/migrations/20270205110210_exportar_productos.sql
-  - supabase/migrations/20270217200001_exportar_productos_cursor.sql
----
-
 # Catálogo · Exportar productos a CSV (F-CAT-11)
 
 Spec: `specs/20270125-100000-catalogo-compatibilidad-y-planillas/` (US3, FR-201…FR-209, SC-201, SC-202).

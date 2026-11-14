@@ -9,8 +9,6 @@ sources:
 
 # Ventas · catálogos de cobro y envío (técnico, MSF-139)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-catalogos.md).
-
 Implementación de la épica **MSF-139 · Ventas y despacho · Ventas catálogos de cobro y envío**
 (spec `20261020-100000-ventas-catalogos-de-cobro-y-envio`). Historias: F-VTA-01 (MSF-210, formas de
 pago), F-VTA-02 (MSF-225, formas de envío), F-VTA-03 (MSF-240, cuentas de cobro) y F-VTA-04 (MSF-251,

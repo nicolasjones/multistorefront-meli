@@ -5,8 +5,6 @@ sources: []
 
 # API pública: diseño y operación
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../api-publica.md).
-
 Resumen técnico de la API pública de solo lectura de MSF (épica MSF-233, F-API-01) para quien mantiene el sistema. Para quien **integra**, ver [Empezar con la API](../api/inicio-rapido.md) y la [Referencia de la API](../api/referencia.md); para quien **administra** claves y avisos, el [manual de API y avisos](../producto/api-y-avisos.md). La guía técnica completa (`docs/api-publica.md`) y la spec viven en la rama de desarrollo hasta la próxima promoción a `main`.
 
 ## Piezas

@@ -1,10 +1,3 @@
----
-owner: plataforma
-sources:
-  - scripts/guard-migraciones-ddl.mjs
-  - scripts/verificar-migraciones.mjs
----
-
 # Guard de migraciones (`scripts/verificar-migraciones.mjs`)
 
 Corre dentro de `pnpm docs:check`. Controla versiones únicas, inmutables y nuevas, y la

@@ -1,15 +1,3 @@
----
-owner: datos
-sources:
-  - specs/20261028-100000-service-seguimiento-y-reportes
-  - infra/superset/dashboards/service
-  - infra/superset/importar-dashboards.mjs
-  - apps/web/src/lib/exportarReparaciones.ts
-  - supabase/migrations/20270219130100_analitica_service_reparaciones.sql
-  - supabase/migrations/20270219130200_analitica_service_reparacion_items.sql
-  - supabase/migrations/20270219130300_reportes_service.sql
----
-
 # Service técnico · Reportes y exportación (F-SVC-23, MSF-168)
 
 Dos piezas de la épica MSF-124: el botón **Exportar** del listado de reparaciones y el tablero **Service técnico** de Superset, embebido en la pestaña **Reportes**. Spec: `specs/20261028-100000-service-seguimiento-y-reportes/` (FR-060…FR-066, SC-009, SC-010).

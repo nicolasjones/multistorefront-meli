@@ -1,12 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261023-120000-dolar-y-recalculo
-  - supabase/migrations/20261023140000_cotizacion_tablas.sql
-  - supabase/migrations/20261023140100_cotizacion_cargar_estado.sql
-  - supabase/migrations/20261023140500_cotizacion_aviso.sql
----
-
 # Carga diaria de la cotización del dólar (F-PRE-02)
 
 Historia F-PRE-02 (MSF-246) de la épica MSF-116 (`specs/20261023-120000-dolar-y-recalculo/`).

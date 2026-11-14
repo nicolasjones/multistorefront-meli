@@ -5,8 +5,6 @@ sources: []
 
 # Registrar y resolver devoluciones y reclamos (RMA)
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-rma-devoluciones.md).
-
 ## Para qué sirve
 
 Una **devolución o reclamo (RMA)** es el registro de que un producto vendido volvió, se cambió, se reclamó o llegó incompleto. Se registra **por producto** de una factura, con su motivo y quién lo cargó, y se sigue hasta cerrarlo: ya sea devolviendo la mercadería al stock o emitiendo una nota de crédito.

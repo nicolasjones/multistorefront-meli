@@ -5,13 +5,11 @@ sources: []
 
 # Consultar la actividad: quién hizo qué y cuándo
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../actividad.md).
-
 ## Para qué sirve
 
 **Actividad** es el historial de lo que pasó en el sistema: altas y cambios de productos, clientes, ventas y cobros, movimientos de usuarios y permisos, cambios en las tiendas. Sirve para saber quién hizo algo, cuándo y en qué tienda, y para aclarar dudas sin tener que preguntarle a todo el equipo.
 
-Es solo de consulta: nadie, ni el Administrador, puede editar ni borrar lo registrado, y desde acá no se puede deshacer un cambio. Cada fila se puede abrir para ver el antes y el después de lo que cambió, y el historial con los filtros que elijas se puede descargar.
+Es solo de consulta: nadie, ni el Administrador, puede editar ni borrar lo registrado, y desde acá no se puede deshacer un cambio. Cada fila se puede abrir para ver el antes y el después de lo que cambió, y el historial con los filtros que elijas se puede descargar. El historial se conserva **24 meses** (plazo confirmado); lo más viejo se depura solo.
 
 ## Quién puede verla
 

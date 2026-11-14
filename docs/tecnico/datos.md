@@ -111,7 +111,7 @@ erDiagram
 Una tabla nueva en `dominio`, dos columnas aditivas en `dominio.productos` y una vista de superficie en
 `public`. Migraciones `20261018190001`–`20261018190700` en la rama de la épica, todavía sin promover a
 `main`; reversión en el encabezado de cada una y consolidada en
-[Proveedores: modelo, RPC y pantallas](proveedores.md#reversion). El proveedor pertenece a la
+[Proveedores: modelo, RPC y pantallas](proveedores.md#reversión). El proveedor pertenece a la
 **organización** y se comparte entre empresas (no hay `empresa_id`).
 
 | Tabla | Estado | Cambio |
@@ -403,7 +403,7 @@ erDiagram
 Tres tablas nuevas en `dominio` y una columna nueva, sin cambios en las tablas existentes. Migraciones aditivas
 `20261017140000_stock_existencias_y_movimientos.sql` a `20261017180000_stock_historial_inmutable_sentencia.sql`;
 reversión en el encabezado de cada una y consolidada en
-[Stock · movimientos, historial y estados](stock-movimientos.md#reversion). El stock es único por organización y
+[Stock · movimientos, historial y estados](stock-movimientos.md#reversión). El stock es único por organización y
 compartido entre empresas.
 
 | Tabla | Estado | Cambio |
@@ -468,7 +468,7 @@ Dos tablas nuevas en `dominio`, sin cambios de columnas en las tablas existentes
 `20261021180000_ingresos_mercaderia_tablas.sql`, `…180100_ingresos_mercaderia_registrar.sql`,
 `…180200_ingresos_mercaderia_listar.sql` y `…180300_ingresos_mercaderia_anular.sql` en la rama de la
 épica, pendiente de promoción a `main`; reversión en el encabezado de cada una y consolidada en
-[Ingreso de mercadería: modelo, RPC y flujos](ingreso-de-mercaderia.md#reversion).
+[Ingreso de mercadería: modelo, RPC y flujos](ingreso-de-mercaderia.md#reversión).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
@@ -972,7 +972,7 @@ Se agrega un nivel **depósito** debajo del stock único: cuatro tablas nuevas e
 existentes. Migraciones aditivas `20261023120000_depositos_tablas.sql` a `20261023130400_stock_motivo_traslado_reservado.sql`
 en la rama de la épica `epic/MSF-292-stock-stock-depositos-y-reservas`, pendiente de promoción a `main`; reversión en
 el encabezado de cada una y consolidada en
-[Stock · depósitos y reservas](stock-depositos-y-reservas.md#reversion).
+[Stock · depósitos y reservas](stock-depositos-y-reservas.md#reversión).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
@@ -1098,7 +1098,7 @@ Ninguna tabla nueva admite escritura directa de `authenticated`: escriben solo l
 exclusivas de `service_role`. Migraciones aditivas `20261212140000_stock_avisos_reposicion.sql` a
 `20261213100500_productos_mas_vendidos.sql` en la rama de la épica
 `epic/MSF-368-stock-stock-carga-exportacion-y-avisos`, pendiente de promoción a `main`; reversión en el encabezado de
-cada una y consolidada en [Stock · carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md#reversion).
+cada una y consolidada en [Stock · carga inicial, exportación y avisos](stock-carga-exportacion-y-avisos.md#reversión).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
@@ -2144,7 +2144,7 @@ Listado con filtros y exportación de comprobantes, matriz de estados por rol y 
 Todo en `dominio` (una tabla nueva, dos alteradas de forma aditiva) más el bucket de Storage
 `exportaciones-ventas` (no es tabla). Migraciones: `20261212100500` … `20261212120600` (aditivas; reversión en
 el encabezado de cada una y consolidada en
-[Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#reversion)).
+[Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#reversión)).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
@@ -2880,7 +2880,7 @@ y el que el transporte retiene) y **sin cambios** en las tablas que ya existían
 que habilita la FK compuesta de la forma de pago. Migraciones: `20261215100000`–`20261215100400`
 (F-VTA-12), `20261216100000`–`20261216100300` (F-VTA-13) y `20261217100000`–`20261217100200` (F-VTA-14),
 aditivas; reversión en el encabezado de cada una y consolidada en
-[Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#reversion).
+[Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#reversión).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
@@ -3006,9 +3006,9 @@ agrega al libro de cobros. Migraciones aditivas `20270201200102`–`202702012001
 `20270202200400` (F-VTA-31) y `20270202201100`–`20270202201102` (F-VTA-33), en las ramas
 `epic/MSF-193-ventas-mejoras` y `dokploy`, pendientes de merge a `main`; reversión en el encabezado de
 cada una y consolidada en
-[Venta de mostrador (técnico)](ventas-mostrador.md#reversion),
-[Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversion) y
-[Cierre de caja (técnico)](ventas-cierre-caja.md#reversion).
+[Venta de mostrador (técnico)](ventas-mostrador.md#reversión),
+[Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversión) y
+[Cierre de caja (técnico)](ventas-cierre-caja.md#reversión).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
@@ -3142,7 +3142,7 @@ Tres tablas nuevas en `public` (plataforma/transversal), una en `dominio` (estad
 alteración de `dominio.motivos_movimiento`. Migraciones aditivas `20261210120000`–`20261210120600` (avisos) y
 `20261210130000`–`20261210130300` (listas y emisión desde Consultas), en la rama de la épica, pendiente de
 merge a `main`; reversión en el encabezado de cada una y consolidada en
-[Avisos y listas](avisos-y-listas.md#reversion). Los detalles de RPC, flow y operación están en
+[Avisos y listas](avisos-y-listas.md#reversión). Los detalles de RPC, flow y operación están en
 [Avisos y listas: modelo, RPC y flujos](avisos-y-listas.md).
 
 | Tabla | Estado | Cambio |
@@ -3240,7 +3240,7 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
   visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y
   [Tienda online: dominio, publicación y versiones](tienda-dominio-y-publicacion.md).
-  Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catalogo-msf-160).
+  Modelo del catálogo y ERD vigente: [MSF-160](#modelo-del-catálogo-msf-160).
 
 ## Inicio, búsqueda y móvil (MSF-191)
 
@@ -3550,7 +3550,7 @@ Tres tablas nuevas en `dominio` (Principio VII), una por organización y con RLS
 organización**, no de una empresa. La cuarta, `cotizacion_inicial`, ya existe (MSF-114) y queda como
 respaldo. Migraciones aditivas `20261023140000`–`20261023140500` (rama de la épica, pendiente de merge a
 `main`; reversión en el encabezado de cada una y consolidada en
-[Dólar y recálculo](dolar-y-recalculo.md#reversion)).
+[Dólar y recálculo](dolar-y-recalculo.md#reversión)).
 
 ```mermaid
 erDiagram
@@ -3773,7 +3773,7 @@ erDiagram
 - **Inalterabilidad:** `update`, `delete` y `truncate` fallan con `42501` para cualquier rol. Únicas excepciones: el borrado en cascada de la organización y `private.depurar_registro_actividad` (retención de 24 meses, solo roles de servicio).
 - **Valores antes/después:** obligatorios en los tipos marcados `sensible` (alta → anterior `{}`; baja → nuevo `{}`); sin ellos o con más de 8 KB, `22023` y la operación de origen se revierte.
 - **Vigencia del soporte:** `vence_en` a 4 horas; `private.organizacion_id()` y los demás helpers leen `private.superadmin_contexto_vigente`, así que un acceso vencido no ve ni escribe filas.
-- **Reversión:** cada migración la documenta en su encabezado; los eventos ya escritos se conservan. Detalle en [Auditoría avanzada y soporte](auditoria-y-soporte.md).
+- **Reversión:** cada migración la documenta en su encabezado; los eventos ya escritos se conservan. Detalle en [Auditoría avanzada y soporte](auditoria-y-soporte.md#reversion).
 
 ## Mejoras de clientes y proveedores (MSF-445)
 

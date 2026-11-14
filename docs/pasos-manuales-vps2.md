@@ -1,11 +1,3 @@
----
-owner: operacion
-sources:
-  - scripts/docs-api-publica.sh
-  - apps/web/src/pages/api/PanelClaves.tsx
-  - supabase/migrations/20270224110201_api_claves.sql
----
-
 # Pasos manuales de infraestructura en VPS2 (MSF-854)
 
 Cuatro operaciones que **no se pueden hacer desde el repo**: piden acceso al VPS2

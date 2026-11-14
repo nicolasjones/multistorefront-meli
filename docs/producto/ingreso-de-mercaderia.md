@@ -5,8 +5,6 @@ sources: []
 
 # Registrar un ingreso de mercadería
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ingreso-de-mercaderia.md).
-
 ## Para qué sirve
 
 Cuando llega mercadería de un proveedor, la registrás acá y el stock sube en el momento. Queda un historial con la fecha, el producto, la cantidad, la tienda, el proveedor y quién lo cargó. Si te equivocás, el ingreso se **anula con un motivo**: no se edita ni se borra.

@@ -8,8 +8,6 @@ sources:
 
 # Migración inicial de datos: modelo, RPC y operación
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../migracion-inicial-de-datos.md).
-
 **Épica:** MSF-142 · **Spec:** `20261023-120000-migracion-inicial-de-datos` (rama
 `epic/MSF-142-clientes-y-proveedores-migracion-inicial`, pendiente de merge a `main` en este
 repositorio).
@@ -249,7 +247,7 @@ corrieron localmente.
   una guarda falla si aparece un correo fuera de los dominios reservados o un documento con forma de
   dato real.
 - **Orden y prerrequisitos:** ver el plan de corte en
-  [Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md).
+  [Migración inicial de datos (producto)](../producto/migracion-inicial-de-datos.md#el-dia-del-corte).
 - **Reintento:** la misma carga se puede reintentar; las filas ya aplicadas se omiten y el resto se
   completa. Reimportar un archivo corregido actualiza por identificador externo.
 - **Vuelta atrás de una carga:** el registro `migracion_filas` (estado `nueva`) lista lo creado. Los

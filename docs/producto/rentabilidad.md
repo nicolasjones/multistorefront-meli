@@ -5,8 +5,6 @@ sources: []
 
 # Ver la rentabilidad: costos y márgenes
 
-> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../rentabilidad.md).
-
 ## Para qué sirve
 
 La pantalla **Rentabilidad** te muestra cuánto ganás con cada producto en cada tienda: el margen, comparado con el costo. Te avisa cuando algo se vende por debajo del costo o casi, para que lo corrijas a tiempo.

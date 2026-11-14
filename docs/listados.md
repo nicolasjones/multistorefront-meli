@@ -1,12 +1,4 @@
----
-owner: tecnico
-sources:
-  - apps/web/src/components/base/MiniaturaProducto.tsx
----
-
 # Listados: carga infinita e imagen de producto
-
-> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/listados.md) · [guía de uso](producto/listados.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Regla de la constitución (Principio VI, 1.10.0): los listados del panel **no usan paginación numerada**. Cargan por
 tandas desde el servidor al llegar al final del scroll y suman cada tanda a lo ya mostrado. Los listados que
@@ -44,7 +36,7 @@ mencionan productos muestran su **imagen principal** como miniatura con zoom al 
 
 Si la fila tiene el `producto_id`, `useImagenesProductos(listado.filas.map((f) => f.producto_id))` entrega la URL
 firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto alt="" src={imagenes.get(id)} />` junto
-al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. Si la imagen no se puede cargar (por ejemplo, la URL firmada venció), se dibuja el mismo marcador vacío en vez de una imagen rota y `MiniaturaProducto` avisa por la propiedad opcional `onFallo` para que quien la usa pida una URL nueva. No se agranda la miniatura para no romper el ancho
+al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
 de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
 ### Alta y edición de producto en popup

@@ -1,10 +1,3 @@
----
-owner: tecnico
-sources:
-  - specs/20261024-130000-stock-carga-exportacion-y-avisos
-  - infra/kestra
----
-
 # Stock · Avisos de reposición (F-STK-09)
 
 Resumen por correo de los productos que **entraron en alerta** de reposición (stock bajo o sin stock). Una
