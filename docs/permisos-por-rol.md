@@ -209,7 +209,8 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
   `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
-  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
+  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02. Excepción confirmada: `ver_costos`
+  en **Stock** también es del Operador (reportes de inventario, migración `20270325300000`); los demás roles sin ella ven solo cantidades.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
   rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.
