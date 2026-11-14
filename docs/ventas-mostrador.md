@@ -28,6 +28,15 @@ Pantalla `/ventas/mostrador` (menú Ventas → «Venta de mostrador», sección 
 - **Cobrar**: `confirmar_comprobante` (MSF-159) + `registrar_cobro` (MSF-195) por el total, con la forma de
   pago (y la cuenta de cobro si la forma la exige) elegida en pantalla. Si el cobro falla después de
   confirmar, el reintento no vuelve a confirmar y no se pueden agregar más productos.
+- **Precio promocional** (MSF-816, F-2; con la bandera `promociones_precio` encendida): si el producto tiene una promoción
+  vigente de la tienda y es más barata que el precio normal, la fila muestra el precio cobrado, el **precio anterior
+  tachado** y la leyenda «Promoción» (para el lector de pantalla se anuncian «Precio anterior» y «Precio promocional»;
+  el rótulo de escala pasa a «promoción»). El servidor calcula todo (`precio_referencia` por línea); el navegador no
+  decide nada. Cada escaneo reprecia todas las líneas: si entre dos escaneos una promoción venció o empezó y el precio de
+  una línea ya cargada cambió, aparece el aviso informativo «Los precios cambiaron: revisá el total» (no bloquea el
+  escaneo). Si al cobrar el servidor rechaza con `40001` y `hint = 'precios_cambiaron'` (guarda de F-3), la pantalla
+  re-guarda las mismas líneas, muestra «Los precios cambiaron: revisá el total y cobrá de nuevo» con el total nuevo y
+  **no** cobra sola. Con la bandera apagada la pantalla es idéntica a la anterior.
 - **Totales**: la línea muestra el precio **sin** IVA y el subtotal sin IVA; abajo, «Subtotal sin IVA», «IVA» y
   «Total», como en la pantalla de comprobante.
 - **Empresa activa** (Principio VIII): la venta es de una sola tienda; con «Todas mis empresas» la pantalla
@@ -52,4 +61,6 @@ para la RPC de plataforma; lee `dominio.productos`). Reversión: `drop function 
 - Vitest `apps/web/src/lib/ventasMostrador.test.ts` y `apps/web/src/pages/ventas/mostrador.test.tsx`
   (incremento de la línea con el depósito real, cola de escaneos, descarte al cambiar de tienda, error al
   cargar las formas de pago y totales con el IVA aparte).
-- E2E `apps/web/e2e/ventas-mostrador.e2e.ts` (`[MSF-329:T007] [F-VTA-31#1]`).
+- E2E `apps/web/e2e/ventas-mostrador.e2e.ts` (`[MSF-329:T007] [F-VTA-31#1]`) y `apps/web/e2e/ventas-mostrador-promocion.e2e.ts`
+  (`[MSF-816:T012]`: tachado y «Promoción», cobro al precio promocional con total del comprobante = total del cobro, bandera
+  apagada idéntica y aviso por promoción vencida entre escaneos; fija y restaura la bandera; correr con `--workers=1`).
