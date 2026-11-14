@@ -1,7 +1,7 @@
 import { supabaseClient } from './supabase'
 import { hoyEnArgentina } from './reparaciones'
 import { crearComprobante, obtenerComprobante, mensajeDeErrorComprobante, type Comprobante } from './ventas'
-import { aEntradas, conProductoAgregado, guardarLineasComprobante, type EntradaLinea } from './ventasLineas'
+import { aEntradas, conProductoAgregado, guardarLineasComprobante, type EntradaLinea, type LineaComprobante } from './ventasLineas'
 import { mensajeDeConfirmacion } from './ventasConfirmacion'
 import { mensajeDeErrorCobro } from './ventas/cobros'
 
@@ -14,6 +14,10 @@ export const MENSAJE_CODIGO_INVALIDO = 'El código de barras debe tener 13 dígi
 export const MENSAJE_ERROR_ESCANEO = 'No pudimos agregar el producto. Probá de nuevo.'
 export const MENSAJE_ERROR_COBRAR = 'La venta se confirmó pero no pudimos registrar el cobro. Probá de nuevo: no se duplica la venta.'
 export const MENSAJE_SIN_CONSUMIDOR_FINAL = 'No hay un cliente «Consumidor final» en tu organización. Pedile a un administrador que lo cree.'
+
+// FR-017: entre dos escaneos una promoción puede vencer o empezar y el precio de una línea cambia. El aviso
+// es informativo: no bloquea el escaneo siguiente.
+export const MENSAJE_PRECIO_CAMBIADO = 'Los precios cambiaron: revisá el total.'
 
 // Aviso de descarte de la venta en curso al cambiar de tienda (Principio VIII).
 export const mensajeDescarteVenta = (empresa: string): string =>
@@ -87,6 +91,16 @@ export function mensajeDeEscaneo(error: unknown): string {
   if (e?.code === '22023' && e.hint === 'codigo_barras') return MENSAJE_CODIGO_INVALIDO
   if (e?.code === '42501') return 'No tenés permiso para vender en el mostrador de esta tienda. Puede que tu rol haya cambiado: recargá la página.'
   return mensajeDeErrorComprobante(error, MENSAJE_ERROR_ESCANEO)
+}
+
+// FR-017: líneas cuyo precio cambió entre el antes y el después de un escaneo. Solo cuentan las que conservan
+// producto y cantidad: si cambió la cantidad, el precio cambia por la escala y es lo esperado (no avisa).
+export function lineasConPrecioCambiado(antes: readonly LineaComprobante[], despues: readonly LineaComprobante[]): string[] {
+  const clave = (linea: LineaComprobante) => `${linea.producto_id ?? linea.id}|${linea.cantidad}`
+  const precios = new Map(antes.map((linea) => [clave(linea), linea.precio_unitario]))
+  return despues
+    .filter((linea) => precios.has(clave(linea)) && precios.get(clave(linea)) !== linea.precio_unitario)
+    .map((linea) => linea.descripcion)
 }
 
 export const mensajeDeConfirmarVenta = (error: unknown): string => mensajeDeConfirmacion(error)

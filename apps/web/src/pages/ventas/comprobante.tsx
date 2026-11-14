@@ -1009,6 +1009,7 @@ export function ComprobanteVenta() {
           comprobante={comprobante}
           onCerrar={() => setConfirmandoFactura(false)}
           onConfirmado={() => void alConfirmarFactura()}
+          onRepreciado={(repreciado) => setComprobante(repreciado)}
         />
       ) : null}
 

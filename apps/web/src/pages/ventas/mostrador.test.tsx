@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   formas: vi.fn(),
   puede: vi.fn(),
   confirmar: vi.fn(),
+  repreciar: vi.fn(),
   cobro: vi.fn(),
 }))
 
@@ -19,6 +20,7 @@ vi.mock('../../lib/ventas/formasPago', () => ({ listarFormasPago: mocks.formas }
 vi.mock('../../lib/ventasConfirmacion', async (original) => ({
   ...(await original<typeof import('../../lib/ventasConfirmacion')>()),
   confirmarComprobante: mocks.confirmar,
+  repreciarComprobante: mocks.repreciar,
 }))
 vi.mock('../../lib/ventas/cobros', async (original) => ({
   ...(await original<typeof import('../../lib/ventas/cobros')>()),
@@ -35,9 +37,12 @@ vi.mock('../../lib/ventasMostrador', async (original) => ({
 import { VentaMostrador } from './mostrador'
 
 const CODIGO = '7790001000011'
+const lineaVenta = (cambios: Record<string, unknown> = {}) => ({
+  id: 'l-1', descripcion: 'Joystick', codigo: 'JOY', cantidad: 2, precio_unitario: 500, escala: 'x1', precio_manual: false, subtotal_sin_iva: 1000, iva: 210, ...cambios,
+})
 const venta = (empresaId = 'e-1') => ({
   id: 'c-1', numero: '00000001', empresa_id: empresaId, empresa: 'Tienda Uno', total_con_iva: 1210, total_sin_iva: 1000, iva: 210, updated_at: 't',
-  lineas: [{ id: 'l-1', descripcion: 'Joystick', codigo: 'JOY', cantidad: 2, precio_unitario: 500, escala: 'x1', precio_manual: false, subtotal_sin_iva: 1000, iva: 210 }],
+  lineas: [lineaVenta()],
 })
 const empresasDe = (activa: string | null) => ({
   empresas: [{ id: 'e-1', nombre: 'Tienda Uno' }, { id: 'e-2', nombre: 'Tienda Dos' }],
@@ -187,5 +192,56 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     mocks.empresas.mockReturnValue(empresasDe(null))
     render(<VentaMostrador />)
     expect(screen.getByText('Elegí una tienda')).toBeTruthy()
+  })
+})
+
+describe('VentaMostrador · precio promocional (MSF-816, FR-017/FR-018)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.empresas.mockReturnValue(empresasDe('e-1'))
+    mocks.consumidor.mockResolvedValue('cf-1')
+    mocks.formas.mockResolvedValue([{ id: 'f-1', nombre: 'Efectivo', activo: true, exige_cuenta_cobro: false }])
+    mocks.puede.mockResolvedValue(true)
+    mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+  })
+
+  it('una línea en promoción muestra el precio anterior tachado y la leyenda «Promoción»', async () => {
+    mocks.agregar.mockResolvedValue({
+      ...venta(),
+      lineas: [lineaVenta({ precio_unitario: 400, precio_referencia: 500 })],
+    })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    expect(await screen.findByText(/Promoción/)).toBeTruthy()
+    expect(document.querySelector('del')).toHaveTextContent('$ 500')
+    expect(screen.getByText('Precio anterior')).toBeTruthy()
+    expect(screen.getByText('Precio promocional')).toBeTruthy()
+  })
+
+  it('si el precio de una línea cambia entre escaneos, avisa y sigue el escaneo siguiente', async () => {
+    mocks.agregar
+      .mockResolvedValueOnce(venta())
+      .mockResolvedValueOnce({ ...venta(), lineas: [lineaVenta({ precio_unitario: 800 })] })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await escanear(CODIGO)
+    expect(await screen.findByText(/Los precios cambiaron: revisá el total/)).toBeTruthy()
+    // El aviso es informativo: la venta sigue en pantalla y se puede seguir escaneando.
+    expect(screen.getByText('Joystick')).toBeTruthy()
+  })
+
+  it('si cambiaron los precios al confirmar, reprecia, avisa y no cobra solo', async () => {
+    mocks.agregar.mockResolvedValue(venta())
+    mocks.confirmar.mockRejectedValue({ code: '40001', hint: 'precios_cambiaron' })
+    mocks.repreciar.mockResolvedValue(venta())
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    const boton = await screen.findByRole('button', { name: 'Cobrar' })
+    await waitFor(() => expect((boton as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(boton)
+    expect(await screen.findByText(/Los precios cambiaron: revisá el total y cobrá de nuevo/)).toBeTruthy()
+    expect(mocks.repreciar).toHaveBeenCalledTimes(1)
+    // El cobro no se reintenta solo: la persona vuelve a cobrar con el total nuevo.
+    expect(mocks.cobro).not.toHaveBeenCalled()
   })
 })

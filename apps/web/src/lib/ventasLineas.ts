@@ -20,6 +20,9 @@ export type LineaComprobante = {
   precio_manual: boolean
   // F-VTA-32: % de descuento del cliente aplicado al neto de escala (0 = ninguno o precio manual).
   descuento_pct?: number
+  // MSF-816 (FR-015): precio normal del cliente con el que la promoción reemplazó al cobrado. null = la línea
+  // no ganó una promoción. `obtener_comprobante` NO expone `promocion_id`: este precio es el indicador.
+  precio_referencia?: number | null
   alicuota_porcentaje: number
   deposito_id: string | null
   deposito: string | null
@@ -51,12 +54,18 @@ export const MENSAJE_CANTIDAD_LINEA = `Ingresá una cantidad entera de 1 a ${CAN
 export const MENSAJE_PRECIO_LINEA = 'Ingresá un precio de cero o más, con hasta dos decimales.'
 export const MENSAJE_SIN_PERMISO_PRECIO = 'Tu rol no puede editar precios: el precio sale de la escala del producto.'
 
-export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct'>) =>
+// MSF-816 (FR-016): la línea ganó una promoción. El precio de referencia es el normal del cliente (con su
+// escala y su descuento): es lo que se tacha al lado del precio cobrado.
+export const lineaEnPromocion = (linea: Pick<LineaComprobante, 'precio_referencia'>) => linea.precio_referencia != null
+
+export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct' | 'precio_referencia'>) =>
   linea.precio_manual
     ? 'precio manual'
-    : linea.descuento_pct
-      ? `escala ${linea.escala} · ${linea.descuento_pct} % de descuento`
-      : `escala ${linea.escala}`
+    : lineaEnPromocion(linea)
+      ? 'Promoción'
+      : linea.descuento_pct
+        ? `escala ${linea.escala} · ${linea.descuento_pct} % de descuento`
+        : `escala ${linea.escala}`
 
 // Disponible = stock del depósito menos lo reservado (FR-017); nunca negativo.
 export const disponibleDeLinea = (linea: Pick<LineaComprobante, 'stock' | 'reservado'>) => Math.max(0, linea.stock - linea.reservado)
@@ -131,6 +140,7 @@ export function aLineas(dato: unknown): LineaComprobante[] {
       ...(linea as unknown as LineaComprobante),
       cantidad: numero(linea.cantidad),
       precio_unitario: numero(linea.precio_unitario),
+      precio_referencia: linea.precio_referencia == null ? null : numero(linea.precio_referencia),
       alicuota_porcentaje: numero(linea.alicuota_porcentaje),
       stock: numero(linea.stock),
       reservado: numero(linea.reservado),

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { violacionesAxe } from '../../test/axe'
 import type { EntradaLinea, LineaComprobante } from '../../lib/ventasLineas'
 import { LineasComprobante } from './LineasComprobante'
 
@@ -42,7 +43,7 @@ type Opciones = {
 function montar(lineas: LineaComprobante[], opciones: Opciones = {}) {
   const onCambiar = opciones.onCambiar ?? vi.fn<(indice: number, cambio: Partial<EntradaLinea>) => void>()
   const onQuitar = opciones.onQuitar ?? vi.fn<(indice: number) => void>()
-  render(
+  const { container } = render(
     <LineasComprobante
       lineas={lineas}
       totales={{ subtotal: 8000, iva: 1680, total: 9680 }}
@@ -55,7 +56,7 @@ function montar(lineas: LineaComprobante[], opciones: Opciones = {}) {
       onAgregar={vi.fn()}
     />,
   )
-  return { onCambiar, onQuitar }
+  return { onCambiar, onQuitar, container }
 }
 
 beforeEach(() => mocks.imagenes.mockReturnValue(new Map()))
@@ -114,6 +115,52 @@ describe('LineasComprobante · columnas, disponible y totales (FR-017, FR-019)',
     expect(screen.queryByRole('textbox', { name: 'Precio sin IVA de Joystick' })).not.toBeInTheDocument()
     expect(screen.getByText(/Tu rol no puede editar precios/)).toBeInTheDocument()
     expect(screen.getByText('$ 800')).toBeInTheDocument()
+  })
+})
+
+describe('LineasComprobante · precio promocional (MSF-816, FR-016)', () => {
+  it('con promoción muestra el cobrado, el precio anterior tachado y la leyenda «Promoción»', () => {
+    montar([linea({ precio_unitario: 800, precio_referencia: 1000 })], { puedeEditarPrecio: false })
+    expect(screen.getByText('$ 800')).toBeInTheDocument()
+    // El tachado no es lo único que lo dice: el lector de pantalla oye los dos precios.
+    expect(screen.getByText('Precio promocional')).toBeInTheDocument()
+    expect(screen.getByText('Precio anterior')).toBeInTheDocument()
+    const tachado = document.querySelector('del')
+    expect(tachado).toHaveTextContent('$ 1.000')
+    expect(screen.getByText('Promoción')).toBeInTheDocument()
+  })
+
+  it('con el precio editable la referencia tachada y la leyenda siguen visibles', () => {
+    montar([linea({ precio_unitario: 800, precio_referencia: 1000 })])
+    expect(screen.getByRole('textbox', { name: 'Precio sin IVA de Joystick' })).toHaveValue('800')
+    expect(document.querySelector('del')).toHaveTextContent('$ 1.000')
+    expect(screen.getByText('Promoción')).toBeInTheDocument()
+  })
+
+  it('con promoción omite el rótulo de escala y el descuento', () => {
+    montar([linea({ precio_unitario: 800, precio_referencia: 1000, escala: 'x10', descuento_pct: 15 })], { puedeEditarPrecio: false })
+    expect(screen.queryByText(/escala x10/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/de descuento/)).not.toBeInTheDocument()
+    expect(screen.getByText('Promoción')).toBeInTheDocument()
+  })
+
+  it('sin promoción no muestra tachado ni leyenda: el rótulo sigue siendo la escala', () => {
+    montar([linea()], { puedeEditarPrecio: false })
+    expect(document.querySelector('del')).toBeNull()
+    expect(screen.queryByText('Promoción')).not.toBeInTheDocument()
+    expect(screen.getAllByText('escala x10')[0]).toBeInTheDocument()
+  })
+
+  it('un precio manual no lleva leyenda de promoción', () => {
+    montar([linea({ precio_manual: true, precio_unitario: 950, precio_referencia: 1000 })], { puedeEditarPrecio: false })
+    expect(screen.queryByText('Promoción')).not.toBeInTheDocument()
+    expect(screen.getByText('precio manual')).toBeInTheDocument()
+  })
+
+  it.each([320, 768, 1440])('sin violaciones de axe a %i px con una línea en promoción', async (ancho) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
+    const { container } = montar([linea({ precio_unitario: 800, precio_referencia: 1000 })])
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })
 

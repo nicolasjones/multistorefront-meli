@@ -6,18 +6,19 @@ import {
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
-import type { Comprobante } from '../../lib/ventas'
+import { mensajeDeErrorComprobante, type Comprobante } from '../../lib/ventas'
 import { rotuloEscalaLinea } from '../../lib/ventasLineas'
 import { etiquetaCuentaCobro } from '../../lib/ventas/cuentasCobro'
 import { puedeRegistrarCobro, registrarCobro } from '../../lib/ventas/cobros'
-import { confirmarComprobante } from '../../lib/ventasConfirmacion'
+import { MENSAJE_PRECIOS_CAMBIARON, confirmarComprobante, esPreciosCambiaron, repreciarComprobante } from '../../lib/ventasConfirmacion'
 import { listarFormasPago, type FormaPago } from '../../lib/ventas/formasPago'
 import {
-  MENSAJE_PRODUCTO_NO_ENCONTRADO, MENSAJE_SIN_CONSUMIDOR_FINAL, agregarProductoAVenta, buscarProductoPorCodigoBarras,
-  esEan13, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo, mensajeDescarteVenta, obtenerConsumidorFinal,
+  MENSAJE_PRECIO_CAMBIADO, MENSAJE_PRODUCTO_NO_ENCONTRADO, MENSAJE_SIN_CONSUMIDOR_FINAL, agregarProductoAVenta, buscarProductoPorCodigoBarras,
+  esEan13, lineasConPrecioCambiado, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo, mensajeDescarteVenta, obtenerConsumidorFinal,
   MENSAJE_CODIGO_INVALIDO,
 } from '../../lib/ventasMostrador'
 import { LectorCodigoBarras } from '../../components/ventas/LectorCodigoBarras'
+import { PrecioLinea } from '../../components/ventas/PrecioLinea'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -38,6 +39,7 @@ export function VentaMostrador() {
   const [errorVenta, setErrorVenta] = useState<string | null>(null)
   const [errorFormas, setErrorFormas] = useState<string | null>(null)
   const [avisoDescarte, setAvisoDescarte] = useState<string | null>(null)
+  const [avisoPrecios, setAvisoPrecios] = useState<string | null>(null)
   const [cobrada, setCobrada] = useState<{ numero: string; total: number } | null>(null)
   const [cobrando, setCobrando] = useState(false)
   const [confirmadaId, setConfirmadaId] = useState<string | null>(null)
@@ -101,6 +103,7 @@ export function VentaMostrador() {
   const procesar = useCallback(async (codigo: string, empresa: string) => {
     setErrorEscaneo(null)
     setErrorVenta(null)
+    setAvisoPrecios(null)
     if (!esEan13(codigo)) {
       setErrorEscaneo(MENSAJE_CODIGO_INVALIDO)
       return
@@ -126,6 +129,10 @@ export function VentaMostrador() {
       if (empresaVigente.current === empresa) {
         setVenta(actualizada)
         setAvisoDescarte(null)
+        // FR-017: si entre escaneos venció o empezó una promoción, el precio de una línea cambia y se avisa.
+        if (lineasConPrecioCambiado(base?.lineas ?? [], actualizada.lineas).length > 0) {
+          setAvisoPrecios(MENSAJE_PRECIO_CAMBIADO)
+        }
       } else {
         // Cambió la tienda mientras se resolvía: esa venta no se muestra ni se cobra bajo la nueva, y se avisa
         // que se descartó (Principio VIII).
@@ -157,10 +164,22 @@ export function VentaMostrador() {
     }
   }, [empresaActivaId, procesar])
 
+  // FR-018: reprecia la venta en curso (mismas cantidades y mismos precios manuales) y avisa que hay que cobrar
+  // de nuevo. El cobro NO se reintenta desde acá.
+  const repreciarVenta = async (venta: Comprobante) => {
+    try {
+      setVenta(await repreciarComprobante(venta))
+      setAvisoPrecios(MENSAJE_PRECIOS_CAMBIARON)
+    } catch (error) {
+      setErrorVenta(mensajeDeErrorComprobante(error, 'Cambiaron los precios y no pudimos repreciar la venta: recargá la página.'))
+    }
+  }
+
   async function cobrar() {
     if (!ventaVigente || cobrando) return
     setCobrando(true)
     setErrorVenta(null)
+    setAvisoPrecios(null)
     let fase: 'confirmar' | 'cobrar' = 'confirmar'
     try {
       // Si el cobro falló tras confirmar, el reintento no vuelve a confirmar ni duplica la venta.
@@ -178,6 +197,12 @@ export function VentaMostrador() {
       setVenta(null)
       setConfirmadaId(null)
     } catch (error) {
+      // FR-018: el precio de alguna línea cambió (promoción vencida o nueva). Se reprecia la venta y se avisa;
+      // el cobro no se reintenta solo: la persona vuelve a cobrar con el total nuevo.
+      if (fase === 'confirmar' && esPreciosCambiaron(error)) {
+        await repreciarVenta(ventaVigente)
+        return
+      }
       setErrorVenta(fase === 'confirmar' ? mensajeDeConfirmarVenta(error) : mensajeDeCobroVenta(error))
     } finally {
       setCobrando(false)
@@ -226,6 +251,11 @@ export function VentaMostrador() {
             {descarte}
           </Alert>
         )}
+        {avisoPrecios && (
+          <Alert severity="warning" role="status">
+            {avisoPrecios}
+          </Alert>
+        )}
         {cobrada && (
           <Alert severity="success" role="status" onClose={() => setCobrada(null)}>
             Venta cobrada · {cobrada.numero} · {formatearImporteHistorial(cobrada.total)}
@@ -257,7 +287,13 @@ export function VentaMostrador() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">{linea.cantidad}</TableCell>
-                      <TableCell align="right">{formatearImporteHistorial(linea.precio_unitario)}</TableCell>
+                      <TableCell align="right">
+                        <PrecioLinea
+                          linea={linea}
+                          precio={formatearImporteHistorial(linea.precio_unitario)}
+                          formatear={formatearImporteHistorial}
+                        />
+                      </TableCell>
                       <TableCell align="right">{formatearImporteHistorial(linea.subtotal_sin_iva)}</TableCell>
                     </TableRow>
                   ))}

@@ -459,3 +459,28 @@ describe('Comprobante de venta · Imprimir (F-VTA-19)', () => {
     expect(screen.queryByRole('button', { name: 'Imprimir' })).not.toBeInTheDocument()
   })
 })
+
+describe('Comprobante de venta · la tienda del comprobante manda (MSF-816, FR-014)', () => {
+  it('un comprobante de la tienda B abierto con la tienda A activa muestra los precios de B', async () => {
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
+    mocks.obtenerComprobante.mockResolvedValue({
+      ...COMPROBANTE,
+      empresa_id: 'e-2',
+      empresa: 'Mundo JC',
+      lineas: [{
+        id: 'l-1', orden: 1, producto_id: 'p-1', descripcion: 'Joystick', codigo: 'JOY', cantidad: 2, precio_unitario: 800,
+        precio_referencia: 1000, escala: 'x1', precio_manual: false, alicuota_porcentaje: 21, deposito_id: 'd-1',
+        deposito: 'Principal', a_pedido: false, stock: 10, reservado: 0, subtotal_sin_iva: 1600, iva: 336,
+      }],
+    })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('Joystick')).toBeInTheDocument()
+    // La tienda del comprobante es B, no la empresa activa (A): se ve la de B.
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'San Javucho' })).not.toBeInTheDocument()
+    // Los precios son los de B, con el precio anterior tachado y la leyenda «Promoción».
+    expect(screen.getByRole('textbox', { name: 'Precio sin IVA de Joystick' })).toHaveValue('800')
+    expect(document.querySelector('del')).toHaveTextContent('$ 1.000')
+    expect(screen.getByText('Promoción')).toBeInTheDocument()
+  })
+})
