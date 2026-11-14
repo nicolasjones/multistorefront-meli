@@ -56,7 +56,9 @@ describe('comprobarTls (MSF-797)', () => {
     assert.deepEqual(cierres, ['tcp-tardia'])
   })
 
-  it('el timeout durante el handshake TLS cierra la conexión TCP ya abierta', async () => {
+  // Con Deno real no se verificó qué hace cerrar la TCP después de `startTls` (puede estar consumida): acá solo se afirma que se
+  // INTENTA cerrarla y que, si el handshake termina tarde, esa conexión TLS sí se cierra (ver la limitación en `tls.ts`).
+  it('el timeout durante el handshake TLS intenta cerrar la TCP y cierra la TLS que llegue tarde', async () => {
     const cierres: string[] = []
     const tls = diferida<Conexion>()
     const resultado = await comprobarTls(HOST, IP, {
@@ -64,7 +66,7 @@ describe('comprobarTls (MSF-797)', () => {
       iniciarTls: () => tls.promesa,
     }, 20)
     assert.equal(resultado, 'pendiente')
-    assert.deepEqual(cierres, ['tcp'], 'la TCP colgada se cierra al vencer')
+    assert.deepEqual(cierres, ['tcp'], 'al vencer se intenta cerrar la TCP')
     // El handshake termina tarde: esa conexión TLS también se cierra.
     tls.resolver(conexion('tls-tardia', cierres))
     await esperar(10)

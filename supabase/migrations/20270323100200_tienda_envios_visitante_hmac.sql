@@ -13,7 +13,9 @@
 --      REEMPLAZAN por el marcador fijo `legado`, que no coincide con ningún visitante nuevo (HMAC hex de 64 caracteres).
 --      Efecto conocido y aceptado: quien ya había usado cupo en la última hora (límite de 5 por hora y empresa) empieza de
 --      cero tras el despliegue; las claves de idempotencia (`clave_envio`) se conservan, así que un reintento en vuelo
---      sigue resolviéndose como `repetido`. Las filas se podan solas a las 24 h (private.registrar_envio_tienda).
+--      sigue resolviéndose como `repetido`. Las filas se podan a las 24 h, pero solo por empresa y al registrar un
+--      envío nuevo de ESA empresa (private.registrar_envio_tienda): las empresas sin tráfico conservan sus filas indefinidamente.
+--      Por eso los `legado` (y los HMAC) pueden quedar mucho más de 24 h en esas empresas; no exponen la IP.
 --      Corre UNA sola vez por entorno: solo cuando esta migración crea el secreto (si ya existe, no toca nada: los
 --      hashes que haya ya son HMAC).
 --   3. `tienda_envios_select` exige además edición en la sección Empresas (donde vive el panel de la tienda) y que la
@@ -39,6 +41,7 @@
 --   (reponer private.visitante_hash con la definición de 20261212120700);
 --   drop function if exists private.inicializar_visitante_hmac(); drop function if exists private.hmac_visitante(text);
 --   delete from vault.secrets where name = 'visitante_hmac';
+--   (los hashes `legado` NO se restauran: la IP no se guarda; reponer `visitante_hash` con sha256 solo afecta a los envíos nuevos.)
 -- Aditiva e idempotente.
 
 create extension if not exists pgcrypto with schema extensions;

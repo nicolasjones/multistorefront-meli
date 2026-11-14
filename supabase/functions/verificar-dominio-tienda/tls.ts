@@ -2,6 +2,12 @@
 // se inyectan para probar el cierre de conexiones con `node --test` (tls.test.ts). `index.ts` cablea `Deno.connect`
 // y `Deno.startTls`.
 //
+// LIMITACIÓN CONOCIDA (no verificada en un Deno real): `Deno.startTls` consume la conexión TCP. Si el handshake TLS queda
+// colgado, el único manejo que tenemos de ese socket es la TCP original; al vencer se INTENTA cerrarla y se tolera que ya haya
+// sido consumida o cerrada (`cerrarSinFallar`). Si Deno la dio por consumida, no hay forma de cerrar el socket TLS en curso hasta
+// que `startTls` resuelva o falle; cuando llegue tarde, esta función lo cierra. Impacto acotado: una conexión a la IP de la
+// plataforma, a lo sumo una verificación cada 10 s por tienda, y el runtime la suelta al cortar el servidor.
+//
 // MSF-797: el timeout de 5 s antes solo rechazaba la promesa; la conexión TCP/TLS colgada seguía abierta
 // hasta que el runtime la soltara. Ahora todo `Conn` que se abre se cierra siempre: al terminar, al vencer el
 // tiempo y también si la conexión llega DESPUÉS del vencimiento (la promesa no cancelable de `Deno.connect`).
@@ -72,7 +78,8 @@ export async function comprobarTls(
     return clasificarFalloTls(e instanceof Error ? `${e.name} ${e.message}` : String(e))
   } finally {
     clearTimeout(temporizador)
-    // Cierra lo que haya a esta altura: la conexión TLS si se negoció (cierra también la TCP), si no la TCP.
+    // Cierra lo que haya a esta altura: la conexión TLS si se negoció (cierra también la TCP), si no INTENTA cerrar la TCP
+    // (si `startTls` ya la consumió puede no tener efecto: ver la limitación de arriba).
     // `trabajo` puede seguir pendiente tras el vencimiento: su rechazo se absorbe y, si más tarde llega una conexión,
     // el propio `trabajo` la cierra (ver arriba).
     cerrarSinFallar(tls ?? tcp)

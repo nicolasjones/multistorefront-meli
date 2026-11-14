@@ -4,7 +4,7 @@
 -- ni presupuestos ni consultas guardan IP ni visitante.
 begin;
 
-select plan(40);
+select plan(43);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -200,18 +200,34 @@ insert into dominio.tienda_envios (organizacion_id, empresa_id, visitante, clave
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
    encode(sha256(convert_to('sin-ip|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex'), '00000000-0000-0000-0000-0000000000c2', 'pedido'),
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'x', '00000000-0000-0000-0000-0000000000c3', 'whatsapp');
+-- El visitante 203.0.113.7 ya agotó su cupo (5 envíos en la última hora) con el hash viejo: con el esquema anterior el sexto sería «limite».
+insert into dominio.tienda_envios (organizacion_id, empresa_id, visitante, clave_envio, origen)
+select '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+       encode(sha256(convert_to('203.0.113.7|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex'),
+       ('00000000-0000-0000-0000-0000000000d' || n)::uuid, 'formulario'
+  from generate_series(1, 4) n;
+select is(
+  (select count(*)::int from dominio.tienda_envios
+    where empresa_id = 'e1000000-0000-0000-0000-000000000001' and creado_en > now() - interval '1 hour'
+      and visitante = encode(sha256(convert_to('203.0.113.7|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex')),
+  5, 'antes de la inicialización el visitante tiene el cupo agotado con el hash sha256 viejo');
 
 select is(private.inicializar_visitante_hmac(), true, 'la primera vez crea el secreto');
 select is((select count(*)::int from vault.secrets where name = 'visitante_hmac'), 1, 'el secreto quedó en Vault');
-select is((select count(*)::int from dominio.tienda_envios where visitante = 'legado'), 2, 'los dos hashes sha256 viejos se reemplazan por «legado»');
+select is((select count(*)::int from dominio.tienda_envios where visitante = 'legado'), 6, 'los seis hashes sha256 viejos se reemplazan por «legado»');
+select is((select count(*)::int from dominio.tienda_envios where visitante = encode(sha256(convert_to('203.0.113.7|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex')), 0, 'ya no queda ninguna fila con el sha256 de la IP');
 select is((select visitante from dominio.tienda_envios where clave_envio = '00000000-0000-0000-0000-0000000000c3'), 'x', 'un visitante con otro formato no se toca');
-select is((select count(*)::int from dominio.tienda_envios where clave_envio in ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000c2')), 2,
+select is((select count(*)::int from dominio.tienda_envios where clave_envio in ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000d1')), 3,
   'las claves de idempotencia se conservan');
 
 -- Ya con secreto: un HMAC nuevo (64 hex) no se confunde con un hash viejo en una segunda corrida, y el viejo no revive el cupo.
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true);
+select is(
+  (select count(*)::int from dominio.tienda_envios
+    where empresa_id = 'e1000000-0000-0000-0000-000000000001' and visitante = private.visitante_hash('e1000000-0000-0000-0000-000000000001')),
+  0, 'el HMAC del visitante no tiene ningún envío previo: los 5 del hash viejo ya no cuentan para él');
 select is(private.registrar_envio_tienda('e1000000-0000-0000-0000-000000000001', 'formulario', '00000000-0000-0000-0000-0000000000c4') ->> 'estado', 'nuevo',
-  'tras la migración el visitante empieza con cupo propio (el hash viejo no cuenta)');
+  'tras la migración el visitante que había agotado su cupo vuelve a tener cupo solo porque su hash viejo pasó a «legado»');
 select is(private.inicializar_visitante_hmac(), false, 'repetirla no crea otro secreto');
 select is((select count(*)::int from dominio.tienda_envios where visitante = private.visitante_hash('e1000000-0000-0000-0000-000000000001')), 1,
   'repetirla tampoco pisa los HMAC nuevos');

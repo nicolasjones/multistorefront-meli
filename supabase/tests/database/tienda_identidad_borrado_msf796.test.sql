@@ -7,7 +7,7 @@
 -- para que lo único que decida sea la política de filas.
 begin;
 
-select plan(22);
+select plan(29);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -29,6 +29,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) val
 
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', true),
+  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda B', true),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Tienda Dos', true);
 
 -- Identidad publicada: logo y banner móvil. Borrador: banner. Versión 7: logo, banner y banner móvil viejos.
@@ -48,11 +49,22 @@ insert into dominio.tienda_versiones (empresa_id, organizacion_id, numero, resum
      'banner_ruta', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/banner-version.png',
      'banner_movil_ruta', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/movil-version.png')));
 
+-- Otra empresa de la misma organización: su identidad referencia su propio archivo y su borrador (adrede, algo que la
+-- función de guardado no permite) apunta a la ruta `ajena-a-b.png` de la Tienda A: esa referencia NO protege el archivo de A.
+insert into dominio.tienda_identidad (empresa_id, organizacion_id, logo_ruta) values
+  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
+   '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/logo-b.png');
+insert into dominio.tienda_borrador (empresa_id, organizacion_id, identidad) values
+  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
+   jsonb_build_object('banner_ruta', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/ajena-a-b.png'));
+
 -- Objetos del bucket: seis referenciados (uno por fuente y columna) y uno huérfano; más uno huérfano de la otra organización.
 insert into storage.objects (bucket_id, name, owner)
 select 'tienda-identidad', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/' || f, 'd1000000-0000-0000-0000-000000000001'
   from unnest(array['logo-vivo.png', 'movil-vivo.png', 'banner-borrador.png', 'logo-version.png', 'banner-version.png',
-                    'movil-version.png', 'huerfano.png', 'huerfano-2.png', 'huerfano-3.png']) as f;
+                    'movil-version.png', 'huerfano.png', 'huerfano-2.png', 'huerfano-3.png', 'ajena-a-b.png']) as f;
+insert into storage.objects (bucket_id, name, owner) values
+  ('tienda-identidad', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/logo-b.png', 'd1000000-0000-0000-0000-000000000001');
 insert into storage.objects (bucket_id, name, owner) values
   ('tienda-identidad', '22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/propio.png', 'd2000000-0000-0000-0000-000000000001');
 
@@ -111,6 +123,37 @@ select is(
   array[false, false, false, false], 'null, vacío y rutas mal formadas: falso, sin error');
 
 -- ============================================================================
+-- La RPC consejera usa la misma función (M3): mismas respuestas que la política
+-- ============================================================================
+
+create temp table candidatas as
+select '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/' || f as ruta
+  from unnest(array['logo-vivo.png', 'movil-vivo.png', 'banner-borrador.png', 'logo-version.png', 'banner-version.png',
+                    'movil-version.png', 'huerfano.png', 'huerfano-2.png', 'ajena-a-b.png']) as f;
+grant select on candidatas to authenticated;
+
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(
+  (select array(select unnest(public.rutas_tienda_sin_referencia('e1000000-0000-0000-0000-000000000001', (select array_agg(ruta) from candidatas))) order by 1)),
+  array[
+    '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/ajena-a-b.png',
+    '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/huerfano-2.png',
+    '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/huerfano.png'],
+  'rutas_tienda_sin_referencia devuelve solo las que ninguna fuente referencia (la referencia de otra empresa no cuenta)');
+select is(
+  (select array(select unnest(public.rutas_tienda_sin_referencia('e1000000-0000-0000-0000-000000000001', (select array_agg(ruta) from candidatas))) order by 1)),
+  (select array_agg(ruta order by ruta) from candidatas where not private.ruta_identidad_referenciada(ruta)),
+  'la RPC y la función privada coinciden en todas las rutas candidatas');
+select is(
+  public.rutas_tienda_sin_referencia('e1000000-0000-0000-0000-000000000001',
+    array['22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/propio.png',
+          '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/otra-empresa.png', null]),
+  '{}'::text[], 'la RPC sigue ignorando rutas fuera del prefijo de la empresa (otra organización, otra empresa, nulo)');
+reset role;
+select is(has_function_privilege('anon', 'public.rutas_tienda_sin_referencia(uuid, text[])', 'execute'), false, 'anon sigue sin ejecutar la RPC');
+select is(has_function_privilege('authenticated', 'public.rutas_tienda_sin_referencia(uuid, text[])', 'execute'), true, 'authenticated sigue ejecutándola');
+
+-- ============================================================================
 -- Borrado real como persona editora
 -- ============================================================================
 
@@ -122,7 +165,7 @@ select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-
   'el administrador NO borra un objeto de la identidad publicada');
 select is(
   (select count(*)::int from storage.objects
-    where bucket_id = 'tienda-identidad' and name like '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/%' and name not like '%huerfano%'),
+    where bucket_id = 'tienda-identidad' and name like '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/%' and name not like '%huerfano%' and name not like '%ajena-a-b%'),
   6, 'los seis objetos referenciados siguen en el bucket');
 
 select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/huerfano.png'), 1,
@@ -136,8 +179,12 @@ select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000003', '11111111-1111-
 select is(pg_temp.borrar('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/propio.png'), 1,
   'la otra organización sí borra su propio objeto sin referencia (la referencia de Uno no la afecta)');
 
--- Una referencia de otra empresa no protege la ruta de esta (la ruta lleva la empresa): ya cubierto arriba; acá, el
--- objeto sin referencia que queda de Uno sigue borrable por Uno.
+-- Una referencia de otra empresa no protege la ruta de esta (la ruta lleva la empresa): el borrador de la Tienda B apunta
+-- a `ajena-a-b.png` de la Tienda A y, aun así, ese archivo se borra; en cambio el logo propio de la B queda protegido.
+select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/ajena-a-b.png'), 1,
+  'la referencia de otra empresa no protege el archivo de esta');
+select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/logo-b.png'), 0,
+  'el logo publicado de la otra empresa sigue protegido por su propia identidad');
 select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/huerfano-2.png'), 1,
   'el objeto sin referencia que quedaba se borra con normalidad');
 

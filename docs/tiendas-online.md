@@ -1292,13 +1292,14 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
 
 - La política `tienda_identidad_objetos_delete` de `storage.objects` exige, además de organización propia y edición en
   Empresas, que `private.ruta_identidad_referenciada(name)` sea falsa: la ruta no puede ser el logo, el banner o el banner móvil de
-  la **identidad publicada**, del **borrador** ni de **ninguna versión** (todas las versiones guardadas, las 100 restaurables). La
+  la **identidad publicada**, del **borrador** ni de **ninguna versión** (todas las versiones guardadas: ninguna regla poda `tienda_versiones`; el listado del panel muestra solo las últimas 100, pero las más viejas siguen existiendo y siguen protegiendo sus archivos). La
   regla vive en la base: vale también para quien llame a la Storage API directo.
 - El panel no cambia: sigue usando `storage.remove` y `public.rutas_tienda_sin_referencia` (ahora solo para no pedir borrados
-  inútiles). Un borrado que la política niega **no da error**: la Storage API simplemente no devuelve ese archivo como borrado.
-- Un archivo queda libre cuando lo deja de referenciar todo: se descarta el borrador y ninguna versión lo usa (las versiones
-  llegan hasta 100; las más viejas se podan según la regla de versiones).
-- Reversión: restaurar la política de `20261023100100` y `drop function private.ruta_identidad_referenciada(text)`.
+  inútiles; desde `20270323100300` usa la misma función `private.ruta_identidad_referenciada`, así que la consejera y la política no pueden divergir). Un borrado que la política niega **no da error**: la Storage API simplemente no devuelve ese archivo como borrado.
+- Un archivo queda libre cuando lo deja de referenciar todo: se descarta el borrador, la identidad publicada ya no lo usa y **ninguna
+  versión lo guarda**. Como las versiones no se podan, un archivo que alguna vez se publicó queda protegido mientras exista esa versión
+  (el listado del panel muestra solo las últimas 100, pero las anteriores siguen protegiendo sus archivos).
+- Reversión: restaurar la política de `20261023100100`, reponer el cuerpo de `rutas_tienda_sin_referencia` de `20270205110100` y `drop function private.ruta_identidad_referenciada(text)`.
 
 ### IP pública de la plataforma y cierre del socket TLS (MSF-797)
 
@@ -1310,7 +1311,7 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
   si una fila de algún entorno ya tuviera una IP no pública, la migración avisa (`raise warning`) y no frena la cola; se corrige la fila y se corre
   `alter table public.tienda_dns_plataforma validate constraint tienda_dns_plataforma_ip_publica`.
 - **RPC**: `preparar_verificacion_tienda` con una IP no pública responde `plataforma_no_configurada` (22023) sin gastar el límite de 10 s
-  y la Edge Function devuelve **503** `plataforma_no_configurada` sin consultar DNS ni abrir conexiones; `obtener_dominio_tienda` no muestra el
+  y la Edge Function devuelve **503** `plataforma_no_configurada` sin consultar DNS ni abrir conexiones (el panel muestra «La plataforma todavía no tiene configurada su IP pública para verificar dominios. Avisá a soporte.»); `obtener_dominio_tienda` no muestra el
   registro A.
 - **Socket colgado**: la comprobación TLS (`supabase/functions/verificar-dominio-tienda/tls.ts`) cierra siempre la conexión TCP/TLS: al terminar,
   al vencer los 5 s y también si la conexión llega después del vencimiento. Test: `tls.test.ts` (`pnpm test:edge:verificar-dominio-tienda`).
@@ -1329,7 +1330,7 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
   de la organización). Ningún lugar del panel ni de los workers lee la tabla.
 - **IP ↔ cuenta de cliente**: `dominio.presupuestos_tienda` guarda `(cuenta_cliente_id, clave_envio)` y `tienda_envios` guarda `(empresa_id, clave_envio, visitante)`. Tras
   el cambio el visitante es un HMAC no invertible: **no hay camino a la IP**, ni con una copia de la base. Queda un vínculo **opaco** (la misma persona/IP compartió el mismo
-  token de visitante), visible solo durante las 24 h de retención y solo para quien tenga edición en Empresas **y** lectura de Ventas. No se desacopló la clave porque el
+  token de visitante), visible mientras la fila exista (se poda a las 24 h por empresa al registrar un envío nuevo de esa empresa; una empresa sin tráfico las conserva) y solo para quien tenga edición en Empresas **y** lectura de Ventas. No se desacopló la clave porque el
   reintento de `enviar_lista_pedido` consulta `tienda_envios` por la clave cruda.
 - **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
   y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
