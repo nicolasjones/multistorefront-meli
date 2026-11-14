@@ -48,18 +48,18 @@ select is(has_table_privilege('authenticated', 'dominio.tienda_identidad', 'inse
 select is(has_table_privilege('authenticated', 'dominio.tienda_identidad', 'update'), false, 'authenticated no actualiza directo: solo por la RPC');
 select is(has_table_privilege('authenticated', 'dominio.tienda_identidad', 'delete'), false, 'authenticated no borra directo');
 select is(
-  has_function_privilege('anon', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('anon', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text,text,boolean)', 'execute'),
   false,
   'anon no ejecuta public.guardar_tienda_identidad'
 );
 select is(
-  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text)', 'execute'),
+  has_function_privilege('authenticated', 'public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text,text,boolean)', 'execute'),
   false,
   'authenticated ya no ejecuta public.guardar_tienda_identidad: solo public.publicar_tienda (F-TDA-06, FR-052)'
 );
 -- F-TDA-06 (FR-052): las RPC vivas ya no son ejecutables por authenticated (solo publicar_tienda). Para seguir
 -- probando su cuerpo se reconcede el permiso dentro de esta transacción (se revierte con el rollback del test).
-grant execute on function public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text) to authenticated;
+grant execute on function public.guardar_tienda_identidad(uuid,text,text,text,text,text,text,text,text,text,text,text,boolean) to authenticated;
 
 select is(
   has_function_privilege('anon', 'publico.identidad_por_dominio(text)', 'execute'),
@@ -440,7 +440,7 @@ reset role;
 
 select is(
   pg_get_function_result('publico.identidad_por_dominio(text)'::regprocedure),
-  'TABLE(color_primario text, color_primario_oscuro text, color_acento text, color_fondo text, color_barra text, tipografia_titulos text, tipografia_texto text, logo_ruta text, banner_ruta text, banner_movil_ruta text)',
+  'TABLE(color_primario text, color_primario_oscuro text, color_acento text, color_fondo text, color_barra text, tipografia_titulos text, tipografia_texto text, logo_ruta text, banner_ruta text, banner_movil_ruta text, estilo_heroe text, titulos_mayusculas boolean)',
   'lista blanca: la función pública no expone organizacion_id, empresa_id ni fechas'
 );
 

@@ -135,6 +135,26 @@ describe('color de la barra superior y pie (MSF-841)', () => {
   })
 })
 
+describe('estilo del encabezado y mayúsculas de los títulos (MSF-848)', () => {
+  const fila = {
+    color_primario: '#A3111D', color_primario_oscuro: '#7A0A12', color_acento: '#A3111D', color_fondo: '#FFFFFF',
+    tipografia_titulos: 'Sora' as const, tipografia_texto: 'Sora' as const, logo_ruta: null, banner_ruta: null, banner_movil_ruta: null,
+  }
+  it('los valores por defecto son el diseño actual: encabezado oscuro y mayúsculas', () => {
+    expect(IDENTIDAD_BASE.estiloHeroe).toBe('oscuro')
+    expect(IDENTIDAD_BASE.titulosMayusculas).toBe(true)
+  })
+  it('un borrador o versión anterior sin las claves toma los valores por defecto', () => {
+    expect(identidadDesdeFila(fila)).toMatchObject({ estiloHeroe: 'oscuro', titulosMayusculas: true })
+  })
+  it('lee los valores guardados, incluido «sin mayúsculas»', () => {
+    expect(identidadDesdeFila({ ...fila, estilo_heroe: 'claro', titulos_mayusculas: false })).toMatchObject({ estiloHeroe: 'claro', titulosMayusculas: false })
+  })
+  it('un estilo desconocido (dato corrupto) vale el estilo por defecto', () => {
+    expect(identidadDesdeFila({ ...fila, estilo_heroe: 'verde' as never }).estiloHeroe).toBe('oscuro')
+  })
+})
+
 describe('tipografías (FR-024)', () => {
   it('carga solo las familias de la lista cerrada y omite la del sistema', () => {
     expect(familiasACargar({ tipografiaTitulos: 'Barlow Condensed', tipografiaTexto: 'Barlow' })).toEqual(['Barlow Condensed', 'Barlow'])
