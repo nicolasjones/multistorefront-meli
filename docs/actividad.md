@@ -380,6 +380,10 @@ rojo). El plazo no se edita desde la app. La misma corrida purga las filas de `p
 
 Reversión: ver el encabezado de cada migración (los eventos escritos se conservan).
 
+## Eventos del resumen semanal (F-REP-08, MSF-265)
+
+- `resumen_semanal.pausado` y `resumen_semanal.reanudado` (etiquetas «Resumen semanal pausado» y «Resumen semanal reanudado»): los registra `configurar_resumen_semanal` en la misma transacción, con el actor de la sesión, **solo ante un cambio real** (repetir el mismo valor no suma otro evento). El detalle es «Pausó|Reanudó el resumen semanal por correo»; no lleva datos del resumen. Lo cubre el pgTAP `resumen_semanal.test.sql`. Ver [Resumen semanal por correo](resumen-semanal-correo.md).
+
 ## Eventos del centro de importaciones (F-IMP-01)
 
 `importacion.iniciada`, `importacion.finalizada` e `importacion.cancelada` (no sensibles) los escriben las funciones del proceso masivo en la misma transacción: iniciar, cancelar (una vez por pedido) y cerrar o reconciliar. El detalle trae el nombre del proceso y, al finalizar, las cifras «N correctas y M con error»; nunca referencias, motivos de error ni parámetros. Reversión: `delete from public.tipos_evento_actividad where tipo like 'importacion.%';`.

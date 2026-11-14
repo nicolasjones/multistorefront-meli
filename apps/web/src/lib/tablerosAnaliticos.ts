@@ -11,8 +11,6 @@
 // El aislamiento NO depende de ellos: lo fuerza el servidor en la cláusula `rls` del guest token (organización y empresas
 // accesibles), así que un filtro manipulado en la URL nunca muestra filas de otra organización ni de otra empresa.
 
-export const SECCION_RENTABILIDAD_TABLEROS = 'rentabilidad'
-
 export type TableroAnalitico = {
   clave: string
   // Nombre del reporte en `public.reportes` (lo registra el importador de dashboards desde `reportes.json`).

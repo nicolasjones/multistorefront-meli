@@ -8,7 +8,7 @@
 -- «service_role», igual que PostgREST. Las fechas del barrido son fijas (lunes 2027-03-22, hora de Buenos Aires).
 begin;
 
-select plan(76);
+select plan(81);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -361,6 +361,27 @@ select is((select activo from public.resumen_semanal_config where organizacion_i
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.configurar_resumen_semanal(false)$$, '42501', null, 'un rol que no es administrador no puede pausarlo');
 select throws_ok($$select * from public.estado_resumen_semanal()$$, '42501', null, 'ni ver su estado');
+reset role;
+
+-- ============================================================================
+-- Baja personal desde «Avisos por correo» (RF-REP-08-6): el tipo se ofrece solo a quien tiene la sección
+-- `usuarios_permisos` (el administrador) y la preferencia apagada saca a esa persona de los destinatarios.
+-- ============================================================================
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+select ok(
+  exists (select 1 from public.listar_preferencias_aviso() where tipo = 'resumen_semanal' and activo),
+  'el administrador ve «Resumen semanal» en sus avisos, encendido por defecto'
+);
+select is((select tipo from public.guardar_preferencia_aviso('resumen_semanal', false)), 'resumen_semanal', 'se da de baja con la RPC de preferencias existente');
+reset role;
+select is(private.destinatarios_resumen_semanal('11111111-1111-1111-1111-111111111111'), '{}'::text[], 'sin esa persona (y la otra ya de baja) la organización queda sin destinatarios');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select ok(
+  not exists (select 1 from public.listar_preferencias_aviso() where tipo = 'resumen_semanal'),
+  'quien no es administrador no ve el tipo entre sus avisos'
+);
+select throws_ok($$select * from public.guardar_preferencia_aviso('resumen_semanal', false)$$, '42501', null, 'ni puede cambiarlo');
 reset role;
 
 select * from finish();
