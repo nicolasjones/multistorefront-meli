@@ -1,6 +1,7 @@
 import { Box, Button, Typography } from '@mui/material'
 import { Link as EnlaceRuta } from 'react-router'
 import type { FichaProducto } from '../../../lib/tiendaFicha'
+import { BotonFavorito } from '../cuenta/BotonFavorito'
 import { MigasTienda } from '../layout/MigasTienda'
 import { useCelular } from '../useAnchoCelular'
 import { PrecioTachado } from '../catalogo/PrecioTachado'
@@ -64,6 +65,8 @@ export function DatosProducto({ ficha, host, empresa }: { ficha: FichaProducto; 
         {/* «Compartir» (F-TDA-25) no está en el prototipo: va después de los dos botones del prototipo, que quedan juntos. */}
         <BotonCompartir productoId={ficha.id} nombre={ficha.nombre} />
       </Box>
+      {/* «Guardar en favoritos» (F-CLI-20, P-2): debajo de los botones y último en la tabulación; solo con la función encendida. */}
+      <BotonFavorito host={host} productoId={ficha.id} nombre={ficha.nombre} />
       <Typography color="text.secondary" sx={{ mt: '14px', fontSize: 13 /* estilos-sueltos: ok */ }}>Precios y disponibilidad sujetos a cambios.</Typography>
     </Box>
   )
