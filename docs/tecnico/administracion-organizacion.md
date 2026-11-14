@@ -46,7 +46,7 @@ erDiagram
 
 ## Reversión
 
-Migración aditiva; pasos en [Administración de la organización](../administracion-organizacion.md#reversión). F-USR-03: revertir el commit. Toda la spec: `git revert -m 1 <merge>`.
+Migración aditiva; pasos en [Administración de la organización](../administracion-organizacion.md#reversion). F-USR-03: revertir el commit. Toda la spec: `git revert -m 1 <merge>`.
 
 ## Pendiente
 

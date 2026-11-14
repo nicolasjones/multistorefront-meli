@@ -1,6 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261022-120000-precios-e-iva
+  - specs/20261104-103000-precios-masivos-y-promociones
+  - specs/20270105-100000-configuracion-dolar-y-precio-propio
+  - supabase/migrations/20270213200001_simulador_precio_propio.sql
+  - supabase/functions/cotizacion-sugerida
+---
+
 # Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)
 
-Guía de la épica: cuatro historias entregadas (F-PRE-01, F-PRE-07, F-PRE-12, F-PRE-15). El detalle fino de cada una vive en [`iva-precio-final.md`](./iva-precio-final.md) y [`precios-escalas.md`](./precios-escalas.md); la fuente de requisitos es [`spec.md`](../specs/20261022-120000-precios-e-iva/spec.md).
+Guía de la épica: cuatro historias entregadas (F-PRE-01, F-PRE-07, F-PRE-12, F-PRE-15). El detalle fino de cada una vive en [`iva-precio-final.md`](./iva-precio-final.md) y [`precios-escalas.md`](./precios-escalas.md); la fuente de requisitos es `specs/20261022-120000-precios-e-iva/spec.md`.
 
 ## Modelo (Principio VII)
 
@@ -57,7 +67,7 @@ Sin hallazgos que corregir. Las pruebas pgTAP que lo sostienen: `precios_cotizac
 
 ## Precio propio de un producto en una empresa (F-PRE-08, MSF-423 · épica MSF-352)
 
-Spec: [`20270105-100000-configuracion-dolar-y-precio-propio`](../specs/20270105-100000-configuracion-dolar-y-precio-propio/spec.md) (FR-012…FR-020).
+Spec: `20270105-100000-configuracion-dolar-y-precio-propio` (`specs/20270105-100000-configuracion-dolar-y-precio-propio/spec.md`) (FR-012…FR-020).
 
 - **Dato**: `dominio.precios_propios_empresa` (PK `producto_id + empresa_id`; `moneda` ARS|USD; `importe > 0`, hasta 2 decimales). FK compuestas a `productos` y `empresas` (no cruza organizaciones), RLS por organización, `select` con `productos` ≥ lectura, **sin escritura directa**: se escribe solo con las RPC.
 - **RPC** (`public`, `anon` sin ejecución): `fijar_precio_propio(producto, empresa, moneda, importe)` (`productos` = edición; idempotente; actividad `producto.precio_propio_fijado` **sin importes**), `quitar_precio_propio(producto, empresa)` (idempotente; `producto.precio_propio_quitado`) y `leer_precios_propios(producto)`. Errores: `42501` sin permiso, `P0002` producto o empresa ajenos, `22023` moneda inválida o importe vacío, `23514` importe ≤ 0 o con más de 2 decimales, `22003` demasiado grande.
@@ -118,7 +128,7 @@ Dos capacidades del administrador sobre el precio, en la misma épica (MSF-363):
 - **Actualización masiva de costos y precios** (F-PRE-10, MSF-436): subir o bajar costos y precios de lista en bloque, por porcentaje o por planilla CSV, con vista previa antes de confirmar y aplicación todo-o-nada. Ruta `/productos/precios-masivos`, botón «Actualizar precios» en Productos. Guía: [`precios-masivos.md`](./precios-masivos.md).
 - **Precios promocionales por empresa** (F-PRE-11, MSF-439): precio promocional con fecha de inicio y fin por empresa; la tienda muestra el precio anterior tachado mientras dura y vuelve sola al normal al vencer (el estado se deriva por fecha, sin tarea programada). Ruta `/productos/promociones`. Guía: [`promociones-precio.md`](./promociones-precio.md). Desde MSF-816 (Decisión 6 implementada) el mostrador y los comprobantes también **cobran** el precio promocional de la tienda del comprobante (gana el más bajo, sin acumular; precio manual manda) con la misma bandera `promociones_precio`; el margen «actual» (`analitica.margen_producto_canal`) sigue con el precio normal y la rentabilidad realizada refleja lo cobrado. Detalle y seguimientos S1…S7 (MSF-932…MSF-938): [`ventas-comprobantes.md`](./ventas-comprobantes.md#comportamiento-conocido-y-seguimientos-msf-816-f-4).
 
-Especificación: [`specs/20261104-103000-precios-masivos-y-promociones/spec.md`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md).
+Especificación: `specs/20261104-103000-precios-masivos-y-promociones/spec.md`.
 
 ### Correcciones posteriores a la revisión (MSF-363)
 

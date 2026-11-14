@@ -31,12 +31,12 @@ ver [Stock · depósitos y reservas](stock-depositos-y-reservas.md).
 | `20261017170000_stock_sin_negativos.sql` | `check (cantidad >= 0)` y disparador «No hay stock suficiente» |
 | `20261017180000_stock_historial_inmutable_sentencia.sql` | Disparador por sentencia: rechaza `update`/`delete` aunque la RLS oculte las filas |
 
-La reversión está en el encabezado de cada archivo y consolidada en [Reversión](#reversión).
+La reversión está en el encabezado de cada archivo y consolidada en [Reversión](#reversion).
 
 ## Modelo de datos
 
 Todas las tablas viven en `dominio` (Principio VII, dominio del producto). El DER completo del grafo afectado está en
-[Datos y DER](datos.md#stock-movimientos-mínimo-y-estados-msf-136).
+[Datos y DER](datos.md#stock-movimientos-minimo-y-estados-msf-136).
 
 | Tabla | Para qué | Escritura |
 |-------|----------|-----------|

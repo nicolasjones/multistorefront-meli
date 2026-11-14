@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-stock-carga-exportacion-y-avisos
+  - scripts/verificar-migraciones.mjs
+  - supabase/migrations/20261213100500_productos_mas_vendidos.sql
+---
+
 # Stock · Reporte de productos más vendidos (F-STK-18)
 
 Pestaña **Más vendidos** de Stock (`/stock/mas-vendidos`): qué productos se vendieron más en un período,

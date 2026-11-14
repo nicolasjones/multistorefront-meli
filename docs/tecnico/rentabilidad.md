@@ -9,6 +9,8 @@ sources:
 
 # Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../rentabilidad.md).
+
 - **MSF-120** — spec `rentabilidad-margen` · historias F-REN-01 (`0aab690`), F-REN-02 (`730d42d`) y
   F-REN-03 (`1cf16a9`).
 - **MSF-127** — spec `rentabilidad-comparativos-e-historia` · historia F-REN-06 (`28f5c82c`, `ac5d548e`,

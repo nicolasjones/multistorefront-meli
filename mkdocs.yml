@@ -9,6 +9,7 @@ use_directory_urls: true
 
 # Documentos históricos con links fuera de docs/ (specs/AGENTS): se leen en GitHub, no en el sitio.
 exclude_docs: |
+  /README.md
   /roadmap-template.md
   /skills.md
   /disenar-conector.md
@@ -183,6 +184,30 @@ nav:
           - Service, alta, estados y permisos: producto/service-alta-estados-y-permisos.md
           - Service, cobro, avisos y ficha del cliente: producto/service-cobro-y-avisos.md
           - Operación, copias y documentación: producto/operacion-copias-y-documentacion.md
+          - "Actividad e historial (F-AUD-01)": actividad.md
+          - "API pública y avisos hacia otros sistemas (F-API-01)": api-publica.md
+          - "Configuración del dólar y precio propio (épica MSF-352)": configuracion-dolar-y-precio-propio.md
+          - "Consultas: bandeja y aviso (MSF-122)": consultas.md
+          - "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)": contactos.md
+          - "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)": cuentas-y-compras-a-proveedores.md
+          - "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)": dolar-y-recalculo.md
+          - "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)": importaciones.md
+          - "Ingreso de mercadería por proveedor": ingreso-de-mercaderia.md
+          - "Inicio y alertas": inicio-y-alertas.md
+          - "Listados: carga infinita e imagen de producto": listados.md
+          - "Migración inicial de datos · ensayo, conciliación y plan de corte": migracion-inicial-de-datos.md
+          - "Actualización masiva de costos y precios (F-PRE-10 · MSF-436)": precios-masivos.md
+          - "Rentabilidad (margen por producto y canal)": rentabilidad.md
+          - "Stock · Lotes e inventario (épica MSF-131)": stock-lotes-e-inventario.md
+          - "Tiendas online: dominio e identidad": tiendas-online.md
+          - "Ventas · Catálogos de cobro y envío (épica MSF-139)": ventas-catalogos.md
+          - "Ventas · Cobros y conciliación (épica MSF-195)": ventas-cobros-y-conciliacion.md
+          - "Ventas · Comprobantes": ventas-comprobantes.md
+          - "Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)": ventas-impresion.md
+          - "Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329)": ventas-mostrador.md
+          - "Ventas · Motos: registro y rendición de envíos (F-VTA-24 y F-VTA-25)": ventas-motos.md
+          - "Ventas · Reportes (épica MSF-338)": ventas-reportes.md
+          - "Ventas · Devoluciones (RMA)": ventas-rma-devoluciones.md
       - Arquitectura y datos:
           - Arquitectura: tecnico/arquitectura.md
           - Datos y DER: tecnico/datos.md

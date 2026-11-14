@@ -8,6 +8,8 @@ sources:
 
 # Ventas en moto: registro y rendición de envíos (técnico, MSF-145)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-motos.md).
+
 **Épica:** MSF-145 · F-VTA-24 y F-VTA-25 · **Spec:** `specs/20261024-130000-ventas-motos/` · **Cierre:** PR #825, integrado en `dokploy` (en `main` llega con la próxima promoción; las citas salen de `dokploy`). Los envíos con mensajería propia (motos) se registran con mensajero, guía, costo de envío y abono, y se rinden por fila o en lote. Guía de producto: [Envíos en moto](../producto/ventas-motos.md).
 
 ## Modelo (esquema `dominio`, Principio VII)

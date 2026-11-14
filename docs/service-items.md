@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261022-100000-service-listado-items-e-impresion
+  - apps/web/src/lib/reparacionItems.ts
+  - supabase/migrations/20261022100100_reparacion_items.sql
+  - supabase/migrations/20261022100200_reparaciones_totales.sql
+  - supabase/migrations/20261022100300_reparacion_item_agregar.sql
+  - supabase/migrations/20261022100400_reparacion_item_quitar.sql
+  - supabase/migrations/20261022100500_reparaciones_leer_items.sql
+  - supabase/migrations/20261022100600_reparacion_items_actividad.sql
+---
+
 # Service técnico · Ítems y costos de la reparación (F-SVC-06)
 
 Historia **MSF-362**, épica **MSF-199** · spec en

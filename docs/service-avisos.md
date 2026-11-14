@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-cobro-y-avisos
+  - infra/kestra/flows/reparaciones-aviso-correo.yml
+---
+
 # Service técnico · Avisos al cliente por cambio de estado
 
 F-SVC-14 (MSF-424) · épica MSF-232 · spec `specs/20261028-100000-service-cobro-y-avisos/`.

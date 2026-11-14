@@ -6,6 +6,8 @@ sources:
 
 # Actividad e historial (F-AUD-01)
 
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/actividad.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
 Registro transversal de «qué pasó, quién lo hizo y cuándo» de una organización.
 Spec: `specs/20261016-120000-actividad-y-ambientes/` (épica MSF-455, historia MSF-463).
 

@@ -8,6 +8,8 @@ sources:
 
 # Configuración del dólar y precio propio
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../configuracion-dolar-y-precio-propio.md).
+
 **Épica:** MSF-352 · **Spec:** `specs/20270105-100000-configuracion-dolar-y-precio-propio/` (`spec.md`, `plan.md`, `tasks.md`, `contracts/`) · **Rama:** `epic/MSF-352-precios-y-dolar-configuracion-dolar-y-pr` (la épica está integrada en `dokploy` —PR #774 y las correcciones de su revisión, PR #799 y #801—; en `main` llega con la próxima promoción; las citas salen de `dokploy`) · **Alcance de entrega:** `refine` y `supabase`.
 
 Historias: F-PRE-06 (MSF-419, commit `86c47cea`), F-PRE-08 (MSF-423, `3cfdf6ee`), F-PRE-09 (MSF-427, `4edda1c4`) y correcciones de la épica `6d8937d0` y `d77c632f`. Base: [Dólar y recálculo](dolar-y-recalculo.md) (MSF-116) y [Precios e IVA](precios-e-iva.md) (MSF-114).
