@@ -3392,8 +3392,9 @@ erDiagram
   Las filas de más de 24 h se podan en la misma función.
 - La **idempotencia** es la restricción `unique (empresa_id, clave_envio)`: un reintento o un doble clic
   no entrega dos veces ni gasta otro cupo.
-- El visitante es anónimo: `private.visitante_hash` es el hash sha256 de la IP del cliente (según
-  `private.saltos_proxy_confiables`, de MSF-191) más la empresa. La IP **no se guarda**; sin cabecera
+- El visitante es anónimo: `private.visitante_hash` es el HMAC-SHA256 de la IP del cliente (según
+  `private.saltos_proxy_confiables`, de MSF-191) más la empresa, con el secreto `visitante_hmac` de Vault (MSF-945; antes
+  era un sha256 sin clave). `tienda_envios_select` exige edición en Empresas y empresa accesible. La IP **no se guarda**; sin cabecera
   `x-forwarded-for` todos caen en un único cupo «sin-ip» (falla cerrada).
 - La tabla de consultas (`dominio.consultas`) y su RPC pública son de **MSF-122**: ver
   [Consultas (MSF-122)](#consultas-msf-122).

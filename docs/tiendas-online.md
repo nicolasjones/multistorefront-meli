@@ -71,7 +71,9 @@ dominio por su cuenta. El alta por SQL de MSF-147 sigue siendo válida (primera 
 
 **DNS de la plataforma por entorno (D2)** — `public.tienda_dns_plataforma` (fila única, solo lectura para
 `authenticated`, sin secretos). La migración siembra **valores de documentación** (`203.0.113.24`,
-`tiendas.plataforma.example.com`, `gc-verify`); el equipo técnico carga los reales de cada entorno por SQL:
+`tiendas.plataforma.example.com`, `gc-verify`); el equipo técnico carga los reales de cada entorno por SQL.
+Desde MSF-797 la IP debe ser una **IPv4 pública** (CHECK `tienda_dns_plataforma_ip_publica`, ver «Lote 1 de deuda técnica»):
+se rechazan loopback, redes privadas, CGNAT, link-local, multicast y reservadas, y los octetos fuera de 0–255:
 
 ```sql
 update public.tienda_dns_plataforma
@@ -215,7 +217,8 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
   `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
   La tabla no concede `INSERT`/`UPDATE`/`DELETE`, así el evento no se puede omitir.
 - **Archivos**: bucket `tienda-identidad` (lectura pública; escritura `authenticated` con edición en
-  Empresas bajo `<organización>/<empresa>/<archivo>`; PNG/SVG/JPG/WebP, tope 3 MB). Límites (D5): logo
+  Empresas bajo `<organización>/<empresa>/<archivo>`; PNG/SVG/JPG/WebP, tope 3 MB; **no se puede borrar un archivo que la
+  identidad publicada, el borrador o alguna versión referencian**, MSF-796: lo impide la política de borrado en la base). Límites (D5): logo
   ≤ 1 MB (PNG/SVG), banners ≤ 3 MB (PNG/JPG/WebP); el tope de 1 MB del logo lo valida la app antes de
   subir. Un **SVG con etiquetas activas (`<script>`, `<foreignObject>`…), manejadores `on*` (separados por espacio o `/`), `javascript:`/`data:` (aunque lleven tab o salto de línea en el esquema), entidades, referencias externas o CSS que carga recursos externos (`@import`, `url(http…)`) se rechaza** en el navegador.
   **Límites conocidos (aceptados):** ese filtro es solo del cliente; quien suba directo por la API de Storage lo esquiva (Storage no inspecciona contenido), y el tope de 1 MB del logo tampoco se aplica en servidor (el bucket admite 3 MB). Si se exige defensa en servidor, el siguiente paso es sacar `image/svg+xml` del bucket (PNG solo). Google Fonts se carga de un tercero (se filtra la IP del visitante; sin SRI/CSP) — decisión aceptada, alternativa: autoalojar. Si el guardado falla tras subir, la app relee la identidad y borra solo las subidas que la base no referencia (si no puede releer, las conserva: la respuesta de la RPC pudo perderse tras guardar); pueden quedar huérfanos (tolerado; `borrarImagenes` limpia en el mejor esfuerzo). El
@@ -786,8 +789,8 @@ Las funciones internas (`private.visitante_hash`, `private.limite_envios_tienda`
 | `dominio.tienda_envios` (tabla nueva) | **`dominio`** | Dato del producto Tiendas online atado a una empresa: registro mínimo de envíos de visitantes (límite e idempotencia). No es plataforma genérica. | Sí, por organización: `select` para `authenticated` con `organizacion_id = private.organizacion_id()`. `revoke all … from public, anon, authenticated` + `grant select … to authenticated`: **`anon` no tiene ningún privilegio** y escribe solo `private.registrar_envio_tienda` (`security definer`). |
 | `dominio.empresas.horarios` (columna nullable, ≤ 200) | **`dominio`** | La tabla ya es de dominio y tiene RLS; se suma la columna con `grant update (horarios)` a `authenticated`. Aditiva. | Hereda la de `dominio.empresas`. |
 
-Columnas: `id`, `organizacion_id`, `empresa_id`, `visitante` (hash, nunca la IP), `clave_envio`, `origen`
-(`formulario|whatsapp`), `creado_en`; `unique (empresa_id, clave_envio)` e índice `(empresa_id, visitante, creado_en)`.
+Columnas: `id`, `organizacion_id`, `empresa_id`, `visitante` (HMAC con secreto del servidor, nunca la IP; MSF-945), `clave_envio`, `origen`
+(`formulario|whatsapp|pedido|presupuesto`), `creado_en`; `unique (empresa_id, clave_envio)` e índice `(empresa_id, visitante, creado_en)`.
 Nada nuevo en `public`: `publico` sigue siendo un esquema de **solo funciones**.
 
 ### Límite e idempotencia
@@ -803,9 +806,10 @@ Nada nuevo en `public`: `publico` sigue siendo un esquema de **solo funciones**.
 
 ### Identidad del visitante (D6)
 
-El visitante es anónimo: se identifica por el hash `sha256` de la **IP** del cliente (tomada según
-`private.saltos_proxy_confiables()`, de F-TDA-15) **más la empresa**. **La IP nunca se guarda**: en la tabla queda solo el
-hash. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes caen en un único cupo «sin-ip»: falla
+El visitante es anónimo: se identifica por el **HMAC-SHA256** de la **IP** del cliente (tomada según
+`private.saltos_proxy_confiables()`, de F-TDA-15) **más la empresa**, con un secreto del servidor guardado en Supabase Vault
+(`visitante_hmac`, MSF-945; antes era un `sha256` sin clave, que se enumera en minutos sobre IPv4). **La IP nunca se guarda**:
+en la tabla queda solo el HMAC, que no se puede invertir sin el secreto. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes caen en un único cupo «sin-ip»: falla
 cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (si no, el límite es global).
 
 ### Decisiones de la épica y el supuesto con el que se implementaron
@@ -823,8 +827,9 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 
 ### Seguridad (revisión del diff de la épica)
 
-- **RLS de `dominio.tienda_envios`**: habilitada, con la única política de `select` para `authenticated` por organización
-  (`private.organizacion_id()`). `anon` no llega a la tabla: escribe solo `private.registrar_envio_tienda`
+- **RLS de `dominio.tienda_envios`**: habilitada, con la única política de `select` para `authenticated`: organización
+  propia, empresa accesible (`private.empresas_accesibles()`) **y edición en Empresas** (MSF-945; antes bastaba pertenecer a
+  la organización). `anon` no llega a la tabla: escribe solo `private.registrar_envio_tienda`
   (`security definer`, sin `grant` para roles de API).
 - **`grant`s de `anon`**: las tres funciones de `publico` hacen `revoke execute … from public, anon` y después
   `grant execute … to anon, authenticated`. El `revoke` a `PUBLIC` importa: por defecto Postgres da `EXECUTE` a `PUBLIC` en
@@ -834,7 +839,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 - **Texto literal**: lo que escribe el visitante se guarda y se muestra literal (nodos de React; en
   `apps/web/src/pages/tienda-publica/` no hay `dangerouslySetInnerHTML`). Un `<script>` escrito en el formulario no se
   interpreta.
-- **IP no persistida**: la tabla guarda el hash (`visitante`), nunca la IP.
+- **IP no persistida**: la tabla guarda el HMAC (`visitante`), nunca la IP ni un hash enumerable (MSF-945).
 - **Sin datos internos en las respuestas**: `ok | invalido | limite | error` en el formulario y `ok | limite | error` en
   WhatsApp, sin ids de organización, costos, existencias, IP ni hash. Las fallas internas se registran en el log del
   servidor solo con `sqlstate`; al anónimo le llega el error genérico.
@@ -858,6 +863,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 | `20261212120700_tienda_contacto.sql` (F-TDA-16) | columna `dominio.empresas.horarios` (+ check ≤ 200 y `grant update`); tabla `dominio.tienda_envios` + RLS + índices + `unique`; `private.visitante_hash`, `private.limite_envios_tienda`, `private.registrar_envio_tienda`, `private.validar_contacto_tienda`, `private.entregar_a_bandeja`; `publico.contacto_por_dominio` y `publico.enviar_consulta_contacto` con sus `grant`s | `drop function` de las funciones públicas y privadas, `drop table dominio.tienda_envios` y `alter table dominio.empresas drop column horarios` — nada se destruye en el mismo PR que lo crea. |
 | `20261212120800_crear_consulta_publica_solo_interna.sql` (F-TDA-16) | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
 | `20261212121000_tienda_whatsapp.sql` (F-TDA-14) | `publico.registrar_consulta_whatsapp` + `grant`s; no crea ni altera tablas | `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` |
+| `20270323100200_tienda_envios_visitante_hmac.sql` (MSF-945) | secreto `visitante_hmac` en Vault; `private.hmac_visitante`, `private.inicializar_visitante_hmac`; `private.visitante_hash` con HMAC; política `tienda_envios_select` por sección; hashes viejos a `legado` | ver el encabezado de la migración y «Lote 1 de deuda técnica» |
 
 **Orden de despliegue**: F-TDA-16 antes que F-TDA-14 (la segunda reusa `private.registrar_envio_tienda`,
 `private.entregar_a_bandeja` y `publico.contacto_por_dominio`).
@@ -986,9 +992,9 @@ Deuda real trazada como seguimiento:
 
 | Sev. | Hallazgo | Tratamiento |
 |---|---|---|
-| P2 | La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión restaurable aún referencia; `rutas_tienda_sin_referencia` es solo consejo del cliente. | Seguimiento MSF-796: exigir en la política que la ruta no esté referenciada, o mover la limpieza al servidor. |
-| P3 | `tienda_dns_plataforma.ip_publica` solo valida el formato (admite loopback/privadas/octetos > 255). La carga el equipo técnico por SQL. | Seguimiento MSF-797: `check` contra rangos no públicos. |
-| P3 | El timeout de 5 s de la comprobación TLS no cierra el socket colgado (acotado por 1 verificación cada 10 s). | Seguimiento MSF-797: cerrar el `Deno.Conn` al vencer. |
+| P2 | La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión restaurable aún referencia; `rutas_tienda_sin_referencia` es solo consejo del cliente. | **Resuelto (MSF-796, Lote 1 de MSF-515)**: la política de borrado exige que la ruta no esté referenciada (ver «Lote 1 de deuda técnica»). |
+| P3 | `tienda_dns_plataforma.ip_publica` solo valida el formato (admite loopback/privadas/octetos > 255). La carga el equipo técnico por SQL. | **Resuelto (MSF-797)**: CHECK contra rangos no públicos. |
+| P3 | El timeout de 5 s de la comprobación TLS no cierra el socket colgado (acotado por 1 verificación cada 10 s). | **Resuelto (MSF-797)**: la conexión se cierra siempre (`tls.ts`). |
 | P3 | El bucket es público: logos y banners de un borrador o versión vieja son legibles por quien conozca la ruta (lleva UUID, no adivinable). | Aceptado y documentado: no son confidenciales a nivel de almacenamiento. |
 
 ### Operación y reversión
@@ -1276,3 +1282,55 @@ contacto de la empresa del host.
 - **«Mi cuenta» (F-CLI-20, MSF-452)**: con la bandera `tienda_pedidos` encendida, el encabezado suma «Mi cuenta» para la cuenta web activa, la ficha suma «Guardar en favoritos» y la ruta `/mi-cuenta` lista compras, presupuestos y favoritos. `rutas/ingresar` acepta `?volver=` solo con rutas internas. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Lista de pedido sin cobro (B1, MSF-176)**: con la bandera `tienda_pedidos` encendida, la ficha suma «Agregar a la lista» (y «Ya tenés n en tu lista · Ver lista»), el encabezado «Mi lista (n)», el menú móvil «Mi lista» (con cuenta activa) y «Mi cuenta › Favoritos» «Agregar a la lista»; la ruta `/lista` revalida la lista con el servidor (precio de referencia = el que se ve en la tienda; con cuenta, la escala por cantidad), pide nombre y contacto (con cuenta, no) y la envía **sin pagar**: llega a Consultas como «Pedido» con sus ítems. La lista vive en el navegador (solo `producto_id` y cantidad). Con la bandera apagada no se ve nada y `/lista` es la 404. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Presupuesto desde la tienda (B2, MSF-176)**: con una cuenta activa, la lista suma «Pedir presupuesto»: un diálogo con la **cotización del servidor** (tu escala, tu descuento y las promociones vigentes, con IVA) y, al confirmar, un presupuesto **pendiente** en Ventas (canal tienda online) que el equipo acepta o modifica; **no reserva stock ni cobra nada**. Tope de 5 por día y 10 abiertos por cuenta; reintentar no duplica. Detalle y seguridad en `docs/tienda-compra-y-cuentas.md`.
+
+## Lote 1 de deuda técnica: seguridad e integridad de la tienda pública (MSF-515)
+
+Spec: `specs/20270323-100000-deuda-tecnica-lote-1-seguridad-tienda/`. Cierra tres seguimientos de la revisión de seguridad
+de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nuevas.
+
+### Archivos de identidad: no se borra lo que una versión referencia (MSF-796)
+
+- La política `tienda_identidad_objetos_delete` de `storage.objects` exige, además de organización propia y edición en
+  Empresas, que `private.ruta_identidad_referenciada(name)` sea falsa: la ruta no puede ser el logo, el banner o el banner móvil de
+  la **identidad publicada**, del **borrador** ni de **ninguna versión** (todas las versiones guardadas, las 100 restaurables). La
+  regla vive en la base: vale también para quien llame a la Storage API directo.
+- El panel no cambia: sigue usando `storage.remove` y `public.rutas_tienda_sin_referencia` (ahora solo para no pedir borrados
+  inútiles). Un borrado que la política niega **no da error**: la Storage API simplemente no devuelve ese archivo como borrado.
+- Un archivo queda libre cuando lo deja de referenciar todo: se descarta el borrador y ninguna versión lo usa (las versiones
+  llegan hasta 100; las más viejas se podan según la regla de versiones).
+- Reversión: restaurar la política de `20261023100100` y `drop function private.ruta_identidad_referenciada(text)`.
+
+### IP pública de la plataforma y cierre del socket TLS (MSF-797)
+
+- **CHECK** `tienda_dns_plataforma_ip_publica` (`private.ip_publica_valida`): cuatro octetos 0–255 sin ceros a la izquierda y fuera de
+  `0.0.0.0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.0.0/24`, `192.0.2/24`, `192.168/16`, `198.18/15`, `224/4` y `240/4`.
+  **Se admiten a propósito `198.51.100.0/24` y `203.0.113.0/24`** (TEST-NET-2 y -3): la migración de la tienda siembra `203.0.113.24`
+  como valor de documentación en cada entorno nuevo y los tests lo usan; no son enrutables, así que no llegan a ninguna red interna. Hay
+  que reemplazarlos por la IP real de cada entorno (la de dev, `212.90.120.53`, es pública y cumple). El CHECK se crea `NOT VALID` y se intenta validar:
+  si una fila de algún entorno ya tuviera una IP no pública, la migración avisa (`raise warning`) y no frena la cola; se corrige la fila y se corre
+  `alter table public.tienda_dns_plataforma validate constraint tienda_dns_plataforma_ip_publica`.
+- **RPC**: `preparar_verificacion_tienda` con una IP no pública responde `plataforma_no_configurada` (22023) sin gastar el límite de 10 s
+  y la Edge Function devuelve **503** `plataforma_no_configurada` sin consultar DNS ni abrir conexiones; `obtener_dominio_tienda` no muestra el
+  registro A.
+- **Socket colgado**: la comprobación TLS (`supabase/functions/verificar-dominio-tienda/tls.ts`) cierra siempre la conexión TCP/TLS: al terminar,
+  al vencer los 5 s y también si la conexión llega después del vencimiento. Test: `tls.test.ts` (`pnpm test:edge:verificar-dominio-tienda`).
+- Reversión: `drop constraint tienda_dns_plataforma_ip_publica`, reponer las dos RPC de `20270205110000` y `drop function private.ip_publica_valida(text)`.
+
+### Visitante de los envíos con HMAC y lectura por sección (MSF-945, hallazgo H-1 de T070)
+
+- **Antes de encender `tienda_pedidos` fuera de dev** (la bandera de pedidos y presupuestos que usa el mismo cupo): aplicar esta migración.
+- `private.visitante_hash` pasó de `sha256(ip|empresa)` a **HMAC-SHA256** con el secreto `visitante_hmac` de **Supabase Vault**, el mismo
+  mecanismo que `acceso_hmac` (MSF-470). La migración lo **genera por entorno** con `gen_random_bytes(32)`; nunca está en Git. Se migra con el rol
+  `postgres` (que ve `vault.secrets`). Si el secreto faltara, el envío se rechaza (falla cerrada; no vuelve al hash sin clave).
+- **Hashes existentes**: no se pueden recalcular (la IP no se guarda) y un sha256 sin clave es enumerable, así que se **reemplazan por `legado`** al
+  crear el secreto (solo esa vez). Costo conocido: quien ya había usado cupo en la última hora vuelve a tener 5 envíos; las claves de idempotencia
+  (`clave_envio`) se conservan.
+- **Lectura**: `tienda_envios_select` exige organización propia, empresa accesible (`private.empresas_accesibles()`) y **edición en Empresas** (antes, cualquier rol
+  de la organización). Ningún lugar del panel ni de los workers lee la tabla.
+- **IP ↔ cuenta de cliente**: `dominio.presupuestos_tienda` guarda `(cuenta_cliente_id, clave_envio)` y `tienda_envios` guarda `(empresa_id, clave_envio, visitante)`. Tras
+  el cambio el visitante es un HMAC no invertible: **no hay camino a la IP**, ni con una copia de la base. Queda un vínculo **opaco** (la misma persona/IP compartió el mismo
+  token de visitante), visible solo durante las 24 h de retención y solo para quien tenga edición en Empresas **y** lectura de Ventas. No se desacopló la clave porque el
+  reintento de `enviar_lista_pedido` consulta `tienda_envios` por la clave cruda.
+- **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
+  y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
+- Reversión: ver el encabezado de `20270323100200_tienda_envios_visitante_hmac.sql` (los hashes `legado` no se restauran).
