@@ -209,7 +209,7 @@ Los precios ya aplicados **no se deshacen solos**: se corrigen con otra actualiz
 ## Fuera de alcance y pendientes
 
 - **Decisión 6 implementada (MSF-816, 2026-11-14):** el mostrador (POS) y los comprobantes **cobran el precio promocional** de la tienda del comprobante (`private.precio_linea_venta`, gana el más bajo sin acumular; el precio manual manda), con la bandera `promociones_precio`. Mercado Libre, el carrito y el checkout (no existen) siguen fuera. Detalle, comportamiento conocido y seguimientos S1…S7 (MSF-932…MSF-938): `docs/ventas-comprobantes.md`.
-- **El precio por escala y los precios de cliente por dominio no se adoptan** (Decisión 7): siguen usando el precio sin promoción. Seguimiento **S1 = MSF-932** (MSF-816 es la épica del POS).
+- **El precio por escala y los precios de cliente por dominio**: la Decisión 7 los dejó sin promoción; el seguimiento **S1 = MSF-932** (hecho, migración `20270326100200`) alineó `publico.precios_cliente_por_dominio`: la promoción reemplaza al precio de la escala solo si es menor (gana el más bajo, sin acumular) y la escala suma `precio_anterior` (MSF-816 es la épica del POS).
 - **Las escalas de precio (F-PRE-15) no se actualizan** con la masiva: subir el precio de lista puede dejar el precio de una escala (x5, x10, x50) por debajo del precio de lista nuevo (Decisión 5). Actualizarlas es otra historia.
 - **Los precios propios por empresa (F-PRE-08, MSF-352) quedan excluidos** de la actualización masiva cuando existen (Decisión 2); la promoción sí se superpone al neto que ya incluye el precio propio.
 - **Las promociones de Mercado Libre** se gestionan en Mercado Libre; el sistema solo las detecta (F-MLS-07, Etapa 2). Nada de eso está aquí.
@@ -229,7 +229,7 @@ Los precios ya aplicados **no se deshacen solos**: se corrigen con otra actualiz
 | 4 | **Alcance del porcentaje:** «todos los activos» o «una categoría» (con sus subcategorías). Otros filtros (proveedor, marca) quedan fuera. |
 | 5 | **Escalas de precio:** la masiva no las cambia. |
 | 6 | **Ventas y pedidos:** el precio promocional se muestra en la tienda y, desde MSF-816, lo cobran el mostrador y los comprobantes (implementada el 2026-11-14); el carrito y el checkout no existen. |
-| 7 | **Superficies de la tienda:** catálogo, ficha, inicio/destacados y búsqueda muestran el mismo precio vigente y `precio_anterior`. Quedan fuera el precio por escala y los precios de cliente por dominio (seguimiento S1 = MSF-932). |
+| 7 | **Superficies de la tienda:** catálogo, ficha, inicio/destacados y búsqueda muestran el mismo precio vigente y `precio_anterior`. Los precios de cliente por dominio (escalas del cliente con sesión) se alinearon con S1 = MSF-932 (migración `20270326100200`). |
 | 9 | **Permiso por tienda (aprobada 2026-11-12):** las promociones se leen y escriben por tienda; los precios masivos exigen edición en todas las tiendas activas (decisión 14). |
 | 10 | **Banderas de apagado (aprobada 2026-11-12, decisión 15):** `promociones_precio` y `precios_masivos`, apagadas por defecto y encendidas por SQL en cada entorno. |
 | 8 | **Editar y anular una promoción** no figuran literalmente en la épica; se asumen como parte de «programar» (sin ellas una carga equivocada no tiene salida). |

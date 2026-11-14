@@ -320,7 +320,7 @@ Prototipos involucrados (`pnpm prototipo:inventario` corrido el 2026-11-13): `de
 
 ## Seguimientos (se trazan en el tracker al aprobar; no bloquean la épica)
 
-- **S1**: la tienda con sesión de cliente (`precios_cliente_por_dominio`) no aplica promociones (hallazgo 7; Decisión 7 de MSF-363). **MSF-816 es esta épica, no ese seguimiento**: S1 se difiere con un ID nuevo que se asigna al trazarlo; las referencias «seguimiento MSF-816» de `docs/promociones-precio.md` y de la spec y el plan de MSF-363 se corrigen en T023.
+- **S1** (hecho, MSF-932, migración `20270326100200`): la tienda con sesión de cliente (`precios_cliente_por_dominio`) no aplicaba promociones (hallazgo 7; Decisión 7 de MSF-363). **MSF-816 es esta épica, no ese seguimiento**: S1 se difirió con un ID nuevo que se asigna al trazarlo; las referencias «seguimiento MSF-816» de `docs/promociones-precio.md` y de la spec y el plan de MSF-363 se corrigen en T023.
 - **S2** (hecho, MSF-933): `copiar_presupuesto` no aplicaba el descuento del cliente (hallazgo 3); ahora lo aplica (migración `20270326100100`).
 - **S3**: indicador «ventas con promoción» en reportes y Superset (hoy el dato queda en la línea).
 - **S4**: PDF con precio de lista tachado (solo si se decide cambiar la Decisión 6).

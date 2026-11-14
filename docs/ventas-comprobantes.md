@@ -360,7 +360,7 @@ Lo que sigue está **decidido y probado**; no son defectos ocultos. Cada punto t
 
 | Seguimiento | Tema | ID |
 |---|---|---|
-| S1 | La tienda con sesión de cliente (`precios_cliente_por_dominio`, escalas) no aplica promociones; un mayorista con cantidad 1-4 ve su precio sin promoción en la tienda y en el local pagaría la promoción | MSF-932 |
+| S1 | La tienda con sesión de cliente (`precios_cliente_por_dominio`, escalas) aplica las promociones (gana el más bajo, sin acumular). **Hecho** (migración `20270326100200`; ver `promociones-precio.md`): un mayorista ve en la tienda lo que paga en el local | MSF-932 |
 | S2 | `copiar_presupuesto` no aplica el descuento del cliente. **Hecho** (migración `20270326100100`): la copia cobra con el descuento vigente del cliente, sin acumularlo con la promoción (gana el más bajo), también con la bandera apagada | MSF-933 |
 | S3 | Indicador «ventas con promoción» en reportes y Superset; promoción bajo el costo | MSF-934 |
 | S4 | PDF del comprobante con el precio de lista tachado (solo si se cambia la Decisión 6) | MSF-935 |
