@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogContentText, FormControl,
-  FormControlLabel, FormLabel, Radio, RadioGroup, Stack, Typography,
+  Checkbox, FormControlLabel, FormLabel, Radio, RadioGroup, Stack, Typography,
 } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { ClienteSelector } from '../service/ClienteSelector'
@@ -32,6 +32,7 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
   const [conservar, setConservar] = useState<'actual' | 'otro'>('actual')
   const [cuentaWebDe, setCuentaWebDe] = useState<'actual' | 'otro' | ''>('')
   const [previa, setPrevia] = useState<EstadoVistaPrevia | null>(null)
+  const [entiendo, setEntiendo] = useState(false)
   const [procesando, setProcesando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reintento, setReintento] = useState(0)
@@ -39,10 +40,10 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
   const mismoCliente = otro?.id === cliente.id
   const otroId = otro && !mismoCliente ? otro.id : null
 
-  // Reinicia todo al abrir o al cambiar la ficha de origen.
+  // Reinicia todo al cerrar el diálogo (la próxima apertura empieza limpia).
   useEffect(() => {
     if (abierto) return
-    setOtro(null); setConservar('actual'); setCuentaWebDe(''); setPrevia(null); setError(null)
+    setOtro(null); setConservar('actual'); setCuentaWebDe(''); setPrevia(null); setError(null); setEntiendo(false)
   }, [abierto])
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
     }
     let cancelada = false
     setPrevia({ estado: 'cargando' })
-    setCuentaWebDe('')
+    setCuentaWebDe(''); setEntiendo(false)
     vistaPreviaFusion(cliente.id, otroId).then(
       (filas) => { if (!cancelada) setPrevia({ estado: 'lista', filas }) },
       (excepcion) => { if (!cancelada) setPrevia({ estado: 'error', mensaje: mensajeDeFusion(excepcion) }) },
@@ -67,7 +68,13 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
   const conservado = conservar === 'actual' ? cliente.id : otroId
   const descartado = conservar === 'actual' ? otroId : cliente.id
   const faltaCuenta = resolverCuenta && cuentaWebDe === ''
-  const puedeConfirmar = Boolean(filas && conservado && descartado && !faltaCuenta && !procesando)
+  const nombreConservado = conservar === 'actual' ? cliente.nombre : nombreOtro
+  const nombreDescartado = conservar === 'actual' ? nombreOtro : cliente.nombre
+  const nombreCuentaConservada = cuentaWebDe === 'actual' ? cliente.nombre : nombreOtro
+  const nombreCuentaDeBaja = cuentaWebDe === 'actual' ? nombreOtro : cliente.nombre
+  // Con dos cuentas web activas, la que no se elige se da de baja y no se recupera: hay que confirmarlo.
+  const pideConfirmacion = resolverCuenta && cuentaWebDe !== ''
+  const puedeConfirmar = Boolean(filas && conservado && descartado && !faltaCuenta && !procesando && (!pideConfirmacion || entiendo))
 
   const cerrar = () => { if (!procesando) onCerrar() }
 
@@ -121,7 +128,7 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
             <Stack spacing={2}>
               <FormControl>
                 <FormLabel id="grupo-conservar">Ficha que se conserva</FormLabel>
-                <RadioGroup aria-labelledby="grupo-conservar" value={conservar} onChange={(_e, valor) => setConservar(valor as 'actual' | 'otro')}>
+                <RadioGroup aria-labelledby="grupo-conservar" value={conservar} onChange={(_e, valor) => { setConservar(valor as 'actual' | 'otro'); setEntiendo(false) }}>
                   <FormControlLabel value="actual" control={<Radio />} disabled={procesando}
                     label={etiquetaFila(cliente.id, cliente.nombre, cliente.numero)} />
                   <FormControlLabel value="otro" control={<Radio />} disabled={procesando}
@@ -137,11 +144,25 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
                   <Box component="p" sx={{ m: 0, color: 'text.secondary' }}>
                     Los dos clientes tienen cuenta web activa. La que no elijas se da de baja.
                   </Box>
-                  <RadioGroup aria-labelledby="grupo-cuenta-web" value={cuentaWebDe} onChange={(_e, valor) => setCuentaWebDe(valor as 'actual' | 'otro')}>
+                  <RadioGroup aria-labelledby="grupo-cuenta-web" value={cuentaWebDe} onChange={(_e, valor) => { setCuentaWebDe(valor as 'actual' | 'otro'); setEntiendo(false) }}>
                     <FormControlLabel value="actual" control={<Radio />} disabled={procesando} label={`La de ${cliente.nombre}`} />
                     <FormControlLabel value="otro" control={<Radio />} disabled={procesando} label={`La de ${nombreOtro}`} />
                   </RadioGroup>
                 </FormControl>
+              ) : null}
+              {pideConfirmacion ? (
+                <Alert severity="warning" role="group" aria-labelledby="titulo-confirmar-baja">
+                  <Typography id="titulo-confirmar-baja" component="p" sx={{ fontWeight: 600 }}>Antes de fusionar, revisá esto</Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    <li>Se conserva la ficha de <strong>{nombreConservado}</strong>; la de <strong>{nombreDescartado}</strong> queda archivada.</li>
+                    <li>Se conserva la cuenta web de <strong>{nombreCuentaConservada}</strong>.</li>
+                    <li>La cuenta web de <strong>{nombreCuentaDeBaja}</strong> se da de baja y <strong>no se puede recuperar</strong>: esa persona ya no podrá entrar con ella.</li>
+                  </Box>
+                  <FormControlLabel
+                    control={<Checkbox checked={entiendo} onChange={(_e, marcado) => setEntiendo(marcado)} disabled={procesando} />}
+                    label={`Entiendo que la cuenta web de ${nombreCuentaDeBaja} se da de baja para siempre`}
+                  />
+                </Alert>
               ) : null}
             </Stack>
           ) : null}
