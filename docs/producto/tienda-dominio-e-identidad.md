@@ -43,7 +43,7 @@ En la pestaña **Identidad visual** hay cuatro bloques y, a la derecha, una **Vi
 ### Logo
 
 1. En el bloque **Logo** hacé clic en **Subir** (o **Reemplazar**, si ya hay uno).
-2. Elegí un archivo **PNG o SVG** de hasta 1 MB. Usá un logo con **fondo transparente**: en el pie de la tienda se muestra en blanco y, si el archivo tiene fondo sólido, se ve un recuadro. Se usa en el encabezado, el pie y las redes.
+2. Elegí un archivo **PNG o SVG** de hasta 1 MB. Usá un logo con **colores que se vean sobre fondo blanco**: en el pie de la tienda se muestra con sus colores sobre un recuadro blanco redondeado (sirve con fondo transparente o sólido). Un logo blanco o muy claro no se vería en el pie. Se usa en el encabezado, el pie y las redes.
 3. Con **Quitar** sacás el logo actual. Si la tienda no tiene logo, el encabezado y el pie muestran el nombre de la empresa en texto.
 
 ### Colores
@@ -134,7 +134,7 @@ Cada tienda toma sus propios colores, tipografías, logo, eslogan y textos. La b
 - **Cambié el color y la tienda sigue igual.** Guardar deja el cambio **sin publicar**: publicá desde la pestaña **Dominio y publicación**. Si ya publicaste, recargá la tienda en el navegador.
 - **Quiero sacar la barra de bienvenida.** Dejá vacío el **Mensaje de bienvenida**, guardá y publicá. Si además cargaste un **Eslogan**, la barra superior lo sigue mostrando.
 - **No sé qué color pinta la barra de arriba y el pie.** Es el color **Barra superior y pie**, el quinto del bloque **Colores**.
-- **Mi logo se ve mal sobre el encabezado o en el pie.** Usá un PNG o SVG con fondo transparente: en el pie el logo se muestra en blanco.
+- **Mi logo se ve mal sobre el encabezado o en el pie.** Usá un PNG o SVG con colores visibles sobre fondo blanco: en el pie el logo va a color sobre un recuadro blanco, así que un logo blanco o muy claro no se vería.
 
 ## Si algo no sale
 

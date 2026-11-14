@@ -63,3 +63,4 @@ const porcentaje = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1, si
 export const formatoPesos = (valor: number) => pesos.format(valor)
 export const formatoEntero = (valor: number) => enteros.format(valor)
 export const formatoVariacion = (valor: number) => `${porcentaje.format(valor)} %`
+

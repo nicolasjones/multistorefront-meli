@@ -1,31 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import type { Page } from '@playwright/test'
+import { altaUsuario, cabeceras, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-CLI-17 (MSF-446, SC-001): etiqueta impresa del cliente. CA-CLI-17-1: sin dirección → aviso con el dato
 // faltante y sin hoja; con dirección → hoja con `@page` y los datos del envío. Se verifica a 320/768/1440 px y
 // con teclado. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node
 // (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite:
 // ver docs/e2e-app.md y docs/clientes.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}`, 'content-type': 'application/json', ...extra,
-})
-
-async function insertar<T>(ruta: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'POST', headers: cabeceras({ prefer: 'return=representation' }), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ email: correo, password, email_confirm: true }) })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
 
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
@@ -45,11 +29,11 @@ test.describe('Clientes · etiqueta impresa (MSF-446, F-CLI-17)', () => {
     let userId: string | undefined
     const { contexto, page } = await abrirContextoGrabado(browser, testInfo, 'etiqueta')
     try {
-      const [org] = await insertar<{ id: string }>('organizaciones', { nombre: `E2E etiqueta ${sufijo}` })
+      const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E etiqueta ${sufijo}` })
       orgId = org.id
       userId = await altaUsuario(correo)
-      await insertar('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
-      const [conDireccion, sinDireccion] = await insertar<{ id: string }>('clientes', [
+      await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
+      const [conDireccion, sinDireccion] = await rest<{ id: string }>('clientes', [
         { organizacion_id: org.id, nombre: `Con calle ${sufijo}`, tipo: 'minorista', direccion: 'Av. Siempre Viva 742', localidad: 'Rosario', provincia: 'Santa Fe', codigo_postal: '2000', telefono: '341 555 0101', expreso_preferido: 'Vía Cargo' },
         { organizacion_id: org.id, nombre: `Sin calle ${sufijo}`, tipo: 'minorista', direccion: null, localidad: null, provincia: null, codigo_postal: null, telefono: null, expreso_preferido: null },
       ])

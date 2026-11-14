@@ -1,19 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-22 (MSF-289, SC-010 de la épica MSF-149): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) el pie muestra la información legal de SU empresa, el bloque desaparece sin datos y el
 // aviso de cookies se va al decidir y no vuelve. Requiere el stack local (`pnpm dev:supabase`) y la web servida;
 // siembra con la API admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E legal: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -41,16 +34,6 @@ async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
 }
 
-async function insertar(tabla: string, cuerpo: unknown) {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, { method: 'POST', headers: cabeceras(), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST POST ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
-}
-
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
@@ -73,7 +56,7 @@ test.describe('Tienda online · información legal y cookies (SC-010)', () => {
     try {
       for (const t of tiendas) {
         await actualizar('empresas', `id=eq.${t.empresa}`, { razon_social: t.razonSocial, cuit: t.cuit, direccion: t.direccion })
-        await insertar('tienda_legal_enlaces', { organizacion_id: t.organizacion, empresa_id: t.empresa, titulo: t.enlace, url: t.urlEnlace, orden: 1 })
+        await rest('tienda_legal_enlaces', { organizacion_id: t.organizacion, empresa_id: t.empresa, titulo: t.enlace, url: t.urlEnlace, orden: 1 }, 'dominio', 'return=minimal')
       }
 
       for (const t of tiendas) {
@@ -108,7 +91,7 @@ test.describe('Tienda online · información legal y cookies (SC-010)', () => {
       // Sin datos legales el bloque no aparece.
       const vacia = tiendas[0]!
       await actualizar('empresas', `id=eq.${vacia.empresa}`, { razon_social: null, cuit: null, direccion: null })
-      await borrar('tienda_legal_enlaces', `empresa_id=eq.${vacia.empresa}`)
+      await borrar(`tienda_legal_enlaces?empresa_id=eq.${vacia.empresa}`, 'dominio')
       const contexto = await browser.newContext()
       const page = await contexto.newPage()
       await page.goto(`http://${vacia.host}:${puerto}/`)
@@ -117,7 +100,7 @@ test.describe('Tienda online · información legal y cookies (SC-010)', () => {
       await contexto.close()
     } finally {
       for (const t of tiendas) {
-        await borrar('tienda_legal_enlaces', `empresa_id=eq.${t.empresa}&titulo=like.*${sufijo}`)
+        await borrar(`tienda_legal_enlaces?empresa_id=eq.${t.empresa}&titulo=like.*${sufijo}`, 'dominio')
         const o = originales.find((x) => x.id === t.empresa)
         if (o) await actualizar('empresas', `id=eq.${t.empresa}`, { razon_social: o.razon_social, cuit: o.cuit, direccion: o.direccion })
       }
