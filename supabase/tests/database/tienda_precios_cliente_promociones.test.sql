@@ -167,6 +167,12 @@ update dominio.promociones_precio set precio_promocional = 950 where id = 'c5000
 select pg_temp.alfa('medio_b', 'f7000000-0000-0000-0000-000000000001', 's1-b.ejemplo.com');
 select is(pg_temp.escalas('medio_b'), '[["x1",950,1000],["x5",900,null],["x10",800,null],["x50",950,1000]]'::jsonb,
   'promoción 950: gana solo donde baja el precio (x1 y x50); x5 (900) y x10 (800) ya son más bajas');
+-- Promoción IGUAL al precio de una escala (900 = x5) pero menor al x1: en esa escala no hay descuento que mostrar
+-- (estrictamente menor), sin precio_anterior; gana en x1 y x50 (hallazgo R125: un mutante `<=` sobrevivía).
+update dominio.promociones_precio set precio_promocional = 900 where id = 'c5000000-0000-0000-0000-00000000000b';
+select pg_temp.alfa('igual_x5_b', 'f7000000-0000-0000-0000-000000000001', 's1-b.ejemplo.com');
+select is(pg_temp.escalas('igual_x5_b'), '[["x1",900,1000],["x5",900,null],["x10",800,null],["x50",900,1000]]'::jsonb,
+  'promoción 900 igual al precio de x5: x5 no trae precio_anterior (no baja); x1 y x50 sí; x10 (800) sigue más bajo');
 update dominio.promociones_precio set precio_promocional = 850 where id = 'c5000000-0000-0000-0000-00000000000b';
 
 -- ============================================================================
