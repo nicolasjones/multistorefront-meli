@@ -14,7 +14,7 @@ type Resultado<T = unknown> = Promise<{ data: T; error: DbError | null }>
 type CuentaRecuperable = { correo: string; dominio: string }
 
 export type Deps = {
-  // `http` solo en desarrollo local; en cualquier otro entorno las tiendas viven en https.
+  // `http` solo con ALLOW_HTTP_REDIRECT=true (desarrollo local); en cualquier otro entorno las tiendas viven en https.
   protocolo: 'https' | 'http'
   // Solo `cuenta_cliente_para_recuperar` (restringida a service_role).
   admin: { rpc(nombre: string, args: Record<string, unknown>): Resultado<unknown> }
