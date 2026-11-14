@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, List, ListItem, ListItemText, Stack, Typography } from '@mui/material'
 import type { Comprobante } from '../../lib/ventas'
 import { formatearPesosPrecio } from '../../lib/precios'
-import { MENSAJE_PRECIOS_CAMBIARON_COBRO, disponibleDeLinea } from '../../lib/ventasLineas'
+import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR, disponibleDeLinea } from '../../lib/ventasLineas'
 import {
   TITULO_CONFIRMAR_FACTURA,
   cantidadADejarReservada,
@@ -21,8 +21,9 @@ type Props = {
   // La base confirmó: la pantalla relee el comprobante, que pasa a solo lectura.
   onConfirmado: () => void
   // La base rechazó con `precios_cambiaron` (FR-018): la pantalla re-guarda las mismas líneas y el comprobante nuevo
-  // llega por `comprobante`. El diálogo no reintenta la confirmación solo.
-  onPreciosCambiaron?: () => Promise<void>
+  // llega por `comprobante`. Devuelve `true` solo si el re-guardado se hizo y el comprobante se recargó; con `false` el
+  // diálogo NO muestra el aviso (diría un total viejo) sino un error. No reintenta la confirmación solo.
+  onPreciosCambiaron: () => Promise<boolean>
 }
 
 // Diálogo «Confirmar factura» (F-VTA-07, FR-037). Pide confirmación antes de descontar, muestra el error de
@@ -55,8 +56,9 @@ function Contenido({ comprobante, onCerrar, onConfirmado, onPreciosCambiaron }: 
     } catch (falla) {
       if (esPreciosCambiaron(falla)) {
         // Sin efectos en la base: se reprecian las líneas y se pide confirmar de nuevo con el total nuevo.
-        await onPreciosCambiaron?.()
-        setPreciosCambiaron(true)
+        const actualizado = await onPreciosCambiaron().catch(() => false)
+        if (actualizado) setPreciosCambiaron(true)
+        else setError(MENSAJE_ERROR_ACTUALIZAR_PRECIOS)
       } else {
         setError(mensajeDeConfirmacion(falla))
       }
@@ -91,9 +93,10 @@ function Contenido({ comprobante, onCerrar, onConfirmado, onPreciosCambiaron }: 
               </List>
             </Alert>
           ) : null}
-          {preciosCambiaron ? (
-            <AvisoPreciosCambiaron mensaje={`${MENSAJE_PRECIOS_CAMBIARON_COBRO} Total ahora: ${formatearPesosPrecio(comprobante.total_con_iva)}.`} />
-          ) : null}
+          <AvisoPreciosCambiaron
+            separacion={1.5}
+            mensaje={preciosCambiaron ? `${MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR} Total ahora: ${formatearPesosPrecio(comprobante.total_con_iva)}.` : null}
+          />
           {error ? <Alert severity="error">{error}</Alert> : null}
         </Stack>
       </DialogContent>

@@ -115,8 +115,33 @@ describe('huboCambioDePrecios (FR-017)', () => {
     expect(huboCambioDePrecios(v(l('p-1', 900, 1000)), v(l('p-1', 900, 1000), l('p-2', 5)), 'p-2')).toBe(false)
   })
 
-  it('en el producto recién escaneado solo cuenta si cambió su estado de promoción, no el precio por cantidad', () => {
-    expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 800, 1000, 2)), 'p-1')).toBe(false)
+  it('la promoción vence o empieza en la línea que se vuelve a escanear: avisa', () => {
     expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 1000, null, 2)), 'p-1')).toBe(true)
+    expect(huboCambioDePrecios(v(l('p-1', 1000, null, 1)), v(l('p-1', 900, 1000, 2)), 'p-1')).toBe(true)
+  })
+
+  it('el monto de la promoción cambia en OTRA línea (900 → 850): avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000)), v(l('p-1', 850, 1000), l('p-2', 5)), 'p-2')).toBe(true)
+  })
+
+  it('el monto de la promoción cambia en la línea escaneada (ambas en promoción, 900 → 850): avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 850, 1000, 2)), 'p-1')).toBe(true)
+  })
+
+  it('con la misma promoción en la línea escaneada (solo sube la cantidad) no avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 900, 1000, 2)), 'p-1')).toBe(false)
+  })
+
+  it('un cambio de escala por cantidad sin promoción en la línea escaneada NO avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 1000, null, 4)), v(l('p-1', 900, null, 5)), 'p-1')).toBe(false)
+  })
+
+  it('un producto nuevo con promoción no avisa (no estaba en la venta)', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 500)), v(l('p-1', 500), l('p-2', 900, 1000)), 'p-2')).toBe(false)
+  })
+
+  it('una línea con precio manual que no cambia no avisa', () => {
+    const manual = { ...l('p-1', 50), precio_manual: true }
+    expect(huboCambioDePrecios(v(manual), v(manual, l('p-2', 5)), 'p-2')).toBe(false)
   })
 })

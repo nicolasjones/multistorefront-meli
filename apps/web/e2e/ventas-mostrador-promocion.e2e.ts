@@ -9,8 +9,9 @@ import { CONTRASENA_E2E as password, altaUsuario, borrarUsuario, cabeceras, leer
 // una promoción que vence entre dos escaneos avisa «Los precios cambiaron». Requiere el stack local (`pnpm dev:supabase`) y
 // `--workers=1`: la bandera es global y se comparte con los specs de la tienda (`tienda-promocion`). Siembra por la API
 // admin solo contra Supabase local, sin escribir directo en tablas inalterables (docs/e2e-app.md).
-// El rechazo `40001`/`precios_cambiaron` al cobrar lo emite el servidor en F-3 (T014): acá no hay E2E de ese camino (lo
-// prueba Vitest simulando la respuesta); queda como seguimiento en notas.md.
+// También cubre, con el servidor real de F-3 (T014), el rechazo `40001`/`precios_cambiaron`: una promoción que vence con la
+// venta abierta hace que «Cobrar» (mostrador) o «Confirmar» (diálogo del comprobante) rechacen sin cobrar ni confirmar, se
+// muestre el aviso con el total nuevo y al repetir la acción se cobre/confirme a ese total.
 const CLAVE_BANDERA = 'promociones_precio'
 
 async function tokenDe(correo: string): Promise<string> {
@@ -117,6 +118,16 @@ async function escanear(page: Page, codigo: string) {
 
 test.describe.configure({ mode: 'serial' })
 
+// Hace vencer la promoción con la venta abierta (la fecha `hasta` pasa a hace un minuto).
+async function vencer(id: string) {
+  const r = await fetch(`${url}/rest/v1/promociones_precio?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: cabeceras({ 'content-profile': 'dominio' }),
+    body: JSON.stringify({ hasta: new Date(Date.now() - 60_000).toISOString() }),
+  })
+  expect(r.ok, await r.clone().text()).toBe(true)
+}
+
 test.describe('Ventas · mostrador con precio promocional (MSF-816, SC-004)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
   test.setTimeout(90_000)
@@ -149,6 +160,16 @@ test.describe('Ventas · mostrador con precio promocional (MSF-816, SC-004)', ()
       await expect(fila).toContainText('Precio promocional')
       await expect(fila).toContainText('promoción')
       await expect(fila).not.toContainText('escala x1')
+      // «Precio anterior» y «Precio promocional» son SOLO para lectores de pantalla: están en el DOM pero no se ven
+      // (recortados a 1 px). El tachado y la leyenda «Promoción» sí son visibles.
+      for (const texto of ['Precio anterior', 'Precio promocional']) {
+        const caja = await fila.getByText(texto).first().boundingBox()
+        expect(caja, `${texto} debe existir en el DOM`).not.toBeNull()
+        expect(caja?.width ?? 99).toBeLessThanOrEqual(1)
+        expect(caja?.height ?? 99).toBeLessThanOrEqual(1)
+      }
+      await expect(fila.locator('s')).toBeVisible()
+      await expect(fila.getByText('Promoción', { exact: true })).toBeVisible()
       const totales = page.getByRole('group', { name: 'Totales de la venta' })
       await expect(totales).toContainText('Total: $ 900')
       // Sin aviso de precios: nada cambió entre escaneos.
@@ -216,12 +237,7 @@ test.describe('Ventas · mostrador con precio promocional (MSF-816, SC-004)', ()
       await expect(fila.locator('s')).toHaveText('$ 1.000')
 
       // La promoción vence con la venta abierta (el servidor la deja de ver al guardar el siguiente escaneo).
-      const r = await fetch(`${url}/rest/v1/promociones_precio?id=eq.${siembra.promocionId}`, {
-        method: 'PATCH',
-        headers: cabeceras({ 'content-profile': 'dominio' }),
-        body: JSON.stringify({ hasta: new Date(Date.now() - 60_000).toISOString() }),
-      })
-      expect(r.ok, await r.clone().text()).toBe(true)
+      await vencer(siembra.promocionId)
 
       await escanear(page, siembra.codigos.normal)
       await expect(tabla.getByRole('row').filter({ hasText: siembra.nombres.normal })).toBeVisible()
@@ -234,6 +250,76 @@ test.describe('Ventas · mostrador con precio promocional (MSF-816, SC-004)', ()
       await expect(page.getByRole('group', { name: 'Totales de la venta' })).toContainText('Total: $ 1.500')
       // Es informativo: el lector sigue habilitado.
       await expect(page.getByLabel('Escaneá o ingresá el código de barras')).toBeEnabled()
+    } finally {
+      await limpiar(siembra)
+    }
+  })
+
+  test('[MSF-816:T012] [FR-018,F-3] mostrador: vence la promoción, «Cobrar» se rechaza sin cobrar, avisa con el total nuevo y cobra de nuevo a ese total', async ({ page }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    let siembra: Siembra | null = null
+    try {
+      siembra = await sembrar(sufijo, { promo: '7790002000073', normal: '7790002000080' })
+      await fijarBandera(true)
+      await ingresar(page, siembra.correo)
+      await page.goto('/ventas/mostrador')
+      await escanear(page, siembra.codigos.promo)
+      const tabla = page.getByRole('table', { name: 'Productos de la venta' })
+      const fila = tabla.getByRole('row').filter({ hasText: siembra.nombres.promo })
+      await expect(fila.locator('s')).toHaveText('$ 1.000')
+      await vencer(siembra.promocionId)
+
+      await page.getByRole('button', { name: 'Cobrar' }).click()
+      await expect(page.getByTestId('aviso-precios')).toContainText('Los precios cambiaron: revisá el total y cobrá de nuevo')
+      await expect(page.getByRole('group', { name: 'Totales de la venta' })).toContainText('Total: $ 1.000')
+      await expect(fila.locator('s')).toHaveCount(0)
+      await expect(page.getByText(/Venta cobrada/)).toHaveCount(0)
+      // El rechazo no dejó rastro: la venta sigue en borrador y sin cobros.
+      const [comprobante] = await leer<{ id: string; estado: string }>(`comprobantes_venta?organizacion_id=eq.${siembra.organizacionId}&select=id,estado`, 'dominio')
+      expect(comprobante.estado).toBe('borrador')
+      expect(await leer(`cobros_comprobante?comprobante_id=eq.${comprobante.id}&select=importe`, 'dominio')).toHaveLength(0)
+
+      await page.getByRole('button', { name: 'Cobrar' }).click()
+      await expect(page.getByText(/Venta cobrada/)).toContainText('$ 1.000')
+      const cobros = await leer<{ importe: number }>(`cobros_comprobante?comprobante_id=eq.${comprobante.id}&select=importe`, 'dominio')
+      expect(cobros.map((c) => Number(c.importe))).toEqual([1000])
+      const [final] = await leer<{ total_con_iva: number }>(`comprobantes_venta?id=eq.${comprobante.id}&select=total_con_iva`, 'dominio')
+      expect(Number(final.total_con_iva)).toBe(1000)
+    } finally {
+      await limpiar(siembra)
+    }
+  })
+
+  test('[MSF-816:T012] [FR-018,F-3] comprobante: vence la promoción, «Confirmar» se rechaza, avisa con el total nuevo y confirma de nuevo', async ({ page }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    let siembra: Siembra | null = null
+    try {
+      siembra = await sembrar(sufijo, { promo: '7790002000097', normal: '7790002000103' })
+      await fijarBandera(true)
+      await ingresar(page, siembra.correo)
+      await page.goto('/ventas/mostrador')
+      await escanear(page, siembra.codigos.promo)
+      await expect(page.getByRole('group', { name: 'Totales de la venta' })).toContainText('Total: $ 900')
+      const [comprobante] = await leer<{ id: string }>(`comprobantes_venta?organizacion_id=eq.${siembra.organizacionId}&select=id`, 'dominio')
+      await page.goto(`/ventas/comprobantes/${comprobante.id}`)
+      const fila = page.getByRole('row').filter({ hasText: siembra.nombres.promo })
+      await expect(fila.locator('s').first()).toHaveText(/1\.000/)
+      await vencer(siembra.promocionId)
+
+      await page.getByRole('button', { name: /^Confirmar factura/ }).click()
+      const dialogo = page.getByRole('dialog')
+      await dialogo.getByRole('button', { name: 'Confirmar' }).click()
+      const aviso = dialogo.getByTestId('aviso-precios')
+      await expect(aviso).toContainText('Los precios cambiaron: revisá el total y confirmá de nuevo')
+      await expect(aviso).toContainText('1.000')
+      const [tras] = await leer<{ estado: string }>(`comprobantes_venta?id=eq.${comprobante.id}&select=estado`, 'dominio')
+      expect(tras.estado).toBe('borrador')
+
+      await dialogo.getByRole('button', { name: 'Confirmar' }).click()
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+      const [final] = await leer<{ estado: string; total_con_iva: number }>(`comprobantes_venta?id=eq.${comprobante.id}&select=estado,total_con_iva`, 'dominio')
+      expect(final.estado).not.toBe('borrador')
+      expect(Number(final.total_con_iva)).toBe(1000)
     } finally {
       await limpiar(siembra)
     }

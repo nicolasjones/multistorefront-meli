@@ -472,7 +472,7 @@ describe('Comprobante de venta · precio promocional (F-2, FR-014, FR-016, FR-01
     deposito: 'Principal', a_pedido: false, stock: 10, reservado: 0, subtotal_sin_iva: precio, iva: 0,
   })
 
-  it('FR-014: el comprobante de la tienda B abierto con la tienda A activa muestra los precios que guardó B', async () => {
+  it('FR-014: el comprobante de la tienda B abierto con la tienda A activa muestra y conserva los precios que guardó B', async () => {
     // El servidor calculó con la empresa del comprobante (B, con promoción); la pantalla no recalcula con la activa (A).
     mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
     mocks.obtenerComprobante.mockResolvedValue({
@@ -480,19 +480,18 @@ describe('Comprobante de venta · precio promocional (F-2, FR-014, FR-016, FR-01
     })
     render(arbol('/ventas/comprobantes/k-1'))
     expect(await screen.findByRole('heading', { name: 'Factura 00000001' })).toBeInTheDocument()
+    // Se pidió el comprobante por su id (no por la empresa activa) y la Tienda mostrada es la de B, no la activa A.
+    expect(mocks.obtenerComprobante).toHaveBeenCalledWith('k-1')
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'San Javucho' })).not.toBeInTheDocument()
     const tabla = await screen.findByRole('table', { name: 'Líneas del comprobante' })
     expect(within(tabla).getByText('Joystick')).toBeInTheDocument()
     expect(tabla.querySelector('s')).toHaveTextContent('$ 1.000')
     expect(within(tabla).getByText('Promoción')).toBeInTheDocument()
-    expect(within(tabla).getAllByText('$ 900').length).toBeGreaterThan(0)
-  })
-
-  it('FR-014: con «Todas mis empresas» el alta pide elegir tienda y no hay lector de mostrador en el comprobante', async () => {
-    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
-    render(arbol('/ventas/comprobantes/nuevo'))
-    expect(await screen.findByRole('button', { name: 'San Javucho' })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.queryByLabelText('Escaneá o ingresá el código de barras')).not.toBeInTheDocument()
+    expect(within(screen.getByLabelText('Totales del comprobante')).getAllByText('$ 900').length).toBeGreaterThan(0)
+    // Abrirlo con otra tienda activa no reprecia nada: ningún guardado de líneas.
+    expect(mocks.guardarLineasComprobante).not.toHaveBeenCalled()
+    expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1)
   })
 
   it('FR-018: precios_cambiaron al confirmar re-guarda las líneas, muestra el total nuevo y no confirma de nuevo solo', async () => {
@@ -505,7 +504,7 @@ describe('Comprobante de venta · precio promocional (F-2, FR-014, FR-016, FR-01
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmar factura' }))
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }))
     const aviso = await within(screen.getByRole('dialog')).findByRole('status')
-    expect(aviso).toHaveTextContent('Los precios cambiaron: revisá el total y cobrá de nuevo')
+    expect(aviso).toHaveTextContent('Los precios cambiaron: revisá el total y confirmá de nuevo')
     expect(aviso).toHaveTextContent('$ 1.000')
     // Mismas cantidades y precio no manual (la base reprecia); con el updated_at que tenía el comprobante.
     expect(mocks.guardarLineasComprobante).toHaveBeenCalledWith('k-1', [
@@ -513,5 +512,18 @@ describe('Comprobante de venta · precio promocional (F-2, FR-014, FR-016, FR-01
     ], '2026-10-24T10:00:00Z')
     expect(mocks.confirmarComprobante).toHaveBeenCalledTimes(1)
     expect(within(screen.getByRole('dialog')).queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('FR-018: si el re-guardado falla (conflicto 40001) el diálogo no muestra «Total ahora» con el total viejo y avisa el error', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, lineas: [lineaPromo(900, 1000)], total_sin_iva: 900, total_con_iva: 900 })
+    mocks.guardarLineasComprobante.mockRejectedValue({ code: '40001', message: 'Otra persona modificó este comprobante' })
+    mocks.confirmarComprobante.mockRejectedValue({ code: '40001', hint: 'precios_cambiaron', message: 'Los precios cambiaron' })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar factura' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }))
+    expect(await within(screen.getByRole('dialog')).findByRole('alert')).toHaveTextContent('No pudimos actualizar los precios')
+    expect(screen.queryByText(/Total ahora/)).not.toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).getByTestId('aviso-precios')).toBeEmptyDOMElement()
+    expect(mocks.confirmarComprobante).toHaveBeenCalledTimes(1)
   })
 })

@@ -83,9 +83,10 @@ export async function agregarProductoAVenta(
 }
 
 // Compara la venta antes y después de un escaneo (FR-017). Cada guardado reprecia TODAS las líneas, así que si entre dos
-// escaneos una promoción venció o empezó, el precio de alguna línea ya cargada cambia. Se compara cada línea previa con
-// la misma (producto + depósito): distinto precio cobrado, salvo en el producto recién escaneado (su cantidad cambió y la
-// escala puede mover el precio), donde solo cuenta si pasó a (o dejó de estar en) promoción.
+// escaneos una promoción venció, empezó o cambió de monto, el precio de alguna línea ya cargada cambia. Se compara cada
+// línea previa con la misma (producto + depósito): distinto precio cobrado. En el producto recién escaneado la cantidad
+// cambió y la escala puede mover el precio sin que haya promoción de por medio: ahí solo cuenta que haya pasado a (o
+// dejado de estar en) promoción, o que con promoción en las dos lecturas el monto sea otro.
 export function huboCambioDePrecios(antes: Comprobante | null, despues: Comprobante, productoEscaneadoId: string): boolean {
   if (!antes) return false
   return antes.lineas.some((previa) => {
@@ -94,7 +95,11 @@ export function huboCambioDePrecios(antes: Comprobante | null, despues: Comproba
       (linea) => linea.producto_id === previa.producto_id && linea.deposito_id === previa.deposito_id,
     )
     if (!actual) return false
-    if (previa.producto_id === productoEscaneadoId) return lineaEnPromocion(previa) !== lineaEnPromocion(actual)
+    if (previa.producto_id === productoEscaneadoId) {
+      const antesEnPromocion = lineaEnPromocion(previa)
+      if (antesEnPromocion !== lineaEnPromocion(actual)) return true
+      return antesEnPromocion && previa.precio_unitario !== actual.precio_unitario
+    }
     return previa.precio_unitario !== actual.precio_unitario
   })
 }

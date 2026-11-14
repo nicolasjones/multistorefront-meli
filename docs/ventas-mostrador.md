@@ -33,10 +33,11 @@ Pantalla `/ventas/mostrador` (menú Ventas → «Venta de mostrador», sección 
   tachado** y la leyenda «Promoción» (para el lector de pantalla se anuncian «Precio anterior» y «Precio promocional»;
   el rótulo de escala pasa a «promoción»). El servidor calcula todo (`precio_referencia` por línea); el navegador no
   decide nada. Cada escaneo reprecia todas las líneas: si entre dos escaneos una promoción venció o empezó y el precio de
-  una línea ya cargada cambió, aparece el aviso informativo «Los precios cambiaron: revisá el total» (no bloquea el
-  escaneo). Si al cobrar el servidor rechaza con `40001` y `hint = 'precios_cambiaron'` (guarda de F-3), la pantalla
+  una línea ya cargada cambió (también si una promoción vigente cambia de monto, incluso en el producto recién escaneado;
+  un cambio de escala por cantidad sin promoción no avisa), aparece el aviso informativo «Los precios cambiaron: revisá el
+  total.» en una región viva (`role="status"`) que ya estaba en el DOM, sin robar el foco (no bloquea el escaneo). Si al cobrar el servidor rechaza con `40001` y `hint = 'precios_cambiaron'` (guarda de F-3), la pantalla
   re-guarda las mismas líneas, muestra «Los precios cambiaron: revisá el total y cobrá de nuevo» con el total nuevo y
-  **no** cobra sola. Con la bandera apagada la pantalla es idéntica a la anterior.
+  **no** cobra sola. Si el re-guardado falla muestra «No pudimos actualizar los precios. Probá de nuevo.». Con la bandera apagada la pantalla es idéntica a la anterior.
 - **Totales**: la línea muestra el precio **sin** IVA y el subtotal sin IVA; abajo, «Subtotal sin IVA», «IVA» y
   «Total», como en la pantalla de comprobante.
 - **Empresa activa** (Principio VIII): la venta es de una sola tienda; con «Todas mis empresas» la pantalla

@@ -6,8 +6,8 @@ import {
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
-import type { Comprobante } from '../../lib/ventas'
-import { MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, rotuloEscalaLinea } from '../../lib/ventasLineas'
+import { mensajeDeErrorComprobante, type Comprobante } from '../../lib/ventas'
+import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, rotuloEscalaLinea } from '../../lib/ventasLineas'
 import { etiquetaCuentaCobro } from '../../lib/ventas/cuentasCobro'
 import { puedeRegistrarCobro, registrarCobro } from '../../lib/ventas/cobros'
 import { confirmarComprobante } from '../../lib/ventasConfirmacion'
@@ -193,7 +193,7 @@ export function VentaMostrador() {
           setVenta(await repreciarVenta(ventaVigente))
           setAvisoPrecios(MENSAJE_PRECIOS_CAMBIARON_COBRO)
         } catch (falla) {
-          setErrorVenta(mensajeDeEscaneo(falla))
+          setErrorVenta(mensajeDeErrorComprobante(falla, MENSAJE_ERROR_ACTUALIZAR_PRECIOS))
         }
         return
       }
@@ -245,7 +245,7 @@ export function VentaMostrador() {
             {descarte}
           </Alert>
         )}
-        {ventaVigente && avisoPrecios && <AvisoPreciosCambiaron mensaje={avisoPrecios} />}
+        <AvisoPreciosCambiaron mensaje={ventaVigente ? avisoPrecios : null} />
         {cobrada && (
           <Alert severity="success" role="status" onClose={() => setCobrada(null)}>
             Venta cobrada · {cobrada.numero} · {formatearImporteHistorial(cobrada.total)}

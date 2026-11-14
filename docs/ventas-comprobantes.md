@@ -47,7 +47,10 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   comprobante, no los de la empresa activa de la barra superior (FR-014). Componente compartido con el mostrador:
   `components/ventas/PrecioLineaPromocion.tsx`; helpers `lineaEnPromocion` y `rotuloEscalaLinea` en `lib/ventasLineas.ts`.
   Si al confirmar el servidor responde `40001` con `hint = 'precios_cambiaron'` (F-3), el diálogo «Confirmar factura»
-  re-guarda las líneas (mismas cantidades y precios manuales), avisa con el total nuevo y no reintenta solo.
+  re-guarda las líneas (mismas cantidades y precios manuales) y avisa «Los precios cambiaron: revisá el total y confirmá de nuevo.»
+  con el total nuevo; no reintenta solo. Si el re-guardado falla (conflicto de edición, error), el diálogo muestra «No pudimos
+  actualizar los precios. Probá de nuevo.» y NO el aviso (diría un total viejo). El aviso vive en una región viva
+  (`role="status"`) que ya estaba en el DOM, sin robar el foco.
 - **Precio manual** (FR-016): con la acción `editar_precio` de Ventas el precio es editable; la RPC lo
   vuelve a verificar y marca la línea. Sin la acción, el precio es de solo lectura (se puede re-guardar un
   precio manual ya guardado sin cambiarlo).
