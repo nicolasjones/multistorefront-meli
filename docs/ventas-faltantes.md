@@ -67,7 +67,7 @@ por eso ese texto **no** se muestra en la pantalla. El aviso al cliente y la mar
 
 ## Listado (FR-043)
 
-`public.listar_faltantes(p_empresa_id, p_pagina, p_tamano)` devuelve los faltantes **abiertos** de las empresas donde
+`public.listar_faltantes(p_empresa_id, p_pagina, p_tamano, p_aviso)` (el cuarto parámetro es de MSF-161) devuelve los faltantes **abiertos** de las empresas donde
 la persona tiene **Ventas al menos en lectura** (el mismo predicado que la RLS de la tabla, así que el listado no
 puede mostrar más que la tabla), con cliente, producto y SKU, cantidad faltante, línea, comprobante, fecha del pedido,
 «desde» (`creado_en`) y el **stock de hoy** (estado y disponible) con la lectura de Stock que ya existe
