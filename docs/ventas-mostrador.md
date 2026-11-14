@@ -37,7 +37,7 @@ Pantalla `/ventas/mostrador` (menú Ventas → «Venta de mostrador», sección 
   un cambio de escala por cantidad sin promoción no avisa), aparece el aviso informativo «Los precios cambiaron: revisá el
   total.» en una región viva (`role="status"`) que ya estaba en el DOM, sin robar el foco (no bloquea el escaneo). Si al cobrar el servidor rechaza con `40001` y `hint = 'precios_cambiaron'` (guarda de F-3), la pantalla
   re-guarda las mismas líneas, muestra «Los precios cambiaron: revisá el total y cobrá de nuevo» con el total nuevo y
-  **no** cobra sola. Si el re-guardado falla muestra «No pudimos actualizar los precios. Probá de nuevo.». Con la bandera apagada la pantalla es idéntica a la anterior.
+  **no** cobra sola. Si el re-guardado falla muestra «No pudimos actualizar los precios. Probá de nuevo.». Con la bandera apagada la pantalla es idéntica a la anterior. Un **precio manual** manda y no lleva referencia ni «Promoción». Comportamiento conocido y seguimientos (una baja del precio normal bajo la promoción mostrada no se rechaza al cobrar, S7 = MSF-938; PDF sin precio de lista, S4 = MSF-935; bandera con ventas abiertas, S6 = MSF-937): ver [`ventas-comprobantes.md`](./ventas-comprobantes.md#comportamiento-conocido-y-seguimientos-msf-816-f-4).
 - **Totales**: la línea muestra el precio **sin** IVA y el subtotal sin IVA; abajo, «Subtotal sin IVA», «IVA» y
   «Total», como en la pantalla de comprobante.
 - **Empresa activa** (Principio VIII): la venta es de una sola tienda; con «Todas mis empresas» la pantalla

@@ -44,6 +44,8 @@ update public.banderas_plataforma set activa = true where clave in ('promociones
 
 Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con `activa = false`. Después de encender, verificar en la tienda del entorno (precio tachado en una promoción vigente) y en Productos (botón «Actualizar precios»). Detalle en [`promociones-precio.md`](./promociones-precio.md) y [`precios-masivos.md`](./precios-masivos.md).
 
+**Gate de `promociones_precio` (MSF-816):** desde que el mostrador y los comprobantes cobran la promoción, encender la bandera cambia el precio cobrado además del mostrado. Orden **dev → stg → prd**, cada entorno verificado antes del siguiente. Estado al 2026-11-14: dev **encendida** (desde 2026-11-13), stg y prd **apagadas**. **No encender `promociones_precio` en PRD antes de que la épica esté en dev y verificada** (promoción cobrada en mostrador y comprobante, nota de crédito, vencimiento a mitad de venta, bandera apagada idéntica). Al encender o apagar con ventas abiertas, avisar a los cajeros (S6 = MSF-937).
+
 ### Avisos de faltantes (MSF-161)
 
 Despliegue de la épica de avisos de `/ventas/faltantes` en un entorno. **Orden**: (1) migraciones (hasta `20270306130000`), (2) secretos, (3) Edge Function `enviar-aviso-faltante` y las que comparten `_shared/` (`enviar-correo-proveedor`, `enviar-resumen-reposicion`, `solicitar-acceso`), (4) flow `avisos-faltantes` de Kestra, (5) panel. Una Edge Function nueva con la base sin migrar responde 503 `base_no_migrada` sin tomar nada.

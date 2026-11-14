@@ -4,18 +4,19 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-mostrador': {
     titulo: 'Venta de mostrador',
     resumen:
-      'Sirve para vender rápido en el mostrador con un lector de código de barras. Cada producto que escaneás se suma a la venta como consumidor final, y al cobrar queda registrada la factura con su cobro. Hace falta permiso de edición en Ventas y una tienda elegida.',
+      'Sirve para vender rápido en el mostrador con un lector de código de barras. Cada producto que escaneás se suma a la venta como consumidor final, y al cobrar queda registrada la factura con su cobro. Si el producto está en promoción ves el precio anterior tachado y la leyenda «Promoción»; un precio manual manda y no lleva promoción. Hace falta permiso de edición en Ventas y una tienda elegida.',
     pasos: [
       'Elegí una tienda en la barra superior si tenés activas todas.',
       'Escaneá el código de barras de cada producto; si se repite, suma una unidad.',
       'Revisá el subtotal, el IVA y el total de la venta.',
       'Elegí la forma de pago (y la cuenta de cobro si te la pide) y tocá Cobrar.',
+      'Precio tachado y «Promoción»: se cobra el promocional. Si dice «Los precios cambiaron», revisá el total y cobrá de nuevo.',
     ],
   },
   'ventas-comprobantes': {
     titulo: 'Comprobantes',
     resumen:
-      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo.',
+      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo. En una línea con promoción ves el precio anterior tachado; si al confirmar aparece «Los precios cambiaron», revisá el total y confirmá de nuevo.',
     pasos: [
       'Escribí el cliente o el número en el buscador.',
       'Afiná con los filtros de operador, estado, pago y envío; usá Limpiar filtros para volver atrás.',

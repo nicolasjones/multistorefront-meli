@@ -332,6 +332,27 @@ cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de lín
 - **Rendimiento (FR-024):** la guarda hace una búsqueda indexada de promoción por línea y recalcula el precio completo solo en las candidatas (`precio_para` cuesta ≈8,5 ms por llamada; recalcular las 200 líneas daba razón 12); con 200 líneas confirmar con la bandera encendida cuesta < 1,5× que apagada.
 - Migración `20270310100400_confirmar_comprobante_precios_vigentes.sql` (reversión en el encabezado); pgTAP `ventas_precio_promocional_ciclo.test.sql`. Presupuestos: `aceptar_presupuesto` no reprecia y un presupuesto pendiente conserva su precio hasta que se edita.
 
+### Comportamiento conocido y seguimientos (MSF-816 · F-4)
+
+Lo que sigue está **decidido y probado**; no son defectos ocultos. Cada punto tiene su seguimiento trazado en el tracker (Tareas `seguimiento` con la etiqueta `desarrollo-manual`).
+
+- **Un cambio del precio normal bajo la promoción mostrada NO se rechaza al confirmar (FR-009, decisión S7).** La guarda de `confirmar_comprobante` solo recalcula el precio completo en las líneas cuya promoción cambió. Si la promoción guardada sigue vigente y con el mismo precio, no se mira el precio normal: aunque una baja de lista, escala, cotización o descuento del cliente deje al normal por debajo de la promoción, se cobra la promoción que vio el cliente (ejemplo de pgTAP: lista 1000 → 700 bajo la promoción 800; 3 unidades se confirman a 2904 y no a 2541). Se priorizó el costo acotado de la guarda (FR-024). El test «S7 (decisión)» de `ventas_precio_promocional_ciclo.test.sql` lo fija. Seguimiento **S7 = MSF-938** (abaratar `precio_para` o volverlo set-based); al cerrarlo ese test pasa a rechazo `40001`.
+- **Promoción bajo el costo (S3 = MSF-934):** la promoción no se valida contra el costo (ni `guardar_promocion_precio` ni esta épica). Se carga, se cobra y la rentabilidad realizada muestra el margen negativo (estado `negativo`). El margen «actual» por producto/canal (`analitica.margen_producto_canal`) sigue con el precio normal (Decisión 8). Los reportes y la API (`/v1/ventas`, `/v1/precios`), `venta.registrada`, la exportación total y las vistas de consulta de IA no cambiaron de forma: lo prueba `ventas_precio_promocional_reportes.test.sql`.
+- **Paridad tienda ↔ local (FR-020):** sin interruptor de IVA el neto del local es igual al precio de la tienda; con «Precios con IVA» la diferencia por unidad es menor a $1 (la tienda redondea al peso por unidad, el local redondea el subtotal de la línea). Lo prueba `ventas_precio_promocional_paridad.test.sql`.
+
+| Seguimiento | Tema | ID |
+|---|---|---|
+| S1 | La tienda con sesión de cliente (`precios_cliente_por_dominio`, escalas) no aplica promociones; un mayorista con cantidad 1-4 ve su precio sin promoción en la tienda y en el local pagaría la promoción | MSF-932 |
+| S2 | `copiar_presupuesto` no aplica el descuento del cliente | MSF-933 |
+| S3 | Indicador «ventas con promoción» en reportes y Superset; promoción bajo el costo | MSF-934 |
+| S4 | PDF del comprobante con el precio de lista tachado (solo si se cambia la Decisión 6) | MSF-935 |
+| S5 | `private.precio_vigente_empresa` ignora la promoción mayor o igual al normal (hoy la tienda la muestra y el local la ignora) y `guardar_promocion_precio` avisa al cargarla | MSF-936 |
+| S6 | Bandera apagada y reencendida con borradores abiertos: procedimiento operativo y aviso a los cajeros | MSF-937 |
+| S7 | Recalcular el precio completo en la guarda de confirmar | MSF-938 |
+
+- **El PDF no cambia (S4):** el comprobante en PDF muestra el precio cobrado, sin el precio de lista tachado.
+- **Bandera con borradores abiertos (S6):** con la bandera apagada la guarda no actúa y los borradores con promoción conservan su precio hasta el próximo guardado; al reencender, cada borrador abierto con promoción cambiada se rechaza una vez (`precios_cambiaron`) y se reprecia. Avisar a los cajeros al apagar o encender.
+
 ## Costo y cotización por línea (F-REN-09)
 
 `confirmar_comprobante` guarda en cada línea `costo_unitario` (costo en pesos por unidad) y `cotizacion` (dólar vigente) al confirmar, una sola vez: reconfirmar o cambiar el costo después no los mueve. Las notas de crédito copian el costo de la línea original. Detalle y vista `analitica.rentabilidad_ventas_real` en `docs/rentabilidad.md`. Con el alcance de la cotización en «Una por empresa» (F-PRE-06) la cotización y el costo salen de la cotización de la empresa del comprobante (o de la general si la empresa no tiene una propia), igual que el precio de la línea.
