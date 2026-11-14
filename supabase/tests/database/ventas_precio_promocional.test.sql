@@ -57,6 +57,7 @@ insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, d
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente minorista', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente 5 %', 'minorista', null, 5),
   ('c5000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 13, 'Cliente 15 %', 'minorista', null, 15),
+  ('c5000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 14, 'Cliente 33,33 %', 'minorista', null, 33.33),
   ('c5000000-0000-0000-0000-000000000009', '22222222-2222-2222-2222-222222222222', 10, 'Cliente org dos', 'minorista', null, null);
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
@@ -69,9 +70,9 @@ insert into dominio.categorias (id, organizacion_id, nombre) values
 --   P10 reloj · P12 sin promoción (baseline) · P20..P219 para la medición de 200 líneas.
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo)
 select ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111',
-       'Producto ' || n, 'P-' || n, 'ARS', case when n = 8 then 500 else 1000 end,
+       'Producto ' || n, 'P-' || n, 'ARS', case when n = 8 then 500 when n = 13 then 990 else 1000 end,
        'c1000000-0000-0000-0000-000000000001', null, true
-  from generate_series(1, 12) n;
+  from generate_series(1, 15) n;
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo) values
   ('b2000000-0000-0000-0000-000000000011', '22222222-2222-2222-2222-222222222222', 'Teclado ajeno', 'TEC-1', 'ARS', 500, 'c2000000-0000-0000-0000-000000000001', null, true);
 
@@ -139,6 +140,9 @@ insert into dominio.promociones_precio (id, organizacion_id, empresa_id, product
   ('e1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000008', 400, now() - interval '1 day', now() + interval '1 day'),
   ('e1000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000009', 600, '2027-03-09 00:00:00-03', '2027-03-10 00:00:00-03'),
   ('e1000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000010', 700, now() + interval '0.4 seconds', now() + interval '1 day'),
+  ('e1000000-0000-0000-0000-000000000012', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000013', 660.03, now() - interval '1 day', now() + interval '1 day'),
+  ('e1000000-0000-0000-0000-000000000013', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000014', 800, now() - interval '3 days', now() + interval '1 day'),
+  ('e1000000-0000-0000-0000-000000000014', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000015', 700, now() + interval '1 day', now() + interval '2 days'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000011', 400, now() - interval '1 day', now() + interval '1 day');
 insert into dominio.promociones_precio (organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta)
 select '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', p.id, 900, now() - interval '1 day', now() + interval '1 day'
@@ -294,6 +298,12 @@ select is(has_function_privilege('authenticated', 'private.promocion_vigente_fil
   'authenticated no ejecuta promocion_vigente_fila');
 select is(has_function_privilege('authenticated', 'private.copiar_costo_linea_nota()', 'execute'), false,
   'authenticated no ejecuta el disparador de notas');
+select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+  'service_role no ejecuta precio_linea_venta');
+select is(has_function_privilege('service_role', 'private.promocion_vigente_fila(uuid,uuid,timestamptz)', 'execute'), false,
+  'service_role no ejecuta promocion_vigente_fila');
+select is(has_function_privilege('service_role', 'private.copiar_costo_linea_nota()', 'execute'), false,
+  'service_role no ejecuta el disparador de notas');
 select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)'::regprocedure),
   false, 'precio_linea_venta es security invoker (hereda la compuerta de precio_para)');
 select is((select p.prosecdef from pg_proc p where p.oid = 'private.promocion_vigente_fila(uuid,uuid,timestamptz)'::regprocedure),
@@ -408,6 +418,13 @@ select is(pg_temp.guardar_res('e1', jsonb_build_array(pg_temp.l(7, 1))), '1000.0
 -- Cantidad que cruza la escala: x5 (900) empata con la promoción 900 → se ignora; x1 → gana la promoción
 select is(pg_temp.guardar_res('e2', jsonb_build_array(pg_temp.l(1, 4))), '900.00|1000.00|0.00|x1|false', 'cruce de escala: 4 unidades (x1) cobra la promoción 900');
 select is(pg_temp.guardar_res('e2', jsonb_build_array(pg_temp.l(1, 5))), '900.00|-|0.00|x5|false', 'cruce de escala: 5 unidades (x5 = 900) empata con la promoción: gana la escala, sin referencia');
+-- Redondeo del precio normal: 990 con 33,33 % = 660,033 sin redondear / 660,03 redondeado; la promoción 660,03 EMPATA
+-- con el normal redondeado y no gana (sin el round() ganaría con referencia == precio).
+select pg_temp.crear('redondeo', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000006');
+select is(pg_temp.guardar_res('redondeo', jsonb_build_array(pg_temp.l(13, 1))), '660.03|-|33.33|x1|false',
+  'redondeo: descuento 33,33 % da 660,03 y una promoción de 660,03 empata: no gana, conserva su descuento');
+select is(pg_temp.promo('redondeo'), null::uuid, 'redondeo: sin promoción aplicada');
+
 -- IVA y totales salen de la línea con el neto promocional
 select pg_temp.guardar('e1', jsonb_build_array(pg_temp.l(1, 3), pg_temp.l(8, 2)));
 select is((select string_agg(l.subtotal_sin_iva::text || '/' || l.iva::text, ' ' order by l.orden) from dominio.comprobantes_venta_lineas l
@@ -446,14 +463,41 @@ select is(pg_temp.precio_en('2027-03-09 12:00:00-03'), 1000.00, 'una promoción 
 reset role;
 update dominio.promociones_precio set anulada_at = null where id = 'e1000000-0000-0000-0000-000000000010';
 
--- Reloj del servidor: clock_timestamp() y no el now() de la transacción (la promoción de P10 empieza 0,4 s después)
+-- Dos promociones vigentes del mismo producto y tienda: el disparador de solapes (23P01) lo impide por las vías
+-- normales; solo se alcanza con escrituras que lo saltean (carga directa). Defensa: rige la de `desde` más reciente.
+reset role;
+select throws_ok($$insert into dominio.promociones_precio (organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta)
+  values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000014', 750, now() - interval '1 day', now() + interval '1 day')$$,
+  '23P01', null, 'el disparador impide dos promociones activas solapadas del mismo producto y tienda');
+set local session_replication_role = replica;
+insert into dominio.promociones_precio (id, organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta) values
+  ('e1000000-0000-0000-0000-000000000099', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000014', 750, now() - interval '1 day', now() + interval '1 day');
+set local session_replication_role = origin;
+select pg_temp.sesion('f1000000-0000-0000-0000-000000000002');
+select is((select precio from private.promocion_vigente_fila('b1000000-0000-0000-0000-000000000014', 'a1000000-0000-0000-0000-000000000001', now())),
+  750.00, 'con dos promociones vigentes forzadas rige la de desde más reciente (750, no la de hace 3 días)');
+select is((select count(*)::int from private.promocion_vigente_fila('b1000000-0000-0000-0000-000000000014', 'a1000000-0000-0000-0000-000000000001', now())), 1,
+  'y devuelve una sola fila');
+reset role;
+-- Caso real alcanzable: rangos contiguos; en el límite exacto rige solo la segunda (hasta es exclusivo).
+delete from dominio.promociones_precio where id = 'e1000000-0000-0000-0000-000000000099';
+update dominio.promociones_precio set hasta = '2027-04-01 00:00:00-03' , desde = '2027-03-01 00:00:00-03' where id = 'e1000000-0000-0000-0000-000000000013';
+insert into dominio.promociones_precio (id, organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta) values
+  ('e1000000-0000-0000-0000-000000000098', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000014', 600, '2027-04-01 00:00:00-03', '2027-05-01 00:00:00-03');
+select pg_temp.sesion('f1000000-0000-0000-0000-000000000002');
+select is((select precio from private.promocion_vigente_fila('b1000000-0000-0000-0000-000000000014', 'a1000000-0000-0000-0000-000000000001', '2027-04-01 00:00:00-03')),
+  600.00, 'rangos contiguos: en el instante exacto del corte rige la segunda promoción');
+select is((select precio from private.promocion_vigente_fila('b1000000-0000-0000-0000-000000000014', 'a1000000-0000-0000-0000-000000000001', '2027-03-31 23:59:59.999-03')),
+  800.00, 'rangos contiguos: un instante antes del corte rige la primera');
+
+-- Reloj del servidor: clock_timestamp() y no el now() de la transacción (la promoción de P10 se reprograma 1,5 s adelante)
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('reloj', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
 reset role;
-update dominio.promociones_precio set desde = clock_timestamp() + interval '0.5 seconds' where id = 'e1000000-0000-0000-0000-000000000011';
+update dominio.promociones_precio set desde = clock_timestamp() + interval '1.5 seconds' where id = 'e1000000-0000-0000-0000-000000000011';
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select is(pg_temp.guardar_res('reloj', jsonb_build_array(pg_temp.l(10, 1))), '1000.00|-|0.00|x1|false', 'reloj: antes de que empiece la promoción cobra 1000');
-select pg_sleep(0.8);
+select pg_sleep(2);
 select is(pg_temp.guardar_res('reloj', jsonb_build_array(pg_temp.l(10, 1))), '700.00|1000.00|0.00|x1|false',
   'reloj: pasado `desde` (clock_timestamp, no el now() de la transacción) cobra la promoción');
 
@@ -572,6 +616,27 @@ update dominio.promociones_precio set anulada_at = null, desde = now() - interva
 select is(pg_temp.res('fact1'), '900.00|1000.00|0.00|x1|false', 'vencer la promoción no cambia la línea emitida');
 select is(pg_temp.total('fact1'), '1800.00/2178.00', 'ni el total de la factura emitida cambia');
 select is(pg_temp.promo('fact1'), 'e1000000-0000-0000-0000-000000000001'::uuid, 'la trazabilidad a la promoción se conserva');
+-- CHECK de la línea (M-B): referencia y promoción van juntas, y la referencia nunca es menor al precio cobrado.
+select ok(exists (select 1 from pg_constraint where conname = 'comprobantes_venta_lineas_promocion_juntas_chk' and contype = 'c'),
+  'existe el check «referencia y promoción van juntas»');
+select ok(exists (select 1 from pg_constraint where conname = 'comprobantes_venta_lineas_precio_referencia_chk' and contype = 'c'),
+  'existe el check «referencia >= precio cobrado»');
+select throws_ok(format($$insert into dominio.comprobantes_venta_lineas (organizacion_id, comprobante_id, orden, producto_id, descripcion, cantidad, precio_unitario, escala, deposito_id, subtotal_sin_iva, iva, precio_referencia)
+    select organizacion_id, comprobante_id, 99, producto_id, 'x', 1, 5, 'x1', deposito_id, 5, 0, 9 from dominio.comprobantes_venta_lineas where comprobante_id = %L limit 1$$, pg_temp.id_de('fact1')),
+  '23514', 'new row for relation "comprobantes_venta_lineas" violates check constraint "comprobantes_venta_lineas_promocion_juntas_chk"',
+  'check: una referencia sin promoción se rechaza (23514)');
+select throws_ok(format($$insert into dominio.comprobantes_venta_lineas (organizacion_id, comprobante_id, orden, producto_id, descripcion, cantidad, precio_unitario, escala, deposito_id, subtotal_sin_iva, iva, precio_referencia, promocion_id)
+    select organizacion_id, comprobante_id, 99, producto_id, 'x', 1, 5, 'x1', deposito_id, 5, 0, 1, 'e1000000-0000-0000-0000-000000000001' from dominio.comprobantes_venta_lineas where comprobante_id = %L limit 1$$, pg_temp.id_de('fact1')),
+  '23514', 'new row for relation "comprobantes_venta_lineas" violates check constraint "comprobantes_venta_lineas_precio_referencia_chk"',
+  'check: una referencia menor al precio cobrado se rechaza (23514)');
+select throws_ok(format($$insert into dominio.comprobantes_venta_lineas (organizacion_id, comprobante_id, orden, producto_id, descripcion, cantidad, precio_unitario, escala, deposito_id, subtotal_sin_iva, iva, promocion_id)
+    select organizacion_id, comprobante_id, 99, producto_id, 'x', 1, 5, 'x1', deposito_id, 5, 0, 'e1000000-0000-0000-0000-000000000001' from dominio.comprobantes_venta_lineas where comprobante_id = %L limit 1$$, pg_temp.id_de('fact1')),
+  '23514', null, 'check: una promoción sin referencia se rechaza (23514)');
+select lives_ok(format($$insert into dominio.comprobantes_venta_lineas (organizacion_id, comprobante_id, orden, producto_id, descripcion, cantidad, precio_unitario, escala, deposito_id, subtotal_sin_iva, iva, precio_referencia, promocion_id)
+    select organizacion_id, comprobante_id, 99, producto_id, 'x', 1, 5, 'x1', deposito_id, 5, 0, 5, 'e1000000-0000-0000-0000-000000000001' from dominio.comprobantes_venta_lineas where comprobante_id = %L limit 1$$, pg_temp.id_de('fact1')),
+  'check: referencia igual al precio cobrado con su promoción es válida (la función solo la guarda si es mayor)');
+delete from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('fact1') and orden = 99;
+
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$, pg_temp.id_de('fact1'),
     jsonb_build_array(pg_temp.l(1, 1))::text, pg_temp.upd('fact1')),
@@ -611,6 +676,21 @@ select is((select l.promocion_id from dominio.comprobantes_venta_lineas l
   'e1000000-0000-0000-0000-000000000001'::uuid, 'la copia guarda la promoción aplicada');
 select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('pres') and promocion_id is not null), 0,
   'el presupuesto original no se modifica al copiarlo');
+
+-- Reloj de copiar_presupuesto: clock_timestamp() y no el now() de la transacción (la promoción de P15 se reprograma 1,5 s adelante).
+select pg_temp.crear('pres_reloj', 'presupuesto', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('pres_reloj', jsonb_build_array(pg_temp.l(15, 1)));
+reset role;
+update dominio.promociones_precio set desde = clock_timestamp() + interval '1.5 seconds' where id = 'e1000000-0000-0000-0000-000000000014';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+insert into copias select 'reloj1', c.id from public.copiar_presupuesto(pg_temp.id_de('pres_reloj')) c;
+select is((select l.precio_unitario::text || ':' || coalesce(l.precio_referencia::text, '-') from dominio.comprobantes_venta_lineas l
+            where l.comprobante_id = (select id from copias where clave = 'reloj1')), '1000.00:-', 'copiar: antes de que empiece la promoción cobra 1000');
+select pg_sleep(2);
+insert into copias select 'reloj2', c.id from public.copiar_presupuesto(pg_temp.id_de('pres_reloj')) c;
+select is((select l.precio_unitario::text || ':' || coalesce(l.precio_referencia::text, '-') from dominio.comprobantes_venta_lineas l
+            where l.comprobante_id = (select id from copias where clave = 'reloj2')), '700.00:1000.00',
+  'copiar: pasado `desde` (clock_timestamp, no now()) cobra la promoción');
 
 -- ============================================================================
 -- Notas de crédito: la devolución es al precio cobrado y hereda las columnas (FR-011)
@@ -668,8 +748,11 @@ select is((select count(*)::int from dominio.comprobantes_venta_lineas where org
   1, 'hay una línea promocional en la organización dos');
 -- La baja la hace el equipo técnico (sin sesión de usuario: los disparadores de actividad no registran).
 select set_config('request.jwt.claims', '', true);
+-- Nota: con la FK en RESTRICT esta baja TAMBIÉN pasa (probado: la cascada borra línea y promoción en la misma
+-- sentencia), así que la aserción de comportamiento no discrimina; el contrato de esquema (`confdeltype = 'a'`, arriba)
+-- es la que fija `no action`. Esta aserción cubre que la baja funciona con una línea promocional.
 select lives_ok($$delete from public.organizaciones where id = '22222222-2222-2222-2222-222222222222'$$,
-  'la baja de una organización con una línea promocional funciona');
+  'la baja de una organización con una línea promocional funciona (el contrato de esquema no action se afirma arriba)');
 select is((select count(*)::int from dominio.comprobantes_venta_lineas where organizacion_id = '22222222-2222-2222-2222-222222222222')
         + (select count(*)::int from dominio.promociones_precio where organizacion_id = '22222222-2222-2222-2222-222222222222'), 0,
   'la baja se llevó las líneas y las promociones de la organización');
@@ -695,10 +778,10 @@ begin
 end $$;
 select pg_temp.medir(true);   -- calentamiento (no cuenta)
 delete from medidas;
-select pg_temp.medir(true); select pg_temp.medir(true); select pg_temp.medir(true);
+select pg_temp.medir(true); select pg_temp.medir(true); select pg_temp.medir(true); select pg_temp.medir(true); select pg_temp.medir(true);
 select pg_temp.bandera(false);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select pg_temp.medir(false); select pg_temp.medir(false); select pg_temp.medir(false);
+select pg_temp.medir(false); select pg_temp.medir(false); select pg_temp.medir(false); select pg_temp.medir(false); select pg_temp.medir(false);
 select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('masivo')), 200, 'el comprobante masivo guardó 200 líneas');
 select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('masivo') and promocion_id is not null), 0,
   'con la bandera apagada ninguna de las 200 líneas lleva promoción');
@@ -707,10 +790,11 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('masivo', (select lineas from lineas200));
 select is((select count(*)::int from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('masivo') and promocion_id is not null), 200,
   'con la bandera encendida las 200 líneas llevan su promoción');
-select diag(format('FR-024: 200 líneas, mínimo de 3 corridas: apagada = %s ms, encendida = %s ms, razón = %s',
-  (select round(min(ms), 1) from medidas where not bandera), (select round(min(ms), 1) from medidas where bandera),
-  (select round((select min(ms) from medidas where bandera) / (select min(ms) from medidas where not bandera), 2))));
-select ok((select min(ms) from medidas where bandera) < 1.5 * (select min(ms) from medidas where not bandera),
+select diag(format('FR-024: 200 líneas, mediana de 5 corridas: apagada = %s ms, encendida = %s ms, razón = %s',
+  (select round(percentile_cont(0.5) within group (order by ms)::numeric, 1) from medidas where not bandera), (select round(percentile_cont(0.5) within group (order by ms)::numeric, 1) from medidas where bandera),
+  (select round((select percentile_cont(0.5) within group (order by ms) from medidas where bandera)::numeric
+               / (select percentile_cont(0.5) within group (order by ms) from medidas where not bandera)::numeric, 2))));
+select ok((select percentile_cont(0.5) within group (order by ms) from medidas where bandera) < 1.5 * (select percentile_cont(0.5) within group (order by ms) from medidas where not bandera),
   'FR-024: guardar 200 líneas con la bandera encendida tarda menos de 1,5× que con la apagada');
 
 select * from finish();
