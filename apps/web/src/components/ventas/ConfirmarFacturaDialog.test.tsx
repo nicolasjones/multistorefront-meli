@@ -102,3 +102,39 @@ describe('puedeConfirmarFactura', () => {
     expect(puedeConfirmarFactura(comprobante({ puede_editar: false }))).toBe(false)
   })
 })
+
+describe('ConfirmarFacturaDialog · precios cambiaron (F-2, FR-018)', () => {
+  const PRECIOS = { data: null, error: { code: '40001', hint: 'precios_cambiaron', message: 'Los precios cambiaron' } }
+
+  it('ante precios_cambiaron re-guarda las líneas, avisa con el total nuevo y NO reintenta la confirmación', async () => {
+    mocks.rpc.mockResolvedValue(PRECIOS)
+    const onPreciosCambiaron = vi.fn().mockResolvedValue(undefined)
+    const onConfirmado = vi.fn()
+    const { rerender } = render(
+      <ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={onConfirmado} onPreciosCambiaron={onPreciosCambiaron} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(onPreciosCambiaron).toHaveBeenCalledTimes(1))
+    // La pantalla recarga el comprobante con el total nuevo.
+    rerender(
+      <ConfirmarFacturaDialog open comprobante={comprobante({ total_con_iva: 3000 })} onCerrar={vi.fn()} onConfirmado={onConfirmado} onPreciosCambiaron={onPreciosCambiaron} />,
+    )
+    const aviso = await screen.findByRole('status')
+    expect(aviso).toHaveTextContent('Los precios cambiaron: revisá el total y cobrá de nuevo')
+    expect(aviso).toHaveTextContent('$ 3.000')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(onConfirmado).not.toHaveBeenCalled()
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Confirmar' })).toBeEnabled()
+  })
+
+  it('un 40001 de conflicto de edición (sin hint) sigue siendo un error y no reprecia', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'Otra persona modificó este comprobante' } })
+    const onPreciosCambiaron = vi.fn()
+    render(<ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={onPreciosCambiaron} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(onPreciosCambiaron).not.toHaveBeenCalled()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+})

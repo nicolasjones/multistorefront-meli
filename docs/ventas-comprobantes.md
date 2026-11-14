@@ -39,6 +39,15 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   cliente y la cantidad de la línea (FR-014): minorista siempre x1; mayorista x1 (1-4), x5 (5-9), x10
   (10-49) y x50 (50 o más). Cambiar cantidad, depósito o cliente reenvía las líneas y se relee el
   comprobante. La regla de escala vive solo en `private.escala_para_linea` (*Decisiones abiertas* 8).
+- **Precio promocional** (MSF-816, F-2): una línea que cobró una promoción de la tienda del comprobante trae
+  `precio_referencia` (el precio normal del cliente, con su escala y su descuento; nunca `promocion_id`). La celda de precio
+  muestra el cobrado, el anterior **tachado** y la leyenda «Promoción», con «Precio anterior» y «Precio promocional» para
+  lectores de pantalla; el rótulo de escala (`x10`) y el descuento se omiten y el rótulo pasa a «promoción». Un precio manual
+  o una línea `sin_stock` nunca se ven en promoción. Los precios son los que el servidor guardó para la tienda DEL
+  comprobante, no los de la empresa activa de la barra superior (FR-014). Componente compartido con el mostrador:
+  `components/ventas/PrecioLineaPromocion.tsx`; helpers `lineaEnPromocion` y `rotuloEscalaLinea` en `lib/ventasLineas.ts`.
+  Si al confirmar el servidor responde `40001` con `hint = 'precios_cambiaron'` (F-3), el diálogo «Confirmar factura»
+  re-guarda las líneas (mismas cantidades y precios manuales), avisa con el total nuevo y no reintenta solo.
 - **Precio manual** (FR-016): con la acción `editar_precio` de Ventas el precio es editable; la RPC lo
   vuelve a verificar y marca la línea. Sin la acción, el precio es de solo lectura (se puede re-guardar un
   precio manual ya guardado sin cambiarlo).
