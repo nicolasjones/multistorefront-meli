@@ -57,7 +57,7 @@ Encender `promociones_precio` enciende **a la vez** la tienda y el cobro en el l
 
 `private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Desvío del plan: el precio normal sale de `private.precio_final_publico` (escala x1 + regla de la empresa), no de `private.precio_neto_empresa` (`20270221100003`), de modo que sin promoción es idéntico a lo que la tienda ya mostraba.
 
-## Promoción no menor al precio normal (S5 = MSF-936, migración `20270323100000`)
+## Promoción no menor al precio normal (S5 = MSF-936, migración `20270326100000`)
 
 Una promoción es útil solo si baja el precio. La regla es **la misma en la tienda y en el local** (gana el más bajo, sin acumular): una promoción cuyo precio **no es estrictamente menor** al precio normal de la tienda se **ignora**.
 
