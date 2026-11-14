@@ -8,7 +8,7 @@
 
 ## Summary
 
-El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz de `specs/023-visor-componentes/spec.md`, el gate `pnpm matriz:check` pasa contra la base real del PR (`origin/dokploy`) con el mismo mensaje que daba el CI. Se reprodujo el fallo antes del arreglo (exit 1, mismo texto que el log del run 43482415728) y se comprobó que pasa después (exit 0). No hubo regresiones en los chequeos que el job `application` corre. En la tercera vuelta la rama se sincronizó con `dokploy` (merge `24d73b49`, único conflicto resuelto con el mismo contenido de la rama de integración) para dejar el PR #934 mergeable, y se volvieron a correr los 14 pasos del job `application` que no dependen de la base ni del navegador: todos en verde. En la cuarta vuelta `dokploy` volvió a avanzar a `fbd3d565` y el PR regresó a `CONFLICTING`; se re-sincronizó sin conflictos (`858b85b1`) y quedó `MERGEABLE` (sólo `BLOCKED` por `validacion` en curso), con los gates locales en verde. En la quinta vuelta, la devolución del Revisor: se corrigió el follow-up de `knip` que describía un estado inexistente, se endureció el gate para que exija la **fila** «Empresa activa» (con test de rechazo y con la lista de exentas para no romper los PRs de épica contra `main`) y se corrigió la evidencia de la fila «Estado del PR».
+El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz de `specs/023-visor-componentes/spec.md`, el gate `pnpm matriz:check` pasa contra la base real del PR (`origin/dokploy`) con el mismo mensaje que daba el CI. Se reprodujo el fallo antes del arreglo (exit 1, mismo texto que el log del run 43482415728) y se comprobó que pasa después (exit 0). No hubo regresiones en los chequeos que el job `application` corre. En la tercera vuelta la rama se sincronizó con `dokploy` (merge `24d73b49`, único conflicto resuelto con el mismo contenido de la rama de integración) para dejar el PR #934 mergeable, y se volvieron a correr los 14 pasos del job `application` que no dependen de la base ni del navegador: todos en verde. En la cuarta vuelta `dokploy` volvió a avanzar a `fbd3d565` y el PR regresó a `CONFLICTING`; se re-sincronizó sin conflictos (`858b85b1`) y quedó `MERGEABLE` (sólo `BLOCKED` por `validacion` en curso), con los gates locales en verde. En la quinta vuelta, la devolución del Revisor: se corrigió el follow-up de `knip` que describía un estado inexistente, se endureció el gate para que exija la **fila** «Empresa activa» (con test de rechazo y con la lista de exentas para no romper los PRs de épica contra `main`) y se corrigió la evidencia de la fila «Estado del PR». En la sexta vuelta `dokploy` volvió a avanzar 22 commits (`0c749324`) y la rama quedó atrás de la base: se re-sincronizó sin conflictos (`352dc359`, 0 atrás / 10 adelante) y se comprobó, con evidencia, que los tres hallazgos del Revisor ya estaban atendidos en los commits posteriores al SHA revisado (`f5d48cc9`): el gate exige la fila «Empresa activa» y su test de rechazo **falla** con el regex viejo.
 
 ## Checks Performed
 
@@ -80,6 +80,33 @@ esta vuelta:
 | Prototipo | `pnpm prototipo:check` | pass | 120 pantallas al día |
 | Lint / build | `pnpm lint` · `pnpm build` | pass | Exit 0 (warnings preexistentes) · `✓ built` |
 
+### Sexta vuelta: re-sync con `dokploy` (commit `352dc359`) y comprobación de los tres hallazgos
+
+`origin/dokploy` avanzó 22 commits (`8f2bc380` → `0c749324`) y el PR #934 quedó
+atrás de la base. Se mergeó `origin/dokploy` sobre la rama **sin conflictos**
+(`352dc359`): la base no toca ningún archivo de esta historia. Tras el merge,
+la rama quedó 0 commits atrás y 10 adelante, y `git diff --stat
+origin/dokploy...HEAD` = los 6 archivos de la historia.
+
+Los tres hallazgos del Revisor (SHA revisado `f5d48cc9`) ya estaban atendidos
+en los commits posteriores a ese SHA; se comprobó con evidencia, sin re-tocar
+lo hecho:
+
+| Check | Command / Action | Result | Notes |
+|-------|------------------|--------|-------|
+| Hallazgo 1 · `knip` (Media) | `pnpm calidad` | pass | `knip (código muerto): ok` (0 hallazgos). La afirmación obsoleta ya no está en `fix.md` ni en `test.md`: en `fix.md:148-161` queda documentada **como corregida** (con la tabla de qué se afirmaba / qué es cierto / la prueba) y el follow-up se borró (`fix.md:234`). Commit `3f9e3094` |
+| Hallazgo 2 · regex del gate (Media) | `scripts/verificar-matriz-pantalla.mjs:23` · `scripts/verificar-matriz-pantalla.test.mjs:59` | pass | `MENCION_EMPRESA = /empresa\s+activa/i` + test de rechazo. Commit `f7affd2a` |
+| Hallazgo 3 · evidencia de `test.md:32` (Baja) | `test.md:32` | pass | La fila trae el comando real (`gh pr view 934 --json mergeable,mergeStateStatus`) y su salida real. Commit `3f9e3094` |
+| Prueba de mutación del hallazgo 2 | el regex viejo `/empresa/i` en vez de `/empresa\s+activa/i` | fail | `pass 13 · fail 1`: falla «rechaza una matriz que sólo menciona «empresa»…». El test vigila la regla; el cambio de prueba se revirtió (`git diff` vacío) |
+| Merge de la base | `git merge origin/dokploy` | pass | Sin conflictos → `352dc359`; 0 detrás / 10 adelante |
+| Gate de la regla (base del PR) | `GITHUB_BASE_REF=dokploy pnpm matriz:check` | pass | OK (0 specs nuevas revisadas, 0 exentas) |
+| Tests de la regla | `pnpm test:matriz:pantalla` | pass | 14/14 |
+| Docs + migraciones | `GITHUB_BASE_REF=dokploy pnpm docs:check` | pass | `Documentación de cambios: OK (6 archivos contra origin/dokploy)` · `Migraciones OK: 651 archivo(s), 0 nuevo(s)` |
+| Prototipo | `pnpm prototipo:check` · `pnpm test:prototipo:inventario` | pass | 120 pantallas al día · 3/3 |
+| Lint / build | `pnpm lint` · `pnpm build` | pass | Exit 0 (warnings preexistentes) · `✓ built` |
+| Calidad determinista | `pnpm calidad` | partial | oxlint / **knip** / jscpd / dependency-cruiser / syncpack **ok**; gitleaks no corrió (sin Docker en este entorno: «permission denied … /var/run/docker.sock») |
+| Estado del PR | `gh pr view 934 --json mergeable,mergeStateStatus` | pass | Antes del sync: `CLEAN`/`MERGEABLE` pero 22 commits atrás de la base; después del merge `352dc359`: 0 atrás / 10 adelante |
+
 ## Output Excerpts
 
 ```
@@ -114,9 +141,10 @@ Inventario del prototipo: OK (120 pantallas al día).
 
 Cerrar el bug: verificado localmente con el gate real contra la base del PR y
 confirmado en el CI (`application` y `validacion` en verde sobre el SHA del
-arreglo). La rama quedó sincronizada con `dokploy` (merge `24d73b49`), así que
-el PR #934 ya no está `CONFLICTING`. La devolución del Revisor quedó atendida:
-el follow-up de `knip` se borró (describía un estado inexistente), el gate
-exige la fila «Empresa activa» con su test de rechazo y la lista de exentas
+arreglo). La rama quedó sincronizada con `dokploy` (merge `24d73b49`, re-sync
+`858b85b1` y `352dc359`), así que el PR #934 ya no está `CONFLICTING` ni
+`DIRTY`. La devolución del Revisor quedó atendida: el follow-up de `knip` se
+borró (describía un estado inexistente), el gate exige la fila «Empresa activa»
+con su test de rechazo (que **falla** con el regex viejo) y la lista de exentas
 para no romper los PRs de épica contra `main`, y la evidencia de la fila
 «Estado del PR» es el estado real del comando.

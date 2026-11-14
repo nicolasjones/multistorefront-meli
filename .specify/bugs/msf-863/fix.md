@@ -204,6 +204,45 @@ Verificado en local:
 | `GITHUB_BASE_REF=dokploy pnpm docs:check` | OK (documentación de cambios + migraciones) |
 | `pnpm prototipo:check` | OK (120 pantallas al día) |
 
+### Sexta vuelta: re-sync con `dokploy` (`352dc359`) y comprobación de los tres hallazgos
+
+`dokploy` avanzó 22 commits (`8f2bc380` → `0c749324`: PRs #941, #950, #953 y
+#948/MSF-824) y el PR #934 quedó atrás de la base. Se mergeó `origin/dokploy`
+sobre la rama **sin conflictos** (commit `352dc359`): `origin/dokploy` no toca
+ninguno de los archivos de esta historia, así que no hubo qué resolver. Tras
+el merge la rama quedó 0 commits atrás y 10 adelante, y el diff contra la base
+son los 6 archivos de esta historia y nada más.
+
+Los tres hallazgos del Revisor (SHA revisado `f5d48cc9`) ya estaban atendidos
+en los commits posteriores a ese SHA; se comprobó **con evidencia** que es así,
+sin volver a tocar lo hecho:
+
+| Hallazgo | Estado | Evidencia |
+|---|---|---|
+| 1. `fix.md` afirmaba un estado de `knip` inexistente (Media) | Resuelto | `pnpm calidad` → `knip (código muerto): ok` (0 hallazgos); la afirmación obsoleta ya no está en `fix.md` ni en `test.md`: ahora está documentada **como corregida** en `fix.md:148-161` (con la tabla de qué se afirmaba / qué es cierto / la prueba) y el follow-up fue borrado (`fix.md:234`). Commit `3f9e3094`. |
+| 2. El gate matcheaba `/empresa/i` y no exigía la fila (Media) | Resuelto | `scripts/verificar-matriz-pantalla.mjs:23` → `export const MENCION_EMPRESA = /empresa\\s+activa/i;` · test de rechazo en `scripts/verificar-matriz-pantalla.test.mjs:59`. Commit `f7affd2a`. |
+| 3. La fila «Estado del PR» de `test.md:32` no era evidencia (Baja) | Resuelto | `test.md:32` trae el comando real (`gh pr view 934 --json mergeable,mergeStateStatus`) y su salida real (`CONFLICTING`/`DIRTY` antes del sync; `MERGEABLE`/`BLOCKED` después). Commit `3f9e3094`. |
+
+**Prueba de mutación del hallazgo 2** (el test tiene que FALLAR si la regla
+cambia): con el regex viejo `/empresa/i` el caso «rechaza una matriz que sólo
+menciona «empresa»…» **falla** (`pass 13 · fail 1`); con `/empresa\\s+activa/i`
+pasa 14/14. El cambio de prueba se revirtió (`git diff` vacío).
+
+Verificado en local contra el árbol mergeado (`352dc359`):
+
+| Paso | Resultado |
+|---|---|
+| `pnpm test:matriz:pantalla` | 14/14 |
+| `GITHUB_BASE_REF=dokploy pnpm matriz:check` | OK (0 specs nuevas revisadas, 0 exentas) |
+| `GITHUB_BASE_REF=dokploy pnpm docs:check` | `Documentación de cambios: OK (6 archivos comparados contra origin/dokploy)` · `Migraciones OK: 651 archivo(s), 0 nuevo(s)` |
+| `pnpm prototipo:check` · `pnpm test:prototipo:inventario` | OK (120 pantallas al día) · 3/3 |
+| `pnpm lint` | exit 0 (sólo warnings de oxlint preexistentes) |
+| `pnpm build` | `✓ built` |
+| `pnpm calidad` | oxlint / **knip** / jscpd / dependency-cruiser / syncpack **ok**; gitleaks no corrió (sin Docker en este entorno: «permission denied … /var/run/docker.sock») |
+
+No se crean migraciones en esta historia (el arreglo es una fila de texto en una
+spec y el gate que la verifica), así que no aplica la versión `20270311100001_`.
+
 ## CI
 
 - Run `43491976550` (rama `integracion/main-en-dokploy`, PR #929, SHA
