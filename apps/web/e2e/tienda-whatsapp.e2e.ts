@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
-import { limpiarOrganizacion, rest } from './soporte/fixtures'
+import { limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-14 (MSF-433, SC-008 de la épica MSF-212): con dos tiendas propias de la corrida (cada una con su dominio) la ficha muestra el botón «Consultar por WhatsApp», el diálogo arma el mensaje
 // con el producto y el precio, «Abrir WhatsApp» abre `wa.me` en una pestaña nueva (la URL se verifica y
@@ -9,14 +9,6 @@ import { limpiarOrganizacion, rest } from './soporte/fixtures'
 // (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra y lee la bandeja con la
 // API admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de WhatsApp: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
@@ -30,16 +22,6 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
 async function leer<T>(consulta: string): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${consulta}`, { headers: cabeceras() })
   if (!r.ok) throw new Error(`REST GET ${consulta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
 }
 
@@ -111,12 +93,12 @@ test.describe('Tienda online · consulta por WhatsApp desde la ficha (SC-008)', 
 
     try {
       for (const t of tiendas) {
-        const [categoria] = await insertar<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }])
-        const [producto] = await insertar<{ id: string }>('productos', [
+        const [categoria] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }], 'dominio')
+        const [producto] = await rest<{ id: string }>('productos', [
           { organizacion_id: t.organizacion, nombre: t.producto, sku: t.sku, precio_lista: 1000, moneda: 'ARS', categoria_id: categoria.id },
-        ])
+        ], 'dominio')
         t.productoId = producto.id
-        await insertar('producto_empresa', [{ producto_id: producto.id, empresa_id: t.empresa, organizacion_id: t.organizacion }])
+        await rest('producto_empresa', [{ producto_id: producto.id, empresa_id: t.empresa, organizacion_id: t.organizacion }], 'dominio')
       }
 
       for (const t of tiendas) {

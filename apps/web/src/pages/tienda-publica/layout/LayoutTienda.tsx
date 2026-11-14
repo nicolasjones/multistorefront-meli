@@ -9,6 +9,7 @@ import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { AccesoCliente } from './AccesoCliente'
 import { BarraSuperior } from './BarraSuperior'
 import { ContextoEnLayout } from './enLayout'
+import { FocoVisible } from './FocoVisible'
 import { ProveedorIdentidadTienda, useIdentidadTienda } from './IdentidadTiendaContexto'
 import { MenuCategorias } from './MenuCategorias'
 import { PieCategorias } from './PieCategorias'
@@ -61,6 +62,7 @@ function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: str
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', color: 'text.primary', bgcolor: 'background.default', overflowX: 'clip' /* la franja del héroe y el bloque de consultas llegan al borde de la ventana sin ensanchar la página */ }}>
+      <FocoVisible />
       {/* La barra superior va dentro del <header> (landmark banner): sin esto queda fuera de todo landmark (axe «region»). */}
       <Box component="header" sx={{ bgcolor: 'background.paper', borderBottom: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
         <BarraSuperior host={host} />

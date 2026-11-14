@@ -2,54 +2,14 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
-import { rest, UPSERT_FUSIONAR } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // Evidencia de MSF-288 (F-VTA-28, US1, SC-002) y de MSF-304 (F-VTA-29: filtro por forma y avance de estado): factura confirmada → «Nueva devolución» → RMA registrado con su
 // número y su ítem → aparece en el listado. Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra
 // con la API admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no corre en el CI público). Ver docs/ventas-rma-devoluciones.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de ventas-rma: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function leer<T>(ruta: string, esquema = 'dominio'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`REST GET ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
 
 async function tokenDe(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -95,7 +55,7 @@ test.describe('Devoluciones (RMA) por ítem (MSF-288, F-VTA-28)', () => {
       // Siembra: organización (crea el depósito principal), administrador, empresa, cliente, producto y stock.
       const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E RMA ${sufijo}` })
       orgId = org.id
-      const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`)
+      const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`, 'dominio')
       idUsuario = await altaUsuario(correo)
       await rest('usuarios_organizacion', [{ user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' }])
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda RMA ${sufijo}`, activa: true }, 'dominio')
@@ -194,7 +154,7 @@ test.describe('Devoluciones (RMA): formas y seguimiento (MSF-304, F-VTA-29)', ()
       // Siembra: igual que el alta, más dos RMA de formas distintas sobre la misma factura confirmada.
       const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E RMA seguimiento ${sufijo}` })
       orgId = org.id
-      const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`)
+      const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`, 'dominio')
       idUsuario = await altaUsuario(correo)
       await rest('usuarios_organizacion', [{ user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' }])
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda Seg ${sufijo}`, activa: true }, 'dominio')
@@ -220,7 +180,7 @@ test.describe('Devoluciones (RMA): formas y seguimiento (MSF-304, F-VTA-29)', ()
         p_actualizado_en: comprobante.updated_at,
       })
       await rpc(token, 'confirmar_comprobante', { p_id: comprobante.id })
-      const [linea] = await leer<{ id: string }>(`comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=id`)
+      const [linea] = await leer<{ id: string }>(`comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=id`, 'dominio')
       for (const forma of ['cambio_directo', 'faltante_envio']) {
         await rpc(token, 'registrar_rma', {
           p_comprobante_id: comprobante.id, p_lineas: [{ linea_id: linea.id, cantidad: 1 }], p_forma_rma: forma, p_motivo: `Motivo ${forma}`,

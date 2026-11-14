@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-20 (MSF-263, SC-005): con los dos dominios del seed (mundojc.localhost y sanjavucho.localhost) la
 // ficha muestra «Productos relacionados» (misma categoría, sin el actual, solo de la tienda) y los omite sin
@@ -7,44 +8,12 @@ import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fix
 // `supabase/seed.sql`) y la web servida; siembra con la API admin desde Node (la service-role key nunca
 // llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI
 // público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
   { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
   { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
 ] as const
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  'content-profile': 'dominio',
-  'accept-profile': 'dominio',
-  ...extra,
-})
-
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
-}
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
@@ -66,20 +35,20 @@ test.describe('Tienda online · productos relacionados (SC-005)', () => {
 
     try {
       for (const t of tiendas) {
-        const [categoria, otra] = await insertar<{ id: string }>('categorias', [
+        const [categoria, otra] = await rest<{ id: string }>('categorias', [
           { organizacion_id: t.organizacion, nombre: t.categoria },
           { organizacion_id: t.organizacion, nombre: `Otra ${t.nombre} ${sufijo}` },
-        ])
+        ], 'dominio')
         // 5 productos de la misma categoría (el actual + 4 relacionados) y uno solo en otra categoría.
-        const filas = await insertar<{ id: string }>('productos', [
+        const filas = await rest<{ id: string }>('productos', [
           ...t.nombres.map((nombre, n) => ({
             organizacion_id: t.organizacion, nombre, sku: `E2E-R-${t.indice}-${n}-${sufijo}`, precio_lista: 1000 * (n + 1), moneda: 'ARS', categoria_id: categoria.id,
           })),
           { organizacion_id: t.organizacion, nombre: t.solitaria, sku: `E2E-R-${t.indice}-S-${sufijo}`, precio_lista: 500, moneda: 'ARS', categoria_id: otra.id },
-        ])
+        ], 'dominio')
         t.ids = filas.slice(0, 5).map((f) => f.id)
         t.solitariaId = filas[5].id
-        await insertar('producto_empresa', filas.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
+        await rest('producto_empresa', filas.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
       }
 
       for (const t of tiendas) {
@@ -121,8 +90,8 @@ test.describe('Tienda online · productos relacionados (SC-005)', () => {
       }
     } finally {
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { limpiarOrganizacion, rest } from './soporte/fixtures'
+import { limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-16 (MSF-437, SC-004 y SC-005 de la épica MSF-212): con dos tiendas propias de la corrida (cada una con su dominio) la página /contacto muestra los datos de SU tienda, una consulta enviada llega a la
 // bandeja de Consultas y ventas de SU empresa con origen «formulario», una ráfaga de 6 envíos muestra la espera
@@ -8,14 +8,6 @@ import { limpiarOrganizacion, rest } from './soporte/fixtures'
 // (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra y lee la bandeja con la API
 // admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de contacto: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',

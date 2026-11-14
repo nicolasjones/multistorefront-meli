@@ -127,11 +127,35 @@ success`. Es decir: el rojo se hereda de `dokploy` y lo tienen todas las ramas s
 requerido por el ruleset de `dokploy` es **sólo `validacion`** (job único de `Validate`), que es el que
 verdictúa el merge; `quality` es complementario.
 
+## Tercera sincronización con la base (2026-11-14)
+
+Tercera sincronización, otra vez **sin tocar el contenido del fix**: `git merge origin/dokploy` entró limpio
+(0 conflictos) y `git diff 00e121bf..HEAD -- supabase/functions/_shared/protocolo.ts
+supabase/functions/_shared/protocolo.test.ts supabase/functions/invitar-cliente
+supabase/functions/recuperar-clave-cliente docs/acceso-ingreso.md docs/clientes.md
+supabase/functions/.env.example .specify/bugs/msf-726 package.json` sale **vacío**: los archivos del alcance
+quedan byte a byte iguales que en el commit aprobado.
+
+La rama queda **al día**: `git rev-list --left-right --count origin/dokploy...HEAD` → `0	16` (0 commits atrás
+de la base `d489d25b`), o sea que el diff del PR contra la base son sólo los archivos de esta historia. El
+`reports/calidad.md` se restauró a la versión de la base: es un artefacto generado que el job `quality` vuelve a
+escribir en el runner, así que dejarlo desactualizado sólo agregaba ruido al diff del PR.
+
+Verificación sobre el árbol ya sincronizado: `pnpm test:edge:protocolo` → 5/5 · `pnpm test:edge:invitar-cliente`
+→ 16/16 · `pnpm test:edge:recuperar-clave-cliente` → 10/10 · `pnpm lint` → exit 0 · `pnpm build` → exit 0 ·
+`pnpm docs:check` → OK (0 migraciones nuevas).
+
+**El rojo de `quality` (knip) ya lo arregló la base**: el commit `d345eeb1` («chore(calidad): declarar en knip lo
+que traen los scripts de main») declara en `knip.json` los tres archivos de tooling; `pnpm calidad` local da
+`knip (código muerto): ok` (antes `hallazgos`). El único check que no da verde local es `gitleaks (secretos)`:
+el script lo corre por Docker y en este entorno no hay acceso al socket (`docker: permission denied`), así que lo
+marca «hallazgos» por un problema de permisos del sandbox, no por un secreto. Con el **binario nativo** —el mismo
+que usa el job `quality` (`gitleaks_8.30.1_linux_x64`)— el resultado es `no leaks found` (exit 0).
+
 ## Recommendation
 
 - **Close the bug — verified a nivel de código** (la reproducción del assessment, en su equivalente automatizado,
   pasa y el síntoma es imposible por construcción). Antes de darlo por cerrado en el entorno: redeploy de las dos
   funciones en STG/PRD, un correo de prueba con `redirectTo` en `https://` y revisión de `GOTRUE_URI_ALLOW_LIST`.
-- **Seguimiento para la base (no es de esta historia)**: `knip` falla en `dokploy` por los tres archivos de
-  tooling señalados arriba; hay que corregirlo en la base (o marcar esos archivos en `knip.json`/`package.json`),
-  no en la rama de este bug.
+- **La deuda de `knip` en la base ya está cerrada** (commit `d345eeb1`): no queda nada que corregir en `dokploy`
+  por esta historia.
