@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/inicio
 ---
 
 # Inicio: el tablero, las alertas y la búsqueda de productos
@@ -10,6 +11,17 @@ sources: []
 Inicio es la primera pantalla que ves al entrar. En pocos segundos te muestra lo que tu rol puede resolver hoy: el estado de tus empresas, el stock, las consultas nuevas y el dólar, junto con una lista de alertas que te llevan directo a la pantalla donde se arreglan. Debajo, un **tablero** con las ventas y el stock del período que elegiste, un resumen de cómo rinde cada tienda, de qué depósito salió la mercadería, los últimos movimientos que hizo el equipo y un listado de movimientos por producto. Además, desde cualquier pantalla podés buscar un producto con el campo de búsqueda de la barra superior.
 
 Cada persona ve solamente lo que su rol permite: si no tenés acceso a una sección (por ejemplo, Consultas), su tarjeta, sus alertas y sus resultados de búsqueda no aparecen.
+
+## Cómo está ordenada la pantalla
+
+De arriba hacia abajo:
+
+1. **Qué hacer hoy**: la lista de alertas con enlace.
+2. Las tarjetas **Empresas**, **Stock**, **Consultas** y **Dólar**.
+3. El **tablero** con sus filtros, los indicadores de ventas y de stock, el gráfico y los bloques de resumen por tienda, salidas por depósito y actividad reciente.
+4. Al final, el listado **Movimientos por producto**. Se sigue cargando a medida que bajás (o con el botón **Cargar más**), por eso es lo último de la pantalla.
+
+![Bloque «Qué hacer hoy» con el aviso «Todavía no se calcularon las alertas»](img/inicio/01-que-hacer-hoy.png)
 
 ## La pantalla de Inicio
 
@@ -71,6 +83,8 @@ Debajo de cada número, cuando hay un período anterior comparable, ves cuánto 
 
 Las notas de crédito **restan** de las ventas, y los presupuestos y comprobantes anulados no cuentan. Si en el período no hubo nada, la tarjeta avisa «No hay ventas en este período».
 
+![Tarjeta «Ventas del período» con ventas con IVA, comprobantes, ticket promedio, unidades vendidas y devoluciones, cada una con su variación contra el período anterior](img/inicio/02-ventas-del-periodo.png)
+
 Si elegís un depósito, las ventas se calculan con las **líneas de ese depósito**: por eso una nota de crédito sin líneas (de importe o de descuento) no se descuenta y el número de devoluciones puede quedar en cero.
 
 Si tu rol puede ver **Reportes de ventas**, estos números tienen enlace: te llevan a esa pantalla con el período ya elegido.
@@ -88,6 +102,8 @@ Es una tarjeta con seis números. El stock **no depende del período**: es el st
 | **Stock bajo** | Cuántos productos están por debajo de su mínimo. |
 | **Ajustes de stock** | Cuántos movimientos de ajuste hubo en el período, y cuántas unidades entraron. |
 
+![Los indicadores de Stock hoy del tablero](img/inicio/03-stock-hoy.png)
+
 Cuando elegís un depósito, estos números son los de ese depósito. Los indicadores **Sin stock** y **Stock bajo** tienen enlace: te llevan a Stock con el filtro puesto.
 
 Dos detalles para no compararlos mal con otras pantallas:
@@ -103,6 +119,8 @@ Debajo de las dos tarjetas hay un gráfico con dos series: las **unidades vendid
 - Si no podés usar el gráfico, abrí **Ver los datos como tabla**: está la misma información en una tabla con el **Día**, las **Unidades vendidas** y el **Stock al cierre**.
 - Si en el período no hubo ventas ni movimientos de stock, el gráfico dice «Sin datos en el período».
 
+![Gráfico «Ventas y stock en el tiempo» con las unidades vendidas por día y el stock al cierre de cada día](img/inicio/04-ventas-y-stock-en-el-tiempo.png)
+
 ### Resumen por tienda
 
 Una fila por tienda con la cantidad de **unidades vendidas** en el período y una barra que compara una tienda con otra.
@@ -112,9 +130,13 @@ Una fila por tienda con la cantidad de **unidades vendidas** en el período y un
 - Si tenés ese permiso y una tienda no tuvo ventas en el período, su fila dice «Sin ventas en el período».
 - Las tiendas que ves son las que tenés habilitadas: no hay una lista fija.
 
+![Bloque «Resumen por tienda» con las unidades de cada tienda, sus ingresos con IVA y el margen estimado](img/inicio/05-resumen-por-tienda.png)
+
 ### Salidas por depósito
 
 Una fila por depósito con las **unidades que salieron** en el período y el **stock actual** de ese depósito. Si elegiste un depósito en el filtro, aparece solo ese.
+
+![Bloque «Salidas por depósito» con las unidades que salieron de cada depósito y su stock actual](img/inicio/06-salidas-por-deposito.png)
 
 ### Actividad reciente
 
@@ -122,6 +144,8 @@ Los últimos diez movimientos del equipo en el período y en la tienda elegida: 
 
 - Si elegiste un depósito, la tarjeta te avisa: «La actividad no se filtra por depósito: se muestra la de toda la organización».
 - Si en el período no pasó nada, dice «Sin actividad en este período».
+
+![Bloque «Actividad reciente» con los últimos movimientos del equipo, cada uno con su botón Ver y el enlace Ver todo; los datos de las personas están difuminados](img/inicio/07-actividad-reciente.png)
 
 ### Movimientos por producto
 
@@ -142,6 +166,8 @@ Al pie del tablero hay un listado con **una fila por producto** y doce columnas.
 | **Último movimiento** | La fecha del último movimiento. |
 | **Estado** | **En alerta**, **Quieto** o **Normal**. |
 
+![Listado «Movimientos por producto» con las vistas Todos, En alerta y Quietos, el buscador, el filtro de categoría, el orden, Exportar y las primeras filas con foto, SKU y categoría](img/inicio/08-movimientos-por-producto.png)
+
 Sobre el listado podés:
 
 - Cambiar la **vista rápida**: **Todos**, **En alerta** (los que están en su mínimo o debajo) o **Quietos** (los que no se movieron en el período).
@@ -159,17 +185,36 @@ Detalles a tener en cuenta:
 - Si el producto no se movió, el estado es **Quieto**; si está en su mínimo o por debajo, es **En alerta** (tiene prioridad); el resto es **Normal**.
 - Si no hay nada para mostrar, dice «Sin movimientos para estos filtros» y tenés el botón **Limpiar filtros**. Si la carga falla, «No pudimos cargar los movimientos por producto.» con **Reintentar**.
 
+## Qué ve cada rol
+
+Cada bloque se muestra solo si tu rol tiene el permiso correspondiente. La tabla muestra **cómo vienen configurados los permisos de fábrica**; cada organización puede ajustarlos desde **Usuarios y roles**, así que lo que ves en tu cuenta puede ser distinto.
+
+| Rol | Ventas y resumen por tienda | Ingresos y margen estimado | Stock, salidas y movimientos por producto | Actividad reciente | Exportar a CSV | Dólar |
+|---|---|---|---|---|---|---|
+| Administrador | Sí, todas las tiendas | Sí | Sí | Sí | Sí | Ve y carga |
+| Administración | Sí | Sí | Sí | Sí | Sí | Ve y carga |
+| Operador | Sí | No | Sí | Sí | Sí | Solo ve |
+| Mostrador | Sí | No | Sí | No | No | Solo ve |
+| Consulta | Sí | No | Sí | No | No | Solo ve |
+| Depósito | Sí (lectura) | No | Sí | No | No | No |
+| Miembro | Sí (lectura) | No | Sí | No | No | Solo ve |
+| Técnico | No | No | Sí (lectura) | No | No | No |
+
+Un rol que solo tiene **Actividad** ve únicamente «Actividad reciente». Un rol sin Ventas, Stock ni Actividad no ve el tablero. Quien no tiene permiso de rentabilidad ve las ventas pero no los ingresos por tienda ni el margen, y no ve costos en ninguna parte de Inicio.
+
 ## Cargar el dólar del día desde Inicio
 
 En la tarjeta **Dólar** de Inicio, si todavía no se cargó la cotización de hoy, aparece el aviso «Todavía no se cargó el dólar de hoy» con el botón **Cargar ahora**. Ese botón solo lo ven quienes pueden **cargar** la cotización (con los permisos de fábrica, el Administrador y Administración).
 
 1. Hacé clic en **Cargar ahora**. Se abre el cuadro **Cargar dólar del día**.
-2. Escribí el valor en **Dólar del día (pesos por dólar)**. Serven los formatos «1490», «1490,50» o «1.490,5». Debajo ves el **Anterior** (el valor con el que se calculan hoy los precios) y la **Variación** contra ese valor.
+2. Escribí el valor en **Dólar del día (pesos por dólar)**. Sirven los formatos «1490», «1490,50» o «1.490,5». Debajo ves el **Anterior** (el valor con el que se calculan hoy los precios) y la **Variación** contra ese valor.
 3. Mientras escribís, el cuadro te muestra **qué va a cambiar**: una tarjeta por tienda con cuántos precios se modifican y una tabla de muestra con el precio de hoy y el nuevo. **Todavía no se guardó nada**: esto es solo una vista previa.
 4. Si la variación **supera el 15 %** (o el valor que tenga configurado tu organización), aparece el aviso **Variación inusual** y tenés que tildar «Revisé el valor y quiero aplicarlo igual» para poder seguir.
 5. Si la variación es **menor que el umbral configurado** (1 % de arranque), el sistema no recalcula precios: avisa **Sin recálculo** y el botón se llama **Registrar cotización**. El valor queda anotado en el historial, pero los precios siguen igual.
 6. Hacé clic en **Aplicar y recalcular** (o **Registrar cotización**). Se guarda la cotización con la fecha y tu nombre, y el aviso te dice «Cotización aplicada · N precios recalculados».
 7. Si te arrepentís o cerrás el cuadro, no se guarda nada: cancelá.
+
+![Cuadro «Cargar dólar del día» con el valor escrito, la variación contra la cotización vigente, una tarjeta por tienda con los precios que cambian y la tabla de muestra con el botón «Aplicar y recalcular»](img/inicio/09-dialogo-cargar-dolar-con-impacto.png)
 
 Cosas a tener en cuenta:
 
@@ -239,15 +284,27 @@ Límites:
 | **No pudimos abrir la carga del dólar. Recargá la página e intentá de nuevo.** | El cuadro no se pudo abrir (por ejemplo, se cortó la conexión). Recargá la página. |
 | **No pudimos calcular qué va a cambiar.** | Falló la vista previa del impacto. Usá **Reintentar**. |
 
-## Todavía no se puede
+## Preguntas frecuentes
 
-- Ver tarjetas o alertas de Mercado Libre ni de precios en revisión.
-- Filtrar el tablero por un período de 30 o 90 días, o por el mes anterior: los períodos son Hoy, 7 días, Este mes y un rango libre.
-- Filtrar Reportes de ventas por tienda o por depósito desde el tablero: el enlace a Reportes lleva solo el período.
-- Ver el costo o el margen de un producto en el listado de movimientos por producto.
-- Personalizar qué bloques del tablero se ven o cómo se ordenan.
-- Ver las ventas de Mercado Libre.
+**¿Por qué «Qué hacer hoy» no muestra lo último que pasó?** Porque las alertas se recalculan cada 15 minutos. Si pasó más de una hora desde el último cálculo, la pantalla te avisa que pueden estar desactualizadas.
+
+**¿Por qué el filtro Tienda no cambia el stock?** El stock es de toda la organización. La tienda acota las ventas y las devoluciones; para el stock usá el filtro **Depósito**.
+
+**¿Cambiar el filtro Tienda cambia mi empresa activa?** No. Es solo un filtro del tablero. Si cambiás la empresa en la barra superior, el tablero vuelve a seguirla.
+
+**¿Cómo le muestro a otra persona lo mismo que estoy viendo?** Copiá la dirección de la página: el período, la tienda y el depósito viajan en ella.
+
+**¿Por qué no veo ingresos ni margen en «Resumen por tienda»?** Esas cifras son solo para quien tiene permiso de rentabilidad. Pedile a quien administra tu cuenta que te lo habilite si lo necesitás.
+
+**El número de «Sin stock» no coincide con el de la pantalla Stock.** Pueden diferir: el tablero cuenta solo productos activos y, con un depósito elegido, mide el de ese depósito.
+
+## Qué no hace todavía
+
+- No muestra tarjetas, alertas ni ventas de Mercado Libre.
+- No muestra costos ni margen a quien no tiene permiso de rentabilidad, y el listado «Movimientos por producto» no trae costo ni margen para nadie.
+- **Qué hacer hoy** no es en tiempo real: se calcula cada 15 minutos.
+- No ofrece períodos de 30 o 90 días ni el mes anterior: los períodos son Hoy, 7 días, Este mes y un rango libre (hasta 366 días).
+- El enlace a Reportes de ventas lleva solo el período: Reportes no filtra por tienda ni por depósito desde el tablero.
+- No se puede personalizar qué bloques se ven ni en qué orden.
 
 Ver también: [Stock](stock-movimientos.md) · [Consultas](consultas.md) · [Cotización del dólar](precios-dolar.md) · [Rentabilidad](rentabilidad.md) · [Tu organización y tus empresas](organizacion-y-empresas.md) · [Reportes de ventas](ventas-reportes.md).
-
-<!-- TODO (dueño: documentación de producto): capturas de la pantalla de Inicio con el tablero — los tres filtros, «Ventas del período», «Stock hoy», el gráfico, «Resumen por tienda», «Salidas por depósito», «Actividad reciente», el listado «Movimientos por producto» y el cuadro «Cargar dólar del día» con su vista previa — en docs/producto/img/inicio-y-alertas/. No se pudieron generar porque la herramienta de capturas del manual (`pnpm docs:capturas` y `pnpm demo:dataset`) no existe en este repo y el código de la épica todavía no está en `main`; ver la página técnica. -->
