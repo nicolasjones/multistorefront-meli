@@ -11,10 +11,11 @@ Cuando alguien te escribe desde la tienda online, el mensaje llega acá. La band
 
 ## Qué es una consulta
 
-Hay dos formas de que llegue una:
+Hay tres formas de que llegue una:
 
 - **Formulario**: la persona completó el formulario de contacto de la tienda con su nombre, un dato de contacto y un mensaje.
 - **WhatsApp**: la persona tocó el botón de WhatsApp de un producto en la tienda. Queda registrado el producto que le interesaba, aunque no haya dejado mensaje.
+- **Pedido**: la persona armó una **lista de pedido** en la tienda (varios productos con sus cantidades) y la envió sin pagar. Es una función que el equipo técnico activa para la tienda: si no está activada, esta forma no aparece. Lo explicamos abajo en [Atender un pedido de la tienda](#atender-un-pedido-de-la-tienda).
 
 Las respuestas **se dan por fuera del sistema**, por correo o por WhatsApp. En Consultas solo registrás si ya fue atendida.
 
@@ -45,8 +46,8 @@ Cada fila es una consulta, de la más nueva a la más vieja. La lista carga de a
 | **Cuándo** | Día y hora en que llegó. |
 | **Empresa** | La tienda a la que le escribieron. |
 | **Contacto** | El nombre (hacé clic para abrir la consulta) y su correo o teléfono. |
-| **Producto** | El producto de interés, o «Sin producto». |
-| **Origen** | Formulario o WhatsApp. |
+| **Producto** | El producto de interés, o «Sin producto». En un pedido dice «Pedido de 3 productos» (o «Pedido de 1 producto»). |
+| **Origen** | Formulario, WhatsApp o Pedido. |
 
 ## Filtrar y buscar
 
@@ -88,6 +89,20 @@ Si no hay coincidencias ves «Sin resultados para el filtro». Si todavía no ll
 4. En **Nota interna** anotá lo que el equipo necesite saber. Solo la ve el equipo, nunca la persona que escribió.
 5. Hacé clic en **Guardar**.
 
+### Atender un pedido de la tienda
+
+Un pedido **no es una compra**: la persona no pagó nada y no se reservó stock. Es una lista de productos que quiere que le confirmes. Al abrirlo ves:
+
+- **Pedido**: una tabla con cada producto, su código (SKU), la cantidad, el **precio de referencia** y el subtotal, y debajo el **total de referencia**. Son los precios tal como los vio la persona en la tienda al enviar el pedido: **no son firmes**, confirmalos al responder. En el celular cada producto aparece como una tarjeta.
+- **Nota de la persona**: lo que escribió al enviar (si no escribió nada, dice «Sin nota»).
+- **Cliente**: si la persona entró con su cuenta de la tienda, ves su número y su nombre. Si no, no aparece.
+
+Lo que la persona escribió se muestra **tal cual**, como texto. Los productos sin precio dicen «Sin precio». Si no se pueden cargar los productos del pedido aparece «No pudimos cargar los productos del pedido.» con el botón **Reintentar**.
+
+**Responder por correo** o **Responder por WhatsApp** abre tu aplicación con un mensaje que ya lista los productos y dice que vas a confirmar disponibilidad y precio. Como siempre, el sistema no envía nada por vos.
+
+Cada persona puede mandar hasta 5 pedidos o consultas por hora; si manda más, la tienda le pide esperar. Los pedidos **no se borran solos**: quedan guardados con el nombre, el contacto, la nota y los productos de la persona. Si tenés que borrar uno, pedíselo al equipo técnico.
+
 ### Responder desde la consulta
 
 Si el contacto es un correo o un teléfono, aparece el botón **Responder por correo** o **Responder por WhatsApp**. Se abre tu aplicación de correo o WhatsApp con un mensaje inicial. El sistema no envía nada por vos: mandás el mensaje desde esa aplicación.
@@ -106,7 +121,7 @@ En el detalle de la consulta podés guardar a la persona en la libreta de **Cont
 
 ## Avisos de consultas nuevas
 
-Cada consulta nueva genera un aviso por correo para las personas que tienen acceso a Consultas y mantienen activado el aviso «Consulta nueva». Si llegan varias seguidas, se juntan en un solo correo. Cada persona activa o desactiva este aviso desde su cuenta; mirá [Avisos y listas configurables](avisos-y-listas.md).
+Cada consulta nueva (también cada pedido, con el resumen de los productos) genera un aviso por correo para las personas que tienen acceso a Consultas y mantienen activado el aviso «Consulta nueva». Si llegan varias seguidas, se juntan en un solo correo. Cada persona activa o desactiva este aviso desde su cuenta; mirá [Avisos y listas configurables](avisos-y-listas.md).
 
 ## Estados
 
