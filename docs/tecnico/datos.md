@@ -3235,7 +3235,7 @@ ficha) **no crea ni altera tablas**: agrega funciones de lectura en `publico` y 
   `dominio.tienda_identidad`, `eslogan` a `dominio.tienda_contenido` y `imagen` a la salida de
   `publico.categorias_por_dominio`; no crea tablas. Detalle:
   [Tienda pública: diseño del prototipo](tienda-diseno-del-prototipo.md).
-- **MSF-848** (migración `20270308100000`) agrega `estilo_heroe` y `titulos_mayusculas` a `dominio.tienda_identidad`;
+- **MSF-848** (migración `20270311100000`) agrega `estilo_heroe` y `titulos_mayusculas` a `dominio.tienda_identidad`;
   no crea tablas. Detalle: [Tienda online: dominio, identidad y catálogo visible](tienda-dominio-e-identidad.md).
 - Detalle de contratos, seguridad y operación: [Tienda online: dominio, identidad y catálogo
   visible](tienda-dominio-e-identidad.md), [Tienda pública: catálogo y ficha](tienda-catalogo-y-ficha.md) y

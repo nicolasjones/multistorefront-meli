@@ -1,7 +1,7 @@
 # Feature Specification: Tiendas · Estilo del encabezado y mayúsculas por identidad (MSF-848)
 
 **Épica**: MSF-848 (cierra las decisiones abiertas de MSF-847) · **Spec**: `tiendas-identidad-heroe-mayusculas` · **Prioridad**: P2
-**Alcance de entrega**: `refine` y `supabase` (una migración aditiva, `20270308100000_tienda_estilo_heroe_mayusculas.sql`; sin `kestra`, `superset` ni `workers`).
+**Alcance de entrega**: `refine` y `supabase` (una migración aditiva, `20270311100000_tienda_estilo_heroe_mayusculas.sql`; sin `kestra`, `superset` ni `workers`).
 **Regla de producto (Nicolás)**: «si bien son 2 tiendas diferentes, todo es por config». Nada se decide por nombre, dominio ni organización de la tienda: las dos diferencias de diseño entre MundoJC y San Javucho se expresan en la **identidad visual** y se editan en el panel.
 
 ## Objetivo

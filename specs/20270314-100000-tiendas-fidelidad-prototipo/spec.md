@@ -126,7 +126,7 @@ Prototipos: `design/pantallas/MJC_Home`, `MJC_Catalogo`, `MJC_Categoria`, `MJC_P
 
 ## Decisiones abiertas (resueltas en MSF-848: por configuración)
 
-La regla de Nicolás es «si bien son 2 tiendas diferentes, todo es por config». Dos de las tres decisiones se resolvieron con campos de la identidad visual (spec `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`, migración `20270308100000_tienda_estilo_heroe_mayusculas.sql`); la tercera queda declarada.
+La regla de Nicolás es «si bien son 2 tiendas diferentes, todo es por config». Dos de las tres decisiones se resolvieron con campos de la identidad visual (spec `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`, migración `20270311100000_tienda_estilo_heroe_mayusculas.sql`); la tercera queda declarada.
 
 - **Héroe de dos variantes (H-04, H-05, H-06). Resuelta.** Campo `estilo_heroe` «Estilo del encabezado de la portada» (`oscuro` por defecto | `claro`): la variante oscura es la de MundoJC (franja oscura, título de 72 px en mayúsculas blancas, franjas inclinadas) y la clara la de San Javucho (franja con la superficie, círculo de acento de 360 px y título de 60 px sin mayúsculas en el color primario). El botón es visible y accesible con cualquier identidad en las dos.
 - **Mayúsculas de la barra de categorías y del botón del héroe (C-14). Resuelta.** Campo `titulos_mayusculas` «Títulos del menú y botones en mayúsculas» (`true` por defecto): MundoJC las usa (con `letter-spacing` .04em en la barra) y San Javucho no. Controla también el título del héroe.

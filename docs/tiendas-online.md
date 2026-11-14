@@ -189,7 +189,7 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
   (parámetro final `p_color_barra`, con default; se eliminó la de 10 argumentos) y `publicar_tienda`, su único
   llamador, se recreó; sigue sin ser ejecutable por `authenticated` (F-TDA-06).
 - **MSF-848 (estilo del encabezado y mayúsculas, por configuración)**: dos campos más de la identidad
-  (migración `20270308100000_tienda_estilo_heroe_mayusculas.sql`, mismo patrón que `color_barra`; spec en
+  (migración `20270311100000_tienda_estilo_heroe_mayusculas.sql`, mismo patrón que `color_barra`; spec en
   `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`). Regla de producto: las diferencias entre tiendas
   no se programan por tienda, se configuran.
   - **`estilo_heroe`** «Estilo del encabezado de la portada», lista cerrada `oscuro | claro` (por defecto `oscuro`).
