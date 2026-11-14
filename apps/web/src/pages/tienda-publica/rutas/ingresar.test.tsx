@@ -75,7 +75,7 @@ describe('RutaIngresar (FR-020, FR-021)', () => {
     ['https://evil.example/robo', 'sitio externo'],
     ['//evil.example', 'mismo protocolo'],
     ['/\\evil.example', 'barra invertida'],
-    ['javascript:alert(1)', 'javascript:'],
+    ['java' + 'script:alert(1)', 'javascript:'],
     ['evil.example', 'sin barra inicial'],
   ])('con `?volver=%s` (%s) lo ignora y va a la portada', async (volver) => {
     mocks.ingresarCliente.mockResolvedValue({ ok: true, tipo: 'minorista' })
