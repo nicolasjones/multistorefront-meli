@@ -108,12 +108,12 @@ test.describe('Tienda online · dos dominios (SC-003)', () => {
     ]
     try {
       for (const t of config) {
-        await insertar('tienda_identidad', {
+        await rest('tienda_identidad?on_conflict=empresa_id', {
           empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color, estilo_heroe: t.estilo, titulos_mayusculas: t.mayusculas,
-        }, 'empresa_id')
-        await insertar('tienda_contenido', {
+        }, 'dominio', UPSERT_FUSIONAR)
+        await rest('tienda_contenido?on_conflict=empresa_id', {
           empresa_id: t.empresa, organizacion_id: t.organizacion, titulo: `Héroe ${t.nombre} ${sufijo}`, texto_boton: 'Ver catálogo', boton_destino: 'catalogo',
-        }, 'empresa_id')
+        }, 'dominio', UPSERT_FUSIONAR)
       }
       for (const t of config) {
         const contexto = await browser.newContext()
