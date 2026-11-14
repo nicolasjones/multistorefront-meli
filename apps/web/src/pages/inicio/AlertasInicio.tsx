@@ -3,10 +3,12 @@ import { Link as RouterLink } from 'react-router'
 import { Alert, Button, List, ListItem, ListItemText } from '@mui/material'
 import { EstadoVacio } from '../../components/estados/EstadosPagina'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import {
   ENLACE_ALERTA,
   alertasDemoradas,
   horaDeCalculo,
+  puedeEditar,
   leerAlertasInicio,
   leerUltimoCalculoAlertas,
   textoAlerta,
@@ -31,12 +33,16 @@ type Lectura = { alertas: AlertaInicio[]; ultimoCalculo: string | null }
 // superior (o todas) con el enlace a la pantalla donde se resuelven, y se avisa si el cálculo está demorado.
 export function AlertasInicio() {
   const { empresas, empresaActivaId, isLoading } = useEmpresasAccesibles()
+  // CA-INI-07-7: el aviso de carga del dólar es solo para quien puede editar la cotización (mismo criterio que
+  // TarjetaDolar); con solo lectura la alerta `dolar_sin_cargar` no se muestra (la base no la filtra por edición).
+  const editaDolar = puedeEditar(useNivelSeccion('cotizacion_dolar').nivel)
   const leer = useCallback(async (): Promise<Lectura> => {
     const [alertas, ultimoCalculo] = await Promise.all([leerAlertasInicio(empresaActivaId), leerUltimoCalculoAlertas()])
     return { alertas, ultimoCalculo }
   }, [empresaActivaId])
   const { cargando, hayError, datos, recargar } = useLecturaInicio(leer, { habilitado: !isLoading })
   const ahora = new Date()
+  const alertas = datos === null ? [] : datos.alertas.filter((alerta) => alerta.tipo !== 'dolar_sin_cargar' || editaDolar)
   const demorado = datos !== null && alertasDemoradas(datos.ultimoCalculo, ahora)
   const nombreEmpresa = (id: string | null) => (id ? empresas.find((empresa) => empresa.id === id)?.nombre : undefined)
 
@@ -51,11 +57,11 @@ export function AlertasInicio() {
                 : `Las alertas se calcularon por última vez a las ${horaDeCalculo(datos.ultimoCalculo, ahora)} y pueden estar desactualizadas.`}
             </Alert>
           ) : null}
-          {datos.alertas.length === 0 ? (
+          {alertas.length === 0 ? (
             demorado && datos.ultimoCalculo === null ? null : <EstadoVacio titulo="Todo al día" descripcion="No hay nada pendiente por resolver." />
           ) : (
             <List disablePadding aria-label="Alertas">
-              {datos.alertas.map((alerta) => {
+              {alertas.map((alerta) => {
                 const empresa = nombreEmpresa(alerta.empresaId)
                 const texto = textoAlerta(alerta.tipo, alerta.cantidad)
                 return (

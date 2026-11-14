@@ -218,7 +218,7 @@ La tarjeta «Dólar» muestra el aviso «Todavía no se cargó el dólar de hoy�
 - **Valores inválidos.** El campo admite dígitos, punto, coma y «-»: un negativo **no se corrige en silencio**, se rechaza con el mensaje de formato; cero o vacío tampoco piden vista previa ni dejan guardar. La base valida además NaN, infinito, más de 4 decimales y valores ≥ 1e10 (error 22023 en la vista previa, con las mismas reglas que la carga; `cargar_cotizacion` responde esos casos con 23514 o 22003).
 - **Costo de la vista previa.** Cada pausa de 400 ms al tipear es una llamada a la base (la parte que no depende del valor se recalcula). Para no pedir valores a medio escribir («1», «14», «149»…) un valor que se aleja **más de 10 veces** de la cotización vigente no pide vista previa y no se puede aplicar (avisa que puede ser un error de tipeo). Mientras llega el impacto del valor nuevo se deja el anterior atenuado (sin parpadeo del esqueleto) y no se habilita guardar.
 - **Estados.** Sin productos en dólares: «No hay precios en dólares para mostrar.»; una tienda sin precios en dólares figura «Sin cambios». Si el diálogo (que se baja con `lazy`) no carga, un límite de errores avisa en la tarjeta sin romper Inicio.
-- **Desvíos.** (1) No hay un acceso directo de dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón. (2) La lista «Qué hacer hoy» (`AlertasInicio`, MSF-344) sigue mostrando la alerta `dolar_sin_cargar` a quien solo tiene lectura: es comportamiento previo, **decisión de Nicolás** si debe ocultarse (el CA-INI-07-7 habla del botón y el aviso de carga).
+- **Desvíos.** (1) No hay un acceso directo de dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón. (2) La lista «Qué hacer hoy» (`AlertasInicio`, MSF-344) mostraba la alerta `dolar_sin_cargar` a quien solo tiene lectura; **corregido** (decisión confirmada el 2026-11-14): solo se muestra a quien tiene edición de `cotizacion_dolar`, igual que el botón y el aviso de la tarjeta (CA-INI-07-7). El filtro es de la pantalla; la tabla `alertas_inicio` y su SQL no cambian.
 
 ## Definiciones de los indicadores
 
@@ -277,7 +277,7 @@ Un rol con **solo `actividad`** ve únicamente «Actividad reciente»; un rol si
 `actividad`) no ve el tablero. Los roles con `ventas` pero sin `reportes` (todos salvo Administrador y Administración)
 ven el **monto total con IVA, el ticket promedio y las devoluciones** de las tiendas donde tienen `ventas`, pero no
 los ingresos por tienda ni el margen: es lo que fija FR-006 de la spec (ventas se gatea por `ventas`). Ver el
-hallazgo H-2 de la revisión de seguridad, que lo deja como decisión de Nicolás.
+hallazgo H-2 de la revisión de seguridad: la decisión (2026-11-14) es mantener este criterio.
 
 ## Contratos de las RPC de la épica MSF-824
 
@@ -321,8 +321,7 @@ pedida, es decir offset + límite, y no para todo el listado; salvo que se orden
 
 ## Decisiones de la épica MSF-824
 
-Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de la spec base). Salvo D-6, quedan
-**a confirmar por Nicolás** (así lo declara la spec); D-8 y D-12 se apartan de lo que dice la spec cuando la historia manda.
+Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de la spec base). **Confirmadas por Nicolás**, que delegó todas las decisiones el 2026-11-14; D-8 y D-12 se apartan de lo que dice la spec cuando la historia manda.
 
 | # | Decisión | Dónde se ve |
 |---|---|---|
@@ -330,7 +329,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | D-2 | Ingresos **con IVA** (`total_con_iva`), rotulado; devoluciones = notas de crédito de las tres clases | Ventas del período |
 | D-3 | «Entradas» de **Stock hoy** = movimientos `entrada` sin traslados, devoluciones de cliente ni anulaciones; «Ajustes» = solo `ajuste` | Stock hoy |
 | D-4 | Costo, valor y margen solo con `rentabilidad` ≥ lectura (Administrador y Administración) | Resumen por tienda |
-| D-5 | Margen estimado = margen **real** con el costo guardado en la línea (la historia dice «costo vigente»; manda la historia si Nicolás lo pide) | Resumen por tienda |
+| D-5 | Margen estimado = margen **real** con el costo guardado en la línea (la historia dice «costo vigente»; se confirma el real por ser el único dato histórico fiable: desvío consciente) | Resumen por tienda |
 | D-6 | Gráfico con `@mui/x-charts` — **aprobada por Nicolás el 2026-11-13** | Gráfico |
 | D-7 | «Movimientos por producto» completo, con carga infinita y exportación CSV | Movimientos por producto |
 | D-8 | Período, tienda y depósito viajan en la URL; sin `tienda` sigue a la empresa activa y su cambio la descarta; períodos hoy, 7 días, mes y rango | Filtros |
@@ -348,7 +347,8 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Sin E2E de Playwright de los bloques, el listado y el diálogo del dólar: no se pudo correr Supabase local en las sesiones de desarrollo | **MSF-851** |
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
-| `AlertasInicio` sigue mostrando la alerta `dolar_sin_cargar` a quien solo tiene lectura (comportamiento previo de MSF-344) | Decisión de Nicolás (CA-INI-07-7) |
+| ~~`AlertasInicio` mostraba la alerta `dolar_sin_cargar` a quien solo tiene lectura~~ | **Resuelto** (2026-11-14): solo la ve quien edita `cotizacion_dolar` (CA-INI-07-7) |
+| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** |
 | ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
