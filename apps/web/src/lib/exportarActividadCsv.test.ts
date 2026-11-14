@@ -45,6 +45,15 @@ describe('CSV de la actividad (F-AUD-03, FR-012)', () => {
     expect(csv).toContain(';Sistema\r\n')
   })
 
+  it('rotula «Tienda online» el presupuesto pedido desde la tienda y «Sistema» a los demás sin actor (MSF-176, FR-060)', () => {
+    const csv = armarCsvActividad([
+      fila({ tipo: 'presupuesto.creado_desde_tienda', actor_nombre: null }),
+      fila({ tipo: 'empresa.pausada', actor_nombre: null }),
+    ])
+    expect(csv).toContain(';Tienda online\r\n')
+    expect(csv).toContain(';Sistema\r\n')
+  })
+
   it('neutraliza las celdas que empiezan con = + - @ (inyección de fórmulas)', () => {
     for (const peligrosa of ['=SUMA(A1)', '+1', '-1', '@usuario']) {
       expect(armarCsvActividad([fila({ detalle: peligrosa })])).toContain(`'${peligrosa}`)

@@ -6,7 +6,7 @@ import { useLegalTienda } from '../../../lib/tiendaLegal'
 // Formulario del pedido (MSF-176, B1, FR-025/FR-026, P-4). Visitante: «Nombre» (obligatorio, 1 a 100), «Correo o teléfono» (obligatorio) y «Nota (opcional)» (hasta 500, con contador),
 // más el aviso «Usaremos estos datos solo para responderte.» con el enlace «Política de privacidad» si la tienda lo tiene (el mismo enlace legal del pie). Con cuenta activa no se pide nada:
 // «Vamos a usar los datos de tu cuenta.» y queda la nota. El error de cada campo va debajo, asociado con `aria-describedby`; el foco va al primero con error (lo hace quien lo monta con `refs`).
-export function FormularioPedido({ host, conCuenta, datos, errores, enviando, enviarDeshabilitado, alCambiar, alSalir, alEnviar, refs }: {
+export function FormularioPedido({ host, conCuenta, datos, errores, enviando, enviarDeshabilitado, alCambiar, alSalir, alEnviar, alPedirPresupuesto, refs }: {
   host: string
   conCuenta: boolean
   datos: DatosPedido
@@ -18,6 +18,8 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
   // Al salir de un campo se valida ese campo (P-4: «se validan al enviar y al salir de cada campo»).
   alSalir: (campo: CampoPedido) => void
   alEnviar: () => void
+  // Solo con cuenta ACTIVA (B2): «Pedir presupuesto» es el botón principal y «Enviar pedido» pasa a ser el secundario.
+  alPedirPresupuesto?: () => void
   refs: (campo: CampoPedido, el: HTMLInputElement | HTMLTextAreaElement | null) => void
 }) {
   const legal = useLegalTienda(host)
@@ -84,9 +86,26 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
             {privacidad ? <Link href={privacidad.url} target="_blank" rel="noopener noreferrer" color="inherit">Política de privacidad</Link> : null}
           </Typography>
         )}
-        <Button type="submit" variant="contained" size="large" fullWidth disabled={enviarDeshabilitado || enviando} aria-busy={enviando || undefined} sx={{ minHeight: (tema) => tema.spacing(6) }}>
-          {enviando ? 'Enviando…' : 'Enviar pedido'}
-        </Button>
+        {conCuenta && alPedirPresupuesto ? (
+          <>
+            <Box>
+              <Button type="button" variant="contained" size="large" fullWidth onClick={alPedirPresupuesto} disabled={enviarDeshabilitado || enviando} sx={{ minHeight: (tema) => tema.spacing(6) }}>
+                Pedir presupuesto
+              </Button>
+              <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 13 /* estilos-sueltos: ok */ }}>Te calculamos el precio que te corresponde. Queda a la espera de nuestra respuesta.</Typography>
+            </Box>
+            <Box>
+              <Button type="submit" variant="outlined" size="large" fullWidth disabled={enviarDeshabilitado || enviando} aria-busy={enviando || undefined} sx={{ minHeight: (tema) => tema.spacing(6) }}>
+                {enviando ? 'Enviando…' : 'Enviar pedido'}
+              </Button>
+              <Typography color="text.secondary" sx={{ mt: 0.5, fontSize: 13 /* estilos-sueltos: ok */ }}>Mandamos tu lista como consulta, con precios de referencia.</Typography>
+            </Box>
+          </>
+        ) : (
+          <Button type="submit" variant="contained" size="large" fullWidth disabled={enviarDeshabilitado || enviando} aria-busy={enviando || undefined} sx={{ minHeight: (tema) => tema.spacing(6) }}>
+            {enviando ? 'Enviando…' : 'Enviar pedido'}
+          </Button>
+        )}
       </Stack>
     </Box>
   )

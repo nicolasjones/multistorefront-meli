@@ -6,7 +6,7 @@ import { useCapacidadesTienda } from '../../../hooks/useCapacidadesTienda'
 import { useListaPedido } from '../../../hooks/useListaPedido'
 import { useSesionClienteDetallada } from '../../../hooks/useSesionCliente'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
-import { leerLista } from '../../../lib/listaPedido'
+import { leerLista, type LineaPedido } from '../../../lib/listaPedido'
 import { minutosDeEspera } from '../../../lib/tiendaContacto'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import {
@@ -27,7 +27,8 @@ import { LINEA_SUAVE } from '../layout/medidas'
 import { MigasTienda } from '../layout/MigasTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { CabeceraSeo } from '../seo/CabeceraSeo'
-import { ConfirmacionPedido } from './ConfirmacionPedido'
+import { ConfirmacionPedido, type PresupuestoPedido } from './ConfirmacionPedido'
+import { DialogoPresupuesto, type PresupuestoConfirmado } from './DialogoPresupuesto'
 import { FormularioPedido } from './FormularioPedido'
 import { LineaLista, LineaNoDisponible } from './LineaLista'
 
@@ -65,7 +66,9 @@ export function PantallaLista({ host }: { host: string }) {
   const [errores, setErrores] = useState<ErroresPedido>({})
   const [enviando, setEnviando] = useState(false)
   const [aviso, setAviso] = useState<AvisoEnvio | null>(null)
-  const [confirmado, setConfirmado] = useState<{ conCuenta: boolean } | null>(null)
+  const [confirmado, setConfirmado] = useState<{ conCuenta: boolean; presupuesto?: PresupuestoPedido } | null>(null)
+  // Presupuesto (B2): el diálogo abierto con la lista y la nota de ESE intento; la `clave_envio` es de ese contenido (la misma en «Reintentar» y al reabrir lo mismo).
+  const [presupuestoAbierto, setPresupuestoAbierto] = useState<{ lineas: LineaPedido[]; nota: string; clave: string } | null>(null)
   const [forzarVisitante, setForzarVisitante] = useState(false)
   const [esperando, setEsperando] = useState(false)
   const [imagenes, setImagenes] = useState<Record<string, string>>({})
@@ -74,6 +77,7 @@ export function PantallaLista({ host }: { host: string }) {
   const campos = useRef<Partial<Record<CampoPedido, HTMLInputElement | HTMLTextAreaElement | null>>>({})
   const enviandoAhora = useRef(false)
   const clave = useRef<{ valor: string; firma: string } | null>(null)
+  const clavePresupuesto = useRef<{ valor: string; firma: string } | null>(null)
   const primeraRevision = useRef(true)
   const nombresVistos = useRef(new Map<string, string>())
   const renovando = useRef(new Set<string>())
@@ -145,7 +149,7 @@ export function PantallaLista({ host }: { host: string }) {
   }
   if (!capacidades.pedidos) return <PaginaNoEncontrada />
   if (confirmado) {
-    return <Box><CabeceraSeo noindex pagina="Mi lista" /><ConfirmacionPedido conCuenta={confirmado.conCuenta} /></Box>
+    return <Box><CabeceraSeo noindex pagina="Mi lista" /><ConfirmacionPedido conCuenta={confirmado.conCuenta} presupuesto={confirmado.presupuesto} /></Box>
   }
 
   const datosServidor = revision.fase === 'lista' ? revision.datos : null
@@ -234,6 +238,30 @@ export function PantallaLista({ host }: { host: string }) {
       enviandoAhora.current = false
       setEnviando(false)
     }
+  }
+
+  // «Pedir presupuesto» (B2, FR-050): valida la nota, arma la lista de lo que el servidor ve como disponible y abre la cotización. La `clave_envio` depende del contenido (lista + nota).
+  const pedirPresupuesto = () => {
+    const erroresNuevos = validarPedido(datos, true)
+    setErrores(erroresNuevos)
+    if (Object.keys(erroresNuevos).length > 0) { enfocarPrimero(erroresNuevos); return }
+    const lineas = visibles.map((linea) => ({ productoId: linea.productoId, cantidad: linea.cantidad }))
+    if (lineas.length === 0) return
+    const firma = JSON.stringify([lineas, datos.nota.trim()])
+    if (!clavePresupuesto.current || clavePresupuesto.current.firma !== firma) clavePresupuesto.current = { valor: nuevaClavePedido(), firma }
+    setAviso(null)
+    setPresupuestoAbierto({ lineas, nota: datos.nota, clave: clavePresupuesto.current.valor })
+  }
+  const presupuestoConfirmado = (presupuesto: PresupuestoConfirmado) => {
+    lista.vaciar()
+    setPresupuestoAbierto(null)
+    setConfirmado({ conCuenta: true, presupuesto })
+  }
+  const presupuestoSinAcceso = () => {
+    // El servidor ya no ve una cuenta activa: la pantalla se comporta como visitante.
+    setPresupuestoAbierto(null)
+    setForzarVisitante(true)
+    setAviso({ tipo: 'cuenta_inactiva' })
   }
 
   return (
@@ -333,11 +361,24 @@ export function PantallaLista({ host }: { host: string }) {
               alCambiar={cambiarDato}
               alSalir={salirDeCampo}
               alEnviar={() => { void enviar() }}
+              alPedirPresupuesto={conCuenta ? pedirPresupuesto : undefined}
               refs={(campo, el) => { campos.current[campo] = el }}
             />
           </Box>
         </Box>
       )}
+      {presupuestoAbierto ? (
+        <DialogoPresupuesto
+          host={host}
+          lineas={presupuestoAbierto.lineas}
+          nota={presupuestoAbierto.nota}
+          claveEnvio={presupuestoAbierto.clave}
+          nombres={nombresVistos.current}
+          alCerrar={() => setPresupuestoAbierto(null)}
+          alConfirmado={presupuestoConfirmado}
+          alSinAcceso={presupuestoSinAcceso}
+        />
+      ) : null}
     </Box>
   )
 }

@@ -21,7 +21,7 @@ import {
   type PaginaPresupuestos,
   type Presupuesto,
 } from '../../lib/ventasPresupuestos'
-import { mensajeDeErrorComprobante } from '../../lib/ventas'
+import { mensajeDeErrorComprobante, OPERADOR_TIENDA_ONLINE } from '../../lib/ventas'
 import type { FiltrosComprobantes } from '../../lib/ventasComprobantes'
 import { MENSAJE_PREPARANDO, esCancelacion, mensajeDeErrorImpresion } from '../../lib/ventasImpresion'
 import {
@@ -65,7 +65,7 @@ const columnas: ColumnaAdaptable<Presupuesto>[] = [
   { clave: 'tienda', encabezado: 'Tienda', render: (p) => <EtiquetaEstado texto={p.empresa} variante="contorno" /> },
   { clave: 'fecha', encabezado: 'Fecha', render: (p) => formatearFecha(p.fecha) },
   { clave: 'cliente', encabezado: 'Cliente', render: (p) => <Typography component="span" sx={{ fontWeight: 600 }}>{p.cliente}</Typography> },
-  { clave: 'operador', encabezado: 'Operador', render: (p) => p.operador },
+  { clave: 'operador', encabezado: 'Operador', render: (p) => (p.operador === OPERADOR_TIENDA_ONLINE ? <Typography component="span" color="text.secondary">{p.operador}</Typography> : p.operador) },
   { clave: 'valido_hasta', encabezado: 'Válido hasta', render: (p) => (p.valido_hasta ? formatearFecha(p.valido_hasta) : '—') },
   { clave: 'estado', encabezado: 'Estado', render: (p) => <EtiquetaEstado texto={etiquetaEstadoPresupuesto(p.estado)} variante={varianteEstadoPresupuesto(p.estado)} /> },
   { clave: 'total', encabezado: 'Total', align: 'right', render: (p) => <b>{formatearImporteHistorial(p.total)}</b> },

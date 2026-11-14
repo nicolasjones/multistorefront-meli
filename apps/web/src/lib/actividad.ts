@@ -69,6 +69,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'comprobante.nota_credito_emitida': 'Comprobante nota crédito emitida',
   'rma.nota_credito_vinculada': 'RMA nota crédito vinculada',
   'reparacion.editada': 'Reparación editada',
+  'presupuesto.creado_desde_tienda': 'Presupuesto pedido desde la tienda',
 }
 
 // Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.
@@ -77,6 +78,14 @@ const PALABRA_ACTIVIDAD: Readonly<Record<string, string>> = { reparacion: 'repar
 // Texto de la columna «Tienda»: lo comparten la tabla y el CSV exportado (F-AUD-03, FR-012).
 export function tiendaDelEvento(empresaNombre: string | null, empresaId: string | null): string {
   return empresaNombre ?? (empresaId ? 'Empresa no disponible' : 'Compartido')
+}
+
+// Texto de la columna «Quién» (lista, detalle y exportación). Un evento sin actor es «Sistema», salvo el presupuesto que pide un cliente desde la tienda
+// (MSF-176, B2, FR-060): no lo hace el sistema ni una persona del panel, lo hace la persona desde la tienda; el cliente queda identificado en el detalle del evento.
+export const TIPO_PRESUPUESTO_DESDE_TIENDA = 'presupuesto.creado_desde_tienda'
+export function quienDelEvento(tipo: string, actorNombre: string | null): string {
+  if (actorNombre) return actorNombre
+  return tipo === TIPO_PRESUPUESTO_DESDE_TIENDA ? 'Tienda online' : 'Sistema'
 }
 
 export function etiquetaTipoActividad(tipo: string): string {

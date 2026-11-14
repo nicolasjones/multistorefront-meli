@@ -4,13 +4,17 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), schema: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { schema: mocks.schema } }))
 
 import {
+  cotizarPresupuesto,
+  crearPresupuesto,
   enviarListaPedido,
   ErrorListaPedido,
   MENSAJE_CARACTERES,
   MENSAJES_PEDIDO,
   revalidarLista,
+  traducirCotizacion,
   traducirListaRevalidada,
   traducirRespuestaPedido,
+  traducirRespuestaPresupuesto,
   validarPedido,
 } from './tiendaPedido'
 
@@ -139,5 +143,101 @@ describe('enviarListaPedido (FR-027)', () => {
     expect(await enviarListaPedido(HOST, { nombre: 'Ana', contacto: 'ana@example.com', nota: '' }, LINEAS, CLAVE)).toEqual({ estado: 'falla' })
     mocks.rpc.mockRejectedValue(new Error('sin red'))
     expect(await enviarListaPedido(HOST, { nombre: 'Ana', contacto: 'ana@example.com', nota: '' }, LINEAS, CLAVE)).toEqual({ estado: 'falla' })
+  })
+})
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// MSF-176 · B2 · Presupuesto desde la tienda (FR-050 a FR-059)
+// ---------------------------------------------------------------------------------------------------------------------------------
+const lineaCot = (extra: Record<string, unknown> = {}) => ({
+  producto_id: ID, descripcion: 'Joystick', codigo: 'JOY-1', cantidad: 3, precio_unitario: 2000, subtotal_sin_iva: 6000, iva: 1260, disponible: true, ...extra,
+})
+const cotOk = (extra: Record<string, unknown> = {}) => ({
+  estado: 'ok', lineas: [lineaCot()], total_sin_iva: 6000, iva: 1260, total_con_iva: 7260, no_disponibles: [], sin_precio: [], ...extra,
+})
+
+describe('cotizarPresupuesto (FR-050)', () => {
+  it('manda solo host y la lista {producto_id, cantidad}: nunca precio, escala, descuento, cliente ni empresa', async () => {
+    mocks.rpc.mockResolvedValue({ data: cotOk(), error: null })
+    const resultado = await cotizarPresupuesto(HOST, LINEAS)
+    expect(mocks.schema).toHaveBeenCalledWith('publico')
+    expect(mocks.rpc).toHaveBeenCalledWith('cotizar_presupuesto_tienda', { host: HOST, items: [{ producto_id: ID, cantidad: 3 }] })
+    expect(resultado).toEqual({
+      estado: 'ok',
+      cotizacion: {
+        lineas: [{ productoId: ID, descripcion: 'Joystick', codigo: 'JOY-1', cantidad: 3, precioUnitario: 2000, subtotalSinIva: 6000, iva: 1260, disponible: true }],
+        totalSinIva: 6000, iva: 1260, totalConIva: 7260, noDisponibles: [], sinPrecio: [],
+      },
+    })
+  })
+
+  it('acepta importes como texto numérico y conserva los productos no disponibles y sin precio', async () => {
+    mocks.rpc.mockResolvedValue({ data: cotOk({ total_con_iva: '7260.50', no_disponibles: [ID, 5], sin_precio: ['x'] }), error: null })
+    const resultado = await cotizarPresupuesto(HOST, LINEAS)
+    expect(resultado.estado === 'ok' && resultado.cotizacion.totalConIva).toBe(7260.5)
+    expect(resultado.estado === 'ok' && resultado.cotizacion.noDisponibles).toEqual([ID])
+    expect(resultado.estado === 'ok' && resultado.cotizacion.sinPrecio).toEqual(['x'])
+  })
+
+  it('un importe faltante o no numérico NO se vuelve 0: es una falla reintentable', () => {
+    expect(traducirCotizacion(cotOk({ total_con_iva: null }))).toEqual({ estado: 'falla' })
+    expect(traducirCotizacion(cotOk({ lineas: [lineaCot({ precio_unitario: 'abc' })] }))).toEqual({ estado: 'falla' })
+    expect(traducirCotizacion(cotOk({ lineas: [lineaCot({ cantidad: 0 })] }))).toEqual({ estado: 'falla' })
+    expect(traducirCotizacion(cotOk({ lineas: 'no es lista' }))).toEqual({ estado: 'falla' })
+    expect(traducirCotizacion(null)).toEqual({ estado: 'falla' })
+  })
+
+  it('traduce cada estado de la base y los fallos de red', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(traducirCotizacion({ estado: 'invalido', campos: ['items'] })).toEqual({ estado: 'invalido' })
+    expect(traducirCotizacion({ estado: 'limite', espera_segundos: 61 })).toEqual({ estado: 'espera', esperaSegundos: 61 })
+    expect(traducirCotizacion({ estado: 'limite' })).toEqual({ estado: 'espera', esperaSegundos: 60 })
+    expect(traducirCotizacion({ estado: 'sin_acceso' })).toEqual({ estado: 'sin_acceso' })
+    expect(traducirCotizacion({ estado: 'error' })).toEqual({ estado: 'falla' })
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'detalle interno de Postgres' } })
+    expect(await cotizarPresupuesto(HOST, LINEAS)).toEqual({ estado: 'falla' })
+    mocks.rpc.mockRejectedValue(new Error('sin red'))
+    expect(await cotizarPresupuesto(HOST, LINEAS)).toEqual({ estado: 'falla' })
+  })
+})
+
+describe('crearPresupuesto (FR-051, FR-052, FR-058, FR-059)', () => {
+  it('manda host, la lista sin precios, la nota recortada (o null) y la clave de envío', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'ok', numero: '00000012', fecha: '2026-11-14', total_con_iva: 7260 }, error: null })
+    const resultado = await crearPresupuesto(HOST, LINEAS, '  Después de las 18\r\nhs  ', CLAVE)
+    expect(mocks.rpc).toHaveBeenCalledWith('crear_presupuesto_tienda', {
+      host: HOST, items: [{ producto_id: ID, cantidad: 3 }], nota: 'Después de las 18\nhs', clave_envio: CLAVE,
+    })
+    expect(resultado).toEqual({ estado: 'exito', numero: '00000012', fecha: '2026-11-14', totalConIva: 7260 })
+    await crearPresupuesto(HOST, LINEAS, '   ', CLAVE)
+    expect(mocks.rpc.mock.calls[1][1].nota).toBeNull()
+  })
+
+  it('traduce cada estado del contrato', () => {
+    expect(traducirRespuestaPresupuesto({ estado: 'invalido', campos: ['nota', 'raro', 'items'] })).toEqual({ estado: 'invalido', campos: ['nota', 'items'] })
+    expect(traducirRespuestaPresupuesto({ estado: 'sin_precio', producto_id: ID })).toEqual({ estado: 'sin_precio', productoId: ID })
+    expect(traducirRespuestaPresupuesto({ estado: 'no_disponible', producto_id: ID })).toEqual({ estado: 'no_disponible', productoId: ID })
+    expect(traducirRespuestaPresupuesto({ estado: 'no_disponible' })).toEqual({ estado: 'no_disponible', productoId: null })
+    expect(traducirRespuestaPresupuesto({ estado: 'limite', espera_segundos: 125 })).toEqual({ estado: 'espera', esperaSegundos: 125 })
+    expect(traducirRespuestaPresupuesto({ estado: 'limite_cuenta' })).toEqual({ estado: 'limite_cuenta' })
+    expect(traducirRespuestaPresupuesto({ estado: 'sin_acceso' })).toEqual({ estado: 'sin_acceso' })
+    expect(traducirRespuestaPresupuesto({ estado: 'error' })).toEqual({ estado: 'falla' })
+    expect(traducirRespuestaPresupuesto({ estado: 'algo-nuevo' })).toEqual({ estado: 'falla' })
+    expect(traducirRespuestaPresupuesto(null)).toEqual({ estado: 'falla' })
+  })
+
+  it('un ok sin número o sin total numérico no se afirma: es una falla', () => {
+    expect(traducirRespuestaPresupuesto({ estado: 'ok', total_con_iva: 100 })).toEqual({ estado: 'falla' })
+    expect(traducirRespuestaPresupuesto({ estado: 'ok', numero: '', total_con_iva: 100 })).toEqual({ estado: 'falla' })
+    expect(traducirRespuestaPresupuesto({ estado: 'ok', numero: '00000001', total_con_iva: 'mucho' })).toEqual({ estado: 'falla' })
+    expect(traducirRespuestaPresupuesto({ estado: 'ok', numero: '00000001', total_con_iva: '50.25' })).toEqual({ estado: 'exito', numero: '00000001', fecha: '', totalConIva: 50.25 })
+  })
+
+  it('un corte de red o un error del servidor no muestran el detalle técnico: falla', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'detalle interno' } })
+    expect(await crearPresupuesto(HOST, LINEAS, '', CLAVE)).toEqual({ estado: 'falla' })
+    mocks.rpc.mockRejectedValue(new Error('sin red'))
+    expect(await crearPresupuesto(HOST, LINEAS, '', CLAVE)).toEqual({ estado: 'falla' })
   })
 })

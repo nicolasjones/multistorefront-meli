@@ -120,6 +120,19 @@ describe('PresupuestosList', () => {
     expect(screen.getByText('3 presupuestos')).toBeInTheDocument()
   })
 
+  it('la columna Operador dice «Tienda online (cliente)» (en texto secundario) para un presupuesto pedido desde la tienda (MSF-176, B2, FR-061)', async () => {
+    mocks.listarPresupuestos.mockResolvedValue(pagina([
+      presupuesto(1, { operador: 'Tienda online (cliente)', cliente: 'Cliente tienda' }),
+      presupuesto(2, { operador: 'Emilse' }),
+    ]))
+    abrir()
+    const tienda = await screen.findByText('Tienda online (cliente)')
+    expect(within(tienda.closest('tr') as HTMLElement).getByText('Cliente tienda')).toBeInTheDocument()
+    expect(within(tienda.closest('tr') as HTMLElement).getByText('Pendiente', { selector: '.MuiChip-label' })).toBeInTheDocument()
+    expect(screen.queryByText('Usuario sin nombre')).not.toBeInTheDocument()
+    expect(screen.getByText('Emilse')).toBeInTheDocument()
+  })
+
   it('ofrece «Exportar», «Imprimir» y «Enviar por correo», pero no Facturar (fuera de alcance)', async () => {
     abrir()
     await screen.findByText('Cliente 1')

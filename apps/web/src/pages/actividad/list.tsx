@@ -9,6 +9,7 @@ import {
   etiquetaTipoActividad,
   FILTROS_ACTIVIDAD_INICIALES,
   formatearCuando,
+  quienDelEvento,
   tiendaDelEvento,
   type EventoActividadListado,
   type FiltrosActividad,
@@ -31,7 +32,7 @@ const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
   { clave: 'tipo', encabezado: 'Tipo', render: (evento) => etiquetaTipoActividad(evento.tipo) },
   { clave: 'tienda', encabezado: 'Tienda', render: (evento) => tiendaDelEvento(evento.empresaNombre, evento.empresaId) },
   { clave: 'detalle', encabezado: 'Detalle', render: (evento) => evento.detalle },
-  { clave: 'quien', encabezado: 'Quién', render: (evento) => evento.actorNombre ?? 'Sistema' },
+  { clave: 'quien', encabezado: 'Quién', render: (evento) => quienDelEvento(evento.tipo, evento.actorNombre) },
 ]
 
 // Historial de actividad (F-AUD-01, FR-003…FR-006): filtros, búsqueda y
