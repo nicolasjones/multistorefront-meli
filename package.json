@@ -121,7 +121,7 @@
     "test:superset:config": "python3 infra/superset/superset_config.test.py",
     "test:runner:selfheal": "node --test infra/runner/restaurar-bin.test.mjs",
     "superset:importar-dashboards": "node infra/superset/importar-dashboards.mjs",
-    "test:superset:importar-dashboards": "node --test infra/superset/empaquetar-dashboards.test.mjs infra/superset/importar-dashboards.test.mjs",
+    "test:superset:importar-dashboards": "node --test infra/superset/empaquetar-dashboards.test.mjs infra/superset/importar-dashboards.test.mjs infra/superset/analitica-avanzada.test.mjs",
     "test:kestra:secretos": "node infra/kestra/test-secretos-orquestacion.mjs",
     "test:kestra:secretos:e2e": "node infra/kestra/validar-secretos-e2e.mjs",
     "test:kestra:runtime": "node infra/kestra/validar-workers-runtime.mjs",

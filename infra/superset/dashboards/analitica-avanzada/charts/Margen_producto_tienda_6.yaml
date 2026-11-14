@@ -1,0 +1,11 @@
+slice_name: 'Margen por producto y tienda'
+description: 'Vendido, costo, margen y margen % de cada producto en cada tienda, del menor al mayor margen para ver primero lo que pierde (F-REP-07).'
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "dashboards": [], "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre", "sku", "categoria", "empresa_nombre"], "metrics": ["unidades_total", "vendido_total", "costo_total", "margen_total", "margen_pct_total"], "percent_metrics": [], "timeseries_limit_metric": "margen_total", "order_desc": false, "row_limit": 10000, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 37c57e8c-2af6-5f29-bac7-62ba8f8c3b4b
+version: 1.0.0
+dataset_uuid: 61f3dc0c-68a4-5479-afe8-16c1fd49aa51
