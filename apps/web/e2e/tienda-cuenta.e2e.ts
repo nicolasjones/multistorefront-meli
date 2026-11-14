@@ -108,7 +108,7 @@ async function sembrarCliente(tienda: Tienda, etiqueta: string): Promise<Sembrad
 
 const comprobante = (clienteId: string, tienda: Tienda, extra: Record<string, unknown>) => ({
   organizacion_id: tienda.organizacion, empresa_id: tienda.empresa, cliente_id: clienteId, fecha: HOY, canal: 'mostrador',
-  total_sin_iva: 100, total_con_iva: 121, ...extra,
+  total_sin_iva: 100, total_con_iva: 121, valido_hasta: null, ...extra, // PostgREST exige las mismas claves en cada fila de un alta masiva
 })
 
 // Completa y envía el formulario de /ingresar (la página ya está abierta).
