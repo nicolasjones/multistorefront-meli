@@ -16,7 +16,7 @@ El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz
 |-------|------------------|--------|-------|
 | Reproduction (pre-fix) | `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` | fail | Exit 1: `Fallo de spec: la matriz debe incluir «Empresa activa» (o «Empresa activa: no aplica» y el motivo). - specs/023-visor-componentes/spec.md` (idéntico al log del CI) |
 | Reproduction (post-fix) | `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` | pass | Exit 0: `Matriz pantalla↔criterios: OK (6 specs nuevas revisadas, 0 exentas).` |
-| New / updated tests | `pnpm test:matriz:pantalla` | pass | 10/10 (el archivo no se modificó: la regla ya tenía sus tests) |
+| New / updated tests | `pnpm test:matriz:pantalla` | pass | 14/14 (era 10/10: en la quinta vuelta se modificó el archivo con el test de rechazo, el de la exención y los dos de la lista) |
 | Estructura de la tabla | conteo de celdas de la fila «Empresa activa» contra el encabezado | pass | 2 celdas = 2 columnas del encabezado (la primera versión tenía 3 y el criterio se perdía al renderizar) |
 | CI (PR #929) | run `43491976550`, job `application` id `132131028268` | pass | `application` en success sobre el SHA `73de5501`: `pnpm matriz:check` pasó contra `origin/dokploy` |
 | CI (PR #934) | run `43492109016`, job `validacion` id `132126092325` | pass | `validacion` en success (único check requerido de `dokploy`) |
@@ -32,7 +32,7 @@ El síntoma no se reproduce: con la fila «Empresa activa» agregada a la matriz
 | Estado del PR | `gh pr view 934 --json mergeable,mergeStateStatus` | pass | Antes del sync: `CONFLICTING` / `DIRTY`; después del merge `858b85b1`: `MERGEABLE` / `BLOCKED` (el `BLOCKED` es el check requerido `validacion` en curso, no un conflicto) |
 | Pasos del job `application` | `docs:check` · `test:docs:pasos-manuales` · `test:db:guard-migraciones` · `estilos:check` · `test:estilos:sueltos` · `e2e:escritura:check` · `test:e2e:escritura` · `test:e2e:omitidos` · `ui:empresas:check` · `test:ui:empresas` · `prototipo:check` · `test:prototipo:inventario` · `matriz:check` · `test:matriz:pantalla` | pass | 14/14 OK contra el árbol mergeado |
 | Gate de la regla | `MATRIZ_CHECK_BASE=origin/dokploy node scripts/verificar-matriz-pantalla.mjs` | pass | Exit 0: `Matriz pantalla↔criterios: OK (6 specs nuevas revisadas, 0 exentas).` |
-| Tests de la regla | `pnpm test:matriz:pantalla` | pass | 10/10 |
+| Tests de la regla | `pnpm test:matriz:pantalla` | pass | 10/10 (en esa vuelta; hoy 14/14) |
 | Lint | `pnpm lint` | pass | Exit 0 (warnings preexistentes) |
 | Build | `pnpm build` | pass | `✓ built` |
 | Tests de lo que trae el merge | `pnpm test:edge:enviar-aviso-faltante` | pass | 126/126 (configuración SMTP de PR #930/#931, traída por `dokploy`) |
@@ -54,7 +54,7 @@ por el PR #929.
 | Gate de la regla | `GITHUB_BASE_REF=dokploy pnpm matriz:check` | pass | OK (0 specs nuevas revisadas; la spec 023 ya está en la base) |
 | Docs + migraciones | `GITHUB_BASE_REF=dokploy pnpm docs:check` | pass | `Migraciones OK: 649 archivo(s), 0 nuevo(s)` |
 | Prototipo | `pnpm prototipo:check` | pass | 120 pantallas al día |
-| Tests de la regla | `pnpm test:matriz:pantalla` | pass | 10/10 |
+| Tests de la regla | `pnpm test:matriz:pantalla` | pass | 10/10 (en esa vuelta; hoy 14/14) |
 | Estilos / lint | `pnpm estilos:check` · `pnpm lint` | pass | Exit 0 (warnings preexistentes) |
 | Job `quality` (CI) | `gh pr checks 934` | pass | 1m22s sobre `858b85b1` |
 
