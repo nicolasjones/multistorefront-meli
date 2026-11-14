@@ -5,7 +5,7 @@
 - Rutas del panel: **255**
 - Tablas en migraciones: **195**
 - Variables de entorno: **106**
-- Specs: **147**
+- Specs: **148**
 - Páginas de documentación: **316**
 
 ## Rutas del panel
@@ -672,6 +672,7 @@
 - `20261024-100000-ventas-impresion` — Feature Specification: Ventas y despacho · Ventas impresión
 - `20261024-120000-avisos-y-listas-configurables` — Feature Specification: Plataforma · Avisos y listas configurables
 - `20261024-120000-stock-lotes-e-inventario` — Feature Specification: Stock · Stock lotes e inventario
+- `20261024-120000-tienda-compra-y-cuentas` — Feature Specification: Tiendas online · Tienda compra y cuentas
 - `20261024-120000-tienda-inicio-busqueda-movil` — Feature Specification: Tiendas online · Tienda inicio búsqueda móvil
 - `20261024-130000-rentabilidad-comparativos-e-historia` — Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad comparativos e historia
 - `20261024-130000-stock-carga-exportacion-y-avisos` — Feature Specification: Stock · Stock carga, exportación y avisos
