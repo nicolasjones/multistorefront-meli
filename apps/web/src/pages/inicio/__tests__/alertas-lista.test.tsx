@@ -17,6 +17,11 @@ vi.mock('../../../hooks/useEmpresasAccesibles', () => ({
   }),
 }))
 
+const nivel = vi.hoisted(() => ({ dolar: 'edicion' as string }))
+vi.mock('../../../hooks/useNivelSeccion', () => ({
+  useNivelSeccion: (seccion: string) => ({ nivel: seccion === 'cotizacion_dolar' ? nivel.dolar : 'edicion', isLoading: false, error: false }),
+}))
+
 import { AlertasInicio } from '../AlertasInicio'
 
 const alerta = (tipo: string, cantidad: number, empresaId: string | null = null) => ({
@@ -26,6 +31,7 @@ const alerta = (tipo: string, cantidad: number, empresaId: string | null = null)
 describe('Lista de alertas de Inicio (FR-025, FR-026)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    nivel.dolar = 'edicion'
     mocks.calculo.mockResolvedValue(new Date().toISOString())
   })
 
@@ -68,5 +74,32 @@ describe('Lista de alertas de Inicio (FR-025, FR-026)', () => {
     render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
     expect(await screen.findByText('No pudimos cargar este dato')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('quien solo tiene lectura del dólar no ve la alerta de carga y las demás siguen igual (CA-INI-07-7)', async () => {
+    mocks.alertas.mockResolvedValue([alerta('sin_stock', 3), alerta('dolar_sin_cargar', 1), alerta('margen_negativo', 4, 'e1')])
+    for (const sinEdicion of ['lectura', 'ninguno']) {
+      nivel.dolar = sinEdicion
+      const { unmount } = render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
+      const lista = await screen.findByRole('list', { name: 'Alertas' })
+      expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
+      expect(screen.queryByText('Todavía no se cargó el dólar de hoy')).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Ver: 3 productos sin stock' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Ver: 4 productos con margen negativo' })).toBeInTheDocument()
+      unmount()
+    }
+  })
+
+  it('el administrador (edición del dólar) sí ve la alerta de carga', async () => {
+    mocks.alertas.mockResolvedValue([alerta('dolar_sin_cargar', 1)])
+    render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
+    expect(await screen.findByRole('link', { name: 'Abrir: Todavía no se cargó el dólar de hoy' })).toBeInTheDocument()
+  })
+
+  it('si la única alerta es la del dólar y no puede editarla, muestra «Todo al día»', async () => {
+    nivel.dolar = 'lectura'
+    mocks.alertas.mockResolvedValue([alerta('dolar_sin_cargar', 1)])
+    render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
+    expect(await screen.findByText('Todo al día')).toBeInTheDocument()
   })
 })
