@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "a2e742bfd25170c4defc3c869cf0c61e66b1802dd44fc0b3d995678e7200d9da",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "35c771bbfcdf20a52eec1ad82da93292d70f7beb60bba782ec4882a9f1ccc733",
+      "sourceHash": "e15fca6215350db73589c0ff603588f29216d9f71786985f5b5c322556255ab2",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -1776,12 +1776,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "9fc94fb5e3e3de16ad6ba58168181fb97bb970824dfb38ec30f80c6eb896a542",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "8d576114"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -1912,9 +1912,9 @@
     },
     "docs/service-reportes.md": {
       "title": "Service técnico · Reportes y exportación (F-SVC-23, MSF-168)",
-      "pageHash": "54aa1071969a58983b83e215dc4505a71da1cae762c69306df82d774caacf4a7",
-      "sourceHash": "b12992bf45e5e6035a958c07410a4dd79e312ef24157bf843a9ff531d717b5dd",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "466dbb4bb8f8fe7c538616ccfcb85c57981d8ee882ed435579b29b0aa96e19e0",
+      "sourceHash": "265884a8d7903f10efd1669bdea695ad3c2b97931a0c4d98297dab8412e4bf43",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes",
         "infra/superset/dashboards/service",
@@ -1925,7 +1925,7 @@
         "supabase/migrations/20270219130300_reportes_service.sql"
       ],
       "owner": "datos",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/service-repuestos-devolucion.md": {
       "title": "Devolución de repuestos al quitar o anular (F-SVC-11)",
@@ -1965,14 +1965,14 @@
     },
     "docs/service-seguimiento.md": {
       "title": "Service técnico · Consulta de estado por el cliente con enlace (F-SVC-22)",
-      "pageHash": "fd9faf74a802968f87164aaf65dd7a94d07eaf98de6c262b6378f64528fffe03",
-      "sourceHash": "d28c36cd70f3e3c313ba9e5256d0b1413640fed236b10afa956985aed8f70654",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "acd020d4bb829b56d233fd8a83de7f34aeb873d872c34c20d02bb14b70d3f363",
+      "sourceHash": "d84541bdd3bceeecaf12ebc3a32fa4f1b97f8895b272894683a53aac847f274a",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
