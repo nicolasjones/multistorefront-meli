@@ -1781,7 +1781,7 @@
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "b268abdf"
+      "commit": "0cf3ca6e"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2803,13 +2803,13 @@
       "title": "Onboarding técnico",
       "pageHash": "14d007c79d5520a25272a7b0d7cf74f0fdabad4c9acdfa6b8151e01e195954e0",
       "sourceHash": "5d6933fc652fb4cb697a0da6c428cadb980ff4dcbe05c3005fdebbc67ea9fd08",
-      "sourceAt": "9878a137",
+      "sourceAt": "a6f780be",
       "sources": [
         "package.json",
         "apps/web/package.json"
       ],
       "owner": "tecnico",
-      "commit": "9878a137"
+      "commit": "a6f780be"
     },
     "docs/tecnico/operacion-copias-y-documentacion.md": {
       "title": "Operación, copias y documentación (MSF-457) · técnico",
