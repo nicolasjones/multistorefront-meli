@@ -86,7 +86,7 @@ describe('urlWhatsapp', () => {
     expect(url).toBe('https://wa.me/5491155550001?text=Hola%20Mundo%20JC%2C%20quiero%20consultar%20por%20Joystick%20Pro%20(%24%2018.455).%20%C2%BFEst%C3%A1%20disponible%3F')
   })
 
-  it('un número local lleva el código de país (MSF-696)', () => {
+  it('un número local lleva el código de país', () => {
     expect(urlWhatsapp('11 5555-0001', 'hola')).toBe('https://wa.me/5491155550001?text=hola')
   })
 

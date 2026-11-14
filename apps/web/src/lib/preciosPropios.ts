@@ -4,7 +4,7 @@ import { type Moneda, parsearImporte } from './productos'
 // Precio propio de un producto en una empresa (F-PRE-08, FR-013…FR-019). La autoridad es la base
 // (`dominio.precios_propios_empresa`, `public.fijar_precio_propio`, `public.quitar_precio_propio`,
 // `public.leer_precios_propios`): acá solo se valida el texto antes de llamar y se traducen los errores.
-// Los precios propios no se envían a Mercado Libre (Etapa 2, FR-020).
+// Los precios propios no se envían a Mercado Libre (FR-020).
 //
 // Fuera de alcance (FR-019, Decisión abierta 4): el listado de productos no tiene hoy columna de precio por
 // empresa, así que la marca «Precio propio» vive solo en la ficha (y en el simulador, F-PRE-09).

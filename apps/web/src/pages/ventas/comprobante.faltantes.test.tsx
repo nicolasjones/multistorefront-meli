@@ -146,7 +146,7 @@ describe('Detalle · «Registrar faltantes» (F-VTA-18, FR-047)', () => {
     expect(screen.getByRole('region', { name: /Envío y transporte/ })).toBeInTheDocument()
   })
 
-  it('un borrador no muestra la tarjeta de Responsables (MSF-598)', async () => {
+  it('un borrador no muestra la tarjeta de Responsables', async () => {
     mocks.obtenerComprobante.mockResolvedValue({ ...FACTURA, estado: 'borrador' })
     render(arbol())
     await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalled())

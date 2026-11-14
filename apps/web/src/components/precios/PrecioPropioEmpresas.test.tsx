@@ -57,7 +57,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     instalarRpc()
   })
 
-  it('[MSF-423:T028] una fila por empresa del producto, con Moneda, Precio propio y Quitar', async () => {
+  it('una fila por empresa del producto, con Moneda, Precio propio y Quitar', async () => {
     montar()
     expect(await screen.findByLabelText('Precio propio (San Javucho)')).toBeInTheDocument()
     expect(screen.getByLabelText('Precio propio (Mundo JC)')).toBeInTheDocument()
@@ -67,7 +67,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(screen.queryByText('Precio propio', { selector: '.MuiChip-label' })).not.toBeInTheDocument()
   })
 
-  it('[MSF-423:T028] alta: fija el precio y la fila queda con la marca «Precio propio»', async () => {
+  it('alta: fija el precio y la fila queda con la marca «Precio propio»', async () => {
     montar()
     const campo = await screen.findByLabelText('Precio propio (Mundo JC)')
     fireEvent.change(campo, { target: { value: '27000' } })
@@ -81,7 +81,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(screen.getByLabelText('Precio propio (San Javucho)')).toHaveValue('')
   })
 
-  it('[MSF-423:T028] edición: carga lo guardado, cambia la moneda y el importe y vuelve a fijar', async () => {
+  it('edición: carga lo guardado, cambia la moneda y el importe y vuelve a fijar', async () => {
     montar({ productoId: 'p-2', empresaIds: ['emp-1'] })
     const campo = await screen.findByLabelText('Precio propio (San Javucho)')
     expect(campo).toHaveValue('20')
@@ -98,7 +98,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     await waitFor(() => expect(screen.getByLabelText('Precio propio (San Javucho)')).toHaveValue('27000,5'))
   })
 
-  it('[MSF-423:T028] quitar: llama a la RPC y la empresa vuelve a la regla', async () => {
+  it('quitar: llama a la RPC y la empresa vuelve a la regla', async () => {
     montar({ productoId: 'p-2', empresaIds: ['emp-1'] })
     await screen.findByLabelText('Precio propio (San Javucho)')
     fireEvent.click(screen.getByRole('button', { name: 'Quitar precio propio de San Javucho' }))
@@ -125,7 +125,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(mocks.rpc).not.toHaveBeenCalledWith('fijar_precio_propio', expect.anything())
   })
 
-  it('[MSF-423:T028] un error de la base se muestra en castellano, sin el detalle interno', async () => {
+  it('un error de la base se muestra en castellano, sin el detalle interno', async () => {
     instalarRpc({ nombre: 'fijar_precio_propio', code: '42501' })
     montar({ empresaIds: ['emp-1'] })
     fireEvent.change(await screen.findByLabelText('Precio propio (San Javucho)'), { target: { value: '100' } })
@@ -134,7 +134,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(screen.queryByText(/detalle interno/)).not.toBeInTheDocument()
   })
 
-  it('[MSF-423:T028] solo lectura: ve el precio y la marca, sin poder editar ni quitar', async () => {
+  it('solo lectura: ve el precio y la marca, sin poder editar ni quitar', async () => {
     montar({ productoId: 'p-2', empresaIds: ['emp-1'], soloLectura: true })
     const campo = await screen.findByLabelText('Precio propio (San Javucho)')
     expect(campo).toHaveValue('20')
@@ -144,14 +144,14 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(screen.queryByRole('button', { name: /Quitar precio propio/ })).not.toBeInTheDocument()
   })
 
-  it('[MSF-423:T028] muestra el neto de ejemplo que calcula la base', async () => {
+  it('muestra el neto de ejemplo que calcula la base', async () => {
     guardados['p-1'] = [{ empresa_id: 'emp-2', moneda: 'ARS', importe: 27000 }]
     mocks.netos.mockResolvedValue({ data: [{ empresa_id: 'emp-2', neto_ars: 27000 }], error: null })
     montar()
     expect(await screen.findByText('Neto sin IVA: $ 27.000')).toBeInTheDocument()
   })
 
-  it('[MSF-423:T029] al cambiar de producto no arrastra importes ni borradores del anterior', async () => {
+  it('al cambiar de producto no arrastra importes ni borradores del anterior', async () => {
     const { rerender } = montar({ productoId: 'p-2', empresaIds: ['emp-1'] })
     const campo = await screen.findByLabelText('Precio propio (San Javucho)')
     expect(campo).toHaveValue('20')
@@ -161,7 +161,7 @@ describe('PrecioPropioEmpresas (F-PRE-08, FR-016, FR-018, FR-019)', () => {
     expect(screen.queryByText('Precio propio', { selector: '.MuiChip-label' })).not.toBeInTheDocument()
   })
 
-  it('[MSF-423:T029] al cambiar las empresas del producto las filas siguen a la selección', async () => {
+  it('al cambiar las empresas del producto las filas siguen a la selección', async () => {
     const { rerender } = montar({ empresaIds: ['emp-1'] })
     await screen.findByLabelText('Precio propio (San Javucho)')
     expect(screen.queryByLabelText('Precio propio (Mundo JC)')).not.toBeInTheDocument()

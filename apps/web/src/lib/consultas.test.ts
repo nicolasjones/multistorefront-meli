@@ -82,7 +82,7 @@ describe('nombreProducto (FR-004: «Sin producto»)', () => {
   })
 })
 
-describe('pedidos de la tienda (MSF-176, B1, P-6)', () => {
+describe('pedidos de la tienda (B1, P-6)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.from.mockReturnValue({ select: mocks.select })

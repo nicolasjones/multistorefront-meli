@@ -30,7 +30,7 @@ function Ficha() {
   return <p>Ficha: {(state as { mensaje?: string } | null)?.mensaje}</p>
 }
 
-describe('alta de cliente cuando falla la lectura de cuentas web (MSF-694)', () => {
+describe('alta de cliente cuando falla la lectura de cuentas web', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.mutateCreate.mockResolvedValue({ data: { id: 'c-nuevo' } })
