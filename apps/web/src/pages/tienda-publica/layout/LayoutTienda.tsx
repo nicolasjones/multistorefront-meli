@@ -8,6 +8,7 @@ import type { TiendaPublica } from '../../../lib/tienda'
 import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { AccesoCliente } from './AccesoCliente'
 import { BarraSuperior } from './BarraSuperior'
+import { IndicadorLista } from '../lista/IndicadorLista'
 import { ContextoEnLayout } from './enLayout'
 import { FocoVisible } from './FocoVisible'
 import { ProveedorIdentidadTienda, useIdentidadTienda } from './IdentidadTiendaContexto'
@@ -87,7 +88,9 @@ function Cuerpo({ tienda, host, categorias }: { tienda: TiendaPublica; host: str
             <Box component={NavLink} to="/" end sx={estiloEnlacePrincipal}>Inicio</Box>
             <Box component={NavLink} to="/contacto" sx={estiloEnlacePrincipal}>Contacto</Box>
           </Box>
-          <Box sx={{ order: { xs: 2, md: 0 }, display: 'flex' }}>
+          <Box sx={{ order: { xs: 2, md: 0 }, display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* «Mi lista (n)» (MSF-176, B1, P-1): a la izquierda de «Ingresar» / «Mi cuenta»; solo con la función encendida. */}
+            <IndicadorLista host={host} />
             <AccesoCliente host={host} />
           </Box>
         </Box>

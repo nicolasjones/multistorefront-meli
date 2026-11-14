@@ -16,6 +16,8 @@ Tiendas online (MSF-212).
 |---|---|---|
 | `dominio.consultas` | `dominio` | Lo que preguntó un visitante a una empresa (entidad de negocio). |
 | `dominio.consultas_configuracion` | `dominio` | Dirección de avisos de la empresa (una fila por empresa). |
+| `dominio.consulta_items` | `dominio` | Líneas de una consulta de origen `pedido` (lista de pedido de la tienda, MSF-176 B1): producto, SKU, cantidad y precio de referencia. Sin escritura desde la API. |
+| `public.consulta_items_bandeja` (vista `security_invoker`) | `public` | Lectura de esos ítems para el panel; hereda la RLS de la tabla. |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta de la bandeja; solo `service_role` y la RPC de la tienda (`publico.enviar_consulta_contacto`, que aplica el anti-spam). `anon` y `authenticated` no la ejecutan. |
 | `public.consultas_bandeja` (vista `security_invoker`), `actualizar_consulta`, `contar_consultas_nuevas`, `responsables_consultas`, `guardar_correo_avisos_consultas` | `public` | Lectura y ejecución desde el panel; no guardan datos. |
 | `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto (F-CON-02). Sin datos personales. |
@@ -47,12 +49,38 @@ cualquiera (reabrir). Los estados editables son F-CFG-01, fuera de alcance.
 - La empresa sale **solo del host** (`dominio.tiendas`, normalizado); no recibe `empresa_id`.
 - Host desconocido, inválido o de empresa desactivada → el mismo error `P0002` genérico, resuelto **antes** de
   validar los datos para que no se pueda sondear qué dominios existen.
-- Datos inválidos → `22023` con el campo en `DETAIL`: origen ∈ {`formulario`, `whatsapp`}; nombre de 1 a 120;
+- Datos inválidos → `22023` con el campo en `DETAIL`: origen ∈ {`formulario`, `whatsapp`} (el origen `pedido` NO entra por acá: lo crea `private.crear_consulta_pedido`); nombre de 1 a 120;
   contacto correo o teléfono (7 a 15 dígitos), hasta 200; mensaje obligatorio salvo `whatsapp`, hasta 2000;
   `producto_id` de la misma organización.
 - Ejecutable por `anon` y `authenticated`. Vive en `publico`, no en `public`, por eso no entra a la lista de
   RPC de `anon` del pgTAP de `docs/acceso-ingreso.md`.
 - **Sin anti-spam propio**: el campo trampa y el límite por IP son de la tienda (MSF-212).
+
+## Pedidos de la tienda (B1, MSF-176)
+
+Desde la tienda, un visitante puede enviar una **lista de pedido** (productos y cantidades, sin pagar): llega como una consulta de origen **«Pedido»** con sus ítems. Es la historia B1 de
+[`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md) y está detrás de la bandera `tienda_pedidos` (apagada por defecto; solo dev).
+
+- **Alta**: solo por `publico.enviar_lista_pedido` (límite de 5 envíos por hora por visitante, compartido con el formulario y WhatsApp; idempotente por clave). Crea **una** consulta
+  (`origen = 'pedido'`, `mensaje` = la nota, opcional) y sus `dominio.consulta_items` en una transacción. Con cuenta web activa la consulta lleva el `cliente_id` del cliente y los datos de su ficha.
+- **Bandeja**: el origen «Pedido» y «Pedido de n productos» en la columna Producto. **Detalle**: bloque «Pedido» (Producto · SKU · Cantidad · Precio de **referencia** · Subtotal de referencia y el total de referencia; los precios
+  los calculó el servidor al enviar, tal como los vio la persona, y **no son firmes**), «Nota de la persona» y, con cuenta activa, el cliente (Nº y nombre). Todo se muestra como texto, nunca como HTML.
+  «Responder» arma el texto inicial con los ítems y los enlaces `mailto:`/`wa.me` van codificados.
+- **Aviso por correo**: el mismo aviso de consulta nueva (cola de plataforma, respeta preferencias y agrupación); para un pedido suma el resumen de los ítems (hasta 10 líneas y «y N más»). El asunto no
+  lleva datos del visitante.
+- **Permisos**: igual que cualquier consulta (sección `consultas`, empresa accesible); las líneas tienen la misma RLS. `anon` no lee ni escribe nada.
+
+### Retención de los pedidos (D-20)
+
+**Los pedidos no se borran solos** (ni sus ítems): esta épica **no define una purga automática** y no inventa un plazo legal. Qué se guarda: nombre, contacto (correo o teléfono), nota e ítems;
+**nunca** dirección, DNI, CUIT ni la IP (el cupo de envíos guarda solo un hash por empresa y se poda a 24 h). Quién lo ve: quien tiene la sección `consultas` ≥ lectura en esa empresa; el aviso por correo llega
+a esas mismas personas.
+
+Cómo borrar a mano (no hay una pantalla para borrar consultas): una persona con acceso administrativo a la base ejecuta `delete from dominio.consultas where id = '<consulta>'` (los ítems se van en cascada
+por la FK) o, para todo un visitante, borra las consultas con ese contacto. Si se borra un **cliente**, sus pedidos **no se borran**: `cliente_id` queda en `null` (`on delete set null`) pero el nombre y el contacto
+de la consulta siguen; hay que borrarlos aparte. La baja de la organización se lleva todo en cascada.
+
+**Seguimiento trazado**: definir el plazo de retención y la purga de consultas e ítems de pedido (T072 de `tasks.md`; el manual de usuario de la tienda y de Consultas vive en `main` y no se toca desde esta rama).
 
 ## Interés por WhatsApp (F-CON-02, MSF-226)
 
@@ -166,7 +194,8 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200` y `2027030614000
 ## Retención pendiente
 
 No hay política definida para las consultas ni para los datos personales que traen (Decisión abierta 5). Esta
-entrega **no borra ni expira nada**. Cuando se defina, será una spec aparte.
+entrega **no borra ni expira nada**. Cuando se defina, será una spec aparte. Para los **pedidos de la tienda** (que
+suman los ítems y, con cuenta, el vínculo al cliente) ver «[Retención de los pedidos](#retencion-de-los-pedidos-d-20)»: tampoco se purgan solos y está dicho cómo borrar a mano.
 
 ## Reversión
 

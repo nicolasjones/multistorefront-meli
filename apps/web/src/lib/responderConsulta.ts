@@ -7,6 +7,7 @@ import {
   actualizarConsulta,
   type Consulta,
   type EstadoConsulta,
+  type ItemConsulta,
 } from './consultas'
 import { armarTextoInicial } from './textoInicialConsulta'
 import type { RespuestaRapida } from './respuestasRapidas'
@@ -18,11 +19,12 @@ export type EnlaceRespuesta = { via: 'correo' | 'WhatsApp'; href: string }
 // queda como texto del destinatario), el teléfono se lleva a formato internacional para `wa.me` (`normalizarNumero`) y todo valor del
 // texto inicial va codificado. Un contacto que no es ni correo ni teléfono no ofrece enlace.
 export function enlaceRespuesta(
-  consulta: Pick<Consulta, 'contacto' | 'nombre' | 'empresa_nombre' | 'producto_nombre'>,
+  consulta: Pick<Consulta, 'contacto' | 'nombre' | 'empresa_nombre' | 'producto_nombre'> & Partial<Pick<Consulta, 'origen'>>,
   respuesta?: Pick<RespuestaRapida, 'texto'> | null,
+  items?: readonly ItemConsulta[] | null,
 ): EnlaceRespuesta | null {
   const contacto = consulta.contacto.trim()
-  const texto = armarTextoInicial(consulta, respuesta)
+  const texto = armarTextoInicial(consulta, respuesta, items)
   if (contacto.includes('@')) {
     const asunto = encodeURIComponent(texto.asunto)
     const cuerpo = encodeURIComponent(texto.cuerpo)

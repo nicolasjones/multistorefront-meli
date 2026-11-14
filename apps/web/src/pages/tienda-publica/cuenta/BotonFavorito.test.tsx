@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   schema: vi.fn(),
 }))
 
-vi.mock('../../../lib/tiendaCapacidades', () => ({ leerCapacidadesTienda: mocks.leerCapacidadesTienda }))
+vi.mock('../../../lib/tiendaCapacidades', async (original) => ({ ...(await original<typeof import('../../../lib/tiendaCapacidades')>()), leerCapacidadesTienda: mocks.leerCapacidadesTienda }))
 vi.mock('../../../lib/tiendaCuenta', async (original) => ({
   ...(await original<typeof import('../../../lib/tiendaCuenta')>()),
   sesionActivaEnTienda: mocks.sesionActivaEnTienda,

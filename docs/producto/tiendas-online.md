@@ -141,6 +141,16 @@ La disponibilidad que ve el visitante es solo «Disponible» o «Sin stock», se
 - Una dirección que no existe muestra «No encontramos esta página».
 - Cada tienda puede tener sus propias páginas de texto, medir visitas con Google Analytics y Meta Pixel, y ofrecer el botón **Compartir** en las fichas. Ver [Páginas propias, medición de visitas y botón Compartir](tienda-contenido-y-analitica.md).
 
+### La lista de pedido
+
+Cuando el equipo técnico activa la función para tu tienda, quien visita la tienda puede armar una **lista de pedido** sin pagar:
+
+- En la ficha de cada producto aparece **Agregar a la lista** (cada toque suma una unidad; también se puede agregar un producto sin stock) y, debajo, «Ya tenés 2 en tu lista · Ver lista».
+- Arriba, junto a «Ingresar», aparece **Mi lista (3)** con la cantidad de productos distintos que tiene la lista.
+- En **Mi lista** la persona revisa los productos, cambia las cantidades o quita alguno, ve el **precio de referencia** de cada uno y el total, y completa su nombre y un correo o teléfono (si entró con su cuenta, no hace falta). Al tocar **Enviar pedido** ve «Recibimos tu pedido… No se cobró nada.»
+
+El pedido llega a **Consultas** como un pedido con todos sus productos (ver [Consultas](consultas.md#atender-un-pedido-de-la-tienda)). Los precios son de referencia y se confirman al responder. La lista se guarda en el navegador de la persona: no se comparte entre dispositivos.
+
 ## Qué se publica y cómo se oculta
 
 Un producto aparece en una tienda solo si se cumplen **las cuatro condiciones**:
