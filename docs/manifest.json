@@ -11,9 +11,9 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "25d8081207fcb5d22ec3d0e5585d61aa18b80f0edac199ace8e7d469fb1f6c24",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "61adc0f690706111da8ed37449d8d0d77f710c05fc3164d5bf10f92f8355eb1e",
+      "sourceHash": "17b1b17a51499f34676c5e53739a7f451257728b0300d65770a72b9ac7d89fab",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs"
       ],
@@ -370,15 +370,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "1da699048e6b8392fa3ad6749800a057d62c25faf1b7ddc4b663369012cbeac6",
-      "sourceHash": "5a8131269c90f7e92a945480b256a7335250eda36d6ff4a5f07f5e777b4cebb5",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "77d4f1c27c79dce5c5ac727a10729ad69fbebe16e7ee4b1568419c871d2ec2aa",
+      "sourceHash": "e1bdeba8623124b6101f9221c6c332f34e0468f7a9b70e1536a1a96458eeded2",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -590,8 +590,8 @@
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
       "pageHash": "6505e08e18821384e06c26ab75793510ff715bb4281b0bcfcf6ccd394d996a7f",
-      "sourceHash": "44acab3c9e7ca4f5173fbcf8bde634e3a537dd3bd5daeec0f5432932ce60d0d2",
-      "sourceAt": "ff1c96d4",
+      "sourceHash": "17b1b17a51499f34676c5e53739a7f451257728b0300d65770a72b9ac7d89fab",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs"
       ],
@@ -611,14 +611,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "d0fdc1882ffc3e602ac84473de141f3c42f2b7a703c8da070a8d722df1106290",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8bcd6dd4c23fa22337462aa3f52fbe60dacb6b5578093868fdb41fc1264bb3fd",
+      "sourceHash": "8984763d880f3efb9833be6c5fbda22523bf1857994f914c742726bb2003f037",
+      "sourceAt": "fc38b5aa",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
@@ -647,8 +647,8 @@
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
       "pageHash": "91c586ca5c6c8e5a1c70554eded0d48d411fa738dab0b773b3b8d0145e7c12d2",
-      "sourceHash": "44acab3c9e7ca4f5173fbcf8bde634e3a537dd3bd5daeec0f5432932ce60d0d2",
-      "sourceAt": "ff1c96d4",
+      "sourceHash": "17b1b17a51499f34676c5e53739a7f451257728b0300d65770a72b9ac7d89fab",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs"
       ],
@@ -1860,8 +1860,8 @@
     "docs/service-etiqueta-qr.md": {
       "title": "Service técnico · Etiqueta con código QR del equipo",
       "pageHash": "85d90f368eb1a4e434bed29943c5f79b3df4fac81dc61dcf27676d1b27eb22fb",
-      "sourceHash": "6cd4196d024ac4e4becab8a84289672503e7b3b5f0d50fbb129a851e2b871a7b",
-      "sourceAt": "ff1c96d4",
+      "sourceHash": "20e3356633a4bc53b2645c936380034b719e0d31784f8e21e7f8c341b3c74676",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs/20270323-100000-service-ideas-futuras-v2",
         "apps/web/src/lib/qr",
@@ -1887,7 +1887,7 @@
       "title": "Service técnico · Impresión de orden de ingreso y remito de entrega",
       "pageHash": "9ce730edfd0b8698a709a309774f5753d5a96e18ae613777c08db1b042000758",
       "sourceHash": "e2b9a4cc8fc5feef3aa01c6792cb0963e8712b23fe0378f56b55dceef703367e",
-      "sourceAt": "ff1c96d4",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs/20261022-100000-service-listado-items-e-impresion"
       ],
@@ -1992,8 +1992,8 @@
     "docs/service-tecnico.md": {
       "title": "Service técnico",
       "pageHash": "48317c67c2d5f1926f819c900bdc8a4ea7047ac1de2015078bd3a6e1d923730e",
-      "sourceHash": "bc89acf43c5df4b3098c63e583a181c595ab8a53049df78a8cd30334a287e148",
-      "sourceAt": "ff1c96d4",
+      "sourceHash": "ae958c864ac4799acaec5886391d24d8c4211cc3c70f61c62c176084bdcc5264",
+      "sourceAt": "d35bf350",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
