@@ -254,6 +254,11 @@ spec y el gate que la verifica), así que no aplica la versión `20270311100001_
   **success** (20:50Z): el gate `pnpm matriz:check` pasó con la base nueva; el
   PR, en cambio, seguía `CONFLICTING` por el atraso de la base, que es lo que
   resuelve el merge `24d73b49`.
+- Run `43555100540` (rama `fix/bug-MSF-863`, SHA `8ff20a6c`, ya re-sincronizada
+  con `dokploy`) → job `application` id `132326139042` **success** (2m22s) y
+  `validacion` id `132326772942` **success** (6s): el único check requerido de
+  `dokploy` quedó en verde. `quality` también en **success** (1m11s). Estado
+  del PR tras el push: `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
 
 ## Deviations from Assessment
 
