@@ -1,6 +1,6 @@
 import { Box, MenuItem, Select, Typography } from '@mui/material'
 import { OPCIONES_ORDEN, type OrdenCatalogo } from '../../../lib/tiendaListado'
-import { BORDE_PANEL } from '../layout/medidas'
+import { BORDE_PANEL, COLOR_FOCO } from '../layout/medidas'
 
 // Flecha «▾» del botón: definida fuera del componente (un componente nuevo por render remontaría el ícono).
 function FlechaOrden() {
@@ -34,7 +34,7 @@ export function Ordenar({ orden, alCambiar }: { orden: OrdenCatalogo; alCambiar:
         }}
       >
         {OPCIONES_ORDEN.map((o) => (
-          <MenuItem key={o.valor} value={o.valor} sx={{ py: '10px', px: '12px', fontSize: 15, '&.Mui-selected, &.Mui-selected:hover, &.Mui-selected.Mui-focusVisible': { bgcolor: 'transparent', fontWeight: 700, color: 'primary.main' }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } /* estilos-sueltos: ok */ }}>
+          <MenuItem key={o.valor} value={o.valor} sx={{ py: '10px', px: '12px', fontSize: 15, '&.Mui-selected, &.Mui-selected:hover, &.Mui-selected.Mui-focusVisible': { bgcolor: 'transparent', fontWeight: 700, color: 'primary.main' }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: COLOR_FOCO, outlineOffset: '-2px' } /* estilos-sueltos: ok */ }}>
             {o.etiqueta}
           </MenuItem>
         ))}

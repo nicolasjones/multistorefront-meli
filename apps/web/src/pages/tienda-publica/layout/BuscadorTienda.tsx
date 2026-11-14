@@ -148,7 +148,7 @@ export default function BuscadorTienda({ host, etiqueta }: { host: string; etiqu
             slotProps={{
               input: {
                 endAdornment: (
-                  <Box component="button" type="submit" aria-label="Buscar" sx={{ width: 44, height: 44, flexShrink: 0, border: 0, p: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'primary.main', color: 'primary.contrastText' /* estilos-sueltos: ok */ }}>
+                  <Box component="button" type="submit" aria-label="Buscar" sx={{ width: 44, height: 44, flexShrink: 0, border: 0, p: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', '&:focus-visible': { outlineOffset: '-4px', outlineColor: 'primary.contrastText' } /* estilos-sueltos: ok */ }}>
                     <IconoLupa />
                   </Box>
                 ),

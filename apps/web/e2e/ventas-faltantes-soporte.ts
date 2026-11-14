@@ -3,53 +3,19 @@ import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect } from './fixture'
 import { clic, escribir } from './visible'
-import { UPSERT_FUSIONAR, limpiarOrganizacion, rest } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, altaUsuario, borrar, borrarUsuario, cabeceras, limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
 
 // Soporte de los E2E de avisos de faltantes (F-VTA-26 y F-VTA-27 · épica MSF-161). Requiere el stack local
 // (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la service-role key nunca llega
 // al navegador), como `ingresos-mercaderia.e2e.ts` y `ventas-rma.e2e.ts`. Sin SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY los E2E se omiten.
-export const url = process.env.SUPABASE_URL
-export const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+export { serviceKey, url }
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de faltantes: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
 
 export async function leer<T>(ruta: string, esquema = 'dominio'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
   if (!r.ok) throw new Error(`REST GET ${ruta}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
 async function tokenDe(correo: string): Promise<string> {

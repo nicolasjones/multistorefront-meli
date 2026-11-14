@@ -2,7 +2,7 @@ import { Box, Button, ButtonBase, InputBase, List, ListItem, ListItemButton, Lis
 import { useState } from 'react'
 import type { CategoriaListado, FiltrosCatalogo } from '../../../lib/tiendaListado'
 import { filasPanelCategorias } from '../../../lib/tiendaCategorias'
-import { BORDE_CAMPO } from '../layout/medidas'
+import { BORDE_CAMPO, COLOR_FOCO } from '../layout/medidas'
 
 type Props = {
   categorias: CategoriaListado[]
@@ -21,7 +21,7 @@ export function CasillaStock({ activo, alCambiar }: { activo: boolean; alCambiar
     <ButtonBase
       aria-pressed={activo}
       onClick={() => alCambiar(!activo)}
-      sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit', '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '2px' } /* estilos-sueltos: ok */ }}
+      sx={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: 15, py: '5px', color: 'inherit', fontFamily: 'inherit', '&.Mui-focusVisible': { outlineStyle: 'solid', outlineWidth: '2px', outlineColor: COLOR_FOCO, outlineOffset: '2px' } /* estilos-sueltos: ok */ }}
     >
       <Box
         component="span"
@@ -68,7 +68,7 @@ export function CampoPrecioMax({ precioMax, alCambiar, idEtiqueta }: { precioMax
       inputProps={{ 'aria-labelledby': idEtiqueta, inputMode: 'numeric' }}
       sx={{
         height: 40, px: '12px', fontSize: 15, border: BORDE_CAMPO, borderRadius: '8px', bgcolor: 'background.paper', // estilos-sueltos: ok
-        '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '1px' }, // estilos-sueltos: ok
+        '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: COLOR_FOCO, outlineOffset: '1px' }, // estilos-sueltos: ok
         '& input::placeholder': { color: 'text.secondary', opacity: 1 },
       }}
     />

@@ -570,6 +570,21 @@ a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra
 - **Desvíos accesibles declarados**: áreas táctiles de 36–44 px en el encabezado y «← Todos los productos»; botón de cierre de la hoja de filtros; «Abrir WhatsApp» con texto en tinta; foco visible; «Cargar más» (regla del repo).
 - **Pruebas**: Vitest de la tarjeta, las grillas (la parte por ancho se lee en el texto de la hoja: jsdom no evalúa `@media`) y las piezas compartidas, más axe real de Chromium sobre una build local; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron localmente (los valida el CI).
 
+## Hallazgos de la re-auditoría de fidelidad (MSF-849)
+
+Spec `specs/20270316-100000-tiendas-hallazgos-reauditoria`. Medido en Chromium sobre una build local servida desde dev (escritorio 1440 y celular 390):
+
+| Fila | Prototipo | Antes | Después |
+|---|---|---|---|
+| N-01 logo del pie (MundoJC) | marca sobre recuadro blanco redondeado | `filter: brightness(0) invert(1)`: bloque blanco sólido de 103×44 sin marca | recuadro blanco de 100×44 (radio 8) con la imagen de 84×36 a color, sin filtro |
+| N-02 mensaje del diálogo de WhatsApp | producto en negrita | texto plano | producto en `<b>` en la vista (`aria-hidden`) y el `textarea` de solo lectura con el texto completo; lo que se envía no cambia |
+| MM-03 «Inicio» actual del menú móvil | 600 | 700 | 600 (`aria-current` lo anuncia) |
+| MH-10 enlaces del pie móvil | 12 px | 14 px | 14 px: desvío accesible declarado |
+| Foco de «Ingresar», «Limpiar filtros», «Ordenar por» | sin definir | onda tenue de MUI (el selector de orden, sin nada) | contorno de 2 px primario a 2 px (`layout/FocoVisible.tsx`), `solid 2px rgb(163,17,29)` en los tres con Tab real; sin contorno al tocar con el mouse |
+
+El foco unificado cubre enlaces, botones y selectores de la tienda, también los estados de carga, error y «Volvemos pronto» (`FocoVisible` se monta en el layout y en la raíz de la tienda). El color sale de `colorFoco`: el primario si llega a 3:1 contra el fondo de la página y el blanco del encabezado; si no, el color del texto, negro, blanco o un gris medio. La lupa del buscador lleva el contorno hacia adentro (el campo recorta lo que sobresale) y sobre la barra superior y el pie (`data-foco="oscuro"`) toma el color del texto. Los campos de texto usan el borde primario de MUI al enfocarse. El diálogo de WhatsApp suma «Copiar mensaje» para dar acceso por teclado al texto.
+El logo de la pestaña Identidad ya no pide fondo transparente: debe tener colores visibles sobre fondo blanco (un logo blanco o muy claro no se vería en el recuadro del pie).
+
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
 Migración **aditiva** `20261023150300_tienda_ficha_publica.sql`. Reversión (migración posterior): `drop function publico.producto_por_dominio(text, uuid);`.
@@ -1244,7 +1259,7 @@ contacto de la empresa del host.
   lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
   (`layout/MenuCategorias`) 15 px, 600, subrayado de 3 px en la activa (primario); en mayúsculas con `.04em` salvo que la identidad apague «Títulos del menú y botones en mayúsculas» (MSF-848). Conserva el tope de 6 principales +
   «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
-- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo con sus colores sobre un recuadro blanco redondeado de 44 px de alto (MSF-849; sirve con fondo transparente u opaco; antes se invertía a blanco y un PNG de fondo opaco quedaba como un bloque sólido sin marca) o el nombre, eslogan,
   el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
   vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
   línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste

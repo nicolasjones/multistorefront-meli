@@ -3,6 +3,7 @@ import { Box } from '@mui/material'
 import { resolverRedireccion, resolverTienda, urlDeRedireccion, type TiendaPublica } from '../../lib/tienda'
 import { EstadoCargaPagina } from '../../components/estados/EstadosPagina'
 import { EnrutadorTienda } from './EnrutadorTienda'
+import { FocoVisible } from './layout/FocoVisible'
 import { VolvemosPronto } from './VolvemosPronto'
 import { PantallaError } from './PantallaError'
 import { useEstadoTienda } from '../../lib/tiendaEstado'
@@ -32,7 +33,18 @@ function SinTienda({ host }: { host: string }) {
 // Un error de red NO se disfraza de «Volvemos pronto»: se ofrece reintentar.
 const irA = (url: string) => window.location.replace(url)
 
-export function TiendaPublicaApp({
+// El foco de teclado único (`FocoVisible`) se monta acá, en la raíz, para que también lo tengan los estados de carga, error y «Volvemos
+// pronto» (fuera del layout y sin la identidad cargada); el layout lo vuelve a montar con el tema de la identidad y tiene la última palabra.
+export function TiendaPublicaApp(props: { host?: string; redirigir?: (url: string) => void }) {
+  return (
+    <>
+      <FocoVisible />
+      <TiendaPublicaContenido {...props} />
+    </>
+  )
+}
+
+function TiendaPublicaContenido({
   host = window.location.host,
   redirigir = irA,
 }: {

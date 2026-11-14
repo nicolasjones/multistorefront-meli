@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
+import { altaUsuario, borrar, borrarUsuario, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-CAT-18 (MSF-416, épica MSF-229 · T008 · FR-014…FR-017, SC-003): el bloque «Productos relacionados» de
 // la ficha del producto: buscador por nombre/SKU/categoría (hasta 4 resultados, con «Agregar»), lista
@@ -10,58 +11,8 @@ import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la
 // service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite
 // (no corre en el CI público). Ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de relacionados: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`GET ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
 
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
@@ -79,7 +30,7 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
   const correo = `admin-relacionados-${sufijo}@example.com`
   const idUsuario = await altaUsuario(correo)
   await rest('usuarios_organizacion', [{ user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' }])
-  const [consola, vidrio, funda] = await rest<{ id: string }>(
+  const [consola] = await rest<{ id: string }>(
     'productos',
     [
       { organizacion_id: org.id, nombre: `Consola ${sufijo}`, sku: `E2E-RL-C-${sufijo}`, moneda: 'ARS', precio_lista: 18455 },

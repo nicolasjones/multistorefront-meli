@@ -7,7 +7,7 @@ import { IconoTilde } from '../layout/iconos'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { useCelular } from '../useAnchoCelular'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
-import { LINEA_SUAVE } from '../layout/medidas'
+import { COLOR_FOCO, LINEA_SUAVE } from '../layout/medidas'
 
 type Fase =
   | { fase: 'editando' }
@@ -57,7 +57,7 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
         sx={{
           alignItems: multilinea ? 'flex-start' : 'center', height: multilinea ? 'auto' : 44, minHeight: multilinea ? 110 : undefined, px: '12px', py: multilinea ? '10px' : 0, // estilos-sueltos: ok
           fontSize: 15, bgcolor: 'background.paper', border: '1.5px solid', borderColor: error ? 'error.main' : 'rgba(0,0,0,.18)', borderRadius: '8px', // estilos-sueltos: ok
-          '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: 'primary.main', outlineOffset: '1px' }, // estilos-sueltos: ok
+          '&.Mui-focused': { borderColor: 'primary.main', outlineStyle: 'solid', outlineWidth: '2px', outlineColor: COLOR_FOCO, outlineOffset: '1px' }, // estilos-sueltos: ok
           '& input::placeholder, & textarea::placeholder': { color: 'text.secondary', opacity: 1 },
         }}
       />
