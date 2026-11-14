@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
-import { borrar, cabeceras, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, cabeceras, CONTRASENA_E2E, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-CLI-20 (MSF-452, historia A de la spec `tienda-compra-y-cuentas`) con las dos tiendas del seed (mundojc.localhost y
 // sanjavucho.localhost): «Mi cuenta» con compras y presupuestos, favoritos, redirección a «Ingresar» con la ruta de vuelta, la
@@ -57,14 +57,43 @@ async function hayRpcDeLaEpica(): Promise<boolean> {
 type Sembrado = { correo: string; authId: string; clienteId: string }
 const creados: Sembrado[] = []
 
+// En el stack del CI (`reset-db-ci`) `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`
+// (solo los de `20270307100000`): los clientes se dan de alta COMO LA PERSONA DEL PANEL (administrador de la organización del
+// seed, con su sesión y RLS), igual que lo hace la pantalla de Clientes, y solo el vínculo de la cuenta web usa la service-role
+// (`vincular_cuenta_cliente`, que es lo que ejecuta la Edge Function de invitación).
+type PersonaPanel = { userId: string; correo: string; token: string }
+let panel: PersonaPanel
+
+async function sembrarPersonaPanel(organizacion: string): Promise<PersonaPanel> {
+  const correo = `mi-cuenta-panel-${randomUUID().slice(0, 8)}@example.com`
+  const userId = await altaUsuario(correo)
+  await rest('usuarios_organizacion', { user_id: userId, organizacion_id: organizacion, rol_id: 'administrador' })
+  const r = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: cabeceras(), body: JSON.stringify({ email: correo, password: CONTRASENA_E2E }),
+  })
+  if (!r.ok) throw new Error(`sesión de ${correo}: ${r.status} ${await r.text()}`)
+  return { userId, correo, token: ((await r.json()) as { access_token: string }).access_token }
+}
+
+// Llama a PostgREST como la persona del panel (la apikey es la de servicio; `authorization` pone el rol y el RLS de la persona).
+async function comoPanel<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+  const r = await fetch(`${url}/rest/v1/${ruta}`, {
+    method: metodo,
+    headers: cabeceras({ authorization: `Bearer ${panel.token}`, prefer: 'return=representation' }),
+    body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
+  })
+  if (!r.ok) throw new Error(`panel ${metodo} ${ruta}: ${r.status} ${await r.text()}`)
+  return (await r.json().catch(() => null)) as T
+}
+
 // Cliente de la tienda `tienda`, habilitado en ella, con usuario de Auth (contraseña `CLAVE`) y cuenta web activa.
 async function sembrarCliente(tienda: Tienda, etiqueta: string): Promise<Sembrado> {
   const sufijo = randomUUID().slice(0, 8)
   const correo = `mi-cuenta-${etiqueta}-${sufijo}@example.com`
-  const [cliente] = await rest<{ id: string }>('clientes', {
-    organizacion_id: tienda.organizacion, numero: 900000 + Math.floor(Math.random() * 90000), nombre: `E2E ${etiqueta} ${sufijo}`, correo, tipo: 'minorista',
+  const [cliente] = await comoPanel<{ id: string }[]>('POST', 'clientes', {
+    organizacion_id: tienda.organizacion, nombre: `E2E ${etiqueta} ${sufijo}`, correo, tipo: 'minorista',
   })
-  await rest('clientes_empresas', { cliente_id: cliente.id, empresa_id: tienda.empresa, organizacion_id: tienda.organizacion })
+  await comoPanel('POST', 'rpc/guardar_empresas_de_cliente', { p_cliente_id: cliente.id, p_empresa_ids: [tienda.empresa] })
   const usuario = await admin<{ id: string }>('users', { email: correo, email_confirm: true, password: CLAVE })
   const sembrado = { correo, authId: usuario.id, clienteId: cliente.id }
   creados.push(sembrado)
@@ -112,6 +141,7 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     productoId = producto.id
     await rest('producto_empresa', { producto_id: productoId, empresa_id: MUNDO.empresa, organizacion_id: MUNDO.organizacion }, 'dominio')
 
+    panel = await sembrarPersonaPanel(MUNDO.organizacion)
     cliente = await sembrarCliente(MUNDO, 'principal')
     const ajeno = await sembrarCliente(MUNDO, 'ajeno')
     numeros = { factura: `F${sufijo}-1`, vencido: `P${sufijo}-1`, ajeno: `X${sufijo}-1` }
@@ -129,7 +159,12 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     for (const s of creados) {
       await borrar(`comprobantes_venta?cliente_id=eq.${s.clienteId}`, 'dominio')
       await fetch(`${url}/auth/v1/admin/users/${s.authId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
-      await fetch(`${url}/rest/v1/clientes?id=eq.${s.clienteId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
+      // Como la persona del panel; si el rol no puede borrar clientes queda el cliente de prueba (con sufijo único).
+      await comoPanel('DELETE', `clientes?id=eq.${s.clienteId}`).catch((e: unknown) => console.warn('limpieza E2E: cliente', e instanceof Error ? e.message : e))
+    }
+    if (panel) {
+      await borrar(`usuarios_organizacion?user_id=eq.${panel.userId}`)
+      await fetch(`${url}/auth/v1/admin/users/${panel.userId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
     }
     if (productoId) {
       await borrar(`producto_empresa?producto_id=eq.${productoId}`, 'dominio')
@@ -206,11 +241,8 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     await ingresar(page, cliente.correo, CLAVE)
     await expect(page.getByRole('row').filter({ hasText: numeros.factura })).toBeVisible()
 
-    // Se suspende desde afuera (el alta y la baja del acceso son del panel; acá se hace con la API admin, como el spec de la cuenta web).
-    const baja = await fetch(`${url}/rest/v1/cuentas_cliente?cliente_id=eq.${cliente.clienteId}&empresa_id=eq.${MUNDO.empresa}`, {
-      method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ estado: 'suspendida' }),
-    })
-    expect(baja.ok).toBe(true)
+    // Se suspende como lo hace el panel (Clientes › Cuenta web): la RPC de gestión con la sesión de la persona del panel.
+    await comoPanel('POST', 'rpc/cambiar_estado_cuenta_cliente', { p_cliente: cliente.clienteId, p_empresa: MUNDO.empresa, p_estado: 'suspendida' })
 
     // La próxima llamada (la pestaña «Favoritos») ya no tiene acceso: se reemplaza todo y no queda nada del historial.
     await page.getByRole('tab', { name: 'Favoritos' }).click()
