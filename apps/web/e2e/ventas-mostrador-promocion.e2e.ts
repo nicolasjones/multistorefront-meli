@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
-import { cabeceras, limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
+import { CONTRASENA_E2E as password, altaUsuario, borrarUsuario, cabeceras, leer, limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
 
 // MSF-816 · F-2 (T012, SC-004): precio promocional en la Venta de mostrador, contra el build. Un producto con promoción
 // vigente se escanea con el precio promocional, el anterior tachado y la leyenda «Promoción»; se cobra a ese precio y el
@@ -11,24 +11,7 @@ import { cabeceras, limpiarOrganizacion, rest, serviceKey, url } from './soporte
 // admin solo contra Supabase local, sin escribir directo en tablas inalterables (docs/e2e-app.md).
 // El rechazo `40001`/`precios_cambiaron` al cobrar lo emite el servidor en F-3 (T014): acá no hay E2E de ese camino (lo
 // prueba Vitest simulando la respuesta); queda como seguimiento en notas.md.
-const password = 'Correcta-12345!'
 const CLAVE_BANDERA = 'promociones_precio'
-
-async function leer<T>(ruta: string, esquema = 'dominio'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
 
 async function tokenDe(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -83,7 +66,7 @@ async function sembrar(sufijo: string, codigos: { promo: string; normal: string 
   const usuarioId = await altaUsuario(correo)
   await rest('usuarios_organizacion', { user_id: usuarioId, organizacion_id: org.id, rol_id: 'administrador' })
   await rest('usuario_empresa_activa', { user_id: usuarioId, empresa_id: empresa.id })
-  const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`)
+  const [deposito] = await leer<{ id: string }>(`depositos?organizacion_id=eq.${org.id}&por_defecto=eq.true&select=id`, 'dominio')
   await rest('depositos_empresas', { deposito_id: deposito.id, empresa_id: empresa.id, organizacion_id: org.id }, 'dominio')
 
   const nombres = { promo: `Joystick promo ${sufijo}`, normal: `Cable normal ${sufijo}` }
@@ -122,7 +105,7 @@ async function limpiar(s: Siembra | null) {
   try {
     await limpiarOrganizacion(s.organizacionId)
   } finally {
-    await fetch(`${url}/auth/v1/admin/users/${s.usuarioId}`, { method: 'DELETE', headers: cabeceras() })
+    await borrarUsuario(s.usuarioId)
   }
 }
 
@@ -177,16 +160,18 @@ test.describe('Ventas · mostrador con precio promocional (MSF-816, SC-004)', ()
 
       const comprobantes = await leer<{ id: string; total_con_iva: number; total_sin_iva: number }>(
         `comprobantes_venta?organizacion_id=eq.${siembra.organizacionId}&select=id,total_con_iva,total_sin_iva`,
+        'dominio',
       )
       expect(comprobantes).toHaveLength(1)
       const [comprobante] = comprobantes
-      const cobros = await leer<{ importe: number }>(`cobros_comprobante?comprobante_id=eq.${comprobante.id}&select=importe`)
+      const cobros = await leer<{ importe: number }>(`cobros_comprobante?comprobante_id=eq.${comprobante.id}&select=importe`, 'dominio')
       expect(cobros).toHaveLength(1)
       // El total del comprobante y el del cobro coinciden con el precio promocional.
       expect(Number(comprobante.total_con_iva)).toBe(900)
       expect(Number(cobros[0].importe)).toBe(Number(comprobante.total_con_iva))
       const lineas = await leer<{ precio_unitario: number; precio_referencia: number | null; descuento_pct: number }>(
         `comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=precio_unitario,precio_referencia,descuento_pct`,
+        'dominio',
       )
       expect(lineas.map((l) => [Number(l.precio_unitario), Number(l.precio_referencia)])).toEqual([[900, 1000]])
     } finally {
