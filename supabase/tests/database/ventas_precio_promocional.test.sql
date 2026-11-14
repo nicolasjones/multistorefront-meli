@@ -14,7 +14,7 @@
 --     `authenticated` no ejecutan las funciones `private`; `authenticated` no inserta ni actualiza líneas; las claves
 --     `precio_referencia`/`promocion_id` dentro de `p_lineas` se ignoran;
 --   · `obtener_comprobante` expone `precio_referencia` y NO `promocion_id`;
---   · `copiar_presupuesto` (sin descuento del cliente, igual que hoy) y notas de crédito que heredan las columnas;
+--   · `copiar_presupuesto` (con el descuento del cliente, como el mostrador: S2 = MSF-933; pgTAP propio `ventas_copiar_presupuesto_descuento_cliente.test.sql`) y notas de crédito que heredan las columnas;
 --   · medición de 200 líneas con la bandera apagada contra encendida (< 1,5×).
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, con el rol que corresponda.
 begin;
@@ -650,7 +650,7 @@ update dominio.promociones_precio set precio_promocional = 900, desde = now() - 
  where id = 'e1000000-0000-0000-0000-000000000001';
 
 -- ============================================================================
--- Copiar presupuesto (FR-010): misma función, SIN descuento del cliente, manual conservado
+-- Copiar presupuesto (FR-010, S2 = MSF-933): misma función y descuento del cliente (gana el más bajo), manual conservado
 -- ============================================================================
 
 select pg_temp.bandera(false);
@@ -664,13 +664,13 @@ grant select, insert on copias to public;
 insert into copias select 'apagada', c.id from public.copiar_presupuesto(pg_temp.id_de('pres')) c;
 select is((select string_agg(l.precio_unitario::text || ':' || l.descuento_pct::text || ':' || coalesce(l.precio_referencia::text, '-'), ' ' order by l.orden)
              from dominio.comprobantes_venta_lineas l where l.comprobante_id = (select id from copias where clave = 'apagada')),
-  '1000.00:0.00:- 640.00:0.00:-', 'copiar con bandera apagada: igual que hoy (lista sin descuento del cliente, manual conservado, sin referencia)');
+  '950.00:5.00:- 640.00:0.00:-', 'copiar con bandera apagada: cobra el descuento del cliente 5 % (950) como el mostrador, manual conservado, sin referencia');
 select pg_temp.bandera(true);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 insert into copias select 'encendida', c.id from public.copiar_presupuesto(pg_temp.id_de('pres')) c;
 select is((select string_agg(l.precio_unitario::text || ':' || l.descuento_pct::text || ':' || coalesce(l.precio_referencia::text, '-'), ' ' order by l.orden)
              from dominio.comprobantes_venta_lineas l where l.comprobante_id = (select id from copias where clave = 'encendida')),
-  '900.00:0.00:1000.00 640.00:0.00:-', 'copiar con bandera encendida: promoción 900 (referencia 1000 sin descuento del cliente) y el manual conservado');
+  '900.00:0.00:950.00 640.00:0.00:-', 'copiar con bandera encendida: promoción 900 (gana al descuento 950, que queda de referencia; sin acumular) y el manual conservado');
 select is((select l.promocion_id from dominio.comprobantes_venta_lineas l
             where l.comprobante_id = (select id from copias where clave = 'encendida') order by l.orden limit 1),
   'e1000000-0000-0000-0000-000000000001'::uuid, 'la copia guarda la promoción aplicada');
