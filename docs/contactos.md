@@ -12,7 +12,7 @@ sources:
 
 La libreta guarda a quienes consultan o compran, sin duplicados, con el consentimiento registrado, su historial de
 consultas y compras, y permite anonimizarlos a pedido. Spec:
-`specs/20261029-120000-contactos-y-respuestas-rapidas` (`specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md`)
+`specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md`
 (contrato en `contracts/contactos.md`). Las respuestas rápidas (F-CON-06) se describen al final.
 
 ## Modelo (Principio VII)

@@ -13,7 +13,7 @@ sources:
 
 Guía de la pantalla **Reportes de ventas** (`/ventas/reportes`, sección `reportes`): «Más vendidos»
 (F-VTA-22, MSF-347) y «Ranking de clientes» con exportación a Excel (F-VTA-23, MSF-358). Spec:
-`specs/20270104-100000-ventas-reportes-basicos/` (`specs/20270104-100000-ventas-reportes-basicos/spec.md`) ·
+`specs/20270104-100000-ventas-reportes-basicos/spec.md` ·
 contrato de las vistas:
 `contracts/analitica-ventas-reportes.md` (`specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`) ·
 operación de los tableros: [`operar-superset.md`](./operar-superset.md).

@@ -189,9 +189,9 @@
     },
     "docs/api-publica.md": {
       "title": "API pública y avisos hacia otros sistemas (F-API-01)",
-      "pageHash": "8ed65a4177225ca01caf39449be5abf0d62c60f80015ad56f117440d53485140",
+      "pageHash": "7a3857ebd17d214ad27fc9f802878f4ecb2427d5436d983fe1dd81fcbac4b477",
       "sourceHash": "0cd3ae78c91bde9f7934f76445c886d2c79b14df8147fb488a3a21df0c611427",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20270203-100000-api-e-asistente-con-ia",
         "scripts/openapi-a-markdown.mjs",
@@ -418,9 +418,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "57920b64678bf4e260b4d6e3c81bced348d74a772f7f0b45ed04b85f1183d93e",
+      "pageHash": "40738e2f1dca90130dad59b362149d96663e15ebdc49bce8d13335d8cf2cbd6e",
       "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -434,9 +434,9 @@
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
-      "pageHash": "78fffc66733e6456e82f31b3fda9d7e19d634c3e3406d99ce1bb5b92c59d5510",
+      "pageHash": "4eb4a0e20d6f198df8809e4566aa3dd2e3523c4ab466bc51723b4f9ce1ffd5d3",
       "sourceHash": "2f1c6209b776642b45645030d521ceb33de1634240419b6b2ce584d0b34c7e53",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20261029-120000-contactos-y-respuestas-rapidas",
         "apps/web/src/lib/consentimientoContacto.ts",
@@ -622,9 +622,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "9888dfc6cce3bf6fc0bda77156dfe1b8f6ea244cb69b8f9df19af33575eed816",
+      "pageHash": "4db37f58db599b533be02eb192cb4d39cd13decfa361e772d4e95a7495534eae",
       "sourceHash": "13302e754cc5e1f78a68ec0562def5c11a663c5ffbe993ad63775c886a000915",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -811,9 +811,9 @@
     },
     "docs/listados.md": {
       "title": "Listados: carga infinita e imagen de producto",
-      "pageHash": "30a264b5ddabf1a0b621d15966e9269c44279a94dd5c4a04c04b0745972fab83",
+      "pageHash": "6c49dc0df4a539c7e4fd9a9f19483c0b559a477d3ad2b3bd67d0e35b2ea97cfe",
       "sourceHash": "ce2b691e38622ea00af0f1b60ac47dc5f4593d5eb3879ec72e2afbadf970f986",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "apps/web/src/components/base/MiniaturaProducto.tsx"
       ],
@@ -845,9 +845,9 @@
     },
     "docs/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos · ensayo, conciliación y plan de corte",
-      "pageHash": "43caa7ae11e1d8c61bc6c90f9ca03b7f4a964a2555595f00bad8d6ebd19de674",
+      "pageHash": "a83ac0539bb3fb2c8b676d4dbbd6cde36b19a3fd1185e9ec6a3acd1c69dc39d9",
       "sourceHash": "b28daa3229c4c446b4cc2a414cb901fcedb3f7bbedec9d2f7ca9d5a7744ca656",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20261023-120000-migracion-inicial-de-datos",
         "apps/web/src/lib/migracion.ts",
@@ -1763,9 +1763,9 @@
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
-      "pageHash": "6692b0ac8fc974e48b311662755bccf744b901b30a9269116ce50f2879b97501",
+      "pageHash": "4ef0306de94870ddb923578ad4368c90ce3ebbb0798515b8938de6757bb5e90a",
       "sourceHash": "3fc93c67268c69aa2a02931f668dc159df9452c92fcf251c6388317604bf2f90",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20270201-100000-reportes-de-inventario-y-exportacion",
         "infra/superset/dashboards/inventario",
@@ -2660,12 +2660,14 @@
     },
     "docs/tecnico/empresas.md": {
       "title": "Empresas: construcción interna (MSF-138)",
-      "pageHash": "dec20155cfdbc3a1b3ff1219d3f6fb1e55c02b6ac6f708588ef10eaaea233a4b",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "2334ad7e9d2ad0bbbdc5c7b96383ef7cec2d2bc6435150e6270a61fc6665e63f",
+      "sourceHash": "951468629dcdb66a2697556db56e15fd7b3c4215dfb7a6f4afd3311c83ff4475",
+      "sourceAt": "e4d0c619",
       "sources": [
-        "specs",
-        "code"
+        "specs/20261012-140000-empresas",
+        "specs/20261015-100000-alta-de-empresas",
+        "supabase/migrations/20261013120000_empresas.sql",
+        "supabase/migrations/20261015110000_alta_de_empresas.sql"
       ],
       "owner": "tecnico",
       "commit": "ebf4bf4d"
@@ -3542,9 +3544,9 @@
     },
     "docs/tienda-contacto.md": {
       "title": "Tienda online · Contacto con formulario (F-TDA-16, MSF-437)",
-      "pageHash": "d59874ecec2f237c99752ba7c18c4815e8d843ee30a5e0207e6baf42afab55e1",
+      "pageHash": "786cca048e8b52a025baaf1287ecfc86d4cb339557f60df949b35675a549ccab",
       "sourceHash": "7a92d8d193251e8e9c206707546d904708f9f68263516bf35152c5d3fdf84078",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20261202-100000-tienda-whatsapp-y-contacto",
         "scripts/verificar-migraciones.mjs",
@@ -3636,9 +3638,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "b4f49ab4f870e95a7541e4860344b81135208504316a976d55b0ce7e0aeac4fe",
+      "pageHash": "bb46f2db56f10b14ccc88dac4c9542a2953f5b33e7f04853baf6b70b38ab684f",
       "sourceHash": "00a639f3394d60df2632581e5b1abb6f641384bc1d79e713e245ce06a4fefc49",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3788,9 +3790,9 @@
     },
     "docs/ventas-reportes.md": {
       "title": "Ventas · Reportes (épica MSF-338)",
-      "pageHash": "3c95656f8f7c70e963c124ecbc839d3552fdd24494ad287fcb6b28db874360eb",
+      "pageHash": "f45fbf2fadd5796667b1883c653c72f7265cb197e03557bf1292f73ba54538ef",
       "sourceHash": "3090225e20af52a9cdaf29638c8baefda0bc939e91db5805e1b2bb7b8e86dd3f",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e4d0c619",
       "sources": [
         "specs/20270104-100000-ventas-reportes-basicos",
         "infra/superset/dashboards/consultas-reportes",

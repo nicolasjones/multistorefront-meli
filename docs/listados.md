@@ -44,7 +44,7 @@ mencionan productos muestran su **imagen principal** como miniatura con zoom al 
 
 Si la fila tiene el `producto_id`, `useImagenesProductos(listado.filas.map((f) => f.producto_id))` entrega la URL
 firmada (vida de 5 minutos, se renueva sola) y la celda usa `<MiniaturaProducto alt="" src={imagenes.get(id)} />` junto
-al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. No se agranda la miniatura para no romper el ancho
+al nombre. Sin imagen se dibuja el marcador vacío del mismo tamaño. Si la imagen no se puede cargar (por ejemplo, la URL firmada venció), se dibuja el mismo marcador vacío en vez de una imagen rota y `MiniaturaProducto` avisa por la propiedad opcional `onFallo` para que quien la usa pida una URL nueva. No se agranda la miniatura para no romper el ancho
 de la fila. Si falla la carga de imágenes, el listado se muestra igual.
 
 ### Alta y edición de producto en popup

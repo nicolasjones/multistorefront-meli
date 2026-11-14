@@ -1,8 +1,10 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - code
+  - specs/20261012-140000-empresas
+  - specs/20261015-100000-alta-de-empresas
+  - supabase/migrations/20261013120000_empresas.sql
+  - supabase/migrations/20261015110000_alta_de_empresas.sql
 ---
 
 # Empresas: construcción interna (MSF-138)

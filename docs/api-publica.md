@@ -275,7 +275,7 @@ cambio incompatible traiga `BREAKING:` en el commit o el PR.
 ## Evidencia de cierre (2026-11-11, PR #843) · Verificación global y revisión de seguridad (T021)
 
 Cierre de la épica MSF-233
-(`specs/20270203-100000-api-e-asistente-con-ia` (`specs/20270203-100000-api-e-asistente-con-ia/spec.md`)):
+(`specs/20270203-100000-api-e-asistente-con-ia/spec.md`):
 las historias MSF-403 (F-API-01) y MSF-411 (F-IA-01) quedaron implementadas y
 esto es la verificación global de la spec (`SC-007`), junto con el estado del
 roadmap (`SC-008`, filas #25, #35, #36 y #47 de `docs/roadmap-template.md`).

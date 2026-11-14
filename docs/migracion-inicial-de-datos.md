@@ -11,7 +11,7 @@ sources:
 > **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/migracion-inicial-de-datos.md) · [guía de uso](producto/migracion-inicial-de-datos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Cierre de la épica MSF-142 (F-MIG-04, MSF-343). Spec:
-`specs/20261023-120000-migracion-inicial-de-datos/` (`specs/20261023-120000-migracion-inicial-de-datos/spec.md`).
+`specs/20261023-120000-migracion-inicial-de-datos/spec.md`.
 Las reglas de importación de cada entidad están en [migracion-datos.md](migracion-datos.md) y el
 archivo de ingresos en [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md).
 
