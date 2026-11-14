@@ -486,14 +486,17 @@ export function ComprobanteVenta() {
   // cliente en la cabecera vuelve a enviar las líneas para que tomen la lista del nuevo tipo de cliente.
   const puedeEditarLineas = puedeEditar && comprobante !== null && comprobante.editable
 
-  const reemplazarLineas = async (entradas: EntradaLinea[]) => {
-    if (!comprobante || guardandoLineas || !puedeEditarLineas) return
+  // Devuelve `true` solo si las líneas se guardaron y el comprobante se recargó (lo necesita el diálogo de confirmar,
+  // que no debe mostrar un total viejo si el re-guardado no se hizo: FR-018).
+  const reemplazarLineas = async (entradas: EntradaLinea[]): Promise<boolean> => {
+    if (!comprobante || guardandoLineas || !puedeEditarLineas) return false
     setGuardandoLineas(true)
     setErrorLineas(null)
     try {
       await guardarLineasComprobante(comprobante.id, entradas, comprobante.updated_at)
       const actualizado = await obtenerComprobante(comprobante.id)
       setComprobante(actualizado)
+      return true
     } catch (error) {
       if (esConflictoDeEdicion(error)) {
         setErrorLineas(MENSAJE_CONFLICTO_COMPROBANTE)
@@ -501,6 +504,7 @@ export function ComprobanteVenta() {
       } else {
         setErrorLineas(mensajeDeErrorComprobante(error, 'No pudimos guardar las líneas del comprobante.'))
       }
+      return false
     } finally {
       setGuardandoLineas(false)
     }
@@ -1009,6 +1013,7 @@ export function ComprobanteVenta() {
           comprobante={comprobante}
           onCerrar={() => setConfirmandoFactura(false)}
           onConfirmado={() => void alConfirmarFactura()}
+          onPreciosCambiaron={() => reemplazarLineas(aEntradas(comprobante.lineas))}
         />
       ) : null}
 

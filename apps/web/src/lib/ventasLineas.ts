@@ -16,6 +16,9 @@ export type LineaComprobante = {
   codigo: string | null
   cantidad: number
   precio_unitario: number
+  // Precio normal del cliente (con su escala y su descuento) cuando ganó una promoción de la tienda: es el «tachado».
+  // Null = sin promoción. El servidor NO manda `promocion_id` (un rol de ventas sin `productos` no debe recibirlo).
+  precio_referencia?: number | null
   escala: EscalaLinea | null
   precio_manual: boolean
   // F-VTA-32: % de descuento del cliente aplicado al neto de escala (0 = ninguno o precio manual).
@@ -51,10 +54,28 @@ export const MENSAJE_CANTIDAD_LINEA = `Ingresá una cantidad entera de 1 a ${CAN
 export const MENSAJE_PRECIO_LINEA = 'Ingresá un precio de cero o más, con hasta dos decimales.'
 export const MENSAJE_SIN_PERMISO_PRECIO = 'Tu rol no puede editar precios: el precio sale de la escala del producto.'
 
-export const rotuloEscalaLinea = (linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct'>) =>
+export const ROTULO_PROMOCION = 'Promoción'
+export const TEXTO_PRECIO_PROMOCIONAL = 'Precio promocional'
+export const TEXTO_PRECIO_ANTERIOR = 'Precio anterior'
+export const MENSAJE_PRECIOS_CAMBIARON = 'Los precios cambiaron: revisá el total.'
+export const MENSAJE_PRECIOS_CAMBIARON_COBRO = 'Los precios cambiaron: revisá el total y cobrá de nuevo.'
+// En el diálogo «Confirmar factura» no se cobra: se vuelve a confirmar (el cobro es un paso posterior).
+export const MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR = 'Los precios cambiaron: revisá el total y confirmá de nuevo.'
+export const MENSAJE_ERROR_ACTUALIZAR_PRECIOS = 'No pudimos actualizar los precios. Probá de nuevo.'
+
+// La línea cobra una promoción de la tienda (F-2, FR-016): el servidor guardó el precio normal como referencia.
+// Un precio manual nunca lleva promoción; las líneas `sin_stock` (Service) tampoco.
+export const lineaEnPromocion = (linea: Pick<LineaComprobante, 'precio_referencia' | 'precio_manual' | 'sin_stock'>): boolean =>
+  !linea.precio_manual && !linea.sin_stock && typeof linea.precio_referencia === 'number'
+
+export const rotuloEscalaLinea = (
+  linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct' | 'precio_referencia' | 'sin_stock'>,
+) =>
   linea.precio_manual
     ? 'precio manual'
-    : linea.descuento_pct
+    : lineaEnPromocion(linea)
+      ? 'promoción'
+      : linea.descuento_pct
       ? `escala ${linea.escala} · ${linea.descuento_pct} % de descuento`
       : `escala ${linea.escala}`
 
@@ -126,11 +147,13 @@ function numero(valor: unknown): number {
 export function aLineas(dato: unknown): LineaComprobante[] {
   if (!Array.isArray(dato)) return []
   return dato.map((bruto) => {
-    const linea = bruto as Record<string, unknown>
+    // `promocion_id` nunca se conserva en el cliente (el servidor no lo manda; si llegara, se descarta).
+    const { promocion_id: _promocionId, ...linea } = bruto as Record<string, unknown>
     return {
       ...(linea as unknown as LineaComprobante),
       cantidad: numero(linea.cantidad),
       precio_unitario: numero(linea.precio_unitario),
+      precio_referencia: linea.precio_referencia === null || linea.precio_referencia === undefined ? null : numero(linea.precio_referencia),
       alicuota_porcentaje: numero(linea.alicuota_porcentaje),
       stock: numero(linea.stock),
       reservado: numero(linea.reservado),
