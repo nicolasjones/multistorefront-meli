@@ -34,9 +34,12 @@ El script (`scripts/tienda-pedidos-dev.mjs`, también `pnpm tienda:pedidos:dev �
 mensaje en castellano) si no recibe `--entorno dev` o si no puede demostrar que la conexión es la de dev:
 
 - con `SUPABASE_DB_URL` (la variable de `scripts/migrar-supabase-cloud.mjs`), el host tiene que tener una etiqueta `dev`
-  (p. ej. `supabase-dev.212-90-120-53.sslip.io`) y ninguna de stg/staging/prd/prod/production ni ser de la nube de Supabase; un túnel
+  (p. ej. `supabase-dev.212-90-120-53.sslip.io`) y ninguna de stg/stage/staging/qa/uat/test/pre/preprod/prod/prd/production ni ser de la nube de Supabase; un túnel
   a la base de dev se declara a propósito en `TIENDA_PEDIDOS_DEV_DB_HOSTS` (hosts separados por coma). La contraseña viaja por
-  `PGPASSWORD`, no por argv, y requiere `psql`;
+  `PGPASSWORD`, no por argv, y requiere `psql`. Defensas contra un destino disfrazado: se rechaza la URL si su autoridad tiene `?`, `,`,
+  `%` o más de una `@` o si la query trae algo fuera de la lista permitida (solo `sslmode` con require/verify-ca/verify-full/prefer y `connect_timeout` numérico); del entorno del proceso hijo se
+  borran `PGHOST`, `PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE`, `PGPASSFILE`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGOPTIONS`, `PGSSLMODE`, `PGTARGETSESSIONATTRS`, `PGSYSCONFDIR`, `DOCKER_HOST` y `DOCKER_CONTEXT`; y **antes de tocar nada, también en modo contenedor**, se comprueba por positivo, con una consulta de solo lectura, que la base se identifica como dev: existe una organización de demostración con el **id fijo del seed** (`supabase/seed.sql`: `0f5eed00-0000-4000-8000-000000000001` «Mundo JC (demo)» o `…0002` «San Javucho (demo)») y nombre «… (demo)». Si la organización demo de dev tiene otro id, se declara a propósito en `TIENDA_PEDIDOS_DEV_ORG_IDS` (uuids separados por coma); no hace falta escribir nada en dev, y si no hay ninguna el script se niega. Los argumentos se aceptan en cualquier orden
+  (`--entorno dev encender` o `encender --entorno dev`);
 - sin `SUPABASE_DB_URL`, usa `docker exec` contra el contenedor `supabase_db_multistorefront-meli-supabase-dev` (el mismo nombre que usa el cron
   de migraciones del VPS), que es dev por construcción;
 - el SQL es fijo (un `update … where clave = 'tienda_pedidos'` o un `select`) y viaja por stdin.
@@ -93,7 +96,7 @@ el `exception when others` registra solo `sqlstate`, nunca `sqlerrm`.
 | RPC | Entrada | Salida |
 |---|---|---|
 | `publico.mis_compras_por_dominio(host, desde_fecha, desde_id, limite)` | cursor `(fecha, id)` que **solo ordena**; `limite` acotado a 1–50 (20 por defecto); un cursor a medias se ignora | `{estado:"ok", total, filas:[{id, numero, fecha, tipo, estado_publico, total_con_iva}], siguiente:{fecha,id}\|null}` · `sin_acceso` · `error` |
-| `publico.mi_compra_por_dominio(host, comprobante_id)` | un id | `{estado:"ok", numero, fecha, tipo, estado_publico, valido_hasta, total_sin_iva, iva, total_con_iva, lineas:[{descripcion, codigo, cantidad, precio_unitario, subtotal}]}` · `no_encontrada` · `sin_acceso` · `error` |
+| `publico.mi_compra_por_dominio(host, comprobante_id)` | un id | `{estado:"ok", numero, fecha, tipo, estado_publico, valido_hasta, total_sin_iva, iva, total_con_iva, lineas:[{descripcion, codigo, cantidad, precio_unitario, subtotal}]}` · `no_encontrada` · `sin_acceso` · `error`. En una nota de crédito los totales y el `subtotal` de cada línea van **negativos** (el `precio_unitario` queda positivo) para que las líneas sumen el total con signo |
 | `publico.cambiar_favorito_por_dominio(host, producto_id, favorito)` | `favorito` true/false | `{estado:"ok", favorito}` · `limite_favoritos` · `no_encontrado` · `sin_acceso` · `error` |
 | `publico.mis_favoritos_por_dominio(host, desde_creado, desde_id, limite)` | cursor `(creado_en, id)` que solo ordena; `limite` 1–50 | `{estado:"ok", total, filas:[{producto_id, nombre, sku, imagen, disponible, precio_final, escala}], siguiente:{creado,id}\|null}` |
 | `publico.favoritos_entre_por_dominio(host, productos)` | hasta 50 ids | `{estado:"ok", favoritos:[uuid]}` · `{estado:"invalido", campos:["productos"]}` |
@@ -116,27 +119,28 @@ depósito, operador, notas, cliente, organización, forma de pago, envío ni cob
 | Nota de crédito | cualquiera salvo borrador | `nota_credito` |
 
 **Favoritos (FR-007 a FR-010, D-11).** Alternar es idempotente: guardar dos veces no duplica y quitar uno que no existe no falla. **Tope de 200 por cuenta** con
-`pg_advisory_xact_lock` por cuenta: el 201 responde `limite_favoritos` sin guardar (guardar uno que ya existe sigue siendo `ok` en el tope). Guardar exige que
+`pg_advisory_xact_lock` por cuenta: el 201 responde `limite_favoritos` sin guardar (guardar uno que ya existe sigue siendo `ok` en el tope). El tope cuenta **solo los favoritos de productos visibles hoy**: con 150 visibles y 50 ocultos se puede guardar el 151. Guardar exige que
 el producto sea **efectivamente visible** en la tienda (`private.catalogo_tienda_efectivo`): inexistente, inactivo, oculto, de otra tienda o de otra
 organización responden todos `no_encontrado`. «Favoritos» solo lista y cuenta los productos **visibles hoy**: un favorito cuyo producto se ocultó no se lista
 ni se cuenta, pero **no se borra** y reaparece al volver a publicarse. Muestra solo `disponible` (sin cantidades de stock) y `precio_final` con la escala x1
 (la de la ficha a cantidad 1, `private.precio_final_publico_escala`).
 
-**Desvíos menores del contrato** (se anotan en el PR):
+**Decisiones que el contrato y la spec ya recogen** (código, contrato y spec coinciden):
 
-- **Quitar** un favorito (`favorito = false`) no exige que el producto siga visible: siempre responde `ok`. Así una persona con favoritos ocultos puede liberar
-  lugar en el tope; solo toca filas de su propia cuenta.
+- **Quitar** un favorito (`favorito = false`) no exige que el producto siga visible: siempre responde `ok` y solo toca filas de su propia cuenta; `no_encontrado` aplica solo al guardar.
 - `siguiente` de `mis_favoritos_por_dominio` es `{creado, id}` (el `id` es el de la fila de favorito) y se devuelve tal cual en `desde_creado` y `desde_id`.
 - Con host desconocido, empresa desactivada o tienda pausada las RPC de cuenta responden `sin_acceso` (igual que cualquier falta de cuenta), no `error`.
+- Notas de crédito: totales y subtotales de línea negativos (precio unitario positivo); las líneas suman el total con signo solo en las notas por **devolución de productos** (las de importe o descuento no tienen líneas).
+- **Rendimiento de guardar un favorito**: una sola evaluación de `private.catalogo_tienda_efectivo` por llamada (visibilidad y conteo del tope). Medición local con `scripts/medir-tienda-favoritos.sql` (estimación, no SLA): ~12 ms con 2.000 productos y ~35–50 ms con 10.000 en una tienda; límite aceptado ~10.000 productos visibles por tienda (ver el contrato). El total visible puede superar 200 si se republican productos ocultos; las filas están acotadas por la cantidad de productos de la tienda.
 
 ### Pruebas (pgTAP)
 
 | Archivo | Cubre |
 |---|---|
-| `supabase/tests/database/tienda_capacidades.test.sql` | bandera apagada por defecto, `pedidos` true/false, host desconocido = empresa desactivada, claves exactas, `anon` sin acceso a la tabla de banderas |
+| `supabase/tests/database/tienda_capacidades.test.sql` | bandera apagada por defecto, `pedidos` true/false, host desconocido = empresa desactivada, claves exactas, `anon` sin acceso a la tabla de banderas y **lista cerrada** de las funciones de `publico` ejecutables por `anon` (hay que sumar a propósito cada una nueva) |
 | `supabase/tests/database/tienda_cuenta_de_tienda.test.sql` | dos organizaciones y dos tiendas: suspendida, no habilitada, otra tienda, panel, anónimo, archivado, consumidor final, host desconocido, empresa desactivada y otra organización → vacío; suspensión y baja rigen en la próxima llamada |
-| `supabase/tests/database/tienda_favoritos.test.sql` | alternar idempotente, tope 200, producto oculto/inactivo/ajeno/inexistente idénticos, aislamiento entre cuentas y entre tiendas del mismo cliente, oculto no se lista y reaparece, cursor forjado, `favoritos_entre` ≤ 50, bandera apagada, tabla sin privilegios de API, FK compuestas, `anon` sin `execute`, `search_path` vacío |
-| `supabase/tests/database/tienda_historial.test.sql` | solo lo del cliente y la tienda, sin borradores, notas de crédito negativas, estado público, vencido por Buenos Aires, IDOR idéntico a inexistente, lista blanca exacta por claves, cursor y límite, suspensión inmediata, bandera apagada |
+| `supabase/tests/database/tienda_favoritos.test.sql` | alternar idempotente, tope 200, producto oculto/inactivo/ajeno/inexistente idénticos, aislamiento entre cuentas y entre tiendas del mismo cliente, oculto no se lista y reaparece, cursor forjado, orden «nuevos primero» con empates y un alta y una baja entre páginas, quitar el mismo producto en tres cuentas sin cruzarlas, tope contando solo visibles, quitar con el producto oculto, lista vacía, `favoritos_entre` ≤ 50, bandera apagada, tabla sin privilegios de API, FK compuestas, `anon` sin `execute`, `search_path` vacío |
+| `supabase/tests/database/tienda_historial.test.sql` | solo lo del cliente y la tienda, sin borradores, notas de crédito negativas, estado público, vencido por Buenos Aires, IDOR idéntico a inexistente, lista blanca exacta por claves, cursor y límite (tope de 50 con más de 50 comprobantes, desempate por id con límite 1), lista vacía, nota de crédito con líneas negativas, el «hoy» de Buenos Aires (sin `current_date` ni `now()`), suspensión inmediata, bandera apagada |
 
 ### Front de A (`apps/web`)
 
