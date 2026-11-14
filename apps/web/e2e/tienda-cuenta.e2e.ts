@@ -9,7 +9,8 @@ import { borrar, cabeceras, rest, serviceKey, url } from './soporte/fixtures'
 // local (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra con la API admin desde Node (la
 // service-role key nunca llega al navegador) y SIN escritura directa en las tablas de solo lectura de `dominio` (`pnpm e2e:escritura:check`).
 // La función está detrás de la bandera `tienda_pedidos` (apagada por defecto): el spec la enciende y devuelve su valor previo
-// al terminar. Si la base todavía no tiene las RPC de la épica (historia A del SQL sin desplegar), se omite con ese motivo.
+// al terminar. Si la base todavía no tiene las RPC de la épica (historia A del SQL sin desplegar), se omite con ese motivo; en el job
+// `e2e-tienda` esas omisiones hacen fallar `e2e:omitidos:check --max=1` hasta que el SQL de la épica esté en la rama (ver docs/e2e-app.md).
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001' } as const
@@ -20,8 +21,11 @@ const CLAVE = 'Clave-Segura-123!'
 const GENERICO = 'Correo o contraseña incorrectos.'
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 const origen = (t: Tienda) => `http://${t.host}:${puerto}`
-const HOY = new Date().toISOString().slice(0, 10)
-const AYER = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+// El «hoy» de la tienda es el de Buenos Aires (`private.hoy_argentina()`), no el UTC: de noche difieren un día.
+const DIA_MS = 24 * 60 * 60 * 1000
+const fechaArgentina = (diasAtras: number) =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(Date.now() - diasAtras * DIA_MS))
+const HOY = fechaArgentina(0)
 
 async function admin<T>(ruta: string, cuerpo: unknown): Promise<T> {
   const r = await fetch(`${url}/auth/v1/admin/${ruta}`, { method: 'POST', headers: cabeceras(), body: JSON.stringify(cuerpo) })
@@ -113,8 +117,9 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     numeros = { factura: `F${sufijo}-1`, vencido: `P${sufijo}-1`, ajeno: `X${sufijo}-1` }
     await rest('comprobantes_venta', [
       comprobante(cliente.clienteId, MUNDO, { tipo: 'factura', numero: numeros.factura, estado: 'confirmada' }),
-      // Un presupuesto pendiente con validez vencida: la tienda lo muestra «Vencido».
-      comprobante(cliente.clienteId, MUNDO, { tipo: 'presupuesto', numero: numeros.vencido, estado: 'pendiente', valido_hasta: AYER, total_con_iva: 242 }),
+      // Un presupuesto pendiente con validez vencida: la tienda lo muestra «Vencido». `comprobantes_venta_valido_hasta_ck` exige
+      // valido_hasta >= fecha: fecha hace 5 días y validez hasta hace 3.
+      comprobante(cliente.clienteId, MUNDO, { tipo: 'presupuesto', numero: numeros.vencido, estado: 'pendiente', fecha: fechaArgentina(5), valido_hasta: fechaArgentina(3), total_con_iva: 242 }),
       comprobante(ajeno.clienteId, MUNDO, { tipo: 'factura', numero: numeros.ajeno, estado: 'confirmada' }),
     ], 'dominio')
   })
@@ -219,7 +224,7 @@ test.describe('Tienda · «Mi cuenta» (F-CLI-20)', () => {
     const masivo = await sembrarCliente(MUNDO, 'masivo')
     const filas = Array.from({ length: 200 }, (_, i) => comprobante(masivo.clienteId, MUNDO, {
       tipo: 'presupuesto', numero: `M${sufijo}-${String(i + 1).padStart(4, '0')}`, estado: 'pendiente',
-      fecha: new Date(Date.now() - i * 60 * 60 * 1000).toISOString().slice(0, 10),
+      fecha: fechaArgentina(Math.floor(i / 4)),
     }))
     await rest('comprobantes_venta', filas, 'dominio')
 
