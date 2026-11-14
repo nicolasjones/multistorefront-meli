@@ -51,3 +51,79 @@ jobs:
       - name: Liberar la ranura del stack de Supabase
         if: always()
         run: node scripts/supabase-ci.mjs liberar
+
+  e2e-tienda-hosted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+      - name: host.docker.internal y directorio de locks
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+      - name: Reservar la ranura del stack de Supabase
+        run: node scripts/supabase-ci.mjs reclamar
+      - run: pnpm db:ci:preparar
+      - name: Levantar el stack de Supabase del CI con API
+        run: |
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+      - run: pnpm db:reset:ci
+      - name: Reiniciar PostgREST, esperar la API y exponer el entorno
+        run: |
+          docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"
+          eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
+          URL="${API_URL/127.0.0.1/host.docker.internal}"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          esperar() {
+            codigo=000
+            for intento in $(seq 60); do
+              codigo=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL$2" || true)
+              [ "$codigo" = "200" ] && return 0
+              sleep 2
+            done
+            echo "$1 no respondió 200 en $URL$2 (último: $codigo)"
+            return 1
+          }
+          esperar PostgREST /rest/v1/
+          esperar Auth /auth/v1/health
+          esperar Storage /storage/v1/status
+          {
+            echo "SUPABASE_URL=$URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "VITE_SUPABASE_URL=$URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "VITE_PANEL_HOSTS=localhost,127.0.0.1"
+            echo "E2E_SIN_EDGE=1"
+            echo "E2E_TIENDA_CI=1"
+            echo "WEB_PORT=$((4400 + GITHUB_RUN_ID % 100))"
+          } >> "$GITHUB_ENV"
+      - name: build de la web contra el stack del CI
+        run: pnpm --filter @platform/web exec vite build
+      - name: playwright install
+        run: pnpm --filter @platform/web exec playwright install --with-deps chromium
+      - name: test:e2e (tienda-*)
+        timeout-minutes: 30
+        run: pnpm --filter @platform/web exec playwright test --workers=2 e2e/tienda-
+      - name: Verificar que no haya omisiones inesperadas
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-tienda
+          retention-days: 3
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            apps/web/resultado-e2e.json
