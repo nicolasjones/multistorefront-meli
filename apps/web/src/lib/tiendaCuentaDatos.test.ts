@@ -88,6 +88,32 @@ describe('leerMisCompras', () => {
   })
 })
 
+// MSF-176 · cierre (H-3): el cupo de llamadas por cuenta de las cinco RPC de «Mi cuenta». `limite` es un error propio con reintento, nunca «cuenta no activa».
+describe('límite de llamadas por cuenta (H-3)', () => {
+  const limite = { data: { estado: 'limite', espera_segundos: 17 }, error: null }
+  it.each([
+    ['mis_compras', () => leerMisCompras(HOST)],
+    ['mi_compra', () => leerMiCompra(HOST, ID)],
+    ['mis_favoritos', () => leerMisFavoritos(HOST)],
+    ['favoritos_entre', () => leerFavoritosEntre(HOST, [ID])],
+    ['cambiar_favorito', () => cambiarFavorito(HOST, ID, true)],
+  ])('%s: un `limite` del servidor es un ErrorCuentaTienda «limite» con el texto de esperar, no «sin acceso»', async (_nombre, llamar) => {
+    mocks.rpc.mockResolvedValue(limite)
+    const error = await llamar().catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ErrorCuentaTienda)
+    expect(esSinAcceso(error)).toBe(false)
+    expect((error as ErrorCuentaTienda).codigo).toBe('limite')
+    expect((error as ErrorCuentaTienda).esperaSegundos).toBe(17)
+    expect((error as Error).message).toBe('Hiciste muchas consultas seguidas. Esperá un momento y probá de nuevo.')
+  })
+
+  it('sin espera informada usa 60 segundos', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'limite' }, error: null })
+    const error = await leerMisCompras(HOST).catch((e: unknown) => e)
+    expect((error as ErrorCuentaTienda).esperaSegundos).toBe(60)
+  })
+})
+
 describe('leerMiCompra', () => {
   const DETALLE = {
     estado: 'ok', numero: '12', fecha: '2026-11-12', tipo: 'presupuesto', estado_publico: 'pendiente', valido_hasta: null,

@@ -127,6 +127,19 @@ describe('BotonFavorito · ficha del producto (P-2)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar el favorito. Probá de nuevo.')
   })
 
+  it('el límite de llamadas por cuenta (H-3) no se confunde con «cuenta no activa»: avisa el error con reintento y el botón sigue disponible', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    montar()
+    const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })
+    await waitFor(() => expect(guardar).toBeEnabled())
+    rpcs({ cambiar_favorito_por_dominio: { estado: 'limite', espera_segundos: 20 } })
+    fireEvent.click(guardar)
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent('No pudimos guardar el favorito. Probá de nuevo.')
+    expect(aviso).not.toHaveTextContent('Tu cuenta no está activa')
+    expect(screen.getByRole('button', { name: 'Guardar en favoritos' })).toBeEnabled()
+  })
+
   it('si la cuenta dejó de estar activa avisa «Tu cuenta no está activa en esta tienda» y deshabilita el botón', async () => {
     montar()
     const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })

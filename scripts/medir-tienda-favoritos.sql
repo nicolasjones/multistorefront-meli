@@ -3,11 +3,34 @@
 -- «Rendimiento (medido)»): guardar un favorito evalúa `private.catalogo_tienda_efectivo` una sola vez por llamada.
 --
 -- Uso (SOLO en una base LOCAL o de pruebas con todas las migraciones aplicadas; NUNCA contra dev, staging ni producción):
---   psql -X -q -v N=10000 -f scripts/medir-tienda-favoritos.sql <base-local>
+--   psql -X -q -v N=10000 -v BASE_DESCARTABLE=si -f scripts/medir-tienda-favoritos.sql <base-local>
 -- Crea una organización, una tienda con N productos, un cliente y su cuenta, llama a las RPC y hace ROLLBACK de todo: no deja datos.
 -- Imprime un NOTICE con los milisegundos de cada llamada. La medición del contrato se hizo en Postgres 17 (imagen de Supabase) local:
 -- N = 2000 → guardar ~12 ms; N = 10000 → guardar ~35-50 ms; `precios_cliente_por_dominio` de 1 producto ~12 ms y ~35 ms.
 -- Es una estimación local (sin carga concurrente ni red): sirve para comparar órdenes de magnitud, no como SLA.
+-- GUARD DE ENTORNO (H-6 de la revisión de seguridad integral): el script escribe (aunque lo deshace con ROLLBACK) y llama a funciones con efectos, así que se NIEGA a
+-- correr salvo que se declare que la base es descartable y que se vea como tal:
+--   * hay que pasar `-v BASE_DESCARTABLE=si` (sin eso aborta);
+--   * se niega si la base tiene más de 5 organizaciones (una base de pruebas tiene las del seed o ninguna; dev, staging y producción tienen más);
+--   * se niega si la base es la de una organización real: cualquier organización que no sea del seed ni de prueba y tenga clientes con comprobantes confirmados no se cuenta
+--     acá, así que el tope de organizaciones es la barrera simple y la variable es la confirmación explícita de la persona.
+\set ON_ERROR_STOP on
+\if :{?BASE_DESCARTABLE}
+\else
+  \echo 'ABORTADO: falta -v BASE_DESCARTABLE=si (solo una base LOCAL o de pruebas descartable).'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (:'BASE_DESCARTABLE' = 'si') as confirmada \gset
+\if :confirmada
+\else
+  \echo 'ABORTADO: BASE_DESCARTABLE debe valer «si».'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (select count(*) from public.organizaciones) > 5 as demasiadas \gset
+\if :demasiadas
+  \echo 'ABORTADO: la base tiene más de 5 organizaciones: no parece una base de pruebas descartable.'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
 begin;
 insert into organizaciones (id, nombre) values ('99999999-9999-9999-9999-999999999999','Medicion');
 insert into auth.users (id,email) values ('f9000000-0000-0000-0000-000000000001','m@example.com');
