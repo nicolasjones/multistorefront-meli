@@ -12,7 +12,8 @@
 --
 -- Acceso: RLS ACTIVADA sin ninguna política y SIN ningún privilegio para `public`, `anon` ni `authenticated`
 -- (nada de API): la tabla se lee y escribe únicamente por las RPC `publico.*` (`security definer`), que derivan la cuenta de
--- `private.cuenta_de_tienda`. Quien opera el panel no ve los favoritos del cliente (D-11).
+-- `private.cuenta_de_tienda`. Solo `service_role` (API admin: E2E, siembra, workers) conserva lectura y escritura, como toda
+-- tabla operativa de `dominio`. Quien opera el panel no ve los favoritos del cliente (D-11).
 --
 -- Migración aditiva. Reversión (migración posterior; no se ejecuta en el mismo PR; exportar antes los datos):
 --   drop table if exists dominio.favoritos_cliente;
@@ -56,3 +57,7 @@ comment on table dominio.favoritos_cliente is
 alter table dominio.favoritos_cliente enable row level security;
 
 revoke all on dominio.favoritos_cliente from public, anon, authenticated;
+
+-- `service_role` (la API admin que usan los E2E, la siembra y los workers; nunca el navegador) opera las tablas operativas de
+-- `dominio` (pgTAP `service_role_privilegios`, migración 20270302105000). La API pública (`anon`, `authenticated`) sigue sin nada.
+grant select, insert, update, delete on dominio.favoritos_cliente to service_role;

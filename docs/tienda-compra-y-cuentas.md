@@ -53,7 +53,7 @@ Todo es **por tienda** (D-2): la misma persona con cuentas en San Javucho y Mund
 
 | Objeto | Esquema | Por qué | Acceso |
 |---|---|---|---|
-| `dominio.favoritos_cliente` (nueva: `id`, `organizacion_id`, `empresa_id`, `cuenta_cliente_id`, `producto_id`, `creado_en`; única `(cuenta_cliente_id, producto_id)`) | `dominio` | dato del negocio sobre productos del catálogo; se ata a la cuenta (identidad, `public`) y al producto | RLS activada **sin políticas** y **sin ningún privilegio** para `anon`, `authenticated` ni `public`: solo las RPC `security definer` la leen y escriben |
+| `dominio.favoritos_cliente` (nueva: `id`, `organizacion_id`, `empresa_id`, `cuenta_cliente_id`, `producto_id`, `creado_en`; única `(cuenta_cliente_id, producto_id)`) | `dominio` | dato del negocio sobre productos del catálogo; se ata a la cuenta (identidad, `public`) y al producto | RLS activada **sin políticas** y **sin ningún privilegio** para `anon`, `authenticated` ni `public`: solo las RPC `security definer` la leen y escriben (y `service_role`, la API admin de E2E, siembra y workers, como toda tabla operativa de `dominio`) |
 | `private.cuenta_de_tienda(host)` | `private` | único punto de identidad y aislamiento de las RPC de cuenta | sin `execute` para la API |
 | `private.estado_publico_comprobante(tipo, estado, valido_hasta)` | `private` | única definición del estado público (lista y detalle) | sin `execute` para la API |
 | `publico.cambiar_favorito_por_dominio`, `mis_favoritos_por_dominio`, `favoritos_entre_por_dominio`, `mis_compras_por_dominio`, `mi_compra_por_dominio` | `publico` | superficie de la tienda (`publico` sigue sin tablas) | solo `authenticated` (`revoke … from public, anon` + `grant execute … to authenticated`) |
@@ -72,6 +72,7 @@ a una tienda distinta de la de su cuenta. Quien opera el panel **no ve** los fav
 | `20270320100200_favoritos_cliente.sql` | tabla `dominio.favoritos_cliente` e índice único de apoyo en `cuentas_cliente` | `drop table` (exportar antes); `drop index` |
 | `20270320100300_tienda_favoritos_rpc.sql` | RPC de favoritos | `drop function` de cada una |
 | `20270320100400_tienda_historial_rpc.sql` | RPC de historial, `private.estado_publico_comprobante` e índice `(cliente_id, empresa_id, fecha desc, id desc)` en `dominio.comprobantes_venta` | `drop function` de cada una; `drop index` |
+| `20270320100500_exportacion_total_excluye_favoritos.sql` | `private.exclusiones_exportacion_total()` suma `dominio.favoritos_cliente` (los favoritos son privados del cliente, D-11: no entran en la exportación total del administrador) | redefinir la función sin esa fila |
 
 Ninguna reversión se ejecuta en el mismo PR. Las versiones se fijaron por encima del máximo real de `origin/dokploy` con margen.
 

@@ -10,7 +10,7 @@
 --   * Grants: `anon` sin execute; `authenticated` con execute; `security definer` con `search_path = ''`.
 begin;
 
-select plan(83);
+select plan(84);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -120,6 +120,12 @@ select ok(
   and not has_table_privilege('authenticated', 'dominio.favoritos_cliente', 'update')
   and not has_table_privilege('authenticated', 'dominio.favoritos_cliente', 'delete'),
   'ni select, insert, update ni delete para anon o authenticated');
+select ok(
+  has_table_privilege('service_role', 'dominio.favoritos_cliente', 'select')
+  and has_table_privilege('service_role', 'dominio.favoritos_cliente', 'insert')
+  and has_table_privilege('service_role', 'dominio.favoritos_cliente', 'update')
+  and has_table_privilege('service_role', 'dominio.favoritos_cliente', 'delete'),
+  'service_role (API admin) opera la tabla como toda tabla operativa de dominio');
 select ok(
   not has_function_privilege('anon', 'publico.cambiar_favorito_por_dominio(text, uuid, boolean)', 'execute')
   and not has_function_privilege('anon', 'publico.mis_favoritos_por_dominio(text, timestamptz, uuid, integer)', 'execute')
