@@ -483,6 +483,149 @@ describe('/lista · con cuenta activa (FR-026)', () => {
   })
 })
 
+// MSF-176 · B2 · P-4 y P-5: «Pedir presupuesto» (Q3 de la revisión de QA): el cableado de la pantalla.
+describe('/lista · pedir presupuesto (B2, FR-050 a FR-064)', () => {
+  const conCuenta = (lineas: unknown[]) => respuestaLista(lineas, { con_cuenta: true, tipo: 'mayorista' })
+  const lineaCot = (id: string, extra: Record<string, unknown> = {}) => ({
+    producto_id: id, descripcion: `Producto ${id.slice(-1)}`, codigo: `SKU-${id.slice(-1)}`, cantidad: 1, precio_unitario: 2000, subtotal_sin_iva: 2000, iva: 420, disponible: true, ...extra,
+  })
+  const cotOk = { estado: 'ok', lineas: [lineaCot(P1, { cantidad: 2, subtotal_sin_iva: 4000, iva: 840 }), lineaCot(P2)], total_sin_iva: 6000, iva: 1260, total_con_iva: 7260, no_disponibles: [], sin_precio: [] }
+  const confCreado = { estado: 'ok', numero: '00000012', fecha: '2026-11-14', total_con_iva: 7260 }
+  const conCuentaActiva = (respuestas: Record<string, Respuesta> = {}) => {
+    mocks.sesionActivaEnTienda.mockResolvedValue({ estado: 'activa', tipo: 'mayorista' })
+    rpcs({ lista_pedido_por_dominio: conCuenta([linea(P1, { cantidad: 2 }), linea(P2)]), cotizar_presupuesto_tienda: cotOk, crear_presupuesto_tienda: confCreado, ...respuestas })
+  }
+
+  it('«Pedir presupuesto» SOLO existe con cuenta activa: un visitante no lo ve y «Enviar pedido» es su único botón principal', async () => {
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    expect(screen.queryByRole('button', { name: 'Pedir presupuesto' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar pedido' })).toHaveClass('MuiButton-contained')
+  })
+
+  it('con cuenta activa: «Pedir presupuesto» (principal) y «Enviar pedido» (secundario), cada uno con su aclaración', async () => {
+    conCuentaActiva()
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    expect(screen.getByRole('button', { name: 'Pedir presupuesto' })).toHaveClass('MuiButton-contained')
+    expect(screen.getByRole('button', { name: 'Enviar pedido' })).toHaveClass('MuiButton-outlined')
+    expect(screen.getByText('Te calculamos el precio que te corresponde. Queda a la espera de nuestra respuesta.')).toBeInTheDocument()
+    expect(screen.getByText('Mandamos tu lista como consulta, con precios de referencia.')).toBeInTheDocument()
+  })
+
+  it('mientras se revisa la lista «Pedir presupuesto» está deshabilitado y no llama a nada', async () => {
+    mocks.sesionActivaEnTienda.mockResolvedValue({ estado: 'activa', tipo: 'mayorista' })
+    mocks.rpc.mockImplementation(() => new Promise(() => undefined))
+    montar()
+    await screen.findByRole('status', { name: 'Revisando tu lista' })
+    // Sin la revalidación del servidor no se pide nada: el botón se ve (hay sesión activa) pero deshabilitado.
+    expect(await screen.findByRole('button', { name: 'Pedir presupuesto' })).toBeDisabled()
+    expect(mocks.rpc.mock.calls.some(([funcion]) => funcion === 'cotizar_presupuesto_tienda')).toBe(false)
+  })
+
+  it('valida la nota ANTES de abrir el diálogo: más de 500 caracteres o caracteres no aceptados (incluidos los invisibles) y no cotiza', async () => {
+    conCuentaActiva()
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    for (const [nota, mensaje] of [['x'.repeat(501), 'La nota admite hasta 500 caracteres.'], ['hola\u200bchau', 'Hay caracteres que no podemos aceptar.'], ['hola\u061cchau', 'Hay caracteres que no podemos aceptar.']] as const) {
+      fireEvent.change(screen.getByLabelText(/^Nota/), { target: { value: nota } })
+      fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+      expect(await screen.findByText(mensaje)).toBeInTheDocument()
+      expect(screen.getByLabelText(/^Nota/)).toHaveFocus()
+    }
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mocks.rpc.mock.calls.some(([funcion]) => funcion === 'cotizar_presupuesto_tienda')).toBe(false)
+  })
+
+  it('abre «Tu presupuesto» con la cotización del servidor, manda solo producto_id y cantidad y, al confirmar, vacía la lista y muestra el número y el total', async () => {
+    conCuentaActiva()
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    fireEvent.change(screen.getByLabelText(/^Nota/), { target: { value: '  Después de las 18  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Tu presupuesto' })
+    expect(await within(dialogo).findByTestId('presupuesto-total')).toHaveTextContent('$ 7.260,00')
+    expect(mocks.rpc).toHaveBeenCalledWith('cotizar_presupuesto_tienda', { host: HOST, items: [{ producto_id: P1, cantidad: 2 }, { producto_id: P2, cantidad: 1 }] })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Confirmar presupuesto' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pedimos tu presupuesto Nº 00000012' })).toBeInTheDocument()
+    expect(screen.getByText('Total con IVA: $ 7.260,00')).toBeInTheDocument()
+    expect(screen.queryByText(/El precio cambió/)).not.toBeInTheDocument()
+    const llamada = mocks.rpc.mock.calls.find(([funcion]) => funcion === 'crear_presupuesto_tienda')
+    expect(llamada?.[1]).toMatchObject({ host: HOST, items: [{ producto_id: P1, cantidad: 2 }, { producto_id: P2, cantidad: 1 }], nota: 'Después de las 18' })
+    expect(Object.keys(llamada?.[1] as object).sort()).toEqual(['clave_envio', 'host', 'items', 'nota'])
+    // La lista se vació (almacenamiento y estado) y el presupuesto se enlaza en «Mi cuenta».
+    expect(leerLista(HOST)).toHaveLength(0)
+    expect(screen.getByRole('link', { name: 'Ver en Mi cuenta' })).toHaveAttribute('href', '/mi-cuenta?seccion=compras')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('si el total confirmado difiere del cotizado avisa que el precio cambió', async () => {
+    conCuentaActiva({ crear_presupuesto_tienda: { ...confCreado, total_con_iva: 6000 } })
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    expect(await screen.findByText('El precio cambió mientras armabas el presupuesto. Este es el total vigente.')).toBeInTheDocument()
+  })
+
+  it('sin_acceso al COTIZAR: cierra el diálogo, avisa «Tu cuenta no está activa…», vuelve al modo visitante (pide nombre y contacto) y conserva la lista', async () => {
+    conCuentaActiva({ cotizar_presupuesto_tienda: { estado: 'sin_acceso' } })
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    expect(await screen.findByText('Tu cuenta no está activa en esta tienda.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByLabelText(/^Nombre/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Pedir presupuesto' })).not.toBeInTheDocument()
+    expect(leerLista(HOST)).toHaveLength(2)
+  })
+
+  it('sin_acceso al CONFIRMAR: mismo camino (visitante, aviso, lista conservada)', async () => {
+    conCuentaActiva({ crear_presupuesto_tienda: { estado: 'sin_acceso' } })
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    expect(await screen.findByText('Tu cuenta no está activa en esta tienda.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByLabelText(/^Nombre/)).toBeInTheDocument()
+    expect(leerLista(HOST)).toHaveLength(2)
+  })
+
+  it('un error al crear conserva la lista y reintentar usa la misma clave de envío; cambiar la nota pide otra', async () => {
+    conCuentaActiva({ crear_presupuesto_tienda: { estado: 'error' } })
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    expect((await screen.findByTestId('resultado-presupuesto')).textContent).toContain('No pudimos pedir tu presupuesto. Tu lista sigue acá: probá de nuevo.')
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(mocks.rpc.mock.calls.filter(([f]) => f === 'crear_presupuesto_tienda')).toHaveLength(2))
+    const claves = mocks.rpc.mock.calls.filter(([f]) => f === 'crear_presupuesto_tienda').map(([, a]) => (a as { clave_envio: string }).clave_envio)
+    expect(claves[0]).toBe(claves[1])
+    expect(leerLista(HOST)).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a la lista' }))
+    fireEvent.change(screen.getByLabelText(/^Nota/), { target: { value: 'otra nota' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar presupuesto' }))
+    await waitFor(() => expect(mocks.rpc.mock.calls.filter(([f]) => f === 'crear_presupuesto_tienda')).toHaveLength(3))
+    const tercera = mocks.rpc.mock.calls.filter(([f]) => f === 'crear_presupuesto_tienda')[2][1] as { clave_envio: string }
+    expect(tercera.clave_envio).not.toBe(claves[0])
+  })
+
+  it('no manda a cotizar los productos que el servidor ya marcó como no disponibles', async () => {
+    mocks.sesionActivaEnTienda.mockResolvedValue({ estado: 'activa', tipo: 'mayorista' })
+    agregarALista(HOST, P3)
+    rpcs({ lista_pedido_por_dominio: { ...conCuenta([linea(P1, { cantidad: 2 }), linea(P2)]), no_disponibles: [P3] }, cotizar_presupuesto_tienda: cotOk })
+    montar()
+    await screen.findAllByTestId('linea-lista')
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    await screen.findByRole('dialog', { name: 'Tu presupuesto' })
+    const llamada = mocks.rpc.mock.calls.find(([funcion]) => funcion === 'cotizar_presupuesto_tienda')
+    expect((llamada?.[1] as { items: { producto_id: string }[] }).items.map((i) => i.producto_id)).toEqual([P1, P2])
+  })
+})
+
 // SC-006 y FR-033: axe a 320, 768 y 1440 px de cada estado.
 describe.each(ANCHOS_TIENDA)('accesibilidad de /lista a %i px', (ancho) => {
   beforeEach(() => { fijarAncho(ancho) })
@@ -503,6 +646,28 @@ describe.each(ANCHOS_TIENDA)('accesibilidad de /lista a %i px', (ancho) => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar pedido' }))
     await screen.findByText('Recibimos tu pedido')
     expect(await violacionesAxe(container)).toEqual([])
+  }, 60000)
+
+  it('con cuenta activa (los dos botones, la cotización abierta y la confirmación del presupuesto): sin violaciones de axe', async () => {
+    mocks.sesionActivaEnTienda.mockResolvedValue({ estado: 'activa', tipo: 'mayorista' })
+    rpcs({
+      lista_pedido_por_dominio: respuestaLista([linea(P1, { cantidad: 2 }), linea(P2)], { con_cuenta: true, tipo: 'mayorista' }),
+      cotizar_presupuesto_tienda: { estado: 'ok', lineas: [{ producto_id: P1, descripcion: 'Producto 1', codigo: 'SKU-1', cantidad: 2, precio_unitario: 2000, subtotal_sin_iva: 4000, iva: 840, disponible: true }], total_sin_iva: 4000, iva: 840, total_con_iva: 4840, no_disponibles: [], sin_precio: [] },
+      crear_presupuesto_tienda: { estado: 'ok', numero: '00000012', fecha: '2026-11-14', total_con_iva: 4840 },
+    })
+    const { container, baseElement } = montar()
+    await screen.findAllByTestId('linea-lista')
+    expect(screen.getByRole('button', { name: 'Pedir presupuesto' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Enviar pedido' })).toBeInTheDocument()
+    expect(await violacionesAxe(container)).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pedir presupuesto' }))
+    await screen.findByTestId('presupuesto-total')
+    expect(await violacionesAxe(baseElement)).toEqual([])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar presupuesto' }))
+    await screen.findByRole('heading', { level: 1, name: 'Pedimos tu presupuesto Nº 00000012' })
+    expect(await violacionesAxe(baseElement)).toEqual([])
   }, 60000)
 
   it('lista vacía y error de revisión: sin violaciones de axe', async () => {

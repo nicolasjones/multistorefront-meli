@@ -80,7 +80,7 @@ Cómo borrar a mano (no hay una pantalla para borrar consultas): una persona con
 por la FK) o, para todo un visitante, borra las consultas con ese contacto. Si se borra un **cliente**, sus pedidos **no se borran**: `cliente_id` queda en `null` (`on delete set null`) pero el nombre y el contacto
 de la consulta siguen; hay que borrarlos aparte. La baja de la organización se lleva todo en cascada.
 
-**Seguimiento trazado**: definir el plazo de retención y la purga de consultas e ítems de pedido (T072 de `tasks.md`; el manual de usuario de la tienda y de Consultas vive en `main` y no se toca desde esta rama).
+**Seguimiento trazado**: definir el plazo de retención y la purga de consultas e ítems de pedido y la supresión a pedido del titular (**MSF-944**, que también cubre los presupuestos de la tienda y sus notas). El manual de usuario está en `docs/producto/` (`consultas.md`, `tiendas-online.md`, `ventas-comprobantes.md`, `actividad.md`).
 
 ## Interés por WhatsApp (F-CON-02, MSF-226)
 

@@ -41,6 +41,22 @@ describe('DetalleActividadDialog (F-AUD-02, FR-007)', () => {
     expect(screen.queryByText(/ev-1|u-1/)).not.toBeInTheDocument()
   })
 
+  it('«Quién» dice «Tienda online» en el presupuesto pedido desde la tienda (sin actor) y «Sistema» en otro evento sin actor (MSF-176, B2, FR-060)', async () => {
+    mocks.rpc.mockResolvedValue({ data: [fila({ tipo: 'presupuesto.creado_desde_tienda', actor_id: null, actor_nombre: null, sensible: false, valor_anterior: null, valor_nuevo: null,
+      detalle: 'Presupuesto 00000012 pedido desde la tienda Tienda A por el cliente Nº 910 · Ana' })], error: null })
+    const { unmount } = render(<DetalleActividadDialog eventoId="ev-1" onCerrar={() => undefined} />)
+    expect(await screen.findByText('Tienda online')).toBeInTheDocument()
+    expect(screen.getByText('Presupuesto pedido desde la tienda')).toBeInTheDocument()
+    expect(screen.getByText('Presupuesto 00000012 pedido desde la tienda Tienda A por el cliente Nº 910 · Ana')).toBeInTheDocument()
+    expect(screen.queryByText('Sistema')).not.toBeInTheDocument()
+    unmount()
+
+    mocks.rpc.mockResolvedValue({ data: [fila({ tipo: 'empresa.pausada', actor_id: null, actor_nombre: null, sensible: false, valor_anterior: null, valor_nuevo: null })], error: null })
+    render(<DetalleActividadDialog eventoId="ev-2" onCerrar={() => undefined} />)
+    expect(await screen.findByText('Sistema')).toBeInTheDocument()
+    expect(screen.queryByText('Tienda online')).not.toBeInTheDocument()
+  })
+
   it('es solo consulta: no ofrece deshacer ni editar', async () => {
     mocks.rpc.mockResolvedValue({ data: [fila()], error: null })
     render(<DetalleActividadDialog eventoId="ev-1" onCerrar={() => undefined} />)

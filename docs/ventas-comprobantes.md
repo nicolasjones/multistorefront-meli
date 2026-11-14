@@ -35,7 +35,9 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
 - **Stock**: `Disp.` = existencias del depósito − reservado; `Res.` = reservado (FR-017). Si la cantidad
   supera el disponible se muestra el aviso de faltante, que **no impide guardar el borrador** (FR-018). Los
   productos «A pedido» muestran «A pedido · no descuenta stock» y no tienen disponible.
-- El **precio y la escala** (x1/x5/x10/x50) los calcula la base con `private.precio_para` según el tipo de
+- El **precio y la escala** (x1/x5/x10/x50) los calcula la base con `private.precio_linea_venta` (MSF-816: la función única de
+  precio de línea, que usan `guardar_lineas_comprobante` y `copiar_presupuesto`; envoltorio con la compuerta de sesión de
+  `private.precio_linea_venta_calculo`, MSF-176 B2, que a su vez usa `private.precio_para_calculo`) según el tipo de
   cliente y la cantidad de la línea (FR-014): minorista siempre x1; mayorista x1 (1-4), x5 (5-9), x10
   (10-49) y x50 (50 o más). Cambiar cantidad, depósito o cliente reenvía las líneas y se relee el
   comprobante. La regla de escala vive solo en `private.escala_para_linea` (*Decisiones abiertas* 8).
@@ -360,3 +362,7 @@ Lo que sigue está **decidido y probado**; no son defectos ocultos. Cada punto t
 ## Carga infinita e imagen en las líneas
 
 La lista de Presupuestos pasa a carga infinita (ver `ventas-listado-comprobantes.md`). En el detalle del comprobante, la tabla de **Líneas** muestra la imagen principal del producto (`producto_id`) como miniatura 40×40 con zoom al pasar el mouse (`MiniaturaProducto` + `useImagenesProductos`) junto al nombre; las líneas `sin_stock` (de Service) no tienen producto y no llevan miniatura.
+
+## Presupuestos creados desde la tienda (MSF-176, B2)
+
+Un cliente con cuenta web activa puede pedir un presupuesto desde su lista de pedido (`publico.crear_presupuesto_tienda`, solo `authenticated`; ver [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md)). Es un comprobante común de Ventas: `tipo = presupuesto`, `estado = pendiente`, **`canal = tienda_online`**, **`operador_id` nulo**, `valido_hasta` nulo (el operador lo fija), de la tienda del host y a nombre del cliente de la cuenta, con numeración correlativa de la tienda y las mismas columnas de línea que arma `guardar_lineas_comprobante` (el precio lo calcula `private.precio_linea_venta_calculo`: escala, descuento de la ficha, precio propio, promoción vigente e IVA). **No reserva ni descuenta stock y no crea cobros.** En Presupuestos la columna Operador dice «Tienda online (cliente)» y la ficha lleva el rótulo «Creado desde la tienda por el cliente» (y la «Nota del cliente», si la escribió). El operador lo acepta, modifica o copia con los flujos de siempre (un presupuesto no se anula: solo se anulan facturas confirmadas); la tienda no puede modificarlo después de crearlo. El origen «Tienda online (cliente)» (columna Operador del listado, del CSV de comprobantes y presupuestos y de la ficha) se deriva del **vínculo real** `dominio.presupuestos_tienda`, no del canal: `obtener_comprobante` devuelve además `de_tienda`. Tope por cuenta: 5 creados por día y 10 `pendiente` abiertos.

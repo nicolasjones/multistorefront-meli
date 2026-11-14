@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   transicionesPermitidas: vi.fn(),
   historialComprobante: vi.fn(),
   guardarLineasComprobante: vi.fn(),
+  obtenerNotaDePresupuestoDeTienda: vi.fn(),
 }))
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
@@ -29,6 +30,7 @@ vi.mock('../../lib/ventas', async (importOriginal) => ({
   crearComprobante: mocks.crearComprobante,
   guardarComprobante: mocks.guardarComprobante,
   obtenerClienteParaComprobante: mocks.obtenerClienteParaComprobante,
+  obtenerNotaDePresupuestoDeTienda: mocks.obtenerNotaDePresupuestoDeTienda,
 }))
 vi.mock('../../lib/ventasConfirmacion', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/ventasConfirmacion')>()),
@@ -144,6 +146,7 @@ beforeEach(() => {
   mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
   mocks.useEmpresasAccesibles.mockReturnValue(accesibles('e-1'))
   mocks.obtenerComprobante.mockResolvedValue(COMPROBANTE)
+  mocks.obtenerNotaDePresupuestoDeTienda.mockResolvedValue(null)
   mocks.transicionesPermitidas.mockResolvedValue([])
   mocks.historialComprobante.mockResolvedValue([])
   mocks.obtenerClienteParaComprobante.mockResolvedValue({
@@ -274,6 +277,46 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(await screen.findByRole('heading', { name: 'Presupuesto 00000002' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
     expect(screen.getByText('Aceptado')).toBeInTheDocument()
+  })
+
+  // MSF-176 · B2 · P-7 (FR-061, M-1): el origen «tienda» lo decide la base por el vínculo real (`de_tienda`), no por el canal ni por un operador nulo.
+  const DE_LA_TIENDA = { ...COMPROBANTE, tipo: 'presupuesto' as const, numero: '00000012', estado: 'pendiente', canal: 'tienda_online' as const, operador_id: null, operador: 'Tienda online (cliente)', de_tienda: true }
+
+  it('un presupuesto creado desde la tienda se rotula «Creado desde la tienda por el cliente», con operador «Tienda online (cliente)» y la nota de la persona como texto', async () => {
+    mocks.obtenerComprobante.mockResolvedValue(DE_LA_TIENDA)
+    mocks.obtenerNotaDePresupuestoDeTienda.mockResolvedValue('Pasar después de las 18 <b>hs</b>')
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByRole('heading', { name: 'Presupuesto 00000012' })).toBeInTheDocument()
+    expect(screen.getByText('Creado desde la tienda por el cliente')).toBeInTheDocument()
+    expect(screen.getByLabelText('Operador')).toHaveValue('Tienda online (cliente)')
+    expect(screen.queryByText('Usuario sin nombre')).not.toBeInTheDocument()
+    // La nota se muestra literal (React escapa): nunca como HTML.
+    expect(await screen.findByLabelText('Nota del cliente')).toHaveValue('Pasar después de las 18 <b>hs</b>')
+    expect(mocks.obtenerNotaDePresupuestoDeTienda).toHaveBeenCalledWith('k-1')
+  })
+
+  it('el rótulo sale del vínculo (de_tienda), no del canal: con el canal cambiado a mostrador se mantiene', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({ ...DE_LA_TIENDA, canal: 'mostrador' as const })
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('Creado desde la tienda por el cliente')).toBeInTheDocument()
+    expect(screen.getByLabelText('Operador')).toHaveValue('Tienda online (cliente)')
+  })
+
+  it('sin nota no aparece el campo «Nota del cliente»; un presupuesto de panel (aunque tenga canal tienda_online y operador nulo) no lleva el rótulo ni lee la nota', async () => {
+    mocks.obtenerComprobante.mockResolvedValue(DE_LA_TIENDA)
+    const { unmount } = render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('Creado desde la tienda por el cliente')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nota del cliente')).not.toBeInTheDocument()
+    unmount()
+    mocks.obtenerNotaDePresupuestoDeTienda.mockClear()
+    for (const otro of [{ operador_id: 'u-1', operador: 'Lucía Gómez', de_tienda: false }, { operador_id: null, operador: 'Usuario sin nombre', de_tienda: false }, { operador: 'Usuario sin nombre', de_tienda: undefined }]) {
+      mocks.obtenerComprobante.mockResolvedValue({ ...DE_LA_TIENDA, ...otro })
+      const { unmount: cerrar } = render(arbol('/ventas/comprobantes/k-1'))
+      expect(await screen.findByRole('heading', { name: 'Presupuesto 00000012' })).toBeInTheDocument()
+      expect(screen.queryByText('Creado desde la tienda por el cliente')).not.toBeInTheDocument()
+      cerrar()
+    }
+    expect(mocks.obtenerNotaDePresupuestoDeTienda).not.toHaveBeenCalled()
   })
 
   it('«Copiar» (F-VTA-08): en un presupuesto, aun aceptado, crea la copia y abre su edición; en una factura no existe', async () => {

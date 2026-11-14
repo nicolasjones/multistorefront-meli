@@ -28,6 +28,25 @@ export type ClienteComprobante = {
   es_consumidor_final: boolean
 }
 
+// Presupuestos pedidos por un cliente desde la tienda (MSF-176, B2, FR-061). El origen lo decide la BASE por el vínculo real con la cuenta que lo pidió
+// (`dominio.presupuestos_tienda`), no por el canal ni por un operador nulo (M-1 de la revisión): `listar_presupuestos` rotula el operador y `obtener_comprobante` trae
+// `de_tienda` y el mismo operador rotulado.
+export const OPERADOR_TIENDA_ONLINE = 'Tienda online (cliente)'
+export const ETIQUETA_CREADO_DESDE_TIENDA = 'Creado desde la tienda por el cliente'
+export const esPresupuestoDeTienda = (c: Pick<Comprobante, 'de_tienda'>): boolean => c.de_tienda === true
+
+// La nota que escribió la persona al pedir el presupuesto (`dominio.presupuestos_tienda.nota`; la RLS la deja leer a quien tiene `ventas` en esa tienda).
+// Sin nota, sin acceso o con un error devuelve null: la nota es complementaria y nunca rompe la ficha. Se muestra siempre como texto.
+export async function obtenerNotaDePresupuestoDeTienda(comprobanteId: string): Promise<string | null> {
+  const { data, error } = await supabaseClient.schema('dominio').from('presupuestos_tienda').select('nota').eq('comprobante_id', comprobanteId).maybeSingle()
+  if (error) {
+    console.error('No pudimos leer la nota del presupuesto de la tienda', error.message)
+    return null
+  }
+  const nota = typeof data?.nota === 'string' ? data.nota.trim() : ''
+  return nota === '' ? null : nota
+}
+
 export type Comprobante = {
   id: string
   tipo: TipoComprobante
@@ -41,6 +60,8 @@ export type Comprobante = {
   valido_hasta: string | null
   operador_id: string | null
   operador: string
+  // MSF-176 (B2): el presupuesto lo pidió un cliente desde la tienda (vínculo real; lo calcula `obtener_comprobante`).
+  de_tienda?: boolean
   forma_pago_id: string | null
   envio_id: string | null
   // F-SVC-13: de qué documento nació el comprobante (hoy solo una reparación de Service). Solo lectura.

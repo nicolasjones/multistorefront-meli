@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { camposDelCambio, diaEnBuenosAires, etiquetaTipoActividad, formatearCuando, rangoDelPeriodo } from './actividad'
+import { camposDelCambio, diaEnBuenosAires, etiquetaTipoActividad, formatearCuando, quienDelEvento, rangoDelPeriodo } from './actividad'
 
 describe('hora de Buenos Aires (F-AUD-01, FR-004)', () => {
   it('el día se calcula en Buenos Aires, no en UTC', () => {
@@ -26,6 +26,18 @@ describe('hora de Buenos Aires (F-AUD-01, FR-004)', () => {
   it('muestra «Cuándo» como dd/mm/aaaa hh:mm en hora de Buenos Aires', () => {
     expect(formatearCuando('2026-10-01T03:30:00Z')).toBe('01/10/2026 00:30')
     expect(formatearCuando('2026-10-01T02:30:00Z')).toBe('30/09/2026 23:30')
+  })
+})
+
+describe('«Quién» del evento (MSF-176, B2, FR-060)', () => {
+  it('un evento con actor muestra su nombre', () => {
+    expect(quienDelEvento('empresa.pausada', 'Ana Admin')).toBe('Ana Admin')
+    expect(quienDelEvento('presupuesto.creado_desde_tienda', 'Ana Admin')).toBe('Ana Admin')
+  })
+  it('sin actor: «Tienda online» solo para el presupuesto pedido desde la tienda, «Sistema» para el resto', () => {
+    expect(quienDelEvento('presupuesto.creado_desde_tienda', null)).toBe('Tienda online')
+    expect(quienDelEvento('empresa.pausada', null)).toBe('Sistema')
+    expect(quienDelEvento('comprobante.creado', null)).toBe('Sistema')
   })
 })
 

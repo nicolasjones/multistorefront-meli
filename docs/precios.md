@@ -31,6 +31,10 @@ Devuelve `escala_usada`, `neto`, `alicuota_*` y `final` (detalle en [`precios-es
 
 **`tipos_cliente.escala_precio`**: `precio_para` **no consulta `tipos_cliente`**. Quien necesita el precio (Ventas, cuenta web) lee ese texto (p. ej. `x5` para «Mayorista») y lo pasa como `escala`. La pantalla Tipos de cliente es de Clientes y proveedores; mientras la tabla no exista el contrato se prueba con un tipo simulado (`precios_escala.test.sql`, `escalaDeTipoCliente`).
 
+### Cálculo sin sesión de panel (MSF-176 B2, D-17)
+
+`precio_para` y `private.precio_linea_venta` son **envoltorios**: validan la escala, aplican la compuerta y el aislamiento por organización de la sesión de panel (`private.precio_sesion_alcanza`) y delegan en `private.precio_para_calculo` y `private.precio_linea_venta_calculo`, que calculan **sin depender de la sesión**, acotadas por la organización de la empresa (alícuota por join; precio propio con `neto_precio_propio`). Las funciones de cálculo no tienen `execute` para la API: solo las llaman funciones `security definer` (el panel por sus envoltorios y, desde B2, la tienda con el tipo y el descuento del cliente de la cuenta). Una sola fórmula de precio en todo el producto. Detalle y pruebas en [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md) (B2, etapa 1).
+
 ## Permisos
 
 - Lectura de precios: sección `productos` ≥ lectura. Guardar precio/escalas: `productos` = edición. Regla de precio por empresa: `empresas` = edición. Alícuotas: lectura para toda la organización; sin escritura desde la app en esta épica.

@@ -149,6 +149,8 @@ Cuando el equipo técnico activa la función para tu tienda, quien visita la tie
 - Arriba, junto a «Ingresar», aparece **Mi lista (3)** con la cantidad de productos distintos que tiene la lista.
 - En **Mi lista** la persona revisa los productos, cambia las cantidades o quita alguno, ve el **precio de referencia** de cada uno y el total, y completa su nombre y un correo o teléfono (si entró con su cuenta, no hace falta). Al tocar **Enviar pedido** ve «Recibimos tu pedido… No se cobró nada.»
 
+**Pedir presupuesto (solo con cuenta activa).** Si la persona entró con su cuenta, en **Mi lista** aparece **Pedir presupuesto** (el botón principal; **Enviar pedido** pasa a secundario). Al tocarlo se abre **Tu presupuesto** con el **precio que le corresponde** (su escala por cantidad, su descuento y las promociones vigentes, con IVA), el subtotal, el IVA y el total. Si algún producto ya no está disponible o no tiene precio, se avisa por su nombre y no se puede confirmar hasta quitarlo. Al tocar **Confirmar presupuesto** queda un **presupuesto pendiente** en **Ventas → Presupuestos** y la persona ve «Pedimos tu presupuesto Nº…» con su total y un enlace a **Mi cuenta**. **No reserva stock ni cobra nada**: el equipo lo acepta, lo modifica o lo copia como cualquier presupuesto. Cada cuenta puede pedir hasta **5 por día** y tener **10 abiertos** a la vez; si repite el pedido (por un corte de conexión) no se duplica.
+
 El pedido llega a **Consultas** como un pedido con todos sus productos (ver [Consultas](consultas.md#atender-un-pedido-de-la-tienda)). Los precios son de referencia y se confirman al responder. La lista se guarda en el navegador de la persona: no se comparte entre dispositivos.
 
 ## Qué se publica y cómo se oculta

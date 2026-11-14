@@ -32,7 +32,10 @@ import {
   mensajeDeErrorComprobante,
   obtenerClienteParaComprobante,
   obtenerComprobante,
+  obtenerNotaDePresupuestoDeTienda,
   validarComprobante,
+  esPresupuestoDeTienda,
+  ETIQUETA_CREADO_DESDE_TIENDA,
   MENSAJE_CONFLICTO_COMPROBANTE,
   type CanalVenta,
   type ClienteComprobante,
@@ -164,6 +167,8 @@ export function ComprobanteVenta() {
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [detalleAcciones, setDetalleAcciones] = useState<DetalleAnulacion | null>(null)
+  // Nota del cliente de un presupuesto pedido desde la tienda (MSF-176, B2): se lee aparte y es complementaria.
+  const [notaDeTienda, setNotaDeTienda] = useState<{ id: string; nota: string | null } | null>(null)
   const [anulandoAbierto, setAnulandoAbierto] = useState(false)
   const [notaAbierta, setNotaAbierta] = useState(false)
   // Faltantes (F-VTA-18, FR-047): el diálogo «Registrar faltantes» y el aviso de cierre por cambio de empresa.
@@ -208,6 +213,17 @@ export function ComprobanteVenta() {
   useEffect(() => {
     void cargar()
   }, [cargar])
+
+  const deLaTienda = comprobante ? esPresupuestoDeTienda(comprobante) : false
+  const idComprobante = comprobante?.id ?? null
+  useEffect(() => {
+    if (!deLaTienda || !idComprobante) return
+    let cancelada = false
+    void obtenerNotaDePresupuestoDeTienda(idComprobante).then((nota) => { if (!cancelada) setNotaDeTienda({ id: idComprobante, nota }) })
+    return () => { cancelada = true }
+  }, [deLaTienda, idComprobante])
+  // Solo la nota de ESTE comprobante (al pasar de uno a otro no se arrastra la anterior).
+  const notaTienda = deLaTienda && notaDeTienda?.id === idComprobante ? notaDeTienda.nota : null
 
   // Tras registrar un cobro, la base pasó la factura a «cobrado»/«deuda» y avanzó su `updated_at`
   // (MSF-715). La pantalla relee el comprobante para que el chip de estado, las transiciones y las
@@ -664,6 +680,7 @@ export function ComprobanteVenta() {
           accion={
             <>
               {estado ? <EtiquetaEstado texto={estado.etiqueta} variante={estado.tono} /> : null}
+              {deLaTienda ? <EtiquetaEstado texto={ETIQUETA_CREADO_DESDE_TIENDA} variante="info" /> : null}
               {/* Anular y Nota de crédito (F-VTA-11): la base decide si se ofrecen; sin permiso no se muestran.
                   Mientras se relee el comprobante después de un cobro quedan bloqueadas: mandan el `updated_at`
                   del comprobante y con el valor viejo la base responde «Otra persona modificó…» (MSF-715). */}
@@ -874,6 +891,9 @@ export function ComprobanteVenta() {
                     helperText={esNuevo ? 'Se registra con tu usuario al guardar.' : undefined}
                     slotProps={{ input: { readOnly: true } }}
                   />
+                  {deLaTienda && notaTienda ? (
+                    <TextField label="Nota del cliente" fullWidth multiline value={notaTienda} slotProps={{ input: { readOnly: true } }} />
+                  ) : null}
                 </Stack>
               </Stack>
             </CardContent>

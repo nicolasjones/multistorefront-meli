@@ -123,11 +123,12 @@ export const MENSAJES_PEDIDO: Record<CampoPedido, string> = {
 }
 export const MENSAJE_CARACTERES = 'Hay caracteres que no podemos aceptar.'
 
-// De control, separadores de línea Unicode y marcas de dirección del texto (mismos que el servidor); en la nota se acepta el salto de línea.
+// De control, separadores de línea Unicode, marcas de dirección del texto, U+061C y los ceros de ancho (U+200B a U+200D, U+2060 y U+FEFF): el MISMO conjunto que `enviar_lista_pedido` y
+// `crear_presupuesto_tienda` (M-4 de la revisión). En la nota se acepta el salto de línea.
 // eslint-disable-next-line no-control-regex
-const PROHIBIDOS_LINEA = /[\u0001-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/
+const PROHIBIDOS_LINEA = /[\u0001-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/
 // eslint-disable-next-line no-control-regex
-const PROHIBIDOS_NOTA = /[\u0001-\u0009\u000b-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/
+const PROHIBIDOS_NOTA = /[\u0001-\u0009\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/
 
 // Con cuenta activa no se piden nombre ni contacto (`conCuenta`): solo se valida la nota.
 export function validarPedido(datos: DatosPedido, conCuenta: boolean): ErroresPedido {
@@ -203,3 +204,173 @@ export async function enviarListaPedido(host: string, datos: DatosPedido, lineas
   }
 }
 
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Presupuesto desde la tienda (MSF-176, historia B2, FR-050 a FR-064; contrato `…/contracts/tienda-compra-y-cuentas.md › B2`).
+// Solo con una cuenta ACTIVA: `publico.cotizar_presupuesto_tienda` y `publico.crear_presupuesto_tienda` son ejecutables solo por `authenticated` y la base saca la identidad,
+// la tienda y el cliente de la sesión y del host (no se manda ninguno). Lo que se manda es SOLO `producto_id` y `cantidad` (y la nota y la clave de envío en la creación):
+// nunca un precio, una escala, un descuento ni una fecha. El precio, la escala, el descuento de la ficha y la promoción los calcula el servidor; la cotización y la
+// creación usan el mismo motor («lo que ves es lo que se crea»).
+// ---------------------------------------------------------------------------------------------------------------------------------
+export type LineaCotizada = {
+  productoId: string
+  descripcion: string
+  codigo: string | null
+  cantidad: number
+  precioUnitario: number
+  subtotalSinIva: number
+  iva: number
+  disponible: boolean
+}
+
+export type Cotizacion = {
+  lineas: LineaCotizada[]
+  totalSinIva: number
+  iva: number
+  totalConIva: number
+  // Productos que ya no están disponibles o que no tienen precio calculable: la creación se NEGARÁ mientras haya alguno.
+  noDisponibles: string[]
+  sinPrecio: string[]
+}
+
+export type ResultadoCotizacion =
+  | { estado: 'ok'; cotizacion: Cotizacion }
+  | { estado: 'invalido' }
+  | { estado: 'espera'; esperaSegundos: number }
+  | { estado: 'sin_acceso' }
+  | { estado: 'falla' }
+
+// Un importe obligatorio que falta o no es numérico NO se vuelve 0 (sería una cifra inventada): toda la respuesta es una falla reintentable.
+function comoImporte(valor: unknown): number {
+  const numero = typeof valor === 'number' ? valor : typeof valor === 'string' && valor.trim() !== '' ? Number(valor) : NaN
+  if (!Number.isFinite(numero)) throw new ErrorListaPedido('error')
+  return numero
+}
+const comoListaDeIds = (valor: unknown): string[] => (Array.isArray(valor) ? valor.filter((id): id is string => typeof id === 'string') : [])
+
+function aLineaCotizada(valor: unknown): LineaCotizada {
+  const fila = comoObjeto(valor)
+  if (!fila || typeof fila.producto_id !== 'string' || typeof fila.descripcion !== 'string') throw new ErrorListaPedido('error')
+  const cantidad = Number(fila.cantidad)
+  if (!Number.isInteger(cantidad) || cantidad < 1) throw new ErrorListaPedido('error')
+  return {
+    productoId: fila.producto_id,
+    descripcion: fila.descripcion,
+    codigo: comoTextoONulo(fila.codigo),
+    cantidad,
+    precioUnitario: comoImporte(fila.precio_unitario),
+    subtotalSinIva: comoImporte(fila.subtotal_sin_iva),
+    iva: comoImporte(fila.iva),
+    disponible: fila.disponible === true,
+  }
+}
+
+const esperaDe = (valor: unknown) => Math.max(1, Math.round(Number(valor) || 60))
+
+export function traducirCotizacion(data: unknown): ResultadoCotizacion {
+  const respuesta = comoObjeto(data)
+  switch (respuesta?.estado) {
+    case 'ok': {
+      if (!Array.isArray(respuesta.lineas)) return { estado: 'falla' }
+      try {
+        return {
+          estado: 'ok',
+          cotizacion: {
+            lineas: respuesta.lineas.map(aLineaCotizada),
+            totalSinIva: comoImporte(respuesta.total_sin_iva),
+            iva: comoImporte(respuesta.iva),
+            totalConIva: comoImporte(respuesta.total_con_iva),
+            noDisponibles: comoListaDeIds(respuesta.no_disponibles),
+            sinPrecio: comoListaDeIds(respuesta.sin_precio),
+          },
+        }
+      } catch {
+        return { estado: 'falla' }
+      }
+    }
+    case 'invalido':
+      return { estado: 'invalido' }
+    case 'limite':
+      return { estado: 'espera', esperaSegundos: esperaDe(respuesta.espera_segundos) }
+    case 'sin_acceso':
+      return { estado: 'sin_acceso' }
+    default:
+      return { estado: 'falla' }
+  }
+}
+
+// «Calculando tu presupuesto»: una petición por apertura del diálogo. Un corte de red o un error del servidor son `falla` (reintentable); nunca el detalle técnico.
+export async function cotizarPresupuesto(host: string, lineas: readonly LineaPedido[]): Promise<ResultadoCotizacion> {
+  try {
+    const { data, error } = await supabaseClient.schema('publico').rpc('cotizar_presupuesto_tienda', { host, items: aItems(lineas) })
+    if (error) {
+      console.error('No se pudo cotizar el presupuesto', error.message)
+      return { estado: 'falla' }
+    }
+    return traducirCotizacion(data)
+  } catch (excepcion) {
+    console.error('No se pudo cotizar el presupuesto', excepcion instanceof Error ? excepcion.message : excepcion)
+    return { estado: 'falla' }
+  }
+}
+
+export type ResultadoPresupuesto =
+  | { estado: 'exito'; numero: string; fecha: string; totalConIva: number }
+  | { estado: 'invalido'; campos: Array<'nota' | 'items' | 'clave_envio'> }
+  | { estado: 'sin_precio'; productoId: string | null }
+  | { estado: 'no_disponible'; productoId: string | null }
+  | { estado: 'espera'; esperaSegundos: number }
+  | { estado: 'limite_cuenta' }
+  | { estado: 'sin_acceso' }
+  | { estado: 'falla' }
+
+type RespuestaPresupuesto = { estado?: string; numero?: unknown; fecha?: unknown; total_con_iva?: unknown; campos?: unknown; producto_id?: unknown; espera_segundos?: unknown } | null | undefined
+
+export function traducirRespuestaPresupuesto(respuesta: RespuestaPresupuesto): ResultadoPresupuesto {
+  const productoId = typeof respuesta?.producto_id === 'string' ? respuesta.producto_id : null
+  switch (respuesta?.estado) {
+    case 'ok': {
+      // Sin número o sin un total numérico no se afirma un presupuesto que no se pudo leer: es una falla.
+      const total = typeof respuesta.total_con_iva === 'number' ? respuesta.total_con_iva : typeof respuesta.total_con_iva === 'string' ? Number(respuesta.total_con_iva) : NaN
+      if (typeof respuesta.numero !== 'string' || respuesta.numero === '' || !Number.isFinite(total)) return { estado: 'falla' }
+      return { estado: 'exito', numero: respuesta.numero, fecha: typeof respuesta.fecha === 'string' ? respuesta.fecha : '', totalConIva: total }
+    }
+    case 'invalido': {
+      const campos = Array.isArray(respuesta.campos) ? respuesta.campos : []
+      const conocidos: Array<'nota' | 'items' | 'clave_envio'> = ['nota', 'items', 'clave_envio']
+      return { estado: 'invalido', campos: conocidos.filter((campo) => campos.includes(campo)) }
+    }
+    case 'sin_precio':
+      return { estado: 'sin_precio', productoId }
+    case 'no_disponible':
+      return { estado: 'no_disponible', productoId }
+    case 'limite':
+      return { estado: 'espera', esperaSegundos: esperaDe(respuesta.espera_segundos) }
+    case 'limite_cuenta':
+      return { estado: 'limite_cuenta' }
+    case 'sin_acceso':
+      return { estado: 'sin_acceso' }
+    default:
+      return { estado: 'falla' }
+  }
+}
+
+// Crea el presupuesto. La `clave_envio` es de ESTE intento (la genera quien abre la confirmación y la reutiliza en «Reintentar»): repetirla devuelve el MISMO presupuesto.
+export async function crearPresupuesto(host: string, lineas: readonly LineaPedido[], nota: string, claveEnvio: string): Promise<ResultadoPresupuesto> {
+  try {
+    const { data, error } = await supabaseClient.schema('publico').rpc('crear_presupuesto_tienda', {
+      host,
+      items: aItems(lineas),
+      nota: nota.replace(/\r\n/g, '\n').trim() || null,
+      clave_envio: claveEnvio,
+    })
+    if (error) {
+      console.error('No se pudo crear el presupuesto', error.message)
+      return { estado: 'falla' }
+    }
+    return traducirRespuestaPresupuesto(data as RespuestaPresupuesto)
+  } catch (excepcion) {
+    console.error('No se pudo crear el presupuesto', excepcion instanceof Error ? excepcion.message : excepcion)
+    return { estado: 'falla' }
+  }
+}

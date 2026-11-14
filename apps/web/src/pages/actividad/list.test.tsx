@@ -108,6 +108,19 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     expect(screen.getByText('Sistema')).toBeInTheDocument()
   })
 
+  it('rotula «Tienda online» el presupuesto pedido desde la tienda (sin actor) y deja «Sistema» a los demás eventos sin actor (MSF-176, FR-060)', async () => {
+    responder([
+      fila(1, { tipo: 'presupuesto.creado_desde_tienda', actor_id: null, actor_nombre: null, detalle: 'Presupuesto 00000012 pedido desde la tienda Tienda A por el cliente Nº 910 · Ana' }),
+      fila(2, { actor_id: null, actor_nombre: null }),
+    ])
+    abrir()
+
+    const tabla = await screen.findByRole('table')
+    expect(within(tabla).getByText('Tienda online')).toBeInTheDocument()
+    expect(within(tabla).getByText('Presupuesto pedido desde la tienda')).toBeInTheDocument()
+    expect(within(tabla).getByText('Sistema')).toBeInTheDocument()
+  })
+
   it('el operador ve todo: pide el listado sin acotar por usuario ni tipo', async () => {
     responder([fila(1)])
     abrir()
