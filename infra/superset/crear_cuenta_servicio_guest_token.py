@@ -48,6 +48,31 @@ permiso = security_manager.add_permission_view_menu("can_grant_guest_token", "Se
 if permiso not in role.permissions:
     security_manager.add_permission_role(role, permiso)
 
+# Aislamiento entre tableros (allowlist, reportes.datasets_permitidos): el rol Guest es uno solo y ve todos los
+# datasets embebidos, así que `emitir-acceso-reporte` lista TODOS los datasets de Superset (`GET /api/v1/dataset/`) y
+# agrega al token una regla `rls` `1 = 0` por cada uno que no sea del tablero. La lista de datasets de Superset se
+# filtra por `datasource_access` del usuario, y como hay que ver los de TODOS los tableros no existe un permiso más
+# estrecho que `all_datasource_access` (hay que verlos todos para vedar los ajenos); `can_read Dataset` habilita el
+# endpoint.
+#
+# RIESGO: si se filtra la contraseña de esta cuenta, además de forjar guest tokens (que ya podía) puede LISTAR todos
+# los datasets de Superset (nombres, no datos: la cuenta no tiene `can_read Chart`, `can_query` ni SQL Lab).
+# MITIGACIONES: la credencial vive solo en el entorno de la Edge Function (SUPERSET_GUEST_TOKEN_*), nunca en el
+# navegador; la cuenta no tiene acceso a la UI de datos; rotar la contraseña si se sospecha.
+#
+# Un permiso ausente NO rompe el init de Superset: se avisa y se sigue. La emisión del token falla cerrada (503) si la
+# cuenta no puede listar los datasets, así que no hay aislamiento perdido, solo tableros no disponibles hasta corregirlo.
+for permiso_existente, vista in (("can_read", "Dataset"), ("all_datasource_access", "all_datasource_access")):
+    permiso_vista = security_manager.find_permission_view_menu(permiso_existente, vista)
+    if permiso_vista is None:
+        print(
+            f"ADVERTENCIA crear_cuenta_servicio_guest_token: Superset no registra el permiso {permiso_existente} sobre {vista}; "
+            "la cuenta no podrá listar datasets y emitir-acceso-reporte responderá 503 (falla cerrado) hasta resolverlo."
+        )
+        continue
+    if permiso_vista not in role.permissions:
+        security_manager.add_permission_role(role, permiso_vista)
+
 usuario = security_manager.find_user(username=username)
 if usuario is None:
     security_manager.add_user(

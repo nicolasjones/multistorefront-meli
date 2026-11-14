@@ -294,8 +294,18 @@ analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PA
 
 Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <entorno>`, igual que
-Rentabilidad y Ventas. El directorio trae dos tableros: «Productos y stock» (MSF-297) y «Reposición» (MSF-311, slug
+Rentabilidad y Ventas. El directorio trae tres tableros: «Productos y stock» (MSF-297, con costos: el reporte exige la acción `ver_costos` vía `accion_requerida` en `reportes.json`), «Productos y stock (cantidades)» (sin costo ni valor, para quien no la tiene) y «Reposición» (MSF-311, slug
 `inventario-reposicion`, vista `analitica.inventario_reposicion`). Guía: [`reportes-inventario.md`](./reportes-inventario.md).
+
+### Aislamiento de datasets entre tableros
+
+El rol Guest es único y recibe `datasource_access` sobre todos los datasets embebidos. Para que el token de un tablero no
+lea los datasets de otro, el token de **cada** tablero lleva una regla `rls` `1 = 0` por cada dataset de Superset que no sea
+suyo (allowlist): `reportes.datasets_permitidos`, que el importador deriva de los YAML (gráficos y filtros nativos) y de
+`datasets_permitidos_extra` de `reportes.json`. Sin allowlist, o sin poder listar o resolver los datasets, no se emite token
+(503). Cuenta de servicio: `can_read Dataset` + `all_datasource_access` (riesgo y mitigación en `docs/reportes-inventario.md`).
+Verificación contra un Superset real: `pnpm test:superset:aislamiento-tokens` (ver la cabecera de
+`scripts/verificar-aislamiento-tokens-superset.mjs`: variables, qué prueba y qué solo se confirma con Superset real).
 
 ## Exportar reportes a CSV
 

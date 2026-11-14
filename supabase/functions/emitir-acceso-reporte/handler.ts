@@ -32,7 +32,15 @@ export type Deps = {
    * entorno), la dependencia LANZA el error: el handler lo traduce a 503 `analitica_no_disponible`
    * (fallo del servicio), no a 403 «No autorizado» (que parecería falta de permisos).
    */
-  reporte: (jwt: string, reporteId: string) => Promise<{ dashboardUuid: string; filtroEmpresa: boolean } | null>
+  reporte: (jwt: string, reporteId: string) => Promise<{
+    dashboardUuid: string
+    filtroEmpresa: boolean
+    /**
+     * Allowlist: nombres de dataset (`table_name`) del tablero (`reportes.datasets_permitidos`). El token queda
+     * vedado para TODO otro dataset de Superset. Vacía o ausente = no se emite token (falla cerrado).
+     */
+    datasetsPermitidos?: readonly string[]
+  } | null>
   config: {
     supersetUrl: string
     supersetPublicUrl: string
@@ -69,6 +77,60 @@ export function clausulaRls(
   const porEmpresa =
     validas.length > 0 ? `empresa_id IN (${validas.map((empresa) => `'${empresa}'`).join(', ')})` : 'false'
   return `organizacion_id = '${organizacionId}' AND ${porEmpresa}`
+}
+
+const POR_PAGINA = 100
+const MAX_PAGINAS = 100
+
+/** Todos los datasets de Superset (`id`, `table_name`), paginados. `null` si no se pueden listar. */
+export async function listarDatasets(superset: {
+  url: string
+  accessToken: string
+  fetch: typeof fetch
+  signal: () => AbortSignal
+}): Promise<{ id: number; table_name: string }[] | null> {
+  const porId = new Map<number, { id: number; table_name: string }>()
+  for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+    const q = `(columns:!(id,table_name),order_column:id,order_direction:asc,page:${pagina},page_size:${POR_PAGINA})`
+    const res = await superset.fetch(`${superset.url}/api/v1/dataset/?q=${encodeURIComponent(q)}`, {
+      signal: superset.signal(),
+      headers: { Authorization: `Bearer ${superset.accessToken}` },
+    })
+    if (!res.ok) return null
+    const { result, count } = (await res.json()) as { result?: { id?: unknown; table_name?: unknown }[]; count?: unknown }
+    if (!Array.isArray(result) || typeof count !== 'number') return null
+    for (const fila of result) {
+      if (!Number.isInteger(fila.id) || typeof fila.table_name !== 'string') return null
+      porId.set(fila.id as number, { id: fila.id as number, table_name: fila.table_name })
+    }
+    // Completo cuando se recibieron tantos ids distintos como declara el total; una página vacía antes de eso es un
+    // listado inconsistente (no se emite token).
+    if (porId.size >= count) return [...porId.values()]
+    if (result.length === 0) return null
+  }
+  return null
+}
+
+/**
+ * El rol Guest de Superset es uno solo y tiene `datasource_access` sobre TODOS los datasets embebidos: el token de
+ * un tablero podría pedir por la API el dataset de otro (el de costos, o los de Rentabilidad con margen). Allowlist:
+ * se lista todo dataset de Superset y para cada uno que NO esté entre los del tablero (`permitidos`, por nombre) se
+ * agrega una regla `rls` por dataset (`1 = 0`). Un nombre repetido (dataset duplicado) permite todos sus ids.
+ * Devuelve `null` —el handler NO emite token (falla cerrado)— si la allowlist está vacía, si no se puede listar o si
+ * ningún dataset de Superset coincide con un nombre permitido (el tablero no está importado).
+ */
+export async function reglasDatasetsAjenos(
+  permitidos: readonly string[],
+  superset: { url: string; accessToken: string; fetch: typeof fetch; signal: () => AbortSignal },
+): Promise<{ dataset: number; clause: string }[] | null> {
+  if (permitidos.length === 0) return null
+  const todos = await listarDatasets(superset)
+  if (!todos) return null
+  const propios = new Set(permitidos)
+  const encontrados = new Set(todos.filter((d) => propios.has(d.table_name)).map((d) => d.table_name))
+  // Cada nombre de la allowlist debe existir: si falta uno, el tablero no podría leerlo y no se sabe qué se vedó.
+  if (permitidos.some((nombre) => !encontrados.has(nombre))) return null
+  return todos.filter((d) => !propios.has(d.table_name)).map((d) => ({ dataset: d.id, clause: '1 = 0' }))
 }
 
 function jsonResponse(body: unknown, status: number) {
@@ -116,7 +178,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // 20270116110200 no corrió), es un fallo del servicio y NO una decisión de autorización: se
   // responde 503 para que quede diagnosticable. Antes el error se silenciaba y TODOS los
   // tableros —incluidos los de Rentabilidad, que sí funcionaban— respondían 403 «No autorizado».
-  let reporte: { dashboardUuid: string; filtroEmpresa: boolean } | null
+  let reporte: Awaited<ReturnType<Deps['reporte']>>
   try {
     reporte = await deps.reporte(jwt, reporteId)
   } catch {
@@ -125,7 +187,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (!reporte?.dashboardUuid) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
-  const { dashboardUuid, filtroEmpresa } = reporte
+  const { dashboardUuid, filtroEmpresa, datasetsPermitidos = [] } = reporte
 
   // Las empresas accesibles acotan el token a las tiendas que el usuario puede ver (FR-004), pero
   // solo para los tableros que lo declaran (`reportes.filtro_empresa`): la cláusula `rls` se aplica
@@ -165,13 +227,24 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     }
     const { access_token: accessToken } = await loginRes.json()
 
+    const vedados = await reglasDatasetsAjenos(datasetsPermitidos, {
+      url: supersetUrl,
+      accessToken,
+      fetch: deps.fetch,
+      signal: timeout,
+    })
+    if (!vedados) {
+      // Sin allowlist o sin poder listar/resolver los datasets: emitir el token sin las reglas dejaría leer los de otros tableros.
+      return jsonResponse({ error: 'analitica_no_disponible' }, 503)
+    }
+
     const guestTokenRes = await deps.fetch(`${supersetUrl}/api/v1/security/guest_token/`, {
       method: 'POST',
       signal: timeout(),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
       body: JSON.stringify({
         resources: [{ type: 'dashboard', id: dashboardUuid }],
-        rls: [{ clause }],
+        rls: [{ clause }, ...vedados],
         user: { username: 'guest' },
       }),
     })
