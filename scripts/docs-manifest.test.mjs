@@ -33,11 +33,36 @@ function manifest(dir) {
   return JSON.parse(readFileSync(path.join(dir, 'docs/manifest.json'), 'utf8')).pages['docs/a.md'];
 }
 
-test('sourceAt es el último commit propio de la página, no HEAD', () => {
+test('sourceAt es el último commit propio de la página y no HEAD (con commits posteriores ajenos)', () => {
   const dir = repo();
   try {
     const propio = git(dir, 'log', '-1', '--format=%h', '--', 'docs/a.md');
-    assert.equal(manifest(dir).sourceAt, propio);
+    writeFileSync(path.join(dir, 'otro.txt'), 'otro\n');
+    git(dir, 'add', '-A');
+    git(dir, 'commit', '-q', '-m', 'commit ajeno a la página');
+    const head = git(dir, 'rev-parse', '--short', 'HEAD');
+    assert.notEqual(head, propio);
+    const pagina = manifest(dir);
+    assert.equal(pagina.sourceAt, propio);
+    assert.notEqual(pagina.sourceAt, head);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('un archivo agregado a la fuente después de sourceAt no cambia sourceHash (D-4)', () => {
+  const dir = repo();
+  try {
+    const antes = manifest(dir);
+    writeFileSync(path.join(dir, 'src/y.txt'), 'nuevo\n');
+    git(dir, 'add', '-A');
+    git(dir, 'commit', '-q', '-m', 'agrega un archivo a la fuente');
+    const despues = manifest(dir);
+    assert.equal(despues.sourceAt, antes.sourceAt);
+    assert.equal(despues.sourceHash, antes.sourceHash);
+    // Cambiar un archivo que ya existía en sourceAt, en cambio, sí cambia el hash.
+    writeFileSync(path.join(dir, 'src/x.txt'), 'x editado\n');
+    git(dir, 'add', '-A');
+    git(dir, 'commit', '-q', '-m', 'edita un archivo existente');
+    assert.notEqual(manifest(dir).sourceHash, antes.sourceHash);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

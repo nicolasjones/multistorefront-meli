@@ -8,7 +8,7 @@ Sin migraciones: no se necesita Supabase local. Vitest corrido con un solo worke
 
 - [x] T001 Quitar el código MSF de los títulos de `describe`/`it`/`test` en `apps/web/src` (FR-001). Evidencia: 126 títulos reescritos con un script y 2 a mano tras la revisión (`comprobante.faltantes.test.tsx` y `PrecioPropioEmpresas.test.tsx`, formas `it.each`/tabla que el script no veía); el guardián (T003) recorre todo `apps/web/src` y no encuentra ninguno; los tests de los archivos tocados pasan.
 - [x] T002 Reformular los seis comentarios con «Etapa 2» (FR-002). Evidencia: `ventas.ts`, `preciosPropios.ts`, `rentabilidad.ts`, `BloqueQueVaACambiar.tsx`, `TablaHistorial.tsx`, `ComoSeCalcula.tsx`; `git grep 'Etapa [0-9]' apps/web/src` sin resultados.
-- [x] T003 Test de higiene (FR-003, FR-006). Evidencia: `apps/web/src/higieneReferenciasInternas.test.ts` (analizador `titulosConTicket` con 14 formas detectadas, 6 no marcadas y la línea informada, más 3 casos sobre el árbol) en verde. Desvío: los comentarios con `MSF-<n>` quedan como seguimiento (ver D-1 de la spec).
+- [x] T003 Test de higiene (FR-003, FR-006). Evidencia: `apps/web/src/higieneReferenciasInternas.test.ts` (analizador `titulosConTicket` con genéricos de TS, `skipIf`/`runIf`/`for`, comentarios y regex con comillas en la tabla de `.each`, y los casos negativos; más 3 casos sobre el árbol, que sigue dando 0 en menos de 2 s) en verde. Desvío: los comentarios con `MSF-<n>` quedan como seguimiento (ver D-1 de la spec).
 
 ## Fase 2 · MSF-753
 
@@ -21,7 +21,7 @@ Sin migraciones: no se necesita Supabase local. Vitest corrido con un solo worke
 ## Fase 3b · MSF-950: sourceAt del manifest sin HEAD
 
 - [x] T008 `sourceAt` con el último commit propio de la página y `sourceHash` con el alcance de `sourceAt` (FR-007). Evidencia: `scripts/docs-manifest.mjs`; `docs/manifest.json` regenerado (solo cambia la página editada) y `node scripts/docs-manifest.mjs` sin diff.
-- [x] T009 Test (FR-007). Evidencia: `scripts/docs-manifest.test.mjs` (2 casos: `sourceAt` igual al último commit propio; dos HEAD distintos, con commit vacío y merge `--no-ff`, dan el mismo `sourceAt`, `sourceHash` y `commit`), cableado como `pnpm test:docs:manifest`. Ningún test existente fijaba el valor viejo.
+- [x] T009 Test (FR-007). Evidencia: `scripts/docs-manifest.test.mjs` (3 casos: `sourceAt` igual al último commit propio aunque haya commits ajenos posteriores; dos HEAD distintos, con commit vacío y merge `--no-ff`, dan el mismo `sourceAt`, `sourceHash` y `commit`; un archivo agregado a la fuente después de `sourceAt` no cambia el hash y uno editado sí, D-4). Los tres fallan con el código viejo (`sourceAt` = HEAD), cableado como `pnpm test:docs:manifest`. Ningún test existente fijaba el valor viejo.
 
 ## Fase 4 · Documentación y cierre
 
