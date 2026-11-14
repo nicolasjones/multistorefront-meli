@@ -10,7 +10,8 @@
 //
 // MSF-797: el timeout de 5 s antes solo rechazaba la promesa; la conexión TCP/TLS colgada seguía abierta
 // hasta que el runtime la soltara. Ahora todo `Conn` que se abre se cierra siempre: al terminar, al vencer el
-// tiempo y también si la conexión llega DESPUÉS del vencimiento (la promesa no cancelable de `Deno.connect`).
+// tiempo y también si la conexión llega DESPUÉS del vencimiento (la promesa de `Deno.connect` no es cancelable,
+// pero la señal que se le pasa sí: al abortarla, el runtime cierra el socket pendiente).
 
 import { clasificarFalloTls, type Certificado } from './handler.ts'
 
@@ -18,8 +19,9 @@ import { clasificarFalloTls, type Certificado } from './handler.ts'
 export type Conexion = { close(): void }
 
 export type OperacionesTls = {
-  // Abre la conexión TCP a la IP de la plataforma (puerto 443).
-  conectar(ip: string): Promise<Conexion>
+  // Abre la conexión TCP a la IP de la plataforma (puerto 443). La señal cancela la conexión si sigue pendiente
+  // cuando vence el tiempo.
+  conectar(ip: string, senal: AbortSignal): Promise<Conexion>
   // Negocia TLS sobre esa conexión validando el certificado contra `host`. Si resuelve, la conexión TCP pasa a ser la TLS.
   iniciarTls(tcp: Conexion, host: string): Promise<Conexion>
 }
@@ -47,9 +49,11 @@ export async function comprobarTls(
   let tcp: Conexion | null = null
   let tls: Conexion | null = null
   let temporizador: ReturnType<typeof setTimeout> | undefined
+  // Cancela la conexión TCP que sigue pendiente cuando vence el tiempo (el socket queda cerrado en el runtime).
+  const cancelacion = new AbortController()
 
   const trabajo = (async () => {
-    const abierta = await operaciones.conectar(ipPlataforma)
+    const abierta = await operaciones.conectar(ipPlataforma, cancelacion.signal)
     tcp = abierta
     // Si el tiempo ya venció, nadie espera esta conexión: se cierra acá, no queda colgada.
     if (vencido) {
@@ -68,6 +72,8 @@ export async function comprobarTls(
     temporizador = setTimeout(() => {
       vencido = true
       rechazar(new Error('timeout'))
+      // El socket que quedó pendiente de conectar se cancela acá (no cuando la promesa resuelva más tarde).
+      cancelacion.abort()
     }, tiempoMs)
   })
 

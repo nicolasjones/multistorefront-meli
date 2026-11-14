@@ -56,6 +56,18 @@ describe('comprobarTls (MSF-797)', () => {
     assert.deepEqual(cierres, ['tcp-tardia'])
   })
 
+  // El socket que quedó pendiente de conectar se cancela al vencer el tiempo (no espera a que la promesa resuelva).
+  it('el timeout durante la conexión TCP cancela la conexión pendiente', async () => {
+    let senal: AbortSignal | undefined
+    const tcp = diferida<Conexion>()
+    const resultado = await comprobarTls(HOST, IP, {
+      conectar: (_ip, s) => { senal = s; return tcp.promesa },
+      iniciarTls: async () => { throw new Error('no debería negociar TLS tras el timeout') },
+    }, 20)
+    assert.equal(resultado, 'pendiente')
+    assert.equal(senal?.aborted, true, 'la conexión pendiente se cancela al vencer el tiempo')
+  })
+
   // Con Deno real no se verificó qué hace cerrar la TCP después de `startTls` (puede estar consumida): acá solo se afirma que se
   // INTENTA cerrarla y que, si el handshake termina tarde, esa conexión TLS sí se cierra (ver la limitación en `tls.ts`).
   it('el timeout durante el handshake TLS intenta cerrar la TCP y cierra la TLS que llegue tarde', async () => {

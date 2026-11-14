@@ -359,7 +359,8 @@ El E2E se omite sin el stack local (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
 - **Resuelto (MSF-797):** `public.tienda_dns_plataforma.ip_publica` tiene un CHECK (`private.ip_publica_valida`) contra rangos no públicos
   y octetos fuera de 0–255; se admiten TEST-NET-2/3 porque el seed las usa. `preparar_verificacion_tienda` responde `plataforma_no_configurada`
   (la Edge Function, 503) si la fila no es pública. La carga sigue siendo del equipo técnico por SQL.
-- **Resuelto (MSF-797):** la comprobación TLS (`tls.ts`) cierra siempre la conexión, también la que llega tras el timeout de 5 s.
+- **Resuelto (MSF-797):** la comprobación TLS (`tls.ts`) cierra siempre la conexión, también la que llega tras el timeout de 5 s; la que
+  seguía pendiente de conectar se cancela al vencer (señal de cancelación a `Deno.connect`).
 - **Resuelto (MSF-796):** la política de borrado del bucket `tienda-identidad` no deja borrar un objeto referenciado por la identidad
   publicada, el borrador o alguna versión.
 - **Bucket de lectura pública:** los logos y banners de un borrador o de una versión vieja son legibles por
