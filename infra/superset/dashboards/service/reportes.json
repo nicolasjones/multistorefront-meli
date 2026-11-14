@@ -5,6 +5,7 @@
       "nombre": "Service técnico",
       "dashboard_slug": "service-tecnico",
       "seccion": "service_tecnico",
+      "filtro_empresa": true,
       "rolesPorDefecto": [
         "administracion",
         "consulta"

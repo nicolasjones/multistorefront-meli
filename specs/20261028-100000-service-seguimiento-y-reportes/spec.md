@@ -386,3 +386,9 @@ Prototipos: `ServicioReparaciones.dc.html` y `ServicioReparacion.dc.html` (inven
 | MSF-124 (épica) | F-SVC-22 Consulta de estado por el cliente con enlace | US3 | FR-040…FR-047, SC-006…SC-008 | T025–T041 |
 | MSF-124 (épica) | F-SVC-23 Reportes de service y exportación | US4 | FR-060…FR-066, SC-009, SC-010 | T042–T055 |
 | Tarea de cierre (label `cierre`) | Índice documental, revisión de seguridad, roadmap, gates | — | FR-090, FR-091, SC-011 | T056–T058 |
+
+
+## Notas posteriores (2026-11-14)
+
+- **Regenerar enlace** (decisión de Nicolás, *Decisiones abiertas* 4): se agrega `public.regenerar_enlace_consulta` y el botón con confirmación en el diálogo del enlace; el token anterior deja de funcionar y se registra `reparacion.enlace_regenerado`. Sin vencimiento automático. Ver `docs/service-seguimiento.md`.
+- **Reportes por tienda**: el reporte «Service técnico» declara `filtro_empresa = true`; el guest token se acota a las empresas accesibles de quien lo pide (cierra el «riesgo heredado de Rentabilidad»). Ver `docs/service-reportes.md`.
