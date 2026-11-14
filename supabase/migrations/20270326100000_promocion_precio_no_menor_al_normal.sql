@@ -26,14 +26,20 @@
 -- Reversión (migración posterior): recrear `private.promocion_vigente` de 20270228300100 y `public.guardar_promocion_precio`
 -- de 20270228300100, y `drop function private.promocion_con_aviso(jsonb, uuid, uuid, numeric)`.
 
+-- plpgsql y no `language sql`: con la comparación dentro del WHERE la versión SQL costaba ~1,8 ms por producto con promoción
+-- (5.000 productos todos con promoción: 9 s) y esta ~0,6 ms (3,2 s); lo medido está en la revisión R125 (MSF-846: la búsqueda
+-- pública tiene statement_timeout de 3 s). Primero se lee la fila (índice) y recién ahí se compara.
 create or replace function private.promocion_vigente(p_producto uuid, p_empresa uuid, p_ahora timestamptz default now())
 returns numeric
-language sql
+language plpgsql
 stable
 security definer
 set search_path = ''
 as $$
-  select x.precio_promocional
+declare
+  v_precio numeric;
+begin
+  select x.precio_promocional into v_precio
     from dominio.promociones_precio x
    where private.bandera_activa('promociones_precio')
      and x.producto_id = p_producto
@@ -41,11 +47,18 @@ as $$
      and x.anulada_at is null
      and x.desde <= p_ahora
      and p_ahora < x.hasta
-     -- MSF-936: una promoción que no baja el precio normal se ignora (igual que en el local).
-     and private.precio_con_iva_visible(p_producto, p_empresa, x.precio_promocional)
-         < private.precio_final_publico(p_producto, p_empresa)
    order by x.desde desc
    limit 1;
+  if v_precio is null then
+    return null;
+  end if;
+  -- MSF-936: una promoción que no baja el precio normal se ignora (igual que en el local).
+  if private.precio_con_iva_visible(p_producto, p_empresa, v_precio)
+     < private.precio_final_publico(p_producto, p_empresa) then
+    return v_precio;
+  end if;
+  return null;
+end;
 $$;
 
 -- Suma el aviso «no es menor al precio normal» al JSON de la promoción guardada (sin aviso, lo devuelve igual).

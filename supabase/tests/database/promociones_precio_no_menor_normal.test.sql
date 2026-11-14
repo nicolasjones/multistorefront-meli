@@ -262,6 +262,19 @@ select is((select j ->> 'aviso_codigo' from r where clave = 'repetida_edicion'),
 select is((select j ? 'aviso' from r where clave = 'editada_menor'), false,
   'editar a un precio menor al normal con IVA (1990 sin IVA < 2000) deja de avisar');
 
+-- La alta idempotente solo repite una promoción con el MISMO precio: otro precio en la misma ventana es un solape (23P01),
+-- no un «ya estaba» (hallazgo de la revisión R125: un mutante `>=` en la comparación del precio sobrevivía).
+select pg_temp.como('f5000000-0000-0000-0000-000000000001');
+select throws_ok(
+  format($$select public.guardar_promocion_precio(null, 'e5000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000002', 1980, %L::timestamptz, %L::timestamptz)$$,
+    (select j ->> 'desde' from r where clave = 'igual_a'), (select j ->> 'hasta' from r where clave = 'igual_a')),
+  '23P01', null, 'misma ventana con otro precio (menor) no es idempotente: solape 23P01');
+select throws_ok(
+  format($$select public.guardar_promocion_precio(null, 'e5000000-0000-0000-0000-000000000002', 'a5000000-0000-0000-0000-000000000002', 2100, %L::timestamptz, %L::timestamptz)$$,
+    (select j ->> 'desde' from r where clave = 'igual_a'), (select j ->> 'hasta' from r where clave = 'igual_a')),
+  '23P01', null, '... también con un precio mayor al guardado');
+reset role;
+
 -- Permisos y aislamiento.
 select pg_temp.como('f5000000-0000-0000-0000-000000000002');
 select throws_ok(
