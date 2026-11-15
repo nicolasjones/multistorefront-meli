@@ -138,7 +138,7 @@ export function filasConjuntosExportacion(sqlOriginal) {
   if (!v) return new Set();
   const cuerpo = cuerpoParentesis(resto, v.index);
   // Acepta ('esquema', 'tabla') y también con casts: ('esquema'::text, 'tabla'::text).
-  const cast = String.raw`(?:\s*::\s*[a-z_][a-z0-9_ ]*?)?`;
+  const cast = String.raw`(?:\s*::\s*[a-z_][a-z0-9_]*(?:\s+[a-z_][a-z0-9_]*)?)?`;
   const fila = new RegExp(String.raw`\(\s*'([a-z0-9_]+)'${cast}\s*,\s*'([a-z0-9_]+)'${cast}\s*\)`, 'gi');
   return new Set([...cuerpo.matchAll(fila)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
 }
@@ -244,6 +244,7 @@ function main() {
   const args = process.argv.slice(2);
   const valorDe = (flag, def) => { const i = args.indexOf(flag); return i >= 0 && args[i + 1] ? args[i + 1] : def; };
   const base = valorDe('--base', process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy');
+  if (!/^[\w./-]+$/.test(base) || base.startsWith('-')) { console.error(`Valor de --base no válido: ${base}`); process.exit(2); }
   const todo = args.includes('--todo');
   const git = (a) => spawnSync('git', a, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
   const leer = (r) => { try { return readFileSync(r, 'utf8'); } catch { return null; } };

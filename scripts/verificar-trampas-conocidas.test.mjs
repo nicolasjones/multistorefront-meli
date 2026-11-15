@@ -177,3 +177,11 @@ test('sin base de comparación: en CI falla cerrado, en local solo avisa', () =>
   assert.match(gh.mensaje, /no existe la base origin\/dokploy/);
   assert.equal(sinBase({ base: 'origin/dokploy', env: {} }).codigo, 0);
 });
+
+test('el parseo de casts no se cuelga con espacios hostiles (sin ReDoS)', async () => {
+  const { filasConjuntosExportacion } = await import('./verificar-trampas-conocidas.mjs');
+  const sql = `create or replace function private.conjuntos_exportacion_total() returns table(a text) as $f$ select 1 from (values ('a'::a${' '.repeat(60000)}) v $f$;`;
+  const t = Date.now();
+  filasConjuntosExportacion(sql);
+  assert.ok(Date.now() - t < 2000, 'tardó demasiado: ReDoS');
+});
