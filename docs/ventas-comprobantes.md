@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261113-120000-precio-promocional-en-pos-y-comprobantes
+  - apps/web/src/lib/ventas.ts
+  - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
+  - supabase/migrations/20261203100100_comprobantes_cabecera.sql
+  - supabase/migrations/20261203100200_comprobantes_numeracion.sql
+  - supabase/migrations/20261203100400_comprobantes_rpc.sql
+  - supabase/migrations/20261203200100_comprobantes_lineas.sql
+  - supabase/migrations/20261203200200_accion_editar_precio.sql
+---
+
 # Ventas · Comprobantes
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-comprobantes.md) · [guía de uso](producto/ventas-comprobantes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-273) y sus **líneas**
 (F-VTA-06, MSF-295), su **confirmación** con descuento y reserva de stock (F-VTA-07, MSF-317) y los
@@ -41,6 +56,7 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   cliente y la cantidad de la línea (FR-014): minorista siempre x1; mayorista x1 (1-4), x5 (5-9), x10
   (10-49) y x50 (50 o más). Cambiar cantidad, depósito o cliente reenvía las líneas y se relee el
   comprobante. La regla de escala vive solo en `private.escala_para_linea` (*Decisiones abiertas* 8).
+- **Nota del cliente en presupuestos de la tienda** (MSF-176): si el presupuesto lo pidió el cliente desde la tienda online, la pantalla muestra su nota en un campo «Nota del cliente» de solo lectura, complementario a la nota interna del comprobante.
 - **Precio promocional** (MSF-816, F-2): una línea que cobró una promoción de la tienda del comprobante trae
   `precio_referencia` (el precio normal del cliente, con su escala y su descuento; nunca `promocion_id`). La celda de precio
   muestra el cobrado, el anterior **tachado** y la leyenda «Promoción», con «Precio anterior» y «Precio promocional» para

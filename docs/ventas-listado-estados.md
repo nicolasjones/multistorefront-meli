@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-ventas-listado-estados-y-anulacion
+  - infra/kestra/flows/exportar-comprobantes.yml
+  - workers/exportar-comprobantes
+---
+
 # Ventas · Listado, estados y anulación (épica MSF-177)
 
 Guía de entrada de la épica. Spec: `specs/20261024-130000-ventas-listado-estados-y-anulacion/` (FR-001…FR-048,
@@ -7,7 +15,7 @@ SC-001…SC-009). Cada historia tiene su guía de detalle; acá se resume lo que
 |----------|-------------|-----------------|
 | F-VTA-10 (MSF-365) | Catálogo de estados, matriz de transiciones por rol, historial y estado de cobro | [ventas-estados-comprobante.md](ventas-estados-comprobante.md) |
 | F-VTA-09 | Listado con filtros y exportación (inmediata y diferida) | [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md) |
-| F-VTA-11 | Anulación con reversión de stock y notas de crédito | [ventas-estados-comprobante.md](ventas-estados-comprobante.md#anulación-y-nota-de-crédito-f-vta-11) |
+| F-VTA-11 | Anulación con reversión de stock y notas de crédito | [ventas-estados-comprobante.md](ventas-estados-comprobante.md#anulacion-y-nota-de-credito-f-vta-11) |
 
 ## Listado y filtros
 

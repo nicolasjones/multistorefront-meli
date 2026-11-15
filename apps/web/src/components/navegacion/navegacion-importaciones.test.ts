@@ -6,7 +6,7 @@ import { DESTINOS_PANEL, destinoVisible } from './destinosPanel'
 
 const destino = DESTINOS_PANEL.find((d) => d.id === 'importaciones')
 
-describe('[MSF-354:T008] Ítem «Importaciones» de la navegación (FR-011)', () => {
+describe('Ítem «Importaciones» de la navegación (FR-011)', () => {
   it('existe con ruta /importaciones e icono', () => {
     expect(destino).toBeDefined()
     expect(destino?.etiqueta).toBe('Importaciones')

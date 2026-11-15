@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - apps/web/src/components/navegacion
+  - supabase/migrations/20270217300001_notificaciones_leido.sql
+  - supabase/migrations/20270217300002_notificaciones_funciones.sql
+---
+
 # Centro de notificaciones en el panel (MSF-378 · F-NOT-02)
 
 La campanita de la barra superior (entre el buscador y el menú de cuenta) muestra los avisos de la persona

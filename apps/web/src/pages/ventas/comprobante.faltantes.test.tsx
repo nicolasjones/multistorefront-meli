@@ -139,14 +139,14 @@ beforeEach(() => {
 })
 
 describe('Detalle · «Registrar faltantes» (F-VTA-18, FR-047)', () => {
-  it.each(['cobrado', 'deuda'] as const)('una factura en estado %s también muestra Responsables y Envío (MSF-598)', async (estado) => {
+  it.each(['cobrado', 'deuda'] as const)('una factura en estado %s también muestra Responsables y Envío', async (estado) => {
     mocks.obtenerComprobante.mockResolvedValue({ ...FACTURA, estado })
     render(arbol())
     expect(await screen.findByRole('region', { name: 'Responsables' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: /Envío y transporte/ })).toBeInTheDocument()
   })
 
-  it('un borrador no muestra la tarjeta de Responsables (MSF-598)', async () => {
+  it('un borrador no muestra la tarjeta de Responsables', async () => {
     mocks.obtenerComprobante.mockResolvedValue({ ...FACTURA, estado: 'borrador' })
     render(arbol())
     await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalled())

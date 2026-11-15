@@ -29,7 +29,7 @@ describe('hora de Buenos Aires (F-AUD-01, FR-004)', () => {
   })
 })
 
-describe('«Quién» del evento (MSF-176, B2, FR-060)', () => {
+describe('«Quién» del evento (B2, FR-060)', () => {
   it('un evento con actor muestra su nombre', () => {
     expect(quienDelEvento('empresa.pausada', 'Ana Admin')).toBe('Ana Admin')
     expect(quienDelEvento('presupuesto.creado_desde_tienda', 'Ana Admin')).toBe('Ana Admin')

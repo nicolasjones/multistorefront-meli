@@ -66,40 +66,40 @@ describe('Reposicion (F-REP-02)', () => {
     mocks.propsReporte.current = null
   })
 
-  it('[MSF-311:T008] muestra el título y monta el tablero embebido de reposición', () => {
+  it('muestra el título y monta el tablero embebido de reposición', () => {
     montar()
     expect(screen.getByRole('heading', { name: 'Reposición' })).toBeTruthy()
     expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-reposicion')
     expect(mocks.montajes).toHaveBeenCalledWith('rep-reposicion')
   })
 
-  it('[MSF-311:T008] muestra el estado de carga mientras llegan los reportes', () => {
+  it('muestra el estado de carga mientras llegan los reportes', () => {
     montar({ cargando: true })
     expect(screen.queryByTestId('tablero')).toBeNull()
     expect(mocks.montajes).not.toHaveBeenCalled()
   })
 
-  it('[MSF-311:T008] avisa cuando el tablero no está asignado a la organización', () => {
+  it('avisa cuando el tablero no está asignado a la organización', () => {
     montar({ reportes: [] })
     expect(screen.getByText(/«Reposición» todavía no está disponible para tu organización/)).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 
-  it('[MSF-311:T008] sin la sección stock muestra «Acceso restringido» y no monta el tablero ni pide token', async () => {
+  it('sin la sección stock muestra «Acceso restringido» y no monta el tablero ni pide token', async () => {
     montar({ nivel: 'ninguno' })
     expect(await screen.findByText('Acceso restringido a Stock')).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
     expect(mocks.montajes).not.toHaveBeenCalled()
   })
 
-  it('[MSF-311:T008] ante un 403 del token muestra «Acceso restringido»', () => {
+  it('ante un 403 del token muestra «Acceso restringido»', () => {
     montar()
     act(() => mocks.propsReporte.current?.alFallar?.('prohibido'))
     expect(screen.getByText('Acceso restringido a Stock')).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 
-  it('[MSF-311:T008] ante una falla de carga muestra el error y «Reintentar» vuelve a montar el tablero', async () => {
+  it('ante una falla de carga muestra el error y «Reintentar» vuelve a montar el tablero', async () => {
     montar()
     expect(mocks.montajes).toHaveBeenCalledTimes(1)
     act(() => mocks.propsReporte.current?.alFallar?.('no_disponible'))
@@ -111,7 +111,7 @@ describe('Reposicion (F-REP-02)', () => {
     expect(mocks.montajes).toHaveBeenCalledTimes(2)
   })
 
-  it('[MSF-311:T008] no tiene selector de empresa propio (el inventario es por organización)', () => {
+  it('no tiene selector de empresa propio (el inventario es por organización)', () => {
     montar()
     expect(screen.queryByRole('group', { name: /empresa|tienda/i })).toBeNull()
     expect(screen.queryByText('Todas las tiendas')).toBeNull()
@@ -119,7 +119,7 @@ describe('Reposicion (F-REP-02)', () => {
 })
 
 describe('menú «Reportes» (F-REP-02, FR-005)', () => {
-  it('[MSF-311:T008] «Reposición» está en el menú Reportes, apunta a /reportes/reposicion y exige la sección stock', () => {
+  it('«Reposición» está en el menú Reportes, apunta a /reportes/reposicion y exige la sección stock', () => {
     const delMenu = DESTINOS_PANEL.filter((candidato) => candidato.ruta.startsWith('/reportes/'))
     expect(delMenu.map((destino) => destino.etiqueta)).toEqual(['Productos y stock', 'Reposición'])
     const destino = DESTINOS_PANEL.find((candidato) => candidato.id === 'reportes-reposicion')

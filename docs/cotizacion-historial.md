@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - specs/20261023-120000-dolar-y-recalculo
+  - supabase/migrations/20261023140300_cotizacion_confirmar_recalculo.sql
+  - supabase/migrations/20261023140400_cotizacion_historial.sql
+---
+
 # Historial de cotizaciones del dólar (F-PRE-04)
 
 Épica MSF-116, historia MSF-286. Migración `supabase/migrations/20261023140400_cotizacion_historial.sql`;

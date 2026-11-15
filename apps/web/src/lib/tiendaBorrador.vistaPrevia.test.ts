@@ -7,7 +7,7 @@ import { leerVistaPrevia } from './tiendaBorrador'
 
 const base = { empresa_nombre: 'Demo', en_linea: true, identidad: {}, contenido: {}, hay_productos: true, destacados: [] }
 
-describe('leerVistaPrevia (MSF-846)', () => {
+describe('leerVistaPrevia', () => {
   it('conserva la foto de cada categoría que devuelve la RPC y usa null si falta', async () => {
     mocks.rpc.mockResolvedValue({
       data: {

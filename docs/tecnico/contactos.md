@@ -8,6 +8,8 @@ sources:
 
 # Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../contactos.md).
+
 **Épica:** MSF-144 — Consultas y ventas · Contactos y respuestas rápidas.
 **Historias:** F-CON-05 Libreta de contactos (MSF-260) y F-CON-06 Respuestas rápidas (MSF-274).
 **Spec:** `specs/20261029-120000-contactos-y-respuestas-rapidas/` (`spec.md`, `plan.md`, `tasks.md`,
