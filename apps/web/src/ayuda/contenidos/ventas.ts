@@ -22,6 +22,7 @@ export const ayudaVentas: AyudaPorDestino = {
       'Afiná con los filtros de operador, estado, pago y envío; usá Limpiar filtros para volver atrás.',
       'Tocá el número de un comprobante para abrir su detalle.',
       'Tocá Nuevo comprobante para cargar una venta.',
+      'Si una línea dice «Lista: nombre ±n %», su precio sale de la lista del cliente; uno manual, propio o por escala manda sobre ella.',
     ],
   },
   'ventas-presupuestos': {

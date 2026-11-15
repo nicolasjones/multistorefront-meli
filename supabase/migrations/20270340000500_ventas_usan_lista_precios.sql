@@ -14,8 +14,10 @@
 --   3. `public.copiar_presupuesto` (de 20270310100300): reprecia con la lista del cliente del original y guarda el snapshot.
 --   4. `private.copiar_costo_linea_nota` (de 20270310100300): la línea de una devolución hereda también `lista_precio_id` y
 --      `lista_ajuste_pct` de la línea original (gate propio): la nota de crédito nunca recalcula con la lista actual.
---   5. `private.lineas_con_promocion_desactualizada` (de 20270310100400): la guarda de la confirmación recalcula con la misma lista
---      que el guardado (`confirmar_comprobante` no se reescribe).
+--   5. `private.lineas_con_promocion_desactualizada` (de 20270310100400): la guarda de la confirmación recalcula con la misma lista y,
+--      además de las promociones, rechaza el comprobante cuyo snapshot de lista ya no coincide con el motor (porcentaje cambiado, lista
+--      reasignada o quitada, bandera apagada después de guardar). `confirmar_comprobante` no se reescribe. Esto NO contradice D12:
+--      D12 protege lo ya confirmado; un borrador cuyo precio cambió desde que se guardó se avisa y se recalcula guardando de nuevo.
 --
 -- Migración aditiva (`create or replace`). Reversión operativa inmediata, SIN migrar: apagar la bandera `listas_precios`.
 -- Reversión de código (migración posterior): restaurar los cuerpos de las versiones nombradas arriba.
@@ -197,6 +199,12 @@ begin
     v_unitario := coalesce(v_manual, v_precio.neto_unitario);
     if v_unitario is null then
       raise exception 'El producto de la línea % no tiene precio en pesos (falta la cotización del dólar)', v_orden
+        using errcode = '22023', hint = 'producto_id';
+    end if;
+    -- F-CLI-21: una lista con descuento fuerte sobre un producto muy barato puede redondear a cero; la tienda lo marca `sin_precio`
+    -- (neto <= 0) y el panel no cobra $0 por esa vía. Solo aplica cuando fijó el precio la lista (no cambia nada sin lista).
+    if v_manual is null and v_precio.lista_precio_id is not null and v_unitario <= 0 then
+      raise exception 'El producto de la línea % queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)', v_orden
         using errcode = '22023', hint = 'producto_id';
     end if;
     v_porcentaje := case when v_precio.alicuota_exenta then 0 else coalesce(v_precio.alicuota_porcentaje, 0) end;
@@ -488,6 +496,10 @@ begin
       raise exception 'El producto «%» no tiene precio en pesos (falta la cotización del dólar)', v_linea.descripcion
         using errcode = '22023', hint = 'producto_id';
     end if;
+    if not v_linea.precio_manual and v_precio.lista_precio_id is not null and v_unitario <= 0 then
+      raise exception 'El producto «%» queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)', v_linea.descripcion
+        using errcode = '22023', hint = 'producto_id';
+    end if;
     v_porcentaje := case when v_precio.alicuota_exenta then 0 else coalesce(v_precio.alicuota_porcentaje, 0) end;
     v_subtotal := round(v_unitario * v_linea.cantidad, 2);
     v_iva := round(v_subtotal * v_porcentaje / 100, 2);
@@ -593,9 +605,15 @@ declare
   v_c record;
   v_tipo_cliente text;
   v_descuento numeric := 0;
+  v_promos boolean := private.bandera_activa('promociones_precio');
+  v_lista_id uuid;
+  v_lista_pct numeric;
   v_n integer;
 begin
-  if not private.bandera_activa('promociones_precio') then
+  -- Con las dos banderas apagadas no hay nada que vigilar (idéntico al comportamiento anterior).
+  if not v_promos and not private.bandera_activa('listas_precios') and not exists (
+    select 1 from dominio.comprobantes_venta_lineas l where l.comprobante_id = p_comprobante and l.lista_precio_id is not null
+  ) then
     return 0;
   end if;
 
@@ -612,15 +630,21 @@ begin
    where cl.id = v_c.cliente_id and cl.organizacion_id = v_c.organizacion_id;
   v_descuento := coalesce(v_descuento, 0);
 
+  -- F-CLI-21: la lista que rige HOY para el cliente (nula con la bandera apagada, sin lista o lista archivada).
+  select ls.lista_id, ls.ajuste_pct into v_lista_id, v_lista_pct
+    from private.lista_precios_cliente(v_c.cliente_id, v_c.organizacion_id) ls;
+
   -- FR-024: `precio_para` (escala, propio, lista, cotización) cuesta mucho más que una búsqueda indexada. Primero se
   -- mira, por línea, solo la promoción vigente (`promocion_vigente_fila`, índice de MSF-363); únicamente las líneas
   -- candidatas (la promoción vigente no es la guardada, o es la misma con otro precio) pasan por el cálculo completo
   -- `precio_linea_venta`, que decide con la misma regla del guardado. Una línea sin promoción guardada ni vigente, o
   -- con la misma promoción al mismo precio, no se recalcula: un cambio solo del precio normal no se rechaza (la guarda
-  -- mira promociones, igual que hoy no se rechazan los cambios de lista). Un `cross join lateral` sin fila (precio no
-  -- calculable) omite la línea, y `neto_unitario` nulo también.
+  -- mira promociones). F-CLI-21: además es candidata la línea cuyo snapshot de lista ya no coincide con la lista que rige hoy
+  -- (porcentaje cambiado, lista reasignada o quitada, bandera apagada) y, si el cliente tiene lista hoy, la que no guardó ninguna
+  -- (la recalcula el motor: una con precio propio o escala sigue sin lista y no cuenta). Un `cross join lateral` sin fila (precio
+  -- no calculable) omite la línea, y `neto_unitario` nulo también.
   with candidatas as materialized (
-    select l.producto_id, l.cantidad, l.promocion_id, l.precio_unitario
+    select l.producto_id, l.cantidad, l.promocion_id, l.precio_unitario, l.lista_precio_id, l.lista_ajuste_pct
       from dominio.comprobantes_venta_lineas l
       left join lateral private.promocion_vigente_fila(l.producto_id, v_c.empresa_id, p_ahora) f on true
      where l.comprobante_id = p_comprobante
@@ -628,16 +652,21 @@ begin
        and not l.precio_manual
        and not l.sin_stock
        and l.producto_id is not null
-       and (f.promocion_id is distinct from l.promocion_id
-            or (f.promocion_id is not null and abs(f.precio - l.precio_unitario) > 0.005))
+       and ((v_promos and (f.promocion_id is distinct from l.promocion_id
+                           or (f.promocion_id is not null and abs(f.precio - l.precio_unitario) > 0.005)))
+            or (l.lista_precio_id is not null
+                and (v_lista_id is null or l.lista_precio_id <> v_lista_id or l.lista_ajuste_pct <> v_lista_pct))
+            or (l.lista_precio_id is null and v_lista_id is not null))
   )
   select count(*)::int into v_n
     from candidatas c
    cross join lateral private.precio_linea_venta(
            c.producto_id, v_c.empresa_id, v_tipo_cliente, c.cantidad, v_descuento, p_ahora, true, v_c.cliente_id) p
    where p.neto_unitario is not null
-     and (p.promocion_id is distinct from c.promocion_id
-          or (p.promocion_id is not null and abs(p.neto_unitario - c.precio_unitario) > 0.005));
+     and ((v_promos and (p.promocion_id is distinct from c.promocion_id
+                         or (p.promocion_id is not null and abs(p.neto_unitario - c.precio_unitario) > 0.005)))
+          or p.lista_precio_id is distinct from c.lista_precio_id
+          or p.lista_ajuste_pct is distinct from c.lista_ajuste_pct);
   return v_n;
 end;
 $$;
@@ -646,4 +675,4 @@ revoke execute on function private.lineas_con_promocion_desactualizada(uuid, tim
   from public, anon, authenticated, service_role;
 
 comment on function private.lineas_con_promocion_desactualizada(uuid, timestamptz) is
-  'MSF-816: cuenta las líneas de un comprobante cuya promoción (o precio promocional) ya no es la que se cobraría ahora. Omite precio manual, sin_stock y líneas sin precio calculable; con la bandera promociones_precio apagada devuelve 0. La usa confirmar_comprobante. F-CLI-21: recalcula con la lista de precios del cliente del comprobante.';
+  'MSF-816: cuenta las líneas de un comprobante cuya promoción (o precio promocional) ya no es la que se cobraría ahora. Omite precio manual, sin_stock y líneas sin precio calculable; con la bandera promociones_precio apagada devuelve 0. La usa confirmar_comprobante. F-CLI-21: recalcula con la lista de precios del cliente del comprobante y también cuenta la línea cuyo snapshot de lista (id o porcentaje) ya no coincide con el motor.';

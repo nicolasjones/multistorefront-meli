@@ -52,6 +52,14 @@ insert into dominio.precios_propios_empresa (producto_id, empresa_id, organizaci
 insert into dominio.producto_precios_escala (producto_id, organizacion_id, escala, precio) values
   ('b1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'x5', 800);
 
+-- P5: producto muy barato ($4) para el caso del descuento que redondea a cero.
+insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo) values
+  ('b1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Producto 5', 'P-5', 'ARS', 4, 'c1000000-0000-0000-0000-000000000001', null, true);
+insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) values
+  ('d1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'Casi gratis', -90);
+insert into clientes (id, organizacion_id, numero, nombre, tipo, descuento, lista_precio_id) values
+  ('c5000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 14, 'Cliente lista -90', 'minorista', null, 'd1000000-0000-0000-0000-000000000009');
+
 create temp table datos as
   select (select id from dominio.depositos where organizacion_id = '11111111-1111-1111-1111-111111111111' and por_defecto) as principal;
 grant select on datos to public;
@@ -59,11 +67,11 @@ insert into dominio.depositos_empresas (deposito_id, empresa_id, organizacion_id
 select principal, 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111' from datos
 on conflict do nothing;
 insert into dominio.existencias (producto_id, organizacion_id, cantidad, reservado)
-select ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111', 100, 0 from generate_series(1, 4) n
+select ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111', 100, 0 from generate_series(1, 5) n
 on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
 insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado)
 select ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, (select principal from datos), '11111111-1111-1111-1111-111111111111', 100, 0
-  from generate_series(1, 4) n
+  from generate_series(1, 5) n
 on conflict (producto_id, deposito_id) do update set cantidad = excluded.cantidad, reservado = excluded.reservado;
 
 grant select on dominio.comprobantes_venta_lineas to authenticated;
@@ -294,6 +302,80 @@ select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('guarda'), n
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('guarda')), '40001', null,
   'confirmar rechaza el comprobante cuyo precio cambió por una promoción menor a la lista (precios_cambiaron)');
+
+-- ============================================================================
+-- La guarda de confirmación TAMBIÉN vigila la lista (la lista cambió entre guardar y confirmar)
+-- ============================================================================
+
+select pg_temp.crear('g_ok', 'factura', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('g_ok', jsonb_build_array(pg_temp.l(1, 1)));
+reset role;
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_ok'), now()), 0, 'sin cambios desde que se guardó: la guarda no marca nada');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_ok')), 'sin cambios la factura con lista se confirma');
+
+select pg_temp.crear('g_pct', 'factura', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('g_pct', jsonb_build_array(pg_temp.l(1, 1)));
+reset role;
+update dominio.listas_precios set ajuste_pct = -25 where id = 'd1000000-0000-0000-0000-000000000001';
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_pct'), now()), 1, 'cambiar el % de la lista después de guardar desactualiza la línea');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_pct')), '40001', null, 'confirmar avisa que los precios cambiaron (lista con otro porcentaje)');
+select pg_temp.guardar('g_pct', jsonb_build_array(pg_temp.l(1, 1)));
+select is(pg_temp.lin('g_pct', 1), '750.00|0.00|true|-25.00', 'guardar de nuevo recalcula con el porcentaje nuevo');
+select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_pct')), 'y entonces se confirma');
+reset role;
+update dominio.listas_precios set ajuste_pct = -20 where id = 'd1000000-0000-0000-0000-000000000001';
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('g_quita', 'factura', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('g_quita', jsonb_build_array(pg_temp.l(1, 1)));
+reset role;
+update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000002';
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_quita'), now()), 1, 'quitar la lista al cliente después de guardar desactualiza la línea');
+update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000002';
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_quita'), now()), 0, 'volver a asignarla la deja como estaba');
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('g_nueva', 'factura', 'c5000000-0000-0000-0000-000000000001');
+select pg_temp.guardar('g_nueva', jsonb_build_array(pg_temp.l(1, 1), pg_temp.l(2, 1)));
+reset role;
+update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000001';
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_nueva'), now()), 1,
+  'asignarle una lista después de guardar desactualiza solo la línea que la lista fijaría (la de precio propio no cuenta)');
+update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('g_bandera', 'factura', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('g_bandera', jsonb_build_array(pg_temp.l(1, 1)));
+select pg_temp.bandera('listas_precios', false);
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_bandera'), now()), 1, 'apagar la bandera después de guardar desactualiza la línea (el motor ya no aplica la lista)');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_bandera')), '40001', null, 'confirmar avisa también con la bandera apagada después de guardar');
+select pg_temp.bandera('listas_precios', true);
+
+-- ============================================================================
+-- Una lista de -90 % sobre un producto muy barato no cobra $0
+-- ============================================================================
+
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('barato', 'factura', 'c5000000-0000-0000-0000-000000000006');
+select throws_ok(format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$, pg_temp.id_de('barato'),
+    jsonb_build_array(pg_temp.l(5, 1))::text, pg_temp.upd('barato')), '22023', null,
+  'guardar rechaza una línea que la lista lleva a $0 (la tienda la marca sin precio)');
+select lives_ok(format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$, pg_temp.id_de('barato'),
+    jsonb_build_array(pg_temp.l(5, 1, 3))::text, pg_temp.upd('barato')), 'con precio manual sí se puede cobrar un precio chico');
+select pg_temp.crear('barato_sin', 'factura', 'c5000000-0000-0000-0000-000000000001');
+select pg_temp.guardar('barato_sin', jsonb_build_array(pg_temp.l(5, 1)));
+select is(pg_temp.lin('barato_sin', 1), '4.00|0.00|-|-', 'sin lista el producto barato se cobra a su precio (4)');
+select pg_temp.crear('pres_barato', 'presupuesto', 'c5000000-0000-0000-0000-000000000001');
+select pg_temp.guardar('pres_barato', jsonb_build_array(pg_temp.l(5, 1)));
+reset role;
+update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000009' where id = 'c5000000-0000-0000-0000-000000000001';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('pres_barato')), '22023', null, 'copiar presupuesto también rechaza la línea que la lista lleva a $0');
+reset role;
+update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
 
 select * from finish();
 rollback;

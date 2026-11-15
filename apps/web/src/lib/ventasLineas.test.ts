@@ -212,6 +212,12 @@ describe('ventasLineas · marca de la lista de precios', () => {
     expect(marcaListaLinea(linea({ lista_nombre: 'Cero', lista_ajuste_pct: 0 }))).toBe('Lista: Cero 0 %')
   })
 
+  it('cuando gana la promoción la marca aclara que rige la promoción', () => {
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, precio_referencia: 800 }))).toBe(
+      'Lista: Revendedores \u221220 % (rige la promoción)',
+    )
+  })
+
   it('sin lista, con precio manual o en una línea sin stock no hay marca', () => {
     expect(marcaListaLinea(linea())).toBeNull()
     expect(marcaListaLinea(linea({ lista_nombre: null, lista_ajuste_pct: -20 }))).toBeNull()

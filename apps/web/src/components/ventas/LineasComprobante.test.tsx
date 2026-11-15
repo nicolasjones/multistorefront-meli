@@ -194,6 +194,11 @@ describe('LineasComprobante · marca de la lista de precios (F-CLI-21, CA-CLI-21
     expect(screen.getByText('Lista: Cero 0 %')).toBeInTheDocument()
   })
 
+  it('con una promoción ganadora la marca dice que rige la promoción', () => {
+    montar([conLista({ precio_unitario: 500, precio_referencia: 800 })], { puedeEditarPrecio: false })
+    expect(screen.getByText('Lista: Revendedores \u221220 % (rige la promoción)')).toBeInTheDocument()
+  })
+
   it('sin lista no aparece nada nuevo', () => {
     montar([linea({ lista_ajuste_pct: null, lista_nombre: null })], { puedeEditarPrecio: false })
     expect(screen.queryByText(/Lista:/)).toBeNull()

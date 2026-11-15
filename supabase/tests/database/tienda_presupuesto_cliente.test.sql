@@ -13,6 +13,8 @@
 --   (h) idempotencia (misma clave = mismo número, un solo comprobante, un solo cupo gastado); (i) un error provocado a mitad deja el contador de numeración sin cambio;
 --   (j) `anon` sin `execute`; (k) `anon` y `authenticated` sin escritura sobre las tablas; (l) ninguna respuesta con texto de Postgres; (m) bandera apagada = `sin_acceso`
 --   sin tocar datos; (n) el evento de actividad (actor nulo, número y cliente, sin correo ni teléfono).
+-- Cobertura de la LISTA DE PRECIOS del cliente en el presupuesto de la tienda (F-CLI-21, Fase 4): vive en `precio_lista_tienda_paridad.test.sql`
+-- (cotizar y crear con un cliente con lista, snapshot en las líneas, paridad con el panel y bandera apagada). Acá el motor sigue sin lista.
 begin;
 
 select plan(182);

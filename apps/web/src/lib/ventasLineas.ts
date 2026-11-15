@@ -76,12 +76,14 @@ const formatoPorcentajeLista = new Intl.NumberFormat('es-AR', { minimumFractionD
 
 // «Lista: Revendedores −20 %» (CA-CLI-21-9). Null cuando la línea no la fijó una lista: nada nuevo en pantalla.
 export function marcaListaLinea(
-  linea: Pick<LineaComprobante, 'lista_ajuste_pct' | 'lista_nombre' | 'precio_manual' | 'sin_stock'>,
+  linea: Pick<LineaComprobante, 'lista_ajuste_pct' | 'lista_nombre' | 'precio_manual' | 'sin_stock' | 'precio_referencia'>,
 ): string | null {
   if (linea.precio_manual || linea.sin_stock) return null
   if (typeof linea.lista_ajuste_pct !== 'number' || !linea.lista_nombre) return null
   const signo = linea.lista_ajuste_pct > 0 ? '+' : linea.lista_ajuste_pct < 0 ? '\u2212' : ''
-  return `Lista: ${linea.lista_nombre} ${signo}${formatoPorcentajeLista.format(Math.abs(linea.lista_ajuste_pct))} %`
+  const marca = `Lista: ${linea.lista_nombre} ${signo}${formatoPorcentajeLista.format(Math.abs(linea.lista_ajuste_pct))} %`
+  // Cuando gana la promoción la lista solo explica la referencia: se aclara para no confundir.
+  return lineaEnPromocion(linea) ? `${marca} (rige la promoción)` : marca
 }
 
 export const rotuloEscalaLinea = (

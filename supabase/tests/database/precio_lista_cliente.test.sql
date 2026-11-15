@@ -378,6 +378,22 @@ update public.banderas_plataforma set activa = false where clave = 'promociones_
 select is((select neto_unitario from pg_temp.lin(7, 'A', 4)), 800::numeric, 'con la bandera de promociones apagada la lista rige igual (800)');
 update public.banderas_plataforma set activa = true where clave = 'promociones_precio';
 
+-- Extremos de la lista: -90 % y +100 % (los topes del contrato), sin precio negativo ni cero.
+insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) values
+  ('d1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Mínimo', -90),
+  ('d1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Máximo', 100);
+insert into public.clientes (id, organizacion_id, numero, nombre, tipo, descuento, lista_precio_id) values
+  ('c1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 109, 'Cliente 9', 'minorista', 0, 'd1000000-0000-0000-0000-000000000004'),
+  ('c1000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 110, 'Cliente 10', 'minorista', 0, 'd1000000-0000-0000-0000-000000000005');
+select is((select neto_unitario from pg_temp.lin(1, 'B', 9)), 100::numeric, 'extremo -90 %: 1000 × 0,10 = 100 (tienda B)');
+select is((select neto_unitario from pg_temp.lin(1, 'A', 9)), 100::numeric, 'extremo -90 %: la tienda A (+30 %) no entra: 100');
+select is((select neto_unitario from pg_temp.lin(2, 'B', 9)), 120::numeric, 'extremo -90 %: 1234,56 × 0,10 = 123,456 se redondea a 120');
+select is((select lista_ajuste_pct from pg_temp.lin(1, 'B', 9)), -90::numeric, 'extremo -90 %: el snapshot guarda -90');
+select is((select neto_unitario from pg_temp.lin(1, 'B', 10)), 2000::numeric, 'extremo +100 %: 1000 × 2 = 2000');
+select is((select neto_unitario from pg_temp.lin(2, 'A', 10)), 2470::numeric, 'extremo +100 %: 1234,56 × 2 = 2469,12 se redondea a 2470');
+select is((select lista_ajuste_pct from pg_temp.lin(1, 'B', 10)), 100::numeric, 'extremo +100 %: el snapshot guarda 100');
+select is((select count(*)::int from pg_temp.lin(1, 'B', 9) where neto_unitario <= 0), 0, 'ningún extremo da precio cero ni negativo en productos normales');
+
 -- D13 y casos borde de la lista.
 update public.banderas_plataforma set activa = false where clave = 'listas_precios';
 select is((select neto_unitario from pg_temp.lin(2, 'B', 4)), 1234.56::numeric, 'D13 · apagar la bandera devuelve al cliente con lista al precio normal al instante');
