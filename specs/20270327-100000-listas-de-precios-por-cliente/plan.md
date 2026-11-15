@@ -23,7 +23,7 @@
 
 ## Migraciones (todas aditivas e idempotentes; reversión en el encabezado de cada una)
 
-Numeración **por encima de toda la cola de `dokploy`** (`node scripts/verificar-migraciones.mjs --estricto`): la ventana reservada de migraciones es ahora `>= 20270340000210` (las Fases 1 y 2 usaron hasta `20270340000220`; las Fases 3 y 4 siguen desde `20270340000300`) y se **renumera al integrar** si otra rama la ocupó (`desarrollo-manual`: renumerar antes del merge).
+Numeración **por encima de toda la cola de `dokploy`** (`node scripts/verificar-migraciones.mjs --estricto`): la ventana reservada de migraciones es ahora `>= 20270340000210` (las Fases 1 y 2 usaron hasta `20270341000600`; las Fases 3 y 4 siguen desde `20270340000300`) y se **renumera al integrar** si otra rama la ocupó (`desarrollo-manual`: renumerar antes del merge).
 
 | Migración | Fase | Contenido |
 |---|---|---|
