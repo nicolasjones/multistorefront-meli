@@ -3,12 +3,12 @@
 -- permitida o en las exclusiones. Es una política de precios de la organización (dato de negocio, como `precios_empresa` y
 -- `promociones_precio`, que ya se exportan), así que SE EXPORTA. Las columnas se leen del catálogo, por lo que
 -- `clientes.lista_precio_id` (Fase 2) entra solo a la exportación de `public.clientes` (RF-CLI-21-8).
--- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270322100200`) sumando
--- solo la fila de `dominio.listas_precios`. La lista de exclusiones no cambia. Si otra migración posterior a `20270322100200` la
+-- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270334000002`) sumando
+-- solo la fila de `dominio.listas_precios`. La lista de exclusiones no cambia. Si otra migración posterior a `20270334000002` la
 -- redefine, esta debe rebasarse sobre ella (la última en aplicarse gana).
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270322100200_exportacion_total_presupuestos_tienda.sql` (sin la fila de `listas_precios`).
+-- Reversión (migración posterior): volver a la definición de `20270334000002_exportacion_total_ordenes_compra.sql` (sin la fila de `listas_precios`).
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])
@@ -70,6 +70,8 @@ as $$
     ('dominio', 'modelos_equipo'),
     ('dominio', 'motivos_movimiento'),
     ('dominio', 'movimientos_stock'),
+    ('dominio', 'ordenes_compra'),
+    ('dominio', 'ordenes_compra_items'),
     ('dominio', 'precios_empresa'),
     ('dominio', 'precios_propios_empresa'),
     ('dominio', 'precios_propios_historial'),
