@@ -934,17 +934,18 @@
     },
     "docs/ordenes-compra.md": {
       "title": "Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)",
-      "pageHash": "1d8d0ca106fa1d9ed7c2f352bd7b6f3554debd5843f50510ec013eb58e974647",
-      "sourceHash": "0549f521558edcab96cba905d804e2ba9b66cd036a652f1c1e40b1d107835f71",
-      "sourceAt": "00501c5c",
+      "pageHash": "f7e43e0a5978cd926758cc272fa44073f84c8fc36eb6424652011df2e0e728a4",
+      "sourceHash": "78434a6330209bcfa3d2710578f90c1faa7bb5f9118f5e1eede2b5e16517eeb5",
+      "sourceAt": "d6f6f24d",
       "sources": [
         "specs/20261109-103000-ordenes-de-compra-a-proveedores",
         "supabase/migrations/20270334000000_ordenes_compra_tablas.sql",
         "supabase/migrations/20270334000001_ordenes_compra_rpc.sql",
+        "supabase/migrations/20270334000002_exportacion_total_ordenes_compra.sql",
         "apps/web/src/lib/ordenesCompra.ts"
       ],
       "owner": "tecnico",
-      "commit": "00501c5c"
+      "commit": "d6f6f24d"
     },
     "docs/pagos-conciliacion.md": {
       "title": "Ventas · Pagos (conciliación) (F-VTA-13)",

@@ -4,6 +4,7 @@ sources:
   - specs/20261109-103000-ordenes-de-compra-a-proveedores
   - supabase/migrations/20270334000000_ordenes_compra_tablas.sql
   - supabase/migrations/20270334000001_ordenes_compra_rpc.sql
+  - supabase/migrations/20270334000002_exportacion_total_ordenes_compra.sql
   - apps/web/src/lib/ordenesCompra.ts
 ---
 
@@ -85,3 +86,7 @@ cargadas son dato nuevo: exportarlas antes). El camino exacto está en el encabe
 
 N.º correlativo de la orden, condiciones de compra, «Compra para», envío por correo al proveedor,
 costo de la orden, varias empresas por orden y el vínculo con el ingreso de mercadería (ver arriba).
+
+## Exportación total
+
+Las dos tablas (`dominio.ordenes_compra` y `dominio.ordenes_compra_items`) se exportan con la exportación total de la organización: son dato de negocio, igual que el ingreso de mercadería. Las suma `20270334000002_exportacion_total_ordenes_compra.sql` a `private.conjuntos_exportacion_total()`; el pgTAP `exportacion_total` exige que toda tabla con `organizacion_id` esté permitida o excluida.
