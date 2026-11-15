@@ -491,16 +491,16 @@
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
-      "pageHash": "f38106cb7a8fe01cb1f063da0f79e96333b4c1690b6d49154a83f675b22535d6",
-      "sourceHash": "af8853197d371830171505cf05886ebe958dcf9feb4045c350c8e4899fc06061",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "7ab975be262acd0acd0b06c67f78180dc49f5e855d192ee3b626b2302c36f7ac",
+      "sourceHash": "e235c72f2f41f8b5cfbd0284b8f1fb46ea29b5526c26ea9d721e1c17faec20fc",
+      "sourceAt": "24f7fdb5",
       "sources": [
         "specs/011-backups-postgres",
         "specs/20261018-120000-operacion-copias-y-documentacion",
         "infra/kestra"
       ],
       "owner": "operacion",
-      "commit": "ebf4bf4d"
+      "commit": "24f7fdb5"
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
@@ -2142,14 +2142,14 @@
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",
-      "pageHash": "9c8777c04a08d3eb7266e4ddb494fa0ef715aa07d3fb80ff21e3bb8276538243",
+      "pageHash": "87d8d94fbe8641304950101948b6ce7d4cf8776c1266651299f6ab688f688302",
       "sourceHash": "a986561aba1f02c594470918fa6f247416ead1e42de56f8baa8acdd9c95b0fdc",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "24f7fdb5",
       "sources": [
         "specs/20261018-120000-operacion-copias-y-documentacion"
       ],
       "owner": "operacion",
-      "commit": "ebf4bf4d"
+      "commit": "24f7fdb5"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -3145,15 +3145,15 @@
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "3edf551b11121d405c8125d356e8f384760798aad485c6153c6e58047085dadb",
-      "sourceHash": "6365ff6b74f602dda3d7408939e144ef4e77bfa0caca278deb96067a001895c4",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "010c047a4325f16c39ed7513731793b134c56ede6ca79740cb91fafbe3d3d60f",
+      "sourceHash": "c4b97f1137846874dc2e3cf93f0c38df58ee17865708637edcf31f8bb6c7d8b5",
+      "sourceAt": "d0781294",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d3335884"
+      "commit": "d0781294"
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
