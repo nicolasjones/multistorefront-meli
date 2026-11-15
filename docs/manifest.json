@@ -602,9 +602,9 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "8b146ab47e8f717f1119e823be801d7c29316bba890b2ef5478fa120cd6f3d0d",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8b69c8693ec69cb26a87375a5976a4ca68c97d7e3732a90f7c84b617f74f364a",
+      "sourceHash": "220a7a3cb1f5c73a4d31e195469cb698031a151de0da5cf4d71276b10fb9adfa",
+      "sourceAt": "2b8f7624",
       "sources": [
         "specs"
       ],
@@ -895,6 +895,25 @@
       ],
       "owner": "operacion",
       "commit": "ebf4bf4d"
+    },
+    "docs/newsletter.md": {
+      "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
+      "pageHash": "d0beeb5f4f0fa5253db894e22ed9041728f5a4e725ac0db09b32affda9174944",
+      "sourceHash": "fc1a5fdf142eea977deb27e5fa7ac09e17ab6b1420bbca574cd80a156b6da10a",
+      "sourceAt": null,
+      "sources": [
+        "specs/20270328-100000-newsletter-de-la-tienda",
+        "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
+        "supabase/migrations/20270342000100_newsletter_publico.sql",
+        "supabase/migrations/20270342000200_newsletter_confirmaciones.sql",
+        "supabase/migrations/20270342000300_exportacion_total_newsletter.sql",
+        "infra/kestra/flows/newsletter-confirmaciones.yml",
+        "apps/web/src/lib/tiendaNewsletter.ts",
+        "apps/web/src/pages/tienda-publica/newsletter",
+        "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",

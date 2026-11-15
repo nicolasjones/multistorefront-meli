@@ -1,0 +1,80 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+vi.mock('./supabase', () => ({ supabaseClient: { schema: () => ({ rpc: mocks.rpc }) } }))
+
+import {
+  confirmarNewsletter,
+  leerNewsletterTienda,
+  suscribirseNewsletter,
+  traducirRespuestaSuscripcion,
+  validarSuscripcion,
+} from './tiendaNewsletter'
+
+const TOKEN = 'ab'.repeat(32)
+
+describe('validarSuscripcion (espejo de la base)', () => {
+  it('exige correo válido y la casilla marcada', () => {
+    expect(validarSuscripcion({ correo: '', consentimiento: false })).toEqual({ correo: 'Escribí tu correo.', consentimiento: 'Marcá la casilla para suscribirte.' })
+    expect(validarSuscripcion({ correo: 'ana@ejemplo.com', consentimiento: true })).toEqual({})
+  })
+
+  it('rechaza más de una dirección, formato inválido y más de 254 caracteres', () => {
+    expect(validarSuscripcion({ correo: 'a@x.com,b@x.com', consentimiento: true }).correo).toBeDefined()
+    expect(validarSuscripcion({ correo: 'a@x.com;b@x.com', consentimiento: true }).correo).toBeDefined()
+    expect(validarSuscripcion({ correo: 'sin-arroba', consentimiento: true }).correo).toBeDefined()
+    expect(validarSuscripcion({ correo: `${'a'.repeat(250)}@x.com`, consentimiento: true }).correo).toBeDefined()
+  })
+
+  it('recorta y no distingue mayúsculas', () => {
+    expect(validarSuscripcion({ correo: '  Ana@Ejemplo.COM ', consentimiento: true })).toEqual({})
+  })
+})
+
+describe('traducirRespuestaSuscripcion', () => {
+  it('traduce ok, invalido, limite y cualquier otra cosa como falla', () => {
+    expect(traducirRespuestaSuscripcion({ resultado: 'ok' })).toEqual({ estado: 'exito' })
+    expect(traducirRespuestaSuscripcion({ resultado: 'invalido', campos: ['consentimiento', 'correo'] })).toEqual({ estado: 'invalido', campos: ['correo', 'consentimiento'] })
+    expect(traducirRespuestaSuscripcion({ resultado: 'limite', espera_segundos: 125 })).toEqual({ estado: 'espera', esperaSegundos: 125 })
+    expect(traducirRespuestaSuscripcion({ resultado: 'error' })).toEqual({ estado: 'falla' })
+    expect(traducirRespuestaSuscripcion(null)).toEqual({ estado: 'falla' })
+  })
+})
+
+describe('llamadas a la base', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('leerNewsletterTienda: solo activo con el nombre de la tienda', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: { activo: true, tienda: 'Mundo JC' }, error: null })
+    expect(await leerNewsletterTienda('h')).toEqual({ activo: true, tienda: 'Mundo JC' })
+    expect(mocks.rpc).toHaveBeenCalledWith('newsletter_por_dominio', { p_host: 'h' })
+    mocks.rpc.mockResolvedValueOnce({ data: { activo: false }, error: null })
+    expect(await leerNewsletterTienda('h')).toEqual({ activo: false, tienda: null })
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null })
+    expect(await leerNewsletterTienda('h')).toEqual({ activo: false, tienda: null })
+  })
+
+  it('suscribirseNewsletter envía el correo recortado, la casilla, la clave y la trampa; el error de red es falla sin detalle', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: { resultado: 'ok' }, error: null })
+    expect(await suscribirseNewsletter('h', { correo: ' ana@ejemplo.com ', consentimiento: true }, 'clave-1', '')).toEqual({ estado: 'exito' })
+    expect(mocks.rpc).toHaveBeenCalledWith('suscribirse_newsletter', { p_host: 'h', p_correo: 'ana@ejemplo.com', p_consentimiento: true, p_clave: 'clave-1', p_trampa: '' })
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.rpc.mockRejectedValueOnce(new Error('corte de red con ana@ejemplo.com'))
+    expect(await suscribirseNewsletter('h', { correo: 'ana@ejemplo.com', consentimiento: true }, 'clave-2', '')).toEqual({ estado: 'falla' })
+    consola.mockRestore()
+  })
+
+  it('confirmarNewsletter: un token mal formado ni se envía; traduce ok, vencido, invalido y limite', async () => {
+    expect(await confirmarNewsletter('h', 'no-es-un-token')).toBe('invalido')
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    for (const [resultado, esperado] of [['ok', 'ok'], ['vencido', 'vencido'], ['invalido', 'invalido'], ['limite', 'espera']] as const) {
+      mocks.rpc.mockResolvedValueOnce({ data: { resultado }, error: null })
+      expect(await confirmarNewsletter('h', TOKEN)).toBe(esperado)
+    }
+    expect(mocks.rpc).toHaveBeenLastCalledWith('confirmar_newsletter', { p_host: 'h', p_token: TOKEN })
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'x' } })
+    expect(await confirmarNewsletter('h', TOKEN)).toBe('falla')
+    consola.mockRestore()
+  })
+})

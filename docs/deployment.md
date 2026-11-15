@@ -610,3 +610,10 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   `playwright install --with-deps` es de lo más lento y el binario no cambia entre runs.
 - **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
   volumen Docker. Ver `docs/ci-self-hosted-storage.md`.
+
+## Newsletter de la tienda: bandera y variable de Kestra (MSF-468, Fases 1 y 2)
+
+La bandera `newsletter` (`public.banderas_plataforma`) nace **apagada**; se enciende por SQL dev → stg → prd, nunca por migración, y cada
+tienda lo activa con su propio interruptor (`dominio.newsletter_configuracion.activo`, apagado por defecto). El flow `newsletter-confirmaciones`
+solo envía el correo de confirmación de las suscripciones (no envía newsletters) y usa `NEWSLETTER_CONFIRMACION_LOTE` (20) en `infra/kestra/.env`.
+Detalle y reversión en `docs/newsletter.md`.

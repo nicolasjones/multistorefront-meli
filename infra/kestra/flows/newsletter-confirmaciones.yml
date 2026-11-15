@@ -1,0 +1,100 @@
+# MSF-468 (Newsletter de la tienda, Fase 2, RF-NL-4, RF-NL-6): envía el correo de confirmación de las suscripciones al newsletter.
+#
+# Cada minuto reclama un lote con `private.reclamar_confirmaciones_newsletter`, que:
+#   · poda las suscripciones `pendiente` de más de 7 días (sin consentimiento confirmado no se conserva nada, RF-NL-6);
+#   · devuelve SOLO lo pendiente de enviar, y solo con la bandera `newsletter`, el interruptor de la tienda y la tienda activos
+#     (apagado = no sale ningún correo);
+#   · genera un token nuevo por envío (244 bits; en la base solo queda su SHA-256) con vencimiento a las 48 h y reclama con vencimiento.
+# Por cada fila envía el correo por el SMTP de Kestra (`KESTRA_SMTP_*`, el mismo del correo masivo: sin proveedor nuevo) con el nombre
+# de la tienda como remitente visible y un enlace al dominio público de la tienda (`https://<dominio>/newsletter/confirmar/<token>`),
+# y cierra con `private.cerrar_confirmacion_newsletter`. Un fallo del SMTP se reintenta 4 veces con espera creciente (30 s, 60 s, 2 min) y,
+# si persiste, la confirmación queda sin enviar con un motivo fijo (nunca el mensaje del SMTP) y se reintenta en el siguiente ciclo
+# hasta 4 veces. La entrega es «al menos una vez»: si Kestra se corta entre enviar y cerrar, el reclamo vence y el correo puede salir de
+# nuevo con otro enlace (el último es el vigente).
+#
+# El nombre de la tienda llega ya limpio de comillas, `<`, `>` y saltos de línea desde la base (sin inyección de encabezados) y se escapa
+# además para el cuerpo HTML.
+# Rol de base: kestra_orquestacion, solo EXECUTE sobre las dos funciones de este flow. Variable: NEWSLETTER_CONFIRMACION_LOTE (20);
+# ver infra/kestra/.env.example.
+id: newsletter-confirmaciones
+namespace: producto.clientes
+labels:
+  capa: producto
+  dominio: clientes
+  componente: newsletter-confirmaciones
+description: "Envía el correo de confirmación de las suscripciones al newsletter de la tienda (doble confirmación, vence a las 48 h)."
+tasks:
+  - id: reclamar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    sql: select * from private.reclamar_confirmaciones_newsletter(CAST(:lote AS integer), 900);
+    parameters:
+      lote: "{{ envs.newsletter_confirmacion_lote ?? 20 }}"
+  - id: enviar
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar.rows }}"
+    concurrencyLimit: 2
+    allowFailure: true
+    tasks:
+      - id: procesar
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: intentar_envio
+            type: io.kestra.plugin.core.flow.Sequential
+            tasks:
+              - id: enviar_correo
+                type: io.kestra.plugin.notifications.mail.MailSend
+                host: "{{ envs.kestra_smtp_host }}"
+                port: "{{ envs.kestra_smtp_port }}"
+                username: "{{ envs.kestra_smtp_username }}"
+                password: "{{ envs.kestra_smtp_password }}"
+                transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+                from: "\"{{ fromJson(parent.taskrun.value).tienda }}\" <{{ envs.kestra_smtp_from }}>"
+                to: "{{ fromJson(parent.taskrun.value).correo }}"
+                subject: "Confirmá tu suscripción a {{ fromJson(parent.taskrun.value).tienda }}"
+                htmlTextContent: |
+                  <p>Hola, pediste recibir las novedades de {{ fromJson(parent.taskrun.value).tienda | escape }} por correo.</p>
+                  <p><a href="https://{{ fromJson(parent.taskrun.value).dominio }}/newsletter/confirmar/{{ fromJson(parent.taskrun.value).token }}">Confirmar mi suscripción</a></p>
+                  <p style="font-size: 12px; color: #666666;">El enlace vale 48 horas. Si no pediste esta suscripción, ignorá este correo: no vas a recibir nada.</p>
+                retry:
+                  type: exponential
+                  interval: PT30S
+                  maxInterval: PT5M
+                  maxAttempts: 4
+            errors:
+              # El correo falló tras sus reintentos: queda sin enviar con un motivo fijo (no el mensaje del SMTP) y se reintenta
+              # en el próximo ciclo (hasta 4).
+              - id: cerrar_fallido
+                type: io.kestra.plugin.jdbc.postgresql.Query
+                url: "{{ envs.kestra_orquestacion_db_url }}"
+                username: kestra_orquestacion
+                password: "{{ envs.kestra_orquestacion_db_password }}"
+                sql: select private.cerrar_confirmacion_newsletter(CAST(:suscriptor AS uuid), 'fallido', 'No se pudo enviar el correo');
+                parameters:
+                  suscriptor: "{{ fromJson(parent.taskrun.value).suscriptor_id }}"
+          - id: cerrar_enviado
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.cerrar_confirmacion_newsletter(CAST(:suscriptor AS uuid), 'enviado', NULL);
+            parameters:
+              suscriptor: "{{ fromJson(parent.taskrun.value).suscriptor_id }}"
+            retry:
+              type: constant
+              interval: PT5S
+              maxAttempts: 3
+triggers:
+  - id: schedule_newsletter_confirmaciones
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "* * * * *"
+finally:
+  - id: publicar_logs
+    type: io.kestra.plugin.core.log.Fetch
+    tasksId:
+      - enviar
+    allowFailure: true
+    allowWarning: true
