@@ -30,6 +30,9 @@
 -- Lock: `alter table ... set schema` toma ACCESS EXCLUSIVE sobre la tabla mientras dura la migración; no
 -- reescribe la tabla ni sus índices (los mueve). Las funciones se recrean en la misma transacción: o sale
 -- todo o no sale nada.
+-- Deadlock: el barrido recrea unas 60 funciones mientras otras sesiones pueden estar usándolas. En una base con
+-- tráfico puede fallar con `deadlock detected` (se vio en dev vivo): aplicarla con cron y workers quietos, o
+-- reintentar (la migración es una sola transacción, no deja nada a medias).
 --
 -- Reversión (en una migración posterior, NO en este PR):
 --   alter table dominio.clientes set schema public;

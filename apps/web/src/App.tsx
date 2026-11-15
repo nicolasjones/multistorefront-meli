@@ -167,7 +167,8 @@ function App() {
             dataProvider={{
               default: supabaseDataProvider(supabaseClient),
               // `dominio.clientes` (Principio VII): PostgREST elige el esquema por el encabezado Accept-Profile /
-              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda.
+              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda. El cast es un parche de tipos:
+              // el data provider de Refine sólo usa `.from`/`.rpc`, que `.schema()` también expone (revisar si Refine cambia).
               dominio: supabaseDataProvider(supabaseClient.schema('dominio') as unknown as typeof supabaseClient),
             }}
             authProvider={authProvider}
