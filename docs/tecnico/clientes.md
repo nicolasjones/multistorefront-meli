@@ -257,7 +257,7 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   Es de **solo lectura y todo se revierte** (`begin … rollback`; no escribe datos ni toca funciones o topes, apto para dev). Usa una
   persona administradora real: la sesión A toma el cupo de esa persona y lo retiene 8 s con su advisory lock (el lock es por
   organización y persona: no bloquea a otras personas; **no apuntar a producción**: retiene 8 s el cupo de una persona real) y la sesión B, de la misma persona, debe quedar esperando. Resultado
-  esperado: `esperando el advisory lock a los 4 s: 1`, duración de B de 6 s o más y `OK: la segunda sesión de la misma persona
+  esperado: `esperando el advisory lock (solo la sesión B) a los 4 s: 1 (esperado 1); duración de B: 6s (esperado >= 6)` (la duración puede ser mayor) y `OK: la segunda sesión de la misma persona
   quedó serializada`. La espera se mide solo para la sesión B (por su `application_name`), así que otra actividad de la base no falsea el resultado; ante Ctrl-C el script mata sus sesiones. Si faltan las migraciones `20270344…` aborta con «Faltan las migraciones 20270344… en este entorno»
   (código 2); un error real de una sesión se muestra. Contra una función sin el lock imprime `FALLÓ`. Los topes bajos
   se prueban en pgTAP, no en el script.

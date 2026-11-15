@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **260**
-- Tablas en migraciones: **203**
+- Rutas del panel: **262**
+- Tablas en migraciones: **205**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **323**
+- Páginas de documentación: **324**
 
 ## Rutas del panel
 
@@ -222,6 +222,7 @@
 - `/tienda-publica/lista/IndicadorLista`
 - `/tienda-publica/lista/LineaLista`
 - `/tienda-publica/lista/PantallaLista`
+- `/tienda-publica/newsletter/FormularioSuscripcion`
 - `/tienda-publica/rutas/catalogo`
 - `/tienda-publica/rutas/categoria`
 - `/tienda-publica/rutas/contacto`
@@ -230,6 +231,7 @@
 - `/tienda-publica/rutas/inicio`
 - `/tienda-publica/rutas/lista`
 - `/tienda-publica/rutas/mi-cuenta`
+- `/tienda-publica/rutas/newsletter.confirmar`
 - `/tienda-publica/rutas/pagina`
 - `/tienda-publica/rutas/producto`
 - `/tienda-publica/rutas/recuperar-contrasena`
@@ -348,6 +350,8 @@
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.newsletter_configuracion`
+- `dominio.newsletter_suscriptores`
 - `dominio.opiniones_producto`
 - `dominio.ordenes_compra`
 - `dominio.ordenes_compra_items`

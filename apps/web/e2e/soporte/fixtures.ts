@@ -1,12 +1,47 @@
 // Soporte común de los E2E con siembra por la API admin (la service-role key nunca llega al navegador). Solo contra un
 // Supabase local. Los archivos de `soporte/` no son specs (el `testMatch` es `**/*.e2e.ts`).
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+// @ts-expect-error módulo .mjs sin tipos; es la misma lógica de puertos que usa el CI (`verificarDestinoCi`)
+import { derivarStackCi, leerConfigDesarrollo } from '../../../../scripts/supabase-ci.mjs'
+
 export const url = process.env.SUPABASE_URL
 export const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
+export const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
+
+type Desarrollo = { projectId: string; puertos: Record<string, number> }
+const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
+let desarrolloCache: Desarrollo | undefined
+/** Config del stack de DESARROLLO (supabase/config.toml): de ahí salen los puertos prohibidos y los del stack efímero. */
+function leerDesarrollo(): Desarrollo {
+  return (desarrolloCache ??= leerConfigDesarrollo(readFileSync(resolve(RAIZ, 'supabase/config.toml'), 'utf8')) as Desarrollo)
 }
+
+/**
+ * Guarda de «solo Supabase local» para `SUPABASE_URL`: host local y, además, un puerto que NO sea de un stack de desarrollo
+ * (config.toml); si el job declara `SUPABASE_CI_PROJECT_ID` (stack efímero del CI), el puerto debe ser el de la API derivada
+ * de esa ranura, igual que `verificarDestinoCi`. Pura: lanza o no hace nada.
+ */
+export function validarUrlSupabase(urlTexto: string, env: Record<string, string | undefined>, desarrollo: Desarrollo = leerDesarrollo()) {
+  const u = new URL(urlTexto)
+  if (!HOSTS_LOCALES.includes(u.hostname)) {
+    throw new Error(`E2E: SUPABASE_URL (${u.hostname}) no es un Supabase local; se aborta.`)
+  }
+  const puerto = Number(u.port || (u.protocol === 'https:' ? 443 : 80))
+  if (Object.values(desarrollo.puertos).includes(puerto)) {
+    throw new Error(`E2E: SUPABASE_URL usa el puerto ${puerto}, que es de un stack de desarrollo; se aborta.`)
+  }
+  if (env.SUPABASE_CI_PROJECT_ID) {
+    const esperado = derivarStackCi(desarrollo, env.GITHUB_REPOSITORY, env.SUPABASE_CI_RANURA)
+    if (env.SUPABASE_CI_PROJECT_ID.trim() !== esperado.projectId || puerto !== esperado.puertos['api.port']) {
+      throw new Error(`E2E: SUPABASE_URL (puerto ${puerto}) no es la API del stack del CI (${esperado.puertos['api.port']}); se aborta.`)
+    }
+  }
+}
+if (url) validarUrlSupabase(url, process.env)
 
 export const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
@@ -89,4 +124,74 @@ export async function crearConsulta(
 export async function limpiarOrganizacion(organizacionId: string) {
   await borrar(`ingresos_mercaderia?organizacion_id=eq.${organizacionId}`, 'dominio')
   await borrar(`organizaciones?id=eq.${organizacionId}`, 'public')
+}
+
+type ClientePg = { connect(): Promise<void>; query(sql: string, valores?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>; end(): Promise<void> }
+
+export type DestinoSql = { host: string; port: number; database: string; user: string; password: string }
+
+/**
+ * Valida el destino de `sql()` (pura, sin conexión). `sql()` corre como superusuario `postgres`: por eso exige que el host
+ * sea local (el mismo criterio que `SUPABASE_URL`), que el puerto sea EXPLÍCITO (`E2E_PGPORT` o el puente de CI
+ * `SUPABASE_DB_PORT`; sin default silencioso, porque el 54322 puede ser el stack de dev del servidor y no el efímero) y que la
+ * base y el usuario sean los del stack efímero (`postgres`). Lanza un error claro si algo no cumple.
+ */
+export function validarDestinoSql(env: Record<string, string | undefined>, desarrollo: Desarrollo = leerDesarrollo()): DestinoSql {
+  const host = env.E2E_PGHOST ?? '127.0.0.1'
+  if (!HOSTS_LOCALES.includes(host)) {
+    throw new Error(`E2E sql(): E2E_PGHOST (${host}) no es local (${HOSTS_LOCALES.join(', ')}); se aborta para no escribir en una base real.`)
+  }
+  const texto = env.E2E_PGPORT ?? env.SUPABASE_DB_PORT
+  const puerto = Number(texto)
+  if (!texto || !/^\d+$/.test(texto) || puerto < 1 || puerto > 65535) {
+    throw new Error('E2E sql(): falta el puerto de Postgres del stack efímero (o está fuera de rango); define E2E_PGPORT o SUPABASE_DB_PORT. No hay puerto por defecto.')
+  }
+  if (env.E2E_PGPORT && env.SUPABASE_DB_PORT && env.E2E_PGPORT !== env.SUPABASE_DB_PORT) {
+    throw new Error(`E2E sql(): E2E_PGPORT (${env.E2E_PGPORT}) y SUPABASE_DB_PORT (${env.SUPABASE_DB_PORT}) no coinciden.`)
+  }
+  if (Object.values(desarrollo.puertos).includes(puerto)) {
+    throw new Error(`E2E sql(): el puerto ${puerto} es de un stack de desarrollo; sql() solo escribe en el stack efímero del CI.`)
+  }
+  // Como `verificarDestinoCi`: el stack debe estar preparado (`pnpm db:ci:preparar`) y el puerto ser el de su base derivada.
+  const projectId = env.SUPABASE_CI_PROJECT_ID?.trim()
+  if (!projectId) throw new Error('E2E sql(): falta SUPABASE_CI_PROJECT_ID; prepara el stack efímero con `pnpm db:ci:preparar`.')
+  const esperado = derivarStackCi(desarrollo, env.GITHUB_REPOSITORY, env.SUPABASE_CI_RANURA)
+  if (projectId !== esperado.projectId || puerto !== esperado.puertoDb) {
+    throw new Error(`E2E sql(): el puerto ${puerto} / project ${projectId} no es el stack del CI (${esperado.projectId}, base ${esperado.puertoDb}).`)
+  }
+  const database = env.E2E_PGDATABASE ?? 'postgres'
+  if (database !== 'postgres') throw new Error(`E2E sql(): E2E_PGDATABASE (${database}) debe ser «postgres», la base del stack efímero.`)
+  const user = env.E2E_PGUSER ?? 'postgres'
+  if (user !== 'postgres') throw new Error(`E2E sql(): E2E_PGUSER (${user}) debe ser «postgres».`)
+  return { host, port: puerto, database, user, password: env.E2E_PGPASSWORD ?? 'postgres' }
+}
+
+// `pg` es dependencia del worker, no de la web: se resuelve desde el paquete del worker, relativo a este archivo, y se cachea.
+let requirePg: NodeRequire | undefined
+function cargarPg(): { Client: new (config: Record<string, unknown>) => ClientePg } {
+  try {
+    requirePg ??= createRequire(resolve(dirname(fileURLToPath(import.meta.url)), '../../../../workers/comprobantes-pdf/package.json'))
+    return requirePg('pg')
+  } catch (e) {
+    throw new Error(`E2E sql(): no se encontró «pg» en workers/comprobantes-pdf (¿corriste pnpm install?): ${(e as Error).message}`)
+  }
+}
+
+/**
+ * Siembra por SQL directo (Postgres local) para las tablas de `public` a las que `service_role` NO tiene grant
+ * (`conexiones`, `features`, `avisos_pendientes`...): la API REST las rechaza con 42501 y dar el grant exigiría una migración.
+ * ATENCIÓN: corre como superusuario `postgres`, así que SALTA grants y RLS. Sirve solo para SEMBRAR; nunca para VERIFICAR
+ * (una lectura aquí no prueba lo que ve un rol real) ni para tablas protegidas de solo lectura. El destino lo valida
+ * `validarDestinoSql`.
+ */
+export async function sql<T = Record<string, unknown>>(consulta: string, valores: unknown[] = []): Promise<T[]> {
+  const destino = validarDestinoSql(process.env)
+  const { Client } = cargarPg()
+  const cliente = new Client(destino)
+  try {
+    await cliente.connect()
+    return (await cliente.query(consulta, valores)).rows as T[]
+  } finally {
+    await cliente.end().catch(() => {})
+  }
 }
