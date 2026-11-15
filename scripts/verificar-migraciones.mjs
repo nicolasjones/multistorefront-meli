@@ -20,6 +20,15 @@
 //      en el primer error y reintenta): `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`,
 //      `CREATE INDEX IF NOT EXISTS`.
 //
+// ALCANCE (MSF-749): las reglas se aplican a las migraciones PROPIAS de la rama —las que
+// agregó, renombró o modificó desde el punto de divergencia (`merge-base` con la base)— y
+// se comparan contra la PUNTA de la base, para que sigan contando las colisiones reales.
+// Lo que la rama heredó sin tocar queda FUERA del alcance: la base renumera migraciones
+// casi todos los días y toda rama abierta antes del renumerado quedaba `BEHIND` con el
+// job `application` en rojo por «REUSADA»/«MODIFICADA» de migraciones que ese PR no había
+// tocado (13 PRs abiertos). Si la base renumeró algo que la rama heredó, el guard AVISA
+// (no falla) y pide actualizar la rama.
+//
 // Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
 // Sale con código 1 si hay un problema.
 
@@ -41,32 +50,85 @@ const git = (a) => spawnSync('git', a, { encoding: 'utf8', maxBuffer: 64 * 1024 
 const problemas = [];
 const avisos = [];
 
+const puedeResolver = (ref) => git(['rev-parse', '--verify', '--quiet', ref]).status === 0;
+const commitDe = (ref) => (git(['rev-parse', '--verify', '--quiet', ref]).stdout || '').trim();
+const versionDe = (f) => f.split('/').pop().split('_')[0];
+const versionesDe = (ref) => new Set(
+  (git(['ls-tree', '-r', '--name-only', ref, '--', 'supabase/migrations']).stdout || '')
+    .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+(_.+)?\.sql$/.test(x))
+    .map((x) => x.split('/').pop().split('_')[0].replace(/\.sql$/, ''))
+);
+
 // --- Migraciones del árbol actual ---
 const archivos = (git(['ls-files', 'supabase/migrations']).stdout || '')
   .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+_.+\.sql$/.test(x));
+
+// --- ALCANCE: las migraciones que la rama agregó, renombró o modificó ---
+// El punto de divergencia (`merge-base` con la base) separa lo que la rama trajo de lo que
+// la base ya tenía. Sin él, una base que renumera migraciones hace fallar el guard de
+// ramas que quedaron atrás, aunque no toquen migraciones (MSF-749).
+const existeBase = puedeResolver(base);
+const commitBase = existeBase ? commitDe(base) : '';
+const head = commitDe('HEAD');
+let fork = '';
+let forkEsMergeBase = false;
+if (commitBase) {
+  fork = (git(['merge-base', commitBase, 'HEAD']).stdout || '').trim();
+  if (fork) forkEsMergeBase = true;
+  // Clone superficial sin ancestro común: cae a HEAD~1 (patrón de verificar-documentacion-cambios.mjs).
+  else if (puedeResolver('HEAD~1')) fork = 'HEAD~1';
+}
+// Sin divergencia, o cuando la base ES el HEAD (push a la rama base): no hay migraciones
+// propias y se revisa el árbol entero, como antes.
+const migracionesPropias = (ref) => {
+  const cambios = (git(['diff', '--name-status', '--cached', ref, '--', 'supabase/migrations']).stdout || '')
+    .split('\n').map((x) => x.trim()).filter(Boolean);
+  const set = new Set();
+  for (const linea of cambios) {
+    const partes = linea.split('\t');
+    const estado = (partes[0] || '')[0];
+    // 'R100 old new': el renombrado es un cambio de la rama → entra el nombre nuevo.
+    const rutas = estado === 'R' || estado === 'C' ? partes.slice(2) : partes.slice(1);
+    for (const r of rutas) if (r.startsWith('supabase/migrations/')) set.add(r);
+  }
+  return set;
+};
+const propias = fork && commitBase !== head ? migracionesPropias(fork) : null;
+const enAlcance = (f) => propias === null || propias.has(f);
 
 // Un archivo de migración que no es `<versión>_<nombre>.sql` no lo aplica ni el CLI ni el cron: se rechaza en vez de ignorarlo.
 const todosLosArchivos = (git(['ls-files', 'supabase/migrations']).stdout || '')
   .split('\n').map((x) => x.trim()).filter(Boolean);
 const NOMBRE_VALIDO = /^supabase\/migrations\/\d+_[^/]+\.sql$/;
 for (const f of todosLosArchivos) {
-  if (!NOMBRE_VALIDO.test(f)) {
+  if (!NOMBRE_VALIDO.test(f) && enAlcance(f)) {
     problemas.push(`nombre inválido ${f}: tiene que ser <versión>_<nombre>.sql; el CLI de Supabase y el cron de las bases lo ignoran y la migración nunca se aplicaría`);
   }
 }
 
 const porVersion = new Map();
 for (const f of archivos) {
-  const v = f.split('/').pop().split('_')[0];
+  const v = versionDe(f);
   if (!porVersion.has(v)) porVersion.set(v, []);
   porVersion.get(v).push(f);
 }
 for (const [v, fs_] of porVersion) {
-  if (fs_.length > 1) problemas.push(`versión duplicada ${v}: ${fs_.join(', ')}`);
+  if (fs_.length > 1 && fs_.some(enAlcance)) problemas.push(`versión duplicada ${v}: ${fs_.join(', ')}`);
+}
+
+// Las versiones que la base tiene publicadas (contra las que se compara el alcance).
+const versionesEnBase = existeBase ? versionesDe(commitBase) : new Set();
+
+// La base renumeró migraciones que la rama heredó: no es culpa de este PR, pero la rama
+// tiene que actualizarse antes de mergear (si no, la migración vieja y la nueva conviven).
+if (commitBase && forkEsMergeBase) {
+  const renumeradas = [...versionesDe(fork)].filter((v) => !versionesEnBase.has(v)).sort();
+  if (renumeradas.length) {
+    avisos.push(`la base ${base} renumeró o quitó ${renumeradas.length} migración(es) que tu rama heredó (${renumeradas.slice(0, 5).join(', ')}${renumeradas.length > 5 ? ', …' : ''}): actualizá tu rama (merge de ${base}) antes de mergear`);
+  }
 }
 
 if (!soloIdempotencia) {
-  const existeBase = git(['rev-parse', '--verify', '--quiet', base]).status === 0;
   if (!existeBase) {
     avisos.push(`no existe la base ${base}: se omite el control de versiones (sí corre el de idempotencia)`);
   } else {
@@ -80,18 +142,20 @@ if (!soloIdempotencia) {
     const maxBase = [...basePorVersion.keys()].sort().pop() || '0';
 
     for (const [v, fs_] of porVersion) {
+      if (!fs_.some(enAlcance)) continue;
+      const propio = fs_.find(enAlcance);
       const previo = basePorVersion.get(v);
       if (!previo) {
         if (v <= maxBase) {
           if (ordenEstricto) {
-            problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+            problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${propio})`);
           } else {
-            avisos.push(`versión ${v} está por debajo de ${maxBase} (máxima de ${base}) pero no colisiona: se acomoda al integrar la épica (con \`--estricto\` o en el PR a ${base} es error). El aplicador no ejecuta versiones bajo la cola ya aplicada (${fs_[0]})`);
+            avisos.push(`versión ${v} está por debajo de ${maxBase} (máxima de ${base}) pero no colisiona: se acomoda al integrar la épica (con \`--estricto\` o en el PR a ${base} es error). El aplicador no ejecuta versiones bajo la cola ya aplicada (${propio})`);
           }
         }
         continue;
       }
-      const actual = git(['show', `:${fs_[0]}`]).stdout || '';
+      const actual = git(['show', `:${propio}`]).stdout || '';
       const anterior = git(['show', `${base}:${previo}`]).stdout || '';
       if (actual !== anterior) {
         // Editar una versión ya publicada es peligroso en general, pero AGREGAR guards de
@@ -113,17 +177,13 @@ if (!soloIdempotencia) {
   }
 }
 
-// --- Idempotencia del DDL (sólo archivos NUEVOS respecto de la base) ---
-const existeBase2 = git(['rev-parse', '--verify', '--quiet', base]).status === 0;
-// «Nuevo» = su VERSIÓN no existe en la base (un archivo renombrado de `<versión>.sql` a `<versión>_<nombre>.sql` no es nuevo).
-const versionesEnBase = new Set(existeBase2
-  ? (git(['ls-tree', '-r', '--name-only', base, 'supabase/migrations']).stdout || '')
-    .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+(_.+)?\.sql$/.test(x))
-    .map((x) => x.split('/').pop().split('_')[0].replace(/\.sql$/, ''))
-  : []);
-const nuevos = existeBase2
-  ? archivos.filter((f) => !versionesEnBase.has(f.split('/').pop().split('_')[0]))
-  : archivos;
+// --- Idempotencia del DDL (sólo archivos NUEVOS de la rama respecto de la base) ---
+// «Nuevo» = migración PROPIA de la rama cuya VERSIÓN no existe en la base (un archivo
+// renombrado de `<versión>.sql` a `<versión>_<nombre>.sql` no es nuevo). Lo que la rama
+// heredó no se revisa: ya se validó cuando se publicó.
+const nuevos = existeBase
+  ? archivos.filter((f) => enAlcance(f) && !versionesEnBase.has(versionDe(f)))
+  : archivos.filter(enAlcance);
 
 const revisar = (archivo) => {
   const sql = git(['show', `:${archivo}`]).stdout || '';
