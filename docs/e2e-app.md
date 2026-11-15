@@ -779,7 +779,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     stack efímero con `pnpm db:ci:preparar`. La comprobación es de configuración, no inspecciona Docker. Riesgo residual
     conocido: cierra el error de escribir por descuido en el stack de desarrollo como superusuario, pero no impide escribir en
     OTRO stack efímero (variables `SUPABASE_CI_RANURA` o `GITHUB_REPOSITORY` falsificadas) ni en un túnel que alguien abra a
-    propósito hacia un puerto derivado del CI (rango 2xxxx); eso exige intención activa. Endurecimiento posible, no aplicado:
+    propósito hacia un puerto derivado del CI (base 20000 más 6000 por ranura); eso exige intención activa. Endurecimiento posible, no aplicado:
     exigir `CI=true` o repetir el `docker ps --filter publish` de `verificarDestinoCi`. `pg` llega por
     `pnpm install --frozen-lockfile` de la raíz (el workspace incluye `workers/*`, que declara `pg` 8.23.1).
   - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
