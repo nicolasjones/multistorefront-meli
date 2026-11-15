@@ -150,6 +150,40 @@ pasa. `escalaDeTipoCliente` (`apps/web/src/lib/escalas.ts`) hace el mapeo: sin e
 = error. **La tabla `tipos_cliente` todavía no existe** (ni hay pantalla «Tipos de cliente» en `apps/web`): hoy el tipo de cliente son dos valores fijos (`minorista` / `mayorista`) y Ventas elige la escala de cada línea con `private.escala_para_linea` (`20261203200300_lineas_rpc.sql`). El contrato se prueba con un tipo simulado
 (`supabase/tests/database/precios_escala.test.sql`, `tipos_cliente_simulado`).
 
+### El cálculo de precio sin sesión de panel (MSF-176)
+
+La historia B2 de la épica **MSF-176** necesita calcular el precio de una línea **sin** la sesión de un
+usuario del panel: el que pide el presupuesto es un cliente de la tienda, y `private.precio_para` devolvía
+vacío sin permiso de `empresas` o `ventas`. Además, dos piezas internas fallaban **en silencio** sin sesión:
+`private.alicuota_producto` (que filtra por `private.organizacion_id()`) devolvía IVA 0 y
+`private.precio_propio_empresa` ignoraba el precio propio de la tienda.
+
+La migración `20270322100000_precio_sin_sesion.sql` **extrae el cálculo** a tres funciones nuevas de
+`private`, sin `execute` para `public`, `anon`, `authenticated` ni `service_role`:
+
+| Función | Qué es |
+|---|---|
+| `private.precio_para_calculo(producto, empresa, escala)` | La lógica de `precio_para` sin compuerta de sesión: `security definer`, `search_path = ''`, acotada por la organización **de la empresa** (no por `private.organizacion_id()`); alícuota por join y precio propio con `private.neto_precio_propio`. |
+| `private.precio_linea_venta_calculo(...)` | La lógica de `private.precio_linea_venta` (MSF-816, «gana el más bajo, sin acumular») sobre aquélla. **La llama la tienda** con el tipo y el descuento del cliente de la cuenta. |
+| `private.precio_sesion_alcanza(producto, empresa)` | La compuerta y el aislamiento de la sesión de panel, en un solo lugar: `empresas` o `ventas` en lectura/edición y producto y empresa de la organización de la sesión. |
+
+`precio_para` y `precio_linea_venta` quedan como **envoltorios** (misma firma, columnas y grants): validan
+la escala, preguntan a `precio_sesion_alcanza` y delegan. El resultado para el panel es el mismo; lo comprueban
+los pgTAP vigentes de precios y comprobantes (que no se modifican) y el nuevo
+`supabase/tests/database/precio_sin_sesion.test.sql`, que compara contra una copia literal de las funciones
+originales en más de 4.700 combinaciones y prueba que el cliente web obtiene el mismo resultado con el IVA y
+el precio propio correctos.
+
+**Dos diferencias deliberadas**, con sus letras:
+
+- `precio_para` pasa de `security invoker` a **`security definer`** (necesita llamar al cálculo, que
+  `authenticated` no ejecuta). El aislamiento que antes daba la RLS de las tablas lo da ahora
+  `precio_sesion_alcanza`: la compuerta que queda es la documentada por F-VTA-06 (`empresas` o `ventas`).
+- Producto o empresa de **otra organización** respecto de la sesión: antes devolvía el neto sin alícuota ni
+  precio propio (el mismo fallo silencioso); ahora devuelve vacío. Ningún llamador real lo usa.
+
+Detalle de la épica: [Tienda online: lista de pedido, presupuesto y «Mi cuenta»](tienda-compra-y-cuentas.md).
+
 ## Permisos
 
 | Acción | Sección |

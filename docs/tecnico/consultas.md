@@ -474,6 +474,49 @@ Los **contactos** (MSF-144) guardan datos personales y tampoco tienen expiració
 conservación sigue sin definir y la baja es manual por **Anonimizar**. Ver
 [Contactos y respuestas rápidas](contactos.md#decisiones-abiertas-y-límites).
 
+Los **pedidos de la tienda** (MSF-176) traen datos personales (nombre, contacto y nota) y **tampoco se purgan
+solos**: no hay plazo de conservación definido y la supresión por titular tampoco existe como función. El
+seguimiento está trazado como **MSF-944**. Ver
+[Pedidos de la tienda (B1 · MSF-176)](#pedidos-de-la-tienda-b1-msf-176).
+
+## Pedidos de la tienda (B1 · MSF-176)
+
+La historia B1 de la épica **MSF-176** agrega un tercer origen de consulta: el **pedido**, que manda un
+visitante de la tienda con varios productos y cantidades, **sin pagar**. El detalle completo de la épica está
+en [Tienda online: lista de pedido, presupuesto y «Mi cuenta»](tienda-compra-y-cuentas.md).
+
+| Objeto | Esquema | Qué es | Migración |
+|---|---|---|---|
+| `dominio.consulta_items` | `dominio` | Las líneas del pedido: `descripcion` y `sku` copiados del producto, `cantidad` (1 a 9.999) y `precio_referencia` **calculado por el servidor**. RLS por organización, empresa accesible y `consultas` ≥ lectura; `select` solo para `authenticated`, sin escritura y `anon` sin privilegios. FK compuestas con la consulta (misma empresa y organización) y con el producto (`on delete set null`: la línea conserva descripción y SKU). | `20270321100000_consulta_items.sql` |
+| `dominio.consultas` | `dominio` (alterada) | `origen` suma `pedido`; `cliente_id` nullable (FK compuesta a `public.clientes`, `on delete set null`) que fija **solo el servidor** cuando hay cuenta activa; `consultas_mensaje_requerido` exime a `pedido` (la nota es opcional). | `20270321100000_consulta_items.sql` |
+| `dominio.tienda_envios` | `dominio` (alterada) | `origen` suma `pedido` y `presupuesto`: el cupo por visitante es el mismo del formulario y de WhatsApp. | `20270321100000_consulta_items.sql` |
+| `public.consulta_items_bandeja` | `public` (vista `security_invoker`) | Lectura de los ítems para el panel; hereda la RLS de `dominio.consulta_items`. | `20270321100000_consulta_items.sql` |
+| `public.consultas_bandeja` | `public` (alterada) | Suma `cliente_id`, `items_cantidad`, `cliente_numero` y `cliente_nombre` (las dos últimas con helpers `private` acotados a la organización). | `20270321100000_consulta_items.sql` |
+| `private.validar_items_pedido`, `private.precio_referencia_pedido` | `private` | Validación y precio de referencia de la lista; sin `execute` de API. | `20270321100100_validar_items_pedido.sql` |
+| `publico.lista_pedido_por_dominio` | `publico` | Revalida la lista y devuelve líneas con precio de referencia y los `no_disponibles`; `anon` y `authenticated`. | `20270321100200_lista_pedido_rpc.sql` |
+| `private.crear_consulta_pedido` | `private` | **Único** insertor de un pedido (consulta + ítems, todo o nada). Sin `execute` de API: `publico.crear_consulta_publica` sigue sin privilegios para `anon` ni `authenticated`. | `20270321100400_enviar_lista_pedido.sql` |
+| `publico.enviar_lista_pedido` | `publico` | Alta del pedido; `anon` y `authenticated`. | `20270321100400_enviar_lista_pedido.sql` |
+
+- **El aviso por correo lo emite `private.crear_consulta_pedido`** (`20270321100300_consultas_aviso_pedido.sql`),
+  no el disparador: los ítems se insertan **después** de la consulta. El aviso lleva el resumen de hasta 10
+  líneas (`cantidad × descripción (SKU)`) y **el asunto no lleva datos del visitante**.
+- **Cupo**: el envío comparte el límite de 5 por hora por empresa y hash de IP con el formulario y con
+  WhatsApp (`private.registrar_envio_tienda`), más un cupo propio de llamadas por minuto; la idempotencia es
+  por `clave_envio` y si la entrega falla no se gasta cupo.
+- **Precios**: el `precio_referencia` lo calcula el servidor (el que ve la persona en la tienda, sin el
+  descuento de la ficha del cliente, que sí aparece en la cotización del presupuesto).
+- **Empresa activa**: la bandeja filtra por la empresa activa o «Todas mis empresas» y muestra su columna
+  «Empresa»; al cambiar la empresa activa con un pedido abierto, el diálogo se cierra con el aviso de hoy y la
+  lista se recarga entera.
+- **Pruebas**: `supabase/tests/database/tienda_lista_pedido.test.sql` (envíos, precios, cupos, XSS literal,
+  aislamiento entre organizaciones), `consultas.test.sql` (origen `pedido`) y `tienda_capacidades.test.sql`
+  (lista cerrada de `anon`).
+- **Cómo se quitan los datos personales**: en el panel **no hay ninguna acción para borrar una consulta** (la
+  única mutación es `public.actualizar_consulta`). Para una consulta vinculada a un contacto de la libreta
+  está **Anonimizar** (`public.anonimizar_contacto`): reemplaza nombre, contacto y mensaje y borra la nota
+  interna; los ítems del pedido quedan porque son datos de producto, no de la persona. Sin contacto vinculado,
+  el borrado hay que pedirlo al equipo técnico (se hace sobre la base de datos).
+
 ## Reversión
 
 Las migraciones son aditivas; la reversión va en una migración posterior, de la más nueva a la más vieja:

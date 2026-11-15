@@ -142,6 +142,7 @@ nav:
           - Páginas propias, medición y Compartir: producto/tienda-contenido-y-analitica.md
           - Consultas de las tiendas: producto/consultas.md
           - Contactos: producto/contactos.md
+          - Pedidos y presupuesto desde la tienda: producto/tienda-compra-y-cuentas.md
       - Configuración y datos:
           - Importaciones y exportaciones: producto/importaciones.md
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
@@ -258,6 +259,7 @@ nav:
           - Estados, relacionados, SEO y legal: tecnico/tienda-seo-legal-y-estados.md
           - Contenido, analítica y compartir: tecnico/tienda-contenido-y-analitica.md
           - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
+          - "Lista de pedido, presupuesto y Mi cuenta (MSF-176)": tecnico/tienda-compra-y-cuentas.md
       - Consultas y datos:
           - Consultas: tecnico/consultas.md
           - Contactos y respuestas rápidas: tecnico/contactos.md
