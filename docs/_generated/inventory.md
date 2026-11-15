@@ -5,7 +5,7 @@
 - Rutas del panel: **258**
 - Tablas en migraciones: **199**
 - Variables de entorno: **106**
-- Specs: **153**
+- Specs: **157**
 - Páginas de documentación: **321**
 
 ## Rutas del panel
@@ -735,3 +735,7 @@
 - `20270323-100000-deuda-tecnica-lote-1-seguridad-tienda` — Feature Specification: Deuda técnica · Lote 1: seguridad e integridad de la tienda pública (MSF-515)
 - `20270323-100000-service-ideas-futuras-v2` — Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)
 - `20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs` — Feature Specification: Deuda técnica · Lote 2: higiene de código y documentación (MSF-515)
+- `20270327-100000-listas-de-precios-por-cliente` — Feature Specification: Listas de precios por cliente (F-PRE-14 + F-CLI-21)
+- `20270328-100000-gastos-de-la-empresa` — Feature Specification: Gastos de la empresa y margen después de costos fijos (F-GAS-01…03)
+- `20270328-100000-newsletter-de-la-tienda` — Feature Specification: Tiendas online · Newsletter (suscripción, composición y envío)
+- `20270328-100000-opiniones-de-productos` — Feature Specification: Opiniones de productos en la tienda (MSF-467)

@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "19f163ddf22470e0d3ccef7db5a1ea2a380f7911c04b61124604e00c5e4c9bc8",
-      "sourceHash": "e62bc87b346526f19576d77efb8de7f7d2ebb063efc6da74990459861248dc2b",
-      "sourceAt": "c7860a7c",
+      "pageHash": "c8aad8c98cfeca25c37e8a15a30df67f978b935147ce84457f018556fafb43c4",
+      "sourceHash": "41ded500c8f84892722ecc9b78b4f1efa8ce84e39ba93240dc8a66ba32d34151",
+      "sourceAt": "29d16690",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "29d16690"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -659,14 +659,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "fb9cbffd94f4bf8471332f556fe747bb32248b4e5b6b86137674315feeeffde5",
-      "sourceHash": "f7c8589ee8dd3f2e7a127afab61c098fc79366868d55a7c7d5c83a08cc225a95",
-      "sourceAt": "58f25405",
+      "pageHash": "e50370e9d61d501ae2b9b19f797fa9a531022a5064b689843efbe23b31dcb726",
+      "sourceHash": "2a21fda02837403cdac86a6721aaba89eb483089b7027281a53d11b71667fa52",
+      "sourceAt": "393c67cb",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "58f25405"
+      "commit": "393c67cb"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -2748,9 +2748,9 @@
     },
     "docs/tecnico/importaciones-y-monitoreo.md": {
       "title": "Importaciones y monitoreo (MSF-206)",
-      "pageHash": "b89df75cc1882fdac0dc9b8ab1fe2198a94f00d3f76f231baa773ff4e861b292",
-      "sourceHash": "679d86135803fbf751ef624971479cdb4dac73e6b44eaf0094a31ef9516fbf3f",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "7e7fcb12b02cd9594f33d119be869ee3eb1e80bed222f96cbe866137800d00c3",
+      "sourceHash": "46c7ee99d61e31609b9894ea5f9751a5b0bb91b7ee309eaea1400835e95b5d85",
+      "sourceAt": "e543b56d",
       "sources": [
         "apps/web/src/pages/importaciones",
         "apps/web/src/hooks/useProcesosMasivos.ts",

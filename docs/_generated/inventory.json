@@ -1180,6 +1180,22 @@
     {
       "slug": "20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs",
       "titulo": "Feature Specification: Deuda técnica · Lote 2: higiene de código y documentación (MSF-515)"
+    },
+    {
+      "slug": "20270327-100000-listas-de-precios-por-cliente",
+      "titulo": "Feature Specification: Listas de precios por cliente (F-PRE-14 + F-CLI-21)"
+    },
+    {
+      "slug": "20270328-100000-gastos-de-la-empresa",
+      "titulo": "Feature Specification: Gastos de la empresa y margen después de costos fijos (F-GAS-01…03)"
+    },
+    {
+      "slug": "20270328-100000-newsletter-de-la-tienda",
+      "titulo": "Feature Specification: Tiendas online · Newsletter (suscripción, composición y envío)"
+    },
+    {
+      "slug": "20270328-100000-opiniones-de-productos",
+      "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
   "paginas": 321
