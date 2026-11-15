@@ -47,6 +47,8 @@ describe('validación de un gasto', () => {
   it('rechaza fecha a más de 31 días, concepto vacío, detalle largo y tienda sin elegir', () => {
     expect(validarGasto({ ...valido, fecha: '2027-01-30' }, AHORA).fecha).toBeTruthy()
     expect(validarGasto({ ...valido, fecha: '2026-12-16' }, AHORA).fecha).toBeUndefined()
+    expect(validarGasto({ ...valido, fecha: '1999-12-31' }, AHORA).fecha).toMatch(/2000/)
+    expect(validarGasto({ ...valido, fecha: '2000-01-01' }, AHORA).fecha).toBeUndefined()
     expect(validarGasto({ ...valido, categoria: '' }, AHORA).categoria).toBeTruthy()
     expect(validarGasto({ ...valido, detalle: 'x'.repeat(201) }, AHORA).detalle).toBeTruthy()
     expect(validarGasto({ ...valido, empresaIds: [] }, AHORA).empresa).toBeTruthy()
@@ -65,6 +67,13 @@ describe('mensajes y formato', () => {
     expect(mensajeDeErrorGasto({ code: '40001' })).toMatch(/Recargá/)
     expect(mensajeDeErrorGasto({ code: '22023', message: 'Cargá la cotización del dólar' })).toBe('Cargá la cotización del dólar')
     expect(mensajeDeErrorGasto({ code: 'XX' }, 'Falló')).toBe('Falló')
+  })
+
+  it('en 22023 solo muestra los mensajes conocidos; cualquier otro texto del servidor no se filtra a la pantalla', () => {
+    expect(mensajeDeErrorGasto({ code: '22023', message: 'Un gasto anulado no se puede editar' })).toBe('Un gasto anulado no se puede editar')
+    expect(mensajeDeErrorGasto({ code: '22023', message: 'new row violates check constraint "gastos_moneda_ck"' })).toBe('No pudimos guardar el gasto. Intentá de nuevo.')
+    expect(mensajeDeErrorGasto({ code: '22023', message: 'x' }, 'No pudimos anular el gasto. Intentá de nuevo.')).toBe('No pudimos anular el gasto. Intentá de nuevo.')
+    expect(mensajeDeErrorGasto({ code: '22023' })).toBe('No pudimos guardar el gasto. Intentá de nuevo.')
   })
 
   it('formatea pesos y dólares', () => {

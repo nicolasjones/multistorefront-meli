@@ -133,6 +133,7 @@ export function validarGasto(entrada: {
   const limite = aIso(new Date(Date.UTC(a, m - 1, d + 31)))
   if (!/^\d{4}-\d{2}-\d{2}$/.test(entrada.fecha)) errores.fecha = 'Ingresá la fecha del gasto.'
   else if (entrada.fecha > limite) errores.fecha = 'La fecha no puede superar los 31 días a futuro.'
+  else if (entrada.fecha < FECHA_MINIMA_GASTO) errores.fecha = 'La fecha no puede ser anterior al 01/01/2000.'
   if (entrada.categoria === '') errores.categoria = 'Elegí un concepto.'
   if (parsearImporteGasto(entrada.importeTexto) === null) errores.importe = 'Ingresá un importe mayor que cero, por ejemplo 36800 o 1250,50.'
   if (entrada.detalle.length > DETALLE_MAX) errores.detalle = `El detalle admite hasta ${DETALLE_MAX} caracteres.`
@@ -140,15 +141,34 @@ export function validarGasto(entrada: {
   return errores
 }
 
+export const FECHA_MINIMA_GASTO = '2000-01-01'
+
 const MENSAJES: Record<string, string> = {
   '42501': 'Tu rol no puede cargar ni anular gastos de esa tienda.',
   P0002: 'El gasto o la tienda ya no existen. Recargá la lista.',
   '40001': 'Otra persona cambió este gasto mientras lo editabas. Recargá la lista y probá de nuevo.',
 }
 
+// Mensajes de validación (22023) de las RPC que sí se muestran tal cual: lista blanca. Cualquier otro texto del servidor (un
+// error interno, un nombre de columna, una restricción) no se muestra a la persona: va el mensaje por omisión.
+const MENSAJES_VALIDACION_CONOCIDOS: ReadonlySet<string> = new Set([
+  'Cargá la cotización del dólar',
+  'La fecha es obligatoria, desde el 01/01/2000 y no puede superar los 31 días a futuro',
+  'La categoría no es válida',
+  'El tipo de costo debe ser fijo o variable',
+  'El detalle admite hasta 200 caracteres',
+  'El importe debe ser mayor que cero, con hasta 2 decimales',
+  'La moneda debe ser ARS o USD',
+  'No se pueden cargar gastos a una empresa inactiva',
+  'Un gasto anulado no se puede editar',
+  'El importe en pesos es demasiado grande: revisá el importe',
+  'El importe en pesos debe ser mayor que cero',
+  'El motivo es obligatorio y admite hasta 200 caracteres',
+])
+
 export function mensajeDeErrorGasto(error: { code?: string; message?: string } | null | undefined, porOmision = 'No pudimos guardar el gasto. Intentá de nuevo.'): string {
   const codigo = error?.code ?? ''
-  if (codigo === '22023' && error?.message) return error.message
+  if (codigo === '22023') return error?.message && MENSAJES_VALIDACION_CONOCIDOS.has(error.message) ? error.message : porOmision
   return MENSAJES[codigo] ?? porOmision
 }
 

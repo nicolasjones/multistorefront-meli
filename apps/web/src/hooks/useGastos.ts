@@ -13,6 +13,7 @@ export function useGastos(filtros: FiltrosGastos, incluirAnulados: boolean) {
   const [errorTanda, setErrorTanda] = useState(false)
   const peticion = useRef(0)
   const ultima = useRef<Gasto | null>(null)
+  const claveCargada = useRef<string | null>(null)
   const clave = JSON.stringify([filtros, incluirAnulados])
 
   const recargar = useCallback(async () => {
@@ -22,6 +23,16 @@ export function useGastos(filtros: FiltrosGastos, incluirAnulados: boolean) {
     setCargando(true)
     setHayError(false)
     setErrorTanda(false)
+    setCargandoMas(false)
+    // Cambió la consulta (empresa, período, filtros o anulados): lo cargado ya no corresponde y no debe seguir visible con sus
+    // acciones activas hasta que llegue la respuesta. Una recarga de la misma consulta (tras guardar) conserva las filas.
+    if (claveCargada.current !== clave) {
+      claveCargada.current = clave
+      setFilas([])
+      setResumen(null)
+      setHayMas(false)
+      ultima.current = null
+    }
     try {
       const [tanda, res] = await Promise.all([listarGastos(f, inc, null), resumenGastos(f)])
       if (numero !== peticion.current) return

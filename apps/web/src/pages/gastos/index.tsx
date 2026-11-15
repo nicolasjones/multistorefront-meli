@@ -63,11 +63,18 @@ export function Gastos() {
   }, [periodo, empresaId, categoria, tipoCosto])
   const { filas, resumen, hayMas, cargando, cargandoMas, hayError, errorTanda, recargar, cargarMas } = useGastos(filtros, mostrarAnulados)
 
-  // Derivado, sin efecto: el diálogo abierto con otra empresa activa ya no vale.
+  // Al cambiar la empresa activa de la barra superior el diálogo abierto se DESCARTA (no solo se oculta): si no, al volver A→B→A el
+  // diálogo viejo «resucitaría» con la fila vieja. Se ajusta durante el render (sin efecto) y deja el aviso hasta que se cierre.
+  const [empresaPrevia, setEmpresaPrevia] = useState(empresaActivaId)
+  const [cerradoPorCambio, setCerradoPorCambio] = useState(false)
+  if (empresaPrevia !== empresaActivaId) {
+    setEmpresaPrevia(empresaActivaId)
+    setAbierto(null)
+    setCerradoPorCambio(abierto !== null)
+  }
   const vigente = abierto && abierto.base === empresaActivaId ? abierto : null
-  const cerradoPorCambio = abierto !== null && vigente === null
-  const abrirEditar = (gasto: Gasto | null) => { setAviso(null); setAbierto({ tipo: 'editar', gasto, base: empresaActivaId }) }
-  const abrirAnular = (gasto: Gasto) => { setAviso(null); setAbierto({ tipo: 'anular', gasto, base: empresaActivaId }) }
+  const abrirEditar = (gasto: Gasto | null) => { setAviso(null); setCerradoPorCambio(false); setAbierto({ tipo: 'editar', gasto, base: empresaActivaId }) }
+  const abrirAnular = (gasto: Gasto) => { setAviso(null); setCerradoPorCambio(false); setAbierto({ tipo: 'anular', gasto, base: empresaActivaId }) }
 
   const exportar = async () => {
     if (exportando) return
@@ -156,7 +163,7 @@ export function Gastos() {
             textoAyuda="Por defecto se ve la tienda activa de la barra superior; elegí «Todas las tiendas» para sumarlas."
           />
 
-          {cerradoPorCambio ? <Alert severity="info" onClose={() => setAbierto(null)}>Cambiaste de empresa: cerramos el diálogo sin guardar nada.</Alert> : null}
+          {cerradoPorCambio ? <Alert severity="info" onClose={() => setCerradoPorCambio(false)}>Cambiaste de empresa: cerramos el diálogo sin guardar nada.</Alert> : null}
           {errorExportar ? <Alert severity="error" role="alert">{errorExportar}</Alert> : null}
 
           <Card variant="outlined">

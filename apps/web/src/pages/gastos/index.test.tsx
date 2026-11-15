@@ -154,6 +154,50 @@ describe('pantalla de gastos', () => {
     expect(mocks.useGastos.mock.calls.at(-1)![1]).toBe(true)
   })
 
+  it('el select de Concepto filtra por categoría y «Todos» lo limpia', async () => {
+    montar()
+    expect(mocks.useGastos.mock.calls.at(-1)![0].categoria).toBeNull()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Concepto' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Alquiler' }))
+    expect(mocks.useGastos.mock.calls.at(-1)![0]).toMatchObject({ categoria: 'Alquiler', tipoCosto: null })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Concepto' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Todos' }))
+    expect(mocks.useGastos.mock.calls.at(-1)![0].categoria).toBeNull()
+  })
+
+  it('el select de Tipo de costo filtra por fijo o variable y se combina con el concepto', async () => {
+    montar()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Tipo de costo' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Variable' }))
+    expect(mocks.useGastos.mock.calls.at(-1)![0]).toMatchObject({ tipoCosto: 'variable', categoria: null })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Concepto' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Fletes' }))
+    expect(mocks.useGastos.mock.calls.at(-1)![0]).toMatchObject({ tipoCosto: 'variable', categoria: 'Fletes' })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Tipo de costo' }))
+    fireEvent.click(await screen.findByRole('option', { name: 'Todos' }))
+    expect(mocks.useGastos.mock.calls.at(-1)![0]).toMatchObject({ tipoCosto: null, categoria: 'Fletes' })
+  })
+
+  it('el filtro de tienda pide elegir otra tienda o todas sin cambiar la empresa activa', () => {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
+    expect(mocks.elegirEmpresa).toHaveBeenLastCalledWith('e2')
+    fireEvent.click(screen.getByRole('button', { name: 'Todas las tiendas' }))
+    expect(mocks.elegirEmpresa).toHaveBeenLastCalledWith(null)
+  })
+
+  it('«Cargar más» es un botón real, alcanzable con el teclado, y pide la tanda siguiente', () => {
+    montar({ hayMas: true })
+    const boton = screen.getByRole('button', { name: /Cargar más/ })
+    expect(boton.tagName).toBe('BUTTON')
+    expect(boton).not.toBeDisabled()
+    expect(boton.getAttribute('tabindex')).not.toBe('-1')
+    boton.focus()
+    expect(boton).toHaveFocus()
+    fireEvent.click(boton)
+    expect(mocks.cargarMas).toHaveBeenCalledTimes(1)
+  })
+
   it('carga un gasto en la tienda activa, con el tipo precargado, y recarga la lista', async () => {
     montar()
     fireEvent.click(screen.getAllByRole('button', { name: 'Nuevo gasto' })[0])
