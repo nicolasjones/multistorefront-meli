@@ -178,7 +178,7 @@ select count(*) as eventos_antes from registro_actividad where tipo = 'clientes.
 insert into private.clientes_exportaciones_entregas (organizacion_id, actor_id, filtros_hash, filas, creado_en) values
   ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000006', 'relleno', 50000 - 4, now()),
   ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000007', 'relleno', 50000 - 3, now()),
-  ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000008', 'relleno', 200000 - 3, now() - interval '2 hours'),
+  ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000008', 'relleno', 200000 - 3, now() - interval '18 hours'),
   ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000009', 'relleno', 200000 - 4, now() - interval '2 hours');
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000007');
@@ -186,7 +186,7 @@ select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, 
   'tope_acumulado', 'primer lote: acumulado + total excede el tope de ventana y se rechaza antes de entregar');
 select pg_temp.como('d1000000-0000-0000-0000-000000000008');
 select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, null, 1)$q$),
-  'tope_diario', 'primer lote: acumulado + total excede el tope diario y se rechaza antes de entregar');
+  'tope_diario', 'primer lote: acumulado + total excede el tope diario y se rechaza antes de entregar (entrega de 18 h: cuenta en el día, no en la ventana)');
 reset role;
 select is((select count(*)::int from private.clientes_exportaciones_entregas
   where actor_id in ('d1000000-0000-0000-0000-000000000007', 'd1000000-0000-0000-0000-000000000008') and filtros_hash <> 'relleno'), 0,

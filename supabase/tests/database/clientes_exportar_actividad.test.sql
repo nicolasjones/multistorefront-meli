@@ -2,7 +2,7 @@
 -- una vez por exportación (primer lote), con total y filtros, solo si el permiso pasó y hay filas.
 begin;
 
-select plan(9);
+select plan(10);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -46,6 +46,7 @@ select is((select count(*)::int from registro_actividad where tipo = 'clientes.e
 
 select pg_temp.como('d4000000-0000-0000-0000-000000000001');
 select throws_ok($$select * from exportar_clientes()$$, '42501', null, 'sin permiso: rechazado');
+select throws_ok($$select * from exportar_clientes(null, null, false, '00000000-0000-0000-0000-000000000001'::uuid)$$, '42501', null, 'sin permiso: también se rechaza con cursor');
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 3, 'sin permiso no se registra');
 

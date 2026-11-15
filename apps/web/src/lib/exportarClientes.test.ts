@@ -121,6 +121,18 @@ describe('exportarClientes', () => {
     expect(progresos).toHaveLength(0)
   })
 
+  it('si el primer lote ya excede el tope diario se avisa antes de descargar nada', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_diario' } })
+    const alEscribir = vi.fn()
+    mocks.alEscribir = alEscribir
+    const progresos: unknown[] = []
+    await expect(exportarClientes(filtros, { alProgresar: (p) => progresos.push(p) })).rejects.toThrow(/Llegaste al máximo diario/)
+    mocks.alEscribir = undefined
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(alEscribir).not.toHaveBeenCalled()
+    expect(progresos).toHaveLength(0)
+  })
+
   it('se puede cancelar entre lotes', async () => {
     const abort = new AbortController()
     mocks.rpc.mockImplementationOnce(async () => {

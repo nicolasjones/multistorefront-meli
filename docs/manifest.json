@@ -1029,12 +1029,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "2882dfd55a9fb7831fd3d60b2b826657e575958a162ac0d02501ecdb06f46a51",
+      "pageHash": "6e3a45867d317c977e05e4dd2e5ea706e877501bcf4498a5981f06836311f3ad",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "bfeaa8b6"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1297,6 +1297,15 @@
       ],
       "owner": "producto",
       "commit": "9b7ffeec"
+    },
+    "docs/producto/opiniones.md": {
+      "title": "Opiniones: moderar lo que dicen los clientes",
+      "pageHash": "a498b379fc1be7fc47724407272e60a8ef661ed82b8e213c346fa2a190ec9294",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "36967908"
     },
     "docs/producto/organizacion-y-empresas.md": {
       "title": "Tu organización y tus empresas",
@@ -2590,16 +2599,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "602c827bf57b5c90883c187bcdac5e573d9d21cb20be5d6832ffda2f7bba42eb",
-      "sourceHash": "0dbe5cad837a39350e09f93847b020b4e315ee697bf2d273bebafe33cc9877fa",
-      "sourceAt": "e7aef13c",
+      "pageHash": "1807d30a76c95d8b7ee1af07b44facdad186bd8791e01b49df9bb0357dd76119",
+      "sourceHash": "39327a74330bd72470259e5f8689a539cc8a8539672c9f2a07c48761708c1fb8",
+      "sourceAt": "1dd2929e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "e7aef13c"
+      "commit": "1dd2929e"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -3633,6 +3642,22 @@
       ],
       "owner": "tecnico",
       "commit": "ebf4bf4d"
+    },
+    "docs/tienda-opiniones.md": {
+      "title": "Opiniones de productos: base y moderación (MSF-467)",
+      "pageHash": "78c6b261742936c6093c8ae2370d7ed3b10e7d92db921b95319366a538a65e94",
+      "sourceHash": "f6f52325a39052cfa41c642f852831b7c5897274a4b66c2bdab4ad87734d9466",
+      "sourceAt": "33d1644e",
+      "sources": [
+        "specs/20270328-100000-opiniones-de-productos",
+        "supabase/migrations/20270341000000_opiniones_producto.sql",
+        "supabase/migrations/20270341000100_opiniones_validacion.sql",
+        "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
+        "supabase/migrations/20270341000500_exportacion_total_opiniones.sql",
+        "apps/web/src/pages/opiniones"
+      ],
+      "owner": "tecnico",
+      "commit": "33d1644e"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",

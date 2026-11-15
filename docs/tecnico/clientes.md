@@ -254,13 +254,13 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
 - **Verificación manual de la concurrencia** (`supabase/tests/manual/exportar_clientes_concurrencia.sh`, bash + psql, no corre en CI;
   `PSQL` es el comando que abre psql como superusuario):
   `PSQL='docker exec -i supabase_db_<proyecto> psql -U postgres -q -At' supabase/tests/manual/exportar_clientes_concurrencia.sh`.
-  Modo por defecto (solo lectura, todo se revierte, apto para dev): la sesión A toma el cupo de una persona real y la sesión B,
-  de la misma persona, debe quedar esperando el advisory lock. Resultado esperado: `esperando el advisory lock a los 4 s: 1`,
-  duración de B de 6 s o más y `OK: la segunda sesión de la misma persona quedó serializada`. Con `--con-escritura` (solo un stack
-  desechable: confirma datos propios, baja los topes a 5 y al final los borra y los restaura) lanza dos exportaciones simultáneas
-  de la misma persona; resultado esperado: un rechazo `tope_acumulado`, a lo sumo 5 filas entregadas y `OK: los topes no se
-  superan con dos sesiones simultáneas`. Como control negativo, contra una función sin el lock (la de dev antes de aplicar la
-  migración) imprime `FALLÓ`.
+  Es de **solo lectura y todo se revierte** (`begin … rollback`; no escribe datos ni toca funciones o topes, apto para dev). Usa una
+  persona administradora real: la sesión A toma el cupo de esa persona y lo retiene 8 s con su advisory lock (el lock es por
+  organización y persona: no bloquea a otras personas) y la sesión B, de la misma persona, debe quedar esperando. Resultado
+  esperado: `esperando el advisory lock a los 4 s: 1`, duración de B de 6 s o más y `OK: la segunda sesión de la misma persona
+  quedó serializada`. Si faltan las migraciones `20270344…` aborta con «Faltan las migraciones 20270344… en este entorno»
+  (código 2); un error real de una sesión se muestra. Contra una función sin el lock imprime `FALLÓ`. Los topes bajos
+  se prueban en pgTAP, no en el script.
 
 - **Quién:** solo quien tiene la acción `exportar` en Clientes
   (`private.puede_accion('clientes','exportar')`; por defecto Administrador, Administración y Operador).
