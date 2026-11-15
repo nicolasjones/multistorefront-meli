@@ -94,7 +94,7 @@ export async function limpiarOrganizacion(organizacionId: string) {
   await borrar(`organizaciones?id=eq.${organizacionId}`, 'public')
 }
 
-type ClientePg = { connect(): Promise<void>; query(sql: string, valores?: unknown[]): Promise<unknown>; end(): Promise<void> }
+type ClientePg = { connect(): Promise<void>; query(sql: string, valores?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>; end(): Promise<void> }
 
 /**
  * Siembra por SQL directo (Postgres local) para las tablas de `public` a las que `service_role` NO tiene grant
@@ -102,7 +102,7 @@ type ClientePg = { connect(): Promise<void>; query(sql: string, valores?: unknow
  * `pg` es dependencia del worker, no de la web: se carga desde el paquete del worker. Puerto: `E2E_PGPORT`, luego el puente
  * de CI (`SUPABASE_DB_PORT`), luego el 54322 del stack local.
  */
-export async function sql(consulta: string, valores: unknown[] = []): Promise<void> {
+export async function sql<T = Record<string, unknown>>(consulta: string, valores: unknown[] = []): Promise<T[]> {
   const Client = (createRequire(resolve(process.cwd(), '../../workers/comprobantes-pdf/package.json'))('pg') as { Client: new (config: Record<string, unknown>) => ClientePg }).Client
   const cliente = new Client({
     host: process.env.E2E_PGHOST ?? '127.0.0.1',
@@ -113,7 +113,7 @@ export async function sql(consulta: string, valores: unknown[] = []): Promise<vo
   })
   await cliente.connect()
   try {
-    await cliente.query(consulta, valores)
+    return (await cliente.query(consulta, valores)).rows as T[]
   } finally {
     await cliente.end()
   }

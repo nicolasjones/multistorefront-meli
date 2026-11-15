@@ -69,7 +69,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     method: 'POST',
     headers: { apikey: anonKey ?? '', authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
-      p_conexion_id: conexion.id,
+      p_conexion_id: conexionId,
       p_capacidad: 'importar-prueba',
       p_tipo: 'importacion',
       p_funcionalidad: 'catalogo',
@@ -80,7 +80,15 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
   if (!r.ok) throw new Error(`RPC iniciar_proceso_masivo: ${r.status} ${await r.text()}`)
 
   // En curso (con avance) en la tienda B y terminado con errores sin empresa: los deja el «worker».
-  await rest('procesos_masivos', {
+  const insertarProceso = async (campos: Record<string, unknown>) => {
+    const columnas = Object.keys(campos)
+    const filas = await sql<{ id: string }>(
+      `insert into public.procesos_masivos (${columnas.join(', ')}) values (${columnas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+      Object.values(campos),
+    )
+    return filas[0]
+  }
+  await insertarProceso({
     organizacion_id: org.id,
     empresa_id: empresaB.id,
     tipo: 'exportacion',
@@ -93,7 +101,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     creado_en: haceSegundos(120),
     iniciado_en: haceSegundos(110),
   })
-  const [conErrores] = await rest<{ id: string }>('procesos_masivos', {
+  const conErrores = await insertarProceso({
     organizacion_id: org.id,
     empresa_id: null,
     tipo: 'importacion',
@@ -108,10 +116,11 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     iniciado_en: haceSegundos(290),
     finalizado_en: haceSegundos(200),
   })
-  await rest('procesos_masivos_errores', [
-    { proceso_id: conErrores.id, organizacion_id: org.id, fila: 3, referencia: 'MLA-100', motivo_sanitizado: 'Precio inválido' },
-    { proceso_id: conErrores.id, organizacion_id: org.id, fila: 7, referencia: 'MLA-200', motivo_sanitizado: 'Falta el título' },
-  ])
+  await sql(
+    `insert into public.procesos_masivos_errores (proceso_id, organizacion_id, fila, referencia, motivo_sanitizado)
+     values ($1, $2, 3, 'MLA-100', 'Precio inválido'), ($1, $2, 7, 'MLA-200', 'Falta el título')`,
+    [conErrores.id, org.id],
+  )
 
   return { orgId: org.id, correo, empresaA, empresaB, nombres, idsUsuario: [idAdmin] }
 }

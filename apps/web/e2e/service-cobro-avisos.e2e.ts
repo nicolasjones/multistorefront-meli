@@ -70,7 +70,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
       await sql(`insert into public.features (id, nombre, descripcion) values ('service-tecnico', 'Service técnico', 'E2E') on conflict do nothing`)
-      await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
+      await sql(`insert into public.organizaciones_features (feature_id, organizacion_id, habilitado_por) values ('service-tecnico', $1, $2)`, [org.id, userId])
       // `avisar_cliente_reparacion` encola por la conexión activa del generador de comprobantes (la misma de Ventas): sin ella responde «sin_conexion».
       await sql(`insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, 'comprobantes-pdf', $2)`, [org.id, randomUUID()])
       const [cliente] = await rest<{ id: string }>('clientes', {
