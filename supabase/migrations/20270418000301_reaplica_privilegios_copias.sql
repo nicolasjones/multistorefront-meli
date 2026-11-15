@@ -14,7 +14,9 @@
 -- (`docs/tecnico/runbooks/db-restore.md`, paso 5).
 --
 -- Los objetos que todavía no existen (una copia más vieja que la migración que los creó) se saltean: el
--- paso tiene que servir también sobre una base restaurada de una fecha anterior.
+-- paso tiene que servir también sobre una base restaurada de una fecha anterior. Lo que NO se saltea es
+-- la falta del rol `kestra_backups` (lo crea la migración 20260913140000): sin ese rol no hay a quién
+-- otorgarle el EXECUTE y la función falla con un error explícito.
 --
 -- Esquemas: no crea ni altera tablas (sólo ACL). Aditiva e idempotente.
 -- Reversión: `drop function private.reaplicar_privilegios_copias();` (los ACL quedan como los dejó el
