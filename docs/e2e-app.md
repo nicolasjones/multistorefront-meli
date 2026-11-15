@@ -774,3 +774,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   escribieron specs nuevos ni se marcó nada como pasado: requieren un stack local con usuarios por rol y la corrida
   firmada.
 
+
+## Perfiles de prueba: los crea la propia persona, no `service_role`
+
+`service_role` tiene permisos mínimos por tabla y ninguna migración le concede `insert` sobre `public.perfiles_usuario`. Un spec que necesite un perfil (por ejemplo `permisos-por-empresa.e2e.ts`, que lo usa para que el listado de Usuarios muestre el nombre) inicia sesión como esa persona y lo inserta con su token, que es lo que permite la política `perfiles_usuario_insert_titular`. No se amplían permisos de `service_role` para los E2E. La clave anónima sale de `VITE_SUPABASE_PUBLISHABLE_KEY` (la que exporta el CI), con `SUPABASE_ANON_KEY` y `VITE_SUPABASE_ANON_KEY` como alternativas locales.
