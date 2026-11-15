@@ -98,6 +98,7 @@ $$;
 -- 3. La exportación total: el conjunto pasa a `dominio`
 -- ============================================================================
 
+-- exportacion-total: se quita public.clientes (la tabla pasa a dominio.clientes, que se agrega en esta misma lista)
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición
 -- vigente (`20270349000200_gastos_exportacion_total.sql`) con la fila de clientes movida a `dominio`.
 create or replace function private.conjuntos_exportacion_total()
