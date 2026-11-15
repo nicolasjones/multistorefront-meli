@@ -9,7 +9,7 @@ import { aLineas, type LineaComprobante } from './ventasLineas'
 export type TipoComprobante = 'factura' | 'presupuesto'
 export type CanalVenta = 'mostrador' | 'tienda_online' | 'telefono_whatsapp'
 
-// Mercado Libre queda para la Etapa 2: el prototipo lo muestra deshabilitado, no es un canal elegible.
+// Mercado Libre todavía no es un canal de venta elegible: el prototipo lo muestra deshabilitado.
 export const CANALES_VENTA: ReadonlyArray<{ valor: CanalVenta; etiqueta: string }> = [
   { valor: 'mostrador', etiqueta: 'Mostrador' },
   { valor: 'tienda_online', etiqueta: 'Tienda online' },

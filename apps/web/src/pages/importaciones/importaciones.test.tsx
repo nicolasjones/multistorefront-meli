@@ -15,7 +15,7 @@ import { ImportacionesList } from './list'
 
 const abrir = () => render(<MemoryRouter><ImportacionesList /></MemoryRouter>)
 
-describe('[MSF-354:T008] Centro de importaciones: tabla de procesos (FR-011, FR-016)', () => {
+describe('Centro de importaciones: tabla de procesos (FR-011, FR-016)', () => {
   beforeEach(() => {
     reiniciarFalso()
     configurarFiltro(null)

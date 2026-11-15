@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { armarMensaje, normalizarNumero, urlWhatsapp } from './whatsapp'
+import { armarMensaje, avisoFormatoWhatsapp, normalizarNumero, urlWhatsapp } from './whatsapp'
 
 // F-TDA-14 (FR-022, FR-023): número, mensaje y URL del enlace de WhatsApp desde la ficha.
 describe('normalizarNumero', () => {
@@ -86,7 +86,7 @@ describe('urlWhatsapp', () => {
     expect(url).toBe('https://wa.me/5491155550001?text=Hola%20Mundo%20JC%2C%20quiero%20consultar%20por%20Joystick%20Pro%20(%24%2018.455).%20%C2%BFEst%C3%A1%20disponible%3F')
   })
 
-  it('un número local lleva el código de país (MSF-696)', () => {
+  it('un número local lleva el código de país', () => {
     expect(urlWhatsapp('11 5555-0001', 'hola')).toBe('https://wa.me/5491155550001?text=hola')
   })
 
@@ -106,5 +106,19 @@ describe('urlWhatsapp', () => {
     // `no-script-url` del gate de calidad, aunque acá solo sea una entrada de prueba.
     const esquemaEjecutable = ['java', 'script:alert(1)'].join('')
     expect(urlWhatsapp(esquemaEjecutable, 'Hola')).toBeNull()
+  })
+})
+
+describe('avisoFormatoWhatsapp (MSF-743)', () => {
+  it('no avisa con vacío, correo o número normalizable', () => {
+    expect(avisoFormatoWhatsapp('')).toBeNull()
+    expect(avisoFormatoWhatsapp(null)).toBeNull()
+    expect(avisoFormatoWhatsapp('a@b.com')).toBeNull()
+    expect(avisoFormatoWhatsapp('+54 9 11 1234-5678')).toBeNull()
+    expect(avisoFormatoWhatsapp('11 1234 5678')).toBeNull()
+  })
+  it('avisa con un número que no se puede normalizar', () => {
+    expect(avisoFormatoWhatsapp('1234')).toMatch(/No reconocemos/)
+    expect(avisoFormatoWhatsapp('12345678')).toMatch(/No reconocemos/)
   })
 })

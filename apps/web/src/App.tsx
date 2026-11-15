@@ -142,6 +142,7 @@ const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((m
 const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
 // F-REP-01 (MSF-297): reportes de inventario (menú «Reportes»).
 const ReporteProductosStock = lazy(() => import('./pages/reportes/ProductosYStock').then((modulo) => ({ default: modulo.ProductosYStock })))
+const TablerosAnaliticos = lazy(() => import('./pages/reportes/Tableros').then((modulo) => ({ default: modulo.TablerosAnaliticos })))
 const ReporteReposicion = lazy(() => import('./pages/reportes/Reposicion').then((modulo) => ({ default: modulo.Reposicion })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
@@ -203,6 +204,8 @@ function App() {
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
               { name: 'reportes-inventario', list: '/reportes/inventario', meta: { label: 'Productos y stock' } },
               { name: 'reportes-reposicion', list: '/reportes/reposicion', meta: { label: 'Reposición' } },
+              // F-REP-07 (MSF-265): galería de tableros analíticos ya armados; solo administradores.
+              { name: 'reportes-tableros', list: '/reportes/tableros', meta: { label: 'Tableros analíticos' } },
               // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
@@ -763,6 +766,14 @@ function App() {
                       <RequiereAccesoSeccion seccion="stock">
                         <Suspense fallback={<EstadoCargaPagina />}><ReporteProductosStock /></Suspense>
                       </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/tableros"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><TablerosAnaliticos /></Suspense>
                     </RequiereOrganizacionActiva>
                   }
                 />

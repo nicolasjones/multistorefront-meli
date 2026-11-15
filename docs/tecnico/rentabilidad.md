@@ -655,7 +655,7 @@ capturas.
 - «Por producto» pasa el filtro inicial por `urlParams` al tablero: `?estado=bajo_o_negativo` o
   `?estado=negativo` se traducen a `native_filters` (rison) del filtro `NATIVE_FILTER-estado`
   (`apps/web/src/lib/rentabilidad.ts`). Cualquier otro valor se ignora.
-- **Desvíos de F-REN-03 (MSF-556):** el orden está fijo por menor margen (no hay selector
+- **Desvíos de F-REN-03 (MSF-555):** el orden está fijo por menor margen (no hay selector
   «Mayor/Menor margen primero») y la búsqueda es un `filter_select` de Superset, no un campo de texto
   libre. La tabla no pagina en el cliente (`row_limit` 10000); el volumen esperado es de cientos de filas
   producto × tienda.
@@ -796,7 +796,7 @@ costos adicionales **guarda datos**: exportala antes de borrarla.
 |---|---|
 | Verificar en un Superset real la importación de los tableros y el filtro inicial desde el aviso. | Cierre de MSF-120 (SC-003/SC-009) |
 | Ejecutar el E2E de tres roles con el stack local. | MSF-499 / cierre de MSF-120 |
-| Selector de orden «Mayor/Menor margen primero» y búsqueda de texto libre. | MSF-556 |
+| Selector de orden «Mayor/Menor margen primero» y búsqueda de texto libre. | MSF-555 |
 | Ponderar el consolidado por stock o ventas reales. | MSF-192 |
 | Confirmar si Administración debe ver los tableros y si Consulta debe ver costos. | Cliente / producto |
 | Dónde viven los eventos de Actividad (F-AUD-01 no está cargada en Jira). | Plataforma / producto |

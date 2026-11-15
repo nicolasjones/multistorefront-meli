@@ -65,7 +65,7 @@ describe('useOpcionesDimension', () => {
     expect(mocks.or).toHaveBeenCalledWith('nombre_norm.ilike.%aur x%,sku.ilike.%aur x%')
   })
 
-  it('busca sin tildes ni mayúsculas: «CÁMARA» consulta «camara» (MSF-722)', async () => {
+  it('busca sin tildes ni mayúsculas: «CÁMARA» consulta «camara»', async () => {
     const { result } = renderHook(() => useOpcionesDimension({ busquedaProducto: 'CÁMARA' }))
     await waitFor(() => expect(result.current.productos).toHaveLength(1))
     expect(mocks.or).toHaveBeenCalledWith('nombre_norm.ilike.%camara%,sku.ilike.%camara%')

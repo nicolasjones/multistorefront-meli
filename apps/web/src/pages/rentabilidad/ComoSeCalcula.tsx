@@ -4,7 +4,7 @@ import type { Empresa } from '../../hooks/useEmpresas'
 export const TEXTO_ESTIMACION = 'Estimación con los datos disponibles: no incluye impuestos, envíos ni otros costos.'
 
 // Tarjeta «Cómo se calcula» del resumen (F-REN-02, FR-014; RentabilidadResumen.dc.html). Una fila por
-// tienda de la organización; la fila de Mercado Libre del prototipo NO va (FR-010, Etapa 2). Es solo
+// tienda de la organización; la fila de Mercado Libre del prototipo NO va (FR-010). Es solo
 // presentación: la lista de tiendas la resuelve la pantalla.
 export function ComoSeCalcula({ empresas }: { empresas: readonly Pick<Empresa, 'id' | 'nombre'>[] }) {
   return (

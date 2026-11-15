@@ -10,7 +10,7 @@
 -- elements from a scalar» (que descuadraba el plan: 52 tests planned, 29 run).
 begin;
 
-select plan(73);
+select plan(77);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -209,10 +209,10 @@ select is((select count(*)::int from public.movimientos_por_producto('2026-10-01
 select is(jsonb_array_length(coalesce(public.resumen_inicio_bloques('2026-10-01', '2026-10-31') -> 'por_tienda', '[]'::jsonb)), 1, 'la organización Dos solo ve su tienda');
 
 reset role;
-select ok(not has_function_privilege('anon', 'public.resumen_inicio_bloques(date,date,uuid,uuid)', 'EXECUTE')
+select ok(not has_function_privilege('anon', 'public.resumen_inicio_bloques(date,date,uuid,uuid,text)', 'EXECUTE')
   and not has_function_privilege('anon', 'public.movimientos_por_producto(date,date,uuid,uuid,text,uuid,text,text,text,integer,integer)', 'EXECUTE'),
   'anon no ejecuta las RPC de bloques ni de movimientos por producto');
-select ok(has_function_privilege('authenticated', 'public.resumen_inicio_bloques(date,date,uuid,uuid)', 'EXECUTE')
+select ok(has_function_privilege('authenticated', 'public.resumen_inicio_bloques(date,date,uuid,uuid,text)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.movimientos_por_producto(date,date,uuid,uuid,text,uuid,text,text,text,integer,integer)', 'EXECUTE'),
   'authenticated sí las ejecuta');
 
@@ -241,6 +241,11 @@ select throws_ok($$select public.resumen_inicio_bloques('2026-10-01', '2026-10-3
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.resumen_inicio_periodo('2026-10-01', 'infinity'::date)$$, '22023', null, 'resumen_inicio_periodo rechaza fechas infinitas');
 select throws_ok($$select public.resumen_inicio_bloques('2026-10-01', 'infinity'::date)$$, '22023', null, 'resumen_inicio_bloques rechaza fechas infinitas');
+-- MSF-850: p_seccion devuelve una sola sección (la otra vuelve null) y rechaza valores desconocidos.
+select is(public.resumen_inicio_bloques('2026-10-01', '2026-10-31', null, null, 'por_tienda') -> 'salidas_por_deposito', 'null'::jsonb, 'p_seccion por_tienda no calcula las salidas por depósito');
+select isnt(public.resumen_inicio_bloques('2026-10-01', '2026-10-31', null, null, 'por_tienda') -> 'por_tienda', 'null'::jsonb, 'p_seccion por_tienda devuelve el resumen por tienda');
+select is(public.resumen_inicio_bloques('2026-10-01', '2026-10-31', null, null, 'salidas_por_deposito') -> 'por_tienda', 'null'::jsonb, 'p_seccion salidas_por_deposito no calcula el resumen por tienda');
+select throws_ok($$select public.resumen_inicio_bloques('2026-10-01', '2026-10-31', null, null, 'otra')$$, '22023', null, 'p_seccion desconocida se rechaza');
 select throws_ok($$select * from public.movimientos_por_producto('-infinity'::date, '2026-10-31')$$, '22023', null, 'movimientos_por_producto rechaza fechas infinitas');
 reset role;
 select is((select count(*)::int from pg_indexes where indexname = 'movimientos_stock_org_producto_fecha_idx'), 1,

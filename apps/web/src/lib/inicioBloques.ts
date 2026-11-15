@@ -24,12 +24,19 @@ export type BloquesInicio = {
   salidas_por_deposito: DepositoSalidas[] | null
 }
 
-export async function leerBloquesInicio({ desde, hasta, empresaId, depositoId }: ContextoTablero): Promise<BloquesInicio> {
+export type SeccionBloques = 'por_tienda' | 'salidas_por_deposito'
+
+// `seccion` pide una sola parte a la base (la otra vuelve null): cada bloque se lee, falla y reintenta por separado.
+export async function leerBloquesInicio(
+  { desde, hasta, empresaId, depositoId }: ContextoTablero,
+  seccion?: SeccionBloques,
+): Promise<BloquesInicio> {
   const { data, error } = await supabaseClient.rpc('resumen_inicio_bloques', {
     p_desde: desde,
     p_hasta: hasta,
     p_empresa: empresaId,
     p_deposito: depositoId,
+    ...(seccion ? { p_seccion: seccion } : {}),
   })
   if (error) throw error
   return data as BloquesInicio

@@ -1,0 +1,11 @@
+slice_name: 'Margen real: tienda × categoría'
+description: 'Cruce de tiendas (filas) por categorías (columnas) con el margen real del período y los totales (F-REP-07).'
+certified_by: null
+certification_details: null
+viz_type: pivot_table_v2
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "dashboards": [], "viz_type": "pivot_table_v2", "groupbyRows": ["empresa_nombre"], "groupbyColumns": ["categoria"], "metrics": ["margen_total"], "metricsLayout": "COLUMNS", "aggregateFunction": "Sum", "rowTotals": true, "colTotals": true, "rowSubTotals": false, "colSubTotals": false, "transposePivot": false, "combineMetric": false, "valueFormat": ",.2f", "date_format": "smart_date", "series_limit": 0, "order_desc": true, "row_limit": 10000, "rowOrder": "key_a_to_z", "colOrder": "key_a_to_z", "conditional_formatting": []}
+query_context: null
+cache_timeout: null
+uuid: 746254e4-1f8e-5c96-87b9-fcfc1541b12a
+version: 1.0.0
+dataset_uuid: 61f3dc0c-68a4-5479-afe8-16c1fd49aa51

@@ -361,7 +361,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
 | ~~`AlertasInicio` mostraba la alerta `dolar_sin_cargar` a quien solo tiene lectura~~ | **Resuelto** (2026-11-14): solo la ve quien edita `cotizacion_dolar` (CA-INI-07-7) |
-| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** |
+| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** **Pendiente de decisión de producto** (2026-11-15): el ticket no define qué es «cobro pendiente» (¿ventas con saldo, cuenta corriente, pagos sin conciliar?) ni «faltante» (¿faltante de reposición, de recepción, de caja?), ni umbrales ni qué permiso/sección los gobierna. Sin esa definición no se migra `alertas_inicio`; se retoma al decidirse. |
 | ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
@@ -456,3 +456,7 @@ web servida; se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (ver [`do
 ## Alerta de dólar: se recalcula al cambiar la configuración (MSF-352)
 
 `guardar_configuracion_cotizacion` y `cambiar_alcance_cotizacion` llaman a `recalcular_alertas_inicio` en la misma transacción: apagar o encender «Aviso en Inicio» o cambiar el alcance actualiza `dolar_sin_cargar` de inmediato (antes quedaba desfasada hasta el siguiente barrido). Prueba: `cotizacion_revision_msf352.test.sql`.
+
+### «Resumen por tienda» y «Salidas por depósito» con error y reintento independientes (MSF-850)
+
+`resumen_inicio_bloques` recibe un parámetro `p_seccion` (`por_tienda`, `salidas_por_deposito` o nulo para ambas): la sección que no se pide no se calcula y vuelve nula, y un valor desconocido responde 22023. En la pantalla cada bloque hace su propia lectura, con carga, error y «Reintentar» propios: si uno falla el otro sigue visible y reintentar uno no vuelve a pedir el otro. La firma anterior de 4 parámetros se elimina. Migración `20270324120200`.
