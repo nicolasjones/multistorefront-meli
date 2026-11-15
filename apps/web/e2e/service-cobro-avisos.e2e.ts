@@ -9,7 +9,7 @@ import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, cabeceras, leer, re
 // key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite. Con
 // `E2E_CORREO_KESTRA=1` (Kestra + SMTP de prueba/Mailpit levantados) además espera el correo recibido; sin eso verifica
 // el aviso `pendiente`/`enviado` en la base y la orden en la outbox. Ver docs/service-cobro.md y docs/service-avisos.md.
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
 const password = CONTRASENA_E2E
 const conCorreoKestra = process.env.E2E_CORREO_KESTRA === '1'
 const mailpit = process.env.MAILPIT_URL ?? `http://127.0.0.1:${process.env.SUPABASE_MAILPIT_PORT ?? '4302'}`

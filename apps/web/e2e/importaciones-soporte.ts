@@ -3,58 +3,15 @@ import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect } from './fixture'
 import { clic, escribir } from './visible'
+import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
 
 // Soporte de los E2E del centro de importaciones (F-IMP-01 · MSF-354). Requiere el stack local
 // (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la service-role key
 // nunca llega al navegador). Los procesos de prueba nacen por las funciones de la base: el pendiente
 // por `iniciar_proceso_masivo` con la sesión del administrador; los demás estados, con la siembra.
-export const url = process.env.SUPABASE_URL
-export const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
-const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de importaciones: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', extra: Record<string, string> = {}): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema, ...extra }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const password = CONTRASENA_E2E
+export { serviceKey, url }
 
 // Sesión del administrador para llamar a las funciones de la app como lo haría la pantalla.
 async function tokenDe(correo: string): Promise<string> {
@@ -95,9 +52,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
   await rest('usuarios_organizacion', [{ user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' }])
 
   // Conexión y capacidad del ciclo de ejecuciones, para que `iniciar_proceso_masivo` tenga dónde colgar.
-  await rest('sistemas_externos', { id: 'procesos-prueba', descripcion: 'Sistema de prueba de procesos masivos' }, 'public', {
-    prefer: 'resolution=ignore-duplicates,return=minimal',
-  }).catch(() => undefined)
+  await rest('sistemas_externos', { id: 'procesos-prueba', descripcion: 'Sistema de prueba de procesos masivos' }, 'public', 'resolution=ignore-duplicates,return=minimal').catch(() => undefined)
   const [conexion] = await rest<{ id: string }>('conexiones', {
     organizacion_id: org.id,
     sistema_externo: 'procesos-prueba',

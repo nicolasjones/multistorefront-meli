@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { ingresar, limpiar, serviceKey, sembrar, url, violacionesAxe, type Sembrado } from './importaciones-soporte'
+import { altaUsuario } from './soporte/fixtures'
 import { clic, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // Cierre de F-OPS-06 (MSF-396 · T028 · SC-006): el administrador pide la exportación total, ve el avance en el
@@ -20,16 +21,6 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
     })
     if (!r.ok) throw new Error(`REST ${metodo} ${ruta}: ${r.status} ${await r.text()}`)
     return (await r.json()) as Record<string, unknown>[]
-  }
-
-  async function altaUsuario(correo: string): Promise<string> {
-    const r = await fetch(`${url}/auth/v1/admin/users`, {
-      method: 'POST',
-      headers: cabeceras({ 'content-type': 'application/json' }),
-      body: JSON.stringify({ email: correo, password: 'Correcta-12345!', email_confirm: true }),
-    })
-    if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-    return ((await r.json()) as { id: string }).id
   }
 
   // Organización con conexión de exportaciones (`historial-ventas`), como la deja un administrador de la plataforma.
