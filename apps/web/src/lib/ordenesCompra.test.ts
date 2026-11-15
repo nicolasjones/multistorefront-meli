@@ -87,6 +87,16 @@ describe('mensajeDeErrorOrden', () => {
     expect(mensaje).toContain('alerta de reposición')
   })
 
+  it('traduce la orden que ya no está disponible (fuera de alcance o inexistente) a recargar la lista', () => {
+    const mensaje = mensajeDeErrorOrden({ code: '22023', message: 'La orden no existe' }, 'por defecto')
+    expect(mensaje).toBe('La orden ya no está disponible. Recargá la lista.')
+  })
+
+  it('traduce la fecha de recepción inválida', () => {
+    const mensaje = mensajeDeErrorOrden({ code: '22023', message: 'La fecha de recepción no puede ser futura ni anterior a la de la orden' }, 'por defecto')
+    expect(mensaje).toContain('fecha de recepción')
+  })
+
   it('deja el mensaje por defecto cuando el error no se reconoce', () => {
     expect(mensajeDeErrorOrden({ code: '99999', message: 'algo raro' }, 'por defecto')).toBe('por defecto')
   })
