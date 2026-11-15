@@ -6,6 +6,7 @@
 //   T2  Variable de psql `:'x'` dentro de un bloque `$$ ... $$` de pgTAP (psql no interpola ahí)
 //   T4  Tabla nueva con `organizacion_id` que no está en la exportación total   (exportacion_total.test.sql)
 //   T5  E2E que escribe con la service-role key en una tabla de `dominio` sin grant para service_role
+//   T6  Redefinición de `conjuntos_exportacion_total()` que pierde filas de la versión vigente (pisa lo que agregó otra rama)
 //
 // No cubre (ya lo hacen otros guards): versiones de migración <= la máxima de la base (`verificar-migraciones.mjs
 // --estricto`) y nombres de test con códigos MSF (guardián `apps/web/src/higieneReferenciasInternas.test.ts`).
@@ -126,6 +127,67 @@ export function revisarExportacionTotal({ migracionesDiff }) {
   return problemas;
 }
 
+// T6: filas ('esquema', 'tabla') de la lista `values (...)` con que una migración redefine `conjuntos_exportacion_total()`.
+// Devuelve null si la migración no la define.
+export function filasConjuntosExportacion(sqlOriginal) {
+  const sql = sinComentarios(sqlOriginal);
+  const def = /create\s+(?:or\s+replace\s+)?function\s+private\.conjuntos_exportacion_total\s*\(/i.exec(sql);
+  if (!def) return null;
+  const resto = sql.slice(def.index);
+  const v = /\(\s*values\b/i.exec(resto);
+  if (!v) return new Set();
+  const cuerpo = cuerpoParentesis(resto, v.index);
+  // Acepta ('esquema', 'tabla') y también con casts: ('esquema'::text, 'tabla'::text).
+  const cast = String.raw`(?:\s*::\s*[a-z_][a-z0-9_]*(?:\s+[a-z_][a-z0-9_]*)?)?`;
+  const fila = new RegExp(String.raw`\(\s*'([a-z0-9_]+)'${cast}\s*,\s*'([a-z0-9_]+)'${cast}\s*\)`, 'gi');
+  return new Set([...cuerpo.matchAll(fila)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
+}
+
+// Pérdidas declaradas con `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`; el motivo no puede ir vacío.
+export function perdidasDeclaradas(sqlOriginal) {
+  return new Set([...sqlOriginal.matchAll(/--\s*exportacion-total:\s*se\s+quita\s+([a-z0-9_]+)\.([a-z0-9_]+)\s*\([^)\n]*\S[^)\n]*\)/gi)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
+}
+
+// T6: una migración nueva que redefine la función debe partir de la versión vigente (la anterior de mayor versión que la
+// defina, en la base o en el propio diff) y conservar todas sus filas, salvo las quitadas a propósito y declaradas.
+export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }) {
+  const problemas = [];
+  const definen = todasMigraciones
+    .map((m) => ({ ...m, version: versionDe(m.ruta), filas: filasConjuntosExportacion(m.sql) }))
+    .filter((m) => m.filas)
+    // Orden determinista aunque `todasMigraciones` llegue desordenada o haya dos migraciones con la misma versión.
+    .sort((a, b) => (a.version < b.version ? -1 : a.version > b.version ? 1 : path.basename(a.ruta) < path.basename(b.ruta) ? -1 : path.basename(a.ruta) > path.basename(b.ruta) ? 1 : 0));
+  const enDiff = new Set(migracionesDiff.map((m) => m.ruta));
+  for (const [i, m] of definen.entries()) {
+    if (!enDiff.has(m.ruta)) continue;
+    const previa = i > 0 ? definen[i - 1] : null;
+    // Si la función existe pero no se extrajo ninguna fila, el parseo no entendió la forma del `values`: fallar, no pasar.
+    const sinFilas = [m, previa].filter((x) => x && x.filas.size === 0);
+    if (sinFilas.length) {
+      for (const x of sinFilas) {
+        problemas.push(
+          `${x.ruta} define private.conjuntos_exportacion_total() pero el check no pudo leer ninguna fila ('esquema', 'tabla') de su \`values\`: `
+          + 'no se puede comprobar que conserve la lista vigente. Escribí las filas como `(\'esquema\', \'tabla\')` (se aceptan casts `\'x\'::text`) '
+          + 'o ajustá verificar-trampas-conocidas.mjs si la forma es válida.',
+        );
+      }
+      continue;
+    }
+    if (!previa) continue;
+    const declaradas = perdidasDeclaradas(m.sql);
+    const perdidas = [...previa.filas].filter((f) => !m.filas.has(f) && !declaradas.has(f)).sort();
+    if (!perdidas.length) continue;
+    const lista = perdidas.map((f) => `\`${f}\``).join(', ');
+    problemas.push(
+      `${m.ruta} redefine private.conjuntos_exportacion_total() y pierde ${perdidas.length} fila(s) de la versión vigente: ${lista}. `
+      + `Partió de una versión vieja y pisaría lo que agregó otra rama (exportacion_total.test.sql fallaría). Rebasá la migración sobre ${path.basename(previa.ruta)} `
+      + '(la última que la define: copiá su lista completa y sumá solo tus filas). '
+      + 'Si quitar la fila es intencional, declaralo en la migración con un comentario `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`.',
+    );
+  }
+  return problemas;
+}
+
 const RE_ESCRITURA_E2E = /\b(rest|borrar)\(\s*(['"`])([a-z_][a-z0-9_]*)[^'"`]*\2([^()]*?)\)/gi;
 
 // T5: escrituras E2E con la service-role key en `dominio` (rest/borrar con esquema 'dominio') sin grant para service_role.
@@ -165,14 +227,24 @@ export function revisar({ migracionesDiff, pruebas, e2e, todasMigraciones, sqlTe
     ...revisarGrants({ migracionesDiff, inalterables }),
     ...revisarVariablesPsql({ pruebas }),
     ...revisarExportacionTotal({ migracionesDiff }),
+    ...revisarSupersetExportacion({ migracionesDiff, todasMigraciones }),
     ...revisarE2E({ e2e, tablasConGrant, versionCreacion, inalterables }),
   ];
+}
+
+// Qué hacer si falta la base de comparación: en CI falla cerrado (sin base no se revisa nada y pasaría en falso); en local avisa.
+export function sinBase({ base, env = process.env }) {
+  const ci = Boolean(env.CI || env.GITHUB_ACTIONS);
+  return ci
+    ? { codigo: 1, nivel: 'error', mensaje: `error: no existe la base ${base} y en CI no se puede omitir la revisión de trampas conocidas. Traé la base (git fetch origin) o usá fetch-depth: 0 en el checkout.` }
+    : { codigo: 0, nivel: 'warn', mensaje: `aviso: no existe la base ${base}: se omiten las trampas conocidas (en CI esto fallaría)` };
 }
 
 function main() {
   const args = process.argv.slice(2);
   const valorDe = (flag, def) => { const i = args.indexOf(flag); return i >= 0 && args[i + 1] ? args[i + 1] : def; };
   const base = valorDe('--base', process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy');
+  if (!/^[\w./-]+$/.test(base) || base.startsWith('-')) { console.error(`Valor de --base no válido: ${base}`); process.exit(2); }
   const todo = args.includes('--todo');
   const git = (a) => spawnSync('git', a, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
   const leer = (r) => { try { return readFileSync(r, 'utf8'); } catch { return null; } };
@@ -183,8 +255,9 @@ function main() {
     cambiados = new Set(tracked);
   } else {
     if (git(['rev-parse', '--verify', '--quiet', base]).status !== 0) {
-      console.warn(`aviso: no existe la base ${base}: se omiten las trampas conocidas`);
-      return 0;
+      const r = sinBase({ base });
+      console[r.nivel === 'error' ? 'error' : 'warn'](r.mensaje);
+      return r.codigo;
     }
     const mb = git(['merge-base', base, 'HEAD']).stdout.trim() || base;
     const diff = git(['diff', '--name-only', '--diff-filter=ACMR', mb]);
