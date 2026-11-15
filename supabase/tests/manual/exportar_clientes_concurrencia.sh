@@ -31,7 +31,7 @@ if [ "$LISTA" != "t" ]; then echo "Faltan las migraciones 20270347… en este en
 
 # Persona administradora real con clientes en su organización (no se modifica nada).
 U=$($PSQL -v ON_ERROR_STOP=1 <<< "select uo.user_id from usuarios_organizacion uo where uo.rol_id = 'administrador'
-  and exists (select 1 from clientes c where c.organizacion_id = uo.organizacion_id) limit 1;" 2>"$TMP/err") || { cat "$TMP/err"; exit 2; }
+  and exists (select 1 from dominio.clientes c where c.organizacion_id = uo.organizacion_id) limit 1;" 2>"$TMP/err") || { cat "$TMP/err"; exit 2; }
 [ -n "$U" ] || { echo "No hay una persona administradora con clientes para probar"; exit 2; }
 
 sesion() { # $1 = nombre, resto = SQL intermedio; el stderr se conserva y se muestra si hay un error real

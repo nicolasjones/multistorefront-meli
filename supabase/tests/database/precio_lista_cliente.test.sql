@@ -78,15 +78,15 @@ insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) val
 
 -- Clientes (k): 1 minorista sin lista · 2 mayorista sin lista · 3 minorista con descuento 10 % sin lista
 --   4 minorista con L1 · 5 mayorista con L1 · 6 minorista con L1 y descuento 10 % · 7 minorista con L2 · 8 minorista con L3
-insert into public.clientes (id, organizacion_id, numero, nombre, tipo, descuento)
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, descuento)
 select ('c1000000-0000-0000-0000-' || lpad(k::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111', 100 + k, 'Cliente ' || k,
        case when k in (2, 5) then 'mayorista' else 'minorista' end,
        case when k in (3, 6) then 10 else 0 end
   from generate_series(1, 8) k;
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id in
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id in
   ('c1000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000005', 'c1000000-0000-0000-0000-000000000006');
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000002' where id = 'c1000000-0000-0000-0000-000000000007';
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000003' where id = 'c1000000-0000-0000-0000-000000000008';
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000002' where id = 'c1000000-0000-0000-0000-000000000007';
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000003' where id = 'c1000000-0000-0000-0000-000000000008';
 
 -- ============================================================================
 -- Copia congelada del cálculo ANTERIOR (cuerpos de 20270322100000, sin tocar)
@@ -214,7 +214,7 @@ select ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid as producto,
   from generate_series(1, 10) n
  cross join (values ('a1000000-0000-0000-0000-000000000001'::uuid), ('a1000000-0000-0000-0000-000000000002'::uuid)) e(empresa)
  cross join generate_series(1, 8) k
-  join public.clientes c on c.id = ('c1000000-0000-0000-0000-' || lpad(k::text, 12, '0'))::uuid
+  join dominio.clientes c on c.id = ('c1000000-0000-0000-0000-' || lpad(k::text, 12, '0'))::uuid
  cross join (values (1), (4), (5), (9), (10), (49), (50), (100)) q(cantidad);
 
 select cmp_ok((select count(*) from casos)::int, '=', 1280, 'la matriz tiene 10 productos x 2 tiendas x 8 clientes x 8 cantidades');
@@ -308,7 +308,7 @@ returns table (escala_usada text, neto_unitario numeric, precio_referencia numer
                alicuota_id uuid, alicuota_porcentaje numeric, alicuota_exenta boolean, lista_precio_id uuid, lista_ajuste_pct numeric)
 language sql as $$
   select n.*
-    from public.clientes c
+    from dominio.clientes c
    cross join lateral private.precio_linea_venta_calculo(
          ('b1000000-0000-0000-0000-' || lpad(p_n::text, 12, '0'))::uuid,
          case p_tienda when 'A' then 'a1000000-0000-0000-0000-000000000001'::uuid else 'a1000000-0000-0000-0000-000000000002'::uuid end,
@@ -382,7 +382,7 @@ update public.banderas_plataforma set activa = true where clave = 'promociones_p
 insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) values
   ('d1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Mínimo', -90),
   ('d1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Máximo', 100);
-insert into public.clientes (id, organizacion_id, numero, nombre, tipo, descuento, lista_precio_id) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, descuento, lista_precio_id) values
   ('c1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 109, 'Cliente 9', 'minorista', 0, 'd1000000-0000-0000-0000-000000000004'),
   ('c1000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 110, 'Cliente 10', 'minorista', 0, 'd1000000-0000-0000-0000-000000000005');
 select is((select neto_unitario from pg_temp.lin(1, 'B', 9)), 100::numeric, 'extremo -90 %: 1000 × 0,10 = 100 (tienda B)');
@@ -411,11 +411,11 @@ select is((select count(*)::int from private.lista_precios_cliente('c1000000-000
   'y sí con la suya');
 select is((select count(*)::int from private.lista_precios_cliente(null, '11111111-1111-1111-1111-111111111111')), 0, 'sin cliente no hay lista');
 
-alter table public.clientes disable trigger user;
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001'
+alter table dominio.clientes disable trigger user;
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001'
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final;
-alter table public.clientes enable trigger user;
-select is((select count(*)::int from public.clientes c cross join lateral private.lista_precios_cliente(c.id, c.organizacion_id) l
+alter table dominio.clientes enable trigger user;
+select is((select count(*)::int from dominio.clientes c cross join lateral private.lista_precios_cliente(c.id, c.organizacion_id) l
             where c.es_consumidor_final and c.organizacion_id = '11111111-1111-1111-1111-111111111111'), 0,
   'el Consumidor final no recibe lista aunque una escritura directa se la haya puesto');
 

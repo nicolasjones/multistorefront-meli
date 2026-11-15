@@ -60,7 +60,7 @@ insert into public.usuario_empresa_activa (user_id, empresa_id) values
   ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001'),
   ('f2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null);
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
@@ -145,7 +145,7 @@ begin
 end $$;
 
 -- Segundo cliente, para probar la búsqueda por cliente.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Mariángeles Pérez', 'minorista', null);
 
 -- Un transporte de la tienda 1 para probar la columna de transporte y guía.

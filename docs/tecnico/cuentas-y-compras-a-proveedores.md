@@ -75,7 +75,7 @@ Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`, r
 | `dominio.comprobantes_venta` | `dominio` (existente) | Los documentos del cliente: se leen. |
 | `dominio.cobros_comprobante` | `dominio` (existente) | El libro de cobros (F-VTA-12): se lee. |
 | `private.saldo_comprobante` | `private` (existente) | El saldo del comprobante: se llama; es su único dueño. No está expuesta (`revoke … from public, anon, authenticated`). |
-| `public.clientes` | `public` (existente) | Se lee para saber si el cliente es de la organización de la sesión. |
+| `dominio.clientes` | `public` (existente) | Se lee para saber si el cliente es de la organización de la sesión. |
 | `public.cuenta_corriente_cliente` | `public` (RPC nueva) | Mecanismo de plataforma (lo usan el panel y la tienda), no una entidad de negocio. |
 
 ## Guía de prueba
@@ -157,7 +157,7 @@ rótulos propuestos sigue la numeración de `tasks.md` de la spec.
 
 Revisada por agentes independientes (QA y Código + Seguridad) sobre el commit final y de nuevo sobre las correcciones posteriores (notas de crédito, disparador de efectos, saldo neto en Pagos):
 
-- **Sin tablas nuevas**: no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
+- **Sin tablas nuevas**: no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `dominio.clientes` y `private.saldo_comprobante`.
 - **`security definer` con `search_path = ''`**: todo está calificado (`public.`, `dominio.`, `private.`).
 - **Aislamiento**: la organización sale de `private.organizacion_id()`, nunca de un argumento; el alcance por tienda sale de `private.empresas_accesibles()`.
 - **Permisos**: exige la sección `clientes` en `lectura`/`edicion` (`42501` si no); `revoke … from public, anon` y `grant execute … to authenticated`; `private.saldo_comprobante` no está expuesta.

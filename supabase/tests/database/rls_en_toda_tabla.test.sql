@@ -42,8 +42,8 @@ select is(
 );
 
 select ok(
-  exists (select 1 from tablas_expuestas where esquema = 'public' and tabla = 'clientes' and rls),
-  'control positivo: public.clientes figura en el recorrido con RLS activo'
+  exists (select 1 from tablas_expuestas where esquema = 'dominio' and tabla = 'clientes' and rls),
+  'control positivo: dominio.clientes figura en el recorrido con RLS activo'
 );
 
 -- Control positivo de las tablas de la API (F-API-01): el recorrido es por

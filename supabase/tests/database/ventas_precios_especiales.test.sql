@@ -34,7 +34,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'mostrador'),
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null, 5),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente minorista', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente minorista 5', 'minorista', null, 5);
@@ -139,13 +139,13 @@ create function pg_temp.precio(p_clave text) returns text language sql as $$
 $$;
 
 -- Esquema y privilegios
-select is((select data_type from information_schema.columns where table_schema = 'public' and table_name = 'clientes' and column_name = 'descuento'),
+select is((select data_type from information_schema.columns where table_schema = 'dominio' and table_name = 'clientes' and column_name = 'descuento'),
   'numeric', 'clientes.descuento existe (public, columna aditiva)');
-select is(has_column_privilege('anon', 'public.clientes', 'descuento', 'select')
-  or has_column_privilege('anon', 'public.clientes', 'descuento', 'update'), false, 'anon no ve ni edita el descuento');
-select is(has_column_privilege('authenticated', 'public.clientes', 'descuento', 'insert'), false,
+select is(has_column_privilege('anon', 'dominio.clientes', 'descuento', 'select')
+  or has_column_privilege('anon', 'dominio.clientes', 'descuento', 'update'), false, 'anon no ve ni edita el descuento');
+select is(has_column_privilege('authenticated', 'dominio.clientes', 'descuento', 'insert'), false,
   'el descuento no se concede en INSERT: un cliente nace sin descuento');
-select is((select relrowsecurity from pg_class where oid = 'public.clientes'::regclass), true, 'RLS vigente en clientes');
+select is((select relrowsecurity from pg_class where oid = 'dominio.clientes'::regclass), true, 'RLS vigente en clientes');
 
 -- Cálculo: mayorista con 5 %, cantidad 10 (x10 = 800) => 760; minorista con 5 % (x1 = 1000) => 950
 select lives_ok($$select pg_temp.guardar('mayorista5', '[{"producto_id":"b1000000-0000-0000-0000-000000000001","cantidad":10}]')$$, 'guarda la línea del cliente con descuento');
@@ -174,18 +174,18 @@ select is((public.obtener_comprobante((select id from comps where clave = 'minor
 
 -- Edición del descuento: rango y rol
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
-select throws_ok($$update public.clientes set descuento = 101 where id = 'c5000000-0000-0000-0000-000000000002'$$, '23514', null, 'descuento > 100 rechazado');
-select throws_ok($$update public.clientes set descuento = -1 where id = 'c5000000-0000-0000-0000-000000000002'$$, '23514', null, 'descuento negativo rechazado');
-select lives_ok($$update public.clientes set descuento = 7.5 where id = 'c5000000-0000-0000-0000-000000000002'$$, 'el Administrador fija el descuento');
+select throws_ok($$update dominio.clientes set descuento = 101 where id = 'c5000000-0000-0000-0000-000000000002'$$, '23514', null, 'descuento > 100 rechazado');
+select throws_ok($$update dominio.clientes set descuento = -1 where id = 'c5000000-0000-0000-0000-000000000002'$$, '23514', null, 'descuento negativo rechazado');
+select lives_ok($$update dominio.clientes set descuento = 7.5 where id = 'c5000000-0000-0000-0000-000000000002'$$, 'el Administrador fija el descuento');
 select is((select count(*)::int from public.registro_actividad where tipo = 'cliente.descuento_editado'), 1, 'cambiar el descuento registra cliente.descuento_editado');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select throws_ok($$update public.clientes set descuento = 30 where id = 'c5000000-0000-0000-0000-000000000002'$$, '42501', null, 'quien no es Administrador no cambia el descuento');
-select lives_ok($$update public.clientes set telefono = '123' where id = 'c5000000-0000-0000-0000-000000000002'$$, 'editar otros campos sigue permitido sin ser Administrador');
-select is((select descuento::text from public.clientes where id = 'c5000000-0000-0000-0000-000000000002'), '7.50', 'el descuento quedó como lo fijó el Administrador');
+select throws_ok($$update dominio.clientes set descuento = 30 where id = 'c5000000-0000-0000-0000-000000000002'$$, '42501', null, 'quien no es Administrador no cambia el descuento');
+select lives_ok($$update dominio.clientes set telefono = '123' where id = 'c5000000-0000-0000-0000-000000000002'$$, 'editar otros campos sigue permitido sin ser Administrador');
+select is((select descuento::text from dominio.clientes where id = 'c5000000-0000-0000-0000-000000000002'), '7.50', 'el descuento quedó como lo fijó el Administrador');
 
 -- Aislamiento: el Administrador de otra organización no ve ni toca el cliente
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.clientes where id = 'c5000000-0000-0000-0000-000000000002'), 0, 'otra organización no ve el cliente');
+select is((select count(*)::int from dominio.clientes where id = 'c5000000-0000-0000-0000-000000000002'), 0, 'otra organización no ve el cliente');
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, now())$$, (select id from comps where clave = 'minorista5')),
   'P0002', null, 'otra organización no opera el comprobante');

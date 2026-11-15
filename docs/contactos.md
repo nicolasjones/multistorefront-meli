@@ -75,7 +75,7 @@ Textos frecuentes por empresa que arman el texto inicial de `Responder` en una c
 
 MSF-154 consume contactos solo por las RPC `buscar_contactos` e `historial_contacto` y por `contacto_id` en `consultas_bandeja`; no
 lee `dominio.contactos` directo ni escribe. Respeta el consentimiento guardado y excluye los anonimizados (`anonimizado_en` no nulo).
-Contacto y cliente (`public.clientes`) son **entidades separadas**, sin FK entre ellas (Decisión abierta 2 de la spec): si deben unificarse,
+Contacto y cliente (`dominio.clientes`) son **entidades separadas**, sin FK entre ellas (Decisión abierta 2 de la spec): si deben unificarse,
 se decide antes de que MSF-154 los consuma.
 
 ## Revisión de seguridad (cierre, FR-020)

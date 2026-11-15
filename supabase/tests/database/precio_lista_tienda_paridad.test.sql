@@ -67,13 +67,13 @@ insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) val
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Revendedores', -20);
 
 -- 1 mayorista con lista · 2 minorista con lista · 3 minorista sin lista · 4 suspendida con lista · 5 no habilitada en A con lista
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista con lista', 'my@example.com', 'mayorista', 10),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista con lista', 'ml@example.com', 'minorista', 0),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Minorista sin lista', 'ms@example.com', 'minorista', 0),
   ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 913, 'Suspendida', 'su@example.com', 'mayorista', 0),
   ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 914, 'No habilitada', 'nh@example.com', 'mayorista', 0);
-update clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001'
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001'
  where id in ('c1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000004', 'c1000000-0000-0000-0000-000000000005');
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id)
 select c, e, '11111111-1111-1111-1111-111111111111'
@@ -130,7 +130,7 @@ create function pg_temp.mostrador(p_tienda integer, p_producto text, p_cliente t
   select case when r.mostrar_con_iva then private.aplicar_iva(n.neto_unitario, n.alicuota_porcentaje, coalesce(n.alicuota_exenta, false)) else n.neto_unitario end
     from dominio.empresas e
     join dominio.precios_empresa r on r.empresa_id = e.id
-    join public.clientes c on c.id = p_cliente::uuid
+    join dominio.clientes c on c.id = p_cliente::uuid
    cross join lateral private.precio_linea_venta_calculo(p_producto::uuid, e.id, c.tipo, p_cantidad, 0, now(), false, c.id) n
    where e.id = case p_tienda when 1 then 'e1000000-0000-0000-0000-000000000001'::uuid else 'e1000000-0000-0000-0000-000000000002'::uuid end
 $$;
