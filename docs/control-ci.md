@@ -316,3 +316,7 @@ Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, n
 - **Cola de merge:** el workflow ya reacciona a `merge_group`, pero el ruleset `dokploy-integracion-protegida` hoy solo exige el
   check `validacion` y no tiene regla de cola de merge. Activarla cambia el flujo de merge de todas las sesiones (cada PR corre el CI
   completo al integrar), así que es una decisión aparte.
+
+## E2E con sesión (`e2e-visible-sesion`): arranque del stack
+
+El job manual `e2e-visible-sesion` (`workflow_dispatch` con `e2e_sesion`) levanta el Supabase del CI con `kong` y `postgrest`. PostgREST arranca antes de que las migraciones creen el esquema `dominio` y no queda sano hasta que `pnpm db:reset:ci` las aplica, así que `supabase start` falla su chequeo de salud en una ranura sin migraciones. Igual que `e2e-tienda`, el job baja antes el stack de la ranura, arranca con `--ignore-health-check` y reinicia el contenedor de PostgREST después de `db:reset:ci`. Sin esto la corrida moría en «Levantar el stack de Supabase del CI» y ningún E2E con sesión llegaba a ejecutarse (corrida del 2026-11-15).
