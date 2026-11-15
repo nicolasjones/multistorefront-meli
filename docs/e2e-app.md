@@ -201,7 +201,7 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
 | Permisos por empresa: asignar desde Usuarios, cambiar de empresa activa y nivel de edición resuelto | MSF-121 T022 | Escrito: `e2e/permisos-por-empresa.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). No hay pantalla de una sección por empresa (Ventas/Consultas) todavía: el nivel se comprueba sobre la respuesta de `permisos_actuales` que decide los botones de edición |
-| Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker). Guía: `docs/inicio-y-alertas.md` |
+| Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Ejecutado y en verde en el job `e2e-visible-sesion` del CI (corrida 43730923693, 2 tests, MSF-747): `service_role` no escribe `usuarios_empresas`, así que el Administrador sembrado asigna tiendas y roles con la RPC `asignar_empresas_usuario` con su propia sesión. Guía: `docs/inicio-y-alertas.md` |
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
 | Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
 | Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
@@ -768,8 +768,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   entorno donde se hizo el cambio): falta una corrida de `service-cobro-avisos` y `tienda-publicacion` con evidencia
   (CI `e2e-visible-sesion` por `workflow_dispatch` con `e2e_sesion`, o `pnpm dev:supabase` + `pnpm --filter @platform/web
   test:e2e <spec>`).
-- **Pendientes sin ejecutar (MSF-506, MSF-665, MSF-747).** Siguen sin corrida con evidencia: `inicio.e2e.ts` (tres
-  roles y cambio de empresa, MSF-747), y los recorridos «Pendiente» de la tabla de cobertura (usuarios, matriz de
+- **Pendientes sin ejecutar (MSF-506, MSF-665, MSF-747).** Siguen sin corrida con evidencia: los recorridos «Pendiente» de la tabla de cobertura (usuarios, matriz de
   permisos, Empresas, editar la organización, Clientes alta/búsqueda/exportación SC-001, Catálogo SC-001/SC-006). No se
   escribieron specs nuevos ni se marcó nada como pasado: requieren un stack local con usuarios por rol y la corrida
   firmada.
@@ -778,3 +777,5 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
 ## Perfiles de prueba: los crea la propia persona, no `service_role`
 
 `service_role` tiene permisos mínimos por tabla y ninguna migración le concede `insert` sobre `public.perfiles_usuario`. Un spec que necesite un perfil (por ejemplo `permisos-por-empresa.e2e.ts`, que lo usa para que el listado de Usuarios muestre el nombre) inicia sesión como esa persona y lo inserta con su token, que es lo que permite la política `perfiles_usuario_insert_titular`. No se amplían permisos de `service_role` para los E2E. La clave anónima sale de `VITE_SUPABASE_PUBLISHABLE_KEY` (la que exporta el CI), con `SUPABASE_ANON_KEY` y `VITE_SUPABASE_ANON_KEY` como alternativas locales.
+
+Nota de CI: el filtro `e2e_archivos=inicio.e2e.ts` también coincide con `tienda-inicio.e2e.ts`; para correr solo el de Inicio se pasa `e2e/inicio.e2e.ts`. El stack de CI es único por ranura: dos corridas simultáneas se pisan el reset de la base (síntomas: `relation ... does not exist` o `permission denied for schema dominio`); se reintenta con una sola corrida activa.
