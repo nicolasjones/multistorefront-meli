@@ -2,8 +2,10 @@
 -- Son la ÚNICA vía de escritura de `dominio.gastos` (guardar_gasto, anular_gasto). `security definer` + `search_path = ''`:
 -- la organización y el rol salen de la sesión, nunca de un parámetro. Escribir exige `edicion` en `rentabilidad` sobre la empresa.
 -- Errores: 42501 permiso o empresa no accesible · P0002 no existe · 22023 validación, empresa inactiva o sin cotización · 40001 cambio concurrente.
--- Eventos de Actividad `gasto.creado|editado|anulado`: NO sensibles (son importes operativos, no cambios de acceso o permisos; el seed de
--- `registro_inalterable.test.sql` espera exactamente los seis tipos sensibles de la spec de auditoría). Igual guardan valor anterior y nuevo.
+-- Eventos de Actividad `gasto.creado|editado|anulado`: NO sensibles (no son cambios de acceso o permisos; el seed de
+-- `registro_inalterable.test.sql` espera exactamente los seis tipos sensibles de la spec de auditoría). Actividad la lee quien tiene la
+-- sección `actividad`, que NO implica `rentabilidad`: por eso el `detalle` y el jsonb NO llevan cifras (ni importe, ni pesos, ni moneda,
+-- ni el motivo de anulación): solo concepto, nombre de la empresa y NOMBRES de los campos modificados (decisión delegada, ver la spec).
 --
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function public.anular_gasto(uuid, text, timestamptz);
@@ -12,7 +14,7 @@
 
 insert into public.tipos_evento_actividad (tipo, sensible, descripcion) values
   ('gasto.creado', false, 'Gasto de la empresa cargado'),
-  ('gasto.editado', false, 'Gasto de la empresa editado (valor anterior y nuevo)'),
+  ('gasto.editado', false, 'Gasto de la empresa editado (campos modificados, sin cifras)'),
   ('gasto.anulado', false, 'Gasto de la empresa anulado con motivo'),
   ('gasto.exportado', false, 'Exportación del listado de gastos')
 on conflict (tipo) do nothing;
@@ -39,6 +41,7 @@ declare
   v_uid uuid := (select auth.uid());
   v_detalle text := nullif(btrim(coalesce(p_detalle, '')), '');
   v_hoy date := (now() at time zone 'America/Argentina/Buenos_Aires')::date;
+  v_campos text[];
   v_activa boolean;
   v_nombre text;
   v_actual dominio.gastos;
@@ -59,8 +62,8 @@ begin
   if p_empresa not in (select private.empresas_accesibles()) then
     raise exception 'No podés cargar gastos para esa empresa' using errcode = '42501';
   end if;
-  if p_fecha is null or p_fecha > v_hoy + 31 then
-    raise exception 'La fecha es obligatoria y no puede superar los 31 días a futuro' using errcode = '22023';
+  if p_fecha is null or p_fecha > v_hoy + 31 or p_fecha < date '2000-01-01' then
+    raise exception 'La fecha es obligatoria, desde el 01/01/2000 y no puede superar los 31 días a futuro' using errcode = '22023';
   end if;
   if p_categoria is null or p_categoria not in ('Alquiler', 'Servicios', 'Sueldos', 'Fletes', 'Insumos', 'Impuestos', 'Otros') then
     raise exception 'La categoría no es válida' using errcode = '22023';
@@ -94,18 +97,23 @@ begin
     end if;
   end if;
 
-  -- Cotización congelada (D8): se conserva si nada que la determine cambió; si no, la del dólar aplicado más cercano a la fecha.
+  -- Cotización congelada (D8, CA-GAS-5): se conserva solo si nada que la determine cambió (moneda USD igual, importe, fecha y
+  -- tienda); si cambia alguno se recalcula con la del dólar aplicado más cercano a la fecha.
   if p_moneda = 'ARS' then
     v_cot := null;
     v_pesos := p_importe;
   else
-    if p_id is not null and v_actual.moneda = 'USD' and v_actual.fecha = p_fecha and v_actual.empresa_id = p_empresa then
+    if p_id is not null and v_actual.moneda = 'USD' and v_actual.fecha = p_fecha and v_actual.empresa_id = p_empresa
+       and v_actual.importe = p_importe then
       v_cot := v_actual.cotizacion_usada;
     else
       v_cot := analitica.cotizacion_cercana(v_org, ((p_fecha::timestamp + time '12:00') at time zone 'America/Argentina/Buenos_Aires'), p_empresa);
     end if;
     if v_cot is null then
       raise exception 'Cargá la cotización del dólar' using errcode = '22023';
+    end if;
+    if p_importe * v_cot >= 1000000000000 then
+      raise exception 'El importe en pesos es demasiado grande: revisá el importe' using errcode = '22023';
     end if;
     v_pesos := round(p_importe * v_cot, 2);
     if v_pesos <= 0 then
@@ -121,10 +129,9 @@ begin
     returning id into v_id;
     perform private.insertar_cambio_actividad(
       v_org, v_uid, 'gasto.creado',
-      format('Cargó un gasto de %s en %s: %s %s', p_categoria, v_nombre, p_moneda, p_importe),
+      format('Cargó un gasto de %s en %s', p_categoria, v_nombre),
       null,
-      jsonb_build_object('importe', p_importe, 'moneda', p_moneda, 'categoria', p_categoria, 'tipo_costo', p_tipo_costo,
-                         'fecha', p_fecha, 'empresa', v_nombre),
+      jsonb_build_object('categoria', p_categoria, 'empresa', v_nombre),
       p_empresa
     );
   else
@@ -134,14 +141,23 @@ begin
            recurrente = coalesce(p_recurrente, false), updated_at = clock_timestamp()
      where id = p_id;
     v_id := p_id;
+    -- Solo los NOMBRES de los campos que cambiaron, nunca sus valores.
+    v_campos := array_remove(array[
+      case when v_actual.empresa_id is distinct from p_empresa then 'empresa' end,
+      case when v_actual.fecha is distinct from p_fecha then 'fecha' end,
+      case when v_actual.categoria is distinct from p_categoria then 'categoria' end,
+      case when v_actual.tipo_costo is distinct from p_tipo_costo then 'tipo_costo' end,
+      case when v_actual.detalle is distinct from v_detalle then 'detalle' end,
+      case when v_actual.importe is distinct from p_importe then 'importe' end,
+      case when v_actual.moneda is distinct from p_moneda then 'moneda' end,
+      case when v_actual.recurrente is distinct from coalesce(p_recurrente, false) then 'recurrente' end
+    ], null);
     perform private.insertar_cambio_actividad(
       v_org, v_uid, 'gasto.editado',
       format('Editó un gasto de %s en %s', p_categoria, v_nombre),
-      jsonb_build_object('importe', v_actual.importe, 'moneda', v_actual.moneda, 'categoria', v_actual.categoria,
-                         'tipo_costo', v_actual.tipo_costo, 'fecha', v_actual.fecha,
+      jsonb_build_object('categoria', v_actual.categoria,
                          'empresa', (select e.nombre from dominio.empresas e where e.id = v_actual.empresa_id)),
-      jsonb_build_object('importe', p_importe, 'moneda', p_moneda, 'categoria', p_categoria, 'tipo_costo', p_tipo_costo,
-                         'fecha', p_fecha, 'empresa', v_nombre),
+      jsonb_build_object('categoria', p_categoria, 'empresa', v_nombre, 'campos_modificados', to_jsonb(v_campos)),
       p_empresa
     );
   end if;
@@ -163,6 +179,7 @@ declare
   v_uid uuid := (select auth.uid());
   v_motivo text := btrim(coalesce(p_motivo, ''));
   v_g dominio.gastos;
+  v_emp_nombre text;
 begin
   if v_org is null or (select private.nivel_seccion('rentabilidad')) <> 'edicion' then
     raise exception 'Tu rol no puede anular gastos' using errcode = '42501';
@@ -187,11 +204,13 @@ begin
   update dominio.gastos
      set anulado_en = clock_timestamp(), anulado_por = v_uid, motivo_anulacion = v_motivo, updated_at = clock_timestamp()
    where id = p_id;
+  select e.nombre into v_emp_nombre from dominio.empresas e where e.id = v_g.empresa_id;
+  -- Sin cifras ni motivo: el motivo vive en `dominio.gastos` (visible con la sección rentabilidad).
   perform private.insertar_cambio_actividad(
     v_org, v_uid, 'gasto.anulado',
-    format('Anuló un gasto de %s por %s %s. Motivo: %s', v_g.categoria, v_g.moneda, v_g.importe, v_motivo),
-    jsonb_build_object('importe', v_g.importe, 'moneda', v_g.moneda, 'categoria', v_g.categoria, 'vigente', true),
-    jsonb_build_object('importe', v_g.importe, 'moneda', v_g.moneda, 'categoria', v_g.categoria, 'vigente', false, 'motivo', v_motivo),
+    format('Anuló un gasto de %s en %s', v_g.categoria, v_emp_nombre),
+    jsonb_build_object('categoria', v_g.categoria, 'empresa', v_emp_nombre, 'vigente', true),
+    jsonb_build_object('categoria', v_g.categoria, 'empresa', v_emp_nombre, 'vigente', false),
     v_g.empresa_id
   );
 end;

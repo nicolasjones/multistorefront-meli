@@ -33,7 +33,9 @@ Referencia técnica de F-GAS-01 «Registrar gastos» y F-GAS-02 «Consultar gast
 
 **Dólar congelado**: un gasto en USD guarda la cotización aplicada del dólar de la empresa (o la general) **más cercana a la fecha del gasto** (`analitica.cotizacion_cercana`) y el importe en pesos resultante; una cotización cargada después no lo reescribe. Sin cotización, el alta se rechaza con «Cargá la cotización del dólar».
 
-**Actividad**: `gasto.creado`, `gasto.editado` (valor anterior y nuevo), `gasto.anulado` (con motivo) y `gasto.exportado`. No son tipos sensibles (son importes operativos, no cambios de acceso ni permisos), por eso el catálogo de tipos sensibles de la auditoría no cambia.
+**Actividad**: `gasto.creado`, `gasto.editado`, `gasto.anulado` y `gasto.exportado`. No son tipos sensibles (no son cambios de acceso ni permisos), por eso el catálogo de tipos sensibles de la auditoría no cambia. **Decisión (delegada, D19): los eventos no llevan cifras.** Actividad se lee con la sección `actividad`, que no implica `rentabilidad`; por eso el `detalle` y el jsonb guardan solo el concepto, el nombre de la empresa y, al editar, los nombres de los campos modificados (`campos_modificados`), nunca el importe, la moneda, los pesos ni el motivo de anulación (ese vive en `dominio.gastos`). `exportar_gastos` con una empresa no accesible lanza `42501` y no la nombra.
+
+**Validación**: fecha entre 2000-01-01 y 31 días a futuro; importe con hasta 2 decimales y menor que 10^12; si el importe en pesos de un gasto en USD desborda, `22023` con mensaje claro. Al editar un gasto en USD la cotización se recalcula si cambia el importe, la fecha, la tienda o la moneda; si solo cambia otro dato, se conserva.
 
 ## Pantalla
 

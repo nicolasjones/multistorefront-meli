@@ -147,6 +147,10 @@ begin
   if v_org is null or (select private.nivel_seccion('rentabilidad')) not in ('lectura', 'edicion') then
     raise exception 'Tu rol no puede exportar los gastos' using errcode = '42501';
   end if;
+  -- Una empresa de la organización que la persona no puede ver no se revela ni por el nombre en el evento.
+  if p_empresa is not null and p_empresa not in (select private.empresas_accesibles()) then
+    raise exception 'No podés exportar gastos de esa empresa' using errcode = '42501';
+  end if;
   with f as (
     select g.*, e.nombre as empresa_nombre
       from dominio.gastos g
