@@ -4,6 +4,8 @@
 
 Los administradores de cada organización reciben una vez por semana, por correo, un resumen del negocio: rentabilidad, ventas de la semana y stock en alerta. Quien no quiere recibirlo lo apaga en «Avisos por correo» (`/cuenta/avisos`).
 
+La otra mitad de la épica es la [galería de tableros analíticos](analitica-avanzada.md) (F-REP-07). La revisión de seguridad de las dos entregas está en [Revisión de seguridad de la analítica avanzada](revision-seguridad-analitica-avanzada.md).
+
 ## Piezas
 
 | Pieza | Dónde | Esquema |
@@ -73,3 +75,4 @@ Migración posterior que haga `drop` de las funciones `private` del resumen, lue
 - `supabase/tests/database/resumen_semanal_secciones.test.sql`: secciones con y sin datos, sección omitida cuando la fuente no existe, y filtro por acceso del destinatario.
 - `infra/kestra/flows/resumen-semanal.test.mjs`: contrato del flow (cadencia, SMTP, HTML escapado, reintentos y motivo fijo).
 - `supabase/tests/database/rls_en_toda_tabla.test.sql` sigue verde: la tabla nueva tiene RLS activo.
+- Revisión de seguridad de la entrega: [Revisión de seguridad de la analítica avanzada](revision-seguridad-analitica-avanzada.md).
