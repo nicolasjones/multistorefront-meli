@@ -126,6 +126,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
@@ -276,6 +278,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
         run: |
@@ -436,6 +440,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
       # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
@@ -633,6 +639,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
       # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
