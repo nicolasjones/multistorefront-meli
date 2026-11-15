@@ -898,9 +898,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "3062d821fafc802aeb88fd8a6d8b4bca48847b57b18cd20c7c27475fa46c91a6",
-      "sourceHash": "c126615ba54cc4076e9f0e245f3d69ae63e01f3f26a447db18e1912da8882ab6",
-      "sourceAt": "58cabc03",
+      "pageHash": "c5933104e8a5825c432265e8f399e6acce3beb4fc21a28fb239994283b5ecfa1",
+      "sourceHash": "ccba1d30a835ae001a0ba3954ec26008da5488a77184b97f17b69032fa34dce5",
+      "sourceAt": "b30cf208",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -913,7 +913,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "58cabc03"
+      "commit": "b30cf208"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1048,12 +1048,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "2882dfd55a9fb7831fd3d60b2b826657e575958a162ac0d02501ecdb06f46a51",
+      "pageHash": "6e3a45867d317c977e05e4dd2e5ea706e877501bcf4498a5981f06836311f3ad",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "bfeaa8b6"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1316,6 +1316,15 @@
       ],
       "owner": "producto",
       "commit": "9b7ffeec"
+    },
+    "docs/producto/opiniones.md": {
+      "title": "Opiniones: moderar lo que dicen los clientes",
+      "pageHash": "a498b379fc1be7fc47724407272e60a8ef661ed82b8e213c346fa2a190ec9294",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "36967908"
     },
     "docs/producto/organizacion-y-empresas.md": {
       "title": "Tu organización y tus empresas",
@@ -3652,6 +3661,22 @@
       ],
       "owner": "tecnico",
       "commit": "ebf4bf4d"
+    },
+    "docs/tienda-opiniones.md": {
+      "title": "Opiniones de productos: base y moderación (MSF-467)",
+      "pageHash": "78c6b261742936c6093c8ae2370d7ed3b10e7d92db921b95319366a538a65e94",
+      "sourceHash": "f6f52325a39052cfa41c642f852831b7c5897274a4b66c2bdab4ad87734d9466",
+      "sourceAt": "33d1644e",
+      "sources": [
+        "specs/20270328-100000-opiniones-de-productos",
+        "supabase/migrations/20270341000000_opiniones_producto.sql",
+        "supabase/migrations/20270341000100_opiniones_validacion.sql",
+        "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
+        "supabase/migrations/20270341000500_exportacion_total_opiniones.sql",
+        "apps/web/src/pages/opiniones"
+      ],
+      "owner": "tecnico",
+      "commit": "33d1644e"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",

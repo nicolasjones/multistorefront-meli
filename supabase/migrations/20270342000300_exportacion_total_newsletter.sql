@@ -3,11 +3,11 @@
 -- tienda (a quién escribe y si lo activó), así que SE EXPORTAN, sin la columna `confirmacion_hash` (SHA-256 del token de confirmación; el nombre
 -- no coincide con el filtro genérico de secretos, por eso se excluye por nombre de tabla y columna). Las demás columnas del reclamo son
 -- estado interno sin dato personal adicional.
--- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270340000100`, que ya suma `listas_precios`) sumando solo las
+-- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270341000500`, que ya suma `listas_precios` y `opiniones_producto`) sumando solo las
 -- dos filas y el filtro de columna. La lista de exclusiones no cambia. `dominio.newsletters` (Fase 4) se sumará en su propia migración.
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270340000100_exportacion_total_listas_precios.sql`.
+-- Reversión (migración posterior): volver a la definición de `20270341000500_exportacion_total_opiniones.sql`.
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])
@@ -71,6 +71,7 @@ as $$
     ('dominio', 'movimientos_stock'),
     ('dominio', 'newsletter_configuracion'),
     ('dominio', 'newsletter_suscriptores'),
+    ('dominio', 'opiniones_producto'),
     ('dominio', 'ordenes_compra'),
     ('dominio', 'ordenes_compra_items'),
     ('dominio', 'precios_empresa'),
