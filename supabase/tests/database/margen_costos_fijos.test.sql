@@ -305,8 +305,13 @@ select is(
     where empresa_id = 'e1000000-0000-0000-0000-000000000001' and mes = date_trunc('month', (now() at time zone 'America/Argentina/Buenos_Aires'))::date),
   true, 'el mes de hoy (Buenos Aires) se marca como mes en curso'
 );
+insert into dominio.gastos (organizacion_id, empresa_id, fecha, categoria, tipo_costo, importe, moneda, importe_pesos) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001',
+   (date_trunc('month', (now() at time zone 'America/Argentina/Buenos_Aires')) - interval '1 month')::date, 'Servicios', 'fijo', 10, 'ARS', 10);
 select is(
-  (select bool_or(mes_en_curso) from analitica.margen_costos_fijos_empresa_mes where mes < date_trunc('month', (now() at time zone 'America/Argentina/Buenos_Aires'))::date),
+  (select bool_or(mes_en_curso) from analitica.margen_costos_fijos_empresa_mes
+    where empresa_id = 'e1000000-0000-0000-0000-000000000001'
+      and mes = (date_trunc('month', (now() at time zone 'America/Argentina/Buenos_Aires')) - interval '1 month')::date),
   false, 'un mes ya cerrado no se marca como en curso'
 );
 select is(

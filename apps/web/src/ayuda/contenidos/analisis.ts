@@ -9,9 +9,8 @@ export const ayudaAnalisis: AyudaPorDestino = {
       'Entrá a Resumen para ver el margen por empresa y el total consolidado.',
       'Si aparece el aviso de productos en riesgo, tocá «Ver detalle» para revisarlos.',
       'Usá «Por producto» para buscar y filtrar el margen de cada producto.',
-      'En «Comparativo» mirá el margen del mismo producto en cada empresa.',
+      'En «Comparativo» mirá el margen del mismo producto en cada empresa; en «Después de costos fijos», lo que queda tras repartir los gastos.',
       'Con permiso de edición, ajustá el margen bajo desde «Umbral de margen bajo».',
-      'Si ves «Después de costos fijos», mirá cuánto queda de cada producto una vez repartidos los gastos fijos de la tienda (cargados en Administración → Gastos).',
     ],
   },
 }
