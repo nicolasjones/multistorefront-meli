@@ -94,7 +94,7 @@ Restricciones e índices sobre `public.clientes`:
 | `20261016140000_clientes_buscar.sql` | `public.buscar_clientes` (M4, parte 1). |
 | `20261016150000_clientes_exportar.sql` | `public.exportar_clientes` (M4, parte 2). |
 | `20270324110000_exportar_clientes_registra_actividad.sql` | MSF-508: la lógica pasa a `private.exportar_clientes_lote` y `public.exportar_clientes` queda como envoltorio `volatile` que registra `clientes.exportados`. |
-| `20270341000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas (ventana de 10 min, tope de 50000 acumulado), texto buscado fuera de la actividad. |
+| `20270344000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas (ventana de 10 min, tope de 50000 acumulado), texto buscado fuera de la actividad. |
 | `20261016160000_clientes_habilitar_pg_trgm.sql` | Habilita `pg_trgm` en `extensions` y garantiza el índice GIN: **aborta con error si el índice no queda creado**, para que no haya un salto silencioso (en CI la extensión no estaba instalada y la migración de la ficha no creaba el índice). |
 
 La orden es deliberada: M3 reinicia los grants por columna, por eso M2 (`tipo`) va después.
@@ -232,7 +232,7 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   `authenticated`) y escribe `clientes.exportados` con `private.registrar_actividad`: «Exportó N clientes a Excel
   (filtros: …)». El permiso y el tope de 50000 por exportación se validan antes, así que un rechazo (`42501`/`54000`) no
   deja evento. Los filtros salen con el nombre visible de la tienda (nunca ids) y el texto buscado **no se escribe**
-  (solo «con texto»; podía ser un DNI, un correo o un teléfono). Desde `20270341000000` (seguridad retroactiva de #1011)
+  (solo «con texto»; podía ser un DNI, un correo o un teléfono). Desde `20270344000000` (seguridad retroactiva de #1011)
   cuenta **toda llamada con filas**, no solo el primer lote: `private.clientes_exportaciones_ventana` (sin acceso para la
   API) lleva una ventana de 10 minutos por organización, persona y huella de filtros con las filas entregadas y las ya
   declaradas. El primer lote declara el total de la exportación; un lote con cursor suma y solo escribe un evento

@@ -191,7 +191,7 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
   Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
 - **Límites conocidos:** (1) la exportación se registra en la actividad una sola vez por exportación, en el primer lote con filas y con el total
-  de ese momento (evento `clientes.exportados`, migraciones `20270324110000` y `20270341000000`: desde esta última toda llamada con filas cuenta, ver más abajo), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
+  de ese momento (evento `clientes.exportados`, migraciones `20270324110000` y `20270344000000`: desde esta última toda llamada con filas cuenta, ver más abajo), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
   (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
   de la exportación solo se cuenta en el primer lote (el tope de 50000 filas también rige, acumulado, sobre la ventana de 10 minutos), y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
   si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo

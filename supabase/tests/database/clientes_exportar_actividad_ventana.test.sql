@@ -2,7 +2,7 @@
 -- filas rige sobre el acumulado de una ventana de 10 minutos por persona y filtros, y el texto buscado nunca llega a la actividad.
 begin;
 
-select plan(14);
+select plan(16);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into auth.users (id, email) values
@@ -53,6 +53,21 @@ select is((select count(*)::int from registro_actividad where tipo = 'clientes.e
 select is((select detalle from registro_actividad where tipo = 'clientes.exportados' and detalle like '%tipo mayorista%'),
   'Exportó 2 clientes a Excel (filtros: tipo mayorista)', 'el único evento declara el total de la exportación');
 
+-- Exportación paginada normal (lotes con cursor): EXACTAMENTE un evento, con el total correcto de la exportación.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select count(*) from exportar_clientes(null, 'minorista', false, null, 1);
+select count(*) from exportar_clientes(null, 'minorista', false,
+  (select c.id from clientes c where c.tipo = 'minorista' and not c.archivado_en is not null order by lower(c.nombre), c.id limit 1), 1);
+reset role;
+select is((select array_agg(detalle) from registro_actividad where tipo = 'clientes.exportados' and detalle like '%tipo minorista%'),
+  array['Exportó 2 clientes a Excel (filtros: tipo minorista)'], 'paginada normal: exactamente un evento con el total correcto');
+
+-- Cursor sin primer lote: cada fila entregada queda declarada en algún evento (suma de eventos sin filtros = filas entregadas = 6).
+select is((select sum(substring(detalle from '^Exportó ([0-9]+) ')::int)::int from registro_actividad
+  where tipo = 'clientes.exportados' and detalle not like '%filtros:%'),
+  (select filas_acumuladas from private.clientes_exportaciones_ventana where filas_acumuladas = 6 limit 1),
+  'cursor sin primer lote: filas declaradas en eventos = filas entregadas');
+
 -- Tope acumulado: 49999 entregadas en la ventana + 3 filas supera 50000.
 update private.clientes_exportaciones_ventana set filas_acumuladas = 49999, filas_declaradas = 49999
  where actor_id = 'd1000000-0000-0000-0000-000000000001' and filtros_hash = (select filtros_hash from private.clientes_exportaciones_ventana
@@ -62,7 +77,7 @@ select throws_ok(
   $q$select * from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$,
   '54000', null, 'el tope de 50000 filas corta sobre el acumulado de la ventana');
 reset role;
-select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 3,
+select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 4,
   'la llamada rechazada no deja evento ni suma filas');
 select is((select max(filas_acumuladas) from private.clientes_exportaciones_ventana), 49999, 'la ventana conserva el acumulado previo');
 
