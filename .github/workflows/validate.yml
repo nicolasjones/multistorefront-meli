@@ -138,6 +138,10 @@ jobs:
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
         run: pnpm test:docs:pasos-manuales
+      # Simulacro de restauración (MSF-520): el protocolo tiene que conservar los pasos que miden
+      # los objetivos y la documentación no puede contradecirse sobre si el simulacro corrió.
+      - name: test:docs:simulacro
+        run: pnpm test:docs:simulacro
       # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
