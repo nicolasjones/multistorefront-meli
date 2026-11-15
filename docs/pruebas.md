@@ -119,11 +119,20 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 
 `scripts/verificar-trampas-conocidas.mjs` convierte en checks deterministas (sin red, sin secretos, segundos) errores que ya costaron vueltas de CI. Mira el diff contra `origin/dokploy` como `verificar-migraciones.mjs`; corre dentro de `pnpm docs:check` (job `application`) y en `pnpm prepush` cuando el diff toca migraciones, pgTAP o E2E. `--todo` revisa el árbol completo como si todo fuera nuevo (sirve para comprobar que no hay falsos positivos). Su prueba es `scripts/verificar-trampas-conocidas.test.mjs`, dentro de `pnpm test:docs:check`.
 
+Requisitos y límites del check:
+
+- `todasMigraciones` sale de `git ls-files` del árbol local, no de la base. Por eso `pnpm prepush` exige la rama rebasada o integrada con `origin/dokploy` (`git fetch origin && git merge origin/dokploy`): con la rama atrasada, T6 compara contra una versión vigente vieja y no ve filas que otra rama ya agregó.
+- En CI el job `application` (el que corre `pnpm docs:check`) usa `actions/checkout@v4` con `fetch-depth: 0` y, al ser `pull_request`, el checkout por defecto es el merge ref (`refs/pull/N/merge`), es decir la rama ya integrada con la base; `origin/dokploy` existe por el historial completo. Verificado en `.github/workflows/validate.yml`.
+- Si falta la base de comparación (`origin/dokploy` ausente): en CI (`CI` o `GITHUB_ACTIONS`) el script falla con un mensaje claro; en local solo avisa y sale 0.
+- T6: si la función existe pero no se puede leer ninguna fila `('esquema', 'tabla')` (se aceptan casts `'x'::text`), falla en lugar de pasar. Con dos migraciones de la misma versión se ordena por versión y luego por nombre de archivo. La pérdida declarada exige un motivo no vacío: `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`.
+
 | Trampa | Falla cuando | Arreglo |
 | --- | --- | --- |
 | Grants de `service_role` | una migración crea `dominio.<x>` y el diff no trae `grant ... to service_role` para ella (`service_role_privilegios.test.sql`) | `grant select, insert, update, delete on dominio.<x> to service_role;` o declararla inalterable |
 | Variables de psql en pgTAP | un `.test.sql` usa `:'nombre'` dentro de `$$ ... $$` (psql no interpola ahí) | `format('... %L ...', :'nombre')` |
 | Exportación total | una tabla nueva con `organizacion_id` no figura en `conjuntos_exportacion_total()` ni en `exclusiones_exportacion_total()` del diff | redefinir la función sumando la tabla, o excluirla con motivo |
+| Superconjunto de la exportación total | una migración nueva redefine `conjuntos_exportacion_total()` y su lista `values (...)` no contiene todas las filas de la versión vigente anterior (la de mayor versión menor a la suya, en la base o en el diff) | rebasar sobre esa versión (copiar su lista completa y sumar solo las filas propias); si quitar una fila es intencional, comentario `-- exportacion-total: se quita <esquema>.<tabla> (motivo)` en la migración. Al mergear una rama que toque la función, las demás pendientes rebasan su migración sobre la nueva versión |
+| Estilos sueltos en pantallas | una pantalla de `apps/web/src/pages` usa `borderRadius` numérico, colores hex o `height`/`fontSize` fijos (`pnpm estilos:check`, `verificar-estilos-sueltos.mjs`; rompe el job `application`). `pnpm prepush` lo corre si el diff toca `apps/web/src/pages` | usar tokens del tema; para el radio, `(tema) => \`${tema.shape.borderRadius}px\`` |
 | E2E con service key | un E2E escribe (`rest`/`borrar` con esquema `'dominio'`) en una tabla sin grant a `service_role` en ninguna migración | sumar el grant a la migración de la tabla |
 
 No se duplican: versiones de migración menores o iguales a la máxima de la base (`verificar-migraciones.mjs --estricto`) y nombres de test con códigos MSF (guardián `higieneReferenciasInternas.test.ts`, sección anterior).
