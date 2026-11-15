@@ -2,7 +2,7 @@
 -- Casos borde de `private.validar_texto_opinion` y `private.nombre_publico_cliente`.
 begin;
 
-select plan(99);
+select plan(101);
 
 create function pg_temp.ok_(p_punt int, p_txt text) returns boolean language sql as
   $$ select (private.validar_texto_opinion(p_punt, p_txt)->>'ok')::boolean $$;
@@ -74,6 +74,8 @@ select is(pg_temp.ok_(5, 'Comprá en mitienda3.me, no te lo pierdas'), false, 'd
 select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(12290) || 'com hoy mismo'), false, 'punto ideográfico U+3002');
 select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(65294) || 'com hoy mismo'), false, 'punto de ancho completo U+FF0E');
 select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(65377) || 'com hoy mismo'), false, 'punto de media anchura U+FF61');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(8228) || 'com hoy mismo'), false, 'punto de guía U+2024');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(65106) || 'com hoy mismo'), false, 'punto pequeño U+FE52');
 select is(pg_temp.ok_(5, 'Comprá en ejemplo[.]com hoy mismo'), true, 'ejemplo[.]com NO se detecta (limitación conocida)');
 select is(pg_temp.ok_(5, 'Comprá en ejemplo(.)com hoy mismo'), true, 'ejemplo(.)com NO se detecta (limitación conocida)');
 select is(pg_temp.ok_(5, 'Comprá en ejemplo.' || chr(1089) || 'om hoy mismo'), true, 'homógrafos cirílicos NO se detectan (limitación conocida)');
