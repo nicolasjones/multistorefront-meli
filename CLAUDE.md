@@ -75,6 +75,8 @@ Cada una fue un fallo real de CI (2026-11-15). Detalle de los checks en `docs/pr
 - Los jobs E2E con sesión comparten el stack `ci-multistorefront-meli`: dos corridas manuales simultáneas se pisan; sin check, criterio humano.
 - Título de commit de más de 100 caracteres: lo rechaza commitlint en CI; sin check local.
 - Cada merge a `dokploy` deja conflictos en `docs/roadmap-template.md`, `package.json` y `docs/manifest.json` de los demás PR: resolver conservando ambos lados y regenerar con `pnpm docs:wiki:inventario` y `node scripts/docs-manifest.mjs`; sin check, criterio humano.
+- Cada merge a `dokploy` sube la versión máxima de migraciones: todo PR en vuelo con migraciones por debajo de la máxima falla `verificar-migraciones --estricto`; antes de mergear, comparar con `origin/dokploy` y renumerar con `git mv` a una ventana libre (al 2026-11-15 la siguiente libre es `20270350…`); cada merge además deja conflicto en `docs/manifest.json` e `docs/_generated/inventory.*`: regenerar con `node scripts/docs-manifest.mjs` y `node scripts/docs-inventario.mjs`; un PR por vez y serializar; sin check, criterio humano.
+- Ningún PR de código se mergea sin dos revisiones independientes (QA y Código/Seguridad) sobre el SHA final: el skill `desarrollo-manual` y su script `merge-con-revisiones.sh` lo imponen.
 - Docker publica puertos saltándose ufw (infra, no repo): sin check, criterio humano.
 
 ## Uso selectivo de skills

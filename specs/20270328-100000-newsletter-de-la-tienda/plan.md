@@ -17,7 +17,7 @@ Ver la tabla «Esquema de datos» de la spec: tablas nuevas y alteradas en `domi
 
 ## Migraciones (todas aditivas e idempotentes; reversión en el encabezado de cada una)
 
-Numeración **por encima de toda la cola de `dokploy`**: hoy la máxima es `20270326100000` (`node scripts/verificar-migraciones.mjs --estricto`); se usa la ventana `20270342000000+` y se **renumera al integrar** si otra rama la ocupó.
+Numeración **por encima de toda la cola de `dokploy`**: la máxima cambia con cada merge (`node scripts/verificar-migraciones.mjs --estricto`; al 2026-11-15 la siguiente ventana libre empieza en `20270350…`); se usa la ventana `20270342000000+` y se **renumera al integrar** si otra rama la ocupó.
 
 | Migración | Fase | Contenido |
 |---|---|---|
