@@ -43,16 +43,16 @@ select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-
 set local role authenticated;
 
 select is(
-  (select count(*)::int from public.tipos_aviso), 1,
-  'authenticated lee el catálogo'
+  (select count(*)::int from public.tipos_aviso), 2,
+  'authenticated lee el catálogo (consultas y resumen semanal, MSF-287)'
 );
 select throws_ok(
   $$insert into public.tipos_aviso (clave, nombre, seccion) values ('otro', 'Otro', 'consultas')$$,
   '42501', null, 'authenticated no escribe el catálogo'
 );
 select is(
-  (select count(*)::int from public.listar_preferencias_aviso()), 1,
-  'el administrador ve el tipo de la sección consultas'
+  (select count(*)::int from public.listar_preferencias_aviso()), 2,
+  'el administrador ve los tipos de las secciones a las que tiene acceso (consultas y resumen semanal)'
 );
 select is(
   (select activo from public.listar_preferencias_aviso() where tipo = 'consulta_nueva'), true,

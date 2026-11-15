@@ -121,6 +121,9 @@ services:
       ENV_CORREO_MASIVO_LOTE: ${CORREO_MASIVO_LOTE:-50}
       ENV_CORREO_MASIVO_LIMITE_DIARIO: ${CORREO_MASIVO_LIMITE_DIARIO:-500}
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:-http://localhost:5173}
+      # Resumen semanal del negocio por correo (MSF-287, flow resumen-semanal.yml): tamaño de la
+      # tanda de destinatarios que se reclaman por llamada. Usa el SMTP de arriba (KESTRA_SMTP_*).
+      ENV_RESUMEN_SEMANAL_LIMITE: ${RESUMEN_SEMANAL_LIMITE:-50}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas

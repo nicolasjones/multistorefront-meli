@@ -46,6 +46,7 @@ Tres entradas según lo que necesites:
 | Documentación obligatoria y skills | [documentacion-cambios.md](documentacion-cambios.md), [skills.md](skills.md) |
 | Arquitectura y roadmap | [architecture.md](architecture.md), [roadmap-template.md](roadmap-template.md) |
 | Copias y restauración | [copias-y-restauracion.md](copias-y-restauracion.md), [simulacro-restauracion.md](simulacro-restauracion.md) |
+| Resumen semanal del negocio por correo | [resumen-semanal-correo.md](resumen-semanal-correo.md) |
 
 ## Deuda trazada
 

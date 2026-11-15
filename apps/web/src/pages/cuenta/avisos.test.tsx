@@ -8,6 +8,7 @@ import { notificarEmpresaActivaCambiada } from '../../lib/empresaActivaRevision'
 import { AvisosPage } from './avisos'
 
 const CONSULTA_NUEVA = { tipo: 'consulta_nueva', nombre: 'Consulta nueva', activo: true }
+const RESUMEN_SEMANAL = { tipo: 'resumen_semanal', nombre: 'Resumen semanal del negocio', activo: true }
 
 function respuestas(listado: unknown[], guardado: { error: { code?: string; message?: string } | null } = { error: null }) {
   rpc.mockImplementation(async (nombre: string) => {
@@ -29,6 +30,16 @@ describe('AvisosPage', () => {
     expect(interruptor).toBeChecked()
     expect(screen.getByRole('heading', { level: 1, name: 'Avisos por correo' })).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('listar_preferencias_aviso')
+  })
+
+  it('lista el resumen semanal del negocio y deja apagarlo (F-REP-08)', async () => {
+    respuestas([CONSULTA_NUEVA, RESUMEN_SEMANAL])
+    render(<AvisosPage />)
+    const interruptor = await screen.findByRole('checkbox', { name: 'Resumen semanal del negocio' })
+    expect(interruptor).toBeChecked()
+    fireEvent.click(interruptor)
+    expect(await screen.findByRole('status')).toHaveTextContent('Dejaste de recibir los avisos de «Resumen semanal del negocio» por correo.')
+    expect(rpc).toHaveBeenCalledWith('guardar_preferencia_aviso', { p_tipo: 'resumen_semanal', p_activo: false })
   })
 
   it('un rol sin tipos de aviso ve el estado vacío, sin interruptores', async () => {

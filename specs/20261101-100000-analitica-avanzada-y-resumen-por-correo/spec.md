@@ -2,7 +2,7 @@
 
 **Épica**: MSF-265 · **Spec**: `analitica-avanzada-y-resumen-por-correo` · **Hito**: Backlog (a definir con el cliente) · **Prioridad**: P3 · **Alcance (Jira)**: fuera-de-diciembre · **Horas aprox.**: 30 (a estimar al pasar a un hito)
 **Alcance de entrega**: `refine`, `supabase`, `superset`, `kestra` (el envío semanal lo orquesta Kestra con el SMTP existente; sin `workers`). El alcance exacto de `superset`/`refine` depende de la pregunta P1.
-**Estado**: **PARCIAL — NEEDS_INFO.** La épica declara que F-REP-07 y F-REP-08 **no tienen RF ni CA** («se redactan cuando la épica pase a un hito») y deja abierta una decisión de alcance. Esta spec traduce solo el Objetivo y lo que la épica fija; lo demás queda como pregunta (ver «Preguntas abiertas»). No se inventa alcance.
+**Estado**: **PARCIAL — NEEDS_INFO (F-REP-07).** La épica declara que F-REP-07 y F-REP-08 **no tienen RF ni CA** («se redactan cuando la épica pase a un hito») y deja abierta una decisión de alcance. Esta spec traduce solo el Objetivo y lo que la épica fija; lo demás queda como pregunta (ver «Preguntas abiertas»). No se inventa alcance. **F-REP-08 está implementada**: su pregunta abierta (P3) quedó resuelta con los valores por defecto de «Decisiones tomadas».
 **Fuente**: especificación de Nicolás cargada en la épica y artefactos del repo.
 
 ## Objetivo
@@ -19,22 +19,37 @@ Al terminar, el administrador arma sus propios tableros con filtros y cruces y r
 - BI avanzado figura fuera del alcance acordado y el Roadmap a diciembre lo ubica en enero (Etapa 2); la épica está en Backlog P3. **Manda el roadmap; se confirma con el cliente** (A revisar de la épica). No bloquea escribir esta spec.
 - Horas: las tallas suman 24 h (L+M) frente a 30 h; se estiman al pasar a un hito.
 
-### Esquema de datos (Constitución, Principio VII) — provisional
+### Esquema de datos (Constitución, Principio VII)
 
 | Objeto | Esquema | Historia | Justificación | RLS / acceso |
 |---|---|---|---|---|
 | Vistas de lectura nuevas que el tablero libre necesite | `analitica` (solo vistas) | F-REP-07 | Contrato de lectura para Superset; no almacenan datos; cada fila lleva `organizacion_id` | Sin acceso para `anon`/`authenticated`; `select` solo al rol de Superset; aislamiento por la cláusula `rls` del guest token (como MSF-120) |
-| Tipo de aviso `resumen_semanal` en `public.tipos_aviso` (fila, no tabla) | `public` (plataforma) | F-REP-08 | Reutiliza el catálogo de MSF-189; **a confirmar en P3** | RLS vigente de `tipos_aviso` |
+| `dominio.resumen_semanal_envios` (una fila por organización + destinatario + semana: el resumen enviado, su estado, los intentos y el error útil) | `dominio` | F-REP-08 | Es el dato del producto (el resumen del negocio de cada organización) y la clave de idempotencia del envío → dominio, no plataforma | RLS por organización + lectura de `rentabilidad`; escriben solo las funciones `private` (Kestra) y la app no la lee (no hay pantalla que la consuma) |
+| Tipo de aviso `resumen_semanal` en `public.tipos_aviso` (fila, no tabla) | `public` (plataforma) | F-REP-08 | Reutiliza el catálogo de MSF-189 | RLS vigente de `tipos_aviso` |
 | Persistencia de tableros propios (si P1 = «editar») | **por definir** | F-REP-07 | Depende de P2 (dónde viven); no se declara tabla hasta que se decida | — |
 
-**No se crea ninguna tabla nueva confirmada.** La prueba pgTAP `rls_en_toda_tabla` (recorre `public` + `dominio`) debe seguir verde. Toda migración será aditiva; reversión: `drop` de lo creado por la historia (se detalla en el plan).
+La prueba pgTAP `rls_en_toda_tabla` (recorre `public` + `dominio`) sigue verde con la tabla nueva. Toda migración de esta historia es aditiva; reversión: `drop` de lo creado por la historia (se detalla en el plan).
 
-## Preguntas abiertas (bloquean la implementación)
+## Preguntas abiertas
 
 1. **P1 (la épica la deja «por dividir»)**: ¿F-REP-07 es **permitir que el administrador edite/arme tableros** (cruza la regla 007 FR-013, hoy prohibida) o **solo elegir entre tableros ya armados** por el equipo? El Objetivo dice «arma sus propios tableros con filtros y cruces».
 2. **P2**: si el administrador arma tableros, ¿**dónde** los hace (Superset embebido en modo edición dentro de Refine, o un constructor propio de Refine) y **dónde viven** (en la base de Superset, lo que choca con «los dashboards se exportan a YAML y se commitean»)? ¿Con qué permisos acotados y quién puede compartirlos dentro de la organización?
-3. **P3**: resumen semanal: ¿**qué contiene** (rentabilidad, ventas, stock en alerta: ¿todo o por secciones?), ¿**quién lo recibe** (todos los administradores o quien lo active, como preferencia de aviso), ¿**qué día y hora** y en qué zona horaria?
+3. ~~**P3**: resumen semanal: ¿qué contiene, quién lo recibe, qué día y hora?~~ **RESUELTA en F-REP-08** (ver «Decisiones tomadas»).
 4. **P4**: ¿se confirma esta épica en Backlog/P3 o pasa a Etapa 2 (enero 2027) según el Roadmap? (No cambia el diseño, sí el orden de entrega.)
+
+## Decisiones tomadas (P3 — F-REP-08)
+
+La épica dejaba P3 abierta (contenido, destinatarios, día y hora). F-REP-08 lo resuelve con estos
+valores por defecto, que son los que se confirman con el cliente (detalle y cómo se cambian en
+`docs/resumen-semanal-correo.md`):
+
+| Decisión | Valor por defecto |
+|---|---|
+| Cadencia y hora | Semanal, lunes 09:00 (hora del servidor de Kestra) |
+| Periodo del resumen | Los últimos 7 días (inclusive hoy) |
+| Quién lo recibe | Miembros activos con acceso a `rentabilidad` y con la preferencia `resumen_semanal` encendida (se apaga en «Avisos por correo») |
+| Contenido | Rentabilidad + ventas de la semana + stock en alerta, cada una si hay datos |
+| Zona horaria | La del servidor de Kestra (igual que el resto de los flows programados) |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -52,7 +67,7 @@ Como administrador quiero armar mis propios tableros con filtros y cruces sobre 
 
 Como administrador quiero recibir cada semana por correo un resumen del negocio, para enterarme sin entrar al panel.
 
-**Escenarios** (detalle de contenido y cadencia sujeto a P3):
+**Escenarios** (contenido y cadencia según las decisiones de P3):
 1. **Dado** un administrador destinatario, **cuando** llega el momento semanal, **entonces** recibe un correo con el resumen de su organización.
 2. **Dado** que existen datos de ventas (MSF-192) o stock en alerta (MSF-140), **entonces** el resumen incluye esa sección; **dado** que no existen, **entonces** la sección no aparece y el resumen sale igual.
 3. **Dado** que el envío se reintenta, **entonces** no se duplica el correo de la misma semana a la misma persona.
@@ -71,10 +86,10 @@ Como administrador quiero recibir cada semana por correo un resumen del negocio,
 
 ### F-REP-08 — Resumen programado por correo
 
-- **FR-010**: El sistema DEBE enviar a los administradores destinatarios un resumen semanal por correo (cadencia y contenido sujetos a P3).
+- **FR-010**: El sistema DEBE enviar a los administradores destinatarios un resumen semanal por correo (cadencia y contenido según las decisiones de P3).
 - **FR-011**: El envío DEBE reutilizar la infraestructura de avisos por correo de MSF-189 (flow de Kestra y SMTP existentes), sin proveedor nuevo.
 - **FR-012**: El resumen DEBE incluir la sección de ventas cuando existan sus vistas (contrato de MSF-192) y la de stock en alerta cuando exista (MSF-140); sin la fuente, la sección se omite sin error.
-- **FR-013**: El envío DEBE ser idempotente por destinatario y semana y auditable: origen, estado, timestamps y error útil (Principio III).
+- **FR-013**: El envío DEBE ser idempotente por destinatario y semana y auditable: origen, estado, timestamps y error útil (Principio III). El tope de destinatarios por tanda NO puede dejar destinatarios sin correo: los que quedan fuera de la tanda quedan encolados y salen en la siguiente.
 - **FR-014**: Cada correo DEBE contener solo datos de la organización del destinatario y escapar los valores en el HTML.
 
 ### Criterios de éxito
@@ -97,11 +112,13 @@ Cada FR/SC tiene una única tarea dueña y una verificación nombrada. No hay NF
 | FR-010 | T007 | `pnpm test:db` (pgTAP `resumen_semanal.test.sql`: tipo `resumen_semanal` en `tipos_aviso` y reclamo de destinatarios por semana) |
 | FR-011 | T010 | `node --test infra/kestra/flows/resumen-semanal.test.mjs` (el flow usa `KESTRA_SMTP_*` y el flujo de `enviar-avisos`, sin proveedor nuevo) + `pnpm infra:config` |
 | FR-012 | T008 | `pnpm test:db` (pgTAP: sin la vista de ventas o de stock la función devuelve el resumen sin esa sección y sin error) |
-| FR-013 | T007 | `pnpm test:db` (pgTAP: reclamar dos veces la misma semana no duplica; fila de auditoría con origen, estado, timestamps y error) |
+| FR-013 | T007 | `pnpm test:db` (pgTAP: reclamar dos veces la misma semana no duplica; fila de auditoría con origen, estado, timestamps y error; el tope es el tamaño de la tanda, no un recorte: con más destinatarios que el tope, la corrida entrega a todos y no queda nadie encolado) |
 | FR-014 | T008 | `pnpm test:db` (pgTAP: solo datos de la organización del destinatario) + `node --test infra/kestra/flows/resumen-semanal.test.mjs` (HTML escapado) |
 | SC-001 | T002 | `pnpm test:db` (pgTAP de aislamiento entre A y B) + Vitest `tableros-propios` (reabrir el tablero devuelve el mismo resultado) |
 | SC-002 | T011 | `node --test infra/kestra/flows/resumen-semanal.test.mjs` (un correo por destinatario; la corrida repetida no duplica) |
 | SC-003 | T012 | `pnpm test:db` (pgTAP `resumen_semanal_secciones`: sin ventas ni stock en alerta, el resumen sale sin esas secciones) |
+
+T013 (alta del tipo `resumen_semanal` en `/cuenta/avisos`, que P3 dejó como destino de la preferencia) no es dueña de ningún FR: verifica FR-010 y su verificación es `pnpm --filter @platform/web test -- avisos`.
 
 Validación general antes del PR: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm docs:check`, `pnpm matriz:check`.
 
@@ -115,11 +132,11 @@ Validación general antes del PR: `pnpm lint`, `pnpm build`, `pnpm infra:config`
 | Pantalla de tableros propios (F-REP-07) | FR-001–FR-005, SC-001 | Diseño con el sistema de diseño; sujeto a P1 |
 | Estados carga/vacío/error/«Analítica no disponible» | FR-005 | Patrones compartidos |
 | Empresa activa | FR-003 | La pantalla respeta la empresa activa de la barra superior (Principio VIII): al cambiarla, recarga el tablero con el token acotado y descarta lo de la anterior; test que cambia de empresa en `ReporteEmbebido`. El resumen por correo es por organización (no hay pantalla): no aplica la empresa activa |
-| Pantalla de preferencia del resumen (F-REP-08) | — | **Fuera de alcance salvo que P3 la pida** (reutilizaría `/cuenta/avisos` de MSF-189, sin pantalla nueva) |
+| Pantalla de preferencia del resumen (F-REP-08) | FR-010 | No hay pantalla nueva: se reutiliza `/cuenta/avisos` de MSF-189 con el tipo `resumen_semanal` (la persona lo apaga ahí). Verificado con Vitest (`avisos`) |
 
 ## Flujos
 
-La épica no trae flujos; se transcribe solo lo que dice el Objetivo y el patrón de MSF-189. **Provisional hasta P1–P3.**
+La épica no trae flujos; se transcribe solo lo que dice el Objetivo y el patrón de MSF-189. El de F-REP-07 sigue **provisional hasta P1–P2**; el de F-REP-08 quedó fijo con las decisiones de P3.
 
 ```mermaid
 flowchart TD
@@ -132,14 +149,14 @@ Pasos: A–F → FR-001–FR-005, SC-001. La rama «solo elegir» o «armar» �
 
 ```mermaid
 flowchart TD
-    S[Llega el momento semanal] --> R[Reclamar destinatarios y semana]
+    S[Llega el momento semanal] --> R[Encolar destinatarios y reclamar la cola en tandas]
     R --> G[Armar resumen: rentabilidad + ventas/stock si existen]
     G --> M[Enviar correo por SMTP]
     M -- ok --> OK[Marcar enviado]
     M -- falla --> RT[Reintentar] --> M
     RT -- agotado --> FA[Registrar fallo con motivo]
 ```
-Pasos: S, R → FR-010, FR-013; G → FR-012, FR-014; M/OK/RT/FA → FR-011, FR-013, SC-002, SC-003. Frecuencia, destinatarios y contenido exactos → P3.
+Pasos: S, R → FR-010, FR-013; G → FR-012, FR-014; M/OK/RT/FA → FR-011, FR-013, SC-002, SC-003. Frecuencia, destinatarios y contenido exactos → decisiones de P3.
 
 ## Fuera de alcance
 
