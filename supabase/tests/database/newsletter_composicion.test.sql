@@ -121,8 +121,8 @@ update public.banderas_plataforma set activa = false where clave = 'promociones_
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 create temp table vp (clave text primary key, j jsonb);
 grant all on vp to authenticated;
-insert into vp select 'ambas', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', true, true);
-insert into vp select 'ninguna', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', false, false);
+insert into vp select 'ambas', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', true, true);
+insert into vp select 'ninguna', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', false, false);
 select is(jsonb_array_length((select j -> 'bloques' -> 'destacados' from vp where clave = 'ambas')), 6, 'RF-NL-15: hasta 6 destacados');
 select is((select j -> 'bloques' -> 'destacados' -> 0 ->> 'nombre' from vp where clave = 'ambas'), 'Producto 1', 'destacados en orden alfabético');
 select is((select count(*)::int from vp, jsonb_array_elements(j -> 'bloques' -> 'destacados') d where clave = 'ambas' and d ->> 'nombre' in ('Oculto', 'Inactivo', 'Común')), 0, 'no entran los ocultos, inactivos ni no destacados');
@@ -137,13 +137,25 @@ select isnt((select j ->> 'generado_en' from vp where clave = 'ambas'), null, 'i
 reset role;
 update public.banderas_plataforma set activa = true where clave = 'promociones_precio';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-insert into vp select 'promos', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', false, true);
+insert into vp select 'promos', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', false, true);
 select is(jsonb_array_length((select j -> 'bloques' -> 'promociones' from vp where clave = 'promos')), 1, 'solo la promoción vigente (ni vencida ni futura)');
 select is((select j -> 'bloques' -> 'promociones' -> 0 ->> 'precio_promocional' from vp where clave = 'promos')::numeric, 800::numeric, 'precio promocional');
 select is((select j -> 'bloques' -> 'promociones' -> 0 ->> 'precio' from vp where clave = 'promos')::numeric, 1000::numeric, 'precio normal tachado');
 select isnt((select j -> 'bloques' -> 'promociones' -> 0 ->> 'hasta' from vp where clave = 'promos'), null, 'incluye hasta cuándo rige');
-select is((select (public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000002', true, true) ->> 'confirmados')::int), 1, 'la otra tienda cuenta los suyos');
-select throws_ok($$select public.vista_previa_newsletter('e2000000-0000-0000-0000-000000000001', true, true)$$, 'P0002', null, 'CA-NL-8: no previsualiza una tienda ajena');
+select is((select (public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000002', 'Hola', true, true) ->> 'confirmados')::int), 1, 'la otra tienda cuenta los suyos');
+select throws_ok($$select public.vista_previa_newsletter('e2000000-0000-0000-0000-000000000001', 'Hola', true, true)$$, 'P0002', null, 'CA-NL-8: no previsualiza una tienda ajena');
+
+-- HTML del correo: el mismo que recibirán los suscriptores (un solo renderizado).
+insert into vp select 'xss', public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola <script>alert(1)</script> & "x"', true, true);
+select is(strpos((select j ->> 'html' from vp where clave = 'xss'), '<script>'), 0, 'CA-NL-9: el texto del dueño nunca llega como HTML');
+select ok(strpos((select j ->> 'html' from vp where clave = 'xss'), 'Hola &lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;x&quot;') > 0, 'CA-NL-9: el texto se ve literal, escapado');
+select ok(strpos((select j ->> 'html' from vp where clave = 'xss'), '<h2 style="font-size: 16px;">Promociones vigentes</h2>') > 0, 'la sección de promociones aparece cuando hay');
+select ok(strpos((select j ->> 'html' from vp where clave = 'xss'), '<s>$ 1000,00</s> $ 800,00') > 0, 'promoción: precio normal tachado y promocional');
+select ok(strpos((select j ->> 'html' from vp where clave = 'xss'), 'newsletter de Tienda A. Si no querés recibirlo más, <a href="https://nlcomp-a.ejemplo.com/newsletter/baja/ejemplo">date de baja acá</a>.') > 0, 'D15: pie fijo con el enlace de baja de ejemplo');
+select is(strpos((select j ->> 'html' from vp where clave = 'ninguna'), '<h2'), 0, 'sin secciones no hay encabezados ni «Precios al día»');
+reset role;
+select is(private.cuerpo_html_newsletter('x', '{"destacados":[{"nombre":"<i>Z</i>","url":"javascript:alert(1)","precio":5}],"generado_en":"2027-01-02T12:00:00Z"}'::jsonb, 'T"<b>', 'http://x'), '<div style="white-space: pre-wrap;">x</div><h2 style="font-size: 16px;">Productos destacados</h2><ul><li>&lt;i&gt;Z&lt;/i&gt; - $ 5,00</li></ul><p style="font-size: 12px; color: #666666;">Precios al 02/01/2027.</p><hr><p style="font-size: 12px; color: #666666;">Recibís este correo porque te suscribiste al newsletter de T&quot;&lt;b&gt;. Si no querés recibirlo más, date de baja desde el enlace de tu último correo.</p>', 'el HTML escapa nombres, descarta enlaces que no son https y no admite una baja que no sea https');
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 -- ---- Prueba ----
 select is(public.solicitar_prueba_newsletter('e1000000-0000-0000-0000-000000000001', 'Asunto de prueba', 'Hola', true, true), '{"ok":true}'::jsonb, 'RF-NL-16: deja una prueba');
@@ -165,7 +177,7 @@ select is((select count(*)::int from public.registro_actividad where tipo = 'new
 -- ---- Permisos ----
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.guardar_newsletter(null, null, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', true, true)$$, '42501', null, 'CA-NL-7: el lector no guarda');
-select throws_ok($$select public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', true, true)$$, '42501', null, 'CA-NL-7: el lector no previsualiza');
+select throws_ok($$select public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', true, true)$$, '42501', null, 'CA-NL-7: el lector no previsualiza');
 select throws_ok($$select public.solicitar_prueba_newsletter('e1000000-0000-0000-0000-000000000001', 'A', 'B', true, true)$$, '42501', null, 'CA-NL-7: el lector no pide pruebas');
 select throws_ok($$select public.descartar_newsletter('b1000000-0000-0000-0000-000000000001')$$, '42501', null, 'CA-NL-7: el lector no descarta');
 select is(public.detalle_newsletter('b1000000-0000-0000-0000-000000000001') ->> 'estado', 'enviada', 'el lector sí ve el detalle de su tienda');
