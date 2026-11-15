@@ -361,7 +361,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
 | ~~`AlertasInicio` mostraba la alerta `dolar_sin_cargar` a quien solo tiene lectura~~ | **Resuelto** (2026-11-14): solo la ve quien edita `cotizacion_dolar` (CA-INI-07-7) |
-| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** |
+| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** **Pendiente de decisión de producto** (2026-11-15): el ticket no define qué es «cobro pendiente» (¿ventas con saldo, cuenta corriente, pagos sin conciliar?) ni «faltante» (¿faltante de reposición, de recepción, de caja?), ni umbrales ni qué permiso/sección los gobierna. Sin esa definición no se migra `alertas_inicio`; se retoma al decidirse. |
 | ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
