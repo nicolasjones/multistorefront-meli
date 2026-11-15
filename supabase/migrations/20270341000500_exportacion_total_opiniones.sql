@@ -2,10 +2,11 @@
 -- `dominio.opiniones_producto` tiene `organizacion_id` y el pgTAP de completitud de `exportacion_total.test.sql` la exige en la lista
 -- permitida o en las exclusiones. Las opiniones son dato del negocio (a diferencia de favoritos, privados del cliente): SE EXPORTAN.
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente
--- (`20270334000002_exportacion_total_ordenes_compra.sql`) sumando solo la fila de opiniones. La lista de exclusiones no cambia.
+-- (`20270340000100_exportacion_total_listas_precios.sql`, que ya suma órdenes de compra y listas de precios) sumando solo la fila de opiniones.
+-- La lista de exclusiones no cambia. Si otra migración posterior la redefine, esta debe rebasarse sobre la última versión vigente.
 --
 -- Esquemas (Principio VII): sin tablas nuevas; función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270334000002_exportacion_total_ordenes_compra.sql`.
+-- Reversión (migración posterior): volver a la definición de `20270340000100_exportacion_total_listas_precios.sql`.
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])
@@ -62,6 +63,7 @@ as $$
     ('dominio', 'ingresos_mercaderia'),
     ('dominio', 'ingresos_mercaderia_lineas'),
     ('dominio', 'intereses_whatsapp'),
+    ('dominio', 'listas_precios'),
     ('dominio', 'lotes_stock'),
     ('dominio', 'modelos_equipo'),
     ('dominio', 'motivos_movimiento'),

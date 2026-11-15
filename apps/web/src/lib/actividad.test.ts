@@ -46,6 +46,14 @@ describe('etiqueta del tipo', () => {
     expect(etiquetaTipoActividad('usuario.rol_cambiado')).toBe('Cambio de rol')
   })
 
+  it('traduce los eventos de las listas de precios', () => {
+    expect(etiquetaTipoActividad('lista_precios.creada')).toBe('Lista de precios creada')
+    expect(etiquetaTipoActividad('lista_precios.editada')).toBe('Lista de precios editada')
+    expect(etiquetaTipoActividad('lista_precios.archivada')).toBe('Lista de precios archivada')
+    expect(etiquetaTipoActividad('lista_precios.restaurada')).toBe('Lista de precios restaurada')
+    expect(etiquetaTipoActividad('cliente.lista_precio_asignada')).toBe('Lista de precios del cliente')
+  })
+
   it('un tipo nuevo de otro componente se muestra legible', () => {
     expect(etiquetaTipoActividad('producto.creado')).toBe('Producto creado')
     expect(etiquetaTipoActividad('stock.ajuste_manual')).toBe('Stock ajuste manual')
