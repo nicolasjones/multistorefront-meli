@@ -60,8 +60,8 @@ comment on column dominio.gastos.importe_pesos is 'Importe en pesos congelado: i
 comment on column dominio.gastos.recurrente is 'Marca informativa mensual: no genera gastos solos (D12).';
 comment on column dominio.gastos.updated_at is 'Bloqueo optimista.';
 
-create index gastos_org_empresa_fecha_idx on dominio.gastos (organizacion_id, empresa_id, fecha desc, id);
-create index gastos_org_fecha_idx on dominio.gastos (organizacion_id, fecha desc, id);
+create index if not exists gastos_org_empresa_fecha_idx on dominio.gastos (organizacion_id, empresa_id, fecha desc, id);
+create index if not exists gastos_org_fecha_idx on dominio.gastos (organizacion_id, fecha desc, id);
 
 alter table dominio.gastos enable row level security;
 

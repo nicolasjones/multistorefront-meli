@@ -77,6 +77,11 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'gasto.editado': 'Gasto editado',
   'gasto.anulado': 'Gasto anulado',
   'gasto.exportado': 'Gastos exportados',
+  'lista_precios.creada': 'Lista de precios creada',
+  'lista_precios.editada': 'Lista de precios editada',
+  'lista_precios.archivada': 'Lista de precios archivada',
+  'lista_precios.restaurada': 'Lista de precios restaurada',
+  'cliente.lista_precio_asignada': 'Lista de precios del cliente',
 }
 
 // Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.

@@ -6,8 +6,12 @@ import { useEmpresas } from '../../hooks/useEmpresas'
 import { useEmpresasDeCliente, useGuardarEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
+import { useBanderaListasPrecios } from '../../hooks/useBanderaListasPrecios'
+import { useListasPreciosActivas } from '../../hooks/useListasPreciosActivas'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { type Cliente, aFormulario } from '../../lib/clientes'
+import { asignarListaPrecios } from '../../lib/listasPrecios'
+import { supabaseClient } from '../../lib/supabase'
 import { aplicarCuentaWebEnTiendas, type EstadoCuentaWebFormulario } from '../../lib/cuentasCliente'
 import { FormularioCliente } from '../../components/clientes/FormularioCliente'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
@@ -40,6 +44,9 @@ export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProp
   // (se remonta con los datos recargados) y no guarda la tienda de la anterior.
   const { empresaActivaId } = useEmpresasAccesibles()
   const cliente = query.data?.data
+  // F-CLI-21: selector de listas activas (más la actual, aunque estuviera archivada) y bandera. El Administrador asigna; el resto ve.
+  const listas = useListasPreciosActivas(cliente?.lista_precio_id ?? null)
+  const bandera = useBanderaListasPrecios()
   // Estado inicial del campo «Cuenta web»: si alguna tienda está activa, Activa;
   // si no, Suspendida; si no hay ninguna cuenta, Sin cuenta (FR-015).
   const estadoCuentaWeb: EstadoCuentaWebFormulario = cuentas.some((cuenta) => cuenta.estado === 'activa')
@@ -48,7 +55,7 @@ export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProp
 
   return (
     <>
-        {verificandoPermiso || nivel === null || query.isLoading || (nivel === 'edicion' && (cargandoEmpresas || cargandoTiendas || cargandoCuentas)) ? (
+        {verificandoPermiso || nivel === null || query.isLoading || (nivel === 'edicion' && (cargandoEmpresas || cargandoTiendas || cargandoCuentas || listas.cargando || bandera.cargando)) ? (
           <EstadoCargaPagina />
         ) : nivel !== 'edicion' ? (
           <EstadoError titulo="Sin permiso" descripcion="Tu rol no puede editar clientes." />
@@ -71,11 +78,14 @@ export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProp
             cargandoEmpresas={cargandoEmpresas}
             errorEmpresas={errorEmpresas}
             puedeEditarDescuento={esAdministrador}
+            listasPrecios={{ listas: listas.listas, cargando: false, hayError: listas.hayError, editable: esAdministrador, bandera: bandera.activa }}
             etiquetaGuardar="Guardar cambios"
             rutaCancelar={`/clientes/show/${cliente.id}`}
             onCancelar={onCancelar}
-            onGuardar={async (valores, opciones) => {
+            onGuardar={async (valores, opciones, cambios) => {
               const { empresas: seleccion, ...datos } = valores
+              // La lista se asigna primero: si la base la rechaza (p. ej. bandera apagada) no queda nada a medias.
+              if (cambios && 'listaPrecioId' in cambios) await asignarListaPrecios(supabaseClient, cliente.id, cambios.listaPrecioId ?? null)
               await mutateAsync({ resource: 'clientes', id: cliente.id, values: datos, successNotification: false })
               // Si fallan las tiendas, la edición del cliente ya quedó: se propaga el
               // error para reintentar (guardar de nuevo no duplica nada).
