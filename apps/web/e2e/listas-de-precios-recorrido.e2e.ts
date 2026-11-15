@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
-import { CONTRASENA_E2E, UPSERT_FUSIONAR, altaUsuario, borrarUsuario, cabeceras, leer, limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
+import { CONTRASENA_E2E, UPSERT_FUSIONAR, altaUsuario, borrarUsuario, cabeceras, esquemaDe, leer, limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
 
 // Listas de precios por cliente (F-PRE-14 y F-CLI-21), recorrido completo contra el stack local del CI: el administrador crea una
 // lista (−20 %) y se la asigna a un cliente; se vende en el mostrador (factura de canal «mostrador») y la línea sale al precio de
@@ -47,7 +47,7 @@ async function rpc<T>(token: string, funcion: string, argumentos: unknown, perfi
 
 // Lectura con la sesión de la persona (RLS): nunca con la service-role.
 async function comoPersona<T>(token: string, ruta: string, perfil: string): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ authorization: `Bearer ${token}`, 'accept-profile': perfil }) })
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ authorization: `Bearer ${token}`, 'accept-profile': esquemaDe(ruta, perfil) }) })
   if (!r.ok) throw new Error(`GET ${ruta}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
 }
@@ -103,7 +103,7 @@ test.describe('Listas de precios · recorrido completo', () => {
   async function comoAdmin<T>(metodo: string, ruta: string, cuerpo: unknown): Promise<T> {
     const r = await fetch(`${url}/rest/v1/${ruta}`, {
       method: metodo,
-      headers: cabeceras({ authorization: `Bearer ${admin.token}`, prefer: 'return=representation' }),
+      headers: cabeceras({ authorization: `Bearer ${admin.token}`, prefer: 'return=representation', 'content-profile': esquemaDe(ruta, 'public') }),
       body: JSON.stringify(cuerpo),
     })
     if (!r.ok) throw new Error(`panel ${metodo} ${ruta}: ${r.status} ${await r.text()}`)

@@ -49,7 +49,7 @@ Ventas los use.
 La matriz de roles y el detalle de permisos están en [Permisos por rol](permisos-por-rol.md).
 
 !!! note "La base manda, no la pantalla"
-    Ocultar un botón es comodidad, no autorización: las políticas de `public.clientes` vuelven a
+    Ocultar un botón es comodidad, no autorización: las políticas de `dominio.clientes` vuelven a
     comprobar organización y nivel de sección en cada lectura y escritura.
 
 ## La ficha del cliente
@@ -79,7 +79,7 @@ y de la ficha. **Leer esto antes de tocar clientes: el cliente no es «de una ti
 organización y se habilita en N tiendas.**
 
 - **Tabla:** `public.clientes_empresas` (`cliente_id`, `empresa_id`, `organizacion_id`, `created_at`;
-  PK `(cliente_id, empresa_id)`). Claves foráneas a `public.clientes` y `dominio.empresas` con
+  PK `(cliente_id, empresa_id)`). Claves foráneas a `dominio.clientes` y `dominio.empresas` con
   `on delete cascade`; `empresa_id` y `organizacion_id` indexados. El `organizacion_id` de la fila
   debe coincidir con el del cliente y el de la empresa: lo garantiza el disparador
   `clientes_empresas_validar` (`private.validar_cliente_empresa`), también frente a `postgres`.
@@ -161,7 +161,7 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
 
 ## Deuda trazada
 
-- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
+- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)»: cerrado con MSF-882.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
 - T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y sin el btree `clientes_organizacion_id_idx` dentro de la transacción de prueba, para que el resultado no dependa del empate de costos (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
   Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
@@ -250,7 +250,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
 - **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
   sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
-  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `public.clientes`), `tipo`
+  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `dominio.clientes`), `tipo`
   (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
   en local: `supabase/seed.sql`.
 - **Reversión (migraciones posteriores, aditivas):** quitar `public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)`
@@ -344,7 +344,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   `dominio.comprobantes_venta` + `public.clientes_id_organizacion_uq`, siempre en migraciones posteriores aditivas.
   La exportación es solo frontend. La spec completa se deshace con un `git revert -m 1` del merge.
 - **Verificación de esquema (Principio VII):** `dominio.comprobantes_venta` en `dominio` (documento de venta del
-  producto), con RLS por organización y sección `ventas`; `public.clientes` no cambia de esquema (solo un índice
+  producto), con RLS por organización y sección `ventas`; `dominio.clientes` no cambia de esquema (solo un índice
   único aditivo); las dos funciones viven en `public` por ser RPC de la app y leen ambos esquemas.
 - **Seguridad:** ambas RPC son `security definer` con `search_path = ''`, organización de `private.organizacion_id()`
   y sección `clientes` verificada adentro; `revoke … from public, anon` y `grant execute … to authenticated`.
@@ -543,7 +543,7 @@ panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja d
 
 ## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
 
-Solo frontend, **sin migración ni escritura** (el grant `select` de `public.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
+Solo frontend, **sin migración ni escritura** (el grant `select` de `dominio.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
 
 - **Ficha** (`pages/clientes/show.tsx`): «Etiqueta» (encabezado) e «Imprimir etiqueta de envío» (bloque). Sin dirección no se abre la hoja: aviso «falta dirección» (CA-CLI-17-1).
 - **Listado** (`pages/clientes/list.tsx`): «Imprimir etiquetas (n)» con las filas marcadas (quien edita). Al cambiar la empresa activa se descarta la selección y se reencuadra la página (Principio VIII).
@@ -597,7 +597,7 @@ Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `spe
 
 ## Descuento por cliente (F-VTA-32, MSF-340 · épica MSF-193)
 
-`public.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
+`dominio.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
 **Administrador** (o superadmin) desde «Editar cliente» → «Descuento (%)»: el `grant update (descuento)` lo
 permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
 oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
@@ -607,7 +607,7 @@ oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada
 
 ## Lista de precios del cliente (F-CLI-21, MSF-453 · épica MSF-450)
 
-`public.clientes.lista_precio_id` (nulable, FK compuesta `(lista_precio_id, organizacion_id)` a `dominio.listas_precios`; `null` = sin lista). El **Administrador** la elige en «Editar cliente» → «Lista de precios» (selector de listas activas, con el porcentaje de cada una); quien no es administrador la ve en solo lectura, y la ficha muestra la lista con su porcentaje. La columna no tiene `grant update`: la escribe solo la RPC `public.asignar_lista_precios_cliente(p_cliente, p_lista)` (solo Administrador, idempotente, `p_lista null` quita la lista), que rechaza una lista archivada, un cliente archivado y el **Consumidor final** (`22023`) y una lista o cliente ajeno (`P0002`). Un disparador defensivo repite esas reglas ante otras vías de escritura. Deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva, sin datos de contacto). Con la bandera `listas_precios` apagada asignar responde `55000` y solo se puede quitar.
+`dominio.clientes.lista_precio_id` (nulable, FK compuesta `(lista_precio_id, organizacion_id)` a `dominio.listas_precios`; `null` = sin lista). El **Administrador** la elige en «Editar cliente» → «Lista de precios» (selector de listas activas, con el porcentaje de cada una); quien no es administrador la ve en solo lectura, y la ficha muestra la lista con su porcentaje. La columna no tiene `grant update`: la escribe solo la RPC `public.asignar_lista_precios_cliente(p_cliente, p_lista)` (solo Administrador, idempotente, `p_lista null` quita la lista), que rechaza una lista archivada, un cliente archivado y el **Consumidor final** (`22023`) y una lista o cliente ajeno (`P0002`). Un disparador defensivo repite esas reglas ante otras vías de escritura. Deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva, sin datos de contacto). Con la bandera `listas_precios` apagada asignar responde `55000` y solo se puede quitar.
 
 **Guardado con compensación.** La lista se asigna antes de guardar la ficha; si el guardado de la ficha falla, la pantalla relee la lista actual del cliente y la devuelve a la anterior **solo si sigue siendo la que ella asignó** (si otra persona la cambió entretanto no se pisa y el aviso lo dice: «No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.»; releer y escribir no es atómico, queda una ventana mínima). Si la compensación también falla (o la lista anterior se archivó y no se puede reasignar) se registra en consola y se muestra «No se guardó el cliente y la lista quedó cambiada: revisala.». Mientras cargan las listas el selector muestra «Cargando…», no el aviso de nombre ilegible.
 

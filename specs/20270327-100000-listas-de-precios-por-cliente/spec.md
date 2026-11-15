@@ -37,7 +37,7 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 ## Modelo y supuestos (verificados en el código de `dokploy`)
 
 - **Hoy** el precio de una línea de venta sale de `private.precio_linea_venta` (que envuelve `private.precio_para` y `private.escala_para_linea`): escala por tipo de cliente y cantidad → precio propio (solo x1 o escala sin precio) → regla de la empresa (`aplicar_regla_precio`: base `central` o `central_ajuste`, `ajuste_pct`, `redondeo_pesos`) → descuento personal del cliente (`clientes.descuento`, F-VTA-32) → promoción vigente de la tienda («gana el más bajo, sin acumular», MSF-816, bandera `promociones_precio`). La tienda y el presupuesto de la tienda usan las gemelas sin sesión `precio_para_calculo` / `precio_linea_venta_calculo` (MSF-176 B2).
-- **Clientes**: `public.clientes` (esquema `public` por decisión histórica de MSF-180) ya tiene `tipo` (`minorista`/`mayorista`), `descuento` (solo Administrador, con disparador y actividad), `es_consumidor_final`. La cuenta web (`public.cuentas_cliente`) cuelga de `cliente_id`.
+- **Clientes**: `dominio.clientes` (movida de `public` a `dominio` en MSF-882) ya tiene `tipo` (`minorista`/`mayorista`), `descuento` (solo Administrador, con disparador y actividad), `es_consumidor_final`. La cuenta web (`public.cuentas_cliente`) cuelga de `cliente_id`.
 - **No existe** `tipos_cliente` ni su pantalla (F-PRE-15 solo implementó las escalas por producto); `TiposCliente.dc.html` es un prototipo sin entregar. **No hay pantalla dibujada** de listas de precios (ver «Matriz pantalla↔criterios»).
 - **Bloqueo anterior**: las dos historias figuraban como «sin requisitos» y bloqueadas por el modelo comercial. La decisión de Nicolás lo cierra. MSF-116 ya está entregada (F-PRE-13 implementada), así que ya no bloquea.
 - **Cancelación previa**: F-PRE-14 se canceló el 2026-11-12 por chocar con F-PRE-15. Esta spec la retoma con una resolución explícita del choque (D5 y D8). Los textos que dicen «cancelada» en `docs/precios.md`, `docs/cuentas-y-compras-a-proveedores.md` y las specs `20261105-100000-cotizacion-sugerida-y-mayoristas` y `20261029-100000-cuentas-y-compras-a-proveedores` se actualizan en la Fase 5 (no se editan en esta spec).
@@ -47,7 +47,7 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 | Objeto | Esquema | Historia | Justificación | Acceso |
 |---|---|---|---|---|
 | `dominio.listas_precios` (tabla nueva) | **`dominio`** | F-PRE-14 | Es una regla comercial del negocio (política de precios), como `precios_empresa`, `promociones_precio` y `producto_precios_escala`: no es plataforma | RLS por organización y por sección; `select` para `authenticated`; **sin escritura directa** (solo RPC `security definer`); sin política `DELETE`; sin privilegios para `anon` |
-| `public.clientes.lista_precio_id` (columna nueva) | `public` (donde ya vive `clientes`, MSF-180) | F-CLI-21 | Atributo del cliente; solo se agrega una columna nulable con FK compuesta a `dominio.listas_precios`. No se mueve `clientes` de esquema | RLS vigente de `clientes`; **sin** `grant update` de columna: solo la RPC `asignar_lista_precios_cliente` la escribe |
+| `dominio.clientes.lista_precio_id` (columna nueva) | `dominio` (donde vive `clientes` desde MSF-882) | F-CLI-21 | Atributo del cliente; solo se agrega una columna nulable con FK compuesta a `dominio.listas_precios`. No se mueve `clientes` de esquema | RLS vigente de `clientes`; **sin** `grant update` de columna: solo la RPC `asignar_lista_precios_cliente` la escribe |
 | `dominio.comprobantes_venta_lineas.lista_precio_id`, `lista_ajuste_pct` (columnas nuevas) | `dominio` | F-CLI-21 | Snapshot de la venta (D12), junto a `descuento_pct` y `precio_referencia` | RLS vigente; las escribe `guardar_lineas_comprobante` |
 | Fila `listas_precios` en `public.banderas_plataforma` | `public` (plataforma) | ambas | Dato, no estructura (D13) | `authenticated` solo lee; la cambia el equipo técnico por SQL |
 | Vista `public.listas_precios_resumen` | `public` | F-PRE-14 | Superficie de lectura con la cantidad de clientes por lista; `security_invoker`, sin datos propios | Hereda la RLS de la tabla |
@@ -56,12 +56,12 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 
 ## Modelo de datos (DER)
 
-La única tabla nueva es `dominio.listas_precios`. Se alteran `public.clientes` (una columna) y `dominio.comprobantes_venta_lineas` (dos columnas de snapshot). El resto del grafo de precio y de cliente se muestra completo para ver a qué se ata cada pieza y qué tabla alimenta cada paso de la precedencia (D5).
+La única tabla nueva es `dominio.listas_precios`. Se alteran `dominio.clientes` (una columna) y `dominio.comprobantes_venta_lineas` (dos columnas de snapshot). El resto del grafo de precio y de cliente se muestra completo para ver a qué se ata cada pieza y qué tabla alimenta cada paso de la precedencia (D5).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `dominio.listas_precios` | nueva | Lista de precios por organización: nombre, descripción, `ajuste_pct` (−90 a +100), archivada o no, auditoría y bloqueo optimista |
-| `public.clientes` | alterada | Columna `lista_precio_id` (nulable, FK compuesta a la lista): la lista del cliente |
+| `dominio.clientes` | alterada | Columna `lista_precio_id` (nulable, FK compuesta a la lista): la lista del cliente |
 | `dominio.comprobantes_venta_lineas` | alterada | Columnas `lista_precio_id` y `lista_ajuste_pct`: qué lista y qué porcentaje se usaron en la línea (D12) |
 | `dominio.comprobantes_venta` | existente | Comprobante con `cliente_id` y `empresa_id`; define el cliente y la tienda del cálculo |
 | `public.cuentas_cliente` | existente | Cuenta web del cliente en una tienda (Fase 4) |
@@ -259,7 +259,7 @@ Como **administrador** quiero asignar una lista de precios propia a un cliente, 
 
 ### F-CLI-21 — Listas de precios por cliente
 
-- **RF-CLI-21-1**: `public.clientes` DEBE tener `lista_precio_id` nulable con FK compuesta `(lista_precio_id, organizacion_id)` a la lista; no se concede `update` de la columna a `authenticated`.
+- **RF-CLI-21-1**: `dominio.clientes` DEBE tener `lista_precio_id` nulable con FK compuesta `(lista_precio_id, organizacion_id)` a la lista; no se concede `update` de la columna a `authenticated`.
 - **RF-CLI-21-2**: `public.asignar_lista_precios_cliente(cliente, lista)` DEBE asignar o quitar (`null`) la lista, solo Administrador, idempotente, con rechazo de lista archivada o ajena, de cliente ajeno o archivado y del Consumidor final (D11); deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva).
 - **RF-CLI-21-3**: La ficha del cliente DEBE mostrar el campo «Lista de precios» (selector de listas activas, editable solo por Administrador, solo lectura para los demás) con el porcentaje y el aviso de D6 cuando el cliente también tiene descuento personal; **no** crea una pantalla de gestión nueva (la ficha de cliente absorbe la asignación).
 - **RF-CLI-21-4**: Cuando se calcula una línea, DEBE aplicarse la precedencia de D5–D7 en **un solo lugar** de la base (el motor extiende `private.precio_para_calculo` / `private.precio_linea_venta(_calculo)`; no se duplica la fórmula en la web, en las vistas ni en la tienda).

@@ -80,7 +80,7 @@ Lo que la épica entrega con código es F-CLI-19 (MSF-451): la RPC `public.cuent
 revisada por agentes independientes de QA y de Code Review + seguridad: dos rondas sobre la historia antes de mergear y una
 revisión final posterior sobre lo ya mergeado (su resultado y las correcciones están en el PR de seguimiento de MSF-450). Qué se comprobó:
 
-- **Sin tablas nuevas:** no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `public.clientes` y
+- **Sin tablas nuevas:** no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `dominio.clientes` y
   `private.saldo_comprobante`.
 - **`security definer` con `search_path = ''`:** todo está calificado (`public.`, `dominio.`, `private.`).
 - **Aislamiento:** la organización sale de `private.organizacion_id()`, nunca de un argumento; el alcance por tienda
@@ -94,4 +94,4 @@ revisión final posterior sobre lo ya mergeado (su resultado y las correcciones 
   - **Vitest** (`ComprasCliente.test.tsx`, `useCuentaCorrienteCliente.test.tsx`, `formatoRanking.test.ts`): corre en el CI.
   - **E2E** (`apps/web/e2e/cuenta-corriente-cliente.e2e.ts`): **el CI no lo corre**. El job `application` ejecuta solo
     `acceso-publico.e2e.ts` y este archivo se omite sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Se corre a mano con
-    el stack local (`docs/e2e-app.md`). Antes leía `public.clientes` con la clave de servicio, que no tiene permiso: ahora usa la sesión de la persona de ejemplo.
+    el stack local (`docs/e2e-app.md`). Antes leía `dominio.clientes` con la clave de servicio, que no tiene permiso: ahora usa la sesión de la persona de ejemplo.

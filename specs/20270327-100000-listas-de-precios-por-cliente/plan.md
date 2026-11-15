@@ -15,7 +15,7 @@
 | Objeto | Esquema | Por qué |
 |---|---|---|
 | `dominio.listas_precios` | `dominio` | Regla comercial del negocio, como `precios_empresa` y `promociones_precio` |
-| `public.clientes.lista_precio_id` | `public` | `clientes` ya vive en `public` (MSF-180); solo una columna nulable con FK compuesta |
+| `dominio.clientes.lista_precio_id` | `dominio` | `clientes` vive en `dominio` (MSF-882; antes en `public`); solo una columna nulable con FK compuesta |
 | `dominio.comprobantes_venta_lineas.lista_precio_id`, `lista_ajuste_pct` | `dominio` | Snapshot de la venta, junto a `descuento_pct` |
 | Fila `listas_precios` en `public.banderas_plataforma` | `public` | Dato de plataforma |
 | RPC y vista de lectura | `public` | Superficie sin datos propios |

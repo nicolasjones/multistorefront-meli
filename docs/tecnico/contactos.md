@@ -331,7 +331,7 @@ Git: `git revert -m 1 e57118a0`.
 1. **Texto de consentimiento y plazo de conservación**: el texto definitivo y el plazo los define el
    cliente. Hoy el texto es una constante versionada marcada `v1-pendiente` y **no hay expiración
    automática**: solo anonimización manual. Dueño: producto/cliente.
-2. **Contacto y cliente**: son entidades separadas, sin FK entre `dominio.contactos` y `public.clientes`.
+2. **Contacto y cliente**: son entidades separadas, sin FK entre `dominio.contactos` y `dominio.clientes`.
    Si deben unificarse, se decide antes de que MSF-154 consuma contactos. Dueño: producto.
 3. **Vínculo de compras**: es manual desde la ficha porque el alta de ventas (MSF-159) no pide un
    contacto. Dueño: producto/Ventas.

@@ -31,7 +31,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('d1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'administracion'),
   ('d1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 20, 'Cliente Dos', 'minorista');
 
@@ -83,7 +83,7 @@ insert into dominio.cobros_comprobante
 
 -- Extras: F7 con una nota de OTRO cliente (no resta) y una nota de la tienda NO accesible Mundo JC (no resta);
 -- F8 anulada con cobro; F9 confirmada SIN cobros; F10 en borrador con cobro.
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente Otro', 'minorista');
 
 insert into dominio.comprobantes_venta

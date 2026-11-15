@@ -52,7 +52,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador');
 
 -- c1 mayorista sin descuento; c2 minorista sin descuento; c3 minorista 5 %; c4 minorista 15 %; c5 de la org 2.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null, null),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente minorista', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente 5 %', 'minorista', null, 5),
@@ -237,7 +237,7 @@ declare
   v_ti numeric := 0;
 begin
   select * into v_c from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave);
-  select cl.tipo, coalesce(cl.descuento, 0) into v_tipo, v_d from public.clientes cl where cl.id = v_c.cliente_id;
+  select cl.tipo, coalesce(cl.descuento, 0) into v_tipo, v_d from dominio.clientes cl where cl.id = v_c.cliente_id;
   for v_l in select * from dominio.comprobantes_venta_lineas where comprobante_id = v_c.id order by orden loop
     select * into v_p from private.precio_para(v_l.producto_id, v_c.empresa_id, private.escala_para_linea(v_tipo, v_l.cantidad));
     v_unit := coalesce(case when v_l.precio_manual then v_l.precio_unitario end, round(v_p.neto * (1 - v_d / 100), 2));

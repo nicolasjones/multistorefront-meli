@@ -19,7 +19,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'administrador'),
   ('d1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'administrador'),
   ('d1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'administrador');
-insert into clientes (organizacion_id, numero, nombre, tipo, documento) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo, documento) values
   ('11111111-1111-1111-1111-111111111111', 11, 'Alfa', 'minorista', '30111222'),
   ('11111111-1111-1111-1111-111111111111', 12, 'Beta', 'mayorista', null),
   ('11111111-1111-1111-1111-111111111111', 13, 'Gamma', 'mayorista', null);
@@ -34,7 +34,7 @@ end $$;
 -- Sin el primer lote: un cursor cualquiera (el primer cliente en orden) descarga el resto.
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from exportar_clientes(null, null, false,
-  (select c.id from clientes c order by lower(c.nombre), c.id limit 1))), 3,
+  (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))), 3,
   'con cursor se descargan las filas restantes');
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 1,
@@ -44,7 +44,7 @@ select is((select detalle from registro_actividad where tipo = 'clientes.exporta
 
 -- Segunda llamada con cursor en la misma ventana: filas nuevas sin declarar, otro evento por esas filas.
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1));
+select count(*) from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1));
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 2,
   'la segunda llamada con cursor también se registra');
@@ -54,7 +54,7 @@ select is((select filas_acumuladas from private.clientes_exportaciones_ventana l
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select count(*) from exportar_clientes(null, 'mayorista', false, null, 1);
 select count(*) from exportar_clientes(null, 'mayorista', false,
-  (select c.id from clientes c where c.tipo = 'mayorista' order by lower(c.nombre), c.id limit 1), 1);
+  (select c.id from dominio.clientes c where c.tipo = 'mayorista' order by lower(c.nombre), c.id limit 1), 1);
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados' and detalle like '%tipo mayorista%'), 1,
   'una exportación paginada deja un único evento');
@@ -65,7 +65,7 @@ select is((select detalle from registro_actividad where tipo = 'clientes.exporta
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select count(*) from exportar_clientes(null, 'minorista', false, null, 1);
 select count(*) from exportar_clientes(null, 'minorista', false,
-  (select c.id from clientes c where c.tipo = 'minorista' and not c.archivado_en is not null order by lower(c.nombre), c.id limit 1), 1);
+  (select c.id from dominio.clientes c where c.tipo = 'minorista' and not c.archivado_en is not null order by lower(c.nombre), c.id limit 1), 1);
 reset role;
 select is((select array_agg(detalle) from registro_actividad where tipo = 'clientes.exportados' and detalle like '%tipo minorista%'),
   array['Exportó 2 clientes a Excel (filtros: tipo minorista)'], 'paginada normal: exactamente un evento con el total correcto');
@@ -107,16 +107,16 @@ exception when others then
   return coalesce(h, 'sin hint');
 end $f$;
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'tope_acumulado', 'el tope de 50000 en 10 minutos corta con el aviso de tope acumulado');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', 'minorista', true, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', 'minorista', true, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'sin error', 'sin filas no hay nada que contar (control de la prueba siguiente)');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'tope_acumulado', 'cambiar el texto de búsqueda NO reinicia el tope');
 -- Ataque de la reiteración del primer lote: con la ventana llena, repetir el primer lote (p_limite=1) NO permite volver a bajar por cursor.
 select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, null, 1)$q$),
   'tope_acumulado', 'con la ventana llena, repetir el primer lote con p_limite=1 se rechaza');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'tope_acumulado', 'tras repetir el primer lote el cursor sigue topado por la ventana');
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 6,
@@ -125,7 +125,7 @@ select is((select count(*)::int from registro_actividad where tipo = 'clientes.e
 -- Otra persona de la misma organización no comparte contador.
 select pg_temp.como('d1000000-0000-0000-0000-000000000005');
 select lives_ok(
-  $q$select * from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$,
+  $q$select * from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$,
   'otra persona no comparte el contador ni el tope');
 
 -- Pasados 10 minutos el tope de ventana se libera.
@@ -133,7 +133,7 @@ reset role;
 update private.clientes_exportaciones_entregas set creado_en = creado_en - interval '11 minutes' where filtros_hash = 'otra-huella';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select lives_ok(
-  $q$select * from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$,
+  $q$select * from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$,
   'vencida la ventana, la exportación vuelve a permitirse');
 
 -- Tope DIARIO: 24 horas deslizantes, por persona.
@@ -144,11 +144,11 @@ select '11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-00000000
   from private.clientes_exportaciones_entregas e
  where e.actor_id = 'd1000000-0000-0000-0000-000000000001' and e.creado_en > now() - interval '1 day';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, 'mayorista', false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, 'mayorista', false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'tope_diario', 'el tope diario corta aunque la ventana de 10 minutos esté libre');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', 'minorista', true, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', 'minorista', true, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'sin error', 'control: sin filas no hay nada que contar');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'tope_diario', 'cambiar el texto de búsqueda NO reinicia el tope diario');
 select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, 'minorista', false, null, 1)$q$),
   'tope_diario', 'cambiar la huella de filtros NO reinicia el tope diario (se suma por persona, no por huella)');
@@ -160,7 +160,7 @@ values ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-0000000
 insert into private.clientes_exportaciones_ventana (organizacion_id, actor_id, filtros_hash, desde, filas_acumuladas, filas_declaradas)
 values ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000005', 'viejo', now() - interval '2 days', 5, 5);
 select pg_temp.como('d1000000-0000-0000-0000-000000000005');
-select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1));
+select count(*) from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1));
 reset role;
 select is((select count(*)::int from private.clientes_exportaciones_entregas where filtros_hash = 'viejo'), 0, 'se purgan las entregas de más de un día');
 select is((select count(*)::int from private.clientes_exportaciones_ventana where filtros_hash = 'viejo'), 0, 'se purgan las ventanas de más de un día');
@@ -205,7 +205,7 @@ reset role;
 insert into private.clientes_exportaciones_entregas (organizacion_id, actor_id, filtros_hash, filas, creado_en)
 values ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000007', 'relleno2', 1, now());
 select pg_temp.como('d1000000-0000-0000-0000-000000000007');
-select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from dominio.clientes c order by lower(c.nombre), c.id limit 1))$q$),
   'tope_acumulado', 'un cursor sin primer lote sigue topando por lote');
 
 -- Concurrencia (estructura): el cupo se serializa por persona con un advisory lock tomado ANTES de calcular lo acumulado.

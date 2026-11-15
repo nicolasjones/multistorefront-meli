@@ -71,7 +71,7 @@ export async function listarAvisosDeReparacion(reparacionId: string): Promise<Av
 // (sin acceso a Clientes o error): en ese caso decide la base al pedir el aviso (`sin_correo`).
 export async function clienteTieneCorreo(clienteId: string): Promise<boolean | null> {
   try {
-    const { data, error } = await supabaseClient.from('clientes').select('correo').eq('id', clienteId).maybeSingle()
+    const { data, error } = await supabaseClient.schema('dominio').from('clientes').select('correo').eq('id', clienteId).maybeSingle()
     if (error || !data) return null
     const correo = (data as { correo: string | null }).correo
     return typeof correo === 'string' && correo.trim() !== ''

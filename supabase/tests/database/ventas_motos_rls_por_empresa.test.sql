@@ -26,7 +26,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
 update permisos_rol set nivel = 'ninguno'
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'consulta' and seccion = 'ventas';
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente', 'minorista');
 insert into dominio.formas_envio (id, organizacion_id, empresa_id, nombre, tipo) values
   ('b1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'Moto A', 'moto'),

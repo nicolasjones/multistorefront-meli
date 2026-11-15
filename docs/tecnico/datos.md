@@ -10,7 +10,7 @@ sources:
 
 | Esquema | Qué guarda |
 |---|---|
-| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports, procesos masivos y monitoreo. También `clientes`, por la excepción documentada al Principio VII (ver «Clientes (MSF-180)») |
+| `public` | Plataforma: organizaciones, usuarios, roles, permisos, actividad, ejecuciones, imports, procesos masivos y monitoreo. Los clientes **ya no** están acá: viven en `dominio.clientes` desde MSF-882 (ver «Clientes (MSF-180)»); quedan en `public` solo `clientes_empresas` y `clientes_identificadores_externos` |
 | `dominio` | Negocio: empresas, productos, categorías, stock, ingresos de mercadería, comprobantes, reparaciones, ítems de reparación, contactos, respuestas rápidas, historial |
 | `publico` | **Solo funciones** `security definer` de lectura anónima de la tienda online; **sin tablas** |
 
@@ -18,17 +18,19 @@ Toda tabla expuesta tiene **RLS** por organización. Las secciones por empresa r
 
 ## Clientes (MSF-180)
 
-La épica **no crea tablas**: extiende `public.clientes`, que ya existía como esqueleto del template
+La épica **no crea tablas**: extiende `clientes`, que ya existía como esqueleto del template
 (`id`, `organizacion_id`, `nombre`, `created_at`; creada en `20260908172920_fundacion_multitenant.sql`).
-La tabla queda en **`public`** por **excepción documentada** al Principio VII: es preexistente y
-expuesta, y moverla a `dominio` no es aditivo ni rompe `clientes_identificadores_externos` ni el control
-positivo de las pruebas de aislamiento. El traslado quedó trazado como seguimiento: [MSF-505].
+La tabla vive en **`dominio.clientes`**: la excepción que la dejaba en `public` se cerró con MSF-882
+(`20270418000401_clientes_a_dominio.sql`, deuda [MSF-505]). Se movió sin reescribir políticas ni datos;
+`public.clientes_empresas` y `public.clientes_identificadores_externos` siguen en `public` y su FK sigue
+apuntando al cliente. La API pide la tabla con el perfil de esquema `dominio` (`Accept-Profile` /
+`Content-Profile`, `.schema('dominio')` en supabase-js): PostgREST **no** usa el `extra_search_path`.
 Migraciones `20261016130000`–`20261016160000`, ya integradas en `main`; reversión en el encabezado de
 cada una y consolidada en [Clientes: modelo, RPC y pantallas](clientes.md#reversion).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
-| `public.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
+| `dominio.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
 | `public.organizaciones` | existente | Recibe el disparador `organizaciones_crear_consumidor_final`: cada organización nueva nace con su «Consumidor final». Sin cambios de esquema. |
 | `public.registro_actividad` | existente | Recibe `cliente.creado`, `cliente.editado`, `cliente.archivado` y `cliente.restaurado`. Sin cambios de esquema. |
 | `public.clientes_identificadores_externos` | existente | FK a `clientes(id)`; sin cambios. El mapeo de identificadores sigue válido (la numeración se asigna sola). |
@@ -1105,7 +1107,7 @@ cada una y consolidada en [Stock · carga inicial, exportación y avisos](stock-
 | `dominio.cargas_iniciales_stock` | **nueva** | Una fila por producto que ya tuvo su carga inicial por planilla: `deposito_id`, `movimiento_id`, `cantidad`, `clave_idempotencia`, responsable. `unique (organizacion_id, producto_id)`: impide una segunda carga inicial, incluso simultánea. Solo de agregado (disparador de inmutabilidad). |
 | `dominio.stock_avisos_reposicion` | **nueva** | Un resumen de reposición por organización: `generado_en`, `estado` (`pendiente`/`enviado`/`fallido`/`sin_destinatario`), `intentos`, `ultimo_error`, `enviado_en`, `productos jsonb` (foto de los incluidos), `sin_stock`, `stock_bajo`, `updated_at` (reserva de 2 minutos). |
 | `dominio.stock_alertas_avisadas` | **nueva** | Marca por producto del estado con el que ya se avisó (`stock_bajo`/`sin_stock`): define qué es «nuevo en alerta». |
-| `dominio.faltantes_avisos` | **nueva** | Cola de avisos de reposición, **una fila por línea faltante**: `empresa_id`, `cliente_id`, `estado` (`pendiente`/`enviado`/`agotado`), `intentos`, `ultimo_error`, `enviado_en`. FK compuestas a `dominio.empresas` y `public.clientes`: el aviso no puede apuntar a otra organización. |
+| `dominio.faltantes_avisos` | **nueva** | Cola de avisos de reposición, **una fila por línea faltante**: `empresa_id`, `cliente_id`, `estado` (`pendiente`/`enviado`/`agotado`), `intentos`, `ultimo_error`, `enviado_en`. FK compuestas a `dominio.empresas` y `dominio.clientes`: el aviso no puede apuntar a otra organización. |
 | `public.faltantes_listado` (vista) | **nueva** | Lectura de los faltantes abiertos (`security_invoker`): una fila por línea «A pedido» de factura confirmada con reserva activa. No crea datos. |
 | `dominio.existencias` | existente | La cantidad sigue siendo el total único; la escribe `registrar_movimiento_stock` desde la RPC de carga. Sin cambios de esquema. |
 | `dominio.movimientos_stock` | existente | Recibe un movimiento `ajuste` por diferencia de la carga inicial (motivo de sistema «Carga inicial de stock»). Sin cambios de esquema. |
@@ -1116,7 +1118,7 @@ cada una y consolidada en [Stock · carga inicial, exportación y avisos](stock-
 | `dominio.comprobantes_venta_lineas` | existente | Se leen (`a_pedido = true`) y son la FK de `faltantes_avisos.linea_id`. Sin cambios de esquema. |
 | `dominio.reservas_stock` | existente | Se leen: la reserva activa (`referencia = 'comprobante:<id>:linea:<orden>'`) define el faltante y su cierre automático. Sin cambios de esquema. |
 | `dominio.empresas` | existente | Se referencia en `faltantes_avisos` (tienda del aviso) y en el filtro por ventas de la vista. Sin cambios de esquema. |
-| `public.clientes` | existente | Se lee el correo del cliente para saber a quién se avisa. Sin cambios de esquema. |
+| `dominio.clientes` | existente | Se lee el correo del cliente para saber a quién se avisa. Sin cambios de esquema. |
 | `public.organizaciones` | existente | Dueña de las tablas nuevas (FK `on delete cascade`). Sin cambios de esquema. |
 
 ```mermaid
@@ -1391,7 +1393,7 @@ pendiente de merge a `main`.
 | `dominio.comprobantes_venta_lineas` | **alterada** | `sin_stock boolean not null default false`: la línea **no mueve stock** (ni salida, ni reserva, ni devolución). Solo esas líneas admiten `producto_id`, `deposito_id` y `escala` nulos; las líneas de catálogo quedan igual. |
 | `dominio.reparacion_avisos` | **nueva** | Historial de avisos al cliente de una reparación: estado avisado (id y nombre copiados), `destinatario` (correo al pedir el aviso), `estado_envio` (`pendiente`\|`enviado`\|`fallido`), `intentos`, `error` (motivo corto, ≤ 500), `solicitado_por`, `solicitado_en`, `enviado_en`, `ejecucion_id`. FK compuestas por organización hacia la reparación, el estado y la tienda; índice único parcial `reparacion_avisos_pendiente_uq` sobre `(reparacion_id, estado_id) where estado_envio = 'pendiente'` (**un aviso pendiente por reparación y estado**). |
 | `dominio.reparaciones`, `dominio.reparacion_items`, `dominio.estados_reparacion` | existentes | Solo se leen (ítems, cliente, tienda, estado y su descripción). |
-| `public.clientes` | existente | Solo se lee el `correo` del cliente. |
+| `dominio.clientes` | existente | Solo se lee el `correo` del cliente. |
 | `public.capacidades_ejecucion`, `public.ejecuciones_worker`, `public.despachos_ejecucion` | existentes | La outbox de plataforma: solo inserta filas la RPC `avisar_cliente_reparacion` (capacidad `enviar-aviso-reparacion-<aviso>`). |
 
 ```mermaid
@@ -1673,7 +1675,7 @@ erDiagram
 - La app **no escribe** en `dominio.contactos` ni en `dominio.respuestas_rapidas`: solo por RPC
   `security definer`.
 - El contacto es por **empresa**; el mismo correo puede existir como contacto en dos tiendas.
-- Contacto y cliente (`public.clientes`) son **entidades separadas**, sin FK entre ellas.
+- Contacto y cliente (`dominio.clientes`) son **entidades separadas**, sin FK entre ellas.
 - Detalle de RPC, RLS, anonimización, pantallas y pruebas:
   [Contactos y respuestas rápidas](contactos.md).
 - TODO (dueño: Documentador): ERD Archify interactivo de MSF-144. Por ahora el DER vive en Mermaid en
@@ -1829,7 +1831,7 @@ historial en `dominio` y una columna en `dominio.proveedores`. Migraciones:
 | `public.organizaciones` | existente | Dueña de las cargas y del archivo; no cambia. |
 | `public.migracion_cargas` | nueva | Cabecera de cada ejecución (entidad, archivo, filas, estado, contadores, actor). RLS de lectura solo Administrador. |
 | `public.migracion_filas` | nueva | Resultado por fila; única por `(carga_id, fila)`. RLS de lectura solo Administrador. |
-| `public.clientes` | existente | Destino de la carga de clientes; sin cambios de esquema. Los nuevos se habilitan en todas las tiendas. |
+| `dominio.clientes` | existente | Destino de la carga de clientes; sin cambios de esquema. Los nuevos se habilitan en todas las tiendas. |
 | `public.clientes_identificadores_externos` | existente | Clave de conciliación con `sistema = 'panel_actual'`; sin cambios de esquema. |
 | `public.clientes_empresas` | existente | Relación cliente ↔ tienda que rellena el alta de la migración; sin cambios de esquema. |
 | `dominio.empresas` | existente | Tiendas donde se habilitan los clientes nuevos; sin cambios de esquema. |
@@ -2052,7 +2054,7 @@ de cada una y consolidada en [Ventas · comprobantes (técnico)](ventas-comproba
 | `dominio.comprobantes_venta_lineas` | nueva | Producto, cantidad, precio sin IVA, escala, IVA, depósito de salida, «A pedido» y totales de la línea. |
 | `dominio.comprobantes_venta_numeracion` | nueva | Contador `(organización, empresa, tipo) → último`; sin acceso directo. |
 | `dominio.empresas`, `dominio.productos`, `dominio.depositos`, `dominio.existencias_deposito`, `dominio.reservas_stock` | existentes | Solo se leen al armar líneas y confirmar; la confirmación escribe movimientos y reservas con el motor de stock. |
-| `public.clientes`, `public.permisos_rol_accion` | existentes | Sin cambio de esquema; `editar_precio` es un dato nuevo en la matriz de acciones de Ventas. |
+| `dominio.clientes`, `public.permisos_rol_accion` | existentes | Sin cambio de esquema; `editar_precio` es un dato nuevo en la matriz de acciones de Ventas. |
 
 ```mermaid
 erDiagram
@@ -2153,7 +2155,7 @@ el encabezado de cada una y consolidada en
 | `dominio.comprobantes_venta_numeracion` | **alterada** | Solo el `check` de `tipo`: la nota de crédito lleva correlativo propio por organización y empresa. |
 | `dominio.comprobantes_venta_lineas` | existente | Sin cambio de estructura: las líneas de una nota «Devolución de productos» reutilizan la tabla con el mismo `orden` que la línea acreditada. |
 | `dominio.empresas`, `dominio.formas_pago`, `dominio.formas_envio`, `dominio.existencias_deposito`, `dominio.reservas_stock`, `dominio.movimientos_stock` | existentes | Solo se leen o escriben por el motor de stock (`private.aplicar_movimiento_deposito`) al anular o devolver mercadería. |
-| `public.clientes`, `public.perfiles_usuario`, `public.registro_actividad` | existentes | Sin cambio de esquema; el historial del comprobante sale de `registro_actividad`. |
+| `dominio.clientes`, `public.perfiles_usuario`, `public.registro_actividad` | existentes | Sin cambio de esquema; el historial del comprobante sale de `registro_actividad`. |
 | `public.permisos_rol_accion` | existente | Sin cambio de esquema; `exportar`, `anular` y `emitir_nota_credito` son datos nuevos de la matriz de acciones de Ventas. |
 
 ```mermaid
@@ -2263,7 +2265,7 @@ en el encabezado de cada una y consolidada en
 | `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `cliente_id`, `total_con_iva`); el signo y el predicado los aplica la lectura. |
 | `dominio.comprobantes_venta_lineas` | existente | Solo se lee (`producto_id`, `deposito_id`, `cantidad`, `subtotal_sin_iva`, `iva`). |
 | `dominio.productos`, `dominio.categorias`, `dominio.depositos`, `dominio.empresas` | existentes | Solo se leen (nombre, SKU, categoría, depósito y tienda de cada línea). |
-| `public.clientes` | existente | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
+| `dominio.clientes` | existente | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
 | `public.stock_estados` | existente | Solo se lee (`cantidad`, `estado`): el stock vigente del producto y su estado. |
 
 ```mermaid
@@ -2359,7 +2361,7 @@ erDiagram
 - **La épica no crea tablas**: las dos vistas viven en `analitica` (superficie de lectura de Superset, cerrada
   para `anon` y `authenticated`, leída solo por el rol `superset_analitica`) y las dos RPC en `public`
   (superficie de ejecución, sin datos propios). El dato de dominio sigue en
-  `dominio.comprobantes_venta*` y `public.clientes`, con su RLS por organización.
+  `dominio.comprobantes_venta*` y `dominio.clientes`, con su RLS por organización.
 - **El cálculo no se reimplementa**: las vistas llaman a `private.comprobante_cuenta_como_facturado`
   (factura o nota de crédito; no borrador ni anulada) y a `private.signo_comprobante` (nota de crédito = −1)
   a través de envoltorios `security definer` en `analitica`, porque el rol de Superset no tiene acceso a
@@ -2672,7 +2674,7 @@ Migraciones `20270226100100` … `20270226110300` (aditivas; reversión en el en
 | `dominio.ingresos_mercaderia_lineas` | existente | Sin cambio de esquema: se le agrega el disparador `ingresos_mercaderia_lineas_marcar_faltantes` (`AFTER INSERT FOR EACH ROW`). |
 | `dominio.ingresos_mercaderia` | existente | Sin cambio: solo se referencia (FK de `para_avisar_ingreso_id`). |
 | `dominio.comprobantes_venta_lineas` | existente | Sin cambio: solo se lee (enlace `linea_id` ↔ `(comprobante_id, linea_orden)` del faltante, y lectura de la cola). |
-| `public.clientes` | existente | Sin cambio: solo se lee el **correo** del cliente (si no tiene, el faltante no se marca). |
+| `dominio.clientes` | existente | Sin cambio: solo se lee el **correo** del cliente (si no tiene, el faltante no se marca). |
 | `public.registro_actividad` | existente | Sin cambio: auditoría transversal de `private.registrar_actividad` (`ventas.faltantes_avisados`, `ventas.faltantes_para_avisar`). |
 
 ```mermaid
@@ -3014,7 +3016,7 @@ cada una y consolidada en
 |---|---|---|
 | `dominio.cierres_caja` | **nueva** | Cierre del día de una tienda: `organizacion_id`, `empresa_id`, `fecha`, `estado` (`cerrada`/`reabierta`), `cerrado_por`, `cerrado_en`, `reabierto_por`, `reabierto_en`. Índice único (organización, empresa, fecha): un cierre por día y empresa. RLS de solo lectura; sin escritura directa. |
 | `dominio.cierres_caja_detalle` | **nueva** | Resumen del cierre por forma de pago y cuenta de cobro (`cuenta_cobro_id` nula para el efectivo). FK compuestas contra el cierre, la forma de pago y la cuenta. RLS de solo lectura; sin escritura directa. |
-| `public.clientes` | **alterada** | Gana `descuento numeric(5,2)` (porcentaje 0..100, `null` = sin descuento) con `check (descuento is null or (descuento >= 0 and descuento <= 100))` y `grant update` acotado a la columna. |
+| `dominio.clientes` | **alterada** | Gana `descuento numeric(5,2)` (porcentaje 0..100, `null` = sin descuento) con `check (descuento is null or (descuento >= 0 and descuento <= 100))` y `grant update` acotado a la columna. |
 | `dominio.comprobantes_venta_lineas` | **alterada** | Gana `descuento_pct numeric(5,2) not null default 0` con `check (descuento_pct >= 0 and descuento_pct <= 100)`: el descuento que se aplicó a esa línea (0 si el precio es manual). |
 | `dominio.cobros_comprobante` | existente | Sin cambio de columnas ni de políticas (MSF-195): recibe el disparador `cobros_comprobante_caja_cerrada`, que bloquea la escritura de los cobros de un día cerrado. |
 | `dominio.comprobantes_venta` | existente | Sin cambio: la venta de mostrador reutiliza la factura `borrador` y el total los calcula la base. |
@@ -3121,8 +3123,8 @@ erDiagram
 - Las **FK son compuestas contra `organizacion_id`**: un cierre o una línea de detalle no puede apuntar
   a una forma de pago, una cuenta o un cobro de otra organización.
 - **`anon` sin privilegios** y `authenticated` con solo lectura: la escritura llega por RPC.
-- El **descuento del cliente** es una columna de `public.clientes` (la tabla vive en `public` por la
-  excepción documentada al Principio VII, ver «Clientes (MSF-180)»): 0..100, `null` = sin descuento, y
+- El **descuento del cliente** es una columna de `dominio.clientes` (la tabla vive en `dominio` desde
+  MSF-882, ver «Clientes (MSF-180)»): 0..100, `null` = sin descuento, y
   **solo el Administrador** lo cambia (disparador `clientes_descuento_solo_admin`).
 - El **descuento de la línea** (`descuento_pct`) es una foto: guarda el descuento que se aplicó, para
   que cambiar después la ficha del cliente **no altere lo ya vendido**.
@@ -3402,8 +3404,7 @@ erDiagram
 
 ## Cuenta web del cliente (MSF-237)
 
-Una tabla nueva en `public` (plataforma/autenticación, atada a `public.clientes` por la excepción
-documentada) y funciones de lectura en `publico`/`private`; `publico` sigue **sin tablas**. Migraciones
+Una tabla nueva en `public` (plataforma/autenticación, atada a `dominio.clientes`) y funciones de lectura en `publico`/`private`; `publico` sigue **sin tablas**. Migraciones
 aditivas `20261206100000`–`20261206110100` (rama de la épica, pendiente de merge a `main`; reversión en
 el encabezado de cada una y consolidada en [Cuenta web del cliente](cuenta-web-cliente.md#alcance-de-entrega)).
 Detalle de RLS, RPC y operación: [Cuenta web del cliente](cuenta-web-cliente.md).
@@ -3411,7 +3412,7 @@ Detalle de RLS, RPC y operación: [Cuenta web del cliente](cuenta-web-cliente.md
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `public.cuentas_cliente` | **nueva** | Cuenta web por `(cliente, tienda)`: `id`, `organizacion_id`, `cliente_id`, `empresa_id`, `auth_user_id`, `estado` (`activa` \| `suspendida`), `created_at`; única `(cliente_id, empresa_id)`; FK en cascada a organización, cliente, empresa y `auth.users`. |
-| `public.clientes` | existente | Solo se referencia; el correo de acceso sale de `clientes.correo` y el tipo define la escala. |
+| `dominio.clientes` | existente | Solo se referencia; el correo de acceso sale de `clientes.correo` y el tipo define la escala. |
 | `public.clientes_empresas` | existente | Determina «Habilitado en»; su ausencia deriva «No habilitado». |
 | `public.organizaciones` | existente | Dueña y límite de aislamiento. |
 | `dominio.empresas` / `dominio.tiendas` | existentes | Empresa de la cuenta y dominio para el enlace de Auth. |
@@ -3722,7 +3723,7 @@ Detalle y reversión en [Correo masivo a clientes](correo-masivo-a-clientes.md).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
-| `public.clientes` | **alterada** | Columna `acepta_correo_masivo boolean not null default false`. |
+| `dominio.clientes` | **alterada** | Columna `acepta_correo_masivo boolean not null default false`. |
 | `dominio.campanas_correo` | **nueva** | Campaña: asunto, mensaje, empresa, clave de idempotencia. |
 | `dominio.campana_correo_destinatarios` | **nueva** | Foto de destinatarios, estado, hashes de baja (sin `grant select`) y `baja_en`. |
 | `dominio.correo_masivo_pruebas` | **nueva** | Pedidos de prueba al autor; sin acceso por API. |
@@ -3786,7 +3787,7 @@ renumeraron al integrar `dokploy`, antes `20270115…`).
 |---|---|---|
 | `dominio.proveedores_contactos` | **nueva** | Contactos del proveedor: `nombre` (obligatorio), `rol`, `correo`, `telefono`, `principal`; FK compuesta `(proveedor_id, organizacion_id)` contra `dominio.proveedores`. |
 | `dominio.ingresos_mercaderia_lineas` | **alterada** | `costo_unitario_usd` deja de ser `not null`: nulo significa «sin costo», no cero. |
-| `public.clientes` | existente | La fusión solo escribe `archivado_en` del descartado. Sin cambios de esquema. |
+| `dominio.clientes` | existente | La fusión solo escribe `archivado_en` del descartado. Sin cambios de esquema. |
 | `public.cuentas_cliente` | existente | La fusión reasigna `cliente_id` y da de baja la cuenta no elegida. Sin cambios de esquema. |
 | `dominio.comprobantes_venta` | existente | La fusión reasigna `cliente_id`. Sin cambios de esquema. |
 | `public.clientes_empresas` | existente | La fusión habilita en el conservado las tiendas de la cuenta reasignada. Sin cambios de esquema. |

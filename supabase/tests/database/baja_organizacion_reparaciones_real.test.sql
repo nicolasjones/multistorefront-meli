@@ -9,7 +9,7 @@ insert into public.organizaciones (id, nombre) values ('00000000-0000-0000-0000-
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('00000000-0000-0000-0000-0000000085a2', '00000000-0000-0000-0000-0000000085a1', 'Empresa con reparación', true),
   ('00000000-0000-0000-0000-0000000085a3', '00000000-0000-0000-0000-0000000085a1', 'Empresa sin reparación', true);
-insert into public.clientes (id, organizacion_id, nombre, tipo)
+insert into dominio.clientes (id, organizacion_id, nombre, tipo)
   values ('00000000-0000-0000-0000-0000000085a4', '00000000-0000-0000-0000-0000000085a1', 'Cliente', 'minorista');
 insert into dominio.modelos_equipo (id, organizacion_id, equipo, modelo)
   values ('00000000-0000-0000-0000-0000000085a5', '00000000-0000-0000-0000-0000000085a1', 'Celular', 'X1');

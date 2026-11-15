@@ -123,7 +123,7 @@ Lo que existe hoy para mayoristas:
 |---|---|---|
 | Escalas de precio del producto | `dominio.producto_precios_escala`, migración `20261022150000_producto_precios_escala.sql` | Precios sin IVA para x5, x10 y x50; x1 es el precio de lista. |
 | Cálculo por escala | `private.precio_para`, migración `20261022150100_precio_para.sql` | Resuelve la escala pedida y cae al precio de lista si no tiene precio. |
-| Tipo de cliente | `public.clientes.tipo` (`minorista` / `mayorista`), migración `20261016130300_clientes_tipo_y_consumidor_final.sql` | La ficha del cliente define el tipo. |
+| Tipo de cliente | `dominio.clientes.tipo` (`minorista` / `mayorista`), migración `20261016130300_clientes_tipo_y_consumidor_final.sql` | La ficha del cliente define el tipo. |
 | Contrato de escala | `public.escala_de_cliente`, misma migración | Contrato de lectura: devuelve `x1` para minorista y `por_cantidad` para mayorista. Es una **regla provisoria**. |
 | Escala de cada línea de venta | `private.escala_para_linea`, migración `20261203200300_lineas_rpc.sql` | La regla que usa Ventas: mayorista por cantidad (x5, x10, x50), minorista `x1`. |
 | Pantalla del prototipo | `design/pantallas/TiposCliente.dc.html` | Solo existe en el **prototipo**; **no hay pantalla ni tabla `tipos_cliente` construidas**. No es de esta épica. |

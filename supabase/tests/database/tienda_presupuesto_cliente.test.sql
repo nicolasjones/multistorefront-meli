@@ -121,7 +121,7 @@ select p.id, p.organizacion_id, 7 from dominio.productos p on conflict (producto
 
 -- Clientes: 1 mayorista con descuento 12,5 % · 2 minorista · 3 suspendida · 4 no habilitada en A (solo en B) · 6 con cuenta en B · 7 de la organización 2 con cuenta en X ·
 -- 9 y 10: cuentas para los topes y la concurrencia (mayoristas).
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista Cuenta', 'my@example.com', 'mayorista', 12.5),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista Cuenta', 'mn@example.com', 'minorista', 0),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida', 'su@example.com', 'mayorista', 0),
@@ -298,11 +298,11 @@ select is(pg_temp.fila('antes_suspender') ->> 'estado', 'ok', '(b) la cuenta act
 select is(pg_temp.fila('despues_suspender'), '{"estado":"sin_acceso"}'::jsonb, '(b) suspendida a mitad de la sesión: cotizar responde sin_acceso AL INSTANTE');
 select is(pg_temp.fila('despues_suspender_crear'), '{"estado":"sin_acceso"}'::jsonb, '(b) suspendida a mitad de la sesión: crear responde sin_acceso AL INSTANTE');
 -- Un cliente archivado y la baja de «Habilitado en» también cortan al instante.
-update public.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.1.0.10');
 insert into res values ('archivado', publico.cotizar_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1')));
 reset role;
-update public.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
 select is(pg_temp.fila('archivado'), '{"estado":"sin_acceso"}'::jsonb, '(b) cliente archivado: sin_acceso');
 delete from public.clientes_empresas where cliente_id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.1.0.11');
