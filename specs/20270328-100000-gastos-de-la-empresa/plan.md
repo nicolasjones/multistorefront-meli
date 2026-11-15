@@ -22,16 +22,16 @@
 
 ## Migraciones (todas aditivas e idempotentes; reversión en el encabezado de cada una)
 
-Numeración **por encima de toda la cola de `dokploy`**: hoy la máxima es `20270326100000` (`node scripts/verificar-migraciones.mjs --estricto`). La ventana de esta spec es `20270347000000+` (mayor que la de listas de precios, `20270340000000+`); se **renumera al integrar** si otra rama la ocupó.
+Numeración **por encima de toda la cola de `dokploy`**: hoy la máxima es `20270326100000` (`node scripts/verificar-migraciones.mjs --estricto`). La ventana de esta spec es `20270349000000+` (mayor que la de listas de precios, `20270340000000+`); se **renumera al integrar** si otra rama la ocupó.
 
 | Migración | Fase | Contenido |
 |---|---|---|
-| `20270347000000_gastos.sql` | 1 | Tabla `dominio.gastos` (checks, índices por organización/empresa/fecha, RLS, grants exactos) |
-| `20270347000100_gastos_rpc.sql` | 1 | `guardar_gasto`, `anular_gasto` (`security definer`, `search_path = ''`, `edicion` en `rentabilidad`, bloqueo optimista, cotización congelada, eventos de Actividad) |
-| `20270347000200_gastos_exportacion_total.sql` | 1 | Verifica/ajusta `private.exclusiones_exportacion_total()` para que la tabla **entre** (rebasar si otra migración la redefine) |
-| `20270347000300_gastos_consulta.sql` | 2 | `listar_gastos` (cursor) y `resumen_gastos` |
-| `20270347000400_costos_fijos_bandera_y_vistas.sql` | 3 | Bandera `margen_costos_fijos` apagada, `analitica.bandera_activa`, `analitica.costos_fijos_empresa_mes`, `analitica.ventas_netas_empresa_mes` |
-| `20270347000500_margen_despues_costos_fijos.sql` | 3 | `analitica.margen_despues_costos_fijos` sobre `analitica.margen_real_categoria` |
+| `20270349000000_gastos.sql` | 1 | Tabla `dominio.gastos` (checks, índices por organización/empresa/fecha, RLS, grants exactos) |
+| `20270349000100_gastos_rpc.sql` | 1 | `guardar_gasto`, `anular_gasto` (`security definer`, `search_path = ''`, `edicion` en `rentabilidad`, bloqueo optimista, cotización congelada, eventos de Actividad) |
+| `20270349000200_gastos_exportacion_total.sql` | 1 | Verifica/ajusta `private.exclusiones_exportacion_total()` para que la tabla **entre** (rebasar si otra migración la redefine) |
+| `20270349000300_gastos_consulta.sql` | 2 | `listar_gastos` (cursor) y `resumen_gastos` |
+| `20270349000400_costos_fijos_bandera_y_vistas.sql` | 3 | Bandera `margen_costos_fijos` apagada, `analitica.bandera_activa`, `analitica.costos_fijos_empresa_mes`, `analitica.ventas_netas_empresa_mes` |
+| `20270349000500_margen_despues_costos_fijos.sql` | 3 | `analitica.margen_despues_costos_fijos` sobre `analitica.margen_real_categoria` |
 
 La reversión de la última migración de cada fase queda **documentada** (no ejecutada en el mismo PR): `drop view` y `drop function` de lo nuevo; la tabla se retira solo en una migración posterior, exportando antes los datos.
 
@@ -72,7 +72,7 @@ La reversión de la última migración de cada fase queda **documentada** (no ej
 | Mes en curso con tasa distorsionada | Rótulo en el tablero; alternativa por días fuera de alcance |
 | Gasto mal clasificado fijo/variable | Valor por omisión por categoría, etiqueta visible, evento de Actividad |
 | Rendimiento del cruce por mes | Columnas del filtro del token en el `GROUP BY`; `EXPLAIN` con datos reales antes de encender |
-| Colisión de migraciones con otras ramas | Ventana `20270347000000+` y `verificar-migraciones --estricto` al integrar |
+| Colisión de migraciones con otras ramas | Ventana `20270349000000+` y `verificar-migraciones --estricto` al integrar |
 | Pantalla de margen sin prototipo | UI mínima declarada (D17), patrón de Comparativo/Historia, revisión lado a lado |
 
 ## Documentación

@@ -719,8 +719,8 @@
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa (fases 1 y 2: registro y consulta)",
-      "pageHash": "9ccbf82981cc46b583351f95488648afccdd01b35ea58cda18973b8223c81607",
-      "sourceHash": "ad7e96dcc61ee0a61877cd1e8b6b9db6a40907954baa7d046022e9ae002ad880",
+      "pageHash": "25aef9e6591f780f2c0f14df14bb72ea9c60428ce7f11afc866a1ecd9b819ee2",
+      "sourceHash": "0308c75a78b573dca67870e42494aca0bd9a7190bdb37b9bf89215d95cb3f598",
       "sourceAt": "2ca0ce82",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",

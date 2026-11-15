@@ -2,7 +2,7 @@ import { supabaseClient } from './supabase'
 import { armarCsv, type ColumnaCsv } from './exportarCsv'
 import { hoyEnOrganizacion } from './periodosRanking'
 
-// Gastos de la empresa (F-GAS-01/02). La autoridad es la base (migraciones 20270347000000…300: tabla `dominio.gastos` y RPC
+// Gastos de la empresa (F-GAS-01/02). La autoridad es la base (migraciones 20270349000000…300: tabla `dominio.gastos` y RPC
 // `guardar_gasto`, `anular_gasto`, `listar_gastos`, `resumen_gastos`, `exportar_gastos`). Acá se espeja solo la validación para dar
 // feedback mientras se escribe y se traducen los códigos de error a mensajes de negocio.
 
