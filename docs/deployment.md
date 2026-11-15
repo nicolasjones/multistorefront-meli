@@ -542,7 +542,7 @@ select count(*) = 1 as secreto_visitante_hmac_presente
 Debe devolver `true`. Si devuelve `false`, no promover: ejecutar `select private.inicializar_visitante_hmac();` con el rol
 `postgres` (crea el secreto si falta y es idempotente) y repetir la verificación. Nunca seleccionar `decrypted_secret`
 ni copiar el valor entre entornos: cada entorno tiene el suyo. Sin cabecera `x-forwarded-for`, la búsqueda y los envíos
-comparten el marcador «sin-ip» (migración `20270344000300`).
+comparten el marcador «sin-ip» (migración `20270347000300`).
 
 ### Reglas vigentes que no son defectos
 

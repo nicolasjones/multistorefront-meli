@@ -94,7 +94,7 @@ Restricciones e índices sobre `public.clientes`:
 | `20261016140000_clientes_buscar.sql` | `public.buscar_clientes` (M4, parte 1). |
 | `20261016150000_clientes_exportar.sql` | `public.exportar_clientes` (M4, parte 2). |
 | `20270324110000_exportar_clientes_registra_actividad.sql` | MSF-508: la lógica pasa a `private.exportar_clientes_lote` y `public.exportar_clientes` queda como envoltorio `volatile` que registra `clientes.exportados`. |
-| `20270344000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas; topes por organización y persona sin importar los filtros (50000 filas en 10 min y 200000 en 24 h, ajustables en `private.tope_exportacion_clientes`), rechazo temprano en el primer lote, el reintento cuenta doble; texto buscado fuera de la actividad. |
+| `20270347000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas; topes por organización y persona sin importar los filtros (50000 filas en 10 min y 200000 en 24 h, ajustables en `private.tope_exportacion_clientes`), rechazo temprano en el primer lote, el reintento cuenta doble; texto buscado fuera de la actividad. |
 | `20261016160000_clientes_habilitar_pg_trgm.sql` | Habilita `pg_trgm` en `extensions` y garantiza el índice GIN: **aborta con error si el índice no queda creado**, para que no haya un salto silencioso (en CI la extensión no estaba instalada y la migración de la ficha no creaba el índice). |
 
 La orden es deliberada: M3 reinicia los grants por columna, por eso M2 (`tipo`) va después.
@@ -232,7 +232,7 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   `authenticated`) y escribe `clientes.exportados` con `private.registrar_actividad`: «Exportó N clientes a Excel
   (filtros: …)». El permiso y el tope de 50000 por exportación se validan antes, así que un rechazo (`42501`/`54000`) no
   deja evento. Los filtros salen con el nombre visible de la tienda (nunca ids) y el texto buscado **no se escribe**
-  (solo «con texto»; podía ser un DNI, un correo o un teléfono). Desde `20270344000000` (seguridad retroactiva de #1011)
+  (solo «con texto»; podía ser un DNI, un correo o un teléfono). Desde `20270347000000` (seguridad retroactiva de #1011)
   cuenta **toda llamada con filas**, no solo el primer lote: `private.clientes_exportaciones_ventana` (sin acceso para la
   API) lleva una ventana de 10 minutos por organización, persona y huella de filtros con las filas entregadas y las ya
   declaradas. El primer lote declara el total de la exportación; un lote con cursor suma y solo escribe un evento
@@ -258,7 +258,7 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   persona administradora real: la sesión A toma el cupo de esa persona y lo retiene 8 s con su advisory lock (el lock es por
   organización y persona: no bloquea a otras personas; **no apuntar a producción**: retiene 8 s el cupo de una persona real) y la sesión B, de la misma persona, debe quedar esperando. Resultado
   esperado: `esperando el advisory lock (solo la sesión B) a los 4 s: 1 (esperado 1); duración de B: 6s (esperado >= 6)` (la duración puede ser mayor) y `OK: la segunda sesión de la misma persona
-  quedó serializada`. La espera se mide solo para la sesión B (por su `application_name`), así que otra actividad de la base no falsea el resultado; ante Ctrl-C el script mata sus sesiones. Si faltan las migraciones `20270344…` aborta con «Faltan las migraciones 20270344… en este entorno»
+  quedó serializada`. La espera se mide solo para la sesión B (por su `application_name`), así que otra actividad de la base no falsea el resultado; ante Ctrl-C el script mata sus sesiones. Si faltan las migraciones `20270347…` aborta con «Faltan las migraciones 20270347… en este entorno»
   (código 2); un error real de una sesión se muestra. Contra una función sin el lock imprime `FALLÓ`. Los topes bajos
   se prueban en pgTAP, no en el script.
 

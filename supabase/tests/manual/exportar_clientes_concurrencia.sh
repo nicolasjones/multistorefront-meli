@@ -27,7 +27,7 @@ como() { # $1 = user id: abre una sesión como esa persona (rol authenticated)
 }
 
 LISTA=$($PSQL -v ON_ERROR_STOP=1 <<< "select to_regclass('private.clientes_exportaciones_entregas') is not null;" 2>"$TMP/err") || { echo "No se pudo consultar la base:"; cat "$TMP/err"; exit 2; }
-if [ "$LISTA" != "t" ]; then echo "Faltan las migraciones 20270344… en este entorno"; exit 2; fi
+if [ "$LISTA" != "t" ]; then echo "Faltan las migraciones 20270347… en este entorno"; exit 2; fi
 
 # Persona administradora real con clientes en su organización (no se modifica nada).
 U=$($PSQL -v ON_ERROR_STOP=1 <<< "select uo.user_id from usuarios_organizacion uo where uo.rol_id = 'administrador'
