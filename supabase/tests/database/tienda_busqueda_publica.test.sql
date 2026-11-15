@@ -376,12 +376,12 @@ select is(
   (select count(*)::int from public.limite_pedidos_publicos where visitante like '%203.0.113%' or visitante like '%198.51.100%'),
   0, 'la IP no se guarda en claro'
 );
--- Sin cabecera todos caen en el grupo «desconocido»; con una sola IP, esa es el visitante.
+-- Sin cabecera todos caen en el grupo «sin-ip»; con una sola IP, esa es el visitante.
 select set_config('request.headers', '', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(extensions.hmac('desconocido|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
-  'sin x-forwarded-for el visitante es «desconocido»'
+  encode(extensions.hmac('sin-ip|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'sin x-forwarded-for el visitante es «sin-ip»'
 );
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true);
 select is(
