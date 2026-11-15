@@ -70,9 +70,14 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 - **Tope global por tienda y riesgo residual**: máximo 200 confirmaciones nuevas por hora y tienda (`private.tope_confirmaciones_hora_newsletter()`); superado, la suscripción
   no se guarda ni se envía y la respuesta sigue siendo `ok` (sin señal de tope). El tope por dirección no ve los alias de proveedor (`+tag`, puntos de Gmail, catch-all de un dominio):
   un atacante sigue pudiendo mandar hasta ese tope por hora a un mismo buzón; el límite por visitante (5/h) y el tope global lo acotan, y si aparece abuso real se agrega CAPTCHA
-  (seguimiento). Un envío que agota sus 4 ciclos anula el enlace (hash y vencimiento), de modo que la persona puede pedir otro.
+  (seguimiento). **Con el tope lleno, las altas legítimas se descartan EN SILENCIO** (la respuesta es `ok` pero el correo nunca llega) hasta una hora, y quien reúna 200 direcciones
+  (unos 40 visitantes a 5/h) agota el cupo de la tienda: es un riesgo de disponibilidad (DoS) aceptado en estas fases. Mitigación prevista: CAPTCHA o cupo separado por visitante, más una
+  alerta al alcanzar el tope (no hay alerta todavía): seguimiento MSF-971. El tope se cuenta bajo un lock por tienda (`pg_advisory_xact_lock`), de modo que dos suscripciones simultáneas no lo
+  superan; la fila de la dirección se toma con `for update`, así que una re-suscripción nunca anula el hash que el flow acaba de reclamar. Un envío que agota sus 4 ciclos anula el enlace (hash y vencimiento), de modo que la persona puede pedir otro.
 - **Invariante para las fases 3 a 5**: un tercero puede dejar `pendiente` a una dirección que estaba en `baja` (conserva `baja_en`). El reclamo de lote del correo masivo (MSF-155), los KPI de activos y la
   foto de destinatarios de `enviar_newsletter` filtran SIEMPRE `estado = 'confirmado'`, NUNCA `estado <> 'baja'`. Seguimiento: MSF-967.
+- **Unicode e IDN**: el correo con unicode directo (`ñandú@x.com`, `user@bücher.de`) y un TLD punycode (`a@b.xn--p1ai`) se rechazan en la tabla, el validador y el cliente; un dominio
+  internacionalizado entra con sus etiquetas `xn--` (`a@xn--bcher-kva.de`) y el TLD debe ser de letras ASCII.
 - **Re-suscribir no invalida el enlace legítimo**: si la dirección ya está `pendiente` con un enlace vigente (48 h), un nuevo pedido responde `ok` pero no emite
   otro correo ni pisa el hash; quien perdió el correo puede volver a pedirlo cuando venza. Si la dirección estaba en `baja`, vuelve a `pendiente` (con
   correo de confirmación, hasta 3 en 24 h) y el enlace anterior deja de valer; `baja_en` se **conserva** hasta que se confirme y, si nunca se confirma, la
@@ -81,7 +86,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 - **El cierre del flow no pisa un pedido nuevo**: `cerrar_confirmacion_newsletter` solo actúa sobre una suscripción `pendiente` con `confirmacion_hash` no nulo y con la confirmación por enviar (`confirmacion_enviada_en` nulo o anterior a `confirmacion_solicitada_en`); una re-suscripción que anuló el hash antes del cierre deja el cierre tardío sin efecto.
 - **El límite por visitante es compartido**: `confirmar_newsletter` también consume el cupo (5/h por visitante y tienda, el mismo de contacto, WhatsApp y suscripción).
   Quienes comparten IP, o el cupo único `sin-ip` cuando falta la cabecera, pueden quedar bloqueados por un rato (responde `limite` y la página ofrece reintentar).
-- El nombre de la tienda sale de la base sin `"`, `<`, `>`, `\` ni caracteres de control; el asunto y el cuerpo del correo lo escapan.
+- El nombre de la tienda sale de la base sin `"`, `<`, `>`, `\` ni caracteres de control; el cuerpo HTML del correo lo escapa y el asunto (texto plano) sale tal cual, sin entidades.
 
 ## Verificación técnica pendiente
 

@@ -61,7 +61,10 @@ test('el correo sale por el SMTP KESTRA_SMTP_* con el nombre de la tienda y el e
     'el enlace apunta al dominio de la tienda con su token',
   );
   assert.match(correo, /tienda \| escape/, 'el nombre de la tienda se escapa en el HTML');
-  assert.match(correo, /subject: "[^"]*\.tienda \| escape \}\}"/, 'el asunto también escapa el nombre de la tienda');
+  const asunto = /subject: "([^"]*)"/.exec(correo)[1];
+  assert.doesNotMatch(asunto, /escape|raw/, 'el asunto es texto plano: sin entidades HTML (una tienda con & no muestra &amp;)');
+  assert.doesNotMatch(asunto, /\\r|\\n|<br/, 'el asunto no admite saltos de línea');
+  assert.match(asunto, /\.tienda \}\}$/, 'el asunto usa el nombre ya saneado por la base');
   assert.match(correo, /48 horas/, 'el correo avisa el vencimiento');
   assert.doesNotMatch(content, /sendgrid|mailgun|postmark|ses\.amazonaws|api\.resend/i, 'ningún proveedor de correo nuevo');
   assert.doesNotMatch(content, /eyJ[A-Za-z0-9_-]{10,}/, 'ningún JWT literal en el flow');

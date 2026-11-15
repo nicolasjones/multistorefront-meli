@@ -36,10 +36,10 @@ describe('validarSuscripcion (espejo de la base)', () => {
   })
 
   it('rechaza puntos dobles, iniciales o finales, IP, etiquetas rotas, % ! | / y un local de más de 64', () => {
-    for (const correo of ['a..b@x.com', '.a@x.com', 'a.@x.com', 'a@1.2.3.4', 'a@-.-', 'a%b@x.com', 'a!b@x.com', 'a|b@x.com', 'a/b@x.com', 'a@x.c', 'a@-x.com', 'a@x-.com', 'a@x..com', `${'a'.repeat(65)}@x.com`]) {
+    for (const correo of ['a..b@x.com', '.a@x.com', 'a.@x.com', 'a@1.2.3.4', 'a@-.-', 'a%b@x.com', 'a!b@x.com', 'a|b@x.com', 'a/b@x.com', 'a@x.c', 'a@-x.com', 'a@x-.com', 'a@x..com', 'ñandú@x.com', 'user@bücher.de', 'a@b.xn--p1ai', `${'a'.repeat(65)}@x.com`]) {
       expect(validarSuscripcion({ correo, consentimiento: true }).correo, correo).toBeDefined()
     }
-    for (const correo of ['a.b+c@sub.dom-x.com', "o'brien@x.com", 'x@xn--ejemplo-9ua.com', `${'a'.repeat(64)}@x.com`]) {
+    for (const correo of ['a.b+c@sub.dom-x.com', "o'brien@x.com", 'x@xn--ejemplo-9ua.com', 'a@xn--bcher-kva.de', `${'a'.repeat(64)}@x.com`]) {
       expect(validarSuscripcion({ correo, consentimiento: true }), correo).toEqual({})
     }
   })

@@ -10,7 +10,7 @@ export type DatosNewsletter = { correo: string; consentimiento: boolean }
 export type ErroresNewsletter = Partial<Record<CampoNewsletter, string>>
 
 // Espejo EXACTO de private.validar_suscripcion_newsletter: una sola dirección con forma estricta: local `atom(.atom)*` (sin `%`, `!`, `|`, `/`, punto inicial, final ni doble), dominio con
-// etiquetas alfanuméricas y TLD de letras (acepta punycode), local ≤ 64 (sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`), recortada y en minúsculas, ≤ 254 y con la casilla marcada.
+// etiquetas alfanuméricas y TLD de letras ASCII (un dominio IDN entra con sus etiquetas `xn--`; el unicode directo y un TLD `xn--` se rechazan), local ≤ 64 (sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`), recortada y en minúsculas, ≤ 254 y con la casilla marcada.
 const ATOMO = "[a-z0-9'+_=&*#$?^{}~-]+"
 const CORREO = new RegExp(`^${ATOMO}(\\.${ATOMO})*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$`)
 const MAX_LOCAL = 64

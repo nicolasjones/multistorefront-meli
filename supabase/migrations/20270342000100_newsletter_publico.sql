@@ -156,8 +156,13 @@ begin
     -- Un lock por (tienda, dirección): dos pedidos simultáneos dejan una sola fila y un solo correo.
     perform pg_advisory_xact_lock(hashtextextended(v_empresa::text || '|' || v_correo, 1));
 
+    -- `for update`: si el flow está reclamando esta fila, se espera su commit y se decide con el hash ya generado (nunca se lo anula a ciegas).
     select * into v_fila from dominio.newsletter_suscriptores s
-     where s.empresa_id = v_empresa and lower(s.correo) = v_correo;
+     where s.empresa_id = v_empresa and lower(s.correo) = v_correo
+       for update;
+
+    -- Un lock por tienda justo antes de contar: el tope global no se supera por concurrencia (siempre se toma después del lock por dirección).
+    perform pg_advisory_xact_lock(hashtextextended('newsletter_tope|' || v_empresa::text, 2));
 
     select (select count(*) from dominio.newsletter_suscriptores x
              where x.empresa_id = v_empresa and x.confirmacion_solicitada_en > now() - interval '1 hour')

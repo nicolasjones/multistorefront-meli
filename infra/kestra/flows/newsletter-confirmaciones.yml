@@ -12,7 +12,7 @@
 # hasta 4 veces. La entrega es «al menos una vez»: si Kestra se corta entre enviar y cerrar, el reclamo vence y el correo puede salir de
 # nuevo con otro enlace (el último es el vigente).
 #
-# El nombre de la tienda llega ya limpio de comillas, `<`, `>` y saltos de línea desde la base (sin inyección de encabezados) y se escapa
+# El asunto es texto plano (sin escape: mostraría entidades como `&amp;`); el nombre de la tienda llega ya limpio de comillas, `<`, `>` y saltos de línea desde la base (sin inyección de encabezados) y se escapa
 # además para el cuerpo HTML.
 # Rol de base: kestra_orquestacion, solo EXECUTE sobre las dos funciones de este flow. Variable: NEWSLETTER_CONFIRMACION_LOTE (20);
 # ver infra/kestra/.env.example.
@@ -54,7 +54,7 @@ tasks:
                 transportStrategy: "{{ envs.kestra_smtp_transporte }}"
                 from: "\"{{ fromJson(parent.taskrun.value).tienda }}\" <{{ envs.kestra_smtp_from }}>"
                 to: "{{ fromJson(parent.taskrun.value).correo }}"
-                subject: "Confirmá tu suscripción a {{ fromJson(parent.taskrun.value).tienda | escape }}"
+                subject: "Confirmá tu suscripción a {{ fromJson(parent.taskrun.value).tienda }}"
                 htmlTextContent: |
                   <p>Hola, pediste recibir las novedades de {{ fromJson(parent.taskrun.value).tienda | escape }} por correo.</p>
                   <p><a href="https://{{ fromJson(parent.taskrun.value).dominio }}/newsletter/confirmar/{{ fromJson(parent.taskrun.value).token }}">Confirmar mi suscripción</a></p>

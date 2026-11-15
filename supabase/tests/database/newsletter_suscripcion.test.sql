@@ -474,5 +474,39 @@ select is((select count(*)::int from dominio.newsletter_suscriptores where corre
 select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'excedido@ejemplo.com'), 0, 'superado el tope global de la tienda no se guarda ni se envía');
 select is((select j from res where clave = 'g_201'), (select j from res where clave = 'g_200'), 'la respuesta del exceso es idéntica (ok): sin enumeración ni señal de tope');
 
+
+-- ============================================================================
+-- Revisión 3
+-- ============================================================================
+-- Un cierre FALLIDO tardío sobre una fila ya reiniciada (sin hash) no suma intento.
+insert into dominio.newsletter_suscriptores (id, organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en, confirmacion_intentos) values
+  ('51000000-0000-0000-0000-000000000020', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'tardio@ejemplo.com', 'newsletter-v1', now(), 0);
+select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000020', 'fallido', null);
+select is((select confirmacion_intentos from dominio.newsletter_suscriptores where correo = 'tardio@ejemplo.com'), 0, 'un cierre fallido tardío (hash nulo) no suma intento');
+
+-- Secuencia reclamar -> re-suscribir -> cerrar: el hash reclamado sobrevive y el cierre lo da por enviado.
+insert into dominio.newsletter_suscriptores (id, organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en) values
+  ('51000000-0000-0000-0000-000000000021', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'secuencia@ejemplo.com', 'newsletter-v1', now());
+create temp table lote_s as select * from private.reclamar_confirmaciones_newsletter(200, 900) where correo = 'secuencia@ejemplo.com';
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.7"}', true);
+set local role anon;
+insert into res values ('s_resus', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'secuencia@ejemplo.com', true, '00000000-0000-0000-0000-0000000000b3', ''));
+reset role;
+select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000021', 'enviado', null);
+select ok(
+  (select confirmacion_hash = encode(sha256(convert_to((select token from lote_s), 'utf8')), 'hex') and confirmacion_enviada_en is not null from dominio.newsletter_suscriptores where correo = 'secuencia@ejemplo.com'),
+  'reclamar → re-suscribir → cerrar: la re-suscripción no anuló el hash reclamado y el correo con ese enlace queda enviado');
+select is(
+  (select count(*)::int from pg_proc where pronamespace = 'publico'::regnamespace and proname = 'suscribirse_newsletter' and prosrc ~ 'for update' and prosrc ~ 'newsletter_tope'),
+  1, 'suscribirse toma la fila con for update y un lock por tienda antes del tope global');
+
+-- unicode directo y TLD punycode se rechazan; el dominio IDN con etiquetas xn-- pasa.
+select is(
+  (select coalesce(string_agg(c, ' | '), '') from unnest(array[E'ñandú@x.com', E'user@bücher.de', 'a@b.xn--p1ai']) c where private.validar_suscripcion_newsletter(c, true) = '{}'),
+  '', 'el unicode directo y un TLD punycode se rechazan');
+select is(private.validar_suscripcion_newsletter('a@xn--bcher-kva.de', true), '{}'::text[], 'un dominio IDN con etiquetas xn-- pasa');
+select throws_ok($$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', E'user@bücher.de', 'v1')$$, '23514', null, 'el check de la tabla rechaza el unicode directo');
+
 select * from finish();
 rollback;
