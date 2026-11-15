@@ -168,14 +168,44 @@ describe('Filtros y fallos por bloque (FR-011, CA-INI-05-7/8)', () => {
   it('cambiar la tienda recalcula los bloques con la nueva tienda', async () => {
     const vista = abrir()
     await screen.findByText('Resumen por tienda')
-    expect(mocks.bloques).toHaveBeenCalledWith({ ...CONTEXTO })
+    expect(mocks.bloques).toHaveBeenCalledWith({ ...CONTEXTO }, 'por_tienda')
+    expect(mocks.bloques).toHaveBeenCalledWith({ ...CONTEXTO }, 'salidas_por_deposito')
     vista.rerender(
       <MemoryRouter>
         <BloquesGestion contexto={{ ...CONTEXTO, empresaId: 'e-1' }} verVentas verStock verActividad />
       </MemoryRouter>,
     )
-    await waitFor(() => expect(mocks.bloques).toHaveBeenLastCalledWith({ ...CONTEXTO, empresaId: 'e-1' }))
+    await waitFor(() => expect(mocks.bloques).toHaveBeenCalledWith({ ...CONTEXTO, empresaId: 'e-1' }, 'salidas_por_deposito'))
     await waitFor(() => expect(mocks.actividad).toHaveBeenLastCalledWith({ ...CONTEXTO, empresaId: 'e-1' }))
+  })
+
+  it('si falla «Salidas por depósito» el resumen por tienda sigue y el reintento solo recarga ese bloque (RF-INI-05-7)', async () => {
+    mocks.bloques.mockImplementation(async (_ctx: unknown, seccion: string) => {
+      if (seccion === 'salidas_por_deposito') throw new Error('falló')
+      return BLOQUES
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    abrir()
+    expect(await screen.findByRole('list', { name: 'Resumen por tienda' })).toBeInTheDocument()
+    const alerta = await screen.findByRole('alert')
+    expect(alerta).toHaveTextContent('No pudimos cargar este dato')
+    const llamadasTienda = mocks.bloques.mock.calls.filter(([, s]) => s === 'por_tienda').length
+    mocks.bloques.mockImplementation(async () => BLOQUES)
+    alerta.querySelector('button')!.click()
+    expect(await screen.findByRole('list', { name: 'Salidas por depósito' })).toBeInTheDocument()
+    expect(mocks.bloques.mock.calls.filter(([, s]) => s === 'por_tienda')).toHaveLength(llamadasTienda)
+  })
+
+  it('si falla «Resumen por tienda» las salidas por depósito siguen visibles', async () => {
+    mocks.bloques.mockImplementation(async (_ctx: unknown, seccion: string) => {
+      if (seccion === 'por_tienda') throw new Error('falló')
+      return BLOQUES
+    })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    abrir()
+    expect(await screen.findByRole('list', { name: 'Salidas por depósito' })).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar este dato')
+    expect(screen.queryByRole('list', { name: 'Resumen por tienda' })).not.toBeInTheDocument()
   })
 
   it('si falla la actividad solo ese bloque muestra el error con reintento', async () => {
