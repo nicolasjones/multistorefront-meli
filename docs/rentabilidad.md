@@ -237,7 +237,7 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 4. El Roadmap a diciembre manda «Rentabilidad y reportes avanzados» a enero; el doc del componente la deja P0
    en el Hito 4: Nicolás decide y alinea.
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
-6. Pendientes de F-REN-03 trazados en **MSF-556**: selector «Mayor/Menor margen primero» y buscador de texto
+6. Pendientes de F-REN-03 trazados en **MSF-555**: selector «Mayor/Menor margen primero» y buscador de texto
    libre (hoy orden fijo por menor margen y lista con búsqueda).
 
 ## Costos adicionales del canal (F-REN-08, MSF-209)
