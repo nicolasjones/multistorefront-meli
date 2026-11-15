@@ -99,16 +99,18 @@ grant usage on schema dominio to authenticated;
 -- Solo lectura para el rol de la API: se escribe por las RPC (security definer) que validan el rol.
 revoke all on dominio.listas_precios from public, anon, authenticated;
 grant select on dominio.listas_precios to authenticated;
+-- service_role (API admin) opera las tablas como toda tabla operativa de dominio (pgTAP `service_role_privilegios`).
+grant select, insert, update, delete on dominio.listas_precios to service_role;
 
 -- Bandera de apagado (D13): apagada por defecto en cada entorno.
 insert into public.banderas_plataforma (clave, activa, descripcion) values
   ('listas_precios', false, 'Listas de precios por cliente: crear y editar listas, asignarlas a clientes y que el motor de precio las aplique.')
 on conflict (clave) do nothing;
 
--- Eventos de Actividad (RF-PRE-14-4). Editar el porcentaje es sensible: exige valor anterior y nuevo.
+-- Eventos de Actividad (RF-PRE-14-4). `editada` guarda igual el porcentaje anterior y el nuevo (no es de los seis tipos sensibles del seed).
 insert into public.tipos_evento_actividad (tipo, sensible, descripcion) values
   ('lista_precios.creada', false, 'Lista de precios creada'),
-  ('lista_precios.editada', true, 'Lista de precios editada (porcentaje anterior y nuevo)'),
+  ('lista_precios.editada', false, 'Lista de precios editada (porcentaje anterior y nuevo)'),
   ('lista_precios.archivada', false, 'Lista de precios archivada'),
   ('lista_precios.restaurada', false, 'Lista de precios restaurada')
 on conflict (tipo) do nothing;
